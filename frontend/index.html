@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Simple • IoT</title>
+    <script type="text/javascript" src="public/elm.js"></script>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  </head>
+
+    <body>
+    </body>
+
+    <script type="text/javascript">
+        var storedState = localStorage.getItem('simple-iot');
+        var startingState = storedState ? JSON.parse(storedState) : null;
+        var app = Elm.Main.init({ flags: startingState });
+        app.ports.setStorage.subscribe(function(state) {
+            localStorage.setItem('simple-iot', JSON.stringify(state));
+        });
+    </script>
+
+</html>
