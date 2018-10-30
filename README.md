@@ -58,11 +58,12 @@ language, but just as important in the deployment and tooling.
     - reduces possibility for run time exceptions in browser
     - does not require a huge/fragile build system typical in
       Javascript frontends.
-- Google App Engine for deployment
-  - the first deployment target. The app is a single statically linked binary
-    so can deployed to any server or environment that supports Go apps.
-  - is simple to deploy Go applications
-  - handle high-availability, scaling, etc.
+- Application Hosting
+  - Any server (Digital Ocean, Linode, etc)
+  - Google App Engine
+    - is simple to deploy Go applications
+    - handle high-availability, scaling, etc.
+  - (any server/hosting environment that supports Go apps can be used)
 
 In our experience, simplicity and good tooling matter. It is easy to add features
 to a language, but creating a useful language/tooling that is simple is even harder.
