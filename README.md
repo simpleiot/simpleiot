@@ -42,12 +42,12 @@ this point.
 Choices for the technology stack emphasizes simplicity, not only in the
 language, but just as important in the deployment and tooling.
 
-- Backend
+- **Backend**
   - Go
     - simple language and deployment model
     - nice balance of safety + productivity
     - excellent tooling and build system
-- Frontend
+- **Frontend**
   - Single Page Application (SPA) architecture
     - programming environment is much more powerful than server rendered
       pages (PHP, Rails, etc).
@@ -58,7 +58,7 @@ language, but just as important in the deployment and tooling.
     - reduces possibility for run time exceptions in browser
     - does not require a huge/fragile build system typical in
       Javascript frontends.
-- Application Hosting
+- **Hosting**
   - Any server (Digital Ocean, Linode, etc)
   - Google App Engine
     - is simple to deploy Go applications
