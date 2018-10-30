@@ -24,6 +24,7 @@ this point.
 ## Short term features
 
 - App Engine Deployment
+- device management
 - simple dashboard for each device showing collected parameters
 - REST api for devices
 - user accounts
