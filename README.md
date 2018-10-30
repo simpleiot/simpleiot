@@ -10,7 +10,7 @@ this point.
 
 ## Vision
 
-- built around collecting and visualizing data
+- built around collecting and visualizing data from devices
 - provide a good base system to build IoT products that may support a number
   devices, users, rules, etc.
 - requires coding to customize. This is not a GUI for building IoT systems,
@@ -24,11 +24,10 @@ this point.
 ## Short term features
 
 - App Engine Deployment
-- initially use http(s) transport for everything
 - simple dashboard for each device showing collected parameters
+- REST api for devices
 - user accounts
 - rules engine (conditions/consequences)
-- REST api for devices
 - support esp8266 devices
 
 ## Long term features
