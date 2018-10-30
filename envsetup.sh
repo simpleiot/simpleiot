@@ -8,6 +8,7 @@ app_build_frontend() {
 }
 
 app_build_assets() {
+  mkdir -p assets/frontend
   genesis -C frontend/public -pkg frontend index.html elm.js >assets/frontend/assets.go
 }
 
