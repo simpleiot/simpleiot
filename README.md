@@ -33,7 +33,7 @@ this point.
 
 ## Long term features
 
-- efficient protocols for cellular data connections (CoAP, etc)
+- efficient protocols for cellular data connections (CoAP, etc.)
 - edge computing features
 - organization support
 
@@ -66,14 +66,14 @@ language, but just as important in the deployment and tooling.
 
 In our experience, simplicity and good tooling matter. It is easy to add features
 to a language, but creating a useful language/tooling that is simple is even harder.
-Since we are using Elm on the frontend, it may have seem approapriate to select
-a functional language like Elixir, Scala, Clojure, etc for the backend. These
+Since we are using Elm on the frontend, it may have seem appropriate to select
+a functional language like Elixir, Scala, Clojure, etc. for the backend. These
 environments are likely excellent for many projects, but also considerably more
-complex to work in. The programming style (procedural, functional, etc) are important,
+complex to work in. The programming style (procedural, functional, etc.) are important,
 but other factors such as simplicity/tooling/deployment are also important, especially
-for small teams who are seperate staff for backend/frontend/operations. Learning two
+for small teams who are separate staff for backend/frontend/operations. Learning two
 simple languages is a small task compared to dealing with complex languages/environments.
 
 This is just a snapshot in time -- there will likely be other better technology choices in the
-future. The backend and frontent are independent. If either needs
+future. The backend and frontend are independent. If either needs
 to be swapped out for a better technology in the future, that is possible.
