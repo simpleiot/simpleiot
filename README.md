@@ -72,8 +72,9 @@ a functional language like Elixir, Scala, Clojure, etc. for the backend. These
 environments are likely excellent for many projects, but also considerably more
 complex to work in. The programming style (procedural, functional, etc.) are important,
 but other factors such as simplicity/tooling/deployment are also important, especially
-for small teams who are separate staff for backend/frontend/operations. Learning two
-simple languages is a small task compared to dealing with complex languages/environments.
+for small teams who don't have separate staff for backend/frontend/operations. Learning two
+simple languages (Go and Elm) is a small task compared to dealing with complex
+languages and deployment environments.
 
 This is just a snapshot in time -- there will likely be other better technology choices in the
 future. The backend and frontend are independent. If either needs
