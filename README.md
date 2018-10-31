@@ -3,7 +3,7 @@
 Simple IoT is collection of best practices for building IoT applications
 learned from experience building real-world applications.
 
-Demo is running at: https://simple-iot-220215.appspot.com/
+Demo is running at: https://portal.simpleiot.org/
 
 There is not much here yet -- mostly just a build/deployment system at
 this point.
