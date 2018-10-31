@@ -58,6 +58,11 @@ language, but just as important in the deployment and tooling.
     - reduces possibility for run time exceptions in browser
     - does not require a huge/fragile build system typical in
       Javascript frontends.
+  - Bootstrap
+    - mature CSS toolkit that handles browser differences and
+      responsive design for mobile reasonably well.
+    - widespread adoption and well understand by many developers
+    - well supporting bindings in Elm
 - **Hosting**
   - Any server (Digital Ocean, Linode, etc)
   - Google App Engine
