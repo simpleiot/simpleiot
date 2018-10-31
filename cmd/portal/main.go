@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/cbrake/simple-iot/assets/frontend"
-	"github.com/cbrake/simple-iot/httputil"
+	"github.com/simpleiot/SimpleIot/assets/frontend"
+	"pointwatch.com/httputil"
 )
 
 // IndexHandler is used to serve the index page
