@@ -30,7 +30,7 @@ func main() {
 
 	tempSim := sim.NewSim(72, 0.2, 70, 75)
 
-	sampleURL := *flagPortal + "/sample/" + *flagDeviceID
+	sampleURL := *flagPortal + "/v1/sample/" + *flagDeviceID
 
 	for {
 		temp := data.NewSample(tempSim.Sim())
@@ -46,7 +46,7 @@ func main() {
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			log.Println("Server error: ", resp.Status)
+			log.Println("Server error: ", resp.Status, sampleURL)
 			body, _ := ioutil.ReadAll(resp.Body)
 			log.Println("response Body:", string(body))
 		}

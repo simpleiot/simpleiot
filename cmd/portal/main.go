@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/simpleiot/SimpleIot/api"
 	"github.com/simpleiot/SimpleIot/assets/frontend"
 	"pointwatch.com/httputil"
 )
@@ -26,10 +27,16 @@ func (h *IndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// NewIndexHandler returns a new Index handler
+func NewIndexHandler() http.Handler {
+	return &IndexHandler{}
+}
+
 // App is a struct that implements http.Handler interface
 type App struct {
 	PublicHandler http.Handler
 	IndexHandler  http.Handler
+	V1ApiHandler  http.Handler
 }
 
 // Top level handler for http requests in the coap-server process
@@ -45,20 +52,27 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		switch head {
 		case "public":
 			h.PublicHandler.ServeHTTP(res, req)
+		case "v1":
+			h.V1ApiHandler.ServeHTTP(res, req)
 		default:
 			http.Error(res, "Not Found", http.StatusNotFound)
 		}
 	}
 }
 
+// NewAppHandler returns a new application (root) http handler
+func NewAppHandler() http.Handler {
+	return &App{
+		PublicHandler: http.FileServer(frontend.FileSystem()),
+		IndexHandler:  NewIndexHandler(),
+		V1ApiHandler:  api.NewV1Handler(),
+	}
+}
+
 func httpServer(port string) {
 	address := fmt.Sprintf(":%s", port)
 	log.Println("Starting http server")
-	a := &App{
-		PublicHandler: http.FileServer(frontend.FileSystem()),
-		IndexHandler:  &IndexHandler{},
-	}
-	http.ListenAndServe(address, a)
+	http.ListenAndServe(address, NewAppHandler())
 }
 
 func main() {
