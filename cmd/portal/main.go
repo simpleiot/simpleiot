@@ -68,10 +68,10 @@ func NewAppHandler() http.Handler {
 	}
 }
 
-func httpServer(port string) {
+func httpServer(port string) error {
 	address := fmt.Sprintf(":%s", port)
 	log.Println("Starting http server")
-	http.ListenAndServe(address, NewAppHandler())
+	return http.ListenAndServe(address, NewAppHandler())
 }
 
 func main() {
@@ -81,5 +81,8 @@ func main() {
 	}
 
 	log.Println("Starting portal on port: ", port)
-	httpServer(port)
+	err := httpServer(port)
+	if err != nil {
+		log.Println("Error starting server: ", err)
+	}
 }
