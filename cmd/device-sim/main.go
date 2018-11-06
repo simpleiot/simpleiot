@@ -11,8 +11,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/simpleiot/SimpleIot/data"
-	"github.com/simpleiot/SimpleIot/sim"
+	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/sim"
 )
 
 func main() {

@@ -8,9 +8,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/simpleiot/SimpleIot/api"
-	"github.com/simpleiot/SimpleIot/assets/frontend"
-	"pointwatch.com/httputil"
+	"github.com/simpleiot/simpleiot/api"
+	"github.com/simpleiot/simpleiot/assets/frontend"
 )
 
 // IndexHandler is used to serve the index page
@@ -48,7 +47,7 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if req.URL.Path == "/" {
 		h.IndexHandler.ServeHTTP(res, req)
 	} else {
-		head, req.URL.Path = httputil.ShiftPath(req.URL.Path)
+		head, req.URL.Path = api.ShiftPath(req.URL.Path)
 		switch head {
 		case "public":
 			h.PublicHandler.ServeHTTP(res, req)

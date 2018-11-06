@@ -1,10 +1,6 @@
 package api
 
-import (
-	"net/http"
-
-	"pointwatch.com/httputil"
-)
+import "net/http"
 
 // V1 handles v1 api requests
 type V1 struct {
@@ -15,7 +11,7 @@ type V1 struct {
 func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 
-	head, req.URL.Path = httputil.ShiftPath(req.URL.Path)
+	head, req.URL.Path = ShiftPath(req.URL.Path)
 	switch head {
 	case "sample":
 		h.SampleHandler.ServeHTTP(res, req)
