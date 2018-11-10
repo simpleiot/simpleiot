@@ -26,7 +26,7 @@ Return a list of all devices.
 A device contains state and config for a device.
 
 + Parameters
-    + id (string) - The ID of the desired coupon.
+    + id (string) - The ID of the desired device.
 
 ## GET
 Retrieve information for a specific device.
@@ -54,7 +54,7 @@ Retrieve information for a specific device.
 # Device Sample [/v1/devices/{id}/sample]
 
 + Parameters
-  + id (string) - The ID of the desired coupon.
+  + id (string) - The ID of the desired device.
 
 ## POST
 Retrieve information for a specific device.
