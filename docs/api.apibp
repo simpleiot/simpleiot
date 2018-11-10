@@ -1,8 +1,8 @@
 FORMAT: 1
 
-# SimpleIoT
+# Simple IoT
 
-Documentation for the SimpleIoT REST API.
+Documentation for the Simple IoT REST API.
 
 # All Devices [/v1/devices]
 
