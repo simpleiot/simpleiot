@@ -1,0 +1,23 @@
+FORMAT: 1
+
+# SimpleIoT
+
+Documentation for the SimpleIoT REST API.
+
+# /devices
+
+## GET
+Return a list of all devices.
+
++ Response 200 (application/json)
+
+# Devices [/devices/{id}]
+A device contains state and config for a device.
+
++ Parameters
+    + id (string) - The ID of the desired coupon.
+
+## GET
+Retrieve information for a specific device.
+
++ Response 200 (application/json)
