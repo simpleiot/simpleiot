@@ -4,6 +4,7 @@ import "time"
 
 // Sample represents a value in time
 type Sample struct {
+	ID    string    `json:"id"`
 	Value float64   `json:"value"`
 	Time  time.Time `json:"time"`
 }
