@@ -51,7 +51,7 @@ Retrieve information for a specific device.
   }
   ```
 
-# Deivce Sample [/v1/devices/{id}/sample]
+# Device Sample [/v1/devices/{id}/sample]
 
 + Parameters
   + id (string) - The ID of the desired coupon.
