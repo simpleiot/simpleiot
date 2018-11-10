@@ -8,67 +8,69 @@ Demo is running at: https://portal.simpleiot.org/
 There is not much here yet -- mostly just a build/deployment system at
 this point.
 
+[Detailed Documentation](docs/README.md)
+
 ## Vision
 
-- built around collecting and visualizing data from devices
-- provide a good base system to build IoT products that may support a number
+* built around collecting and visualizing data from devices
+* provide a good base system to build IoT products that may support a number
   devices, users, rules, etc.
-- requires coding to customize. This is not a GUI for building IoT systems,
+* requires coding to customize. This is not a GUI for building IoT systems,
   but rather a code base software developers can use as a starting point.
-- application technology is general, so you are not dependant on any one
+* application technology is general, so you are not dependant on any one
   IoT company
-- plugin architecture for extending the system
-- easy to host yourself with a simple deployment process
+* plugin architecture for extending the system
+* easy to host yourself with a simple deployment process
   (not a lot of pieces on the backend to manage)
 
 ## Short term features
 
-- App Engine Deployment
-- device management
-- simple dashboard for each device showing collected parameters
-- REST api for devices
-- user accounts
-- rules engine (conditions/consequences)
-- support esp32 devices
+* App Engine Deployment
+* device management
+* simple dashboard for each device showing collected parameters
+* REST api for devices
+* user accounts
+* rules engine (conditions/consequences)
+* support esp32 devices
 
 ## Long term features
 
-- efficient protocols for cellular data connections (CoAP, etc.)
-- edge computing features
-- organization support
+* efficient protocols for cellular data connections (CoAP, etc.)
+* edge computing features
+* organization support
 
 ## Technology choices
 
 Choices for the technology stack emphasizes simplicity, not only in the
 language, but just as important in the deployment and tooling.
 
-- **Backend**
-  - Go
-    - simple language and deployment model
-    - nice balance of safety + productivity
-    - excellent tooling and build system
-- **Frontend**
-  - Single Page Application (SPA) architecture
-    - programming environment is much more powerful than server rendered
+* **Backend**
+  * Go
+    * simple language and deployment model
+    * nice balance of safety + productivity
+    * excellent tooling and build system
+* **Frontend**
+  * Single Page Application (SPA) architecture
+    * programming environment is much more powerful than server rendered
       pages (PHP, Rails, etc).
-    - easier to transition to Progressive Web Apps (PWA)
-  - Elm
-    - nice balance of safety + productivity
-    - excellent compiler messages
-    - reduces possibility for run time exceptions in browser
-    - does not require a huge/fragile build system typical in
+    * easier to transition to Progressive Web Apps (PWA)
+  * Elm
+    * nice balance of safety + productivity
+    * excellent compiler messages
+    * reduces possibility for run time exceptions in browser
+    * does not require a huge/fragile build system typical in
       Javascript frontends.
-  - Bootstrap
-    - mature CSS toolkit that handles browser differences and
+  * Bootstrap
+    * mature CSS toolkit that handles browser differences and
       responsive design for mobile reasonably well.
-    - widespread adoption and well understand by many developers
-    - well supporting bindings in Elm
-- **Hosting**
-  - Any server (Digital Ocean, Linode, etc)
-  - Google App Engine
-    - is simple to deploy Go applications
-    - handle high-availability, scaling, etc.
-  - (any server/hosting environment that supports Go apps can be used)
+    * widespread adoption and well understand by many developers
+    * well supporting bindings in Elm
+* **Hosting**
+  * Any server (Digital Ocean, Linode, etc)
+  * Google App Engine
+    * is simple to deploy Go applications
+    * handle high-availability, scaling, etc.
+  * (any server/hosting environment that supports Go apps can be used)
 
 In our experience, simplicity and good tooling matter. It is easy to add features
 to a language, but creating a useful language/tooling that is simple is even harder.
