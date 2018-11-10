@@ -60,6 +60,6 @@ app_run() {
 }
 
 app_build_docs() {
-  snowboard lint doc/api.apibp
-  snowboard html doc/api.apibp -o doc/api.html
+  snowboard lint docs/api.apibp
+  snowboard html docs/api.apibp -o docs/api.html
 }
