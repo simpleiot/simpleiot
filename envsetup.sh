@@ -58,3 +58,8 @@ app_run() {
   go run cmd/portal/main.go || return 1
   return 0
 }
+
+app_build_docs() {
+  snowboard lint doc/api.apibp
+  snowboard html doc/api.apibp -o doc/api.html
+}

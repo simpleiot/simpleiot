@@ -4,14 +4,25 @@ FORMAT: 1
 
 Documentation for the SimpleIoT REST API.
 
-# /devices
+# All Devices [/v1/devices]
 
 ## GET
 Return a list of all devices.
 
 + Response 200 (application/json)
 
-# Devices [/devices/{id}]
+  ```
+  [
+    {
+      id: "1234asd"
+    },
+    {
+      id: "2346123"
+    }
+  ]
+  ```
+
+# Device [/v1/devices/{id}]
 A device contains state and config for a device.
 
 + Parameters
@@ -21,3 +32,48 @@ A device contains state and config for a device.
 Retrieve information for a specific device.
 
 + Response 200 (application/json)
+
+  ```
+  {
+    id: "1234523",
+    state: {
+      ios: [
+        {
+          id: "p1",
+          value: 1
+        },
+        {
+          id: "a0",
+          value: 2.5
+        }
+      ]
+    }
+  }
+  ```
+
+# Deivce Sample [/v1/devices/{id}/sample]
+
++ Parameters
+  + id (string) - The ID of the desired coupon.
+
+## POST
+Retrieve information for a specific device.
+
++ Request (application/json)
+
+  ```
+  [
+    {
+      id: "p1",
+      time: "2018-04-23T18:25:43.511Z",
+      value: 1
+    },
+    {
+      id: "a0",
+      time: "2018-04-23T18:28:43.511Z",
+      value: 2.5
+    }
+  ]
+  ```
+
++ Response 200
