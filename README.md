@@ -29,7 +29,7 @@ this point.
 - REST api for devices
 - user accounts
 - rules engine (conditions/consequences)
-- support esp8266 devices
+- support esp32 devices
 
 ## Long term features
 
