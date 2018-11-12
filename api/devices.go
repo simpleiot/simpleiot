@@ -17,7 +17,8 @@ func (h *Devices) processSample(res http.ResponseWriter, req *http.Request, id s
 	var s data.Sample
 	err := decoder.Decode(&s)
 	if err != nil {
-		panic(err)
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	h.state.UpdateDevice(id, s)
@@ -33,7 +34,11 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	switch head {
 	case "sample":
-		h.processSample(res, req, id)
+		if req.Method == http.MethodPost {
+			h.processSample(res, req, id)
+		} else {
+			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+		}
 	default:
 		if id == "" {
 			en := json.NewEncoder(res)
