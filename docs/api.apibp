@@ -4,6 +4,8 @@ FORMAT: 1
 
 Documentation for the Simple IoT REST API.
 
+**Warning, this API is in the experimental phase and may change.**
+
 # All Devices [/v1/devices]
 
 ## GET
