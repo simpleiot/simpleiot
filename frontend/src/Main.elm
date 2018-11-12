@@ -8,6 +8,10 @@ import Browser
 import Html exposing (Html, button, div, h1, text)
 import Html.Attributes exposing (href)
 import Html.Events exposing (onClick)
+import Json.Decode as Decode
+import Url.Builder as Url
+import Time
+
 
 
 main =
@@ -22,10 +26,22 @@ main =
 
 -- Model
 
+type alias Sample =
+    { id : String
+    , value: Float
+    }
+
+type alias Device =
+    { id : String
+    , description: String
+    , ios : List Sample
+    }
+
 
 type alias Model =
     { navbarState : Navbar.State
     , accordionState : Accordion.State
+    , devices : List Device
     }
 
 
@@ -34,6 +50,7 @@ type Msg
     | Decrement
     | NavbarMsg Navbar.State
     | AccordionMsg Accordion.State
+    | Tick Time.Posix
 
 
 
@@ -45,6 +62,7 @@ subscriptions model =
     Sub.batch
         [ Navbar.subscriptions model.navbarState NavbarMsg
         , Accordion.subscriptions model.accordionState AccordionMsg
+        , Time.every 1000 Tick
         ]
 
 
@@ -61,6 +79,7 @@ init model =
     in
     ( { navbarState = navbarState
       , accordionState = Accordion.initialState
+      , devices = []
       }
     , navbarCmd
     )
@@ -69,6 +88,7 @@ init model =
 
 -- Update
 
+urlDevices = Url.absolute ["v1", "devices"]
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -84,6 +104,9 @@ update msg model =
 
         AccordionMsg state ->
             ( { model | accordionState = state }, Cmd.none )
+
+        Tick newTime ->
+            ( model, Cmd.none )
 
 
 
