@@ -33,9 +33,9 @@ type State struct {
 }
 
 // Devices returns summary information for all devices
-func (s *State) Devices() (ret []DeviceSummary) {
+func (s *State) Devices() (ret []DeviceState) {
 	for _, d := range s.devices {
-		ret = append(ret, d.Summary())
+		ret = append(ret, d)
 	}
 	return
 }
