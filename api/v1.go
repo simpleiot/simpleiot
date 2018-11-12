@@ -1,6 +1,10 @@
 package api
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/simpleiot/simpleiot/data"
+)
 
 // V1 handles v1 api requests
 type V1 struct {
@@ -20,8 +24,8 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewV1Handler returns a handle for V1 API
-func NewV1Handler() http.Handler {
+func NewV1Handler(state *data.State) http.Handler {
 	return &V1{
-		DevicesHandler: NewDevicesHandler(),
+		DevicesHandler: NewDevicesHandler(state),
 	}
 }

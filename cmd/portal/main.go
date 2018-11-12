@@ -10,6 +10,7 @@ import (
 
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/frontend"
+	"github.com/simpleiot/simpleiot/data"
 )
 
 // IndexHandler is used to serve the index page
@@ -60,18 +61,18 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewAppHandler returns a new application (root) http handler
-func NewAppHandler() http.Handler {
+func NewAppHandler(state *data.State) http.Handler {
 	return &App{
 		PublicHandler: http.FileServer(frontend.FileSystem()),
 		IndexHandler:  NewIndexHandler(),
-		V1ApiHandler:  api.NewV1Handler(),
+		V1ApiHandler:  api.NewV1Handler(state),
 	}
 }
 
-func httpServer(port string) error {
+func httpServer(port string, state *data.State) error {
 	address := fmt.Sprintf(":%s", port)
 	log.Println("Starting http server")
-	return http.ListenAndServe(address, NewAppHandler())
+	return http.ListenAndServe(address, NewAppHandler(state))
 }
 
 func main() {
@@ -80,8 +81,10 @@ func main() {
 		port = "8080"
 	}
 
+	state := data.State{}
+
 	log.Println("Starting portal on port: ", port)
-	err := httpServer(port)
+	err := httpServer(port, &state)
 	if err != nil {
 		log.Println("Error starting server: ", err)
 	}

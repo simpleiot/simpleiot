@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -10,17 +9,18 @@ import (
 
 // Devices handles device requests
 type Devices struct {
-	SampleHandler http.Handler
+	state *data.State
 }
 
-func processSample(res http.ResponseWriter, req *http.Request, id string) {
+func (h *Devices) processSample(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
 	var s data.Sample
 	err := decoder.Decode(&s)
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("CLIFF: sample ID: %v, value: %+v\n", id, s)
+
+	h.state.UpdateDevice(id, s)
 }
 
 // Top level handler for http requests in the coap-server process
@@ -33,13 +33,24 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	switch head {
 	case "sample":
-		processSample(res, req, id)
+		h.processSample(res, req, id)
 	default:
-		http.Error(res, "Not Found", http.StatusNotFound)
+		if id == "" {
+			en := json.NewEncoder(res)
+			en.Encode(h.state.Devices())
+		} else {
+			device, err := h.state.Device(id)
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+			} else {
+				en := json.NewEncoder(res)
+				en.Encode(device)
+			}
+		}
 	}
 }
 
 // NewDevicesHandler returns a new device handler
-func NewDevicesHandler() http.Handler {
-	return &Devices{}
+func NewDevicesHandler(state *data.State) http.Handler {
+	return &Devices{state}
 }
