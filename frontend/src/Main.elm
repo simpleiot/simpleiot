@@ -11,6 +11,7 @@ import Html.Attributes exposing (href)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Decode
+import Round
 import Time
 import Url.Builder as Url
 
@@ -199,7 +200,7 @@ ios : List Sample -> Accordion.CardBlock Msg
 ios samples =
     Accordion.listGroup
         (List.map
-            (\s -> ListGroup.li [] [ text (s.id ++ ": " ++ String.fromFloat s.value) ])
+            (\s -> ListGroup.li [] [ text (s.id ++ ": " ++ Round.round 2 s.value) ])
             samples
         )
 
