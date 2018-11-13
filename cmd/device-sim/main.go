@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -19,10 +20,37 @@ func packetDelay() {
 	time.Sleep(5 * time.Second)
 }
 
+func newSendSample(portalURL string) func(string, data.Sample) error {
+	return func(id string, sample data.Sample) error {
+		sampleURL := portalURL + "/v1/devices/" + id + "/sample"
+
+		tempJSON, err := json.Marshal(sample)
+		if err != nil {
+			log.Println("Error encoding temp: ", err)
+		}
+
+		resp, err := http.Post(sampleURL, "application/json", bytes.NewBuffer(tempJSON))
+
+		if err != nil {
+			return err
+		}
+
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			errstring := "Server error: " + resp.Status + " " + sampleURL
+			body, _ := ioutil.ReadAll(resp.Body)
+			errstring += " " + string(body)
+			return errors.New(errstring)
+		}
+
+		return nil
+	}
+}
+
 func main() {
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagDeviceID := flag.String("deviceId", "1234", "Device ID")
-	flagIoID := flag.String("ioId", "A0", "IO ID")
 	flag.Parse()
 
 	if *flagPortal == "" {
@@ -33,33 +61,21 @@ func main() {
 
 	log.Printf("ID: %v, portal: %v\n", *flagDeviceID, *flagPortal)
 
+	sendSample := newSendSample(*flagPortal)
 	tempSim := sim.NewSim(72, 0.2, 70, 75)
-
-	sampleURL := *flagPortal + "/v1/devices/" + *flagDeviceID + "/sample"
+	voltSim := sim.NewSim(2, 0.1, 1, 5)
 
 	for {
-		temp := data.NewSample(*flagIoID, tempSim.Sim())
-		tempJSON, err := json.Marshal(temp)
+		tempSample := data.NewSample("T0", tempSim.Sim())
+		err := sendSample(*flagDeviceID, tempSample)
 		if err != nil {
-			log.Println("Error encoding temp: ", err)
+			log.Println("Error sending sample: ", err)
 		}
-
-		resp, err := http.Post(sampleURL, "application/json", bytes.NewBuffer(tempJSON))
-
+		voltSample := data.NewSample("V0", voltSim.Sim())
+		err = sendSample(*flagDeviceID, voltSample)
 		if err != nil {
-			log.Println("Error posting sample: ", err)
-			packetDelay()
-			continue
+			log.Println("Error sending sample: ", err)
 		}
-
-		if resp.StatusCode != http.StatusOK {
-			log.Println("Server error: ", resp.Status, sampleURL)
-			body, _ := ioutil.ReadAll(resp.Body)
-			log.Println("response Body:", string(body))
-		}
-
-		resp.Body.Close()
-
 		packetDelay()
 	}
 }
