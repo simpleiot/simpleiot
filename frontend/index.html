@@ -17,12 +17,6 @@
     </body>
 
     <script type="text/javascript">
-        var storedState = localStorage.getItem('simple-iot');
-        var startingState = storedState ? JSON.parse(storedState) : null;
-        var app = Elm.Main.init({ flags: startingState });
-        app.ports.setStorage.subscribe(function(state) {
-            localStorage.setItem('simple-iot', JSON.stringify(state));
-        });
+        var app = Elm.Main.init();
     </script>
-
 </html>

@@ -7,15 +7,15 @@ import (
 
 // DeviceSummary is a just returns device ID and description
 type DeviceSummary struct {
-	ID          string
-	Description string
+	ID          string `json:"id"`
+	Description string `json:"description"`
 }
 
 // DeviceState represents the state of a device
 type DeviceState struct {
-	ID          string
-	Description string
-	Ios         []Sample
+	ID          string   `json:"id"`
+	Description string   `json:"description"`
+	Ios         []Sample `json:"ios"`
 }
 
 // Summary returns summary information for a device state

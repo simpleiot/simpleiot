@@ -8,10 +8,10 @@ import Browser
 import Html exposing (Html, button, div, h1, text)
 import Html.Attributes exposing (href)
 import Html.Events exposing (onClick)
+import Http
 import Json.Decode as Decode
-import Url.Builder as Url
 import Time
-
+import Url.Builder as Url
 
 
 main =
@@ -26,14 +26,17 @@ main =
 
 -- Model
 
+
 type alias Sample =
     { id : String
-    , value: Float
+    , value : Float
+    , time : String
     }
 
-type alias Device =
+
+type alias DeviceState =
     { id : String
-    , description: String
+    , description : String
     , ios : List Sample
     }
 
@@ -41,7 +44,7 @@ type alias Device =
 type alias Model =
     { navbarState : Navbar.State
     , accordionState : Accordion.State
-    , devices : List Device
+    , devices : List DeviceState
     }
 
 
@@ -51,6 +54,7 @@ type Msg
     | NavbarMsg Navbar.State
     | AccordionMsg Accordion.State
     | Tick Time.Posix
+    | UpdateDevices (Result Http.Error (List DeviceState))
 
 
 
@@ -88,10 +92,47 @@ init model =
 
 -- Update
 
-urlDevices = Url.absolute ["v1", "devices"]
+
+urlDevices =
+    Url.absolute [ "v1", "devices" ] []
+
+
+sampleDecoder : Decode.Decoder Sample
+sampleDecoder =
+    Decode.map3 Sample
+        (Decode.field "id" Decode.string)
+        (Decode.field "value" Decode.float)
+        (Decode.field "time" Decode.string)
+
+
+samplesDecoder : Decode.Decoder (List Sample)
+samplesDecoder =
+    Decode.list sampleDecoder
+
+
+deviceStateDecoder : Decode.Decoder DeviceState
+deviceStateDecoder =
+    Decode.map3 DeviceState
+        (Decode.field "id" Decode.string)
+        (Decode.field "description" Decode.string)
+        (Decode.field "ios" samplesDecoder)
+
+
+devicesDecoder : Decode.Decoder (List DeviceState)
+devicesDecoder =
+    Decode.list deviceStateDecoder
+
+
+getDevices =
+    Http.send UpdateDevices (Http.get urlDevices devicesDecoder)
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        _ =
+            Debug.log "update: " msg
+    in
     case msg of
         Increment ->
             ( model, Cmd.none )
@@ -106,7 +147,15 @@ update msg model =
             ( { model | accordionState = state }, Cmd.none )
 
         Tick newTime ->
-            ( model, Cmd.none )
+            ( model, getDevices )
+
+        UpdateDevices result ->
+            case result of
+                Ok devicesUpdate ->
+                    ( { model | devices = devicesUpdate }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
 
 
 
@@ -145,30 +194,27 @@ mainContent model =
         ]
 
 
+device : DeviceState -> Accordion.Card Msg
+device dev =
+    Accordion.card
+        { id = dev.id
+        , options = []
+        , header =
+            Accordion.header [] <| Accordion.toggle [] [ text dev.id ]
+        , blocks =
+            [ Accordion.block []
+                [ Block.text [] [ text "78°F" ] ]
+            ]
+        }
+
+
 devices : Model -> Html Msg
 devices model =
     Accordion.config AccordionMsg
         |> Accordion.withAnimation
         |> Accordion.cards
-            [ Accordion.card
-                { id = "card1"
-                , options = []
-                , header =
-                    Accordion.header [] <| Accordion.toggle [] [ text "Device #1" ]
-                , blocks =
-                    [ Accordion.block []
-                        [ Block.text [] [ text "78°F" ] ]
-                    ]
-                }
-            , Accordion.card
-                { id = "card2"
-                , options = []
-                , header =
-                    Accordion.header [] <| Accordion.toggle [] [ text "Device #2" ]
-                , blocks =
-                    [ Accordion.block []
-                        [ Block.text [] [ text "75°F" ] ]
-                    ]
-                }
-            ]
+            (List.map
+                device
+                model.devices
+            )
         |> Accordion.view model.accordionState
