@@ -15,6 +15,10 @@ import (
 	"github.com/simpleiot/simpleiot/sim"
 )
 
+func packetDelay() {
+	time.Sleep(5 * time.Second)
+}
+
 func main() {
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagDeviceID := flag.String("deviceId", "1234", "Device ID")
@@ -44,6 +48,8 @@ func main() {
 
 		if err != nil {
 			log.Println("Error posting sample: ", err)
+			packetDelay()
+			continue
 		}
 
 		if resp.StatusCode != http.StatusOK {
@@ -52,8 +58,8 @@ func main() {
 			log.Println("response Body:", string(body))
 		}
 
-		defer resp.Body.Close()
+		resp.Body.Close()
 
-		time.Sleep(20 * time.Second)
+		packetDelay()
 	}
 }
