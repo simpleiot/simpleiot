@@ -192,38 +192,38 @@ mainContent : Model -> Html Msg
 mainContent model =
     Grid.container []
         [ h1 [] [ text "Devices" ]
-        , devices model
+        , renderDevices model
         ]
 
 
-ios : List Sample -> Accordion.CardBlock Msg
-ios samples =
-    Accordion.listGroup
-        (List.map
-            (\s -> ListGroup.li [] [ text (s.id ++ ": " ++ Round.round 2 s.value) ])
-            samples
-        )
+renderDevices : Model -> Html Msg
+renderDevices model =
+    Accordion.config AccordionMsg
+        |> Accordion.withAnimation
+        |> Accordion.cards
+            (List.map
+                renderDevice
+                model.devices
+            )
+        |> Accordion.view model.accordionState
 
 
-device : DeviceState -> Accordion.Card Msg
-device dev =
+renderDevice : DeviceState -> Accordion.Card Msg
+renderDevice dev =
     Accordion.card
         { id = dev.id
         , options = []
         , header =
             Accordion.header [] <| Accordion.toggle [] [ text dev.id ]
         , blocks =
-            [ ios dev.ios ]
+            [ renderIos dev.ios ]
         }
 
 
-devices : Model -> Html Msg
-devices model =
-    Accordion.config AccordionMsg
-        |> Accordion.withAnimation
-        |> Accordion.cards
-            (List.map
-                device
-                model.devices
-            )
-        |> Accordion.view model.accordionState
+renderIos : List Sample -> Accordion.CardBlock Msg
+renderIos samples =
+    Accordion.listGroup
+        (List.map
+            (\s -> ListGroup.li [] [ text (s.id ++ ": " ++ Round.round 2 s.value) ])
+            samples
+        )
