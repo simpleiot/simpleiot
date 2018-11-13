@@ -131,10 +131,11 @@ getDevices =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    let
-        _ =
-            Debug.log "update: " msg
-    in
+    -- uncomment the following to display model updates
+    -- let
+    --        _ =
+    --            Debug.log "update: " msg
+    -- in
     case msg of
         Increment ->
             ( model, Cmd.none )
