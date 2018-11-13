@@ -3,6 +3,7 @@ port module Main exposing (Msg(..), main, update, view)
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Card.Block as Block
 import Bootstrap.Grid as Grid
+import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Navbar as Navbar
 import Browser
 import Html exposing (Html, button, div, h1, text)
@@ -194,6 +195,15 @@ mainContent model =
         ]
 
 
+ios : List Sample -> Accordion.CardBlock Msg
+ios samples =
+    Accordion.listGroup
+        (List.map
+            (\s -> ListGroup.li [] [ text (s.id ++ ": " ++ String.fromFloat s.value) ])
+            samples
+        )
+
+
 device : DeviceState -> Accordion.Card Msg
 device dev =
     Accordion.card
@@ -202,9 +212,7 @@ device dev =
         , header =
             Accordion.header [] <| Accordion.toggle [] [ text dev.id ]
         , blocks =
-            [ Accordion.block []
-                [ Block.text [] [ text "78°F" ] ]
-            ]
+            [ ios dev.ios ]
         }
 
 
