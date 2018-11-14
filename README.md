@@ -1,4 +1,4 @@
-<img src="docs/simple-iot-logo.png?raw=true" width="100">
+<img src="docs/simple-iot-logo.png?raw=true" width="150">
 
 # Simple IoT
 
