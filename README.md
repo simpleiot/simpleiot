@@ -1,7 +1,5 @@
 <img src="docs/simple-iot-logo.png?raw=true" width="150">
 
-# Simple IoT
-
 Simple IoT is collection of best practices for building IoT applications
 learned from experience building real-world applications.
 
