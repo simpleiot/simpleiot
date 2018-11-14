@@ -19,16 +19,16 @@ this point.
   but rather a code base software developers can use as a starting point.
 - application technology is general, so you are not dependant on any one
   IoT company, or cloud provider
-- plugin architecture for extending the system
-- easy to host yourself with a simple deployment process
-  (not a lot of pieces on the backend to manage)
-- For small deployments (< 1000 devices), application can run standalone
-  (no external databases or services are required). Installation is as simple
-  as starting one executable.
-- Storage (config and sensor data) supports multiple db backends (mongodb,
-  Google Cloud Datastore, influxdb, etc). This allows the application to scale
-  to any number of devices.
-- All assets are embedded. Deployment/upgrade is as simple as copying one binary.
+- plugin architecture for extending the system with custom functionality
+- simple deployment process (not a lot of pieces on the backend to manage)
+  - Deployment/upgrade is as simple as copying one binary.
+  - All assets are embedded.
+  - For small deployments (< 1000 devices), application is completely self contained
+    (no external databases or services are required).
+- Storage (config and sensor data) supports multiple databases
+  - embedded db for small deployments
+  - (mongodb, Google Cloud Datastore, influxdb, etc) for larger deployments or other
+    needs.
 
 ## Short term features
 
@@ -60,7 +60,7 @@ Choices for the technology stack emphasizes simplicity, not only in the
 language, but just as important in the deployment and tooling.
 
 - **Backend**
-  - Go
+  - [Go](https://golang.org/)
     - simple language and deployment model
     - nice balance of safety + productivity
     - excellent tooling and build system
@@ -69,20 +69,24 @@ language, but just as important in the deployment and tooling.
     - programming environment is much more powerful than server rendered
       pages (PHP, Rails, etc).
     - easier to transition to Progressive Web Apps (PWA)
-  - Elm
+  - [Elm](https://elm-lang.org/)
     - nice balance of safety + productivity
     - excellent compiler messages
     - reduces possibility for run time exceptions in browser
     - does not require a huge/fragile build system typical in
       Javascript frontends.
-  - Bootstrap
+  - [Bootstrap](http://getbootstrap.com/)
     - mature CSS toolkit that handles browser differences and
       responsive design for mobile reasonably well.
     - widespread adoption and well understand by many developers
-    - well supporting bindings in Elm
+    - well supporting [bindings in Elm](https://package.elm-lang.org/packages/rundis/elm-bootstrap/latest/)
+- **Database**
+  - Eventually support multiple databased backends depending on scaling/admin needs
+  - Embedded db using [BoltHold](https://github.com/timshannon/bolthold)
+    - no external services to configure/admin
 - **Hosting**
   - Any server (Digital Ocean, Linode, etc)
-  - Google App Engine
+  - [Google App Engine](https://cloud.google.com/appengine/)
     - is simple to deploy Go applications
     - handle high-availability, scaling, etc.
   - (any server/hosting environment that supports Go apps can be used)
@@ -95,8 +99,8 @@ environments are likely excellent for many projects, but also considerably more
 complex to work in. The programming style (procedural, functional, etc.) are important,
 but other factors such as simplicity/tooling/deployment are also important, especially
 for small teams who don't have separate staff for backend/frontend/operations. Learning two
-simple languages (Go and Elm) is a small task compared to dealing with complex
-languages and deployment environments.
+simple languages (Go and Elm) is a small task compared to dealing with huge
+languages, fussy build tools, and complex deployment environments.
 
 This is just a snapshot in time -- there will likely be other better technology choices in the
 future. The backend and frontend are independent. If either needs
