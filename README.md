@@ -32,9 +32,9 @@ this point.
 
 ## Short term features
 
-- Embedded database using boldhold
+- edit/save device config
+- esp32 client example
 - user accounts
-- support esp32 devices
 - store timeseries data
 - graph timeseries data
 - rules engine (conditions/consequences)
@@ -44,6 +44,7 @@ done:
 - device management
 - simple dashboard for each device showing collected parameters
 - REST api for devices
+- Embedded database using boldhold
 
 ## Long term features
 
