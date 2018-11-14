@@ -1,2 +1,10 @@
 github.com/benbjohnson/genesis v0.2.1 h1:a3Q3egZj+hD+OqIMXCrPP+3DQwFg2W/4WVJMsxT9jvM=
 github.com/benbjohnson/genesis v0.2.1/go.mod h1:8ATnWEh6jLjo/pORjjfvkkxauC+XaSIvVfEXMI0Cv9M=
+github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
+github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
+github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944 h1:gpP0SE4FIbe/r8ES2eLrs7iWmg7j9ipvqM2c+0aDJu8=
+github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944/go.mod h1:jUigdmrbdCxcIDEFrq82t4X9805XZfwFZoYUap0ET/U=
+go.etcd.io/bbolt v1.3.0 h1:oY10fI923Q5pVCVt1GBTZMn8LHo5M+RCInFpeMnV4QI=
+go.etcd.io/bbolt v1.3.0/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
+golang.org/x/sys v0.0.0-20181107165924-66b7b1311ac8 h1:YoY1wS6JYVRpIfFngRf2HHo9R9dAne3xbkGOQ5rJXjU=
+golang.org/x/sys v0.0.0-20181107165924-66b7b1311ac8/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
