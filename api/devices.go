@@ -5,11 +5,12 @@ import (
 	"net/http"
 
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/db"
 )
 
 // Devices handles device requests
 type Devices struct {
-	state *data.State
+	db *db.Db
 }
 
 func (h *Devices) processSample(res http.ResponseWriter, req *http.Request, id string) {
@@ -21,7 +22,10 @@ func (h *Devices) processSample(res http.ResponseWriter, req *http.Request, id s
 		return
 	}
 
-	h.state.UpdateDevice(id, s)
+	err = h.db.DeviceSample(id, s)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // Top level handler for http requests in the coap-server process
@@ -41,10 +45,15 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		}
 	default:
 		if id == "" {
+			devices, err := h.db.Devices()
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+				return
+			}
 			en := json.NewEncoder(res)
-			en.Encode(h.state.Devices())
+			en.Encode(devices)
 		} else {
-			device, err := h.state.Device(id)
+			device, err := h.db.Device(id)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
@@ -56,6 +65,6 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewDevicesHandler returns a new device handler
-func NewDevicesHandler(state *data.State) http.Handler {
-	return &Devices{state}
+func NewDevicesHandler(db *db.Db) http.Handler {
+	return &Devices{db}
 }

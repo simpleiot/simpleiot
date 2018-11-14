@@ -10,7 +10,7 @@ import (
 
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/frontend"
-	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/db"
 )
 
 // IndexHandler is used to serve the index page
@@ -61,18 +61,18 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewAppHandler returns a new application (root) http handler
-func NewAppHandler(state *data.State) http.Handler {
+func NewAppHandler(db *db.Db) http.Handler {
 	return &App{
 		PublicHandler: http.FileServer(frontend.FileSystem()),
 		IndexHandler:  NewIndexHandler(),
-		V1ApiHandler:  api.NewV1Handler(state),
+		V1ApiHandler:  api.NewV1Handler(db),
 	}
 }
 
-func httpServer(port string, state *data.State) error {
+func httpServer(port string, db *db.Db) error {
 	address := fmt.Sprintf(":%s", port)
 	log.Println("Starting http server")
-	return http.ListenAndServe(address, NewAppHandler(state))
+	return http.ListenAndServe(address, NewAppHandler(db))
 }
 
 func main() {
@@ -81,10 +81,14 @@ func main() {
 		port = "8080"
 	}
 
-	state := data.State{}
+	db, err := db.NewDb()
+	if err != nil {
+		log.Println("Error opening db: ", err)
+		os.Exit(-1)
+	}
 
 	log.Println("Starting portal on port: ", port)
-	err := httpServer(port, &state)
+	err = httpServer(port, db)
 	if err != nil {
 		log.Println("Error starting server: ", err)
 	}

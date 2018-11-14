@@ -2,3 +2,4 @@ assets
 frontend/public
 frontend/elm-stuff
 siot-portal
+data.db

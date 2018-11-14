@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/db"
 )
 
 // V1 handles v1 api requests
@@ -24,8 +24,8 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewV1Handler returns a handle for V1 API
-func NewV1Handler(state *data.State) http.Handler {
+func NewV1Handler(db *db.Db) http.Handler {
 	return &V1{
-		DevicesHandler: NewDevicesHandler(state),
+		DevicesHandler: NewDevicesHandler(db),
 	}
 }
