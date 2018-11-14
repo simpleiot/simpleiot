@@ -1,3 +1,5 @@
+<img src="docs/simple-iot-logo.png?raw=true" width="100">
+
 # Simple IoT
 
 Simple IoT is collection of best practices for building IoT applications
@@ -79,7 +81,7 @@ language, but just as important in the deployment and tooling.
     - mature CSS toolkit that handles browser differences and
       responsive design for mobile reasonably well.
     - widespread adoption and well understand by many developers
-    - well supporting [bindings in Elm](https://package.elm-lang.org/packages/rundis/elm-bootstrap/latest/)
+    - well supported [bindings in Elm](https://package.elm-lang.org/packages/rundis/elm-bootstrap/latest/)
 - **Database**
   - Eventually support multiple databased backends depending on scaling/admin needs
   - Embedded db using [BoltHold](https://github.com/timshannon/bolthold)
