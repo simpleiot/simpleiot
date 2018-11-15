@@ -5,10 +5,13 @@ import Bootstrap.Card.Block as Block
 import Bootstrap.Grid as Grid
 import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Navbar as Navbar
+import Bootstrap.Modal as Modal
+import Bootstrap.Grid.Col as Col
+import Bootstrap.Button as Button
 import Browser
 import Color exposing (Color)
 import Html exposing (Html, button, div, h1, h4, span, text)
-import Html.Attributes exposing (href, style, type_)
+import Html.Attributes exposing (href, style, type_, class)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Decode
@@ -16,6 +19,7 @@ import Material.Icons.Image exposing (edit)
 import Round
 import Time
 import Url.Builder as Url
+import List.Extra as ListExtra
 
 
 main =
@@ -38,7 +42,7 @@ type alias Sample =
     }
 
 
-type alias DeviceState =
+type alias Device =
     { id : String
     , description : String
     , ios : List Sample
@@ -48,7 +52,9 @@ type alias DeviceState =
 type alias Model =
     { navbarState : Navbar.State
     , accordionState : Accordion.State
-    , devices : List DeviceState
+    , devices : List Device
+    , editDeviceVisibility : Modal.Visibility
+    , editDevice : Maybe Device
     }
 
 
@@ -58,10 +64,9 @@ type Msg
     | NavbarMsg Navbar.State
     | AccordionMsg Accordion.State
     | Tick Time.Posix
-    | UpdateDevices (Result Http.Error (List DeviceState))
+    | UpdateDevices (Result Http.Error (List Device))
     | EditDevice String
-
-
+    | EditDeviceClose
 
 -- Subscriptions
 
@@ -89,6 +94,8 @@ init model =
     ( { navbarState = navbarState
       , accordionState = Accordion.initialState
       , devices = []
+      , editDeviceVisibility = Modal.hidden
+      , editDevice = Nothing
       }
     , navbarCmd
     )
@@ -115,30 +122,34 @@ samplesDecoder =
     Decode.list sampleDecoder
 
 
-deviceStateDecoder : Decode.Decoder DeviceState
+deviceStateDecoder : Decode.Decoder Device
 deviceStateDecoder =
-    Decode.map3 DeviceState
+    Decode.map3 Device
         (Decode.field "id" Decode.string)
         (Decode.field "description" Decode.string)
         (Decode.field "ios" samplesDecoder)
 
 
-devicesDecoder : Decode.Decoder (List DeviceState)
+devicesDecoder : Decode.Decoder (List Device)
 devicesDecoder =
     Decode.list deviceStateDecoder
 
-
+getDevices : Cmd Msg
 getDevices =
     Http.send UpdateDevices (Http.get urlDevices devicesDecoder)
 
+findDevice: Model -> String -> Maybe Device
+findDevice model id =
+    ListExtra.find (\d -> d.id == id) model.devices
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     -- uncomment the following to display model updates
-    let
-        _ =
-            Debug.log "update: " msg
-    in
+    --let
+    --    _ =
+    --        Debug.log "update: " msg
+    --    _ = Debug.log "model: " model
+    --in
     case msg of
         Increment ->
             ( model, Cmd.none )
@@ -164,12 +175,13 @@ update msg model =
                     ( model, Cmd.none )
 
         EditDevice id ->
-            ( model, Cmd.none )
+            ( {model | editDeviceVisibility = Modal.shown}, Cmd.none )
 
+        EditDeviceClose ->
+            ( {model | editDeviceVisibility = Modal.hidden}, Cmd.none )
 
 
 -- View
-
 
 view : Model -> Browser.Document Msg
 view model =
@@ -178,6 +190,7 @@ view model =
         [ div []
             [ menu model
             , mainContent model
+            , renderEditDevice model
             ]
         ]
     }
@@ -215,7 +228,7 @@ renderDevices model =
         |> Accordion.view model.accordionState
 
 
-renderDevice : DeviceState -> Accordion.Card Msg
+renderDevice : Device -> Accordion.Card Msg
 renderDevice dev =
     Accordion.card
         { id = dev.id
@@ -223,7 +236,7 @@ renderDevice dev =
         , header =
             Accordion.header []
                 (Accordion.toggle [] [ h4 [] [ text dev.id ] ])
-                |> Accordion.appendHeader [ button [ type_ "button", onClick (EditDevice dev.id), style "" "" ] [ edit Color.darkGrey 30 ] ]
+                |> Accordion.appendHeader [ button [ type_ "button", onClick (EditDevice dev.id), class "btn btn-light" ] [ edit Color.black 25 ] ]
         , blocks =
             [ renderIos dev.ios ]
         }
@@ -236,3 +249,29 @@ renderIos samples =
             (\s -> ListGroup.li [] [ text (s.id ++ ": " ++ Round.round 2 s.value) ])
             samples
         )
+
+renderEditDevice : Model -> Html Msg
+renderEditDevice model =
+     Modal.config EditDeviceClose
+            |> Modal.small
+            |> Modal.h5 [] [ text "Modal header" ]
+            |> Modal.body []
+                [ Grid.containerFluid []
+                    [ Grid.row []
+                        [ Grid.col
+                            [ Col.xs6 ]
+                            [ text "Col 1" ]
+                        , Grid.col
+                            [ Col.xs6 ]
+                            [ text "Col 2" ]
+                        ]
+                    ]
+                ]
+            |> Modal.footer []
+                [ Button.button
+                    [ Button.outlinePrimary
+                    , Button.attrs [ onClick EditDeviceClose ]
+                    ]
+                    [ text "Close" ]
+                ]
+            |> Modal.view model.editDeviceVisibility
