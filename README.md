@@ -1,7 +1,8 @@
 <img src="docs/simple-iot-logo.png?raw=true" width="150">
 
-Simple IoT is collection of best practices for building IoT applications
-learned from experience building real-world applications.
+Simple IoT is collection of building blocks and best practices
+for building IoT applications, learned from experience building
+real-world systems.
 
 Demo is running at: https://portal.simpleiot.org/
 
