@@ -6,11 +6,13 @@ import Bootstrap.Grid as Grid
 import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Navbar as Navbar
 import Browser
-import Html exposing (Html, button, div, h1, text)
-import Html.Attributes exposing (href)
+import Color exposing (Color)
+import Html exposing (Html, button, div, h1, h4, span, text)
+import Html.Attributes exposing (href, style, type_)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Decode
+import Material.Icons.Image exposing (edit)
 import Round
 import Time
 import Url.Builder as Url
@@ -57,6 +59,7 @@ type Msg
     | AccordionMsg Accordion.State
     | Tick Time.Posix
     | UpdateDevices (Result Http.Error (List DeviceState))
+    | EditDevice String
 
 
 
@@ -132,10 +135,10 @@ getDevices =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     -- uncomment the following to display model updates
-    -- let
-    --        _ =
-    --            Debug.log "update: " msg
-    -- in
+    let
+        _ =
+            Debug.log "update: " msg
+    in
     case msg of
         Increment ->
             ( model, Cmd.none )
@@ -159,6 +162,9 @@ update msg model =
 
                 Err _ ->
                     ( model, Cmd.none )
+
+        EditDevice id ->
+            ( model, Cmd.none )
 
 
 
@@ -215,7 +221,9 @@ renderDevice dev =
         { id = dev.id
         , options = []
         , header =
-            Accordion.header [] <| Accordion.toggle [] [ text dev.id ]
+            Accordion.header []
+                (Accordion.toggle [] [ h4 [] [ text dev.id ] ])
+                |> Accordion.appendHeader [ button [ type_ "button", onClick (EditDevice dev.id), style "" "" ] [ edit Color.darkGrey 30 ] ]
         , blocks =
             [ renderIos dev.ios ]
         }
