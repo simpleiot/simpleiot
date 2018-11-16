@@ -4,6 +4,13 @@ import Bootstrap.Accordion as Accordion
 import Bootstrap.Alert as Alert
 import Bootstrap.Button as Button
 import Bootstrap.Card.Block as Block
+import Bootstrap.Form as Form
+import Bootstrap.Form.Checkbox as Checkbox
+import Bootstrap.Form.Fieldset as Fieldset
+import Bootstrap.Form.Input as Input
+import Bootstrap.Form.Radio as Radio
+import Bootstrap.Form.Select as Select
+import Bootstrap.Form.Textarea as Textarea
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.ListGroup as ListGroup
@@ -12,8 +19,8 @@ import Bootstrap.Navbar as Navbar
 import Browser
 import Color exposing (Color)
 import Html exposing (Html, button, div, h1, h4, span, text)
-import Html.Attributes exposing (class, href, style, type_)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (class, href, placeholder, style, type_)
+import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode
 import List.Extra as ListExtra
@@ -68,6 +75,8 @@ type Msg
     | UpdateDevices (Result Http.Error (List Device))
     | EditDevice String
     | EditDeviceClose
+    | EditDeviceSave
+    | EditDeviceChangeDescription String
 
 
 
@@ -79,7 +88,7 @@ subscriptions model =
     Sub.batch
         [ Navbar.subscriptions model.navbarState NavbarMsg
         , Accordion.subscriptions model.accordionState AccordionMsg
-        , Time.every 1000 Tick
+        , Time.every 5000 Tick
         ]
 
 
@@ -148,14 +157,37 @@ findDevice model id =
     ListExtra.find (\d -> d.id == id) model.devices
 
 
+updateDevice : Model -> Maybe Device -> Model
+updateDevice model device =
+    case device of
+        Nothing ->
+            model
+
+        Just deviceUpdate ->
+            let
+                index =
+                    ListExtra.findIndex (\d -> d.id == deviceUpdate.id) model.devices
+
+                devices =
+                    case index of
+                        Nothing ->
+                            List.append model.devices [ deviceUpdate ]
+
+                        Just i ->
+                            ListExtra.setAt i deviceUpdate model.devices
+            in
+            { model | devices = devices }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     -- uncomment the following to display model updates
-    --let
-    --    _ =
-    --        Debug.log "update: " msg
-    --    _ = Debug.log "model: " model
-    --in
+    let
+        --    _ =
+        --        Debug.log "update: " msg
+        _ =
+            Debug.log "model: " model
+    in
     case msg of
         Increment ->
             ( model, Cmd.none )
@@ -181,10 +213,33 @@ update msg model =
                     ( model, Cmd.none )
 
         EditDevice id ->
-            ( { model | editDeviceVisibility = Modal.shown }, Cmd.none )
+            ( { model
+                | editDeviceVisibility = Modal.shown
+                , editDevice = findDevice model id
+              }
+            , Cmd.none
+            )
 
         EditDeviceClose ->
             ( { model | editDeviceVisibility = Modal.hidden }, Cmd.none )
+
+        EditDeviceSave ->
+            ( updateDevice model model.editDevice, Cmd.none )
+
+        EditDeviceChangeDescription desc ->
+            case model.editDevice of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just device ->
+                    let
+                        oldEditDevice =
+                            device
+
+                        newEditDevice =
+                            { oldEditDevice | description = desc }
+                    in
+                    ( { model | editDevice = Just newEditDevice }, Cmd.none )
 
 
 
@@ -236,6 +291,11 @@ renderDevices model =
         |> Accordion.view model.accordionState
 
 
+renderDeviceSummary : Device -> String
+renderDeviceSummary dev =
+    dev.description ++ "(" ++ dev.id ++ ")"
+
+
 renderDevice : Device -> Accordion.Card Msg
 renderDevice dev =
     Accordion.card
@@ -243,7 +303,7 @@ renderDevice dev =
         , options = []
         , header =
             Accordion.header []
-                (Accordion.toggle [] [ h4 [] [ text dev.id ] ])
+                (Accordion.toggle [] [ h4 [] [ text (renderDeviceSummary dev) ] ])
                 |> Accordion.appendHeader [ button [ type_ "button", onClick (EditDevice dev.id), class "btn btn-light" ] [ edit Color.black 25 ] ]
         , blocks =
             [ renderIos dev.ios ]
@@ -282,25 +342,26 @@ renderEditDevice model =
                 |> Modal.small
                 |> Modal.h5 [] [ text ("Edit device (" ++ device.id ++ ")") ]
                 |> Modal.body []
-                    [ Grid.containerFluid []
-                        [ Grid.row []
-                            [ Grid.col
-                                [ Col.xs6 ]
-                                [ text "Col 1" ]
-                            , Grid.col
-                                [ Col.xs6 ]
-                                [ text "Col 2" ]
+                    [ Form.form []
+                        [ Form.group []
+                            [ Form.label [] [ text "Device description" ]
+                            , Input.text
+                                [ Input.attrs
+                                    [ placeholder "enter description"
+                                    , onInput EditDeviceChangeDescription
+                                    ]
+                                ]
                             ]
                         ]
                     ]
                 |> Modal.footer []
                     [ Button.button
                         [ Button.outlinePrimary
-                        , Button.attrs [ onClick EditDeviceClose ]
+                        , Button.attrs [ onClick EditDeviceSave ]
                         ]
-                        [ text "Cancel" ]
+                        [ text "Save" ]
                     , Button.button
-                        [ Button.outlinePrimary
+                        [ Button.outlineWarning
                         , Button.attrs [ onClick EditDeviceClose ]
                         ]
                         [ text "Cancel" ]
