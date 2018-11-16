@@ -2,25 +2,25 @@ port module Main exposing (Msg(..), main, update, view)
 
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Alert as Alert
+import Bootstrap.Button as Button
 import Bootstrap.Card.Block as Block
 import Bootstrap.Grid as Grid
-import Bootstrap.ListGroup as ListGroup
-import Bootstrap.Navbar as Navbar
-import Bootstrap.Modal as Modal
 import Bootstrap.Grid.Col as Col
-import Bootstrap.Button as Button
+import Bootstrap.ListGroup as ListGroup
+import Bootstrap.Modal as Modal
+import Bootstrap.Navbar as Navbar
 import Browser
 import Color exposing (Color)
 import Html exposing (Html, button, div, h1, h4, span, text)
-import Html.Attributes exposing (href, style, type_, class)
+import Html.Attributes exposing (class, href, style, type_)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Decode
+import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
 import Round
 import Time
 import Url.Builder as Url
-import List.Extra as ListExtra
 
 
 main =
@@ -68,6 +68,8 @@ type Msg
     | UpdateDevices (Result Http.Error (List Device))
     | EditDevice String
     | EditDeviceClose
+
+
 
 -- Subscriptions
 
@@ -135,13 +137,16 @@ devicesDecoder : Decode.Decoder (List Device)
 devicesDecoder =
     Decode.list deviceStateDecoder
 
+
 getDevices : Cmd Msg
 getDevices =
     Http.send UpdateDevices (Http.get urlDevices devicesDecoder)
 
-findDevice: Model -> String -> Maybe Device
+
+findDevice : Model -> String -> Maybe Device
 findDevice model id =
     ListExtra.find (\d -> d.id == id) model.devices
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -176,13 +181,15 @@ update msg model =
                     ( model, Cmd.none )
 
         EditDevice id ->
-            ( {model | editDeviceVisibility = Modal.shown}, Cmd.none )
+            ( { model | editDeviceVisibility = Modal.shown }, Cmd.none )
 
         EditDeviceClose ->
-            ( {model | editDeviceVisibility = Modal.hidden}, Cmd.none )
+            ( { model | editDeviceVisibility = Modal.hidden }, Cmd.none )
+
 
 
 -- View
+
 
 view : Model -> Browser.Document Msg
 view model =
@@ -251,15 +258,16 @@ renderIos samples =
             samples
         )
 
+
 renderEditDevice : Model -> Html Msg
 renderEditDevice model =
     case model.editDevice of
         Nothing ->
-         Modal.config EditDeviceClose
+            Modal.config EditDeviceClose
                 |> Modal.small
-                |> Modal.h5 [] [ text "Warning!"]
+                |> Modal.h5 [] [ text "Warning!" ]
                 |> Modal.body []
-                                [ text "No device to edit" ]
+                    [ text "No device to edit" ]
                 |> Modal.footer []
                     [ Button.button
                         [ Button.outlinePrimary
@@ -268,10 +276,11 @@ renderEditDevice model =
                         [ text "Cancel" ]
                     ]
                 |> Modal.view model.editDeviceVisibility
+
         Just device ->
-         Modal.config EditDeviceClose
+            Modal.config EditDeviceClose
                 |> Modal.small
-                |> Modal.h5 [] [ text ("Edit device (" ++ device.id ++ ")")]
+                |> Modal.h5 [] [ text ("Edit device (" ++ device.id ++ ")") ]
                 |> Modal.body []
                     [ Grid.containerFluid []
                         [ Grid.row []
