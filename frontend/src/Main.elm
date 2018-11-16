@@ -1,6 +1,7 @@
 port module Main exposing (Msg(..), main, update, view)
 
 import Bootstrap.Accordion as Accordion
+import Bootstrap.Alert as Alert
 import Bootstrap.Card.Block as Block
 import Bootstrap.Grid as Grid
 import Bootstrap.ListGroup as ListGroup
@@ -252,26 +253,47 @@ renderIos samples =
 
 renderEditDevice : Model -> Html Msg
 renderEditDevice model =
-     Modal.config EditDeviceClose
-            |> Modal.small
-            |> Modal.h5 [] [ text "Modal header" ]
-            |> Modal.body []
-                [ Grid.containerFluid []
-                    [ Grid.row []
-                        [ Grid.col
-                            [ Col.xs6 ]
-                            [ text "Col 1" ]
-                        , Grid.col
-                            [ Col.xs6 ]
-                            [ text "Col 2" ]
+    case model.editDevice of
+        Nothing ->
+         Modal.config EditDeviceClose
+                |> Modal.small
+                |> Modal.h5 [] [ text "Warning!"]
+                |> Modal.body []
+                                [ text "No device to edit" ]
+                |> Modal.footer []
+                    [ Button.button
+                        [ Button.outlinePrimary
+                        , Button.attrs [ onClick EditDeviceClose ]
+                        ]
+                        [ text "Cancel" ]
+                    ]
+                |> Modal.view model.editDeviceVisibility
+        Just device ->
+         Modal.config EditDeviceClose
+                |> Modal.small
+                |> Modal.h5 [] [ text ("Edit device (" ++ device.id ++ ")")]
+                |> Modal.body []
+                    [ Grid.containerFluid []
+                        [ Grid.row []
+                            [ Grid.col
+                                [ Col.xs6 ]
+                                [ text "Col 1" ]
+                            , Grid.col
+                                [ Col.xs6 ]
+                                [ text "Col 2" ]
+                            ]
                         ]
                     ]
-                ]
-            |> Modal.footer []
-                [ Button.button
-                    [ Button.outlinePrimary
-                    , Button.attrs [ onClick EditDeviceClose ]
+                |> Modal.footer []
+                    [ Button.button
+                        [ Button.outlinePrimary
+                        , Button.attrs [ onClick EditDeviceClose ]
+                        ]
+                        [ text "Cancel" ]
+                    , Button.button
+                        [ Button.outlinePrimary
+                        , Button.attrs [ onClick EditDeviceClose ]
+                        ]
+                        [ text "Cancel" ]
                     ]
-                    [ text "Close" ]
-                ]
-            |> Modal.view model.editDeviceVisibility
+                |> Modal.view model.editDeviceVisibility
