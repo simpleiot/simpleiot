@@ -19,7 +19,7 @@ import Bootstrap.Navbar as Navbar
 import Browser
 import Color exposing (Color)
 import Html exposing (Html, button, div, h1, h4, span, text)
-import Html.Attributes exposing (class, href, placeholder, style, type_)
+import Html.Attributes exposing (class, href, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode
@@ -57,12 +57,23 @@ type alias Device =
     }
 
 
+type alias Devices =
+    { devices : List Device
+    , dirty : Bool
+    }
+
+
+type alias DeviceEdits =
+    { device : Maybe Device
+    , visibility : Modal.Visibility
+    }
+
+
 type alias Model =
     { navbarState : Navbar.State
     , accordionState : Accordion.State
-    , devices : List Device
-    , editDeviceVisibility : Modal.Visibility
-    , editDevice : Maybe Device
+    , devices : Devices
+    , deviceEdits : DeviceEdits
     }
 
 
@@ -88,7 +99,7 @@ subscriptions model =
     Sub.batch
         [ Navbar.subscriptions model.navbarState NavbarMsg
         , Accordion.subscriptions model.accordionState AccordionMsg
-        , Time.every 5000 Tick
+        , Time.every 1000 Tick
         ]
 
 
@@ -105,9 +116,8 @@ init model =
     in
     ( { navbarState = navbarState
       , accordionState = Accordion.initialState
-      , devices = []
-      , editDeviceVisibility = Modal.hidden
-      , editDevice = Nothing
+      , devices = { devices = [], dirty = False }
+      , deviceEdits = { device = Nothing, visibility = Modal.hidden }
       }
     , navbarCmd
     )
@@ -152,42 +162,42 @@ getDevices =
     Http.send UpdateDevices (Http.get urlDevices devicesDecoder)
 
 
-findDevice : Model -> String -> Maybe Device
-findDevice model id =
-    ListExtra.find (\d -> d.id == id) model.devices
+findDevice : List Device -> String -> Maybe Device
+findDevice devices id =
+    ListExtra.find (\d -> d.id == id) devices
 
 
-updateDevice : Model -> Maybe Device -> Model
-updateDevice model device =
+updateDevice : List Device -> Maybe Device -> List Device
+updateDevice devices device =
     case device of
         Nothing ->
-            model
+            devices
 
         Just deviceUpdate ->
             let
                 index =
-                    ListExtra.findIndex (\d -> d.id == deviceUpdate.id) model.devices
+                    ListExtra.findIndex (\d -> d.id == deviceUpdate.id) devices
 
-                devices =
+                devicesModified =
                     case index of
                         Nothing ->
-                            List.append model.devices [ deviceUpdate ]
+                            List.append devices [ deviceUpdate ]
 
                         Just i ->
-                            ListExtra.setAt i deviceUpdate model.devices
+                            ListExtra.setAt i deviceUpdate devices
             in
-            { model | devices = devices }
+            devicesModified
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     -- uncomment the following to display model updates
-    let
-        --    _ =
-        --        Debug.log "update: " msg
-        _ =
-            Debug.log "model: " model
-    in
+    -- let
+    --    _ =
+    --        Debug.log "update: " msg
+    -- _ =
+    --    Debug.log "model: " model
+    -- in
     case msg of
         Increment ->
             ( model, Cmd.none )
@@ -205,41 +215,63 @@ update msg model =
             ( model, getDevices )
 
         UpdateDevices result ->
-            case result of
-                Ok devicesUpdate ->
-                    ( { model | devices = devicesUpdate }, Cmd.none )
-
-                Err _ ->
+            case model.devices.dirty of
+                True ->
                     ( model, Cmd.none )
+
+                False ->
+                    case result of
+                        Ok devicesUpdate ->
+                            ( { model | devices = { devices = devicesUpdate, dirty = False } }, Cmd.none )
+
+                        Err _ ->
+                            ( model, Cmd.none )
 
         EditDevice id ->
             ( { model
-                | editDeviceVisibility = Modal.shown
-                , editDevice = findDevice model id
+                | deviceEdits = { visibility = Modal.shown, device = findDevice model.devices.devices id }
               }
             , Cmd.none
             )
 
         EditDeviceClose ->
-            ( { model | editDeviceVisibility = Modal.hidden }, Cmd.none )
+            ( { model
+                | deviceEdits =
+                    { visibility = Modal.hidden
+                    , device = Nothing
+                    }
+              }
+            , Cmd.none
+            )
 
         EditDeviceSave ->
-            ( updateDevice model model.editDevice, Cmd.none )
+            ( { model
+                | devices =
+                    { devices = updateDevice model.devices.devices model.deviceEdits.device
+                    , dirty = True
+                    }
+                , deviceEdits = { device = Nothing, visibility = Modal.hidden }
+              }
+            , Cmd.none
+            )
 
         EditDeviceChangeDescription desc ->
-            case model.editDevice of
+            case model.deviceEdits.device of
                 Nothing ->
                     ( model, Cmd.none )
 
                 Just device ->
                     let
-                        oldEditDevice =
-                            device
+                        newDevice =
+                            { device | description = desc }
 
-                        newEditDevice =
-                            { oldEditDevice | description = desc }
+                        deviceEdits =
+                            model.deviceEdits
+
+                        newDeviceEdits =
+                            { deviceEdits | device = Just newDevice }
                     in
-                    ( { model | editDevice = Just newEditDevice }, Cmd.none )
+                    ( { model | deviceEdits = newDeviceEdits }, Cmd.none )
 
 
 
@@ -253,7 +285,7 @@ view model =
         [ div []
             [ menu model
             , mainContent model
-            , renderEditDevice model
+            , renderEditDevice model.deviceEdits
             ]
         ]
     }
@@ -286,14 +318,14 @@ renderDevices model =
         |> Accordion.cards
             (List.map
                 renderDevice
-                model.devices
+                model.devices.devices
             )
         |> Accordion.view model.accordionState
 
 
 renderDeviceSummary : Device -> String
 renderDeviceSummary dev =
-    dev.description ++ "(" ++ dev.id ++ ")"
+    dev.description ++ " (" ++ dev.id ++ ")"
 
 
 renderDevice : Device -> Accordion.Card Msg
@@ -319,9 +351,9 @@ renderIos samples =
         )
 
 
-renderEditDevice : Model -> Html Msg
-renderEditDevice model =
-    case model.editDevice of
+renderEditDevice : DeviceEdits -> Html Msg
+renderEditDevice deviceEdits =
+    case deviceEdits.device of
         Nothing ->
             Modal.config EditDeviceClose
                 |> Modal.small
@@ -335,21 +367,20 @@ renderEditDevice model =
                         ]
                         [ text "Cancel" ]
                     ]
-                |> Modal.view model.editDeviceVisibility
+                |> Modal.view deviceEdits.visibility
 
         Just device ->
             Modal.config EditDeviceClose
                 |> Modal.small
                 |> Modal.h5 [] [ text ("Edit device (" ++ device.id ++ ")") ]
                 |> Modal.body []
-                    [ Form.form []
-                        [ Form.group []
-                            [ Form.label [] [ text "Device description" ]
-                            , Input.text
-                                [ Input.attrs
-                                    [ placeholder "enter description"
-                                    , onInput EditDeviceChangeDescription
-                                    ]
+                    [ Form.group []
+                        [ Form.label [] [ text "Device description" ]
+                        , Input.text
+                            [ Input.attrs
+                                [ placeholder "enter description"
+                                , onInput EditDeviceChangeDescription
+                                , value device.description
                                 ]
                             ]
                         ]
@@ -366,4 +397,4 @@ renderEditDevice model =
                         ]
                         [ text "Cancel" ]
                     ]
-                |> Modal.view model.editDeviceVisibility
+                |> Modal.view deviceEdits.visibility
