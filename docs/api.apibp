@@ -14,14 +14,35 @@ Return a list of all devices.
 + Response 200 (application/json)
 
   ```
-  [
-    {
-      id: "1234asd"
-    },
-    {
-      id: "2346123"
-    }
-  ]
+  {
+    id: "1234511",
+      description: "device #1",
+      ios: [
+        {
+          id: "p1",
+          value: 1
+        },
+        {
+          id: "a0",
+          value: 2.5
+        }
+      ]
+  },
+  {
+    id: "1234523",
+      description: "device #2",
+      ios: [
+        {
+          id: "p1",
+          value: 0
+        },
+        {
+          id: "a0",
+          value: 3.5
+        }
+      ]
+  }
+
   ```
 
 # Device [/v1/devices/{id}]
@@ -38,7 +59,7 @@ Retrieve information for a specific device.
   ```
   {
     id: "1234523",
-    state: {
+      description: "device #2",
       ios: [
         {
           id: "p1",
@@ -49,9 +70,27 @@ Retrieve information for a specific device.
           value: 2.5
         }
       ]
-    }
   }
   ```
+
+# Device Config [/v1/devices/{id}/config]
+
++ Parameters
+  + id (string) - The ID of the desired device.
+
+## POST
+Update config for a particular device
+
++ Request (application/json)
+
+  ```
+  {
+    id: "1234523",
+    description: "Collector #1"
+  }
+  ```
+
++ Response 200
 
 # Device Sample [/v1/devices/{id}/sample]
 
@@ -59,7 +98,7 @@ Retrieve information for a specific device.
   + id (string) - The ID of the desired device.
 
 ## POST
-Retrieve information for a specific device.
+Post samples for a particular device
 
 + Request (application/json)
 

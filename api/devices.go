@@ -13,6 +13,21 @@ type Devices struct {
 	db *db.Db
 }
 
+func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id string) {
+	decoder := json.NewDecoder(req.Body)
+	var c data.DeviceConfig
+	err := decoder.Decode(&c)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = h.db.DeviceUpdateConfig(id, c)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func (h *Devices) processSample(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
 	var s data.Sample
@@ -43,15 +58,26 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		} else {
 			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
 		}
+	case "config":
+		if req.Method == http.MethodPost {
+			h.processConfig(res, req, id)
+		} else {
+			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+		}
 	default:
 		if id == "" {
-			devices, err := h.db.Devices()
-			if err != nil {
-				http.Error(res, err.Error(), http.StatusNotFound)
-				return
+			switch req.Method {
+			case http.MethodGet:
+				devices, err := h.db.Devices()
+				if err != nil {
+					http.Error(res, err.Error(), http.StatusNotFound)
+					return
+				}
+				en := json.NewEncoder(res)
+				en.Encode(devices)
+			default:
+				http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 			}
-			en := json.NewEncoder(res)
-			en.Encode(devices)
 		} else {
 			device, err := h.db.Device(id)
 			if err != nil {

@@ -29,6 +29,20 @@ func (db *Db) DeviceUpdate(device data.Device) error {
 	return db.store.Upsert(device.ID, &device)
 }
 
+// DeviceUpdateConfig updates the config for a particular device
+func (db *Db) DeviceUpdateConfig(id string, config data.DeviceConfig) error {
+	var dev data.Device
+	err := db.store.Get(id, &dev)
+
+	if err == bolthold.ErrNotFound {
+		return err
+	}
+
+	dev.Config = config
+
+	return db.store.Update(id, dev)
+}
+
 // DeviceSample processes a sample for a particular device
 func (db *Db) DeviceSample(id string, sample data.Sample) error {
 	var dev data.Device
@@ -36,8 +50,10 @@ func (db *Db) DeviceSample(id string, sample data.Sample) error {
 
 	if err == bolthold.ErrNotFound {
 		dev := data.Device{
-			ID:  id,
-			Ios: []data.Sample{sample},
+			ID: id,
+			State: data.DeviceState{
+				Ios: []data.Sample{sample},
+			},
 		}
 
 		return db.store.Insert(id, dev)

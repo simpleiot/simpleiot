@@ -23,6 +23,7 @@ import Html.Attributes exposing (class, href, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode
+import Json.Encode as Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
 import Round
@@ -52,8 +53,18 @@ type alias Sample =
 
 type alias Device =
     { id : String
-    , description : String
-    , ios : List Sample
+    , config : DeviceConfig
+    , state : DeviceState
+    }
+
+
+type alias DeviceConfig =
+    { description : String
+    }
+
+
+type alias DeviceState =
+    { ios : List Sample
     }
 
 
@@ -84,6 +95,7 @@ type Msg
     | AccordionMsg Accordion.State
     | Tick Time.Posix
     | UpdateDevices (Result Http.Error (List Device))
+    | DeviceConfigPosted (Result Http.Error String)
     | EditDevice String
     | EditDeviceClose
     | EditDeviceSave
@@ -144,22 +156,53 @@ samplesDecoder =
     Decode.list sampleDecoder
 
 
-deviceStateDecoder : Decode.Decoder Device
+deviceConfigDecoder : Decode.Decoder DeviceConfig
+deviceConfigDecoder =
+    Decode.map DeviceConfig
+        (Decode.field "description" Decode.string)
+
+
+deviceStateDecoder : Decode.Decoder DeviceState
 deviceStateDecoder =
+    Decode.map DeviceState
+        (Decode.field "ios" samplesDecoder)
+
+
+deviceDecoder : Decode.Decoder Device
+deviceDecoder =
     Decode.map3 Device
         (Decode.field "id" Decode.string)
-        (Decode.field "description" Decode.string)
-        (Decode.field "ios" samplesDecoder)
+        (Decode.field "config" deviceConfigDecoder)
+        (Decode.field "state" deviceStateDecoder)
 
 
 devicesDecoder : Decode.Decoder (List Device)
 devicesDecoder =
-    Decode.list deviceStateDecoder
+    Decode.list deviceDecoder
 
 
 getDevices : Cmd Msg
 getDevices =
     Http.send UpdateDevices (Http.get urlDevices devicesDecoder)
+
+
+deviceConfigEncoder : DeviceConfig -> Encode.Value
+deviceConfigEncoder deviceConfig =
+    Encode.object
+        [ ( "description", Encode.string deviceConfig.description )
+        ]
+
+
+postDeviceConfig : String -> DeviceConfig -> Cmd Msg
+postDeviceConfig id config =
+    let
+        body =
+            config |> deviceConfigEncoder |> Http.jsonBody
+
+        url =
+            Url.absolute [ "v1", "devices", id, "config" ] []
+    in
+    Http.send DeviceConfigPosted (Http.post url body Decode.string)
 
 
 findDevice : List Device -> String -> Maybe Device
@@ -224,8 +267,34 @@ update msg model =
                         Ok devicesUpdate ->
                             ( { model | devices = { devices = devicesUpdate, dirty = False } }, Cmd.none )
 
-                        Err _ ->
+                        Err err ->
+                            let
+                                _ =
+                                    Debug.log "UpdateDevices error: " err
+                            in
                             ( model, Cmd.none )
+
+        DeviceConfigPosted result ->
+            let
+                devices =
+                    model.devices
+
+                newDevices =
+                    { devices | dirty = False }
+
+                newModel =
+                    { model | devices = newDevices }
+            in
+            case Debug.log "DeviceConfigPosted" result of
+                Ok string ->
+                    ( newModel, Cmd.none )
+
+                Err err ->
+                    let
+                        _ =
+                            Debug.log "DeviceConfigPosted error: " err
+                    in
+                    ( newModel, Cmd.none )
 
         EditDevice id ->
             ( { model
@@ -250,9 +319,14 @@ update msg model =
                     { devices = updateDevice model.devices.devices model.deviceEdits.device
                     , dirty = True
                     }
-                , deviceEdits = { device = Nothing, visibility = Modal.hidden }
+                , deviceEdits = { device = model.deviceEdits.device, visibility = Modal.hidden }
               }
-            , Cmd.none
+            , case model.deviceEdits.device of
+                Nothing ->
+                    Cmd.none
+
+                Just dev ->
+                    postDeviceConfig dev.id dev.config
             )
 
         EditDeviceChangeDescription desc ->
@@ -262,8 +336,14 @@ update msg model =
 
                 Just device ->
                     let
+                        deviceConfig =
+                            device.config
+
+                        newDeviceConfig =
+                            { deviceConfig | description = desc }
+
                         newDevice =
-                            { device | description = desc }
+                            { device | config = newDeviceConfig }
 
                         deviceEdits =
                             model.deviceEdits
@@ -325,7 +405,7 @@ renderDevices model =
 
 renderDeviceSummary : Device -> String
 renderDeviceSummary dev =
-    dev.description ++ " (" ++ dev.id ++ ")"
+    dev.config.description ++ " (" ++ dev.id ++ ")"
 
 
 renderDevice : Device -> Accordion.Card Msg
@@ -336,9 +416,15 @@ renderDevice dev =
         , header =
             Accordion.header []
                 (Accordion.toggle [] [ h4 [] [ text (renderDeviceSummary dev) ] ])
-                |> Accordion.appendHeader [ button [ type_ "button", onClick (EditDevice dev.id), class "btn btn-light" ] [ edit Color.black 25 ] ]
-        , blocks =
-            [ renderIos dev.ios ]
+                |> Accordion.appendHeader
+                    [ button
+                        [ type_ "button"
+                        , onClick (EditDevice dev.id)
+                        , class "btn btn-light"
+                        ]
+                        [ edit Color.black 25 ]
+                    ]
+        , blocks = [ renderIos dev.state.ios ]
         }
 
 
@@ -380,7 +466,7 @@ renderEditDevice deviceEdits =
                             [ Input.attrs
                                 [ placeholder "enter description"
                                 , onInput EditDeviceChangeDescription
-                                , value device.description
+                                , value device.config.description
                                 ]
                             ]
                         ]
