@@ -60,6 +60,7 @@ app_run() {
 }
 
 app_build_docs() {
-  snowboard lint docs/api.apibp
-  snowboard html docs/api.apibp -o docs/api.html
+  snowboard lint docs/api.apib
+  snowboard html docs/api.apib -o docs/api.html
+  #aglio -i docs/api.apib --theme-template triple -o docs/api.html
 }

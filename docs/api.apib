@@ -1,0 +1,87 @@
+FORMAT: 1
+
+# Simple IoT
+
+Documentation for the Simple IoT REST API.
+
+**Warning, this API is in the experimental phase and may change.**
+
+# Data structures
+
+## Sample (object)
+
++ id: a0 (string) - label for IO on device
++ value: 2.5 (number) - the current value
++ time: 2006-01-02T15:04:05Z07:00 (string) - the timestamp for a sample in RFC3339 format
+
+## DeviceConfig (object)
+
++ description: Pump A monitor (string) - Description of device
+
+## DeviceState (object)
+
++ ios (array) - current state of ios on device
+  + (Sample)
+
+## Device (object)
+
++ config (DeviceConfig) - current config for device
++ state (DeviceState) - current state for device
+
+## StandardResponse (object)
+
++ success: true (boolean) - indicates if request was successful
++ error: error accessing database (string, optional) - option string describing error
+
+# Group Devices
+
+## All Devices [/v1/devices]
+
+### GET
+Return a list of all devices.
+
++ Response 200 (application/json)
+    + Attributes (StandardResponse)
+        + data (array)
+            + (Device)
+
+## Device [/v1/devices/{id}]
+A device contains state and config for a device.
+
++ Parameters
+    + id (string) - The ID of the desired device.
+
+### GET
+Retrieve information for a specific device.
+
++ Response 200 (application/json)
+    + Attributes (StandardResponse)
+        + data (Device) - data for the device
+
+## Device Config [/v1/devices/{id}/config]
+
++ Parameters
+  + id (string) - The ID of the desired device.
+
+### POST
+Update config for a particular device
+
++ Request (application/json)
+    + Attributes (DeviceConfig)
+
++ Response 200 (application/json)
+    + Attributes (StandardResponse)
+
+## Device Sample [/v1/devices/{id}/sample]
+
++ Parameters
+  + id: 2342 (string) - The ID of the desired device.
+
+### POST
+Post samples for a particular device
+
++ Request (application/json)
+    + Attributes (Sample)
+
++ Response 200 (application/json)
+    + Attributes (StandardResponse)
