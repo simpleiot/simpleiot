@@ -23,6 +23,7 @@ import Html.Attributes exposing (class, href, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode
+import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Json.Encode as Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
@@ -42,6 +43,12 @@ main =
 
 
 -- Model
+
+
+type alias Response =
+    { success : Bool
+    , error : String
+    }
 
 
 type alias Sample =
@@ -95,7 +102,7 @@ type Msg
     | AccordionMsg Accordion.State
     | Tick Time.Posix
     | UpdateDevices (Result Http.Error (List Device))
-    | DeviceConfigPosted (Result Http.Error String)
+    | DeviceConfigPosted (Result Http.Error Response)
     | EditDevice String
     | EditDeviceClose
     | EditDeviceSave
@@ -143,6 +150,13 @@ urlDevices =
     Url.absolute [ "v1", "devices" ] []
 
 
+responseDecoder : Decode.Decoder Response
+responseDecoder =
+    Decode.succeed Response
+        |> required "success" Decode.bool
+        |> optional "error" Decode.string ""
+
+
 sampleDecoder : Decode.Decoder Sample
 sampleDecoder =
     Decode.map3 Sample
@@ -181,8 +195,8 @@ devicesDecoder =
     Decode.list deviceDecoder
 
 
-getDevices : Cmd Msg
-getDevices =
+apiGetDevices : Cmd Msg
+apiGetDevices =
     Http.send UpdateDevices (Http.get urlDevices devicesDecoder)
 
 
@@ -193,8 +207,8 @@ deviceConfigEncoder deviceConfig =
         ]
 
 
-postDeviceConfig : String -> DeviceConfig -> Cmd Msg
-postDeviceConfig id config =
+apiPostDeviceConfig : String -> DeviceConfig -> Cmd Msg
+apiPostDeviceConfig id config =
     let
         body =
             config |> deviceConfigEncoder |> Http.jsonBody
@@ -202,7 +216,7 @@ postDeviceConfig id config =
         url =
             Url.absolute [ "v1", "devices", id, "config" ] []
     in
-    Http.send DeviceConfigPosted (Http.post url body Decode.string)
+    Http.send DeviceConfigPosted (Http.post url body responseDecoder)
 
 
 findDevice : List Device -> String -> Maybe Device
@@ -255,7 +269,7 @@ update msg model =
             ( { model | accordionState = state }, Cmd.none )
 
         Tick newTime ->
-            ( model, getDevices )
+            ( model, apiGetDevices )
 
         UpdateDevices result ->
             case model.devices.dirty of
@@ -326,7 +340,7 @@ update msg model =
                     Cmd.none
 
                 Just dev ->
-                    postDeviceConfig dev.id dev.config
+                    apiPostDeviceConfig dev.id dev.config
             )
 
         EditDeviceChangeDescription desc ->

@@ -26,6 +26,9 @@ func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id s
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
+
+	en := json.NewEncoder(res)
+	en.Encode(data.Response{Success: true})
 }
 
 func (h *Devices) processSample(res http.ResponseWriter, req *http.Request, id string) {
@@ -41,6 +44,9 @@ func (h *Devices) processSample(res http.ResponseWriter, req *http.Request, id s
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
+
+	en := json.NewEncoder(res)
+	en.Encode(data.Response{Success: true})
 }
 
 // Top level handler for http requests in the coap-server process
