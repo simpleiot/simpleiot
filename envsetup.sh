@@ -31,7 +31,11 @@ app_build_frontend() {
 
 app_build_assets() {
   mkdir -p assets/frontend || return 1
-  genesis -C frontend/public -pkg frontend index.html elm.js >assets/frontend/assets.go || return 1
+  genesis -C frontend/public -pkg frontend \
+    index.html \
+    elm.js \
+    simple-iot-logo.png \
+    >assets/frontend/assets.go || return 1
   return 0
 }
 

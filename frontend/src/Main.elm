@@ -18,8 +18,8 @@ import Bootstrap.Modal as Modal
 import Bootstrap.Navbar as Navbar
 import Browser
 import Color exposing (Color)
-import Html exposing (Html, button, div, h1, h4, span, text)
-import Html.Attributes exposing (class, href, placeholder, style, type_, value)
+import Html exposing (Html, button, div, h1, h4, img, span, text)
+import Html.Attributes exposing (class, height, href, placeholder, src, style, type_, value, width)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode
@@ -389,7 +389,7 @@ menu : Model -> Html Msg
 menu model =
     Navbar.config NavbarMsg
         |> Navbar.withAnimation
-        |> Navbar.brand [ href "#" ] [ text "Simple IoT" ]
+        |> Navbar.brand [ href "#" ] [ img [ src "/public/simple-iot-logo.png", width 50, height 50 ] [] ]
         |> Navbar.items
             [ Navbar.itemLink [ href "#" ] [ text "Item 1" ]
             , Navbar.itemLink [ href "#" ] [ text "Item 2" ]
