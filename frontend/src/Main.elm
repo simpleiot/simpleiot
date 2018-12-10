@@ -389,7 +389,7 @@ menu : Model -> Html Msg
 menu model =
     Navbar.config NavbarMsg
         |> Navbar.withAnimation
-        |> Navbar.brand [ href "#" ] [ img [ src "/public/simple-iot-logo.png", width 50, height 50 ] [] ]
+        |> Navbar.brand [ href "#" ] [ img [ src "/public/simple-iot-app-logo.png", width 83, height 25 ] [] ]
         |> Navbar.items
             [ Navbar.itemLink [ href "#" ] [ text "Item 1" ]
             , Navbar.itemLink [ href "#" ] [ text "Item 2" ]

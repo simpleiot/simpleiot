@@ -34,7 +34,7 @@ app_build_assets() {
   genesis -C frontend/public -pkg frontend \
     index.html \
     elm.js \
-    simple-iot-logo.png \
+    simple-iot-app-logo.png \
     >assets/frontend/assets.go || return 1
   return 0
 }
