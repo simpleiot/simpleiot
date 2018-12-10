@@ -47,7 +47,7 @@ app_build_dependencies() {
 
 app_build() {
   app_build_dependencies || return 1
-  go build -o siot-portal cmd/portal/main.go || return 1
+  go build -o siot cmd/portal/main.go || return 1
   return 0
 }
 
