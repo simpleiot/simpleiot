@@ -76,12 +76,17 @@ func httpServer(port string, db *db.Db) error {
 }
 
 func main() {
-	port := os.Getenv("PORT")
+	port := os.Getenv("SIOT_PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	db, err := db.NewDb()
+	dataDir := os.Getenv("SIOT_DATA")
+	if dataDir == "" {
+		dataDir = "./"
+	}
+
+	db, err := db.NewDb(dataDir)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)

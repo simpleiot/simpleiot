@@ -1,6 +1,8 @@
 package db
 
 import (
+	"path"
+
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/timshannon/bolthold"
 )
@@ -13,8 +15,9 @@ type Db struct {
 }
 
 // NewDb creates a new Db instance for the app
-func NewDb() (*Db, error) {
-	store, err := bolthold.Open("data.db", 0666, nil)
+func NewDb(dataDir string) (*Db, error) {
+	dbFile := path.Join(dataDir, "data.db")
+	store, err := bolthold.Open(dbFile, 0666, nil)
 	if err != nil {
 		return nil, err
 	}
