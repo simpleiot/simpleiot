@@ -23,7 +23,7 @@ data to the server.
 - start device simulator: `./go/bin/siot -sim`
 - open http://localhost:8080
 
-(adjust above paths if you have your `GOPATH` somewhere else.
+(adjust above paths if you have your `GOPATH` somewhere else.)
 
 ## Vision
 
