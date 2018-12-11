@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"bytes"
@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/db"
 )
@@ -48,7 +47,7 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if req.URL.Path == "/" {
 		h.IndexHandler.ServeHTTP(res, req)
 	} else {
-		head, req.URL.Path = api.ShiftPath(req.URL.Path)
+		head, req.URL.Path = ShiftPath(req.URL.Path)
 		switch head {
 		case "public":
 			h.PublicHandler.ServeHTTP(res, req)
@@ -65,17 +64,14 @@ func NewAppHandler(db *db.Db) http.Handler {
 	return &App{
 		PublicHandler: http.FileServer(frontend.FileSystem()),
 		IndexHandler:  NewIndexHandler(),
-		V1ApiHandler:  api.NewV1Handler(db),
+		V1ApiHandler:  NewV1Handler(db),
 	}
 }
 
-func httpServer(port string, db *db.Db) error {
-	address := fmt.Sprintf(":%s", port)
+// Server starts a API server instance
+func Server() error {
 	log.Println("Starting http server")
-	return http.ListenAndServe(address, NewAppHandler(db))
-}
 
-func main() {
 	port := os.Getenv("SIOT_PORT")
 	if port == "" {
 		port = "8080"
@@ -93,8 +89,6 @@ func main() {
 	}
 
 	log.Println("Starting portal on port: ", port)
-	err = httpServer(port, db)
-	if err != nil {
-		log.Println("Error starting server: ", err)
-	}
+	address := fmt.Sprintf(":%s", port)
+	return http.ListenAndServe(address, NewAppHandler(db))
 }
