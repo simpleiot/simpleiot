@@ -1,7 +1,5 @@
 package data
 
-//test
-
 // ISOperatingMode defines the operating mode of the system
 type ISOperatingMode int
 
