@@ -15,9 +15,9 @@ const (
 type ISConfig struct {
 	// ID is an alphanumeric name limitted to 16 chars in length
 	ID              string
-	HighWindow      float64
-	LowWindow       float64
-	BatchAmount     float64
+	HighWindow      float64	//Not sure if you want a float here or if an int with implied decimal would be better
+	LowWindow       float64	//These values will range from around 10 to a max of 200. Probably show a decimal if under 10. This applies to all 								//flow rate values
+	BatchAmount     float64	//This will only be a whole number, no fractional amount. Max value of 10,000. This applies to all batch values
 	WaterOn         bool
 	OperatingMode   ISOperatingMode
 	ManualHighAlarm bool
@@ -33,7 +33,7 @@ type ISState struct {
 	FlowRate       float64
 	BatchApplied   float64
 	BatchRemaining float64
-	Total1         float64
+	Total1         float64	//Dont need a float here if you dont want to. No fractional values will be displayed on any totals
 	Total2         float64
 	NetworkState   NetworkState
 }
