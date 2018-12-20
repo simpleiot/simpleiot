@@ -15,12 +15,14 @@ main =
 
 
 type alias Model =
-    Int
+    { lcdData : LcdData
+    }
 
 
 init : Model
 init =
-    0
+    { lcdData = lcdData
+    }
 
 
 
@@ -28,18 +30,17 @@ init =
 
 
 type Msg
-    = Increment
-    | Decrement
+    = SetPixel Int Int Bool
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        Increment ->
-            model + 1
-
-        Decrement ->
-            model - 1
+        SetPixel x y v ->
+            { model
+                | lcdData =
+                    Lcd.setPixel x y v model.lcdData
+            }
 
 
 
@@ -49,5 +50,5 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ lcd
+        [ lcd model.lcdData
         ]

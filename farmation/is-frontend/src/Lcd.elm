@@ -1,6 +1,7 @@
-module Lcd exposing (lcd)
+module Lcd exposing (LcdData, lcd, lcdData, setPixel)
 
 import Array
+import Array2D
 import List
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
@@ -26,12 +27,18 @@ svgHeight =
     lcdHeight * lcdPxSize
 
 
-lcdDataRow =
-    Array.toList (Array.initialize lcdWidth (always False))
+setPixel : Int -> Int -> Bool -> LcdData -> LcdData
+setPixel x y v data =
+    Array2D.set x y v data
 
 
+type alias LcdData =
+    Array2D.Array2D Bool
+
+
+lcdData : LcdData
 lcdData =
-    Array.toList (Array.initialize lcdHeight (always lcdDataRow))
+    Array2D.repeat lcdWidth lcdHeight False
 
 
 viewBoxSize =
@@ -42,13 +49,20 @@ viewBoxSize =
 
 
 lcdDataToPixel : Int -> Int -> Bool -> Svg msg
-lcdDataToPixel yPos xPos v =
+lcdDataToPixel xPos yPos v =
     let
         xS =
             String.fromInt (xPos * lcdPxSize)
 
         yS =
             String.fromInt (yPos * lcdPxSize)
+
+        fillS =
+            if v then
+                "black"
+
+            else
+                "none"
     in
     rect
         [ x xS
@@ -57,25 +71,26 @@ lcdDataToPixel yPos xPos v =
         , height "4"
         , rx "1"
         , ry "1"
+        , fill fillS
         ]
         []
 
 
-lcdRowToPixels : Int -> List Bool -> List (Svg msg)
-lcdRowToPixels yPos row =
-    List.indexedMap (lcdDataToPixel yPos) row
+lcdDataToPixels : LcdData -> List (Svg msg)
+lcdDataToPixels data =
+    List.concat
+        (Array.toList
+            (Array.map Array.toList
+                (Array2D.indexedMap lcdDataToPixel data).data
+            )
+        )
 
 
-lcd : Svg msg
-lcd =
+lcd : LcdData -> Svg msg
+lcd data =
     svg
         [ width (String.fromInt svgWidth)
         , height (String.fromInt svgHeight)
         , viewBox viewBoxSize
         ]
-        (List.concat
-            (List.indexedMap
-                lcdRowToPixels
-                lcdData
-            )
-        )
+        (lcdDataToPixels data)

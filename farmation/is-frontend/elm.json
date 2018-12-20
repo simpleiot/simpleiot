@@ -9,7 +9,8 @@
             "elm/browser": "1.0.1",
             "elm/core": "1.0.2",
             "elm/html": "1.0.0",
-            "elm/svg": "1.0.1"
+            "elm/svg": "1.0.1",
+            "tortus/elm-array-2d": "2.1.2"
         },
         "indirect": {
             "elm/json": "1.1.2",
