@@ -13,12 +13,12 @@ this point.
 
 ## Example
 
-In the following example, we are running the server process, and a device
+In the following example, we are running the server process and a device
 simulator on a local machine. The device simulator sensors simulated sensor
 data to the server.
 
 - make sure Go v1.11 or newer is installed
-- `go get github.com/simpleiot/simpleiot/siot`
+- `go get github.com/simpleiot/simpleiot/cmd/siot`
 - start server: `./go/bin/siot`
 - start device simulator: `./go/bin/siot -sim`
 - open http://localhost:8080
@@ -28,12 +28,11 @@ data to the server.
 ## Vision
 
 - built around collecting and visualizing data from devices
-- provide a good base system to build IoT products that may support a number
-  devices, users, rules, etc.
+- provide a good base system to build IoT products that may support a number of devices, users, rules, etc.
 - requires coding to customize. This is not a GUI for building IoT systems,
   but rather a code base software developers can use as a starting point.
 - application technology is general, so you are not dependant on any one
-  IoT company, or cloud provider
+  IoT company or cloud provider
 - plugin architecture for extending the system with custom functionality
 - simple deployment process (not a lot of pieces on the backend to manage)
   - Deployment/upgrade is as simple as copying one binary.
@@ -71,8 +70,8 @@ done:
 
 ## Technology choices
 
-Choices for the technology stack emphasizes simplicity, not only in the
-language, but just as important in the deployment and tooling.
+Choices for the technology stack emphasize simplicity, not only in the
+language, but just as important, in the deployment and tooling.
 
 - **Backend**
   - [Go](https://golang.org/)
@@ -93,7 +92,7 @@ language, but just as important in the deployment and tooling.
   - [Bootstrap](http://getbootstrap.com/)
     - mature CSS toolkit that handles browser differences and
       responsive design for mobile reasonably well.
-    - widespread adoption and well understand by many developers
+    - widespread adoption and well understood by many developers
     - well supported [bindings in Elm](https://package.elm-lang.org/packages/rundis/elm-bootstrap/latest/)
 - **Database**
   - Eventually support multiple databased backends depending on scaling/admin needs
@@ -107,11 +106,11 @@ language, but just as important in the deployment and tooling.
   - (any server/hosting environment that supports Go apps can be used)
 
 In our experience, simplicity and good tooling matter. It is easy to add features
-to a language, but creating a useful language/tooling that is simple is even harder.
-Since we are using Elm on the frontend, it may have seem appropriate to select
+to a language, but creating a useful language/tooling that is simple is hard.
+Since we are using Elm on the frontend, it might seem appropriate to select
 a functional language like Elixir, Scala, Clojure, etc. for the backend. These
-environments are likely excellent for many projects, but also considerably more
-complex to work in. The programming style (procedural, functional, etc.) are important,
+environments are likely excellent for many projects, but are also considerably more
+complex to work in. The programming style (procedural, functional, etc.) is important,
 but other factors such as simplicity/tooling/deployment are also important, especially
 for small teams who don't have separate staff for backend/frontend/operations. Learning two
 simple languages (Go and Elm) is a small task compared to dealing with huge
