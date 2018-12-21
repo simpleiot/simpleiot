@@ -48,7 +48,7 @@ type ISConfig struct {
 	HighWindow float32
 	LowWindow  float32
 
-	// BatchAmount max value is 10,000
+	// BatchAmount max value is 9,999
 	BatchAmount     int
 	WaterOn         bool
 	OperatingMode   ISOperatingMode
