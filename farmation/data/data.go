@@ -1,53 +1,127 @@
 package data
 
+import "time"
+
 // ISOperatingMode defines the operating mode of the system
 type ISOperatingMode int
 
 // define the possible operating modes
 const (
-	ISOperatingModeMonitor = iota
+	ISOperatingModeMonitor ISOperatingMode = iota
 	ISOperatingModeMonitorAndShutdown
 	ISOperatingModeMonitorAndBatch
+)
+
+// InjectorPumpMode describes the current state of the
+// injector pump control (selected by the pump key)
+type InjectorPumpMode int
+
+// define possible injector pump modes
+const (
+	// In DigIn mode, the pump is controlled by a digital input.
+	InjectorPumpModeDigIn InjectorPumpMode = iota
+
+	// In manual mode, any time the water input is on, the
+	// pump will be on.
+	InjectorPumpModeManual
+
+	// In aux modes, the aux1 or aux2 serial inputs are used to
+	// control the pump.
+	InjectorPumpModeAux1
+	InjectorPumpModeAux2
+
+	// In off mode, the pump is always off.
+	InjectorPumpModeOff
+
+	// Pump is running in test mode for 60s, and will return to
+	// Off state when finished, or if user presses any key.
+	InjectorPumpModeTestRun
 )
 
 // ISConfig represents configuration data for the Injectory
 // Sentry system.
 type ISConfig struct {
 	// ID is an alphanumeric name limitted to 16 chars in length
-	ID              string
-	HighWindow      float64	//Not sure if you want a float here or if an int with implied decimal would be better
-	LowWindow       float64	//These values will range from around 10 to a max of 200. Probably show a decimal if under 10. This applies to all 								//flow rate values
-	BatchAmount     float64	//This will only be a whole number, no fractional amount. Max value of 10,000. This applies to all batch values
+	ID string
+
+	// High/LowWindow will be displayed as decimal if under 10.
+	HighWindow float32
+	LowWindow  float32
+
+	// BatchAmount max value is 10,000
+	BatchAmount     int
 	WaterOn         bool
 	OperatingMode   ISOperatingMode
 	ManualHighAlarm bool
 	ManualLowAlarm  bool
 	CurrentField    string
-	Fields          []string
+	FieldConfigs    []FieldConfig
+	ProductConfigs  []ProductConfig
 	NetworkConfig   NetworkConfig
+	MaxTankVolume   int
+	TankAlertVolume int
 }
 
 // ISState contains the current injectory sentry state.
 type ISState struct {
 	// FlowRate defines the current flow rate of the system.
-	FlowRate       float64
-	BatchApplied   float64
-	BatchRemaining float64
-	Total1         float64	//Dont need a float here if you dont want to. No fractional values will be displayed on any totals
-	Total2         float64
-	NetworkState   NetworkState
+	FlowRate          float32
+	BatchApplied      float32
+	BatchRemaining    float32
+	Total1            float32
+	Total2            float32
+	LifetimeTotal     float32
+	CurrentTankVolume float32
+	NetworkState      NetworkState
+
+	// PanelConfig will be populated based on the panel detected
+	// by the sense resistor.
+	PanelConfig        ISPanelConfig
+	FieldStates        []FieldState
+	ProductStates      []ProductState
+	GpsPos             GpsPos
+	FlowStatus         FlowStatus
+	IrrigationShutdown bool
+	ActiveFaults       []ISEvent
+	Ios                []ISIo
 }
 
-// ISField defines a field
-type ISField struct {
+// FlowStatus describes the overall system of flow control
+type FlowStatus int
+
+// possible system status values
+const (
+	FlowStatusArmedOk FlowStatus = iota
+	FlowStatusOffTarget
+)
+
+// FieldConfig describes the configuration for a field
+type FieldConfig struct {
 	Description string
-	Total       float64
 }
 
-// ISProduct defines an injected product
-type ISProduct struct {
+// FieldState describes the state of a field.
+type FieldState struct {
+	Total float32
+}
+
+// ProductConfig describes the configuration for a product
+type ProductConfig struct {
 	Description string
-	Total       float64
+}
+
+// ProductState defines the state of a product
+type ProductState struct {
+	Total float32
+}
+
+// GpsPos represents a GPS position
+type GpsPos struct {
+	Time    time.Time
+	Lat     float64
+	Long    float64
+	Fix     int
+	NumSats int
 }
 
 // SerialType defines the type of serial communication
@@ -82,6 +156,126 @@ type ISPanelConfig struct {
 	Position         IOType
 	Direction        IOType
 	PowerCoControl   IOType
+	Aux1             IOType
+	Aux2             IOType
+}
+
+// PanelConfigs describes all of the currently supported
+// panels. Based on the ADCValue, the appropriate config will
+// be selected and populated in the ISState
+var PanelConfigs = []ISPanelConfig{
+	ISPanelConfig{
+		ADCValue:         117,
+		Description:      "Lindsay Vision and Boss",
+		SerialType:       SerialTypeRS485,
+		IrrigatorRunning: IOTypeSerial,
+		WaterOn:          IOTypeSerial,
+		InjectorOn:       IOTypeSerial,
+		Position:         IOTypeSerial,
+		Direction:        IOTypeSerial,
+		PowerCoControl:   IOTypeSerial,
+		Aux1:             IOTypeSerial,
+		Aux2:             IOTypeSerial,
+	},
+	ISPanelConfig{
+		ADCValue:         224,
+		Description:      "Valley Icon serial",
+		SerialType:       SerialTypeRS232,
+		IrrigatorRunning: IOTypeSerial,
+		WaterOn:          IOTypeSerial,
+		InjectorOn:       IOTypeSerial,
+		Position:         IOTypeSerial,
+		Direction:        IOTypeSerial,
+		PowerCoControl:   IOTypeNA,
+		Aux1:             IOTypeSerial,
+		Aux2:             IOTypeSerial,
+	},
+	ISPanelConfig{
+		ADCValue:         340,
+		Description:      "Valley CAM Panel",
+		SerialType:       SerialTypeRS232,
+		IrrigatorRunning: IOTypeSerial,
+		WaterOn:          IOTypeSerial,
+		InjectorOn:       IOTypeSerial,
+		Position:         IOTypeSerial,
+		Direction:        IOTypeSerial,
+		PowerCoControl:   IOTypeNA,
+		Aux1:             IOTypeNA,
+		Aux2:             IOTypeNA,
+	},
+	ISPanelConfig{
+		ADCValue:         799,
+		Description:      "Standard Pump Panel",
+		SerialType:       SerialTypeNone,
+		IrrigatorRunning: IOTypeNA,
+		WaterOn:          IOTypeDigIn,
+		InjectorOn:       IOTypeDigIn,
+		Position:         IOTypeNA,
+		Direction:        IOTypeNA,
+		PowerCoControl:   IOTypeNA,
+		Aux1:             IOTypeNA,
+		Aux2:             IOTypeNA,
+	},
+	ISPanelConfig{
+		ADCValue:         913,
+		Description:      "Standard Pivot Panel",
+		SerialType:       SerialTypeNone,
+		IrrigatorRunning: IOTypeDigIn,
+		WaterOn:          IOTypeDigIn,
+		InjectorOn:       IOTypeDigIn,
+		Position:         IOTypeNA,
+		Direction:        IOTypeNA,
+		PowerCoControl:   IOTypeNA,
+		Aux1:             IOTypeNA,
+		Aux2:             IOTypeNA,
+	},
+}
+
+// IOs
+
+// ISIoType defines various IO types
+type ISIoType int
+
+// define valid ISIoTypes
+const (
+	ISIoType4to20In ISIoType = iota
+	ISIoTypeAnalogIn
+	ISIoTypeDigIn
+	ISIoTypePwmOut
+	ISIoTypePulseIn
+	ISIotype4to20Out
+)
+
+// ISIo holds IO attributes
+type ISIo struct {
+	Type        ISIoType
+	Description string
+	Fault       bool
+	Value       float32
+}
+
+// RelayID identifies a relay in the system
+type RelayID int
+
+// define possible relay IDs
+const (
+	// Shutdown relay will be used to shut down the
+	// Irrigation system.
+	RelayIDShutdown RelayID = iota
+
+	// Injector relay is used to enable/disable the
+	// injector pump.
+	RelayIDInjector
+
+	// Aux relay is for future use.
+	RelayIDAux
+)
+
+// ISRelay describes the current relay state
+type ISRelay struct {
+	ID    RelayID
+	On    bool
+	Fault bool
 }
 
 // Key defines keypad inputs
