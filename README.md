@@ -19,8 +19,8 @@ data to the server.
 
 - make sure Go v1.11 or newer is installed
 - `go get github.com/simpleiot/simpleiot/cmd/siot`
-- start server: `./go/bin/siot`
-- start device simulator: `./go/bin/siot -sim`
+- start server: `~/go/bin/siot`
+- start device simulator: `~/go/bin/siot -sim`
 - open http://localhost:8080
 
 (adjust above paths if you have your `GOPATH` somewhere else.)
