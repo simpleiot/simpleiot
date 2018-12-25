@@ -14,7 +14,7 @@ this point.
 ## Example 1 (install using go get)
 
 In the following example, we are running the server process and a device
-simulator on a local machine. The device simulator sensors simulated sensor
+simulator on a local machine. The device simulator simulates sending sensor
 data to the server.
 
 - make sure Go v1.11 or newer is installed
@@ -36,7 +36,7 @@ This example shows how to run the server and simulator after cloning and buildin
 - `app_setup`
 - `app_build`
 - start server: `./siot`
-- start simulator: `./siot -sim` (start simulator)
+- start simulator: `./siot -sim`
 - open http://localhost:8080
 - `app_run` can be used for quicker testing
 
