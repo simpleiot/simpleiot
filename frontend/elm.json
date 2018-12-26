@@ -19,7 +19,8 @@
             "elm/url": "1.0.0",
             "elm-community/list-extra": "8.1.0",
             "myrho/elm-round": "1.0.4",
-            "rundis/elm-bootstrap": "5.0.0"
+            "rundis/elm-bootstrap": "5.0.0",
+            "tortus/elm-array-2d": "2.1.2"
         },
         "indirect": {
             "elm/virtual-dom": "1.0.2"
