@@ -1,6 +1,6 @@
 is_build_frontend() {
-  (cd isfrontend && elm make src/Main.elm --output=public/elm.js) || return 1
-  (cd isfrontend && cp index.html public/) || return 1
+  (cd frontend && elm make src/Main.elm --output=public/elm.js) || return 1
+  (cd frontend && cp index.html public/) || return 1
   return 0
 }
 
