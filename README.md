@@ -11,19 +11,34 @@ this point.
 
 [Detailed Documentation](docs/README.md)
 
-## Example
+## Example 1 (install using go get)
 
 In the following example, we are running the server process and a device
-simulator on a local machine. The device simulator sensors simulated sensor
+simulator on a local machine. The device simulator simulates sending sensor
 data to the server.
 
 - make sure Go v1.11 or newer is installed
 - `go get github.com/simpleiot/simpleiot/cmd/siot`
-- start server: `./go/bin/siot`
-- start device simulator: `./go/bin/siot -sim`
+- start server: `~/go/bin/siot`
+- start device simulator: `~/go/bin/siot -sim`
 - open http://localhost:8080
 
 (adjust above paths if you have your `GOPATH` somewhere else.)
+
+## Example 2 (build from source)
+
+This example shows how to run the server and simulator after cloning and building from source.
+
+- make sure elm v0.19 and Go v1.11 are installed (newer versions may work)
+- git clone https://github.com/simpleiot/simpleiot.git
+- `cd simpleiot`
+- `. envsetup.sh`
+- `app_setup`
+- `app_build`
+- start server: `./siot`
+- start simulator: `./siot -sim`
+- open http://localhost:8080
+- `app_run` can be used for quicker testing
 
 ## Vision
 

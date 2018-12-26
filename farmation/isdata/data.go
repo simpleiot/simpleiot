@@ -64,6 +64,18 @@ type ISConfig struct {
 	FlowMeterMaxflo	int	// Meter's maximum flow rate in GPM or LPM
 }
 
+// ISConfigDefault contains defaults for initializing a new system
+var ISConfigDefault = ISConfig{
+	ID:              "",
+	HighWindow:      0,
+	LowWindow:       0,
+	BatchAmount:     0,
+	WaterOn:         false,
+	ManualHighAlarm: false,
+	MaxTankVolume:   0,
+	TankAlertVolume: 0,
+}
+
 // ISState contains the current injectory sentry state.
 type ISState struct {
 	// FlowRate defines the current flow rate of the system.
