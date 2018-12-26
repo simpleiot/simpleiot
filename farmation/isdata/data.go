@@ -60,6 +60,8 @@ type ISConfig struct {
 	NetworkConfig   NetworkConfig
 	MaxTankVolume   int
 	TankAlertVolume int
+	FlowMeterPPG	int	// how many pulses in one US gallon
+	FlowMeterMaxflo	int	// Meter's maximum flow rate in GPM or LPM
 }
 
 // ISState contains the current injectory sentry state.
