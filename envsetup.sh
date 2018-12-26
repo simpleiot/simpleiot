@@ -16,10 +16,27 @@ app_check_elm() {
   return 0
 }
 
+app_check_gopath_bin() {
+  if [ -z "$GOPATH" ]; then
+    GOPATH=~/go
+  fi
+
+  GOBIN=$GOPATH/bin
+
+  if [[ ":$PATH:" != *":$GOBIN:"* ]]; then
+    echo "You must add \$GOPATH/bin to your environment PATH variable"
+    echo "GOPATH defaults to ~/go"
+    return 1
+  fi
+
+  return 0
+}
+
 app_setup() {
   go mod download
   go install github.com/benbjohnson/genesis/... || return 1
   app_check_elm || return 1
+  app_check_gopath_bin || return 1
   return 0
 }
 
