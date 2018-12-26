@@ -5,7 +5,7 @@ is_build_frontend() {
 }
 
 is_build_assets() {
-  mkdir -p assets/isfrontend || return 1
+  mkdir -p farmation/assets/isfrontend || return 1
   genesis -C frontend/public -pkg isfrontend \
     index.html \
     elm.js \
