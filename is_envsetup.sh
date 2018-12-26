@@ -1,3 +1,9 @@
+. envsetup.sh
+
+is_setup() {
+  app_setup
+}
+
 is_build_frontend() {
   (cd frontend && elm make src/Farmation/Is/Main.elm --output=public/elm.js) || return 1
   (cd frontend && cp index.html public/) || return 1
