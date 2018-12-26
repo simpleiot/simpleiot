@@ -3,7 +3,7 @@ port module Main exposing (Msg(..), main, update, view)
 import Browser
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
-import Lcd
+import Farmation.Is.Lcd as Lcd
 import Time
 
 

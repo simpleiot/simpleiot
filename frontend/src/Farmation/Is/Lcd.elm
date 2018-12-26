@@ -1,4 +1,4 @@
-module Lcd exposing (Data, defaultData, lcd, setPixel)
+module Farmation.Is.Lcd exposing (Data, defaultData, lcd, setPixel)
 
 import Array
 import Array2D
@@ -38,7 +38,7 @@ type alias Data =
 
 defaultData : Data
 defaultData =
-    Array2D.repeat lcdWidth lcdHeight False
+    Array2D.repeat lcdWidth lcdHeight True
 
 
 viewBoxSize =
