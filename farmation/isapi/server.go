@@ -2,14 +2,17 @@ package isapi
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/farmation/assets/isfrontend"
+	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
 // IndexHandler is used to serve the index page
@@ -33,8 +36,9 @@ func NewIndexHandler() http.Handler {
 
 // App is a struct that implements http.Handler interface
 type App struct {
-	PublicHandler http.Handler
-	IndexHandler  http.Handler
+	PublicHandler    http.Handler
+	IndexHandler     http.Handler
+	WebsocketHandler http.Handler
 }
 
 // Top level handler for http requests in the coap-server process
@@ -50,6 +54,8 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		switch head {
 		case "public":
 			h.PublicHandler.ServeHTTP(res, req)
+		case "ws":
+			h.WebsocketHandler.ServeHTTP(res, req)
 		default:
 			http.Error(res, "Not Found", http.StatusNotFound)
 		}
@@ -58,9 +64,38 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // NewAppHandler returns a new application (root) http handler
 func NewAppHandler() http.Handler {
+	c := make(chan []byte)
+	go func() {
+		x := 0
+		y := 0
+		v := true
+		for {
+			time.Sleep(time.Microsecond * 20)
+			setPix := isdata.LcdSetPixel{X: x, Y: y, V: v}
+			setPixJSON, err := json.Marshal(setPix)
+			if err != nil {
+				log.Println("Error encoding setPix: ", err)
+				continue
+			}
+
+			c <- setPixJSON
+			x++
+			if x >= 128 {
+				x = 0
+				y++
+				if y >= 64 {
+					y = 0
+					v = !v
+				}
+			}
+
+		}
+	}()
+
 	return &App{
-		PublicHandler: http.FileServer(isfrontend.FileSystem()),
-		IndexHandler:  NewIndexHandler(),
+		PublicHandler:    http.FileServer(isfrontend.FileSystem()),
+		IndexHandler:     NewIndexHandler(),
+		WebsocketHandler: api.NewWebsocketHandler(c),
 	}
 }
 
