@@ -38,7 +38,7 @@ type alias Data =
 
 defaultData : Data
 defaultData =
-    Array2D.repeat lcdWidth lcdHeight True
+    Array2D.repeat lcdWidth lcdHeight False
 
 
 viewBoxSize =
