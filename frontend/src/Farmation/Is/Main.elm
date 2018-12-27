@@ -43,14 +43,12 @@ subscriptions model =
 
 type alias Model =
     { lcdData : Lcd.Data
-    , portInMsg : String
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init model =
     ( { lcdData = Lcd.defaultData
-      , portInMsg = ""
       }
     , Cmd.none
     )
@@ -99,7 +97,6 @@ view model =
     , body =
         [ div []
             [ Lcd.lcd model.lcdData
-            , text ("Port in: " ++ model.portInMsg)
             ]
         ]
     }
