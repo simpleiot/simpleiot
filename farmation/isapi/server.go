@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/farmation/assets/isfrontend"
@@ -63,45 +62,19 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewAppHandler returns a new application (root) http handler
-func NewAppHandler() http.Handler {
-	c := make(chan []byte)
-	go func() {
-		x := 0
-		y := 0
-		v := true
-		for {
-			time.Sleep(time.Microsecond * 20)
-			setPix := isdata.LcdSetPixel{X: x, Y: y, V: v}
-			setPixJSON, err := json.Marshal(setPix)
-			if err != nil {
-				log.Println("Error encoding setPix: ", err)
-				continue
-			}
-
-			c <- setPixJSON
-			x++
-			if x >= 128 {
-				x = 0
-				y++
-				if y >= 64 {
-					y = 0
-					v = !v
-				}
-			}
-
-		}
-	}()
-
+func NewAppHandler(wsTxChan chan []byte) http.Handler {
 	return &App{
 		PublicHandler:    http.FileServer(isfrontend.FileSystem()),
 		IndexHandler:     NewIndexHandler(),
-		WebsocketHandler: api.NewWebsocketHandler(c),
+		WebsocketHandler: api.NewWebsocketHandler(wsTxChan),
 	}
 }
 
 // Server starts a API server instance
-func Server() error {
+func Server(in, out chan interface{}) {
 	log.Println("Starting http server")
+
+	wsTxChan := make(chan []byte, 100)
 
 	port := os.Getenv("IS_PORT")
 	if port == "" {
@@ -110,5 +83,24 @@ func Server() error {
 
 	log.Println("Starting IS app on port: ", port)
 	address := fmt.Sprintf(":%s", port)
-	return http.ListenAndServe(address, NewAppHandler())
+	go http.ListenAndServe(address, NewAppHandler(wsTxChan))
+
+	for {
+		if len(wsTxChan) >= 99 {
+			log.Println("Warning wsTxChan full, dropping data")
+			<-wsTxChan
+		}
+		select {
+		case m := <-in:
+			switch m := m.(type) {
+			case isdata.LcdPixel:
+				d, err := json.Marshal(m)
+				if err != nil {
+					log.Println("Error encoding LcdPixel: ", err)
+				} else {
+					wsTxChan <- d
+				}
+			}
+		}
+	}
 }

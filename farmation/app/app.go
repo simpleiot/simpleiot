@@ -4,7 +4,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isapi"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
@@ -36,6 +35,7 @@ func Run() {
 	keypadChan := make(chan interface{}, 100)
 	uiChan := make(chan interface{}, 100)
 	ioChan := make(chan interface{}, 100)
+	webChan := make(chan interface{}, 100)
 
 	channels := []struct {
 		name    string
@@ -45,13 +45,14 @@ func Run() {
 		{"keypad", keypadChan},
 		{"ui", uiChan},
 		{"io", ioChan},
+		{"web", webChan},
 	}
 
 	// fire up subsystems
 	go keypad.Run(keypadChan, appChan)
 	go isui.Run(uiChan, appChan)
 	go isio.Run(ioChan, appChan)
-	go isapi.Server()
+	go isapi.Server(webChan, appChan)
 
 	lastFillingWarning := time.Time{}
 
@@ -71,8 +72,8 @@ func Run() {
 		select {
 		case m := <-appChan:
 			switch m := m.(type) {
-			case data.Sample:
-				// ...
+			case isdata.LcdPixel:
+				webChan <- m
 
 			default:
 				log.Printf("Mux: unhandled message of type %T: %+v\n", m, m)

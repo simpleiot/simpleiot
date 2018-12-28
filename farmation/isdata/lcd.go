@@ -1,7 +1,7 @@
 package isdata
 
-// LcdSetPixel is message used to set a LCD pixel
-type LcdSetPixel struct {
+// LcdPixel is used to represent a LCD pixel
+type LcdPixel struct {
 	X int  `json:"x"`
 	Y int  `json:"y"`
 	V bool `json:"v"`
