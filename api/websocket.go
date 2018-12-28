@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -15,7 +16,8 @@ var upgrader = websocket.Upgrader{
 
 // WebsocketHandler handles websocket connections
 type WebsocketHandler struct {
-	in chan []byte
+	clients map[*websocket.Conn]bool
+	lock    *sync.RWMutex
 }
 
 func (h *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -29,19 +31,9 @@ func (h *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	// handle writing
-	go func() {
-		for {
-			select {
-			case m := <-h.in:
-				err := ws.WriteMessage(websocket.TextMessage, m)
-				if err != nil {
-					log.Println("Error writing to websocket: ", err)
-					return
-				}
-			}
-		}
-	}()
+	h.lock.Lock()
+	h.clients[ws] = true
+	h.lock.Unlock()
 
 	// handle reading
 	for {
@@ -55,10 +47,34 @@ func (h *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	}
 
 	log.Println("closing websocket")
+	h.lock.Lock()
 	ws.Close()
+	delete(h.clients, ws)
+	h.lock.Unlock()
 }
 
 // NewWebsocketHandler returns a new websocket handler
-func NewWebsocketHandler(c chan []byte) http.Handler {
-	return &WebsocketHandler{in: c}
+func NewWebsocketHandler(wsTx chan []byte) http.Handler {
+	clients := make(map[*websocket.Conn]bool)
+	var lock sync.RWMutex
+	go func() {
+		for {
+			select {
+			case m := <-wsTx:
+				for client := range clients {
+					lock.RLock()
+					err := client.WriteMessage(websocket.TextMessage, m)
+					lock.RUnlock()
+					if err != nil {
+						log.Println("Error writing to websocket: ", err)
+						lock.Lock()
+						client.Close()
+						delete(clients, client)
+						lock.Unlock()
+					}
+				}
+			}
+		}
+	}()
+	return &WebsocketHandler{clients: clients, lock: &lock}
 }
