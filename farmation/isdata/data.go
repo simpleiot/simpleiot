@@ -60,8 +60,8 @@ type ISConfig struct {
 	NetworkConfig   NetworkConfig
 	MaxTankVolume   int
 	TankAlertVolume int
-	FlowMeterPPG	int	// how many pulses in one US gallon
-	FlowMeterMaxflo	int	// Meter's maximum flow rate in GPM or LPM
+	FlowMeterPPG    int // how many pulses in one US gallon
+	FlowMeterMaxflo int // Meter's maximum flow rate in GPM or LPM
 }
 
 // ISConfigDefault contains defaults for initializing a new system
@@ -307,6 +307,20 @@ const (
 	KeySK3
 	KeySK4
 )
+
+func (k Key) String() string {
+	switch k {
+	case KeyUp:
+		return "KeyUp"
+	case KeyDown:
+		return "KeyDown"
+	case KeyLeft:
+		return "KeyLeft"
+	default:
+		return "unkown key"
+
+	}
+}
 
 // Screen defines various screens that can be displayed
 type Screen struct {
