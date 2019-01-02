@@ -314,10 +314,12 @@ func (k Key) String() string {
 		return "KeyUp"
 	case KeyDown:
 		return "KeyDown"
+	case KeyRight:
+		return "KeyRight"
 	case KeyLeft:
 		return "KeyLeft"
 	default:
-		return "unkown key"
+		return "unknown key"
 
 	}
 }
