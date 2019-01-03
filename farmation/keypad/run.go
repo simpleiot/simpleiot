@@ -2,7 +2,6 @@ package keypad
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/pkg/term"
 	"github.com/simpleiot/simpleiot/data"
@@ -49,8 +48,6 @@ func Run(in, out chan interface{}) {
 				out <- isdata.KeySK3
 			case bytes.Equal(c, []byte{52}): // 4
 				out <- isdata.KeySK4
-			default:
-				fmt.Println("unknown key", c)
 			}
 		}
 	}()
