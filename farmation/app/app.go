@@ -76,7 +76,8 @@ func Run() {
 				webChan <- m
 
 			default:
-				log.Printf("Mux: unhandled message of type %T: %+v\n", m, m)
+				// \r is required below to handle unknown keycode messages -- not sure why
+				log.Printf("Mux: unhandled message of type %T: %+v\r\n", m, m)
 
 			}
 		}
