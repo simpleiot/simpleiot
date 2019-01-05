@@ -1,4 +1,4 @@
-module Farmation.Is.Lcd exposing (Data, defaultData, lcd, setPixel)
+module Farmation.Is.Lcd exposing (Data, defaultData, lcd, setBlock, setPixel)
 
 import Array
 import Array2D
@@ -30,6 +30,30 @@ svgHeight =
 setPixel : Int -> Int -> Bool -> Data -> Data
 setPixel x y v data =
     Array2D.set x y v data
+
+
+setRow : Int -> Int -> Int -> Bool -> Data -> Data
+setRow x y w v data =
+    let
+        x_ =
+            List.range x (x + w)
+
+        f xSet data_ =
+            Array2D.set xSet y v data_
+    in
+    List.foldl f data x_
+
+
+setBlock : Int -> Int -> Int -> Int -> Bool -> Data -> Data
+setBlock x y w h v data =
+    let
+        y_ =
+            List.range y (y + h)
+
+        f ySet data_ =
+            setRow x ySet w v data_
+    in
+    List.foldl f data y_
 
 
 type alias Data =
