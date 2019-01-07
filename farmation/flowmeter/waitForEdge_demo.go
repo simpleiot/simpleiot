@@ -5,7 +5,7 @@
    busy some pulses apparently get dropped as even though the ports are edge driven
    the edges do not queue up so if waitForEdge() goes away for too long it's
    possible to miss edges.  For accuracy's sake it's probably not a good idea
-   to use waitForEdge() for flow metering but it's eminently suitable for 
+   to use waitForEdge() for flow metering but it's eminently suitable for
    keyboard operation.  But at the slower pulse rates from some meters it might
    be acceptable to lose a pulse once in a while.
 */
@@ -13,36 +13,36 @@
 package main
 
 import (
-    "fmt"
-    "log"
-    "time"
+	"fmt"
+	"log"
+	"time"
 
-    "periph.io/x/periph/conn/gpio"
-    "periph.io/x/periph/conn/gpio/gpioreg"
-    "periph.io/x/periph/host"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/host"
 )
 
 // gpio 43 on Variscite module
 
 func flow(interval time.Duration, gpionum string, c chan int) {
 	count := 0
-   	// Lookup a pin by its number:
-    	p := gpioreg.ByName(gpionum)
-    	if p == nil {
-        	log.Fatal(p)
+	// Lookup a pin by its number:
+	p := gpioreg.ByName(gpionum)
+	if p == nil {
+		log.Fatal(p)
 		fmt.Println("GPIO register bad number.")
-    	}
-    	fmt.Printf("%s: %s\n", p, p.Function())
+	}
+	fmt.Printf("%s: %s\n", p, p.Function())
 
-    	// Set it as input, with an internal pull down resistor:
-    	if err := p.In(gpio.Float, gpio.FallingEdge); err != nil {
-        	log.Fatal(err)
-    	}
+	// Set it as input, with an internal pull down resistor:
+	if err := p.In(gpio.Float, gpio.FallingEdge); err != nil {
+		log.Fatal(err)
+	}
 	go func() {
- 		for {
-        		p.WaitForEdge(-1)  //one second?
-            		count++
-	    	}
+		for {
+			p.WaitForEdge(-1) //one second?
+			count++
+		}
 	}()
 	for {
 		time.Sleep(interval * time.Millisecond)
@@ -52,18 +52,16 @@ func flow(interval time.Duration, gpionum string, c chan int) {
 }
 
 func main() {
-    // Load all the drivers:
-    if _, err := host.Init(); err != nil {
-        log.Fatal(err)
-    }
+	// Load all the drivers:
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
+	}
 
-    ch := make(chan int, 10)
+	ch := make(chan int, 10)
 
-    go flow(1000, "43", ch)
+	go flow(1000, "PD25", ch)
 
-    for {
-    	fmt.Printf("Samples: %d\n",<-ch)
-    }
+	for {
+		fmt.Printf("Samples: %d\n", <-ch)
+	}
 }
-
-
