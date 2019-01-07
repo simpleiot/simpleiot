@@ -36,3 +36,7 @@ is_run() {
   go run farmation/cmd/injector-sentry/main.go || return 1
   return 0
 }
+
+is_build_gpio_test() {
+  GOARCH="arm" go build -o gpio-test farmation/cmd/gpio-test/main.go
+}
