@@ -55,7 +55,6 @@ func Run(in, out chan interface{}) {
 
 	go keypad(out, "PB0", isdata.KeyEnter)
 	go keypad(out, "PD25", isdata.KeySK1)
-	go keypad(out, "PB4", isdata.KeyUp)
 	go func() {
 		for {
 			c := getch()
