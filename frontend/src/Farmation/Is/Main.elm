@@ -59,7 +59,7 @@ init model =
 
 
 type Msg
-    = SetPixel (Result Json.Decode.Error Pix)
+    = SetPixel (Result Json.Decode.Error Pixel)
     | Tick Time.Posix
 
 
@@ -106,21 +106,53 @@ view model =
 -- Misc functions/data structures
 
 
-type alias Pix =
+type alias Pixel =
     { x : Int
     , y : Int
     , v : Bool
     }
 
 
-pixDecoder : Json.Decode.Decoder Pix
-pixDecoder =
-    Json.Decode.map3 Pix
+pixelDecoder : Json.Decode.Decoder Pixel
+pixelDecoder =
+    Json.Decode.map3 Pixel
         (Json.Decode.field "x" Json.Decode.int)
         (Json.Decode.field "y" Json.Decode.int)
         (Json.Decode.field "v" Json.Decode.bool)
 
 
-pixValueDecoder : Json.Decode.Value -> Result Json.Decode.Error Pix
+type alias Blt =
+    { x : Int
+    , y : Int
+    , w : Int
+    , h : Int
+    , v : Bool
+    }
+
+
+bltDecoder : Json.Decode.Decoder Blt
+bltDecoder =
+    Json.Decode.map5 Blt
+        (Json.Decode.field "x" Json.Decode.int)
+        (Json.Decode.field "y" Json.Decode.int)
+        (Json.Decode.field "w" Json.Decode.int)
+        (Json.Decode.field "h" Json.Decode.int)
+        (Json.Decode.field "v" Json.Decode.bool)
+
+
+type PortValue
+    = PixelValue Pixel
+    | BltValue Blt
+
+
+portValueDecoder : Json.Decode.Decoder PortValue
+portValueDecoder =
+    Json.Decode.oneOf
+        [ Json.Decode.map BltValue bltDecoder
+        , Json.Decode.map PixelValue pixelDecoder
+        ]
+
+
+pixValueDecoder : Json.Decode.Value -> Result Json.Decode.Error Pixel
 pixValueDecoder v =
-    Json.Decode.decodeValue pixDecoder v
+    Json.Decode.decodeValue pixelDecoder v

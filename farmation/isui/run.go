@@ -11,15 +11,16 @@ import (
 func Run(in, out chan interface{}) {
 
 	go func() {
-		v := 0
+		v := false
 		for {
 			time.Sleep(time.Millisecond * 500)
-			out <- isdata.MakeBltBlock(10, 10, 20, 20, v)
-			if v == 0 {
-				v = 1
-			} else {
-				v = 0
-			}
+			out <- isdata.LcdBltSolid{
+				X: 10,
+				Y: 10,
+				W: 20,
+				H: 20,
+				V: v}
+			v = !v
 		}
 	}()
 

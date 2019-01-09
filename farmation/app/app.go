@@ -78,6 +78,9 @@ func Run() {
 			case isdata.LcdBlt:
 				webChan <- m
 
+			case isdata.LcdBltSolid:
+				webChan <- m
+
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
 				log.Printf("Mux: unhandled message of type %T: %+v\r\n", m, m)

@@ -16,6 +16,15 @@ type LcdBlt struct {
 	Data []int `json:"data"`
 }
 
+// LcdBltSolid is used to define a block of one color
+type LcdBltSolid struct {
+	X int  `json:"x"`
+	Y int  `json:"y"`
+	W int  `json:"w"`
+	H int  `json:"h"`
+	V bool `json:"v"`
+}
+
 // MakeBltBlock returns a Blt of one solid color
 func MakeBltBlock(x, y, w, h, v int) LcdBlt {
 	data := make([]int, w*h)
