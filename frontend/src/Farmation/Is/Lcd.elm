@@ -1,4 +1,4 @@
-module Farmation.Is.Lcd exposing (Data, defaultData, lcd, setBlock, setPixel)
+module Farmation.Is.Lcd exposing (Data, defaultData, lcd, setPixel, setSolidBlock)
 
 import Array
 import Array2D
@@ -44,8 +44,8 @@ setRow x y w v data =
     List.foldl f data x_
 
 
-setBlock : Int -> Int -> Int -> Int -> Bool -> Data -> Data
-setBlock x y w h v data =
+setSolidBlock : Int -> Int -> Int -> Int -> Bool -> Data -> Data
+setSolidBlock x y w h v data =
     let
         y_ =
             List.range y (y + h)

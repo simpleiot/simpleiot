@@ -33,7 +33,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Time.every 1000 Tick
-        , portIn (pixValueDecoder >> SetPixel)
+        , portIn (portValueDecoder >> ProcessPortValue)
         ]
 
 
@@ -59,27 +59,42 @@ init model =
 
 
 type Msg
-    = SetPixel (Result Json.Decode.Error Pixel)
+    = ProcessPortValue (Result Json.Decode.Error PortValue)
     | Tick Time.Posix
+
+
+processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
+processPortValue portValue model =
+    case portValue of
+        PixelValue pix ->
+            ( { model
+                | lcdData =
+                    Lcd.setPixel pix.x pix.y pix.v model.lcdData
+              }
+            , Cmd.none
+            )
+
+        BltSolidValue blt ->
+            ( { model
+                | lcdData =
+                    Lcd.setSolidBlock blt.x blt.y blt.w blt.h blt.v model.lcdData
+              }
+            , Cmd.none
+            )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        SetPixel result ->
+        ProcessPortValue result ->
             case result of
-                Ok pix ->
-                    ( { model
-                        | lcdData =
-                            Lcd.setPixel pix.x pix.y pix.v model.lcdData
-                      }
-                    , Cmd.none
-                    )
+                Ok portValue ->
+                    processPortValue portValue model
 
                 Err err ->
                     let
                         _ =
-                            Debug.log "Pixel decode error: " err
+                            Debug.log "Port value decode error: " err
                     in
                     ( model, Cmd.none )
 
@@ -121,7 +136,7 @@ pixelDecoder =
         (Json.Decode.field "v" Json.Decode.bool)
 
 
-type alias Blt =
+type alias BltSolid =
     { x : Int
     , y : Int
     , w : Int
@@ -130,9 +145,9 @@ type alias Blt =
     }
 
 
-bltDecoder : Json.Decode.Decoder Blt
-bltDecoder =
-    Json.Decode.map5 Blt
+bltSolidDecoder : Json.Decode.Decoder BltSolid
+bltSolidDecoder =
+    Json.Decode.map5 BltSolid
         (Json.Decode.field "x" Json.Decode.int)
         (Json.Decode.field "y" Json.Decode.int)
         (Json.Decode.field "w" Json.Decode.int)
@@ -142,13 +157,13 @@ bltDecoder =
 
 type PortValue
     = PixelValue Pixel
-    | BltValue Blt
+    | BltSolidValue BltSolid
 
 
-portValueDecoder : Json.Decode.Decoder PortValue
-portValueDecoder =
+portDecoder : Json.Decode.Decoder PortValue
+portDecoder =
     Json.Decode.oneOf
-        [ Json.Decode.map BltValue bltDecoder
+        [ Json.Decode.map BltSolidValue bltSolidDecoder
         , Json.Decode.map PixelValue pixelDecoder
         ]
 
@@ -156,3 +171,8 @@ portValueDecoder =
 pixValueDecoder : Json.Decode.Value -> Result Json.Decode.Error Pixel
 pixValueDecoder v =
     Json.Decode.decodeValue pixelDecoder v
+
+
+portValueDecoder : Json.Decode.Value -> Result Json.Decode.Error PortValue
+portValueDecoder v =
+    Json.Decode.decodeValue portDecoder v
