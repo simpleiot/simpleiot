@@ -33,7 +33,7 @@
         }
         conn.onmessage = function(evt) {
             var obj = JSON.parse(evt.data);
-            console.log("ws data: ", obj);
+            //console.log("ws data: ", obj);
             app.ports.portIn.send(obj);
         }
     </script>
