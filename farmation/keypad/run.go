@@ -3,6 +3,7 @@ package keypad
 import (
 	"bytes"
 	"log"
+	"time"
 
 	"github.com/pkg/term"
 	"github.com/simpleiot/simpleiot/data"
@@ -14,6 +15,7 @@ import (
 
 func keypad(out chan interface{}, name string, key isdata.Key) {
 	p := gpioreg.ByName(name)
+	var lastSent time.Time
 	if p == nil {
 		log.Println("got nil when requesting GPIO PD25")
 		return
@@ -27,7 +29,11 @@ func keypad(out chan interface{}, name string, key isdata.Key) {
 
 	for {
 		p.WaitForEdge(-1) //one second?
-		out <- key
+		curr := time.Now()
+		if curr.Sub(lastSent) > time.Millisecond*200 {
+			out <- key
+			lastSent = curr
+		}
 	}
 }
 
