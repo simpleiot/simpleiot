@@ -2,6 +2,12 @@ github.com/benbjohnson/genesis v0.2.1 h1:a3Q3egZj+hD+OqIMXCrPP+3DQwFg2W/4WVJMsxT
 github.com/benbjohnson/genesis v0.2.1/go.mod h1:8ATnWEh6jLjo/pORjjfvkkxauC+XaSIvVfEXMI0Cv9M=
 github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
 github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
+github.com/cbrake/periph v3.4.0+incompatible h1:YWvmuQqTwuAKo2H4ukyxfCBS2qk6heTaYxHzAdcZrO8=
+github.com/cbrake/periph v3.4.0+incompatible/go.mod h1:P49MXHAcQ4+24a77s0cAJvOO7AhBUC/k4Mj6RJStQJk=
+github.com/cbrake/periph v3.4.990+incompatible h1:xh+sQnzoumlvSZefcLiFqYVYTKAMNQb2A69EDQ3rzxo=
+github.com/cbrake/periph v3.4.990+incompatible/go.mod h1:P49MXHAcQ4+24a77s0cAJvOO7AhBUC/k4Mj6RJStQJk=
+github.com/cbrake/periph v3.4.991+incompatible h1:YCAMPyT4zvcFNXjnGCNRPj0RxEfnMIqYSHq6hncZ1+w=
+github.com/cbrake/periph v3.4.991+incompatible/go.mod h1:P49MXHAcQ4+24a77s0cAJvOO7AhBUC/k4Mj6RJStQJk=
 github.com/gorilla/websocket v1.4.0 h1:WDFjx/TMzVgy9VdMMQi2K2Emtwi2QcUQsztZ/zLaH/Q=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/pkg/term v0.0.0-20181116001808-27bbf2edb814 h1:qWlKm6sU/AyVAgBC1Pg1uuY/X/p4lNYG7t4v8/f4FJE=
@@ -10,6 +16,7 @@ github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944 h1:gpP0SE4FIbe
 github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944/go.mod h1:jUigdmrbdCxcIDEFrq82t4X9805XZfwFZoYUap0ET/U=
 go.etcd.io/bbolt v1.3.0 h1:oY10fI923Q5pVCVt1GBTZMn8LHo5M+RCInFpeMnV4QI=
 go.etcd.io/bbolt v1.3.0/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
-golang.org/x/sys v0.0.0-20181107165924-66b7b1311ac8 h1:YoY1wS6JYVRpIfFngRf2HHo9R9dAne3xbkGOQ5rJXjU=
-golang.org/x/sys v0.0.0-20181107165924-66b7b1311ac8/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/sys v0.0.0-20181206074257-70b957f3b65e h1:njOxP/wVblhCLIUhjHXf6X+dzTt5OQ3vMQo9mkOIKIo=
 golang.org/x/sys v0.0.0-20181206074257-70b957f3b65e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+periph.io/x/periph v3.4.0+incompatible h1:5gzxE4ryPq52cdqSw0mErR6pyJK8cBF2qdUAcOWh0bo=
+periph.io/x/periph v3.4.0+incompatible/go.mod h1:EWr+FCIU2dBWz5/wSWeiIUJTriYv9v2j2ENBmgYyy7Y=

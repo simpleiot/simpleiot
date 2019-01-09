@@ -2,11 +2,40 @@ package keypad
 
 import (
 	"bytes"
+	"log"
 
 	"github.com/pkg/term"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/host"
 )
+
+func keypad(out chan interface{}) {
+	// Load all the drivers:
+	if _, err := host.Init(); err != nil {
+		log.Println("Error initializing periph.io host", err)
+		return
+	}
+
+	p := gpioreg.ByName("PD25")
+	if p == nil {
+		log.Println("got nil when requesting GPIO PD25")
+		return
+	}
+
+	// Set it as input, with an internal pull down resistor:
+	if err := p.In(gpio.Float, gpio.FallingEdge); err != nil {
+		log.Println("Error setting up gpio: ", err)
+		return
+	}
+
+	for {
+		p.WaitForEdge(-1) //one second?
+		out <- isdata.KeyEnter
+	}
+}
 
 // Get character as a byte slice
 func getch() []byte {
@@ -24,6 +53,7 @@ func getch() []byte {
 
 // Run goroutine for keypad code
 func Run(in, out chan interface{}) {
+	go keypad(out)
 	go func() {
 		for {
 			c := getch()

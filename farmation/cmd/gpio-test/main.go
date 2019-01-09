@@ -20,7 +20,6 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/host"
-	"periph.io/x/periph/host/sysfs"
 )
 
 // gpio 43 on Variscite module
@@ -28,27 +27,16 @@ import (
 func flow(interval time.Duration, gpionum string, c chan int) {
 	count := 0
 	// Lookup a pin by its number:
-	/*
-		p := gpioreg.ByName(gpionum)
-		if p == nil {
-			log.Fatal("gpioreg.ByName returned nil")
-		}
-	*/
-
-	p := &sysfs.Pin{
-		number: 0,
-		name:   "PD25",
-		root:   "/sys/class/gpio/PD25",
+	p := gpioreg.ByName(gpionum)
+	if p == nil {
+		log.Fatal(p)
+		fmt.Println("GPIO register bad number.")
 	}
-	if err := gpioreg.Register(p); err != nil {
-		log.Fatal("error registering gpio: ", err)
-	}
-
 	fmt.Printf("%s: %s\n", p, p.Function())
 
 	// Set it as input, with an internal pull down resistor:
 	if err := p.In(gpio.Float, gpio.FallingEdge); err != nil {
-		log.Fatal("p.In error: ", err)
+		log.Fatal(err)
 	}
 	go func() {
 		for {
@@ -66,7 +54,7 @@ func flow(interval time.Duration, gpionum string, c chan int) {
 func main() {
 	// Load all the drivers:
 	if _, err := host.Init(); err != nil {
-		log.Fatal("error initializing host: ", err)
+		log.Fatal(err)
 	}
 
 	ch := make(chan int, 10)
