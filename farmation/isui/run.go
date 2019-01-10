@@ -60,7 +60,7 @@ func Run(in, out chan interface{}) {
 		v := true
 
 		for {
-			time.Sleep(time.Millisecond * 500)
+			time.Sleep(time.Millisecond * 20)
 			out <- isdata.LcdPixel{X: x, Y: y, V: v}
 			x++
 			if x >= 128 {
