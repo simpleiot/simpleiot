@@ -1,4 +1,4 @@
-module Farmation.Is.Lcd exposing (Data, defaultData, lcd, setPixel, setSolidBlock)
+module Farmation.Is.Lcd exposing (Data, defaultData, lcd, setBlock, setPixel, setSolidBlock)
 
 import Array
 import Array2D
@@ -32,8 +32,8 @@ setPixel x y v data =
     Array2D.set x y v data
 
 
-setRow : Int -> Int -> Int -> Bool -> Data -> Data
-setRow x y w v data =
+setRowSolid : Int -> Int -> Int -> Bool -> Data -> Data
+setRowSolid x y w v data =
     let
         x_ =
             List.range x (x + w)
@@ -51,9 +51,75 @@ setSolidBlock x y w h v data =
             List.range y (y + h)
 
         f ySet data_ =
-            setRow x ySet w v data_
+            setRowSolid x ySet w v data_
     in
     List.foldl f data y_
+
+
+listToArray2D : Int -> Int -> Array.Array Bool -> Array2D.Array2D Bool
+listToArray2D width height data =
+    let
+        data2Dinit =
+            Array2D.initialize width height (\row col -> True)
+
+        xRange =
+            List.range 0 width
+
+        yRange =
+            List.range 0 height
+    in
+    List.foldl
+        (\y data_ ->
+            List.foldl
+                (\x data__ ->
+                    let
+                        v =
+                            Array.get (y * width + x) data
+
+                        v_ =
+                            case v of
+                                Just v__ ->
+                                    v__
+
+                                Nothing ->
+                                    False
+                    in
+                    Array2D.set x y v_ data__
+                )
+                data_
+                xRange
+        )
+        data2Dinit
+        yRange
+
+
+setBlock : Int -> Int -> Int -> Int -> Array.Array Bool -> Data -> Data
+setBlock x y w h data lcdData =
+    let
+        _ =
+            Debug.log "set block data" data
+
+        xRange =
+            List.range 0 w
+
+        yRange =
+            List.range 0 h
+    in
+    List.foldl
+        (\y_ lcdData_ ->
+            List.foldl
+                (\x_ lcdData__ ->
+                    let
+                        v =
+                            Array.get (y_ * w + x_) data
+                    in
+                    Array2D.set (x + x_) (y + y_) v lcdData__
+                )
+                lcdData_
+                xRange
+        )
+        lcdData
+        yRange
 
 
 type alias Data =

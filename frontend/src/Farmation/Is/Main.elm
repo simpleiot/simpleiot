@@ -1,5 +1,6 @@
 port module Main exposing (Msg(..), main, update, view)
 
+import Array
 import Browser
 import Farmation.Is.Lcd as Lcd
 import Html exposing (Html, button, div, text)
@@ -82,6 +83,14 @@ processPortValue portValue model =
             , Cmd.none
             )
 
+        BltValue blt ->
+            ( { model
+                | lcdData =
+                    Lcd.setBlock blt.x blt.y blt.w blt.h blt.data model.lcdData
+              }
+            , Cmd.none
+            )
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -155,9 +164,29 @@ bltSolidDecoder =
         (Json.Decode.field "v" Json.Decode.bool)
 
 
+type alias Blt =
+    { x : Int
+    , y : Int
+    , w : Int
+    , h : Int
+    , data : Array.Array Bool
+    }
+
+
+bltDecoder : Json.Decode.Decoder Blt
+bltDecoder =
+    Json.Decode.map5 Blt
+        (Json.Decode.field "x" Json.Decode.int)
+        (Json.Decode.field "y" Json.Decode.int)
+        (Json.Decode.field "w" Json.Decode.int)
+        (Json.Decode.field "h" Json.Decode.int)
+        (Json.Decode.field "data" (Json.Decode.array Json.Decode.bool))
+
+
 type PortValue
     = PixelValue Pixel
     | BltSolidValue BltSolid
+    | BltValue Blt
 
 
 portDecoder : Json.Decode.Decoder PortValue
@@ -165,6 +194,7 @@ portDecoder =
     Json.Decode.oneOf
         [ Json.Decode.map BltSolidValue bltSolidDecoder
         , Json.Decode.map PixelValue pixelDecoder
+        , Json.Decode.map BltValue bltDecoder
         ]
 
 
