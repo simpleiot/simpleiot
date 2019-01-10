@@ -12,14 +12,8 @@ import (
 	"periph.io/x/periph/host"
 )
 
-func keypad(out chan interface{}) {
-	// Load all the drivers:
-	if _, err := host.Init(); err != nil {
-		log.Println("Error initializing periph.io host", err)
-		return
-	}
-
-	p := gpioreg.ByName("PD25")
+func keypad(out chan interface{}, name string, key isdata.Key) {
+	p := gpioreg.ByName(name)
 	if p == nil {
 		log.Println("got nil when requesting GPIO PD25")
 		return
@@ -33,7 +27,7 @@ func keypad(out chan interface{}) {
 
 	for {
 		p.WaitForEdge(-1) //one second?
-		out <- isdata.KeyEnter
+		out <- key
 	}
 }
 
@@ -53,7 +47,15 @@ func getch() []byte {
 
 // Run goroutine for keypad code
 func Run(in, out chan interface{}) {
-	go keypad(out)
+	// Load all the drivers:
+	if _, err := host.Init(); err != nil {
+		log.Println("Error initializing periph.io host", err)
+		return
+	}
+
+	go keypad(out, "PB0", isdata.KeyEnter)
+	go keypad(out, "PD25", isdata.KeySK1)
+	go keypad(out, "PB4", isdata.KeyUp)
 	go func() {
 		for {
 			c := getch()
