@@ -1,7 +1,12 @@
 package main
 
-import "github.com/simpleiot/simpleiot/farmation/app"
+import (
+	"log"
+
+	"github.com/simpleiot/simpleiot/farmation/app"
+)
 
 func main() {
+	log.Println("Starting IS app ...")
 	app.Run()
 }
