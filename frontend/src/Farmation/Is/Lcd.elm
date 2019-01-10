@@ -20,11 +20,11 @@ lcdPxSize =
 
 
 svgWidth =
-    lcdWidth * lcdPxSize
+    (lcdWidth + 2) * lcdPxSize
 
 
 svgHeight =
-    lcdHeight * lcdPxSize
+    (lcdHeight + 2) * lcdPxSize
 
 
 setPixel : Int -> Int -> Bool -> Data -> Data
@@ -147,10 +147,10 @@ lcdDataToPixel : Int -> Int -> Bool -> Svg msg
 lcdDataToPixel xPos yPos v =
     let
         xS =
-            String.fromInt (xPos * lcdPxSize)
+            String.fromInt ((xPos + 1) * lcdPxSize)
 
         yS =
-            String.fromInt (yPos * lcdPxSize)
+            String.fromInt ((yPos + 1) * lcdPxSize)
 
         fillS =
             if v then
@@ -188,4 +188,19 @@ lcd data =
         , height (String.fromInt svgHeight)
         , viewBox viewBoxSize
         ]
-        (lcdDataToPixels data)
+        [ g []
+            (lcdDataToPixels data)
+        , g
+            []
+            [ rect
+                [ x "0"
+                , y "0"
+                , width (String.fromInt svgWidth)
+                , height (String.fromInt svgHeight)
+                , fill "none"
+                , stroke "black"
+                , strokeWidth "3"
+                ]
+                []
+            ]
+        ]

@@ -3,7 +3,7 @@ port module Main exposing (Msg(..), main, update, view)
 import Array
 import Browser
 import Farmation.Is.Lcd as Lcd
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, button, div, h2, text)
 import Html.Events exposing (onClick)
 import Json.Decode
 import Json.Encode
@@ -120,7 +120,8 @@ view model =
     { title = "Injector • Sentry"
     , body =
         [ div []
-            [ Lcd.lcd model.lcdData
+            [ h2 [] [ text "Injector Sentry" ]
+            , Lcd.lcd model.lcdData
             ]
         ]
     }
