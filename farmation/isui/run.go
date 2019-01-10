@@ -11,6 +11,36 @@ import (
 func Run(in, out chan interface{}) {
 
 	go func() {
+		width := 5
+		height := 5
+		data := make([]bool, width*height)
+		odd := true
+		for {
+			time.Sleep(time.Millisecond * 500)
+			for y := 0; y < height; y++ {
+				v := false != odd
+				if y%2 == 1 {
+					v = true != odd
+				}
+				for x := 0; x < width; x++ {
+					data[y*width+x] = v
+				}
+			}
+
+			out <- isdata.LcdBlt{
+				X:    50,
+				Y:    50,
+				W:    width,
+				H:    height,
+				Data: data,
+			}
+
+			odd = !odd
+
+		}
+	}()
+
+	go func() {
 		v := false
 		for {
 			time.Sleep(time.Millisecond * 500)
