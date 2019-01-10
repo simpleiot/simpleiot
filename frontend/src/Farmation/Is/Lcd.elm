@@ -96,14 +96,11 @@ listToArray2D width height data =
 setBlock : Int -> Int -> Int -> Int -> Array.Array Bool -> Data -> Data
 setBlock x y w h data lcdData =
     let
-        _ =
-            Debug.log "set block data" data
-
         xRange =
-            List.range 0 w
+            List.range 0 (w - 1)
 
         yRange =
-            List.range 0 h
+            List.range 0 (h - 1)
     in
     List.foldl
         (\y_ lcdData_ ->
@@ -112,8 +109,16 @@ setBlock x y w h data lcdData =
                     let
                         v =
                             Array.get (y_ * w + x_) data
+
+                        v_ =
+                            case v of
+                                Just v__ ->
+                                    v__
+
+                                Nothing ->
+                                    False
                     in
-                    Array2D.set (x + x_) (y + y_) v lcdData__
+                    Array2D.set (x + x_) (y + y_) v_ lcdData__
                 )
                 lcdData_
                 xRange
