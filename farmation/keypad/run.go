@@ -1,7 +1,7 @@
 package keypad
 
 import (
-	"bytes"
+	"fmt"
 	"log"
 	"time"
 
@@ -15,9 +15,9 @@ import (
 
 func keypad(out chan interface{}, name string, key isdata.Key) {
 	p := gpioreg.ByName(name)
-	var lastSent time.Time
+	//var lastSent time.Time
 	if p == nil {
-		log.Println("got nil when requesting GPIO PD25")
+		log.Println("got nil when requesting GPIO ", name)
 		return
 	}
 
@@ -26,14 +26,43 @@ func keypad(out chan interface{}, name string, key isdata.Key) {
 		log.Println("Error setting up gpio: ", err)
 		return
 	}
+	// make channel to send edges from button presses
+	cEdge := make(chan bool)
+
+	// timer for use in debouncing
+	timer := time.NewTimer(time.Millisecond * 50)
+	timer.Stop()
+
+	var timerRunning bool
+	go func() {
+		for {
+			p.WaitForEdge(-1) //one second?
+			cEdge <- true
+		}
+	}()
 
 	for {
-		p.WaitForEdge(-1) //one second?
-		curr := time.Now()
-		if curr.Sub(lastSent) > time.Millisecond*200 {
-			out <- key
-			lastSent = curr
+		select {
+		case <-cEdge:
+			if timerRunning == false {
+				//fmt.Println("got edge", p.Read())
+				if p.Read() == false {
+					out <- key
+				}
+				timer.Reset(time.Millisecond * 50)
+				timerRunning = true
+			}
+		case <-timer.C:
+			fmt.Println("got timer")
+			timerRunning = false
 		}
+		/*
+			curr := time.Now()
+			if curr.Sub(lastSent) > time.Millisecond*50 {
+				out <- key
+				lastSent = curr
+			}
+		*/
 	}
 }
 
@@ -61,33 +90,35 @@ func Run(in, out chan interface{}) {
 
 	go keypad(out, "PB0", isdata.KeyEnter)
 	go keypad(out, "PD25", isdata.KeySK1)
-	go func() {
-		for {
-			c := getch()
-			switch {
-			case bytes.Equal(c, []byte{3}):
-				return
-			case bytes.Equal(c, []byte{27, 91, 65}): // up arrow
-				out <- isdata.KeyUp
-			case bytes.Equal(c, []byte{27, 91, 66}): // down
-				out <- isdata.KeyDown
-			case bytes.Equal(c, []byte{27, 91, 67}): // right
-				out <- isdata.KeyRight
-			case bytes.Equal(c, []byte{27, 91, 68}): // left
-				out <- isdata.KeyLeft
-			case bytes.Equal(c, []byte{13}): // enter
-				out <- isdata.KeyEnter
-			case bytes.Equal(c, []byte{49}): // 1
-				out <- isdata.KeySK1
-			case bytes.Equal(c, []byte{50}): // 2
-				out <- isdata.KeySK2
-			case bytes.Equal(c, []byte{51}): // 3
-				out <- isdata.KeySK3
-			case bytes.Equal(c, []byte{52}): // 4
-				out <- isdata.KeySK4
+	/*
+		go func() {
+			for {
+				c := getch()
+				switch {
+				case bytes.Equal(c, []byte{3}):
+					return
+				case bytes.Equal(c, []byte{27, 91, 65}): // up arrow
+					out <- isdata.KeyUp
+				case bytes.Equal(c, []byte{27, 91, 66}): // down
+					out <- isdata.KeyDown
+				case bytes.Equal(c, []byte{27, 91, 67}): // right
+					out <- isdata.KeyRight
+				case bytes.Equal(c, []byte{27, 91, 68}): // left
+					out <- isdata.KeyLeft
+				case bytes.Equal(c, []byte{13}): // enter
+					out <- isdata.KeyEnter
+				case bytes.Equal(c, []byte{49}): // 1
+					out <- isdata.KeySK1
+				case bytes.Equal(c, []byte{50}): // 2
+					out <- isdata.KeySK2
+				case bytes.Equal(c, []byte{51}): // 3
+					out <- isdata.KeySK3
+				case bytes.Equal(c, []byte{52}): // 4
+					out <- isdata.KeySK4
+				}
 			}
-		}
-	}()
+		}()
+	*/
 	for {
 		select {
 		case m := <-in:
