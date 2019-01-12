@@ -7,8 +7,11 @@ require (
 	github.com/pkg/term v0.0.0-20181116001808-27bbf2edb814
 	github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944
 	go.etcd.io/bbolt v1.3.0 // indirect
-	golang.org/x/sys v0.0.0-20181206074257-70b957f3b65e // indirect
+	golang.org/x/image v0.0.0-20181116024801-cd38e8056d9b
+	golang.org/x/sys v0.0.0-20190109145017-48ac38b7c8cb // indirect
 	periph.io/x/periph v3.4.0+incompatible
 )
 
 replace periph.io/x/periph => github.com/cbrake/periph v3.4.991+incompatible
+
+replace golang.org/x/image => github.com/cbrake/golang.org-x-image v0.0.1
