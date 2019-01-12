@@ -16,6 +16,13 @@ is_build_assets() {
     index.html \
     elm.js \
     >farmation/assets/isfrontend/assets.go || return 1
+
+  genesis -C farmation/assets/lcdassets -pkg lcdassets \
+    splash.bmp \
+    black-test.bmp \
+    white-test.bmp \
+    >farmation/assets/lcdassets/assets.go || return 1
+
   return 0
 }
 
