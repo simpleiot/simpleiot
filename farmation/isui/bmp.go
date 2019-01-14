@@ -44,7 +44,7 @@ func ImageToBlt(x, y int, img image.Image) isdata.LcdBlt {
 	min, max := rect.Min, rect.Max
 	w := max.X - min.X
 	h := max.Y - min.Y
-	ret := isdata.NewLcdBlt(x, y, w, h)
+	ret := isdata.NewLcdBlt(x, y, w, h, false)
 	for y := rect.Min.Y; y < rect.Max.Y; y++ {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
 			r, _, _, _ := img.At(x, y).RGBA()
