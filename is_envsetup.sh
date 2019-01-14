@@ -18,9 +18,10 @@ is_build_assets() {
     >farmation/assets/isfrontend/assets.go || return 1
 
   genesis -C farmation/assets/lcdassets -pkg lcdassets \
-    splash.bmp \
-    black-test.bmp \
-    white-test.bmp \
+    $(
+      cd farmation/assets/lcdassets
+      ls *.bmp
+    ) \
     >farmation/assets/lcdassets/assets.go || return 1
 
   return 0
