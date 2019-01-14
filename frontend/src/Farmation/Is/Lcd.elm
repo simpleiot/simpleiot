@@ -16,7 +16,7 @@ lcdHeight =
 
 
 lcdPxSize =
-    5
+    3
 
 
 svgWidth =
@@ -162,8 +162,8 @@ lcdDataToPixel xPos yPos v =
     rect
         [ x xS
         , y yS
-        , width "4"
-        , height "4"
+        , width "2"
+        , height "2"
         , rx "1"
         , ry "1"
         , fill fillS
