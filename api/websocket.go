@@ -18,10 +18,13 @@ var upgrader = websocket.Upgrader{
 type WebsocketHandler struct {
 	clients map[*websocket.Conn]bool
 	lock    *sync.RWMutex
+	newConn chan<- bool
 }
 
 func (h *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	fmt.Println("Websocket handler")
+
+	h.newConn <- true
 
 	ws, err := upgrader.Upgrade(rw, req, nil)
 	if err != nil {
@@ -53,8 +56,11 @@ func (h *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	h.lock.Unlock()
 }
 
-// NewWebsocketHandler returns a new websocket handler
-func NewWebsocketHandler(wsTx chan []byte) http.Handler {
+// NewWebsocketHandler returns a new websocket handler. The wsTx channel is
+// used to send data out the websocket, and the newConn channel is used to
+// signal back to the caller that a new client has connected, and the initial
+// data set needs to be sent over.
+func NewWebsocketHandler(wsTx <-chan []byte, newConn chan<- bool) http.Handler {
 	clients := make(map[*websocket.Conn]bool)
 	var lock sync.RWMutex
 	go func() {
@@ -76,5 +82,5 @@ func NewWebsocketHandler(wsTx chan []byte) http.Handler {
 			}
 		}
 	}()
-	return &WebsocketHandler{clients: clients, lock: &lock}
+	return &WebsocketHandler{clients: clients, lock: &lock, newConn: newConn}
 }
