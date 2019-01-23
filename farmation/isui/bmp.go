@@ -35,11 +35,11 @@ func GetLcdAssetBlt(x, y int, name string) (isdata.LcdBlt, error) {
 		return isdata.LcdBlt{}, err
 	}
 
-	return ImageToBlt(x, y, img), nil
+	return ImageToBlt(x, y, img, false), nil
 }
 
 // ImageToBlt converts an image to a LCD Blt structure
-func ImageToBlt(x, y int, img image.Image) isdata.LcdBlt {
+func ImageToBlt(x, y int, img image.Image, invert bool) isdata.LcdBlt {
 	rect := img.Bounds()
 	min, max := rect.Min, rect.Max
 	w := max.X - min.X
@@ -49,9 +49,30 @@ func ImageToBlt(x, y int, img image.Image) isdata.LcdBlt {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
 			r, _, _, _ := img.At(x, y).RGBA()
 			if r > 0 {
-				ret.Data[y*w+x] = false
+				ret.Data[y*w+x] = invert
 			} else {
-				ret.Data[y*w+x] = true
+				ret.Data[y*w+x] = !invert
+			}
+		}
+	}
+
+	return ret
+}
+
+// ImageToBltA converts an image to a LCD Blt structure
+func ImageToBltA(x, y int, img image.Image, invert bool) isdata.LcdBlt {
+	rect := img.Bounds()
+	min, max := rect.Min, rect.Max
+	w := max.X - min.X
+	h := max.Y - min.Y
+	ret := isdata.NewLcdBlt(x, y, w, h, false)
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			_, _, _, a := img.At(x, y).RGBA()
+			if a > 0 {
+				ret.Data[y*w+x] = invert
+			} else {
+				ret.Data[y*w+x] = !invert
 			}
 		}
 	}

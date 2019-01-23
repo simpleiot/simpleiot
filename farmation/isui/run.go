@@ -2,6 +2,7 @@ package isui
 
 import (
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -55,6 +56,20 @@ func Run(in, out chan interface{}) {
 			time.Sleep(4 * time.Second)
 			out <- pumpOff
 			time.Sleep(4 * time.Second)
+		}
+	}()
+
+	out <- RenderTxt(10, 10, "Hello world!")
+
+	go func() {
+		flow := 0
+		for {
+			flow++
+			out <- RenderTxt(10, 25, "Flow: "+strconv.Itoa(flow))
+			if flow > 50 {
+				flow = 0
+			}
+			time.Sleep(time.Second)
 		}
 	}()
 
