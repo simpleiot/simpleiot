@@ -45,6 +45,11 @@ is_build_arm() {
   return 0
 }
 
+is_build_windows() {
+  is_build_dependencies || return 1
+  GOOS=windows go build -o is.exe farmation/cmd/injector-sentry/main.go || return 1
+}
+
 is_run() {
   is_build_dependencies || return 1
   go run farmation/cmd/injector-sentry/main.go || return 1
