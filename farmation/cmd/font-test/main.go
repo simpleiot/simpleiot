@@ -20,46 +20,13 @@ var (
 	dpi      = flag.Float64("dpi", 72, "screen resolution in Dots Per Inch")
 	fontfile = flag.String("fontfile", "farmation/cmd/font-test/luxisr.ttf", "filename of the ttf font")
 	hinting  = flag.String("hinting", "none", "none | full")
-	size     = flag.Float64("size", 20, "font size in points")
+	size     = flag.Float64("size", 16, "font size in points")
 	spacing  = flag.Float64("spacing", 1.5, "line spacing (e.g. 2 means double spaced)")
 	wonb     = flag.Bool("whiteonblack", false, "white text on a black background")
 )
 
 var text = []string{
-	"’Twas brillig, and the slithy toves",
-	"Did gyre and gimble in the wabe;",
-	"All mimsy were the borogoves,",
-	"And the mome raths outgrabe.",
-	"",
-	"“Beware the Jabberwock, my son!",
-	"The jaws that bite, the claws that catch!",
-	"Beware the Jubjub bird, and shun",
-	"The frumious Bandersnatch!”",
-	"",
-	"He took his vorpal sword in hand:",
-	"Long time the manxome foe he sought—",
-	"So rested he by the Tumtum tree,",
-	"And stood awhile in thought.",
-	"",
-	"And as in uffish thought he stood,",
-	"The Jabberwock, with eyes of flame,",
-	"Came whiffling through the tulgey wood,",
-	"And burbled as it came!",
-	"",
-	"One, two! One, two! and through and through",
-	"The vorpal blade went snicker-snack!",
-	"He left it dead, and with its head",
-	"He went galumphing back.",
-	"",
-	"“And hast thou slain the Jabberwock?",
-	"Come to my arms, my beamish boy!",
-	"O frabjous day! Callooh! Callay!”",
-	"He chortled in his joy.",
-	"",
-	"’Twas brillig, and the slithy toves",
-	"Did gyre and gimble in the wabe;",
-	"All mimsy were the borogoves,",
-	"And the mome raths outgrabe.",
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
 }
 
 func main() {
