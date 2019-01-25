@@ -11,12 +11,17 @@ import (
 )
 
 func main() {
-	txt := "Hello, World!"
+	txt := "ai"
 	width := tightpixel15.Font.MeasureString(txt)
 	fmt.Println("width: ", width)
 	img := image.NewRGBA(image.Rect(0, 0, width, 10))
-	tightpixel15.Font.DrawString(img, 0, 0, txt, color.Black)
+	widthActual := tightpixel15.Font.DrawString(img, 0, 0, txt, color.Black)
+	imgS := img.SubImage(image.Rectangle{
+		image.Point{0, 0},
+		image.Point{widthActual, 10},
+	})
+	fmt.Println("widthActual: ", widthActual)
 
 	f, _ := os.OpenFile("hello.png", os.O_CREATE|os.O_RDWR, 0644)
-	png.Encode(f, img)
+	png.Encode(f, imgS)
 }
