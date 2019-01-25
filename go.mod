@@ -48,5 +48,3 @@ require (
 replace periph.io/x/periph => github.com/cbrake/periph v3.4.991+incompatible
 
 replace golang.org/x/image => github.com/cbrake/golang.org-x-image v0.0.1
-
-replace github.com/golang/freetype => ../freetype
