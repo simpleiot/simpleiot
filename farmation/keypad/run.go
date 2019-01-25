@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/pkg/term"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"periph.io/x/periph/conn/gpio"
@@ -66,6 +65,7 @@ func keypad(out chan interface{}, name string, key isdata.Key) {
 	}
 }
 
+/*
 // Get character as a byte slice
 func getch() []byte {
 	t, _ := term.Open("/dev/tty")
@@ -79,6 +79,7 @@ func getch() []byte {
 	}
 	return bytes[0:numRead]
 }
+*/
 
 // Run goroutine for keypad code
 func Run(in, out chan interface{}) {
