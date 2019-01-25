@@ -15,8 +15,8 @@ FONTSTRING="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 is_gen_fonts() {
   cd farmation/fonts/tightpixel15
   rm tightpixel15.go
-  cmd -x=9 -y=37 -h=10 -a=$FONTSTRING -v -img tightpixel15.png >tightpixel15.txt
-  cmd -x=9 -y=37 -h=10 -a=$FONTSTRING -v -img tightpixel15.png -o tightpixel15
+  fontgen -x=9 -y=37 -h=10 -a=$FONTSTRING -v -img tightpixel15.png >tightpixel15.txt
+  fontgen -x=9 -y=37 -h=10 -a=$FONTSTRING -v -img tightpixel15.png -o tightpixel15
   #cmd -txt tightpixel15.txt -v -o tightpixel15
   cd -
 }
