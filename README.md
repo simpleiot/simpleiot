@@ -40,6 +40,17 @@ This example shows how to run the server and simulator after cloning and buildin
 - open http://localhost:8080
 - `app_run` can be used for quicker testing
 
+## Running unit tests
+
+There are not a lot of unit tests in the project yet, but below are some examples of
+running tests:
+
+- test everything: `go test ./...`
+- test only db directory: `go test ./db`
+
+The leading `./` is important, otherwise Go things you are giving it a package name,
+not a directory. The `...` tells Go to recursively test all subdirs.
+
 ## Vision
 
 - built around collecting and visualizing data from devices
