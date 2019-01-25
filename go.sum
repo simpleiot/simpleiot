@@ -17,6 +17,8 @@ github.com/cbrake/periph v3.4.991+incompatible h1:YCAMPyT4zvcFNXjnGCNRPj0RxEfnMI
 github.com/cbrake/periph v3.4.991+incompatible/go.mod h1:P49MXHAcQ4+24a77s0cAJvOO7AhBUC/k4Mj6RJStQJk=
 github.com/cbrake/pixfont v0.0.0-20190122213659-a6c6634691d0 h1:omQZpCDj7FmakOA07rHCgpAOBjbZtMc0hqEUPGsWMUE=
 github.com/cbrake/pixfont v0.0.0-20190122213659-a6c6634691d0/go.mod h1:XZogmFmqShRXMINOO1LLF0wlGdhW0l0A94JLH2PeG88=
+github.com/cbrake/pixfont v0.0.1 h1:XoWfFfwln1lZUNuZ242XbyFsuNe5ddKXB3CxrXYd04Y=
+github.com/cbrake/pixfont v0.0.1/go.mod h1:wG8B9TIIBxEYqwgBb9NEs/Gz5/ywV351SGZXRiVJJUA=
 github.com/cosiner/argv v0.0.1 h1:2iAFN+sWPktbZ4tvxm33Ei8VY66FPCxdOxpncUGpAXE=
 github.com/cosiner/argv v0.0.1/go.mod h1:p/NrK5tF6ICIly4qwEDsf6VDirFiWWz0FenfYBwJaKQ=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
