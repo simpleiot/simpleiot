@@ -10,5 +10,6 @@ tags
 # Farmation stuff
 /is
 /is_arm
+/is.exe
 farmation/assets/**/assets.go
 gpio-test
