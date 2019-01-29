@@ -13,10 +13,12 @@ import (
 func main() {
 	txt := "ai"
 	width := tightpixel15.Font.MeasureString(txt)
+	fmt.Println("MeasureString returned: ", width)
 	height := tightpixel15.Font.GetHeight()
 	fmt.Println("width: ", width)
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	widthActual := tightpixel15.Font.DrawString(img, 0, 0, txt, color.Black)
+	fmt.Println("DrawString returned: ", widthActual)
 	imgS := img.SubImage(image.Rectangle{
 		image.Point{0, 0},
 		image.Point{widthActual, height},
