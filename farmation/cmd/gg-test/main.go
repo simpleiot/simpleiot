@@ -1,0 +1,16 @@
+package main
+
+import (
+	"image"
+
+	"github.com/fogleman/gg"
+)
+
+func main() {
+	img := image.NewGray(image.Rect(0, 0, 100, 100))
+	dc := gg.NewContext(1000, 1000)
+	dc.DrawCircle(500, 500, 400)
+	dc.SetRGB(0, 0, 0)
+	dc.Fill()
+	dc.SavePNG("out.png")
+}

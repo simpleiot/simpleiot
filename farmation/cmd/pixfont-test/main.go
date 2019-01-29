@@ -19,10 +19,7 @@ func main() {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	widthActual := tightpixel15.Font.DrawString(img, 0, 0, txt, color.Black)
 	fmt.Println("DrawString returned: ", widthActual)
-	imgS := img.SubImage(image.Rectangle{
-		image.Point{0, 0},
-		image.Point{widthActual, height},
-	})
+	imgS := img.SubImage(image.Rect(0, 0, widthActual, height))
 	fmt.Println("widthActual: ", widthActual)
 
 	f, _ := os.OpenFile("hello.png", os.O_CREATE|os.O_RDWR, 0644)

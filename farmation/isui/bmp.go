@@ -25,11 +25,16 @@ func bmpTest() {
 	fmt.Println("At(0,0): ", img.At(0, 0))
 }
 
-// GetLcdAssetBlt returns a LcdBlt for a particular LCD asset bmp
-func GetLcdAssetBlt(x, y int, name string) (isdata.LcdBlt, error) {
+// GetLcdAsset returns an image for a particular LCD asset bmp
+func GetLcdAsset(name string) (image.Image, error) {
 	data := lcdassets.Asset("/" + name)
 
-	img, err := bmp.Decode(bytes.NewReader(data))
+	return bmp.Decode(bytes.NewReader(data))
+}
+
+// GetLcdAssetBlt returns a LcdBlt for a particular LCD asset bmp
+func GetLcdAssetBlt(x, y int, name string) (isdata.LcdBlt, error) {
+	img, err := GetLcdAsset(name)
 
 	if err != nil {
 		return isdata.LcdBlt{}, err
