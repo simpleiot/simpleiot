@@ -13,3 +13,4 @@ tags
 /is.exe
 farmation/assets/**/assets.go
 gpio-test
+/*.png
