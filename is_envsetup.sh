@@ -18,20 +18,21 @@ is_gen_font() {
   x=$2
   y=$3
   h=$4
+  fontstring=$5
+  var=$6
   cd farmation/fonts
   rm -rf $name
   mkdir -p $name
-  fontgen -x=$x -y=$y -h=$h -a=$FONTSTRING -v -img fonts.png >$name/$name.txt
-  fontgen -x=$x -y=$y -h=$h -a=$FONTSTRING -v -img fonts.png -o $name
+  fontgen -x=$x -y=$y -h=$h -a=$fontstring $var -img fonts.png >$name/$name.txt
+  fontgen -x=$x -y=$y -h=$h -a=$fontstring $var -img fonts.png -o $name
   mv $name.go $name/
   cd -
 }
 
 is_gen_fonts() {
-  is_gen_font tightpixel15 9 37 10
-  is_gen_font tightpixel15 9 37 10
-  is_gen_font agencyfbbold40 14 118 31
-  is_gen_font agencyfbbold20 14 158 15
+  is_gen_font tightpixel15 9 37 10 $FONTSTRING -v
+  is_gen_font agencyfbbold40 14 118 31 $FONTSTRING_NUM -v
+  is_gen_font agencyfbbold20 14 158 15 $FONTSTRING_NUM -v
 }
 
 is_build_assets() {
