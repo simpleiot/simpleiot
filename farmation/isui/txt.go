@@ -5,13 +5,14 @@ import (
 	"image/color"
 	"image/draw"
 
+	"github.com/pbnjay/pixfont"
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
 // DrawTxt draws text into an image
-func DrawTxt(img draw.Image, txt string, x, y int) {
-	tightpixel15.Font.DrawString(img, x, y, txt, color.Black)
+func DrawTxt(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
+	font.DrawString(img, x, y, txt, color.Black)
 }
 
 // RenderTxt renders text into an image

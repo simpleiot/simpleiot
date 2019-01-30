@@ -1,9 +1,10 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 	"log"
+
+	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 )
 
 // Menu is used to store menu state and render the menu
@@ -39,8 +40,9 @@ func (m *Menu) Render(img draw.Image, x, y int) (err error) {
 
 	for i, l := range m.labels {
 		if l != "" {
-			fmt.Println("Drawing txt: ", l)
-			DrawTxt(img, l, labelXOffsets[i]+x, y)
+			DrawTxt(img, l,
+				labelXOffsets[i]+x, y,
+				tightpixel15.Font)
 		}
 	}
 

@@ -2,6 +2,9 @@ package isui
 
 import (
 	"image/draw"
+
+	"github.com/simpleiot/simpleiot/farmation/fonts/agencyfbbold20"
+	"github.com/simpleiot/simpleiot/farmation/fonts/agencyfbbold40"
 )
 
 // HomeScreen is used to render the home screen
@@ -24,6 +27,9 @@ func NewHomeScreen() *HomeScreen {
 // Render updates the home screen, and provides an image
 func (s *HomeScreen) Render(img draw.Image) {
 	Clear(img)
-	DrawTxt(img, "hi there", 10, 10)
+	DrawTxt(img, "963", 4, 12, agencyfbbold40.Font)
+	DrawTxt(img, "963", 67, 11, agencyfbbold20.Font)
+	DrawTxt(img, "963", 67, 29, agencyfbbold20.Font)
+
 	s.menu.Render(img, 0, 54)
 }

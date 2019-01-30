@@ -7,17 +7,19 @@ import (
 	"image/png"
 	"os"
 
-	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
+	"github.com/simpleiot/simpleiot/farmation/fonts/agencyfbbold20"
 )
 
 func main() {
-	txt := "ai"
-	width := tightpixel15.Font.MeasureString(txt)
+	font := agencyfbbold20.Font
+	txt := "123"
+	width := font.MeasureString(txt)
 	fmt.Println("MeasureString returned: ", width)
-	height := tightpixel15.Font.GetHeight()
+	height := font.GetHeight()
+	fmt.Println("Height: ", height)
 	fmt.Println("width: ", width)
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	widthActual := tightpixel15.Font.DrawString(img, 0, 0, txt, color.Black)
+	widthActual := font.DrawString(img, 0, 0, txt, color.Black)
 	fmt.Println("DrawString returned: ", widthActual)
 	imgS := img.SubImage(image.Rect(0, 0, widthActual, height))
 	fmt.Println("widthActual: ", widthActual)
