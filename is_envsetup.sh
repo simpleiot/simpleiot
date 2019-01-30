@@ -10,15 +10,28 @@ is_build_frontend() {
   return 0
 }
 
-FONTSTRING="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+FONTSTRING="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789."
+FONTSTRING_NUM="0123456789."
+
+is_gen_font() {
+  name=$1
+  x=$2
+  y=$3
+  h=$4
+  cd farmation/fonts
+  rm -rf $name
+  mkdir -p $name
+  fontgen -x=$x -y=$y -h=$h -a=$FONTSTRING -v -img fonts.png >$name/$name.txt
+  fontgen -x=$x -y=$y -h=$h -a=$FONTSTRING -v -img fonts.png -o $name
+  mv $name.go $name/
+  cd -
+}
 
 is_gen_fonts() {
-  cd farmation/fonts/tightpixel15
-  rm tightpixel15.go
-  fontgen -x=9 -y=37 -h=10 -a=$FONTSTRING -v -img tightpixel15.png >tightpixel15.txt
-  fontgen -x=9 -y=37 -h=10 -a=$FONTSTRING -v -img tightpixel15.png -o tightpixel15
-  #cmd -txt tightpixel15.txt -v -o tightpixel15
-  cd -
+  is_gen_font tightpixel15 9 37 10
+  is_gen_font tightpixel15 9 37 10
+  is_gen_font agencyfbbold40 14 118 31
+  is_gen_font agencyfbbold20 14 158 15
 }
 
 is_build_assets() {
