@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/assets/lcdassets"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -23,6 +24,23 @@ func bmpTest() {
 	fmt.Println("color.Model: ", img.ColorModel())
 	fmt.Println("Bounds: ", img.Bounds())
 	fmt.Println("At(0,0): ", img.At(0, 0))
+}
+
+// DrawBmp draws a bmp on the image
+func DrawBmp(img draw.Image, name string, x, y int) error {
+	imgBmp, err := GetLcdAsset(name)
+
+	if err != nil {
+		return err
+	}
+
+	dp := image.Point{x, y}
+	sr := imgBmp.Bounds()
+	r := sr.Add(dp)
+
+	draw.Draw(img, r, imgBmp, sr.Min, draw.Over)
+
+	return nil
 }
 
 // GetLcdAsset returns an image for a particular LCD asset bmp

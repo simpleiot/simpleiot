@@ -1,6 +1,7 @@
 package isui
 
 import (
+	"image"
 	"image/color"
 	"image/draw"
 )
@@ -25,4 +26,10 @@ func Rect(img draw.Image, x1, y1, x2, y2 int, col color.Color) {
 	HLine(img, x1, y2, x2, col)
 	VLine(img, x1, y1, y2, col)
 	VLine(img, x2, y1, y2, col)
+}
+
+// Clear clears an image to white color
+func Clear(img draw.Image) {
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.White}, image.ZP, draw.Over)
+
 }

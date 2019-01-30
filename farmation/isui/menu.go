@@ -1,7 +1,7 @@
 package isui
 
 import (
-	"image"
+	"fmt"
 	"image/draw"
 	"log"
 )
@@ -17,6 +17,8 @@ func (m *Menu) SetLabel(index int, label string) {
 		log.Println("Menu index out of range: ", index)
 		return
 	}
+
+	m.labels[index] = label
 }
 
 // location of menu strings:
@@ -24,26 +26,23 @@ func (m *Menu) SetLabel(index int, label string) {
 // 35,53
 // 67,53
 
-var labelXOffsets = []int{2, 53, 67, 80}
+var labelXOffsets = []int{2, 35, 67, 80}
 var menuItemWidth = 27
 
 // Render renders the menu section of the screen
-func (m *Menu) Render() image.Image {
-	img, err := GetLcdAsset("sk-lines.bmp")
+func (m *Menu) Render(img draw.Image, x, y int) (err error) {
+	err = DrawBmp(img, "sk-lines.bmp", x, y)
+
 	if err != nil {
 		log.Println("Error loading sk-lines")
 	}
 
-	size := img.Bounds().Size()
-
 	for i, l := range m.labels {
 		if l != "" {
-			lImg := RenderTxt(l)
-			r := image.Rect(labelXOffsets[i], 0, labelXOffsets[i]+27, size.Y)
-			draw.Draw(img, r, lImg, image.Point{}, image.Over)
-
+			fmt.Println("Drawing txt: ", l)
+			DrawTxt(img, l, labelXOffsets[i]+x, y)
 		}
 	}
 
-	return img
+	return
 }
