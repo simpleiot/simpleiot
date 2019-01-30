@@ -1,17 +1,21 @@
 package isdata
 
-import "time"
+import (
+	"time"
 
-// ISState contains the current injectory sentry state.
-type ISState struct {
+	"github.com/simpleiot/simpleiot/data"
+)
+
+// State contains the current injectory sentry state.
+type State struct {
 	// FlowRate defines the current flow rate of the system.
-	FlowRate          float32
-	BatchApplied      float32
-	BatchRemaining    float32
-	Total1            float32
-	Total2            float32
-	LifetimeTotal     float32
-	CurrentTankVolume float32
+	FlowRate          float64
+	BatchApplied      float64
+	BatchRemaining    float64
+	Total1            float64
+	Total2            float64
+	LifetimeTotal     float64
+	CurrentTankVolume float64
 	NetworkState      NetworkState
 
 	// PanelConfig will be populated based on the panel detected
@@ -24,6 +28,14 @@ type ISState struct {
 	IrrigationShutdown bool
 	ActiveFaults       []ISEvent
 	Ios                []ISIo
+}
+
+// ProcessSample populates state with sample data.
+func (s *State) ProcessSample(sample data.Sample) {
+	switch sample.ID {
+	case SampleIDFlowRate:
+		s.FlowRate = sample.Value
+	}
 }
 
 // FlowStatus describes the overall system of flow control

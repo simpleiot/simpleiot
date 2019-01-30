@@ -28,7 +28,7 @@ func NewDb(dataDir string) (*IsDb, error) {
 }
 
 // ReadConfig reads the IS config from the database
-func (db *IsDb) ReadConfig(config *isdata.ISConfig) error {
+func (db *IsDb) ReadConfig(config *isdata.Config) error {
 	err := db.store.Get(0, config)
 
 	if err != nil {
@@ -45,7 +45,7 @@ func (db *IsDb) ReadConfig(config *isdata.ISConfig) error {
 }
 
 // WriteConfig writes the IS config to the database
-func (db *IsDb) WriteConfig(config *isdata.ISConfig) error {
+func (db *IsDb) WriteConfig(config *isdata.Config) error {
 
 	return db.store.Upsert(0, config)
 }

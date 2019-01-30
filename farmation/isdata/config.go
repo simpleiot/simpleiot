@@ -1,21 +1,28 @@
 package isdata
 
-// ISConfig represents configuration data for the Injectory
+// Config represents configuration data for the Injectory
 // Sentry system.
-type ISConfig struct {
+type Config struct {
 	// ID is an alphanumeric name limitted to 16 chars in length
 	ID string
 
 	// High/LowWindow will be displayed as decimal if under 10.
-	HighWindow float32
-	LowWindow  float32
+	// These values are % from the flow target that will trigger
+	// and alarm.
+	HighWindowPerc float64
+	LowWindowPerc  float64
+
+	// ManualHigh/LowAlarm values are used to specify absolute
+	// GPM values that will trigger an alarm. If these values are
+	// not zero, then they will be used instead of High/LowWindowPerc
+	// for triggering an alarm.
+	ManualHighAlarmGPH float64
+	ManualLowAlarmGPH  float64
 
 	// BatchAmount max value is 9,999
 	BatchAmount     int
 	WaterOn         bool
 	OperatingMode   ISOperatingMode
-	ManualHighAlarm bool
-	ManualLowAlarm  bool
 	CurrentField    string
 	FieldConfigs    []FieldConfig
 	ProductConfigs  []ProductConfig
@@ -26,16 +33,17 @@ type ISConfig struct {
 	FlowMeterMaxflo int // Meter's maximum flow rate in GPM or LPM
 }
 
-// ISConfigDefault contains defaults for initializing a new system
-var ISConfigDefault = ISConfig{
-	ID:              "",
-	HighWindow:      0,
-	LowWindow:       0,
-	BatchAmount:     0,
-	WaterOn:         false,
-	ManualHighAlarm: false,
-	MaxTankVolume:   0,
-	TankAlertVolume: 0,
+// ConfigDefault contains defaults for initializing a new system
+var ConfigDefault = Config{
+	ID:                 "",
+	HighWindowPerc:     15,
+	LowWindowPerc:      15,
+	BatchAmount:        0,
+	WaterOn:            false,
+	ManualHighAlarmGPH: 0,
+	ManualLowAlarmGPH:  0,
+	MaxTankVolume:      0,
+	TankAlertVolume:    0,
 }
 
 // ISOperatingMode defines the operating mode of the system
@@ -211,7 +219,7 @@ type ISIo struct {
 	Type        ISIoType
 	Description string
 	Fault       bool
-	Value       float32
+	Value       float64
 }
 
 // RelayID identifies a relay in the system

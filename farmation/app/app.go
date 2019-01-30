@@ -4,23 +4,26 @@ import (
 	"log"
 	"time"
 
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isapi"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
 	"github.com/simpleiot/simpleiot/farmation/isio"
+	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
 )
 
 // Run is the entry point for the IS application
-func Run() {
+func Run(sim bool) {
 	db, err := isdb.NewDb("./")
 
 	if err != nil {
 		log.Fatal("Error opening db: ", err)
 	}
 
-	config := isdata.ISConfig{}
+	config := isdata.Config{}
+	state := isdata.State{}
 
 	err = db.ReadConfig(&config)
 
@@ -36,6 +39,7 @@ func Run() {
 	uiChan := make(chan interface{}, 100)
 	ioChan := make(chan interface{}, 100)
 	webChan := make(chan interface{}, 100)
+	simChan := make(chan interface{}, 100)
 
 	channels := []struct {
 		name    string
@@ -46,13 +50,15 @@ func Run() {
 		{"ui", uiChan},
 		{"io", ioChan},
 		{"web", webChan},
+		{"sim", simChan},
 	}
 
 	// fire up subsystems
 	go keypad.Run(keypadChan, appChan)
-	go isui.Run(uiChan, appChan)
+	go isui.Run(uiChan, appChan, &config)
 	go isio.Run(ioChan, appChan)
 	go isapi.Server(webChan, appChan)
+	go issim.Run(simChan, appChan)
 
 	lastFillingWarning := time.Time{}
 
@@ -80,6 +86,10 @@ func Run() {
 
 			case isdata.LcdBltSolid:
 				webChan <- m
+
+			case data.Sample:
+				state.ProcessSample(m)
+				uiChan <- state
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
