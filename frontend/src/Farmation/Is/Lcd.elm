@@ -23,8 +23,12 @@ svgWidth =
     (lcdWidth + 2) * lcdPxSize
 
 
-svgHeight =
+svgLcdHeight =
     (lcdHeight + 2) * lcdPxSize
+
+
+svgHeight =
+    svgLcdHeight * 2
 
 
 setPixel : Int -> Int -> Bool -> Data -> Data
@@ -181,6 +185,19 @@ lcdDataToPixels data =
         )
 
 
+button : Int -> Int -> Svg msg
+button xLoc yLoc =
+    rect
+        [ x (String.fromInt xLoc)
+        , y (String.fromInt yLoc)
+        , rx "5"
+        , width "78"
+        , height "20"
+        , fill "black"
+        ]
+        []
+
+
 lcd : Data -> Svg msg
 lcd data =
     svg
@@ -196,11 +213,15 @@ lcd data =
                 [ x "0"
                 , y "0"
                 , width (String.fromInt svgWidth)
-                , height (String.fromInt svgHeight)
+                , height (String.fromInt svgLcdHeight)
                 , fill "none"
                 , stroke "black"
                 , strokeWidth "3"
                 ]
                 []
+            , button 9 211
+            , button 105 211
+            , button 203 211
+            , button 300 211
             ]
         ]
