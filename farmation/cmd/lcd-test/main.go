@@ -55,14 +55,24 @@ const NT7534_EE_END_READ_MODIFY_WRITE  byte       = 0xEE
 const RegSel_Gpio string = "PD26"
 const LcdReset_Gpio string = "PA26"
 
+
 func main() {
 
 	//gpio support:
 	if _, err := host.Init(); err != nil {
 		log.Fatal(err)
+		fmt.Println("GPIO setup failed.")
 	}
+	//This is a horrid hack:
+	nCS0 := gpioreg.ByName("PC31")
+	if nCS0 == nil {
+		log.Fatal(nCS0)
+		fmt.Println("Failed to get GPIO for nCS0 pin.")
+	}
+	
+	nCS0.Out(gpio.Low)
 
-	//Try to grab the gpio for the register address sel:
+	//Try to grab the gpio for the register address sel and nRST:
 	RegSel := gpioreg.ByName(RegSel_Gpio)
 	if RegSel == nil {
 		log.Fatal(RegSel)
@@ -78,11 +88,12 @@ func main() {
 	_, err := os.Open("/dev/spidev1.0")
 	if err != nil {
 		log.Fatal(err)
-		fmt.Println("Failed to open device file")
+		fmt.Println("Failed to open spidev device file")
 	}
 
 	//set up display controller
 	cmdOp := make([]byte,12)  //all commands are single bytes
+				// EXCEPT for the contrast adjustment
 
 	cmdOp[0] = NT7534_E2_RESET
 	cmdOp[1] = NT7534_A1_SEGMENT_REMAP_REVERSE // set ADC
@@ -90,22 +101,12 @@ func main() {
 	cmdOp[3] = NT7534_A2_LCD_BIAS_1_9	// set lcd bias
 	cmdOp[4] = NT7534_20_RESISTOR_RATIO_RANGE_SET_BIT | 0x4
 	cmdOp[5] = NT7534_81_CONTRAST_PREFIX
-	cmdOp[6] = 35  //raw contrast adjustment
-	cmdOp[7] = NT7534_28_POWER_CONTROL_SET_BIT | 0x07
+	cmdOp[6] = NT7534_28_POWER_CONTROL_SET_BIT | 0x07
+	cmdOp[7] = 24  //raw contrast value
 	cmdOp[8] = NT7534_40_SET_DISPLAY_START_LINE_BIT 
 	cmdOp[9] = NT7534_AF_DISPLAY_ON_SLEEP_NO
 	cmdOp[10] = NT7534_A6_INVERSION_NORMAL
 	cmdOp[11] = NT7534_A4_ENTIRE_DISPLAY_NORMAL
-
-	// hardware reset of LCD display
-	err = LcdReset.Out(gpio.Low)
-	if err != nil {
-		log.Fatal(err)
-		fmt.Println("Failed to set gpio for LcdREset")
-	}
-	time.Sleep(100 * time.Millisecond)
-	LcdReset.Out(gpio.High)
-	time.Sleep(10 * time.Millisecond)
 
 	//set command register
 	err = RegSel.Out(gpio.Low)
@@ -113,26 +114,48 @@ func main() {
 		log.Fatal(err)
 		fmt.Println("Failed to set gpio for RegSel")
 	}
-
-	err = ioutil.WriteFile("/dev/spidev1.0",cmdOp[0:1],666)
+	
+	// hardware reset of LCD display
+	err = LcdReset.Out(gpio.Low)
 	if err != nil {
 		log.Fatal(err)
-		fmt.Println("Failed to write to spidev")
+		fmt.Println("Failed to set gpio for LcdREset")
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
+	LcdReset.Out(gpio.High)
+	time.Sleep(1 * time.Millisecond)
 
-	err = ioutil.WriteFile("/dev/spidev1.0",cmdOp[1:11],666)
+//	for i, _ := range cmdOp {
+//		err = ioutil.WriteFile("/dev/spidev1.0",cmdOp[i:i+1],666)
+//		if err != nil {
+//			log.Fatal(err)
+//			fmt.Println("Failed to write to spidev")
+//		}
+//		fmt.Println("Sent command %x: \n",cmdOp[i:i+1])
+//		time.Sleep(1 * time.Millisecond)
+//	}
+
+	err = ioutil.WriteFile("/dev/spidev1.0",cmdOp,666)
 	if err != nil {
 		log.Fatal(err)
 		fmt.Println("Failed to write to spidev")
 	}
 
 	fmt.Println("Initialization of LCD display complete.")
-	//
-	dispDat := []byte{255,0,255,0,255,0,127,0,255,127,255,63,127,255,127,255}
 
-	RegSel.Out(gpio.High)  //point at data port
-	ioutil.WriteFile("/dev/spidev1.0",dispDat,666)
-	fmt.Println("Done writing to display")
+	//Display testing functions:
+	//First, turn all pixels on:
+	cmdOp[0] = NT7534_A5_ENTIRE_DISPLAY_FORCE_ON
+	cmdOp[1] = NT7534_A4_ENTIRE_DISPLAY_NORMAL
+
+	RegSel.Out(gpio.Low)  //point at cmd port
+	for {
+		ioutil.WriteFile("/dev/spidev1.0",cmdOp[0:1],666)
+		fmt.Println("Set all dots on")
+		time.Sleep(1000 * time.Millisecond)
+		ioutil.WriteFile("/dev/spidev1.0",cmdOp[1:2],666)
+		fmt.Println("Set all dots off")
+		time.Sleep(1000 * time.Millisecond)
+	}
 }
