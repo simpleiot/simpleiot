@@ -3,7 +3,7 @@ port module Main exposing (Msg(..), main, update, view)
 import Array
 import Browser
 import Farmation.Is.Lcd as Lcd
-import Html exposing (Html, button, div, h2, text)
+import Html exposing (Html, button, div, h2, map, text)
 import Html.Events exposing (onClick)
 import Json.Decode
 import Json.Encode
@@ -62,6 +62,7 @@ init model =
 type Msg
     = ProcessPortValue (Result Json.Decode.Error PortValue)
     | Tick Time.Posix
+    | GotLcdMsg Lcd.Msg
 
 
 processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
@@ -107,6 +108,13 @@ update msg model =
                     in
                     ( model, Cmd.none )
 
+        GotLcdMsg key ->
+            let
+                _ =
+                    Debug.log "GotLcdMsg: " key
+            in
+            ( model, Cmd.none )
+
         Tick _ ->
             ( model, Cmd.none )
 
@@ -121,7 +129,7 @@ view model =
     , body =
         [ div []
             [ h2 [] [ text "Injector Sentry" ]
-            , Lcd.lcd model.lcdData
+            , map GotLcdMsg (Lcd.lcd model.lcdData)
             ]
         ]
     }
