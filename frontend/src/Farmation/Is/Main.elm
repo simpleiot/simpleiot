@@ -26,6 +26,9 @@ main =
 port portIn : (Json.Decode.Value -> msg) -> Sub msg
 
 
+port portOut : Json.Encode.Value -> Cmd msg
+
+
 
 -- Subscriptions
 
@@ -63,6 +66,57 @@ type Msg
     = ProcessPortValue (Result Json.Decode.Error PortValue)
     | Tick Time.Posix
     | GotLcdMsg Lcd.Msg
+
+
+type alias KeyPressMsg =
+    { msgType : String
+    , key : String
+    }
+
+
+encodeKeyPressMsg : KeyPressMsg -> Json.Encode.Value
+encodeKeyPressMsg msg =
+    Json.Encode.object
+        [ ( "msgType", Json.Encode.string <| msg.msgType )
+        , ( "key", Json.Encode.string <| msg.key )
+        ]
+
+
+keyToKeyPressMsg : Lcd.Key -> KeyPressMsg
+keyToKeyPressMsg key =
+    let
+        keyString =
+            case key of
+                Lcd.KeyUp ->
+                    "KeyUp"
+
+                Lcd.KeyDown ->
+                    "KeyDown"
+
+                Lcd.KeyRight ->
+                    "KeyRight"
+
+                Lcd.KeyLeft ->
+                    "KeyLeft"
+
+                Lcd.KeyEnter ->
+                    "KeyEnter"
+
+                Lcd.KeySK1 ->
+                    "KeySK1"
+
+                Lcd.KeySK2 ->
+                    "KeySK2"
+
+                Lcd.KeySK3 ->
+                    "KeySK3"
+
+                Lcd.KeySK4 ->
+                    "KeySK4"
+    in
+    { msgType = "key"
+    , key = keyString
+    }
 
 
 processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
@@ -108,12 +162,14 @@ update msg model =
                     in
                     ( model, Cmd.none )
 
-        GotLcdMsg key ->
-            let
-                _ =
-                    Debug.log "GotLcdMsg: " key
-            in
-            ( model, Cmd.none )
+        GotLcdMsg lcdMsg ->
+            case lcdMsg of
+                Lcd.GotKey key ->
+                    ( model
+                    , keyToKeyPressMsg key
+                        |> encodeKeyPressMsg
+                        |> portOut
+                    )
 
         Tick _ ->
             ( model, Cmd.none )

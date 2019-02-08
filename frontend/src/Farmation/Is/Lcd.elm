@@ -1,4 +1,4 @@
-module Farmation.Is.Lcd exposing (Data, Msg, defaultData, lcd, setBlock, setPixel, setSolidBlock)
+module Farmation.Is.Lcd exposing (Data, Key(..), Msg(..), defaultData, lcd, setBlock, setPixel, setSolidBlock)
 
 import Array
 import Array2D
