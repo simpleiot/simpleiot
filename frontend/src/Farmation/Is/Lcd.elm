@@ -46,7 +46,7 @@ svgLcdHeight =
 
 
 svgHeight =
-    svgLcdHeight * 2
+    svgLcdHeight * 3
 
 
 setPixel : Int -> Int -> Bool -> Data -> Data
@@ -159,10 +159,11 @@ defaultData =
 
 
 viewBoxSize =
-    "0 0 "
-        ++ String.fromInt svgWidth
-        ++ " "
-        ++ String.fromInt svgHeight
+    String.join " "
+        [ "0 0"
+        , String.fromInt svgWidth
+        , String.fromInt svgHeight
+        ]
 
 
 lcdDataToPixel : Int -> Int -> Bool -> Svg msg
@@ -217,6 +218,119 @@ button xLoc yLoc clickMsg =
         []
 
 
+arrowSize =
+    50
+
+
+arrowSpacing =
+    10
+
+
+arrow : Int -> Int -> Int -> Key -> Svg Msg
+arrow xLoc yLoc rot clickMsg =
+    let
+        x1 =
+            "0"
+
+        y1 =
+            String.fromInt (-arrowSize // 2)
+
+        p1 =
+            String.join " " [ x1, y1 ]
+
+        x2 =
+            String.fromInt (arrowSize // 2)
+
+        y2 =
+            String.fromInt (arrowSize // 2)
+
+        p2 =
+            String.join " " [ x2, y2 ]
+
+        x3 =
+            String.fromInt (-arrowSize // 2)
+
+        y3 =
+            String.fromInt (arrowSize // 2)
+
+        p3 =
+            String.join " " [ x3, y3 ]
+
+        xRot =
+            xLoc - arrowSize // 2
+
+        yRot =
+            yLoc - arrowSize // 2
+
+        translate =
+            String.concat
+                [ "translate("
+                , String.fromInt xLoc
+                , " "
+                , String.fromInt yLoc
+                , ")"
+                ]
+
+        rotate =
+            String.concat
+                [ "rotate("
+                , String.fromInt rot
+                , ")"
+                ]
+    in
+    polygon
+        [ points <| String.join " " [ p1, p2, p3 ]
+        , fill "black"
+        , onClick (GotKey clickMsg)
+        , transform <| String.join "" [ translate, rotate ]
+        ]
+        []
+
+
+arrows : Int -> Int -> Svg Msg
+arrows xLoc yLoc =
+    let
+        pos1 =
+            arrowSize // 2
+
+        pos2 =
+            arrowSize // 2 + arrowSize + arrowSpacing
+
+        pos3 =
+            arrowSize // 2 + arrowSize * 2 + arrowSpacing * 2
+
+        x1 =
+            xLoc + pos2
+
+        y1 =
+            yLoc + pos1
+
+        x2 =
+            xLoc + pos3
+
+        y2 =
+            yLoc + pos2
+
+        x3 =
+            xLoc + pos2
+
+        y3 =
+            yLoc + pos3
+
+        x4 =
+            xLoc + pos1
+
+        y4 =
+            yLoc + pos2
+    in
+    g []
+        [ arrow x1 y1 0 KeyUp
+        , arrow x2 y2 90 KeyRight
+        , arrow x3 y3 180 KeyDown
+        , arrow x4 y4 -90 KeyLeft
+        ]
+
+
 lcd : Data -> Html.Html Msg
 lcd data =
     svg
@@ -242,5 +356,6 @@ lcd data =
             , button 105 211 KeySK2
             , button 203 211 KeySK3
             , button 300 211 KeySK4
+            , arrows 200 300
             ]
         ]
