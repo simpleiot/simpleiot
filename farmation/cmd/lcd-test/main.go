@@ -64,13 +64,13 @@ func main() {
 		fmt.Println("GPIO setup failed.")
 	}
 	//This is a horrid hack:
-	nCS0 := gpioreg.ByName("PC31")
-	if nCS0 == nil {
-		log.Fatal(nCS0)
-		fmt.Println("Failed to get GPIO for nCS0 pin.")
-	}
+//	nCS0 := gpioreg.ByName("PC31")
+//	if nCS0 == nil {
+//		log.Fatal(nCS0)
+//		fmt.Println("Failed to get GPIO for nCS0 pin.")
+//	}
 	
-	nCS0.Out(gpio.Low)
+//	nCS0.Out(gpio.Low)
 
 	//Try to grab the gpio for the register address sel and nRST:
 	RegSel := gpioreg.ByName(RegSel_Gpio)
@@ -92,39 +92,53 @@ func main() {
 	}
 
 	//set up display controller
-	cmdOp := make([]byte,12)  //all commands are single bytes
+//	cmdOp := make([]byte,12)  //all commands are single bytes
+	cmdOp := make([]byte,8)  //all commands are single bytes
 				// EXCEPT for the contrast adjustment
+// dev kit way:
+//	cmdOp[0] = NT7534_E2_RESET
+//	cmdOp[1] = NT7534_A1_SEGMENT_REMAP_REVERSE // set ADC
+//	cmdOp[2] = NT7534_C0_COM_DIRECTION_NORMAL  // set common scan
+//	cmdOp[3] = NT7534_A2_LCD_BIAS_1_9	// set lcd bias
+//	cmdOp[4] = NT7534_20_RESISTOR_RATIO_RANGE_SET_BIT | 0x4
+//	cmdOp[5] = NT7534_81_CONTRAST_PREFIX
+//	cmdOp[6] = NT7534_28_POWER_CONTROL_SET_BIT | 0x07
+//	cmdOp[7] = 24  //raw contrast value
+//	cmdOp[8] = NT7534_40_SET_DISPLAY_START_LINE_BIT 
+//	cmdOp[9] = NT7534_AF_DISPLAY_ON_SLEEP_NO
+//	cmdOp[10] = NT7534_A6_INVERSION_NORMAL
+//	cmdOp[11] = NT7534_A4_ENTIRE_DISPLAY_NORMAL
 
+//  my way:
 	cmdOp[0] = NT7534_E2_RESET
-	cmdOp[1] = NT7534_A1_SEGMENT_REMAP_REVERSE // set ADC
-	cmdOp[2] = NT7534_C0_COM_DIRECTION_NORMAL  // set common scan
-	cmdOp[3] = NT7534_A2_LCD_BIAS_1_9	// set lcd bias
-	cmdOp[4] = NT7534_20_RESISTOR_RATIO_RANGE_SET_BIT | 0x4
-	cmdOp[5] = NT7534_81_CONTRAST_PREFIX
-	cmdOp[6] = NT7534_28_POWER_CONTROL_SET_BIT | 0x07
-	cmdOp[7] = 24  //raw contrast value
-	cmdOp[8] = NT7534_40_SET_DISPLAY_START_LINE_BIT 
-	cmdOp[9] = NT7534_AF_DISPLAY_ON_SLEEP_NO
-	cmdOp[10] = NT7534_A6_INVERSION_NORMAL
-	cmdOp[11] = NT7534_A4_ENTIRE_DISPLAY_NORMAL
 
 	//set command register
-	err = RegSel.Out(gpio.Low)
+	err = RegSel.Out(gpio.High)
 	if err != nil {
 		log.Fatal(err)
 		fmt.Println("Failed to set gpio for RegSel")
 	}
-	
+
 	// hardware reset of LCD display
-	err = LcdReset.Out(gpio.Low)
+	err = LcdReset.Out(gpio.High)
 	if err != nil {
 		log.Fatal(err)
 		fmt.Println("Failed to set gpio for LcdREset")
 	}
 
 	time.Sleep(100 * time.Millisecond)
+	LcdReset.Out(gpio.Low)
+	time.Sleep(10 * time.Millisecond)
 	LcdReset.Out(gpio.High)
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
+	
+	err = ioutil.WriteFile("/dev/spidev1.0",cmdOp[0:1],666)
+	if err != nil {
+		log.Fatal(err)
+		fmt.Println("Failed to write to spidev")
+	}
+
+	time.Sleep(10 * time.Millisecond)
 
 //	for i, _ := range cmdOp {
 //		err = ioutil.WriteFile("/dev/spidev1.0",cmdOp[i:i+1],666)
@@ -136,6 +150,15 @@ func main() {
 //		time.Sleep(1 * time.Millisecond)
 //	}
 
+	cmdOp[0] = NT7534_A2_LCD_BIAS_1_9
+	cmdOp[1] = NT7534_A0_SEGMENT_REMAP_NORMAL 
+	cmdOp[2] = NT7534_C8_COM_DIRECTION_REVERSE 
+	cmdOp[3] = 0x24  //OR 0x24 as above?
+	cmdOp[4] = 0x2F  //all internal blocks on
+	cmdOp[5] = NT7534_81_CONTRAST_PREFIX
+	cmdOp[6] = 20
+	cmdOp[7] = NT7534_40_SET_DISPLAY_START_LINE_BIT
+
 	err = ioutil.WriteFile("/dev/spidev1.0",cmdOp,666)
 	if err != nil {
 		log.Fatal(err)
@@ -143,6 +166,30 @@ func main() {
 	}
 
 	fmt.Println("Initialization of LCD display complete.")
+
+	//fill display memory, hopefully to initialize it
+	for page :=0; page < 8; page++ {
+		cmdOp[0] = 0xB0 + (byte) (page & 0x0F)
+		cmdOp[1] = 0  //lower column address nibble
+		cmdOp[2] = 0x10  //upper column nibble
+		RegSel.Out(gpio.Low)
+		err = ioutil.WriteFile("/dev/spidev1.0",cmdOp[0:3],666)
+		if err != nil {
+			log.Fatal(err)
+			fmt.Println("Failed to write to spidev")
+		}
+		time.Sleep(1 * time.Millisecond) // have to wait for spi write to complete before twiddling A0
+		RegSel.Out(gpio.High)
+		cmdOp[0] = 0xFF
+		for column := 0; column < 128; column++ {
+			err = ioutil.WriteFile("/dev/spidev1.0",cmdOp[0:1],666)
+			if err != nil {
+				log.Fatal(err)
+				fmt.Println("Failed to write to spidev")
+			}
+		}
+		time.Sleep(1 * time.Millisecond) // have to wait for spi write to complete before twiddling A0
+	}
 
 	//Display testing functions:
 	//First, turn all pixels on:
