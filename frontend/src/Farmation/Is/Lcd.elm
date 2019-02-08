@@ -1,10 +1,28 @@
-module Farmation.Is.Lcd exposing (Data, defaultData, lcd, setBlock, setPixel, setSolidBlock)
+module Farmation.Is.Lcd exposing (Data, Key(..), Msg(..), defaultData, lcd, setBlock, setPixel, setSolidBlock)
 
 import Array
 import Array2D
+import Html
 import List
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
+import Svg.Events exposing (..)
+
+
+type Key
+    = KeyUp
+    | KeyDown
+    | KeyLeft
+    | KeyRight
+    | KeyEnter
+    | KeySK1
+    | KeySK2
+    | KeySK3
+    | KeySK4
+
+
+type Msg
+    = GotKey Key
 
 
 lcdWidth =
@@ -23,8 +41,12 @@ svgWidth =
     (lcdWidth + 2) * lcdPxSize
 
 
-svgHeight =
+svgLcdHeight =
     (lcdHeight + 2) * lcdPxSize
+
+
+svgHeight =
+    svgLcdHeight * 2
 
 
 setPixel : Int -> Int -> Bool -> Data -> Data
@@ -181,7 +203,21 @@ lcdDataToPixels data =
         )
 
 
-lcd : Data -> Svg msg
+button : Int -> Int -> Key -> Svg Msg
+button xLoc yLoc clickMsg =
+    rect
+        [ x (String.fromInt xLoc)
+        , y (String.fromInt yLoc)
+        , rx "5"
+        , width "78"
+        , height "20"
+        , fill "black"
+        , onClick (GotKey clickMsg)
+        ]
+        []
+
+
+lcd : Data -> Html.Html Msg
 lcd data =
     svg
         [ width (String.fromInt svgWidth)
@@ -196,11 +232,15 @@ lcd data =
                 [ x "0"
                 , y "0"
                 , width (String.fromInt svgWidth)
-                , height (String.fromInt svgHeight)
+                , height (String.fromInt svgLcdHeight)
                 , fill "none"
                 , stroke "black"
                 , strokeWidth "3"
                 ]
                 []
+            , button 9 211 KeySK1
+            , button 105 211 KeySK2
+            , button 203 211 KeySK3
+            , button 300 211 KeySK4
             ]
         ]
