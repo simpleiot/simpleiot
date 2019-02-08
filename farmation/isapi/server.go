@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/simpleiot/simpleiot/api"
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/assets/isfrontend"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
@@ -63,11 +64,11 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewAppHandler returns a new application (root) http handler
-func NewAppHandler(wsTxChan <-chan []byte, newConn chan<- bool) http.Handler {
+func NewAppHandler(wsTxChan <-chan []byte, wsRxChan chan<- []byte, newConn chan<- bool) http.Handler {
 	return &App{
 		PublicHandler:    http.FileServer(isfrontend.FileSystem()),
 		IndexHandler:     NewIndexHandler(),
-		WebsocketHandler: api.NewWebsocketHandler(wsTxChan, newConn),
+		WebsocketHandler: api.NewWebsocketHandler(wsTxChan, wsRxChan, newConn),
 	}
 }
 
@@ -76,6 +77,7 @@ func Server(in, out chan interface{}) {
 	log.Println("Starting http server")
 
 	wsTxChan := make(chan []byte, 100)
+	wsRxChan := make(chan []byte, 100)
 	newConn := make(chan bool)
 
 	frameBuffer := isdata.NewLcdBlt(0, 0, 128, 64, true)
@@ -87,7 +89,7 @@ func Server(in, out chan interface{}) {
 
 	log.Println("Starting IS app on port: ", port)
 	address := fmt.Sprintf(":%s", port)
-	go http.ListenAndServe(address, NewAppHandler(wsTxChan, newConn))
+	go http.ListenAndServe(address, NewAppHandler(wsTxChan, wsRxChan, newConn))
 
 	for {
 		if len(wsTxChan) >= 99 {
@@ -124,6 +126,13 @@ func Server(in, out chan interface{}) {
 				// give the client time to get set up
 				time.Sleep(10 * time.Millisecond)
 				wsTxChan <- d
+			}
+		case m := <-wsRxChan:
+			s := data.Sample{}
+			if err := json.Unmarshal(m, &s); err != nil {
+				log.Println("Error parsing websocket data: ", err)
+			} else {
+				out <- s
 			}
 		}
 	}

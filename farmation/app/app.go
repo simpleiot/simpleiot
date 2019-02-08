@@ -88,8 +88,14 @@ func Run(sim bool) {
 				webChan <- m
 
 			case data.Sample:
-				state.ProcessSample(m)
-				uiChan <- state
+				switch m.Type {
+				case isdata.SampleTypeFlowRate:
+					state.ProcessSample(m)
+					uiChan <- state
+				case isdata.SampleTypeKey:
+					// convert from sample to key
+					uiChan <- isdata.KeyFromString(m.ID)
+				}
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why

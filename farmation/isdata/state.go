@@ -32,8 +32,8 @@ type State struct {
 
 // ProcessSample populates state with sample data.
 func (s *State) ProcessSample(sample data.Sample) {
-	switch sample.ID {
-	case SampleIDFlowRate:
+	switch sample.Type {
+	case SampleTypeFlowRate:
 		s.FlowRate = sample.Value
 	}
 }

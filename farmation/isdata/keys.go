@@ -5,7 +5,8 @@ type Key int
 
 // define valid keys
 const (
-	KeyUp Key = iota
+	KeyUnknown Key = iota
+	KeyUp
 	KeyDown
 	KeyLeft
 	KeyRight
@@ -16,27 +17,39 @@ const (
 	KeySK4
 )
 
+var keyToString = map[Key]string{
+	KeyUp:    "KeyUp",
+	KeyDown:  "KeyDown",
+	KeyRight: "KeyRight",
+	KeyLeft:  "KeyLeft",
+	KeyEnter: "KeyEnter",
+	KeySK1:   "KeySK1",
+	KeySK2:   "KeySK2",
+	KeySK3:   "KeySK3",
+	KeySK4:   "KeySK4",
+}
+
 func (k Key) String() string {
-	switch k {
-	case KeyUp:
-		return "KeyUp"
-	case KeyDown:
-		return "KeyDown"
-	case KeyRight:
-		return "KeyRight"
-	case KeyLeft:
-		return "KeyLeft"
-	case KeyEnter:
-		return "KeyEnter"
-	case KeySK1:
-		return "KeySK1"
-	case KeySK2:
-		return "KeySK2"
-	case KeySK3:
-		return "KeySK3"
-	case KeySK4:
-		return "KeySK4"
-	default:
-		return "unknown key"
+	s := keyToString[k]
+	if s == "" {
+		s = "unknown"
 	}
+	return s
+}
+
+var stringToKey = map[string]Key{
+	"KeyUp":    KeyUp,
+	"KeyDown":  KeyDown,
+	"KeyRight": KeyRight,
+	"KeyLeft":  KeyLeft,
+	"KeyEnter": KeyEnter,
+	"KeySK1":   KeySK1,
+	"KeySK2":   KeySK2,
+	"KeySK3":   KeySK3,
+	"KeySK4":   KeySK4,
+}
+
+// KeyFromString converts a string to a key
+func KeyFromString(s string) Key {
+	return stringToKey[s]
 }

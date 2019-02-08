@@ -1,6 +1,7 @@
 package isdata
 
-// define IDs for various sample types
+// define types for various sample types
 const (
-	SampleIDFlowRate = "flowRate"
+	SampleTypeFlowRate = "flowRate"
+	SampleTypeKey      = "key"
 )

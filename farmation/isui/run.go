@@ -3,6 +3,7 @@ package isui
 import (
 	"image"
 	"image/png"
+	"log"
 	"os"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -37,6 +38,8 @@ func Run(in, out chan interface{}, configInit *isdata.Config) {
 			case isdata.Config:
 				*config = m
 				renderScreen()
+			default:
+				log.Printf("Mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
 		}
 	}

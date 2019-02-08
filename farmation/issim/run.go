@@ -22,7 +22,7 @@ func Run(in, out chan interface{}) {
 			}
 		case <-c:
 			v := flowSim.Sim()
-			out <- data.NewSample(isdata.SampleIDFlowRate, v)
+			out <- data.NewSample("", isdata.SampleTypeFlowRate, v)
 		}
 	}
 }
