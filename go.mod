@@ -5,6 +5,7 @@ require (
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/gorilla/websocket v1.4.0
+	github.com/mxmCherry/movavg v1.1.0 // indirect
 	github.com/pbnjay/pixfont v0.0.0-20190130005054-401bb7c6aee2
 	github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944
 	go.etcd.io/bbolt v1.3.0 // indirect
