@@ -19,6 +19,7 @@ type WebsocketHandler struct {
 	clients map[*websocket.Conn]bool
 	lock    *sync.RWMutex
 	newConn chan<- bool
+	rxChan  chan<- []byte
 }
 
 func (h *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -40,12 +41,12 @@ func (h *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 
 	// handle reading
 	for {
-		msgType, msg, err := ws.ReadMessage()
+		_, msg, err := ws.ReadMessage()
 		if err != nil {
 			log.Println("WS read error: ", err)
 			break
 		} else {
-			log.Println("WS read: ", msgType, msg)
+			h.rxChan <- msg
 		}
 	}
 
@@ -60,7 +61,7 @@ func (h *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 // used to send data out the websocket, and the newConn channel is used to
 // signal back to the caller that a new client has connected, and the initial
 // data set needs to be sent over.
-func NewWebsocketHandler(wsTx <-chan []byte, newConn chan<- bool) http.Handler {
+func NewWebsocketHandler(wsTx <-chan []byte, wsRx chan<- []byte, newConn chan<- bool) http.Handler {
 	clients := make(map[*websocket.Conn]bool)
 	var lock sync.RWMutex
 	go func() {
@@ -82,5 +83,10 @@ func NewWebsocketHandler(wsTx <-chan []byte, newConn chan<- bool) http.Handler {
 			}
 		}
 	}()
-	return &WebsocketHandler{clients: clients, lock: &lock, newConn: newConn}
+	return &WebsocketHandler{
+		clients: clients,
+		lock:    &lock,
+		newConn: newConn,
+		rxChan:  wsRx,
+	}
 }

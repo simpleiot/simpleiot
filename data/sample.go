@@ -10,7 +10,7 @@ type Sample struct {
 	// ID of the device that provided the sample
 	ID string `json:"id,omitempty"`
 
-	// Analog of digital value of the sample. 0 and 1 are used
+	// Analog or digital value of the sample. 0 and 1 are used
 	// to represent digital values
 	Value float64 `json:"value,omitempty"`
 
@@ -25,9 +25,10 @@ type Sample struct {
 }
 
 // NewSample creates a new sample at current time
-func NewSample(ID string, value float64) Sample {
+func NewSample(ID, sampleType string, value float64) Sample {
 	return Sample{
 		ID:    ID,
+		Type:  sampleType,
 		Value: value,
 		Time:  time.Now(),
 	}
