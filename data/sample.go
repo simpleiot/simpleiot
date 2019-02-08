@@ -25,9 +25,10 @@ type Sample struct {
 }
 
 // NewSample creates a new sample at current time
-func NewSample(ID string, value float64) Sample {
+func NewSample(ID, sampleType string, value float64) Sample {
 	return Sample{
 		ID:    ID,
+		Type:  sampleType,
 		Value: value,
 		Time:  time.Now(),
 	}
