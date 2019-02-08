@@ -7,6 +7,7 @@ import Html exposing (Html, button, div, h2, map, text)
 import Html.Events exposing (onClick)
 import Json.Decode
 import Json.Encode
+import Sample exposing (..)
 import Time
 
 
@@ -68,22 +69,8 @@ type Msg
     | GotLcdMsg Lcd.Msg
 
 
-type alias KeyPressMsg =
-    { msgType : String
-    , key : String
-    }
-
-
-encodeKeyPressMsg : KeyPressMsg -> Json.Encode.Value
-encodeKeyPressMsg msg =
-    Json.Encode.object
-        [ ( "msgType", Json.Encode.string <| msg.msgType )
-        , ( "key", Json.Encode.string <| msg.key )
-        ]
-
-
-keyToKeyPressMsg : Lcd.Key -> KeyPressMsg
-keyToKeyPressMsg key =
+keyToSample : Lcd.Key -> Sample
+keyToSample key =
     let
         keyString =
             case key of
@@ -114,9 +101,7 @@ keyToKeyPressMsg key =
                 Lcd.KeySK4 ->
                     "KeySK4"
     in
-    { msgType = "key"
-    , key = keyString
-    }
+    Sample "key" keyString 0
 
 
 processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
@@ -166,8 +151,8 @@ update msg model =
             case lcdMsg of
                 Lcd.GotKey key ->
                     ( model
-                    , keyToKeyPressMsg key
-                        |> encodeKeyPressMsg
+                    , keyToSample key
+                        |> encodeSample
                         |> portOut
                     )
 
