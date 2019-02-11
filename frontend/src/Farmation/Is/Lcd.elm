@@ -261,28 +261,12 @@ arrow xLoc yLoc rot clickMsg =
 
         yRot =
             yLoc - arrowSize // 2
-
-        translate =
-            String.concat
-                [ "translate("
-                , String.fromInt xLoc
-                , " "
-                , String.fromInt yLoc
-                , ")"
-                ]
-
-        rotate =
-            String.concat
-                [ "rotate("
-                , String.fromInt rot
-                , ")"
-                ]
     in
     polygon
         [ points <| String.join " " [ p1, p2, p3 ]
         , fill "black"
         , onClick (GotKey clickMsg)
-        , transform <| String.join "" [ translate, rotate ]
+        , transform <| String.join " " [ translate xLoc yLoc, rotate rot ]
         ]
         []
 
@@ -322,13 +306,47 @@ arrows xLoc yLoc =
 
         y4 =
             yLoc + pos2
+
+        x5 =
+            xLoc + pos2
+
+        y5 =
+            yLoc + pos2
     in
     g []
         [ arrow x1 y1 0 KeyUp
         , arrow x2 y2 90 KeyRight
         , arrow x3 y3 180 KeyDown
         , arrow x4 y4 -90 KeyLeft
+        , enterKey x5 y5 KeyEnter
         ]
+
+
+translate : Int -> Int -> String
+translate x y =
+    String.concat [ "translate(", String.fromInt x, " ", String.fromInt y, ")" ]
+
+
+rotate : Int -> String
+rotate ang =
+    String.concat
+        [ "rotate("
+        , String.fromInt ang
+        , ")"
+        ]
+
+
+enterKey : Int -> Int -> Key -> Svg Msg
+enterKey x y clickMsg =
+    circle
+        [ cx "25"
+        , cy "25"
+        , r "25"
+        , fill "black"
+        , onClick (GotKey clickMsg)
+        , transform <| translate (x - 25) (y - 25)
+        ]
+        []
 
 
 lcd : Data -> Html.Html Msg
