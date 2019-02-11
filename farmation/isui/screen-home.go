@@ -39,3 +39,13 @@ func (s *HomeScreen) Render(img draw.Image) {
 
 	s.menu.Render(img, 0, 54)
 }
+
+// Key processes keypad input to this screen
+func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}) {
+	switch key {
+	case isdata.KeyRight:
+		return ScreenStatus1, nil
+	}
+
+	return ScreenNoChange, nil
+}

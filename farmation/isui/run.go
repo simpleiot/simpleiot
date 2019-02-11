@@ -15,9 +15,10 @@ func Run(in, out chan interface{}, configInit *isdata.Config) {
 	config := configInit
 	state := &isdata.State{}
 
-	screenHome := NewHomeScreen(state, config)
+	var currentScreen Screen
+	screens := InitScreens(state, config)
 
-	var currentScreen = screenHome
+	currentScreen = screens[ScreenHome]
 
 	renderScreen := func() {
 		currentScreen.Render(lcd)
@@ -37,6 +38,15 @@ func Run(in, out chan interface{}, configInit *isdata.Config) {
 				renderScreen()
 			case isdata.Config:
 				*config = m
+				renderScreen()
+			case isdata.Key:
+				newScreen, cmd := currentScreen.Key(m)
+				if cmd != nil {
+					out <- cmd
+				}
+				if newScreen != ScreenNoChange {
+					currentScreen = screens[newScreen]
+				}
 				renderScreen()
 			default:
 				log.Printf("Mux: unhandled message of type %T: %+v\r\n", m, m)
