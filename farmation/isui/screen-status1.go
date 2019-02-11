@@ -44,6 +44,8 @@ func (s *StatusScreen1) Key(key isdata.Key) (ScreenID, interface{}) {
 	switch key {
 	case isdata.KeyLeft, isdata.KeySK1:
 		return ScreenHome, nil
+	case isdata.KeyRight:
+		return ScreenStatus2, nil
 	}
 
 	return ScreenNoChange, nil
