@@ -4,6 +4,9 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"log"
+
+	"github.com/StephaneBunel/bresenham"
 )
 
 // HLine draws a horizontal line
@@ -32,4 +35,19 @@ func Rect(img draw.Image, x1, y1, x2, y2 int, col color.Color) {
 func Clear(img draw.Image) {
 	draw.Draw(img, img.Bounds(), &image.Uniform{color.White}, image.ZP, draw.Over)
 
+}
+
+// Line draw a line between two points
+func Line(img draw.Image, x1, y1, x2, y2 int, col color.Color) {
+	bresenham.Bresenham(img, x1, y1, x2, y2, col)
+}
+
+// Polyline draws a multipoint line
+func Polyline(img draw.Image, col color.Color, p ...int) {
+	if len(p) < 4 {
+		log.Println("Error, Polyline requires at least 4 points")
+	}
+	for i := 0; i < len(p)-2; i += 2 {
+		Line(img, p[i], p[i+1], p[i+2], p[i+3], col)
+	}
 }

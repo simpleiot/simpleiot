@@ -1,6 +1,7 @@
 package isui
 
 import (
+	"image/color"
 	"image/draw"
 	"log"
 
@@ -32,10 +33,39 @@ var menuItemWidth = 27
 
 // Render renders the menu section of the screen
 func (m *Menu) Render(img draw.Image, x, y int) (err error) {
-	err = DrawBmp(img, "sk-lines.bmp", x, y)
+	if len(m.labels[0]) > 0 {
+		Polyline(img, color.Black,
+			0, 55,
+			1, 54,
+			29, 54,
+			31, 56,
+			31, 63)
+	}
 
-	if err != nil {
-		log.Println("Error loading sk-lines")
+	if len(m.labels[1]) > 0 {
+		Polyline(img, color.Black,
+			31, 56,
+			33, 54,
+			61, 54,
+			63, 56,
+			63, 63)
+	}
+
+	if len(m.labels[2]) > 0 {
+		Polyline(img, color.Black,
+			63, 56,
+			65, 54,
+			94, 54,
+			96, 56,
+			96, 63)
+	}
+
+	if len(m.labels[3]) > 0 {
+		Polyline(img, color.Black,
+			96, 56,
+			98, 54,
+			126, 54,
+			127, 55)
 	}
 
 	for i, l := range m.labels {
