@@ -45,7 +45,10 @@ func Run(in, out chan interface{}, configInit *isdata.Config) {
 					out <- cmd
 				}
 				if newScreen != ScreenNoChange {
-					currentScreen = screens[newScreen]
+					ns := screens[newScreen]
+					if ns != nil {
+						currentScreen = ns
+					}
 				}
 				renderScreen()
 			default:

@@ -24,11 +24,13 @@ func VLine(img draw.Image, x, y1, y2 int, col color.Color) {
 }
 
 // Rect draws a rectangle utilizing HLine() and VLine()
-func Rect(img draw.Image, x1, y1, x2, y2 int, col color.Color) {
-	HLine(img, x1, y1, x2, col)
-	HLine(img, x1, y2, x2, col)
-	VLine(img, x1, y1, y2, col)
-	VLine(img, x2, y1, y2, col)
+func Rect(img draw.Image, x, y, w, h int) {
+	Polyline(img,
+		x, y,
+		x+w, y,
+		x+w, y+h,
+		x, y+h,
+		x, y)
 }
 
 // Clear clears an image to white color

@@ -22,6 +22,7 @@ const (
 	ScreenEditFieldNames
 	ScreenOpMode1
 	ScreenOpModeSetup
+	ScreenTotals
 )
 
 // Screen is an interface that generally represents a screen
@@ -42,7 +43,11 @@ func InitScreens(state *isdata.State, config *isdata.Config) (ret Screens) {
 	ret[ScreenStatus2] = NewStatusScreen2(state, config)
 	ret[ScreenStatus3] = NewStatusScreen3(state, config)
 	ret[ScreenMainMenu] = NewMainMenuScreen(state, config)
+	ret[ScreenTankMenu1] = NewTankMenuScreen(state, config)
 
 	return
 
 }
+
+var menuSpacing = 12
+var menuSpacingTight = 10
