@@ -47,6 +47,8 @@ func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		return ScreenStatus1, nil
 	case isdata.KeyLeft:
 		return ScreenStatus3, nil
+	case isdata.KeySK1:
+		return ScreenMainMenu, nil
 	}
 
 	return ScreenNoChange, nil

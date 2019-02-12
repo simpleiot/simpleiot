@@ -20,8 +20,6 @@ type StatusScreen1 struct {
 func NewStatusScreen1(state *isdata.State, config *isdata.Config) *StatusScreen1 {
 	menu := Menu{}
 	menu.SetLabel(0, "home")
-	menu.SetLabel(1, "mode")
-	menu.SetLabel(2, "pump")
 
 	return &StatusScreen1{
 		menu:   &menu,

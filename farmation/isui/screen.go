@@ -41,6 +41,7 @@ func InitScreens(state *isdata.State, config *isdata.Config) (ret Screens) {
 	ret[ScreenStatus1] = NewStatusScreen1(state, config)
 	ret[ScreenStatus2] = NewStatusScreen2(state, config)
 	ret[ScreenStatus3] = NewStatusScreen3(state, config)
+	ret[ScreenMainMenu] = NewMainMenuScreen(state, config)
 
 	return
 
