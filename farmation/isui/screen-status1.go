@@ -11,20 +11,20 @@ import (
 
 // StatusScreen1 is used to display status info
 type StatusScreen1 struct {
-	menu   *Menu
-	state  *isdata.State
-	config *isdata.Config
+	softKeys *SoftKeys
+	state    *isdata.State
+	config   *isdata.Config
 }
 
 // NewStatusScreen1 initializes and returns a HomeScreen
 func NewStatusScreen1(state *isdata.State, config *isdata.Config) *StatusScreen1 {
-	menu := Menu{}
-	menu.SetLabel(0, "home")
+	softKeys := SoftKeys{}
+	softKeys.SetLabel(0, "home")
 
 	return &StatusScreen1{
-		menu:   &menu,
-		state:  state,
-		config: config,
+		softKeys: &softKeys,
+		state:    state,
+		config:   config,
 	}
 }
 
@@ -34,7 +34,7 @@ func (s *StatusScreen1) Render(img draw.Image) {
 	DrawTxt(img, strconv.Itoa(int(s.state.BatchApplied)), 11, 7, agencyfbbold40.Font)
 	DrawTxt(img, "GALLONS", 11, 38, tightpixel15.Font)
 
-	s.menu.Render(img, 0, 54)
+	s.softKeys.Render(img, 0, 54)
 }
 
 // Key processes keypad input to this screen

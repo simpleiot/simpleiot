@@ -11,22 +11,22 @@ import (
 
 // HomeScreen is used to render the home screen
 type HomeScreen struct {
-	menu   *Menu
-	state  *isdata.State
-	config *isdata.Config
+	softKeys *SoftKeys
+	state    *isdata.State
+	config   *isdata.Config
 }
 
 // NewHomeScreen initializes and returns a HomeScreen
 func NewHomeScreen(state *isdata.State, config *isdata.Config) *HomeScreen {
-	menu := Menu{}
-	menu.SetLabel(0, "menu")
-	menu.SetLabel(1, "mode")
-	menu.SetLabel(2, "pump")
+	softKeys := SoftKeys{}
+	softKeys.SetLabel(0, "menu")
+	softKeys.SetLabel(1, "mode")
+	softKeys.SetLabel(2, "pump")
 
 	return &HomeScreen{
-		menu:   &menu,
-		state:  state,
-		config: config,
+		softKeys: &softKeys,
+		state:    state,
+		config:   config,
 	}
 }
 
@@ -37,7 +37,7 @@ func (s *HomeScreen) Render(img draw.Image) {
 	DrawTxt(img, "963", 67, 11, agencyfbbold20.Font)
 	DrawTxt(img, "963", 67, 29, agencyfbbold20.Font)
 
-	s.menu.Render(img, 0, 54)
+	s.softKeys.Render(img, 0, 54)
 }
 
 // Key processes keypad input to this screen

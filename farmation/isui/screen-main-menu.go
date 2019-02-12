@@ -9,7 +9,7 @@ import (
 
 // MainMenuScreen is used to display status info
 type MainMenuScreen struct {
-	menu     *Menu
+	softKeys *SoftKeys
 	state    *isdata.State
 	config   *isdata.Config
 	arrowPos int
@@ -17,16 +17,24 @@ type MainMenuScreen struct {
 
 // NewMainMenuScreen initializes and returns a HomeScreen
 func NewMainMenuScreen(state *isdata.State, config *isdata.Config) *MainMenuScreen {
-	menu := Menu{}
-	menu.SetLabel(0, "home")
-	menu.SetLabel(1, "mode")
-	menu.SetLabel(2, "pump")
+	softKeys := SoftKeys{}
+	softKeys.SetLabel(0, "home")
 
 	return &MainMenuScreen{
-		menu:   &menu,
-		state:  state,
-		config: config,
+		softKeys: &softKeys,
+		state:    state,
+		config:   config,
 	}
+}
+
+func (s *MainMenuScreen) drawArrow(img draw.Image) {
+	offset := s.arrowPos * 11
+	Line(img, 34, 17+offset, 40, 17+offset)
+	Line(img, 40, 17+offset, 38, 15+offset)
+	Line(img, 40, 17+offset, 38, 19+offset)
+}
+
+func (s *MainMenuScreen) drawMenu(img draw.Image) {
 }
 
 // Render updates the home screen, and provides an image
@@ -37,8 +45,9 @@ func (s *MainMenuScreen) Render(img draw.Image) {
 	DrawTxt(img, "Field Menu", 43, 25, tightpixel15.Font)
 	DrawTxt(img, "Operating Menu", 43, 37, tightpixel15.Font)
 	DrawTxt(img, "Totals", 43, 48, tightpixel15.Font)
+	s.drawArrow(img)
 
-	s.menu.Render(img, 0, 54)
+	s.softKeys.Render(img, 0, 54)
 }
 
 // Key processes keypad input to this screen
@@ -46,6 +55,16 @@ func (s *MainMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 	switch key {
 	case isdata.KeySK1:
 		return ScreenHome, nil
+	case isdata.KeyUp:
+		s.arrowPos--
+		if s.arrowPos < 0 {
+			s.arrowPos = 4
+		}
+	case isdata.KeyDown:
+		s.arrowPos++
+		if s.arrowPos > 4 {
+			s.arrowPos = 0
+		}
 	}
 
 	return ScreenNoChange, nil

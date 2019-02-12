@@ -1,22 +1,21 @@
 package isui
 
 import (
-	"image/color"
 	"image/draw"
 	"log"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 )
 
-// Menu is used to store menu state and render the menu
-type Menu struct {
+// SoftKeys is used to store menu state and render the menu
+type SoftKeys struct {
 	labels [4]string
 }
 
 // SetLabel set a menu label
-func (m *Menu) SetLabel(index int, label string) {
+func (m *SoftKeys) SetLabel(index int, label string) {
 	if index >= len(m.labels) {
-		log.Println("Menu index out of range: ", index)
+		log.Println("SoftKeys index out of range: ", index)
 		return
 	}
 
@@ -32,9 +31,9 @@ var labelXOffsets = []int{2, 35, 67, 80}
 var menuItemWidth = 27
 
 // Render renders the menu section of the screen
-func (m *Menu) Render(img draw.Image, x, y int) (err error) {
+func (m *SoftKeys) Render(img draw.Image, x, y int) (err error) {
 	if len(m.labels[0]) > 0 {
-		Polyline(img, color.Black,
+		Polyline(img,
 			0, 55,
 			1, 54,
 			29, 54,
@@ -43,7 +42,7 @@ func (m *Menu) Render(img draw.Image, x, y int) (err error) {
 	}
 
 	if len(m.labels[1]) > 0 {
-		Polyline(img, color.Black,
+		Polyline(img,
 			31, 56,
 			33, 54,
 			61, 54,
@@ -52,7 +51,7 @@ func (m *Menu) Render(img draw.Image, x, y int) (err error) {
 	}
 
 	if len(m.labels[2]) > 0 {
-		Polyline(img, color.Black,
+		Polyline(img,
 			63, 56,
 			65, 54,
 			94, 54,
@@ -61,7 +60,7 @@ func (m *Menu) Render(img draw.Image, x, y int) (err error) {
 	}
 
 	if len(m.labels[3]) > 0 {
-		Polyline(img, color.Black,
+		Polyline(img,
 			96, 56,
 			98, 54,
 			126, 54,

@@ -38,16 +38,16 @@ func Clear(img draw.Image) {
 }
 
 // Line draw a line between two points
-func Line(img draw.Image, x1, y1, x2, y2 int, col color.Color) {
-	bresenham.Bresenham(img, x1, y1, x2, y2, col)
+func Line(img draw.Image, x1, y1, x2, y2 int) {
+	bresenham.Bresenham(img, x1, y1, x2, y2, color.Black)
 }
 
 // Polyline draws a multipoint line
-func Polyline(img draw.Image, col color.Color, p ...int) {
+func Polyline(img draw.Image, p ...int) {
 	if len(p) < 4 {
 		log.Println("Error, Polyline requires at least 4 points")
 	}
 	for i := 0; i < len(p)-2; i += 2 {
-		Line(img, p[i], p[i+1], p[i+2], p[i+3], col)
+		Line(img, p[i], p[i+1], p[i+2], p[i+3])
 	}
 }
