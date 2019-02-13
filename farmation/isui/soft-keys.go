@@ -31,7 +31,7 @@ var labelXOffsets = []int{2, 35, 67, 80}
 var menuItemWidth = 27
 
 // Render renders the menu section of the screen
-func (m *SoftKeys) Render(img draw.Image, x, y int) (err error) {
+func (m *SoftKeys) Render(img draw.Image, x, y int) {
 	if len(m.labels[0]) > 0 {
 		Polyline(img,
 			0, 55,
@@ -74,6 +74,4 @@ func (m *SoftKeys) Render(img draw.Image, x, y int) (err error) {
 				tightpixel15.Font)
 		}
 	}
-
-	return
 }
