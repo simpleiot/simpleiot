@@ -1,7 +1,7 @@
 module github.com/simpleiot/simpleiot
 
 require (
-	github.com/StephaneBunel/bresenham v0.0.0-20161027123049-97ed18b11fc2
+	github.com/StephaneBunel/bresenham v0.0.0-20190213085234-b50c292e2054
 	github.com/benbjohnson/genesis v0.2.1
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
@@ -20,5 +20,3 @@ require (
 replace periph.io/x/periph => github.com/cbrake/periph v3.4.991+incompatible
 
 replace golang.org/x/image => github.com/cbrake/golang.org-x-image v0.0.1
-
-replace github.com/StephaneBunel/bresenham => github.com/cbrake/bresenham v0.0.1
