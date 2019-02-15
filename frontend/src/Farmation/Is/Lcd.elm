@@ -185,8 +185,8 @@ lcdDataToPixel xPos yPos v =
     rect
         [ x xS
         , y yS
-        , width "2"
-        , height "2"
+        , width "3"
+        , height "3"
         , rx "1"
         , ry "1"
         , fill fillS
