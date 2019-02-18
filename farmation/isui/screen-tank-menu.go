@@ -17,10 +17,6 @@ type TankMenuScreen struct {
 
 // NewTankMenuScreen initializes and returns a HomeScreen
 func NewTankMenuScreen(state *isdata.State, config *isdata.Config) *TankMenuScreen {
-	softKeys := SoftKeys{}
-	softKeys.SetLabel(0, "back")
-	softKeys.SetLabel(1, "full")
-
 	menu := Menu{}
 	menu.AddItemInt("Current Volume", state.CurrentTankVolume)
 	menu.AddItemInt("Alert Level", float64(config.TankAlertVolume))
@@ -28,7 +24,7 @@ func NewTankMenuScreen(state *isdata.State, config *isdata.Config) *TankMenuScre
 	menu.AddItemOnOff("Alert On/Off", config.TankAlertOn)
 
 	return &TankMenuScreen{
-		softKeys: &softKeys,
+		softKeys: NewSoftKeys("back", "full"),
 		state:    state,
 		config:   config,
 		menu:     menu,

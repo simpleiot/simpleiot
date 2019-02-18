@@ -17,9 +17,6 @@ type MainMenuScreen struct {
 
 // NewMainMenuScreen initializes and returns a HomeScreen
 func NewMainMenuScreen(state *isdata.State, config *isdata.Config) *MainMenuScreen {
-	softKeys := SoftKeys{}
-	softKeys.SetLabel(0, "home")
-
 	menu := Menu{}
 	menu.AddItemScreen("Tank Menu", ScreenIDTankMenu1)
 	menu.AddItemScreen("Field Menu", ScreenIDFieldMenu1)
@@ -27,7 +24,7 @@ func NewMainMenuScreen(state *isdata.State, config *isdata.Config) *MainMenuScre
 	menu.AddItemScreen("Totals", ScreenIDTotals)
 
 	return &MainMenuScreen{
-		softKeys: &softKeys,
+		softKeys: NewSoftKeys("home"),
 		state:    state,
 		config:   config,
 		menu:     menu,

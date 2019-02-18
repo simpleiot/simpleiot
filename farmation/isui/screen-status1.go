@@ -22,7 +22,7 @@ func NewStatusScreen1(state *isdata.State, config *isdata.Config) *StatusScreen1
 	softKeys.SetLabel(0, "home")
 
 	return &StatusScreen1{
-		softKeys: &softKeys,
+		softKeys: NewSoftKeys("home"),
 		state:    state,
 		config:   config,
 	}

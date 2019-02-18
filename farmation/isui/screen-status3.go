@@ -16,13 +16,8 @@ type StatusScreen3 struct {
 
 // NewStatusScreen3 initializes and returns a HomeScreen
 func NewStatusScreen3(state *isdata.State, config *isdata.Config) *StatusScreen3 {
-	softKeys := SoftKeys{}
-	softKeys.SetLabel(0, "home")
-	softKeys.SetLabel(1, "mode")
-	softKeys.SetLabel(2, "pump")
-
 	return &StatusScreen3{
-		softKeys: &softKeys,
+		softKeys: NewSoftKeys("home", "mode", "pump"),
 		state:    state,
 		config:   config,
 	}

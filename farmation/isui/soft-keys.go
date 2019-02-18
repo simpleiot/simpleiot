@@ -22,6 +22,22 @@ func (m *SoftKeys) SetLabel(index int, label string) {
 	m.labels[index] = label
 }
 
+// NewSoftKeys creates soft keys with given items
+func NewSoftKeys(items ...string) *SoftKeys {
+	if len(items) > 4 {
+		log.Println("Error, can only have 4 soft keys")
+		return &SoftKeys{}
+	}
+
+	ret := SoftKeys{}
+
+	for i, key := range items {
+		ret.SetLabel(i, key)
+	}
+
+	return &ret
+}
+
 // location of menu strings:
 // 2,53
 // 35,53

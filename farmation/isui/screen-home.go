@@ -18,13 +18,8 @@ type HomeScreen struct {
 
 // NewHomeScreen initializes and returns a HomeScreen
 func NewHomeScreen(state *isdata.State, config *isdata.Config) *HomeScreen {
-	softKeys := SoftKeys{}
-	softKeys.SetLabel(0, "menu")
-	softKeys.SetLabel(1, "mode")
-	softKeys.SetLabel(2, "pump")
-
 	return &HomeScreen{
-		softKeys: &softKeys,
+		softKeys: NewSoftKeys("menu", "mode", "pump"),
 		state:    state,
 		config:   config,
 	}

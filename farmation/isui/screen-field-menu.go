@@ -17,11 +17,6 @@ type FieldMenuScreen struct {
 
 // NewFieldMenuScreen initializes and returns a HomeScreen
 func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuScreen {
-	softKeys := SoftKeys{}
-	softKeys.SetLabel(0, "back")
-	softKeys.SetLabel(1, "edit")
-	softKeys.SetLabel(2, "import")
-
 	menu := Menu{}
 	menu.AddItemScreen("Field One", ScreenIDNoChange)
 	menu.AddItemScreen("Field Two", ScreenIDNoChange)
@@ -29,7 +24,7 @@ func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuSc
 	menu.AddItemScreen("Field Four", ScreenIDNoChange)
 
 	return &FieldMenuScreen{
-		softKeys: &softKeys,
+		softKeys: NewSoftKeys("back", "edit", "import"),
 		state:    state,
 		config:   config,
 		menu:     menu,
