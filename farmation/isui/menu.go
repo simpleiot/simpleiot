@@ -20,6 +20,7 @@ const (
 	MenuItemTypeInt
 	MenuItemTypeFloat
 	MenuItemTypeOnOff
+	MenuItemTypeSelect
 )
 
 // MenuItem describes a field that is displayed
@@ -37,7 +38,28 @@ type Menu struct {
 	items        []MenuItem
 	scrollOffset int
 	arrowPos     int
-	screenOnly   bool
+	showValues   bool
+}
+
+func (m *Menu) updateShowValues() {
+	for _, item := range m.items {
+		if item.Type != MenuItemTypeScreen && item.Type != MenuItemTypeSelect {
+			m.showValues = true
+			return
+		}
+	}
+
+	m.showValues = false
+}
+
+// AddItemSelect adds a select list item
+func (m *Menu) AddItemSelect(desc string) {
+	m.items = append(m.items, MenuItem{
+		Description: desc,
+		Type:        MenuItemTypeSelect,
+	})
+
+	m.updateShowValues()
 }
 
 // AddItemScreen adds a screen selection to menu
@@ -48,14 +70,7 @@ func (m *Menu) AddItemScreen(desc string, s ScreenID) {
 		Screen:      s,
 	})
 
-	for _, menuItem := range m.items {
-		if menuItem.Type != MenuItemTypeScreen {
-			m.screenOnly = false
-			return
-		}
-	}
-
-	m.screenOnly = true
+	m.updateShowValues()
 }
 
 // AddItemOnOff adds a on/off selection
@@ -65,6 +80,8 @@ func (m *Menu) AddItemOnOff(desc string, on bool) {
 		Type:        MenuItemTypeOnOff,
 		On:          on,
 	})
+
+	m.updateShowValues()
 }
 
 // AddItemInt adds an integer item to menu
@@ -74,6 +91,8 @@ func (m *Menu) AddItemInt(desc string, v float64) {
 		Type:        MenuItemTypeInt,
 		Value:       v,
 	})
+
+	m.updateShowValues()
 }
 
 // SetValue is used to set a parameter value
@@ -92,7 +111,7 @@ func (m *Menu) Render(img draw.Image) {
 
 	x := 2
 
-	if m.screenOnly {
+	if !m.showValues {
 		x = 30
 		Arrow(img, x-8, 17+m.arrowPos*menuSpacingText)
 	} else {
@@ -104,12 +123,14 @@ func (m *Menu) Render(img draw.Image) {
 		offsetValues := i * menuSpacingValues
 		DrawTxt(img, item.Description, x, y+offsetText, tightpixel15.Font)
 
-		if !m.screenOnly {
+		if m.showValues {
 			// draw values
 			Rect(img, 76, 12+offsetValues, 45, menuSpacingValues)
 			switch item.Type {
 			case MenuItemTypeScreen:
 				DrawTxt(img, "open", 78, y+offsetValues, tightpixel15.Font)
+			case MenuItemTypeSelect:
+				DrawTxt(img, "select", 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeInt:
 				DrawTxtRight(img, strconv.Itoa(int(item.Value)), 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeOnOff:
@@ -129,6 +150,9 @@ func (m *Menu) Render(img draw.Image) {
 	}
 }
 
+// MenuSelection is returned when a new item is selected
+type MenuSelection string
+
 // Key handles key input
 func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}) {
 	switch key {
@@ -147,6 +171,8 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}) {
 		switch item.Type {
 		case MenuItemTypeScreen:
 			return item.Screen, nil
+		case MenuItemTypeSelect:
+			return ScreenIDNoChange, MenuSelection(item.Description)
 		}
 	}
 
