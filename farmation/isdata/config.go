@@ -27,23 +27,19 @@ type Config struct {
 	FieldConfigs    []FieldConfig
 	ProductConfigs  []ProductConfig
 	NetworkConfig   NetworkConfig
-	MaxTankVolume   int
+	TankCapacity    int
 	TankAlertVolume int
+	TankAlertOn     bool
 	FlowMeterPPG    int // how many pulses in one US gallon
 	FlowMeterMaxflo int // Meter's maximum flow rate in GPM or LPM
 }
 
 // ConfigDefault contains defaults for initializing a new system
+// not only non zero values are populated here, as Go structs default
+// to 0 or false.
 var ConfigDefault = Config{
-	ID:                 "",
-	HighWindowPerc:     15,
-	LowWindowPerc:      15,
-	BatchAmount:        0,
-	WaterOn:            false,
-	ManualHighAlarmGPH: 0,
-	ManualLowAlarmGPH:  0,
-	MaxTankVolume:      0,
-	TankAlertVolume:    0,
+	HighWindowPerc: 15,
+	LowWindowPerc:  15,
 }
 
 // ISOperatingMode defines the operating mode of the system
