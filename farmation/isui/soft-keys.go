@@ -27,7 +27,7 @@ func (m *SoftKeys) SetLabel(index int, label string) {
 // 35,53
 // 67,53
 
-var labelXOffsets = []int{2, 35, 67, 80}
+var labelXOffsets = []int{15, 47, 80, 111}
 var menuItemWidth = 27
 
 // Render renders the menu section of the screen
@@ -69,7 +69,7 @@ func (m *SoftKeys) Render(img draw.Image, x, y int) {
 
 	for i, l := range m.labels {
 		if l != "" {
-			DrawTxt(img, l,
+			DrawTxtCentered(img, l,
 				labelXOffsets[i]+x, y,
 				tightpixel15.Font)
 		}
