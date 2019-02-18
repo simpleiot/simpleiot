@@ -3,7 +3,6 @@ package isui
 import (
 	"image/draw"
 
-	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
@@ -38,8 +37,7 @@ func NewMainMenuScreen(state *isdata.State, config *isdata.Config) *MainMenuScre
 // Render updates the home screen, and provides an image
 func (s *MainMenuScreen) Render(img draw.Image) {
 	Clear(img)
-	DrawTxt(img, "Main Menu", 37, 2, tightpixel15.Font)
-	Rect(img, 33, 1, 51, 10)
+	Heading(img, "Main Menu")
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
 }

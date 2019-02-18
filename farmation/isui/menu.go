@@ -111,7 +111,7 @@ func (m *Menu) Render(img draw.Image) {
 			case MenuItemTypeScreen:
 				DrawTxt(img, "open", 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeInt:
-				DrawTxt(img, strconv.Itoa(int(item.Value)), 78, y+1+offsetValues, tightpixel15.Font)
+				DrawTxtRight(img, strconv.Itoa(int(item.Value)), 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeOnOff:
 				DrawTxt(img, "on   off", 82, 13+offsetValues, tightpixel15.Font)
 				top := 13 + offsetValues - 1
