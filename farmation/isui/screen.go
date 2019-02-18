@@ -45,6 +45,8 @@ func InitScreens(state *isdata.State, config *isdata.Config) (ret Screens) {
 	ret[ScreenIDMainMenu] = NewMainMenuScreen(state, config)
 	ret[ScreenIDTankMenu1] = NewTankMenuScreen(state, config)
 	ret[ScreenIDFieldMenu1] = NewFieldMenuScreen(state, config)
+	ret[ScreenIDOpMode1] = NewOperatingModeScreen(state, config)
+	ret[ScreenIDOpModeSetup] = NewOperatingModeSetupScreen(state, config)
 
 	return
 
