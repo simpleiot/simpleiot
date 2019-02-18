@@ -13,7 +13,7 @@ type FieldMenuScreen struct {
 	state    *isdata.State
 	config   *isdata.Config
 	arrowPos int
-	menu     []string
+	menu     Menu
 }
 
 // NewFieldMenuScreen initializes and returns a HomeScreen
@@ -23,18 +23,17 @@ func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuSc
 	softKeys.SetLabel(1, "edit")
 	softKeys.SetLabel(2, "import")
 
+	menu := Menu{}
+	menu.AddItemScreen("Field One", ScreenIDNoChange)
+	menu.AddItemScreen("Field Two", ScreenIDNoChange)
+	menu.AddItemScreen("Field Three", ScreenIDNoChange)
+	menu.AddItemScreen("Field Four", ScreenIDNoChange)
+
 	return &FieldMenuScreen{
 		softKeys: &softKeys,
 		state:    state,
 		config:   config,
-		menu: []string{"Field One", "Field Two",
-			"Field Three", "Field Four"},
-	}
-}
-
-func (s *FieldMenuScreen) drawMenu(img draw.Image) {
-	for i, entry := range s.menu {
-		DrawTxt(img, entry, 43, 13+i*menuSpacingTight, tightpixel15.Font)
+		menu:     menu,
 	}
 }
 
@@ -43,9 +42,7 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 	Clear(img)
 	DrawTxt(img, "Field Menu", 37, 2, tightpixel15.Font)
 	Rect(img, 33, 1, 51, 10)
-	s.drawMenu(img)
-	Arrow(img, 34, 17+s.arrowPos*menuSpacingTight)
-
+	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
 }
 
@@ -53,25 +50,10 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 	switch key {
 	case isdata.KeySK1:
-		return ScreenMainMenu, nil
-	case isdata.KeyUp:
-		s.arrowPos--
-		if s.arrowPos < 0 {
-			s.arrowPos = len(s.menu) - 1
-		}
-	case isdata.KeyDown:
-		s.arrowPos++
-		if s.arrowPos >= len(s.menu) {
-			s.arrowPos = 0
-		}
-	case isdata.KeyEnter:
-		switch s.arrowPos {
-		case 0:
-		case 1:
-		case 2:
-		case 3:
-		}
+		return ScreenIDMainMenu, nil
+	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+		return s.menu.Key(key)
 	}
 
-	return ScreenNoChange, nil
+	return ScreenIDNoChange, nil
 }

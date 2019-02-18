@@ -18,7 +18,7 @@ func Run(in, out chan interface{}, configInit *isdata.Config) {
 	var currentScreen Screen
 	screens := InitScreens(state, config)
 
-	currentScreen = screens[ScreenHome]
+	currentScreen = screens[ScreenIDHome]
 
 	renderScreen := func() {
 		currentScreen.Render(lcd)
@@ -44,7 +44,7 @@ func Run(in, out chan interface{}, configInit *isdata.Config) {
 				if cmd != nil {
 					out <- cmd
 				}
-				if newScreen != ScreenNoChange {
+				if newScreen != ScreenIDNoChange {
 					ns := screens[newScreen]
 					if ns != nil {
 						currentScreen = ns

@@ -42,12 +42,12 @@ func (s *StatusScreen2) Render(img draw.Image) {
 func (s *StatusScreen2) Key(key isdata.Key) (ScreenID, interface{}) {
 	switch key {
 	case isdata.KeySK1:
-		return ScreenHome, nil
+		return ScreenIDHome, nil
 	case isdata.KeyLeft:
-		return ScreenStatus1, nil
+		return ScreenIDStatus1, nil
 	case isdata.KeyRight:
-		return ScreenStatus3, nil
+		return ScreenIDStatus3, nil
 	}
 
-	return ScreenNoChange, nil
+	return ScreenIDNoChange, nil
 }

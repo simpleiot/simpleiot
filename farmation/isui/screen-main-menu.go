@@ -13,7 +13,7 @@ type MainMenuScreen struct {
 	state    *isdata.State
 	config   *isdata.Config
 	arrowPos int
-	menu     []string
+	menu     Menu
 }
 
 // NewMainMenuScreen initializes and returns a HomeScreen
@@ -21,18 +21,17 @@ func NewMainMenuScreen(state *isdata.State, config *isdata.Config) *MainMenuScre
 	softKeys := SoftKeys{}
 	softKeys.SetLabel(0, "home")
 
+	menu := Menu{}
+	menu.AddItemScreen("Tank Menu", ScreenIDTankMenu1)
+	menu.AddItemScreen("Field Menu", ScreenIDFieldMenu1)
+	menu.AddItemScreen("Operating Menu", ScreenIDOpMode1)
+	menu.AddItemScreen("Totals", ScreenIDTotals)
+
 	return &MainMenuScreen{
 		softKeys: &softKeys,
 		state:    state,
 		config:   config,
-		menu: []string{"Tank Menu", "Field Menu",
-			"Operating Menu", "Totals"},
-	}
-}
-
-func (s *MainMenuScreen) drawMenu(img draw.Image) {
-	for i, entry := range s.menu {
-		DrawTxt(img, entry, 43, 13+i*menuSpacing, tightpixel15.Font)
+		menu:     menu,
 	}
 }
 
@@ -41,9 +40,7 @@ func (s *MainMenuScreen) Render(img draw.Image) {
 	Clear(img)
 	DrawTxt(img, "Main Menu", 37, 2, tightpixel15.Font)
 	Rect(img, 33, 1, 51, 10)
-	s.drawMenu(img)
-	Arrow(img, 34, 17+s.arrowPos*menuSpacing)
-
+	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
 }
 
@@ -51,30 +48,10 @@ func (s *MainMenuScreen) Render(img draw.Image) {
 func (s *MainMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 	switch key {
 	case isdata.KeySK1:
-		return ScreenHome, nil
-	case isdata.KeyUp:
-		s.arrowPos--
-		if s.arrowPos < 0 {
-			s.arrowPos = len(s.menu) - 1
-		}
-	case isdata.KeyDown:
-		s.arrowPos++
-		if s.arrowPos >= len(s.menu) {
-			s.arrowPos = 0
-		}
-	case isdata.KeyEnter:
-		switch s.arrowPos {
-		case 0:
-			return ScreenTankMenu1, nil
-		case 1:
-			return ScreenFieldMenu1, nil
-		case 2:
-			return ScreenOpMode1, nil
-		case 3:
-			return ScreenTotals, nil
-		}
-
+		return ScreenIDHome, nil
+	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+		return s.menu.Key(key)
 	}
 
-	return ScreenNoChange, nil
+	return ScreenIDNoChange, nil
 }

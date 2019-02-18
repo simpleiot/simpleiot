@@ -11,6 +11,9 @@ import (
 // MenuItemType descripts the type of a field
 type MenuItemType int
 
+var menuSpacingText = 10
+var menuSpacingValues = 11
+
 // List of possible Param Types
 const (
 	MenuItemTypeScreen MenuItemType = iota
@@ -76,16 +79,19 @@ func (m *Menu) SetValue(desc string, v float64) {
 // Render is used to draw a list of params, handles scrolling, etc.
 func (m *Menu) Render(img draw.Image) {
 	for i, item := range m.items {
-		offset := i * menuSpacingTight
-		DrawTxt(img, item.Description, 2, 13+offset, tightpixel15.Font)
-		Rect(img, 76, 12+offset, 45, menuSpacingTight)
+		offsetText := i * menuSpacingText
+		offsetValues := i * menuSpacingValues
+		DrawTxt(img, item.Description, 2, 13+offsetText, tightpixel15.Font)
+
+		// draw values
+		Rect(img, 76, 12+offsetValues, 45, menuSpacingValues)
 		switch item.Type {
 		case MenuItemTypeInt:
-			DrawTxt(img, strconv.Itoa(int(item.Value)), 78, 13+offset, tightpixel15.Font)
+			DrawTxt(img, strconv.Itoa(int(item.Value)), 78, 13+offsetValues, tightpixel15.Font)
 		case MenuItemTypeOnOff:
-			DrawTxt(img, "on   off", 82, 13+offset, tightpixel15.Font)
-			top := 13 + offset - 1
-			bot := 13 + offset + menuSpacingTight - 1
+			DrawTxt(img, "on   off", 82, 13+offsetValues, tightpixel15.Font)
+			top := 13 + offsetValues - 1
+			bot := 13 + offsetValues + menuSpacingValues - 1
 			switch item.On {
 			case true:
 				Line(img, 81, top, 81, bot)
@@ -95,7 +101,7 @@ func (m *Menu) Render(img draw.Image) {
 				Line(img, 118, top, 118, bot)
 			}
 		}
-		Arrow(img, 67, 17+m.arrowPos*menuSpacingTight)
+		Arrow(img, 67, 17+m.arrowPos*menuSpacingValues)
 	}
 }
 
@@ -120,5 +126,5 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}) {
 		}
 	}
 
-	return ScreenNoChange, nil
+	return ScreenIDNoChange, nil
 }

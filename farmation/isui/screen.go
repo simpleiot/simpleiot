@@ -11,18 +11,18 @@ type ScreenID int
 
 // Define constants for various screens
 const (
-	ScreenNoChange = iota
-	ScreenHome
-	ScreenStatus1
-	ScreenStatus2
-	ScreenStatus3
-	ScreenMainMenu
-	ScreenTankMenu1
-	ScreenFieldMenu1
-	ScreenEditFieldNames
-	ScreenOpMode1
-	ScreenOpModeSetup
-	ScreenTotals
+	ScreenIDNoChange ScreenID = iota
+	ScreenIDHome
+	ScreenIDStatus1
+	ScreenIDStatus2
+	ScreenIDStatus3
+	ScreenIDMainMenu
+	ScreenIDTankMenu1
+	ScreenIDFieldMenu1
+	ScreenIDEditFieldNames
+	ScreenIDOpMode1
+	ScreenIDOpModeSetup
+	ScreenIDTotals
 )
 
 // Screen is an interface that generally represents a screen
@@ -38,17 +38,14 @@ type Screens map[ScreenID]Screen
 func InitScreens(state *isdata.State, config *isdata.Config) (ret Screens) {
 	ret = make(map[ScreenID]Screen)
 
-	ret[ScreenHome] = NewHomeScreen(state, config)
-	ret[ScreenStatus1] = NewStatusScreen1(state, config)
-	ret[ScreenStatus2] = NewStatusScreen2(state, config)
-	ret[ScreenStatus3] = NewStatusScreen3(state, config)
-	ret[ScreenMainMenu] = NewMainMenuScreen(state, config)
-	ret[ScreenTankMenu1] = NewTankMenuScreen(state, config)
-	ret[ScreenFieldMenu1] = NewFieldMenuScreen(state, config)
+	ret[ScreenIDHome] = NewHomeScreen(state, config)
+	ret[ScreenIDStatus1] = NewStatusScreen1(state, config)
+	ret[ScreenIDStatus2] = NewStatusScreen2(state, config)
+	ret[ScreenIDStatus3] = NewStatusScreen3(state, config)
+	ret[ScreenIDMainMenu] = NewMainMenuScreen(state, config)
+	ret[ScreenIDTankMenu1] = NewTankMenuScreen(state, config)
+	ret[ScreenIDFieldMenu1] = NewFieldMenuScreen(state, config)
 
 	return
 
 }
-
-var menuSpacing = 12
-var menuSpacingTight = 10
