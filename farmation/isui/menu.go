@@ -78,16 +78,20 @@ func (m *Menu) SetValue(desc string, v float64) {
 
 // Render is used to draw a list of params, handles scrolling, etc.
 func (m *Menu) Render(img draw.Image) {
+	y := 13
+
 	for i, item := range m.items {
 		offsetText := i * menuSpacingText
 		offsetValues := i * menuSpacingValues
-		DrawTxt(img, item.Description, 2, 13+offsetText, tightpixel15.Font)
+		DrawTxt(img, item.Description, 2, y+offsetText, tightpixel15.Font)
 
 		// draw values
 		Rect(img, 76, 12+offsetValues, 45, menuSpacingValues)
 		switch item.Type {
+		case MenuItemTypeScreen:
+			DrawTxt(img, "open", 78, y+offsetValues, tightpixel15.Font)
 		case MenuItemTypeInt:
-			DrawTxt(img, strconv.Itoa(int(item.Value)), 78, 13+offsetValues, tightpixel15.Font)
+			DrawTxt(img, strconv.Itoa(int(item.Value)), 78, y+1+offsetValues, tightpixel15.Font)
 		case MenuItemTypeOnOff:
 			DrawTxt(img, "on   off", 82, 13+offsetValues, tightpixel15.Font)
 			top := 13 + offsetValues - 1
