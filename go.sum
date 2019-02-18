@@ -1,16 +1,10 @@
-github.com/StephaneBunel/bresenham v0.0.0-20161027123049-97ed18b11fc2 h1:rDOW1VZYJyWz3LOPetYBt+yZGqipPcbY9T1Sp4gYJEw=
-github.com/StephaneBunel/bresenham v0.0.0-20161027123049-97ed18b11fc2/go.mod h1:IEPPVq1llBFm+OeVCgoAyFiTqK5aE2c2tH4QEsjnQCM=
 github.com/StephaneBunel/bresenham v0.0.0-20190213085234-b50c292e2054 h1:gA1VQgPejIGMl8N4SrsUMT2vJ8uyJtYUndtgaiW3z+c=
 github.com/StephaneBunel/bresenham v0.0.0-20190213085234-b50c292e2054/go.mod h1:IEPPVq1llBFm+OeVCgoAyFiTqK5aE2c2tH4QEsjnQCM=
 github.com/benbjohnson/genesis v0.2.1 h1:a3Q3egZj+hD+OqIMXCrPP+3DQwFg2W/4WVJMsxT9jvM=
 github.com/benbjohnson/genesis v0.2.1/go.mod h1:8ATnWEh6jLjo/pORjjfvkkxauC+XaSIvVfEXMI0Cv9M=
 github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
 github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
-github.com/cbrake/bresenham v0.0.1 h1:+EIzfUV3PAen8RVZuqriqa/xY9n4rXa6Du9c4oJiKMk=
-github.com/cbrake/bresenham v0.0.1/go.mod h1:A4VLR2798Sr/4ZOv8wFOtcYeWmvB2RrW0/NHydmd+ro=
-github.com/cbrake/golang.org-x-image v0.0.1 h1:XpW+naEeHKGbNHOP0pD5MLlTZB4BS0h2Rw6rrcFIqYM=
 github.com/cbrake/golang.org-x-image v0.0.1/go.mod h1:anXjG3yftuws8q3nWNxqMfkLzESZ8khlLxFHJj212j4=
-github.com/cbrake/periph v3.4.991+incompatible h1:YCAMPyT4zvcFNXjnGCNRPj0RxEfnMIqYSHq6hncZ1+w=
 github.com/cbrake/periph v3.4.991+incompatible/go.mod h1:P49MXHAcQ4+24a77s0cAJvOO7AhBUC/k4Mj6RJStQJk=
 github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
