@@ -107,20 +107,41 @@ func (m *Menu) SetValue(desc string, v float64) {
 
 // Render is used to draw a list of params, handles scrolling, etc.
 func (m *Menu) Render(img draw.Image) {
-	y := 13
+	count := len(m.items)
+	start := m.arrowPos - 2
+	end := m.arrowPos + 1
 
+	if end >= count {
+		end = count - 1
+		start = end - 3
+	}
+
+	if start < 0 {
+		start = 0
+		end = start + 3
+	}
+
+	if end >= count {
+		end = count - 1
+	}
+
+	y := 13
 	x := 2
+
+	arrowScreenPos := m.arrowPos - start
 
 	if !m.showValues {
 		x = 30
-		Arrow(img, x-8, 17+m.arrowPos*menuSpacingText)
+		Arrow(img, x-8, 17+arrowScreenPos*menuSpacingText)
 	} else {
-		Arrow(img, x+65, 17+m.arrowPos*menuSpacingValues)
+		Arrow(img, x+65, 17+arrowScreenPos*menuSpacingValues)
 	}
 
-	for i, item := range m.items {
-		offsetText := i * menuSpacingText
-		offsetValues := i * menuSpacingValues
+	for i := start; i <= end; i++ {
+		screenIndex := i - start
+		item := m.items[i]
+		offsetText := screenIndex * menuSpacingText
+		offsetValues := screenIndex * menuSpacingValues
 		DrawTxt(img, item.Description, x, y+offsetText, tightpixel15.Font)
 
 		if m.showValues {
@@ -159,12 +180,12 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}) {
 	case isdata.KeyUp:
 		m.arrowPos--
 		if m.arrowPos < 0 {
-			m.arrowPos = len(m.items) - 1
+			m.arrowPos = 0
 		}
 	case isdata.KeyDown:
 		m.arrowPos++
 		if m.arrowPos >= len(m.items) {
-			m.arrowPos = 0
+			m.arrowPos = len(m.items) - 1
 		}
 	case isdata.KeyEnter:
 		item := m.items[m.arrowPos]
