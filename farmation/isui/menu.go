@@ -163,6 +163,29 @@ func (m *Menu) Render(img draw.Image) {
 			}
 		}
 	}
+
+	// draw scroll bar if we have more than 4 items
+	if count > 4 {
+		sbHeight := 50
+		sbWidth := 4
+		x := 123
+		y := 8
+		Rect(img, x, y, sbWidth, sbHeight)
+		screenCount := (count + itemsPerScreen - 1) / itemsPerScreen
+		blockHeight := sbHeight / screenCount
+		RectFilled(img, x, y+blockHeight*screen, sbWidth, blockHeight)
+		// draw arrows
+		if screen > 0 {
+			Polyline(img, x, y, x+2, y-2, x+4, y)
+		}
+
+		if screen < (screenCount - 1) {
+			Polyline(img,
+				x, y+sbHeight,
+				x+2, y+sbHeight+2,
+				x+4, y+sbHeight)
+		}
+	}
 }
 
 // MenuSelection is returned when a new item is selected
