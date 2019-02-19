@@ -108,27 +108,21 @@ func (m *Menu) SetValue(desc string, v float64) {
 // Render is used to draw a list of params, handles scrolling, etc.
 func (m *Menu) Render(img draw.Image) {
 	count := len(m.items)
-	start := m.arrowPos - 2
-	end := m.arrowPos + 1
 
-	if end >= count {
-		end = count - 1
-		start = end - 3
-	}
-
-	if start < 0 {
-		start = 0
-		end = start + 3
-	}
-
-	if end >= count {
-		end = count - 1
-	}
+	itemsPerScreen := 4
+	screen := m.arrowPos / itemsPerScreen
 
 	y := 13
 	x := 2
 
-	arrowScreenPos := m.arrowPos - start
+	arrowScreenPos := m.arrowPos % itemsPerScreen
+
+	start := itemsPerScreen * screen
+	end := start + 3
+
+	if end >= count {
+		end = count - 1
+	}
 
 	if !m.showValues {
 		x = 30
