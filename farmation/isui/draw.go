@@ -23,7 +23,7 @@ func VLine(img draw.Image, x, y1, y2 int, col color.Color) {
 	}
 }
 
-// Rect draws a rectangle utilizing HLine() and VLine()
+// Rect draws a rectangle
 func Rect(img draw.Image, x, y, w, h int) {
 	Polyline(img,
 		x, y,
@@ -31,6 +31,13 @@ func Rect(img draw.Image, x, y, w, h int) {
 		x+w, y+h,
 		x, y+h,
 		x, y)
+}
+
+// RectFilled draws a filled rectangle
+func RectFilled(img draw.Image, x, y, w, h int) {
+	for xI := x; xI < x+w; xI++ {
+		Line(img, xI, y, xI, y+h)
+	}
 }
 
 // Clear clears an image to white color
