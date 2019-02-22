@@ -16,6 +16,7 @@ type FieldMenuScreen struct {
 	arrowPos     int
 	menu         Menu
 	edit         bool
+	caps         bool
 }
 
 // NewFieldMenuScreen initializes and returns a HomeScreen
@@ -42,8 +43,14 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 		// Line(img, 10, 10, 40, 40)
 		Heading(img, "Field Name")
 		s.softKeysEdit.Render(img, 0, 54)
-		DrawTxt(img, "abcdefghijklmnopqrstuvwxyz1", 3, 14, tightpixel15.Font)
-		DrawTxt(img, "23456789.", 3, 30, tightpixel15.Font)
+		if s.caps {
+			DrawTxt(img, "ABCDEFJHIGKLMNOPQRSTUVWX", 3, 14, tightpixel15.Font)
+			DrawTxt(img, "YZ", 3, 27, tightpixel15.Font)
+			DrawTxt(img, "123456789.", 3, 40, tightpixel15.Font)
+		} else {
+			DrawTxt(img, "abcdefghijklmnopqrstuvwxyz", 3, 14, tightpixel15.Font)
+			DrawTxt(img, "123456789.", 3, 27, tightpixel15.Font)
+		}
 	} else {
 		Heading(img, "Field Menu")
 		s.menu.Render(img)
@@ -57,6 +64,13 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		switch key {
 		case isdata.KeySK4:
 			s.edit = false
+			s.caps = false
+		case isdata.KeySK3:
+			if s.caps {
+				s.caps = false
+			} else {
+				s.caps = true
+			}
 		}
 	} else {
 		switch key {
