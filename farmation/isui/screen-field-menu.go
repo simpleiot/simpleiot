@@ -39,15 +39,16 @@ func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuSc
 func (s *FieldMenuScreen) Render(img draw.Image) {
 	Clear(img)
 	if s.edit {
-		Line(img, 10, 10, 40, 40)
+		// Line(img, 10, 10, 40, 40)
+		Heading(img, "Field Name")
 		s.softKeysEdit.Render(img, 0, 54)
-
+		DrawTxt(img, "abcdefghijklmnopqrstuvwxyz1", 3, 14, tightpixel15.Font)
+		DrawTxt(img, "23456789.", 3, 30, tightpixel15.Font)
 	} else {
 		Heading(img, "Field Menu")
 		s.menu.Render(img)
 		s.softKeys.Render(img, 0, 54)
 	}
-	DrawTxt(img, "hi collin", 50, 50, tightpixel15.Font)
 }
 
 // Key processes keypad input to this screen
