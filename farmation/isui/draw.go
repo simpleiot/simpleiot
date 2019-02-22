@@ -9,20 +9,6 @@ import (
 	"github.com/StephaneBunel/bresenham"
 )
 
-// HLine draws a horizontal line
-func HLine(img draw.Image, x1, y, x2 int, col color.Color) {
-	for ; x1 <= x2; x1++ {
-		img.Set(x1, y, col)
-	}
-}
-
-// VLine draws a veritcal line
-func VLine(img draw.Image, x, y1, y2 int, col color.Color) {
-	for ; y1 <= y2; y1++ {
-		img.Set(x, y1, col)
-	}
-}
-
 // Rect draws a rectangle
 func Rect(img draw.Image, x, y, w, h int) {
 	Polyline(img,
