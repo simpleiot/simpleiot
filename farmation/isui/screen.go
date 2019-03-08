@@ -47,6 +47,7 @@ func InitScreens(state *isdata.State, config *isdata.Config) (ret Screens) {
 	ret[ScreenIDFieldMenu1] = NewFieldMenuScreen(state, config)
 	ret[ScreenIDOpMode1] = NewOperatingModeScreen(state, config)
 	ret[ScreenIDOpModeSetup] = NewOperatingModeSetupScreen(state, config)
+	ret[ScreenIDTotals] = NewTotalsScreen(state, config)
 
 	return
 
