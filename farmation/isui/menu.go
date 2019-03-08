@@ -191,6 +191,11 @@ func (m *Menu) Render(img draw.Image) {
 // MenuSelection is returned when a new item is selected
 type MenuSelection string
 
+// ResetArrowPos resets the arrow pos
+func (m *Menu) ResetArrowPos() {
+	m.arrowPos = 0
+}
+
 // Key handles key input
 func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}) {
 	switch key {
@@ -208,6 +213,7 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}) {
 		item := m.items[m.arrowPos]
 		switch item.Type {
 		case MenuItemTypeScreen:
+			m.ResetArrowPos()
 			return item.Screen, nil
 		case MenuItemTypeSelect:
 			return ScreenIDNoChange, MenuSelection(item.Description)

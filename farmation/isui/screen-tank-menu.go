@@ -43,6 +43,7 @@ func (s *TankMenuScreen) Render(img draw.Image) {
 func (s *TankMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 	switch key {
 	case isdata.KeySK1:
+		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDMainMenu, nil
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)

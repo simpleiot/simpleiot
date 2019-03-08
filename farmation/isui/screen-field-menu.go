@@ -75,6 +75,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 	} else {
 		switch key {
 		case isdata.KeySK1:
+			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDMainMenu, nil
 		case isdata.KeySK2:
 			s.edit = true
