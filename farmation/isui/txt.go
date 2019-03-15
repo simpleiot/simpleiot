@@ -14,10 +14,12 @@ func DrawTxt(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
 }
 
 // DrawTxtCentered draws text into an image centered around x,y
-func DrawTxtCentered(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
+// returns the starting x location of the string
+func DrawTxtCentered(img draw.Image, txt string, x, y int, font *pixfont.PixFont) int {
 	length := font.MeasureString(txt)
 	x -= length / 2
 	font.DrawString(img, x, y, txt, color.Black)
+	return x
 }
 
 // DrawTxtRight draws right justified text with x,y at end of string

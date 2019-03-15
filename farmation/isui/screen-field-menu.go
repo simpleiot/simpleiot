@@ -1,6 +1,7 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
@@ -41,7 +42,12 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 	Clear(img)
 	if s.edit {
 		// Line(img, 10, 10, 40, 40)
-		Heading(img, "Field Name")
+		txt := s.menu.Description()
+		txtStartX := DrawTxtCentered(img, txt, 64, 2, tightpixel15.Font)
+		fmt.Println("txtStartX: ", txtStartX)
+		width := tightpixel15.Font.MeasureString(txt)
+		Rect(img, 64-width/2-2, 0, width+2, 11)
+
 		s.softKeysEdit.Render(img, 0, 54)
 		if s.caps {
 			DrawTxt(img, "ABCDEFJHIGKLMNOPQRSTUVWX", 3, 14, tightpixel15.Font)
@@ -51,6 +57,8 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 			DrawTxt(img, "abcdefghijklmnopqrstuvwxyz", 3, 14, tightpixel15.Font)
 			DrawTxt(img, "123456789.", 3, 27, tightpixel15.Font)
 		}
+
+		// draw cursor
 	} else {
 		Heading(img, "Field Menu")
 		s.menu.Render(img)

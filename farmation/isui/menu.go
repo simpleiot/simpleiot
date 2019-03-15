@@ -52,6 +52,11 @@ func (m *Menu) updateShowValues() {
 	m.showValues = false
 }
 
+// Description returns the menu item description
+func (m *Menu) Description() string {
+	return m.items[m.arrowPos].Description
+}
+
 // AddItemSelect adds a select list item
 func (m *Menu) AddItemSelect(desc string) {
 	m.items = append(m.items, MenuItem{
