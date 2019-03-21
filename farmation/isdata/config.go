@@ -20,18 +20,19 @@ type Config struct {
 	ManualLowAlarmGPH  float64
 
 	// BatchAmount max value is 9,999
-	BatchAmount     int
-	WaterOn         bool
-	OperatingMode   ISOperatingMode
-	CurrentField    string
-	FieldConfigs    []FieldConfig
-	ProductConfigs  []ProductConfig
-	NetworkConfig   NetworkConfig
-	TankCapacity    int
-	TankAlertVolume int
-	TankAlertOn     bool
-	FlowMeterPPG    int // how many pulses in one US gallon
-	FlowMeterMaxflo int // Meter's maximum flow rate in GPM or LPM
+	BatchAmount       int
+	WaterOn           bool
+	OperatingMode     ISOperatingMode
+	CurrentField      string
+	CurrentFieldIndex int
+	FieldConfigs      []FieldConfig
+	ProductConfigs    []ProductConfig
+	NetworkConfig     NetworkConfig
+	TankCapacity      int
+	TankAlertVolume   int
+	TankAlertOn       bool
+	FlowMeterPPG      int // how many pulses in one US gallon
+	FlowMeterMaxflo   int // Meter's maximum flow rate in GPM or LPM
 }
 
 // ConfigDefault contains defaults for initializing a new system
@@ -240,4 +241,7 @@ type ISRelay struct {
 	ID    RelayID
 	On    bool
 	Fault bool
+}
+
+func InitConfig(c *Config) {
 }

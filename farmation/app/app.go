@@ -34,6 +34,9 @@ func Run(sim bool) {
 
 	err = db.ReadConfig(&config)
 
+	isdata.InitState(&state)
+	//isdata.InitConfig(config)
+
 	if err != nil {
 		log.Println("Error reading config: ", err)
 	}

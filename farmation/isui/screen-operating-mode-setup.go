@@ -45,7 +45,8 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 	switch key {
 	case isdata.KeySK1:
-		return ScreenIDMainMenu, nil
+		s.menu.ResetArrowPos() // return arrow to top of screen
+		return ScreenIDOpMode1, nil
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)
 	}

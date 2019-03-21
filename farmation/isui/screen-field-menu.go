@@ -1,6 +1,7 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
@@ -17,6 +18,7 @@ type FieldMenuScreen struct {
 	menu         Menu
 	edit         bool
 	caps         bool
+	cursorPos    int
 }
 
 // NewFieldMenuScreen initializes and returns a HomeScreen
@@ -41,16 +43,21 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 	Clear(img)
 	if s.edit {
 		// Line(img, 10, 10, 40, 40)
-		Heading(img, "Field Name")
+		txt := s.menu.Description()
+		txtStartX := DrawTxtCentered(img, txt, 64, 2, tightpixel15.Font)
+		fmt.Println("txtStartX: ", txtStartX)
+		width := 116
+		Rect(img, 64-width/2-2, 0, width+2, 13)
+
 		s.softKeysEdit.Render(img, 0, 54)
 		if s.caps {
-			DrawTxt(img, "ABCDEFJHIGKLMNOPQRSTUVWX", 3, 14, tightpixel15.Font)
-			DrawTxt(img, "YZ", 3, 27, tightpixel15.Font)
-			DrawTxt(img, "123456789.", 3, 40, tightpixel15.Font)
+			DrawTxt(img, "123456789.", 3, 42, tightpixel15.Font)
 		} else {
-			DrawTxt(img, "abcdefghijklmnopqrstuvwxyz", 3, 14, tightpixel15.Font)
-			DrawTxt(img, "123456789.", 3, 27, tightpixel15.Font)
+			DrawTxt(img, "abcdefghijklmnopqrstuvwxyz", 3, 16, tightpixel15.Font)
+			DrawTxt(img, "123456789.", 3, 29, tightpixel15.Font)
 		}
+		//widthString := int(font.MeasureString(txt[:s.cursorPos]))
+		//Line(img, txtStartX+widthString, 11, txtStartX+widthString+3, 11)
 	} else {
 		Heading(img, "Field Menu")
 		s.menu.Render(img)
@@ -71,10 +78,27 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 			} else {
 				s.caps = true
 			}
+		case isdata.KeyDown:
+			if s.edit {
+				s.cursorPos--
+				if s.cursorPos < 0 {
+					s.cursorPos = len(s.menu.Description()) - 1
+				}
+				fmt.Println(s.cursorPos)
+			}
+		case isdata.KeyUp:
+			if s.edit {
+				s.cursorPos++
+				if s.cursorPos >= len(s.menu.Description()) {
+					s.cursorPos = 0
+				}
+				fmt.Println(s.cursorPos)
+			}
 		}
 	} else {
 		switch key {
 		case isdata.KeySK1:
+			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDMainMenu, nil
 		case isdata.KeySK2:
 			s.edit = true

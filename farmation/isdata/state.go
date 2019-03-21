@@ -49,12 +49,12 @@ const (
 
 // FieldState describes the state of a field.
 type FieldState struct {
-	Total float32
+	Total float64
 }
 
 // ProductState defines the state of a product
 type ProductState struct {
-	Total float32
+	Total float64
 }
 
 // GpsPos represents a GPS position
@@ -64,4 +64,14 @@ type GpsPos struct {
 	Long    float64
 	Fix     int
 	NumSats int
+}
+
+// InitState initializes the field state
+func InitState(s *State) {
+	for len(s.FieldStates) < 4 { //not sure that 4 is the right length
+		s.FieldStates = append(s.FieldStates, FieldState{0})
+	}
+	for len(s.ProductStates) < 5 {
+		s.ProductStates = append(s.ProductStates, ProductState{0})
+	}
 }
