@@ -13,7 +13,8 @@ require (
 	github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944
 	go.etcd.io/bbolt v1.3.0 // indirect
 	golang.org/x/image v0.0.0-20190118043309-183bebdce1b2
-	golang.org/x/sys v0.0.0-20190109145017-48ac38b7c8cb // indirect
+	golang.org/x/net v0.0.0-20190313220215-9f648a60d977 // indirect
+	golang.org/x/sys v0.0.0-20190312061237-fead79001313 // indirect
 	periph.io/x/periph v3.4.0+incompatible
 )
 
