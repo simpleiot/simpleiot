@@ -3,13 +3,13 @@ package keypad
 import (
 	"fmt"
 	"log"
+	"runtime"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
-	"periph.io/x/periph/host"
 )
 
 func keypad(out chan interface{}, name string, key isdata.Key) {
@@ -81,16 +81,35 @@ func getch() []byte {
 }
 */
 
+/* map of pins on keyswitch
+ * 1: SK4 (PA17)
+ * 2: SK3 (PA15)
+ * 3: SK2 (PA19)
+ * 4: SK1 (PA18)
+ * 5: left (PA20)
+ * 6: up (PA21)
+ * 7: enter (PD10)
+ * 8: down (PA12)
+ * 9: right (PA11)
+ *
+ * switches are active low
+ */
+
 // Run goroutine for keypad code
 func Run(in, out chan interface{}) {
-	// Load all the drivers:
-	if _, err := host.Init(); err != nil {
-		log.Println("Error initializing periph.io host", err)
-		return
+
+	if runtime.GOARCH == "arm" {
+		go keypad(out, "PA17", isdata.KeySK4)
+		go keypad(out, "PA15", isdata.KeySK3)
+		go keypad(out, "PA19", isdata.KeySK2)
+		go keypad(out, "PA18", isdata.KeySK1)
+		go keypad(out, "PA20", isdata.KeyLeft)
+		go keypad(out, "PA21", isdata.KeyUp)
+		go keypad(out, "PD10", isdata.KeyEnter)
+		go keypad(out, "PA12", isdata.KeyDown)
+		go keypad(out, "PA11", isdata.KeyRight)
 	}
 
-	go keypad(out, "PB0", isdata.KeyEnter)
-	go keypad(out, "PD25", isdata.KeySK1)
 	/*
 		go func() {
 			for {

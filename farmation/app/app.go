@@ -12,6 +12,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
+	"periph.io/x/periph/host"
 )
 
 // Run is the entry point for the IS application
@@ -20,6 +21,12 @@ func Run(sim bool) {
 
 	if err != nil {
 		log.Fatal("Error opening db: ", err)
+	}
+
+	// Load periph.io drivers:
+	if _, err := host.Init(); err != nil {
+		log.Println("Error initializing periph.io host", err)
+		return
 	}
 
 	config := isdata.Config{}
@@ -96,6 +103,8 @@ func Run(sim bool) {
 					// convert from sample to key
 					uiChan <- isdata.KeyFromString(m.ID)
 				}
+			case isdata.Key:
+				uiChan <- m
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
