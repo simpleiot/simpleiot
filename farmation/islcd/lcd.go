@@ -66,12 +66,17 @@ func (l *Lcd) writeLcd(data []byte) error {
 
 // Init resets and sends init sequence to LCD
 func (l *Lcd) Init() error {
+	// reset LCD
 	l.gpioReset.Out(gpio.High)
 	time.Sleep(10 * time.Millisecond)
 	l.gpioReset.Out(gpio.Low)
 	time.Sleep(10 * time.Millisecond)
 	l.gpioReset.Out(gpio.High)
 
+	// turn on backlight
+	l.gpioPwm.Out(gpio.High)
+
+	// run init sequence
 	l.gpioRegSel.Out(gpio.Low)
 	err := l.writeLcd([]byte{0xAE, 0xA5, 0xA2, 0xA1, 0xC0, 0x26, 0x81, 0x1F,
 		0xF8, 0x00, 0xAF, 0xA4, 0x2F})
@@ -103,7 +108,7 @@ func (l *Lcd) Write(data []bool) error {
 			}
 		}
 		l.gpioRegSel.Out(gpio.Low)
-		err := l.writeLcd([]byte{0xB0 + byte(page), 0x10, 0x0})
+		err := l.writeLcd([]byte{0xB0 + byte(page), 0x10, 0x4})
 		if err != nil {
 			return err
 		}
