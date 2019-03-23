@@ -31,7 +31,8 @@ func DrawTxtRight(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
 
 // Heading draws the screen heading with a box around it
 func Heading(img draw.Image, txt string) {
-	DrawTxtCentered(img, txt, 64, 2, tightpixel15.Font)
-	width := tightpixel15.Font.MeasureString(txt)
+	font := tightpixel15.Font
+	DrawTxtCentered(img, txt, 64, 2, font)
+	width := font.MeasureString(txt)
 	Rect(img, 64-width/2-2, 0, width+2, 11)
 }

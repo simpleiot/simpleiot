@@ -45,19 +45,23 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 		// Line(img, 10, 10, 40, 40)
 		txt := s.menu.Description()
 		txtStartX := DrawTxtCentered(img, txt, 64, 2, tightpixel15.Font)
-		fmt.Println("txtStartX: ", txtStartX)
+		//fmt.Println("txtStartX: ", txtStartX)
 		width := 116
 		Rect(img, 64-width/2-2, 0, width+2, 13)
 
 		s.softKeysEdit.Render(img, 0, 54)
 		if s.caps {
+			DrawTxt(img, "ABCDEFGHIJKLMNOPQRSTUVWX", 3, 16, tightpixel15.Font)
+			DrawTxt(img, "YZ", 3, 29, tightpixel15.Font)
 			DrawTxt(img, "123456789.", 3, 42, tightpixel15.Font)
 		} else {
 			DrawTxt(img, "abcdefghijklmnopqrstuvwxyz", 3, 16, tightpixel15.Font)
 			DrawTxt(img, "123456789.", 3, 29, tightpixel15.Font)
 		}
-		//widthString := int(font.MeasureString(txt[:s.cursorPos]))
-		//Line(img, txtStartX+widthString, 11, txtStartX+widthString+3, 11)
+		widthString := int(tightpixel15.Font.MeasureString(txt[:s.cursorPos]))
+		widthChar := int(tightpixel15.Font.MeasureString(txt[s.cursorPos : s.cursorPos+1]))
+		fmt.Println(txt[s.cursorPos : s.cursorPos+1])
+		Line(img, txtStartX+widthString, 11, txtStartX+widthString+widthChar-1, 11)
 	} else {
 		Heading(img, "Field Menu")
 		s.menu.Render(img)
@@ -78,7 +82,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 			} else {
 				s.caps = true
 			}
-		case isdata.KeyDown:
+		case isdata.KeyLeft:
 			if s.edit {
 				s.cursorPos--
 				if s.cursorPos < 0 {
@@ -86,7 +90,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 				}
 				fmt.Println(s.cursorPos)
 			}
-		case isdata.KeyUp:
+		case isdata.KeyRight:
 			if s.edit {
 				s.cursorPos++
 				if s.cursorPos >= len(s.menu.Description()) {
