@@ -9,6 +9,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
 	"github.com/simpleiot/simpleiot/farmation/isio"
+	"github.com/simpleiot/simpleiot/farmation/islcd"
 	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
@@ -50,6 +51,7 @@ func Run(sim bool) {
 	ioChan := make(chan interface{}, 100)
 	webChan := make(chan interface{}, 100)
 	simChan := make(chan interface{}, 100)
+	lcdChan := make(chan interface{}, 100)
 
 	channels := []struct {
 		name    string
@@ -61,6 +63,7 @@ func Run(sim bool) {
 		{"io", ioChan},
 		{"web", webChan},
 		{"sim", simChan},
+		{"lcd", lcdChan},
 	}
 
 	// fire up subsystems
@@ -69,6 +72,7 @@ func Run(sim bool) {
 	go isio.Run(ioChan, appChan)
 	go isapi.Server(webChan, appChan)
 	go issim.Run(simChan, appChan)
+	go islcd.Run(lcdChan, appChan)
 
 	lastFillingWarning := time.Time{}
 
@@ -93,6 +97,7 @@ func Run(sim bool) {
 
 			case isdata.LcdBlt:
 				webChan <- m
+				lcdChan <- m
 
 			case isdata.LcdBltSolid:
 				webChan <- m

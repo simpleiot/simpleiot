@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/simpleiot/simpleiot/farmation/islcd"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/host"
@@ -62,6 +63,46 @@ func delay() {
 }
 
 func main() {
+
+	//gpio support:
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
+		fmt.Println("GPIO setup failed.")
+	}
+
+	lcd, err := islcd.NewLcd()
+
+	if err != nil {
+		log.Fatal("Cound not init LCD: ", err)
+	}
+
+	err = lcd.Init()
+	if err != nil {
+		log.Fatal("Error initializing LCD: ", err)
+	}
+
+	writeData := make([]bool, 128*64)
+	for {
+		for i := range writeData {
+			writeData[i] = false
+		}
+		err = lcd.Write(writeData)
+		if err != nil {
+			log.Fatal("Error writing to LCD: ", err)
+		}
+		time.Sleep(200 * time.Millisecond)
+		for i := range writeData {
+			writeData[i] = true
+		}
+		err = lcd.Write(writeData)
+		if err != nil {
+			log.Fatal("Error writing to LCD: ", err)
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
+func oldMain() {
 
 	//gpio support:
 	if _, err := host.Init(); err != nil {
