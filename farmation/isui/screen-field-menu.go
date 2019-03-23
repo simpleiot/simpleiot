@@ -127,6 +127,13 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		case isdata.KeyEnter:
 			if s.txtEntry {
 				s.txtEntry = false
+				if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
+					if s.caps {
+						s.txtEdit = s.txtEdit[:s.cursorPos] + s.abcCaps[s.cursor2Pos-1:s.cursor2Pos]
+					} else {
+						s.txtEdit = s.txtEdit[:s.cursor2Pos] + s.abc[s.cursor2Pos-1:s.cursor2Pos]
+					}
+				}
 				s.cursorPos++ //move cursor in field name
 				if s.cursorPos >= len(s.txtEdit) {
 					s.cursorPos = 0
