@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
+	"syscall"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
@@ -57,6 +57,10 @@ const RegSel_Gpio string = "PC5"
 const LcdReset_Gpio string = "PC8"
 const LcdPwm_Gpio string = "PC3"
 
+func delay() {
+	time.Sleep(200 * time.Microsecond)
+}
+
 func main() {
 
 	//gpio support:
@@ -85,11 +89,19 @@ func main() {
 		log.Fatal("Error setting PWM gpio low: ", err)
 	}
 
-	//display is write only
-	_, err = os.Open("/dev/spidev1.0")
+	spi, err := syscall.Open("/dev/spidev1.0", os.O_WRONLY, 0666)
 	if err != nil {
-		log.Fatal(err)
-		fmt.Println("Failed to open spidev device file")
+		log.Fatal("Error opening spi device: ", err)
+	}
+
+	writeLcd := func(data []byte) {
+		n, err := syscall.Write(spi, data)
+		if err != nil {
+			log.Fatal("Error writing to LCD: ", err)
+		}
+		if n != len(data) {
+			log.Fatal("Error, did not write correct # of bytes to LCD: ", len(data), n)
+		}
 	}
 
 	//set up display controller
@@ -114,7 +126,7 @@ func main() {
 	cmdOp[0] = NT7534_E2_RESET
 
 	//set command register
-	err = RegSel.Out(gpio.High)
+	err = RegSel.Out(gpio.Low)
 	if err != nil {
 		log.Fatal(err)
 		fmt.Println("Failed to set gpio for RegSel")
@@ -133,13 +145,9 @@ func main() {
 	LcdReset.Out(gpio.High)
 	time.Sleep(10 * time.Millisecond)
 
-	err = ioutil.WriteFile("/dev/spidev1.0", cmdOp[0:1], 666)
-	if err != nil {
-		log.Fatal(err)
-		fmt.Println("Failed to write to spidev")
-	}
+	//writeLcd(cmdOp[0:1])
 
-	time.Sleep(10 * time.Millisecond)
+	//time.Sleep(10 * time.Millisecond)
 
 	//	for i, _ := range cmdOp {
 	//		err = ioutil.WriteFile("/dev/spidev1.0",cmdOp[i:i+1],666)
@@ -151,59 +159,73 @@ func main() {
 	//		time.Sleep(1 * time.Millisecond)
 	//	}
 
-	cmdOp[0] = NT7534_A2_LCD_BIAS_1_9
-	cmdOp[1] = NT7534_A0_SEGMENT_REMAP_NORMAL
-	cmdOp[2] = NT7534_C8_COM_DIRECTION_REVERSE
-	cmdOp[3] = 0x24 //OR 0x24 as above?
-	cmdOp[4] = 0x2F //all internal blocks on
-	cmdOp[5] = NT7534_81_CONTRAST_PREFIX
-	cmdOp[6] = 20
-	cmdOp[7] = NT7534_40_SET_DISPLAY_START_LINE_BIT
+	/*
+		cmdOp[0] = NT7534_A2_LCD_BIAS_1_9  // A2
+		cmdOp[1] = NT7534_A0_SEGMENT_REMAP_NORMAL // A0
+		cmdOp[2] = NT7534_C8_COM_DIRECTION_REVERSE // C8
+		cmdOp[3] = 0x24 //OR 0x24 as above?
+		cmdOp[4] = 0x2F //all internal blocks on
+		cmdOp[5] = NT7534_81_CONTRAST_PREFIX
+		cmdOp[6] = 0x20
+		cmdOp[7] = NT7534_40_SET_DISPLAY_START_LINE_BIT
+	*/
 
-	err = ioutil.WriteFile("/dev/spidev1.0", cmdOp, 666)
-	if err != nil {
-		log.Fatal(err)
-		fmt.Println("Failed to write to spidev")
-	}
+	writeLcd([]byte{0xAE, 0xA5, 0xA2, 0xA0, 0xC0, 0x26, 0x81, 0x1F,
+		0xF8, 0x00, 0xAF, 0xA4, 0x2F})
 
 	fmt.Println("Initialization of LCD display complete.")
 
-	//fill display memory, hopefully to initialize it
-	for page := 0; page < 8; page++ {
-		cmdOp[0] = 0xB0 + (byte)(page&0x0F)
-		cmdOp[1] = 0    //lower column address nibble
-		cmdOp[2] = 0x10 //upper column nibble
-		RegSel.Out(gpio.Low)
-		err = ioutil.WriteFile("/dev/spidev1.0", cmdOp[0:3], 666)
-		if err != nil {
-			log.Fatal(err)
-			fmt.Println("Failed to write to spidev")
-		}
-		time.Sleep(1 * time.Millisecond) // have to wait for spi write to complete before twiddling A0
-		RegSel.Out(gpio.High)
-		cmdOp[0] = 0xFF
-		for column := 0; column < 128; column++ {
-			err = ioutil.WriteFile("/dev/spidev1.0", cmdOp[0:1], 666)
-			if err != nil {
-				log.Fatal(err)
-				fmt.Println("Failed to write to spidev")
-			}
-		}
-		time.Sleep(1 * time.Millisecond) // have to wait for spi write to complete before twiddling A0
-	}
-
-	//Display testing functions:
-	//First, turn all pixels on:
-	cmdOp[0] = NT7534_A5_ENTIRE_DISPLAY_FORCE_ON
-	cmdOp[1] = NT7534_A4_ENTIRE_DISPLAY_NORMAL
-
-	RegSel.Out(gpio.Low) //point at cmd port
 	for {
-		ioutil.WriteFile("/dev/spidev1.0", cmdOp[0:1], 666)
-		fmt.Println("Set all dots on")
-		time.Sleep(1000 * time.Millisecond)
-		ioutil.WriteFile("/dev/spidev1.0", cmdOp[1:2], 666)
-		fmt.Println("Set all dots off")
-		time.Sleep(1000 * time.Millisecond)
+		//fill display memory, hopefully to initialize it
+		for page := 0; page < 8; page++ {
+			cmdOp[0] = 0xB0 + (byte)(page&0x0F)
+			cmdOp[1] = 0x10 //upper column nibble
+			cmdOp[2] = 0    //lower column address nibble
+			RegSel.Out(gpio.Low)
+			writeLcd(cmdOp[0:3])
+			time.Sleep(1 * time.Millisecond) // have to wait for spi write to complete before twiddling A0
+			RegSel.Out(gpio.High)
+			cmdOp[0] = 0x00
+			for column := 0; column < 128; column++ {
+				writeLcd(cmdOp[0:1])
+			}
+			time.Sleep(1 * time.Millisecond) // have to wait for spi write to complete before twiddling A0
+		}
+
+		time.Sleep(time.Second)
+		//fill display memory, hopefully to initialize it
+		for page := 0; page < 8; page++ {
+			cmdOp[0] = 0xB0 + (byte)(page&0x0F)
+			cmdOp[1] = 0x10 //upper column nibble
+			cmdOp[2] = 0    //lower column address nibble
+			RegSel.Out(gpio.Low)
+			writeLcd(cmdOp[0:3])
+			time.Sleep(1 * time.Millisecond) // have to wait for spi write to complete before twiddling A0
+			RegSel.Out(gpio.High)
+			cmdOp[0] = 0xFF
+			for column := 0; column < 128; column++ {
+				writeLcd(cmdOp[0:1])
+			}
+			time.Sleep(1 * time.Millisecond) // have to wait for spi write to complete before twiddling A0
+		}
+		time.Sleep(time.Second)
+
 	}
+
+	/*
+		//Display testing functions:
+		//First, turn all pixels on:
+		cmdOp[0] = NT7534_A5_ENTIRE_DISPLAY_FORCE_ON
+		cmdOp[1] = NT7534_A4_ENTIRE_DISPLAY_NORMAL
+
+		RegSel.Out(gpio.Low) //point at cmd port
+		for {
+			writeLcd(cmdOp[0:1])
+			fmt.Println("Set all dots on")
+			time.Sleep(1000 * time.Millisecond)
+			writeLcd(cmdOp[1:2])
+			fmt.Println("Set all dots off")
+			time.Sleep(1000 * time.Millisecond)
+		}
+	*/
 }
