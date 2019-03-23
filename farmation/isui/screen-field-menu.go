@@ -14,10 +14,12 @@ type FieldMenuScreen struct {
 	softKeysEdit *SoftKeys
 	state        *isdata.State
 	config       *isdata.Config
+	txtEdit      string
 	arrowPos     int
 	menu         Menu
 	edit         bool
 	caps         bool
+	txtEntry     bool
 	cursorPos    int
 }
 
@@ -42,9 +44,8 @@ func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuSc
 func (s *FieldMenuScreen) Render(img draw.Image) {
 	Clear(img)
 	if s.edit {
-		// Line(img, 10, 10, 40, 40)
-		txt := s.menu.Description()
-		txtStartX := DrawTxtCentered(img, txt, 64, 2, tightpixel15.Font)
+		fmt.Println(s.txtEdit)
+		txtStartX := DrawTxtCentered(img, s.txtEdit, 64, 2, tightpixel15.Font)
 		//fmt.Println("txtStartX: ", txtStartX)
 		width := 116
 		Rect(img, 64-width/2-2, 0, width+2, 13)
@@ -58,10 +59,13 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 			DrawTxt(img, "abcdefghijklmnopqrstuvwxyz", 3, 16, tightpixel15.Font)
 			DrawTxt(img, "123456789.", 3, 29, tightpixel15.Font)
 		}
-		widthString := int(tightpixel15.Font.MeasureString(txt[:s.cursorPos]))
-		widthChar := int(tightpixel15.Font.MeasureString(txt[s.cursorPos : s.cursorPos+1]))
-		fmt.Println(txt[s.cursorPos : s.cursorPos+1])
+		widthString := int(tightpixel15.Font.MeasureString(s.txtEdit[:s.cursorPos]))
+		widthChar := int(tightpixel15.Font.MeasureString(s.txtEdit[s.cursorPos : s.cursorPos+1]))
+		fmt.Println(s.txtEdit[s.cursorPos : s.cursorPos+1])
 		Line(img, txtStartX+widthString, 11, txtStartX+widthString+widthChar-1, 11)
+		if s.txtEntry {
+
+		}
 	} else {
 		Heading(img, "Field Menu")
 		s.menu.Render(img)
@@ -73,27 +77,41 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 	if s.edit {
 		switch key {
-		case isdata.KeySK4:
-			s.edit = false
-			s.caps = false
+		case isdata.KeySK2: //backspace
+			if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
+				if len(s.txtEdit) > 1 { //and if length of text is more than one character
+					s.txtEdit = s.txtEdit[:s.cursorPos] //slice current char off end
+				}
+			} else { //if cursor is in middle or begginning
+				s.txtEdit = s.txtEdit[:s.cursorPos] + s.txtEdit[s.cursorPos+1:] //splice two strings on either side of char
+			}
+			if s.cursorPos > 0 { //if text is more than one char
+				s.cursorPos-- //move cursor back one space
+				fmt.Println(s.cursorPos)
+			}
 		case isdata.KeySK3:
 			if s.caps {
 				s.caps = false
 			} else {
 				s.caps = true
 			}
+		case isdata.KeySK4:
+			s.edit = false
+			s.caps = false
+		case isdata.KeyEnter:
+			s.txtEntry = true
 		case isdata.KeyLeft:
 			if s.edit {
 				s.cursorPos--
 				if s.cursorPos < 0 {
-					s.cursorPos = len(s.menu.Description()) - 1
+					s.cursorPos = len(s.txtEdit) - 1
 				}
 				fmt.Println(s.cursorPos)
 			}
 		case isdata.KeyRight:
 			if s.edit {
 				s.cursorPos++
-				if s.cursorPos >= len(s.menu.Description()) {
+				if s.cursorPos >= len(s.txtEdit) {
 					s.cursorPos = 0
 				}
 				fmt.Println(s.cursorPos)
@@ -106,6 +124,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 			return ScreenIDMainMenu, nil
 		case isdata.KeySK2:
 			s.edit = true
+			s.txtEdit = s.menu.Description()
 		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 			return s.menu.Key(key)
 		}
