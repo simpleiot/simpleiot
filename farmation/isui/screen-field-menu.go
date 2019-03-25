@@ -47,7 +47,7 @@ func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuSc
 func (s *FieldMenuScreen) Render(img draw.Image) {
 	Clear(img)
 	if s.edit {
-		fmt.Println(s.txtEdit)
+		//fmt.Println(s.txtEdit)
 		txtStartX := DrawTxtCentered(img, s.txtEdit, 64, 2, tightpixel15.Font)
 		width := 116
 		Rect(img, 64-width/2-2, 0, width+2, 13)
@@ -103,7 +103,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		case isdata.KeySK2: //backspace
 			if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
 				if len(s.txtEdit) > 1 { //and if length of text is more than one character
-					s.txtEdit = s.txtEdit[:s.cursorPos] //slice current char off end
+					s.txtEdit = s.txtEdit[:s.cursorPos] //cut current char off end
 				}
 			} else { //if cursor is in middle or begginning
 				s.txtEdit = s.txtEdit[:s.cursorPos] + s.txtEdit[s.cursorPos+1:] //splice two strings on either side of char
@@ -127,13 +127,6 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		case isdata.KeyEnter:
 			if s.txtEntry {
 				s.txtEntry = false
-				if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
-					if s.caps {
-						s.txtEdit = s.txtEdit[:s.cursorPos] + s.abcCaps[s.cursor2Pos-1:s.cursor2Pos]
-					} else {
-						s.txtEdit = s.txtEdit[:s.cursor2Pos] + s.abc[s.cursor2Pos-1:s.cursor2Pos]
-					}
-				}
 				s.cursorPos++ //move cursor in field name
 				if s.cursorPos >= len(s.txtEdit) {
 					s.cursorPos = 0
@@ -141,6 +134,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 				s.cursor2Pos = 0 //reset abc... cursor to pos 0
 			} else {
 				s.txtEntry = true
+				s.enterTxt()
 			}
 		case isdata.KeyLeft:
 			if s.txtEntry { //if in txt entry mode
@@ -183,4 +177,22 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 	}
 
 	return ScreenIDNoChange, nil
+}
+
+// enterText edits individual letters in the field name
+func (s *FieldMenuScreen) enterTxt() {
+	fmt.Println(s.txtEdit, len(s.txtEdit)-1, s.cursorPos)
+	if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
+		if s.caps {
+			s.txtEdit = s.txtEdit[:s.cursorPos] + s.abcCaps[s.cursor2Pos:s.cursor2Pos+1]
+		} else {
+			s.txtEdit = s.txtEdit[:s.cursorPos] + s.abc[s.cursor2Pos:s.cursor2Pos+1]
+		}
+	} else { //if cursor is at beginning or middle of text
+		if s.caps {
+			s.txtEdit = s.txtEdit[:s.cursorPos] + s.abcCaps[s.cursor2Pos:s.cursor2Pos+1] + s.txtEdit[s.cursorPos+1:]
+		} else {
+			s.txtEdit = s.txtEdit[:s.cursorPos] + s.abc[s.cursor2Pos:s.cursor2Pos+1] + s.txtEdit[s.cursorPos+1:]
+		}
+	}
 }
