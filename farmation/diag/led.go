@@ -112,10 +112,12 @@ func (d port) String() string {
 }
 
 func init() {
-	var heartbeatDiag heartbeat
-	Register(heartbeatDiag)
-	var miscDiag misc
-	Register(miscDiag)
-	var portDiag port
-	Register(portDiag)
+	/*
+		var heartbeatDiag heartbeat
+		Register(heartbeatDiag)
+		var miscDiag misc
+		Register(miscDiag)
+		var portDiag port
+		Register(portDiag)
+	*/
 }

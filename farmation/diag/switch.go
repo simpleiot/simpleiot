@@ -31,6 +31,8 @@ func (d blueSwitch) String() string {
 }
 
 func init() {
-	var blueSwitchDiag blueSwitch
-	Register(blueSwitchDiag)
+	/*
+		var blueSwitchDiag blueSwitch
+		Register(blueSwitchDiag)
+	*/
 }
