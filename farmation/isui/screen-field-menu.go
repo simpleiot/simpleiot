@@ -115,8 +115,14 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		case isdata.KeySK3:
 			if s.caps {
 				s.caps = false
+				if s.txtEntry {
+					s.enterTxt()
+				}
 			} else {
 				s.caps = true
+				if s.txtEntry {
+					s.enterTxt()
+				}
 			}
 		case isdata.KeySK4:
 			s.edit = false
@@ -132,6 +138,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 					s.cursorPos = 0
 				}
 				s.cursor2Pos = 0 //reset abc... cursor to pos 0
+				//s.caps = false //reset caps
 			} else {
 				s.txtEntry = true
 				s.enterTxt()
@@ -142,6 +149,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 				if s.cursor2Pos < 0 {
 					s.cursor2Pos = len(s.abc) - 1
 				}
+				s.enterTxt()
 			} else { //else
 				s.cursorPos-- //move cursor in field name
 				if s.cursorPos < 0 {
@@ -154,6 +162,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 				if s.cursor2Pos >= len(s.abc) {
 					s.cursor2Pos = 0
 				}
+				s.enterTxt()
 			} else { //else
 				s.cursorPos++ //move cursor in field name
 				if s.cursorPos >= len(s.txtEdit) {
@@ -179,9 +188,8 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 	return ScreenIDNoChange, nil
 }
 
-// enterText edits individual letters in the field name
+// enterText replaces letter in field name at cursorPos with letter in abc... selection at cursor2Pos
 func (s *FieldMenuScreen) enterTxt() {
-	fmt.Println(s.txtEdit, len(s.txtEdit)-1, s.cursorPos)
 	if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
 		if s.caps {
 			s.txtEdit = s.txtEdit[:s.cursorPos] + s.abcCaps[s.cursor2Pos:s.cursor2Pos+1]
