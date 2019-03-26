@@ -1,7 +1,6 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
@@ -110,7 +109,6 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 			}
 			if s.cursorPos > 0 { //if text is more than one char
 				s.cursorPos-- //move cursor back one space
-				fmt.Println(s.cursorPos)
 			}
 		case isdata.KeySK3:
 			if s.caps {
@@ -133,10 +131,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		case isdata.KeyEnter:
 			if s.txtEntry {
 				s.txtEntry = false
-				s.cursorPos++ //move cursor in field name
-				if s.cursorPos >= len(s.txtEdit) {
-					s.cursorPos = 0
-				}
+				s.cursorRight(false)
 				s.cursor2Pos = 0 //reset abc... cursor to pos 0
 				//s.caps = false //reset caps
 			} else {
@@ -145,29 +140,17 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 			}
 		case isdata.KeyLeft:
 			if s.txtEntry { //if in txt entry mode
-				s.cursor2Pos-- //move cursor in abc... selection
-				if s.cursor2Pos < 0 {
-					s.cursor2Pos = len(s.abc) - 1
-				}
+				s.cursorLeft(true)
 				s.enterTxt()
 			} else { //else
-				s.cursorPos-- //move cursor in field name
-				if s.cursorPos < 0 {
-					s.cursorPos = len(s.txtEdit) - 1
-				}
+				s.cursorLeft(false)
 			}
 		case isdata.KeyRight:
 			if s.txtEntry { //if in txt entry mode
-				s.cursor2Pos++ //move cursor in abc... selection
-				if s.cursor2Pos >= len(s.abc) {
-					s.cursor2Pos = 0
-				}
+				s.cursorRight(true)
 				s.enterTxt()
 			} else { //else
-				s.cursorPos++ //move cursor in field name
-				if s.cursorPos >= len(s.txtEdit) {
-					s.cursorPos = 0
-				}
+				s.cursorRight(false)
 			}
 		}
 	} else {
@@ -202,5 +185,34 @@ func (s *FieldMenuScreen) enterTxt() {
 		} else {
 			s.txtEdit = s.txtEdit[:s.cursorPos] + s.abc[s.cursor2Pos:s.cursor2Pos+1] + s.txtEdit[s.cursorPos+1:]
 		}
+	}
+}
+
+// cursorRight increments a cursor position - cursorPos if isCursor2 is false, cursor2Pos if true
+func (s *FieldMenuScreen) cursorRight(isCursor2 bool) {
+	cursorPos := &s.cursorPos
+	txt := &s.txtEdit
+	if isCursor2 {
+		cursorPos = &s.cursor2Pos
+		txt = &s.abc
+	}
+	(*cursorPos)++
+	if *cursorPos >= len(*txt) {
+		*cursorPos = 0
+	}
+}
+
+// cursorLeft
+func (s *FieldMenuScreen) cursorLeft(isCursor2 bool) {
+	cursorPos := &s.cursorPos
+	txt := &s.txtEdit
+	if isCursor2 {
+		cursorPos = &s.cursor2Pos
+		txt = &s.abc
+	}
+
+	(*cursorPos)--
+	if *cursorPos < 0 {
+		*cursorPos = len(*txt) - 1
 	}
 }
