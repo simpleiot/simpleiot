@@ -13,7 +13,6 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
-	"periph.io/x/periph/host"
 )
 
 // Run is the entry point for the IS application
@@ -24,11 +23,7 @@ func Run(sim bool) {
 		log.Fatal("Error opening db: ", err)
 	}
 
-	// Load periph.io drivers:
-	if _, err := host.Init(); err != nil {
-		log.Println("Error initializing periph.io host", err)
-		return
-	}
+	isio.GpioInit()
 
 	config := isdata.Config{}
 	state := isdata.State{}

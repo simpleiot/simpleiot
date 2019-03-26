@@ -6,6 +6,7 @@ import (
 
 	"github.com/simpleiot/simpleiot/farmation/app"
 	"github.com/simpleiot/simpleiot/farmation/diag"
+	"github.com/simpleiot/simpleiot/farmation/isio"
 )
 
 func main() {
@@ -16,6 +17,7 @@ func main() {
 	flag.Parse()
 
 	if *flagDiagRun {
+		isio.GpioInit()
 		diag.Run()
 		return
 	}
