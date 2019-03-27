@@ -1,6 +1,7 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
@@ -131,7 +132,13 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		case isdata.KeyEnter:
 			if s.txtEntry {
 				s.txtEntry = false
+				if s.cursorPos == len(s.txtEdit)-1 {
+					s.txtEdit = s.txtEdit + " "
+					s.cursorRight(false)
+				}
+				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
 				s.cursorRight(false)
+				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
 				s.cursor2Pos = 0 //reset abc... cursor to pos 0
 				//s.caps = false //reset caps
 			} else {
@@ -143,14 +150,22 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 				s.cursorLeft(true)
 				s.enterTxt()
 			} else { //else
+				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
 				s.cursorLeft(false)
+				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
 			}
 		case isdata.KeyRight:
 			if s.txtEntry { //if in txt entry mode
 				s.cursorRight(true)
 				s.enterTxt()
 			} else { //else
+				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
 				s.cursorRight(false)
+				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
+				if s.cursorPos == len(s.txtEdit)-1 {
+					s.txtEdit = s.txtEdit + " "
+					s.cursorRight(false)
+				}
 			}
 		}
 	} else {
@@ -198,21 +213,19 @@ func (s *FieldMenuScreen) cursorRight(isCursor2 bool) {
 	}
 	(*cursorPos)++
 	if *cursorPos >= len(*txt) {
-		*cursorPos = 0
+		*cursorPos = len(*txt) - 1
 	}
 }
 
 // cursorLeft
 func (s *FieldMenuScreen) cursorLeft(isCursor2 bool) {
 	cursorPos := &s.cursorPos
-	txt := &s.txtEdit
 	if isCursor2 {
 		cursorPos = &s.cursor2Pos
-		txt = &s.abc
 	}
 
 	(*cursorPos)--
 	if *cursorPos < 0 {
-		*cursorPos = len(*txt) - 1
+		*cursorPos = 0
 	}
 }
