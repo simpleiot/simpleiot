@@ -1,6 +1,7 @@
 package isio
 
 import (
+	"fmt"
 	"log"
 	"runtime"
 
@@ -19,6 +20,11 @@ const (
 	GpioRelayInjectorEn = "GpioRelayInjectorEn"
 	GpioRelayShutdownEn = "GpioRelayShutdownEn"
 	GpioRelayAuxEn      = "GpioRelayAuxEn"
+
+	// select between voltage or current loop input
+	// high = current loop
+	GpioAnalogInSel = "GpioAnalogInSel"
+	GpioAuxInSel    = "GpioAuxInSel"
 )
 
 type pin struct {
@@ -37,6 +43,9 @@ var pins = map[string]*pin{
 	GpioRelayInjectorEn: &pin{"PC13", true, true, nil},
 	GpioRelayShutdownEn: &pin{"PC9", true, true, nil},
 	GpioRelayAuxEn:      &pin{"PB0", true, true, nil},
+
+	GpioAnalogInSel: &pin{"PC15", false, false, nil},
+	GpioAuxInSel:    &pin{"PD25", false, false, nil},
 }
 
 // GpioInit is used to initialize gpios
@@ -67,6 +76,8 @@ func GpioOut(name string, value bool) {
 		log.Println("Error setting gpio: ", name)
 		return
 	}
+
+	fmt.Println("CLIFF: p: ", p)
 
 	p.Pin.Out(gpio.Level(value != p.ActiveLow))
 }

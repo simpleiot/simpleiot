@@ -28,6 +28,7 @@ func main() {
 	}
 
 	if *flagDiagSingle != "" {
+		isio.GpioInit()
 		diag.RunSingle(*flagDiagSingle)
 		return
 	}

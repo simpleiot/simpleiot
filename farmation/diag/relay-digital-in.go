@@ -13,7 +13,7 @@ type relayDigitalIn struct{}
 var errDigitalIn = errors.New("Digital in error")
 
 func (d relayDigitalIn) String() string {
-	return "Digital Input, Relay Driver diags"
+	return "relaydigio"
 }
 
 func (d relayDigitalIn) Run() (ret error) {
