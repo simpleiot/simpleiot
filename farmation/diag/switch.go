@@ -4,35 +4,32 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/simpleiot/simpleiot/farmation/isio"
 )
 
-type blueSwitch struct{}
+type armSwitch struct{}
 
-func (d blueSwitch) Run() error {
-	fmt.Println("press blue switch")
+func (d armSwitch) Run() error {
+	fmt.Println("press arm switch")
 	start := time.Now()
 	for {
 		if time.Since(start) > time.Second*10 {
 			return errors.New("timeout waiting for user to press blue switch")
 		}
 
-		/*
-			if gio.GetSwitch() {
-				break
-			}
-		*/
+		if isio.GpioRead(isio.GpioArm) {
+			break
+		}
 	}
 
 	return nil
 }
 
-func (d blueSwitch) String() string {
-	return "switch"
+func (d armSwitch) String() string {
+	return "arm-switch"
 }
 
 func init() {
-	/*
-		var blueSwitchDiag blueSwitch
-		Register(blueSwitchDiag)
-	*/
+	Register(armSwitch{})
 }

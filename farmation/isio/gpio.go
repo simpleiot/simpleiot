@@ -29,6 +29,8 @@ const (
 	// status LEDs
 	GpioStatusGreen = "GpioStatusGreen"
 	GpioStatusRed   = "GpioStatusRed"
+
+	GpioArm = "GpioArm"
 )
 
 type pin struct {
@@ -53,6 +55,8 @@ var pins = map[string]*pin{
 
 	GpioStatusGreen: &pin{"PB6", false, true, nil},
 	GpioStatusRed:   &pin{"PB10", false, true, nil},
+
+	GpioArm: &pin{"PC25", true, false, nil},
 }
 
 // GpioInit is used to initialize gpios
