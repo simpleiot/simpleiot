@@ -11,7 +11,7 @@ import (
 type adcPanelSense struct{}
 
 func (d adcPanelSense) String() string {
-	return "adcPanelSense"
+	return "adc-panel-sense"
 }
 
 func (d adcPanelSense) Run() (ret error) {
@@ -31,12 +31,13 @@ func (d adcPanelSense) Run() (ret error) {
 type adcAnalogIn struct{}
 
 func (d adcAnalogIn) String() string {
-	return "adcAnalogIn"
+	return "adc-analog-in"
 }
 
 // Set input to 7V and 10mA max
 func (d adcAnalogIn) Run() (ret error) {
-	isio.SetAnalogInMode(isio.AdcAnalogIn, false)
+	isio.SetAnalogInCurrentMode(isio.AdcAnalogIn, false)
+	isio.SetAnalogInCurrentMode(isio.AdcAuxIn, false)
 	time.Sleep(time.Second)
 
 	v, err := isio.ReadAnalogIn(isio.AdcAnalogIn)
@@ -44,14 +45,12 @@ func (d adcAnalogIn) Run() (ret error) {
 		return err
 	}
 
-	fmt.Println("CLIFF: read volts: ", v)
-
 	if v < 6.9 || v > 7.1 {
 		fmt.Println("analog in, expected 5V, got: ", v)
 		return errors.New("vAnalogIn is out of range")
 	}
 
-	isio.SetAnalogInMode(isio.AdcAnalogIn, true)
+	isio.SetAnalogInCurrentMode(isio.AdcAnalogIn, true)
 
 	time.Sleep(time.Second * 5)
 
@@ -59,8 +58,6 @@ func (d adcAnalogIn) Run() (ret error) {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("CLIFF: read current: ", i)
 
 	if i < 0.0095 || i > 0.0105 {
 		fmt.Println("analog in, expected 7mA, got: ", i)
@@ -73,12 +70,13 @@ func (d adcAnalogIn) Run() (ret error) {
 type adcAuxIn struct{}
 
 func (d adcAuxIn) String() string {
-	return "adcAuxIn"
+	return "adc-aux-in"
 }
 
 // Set input to 7V and 10mA max
 func (d adcAuxIn) Run() (ret error) {
-	isio.SetAnalogInMode(isio.AdcAuxIn, false)
+	isio.SetAnalogInCurrentMode(isio.AdcAuxIn, false)
+	isio.SetAnalogInCurrentMode(isio.AdcAnalogIn, false)
 	time.Sleep(time.Second)
 
 	v, err := isio.ReadAnalogIn(isio.AdcAuxIn)
@@ -86,14 +84,12 @@ func (d adcAuxIn) Run() (ret error) {
 		return err
 	}
 
-	fmt.Println("CLIFF: read volts: ", v)
-
 	if v < 6.9 || v > 7.1 {
 		fmt.Println("analog in, expected 5V, got: ", v)
 		return errors.New("vAnalogIn is out of range")
 	}
 
-	isio.SetAnalogInMode(isio.AdcAuxIn, true)
+	isio.SetAnalogInCurrentMode(isio.AdcAuxIn, true)
 
 	time.Sleep(time.Second * 5)
 
@@ -101,8 +97,6 @@ func (d adcAuxIn) Run() (ret error) {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("CLIFF: read current: ", i)
 
 	if i < 0.0095 || i > 0.0105 {
 		fmt.Println("analog in, expected 7mA, got: ", i)

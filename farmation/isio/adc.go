@@ -2,7 +2,6 @@ package isio
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"runtime"
 	"strconv"
@@ -84,14 +83,12 @@ var adcCurrentMode = map[string]bool{
 	AdcAuxIn:    true,
 }
 
-// SetAnalogInMode sets voltage or current loop mode
-func SetAnalogInMode(name string, currentLoop bool) error {
+// SetAnalogInCurrentMode sets voltage or current loop mode
+func SetAnalogInCurrentMode(name string, currentLoop bool) error {
 	gpio, ok := adcNameToCurrentModeSelGpio[name]
 	if !ok {
 		return errors.New("Could not find select GPIO for analog in")
 	}
-
-	fmt.Println("CLIFF: GPIO: ", gpio)
 
 	GpioOut(gpio, currentLoop)
 	adcCurrentMode[name] = currentLoop

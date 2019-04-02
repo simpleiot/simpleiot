@@ -1,7 +1,6 @@
 package isio
 
 import (
-	"fmt"
 	"log"
 	"runtime"
 
@@ -87,8 +86,6 @@ func GpioOut(name string, value bool) {
 		log.Println("Error setting gpio: ", name)
 		return
 	}
-
-	fmt.Println("CLIFF: p: ", p)
 
 	p.Pin.Out(gpio.Level(value != p.ActiveLow))
 }
