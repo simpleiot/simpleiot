@@ -6,6 +6,7 @@ require (
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/gorilla/websocket v1.4.0
+	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mxmCherry/movavg v1.1.0
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
@@ -13,8 +14,10 @@ require (
 	github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944
 	go.etcd.io/bbolt v1.3.0 // indirect
 	golang.org/x/image v0.0.0-20190118043309-183bebdce1b2
-	golang.org/x/net v0.0.0-20190313220215-9f648a60d977 // indirect
-	golang.org/x/sys v0.0.0-20190312061237-fead79001313 // indirect
+	golang.org/x/net v0.0.0-20190328230028-74de082e2cca // indirect
+	golang.org/x/sys v0.0.0-20190402142545-baf5eb976a8c // indirect
+	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	gopkg.in/yaml.v2 v2.2.2 // indirect
 	periph.io/x/periph v3.4.0+incompatible
 )
 
