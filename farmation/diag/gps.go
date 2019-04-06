@@ -13,21 +13,33 @@ import (
 type gpsDiag struct{}
 
 func (d gpsDiag) Run() error {
+	// first test with GPS in reset
+	isio.GpioOut(isio.GpioGpsReset, true)
 	c := make(chan nmea.Sentence)
 	g := gps.NewGps(isio.SerialGps, 9600, c)
-	timeout := time.NewTimer(5 * time.Second)
+	timeout := time.NewTimer(3 * time.Second)
 	g.Start()
-	for {
-		select {
-		case m := <-c:
-			fmt.Printf("GPS: %+v\n", m)
-		case <-timeout.C:
-			g.Stop()
-			return errors.New("No data from GPS")
-		}
+	select {
+	case m := <-c:
+		fmt.Printf("GPS: %+v\n", m)
 		g.Stop()
-		break
+		return errors.New("Got GPS data while in reset")
+	case <-timeout.C:
 	}
+
+	// now test GPS not in reset
+	isio.GpioOut(isio.GpioGpsReset, false)
+	timeout = time.NewTimer(5 * time.Second)
+	select {
+	case m := <-c:
+		fmt.Printf("GPS: %+v\n", m)
+	case <-timeout.C:
+		g.Stop()
+		return errors.New("Timeout waiting for GPS data")
+
+	}
+
+	g.Stop()
 
 	return nil
 }

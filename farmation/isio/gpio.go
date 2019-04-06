@@ -30,6 +30,8 @@ const (
 	GpioStatusRed   = "GpioStatusRed"
 
 	GpioArm = "GpioArm"
+
+	GpioGpsReset = "GpioGpsReset"
 )
 
 type pin struct {
@@ -56,6 +58,8 @@ var pins = map[string]*pin{
 	GpioStatusRed:   &pin{"PB10", false, true, nil},
 
 	GpioArm: &pin{"PC25", true, false, nil},
+
+	GpioGpsReset: &pin{"PA30", true, true, nil},
 }
 
 // GpioInit is used to initialize gpios
