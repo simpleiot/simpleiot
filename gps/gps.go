@@ -9,20 +9,21 @@ import (
 
 	nmea "github.com/adrianmo/go-nmea"
 	"github.com/cbrake/go-serial/serial"
+	"github.com/simpleiot/simpleiot/data"
 )
 
 // Gps represent a GPS receiver
 type Gps struct {
 	portName string
 	baud     uint
-	c        chan nmea.Sentence
+	c        chan data.GpsPos
 	debug    bool
 	stop     bool
 	port     io.ReadWriteCloser
 }
 
 // NewGps is used to create a new Gps type
-func NewGps(portName string, baud uint, c chan nmea.Sentence) *Gps {
+func NewGps(portName string, baud uint, c chan data.GpsPos) *Gps {
 	return &Gps{
 		portName: portName,
 		baud:     baud,
@@ -87,9 +88,19 @@ func (gps *Gps) Start() {
 					break
 				}
 
-				m, err := nmea.Parse(strings.TrimSpace(line))
+				s, err := nmea.Parse(strings.TrimSpace(line))
 				if err == nil {
-					gps.c <- m
+					if s.DataType() == nmea.TypeGGA {
+						m := s.(nmea.GGA)
+						ret := data.GpsPos{
+							Lat:    m.Latitude,
+							Long:   m.Longitude,
+							Fix:    m.FixQuality,
+							NumSat: m.NumSatellites,
+						}
+
+						gps.c <- ret
+					}
 				} else {
 					if gps.debug {
 						fmt.Println("Error parsing GPS data: ", err)
