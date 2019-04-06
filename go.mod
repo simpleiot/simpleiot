@@ -2,7 +2,7 @@ module github.com/simpleiot/simpleiot
 
 require (
 	github.com/StephaneBunel/bresenham v0.0.0-20190213085234-b50c292e2054
-	github.com/adrianmo/go-nmea v1.1.0
+	github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa
 	github.com/benbjohnson/genesis v0.2.1
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/cbrake/go-serial v0.0.0-20171213223811-0cd42b853914
