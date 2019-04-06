@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	nmea "github.com/adrianmo/go-nmea"
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/gps"
 )
@@ -15,7 +15,7 @@ type gpsDiag struct{}
 func (d gpsDiag) Run() error {
 	// first test with GPS in reset
 	isio.GpioOut(isio.GpioGpsReset, true)
-	c := make(chan nmea.Sentence)
+	c := make(chan data.GpsPos)
 	g := gps.NewGps(isio.SerialGps, 9600, c)
 	timeout := time.NewTimer(3 * time.Second)
 	g.Start()
