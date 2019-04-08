@@ -32,6 +32,13 @@ const (
 	GpioArm = "GpioArm"
 
 	GpioGpsReset = "GpioGpsReset"
+
+	// RS232/RS485 port
+	GpioSerialShutdown      = "GpioSerialShutdown"
+	GpioSerialLoopback      = "GpioSerialLoopback"
+	GpioSerialRsSelectRs485 = "GpioSerialRsSelectRs485"
+	GpioSerialRS485RxEn     = "GpioSerialRS485RxEn"
+	GpioSerialRs485TxEn     = "GpioSerialRs485TxEn"
 )
 
 type pin struct {
@@ -60,6 +67,10 @@ var pins = map[string]*pin{
 	GpioArm: &pin{"PC25", true, false, nil},
 
 	GpioGpsReset: &pin{"PA30", true, true, nil},
+
+	GpioSerialShutdown:      &pin{"PB13", true, true, nil},
+	GpioSerialLoopback:      &pin{"PB2", false, true, nil},
+	GpioSerialRsSelectRs485: &pin{"PB12", false, true, nil},
 }
 
 // GpioInit is used to initialize gpios
