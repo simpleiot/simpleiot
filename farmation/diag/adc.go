@@ -8,6 +8,34 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isio"
 )
 
+type adcPressureSense struct{}
+
+func (d adcPressureSense) String() string {
+	return "adc-pressure"
+}
+
+func (d adcPressureSense) Run() (ret error) {
+	ref, sense, err := isio.ReadPressure()
+	if err != nil {
+		return err
+	}
+
+	min := 4.95
+	max := 5.05
+
+	if ref < min || ref > max {
+		fmt.Println("ref: ", ref)
+		return errors.New("pressure ref is out of range")
+	}
+
+	if sense < min || sense > max {
+		fmt.Println("sense: ", ref)
+		return errors.New("pressure sense is out of range")
+	}
+
+	return nil
+}
+
 type adcPanelSense struct{}
 
 func (d adcPanelSense) String() string {
@@ -107,6 +135,7 @@ func (d adcAuxIn) Run() (ret error) {
 }
 
 func init() {
+	Register(adcPressureSense{})
 	Register(adcPanelSense{})
 	Register(adcAnalogIn{})
 	Register(adcAuxIn{})

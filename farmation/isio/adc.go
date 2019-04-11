@@ -10,21 +10,21 @@ import (
 
 // Defines for various Adc channels
 const (
-	AdcAnalogIn         string = "AdcAnalogIn"
-	AdcPressureSenseRef        = "AdcPressureSenseRef"
-	AdcAuxIn                   = "AdcAuxIn"
-	AdcPressureSensePos        = "AdcPressureSensePos"
-	AdcVcap                    = "AdcVcap"
-	AdcPanelResistor           = "AdcPanelResistor"
+	AdcAnalogIn      string = "AdcAnalogIn"
+	AdcPressureRef          = "AdcPressureRef"
+	AdcAuxIn                = "AdcAuxIn"
+	AdcPressureSense        = "AdcPressureSense"
+	AdcVcap                 = "AdcVcap"
+	AdcPanelResistor        = "AdcPanelResistor"
 )
 
 var adcChan = map[string]int{
-	AdcAnalogIn:         1,
-	AdcPressureSenseRef: 2,
-	AdcAuxIn:            4,
-	AdcPressureSensePos: 7,
-	AdcVcap:             9,
-	AdcPanelResistor:    10,
+	AdcAnalogIn:      1,
+	AdcPressureRef:   2,
+	AdcAuxIn:         4,
+	AdcPressureSense: 7,
+	AdcVcap:          9,
+	AdcPanelResistor: 10,
 }
 
 // AdcRead is used to read an analog to digital convertor port
@@ -111,4 +111,21 @@ func ReadAnalogIn(name string) (float64, error) {
 	}
 
 	return vin, nil
+}
+
+var pressureScale = 0.62825
+
+// ReadPressure reads the supply and pressure voltage
+func ReadPressure() (ref float64, sense float64, err error) {
+	ref, err = AdcRead(AdcPressureRef)
+	ref = ref / pressureScale
+	if err != nil {
+		return
+	}
+	sense, err = AdcRead(AdcPressureSense)
+	sense = sense / pressureScale
+	if err != nil {
+		return
+	}
+	return
 }

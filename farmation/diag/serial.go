@@ -22,7 +22,7 @@ func (d rs232) Run() error {
 	isio.GpioOut(isio.GpioSerialRsSelectRs485, false)
 
 	options := serial.OpenOptions{
-		PortName:              "/dev/ttyS3",
+		PortName:              isio.SerialRS232RS485,
 		BaudRate:              115200,
 		DataBits:              8,
 		StopBits:              1,
@@ -78,7 +78,7 @@ func (d rs485) Run() error {
 	isio.GpioOut(isio.GpioSerialRsSelectRs485, true)
 
 	options := serial.OpenOptions{
-		PortName:               "/dev/ttyS3",
+		PortName:               isio.SerialRS232RS485,
 		BaudRate:               115200,
 		DataBits:               8,
 		StopBits:               1,
