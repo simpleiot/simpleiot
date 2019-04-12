@@ -113,6 +113,15 @@ func ReadAnalogIn(name string) (float64, error) {
 	return vin, nil
 }
 
+var vcapScale = 0.376257545
+
+// ReadVcap returns the voltage of the supercap supply
+func ReadVcap() (v float64, err error) {
+	v, err = AdcRead(AdcVcap)
+	v = v / vcapScale
+	return
+}
+
 var pressureScale = 0.62825
 
 // ReadPressure reads the supply and pressure voltage
