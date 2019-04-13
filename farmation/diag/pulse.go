@@ -14,6 +14,7 @@ func (d pulse) String() string {
 }
 
 func (d pulse) Run() error {
+	// gpio_edge_timer driver must be removed before running diags
 	isio.GpioOut(isio.GpioPulseOutput, true)
 	fmt.Println("Flow1: ", isio.GpioRead(isio.GpioFlow1Pulse))
 	fmt.Println("Flow2: ", isio.GpioRead(isio.GpioFlow2Pulse))
