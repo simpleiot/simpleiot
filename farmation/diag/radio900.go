@@ -1,7 +1,6 @@
 package diag
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -18,9 +17,7 @@ func (d radio) String() string {
 func (d radio) Run() error {
 	isio.GpioOut(isio.GpioRadioSleep, false)
 	isio.GpioOut(isio.GpioRadioReset, true)
-	time.Sleep(30 * time.Millisecond)
-	isio.GpioOut(isio.GpioRadioReset, false)
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	options := serial.OpenOptions{
 		PortName:              isio.SerialRadio,
@@ -38,40 +35,22 @@ func (d radio) Run() error {
 	}
 
 	defer p.Close()
+	/*
 
-	commandMode := "+++"
+		err = DigiCheckAt(p)
 
-	n, err := p.Write([]byte(commandMode))
-	if err != nil {
-		return err
-	}
+		if err == nil {
+			return errors.New("Modem is reponding when reset is asserted")
+		}
+	*/
 
-	fmt.Println("wrote: ", n)
+	isio.GpioOut(isio.GpioRadioReset, false)
+	time.Sleep(1000 * time.Millisecond)
 
-	if n != len(commandMode) {
-		return errors.New("write count is wrong")
-	}
-
-	time.Sleep(1200 * time.Millisecond)
-
-	readString := make([]byte, 100)
-	n, err = p.Read(readString)
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("read: ", n)
-
-	readString = readString[:n]
-
-	if string(readString) == "OK" {
-		return errors.New("Expected OK, got: " + string(readString))
-	}
-
-	fmt.Println("readString: ", string(readString))
-
-	return nil
+	err = DigiCheckAt(p)
+	err = DigiCheckAt(p)
+	fmt.Println("CLIFF: after check not reset")
+	return err
 }
 
 func init() {
