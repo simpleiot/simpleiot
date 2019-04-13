@@ -1,4 +1,4 @@
-. envsetup.sh
+. ./envsetup.sh
 
 is_setup() {
   app_setup
