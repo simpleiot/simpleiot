@@ -44,8 +44,8 @@ func (d adcPressureSense) Run() (ret error) {
 		return err
 	}
 
-	min := 4.95
-	max := 5.05
+	min := 4.90
+	max := 5.10
 
 	if ref < min || ref > max {
 		fmt.Println("ref: ", ref)
@@ -53,7 +53,7 @@ func (d adcPressureSense) Run() (ret error) {
 	}
 
 	if sense < min || sense > max {
-		fmt.Println("sense: ", ref)
+		fmt.Println("sense: ", sense)
 		return errors.New("pressure sense is out of range")
 	}
 
