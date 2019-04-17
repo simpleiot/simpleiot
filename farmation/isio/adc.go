@@ -107,7 +107,7 @@ func ReadAnalogIn(name string) (float64, error) {
 	vin := 3 * vad
 
 	if adcCurrentMode[name] {
-		return vin / 499, nil
+		return vin / 249.5, nil
 	}
 
 	return vin, nil
