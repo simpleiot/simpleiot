@@ -113,6 +113,12 @@ func (d relayFault) String() string {
 	return "relay-fault"
 }
 
+func blinkGreenLed() {
+	isio.StatusLightGreen(true)
+	time.Sleep(200 * time.Millisecond)
+	isio.StatusLightGreen(false)
+}
+
 func (d relayFault) Run() error {
 	relayFaultGpios := []string{
 		isio.GpioRelayInjectorFault,
@@ -137,6 +143,7 @@ func (d relayFault) Run() error {
 		r := relayFaultGpios[relayFaultIndex]
 		if isio.GpioRead(r) {
 			fmt.Println("detected fault for: ", r)
+			blinkGreenLed()
 			relayFaultIndex++
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -169,6 +176,7 @@ func (d relayFault) Run() error {
 		r := relayFaultGpios[relayFaultIndex]
 		if isio.GpioRead(r) {
 			fmt.Println("detected short coil for: ", r)
+			blinkGreenLed()
 			relayFaultIndex++
 		}
 		time.Sleep(10 * time.Millisecond)
