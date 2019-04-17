@@ -48,6 +48,9 @@ const (
 	GpioPulseOutput = "GpioPulseOutput"
 	GpioFlow1Pulse  = "GpioFlow1Pulse"
 	GpioFlow2Pulse  = "GpioFlow2Pulse"
+
+	GpioMainAuxPwr = "GpioMainAuxPwr"
+	GpioBackupPwr  = "GpioBackupPwr"
 )
 
 type pin struct {
@@ -90,6 +93,9 @@ var pins = map[string]*pin{
 	GpioPulseOutput: &pin{"PB7", true, true, nil},
 	GpioFlow1Pulse:  &pin{"PB8", true, false, nil},
 	GpioFlow2Pulse:  &pin{"PD13", true, false, nil},
+
+	GpioMainAuxPwr: &pin{"PC23", true, false, nil},
+	GpioBackupPwr:  &pin{"PD1", true, false, nil},
 }
 
 // GpioInit is used to initialize gpios
