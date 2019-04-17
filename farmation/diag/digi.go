@@ -34,7 +34,7 @@ func DigiCheckAt(port io.ReadWriter) error {
 	readString = readString[:n]
 	fmt.Println("cliff flush: ", hex.Dump(readString))
 
-	_, err = port.Write([]byte("AT\n"))
+	_, err = port.Write([]byte("AT\r"))
 	time.Sleep(200 * time.Millisecond)
 	n, err = portTo.Read(readString)
 

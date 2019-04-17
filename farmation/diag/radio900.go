@@ -1,7 +1,6 @@
 package diag
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/cbrake/go-serial/serial"
@@ -35,22 +34,11 @@ func (d radio) Run() error {
 	}
 
 	defer p.Close()
-	/*
-
-		err = DigiCheckAt(p)
-
-		if err == nil {
-			return errors.New("Modem is reponding when reset is asserted")
-		}
-	*/
 
 	isio.GpioOut(isio.GpioRadioReset, false)
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
-	err = DigiCheckAt(p)
-	err = DigiCheckAt(p)
-	fmt.Println("CLIFF: after check not reset")
-	return err
+	return DigiCheckAt(p)
 }
 
 func init() {
