@@ -20,6 +20,10 @@ const (
 	GpioRelayShutdownEn = "GpioRelayShutdownEn"
 	GpioRelayAuxEn      = "GpioRelayAuxEn"
 
+	GpioRelayInjectorFault = "GpioRelayInjectorFault"
+	GpioRelayShutdownFault = "GpioRelayShutdownFault"
+	GpioRelayAuxFault      = "GpioRelayAuxFault"
+
 	// select between voltage or current loop input
 	// high = current loop
 	GpioAnalogInSel = "GpioAnalogInSel"
@@ -74,6 +78,10 @@ var pins = map[string]*pin{
 	GpioRelayInjectorEn: &pin{"PC13", true, true, nil},
 	GpioRelayShutdownEn: &pin{"PC9", true, true, nil},
 	GpioRelayAuxEn:      &pin{"PB0", true, true, nil},
+
+	GpioRelayInjectorFault: &pin{"PC17", true, false, nil},
+	GpioRelayShutdownFault: &pin{"PC12", true, false, nil},
+	GpioRelayAuxFault:      &pin{"PC14", true, false, nil},
 
 	GpioAnalogInSel: &pin{"PC15", false, false, nil},
 	GpioAuxInSel:    &pin{"PD25", false, false, nil},
