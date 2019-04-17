@@ -111,8 +111,8 @@ func (d adcAnalogIn) Run() (ret error) {
 		return err
 	}
 
-	if i < 0.0095 || i > 0.0105 {
-		fmt.Println("analog in, expected 7mA, got: ", i)
+	if i < 0.0093 || i > 0.0108 {
+		fmt.Println("analog in, expected 10, got: ", i)
 		return errors.New("AnalogIn current is out of range")
 	}
 
@@ -150,8 +150,8 @@ func (d adcAuxIn) Run() (ret error) {
 		return err
 	}
 
-	if i < 0.0095 || i > 0.0105 {
-		fmt.Println("analog in, expected 7mA, got: ", i)
+	if i < 0.0093 || i > 0.0108 {
+		fmt.Println("analog in, expected 10, got: ", i)
 		return errors.New("AnalogIn current is out of range")
 	}
 
