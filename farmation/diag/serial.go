@@ -7,6 +7,7 @@ import (
 
 	"github.com/cbrake/go-serial/serial"
 	"github.com/simpleiot/simpleiot/farmation/isio"
+	nbreader "github.com/svent/go-nbreader"
 )
 
 type rs232 struct{}
@@ -36,6 +37,7 @@ func (d rs232) Run() error {
 	}
 
 	defer p.Close()
+	pTo := nbreader.NewNBReader(p, 100, nbreader.Timeout(500*time.Millisecond))
 
 	testString := "hi there"
 	n, err := p.Write([]byte(testString))
@@ -49,7 +51,7 @@ func (d rs232) Run() error {
 
 	readString := make([]byte, 100)
 
-	n, err = p.Read(readString)
+	n, err = pTo.Read(readString)
 
 	if err != nil {
 		return err
@@ -94,6 +96,7 @@ func (d rs485) Run() error {
 	}
 
 	defer isPort.Close()
+	isPortTo := nbreader.NewNBReader(isPort, 100, nbreader.Timeout(500*time.Millisecond))
 
 	options.PortName = "/dev/ttyUSB0"
 	options.Rs485Enable = false
@@ -121,7 +124,7 @@ func (d rs485) Run() error {
 		return errors.New("Did not write all bytes to test port")
 	}
 
-	n, err = isPort.Read(readBuffer)
+	n, err = isPortTo.Read(readBuffer)
 	readBuffer = readBuffer[:n]
 
 	if writeTest != string(readBuffer) {
