@@ -18,7 +18,6 @@ func Flush(port io.Reader) {
 
 // DigiCheckAt puts Digi radio and command mode and executes AT command
 func DigiCheckAt(port io.ReadWriter) error {
-	fmt.Println("CLIFF: DigiCheckAt")
 	portTo := nbreader.NewNBReader(port, 100, nbreader.Timeout(500*time.Millisecond))
 	commandMode := "+++"
 
@@ -32,14 +31,14 @@ func DigiCheckAt(port io.ReadWriter) error {
 	readString := make([]byte, 100)
 	n, err := portTo.Read(readString)
 	readString = readString[:n]
-	fmt.Println("cliff flush: ", hex.Dump(readString))
+	fmt.Print("Digi flush: ", hex.Dump(readString))
 
 	_, err = port.Write([]byte("AT\r"))
 	time.Sleep(200 * time.Millisecond)
 	n, err = portTo.Read(readString)
 
 	readString = readString[:n]
-	fmt.Println("cliff readString: ", hex.Dump(readString))
+	fmt.Print("Digi read: ", hex.Dump(readString))
 
 	if err != nil {
 		return err

@@ -1,6 +1,7 @@
 package diag
 
 import (
+	"errors"
 	"time"
 
 	"github.com/cbrake/go-serial/serial"
@@ -34,6 +35,10 @@ func (d radio) Run() error {
 	}
 
 	defer p.Close()
+
+	if DigiCheckAt(p) == nil {
+		return errors.New("radio reset is not working")
+	}
 
 	isio.GpioOut(isio.GpioRadioReset, false)
 	time.Sleep(200 * time.Millisecond)
