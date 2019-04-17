@@ -51,6 +51,11 @@ const (
 
 	GpioMainAuxPwr = "GpioMainAuxPwr"
 	GpioBackupPwr  = "GpioBackupPwr"
+
+	// LCD
+	GpioLcdPinSel = "GpioLcdPinSel"
+	GpioLcdReset  = "GpioLcdReset"
+	GpioLcdPwm    = "GpioLcdPwm"
 )
 
 type pin struct {
@@ -96,6 +101,11 @@ var pins = map[string]*pin{
 
 	GpioMainAuxPwr: &pin{"PC23", true, false, nil},
 	GpioBackupPwr:  &pin{"PD1", true, false, nil},
+
+	// LCD
+	GpioLcdPinSel: &pin{"PC5", false, true, nil},
+	GpioLcdReset:  &pin{"PC8", true, true, nil},
+	GpioLcdPwm:    &pin{"PC3", false, true, nil},
 }
 
 // GpioInit is used to initialize gpios
