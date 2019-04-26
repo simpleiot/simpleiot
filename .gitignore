@@ -17,3 +17,4 @@ farmation/assets/**/assets.go
 gpio-test
 /*.png
 /spi-test
+/pulse
