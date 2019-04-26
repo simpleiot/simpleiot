@@ -24,6 +24,7 @@ const (
 	ScreenIDOpModeSetup
 	ScreenIDTotals
 	ScreenIDProductMenu1
+	ScreenIDCalibration
 )
 
 // Screen is an interface that generally represents a screen
@@ -50,6 +51,7 @@ func InitScreens(state *isdata.State, config *isdata.Config) (ret Screens) {
 	ret[ScreenIDOpModeSetup] = NewOperatingModeSetupScreen(state, config)
 	ret[ScreenIDTotals] = NewTotalsScreen(state, config)
 	ret[ScreenIDProductMenu1] = NewProductMenuScreen(state, config)
+	ret[ScreenIDCalibration] = NewCalibrationScreen(state, config)
 
 	return
 
