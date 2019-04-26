@@ -1,7 +1,6 @@
 package keypad
 
 import (
-	"fmt"
 	"log"
 	"runtime"
 	"time"
@@ -52,7 +51,6 @@ func keypad(out chan interface{}, name string, key isdata.Key) {
 				timerRunning = true
 			}
 		case <-timer.C:
-			fmt.Println("got timer")
 			timerRunning = false
 		}
 		/*

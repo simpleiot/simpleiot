@@ -2,15 +2,14 @@ package diag
 
 import (
 	"errors"
-	"fmt"
-	"time"
+
+	"github.com/simpleiot/simpleiot/farmation/isio"
 )
 
 type heartbeat struct{}
 
 func (d heartbeat) Run() error {
-	fmt.Println("Is there a heartbeat pattern on hall and CPU leds (y/n)?")
-	if !GetInput() {
+	if !GetInput("Is there a heartbeat pattern on the blue led") {
 		return errors.New("heartbeat led test failed")
 	}
 	return nil
@@ -20,104 +19,48 @@ func (d heartbeat) String() string {
 	return "led-heartbeat"
 }
 
-type misc struct{}
+type statusGreen struct{}
 
-func blinkMisc(stop chan bool) {
-	state := false
-	tick := time.NewTicker(time.Millisecond * 50)
-	for {
-		select {
-		case <-tick.C:
-			state = !state
-			//gio.SetLedMisc(state)
-		case <-stop:
-			tick.Stop()
-			//gio.SetLedMisc(false)
-			return
-		}
+func (d statusGreen) Run() error {
+	isio.GpioOut(isio.GpioStatusGreen, false)
+	isio.GpioOut(isio.GpioStatusRed, false)
+	if !GetInput("Is the green LED off") {
+		return errors.New("green led is not off")
 	}
-}
-
-func (d misc) Run() error {
-	c := make(chan bool, 1)
-	go blinkMisc(c)
-	fmt.Println("Is misc LED blinking (y/n)?")
-	r := GetInput()
-	c <- false
-	//gio.SetLedMisc(false)
-	if !r {
-		return errors.New("Misc led failure")
+	isio.GpioOut(isio.GpioStatusGreen, true)
+	if !GetInput("Is the green LED on") {
+		return errors.New("green led is not on")
 	}
+	isio.GpioOut(isio.GpioStatusGreen, false)
 	return nil
 }
 
-func (d misc) String() string {
-	return "led-misc"
+func (d statusGreen) String() string {
+	return "led-status-green"
 }
 
-type port struct{}
+type statusRed struct{}
 
-func blinkPort(stop chan bool) {
-	last := 1
-	cur := 1
-	up := true
-	tick := time.NewTicker(time.Millisecond * 100)
-	for {
-		select {
-		case <-tick.C:
-			last = cur
-			if up {
-				cur++
-				if cur > 6 {
-					cur = 5
-					up = false
-				}
-			} else {
-				cur--
-				if cur < 1 {
-					cur = 2
-					up = true
-				}
-			}
-
-			_ = last
-
-			//gio.SetLedPort(last, false)
-			//gio.SetLedPort(cur, true)
-
-		case <-stop:
-			tick.Stop()
-			return
-		}
+func (d statusRed) Run() error {
+	isio.GpioOut(isio.GpioStatusGreen, false)
+	isio.GpioOut(isio.GpioStatusRed, false)
+	if !GetInput("Is the red LED off") {
+		return errors.New("green led is not off")
 	}
-}
-
-func (d port) Run() error {
-	c := make(chan bool, 1)
-	go blinkPort(c)
-	fmt.Println("Is port LED pattern complete (y/n)?")
-	r := GetInput()
-	c <- false
-	for p := 1; p < 7; p++ {
-		//gio.SetLedPort(p, false)
+	isio.GpioOut(isio.GpioStatusRed, true)
+	if !GetInput("Is the red LED on") {
+		return errors.New("red led is not on")
 	}
-	if !r {
-		return errors.New("Port led failure")
-	}
+	isio.GpioOut(isio.GpioStatusRed, false)
 	return nil
 }
 
-func (d port) String() string {
-	return "led-port"
+func (d statusRed) String() string {
+	return "led-status-red"
 }
 
 func init() {
-	/*
-		var heartbeatDiag heartbeat
-		Register(heartbeatDiag)
-		var miscDiag misc
-		Register(miscDiag)
-		var portDiag port
-		Register(portDiag)
-	*/
+	Register(heartbeat{})
+	Register(statusGreen{})
+	Register(statusRed{})
 }

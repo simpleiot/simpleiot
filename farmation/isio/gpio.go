@@ -19,6 +19,47 @@ const (
 	GpioRelayInjectorEn = "GpioRelayInjectorEn"
 	GpioRelayShutdownEn = "GpioRelayShutdownEn"
 	GpioRelayAuxEn      = "GpioRelayAuxEn"
+
+	GpioRelayInjectorFault = "GpioRelayInjectorFault"
+	GpioRelayShutdownFault = "GpioRelayShutdownFault"
+	GpioRelayAuxFault      = "GpioRelayAuxFault"
+
+	// select between voltage or current loop input
+	// high = current loop
+	GpioAnalogInSel = "GpioAnalogInSel"
+	GpioAuxInSel    = "GpioAuxInSel"
+
+	// status LEDs
+	GpioStatusGreen = "GpioStatusGreen"
+	GpioStatusRed   = "GpioStatusRed"
+
+	GpioArm = "GpioArm"
+
+	GpioGpsReset = "GpioGpsReset"
+
+	// RS232/RS485 port
+	GpioSerialShutdown      = "GpioSerialShutdown"
+	GpioSerialLoopback      = "GpioSerialLoopback"
+	GpioSerialRsSelectRs485 = "GpioSerialRsSelectRs485"
+	GpioSerialRS485RxEn     = "GpioSerialRS485RxEn"
+	GpioSerialRs485TxEn     = "GpioSerialRs485TxEn"
+
+	GpioRadioReset = "GpioRadioReset"
+	GpioRadioSleep = "GpioRadioSleep"
+	GpioModemReset = "GpioModemReset"
+	GpioModemSleep = "GpioModemSleep"
+
+	GpioPulseOutput = "GpioPulseOutput"
+	GpioFlow1Pulse  = "GpioFlow1Pulse"
+	GpioFlow2Pulse  = "GpioFlow2Pulse"
+
+	GpioMainAuxPwr = "GpioMainAuxPwr"
+	GpioBackupPwr  = "GpioBackupPwr"
+
+	// LCD
+	GpioLcdPinSel = "GpioLcdPinSel"
+	GpioLcdReset  = "GpioLcdReset"
+	GpioLcdPwm    = "GpioLcdPwm"
 )
 
 type pin struct {
@@ -37,6 +78,42 @@ var pins = map[string]*pin{
 	GpioRelayInjectorEn: &pin{"PC13", true, true, nil},
 	GpioRelayShutdownEn: &pin{"PC9", true, true, nil},
 	GpioRelayAuxEn:      &pin{"PB0", true, true, nil},
+
+	GpioRelayInjectorFault: &pin{"PC17", true, false, nil},
+	GpioRelayShutdownFault: &pin{"PC12", true, false, nil},
+	GpioRelayAuxFault:      &pin{"PC14", true, false, nil},
+
+	GpioAnalogInSel: &pin{"PC15", false, false, nil},
+	GpioAuxInSel:    &pin{"PD25", false, false, nil},
+
+	GpioStatusGreen: &pin{"PB6", false, true, nil},
+	GpioStatusRed:   &pin{"PB10", false, true, nil},
+
+	GpioArm: &pin{"PC25", true, false, nil},
+
+	GpioGpsReset: &pin{"PA30", true, true, nil},
+
+	GpioSerialShutdown:      &pin{"PB13", true, true, nil},
+	GpioSerialLoopback:      &pin{"PB2", false, true, nil},
+	GpioSerialRsSelectRs485: &pin{"PB12", false, true, nil},
+
+	GpioRadioReset: &pin{"PB24", true, true, nil},
+	GpioRadioSleep: &pin{"PB30", false, true, nil},
+
+	GpioModemReset: &pin{"PA22", true, true, nil},
+	GpioModemSleep: &pin{"PA27", false, true, nil},
+
+	GpioPulseOutput: &pin{"PB7", true, true, nil},
+	GpioFlow1Pulse:  &pin{"PB8", true, false, nil},
+	GpioFlow2Pulse:  &pin{"PD13", true, false, nil},
+
+	GpioMainAuxPwr: &pin{"PC23", true, false, nil},
+	GpioBackupPwr:  &pin{"PD1", true, false, nil},
+
+	// LCD
+	GpioLcdPinSel: &pin{"PC5", false, true, nil},
+	GpioLcdReset:  &pin{"PC8", true, true, nil},
+	GpioLcdPwm:    &pin{"PC3", false, true, nil},
 }
 
 // GpioInit is used to initialize gpios

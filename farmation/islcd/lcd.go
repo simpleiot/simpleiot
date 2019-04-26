@@ -6,8 +6,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/simpleiot/simpleiot/farmation/isio"
 	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/gpio/gpioreg"
 )
 
 // Gpios
@@ -17,35 +17,14 @@ const pinPwm string = "PC3"
 
 // Lcd defines a struct used to control a LCD display
 type Lcd struct {
-	fd         int
-	gpioRegSel gpio.PinIO
-	gpioReset  gpio.PinIO
-	gpioPwm    gpio.PinIO
+	fd      int
+	gpioPwm gpio.PinIO
 }
 
 // NewLcd creates a new LCD object and opens the SPI port
 func NewLcd() (ret Lcd, err error) {
 	ret.fd, err = syscall.Open("/dev/spidev1.0", os.O_WRONLY, 0666)
 	if err != nil {
-		return
-	}
-
-	//Try to grab the gpio for the register address sel and nRST:
-	ret.gpioRegSel = gpioreg.ByName(pinRegSel)
-	if ret.gpioRegSel == nil {
-		err = errors.New("Could not get reg sel gpio")
-		return
-	}
-
-	ret.gpioReset = gpioreg.ByName(pinReset)
-	if ret.gpioReset == nil {
-		err = errors.New("Could not get reset gpio")
-		return
-	}
-
-	ret.gpioPwm = gpioreg.ByName(pinPwm)
-	if ret.gpioPwm == nil {
-		err = errors.New("Could not get pwm gpio")
 		return
 	}
 
@@ -67,20 +46,19 @@ func (l *Lcd) writeLcd(data []byte) error {
 // Init resets and sends init sequence to LCD
 func (l *Lcd) Init() error {
 	// reset LCD
-	l.gpioReset.Out(gpio.High)
+	isio.GpioOut(isio.GpioLcdReset, false)
 	time.Sleep(10 * time.Millisecond)
-	l.gpioReset.Out(gpio.Low)
+	isio.GpioOut(isio.GpioLcdReset, true)
 	time.Sleep(10 * time.Millisecond)
-	l.gpioReset.Out(gpio.High)
+	isio.GpioOut(isio.GpioLcdReset, false)
 
 	// turn on backlight
-	l.gpioPwm.Out(gpio.High)
+	isio.GpioOut(isio.GpioLcdPwm, true)
 
 	// run init sequence
-	l.gpioRegSel.Out(gpio.Low)
+	isio.GpioOut(isio.GpioLcdPinSel, false)
 	err := l.writeLcd([]byte{0xAE, 0xA5, 0xA2, 0xA1, 0xC0, 0x26, 0x81, 0x1F,
 		0xF8, 0x00, 0xAF, 0xA4, 0x2F})
-	l.gpioRegSel.Out(gpio.Low)
 
 	if err != nil {
 		return err
@@ -107,12 +85,12 @@ func (l *Lcd) Write(data []bool) error {
 				pageData[i] |= bit << b
 			}
 		}
-		l.gpioRegSel.Out(gpio.Low)
+		isio.GpioOut(isio.GpioLcdPinSel, false)
 		err := l.writeLcd([]byte{0xB0 + byte(page), 0x10, 0x4})
 		if err != nil {
 			return err
 		}
-		l.gpioRegSel.Out(gpio.High)
+		isio.GpioOut(isio.GpioLcdPinSel, true)
 		err = l.writeLcd(pageData)
 		if err != nil {
 			return err

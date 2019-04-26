@@ -94,8 +94,12 @@ func Run() {
 }
 
 // GetInput returns user input
-func GetInput() bool {
+func GetInput(prompt string) bool {
 	var input string
+
+	if prompt != "" {
+		fmt.Println(prompt + " (y/n)?")
+	}
 
 	_, err := fmt.Scanln(&input)
 	if err != nil {
