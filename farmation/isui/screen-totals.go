@@ -6,7 +6,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-// TotalsScreen
+// TotalsScreen totals screen
 type TotalsScreen struct {
 	softKeys *SoftKeys
 	state    *isdata.State
