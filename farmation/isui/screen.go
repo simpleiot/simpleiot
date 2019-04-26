@@ -23,6 +23,7 @@ const (
 	ScreenIDOpMode1
 	ScreenIDOpModeSetup
 	ScreenIDTotals
+	ScreenIDProductMenu1
 )
 
 // Screen is an interface that generally represents a screen
@@ -48,6 +49,7 @@ func InitScreens(state *isdata.State, config *isdata.Config) (ret Screens) {
 	ret[ScreenIDOpMode1] = NewOperatingModeScreen(state, config)
 	ret[ScreenIDOpModeSetup] = NewOperatingModeSetupScreen(state, config)
 	ret[ScreenIDTotals] = NewTotalsScreen(state, config)
+	ret[ScreenIDProductMenu1] = NewProductMenuScreen(state, config)
 
 	return
 

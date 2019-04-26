@@ -22,6 +22,7 @@ func NewMainMenuScreen(state *isdata.State, config *isdata.Config) *MainMenuScre
 	menu.AddItemScreen("Field Menu", ScreenIDFieldMenu1)
 	menu.AddItemScreen("Operating Menu", ScreenIDOpMode1)
 	menu.AddItemScreen("Totals", ScreenIDTotals)
+	menu.AddItemScreen("ProductMenu", ScreenIDProductMenu1)
 
 	return &MainMenuScreen{
 		softKeys: NewSoftKeys("home"),
