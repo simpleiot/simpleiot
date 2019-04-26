@@ -17,7 +17,6 @@ type FieldMenuScreen struct {
 	txtEdit      string
 	abc          string
 	abcCaps      string
-	arrowPos     int
 	menu         Menu
 	edit         bool
 	caps         bool
@@ -29,10 +28,6 @@ type FieldMenuScreen struct {
 // NewFieldMenuScreen initializes and returns a HomeScreen
 func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuScreen {
 	menu := Menu{}
-	menu.AddItemScreen("Field One", ScreenIDNoChange)
-	menu.AddItemScreen("Field Two", ScreenIDNoChange)
-	menu.AddItemScreen("Field Three", ScreenIDNoChange)
-	menu.AddItemScreen("Field Four", ScreenIDNoChange)
 
 	return &FieldMenuScreen{
 		softKeys:     NewSoftKeys("back", "edit", "import"),
@@ -46,6 +41,12 @@ func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuSc
 // Render updates the home screen, and provides an image
 func (s *FieldMenuScreen) Render(img draw.Image) {
 	Clear(img)
+
+	s.menu.ResetItems()
+	for _, fieldConfig := range s.config.FieldConfigs {
+		s.menu.AddItemScreen(fieldConfig.Description, ScreenIDNoChange)
+	}
+
 	if s.edit {
 		//fmt.Println(s.txtEdit)
 		txtStartX := DrawTxtCentered(img, s.txtEdit, 64, 2, tightpixel15.Font)
@@ -100,6 +101,13 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 	if s.edit {
 		switch key {
+		case isdata.KeySK1: //save
+			s.exitEdit()
+			return ScreenIDNoChange, isdata.UpdateFieldName{
+				Index: s.menu.GetArrowPos(),
+				Name:  s.txtEdit,
+			}
+
 		case isdata.KeySK2: //backspace
 			if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
 				if len(s.txtEdit) > 1 { //and if length of text is more than one character
@@ -111,7 +119,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 			if s.cursorPos > 0 { //if text is more than one char
 				s.cursorPos-- //move cursor back one space
 			}
-		case isdata.KeySK3:
+		case isdata.KeySK3: // ABC abc
 			if s.caps {
 				s.caps = false
 				if s.txtEntry {
@@ -123,12 +131,8 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 					s.enterTxt()
 				}
 			}
-		case isdata.KeySK4:
-			s.edit = false
-			s.caps = false
-			s.txtEntry = false
-			s.cursorPos = 0  //reset field name cursor to pos 0
-			s.cursor2Pos = 0 //reset abc... cursor to pos 0
+		case isdata.KeySK4: // cancel
+			s.exitEdit()
 		case isdata.KeyEnter:
 			if s.txtEntry {
 				s.txtEntry = false
@@ -201,6 +205,14 @@ func (s *FieldMenuScreen) enterTxt() {
 			s.txtEdit = s.txtEdit[:s.cursorPos] + s.abc[s.cursor2Pos:s.cursor2Pos+1] + s.txtEdit[s.cursorPos+1:]
 		}
 	}
+}
+
+func (s *FieldMenuScreen) exitEdit() {
+	s.edit = false
+	s.caps = false
+	s.txtEntry = false
+	s.cursorPos = 0  //reset field name cursor to pos 0
+	s.cursor2Pos = 0 //reset abc... cursor to pos 0
 }
 
 // cursorRight increments a cursor position - cursorPos if isCursor2 is false, cursor2Pos if true

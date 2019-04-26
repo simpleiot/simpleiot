@@ -30,12 +30,12 @@ func Run(sim bool) {
 
 	err = db.ReadConfig(&config)
 
-	isdata.InitState(&state)
-	//isdata.InitConfig(config)
-
 	if err != nil {
 		log.Println("Error reading config: ", err)
 	}
+
+	isdata.InitState(&state)
+	config.Init()
 
 	// incoming channel to mux
 	appChan := make(chan interface{}, 100)
@@ -70,6 +70,14 @@ func Run(sim bool) {
 	go islcd.Run(lcdChan, appChan)
 
 	lastFillingWarning := time.Time{}
+
+	saveConfig := func() {
+		uiChan <- config
+		err := db.WriteConfig(&config)
+		if err != nil {
+			log.Println("Error saving config: ", err)
+		}
+	}
 
 	for {
 		// max sure queues between subsystems are not full
@@ -109,9 +117,13 @@ func Run(sim bool) {
 			case isdata.Key:
 				uiChan <- m
 
+			case isdata.UpdateFieldName:
+				config.FieldConfigs[m.Index].Description = m.Name
+				saveConfig()
+
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
-				log.Printf("Mux: unhandled message of type %T: %+v\r\n", m, m)
+				log.Printf("App Mux: unhandled message of type %T: %+v\r\n", m, m)
 
 			}
 		}

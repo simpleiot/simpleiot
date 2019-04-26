@@ -243,5 +243,14 @@ type ISRelay struct {
 	Fault bool
 }
 
-func InitConfig(c *Config) {
+// Init is used to inialize the config
+func (c *Config) Init() {
+	if len(c.FieldConfigs) < 4 {
+		c.FieldConfigs = []FieldConfig{
+			FieldConfig{"Field One"},
+			FieldConfig{"Field Two"},
+			FieldConfig{"Field Three"},
+			FieldConfig{"Field Four"},
+		}
+	}
 }

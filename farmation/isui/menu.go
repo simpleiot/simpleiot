@@ -52,6 +52,11 @@ func (m *Menu) updateShowValues() {
 	m.showValues = false
 }
 
+// ResetItems clears the menu items
+func (m *Menu) ResetItems() {
+	m.items = []MenuItem{}
+}
+
 // Description returns the menu item description
 func (m *Menu) Description() string {
 	return m.items[m.arrowPos].Description
@@ -195,6 +200,11 @@ func (m *Menu) Render(img draw.Image) {
 
 // MenuSelection is returned when a new item is selected
 type MenuSelection string
+
+// GetArrowPos gets the arrow pos
+func (m *Menu) GetArrowPos() int {
+	return m.arrowPos
+}
 
 // ResetArrowPos resets the arrow pos
 func (m *Menu) ResetArrowPos() {
