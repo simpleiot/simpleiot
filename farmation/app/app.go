@@ -8,9 +8,9 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isapi"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
+	"github.com/simpleiot/simpleiot/farmation/isflow"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/islcd"
-	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
 )
@@ -47,6 +47,7 @@ func Run(sim bool) {
 	webChan := make(chan interface{}, 100)
 	simChan := make(chan interface{}, 100)
 	lcdChan := make(chan interface{}, 100)
+	flowChan := make(chan interface{}, 100)
 
 	channels := []struct {
 		name    string
@@ -59,6 +60,7 @@ func Run(sim bool) {
 		{"web", webChan},
 		{"sim", simChan},
 		{"lcd", lcdChan},
+		{"flow", flowChan},
 	}
 
 	// fire up subsystems
@@ -66,8 +68,9 @@ func Run(sim bool) {
 	go isui.Run(uiChan, appChan, &config)
 	go isio.Run(ioChan, appChan)
 	go isapi.Server(webChan, appChan)
-	go issim.Run(simChan, appChan)
+	//go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
+	go isflow.Run(flowChan, appChan)
 
 	lastFillingWarning := time.Time{}
 
@@ -77,6 +80,10 @@ func Run(sim bool) {
 		if err != nil {
 			log.Println("Error saving config: ", err)
 		}
+	}
+
+	saveState := func() {
+		uiChan <- state
 	}
 
 	for {
@@ -120,6 +127,12 @@ func Run(sim bool) {
 			case isdata.UpdateFieldName:
 				config.FieldConfigs[m.Index].Description = m.Name
 				saveConfig()
+
+			case isdata.Flow:
+				state.FlowRate = m.Rate
+				state.Total1 += m.Amount
+				state.Total2 += m.Amount
+				saveState()
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why

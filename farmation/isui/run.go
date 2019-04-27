@@ -52,7 +52,7 @@ func Run(in, out chan interface{}, configInit *isdata.Config) {
 				}
 				renderScreen()
 			default:
-				log.Printf("Mux: unhandled message of type %T: %+v\r\n", m, m)
+				log.Printf("isui mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
 		}
 	}

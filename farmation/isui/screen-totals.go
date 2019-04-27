@@ -19,16 +19,6 @@ type TotalsScreen struct {
 func NewTotalsScreen(state *isdata.State, config *isdata.Config) *TotalsScreen {
 	isdata.InitState(state) // make sure that ProductStates and FieldStates arrays are large enough
 	menu := Menu{}
-	menu.AddItemInt("Current Field",
-		state.FieldStates[config.CurrentFieldIndex].Total)
-	menu.AddItemInt("Total 1", state.Total1)
-	menu.AddItemInt("Total 2", state.Total2)
-	menu.AddItemInt("Product 1 Total", state.ProductStates[0].Total)
-	menu.AddItemInt("Product 2 Total", state.ProductStates[1].Total)
-	menu.AddItemInt("Product 3 Total", state.ProductStates[2].Total)
-	menu.AddItemInt("Product 4 Total", state.ProductStates[3].Total)
-	menu.AddItemInt("Product 5 Total", state.ProductStates[4].Total)
-	menu.AddItemInt("Lifetime Total", state.LifetimeTotal)
 
 	return &TotalsScreen{
 		// update this from sample screen
@@ -42,6 +32,18 @@ func NewTotalsScreen(state *isdata.State, config *isdata.Config) *TotalsScreen {
 // Render updates the home screen, and provides an image
 func (s *TotalsScreen) Render(img draw.Image) {
 	Clear(img)
+	s.menu.ResetItems()
+	s.menu.AddItemInt("Current Field",
+		s.state.FieldStates[s.config.CurrentFieldIndex].Total)
+	s.menu.AddItemFloat("Total 1", s.state.Total1)
+	s.menu.AddItemFloat("Total 2", s.state.Total2)
+	s.menu.AddItemInt("Product 1 Total", s.state.ProductStates[0].Total)
+	s.menu.AddItemInt("Product 2 Total", s.state.ProductStates[1].Total)
+	s.menu.AddItemInt("Product 3 Total", s.state.ProductStates[2].Total)
+	s.menu.AddItemInt("Product 4 Total", s.state.ProductStates[3].Total)
+	s.menu.AddItemInt("Product 5 Total", s.state.ProductStates[4].Total)
+	s.menu.AddItemInt("Lifetime Total", s.state.LifetimeTotal)
+
 	Heading(img, "Totals")
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)

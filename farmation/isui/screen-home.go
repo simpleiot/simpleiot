@@ -28,7 +28,8 @@ func NewHomeScreen(state *isdata.State, config *isdata.Config) *HomeScreen {
 // Render updates the home screen, and provides an image
 func (s *HomeScreen) Render(img draw.Image) {
 	Clear(img)
-	DrawTxt(img, strconv.Itoa(int(s.state.FlowRate)), 4, 12, agencyfbbold40.Font)
+	rateS := strconv.FormatFloat(s.state.FlowRate, 'f', 2, 64)
+	DrawTxt(img, rateS, 4, 12, agencyfbbold40.Font)
 	DrawTxt(img, "963", 67, 11, agencyfbbold20.Font)
 	DrawTxt(img, "963", 67, 29, agencyfbbold20.Font)
 

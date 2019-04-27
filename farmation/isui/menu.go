@@ -105,6 +105,17 @@ func (m *Menu) AddItemInt(desc string, v float64) {
 	m.updateShowValues()
 }
 
+// AddItemFloat adds an integer item to menu
+func (m *Menu) AddItemFloat(desc string, v float64) {
+	m.items = append(m.items, MenuItem{
+		Description: desc,
+		Type:        MenuItemTypeFloat,
+		Value:       v,
+	})
+
+	m.updateShowValues()
+}
+
 // SetValue is used to set a parameter value
 func (m *Menu) SetValue(desc string, v float64) {
 	for i, item := range m.items {
@@ -158,6 +169,10 @@ func (m *Menu) Render(img draw.Image) {
 				DrawTxt(img, "select", 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeInt:
 				DrawTxtRight(img, strconv.Itoa(int(item.Value)), 120, y+1+offsetValues, tightpixel15.Font)
+
+			case MenuItemTypeFloat:
+				v := strconv.FormatFloat(item.Value, 'f', 2, 64)
+				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeOnOff:
 				DrawTxt(img, "on   off", 82, 13+offsetValues, tightpixel15.Font)
 				top := 13 + offsetValues - 1
