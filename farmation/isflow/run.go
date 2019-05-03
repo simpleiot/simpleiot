@@ -19,7 +19,8 @@ func Run(in, out chan interface{}) {
 		byteSlice := make([]byte, 8)
 		file, err := os.Open("/dev/gpio_edge_timer")
 		if err != nil {
-			log.Fatal(err)
+			log.Println("Error opening pulse meter driver: ", err)
+			return
 		}
 
 		for {
