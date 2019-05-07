@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"log/syslog"
 
 	"github.com/simpleiot/simpleiot/farmation/app"
 	"github.com/simpleiot/simpleiot/farmation/diag"
@@ -16,6 +17,7 @@ func main() {
 	flagDiagSingle := flag.String("diagSingle", "", "Run single test")
 	flagDebugState := flag.Bool("debugState", false, "log state changes")
 	flagDebugConfig := flag.Bool("debugConfig", false, "log config changes")
+	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -33,6 +35,13 @@ func main() {
 		isio.GpioInit()
 		diag.RunSingle(*flagDiagSingle)
 		return
+	}
+
+	if *flagSyslog {
+		logwriter, e := syslog.New(syslog.LOG_NOTICE, "IS")
+		if e == nil {
+			log.SetOutput(logwriter)
+		}
 	}
 
 	log.Printf("Starting IS app, debug State: %v, debug Config: %v\n", *flagDebugState, *flagDebugConfig)
