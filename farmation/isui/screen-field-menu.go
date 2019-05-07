@@ -1,7 +1,6 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
@@ -23,6 +22,7 @@ type FieldMenuScreen struct {
 	txtEntry     bool
 	cursorPos    int
 	cursor2Pos   int
+	notFirstMove bool // the first time the cursor was moved in the text entry selection
 }
 
 // NewFieldMenuScreen initializes and returns a HomeScreen
@@ -134,43 +134,34 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		case isdata.KeySK4: // cancel
 			s.exitEdit()
 		case isdata.KeyEnter:
-			if s.txtEntry {
-				s.txtEntry = false
-				if s.cursorPos == len(s.txtEdit)-1 {
-					s.txtEdit = s.txtEdit + " "
+			s.txtEntry = false
+			s.cursor2Pos = 0
+			s.notFirstMove = false
+			if s.cursorPos >= len(s.txtEdit)-1 { // if at end of txt
+				if s.txtEdit[s.cursorPos:] == " " { // if last char is space
+					s.txtEdit = s.txtEdit[:s.cursorPos] // delete space
+					s.cursorRight(false)                // and loop to beginning of txt
+				} else {
+					s.txtEdit += " " // add space for new char
 					s.cursorRight(false)
 				}
-				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
-				s.cursorRight(false)
-				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
-				s.cursor2Pos = 0 //reset abc... cursor to pos 0
-				//s.caps = false //reset caps
 			} else {
-				s.txtEntry = true
-				s.enterTxt()
+				s.cursorRight(false)
 			}
 		case isdata.KeyLeft:
-			if s.txtEntry { //if in txt entry mode
+			s.txtEntry = true // show cursor in abc... selection
+			if s.notFirstMove {
 				s.cursorLeft(true)
-				s.enterTxt()
-			} else { //else
-				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
-				s.cursorLeft(false)
-				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
 			}
+			s.notFirstMove = true
+			s.enterTxt()
 		case isdata.KeyRight:
-			if s.txtEntry { //if in txt entry mode
+			s.txtEntry = true
+			if s.notFirstMove {
 				s.cursorRight(true)
-				s.enterTxt()
-			} else { //else
-				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
-				s.cursorRight(false)
-				fmt.Println(len(s.txtEdit)-1, s.cursorPos)
-				if s.cursorPos == len(s.txtEdit)-1 {
-					s.txtEdit = s.txtEdit + " "
-					s.cursorRight(false)
-				}
 			}
+			s.notFirstMove = true
+			s.enterTxt()
 		}
 	} else {
 		switch key {
@@ -225,7 +216,7 @@ func (s *FieldMenuScreen) cursorRight(isCursor2 bool) {
 	}
 	(*cursorPos)++
 	if *cursorPos >= len(*txt) {
-		*cursorPos = len(*txt) - 1
+		*cursorPos = 0
 	}
 }
 
@@ -238,6 +229,6 @@ func (s *FieldMenuScreen) cursorLeft(isCursor2 bool) {
 
 	(*cursorPos)--
 	if *cursorPos < 0 {
-		*cursorPos = 0
+		*cursorPos = len(s.abc) - 1
 	}
 }
