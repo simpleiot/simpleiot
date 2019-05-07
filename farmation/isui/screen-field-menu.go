@@ -223,12 +223,13 @@ func (s *FieldMenuScreen) cursorRight(isCursor2 bool) {
 // cursorLeft
 func (s *FieldMenuScreen) cursorLeft(isCursor2 bool) {
 	cursorPos := &s.cursorPos
+	txt := &s.txtEdit
 	if isCursor2 {
 		cursorPos = &s.cursor2Pos
 	}
 
 	(*cursorPos)--
 	if *cursorPos < 0 {
-		*cursorPos = len(s.abc) - 1
+		*cursorPos = len(*txt) - 1
 	}
 }
