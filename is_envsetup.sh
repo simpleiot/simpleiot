@@ -78,7 +78,7 @@ is_build_windows() {
 
 is_run() {
   is_build_dependencies || return 1
-  go run farmation/cmd/injector-sentry/main.go || return 1
+  go run farmation/cmd/injector-sentry/main.go $1 $2 $4 $5 $6 || return 1
   return 0
 }
 

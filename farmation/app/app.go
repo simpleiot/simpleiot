@@ -1,7 +1,11 @@
 package app
 
 import (
+	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -16,7 +20,7 @@ import (
 )
 
 // Run is the entry point for the IS application
-func Run(sim bool) {
+func Run(sim bool, debugState bool, debugConfig bool) {
 	db, err := isdb.NewDb("./")
 
 	if err != nil {
@@ -27,6 +31,7 @@ func Run(sim bool) {
 
 	config := isdata.Config{}
 	state := isdata.State{}
+	stateDirty := false
 
 	err = db.ReadConfig(&config)
 
@@ -34,7 +39,13 @@ func Run(sim bool) {
 		log.Println("Error reading config: ", err)
 	}
 
-	isdata.InitState(&state)
+	err = db.ReadState(&state)
+
+	if err != nil {
+		log.Println("Error reading state: ", err)
+	}
+
+	stateDirty = isdata.InitState(&state)
 	config.Init()
 
 	// incoming channel to mux
@@ -75,6 +86,9 @@ func Run(sim bool) {
 	lastFillingWarning := time.Time{}
 
 	saveConfig := func() {
+		if debugConfig {
+			fmt.Printf("Config: %+v\n", config)
+		}
 		uiChan <- config
 		err := db.WriteConfig(&config)
 		if err != nil {
@@ -83,8 +97,17 @@ func Run(sim bool) {
 	}
 
 	saveState := func() {
+		if debugState {
+			fmt.Printf("State: %+v\n", state)
+		}
+		stateDirty = true
 		uiChan <- state
 	}
+
+	saveStateTimer := time.NewTicker(time.Minute)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
 
 	for {
 		// max sure queues between subsystems are not full
@@ -100,6 +123,18 @@ func Run(sim bool) {
 			}
 		}
 		select {
+		case s := <-sigChan:
+			fmt.Println("Received signal: ", s)
+			db.WriteState(&state)
+			db.WriteConfig(&config)
+			fmt.Println("state and config saved, SEE YA!")
+			os.Exit(0)
+
+		case <-saveStateTimer.C:
+			if stateDirty {
+				db.WriteState(&state)
+				stateDirty = false
+			}
 		case m := <-appChan:
 			switch m := m.(type) {
 			case isdata.LcdPixel:
@@ -132,6 +167,14 @@ func Run(sim bool) {
 				state.FlowRate = m.Rate
 				state.Total1 += m.Amount
 				state.Total2 += m.Amount
+				saveState()
+
+			case isdata.UpdateResetTotal1:
+				state.Total1 = 0
+				saveState()
+
+			case isdata.UpdateResetTotal2:
+				state.Total2 = 0
 				saveState()
 
 			default:

@@ -14,6 +14,8 @@ func main() {
 	flagDiagRun := flag.Bool("diagRun", false, "Run device diagnostics")
 	flagDiagList := flag.Bool("diagList", false, "List available diagnostics")
 	flagDiagSingle := flag.String("diagSingle", "", "Run single test")
+	flagDebugState := flag.Bool("debugState", false, "log state changes")
+	flagDebugConfig := flag.Bool("debugConfig", false, "log config changes")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -33,6 +35,6 @@ func main() {
 		return
 	}
 
-	log.Println("Starting IS app ...")
-	app.Run(*flagSim)
+	log.Printf("Starting IS app, debug State: %v, debug Config: %v\n", *flagDebugState, *flagDebugConfig)
+	app.Run(*flagSim, *flagDebugState, *flagDebugConfig)
 }

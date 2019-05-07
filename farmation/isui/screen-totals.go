@@ -44,10 +44,22 @@ func (s *TotalsScreen) Render(img draw.Image) {
 	s.menu.AddItemInt("Product 5 Total", s.state.ProductStates[4].Total)
 	s.menu.AddItemInt("Lifetime Total", s.state.LifetimeTotal)
 
-	Heading(img, "Totals")
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
 }
+
+// define position of various things on total screen
+const (
+	TotalScreenIndexCurrentField int = iota
+	TotalScreenIndexTotal1
+	TotalScreenIndexTotal2
+	TotalScreenProduct1
+	TotalScreenProduct2
+	TotalScreenProduct3
+	TotalScreenProduct4
+	TotalScreenProduct5
+	TotalScreenLifetime
+)
 
 // Key processes keypad input to this screen
 func (s *TotalsScreen) Key(key isdata.Key) (ScreenID, interface{}) {
@@ -55,6 +67,13 @@ func (s *TotalsScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 	case isdata.KeySK1:
 		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDMainMenu, nil
+	case isdata.KeySK2:
+		switch s.menu.GetArrowPos() {
+		case TotalScreenIndexTotal1:
+			return ScreenIDNoChange, isdata.UpdateResetTotal1{}
+		case TotalScreenIndexTotal2:
+			return ScreenIDNoChange, isdata.UpdateResetTotal2{}
+		}
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)
 	}

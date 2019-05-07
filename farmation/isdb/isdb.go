@@ -44,8 +44,31 @@ func (db *IsDb) ReadConfig(config *isdata.Config) error {
 	return nil
 }
 
+// ReadState reads the IS config from the database
+func (db *IsDb) ReadState(state *isdata.State) error {
+	err := db.store.Get(0, state)
+
+	if err != nil {
+		if err == bolthold.ErrNotFound {
+			// data is not stored, so simply return zero'd config
+			return nil
+		}
+
+		// there was an error reading so return error
+		return err
+	}
+
+	return nil
+}
+
 // WriteConfig writes the IS config to the database
 func (db *IsDb) WriteConfig(config *isdata.Config) error {
 
 	return db.store.Upsert(0, config)
+}
+
+// WriteState writes the IS state to the database
+func (db *IsDb) WriteState(state *isdata.State) error {
+
+	return db.store.Upsert(0, state)
 }

@@ -67,11 +67,15 @@ type GpsPos struct {
 }
 
 // InitState initializes the field state
-func InitState(s *State) {
+func InitState(s *State) (dirty bool) {
 	for len(s.FieldStates) < 4 { //not sure that 4 is the right length
 		s.FieldStates = append(s.FieldStates, FieldState{0})
+		dirty = true
 	}
 	for len(s.ProductStates) < 5 {
 		s.ProductStates = append(s.ProductStates, ProductState{0})
+		dirty = true
 	}
+
+	return
 }
