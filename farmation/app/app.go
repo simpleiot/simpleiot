@@ -20,12 +20,14 @@ import (
 )
 
 // Run is the entry point for the IS application
-func Run(sim bool, debugState bool, debugConfig bool) {
-	db, err := isdb.NewDb("./")
+func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
+	db, err := isdb.NewDb(dataDir)
 
 	if err != nil {
 		log.Fatal("Error opening db: ", err)
 	}
+
+	log.Println("Data directory: ", dataDir)
 
 	isio.GpioInit()
 

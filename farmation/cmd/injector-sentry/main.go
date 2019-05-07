@@ -18,6 +18,7 @@ func main() {
 	flagDebugState := flag.Bool("debugState", false, "log state changes")
 	flagDebugConfig := flag.Bool("debugConfig", false, "log config changes")
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
+	flagDataDir := flag.String("datadir", "", "directory to store data in")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -45,5 +46,8 @@ func main() {
 	}
 
 	log.Printf("Starting IS app, debug State: %v, debug Config: %v\n", *flagDebugState, *flagDebugConfig)
-	app.Run(*flagSim, *flagDebugState, *flagDebugConfig)
+	if *flagDataDir == "" {
+		*flagDataDir = "./"
+	}
+	app.Run(*flagSim, *flagDebugState, *flagDebugConfig, *flagDataDir)
 }
