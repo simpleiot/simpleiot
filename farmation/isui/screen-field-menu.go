@@ -8,6 +8,59 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
+type inputChars struct {
+	Lines []string
+	line  int
+	index int
+	caps  bool
+}
+
+func (ic *inputChars) Render(img draw.Image) {
+}
+
+func (ic *inputChars) Right() byte {
+	ic.index++
+	if ic.index >= len(ic.Lines[ic.line]) {
+		ic.index = 0
+		ic.line++
+	}
+
+	if ic.line >= len(ic.Lines) {
+		ic.line = 0
+	}
+
+	return ic.GetCurrent()
+}
+
+func (ic *inputChars) GetCurrent() byte {
+	return ic.Lines[ic.line][ic.index]
+}
+
+func (ic *inputChars) IndexTo(c byte) {
+	for i := 0; i <= len(ic.Lines)-1; i++ {
+		for j := 0; j <= len(ic.Lines[i]); j++ {
+			if ic.Lines[i][j] == c {
+				ic.line, ic.index = i, j
+			}
+		}
+	}
+
+}
+
+var lowerCaseInput = inputChars{
+	Lines: []string{"abcdefghijklm",
+		"nopqrstuvwxyz",
+		"0123456789. ",
+	},
+}
+
+var upperCaseInput = inputChars{
+	Lines: []string{"ABCDEFGHIJKL",
+		"MNOPQRSTUVWXYZ",
+		"0123456789. ",
+	},
+}
+
 // FieldMenuScreen is used to display status info
 type FieldMenuScreen struct {
 	softKeys     *SoftKeys
@@ -158,6 +211,18 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 			s.txtEntry = true
 			s.cursorRight(true)
 			s.enterTxt()
+		case isdata.KeyUp:
+			if s.cursor2Pos-len(s.abc)/3 >= 0 {
+				s.cursor2Pos = s.cursor2Pos - len(s.abc)/3 //switch between lines of matrix formated abc... selection
+				fmt.Println(s.cursor2Pos)
+			}
+		case isdata.KeyDown:
+			if s.cursor2Pos+len(s.abc)/3 <= 30 {
+				s.cursor2Pos = s.cursor2Pos + len(s.abc)/3
+				fmt.Println(s.cursor2Pos, len(s.abc))
+			} else {
+				s.cursor2Pos = len(s.abc) - 1
+			}
 		}
 	} else {
 		switch key {
