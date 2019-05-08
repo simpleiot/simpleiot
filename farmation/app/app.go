@@ -15,6 +15,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isflow"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/islcd"
+	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
 )
@@ -83,9 +84,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go isui.Run(uiChan, appChan, &config)
 	go isio.Run(ioChan, appChan)
 	go isapi.Server(webChan, appChan)
-	//go issim.Run(simChan, appChan)
+	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
-	go isflow.Run(flowChan, appChan)
+	go isflow.Run(flowChan, appChan, sim)
 
 	lastFillingWarning := time.Time{}
 
@@ -95,6 +96,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		}
 		uiChan <- config
 		flowChan <- config
+		logChan <- config
 		err := db.WriteConfig(&config)
 		if err != nil {
 			log.Println("Error saving config: ", err)
