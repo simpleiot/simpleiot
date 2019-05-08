@@ -79,13 +79,14 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 				}
 			}
 		}
-		if s.caps {
-			DrawTxt(img, s.abcCaps[:24], 3, 16, tightpixel15.Font)
-			DrawTxt(img, s.abcCaps[24:26], 3, 29, tightpixel15.Font)
-			DrawTxt(img, s.abcCaps[26:], 3, 42, tightpixel15.Font)
-		} else {
-			DrawTxt(img, s.abc[:26], 3, 16, tightpixel15.Font)
-			DrawTxt(img, s.abc[26:], 3, 29, tightpixel15.Font)
+		if s.caps { // ABC... selection
+			DrawTxt(img, s.abcCaps[:13], 31, 16, tightpixel15.Font)
+			DrawTxt(img, s.abcCaps[13:26], 31, 29, tightpixel15.Font)
+			DrawTxt(img, s.abcCaps[26:], 31, 42, tightpixel15.Font)
+		} else { // abc... selection
+			DrawTxt(img, s.abc[:14], 31, 16, tightpixel15.Font)
+			DrawTxt(img, s.abc[14:26], 31, 27, tightpixel15.Font)
+			DrawTxt(img, s.abc[26:], 31, 42, tightpixel15.Font)
 		}
 		widthString := int(tightpixel15.Font.MeasureString(s.txtEdit[:s.cursorPos]))
 		widthChar := int(tightpixel15.Font.MeasureString(s.txtEdit[s.cursorPos : s.cursorPos+1]))
