@@ -3,6 +3,7 @@ package islog
 // in logging, we write all timestamps as MS
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -47,50 +48,110 @@ func timeToMs(t time.Time) int64 {
 	return t.UnixNano() / (1000 * 1000)
 }
 
+func timeToUs(t time.Time) int64 {
+	return t.UnixNano() / (1000)
+}
+
+var tsFilenameFormat = "2006-01-02T150405Z07:00"
+
+func createLogFile(basename string) (*os.File, error) {
+	fileName := basename + "-" + time.Now().Format(tsFilenameFormat) + ".csv"
+	fileName = path.Join(usbMountPoint(), fileName)
+	var err error
+	log.Println("Creating: ", fileName)
+	retFile, err := os.Create(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	return retFile, nil
+}
+
 // Run goroutine for ui code
 func Run(in, out chan interface{}) {
 	config := isdata.Config{}
 	var pulseFile *os.File
+	var flowFile *os.File
 	var lastPulseTimestamp int64
 
 	stopPulseLog := func() {
 		config.LogPulseData = false
 		if pulseFile != nil {
+			log.Println("Closing pulse log file")
 			pulseFile.Close()
 		}
 		pulseFile = nil
 		lastPulseTimestamp = 0
 	}
 
+	stopFlowLog := func() {
+		config.LogFlowData = false
+		if flowFile != nil {
+			log.Println("Closing flow log file")
+			flowFile.Close()
+		}
+		flowFile = nil
+	}
+
 	for {
 		select {
 		case m := <-in:
 			switch m := m.(type) {
-			case isdata.EnablePulseLog:
-				if !m {
-					stopPulseLog()
-				}
 			case isdata.Config:
 				config = m
+				if !config.LogPulseData {
+					stopPulseLog()
+				}
+				if !config.LogFlowData {
+					stopFlowLog()
+				}
+			case isdata.Flow:
+				if config.LogFlowData {
+					if flowFile == nil {
+						usbMountPoint := usbMountPoint()
+						if usbMountPoint == "" {
+							// disable flow logging as there is no where to send the data
+							out <- isdata.UpdateLogFlowEnable(false)
+						} else {
+							var err error
+							flowFile, err = createLogFile("flow")
+							if err != nil {
+								fmt.Println("Error creating flow log file: ", err)
+							}
+						}
+					}
+
+					if flowFile != nil {
+						tsUs := timeToUs(m.Time)
+						s := strconv.FormatInt(tsUs, 10) + "," +
+							strconv.FormatFloat(m.Amount, 'f', 4, 64) + "," +
+							strconv.FormatFloat(m.Rate, 'f', 1, 64) + "," +
+							strconv.Itoa(m.Pulses) + "\n"
+						_, err := flowFile.Write([]byte(s))
+						if err != nil {
+							log.Println("Error writing flow to file: ", err)
+							stopFlowLog()
+						}
+					}
+				}
 			case isdata.Pulse:
 				if config.LogPulseData {
 					if pulseFile == nil {
 						usbMountPoint := usbMountPoint()
-						if usbMountPoint != "" {
-							fileName := "pulse-" + time.Now().Format(time.RFC3339) + ".csv"
-							fileName = path.Join(usbMountPoint, fileName)
+						if usbMountPoint == "" {
+							// disable pulse logging as there is no where to send the data
+							out <- isdata.UpdateLogPulseEnable(false)
+						} else {
 							var err error
-							log.Println("Creating: ", fileName)
-							pulseFile, err = os.Create(fileName)
+							pulseFile, err = createLogFile("pulse")
 							if err != nil {
-								log.Println("Error creating pulse file")
-								pulseFile = nil
+								fmt.Println("Error creating pulse log file: ", err)
 							}
 						}
 					}
 
 					if pulseFile != nil {
-						tsMs := timeToMs(time.Time(m))
+						tsMs := timeToUs(time.Time(m))
 						diff := tsMs - lastPulseTimestamp
 						if lastPulseTimestamp == 0 {
 							diff = 0

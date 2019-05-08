@@ -19,6 +19,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
+	"github.com/simpleiot/simpleiot/file"
 )
 
 // Run is the entry point for the IS application
@@ -176,6 +177,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.FlowRate = m.Rate
 				state.Total1 += m.Amount
 				state.Total2 += m.Amount
+				if config.LogFlowData {
+					logChan <- m
+				}
 				saveState()
 
 			case isdata.UpdateResetTotal1:
@@ -186,18 +190,29 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.Total2 = 0
 				saveState()
 
-			case isdata.UpdateToggleLogPulse:
-				config.LogPulseData = !config.LogPulseData
-				saveConfig()
-				logChan <- isdata.EnablePulseLog(config.LogPulseData)
-
-			case isdata.UpdateToggleLogFlow:
-				config.LogFlowData = !config.LogFlowData
+			case isdata.UpdateLogPulseEnable:
+				config.LogPulseData = bool(m)
 				saveConfig()
 
-			case isdata.UpdateToggleTankAlert:
-				config.TankAlertOn = !config.TankAlertOn
+			case isdata.UpdateLogFlowEnable:
+				config.LogFlowData = bool(m)
 				saveConfig()
+				if !m {
+					err := file.SyncDisks()
+					if err != nil {
+						log.Println("sync error: ", err)
+					}
+				}
+
+			case isdata.UpdateTankAlertEnable:
+				config.TankAlertOn = bool(m)
+				saveConfig()
+				if !m {
+					err := file.SyncDisks()
+					if err != nil {
+						log.Println("sync error: ", err)
+					}
+				}
 
 			case isdata.Pulse:
 				logChan <- m

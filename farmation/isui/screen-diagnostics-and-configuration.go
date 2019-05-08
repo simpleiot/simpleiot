@@ -33,8 +33,10 @@ func NewDiagnosticsScreen(state *isdata.State, config *isdata.Config) *Diagnosti
 func (s *DiagnosticsScreen) Render(img draw.Image) {
 	Clear(img)
 	s.menu.ResetItems()
-	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData, isdata.UpdateToggleLogPulse{})
-	s.menu.AddItemOnOff("Flow logging", s.config.LogFlowData, isdata.UpdateToggleLogFlow{})
+	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData,
+		isdata.UpdateLogPulseEnable(!s.config.LogPulseData))
+	s.menu.AddItemOnOff("Flow logging", s.config.LogFlowData,
+		isdata.UpdateLogFlowEnable(!s.config.LogFlowData))
 	Heading(img, "Diagnostics and Configuration")
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)

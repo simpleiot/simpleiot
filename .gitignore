@@ -19,3 +19,4 @@ gpio-test
 /spi-test
 /pulse
 /pulse*
+/flow*

@@ -21,7 +21,8 @@ func NewTankMenuScreen(state *isdata.State, config *isdata.Config) *TankMenuScre
 	menu.AddItemInt("Current Volume", state.CurrentTankVolume)
 	menu.AddItemInt("Alert Level", float64(config.TankAlertVolume))
 	menu.AddItemInt("Tank Size", float64(config.TankCapacity))
-	menu.AddItemOnOff("Alert On/Off", config.TankAlertOn, isdata.UpdateToggleTankAlert{})
+	menu.AddItemOnOff("Alert On/Off", config.TankAlertOn,
+		isdata.UpdateTankAlertEnable(!config.TankAlertOn))
 
 	return &TankMenuScreen{
 		softKeys: NewSoftKeys("back", "full"),
