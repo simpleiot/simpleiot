@@ -11,17 +11,18 @@ type Flow struct {
 	Rate     float64
 }
 
-// PulsesToFlow creates a new Flow struct from pulse data
+// PulsesToFlow creates a new Flow struct from pulse data.
+// Flow rate is GPH
 func PulsesToFlow(duration time.Duration, pulsesPerGal int, pulses int) Flow {
 	ret := Flow{
 		Duration: duration,
 		Amount:   float64(pulses) / float64(pulsesPerGal),
 	}
 
-	durationMs := duration.Nanoseconds() / (1000 * 1000)
-	durationMin := float64(durationMs) / (1000 * 60.0)
+	durationMs := float64(duration.Nanoseconds()) / (1000 * 1000)
+	durationHour := durationMs / (1000 * 60.0 * 60.0)
 
-	ret.Rate = ret.Amount / durationMin
+	ret.Rate = ret.Amount / durationHour
 
 	return ret
 }

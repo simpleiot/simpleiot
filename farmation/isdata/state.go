@@ -8,7 +8,7 @@ import (
 
 // State contains the current injectory sentry state.
 type State struct {
-	// FlowRate defines the current flow rate of the system.
+	// FlowRate defines the current flow rate of the system in GPH
 	FlowRate          float64
 	BatchApplied      float64
 	BatchRemaining    float64
