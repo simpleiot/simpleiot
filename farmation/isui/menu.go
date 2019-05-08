@@ -179,11 +179,11 @@ func (m *Menu) Render(img draw.Image) {
 				bot := 13 + offsetValues + menuSpacingValues - 1
 				switch item.On {
 				case true:
-					Line(img, 81, top, 81, bot)
-					Line(img, 93, top, 93, bot)
+					Line(img, 80, top, 80, bot)
+					Line(img, 92, top, 92, bot)
 				case false:
 					Line(img, 102, top, 102, bot)
-					Line(img, 118, top, 118, bot)
+					Line(img, 117, top, 117, bot)
 				}
 			}
 		}
