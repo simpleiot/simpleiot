@@ -1,6 +1,7 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
@@ -22,7 +23,6 @@ type FieldMenuScreen struct {
 	txtEntry     bool
 	cursorPos    int
 	cursor2Pos   int
-	notFirstMove bool // the first time the cursor was moved in the text entry selection
 }
 
 // NewFieldMenuScreen initializes and returns a HomeScreen
@@ -135,32 +135,27 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 			s.exitEdit()
 		case isdata.KeyEnter:
 			s.txtEntry = false
-			s.cursor2Pos = 0
-			s.notFirstMove = false
 			if s.cursorPos >= len(s.txtEdit)-1 { // if at end of txt
-				if s.txtEdit[s.cursorPos:] == " " { // if last char is space
+				if s.txtEdit[s.cursorPos:] == "\x00" { // if last char is null
 					s.txtEdit = s.txtEdit[:s.cursorPos] // delete space
 					s.cursorRight(false)                // and loop to beginning of txt
 				} else {
-					s.txtEdit += " " // add space for new char
+					s.txtEdit += "\x00" // add null for new char
 					s.cursorRight(false)
 				}
 			} else {
 				s.cursorRight(false)
 			}
+			//fmt.Println(s.txtEdit[s.cursorPos : s.cursorPos+1])
 		case isdata.KeyLeft:
+			s.cursor2StartPos(s.cursorPos)
 			s.txtEntry = true // show cursor in abc... selection
-			if s.notFirstMove {
-				s.cursorLeft(true)
-			}
-			s.notFirstMove = true
+			s.cursorLeft(true)
 			s.enterTxt()
 		case isdata.KeyRight:
+			s.cursor2StartPos(s.cursorPos)
 			s.txtEntry = true
-			if s.notFirstMove {
-				s.cursorRight(true)
-			}
-			s.notFirstMove = true
+			s.cursorRight(true)
 			s.enterTxt()
 		}
 	} else {
@@ -171,8 +166,8 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		case isdata.KeySK2:
 			s.edit = true
 			s.txtEdit = s.menu.Description()
-			s.abc = "abcdefghijklmnopqrstuvwxyz123456789."
-			s.abcCaps = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789."
+			s.abc = "abcdefghijklmnopqrstuvwxyz123456789. "
+			s.abcCaps = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789. "
 		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 			return s.menu.Key(key)
 		}
@@ -226,10 +221,33 @@ func (s *FieldMenuScreen) cursorLeft(isCursor2 bool) {
 	txt := &s.txtEdit
 	if isCursor2 {
 		cursorPos = &s.cursor2Pos
+		txt = &s.abc
 	}
 
 	(*cursorPos)--
 	if *cursorPos < 0 {
 		*cursorPos = len(*txt) - 1
+	}
+}
+
+// cursorStartPos
+func (s *FieldMenuScreen) cursor2StartPos(cursorPos int) {
+	char := ""
+	if cursorPos >= len(s.txtEdit)-1 {
+		char = s.txtEdit[cursorPos:]
+	} else {
+		char = s.txtEdit[cursorPos : cursorPos+1]
+	}
+	fmt.Println(char)
+	for i := 0; i <= len(s.abc)-1; i++ {
+		if s.abc[i:] == char || s.abcCaps[i:] == char { // in case at end of abc... string
+			s.cursor2Pos = i
+			break
+		} else if s.abc[i:i+1] == char || s.abcCaps[i:i+1] == char { // at beginning or middle of abc... string
+			s.cursor2Pos = i
+			break
+		} else {
+			s.cursor2Pos = len(s.abc) - 1
+		}
 	}
 }
