@@ -18,3 +18,4 @@ gpio-test
 /*.png
 /spi-test
 /pulse
+/pulse*

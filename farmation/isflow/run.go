@@ -71,10 +71,10 @@ func Run(in, out chan interface{}, sim bool) {
 				log.Printf("isflow mux: unhandled message of type %T: %+v\r\n", m, m)
 
 			}
-		case pulse := <-pulseCh:
+		case timeStamp := <-pulseCh:
 			pulses++
 			if config.LogPulseData {
-				out <- pulse
+				out <- isdata.Pulse(timeStamp)
 			}
 		case <-ticker.C:
 			out <- isdata.PulsesToFlow(tickerPeriod, pulsesPerGal, pulses)
