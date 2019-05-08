@@ -61,6 +61,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	simChan := make(chan interface{}, 100)
 	lcdChan := make(chan interface{}, 100)
 	flowChan := make(chan interface{}, 100)
+	logChan := make(chan interface{}, 1000)
 
 	channels := []struct {
 		name    string
@@ -74,6 +75,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		{"sim", simChan},
 		{"lcd", lcdChan},
 		{"flow", flowChan},
+		{"log", logChan},
 	}
 
 	// fire up subsystems
@@ -92,6 +94,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			fmt.Printf("Config: %+v\n", config)
 		}
 		uiChan <- config
+		flowChan <- config
 		err := db.WriteConfig(&config)
 		if err != nil {
 			log.Println("Error saving config: ", err)
@@ -179,6 +182,18 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.Total2 = 0
 				saveState()
 
+			case isdata.UpdateToggleLogPulse:
+				config.LogPulseData = !config.LogPulseData
+				saveConfig()
+
+			case isdata.UpdateToggleLogFlow:
+				config.LogFlowData = !config.LogFlowData
+				saveConfig()
+
+			case isdata.UpdateToggleTankAlert:
+				config.TankAlertOn = !config.TankAlertOn
+				saveConfig()
+
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
 				log.Printf("App Mux: unhandled message of type %T: %+v\r\n", m, m)
@@ -186,5 +201,4 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			}
 		}
 	}
-
 }

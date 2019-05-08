@@ -31,6 +31,7 @@ type MenuItem struct {
 	Value       float64
 	On          bool
 	Precision   int
+	Message     interface{}
 }
 
 // Menu descripes a list user selectable options
@@ -84,11 +85,12 @@ func (m *Menu) AddItemScreen(desc string, s ScreenID) {
 }
 
 // AddItemOnOff adds a on/off selection
-func (m *Menu) AddItemOnOff(desc string, on bool) {
+func (m *Menu) AddItemOnOff(desc string, on bool, msg interface{}) {
 	m.items = append(m.items, MenuItem{
 		Description: desc,
 		Type:        MenuItemTypeOnOff,
 		On:          on,
+		Message:     msg,
 	})
 
 	m.updateShowValues()
@@ -247,6 +249,8 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}) {
 			return item.Screen, nil
 		case MenuItemTypeSelect:
 			return ScreenIDNoChange, MenuSelection(item.Description)
+		case MenuItemTypeOnOff:
+			return ScreenIDNoChange, item.Message
 		}
 	}
 

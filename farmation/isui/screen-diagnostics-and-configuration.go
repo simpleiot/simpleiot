@@ -32,6 +32,9 @@ func NewDiagnosticsScreen(state *isdata.State, config *isdata.Config) *Diagnosti
 // Render updates the home screen, and provides an image
 func (s *DiagnosticsScreen) Render(img draw.Image) {
 	Clear(img)
+	s.menu.ResetItems()
+	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData, isdata.UpdateToggleLogPulse{})
+	s.menu.AddItemOnOff("Flow logging", s.config.LogFlowData, isdata.UpdateToggleLogFlow{})
 	Heading(img, "Diagnostics and Configuration")
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)

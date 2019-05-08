@@ -24,6 +24,7 @@ func NewMainMenuScreen(state *isdata.State, config *isdata.Config) *MainMenuScre
 	menu.AddItemScreen("Totals", ScreenIDTotals)
 	menu.AddItemScreen("Product Menu", ScreenIDProductMenu1)
 	menu.AddItemScreen("Calibration", ScreenIDCalibration)
+	menu.AddItemScreen("Diag/Config", ScreenIDDiagConfig)
 
 	return &MainMenuScreen{
 		softKeys: NewSoftKeys("home"),
