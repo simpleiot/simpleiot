@@ -15,6 +15,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isflow"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/islcd"
+	"github.com/simpleiot/simpleiot/farmation/islog"
 	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
@@ -87,6 +88,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
 	go isflow.Run(flowChan, appChan, sim)
+	go islog.Run(logChan, appChan)
 
 	lastFillingWarning := time.Time{}
 
@@ -119,7 +121,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	for {
 		// max sure queues between subsystems are not full
 		for _, c := range channels {
-			if len(c.channel) >= 99 {
+			if len(c.channel) >= cap(c.channel)-1 {
 				log.Println("Warning channel full: ", c.name, len(c.channel))
 				log.Println("dropping entry: ", c.name, len(c.channel))
 				<-c.channel
@@ -187,6 +189,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.UpdateToggleLogPulse:
 				config.LogPulseData = !config.LogPulseData
 				saveConfig()
+				logChan <- isdata.EnablePulseLog(config.LogPulseData)
 
 			case isdata.UpdateToggleLogFlow:
 				config.LogFlowData = !config.LogFlowData
@@ -195,6 +198,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.UpdateToggleTankAlert:
 				config.TankAlertOn = !config.TankAlertOn
 				saveConfig()
+
+			case isdata.Pulse:
+				logChan <- m
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
