@@ -152,7 +152,7 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 }
 
 // Key processes keypad input to this screen
-func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
+func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	if s.edit {
 		switch key {
 		case isdata.KeySK1: //save
@@ -160,7 +160,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 			return ScreenIDNoChange, isdata.UpdateFieldName{
 				Index: s.menu.GetArrowPos(),
 				Name:  s.txtEdit,
-			}
+			}, true
 
 		case isdata.KeySK2: //backspace
 			if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
@@ -228,7 +228,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		switch key {
 		case isdata.KeySK1:
 			s.menu.ResetArrowPos() // return arrow to top of screen
-			return ScreenIDMainMenu, nil
+			return ScreenIDMainMenu, nil, true
 		case isdata.KeySK2:
 			s.edit = true
 			s.txtEdit = s.menu.Description()
@@ -239,7 +239,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		}
 	}
 
-	return ScreenIDNoChange, nil
+	return ScreenIDNoChange, nil, true
 }
 
 // enterText replaces letter in field name at cursorPos with letter in abc... selection at cursor2Pos

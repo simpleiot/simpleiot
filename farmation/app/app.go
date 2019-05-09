@@ -83,7 +83,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 	// fire up subsystems
 	go keypad.Run(keypadChan, appChan)
-	go isui.Run(uiChan, appChan, &config)
+	go isui.Run(uiChan, appChan, config)
 	go isio.Run(ioChan, appChan)
 	go isapi.Server(webChan, appChan)
 	go issim.Run(simChan, appChan)

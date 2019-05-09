@@ -2,29 +2,29 @@ package isui
 
 import (
 	"image"
-	"image/png"
 	"log"
-	"os"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
 // Run goroutine for ui code
-func Run(in, out chan interface{}, configInit *isdata.Config) {
+func Run(in, out chan interface{}, configInit isdata.Config) {
 	lcd := image.NewRGBA(image.Rect(0, 0, 128, 64))
 	config := configInit
-	state := &isdata.State{}
+	state := isdata.State{}
 
-	var currentScreen Screen
-	screens := InitScreens(state, config)
+	screens := NewScreens(&state, &config)
+	dialog := NewDialog()
+	widgets := Widgets{}
 
-	currentScreen = screens[ScreenIDHome]
+	widgets.Add(screens)
+	widgets.Add(dialog)
 
 	renderScreen := func() {
-		currentScreen.Render(lcd)
+		widgets.Render(lcd)
 		out <- ImageToBlt(0, 0, lcd, false)
-		f, _ := os.OpenFile("lcd.png", os.O_CREATE|os.O_RDWR, 0644)
-		png.Encode(f, lcd)
+		//f, _ := os.OpenFile("lcd.png", os.O_CREATE|os.O_RDWR, 0644)
+		//png.Encode(f, lcd)
 	}
 
 	renderScreen()
@@ -34,21 +34,15 @@ func Run(in, out chan interface{}, configInit *isdata.Config) {
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.State:
-				*state = m
+				state = m
 				renderScreen()
 			case isdata.Config:
-				*config = m
+				config = m
 				renderScreen()
 			case isdata.Key:
-				newScreen, cmd := currentScreen.Key(m)
+				_, cmd, _ := widgets.Key(m)
 				if cmd != nil {
 					out <- cmd
-				}
-				if newScreen != ScreenIDNoChange {
-					ns := screens[newScreen]
-					if ns != nil {
-						currentScreen = ns
-					}
 				}
 				renderScreen()
 			default:

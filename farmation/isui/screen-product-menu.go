@@ -8,7 +8,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-// ProductMenuScreen
+// ProductMenuScreen implements the product menu
 type ProductMenuScreen struct {
 	softKeys     *SoftKeys
 	softKeysEdit *SoftKeys
@@ -97,7 +97,7 @@ func (s *ProductMenuScreen) Render(img draw.Image) {
 }
 
 // Key processes keypad input to this screen
-func (s *ProductMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
+func (s *ProductMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	if s.edit {
 		switch key {
 		case isdata.KeySK2: //backspace
@@ -172,7 +172,7 @@ func (s *ProductMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		switch key {
 		case isdata.KeySK1:
 			s.menu.ResetArrowPos() // return arrow to top of screen
-			return ScreenIDMainMenu, nil
+			return ScreenIDMainMenu, nil, true
 		case isdata.KeySK2:
 			s.edit = true
 			s.txtEdit = s.menu.Description()
@@ -183,7 +183,7 @@ func (s *ProductMenuScreen) Key(key isdata.Key) (ScreenID, interface{}) {
 		}
 	}
 
-	return ScreenIDNoChange, nil
+	return ScreenIDNoChange, nil, true
 }
 
 // enterText replaces letter in field name at cursorPos with letter in abc... selection at cursor2Pos

@@ -229,7 +229,7 @@ func (m *Menu) ResetArrowPos() {
 }
 
 // Key handles key input
-func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}) {
+func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
 	case isdata.KeyUp:
 		m.arrowPos--
@@ -246,13 +246,13 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}) {
 		switch item.Type {
 		case MenuItemTypeScreen:
 			m.ResetArrowPos()
-			return item.Screen, nil
+			return item.Screen, nil, true
 		case MenuItemTypeSelect:
-			return ScreenIDNoChange, MenuSelection(item.Description)
+			return ScreenIDNoChange, MenuSelection(item.Description), true
 		case MenuItemTypeOnOff:
-			return ScreenIDNoChange, item.Message
+			return ScreenIDNoChange, item.Message, true
 		}
 	}
 
-	return ScreenIDNoChange, nil
+	return ScreenIDNoChange, nil, true
 }

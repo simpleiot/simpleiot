@@ -37,15 +37,15 @@ func (s *HomeScreen) Render(img draw.Image) {
 }
 
 // Key processes keypad input to this screen
-func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}) {
+func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
 	case isdata.KeyRight:
-		return ScreenIDStatus1, nil
+		return ScreenIDStatus1, nil, true
 	case isdata.KeyLeft:
-		return ScreenIDStatus3, nil
+		return ScreenIDStatus3, nil, true
 	case isdata.KeySK1:
-		return ScreenIDMainMenu, nil
+		return ScreenIDMainMenu, nil, true
 	}
 
-	return ScreenIDNoChange, nil
+	return ScreenIDNoChange, nil, true
 }

@@ -29,12 +29,24 @@ func RectFilled(img draw.Image, x, y, w, h int) {
 // Clear clears an image to white color
 func Clear(img draw.Image) {
 	draw.Draw(img, img.Bounds(), &image.Uniform{color.White}, image.ZP, draw.Over)
+}
 
+// ClearRect clears a portion of the screen
+func ClearRect(img draw.Image, x, y, w, h int) {
+	min := image.Point{x, y}
+	max := image.Point{x + w, y + h}
+	bounds := image.Rectangle{min, max}
+	draw.Draw(img, bounds, &image.Uniform{color.White}, image.ZP, draw.Over)
 }
 
 // Line draw a line between two points
 func Line(img draw.Image, x1, y1, x2, y2 int) {
 	bresenham.Bresenham(img, x1, y1, x2, y2, color.Black)
+}
+
+// LineWhite draw a white line between two points
+func LineWhite(img draw.Image, x1, y1, x2, y2 int) {
+	bresenham.Bresenham(img, x1, y1, x2, y2, color.White)
 }
 
 // Polyline draws a multipoint line
