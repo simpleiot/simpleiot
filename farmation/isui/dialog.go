@@ -6,26 +6,18 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-type dialogMsg struct {
-	Text     string
-	Ok       bool
-	Yes      bool
-	No       bool
-	Callback func(yes bool)
-}
-
 // Dialog represents a UI widget that displays a dialog on the screen
 type Dialog struct {
 	visible  bool
-	current  dialogMsg
+	current  isdata.DialogMsg
 	callback func(yes bool)
-	queue    chan dialogMsg
+	queue    chan isdata.DialogMsg
 }
 
 // NewDialog creates a new dialog
 func NewDialog() *Dialog {
 	return &Dialog{
-		queue: make(chan dialogMsg, 10),
+		queue: make(chan isdata.DialogMsg, 10),
 	}
 }
 
