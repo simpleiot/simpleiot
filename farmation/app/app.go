@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -216,6 +218,16 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.Pulse:
 				logChan <- m
+
+			case isdata.Reboot:
+				if runtime.GOARCH != "arm" {
+					log.Println("on development platform, not rebooting")
+				} else {
+					err := exec.Command("reboot").Run()
+					if err != nil {
+						fmt.Println("Error running reboot command")
+					}
+				}
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why

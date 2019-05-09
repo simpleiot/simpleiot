@@ -21,6 +21,7 @@ const (
 	MenuItemTypeFloat
 	MenuItemTypeOnOff
 	MenuItemTypeSelect
+	MenuItemTypeCommand
 )
 
 // MenuItem describes a field that is displayed
@@ -118,6 +119,17 @@ func (m *Menu) AddItemFloat(desc string, v float64) {
 	m.updateShowValues()
 }
 
+// AddItemCommand adds a command menu item
+func (m *Menu) AddItemCommand(desc string, msg interface{}) {
+	m.items = append(m.items, MenuItem{
+		Description: desc,
+		Type:        MenuItemTypeCommand,
+		Message:     msg,
+	})
+
+	m.updateShowValues()
+}
+
 // SetValue is used to set a parameter value
 func (m *Menu) SetValue(desc string, v float64) {
 	for i, item := range m.items {
@@ -169,9 +181,10 @@ func (m *Menu) Render(img draw.Image) {
 				DrawTxt(img, "open", 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeSelect:
 				DrawTxt(img, "select", 78, y+offsetValues, tightpixel15.Font)
+			case MenuItemTypeCommand:
+				DrawTxt(img, "start", 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeInt:
 				DrawTxtRight(img, strconv.Itoa(int(item.Value)), 120, y+1+offsetValues, tightpixel15.Font)
-
 			case MenuItemTypeFloat:
 				v := strconv.FormatFloat(item.Value, 'f', 2, 64)
 				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
@@ -249,7 +262,7 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			return item.Screen, nil, true
 		case MenuItemTypeSelect:
 			return ScreenIDNoChange, MenuSelection(item.Description), true
-		case MenuItemTypeOnOff:
+		case MenuItemTypeOnOff, MenuItemTypeCommand:
 			return ScreenIDNoChange, item.Message, true
 		}
 	}
