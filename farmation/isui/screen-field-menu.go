@@ -47,41 +47,21 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 		s.menu.AddItemScreen(fieldConfig.Description, ScreenIDNoChange)
 	}
 
-	s.inputChars.Render(img)
-
 	if s.edit {
+
+		//Top box
 		//fmt.Println(s.txtEdit)
-		txtStartX := DrawTxtCentered(img, s.txtEdit, 64, 2, tightpixel15.Font)
+		txtStartX := DrawTxtCentered(img, string(s.txtEdit), 64, 2, tightpixel15.Font)
 		width := 116
 		Rect(img, 64-width/2-2, 0, width+2, 13)
 
+		//Soft keys
 		s.softKeysEdit.Render(img, 0, 54)
-		if s.txtEntry { //text entry mode
-			if s.caps { //cursor for caps
-				widthAbc := tightpixel15.Font.MeasureString(s.abcCaps[:s.cursor2Pos])
-				widthAbcChar := tightpixel15.Font.MeasureString(s.abcCaps[s.cursor2Pos:s.cursor2Pos+1]) - 1
-				widthLine1 := tightpixel15.Font.MeasureString(s.abcCaps[:24])
-				widthLine2 := tightpixel15.Font.MeasureString(s.abcCaps[24:26])
-				if s.cursor2Pos < 24 { //first line
-					Line(img, 3+widthAbc, 25, 3+widthAbc+widthAbcChar, 25)
-				} else if s.cursor2Pos < 26 { //second line
-					Line(img, 3+widthAbc-widthLine1, 38, 3+widthAbc+widthAbcChar-widthLine1, 38)
-				} else { //third line
-					Line(img, 3+widthAbc-widthLine1-widthLine2, 51, 3+widthAbc+widthAbcChar-widthLine1-widthLine2, 51)
-				}
-			} else { //cursor for lowercase
-				widthAbc := tightpixel15.Font.MeasureString(s.abc[:s.cursor2Pos])
-				widthLine1 := tightpixel15.Font.MeasureString(s.abc[:26])
-				widthAbcChar := tightpixel15.Font.MeasureString(s.abc[s.cursor2Pos:s.cursor2Pos+1]) - 1
-				if s.cursor2Pos < 26 { //first line
-					Line(img, 3+widthAbc, 25, 3+widthAbc+widthAbcChar, 25)
-				} else { //second line
-					Line(img, 3+widthAbc-widthLine1, 38, 3+widthAbc+widthAbcChar-widthLine1, 38)
 
-				}
-			}
-		}
-		s.inputChars.Render(img)
+		//Input Characters
+		s.inputChars.Render(img, s.txtEntry)
+
+		//Cursor
 		widthString := int(tightpixel15.Font.MeasureString(s.txtEdit[:s.cursorPos]))
 		widthChar := int(tightpixel15.Font.MeasureString(s.txtEdit[s.cursorPos : s.cursorPos+1]))
 		Line(img, txtStartX+widthString, 11, txtStartX+widthString+widthChar-1, 11)
@@ -145,27 +125,23 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			}
 			//fmt.Println(s.txtEdit[s.cursorPos : s.cursorPos+1])
 		case isdata.KeyLeft:
-			s.cursor2StartPos(s.cursorPos)
+			//s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
+			s.inputChars.Left()
 			s.txtEntry = true // show cursor in abc... selection
-			s.cursorLeft(true)
 			s.enterTxt()
 		case isdata.KeyRight:
-			s.cursor2StartPos(s.cursorPos)
+			//s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
+			s.inputChars.Right()
 			s.txtEntry = true
-			s.cursorRight(true)
 			s.enterTxt()
 		case isdata.KeyUp:
-			if s.cursor2Pos-len(s.abc)/3 >= 0 {
-				s.cursor2Pos = s.cursor2Pos - len(s.abc)/3 //switch between lines of matrix formated abc... selection
-				fmt.Println(s.cursor2Pos)
-			}
+			s.inputChars.Up()
+			s.txtEntry = true
+			s.enterTxt()
 		case isdata.KeyDown:
-			if s.cursor2Pos+len(s.abc)/3 <= 30 {
-				s.cursor2Pos = s.cursor2Pos + len(s.abc)/3
-				fmt.Println(s.cursor2Pos, len(s.abc))
-			} else {
-				s.cursor2Pos = len(s.abc) - 1
-			}
+			s.inputChars.Down()
+			s.txtEntry = true
+			s.enterTxt()
 		}
 	} else {
 		switch key {
@@ -187,19 +163,9 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 // enterText replaces letter in field name at cursorPos with letter in abc... selection at cursor2Pos
 func (s *FieldMenuScreen) enterTxt() {
-	if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
-		if s.caps {
-			s.txtEdit = s.txtEdit[:s.cursorPos] + s.abcCaps[s.cursor2Pos:s.cursor2Pos+1]
-		} else {
-			s.txtEdit = s.txtEdit[:s.cursorPos] + s.abc[s.cursor2Pos:s.cursor2Pos+1]
-		}
-	} else { //if cursor is at beginning or middle of text
-		if s.caps {
-			s.txtEdit = s.txtEdit[:s.cursorPos] + s.abcCaps[s.cursor2Pos:s.cursor2Pos+1] + s.txtEdit[s.cursorPos+1:]
-		} else {
-			s.txtEdit = s.txtEdit[:s.cursorPos] + s.abc[s.cursor2Pos:s.cursor2Pos+1] + s.txtEdit[s.cursorPos+1:]
-		}
-	}
+	byteEdit := []byte(s.txtEdit) // turn into a slice of bytes to edit
+	byteEdit[s.cursorPos] = s.inputChars.GetCurrent()
+	s.txtEdit = string(byteEdit)
 }
 
 func (s *FieldMenuScreen) exitEdit() {
