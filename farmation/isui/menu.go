@@ -43,6 +43,11 @@ type Menu struct {
 	showValues   bool
 }
 
+// NewMenu creates a new menu
+func NewMenu() *Menu {
+	return &Menu{}
+}
+
 func (m *Menu) updateShowValues() {
 	for _, item := range m.items {
 		if item.Type != MenuItemTypeScreen && item.Type != MenuItemTypeSelect {

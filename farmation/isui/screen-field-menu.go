@@ -8,59 +8,6 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-type inputChars struct {
-	Lines []string
-	line  int
-	index int
-	caps  bool
-}
-
-func (ic *inputChars) Render(img draw.Image) {
-}
-
-func (ic *inputChars) Right() byte {
-	ic.index++
-	if ic.index >= len(ic.Lines[ic.line]) {
-		ic.index = 0
-		ic.line++
-	}
-
-	if ic.line >= len(ic.Lines) {
-		ic.line = 0
-	}
-
-	return ic.GetCurrent()
-}
-
-func (ic *inputChars) GetCurrent() byte {
-	return ic.Lines[ic.line][ic.index]
-}
-
-func (ic *inputChars) IndexTo(c byte) {
-	for i := 0; i <= len(ic.Lines)-1; i++ {
-		for j := 0; j <= len(ic.Lines[i]); j++ {
-			if ic.Lines[i][j] == c {
-				ic.line, ic.index = i, j
-			}
-		}
-	}
-
-}
-
-var lowerCaseInput = inputChars{
-	Lines: []string{"abcdefghijklm",
-		"nopqrstuvwxyz",
-		"0123456789. ",
-	},
-}
-
-var upperCaseInput = inputChars{
-	Lines: []string{"ABCDEFGHIJKL",
-		"MNOPQRSTUVWXYZ",
-		"0123456789. ",
-	},
-}
-
 // FieldMenuScreen is used to display status info
 type FieldMenuScreen struct {
 	softKeys     *SoftKeys
@@ -70,7 +17,8 @@ type FieldMenuScreen struct {
 	txtEdit      string
 	abc          string
 	abcCaps      string
-	menu         Menu
+	menu         *Menu
+	inputChars   *InputChars
 	edit         bool
 	caps         bool
 	txtEntry     bool
@@ -80,14 +28,13 @@ type FieldMenuScreen struct {
 
 // NewFieldMenuScreen initializes and returns a HomeScreen
 func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuScreen {
-	menu := Menu{}
-
 	return &FieldMenuScreen{
 		softKeys:     NewSoftKeys("back", "edit", "import"),
 		softKeysEdit: NewSoftKeys("done", "bkspc", "ABC", "cancel"),
 		state:        state,
 		config:       config,
-		menu:         menu,
+		menu:         NewMenu(),
+		inputChars:   NewInputChars(true, true),
 	}
 }
 
@@ -99,6 +46,8 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 	for _, fieldConfig := range s.config.FieldConfigs {
 		s.menu.AddItemScreen(fieldConfig.Description, ScreenIDNoChange)
 	}
+
+	s.inputChars.Render(img)
 
 	if s.edit {
 		//fmt.Println(s.txtEdit)
