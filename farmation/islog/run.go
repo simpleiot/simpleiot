@@ -117,6 +117,9 @@ func Run(in, out chan interface{}) {
 							flowFile, err = createLogFile("flow")
 							if err != nil {
 								fmt.Println("Error creating flow log file: ", err)
+								out <- isdata.UpdateLogFlowEnable(false)
+							} else {
+								flowFile.Write([]byte("timestamp(us),amount,rate (GPH),average rate,pulses\n"))
 							}
 						}
 					}
@@ -126,6 +129,7 @@ func Run(in, out chan interface{}) {
 						s := strconv.FormatInt(tsUs, 10) + "," +
 							strconv.FormatFloat(m.Amount, 'f', 4, 64) + "," +
 							strconv.FormatFloat(m.Rate, 'f', 1, 64) + "," +
+							strconv.FormatFloat(m.RateAvg, 'f', 1, 64) + "," +
 							strconv.Itoa(m.Pulses) + "\n"
 						_, err := flowFile.Write([]byte(s))
 						if err != nil {
@@ -146,6 +150,9 @@ func Run(in, out chan interface{}) {
 							pulseFile, err = createLogFile("pulse")
 							if err != nil {
 								fmt.Println("Error creating pulse log file: ", err)
+								out <- isdata.UpdateLogPulseEnable(false)
+							} else {
+								pulseFile.Write([]byte("timestamp(us),diff\n"))
 							}
 						}
 					}

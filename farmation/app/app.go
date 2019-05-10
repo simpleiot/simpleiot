@@ -176,7 +176,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveConfig()
 
 			case isdata.Flow:
-				state.FlowRate = m.Rate
+				state.FlowRate = m.RateAvg
 				state.Total1 += m.Amount
 				state.Total2 += m.Amount
 				if config.LogFlowData {

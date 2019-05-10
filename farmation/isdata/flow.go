@@ -10,14 +10,15 @@ type Flow struct {
 	Duration time.Duration
 	Amount   float64
 	Rate     float64
+	RateAvg  float64
 	Pulses   int
 }
 
 // PulsesToFlow creates a new Flow struct from pulse data.
 // Flow rate is GPH
-func PulsesToFlow(duration time.Duration, pulsesPerGal int, pulses int) Flow {
+func PulsesToFlow(tm time.Time, duration time.Duration, pulsesPerGal int, pulses int) Flow {
 	ret := Flow{
-		Time:     time.Now(),
+		Time:     tm,
 		Duration: duration,
 		Amount:   float64(pulses) / float64(pulsesPerGal),
 		Pulses:   pulses,
