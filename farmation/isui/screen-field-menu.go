@@ -131,6 +131,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			s.enterTxt()
 		case isdata.KeyRight:
 			//s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
+			fmt.Println(s.txtEdit[s.cursorPos])
 			s.inputChars.Right()
 			s.txtEntry = true
 			s.enterTxt()

@@ -19,7 +19,7 @@ var alphaLowerLine1 = "abcdefghijklmn"
 var alphaLowerLine2 = "opqrstuvwxyz"
 var alphaUpperLine1 = "ABCDEFGHIJKLM"
 var alphaUpperLine2 = "NOPQRSTUVWXYZ"
-var numLine = "1234567890-/. "
+var numLine = "1234567890. "
 
 // NewInputChars creates a new inputchars widget that allows character selection.
 // alpha enables input.
@@ -136,7 +136,7 @@ func (ic *InputChars) GetCurrent() byte {
 
 // IndexTo moves the cursor to the character specified
 func (ic *InputChars) IndexTo(c byte) {
-	fmt.Println(c, ic.lines[ic.line][ic.index])
+	fmt.Println("c: ", c, "inputchar: ", ic.lines[ic.line][ic.index])
 	for line := 0; line <= len(ic.lines)-1; line++ {
 		for index := 0; index <= len(ic.lines[line])-1; index++ {
 			if ic.lines[line][index] == c {
