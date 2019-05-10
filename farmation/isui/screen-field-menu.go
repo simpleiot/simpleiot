@@ -81,15 +81,7 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 				}
 			}
 		}
-		if s.caps { // ABC... selection
-			DrawTxt(img, s.abcCaps[:13], 31, 16, tightpixel15.Font)
-			DrawTxt(img, s.abcCaps[13:26], 31, 29, tightpixel15.Font)
-			DrawTxt(img, s.abcCaps[26:], 31, 42, tightpixel15.Font)
-		} else { // abc... selection
-			DrawTxt(img, s.abc[:14], 31, 16, tightpixel15.Font)
-			DrawTxt(img, s.abc[14:26], 31, 27, tightpixel15.Font)
-			DrawTxt(img, s.abc[26:], 31, 42, tightpixel15.Font)
-		}
+		s.inputChars.Render(img)
 		widthString := int(tightpixel15.Font.MeasureString(s.txtEdit[:s.cursorPos]))
 		widthChar := int(tightpixel15.Font.MeasureString(s.txtEdit[s.cursorPos : s.cursorPos+1]))
 		Line(img, txtStartX+widthString, 11, txtStartX+widthString+widthChar-1, 11)
@@ -124,11 +116,13 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			}
 		case isdata.KeySK3: // ABC abc
 			if s.caps {
+				s.inputChars.Caps(false)
 				s.caps = false
 				if s.txtEntry {
 					s.enterTxt()
 				}
 			} else {
+				s.inputChars.Caps(true)
 				s.caps = true
 				if s.txtEntry {
 					s.enterTxt()
