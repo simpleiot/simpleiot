@@ -72,6 +72,7 @@ func Run(in, out chan interface{}, sim bool) {
 
 	flowRateMovingAvg := movingaverage.New(30)
 	var lastTick time.Time
+	var lastPulse time.Time
 
 	for {
 		select {
@@ -85,18 +86,19 @@ func Run(in, out chan interface{}, sim bool) {
 			}
 		case timeStamp := <-pulseCh:
 			pulses++
+			lastPulse = timeStamp
 			if config.LogPulseData {
 				out <- isdata.Pulse(timeStamp)
 			}
 		case <-ticker.C:
-			now := time.Now()
-			sampleDuration := now.Sub(lastTick)
-			flow := isdata.PulsesToFlow(now, sampleDuration, pulsesPerGal, pulses)
+			sampleDuration := lastPulse.Sub(lastTick)
+			fmt.Println("CLIFF: sampleDuration: ", sampleDuration)
+			flow := isdata.PulsesToFlow(lastPulse, sampleDuration, pulsesPerGal, pulses)
 			flowRateMovingAvg.Add(flow.Rate)
 			flow.RateAvg = flowRateMovingAvg.Avg()
 			out <- flow
 			pulses = 0
-			lastTick = now
+			lastTick = lastPulse
 		}
 	}
 }
