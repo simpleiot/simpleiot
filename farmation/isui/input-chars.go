@@ -41,7 +41,7 @@ func NewInputChars(alpha, numbers bool) *InputChars {
 // Render the widget
 func (ic *InputChars) Render(img draw.Image, textEntry bool) {
 
-	margin := 31 //right
+	margin := 31 // left margin size
 
 	//Input Characters
 	DrawTxt(img, ic.lines[0], 31, 16, tightpixel15.Font)

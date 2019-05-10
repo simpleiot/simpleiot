@@ -51,7 +51,7 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 
 		//Top box
 		//fmt.Println(s.txtEdit)
-		txtStartX := DrawTxtCentered(img, string(s.txtEdit), 64, 2, tightpixel15.Font)
+		txtStartX := DrawTxtCentered(img, s.txtEdit, 64, 2, tightpixel15.Font)
 		width := 116
 		Rect(img, 64-width/2-2, 0, width+2, 13)
 
