@@ -92,7 +92,6 @@ func Run(in, out chan interface{}, sim bool) {
 			}
 		case <-ticker.C:
 			sampleDuration := lastPulse.Sub(lastTick)
-			fmt.Println("CLIFF: sampleDuration: ", sampleDuration)
 			flow := isdata.PulsesToFlow(lastPulse, sampleDuration, pulsesPerGal, pulses)
 			flowRateMovingAvg.Add(flow.Rate)
 			flow.RateAvg = flowRateMovingAvg.Avg()
