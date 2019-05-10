@@ -10,6 +10,7 @@ type Flow struct {
 	Duration time.Duration
 	Amount   float64
 	Rate     float64
+	RateAvg  float64
 	Pulses   int
 }
 

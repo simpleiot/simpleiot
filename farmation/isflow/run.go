@@ -2,12 +2,14 @@ package isflow
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"runtime"
 	"time"
 
+	movingaverage "github.com/RobinUS2/golang-moving-average"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
@@ -32,6 +34,13 @@ func Run(in, out chan interface{}, sim bool) {
 				log.Println("Error opening pulse meter driver: ", err)
 				return
 			}
+
+			dumpBuffer := make([]byte, 100*1024)
+
+			// dump any pulses that have accumlated in the driver so we don't
+			// skew our results
+			c, _ := file.Read(dumpBuffer)
+			fmt.Println("Dumped pulse data: ", c)
 
 			for {
 				_, err := io.ReadFull(file, byteSlice)
@@ -58,8 +67,10 @@ func Run(in, out chan interface{}, sim bool) {
 
 	pulses := 0
 
-	tickerPeriod := 2 * time.Second
+	tickerPeriod := 1000 * time.Millisecond
 	ticker := time.NewTicker(tickerPeriod)
+
+	flowRateMovingAvg := movingaverage.New(30)
 
 	for {
 		select {
@@ -77,7 +88,10 @@ func Run(in, out chan interface{}, sim bool) {
 				out <- isdata.Pulse(timeStamp)
 			}
 		case <-ticker.C:
-			out <- isdata.PulsesToFlow(tickerPeriod, pulsesPerGal, pulses)
+			flow := isdata.PulsesToFlow(tickerPeriod, pulsesPerGal, pulses)
+			flowRateMovingAvg.Add(flow.Rate)
+			flow.RateAvg = flowRateMovingAvg.Avg()
+			out <- flow
 			pulses = 0
 		}
 	}
