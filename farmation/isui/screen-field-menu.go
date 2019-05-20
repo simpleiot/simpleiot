@@ -36,18 +36,18 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 		s.menu.AddItemScreen(fieldConfig.Description, ScreenIDNoChange)
 	}
 
-	if s.edit {
+	if s.edit { // render text entry screen
 		s.textEntryScreen.Render(img)
-	} else {
+	} else { // render regular screen
 		Heading(img, "Field Menu")
 		s.menu.Render(img)
 		s.softKeys.Render(img, 0, 54)
 	}
 }
 
-// Key handles some key inputs and passes the rest to textEntryScreen
+// Key processes key inputs to this screen
 func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
-	if s.edit {
+	if s.edit { //handles some key inputs for txt entry screen and passes rest to textEntryScreen
 		switch key {
 		case isdata.KeySK1: //save
 			s.exitEdit()
@@ -58,41 +58,8 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 		case isdata.KeySK4: // cancel
 			s.exitEdit()
-		case isdata.KeySK2, isdata.KeySK3:
+		case isdata.KeySK2, isdata.KeySK3, isdata.KeyEnter, isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
 			s.textEntryScreen.Key(key)
-			/*case isdata.KeyEnter:
-				s.txtEntry = false
-				if s.cursorPos >= len(s.txtEdit)-1 { // if at end of txt
-					if s.txtEdit[s.cursorPos:] == "\x00" { // if last char is null
-						s.txtEdit = s.txtEdit[:s.cursorPos] // delete space
-						s.cursorRight(false)                // and loop to beginning of txt
-					} else {
-						s.txtEdit += "\x00" // add null for new char
-						s.cursorRight(false)
-					}
-				} else {
-					s.cursorRight(false)
-				}
-				//fmt.Println(s.txtEdit[s.cursorPos : s.cursorPos+1])
-			case isdata.KeyLeft:
-				//s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
-				s.inputChars.Left()
-				s.txtEntry = true // show cursor in abc... selection
-				s.enterTxt()
-			case isdata.KeyRight:
-				//s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
-				fmt.Println(s.txtEdit[s.cursorPos])
-				s.inputChars.Right()
-				s.txtEntry = true
-				s.enterTxt()
-			case isdata.KeyUp:
-				s.inputChars.Up()
-				s.txtEntry = true
-				s.enterTxt()
-			case isdata.KeyDown:
-				s.inputChars.Down()
-				s.txtEntry = true
-				s.enterTxt()*/
 		}
 	} else {
 		switch key {
@@ -110,64 +77,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	return ScreenIDNoChange, nil, true
 }
 
-/*// enterText replaces letter in field name at cursorPos with letter in abc... selection at cursor2Pos
-func (s *FieldMenuScreen) enterTxt() {
-	byteEdit := []byte(s.txtEdit) // turn into a slice of bytes to edit
-	byteEdit[s.cursorPos] = s.inputChars.GetCurrent()
-	s.txtEdit = string(byteEdit)
-}
-
-// cursorRight increments a cursor position - cursorPos if isCursor2 is false, cursor2Pos if true
-func (s *FieldMenuScreen) cursorRight(isCursor2 bool) {
-	cursorPos := &s.cursorPos
-	txt := &s.txtEdit
-	if isCursor2 {
-		cursorPos = &s.cursor2Pos
-		txt = &s.abc
-	}
-	(*cursorPos)++
-	if *cursorPos >= len(*txt) {
-		*cursorPos = 0
-	}
-}
-
-// cursorLeft
-func (s *FieldMenuScreen) cursorLeft(isCursor2 bool) {
-	cursorPos := &s.cursorPos
-	txt := &s.txtEdit
-	if isCursor2 {
-		cursorPos = &s.cursor2Pos
-		txt = &s.abc
-	}
-
-	(*cursorPos)--
-	if *cursorPos < 0 {
-		*cursorPos = len(*txt) - 1
-	}
-}
-
-// cursorStartPos
-func (s *FieldMenuScreen) cursor2StartPos(cursorPos int) {
-	char := ""
-	if cursorPos >= len(s.txtEdit)-1 {
-		char = s.txtEdit[cursorPos:]
-	} else {
-		char = s.txtEdit[cursorPos : cursorPos+1]
-	}
-	fmt.Println(char)
-	for i := 0; i <= len(s.abc)-1; i++ {
-		if s.abc[i:] == char || s.abcCaps[i:] == char { // in case at end of abc... string
-			s.cursor2Pos = i
-			break
-		} else if s.abc[i:i+1] == char || s.abcCaps[i:i+1] == char { // at beginning or middle of abc... string
-			s.cursor2Pos = i
-			break
-		} else {
-			s.cursor2Pos = len(s.abc) - 1
-		}
-	}
-}*/
-
 func (s *FieldMenuScreen) exitEdit() {
 	s.edit = false
+	s.textEntryScreen.ExitEdit()
 }

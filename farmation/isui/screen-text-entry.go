@@ -13,11 +13,10 @@ type TextEntryScreen struct {
 	softKeys   *SoftKeys
 	txtEdit    string
 	caps       bool
-	txtEntry   bool
 	cursorPos  int
 }
 
-// NewTextEntryScreen initializes and returns a HomeScreen
+// NewTextEntryScreen creates a new text entry widget
 func NewTextEntryScreen() *TextEntryScreen {
 	return &TextEntryScreen{
 		softKeys:   NewSoftKeys("done", "bkspc", "ABC", "cancel"),
@@ -33,55 +32,86 @@ func (s *TextEntryScreen) Render(img draw.Image) {
 	width := 116
 	Rect(img, 64-width/2-2, 0, width+2, 13)
 
-	if s.txtEntry { // cursor
-		widthString := int(tightpixel15.Font.MeasureString(s.txtEdit[:s.cursorPos]))
-		widthChar := int(tightpixel15.Font.MeasureString(s.txtEdit[s.cursorPos : s.cursorPos+1]))
-		Line(img, txtStartX+widthString, 11, txtStartX+widthString+widthChar-1, 11)
-	}
+	// cursor
+	widthString := int(tightpixel15.Font.MeasureString(s.txtEdit[:s.cursorPos]))
+	widthChar := int(tightpixel15.Font.MeasureString(s.txtEdit[s.cursorPos : s.cursorPos+1]))
+	Line(img, txtStartX+widthString, 11, txtStartX+widthString+widthChar-1, 11)
 
 	// input characters
-	s.inputChars.Render(img, s.txtEntry)
+	s.inputChars.Render(img)
 
 	// soft keys
 	s.softKeys.Render(img, 0, 54)
 }
 
-//Key handles some key inputs to the screen and passes others to inputChars
+//Key handles some key inputs and passes the rest to inputChars
 func (s *TextEntryScreen) Key(key isdata.Key) {
-	if key == isdata.KeySK3 || key == isdata.KeyRight || key == isdata.KeyLeft || key == isdata.KeyUp || key == isdata.KeyDown {
-		s.inputChars.Key(key)
-	} else {
-		switch key {
-		case isdata.KeySK2: // Backspace
-			if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
-				if len(s.txtEdit) > 1 { //and if length of text is more than one character
-					s.txtEdit = s.txtEdit[:s.cursorPos] //cut current char off end
-				}
-			} else { //if cursor is in middle or begginning
-				s.txtEdit = s.txtEdit[:s.cursorPos] + s.txtEdit[s.cursorPos+1:] //splice two strings on either side of char
+	switch key {
+	case isdata.KeySK2: // Backspace
+		if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
+			if len(s.txtEdit) > 1 { //and if length of text is more than one character
+				s.txtEdit = s.txtEdit[:s.cursorPos] //cut current char off end
 			}
-			if s.cursorPos > 0 { //if text is more than one char
-				s.cursorPos-- //move cursor back one space
+		} else { //if cursor is in middle or begginning
+			s.txtEdit = s.txtEdit[:s.cursorPos] + s.txtEdit[s.cursorPos+1:] //splice two strings on either side of char
+		}
+		if s.cursorPos > 0 { //if text is more than one char
+			s.cursorPos-- //move cursor back one space
+		}
+	case isdata.KeySK3: // Caps
+		if s.caps {
+			s.inputChars.Caps(false)
+			s.caps = false
+			if s.inputChars.txtEntry {
+				s.enterTxt()
 			}
-		case isdata.KeySK3: // Caps
-			if s.caps {
-				s.inputChars.Caps(false)
-				s.caps = false
-				if s.txtEntry {
-					//s.enterTxt()
-				}
-			} else {
-				s.inputChars.Caps(true)
-				s.caps = true
-				if s.txtEntry {
-					//s.enterTxt()
-				}
+		} else {
+			s.inputChars.Caps(true)
+			s.caps = true
+			if s.inputChars.txtEntry {
+				s.enterTxt()
 			}
 		}
+	case isdata.KeyEnter:
+		//s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
+		s.inputChars.line, s.inputChars.index = 0, 0
+		s.inputChars.txtEntry = false
+		if s.cursorPos >= len(s.txtEdit)-1 { // if at end of txt
+			if s.txtEdit[s.cursorPos:] == "\x00" { // if last char is null
+				s.txtEdit = s.txtEdit[:s.cursorPos] // delete null char
+				s.right()                           // and loop to beginning of txt
+			} else {
+				s.txtEdit += "\x00" // add null for new char
+				s.right()
+			}
+		} else {
+			s.right()
+		}
+	case isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
+		s.inputChars.Key(key)
+		s.enterTxt()
 	}
 }
 
 // GetTextEdit returns the text that is being edited
 func (s *TextEntryScreen) GetTextEdit() string {
 	return s.txtEdit
+}
+
+//ExitEdit resets the input char cursor and the txtEdit cursor to 0
+func (s *TextEntryScreen) ExitEdit() {
+	s.cursorPos, s.inputChars.line, s.inputChars.index = 0, 0, 0
+}
+
+func (s *TextEntryScreen) right() {
+	s.cursorPos++
+	if s.cursorPos >= len(s.txtEdit) {
+		s.cursorPos = 0
+	}
+}
+
+func (s *TextEntryScreen) enterTxt() {
+	byteEdit := []byte(s.txtEdit) // turn into a slice of bytes to edit
+	byteEdit[s.cursorPos] = s.inputChars.GetCurrent()
+	s.txtEdit = string(byteEdit)
 }

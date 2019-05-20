@@ -10,10 +10,11 @@ import (
 
 // InputChars is a widget that allows us to enter text (alpha/num)
 type InputChars struct {
-	lines [3]string
-	line  int
-	index int
-	caps  bool
+	lines    [3]string
+	line     int
+	index    int
+	txtEntry bool
+	caps     bool
 }
 
 var alphaLowerLine1 = "abcdefghijklmn"
@@ -40,7 +41,7 @@ func NewInputChars(alpha, numbers bool) *InputChars {
 }
 
 // Render the widget
-func (ic *InputChars) Render(img draw.Image, txtEntry bool) {
+func (ic *InputChars) Render(img draw.Image) {
 
 	margin := 31 // left margin size
 
@@ -49,7 +50,7 @@ func (ic *InputChars) Render(img draw.Image, txtEntry bool) {
 	DrawTxt(img, ic.lines[1], 31, 29, tightpixel15.Font)
 	DrawTxt(img, ic.lines[2], 31, 42, tightpixel15.Font)
 
-	if txtEntry { //Cursor
+	if ic.txtEntry { //Cursor
 		xStartPos := tightpixel15.Font.MeasureString(ic.lines[ic.line][:ic.index])
 		_, widthChar := tightpixel15.Font.MeasureRune(rune(ic.lines[ic.line][ic.index]))
 		if ic.line == 0 { //first line
@@ -65,15 +66,17 @@ func (ic *InputChars) Render(img draw.Image, txtEntry bool) {
 //Key handles the key inputs specific to inputChars
 func (ic *InputChars) Key(key isdata.Key) {
 	switch key {
-	case isdata.KeySK3:
-		ic.Caps(true)
 	case isdata.KeyRight:
+		ic.txtEntry = true
 		ic.Right()
 	case isdata.KeyLeft:
+		ic.txtEntry = true
 		ic.Left()
 	case isdata.KeyUp:
+		ic.txtEntry = true
 		ic.Up()
 	case isdata.KeyDown:
+		ic.txtEntry = true
 		ic.Down()
 	}
 }
@@ -158,9 +161,9 @@ func (ic *InputChars) IndexTo(c byte) {
 		for index := 0; index <= len(ic.lines[line])-1; index++ {
 			if ic.lines[line][index] == c {
 				ic.line, ic.index = line, index
-			} else {
+			} /*else {
 				ic.line, ic.index = len(ic.lines)-1, len(ic.lines[ic.line])-1
-			}
+			}*/
 		}
 	}
 
