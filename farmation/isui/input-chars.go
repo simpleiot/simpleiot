@@ -5,6 +5,7 @@ import (
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
+	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
 // InputChars is a widget that allows us to enter text (alpha/num)
@@ -39,7 +40,7 @@ func NewInputChars(alpha, numbers bool) *InputChars {
 }
 
 // Render the widget
-func (ic *InputChars) Render(img draw.Image, textEntry bool) {
+func (ic *InputChars) Render(img draw.Image, txtEntry bool) {
 
 	margin := 31 // left margin size
 
@@ -48,7 +49,7 @@ func (ic *InputChars) Render(img draw.Image, textEntry bool) {
 	DrawTxt(img, ic.lines[1], 31, 29, tightpixel15.Font)
 	DrawTxt(img, ic.lines[2], 31, 42, tightpixel15.Font)
 
-	if textEntry { //Cursor
+	if txtEntry { //Cursor
 		xStartPos := tightpixel15.Font.MeasureString(ic.lines[ic.line][:ic.index])
 		_, widthChar := tightpixel15.Font.MeasureRune(rune(ic.lines[ic.line][ic.index]))
 		if ic.line == 0 { //first line
@@ -58,6 +59,22 @@ func (ic *InputChars) Render(img draw.Image, textEntry bool) {
 		} else { //third line
 			Line(img, margin+xStartPos, 51, margin+widthChar+xStartPos, 51)
 		}
+	}
+}
+
+//Key handles the key inputs specific to inputChars
+func (ic *InputChars) Key(key isdata.Key) {
+	switch key {
+	case isdata.KeySK3:
+		ic.Caps(true)
+	case isdata.KeyRight:
+		ic.Right()
+	case isdata.KeyLeft:
+		ic.Left()
+	case isdata.KeyUp:
+		ic.Up()
+	case isdata.KeyDown:
+		ic.Down()
 	}
 }
 
