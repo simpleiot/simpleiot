@@ -17,10 +17,10 @@ type TextEntryScreen struct {
 }
 
 // NewTextEntryScreen creates a new text entry widget
-func NewTextEntryScreen() *TextEntryScreen {
+func NewTextEntryScreen(alpha, numbers bool) *TextEntryScreen {
 	return &TextEntryScreen{
 		softKeys:   NewSoftKeys("done", "bkspc", "ABC", "cancel"),
-		inputChars: NewInputChars(true, true),
+		inputChars: NewInputChars(alpha, numbers),
 	}
 }
 

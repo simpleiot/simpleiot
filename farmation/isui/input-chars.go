@@ -97,11 +97,13 @@ func (ic *InputChars) Right() byte {
 	ic.index++
 	if ic.index >= len(ic.lines[ic.line]) {
 		ic.index = 0
-		ic.line++
-	}
-
-	if ic.line >= len(ic.lines) {
-		ic.line = 0
+		if ic.line >= len(ic.lines)-1 { // if we're at the end
+			ic.line = 0
+		} else if len(ic.lines[ic.line+1]) > 0 { // else if next line isn't an empty string
+			ic.line++
+		} else {
+			ic.line = 0
+		}
 	}
 
 	return ic.GetCurrent()
@@ -113,7 +115,13 @@ func (ic *InputChars) Left() byte {
 	if ic.index < 0 {
 		ic.line--
 		if ic.line < 0 {
-			ic.line = len(ic.lines) - 1
+			if len(ic.lines[len(ic.lines)-1]) > 0 { // if last line isn't an empty string
+				ic.line = len(ic.lines) - 1
+			} else if len(ic.lines[len(ic.lines)-2]) > 0 { // else if second to last isn't empty
+				ic.line = len(ic.lines) - 2
+			} else {
+				ic.line = 0
+			}
 		}
 		ic.index = len(ic.lines[ic.line]) - 1
 	}
@@ -125,7 +133,13 @@ func (ic *InputChars) Left() byte {
 func (ic *InputChars) Up() byte {
 	ic.line--
 	if ic.line < 0 {
-		ic.line = len(ic.lines) - 1
+		if len(ic.lines[len(ic.lines)-1]) > 0 {
+			ic.line = len(ic.lines) - 1
+		} else if len(ic.lines[len(ic.lines)-2]) > 0 {
+			ic.line = len(ic.lines) - 2
+		} else {
+			ic.line = 0
+		}
 	}
 
 	if ic.index >= len(ic.lines[ic.line]) {
@@ -138,10 +152,9 @@ func (ic *InputChars) Up() byte {
 //Down moves cursor down a line
 func (ic *InputChars) Down() byte {
 	ic.line++
-	if ic.line >= len(ic.lines) {
+	if ic.line >= len(ic.lines) || len(ic.lines[ic.line]) <= 0 { //if we're past the end or this line is empty
 		ic.line = 0
 	}
-
 	if ic.index >= len(ic.lines[ic.line]) {
 		ic.index = len(ic.lines[ic.line]) - 1
 	}

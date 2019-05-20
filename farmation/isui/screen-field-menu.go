@@ -23,7 +23,7 @@ func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuSc
 		state:           state,
 		config:          config,
 		menu:            NewMenu(),
-		textEntryScreen: NewTextEntryScreen(),
+		textEntryScreen: NewTextEntryScreen(true, true),
 	}
 }
 
