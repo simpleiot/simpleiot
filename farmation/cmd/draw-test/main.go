@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"image"
-	"image/color"
 	"image/png"
 	"os"
 
+	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 )
 
@@ -14,9 +14,9 @@ func main() {
 	fmt.Println("Draw test")
 	img := image.NewRGBA(image.Rect(0, 0, 128, 64))
 
-	isui.Rect(img, 10, 10, 50, 50, color.Black)
+	isui.Rect(img, 10, 10, 50, 50)
 
-	isui.DrawTxt(img, "Hi there", 64, 10)
+	isui.DrawTxt(img, "Hi there", 64, 10, tightpixel15.Font)
 
 	err := isui.DrawBmp(img, "pump-off.bmp", 64, 32)
 	if err != nil {

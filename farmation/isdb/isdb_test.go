@@ -9,10 +9,10 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	config := isdata.ISConfig{
-		ID:         "123",
-		HighWindow: 23.23,
-		LowWindow:  99.23,
+	config := isdata.Config{
+		ID:             "123",
+		HighWindowPerc: 23.23,
+		LowWindowPerc:  99.23,
 	}
 
 	os.Mkdir("./temp", os.ModePerm)
@@ -29,7 +29,7 @@ func TestConfig(t *testing.T) {
 		t.Error("failed writing config: ", err)
 	}
 
-	configR := isdata.ISConfig{}
+	configR := isdata.Config{}
 	err = db.ReadConfig(&configR)
 
 	if err != nil {
