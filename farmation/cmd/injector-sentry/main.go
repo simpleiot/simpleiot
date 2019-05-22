@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"log/syslog"
+	"os"
 
 	"github.com/simpleiot/simpleiot/farmation/app"
 	"github.com/simpleiot/simpleiot/farmation/diag"
@@ -19,6 +21,7 @@ func main() {
 	flagDebugConfig := flag.Bool("debugConfig", false, "log config changes")
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDataDir := flag.String("datadir", "", "directory to store data in")
+	flagReadPressure := flag.Bool("readPressure", false, "read pressure sensor")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -36,6 +39,20 @@ func main() {
 		isio.GpioInit()
 		diag.RunSingle(*flagDiagSingle)
 		return
+	}
+
+	if *flagReadPressure {
+		isio.GpioInit()
+		ref, sense, err := isio.ReadPressure()
+		if err != nil {
+			log.Println("Error reading pressure sensor: ", err)
+			os.Exit(-1)
+		}
+
+		pres := isio.CalcPressure(ref, sense, 250)
+
+		fmt.Printf("Pressure ref: %v, sense: %v, pres: %v\n", ref, sense, pres)
+		os.Exit(0)
 	}
 
 	if *flagSyslog {

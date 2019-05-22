@@ -3,10 +3,8 @@ package islog
 // in logging, we write all timestamps as MS
 
 import (
-	"fmt"
 	"log"
 	"os"
-	"path"
 	"runtime"
 	"strconv"
 	"time"
@@ -55,54 +53,14 @@ func timeToUs(t time.Time) int64 {
 
 var tsFilenameFormat = "2006-01-02T150405Z07:00"
 
-func createLogFile(basename string) (*os.File, error) {
-	fileName := basename + "-" + time.Now().Format(tsFilenameFormat) + ".csv"
-	fileName = path.Join(usbMountPoint(), fileName)
-	var err error
-	log.Println("Creating: ", fileName)
-	retFile, err := os.Create(fileName)
-	if err != nil {
-		return nil, err
-	}
-
-	return retFile, nil
-}
-
 // Run goroutine for ui code
 func Run(in, out chan interface{}) {
 	config := isdata.Config{}
-	var pulseFile *os.File
-	var flowFile *os.File
-	var pressureFile *os.File
 	var lastPulseTimestamp int64
 
-	stopPulseLog := func() {
-		config.LogPulseData = false
-		if pulseFile != nil {
-			log.Println("Closing pulse log file")
-			pulseFile.Close()
-		}
-		pulseFile = nil
-		lastPulseTimestamp = 0
-	}
-
-	stopFlowLog := func() {
-		config.LogFlowData = false
-		if flowFile != nil {
-			log.Println("Closing flow log file")
-			flowFile.Close()
-		}
-		flowFile = nil
-	}
-
-	stopPressureLog := func() {
-		config.LogPressureData = false
-		if pressureFile != nil {
-			log.Println("Closing pressure log file")
-			pressureFile.Close()
-		}
-		flowFile = nil
-	}
+	logPressure := NewLog("pressure", "timestamp(us),pressure (PSI)")
+	logPulse := NewLog("pulse", "timestamp(us),diff")
+	logFlow := NewLog("flow", "timestamp(us),amount,rate (GPH),average rate,pulses")
 
 	for {
 		select {
@@ -111,113 +69,63 @@ func Run(in, out chan interface{}) {
 			case isdata.Config:
 				config = m
 				if !config.LogPulseData {
-					stopPulseLog()
+					lastPulseTimestamp = 0
+					logPulse.Close()
 				}
 				if !config.LogFlowData {
-					stopFlowLog()
+					logFlow.Close()
+				}
+				if !config.LogPressureData {
+					logPressure.Close()
 				}
 			case data.Sample:
-				if m.Type != isdata.SampleTypePressure {
+				if m.Type != isdata.SampleTypePressure || !config.LogPressureData {
 					continue
 				}
 
-				if config.LogPressureData {
-					if pressureFile == nil {
-						usbMountPoint := usbMountPoint()
-						if usbMountPoint == "" {
-							// disable flow logging as there is no where to send the data
-							out <- isdata.UpdateLogPressureEnable(false)
-						} else {
-							var err error
-							pressureFile, err = createLogFile("pressure")
-							if err != nil {
-								fmt.Println("Error creating pressure log file: ", err)
-								out <- isdata.UpdateLogPressureEnable(false)
-							} else {
-								flowFile.Write([]byte("timestamp(us),pressure (PSI)\n"))
-							}
-						}
-					}
-
-					if pressureFile != nil {
-						tsUs := timeToUs(m.Time)
-						s := strconv.FormatInt(tsUs, 10) + "," +
-							strconv.FormatFloat(m.Value, 'f', 4, 64) + "\n"
-						_, err := flowFile.Write([]byte(s))
-						if err != nil {
-							log.Println("Error writing flow to file: ", err)
-							stopPressureLog()
-						}
-					}
+				tsUs := timeToUs(m.Time)
+				s := strconv.FormatInt(tsUs, 10) + "," +
+					strconv.FormatFloat(m.Value, 'f', 4, 64)
+				err := logPressure.Write(s)
+				if err != nil {
+					log.Println("Error writing pressure to file: ", err)
+					out <- isdata.UpdateLogPressureEnable(false)
 				}
 
 			case isdata.Flow:
-				if config.LogFlowData {
-					if flowFile == nil {
-						usbMountPoint := usbMountPoint()
-						if usbMountPoint == "" {
-							// disable flow logging as there is no where to send the data
-							out <- isdata.UpdateLogFlowEnable(false)
-						} else {
-							var err error
-							flowFile, err = createLogFile("flow")
-							if err != nil {
-								fmt.Println("Error creating flow log file: ", err)
-								out <- isdata.UpdateLogFlowEnable(false)
-							} else {
-								flowFile.Write([]byte("timestamp(us),amount,rate (GPH),average rate,pulses\n"))
-							}
-						}
-					}
-
-					if flowFile != nil {
-						tsUs := timeToUs(m.Time)
-						s := strconv.FormatInt(tsUs, 10) + "," +
-							strconv.FormatFloat(m.Amount, 'f', 4, 64) + "," +
-							strconv.FormatFloat(m.Rate, 'f', 1, 64) + "," +
-							strconv.FormatFloat(m.RateAvg, 'f', 1, 64) + "," +
-							strconv.Itoa(m.Pulses) + "\n"
-						_, err := flowFile.Write([]byte(s))
-						if err != nil {
-							log.Println("Error writing flow to file: ", err)
-							stopFlowLog()
-						}
-					}
+				if !config.LogFlowData {
+					continue
 				}
+
+				tsUs := timeToUs(m.Time)
+				s := strconv.FormatInt(tsUs, 10) + "," +
+					strconv.FormatFloat(m.Amount, 'f', 4, 64) + "," +
+					strconv.FormatFloat(m.Rate, 'f', 1, 64) + "," +
+					strconv.FormatFloat(m.RateAvg, 'f', 1, 64) + "," +
+					strconv.Itoa(m.Pulses) + "\n"
+				err := logFlow.Write(s)
+				if err != nil {
+					log.Println("Error writing flow to file: ", err)
+					out <- isdata.UpdateLogFlowEnable(false)
+				}
+
 			case isdata.Pulse:
-				if config.LogPulseData {
-					if pulseFile == nil {
-						usbMountPoint := usbMountPoint()
-						if usbMountPoint == "" {
-							// disable pulse logging as there is no where to send the data
-							out <- isdata.UpdateLogPulseEnable(false)
-						} else {
-							var err error
-							pulseFile, err = createLogFile("pulse")
-							if err != nil {
-								fmt.Println("Error creating pulse log file: ", err)
-								out <- isdata.UpdateLogPulseEnable(false)
-							} else {
-								pulseFile.Write([]byte("timestamp(us),diff\n"))
-							}
-						}
-					}
-
-					if pulseFile != nil {
-						tsMs := timeToUs(time.Time(m))
-						diff := tsMs - lastPulseTimestamp
-						if lastPulseTimestamp == 0 {
-							diff = 0
-						}
-						s := strconv.FormatInt(tsMs, 10) + "," + strconv.FormatInt(diff, 10) + "\n"
-						_, err := pulseFile.Write([]byte(s))
-						if err != nil {
-							log.Println("Error writing pulse to file: ", err)
-							stopPulseLog()
-						}
-						lastPulseTimestamp = tsMs
-					}
+				if !config.LogPulseData {
+					continue
 				}
+
+				tsMs := timeToUs(time.Time(m))
+				diff := tsMs - lastPulseTimestamp
+				if lastPulseTimestamp == 0 {
+					diff = 0
+				}
+				s := strconv.FormatInt(tsMs, 10) + "," + strconv.FormatInt(diff, 10)
+				err := logPulse.Write(s)
+				if err != nil {
+					log.Println("Error writing pulse to file: ", err)
+					out <- isdata.UpdateLogPulseEnable(false)
+				}
+				lastPulseTimestamp = tsMs
 			}
 		}
 	}
