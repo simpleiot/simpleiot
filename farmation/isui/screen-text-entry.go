@@ -73,8 +73,7 @@ func (s *TextEntryScreen) Key(key isdata.Key) {
 			}
 		}
 	case isdata.KeyEnter:
-		//s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
-		s.inputChars.line, s.inputChars.index = 0, 0
+		//s.inputChars.line, s.inputChars.index = 0, 0
 		s.inputChars.txtEntry = false
 		if s.cursorPos >= len(s.txtEdit)-1 { // if at end of txt
 			if s.txtEdit[s.cursorPos:] == "\x00" { // if last char is null
@@ -87,8 +86,26 @@ func (s *TextEntryScreen) Key(key isdata.Key) {
 		} else {
 			s.right()
 		}
-	case isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
-		s.inputChars.Key(key)
+		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
+	case isdata.KeyRight:
+		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
+		s.inputChars.txtEntry = true
+		s.inputChars.Right()
+		s.enterTxt()
+	case isdata.KeyLeft:
+		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
+		s.inputChars.txtEntry = true
+		s.inputChars.Left()
+		s.enterTxt()
+	case isdata.KeyUp:
+		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
+		s.inputChars.txtEntry = true
+		s.inputChars.Up()
+		s.enterTxt()
+	case isdata.KeyDown:
+		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
+		s.inputChars.txtEntry = true
+		s.inputChars.Down()
 		s.enterTxt()
 	}
 }
