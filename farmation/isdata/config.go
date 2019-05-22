@@ -35,8 +35,9 @@ type Config struct {
 	FlowMeterMaxflo   int // Meter's maximum flow rate in GPM or LPM
 
 	// Logging options
-	LogPulseData bool
-	LogFlowData  bool
+	LogPulseData    bool
+	LogFlowData     bool
+	LogPressureData bool
 }
 
 // ConfigDefault contains defaults for initializing a new system
@@ -253,6 +254,7 @@ func (c *Config) Init() {
 	// initiated by user each time system starts
 	c.LogPulseData = false
 	c.LogFlowData = false
+	c.LogPressureData = false
 	if len(c.FieldConfigs) < 4 {
 		c.FieldConfigs = []FieldConfig{
 			FieldConfig{"Field One"},

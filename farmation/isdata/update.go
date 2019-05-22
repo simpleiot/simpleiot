@@ -18,5 +18,8 @@ type UpdateLogPulseEnable bool
 // UpdateLogFlowEnable is used to enable/disable loging of flow data to USB
 type UpdateLogFlowEnable bool
 
+// UpdateLogPressureEnable is used to enable/disable loging of pressure data to USB
+type UpdateLogPressureEnable bool
+
 // UpdateTankAlertEnable is used to enable/disable the tank alert on/off
 type UpdateTankAlertEnable bool

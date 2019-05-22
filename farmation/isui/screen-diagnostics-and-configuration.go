@@ -37,6 +37,8 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 		isdata.UpdateLogPulseEnable(!s.config.LogPulseData))
 	s.menu.AddItemOnOff("Flow logging", s.config.LogFlowData,
 		isdata.UpdateLogFlowEnable(!s.config.LogFlowData))
+	s.menu.AddItemOnOff("Press logging", s.config.LogPressureData,
+		isdata.UpdateLogPressureEnable(!s.config.LogPressureData))
 	s.menu.AddItemCommand("Reboot", isdata.Reboot{})
 	Heading(img, "Diagnostics and Configuration")
 	s.menu.Render(img)

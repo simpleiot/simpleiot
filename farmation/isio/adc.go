@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // Defines for various Adc channels
@@ -27,12 +28,19 @@ var adcChan = map[string]int{
 	AdcPanelResistor: 10,
 }
 
+var adcMutex sync.Mutex
+
 // AdcRead is used to read an analog to digital convertor port
 func AdcRead(name string) (float64, error) {
+	adcMutex.Lock()
+	defer adcMutex.Unlock()
+
 	if runtime.GOARCH != "arm" {
 		return 0, errors.New("ADC code only runs on Target")
 	}
+
 	channel, ok := adcChan[name]
+
 	if !ok {
 		return 0, errors.New("invalid ADC name")
 	}
@@ -131,6 +139,17 @@ func ReadPressure() (ref float64, sense float64, err error) {
 	if err != nil {
 		return
 	}
+	sense, err = AdcRead(AdcPressureSense)
+	sense = sense / pressureScale
+	if err != nil {
+		return
+	}
+	return
+}
+
+// ReadPressureSense reads only the pressure sense voltage
+// the idea is you should not have to read the ref very often
+func ReadPressureSense() (sense float64, err error) {
 	sense, err = AdcRead(AdcPressureSense)
 	sense = sense / pressureScale
 	if err != nil {

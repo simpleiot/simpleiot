@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/file"
 )
@@ -72,6 +73,7 @@ func Run(in, out chan interface{}) {
 	config := isdata.Config{}
 	var pulseFile *os.File
 	var flowFile *os.File
+	var pressureFile *os.File
 	var lastPulseTimestamp int64
 
 	stopPulseLog := func() {
@@ -93,6 +95,15 @@ func Run(in, out chan interface{}) {
 		flowFile = nil
 	}
 
+	stopPressureLog := func() {
+		config.LogPressureData = false
+		if pressureFile != nil {
+			log.Println("Closing pressure log file")
+			pressureFile.Close()
+		}
+		flowFile = nil
+	}
+
 	for {
 		select {
 		case m := <-in:
@@ -105,6 +116,41 @@ func Run(in, out chan interface{}) {
 				if !config.LogFlowData {
 					stopFlowLog()
 				}
+			case data.Sample:
+				if m.Type != isdata.SampleTypePressure {
+					continue
+				}
+
+				if config.LogPressureData {
+					if pressureFile == nil {
+						usbMountPoint := usbMountPoint()
+						if usbMountPoint == "" {
+							// disable flow logging as there is no where to send the data
+							out <- isdata.UpdateLogPressureEnable(false)
+						} else {
+							var err error
+							pressureFile, err = createLogFile("pressure")
+							if err != nil {
+								fmt.Println("Error creating pressure log file: ", err)
+								out <- isdata.UpdateLogPressureEnable(false)
+							} else {
+								flowFile.Write([]byte("timestamp(us),pressure (PSI)\n"))
+							}
+						}
+					}
+
+					if pressureFile != nil {
+						tsUs := timeToUs(m.Time)
+						s := strconv.FormatInt(tsUs, 10) + "," +
+							strconv.FormatFloat(m.Value, 'f', 4, 64) + "\n"
+						_, err := flowFile.Write([]byte(s))
+						if err != nil {
+							log.Println("Error writing flow to file: ", err)
+							stopPressureLog()
+						}
+					}
+				}
+
 			case isdata.Flow:
 				if config.LogFlowData {
 					if flowFile == nil {

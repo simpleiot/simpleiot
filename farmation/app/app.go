@@ -18,6 +18,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/islcd"
 	"github.com/simpleiot/simpleiot/farmation/islog"
+	"github.com/simpleiot/simpleiot/farmation/ispressure"
 	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
@@ -67,6 +68,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	lcdChan := make(chan interface{}, 100)
 	flowChan := make(chan interface{}, 100)
 	logChan := make(chan interface{}, 1000)
+	presChan := make(chan interface{}, 1000)
 
 	channels := []struct {
 		name    string
@@ -81,6 +83,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		{"lcd", lcdChan},
 		{"flow", flowChan},
 		{"log", logChan},
+		{"pres", presChan},
 	}
 
 	// fire up subsystems
@@ -92,6 +95,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go islcd.Run(lcdChan, appChan)
 	go isflow.Run(flowChan, appChan, sim)
 	go islog.Run(logChan, appChan)
+	go ispressure.Run(presChan, appChan)
 
 	lastFillingWarning := time.Time{}
 
@@ -161,6 +165,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case data.Sample:
 				switch m.Type {
+				case isdata.SampleTypePressure:
+					if config.LogPressureData {
+						logChan <- m
+					}
 				case isdata.SampleTypeFlowRate:
 					state.ProcessSample(m)
 					uiChan <- state
@@ -195,9 +203,25 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.UpdateLogPulseEnable:
 				config.LogPulseData = bool(m)
 				saveConfig()
+				if !m {
+					err := file.SyncDisks()
+					if err != nil {
+						log.Println("sync error: ", err)
+					}
+				}
 
 			case isdata.UpdateLogFlowEnable:
 				config.LogFlowData = bool(m)
+				saveConfig()
+				if !m {
+					err := file.SyncDisks()
+					if err != nil {
+						log.Println("sync error: ", err)
+					}
+				}
+
+			case isdata.UpdateLogPressureEnable:
+				config.LogPressureData = bool(m)
 				saveConfig()
 				if !m {
 					err := file.SyncDisks()
