@@ -57,7 +57,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	config.Init()
 
 	// incoming channel to mux
-	appChan := make(chan interface{}, 100)
+	appChan := make(chan interface{}, 1000)
 
 	// outgoing channels to various other parts of the system
 	keypadChan := make(chan interface{}, 100)
@@ -169,6 +169,15 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					if config.LogPressureData {
 						logChan <- m
 					}
+				case isdata.SampleTypePressureMin:
+					state.PressureMin = m.Value
+					saveState()
+				case isdata.SampleTypePressureMax:
+					state.PressureMax = m.Value
+					saveState()
+				case isdata.SampleTypePressureAvg:
+					state.PressureAvg = m.Value
+					saveState()
 				case isdata.SampleTypeFlowRate:
 					state.ProcessSample(m)
 					uiChan <- state

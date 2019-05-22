@@ -22,6 +22,9 @@ type Sample struct {
 
 	// Tags are additional attributes used to describe the sample
 	Tags map[string]string `json:"tags,omitempty"`
+
+	// Attributes are additional values
+	Attributes map[string]float64 `json:"attributes,omitempty"`
 }
 
 // NewSample creates a new sample at current time

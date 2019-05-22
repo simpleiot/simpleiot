@@ -1,6 +1,7 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
 	"strconv"
 
@@ -33,6 +34,9 @@ func (s *StatusScreen1) Render(img draw.Image) {
 	Clear(img)
 	DrawTxt(img, strconv.Itoa(int(s.state.BatchApplied)), 11, 7, agencyfbbold40.Font)
 	DrawTxt(img, "GALLONS", 11, 38, tightpixel15.Font)
+	presTxt := fmt.Sprintf("%.1f %.1f %.1f PSI", s.state.PressureMin,
+		s.state.PressureAvg, s.state.PressureMax)
+	DrawTxt(img, presTxt, 38, 51, tightpixel15.Font)
 
 	s.softKeys.Render(img, 0, 54)
 }

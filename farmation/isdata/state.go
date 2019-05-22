@@ -28,6 +28,9 @@ type State struct {
 	IrrigationShutdown bool
 	ActiveFaults       []ISEvent
 	Ios                []ISIo
+	PressureMin        float64
+	PressureMax        float64
+	PressureAvg        float64
 }
 
 // ProcessSample populates state with sample data.
@@ -76,6 +79,10 @@ func InitState(s *State) (dirty bool) {
 		s.ProductStates = append(s.ProductStates, ProductState{0})
 		dirty = true
 	}
+
+	s.PressureMin = 0
+	s.PressureAvg = 0
+	s.PressureMax = 0
 
 	return
 }

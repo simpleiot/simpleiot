@@ -58,7 +58,7 @@ func Run(in, out chan interface{}) {
 	config := isdata.Config{}
 	var lastPulseTimestamp int64
 
-	logPressure := NewLog("pressure", "timestamp(us),pressure (PSI)")
+	logPressure := NewLog("pressure", "timestamp(us),pressure (PSI),min,max,avg")
 	logPulse := NewLog("pulse", "timestamp(us),diff")
 	logFlow := NewLog("flow", "timestamp(us),amount,rate (GPH),average rate,pulses")
 
@@ -85,7 +85,10 @@ func Run(in, out chan interface{}) {
 
 				tsUs := timeToUs(m.Time)
 				s := strconv.FormatInt(tsUs, 10) + "," +
-					strconv.FormatFloat(m.Value, 'f', 4, 64)
+					strconv.FormatFloat(m.Value, 'f', 2, 64) + "," +
+					strconv.FormatFloat(m.Attributes["min"], 'f', 2, 64) + "," +
+					strconv.FormatFloat(m.Attributes["max"], 'f', 2, 64) + "," +
+					strconv.FormatFloat(m.Attributes["avg"], 'f', 2, 64)
 				err := logPressure.Write(s)
 				if err != nil {
 					log.Println("Error writing pressure to file: ", err)
@@ -102,7 +105,7 @@ func Run(in, out chan interface{}) {
 					strconv.FormatFloat(m.Amount, 'f', 4, 64) + "," +
 					strconv.FormatFloat(m.Rate, 'f', 1, 64) + "," +
 					strconv.FormatFloat(m.RateAvg, 'f', 1, 64) + "," +
-					strconv.Itoa(m.Pulses) + "\n"
+					strconv.Itoa(m.Pulses)
 				err := logFlow.Write(s)
 				if err != nil {
 					log.Println("Error writing flow to file: ", err)
