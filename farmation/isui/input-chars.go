@@ -5,7 +5,6 @@ import (
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
-	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
 // InputChars is a widget that allows us to enter text (alpha/num)
@@ -21,7 +20,7 @@ var alphaLowerLine1 = "abcdefghijklmn"
 var alphaLowerLine2 = "opqrstuvwxyz"
 var alphaUpperLine1 = "ABCDEFGHIJKLM"
 var alphaUpperLine2 = "NOPQRSTUVWXYZ"
-var numLine = "1234567890. "
+var numLine = "1234567890 ."
 
 // NewInputChars creates a new inputchars widget that allows character selection.
 // alpha enables input.
@@ -64,7 +63,7 @@ func (ic *InputChars) Render(img draw.Image) {
 }
 
 //Key handles the key inputs specific to inputChars
-func (ic *InputChars) Key(key isdata.Key) {
+/*func (ic *InputChars) Key(key isdata.Key) {
 	switch key {
 	case isdata.KeyRight:
 		ic.txtEntry = true
@@ -79,7 +78,7 @@ func (ic *InputChars) Key(key isdata.Key) {
 		ic.txtEntry = true
 		ic.Down()
 	}
-}
+}*/
 
 // Caps sets to upper case
 func (ic *InputChars) Caps(enable bool) {
@@ -169,15 +168,15 @@ func (ic *InputChars) GetCurrent() byte {
 
 // IndexTo moves the cursor to the character specified
 func (ic *InputChars) IndexTo(c byte) {
-	fmt.Println("c: ", c, "inputchar: ", ic.lines[ic.line][ic.index])
 	for line := 0; line <= len(ic.lines)-1; line++ {
 		for index := 0; index <= len(ic.lines[line])-1; index++ {
-			if ic.lines[line][index] == c {
+			if ic.lines[line][index] == c || ic.lines[line][index] == c-32 || ic.lines[line][index] == c+32 {
 				ic.line, ic.index = line, index
 			} /*else {
 				ic.line, ic.index = len(ic.lines)-1, len(ic.lines[ic.line])-1
 			}*/
 		}
 	}
+	fmt.Println("c: ", c, "inputchar: ", ic.lines[ic.line][ic.index])
 
 }
