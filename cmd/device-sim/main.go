@@ -66,12 +66,12 @@ func main() {
 	voltSim := sim.NewSim(2, 0.1, 1, 5)
 
 	for {
-		tempSample := data.NewSample("T0", tempSim.Sim())
+		tempSample := data.NewSample("T0", "12", tempSim.Sim())
 		err := sendSample(*flagDeviceID, tempSample)
 		if err != nil {
 			log.Println("Error sending sample: ", err)
 		}
-		voltSample := data.NewSample("V0", voltSim.Sim())
+		voltSample := data.NewSample("V0", "12", voltSim.Sim())
 		err = sendSample(*flagDeviceID, voltSample)
 		if err != nil {
 			log.Println("Error sending sample: ", err)
