@@ -70,7 +70,7 @@ func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 		if s.cursorPos > 0 { //if text is more than one char
 			s.cursorPos-- //move cursor back one space
 		}
-
+		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
 	case isdata.KeySK4: // cancel
 		return TextEntryCommandCancel
 	case isdata.KeyEnter:
