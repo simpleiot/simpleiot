@@ -89,7 +89,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	// fire up subsystems
 	go keypad.Run(keypadChan, appChan)
 	go isui.Run(uiChan, appChan, config)
-	go isio.Run(ioChan, appChan)
+	go isio.Run(ioChan, appChan, config, state)
 	go isapi.Server(webChan, appChan)
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
@@ -106,6 +106,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		uiChan <- config
 		flowChan <- config
 		logChan <- config
+		ioChan <- config
 		err := db.WriteConfig(&config)
 		if err != nil {
 			log.Println("Error saving config: ", err)

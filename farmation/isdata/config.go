@@ -38,6 +38,11 @@ type Config struct {
 	LogPulseData    bool
 	LogFlowData     bool
 	LogPressureData bool
+
+	// Diag
+	ManualRelayAux      bool
+	ManualRelayInj      bool
+	ManualRelayShutdown bool
 }
 
 // ConfigDefault contains defaults for initializing a new system
