@@ -49,7 +49,8 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	if s.edit { //handles some key inputs for txt entry screen and passes rest to textEntryScreen
 		switch key {
-		case isdata.KeySK1: //save
+		// FIXME use return from Key instead of handling KeySK* here
+		case isdata.KeySK1: // save
 			s.exitEdit()
 			return ScreenIDNoChange, isdata.UpdateFieldName{
 				Index: s.menu.GetArrowPos(),
@@ -63,10 +64,10 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		}
 	} else {
 		switch key {
-		case isdata.KeySK1:
+		case isdata.KeySK1: // Back
 			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDMainMenu, nil, true
-		case isdata.KeySK2:
+		case isdata.KeySK2: // Edit
 			s.edit = true
 			s.textEntryScreen.txtEdit = s.menu.Description()
 		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
