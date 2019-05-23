@@ -98,23 +98,6 @@ func (ic *InputChars) Key(key isdata.Key) byte {
 	return currentInputChar
 }
 
-// Key handles key inputs specific to inputChars
-func (ic *InputChars) Key(key isdata.Key) byte {
-	currentInputChar := "\x00"[0] // null byte
-	switch key {
-	case isdata.KeyRight:
-		currentInputChar = ic.Right()
-	case isdata.KeyLeft:
-		currentInputChar = ic.Left()
-	case isdata.KeyUp:
-		currentInputChar = ic.Up()
-	case isdata.KeyDown:
-		currentInputChar = ic.Down()
-	}
-
-	return currentInputChar
-}
-
 // Right moves cursor right
 func (ic *InputChars) Right() byte {
 	ic.index++
