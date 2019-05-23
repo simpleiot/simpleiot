@@ -32,6 +32,7 @@ func NewInputChars(alpha, numbers bool) *InputChars {
 			ret.lines[2] = numLine
 		}
 	} else {
+		// FIXME add if numbers here
 		ret.lines[0] = numLine
 	}
 
