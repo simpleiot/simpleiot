@@ -95,21 +95,9 @@ func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 			s.right()
 		}
 		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
-	case isdata.KeyRight:
-		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
-		s.inputChars.Right()
-		s.enterTxt()
-	case isdata.KeyLeft:
-		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
-		s.inputChars.Left()
-		s.enterTxt()
-	case isdata.KeyUp:
-		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
-		s.inputChars.Up()
-		s.enterTxt()
-	case isdata.KeyDown:
-		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
-		s.inputChars.Down()
+	case isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
+		//s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
+		s.inputChars.Key(key)
 		s.enterTxt()
 	}
 

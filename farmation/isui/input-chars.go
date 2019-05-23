@@ -5,6 +5,7 @@ import (
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
+	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
 // InputChars is a widget that allows us to enter text (alpha/num)
@@ -70,6 +71,23 @@ func (ic *InputChars) Caps(enable bool) {
 		ic.lines[0] = alphaLowerLine1
 		ic.lines[1] = alphaLowerLine2
 	}
+}
+
+// Key handles key inputs specific to inputChars
+func (ic *InputChars) Key(key isdata.Key) byte {
+	currentInputChar := "\x00"[0] // null byte
+	switch key {
+	case isdata.KeyRight:
+		currentInputChar = ic.Right()
+	case isdata.KeyLeft:
+		currentInputChar = ic.Left()
+	case isdata.KeyUp:
+		currentInputChar = ic.Up()
+	case isdata.KeyDown:
+		currentInputChar = ic.Down()
+	}
+
+	return currentInputChar
 }
 
 // Right moves cursor right
