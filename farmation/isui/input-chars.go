@@ -43,22 +43,24 @@ func NewInputChars(alpha, numbers bool) *InputChars {
 // Render the widget
 func (ic *InputChars) Render(img draw.Image) {
 
-	margin := 31 // left margin size
+	margin := 31                         // left margin size: x-postion
+	line1Y, line2Y, line3Y := 16, 29, 42 // y-postitions of input char lines
+	cursorOffset := 9                    // cursor offset from input char lines
 
 	//Input Characters
-	DrawTxt(img, ic.lines[0], 31, 16, tightpixel15.Font)
-	DrawTxt(img, ic.lines[1], 31, 29, tightpixel15.Font)
-	DrawTxt(img, ic.lines[2], 31, 42, tightpixel15.Font)
+	DrawTxt(img, ic.lines[0], margin, line1Y, tightpixel15.Font)
+	DrawTxt(img, ic.lines[1], margin, line2Y, tightpixel15.Font)
+	DrawTxt(img, ic.lines[2], margin, line3Y, tightpixel15.Font)
 
 	xStartPos := tightpixel15.Font.MeasureString(ic.lines[ic.line][:ic.index])
 	_, widthChar := tightpixel15.Font.MeasureRune(rune(ic.lines[ic.line][ic.index]))
 	switch ic.line {
 	case 0: //first line
-		Line(img, margin+xStartPos+widthChar/2-2, 25, margin+xStartPos+widthChar/2+2, 25)
+		Line(img, margin+xStartPos+widthChar/2-2, line1Y+cursorOffset, margin+xStartPos+widthChar/2+2, line1Y+cursorOffset)
 	case 1: //second line
-		Line(img, margin+xStartPos+widthChar/2-2, 38, margin+xStartPos+widthChar/2+2, 38)
+		Line(img, margin+xStartPos+widthChar/2-2, line2Y+cursorOffset, margin+xStartPos+widthChar/2+2, line2Y+cursorOffset)
 	case 2: //third line
-		Line(img, margin+xStartPos+widthChar/2-2, 51, margin+xStartPos+widthChar/2+2, 51)
+		Line(img, margin+xStartPos+widthChar/2-2, line3Y+cursorOffset, margin+xStartPos+widthChar/2+2, line3Y+cursorOffset)
 	}
 }
 
