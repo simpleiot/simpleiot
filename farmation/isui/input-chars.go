@@ -32,9 +32,10 @@ func NewInputChars(alpha, numbers bool) *InputChars {
 		if numbers {
 			ret.lines[2] = numLine
 		}
-	} else {
-		// FIXME add if numbers here
+	} else if numbers {
 		ret.lines[0] = numLine
+	} else {
+		ret.lines[0] = "\x00"
 	}
 
 	return &ret
