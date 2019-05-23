@@ -12,7 +12,6 @@ type TextEntryScreen struct {
 	inputChars *InputChars
 	softKeys   *SoftKeys
 	txtEdit    string
-	caps       bool
 	cursorPos  int
 }
 
@@ -102,6 +101,9 @@ func (s *TextEntryScreen) GetTextEdit() string {
 //ExitEdit resets the input char cursor and the txtEdit cursor to 0
 func (s *TextEntryScreen) ExitEdit() {
 	s.cursorPos, s.inputChars.line, s.inputChars.index = 0, 0, 0
+	if s.inputChars.caps {
+		s.inputChars.Caps()
+	}
 }
 
 func (s *TextEntryScreen) right() {
