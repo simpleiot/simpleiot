@@ -96,7 +96,6 @@ func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 		}
 		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
 	case isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
-		//s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
 		s.inputChars.Key(key)
 		s.enterTxt()
 	}
@@ -121,6 +120,7 @@ func (s *TextEntryScreen) right() {
 	}
 }
 
+// enter text -- replace current char in txtEdit w/ current char in inputChars
 func (s *TextEntryScreen) enterTxt() {
 	byteEdit := []byte(s.txtEdit) // turn into a slice of bytes to edit
 	byteEdit[s.cursorPos] = s.inputChars.GetCurrent()
