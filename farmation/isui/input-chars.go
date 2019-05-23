@@ -15,8 +15,8 @@ type InputChars struct {
 	caps  bool
 }
 
-var alphaLowerLine1 = "abcdefghijklmn"
-var alphaLowerLine2 = "opqrstuvwxyz"
+var alphaLowerLine1 = "abcdefghijklm"
+var alphaLowerLine2 = "nopqrstuvwxyz"
 var alphaUpperLine1 = "ABCDEFGHIJKLM"
 var alphaUpperLine2 = "NOPQRSTUVWXYZ"
 var numLine = "1234567890 ."
