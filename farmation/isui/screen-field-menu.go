@@ -47,20 +47,19 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 
 // Key processes key inputs to this screen
 func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
-	if s.edit { //handles some key inputs for txt entry screen and passes rest to textEntryScreen
-		switch key {
-		// FIXME use return from Key instead of handling KeySK* here
-		case isdata.KeySK1: // save
+	if s.edit { // passes key inputs to textEntryScreen and follows returned commands
+		command := s.textEntryScreen.Key(key)
+		switch command {
+		case TextEntryCommandNone: // do nothing
+		case TextEntryCommandSave: //save
 			s.exitEdit()
 			return ScreenIDNoChange, isdata.UpdateFieldName{
 				Index: s.menu.GetArrowPos(),
 				Name:  s.textEntryScreen.GetTextEdit(),
 			}, true
 
-		case isdata.KeySK4: // cancel
+		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
-		case isdata.KeySK2, isdata.KeySK3, isdata.KeyEnter, isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
-			s.textEntryScreen.Key(key)
 		}
 	} else {
 		switch key {
