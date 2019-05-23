@@ -1,7 +1,6 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
@@ -193,6 +192,4 @@ func (ic *InputChars) IndexTo(c byte) {
 			}
 		}
 	}
-	fmt.Println("c: ", c, "inputchar: ", ic.lines[ic.line][ic.index])
-
 }
