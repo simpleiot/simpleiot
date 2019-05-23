@@ -178,11 +178,20 @@ func (ic *InputChars) GetCurrent() byte {
 func (ic *InputChars) IndexTo(c byte) {
 	for line := 0; line <= len(ic.lines)-1; line++ {
 		for index := 0; index <= len(ic.lines[line])-1; index++ {
-			if ic.lines[line][index] == c || ic.lines[line][index] == c-32 || ic.lines[line][index] == c+32 {
+			switch ic.lines[line][index] {
+			case c: // if current char == c
 				ic.line, ic.index = line, index
-			} /*else {
-				ic.line, ic.index = len(ic.lines)-1, len(ic.lines[ic.line])-1
-			}*/
+			case c + 32: // if current char == lowercase c
+				if ic.caps == false {
+					ic.line, ic.index = line, index
+					ic.Caps()
+				}
+			case c - 32: // if current char == capital c
+				if ic.caps {
+					ic.line, ic.index = line, index
+					ic.Caps()
+				}
+			}
 		}
 	}
 	fmt.Println("c: ", c, "inputchar: ", ic.lines[ic.line][ic.index])
