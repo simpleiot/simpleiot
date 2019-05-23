@@ -52,12 +52,13 @@ func (ic *InputChars) Render(img draw.Image) {
 	if ic.txtEntry { //Cursor
 		xStartPos := tightpixel15.Font.MeasureString(ic.lines[ic.line][:ic.index])
 		_, widthChar := tightpixel15.Font.MeasureRune(rune(ic.lines[ic.line][ic.index]))
-		if ic.line == 0 { //first line
-			Line(img, margin+xStartPos, 25, margin+widthChar+xStartPos, 25)
-		} else if ic.line == 1 { //second line
-			Line(img, margin+xStartPos, 38, margin+widthChar+xStartPos, 38)
-		} else { //third line
-			Line(img, margin+xStartPos, 51, margin+widthChar+xStartPos, 51)
+		switch ic.line {
+		case 0: //first line
+			Line(img, margin+xStartPos+widthChar/2-2, 25, margin+xStartPos+widthChar/2+2, 25)
+		case 1: //second line
+			Line(img, margin+xStartPos+widthChar/2-2, 38, margin+xStartPos+widthChar/2+2, 38)
+		case 2: //third line
+			Line(img, margin+xStartPos+widthChar/2-2, 51, margin+xStartPos+widthChar/2+2, 51)
 		}
 	}
 }
