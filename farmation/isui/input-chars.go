@@ -65,20 +65,26 @@ func (ic *InputChars) Render(img draw.Image) {
 }
 
 // Caps sets to upper case
-func (ic *InputChars) Caps(enable bool) {
-	if enable {
-		ic.lines[0] = alphaUpperLine1
-		ic.lines[1] = alphaUpperLine2
-	} else {
+func (ic *InputChars) Caps() byte {
+	if ic.caps {
 		ic.lines[0] = alphaLowerLine1
 		ic.lines[1] = alphaLowerLine2
+		ic.caps = false
+	} else {
+		ic.lines[0] = alphaUpperLine1
+		ic.lines[1] = alphaUpperLine2
+		ic.caps = true
 	}
+
+	return ic.GetCurrent()
 }
 
 // Key handles key inputs specific to inputChars
 func (ic *InputChars) Key(key isdata.Key) byte {
 	currentInputChar := "\x00"[0] // null byte
 	switch key {
+	case isdata.KeySK3: // Caps
+		currentInputChar = ic.Caps()
 	case isdata.KeyRight:
 		currentInputChar = ic.Right()
 	case isdata.KeyLeft:

@@ -70,16 +70,7 @@ func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 		if s.cursorPos > 0 { //if text is more than one char
 			s.cursorPos-- //move cursor back one space
 		}
-	case isdata.KeySK3: // Caps
-		if s.caps {
-			s.inputChars.Caps(false)
-			s.caps = false
-			s.enterTxt()
-		} else {
-			s.inputChars.Caps(true)
-			s.caps = true
-			s.enterTxt()
-		}
+
 	case isdata.KeySK4: // cancel
 		return TextEntryCommandCancel
 	case isdata.KeyEnter:
@@ -95,7 +86,7 @@ func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 			s.right()
 		}
 		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
-	case isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
+	case isdata.KeySK3, isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
 		s.inputChars.Key(key)
 		s.enterTxt()
 	}
