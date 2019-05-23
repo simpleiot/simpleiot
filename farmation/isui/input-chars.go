@@ -9,11 +9,10 @@ import (
 
 // InputChars is a widget that allows us to enter text (alpha/num)
 type InputChars struct {
-	lines    [3]string
-	line     int
-	index    int
-	txtEntry bool
-	caps     bool
+	lines [3]string
+	line  int
+	index int
+	caps  bool
 }
 
 var alphaLowerLine1 = "abcdefghijklmn"
@@ -49,37 +48,17 @@ func (ic *InputChars) Render(img draw.Image) {
 	DrawTxt(img, ic.lines[1], 31, 29, tightpixel15.Font)
 	DrawTxt(img, ic.lines[2], 31, 42, tightpixel15.Font)
 
-	if ic.txtEntry { //Cursor
-		xStartPos := tightpixel15.Font.MeasureString(ic.lines[ic.line][:ic.index])
-		_, widthChar := tightpixel15.Font.MeasureRune(rune(ic.lines[ic.line][ic.index]))
-		switch ic.line {
-		case 0: //first line
-			Line(img, margin+xStartPos+widthChar/2-2, 25, margin+xStartPos+widthChar/2+2, 25)
-		case 1: //second line
-			Line(img, margin+xStartPos+widthChar/2-2, 38, margin+xStartPos+widthChar/2+2, 38)
-		case 2: //third line
-			Line(img, margin+xStartPos+widthChar/2-2, 51, margin+xStartPos+widthChar/2+2, 51)
-		}
+	xStartPos := tightpixel15.Font.MeasureString(ic.lines[ic.line][:ic.index])
+	_, widthChar := tightpixel15.Font.MeasureRune(rune(ic.lines[ic.line][ic.index]))
+	switch ic.line {
+	case 0: //first line
+		Line(img, margin+xStartPos+widthChar/2-2, 25, margin+xStartPos+widthChar/2+2, 25)
+	case 1: //second line
+		Line(img, margin+xStartPos+widthChar/2-2, 38, margin+xStartPos+widthChar/2+2, 38)
+	case 2: //third line
+		Line(img, margin+xStartPos+widthChar/2-2, 51, margin+xStartPos+widthChar/2+2, 51)
 	}
 }
-
-//Key handles the key inputs specific to inputChars
-/*func (ic *InputChars) Key(key isdata.Key) {
-	switch key {
-	case isdata.KeyRight:
-		ic.txtEntry = true
-		ic.Right()
-	case isdata.KeyLeft:
-		ic.txtEntry = true
-		ic.Left()
-	case isdata.KeyUp:
-		ic.txtEntry = true
-		ic.Up()
-	case isdata.KeyDown:
-		ic.txtEntry = true
-		ic.Down()
-	}
-}*/
 
 // Caps sets to upper case
 func (ic *InputChars) Caps(enable bool) {
