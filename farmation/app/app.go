@@ -253,22 +253,30 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.UpdateGpioDigitalInjector:
 				state.GpioDigitalInjector = bool(m)
 				saveState()
-				//if !m { TODO
 
 			case isdata.UpdateGpioDigitalIrrigator:
 				state.GpioDigitalIrrigator = bool(m)
 				saveState()
-				//if !m { TODO
 
 			case isdata.UpdateGpioDigitalWaterOn:
 				state.GpioDigitalWaterOn = bool(m)
 				saveState()
-				//if !m { TODO
 
 			case isdata.UpdateGpioDigitalIn:
 				state.GpioDigitalIn = bool(m)
 				saveState()
-				//if !m { TODO
+
+			case isdata.UpdateManualRelayInj:
+				config.ManualRelayInj = bool(m)
+				saveConfig()
+
+			case isdata.UpdateManualRelayAux:
+				config.ManualRelayAux = bool(m)
+				saveConfig()
+
+			case isdata.UpdateManualRelayShutdown:
+				config.ManualRelayShutdown = bool(m)
+				saveConfig()
 
 			case isdata.Pulse:
 				logChan <- m

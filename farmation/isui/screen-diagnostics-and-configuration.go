@@ -33,12 +33,24 @@ func NewDiagnosticsScreen(state *isdata.State, config *isdata.Config) *Diagnosti
 func (s *DiagnosticsScreen) Render(img draw.Image) {
 	Clear(img)
 	s.menu.ResetItems()
+
+	// Relays
+	s.menu.AddItemOnOff("Inj Relay", s.config.ManualRelayInj,
+		isdata.UpdateManualRelayInj(!s.config.ManualRelayInj))
+	s.menu.AddItemOnOff("Aux Relay", s.config.ManualRelayAux,
+		isdata.UpdateManualRelayAux(!s.config.ManualRelayAux))
+	s.menu.AddItemOnOff("Shtdwn Relay", s.config.ManualRelayShutdown,
+		isdata.UpdateManualRelayShutdown(!s.config.ManualRelayShutdown))
+
+	// Logging Enable
 	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData,
 		isdata.UpdateLogPulseEnable(!s.config.LogPulseData))
 	s.menu.AddItemOnOff("Flow logging", s.config.LogFlowData,
 		isdata.UpdateLogFlowEnable(!s.config.LogFlowData))
 	s.menu.AddItemOnOff("Press logging", s.config.LogPressureData,
 		isdata.UpdateLogPressureEnable(!s.config.LogPressureData))
+
+	// Gpio's
 	s.menu.AddItemOnOff("Injector", s.state.GpioDigitalInjector,
 		isdata.UpdateGpioDigitalInjector(!s.state.GpioDigitalInjector))
 	s.menu.AddItemOnOff("Irrigator ", s.state.GpioDigitalIrrigator,
@@ -47,6 +59,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 		isdata.UpdateGpioDigitalWaterOn(!s.state.GpioDigitalWaterOn))
 	s.menu.AddItemOnOff("In", s.state.GpioDigitalIn,
 		isdata.UpdateGpioDigitalIn(!s.state.GpioDigitalIn))
+
 	s.menu.AddItemCommand("Reboot", isdata.Reboot{})
 	Heading(img, "Diagnostics and Configuration")
 	s.menu.Render(img)
