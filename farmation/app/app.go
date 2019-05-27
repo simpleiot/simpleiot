@@ -231,6 +231,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				}
 
 			//case isdata.Update
+			//TODO
 
 			case isdata.UpdateLogPressureEnable:
 				config.LogPressureData = bool(m)
