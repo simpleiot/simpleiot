@@ -37,6 +37,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 	isio.GpioInit()
 
+	// Config and state are *ONLY* modified in app.go
+	// Config is anything modified by the user
+	// State is anything modified by the program
 	config := isdata.Config{}
 	state := isdata.State{}
 	stateDirty := false
