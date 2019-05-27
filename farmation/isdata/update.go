@@ -24,5 +24,14 @@ type UpdateLogPressureEnable bool
 // UpdateTankAlertEnable is used to enable/disable the tank alert on/off
 type UpdateTankAlertEnable bool
 
-// UpdateRelayDigitalIn
-//TODO
+// UpdateGpioDigitalInjector is used to transmit GpioDigitalInjector value
+type UpdateGpioDigitalInjector bool
+
+// UpdateGpioDigitalIrrigator is used to transmit GpioDigitalIrrigator value
+type UpdateGpioDigitalIrrigator bool
+
+// UpdateGpioDigitalWaterOn is used to transmit GpioDigitalWaterOn value
+type UpdateGpioDigitalWaterOn bool
+
+// UpdateGpioDigitalIn is used to transmit GpioDigitalIn value
+type UpdateGpioDigitalIn bool

@@ -31,6 +31,12 @@ type State struct {
 	PressureMin        float64
 	PressureMax        float64
 	PressureAvg        float64
+
+	// Gpio's
+	GpioDigitalInjector  bool
+	GpioDigitalIrrigator bool
+	GpioDigitalWaterOn   bool
+	GpioDigitalIn        bool
 }
 
 // ProcessSample populates state with sample data.
