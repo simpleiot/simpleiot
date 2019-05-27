@@ -89,7 +89,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	// fire up subsystems
 	go keypad.Run(keypadChan, appChan)
 	go isui.Run(uiChan, appChan, config)
-	go isio.Run(ioChan, appChan, config, state)
+	go isio.Run(ioChan, appChan, config, state) // this is where io Run is called, w/ ioChan as in chan and appChan as out chan
 	go isapi.Server(webChan, appChan)
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
@@ -229,6 +229,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 						log.Println("sync error: ", err)
 					}
 				}
+
+			//case isdata.Update
 
 			case isdata.UpdateLogPressureEnable:
 				config.LogPressureData = bool(m)

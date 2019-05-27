@@ -6,7 +6,27 @@ import (
 )
 
 func setRelay(config *isdata.Config) {
-	// todo
+
+	// Injector relay
+	if config.ManualRelayInj {
+		config.ManualRelayInj = false
+	} else {
+		config.ManualRelayInj = true
+	}
+
+	// Auxillary relay
+	if config.ManualRelayAux {
+		config.ManualRelayAux = false
+	} else {
+		config.ManualRelayAux = true
+	}
+
+	// Shutdown relay
+	if config.ManualRelayShutdown {
+		config.ManualRelayShutdown = false
+	} else {
+		config.ManualRelayShutdown = true
+	}
 }
 
 // Run goroutine for IO code
@@ -22,6 +42,7 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			case isdata.Config:
 				config = m
 				setRelay(&config)
+				out <- &config
 			case data.Sample:
 				// ... todo
 				_ = m

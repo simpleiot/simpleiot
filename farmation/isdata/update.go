@@ -23,3 +23,5 @@ type UpdateLogPressureEnable bool
 
 // UpdateTankAlertEnable is used to enable/disable the tank alert on/off
 type UpdateTankAlertEnable bool
+
+// UpdateRelayDigitalIn
