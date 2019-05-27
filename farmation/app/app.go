@@ -112,7 +112,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			log.Println("Error saving config: ", err)
 		}
 	}
-
+	// TODO use this structure to save state
 	saveState := func() {
 		if debugState {
 			fmt.Printf("State: %+v\n", state)
@@ -230,9 +230,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					}
 				}
 
-			//case isdata.Update
-			//TODO
-
 			case isdata.UpdateLogPressureEnable:
 				config.LogPressureData = bool(m)
 				saveConfig()
@@ -252,6 +249,26 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 						log.Println("sync error: ", err)
 					}
 				}
+
+			case isdata.UpdateGpioDigitalInjector:
+				state.GpioDigitalInjector = bool(m)
+				saveState()
+				//if !m { TODO
+
+			case isdata.UpdateGpioDigitalIrrigator:
+				state.GpioDigitalIrrigator = bool(m)
+				saveState()
+				//if !m { TODO
+
+			case isdata.UpdateGpioDigitalWaterOn:
+				state.GpioDigitalWaterOn = bool(m)
+				saveState()
+				//if !m { TODO
+
+			case isdata.UpdateGpioDigitalIn:
+				state.GpioDigitalIn = bool(m)
+				saveState()
+				//if !m { TODO
 
 			case isdata.Pulse:
 				logChan <- m

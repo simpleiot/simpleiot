@@ -39,6 +39,14 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 		isdata.UpdateLogFlowEnable(!s.config.LogFlowData))
 	s.menu.AddItemOnOff("Press logging", s.config.LogPressureData,
 		isdata.UpdateLogPressureEnable(!s.config.LogPressureData))
+	s.menu.AddItemOnOff("Injector", s.state.GpioDigitalInjector,
+		isdata.UpdateGpioDigitalInjector(!s.state.GpioDigitalInjector))
+	s.menu.AddItemOnOff("Irrigator ", s.state.GpioDigitalIrrigator,
+		isdata.UpdateGpioDigitalIrrigator(!s.state.GpioDigitalIrrigator))
+	s.menu.AddItemOnOff("Water On", s.state.GpioDigitalWaterOn,
+		isdata.UpdateGpioDigitalWaterOn(!s.state.GpioDigitalWaterOn))
+	s.menu.AddItemOnOff("In", s.state.GpioDigitalIn,
+		isdata.UpdateGpioDigitalIn(!s.state.GpioDigitalIn))
 	s.menu.AddItemCommand("Reboot", isdata.Reboot{})
 	Heading(img, "Diagnostics and Configuration")
 	s.menu.Render(img)
