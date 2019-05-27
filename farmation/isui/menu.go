@@ -92,6 +92,14 @@ func (m *Menu) AddItemScreen(desc string, s ScreenID) {
 	m.updateShowValues()
 }
 
+// BoolToString turns a boolean value into "on"/"off"
+func (m *Menu) BoolToString(val bool) string {
+	if val {
+		return "on"
+	}
+	return "off"
+}
+
 // AddItemOnOff adds a on/off selection
 func (m *Menu) AddItemOnOff(desc string, on bool, msg interface{}) {
 	m.items = append(m.items, MenuItem{

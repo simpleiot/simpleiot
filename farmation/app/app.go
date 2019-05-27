@@ -122,6 +122,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		}
 		stateDirty = true
 		uiChan <- state
+		ioChan <- state
 	}
 
 	saveStateTimer := time.NewTicker(time.Minute)

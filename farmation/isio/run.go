@@ -8,27 +8,10 @@ import (
 )
 
 func setRelay(config *isdata.Config) {
+	GpioOut(GpioRelayInjectorEn, config.ManualRelayInj)
+	GpioOut(GpioRelayAuxEn, config.ManualRelayAux)
+	GpioOut(GpioRelayInjectorEn, config.ManualRelayInj)
 
-	/*// Injector relay
-	if config.ManualRelayInj {
-		config.ManualRelayInj = false
-	} else {
-		config.ManualRelayInj = true
-	}
-
-	// Auxillary relay
-	if config.ManualRelayAux {
-		config.ManualRelayAux = false
-	} else {
-		config.ManualRelayAux = true
-	}
-
-	// Shutdown relay
-	if config.ManualRelayShutdown {
-		config.ManualRelayShutdown = false
-	} else {
-		config.ManualRelayShutdown = true
-	}*/
 }
 
 // Run goroutine for IO code
