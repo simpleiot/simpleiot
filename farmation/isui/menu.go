@@ -17,6 +17,7 @@ var menuSpacingValues = 11
 // List of possible Param Types
 const (
 	MenuItemTypeScreen MenuItemType = iota
+	MenuItemString
 	MenuItemTypeInt
 	MenuItemTypeFloat
 	MenuItemTypeOnOff
@@ -30,6 +31,7 @@ type MenuItem struct {
 	Type        MenuItemType
 	Screen      ScreenID
 	Value       float64
+	ValueString string
 	On          bool
 	Precision   int
 	Message     interface{}
@@ -97,6 +99,17 @@ func (m *Menu) AddItemOnOff(desc string, on bool, msg interface{}) {
 		Type:        MenuItemTypeOnOff,
 		On:          on,
 		Message:     msg,
+	})
+
+	m.updateShowValues()
+}
+
+// AddItemString adds a select list item
+func (m *Menu) AddItemString(desc string, value string) {
+	m.items = append(m.items, MenuItem{
+		Description: desc,
+		ValueString: value,
+		Type:        MenuItemString,
 	})
 
 	m.updateShowValues()
@@ -188,6 +201,8 @@ func (m *Menu) Render(img draw.Image) {
 				DrawTxt(img, "select", 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeCommand:
 				DrawTxt(img, "start", 78, y+offsetValues, tightpixel15.Font)
+			case MenuItemString:
+				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeInt:
 				DrawTxtRight(img, strconv.Itoa(int(item.Value)), 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeFloat:
