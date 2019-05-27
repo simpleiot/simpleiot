@@ -11,11 +11,13 @@ import (
 
 // define gpios
 const (
+	// inputs
 	GpioDigitalInjector  string = "GpioDigitalInjector"
 	GpioDigitalIrrigator        = "GpioDigitalIrrigator"
 	GpioDigitalWaterOn          = "GpioDigitalWaterOn"
 	GpioDigitalIn               = "GpioDigitalIn"
 
+	// relay outputs
 	GpioRelayInjectorEn = "GpioRelayInjectorEn"
 	GpioRelayShutdownEn = "GpioRelayShutdownEn"
 	GpioRelayAuxEn      = "GpioRelayAuxEn"
