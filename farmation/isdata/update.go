@@ -6,6 +6,12 @@ type UpdateFieldName struct {
 	Name  string
 }
 
+// UpdateProductName is a message used to update the field name in the config
+type UpdateProductName struct {
+	Index int
+	Name  string
+}
+
 // UpdateResetTotal1 is used to reset total1
 type UpdateResetTotal1 struct{}
 

@@ -197,6 +197,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.FieldConfigs[m.Index].Description = m.Name
 				saveConfig()
 
+			case isdata.UpdateProductName:
+				config.ProductConfigs[m.Index].Description = m.Name
+				saveConfig()
+
 			case isdata.Flow:
 				state.FlowRate = m.RateAvg
 				state.Total1 += m.Amount

@@ -20,19 +20,19 @@ type Config struct {
 	ManualLowAlarmGPH  float64
 
 	// BatchAmount max value is 9,999
-	BatchAmount       int
-	WaterOn           bool
-	OperatingMode     ISOperatingMode
-	CurrentField      string
-	CurrentFieldIndex int
-	FieldConfigs      []FieldConfig
-	ProductConfigs    []ProductConfig
-	NetworkConfig     NetworkConfig
-	TankCapacity      int
-	TankAlertVolume   int
-	TankAlertOn       bool
-	FlowMeterPPG      int // how many pulses in one US gallon
-	FlowMeterMaxflo   int // Meter's maximum flow rate in GPM or LPM
+	BatchAmount         int
+	WaterOn             bool
+	OperatingMode       ISOperatingMode
+	CurrentFieldIndex   int
+	FieldConfigs        []FieldConfig
+	CurrentProductIndex int
+	ProductConfigs      []ProductConfig
+	NetworkConfig       NetworkConfig
+	TankCapacity        int
+	TankAlertVolume     int
+	TankAlertOn         bool
+	FlowMeterPPG        int // how many pulses in one US gallon
+	FlowMeterMaxflo     int // Meter's maximum flow rate in GPM or LPM
 
 	// Logging options
 	LogPulseData    bool
@@ -260,12 +260,22 @@ func (c *Config) Init() {
 	c.LogPulseData = false
 	c.LogFlowData = false
 	c.LogPressureData = false
+
 	if len(c.FieldConfigs) < 4 {
 		c.FieldConfigs = []FieldConfig{
 			FieldConfig{"Field One"},
 			FieldConfig{"Field Two"},
 			FieldConfig{"Field Three"},
 			FieldConfig{"Field Four"},
+		}
+	}
+
+	if len(c.ProductConfigs) < 4 {
+		c.ProductConfigs = []ProductConfig{
+			ProductConfig{"Product One"},
+			ProductConfig{"Product Two"},
+			ProductConfig{"Product Three"},
+			ProductConfig{"Product Four"},
 		}
 	}
 }
