@@ -21,7 +21,6 @@ func NewDiagnosticsScreen(state *isdata.State, config *isdata.Config) *Diagnosti
 	menu := Menu{}
 
 	return &DiagnosticsScreen{
-		// update this from sample screen
 		softKeys: NewSoftKeys("back"),
 		state:    state,
 		config:   config,
@@ -34,19 +33,9 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	Clear(img)
 	s.menu.ResetItems()
 
-	// Relays
-	s.menu.AddItemOnOff("Inj Relay", s.config.ManualRelayInj,
-		isdata.UpdateManualRelayInj(!s.config.ManualRelayInj))
-	s.menu.AddItemOnOff("Aux Relay", s.config.ManualRelayAux,
-		isdata.UpdateManualRelayAux(!s.config.ManualRelayAux))
-	s.menu.AddItemOnOff("Shtdwn Relay", s.config.ManualRelayShutdown,
-		isdata.UpdateManualRelayShutdown(!s.config.ManualRelayShutdown))
-
-	// Gpio's
-	s.menu.AddItemString("Injector", BoolToString(s.state.GpioDigitalInjector))
-	s.menu.AddItemString("Irrigator", BoolToString(s.state.GpioDigitalIrrigator))
-	s.menu.AddItemString("Water On", BoolToString(s.state.GpioDigitalWaterOn))
-	s.menu.AddItemString("In", BoolToString(s.state.GpioDigitalIn))
+	// Sub screens
+	s.menu.AddItemScreen("Inputs", ScreenIDDiagInputs)
+	s.menu.AddItemScreen("Outputs", ScreenIDDiagOutputs)
 
 	// Logging Enable
 	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData,

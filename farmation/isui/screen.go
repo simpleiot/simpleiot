@@ -26,6 +26,8 @@ const (
 	ScreenIDProductMenu1
 	ScreenIDCalibration
 	ScreenIDDiagConfig
+	ScreenIDDiagInputs
+	ScreenIDDiagOutputs
 )
 
 // Screens is a map of all screens in the system
@@ -56,6 +58,8 @@ func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 	ret.Add(ScreenIDProductMenu1, NewProductMenuScreen(state, config))
 	ret.Add(ScreenIDCalibration, NewCalibrationScreen(state, config))
 	ret.Add(ScreenIDDiagConfig, NewDiagnosticsScreen(state, config))
+	ret.Add(ScreenIDDiagInputs, NewDiagInputsScreen(state, config))
+	ret.Add(ScreenIDDiagOutputs, NewDiagOutputsScreen(state, config))
 
 	ret.currentScreen = ScreenIDHome
 
