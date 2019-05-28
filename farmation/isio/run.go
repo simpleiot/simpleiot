@@ -1,10 +1,9 @@
 package isio
 
 import (
-	"fmt"
+	"log"
 	"time"
 
-	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
@@ -28,14 +27,12 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			case isdata.Config:
 				config = m
 				setRelay(&config)
-			case data.Sample:
-				// ... todo
-				_ = m
+			case isdata.State:
+				state = m
+			default:
+				log.Printf("Isio Mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
 		case <-gpioReadTicker.C: // if gpio ticker fires
-
-			fmt.Println("ticker fired")
-
 			// if state of gpio changed
 			// send new state out on chan
 
