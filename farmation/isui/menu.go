@@ -93,7 +93,7 @@ func (m *Menu) AddItemScreen(desc string, s ScreenID) {
 }
 
 // BoolToString turns a boolean value into "on"/"off"
-func (m *Menu) BoolToString(val bool) string {
+func BoolToString(val bool) string {
 	if val {
 		return "on"
 	}

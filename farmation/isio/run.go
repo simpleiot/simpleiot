@@ -1,6 +1,7 @@
 package isio
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -10,8 +11,7 @@ import (
 func setRelay(config *isdata.Config) {
 	GpioOut(GpioRelayInjectorEn, config.ManualRelayInj)
 	GpioOut(GpioRelayAuxEn, config.ManualRelayAux)
-	GpioOut(GpioRelayInjectorEn, config.ManualRelayInj)
-
+	GpioOut(GpioRelayShutdownEn, config.ManualRelayShutdown)
 }
 
 // Run goroutine for IO code
@@ -33,6 +33,8 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				_ = m
 			}
 		case <-gpioReadTicker.C: // if gpio ticker fires
+
+			fmt.Println("ticker fired")
 
 			// if state of gpio changed
 			// send new state out on chan

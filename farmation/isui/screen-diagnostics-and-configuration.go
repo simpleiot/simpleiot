@@ -42,6 +42,12 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemOnOff("Shtdwn Relay", s.config.ManualRelayShutdown,
 		isdata.UpdateManualRelayShutdown(!s.config.ManualRelayShutdown))
 
+	// Gpio's
+	s.menu.AddItemString("Injector", BoolToString(s.state.GpioDigitalInjector))
+	s.menu.AddItemString("Irrigator", BoolToString(s.state.GpioDigitalIrrigator))
+	s.menu.AddItemString("Water On", BoolToString(s.state.GpioDigitalWaterOn))
+	s.menu.AddItemString("In", BoolToString(s.state.GpioDigitalIn))
+
 	// Logging Enable
 	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData,
 		isdata.UpdateLogPulseEnable(!s.config.LogPulseData))
@@ -50,14 +56,8 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemOnOff("Press logging", s.config.LogPressureData,
 		isdata.UpdateLogPressureEnable(!s.config.LogPressureData))
 
-	// Gpio's
-	s.menu.AddItemString("Injector", s.menu.BoolToString(s.state.GpioDigitalInjector))
-	s.menu.AddItemString("Irrigator", s.menu.BoolToString(s.state.GpioDigitalIrrigator))
-	s.menu.AddItemString("Water On", s.menu.BoolToString(s.state.GpioDigitalWaterOn))
-	s.menu.AddItemString("In", s.menu.BoolToString(s.state.GpioDigitalIn))
-
 	s.menu.AddItemCommand("Reboot", isdata.Reboot{})
-	Heading(img, "Diagnostics and Configuration")
+	Heading(img, "Diagnostics and Config")
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
 }
