@@ -136,8 +136,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		for _, c := range channels {
 			if len(c.channel) >= cap(c.channel)-1 {
 				log.Println("Warning channel full: ", c.name, len(c.channel))
-				log.Println("dropping entry: ", c.name, len(c.channel))
-				<-c.channel
+				e := <-c.channel
+				log.Printf("dropping entry of type: %T\n", e)
 			} else if len(c.channel) > 30 &&
 				time.Now().Sub(lastFillingWarning) > time.Minute {
 				log.Println("Warning channel is filling: ", c.name, len(c.channel))
