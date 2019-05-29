@@ -27,13 +27,13 @@ var numLine = "1234567890 ."
 func NewInputChars(alpha, numbers bool) *InputChars {
 	ret := InputChars{}
 	if alpha {
-		ret.lines[0], ret.lines[1] = alphaLowerLine1, alphaLowerLine2
-		if numbers {
+		ret.lines[0], ret.lines[1] = alphaLowerLine1, alphaLowerLine2 // just alpha input chars
+		if numbers {                                                  // alpha and numbers
 			ret.lines[2] = numLine
 		}
-	} else if numbers {
-		ret.lines[0] = numLine
-	} else {
+	} else if numbers { // just numbers
+		ret.lines[0] = numLine[:10] // slice off space and period
+	} else { // one null input char
 		ret.lines[0] = "\x00"
 	}
 
