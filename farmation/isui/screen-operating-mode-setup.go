@@ -18,11 +18,11 @@ type OperatingModeSetupScreen struct {
 // NewOperatingModeSetupScreen returns a new screen
 func NewOperatingModeSetupScreen(state *isdata.State, config *isdata.Config) *OperatingModeSetupScreen {
 	menu := Menu{}
-	menu.AddItemInt("High Lev Alm", float64(config.HighWindowPerc))
-	menu.AddItemInt("Low Lev Alm", float64(config.LowWindowPerc))
-	menu.AddItemInt("Manual High", float64(config.ManualHighAlarmGPH))
-	menu.AddItemInt("Manual Low", float64(config.ManualLowAlarmGPH))
-	menu.AddItemInt("Batch Amount", float64(config.BatchAmount))
+	menu.AddItemInt("High Lev Alm", int(config.HighWindowPerc))
+	menu.AddItemInt("Low Lev Alm", int(config.LowWindowPerc))
+	menu.AddItemInt("Manual High", int(config.ManualHighAlarmGPH))
+	menu.AddItemInt("Manual Low", int(config.ManualLowAlarmGPH))
+	menu.AddItemInt("Batch Amount", int(config.BatchAmount))
 	menu.AddItemInt("Batch Applied", 0)
 
 	return &OperatingModeSetupScreen{

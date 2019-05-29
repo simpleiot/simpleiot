@@ -13,8 +13,6 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-var pulsesPerGal = 3785
-
 func edgeTsToTime(data []byte) time.Time {
 	tSec := binary.LittleEndian.Uint32(data[0:4])
 	tNsec := binary.LittleEndian.Uint32(data[4:8])
@@ -92,7 +90,7 @@ func Run(in, out chan interface{}, sim bool) {
 			}
 		case <-ticker.C:
 			sampleDuration := lastPulse.Sub(lastTick)
-			flow := isdata.PulsesToFlow(lastPulse, sampleDuration, pulsesPerGal, pulses)
+			flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
 			flowRateMovingAvg.Add(flow.Rate)
 			flow.RateAvg = flowRateMovingAvg.Avg()
 			out <- flow

@@ -43,6 +43,10 @@ type Config struct {
 	ManualRelayAux      bool
 	ManualRelayInj      bool
 	ManualRelayShutdown bool
+
+	// Flow meter pulses per gallon and pressure setting
+	PulsesPerGallon int
+	PressureSetting int
 }
 
 // ConfigDefault contains defaults for initializing a new system

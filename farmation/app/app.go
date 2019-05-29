@@ -108,6 +108,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		}
 		uiChan <- config
 		flowChan <- config
+		presChan <- config
 		logChan <- config
 		ioChan <- config
 		err := db.WriteConfig(&config)
@@ -199,6 +200,14 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdateProductName:
 				config.ProductConfigs[m.Index].Description = m.Name
+				saveConfig()
+
+			case isdata.UpdatePulsesPerGallon:
+				config.PulsesPerGallon = int(m)
+				saveConfig()
+
+			case isdata.UpdatePressureSetting:
+				config.PressureSetting = int(m)
 				saveConfig()
 
 			case isdata.Flow:

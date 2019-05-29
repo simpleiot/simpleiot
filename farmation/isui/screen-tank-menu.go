@@ -18,9 +18,9 @@ type TankMenuScreen struct {
 // NewTankMenuScreen initializes and returns a HomeScreen
 func NewTankMenuScreen(state *isdata.State, config *isdata.Config) *TankMenuScreen {
 	menu := Menu{}
-	menu.AddItemInt("Current Volume", state.CurrentTankVolume)
-	menu.AddItemInt("Alert Level", float64(config.TankAlertVolume))
-	menu.AddItemInt("Tank Size", float64(config.TankCapacity))
+	menu.AddItemInt("Current Volume", int(state.CurrentTankVolume))
+	menu.AddItemInt("Alert Level", int(config.TankAlertVolume))
+	menu.AddItemInt("Tank Size", int(config.TankCapacity))
 	menu.AddItemOnOff("Alert On/Off", config.TankAlertOn,
 		isdata.UpdateTankAlertEnable(!config.TankAlertOn))
 

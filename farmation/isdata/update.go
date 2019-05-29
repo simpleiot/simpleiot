@@ -30,7 +30,7 @@ type UpdateLogPressureEnable bool
 // UpdateTankAlertEnable is used to enable/disable the tank alert on/off
 type UpdateTankAlertEnable bool
 
-// UpdateGpioDigitalInjector is used to transmit GpioDigitalInjector value
+// UpdateGpioDigitalInjector is used to transmit GpioDigitalInjector value to app.go
 type UpdateGpioDigitalInjector bool
 
 // UpdateGpioDigitalIrrigator is used to transmit GpioDigitalIrrigator value
@@ -50,3 +50,9 @@ type UpdateManualRelayAux bool
 
 // UpdateManualRelayShutdown is used to toggle the shutdown relay
 type UpdateManualRelayShutdown bool
+
+// UpdatePulsesPerGallon is used to send new flow meter pulses/gal. config to app.go
+type UpdatePulsesPerGallon int
+
+// UpdatePressureSetting is used to send new pressure setting (number) config to app.go
+type UpdatePressureSetting int

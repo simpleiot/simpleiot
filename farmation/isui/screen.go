@@ -28,6 +28,7 @@ const (
 	ScreenIDDiagConfig
 	ScreenIDDiagInputs
 	ScreenIDDiagOutputs
+	ScreenIDDiagPulsesPres
 )
 
 // Screens is a map of all screens in the system
@@ -60,6 +61,7 @@ func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 	ret.Add(ScreenIDDiagConfig, NewDiagnosticsScreen(state, config))
 	ret.Add(ScreenIDDiagInputs, NewDiagInputsScreen(state, config))
 	ret.Add(ScreenIDDiagOutputs, NewDiagOutputsScreen(state, config))
+	ret.Add(ScreenIDDiagPulsesPres, NewDiagPulsesPresScreen(state, config))
 
 	ret.currentScreen = ScreenIDHome
 

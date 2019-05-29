@@ -30,6 +30,7 @@ type MenuItem struct {
 	Description string
 	Type        MenuItemType
 	Screen      ScreenID
+	ValueInt    int
 	Value       float64
 	ValueString string
 	On          bool
@@ -124,11 +125,11 @@ func (m *Menu) AddItemString(desc string, value string) {
 }
 
 // AddItemInt adds an integer item to menu
-func (m *Menu) AddItemInt(desc string, v float64) {
+func (m *Menu) AddItemInt(desc string, v int) {
 	m.items = append(m.items, MenuItem{
 		Description: desc,
 		Type:        MenuItemTypeInt,
-		Value:       v,
+		ValueInt:    v,
 	})
 
 	m.updateShowValues()
@@ -154,16 +155,6 @@ func (m *Menu) AddItemCommand(desc string, msg interface{}) {
 	})
 
 	m.updateShowValues()
-}
-
-// SetValue is used to set a parameter value
-func (m *Menu) SetValue(desc string, v float64) {
-	for i, item := range m.items {
-		if desc == item.Description {
-			m.items[i].Value = v
-			break
-		}
-	}
 }
 
 // Render is used to draw a list of params, handles scrolling, etc.
@@ -211,9 +202,9 @@ func (m *Menu) Render(img draw.Image) {
 				DrawTxt(img, "start", 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemString:
 				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
-			case MenuItemTypeInt:
+			case MenuItemTypeInt: // we now have Value (float) and ValueInt -- may cause problems
 				DrawTxtRight(img, strconv.Itoa(int(item.Value)), 120, y+1+offsetValues, tightpixel15.Font)
-			case MenuItemTypeFloat:
+			case MenuItemTypeFloat: // Value and ValueInt
 				v := strconv.FormatFloat(item.Value, 'f', 2, 64)
 				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeOnOff:
