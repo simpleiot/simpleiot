@@ -35,7 +35,7 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 
 	s.menu.ResetItems()
 
-	PulsesPerGallonStr, PressureSettingStr := strconv.Itoa(s.config.PulsesPerGallon), strconv.Itoa(s.config.PressureSetting)
+	PulsesPerGallonStr, PressureSettingStr := strconv.Itoa(s.config.PulsesPerGallon), strconv.Itoa(s.config.PressureSetting) // turn values from config into strings to display
 	fmt.Println(s.config.PulsesPerGallon, s.config.PressureSetting)
 	s.menu.AddItemScreen(PulsesPerGallonStr, ScreenIDNoChange)
 	s.menu.AddItemScreen(PressureSettingStr, ScreenIDNoChange)
@@ -73,10 +73,19 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 		switch key {
 		case isdata.KeySK1: // Back
 			s.menu.ResetArrowPos() // return arrow to top of screen
-			return ScreenIDMainMenu, nil, true
+			return ScreenIDDiagConfig, nil, true
 		case isdata.KeySK2: // Edit
 			s.edit = true
 			s.textEntryScreen.txtEdit = s.menu.Description()
+
+			// set the header label
+			switch s.menu.GetArrowPos() {
+			case 0:
+				s.textEntryScreen.headerLabel = "Pulses per gal"
+			case 1:
+				s.textEntryScreen.headerLabel = "Pressure setting"
+			}
+
 			s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit
 		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 			return s.menu.Key(key)

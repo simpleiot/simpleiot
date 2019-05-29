@@ -9,10 +9,11 @@ import (
 
 //TextEntryScreen ...
 type TextEntryScreen struct {
-	inputChars *InputChars
-	softKeys   *SoftKeys
-	txtEdit    string
-	cursorPos  int
+	inputChars  *InputChars
+	softKeys    *SoftKeys
+	headerLabel string
+	txtEdit     string
+	cursorPos   int
 }
 
 // NewTextEntryScreen creates a new text entry widget
@@ -27,12 +28,18 @@ func NewTextEntryScreen(alpha, numbers bool) *TextEntryScreen {
 func (s *TextEntryScreen) Render(img draw.Image) {
 
 	// Header -- text being edited
-	txtStartX := DrawTxtCentered(img, s.txtEdit, 64, 2, tightpixel15.Font) //assign margin, draw text
+	var txtStartX int
+	if len(s.headerLabel) > 0 {
+		header := s.headerLabel + "  " + s.txtEdit
+		txtStartX = DrawTxtCentered(img, header, 64, 2, tightpixel15.Font) //assign margin, draw text
+	} else {
+		txtStartX = DrawTxtCentered(img, s.txtEdit, 64, 2, tightpixel15.Font) //assign margin, draw text
+	}
 	width := 116
 	Rect(img, 64-width/2-2, 0, width+2, 13)
 
 	// cursor
-	widthString := tightpixel15.Font.MeasureString(s.txtEdit[:s.cursorPos])
+	widthString := tightpixel15.Font.MeasureString(s.headerLabel + "  " + s.txtEdit[:s.cursorPos])
 	_, widthChar := tightpixel15.Font.MeasureRune(rune(s.txtEdit[s.cursorPos]))
 	Line(img, txtStartX+widthString+widthChar/2-2, 11, txtStartX+widthString+widthChar/2+2, 11)
 

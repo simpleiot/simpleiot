@@ -43,7 +43,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 		isdata.UpdateLogPulseEnable(!s.config.LogPulseData))
 	s.menu.AddItemOnOff("Flow logging", s.config.LogFlowData,
 		isdata.UpdateLogFlowEnable(!s.config.LogFlowData))
-	s.menu.AddItemOnOff("Press logging", s.config.LogPressureData,
+	s.menu.AddItemOnOff("Pres logging", s.config.LogPressureData,
 		isdata.UpdateLogPressureEnable(!s.config.LogPressureData))
 
 	s.menu.AddItemCommand("Reboot", isdata.Reboot{})
@@ -57,7 +57,7 @@ func (s *DiagnosticsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
 	case isdata.KeySK1:
 		s.menu.ResetArrowPos() // return arrow to top of screen
-		return ScreenIDDiagConfig, nil, true
+		return ScreenIDMainMenu, nil, true
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)
 	}
