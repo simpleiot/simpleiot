@@ -57,6 +57,9 @@ const (
 func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 	switch key {
 	case isdata.KeySK1: // save
+		if s.txtEdit[s.cursorPos:] == "\x00" { // if last char is null
+			s.txtEdit = s.txtEdit[:s.cursorPos] // delete null char
+		}
 		return TextEntryCommandSave
 	case isdata.KeySK2: // Backspace
 		if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
@@ -71,6 +74,9 @@ func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 		}
 		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
 	case isdata.KeySK4: // cancel
+		if s.txtEdit[s.cursorPos:] == "\x00" { // if last char is null
+			s.txtEdit = s.txtEdit[:s.cursorPos] // delete null char
+		}
 		return TextEntryCommandCancel
 	case isdata.KeyEnter:
 		if s.cursorPos >= len(s.txtEdit)-1 { // if at end of txt

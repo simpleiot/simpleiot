@@ -1,7 +1,9 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
+	"strconv"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
@@ -33,8 +35,10 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 
 	s.menu.ResetItems()
 
-	s.menu.AddItemScreen("Flow Pulses", ScreenIDNoChange)
-	s.menu.AddItemScreen("Pres Set", ScreenIDNoChange)
+	PulsesPerGallonStr, PressureSettingStr := strconv.Itoa(s.config.PulsesPerGallon), strconv.Itoa(s.config.PressureSetting)
+	fmt.Println(s.config.PulsesPerGallon, s.config.PressureSetting)
+	s.menu.AddItemScreen(PulsesPerGallonStr, ScreenIDNoChange)
+	s.menu.AddItemScreen(PressureSettingStr, ScreenIDNoChange)
 
 	if s.edit { // render text entry screen
 		s.textEntryScreen.Render(img)
@@ -46,15 +50,22 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 }
 
 // Key processes key inputs to this screen
-func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, int, bool) {
+func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	if s.edit { // passes key inputs to textEntryScreen and follows returned commands
 		command := s.textEntryScreen.Key(key)
 		switch command {
 		case TextEntryCommandNone: // do nothing
 		case TextEntryCommandSave: //save
 			s.exitEdit()
-			return ScreenIDNoChange, isdata.UpdatePulsesPerGallon(s.textEntryScreen.GetTextEdit()), true
+			value, convError := strconv.Atoi(s.textEntryScreen.GetTextEdit()) // convert edited string to integer
+			fmt.Println(s.textEntryScreen.GetTextEdit(), value, convError, "\nMenuPos:", s.menu.GetArrowPos())
+			switch s.menu.GetArrowPos() {
+			case 0:
+				return ScreenIDNoChange, isdata.UpdatePulsesPerGallon(value), true
 
+			case 1:
+				return ScreenIDNoChange, isdata.UpdatePressureSetting(value), true
+			}
 		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
 		}
