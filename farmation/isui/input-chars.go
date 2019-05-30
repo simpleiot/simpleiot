@@ -19,7 +19,7 @@ var alphaLowerLine1 = "abcdefghijklm"
 var alphaLowerLine2 = "nopqrstuvwxyz"
 var alphaUpperLine1 = "ABCDEFGHIJKLM"
 var alphaUpperLine2 = "NOPQRSTUVWXYZ"
-var numLine = "1234567890 ."
+var numLine = "1234567890 ./"
 
 // NewInputChars creates a new inputchars widget that allows character selection.
 // alpha enables input.
