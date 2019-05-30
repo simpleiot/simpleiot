@@ -10,7 +10,7 @@ is_build_frontend() {
   return 0
 }
 
-FONTSTRING="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789."
+FONTSTRING="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./"
 FONTSTRING_NUM="0123456789."
 
 is_gen_font() {
@@ -30,6 +30,7 @@ is_gen_font() {
 }
 
 is_gen_fonts() {
+  go get github.com/pbnjay/pixfont/cmd/fontgen
   is_gen_font tightpixel15 9 37 10 $FONTSTRING -v
   is_gen_font agencyfbbold40 14 118 31 $FONTSTRING_NUM -v
   is_gen_font agencyfbbold20 14 158 15 $FONTSTRING_NUM -v
