@@ -35,7 +35,6 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 
 	s.menu.ResetItems()
 
-	fmt.Println(s.config.PulsesPerGallon, s.config.PressureSetting)
 	s.menu.AddItemInt("Flw Plses per Gal", s.config.PulsesPerGallon)
 	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
 
