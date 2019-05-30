@@ -17,7 +17,7 @@ func DrawTxt(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
 func DrawTxtRev(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
 	w := font.MeasureString(txt)
 	h := font.GetHeight()
-	RectFilled(img, x, y, w, h)
+	RectFilled(img, x-1, y, w+1, h)
 	font.DrawString(img, x, y, txt, color.White)
 }
 

@@ -21,6 +21,7 @@ const (
 	MenuItemTypeInt
 	MenuItemTypeFloat
 	MenuItemTypeOnOff
+	MenuItemTypeAutoOffOn
 	MenuItemTypeSelect
 	MenuItemTypeCommand
 )
@@ -34,6 +35,7 @@ type MenuItem struct {
 	Value       float64
 	ValueString string
 	On          bool
+	AutoOn      [2]bool
 	Precision   int
 	Message     interface{}
 }
@@ -112,6 +114,19 @@ func (m *Menu) AddItemOnOff(desc string, on bool, msg interface{}) {
 		Description: desc,
 		Type:        MenuItemTypeOnOff,
 		On:          on,
+		Message:     msg,
+	})
+
+	m.updateShowValues()
+}
+
+// AddItemAutoOffOn adds a auto/off/on selection for relay control in
+// the Diagnostics and Config screen
+func (m *Menu) AddItemAutoOffOn(desc string, autoOn [2]bool, msg interface{}) {
+	m.items = append(m.items, MenuItem{
+		Description: desc,
+		Type:        MenuItemTypeAutoOffOn,
+		AutoOn:      autoOn,
 		Message:     msg,
 	})
 
@@ -197,7 +212,9 @@ func (m *Menu) Render(img draw.Image) {
 
 		if m.showValues {
 			// draw values
-			Rect(img, 76, 12+offsetValues, 45, menuSpacingValues)
+			if item.Type != MenuItemTypeAutoOffOn { // auto/off/on needs slightly wider rect
+				Rect(img, 76, 12+offsetValues, 45, menuSpacingValues)
+			}
 			switch item.Type {
 			case MenuItemTypeScreen:
 				DrawTxt(img, "open", 78, y+offsetValues, tightpixel15.Font)
@@ -223,6 +240,20 @@ func (m *Menu) Render(img draw.Image) {
 				case false:
 					Line(img, 102, top, 102, bot)
 					Line(img, 117, top, 117, bot)
+				}
+			case MenuItemTypeAutoOffOn:
+				Rect(img, 76, 12+offsetValues, 47, menuSpacingValues)
+				DrawTxt(img, "auto.off.on", 78, 13+offsetValues, tightpixel15.Font)
+				switch item.AutoOn[0] {
+				case true:
+					DrawTxtRev(img, "auto", 78, 13+offsetValues, tightpixel15.Font)
+				case false:
+					switch item.AutoOn[1] {
+					case true:
+						DrawTxtRev(img, "on", 78+tightpixel15.Font.MeasureString("auto.off."), 13+offsetValues, tightpixel15.Font)
+					case false:
+						DrawTxtRev(img, "off", 78+tightpixel15.Font.MeasureString("auto."), 13+offsetValues, tightpixel15.Font)
+					}
 				}
 			}
 		}

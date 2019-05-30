@@ -34,9 +34,10 @@ func (s *DiagOutputsScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	// Relays
-	s.menu.AddItemOnOff("Injector", s.config.ManualRelayInj, isdata.UpdateManualRelayInj(!s.config.ManualRelayInj))
-	s.menu.AddItemOnOff("Aux", s.config.ManualRelayAux, isdata.UpdateManualRelayAux(!s.config.ManualRelayAux))
-	s.menu.AddItemOnOff("Shutdown", s.config.ManualRelayShutdown, isdata.UpdateManualRelayShutdown(!s.config.ManualRelayShutdown))
+	autoOn, autoOn2 := [2]bool{false, s.config.ManualRelayInj}, [2]bool{true, s.config.ManualRelayInj}
+	s.menu.AddItemAutoOffOn("Injector", autoOn, isdata.UpdateManualRelayInj(!s.config.ManualRelayInj))
+	s.menu.AddItemAutoOffOn("Aux", autoOn, isdata.UpdateManualRelayAux(!s.config.ManualRelayAux))
+	s.menu.AddItemAutoOffOn("Shutdown", autoOn2, isdata.UpdateManualRelayShutdown(!s.config.ManualRelayShutdown))
 
 	Heading(img, "Diagnostics Outputs")
 	s.menu.Render(img)
