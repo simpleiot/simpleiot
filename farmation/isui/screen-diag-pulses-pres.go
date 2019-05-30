@@ -1,7 +1,6 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 	"strconv"
 
@@ -55,8 +54,7 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 		case TextEntryCommandNone: // do nothing
 		case TextEntryCommandSave: //save
 			s.exitEdit()
-			value, convError := strconv.Atoi(s.textEntryScreen.GetTextEdit()) // convert edited string to integer
-			fmt.Println(s.textEntryScreen.GetTextEdit(), value, convError, "\nMenuPos:", s.menu.GetArrowPos())
+			value, _ := strconv.Atoi(s.textEntryScreen.GetTextEdit()) // convert edited string to integer
 			switch s.menu.GetArrowPos() {
 			case 0:
 				return ScreenIDNoChange, isdata.UpdatePulsesPerGallon(value), true
