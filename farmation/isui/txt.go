@@ -13,6 +13,14 @@ func DrawTxt(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
 	font.DrawString(img, x, y, txt, color.Black)
 }
 
+// DrawTxtRev draws text with white on black background
+func DrawTxtRev(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
+	w := font.MeasureString(txt)
+	h := font.GetHeight()
+	RectFilled(img, x, y, w, h)
+	font.DrawString(img, x, y, txt, color.White)
+}
+
 // DrawTxtCentered draws text into an image centered around x,y
 // returns the starting x location of the string
 func DrawTxtCentered(img draw.Image, txt string, x, y int, font *pixfont.PixFont) int {
