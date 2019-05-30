@@ -72,6 +72,11 @@ func (m *Menu) Description() string {
 	return m.items[m.arrowPos].Description
 }
 
+// ValueInt returns the menu item value (integer)
+func (m *Menu) ValueInt() int {
+	return m.items[m.arrowPos].ValueInt
+}
+
 // AddItemSelect adds a select list item
 func (m *Menu) AddItemSelect(desc string) {
 	m.items = append(m.items, MenuItem{
@@ -202,9 +207,9 @@ func (m *Menu) Render(img draw.Image) {
 				DrawTxt(img, "start", 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemString:
 				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
-			case MenuItemTypeInt: // we now have Value (float) and ValueInt -- may cause problems
-				DrawTxtRight(img, strconv.Itoa(int(item.Value)), 120, y+1+offsetValues, tightpixel15.Font)
-			case MenuItemTypeFloat: // Value and ValueInt
+			case MenuItemTypeInt: // we now have Value (float) and ValueInt
+				DrawTxtRight(img, strconv.Itoa(int(item.ValueInt)), 120, y+1+offsetValues, tightpixel15.Font)
+			case MenuItemTypeFloat:
 				v := strconv.FormatFloat(item.Value, 'f', 2, 64)
 				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeOnOff:
