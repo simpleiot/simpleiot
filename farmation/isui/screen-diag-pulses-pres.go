@@ -35,10 +35,8 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 
 	s.menu.ResetItems()
 
-	PulsesPerGallonStr, PressureSettingStr := strconv.Itoa(s.config.PulsesPerGallon), strconv.Itoa(s.config.PressureSetting) // turn values from config into strings to display
-	fmt.Println(s.config.PulsesPerGallon, s.config.PressureSetting)
-	s.menu.AddItemScreen(PulsesPerGallonStr, ScreenIDNoChange)
-	s.menu.AddItemScreen(PressureSettingStr, ScreenIDNoChange)
+	s.menu.AddItemInt("Flw Plses per Gal", s.config.PulsesPerGallon)
+	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
 
 	if s.edit { // render text entry screen
 		s.textEntryScreen.Render(img)
@@ -76,13 +74,14 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			return ScreenIDDiagConfig, nil, true
 		case isdata.KeySK2: // Edit
 			s.edit = true
-			s.textEntryScreen.txtEdit = s.menu.Description()
 
-			// set the header label
+			// set the text being edited and the header label
 			switch s.menu.GetArrowPos() {
 			case 0:
+				s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulsesPerGallon) // convert integer value into string to edit w/ text entry screen
 				s.textEntryScreen.headerLabel = "Pulses per gal"
 			case 1:
+				s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureSetting) // convert integer value into string to edit w/ text entry screen
 				s.textEntryScreen.headerLabel = "Pressure setting"
 			}
 
