@@ -43,13 +43,13 @@ type UpdateGpioDigitalWaterOn bool
 type UpdateGpioDigitalIn bool
 
 // UpdateManualRelayInj is used to toggles the injector relay
-type UpdateManualRelayInj bool
+type UpdateManualRelayInj int
 
 // UpdateManualRelayAux is used to toggle the auxilary relay
-type UpdateManualRelayAux bool
+type UpdateManualRelayAux int
 
 // UpdateManualRelayShutdown is used to toggle the shutdown relay
-type UpdateManualRelayShutdown bool
+type UpdateManualRelayShutdown int
 
 // UpdatePulsesPerGallon is used to send new flow meter pulses/gal. config to app.go
 type UpdatePulsesPerGallon int

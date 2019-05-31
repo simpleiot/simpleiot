@@ -284,15 +284,21 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 
 			case isdata.UpdateManualRelayInj:
-				config.ManualRelayInj = bool(m)
+				fmt.Println(config.ManualRelayInj)
+				config.ManualRelayInj = isdata.RelayControlStateType(m)
+				fmt.Println(isdata.RelayControlStateType(m))
 				saveConfig()
 
 			case isdata.UpdateManualRelayAux:
-				config.ManualRelayAux = bool(m)
+				fmt.Println(config.ManualRelayAux)
+				config.ManualRelayAux = isdata.RelayControlStateType(m)
+				fmt.Println(isdata.RelayControlStateType(m))
 				saveConfig()
 
 			case isdata.UpdateManualRelayShutdown:
-				config.ManualRelayShutdown = bool(m)
+				fmt.Println(config.ManualRelayShutdown)
+				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
+				fmt.Println(isdata.RelayControlStateType(m))
 				saveConfig()
 
 			case isdata.Pulse:

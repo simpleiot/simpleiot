@@ -9,9 +9,9 @@ import (
 )
 
 func setRelay(config *isdata.Config) {
-	GpioOut(GpioRelayInjectorEn, config.ManualRelayInj)
-	GpioOut(GpioRelayAuxEn, config.ManualRelayAux)
-	GpioOut(GpioRelayShutdownEn, config.ManualRelayShutdown)
+	GpioOut(GpioRelayInjectorEn, config.ManualRelayInj.BoolVal())
+	GpioOut(GpioRelayAuxEn, config.ManualRelayAux.BoolVal())
+	GpioOut(GpioRelayShutdownEn, config.ManualRelayShutdown.BoolVal())
 }
 
 // Run goroutine for IO code

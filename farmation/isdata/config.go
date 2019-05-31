@@ -39,10 +39,10 @@ type Config struct {
 	LogFlowData     bool
 	LogPressureData bool
 
-	// Diag
-	ManualRelayAux      bool
-	ManualRelayInj      bool
-	ManualRelayShutdown bool
+	// Diagnostics/Config outputs
+	ManualRelayInj      RelayControlStateType
+	ManualRelayAux      RelayControlStateType
+	ManualRelayShutdown RelayControlStateType
 
 	// Flow meter pulses per gallon and pressure setting
 	PulsesPerGallon int
@@ -231,6 +231,43 @@ type ISIo struct {
 	Description string
 	Fault       bool
 	Value       float64
+}
+
+// RelayControlStateType is a type for relays that
+// are either in auto or manual mode
+type RelayControlStateType int
+
+// define valid RelayControlStateTypes
+const (
+	RelayControlAutoStateType RelayControlStateType = iota
+	RelayControlOffStateType
+	RelayControlOnStateType
+	RelayControlNoneStateType
+)
+
+// BoolVal returns a boolean depending what state
+// the relay is in
+func (r RelayControlStateType) BoolVal() bool {
+	switch r {
+	case RelayControlOnStateType:
+		return true
+	default:
+		return false
+	}
+}
+
+// GetMsg returns a message to pass to
+// isui/menu.AddItemAutoOffOn(...)
+func (r RelayControlStateType) GetMsg() int {
+	switch r {
+	case RelayControlAutoStateType:
+		return int(RelayControlOffStateType)
+	case RelayControlOffStateType:
+		return int(RelayControlOnStateType)
+	case RelayControlOnStateType:
+		return int(RelayControlAutoStateType)
+	}
+	return int(RelayControlNoneStateType)
 }
 
 // RelayID identifies a relay in the system

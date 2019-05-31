@@ -35,7 +35,7 @@ type MenuItem struct {
 	Value       float64
 	ValueString string
 	On          bool
-	AutoOn      [2]bool
+	AutoOffOn   isdata.RelayControlStateType
 	Precision   int
 	Message     interface{}
 }
@@ -122,11 +122,11 @@ func (m *Menu) AddItemOnOff(desc string, on bool, msg interface{}) {
 
 // AddItemAutoOffOn adds a auto/off/on selection for relay control in
 // the Diagnostics and Config screen
-func (m *Menu) AddItemAutoOffOn(desc string, autoOn [2]bool, msg interface{}) {
+func (m *Menu) AddItemAutoOffOn(desc string, autoOffOn isdata.RelayControlStateType, msg interface{}) {
 	m.items = append(m.items, MenuItem{
 		Description: desc,
 		Type:        MenuItemTypeAutoOffOn,
-		AutoOn:      autoOn,
+		AutoOffOn:   autoOffOn,
 		Message:     msg,
 	})
 
@@ -244,16 +244,13 @@ func (m *Menu) Render(img draw.Image) {
 			case MenuItemTypeAutoOffOn:
 				Rect(img, 76, 12+offsetValues, 47, menuSpacingValues)
 				DrawTxt(img, "auto.off.on", 78, 13+offsetValues, tightpixel15.Font)
-				switch item.AutoOn[0] {
-				case true:
+				switch item.AutoOffOn {
+				case 0:
 					DrawTxtRev(img, "auto", 78, 13+offsetValues, tightpixel15.Font)
-				case false:
-					switch item.AutoOn[1] {
-					case true:
-						DrawTxtRev(img, "on", 78+tightpixel15.Font.MeasureString("auto.off."), 13+offsetValues, tightpixel15.Font)
-					case false:
-						DrawTxtRev(img, "off", 78+tightpixel15.Font.MeasureString("auto."), 13+offsetValues, tightpixel15.Font)
-					}
+				case 1:
+					DrawTxtRev(img, "off", 78+tightpixel15.Font.MeasureString("auto."), 13+offsetValues, tightpixel15.Font)
+				case 2:
+					DrawTxtRev(img, "on", 78+tightpixel15.Font.MeasureString("auto.off."), 13+offsetValues, tightpixel15.Font)
 				}
 			}
 		}
@@ -317,7 +314,7 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			return item.Screen, nil, true
 		case MenuItemTypeSelect:
 			return ScreenIDNoChange, MenuSelection(item.Description), true
-		case MenuItemTypeOnOff, MenuItemTypeCommand:
+		case MenuItemTypeOnOff, MenuItemTypeAutoOffOn, MenuItemTypeCommand:
 			return ScreenIDNoChange, item.Message, true
 		}
 	}
