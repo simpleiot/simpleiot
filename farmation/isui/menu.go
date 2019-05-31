@@ -243,14 +243,16 @@ func (m *Menu) Render(img draw.Image) {
 				}
 			case MenuItemTypeAutoOffOn:
 				Rect(img, 76, 12+offsetValues, 47, menuSpacingValues)
-				DrawTxt(img, "auto.off.on", 78, 13+offsetValues, tightpixel15.Font)
+				DrawTxt(img, "auto", 78, 13+offsetValues, tightpixel15.Font)
+				DrawTxt(img, "off", 78+tightpixel15.Font.MeasureString("auto")+2, 13+offsetValues, tightpixel15.Font)
+				DrawTxt(img, "on", 78+tightpixel15.Font.MeasureString("autooff")+4, 13+offsetValues, tightpixel15.Font)
 				switch item.AutoOffOn {
 				case 0:
 					DrawTxtRev(img, "auto", 78, 13+offsetValues, tightpixel15.Font)
 				case 1:
-					DrawTxtRev(img, "off", 78+tightpixel15.Font.MeasureString("auto."), 13+offsetValues, tightpixel15.Font)
+					DrawTxtRev(img, "off", 78+tightpixel15.Font.MeasureString("auto")+2, 13+offsetValues, tightpixel15.Font)
 				case 2:
-					DrawTxtRev(img, "on", 78+tightpixel15.Font.MeasureString("auto.off."), 13+offsetValues, tightpixel15.Font)
+					DrawTxtRev(img, "on", 78+tightpixel15.Font.MeasureString("autooff")+4, 13+offsetValues, tightpixel15.Font)
 				}
 			}
 		}
