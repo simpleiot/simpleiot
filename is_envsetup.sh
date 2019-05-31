@@ -10,7 +10,7 @@ is_build_frontend() {
   return 0
 }
 
-FONTSTRING="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./"
+FONTSTRING="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./:"
 FONTSTRING_NUM="0123456789."
 
 is_gen_font() {
