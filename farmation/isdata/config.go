@@ -302,6 +302,12 @@ func (c *Config) Init() {
 	c.LogFlowData = false
 	c.LogPressureData = false
 
+	// set relays to auto mode in case
+	// power lost while relays were in manual mode
+	c.ManualRelayInj = RelayControlAutoStateType
+	c.ManualRelayAux = RelayControlAutoStateType
+	c.ManualRelayShutdown = RelayControlAutoStateType
+
 	if len(c.FieldConfigs) < 4 {
 		c.FieldConfigs = []FieldConfig{
 			FieldConfig{"Field One"},
