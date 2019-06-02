@@ -56,3 +56,6 @@ type UpdatePulsesPerGallon int
 
 // UpdatePressureSetting is used to send new pressure setting (number) config to app.go
 type UpdatePressureSetting int
+
+// UpdateDevName is used to send a new device name to app.go
+type UpdateDevName string

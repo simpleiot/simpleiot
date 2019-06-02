@@ -39,7 +39,12 @@ func (s *TextEntryScreen) Render(img draw.Image) {
 	Rect(img, 64-width/2-2, 0, width+2, 13)
 
 	// cursor
-	widthString := tightpixel15.Font.MeasureString(s.headerLabel + "  " + s.txtEdit[:s.cursorPos])
+	var widthString int
+	if len(s.headerLabel) > 0 {
+		widthString = tightpixel15.Font.MeasureString(s.headerLabel + "  " + s.txtEdit[:s.cursorPos])
+	} else {
+		widthString = tightpixel15.Font.MeasureString(s.txtEdit[:s.cursorPos])
+	}
 	_, widthChar := tightpixel15.Font.MeasureRune(rune(s.txtEdit[s.cursorPos]))
 	Line(img, txtStartX+widthString+widthChar/2-2, 11, txtStartX+widthString+widthChar/2+2, 11)
 

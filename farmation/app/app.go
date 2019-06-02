@@ -202,6 +202,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.ProductConfigs[m.Index].Description = m.Name
 				saveConfig()
 
+			case isdata.UpdateDevName:
+				config.DeviceName = string(m)
+				saveConfig()
+
 			case isdata.UpdatePulsesPerGallon:
 				config.PulsesPerGallon = int(m)
 				saveConfig()

@@ -27,6 +27,7 @@ type Config struct {
 	FieldConfigs        []FieldConfig
 	CurrentProductIndex int
 	ProductConfigs      []ProductConfig
+	DeviceName          string
 	NetworkConfig       NetworkConfig
 	TankCapacity        int
 	TankAlertVolume     int
@@ -55,6 +56,7 @@ type Config struct {
 var ConfigDefault = Config{
 	HighWindowPerc: 15,
 	LowWindowPerc:  15,
+	DeviceName:     "InjectorSentry",
 }
 
 // ISOperatingMode defines the operating mode of the system
@@ -308,6 +310,9 @@ func (c *Config) Init() {
 	c.ManualRelayAux = RelayControlAutoStateType
 	c.ManualRelayShutdown = RelayControlAutoStateType
 
+	// remove this once ConfigDefaults work
+	c.DeviceName = "InjectorSentry"
+
 	if len(c.FieldConfigs) < 4 {
 		c.FieldConfigs = []FieldConfig{
 			FieldConfig{"Field One"},
@@ -316,7 +321,6 @@ func (c *Config) Init() {
 			FieldConfig{"Field Four"},
 		}
 	}
-
 	if len(c.ProductConfigs) < 4 {
 		c.ProductConfigs = []ProductConfig{
 			ProductConfig{"Product One"},

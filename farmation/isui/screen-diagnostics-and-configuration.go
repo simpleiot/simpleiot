@@ -34,6 +34,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	// Sub screens
+	s.menu.AddItemScreen("Device Name", ScreenIDDiagDevName)
 	s.menu.AddItemScreen("Inputs", ScreenIDDiagInputs)
 	s.menu.AddItemScreen("Outputs", ScreenIDDiagOutputs)
 	s.menu.AddItemScreen("Flow and Pres", ScreenIDDiagPulsesPres)
