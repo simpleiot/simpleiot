@@ -1,6 +1,8 @@
 package isdb
 
 import (
+	"log"
+	"os"
 	"path"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -11,7 +13,8 @@ import (
 // We will eventually turn this into an interface to
 // handle multiple Db backends.
 type IsDb struct {
-	store *bolthold.Store
+	filename string
+	store    *bolthold.Store
 }
 
 // NewDb creates a new Db instance for the app
@@ -23,7 +26,8 @@ func NewDb(dataDir string) (*IsDb, error) {
 	}
 
 	return &IsDb{
-		store: store,
+		filename: dbFile,
+		store:    store,
 	}, nil
 }
 
@@ -42,6 +46,28 @@ func (db *IsDb) ReadConfig(config *isdata.Config) error {
 	}
 
 	return nil
+}
+
+// ResetConfig is used to reset the config
+func (db *IsDb) ResetConfig() error {
+	return db.store.Delete(0, isdata.Config{})
+}
+
+// ResetDb is used to reset the entire database (used if it is corrupted, etc).
+func (db *IsDb) ResetDb() error {
+	err := db.store.Close()
+	if err != nil {
+		log.Println("Error closing db", err)
+	}
+	err = os.Remove(db.filename)
+	if err != nil {
+		log.Println("error removing db file: ", err)
+		return err
+	}
+
+	db.store, err = bolthold.Open(db.filename, 0666, nil)
+
+	return err
 }
 
 // ReadState reads the IS config from the database

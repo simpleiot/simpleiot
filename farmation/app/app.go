@@ -47,7 +47,11 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	err = db.ReadConfig(&config)
 
 	if err != nil {
-		log.Println("Error reading config: ", err)
+		log.Println("Error reading config, resetting: ", err)
+		err := db.ResetDb()
+		if err != nil {
+			log.Println("Error resetting db: ", err)
+		}
 	}
 
 	err = db.ReadState(&state)
