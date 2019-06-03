@@ -310,7 +310,7 @@ func (c *Config) Init() {
 	c.ManualRelayAux = RelayControlAutoStateType
 	c.ManualRelayShutdown = RelayControlAutoStateType
 
-	// remove this once ConfigDefaults work
+	// FIXME remove this once ConfigDefaults work
 	c.DeviceName = "InjectorSentry"
 
 	if len(c.FieldConfigs) < 4 {
