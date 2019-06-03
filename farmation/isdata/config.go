@@ -50,15 +50,6 @@ type Config struct {
 	PressureSetting int
 }
 
-// ConfigDefault contains defaults for initializing a new system
-// not only non zero values are populated here, as Go structs default
-// to 0 or false.
-var ConfigDefault = Config{
-	HighWindowPerc: 15,
-	LowWindowPerc:  15,
-	DeviceName:     "InjectorSentry",
-}
-
 // ISOperatingMode defines the operating mode of the system
 type ISOperatingMode int
 
@@ -310,8 +301,25 @@ func (c *Config) Init() {
 	c.ManualRelayAux = RelayControlAutoStateType
 	c.ManualRelayShutdown = RelayControlAutoStateType
 
-	// FIXME remove this once ConfigDefaults work
-	c.DeviceName = "InjectorSentry"
+	if len(c.DeviceName) == 0 {
+		c.DeviceName = "InjectorSentry"
+	}
+
+	if c.PulsesPerGallon <= 0 {
+		c.PulsesPerGallon = 3785
+	}
+
+	if c.PressureSetting <= 0 {
+		c.PressureSetting = 250
+	}
+
+	if c.HighWindowPerc <= 0 {
+		c.HighWindowPerc = 15
+	}
+
+	if c.LowWindowPerc <= 0 {
+		c.LowWindowPerc = 15
+	}
 
 	if len(c.FieldConfigs) < 4 {
 		c.FieldConfigs = []FieldConfig{
