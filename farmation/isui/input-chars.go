@@ -3,7 +3,7 @@ package isui
 import (
 	"image/draw"
 
-	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
+	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15fixed"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
@@ -48,12 +48,12 @@ func (ic *InputChars) Render(img draw.Image) {
 
 	//Input Characters
 	currentChar, caps := rune(ic.lines[ic.line][ic.index]), ic.caps
-	if ic.line == 2 { // if on numbers/symbols line
+	if ic.line == 2 || ic.lines[1] == "" { // if on numbers/symbols line
 		caps = true // highlight like caps
 	}
-	DrawTxtHighlight(img, ic.lines[0], currentChar, caps, margin, line1Y, tightpixel15.Font)
-	DrawTxtHighlight(img, ic.lines[1], currentChar, caps, margin, line2Y, tightpixel15.Font)
-	DrawTxtHighlight(img, ic.lines[2], currentChar, caps, margin, line3Y, tightpixel15.Font)
+	DrawTxtHighlight(img, ic.lines[0], currentChar, caps, margin, line1Y, tightpixel15fixed.Font)
+	DrawTxtHighlight(img, ic.lines[1], currentChar, caps, margin, line2Y, tightpixel15fixed.Font)
+	DrawTxtHighlight(img, ic.lines[2], currentChar, caps, margin, line3Y, tightpixel15fixed.Font)
 
 }
 
