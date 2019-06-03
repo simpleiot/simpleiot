@@ -231,15 +231,13 @@ func (m *Menu) Render(img draw.Image) {
 				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeOnOff:
 				DrawTxt(img, "on   off", 82, 13+offsetValues, tightpixel15.Font)
-				top := 13 + offsetValues - 1
-				bot := 13 + offsetValues + menuSpacingValues - 1
 				switch item.On {
 				case true:
-					Line(img, 80, top, 80, bot)
-					Line(img, 92, top, 92, bot)
+					RectFilled(img, 79, 13+offsetValues, tightpixel15.Font.MeasureString("on")+3, 10)
+					DrawTxtRev(img, "on", 81, 13+offsetValues, tightpixel15.Font)
 				case false:
-					Line(img, 102, top, 102, bot)
-					Line(img, 117, top, 117, bot)
+					RectFilled(img, 79+tightpixel15.Font.MeasureString("on")+13, 13+offsetValues, tightpixel15.Font.MeasureString("off")+3, 10)
+					DrawTxtRev(img, "off", 81+tightpixel15.Font.MeasureString("on")+13, 13+offsetValues, tightpixel15.Font)
 				}
 			case MenuItemTypeAutoOffOn:
 				Rect(img, 76, 12+offsetValues, 47, menuSpacingValues)
