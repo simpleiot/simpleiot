@@ -102,7 +102,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go islcd.Run(lcdChan, appChan)
 	go isflow.Run(flowChan, appChan, sim)
 	go islog.Run(logChan, appChan)
-	go ispressure.Run(presChan, appChan)
+	go ispressure.Run(presChan, appChan, config)
 
 	lastFillingWarning := time.Time{}
 
@@ -115,6 +115,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		presChan <- config
 		logChan <- config
 		ioChan <- config
+		presChan <- config
 		err := db.WriteConfig(&config)
 		if err != nil {
 			log.Println("Error saving config: ", err)

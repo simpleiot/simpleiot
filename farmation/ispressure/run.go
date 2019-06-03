@@ -12,7 +12,8 @@ import (
 )
 
 // Run goroutine for IO code
-func Run(in, out chan interface{}) {
+func Run(in, out chan interface{}, configIn isdata.Config) {
+	config := configIn
 	ref, sense, err := isio.ReadPressure()
 	if err != nil {
 		log.Println("ReadPressure error: ", err)
@@ -42,7 +43,7 @@ func Run(in, out chan interface{}) {
 			if err != nil {
 				log.Println("ReadPressureSense error: ", err)
 			}
-			pres := isio.CalcPressure(ref, sense, 250)
+			pres := isio.CalcPressure(ref, sense, float64(config.PressureSetting))
 			pressureMovingAvg.Add(pres)
 			avg = pressureMovingAvg.Avg()
 			min, _ = pressureMovingAvg.Min()
@@ -86,9 +87,11 @@ func Run(in, out chan interface{}) {
 
 		case m := <-in:
 			switch m := m.(type) {
-			case data.Sample:
-				// ... todo
-				_ = m
+			case isdata.Config:
+				config = m
+			default:
+				log.Printf("isflow mux: unhandled message of type %T: %+v\r\n", m, m)
+
 			}
 		}
 	}
