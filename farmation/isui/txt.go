@@ -13,6 +13,26 @@ func DrawTxt(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
 	font.DrawString(img, x, y, txt, color.Black)
 }
 
+// DrawTxtHighlight draws text into an image
+// highlights parameter char for cursor
+func DrawTxtHighlight(img draw.Image, txt string, highlightChar rune, caps bool, x, y int, font *pixfont.PixFont) {
+	spacing := 2
+	for _, c := range txt {
+		_, w := font.DrawRune(img, x, y, c, color.Black) // draw character
+		if c == highlightChar {                          // if this is the highlighted character
+			_, w := font.MeasureRune(c)
+			h := font.GetHeight()
+			if caps {
+				RectFilled(img, x-1, y-1, w+2, h-1)
+			} else {
+				RectFilled(img, x-1, y, w+2, h)
+			}
+			font.DrawRune(img, x, y, c, color.White)
+		}
+		x += w + spacing
+	}
+}
+
 // DrawTxtRev draws text with white on black background
 func DrawTxtRev(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
 	w := font.MeasureString(txt)
