@@ -33,7 +33,7 @@ func (s *DiagDevNameScreen) Render(img draw.Image) {
 
 	s.menu.ResetItems()
 
-	s.menu.AddItemScreen(s.config.DeviceName, ScreenIDDiagOutputs)
+	s.menu.AddItemScreen(s.config.DeviceName, ScreenIDNoChange)
 
 	if s.edit { // render text entry screen
 		s.textEntryScreen.Render(img)
