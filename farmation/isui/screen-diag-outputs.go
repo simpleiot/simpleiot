@@ -49,13 +49,8 @@ func (s *DiagOutputsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
 	case isdata.KeySK1:
 		s.menu.ResetArrowPos() // return arrow to top of screen
-
 		// set all relays to auto control mode
-		s.config.ManualRelayInj = isdata.RelayControlAutoStateType
-		s.config.ManualRelayAux = isdata.RelayControlAutoStateType
-		s.config.ManualRelayShutdown = isdata.RelayControlAutoStateType
-
-		return ScreenIDDiagConfig, nil, true
+		return ScreenIDDiagConfig, isdata.UpdateManualRelayAll(int(isdata.RelayControlAutoStateType)), true
 
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)

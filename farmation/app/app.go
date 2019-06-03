@@ -152,6 +152,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		select {
 		case s := <-sigChan:
 			fmt.Println("Received signal: ", s)
+			config.ManualRelayInj = isdata.RelayControlStateType(isdata.RelayControlAutoStateType)
+			config.ManualRelayAux = isdata.RelayControlStateType(isdata.RelayControlAutoStateType)
+			config.ManualRelayShutdown = isdata.RelayControlStateType(isdata.RelayControlAutoStateType)
+			saveConfig()
 			db.WriteState(&state)
 			db.WriteConfig(&config)
 			fmt.Println("state and config saved, SEE YA!")
@@ -293,21 +297,27 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 
 			case isdata.UpdateManualRelayInj:
-				fmt.Println(config.ManualRelayInj)
+				//fmt.Println(config.ManualRelayInj)
 				config.ManualRelayInj = isdata.RelayControlStateType(m)
-				fmt.Println(isdata.RelayControlStateType(m))
+				//fmt.Println(isdata.RelayControlStateType(m))
 				saveConfig()
 
 			case isdata.UpdateManualRelayAux:
-				fmt.Println(config.ManualRelayAux)
+				//fmt.Println(config.ManualRelayAux)
 				config.ManualRelayAux = isdata.RelayControlStateType(m)
-				fmt.Println(isdata.RelayControlStateType(m))
+				//fmt.Println(isdata.RelayControlStateType(m))
 				saveConfig()
 
 			case isdata.UpdateManualRelayShutdown:
-				fmt.Println(config.ManualRelayShutdown)
+				//fmt.Println(config.ManualRelayShutdown)
 				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
-				fmt.Println(isdata.RelayControlStateType(m))
+				//fmt.Println(isdata.RelayControlStateType(m))
+				saveConfig()
+
+			case isdata.UpdateManualRelayAll:
+				config.ManualRelayInj = isdata.RelayControlStateType(m)
+				config.ManualRelayAux = isdata.RelayControlStateType(m)
+				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
 				saveConfig()
 
 			case isdata.Pulse:
