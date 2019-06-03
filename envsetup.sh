@@ -85,3 +85,7 @@ app_build_docs() {
   snowboard html docs/api.apib -o docs/api.html
   #aglio -i docs/api.apib --theme-template triple -o docs/api.html
 }
+
+app_test() {
+  go test ./...
+}
