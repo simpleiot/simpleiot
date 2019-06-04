@@ -1,6 +1,8 @@
 package isui
 
 import (
+	"fmt"
+	"image/color"
 	"image/draw"
 	"strconv"
 
@@ -38,6 +40,7 @@ type MenuItem struct {
 	AutoOffOn   isdata.RelayControlStateType
 	Precision   int
 	Message     interface{}
+	Selected    bool
 }
 
 // Menu descripes a list user selectable options
@@ -80,10 +83,12 @@ func (m *Menu) ValueInt() int {
 }
 
 // AddItemSelect adds a select list item
-func (m *Menu) AddItemSelect(desc string) {
+func (m *Menu) AddItemSelect(desc string, msg interface{}, selected bool) {
 	m.items = append(m.items, MenuItem{
 		Description: desc,
 		Type:        MenuItemTypeSelect,
+		Message:     msg,
+		Selected:    selected,
 	})
 
 	m.updateShowValues()
@@ -101,6 +106,7 @@ func (m *Menu) AddItemScreen(desc string, s ScreenID) {
 }
 
 // BoolToString turns a boolean value into "on"/"off"
+// Used for on/off and auto/off/on switches
 func BoolToString(val bool) string {
 	if val {
 		return "on"
@@ -210,6 +216,23 @@ func (m *Menu) Render(img draw.Image) {
 		offsetValues := screenIndex * menuSpacingValues
 		DrawTxt(img, item.Description, x, y+offsetText, tightpixel15.Font)
 
+		if !m.showValues {
+			switch item.Type {
+			case MenuItemTypeSelect:
+				if item.Selected {
+
+					//DrawTxtRev(img, item.Description, x, y+offsetText, tightpixel15.Font)
+					fmt.Println(item.Description)
+					// reverse text the select item
+					w := tightpixel15.Font.MeasureString(item.Description)
+					h := tightpixel15.Font.GetHeight()
+					RectFilled(img, x-1, y+offsetText-1, w+1, h-1)
+					tightpixel15.Font.DrawString(img, x, y+offsetText, item.Description, color.White)
+
+				}
+			}
+		}
+
 		if m.showValues {
 			// draw values
 			if item.Type != MenuItemTypeAutoOffOn { // auto/off/on needs slightly wider rect
@@ -312,9 +335,7 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		case MenuItemTypeScreen:
 			m.ResetArrowPos()
 			return item.Screen, nil, true
-		case MenuItemTypeSelect:
-			return ScreenIDNoChange, MenuSelection(item.Description), true
-		case MenuItemTypeOnOff, MenuItemTypeAutoOffOn, MenuItemTypeCommand:
+		case MenuItemTypeSelect, MenuItemTypeOnOff, MenuItemTypeAutoOffOn, MenuItemTypeCommand:
 			return ScreenIDNoChange, item.Message, true
 		}
 	}

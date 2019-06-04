@@ -32,8 +32,14 @@ func (s *ProductMenuScreen) Render(img draw.Image) {
 	Clear(img)
 
 	s.menu.ResetItems()
-	for _, productConfig := range s.config.ProductConfigs {
-		s.menu.AddItemScreen(productConfig.Description, ScreenIDNoChange)
+	var selected bool
+	for i, productConfig := range s.config.ProductConfigs {
+		if i == s.config.CurrentProductIndex {
+			selected = true
+		} else {
+			selected = false
+		}
+		s.menu.AddItemSelect(productConfig.Description, isdata.UpdateCurrentProductIndex(s.menu.GetArrowPos()), selected)
 	}
 
 	if s.edit { // render text entry screen

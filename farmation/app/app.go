@@ -320,6 +320,18 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
 				saveConfig()
 
+			case isdata.UpdateOperatingMode:
+				config.OperatingMode = isdata.ISOperatingMode(m)
+				saveConfig()
+
+			case isdata.UpdateCurrentFieldIndex:
+				config.CurrentFieldIndex = int(m)
+				saveConfig()
+
+			case isdata.UpdateCurrentProductIndex:
+				config.CurrentProductIndex = int(m)
+				saveConfig()
+
 			case isdata.Pulse:
 				logChan <- m
 

@@ -17,24 +17,65 @@ type OperatingModeScreen struct {
 
 // NewOperatingModeScreen initializes and returns a HomeScreen
 func NewOperatingModeScreen(state *isdata.State, config *isdata.Config) *OperatingModeScreen {
+
+	/*// Find which operating mode is selected
+	var monitor, shtdwn, batch bool
+	switch config.OperatingMode {
+	case isdata.ISOperatingModeMonitor:
+		monitor = true
+	case isdata.ISOperatingModeMonitorAndShutdown:
+		shtdwn = true
+	case isdata.ISOperatingModeMonitorAndBatch:
+		batch = true
+	}
 	menu := Menu{}
-	menu.AddItemSelect("Monitor and Shutdown")
-	menu.AddItemSelect("Monitor only")
-	menu.AddItemSelect("Monitor and Batch")
+	fmt.Println(menu.GetArrowPos())
+	menu.AddItemSelect("Monitor and Shutdown", isdata.UpdateOperatingMode(menu.GetArrowPos()), shtdwn)
+	menu.AddItemSelect("Monitor only", isdata.UpdateOperatingMode(menu.GetArrowPos()), monitor)
+	menu.AddItemSelect("Monitor and Batch", isdata.UpdateOperatingMode(menu.GetArrowPos()), batch)*/
 
 	return &OperatingModeScreen{
 		softKeys: NewSoftKeys("back", "setup"),
 		state:    state,
 		config:   config,
-		menu:     menu,
+		menu:     Menu{},
 	}
 }
 
 // Render updates the home screen, and provides an image
 func (s *OperatingModeScreen) Render(img draw.Image) {
 	Clear(img)
-	Heading(img, "Operating Mode")
+
+	s.menu.ResetItems()
+
+	// Find which operating mode is selected
+	var monitor, shtdwn, batch bool
+	switch s.config.OperatingMode {
+	case isdata.ISOperatingModeMonitor:
+		monitor = true
+	case isdata.ISOperatingModeMonitorAndShutdown:
+		shtdwn = true
+	case isdata.ISOperatingModeMonitorAndBatch:
+		batch = true
+	}
+	var mode int
+	switch s.menu.GetArrowPos() {
+	case 0:
+		mode = int(isdata.ISOperatingModeMonitorAndShutdown)
+	case 1:
+		mode = int(isdata.ISOperatingModeMonitor)
+	case 2:
+		mode = int(isdata.ISOperatingModeMonitorAndBatch)
+	}
+
+	// add menu items
+	s.menu.AddItemSelect("Monitor and Shutdown", isdata.UpdateOperatingMode(mode), shtdwn)
+	s.menu.AddItemSelect("Monitor only", isdata.UpdateOperatingMode(mode), monitor)
+	s.menu.AddItemSelect("Monitor and Batch", isdata.UpdateOperatingMode(mode), batch)
+
+	// render
 	s.menu.Render(img)
+	Heading(img, "Operating Mode")
 	s.softKeys.Render(img, 0, 54)
 }
 

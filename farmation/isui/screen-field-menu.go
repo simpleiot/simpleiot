@@ -32,8 +32,14 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 	Clear(img)
 
 	s.menu.ResetItems()
-	for _, fieldConfig := range s.config.FieldConfigs {
-		s.menu.AddItemScreen(fieldConfig.Description, ScreenIDNoChange)
+	var selected bool
+	for i, fieldConfig := range s.config.FieldConfigs {
+		if i == s.config.CurrentFieldIndex {
+			selected = true
+		} else {
+			selected = false
+		}
+		s.menu.AddItemSelect(fieldConfig.Description, isdata.UpdateCurrentFieldIndex(s.menu.GetArrowPos()), selected)
 	}
 
 	if s.edit { // render text entry screen
