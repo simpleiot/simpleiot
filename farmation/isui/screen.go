@@ -19,7 +19,6 @@ const (
 	ScreenIDMainMenu
 	ScreenIDTankMenu1
 	ScreenIDFieldMenu1
-	ScreenIDEditFieldNames
 	ScreenIDOpMode1
 	ScreenIDOpModeSetup
 	ScreenIDTotals
