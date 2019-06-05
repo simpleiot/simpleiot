@@ -43,8 +43,8 @@ func NewInputChars(alpha, numbers bool) *InputChars {
 // Render the widget
 func (ic *InputChars) Render(img draw.Image) {
 
-	margin := 24                         // left margin size: x-postion
-	line1Y, line2Y, line3Y := 16, 29, 42 // y-postitions of input char lines
+	margin := 19                         // left margin size: x-postion
+	line1Y, line2Y, line3Y := 17, 30, 43 // y-postitions of input char lines
 
 	//Input Characters
 	currentChar, caps := rune(ic.lines[ic.line][ic.index]), ic.caps
