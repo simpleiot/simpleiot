@@ -193,6 +193,12 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.SampleTypePressureAvg:
 					state.PressureAvg = m.Value
 					saveState()
+				case isdata.SampleTypePressureVRef:
+					state.PressureVRef = m.Value
+					saveState()
+				case isdata.SampleTypePressureVSense:
+					state.PressureVSense = m.Value
+					saveState()
 				case isdata.SampleTypeFlowRate:
 					state.ProcessSample(m)
 					uiChan <- state

@@ -38,6 +38,8 @@ func (s *DiagInputsScreen) Render(img draw.Image) {
 	s.menu.AddItemString("Irrigator", BoolToString(s.state.GpioDigitalIrrigator))
 	s.menu.AddItemString("Water On", BoolToString(s.state.GpioDigitalWaterOn))
 	s.menu.AddItemString("In", BoolToString(s.state.GpioDigitalIn))
+	s.menu.AddItemFloat("Ref Voltage", s.state.PressureVRef)
+	s.menu.AddItemFloat("Sense Voltage", s.state.PressureVSense)
 
 	Heading(img, "Diagnostics Inputs")
 	s.menu.Render(img)

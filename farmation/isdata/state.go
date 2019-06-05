@@ -31,6 +31,8 @@ type State struct {
 	PressureMin        float64
 	PressureMax        float64
 	PressureAvg        float64
+	PressureVRef       float64
+	PressureVSense     float64
 
 	// Gpio's
 	GpioDigitalInjector  bool
