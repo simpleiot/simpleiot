@@ -18,22 +18,6 @@ type OperatingModeScreen struct {
 // NewOperatingModeScreen initializes and returns a HomeScreen
 func NewOperatingModeScreen(state *isdata.State, config *isdata.Config) *OperatingModeScreen {
 
-	/*// Find which operating mode is selected
-	var monitor, shtdwn, batch bool
-	switch config.OperatingMode {
-	case isdata.ISOperatingModeMonitor:
-		monitor = true
-	case isdata.ISOperatingModeMonitorAndShutdown:
-		shtdwn = true
-	case isdata.ISOperatingModeMonitorAndBatch:
-		batch = true
-	}
-	menu := Menu{}
-	fmt.Println(menu.GetArrowPos())
-	menu.AddItemSelect("Monitor and Shutdown", isdata.UpdateOperatingMode(menu.GetArrowPos()), shtdwn)
-	menu.AddItemSelect("Monitor only", isdata.UpdateOperatingMode(menu.GetArrowPos()), monitor)
-	menu.AddItemSelect("Monitor and Batch", isdata.UpdateOperatingMode(menu.GetArrowPos()), batch)*/
-
 	return &OperatingModeScreen{
 		softKeys: NewSoftKeys("back", "setup"),
 		state:    state,

@@ -32,13 +32,8 @@ func (s *ProductMenuScreen) Render(img draw.Image) {
 	Clear(img)
 
 	s.menu.ResetItems()
-	var selected bool
 	for i, productConfig := range s.config.ProductConfigs {
-		if i == s.config.CurrentProductIndex {
-			selected = true
-		} else {
-			selected = false
-		}
+		selected := (i == s.config.CurrentProductIndex)
 		s.menu.AddItemSelect(productConfig.Description, isdata.UpdateCurrentProductIndex(s.menu.GetArrowPos()), selected)
 	}
 

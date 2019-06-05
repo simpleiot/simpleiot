@@ -32,13 +32,8 @@ func (s *FieldMenuScreen) Render(img draw.Image) {
 	Clear(img)
 
 	s.menu.ResetItems()
-	var selected bool
 	for i, fieldConfig := range s.config.FieldConfigs {
-		if i == s.config.CurrentFieldIndex {
-			selected = true
-		} else {
-			selected = false
-		}
+		selected := (i == s.config.CurrentFieldIndex)
 		s.menu.AddItemSelect(fieldConfig.Description, isdata.UpdateCurrentFieldIndex(s.menu.GetArrowPos()), selected)
 	}
 

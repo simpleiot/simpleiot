@@ -50,11 +50,6 @@ type Config struct {
 	PressureSetting int
 }
 
-// GetCurrentFieldIndex returns the index for use by menu.go
-func (c Config) GetCurrentFieldIndex() int {
-	return c.CurrentFieldIndex
-}
-
 // ISOperatingMode defines the operating mode of the system
 type ISOperatingMode int
 

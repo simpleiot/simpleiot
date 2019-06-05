@@ -1,8 +1,6 @@
 package isui
 
 import (
-	"fmt"
-	"image/color"
 	"image/draw"
 	"strconv"
 
@@ -221,13 +219,7 @@ func (m *Menu) Render(img draw.Image) {
 			case MenuItemTypeSelect:
 				if item.Selected {
 
-					//DrawTxtRev(img, item.Description, x, y+offsetText, tightpixel15.Font)
-					fmt.Println(item.Description)
-					// reverse text the select item
-					w := tightpixel15.Font.MeasureString(item.Description)
-					h := tightpixel15.Font.GetHeight()
-					RectFilled(img, x-1, y+offsetText-1, w+1, h-1)
-					tightpixel15.Font.DrawString(img, x, y+offsetText, item.Description, color.White)
+					DrawTxtRevLarge(img, item.Description, x, y+offsetText, tightpixel15.Font)
 
 				}
 			}

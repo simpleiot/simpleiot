@@ -33,11 +33,19 @@ func DrawTxtHighlight(img draw.Image, txt string, highlightChar rune, caps bool,
 	}
 }
 
-// DrawTxtRev draws text with white on black background
+// DrawTxtRev draws text with white on black background (which fits lowercase)
 func DrawTxtRev(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
 	w := font.MeasureString(txt)
 	h := font.GetHeight()
 	RectFilled(img, x-1, y, w+1, h)
+	font.DrawString(img, x, y, txt, color.White)
+}
+
+// DrawTxtRevLarge draws text with white on black background (which fits uppercase)
+func DrawTxtRevLarge(img draw.Image, txt string, x, y int, font *pixfont.PixFont) {
+	w := font.MeasureString(txt)
+	h := font.GetHeight()
+	RectFilled(img, x-1, y-1, w+1, h-1)
 	font.DrawString(img, x, y, txt, color.White)
 }
 
