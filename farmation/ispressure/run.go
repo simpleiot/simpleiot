@@ -85,6 +85,18 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 				Value: avg,
 			}
 
+			out <- data.Sample{
+				Time:  t,
+				Type:  isdata.SampleTypePressureVRef,
+				Value: ref,
+			}
+
+			out <- data.Sample{
+				Time:  t,
+				Type:  isdata.SampleTypePressureVSense,
+				Value: sense,
+			}
+
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.Config:
