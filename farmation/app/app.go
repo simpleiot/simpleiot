@@ -199,6 +199,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.SampleTypeKey:
 					// convert from sample to key
 					uiChan <- isdata.KeyFromString(m.ID)
+				default:
+					log.Println("Sample type not handled: ", m.Type)
 				}
 			case isdata.Key:
 				uiChan <- m
