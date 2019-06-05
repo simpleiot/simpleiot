@@ -21,7 +21,7 @@ func NewDiagInputsScreen(state *isdata.State, config *isdata.Config) *DiagInputs
 	menu := Menu{}
 
 	return &DiagInputsScreen{
-		softKeys: NewSoftKeys("back"),
+		softKeys: NewSoftKeys("back", "reset"),
 		state:    state,
 		config:   config,
 		menu:     menu,
@@ -40,6 +40,7 @@ func (s *DiagInputsScreen) Render(img draw.Image) {
 	s.menu.AddItemString("In", BoolToString(s.state.GpioDigitalIn))
 	s.menu.AddItemFloat("Ref Voltage", s.state.PressureVRef)
 	s.menu.AddItemFloat("Sense Voltage", s.state.PressureVSense)
+	s.menu.AddItemInt("Flow Pulse Cnt", s.state.FlowPulseCount)
 
 	Heading(img, "Diagnostics Inputs")
 	s.menu.Render(img)
@@ -52,6 +53,11 @@ func (s *DiagInputsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	case isdata.KeySK1:
 		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDDiagConfig, nil, true
+	case isdata.KeySK2: // reset
+		switch s.menu.GetArrowPos() {
+		case 6: // arrow is at flow pulse count menu item
+			return ScreenIDNoChange, isdata.UpdateResetFlowPulseCount{}, true
+		}
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)
 	}

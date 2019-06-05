@@ -235,9 +235,14 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.FlowRate = m.RateAvg
 				state.Total1 += m.Amount
 				state.Total2 += m.Amount
+				state.FlowPulseCount += m.Pulses
 				if config.LogFlowData {
 					logChan <- m
 				}
+				saveState()
+
+			case isdata.UpdateResetFlowPulseCount:
+				state.FlowPulseCount = 0
 				saveState()
 
 			case isdata.UpdateResetTotal1:

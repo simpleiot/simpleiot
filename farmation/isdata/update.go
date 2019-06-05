@@ -18,6 +18,9 @@ type UpdateResetTotal1 struct{}
 // UpdateResetTotal2 is used to reset total2
 type UpdateResetTotal2 struct{}
 
+// UpdateResetFlowPulseCount is used to reset FlowPulseCount
+type UpdateResetFlowPulseCount struct{}
+
 // UpdateLogPulseEnable is used to enable/disable logging of pulse data to USB
 type UpdateLogPulseEnable bool
 

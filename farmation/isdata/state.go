@@ -14,6 +14,7 @@ type State struct {
 	BatchRemaining    float64
 	Total1            float64
 	Total2            float64
+	FlowPulseCount    int
 	LifetimeTotal     float64
 	CurrentTankVolume float64
 	NetworkState      NetworkState
