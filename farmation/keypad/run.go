@@ -89,6 +89,7 @@ func getch() []byte {
  * 7: enter (PD10)
  * 8: down (PA12)
  * 9: right (PA11)
+ * 10: arm  (PC25)
  *
  * switches are active low
  */

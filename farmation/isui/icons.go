@@ -3,6 +3,7 @@ package isui
 import (
 	"fmt"
 	"image/draw"
+	"io"
 )
 
 // Icons is a widget that renders icons on the home and status screens
@@ -40,10 +41,10 @@ func NewIcons(pageInd, arm, pump, water bool) *Icons {
 		ret.icons["page indicator"] = &iconFields{icon1: "indicator-home.png", icon2: "indicator-status1.png", icon3: "indicator-status2.png", icon4: "indicator-status3.png", x: margin, y: 1}
 	}
 	if arm {
-		ret.icons["arm"] = &iconFields{iconOn: "arm.png", iconOff: "arm.png", x: margin, y: 8}
+		ret.icons["arm"] = &iconFields{iconOn: "arm.png", iconOff: "", x: margin, y: 8}
 	}
 	if pump {
-		ret.icons["pump"] = &iconFields{iconOn: "pump.png", iconOff: "pump.png", x: margin, y: 26}
+		ret.icons["pump"] = &iconFields{iconOn: "pump.png", iconOff: "", x: margin, y: 26}
 	}
 	if water {
 		ret.icons["water"] = &iconFields{iconOn: "water-on.png", iconOff: "", x: margin + 2, y: 40}
@@ -92,7 +93,7 @@ func (i *Icons) Render(img draw.Image) {
 
 		// draw icon
 		err := DrawPng(img, icon, iconFields.x, iconFields.y)
-		if err != nil {
+		if err != nil && err != io.ErrUnexpectedEOF {
 			s := fmt.Sprintf("error drawing %s: %s", icon, err)
 			fmt.Println(s)
 		}
