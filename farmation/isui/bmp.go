@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
+	"io"
 
 	"github.com/simpleiot/simpleiot/farmation/assets/lcdassets"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -28,7 +29,7 @@ func bmpTest() {
 
 // DrawBmp draws a bmp on the image
 func DrawBmp(img draw.Image, name string, x, y int) error {
-	imgBmp, err := GetLcdAsset(name)
+	imgBmp, err := bmp.Decode(GetLcdAsset(name))
 
 	if err != nil {
 		return err
@@ -43,22 +44,12 @@ func DrawBmp(img draw.Image, name string, x, y int) error {
 	return nil
 }
 
-// GetLcdAsset returns an image for a particular LCD asset bmp
-func GetLcdAsset(name string) (image.Image, error) {
+// GetLcdAsset returns an io.Reader
+// Used by bmp and png functions
+func GetLcdAsset(name string) io.Reader {
 	data := lcdassets.Asset("/" + name)
 
-	return bmp.Decode(bytes.NewReader(data))
-}
-
-// GetLcdAssetBlt returns a LcdBlt for a particular LCD asset bmp
-func GetLcdAssetBlt(x, y int, name string) (isdata.LcdBlt, error) {
-	img, err := GetLcdAsset(name)
-
-	if err != nil {
-		return isdata.LcdBlt{}, err
-	}
-
-	return ImageToBlt(x, y, img, false), nil
+	return bytes.NewReader(data)
 }
 
 // ImageToBlt converts an image to a LCD Blt structure
