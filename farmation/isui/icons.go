@@ -12,27 +12,54 @@ type Icons struct {
 
 type iconFields struct {
 	on      bool
-	onIcon  string
-	offIcon string
+	iconOn  string
+	iconOff string
+	page    int
+	icon1   string
+	icon2   string
+	icon3   string
+	icon4   string
 	x       int
 	y       int
 }
 
+const (
+	home int = iota
+	status1
+	status2
+	status3
+)
+
 // NewIcons initializes the icons
-func NewIcons() *Icons {
+func NewIcons(pageInd, arm, pump, water bool) *Icons {
 	ret := Icons{}
 	// Add new icons
-	margin := 110
+	margin := 113
 	ret.icons = make(map[string]*iconFields)
-	ret.icons["arm"] = &iconFields{onIcon: "arm.png", offIcon: "arm.png", x: margin, y: 1}
-	ret.icons["pump"] = &iconFields{onIcon: "pump.png", offIcon: "pump.png", x: margin, y: 18}
+	if pageInd {
+		ret.icons["page indicator"] = &iconFields{icon1: "indicator-home.png", icon2: "indicator-status1.png", icon3: "indicator-status2.png", icon4: "indicator-status3.png", x: margin, y: 1}
+	}
+	if arm {
+		ret.icons["arm"] = &iconFields{iconOn: "arm.png", iconOff: "arm.png", x: margin, y: 8}
+	}
+	if pump {
+		ret.icons["pump"] = &iconFields{iconOn: "pump.png", iconOff: "pump.png", x: margin, y: 26}
+	}
+	if water {
+		ret.icons["water"] = &iconFields{iconOn: "water-on.png", iconOff: "", x: margin + 2, y: 40}
+	}
 
 	return &ret
 }
 
-// Set icon to on or off
-func (i *Icons) Set(iconName string, on bool) {
+// SetOnOff sets an icon to on or off
+func (i *Icons) SetOnOff(iconName string, on bool) {
 	i.icons[iconName].on = on
+}
+
+// SetPage sets a page indicator icon
+func (i *Icons) SetPage(iconName string, page int) {
+	i.icons[iconName].page = page
 }
 
 // Render the widget
@@ -41,11 +68,29 @@ func (i *Icons) Render(img draw.Image) {
 	// Draw all icons
 	var icon string
 	for _, iconFields := range i.icons {
+
+		// Which icon to render for on/off icons
 		if iconFields.on {
-			icon = iconFields.onIcon
+			icon = iconFields.iconOn
 		} else {
-			icon = iconFields.offIcon
+			icon = iconFields.iconOff
 		}
+
+		if iconFields.icon1 != "" { // if the icon is a page position indicator
+			// Which icon to render for status pages position icon
+			switch iconFields.page {
+			case home:
+				icon = iconFields.icon1
+			case status1:
+				icon = iconFields.icon2
+			case status2:
+				icon = iconFields.icon3
+			case status3:
+				icon = iconFields.icon4
+			}
+		}
+
+		// draw icon
 		err := DrawPng(img, icon, iconFields.x, iconFields.y)
 		if err != nil {
 			s := fmt.Sprintf("error drawing %s: %s", icon, err)

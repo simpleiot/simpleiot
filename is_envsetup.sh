@@ -47,7 +47,7 @@ is_build_assets() {
   genesis -C farmation/assets/lcdassets -pkg lcdassets \
     $(
       cd farmation/assets/lcdassets
-      ls *.bmp
+      ls *.png
     ) \
     >farmation/assets/lcdassets/assets.go || return 1
 

@@ -10,6 +10,7 @@ import (
 // StatusScreen3 is used to display status info
 type StatusScreen3 struct {
 	softKeys *SoftKeys
+	icons    *Icons
 	state    *isdata.State
 	config   *isdata.Config
 }
@@ -18,6 +19,7 @@ type StatusScreen3 struct {
 func NewStatusScreen3(state *isdata.State, config *isdata.Config) *StatusScreen3 {
 	return &StatusScreen3{
 		softKeys: NewSoftKeys("home", "mode", "pump"),
+		icons:    NewIcons(true, false, false, false),
 		state:    state,
 		config:   config,
 	}
@@ -29,6 +31,10 @@ func (s *StatusScreen3) Render(img draw.Image) {
 	DrawTxt(img, "Status Screen 3", 11, 38, tightpixel15.Font)
 
 	s.softKeys.Render(img, 0, 54)
+
+	// icons
+	s.icons.SetPage("page indicator", 3)
+	s.icons.Render(img)
 }
 
 // Key processes keypad input to this screen
