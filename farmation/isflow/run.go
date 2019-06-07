@@ -20,8 +20,8 @@ func edgeTsToTime(data []byte) time.Time {
 }
 
 // Run goroutine for IO code
-func Run(in, out chan interface{}, sim bool) {
-	config := isdata.Config{}
+func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
+	config := configInit
 	pulseCh := make(chan time.Time)
 	if runtime.GOARCH == "arm" {
 		go func() {
