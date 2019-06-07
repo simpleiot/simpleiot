@@ -18,6 +18,9 @@ type UpdateResetTotal1 struct{}
 // UpdateResetTotal2 is used to reset total2
 type UpdateResetTotal2 struct{}
 
+// UpdateResetLifetime is used to reset the lifetime total
+type UpdateResetLifetime struct{}
+
 // UpdateResetFlowPulseCount is used to reset FlowPulseCount
 type UpdateResetFlowPulseCount struct{}
 

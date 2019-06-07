@@ -269,6 +269,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.Total2 = 0
 				saveState()
 
+			case isdata.UpdateResetLifetime:
+				state.LifetimeTotal = 0
+				saveState()
+
 			case isdata.UpdateLogPulseEnable:
 				config.LogPulseData = bool(m)
 				saveConfig()

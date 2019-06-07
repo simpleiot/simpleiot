@@ -33,16 +33,16 @@ func NewTotalsScreen(state *isdata.State, config *isdata.Config) *TotalsScreen {
 func (s *TotalsScreen) Render(img draw.Image) {
 	Clear(img)
 	s.menu.ResetItems()
-	s.menu.AddItemInt("Current Field",
-		int(s.state.FieldStates[s.config.CurrentFieldIndex].Total))
+	s.menu.AddItemFloat("Current Field",
+		s.state.FieldStates[s.config.CurrentFieldIndex].Total)
 	s.menu.AddItemFloat("Total 1", s.state.Total1)
 	s.menu.AddItemFloat("Total 2", s.state.Total2)
-	s.menu.AddItemInt("Product 1 Total", int(s.state.ProductStates[0].Total))
-	s.menu.AddItemInt("Product 2 Total", int(s.state.ProductStates[1].Total))
-	s.menu.AddItemInt("Product 3 Total", int(s.state.ProductStates[2].Total))
-	s.menu.AddItemInt("Product 4 Total", int(s.state.ProductStates[3].Total))
-	s.menu.AddItemInt("Product 5 Total", int(s.state.ProductStates[4].Total))
-	s.menu.AddItemInt("Lifetime Total", int(s.state.LifetimeTotal))
+	s.menu.AddItemFloat("Product 1 Total", s.state.ProductStates[0].Total)
+	s.menu.AddItemFloat("Product 2 Total", s.state.ProductStates[1].Total)
+	s.menu.AddItemFloat("Product 3 Total", s.state.ProductStates[2].Total)
+	s.menu.AddItemFloat("Product 4 Total", s.state.ProductStates[3].Total)
+	s.menu.AddItemFloat("Product 5 Total", s.state.ProductStates[4].Total)
+	s.menu.AddItemFloat("Lifetime Total", s.state.LifetimeTotal)
 
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
@@ -73,6 +73,8 @@ func (s *TotalsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			return ScreenIDNoChange, isdata.UpdateResetTotal1{}, true
 		case TotalScreenIndexTotal2:
 			return ScreenIDNoChange, isdata.UpdateResetTotal2{}, true
+			//case TotalScreenLifetime:
+			//	return ScreenIDNoChange, isdata.UpdateResetLifetime{}, true
 		}
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)
