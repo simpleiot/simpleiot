@@ -57,7 +57,11 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	err = db.ReadState(&state)
 
 	if err != nil {
-		log.Println("Error reading state: ", err)
+		log.Println("Error reading state, resetting: ", err)
+		err := db.ResetDb()
+		if err != nil {
+			log.Println("Error resetting db: ", err)
+		}
 	}
 
 	stateDirty = isdata.InitState(&state)
