@@ -17,7 +17,7 @@ type TotalsScreen struct {
 
 // NewTotalsScreen gives new Totals screen to screen.go
 func NewTotalsScreen(state *isdata.State, config *isdata.Config) *TotalsScreen {
-	isdata.InitState(state) // make sure that ProductStates and FieldStates arrays are large enough
+	isdata.InitState(state) // make sure that FieldStates[s.config.CurrentFieldIndex] and FieldStates arrays are large enough
 	menu := Menu{}
 
 	return &TotalsScreen{
@@ -33,15 +33,15 @@ func NewTotalsScreen(state *isdata.State, config *isdata.Config) *TotalsScreen {
 func (s *TotalsScreen) Render(img draw.Image) {
 	Clear(img)
 	s.menu.ResetItems()
-	s.menu.AddItemFloat("Current Field",
-		s.state.FieldStates[s.config.CurrentFieldIndex].Total)
+	s.menu.AddItemFloat(s.config.FieldConfigs[s.config.CurrentFieldIndex].Description,
+		s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total)
 	s.menu.AddItemFloat("Total 1", s.state.Total1)
 	s.menu.AddItemFloat("Total 2", s.state.Total2)
-	s.menu.AddItemFloat("Product 1 Total", s.state.ProductStates[0].Total)
-	s.menu.AddItemFloat("Product 2 Total", s.state.ProductStates[1].Total)
-	s.menu.AddItemFloat("Product 3 Total", s.state.ProductStates[2].Total)
-	s.menu.AddItemFloat("Product 4 Total", s.state.ProductStates[3].Total)
-	s.menu.AddItemFloat("Product 5 Total", s.state.ProductStates[4].Total)
+	s.menu.AddItemFloat(s.config.ProductConfigs[0].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][0].Total)
+	s.menu.AddItemFloat(s.config.ProductConfigs[1].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][1].Total)
+	s.menu.AddItemFloat(s.config.ProductConfigs[2].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][2].Total)
+	s.menu.AddItemFloat(s.config.ProductConfigs[3].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][3].Total)
+	s.menu.AddItemFloat(s.config.ProductConfigs[4].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][4].Total)
 	s.menu.AddItemFloat("Lifetime Total", s.state.LifetimeTotal)
 
 	s.menu.Render(img)
@@ -75,6 +75,16 @@ func (s *TotalsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			return ScreenIDNoChange, isdata.UpdateResetTotal2{}, true
 			//case TotalScreenLifetime:
 			//	return ScreenIDNoChange, isdata.UpdateResetLifetime{}, true
+		case TotalScreenProduct1:
+			return ScreenIDNoChange, isdata.UpdateResetProduct1{}, true
+		case TotalScreenProduct2:
+			return ScreenIDNoChange, isdata.UpdateResetProduct2{}, true
+		case TotalScreenProduct3:
+			return ScreenIDNoChange, isdata.UpdateResetProduct3{}, true
+		case TotalScreenProduct4:
+			return ScreenIDNoChange, isdata.UpdateResetProduct4{}, true
+		case TotalScreenProduct5:
+			return ScreenIDNoChange, isdata.UpdateResetProduct5{}, true
 		}
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)

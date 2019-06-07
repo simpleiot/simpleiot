@@ -250,6 +250,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.FlowRate = m.RateAvg
 				state.Total1 += m.Amount
 				state.Total2 += m.Amount
+				state.FieldStates[config.CurrentFieldIndex][config.CurrentProductIndex].Total += m.Amount
 				state.LifetimeTotal += m.Amount
 				state.FlowPulseCount += m.Pulses
 				if config.LogFlowData {
@@ -267,6 +268,26 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdateResetTotal2:
 				state.Total2 = 0
+				saveState()
+
+			case isdata.UpdateResetProduct1:
+				state.FieldStates[config.CurrentFieldIndex][0].Total = 0
+				saveState()
+
+			case isdata.UpdateResetProduct2:
+				state.FieldStates[config.CurrentFieldIndex][1].Total = 0
+				saveState()
+
+			case isdata.UpdateResetProduct3:
+				state.FieldStates[config.CurrentFieldIndex][2].Total = 0
+				saveState()
+
+			case isdata.UpdateResetProduct4:
+				state.FieldStates[config.CurrentFieldIndex][3].Total = 0
+				saveState()
+
+			case isdata.UpdateResetProduct5:
+				state.FieldStates[config.CurrentFieldIndex][4].Total = 0
 				saveState()
 
 			case isdata.UpdateResetLifetime:

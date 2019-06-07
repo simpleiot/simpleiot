@@ -24,7 +24,7 @@ type Config struct {
 	WaterOn             bool
 	Arm                 bool
 	OperatingMode       ISOperatingMode
-	CurrentFieldIndex   int
+	CurrentFieldIndex   int // location of current (active) field
 	FieldConfigs        []FieldConfig
 	CurrentProductIndex int
 	ProductConfigs      []ProductConfig
@@ -330,12 +330,13 @@ func (c *Config) Init() {
 			FieldConfig{"Field Four"},
 		}
 	}
-	if len(c.ProductConfigs) < 4 {
+	if len(c.ProductConfigs) < 5 {
 		c.ProductConfigs = []ProductConfig{
-			ProductConfig{"Product One"},
-			ProductConfig{"Product Two"},
-			ProductConfig{"Product Three"},
-			ProductConfig{"Product Four"},
+			ProductConfig{"Product 1"},
+			ProductConfig{"Product 2"},
+			ProductConfig{"Product 3"},
+			ProductConfig{"Product 4"},
+			ProductConfig{"Product 5"},
 		}
 	}
 }

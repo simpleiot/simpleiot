@@ -22,8 +22,7 @@ type State struct {
 	// PanelConfig will be populated based on the panel detected
 	// by the sense resistor.
 	PanelConfig        ISPanelConfig
-	FieldStates        []FieldState
-	ProductStates      []ProductState
+	FieldStates        [][5]ProductState
 	GpsPos             GpsPos
 	FlowStatus         FlowStatus
 	IrrigationShutdown bool
@@ -59,11 +58,6 @@ const (
 	FlowStatusOffTarget
 )
 
-// FieldState describes the state of a field.
-type FieldState struct {
-	Total float64
-}
-
 // ProductState defines the state of a product
 type ProductState struct {
 	Total float64
@@ -78,14 +72,10 @@ type GpsPos struct {
 	NumSats int
 }
 
-// InitState initializes the field state
+// InitState initializes multiple states
 func InitState(s *State) (dirty bool) {
 	for len(s.FieldStates) < 4 { //not sure that 4 is the right length
-		s.FieldStates = append(s.FieldStates, FieldState{0})
-		dirty = true
-	}
-	for len(s.ProductStates) < 5 {
-		s.ProductStates = append(s.ProductStates, ProductState{0})
+		s.FieldStates = append(s.FieldStates, [5]ProductState{})
 		dirty = true
 	}
 
