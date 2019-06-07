@@ -100,7 +100,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go isapi.Server(webChan, appChan)
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
-	go isflow.Run(flowChan, appChan, sim)
+	go isflow.Run(flowChan, appChan, sim, config)
 	go islog.Run(logChan, appChan)
 	go ispressure.Run(presChan, appChan, config)
 
