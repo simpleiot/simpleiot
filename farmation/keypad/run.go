@@ -20,7 +20,7 @@ func keypad(out chan interface{}, name string, key isdata.Key) {
 	}
 
 	// Set it as input, with an internal pull down resistor:
-	if err := p.In(gpio.Float, gpio.FallingEdge); err != nil {
+	if err := p.In(gpio.Float, gpio.RisingEdge); err != nil {
 		log.Println("Error setting up gpio: ", err)
 		return
 	}
@@ -44,7 +44,7 @@ func keypad(out chan interface{}, name string, key isdata.Key) {
 		case <-cEdge:
 			if timerRunning == false {
 				//fmt.Println("got edge", p.Read())
-				if p.Read() == false {
+				if p.Read() == true {
 					out <- key
 				}
 				timer.Reset(time.Millisecond * 50)
