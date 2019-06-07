@@ -107,6 +107,7 @@ func Run(in, out chan interface{}) {
 		go keypad(out, "PD10", isdata.KeyEnter)
 		go keypad(out, "PA12", isdata.KeyDown)
 		go keypad(out, "PA11", isdata.KeyRight)
+		go keypad(out, "PC25", isdata.KeyArm)
 	}
 
 	/*

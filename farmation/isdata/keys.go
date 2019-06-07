@@ -15,6 +15,7 @@ const (
 	KeySK2
 	KeySK3
 	KeySK4
+	KeyArm
 )
 
 var keyToString = map[Key]string{
@@ -27,6 +28,7 @@ var keyToString = map[Key]string{
 	KeySK2:   "KeySK2",
 	KeySK3:   "KeySK3",
 	KeySK4:   "KeySK4",
+	KeyArm:   "KeyArm",
 }
 
 func (k Key) String() string {
@@ -47,6 +49,7 @@ var stringToKey = map[string]Key{
 	"KeySK2":   KeySK2,
 	"KeySK3":   KeySK3,
 	"KeySK4":   KeySK4,
+	"KeyArm":   KeyArm,
 }
 
 // KeyFromString converts a string to a key

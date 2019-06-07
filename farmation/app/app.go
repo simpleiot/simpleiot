@@ -204,12 +204,27 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					uiChan <- state
 				case isdata.SampleTypeKey:
 					// convert from sample to key
-					uiChan <- isdata.KeyFromString(m.ID)
+					key := isdata.KeyFromString(m.ID)
+					/*switch key {
+					case isdata.KeyUp: // map down key to arm
+						config.Arm = !config.Arm
+						saveConfig()
+					default:*/
+					uiChan <- key
+					//}
 				default:
 					log.Println("Sample type not handled: ", m.Type)
 				}
 			case isdata.Key:
-				uiChan <- m
+				switch m {
+				case isdata.KeyArm:
+					// toggle the arm switch
+					config.Arm = !config.Arm
+					saveConfig()
+				default:
+					// send to ui to handle
+					uiChan <- m
+				}
 
 			case isdata.UpdateFieldName:
 				config.FieldConfigs[m.Index].Description = m.Name

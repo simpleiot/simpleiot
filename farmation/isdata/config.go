@@ -22,6 +22,7 @@ type Config struct {
 	// BatchAmount max value is 9,999
 	BatchAmount         int
 	WaterOn             bool
+	Arm                 bool
 	OperatingMode       ISOperatingMode
 	CurrentFieldIndex   int
 	FieldConfigs        []FieldConfig

@@ -38,7 +38,7 @@ func (s *HomeScreen) Render(img draw.Image) {
 	s.softKeys.Render(img, 0, 54)
 
 	// icons
-	s.icons.SetOnOff("arm", true)
+	s.icons.SetOnOff("arm", s.config.Arm)
 	s.icons.SetOnOff("pump", s.state.GpioDigitalInjector)
 	s.icons.SetOnOff("water", s.state.GpioDigitalWaterOn)
 	s.icons.SetPage("page indicator", 0) // set page indicator icon to home
