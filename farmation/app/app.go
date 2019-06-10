@@ -382,6 +382,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.OperatingMode = isdata.ISOperatingMode(m)
 				saveConfig()
 
+			case isdata.UpdatePumpAutoOff:
+				config.PumpAutoOff = bool(m)
+				saveConfig()
+
 			case isdata.UpdateCurrentFieldIndex:
 				config.CurrentFieldIndex = int(m)
 				saveConfig()

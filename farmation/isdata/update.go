@@ -21,19 +21,19 @@ type UpdateResetTotal2 struct{}
 // UpdateResetLifetime is used to reset the lifetime total
 type UpdateResetLifetime struct{}
 
-// UpdateResetProduct1 is used to reset the lifetime total
+// UpdateResetProduct1 ...
 type UpdateResetProduct1 struct{}
 
-// UpdateResetProduct2 is used to reset the lifetime total
+// UpdateResetProduct2 ...
 type UpdateResetProduct2 struct{}
 
-// UpdateResetProduct3 is used to reset the lifetime total
+// UpdateResetProduct3 ...
 type UpdateResetProduct3 struct{}
 
-// UpdateResetProduct4 is used to reset the lifetime total
+// UpdateResetProduct4 ...
 type UpdateResetProduct4 struct{}
 
-// UpdateResetProduct5 is used to reset the lifetime total
+// UpdateResetProduct5 ...
 type UpdateResetProduct5 struct{}
 
 // UpdateResetFlowPulseCount is used to reset FlowPulseCount
@@ -92,3 +92,6 @@ type UpdateCurrentProductIndex int
 
 // UpdateOperatingMode is used to select a new operating mode
 type UpdateOperatingMode int
+
+// UpdatePumpAutoOff is used to toggle the auto/off pump mode from the "pump" softkey on the home/status screens
+type UpdatePumpAutoOff bool
