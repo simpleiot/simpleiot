@@ -305,6 +305,9 @@ func (c *Config) Init() {
 	c.LogFlowData = false
 	c.LogPressureData = false
 
+	// set pump mode to auto
+	c.PumpAutoOff = true
+
 	// set relays to auto mode in case
 	// power lost while relays were in manual mode
 	c.ManualRelayInj = RelayControlAutoStateType
