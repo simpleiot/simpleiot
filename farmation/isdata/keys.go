@@ -12,9 +12,14 @@ const (
 	KeyRight
 	KeyEnter
 	KeySK1
+	KeySK1Release
+	KeySK1Hold
 	KeySK2
+	KeySK2Release
 	KeySK3
+	KeySK3Release
 	KeySK4
+	KeySK4Release
 	KeyArm
 )
 
