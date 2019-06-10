@@ -32,6 +32,9 @@ func NewTotalsScreen(state *isdata.State, config *isdata.Config) *TotalsScreen {
 // Render updates the home screen, and provides an image
 func (s *TotalsScreen) Render(img draw.Image) {
 	Clear(img)
+
+	Heading(img, "Totals")
+
 	s.menu.ResetItems()
 	s.menu.AddItemFloat(s.config.FieldConfigs[s.config.CurrentFieldIndex].Description,
 		s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total)
