@@ -29,12 +29,21 @@ type Config struct {
 	CurrentProductIndex int
 	ProductConfigs      []ProductConfig
 	DeviceName          string
-	NetworkConfig       NetworkConfig
-	TankCapacity        int
-	TankAlertVolume     int
-	TankAlertOn         bool
-	FlowMeterPPG        int // how many pulses in one US gallon
-	FlowMeterMaxflo     int // Meter's maximum flow rate in GPM or LPM
+
+	// stores whether pump is in auto mode or off mode
+	// accessed from pump button on home/status screens
+	PumpAutoOff bool
+
+	// stores whether the pump is in digital input mode, water only, etc.
+	// accessed from config?
+	PumpMode int
+
+	NetworkConfig   NetworkConfig
+	TankCapacity    int
+	TankAlertVolume int
+	TankAlertOn     bool
+	FlowMeterPPG    int // how many pulses in one US gallon
+	FlowMeterMaxflo int // Meter's maximum flow rate in GPM or LPM
 
 	// Logging options
 	LogPulseData    bool
