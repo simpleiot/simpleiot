@@ -39,7 +39,7 @@ func (s *HomeScreen) Render(img draw.Image) {
 
 	// icons
 	s.icons.SetOnOff("arm", s.config.Arm)
-	s.icons.SetOnOff("pump", s.state.GpioDigitalInjector)
+	s.icons.SetOnOff("pump", s.config.PumpAutoOff)
 	s.icons.SetOnOff("water", s.state.GpioDigitalWaterOn)
 	s.icons.SetPage("page indicator", 0) // set page indicator icon to home
 	s.icons.Render(img)
@@ -54,6 +54,8 @@ func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		return ScreenIDStatus3, nil, true
 	case isdata.KeySK1:
 		return ScreenIDMainMenu, nil, true
+	case isdata.KeySK2:
+		return ScreenIDNoChange, isdata.UpdatePumpAutoOff(!s.config.PumpAutoOff), true
 	}
 
 	return ScreenIDNoChange, nil, true
