@@ -9,10 +9,11 @@ import (
 
 // InputChars is a widget that allows us to enter text (alpha/num)
 type InputChars struct {
-	lines [3]string
-	line  int
-	index int
-	caps  bool
+	lines       [3]string
+	line        int
+	index       int
+	numbersOnly bool
+	caps        bool
 }
 
 var alphaLowerLine1 = "abcdefghijklm"
@@ -35,6 +36,10 @@ func NewInputChars(alpha, numbers bool) *InputChars {
 		ret.lines[0] = numLine[:10] // slice off space and period
 	} else { // one null input char
 		ret.lines[0] = "\x00"
+	}
+
+	if numbers && !alpha {
+		ret.numbersOnly = true
 	}
 
 	return &ret
@@ -83,9 +88,17 @@ func (ic *InputChars) Key(key isdata.Key) byte {
 	case isdata.KeyLeft:
 		currentInputChar = ic.Left()
 	case isdata.KeyUp:
-		currentInputChar = ic.Up()
+		if ic.numbersOnly {
+			currentInputChar = ic.Right()
+		} else {
+			currentInputChar = ic.Up()
+		}
 	case isdata.KeyDown:
-		currentInputChar = ic.Down()
+		if ic.numbersOnly {
+			currentInputChar = ic.Left()
+		} else {
+			currentInputChar = ic.Down()
+		}
 	}
 
 	return currentInputChar
