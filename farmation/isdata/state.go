@@ -85,5 +85,13 @@ func InitState(s *State) (dirty bool) {
 	s.PressureVRef = 0
 	s.PressureVSense = 0
 
+	// add an active fault to test
+	if len(s.ActiveFaults) <= 0 {
+		s.ActiveFaults = append(s.ActiveFaults, ISEvent{})
+	}
+
+	// empty active faults
+	// s.ActiveFaults = nil
+
 	return
 }

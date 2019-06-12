@@ -3,8 +3,10 @@ package isui
 import (
 	"image"
 	"log"
+	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"github.com/simpleiot/simpleiot/farmation/isio"
 )
 
 // Run goroutine for ui code
@@ -29,8 +31,17 @@ func Run(in, out chan interface{}, configInit isdata.Config) {
 
 	renderScreen()
 
+	// Ticker for status LED
+	ledTicker := time.NewTicker(750 * time.Millisecond)
+
 	for {
 		select {
+		case <-ledTicker.C:
+			isio.StatusLightRed(false)
+			isio.StatusLightGreen(false)
+			switch {
+			case config.Arm:
+
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.State:
