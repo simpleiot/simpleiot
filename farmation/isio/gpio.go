@@ -143,7 +143,9 @@ func GpioInit() {
 func GpioOut(name string, value bool) {
 	p, ok := pins[name]
 	if !ok || p.Pin == nil {
-		log.Println("Error setting gpio: ", name)
+		if runtime.GOARCH == "arm" {
+			log.Println("Error setting gpio: ", name)
+		}
 		return
 	}
 
@@ -154,7 +156,9 @@ func GpioOut(name string, value bool) {
 func GpioRead(name string) bool {
 	p, ok := pins[name]
 	if !ok || p.Pin == nil {
-		log.Println("Error reading gpio: ", name)
+		if runtime.GOARCH == "arm" {
+			log.Println("Error reading gpio: ", name)
+		}
 		return false
 	}
 
