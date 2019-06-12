@@ -20,11 +20,19 @@ const (
 	LedGreen
 	LedRedBlnk
 	LedGreenBlnk
-	Off
+	LedOff
 )
 
+// NewStatusLed initializes the led state struct passing in state, config, and out channel
+func NewStatusLed(state *isdata.State, config *isdata.Config) *StatusLed {
+	return &StatusLed{
+		state:  state,
+		config: config,
+	}
+}
+
 // ComputeLedState updates the current led state based on config and state
-func (sl *StatusLed) ComputeLedState() *StatusLed {
+func (sl *StatusLed) ComputeLedState() {
 	switch {
 	case sl.config.Arm: // if IS is armed
 		if sl.state.FlowStatus == isdata.FlowStatusOffTarget || len(sl.state.ActiveFaults) != 0 { // if flow rate off target or active faults
@@ -35,26 +43,31 @@ func (sl *StatusLed) ComputeLedState() *StatusLed {
 	case sl.state.IrrigationShutdown || len(sl.state.ActiveFaults) != 0: // if not armed and shutting down or active faults
 		sl.LedState = LedRed // solid red
 	default:
-		sl.LedState = LedBlnkGreen // blinking green
+		sl.LedState = LedGreenBlnk // blinking green
 	}
 
-	return &sl
 }
 
-// DisplayLed takes action based on the led state
+/*// DisplayLed takes action based on the led state
 func (sl *StatusLed) DisplayLed() {
-	sl = sl.ComputeLedState()
+	sl.ComputeLedState()
 	switch sl.LedState {
 	case LedRed:
-		isio.GpioOut(isio.GpioRed, true)
+		isio.GpioOut(isio.GpioStatusRed, true)
 	case LedGreen:
-	case LedBlnkRed:
-		if isio.GpioRead(isio.GpioRed) {
-			isio.GpioOut(isio.GpioRed, false)
+		isio.GpioOut(isio.GpioStatusGreen, true)
+	case LedRedBlnk:
+		if isio.GpioRead(isio.GpioStatusRed) {
+			isio.GpioOut(isio.GpioStatusRed, false)
 		} else {
-			isio.GpioOut(isio.GpioRed, true)
+			isio.GpioOut(isio.GpioStatusRed, true)
 		}
-	case LedBlnkGreen:
+	case LedGreenBlnk:
+		if isio.GpioRead(isio.GpioStatusGreen) {
+			isio.GpioOut(isio.GpioStatusGreen, false)
+		} else {
+			isio.GpioOut(isio.GpioStatusGreen, true)
+		}
 
 	}
-}
+}*/

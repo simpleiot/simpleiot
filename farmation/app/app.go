@@ -407,6 +407,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					}
 				}
 
+			case isui.LedState:
+				ioChan <- m
+
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
 				log.Printf("App Mux: unhandled message of type %T: %+v\r\n", m, m)

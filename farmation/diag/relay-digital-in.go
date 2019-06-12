@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isio"
-	"github.com/simpleiot/simpleiot/farmation/isui"
 )
 
 type relayDigitalIn struct{}
@@ -114,6 +113,12 @@ func (d relayFault) String() string {
 	return "relay-fault"
 }
 
+func blinkGreenLed() {
+	isio.GpioOut(isio.GpioStatusGreen, true)
+	time.Sleep(200 * time.Millisecond)
+	isio.GpioOut(isio.GpioStatusGreen, false)
+}
+
 func (d relayFault) Run() error {
 	relayFaultGpios := []string{
 		isio.GpioRelayInjectorFault,
@@ -138,7 +143,7 @@ func (d relayFault) Run() error {
 		r := relayFaultGpios[relayFaultIndex]
 		if isio.GpioRead(r) {
 			fmt.Println("detected fault for: ", r)
-			isui.BlinkGreenLed()
+			blinkGreenLed()
 			relayFaultIndex++
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -171,7 +176,7 @@ func (d relayFault) Run() error {
 		r := relayFaultGpios[relayFaultIndex]
 		if isio.GpioRead(r) {
 			fmt.Println("detected short coil for: ", r)
-			isui.BlinkGreenLed()
+			blinkGreenLed()
 			relayFaultIndex++
 		}
 		time.Sleep(10 * time.Millisecond)

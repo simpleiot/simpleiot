@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"github.com/simpleiot/simpleiot/farmation/isui"
 )
 
 func setRelay(config *isdata.Config) {
@@ -40,6 +41,29 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				}
 			case isdata.State:
 				state = m
+			case isui.LedState:
+				switch m {
+				case isui.LedOff:
+					GpioOut(GpioStatusRed, false)
+					GpioOut(GpioStatusGreen, false)
+				case isui.LedRed:
+					GpioOut(GpioStatusRed, true)
+				case isui.LedGreen:
+					GpioOut(GpioStatusGreen, true)
+				case isui.LedRedBlnk:
+					if GpioRead(GpioStatusRed) {
+						GpioOut(GpioStatusRed, false)
+					} else {
+						GpioOut(GpioStatusRed, true)
+					}
+				case isui.LedGreenBlnk:
+					if GpioRead(GpioStatusGreen) {
+						GpioOut(GpioStatusGreen, false)
+					} else {
+						GpioOut(GpioStatusGreen, true)
+					}
+				}
+
 			default:
 				log.Printf("Isio Mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
@@ -66,6 +90,7 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			if in != state.GpioDigitalIn {
 				out <- isdata.UpdateGpioDigitalIn(in)
 			}
+
 		}
 	}
 }
