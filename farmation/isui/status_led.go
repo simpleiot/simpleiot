@@ -31,17 +31,15 @@ func NewStatusLed(state *isdata.State, config *isdata.Config) *StatusLed {
 	}
 }
 
-// ComputeLedState updates the current led state based on config and state
-func (sl *StatusLed) ComputeLedState() {
+// UpdateLedState updates the current led state based on config and state
+func (sl *StatusLed) UpdateLedState() {
 	switch {
-	case sl.config.Arm: // if IS is armed
-		if sl.state.FlowStatus == isdata.FlowStatusOffTarget || len(sl.state.ActiveFaults) != 0 { // if flow rate off target or active faults
-			sl.LedState = LedRedBlnk // blinking red
-		} else {
-			sl.LedState = LedGreen // solid green
-		}
-	case sl.state.IrrigationShutdown || len(sl.state.ActiveFaults) != 0: // if not armed and shutting down or active faults
+	case sl.state.IrrigationShutdown: // if not armed and shutting down or active faults
 		sl.LedState = LedRed // solid red
+	case sl.state.FlowStatus == isdata.FlowStatusOffTarget || len(sl.state.ActiveFaults) != 0:
+		sl.LedState = LedRedBlnk
+	case sl.config.Arm: // if IS is armed
+		sl.LedState = LedGreen // solid green
 	default:
 		sl.LedState = LedGreenBlnk // blinking green
 	}

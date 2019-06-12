@@ -38,7 +38,7 @@ func Run(in, out chan interface{}, configInit isdata.Config) {
 	for {
 		select {
 		case <-ledTicker.C:
-			sl.ComputeLedState()
+			sl.UpdateLedState()
 			out <- sl.LedState
 		case m := <-in:
 			switch m := m.(type) {
