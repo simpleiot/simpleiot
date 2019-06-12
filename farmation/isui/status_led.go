@@ -47,27 +47,3 @@ func (sl *StatusLed) ComputeLedState() {
 	}
 
 }
-
-/*// DisplayLed takes action based on the led state
-func (sl *StatusLed) DisplayLed() {
-	sl.ComputeLedState()
-	switch sl.LedState {
-	case LedRed:
-		isio.GpioOut(isio.GpioStatusRed, true)
-	case LedGreen:
-		isio.GpioOut(isio.GpioStatusGreen, true)
-	case LedRedBlnk:
-		if isio.GpioRead(isio.GpioStatusRed) {
-			isio.GpioOut(isio.GpioStatusRed, false)
-		} else {
-			isio.GpioOut(isio.GpioStatusRed, true)
-		}
-	case LedGreenBlnk:
-		if isio.GpioRead(isio.GpioStatusGreen) {
-			isio.GpioOut(isio.GpioStatusGreen, false)
-		} else {
-			isio.GpioOut(isio.GpioStatusGreen, true)
-		}
-
-	}
-}*/
