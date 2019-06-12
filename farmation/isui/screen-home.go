@@ -1,7 +1,6 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 	"strconv"
 
@@ -56,7 +55,6 @@ func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	case isdata.KeySK1: // menu
 		return ScreenIDMainMenu, nil, true
 	case isdata.KeySK3: // pump
-		fmt.Println(!s.config.PumpAutoOff)
 		return ScreenIDNoChange, isdata.UpdatePumpAutoOff(!s.config.PumpAutoOff), true
 	}
 
