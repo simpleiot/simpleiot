@@ -12,6 +12,7 @@ import (
 
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isapi"
+	"github.com/simpleiot/simpleiot/farmation/iscontrol"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
 	"github.com/simpleiot/simpleiot/farmation/isflow"
@@ -74,6 +75,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	keypadChan := make(chan interface{}, 100)
 	uiChan := make(chan interface{}, 100)
 	ioChan := make(chan interface{}, 100)
+	cntrlChan := make(chan interface{}, 100)
 	webChan := make(chan interface{}, 100)
 	simChan := make(chan interface{}, 100)
 	lcdChan := make(chan interface{}, 100)
@@ -89,6 +91,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		{"keypad", keypadChan},
 		{"ui", uiChan},
 		{"io", ioChan},
+		{"cntrl", cntrlChan},
 		{"web", webChan},
 		{"sim", simChan},
 		{"lcd", lcdChan},
@@ -101,6 +104,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go keypad.Run(keypadChan, appChan)
 	go isui.Run(uiChan, appChan, config)
 	go isio.Run(ioChan, appChan, config, state) // this is where io Run is called, w/ ioChan as in chan and appChan as out chan
+	go iscontrol.Run(cntrlChan, appChan, config, state)
 	go isapi.Server(webChan, appChan)
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
