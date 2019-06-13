@@ -19,6 +19,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/islcd"
 	"github.com/simpleiot/simpleiot/farmation/islog"
 	"github.com/simpleiot/simpleiot/farmation/ispressure"
+	"github.com/simpleiot/simpleiot/farmation/isserial"
 	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
@@ -80,6 +81,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	flowChan := make(chan interface{}, 100)
 	logChan := make(chan interface{}, 1000)
 	presChan := make(chan interface{}, 1000)
+	serialChan := make(chan interface{}, 1000)
 
 	channels := []struct {
 		name    string
@@ -95,6 +97,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		{"flow", flowChan},
 		{"log", logChan},
 		{"pres", presChan},
+		{"serial", serialChan},
 	}
 
 	// fire up subsystems
@@ -107,6 +110,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go isflow.Run(flowChan, appChan, sim, config)
 	go islog.Run(logChan, appChan)
 	go ispressure.Run(presChan, appChan, config)
+	go isserial.Run(presChan, appChan, config)
 
 	lastFillingWarning := time.Time{}
 
