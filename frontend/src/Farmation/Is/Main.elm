@@ -1,10 +1,16 @@
 port module Main exposing (Msg(..), main, update, view)
 
 import Array
+import Bootstrap.Button as Button
+import Bootstrap.Form as Form
+import Bootstrap.Form.Input as Input
+import Bootstrap.Grid as Grid
+import Bootstrap.Grid.Col as Col
 import Browser
 import Farmation.Is.Lcd as Lcd
-import Html exposing (Html, button, div, h2, map, text)
-import Html.Events exposing (onClick)
+import Html exposing (Html, button, div, h2, h3, input, map, text)
+import Html.Attributes exposing (placeholder, value)
+import Html.Events exposing (onClick, onInput)
 import Json.Decode
 import Json.Encode
 import Sample exposing (..)
@@ -46,14 +52,33 @@ subscriptions model =
 -- MODEL
 
 
+type alias SimInputs =
+    { flowRate : Float
+    }
+
+
+type alias SimOutputs =
+    { redLed : Bool
+    , greenLed : Bool
+    }
+
+
 type alias Model =
     { lcdData : Lcd.Data
+    , simInputs : SimInputs
+    , simOutputs : SimOutputs
     }
+
+
+defaultSimInputs =
+    SimInputs 33
 
 
 init : () -> ( Model, Cmd Msg )
 init model =
     ( { lcdData = Lcd.defaultData
+      , simInputs = defaultSimInputs
+      , simOutputs = SimOutputs False False
       }
     , Cmd.none
     )
@@ -67,6 +92,7 @@ type Msg
     = ProcessPortValue (Result Json.Decode.Error PortValue)
     | Tick Time.Posix
     | GotLcdMsg Lcd.Msg
+    | SimFlowRate String
 
 
 keyToSample : Lcd.Key -> Sample
@@ -156,12 +182,52 @@ update msg model =
                         |> portOut
                     )
 
+        SimFlowRate rate ->
+            let
+                simInputs =
+                    model.simInputs
+
+                rateF =
+                    case String.toFloat rate of
+                        Just val ->
+                            val
+
+                        Nothing ->
+                            33
+
+                newSimInputs =
+                    { simInputs | flowRate = rateF }
+            in
+            ( { model | simInputs = newSimInputs }
+            , Sample "simFlowRate" "" rateF
+                |> encodeSample
+                |> portOut
+            )
+
         Tick _ ->
             ( model, Cmd.none )
 
 
 
 -- VIEW
+
+
+renderSimInputs : SimInputs -> Html Msg
+renderSimInputs inputs =
+    Grid.row []
+        [ Grid.col [ Col.xs4 ]
+            [ Form.group []
+                [ Form.label [] [ text "Sim flow rate" ]
+                , Input.text
+                    [ Input.attrs
+                        [ placeholder "enter flow rate"
+                        , onInput SimFlowRate
+                        , value (String.fromFloat inputs.flowRate)
+                        ]
+                    ]
+                ]
+            ]
+        ]
 
 
 view : Model -> Browser.Document Msg
@@ -171,6 +237,12 @@ view model =
         [ div []
             [ h2 [] [ text "Injector Sentry" ]
             , map GotLcdMsg (Lcd.lcd model.lcdData)
+            ]
+        , Grid.container []
+            [ h3 [] [ text "Sim Inputs" ]
+            , renderSimInputs
+                model.simInputs
+            , h3 [] [ text "Sim Outputs" ]
             ]
         ]
     }
