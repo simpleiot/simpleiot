@@ -6,6 +6,9 @@ type Config struct {
 	// ID is an alphanumeric name limitted to 16 chars in length
 	ID string
 
+	//FlowRateTarget is set by pressing the arm switch
+	FlowRateTarget float64
+
 	// High/LowWindow will be displayed as decimal if under 10.
 	// These values are % from the flow target that will trigger
 	// and alarm.
