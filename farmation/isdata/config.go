@@ -11,10 +11,6 @@ type Config struct {
 	// and alarm.
 	HighWindowPerc float64
 	LowWindowPerc  float64
-	// These values are a Gallons per Hour from the flow target that
-	// will trigger and alarm
-	HighWindowGPH float64
-	LowWindowGPH  float64
 
 	// ManualHigh/LowAlarm values are used to specify absolute
 	// GPM values that will trigger an alarm. If these values are
@@ -22,6 +18,9 @@ type Config struct {
 	// for triggering an alarm.
 	ManualHighAlarmGPH float64
 	ManualLowAlarmGPH  float64
+
+	// This is the time in seconds until the system recognizes and alarm
+	AlarmRecognizeSec int
 
 	// BatchAmount max value is 9,999
 	BatchAmount         int
@@ -339,6 +338,10 @@ func (c *Config) Init() {
 
 	if c.LowWindowPerc <= 0 {
 		c.LowWindowPerc = 15
+	}
+
+	if c.AlarmRecognizeSec <= 0 {
+		c.AlarmRecognizeSec = 30
 	}
 
 	if len(c.FieldConfigs) < 4 {

@@ -87,11 +87,14 @@ type UpdateLowWindowPerc float64
 // UpdateHighWindowPerc is used to send a new flow rate window high percentage
 type UpdateHighWindowPerc float64
 
-// UpdateLowWindowGPH is used to send a new flow rate window low gallons per hour
-type UpdateLowWindowGPH float64
+// UpdateManualLowAlarmGPH is used to send a new flow rate window low gallons per hour
+type UpdateManualLowAlarmGPH float64
 
-// UpdateHighWindowGPH is used to send a new flow rate window high GPH
-type UpdateHighWindowGPH float64
+// UpdateManualHighAlarmGPH is used to send a new flow rate window high GPH
+type UpdateManualHighAlarmGPH float64
+
+// UpdateAlarmRecognizeSec is used to send a new time
+type UpdateAlarmRecognizeSec int
 
 // UpdateDevName is used to send a new device name for the IS to app.go
 type UpdateDevName string
