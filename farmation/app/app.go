@@ -258,6 +258,14 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.HighWindowPerc = float64(m)
 				saveConfig()
 
+			case isdata.UpdateLowWindowGPH:
+				config.LowWindowGPH = float64(m)
+				saveConfig()
+
+			case isdata.UpdateHighWindowGPH:
+				config.HighWindowGPH = float64(m)
+				saveConfig()
+
 			case isdata.Flow:
 				state.FlowRate = m.RateAvg
 				state.Total1 += m.Amount

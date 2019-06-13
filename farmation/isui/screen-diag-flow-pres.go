@@ -38,6 +38,8 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
 	s.menu.AddItemFloat("FR Percent Low", s.config.LowWindowPerc)
 	s.menu.AddItemFloat("Percent High", s.config.HighWindowPerc)
+	s.menu.AddItemFloat("FlwRt GPH Low", s.config.LowWindowGPH)
+	s.menu.AddItemFloat("FR GPH High", s.config.HighWindowGPH)
 
 	if s.edit { // render text entry screen
 		s.textEntryScreen.Render(img)
@@ -67,6 +69,10 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 				return ScreenIDNoChange, isdata.UpdateLowWindowPerc(value), true
 			case 3:
 				return ScreenIDNoChange, isdata.UpdateHighWindowPerc(value), true
+			case 4:
+				return ScreenIDNoChange, isdata.UpdateLowWindowGPH(value), true
+			case 5:
+				return ScreenIDNoChange, isdata.UpdateHighWindowGPH(value), true
 			}
 		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
@@ -93,6 +99,12 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			case 3:
 				s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.HighWindowPerc)) // convert integer value into string to edit w/ text entry screen
 				s.textEntryScreen.headerLabel = "High Percentage"
+			case 4:
+				s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.LowWindowGPH)) // convert integer value into string to edit w/ text entry screen
+				s.textEntryScreen.headerLabel = "Flow Rate Low GPH"
+			case 5:
+				s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.HighWindowGPH)) // convert integer value into string to edit w/ text entry screen
+				s.textEntryScreen.headerLabel = "FR High GPH"
 			}
 
 			s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit

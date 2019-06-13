@@ -11,6 +11,10 @@ type Config struct {
 	// and alarm.
 	HighWindowPerc float64
 	LowWindowPerc  float64
+	// These values are a Gallons per Hour from the flow target that
+	// will trigger and alarm
+	HighWindowGPH float64
+	LowWindowGPH  float64
 
 	// ManualHigh/LowAlarm values are used to specify absolute
 	// GPM values that will trigger an alarm. If these values are
