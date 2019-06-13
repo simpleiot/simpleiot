@@ -10,6 +10,7 @@ import (
 	"time"
 
 	movingaverage "github.com/RobinUS2/golang-moving-average"
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
@@ -51,16 +52,9 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 		}()
 	}
 
-	if sim {
-		go func() {
-			simTicker := time.NewTicker(25 * time.Millisecond)
-			for {
-				select {
-				case t := <-simTicker.C:
-					pulseCh <- t
-				}
-			}
-		}()
+	simTicker := time.NewTicker(25 * time.Millisecond)
+	if !sim {
+		simTicker.Stop()
 	}
 
 	pulses := 0
@@ -72,22 +66,35 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 	var lastTick time.Time
 	var lastPulse time.Time
 
+	processPulse := func(t time.Time) {
+		pulses++
+		lastPulse = t
+		if config.LogPulseData {
+			out <- isdata.Pulse(t)
+		}
+	}
+
 	for {
 		select {
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.Config:
 				config = m
+			case data.Sample:
+				switch m.Type {
+				case isdata.SampleTypeSimFlowRate:
+					dur := isdata.FlowToPulsePeriod(m.Value, config.PulsesPerGallon)
+					if dur < 5*time.Millisecond {
+						dur = 25 * time.Millisecond
+					}
+					simTicker = time.NewTicker(dur)
+				}
 			default:
 				log.Printf("isflow mux: unhandled message of type %T: %+v\r\n", m, m)
 
 			}
-		case timeStamp := <-pulseCh:
-			pulses++
-			lastPulse = timeStamp
-			if config.LogPulseData {
-				out <- isdata.Pulse(timeStamp)
-			}
+		case t := <-pulseCh:
+			processPulse(t)
 		case <-ticker.C:
 			sampleDuration := lastPulse.Sub(lastTick)
 			flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
@@ -96,6 +103,9 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 			out <- flow
 			pulses = 0
 			lastTick = lastPulse
+
+		case t := <-simTicker.C:
+			processPulse(t)
 		}
 	}
 }

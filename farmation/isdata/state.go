@@ -2,8 +2,6 @@ package isdata
 
 import (
 	"time"
-
-	"github.com/simpleiot/simpleiot/data"
 )
 
 // State contains the current injectory sentry state.
@@ -39,14 +37,6 @@ type State struct {
 	GpioDigitalIrrigator bool
 	GpioDigitalWaterOn   bool
 	GpioDigitalIn        bool
-}
-
-// ProcessSample populates state with sample data.
-func (s *State) ProcessSample(sample data.Sample) {
-	switch sample.Type {
-	case SampleTypeFlowRate:
-		s.FlowRate = sample.Value
-	}
 }
 
 // FlowStatus describes the overall system of flow control

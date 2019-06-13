@@ -211,9 +211,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.SampleTypePressureVSense:
 					state.PressureVSense = m.Value
 					saveState()
-				case isdata.SampleTypeFlowRate:
-					state.ProcessSample(m)
-					uiChan <- state
 				case isdata.SampleTypeKey:
 					// convert from sample to key
 					key := isdata.KeyFromString(m.ID)
@@ -224,6 +221,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					default:*/
 					uiChan <- key
 					//}
+				case isdata.SampleTypeSimFlowRate:
+					flowChan <- m
 				default:
 					log.Println("Sample type not handled: ", m.Type)
 				}

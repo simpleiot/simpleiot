@@ -14,6 +14,14 @@ type Flow struct {
 	Pulses   int
 }
 
+// FlowToPulsePeriod calculates the pulse period for a flow (GPH).
+// This is used in simulation code.
+func FlowToPulsePeriod(flow float64, pulsesPerGal int) time.Duration {
+	hoursPerPulse := 1 / (flow * float64(pulsesPerGal))
+	usPerPulse := hoursPerPulse * 60 * 60 * 1000 * 1000
+	return time.Duration(usPerPulse) * time.Microsecond
+}
+
 // PulsesToFlow creates a new Flow struct from pulse data.
 // Flow rate is GPH
 func PulsesToFlow(tm time.Time, duration time.Duration, pulsesPerGal int, pulses int) Flow {
