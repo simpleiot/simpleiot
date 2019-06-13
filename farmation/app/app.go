@@ -250,6 +250,14 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.PressureSetting = int(m)
 				saveConfig()
 
+			case isdata.UpdateLowWindowPerc:
+				config.LowWindowPerc = float64(m)
+				saveConfig()
+
+			case isdata.UpdateHighWindowPerc:
+				config.HighWindowPerc = float64(m)
+				saveConfig()
+
 			case isdata.Flow:
 				state.FlowRate = m.RateAvg
 				state.Total1 += m.Amount

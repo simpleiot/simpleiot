@@ -81,6 +81,12 @@ type UpdatePulsesPerGallon int
 // UpdatePressureSetting is used to send new pressure setting (number) config to app.go
 type UpdatePressureSetting int
 
+// UpdateLowWindowPerc is used to send a new flow rate window low percentage
+type UpdateLowWindowPerc float64
+
+// UpdateHighWindowPerc is used to send a new flow rate window high percentage
+type UpdateHighWindowPerc float64
+
 // UpdateDevName is used to send a new device name for the IS to app.go
 type UpdateDevName string
 
