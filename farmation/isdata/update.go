@@ -110,3 +110,9 @@ type UpdateOperatingMode int
 
 // UpdatePumpAutoOff is used to toggle the auto/off pump mode from the "pump" softkey on the home/status screens
 type UpdatePumpAutoOff bool
+
+// UpdateLedRed is used to set the led red on/off
+type UpdateLedRed bool
+
+// UpdateLedGreen is used to set the led green on/off
+type UpdateLedGreen bool

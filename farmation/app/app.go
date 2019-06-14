@@ -451,7 +451,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					}
 				}
 
-			case isui.LedState:
+			case isdata.UpdateLedRed, isdata.UpdateLedGreen:
 				ioChan <- m
 
 			default:

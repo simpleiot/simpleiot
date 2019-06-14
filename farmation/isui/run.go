@@ -31,7 +31,7 @@ func Run(in, out chan interface{}, configInit isdata.Config) {
 	renderScreen()
 
 	// initialize the status led struct
-	sl := NewStatusLed(&state, &config)
+	sl := NewStatusLed(&state, &config, out)
 	// Ticker for status LED
 	ledTicker := time.NewTicker(350 * time.Millisecond)
 
@@ -39,7 +39,6 @@ func Run(in, out chan interface{}, configInit isdata.Config) {
 		select {
 		case <-ledTicker.C:
 			sl.UpdateLedState()
-			out <- sl.LedState
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.State:
