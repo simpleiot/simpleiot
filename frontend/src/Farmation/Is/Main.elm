@@ -193,7 +193,7 @@ update msg model =
                             val
 
                         Nothing ->
-                            33
+                            0
 
                 newSimInputs =
                     { simInputs | flowRate = rateF }
