@@ -223,6 +223,19 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					//}
 				case isdata.SampleTypeSimFlowRate:
 					flowChan <- m
+				case isdata.SampleTypeSimGpioDigInj:
+					state.GpioDigitalInjector = m.Bool()
+					saveState()
+				case isdata.SampleTypeSimGpioDigIrg:
+					state.GpioDigitalIrrigator = m.Bool()
+					saveState()
+				case isdata.SampleTypeSimGpioDigWaterOn:
+					state.GpioDigitalWaterOn = m.Bool()
+					saveState()
+				case isdata.SampleTypeSimGpioDigIn:
+					state.GpioDigitalIn = m.Bool()
+					saveState()
+
 				default:
 					log.Println("Sample type not handled: ", m.Type)
 				}
