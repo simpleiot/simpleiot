@@ -2,14 +2,16 @@ port module Main exposing (Msg(..), main, update, view)
 
 import Array
 import Bootstrap.Button as Button
+import Bootstrap.ButtonGroup as ButtonGroup
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
+import Bootstrap.Utilities.Spacing as Spacing
 import Browser
 import Farmation.Is.Lcd as Lcd
 import Html exposing (Html, button, div, h2, h3, input, map, text)
-import Html.Attributes exposing (placeholder, type_, value)
+import Html.Attributes exposing (class, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode
 import Json.Encode
@@ -54,6 +56,10 @@ subscriptions model =
 
 type alias SimInputs =
     { flowRate : Float
+    , gpioDigitalInjector : Bool
+    , gpioDigitalIrrigator : Bool
+    , gpioDigitalWaterOn : Bool
+    , gpioDigitalIn : Bool
     }
 
 
@@ -71,7 +77,7 @@ type alias Model =
 
 
 defaultSimInputs =
-    SimInputs 33
+    SimInputs 33 False False False False
 
 
 init : () -> ( Model, Cmd Msg )
@@ -93,6 +99,11 @@ type Msg
     | Tick Time.Posix
     | GotLcdMsg Lcd.Msg
     | SimFlowRate String
+    | ButtonInj
+    | ButtonIrg
+    | ButtonWaterOn
+    | ButtonDigIn
+    | ButtonArm
 
 
 keyToSample : Lcd.Key -> Sample
@@ -204,6 +215,109 @@ update msg model =
                 |> portOut
             )
 
+        ButtonInj ->
+            let
+                v =
+                    not model.simInputs.gpioDigitalInjector
+
+                vF =
+                    if v then
+                        1.0
+
+                    else
+                        0.0
+
+                simInputs =
+                    model.simInputs
+
+                simInputsNew =
+                    { simInputs | gpioDigitalInjector = v }
+            in
+            ( { model | simInputs = simInputsNew }
+            , Sample "simGpioDigInj" "" vF
+                |> encodeSample
+                |> portOut
+            )
+
+        ButtonIrg ->
+            let
+                v =
+                    not model.simInputs.gpioDigitalIrrigator
+
+                vF =
+                    if v then
+                        1.0
+
+                    else
+                        0.0
+
+                simInputs =
+                    model.simInputs
+
+                simInputsNew =
+                    { simInputs | gpioDigitalIrrigator = v }
+            in
+            ( { model | simInputs = simInputsNew }
+            , Sample "simGpioDigIrg" "" vF
+                |> encodeSample
+                |> portOut
+            )
+
+        ButtonWaterOn ->
+            let
+                v =
+                    not model.simInputs.gpioDigitalWaterOn
+
+                vF =
+                    if v then
+                        1.0
+
+                    else
+                        0.0
+
+                simInputs =
+                    model.simInputs
+
+                simInputsNew =
+                    { simInputs | gpioDigitalWaterOn = v }
+            in
+            ( { model | simInputs = simInputsNew }
+            , Sample "simGpioDigWaterOn" "" vF
+                |> encodeSample
+                |> portOut
+            )
+
+        ButtonDigIn ->
+            let
+                v =
+                    not model.simInputs.gpioDigitalIn
+
+                vF =
+                    if v then
+                        1.0
+
+                    else
+                        0.0
+
+                simInputs =
+                    model.simInputs
+
+                simInputsNew =
+                    { simInputs | gpioDigitalIn = v }
+            in
+            ( { model | simInputs = simInputsNew }
+            , Sample "simGpioDigIn" "" vF
+                |> encodeSample
+                |> portOut
+            )
+
+        ButtonArm ->
+            ( model
+            , Sample "simArm" "" 0
+                |> encodeSample
+                |> portOut
+            )
+
         Tick _ ->
             ( model, Cmd.none )
 
@@ -212,10 +326,19 @@ update msg model =
 -- VIEW
 
 
+buttonType : Bool -> Button.Option msg
+buttonType on =
+    if on then
+        Button.primary
+
+    else
+        Button.secondary
+
+
 renderSimInputs : SimInputs -> Html Msg
 renderSimInputs inputs =
     Grid.row []
-        [ Grid.col [ Col.xs4 ]
+        [ Grid.col [ Col.xs12, Col.sm6, Col.md5 ]
             [ Form.group []
                 [ Form.label [] [ text "Sim flow rate" ]
                 , Input.text
@@ -227,6 +350,48 @@ renderSimInputs inputs =
                         ]
                     ]
                 ]
+            , div []
+                [ Button.button
+                    [ buttonType inputs.gpioDigitalInjector
+                    , Button.attrs
+                        [ Spacing.m1
+                        , onClick ButtonInj
+                        ]
+                    ]
+                    [ text "injector" ]
+                , Button.button
+                    [ buttonType inputs.gpioDigitalIrrigator
+                    , Button.attrs
+                        [ Spacing.m1
+                        , onClick ButtonIrg
+                        ]
+                    ]
+                    [ text "irrigator" ]
+                , Button.button
+                    [ buttonType inputs.gpioDigitalWaterOn
+                    , Button.attrs
+                        [ Spacing.m1
+                        , onClick ButtonWaterOn
+                        ]
+                    ]
+                    [ text "water on" ]
+                , Button.button
+                    [ buttonType inputs.gpioDigitalIn
+                    , Button.attrs
+                        [ Spacing.m1
+                        , onClick ButtonDigIn
+                        ]
+                    ]
+                    [ text "digital in" ]
+                ]
+            , Button.button
+                [ Button.secondary
+                , Button.attrs
+                    [ Spacing.m1
+                    , onClick ButtonArm
+                    ]
+                ]
+                [ text "Arm" ]
             ]
         ]
 
