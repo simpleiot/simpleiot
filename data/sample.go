@@ -27,6 +27,14 @@ type Sample struct {
 	Attributes map[string]float64 `json:"attributes,omitempty"`
 }
 
+// Bool returns a bool representation of value
+func (s *Sample) Bool() bool {
+	if s.Value == 0 {
+		return false
+	}
+	return true
+}
+
 // NewSample creates a new sample at current time
 func NewSample(ID, sampleType string, value float64) Sample {
 	return Sample{
