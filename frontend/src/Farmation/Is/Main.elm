@@ -9,7 +9,7 @@ import Bootstrap.Grid.Col as Col
 import Browser
 import Farmation.Is.Lcd as Lcd
 import Html exposing (Html, button, div, h2, h3, input, map, text)
-import Html.Attributes exposing (placeholder, value)
+import Html.Attributes exposing (placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode
 import Json.Encode
@@ -223,6 +223,7 @@ renderSimInputs inputs =
                         [ placeholder "enter flow rate"
                         , onInput SimFlowRate
                         , value (String.fromFloat inputs.flowRate)
+                        , type_ "number"
                         ]
                     ]
                 ]
