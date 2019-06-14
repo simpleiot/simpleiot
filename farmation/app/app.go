@@ -235,6 +235,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.SampleTypeSimGpioDigIn:
 					state.GpioDigitalIn = m.Bool()
 					saveState()
+				case isdata.SampleTypeSimArm:
+					// toggle the arm switch
+					config.Arm = !config.Arm
+					saveConfig()
 
 				default:
 					log.Println("Sample type not handled: ", m.Type)

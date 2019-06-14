@@ -8,4 +8,5 @@ const (
 	SampleTypeSimGpioDigIrg     = "simGpioDigIrg"
 	SampleTypeSimGpioDigWaterOn = "simGpioDigWaterOn"
 	SampleTypeSimGpioDigIn      = "simGpioDigIn"
+	SampleTypeSimArm            = "simArm"
 )
