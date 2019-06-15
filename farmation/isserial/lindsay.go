@@ -2,6 +2,7 @@ package isserial
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/simpleiot/simpleiot/modbus"
@@ -60,6 +61,16 @@ type LindsayStatusRegs struct {
 	State            LindsayState
 }
 
+func (lsr LindsayStatusRegs) String() string {
+	ret := fmt.Sprintf("Pos with offset: %v\n", lsr.PosWithOffset)
+	ret += fmt.Sprintf("Pos without offset: %v\n", lsr.PosWithoutOffset)
+	ret += fmt.Sprintf("Status: 0x%x\n", lsr.Status)
+	ret += fmt.Sprintf("Rate: %v\n", lsr.Rate)
+	ret += fmt.Sprintf("Pressure: %v\n", lsr.Pressure)
+	ret += lsr.State.String()
+	return ret
+}
+
 // Forward indicator
 func (lsr *LindsayStatusRegs) Forward() bool {
 	return (lsr.Status & (1 << 0)) != 0
@@ -108,7 +119,7 @@ func NewLindsayStatusRegs(req modbus.FuncWriteMultipleRegisterRequest) (ret Lind
 	}
 
 	ret.PosWithOffset = req.RegValues[0]
-	ret.PosWithOffset = req.RegValues[1]
+	ret.PosWithoutOffset = req.RegValues[1]
 	ret.Status = req.RegValues[2]
 	ret.Rate = req.RegValues[3]
 	ret.Pressure = req.RegValues[4]
@@ -119,10 +130,49 @@ func NewLindsayStatusRegs(req modbus.FuncWriteMultipleRegisterRequest) (ret Lind
 
 // Lindsay reads data from a panel
 type Lindsay struct {
-	modbus modbus.Modbus
+	modbus *modbus.Modbus
 }
 
 // NewLindsay creates a new reader
-func NewLindsay(reader io.Reader) *Lindsay {
-	return &Lindsay{}
+func NewLindsay(port io.ReadWriter) *Lindsay {
+	return &Lindsay{
+		modbus: modbus.NewModbus(port),
+	}
+}
+
+var errorNotLindsayStatus = errors.New("Not lindsay status")
+
+// Read waits for a Lindsay status regs and then returns it
+func (l *Lindsay) Read() (regs LindsayStatusRegs, err error) {
+	var data []byte
+	data, err = l.modbus.Read()
+	if err != nil {
+		return
+	}
+
+	var pdu modbus.PDU
+	pdu, err = modbus.DecodeASCIIPDU(data)
+
+	if pdu.FunctionCode == modbus.FuncCodeWriteMultipleRegisters {
+		var reqI interface{}
+		reqI, err = pdu.DecodeFunctionData()
+		if err != nil {
+			return
+		}
+
+		var req modbus.FuncWriteMultipleRegisterRequest
+		var ok bool
+		req, ok = reqI.(modbus.FuncWriteMultipleRegisterRequest)
+		if !ok {
+			err = errors.New("Error converting modbus req type")
+			return
+		}
+
+		regs, err = NewLindsayStatusRegs(req)
+		return
+	}
+
+	err = errorNotLindsayStatus
+
+	return
 }

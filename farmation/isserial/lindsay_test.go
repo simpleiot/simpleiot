@@ -2,6 +2,7 @@ package isserial
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 )
 
@@ -119,7 +120,7 @@ var testData3 = []byte{
 func TestLindsay(t *testing.T) {
 	data := append(append(testData1, testData2...), testData3...)
 
-	dataReader := bytes.NewReader(data)
+	dataReader := bytes.NewBuffer(data)
 
 	lindsay := NewLindsay(dataReader)
 
@@ -127,8 +128,36 @@ func TestLindsay(t *testing.T) {
 
 	for {
 		status, err := lindsay.Read()
+		if err == errorNotLindsayStatus {
+			continue
+		}
+
 		if err != nil {
+			fmt.Println("TestLindsay error: ", err)
 			break
+		}
+
+		count++
+		fmt.Printf("Lindsay status: %+v\n", status)
+
+		if status.PosWithOffset != 34 {
+			t.Error("PosWithOffset error")
+		}
+
+		if status.PosWithoutOffset != 99 {
+			t.Error("PosWithoutOffset error")
+		}
+
+		if status.Status != 0x200 {
+			t.Error("Status error")
+		}
+
+		if status.Pressure != 5 {
+			t.Error("pressure error")
+		}
+
+		if status.State != 0 {
+			t.Error("state error")
 		}
 	}
 
