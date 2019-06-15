@@ -39,6 +39,10 @@ type State struct {
 	GpioDigitalIrrigator bool
 	GpioDigitalWaterOn   bool
 	GpioDigitalIn        bool
+
+	// Data from Lindsay panel
+	LindsayStatus uint16
+	LindsayState  uint16
 }
 
 // FlowStatus describes the overall system of flow control

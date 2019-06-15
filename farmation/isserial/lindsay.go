@@ -62,12 +62,15 @@ type LindsayStatusRegs struct {
 }
 
 func (lsr LindsayStatusRegs) String() string {
-	ret := fmt.Sprintf("Pos with offset: %v\n", lsr.PosWithOffset)
+	ret := "==========================="
+	ret += "Lindsay status: "
+	ret += fmt.Sprintf("Pos with offset: %v\n", lsr.PosWithOffset)
 	ret += fmt.Sprintf("Pos without offset: %v\n", lsr.PosWithoutOffset)
 	ret += fmt.Sprintf("Status: 0x%x\n", lsr.Status)
 	ret += fmt.Sprintf("Rate: %v\n", lsr.Rate)
 	ret += fmt.Sprintf("Pressure: %v\n", lsr.Pressure)
 	ret += lsr.State.String()
+	ret += "==========================="
 	return ret
 }
 
