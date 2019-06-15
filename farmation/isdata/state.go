@@ -8,6 +8,8 @@ import (
 type State struct {
 	// FlowRate defines the current flow rate of the system in GPH
 	FlowRate          float64
+	FlowRateMin       float64
+	FlowRateMax       float64
 	BatchApplied      float64
 	BatchRemaining    float64
 	Total1            float64

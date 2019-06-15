@@ -11,6 +11,8 @@ type Flow struct {
 	Amount   float64
 	Rate     float64
 	RateAvg  float64
+	RateMin  float64
+	RateMax  float64
 	Pulses   int
 }
 
