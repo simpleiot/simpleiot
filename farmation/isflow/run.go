@@ -100,6 +100,8 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 			flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
 			flowRateMovingAvg.Add(flow.Rate)
 			flow.RateAvg = flowRateMovingAvg.Avg()
+			flow.RateMin, _ = flowRateMovingAvg.Min()
+			flow.RateMax, _ = flowRateMovingAvg.Max()
 			out <- flow
 			pulses = 0
 			lastTick = lastPulse
