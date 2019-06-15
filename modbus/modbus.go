@@ -135,6 +135,16 @@ type FuncWriteMultipleRegisterRequest struct {
 	RegValues       []uint16
 }
 
+func (r FuncWriteMultipleRegisterRequest) String() string {
+	ret := fmt.Sprintf("Function Code: 0x%x, Starting Address: 0x%x\n",
+		r.FunctionCode, r.StartingAddress)
+	for i, reg := range r.RegValues {
+		ret += fmt.Sprintf("reg %v: 0x%x\n", i, reg)
+	}
+
+	return ret
+}
+
 // DecodeASCIIByte converts type ascii hex bytes to a binary
 // byte
 func DecodeASCIIByte(data []byte) (byte, []byte, error) {
