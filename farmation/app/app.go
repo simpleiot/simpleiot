@@ -128,6 +128,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		logChan <- config
 		ioChan <- config
 		presChan <- config
+		cntrlChan <- config
 		err := db.WriteConfig(&config)
 		if err != nil {
 			log.Println("Error saving config: ", err)
@@ -141,6 +142,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		stateDirty = true
 		uiChan <- state
 		ioChan <- state
+		cntrlChan <- state
 	}
 
 	saveStateTimer := time.NewTicker(time.Minute)
@@ -238,6 +240,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.SampleTypeSimArm:
 					// toggle the arm switch
 					config.Arm = !config.Arm
+					if config.Arm { // if the arm switch was turned on
+						config.FlowRateTarget = state.FlowRate // set target flow rate to current
+						fmt.Println("Armed -- Target flow rate: ", config.FlowRateTarget)
+					}
 					saveConfig()
 
 				default:
@@ -437,6 +443,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.UpdateCurrentProductIndex:
 				config.CurrentProductIndex = int(m)
 				saveConfig()
+
+			case isdata.UpdateFlowStatus:
+				state.FlowStatus = isdata.FlowStatus(m)
+				saveState()
 
 			case isdata.Pulse:
 				logChan <- m
