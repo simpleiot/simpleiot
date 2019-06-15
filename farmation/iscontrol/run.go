@@ -1,6 +1,8 @@
 package iscontrol
 
 import (
+	"time"
+
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
@@ -8,19 +10,21 @@ import (
 func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.State) {
 	config := configInit
 	state := stateInit
+	flowStatusUpdateTicker := time.NewTicker(1000 * time.Millisecond)
 
 	for {
 		select {
+		case <-flowStatusUpdateTicker.C:
+			flowStatus := GetFlowStatus(&state, &config)
+			if state.FlowStatus != flowStatus {
+				out <- isdata.UpdateFlowStatus(flowStatus)
+			}
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.State:
 				state = m
-				UpdateFlowStatus(&state, &config)
-				out <- state
 			case isdata.Config:
 				config = m
-				UpdateFlowStatus(&state, &config)
-				out <- state
 			}
 		}
 

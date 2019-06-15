@@ -438,6 +438,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.CurrentProductIndex = int(m)
 				saveConfig()
 
+			case isdata.UpdateFlowStatus:
+				state.FlowStatus = isdata.FlowStatus(m)
+				saveState()
+
 			case isdata.Pulse:
 				logChan <- m
 
