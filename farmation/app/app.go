@@ -238,6 +238,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.SampleTypeSimArm:
 					// toggle the arm switch
 					config.Arm = !config.Arm
+					if config.Arm { // if the arm switch was turned on
+						config.FlowRateTarget = state.FlowRate // set target flow rate to current
+					}
 					saveConfig()
 
 				default:
