@@ -303,6 +303,30 @@ type ISRelay struct {
 	Fault bool
 }
 
+// CalculateFlowWindow returns high and low bounds of the flow rate window
+func (c *Config) CalculateFlowWindow() (float64, float64) {
+
+	var highBound, lowBound float64
+
+	// check if outside lower bound
+	if c.ManualLowAlarmGPH > 0 { // if the absolute GPH is set, use it
+		lowBound = c.ManualLowAlarmGPH
+	} else { // otherwise, compute a lowerbound in GPH from the percentage
+		// target - % * target
+		lowBound = c.FlowRateTarget - c.LowWindowPerc/100*c.FlowRateTarget
+	}
+
+	// check if outside upper bound
+	if c.ManualHighAlarmGPH > 0 {
+		highBound = c.ManualHighAlarmGPH
+	} else {
+		// target + % * target
+		highBound = c.FlowRateTarget + c.HighWindowPerc/100*c.FlowRateTarget
+	}
+
+	return highBound, lowBound
+}
+
 // Init is used to inialize the config
 func (c *Config) Init() {
 	// always turn off logging of pulse data -- this should be

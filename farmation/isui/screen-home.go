@@ -31,9 +31,10 @@ func NewHomeScreen(state *isdata.State, config *isdata.Config) *HomeScreen {
 func (s *HomeScreen) Render(img draw.Image) {
 	Clear(img)
 	rateS := strconv.FormatFloat(s.state.FlowRate, 'f', 1, 64)
+	highBound, lowBound := s.config.CalculateFlowWindow()
 	DrawTxt(img, rateS, 4, 12, agencyfbbold40.Font)
-	DrawTxt(img, "963", 67, 11, agencyfbbold20.Font)
-	DrawTxt(img, "963", 67, 29, agencyfbbold20.Font)
+	DrawTxt(img, strconv.FormatFloat(highBound, 'f', 1, 64), 67, 11, agencyfbbold20.Font)
+	DrawTxt(img, strconv.FormatFloat(lowBound, 'f', 1, 64), 67, 29, agencyfbbold20.Font)
 
 	s.softKeys.Render(img, 0, 54)
 

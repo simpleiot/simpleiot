@@ -1,6 +1,7 @@
 package isio
 
 import (
+	"fmt"
 	"log"
 	"runtime"
 	"time"
@@ -42,8 +43,10 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				state = m
 			case isdata.UpdateLedRed:
 				GpioOut(GpioStatusRed, bool(m))
+				fmt.Println("RED: ", m)
 			case isdata.UpdateLedGreen:
 				GpioOut(GpioStatusGreen, bool(m))
+				fmt.Println("Green: ", m)
 			default:
 				log.Printf("Isio Mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
