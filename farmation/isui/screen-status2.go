@@ -2,6 +2,7 @@ package isui
 
 import (
 	"image/draw"
+	"strconv"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -28,9 +29,9 @@ func NewStatusScreen2(state *isdata.State, config *isdata.Config) *StatusScreen2
 // Render updates the home screen, and provides an image
 func (s *StatusScreen2) Render(img draw.Image) {
 	Clear(img)
-	DrawTxt(img, "Field: Field Name", 2, 8, tightpixel15.Font)
-	DrawTxt(img, "Product: Product Name", 2, 22, tightpixel15.Font)
-	DrawTxt(img, "99,999 gallons", 43, 37, tightpixel15.Font)
+	DrawTxt(img, "Field: "+s.config.FieldConfigs[s.config.CurrentFieldIndex].Description, 2, 8, tightpixel15.Font)
+	DrawTxt(img, "Product: "+s.config.ProductConfigs[s.config.CurrentProductIndex].Description, 2, 22, tightpixel15.Font)
+	DrawTxt(img, strconv.FormatFloat(s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total, 'f', 1, 64), 43, 37, tightpixel15.Font)
 
 	s.softKeys.Render(img, 0, 54)
 
