@@ -464,9 +464,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.UpdateLedRed, isdata.UpdateLedGreen:
 				ioChan <- m
 
-			case isserial.LindsayStatusRegs:
-				state.LindsayStatus = m.Status
-				state.LindsayState = uint16(m.State)
+			case isdata.LindsayStatusRegs:
+				state.LindsayRegs = m
 				state.LindsayLastUpdate = time.Now()
 				saveState()
 

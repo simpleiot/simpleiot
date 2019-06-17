@@ -41,8 +41,7 @@ type State struct {
 	GpioDigitalIn        bool
 
 	// Data from Lindsay panel
-	LindsayStatus     uint16
-	LindsayState      uint16
+	LindsayRegs       LindsayStatusRegs
 	LindsayLastUpdate time.Time
 }
 

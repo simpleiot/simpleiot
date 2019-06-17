@@ -12,7 +12,6 @@ type DiagLindsayScreen struct {
 	softKeys *SoftKeys
 	state    *isdata.State
 	config   *isdata.Config
-	arrowPos int
 	menu     Menu
 }
 
@@ -33,12 +32,12 @@ func (s *DiagLindsayScreen) Render(img draw.Image) {
 	Clear(img)
 	s.menu.ResetItems()
 
-	status := fmt.Sprintf("0x%x", s.state.LindsayStatus)
-	state := fmt.Sprintf("0x%x", s.state.LindsayState)
+	status := fmt.Sprintf("0x%x", s.state.LindsayRegs.Status)
 
 	// Gpio's
 	s.menu.AddItemString("status", status)
-	s.menu.AddItemString("state", state)
+	s.menu.AddItemString("state", s.state.LindsayRegs.State.String())
+	s.menu.AddItemOnOff("water", s.state.LindsayRegs.WaterOn(), nil)
 
 	Heading(img, "Lindsay Panel information")
 	s.menu.Render(img)
