@@ -467,6 +467,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isserial.LindsayStatusRegs:
 				state.LindsayStatus = m.Status
 				state.LindsayState = uint16(m.State)
+				state.LindsayLastUpdate = time.Now()
 				saveState()
 
 			default:

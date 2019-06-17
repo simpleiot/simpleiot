@@ -28,6 +28,7 @@ const (
 	ScreenIDDiagInputs
 	ScreenIDDiagOutputs
 	ScreenIDDiagPulsesPres
+	ScreenIDDiagLindsay
 	ScreenIDDiagDevName
 )
 
@@ -62,6 +63,7 @@ func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 	ret.Add(ScreenIDDiagInputs, NewDiagInputsScreen(state, config))
 	ret.Add(ScreenIDDiagOutputs, NewDiagOutputsScreen(state, config))
 	ret.Add(ScreenIDDiagPulsesPres, NewDiagPulsesPresScreen(state, config))
+	ret.Add(ScreenIDDiagLindsay, NewDiagLindsayScreen(state, config))
 	ret.Add(ScreenIDDiagDevName, NewDiagDevNameScreen(state, config))
 
 	ret.currentScreen = ScreenIDHome

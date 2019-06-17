@@ -41,8 +41,9 @@ type State struct {
 	GpioDigitalIn        bool
 
 	// Data from Lindsay panel
-	LindsayStatus uint16
-	LindsayState  uint16
+	LindsayStatus     uint16
+	LindsayState      uint16
+	LindsayLastUpdate time.Time
 }
 
 // FlowStatus describes the overall system of flow control
