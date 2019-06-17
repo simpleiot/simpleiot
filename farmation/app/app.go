@@ -238,13 +238,15 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					state.GpioDigitalIn = m.Bool()
 					saveState()
 				case isdata.SampleTypeSimArm:
-					// toggle the arm switch
-					config.Arm = !config.Arm
-					if config.Arm { // if the arm switch was turned on
-						config.FlowRateTarget = state.FlowRate // set target flow rate to current
-						fmt.Println("Armed -- Target flow rate: ", config.FlowRateTarget)
+					if config.OperatingMode != isdata.ISOperatingModeMonitor {
+						// toggle the arm switch
+						config.Arm = !config.Arm
+						if config.Arm { // if the arm switch was turned on
+							config.FlowRateTarget = state.FlowRate // set target flow rate to current
+							fmt.Println("Armed -- Target flow rate: ", config.FlowRateTarget)
+						}
+						saveConfig()
 					}
-					saveConfig()
 
 				default:
 					log.Println("Sample type not handled: ", m.Type)
@@ -430,6 +432,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdateOperatingMode:
 				config.OperatingMode = isdata.ISOperatingMode(m)
+				if config.OperatingMode == isdata.ISOperatingModeMonitor {
+					config.Arm = false // system can't be armed in monitor only mode
+				}
 				saveConfig()
 
 			case isdata.UpdatePumpAutoOff:
