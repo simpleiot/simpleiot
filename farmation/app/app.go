@@ -464,6 +464,11 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.UpdateLedRed, isdata.UpdateLedGreen:
 				ioChan <- m
 
+			case isdata.LindsayStatusRegs:
+				state.LindsayRegs = m
+				state.LindsayLastUpdate = time.Now()
+				saveState()
+
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
 				log.Printf("App Mux: unhandled message of type %T: %+v\r\n", m, m)

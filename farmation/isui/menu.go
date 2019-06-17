@@ -325,7 +325,6 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		item := m.items[m.arrowPos]
 		switch item.Type {
 		case MenuItemTypeScreen:
-			m.ResetArrowPos()
 			return item.Screen, nil, true
 		case MenuItemTypeSelect, MenuItemTypeOnOff, MenuItemTypeAutoOffOn, MenuItemTypeCommand:
 			return ScreenIDNoChange, item.Message, true

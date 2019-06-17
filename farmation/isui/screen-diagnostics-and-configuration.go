@@ -38,6 +38,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemScreen("Inputs", ScreenIDDiagInputs)
 	s.menu.AddItemScreen("Outputs", ScreenIDDiagOutputs)
 	s.menu.AddItemScreen("Flow and Pres", ScreenIDDiagPulsesPres)
+	s.menu.AddItemScreen("Lindsay serial", ScreenIDDiagLindsay)
 
 	// Logging Enable
 	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData,
