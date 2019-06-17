@@ -3,6 +3,7 @@ package isui
 import (
 	"fmt"
 	"image/draw"
+	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
@@ -33,11 +34,16 @@ func (s *DiagLindsayScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	status := fmt.Sprintf("0x%x", s.state.LindsayRegs.Status)
+	durLastUpdate := time.Now().Sub(s.state.LindsayLastUpdate)
+	durLastUpdateS := fmt.Sprintf("%.1f min", durLastUpdate.Minutes())
 
 	// Gpio's
 	s.menu.AddItemString("status", status)
 	s.menu.AddItemString("state", s.state.LindsayRegs.State.String())
 	s.menu.AddItemOnOff("water", s.state.LindsayRegs.WaterOn(), nil)
+	s.menu.AddItemOnOff("accessory 1", s.state.LindsayRegs.Accessory1On(), nil)
+	s.menu.AddItemOnOff("accessory 2", s.state.LindsayRegs.Accessory2On(), nil)
+	s.menu.AddItemString("last update", durLastUpdateS)
 
 	Heading(img, "Lindsay Panel information")
 	s.menu.Render(img)

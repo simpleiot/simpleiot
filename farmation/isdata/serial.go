@@ -12,10 +12,13 @@ type LindsayState uint16
 
 // define valid Lindsay States
 const (
-	LindsayStateFault               LindsayState = 1
+	LindsayStateStopped             LindsayState = 0
+	LindsayStateFault                            = 1
 	LindsayStateSoftBarrierStopped               = 2
 	LindsayStateServiceStop                      = 4
 	LindsayStateLowPressureShutdown              = 5
+	LindsayStateLowVoltageFault                  = 6
+	LindsayStateRestartDelay                     = 10
 	LindsayStatePressureWaiting                  = 11
 	LindsayStateRunningForward                   = 14
 	LindsayStateRunningReverse                   = 15
@@ -25,6 +28,8 @@ const (
 
 func (ls LindsayState) String() (ret string) {
 	switch ls {
+	case LindsayStateStopped:
+		ret = "Stopped"
 	case LindsayStateFault:
 		ret = "Safety Fault"
 	case LindsayStateSoftBarrierStopped:
@@ -33,6 +38,10 @@ func (ls LindsayState) String() (ret string) {
 		ret = "Service Stop"
 	case LindsayStateLowPressureShutdown:
 		ret = "Low Pressure Shutdown"
+	case LindsayStateLowVoltageFault:
+		ret = "Low Voltage Shutdown"
+	case LindsayStateRestartDelay:
+		ret = "Restart Delay"
 	case LindsayStatePressureWaiting:
 		ret = "Pressure Waiting"
 	case LindsayStateRunningForward:
@@ -61,15 +70,14 @@ type LindsayStatusRegs struct {
 }
 
 func (lsr LindsayStatusRegs) String() string {
-	ret := "==========================="
-	ret += "Lindsay status: "
+	ret := "Lindsay status:\n"
 	ret += fmt.Sprintf("Pos with offset: %v\n", lsr.PosWithOffset)
 	ret += fmt.Sprintf("Pos without offset: %v\n", lsr.PosWithoutOffset)
 	ret += fmt.Sprintf("Status: 0x%x\n", lsr.Status)
 	ret += fmt.Sprintf("Rate: %v\n", lsr.Rate)
 	ret += fmt.Sprintf("Pressure: %v\n", lsr.Pressure)
-	ret += lsr.State.String()
-	ret += "==========================="
+	ret += fmt.Sprintf("State: %v\n", lsr.State.String())
+	ret += "===========================\n"
 	return ret
 }
 
@@ -101,6 +109,11 @@ func (lsr *LindsayStatusRegs) EndGun2On() bool {
 // Accessory1On indicator
 func (lsr *LindsayStatusRegs) Accessory1On() bool {
 	return (lsr.Status & (1 << 5)) != 0
+}
+
+// Accessory2On indicator, not sure if this is on or not
+func (lsr *LindsayStatusRegs) Accessory2On() bool {
+	return (lsr.Status & (1 << 6)) != 0
 }
 
 // AutoReverse indicator
