@@ -11,7 +11,6 @@ type TankMenuScreen struct {
 	softKeys *SoftKeys
 	state    *isdata.State
 	config   *isdata.Config
-	arrowPos int
 	menu     Menu
 }
 
