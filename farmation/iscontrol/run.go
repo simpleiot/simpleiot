@@ -10,15 +10,26 @@ import (
 func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.State) {
 	config := configInit
 	state := stateInit
-	flowStatusUpdateTicker := time.NewTicker(1000 * time.Millisecond)
+	updateTicker := time.NewTicker(1000 * time.Millisecond)
 
 	for {
 		select {
-		case <-flowStatusUpdateTicker.C:
+		case <-updateTicker.C:
+
+			// update flow status
 			flowStatus := GetFlowStatus(&state, &config)
 			if state.FlowStatus != flowStatus {
 				out <- isdata.UpdateFlowStatus(flowStatus)
 			}
+
+			// update state
+			/*for _, updatemsg := range StateMachine.Run() { // extract update messages from slice returned by state machine
+				out <- updatemsg // send each message to app.go
+			}*/
+
+			// set inj pump relay
+			if
+
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.State:
