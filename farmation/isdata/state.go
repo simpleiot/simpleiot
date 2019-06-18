@@ -7,42 +7,49 @@ import (
 // State contains the current injectory sentry state.
 type State struct {
 	// FlowRate defines the current flow rate of the system in GPH
-	FlowRate          float64
-	FlowRateMin       float64
-	FlowRateMax       float64
-	BatchApplied      float64
-	BatchRemaining    float64
-	Total1            float64
-	Total2            float64
-	LifetimeTotal     float64
-	FlowPulseCount    int
-	CurrentTankVolume float64
-	NetworkState      NetworkState
+	FlowRate          float64      `json:"flowRate"`
+	FlowRateMin       float64      `json:"flowRateMin"`
+	FlowRateMax       float64      `json:"flowRateMax"`
+	BatchApplied      float64      `json:"batchApplied"`
+	BatchRemaining    float64      `json:"batchRemaining"`
+	Total1            float64      `json:"total1"`
+	Total2            float64      `json:"total2"`
+	LifetimeTotal     float64      `json:"lifetimeTotal"`
+	FlowPulseCount    int          `json:"flowPulseCount"`
+	CurrentTankVolume float64      `json:"currentTankVolume"`
+	NetworkState      NetworkState `json:"networkState"`
 
 	// PanelConfig will be populated based on the panel detected
 	// by the sense resistor.
-	PanelConfig        ISPanelConfig
-	FieldStates        [][5]ProductState
-	GpsPos             GpsPos
-	FlowStatus         FlowStatus
-	IrrigationShutdown bool
-	ActiveFaults       []ISEvent
-	Ios                []ISIo
-	PressureMin        float64
-	PressureMax        float64
-	PressureAvg        float64
-	PressureVRef       float64
-	PressureVSense     float64
+	PanelConfig        ISPanelConfig     `json:"panelConfig"`
+	FieldStates        [][5]ProductState `json:"fieldStates"`
+	GpsPos             GpsPos            `json:"gpsPos"`
+	FlowStatus         FlowStatus        `json:"flowStatus"`
+	IrrigationShutdown bool              `json:"irrigationShutdown"`
+	ActiveFaults       []ISEvent         `json:"activeFaults"`
+	Ios                []ISIo            `json:"ios"`
+	PressureMin        float64           `json:"pressureMin"`
+	PressureMax        float64           `json:"pressureMax"`
+	PressureAvg        float64           `json:"pressureAvg"`
+	PressureVRef       float64           `json:"pressureVRef"`
+	PressureVSense     float64           `json:"pressureVSense"`
 
 	// Gpio's
-	GpioDigitalInjector  bool
-	GpioDigitalIrrigator bool
-	GpioDigitalWaterOn   bool
-	GpioDigitalIn        bool
+	GpioDigitalInjector  bool `json:"gpioDigitalInjector"`
+	GpioDigitalIrrigator bool `json:"gpioDigitalIrrigator"`
+	GpioDigitalWaterOn   bool `json:"gpioDigitalWaterOn"`
+	GpioDigitalIn        bool `json:"gpioDigitalIn"`
+
+	GpioRelayInjectorEn bool `json:"gpioRelayInjectorEn"`
+	GpioRelayShutdownEn bool `json:"gpioRelayShutdownEn"`
+	GpioRelayAuxEn      bool `json:"gpioRelayAuxEn"`
+
+	GpioStatusLedRed   bool `json:"gpioStatusLedRed"`
+	GpioStatusLedGreen bool `json:"gpioStatusLedGreen"`
 
 	// Data from Lindsay panel
-	LindsayRegs       LindsayStatusRegs
-	LindsayLastUpdate time.Time
+	LindsayRegs       LindsayStatusRegs `json:"lindsayRegs"`
+	LindsayLastUpdate time.Time         `json:"lindsayLastUpdate"`
 }
 
 // FlowStatus describes the overall system of flow control
@@ -80,6 +87,12 @@ func InitState(s *State) (dirty bool) {
 	s.PressureMax = 0
 	s.PressureVRef = 0
 	s.PressureVSense = 0
+
+	s.GpioRelayInjectorEn = false
+	s.GpioRelayShutdownEn = false
+	s.GpioRelayAuxEn = false
+	s.GpioStatusLedRed = false
+	s.GpioStatusLedGreen = false
 
 	// add an active fault to test
 	/*if len(s.ActiveFaults) <= 0 {

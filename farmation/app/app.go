@@ -143,6 +143,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		uiChan <- state
 		ioChan <- state
 		cntrlChan <- state
+		webChan <- state
 	}
 
 	saveStateTimer := time.NewTicker(time.Minute)
@@ -466,8 +467,15 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					}
 				}
 
-			case isdata.UpdateLedRed, isdata.UpdateLedGreen:
+			case isdata.UpdateLedRed:
 				ioChan <- m
+				state.GpioStatusLedRed = bool(m)
+				saveState()
+
+			case isdata.UpdateLedGreen:
+				ioChan <- m
+				state.GpioStatusLedGreen = bool(m)
+				saveState()
 
 			case isdata.LindsayStatusRegs:
 				state.LindsayRegs = m
