@@ -11,13 +11,22 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 	config := configInit
 	state := stateInit
 	flowStatusUpdateTicker := time.NewTicker(1000 * time.Millisecond)
+	var seconds int // timer to send out flow rate off target + faults
 
 	for {
 		select {
 		case <-flowStatusUpdateTicker.C:
 			flowStatus := GetFlowStatus(&state, &config)
 			if state.FlowStatus != flowStatus {
-				out <- isdata.UpdateFlowStatus(flowStatus)
+				if flowStatus == isdata.FlowStatusOffTarget {
+					seconds++
+					if seconds >= config.AlarmRecognizeSec {
+						out <- isdata.UpdateFlowStatus(flowStatus)
+					}
+				} else {
+					out <- isdata.UpdateFlowStatus(flowStatus)
+					seconds = 0
+				}
 			}
 		case m := <-in:
 			switch m := m.(type) {
