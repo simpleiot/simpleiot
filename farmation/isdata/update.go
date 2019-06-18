@@ -75,6 +75,15 @@ type UpdateManualRelayShutdown int
 // UpdateManualRelayAll is used to toggle all the relays to a state
 type UpdateManualRelayAll int
 
+// UpdateGpioRelayInj updates relay
+type UpdateGpioRelayInj bool
+
+// UpdateGpioRelayShutdown updates relay
+type UpdateGpioRelayShutdown bool
+
+// UpdateGpioRelayAux updates relay
+type UpdateGpioRelayAux bool
+
 // UpdatePulsesPerGallon is used to send new flow meter pulses/gal. config to app.go
 type UpdatePulsesPerGallon int
 

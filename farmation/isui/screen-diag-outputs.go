@@ -34,9 +34,12 @@ func (s *DiagOutputsScreen) Render(img draw.Image) {
 
 	// Relays
 	inj, aux, shtdwn := s.config.ManualRelayInj, s.config.ManualRelayAux, s.config.ManualRelayShutdown
-	s.menu.AddItemAutoOffOn("Injector: "+BoolToString(inj.BoolVal()), inj, isdata.UpdateManualRelayInj(inj.GetMsg()))
-	s.menu.AddItemAutoOffOn("Aux: "+BoolToString(aux.BoolVal()), aux, isdata.UpdateManualRelayAux(aux.GetMsg()))
-	s.menu.AddItemAutoOffOn("Shutdown: "+BoolToString(shtdwn.BoolVal()), shtdwn, isdata.UpdateManualRelayShutdown(shtdwn.GetMsg()))
+	injS, auxS, shtdwnS := s.state.GpioRelayInjectorEn,
+		s.state.GpioRelayAuxEn, s.state.GpioRelayShutdownEn
+
+	s.menu.AddItemAutoOffOn("Injector: "+BoolToString(injS), inj, isdata.UpdateManualRelayInj(inj.GetMsg()))
+	s.menu.AddItemAutoOffOn("Aux: "+BoolToString(auxS), aux, isdata.UpdateManualRelayAux(aux.GetMsg()))
+	s.menu.AddItemAutoOffOn("Shutdown: "+BoolToString(shtdwnS), shtdwn, isdata.UpdateManualRelayShutdown(shtdwn.GetMsg()))
 
 	Heading(img, "Diagnostics Outputs")
 	s.menu.Render(img)

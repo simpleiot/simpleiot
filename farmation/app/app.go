@@ -408,21 +408,15 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 
 			case isdata.UpdateManualRelayInj:
-				//fmt.Println(config.ManualRelayInj)
 				config.ManualRelayInj = isdata.RelayControlStateType(m)
-				//fmt.Println(isdata.RelayControlStateType(m))
 				saveConfig()
 
 			case isdata.UpdateManualRelayAux:
-				//fmt.Println(config.ManualRelayAux)
 				config.ManualRelayAux = isdata.RelayControlStateType(m)
-				//fmt.Println(isdata.RelayControlStateType(m))
 				saveConfig()
 
 			case isdata.UpdateManualRelayShutdown:
-				//fmt.Println(config.ManualRelayShutdown)
 				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
-				//fmt.Println(isdata.RelayControlStateType(m))
 				saveConfig()
 
 			case isdata.UpdateManualRelayAll:
@@ -430,6 +424,18 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.ManualRelayAux = isdata.RelayControlStateType(m)
 				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
 				saveConfig()
+
+			case isdata.UpdateGpioRelayInj:
+				state.GpioRelayInjectorEn = bool(m)
+				saveState()
+
+			case isdata.UpdateGpioRelayShutdown:
+				state.GpioRelayShutdownEn = bool(m)
+				saveState()
+
+			case isdata.UpdateGpioRelayAux:
+				state.GpioRelayAuxEn = bool(m)
+				saveState()
 
 			case isdata.UpdateOperatingMode:
 				config.OperatingMode = isdata.ISOperatingMode(m)

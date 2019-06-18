@@ -88,7 +88,7 @@ func InitState(s *State) (dirty bool) {
 	s.PressureVRef = 0
 	s.PressureVSense = 0
 
-	s.GpioRelayInjectorEn = false
+	s.GpioRelayInjectorEn = true
 	s.GpioRelayShutdownEn = false
 	s.GpioRelayAuxEn = false
 	s.GpioStatusLedRed = false
