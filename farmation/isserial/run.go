@@ -18,7 +18,7 @@ func serialListener(out chan interface{}) {
 
 	options := serial.OpenOptions{
 		PortName:               isio.SerialRS232RS485,
-		BaudRate:               57600,
+		BaudRate:               19200,
 		DataBits:               8,
 		StopBits:               1,
 		MinimumReadSize:        1,

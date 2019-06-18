@@ -10,7 +10,7 @@ import (
 func main() {
 	options := serial.OpenOptions{
 		PortName:              "/dev/ttyUSB0",
-		BaudRate:              57600,
+		BaudRate:              19200,
 		DataBits:              8,
 		StopBits:              1,
 		MinimumReadSize:       1,

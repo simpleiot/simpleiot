@@ -126,6 +126,12 @@ func (lsr *LindsayStatusRegs) AutoRestart() bool {
 	return (lsr.Status & (1 << 9)) != 0
 }
 
+// Running indicates of irrigator is running
+func (lsr *LindsayStatusRegs) Running() bool {
+	return lsr.State == LindsayStateRunningForward ||
+		lsr.State == LindsayStateRunningReverse
+}
+
 // NewLindsayStatusRegs create Lindsay status from modbus PDU packet
 func NewLindsayStatusRegs(req modbus.FuncWriteMultipleRegisterRequest) (ret LindsayStatusRegs, err error) {
 	if req.RegCount != 6 {
