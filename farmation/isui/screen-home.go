@@ -33,8 +33,10 @@ func (s *HomeScreen) Render(img draw.Image) {
 	rateS := strconv.FormatFloat(s.state.FlowRate, 'f', 1, 64)
 	highBound, lowBound := s.config.CalculateFlowWindow()
 	DrawTxt(img, rateS, 4, 12, agencyfbbold40.Font)
-	DrawTxt(img, strconv.FormatFloat(highBound, 'f', 1, 64), 67, 11, agencyfbbold20.Font)
-	DrawTxt(img, strconv.FormatFloat(lowBound, 'f', 1, 64), 67, 29, agencyfbbold20.Font)
+	if s.config.OperatingMode != isdata.ISOperatingModeMonitor {
+		DrawTxt(img, strconv.FormatFloat(highBound, 'f', 1, 64), 67, 11, agencyfbbold20.Font)
+		DrawTxt(img, strconv.FormatFloat(lowBound, 'f', 1, 64), 67, 29, agencyfbbold20.Font)
+	}
 
 	s.softKeys.Render(img, 0, 54)
 
