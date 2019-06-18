@@ -67,14 +67,10 @@ type alias SimInputs =
 type alias State =
     { gpioStatusLedRed : Bool
     , gpioStatusLedGreen : Bool
+    , gpioRelayInjectorEn : Bool
+    , gpioRelayShutdownEn : Bool
+    , gpioRelayAuxEn : Bool
     }
-
-
-
---    , gpioRelayInjectorEn : Bool
---    , gpioRelayShutdownEn : Bool
---    , gpioRelayAuxEn : Bool
---    }
 
 
 type alias Model =
@@ -85,7 +81,7 @@ type alias Model =
 
 
 defaultState =
-    State False False
+    State False False False False False
 
 
 defaultSimInputs =
@@ -358,12 +354,25 @@ buttonType on =
 
 renderSimOutputs : State -> Html Msg
 renderSimOutputs outputs =
-    Grid.row []
-        [ Grid.col [ Col.xs12, Col.sm6, Col.md5 ]
-            [ map GotOutputsMsg
-                (Outputs.statusLed outputs.gpioStatusLedRed
-                    outputs.gpioStatusLedGreen
-                )
+    div []
+        [ Grid.row []
+            [ Grid.col [ Col.xs12, Col.sm6, Col.md5 ]
+                [ map GotOutputsMsg
+                    (Outputs.statusLed outputs.gpioStatusLedRed
+                        outputs.gpioStatusLedGreen
+                    )
+                ]
+            ]
+        , Grid.row
+            []
+            [ Grid.col [ Col.xs12, Col.sm6, Col.md5 ]
+                [ map GotOutputsMsg
+                    (Outputs.relay "Inj" outputs.gpioRelayInjectorEn)
+                , map GotOutputsMsg
+                    (Outputs.relay "Shutdn" outputs.gpioRelayShutdownEn)
+                , map GotOutputsMsg
+                    (Outputs.relay "Aux" outputs.gpioRelayAuxEn)
+                ]
             ]
         ]
 
@@ -461,9 +470,12 @@ type alias Pixel =
 
 stateDecoder : Json.Decode.Decoder State
 stateDecoder =
-    Json.Decode.map2 State
+    Json.Decode.map5 State
         (Json.Decode.field "gpioStatusLedRed" Json.Decode.bool)
         (Json.Decode.field "gpioStatusLedGreen" Json.Decode.bool)
+        (Json.Decode.field "gpioRelayInjectorEn" Json.Decode.bool)
+        (Json.Decode.field "gpioRelayShutdownEn" Json.Decode.bool)
+        (Json.Decode.field "gpioRelayAuxEn" Json.Decode.bool)
 
 
 pixelDecoder : Json.Decode.Decoder Pixel
