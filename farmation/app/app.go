@@ -314,6 +314,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.AlarmRecognizeSec = float64(m)
 				saveConfig()
 
+			case isdata.UpdateDisarm:
+				config.Arm = bool(!m) // set arm to the OPPOSITE of the disarm command
+				saveConfig()
+
 			case isdata.Flow:
 				state.FlowRate = m.RateAvg
 				state.Total1 += m.Amount

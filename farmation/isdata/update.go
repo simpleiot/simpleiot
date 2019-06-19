@@ -128,3 +128,6 @@ type UpdateLedRed bool
 
 // UpdateLedGreen is used to set the led green on/off
 type UpdateLedGreen bool
+
+// UpdateDisarm is used to disarm from iscontrol
+type UpdateDisarm bool

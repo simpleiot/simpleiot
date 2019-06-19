@@ -9,46 +9,58 @@ import (
 // RelayControl is used to control relays
 type RelayControl struct {
 	config       *isdata.Config
-	state        *isdata.Config
+	state        *isdata.State
 	stateMachine *StateMachine
 	out          chan interface{}
 }
 
-// Update checks if any relays need updated, and sends commands to out
-func (rc *RelayControl) Update() {
+// NewRelayControl initializes a RelayControl struct with the necessary parameters
+func NewRelayControl(config *isdata.Config, state *isdata.State, stateMachine *StateMachine, out chan interface{}) *RelayControl {
+	return &RelayControl{
+		config:       config,
+		state:        state,
+		stateMachine: stateMachine,
+		out:          out,
+	}
 }
 
-func updateRelays(config *isdata.Config, state *isdata.State, out chan interface{}) {
+// Update checks if any relays need updated, and sends commands to out
+func (rc *RelayControl) Update() {
 	// boolean to set relays
 	var b bool
 
 	// set inj pump relay
-	if config.ManualRelayInj == isdata.RelayControlStateAuto {
-		if config.UserPumpMode == isdata.UserPumpModeAuto {
+	if rc.config.ManualRelayInj == isdata.RelayControlStateAuto {
+		if rc.config.UserPumpMode == isdata.UserPumpModeAuto {
 			// set Inj relay = Gpio Inj input
-			out <- isdata.UpdateGpioRelayInjector(state.GpioDigitalInjector)
+			rc.out <- isdata.UpdateGpioRelayInjector(rc.state.GpioDigitalInjector)
 		} else {
 			// set Inj relay off
-			out <- isdata.UpdateGpioRelayInjector(false)
+			rc.out <- isdata.UpdateGpioRelayInjector(false)
 			// TODO test mode
 		}
-	} else {
-		b = config.ManualRelayInj.BoolVal()
-		if state.GpioRelayInjectorEn != b {
-			out <- isdata.UpdateGpioRelayInjector(b)
+	} else { // diag mode
+		b = rc.config.ManualRelayInj.BoolVal()
+		if rc.state.GpioRelayInjectorEn != b {
+			rc.out <- isdata.UpdateGpioRelayInjector(b)
 		}
 	}
 
 	// set shutdown relay
-	b = config.ManualRelayShutdown.BoolVal()
-	if state.GpioRelayShutdownEn != b {
-		out <- isdata.UpdateGpioRelayShutdown(b)
+	if rc.config.ManualRelayShutdown == isdata.RelayControlStateAuto {
+		rc.out <- isdata.UpdateGpioRelayShutdown(rc.stateMachine.RelayShutdown)
+	} else { // diag mode
+		b = rc.config.ManualRelayShutdown.BoolVal()
+		if rc.state.GpioRelayShutdownEn != b {
+			rc.out <- isdata.UpdateGpioRelayShutdown(b)
+		}
 	}
 
 	// set aux relay
-	b = config.ManualRelayAux.BoolVal()
-	if state.GpioRelayAuxEn != b {
-		out <- isdata.UpdateGpioRelayAux(b)
+	// diag mode
+	b = rc.config.ManualRelayAux.BoolVal()
+	if rc.state.GpioRelayAuxEn != b {
+		rc.out <- isdata.UpdateGpioRelayAux(b)
 	}
 }
 
@@ -56,8 +68,10 @@ func updateRelays(config *isdata.Config, state *isdata.State, out chan interface
 func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.State) {
 	config := configInit
 	state := stateInit
-	updateTicker := time.NewTicker(500 * time.Millisecond)
 	stateMachine := NewStateMachine(&config, &state)
+	relayControl := NewRelayControl(&config, &state, stateMachine, out)
+
+	updateTicker := time.NewTicker(500 * time.Millisecond)
 
 	for {
 		select {
@@ -69,8 +83,11 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				out <- isdata.UpdateFlowStatus(flowStatus)
 			}
 
-			stateMachine.Run()
-			updateRelays(&config, &state, out)
+			updateMsg := stateMachine.Run()
+			relayControl.Update()
+			if updateMsg != nil && config.Arm { // state machine only returning disarm command right now
+				out <- updateMsg
+			}
 
 		case m := <-in:
 			switch m := m.(type) {
@@ -78,8 +95,12 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				state = m
 			case isdata.Config:
 				config = m
-				stateMachine.Run()
-				updateRelays(&config, &state, out)
+				updateMsg := stateMachine.Run()
+				relayControl.Update()
+				if updateMsg != nil && config.Arm { // state machine only returning disarm command right now
+					out <- updateMsg
+				}
+
 			}
 		}
 
