@@ -19,6 +19,7 @@ type StateMachine struct {
 	// state machine static outputs (updated in StateMachine type)
 	RelayShutdown   bool
 	RelayInjector   bool
+	Shutdown        bool
 	FaultWaterNotOn bool
 
 	// state machine command outputs (returned from Run() as update commands)
@@ -106,6 +107,7 @@ func (sm *StateMachine) Run() interface{} {
 	case shutdown1:
 		sm.RelayShutdown = true
 		sm.RelayInjector = false
+		sm.Shutdown = true
 		secondsSince := time.Since(sm.timeStateEntered).Seconds()
 		if secondsSince >= 10 {
 			sm.RelayShutdown = false
@@ -117,6 +119,7 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(shutdown2)
 		} else {
 			// TODO wait for user acknowledge
+			sm.Shutdown = false
 			sm.setState(waitForDisarm)
 			return isdata.UpdateDisarm(true)
 		}
@@ -136,6 +139,7 @@ func (sm *StateMachine) Run() interface{} {
 			// TODO wait for user acknowledge
 		} else {
 			// TODO wait for user acknowledge
+			sm.Shutdown = false
 			sm.setState(waitForDisarm)
 			return isdata.UpdateDisarm(true)
 		}

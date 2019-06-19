@@ -56,6 +56,11 @@ func (rc *RelayControl) Update() {
 		}
 	}
 
+	shtdwn := rc.stateMachine.Shutdown
+	if rc.state.IrrigationShutdown != shtdwn {
+		rc.out <- isdata.UpdateIrrigationShutdown(shtdwn)
+	}
+
 	// set aux relay
 	// diag mode
 	b = rc.config.ManualRelayAux.BoolVal()

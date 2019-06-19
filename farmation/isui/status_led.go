@@ -25,14 +25,14 @@ func NewStatusLed(state *isdata.State, config *isdata.Config, out chan interface
 // UpdateLedState updates the current led state based on config and state
 func (sl *StatusLed) UpdateLedState() {
 	switch {
-	case sl.state.IrrigationShutdown: // shut down
+	case sl.config.Arm && sl.state.IrrigationShutdown: // shut down
 		if sl.greenOn {
 			sl.greenOn = false
 			sl.out <- isdata.UpdateLedGreen(sl.greenOn)
 		}
 		sl.out <- isdata.UpdateLedRed(true) // solid red
 		sl.redOn = true
-	case sl.state.FlowStatus == isdata.FlowStatusOffTarget || len(sl.state.ActiveFaults) != 0: // flow off target or active faults
+	case sl.config.Arm && (sl.state.FlowStatus == isdata.FlowStatusOffTarget || len(sl.state.ActiveFaults) != 0): // flow off target or active faults
 		if sl.greenOn {
 			sl.greenOn = false
 			sl.out <- isdata.UpdateLedGreen(sl.greenOn)
