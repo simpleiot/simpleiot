@@ -36,6 +36,9 @@ func (s *DiagLindsayScreen) Render(img draw.Image) {
 	status := fmt.Sprintf("0x%x", s.state.LindsayRegs.Status)
 	durLastUpdate := time.Now().Sub(s.state.LindsayLastUpdate)
 	durLastUpdateS := fmt.Sprintf("%.1f min", durLastUpdate.Minutes())
+	if durLastUpdate > 60*time.Minute {
+		durLastUpdateS = "no data"
+	}
 
 	// Gpio's
 	s.menu.AddItemString("status", status)

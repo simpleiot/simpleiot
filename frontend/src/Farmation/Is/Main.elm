@@ -64,8 +64,21 @@ type alias SimInputs =
     }
 
 
+
+-- system type defines must match Go state defines
+
+
+systemTypeIS =
+    0
+
+
+systemTypeISSim =
+    1
+
+
 type alias State =
-    { gpioStatusLedRed : Bool
+    { systemType : Int
+    , gpioStatusLedRed : Bool
     , gpioStatusLedGreen : Bool
     , gpioRelayInjectorEn : Bool
     , gpioRelayShutdownEn : Bool
@@ -81,7 +94,7 @@ type alias Model =
 
 
 defaultState =
-    State False False False False False
+    State systemTypeIS False False False False False
 
 
 defaultSimInputs =
@@ -440,6 +453,17 @@ renderSimInputs inputs =
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        simInputs =
+            if model.state.systemType == systemTypeISSim then
+                div []
+                    [ h3 [] [ text "Sim Inputs" ]
+                    , renderSimInputs model.simInputs
+                    ]
+
+            else
+                div [] []
+    in
     { title = "Injector • Sentry"
     , body =
         [ div []
@@ -447,9 +471,7 @@ view model =
             , map GotLcdMsg (Lcd.lcd model.lcdData)
             ]
         , Grid.container []
-            [ h3 [] [ text "Sim Inputs" ]
-            , renderSimInputs
-                model.simInputs
+            [ simInputs
             , h3 [] [ text "Sim Outputs" ]
             , renderSimOutputs model.state
             ]
@@ -470,7 +492,8 @@ type alias Pixel =
 
 stateDecoder : Json.Decode.Decoder State
 stateDecoder =
-    Json.Decode.map5 State
+    Json.Decode.map6 State
+        (Json.Decode.field "systemType" Json.Decode.int)
         (Json.Decode.field "gpioStatusLedRed" Json.Decode.bool)
         (Json.Decode.field "gpioStatusLedGreen" Json.Decode.bool)
         (Json.Decode.field "gpioRelayInjectorEn" Json.Decode.bool)

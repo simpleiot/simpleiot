@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/simpleiot/simpleiot/api"
@@ -81,10 +82,15 @@ func Server(in, out chan interface{}) {
 	newConn := make(chan bool)
 
 	frameBuffer := isdata.NewLcdBlt(0, 0, 128, 64, true)
+	state := isdata.State{}
 
 	port := os.Getenv("IS_PORT")
 	if port == "" {
-		port = "8090"
+		if runtime.GOARCH == "arm" {
+			port = "80"
+		} else {
+			port = "8090"
+		}
 	}
 
 	log.Println("Starting IS app on port: ", port)
@@ -102,7 +108,7 @@ func Server(in, out chan interface{}) {
 			case isdata.LcdPixel, isdata.LcdBlt, isdata.LcdBltSolid, isdata.State:
 				d, err := json.Marshal(m)
 				if err != nil {
-					log.Println("Error encoding Lcd data: ", err)
+					log.Printf("Error encoding IS web UI data of type %T, %+v, error: %v: ", m, m, err)
 				} else {
 					wsTxChan <- d
 				}
@@ -113,20 +119,27 @@ func Server(in, out chan interface{}) {
 					frameBuffer.Update(m)
 				case isdata.LcdBltSolid:
 					frameBuffer.UpdateSolid(m)
+				case isdata.State:
+					state = m
 				}
 			default:
 				log.Printf("web: unhandled message of type %T: %+v\n", m, m)
 			}
 		case <-newConn:
-			log.Println("New web client connection, sending current FB")
-			d, err := json.Marshal(frameBuffer)
+			log.Println("New web client connection, sending current FB and state")
+			fb, err := json.Marshal(frameBuffer)
 			if err != nil {
-				log.Println("Error encoding Framebuffer: ", err)
-			} else {
-				// give the client time to get set up
-				time.Sleep(10 * time.Millisecond)
-				wsTxChan <- d
+				log.Println("Error encoding Framebuffer for new connection: ", err)
+				continue
 			}
+			st, err := json.Marshal(state)
+			if err != nil {
+				log.Println("Error encoding state for new connection: ", err)
+				continue
+			}
+			time.Sleep(10 * time.Millisecond)
+			wsTxChan <- fb
+			wsTxChan <- st
 		case m := <-wsRxChan:
 			s := data.Sample{}
 			if err := json.Unmarshal(m, &s); err != nil {

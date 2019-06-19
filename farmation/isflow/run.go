@@ -96,15 +96,17 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 		case t := <-pulseCh:
 			processPulse(t)
 		case <-ticker.C:
-			sampleDuration := lastPulse.Sub(lastTick)
-			flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
-			flowRateMovingAvg.Add(flow.Rate)
-			flow.RateAvg = flowRateMovingAvg.Avg()
-			flow.RateMin, _ = flowRateMovingAvg.Min()
-			flow.RateMax, _ = flowRateMovingAvg.Max()
-			out <- flow
-			pulses = 0
-			lastTick = lastPulse
+			if pulses > 0 {
+				sampleDuration := lastPulse.Sub(lastTick)
+				flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
+				flowRateMovingAvg.Add(flow.Rate)
+				flow.RateAvg = flowRateMovingAvg.Avg()
+				flow.RateMin, _ = flowRateMovingAvg.Min()
+				flow.RateMax, _ = flowRateMovingAvg.Max()
+				out <- flow
+				pulses = 0
+				lastTick = lastPulse
+			}
 
 		case t := <-simTicker.C:
 			processPulse(t)
