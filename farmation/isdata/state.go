@@ -100,6 +100,8 @@ func InitState(s *State) (dirty bool) {
 		s.SystemType = SystemTypeISSim
 	}
 
+	s.FlowRate = 0
+
 	s.PressureMin = 0
 	s.PressureAvg = 0
 	s.PressureMax = 0
