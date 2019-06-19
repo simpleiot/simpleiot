@@ -9,6 +9,11 @@ type Config struct {
 	//FlowRateTarget is set by pressing the arm switch
 	FlowRateTarget float64
 
+	// relay on/off
+	RelayInjector bool
+	RelayAux      bool
+	RelayShutdown bool
+
 	// High/LowWindow will be displayed as decimal if under 10.
 	// These values are % from the flow target that will trigger
 	// and alarm.
@@ -36,14 +41,6 @@ type Config struct {
 	ProductConfigs      []ProductConfig
 	DeviceName          string
 
-	// stores whether pump is in auto mode or off mode
-	// accessed from pump button on home/status screens
-	PumpAutoOff bool
-
-	// stores whether the pump is in digital input mode, water only, etc.
-	// accessed from config?
-	PumpMode int
-
 	NetworkConfig   NetworkConfig
 	TankCapacity    int
 	TankAlertVolume int
@@ -64,6 +61,31 @@ type Config struct {
 	// Flow meter pulses per gallon and pressure setting
 	PulsesPerGallon int
 	PressureSetting int
+
+	UserPumpMode UserPumpMode
+}
+
+// UserPumpMode describes the state of the pump button in UI
+type UserPumpMode int
+
+// define valid user pump modes
+const (
+	UserPumpModeOff UserPumpMode = iota
+	UserPumpModeAuto
+	UserPumpModeTest
+	UserPumpModeNone
+)
+
+// GetMsg returns an update msg based on the current user pump mode
+func (upm UserPumpMode) GetMsg() int {
+	switch upm {
+	case UserPumpModeAuto:
+		return int(UserPumpModeOff)
+	case UserPumpModeOff:
+		return int(UserPumpModeAuto)
+	default:
+		return int(UserPumpModeNone)
+	}
 }
 
 // ISOperatingMode defines the operating mode of the system
@@ -248,35 +270,32 @@ type RelayControlStateType int
 
 // define valid RelayControlStateTypes
 const (
-	RelayControlAutoStateType RelayControlStateType = iota
-	RelayControlOffStateType
-	RelayControlOnStateType
-	RelayControlNoneStateType
+	RelayControlStateAuto RelayControlStateType = iota
+	RelayControlStateOff
+	RelayControlStateOn
+	RelayControlStateNone
 )
 
-// BoolVal returns a boolean depending what state
-// the relay is in
+// BoolVal returns true for State On and default false
 func (r RelayControlStateType) BoolVal() bool {
-	switch r {
-	case RelayControlOnStateType:
+	if r == RelayControlStateOn {
 		return true
-	default:
-		return false
 	}
+	return false
 }
 
 // GetMsg returns a message to pass to
 // isui/menu.AddItemAutoOffOn(...)
 func (r RelayControlStateType) GetMsg() int {
 	switch r {
-	case RelayControlAutoStateType:
-		return int(RelayControlOffStateType)
-	case RelayControlOffStateType:
-		return int(RelayControlOnStateType)
-	case RelayControlOnStateType:
-		return int(RelayControlAutoStateType)
+	case RelayControlStateAuto:
+		return int(RelayControlStateOff)
+	case RelayControlStateOff:
+		return int(RelayControlStateOn)
+	case RelayControlStateOn:
+		return int(RelayControlStateAuto)
 	}
-	return int(RelayControlNoneStateType)
+	return int(RelayControlStateNone)
 }
 
 // RelayID identifies a relay in the system
@@ -335,17 +354,14 @@ func (c *Config) Init() {
 	c.LogFlowData = false
 	c.LogPressureData = false
 
-	// set pump mode to auto
-	c.PumpAutoOff = true
-
 	//set arm to off
 	c.Arm = false
 
 	// set relays to auto mode in case
 	// power lost while relays were in manual mode
-	c.ManualRelayInj = RelayControlAutoStateType
-	c.ManualRelayAux = RelayControlAutoStateType
-	c.ManualRelayShutdown = RelayControlAutoStateType
+	c.ManualRelayInj = RelayControlStateAuto
+	c.ManualRelayAux = RelayControlStateAuto
+	c.ManualRelayShutdown = RelayControlStateAuto
 
 	if len(c.DeviceName) == 0 {
 		c.DeviceName = "InjectorSentry"

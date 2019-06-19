@@ -167,9 +167,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		select {
 		case s := <-sigChan:
 			fmt.Println("Received signal: ", s)
-			config.ManualRelayInj = isdata.RelayControlStateType(isdata.RelayControlAutoStateType)
-			config.ManualRelayAux = isdata.RelayControlStateType(isdata.RelayControlAutoStateType)
-			config.ManualRelayShutdown = isdata.RelayControlStateType(isdata.RelayControlAutoStateType)
+			config.ManualRelayInj = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
+			config.ManualRelayAux = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
+			config.ManualRelayShutdown = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			saveConfig()
 			db.WriteState(&state)
 			db.WriteConfig(&config)
@@ -425,7 +425,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
 				saveConfig()
 
-			case isdata.UpdateGpioRelayInj:
+			case isdata.UpdateGpioRelayInjector:
 				state.GpioRelayInjectorEn = bool(m)
 				saveState()
 
@@ -444,8 +444,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				}
 				saveConfig()
 
-			case isdata.UpdatePumpAutoOff:
-				config.PumpAutoOff = bool(m)
+			case isdata.UpdateUserPumpMode:
+				config.UserPumpMode = isdata.UserPumpMode(m)
 				saveConfig()
 
 			case isdata.UpdateCurrentFieldIndex:

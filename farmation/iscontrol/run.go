@@ -6,19 +6,36 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-func updateRelays(c *isdata.Config, s *isdata.State, out chan interface{}) {
-	b := c.ManualRelayInj.BoolVal()
-	if s.GpioRelayInjectorEn != b {
-		out <- isdata.UpdateGpioRelayInj(b)
+func updateRelays(config *isdata.Config, state *isdata.State, out chan interface{}) {
+	// boolean to set relays
+	var b bool
+
+	// set inj pump relay
+	if config.ManualRelayInj == isdata.RelayControlStateAuto {
+		if config.UserPumpMode == isdata.UserPumpModeAuto {
+			// set Inj relay = Gpio Inj input
+			out <- isdata.UpdateGpioRelayInjector(state.GpioDigitalInjector)
+		} else {
+			// set Inj relay off
+			out <- isdata.UpdateGpioRelayInjector(false)
+			// TODO test mode
+		}
+	} else {
+		b = config.ManualRelayInj.BoolVal()
+		if state.GpioRelayInjectorEn != b {
+			out <- isdata.UpdateGpioRelayInjector(b)
+		}
 	}
 
-	b = c.ManualRelayShutdown.BoolVal()
-	if s.GpioRelayShutdownEn != b {
+	// set shutdown relay
+	b = config.ManualRelayShutdown.BoolVal()
+	if state.GpioRelayShutdownEn != b {
 		out <- isdata.UpdateGpioRelayShutdown(b)
 	}
 
-	b = c.ManualRelayAux.BoolVal()
-	if s.GpioRelayAuxEn != b {
+	// set aux relay
+	b = config.ManualRelayAux.BoolVal()
+	if state.GpioRelayAuxEn != b {
 		out <- isdata.UpdateGpioRelayAux(b)
 	}
 }
@@ -27,16 +44,20 @@ func updateRelays(c *isdata.Config, s *isdata.State, out chan interface{}) {
 func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.State) {
 	config := configInit
 	state := stateInit
-	flowStatusUpdateTicker := time.NewTicker(1000 * time.Millisecond)
+	updateTicker := time.NewTicker(500 * time.Millisecond)
+	stateMachine := NewStateMachine(&config, &state)
 
 	for {
 		select {
-		case <-flowStatusUpdateTicker.C:
+		case <-updateTicker.C:
+
+			// update flow status
 			flowStatus := GetFlowStatus(&state, &config)
 			if state.FlowStatus != flowStatus {
 				out <- isdata.UpdateFlowStatus(flowStatus)
 			}
 
+			stateMachine.Run()
 			updateRelays(&config, &state, out)
 
 		case m := <-in:
@@ -45,6 +66,8 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				state = m
 			case isdata.Config:
 				config = m
+				stateMachine.Run()
+				updateRelays(&config, &state, out)
 			}
 		}
 

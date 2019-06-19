@@ -75,8 +75,8 @@ type UpdateManualRelayShutdown int
 // UpdateManualRelayAll is used to toggle all the relays to a state
 type UpdateManualRelayAll int
 
-// UpdateGpioRelayInj updates relay
-type UpdateGpioRelayInj bool
+// UpdateGpioRelayInjector updates relay
+type UpdateGpioRelayInjector bool
 
 // UpdateGpioRelayShutdown updates relay
 type UpdateGpioRelayShutdown bool
@@ -120,8 +120,8 @@ type UpdateCurrentProductIndex int
 // UpdateOperatingMode is used to select a new operating mode
 type UpdateOperatingMode int
 
-// UpdatePumpAutoOff is used to toggle the auto/off pump mode from the "pump" softkey on the home/status screens
-type UpdatePumpAutoOff bool
+// UpdateUserPumpMode is used to toggle the auto/off/test pump mode from the "pump" softkey on the home/status screens
+type UpdateUserPumpMode int
 
 // UpdateLedRed is used to set the led red on/off
 type UpdateLedRed bool
