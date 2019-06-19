@@ -1,6 +1,7 @@
 package iscontrol
 
 import (
+	"log"
 	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -15,10 +16,10 @@ type StateMachine struct {
 	machineState     state
 	timeStateEntered time.Time
 
-	// state machine outputs
-	RelayShutdown bool
-	RelayInjector bool
-	Armed         bool
+	// state machine static outputs
+	RelayShutdown   bool
+	RelayInjector   bool
+	FaultWaterNotOn bool
 }
 
 // State of machine
@@ -33,6 +34,7 @@ const (
 	shutdownMonitor1
 	shutdown2
 	shutdownMonitor2
+	waitForDisarm
 )
 
 // NewStateMachine creates a new state machine
@@ -43,8 +45,22 @@ func NewStateMachine(config *isdata.Config, state *isdata.State) *StateMachine {
 	}
 }
 
-// Run executes state machine
-func (sm *StateMachine) Run() {
+func (sm *StateMachine) setState(newState state) {
+	if sm.machineState != newState {
+		log.Println("New state: ", newState)
+		sm.machineState = newState
+		sm.timeStateEntered = time.Now()
+	}
+}
+
+// Run executes state machine, and returns an Update command if necessary
+func (sm *StateMachine) Run() interface{} {
+
+	if !sm.config.Arm && sm.machineState != standby {
+		sm.machineState = standby
+		sm.RelayShutdown = false
+	}
+
 	switch sm.machineState {
 	case standby:
 		if sm.config.Arm {
@@ -84,7 +100,7 @@ func (sm *StateMachine) Run() {
 			sm.timeStateEntered = time.Now()
 		} else {
 			// TODO wait for user acknowledge
-			sm.Armed = false
+			sm.Disarm = true
 			sm.machineState = standby
 			sm.timeStateEntered = time.Now()
 		}
@@ -103,11 +119,15 @@ func (sm *StateMachine) Run() {
 			// TODO wait for user acknowledge
 		} else {
 			// TODO wait for user acknowledge
-			sm.Armed = false
+			sm.Disarm = true
 			sm.machineState = standby
 			sm.timeStateEntered = time.Now()
 		}
+	case waitForDisarm:
+		// wait for sm.confg.Arm to go false
+		// if it does not after 10s, send out another disarm update
 
 	}
 
+	return nil
 }

@@ -53,6 +53,9 @@ type State struct {
 	// Data from Lindsay panel
 	LindsayRegs       LindsayStatusRegs `json:"lindsayRegs"`
 	LindsayLastUpdate time.Time         `json:"lindsayLastUpdate"`
+
+	// Notifications or Fault conditions
+	FaultWaterNotOn bool
 }
 
 // SystemType describes the system type

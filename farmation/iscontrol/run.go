@@ -6,6 +6,18 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
+// RelayControl is used to control relays
+type RelayControl struct {
+	config       *isdata.Config
+	state        *isdata.Config
+	stateMachine *StateMachine
+	out          chan interface{}
+}
+
+// Update checks if any relays need updated, and sends commands to out
+func (rc *RelayControl) Update() {
+}
+
 func updateRelays(config *isdata.Config, state *isdata.State, out chan interface{}) {
 	// boolean to set relays
 	var b bool
