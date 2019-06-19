@@ -1,11 +1,14 @@
 package isdata
 
 import (
+	"runtime"
 	"time"
 )
 
 // State contains the current injectory sentry state.
 type State struct {
+	SystemType SystemType `json:"systemType"`
+
 	// FlowRate defines the current flow rate of the system in GPH
 	FlowRate          float64      `json:"flowRate"`
 	FlowRateMin       float64      `json:"flowRateMin"`
@@ -52,6 +55,15 @@ type State struct {
 	LindsayLastUpdate time.Time         `json:"lindsayLastUpdate"`
 }
 
+// SystemType describes the system type
+type SystemType int
+
+// define valid system types
+const (
+	SystemTypeIS SystemType = iota
+	SystemTypeISSim
+)
+
 // FlowStatus describes the overall system of flow control
 type FlowStatus int
 
@@ -80,6 +92,12 @@ func InitState(s *State) (dirty bool) {
 	for len(s.FieldStates) < 4 { //not sure that 4 is the right length
 		s.FieldStates = append(s.FieldStates, [5]ProductState{})
 		dirty = true
+	}
+
+	if runtime.GOARCH == "arm" {
+		s.SystemType = SystemTypeIS
+	} else {
+		s.SystemType = SystemTypeISSim
 	}
 
 	s.PressureMin = 0
