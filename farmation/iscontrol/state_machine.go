@@ -29,6 +29,7 @@ type state int
 
 // define valid states
 const (
+	//powerUp state = iota
 	standby state = iota
 	armed
 	flowOffTarget
@@ -65,6 +66,18 @@ func (sm *StateMachine) Run() interface{} {
 	}
 
 	switch sm.machineState {
+	/*case powerUp:
+	if sm.config.Arm {
+		if sm.state.GpioDigitalWaterOn {
+			if sm.state.GpioDigitalInjector {
+				sm.RelayInjector = true
+			}
+		} else {
+			// TODO "display waiting for water on"
+		}
+	} else {
+		sm.setState(standby)
+	}*/
 	case standby:
 		if sm.config.Arm {
 			sm.setState(armed)

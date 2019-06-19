@@ -355,7 +355,7 @@ func (c *Config) Init() {
 	c.LogPressureData = false
 
 	//set arm to off
-	c.Arm = false
+	//c.Arm = false
 
 	// set relays to auto mode in case
 	// power lost while relays were in manual mode
