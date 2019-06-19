@@ -108,11 +108,12 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				lastTick = lastPulse
 			}
 
-			if time.Now().Sub(lastTick) > time.Second*10 {
+			if time.Now().Sub(lastTick) > time.Second*5 {
 				flow := isdata.Flow{
 					Time: time.Now(),
 				}
 				out <- flow
+				flowRateMovingAvg = movingaverage.New(30)
 			}
 
 		case t := <-simTicker.C:
