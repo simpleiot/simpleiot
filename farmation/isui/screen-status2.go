@@ -38,7 +38,7 @@ func (s *StatusScreen2) Render(img draw.Image) {
 	// icons
 	s.icons.SetPage("page indicator", 2)
 	s.icons.SetOnOff("arm", s.config.Arm)
-	s.icons.SetOnOff("pump", s.config.RelayInjector)
+	s.icons.SetOnOff("pump", s.state.GpioRelayInjectorEn)
 	s.icons.SetOnOff("water", s.state.GpioDigitalWaterOn)
 	s.icons.Render(img)
 }
