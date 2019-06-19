@@ -134,16 +134,27 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			log.Println("Error saving config: ", err)
 		}
 	}
-	// TODO use this structure to save state
+
+	var lastStateSend time.Time
+
 	saveState := func() {
 		if debugState {
 			fmt.Printf("State: %+v\n", state)
 		}
+
 		stateDirty = true
-		uiChan <- state
-		ioChan <- state
-		cntrlChan <- state
-		webChan <- state
+
+		// pace the sending of states to various subsystems every 500ms
+		// so we don't overload things
+		now := time.Now()
+		if now.Sub(lastStateSend) > 250*time.Millisecond {
+			uiChan <- state
+			ioChan <- state
+			cntrlChan <- state
+			webChan <- state
+
+			lastStateSend = now
+		}
 	}
 
 	saveStateTimer := time.NewTicker(time.Minute)
