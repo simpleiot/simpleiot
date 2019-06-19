@@ -266,9 +266,11 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.Key:
 				switch m {
 				case isdata.KeyArm:
-					// toggle the arm switch
-					config.Arm = !config.Arm
-					saveConfig()
+					if config.OperatingMode != isdata.ISOperatingModeMonitor {
+						// toggle the arm switch
+						config.Arm = !config.Arm
+						saveConfig()
+					}
 				default:
 					// send to ui to handle
 					uiChan <- m

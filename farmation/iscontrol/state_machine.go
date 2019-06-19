@@ -59,6 +59,12 @@ func (sm *StateMachine) setState(newState state) {
 // Run executes state machine, and returns an Update command if necessary
 func (sm *StateMachine) Run() interface{} {
 
+	// monitor-only state
+	if sm.config.OperatingMode == isdata.ISOperatingModeMonitor && sm.machineState != standby {
+		sm.setState(standby)
+		sm.RelayShutdown = false
+	}
+
 	// if user disarms, stop shutdown
 	if !sm.config.Arm && sm.machineState != standby {
 		sm.setState(standby)
