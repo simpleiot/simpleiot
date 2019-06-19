@@ -9,11 +9,6 @@ type Config struct {
 	//FlowRateTarget is set by pressing the arm switch
 	FlowRateTarget float64
 
-	// relay on/off
-	RelayInjector bool
-	RelayAux      bool
-	RelayShutdown bool
-
 	// High/LowWindow will be displayed as decimal if under 10.
 	// These values are % from the flow target that will trigger
 	// and alarm.

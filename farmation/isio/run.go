@@ -8,15 +8,16 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-func setRelay(config *isdata.Config) {
-	GpioOut(GpioRelayInjectorEn, config.RelayInjector)
-	GpioOut(GpioRelayAuxEn, config.RelayAux)
-	GpioOut(GpioRelayShutdownEn, config.RelayShutdown)
+func setRelay(state *isdata.State) {
+	GpioOut(GpioRelayInjectorEn, state.GpioRelayInjectorEn)
+	GpioOut(GpioRelayAuxEn, state.GpioRelayAuxEn)
+	GpioOut(GpioRelayShutdownEn, state.GpioRelayShutdownEn)
 }
 
 // Run goroutine for IO code
 func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.State) {
 	config := configInit
+	_ = config
 	state := stateInit
 
 	if runtime.GOARCH == "arm" {
@@ -35,11 +36,11 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			switch m := m.(type) {
 			case isdata.Config:
 				config = m
-				if runtime.GOARCH == "arm" {
-					setRelay(&config)
-				}
 			case isdata.State:
 				state = m
+				if runtime.GOARCH == "arm" {
+					setRelay(&state)
+				}
 			case isdata.UpdateLedRed:
 				GpioOut(GpioStatusRed, bool(m))
 				//fmt.Println("RED: ", m)

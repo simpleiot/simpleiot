@@ -42,7 +42,7 @@ func (s *HomeScreen) Render(img draw.Image) {
 
 	// icons
 	s.icons.SetOnOff("arm", s.config.Arm)
-	s.icons.SetOnOff("pump", s.config.RelayInjector)
+	s.icons.SetOnOff("pump", s.state.GpioRelayInjectorEn)
 	s.icons.SetOnOff("water", s.state.GpioDigitalWaterOn)
 	s.icons.SetPage("page indicator", 0) // set page indicator icon to home
 	s.icons.Render(img)
