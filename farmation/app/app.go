@@ -143,6 +143,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		uiChan <- state
 		ioChan <- state
 		cntrlChan <- state
+		webChan <- state
 	}
 
 	saveStateTimer := time.NewTicker(time.Minute)
@@ -406,34 +407,16 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.GpioDigitalIn = bool(m)
 				saveState()
 
-			case isdata.UpdateRelayInjector:
-				config.RelayInjector = bool(m)
-				saveConfig()
-
-			case isdata.UpdateRelayAux:
-				config.RelayAux = bool(m)
-				saveConfig()
-
-			case isdata.UpdateRelayShutdown:
-				config.RelayShutdown = bool(m)
-				saveConfig()
-
 			case isdata.UpdateManualRelayInj:
-				//fmt.Println(config.ManualRelayInj)
 				config.ManualRelayInj = isdata.RelayControlStateType(m)
-				//fmt.Println(isdata.RelayControlStateType(m))
 				saveConfig()
 
 			case isdata.UpdateManualRelayAux:
-				//fmt.Println(config.ManualRelayAux)
 				config.ManualRelayAux = isdata.RelayControlStateType(m)
-				//fmt.Println(isdata.RelayControlStateType(m))
 				saveConfig()
 
 			case isdata.UpdateManualRelayShutdown:
-				//fmt.Println(config.ManualRelayShutdown)
 				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
-				//fmt.Println(isdata.RelayControlStateType(m))
 				saveConfig()
 
 			case isdata.UpdateManualRelayAll:
@@ -441,6 +424,18 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.ManualRelayAux = isdata.RelayControlStateType(m)
 				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
 				saveConfig()
+
+			case isdata.UpdateGpioRelayInjector:
+				state.GpioRelayInjectorEn = bool(m)
+				saveState()
+
+			case isdata.UpdateGpioRelayShutdown:
+				state.GpioRelayShutdownEn = bool(m)
+				saveState()
+
+			case isdata.UpdateGpioRelayAux:
+				state.GpioRelayAuxEn = bool(m)
+				saveState()
 
 			case isdata.UpdateOperatingMode:
 				config.OperatingMode = isdata.ISOperatingMode(m)
@@ -478,8 +473,15 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					}
 				}
 
-			case isdata.UpdateLedRed, isdata.UpdateLedGreen:
+			case isdata.UpdateLedRed:
 				ioChan <- m
+				state.GpioStatusLedRed = bool(m)
+				saveState()
+
+			case isdata.UpdateLedGreen:
+				ioChan <- m
+				state.GpioStatusLedGreen = bool(m)
+				saveState()
 
 			case isdata.LindsayStatusRegs:
 				state.LindsayRegs = m

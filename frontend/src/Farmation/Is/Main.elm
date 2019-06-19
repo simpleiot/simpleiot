@@ -10,6 +10,7 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Utilities.Spacing as Spacing
 import Browser
 import Farmation.Is.Lcd as Lcd
+import Farmation.Is.Outputs as Outputs
 import Html exposing (Html, button, div, h2, h3, input, map, text)
 import Html.Attributes exposing (class, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
@@ -63,17 +64,24 @@ type alias SimInputs =
     }
 
 
-type alias SimOutputs =
-    { redLed : Bool
-    , greenLed : Bool
+type alias State =
+    { gpioStatusLedRed : Bool
+    , gpioStatusLedGreen : Bool
+    , gpioRelayInjectorEn : Bool
+    , gpioRelayShutdownEn : Bool
+    , gpioRelayAuxEn : Bool
     }
 
 
 type alias Model =
     { lcdData : Lcd.Data
     , simInputs : SimInputs
-    , simOutputs : SimOutputs
+    , state : State
     }
+
+
+defaultState =
+    State False False False False False
 
 
 defaultSimInputs =
@@ -84,7 +92,7 @@ init : () -> ( Model, Cmd Msg )
 init model =
     ( { lcdData = Lcd.defaultData
       , simInputs = defaultSimInputs
-      , simOutputs = SimOutputs False False
+      , state = defaultState
       }
     , Cmd.none
     )
@@ -98,6 +106,7 @@ type Msg
     = ProcessPortValue (Result Json.Decode.Error PortValue)
     | Tick Time.Posix
     | GotLcdMsg Lcd.Msg
+    | GotOutputsMsg Outputs.Msg
     | SimFlowRate String
     | ButtonInj
     | ButtonIrg
@@ -168,6 +177,9 @@ processPortValue portValue model =
             , Cmd.none
             )
 
+        StateValue state ->
+            ( { model | state = state }, Cmd.none )
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -192,6 +204,11 @@ update msg model =
                         |> encodeSample
                         |> portOut
                     )
+
+        GotOutputsMsg outputMsg ->
+            case outputMsg of
+                Outputs.NoOp ->
+                    ( model, Cmd.none )
 
         SimFlowRate rate ->
             let
@@ -335,6 +352,31 @@ buttonType on =
         Button.secondary
 
 
+renderSimOutputs : State -> Html Msg
+renderSimOutputs outputs =
+    div []
+        [ Grid.row []
+            [ Grid.col [ Col.xs12, Col.sm6, Col.md5 ]
+                [ map GotOutputsMsg
+                    (Outputs.statusLed outputs.gpioStatusLedRed
+                        outputs.gpioStatusLedGreen
+                    )
+                ]
+            ]
+        , Grid.row
+            []
+            [ Grid.col [ Col.xs12, Col.sm6, Col.md5 ]
+                [ map GotOutputsMsg
+                    (Outputs.relay "Inj" outputs.gpioRelayInjectorEn)
+                , map GotOutputsMsg
+                    (Outputs.relay "Shutdn" outputs.gpioRelayShutdownEn)
+                , map GotOutputsMsg
+                    (Outputs.relay "Aux" outputs.gpioRelayAuxEn)
+                ]
+            ]
+        ]
+
+
 renderSimInputs : SimInputs -> Html Msg
 renderSimInputs inputs =
     Grid.row []
@@ -409,6 +451,7 @@ view model =
             , renderSimInputs
                 model.simInputs
             , h3 [] [ text "Sim Outputs" ]
+            , renderSimOutputs model.state
             ]
         ]
     }
@@ -423,6 +466,16 @@ type alias Pixel =
     , y : Int
     , v : Bool
     }
+
+
+stateDecoder : Json.Decode.Decoder State
+stateDecoder =
+    Json.Decode.map5 State
+        (Json.Decode.field "gpioStatusLedRed" Json.Decode.bool)
+        (Json.Decode.field "gpioStatusLedGreen" Json.Decode.bool)
+        (Json.Decode.field "gpioRelayInjectorEn" Json.Decode.bool)
+        (Json.Decode.field "gpioRelayShutdownEn" Json.Decode.bool)
+        (Json.Decode.field "gpioRelayAuxEn" Json.Decode.bool)
 
 
 pixelDecoder : Json.Decode.Decoder Pixel
@@ -475,6 +528,7 @@ type PortValue
     = PixelValue Pixel
     | BltSolidValue BltSolid
     | BltValue Blt
+    | StateValue State
 
 
 portDecoder : Json.Decode.Decoder PortValue
@@ -483,12 +537,8 @@ portDecoder =
         [ Json.Decode.map BltSolidValue bltSolidDecoder
         , Json.Decode.map PixelValue pixelDecoder
         , Json.Decode.map BltValue bltDecoder
+        , Json.Decode.map StateValue stateDecoder
         ]
-
-
-pixValueDecoder : Json.Decode.Value -> Result Json.Decode.Error Pixel
-pixValueDecoder v =
-    Json.Decode.decodeValue pixelDecoder v
 
 
 portValueDecoder : Json.Decode.Value -> Result Json.Decode.Error PortValue

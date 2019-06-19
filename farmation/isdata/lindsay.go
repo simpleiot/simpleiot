@@ -61,12 +61,12 @@ func (ls LindsayState) String() (ret string) {
 
 // LindsayStatusRegs represents modbus regs for the status messages
 type LindsayStatusRegs struct {
-	PosWithOffset    uint16
-	PosWithoutOffset uint16
-	Status           uint16
-	Rate             uint16
-	Pressure         uint16
-	State            LindsayState
+	PosWithOffset    uint16       `json:"posWithOffset"`
+	PosWithoutOffset uint16       `json:"posWithoutOffset"`
+	Status           uint16       `json:"status"`
+	Rate             uint16       `json:"rate"`
+	Pressure         uint16       `json:"pressure"`
+	State            LindsayState `json:"state"`
 }
 
 func (lsr LindsayStatusRegs) String() string {

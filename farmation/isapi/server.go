@@ -99,7 +99,7 @@ func Server(in, out chan interface{}) {
 		select {
 		case m := <-in:
 			switch m := m.(type) {
-			case isdata.LcdPixel, isdata.LcdBlt, isdata.LcdBltSolid:
+			case isdata.LcdPixel, isdata.LcdBlt, isdata.LcdBltSolid, isdata.State:
 				d, err := json.Marshal(m)
 				if err != nil {
 					log.Println("Error encoding Lcd data: ", err)

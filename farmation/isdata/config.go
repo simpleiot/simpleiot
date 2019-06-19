@@ -276,6 +276,14 @@ const (
 	RelayControlStateNone
 )
 
+// BoolVal returns true for State On and default false
+func (r RelayControlStateType) BoolVal() bool {
+	if r == RelayControlStateOn {
+		return true
+	}
+	return false
+}
+
 // GetMsg returns a message to pass to
 // isui/menu.AddItemAutoOffOn(...)
 func (r RelayControlStateType) GetMsg() int {

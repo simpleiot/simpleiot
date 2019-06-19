@@ -6,11 +6,46 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
+func updateRelays(config *isdata.Config, state *isdata.State, out chan interface{}) {
+	// boolean to set relays
+	var b bool
+
+	// set inj pump relay
+	if config.ManualRelayInj == isdata.RelayControlStateAuto {
+		if config.UserPumpMode == isdata.UserPumpModeAuto {
+			// set Inj relay = Gpio Inj input
+			out <- isdata.UpdateGpioRelayInjector(state.GpioDigitalInjector)
+		} else {
+			// set Inj relay off
+			out <- isdata.UpdateGpioRelayInjector(false)
+			// TODO test mode
+		}
+	} else {
+		b = config.ManualRelayInj.BoolVal()
+		if state.GpioRelayInjectorEn != b {
+			out <- isdata.UpdateGpioRelayInjector(b)
+		}
+	}
+
+	// set shutdown relay
+	b = config.ManualRelayShutdown.BoolVal()
+	if state.GpioRelayShutdownEn != b {
+		out <- isdata.UpdateGpioRelayShutdown(b)
+	}
+
+	// set aux relay
+	b = config.ManualRelayAux.BoolVal()
+	if state.GpioRelayAuxEn != b {
+		out <- isdata.UpdateGpioRelayAux(b)
+	}
+}
+
 // Run goroutine for ui code
 func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.State) {
 	config := configInit
 	state := stateInit
-	updateTicker := time.NewTicker(1000 * time.Millisecond)
+	updateTicker := time.NewTicker(500 * time.Millisecond)
+	stateMachine := NewStateMachine(&config, &state)
 
 	for {
 		select {
@@ -22,28 +57,8 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				out <- isdata.UpdateFlowStatus(flowStatus)
 			}
 
-			// update state
-			/*for _, updatemsg := range StateMachine.Run() { // extract update messages from slice returned by state machine
-				out <- updatemsg // send each message to app.go
-			}*/
-
-			if config.ManualRelayInj == isdata.RelayControlStateAuto {
-				// set inj pump relay
-				if config.UserPumpMode == isdata.UserPumpModeAuto {
-					// set Inj relay = Gpio Inj input
-					out <- isdata.UpdateRelayInjector(state.GpioDigitalInjector)
-				} else {
-					// set Inj relay off
-					out <- isdata.UpdateRelayInjector(false)
-					// TODO test mode
-				}
-			} else {
-				if config.ManualRelayInj == isdata.RelayControlStateOff {
-					out <- isdata.UpdateRelayInjector(false)
-				} else if config.ManualRelayInj == isdata.RelayControlStateOn {
-					out <- isdata.UpdateRelayInjector(true)
-				}
-			}
+			stateMachine.Run()
+			updateRelays(&config, &state, out)
 
 		case m := <-in:
 			switch m := m.(type) {
@@ -51,6 +66,8 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				state = m
 			case isdata.Config:
 				config = m
+				stateMachine.Run()
+				updateRelays(&config, &state, out)
 			}
 		}
 
