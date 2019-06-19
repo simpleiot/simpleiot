@@ -300,7 +300,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveConfig()
 
 			case isdata.UpdateAlarmRecognizeSec:
-				config.AlarmRecognizeSec = int(m)
+				config.AlarmRecognizeSec = float64(m)
 				saveConfig()
 
 			case isdata.Flow:

@@ -28,7 +28,7 @@ type Config struct {
 	ManualLowAlarmGPH  float64
 
 	// This is the time in seconds until the system recognizes and alarm
-	AlarmRecognizeSec int
+	AlarmRecognizeSec float64
 
 	// BatchAmount max value is 9,999
 	BatchAmount         int
