@@ -102,7 +102,7 @@ func Server(in, out chan interface{}) {
 			case isdata.LcdPixel, isdata.LcdBlt, isdata.LcdBltSolid, isdata.State:
 				d, err := json.Marshal(m)
 				if err != nil {
-					log.Println("Error encoding Lcd data: ", err)
+					log.Printf("Error encoding IS web UI data of type %T, %+v, error: %v: ", m, m, err)
 				} else {
 					wsTxChan <- d
 				}
