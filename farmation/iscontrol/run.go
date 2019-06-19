@@ -27,8 +27,23 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				out <- updatemsg // send each message to app.go
 			}*/
 
-			// set inj pump relay
-			if
+			if config.ManualRelayInj == isdata.RelayControlStateAuto {
+				// set inj pump relay
+				if config.UserPumpMode == isdata.UserPumpModeAuto {
+					// set Inj relay = Gpio Inj input
+					out <- isdata.UpdateRelayInjector(state.GpioDigitalInjector)
+				} else {
+					// set Inj relay off
+					out <- isdata.UpdateRelayInjector(false)
+					// TODO test mode
+				}
+			} else {
+				if config.ManualRelayInj == isdata.RelayControlStateOff {
+					out <- isdata.UpdateRelayInjector(false)
+				} else if config.ManualRelayInj == isdata.RelayControlStateOn {
+					out <- isdata.UpdateRelayInjector(true)
+				}
+			}
 
 		case m := <-in:
 			switch m := m.(type) {

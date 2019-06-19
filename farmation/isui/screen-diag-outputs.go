@@ -34,9 +34,9 @@ func (s *DiagOutputsScreen) Render(img draw.Image) {
 
 	// Relays
 	inj, aux, shtdwn := s.config.ManualRelayInj, s.config.ManualRelayAux, s.config.ManualRelayShutdown
-	s.menu.AddItemAutoOffOn("Injector: "+BoolToString(inj.BoolVal()), inj, isdata.UpdateManualRelayInj(inj.GetMsg()))
-	s.menu.AddItemAutoOffOn("Aux: "+BoolToString(aux.BoolVal()), aux, isdata.UpdateManualRelayAux(aux.GetMsg()))
-	s.menu.AddItemAutoOffOn("Shutdown: "+BoolToString(shtdwn.BoolVal()), shtdwn, isdata.UpdateManualRelayShutdown(shtdwn.GetMsg()))
+	s.menu.AddItemAutoOffOn("Injector: "+BoolToString(s.config.RelayInjector), inj, isdata.UpdateManualRelayInj(inj.GetMsg()))
+	s.menu.AddItemAutoOffOn("Aux: "+BoolToString(s.config.RelayAux), aux, isdata.UpdateManualRelayAux(aux.GetMsg()))
+	s.menu.AddItemAutoOffOn("Shutdown: "+BoolToString(s.config.RelayShutdown), shtdwn, isdata.UpdateManualRelayShutdown(shtdwn.GetMsg()))
 
 	Heading(img, "Diagnostics Outputs")
 	s.menu.Render(img)
@@ -49,7 +49,7 @@ func (s *DiagOutputsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	case isdata.KeySK1: // back
 		s.menu.ResetArrowPos() // return arrow to top of screen
 		// set all relays to auto control mode
-		return ScreenIDDiagConfig, isdata.UpdateManualRelayAll(int(isdata.RelayControlAutoStateType)), true
+		return ScreenIDDiagConfig, isdata.UpdateManualRelayAll(int(isdata.RelayControlStateAuto)), true
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)
 	}

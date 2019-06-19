@@ -63,6 +63,15 @@ type UpdateGpioDigitalWaterOn bool
 // UpdateGpioDigitalIn is used to transmit GpioDigitalIn value
 type UpdateGpioDigitalIn bool
 
+// UpdateRelayInjector toggles the injector relay
+type UpdateRelayInjector bool
+
+// UpdateRelayAux toggles the auxillary relay
+type UpdateRelayAux bool
+
+// UpdateRelayShutdown toggles the shutdown relay
+type UpdateRelayShutdown bool
+
 // UpdateManualRelayInj is used to toggles the injector relay
 type UpdateManualRelayInj int
 
@@ -111,8 +120,8 @@ type UpdateCurrentProductIndex int
 // UpdateOperatingMode is used to select a new operating mode
 type UpdateOperatingMode int
 
-// UpdatePumpAutoOff is used to toggle the auto/off pump mode from the "pump" softkey on the home/status screens
-type UpdatePumpAutoOff bool
+// UpdateUserPumpMode is used to toggle the auto/off/test pump mode from the "pump" softkey on the home/status screens
+type UpdateUserPumpMode int
 
 // UpdateLedRed is used to set the led red on/off
 type UpdateLedRed bool
