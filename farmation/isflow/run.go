@@ -108,6 +108,13 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				lastTick = lastPulse
 			}
 
+			if time.Now().Sub(lastTick) > time.Second*10 {
+				flow := isdata.Flow{
+					Time: time.Now(),
+				}
+				out <- flow
+			}
+
 		case t := <-simTicker.C:
 			processPulse(t)
 		}
