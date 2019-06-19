@@ -40,7 +40,7 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	s.menu.AddItemFloat("Percent High", s.config.HighWindowPerc)
 	s.menu.AddItemFloat("FlwRt GPH Low", s.config.ManualLowAlarmGPH)
 	s.menu.AddItemFloat("FR GPH High", s.config.ManualHighAlarmGPH)
-	s.menu.AddItemInt("Recognize Alarm", s.config.AlarmRecognizeSec)
+	s.menu.AddItemFloat("Recognize Alarm", s.config.AlarmRecognizeSec)
 
 	if s.edit { // render text entry screen
 		s.textEntryScreen.Render(img)
@@ -75,7 +75,7 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			case 5:
 				return ScreenIDNoChange, isdata.UpdateManualHighAlarmGPH(value), true
 			case 6:
-				return ScreenIDNoChange, isdata.UpdateAlarmRecognizeSec(value), true
+				return ScreenIDNoChange, isdata.UpdateAlarmRecognizeSec(float64(value)), true
 			}
 		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
