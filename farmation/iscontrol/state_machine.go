@@ -98,7 +98,7 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(shutdown2)
 		} else {
 			// TODO wait for user acknowledge
-			sm.setState(standby)
+			sm.setState(waitForDisarm)
 			return isdata.UpdateDisarm(true)
 		}
 
@@ -117,14 +117,20 @@ func (sm *StateMachine) Run() interface{} {
 			// TODO wait for user acknowledge
 		} else {
 			// TODO wait for user acknowledge
-			sm.setState(standby)
+			sm.setState(waitForDisarm)
 			return isdata.UpdateDisarm(true)
 		}
 
 	case waitForDisarm:
-		// wait for sm.confg.Arm to go false
-		// if it does not after 10s, send out another disarm update
-
+		secondsSince := time.Since(sm.timeStateEntered).Seconds()
+		if sm.config.Arm {
+			if secondsSince >= 10 {
+				sm.setState(waitForDisarm)
+				return isdata.UpdateDisarm(true)
+			}
+		} else {
+			sm.setState(standby)
+		}
 	}
 
 	return nil
