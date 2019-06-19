@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/simpleiot/simpleiot/api"
@@ -84,7 +85,11 @@ func Server(in, out chan interface{}) {
 
 	port := os.Getenv("IS_PORT")
 	if port == "" {
-		port = "8090"
+		if runtime.GOARCH == "arm" {
+			port = "80"
+		} else {
+			port = "8090"
+		}
 	}
 
 	log.Println("Starting IS app on port: ", port)
