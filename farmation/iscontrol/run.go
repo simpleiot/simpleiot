@@ -33,7 +33,7 @@ func (rc *RelayControl) Update() {
 	if rc.config.ManualRelayInj == isdata.RelayControlStateAuto {
 		if rc.config.UserPumpMode == isdata.UserPumpModeAuto {
 			// set Inj relay = Gpio Inj input
-			rc.out <- isdata.UpdateGpioRelayInjector(rc.state.GpioDigitalInjector)
+			rc.out <- isdata.UpdateGpioRelayInjector(rc.stateMachine.RelayInjector)
 		} else {
 			// set Inj relay off
 			rc.out <- isdata.UpdateGpioRelayInjector(false)
