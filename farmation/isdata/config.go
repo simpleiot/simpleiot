@@ -1,5 +1,7 @@
 package isdata
 
+import "strconv"
+
 // Config represents configuration data for the Injectory
 // Sentry system.
 type Config struct {
@@ -92,6 +94,19 @@ const (
 	ISOperatingModeMonitorAndShutdown
 	ISOperatingModeMonitorAndBatch
 )
+
+func (om ISOperatingMode) String() string {
+	switch om {
+	case ISOperatingModeMonitor:
+		return "monitor"
+	case ISOperatingModeMonitorAndShutdown:
+		return "monitor and shutdown"
+	case ISOperatingModeMonitorAndBatch:
+		return "monitor and batch"
+	default:
+		return strconv.Itoa(int(om))
+	}
+}
 
 // InjectorPumpMode describes the current state of the
 // injector pump control (selected by the pump key)

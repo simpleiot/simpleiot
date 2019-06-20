@@ -54,9 +54,6 @@ type State struct {
 	LindsayRegs       LindsayStatusRegs `json:"lindsayRegs"`
 	LindsayLastUpdate time.Time         `json:"lindsayLastUpdate"`
 
-	// Notifications or Fault conditions
-	FaultWaterNotOn bool
-
 	// Modal dialog describes a modal dialog message
 	Dialog Dialog
 }

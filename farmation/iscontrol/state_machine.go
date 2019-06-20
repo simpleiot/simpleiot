@@ -129,6 +129,7 @@ func (sm *StateMachine) Run() interface{} {
 	if sm.inMonitorShutdownStates() {
 		if sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndShutdown {
 			sm.setState(monitorOnly)
+			return nil
 		}
 
 		// if user disarms, stop shutdown
@@ -250,7 +251,7 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 	case shutdown2:
-		sm.RelayShutdown = false
+		sm.RelayShutdown = true
 		sm.RelayInjector = false
 		sm.Shutdown = true
 		if sm.elapsed() > 10*time.Second {
