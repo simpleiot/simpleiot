@@ -181,7 +181,7 @@ func (sm *StateMachine) Run() interface{} {
 		sm.Shutdown = false
 		sm.FaultWaterNotOn = false
 
-		if sm.state.GpioDigitalWaterOn {
+		if sm.state.GpioDigitalWaterOn == false {
 			sm.setState(waitingForWater)
 		}
 
