@@ -255,7 +255,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 						config.Arm = !config.Arm
 						if config.Arm { // if the arm switch was turned on
 							config.FlowRateTarget = state.FlowRate // set target flow rate to current
-							fmt.Println("Armed -- Target flow rate: ", config.FlowRateTarget)
 						}
 						saveConfig()
 					}
@@ -269,6 +268,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					if config.OperatingMode != isdata.ISOperatingModeMonitor {
 						// toggle the arm switch
 						config.Arm = !config.Arm
+						config.FlowRateTarget = state.FlowRate
 						saveConfig()
 					}
 				default:
