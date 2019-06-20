@@ -509,6 +509,21 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.LindsayLastUpdate = time.Now()
 				saveState()
 
+			case isdata.UpdateDialogMessage:
+				state.Dialog.Message = string(m)
+				state.Dialog.Active = true
+				state.Dialog.Acknowledged = false
+				saveState()
+
+			case isdata.UpdateDialogAck:
+				state.Dialog.Acknowledged = true
+				saveState()
+
+			case isdata.UpdateDialogClose:
+				state.Dialog.Active = false
+				state.Dialog.Acknowledged = false
+				saveState()
+
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
 				log.Printf("App Mux: unhandled message of type %T: %+v\r\n", m, m)

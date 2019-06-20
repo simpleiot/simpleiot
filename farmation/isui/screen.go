@@ -36,6 +36,8 @@ const (
 type Screens struct {
 	currentScreen ScreenID
 	screens       map[ScreenID]Widget
+	dialog        Widget
+	state         *isdata.State
 }
 
 // Add a new screen
@@ -45,7 +47,10 @@ func (s *Screens) Add(ID ScreenID, screen Widget) {
 
 // NewScreens initializes all screens
 func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
-	ret := &Screens{}
+	ret := &Screens{
+		state:  state,
+		dialog: NewDialogScreen(state, config),
+	}
 	ret.screens = make(map[ScreenID]Widget)
 	ret.Add(ScreenIDHome, NewHomeScreen(state, config))
 	ret.Add(ScreenIDStatus1, NewStatusScreen1(state, config))
@@ -73,11 +78,19 @@ func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 
 // Render is used to draw a list of params, handles scrolling, etc.
 func (s *Screens) Render(img draw.Image) {
-	s.screens[s.currentScreen].Render(img)
+	if s.state.Dialog.Active {
+		s.dialog.Render(img)
+	} else {
+		s.screens[s.currentScreen].Render(img)
+	}
 }
 
 // Key handles key input
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
+	if s.state.Dialog.Active {
+		return s.dialog.Key(key)
+
+	}
 	screenID, action, handled := s.screens[s.currentScreen].Key(key)
 	if screenID != ScreenIDNoChange {
 		s.currentScreen = screenID

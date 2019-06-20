@@ -134,3 +134,12 @@ type UpdateDisarm bool
 
 // UpdateIrrigationShutdown updates this state for status LED use
 type UpdateIrrigationShutdown bool
+
+// UpdateDialogMessage is used to activate and display a modal dialog
+type UpdateDialogMessage string
+
+// UpdateDialogAck is used to acknowledge a modal dialog
+type UpdateDialogAck struct{}
+
+// UpdateDialogClose is used to close a dialog after it has been acked
+type UpdateDialogClose struct{}

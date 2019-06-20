@@ -56,6 +56,16 @@ type State struct {
 
 	// Notifications or Fault conditions
 	FaultWaterNotOn bool
+
+	// Modal dialog describes a modal dialog message
+	Dialog Dialog
+}
+
+// Dialog defines a modal dialog that must be acknowledged
+type Dialog struct {
+	Message      string
+	Active       bool
+	Acknowledged bool
 }
 
 // SystemType describes the system type
@@ -111,11 +121,19 @@ func InitState(s *State) (dirty bool) {
 	s.PressureVRef = 0
 	s.PressureVSense = 0
 
+	s.GpioDigitalInjector = false
+	s.GpioDigitalIrrigator = false
+	s.GpioDigitalWaterOn = false
+	s.GpioDigitalIn = false
+
 	s.GpioRelayInjectorEn = false
 	s.GpioRelayShutdownEn = false
 	s.GpioRelayAuxEn = false
 	s.GpioStatusLedRed = false
 	s.GpioStatusLedGreen = false
+
+	s.Dialog.Active = false
+	s.Dialog.Acknowledged = false
 
 	// add an active fault to test
 	/*if len(s.ActiveFaults) <= 0 {

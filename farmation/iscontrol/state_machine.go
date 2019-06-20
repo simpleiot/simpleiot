@@ -18,10 +18,9 @@ type StateMachine struct {
 	timeStateEntered time.Time
 
 	// state machine static outputs (updated in StateMachine type)
-	RelayShutdown   bool
-	RelayInjector   bool
-	Shutdown        bool
-	FaultWaterNotOn bool
+	RelayShutdown bool
+	RelayInjector bool
+	Shutdown      bool
 }
 
 // State of machine
@@ -38,12 +37,15 @@ const (
 	monitorShutdownStart
 	standby
 	waitingForWater
+	waitingForWaterAck
 	monitoringFlow
 	flowOffTarget
 	shutdown1
 	shutdownMonitor1
 	shutdown2
 	shutdownMonitor2
+	shutdownDialog
+	shutdownDialogAck
 	disarm
 	monitorShutdownEnd
 
@@ -60,6 +62,8 @@ func (s state) String() string {
 		return "monitoringFlow"
 	case waitingForWater:
 		return "waitingForWater"
+	case waitingForWaterAck:
+		return "waitingForWaterAck"
 	case flowOffTarget:
 		return "flowOffTarget"
 	case shutdown1:
@@ -70,6 +74,10 @@ func (s state) String() string {
 		return "shutdown2"
 	case shutdownMonitor2:
 		return "shutdownMonitor2"
+	case shutdownDialog:
+		return "shutdownDialog"
+	case shutdownDialogAck:
+		return "shutdownDialogAck"
 	case disarm:
 		return "disarm"
 	default:
@@ -144,18 +152,18 @@ func (sm *StateMachine) Run() interface{} {
 	}*/
 	case monitorOnly:
 		sm.RelayShutdown = false
-		sm.RelayInjector = sm.state.GpioDigitalIrrigator
+		sm.RelayInjector = sm.state.GpioDigitalInjector
 		sm.Shutdown = false
-		sm.FaultWaterNotOn = false
 
 		if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndShutdown {
 			sm.setState(standby)
 		}
+
+	// below states are for monitor/shutdown
 	case standby:
 		sm.RelayShutdown = false
 		sm.RelayInjector = false
 		sm.Shutdown = false
-		sm.FaultWaterNotOn = false
 
 		if sm.config.Arm {
 			if sm.state.GpioDigitalWaterOn {
@@ -169,19 +177,38 @@ func (sm *StateMachine) Run() interface{} {
 		sm.RelayShutdown = false
 		sm.RelayInjector = false
 		sm.Shutdown = false
-		sm.FaultWaterNotOn = true
 
 		if sm.state.GpioDigitalWaterOn {
 			sm.setState(monitoringFlow)
+		} else {
+			if !sm.state.Dialog.Active {
+				sm.setState(waitingForWaterAck)
+				return isdata.UpdateDialogMessage("Waiting for water")
+			}
+		}
+
+	case waitingForWaterAck:
+		sm.RelayShutdown = false
+		sm.RelayInjector = false
+		sm.Shutdown = false
+
+		if sm.state.Dialog.Active {
+			if sm.state.Dialog.Acknowledged ||
+				sm.state.GpioDigitalWaterOn {
+				return isdata.UpdateDialogClose{}
+			}
+		} else {
+			if sm.state.GpioDigitalWaterOn {
+				sm.setState(monitoringFlow)
+			}
 		}
 
 	case monitoringFlow:
 		sm.RelayShutdown = false
-		sm.RelayInjector = sm.state.GpioDigitalIrrigator
+		sm.RelayInjector = sm.state.GpioDigitalInjector
 		sm.Shutdown = false
-		sm.FaultWaterNotOn = false
 
-		if sm.state.GpioDigitalWaterOn {
+		if !sm.state.GpioDigitalWaterOn {
 			sm.setState(waitingForWater)
 		}
 
@@ -189,11 +216,14 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(flowOffTarget)
 		}
 
+		if sm.state.Dialog.Active {
+			return isdata.UpdateDialogClose{}
+		}
+
 	case flowOffTarget:
 		sm.RelayShutdown = false
-		sm.RelayInjector = sm.state.GpioDigitalIrrigator
+		sm.RelayInjector = sm.state.GpioDigitalInjector
 		sm.Shutdown = false
-		sm.FaultWaterNotOn = false
 
 		// if alarm time has elapsed enter shutdown
 		if sm.elapsed() >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second {
@@ -206,7 +236,6 @@ func (sm *StateMachine) Run() interface{} {
 		sm.RelayShutdown = true
 		sm.RelayInjector = false
 		sm.Shutdown = true
-		sm.FaultWaterNotOn = false
 
 		if sm.elapsed() > 10*time.Second {
 			sm.setState(shutdownMonitor1)
@@ -216,35 +245,56 @@ func (sm *StateMachine) Run() interface{} {
 		sm.RelayShutdown = false
 		sm.RelayInjector = false
 		sm.Shutdown = true
-		sm.FaultWaterNotOn = false
 
 		if sm.elapsed() > 10*time.Second {
-			if sm.state.GpioDigitalWaterOn { // if water is still on
+			if sm.state.GpioDigitalWaterOn {
 				sm.setState(shutdown2)
 			} else {
-				// TODO wait for user acknowledge
-				sm.Shutdown = false
-				sm.setState(disarm)
+				sm.setState(shutdownDialog)
 			}
 		}
 
 	case shutdown2:
-		sm.RelayShutdown = true
+		sm.RelayShutdown = false
 		sm.RelayInjector = false
+		sm.Shutdown = true
 		if sm.elapsed() > 10*time.Second {
 			sm.setState(shutdownMonitor2)
 		}
 
 	case shutdownMonitor2:
 		sm.RelayShutdown = false
+		sm.RelayInjector = false
+		sm.Shutdown = true
+
 		if sm.elapsed() > 10*time.Second {
-			if sm.state.GpioDigitalWaterOn { // if water is still on
-				// TODO display "irrigation system failed to shutdown"
-				// TODO wait for user acknowledge
+			sm.setState(shutdownDialog)
+		}
+
+	case shutdownDialog:
+		sm.RelayShutdown = false
+		sm.RelayInjector = false
+		sm.Shutdown = true
+
+		if !sm.state.Dialog.Active {
+			sm.setState(shutdownDialogAck)
+			if sm.state.GpioDigitalWaterOn {
+				return isdata.UpdateDialogMessage("failed to shutdown")
 			}
-			// TODO wait for user acknowledge
-			sm.Shutdown = false
-			sm.setState(disarm)
+
+			return isdata.UpdateDialogMessage("system shut down")
+		}
+
+	case shutdownDialogAck:
+		sm.RelayShutdown = false
+		sm.RelayInjector = false
+		sm.Shutdown = true
+
+		if sm.state.Dialog.Active {
+			if sm.state.Dialog.Acknowledged {
+				sm.setState(disarm)
+				return isdata.UpdateDialogClose{}
+			}
 		}
 
 	case disarm:
