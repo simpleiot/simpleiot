@@ -86,7 +86,8 @@ func (sm *StateMachine) Run() interface{} {
 		sm.setState(standby)
 	}*/
 	case standby:
-		if sm.config.Arm {
+		if sm.config.Arm &&
+			sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndShutdown {
 			sm.setState(armed)
 		}
 
