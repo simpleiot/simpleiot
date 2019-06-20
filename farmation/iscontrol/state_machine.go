@@ -2,6 +2,7 @@ package iscontrol
 
 import (
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -40,6 +41,29 @@ const (
 	shutdownMonitor2
 	waitForDisarm
 )
+
+func (s state) String() string {
+	switch s {
+	case standby:
+		return "standby"
+	case armed:
+		return "armed"
+	case flowOffTarget:
+		return "flowOffTarget"
+	case shutdown1:
+		return "shutdown1"
+	case shutdownMonitor1:
+		return "shutdownMonitor1"
+	case shutdown2:
+		return "shutdown2"
+	case shutdownMonitor2:
+		return "shutdownMonitor2"
+	case waitForDisarm:
+		return "waitForDisarm"
+	default:
+		return strconv.Itoa(int(s))
+	}
+}
 
 // NewStateMachine creates a new state machine
 func NewStateMachine(config *isdata.Config, state *isdata.State) *StateMachine {
