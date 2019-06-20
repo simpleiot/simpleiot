@@ -15,6 +15,7 @@ import Html exposing (Html, button, div, h2, h3, input, map, text)
 import Html.Attributes exposing (class, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode
+import Json.Decode.Pipeline as Pipeline
 import Json.Encode
 import Sample exposing (..)
 import Time
@@ -83,6 +84,10 @@ type alias State =
     , gpioRelayInjectorEn : Bool
     , gpioRelayShutdownEn : Bool
     , gpioRelayAuxEn : Bool
+    , gpioDigitalInjector : Bool
+    , gpioDigitalIrrigator : Bool
+    , gpioDigitalWaterOn : Bool
+    , gpioDigitalIn : Bool
     }
 
 
@@ -94,7 +99,7 @@ type alias Model =
 
 
 defaultState =
-    State systemTypeIS False False False False False
+    State systemTypeIS False False False False False False False False False
 
 
 defaultSimInputs =
@@ -366,13 +371,13 @@ buttonType on =
 
 
 renderSimOutputs : State -> Html Msg
-renderSimOutputs outputs =
+renderSimOutputs state =
     div []
         [ Grid.row []
             [ Grid.col [ Col.xs12, Col.sm6, Col.md5 ]
                 [ map GotOutputsMsg
-                    (Outputs.statusLed outputs.gpioStatusLedRed
-                        outputs.gpioStatusLedGreen
+                    (Outputs.statusLed state.gpioStatusLedRed
+                        state.gpioStatusLedGreen
                     )
                 ]
             ]
@@ -380,11 +385,30 @@ renderSimOutputs outputs =
             []
             [ Grid.col [ Col.xs12, Col.sm6, Col.md5 ]
                 [ map GotOutputsMsg
-                    (Outputs.relay "Inj" outputs.gpioRelayInjectorEn)
+                    (Outputs.relay "Inj" state.gpioRelayInjectorEn)
                 , map GotOutputsMsg
-                    (Outputs.relay "Shutdn" outputs.gpioRelayShutdownEn)
+                    (Outputs.relay "Shutdn" state.gpioRelayShutdownEn)
                 , map GotOutputsMsg
-                    (Outputs.relay "Aux" outputs.gpioRelayAuxEn)
+                    (Outputs.relay "Aux" state.gpioRelayAuxEn)
+                ]
+            ]
+        ]
+
+
+renderDigitalInputs : State -> Html Msg
+renderDigitalInputs state =
+    div []
+        [ Grid.row
+            []
+            [ Grid.col [ Col.xs12, Col.sm6, Col.md5 ]
+                [ map GotOutputsMsg
+                    (Outputs.relay "Inj" state.gpioDigitalInjector)
+                , map GotOutputsMsg
+                    (Outputs.relay "Irr" state.gpioDigitalIrrigator)
+                , map GotOutputsMsg
+                    (Outputs.relay "Water" state.gpioDigitalWaterOn)
+                , map GotOutputsMsg
+                    (Outputs.relay "In" state.gpioDigitalIn)
                 ]
             ]
         ]
@@ -462,7 +486,10 @@ view model =
                     ]
 
             else
-                div [] []
+                div []
+                    [ h3 [] [ text "Digital Inputs" ]
+                    , renderDigitalInputs model.state
+                    ]
     in
     { title = "Injector • Sentry"
     , body =
@@ -492,13 +519,17 @@ type alias Pixel =
 
 stateDecoder : Json.Decode.Decoder State
 stateDecoder =
-    Json.Decode.map6 State
-        (Json.Decode.field "systemType" Json.Decode.int)
-        (Json.Decode.field "gpioStatusLedRed" Json.Decode.bool)
-        (Json.Decode.field "gpioStatusLedGreen" Json.Decode.bool)
-        (Json.Decode.field "gpioRelayInjectorEn" Json.Decode.bool)
-        (Json.Decode.field "gpioRelayShutdownEn" Json.Decode.bool)
-        (Json.Decode.field "gpioRelayAuxEn" Json.Decode.bool)
+    Json.Decode.succeed State
+        |> Pipeline.required "systemType" Json.Decode.int
+        |> Pipeline.required "gpioStatusLedRed" Json.Decode.bool
+        |> Pipeline.required "gpioStatusLedGreen" Json.Decode.bool
+        |> Pipeline.required "gpioRelayInjectorEn" Json.Decode.bool
+        |> Pipeline.required "gpioRelayShutdownEn" Json.Decode.bool
+        |> Pipeline.required "gpioRelayAuxEn" Json.Decode.bool
+        |> Pipeline.required "gpioDigitalInjector" Json.Decode.bool
+        |> Pipeline.required "gpioDigitalIrrigator" Json.Decode.bool
+        |> Pipeline.required "gpioDigitalWaterOn" Json.Decode.bool
+        |> Pipeline.required "gpioDigitalIn" Json.Decode.bool
 
 
 pixelDecoder : Json.Decode.Decoder Pixel
