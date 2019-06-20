@@ -4,12 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"log/syslog"
 	"os"
 
 	"github.com/simpleiot/simpleiot/farmation/app"
 	"github.com/simpleiot/simpleiot/farmation/diag"
 	"github.com/simpleiot/simpleiot/farmation/isio"
+	"github.com/simpleiot/simpleiot/farmation/islog"
 )
 
 func main() {
@@ -56,9 +56,11 @@ func main() {
 	}
 
 	if *flagSyslog {
-		logwriter, e := syslog.New(syslog.LOG_NOTICE, "IS")
-		if e == nil {
+		logwriter, err := islog.Syslog()
+		if err == nil {
 			log.SetOutput(logwriter)
+		} else {
+			fmt.Println("Error sending log to syslog: ", err)
 		}
 	}
 
