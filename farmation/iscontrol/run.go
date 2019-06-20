@@ -89,10 +89,10 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			}
 
 			updateMsg := stateMachine.Run()
-			relayControl.Update()
-			if updateMsg != nil && config.Arm { // state machine only returning disarm command right now
+			if updateMsg != nil {
 				out <- updateMsg
 			}
+			relayControl.Update()
 
 		case m := <-in:
 			switch m := m.(type) {
@@ -101,11 +101,10 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			case isdata.Config:
 				config = m
 				updateMsg := stateMachine.Run()
-				relayControl.Update()
-				if updateMsg != nil && config.Arm { // state machine only returning disarm command right now
+				if updateMsg != nil {
 					out <- updateMsg
 				}
-
+				relayControl.Update()
 			}
 		}
 

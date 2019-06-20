@@ -10,6 +10,7 @@ import (
 
 // StateMachine ..
 type StateMachine struct {
+	// state machine inputs
 	config *isdata.Config
 	state  *isdata.State
 
@@ -17,7 +18,7 @@ type StateMachine struct {
 	machineState     state
 	timeStateEntered time.Time
 
-	// state machine static outputs (updated in StateMachine type)
+	// state machine static outputs
 	RelayShutdown bool
 	RelayInjector bool
 	Shutdown      bool
@@ -125,7 +126,6 @@ func (sm *StateMachine) inMonitorShutdownStates() bool {
 //   - if Update messages are returned from Run(), the state should continue to return
 //     the message and only exit the state once the verified behavior has happened.
 func (sm *StateMachine) Run() interface{} {
-
 	if sm.inMonitorShutdownStates() {
 		if sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndShutdown {
 			sm.setState(monitorOnly)
@@ -134,22 +134,13 @@ func (sm *StateMachine) Run() interface{} {
 		// if user disarms, stop shutdown
 		if !sm.config.Arm && sm.machineState != standby {
 			sm.setState(standby)
+			if sm.state.Dialog.Active {
+				return isdata.UpdateDialogClose{}
+			}
 		}
 	}
 
 	switch sm.machineState {
-	/*case powerUp:
-	if sm.config.Arm {
-		if sm.state.GpioDigitalWaterOn {
-			if sm.state.GpioDigitalInjector {
-				sm.RelayInjector = true
-			}
-		} else {
-			// TODO "display waiting for water on"
-		}
-	} else {
-		sm.setState(standby)
-	}*/
 	case monitorOnly:
 		sm.RelayShutdown = false
 		sm.RelayInjector = sm.state.GpioDigitalInjector
@@ -157,6 +148,10 @@ func (sm *StateMachine) Run() interface{} {
 
 		if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndShutdown {
 			sm.setState(standby)
+		}
+
+		if sm.state.Dialog.Active {
+			return isdata.UpdateDialogClose{}
 		}
 
 	// below states are for monitor/shutdown
@@ -228,7 +223,7 @@ func (sm *StateMachine) Run() interface{} {
 		// if alarm time has elapsed enter shutdown
 		if sm.elapsed() >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second {
 			sm.setState(shutdown1)
-		} else if sm.state.FlowStatus == isdata.FlowStatusArmedOk { // else if flow back in target, return to armed mode
+		} else if sm.state.FlowStatus == isdata.FlowStatusArmedOk {
 			sm.setState(monitoringFlow)
 		}
 
