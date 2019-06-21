@@ -66,7 +66,6 @@ type Dialog struct {
 	Message      string
 	Active       bool
 	Acknowledged bool
-	AckMessage   interface{}
 }
 
 // SystemType describes the system type
@@ -135,9 +134,8 @@ func InitState(s *State) (dirty bool) {
 
 	s.Dialog.Active = false
 	s.Dialog.Acknowledged = false
-
-	s.Dialog.AckMessage = UpdateDialogAck{}
-	s.DialogArm.AckMessage = UpdateDialogArmAck{}
+	s.DialogArm.Active = false
+	s.DialogArm.Acknowledged = false
 
 	// add an active fault to test
 	/*if len(s.ActiveFaults) <= 0 {

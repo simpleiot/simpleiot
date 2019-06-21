@@ -140,3 +140,6 @@ type UpdateDialogAck struct{}
 
 // UpdateDialogClose is used to close a dialog after it has been acked
 type UpdateDialogClose struct{}
+
+// UpdateDialogArmClose is used to close the arm error dialog
+type UpdateDialogArmClose struct{}

@@ -36,9 +36,8 @@ const (
 type Screens struct {
 	currentScreen ScreenID
 	screens       map[ScreenID]Widget
-	dialog        Widget
+	dialog        *DialogScreen
 	state         *isdata.State
-	currentDialog isdata.Dialog
 }
 
 // Add a new screen
@@ -52,7 +51,7 @@ func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 		state: state,
 	}
 
-	ret.dialog = NewDialogScreen(&ret.currentDialog)
+	ret.dialog = NewDialogScreen()
 
 	ret.screens = make(map[ScreenID]Widget)
 	ret.Add(ScreenIDHome, NewHomeScreen(state, config))
@@ -82,11 +81,9 @@ func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 // Render is used to draw a list of params, handles scrolling, etc.
 func (s *Screens) Render(img draw.Image) {
 	if s.state.DialogArm.Active {
-		s.currentDialog = s.state.DialogArm
-		s.dialog.Render(img)
+		s.dialog.Render(img, s.state.DialogArm.Message)
 	} else if s.state.Dialog.Active {
-		s.currentDialog = s.state.Dialog
-		s.dialog.Render(img)
+		s.dialog.Render(img, s.state.Dialog.Message)
 	} else {
 		s.screens[s.currentScreen].Render(img)
 	}
@@ -94,9 +91,15 @@ func (s *Screens) Render(img draw.Image) {
 
 // Key handles key input
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
-	if s.state.Dialog.Active {
-		return s.dialog.Key(key)
+	if s.state.DialogArm.Active {
+		if key == isdata.KeySK1 {
+			return ScreenIDNoChange, isdata.UpdateDialogArmClose{}, true
+		}
 
+	} else if s.state.Dialog.Active {
+		if key == isdata.KeySK1 {
+			return ScreenIDNoChange, isdata.UpdateDialogAck{}, true
+		}
 	}
 	screenID, action, handled := s.screens[s.currentScreen].Key(key)
 	if screenID != ScreenIDNoChange {

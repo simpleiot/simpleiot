@@ -228,13 +228,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.SampleTypeKey:
 					// convert from sample to key
 					key := isdata.KeyFromString(m.ID)
-					/*switch key {
-					case isdata.KeyUp: // map down key to arm
-						config.Arm = !config.Arm
-						saveConfig()
-					default:*/
 					uiChan <- key
-					//}
 				case isdata.SampleTypeSimFlowRate:
 					flowChan <- m
 				case isdata.SampleTypeSimGpioDigInj:
@@ -251,13 +245,12 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					saveState()
 				case isdata.SampleTypeSimArm:
 					if config.OperatingMode != isdata.ISOperatingModeMonitor {
-						// toggle the arm switch
-						config.Arm = !config.Arm
-						if config.Arm { // if the arm switch was turned on
-							config.FlowRateTarget = state.FlowRate // set target flow rate to current
-						}
-						saveConfig()
+						toggleArm(&config, &state)
+					} else {
+						openArmDialog(&state)
 					}
+					saveConfig()
+					saveState()
 
 				default:
 					log.Println("Sample type not handled: ", m.Type)
@@ -266,13 +259,12 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				switch m {
 				case isdata.KeyArm:
 					if config.OperatingMode != isdata.ISOperatingModeMonitor {
-						// toggle the arm switch
-						config.Arm = !config.Arm
-						if config.Arm { // if the arm switch was turned on
-							config.FlowRateTarget = state.FlowRate // set target flow rate to current
-						}
-						saveConfig()
+						toggleArm(&config, &state)
+					} else {
+						openArmDialog(&state)
 					}
+					saveConfig()
+					saveState()
 				default:
 					// send to ui to handle
 					uiChan <- m
@@ -519,7 +511,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdateDialogClose:
 				state.Dialog.Active = false
-				state.Dialog.Acknowledged = false
+				saveState()
+
+			case isdata.UpdateDialogArmClose:
+				state.DialogArm.Active = false
 				saveState()
 
 			default:
@@ -529,4 +524,16 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			}
 		}
 	}
+}
+
+func toggleArm(config *isdata.Config, state *isdata.State) {
+	config.Arm = !config.Arm
+	if config.Arm { // if the arm switch was turned on
+		config.FlowRateTarget = state.FlowRate // set target flow rate to current
+	}
+}
+
+func openArmDialog(state *isdata.State) {
+	state.DialogArm.Active = true
+	state.DialogArm.Message = "cannot arm in monitor-only mode"
 }
