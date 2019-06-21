@@ -320,10 +320,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.Arm = bool(!m) // set arm to the OPPOSITE of the disarm command
 				saveConfig()
 
-			case isdata.UpdateIrrigationShutdown:
-				state.IrrigationShutdown = bool(m)
-				saveState()
-
 			case isdata.Flow:
 				state.FlowRate = m.RateAvg
 				state.Total1 += m.Amount
