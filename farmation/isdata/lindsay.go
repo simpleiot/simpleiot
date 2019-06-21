@@ -77,6 +77,7 @@ func (lsr LindsayStatusRegs) String() string {
 	ret += fmt.Sprintf("Rate: %v\n", lsr.Rate)
 	ret += fmt.Sprintf("Pressure: %v\n", lsr.Pressure)
 	ret += fmt.Sprintf("State: %v\n", lsr.State.String())
+	ret += fmt.Sprintf("State (hex): 0x%x\n", uint16(lsr.State))
 	ret += "===========================\n"
 	return ret
 }
