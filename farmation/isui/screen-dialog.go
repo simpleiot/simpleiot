@@ -38,7 +38,7 @@ func (s *DialogScreen) Render(img draw.Image) {
 func (s *DialogScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
 	case isdata.KeySK1:
-		return ScreenIDNoChange, isdata.UpdateDialogAck{}, true
+		return ScreenIDNoChange, s.dialog.AckMessage, true
 	}
 
 	return ScreenIDNoChange, nil, true
