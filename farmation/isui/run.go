@@ -3,7 +3,6 @@ package isui
 import (
 	"image"
 	"log"
-	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
@@ -30,15 +29,8 @@ func Run(in, out chan interface{}, configInit isdata.Config) {
 
 	renderScreen()
 
-	// initialize the status led struct
-	sl := NewStatusLed(&state, &config, out)
-	// Ticker for status LED
-	ledTicker := time.NewTicker(350 * time.Millisecond)
-
 	for {
 		select {
-		case <-ledTicker.C:
-			sl.UpdateLedState()
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.State:

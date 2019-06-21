@@ -24,18 +24,17 @@ type State struct {
 
 	// PanelConfig will be populated based on the panel detected
 	// by the sense resistor.
-	PanelConfig        ISPanelConfig     `json:"panelConfig"`
-	FieldStates        [][5]ProductState `json:"fieldStates"`
-	GpsPos             GpsPos            `json:"gpsPos"`
-	FlowStatus         FlowStatus        `json:"flowStatus"`
-	IrrigationShutdown bool              `json:"irrigationShutdown"`
-	ActiveFaults       []ISEvent         `json:"activeFaults"`
-	Ios                []ISIo            `json:"ios"`
-	PressureMin        float64           `json:"pressureMin"`
-	PressureMax        float64           `json:"pressureMax"`
-	PressureAvg        float64           `json:"pressureAvg"`
-	PressureVRef       float64           `json:"pressureVRef"`
-	PressureVSense     float64           `json:"pressureVSense"`
+	PanelConfig    ISPanelConfig     `json:"panelConfig"`
+	FieldStates    [][5]ProductState `json:"fieldStates"`
+	GpsPos         GpsPos            `json:"gpsPos"`
+	FlowStatus     FlowStatus        `json:"flowStatus"`
+	ActiveFaults   []ISEvent         `json:"activeFaults"`
+	Ios            []ISIo            `json:"ios"`
+	PressureMin    float64           `json:"pressureMin"`
+	PressureMax    float64           `json:"pressureMax"`
+	PressureAvg    float64           `json:"pressureAvg"`
+	PressureVRef   float64           `json:"pressureVRef"`
+	PressureVSense float64           `json:"pressureVSense"`
 
 	// Gpio's
 	GpioDigitalInjector  bool `json:"gpioDigitalInjector"`

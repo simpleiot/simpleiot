@@ -56,11 +56,6 @@ func (rc *RelayControl) Update() {
 		}
 	}
 
-	shtdwn := rc.stateMachine.Shutdown
-	if rc.state.IrrigationShutdown != shtdwn {
-		rc.out <- isdata.UpdateIrrigationShutdown(shtdwn)
-	}
-
 	// set aux relay
 	// diag mode
 	b = rc.config.ManualRelayAux.BoolVal()
@@ -74,9 +69,11 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 	config := configInit
 	state := stateInit
 	stateMachine := NewStateMachine(&config, &state)
+	statusLed := NewStatusLed(&config, &state, stateMachine, out)
 	relayControl := NewRelayControl(&config, &state, stateMachine, out)
 
 	updateTicker := time.NewTicker(500 * time.Millisecond)
+	ledTicker := time.NewTicker(350 * time.Millisecond)
 
 	for {
 		select {
@@ -93,7 +90,8 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				out <- updateMsg
 			}
 			relayControl.Update()
-
+		case <-ledTicker.C:
+			statusLed.UpdateLedAction()
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.State:
