@@ -132,9 +132,6 @@ type UpdateLedGreen bool
 // UpdateDisarm is used to disarm from iscontrol
 type UpdateDisarm bool
 
-// UpdateIrrigationShutdown updates this state for status LED use
-type UpdateIrrigationShutdown bool
-
 // UpdateDialogMessage is used to activate and display a modal dialog
 type UpdateDialogMessage string
 
