@@ -268,7 +268,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					if config.OperatingMode != isdata.ISOperatingModeMonitor {
 						// toggle the arm switch
 						config.Arm = !config.Arm
-						config.FlowRateTarget = state.FlowRate
+						if config.Arm { // if the arm switch was turned on
+							config.FlowRateTarget = state.FlowRate // set target flow rate to current
+						}
 						saveConfig()
 					}
 				default:
