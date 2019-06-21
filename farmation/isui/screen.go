@@ -38,6 +38,7 @@ type Screens struct {
 	screens       map[ScreenID]Widget
 	dialog        Widget
 	state         *isdata.State
+	currentDialog isdata.Dialog
 }
 
 // Add a new screen
@@ -48,9 +49,11 @@ func (s *Screens) Add(ID ScreenID, screen Widget) {
 // NewScreens initializes all screens
 func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 	ret := &Screens{
-		state:  state,
-		dialog: NewDialogScreen(state, config),
+		state: state,
 	}
+
+	ret.dialog = NewDialogScreen(&ret.currentDialog)
+
 	ret.screens = make(map[ScreenID]Widget)
 	ret.Add(ScreenIDHome, NewHomeScreen(state, config))
 	ret.Add(ScreenIDStatus1, NewStatusScreen1(state, config))
@@ -78,7 +81,11 @@ func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 
 // Render is used to draw a list of params, handles scrolling, etc.
 func (s *Screens) Render(img draw.Image) {
-	if s.state.Dialog.Active {
+	if s.state.DialogArm.Active {
+		s.currentDialog = s.state.DialogArm
+		s.dialog.Render(img)
+	} else if s.state.Dialog.Active {
+		s.currentDialog = s.state.Dialog
 		s.dialog.Render(img)
 	} else {
 		s.screens[s.currentScreen].Render(img)

@@ -55,7 +55,11 @@ type State struct {
 	LindsayLastUpdate time.Time         `json:"lindsayLastUpdate"`
 
 	// Modal dialog describes a modal dialog message
+	// only for messages from state machine. Create new dialog
+	// structs for other parts of the app.
 	Dialog Dialog
+
+	DialogArm Dialog
 }
 
 // Dialog defines a modal dialog that must be acknowledged

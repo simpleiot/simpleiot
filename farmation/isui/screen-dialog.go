@@ -10,16 +10,14 @@ import (
 // DialogScreen is used to display modal dialog messages
 type DialogScreen struct {
 	softKeys *SoftKeys
-	state    *isdata.State
-	config   *isdata.Config
+	dialog   *isdata.Dialog
 }
 
 // NewDialogScreen creates a new dialog screen
-func NewDialogScreen(state *isdata.State, config *isdata.Config) *DialogScreen {
+func NewDialogScreen(dialog *isdata.Dialog) *DialogScreen {
 	return &DialogScreen{
 		softKeys: NewSoftKeys("OK"),
-		state:    state,
-		config:   config,
+		dialog:   dialog,
 	}
 }
 
@@ -28,8 +26,10 @@ func (s *DialogScreen) Render(img draw.Image) {
 	Clear(img)
 	Heading(img, "Warning!")
 
-	DrawTxtCentered(img, s.state.Dialog.Message, 64, 20,
-		tightpixel15.Font)
+	if s.dialog != nil {
+		DrawTxtCentered(img, s.dialog.Message, 64, 20,
+			tightpixel15.Font)
+	}
 
 	s.softKeys.Render(img, 0, 54)
 }
