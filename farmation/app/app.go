@@ -536,5 +536,5 @@ func toggleArm(config *isdata.Config, state *isdata.State) {
 
 func openArmDialog(state *isdata.State) {
 	state.DialogArm.Active = true
-	state.DialogArm.Message = "cannot arm in monitor-only mode"
+	state.DialogArm.Message = "cannot arm in monitor only mode"
 }
