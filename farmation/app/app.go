@@ -500,17 +500,17 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 
 			case isdata.UpdateDialogMessage:
-				state.Dialog.Message = string(m)
-				state.Dialog.Active = true
-				state.Dialog.Acknowledged = false
+				state.DialogStateMachine.Message = string(m)
+				state.DialogStateMachine.Active = true
+				state.DialogStateMachine.Acknowledged = false
 				saveState()
 
 			case isdata.UpdateDialogAck:
-				state.Dialog.Acknowledged = true
+				state.DialogStateMachine.Acknowledged = true
 				saveState()
 
 			case isdata.UpdateDialogClose:
-				state.Dialog.Active = false
+				state.DialogStateMachine.Active = false
 				saveState()
 
 			case isdata.UpdateDialogArmClose:

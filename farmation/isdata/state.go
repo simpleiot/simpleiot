@@ -56,7 +56,7 @@ type State struct {
 	// Modal dialog describes a modal dialog message
 	// only for messages from state machine. Create new dialog
 	// structs for other parts of the app.
-	Dialog Dialog
+	DialogStateMachine Dialog
 
 	DialogArm Dialog
 }
@@ -132,8 +132,6 @@ func InitState(s *State) (dirty bool) {
 	s.GpioStatusLedRed = false
 	s.GpioStatusLedGreen = false
 
-	s.Dialog.Active = false
-	s.Dialog.Acknowledged = false
 	s.DialogArm.Active = false
 	s.DialogArm.Acknowledged = false
 

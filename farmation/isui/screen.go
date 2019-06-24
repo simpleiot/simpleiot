@@ -82,8 +82,8 @@ func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 func (s *Screens) Render(img draw.Image) {
 	if s.state.DialogArm.Active {
 		s.dialog.Render(img, s.state.DialogArm.Message)
-	} else if s.state.Dialog.Active {
-		s.dialog.Render(img, s.state.Dialog.Message)
+	} else if s.state.DialogStateMachine.Active {
+		s.dialog.Render(img, s.state.DialogStateMachine.Message)
 	} else {
 		s.screens[s.currentScreen].Render(img)
 	}
@@ -96,7 +96,7 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			return ScreenIDNoChange, isdata.UpdateDialogArmClose{}, true
 		}
 
-	} else if s.state.Dialog.Active {
+	} else if s.state.DialogStateMachine.Active {
 		if key == isdata.KeySK1 {
 			return ScreenIDNoChange, isdata.UpdateDialogAck{}, true
 		}

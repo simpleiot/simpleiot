@@ -154,7 +154,7 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(standby)
 		}
 
-		if sm.state.Dialog.Active {
+		if sm.state.DialogStateMachine.Active {
 			return isdata.UpdateDialogClose{}
 		}
 
@@ -180,7 +180,7 @@ func (sm *StateMachine) Run() interface{} {
 		if sm.state.GpioDigitalWaterOn {
 			sm.setState(monitoringFlow)
 		} else {
-			if !sm.state.Dialog.Active {
+			if !sm.state.DialogStateMachine.Active {
 				sm.setState(waitingForWaterAck)
 				return isdata.UpdateDialogMessage("Waiting for water")
 			}
@@ -191,8 +191,8 @@ func (sm *StateMachine) Run() interface{} {
 		sm.RelayInjector = false
 		sm.CurrentLedState = LedGreen
 
-		if sm.state.Dialog.Active {
-			if sm.state.Dialog.Acknowledged ||
+		if sm.state.DialogStateMachine.Active {
+			if sm.state.DialogStateMachine.Acknowledged ||
 				sm.state.GpioDigitalWaterOn {
 				return isdata.UpdateDialogClose{}
 			}
@@ -215,7 +215,7 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(flowOffTarget)
 		}
 
-		if sm.state.Dialog.Active {
+		if sm.state.DialogStateMachine.Active {
 			return isdata.UpdateDialogClose{}
 		}
 
@@ -286,7 +286,7 @@ func (sm *StateMachine) Run() interface{} {
 		sm.RelayInjector = false
 		sm.CurrentLedState = LedRed
 
-		if !sm.state.Dialog.Active {
+		if !sm.state.DialogStateMachine.Active {
 			sm.setState(shutdownDialogAck)
 			if sm.state.GpioDigitalWaterOn {
 				return isdata.UpdateDialogMessage("failed to shutdown")
@@ -300,8 +300,8 @@ func (sm *StateMachine) Run() interface{} {
 		sm.RelayInjector = false
 		sm.CurrentLedState = LedRed
 
-		if sm.state.Dialog.Active {
-			if sm.state.Dialog.Acknowledged {
+		if sm.state.DialogStateMachine.Active {
+			if sm.state.DialogStateMachine.Acknowledged {
 				sm.setState(standby)
 				return isdata.UpdateDialogClose{}
 			}
