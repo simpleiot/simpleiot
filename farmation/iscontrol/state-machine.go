@@ -142,14 +142,6 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(monitorOnly)
 			return nil
 		}
-
-		// if user disarms, stop shutdown
-		if !sm.config.Arm && sm.machineState != standby {
-			sm.setState(standby)
-			if sm.state.Dialog.Active {
-				return isdata.UpdateDialogClose{}
-			}
-		}
 	}
 
 	switch sm.machineState {
@@ -234,10 +226,20 @@ func (sm *StateMachine) Run() interface{} {
 
 		// if alarm time has elapsed enter shutdown
 		if sm.elapsed() >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second {
-			sm.setState(shutdown1)
+			sm.setState(disarm)
 		} else if sm.state.FlowStatus == isdata.FlowStatusArmedOk {
 			sm.setState(monitoringFlow)
 		}
+
+	case disarm:
+		sm.RelayShutdown = false
+		sm.RelayInjector = false
+		sm.CurrentLedState = LedRed
+
+		if sm.config.Arm {
+			return isdata.UpdateDisarm(true)
+		}
+		sm.setState(shutdown1)
 
 	case shutdown1:
 		sm.RelayShutdown = true
@@ -300,16 +302,10 @@ func (sm *StateMachine) Run() interface{} {
 
 		if sm.state.Dialog.Active {
 			if sm.state.Dialog.Acknowledged {
-				sm.setState(disarm)
+				sm.setState(standby)
 				return isdata.UpdateDialogClose{}
 			}
 		}
-
-	case disarm:
-		if sm.config.Arm {
-			return isdata.UpdateDisarm(true)
-		}
-		sm.setState(standby)
 	}
 
 	return nil
