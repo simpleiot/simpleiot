@@ -287,24 +287,12 @@ func (sm *StateMachine) Run() interface{} {
 		sm.CurrentLedState = LedRed
 
 		if !sm.state.DialogStateMachine.Active {
-			sm.setState(shutdownDialogAck)
+			sm.setState(standby)
 			if sm.state.GpioDigitalWaterOn {
 				return isdata.UpdateDialogMessage("failed to shutdown")
 			}
 
 			return isdata.UpdateDialogMessage("system shut down")
-		}
-
-	case shutdownDialogAck:
-		sm.RelayShutdown = false
-		sm.RelayInjector = false
-		sm.CurrentLedState = LedRed
-
-		if sm.state.DialogStateMachine.Active {
-			if sm.state.DialogStateMachine.Acknowledged {
-				sm.setState(standby)
-				return isdata.UpdateDialogClose{}
-			}
 		}
 	}
 
