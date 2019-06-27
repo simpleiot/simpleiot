@@ -22,7 +22,7 @@ const (
 	LindsayStatePressureWaiting                  = 11
 	LindsayStateRunningForward                   = 14
 	LindsayStateRunningReverse                   = 15
-	LindsayStateStoppedNoPos                     = 21
+	LindsayStatePositionError                    = 21
 	LindsayStateRunningNoPos                     = 29
 )
 
@@ -48,8 +48,8 @@ func (ls LindsayState) String() (ret string) {
 		ret = "Running Forward"
 	case LindsayStateRunningReverse:
 		ret = "Running Reverse"
-	case LindsayStateStoppedNoPos:
-		ret = "Stopped No Position"
+	case LindsayStatePositionError:
+		ret = "Position Error"
 	case LindsayStateRunningNoPos:
 		ret = "Running No Position"
 	default:
