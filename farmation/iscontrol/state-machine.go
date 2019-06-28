@@ -52,6 +52,7 @@ const (
 	waitingForWaterAck
 	monitoringFlow
 	flowOffTarget
+	irrigatorOff
 	shutdown1
 	shutdownMonitor1
 	shutdown2
@@ -76,6 +77,8 @@ func (s state) String() string {
 		return "waitingForWater"
 	case waitingForWaterAck:
 		return "waitingForWaterAck"
+	case irrigatorOff:
+		return "irrigatorOff"
 	case flowOffTarget:
 		return "flowOffTarget"
 	case shutdown1:
@@ -217,6 +220,24 @@ func (sm *StateMachine) Run() interface{} {
 
 		if sm.state.DialogStateMachine.Active {
 			return isdata.UpdateDialogClose{}
+		}
+
+		if !sm.state.GpioDigitalIrrigator {
+			sm.setState(irrigatorOff)
+		}
+
+	case irrigatorOff:
+		sm.RelayShutdown = false
+		sm.RelayInjector = false
+		sm.CurrentLedState = LedGreen
+
+		if sm.state.GpioDigitalIrrigator {
+			sm.setState(monitoringFlow)
+		}
+
+		// if alarm time has elapsed enter shutdown
+		if sm.elapsed() >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second {
+			sm.setState(disarm)
 		}
 
 	case flowOffTarget:
