@@ -15,6 +15,7 @@ const (
 	LindsayStateStopped             LindsayState = 0x0
 	LindsayStateFault                            = 0x1
 	LindsayStateSoftBarrierStopped               = 0x2
+	LindsayStateServiceStop                      = 0x4
 	LindsayStateLowPressureShutdown              = 0x5
 	LindsayStateLowVoltageFault                  = 0x6
 	LindsayStateRestartDelay                     = 0x10
@@ -31,6 +32,8 @@ func (ls LindsayState) String() (ret string) {
 		ret = "Stopped"
 	case LindsayStateFault:
 		ret = "Safety Fault"
+	case LindsayStateServiceStop:
+		ret = "Service Stop"
 	case LindsayStateSoftBarrierStopped:
 		ret = "Soft Barrier Stopped"
 	case LindsayStateLowPressureShutdown:
