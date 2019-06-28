@@ -12,18 +12,17 @@ type LindsayState uint16
 
 // define valid Lindsay States
 const (
-	LindsayStateStopped             LindsayState = 0
-	LindsayStateFault                            = 1
-	LindsayStateSoftBarrierStopped               = 2
-	LindsayStateServiceStop                      = 4
-	LindsayStateLowPressureShutdown              = 5
-	LindsayStateLowVoltageFault                  = 6
-	LindsayStateRestartDelay                     = 10
-	LindsayStatePressureWaiting                  = 11
-	LindsayStateRunningForward                   = 14
-	LindsayStateRunningReverse                   = 15
-	LindsayStatePositionError                    = 21
-	LindsayStateRunningNoPos                     = 29
+	LindsayStateStopped             LindsayState = 0x0
+	LindsayStateFault                            = 0x1
+	LindsayStateSoftBarrierStopped               = 0x2
+	LindsayStateLowPressureShutdown              = 0x5
+	LindsayStateLowVoltageFault                  = 0x6
+	LindsayStateRestartDelay                     = 0x10
+	LindsayStatePressureWaiting                  = 0x11
+	LindsayStateRunningForward                   = 0x14
+	LindsayStateRunningReverse                   = 0x15
+	LindsayStatePositionError                    = 0x21
+	LindsayStateRunningNoPos                     = 0x29
 )
 
 func (ls LindsayState) String() (ret string) {
@@ -34,8 +33,6 @@ func (ls LindsayState) String() (ret string) {
 		ret = "Safety Fault"
 	case LindsayStateSoftBarrierStopped:
 		ret = "Soft Barrier Stopped"
-	case LindsayStateServiceStop:
-		ret = "Service Stop"
 	case LindsayStateLowPressureShutdown:
 		ret = "Low Pressure Shutdown"
 	case LindsayStateLowVoltageFault:
@@ -127,10 +124,11 @@ func (lsr *LindsayStatusRegs) AutoRestart() bool {
 	return (lsr.Status & (1 << 9)) != 0
 }
 
-// Running indicates of irrigator is running
-func (lsr *LindsayStatusRegs) Running() bool {
-	return lsr.State == LindsayStateRunningForward ||
-		lsr.State == LindsayStateRunningReverse
+// IrrigatorRunning indicates of irrigator is running
+func (lsr *LindsayStatusRegs) IrrigatorRunning() bool {
+	return (lsr.State == LindsayStateRunningForward ||
+		lsr.State == LindsayStateRunningReverse) &&
+		(lsr.Forward() || lsr.Reverse())
 }
 
 // NewLindsayStatusRegs create Lindsay status from modbus PDU packet

@@ -46,6 +46,7 @@ func (s *DiagLindsayScreen) Render(img draw.Image) {
 	s.menu.AddItemString("state", s.state.LindsayRegs.State.String())
 	s.menu.AddItemString("state", state)
 	s.menu.AddItemOnOff("water", s.state.LindsayRegs.WaterOn(), nil)
+	s.menu.AddItemOnOff("irr running", s.state.LindsayRegs.IrrigatorRunning(), nil)
 	s.menu.AddItemOnOff("accessory 1", s.state.LindsayRegs.Accessory1On(), nil)
 	s.menu.AddItemOnOff("accessory 2", s.state.LindsayRegs.Accessory2On(), nil)
 	s.menu.AddItemString("last update", durLastUpdateS)
