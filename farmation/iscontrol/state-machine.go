@@ -17,6 +17,7 @@ type StateMachine struct {
 	// state machine internals
 	machineState     state
 	timeStateEntered time.Time
+	timeEvent        time.Time // timestamp to determine if irrigator has been off for more than allowed time
 
 	// state machine static outputs
 	RelayShutdown   bool
@@ -52,7 +53,6 @@ const (
 	waitingForWaterAck
 	monitoringFlow
 	flowOffTarget
-	irrigatorOff
 	shutdown1
 	shutdownMonitor1
 	shutdown2
@@ -77,8 +77,6 @@ func (s state) String() string {
 		return "waitingForWater"
 	case waitingForWaterAck:
 		return "waitingForWaterAck"
-	case irrigatorOff:
-		return "irrigatorOff"
 	case flowOffTarget:
 		return "flowOffTarget"
 	case shutdown1:
@@ -222,21 +220,12 @@ func (sm *StateMachine) Run() interface{} {
 			return isdata.UpdateDialogClose{}
 		}
 
-		if !sm.state.GpioDigitalIrrigator {
-			sm.setState(irrigatorOff)
-		}
-
-	case irrigatorOff:
-		sm.RelayShutdown = false
-		sm.RelayInjector = false
-		sm.CurrentLedState = LedGreen
-
 		if sm.state.GpioDigitalIrrigator {
-			sm.setState(monitoringFlow)
+			sm.timeEvent = time.Now()
 		}
 
 		// if alarm time has elapsed enter shutdown
-		if sm.elapsed() >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second {
+		if time.Since(sm.timeEvent) >= time.Duration(sm.config.IrrigatorOffMin)*time.Minute {
 			sm.setState(disarm)
 		}
 

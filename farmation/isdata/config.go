@@ -27,6 +27,10 @@ type Config struct {
 	// This is the time in seconds until the system recognizes and alarm
 	AlarmRecognizeSec float64
 
+	// This is the time in seconds until the system activates the shutdown
+	// relay after recognizing that the irrigator input is off
+	IrrigatorOffMin float64
+
 	// BatchAmount max value is 9,999
 	BatchAmount         int
 	WaterOn             bool
@@ -395,6 +399,10 @@ func (c *Config) Init() {
 
 	if c.AlarmRecognizeSec <= 0 {
 		c.AlarmRecognizeSec = 30
+	}
+
+	if c.IrrigatorOffMin <= 0 {
+		c.IrrigatorOffMin = 10
 	}
 
 	if len(c.FieldConfigs) < 4 {

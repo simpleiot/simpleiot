@@ -108,6 +108,9 @@ type UpdateManualHighAlarmGPH float64
 // UpdateAlarmRecognizeSec is used to send a new time
 type UpdateAlarmRecognizeSec float64
 
+// UpdateIrrigatorOffMin ...
+type UpdateIrrigatorOffMin float64
+
 // UpdateDevName is used to send a new device name for the IS to app.go
 type UpdateDevName string
 

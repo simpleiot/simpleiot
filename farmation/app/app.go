@@ -290,6 +290,14 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.PressureSetting = int(m)
 				saveConfig()
 
+			case isdata.UpdateIrrigatorOffMin:
+				config.IrrigatorOffMin = float64(m)
+				saveConfig()
+
+			case isdata.UpdateAlarmRecognizeSec:
+				config.AlarmRecognizeSec = float64(m)
+				saveConfig()
+
 			case isdata.UpdateLowWindowPerc:
 				config.LowWindowPerc = float64(m)
 				saveConfig()
@@ -304,10 +312,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdateManualHighAlarmGPH:
 				config.ManualHighAlarmGPH = float64(m)
-				saveConfig()
-
-			case isdata.UpdateAlarmRecognizeSec:
-				config.AlarmRecognizeSec = float64(m)
 				saveConfig()
 
 			case isdata.UpdateDisarm:
