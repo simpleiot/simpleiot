@@ -65,10 +65,10 @@ func (s *OperatingModeScreen) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *OperatingModeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1:
+	case isdata.KeySK1: // Back
 		s.menu.ResetArrowPos() // return arrow to top of screen
-		return ScreenIDMainMenu, nil, true
-	case isdata.KeySK2:
+		return ScreenIDPrev, nil, true
+	case isdata.KeySK2: // Setup
 		return ScreenIDOpModeSetup, nil, true
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)

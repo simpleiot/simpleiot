@@ -42,7 +42,7 @@ func (s *CalibrationScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
 	case isdata.KeySK1:
 		s.menu.ResetArrowPos() // return arrow to top of screen
-		return ScreenIDMainMenu, nil, true
+		return ScreenIDPrev, nil, true
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)
 	}

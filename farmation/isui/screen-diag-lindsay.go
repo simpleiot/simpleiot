@@ -59,9 +59,9 @@ func (s *DiagLindsayScreen) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *DiagLindsayScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1:
+	case isdata.KeySK1: // Back
 		s.menu.ResetArrowPos() // return arrow to top of screen
-		return ScreenIDDiagConfig, nil, true
+		return ScreenIDPrev, nil, true
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)
 	}

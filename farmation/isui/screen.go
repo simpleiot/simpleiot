@@ -12,6 +12,7 @@ type ScreenID int
 // Define constants for various screens
 const (
 	ScreenIDNoChange ScreenID = iota
+	ScreenIDPrev              // used by the "back" soft key
 	ScreenIDHome
 	ScreenIDStatus1
 	ScreenIDStatus2
@@ -36,10 +37,10 @@ const (
 // Screens is a map of all screens in the system
 type Screens struct {
 	currentScreen ScreenID
-	// previosScreens []ScreenID
-	screens map[ScreenID]Widget
-	dialog  *DialogScreen
-	state   *isdata.State
+	prevScreens   []ScreenID
+	screens       map[ScreenID]Widget
+	dialog        *DialogScreen
+	state         *isdata.State
 }
 
 // Add a new screen
@@ -94,6 +95,8 @@ func (s *Screens) Render(img draw.Image) {
 
 // Key handles key input
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
+
+	// dialogs
 	if s.state.DialogArm.Active {
 		if key == isdata.KeySK1 {
 			return ScreenIDNoChange, isdata.UpdateDialogArmClose{}, true
@@ -104,9 +107,20 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			return ScreenIDNoChange, isdata.UpdateDialogAck{}, true
 		}
 	}
+
+	// other screens
 	screenID, action, handled := s.screens[s.currentScreen].Key(key)
-	if screenID != ScreenIDNoChange {
+	switch screenID {
+	case ScreenIDNoChange:
+	case ScreenIDPrev:
+		s.currentScreen = s.prevScreens[len(s.prevScreens)-1] // go to prev screen
+		s.prevScreens = s.prevScreens[:len(s.prevScreens)-1]  // remove screen from previous screens slice
+	default:
+		if len(s.prevScreens) < 200 {
+			s.prevScreens = append(s.prevScreens, s.currentScreen)
+		}
 		s.currentScreen = screenID
 	}
+
 	return ScreenIDNoChange, action, handled
 }
