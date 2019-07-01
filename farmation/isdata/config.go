@@ -27,7 +27,7 @@ type Config struct {
 	// This is the time in seconds until the system recognizes and alarm
 	AlarmRecognizeSec float64
 
-	// This is the time in seconds until the system activates the shutdown
+	// This is the time in minutes until the system activates the shutdown
 	// relay after recognizing that the irrigator input is off
 	IrrigatorOffMin float64
 
