@@ -33,6 +33,7 @@ const (
 	ScreenIDDiagPulsesPres
 	ScreenIDDiagLindsay
 	ScreenIDDiagDevName
+	ScreenIDDiagPanel
 )
 
 // Screens is a map of all screens in the system
@@ -78,6 +79,7 @@ func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 	ret.Add(ScreenIDDiagPulsesPres, NewDiagPulsesPresScreen(state, config))
 	ret.Add(ScreenIDDiagLindsay, NewDiagLindsayScreen(state, config))
 	ret.Add(ScreenIDDiagDevName, NewDiagDevNameScreen(state, config))
+	ret.Add(ScreenIDDiagPanel, NewDiagPanelScreen(state, config))
 
 	ret.currentScreen = ScreenIDHome
 

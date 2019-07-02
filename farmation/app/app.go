@@ -526,6 +526,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.DialogArm.Active = false
 				saveState()
 
+			case isdata.PanelDefinition:
+				state.PanelDefinition = m
+				saveState()
+
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
 				log.Printf("App Mux: unhandled message of type %T: %+v\r\n", m, m)

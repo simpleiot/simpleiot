@@ -34,6 +34,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 
 	// Sub screens
 	s.menu.AddItemScreen("Device Name", ScreenIDDiagDevName)
+	s.menu.AddItemScreen("Panel Det", ScreenIDDiagPanel)
 	s.menu.AddItemScreen("Inputs", ScreenIDDiagInputs)
 	s.menu.AddItemScreen("Outputs", ScreenIDDiagOutputs)
 	s.menu.AddItemScreen("Shtdwn Settgs", ScreenIDDiagShutdownSettings)

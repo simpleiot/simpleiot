@@ -31,7 +31,10 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 		gpioReadTicker.Stop()
 		panelSenseTicker.Stop()
 	} else {
-
+		t, err := GetPanelDefinition()
+		if err != nil {
+			out <- t
+		}
 	}
 
 	for {
@@ -77,7 +80,11 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			if in != state.GpioDigitalIn {
 				out <- isdata.UpdateGpioDigitalIn(in)
 			}
-
+		case <-panelSenseTicker.C:
+			t, err := GetPanelDefinition()
+			if err != nil {
+				out <- t
+			}
 		}
 	}
 }
