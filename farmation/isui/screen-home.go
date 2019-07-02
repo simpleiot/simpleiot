@@ -20,7 +20,7 @@ type HomeScreen struct {
 // NewHomeScreen initializes and returns a HomeScreen
 func NewHomeScreen(state *isdata.State, config *isdata.Config) *HomeScreen {
 	return &HomeScreen{
-		softKeys: NewSoftKeys("menu", "mode", "pump"),
+		softKeys: NewSoftKeys("menu", "mode", "pump", "faults"),
 		icons:    NewIcons(true, true, true, true),
 		state:    state,
 		config:   config,
@@ -61,6 +61,8 @@ func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		return ScreenIDOpMode1, nil, true
 	case isdata.KeySK3: // pump
 		return ScreenIDNoChange, isdata.UpdateUserPumpMode(s.config.UserPumpMode.GetMsg()), true
+	case isdata.KeySK4: // faults
+		return ScreenIDFaultsActive, nil, true
 	}
 	return ScreenIDNoChange, nil, true
 }

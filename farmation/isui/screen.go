@@ -14,6 +14,7 @@ const (
 	ScreenIDNoChange ScreenID = iota
 	ScreenIDPrev              // used by the "back" soft key
 	ScreenIDHome
+	ScreenIDFaultsActive
 	ScreenIDStatus1
 	ScreenIDStatus2
 	ScreenIDStatus3
@@ -58,6 +59,7 @@ func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 
 	ret.screens = make(map[ScreenID]Widget)
 	ret.Add(ScreenIDHome, NewHomeScreen(state, config))
+	ret.Add(ScreenIDFaultsActive, NewFaultsActiveScreen(state, config))
 	ret.Add(ScreenIDStatus1, NewStatusScreen1(state, config))
 	ret.Add(ScreenIDStatus2, NewStatusScreen2(state, config))
 	ret.Add(ScreenIDStatus3, NewStatusScreen3(state, config))
