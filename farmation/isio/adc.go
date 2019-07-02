@@ -30,6 +30,25 @@ var adcChan = map[string]int{
 
 var adcMutex sync.Mutex
 
+// AdcReadCount is used to read A/D count times and average results
+func AdcReadCount(name string, count int) (ret float64, err error) {
+	samples := make([]float64, count)
+	for i := 0; i < count; i++ {
+		samples[i], err = AdcRead(name)
+		if err != nil {
+			return
+		}
+	}
+
+	for _, v := range samples {
+		ret += v
+	}
+
+	ret = ret / float64(count)
+
+	return
+}
+
 // AdcRead is used to read an analog to digital convertor port
 func AdcRead(name string) (float64, error) {
 	adcMutex.Lock()
@@ -129,7 +148,7 @@ func GetPanelDefinition() (def PanelDefinition, err error) {
 // ReadPanelSenseR returns panel sense resistance value in ohms
 func ReadPanelSenseR() (res float64, err error) {
 	var v float64
-	v, err = AdcRead(AdcPanelResistor)
+	v, err = AdcReadCount(AdcPanelResistor, 10)
 	if err != nil {
 		return
 	}
