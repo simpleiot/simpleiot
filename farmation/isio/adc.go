@@ -93,13 +93,13 @@ func AdcRead(name string) (float64, error) {
 var panelDefinitions = []isdata.PanelDefinition{
 	{0.459, isdata.PanelTypeInvalid, "Invalid"},
 	{0.763, isdata.PanelTypeLindsay, "Lindsay"},
-	{1.072, isdata.PanelTypeValleyIconSerial, "Valley Icon Serial"},
-	{1.402, isdata.PanelTypeValleyCam, "Valley CAM"},
-	{1.720, isdata.PanelTypeRinkySerial, "Rinky Serial"},
+	{1.072, isdata.PanelTypeValleyIconSerial, "Val Icon"},
+	{1.402, isdata.PanelTypeValleyCam, "Val CAM"},
+	{1.720, isdata.PanelTypeRinkySerial, "Rinky Ser"},
 	{2.021, isdata.PanelTypeReserved, "Reserved"},
 	{2.382, isdata.PanelTypeReserved, "Reserved"},
-	{2.770, isdata.PanelTypeStandardPump, "Standard Pump"},
-	{3.124, isdata.PanelTypeStandardPivot, "Standard Pivot"},
+	{2.770, isdata.PanelTypeStandardPump, "Std Pump"},
+	{3.124, isdata.PanelTypeStandardPivot, "Std Pivot"},
 	{5.000, isdata.PanelTypeInvalid, "Invalid"},
 }
 
@@ -132,14 +132,11 @@ func GetPanelDefinition() (def isdata.PanelDefinition, err error) {
 
 // ReadPanelSenseR returns panel sense resistance value in ohms
 func ReadPanelSenseR() (res float64, err error) {
-	var v float64
-	v, err = AdcReadCount(AdcPanelResistor, 10)
+	res, err = AdcReadCount(AdcPanelResistor, 10)
 	if err != nil {
+		res = 0
 		return
 	}
-	_ = v
-
-	// TODO, finish converting this to panel types
 
 	return
 }
