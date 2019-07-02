@@ -20,8 +20,10 @@ type StateMachine struct {
 	timeEvent        time.Time // timestamp to determine if irrigator has been off for more than allowed time
 
 	// state machine static outputs
+	// always update method setFalse when adding new field here!!!
 	RelayShutdown   bool
 	RelayInjector   bool
+	Arm             bool
 	CurrentLedState LedState
 }
 
@@ -53,6 +55,7 @@ const (
 	waitingForWaterAck
 	monitoringFlow
 	flowOffTarget
+	irrigatorOff
 	shutdown1
 	shutdownMonitor1
 	shutdown2
@@ -79,6 +82,8 @@ func (s state) String() string {
 		return "waitingForWaterAck"
 	case flowOffTarget:
 		return "flowOffTarget"
+	case irrigatorOff:
+		return "irrigatorOff"
 	case shutdown1:
 		return "shutdown1"
 	case shutdownMonitor1:
@@ -112,6 +117,14 @@ func (sm *StateMachine) setState(newState state) {
 		sm.machineState = newState
 		sm.timeStateEntered = time.Now()
 	}
+}
+
+// this method sets all the boolean outputs of the state machine false
+// since that is the most common state
+func (sm *StateMachine) setFalse() {
+	sm.RelayShutdown = false
+	sm.RelayInjector = false
+	sm.Arm = false
 }
 
 func (sm *StateMachine) elapsed() time.Duration {
@@ -161,8 +174,7 @@ func (sm *StateMachine) Run() interface{} {
 
 	// below states are for monitor/shutdown
 	case standby:
-		sm.RelayShutdown = false
-		sm.RelayInjector = false
+		sm.setFalse()
 		sm.CurrentLedState = LedGreenBlnk
 
 		if sm.config.Arm {
@@ -174,8 +186,8 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 	case waitingForWater:
-		sm.RelayShutdown = false
-		sm.RelayInjector = false
+		sm.setFalse()
+		sm.Arm = true
 		sm.CurrentLedState = LedGreen
 
 		if sm.state.GpioDigitalWaterOn {
@@ -188,8 +200,8 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 	case waitingForWaterAck:
-		sm.RelayShutdown = false
-		sm.RelayInjector = false
+		sm.setFalse()
+		sm.Arm = true
 		sm.CurrentLedState = LedGreen
 
 		if sm.state.DialogStateMachine.Active {
@@ -204,8 +216,9 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 	case monitoringFlow:
-		sm.RelayShutdown = false
+		sm.setFalse()
 		sm.RelayInjector = sm.state.GpioDigitalInjector
+		sm.Arm = true
 		sm.CurrentLedState = LedGreen
 
 		if !sm.state.GpioDigitalWaterOn {
@@ -224,14 +237,15 @@ func (sm *StateMachine) Run() interface{} {
 			sm.timeEvent = time.Now()
 		}
 
-		// if alarm time has elapsed enter shutdown
+		// if alarm time has elapsed
 		if time.Since(sm.timeEvent) >= time.Duration(sm.config.IrrigatorOffMin)*time.Minute {
-			sm.setState(disarm)
+			sm.setState(irrigatorOff)
 		}
 
 	case flowOffTarget:
-		sm.RelayShutdown = false
+		sm.setFalse()
 		sm.RelayInjector = sm.state.GpioDigitalInjector
+		sm.Arm = true
 		sm.CurrentLedState = LedRedBlnk
 
 		// if alarm time has elapsed enter shutdown
@@ -241,19 +255,19 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(monitoringFlow)
 		}
 
-	case disarm:
-		sm.RelayShutdown = false
-		sm.RelayInjector = false
-		sm.CurrentLedState = LedRed
+	case irrigatorOff:
+		sm.setFalse()
+		sm.setState(disarm)
+		return isdata.UpdateFaultIrrigator(true)
 
-		if sm.config.Arm {
-			return isdata.UpdateDisarm(true)
-		}
+	case disarm:
+		sm.setFalse()
+		sm.CurrentLedState = LedRed
 		sm.setState(shutdown1)
 
 	case shutdown1:
+		sm.setFalse()
 		sm.RelayShutdown = true
-		sm.RelayInjector = false
 		sm.CurrentLedState = LedRed
 
 		if sm.elapsed() > 10*time.Second {
@@ -261,8 +275,7 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 	case shutdownMonitor1:
-		sm.RelayShutdown = false
-		sm.RelayInjector = false
+		sm.setFalse()
 		sm.CurrentLedState = LedRed
 
 		if sm.elapsed() > 10*time.Second {
@@ -274,8 +287,8 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 	case shutdown2:
+		sm.setFalse()
 		sm.RelayShutdown = true
-		sm.RelayInjector = false
 		sm.CurrentLedState = LedRed
 
 		if sm.elapsed() > 10*time.Second {
@@ -283,8 +296,7 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 	case shutdownMonitor2:
-		sm.RelayShutdown = false
-		sm.RelayInjector = false
+		sm.setFalse()
 		sm.CurrentLedState = LedRed
 
 		if sm.elapsed() > 10*time.Second {
@@ -292,8 +304,7 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 	case shutdownDialog:
-		sm.RelayShutdown = false
-		sm.RelayInjector = false
+		sm.setFalse()
 		sm.CurrentLedState = LedRed
 
 		if !sm.state.DialogStateMachine.Active {

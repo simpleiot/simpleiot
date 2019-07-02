@@ -6,17 +6,17 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-// RelayControl is used to control relays
-type RelayControl struct {
+// ISControl is used to control relays, system arm, and send faults
+type ISControl struct {
 	config       *isdata.Config
 	state        *isdata.State
 	stateMachine *StateMachine
 	out          chan interface{}
 }
 
-// NewRelayControl initializes a RelayControl struct with the necessary parameters
-func NewRelayControl(config *isdata.Config, state *isdata.State, stateMachine *StateMachine, out chan interface{}) *RelayControl {
-	return &RelayControl{
+// NewISControl initializes a RelayControl struct with the necessary parameters
+func NewISControl(config *isdata.Config, state *isdata.State, stateMachine *StateMachine, out chan interface{}) *ISControl {
+	return &ISControl{
 		config:       config,
 		state:        state,
 		stateMachine: stateMachine,
@@ -24,9 +24,9 @@ func NewRelayControl(config *isdata.Config, state *isdata.State, stateMachine *S
 	}
 }
 
-// Update checks if any relays need updated, and sends commands to out
-func (rc *RelayControl) Update() {
-	// boolean to set relays
+// Update checks if anything need updated, and sends commands to out
+func (rc *ISControl) Update() {
+	// boolean to set
 	var b bool
 
 	// set inj pump relay
@@ -62,6 +62,13 @@ func (rc *RelayControl) Update() {
 	if rc.state.GpioRelayAuxEn != b {
 		rc.out <- isdata.UpdateGpioRelayAux(b)
 	}
+
+	// set system armed
+	b = rc.stateMachine.Arm
+	if rc.config.Arm != b {
+		rc.out <- isdata.UpdateArm(b)
+	}
+
 }
 
 // Run goroutine for ui code
@@ -70,7 +77,7 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 	state := stateInit
 	stateMachine := NewStateMachine(&config, &state)
 	statusLed := NewStatusLed(&config, &state, stateMachine, out)
-	relayControl := NewRelayControl(&config, &state, stateMachine, out)
+	isControl := NewISControl(&config, &state, stateMachine, out)
 
 	updateTicker := time.NewTicker(500 * time.Millisecond)
 	ledTicker := time.NewTicker(350 * time.Millisecond)
@@ -84,12 +91,11 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			if state.FlowStatus != flowStatus {
 				out <- isdata.UpdateFlowStatus(flowStatus)
 			}
-
-			updateMsg := stateMachine.Run()
-			if updateMsg != nil {
-				out <- updateMsg
+			msg := stateMachine.Run()
+			if msg != nil {
+				out <- msg
 			}
-			relayControl.Update()
+			isControl.Update()
 		case <-ledTicker.C:
 			statusLed.UpdateLedAction()
 		case m := <-in:
@@ -98,11 +104,11 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				state = m
 			case isdata.Config:
 				config = m
-				updateMsg := stateMachine.Run()
-				if updateMsg != nil {
-					out <- updateMsg
+				msg := stateMachine.Run()
+				if msg != nil {
+					out <- msg
 				}
-				relayControl.Update()
+				isControl.Update()
 			}
 		}
 

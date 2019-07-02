@@ -53,12 +53,20 @@ type State struct {
 	LindsayRegs       LindsayStatusRegs `json:"lindsayRegs"`
 	LindsayLastUpdate time.Time         `json:"lindsayLastUpdate"`
 
+	// Faults
+	FaultsActive Faults
+
 	// Modal dialog describes a modal dialog message
 	// only for messages from state machine. Create new dialog
 	// structs for other parts of the app.
 	DialogStateMachine Dialog
 
 	DialogArm Dialog
+}
+
+// Faults defines a struct for FaultsActive
+type Faults struct {
+	Irrigator bool
 }
 
 // Dialog defines a modal dialog that must be acknowledged

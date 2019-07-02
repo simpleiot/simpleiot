@@ -314,8 +314,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.ManualHighAlarmGPH = float64(m)
 				saveConfig()
 
-			case isdata.UpdateDisarm:
-				config.Arm = bool(!m) // set arm to the OPPOSITE of the disarm command
+			case isdata.UpdateArm:
+				config.Arm = bool(m)
 				saveConfig()
 
 			case isdata.Flow:
@@ -501,6 +501,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.LindsayStatusRegs:
 				state.LindsayRegs = m
 				state.LindsayLastUpdate = time.Now()
+				saveState()
+
+			case isdata.UpdateFaultIrrigator:
+				state.FaultsActive.Irrigator = bool(m)
 				saveState()
 
 			case isdata.UpdateDialogMessage:

@@ -132,8 +132,11 @@ type UpdateLedRed bool
 // UpdateLedGreen is used to set the led green on/off
 type UpdateLedGreen bool
 
-// UpdateDisarm is used to disarm from iscontrol
-type UpdateDisarm bool
+// UpdateArm is used to disarm from iscontrol
+type UpdateArm bool
+
+// UpdateFaultIrrigator is used to update that field of the active faults struct in state
+type UpdateFaultIrrigator bool
 
 // UpdateDialogMessage is used to activate and display a modal dialog
 type UpdateDialogMessage string
