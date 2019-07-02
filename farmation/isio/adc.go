@@ -67,6 +67,65 @@ func AdcRead(name string) (float64, error) {
 	return v, nil
 }
 
+// PanelType is used to indentify type type of panel the IS is connected to
+type PanelType int
+
+// define valid panel types
+const (
+	PanelTypeInvalid PanelType = iota
+	PanelTypeLindsay
+	PanelTypeValleyIconSerial
+	PanelTypeValleyCam
+	PanelTypeRinkySerial
+	PanelTypeReserved
+	PanelTypeStandardPump
+	PanelTypeStandardPivot
+)
+
+// PanelDefinition is used to describe the panel. Voltage is the uppler limit of
+// the voltage range so the idea is you can loop through the definitions starting
+// at the lower voltage, and simply check if V is less than the upper limit to
+// identify a panel.
+type PanelDefinition struct {
+	Voltage     float64
+	Type        PanelType
+	Description string
+}
+
+var panelDefinitions = []PanelDefinition{
+	{0.459, PanelTypeInvalid, "Invalid"},
+	{0.763, PanelTypeLindsay, "Lindsay"},
+	{1.072, PanelTypeValleyIconSerial, "Valley Icon Serial"},
+	{1.402, PanelTypeValleyCam, "Valley CAM"},
+	{1.720, PanelTypeRinkySerial, "Rinky Serial"},
+	{2.021, PanelTypeReserved, "Reserved"},
+	{2.382, PanelTypeReserved, "Reserved"},
+	{2.770, PanelTypeStandardPump, "Standard Pump"},
+	{3.124, PanelTypeStandardPivot, "Standard Pivot"},
+	{5.000, PanelTypeInvalid, "Invalid"},
+}
+
+func getPanelDefintion(v float64) (def PanelDefinition) {
+	for _, d := range panelDefinitions {
+		if v < d.Voltage {
+			return d
+		}
+	}
+
+	return
+}
+
+// GetPanelDefinition returns panel definition
+func GetPanelDefinition() (def PanelDefinition, err error) {
+	var v float64
+	v, err = ReadPanelSenseR()
+	if err != nil {
+		return
+	}
+
+	return getPanelDefintion(v), nil
+}
+
 // ReadPanelSenseR returns panel sense resistance value in ohms
 func ReadPanelSenseR() (res float64, err error) {
 	var v float64
