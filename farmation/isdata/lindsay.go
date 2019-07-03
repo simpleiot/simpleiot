@@ -20,7 +20,7 @@ const (
 	LindsayStateLowVoltageFault                  = 0x6
 	LindsayStateRestartDelay                     = 0x10
 	LindsayStatePressureWaiting                  = 0x11
-	LindsayStateHoldLastTower					 = 0x13
+	LindsayStateHoldLastTower                    = 0x13
 	LindsayStateRunningForward                   = 0x14
 	LindsayStateRunningReverse                   = 0x15
 	LindsayStatePositionError                    = 0x21
@@ -32,29 +32,29 @@ func (ls LindsayState) String() (ret string) {
 	case LindsayStateStopped:
 		ret = "Stopped"
 	case LindsayStateFault:
-		ret = "Sfty Fault"					//Safety Fault
+		ret = "Sfty Fault" //Safety Fault
 	case LindsayStateServiceStop:
-		ret = "Svc Stop"					//Service Stop
+		ret = "Svc Stop" //Service Stop
 	case LindsayStateSoftBarrierStopped:
-		ret = "Soft Barrier Stopped"		//Soft Barrier Stopped
+		ret = "Soft Barrier Stopped" //Soft Barrier Stopped
 	case LindsayStateLowPressureShutdown:
-		ret = "Low Pres Shtdwn"				//Low Pressure Shutdown
+		ret = "Low Pres Shtdwn" //Low Pressure Shutdown
 	case LindsayStateLowVoltageFault:
-		ret = "Low V. Shtdwn"				//Low Voltage Shutdown
+		ret = "Low V. Shtdwn" //Low Voltage Shutdown
 	case LindsayStateRestartDelay:
-		ret = "Restart Del"					//Restart Delay
+		ret = "Restart Del" //Restart Delay
 	case LindsayStatePressureWaiting:
-		ret = "Pres. Wait."					//Pressure Waiting
+		ret = "Pres. Wait." //Pressure Waiting
 	case LindsayStateHoldLastTower:
-		ret = "Hold L Tow"					//Hold Last Tower
+		ret = "Hold L Tow" //Hold Last Tower
 	case LindsayStateRunningForward:
-		ret = "Run For."					//Running Forward
+		ret = "Run For." //Running Forward
 	case LindsayStateRunningReverse:
-		ret = "Run Rev."					//Running Reverse
+		ret = "Run Rev." //Running Reverse
 	case LindsayStatePositionError:
-		ret = "Pos. Err"					//Position Error
+		ret = "Pos. Err" //Position Error
 	case LindsayStateRunningNoPos:
-		ret = "Run No Pos."					//Running No Position
+		ret = "Run No Pos." //Running No Position
 	default:
 		ret = "Unknown"
 	}
