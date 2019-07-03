@@ -62,13 +62,6 @@ func (rc *ISControl) Update() {
 	if rc.state.GpioRelayAuxEn != b {
 		rc.out <- isdata.UpdateGpioRelayAux(b)
 	}
-
-	// set system armed
-	b = rc.stateMachine.Arm
-	if rc.config.Arm != b {
-		rc.out <- isdata.UpdateArm(b)
-	}
-
 }
 
 // Run goroutine for ui code
@@ -86,16 +79,17 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 		select {
 		case <-updateTicker.C:
 
-			// update flow status
 			flowStatus := GetFlowStatus(&state, &config)
 			if state.FlowStatus != flowStatus {
 				out <- isdata.UpdateFlowStatus(flowStatus)
 			}
+
 			msg := stateMachine.Run()
 			if msg != nil {
 				out <- msg
 			}
 			isControl.Update()
+
 		case <-ledTicker.C:
 			statusLed.UpdateLedAction()
 		case m := <-in:
@@ -104,11 +98,13 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				state = m
 			case isdata.Config:
 				config = m
+
 				msg := stateMachine.Run()
 				if msg != nil {
 					out <- msg
 				}
 				isControl.Update()
+
 			}
 		}
 

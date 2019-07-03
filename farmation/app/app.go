@@ -245,6 +245,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					saveState()
 				case isdata.SampleTypeSimArm:
 					if config.OperatingMode != isdata.ISOperatingModeMonitor {
+						fmt.Println("APP.GO: user toggled arm")
 						toggleArm(&config, &state)
 					} else {
 						openArmDialog(&state)
@@ -314,8 +315,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.ManualHighAlarmGPH = float64(m)
 				saveConfig()
 
-			case isdata.UpdateArm:
-				config.Arm = bool(m)
+			case isdata.UpdateDisarm:
+				config.Arm = false
 				saveConfig()
 
 			case isdata.Flow:

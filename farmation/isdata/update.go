@@ -12,13 +12,13 @@ type UpdateProductName struct {
 	Name  string
 }
 
-// UpdateResetTotal1 is used to reset total1
+// UpdateResetTotal1 is a command to reset total1
 type UpdateResetTotal1 struct{}
 
-// UpdateResetTotal2 is used to reset total2
+// UpdateResetTotal2 is a command to reset total2
 type UpdateResetTotal2 struct{}
 
-// UpdateResetLifetime is used to reset the lifetime total
+// UpdateResetLifetime is a command to reset the lifetime total
 type UpdateResetLifetime struct{}
 
 // UpdateResetProduct1 ...
@@ -38,6 +38,9 @@ type UpdateResetProduct5 struct{}
 
 // UpdateResetFlowPulseCount is used to reset FlowPulseCount
 type UpdateResetFlowPulseCount struct{}
+
+// UpdateDisarm is a command to disarm the system
+type UpdateDisarm struct{}
 
 // UpdateLogPulseEnable is used to enable/disable logging of pulse data to USB
 type UpdateLogPulseEnable bool
@@ -131,9 +134,6 @@ type UpdateLedRed bool
 
 // UpdateLedGreen is used to set the led green on/off
 type UpdateLedGreen bool
-
-// UpdateArm is used to disarm from iscontrol
-type UpdateArm bool
 
 // UpdateFaultIrrigator is used to update that field of the active faults struct in state
 type UpdateFaultIrrigator bool
