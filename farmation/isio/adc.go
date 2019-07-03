@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
 // Defines for various Adc channels
@@ -29,6 +31,25 @@ var adcChan = map[string]int{
 }
 
 var adcMutex sync.Mutex
+
+// AdcReadCount is used to read A/D count times and average results
+func AdcReadCount(name string, count int) (ret float64, err error) {
+	samples := make([]float64, count)
+	for i := 0; i < count; i++ {
+		samples[i], err = AdcRead(name)
+		if err != nil {
+			return
+		}
+	}
+
+	for _, v := range samples {
+		ret += v
+	}
+
+	ret = ret / float64(count)
+
+	return
+}
 
 // AdcRead is used to read an analog to digital convertor port
 func AdcRead(name string) (float64, error) {
@@ -67,16 +88,55 @@ func AdcRead(name string) (float64, error) {
 	return v, nil
 }
 
-// ReadPanelSenseR returns panel sense resistance value in ohms
-func ReadPanelSenseR() (res float64, err error) {
+// Below is the max voltage expected for panel, so the idea is you loop through
+// starting at the beginning of the array and check if the voltage is less than
+var panelDefinitions = []isdata.PanelDefinition{
+	{0.459, isdata.PanelTypeInvalid, "Invalid"},
+	{0.763, isdata.PanelTypeLindsay, "Lindsay"},
+	{1.072, isdata.PanelTypeValleyIconSerial, "Val Icon"},
+	{1.402, isdata.PanelTypeValleyCam, "Val CAM"},
+	{1.720, isdata.PanelTypeRinkySerial, "Rinky Ser"},
+	{2.021, isdata.PanelTypeReserved, "Reserved"},
+	{2.382, isdata.PanelTypeReserved, "Reserved"},
+	{2.770, isdata.PanelTypeStandardPump, "Std Pump"},
+	{3.124, isdata.PanelTypeStandardPivot, "Std Pivot"},
+	{5.000, isdata.PanelTypeInvalid, "Invalid"},
+}
+
+func getPanelDefintion(v float64) (def isdata.PanelDefinition) {
+	for _, d := range panelDefinitions {
+		if v < d.Voltage {
+			def = d
+			break
+		}
+	}
+
+	def.Voltage = v
+	if def.Description == "" {
+		def.Description = "Invalid"
+	}
+
+	return
+}
+
+// GetPanelDefinition returns panel definition
+func GetPanelDefinition() (def isdata.PanelDefinition, err error) {
 	var v float64
-	v, err = AdcRead(AdcPanelResistor)
+	v, err = ReadPanelSenseR()
 	if err != nil {
 		return
 	}
-	_ = v
 
-	// TODO, finish converting this to panel types
+	return getPanelDefintion(v), nil
+}
+
+// ReadPanelSenseR returns panel sense resistance value in ohms
+func ReadPanelSenseR() (res float64, err error) {
+	res, err = AdcReadCount(AdcPanelResistor, 10)
+	if err != nil {
+		res = 0
+		return
+	}
 
 	return
 }

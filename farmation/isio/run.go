@@ -25,9 +25,22 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 		StatusLightGreen(false)
 	}
 
+	readPanelResistor := func() {
+		t, err := GetPanelDefinition()
+		if err != nil {
+			log.Println("Error reading panel resistor: ", err)
+		} else {
+			out <- t
+		}
+	}
+
 	gpioReadTicker := time.NewTicker(500 * time.Millisecond) // ticker to read gpio's
+	panelSenseTicker := time.NewTicker(10 * time.Second)
 	if runtime.GOARCH != "arm" {
 		gpioReadTicker.Stop()
+		panelSenseTicker.Stop()
+	} else {
+		readPanelResistor()
 	}
 
 	for {
@@ -73,7 +86,8 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			if in != state.GpioDigitalIn {
 				out <- isdata.UpdateGpioDigitalIn(in)
 			}
-
+		case <-panelSenseTicker.C:
+			readPanelResistor()
 		}
 	}
 }

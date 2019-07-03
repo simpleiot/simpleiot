@@ -22,19 +22,19 @@ type State struct {
 	CurrentTankVolume float64      `json:"currentTankVolume"`
 	NetworkState      NetworkState `json:"networkState"`
 
-	// PanelConfig will be populated based on the panel detected
+	// PanelDefinition will be populated based on the panel detected
 	// by the sense resistor.
-	PanelConfig    ISPanelConfig     `json:"panelConfig"`
-	FieldStates    [][5]ProductState `json:"fieldStates"`
-	GpsPos         GpsPos            `json:"gpsPos"`
-	FlowStatus     FlowStatus        `json:"flowStatus"`
-	ActiveFaults   []ISEvent         `json:"activeFaults"`
-	Ios            []ISIo            `json:"ios"`
-	PressureMin    float64           `json:"pressureMin"`
-	PressureMax    float64           `json:"pressureMax"`
-	PressureAvg    float64           `json:"pressureAvg"`
-	PressureVRef   float64           `json:"pressureVRef"`
-	PressureVSense float64           `json:"pressureVSense"`
+	PanelDefinition PanelDefinition   `json:"panelConfig"`
+	FieldStates     [][5]ProductState `json:"fieldStates"`
+	GpsPos          GpsPos            `json:"gpsPos"`
+	FlowStatus      FlowStatus        `json:"flowStatus"`
+	ActiveFaults    []ISEvent         `json:"activeFaults"`
+	Ios             []ISIo            `json:"ios"`
+	PressureMin     float64           `json:"pressureMin"`
+	PressureMax     float64           `json:"pressureMax"`
+	PressureAvg     float64           `json:"pressureAvg"`
+	PressureVRef    float64           `json:"pressureVRef"`
+	PressureVSense  float64           `json:"pressureVSense"`
 
 	// Gpio's
 	GpioDigitalInjector  bool `json:"gpioDigitalInjector"`
@@ -142,6 +142,8 @@ func InitState(s *State) (dirty bool) {
 
 	s.DialogArm.Active = false
 	s.DialogArm.Acknowledged = false
+
+	s.PanelDefinition = PanelDefinition{Description: "Invalid"}
 
 	// add an active fault to test
 	/*if len(s.ActiveFaults) <= 0 {

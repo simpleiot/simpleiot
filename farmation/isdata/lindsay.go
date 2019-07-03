@@ -20,6 +20,7 @@ const (
 	LindsayStateLowVoltageFault                  = 0x6
 	LindsayStateRestartDelay                     = 0x10
 	LindsayStatePressureWaiting                  = 0x11
+	LindsayStateHoldLastTower                    = 0x13
 	LindsayStateRunningForward                   = 0x14
 	LindsayStateRunningReverse                   = 0x15
 	LindsayStatePositionError                    = 0x21
@@ -31,27 +32,29 @@ func (ls LindsayState) String() (ret string) {
 	case LindsayStateStopped:
 		ret = "Stopped"
 	case LindsayStateFault:
-		ret = "Safety Fault"
+		ret = "Sfty Fault" //Safety Fault
 	case LindsayStateServiceStop:
-		ret = "Service Stop"
+		ret = "Svc Stop" //Service Stop
 	case LindsayStateSoftBarrierStopped:
-		ret = "Soft Barrier Stopped"
+		ret = "Soft Barrier Stopped" //Soft Barrier Stopped
 	case LindsayStateLowPressureShutdown:
-		ret = "Low Pressure Shutdown"
+		ret = "Low Pres Shtdwn" //Low Pressure Shutdown
 	case LindsayStateLowVoltageFault:
-		ret = "Low Voltage Shutdown"
+		ret = "Low V. Shtdwn" //Low Voltage Shutdown
 	case LindsayStateRestartDelay:
-		ret = "Restart Delay"
+		ret = "Restart Del" //Restart Delay
 	case LindsayStatePressureWaiting:
-		ret = "Pressure Waiting"
+		ret = "Pres. Wait." //Pressure Waiting
+	case LindsayStateHoldLastTower:
+		ret = "Hold L Tow" //Hold Last Tower
 	case LindsayStateRunningForward:
-		ret = "Running Forward"
+		ret = "Run For." //Running Forward
 	case LindsayStateRunningReverse:
-		ret = "Running Reverse"
+		ret = "Run Rev." //Running Reverse
 	case LindsayStatePositionError:
-		ret = "Position Error"
+		ret = "Pos. Err" //Position Error
 	case LindsayStateRunningNoPos:
-		ret = "Running No Position"
+		ret = "Run No Pos." //Running No Position
 	default:
 		ret = "Unknown"
 	}
@@ -94,7 +97,8 @@ func (lsr *LindsayStatusRegs) Reverse() bool {
 
 // WaterOn indicator
 func (lsr *LindsayStatusRegs) WaterOn() bool {
-	return (lsr.Status & (1 << 2)) != 0
+	return ((lsr.Status & (1 << 2)) != 0) &&
+		(lsr.IrrigatorRunning() || lsr.State == LindsayStatePressureWaiting)
 }
 
 // EndGun1On indicator
@@ -130,7 +134,8 @@ func (lsr *LindsayStatusRegs) AutoRestart() bool {
 // IrrigatorRunning indicates of irrigator is running
 func (lsr *LindsayStatusRegs) IrrigatorRunning() bool {
 	return (lsr.State == LindsayStateRunningForward ||
-		lsr.State == LindsayStateRunningReverse) &&
+		lsr.State == LindsayStateRunningReverse ||
+		lsr.State == LindsayStateHoldLastTower) &&
 		(lsr.Forward() || lsr.Reverse())
 }
 
