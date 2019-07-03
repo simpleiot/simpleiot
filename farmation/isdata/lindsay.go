@@ -97,7 +97,8 @@ func (lsr *LindsayStatusRegs) Reverse() bool {
 
 // WaterOn indicator
 func (lsr *LindsayStatusRegs) WaterOn() bool {
-	return (lsr.Status & (1 << 2)) != 0
+	return ((lsr.Status & (1 << 2)) != 0) &&
+		(lsr.IrrigatorRunning() || lsr.State == LindsayStatePressureWaiting)
 }
 
 // EndGun1On indicator
