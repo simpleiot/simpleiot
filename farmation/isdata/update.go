@@ -36,11 +36,17 @@ type UpdateResetProduct4 struct{}
 // UpdateResetProduct5 ...
 type UpdateResetProduct5 struct{}
 
-// UpdateResetFlowPulseCount is used to reset FlowPulseCount
+// UpdateResetFlowPulseCount is a command to reset FlowPulseCount
 type UpdateResetFlowPulseCount struct{}
 
 // UpdateDisarm is a command to disarm the system
 type UpdateDisarm struct{}
+
+// UpdateFaultClearAll is a command to clear all of the faults
+type UpdateFaultClearAll struct{}
+
+// UpdateFaultIrrigator is a command to trigger this fault
+type UpdateFaultIrrigator struct{}
 
 // UpdateLogPulseEnable is used to enable/disable logging of pulse data to USB
 type UpdateLogPulseEnable bool
@@ -134,9 +140,6 @@ type UpdateLedRed bool
 
 // UpdateLedGreen is used to set the led green on/off
 type UpdateLedGreen bool
-
-// UpdateFaultIrrigator is used to update that field of the active faults struct in state
-type UpdateFaultIrrigator bool
 
 // UpdateDialogMessage is used to activate and display a modal dialog
 type UpdateDialogMessage string

@@ -3,7 +3,7 @@ package isui
 import (
 	"image/draw"
 
-	"github.com/simpleiot/simpleiot/farmation/fonts/agencyfbbold20"
+	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
@@ -18,7 +18,7 @@ type FaultsActiveScreen struct {
 func NewFaultsActiveScreen(state *isdata.State, config *isdata.Config) *FaultsActiveScreen {
 
 	return &FaultsActiveScreen{
-		softKeys: NewSoftKeys("back", "clear", "histry"),
+		softKeys: NewSoftKeys("home", "clear", "histry"),
 		state:    state,
 		config:   config,
 	}
@@ -28,9 +28,13 @@ func NewFaultsActiveScreen(state *isdata.State, config *isdata.Config) *FaultsAc
 func (s *FaultsActiveScreen) Render(img draw.Image) {
 	Clear(img)
 
-	switch {
-	case s.state.FaultsActive.Irrigator:
-		DrawTxtCentered(img, "Irrigator failed to fill up", 64, 32, agencyfbbold20.Font)
+	font := tightpixel15.Font
+	yPos := 14
+	spacing := font.GetHeight() + 2
+
+	if s.state.FaultsActive.Irrigator {
+		DrawTxtCentered(img, "IRRIGATOR DIDNT FILL UP", 64, yPos, font)
+		yPos += spacing
 	}
 
 	Heading(img, "Active Faults")
@@ -40,10 +44,10 @@ func (s *FaultsActiveScreen) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *FaultsActiveScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1: // Back
-		return ScreenIDPrev, nil, true
+	case isdata.KeySK1: // Home
+		return ScreenIDHome, nil, true
 	case isdata.KeySK2: // Clear
-		return ScreenIDNoChange, isdata.UpdateFaultIrrigator(false), true
+		return ScreenIDNoChange, isdata.UpdateFaultClearAll{}, true
 	case isdata.KeySK3: // History
 	}
 

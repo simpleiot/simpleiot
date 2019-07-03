@@ -1,7 +1,6 @@
 package iscontrol
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -191,7 +190,6 @@ func (sm *StateMachine) Run() interface{} {
 
 		if sm.config.Arm {
 			if sm.state.GpioDigitalWaterOn {
-				fmt.Println("SM/standby: armed -> monitorFlw")
 				sm.setState(monitoringFlow)
 			} else {
 				sm.setState(waitingForWater)
@@ -270,7 +268,7 @@ func (sm *StateMachine) Run() interface{} {
 		sm.CurrentLedState = LedRedBlnk
 
 		sm.setState(disarm)
-		return isdata.UpdateFaultIrrigator(true)
+		return isdata.UpdateFaultIrrigator{}
 
 	case disarm:
 

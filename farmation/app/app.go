@@ -504,8 +504,12 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.LindsayLastUpdate = time.Now()
 				saveState()
 
+			case isdata.UpdateFaultClearAll:
+				state.FaultsActive.Irrigator = false
+				saveState()
+
 			case isdata.UpdateFaultIrrigator:
-				state.FaultsActive.Irrigator = bool(m)
+				state.FaultsActive.Irrigator = true
 				saveState()
 
 			case isdata.UpdateDialogMessage:
