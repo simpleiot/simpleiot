@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
 	"runtime"
 	"time"
@@ -63,6 +64,11 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 	ticker := time.NewTicker(tickerPeriod)
 
 	flowRateMovingAvg := movingaverage.New(30)
+
+	resetFlowRateMovingAvg := func() {
+		flowRateMovingAvg = movingaverage.New(30)
+	}
+
 	var lastTick time.Time
 	var lastPulse time.Time
 
@@ -99,6 +105,12 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 			if pulses > 0 {
 				sampleDuration := lastPulse.Sub(lastTick)
 				flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
+				// check if value is changing fast and reset the moving
+				// average
+				if math.Abs(flow.Rate-flowRateMovingAvg.Avg()) > 5 {
+					resetFlowRateMovingAvg()
+				}
+
 				flowRateMovingAvg.Add(flow.Rate)
 				flow.RateAvg = flowRateMovingAvg.Avg()
 				flow.RateMin, _ = flowRateMovingAvg.Min()
@@ -113,7 +125,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 					Time: time.Now(),
 				}
 				out <- flow
-				flowRateMovingAvg = movingaverage.New(30)
+				resetFlowRateMovingAvg()
 			}
 
 		case t := <-simTicker.C:
