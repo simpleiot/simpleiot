@@ -64,6 +64,62 @@ type State struct {
 	DialogArm Dialog
 }
 
+// InputState is a type that describes if the input is avaliable, and what its state is
+type InputState int
+
+// define value input states
+const (
+	InputStateNA InputState = iota
+	InputStateOff
+	InputStateOn
+)
+
+// BoolToInputState converts a bool to input state, assuming
+// it is not InputStateNA
+func BoolToInputState(v bool) InputState {
+	if v {
+		return InputStateOn
+	}
+
+	return InputStateOff
+}
+
+// WaterOn returns water on status based on panel type
+func (s *State) WaterOn() InputState {
+	switch s.PanelDefinition.Type {
+	case PanelTypeStandardPump, PanelTypeStandardPivot:
+		return BoolToInputState(s.GpioDigitalWaterOn)
+	case PanelTypeLindsay:
+		return BoolToInputState(s.LindsayRegs.WaterOn())
+	default:
+		return InputStateNA
+	}
+}
+
+// IrrigatorRunning returns if the irrigator is running based on panel type
+func (s *State) IrrigatorRunning() InputState {
+	switch s.PanelDefinition.Type {
+	case PanelTypeStandardPump:
+		return BoolToInputState(s.GpioDigitalIrrigator)
+	case PanelTypeLindsay:
+		return BoolToInputState(s.LindsayRegs.IrrigatorRunning())
+	default:
+		return InputStateNA
+	}
+}
+
+// InjectorOn returns if the injector is on for various panel types
+func (s *State) InjectorOn() InputState {
+	switch s.PanelDefinition.Type {
+	case PanelTypeStandardPump, PanelTypeStandardPivot:
+		return BoolToInputState(s.GpioDigitalInjector)
+	case PanelTypeLindsay:
+		return BoolToInputState(s.LindsayRegs.Accessory1On())
+	default:
+		return InputStateNA
+	}
+}
+
 // Faults defines a struct for FaultsActive
 type Faults struct {
 	Irrigator bool
