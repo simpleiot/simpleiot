@@ -88,8 +88,21 @@ func (db *IsDb) ReadState(state *isdata.State) error {
 }
 
 // ReadFaultHist reads the IS system fault history from the database
-//func (db *IsDb) ReadFaultHist() ([]Fault, error) {
-//}
+func (db *IsDb) ReadFaultHist(faults *isdata.Faults) (*isdata.Faults, error) {
+	err := db.store.Find(faults, nil)
+
+	if err != nil {
+		if err == bolthold.ErrNotFound {
+			// data is not stored, so simply return nil array and nil error
+			return nil, nil
+		}
+
+		// there was an error reading so return nil array and error
+		return nil, err
+	}
+
+	return faults, nil
+}
 
 // WriteConfig writes the IS config to the database
 func (db *IsDb) WriteConfig(config *isdata.Config) error {
@@ -105,5 +118,5 @@ func (db *IsDb) WriteState(state *isdata.State) error {
 
 // WriteFaultHist writes the system fault history to the database
 func (db *IsDb) WriteFaultHist(faults *isdata.Faults) error {
-	return db.store.Insert(0, faults)
+	return db.store.Insert(bolthold.NextSequence(), faults)
 }
