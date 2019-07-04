@@ -14,7 +14,7 @@ func Run(in, out chan interface{}, configInit isdata.Config, db *isdb.IsDb) {
 	config := configInit
 	state := isdata.State{}
 
-	screens := NewScreens(&state, &config, &db)
+	screens := NewScreens(&state, &config, db)
 	dialog := NewDialog()
 	widgets := Widgets{}
 

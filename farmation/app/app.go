@@ -510,8 +510,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdateFaultIrrigator:
 				state.FaultsActive.Irrigator = true
-				state.FaultsHist = append(state.FaultsHist, "Irrig nt full")
-				state.FaultsHistTimes = append(state.FaultsHistTimes, time.Now())
+				//state.FaultsHist = append(state.FaultsHist, "Irrig nt full")
+				//state.FaultsHistTimes = append(state.FaultsHistTimes, time.Now())
 				saveState()
 
 			case isdata.UpdateDialogMessage:

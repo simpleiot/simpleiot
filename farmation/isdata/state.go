@@ -54,9 +54,7 @@ type State struct {
 	LindsayLastUpdate time.Time         `json:"lindsayLastUpdate"`
 
 	// Faults
-	FaultsActive    Faults
-	FaultsHist      []string
-	FaultsHistTimes []time.Time
+	FaultsActive FaultsActive
 
 	// Modal dialog describes a modal dialog message
 	// only for messages from state machine. Create new dialog
@@ -122,8 +120,8 @@ func (s *State) InjectorOn() InputState {
 	}
 }
 
-// Faults defines a struct for FaultsActive
-type Faults struct {
+// FaultsActive defines a struct for FaultsActive
+type FaultsActive struct {
 	Irrigator bool
 }
 

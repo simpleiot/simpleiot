@@ -88,8 +88,8 @@ func (db *IsDb) ReadState(state *isdata.State) error {
 }
 
 // ReadFaultHist reads the IS system fault history from the database
-func (db *IsDb) ReadFaultHist() ([]Fault, error) {
-}
+//func (db *IsDb) ReadFaultHist() ([]Fault, error) {
+//}
 
 // WriteConfig writes the IS config to the database
 func (db *IsDb) WriteConfig(config *isdata.Config) error {
