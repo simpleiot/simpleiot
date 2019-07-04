@@ -85,9 +85,30 @@ func (m *SoftKeys) Render(img draw.Image, x, y int) {
 
 	for i, l := range m.labels {
 		if l != "" {
-			DrawTxtCentered(img, l,
-				labelXOffsets[i]+x, y,
-				tightpixel15.Font)
+			if allCaps(l) { // if label is all caps, move down two pixels to center
+				DrawTxtCentered(img, l,
+					labelXOffsets[i]+x, y+2,
+					tightpixel15.Font)
+			} else {
+				DrawTxtCentered(img, l,
+					labelXOffsets[i]+x, y,
+					tightpixel15.Font)
+			}
 		}
 	}
+}
+
+func allCaps(s string) bool {
+	match := false
+	for _, char := range s {
+		for _, letter := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
+			if char == letter {
+				match = true
+			}
+		}
+		if !match {
+			return false
+		}
+	}
+	return true
 }
