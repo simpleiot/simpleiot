@@ -88,8 +88,9 @@ func (db *IsDb) ReadState(state *isdata.State) error {
 }
 
 // ReadFaultHist reads the IS system fault history from the database
-func (db *IsDb) ReadFaultHist(faults *isdata.Faults) (*isdata.Faults, error) {
-	err := db.store.Find(faults, nil)
+func (db *IsDb) ReadFaultHist() (isdata.Faults, error) {
+	var faults isdata.Faults
+	err := db.store.Find(&faults, nil)
 
 	if err != nil {
 		if err == bolthold.ErrNotFound {
@@ -117,6 +118,6 @@ func (db *IsDb) WriteState(state *isdata.State) error {
 }
 
 // WriteFaultHist writes the system fault history to the database
-func (db *IsDb) WriteFaultHist(faults *isdata.Faults) error {
-	return db.store.Insert(bolthold.NextSequence(), faults)
+func (db *IsDb) WriteFaultHist(fault isdata.Fault) error {
+	return db.store.Insert(bolthold.NextSequence(), fault)
 }

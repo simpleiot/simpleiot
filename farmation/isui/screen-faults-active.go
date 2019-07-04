@@ -47,7 +47,7 @@ func (s *FaultsActiveScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	case isdata.KeySK1: // Home
 		return ScreenIDHome, nil, true
 	case isdata.KeySK2: // Clear
-		return ScreenIDNoChange, isdata.UpdateFaultClearAll{}, true
+		return ScreenIDNoChange, isdata.UpdateFaultActiveClearAll{}, true
 	case isdata.KeySK3: // History
 		return ScreenIDFaultsHistory, nil, true
 	}

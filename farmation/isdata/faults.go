@@ -17,9 +17,9 @@ const (
 func (ft FaultType) String() string {
 	switch ft {
 	case FaultTypeIrrOff:
-		return "IRRIGATOR DIDN'T FILL"
+		return "irrigator didnt fill"
 	}
-	return "UNKNOWN FAULT"
+	return "unknown fault"
 }
 
 // Fault is used to log an event and its time stamp

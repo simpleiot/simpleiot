@@ -268,7 +268,10 @@ func (sm *StateMachine) Run() interface{} {
 		sm.CurrentLedState = LedRedBlnk
 
 		sm.setState(disarm)
-		return isdata.UpdateFaultIrrigator{}
+		return isdata.UpdateFault{
+			Fault: isdata.FaultTypeIrrOff,
+			Time:  time.Now(),
+		}
 
 	case disarm:
 

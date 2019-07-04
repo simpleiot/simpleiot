@@ -504,15 +504,17 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.LindsayLastUpdate = time.Now()
 				saveState()
 
-			case isdata.UpdateFaultClearAll:
+			case isdata.UpdateFaultActiveClearAll:
 				state.FaultsActive.Irrigator = false
 				saveState()
 
-			case isdata.UpdateFaultIrrigator:
-				state.FaultsActive.Irrigator = true
-				//state.FaultsHist = append(state.FaultsHist, "Irrig nt full")
-				//state.FaultsHistTimes = append(state.FaultsHistTimes, time.Now())
+			case isdata.UpdateFault:
+				switch m.Fault {
+				case isdata.FaultTypeIrrOff:
+					state.FaultsActive.Irrigator = true
+				}
 				saveState()
+				db.WriteFaultHist(isdata.Fault(m))
 
 			case isdata.UpdateDialogMessage:
 				state.DialogStateMachine.Message = string(m)

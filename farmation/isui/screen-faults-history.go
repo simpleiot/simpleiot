@@ -35,11 +35,11 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 	Clear(img)
 	s.menu.ResetItems()
 
-	var emptyFaults *isdata.Faults
-	faults, _ := s.db.ReadFaultHist(emptyFaults)
+	faults, _ := s.db.ReadFaultHist()
 
-	for i, v := range faults.Fault {
-		s.menu.AddItemStringLong(formatTime(faults.FaultsHistTimes[i]), v)
+	for i := len(faults) - 1; i >= 0; i-- {
+		fault := faults[i]
+		s.menu.AddItemStringLong(formatTime(fault.Time), fault.Fault.String())
 	}
 
 	Heading(img, "Fault History")

@@ -221,7 +221,7 @@ func (m *Menu) Render(img draw.Image) {
 		if m.items[0].Type != MenuItemStringLong {
 			Arrow(img, x+65, 17+arrowScreenPos*menuSpacingValues)
 		} else { // arrow needs moved over for long string
-			Arrow(img, x+40, 17+arrowScreenPos*menuSpacingValues)
+			Arrow(img, x+37, 17+arrowScreenPos*menuSpacingValues)
 		}
 	}
 
@@ -259,8 +259,8 @@ func (m *Menu) Render(img draw.Image) {
 			case MenuItemString:
 				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemStringLong:
-				Rect(img, 51, 12+offsetValues, 70, menuSpacingValues)
-				DrawTxt(img, item.ValueString, 53, y+offsetValues, tightpixel15.Font)
+				Rect(img, 48, 12+offsetValues, 78, menuSpacingValues)
+				DrawTxt(img, item.ValueString, 50, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeInt: // we now have Value (float) and ValueInt
 				DrawTxtRight(img, strconv.Itoa(int(item.ValueInt)), 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeFloat:
