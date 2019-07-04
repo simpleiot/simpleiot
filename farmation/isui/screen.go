@@ -121,10 +121,18 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		s.currentScreen = s.prevScreens[len(s.prevScreens)-1] // go to prev screen
 		s.prevScreens = s.prevScreens[:len(s.prevScreens)-1]  // remove screen from previous screens slice
 	default:
+		// add current screen to prevScreens array
 		if len(s.prevScreens) < 200 {
 			s.prevScreens = append(s.prevScreens, s.currentScreen)
 		}
+
+		// move to new screen
 		s.currentScreen = screenID
+	}
+
+	// if at home screen, empty prevScreens array
+	if s.currentScreen == ScreenIDHome {
+		s.prevScreens = nil
 	}
 
 	return ScreenIDNoChange, action, handled
