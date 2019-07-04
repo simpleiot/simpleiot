@@ -62,12 +62,10 @@ func (s *DiagDevNameScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
-			s.edit = true
-
-			// set the text being edited and the header label
-			s.textEntryScreen.txtEdit = s.config.DeviceName
-			s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit
-		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+			s.enterEdit()
+		case isdata.KeyEnter: // Edit
+			s.enterEdit()
+		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft:
 			return s.menu.Key(key)
 		}
 	}
@@ -78,4 +76,12 @@ func (s *DiagDevNameScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 func (s *DiagDevNameScreen) exitEdit() {
 	s.edit = false
 	s.textEntryScreen.ExitEdit()
+}
+
+func (s *DiagDevNameScreen) enterEdit() {
+	s.edit = true
+	// set the text being edited and the header label
+	s.textEntryScreen.txtEdit = s.config.DeviceName
+	// move inputChars cursor to current pos in txtEdit
+	s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos])
 }

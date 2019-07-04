@@ -82,32 +82,10 @@ func (s *DiagShutdownSettingsScreen) Key(key isdata.Key) (ScreenID, interface{},
 			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
-			s.edit = true
-
-			// set the text being edited and the header label
-			switch s.menu.GetArrowPos() {
-			case 0:
-				s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.IrrigatorOffMin)) // convert integer value into string to edit w/ text entry screen
-				s.textEntryScreen.headerLabel = "Minutes"
-			case 1:
-				s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.AlarmRecognizeSec)) // convert integer value into string to edit w/ text entry screen
-				s.textEntryScreen.headerLabel = "Seconds"
-			case 2:
-				s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.LowWindowPerc)) // convert integer value into string to edit w/ text entry screen
-				s.textEntryScreen.headerLabel = "FR Low Percentage"
-			case 3:
-				s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.HighWindowPerc)) // convert integer value into string to edit w/ text entry screen
-				s.textEntryScreen.headerLabel = "High Percentage"
-			case 4:
-				s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualLowAlarmGPH)) // convert integer value into string to edit w/ text entry screen
-				s.textEntryScreen.headerLabel = "Flow Rate Low GPH"
-			case 5:
-				s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualHighAlarmGPH)) // convert integer value into string to edit w/ text entry screen
-				s.textEntryScreen.headerLabel = "FR High GPH"
-			}
-
-			s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit
-		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+			s.enterEdit()
+		case isdata.KeyEnter: // Edit
+			s.enterEdit()
+		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft:
 			return s.menu.Key(key)
 		}
 	}
@@ -118,4 +96,32 @@ func (s *DiagShutdownSettingsScreen) Key(key isdata.Key) (ScreenID, interface{},
 func (s *DiagShutdownSettingsScreen) exitEdit() {
 	s.edit = false
 	s.textEntryScreen.ExitEdit()
+}
+
+func (s *DiagShutdownSettingsScreen) enterEdit() {
+	s.edit = true
+
+	// set the text being edited and the header label
+	switch s.menu.GetArrowPos() {
+	case 0:
+		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.IrrigatorOffMin)) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "Minutes"
+	case 1:
+		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.AlarmRecognizeSec)) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "Seconds"
+	case 2:
+		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.LowWindowPerc)) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "FR Low Percentage"
+	case 3:
+		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.HighWindowPerc)) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "High Percentage"
+	case 4:
+		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualLowAlarmGPH)) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "Flow Rate Low GPH"
+	case 5:
+		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualHighAlarmGPH)) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "FR High GPH"
+	}
+
+	s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit
 }

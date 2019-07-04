@@ -71,20 +71,10 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
-			s.edit = true
-
-			// set the text being edited and the header label
-			switch s.menu.GetArrowPos() {
-			case 0:
-				s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulsesPerGallon) // convert integer value into string to edit w/ text entry screen
-				s.textEntryScreen.headerLabel = "Pulses/gal"
-			case 1:
-				s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureSetting) // convert integer value into string to edit w/ text entry screen
-				s.textEntryScreen.headerLabel = "Pressure setting"
-			}
-
-			s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit
-		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+			s.enterEdit()
+		case isdata.KeyEnter: // Edit
+			s.enterEdit()
+		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft:
 			return s.menu.Key(key)
 		}
 	}
@@ -95,4 +85,19 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 func (s *DiagPulsesPresScreen) exitEdit() {
 	s.edit = false
 	s.textEntryScreen.ExitEdit()
+}
+
+func (s *DiagPulsesPresScreen) enterEdit() {
+	s.edit = true
+	// set the text being edited and the header label
+	switch s.menu.GetArrowPos() {
+	case 0:
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulsesPerGallon) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "Pulses/gal"
+	case 1:
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureSetting) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "Pressure setting"
+	}
+	// move inputChars cursor to current pos in txtEdit
+	s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos])
 }
