@@ -31,7 +31,6 @@ const (
 	ScreenIDDiagConfig
 	ScreenIDDiagInputs
 	ScreenIDDiagOutputs
-	ScreenIDDiagShutdownSettings
 	ScreenIDDiagPulsesPres
 	ScreenIDDiagLindsay
 	ScreenIDDiagDevName
@@ -78,7 +77,6 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 	ret.Add(ScreenIDDiagConfig, NewDiagnosticsScreen(state, config))
 	ret.Add(ScreenIDDiagInputs, NewDiagInputsScreen(state, config))
 	ret.Add(ScreenIDDiagOutputs, NewDiagOutputsScreen(state, config))
-	ret.Add(ScreenIDDiagShutdownSettings, NewDiagShutdownSettingsScreen(state, config))
 	ret.Add(ScreenIDDiagPulsesPres, NewDiagPulsesPresScreen(state, config))
 	ret.Add(ScreenIDDiagLindsay, NewDiagLindsayScreen(state, config))
 	ret.Add(ScreenIDDiagDevName, NewDiagDevNameScreen(state, config))
