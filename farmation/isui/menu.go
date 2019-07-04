@@ -18,6 +18,7 @@ var menuSpacingValues = 11
 const (
 	MenuItemTypeScreen MenuItemType = iota
 	MenuItemString
+	MenuItemStringLong
 	MenuItemTypeInt
 	MenuItemTypeFloat
 	MenuItemTypeOnOff
@@ -148,6 +149,19 @@ func (m *Menu) AddItemString(desc string, value string) {
 	m.updateShowValues()
 }
 
+// AddItemStringLong adds a long string to the menu
+// makes enough room by moving over arrow and lengthening
+// rect
+func (m *Menu) AddItemStringLong(desc string, value string) {
+	m.items = append(m.items, MenuItem{
+		Description: desc,
+		ValueString: value,
+		Type:        MenuItemStringLong,
+	})
+
+	m.updateShowValues()
+}
+
 // AddItemInt adds an integer item to menu
 func (m *Menu) AddItemInt(desc string, v int) {
 	m.items = append(m.items, MenuItem{
@@ -159,7 +173,7 @@ func (m *Menu) AddItemInt(desc string, v int) {
 	m.updateShowValues()
 }
 
-// AddItemFloat adds an integer item to menu
+// AddItemFloat adds a float item to menu
 func (m *Menu) AddItemFloat(desc string, v float64) {
 	m.items = append(m.items, MenuItem{
 		Description: desc,
@@ -204,7 +218,11 @@ func (m *Menu) Render(img draw.Image) {
 		x = 30
 		Arrow(img, x-8, 17+arrowScreenPos*menuSpacingText)
 	} else {
-		Arrow(img, x+65, 17+arrowScreenPos*menuSpacingValues)
+		if m.items[0].Type != MenuItemStringLong {
+			Arrow(img, x+65, 17+arrowScreenPos*menuSpacingValues)
+		} else { // arrow needs moved over for long string
+			Arrow(img, x+40, 17+arrowScreenPos*menuSpacingValues)
+		}
 	}
 
 	for i := start; i <= end; i++ {
@@ -227,7 +245,8 @@ func (m *Menu) Render(img draw.Image) {
 
 		if m.showValues {
 			// draw values
-			if item.Type != MenuItemTypeAutoOffOn { // auto/off/on needs slightly wider rect
+			if item.Type != MenuItemTypeAutoOffOn && // auto/off/on needs slightly wider rect
+				item.Type != MenuItemStringLong {
 				Rect(img, 76, 12+offsetValues, 45, menuSpacingValues)
 			}
 			switch item.Type {
@@ -239,6 +258,9 @@ func (m *Menu) Render(img draw.Image) {
 				DrawTxt(img, "start", 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemString:
 				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
+			case MenuItemStringLong:
+				Rect(img, 51, 12+offsetValues, 70, menuSpacingValues)
+				DrawTxt(img, item.ValueString, 53, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeInt: // we now have Value (float) and ValueInt
 				DrawTxtRight(img, strconv.Itoa(int(item.ValueInt)), 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeFloat:

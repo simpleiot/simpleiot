@@ -4,6 +4,7 @@ import (
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"github.com/simpleiot/simpleiot/farmation/isdb"
 )
 
 // ScreenID is a constant that identifies a screen
@@ -15,6 +16,7 @@ const (
 	ScreenIDPrev              // used by the "back" soft key
 	ScreenIDHome
 	ScreenIDFaultsActive
+	ScreenIDFaultsHistory
 	ScreenIDStatus1
 	ScreenIDStatus2
 	ScreenIDStatus3
@@ -51,7 +53,7 @@ func (s *Screens) Add(ID ScreenID, screen Widget) {
 }
 
 // NewScreens initializes all screens
-func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
+func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Screens {
 	ret := &Screens{
 		state: state,
 	}
@@ -61,6 +63,7 @@ func NewScreens(state *isdata.State, config *isdata.Config) *Screens {
 	ret.screens = make(map[ScreenID]Widget)
 	ret.Add(ScreenIDHome, NewHomeScreen(state, config))
 	ret.Add(ScreenIDFaultsActive, NewFaultsActiveScreen(state, config))
+	ret.Add(ScreenIDFaultsHistory, NewFaultsHistoryScreen(state, config, db))
 	ret.Add(ScreenIDStatus1, NewStatusScreen1(state, config))
 	ret.Add(ScreenIDStatus2, NewStatusScreen2(state, config))
 	ret.Add(ScreenIDStatus3, NewStatusScreen3(state, config))

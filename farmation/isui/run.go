@@ -5,15 +5,16 @@ import (
 	"log"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"github.com/simpleiot/simpleiot/farmation/isdb"
 )
 
 // Run goroutine for ui code
-func Run(in, out chan interface{}, configInit isdata.Config) {
+func Run(in, out chan interface{}, configInit isdata.Config, db *isdb.IsDb) {
 	lcd := image.NewRGBA(image.Rect(0, 0, 128, 64))
 	config := configInit
 	state := isdata.State{}
 
-	screens := NewScreens(&state, &config)
+	screens := NewScreens(&state, &config, &db)
 	dialog := NewDialog()
 	widgets := Widgets{}
 

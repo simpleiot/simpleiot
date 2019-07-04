@@ -7,7 +7,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-// FaultsActiveScreen is used to display status info
+// FaultsActiveScreen is used to display active faults
 type FaultsActiveScreen struct {
 	softKeys *SoftKeys
 	state    *isdata.State
@@ -49,6 +49,7 @@ func (s *FaultsActiveScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	case isdata.KeySK2: // Clear
 		return ScreenIDNoChange, isdata.UpdateFaultClearAll{}, true
 	case isdata.KeySK3: // History
+		return ScreenIDFaultsHistory, nil, true
 	}
 
 	return ScreenIDNoChange, nil, true
