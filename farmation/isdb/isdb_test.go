@@ -82,8 +82,9 @@ func TestFaultHist(t *testing.T) {
 		t.Error("failed reading faults: ", err)
 	}
 	for _, faultR := range faultsR {
-		if !reflect.DeepEqual(fault, faultR) {
-			t.Errorf("read config does not match:\n // %+v\n || %+v\n", fault, faultR)
+
+		if fault.Time.Sub(faultR.Time) >= time.Duration(time.Nanosecond) {
+			t.Errorf("read time does not match:\n // %+v\n || %+v\n", fault, faultR)
 		}
 	}
 
