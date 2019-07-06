@@ -505,13 +505,13 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 
 			case isdata.UpdateFaultActiveClearAll:
-				state.FaultsActive.Irrigator = false
+				state.FaultsActive.SetFalse()
 				saveState()
 
 			case isdata.UpdateFault:
 				switch m.Fault {
 				case isdata.FaultTypeIrrOff:
-					state.FaultsActive.Irrigator = true
+					state.FaultsActive[isdata.FaultActiveIrrigator] = true
 				}
 				saveState()
 				db.WriteFaultHist(isdata.Fault(m))

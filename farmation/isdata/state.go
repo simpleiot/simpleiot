@@ -28,7 +28,6 @@ type State struct {
 	FieldStates     [][5]ProductState `json:"fieldStates"`
 	GpsPos          GpsPos            `json:"gpsPos"`
 	FlowStatus      FlowStatus        `json:"flowStatus"`
-	ActiveFaults    []ISEvent         `json:"activeFaults"`
 	Ios             []ISIo            `json:"ios"`
 	PressureMin     float64           `json:"pressureMin"`
 	PressureMax     float64           `json:"pressureMax"`
@@ -120,9 +119,34 @@ func (s *State) InjectorOn() InputState {
 	}
 }
 
-// FaultsActive defines a struct for FaultsActive
-type FaultsActive struct {
-	Irrigator bool
+// FaultActive ...
+type FaultActive int
+
+// define valid active faults
+const (
+	FaultActiveIrrigator FaultActive = iota
+)
+
+// FaultsActive defines a map for FaultsActive
+type FaultsActive map[FaultActive]bool
+
+// ActiveFaults returns true if any fault is active and false otherwise
+func (fa FaultsActive) ActiveFaults() bool {
+	for _, fault := range fa {
+		if fault == true {
+			return true
+		}
+	}
+	return false
+}
+
+// SetFalse sets **all** faults to false
+func (fa FaultsActive) SetFalse() {
+	// TODO this is very strange -- can use this but can't use
+	// range's direct value mechanism
+	for i := range fa {
+		fa[i] = false
+	}
 }
 
 // Dialog defines a modal dialog that must be acknowledged
@@ -177,6 +201,10 @@ func InitState(s *State) (dirty bool) {
 		s.SystemType = SystemTypeISSim
 	}
 
+	if s.FaultsActive == nil {
+		s.FaultsActive = make(FaultsActive)
+	}
+
 	s.FlowRate = 0
 
 	s.PressureMin = 0
@@ -200,14 +228,6 @@ func InitState(s *State) (dirty bool) {
 	s.DialogArm.Acknowledged = false
 
 	s.PanelDefinition = PanelDefinition{Description: "Invalid"}
-
-	// add an active fault to test
-	/*if len(s.ActiveFaults) <= 0 {
-		s.ActiveFaults = append(s.ActiveFaults, ISEvent{})
-	}*/
-
-	// empty active faults
-	// s.ActiveFaults = nil
 
 	return
 }

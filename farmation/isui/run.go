@@ -3,6 +3,7 @@ package isui
 import (
 	"image"
 	"log"
+	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
@@ -30,8 +31,12 @@ func Run(in, out chan interface{}, configInit isdata.Config, db *isdb.IsDb) {
 
 	renderScreen()
 
+	renderTicker := time.NewTicker(500 * time.Millisecond)
+
 	for {
 		select {
+		case <-renderTicker.C:
+			renderScreen()
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.State:

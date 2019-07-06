@@ -1,26 +1,24 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
 	"log"
+	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 )
 
-// SoftKeys is used to store menu state and render the menu
-type SoftKeys struct {
-	labels [4]string
+// SoftKey holds all the info necessary to render a soft key
+type SoftKey struct {
+	label     string
+	blinking  bool
+	lastBlink time.Time
+	on        bool
 }
 
-// SetLabel set a menu label
-func (m *SoftKeys) SetLabel(index int, label string) {
-	if index >= len(m.labels) {
-		log.Println("SoftKeys index out of range: ", index)
-		return
-	}
-
-	m.labels[index] = label
-}
+// SoftKeys is an array of 4 SoftKey types
+type SoftKeys [4]SoftKey
 
 // NewSoftKeys creates soft keys with given items
 func NewSoftKeys(items ...string) *SoftKeys {
@@ -38,6 +36,24 @@ func NewSoftKeys(items ...string) *SoftKeys {
 	return &ret
 }
 
+// SetLabel set a menu label
+func (k *SoftKeys) SetLabel(index int, label string) {
+	if index >= len(k) {
+		log.Println("SoftKeys index out of range: ", index)
+		return
+	}
+
+	k[index].label = label
+}
+
+// SetBlinking sets blinking of soft key at index
+func (k *SoftKeys) SetBlinking(index int, blinking bool) {
+	//if !k[index].blinking {
+	//		k[index].lastBlink = time.Now()
+	//	}
+	k[index].blinking = blinking
+}
+
 // location of menu strings:
 // 2,53
 // 35,53
@@ -47,8 +63,8 @@ var labelXOffsets = []int{15, 47, 80, 111}
 var menuItemWidth = 27
 
 // Render renders the menu section of the screen
-func (m *SoftKeys) Render(img draw.Image, x, y int) {
-	if len(m.labels[0]) > 0 {
+func (k *SoftKeys) Render(img draw.Image, x, y int) {
+	if len(k[0].label) > 0 {
 		Polyline(img,
 			0, 55,
 			1, 54,
@@ -57,7 +73,7 @@ func (m *SoftKeys) Render(img draw.Image, x, y int) {
 			31, 63)
 	}
 
-	if len(m.labels[1]) > 0 {
+	if len(k[1].label) > 0 {
 		Polyline(img,
 			31, 56,
 			33, 54,
@@ -66,7 +82,7 @@ func (m *SoftKeys) Render(img draw.Image, x, y int) {
 			63, 63)
 	}
 
-	if len(m.labels[2]) > 0 {
+	if len(k[2].label) > 0 {
 		Polyline(img,
 			63, 56,
 			65, 54,
@@ -75,7 +91,7 @@ func (m *SoftKeys) Render(img draw.Image, x, y int) {
 			96, 63)
 	}
 
-	if len(m.labels[3]) > 0 {
+	if len(k[3].label) > 0 {
 		Polyline(img,
 			96, 56,
 			98, 54,
@@ -83,17 +99,32 @@ func (m *SoftKeys) Render(img draw.Image, x, y int) {
 			127, 55)
 	}
 
-	for i, l := range m.labels {
-		if l != "" {
-			if allCaps(l) { // if label is all caps, move down two pixels to center
-				DrawTxtCentered(img, l,
-					labelXOffsets[i]+x, y+2,
-					tightpixel15.Font)
-			} else {
-				DrawTxtCentered(img, l,
-					labelXOffsets[i]+x, y,
-					tightpixel15.Font)
+	for i, key := range k {
+		if key.blinking {
+			if time.Since(key.lastBlink) >= 100*time.Millisecond {
+				k[i].lastBlink = time.Now()
+				k[i].on = !key.on
 			}
+			fmt.Println(key.on)
+			if key.on {
+				drawKey(img, key.label, i, x, y)
+			}
+		} else {
+			drawKey(img, key.label, i, x, y)
+		}
+	}
+}
+
+func drawKey(img draw.Image, label string, index, x, y int) {
+	if label != "" {
+		if allCaps(label) { // if label is all caps, move down two pixels to center
+			DrawTxtCentered(img, label,
+				labelXOffsets[index]+x, y+2,
+				tightpixel15.Font)
+		} else {
+			DrawTxtCentered(img, label,
+				labelXOffsets[index]+x, y,
+				tightpixel15.Font)
 		}
 	}
 }
