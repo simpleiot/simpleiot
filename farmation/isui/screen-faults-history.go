@@ -64,18 +64,29 @@ func (s *FaultsHistoryScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) 
 // is less than 24 hrs away and a date (form yy/mm/dd) otherwise
 func formatTime(t time.Time) string {
 
-	if time.Since(t) >= time.Duration(24*time.Hour) {
+	if time.Since(t) >= time.Duration(12*time.Hour) {
 		y, m, d := t.Date()
-		return a(int(y)) + "/" + a(int(m)) + "/" + a(int(d))
+		return a(int(y), true) + "/" + a(int(m), true) + "/" + a(int(d), true)
 	}
 	h, m, s := t.Clock()
-	return a(h) + ":" + a(m) + ":" + a(s)
+	return a(h, false) + ":" + a(m, false) + ":" + a(s, false)
 }
 
-func a(i int) string {
+func a(i int, date bool) string {
 	a := strconv.Itoa(i)
-	if len(a) <= 1 {
-		a = "0" + a
+
+	// for dates, if yyyy, make yy
+	if date {
+		if len(a) == 4 { // if the string is a yyyy
+			a = a[2:] // make yy
+		}
+
+		// for times, add 0 in front of one digit values
+	} else {
+
+		if len(a) <= 1 {
+			a = "0" + a
+		}
 	}
 	return a
 }
