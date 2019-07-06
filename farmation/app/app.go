@@ -147,7 +147,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		// pace the sending of states to various subsystems every 500ms
 		// so we don't overload things
 		now := time.Now()
-		if now.Sub(lastStateSend) > 250*time.Millisecond {
+		if now.Sub(lastStateSend) > 200*time.Millisecond {
 			uiChan <- state
 			ioChan <- state
 			cntrlChan <- state
