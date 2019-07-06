@@ -1,7 +1,6 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 	"log"
 	"time"
@@ -99,18 +98,17 @@ func (k *SoftKeys) Render(img draw.Image, x, y int) {
 			127, 55)
 	}
 
-	for i, key := range k {
-		if key.blinking {
-			if time.Since(key.lastBlink) >= 100*time.Millisecond {
+	for i := range k {
+		if k[i].blinking {
+			if time.Since(k[i].lastBlink) >= 490*time.Millisecond {
 				k[i].lastBlink = time.Now()
-				k[i].on = !key.on
+				k[i].on = !k[i].on
 			}
-			fmt.Println(key.on)
-			if key.on {
-				drawKey(img, key.label, i, x, y)
+			if k[i].on {
+				drawKey(img, k[i].label, i, x, y)
 			}
 		} else {
-			drawKey(img, key.label, i, x, y)
+			drawKey(img, k[i].label, i, x, y)
 		}
 	}
 }
