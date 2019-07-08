@@ -216,15 +216,16 @@ func (m *Menu) Render(img draw.Image) {
 
 	if !m.showValues {
 		x = 30
-		Arrow(img, x-8, 17+arrowScreenPos*menuSpacingText)
+		Arrow(img, x-8, 15+arrowScreenPos*menuSpacingText)
 	} else {
 		if m.items[0].Type != MenuItemStringLong {
-			Arrow(img, x+65, 17+arrowScreenPos*menuSpacingValues)
+			Arrow(img, x+65, 15+arrowScreenPos*menuSpacingValues)
 		} else { // arrow needs moved over for long string
-			Arrow(img, x+35, 17+arrowScreenPos*menuSpacingValues)
+			Arrow(img, x+35, 15+arrowScreenPos*menuSpacingValues)
 		}
 	}
 
+	y = 11
 	for i := start; i <= end; i++ {
 		screenIndex := i - start
 		item := m.items[i]
@@ -247,7 +248,7 @@ func (m *Menu) Render(img draw.Image) {
 			// draw values
 			if item.Type != MenuItemTypeAutoOffOn && // auto/off/on needs slightly wider rect
 				item.Type != MenuItemStringLong {
-				Rect(img, 76, 12+offsetValues, 45, menuSpacingValues)
+				Rect(img, 76, 10+offsetValues, 45, menuSpacingValues)
 			}
 			switch item.Type {
 			case MenuItemTypeScreen:
@@ -276,7 +277,7 @@ func (m *Menu) Render(img draw.Image) {
 					DrawTxtRev(img, "off", 81+tightpixel15.Font.MeasureString("on")+13, 13+offsetValues, tightpixel15.Font)
 				}
 			case MenuItemTypeAutoOffOn:
-				Rect(img, 76, 12+offsetValues, 47, menuSpacingValues)
+				Rect(img, 76, 10+offsetValues, 47, menuSpacingValues)
 				DrawTxt(img, "auto", 78, 13+offsetValues, tightpixel15.Font)
 				DrawTxt(img, "off", 78+tightpixel15.Font.MeasureString("auto")+2, 13+offsetValues, tightpixel15.Font)
 				DrawTxt(img, "on", 78+tightpixel15.Font.MeasureString("autooff")+4, 13+offsetValues, tightpixel15.Font)
