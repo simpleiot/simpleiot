@@ -40,7 +40,7 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	s.menu.AddItemFloat("Low Lev Alm", s.config.LowWindowPerc)
 	s.menu.AddItemFloat("Manual High", s.config.ManualHighAlarmGPH)
 	s.menu.AddItemFloat("Manual Low", s.config.ManualLowAlarmGPH)
-	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled, isdata.UpdatePressureShutdownEnabled())
+	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled, isdata.UpdatePressureShutdownEnabled{})
 	s.menu.AddItemFloat("Pres Low", s.config.PressureShutdownLow)
 	//s.menu.AddItemInt("Batch Amount", int(config.BatchAmount))
 	//s.menu.AddItemInt("Batch Applied", 0)
