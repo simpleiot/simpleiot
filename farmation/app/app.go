@@ -311,6 +311,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.ManualLowAlarmGPH = float64(m)
 				saveConfig()
 
+			case isdata.UpdatePressureShutdownLow:
+				config.PressureShutdownLow = float64(m)
+				saveConfig()
+
 			case isdata.UpdateManualHighAlarmGPH:
 				config.ManualHighAlarmGPH = float64(m)
 				saveConfig()
@@ -441,6 +445,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
 				saveConfig()
 
+			case isdata.UpdatePressureShutdownEnabled:
+				config.PressureShutdownEnabled = bool(m)
+				saveConfig()
+
 			case isdata.UpdateGpioRelayInjector:
 				state.GpioRelayInjectorEn = bool(m)
 				saveState()
@@ -552,6 +560,7 @@ func toggleArm(config *isdata.Config, state *isdata.State) {
 	config.Arm = !config.Arm
 	if config.Arm { // if the arm switch was turned on
 		config.FlowRateTarget = state.FlowRate // set target flow rate to current
+		config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
 	}
 }
 

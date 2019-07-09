@@ -86,6 +86,9 @@ type UpdateManualRelayAux int
 // UpdateManualRelayShutdown is used to toggle the shutdown relay
 type UpdateManualRelayShutdown int
 
+// UpdatePressureShutdownEnabled is used to enable/disable pressure-initiated shutdown
+type UpdatePressureShutdownEnabled bool
+
 // UpdateManualRelayAll is used to toggle all the relays to a state
 type UpdateManualRelayAll int
 
@@ -115,6 +118,9 @@ type UpdateHighWindowPerc float64
 
 // UpdateManualLowAlarmGPH is used to send a new flow rate window low gallons per hour
 type UpdateManualLowAlarmGPH float64
+
+// UpdatePressureShutdownLow is used to send a new pressure low
+type UpdatePressureShutdownLow float64
 
 // UpdateManualHighAlarmGPH is used to send a new flow rate window high GPH
 type UpdateManualHighAlarmGPH float64

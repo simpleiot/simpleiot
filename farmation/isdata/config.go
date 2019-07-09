@@ -8,8 +8,14 @@ type Config struct {
 	// ID is an alphanumeric name limitted to 16 chars in length
 	ID string
 
-	//FlowRateTarget is set by pressing the arm switch
+	// FlowRateTarget is set by pressing the arm switch
 	FlowRateTarget float64
+
+	// PressureShutdownEnabled allows users to disable the pressure shutdown functionality
+	PressureShutdownEnabled bool
+
+	// PressureShutdownMin is the lower bound set by pressing the arm switch
+	PressureShutdownLow float64
 
 	// High/LowWindow will be displayed as decimal if under 10.
 	// These values are % from the flow target that will trigger
@@ -24,7 +30,10 @@ type Config struct {
 	ManualHighAlarmGPH float64
 	ManualLowAlarmGPH  float64
 
-	// This is the time in seconds until the system recognizes and alarm
+	// LowPresPerc is the percent lower than the current pressure min necessary to shutdown the system
+	LowPresPerc float64
+
+	// This is the time in seconds until the system recognizes flow off target
 	AlarmRecognizeSec float64
 
 	// This is the time in minutes until the system activates the shutdown
@@ -395,6 +404,10 @@ func (c *Config) Init() {
 
 	if c.LowWindowPerc <= 0 {
 		c.LowWindowPerc = 15
+	}
+
+	if c.LowPresPerc <= 0 {
+		c.LowPresPerc = 50
 	}
 
 	if c.AlarmRecognizeSec <= 0 {

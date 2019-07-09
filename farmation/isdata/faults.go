@@ -11,6 +11,7 @@ type FaultType int
 // only modify by adding to end of list
 const (
 	FaultTypeIrrOff FaultType = iota
+	FaultTypeLowPres
 )
 
 // String returns a message for a fault type
@@ -18,6 +19,8 @@ func (ft FaultType) String() string {
 	switch ft {
 	case FaultTypeIrrOff:
 		return "irrigator didnt fill"
+	case FaultTypeLowPres:
+		return "min pressure too low: possible leak"
 	}
 	return "unknown fault"
 }

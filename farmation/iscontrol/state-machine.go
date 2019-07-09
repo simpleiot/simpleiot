@@ -53,6 +53,7 @@ const (
 	waitingForWaterAck
 	monitoringFlow
 	flowOffTarget
+	lowPressure
 	irrigatorOff
 	shutdownStart
 	disarm
@@ -81,6 +82,8 @@ func (s state) String() string {
 		return "waitingForWaterAck"
 	case flowOffTarget:
 		return "flowOffTarget"
+	case lowPressure:
+		return "lowPressure"
 	case irrigatorOff:
 		return "irrigatorOff"
 	case shutdown1:
@@ -237,6 +240,12 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(flowOffTarget)
 		}
 
+		if sm.config.PressureShutdownEnabled {
+			if sm.state.PressureMin < sm.config.LowPresPerc {
+				sm.setState(lowPressure)
+			}
+		}
+
 		if sm.state.DialogStateMachine.Active {
 			return isdata.UpdateDialogClose{}
 		}
@@ -260,6 +269,17 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(disarm)
 		} else if sm.state.FlowStatus == isdata.FlowStatusArmedOk {
 			sm.setState(monitoringFlow)
+		}
+
+	case lowPressure:
+
+		sm.RelayInjector = sm.state.GpioDigitalInjector
+		sm.CurrentLedState = LedRedBlnk
+
+		sm.setState(disarm)
+		return isdata.UpdateFault{
+			Fault: isdata.FaultTypeLowPres,
+			Time:  time.Now(),
 		}
 
 	case irrigatorOff:

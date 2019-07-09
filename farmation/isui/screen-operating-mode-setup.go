@@ -40,6 +40,8 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	s.menu.AddItemFloat("Low Lev Alm", s.config.LowWindowPerc)
 	s.menu.AddItemFloat("Manual High", s.config.ManualHighAlarmGPH)
 	s.menu.AddItemFloat("Manual Low", s.config.ManualLowAlarmGPH)
+	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled, isdata.UpdatePressureShutdownEnabled())
+	s.menu.AddItemFloat("Pres Low", s.config.PressureShutdownLow)
 	//s.menu.AddItemInt("Batch Amount", int(config.BatchAmount))
 	//s.menu.AddItemInt("Batch Applied", 0)
 
@@ -74,6 +76,8 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 				return ScreenIDNoChange, isdata.UpdateManualHighAlarmGPH(value), true
 			case 5:
 				return ScreenIDNoChange, isdata.UpdateManualLowAlarmGPH(value), true
+			case 6:
+				return ScreenIDNoChange, isdata.UpdatePressureShutdownLow(value), true
 			}
 		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
@@ -113,16 +117,19 @@ func (s *OperatingModeSetupScreen) enterEdit() {
 		s.textEntryScreen.headerLabel = "Minutes"
 	case 2:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.HighWindowPerc)) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "High Percentage"
+		s.textEntryScreen.headerLabel = "High Percent"
 	case 3:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.LowWindowPerc)) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Low Percentage"
+		s.textEntryScreen.headerLabel = "Low Percent"
 	case 4:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualHighAlarmGPH)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "High GPH"
 	case 5:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualLowAlarmGPH)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Low GPH"
+	case 6:
+		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.PressureShutdownLow)) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "Pres Low Percent"
 	}
 
 	s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit
