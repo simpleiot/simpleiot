@@ -564,7 +564,7 @@ func toggleArm(config *isdata.Config, state *isdata.State) {
 	config.Arm = !config.Arm
 	if config.Arm { // if the arm switch was turned on
 		config.FlowRateTarget = state.FlowRate // set target flow rate to current
-		config.PressureShutdownLow = 20        //state.PressureMin - state.PressureMin*config.LowPresPerc/100
+		config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
 	}
 }
 
