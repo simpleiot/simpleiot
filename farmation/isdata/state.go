@@ -127,28 +127,18 @@ type FaultActive int
 // define valid active faults
 const (
 	FaultActiveIrrigator FaultActive = iota
+	FaultActiveLowPres
 )
 
 // FaultsActive defines a map for FaultsActive
-type FaultsActive map[FaultActive]bool
+type FaultsActive []Fault
 
 // ActiveFaults returns true if any fault is active and false otherwise
 func (fa FaultsActive) ActiveFaults() bool {
-	for _, fault := range fa {
-		if fault == true {
-			return true
-		}
+	if len(fa) >= 1 {
+		return true
 	}
 	return false
-}
-
-// SetFalse sets **all** faults to false
-func (fa FaultsActive) SetFalse() {
-	// TODO this is very strange -- can use this but can't use
-	// range's direct value mechanism
-	for i := range fa {
-		fa[i] = false
-	}
 }
 
 // Dialog defines a modal dialog that must be acknowledged
@@ -201,10 +191,6 @@ func InitState(s *State) (dirty bool) {
 		s.SystemType = SystemTypeIS
 	} else {
 		s.SystemType = SystemTypeISSim
-	}
-
-	if s.FaultsActive == nil {
-		s.FaultsActive = make(FaultsActive)
 	}
 
 	s.FlowRate = 0

@@ -32,8 +32,8 @@ func (s *FaultsActiveScreen) Render(img draw.Image) {
 	yPos := 14
 	spacing := font.GetHeight() + 2
 
-	if s.state.FaultsActive[isdata.FaultActiveIrrigator] {
-		DrawTxtCentered(img, "IRRIGATOR DIDNT FILL UP", 64, yPos, font)
+	for i := len(s.state.FaultsActive) - 1; i >= 0; i-- {
+		DrawTxtCentered(img, s.state.FaultsActive[i].Fault.StringVerbose(), 64, yPos, font)
 		yPos += spacing
 	}
 

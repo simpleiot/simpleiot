@@ -245,7 +245,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					saveState()
 				case isdata.SampleTypeSimArm:
 					if config.OperatingMode != isdata.ISOperatingModeMonitor {
-						fmt.Println("APP.GO: user toggled arm")
 						toggleArm(&config, &state)
 					} else {
 						openArmDialog(&state)
@@ -517,14 +516,11 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 
 			case isdata.UpdateFaultActiveClearAll:
-				state.FaultsActive.SetFalse()
+				state.FaultsActive = nil
 				saveState()
 
 			case isdata.UpdateFault:
-				switch m.Fault {
-				case isdata.FaultTypeIrrOff:
-					state.FaultsActive[isdata.FaultActiveIrrigator] = true
-				}
+				state.FaultsActive = append(state.FaultsActive, isdata.Fault(m))
 				saveState()
 				db.WriteFaultHist(isdata.Fault(m))
 
@@ -568,7 +564,7 @@ func toggleArm(config *isdata.Config, state *isdata.State) {
 	config.Arm = !config.Arm
 	if config.Arm { // if the arm switch was turned on
 		config.FlowRateTarget = state.FlowRate // set target flow rate to current
-		config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
+		config.PressureShutdownLow = 20        //state.PressureMin - state.PressureMin*config.LowPresPerc/100
 	}
 }
 

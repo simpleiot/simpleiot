@@ -20,7 +20,18 @@ func (ft FaultType) String() string {
 	case FaultTypeIrrOff:
 		return "irrigator didnt fill"
 	case FaultTypeLowPres:
-		return "min pressure too low: possible leak"
+		return "low pressure"
+	}
+	return "unknown fault"
+}
+
+// StringVerbose returns a message for the active faults screen
+func (ft FaultType) StringVerbose() string {
+	switch ft {
+	case FaultTypeIrrOff:
+		return "Irrigator didnt fill"
+	case FaultTypeLowPres:
+		return "Low pressure - possible leak"
 	}
 	return "unknown fault"
 }
