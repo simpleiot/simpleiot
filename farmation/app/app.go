@@ -447,6 +447,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdatePressureShutdownEnabled:
 				config.PressureShutdownEnabled = !config.PressureShutdownEnabled
+				if !config.PressureShutdownEnabled {
+					state.DialogApp.Active = true
+					state.DialogApp.Message = "You just disabled low-pressure shutdown"
+				}
 				saveConfig()
 
 			case isdata.UpdateGpioRelayInjector:

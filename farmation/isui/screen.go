@@ -89,11 +89,14 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 
 // Render is used to draw a list of params, handles scrolling, etc.
 func (s *Screens) Render(img draw.Image) {
-	if s.state.DialogArm.Active {
+	switch {
+	case s.state.DialogArm.Active:
 		s.dialog.Render(img, s.state.DialogArm.Message)
-	} else if s.state.DialogStateMachine.Active {
+	case s.state.DialogStateMachine.Active:
 		s.dialog.Render(img, s.state.DialogStateMachine.Message)
-	} else {
+	case s.state.DialogApp.Active:
+		s.dialog.Render(img, s.state.DialogApp.Message)
+	default:
 		s.screens[s.currentScreen].Render(img)
 	}
 }

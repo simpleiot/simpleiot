@@ -77,6 +77,8 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 			case 5:
 				return ScreenIDNoChange, isdata.UpdateManualLowAlarmGPH(value), true
 			case 6:
+				return ScreenIDNoChange, isdata.UpdatePressureShutdownEnabled{}, true
+			case 7:
 				return ScreenIDNoChange, isdata.UpdatePressureShutdownLow(value), true
 			}
 		case TextEntryCommandCancel: // cancel
@@ -88,9 +90,18 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
-			s.enterEdit()
+			switch s.menu.GetArrowPos() {
+			case 6: // An on/off selection -- do nothing
+			default:
+				s.enterEdit()
+			}
 		case isdata.KeyEnter: // Edit
-			s.enterEdit()
+			switch s.menu.GetArrowPos() {
+			case 6:
+				return s.menu.Key(key)
+			default:
+				s.enterEdit()
+			}
 		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft:
 			return s.menu.Key(key)
 		}
