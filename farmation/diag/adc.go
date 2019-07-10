@@ -54,7 +54,7 @@ func (d adcPressureSense) Run() (ret error) {
 
 	if sense < min || sense > max {
 		fmt.Println("sense: ", sense)
-		return errors.New("pressure sense is out of range")
+		return errors.New("pressure sense is out of range, pres ref should be connected to pres sense")
 	}
 
 	return nil
@@ -72,7 +72,7 @@ func (d adcPanelSense) Run() (ret error) {
 		return err
 	}
 
-	if vPanelSense < 2.15 || vPanelSense > 2.17 {
+	if vPanelSense < 2.85 || vPanelSense > 2.95 {
 		fmt.Println("vPanelSense, expected 2.16, got: ", vPanelSense)
 		return errors.New("vPanelSense is out of range")
 	}
