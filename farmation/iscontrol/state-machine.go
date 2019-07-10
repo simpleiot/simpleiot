@@ -183,12 +183,13 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 		if sm.state.DialogStateMachine.Active {
-			return isdata.UpdateDialogClose{}
+			return isdata.UpdateDialogStateMachineClose{}
 		}
 
 	// below states are for monitor/shutdown
 	case standby:
 
+		sm.RelayInjector = sm.state.GpioDigitalInjector
 		sm.CurrentLedState = LedGreenBlnk
 
 		if sm.config.Arm {
@@ -208,7 +209,7 @@ func (sm *StateMachine) Run() interface{} {
 		} else {
 			if !sm.state.DialogStateMachine.Active {
 				sm.setState(waitingForWaterAck)
-				return isdata.UpdateDialogMessage("Waiting for water")
+				return isdata.UpdateDialogStateMachineMessage("Waiting for water")
 			}
 		}
 
@@ -219,7 +220,7 @@ func (sm *StateMachine) Run() interface{} {
 		if sm.state.DialogStateMachine.Active {
 			if sm.state.DialogStateMachine.Acknowledged ||
 				sm.state.GpioDigitalWaterOn {
-				return isdata.UpdateDialogClose{}
+				return isdata.UpdateDialogStateMachineClose{}
 			}
 		} else {
 			if sm.state.GpioDigitalWaterOn {
@@ -247,7 +248,7 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 		if sm.state.DialogStateMachine.Active {
-			return isdata.UpdateDialogClose{}
+			return isdata.UpdateDialogStateMachineClose{}
 		}
 
 		if sm.state.GpioDigitalIrrigator {
@@ -347,10 +348,10 @@ func (sm *StateMachine) Run() interface{} {
 		if !sm.state.DialogStateMachine.Active {
 			sm.setState(standby)
 			if sm.state.GpioDigitalWaterOn {
-				return isdata.UpdateDialogMessage("failed to shutdown")
+				return isdata.UpdateDialogStateMachineMessage("failed to shutdown")
 			}
 
-			return isdata.UpdateDialogMessage("system shut down")
+			return isdata.UpdateDialogStateMachineMessage("system shut down")
 		}
 	}
 

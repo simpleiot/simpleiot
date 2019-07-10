@@ -87,7 +87,7 @@ type UpdateManualRelayAux int
 type UpdateManualRelayShutdown int
 
 // UpdatePressureShutdownEnabled is used to enable/disable pressure-initiated shutdown
-type UpdatePressureShutdownEnabled bool
+type UpdatePressureShutdownEnabled struct{}
 
 // UpdateManualRelayAll is used to toggle all the relays to a state
 type UpdateManualRelayAll int
@@ -152,14 +152,17 @@ type UpdateLedRed bool
 // UpdateLedGreen is used to set the led green on/off
 type UpdateLedGreen bool
 
-// UpdateDialogMessage is used to activate and display a modal dialog
-type UpdateDialogMessage string
+// UpdateDialogStateMachineMessage is used to activate and display a modal dialog
+type UpdateDialogStateMachineMessage string
 
-// UpdateDialogAck is used to acknowledge a modal dialog
-type UpdateDialogAck struct{}
+// UpdateDialogStateMachineAck is used to acknowledge a modal dialog
+type UpdateDialogStateMachineAck struct{}
 
-// UpdateDialogClose is used to close a dialog after it has been acked
-type UpdateDialogClose struct{}
+// UpdateDialogStateMachineClose is used to close a dialog after it has been acked
+type UpdateDialogStateMachineClose struct{}
 
 // UpdateDialogArmClose is used to close the arm error dialog
 type UpdateDialogArmClose struct{}
+
+// UpdateDialogAppClose is used to close the error dialog that originates from app.go
+type UpdateDialogAppClose struct{}

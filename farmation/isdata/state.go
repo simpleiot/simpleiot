@@ -61,6 +61,8 @@ type State struct {
 	DialogStateMachine Dialog
 
 	DialogArm Dialog
+
+	DialogApp Dialog
 }
 
 // InputState is a type that describes if the input is avaliable, and what its state is

@@ -446,7 +446,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveConfig()
 
 			case isdata.UpdatePressureShutdownEnabled:
-				config.PressureShutdownEnabled = bool(m)
+				config.PressureShutdownEnabled = !config.PressureShutdownEnabled
 				saveConfig()
 
 			case isdata.UpdateGpioRelayInjector:
@@ -524,23 +524,27 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 				db.WriteFaultHist(isdata.Fault(m))
 
-			case isdata.UpdateDialogMessage:
+			case isdata.UpdateDialogStateMachineMessage:
 				state.DialogStateMachine.Message = string(m)
 				state.DialogStateMachine.Active = true
 				state.DialogStateMachine.Acknowledged = false
 				saveState()
 
-			case isdata.UpdateDialogAck:
+			case isdata.UpdateDialogStateMachineAck:
 				state.DialogStateMachine.Acknowledged = true
 				state.DialogStateMachine.Active = false
 				saveState()
 
-			case isdata.UpdateDialogClose:
+			case isdata.UpdateDialogStateMachineClose:
 				state.DialogStateMachine.Active = false
 				saveState()
 
 			case isdata.UpdateDialogArmClose:
 				state.DialogArm.Active = false
+				saveState()
+
+			case isdata.UpdateDialogAppClose:
+				state.DialogApp.Active = false
 				saveState()
 
 			case isdata.PanelDefinition:

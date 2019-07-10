@@ -102,14 +102,18 @@ func (s *Screens) Render(img draw.Image) {
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 	// dialogs
-	if s.state.DialogArm.Active {
+	switch {
+	case s.state.DialogArm.Active:
 		if key == isdata.KeySK1 {
 			return ScreenIDNoChange, isdata.UpdateDialogArmClose{}, true
 		}
-
-	} else if s.state.DialogStateMachine.Active {
+	case s.state.DialogStateMachine.Active:
 		if key == isdata.KeySK1 {
-			return ScreenIDNoChange, isdata.UpdateDialogAck{}, true
+			return ScreenIDNoChange, isdata.UpdateDialogStateMachineAck{}, true
+		}
+	case s.state.DialogApp.Active:
+		if key == isdata.KeySK1 {
+			return ScreenIDNoChange, isdata.UpdateDialogAppClose{}, true
 		}
 	}
 
