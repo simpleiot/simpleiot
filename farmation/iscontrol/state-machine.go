@@ -233,30 +233,26 @@ func (sm *StateMachine) Run() interface{} {
 		sm.RelayInjector = sm.state.GpioDigitalInjector
 		sm.CurrentLedState = LedGreen
 
-		if !sm.state.GpioDigitalWaterOn {
+		switch {
+		case !sm.state.GpioDigitalWaterOn:
 			sm.setState(waitingForWater)
-		}
 
-		if sm.state.FlowStatus == isdata.FlowStatusOffTarget {
+		case sm.state.FlowStatus == isdata.FlowStatusOffTarget:
 			sm.setState(flowOffTarget)
-		}
 
-		if sm.config.PressureShutdownEnabled {
-			if sm.state.PressureMin < sm.config.LowPresPerc {
+		case sm.config.PressureShutdownEnabled:
+			if sm.state.PressureMin < sm.config.PressureShutdownLow {
 				sm.setState(lowPressure)
 			}
-		}
 
-		if sm.state.DialogStateMachine.Active {
+		case sm.state.DialogStateMachine.Active:
 			return isdata.UpdateDialogStateMachineClose{}
-		}
 
-		if sm.state.GpioDigitalIrrigator {
+		case sm.state.GpioDigitalIrrigator:
 			sm.timeEvent = time.Now()
-		}
 
-		// if alarm time has elapsed
-		if time.Since(sm.timeEvent) >= time.Duration(sm.config.IrrigatorOffMin)*time.Minute {
+			// if alarm time has elapsed
+		case time.Since(sm.timeEvent) >= time.Duration(sm.config.IrrigatorOffMin)*time.Minute:
 			sm.setState(irrigatorOff)
 		}
 
