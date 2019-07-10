@@ -267,27 +267,29 @@ func (m *Menu) Render(img draw.Image) {
 				v := strconv.FormatFloat(item.Value, 'f', 2, 64)
 				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeOnOff:
-				DrawTxt(img, "on   off", 82, 13+offsetValues, tightpixel15.Font)
+				yShift := 11
+				DrawTxt(img, "on   off", 82, yShift+offsetValues, tightpixel15.Font)
 				switch item.On {
 				case true:
-					RectFilled(img, 79, 13+offsetValues, tightpixel15.Font.MeasureString("on")+3, 10)
-					DrawTxtRev(img, "on", 81, 13+offsetValues, tightpixel15.Font)
+					RectFilled(img, 79, yShift+offsetValues, tightpixel15.Font.MeasureString("on")+3, 10)
+					DrawTxtRev(img, "on", 81, yShift+offsetValues, tightpixel15.Font)
 				case false:
-					RectFilled(img, 79+tightpixel15.Font.MeasureString("on")+13, 13+offsetValues, tightpixel15.Font.MeasureString("off")+3, 10)
-					DrawTxtRev(img, "off", 81+tightpixel15.Font.MeasureString("on")+13, 13+offsetValues, tightpixel15.Font)
+					RectFilled(img, 79+tightpixel15.Font.MeasureString("on")+13, yShift+offsetValues, tightpixel15.Font.MeasureString("off")+3, 10)
+					DrawTxtRev(img, "off", 81+tightpixel15.Font.MeasureString("on")+13, yShift+offsetValues, tightpixel15.Font)
 				}
 			case MenuItemTypeAutoOffOn:
+				yShift := 11
 				Rect(img, 76, 10+offsetValues, 47, menuSpacingValues)
-				DrawTxt(img, "auto", 78, 13+offsetValues, tightpixel15.Font)
-				DrawTxt(img, "off", 78+tightpixel15.Font.MeasureString("auto")+2, 13+offsetValues, tightpixel15.Font)
-				DrawTxt(img, "on", 78+tightpixel15.Font.MeasureString("autooff")+4, 13+offsetValues, tightpixel15.Font)
+				DrawTxt(img, "auto", 78, yShift+offsetValues, tightpixel15.Font)
+				DrawTxt(img, "off", 78+tightpixel15.Font.MeasureString("auto")+2, yShift+offsetValues, tightpixel15.Font)
+				DrawTxt(img, "on", 78+tightpixel15.Font.MeasureString("autooff")+4, yShift+offsetValues, tightpixel15.Font)
 				switch item.AutoOffOn {
 				case 0:
-					DrawTxtRev(img, "auto", 78, 13+offsetValues, tightpixel15.Font)
+					DrawTxtRev(img, "auto", 78, yShift+offsetValues, tightpixel15.Font)
 				case 1:
-					DrawTxtRev(img, "off", 78+tightpixel15.Font.MeasureString("auto")+2, 13+offsetValues, tightpixel15.Font)
+					DrawTxtRev(img, "off", 78+tightpixel15.Font.MeasureString("auto")+2, yShift+offsetValues, tightpixel15.Font)
 				case 2:
-					DrawTxtRev(img, "on", 78+tightpixel15.Font.MeasureString("autooff")+4, 13+offsetValues, tightpixel15.Font)
+					DrawTxtRev(img, "on", 78+tightpixel15.Font.MeasureString("autooff")+4, yShift+offsetValues, tightpixel15.Font)
 				}
 			}
 		}
