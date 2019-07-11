@@ -197,7 +197,7 @@ func InitState(s *State) (dirty bool) {
 
 	s.FlowRate = 0
 
-	s.PressureMin = 10
+	s.PressureMin = 0
 	s.PressureAvg = 0
 	s.PressureMax = 0
 	s.PressureVRef = 0

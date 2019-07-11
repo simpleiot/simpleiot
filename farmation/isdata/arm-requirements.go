@@ -17,6 +17,6 @@ func ArmReqMet(config *Config, state *State) [5]bool {
 	ret[1] = state.GpioDigitalInjector
 	ret[2] = state.GpioDigitalIrrigator
 	ret[3] = state.FlowRate > 0
-	ret[4] = int(state.PressureMin) > config.PressureStartupLow
+	ret[4] = int(state.PressureMin) >= config.PressureStartupLow
 	return ret
 }
