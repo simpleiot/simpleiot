@@ -17,7 +17,8 @@ type StateMachine struct {
 	// state machine internals
 	machineState     state
 	timeStateEntered time.Time
-	timeEvent        time.Time // timestamp to determine if irrigator has been off for more than allowed time
+	lastIrrigatorOn  time.Time // timestamp to determine if irrigator has been off for more than allowed time
+	lastGoodFlow     time.Time
 
 	// state machine static outputs
 	RelayShutdown   bool
@@ -52,9 +53,6 @@ const (
 	waitingForWater
 	waitingForWaterAck
 	monitoringFlow
-	flowOffTarget
-	lowPressure
-	irrigatorOff
 	shutdownStart
 	disarm
 	shutdown1
@@ -80,12 +78,6 @@ func (s state) String() string {
 		return "waitingForWater"
 	case waitingForWaterAck:
 		return "waitingForWaterAck"
-	case flowOffTarget:
-		return "flowOffTarget"
-	case lowPressure:
-		return "lowPressure"
-	case irrigatorOff:
-		return "irrigatorOff"
 	case shutdown1:
 		return "shutdown1"
 	case shutdownMonitor1:
@@ -229,70 +221,51 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 	case monitoringFlow:
-
 		sm.RelayInjector = sm.state.GpioDigitalInjector
-		sm.CurrentLedState = LedGreen
+
+		if sm.state.FlowStatus == isdata.FlowStatusOffTarget {
+			sm.CurrentLedState = LedRedBlnk
+		} else {
+			sm.CurrentLedState = LedGreen
+		}
 
 		if sm.state.DialogStateMachine.Active {
 			return isdata.UpdateDialogStateMachineClose{}
 		}
 
+		if sm.state.FlowStatus == isdata.FlowStatusArmedOk {
+			sm.lastGoodFlow = time.Now()
+		}
+
+		if sm.state.GpioDigitalIrrigator {
+			sm.lastIrrigatorOn = time.Now()
+		}
+
+		// the following switch statement is used only to determine next case. Keep all other logic
+		// above.
 		switch {
 		case !sm.state.GpioDigitalWaterOn:
 			sm.setState(waitingForWater)
 
-		case sm.state.FlowStatus == isdata.FlowStatusOffTarget: // if flow is off target
-			if sm.RelayInjector { // and the pump is on
-				sm.setState(flowOffTarget)
-			}
-
-		case sm.config.PressureShutdownEnabled:
-			if sm.state.PressureMin < sm.config.PressureShutdownLow {
-				sm.setState(lowPressure)
-			}
-
-		case sm.state.GpioDigitalIrrigator:
-			sm.timeEvent = time.Now()
-
-			// if alarm time has elapsed
-		case time.Since(sm.timeEvent) >= time.Duration(sm.config.IrrigatorOffMin)*time.Minute:
-			sm.setState(irrigatorOff)
-		}
-
-	case flowOffTarget:
-
-		sm.RelayInjector = sm.state.GpioDigitalInjector
-		sm.CurrentLedState = LedRedBlnk
-
-		switch {
-		case sm.state.FlowStatus == isdata.FlowStatusArmedOk:
-			sm.setState(monitoringFlow)
-		case !sm.RelayInjector:
-			sm.setState(monitoringFlow)
-		case sm.elapsed() >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second:
+		case time.Since(sm.lastGoodFlow) >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second &&
+			sm.state.GpioDigitalInjector:
 			sm.setState(disarm)
-		}
 
-	case lowPressure:
+		case sm.config.PressureShutdownEnabled &&
+			sm.state.PressureMin < sm.config.PressureShutdownLow &&
+			sm.state.GpioDigitalInjector:
+			sm.setState(disarm)
+			return isdata.UpdateFault{
+				Fault: isdata.FaultTypeLowPres,
+				Time:  time.Now(),
+			}
 
-		sm.RelayInjector = sm.state.GpioDigitalInjector
-		sm.CurrentLedState = LedRedBlnk
-
-		sm.setState(disarm)
-		return isdata.UpdateFault{
-			Fault: isdata.FaultTypeLowPres,
-			Time:  time.Now(),
-		}
-
-	case irrigatorOff:
-
-		sm.RelayInjector = sm.state.GpioDigitalInjector
-		sm.CurrentLedState = LedRedBlnk
-
-		sm.setState(disarm)
-		return isdata.UpdateFault{
-			Fault: isdata.FaultTypeIrrOff,
-			Time:  time.Now(),
+		case time.Since(sm.lastIrrigatorOn) >= time.Duration(sm.config.IrrigatorOffMin)*time.Minute:
+			sm.setState(disarm)
+			return isdata.UpdateFault{
+				Fault: isdata.FaultTypeIrrOff,
+				Time:  time.Now(),
+			}
 		}
 
 	case disarm:
