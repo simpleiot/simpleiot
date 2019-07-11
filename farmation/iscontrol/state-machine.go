@@ -18,6 +18,7 @@ type StateMachine struct {
 	machineState     state
 	timeStateEntered time.Time
 	lastGoodFlow     time.Time
+	lastGoodPressure time.Time
 
 	// state machine static outputs
 	RelayShutdown   bool
@@ -115,6 +116,13 @@ func (sm *StateMachine) setState(newState state) {
 		log.Println("New state: ", newState)
 		sm.machineState = newState
 		sm.timeStateEntered = time.Now()
+
+		if newState == monitoringFlow {
+			// reset timestamps as we enter monitoring flow
+			// so we give the flow and pressure time to stabalize
+			sm.lastGoodFlow = time.Now()
+			sm.lastGoodPressure = time.Now()
+		}
 	}
 }
 
@@ -256,7 +264,9 @@ func (sm *StateMachine) Run() interface{} {
 	case monitoringFlow:
 		sm.RelayInjector = sm.state.GpioDigitalInjector
 
-		if sm.state.FlowStatus == isdata.FlowStatusOffTarget {
+		lowPressure := sm.state.PressureMin < sm.config.PressureShutdownLow
+
+		if sm.state.FlowStatus == isdata.FlowStatusOffTarget || lowPressure {
 			sm.CurrentLedState = LedRedBlnk
 		} else {
 			sm.CurrentLedState = LedGreen
@@ -268,6 +278,10 @@ func (sm *StateMachine) Run() interface{} {
 
 		if sm.state.FlowStatus == isdata.FlowStatusArmedOk {
 			sm.lastGoodFlow = time.Now()
+		}
+
+		if !lowPressure {
+			sm.lastGoodPressure = time.Now()
 		}
 
 		// the following switch statement is used only to determine next case. Keep all other logic
@@ -284,8 +298,9 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(disarm)
 
 		case sm.config.PressureShutdownEnabled &&
-			sm.state.PressureMin < sm.config.PressureShutdownLow &&
-			sm.state.GpioDigitalInjector:
+			lowPressure &&
+			sm.state.GpioDigitalInjector &&
+			time.Since(sm.lastGoodPressure) >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second:
 			sm.setState(disarm)
 			return isdata.UpdateFault{
 				Fault: isdata.FaultTypeLowPres,
