@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/timshannon/bolthold"
@@ -119,5 +120,5 @@ func (db *IsDb) WriteState(state *isdata.State) error {
 
 // WriteFaultHist writes the system fault history to the database
 func (db *IsDb) WriteFaultHist(fault isdata.Fault) error {
-	return db.store.Insert(bolthold.NextSequence(), fault)
+	return db.store.Insert(time.Now(), fault)
 }
