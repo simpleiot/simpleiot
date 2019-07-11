@@ -14,8 +14,11 @@ type Config struct {
 	// PressureShutdownEnabled allows users to disable the pressure shutdown functionality
 	PressureShutdownEnabled bool
 
-	// PressureShutdownMin is the lower bound set by pressing the arm switch
+	// PressureShutdownLow is the lower bound set by pressing the arm switch
 	PressureShutdownLow float64
+
+	// PressureStartupLow is the minimum pressure required to arm the system
+	PressureStartupLow int
 
 	// High/LowWindow will be displayed as decimal if under 10.
 	// These values are % from the flow target that will trigger

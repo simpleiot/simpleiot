@@ -452,6 +452,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				}
 				saveConfig()
 
+			case isdata.UpdatePressureStartupLow:
+				config.PressureStartupLow = int(m)
+				saveConfig()
+
 			case isdata.UpdateGpioRelayInjector:
 				state.GpioRelayInjectorEn = bool(m)
 				saveState()

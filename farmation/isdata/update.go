@@ -122,6 +122,9 @@ type UpdateManualLowAlarmGPH float64
 // UpdatePressureShutdownLow is used to send a new pressure low
 type UpdatePressureShutdownLow float64
 
+// UpdatePressureStartupLow is used to send a new minimum required startup pressure
+type UpdatePressureStartupLow int
+
 // UpdateManualHighAlarmGPH is used to send a new flow rate window high GPH
 type UpdateManualHighAlarmGPH float64
 

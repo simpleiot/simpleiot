@@ -42,6 +42,7 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	s.menu.AddItemFloat("Manual Low", s.config.ManualLowAlarmGPH)
 	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled, isdata.UpdatePressureShutdownEnabled{})
 	s.menu.AddItemFloat("Pres Low", s.config.PressureShutdownLow)
+	s.menu.AddItemInt("Pres Start", s.config.PressureStartupLow)
 	//s.menu.AddItemInt("Batch Amount", int(config.BatchAmount))
 	//s.menu.AddItemInt("Batch Applied", 0)
 
@@ -80,6 +81,8 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 				return ScreenIDNoChange, isdata.UpdatePressureShutdownEnabled{}, true
 			case 7:
 				return ScreenIDNoChange, isdata.UpdatePressureShutdownLow(value), true
+			case 8:
+				return ScreenIDNoChange, isdata.UpdatePressureStartupLow(value), true
 			}
 		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
@@ -138,9 +141,12 @@ func (s *OperatingModeSetupScreen) enterEdit() {
 	case 5:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualLowAlarmGPH)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Low GPH"
-	case 6:
+	case 7: // skip position 6 because it is an on/off menu item
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.PressureShutdownLow)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Pres Low Percent"
+	case 8:
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureStartupLow) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "Startup Min PSI"
 	}
 
 	s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit
