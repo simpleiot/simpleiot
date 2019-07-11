@@ -17,7 +17,6 @@ type StateMachine struct {
 	// state machine internals
 	machineState     state
 	timeStateEntered time.Time
-	lastIrrigatorOn  time.Time // timestamp to determine if irrigator has been off for more than allowed time
 	lastGoodFlow     time.Time
 
 	// state machine static outputs
@@ -52,6 +51,8 @@ const (
 	standby
 	waitingForWater
 	waitingForWaterAck
+	waitingForIrr
+	waitingForIrrAck
 	monitoringFlow
 	shutdownStart
 	disarm
@@ -78,6 +79,10 @@ func (s state) String() string {
 		return "waitingForWater"
 	case waitingForWaterAck:
 		return "waitingForWaterAck"
+	case waitingForIrr:
+		return "waitingForIrr"
+	case waitingForIrrAck:
+		return "waitingForIrrAck"
 	case shutdown1:
 		return "shutdown1"
 	case shutdownMonitor1:
@@ -220,6 +225,34 @@ func (sm *StateMachine) Run() interface{} {
 			}
 		}
 
+	case waitingForIrr:
+
+		sm.CurrentLedState = LedGreen
+
+		if sm.state.GpioDigitalIrrigator {
+			sm.setState(monitoringFlow)
+		} else {
+			if !sm.state.DialogStateMachine.Active {
+				sm.setState(waitingForIrrAck)
+				return isdata.UpdateDialogStateMachineMessage("Waiting for irrigator")
+			}
+		}
+
+	case waitingForIrrAck:
+
+		sm.CurrentLedState = LedGreen
+
+		if sm.state.DialogStateMachine.Active {
+			if sm.state.DialogStateMachine.Acknowledged ||
+				sm.state.GpioDigitalIrrigator {
+				return isdata.UpdateDialogStateMachineClose{}
+			}
+		} else {
+			if sm.state.GpioDigitalIrrigator {
+				sm.setState(monitoringFlow)
+			}
+		}
+
 	case monitoringFlow:
 		sm.RelayInjector = sm.state.GpioDigitalInjector
 
@@ -237,15 +270,14 @@ func (sm *StateMachine) Run() interface{} {
 			sm.lastGoodFlow = time.Now()
 		}
 
-		if sm.state.GpioDigitalIrrigator {
-			sm.lastIrrigatorOn = time.Now()
-		}
-
 		// the following switch statement is used only to determine next case. Keep all other logic
 		// above.
 		switch {
 		case !sm.state.GpioDigitalWaterOn:
 			sm.setState(waitingForWater)
+
+		case !sm.state.GpioDigitalIrrigator:
+			sm.setState(waitingForIrr)
 
 		case time.Since(sm.lastGoodFlow) >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second &&
 			sm.state.GpioDigitalInjector:
@@ -257,13 +289,6 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(disarm)
 			return isdata.UpdateFault{
 				Fault: isdata.FaultTypeLowPres,
-				Time:  time.Now(),
-			}
-
-		case time.Since(sm.lastIrrigatorOn) >= time.Duration(sm.config.IrrigatorOffMin)*time.Minute:
-			sm.setState(disarm)
-			return isdata.UpdateFault{
-				Fault: isdata.FaultTypeIrrOff,
 				Time:  time.Now(),
 			}
 		}
