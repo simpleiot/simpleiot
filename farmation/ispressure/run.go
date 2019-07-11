@@ -44,6 +44,9 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 				log.Println("ReadPressureSense error: ", err)
 			}
 			pres := isio.CalcPressure(ref, sense, float64(config.PressureSetting))
+			if pres < 0 {
+				pres = 0
+			}
 			pressureMovingAvg.Add(pres)
 			avg = pressureMovingAvg.Avg()
 			min, _ = pressureMovingAvg.Min()
