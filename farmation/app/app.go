@@ -549,6 +549,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdateDialogArmReqClose:
 				state.DialogArmReq.Active = false
+				if isdata.AllArmReqMet(&config, &state) {
+					config.Arm = !config.Arm
+					saveConfig()
+				}
 				saveState()
 
 			case isdata.UpdateDialogAppClose:
