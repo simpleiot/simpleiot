@@ -167,5 +167,8 @@ type UpdateDialogStateMachineClose struct{}
 // UpdateDialogArmClose is used to close the arm error dialog
 type UpdateDialogArmClose struct{}
 
+// UpdateDialogArmReqClose is used to close the arm requirements dialog
+type UpdateDialogArmReqClose struct{}
+
 // UpdateDialogAppClose is used to close the error dialog that originates from app.go
 type UpdateDialogAppClose struct{}

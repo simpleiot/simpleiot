@@ -62,6 +62,8 @@ type State struct {
 
 	DialogArm Dialog
 
+	DialogArmReq Dialog
+
 	DialogApp Dialog
 }
 

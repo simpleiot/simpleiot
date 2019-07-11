@@ -233,20 +233,23 @@ func (sm *StateMachine) Run() interface{} {
 		sm.RelayInjector = sm.state.GpioDigitalInjector
 		sm.CurrentLedState = LedGreen
 
+		if sm.state.DialogStateMachine.Active {
+			return isdata.UpdateDialogStateMachineClose{}
+		}
+
 		switch {
 		case !sm.state.GpioDigitalWaterOn:
 			sm.setState(waitingForWater)
 
-		case sm.state.FlowStatus == isdata.FlowStatusOffTarget:
-			sm.setState(flowOffTarget)
+		case sm.state.FlowStatus == isdata.FlowStatusOffTarget: // if flow is off target
+			if sm.RelayInjector { // and the pump is on
+				sm.setState(flowOffTarget)
+			}
 
 		case sm.config.PressureShutdownEnabled:
 			if sm.state.PressureMin < sm.config.PressureShutdownLow {
 				sm.setState(lowPressure)
 			}
-
-		case sm.state.DialogStateMachine.Active:
-			return isdata.UpdateDialogStateMachineClose{}
 
 		case sm.state.GpioDigitalIrrigator:
 			sm.timeEvent = time.Now()
@@ -261,11 +264,13 @@ func (sm *StateMachine) Run() interface{} {
 		sm.RelayInjector = sm.state.GpioDigitalInjector
 		sm.CurrentLedState = LedRedBlnk
 
-		// if alarm time has elapsed enter shutdown
-		if sm.elapsed() >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second {
-			sm.setState(disarm)
-		} else if sm.state.FlowStatus == isdata.FlowStatusArmedOk {
+		switch {
+		case sm.state.FlowStatus == isdata.FlowStatusArmedOk:
 			sm.setState(monitoringFlow)
+		case !sm.RelayInjector:
+			sm.setState(monitoringFlow)
+		case sm.elapsed() >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second:
+			sm.setState(disarm)
 		}
 
 	case lowPressure:

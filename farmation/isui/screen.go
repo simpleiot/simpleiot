@@ -43,6 +43,7 @@ type Screens struct {
 	prevScreens   []ScreenID
 	screens       map[ScreenID]Widget
 	dialog        *DialogScreen
+	dialogArmReq  *DialogArmReqScreen
 	state         *isdata.State
 }
 
@@ -58,6 +59,7 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 	}
 
 	ret.dialog = NewDialogScreen()
+	ret.dialogArmReq = NewDialogArmReqScreen(config, state)
 
 	ret.screens = make(map[ScreenID]Widget)
 	ret.Add(ScreenIDHome, NewHomeScreen(state, config))
@@ -92,6 +94,8 @@ func (s *Screens) Render(img draw.Image) {
 	switch {
 	case s.state.DialogArm.Active:
 		s.dialog.Render(img, s.state.DialogArm.Message)
+	case s.state.DialogArmReq.Active:
+		s.dialogArmReq.Render(img, s.state.DialogArmReq.Message)
 	case s.state.DialogStateMachine.Active:
 		s.dialog.Render(img, s.state.DialogStateMachine.Message)
 	case s.state.DialogApp.Active:
@@ -109,6 +113,10 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	case s.state.DialogArm.Active:
 		if key == isdata.KeySK1 {
 			return ScreenIDNoChange, isdata.UpdateDialogArmClose{}, true
+		}
+	case s.state.DialogArmReq.Active:
+		if key == isdata.KeySK1 {
+			return ScreenIDNoChange, isdata.UpdateDialogArmReqClose{}, true
 		}
 	case s.state.DialogStateMachine.Active:
 		if key == isdata.KeySK1 {
