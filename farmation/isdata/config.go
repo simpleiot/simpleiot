@@ -398,7 +398,7 @@ func (c *Config) Init() {
 	}
 
 	if c.PressureSetting <= 0 {
-		c.PressureSetting = 250
+		c.PressureSetting = 300
 	}
 
 	if c.HighWindowPerc <= 0 {
