@@ -101,8 +101,43 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 			switch m := m.(type) {
 			case isdata.Config:
 				config = m
+			case data.Sample:
+				switch m.Type {
+				case isdata.SampleTypeSimPressure:
+					t := time.Now()
+					out <- data.Sample{
+						Type:  isdata.SampleTypePressure,
+						Time:  time.Now(),
+						Value: m.Value,
+						Attributes: map[string]float64{
+							"avg": m.Value,
+							"min": m.Value,
+							"max": m.Value,
+						},
+					}
+					out <- data.Sample{
+						Time:  t,
+						Type:  isdata.SampleTypePressureMax,
+						Value: m.Value,
+					}
+
+					out <- data.Sample{
+						Time:  t,
+						Type:  isdata.SampleTypePressureAvg,
+						Value: m.Value,
+					}
+
+					out <- data.Sample{
+						Time:  t,
+						Type:  isdata.SampleTypePressureMin,
+						Value: m.Value,
+					}
+
+				default:
+					log.Println("ispressure: Unhandled sample type: ", m.Type)
+				}
 			default:
-				log.Printf("isflow mux: unhandled message of type %T: %+v\r\n", m, m)
+				log.Printf("ispressure mux: unhandled message of type %T: %+v\r\n", m, m)
 
 			}
 		}

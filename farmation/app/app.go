@@ -114,7 +114,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go isflow.Run(flowChan, appChan, sim, config)
 	go islog.Run(logChan, appChan)
 	go ispressure.Run(presChan, appChan, config)
-	go isserial.Run(presChan, appChan, config)
+	go isserial.Run(serialChan, appChan, config)
 
 	lastFillingWarning := time.Time{}
 
@@ -231,6 +231,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					uiChan <- key
 				case isdata.SampleTypeSimFlowRate:
 					flowChan <- m
+				case isdata.SampleTypeSimPressure:
+					presChan <- m
 				case isdata.SampleTypeSimGpioDigInj:
 					state.GpioDigitalInjector = m.Bool()
 					saveState()

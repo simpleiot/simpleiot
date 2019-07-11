@@ -4,6 +4,7 @@ package isdata
 const (
 	SampleTypeKey               = "key"
 	SampleTypeSimFlowRate       = "simFlowRate"
+	SampleTypeSimPressure       = "simPressure"
 	SampleTypeSimGpioDigInj     = "simGpioDigInj"
 	SampleTypeSimGpioDigIrg     = "simGpioDigIrg"
 	SampleTypeSimGpioDigWaterOn = "simGpioDigWaterOn"
