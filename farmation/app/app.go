@@ -547,6 +547,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.DialogArm.Active = false
 				saveState()
 
+			case isdata.UpdateDialogArmReqClose:
+				state.DialogArmReq.Active = false
+				saveState()
+
 			case isdata.UpdateDialogAppClose:
 				state.DialogApp.Active = false
 				saveState()
@@ -565,10 +569,16 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 }
 
 func toggleArm(config *isdata.Config, state *isdata.State) {
-	config.Arm = !config.Arm
-	if config.Arm { // if the arm switch was turned on
-		config.FlowRateTarget = state.FlowRate // set target flow rate to current
-		config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
+	if !config.Arm { // if the arm switch was turned on
+		if isdata.AllArmReqMet(config, state) {
+			config.Arm = !config.Arm
+			config.FlowRateTarget = state.FlowRate // set target flow rate to current
+			config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
+		} else {
+			state.DialogArmReq.Active = true
+		}
+	} else {
+		config.Arm = !config.Arm
 	}
 }
 
