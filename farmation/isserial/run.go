@@ -69,7 +69,7 @@ func Run(in, out chan interface{}, configInit isdata.Config) {
 			case isdata.Config:
 				config = m
 			default:
-				log.Printf("isflow mux: unhandled message of type %T: %+v\r\n", m, m)
+				log.Printf("isserial mux: unhandled message of type %T: %+v\r\n", m, m)
 
 			}
 		}

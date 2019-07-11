@@ -58,6 +58,7 @@ subscriptions model =
 
 type alias SimInputs =
     { flowRate : Float
+    , pressure : Float
     , gpioDigitalInjector : Bool
     , gpioDigitalIrrigator : Bool
     , gpioDigitalWaterOn : Bool
@@ -103,7 +104,7 @@ defaultState =
 
 
 defaultSimInputs =
-    SimInputs 33 False False False False
+    SimInputs 33 0 False False False False
 
 
 init : () -> ( Model, Cmd Msg )
@@ -126,6 +127,7 @@ type Msg
     | GotLcdMsg Lcd.Msg
     | GotOutputsMsg Outputs.Msg
     | SimFlowRate String
+    | SimPressure String
     | ButtonInj
     | ButtonIrg
     | ButtonWaterOn
@@ -246,6 +248,28 @@ update msg model =
             in
             ( { model | simInputs = newSimInputs }
             , Sample "simFlowRate" "" rateF
+                |> encodeSample
+                |> portOut
+            )
+
+        SimPressure rate ->
+            let
+                simInputs =
+                    model.simInputs
+
+                presF =
+                    case String.toFloat rate of
+                        Just val ->
+                            val
+
+                        Nothing ->
+                            0
+
+                newSimInputs =
+                    { simInputs | pressure = presF }
+            in
+            ( { model | simInputs = newSimInputs }
+            , Sample "simPressure" "" presF
                 |> encodeSample
                 |> portOut
             )
@@ -425,6 +449,17 @@ renderSimInputs inputs =
                         [ placeholder "enter flow rate"
                         , onInput SimFlowRate
                         , value (String.fromFloat inputs.flowRate)
+                        , type_ "number"
+                        ]
+                    ]
+                ]
+            , Form.group []
+                [ Form.label [] [ text "Sim pressure" ]
+                , Input.text
+                    [ Input.attrs
+                        [ placeholder "enter pressure"
+                        , onInput SimPressure
+                        , value (String.fromFloat inputs.pressure)
                         , type_ "number"
                         ]
                     ]
