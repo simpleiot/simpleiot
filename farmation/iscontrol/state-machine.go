@@ -284,6 +284,8 @@ func (sm *StateMachine) Run() interface{} {
 			sm.lastGoodPressure = time.Now()
 		}
 
+		alarmRecognizeDuration := time.Duration(sm.config.AlarmRecognizeSec) * time.Second
+
 		// the following switch statement is used only to determine next case. Keep all other logic
 		// above.
 		switch {
@@ -293,14 +295,14 @@ func (sm *StateMachine) Run() interface{} {
 		case !sm.state.GpioDigitalIrrigator:
 			sm.setState(waitingForIrr)
 
-		case time.Since(sm.lastGoodFlow) >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second &&
+		case time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration &&
 			sm.state.GpioDigitalInjector:
 			sm.setState(disarm)
 
 		case sm.config.PressureShutdownEnabled &&
 			lowPressure &&
 			sm.state.GpioDigitalInjector &&
-			time.Since(sm.lastGoodPressure) >= time.Duration(sm.config.AlarmRecognizeSec)*time.Second:
+			time.Since(sm.lastGoodPressure) >= alarmRecognizeDuration:
 			sm.setState(disarm)
 			return isdata.UpdateFault{
 				Fault: isdata.FaultTypeLowPres,
