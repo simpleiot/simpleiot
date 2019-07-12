@@ -142,6 +142,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			fmt.Printf("State: %+v\n", state)
 		}
 
+		state.UpdateInputs(&config)
+
 		stateDirty = true
 
 		// pace the sending of states to various subsystems every 500ms

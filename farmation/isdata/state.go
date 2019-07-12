@@ -74,6 +74,25 @@ type State struct {
 	DialogApp Dialog `json:"dialogApp"`
 }
 
+// UpdateInputs update virtual inputs based on panel type and pump config
+func (s *State) UpdateInputs(config *Config) {
+	s.InputWaterOn = s.WaterOn()
+	s.InputIrrigator = s.IrrigatorRunning()
+
+	switch config.UserPumpMode {
+	case UserPumpModeNotSet, UserPumpModeOff:
+		s.InputInjector = InputStateOff
+	case UserPumpModeOn:
+		s.InputInjector = InputStateOn
+	case UserPumpModeInj:
+		s.InputInjector = BoolToInputState(s.GpioDigitalInjector)
+	case UserPumpModeAcc1:
+		s.InputInjector = BoolToInputState(s.LindsayRegs.Accessory1On())
+	case UserPumpModeAcc2:
+		s.InputInjector = BoolToInputState(s.LindsayRegs.Accessory2On())
+	}
+}
+
 // InputState is a type that describes if the input is avaliable, and what its state is
 type InputState int
 
