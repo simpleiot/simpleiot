@@ -82,7 +82,7 @@ func (s *State) UpdateInputs(config *Config) {
 	s.InputIrrigator = s.IrrigatorRunning()
 
 	switch config.UserPumpMode {
-	case UserPumpModeNotSet, UserPumpModeOff:
+	case UserPumpModeOff:
 		s.InputInjector = InputStateOff
 	case UserPumpModeOn:
 		s.InputInjector = InputStateOn

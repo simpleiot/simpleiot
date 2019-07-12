@@ -575,7 +575,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 	if config.OperatingMode != isdata.ISOperatingModeMonitor {
-		if config.UserPumpMode != isdata.UserPumpModeNotSet {
+		if config.UserPumpMode != isdata.UserPumpModeOff {
 			if !config.Arm { // if the arm switch will be turned on
 				if isdata.AllArmReqMet(config, state) {
 					config.Arm = !config.Arm

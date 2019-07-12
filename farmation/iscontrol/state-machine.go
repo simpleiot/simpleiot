@@ -193,7 +193,6 @@ func (sm *StateMachine) Run() interface{} {
 
 	// below states are for monitor/shutdown
 	case standby:
-
 		sm.RelayInjector = sm.state.InputInjector.ToBool()
 		sm.CurrentLedState = LedGreenBlnk
 

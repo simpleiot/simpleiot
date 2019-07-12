@@ -83,8 +83,7 @@ type UserPumpMode int
 
 // define valid user pump modes
 const (
-	UserPumpModeNotSet UserPumpMode = iota
-	UserPumpModeOff
+	UserPumpModeOff UserPumpMode = iota
 	UserPumpModeOn
 	UserPumpModeInj
 	UserPumpModeAcc1

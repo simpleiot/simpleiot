@@ -63,6 +63,9 @@ type alias SimInputs =
     , gpioDigitalIrrigator : Bool
     , gpioDigitalWaterOn : Bool
     , gpioDigitalIn : Bool
+    , lindsayAcc1 : Bool
+    , lindsayWaterOn : Bool
+    , lindsayIrrigator : Bool
     }
 
 
@@ -104,7 +107,7 @@ defaultState =
 
 
 defaultSimInputs =
-    SimInputs 33 0 False False False False
+    SimInputs 33 0 False False False False False False False
 
 
 init : () -> ( Model, Cmd Msg )
@@ -133,6 +136,9 @@ type Msg
     | ButtonWaterOn
     | ButtonDigIn
     | ButtonArm
+    | ButtonLindsayWaterOn
+    | ButtonLindsayAcc1
+    | ButtonLindsayIrg
 
 
 keyToSample : Lcd.Key -> Sample
@@ -370,6 +376,78 @@ update msg model =
                 |> portOut
             )
 
+        ButtonLindsayWaterOn ->
+            let
+                v =
+                    not model.simInputs.lindsayWaterOn
+
+                vF =
+                    if v then
+                        1.0
+
+                    else
+                        0.0
+
+                simInputs =
+                    model.simInputs
+
+                simInputsNew =
+                    { simInputs | lindsayWaterOn = v }
+            in
+            ( { model | simInputs = simInputsNew }
+            , Sample "simLindsayWaterOn" "" vF
+                |> encodeSample
+                |> portOut
+            )
+
+        ButtonLindsayAcc1 ->
+            let
+                v =
+                    not model.simInputs.lindsayAcc1
+
+                vF =
+                    if v then
+                        1.0
+
+                    else
+                        0.0
+
+                simInputs =
+                    model.simInputs
+
+                simInputsNew =
+                    { simInputs | lindsayAcc1 = v }
+            in
+            ( { model | simInputs = simInputsNew }
+            , Sample "simLindsayAcc1" "" vF
+                |> encodeSample
+                |> portOut
+            )
+
+        ButtonLindsayIrg ->
+            let
+                v =
+                    not model.simInputs.lindsayIrrigator
+
+                vF =
+                    if v then
+                        1.0
+
+                    else
+                        0.0
+
+                simInputs =
+                    model.simInputs
+
+                simInputsNew =
+                    { simInputs | lindsayIrrigator = v }
+            in
+            ( { model | simInputs = simInputsNew }
+            , Sample "simLindsayIrrigator" "" vF
+                |> encodeSample
+                |> portOut
+            )
+
         ButtonArm ->
             ( model
             , Sample "simArm" "" 0
@@ -433,6 +511,40 @@ renderDigitalInputs state =
                     (Outputs.relay "Water" state.gpioDigitalWaterOn)
                 , map GotOutputsMsg
                     (Outputs.relay "In" state.gpioDigitalIn)
+                ]
+            ]
+        ]
+
+
+renderLindsaySimInputs : SimInputs -> Html Msg
+renderLindsaySimInputs inputs =
+    Grid.row []
+        [ Grid.col [ Col.xs12, Col.sm6, Col.md5 ]
+            [ div []
+                [ Button.button
+                    [ buttonType inputs.lindsayAcc1
+                    , Button.attrs
+                        [ Spacing.m1
+                        , onClick ButtonLindsayAcc1
+                        ]
+                    ]
+                    [ text "Lindsay Acc1" ]
+                , Button.button
+                    [ buttonType inputs.lindsayWaterOn
+                    , Button.attrs
+                        [ Spacing.m1
+                        , onClick ButtonLindsayWaterOn
+                        ]
+                    ]
+                    [ text "Lindsay Water On" ]
+                , Button.button
+                    [ buttonType inputs.lindsayIrrigator
+                    , Button.attrs
+                        [ Spacing.m1
+                        , onClick ButtonLindsayIrg
+                        ]
+                    ]
+                    [ text "Lindsay Irrigator" ]
                 ]
             ]
         ]
@@ -518,6 +630,7 @@ view model =
                 div []
                     [ h3 [] [ text "Sim Inputs" ]
                     , renderSimInputs model.simInputs
+                    , renderLindsaySimInputs model.simInputs
                     ]
 
             else

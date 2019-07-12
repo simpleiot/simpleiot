@@ -32,10 +32,8 @@ func (s *PumpModeScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	// Find which operating mode is selected
-	var notset, off, on, inj, acc1, acc2 bool
+	var off, on, inj, acc1, acc2 bool
 	switch s.config.UserPumpMode {
-	case isdata.UserPumpModeNotSet:
-		notset = true
 	case isdata.UserPumpModeOff:
 		off = true
 	case isdata.UserPumpModeOn:
@@ -50,21 +48,18 @@ func (s *PumpModeScreen) Render(img draw.Image) {
 	var mode int
 	switch s.menu.GetArrowPos() {
 	case 0:
-		mode = int(isdata.UserPumpModeNotSet)
-	case 1:
 		mode = int(isdata.UserPumpModeOff)
-	case 2:
+	case 1:
 		mode = int(isdata.UserPumpModeOn)
-	case 3:
+	case 2:
 		mode = int(isdata.UserPumpModeInj)
-	case 4:
+	case 3:
 		mode = int(isdata.UserPumpModeAcc1)
-	case 5:
+	case 4:
 		mode = int(isdata.UserPumpModeAcc2)
 	}
 
 	// add menu items
-	s.menu.AddItemSelect("Not set", isdata.UpdateUserPumpMode(mode), notset)
 	s.menu.AddItemSelect("Always Off", isdata.UpdateUserPumpMode(mode), off)
 	s.menu.AddItemSelect("Always On", isdata.UpdateUserPumpMode(mode), on)
 	s.menu.AddItemSelect("Injector Command", isdata.UpdateUserPumpMode(mode), inj)
