@@ -51,9 +51,9 @@ type State struct {
 	// Virtual inputs based on panel type and pump control selection
 	// the below are selected from Lindsay serial data, GPIOs, or set to off
 	// based on user preferences
-	InputWaterOn   bool `json:"inputWaterOn"`
-	InputIrrigator bool `json:"inputIrrigator"`
-	InputInjector  bool `json:"inputInjector"`
+	InputWaterOn   InputState `json:"inputWaterOn"`
+	InputIrrigator InputState `json:"inputIrrigator"`
+	InputInjector  InputState `json:"inputInjector"`
 
 	// Data from Lindsay panel
 	LindsayRegs       LindsayStatusRegs `json:"lindsayRegs"`
@@ -214,10 +214,6 @@ func InitState(s *State) (dirty bool) {
 	s.GpioDigitalIrrigator = false
 	s.GpioDigitalWaterOn = false
 	s.GpioDigitalIn = false
-
-	s.InputInjector = false
-	s.InputWaterOn = false
-	s.InputIrrigator = false
 
 	s.GpioRelayInjectorEn = false
 	s.GpioRelayShutdownEn = false
