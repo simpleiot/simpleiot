@@ -83,23 +83,13 @@ type UserPumpMode int
 
 // define valid user pump modes
 const (
-	UserPumpModeOff UserPumpMode = iota
-	UserPumpModeAuto
-	UserPumpModeTest
-	UserPumpModeNone
+	UserPumpModeNotSet UserPumpMode = iota
+	UserPumpModeOff
+	UserPumpModeOn
+	UserPumpModeInj
+	UserPumpModeAcc1
+	UserPumpModeAcc2
 )
-
-// GetMsg returns an update msg based on the current user pump mode
-func (upm UserPumpMode) GetMsg() int {
-	switch upm {
-	case UserPumpModeAuto:
-		return int(UserPumpModeOff)
-	case UserPumpModeOff:
-		return int(UserPumpModeAuto)
-	default:
-		return int(UserPumpModeNone)
-	}
-}
 
 // ISOperatingMode defines the operating mode of the system
 type ISOperatingMode int
