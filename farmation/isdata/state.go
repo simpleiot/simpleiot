@@ -69,6 +69,8 @@ type State struct {
 
 	DialogArm Dialog `json:"dialogArm"`
 
+	DialogArmInputs Dialog
+
 	DialogArmReq Dialog `json:"dialogArmReq"`
 
 	DialogApp Dialog `json:"dialogApp"`

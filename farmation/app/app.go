@@ -246,11 +246,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					state.GpioDigitalIn = m.Bool()
 					saveState()
 				case isdata.SampleTypeSimArm:
-					if config.OperatingMode != isdata.ISOperatingModeMonitor {
-						toggleArm(&config, &state)
-					} else {
-						openArmDialog(&state)
-					}
+					toggleArmOrOpenDialog(&config, &state)
 					saveConfig()
 					saveState()
 
@@ -260,11 +256,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.Key:
 				switch m {
 				case isdata.KeyArm:
-					if config.OperatingMode != isdata.ISOperatingModeMonitor {
-						toggleArm(&config, &state)
-					} else {
-						openArmDialog(&state)
-					}
+					toggleArmOrOpenDialog(&config, &state)
 					saveConfig()
 					saveState()
 				default:
@@ -480,7 +472,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.UpdateUserPumpMode:
 				config.UserPumpMode = isdata.UserPumpMode(m)
 				saveConfig()
-				fmt.Println(config.UserPumpMode)
 
 			case isdata.UpdateCurrentFieldIndex:
 				config.CurrentFieldIndex = int(m)
@@ -550,6 +541,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.DialogArm.Active = false
 				saveState()
 
+			case isdata.UpdateDialogArmInputsClose:
+				state.DialogArmInputs.Active = false
+				saveState()
+
 			case isdata.UpdateDialogArmReqClose:
 				state.DialogArmReq.Active = false
 				if isdata.AllArmReqMet(&config, &state) &&
@@ -576,21 +571,27 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	}
 }
 
-func toggleArm(config *isdata.Config, state *isdata.State) {
-	if !config.Arm { // if the arm switch was turned on
-		if isdata.AllArmReqMet(config, state) {
-			config.Arm = !config.Arm
-			config.FlowRateTarget = state.FlowRate // set target flow rate to current
-			config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
+func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
+	if config.OperatingMode != isdata.ISOperatingModeMonitor {
+		if config.UserPumpMode != isdata.UserPumpModeNotSet {
+			if !config.Arm { // if the arm switch will be turned on
+				if isdata.AllArmReqMet(config, state) {
+					config.Arm = !config.Arm
+					config.FlowRateTarget = state.FlowRate // set target flow rate to current
+					config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
+				} else {
+					state.DialogArmReq.Active = true
+				}
+			} else {
+				config.Arm = !config.Arm
+			}
 		} else {
-			state.DialogArmReq.Active = true
+			state.DialogArmInputs.Active = true
+			state.DialogArmInputs.Message = "Error: Injector Command Input not selected, please select before arming"
 		}
 	} else {
-		config.Arm = !config.Arm
+		state.DialogArm.Active = true
+		state.DialogArm.Message = "cannot arm in monitor only mode"
 	}
-}
 
-func openArmDialog(state *isdata.State) {
-	state.DialogArm.Active = true
-	state.DialogArm.Message = "cannot arm in monitor only mode"
 }
