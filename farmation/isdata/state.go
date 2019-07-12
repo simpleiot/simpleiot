@@ -215,6 +215,10 @@ func InitState(s *State) (dirty bool) {
 	s.GpioDigitalWaterOn = false
 	s.GpioDigitalIn = false
 
+	s.InputInjector = false
+	s.InputWaterOn = false
+	s.InputIrrigator = false
+
 	s.GpioRelayInjectorEn = false
 	s.GpioRelayShutdownEn = false
 	s.GpioRelayAuxEn = false
