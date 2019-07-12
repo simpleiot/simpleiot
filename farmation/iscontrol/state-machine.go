@@ -180,7 +180,7 @@ func (sm *StateMachine) Run() interface{} {
 	switch sm.machineState {
 	case monitorOnly:
 
-		sm.RelayInjector = sm.state.GpioDigitalInjector
+		sm.RelayInjector = sm.state.InputInjector
 		sm.CurrentLedState = LedGreenBlnk
 
 		if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndShutdown {
@@ -194,11 +194,11 @@ func (sm *StateMachine) Run() interface{} {
 	// below states are for monitor/shutdown
 	case standby:
 
-		sm.RelayInjector = sm.state.GpioDigitalInjector
+		sm.RelayInjector = sm.state.InputInjector
 		sm.CurrentLedState = LedGreenBlnk
 
 		if sm.config.Arm {
-			if sm.state.GpioDigitalWaterOn {
+			if sm.state.InputWaterOn {
 				sm.setState(monitoringFlow)
 			} else {
 				sm.setState(waitingForWater)
@@ -209,7 +209,7 @@ func (sm *StateMachine) Run() interface{} {
 
 		sm.CurrentLedState = LedGreen
 
-		if sm.state.GpioDigitalWaterOn {
+		if sm.state.InputWaterOn {
 			sm.setState(monitoringFlow)
 		} else {
 			if !sm.state.DialogStateMachine.Active {
@@ -224,11 +224,11 @@ func (sm *StateMachine) Run() interface{} {
 
 		if sm.state.DialogStateMachine.Active {
 			if sm.state.DialogStateMachine.Acknowledged ||
-				sm.state.GpioDigitalWaterOn {
+				sm.state.InputWaterOn {
 				return isdata.UpdateDialogStateMachineClose{}
 			}
 		} else {
-			if sm.state.GpioDigitalWaterOn {
+			if sm.state.InputWaterOn {
 				sm.setState(monitoringFlow)
 			}
 		}
@@ -237,7 +237,7 @@ func (sm *StateMachine) Run() interface{} {
 
 		sm.CurrentLedState = LedGreen
 
-		if sm.state.GpioDigitalIrrigator {
+		if sm.state.InputIrrigator {
 			sm.setState(monitoringFlow)
 		} else {
 			if !sm.state.DialogStateMachine.Active {
@@ -252,17 +252,17 @@ func (sm *StateMachine) Run() interface{} {
 
 		if sm.state.DialogStateMachine.Active {
 			if sm.state.DialogStateMachine.Acknowledged ||
-				sm.state.GpioDigitalIrrigator {
+				sm.state.InputIrrigator {
 				return isdata.UpdateDialogStateMachineClose{}
 			}
 		} else {
-			if sm.state.GpioDigitalIrrigator {
+			if sm.state.InputIrrigator {
 				sm.setState(monitoringFlow)
 			}
 		}
 
 	case monitoringFlow:
-		sm.RelayInjector = sm.state.GpioDigitalInjector
+		sm.RelayInjector = sm.state.InputInjector
 
 		lowPressure := sm.state.PressureMin < sm.config.PressureShutdownLow
 
@@ -289,19 +289,19 @@ func (sm *StateMachine) Run() interface{} {
 		// the following switch statement is used only to determine next case. Keep all other logic
 		// above.
 		switch {
-		case !sm.state.GpioDigitalWaterOn:
+		case !sm.state.InputWaterOn:
 			sm.setState(waitingForWater)
 
-		case !sm.state.GpioDigitalIrrigator:
+		case !sm.state.InputIrrigator:
 			sm.setState(waitingForIrr)
 
 		case time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration &&
-			sm.state.GpioDigitalInjector:
+			sm.state.InputInjector:
 			sm.setState(disarm)
 
 		case sm.config.PressureShutdownEnabled &&
 			lowPressure &&
-			sm.state.GpioDigitalInjector &&
+			sm.state.InputInjector &&
 			time.Since(sm.lastGoodPressure) >= alarmRecognizeDuration:
 			sm.setState(disarm)
 			return isdata.UpdateFault{
@@ -333,7 +333,7 @@ func (sm *StateMachine) Run() interface{} {
 		sm.CurrentLedState = LedRed
 
 		if sm.elapsed() > 10*time.Second {
-			if sm.state.GpioDigitalWaterOn {
+			if sm.state.InputWaterOn {
 				sm.setState(shutdown2)
 			} else {
 				sm.setState(shutdownDialog)
@@ -363,7 +363,7 @@ func (sm *StateMachine) Run() interface{} {
 
 		if !sm.state.DialogStateMachine.Active {
 			sm.setState(standby)
-			if sm.state.GpioDigitalWaterOn {
+			if sm.state.InputWaterOn {
 				return isdata.UpdateDialogStateMachineMessage("failed to shutdown")
 			}
 
