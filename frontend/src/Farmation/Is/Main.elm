@@ -630,7 +630,7 @@ view model =
                 div []
                     [ h3 [] [ text "Sim Inputs" ]
                     , renderSimInputs model.simInputs
-                    , renderLindsaySimInputs model.simInputs
+                    --, renderLindsaySimInputs model.simInputs
                     ]
 
             else
