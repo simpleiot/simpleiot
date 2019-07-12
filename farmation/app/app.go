@@ -480,6 +480,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.UpdateUserPumpMode:
 				config.UserPumpMode = isdata.UserPumpMode(m)
 				saveConfig()
+				fmt.Println(config.UserPumpMode)
 
 			case isdata.UpdateCurrentFieldIndex:
 				config.CurrentFieldIndex = int(m)

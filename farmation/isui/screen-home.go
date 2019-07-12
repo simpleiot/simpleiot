@@ -60,7 +60,7 @@ func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	case isdata.KeySK2: // operating mode
 		return ScreenIDOpMode1, nil, true
 	case isdata.KeySK3: // pump
-		return ScreenIDNoChange, isdata.UpdateUserPumpMode(s.config.UserPumpMode.GetMsg()), true
+		return ScreenIDPumpMode, nil, true
 	case isdata.KeySK4: // faults
 		return ScreenIDFaultsActive, nil, true
 	}
