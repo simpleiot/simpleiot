@@ -588,8 +588,8 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 				config.Arm = !config.Arm
 			}
 		} else {
-			state.DialogArmInputs.Active = true
-			state.DialogArmInputs.Message = "Error: Injector Command Input not selected, please select before arming"
+			//state.DialogArmInputs.Active = true
+			//state.DialogArmInputs.Message = "Error: Injector Command Input not selected, please select before arming"
 		}
 	} else {
 		state.DialogArm.Active = true

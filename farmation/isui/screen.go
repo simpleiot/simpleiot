@@ -96,6 +96,8 @@ func (s *Screens) Render(img draw.Image) {
 	switch {
 	case s.state.DialogArm.Active:
 		s.dialog.Render(img, s.state.DialogArm.Message)
+	case s.state.DialogArmInputs.Active:
+		s.dialog.Render(img, s.state.DialogArmInputs.Message)
 	case s.state.DialogArmReq.Active:
 		s.dialogArmReq.Render(img, s.state.DialogArmReq.Message)
 	case s.state.DialogStateMachine.Active:
@@ -114,7 +116,11 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch {
 	case s.state.DialogArm.Active:
 		if key == isdata.KeySK1 {
-			return ScreenIDNoChange, isdata.UpdateDialogArmClose{}, true
+			return ScreenIDOpMode1, isdata.UpdateDialogArmClose{}, true
+		}
+	case s.state.DialogArmInputs.Active:
+		if key == isdata.KeySK1 {
+			return ScreenIDPumpMode, isdata.UpdateDialogArmInputsClose{}, true
 		}
 	case s.state.DialogArmReq.Active:
 		if key == isdata.KeySK1 {

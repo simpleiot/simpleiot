@@ -1,6 +1,7 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
@@ -40,10 +41,29 @@ func (s *DialogScreen) Render(img draw.Image, message string) {
 					DrawTxtCentered(img, message[:i-1], 64, 20, font)
 					DrawTxtCentered(img, message[i-1:], 64, 29, font)
 					break
-				} else {
-					DrawTxtCentered(img, message[:spaceIndex+1], 64, 20, font)
-					DrawTxtCentered(img, message[spaceIndex+1:], 64, 29, font)
-					break
+				} else { // divide by spaces
+					message2 := message[spaceIndex+1:]
+					if len(message2) <= 126 { // if message will fit in two lines
+						DrawTxtCentered(img, message[:spaceIndex+1], 64, 20, font)
+						DrawTxtCentered(img, message2, 64, 29, font)
+						break
+					} else { // three lines
+						fmt.Println("Dialog: 3 lines")
+						var spaceIndex2 int
+						for i, char := range message2 {
+							lengthSoFar := font.MeasureString(message2[:i])
+
+							if string(char) == " " {
+								spaceIndex2 = i
+							}
+							if lengthSoFar >= 126 && i > 0 { // if message2[:i] is the full length of the screen
+								DrawTxtCentered(img, message[:spaceIndex+1], 64, 20, font)
+								DrawTxtCentered(img, message2[:spaceIndex2+1], 64, 29, font)
+								DrawTxtCentered(img, message2[spaceIndex2+1:], 64, 29, font)
+								break
+							}
+						}
+					}
 				}
 			}
 		}
