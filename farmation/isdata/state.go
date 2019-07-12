@@ -94,6 +94,14 @@ func BoolToInputState(v bool) InputState {
 	return InputStateOff
 }
 
+// ToBool ...
+func (is InputState) ToBool() bool {
+	if is == InputStateOn {
+		return true
+	}
+	return false
+}
+
 // WaterOn returns water on status based on panel type
 func (s *State) WaterOn() InputState {
 	switch s.PanelDefinition.Type {
