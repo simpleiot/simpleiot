@@ -48,23 +48,30 @@ type State struct {
 	GpioStatusLedRed   bool `json:"gpioStatusLedRed"`
 	GpioStatusLedGreen bool `json:"gpioStatusLedGreen"`
 
+	// Virtual inputs based on panel type and pump control selection
+	// the below are selected from Lindsay serial data, GPIOs, or set to off
+	// based on user preferences
+	InputWaterOn   bool `json:"inputWaterOn"`
+	InputIrrigator bool `json:"inputIrrigator"`
+	InputInjector  bool `json:"inputInjector"`
+
 	// Data from Lindsay panel
 	LindsayRegs       LindsayStatusRegs `json:"lindsayRegs"`
 	LindsayLastUpdate time.Time         `json:"lindsayLastUpdate"`
 
 	// Faults
-	FaultsActive FaultsActive
+	FaultsActive FaultsActive `json:"faultsActive"`
 
 	// Modal dialog describes a modal dialog message
 	// only for messages from state machine. Create new dialog
 	// structs for other parts of the app.
-	DialogStateMachine Dialog
+	DialogStateMachine Dialog `json:"dialogStateMachine"`
 
-	DialogArm Dialog
+	DialogArm Dialog `json:"dialogArm"`
 
-	DialogArmReq Dialog
+	DialogArmReq Dialog `json:"dialogArmReq"`
 
-	DialogApp Dialog
+	DialogApp Dialog `json:"dialogApp"`
 }
 
 // InputState is a type that describes if the input is avaliable, and what its state is
