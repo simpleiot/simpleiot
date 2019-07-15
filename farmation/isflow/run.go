@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
 	"os"
 	"runtime"
 	"time"
@@ -107,9 +106,11 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
 				// check if value is changing fast and reset the moving
 				// average
-				if math.Abs(flow.Rate-flowRateMovingAvg.Avg()) > 5 {
-					resetFlowRateMovingAvg()
-				}
+				/*
+					if math.Abs(flow.Rate-flowRateMovingAvg.Avg()) > 5 {
+						resetFlowRateMovingAvg()
+					}
+				*/
 
 				flowRateMovingAvg.Add(flow.Rate)
 				flow.RateAvg = flowRateMovingAvg.Avg()
