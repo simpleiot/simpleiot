@@ -32,14 +32,14 @@ func (s *OperatingModeScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	// Find which operating mode is selected
-	var monitor, shtdwn, batch bool
+	var monitor, shtdwn /*, batch*/ bool
 	switch s.config.OperatingMode {
 	case isdata.ISOperatingModeMonitor:
 		monitor = true
 	case isdata.ISOperatingModeMonitorAndShutdown:
 		shtdwn = true
-	case isdata.ISOperatingModeMonitorAndBatch:
-		batch = true
+		/*case isdata.ISOperatingModeMonitorAndBatch:
+		batch = true*/
 	}
 	var mode int
 	switch s.menu.GetArrowPos() {
@@ -54,7 +54,7 @@ func (s *OperatingModeScreen) Render(img draw.Image) {
 	// add menu items
 	s.menu.AddItemSelect("Monitor and Shutdown", isdata.UpdateOperatingMode(mode), shtdwn)
 	s.menu.AddItemSelect("Monitor only", isdata.UpdateOperatingMode(mode), monitor)
-	s.menu.AddItemSelect("Monitor and Batch", isdata.UpdateOperatingMode(mode), batch)
+	//s.menu.AddItemSelect("Monitor and Batch", isdata.UpdateOperatingMode(mode), batch)
 
 	// render
 	s.menu.Render(img)
