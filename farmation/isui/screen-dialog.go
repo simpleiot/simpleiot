@@ -37,9 +37,9 @@ func (s *DialogScreen) Render(img draw.Image, message string) {
 		if (lengthSoFar >= 122 || i >= len(message)-1) && i > 0 { // if message[:i] is the full length of the screen OR at the end of the message
 
 			x := 1
-			y := lineCount*font.GetHeight() + 10
+			y := lineCount*font.GetHeight() + 11
 
-			if spaceIndex > font.MeasureString(message)-font.MeasureString(message[lastBreak:]) { // divide by spaces
+			if spaceIndex > len(message)-len(message[lastBreak:]) && i < len(message)-1 { // divide by spaces
 				DrawTxt(img, message[lastBreak:spaceIndex+1], x, y, font)
 				lastBreak = spaceIndex + 1
 			} else { // if no spaces encountered
