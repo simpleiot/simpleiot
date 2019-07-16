@@ -1,6 +1,7 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -116,11 +117,13 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch {
 	case s.state.DialogArm.Active:
 		if key == isdata.KeySK1 {
-			return ScreenIDOpMode1, isdata.UpdateDialogArmClose{}, true
+			s.switchScreen(ScreenIDOpMode1)
+			return ScreenIDNoChange, isdata.UpdateDialogArmClose{}, true
 		}
 	case s.state.DialogArmInputs.Active:
 		if key == isdata.KeySK1 {
-			return ScreenIDPumpMode, isdata.UpdateDialogArmInputsClose{}, true
+			s.switchScreen(ScreenIDPumpMode)
+			return ScreenIDNoChange, isdata.UpdateDialogArmInputsClose{}, true
 		}
 	case s.state.DialogArmReq.Active:
 		if key == isdata.KeySK1 {
@@ -138,19 +141,14 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 	// other screens
 	screenID, action, handled := s.screens[s.currentScreen].Key(key)
+	fmt.Println(screenID)
 	switch screenID {
 	case ScreenIDNoChange:
 	case ScreenIDPrev:
 		s.currentScreen = s.prevScreens[len(s.prevScreens)-1] // go to prev screen
 		s.prevScreens = s.prevScreens[:len(s.prevScreens)-1]  // remove screen from previous screens slice
 	default:
-		// add current screen to prevScreens array
-		if len(s.prevScreens) < 200 {
-			s.prevScreens = append(s.prevScreens, s.currentScreen)
-		}
-
-		// move to new screen
-		s.currentScreen = screenID
+		s.switchScreen(screenID)
 	}
 
 	// if at home screen, empty prevScreens array
@@ -159,4 +157,14 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	}
 
 	return ScreenIDNoChange, action, handled
+}
+
+func (s *Screens) switchScreen(id ScreenID) {
+	// add current screen to prevScreens array
+	if len(s.prevScreens) < 200 {
+		s.prevScreens = append(s.prevScreens, s.currentScreen)
+	}
+
+	// move to new screen
+	s.currentScreen = id
 }
