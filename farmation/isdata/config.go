@@ -83,7 +83,8 @@ type UserPumpMode int
 
 // define valid user pump modes
 const (
-	UserPumpModeOff UserPumpMode = iota
+	UserPumpModeNotSet UserPumpMode = iota
+	UserPumpModeOff
 	UserPumpModeOn
 	UserPumpModeInj
 	UserPumpModeAcc1
@@ -368,9 +369,6 @@ func (c *Config) Init() {
 	c.LogPulseData = false
 	c.LogFlowData = false
 	c.LogPressureData = false
-
-	//set arm to off
-	//c.Arm = false
 
 	// set relays to auto mode in case
 	// power lost while relays were in manual mode

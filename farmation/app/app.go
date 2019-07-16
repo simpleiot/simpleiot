@@ -575,7 +575,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 	if config.OperatingMode != isdata.ISOperatingModeMonitor {
-		if config.UserPumpMode != isdata.UserPumpModeOff {
+		if config.UserPumpMode != isdata.UserPumpModeNotSet {
 			if !config.Arm { // if the arm switch will be turned on
 				if isdata.AllArmReqMet(config, state) {
 					config.Arm = !config.Arm
@@ -588,8 +588,8 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 				config.Arm = !config.Arm
 			}
 		} else {
-			//state.DialogArmInputs.Active = true
-			//state.DialogArmInputs.Message = "Error: Injector Command Input not selected, please select before arming"
+			state.DialogArmInputs.Active = true
+			state.DialogArmInputs.Message = "Error: Injector Command Input not selected, please select before arming"
 		}
 	} else {
 		state.DialogArm.Active = true

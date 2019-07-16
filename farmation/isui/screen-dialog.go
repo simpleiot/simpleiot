@@ -1,7 +1,6 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
@@ -43,11 +42,9 @@ func (s *DialogScreen) Render(img draw.Image, message string) {
 			if spaceIndex > font.MeasureString(message)-font.MeasureString(message[lastBreak:]) { // divide by spaces
 				DrawTxt(img, message[lastBreak:spaceIndex+1], x, y, font)
 				lastBreak = spaceIndex + 1
-				fmt.Println("DialogScreen: divide by space, spaceIdex:", spaceIndex)
 			} else { // if no spaces encountered
 				DrawTxt(img, message[lastBreak:i+1], x, y, font)
 				lastBreak = i - 1
-				fmt.Println("DialogScreen: divide by index", i)
 			}
 
 			// start a new line
