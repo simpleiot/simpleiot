@@ -589,11 +589,11 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 			}
 		} else {
 			state.DialogArmInputs.Active = true
-			state.DialogArmInputs.Message = "Error: Injector Command Input not selected, please select before arming"
+			state.DialogArmInputs.Message = "Error: Injector Command \nInput not selected, please \nselect before arming"
 		}
 	} else {
 		state.DialogArm.Active = true
-		state.DialogArm.Message = "cannot arm in monitor only mode"
+		state.DialogArm.Message = "Error: Cannot arm in Monitor \nonly mode, please switch \nto Monitor and Shutdown \nmode"
 	}
 
 }

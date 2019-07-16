@@ -1,7 +1,6 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -141,7 +140,6 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 	// other screens
 	screenID, action, handled := s.screens[s.currentScreen].Key(key)
-	fmt.Println(screenID)
 	switch screenID {
 	case ScreenIDNoChange:
 	case ScreenIDPrev:
