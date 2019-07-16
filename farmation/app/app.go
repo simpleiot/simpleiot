@@ -444,7 +444,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.PressureShutdownEnabled = !config.PressureShutdownEnabled
 				if !config.PressureShutdownEnabled {
 					state.DialogApp.Active = true
-					state.DialogApp.Message = "You just disabled low-pressure shutdown"
+					state.DialogApp.Message = "You just disabled low-\npressure shutdown"
 				}
 				saveConfig()
 
