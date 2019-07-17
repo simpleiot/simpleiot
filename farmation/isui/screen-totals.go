@@ -39,11 +39,7 @@ func (s *TotalsScreen) Render(img draw.Image) {
 		s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total)
 	s.menu.AddItemFloat("Total 1", s.state.Total1)
 	s.menu.AddItemFloat("Total 2", s.state.Total2)
-	s.menu.AddItemFloat(s.config.ProductConfigs[0].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][0].Total)
-	s.menu.AddItemFloat(s.config.ProductConfigs[1].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][1].Total)
-	s.menu.AddItemFloat(s.config.ProductConfigs[2].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][2].Total)
-	s.menu.AddItemFloat(s.config.ProductConfigs[3].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][3].Total)
-	s.menu.AddItemFloat(s.config.ProductConfigs[4].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][4].Total)
+	s.menu.AddItemFloat(s.config.ProductConfigs[s.config.CurrentProductIndex].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total)
 	s.menu.AddItemFloat("Lifetime Total", s.state.LifetimeTotal)
 
 	s.menu.Render(img)
