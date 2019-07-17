@@ -41,7 +41,7 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	s.menu.AddItemFloat("Manual High", s.config.ManualHighAlarmGPH)
 	s.menu.AddItemFloat("Manual Low", s.config.ManualLowAlarmGPH)
 	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled, isdata.UpdatePressureShutdownEnabled{})
-	s.menu.AddItemFloat("Pres Low", s.config.PressureShutdownLow)
+	s.menu.AddItemFloat("Pres Low", s.config.LowPresPerc)
 	s.menu.AddItemInt("Pres Start", s.config.PressureStartupLow)
 	//s.menu.AddItemInt("Batch Amount", int(config.BatchAmount))
 	//s.menu.AddItemInt("Batch Applied", 0)
@@ -137,7 +137,7 @@ func (s *OperatingModeSetupScreen) enterEdit() {
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualLowAlarmGPH)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Low GPH"
 	case 6: // *** SKIP position 5 because it is an on/off menu item
-		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.PressureShutdownLow)) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.LowPresPerc)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Pres Low Percent"
 	case 7:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureStartupLow) // convert integer value into string to edit w/ text entry screen

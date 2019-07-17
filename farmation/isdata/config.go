@@ -405,10 +405,6 @@ func (c *Config) Init() {
 		c.AlarmRecognizeSec = 30
 	}
 
-	if c.IrrigatorOffMin <= 0 {
-		c.IrrigatorOffMin = 10
-	}
-
 	if len(c.FieldConfigs) < 4 {
 		c.FieldConfigs = []FieldConfig{
 			FieldConfig{"Field One"},
