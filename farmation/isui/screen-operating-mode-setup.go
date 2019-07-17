@@ -36,12 +36,12 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 
 	// any time items are added or removed, update render/key methods
 	s.menu.AddItemInt("Register Alm", int(s.config.AlarmRecognizeSec))
-	s.menu.AddItemInt("High Lev Alm", int(s.config.HighWindowPerc))
-	s.menu.AddItemInt("Low Lev Alm", int(s.config.LowWindowPerc))
+	s.menu.AddItemStringRight("High Lev Alm", strconv.Itoa(int(s.config.HighWindowPerc))+" %")
+	s.menu.AddItemStringRight("Low Lev Alm", strconv.Itoa(int(s.config.LowWindowPerc))+" %")
 	s.menu.AddItemInt("Manual High", int(s.config.ManualHighAlarmGPH))
 	s.menu.AddItemInt("Manual Low", int(s.config.ManualLowAlarmGPH))
 	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled, isdata.UpdatePressureShutdownEnabled{})
-	s.menu.AddItemInt("Pres Low", int(s.config.LowPresPerc))
+	s.menu.AddItemStringRight("Pres Low", strconv.Itoa(int(s.config.LowPresPerc))+" %")
 	s.menu.AddItemInt("Pres Start", s.config.PressureStartupLow)
 	//s.menu.AddItemInt("Batch Amount", int(config.BatchAmount))
 	//s.menu.AddItemInt("Batch Applied", 0)

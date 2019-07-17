@@ -19,6 +19,7 @@ const (
 	MenuItemTypeScreen MenuItemType = iota
 	MenuItemString
 	MenuItemStringLong
+	MenuItemStringRight
 	MenuItemTypeInt
 	MenuItemTypeFloat
 	MenuItemTypeOnOff
@@ -138,7 +139,7 @@ func (m *Menu) AddItemAutoOffOn(desc string, autoOffOn isdata.RelayControlStateT
 	m.updateShowValues()
 }
 
-// AddItemString adds a select list item
+// AddItemString adds a string item
 func (m *Menu) AddItemString(desc string, value string) {
 	m.items = append(m.items, MenuItem{
 		Description: desc,
@@ -157,6 +158,18 @@ func (m *Menu) AddItemStringLong(desc string, value string) {
 		Description: desc,
 		ValueString: value,
 		Type:        MenuItemStringLong,
+	})
+
+	m.updateShowValues()
+}
+
+// AddItemStringRight adds a string item with value rendered right-justified in rectagle
+// one usage is to draw a number with a symbol as a string
+func (m *Menu) AddItemStringRight(desc string, value string) {
+	m.items = append(m.items, MenuItem{
+		Description: desc,
+		ValueString: value,
+		Type:        MenuItemStringRight,
 	})
 
 	m.updateShowValues()
@@ -261,6 +274,8 @@ func (m *Menu) Render(img draw.Image) {
 				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemStringLong:
 				DrawTxt(img, item.ValueString, 47, y+offsetValues, tightpixel15.Font)
+			case MenuItemStringRight:
+				DrawTxtRight(img, item.ValueString, 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeInt: // we now have Value (float) and ValueInt
 				DrawTxtRight(img, strconv.Itoa(int(item.ValueInt)), 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeFloat:
