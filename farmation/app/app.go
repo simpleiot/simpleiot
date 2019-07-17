@@ -253,8 +253,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					saveState()
 				case isdata.SampleTypeSimPanelType:
 					state.PanelDefinition = isdata.PanelDefinition{
-						Type:        isdata.PanelType(m.Value),
-						Description: "Sim",
+						Type: isdata.PanelType(m.Value),
 					}
 					saveState()
 

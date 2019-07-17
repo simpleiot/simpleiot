@@ -15,9 +15,29 @@ const (
 	PanelTypeStandardPivot // has irrigator input
 )
 
+func (pt PanelType) String() string {
+	switch pt {
+	case PanelTypeInvalid:
+		return "Invalid"
+	case PanelTypeLindsay:
+		return "Lindsay"
+	case PanelTypeValleyIconSerial:
+		return "Val Icon"
+	case PanelTypeValleyCam:
+		return "Val CAM"
+	case PanelTypeReserved:
+		return "Reserved"
+	case PanelTypeStandardPump:
+		return "Std Pump"
+	case PanelTypeStandardPivot:
+		return "Std Pivot"
+	default:
+		return "Unknown"
+	}
+}
+
 // PanelDefinition is used to describe the panel.
 type PanelDefinition struct {
-	Voltage     float64
-	Type        PanelType
-	Description string
+	Voltage float64
+	Type    PanelType
 }
