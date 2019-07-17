@@ -115,14 +115,6 @@ func BoolToInputState(v bool) InputState {
 	return InputStateOff
 }
 
-// ToBool ...
-func (is InputState) ToBool() bool {
-	if is == InputStateOn {
-		return true
-	}
-	return false
-}
-
 // WaterOn returns water on status based on panel type
 func (s *State) WaterOn() InputState {
 	switch s.PanelDefinition.Type {
@@ -138,7 +130,7 @@ func (s *State) WaterOn() InputState {
 // IrrigatorRunning returns if the irrigator is running based on panel type
 func (s *State) IrrigatorRunning() InputState {
 	switch s.PanelDefinition.Type {
-	case PanelTypeStandardPump:
+	case PanelTypeStandardPivot:
 		return BoolToInputState(s.GpioDigitalIrrigator)
 	case PanelTypeLindsay:
 		return BoolToInputState(s.LindsayRegs.IrrigatorRunning())

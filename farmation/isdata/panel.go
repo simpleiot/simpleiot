@@ -11,8 +11,8 @@ const (
 	PanelTypeValleyCam
 	PanelTypeRinkySerial
 	PanelTypeReserved
-	PanelTypeStandardPump
-	PanelTypeStandardPivot
+	PanelTypeStandardPump  // does not have irrigator input
+	PanelTypeStandardPivot // has irrigator input
 )
 
 // PanelDefinition is used to describe the panel.

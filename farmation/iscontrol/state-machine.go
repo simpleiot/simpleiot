@@ -180,7 +180,7 @@ func (sm *StateMachine) Run() interface{} {
 	switch sm.machineState {
 	case monitorOnly:
 
-		sm.RelayInjector = sm.state.InputInjector.ToBool()
+		sm.RelayInjector = sm.state.InputInjector == isdata.InputStateOn
 		sm.CurrentLedState = LedGreenBlnk
 
 		if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndShutdown {
@@ -193,11 +193,11 @@ func (sm *StateMachine) Run() interface{} {
 
 	// below states are for monitor/shutdown
 	case standby:
-		sm.RelayInjector = sm.state.InputInjector.ToBool()
+		sm.RelayInjector = sm.state.InputInjector == isdata.InputStateOn
 		sm.CurrentLedState = LedGreenBlnk
 
 		if sm.config.Arm {
-			if sm.state.InputWaterOn.ToBool() {
+			if sm.state.InputWaterOn == isdata.InputStateOn {
 				sm.setState(monitoringFlow)
 			} else {
 				sm.setState(waitingForWater)
@@ -208,7 +208,7 @@ func (sm *StateMachine) Run() interface{} {
 
 		sm.CurrentLedState = LedGreen
 
-		if sm.state.InputWaterOn.ToBool() {
+		if sm.state.InputWaterOn == isdata.InputStateOn {
 			sm.setState(monitoringFlow)
 		} else {
 			if !sm.state.DialogStateMachine.Active {
@@ -223,11 +223,11 @@ func (sm *StateMachine) Run() interface{} {
 
 		if sm.state.DialogStateMachine.Active {
 			if sm.state.DialogStateMachine.Acknowledged ||
-				sm.state.InputWaterOn.ToBool() {
+				sm.state.InputWaterOn == isdata.InputStateOn {
 				return isdata.UpdateDialogStateMachineClose{}
 			}
 		} else {
-			if sm.state.InputWaterOn.ToBool() {
+			if sm.state.InputWaterOn == isdata.InputStateOn {
 				sm.setState(monitoringFlow)
 			}
 		}
@@ -236,7 +236,7 @@ func (sm *StateMachine) Run() interface{} {
 
 		sm.CurrentLedState = LedGreen
 
-		if sm.state.InputIrrigator.ToBool() {
+		if sm.state.InputIrrigator != isdata.InputStateOff {
 			sm.setState(monitoringFlow)
 		} else {
 			if !sm.state.DialogStateMachine.Active {
@@ -251,17 +251,17 @@ func (sm *StateMachine) Run() interface{} {
 
 		if sm.state.DialogStateMachine.Active {
 			if sm.state.DialogStateMachine.Acknowledged ||
-				sm.state.InputIrrigator.ToBool() {
+				sm.state.InputIrrigator != isdata.InputStateOff {
 				return isdata.UpdateDialogStateMachineClose{}
 			}
 		} else {
-			if sm.state.InputIrrigator.ToBool() {
+			if sm.state.InputIrrigator != isdata.InputStateOff {
 				sm.setState(monitoringFlow)
 			}
 		}
 
 	case monitoringFlow:
-		sm.RelayInjector = sm.state.InputInjector.ToBool()
+		sm.RelayInjector = sm.state.InputInjector == isdata.InputStateOn
 
 		lowPressure := sm.state.PressureMin < sm.config.PressureShutdownLow
 
@@ -288,19 +288,19 @@ func (sm *StateMachine) Run() interface{} {
 		// the following switch statement is used only to determine next case. Keep all other logic
 		// above.
 		switch {
-		case !sm.state.InputWaterOn.ToBool():
+		case sm.state.InputWaterOn == isdata.InputStateOff:
 			sm.setState(waitingForWater)
 
-		case !sm.state.InputIrrigator.ToBool():
+		case sm.state.InputIrrigator == isdata.InputStateOff:
 			sm.setState(waitingForIrr)
 
 		case time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration &&
-			sm.state.InputInjector.ToBool():
+			sm.state.InputInjector != isdata.InputStateOff:
 			sm.setState(disarm)
 
 		case sm.config.PressureShutdownEnabled &&
 			lowPressure &&
-			sm.state.InputInjector.ToBool() &&
+			sm.state.InputInjector != isdata.InputStateOff &&
 			time.Since(sm.lastGoodPressure) >= alarmRecognizeDuration:
 			sm.setState(disarm)
 			return isdata.UpdateFault{
@@ -332,7 +332,7 @@ func (sm *StateMachine) Run() interface{} {
 		sm.CurrentLedState = LedRed
 
 		if sm.elapsed() > 10*time.Second {
-			if sm.state.InputWaterOn.ToBool() {
+			if sm.state.InputWaterOn == isdata.InputStateOn {
 				sm.setState(shutdown2)
 			} else {
 				sm.setState(shutdownDialog)
@@ -362,7 +362,7 @@ func (sm *StateMachine) Run() interface{} {
 
 		if !sm.state.DialogStateMachine.Active {
 			sm.setState(standby)
-			if sm.state.InputWaterOn.ToBool() {
+			if sm.state.InputWaterOn == isdata.InputStateOn {
 				return isdata.UpdateDialogStateMachineMessage("failed to shutdown")
 			}
 
