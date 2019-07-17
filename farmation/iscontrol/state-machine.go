@@ -204,7 +204,11 @@ func (sm *StateMachine) Run() interface{} {
 		sm.CurrentLedState = LedGreenBlnk
 
 		if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndShutdown {
-			sm.setState(standby)
+			if !sm.config.Arm {
+				sm.setState(standby)
+			} else { // if armed on startup, go to monitoring flow
+				sm.setState(monitoringFlow)
+			}
 		}
 
 		if sm.state.DialogStateMachine.Active {
