@@ -11,9 +11,10 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Browser
 import Farmation.Is.Lcd as Lcd
 import Farmation.Is.Outputs as Outputs
-import Html exposing (Html, button, div, h2, h3, input, map, text)
-import Html.Attributes exposing (class, placeholder, type_, value)
-import Html.Events exposing (onClick, onInput)
+import Html exposing (Html, button, div, h2, h3, h4, input, map, option, select, text)
+import Html.Attributes exposing (class, placeholder, selected, type_, value)
+import Html.Events exposing (on, onClick, onInput)
+import Html.Events.Extra exposing (targetValueIntParse)
 import Json.Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode
@@ -59,6 +60,7 @@ subscriptions model =
 type alias SimInputs =
     { flowRate : Float
     , pressure : Float
+    , panelType : Int
     , gpioDigitalInjector : Bool
     , gpioDigitalIrrigator : Bool
     , gpioDigitalWaterOn : Bool
@@ -107,7 +109,7 @@ defaultState =
 
 
 defaultSimInputs =
-    SimInputs 33 0 False False False False False False False
+    SimInputs 33 0 7 False False False False False False False
 
 
 init : () -> ( Model, Cmd Msg )
@@ -139,6 +141,7 @@ type Msg
     | ButtonLindsayWaterOn
     | ButtonLindsayAcc1
     | ButtonLindsayIrg
+    | SetPanelType Int
 
 
 keyToSample : Lcd.Key -> Sample
@@ -276,6 +279,20 @@ update msg model =
             in
             ( { model | simInputs = newSimInputs }
             , Sample "simPressure" "" presF
+                |> encodeSample
+                |> portOut
+            )
+
+        SetPanelType panelType ->
+            let
+                simInputs =
+                    model.simInputs
+
+                newSimInputs =
+                    { simInputs | panelType = panelType }
+            in
+            ( { model | simInputs = newSimInputs }
+            , Sample "panelType" "" (toFloat panelType)
                 |> encodeSample
                 |> portOut
             )
@@ -550,6 +567,20 @@ renderLindsaySimInputs inputs =
         ]
 
 
+renderPanelTypeInput : Int -> Html Msg
+renderPanelTypeInput panelType =
+    select [ on "change" (Json.Decode.map SetPanelType targetValueIntParse) ]
+        [ option [ value "0" ] [ text "invalid" ]
+        , option [ value "1" ] [ text "lindsay" ]
+        , option [ value "2" ] [ text "icon serial" ]
+        , option [ value "3" ] [ text "valley cam" ]
+        , option [ value "4" ] [ text "rinky serial" ]
+        , option [ value "5" ] [ text "reserved" ]
+        , option [ value "6" ] [ text "standard pump" ]
+        , option [ value "7", selected True ] [ text "standard pivot" ]
+        ]
+
+
 renderSimInputs : SimInputs -> Html Msg
 renderSimInputs inputs =
     Grid.row []
@@ -628,14 +659,17 @@ view model =
         simInputs =
             if model.state.systemType == systemTypeISSim then
                 div []
-                    [ h3 [] [ text "Sim Inputs" ]
+                    [ h4 [] [ text "Panel Type" ]
+                    , renderPanelTypeInput model.simInputs.panelType
+                    , h4 [] [ text "Simulation Inputs" ]
                     , renderSimInputs model.simInputs
+
                     --, renderLindsaySimInputs model.simInputs
                     ]
 
             else
                 div []
-                    [ h3 [] [ text "Digital Inputs" ]
+                    [ h4 [] [ text "Digital Inputs" ]
                     , renderDigitalInputs model.state
                     ]
     in
@@ -647,7 +681,7 @@ view model =
             ]
         , Grid.container []
             [ simInputs
-            , h3 [] [ text "Sim Outputs" ]
+            , h4 [] [ text "Outputs" ]
             , renderSimOutputs model.state
             ]
         ]
