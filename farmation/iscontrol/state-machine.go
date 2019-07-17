@@ -50,11 +50,15 @@ const (
 	// but allow us to easily detect this group of states
 	monitorShutdownStart
 	standby
-	waitingForWater
-	waitingForWaterAck
-	waitingForIrr
-	waitingForIrrAck
+	standbyWaitingForWater
+	standbyWaitingForWaterAck
+	standbyWaitingForIrr
+	standbyWaitingForIrrAck
 	monitoringFlow
+	monitorWaitingForWater
+	monitorWaitingForWaterAck
+	monitorWaitingForIrr
+	monitorWaitingForIrrAck
 	shutdownStart
 	disarm
 	shutdown1
@@ -74,16 +78,24 @@ func (s state) String() string {
 		return "monitorOnly"
 	case standby:
 		return "standby"
+	case standbyWaitingForWater:
+		return "standbyWaitingForWater"
+	case standbyWaitingForWaterAck:
+		return "standbyWaitingForWaterAck"
+	case standbyWaitingForIrr:
+		return "standbyWaitingForIrr"
+	case standbyWaitingForIrrAck:
+		return "standbyWaitingForIrrAck"
 	case monitoringFlow:
 		return "monitoringFlow"
-	case waitingForWater:
-		return "waitingForWater"
-	case waitingForWaterAck:
-		return "waitingForWaterAck"
-	case waitingForIrr:
-		return "waitingForIrr"
-	case waitingForIrrAck:
-		return "waitingForIrrAck"
+	case monitorWaitingForWater:
+		return "monitorWaitingForWater"
+	case monitorWaitingForWaterAck:
+		return "monitorWaitingForWaterAck"
+	case monitorWaitingForIrr:
+		return "monitorWaitingForIrr"
+	case monitorWaitingForIrrAck:
+		return "monitorWaitingForIrrAck"
 	case shutdown1:
 		return "shutdown1"
 	case shutdownMonitor1:
@@ -147,6 +159,14 @@ func (sm *StateMachine) inShutdownStates() bool {
 	return false
 }
 
+func (sm *StateMachine) inStandbyWaitingStates() bool {
+	if sm.machineState >= standbyWaitingForWater &&
+		sm.machineState <= standbyWaitingForIrrAck {
+		return true
+	}
+	return false
+}
+
 // Run executes state machine, and returns an Update command if necessary.
 // Rules for the state machine
 //   - don't set state machine outputs in transition tests. The state outputs
@@ -169,11 +189,11 @@ func (sm *StateMachine) Run() interface{} {
 			sm.setState(monitorOnly)
 			return nil
 		}
-		// if disarmed in non-shutdown modes, go to standby
-		if !sm.inShutdownStates() {
-			if !sm.config.Arm {
-				sm.setState(standby)
-			}
+		// if disarmed in non-shutdown and non-standbyWaiting states, go to standby
+		if !sm.inShutdownStates() &&
+			!sm.inStandbyWaitingStates() &&
+			!sm.config.Arm {
+			sm.setState(standby)
 		}
 	}
 
@@ -196,58 +216,61 @@ func (sm *StateMachine) Run() interface{} {
 		sm.RelayInjector = sm.state.InputInjector == isdata.InputStateOn
 		sm.CurrentLedState = LedGreenBlnk
 
-		if sm.config.Arm {
-			if sm.state.InputWaterOn == isdata.InputStateOn {
-				sm.setState(monitoringFlow)
-			} else {
-				sm.setState(waitingForWater)
-			}
+		switch {
+		case sm.state.InputWaterOn == isdata.InputStateOff:
+			sm.setState(standbyWaitingForWater)
+
+		case sm.state.InputIrrigator == isdata.InputStateOff:
+			sm.setState(standbyWaitingForIrr)
+
+		case sm.config.Arm:
+			sm.setState(monitoringFlow)
 		}
 
-	case waitingForWater:
+	case standbyWaitingForWater:
 
-		sm.CurrentLedState = LedGreen
+		sm.CurrentLedState = LedGreenBlnk
 
-		if sm.state.InputWaterOn == isdata.InputStateOn {
-			sm.setState(monitoringFlow)
+		if sm.state.InputWaterOn != isdata.InputStateOff {
+			sm.setState(standby)
 		} else {
 			if !sm.state.DialogStateMachine.Active {
-				sm.setState(waitingForWaterAck)
+				sm.setState(standbyWaitingForWaterAck)
 				return isdata.UpdateDialogStateMachineMessage("Waiting for water")
 			}
 		}
 
-	case waitingForWaterAck:
+	case standbyWaitingForWaterAck:
 
-		sm.CurrentLedState = LedGreen
+		sm.CurrentLedState = LedGreenBlnk
 
 		if sm.state.DialogStateMachine.Active {
 			if sm.state.DialogStateMachine.Acknowledged ||
-				sm.state.InputWaterOn == isdata.InputStateOn {
+				sm.state.InputWaterOn != isdata.InputStateOff {
 				return isdata.UpdateDialogStateMachineClose{}
 			}
 		} else {
-			if sm.state.InputWaterOn == isdata.InputStateOn {
-				sm.setState(monitoringFlow)
+			if sm.state.InputWaterOn != isdata.InputStateOff {
+				sm.setState(standby)
 			}
 		}
 
-	case waitingForIrr:
+	case standbyWaitingForIrr:
 
-		sm.CurrentLedState = LedGreen
+		sm.CurrentLedState = LedGreenBlnk
 
 		if sm.state.InputIrrigator != isdata.InputStateOff {
-			sm.setState(monitoringFlow)
+			sm.setState(standby)
 		} else {
 			if !sm.state.DialogStateMachine.Active {
-				sm.setState(waitingForIrrAck)
+				sm.setState(standbyWaitingForIrrAck)
 				return isdata.UpdateDialogStateMachineMessage("Waiting for irrigator")
 			}
 		}
 
-	case waitingForIrrAck:
+	case standbyWaitingForIrrAck:
 
-		sm.CurrentLedState = LedGreen
+		sm.CurrentLedState = LedGreenBlnk
 
 		if sm.state.DialogStateMachine.Active {
 			if sm.state.DialogStateMachine.Acknowledged ||
@@ -256,7 +279,7 @@ func (sm *StateMachine) Run() interface{} {
 			}
 		} else {
 			if sm.state.InputIrrigator != isdata.InputStateOff {
-				sm.setState(monitoringFlow)
+				sm.setState(standby)
 			}
 		}
 
@@ -265,7 +288,9 @@ func (sm *StateMachine) Run() interface{} {
 
 		lowPressure := sm.state.PressureMin < sm.config.PressureShutdownLow
 
-		if sm.state.FlowStatus == isdata.FlowStatusOffTarget || lowPressure {
+		if sm.state.InputInjector != isdata.InputStateOff &&
+			(sm.state.FlowStatus == isdata.FlowStatusOffTarget ||
+				(sm.config.PressureShutdownEnabled && lowPressure)) {
 			sm.CurrentLedState = LedRedBlnk
 		} else {
 			sm.CurrentLedState = LedGreen
@@ -289,10 +314,10 @@ func (sm *StateMachine) Run() interface{} {
 		// above.
 		switch {
 		case sm.state.InputWaterOn == isdata.InputStateOff:
-			sm.setState(waitingForWater)
+			sm.setState(monitorWaitingForWater)
 
 		case sm.state.InputIrrigator == isdata.InputStateOff:
-			sm.setState(waitingForIrr)
+			sm.setState(monitorWaitingForIrr)
 
 		case time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration &&
 			sm.state.InputInjector != isdata.InputStateOff:
@@ -306,6 +331,61 @@ func (sm *StateMachine) Run() interface{} {
 			return isdata.UpdateFault{
 				Fault: isdata.FaultTypeLowPres,
 				Time:  time.Now(),
+			}
+		}
+	case monitorWaitingForWater:
+
+		sm.CurrentLedState = LedGreen
+
+		if sm.state.InputWaterOn != isdata.InputStateOff {
+			sm.setState(monitoringFlow)
+		} else {
+			if !sm.state.DialogStateMachine.Active {
+				sm.setState(monitorWaitingForWaterAck)
+				return isdata.UpdateDialogStateMachineMessage("Waiting for water")
+			}
+		}
+
+	case monitorWaitingForWaterAck:
+
+		sm.CurrentLedState = LedGreen
+
+		if sm.state.DialogStateMachine.Active {
+			if sm.state.DialogStateMachine.Acknowledged ||
+				sm.state.InputWaterOn != isdata.InputStateOff {
+				return isdata.UpdateDialogStateMachineClose{}
+			}
+		} else {
+			if sm.state.InputWaterOn != isdata.InputStateOff {
+				sm.setState(monitoringFlow)
+			}
+		}
+
+	case monitorWaitingForIrr:
+
+		sm.CurrentLedState = LedGreen
+
+		if sm.state.InputIrrigator != isdata.InputStateOff {
+			sm.setState(monitoringFlow)
+		} else {
+			if !sm.state.DialogStateMachine.Active {
+				sm.setState(monitorWaitingForIrrAck)
+				return isdata.UpdateDialogStateMachineMessage("Waiting for irrigator")
+			}
+		}
+
+	case monitorWaitingForIrrAck:
+
+		sm.CurrentLedState = LedGreen
+
+		if sm.state.DialogStateMachine.Active {
+			if sm.state.DialogStateMachine.Acknowledged ||
+				sm.state.InputIrrigator != isdata.InputStateOff {
+				return isdata.UpdateDialogStateMachineClose{}
+			}
+		} else {
+			if sm.state.InputIrrigator != isdata.InputStateOff {
+				sm.setState(monitoringFlow)
 			}
 		}
 
