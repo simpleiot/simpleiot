@@ -13,4 +13,5 @@ const (
 	SampleTypeSimLindsayAcc1      = "simLindsayAcc1"
 	SampleTypeSimLindsayWaterOn   = "simLindsayWaterOn"
 	SampleTypeSimLindsayIrrigator = "simLindsayIrrigator"
+	SampleTypeSimPanelType        = "simPanelType"
 )

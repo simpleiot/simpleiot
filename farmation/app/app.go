@@ -251,6 +251,12 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					toggleArmOrOpenDialog(&config, &state)
 					saveConfig()
 					saveState()
+				case isdata.SampleTypeSimPanelType:
+					state.PanelDefinition = isdata.PanelDefinition{
+						Type:        isdata.PanelType(m.Value),
+						Description: "Sim",
+					}
+					saveState()
 
 				default:
 					log.Println("Sample type not handled: ", m.Type)

@@ -292,7 +292,7 @@ update msg model =
                     { simInputs | panelType = panelType }
             in
             ( { model | simInputs = newSimInputs }
-            , Sample "panelType" "" (toFloat panelType)
+            , Sample "simPanelType" "" (toFloat panelType)
                 |> encodeSample
                 |> portOut
             )
