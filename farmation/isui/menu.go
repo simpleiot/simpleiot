@@ -319,10 +319,24 @@ func (m *Menu) Render(img draw.Image) {
 		Rect(img, x, y, sbWidth, sbHeight)
 		screenCount := (count + itemsPerScreen - 1) / itemsPerScreen
 		blockHeight := sbHeight / screenCount
-		RectFilled(img, x, y+blockHeight*screen, sbWidth, blockHeight)
+
+		// if divides scroll bar divides unevenly, fill up remaining space at the end
+		if screen >= screenCount-1 {
+			RectFilled(img, x, y+blockHeight*screen, sbWidth, blockHeight+sbHeight%screenCount)
+		} else {
+			RectFilled(img, x, y+blockHeight*screen, sbWidth, blockHeight)
+		}
 		// draw arrows
 		if screen > 0 {
-			Polyline(img, x, y, x+2, y-2, x+4, y)
+			Polyline(img,
+				x, y,
+				x+2, y-2,
+				x+4, y)
+
+			Polyline(img,
+				x, y-1,
+				x+2, y-3,
+				x+4, y-1)
 		}
 
 		if screen < (screenCount - 1) {
@@ -330,6 +344,11 @@ func (m *Menu) Render(img draw.Image) {
 				x, y+sbHeight,
 				x+2, y+sbHeight+2,
 				x+4, y+sbHeight)
+
+			Polyline(img,
+				x, y+sbHeight+1,
+				x+2, y+sbHeight+3,
+				x+4, y+sbHeight+1)
 		}
 	}
 }
