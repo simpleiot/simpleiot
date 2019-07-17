@@ -43,6 +43,8 @@ func (s *StatusScreen3) Render(img draw.Image) {
 	DrawTxt(img, strconv.FormatFloat(s.state.PressureAvg, 'f', 0, 64), x, y2, tightpixel15.Font)
 	DrawTxt(img, strconv.FormatFloat(s.state.PressureMax, 'f', 0, 64), x, y3, tightpixel15.Font)
 	DrawTxt(img, "PSI", x+20, y1, tightpixel15.Font)
+	DrawTxt(img, "PSI", x+20, y2, tightpixel15.Font)
+	DrawTxt(img, "PSI", x+20, y3, tightpixel15.Font)
 
 	s.softKeys.Render(img, 0, 54)
 
