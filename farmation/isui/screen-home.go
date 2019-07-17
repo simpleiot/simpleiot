@@ -21,7 +21,7 @@ type HomeScreen struct {
 func NewHomeScreen(state *isdata.State, config *isdata.Config) *HomeScreen {
 	return &HomeScreen{
 		softKeys: NewSoftKeys("menu", "mode", "pump", "faults"),
-		icons:    NewIcons(true, true, true, true),
+		icons:    NewIcons(true, true, true),
 		state:    state,
 		config:   config,
 	}
@@ -32,19 +32,28 @@ func (s *HomeScreen) Render(img draw.Image) {
 	Clear(img)
 	rateS := strconv.FormatFloat(s.state.FlowRate, 'f', 1, 64)
 	highBound, lowBound := s.config.CalculateFlowWindow()
-	DrawTxt(img, rateS, 4, 12, agencyfbbold40.Font)
-	if s.config.OperatingMode != isdata.ISOperatingModeMonitor && s.config.Arm {
-		DrawTxt(img, strconv.FormatFloat(highBound, 'f', 1, 64), 67, 11, agencyfbbold20.Font)
-		DrawTxt(img, strconv.FormatFloat(lowBound, 'f', 1, 64), 67, 29, agencyfbbold20.Font)
+	DrawTxt(img, rateS, 22, 15, agencyfbbold40.Font)
+	if true { //s.config.OperatingMode != isdata.ISOperatingModeMonitor && s.config.Arm {
+		DrawTxt(img, strconv.FormatFloat(highBound, 'f', 1, 64), 84, 14, agencyfbbold20.Font)
+		DrawTxt(img, strconv.FormatFloat(lowBound, 'f', 1, 64), 84, 32, agencyfbbold20.Font)
 	}
 	s.softKeys.SetBlinking(3, s.state.FaultsActive.ActiveFaults())
 	s.softKeys.Render(img, 0, 54)
 
 	// icons
+	// page indicator
+	s.icons.SetPage("page indicator", 0) // set page indicator icon to home
+
+	// outputs and arm
 	s.icons.SetOnOff("arm", s.config.Arm)
 	s.icons.SetOnOff("pump", s.state.GpioRelayInjectorEn)
+	s.icons.SetOnOff("shutdown", s.state.GpioRelayShutdownEn)
+
+	// inputs
+	s.icons.SetOnOff("pump in", s.state.GpioDigitalInjector)
 	s.icons.SetOnOff("water", s.state.GpioDigitalWaterOn)
-	s.icons.SetPage("page indicator", 0) // set page indicator icon to home
+	s.icons.SetOnOff("irrigator", s.state.GpioDigitalWaterOn)
+
 	s.icons.Render(img)
 }
 

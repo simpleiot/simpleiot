@@ -20,7 +20,7 @@ type StatusScreen2 struct {
 func NewStatusScreen2(state *isdata.State, config *isdata.Config) *StatusScreen2 {
 	return &StatusScreen2{
 		softKeys: NewSoftKeys("home", "mode", "pump"),
-		icons:    NewIcons(true, true, true, true),
+		icons:    NewIcons(true, false, true),
 		state:    state,
 		config:   config,
 	}
@@ -36,10 +36,14 @@ func (s *StatusScreen2) Render(img draw.Image) {
 	s.softKeys.Render(img, 0, 54)
 
 	// icons
-	s.icons.SetPage("page indicator", 2)
+	// page indicator
+	s.icons.SetPage("page indicator", 2) // set page indicator icon to home
+
+	// outputs and arm
 	s.icons.SetOnOff("arm", s.config.Arm)
 	s.icons.SetOnOff("pump", s.state.GpioRelayInjectorEn)
-	s.icons.SetOnOff("water", s.state.GpioDigitalWaterOn)
+	s.icons.SetOnOff("shutdown", s.state.GpioRelayShutdownEn)
+
 	s.icons.Render(img)
 }
 

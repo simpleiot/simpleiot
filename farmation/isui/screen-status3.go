@@ -19,7 +19,7 @@ type StatusScreen3 struct {
 func NewStatusScreen3(state *isdata.State, config *isdata.Config) *StatusScreen3 {
 	return &StatusScreen3{
 		softKeys: NewSoftKeys("home", "mode", "pump"),
-		icons:    NewIcons(true, false, false, false),
+		icons:    NewIcons(true, false, false),
 		state:    state,
 		config:   config,
 	}

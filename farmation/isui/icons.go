@@ -32,22 +32,23 @@ const (
 )
 
 // NewIcons initializes the icons
-func NewIcons(pageInd, arm, pump, water bool) *Icons {
+func NewIcons(pageInd, inputs, outputs bool) *Icons {
 	ret := Icons{}
 	// Add new icons
-	margin := 113
+	marginCenter, marginRight, marginLeft := 59, 115, 1
 	ret.icons = make(map[string]*iconFields)
 	if pageInd {
-		ret.icons["page indicator"] = &iconFields{icon1: "indicator-home.png", icon2: "indicator-status1.png", icon3: "indicator-status2.png", icon4: "indicator-status3.png", x: margin, y: 1}
+		ret.icons["page indicator"] = &iconFields{icon1: "indicator-home.png", icon2: "indicator-status1.png", icon3: "indicator-status2.png", icon4: "indicator-status3.png", x: marginCenter, y: 1}
 	}
-	if arm {
-		ret.icons["arm"] = &iconFields{iconOn: "arm.png", iconOff: "", x: margin, y: 7}
+	if inputs {
+		ret.icons["pump in"] = &iconFields{iconOn: "pump.png", iconOff: "", x: marginLeft, y: 4}
+		ret.icons["water"] = &iconFields{iconOn: "water-on.png", iconOff: "", x: marginLeft + 2, y: 20}
+		ret.icons["irrigator"] = &iconFields{iconOn: "irrigator.png", iconOff: "", x: marginLeft, y: 40}
 	}
-	if pump {
-		ret.icons["pump"] = &iconFields{iconOn: "pump.png", iconOff: "", x: margin, y: 25}
-	}
-	if water {
-		ret.icons["water"] = &iconFields{iconOn: "water-on.png", iconOff: "", x: margin + 2, y: 38}
+	if outputs {
+		ret.icons["arm"] = &iconFields{iconOn: "arm.png", iconOff: "", x: marginRight - 1, y: 2}
+		ret.icons["pump"] = &iconFields{iconOn: "pump.png", iconOff: "", x: marginRight, y: 22}
+		ret.icons["shutdown"] = &iconFields{iconOn: "shutdown.png", iconOff: "", x: marginRight, y: 38}
 	}
 
 	return &ret
