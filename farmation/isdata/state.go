@@ -219,8 +219,10 @@ func InitState(s *State) (dirty bool) {
 
 	if runtime.GOARCH == "arm" {
 		s.SystemType = SystemTypeIS
+		s.PanelDefinition = PanelDefinition{Description: "Invalid"}
 	} else {
 		s.SystemType = SystemTypeISSim
+		s.PanelDefinition = PanelDefinition{Description: "Std Pivot", Type: PanelTypeStandardPivot}
 	}
 
 	s.FlowRate = 0
@@ -244,8 +246,6 @@ func InitState(s *State) (dirty bool) {
 
 	s.DialogArm.Active = false
 	s.DialogArm.Acknowledged = false
-
-	s.PanelDefinition = PanelDefinition{Description: "Invalid"}
 
 	return
 }
