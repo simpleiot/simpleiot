@@ -41,6 +41,7 @@ type Config struct {
 
 	// This is the time in minutes until the system activates the shutdown
 	// relay after recognizing that the irrigator input is off
+	// *** NOT USED ***
 	IrrigatorOffMin float64
 
 	// BatchAmount max value is 9,999

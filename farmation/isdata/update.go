@@ -119,8 +119,8 @@ type UpdateHighWindowPerc float64
 // UpdateManualLowAlarmGPH is used to send a new flow rate window low gallons per hour
 type UpdateManualLowAlarmGPH float64
 
-// UpdatePressureShutdownLow is used to send a new pressure low
-type UpdatePressureShutdownLow float64
+// UpdateLowPresPerc is used to send a new pressure low
+type UpdateLowPresPerc float64
 
 // UpdatePressureStartupLow is used to send a new minimum required startup pressure
 type UpdatePressureStartupLow int
@@ -130,9 +130,6 @@ type UpdateManualHighAlarmGPH float64
 
 // UpdateAlarmRecognizeSec is used to send a new time
 type UpdateAlarmRecognizeSec float64
-
-// UpdateIrrigatorOffMin ...
-type UpdateIrrigatorOffMin float64
 
 // UpdateDevName is used to send a new device name for the IS to app.go
 type UpdateDevName string

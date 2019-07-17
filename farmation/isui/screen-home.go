@@ -33,7 +33,7 @@ func (s *HomeScreen) Render(img draw.Image) {
 	rateS := strconv.FormatFloat(s.state.FlowRate, 'f', 1, 64)
 	highBound, lowBound := s.config.CalculateFlowWindow()
 	DrawTxt(img, rateS, 22, 15, agencyfbbold40.Font)
-	if true { //s.config.OperatingMode != isdata.ISOperatingModeMonitor && s.config.Arm {
+	if s.config.OperatingMode != isdata.ISOperatingModeMonitor && s.config.Arm {
 		DrawTxt(img, strconv.FormatFloat(highBound, 'f', 1, 64), 84, 14, agencyfbbold20.Font)
 		DrawTxt(img, strconv.FormatFloat(lowBound, 'f', 1, 64), 84, 32, agencyfbbold20.Font)
 	}
@@ -52,7 +52,7 @@ func (s *HomeScreen) Render(img draw.Image) {
 	// inputs
 	s.icons.SetOnOff("pump in", s.state.GpioDigitalInjector)
 	s.icons.SetOnOff("water", s.state.GpioDigitalWaterOn)
-	s.icons.SetOnOff("irrigator", s.state.GpioDigitalWaterOn)
+	s.icons.SetOnOff("irrigator", s.state.GpioDigitalIrrigator)
 
 	s.icons.Render(img)
 }

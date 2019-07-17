@@ -34,8 +34,8 @@ func (s *DialogArmReqScreen) Render(img draw.Image, message string) {
 	x1, x2, x3, x4 := 2, 47, 64, 112
 
 	// Requirement descriptions
-	DrawTxt(img, "Water On", x1, y1, font)
-	DrawTxt(img, "Injector", x1, y2, font)
+	DrawTxt(img, "Injector", x1, y1, font)
+	DrawTxt(img, "Water On", x1, y2, font)
 	DrawTxt(img, "Irrigator", x1, y3, font)
 	DrawTxt(img, "Flow", x3, y1, font)
 	DrawTxt(img, "Pressure", x3, y2, font)

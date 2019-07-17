@@ -34,8 +34,8 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 
 	s.menu.ResetItems()
 
-	s.menu.AddItemFloat("Rec Flow Alm", s.config.AlarmRecognizeSec)
-	s.menu.AddItemFloat("Rec Irrig Off", s.config.IrrigatorOffMin)
+	// any time items are added or removed, update render/key methods
+	s.menu.AddItemFloat("Register Alm", s.config.AlarmRecognizeSec)
 	s.menu.AddItemFloat("High Lev Alm", s.config.HighWindowPerc)
 	s.menu.AddItemFloat("Low Lev Alm", s.config.LowWindowPerc)
 	s.menu.AddItemFloat("Manual High", s.config.ManualHighAlarmGPH)
@@ -68,20 +68,18 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 			case 0:
 				return ScreenIDNoChange, isdata.UpdateAlarmRecognizeSec(float64(value)), true
 			case 1:
-				return ScreenIDNoChange, isdata.UpdateIrrigatorOffMin(float64(value)), true
-			case 2:
 				return ScreenIDNoChange, isdata.UpdateHighWindowPerc(value), true
-			case 3:
+			case 2:
 				return ScreenIDNoChange, isdata.UpdateLowWindowPerc(value), true
-			case 4:
+			case 3:
 				return ScreenIDNoChange, isdata.UpdateManualHighAlarmGPH(value), true
-			case 5:
+			case 4:
 				return ScreenIDNoChange, isdata.UpdateManualLowAlarmGPH(value), true
-			case 6:
+			case 5:
 				return ScreenIDNoChange, isdata.UpdatePressureShutdownEnabled{}, true
+			case 6:
+				return ScreenIDNoChange, isdata.UpdateLowPresPerc(value), true
 			case 7:
-				return ScreenIDNoChange, isdata.UpdatePressureShutdownLow(value), true
-			case 8:
 				return ScreenIDNoChange, isdata.UpdatePressureStartupLow(value), true
 			}
 		case TextEntryCommandCancel: // cancel
@@ -94,13 +92,13 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
 			switch s.menu.GetArrowPos() {
-			case 6: // An on/off selection -- do nothing
+			case 5: // An on/off selection -- do nothing
 			default:
 				s.enterEdit()
 			}
 		case isdata.KeyEnter: // Edit
 			switch s.menu.GetArrowPos() {
-			case 6:
+			case 5:
 				return s.menu.Key(key)
 			default:
 				s.enterEdit()
@@ -127,24 +125,21 @@ func (s *OperatingModeSetupScreen) enterEdit() {
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.AlarmRecognizeSec)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Seconds"
 	case 1:
-		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.IrrigatorOffMin)) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Minutes"
-	case 2:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.HighWindowPerc)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "High Percent"
-	case 3:
+	case 2:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.LowWindowPerc)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Low Percent"
-	case 4:
+	case 3:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualHighAlarmGPH)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "High GPH"
-	case 5:
+	case 4:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualLowAlarmGPH)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Low GPH"
-	case 7: // skip position 6 because it is an on/off menu item
+	case 6: // *** SKIP position 5 because it is an on/off menu item
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.PressureShutdownLow)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Pres Low Percent"
-	case 8:
+	case 7:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureStartupLow) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Startup Min PSI"
 	}
