@@ -91,16 +91,16 @@ func AdcRead(name string) (float64, error) {
 // Below is the max voltage expected for panel, so the idea is you loop through
 // starting at the beginning of the array and check if the voltage is less than
 var panelDefinitions = []isdata.PanelDefinition{
-	{0.459, isdata.PanelTypeInvalid, "Invalid"},
-	{0.763, isdata.PanelTypeLindsay, "Lindsay"},
-	{1.072, isdata.PanelTypeValleyIconSerial, "Val Icon"},
-	{1.402, isdata.PanelTypeValleyCam, "Val CAM"},
-	{1.720, isdata.PanelTypeRinkySerial, "Rinky Ser"},
-	{2.021, isdata.PanelTypeReserved, "Reserved"},
-	{2.382, isdata.PanelTypeReserved, "Reserved"},
-	{2.770, isdata.PanelTypeStandardPump, "Std Pump"},
-	{3.124, isdata.PanelTypeStandardPivot, "Std Pivot"},
-	{5.000, isdata.PanelTypeInvalid, "Invalid"},
+	{Voltage: 0.459, Type: isdata.PanelTypeInvalid},
+	{Voltage: 0.763, Type: isdata.PanelTypeLindsay},
+	{Voltage: 1.072, Type: isdata.PanelTypeValleyIconSerial},
+	{Voltage: 1.402, Type: isdata.PanelTypeValleyCam},
+	{Voltage: 1.720, Type: isdata.PanelTypeRinkySerial},
+	{Voltage: 2.021, Type: isdata.PanelTypeReserved},
+	{Voltage: 2.382, Type: isdata.PanelTypeReserved},
+	{Voltage: 2.770, Type: isdata.PanelTypeStandardPump},
+	{Voltage: 3.124, Type: isdata.PanelTypeStandardPivot},
+	{Voltage: 5.000, Type: isdata.PanelTypeInvalid},
 }
 
 func getPanelDefintion(v float64) (def isdata.PanelDefinition) {
@@ -112,9 +112,6 @@ func getPanelDefintion(v float64) (def isdata.PanelDefinition) {
 	}
 
 	def.Voltage = v
-	if def.Description == "" {
-		def.Description = "Invalid"
-	}
 
 	return
 }

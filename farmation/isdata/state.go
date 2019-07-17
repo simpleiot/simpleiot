@@ -219,10 +219,10 @@ func InitState(s *State) (dirty bool) {
 
 	if runtime.GOARCH == "arm" {
 		s.SystemType = SystemTypeIS
-		s.PanelDefinition = PanelDefinition{Description: "Invalid"}
+		s.PanelDefinition = PanelDefinition{}
 	} else {
 		s.SystemType = SystemTypeISSim
-		s.PanelDefinition = PanelDefinition{Description: "Std Pivot", Type: PanelTypeStandardPivot}
+		s.PanelDefinition = PanelDefinition{Type: PanelTypeStandardPivot}
 	}
 
 	s.FlowRate = 0
