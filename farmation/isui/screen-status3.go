@@ -2,6 +2,7 @@ package isui
 
 import (
 	"image/draw"
+	"strconv"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -18,7 +19,7 @@ type StatusScreen3 struct {
 // NewStatusScreen3 initializes and returns a HomeScreen
 func NewStatusScreen3(state *isdata.State, config *isdata.Config) *StatusScreen3 {
 	return &StatusScreen3{
-		softKeys: NewSoftKeys("home", "mode", "pump"),
+		softKeys: NewSoftKeys("home"),
 		icons:    NewIcons(true, false, false),
 		state:    state,
 		config:   config,
@@ -28,7 +29,20 @@ func NewStatusScreen3(state *isdata.State, config *isdata.Config) *StatusScreen3
 // Render updates the home screen, and provides an image
 func (s *StatusScreen3) Render(img draw.Image) {
 	Clear(img)
-	DrawTxt(img, "Status Screen 3", 11, 38, tightpixel15.Font)
+
+	x := 2
+	y1, y2, y3 := 8, 22, 36
+
+	DrawTxt(img, "Min Pressure: ", x, y1, tightpixel15.Font)
+	DrawTxt(img, "Avg Pressure: ", x, y2, tightpixel15.Font)
+	DrawTxt(img, "Max Pressure: ", x, y3, tightpixel15.Font)
+
+	x = 77
+
+	DrawTxt(img, strconv.FormatFloat(s.state.PressureMin, 'f', 0, 64), x, y1, tightpixel15.Font)
+	DrawTxt(img, strconv.FormatFloat(s.state.PressureAvg, 'f', 0, 64), x, y2, tightpixel15.Font)
+	DrawTxt(img, strconv.FormatFloat(s.state.PressureMax, 'f', 0, 64), x, y3, tightpixel15.Font)
+	DrawTxt(img, "PSI", x+20, y1, tightpixel15.Font)
 
 	s.softKeys.Render(img, 0, 54)
 

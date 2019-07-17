@@ -19,7 +19,7 @@ type StatusScreen2 struct {
 // NewStatusScreen2 initializes and returns a HomeScreen
 func NewStatusScreen2(state *isdata.State, config *isdata.Config) *StatusScreen2 {
 	return &StatusScreen2{
-		softKeys: NewSoftKeys("home", "mode", "pump"),
+		softKeys: NewSoftKeys("home"),
 		icons:    NewIcons(true, false, true),
 		state:    state,
 		config:   config,
@@ -29,9 +29,20 @@ func NewStatusScreen2(state *isdata.State, config *isdata.Config) *StatusScreen2
 // Render updates the home screen, and provides an image
 func (s *StatusScreen2) Render(img draw.Image) {
 	Clear(img)
-	DrawTxt(img, "Field: "+s.config.FieldConfigs[s.config.CurrentFieldIndex].Description, 2, 8, tightpixel15.Font)
-	DrawTxt(img, "Product: "+s.config.ProductConfigs[s.config.CurrentProductIndex].Description, 2, 22, tightpixel15.Font)
-	DrawTxt(img, strconv.FormatFloat(s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total, 'f', 1, 64), 43, 37, tightpixel15.Font)
+
+	x := 2
+	y1, y2, y3 := 8, 22, 36
+
+	DrawTxt(img, "Field: ", x, y1, tightpixel15.Font)
+	DrawTxt(img, "Product: ", x, y2, tightpixel15.Font)
+	DrawTxt(img, "Total: ", x, y3, tightpixel15.Font)
+
+	x = 50
+
+	DrawTxt(img, s.config.FieldConfigs[s.config.CurrentFieldIndex].Description, x, y1, tightpixel15.Font)
+	DrawTxt(img, s.config.ProductConfigs[s.config.CurrentProductIndex].Description, x, y2, tightpixel15.Font)
+	DrawTxt(img, strconv.FormatFloat(s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total, 'f', 1, 64), x, y3, tightpixel15.Font)
+	DrawTxt(img, "Gallons", x+22, y3, tightpixel15.Font)
 
 	s.softKeys.Render(img, 0, 54)
 

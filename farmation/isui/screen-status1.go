@@ -35,13 +35,6 @@ func (s *StatusScreen1) Render(img draw.Image) {
 	Clear(img)
 	DrawTxt(img, strconv.Itoa(int(s.state.BatchApplied)), 11, 7, agencyfbbold40.Font)
 	DrawTxt(img, "GALLONS", 11, 38, tightpixel15.Font)
-	x := 38
-	y := 51
-	presWidth := 19
-	DrawTxt(img, strconv.FormatFloat(s.state.PressureMin, 'f', 0, 64), x, y, tightpixel15.Font)
-	DrawTxt(img, strconv.FormatFloat(s.state.PressureAvg, 'f', 0, 64), x+presWidth, y, tightpixel15.Font)
-	DrawTxt(img, strconv.FormatFloat(s.state.PressureMax, 'f', 0, 64), x+2*presWidth, y, tightpixel15.Font)
-	DrawTxt(img, "PSI", x+3*presWidth, y, tightpixel15.Font)
 
 	s.softKeys.Render(img, 0, 54)
 
