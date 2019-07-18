@@ -33,8 +33,15 @@ func (s *FaultsActiveScreen) Render(img draw.Image) {
 	yPos := 14
 	spacing := font.GetHeight() + 2
 
-	for i := len(s.state.FaultsActive) - 1; i >= 0; i-- {
-		DrawTxtCentered(img, s.state.FaultsActive[i].Fault.StringVerbose()+strconv.FormatFloat(s.state.FaultsActive[i].Value, 'f', 0, 64), 64, yPos, font)
+	lenFaults := len(s.state.FaultsActive) - 1
+	for i := lenFaults; i >= 0; i-- {
+
+		// only diplay three active faults
+		if lenFaults-i >= 3 {
+			break
+		}
+
+		DrawTxt(img, s.state.FaultsActive[i].Fault.StringVerbose()+strconv.FormatFloat(s.state.FaultsActive[i].Value, 'f', 0, 64), 1, yPos, font)
 		yPos += spacing
 	}
 
