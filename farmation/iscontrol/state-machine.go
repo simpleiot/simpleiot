@@ -296,6 +296,7 @@ func (sm *StateMachine) Run() interface{} {
 			(sm.state.FlowStatus == isdata.FlowStatusOffTarget ||
 				(sm.config.PressureShutdownEnabled && lowPressure)) {
 			sm.CurrentLedState = LedRedBlnk
+			//return UpdateAlarmPressure(true)
 		} else {
 			sm.CurrentLedState = LedGreen
 		}
@@ -304,7 +305,7 @@ func (sm *StateMachine) Run() interface{} {
 			return isdata.UpdateDialogStateMachineClose{}
 		}
 
-		if sm.state.FlowStatus == isdata.FlowStatusArmedOk {
+		if !(sm.state.FlowStatus == isdata.FlowStatusOffTarget) {
 			sm.lastGoodFlow = time.Now()
 		}
 
@@ -323,9 +324,15 @@ func (sm *StateMachine) Run() interface{} {
 		case sm.state.InputIrrigator == isdata.InputStateOff:
 			sm.setState(monitorWaitingForIrr)
 
-		case time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration &&
-			sm.state.InputInjector != isdata.InputStateOff:
+		case sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
+			sm.state.InputInjector != isdata.InputStateOff &&
+			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
 			sm.setState(disarm)
+			return isdata.UpdateFault{
+				Fault: isdata.FaultTypeFlowOffTarget,
+				Time:  time.Now(),
+				Value: sm.state.FlowRate,
+			}
 
 		case sm.config.PressureShutdownEnabled &&
 			lowPressure &&
@@ -335,6 +342,7 @@ func (sm *StateMachine) Run() interface{} {
 			return isdata.UpdateFault{
 				Fault: isdata.FaultTypeLowPres,
 				Time:  time.Now(),
+				Value: sm.state.PressureMin,
 			}
 		}
 	case monitorWaitingForWater:

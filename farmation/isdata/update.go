@@ -51,6 +51,7 @@ type UpdateFaultActiveClearAll struct{}
 type UpdateFault struct {
 	Fault FaultType
 	Time  time.Time
+	Value float64 // this is a value that can be filled with the flow or pressure that caused the fault
 }
 
 // UpdateLogPulseEnable is used to enable/disable logging of pulse data to USB

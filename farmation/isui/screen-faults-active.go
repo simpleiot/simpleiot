@@ -2,6 +2,7 @@ package isui
 
 import (
 	"image/draw"
+	"strconv"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -33,7 +34,7 @@ func (s *FaultsActiveScreen) Render(img draw.Image) {
 	spacing := font.GetHeight() + 2
 
 	for i := len(s.state.FaultsActive) - 1; i >= 0; i-- {
-		DrawTxtCentered(img, s.state.FaultsActive[i].Fault.StringVerbose(), 64, yPos, font)
+		DrawTxtCentered(img, s.state.FaultsActive[i].Fault.StringVerbose()+strconv.FormatFloat(s.state.FaultsActive[i].Value, 'f', 0, 64), 64, yPos, font)
 		yPos += spacing
 	}
 

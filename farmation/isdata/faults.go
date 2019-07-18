@@ -12,6 +12,7 @@ type FaultType int
 const (
 	FaultTypeIrrOff FaultType = iota
 	FaultTypeLowPres
+	FaultTypeFlowOffTarget
 )
 
 // String returns a message for a fault type
@@ -21,6 +22,8 @@ func (ft FaultType) String() string {
 		return "irrigator didnt fill"
 	case FaultTypeLowPres:
 		return "low pressure"
+	case FaultTypeFlowOffTarget:
+		return "flow off target"
 	}
 	return "unknown fault"
 }
@@ -31,7 +34,9 @@ func (ft FaultType) StringVerbose() string {
 	case FaultTypeIrrOff:
 		return "Irrigator didnt fill"
 	case FaultTypeLowPres:
-		return "Low pressure - possible leak"
+		return "Shtdwn: low pressure, "
+	case FaultTypeFlowOffTarget:
+		return "Shtdwn: flow off target, "
 	}
 	return "unknown fault"
 }
@@ -40,7 +45,26 @@ func (ft FaultType) StringVerbose() string {
 type Fault struct {
 	Fault FaultType
 	Time  time.Time
+	Value float64 // this is a value that can be the flow or pressure that caused the fault
 }
 
 // Faults history for system
 type Faults []Fault
+
+// Below methods allow faults to be automatically sorted by time
+
+// Len return lenght of slice
+func (f Faults) Len() int {
+	return len(f)
+}
+
+// Swap positions i and j
+func (f Faults) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+
+// Less returns whether timestamp of fault at pos i is after timestamp
+// of fault at pos j
+func (f Faults) Less(i, j int) bool {
+	return f[i].Time.Before(f[j].Time)
+}
