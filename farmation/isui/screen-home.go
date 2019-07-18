@@ -3,6 +3,7 @@ package isui
 import (
 	"image/draw"
 	"strconv"
+	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/agencyfbbold20"
 	"github.com/simpleiot/simpleiot/farmation/fonts/agencyfbbold40"
@@ -15,6 +16,10 @@ type HomeScreen struct {
 	icons    *Icons
 	state    *isdata.State
 	config   *isdata.Config
+
+	// blinking flow rate
+	flowLastBlink time.Time
+	flowOn        bool
 }
 
 // NewHomeScreen initializes and returns a HomeScreen
@@ -32,11 +37,28 @@ func (s *HomeScreen) Render(img draw.Image) {
 	Clear(img)
 	rateS := strconv.FormatFloat(s.state.FlowRate, 'f', 1, 64)
 	highBound, lowBound := s.config.CalculateFlowWindow()
-	DrawTxt(img, rateS, 22, 15, agencyfbbold40.Font)
+
+	// Flow rate
+	if s.config.Arm &&
+		s.state.GpioRelayInjectorEn &&
+		s.state.FlowStatus == isdata.FlowStatusOffTarget { // if injector pump is on and flow rate is off target
+		if time.Since(s.flowLastBlink) >= 490*time.Millisecond {
+			s.flowLastBlink = time.Now()
+			s.flowOn = !s.flowOn
+		}
+		if s.flowOn {
+			DrawTxt(img, rateS, 22, 15, agencyfbbold40.Font)
+		}
+	} else {
+		DrawTxt(img, rateS, 22, 15, agencyfbbold40.Font)
+	}
+
+	// Flow window
 	if s.config.OperatingMode != isdata.ISOperatingModeMonitor && s.config.Arm {
 		DrawTxt(img, strconv.FormatFloat(highBound, 'f', 1, 64), 84, 14, agencyfbbold20.Font)
 		DrawTxt(img, strconv.FormatFloat(lowBound, 'f', 1, 64), 84, 32, agencyfbbold20.Font)
 	}
+
 	s.softKeys.SetBlinking(3, s.state.FaultsActive.ActiveFaults())
 	s.softKeys.Render(img, 0, 54)
 
