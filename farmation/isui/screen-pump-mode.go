@@ -18,14 +18,14 @@ type PumpModeScreen struct {
 func NewPumpModeScreen(state *isdata.State, config *isdata.Config) *PumpModeScreen {
 
 	return &PumpModeScreen{
-		softKeys: NewSoftKeys("home"),
+		softKeys: NewSoftKeys("home", "test"),
 		state:    state,
 		config:   config,
 		menu:     Menu{},
 	}
 }
 
-// Render updates the home screen, and provides an image
+// Render updates the pump mode screen, and provides an image
 func (s *PumpModeScreen) Render(img draw.Image) {
 	Clear(img)
 
@@ -60,15 +60,15 @@ func (s *PumpModeScreen) Render(img draw.Image) {
 	}
 
 	// add menu items
-	s.menu.AddItemSelect("Always Off", isdata.UpdateUserPumpMode(mode), off)
-	s.menu.AddItemSelect("Always On", isdata.UpdateUserPumpMode(mode), on)
+	s.menu.AddItemSelect("Off", isdata.UpdateUserPumpMode(mode), off)
+	s.menu.AddItemSelect("On", isdata.UpdateUserPumpMode(mode), on)
 	s.menu.AddItemSelect("Injector Command", isdata.UpdateUserPumpMode(mode), inj)
 	s.menu.AddItemSelect("Lindsay Accessory 1", isdata.UpdateUserPumpMode(mode), acc1)
 	s.menu.AddItemSelect("Lindsay Accessory 2", isdata.UpdateUserPumpMode(mode), acc2)
 
 	// render
 	s.menu.Render(img)
-	Heading(img, "Pump Mode")
+	Heading(img, "Pump Command Source")
 	s.softKeys.Render(img, 0, 54)
 }
 
@@ -78,6 +78,8 @@ func (s *PumpModeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	case isdata.KeySK1: // Back
 		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDHome, nil, true
+	case isdata.KeySK2: // Test pump
+		return ScreenIDPumpTest, nil, true
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)
 	}

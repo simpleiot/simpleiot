@@ -26,6 +26,7 @@ const (
 	ScreenIDOpMode1
 	ScreenIDOpModeSetup
 	ScreenIDPumpMode
+	ScreenIDPumpTest
 	ScreenIDTotals
 	ScreenIDProductMenu1
 	ScreenIDCalibration
@@ -75,6 +76,7 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 	ret.Add(ScreenIDOpMode1, NewOperatingModeScreen(state, config))
 	ret.Add(ScreenIDOpModeSetup, NewOperatingModeSetupScreen(state, config))
 	ret.Add(ScreenIDPumpMode, NewPumpModeScreen(state, config))
+	ret.Add(ScreenIDPumpTest, NewPumpTestScreen(state, config))
 	ret.Add(ScreenIDTotals, NewTotalsScreen(state, config))
 	ret.Add(ScreenIDProductMenu1, NewProductMenuScreen(state, config))
 	ret.Add(ScreenIDCalibration, NewCalibrationScreen(state, config))
