@@ -217,15 +217,20 @@ func (sm *StateMachine) Run() interface{} {
 
 	// below states are for monitor/shutdown
 	case standby:
-		sm.RelayInjector = sm.state.InputInjector == isdata.InputStateOn
+		// Note: test for <input> != off instead of == on because in some
+		// cases they may not be available and the injector relay must still run
+		sm.RelayInjector = (sm.state.InputInjector != isdata.InputStateOff &&
+			sm.state.InputWaterOn != isdata.InputStateOff &&
+			sm.state.InputIrrigator != isdata.InputStateOff)
+
 		sm.CurrentLedState = LedGreenBlnk
 
 		switch {
 		case sm.state.InputWaterOn == isdata.InputStateOff:
-			sm.setState(standbyWaitingForWater)
+			//sm.setState(standbyWaitingForWater)
 
 		case sm.state.InputIrrigator == isdata.InputStateOff:
-			sm.setState(standbyWaitingForIrr)
+			//sm.setState(standbyWaitingForIrr)
 
 		case sm.config.Arm:
 			sm.setState(monitoringFlow)
