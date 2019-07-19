@@ -31,20 +31,23 @@ func (s *StatusScreen3) Render(img draw.Image) {
 	Clear(img)
 
 	x := 2
-	y1, y2, y3 := 8, 22, 36
+	y1, y2, y3 := 10, 24, 38
 
-	DrawTxt(img, "Min Pressure: ", x, y1, tightpixel15.Font)
-	DrawTxt(img, "Avg Pressure: ", x, y2, tightpixel15.Font)
-	DrawTxt(img, "Max Pressure: ", x, y3, tightpixel15.Font)
+	DrawTxt(img, "Current Min Pres: ", x, y1, tightpixel15.Font)
+	DrawTxt(img, "Current Max Pres: ", x, y2, tightpixel15.Font)
+	DrawTxt(img, "Shtdwn Threshold: ", x, y3, tightpixel15.Font)
 
-	x = 77
+	x = 90
 
 	DrawTxt(img, strconv.FormatFloat(s.state.PressureMin, 'f', 0, 64), x, y1, tightpixel15.Font)
-	DrawTxt(img, strconv.FormatFloat(s.state.PressureAvg, 'f', 0, 64), x, y2, tightpixel15.Font)
-	DrawTxt(img, strconv.FormatFloat(s.state.PressureMax, 'f', 0, 64), x, y3, tightpixel15.Font)
-	DrawTxt(img, "PSI", x+20, y1, tightpixel15.Font)
-	DrawTxt(img, "PSI", x+20, y2, tightpixel15.Font)
-	DrawTxt(img, "PSI", x+20, y3, tightpixel15.Font)
+	DrawTxt(img, strconv.FormatFloat(s.state.PressureMax, 'f', 0, 64), x, y2, tightpixel15.Font)
+	DrawTxt(img, strconv.FormatFloat(s.config.PressureShutdownLow, 'f', 0, 64), x, y3, tightpixel15.Font)
+
+	xOffSet := 18
+
+	DrawTxt(img, "PSI", x+xOffSet, y1, tightpixel15.Font)
+	DrawTxt(img, "PSI", x+xOffSet, y2, tightpixel15.Font)
+	DrawTxt(img, "PSI", x+xOffSet, y3, tightpixel15.Font)
 
 	s.softKeys.Render(img, 0, 54)
 
