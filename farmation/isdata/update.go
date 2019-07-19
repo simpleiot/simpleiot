@@ -63,9 +63,6 @@ type UpdateLogFlowEnable bool
 // UpdateLogPressureEnable is used to enable/disable loging of pressure data to USB
 type UpdateLogPressureEnable bool
 
-// UpdateTankAlertEnable is used to enable/disable the tank alert on/off
-type UpdateTankAlertEnable bool
-
 // UpdateGpioDigitalInjector is used to transmit GpioDigitalInjector value to app.go
 type UpdateGpioDigitalInjector bool
 
@@ -131,6 +128,15 @@ type UpdateManualHighAlarmGPH float64
 
 // UpdateAlarmRecognizeSec is used to send a new time
 type UpdateAlarmRecognizeSec float64
+
+// UpdateTankAlertVolume ...
+type UpdateTankAlertVolume int
+
+// UpdateTankCapacity is used to set a new tank size from the tank menu
+type UpdateTankCapacity int
+
+// UpdateTankAlertEnable is used to enable/disable the tank alert on/off
+type UpdateTankAlertEnable bool
 
 // UpdateDevName is used to send a new device name for the IS to app.go
 type UpdateDevName string

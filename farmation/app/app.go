@@ -329,6 +329,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				if config.LogFlowData {
 					logChan <- m
 				}
+
+				// tank monitoring functions
+				state.CurrentTankVolume -= m.Amount
+
 				saveState()
 
 			case isdata.UpdateResetFlowPulseCount:
@@ -397,8 +401,20 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					}
 				}
 
+			case isdata.UpdateTankAlertVolume:
+				config.TankAlertVolume = int(m)
+				saveConfig()
+
+			case isdata.UpdateTankCapacity:
+				config.TankCapacity = int(m)
+				saveConfig()
+
 			case isdata.UpdateTankAlertEnable:
 				config.TankAlertOn = bool(m)
+				/*if !config.TankAlertOn {
+					state.DialogApp.Active = true
+					state.DialogApp.Message = "You just disabled tank\nlow-level alert"
+				}*/
 				saveConfig()
 				if !m {
 					err := file.SyncDisks()
