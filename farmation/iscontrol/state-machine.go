@@ -212,9 +212,9 @@ func (sm *StateMachine) Run() interface{} {
 			return isdata.UpdateDialogStateMachineClose{}
 		}
 
-		if int(sm.state.CurrentTankVolume) <= sm.config.TankAlertVolume {
+		/*if int(sm.state.CurrentTankVolume) <= sm.config.TankAlertVolume {
 			return isdata.UpdateDialogStateMachineMessage("Low Tank Level")
-		}
+		}*/
 
 	// below states are for monitor/shutdown
 	case standby:
