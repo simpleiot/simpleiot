@@ -242,7 +242,9 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 	case monitoringFlow:
-		sm.RelayInjector = sm.state.InputInjector == isdata.InputStateOn
+		sm.RelayInjector = (sm.state.InputInjector != isdata.InputStateOff &&
+			sm.state.InputWaterOn != isdata.InputStateOff &&
+			sm.state.InputIrrigator != isdata.InputStateOff)
 
 		lowPressure := sm.state.PressureMin < sm.config.PressureShutdownLow
 
