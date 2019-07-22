@@ -33,10 +33,36 @@ func NewStatusScreen1(state *isdata.State, config *isdata.Config) *StatusScreen1
 // Render updates the home screen, and provides an image
 func (s *StatusScreen1) Render(img draw.Image) {
 	Clear(img)
-	DrawTxt(img, strconv.Itoa(int(s.state.BatchApplied)), 11, 7, agencyfbbold40.Font)
-	DrawTxt(img, "GALLONS", 11, 38, tightpixel15.Font)
+	DrawTxt(img, strconv.Itoa(int(s.config.TankCapacity-int(s.state.CurrentTankVolume))), 4, 7, agencyfbbold40.Font)
+	DrawTxt(img, "GALLONS", 4, 38, tightpixel15.Font)
 
 	s.softKeys.Render(img, 0, 54)
+
+	// Tank level graphic
+	x := 78
+	y := 21
+	h := 30
+	w := 30
+
+	font := tightpixel15.Font
+	capacity := strconv.Itoa(s.config.TankCapacity)
+	DrawTxt(img, capacity, x-font.MeasureString(capacity)-2, y-3, font)
+	DrawTxt(img, strconv.Itoa(0), x-8, y+h-3, font)
+
+	Polyline(img,
+		x, y,
+		x+3, y-3,
+		x+w-3, y-3,
+		x+w, y,
+		x+w, y+h,
+		x, y+h,
+		x, y)
+
+	Rect(img, x+5, y-5, 5, 2)
+
+	lev := s.state.CurrentTankVolume / float64(s.config.TankCapacity) * float64(h)
+
+	RectFilled(img, x+1, y+h-int(lev), w-1, int(lev))
 
 	// icons
 	// page indicator

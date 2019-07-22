@@ -42,8 +42,9 @@ func (s *TankMenuScreen) Render(img draw.Image) {
 		s.menu.AddItemOnOff("Alert On/Off", s.config.TankAlertOn,
 			isdata.UpdateTankAlertEnable(!s.config.TankAlertOn))
 
-		Heading(img, "Tank Menu")
 		s.menu.Render(img)
+
+		Heading(img, "Tank Menu")
 		s.softKeys.Render(img, 0, 54)
 	}
 }

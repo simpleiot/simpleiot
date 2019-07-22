@@ -410,6 +410,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdateTankCapacity:
 				config.TankCapacity = int(m)
+				if config.TankCapacity > 9999 {
+					config.TankCapacity = 9999
+				}
 				saveConfig()
 
 			case isdata.UpdateTankFull:
