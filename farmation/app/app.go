@@ -332,6 +332,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 				// tank monitoring functions
 				state.CurrentTankVolume -= m.Amount
+				if state.CurrentTankVolume < 0 {
+					state.CurrentTankVolume = 0
+				}
 
 				saveState()
 
@@ -408,6 +411,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.UpdateTankCapacity:
 				config.TankCapacity = int(m)
 				saveConfig()
+
+			case isdata.UpdateTankFull:
+				state.CurrentTankVolume = float64(config.TankCapacity)
+				saveState()
 
 			case isdata.UpdateTankAlertEnable:
 				config.TankAlertOn = bool(m)

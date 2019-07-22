@@ -132,7 +132,7 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		}
 	case s.state.DialogStateMachine.Active:
 		if key == isdata.KeySK1 {
-			return ScreenIDNoChange, isdata.UpdateDialogStateMachineAck{}, true
+			return ScreenIDNoChange, isdata.UpdateDialogStateMachineClose{}, true
 		}
 	case s.state.DialogApp.Active:
 		if key == isdata.KeySK1 {

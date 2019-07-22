@@ -135,6 +135,9 @@ type UpdateTankAlertVolume int
 // UpdateTankCapacity is used to set a new tank size from the tank menu
 type UpdateTankCapacity int
 
+// UpdateTankFull is used to set the current tank volume to the tank capacity
+type UpdateTankFull struct{}
+
 // UpdateTankAlertEnable is used to enable/disable the tank alert on/off
 type UpdateTankAlertEnable bool
 

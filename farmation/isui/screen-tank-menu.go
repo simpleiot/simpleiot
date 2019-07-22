@@ -13,17 +13,17 @@ type TankMenuScreen struct {
 	softKeys        *SoftKeys
 	state           *isdata.State
 	config          *isdata.Config
-	menu            *Menu
+	menu            Menu
 	edit            bool
 }
 
 // NewTankMenuScreen initializes and returns a HomeScreen
 func NewTankMenuScreen(state *isdata.State, config *isdata.Config) *TankMenuScreen {
 	return &TankMenuScreen{
-		softKeys:        NewSoftKeys("back", "full"),
+		softKeys:        NewSoftKeys("back", "full", "edit"),
 		state:           state,
 		config:          config,
-		menu:            NewMenu(),
+		menu:            Menu{},
 		textEntryScreen: NewTextEntryScreen(false, true),
 	}
 }
@@ -71,7 +71,9 @@ func (s *TankMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		case isdata.KeySK1: // Back
 			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDPrev, nil, true
-		case isdata.KeySK2: // Edit
+		case isdata.KeySK2: // Full (tank is full)
+			return ScreenIDNoChange, isdata.UpdateTankFull{}, true
+		case isdata.KeySK3: // Edit
 			switch s.menu.GetArrowPos() {
 			case 0, 3: // A non-editable and an on/off selection -- do nothing
 			default:
