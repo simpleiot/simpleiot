@@ -15,10 +15,12 @@ type StateMachine struct {
 	state  *isdata.State
 
 	// state machine internals
-	machineState     state
-	timeStateEntered time.Time
-	lastGoodFlow     time.Time
-	lastGoodPressure time.Time
+	machineState          state
+	timeStateEntered      time.Time
+	lastGoodFlow          time.Time
+	lastGoodPressure      time.Time
+	waitingWaterDisplayed bool
+	waitingIrrDisplayed   bool
 
 	// state machine static outputs
 	RelayShutdown   bool
@@ -243,10 +245,6 @@ func (sm *StateMachine) Run() interface{} {
 			sm.CurrentLedState = LedGreen
 		}
 
-		if sm.state.DialogStateMachine.Active {
-			return isdata.UpdateDialogStateMachineClose{}
-		}
-
 		if !(sm.state.FlowStatus == isdata.FlowStatusOffTarget) {
 			sm.lastGoodFlow = time.Now()
 		}
@@ -255,16 +253,32 @@ func (sm *StateMachine) Run() interface{} {
 			sm.lastGoodPressure = time.Now()
 		}
 
+		if sm.state.InputWaterOn != isdata.InputStateOff {
+			sm.waitingWaterDisplayed = false
+		}
+
+		if sm.state.InputIrrigator != isdata.InputStateOff {
+			sm.waitingIrrDisplayed = false
+		}
+
 		alarmRecognizeDuration := time.Duration(sm.config.AlarmRecognizeSec) * time.Second
 
 		// the following switch statement is used only to determine next case. Keep all other logic
 		// above.
 		switch {
 		case sm.state.InputWaterOn == isdata.InputStateOff:
-			sm.setState(monitorWaitingForWater)
+			if !sm.waitingWaterDisplayed &&
+				!sm.state.DialogStateMachine.Active {
+				sm.waitingWaterDisplayed = true
+				return isdata.UpdateDialogStateMachineMessage("Waiting for water")
+			}
 
 		case sm.state.InputIrrigator == isdata.InputStateOff:
-			sm.setState(monitorWaitingForIrr)
+			if !sm.waitingIrrDisplayed &&
+				!sm.state.DialogStateMachine.Active {
+				sm.waitingIrrDisplayed = true
+				return isdata.UpdateDialogStateMachineMessage("Waiting for irrigator")
+			}
 
 		case sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 			sm.state.InputInjector != isdata.InputStateOff &&
@@ -287,7 +301,7 @@ func (sm *StateMachine) Run() interface{} {
 				Value: sm.state.PressureMin,
 			}
 		}
-	case monitorWaitingForWater:
+	/*case monitorWaitingForWater:
 
 		sm.CurrentLedState = LedGreen
 
@@ -335,13 +349,12 @@ func (sm *StateMachine) Run() interface{} {
 		if sm.state.DialogStateMachine.Active {
 			if sm.state.DialogStateMachine.Acknowledged ||
 				sm.state.InputIrrigator != isdata.InputStateOff {
-				return isdata.UpdateDialogStateMachineClose{}
 			}
 		} else {
 			if sm.state.InputIrrigator != isdata.InputStateOff {
 				sm.setState(monitoringFlow)
 			}
-		}
+		}*/
 
 	case disarm:
 
