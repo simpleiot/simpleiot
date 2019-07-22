@@ -35,7 +35,7 @@ func (s *DiagPanelScreen) Render(img draw.Image) {
 	voltage := fmt.Sprintf("%.2fV", s.state.PanelDefinition.Voltage)
 
 	s.menu.AddItemString("Type", s.state.PanelDefinition.Type.String())
-	s.menu.AddItemString("Voltage", voltage)
+	s.menu.AddItemStringRight("Voltage", voltage)
 
 	Heading(img, "Panel Detection")
 	s.menu.Render(img)
