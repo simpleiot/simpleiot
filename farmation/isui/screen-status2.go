@@ -41,8 +41,8 @@ func (s *StatusScreen2) Render(img draw.Image) {
 
 	DrawTxt(img, s.config.FieldConfigs[s.config.CurrentFieldIndex].Description, x, y1, tightpixel15.Font)
 	DrawTxt(img, s.config.ProductConfigs[s.config.CurrentProductIndex].Description, x, y2, tightpixel15.Font)
-	DrawTxt(img, strconv.FormatFloat(s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total, 'f', 1, 64), x, y3, tightpixel15.Font)
-	DrawTxt(img, "Gallons", x+22, y3, tightpixel15.Font)
+	DrawTxt(img, strconv.FormatFloat(s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total, 'f', 0, 64), x, y3, tightpixel15.Font)
+	DrawTxt(img, "Gallons", x+21, y3, tightpixel15.Font)
 
 	s.softKeys.Render(img, 0, 54)
 
