@@ -207,7 +207,8 @@ func (sm *StateMachine) Run() interface{} {
 			sm.tankAlertDisplayed = false
 		}
 
-		if int(sm.state.CurrentTankVolume) <= sm.config.TankAlertVolume &&
+		if sm.config.TankAlertOn &&
+			int(sm.state.CurrentTankVolume) <= sm.config.TankAlertVolume &&
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
@@ -232,7 +233,8 @@ func (sm *StateMachine) Run() interface{} {
 			sm.tankAlertDisplayed = false
 		}
 
-		if int(sm.state.CurrentTankVolume) <= sm.config.TankAlertVolume &&
+		if sm.config.TankAlertOn &&
+			int(sm.state.CurrentTankVolume) <= sm.config.TankAlertVolume &&
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
@@ -288,7 +290,8 @@ func (sm *StateMachine) Run() interface{} {
 			return isdata.UpdateDialogStateMachineMessage("Waiting for irrigator")
 		}
 
-		if int(sm.state.CurrentTankVolume) <= sm.config.TankAlertVolume &&
+		if sm.config.TankAlertOn &&
+			int(sm.state.CurrentTankVolume) <= sm.config.TankAlertVolume &&
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true

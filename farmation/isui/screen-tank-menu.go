@@ -20,7 +20,7 @@ type TankMenuScreen struct {
 // NewTankMenuScreen initializes and returns a HomeScreen
 func NewTankMenuScreen(state *isdata.State, config *isdata.Config) *TankMenuScreen {
 	return &TankMenuScreen{
-		softKeys:        NewSoftKeys("back", "full", "edit"),
+		softKeys:        NewSoftKeys("back", "full"),
 		state:           state,
 		config:          config,
 		menu:            Menu{},
@@ -73,12 +73,12 @@ func (s *TankMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Full (tank is full)
 			return ScreenIDNoChange, isdata.UpdateTankFull{}, true
-		case isdata.KeySK3: // Edit
-			switch s.menu.GetArrowPos() {
-			case 0, 3: // A non-editable and an on/off selection -- do nothing
-			default:
-				s.enterEdit()
-			}
+		/*case isdata.KeySK3: // Edit
+		switch s.menu.GetArrowPos() {
+		case 0, 3: // A non-editable and an on/off selection -- do nothing
+		default:
+			s.enterEdit()
+		}*/
 		case isdata.KeyEnter: // Edit
 			switch s.menu.GetArrowPos() {
 			case 0:
