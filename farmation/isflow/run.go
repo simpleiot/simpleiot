@@ -3,7 +3,6 @@ package isflow
 import (
 	"encoding/binary"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"runtime"
@@ -27,7 +26,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 	if runtime.GOARCH == "arm" {
 		go func() {
 			// open file for reading
-			byteSlice := make([]byte, 8)
+			byteSlice := make([]byte, 128)
 			file, err := os.Open("/dev/gpio_edge_timer")
 			if err != nil {
 				log.Println("Error opening pulse meter driver: ", err)
@@ -42,12 +41,22 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 			fmt.Println("Dumped pulse data: ", c)
 
 			for {
-				_, err := io.ReadFull(file, byteSlice)
+				c, err := file.Read(byteSlice)
+				if c%8 != 0 {
+					fmt.Println("Warning, did not read multiple of 8 bytes from driver", c)
+					continue
+				}
+
 				if err != nil {
 					log.Println("Error reading gpio_edge_timer: ", err)
-				} else {
-					pulseCh <- edgeTsToTime(byteSlice)
+					continue
 				}
+
+				for i := 0; i < c; i += 8 {
+					pulseCh <- edgeTsToTime(byteSlice[i : i+8])
+				}
+
+				time.Sleep(10 * time.Millisecond)
 			}
 		}()
 	}
