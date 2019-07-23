@@ -60,7 +60,11 @@ func (s *StatusScreen1) Render(img draw.Image) {
 
 	Rect(img, x+5, y-5, 5, 2)
 
-	lev := s.state.CurrentTankVolume / float64(s.config.TankCapacity) * float64(h)
+	var lev float64
+
+	if s.config.TankCapacity != 0 {
+		lev = s.state.CurrentTankVolume / float64(s.config.TankCapacity) * float64(h)
+	}
 
 	RectFilled(img, x+1, y+h-int(lev), w-1, int(lev))
 
