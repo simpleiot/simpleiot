@@ -105,8 +105,11 @@ func (s state) String() string {
 // NewStateMachine creates a new state machine
 func NewStateMachine(config *isdata.Config, state *isdata.State) *StateMachine {
 	return &StateMachine{
-		config: config,
-		state:  state,
+		config:           config,
+		state:            state,
+		timeStateEntered: time.Now(),
+		lastGoodFlow:     time.Now(),
+		lastGoodPressure: time.Now(),
 	}
 }
 
