@@ -15,13 +15,14 @@ type StateMachine struct {
 	state  *isdata.State
 
 	// state machine internals
-	machineState          state
-	timeStateEntered      time.Time
-	lastGoodFlow          time.Time
-	lastGoodPressure      time.Time
-	waitingWaterDisplayed bool
-	waitingIrrDisplayed   bool
-	tankAlertDisplayed    bool
+	machineState            state
+	timeStateEntered        time.Time
+	lastGoodFlow            time.Time
+	lastGoodPressure        time.Time
+	lastPresDialogDisplayed time.Time
+	waitingWaterDisplayed   bool
+	waitingIrrDisplayed     bool
+	tankAlertDisplayed      bool
 
 	// state machine static outputs
 	RelayShutdown   bool
@@ -105,11 +106,12 @@ func (s state) String() string {
 // NewStateMachine creates a new state machine
 func NewStateMachine(config *isdata.Config, state *isdata.State) *StateMachine {
 	return &StateMachine{
-		config:           config,
-		state:            state,
-		timeStateEntered: time.Now(),
-		lastGoodFlow:     time.Now(),
-		lastGoodPressure: time.Now(),
+		config:                  config,
+		state:                   state,
+		timeStateEntered:        time.Now(),
+		lastGoodFlow:            time.Now(),
+		lastGoodPressure:        time.Now(),
+		lastPresDialogDisplayed: time.Now(),
 	}
 }
 
@@ -283,7 +285,8 @@ func (sm *StateMachine) Run() interface{} {
 		// Display dialogs
 		waterMsg := "Waiting for water"
 		irrMsg := "Waiting for irrigator"
-		lowTankMsg := "Low Tank Level"
+		lowPresMsg := "Pressure below\nshutdown threshold"
+		lowTankMsg := "Tank volume below\nalert level"
 
 		if sm.state.InputWaterOn == isdata.InputStateOff &&
 			!sm.waitingWaterDisplayed &&
@@ -297,6 +300,14 @@ func (sm *StateMachine) Run() interface{} {
 			!sm.state.DialogStateMachine.Active {
 			sm.waitingIrrDisplayed = true
 			return isdata.UpdateDialogStateMachineMessage(irrMsg)
+		}
+
+		if sm.config.PressureShutdownEnabled &&
+			lowPressure &&
+			time.Since(sm.lastGoodPressure) >= time.Duration(5)*time.Second &&
+			time.Since(sm.lastPresDialogDisplayed) >= time.Duration(10)*time.Minute {
+			sm.lastPresDialogDisplayed = time.Now()
+			return isdata.UpdateDialogStateMachineMessage(lowPresMsg)
 		}
 
 		if sm.config.TankAlertOn &&
@@ -317,6 +328,12 @@ func (sm *StateMachine) Run() interface{} {
 		if sm.state.InputIrrigator != isdata.InputStateOff &&
 			sm.state.DialogStateMachine.Active &&
 			sm.state.DialogStateMachine.Message == irrMsg {
+			return isdata.UpdateDialogStateMachineClose{}
+		}
+
+		if !lowPressure &&
+			sm.state.DialogStateMachine.Active &&
+			sm.state.DialogStateMachine.Message == lowPresMsg {
 			return isdata.UpdateDialogStateMachineClose{}
 		}
 
