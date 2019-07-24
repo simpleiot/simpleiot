@@ -59,6 +59,8 @@ func (s *TankMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			s.exitEdit()
 			value, _ := strconv.Atoi(s.textEntryScreen.GetTextEdit()) // convert edited string to integer
 			switch s.menu.GetArrowPos() {
+			case 0:
+				return ScreenIDNoChange, isdata.UpdateCurrentTankVolume(value), true
 			case 1:
 				return ScreenIDNoChange, isdata.UpdateTankAlertVolume(value), true
 			case 2:
@@ -76,13 +78,12 @@ func (s *TankMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			return ScreenIDNoChange, isdata.UpdateTankFull{}, true
 		/*case isdata.KeySK3: // Edit
 		switch s.menu.GetArrowPos() {
-		case 0, 3: // A non-editable and an on/off selection -- do nothing
+		case 3: // an on/off selection -- do nothing
 		default:
 			s.enterEdit()
 		}*/
 		case isdata.KeyEnter: // Edit
 			switch s.menu.GetArrowPos() {
-			case 0:
 			case 3:
 				return s.menu.Key(key)
 			default:
@@ -106,6 +107,9 @@ func (s *TankMenuScreen) enterEdit() {
 
 	// set the text being edited and the header label
 	switch s.menu.GetArrowPos() {
+	case 0:
+		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.state.CurrentTankVolume)) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "Current Volume"
 	case 1:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.TankAlertVolume)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Alert Level"

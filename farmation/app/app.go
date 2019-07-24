@@ -419,6 +419,14 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.CurrentTankVolume = float64(config.TankCapacity)
 				saveState()
 
+			case isdata.UpdateCurrentTankVolume:
+				state.CurrentTankVolume = float64(m)
+				capacity := float64(config.TankCapacity)
+				if state.CurrentTankVolume > capacity {
+					state.CurrentTankVolume = capacity
+				}
+				saveState()
+
 			case isdata.UpdateTankAlertEnable:
 				config.TankAlertOn = bool(m)
 				/*if !config.TankAlertOn {
