@@ -83,9 +83,15 @@ func (s *State) UpdateInputs(config *Config) {
 
 	switch config.UserPumpMode {
 	case UserPumpModeOff:
+		// force virtual inputs off to turn injector relay off
 		s.InputInjector = InputStateOff
+		s.InputWaterOn = InputStateOff
+		s.InputIrrigator = InputStateOff
 	case UserPumpModeOn:
+		// force virtual inputs on to turn injector relay on
 		s.InputInjector = InputStateOn
+		s.InputWaterOn = InputStateOn
+		s.InputIrrigator = InputStateOn
 	case UserPumpModeInj:
 		s.InputInjector = BoolToInputState(s.GpioDigitalInjector)
 	case UserPumpModeAcc1:
