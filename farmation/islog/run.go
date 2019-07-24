@@ -6,11 +6,13 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"sort"
 	"strconv"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"github.com/simpleiot/simpleiot/farmation/isdb"
 	"github.com/simpleiot/simpleiot/file"
 )
 
@@ -54,13 +56,14 @@ func timeToUs(t time.Time) int64 {
 var tsFilenameFormat = "2006-01-02T150405Z07:00"
 
 // Run goroutine for ui code
-func Run(in, out chan interface{}) {
+func Run(in, out chan interface{}, db *isdb.IsDb) {
 	config := isdata.Config{}
 	var lastPulseTimestamp int64
 
 	logPressure := NewLog("pressure", "timestamp(us),pressure (PSI),min,max,avg")
 	logPulse := NewLog("pulse", "timestamp(us),diff")
 	logFlow := NewLog("flow", "timestamp(us),amount,rate (GPH),average rate,pulses")
+	logFault := NewLog("faults", "timestamp,fault")
 
 	for {
 		select {
@@ -78,6 +81,30 @@ func Run(in, out chan interface{}) {
 				if !config.LogPressureData {
 					logPressure.Close()
 				}
+
+			case isdata.ExportFaults:
+				// Extract faults from database
+				faults, _ := db.ReadFaultHist()
+
+				// Sort the faults by timestamp
+				sort.Sort(faults)
+
+				for _, fault := range faults {
+					s := fault.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+						fault.Fault.String()
+					err := logFault.Write(s)
+					if err != nil {
+						log.Println("Error writing fault to file: ", err)
+					}
+				}
+
+				err := file.SyncDisks()
+				if err != nil {
+					log.Println("sync error: ", err)
+				}
+
+				logFault.Close()
+
 			case data.Sample:
 				if m.Type != isdata.SampleTypePressure || !config.LogPressureData {
 					continue

@@ -112,7 +112,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
 	go isflow.Run(flowChan, appChan, sim, config)
-	go islog.Run(logChan, appChan)
+	go islog.Run(logChan, appChan, db)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
 
@@ -403,6 +403,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 						log.Println("sync error: ", err)
 					}
 				}
+
+			case isdata.ExportFaults:
+				logChan <- isdata.ExportFaults{}
 
 			case isdata.UpdateTankAlertVolume:
 				config.TankAlertVolume = int(m)

@@ -41,6 +41,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemScreen("Lindsay serial", ScreenIDDiagLindsay)
 
 	// Logging Enable
+	s.menu.AddItemCommand("Faults", "export", isdata.ExportFaults{})
 	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData,
 		isdata.UpdateLogPulseEnable(!s.config.LogPulseData))
 	s.menu.AddItemOnOff("Flow logging", s.config.LogFlowData,
@@ -48,7 +49,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemOnOff("Pres logging", s.config.LogPressureData,
 		isdata.UpdateLogPressureEnable(!s.config.LogPressureData))
 
-	s.menu.AddItemCommand("Reboot", isdata.Reboot{})
+	s.menu.AddItemCommand("Reboot", "start", isdata.Reboot{})
 	Heading(img, "Diagnostics and Config")
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
