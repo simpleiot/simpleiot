@@ -281,18 +281,22 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 		// Display dialogs
+		waterMsg := "Waiting for water"
+		irrMsg := "Waiting for irrigator"
+		lowTankMsg := "Low Tank Level"
+
 		if sm.state.InputWaterOn == isdata.InputStateOff &&
 			!sm.waitingWaterDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.waitingWaterDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Waiting for water")
+			return isdata.UpdateDialogStateMachineMessage(waterMsg)
 		}
 
 		if sm.state.InputIrrigator == isdata.InputStateOff &&
 			!sm.waitingIrrDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.waitingIrrDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Waiting for irrigator")
+			return isdata.UpdateDialogStateMachineMessage(irrMsg)
 		}
 
 		if sm.config.TankAlertOn &&
@@ -300,8 +304,28 @@ func (sm *StateMachine) Run() interface{} {
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Low Tank Level")
+			return isdata.UpdateDialogStateMachineMessage(lowTankMsg)
 		}
+
+		// Close dialogs if problem goes away
+		if sm.state.InputWaterOn != isdata.InputStateOff &&
+			sm.state.DialogStateMachine.Active &&
+			sm.state.DialogStateMachine.Message == waterMsg {
+			return isdata.UpdateDialogStateMachineClose{}
+		}
+
+		if sm.state.InputIrrigator != isdata.InputStateOff &&
+			sm.state.DialogStateMachine.Active &&
+			sm.state.DialogStateMachine.Message == irrMsg {
+			return isdata.UpdateDialogStateMachineClose{}
+		}
+
+		// ***This situation will never happen***
+		/*if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume &&
+			sm.state.DialogStateMachine.Active &&
+			sm.state.DialogStateMachine.Message == lowTankMsg {
+			return isdata.UpdateDialogStateMachineClose{}
+		}*/
 
 		alarmRecognizeDuration := time.Duration(sm.config.AlarmRecognizeSec) * time.Second
 
