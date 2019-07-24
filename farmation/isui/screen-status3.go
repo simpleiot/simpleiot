@@ -3,6 +3,7 @@ package isui
 import (
 	"image/draw"
 	"strconv"
+	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -14,6 +15,10 @@ type StatusScreen3 struct {
 	icons    *Icons
 	state    *isdata.State
 	config   *isdata.Config
+
+	// blinking min pressure
+	presLastBlink time.Time
+	presOn        bool
 }
 
 // NewStatusScreen3 initializes and returns a HomeScreen
@@ -39,8 +44,27 @@ func (s *StatusScreen3) Render(img draw.Image) {
 
 	x = 90
 
-	DrawTxt(img, strconv.FormatFloat(s.state.PressureMin, 'f', 0, 64), x, y1, tightpixel15.Font)
-	DrawTxt(img, strconv.FormatFloat(s.state.PressureMax, 'f', 0, 64), x, y2, tightpixel15.Font)
+	// Pressure values
+	min, max := strconv.FormatFloat(s.state.PressureMin, 'f', 0, 64), strconv.FormatFloat(s.state.PressureMax, 'f', 0, 64)
+
+	// Blinking min pressure
+	if s.config.Arm &&
+		s.config.PressureShutdownEnabled &&
+		s.state.GpioRelayInjectorEn &&
+		s.state.PressureMin < s.config.PressureShutdownLow { // if injector pump is on and min pressure is low
+		if time.Since(s.presLastBlink) >= 490*time.Millisecond {
+			s.presLastBlink = time.Now()
+			s.presOn = !s.presOn
+		}
+		if s.presOn {
+			DrawTxt(img, min, x, y1, tightpixel15.Font)
+		}
+	} else {
+		DrawTxt(img, min, x, y1, tightpixel15.Font)
+	}
+
+	// Max and shutdown pressures
+	DrawTxt(img, max, x, y2, tightpixel15.Font)
 	DrawTxt(img, strconv.FormatFloat(s.config.PressureShutdownLow, 'f', 0, 64), x, y3, tightpixel15.Font)
 
 	xOffSet := 18
