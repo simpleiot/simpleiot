@@ -14,6 +14,9 @@ type Sample struct {
 	// to represent digital values
 	Value float64 `json:"value,omitempty"`
 
+	Min float64 `json:"min,omitempty"`
+	Max float64 `json:"max,omitempty"`
+
 	// Time the sample was taken
 	Time time.Time `json:"time,omitempty"`
 
