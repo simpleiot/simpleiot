@@ -217,7 +217,7 @@ func (sm *StateMachine) Run() interface{} {
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Low Tank Level")
+			return isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level")
 		}
 
 	// below states are for monitor/shutdown
@@ -243,7 +243,7 @@ func (sm *StateMachine) Run() interface{} {
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Low Tank Level")
+			return isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level")
 		}
 
 	case monitoringFlow:
