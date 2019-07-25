@@ -80,6 +80,8 @@ type State struct {
 
 	DialogUpdate Dialog
 
+	DialogReboot Dialog
+
 	OSVersion semver.Version
 }
 
@@ -259,6 +261,7 @@ func InitState(s *State) (dirty bool) {
 
 	s.DialogArm.Active = false
 	s.DialogArm.Acknowledged = false
+	s.DialogReboot.Active = false
 
 	s.OSVersion, _ = version.ReadOSVersion()
 

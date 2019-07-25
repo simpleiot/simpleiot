@@ -544,6 +544,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				logChan <- m
 
 			case isdata.Reboot:
+				state.DialogReboot.Active = true
+				state.DialogReboot.Message = "Reboot started, please wait"
 				if runtime.GOARCH != "arm" {
 					log.Println("on development platform, not rebooting")
 				} else {
