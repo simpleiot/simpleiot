@@ -189,14 +189,19 @@ func (sm *StateMachine) Run() interface{} {
 		}
 	}
 
-	switch sm.machineState {
-	case monitorOnly:
-
-		// Note: test for <input> != off instead of == on because in some
-		// cases they may not be available and the injector relay must still run
-		sm.RelayInjector = (sm.state.InputInjector != isdata.InputStateOff &&
+	controlInjector := func() {
+		// Note: test water/irrigator for <input> != off instead of == on because in some
+		// cases they may not be available and the injector relay must still run.
+		// However, for injector input, we always require that to be on before we turn on
+		// the relay.
+		sm.RelayInjector = (sm.state.InputInjector == isdata.InputStateOn &&
 			sm.state.InputWaterOn != isdata.InputStateOff &&
 			sm.state.InputIrrigator != isdata.InputStateOff)
+	}
+
+	switch sm.machineState {
+	case monitorOnly:
+		controlInjector()
 
 		sm.CurrentLedState = LedGreenBlnk
 
@@ -222,11 +227,7 @@ func (sm *StateMachine) Run() interface{} {
 
 	// below states are for monitor/shutdown
 	case standby:
-		// Note: test for <input> != off instead of == on because in some
-		// cases they may not be available and the injector relay must still run
-		sm.RelayInjector = (sm.state.InputInjector != isdata.InputStateOff &&
-			sm.state.InputWaterOn != isdata.InputStateOff &&
-			sm.state.InputIrrigator != isdata.InputStateOff)
+		controlInjector()
 
 		sm.CurrentLedState = LedGreenBlnk
 
@@ -247,9 +248,7 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 	case monitoringFlow:
-		sm.RelayInjector = (sm.state.InputInjector != isdata.InputStateOff &&
-			sm.state.InputWaterOn != isdata.InputStateOff &&
-			sm.state.InputIrrigator != isdata.InputStateOff)
+		controlInjector()
 
 		lowPressure := sm.state.PressureMin < sm.config.PressureShutdownLow
 

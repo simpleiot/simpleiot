@@ -72,9 +72,9 @@ func (s *HomeScreen) Render(img draw.Image) {
 	s.icons.SetOnOff("shutdown", s.state.GpioRelayShutdownEn)
 
 	// inputs
-	s.icons.SetOnOff("pump in", s.state.GpioDigitalInjector)
-	s.icons.SetOnOff("water", s.state.GpioDigitalWaterOn)
-	s.icons.SetOnOff("irrigator", s.state.GpioDigitalIrrigator)
+	s.icons.SetOnOff("pump in", s.state.InputInjector == isdata.InputStateOn)
+	s.icons.SetOnOff("water", s.state.InputWaterOn == isdata.InputStateOn)
+	s.icons.SetOnOff("irrigator", s.state.InputIrrigator == isdata.InputStateOn)
 
 	s.icons.Render(img)
 }
