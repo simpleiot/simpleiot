@@ -15,13 +15,14 @@ type StateMachine struct {
 	state  *isdata.State
 
 	// state machine internals
-	machineState          state
-	timeStateEntered      time.Time
-	lastGoodFlow          time.Time
-	lastGoodPressure      time.Time
-	waitingWaterDisplayed bool
-	waitingIrrDisplayed   bool
-	tankAlertDisplayed    bool
+	machineState            state
+	timeStateEntered        time.Time
+	lastGoodFlow            time.Time
+	lastGoodPressure        time.Time
+	lastPresDialogDisplayed time.Time
+	waitingWaterDisplayed   bool
+	waitingIrrDisplayed     bool
+	tankAlertDisplayed      bool
 
 	// state machine static outputs
 	RelayShutdown   bool
@@ -105,8 +106,12 @@ func (s state) String() string {
 // NewStateMachine creates a new state machine
 func NewStateMachine(config *isdata.Config, state *isdata.State) *StateMachine {
 	return &StateMachine{
-		config: config,
-		state:  state,
+		config:                  config,
+		state:                   state,
+		timeStateEntered:        time.Now(),
+		lastGoodFlow:            time.Now(),
+		lastGoodPressure:        time.Now(),
+		lastPresDialogDisplayed: time.Now(),
 	}
 }
 
@@ -212,7 +217,7 @@ func (sm *StateMachine) Run() interface{} {
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Low Tank Level")
+			return isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level")
 		}
 
 	// below states are for monitor/shutdown
@@ -238,7 +243,7 @@ func (sm *StateMachine) Run() interface{} {
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Low Tank Level")
+			return isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level")
 		}
 
 	case monitoringFlow:
@@ -278,18 +283,31 @@ func (sm *StateMachine) Run() interface{} {
 		}
 
 		// Display dialogs
+		waterMsg := "Waiting for water"
+		irrMsg := "Waiting for irrigator"
+		lowPresMsg := "Pressure below\nshutdown threshold"
+		lowTankMsg := "Tank volume below\nalert level"
+
 		if sm.state.InputWaterOn == isdata.InputStateOff &&
 			!sm.waitingWaterDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.waitingWaterDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Waiting for water")
+			return isdata.UpdateDialogStateMachineMessage(waterMsg)
 		}
 
 		if sm.state.InputIrrigator == isdata.InputStateOff &&
 			!sm.waitingIrrDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.waitingIrrDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Waiting for irrigator")
+			return isdata.UpdateDialogStateMachineMessage(irrMsg)
+		}
+
+		if sm.config.PressureShutdownEnabled &&
+			lowPressure &&
+			time.Since(sm.lastGoodPressure) >= time.Duration(5)*time.Second &&
+			time.Since(sm.lastPresDialogDisplayed) >= time.Duration(30)*time.Second {
+			sm.lastPresDialogDisplayed = time.Now()
+			return isdata.UpdateDialogStateMachineMessage(lowPresMsg)
 		}
 
 		if sm.config.TankAlertOn &&
@@ -297,8 +315,34 @@ func (sm *StateMachine) Run() interface{} {
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Low Tank Level")
+			return isdata.UpdateDialogStateMachineMessage(lowTankMsg)
 		}
+
+		// Close dialogs if problem goes away
+		if sm.state.InputWaterOn != isdata.InputStateOff &&
+			sm.state.DialogStateMachine.Active &&
+			sm.state.DialogStateMachine.Message == waterMsg {
+			return isdata.UpdateDialogStateMachineClose{}
+		}
+
+		if sm.state.InputIrrigator != isdata.InputStateOff &&
+			sm.state.DialogStateMachine.Active &&
+			sm.state.DialogStateMachine.Message == irrMsg {
+			return isdata.UpdateDialogStateMachineClose{}
+		}
+
+		if !lowPressure &&
+			sm.state.DialogStateMachine.Active &&
+			sm.state.DialogStateMachine.Message == lowPresMsg {
+			return isdata.UpdateDialogStateMachineClose{}
+		}
+
+		// ***This situation will never happen***
+		/*if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume &&
+			sm.state.DialogStateMachine.Active &&
+			sm.state.DialogStateMachine.Message == lowTankMsg {
+			return isdata.UpdateDialogStateMachineClose{}
+		}*/
 
 		alarmRecognizeDuration := time.Duration(sm.config.AlarmRecognizeSec) * time.Second
 

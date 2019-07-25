@@ -113,7 +113,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
 	go isflow.Run(flowChan, appChan, sim, config)
-	go islog.Run(logChan, appChan)
+	go islog.Run(logChan, appChan, db)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
 
@@ -419,6 +419,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					}
 				}
 
+			case isdata.ExportFaults:
+				logChan <- isdata.ExportFaults{}
+
 			case isdata.UpdateTankAlertVolume:
 				config.TankAlertVolume = int(m)
 				saveConfig()
@@ -432,6 +435,14 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdateTankFull:
 				state.CurrentTankVolume = float64(config.TankCapacity)
+				saveState()
+
+			case isdata.UpdateCurrentTankVolume:
+				state.CurrentTankVolume = float64(m)
+				capacity := float64(config.TankCapacity)
+				if state.CurrentTankVolume > capacity {
+					state.CurrentTankVolume = capacity
+				}
 				saveState()
 
 			case isdata.UpdateTankAlertEnable:

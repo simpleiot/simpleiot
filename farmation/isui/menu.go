@@ -198,11 +198,12 @@ func (m *Menu) AddItemFloat(desc string, v float64) {
 }
 
 // AddItemCommand adds a command menu item
-func (m *Menu) AddItemCommand(desc string, msg interface{}) {
+func (m *Menu) AddItemCommand(desc, command string, msg interface{}) {
 	m.items = append(m.items, MenuItem{
 		Description: desc,
 		Type:        MenuItemTypeCommand,
 		Message:     msg,
+		ValueString: command,
 	})
 
 	m.updateShowValues()
@@ -269,7 +270,7 @@ func (m *Menu) Render(img draw.Image) {
 			case MenuItemTypeSelect:
 				DrawTxt(img, "select", 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeCommand:
-				DrawTxt(img, "start", 78, y+offsetValues, tightpixel15.Font)
+				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemString:
 				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemStringLong:
