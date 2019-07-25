@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isapi"
 	"github.com/simpleiot/simpleiot/farmation/iscontrol"
@@ -139,7 +140,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 	saveState := func() {
 		if debugState {
-			fmt.Printf("State: %+v\n", state)
+			fmt.Println("State:")
+			spew.Dump(state)
 		}
 
 		state.UpdateInputs(&config)
@@ -163,6 +165,19 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+
+	updateNotFile := "/update-not"
+	if runtime.GOARCH != "arm" {
+		updateNotFile = "./update-not"
+	}
+
+	if !file.Exists(updateNotFile) {
+		log.Println("System updated to: v", state.OSVersion)
+		exec.Command("touch", updateNotFile).Run()
+		state.DialogUpdate.Active = true
+		state.DialogUpdate.Message = "System updated to v" + state.OSVersion.String()
+		saveState()
+	}
 
 	for {
 		// max sure queues between subsystems are not full
@@ -564,6 +579,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdateDialogStateMachineClose:
 				state.DialogStateMachine.Active = false
+				saveState()
+
+			case isdata.UpdateDialogUpdateClose:
+				state.DialogUpdate.Active = false
 				saveState()
 
 			case isdata.UpdateDialogArmClose:

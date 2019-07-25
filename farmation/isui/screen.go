@@ -96,6 +96,8 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 // Render is used to draw a list of params, handles scrolling, etc.
 func (s *Screens) Render(img draw.Image) {
 	switch {
+	case s.state.DialogUpdate.Active:
+		s.dialog.Render(img, s.state.DialogUpdate.Message)
 	case s.state.DialogArm.Active:
 		s.dialog.Render(img, s.state.DialogArm.Message)
 	case s.state.DialogArmInputs.Active:
@@ -115,7 +117,13 @@ func (s *Screens) Render(img draw.Image) {
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 	// dialogs
+	// Note, below needs to be reverse order of list in Render
 	switch {
+	case s.state.DialogUpdate.Active:
+		if key == isdata.KeySK1 {
+			return ScreenIDNoChange, isdata.UpdateDialogUpdateClose{}, true
+		}
+
 	case s.state.DialogArm.Active:
 		if key == isdata.KeySK1 {
 			s.switchScreen(ScreenIDOpMode1)

@@ -3,6 +3,9 @@ package isdata
 import (
 	"runtime"
 	"time"
+
+	"github.com/blang/semver"
+	"github.com/simpleiot/simpleiot/farmation/version"
 )
 
 // State contains the current injectory sentry state.
@@ -74,6 +77,10 @@ type State struct {
 	DialogArmReq Dialog `json:"dialogArmReq"`
 
 	DialogApp Dialog `json:"dialogApp"`
+
+	DialogUpdate Dialog
+
+	OSVersion semver.Version
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config
@@ -246,6 +253,8 @@ func InitState(s *State) (dirty bool) {
 
 	s.DialogArm.Active = false
 	s.DialogArm.Acknowledged = false
+
+	s.OSVersion, _ = version.ReadOSVersion()
 
 	return
 }
