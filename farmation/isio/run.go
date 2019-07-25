@@ -30,7 +30,9 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 		if err != nil {
 			log.Println("Error reading panel resistor: ", err)
 		} else {
-			out <- t
+			if state.PanelDefinition != t {
+				out <- t
+			}
 		}
 	}
 

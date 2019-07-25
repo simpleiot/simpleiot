@@ -80,7 +80,11 @@ type State struct {
 
 	DialogUpdate Dialog
 
+	DialogExport Dialog
+
 	DialogReboot Dialog
+
+	DialogInvalidPanel Dialog
 
 	OSVersion semver.Version
 }
@@ -153,30 +157,6 @@ func BoolToInputState(v bool) InputState {
 	}
 
 	return InputStateOff
-}
-
-// WaterOn returns water on status based on panel type
-func (s *State) WaterOn() InputState {
-	switch s.PanelDefinition.Type {
-	case PanelTypeStandardPump, PanelTypeStandardPivot:
-		return BoolToInputState(s.GpioDigitalWaterOn)
-	case PanelTypeLindsay:
-		return BoolToInputState(s.LindsayRegs.WaterOn())
-	default:
-		return InputStateNA
-	}
-}
-
-// IrrigatorRunning returns if the irrigator is running based on panel type
-func (s *State) IrrigatorRunning() InputState {
-	switch s.PanelDefinition.Type {
-	case PanelTypeStandardPivot:
-		return BoolToInputState(s.GpioDigitalIrrigator)
-	case PanelTypeLindsay:
-		return BoolToInputState(s.LindsayRegs.IrrigatorRunning())
-	default:
-		return InputStateNA
-	}
 }
 
 // FaultActive ...

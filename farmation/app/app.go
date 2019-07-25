@@ -179,6 +179,17 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		saveState()
 	}
 
+	checkPanelSupported := func() {
+		switch state.PanelDefinition.Type {
+		case isdata.PanelTypeLindsay, isdata.PanelTypeStandardPump, isdata.PanelTypeStandardPivot:
+			// panel is OK
+		default:
+			state.DialogInvalidPanel.Active = true
+			state.DialogInvalidPanel.Message = "Unsupported panel detected\n" + state.PanelDefinition.Type.String()
+			saveState()
+		}
+	}
+
 	for {
 		// max sure queues between subsystems are not full
 		for _, c := range channels {
@@ -271,6 +282,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 						Type: isdata.PanelType(m.Value),
 					}
 					saveState()
+					checkPanelSupported()
 
 				default:
 					log.Println("Sample type not handled: ", m.Type)
@@ -420,7 +432,16 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				}
 
 			case isdata.ExportFaults:
-				logChan <- isdata.ExportFaults{}
+				if !state.DialogExport.Active {
+					// we only want one export process running at a time
+					logChan <- isdata.ExportFaults{}
+				}
+				state.DialogExport.Active = true
+				state.DialogExport.Message = "Exporting data to USB Disk\nPlease Wait"
+
+			case isdata.ExportFaultsFinished:
+				state.DialogExport.Active = true
+				state.DialogExport.Message = "Exporting data to USB Done\nPlease remove USB disk"
 
 			case isdata.UpdateTankAlertVolume:
 				config.TankAlertVolume = int(m)
@@ -619,9 +640,18 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.DialogApp.Active = false
 				saveState()
 
+			case isdata.UpdateDialogExportClose:
+				state.DialogExport.Active = false
+				saveState()
+
+			case isdata.UpdateDialogInvalidPanelClose:
+				state.DialogInvalidPanel.Active = false
+				saveState()
+
 			case isdata.PanelDefinition:
 				state.PanelDefinition = m
 				saveState()
+				checkPanelSupported()
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why

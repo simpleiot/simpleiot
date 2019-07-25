@@ -100,6 +100,10 @@ func (s *Screens) Render(img draw.Image) {
 		s.dialog.Render(img, s.state.DialogReboot.Message)
 	case s.state.DialogUpdate.Active:
 		s.dialog.Render(img, s.state.DialogUpdate.Message)
+	case s.state.DialogInvalidPanel.Active:
+		s.dialog.Render(img, s.state.DialogInvalidPanel.Message)
+	case s.state.DialogExport.Active:
+		s.dialog.Render(img, s.state.DialogExport.Message)
 	case s.state.DialogArm.Active:
 		s.dialog.Render(img, s.state.DialogArm.Message)
 	case s.state.DialogArmInputs.Active:
@@ -119,13 +123,21 @@ func (s *Screens) Render(img draw.Image) {
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 	// dialogs
-	// Note, below needs to be reverse order of list in Render
+	// Note, below needs to be the same order as in render
 	switch {
 	case s.state.DialogUpdate.Active:
 		if key == isdata.KeySK1 {
 			return ScreenIDNoChange, isdata.UpdateDialogUpdateClose{}, true
 		}
-
+	case s.state.DialogInvalidPanel.Active:
+		if key == isdata.KeySK1 {
+			return ScreenIDNoChange, isdata.UpdateDialogInvalidPanelClose{}, true
+		}
+	case s.state.DialogExport.Active:
+		if key == isdata.KeySK1 {
+			s.switchScreen(ScreenIDOpMode1)
+			return ScreenIDNoChange, isdata.UpdateDialogExportClose{}, true
+		}
 	case s.state.DialogArm.Active:
 		if key == isdata.KeySK1 {
 			s.switchScreen(ScreenIDOpMode1)

@@ -3,9 +3,11 @@ package isdata
 // PanelType is used to indentify type type of panel the IS is connected to
 type PanelType int
 
-// define valid panel types
+// define valid panel types. Note these defines must match those in frontend
+// code: frontend/src/Farmation/Is/Main.elm
 const (
-	PanelTypeInvalid PanelType = iota
+	PanelTypeNotSet PanelType = iota
+	PanelTypeInvalid
 	PanelTypeLindsay
 	PanelTypeValleyIconSerial
 	PanelTypeValleyCam

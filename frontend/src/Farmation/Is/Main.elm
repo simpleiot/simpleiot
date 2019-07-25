@@ -567,17 +567,18 @@ renderLindsaySimInputs inputs =
         ]
 
 
+-- note below defines must match those in Go code (panel.go)
 renderPanelTypeInput : Int -> Html Msg
 renderPanelTypeInput panelType =
     select [ on "change" (Json.Decode.map SetPanelType targetValueIntParse) ]
-        [ option [ value "0" ] [ text "invalid" ]
-        , option [ value "1" ] [ text "lindsay" ]
-        , option [ value "2" ] [ text "icon serial" ]
-        , option [ value "3" ] [ text "valley cam" ]
-        , option [ value "4" ] [ text "rinky serial" ]
-        , option [ value "5" ] [ text "reserved" ]
-        , option [ value "6" ] [ text "standard pump" ]
-        , option [ value "7", selected True ] [ text "standard pivot" ]
+        [ option [ value "1" ] [ text "invalid" ]
+        , option [ value "2" ] [ text "lindsay" ]
+        , option [ value "3" ] [ text "icon serial" ]
+        , option [ value "4" ] [ text "valley cam" ]
+        , option [ value "5" ] [ text "rinky serial" ]
+        , option [ value "6" ] [ text "reserved" ]
+        , option [ value "7" ] [ text "standard pump" ]
+        , option [ value "8", selected True ] [ text "standard pivot" ]
         ]
 
 
