@@ -677,7 +677,7 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 		state.DialogArm.Message = "Error: Cannot arm in Monitor \nonly mode, please switch \nto Monitor and Shutdown \nmode"
 		return
 	}
-	if config.UserPumpMode != isdata.UserPumpModeNotSet {
+	if config.UserPumpMode == isdata.UserPumpModeNotSet {
 		state.DialogArmInputs.Active = true
 		state.DialogArmInputs.Message = "Error: Injector Command \nInput not selected, please \nselect before arming"
 		return
