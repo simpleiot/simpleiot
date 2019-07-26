@@ -179,14 +179,27 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		saveState()
 	}
 
-	checkPanelSupported := func() {
-		switch state.PanelDefinition.Type {
-		case isdata.PanelTypeLindsay, isdata.PanelTypeStandardPump, isdata.PanelTypeStandardPivot:
-			// panel is OK
-		default:
-			state.DialogInvalidPanel.Active = true
-			state.DialogInvalidPanel.Message = "Unsupported panel detected\n" + state.PanelDefinition.Type.String()
+	var lastPanelDialog time.Time
+	var panelChangeCount int
+
+	newPanelType := func(def isdata.PanelDefinition) {
+		if def.Type != state.PanelDefinition.Type {
+			state.PanelDefinition = def
 			saveState()
+			panelChangeCount++
+
+			if panelChangeCount < 5 || time.Since(lastPanelDialog) > 30*time.Minute {
+				switch state.PanelDefinition.Type {
+				case isdata.PanelTypeLindsay, isdata.PanelTypeStandardPump, isdata.PanelTypeStandardPivot:
+					state.DialogInvalidPanel.Active = true
+					state.DialogInvalidPanel.Message = "Panel detected\nType: " + state.PanelDefinition.Type.String()
+				default:
+					state.DialogInvalidPanel.Active = true
+					state.DialogInvalidPanel.Message = "Unsupported panel detected\nType: " + state.PanelDefinition.Type.String()
+					saveState()
+				}
+				lastPanelDialog = time.Now()
+			}
 		}
 	}
 
@@ -278,11 +291,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					saveConfig()
 					saveState()
 				case isdata.SampleTypeSimPanelType:
-					state.PanelDefinition = isdata.PanelDefinition{
+					newPanelType(isdata.PanelDefinition{
 						Type: isdata.PanelType(m.Value),
-					}
-					saveState()
-					checkPanelSupported()
+					})
 
 				default:
 					log.Println("Sample type not handled: ", m.Type)
@@ -649,9 +660,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 
 			case isdata.PanelDefinition:
-				state.PanelDefinition = m
-				saveState()
-				checkPanelSupported()
+				newPanelType(m)
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
