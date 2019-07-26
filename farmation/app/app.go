@@ -663,26 +663,26 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 }
 
 func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
-	if config.OperatingMode != isdata.ISOperatingModeMonitor {
-		if config.UserPumpMode != isdata.UserPumpModeNotSet {
-			if !config.Arm { // if the arm switch will be turned on
-				if isdata.AllArmReqMet(config, state) {
-					config.Arm = !config.Arm
-					config.FlowRateTarget = state.FlowRate // set target flow rate to current
-					config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
-				} else {
-					state.DialogArmReq.Active = true
-				}
-			} else {
-				config.Arm = !config.Arm
-			}
-		} else {
-			state.DialogArmInputs.Active = true
-			state.DialogArmInputs.Message = "Error: Injector Command \nInput not selected, please \nselect before arming"
-		}
-	} else {
+	if config.OperatingMode == isdata.ISOperatingModeMonitor {
 		state.DialogArm.Active = true
 		state.DialogArm.Message = "Error: Cannot arm in Monitor \nonly mode, please switch \nto Monitor and Shutdown \nmode"
+		return
+	}
+	if config.UserPumpMode != isdata.UserPumpModeNotSet {
+		state.DialogArmInputs.Active = true
+		state.DialogArmInputs.Message = "Error: Injector Command \nInput not selected, please \nselect before arming"
+		return
 	}
 
+	if !config.Arm { // if the arm switch will be turned on
+		if isdata.AllArmReqMet(config, state) {
+			config.Arm = !config.Arm
+			config.FlowRateTarget = state.FlowRate // set target flow rate to current
+			config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
+		} else {
+			state.DialogArmReq.Active = true
+		}
+	} else {
+		config.Arm = !config.Arm
+	}
 }
