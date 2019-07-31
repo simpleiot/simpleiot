@@ -10,9 +10,14 @@ type Sample struct {
 	// ID of the device that provided the sample
 	ID string `json:"id,omitempty"`
 
-	// Analog or digital value of the sample. 0 and 1 are used
-	// to represent digital values
+	// Instantaneous analog or digital value of the sample.
+	// 0 and 1 are used to represent digital values
 	Value float64 `json:"value,omitempty"`
+
+	// statistical values that may be calculated
+	Avg float64 `json:"avg,omitempty"`
+	Min float64 `json:"min,omitempty"`
+	Max float64 `json:"max,omitempty"`
 
 	// Time the sample was taken
 	Time time.Time `json:"time,omitempty"`
