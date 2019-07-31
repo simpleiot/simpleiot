@@ -77,9 +77,11 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				out <- isdata.UpdateFlowStatus(flowStatus)
 			}
 
-			msg := stateMachine.Run()
-			if msg != nil {
-				out <- msg
+			msgs := stateMachine.Run()
+			for _, msg := range msgs {
+				if msg != nil {
+					out <- msg
+				}
 			}
 			isControl.Update()
 

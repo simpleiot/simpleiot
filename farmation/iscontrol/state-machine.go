@@ -169,7 +169,7 @@ func (sm *StateMachine) inStandbyWaitingStates() bool {
 //     last state. TODO figure out some mechanism that forces this.
 //   - if Update messages are returned from Run(), the state should continue to return
 //     the message and only exit the state once the verified behavior has happened.
-func (sm *StateMachine) Run() interface{} {
+func (sm *StateMachine) Run() (ret []interface{}) {
 
 	// set relays to false and set to other values as needed in case statements
 	sm.RelayShutdown = false
@@ -179,7 +179,7 @@ func (sm *StateMachine) Run() interface{} {
 	if sm.inMonitorShutdownStates() {
 		if sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndShutdown {
 			sm.setState(monitorOnly)
-			return nil
+			return append(ret, nil)
 		}
 		// if disarmed in non-shutdown and non-standbyWaiting states, go to standby
 		if !sm.inShutdownStates() &&
@@ -222,7 +222,7 @@ func (sm *StateMachine) Run() interface{} {
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level")
+			return append(ret, isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level"))
 		}
 
 	// below states are for monitor/shutdown
@@ -244,7 +244,7 @@ func (sm *StateMachine) Run() interface{} {
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level")
+			return append(ret, isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level"))
 		}
 
 	case monitoringFlow:
@@ -291,14 +291,14 @@ func (sm *StateMachine) Run() interface{} {
 			!sm.waitingWaterDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.waitingWaterDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage(waterMsg)
+			return append(ret, isdata.UpdateDialogStateMachineMessage(waterMsg))
 		}
 
 		if sm.state.InputIrrigator == isdata.InputStateOff &&
 			!sm.waitingIrrDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.waitingIrrDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage(irrMsg)
+			return append(ret, isdata.UpdateDialogStateMachineMessage(irrMsg))
 		}
 
 		if sm.config.PressureShutdownEnabled &&
@@ -306,7 +306,7 @@ func (sm *StateMachine) Run() interface{} {
 			time.Since(sm.lastGoodPressure) >= time.Duration(5)*time.Second &&
 			time.Since(sm.lastPresDialogDisplayed) >= time.Duration(30)*time.Second {
 			sm.lastPresDialogDisplayed = time.Now()
-			return isdata.UpdateDialogStateMachineMessage(lowPresMsg)
+			return append(ret, isdata.UpdateDialogStateMachineMessage(lowPresMsg))
 		}
 
 		if sm.config.TankAlertOn &&
@@ -314,26 +314,26 @@ func (sm *StateMachine) Run() interface{} {
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
-			return isdata.UpdateDialogStateMachineMessage(lowTankMsg)
+			return append(ret, isdata.UpdateDialogStateMachineMessage(lowTankMsg))
 		}
 
 		// Close dialogs if problem goes away
 		if sm.state.InputWaterOn != isdata.InputStateOff &&
 			sm.state.DialogStateMachine.Active &&
 			sm.state.DialogStateMachine.Message == waterMsg {
-			return isdata.UpdateDialogStateMachineClose{}
+			return append(ret, isdata.UpdateDialogStateMachineClose{})
 		}
 
 		if sm.state.InputIrrigator != isdata.InputStateOff &&
 			sm.state.DialogStateMachine.Active &&
 			sm.state.DialogStateMachine.Message == irrMsg {
-			return isdata.UpdateDialogStateMachineClose{}
+			return append(ret, isdata.UpdateDialogStateMachineClose{})
 		}
 
 		if !lowPressure &&
 			sm.state.DialogStateMachine.Active &&
 			sm.state.DialogStateMachine.Message == lowPresMsg {
-			return isdata.UpdateDialogStateMachineClose{}
+			return append(ret, isdata.UpdateDialogStateMachineClose{})
 		}
 
 		// ***This situation will never happen***
@@ -352,22 +352,22 @@ func (sm *StateMachine) Run() interface{} {
 			sm.state.InputInjector != isdata.InputStateOff &&
 			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
 			sm.setState(disarm)
-			return isdata.UpdateFault{
+			return append(ret, isdata.UpdateFault{
 				Fault: isdata.FaultTypeFlowOffTarget,
 				Time:  time.Now(),
 				Value: sm.state.FlowRate,
-			}
+			})
 
 		case sm.config.PressureShutdownEnabled &&
 			lowPressure &&
 			sm.state.InputInjector != isdata.InputStateOff &&
 			time.Since(sm.lastGoodPressure) >= alarmRecognizeDuration:
 			sm.setState(disarm)
-			return isdata.UpdateFault{
+			return append(ret, isdata.UpdateFault{
 				Fault: isdata.FaultTypeLowPres,
 				Time:  time.Now(),
 				Value: sm.state.PressureMin,
-			}
+			})
 		}
 
 	case disarm:
@@ -375,7 +375,7 @@ func (sm *StateMachine) Run() interface{} {
 		sm.CurrentLedState = LedRed
 
 		if sm.config.Arm {
-			return isdata.UpdateDisarm{}
+			return append(ret, isdata.UpdateDisarm{})
 		}
 		sm.setState(shutdown1)
 
@@ -424,10 +424,10 @@ func (sm *StateMachine) Run() interface{} {
 		if !sm.state.DialogStateMachine.Active {
 			sm.setState(standby)
 			if sm.state.InputWaterOn == isdata.InputStateOn {
-				return isdata.UpdateDialogStateMachineMessage("failed to shutdown")
+				return append(ret, isdata.UpdateDialogStateMachineMessage("failed to shutdown"))
 			}
 
-			return isdata.UpdateDialogStateMachineMessage("system shut down")
+			return append(ret, isdata.UpdateDialogStateMachineMessage("system shut down"))
 		}
 	}
 
