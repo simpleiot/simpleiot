@@ -179,7 +179,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 	if sm.inMonitorShutdownStates() {
 		if sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndShutdown {
 			sm.setState(monitorOnly)
-			return append(ret, nil)
+			return
 		}
 		// if disarmed in non-shutdown and non-standbyWaiting states, go to standby
 		if !sm.inShutdownStates() &&
@@ -363,6 +363,16 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			sm.state.InputInjector != isdata.InputStateOff &&
 			time.Since(sm.lastGoodPressure) >= alarmRecognizeDuration:
 			sm.setState(disarm)
+
+			// if flow is off target as well, prioritize this fault
+			if sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
+				time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration/3 {
+				return append(ret, isdata.UpdateFault{
+					Fault: isdata.FaultTypeFlowOffTarget,
+					Time:  time.Now(),
+					Value: sm.state.FlowRate,
+				})
+			}
 			return append(ret, isdata.UpdateFault{
 				Fault: isdata.FaultTypeLowPres,
 				Time:  time.Now(),
@@ -434,5 +444,5 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		}
 	}
 
-	return nil
+	return
 }
