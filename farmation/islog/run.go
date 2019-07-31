@@ -104,6 +104,7 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 				}
 
 				logFault.Close()
+				out <- isdata.ExportFaultsFinished{}
 
 			case data.Sample:
 				if m.Type != isdata.SampleTypePressure || !config.LogPressureData {

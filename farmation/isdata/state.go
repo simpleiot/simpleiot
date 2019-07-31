@@ -3,6 +3,9 @@ package isdata
 import (
 	"runtime"
 	"time"
+
+	"github.com/blang/semver"
+	"github.com/simpleiot/simpleiot/farmation/version"
 )
 
 // State contains the current injectory sentry state.
@@ -74,30 +77,52 @@ type State struct {
 	DialogArmReq Dialog `json:"dialogArmReq"`
 
 	DialogApp Dialog `json:"dialogApp"`
+
+	DialogUpdate Dialog
+
+	DialogExport Dialog
+
+	DialogReboot Dialog
+
+	DialogInvalidPanel Dialog
+
+	OSVersion semver.Version
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config
 func (s *State) UpdateInputs(config *Config) {
-	s.InputWaterOn = s.WaterOn()
-	s.InputIrrigator = s.IrrigatorRunning()
+	// set water on based on panel type
+	switch s.PanelDefinition.Type {
+	case PanelTypeStandardPump:
+		s.InputWaterOn = BoolToInputState(s.GpioDigitalWaterOn)
+		s.InputIrrigator = InputStateNA
+	case PanelTypeStandardPivot:
+		s.InputWaterOn = BoolToInputState(s.GpioDigitalWaterOn)
+		s.InputIrrigator = BoolToInputState(s.GpioDigitalIrrigator)
+	case PanelTypeLindsay:
+		s.InputWaterOn = BoolToInputState(s.LindsayRegs.WaterOn())
+		s.InputIrrigator = BoolToInputState(s.LindsayRegs.IrrigatorRunning())
+	default:
+		// for invalid/unsupported panels, simply default to GPIO inputs
+		s.InputWaterOn = BoolToInputState(s.GpioDigitalWaterOn)
+		s.InputIrrigator = BoolToInputState(s.GpioDigitalIrrigator)
+	}
 
 	switch config.UserPumpMode {
 	case UserPumpModeOff:
 		// force virtual inputs off to turn injector relay off
 		s.InputInjector = InputStateOff
-		s.InputWaterOn = InputStateOff
-		s.InputIrrigator = InputStateOff
 	case UserPumpModeOn:
 		// force virtual inputs on to turn injector relay on
 		s.InputInjector = InputStateOn
-		s.InputWaterOn = InputStateOn
-		s.InputIrrigator = InputStateOn
 	case UserPumpModeInj:
 		s.InputInjector = BoolToInputState(s.GpioDigitalInjector)
 	case UserPumpModeAcc1:
 		s.InputInjector = BoolToInputState(s.LindsayRegs.Accessory1On())
 	case UserPumpModeAcc2:
 		s.InputInjector = BoolToInputState(s.LindsayRegs.Accessory2On())
+	default:
+		s.InputInjector = InputStateOff
 	}
 }
 
@@ -111,6 +136,19 @@ const (
 	InputStateOn
 )
 
+func (is InputState) String() string {
+	switch is {
+	case InputStateNA:
+		return "NA"
+	case InputStateOff:
+		return "off"
+	case InputStateOn:
+		return "on"
+	}
+
+	return "unknown"
+}
+
 // BoolToInputState converts a bool to input state, assuming
 // it is not InputStateNA
 func BoolToInputState(v bool) InputState {
@@ -119,42 +157,6 @@ func BoolToInputState(v bool) InputState {
 	}
 
 	return InputStateOff
-}
-
-// WaterOn returns water on status based on panel type
-func (s *State) WaterOn() InputState {
-	switch s.PanelDefinition.Type {
-	case PanelTypeStandardPump, PanelTypeStandardPivot:
-		return BoolToInputState(s.GpioDigitalWaterOn)
-	case PanelTypeLindsay:
-		return BoolToInputState(s.LindsayRegs.WaterOn())
-	default:
-		return InputStateNA
-	}
-}
-
-// IrrigatorRunning returns if the irrigator is running based on panel type
-func (s *State) IrrigatorRunning() InputState {
-	switch s.PanelDefinition.Type {
-	case PanelTypeStandardPivot:
-		return BoolToInputState(s.GpioDigitalIrrigator)
-	case PanelTypeLindsay:
-		return BoolToInputState(s.LindsayRegs.IrrigatorRunning())
-	default:
-		return InputStateNA
-	}
-}
-
-// InjectorOn returns if the injector is on for various panel types
-func (s *State) InjectorOn() InputState {
-	switch s.PanelDefinition.Type {
-	case PanelTypeStandardPump, PanelTypeStandardPivot:
-		return BoolToInputState(s.GpioDigitalInjector)
-	case PanelTypeLindsay:
-		return BoolToInputState(s.LindsayRegs.Accessory1On())
-	default:
-		return InputStateNA
-	}
 }
 
 // FaultActive ...
@@ -252,6 +254,9 @@ func InitState(s *State) (dirty bool) {
 
 	s.DialogArm.Active = false
 	s.DialogArm.Acknowledged = false
+	s.DialogReboot.Active = false
+
+	s.OSVersion, _ = version.ReadOSVersion()
 
 	return
 }

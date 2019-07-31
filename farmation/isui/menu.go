@@ -228,14 +228,16 @@ func (m *Menu) Render(img draw.Image) {
 		end = count - 1
 	}
 
-	if !m.showValues {
-		x = 30
-		Arrow(img, x-8, 15+arrowScreenPos*menuSpacingText)
-	} else {
-		if m.items[0].Type != MenuItemStringLong {
-			Arrow(img, x+65, 15+arrowScreenPos*menuSpacingValues)
-		} else { // arrow needs moved over for long string
-			Arrow(img, x+35, 15+arrowScreenPos*menuSpacingValues)
+	if len(m.items) > 0 {
+		if !m.showValues {
+			x = 30
+			Arrow(img, x-8, 15+arrowScreenPos*menuSpacingText)
+		} else {
+			if m.items[0].Type != MenuItemStringLong {
+				Arrow(img, x+65, 15+arrowScreenPos*menuSpacingValues)
+			} else { // arrow needs moved over for long string
+				Arrow(img, x+35, 15+arrowScreenPos*menuSpacingValues)
+			}
 		}
 	}
 
@@ -376,11 +378,17 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			m.arrowPos = 0
 		}
 	case isdata.KeyDown:
-		m.arrowPos++
-		if m.arrowPos >= len(m.items) {
-			m.arrowPos = len(m.items) - 1
+		if len(m.items) > 0 {
+			m.arrowPos++
+			if m.arrowPos >= len(m.items) {
+				m.arrowPos = len(m.items) - 1
+			}
 		}
 	case isdata.KeyEnter:
+		if len(m.items) <= 0 {
+			return ScreenIDNoChange, nil, true
+		}
+
 		item := m.items[m.arrowPos]
 		switch item.Type {
 		case MenuItemTypeScreen:

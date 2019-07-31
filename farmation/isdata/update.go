@@ -185,3 +185,12 @@ type UpdateDialogArmReqClose struct{}
 
 // UpdateDialogAppClose is used to close the error dialog that originates from app.go
 type UpdateDialogAppClose struct{}
+
+// UpdateDialogUpdateClose is used to close the update dialog
+type UpdateDialogUpdateClose struct{}
+
+// UpdateDialogExportClose is used to close the export dialog
+type UpdateDialogExportClose struct{}
+
+// UpdateDialogInvalidPanelClose is used to close dialog
+type UpdateDialogInvalidPanelClose struct{}

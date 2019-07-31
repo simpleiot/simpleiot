@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isapi"
 	"github.com/simpleiot/simpleiot/farmation/iscontrol"
@@ -139,7 +140,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 	saveState := func() {
 		if debugState {
-			fmt.Printf("State: %+v\n", state)
+			fmt.Println("State:")
+			spew.Dump(state)
 		}
 
 		state.UpdateInputs(&config)
@@ -163,6 +165,43 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+
+	updateNotFile := "/update-not"
+	if runtime.GOARCH != "arm" {
+		updateNotFile = "./update-not"
+	}
+
+	if !file.Exists(updateNotFile) {
+		log.Println("System updated to: v", state.OSVersion)
+		exec.Command("touch", updateNotFile).Run()
+		state.DialogUpdate.Active = true
+		state.DialogUpdate.Message = "System updated to v" + state.OSVersion.String()
+		saveState()
+	}
+
+	var lastPanelDialog time.Time
+	var panelChangeCount int
+
+	newPanelType := func(def isdata.PanelDefinition) {
+		if def.Type != state.PanelDefinition.Type {
+			state.PanelDefinition = def
+			saveState()
+			panelChangeCount++
+
+			if panelChangeCount < 5 || time.Since(lastPanelDialog) > 30*time.Minute {
+				switch state.PanelDefinition.Type {
+				case isdata.PanelTypeLindsay, isdata.PanelTypeStandardPump, isdata.PanelTypeStandardPivot:
+					state.DialogInvalidPanel.Active = true
+					state.DialogInvalidPanel.Message = "Panel detected\nType: " + state.PanelDefinition.Type.String()
+				default:
+					state.DialogInvalidPanel.Active = true
+					state.DialogInvalidPanel.Message = "Unsupported panel detected\nType: " + state.PanelDefinition.Type.String()
+					saveState()
+				}
+				lastPanelDialog = time.Now()
+			}
+		}
+	}
 
 	for {
 		// max sure queues between subsystems are not full
@@ -252,10 +291,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					saveConfig()
 					saveState()
 				case isdata.SampleTypeSimPanelType:
-					state.PanelDefinition = isdata.PanelDefinition{
+					newPanelType(isdata.PanelDefinition{
 						Type: isdata.PanelType(m.Value),
-					}
-					saveState()
+					})
 
 				default:
 					log.Println("Sample type not handled: ", m.Type)
@@ -405,7 +443,16 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				}
 
 			case isdata.ExportFaults:
-				logChan <- isdata.ExportFaults{}
+				if !state.DialogExport.Active {
+					// we only want one export process running at a time
+					logChan <- isdata.ExportFaults{}
+				}
+				state.DialogExport.Active = true
+				state.DialogExport.Message = "Exporting data to USB Disk\nPlease Wait"
+
+			case isdata.ExportFaultsFinished:
+				state.DialogExport.Active = true
+				state.DialogExport.Message = "Exporting data to USB Done\nPlease remove USB disk"
 
 			case isdata.UpdateTankAlertVolume:
 				config.TankAlertVolume = int(m)
@@ -529,6 +576,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				logChan <- m
 
 			case isdata.Reboot:
+				state.DialogReboot.Active = true
+				state.DialogReboot.Message = "Reboot started, please wait"
 				if runtime.GOARCH != "arm" {
 					log.Println("on development platform, not rebooting")
 				} else {
@@ -577,6 +626,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.DialogStateMachine.Active = false
 				saveState()
 
+			case isdata.UpdateDialogUpdateClose:
+				state.DialogUpdate.Active = false
+				saveState()
+
 			case isdata.UpdateDialogArmClose:
 				state.DialogArm.Active = false
 				saveState()
@@ -598,9 +651,16 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.DialogApp.Active = false
 				saveState()
 
-			case isdata.PanelDefinition:
-				state.PanelDefinition = m
+			case isdata.UpdateDialogExportClose:
+				state.DialogExport.Active = false
 				saveState()
+
+			case isdata.UpdateDialogInvalidPanelClose:
+				state.DialogInvalidPanel.Active = false
+				saveState()
+
+			case isdata.PanelDefinition:
+				newPanelType(m)
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
@@ -612,26 +672,26 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 }
 
 func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
-	if config.OperatingMode != isdata.ISOperatingModeMonitor {
-		if config.UserPumpMode != isdata.UserPumpModeNotSet {
-			if !config.Arm { // if the arm switch will be turned on
-				if isdata.AllArmReqMet(config, state) {
-					config.Arm = !config.Arm
-					config.FlowRateTarget = state.FlowRate // set target flow rate to current
-					config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
-				} else {
-					state.DialogArmReq.Active = true
-				}
-			} else {
-				config.Arm = !config.Arm
-			}
-		} else {
-			state.DialogArmInputs.Active = true
-			state.DialogArmInputs.Message = "Error: Injector Command \nInput not selected, please \nselect before arming"
-		}
-	} else {
+	if config.OperatingMode == isdata.ISOperatingModeMonitor {
 		state.DialogArm.Active = true
 		state.DialogArm.Message = "Error: Cannot arm in Monitor \nonly mode, please switch \nto Monitor and Shutdown \nmode"
+		return
+	}
+	if config.UserPumpMode == isdata.UserPumpModeNotSet {
+		state.DialogArmInputs.Active = true
+		state.DialogArmInputs.Message = "Error: Injector Command \nInput not selected, please \nselect before arming"
+		return
 	}
 
+	if !config.Arm { // if the arm switch will be turned on
+		if isdata.AllArmReqMet(config, state) {
+			config.Arm = !config.Arm
+			config.FlowRateTarget = state.FlowRate // set target flow rate to current
+			config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
+		} else {
+			state.DialogArmReq.Active = true
+		}
+	} else {
+		config.Arm = !config.Arm
+	}
 }
