@@ -159,16 +159,7 @@ func BoolToInputState(v bool) InputState {
 	return InputStateOff
 }
 
-// FaultActive ...
-type FaultActive int
-
-// define valid active faults
-const (
-	FaultActiveIrrigator FaultActive = iota
-	FaultActiveLowPres
-)
-
-// FaultsActive defines a map for FaultsActive
+// FaultsActive defines a slice for FaultsActive
 type FaultsActive []Fault
 
 // ActiveFaults returns true if any fault is active and false otherwise

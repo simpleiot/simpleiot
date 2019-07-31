@@ -13,6 +13,7 @@ const (
 	FaultTypeIrrOff FaultType = iota
 	FaultTypeLowPres
 	FaultTypeFlowOffTarget
+	FaultShutdownFailed
 )
 
 // String returns a message for a fault type
@@ -24,6 +25,8 @@ func (ft FaultType) String() string {
 		return "low pressure"
 	case FaultTypeFlowOffTarget:
 		return "flow off target"
+	case FaultShutdownFailed:
+		return "shutdown failed"
 	}
 	return "unknown fault"
 }
@@ -37,6 +40,8 @@ func (ft FaultType) StringVerbose() string {
 		return "Shtdwn: low pressure, "
 	case FaultTypeFlowOffTarget:
 		return "Shtdwn: flow off target, "
+	case FaultShutdownFailed:
+		return "System failed to shutdown"
 	}
 	return "unknown fault"
 }
@@ -53,7 +58,7 @@ type Faults []Fault
 
 // Below methods allow faults to be automatically sorted by time
 
-// Len return lenght of slice
+// Len return length of slice
 func (f Faults) Len() int {
 	return len(f)
 }
