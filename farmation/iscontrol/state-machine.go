@@ -424,7 +424,10 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if !sm.state.DialogStateMachine.Active {
 			sm.setState(standby)
 			if sm.state.InputWaterOn == isdata.InputStateOn {
-				return append(ret, isdata.UpdateDialogStateMachineMessage("failed to shutdown"))
+				return append(ret, isdata.UpdateDialogStateMachineMessage("failed to shutdown"), isdata.UpdateFault{
+					Fault: isdata.FaultTypeShutdownFailed,
+					Time:  time.Now(),
+				})
 			}
 
 			return append(ret, isdata.UpdateDialogStateMachineMessage("system shut down"))

@@ -41,7 +41,12 @@ func (s *FaultsActiveScreen) Render(img draw.Image) {
 			break
 		}
 
-		DrawTxt(img, s.state.FaultsActive[i].Fault.StringVerbose()+strconv.FormatFloat(s.state.FaultsActive[i].Value, 'f', 0, 64), 1, yPos, font)
+		msg := s.state.FaultsActive[i].Fault.StringVerbose()
+		if s.state.FaultsActive[i].Fault != isdata.FaultTypeShutdownFailed {
+			msg += ", " + strconv.FormatFloat(s.state.FaultsActive[i].Value, 'f', 0, 64)
+		}
+
+		DrawTxt(img, msg, 1, yPos, font)
 		yPos += spacing
 	}
 

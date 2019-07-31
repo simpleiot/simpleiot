@@ -13,7 +13,7 @@ const (
 	FaultTypeIrrOff FaultType = iota
 	FaultTypeLowPres
 	FaultTypeFlowOffTarget
-	FaultShutdownFailed
+	FaultTypeShutdownFailed
 )
 
 // String returns a message for a fault type
@@ -25,7 +25,7 @@ func (ft FaultType) String() string {
 		return "low pressure"
 	case FaultTypeFlowOffTarget:
 		return "flow off target"
-	case FaultShutdownFailed:
+	case FaultTypeShutdownFailed:
 		return "shutdown failed"
 	}
 	return "unknown fault"
@@ -37,11 +37,11 @@ func (ft FaultType) StringVerbose() string {
 	case FaultTypeIrrOff:
 		return "Irrigator didnt fill"
 	case FaultTypeLowPres:
-		return "Shtdwn: low pressure, "
+		return "Shtdwn: low pressure"
 	case FaultTypeFlowOffTarget:
-		return "Shtdwn: flow off target, "
-	case FaultShutdownFailed:
-		return "System failed to shutdown"
+		return "Shtdwn: flow off target"
+	case FaultTypeShutdownFailed:
+		return "Failed to shutdown irrigator"
 	}
 	return "unknown fault"
 }
