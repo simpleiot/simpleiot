@@ -1,9 +1,12 @@
+github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa h1:NcZTFUxaDlLREvsEBMu3NrWuAVNNEq3if7zlZeblbH8=
+github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa/go.mod h1:HHPxPAm2kmev+61qmkZh7xgZF/7qHtSpsWppip2Ipv8=
 github.com/benbjohnson/genesis v0.2.1 h1:a3Q3egZj+hD+OqIMXCrPP+3DQwFg2W/4WVJMsxT9jvM=
 github.com/benbjohnson/genesis v0.2.1/go.mod h1:8ATnWEh6jLjo/pORjjfvkkxauC+XaSIvVfEXMI0Cv9M=
 github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
 github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
 github.com/gorilla/websocket v1.4.0 h1:WDFjx/TMzVgy9VdMMQi2K2Emtwi2QcUQsztZ/zLaH/Q=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
+github.com/stretchr/testify v1.2.1/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944 h1:gpP0SE4FIbe/r8ES2eLrs7iWmg7j9ipvqM2c+0aDJu8=
 github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944/go.mod h1:jUigdmrbdCxcIDEFrq82t4X9805XZfwFZoYUap0ET/U=
 go.etcd.io/bbolt v1.3.0 h1:oY10fI923Q5pVCVt1GBTZMn8LHo5M+RCInFpeMnV4QI=
