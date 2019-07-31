@@ -33,13 +33,13 @@ func NewStatusScreen1(state *isdata.State, config *isdata.Config) *StatusScreen1
 // Render updates the home screen, and provides an image
 func (s *StatusScreen1) Render(img draw.Image) {
 	Clear(img)
-	DrawTxt(img, strconv.Itoa(int(s.config.TankCapacity-int(s.state.CurrentTankVolume))), 4, 7, agencyfbbold40.Font)
+	DrawTxt(img, strconv.Itoa(int(s.state.CurrentTankVolume)), 4, 7, agencyfbbold40.Font)
 	DrawTxt(img, "GALLONS", 4, 38, tightpixel15.Font)
 
 	s.softKeys.Render(img, 0, 54)
 
 	// Tank level graphic
-	x := 78
+	x := 79
 	y := 21
 	h := 30
 	w := 30
@@ -49,6 +49,7 @@ func (s *StatusScreen1) Render(img draw.Image) {
 	DrawTxt(img, capacity, x-font.MeasureString(capacity)-2, y-3, font)
 	DrawTxt(img, strconv.Itoa(0), x-8, y+h-3, font)
 
+	// Empty tank
 	Polyline(img,
 		x, y,
 		x+3, y-3,
@@ -57,9 +58,15 @@ func (s *StatusScreen1) Render(img draw.Image) {
 		x+w, y+h,
 		x, y+h,
 		x, y)
-
+	Line(img,
+		x, y-1,
+		x+2, y-3)
+	Line(img,
+		x+w-2, y-3,
+		x+w, y-1)
 	Rect(img, x+5, y-5, 5, 2)
 
+	// Water level in tank
 	var lev float64
 
 	if s.config.TankCapacity != 0 {
