@@ -68,8 +68,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 	pulses := 0
 
-	tickerPeriod := 1000 * time.Millisecond
-	ticker := time.NewTicker(tickerPeriod)
+	ticker := time.NewTicker(1000 * time.Millisecond)
 
 	flowRateMovingAvg := movingaverage.New(30)
 
@@ -111,6 +110,8 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 			processPulse(t)
 		case <-ticker.C:
 			if pulses > 0 {
+
+				// Pulse sample
 				pulseSample := data.Sample{
 					Type:  isdata.SampleTypePulses,
 					Time:  lastPulse,
@@ -118,11 +119,12 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				}
 				out <- pulseSample
 
+				// Calculate flow and amount
 				sampleDuration := lastPulse.Sub(lastTick)
 				flowSample, amountSample := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
-				flowSample.Type = isdata.SampleTypeFlow
-				amountSample.Type = isdata.SampleTypeAmount
 
+				// Amount sample
+				amountSample.Type = isdata.SampleTypeAmount
 				out <- amountSample
 
 				// OUTDATED
@@ -134,10 +136,16 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 					}
 				*/
 
+				// Instantaneous flow sample
+				flowSample.Type = isdata.SampleTypeFlowInstantaneous
 				flowRateMovingAvg.Add(flowSample.Value)
-				flowSample.Avg = flowRateMovingAvg.Avg()
 				flowSample.Min, _ = flowRateMovingAvg.Min()
 				flowSample.Max, _ = flowRateMovingAvg.Max()
+				out <- flowSample
+
+				// Window average flow sample
+				flowSample.Type = isdata.SampleTypeFlowWindowAvg
+				flowSample.Value = flowRateMovingAvg.Avg()
 				out <- flowSample
 
 				pulses = 0

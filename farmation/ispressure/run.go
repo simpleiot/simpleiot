@@ -55,12 +55,8 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 				Type:  isdata.SampleTypePressure,
 				Time:  time.Now(),
 				Value: pres,
-				// FIXME
-				Attributes: map[string]float64{
-					"avg": avg,
-					"min": min,
-					"max": max,
-				},
+				Min:   min,
+				Max:   max,
 			}
 
 		case <-refTicker.C:
@@ -75,7 +71,6 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 				Time:  t,
 				Type:  isdata.SampleTypePressure,
 				Value: avg,
-				Avg:   avg,
 				Min:   min,
 				Max:   max,
 			}
@@ -103,7 +98,6 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 						Type:  isdata.SampleTypePressure,
 						Time:  time.Now(),
 						Value: m.Value,
-						Avg:   m.Value,
 						Min:   m.Value,
 						Max:   m.Value,
 					}

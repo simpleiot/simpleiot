@@ -126,7 +126,7 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 					}
 					lastPulseTimestamp = tsMs*/
 
-				case isdata.SampleTypeFlow:
+				case isdata.SampleTypeFlowInstantaneous:
 					/*if !config.LogFlowData {
 						continue
 					}

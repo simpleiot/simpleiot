@@ -253,16 +253,18 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					state.FlowPulseCount += int(m.Value)
 					saveState()
 
-				case isdata.SampleTypeFlow:
+				case isdata.SampleTypeFlowInstantaneous:
 
-					// update flow rate
-					state.FlowRate = m.Avg
-					saveState()
-
-					// log flow data
+					// log flow data (engineering purposes)
 					if config.LogFlowData {
 						logChan <- m
 					}
+
+				case isdata.SampleTypeFlowWindowAvg:
+
+					// update flow rate
+					state.FlowRate = m.Value
+					saveState()
 
 				case isdata.SampleTypeAmount:
 
@@ -280,20 +282,20 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 					saveState()
 
-					// log amount data
+					// log amount data (engineering purposes)
 					if config.LogFlowData {
 						logChan <- m
 					}
 
 				case isdata.SampleTypePressure:
 
-					// update pressure statistics
-					state.PressureAvg = m.Avg
+					// update pressure
+					state.PressureAvg = m.Value
 					state.PressureMin = m.Min
 					state.PressureMax = m.Max
 					saveState()
 
-					// log pressure data
+					// log pressure data (engineering purposes)
 					if config.LogPressureData {
 						logChan <- m
 					}
