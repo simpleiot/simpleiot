@@ -173,13 +173,9 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 	}
 
 	controlInjector := func() {
-		// Note: test water/irrigator for <input> != off instead of == on because in some
-		// cases they may not be available and the injector relay must still run.
-		// However, for injector input, we always require that to be on before we turn on
-		// the relay.
-		sm.RelayInjector = (sm.state.InputInjector == isdata.InputStateOn &&
-			sm.state.InputWaterOn != isdata.InputStateOff &&
-			sm.state.InputIrrigator != isdata.InputStateOff)
+		sm.RelayInjector = sm.state.InputInjector == isdata.InputStateOn &&
+			(sm.state.InputWaterOn == isdata.InputStateNA || sm.state.InputWaterOn == isdata.InputStateOn) &&
+			(sm.state.InputIrrigator == isdata.InputStateNA || sm.state.InputIrrigator == isdata.InputStateOn)
 	}
 
 	switch sm.machineState {
