@@ -2,7 +2,8 @@ package data
 
 import "time"
 
-// Sample represents a value in time
+// Sample represents a value in time and should include data that may be
+// graphed.
 type Sample struct {
 	// Type of sample (voltage, current, key, etc)
 	Type string `json:"type,omitempty"`
