@@ -54,15 +54,7 @@ const (
 	// but allow us to easily detect this group of states
 	monitorShutdownStart
 	standby
-	standbyWaitingForWater
-	standbyWaitingForWaterAck
-	standbyWaitingForIrr
-	standbyWaitingForIrrAck
 	monitoringFlow
-	monitorWaitingForWater
-	monitorWaitingForWaterAck
-	monitorWaitingForIrr
-	monitorWaitingForIrrAck
 	shutdownStart
 	disarm
 	shutdown1
@@ -151,14 +143,6 @@ func (sm *StateMachine) inShutdownStates() bool {
 	return false
 }
 
-func (sm *StateMachine) inStandbyWaitingStates() bool {
-	if sm.machineState >= standbyWaitingForWater &&
-		sm.machineState <= standbyWaitingForIrrAck {
-		return true
-	}
-	return false
-}
-
 // Run executes state machine, and returns an Update command if necessary.
 // Rules for the state machine
 //   - don't set state machine outputs in transition tests. The state outputs
@@ -183,7 +167,6 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		}
 		// if disarmed in non-shutdown and non-standbyWaiting states, go to standby
 		if !sm.inShutdownStates() &&
-			!sm.inStandbyWaitingStates() &&
 			!sm.config.Arm {
 			sm.setState(standby)
 		}
@@ -304,7 +287,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if sm.config.PressureShutdownEnabled &&
 			lowPressure &&
 			time.Since(sm.lastGoodPressure) >= time.Duration(5)*time.Second &&
-			time.Since(sm.lastPresDialogDisplayed) >= time.Duration(30)*time.Second {
+			time.Since(sm.lastPresDialogDisplayed) >= time.Duration(7)*time.Second {
 			sm.lastPresDialogDisplayed = time.Now()
 			return append(ret, isdata.UpdateDialogStateMachineMessage(lowPresMsg))
 		}

@@ -92,8 +92,8 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			case isdata.Config:
 				config = m
 
-				msg := stateMachine.Run()
-				if msg != nil {
+				msgs := stateMachine.Run()
+				for _, msg := range msgs {
 					out <- msg
 				}
 				isControl.Update()
