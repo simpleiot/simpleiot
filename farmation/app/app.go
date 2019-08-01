@@ -266,6 +266,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					state.FlowRate = m.Value
 					saveState()
 
+					// send data to logging goroutine to store in database
+					logChan <- m
+
 				case isdata.SampleTypeAmount:
 
 					// update totals

@@ -143,6 +143,9 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 						out <- isdata.UpdateLogFlowEnable(false)
 					}*/
 
+				case isdata.SampleTypeFlowWindowAvg:
+					// TODO store in database
+
 				case isdata.SampleTypeAmount:
 				case isdata.SampleTypePressure:
 					/*if !config.LogPressureData {
