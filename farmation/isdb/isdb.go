@@ -6,6 +6,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/timshannon/bolthold"
 )
@@ -88,6 +89,25 @@ func (db *IsDb) ReadState(state *isdata.State) error {
 	return nil
 }
 
+// ReadSamples reads samples from the database
+// Samples are flow, pressure, amount, etc.
+func (db *IsDb) ReadSamples() ([]data.Sample, error) {
+	var samples []data.Sample
+	err := db.store.Find(&samples, nil)
+
+	if err != nil {
+		if err == bolthold.ErrNotFound {
+			// data is not stored, so simply return nil array and nil error
+			return nil, nil
+		}
+
+		// there was an error reading so return nil array and error
+		return nil, err
+	}
+
+	return samples, nil
+}
+
 // ReadFaultHist reads the IS system fault history from the database
 func (db *IsDb) ReadFaultHist() (isdata.Faults, error) {
 	var faults isdata.Faults
@@ -116,6 +136,12 @@ func (db *IsDb) WriteConfig(config *isdata.Config) error {
 func (db *IsDb) WriteState(state *isdata.State) error {
 
 	return db.store.Upsert(0, state)
+}
+
+// WriteSample writes a sample to the database
+// Samples are flow, pressure, amount, etc.
+func (db *IsDb) WriteSample(sample data.Sample) error {
+	return db.store.Insert(time.Now(), sample)
 }
 
 // WriteFaultHist writes the system fault history to the database

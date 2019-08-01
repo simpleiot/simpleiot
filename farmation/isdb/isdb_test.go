@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
@@ -39,6 +40,64 @@ func TestConfig(t *testing.T) {
 
 	if !reflect.DeepEqual(config, configR) {
 		t.Errorf("read config does not match: %+v\n", configR)
+	}
+
+	err = db.store.Close()
+
+	if err != nil {
+		t.Error("failed closing database: ", err)
+	}
+}
+
+func TestSamples(t *testing.T) {
+	sample := data.Sample{
+		Type:  isdata.SampleTypeFlowWindowAvg,
+		Time:  time.Now(),
+		Value: 8888.88,
+		Min:   4444.44,
+	}
+
+	err := os.RemoveAll("./temp")
+
+	if err != nil {
+		t.Error("failed to remove file: ", err)
+	}
+
+	os.Mkdir("./temp", os.ModePerm)
+
+	db, err := NewDb("./temp")
+
+	if err != nil {
+		t.Error("failed to open db: ", err)
+	}
+
+	for i := 0; i <= 10; i++ {
+		err = db.WriteSample(sample)
+
+		if err != nil {
+			t.Error("failed writing samples: ", err)
+		}
+	}
+
+	samplesR, err := db.ReadSamples()
+
+	if err != nil {
+		t.Error("failed reading samples: ", err)
+	}
+
+	for _, sampleR := range samplesR {
+
+		if sample.Time.Sub(sampleR.Time) >= time.Duration(time.Nanosecond) {
+			t.Errorf("read sample time does not match:\n // %+v\n || %+v\n", sample.Time, sampleR.Time)
+		}
+
+		if !reflect.DeepEqual(sample.Value, sampleR.Value) {
+			t.Errorf("read sample value does not match: %+v\n", sampleR.Value)
+		}
+
+		if !reflect.DeepEqual(sample.Min, sampleR.Min) {
+			t.Errorf("read sample min does not match: %+v\n", sampleR.Min)
+		}
 	}
 
 	err = db.store.Close()
