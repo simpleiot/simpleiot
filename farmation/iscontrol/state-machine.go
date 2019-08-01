@@ -287,7 +287,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if sm.config.PressureShutdownEnabled &&
 			lowPressure &&
 			time.Since(sm.lastGoodPressure) >= time.Duration(5)*time.Second &&
-			time.Since(sm.lastPresDialogDisplayed) >= time.Duration(7)*time.Second {
+			time.Since(sm.lastPresDialogDisplayed) >= time.Duration(30)*time.Second {
 			sm.lastPresDialogDisplayed = time.Now()
 			return append(ret, isdata.UpdateDialogStateMachineMessage(lowPresMsg))
 		}
