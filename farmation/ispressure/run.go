@@ -55,6 +55,7 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 				Type:  isdata.SampleTypePressure,
 				Time:  time.Now(),
 				Value: pres,
+				// FIXME
 				Attributes: map[string]float64{
 					"avg": avg,
 					"min": min,
@@ -72,20 +73,11 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 			t := time.Now()
 			out <- data.Sample{
 				Time:  t,
-				Type:  isdata.SampleTypePressureMin,
-				Value: min,
-			}
-
-			out <- data.Sample{
-				Time:  t,
-				Type:  isdata.SampleTypePressureMax,
-				Value: max,
-			}
-
-			out <- data.Sample{
-				Time:  t,
-				Type:  isdata.SampleTypePressureAvg,
+				Type:  isdata.SampleTypePressure,
 				Value: avg,
+				Avg:   avg,
+				Min:   min,
+				Max:   max,
 			}
 
 			out <- data.Sample{
@@ -107,35 +99,14 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 			case data.Sample:
 				switch m.Type {
 				case isdata.SampleTypeSimPressure:
-					t := time.Now()
 					out <- data.Sample{
 						Type:  isdata.SampleTypePressure,
 						Time:  time.Now(),
 						Value: m.Value,
-						Attributes: map[string]float64{
-							"avg": m.Value,
-							"min": m.Value,
-							"max": m.Value,
-						},
+						Avg:   m.Value,
+						Min:   m.Value,
+						Max:   m.Value,
 					}
-					out <- data.Sample{
-						Time:  t,
-						Type:  isdata.SampleTypePressureMax,
-						Value: m.Value,
-					}
-
-					out <- data.Sample{
-						Time:  t,
-						Type:  isdata.SampleTypePressureAvg,
-						Value: m.Value,
-					}
-
-					out <- data.Sample{
-						Time:  t,
-						Type:  isdata.SampleTypePressureMin,
-						Value: m.Value,
-					}
-
 				default:
 					log.Println("ispressure: Unhandled sample type: ", m.Type)
 				}

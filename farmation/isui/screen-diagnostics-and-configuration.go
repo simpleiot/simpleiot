@@ -42,7 +42,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemScreen("Lindsay serial", ScreenIDDiagLindsay)
 
 	// Logging Enable
-	s.menu.AddItemCommand("Faults", "export", isdata.ExportFaults{})
+	s.menu.AddItemCommand("Data", "export", isdata.ExportData{})
 	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData,
 		isdata.UpdateLogPulseEnable(!s.config.LogPulseData))
 	s.menu.AddItemOnOff("Flow logging", s.config.LogFlowData,

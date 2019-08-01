@@ -247,19 +247,57 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case data.Sample:
 				switch m.Type {
+				case isdata.SampleTypePulses:
+
+					// update pulse count
+					state.FlowPulseCount += int(m.Value)
+					saveState()
+
+				case isdata.SampleTypeFlow:
+
+					// update flow rate
+					state.FlowRate = m.Avg
+					saveState()
+
+					// log flow data
+					if config.LogFlowData {
+						logChan <- m
+					}
+
+				case isdata.SampleTypeAmount:
+
+					// update totals
+					state.Total1 += m.Value
+					state.Total2 += m.Value
+					state.FieldStates[config.CurrentFieldIndex][config.CurrentProductIndex].Total += m.Value
+					state.LifetimeTotal += m.Value
+
+					// tank monitoring functions
+					state.CurrentTankVolume -= m.Value
+					if state.CurrentTankVolume < 0 {
+						state.CurrentTankVolume = 0
+					}
+
+					saveState()
+
+					// log amount data
+					if config.LogFlowData {
+						logChan <- m
+					}
+
 				case isdata.SampleTypePressure:
+
+					// update pressure statistics
+					state.PressureAvg = m.Avg
+					state.PressureMin = m.Min
+					state.PressureMax = m.Max
+					saveState()
+
+					// log pressure data
 					if config.LogPressureData {
 						logChan <- m
 					}
-				case isdata.SampleTypePressureMin:
-					state.PressureMin = m.Value
-					saveState()
-				case isdata.SampleTypePressureMax:
-					state.PressureMax = m.Value
-					saveState()
-				case isdata.SampleTypePressureAvg:
-					state.PressureAvg = m.Value
-					saveState()
+
 				case isdata.SampleTypePressureVRef:
 					state.PressureVRef = m.Value
 					saveState()
@@ -357,25 +395,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				config.Arm = false
 				saveConfig()
 
-			case isdata.Flow:
-				state.FlowRate = m.RateAvg
-				state.Total1 += m.Amount
-				state.Total2 += m.Amount
-				state.FieldStates[config.CurrentFieldIndex][config.CurrentProductIndex].Total += m.Amount
-				state.LifetimeTotal += m.Amount
-				state.FlowPulseCount += m.Pulses
-				if config.LogFlowData {
-					logChan <- m
-				}
-
-				// tank monitoring functions
-				state.CurrentTankVolume -= m.Amount
-				if state.CurrentTankVolume < 0 {
-					state.CurrentTankVolume = 0
-				}
-
-				saveState()
-
 			case isdata.UpdateResetFlowPulseCount:
 				state.FlowPulseCount = 0
 				saveState()
@@ -442,15 +461,15 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					}
 				}
 
-			case isdata.ExportFaults:
+			case isdata.ExportData:
 				if !state.DialogExport.Active {
 					// we only want one export process running at a time
-					logChan <- isdata.ExportFaults{}
+					logChan <- isdata.ExportData{}
 				}
 				state.DialogExport.Active = true
 				state.DialogExport.Message = "Exporting data to USB Disk\nPlease Wait"
 
-			case isdata.ExportFaultsFinished:
+			case isdata.ExportDataFinished:
 				state.DialogExport.Active = true
 				state.DialogExport.Message = "Exporting data to USB Done\nPlease remove USB disk"
 

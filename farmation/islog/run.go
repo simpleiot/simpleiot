@@ -7,7 +7,6 @@ import (
 	"os"
 	"runtime"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -59,6 +58,7 @@ var tsFilenameFormat = "2006-01-02T150405Z07:00"
 func Run(in, out chan interface{}, db *isdb.IsDb) {
 	config := isdata.Config{}
 	var lastPulseTimestamp int64
+	_ = lastPulseTimestamp
 
 	logPressure := NewLog("pressure", "timestamp(us),pressure (PSI),min,max,avg")
 	logPulse := NewLog("pulse", "timestamp(us),diff")
@@ -82,7 +82,7 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 					logPressure.Close()
 				}
 
-			case isdata.ExportFaults:
+			case isdata.ExportData:
 				// Extract faults from database
 				faults, _ := db.ReadFaultHist()
 
@@ -104,59 +104,63 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 				}
 
 				logFault.Close()
-				out <- isdata.ExportFaultsFinished{}
+				out <- isdata.ExportDataFinished{}
 
 			case data.Sample:
-				if m.Type != isdata.SampleTypePressure || !config.LogPressureData {
-					continue
-				}
+				switch m.Type {
+				case isdata.SampleTypePulses:
+					/*if !config.LogPulseData {
+						continue
+					}
 
-				tsUs := timeToUs(m.Time)
-				s := strconv.FormatInt(tsUs, 10) + "," +
-					strconv.FormatFloat(m.Value, 'f', 2, 64) + "," +
-					strconv.FormatFloat(m.Attributes["min"], 'f', 2, 64) + "," +
-					strconv.FormatFloat(m.Attributes["max"], 'f', 2, 64) + "," +
-					strconv.FormatFloat(m.Attributes["avg"], 'f', 2, 64)
-				err := logPressure.Write(s)
-				if err != nil {
-					log.Println("Error writing pressure to file: ", err)
-					out <- isdata.UpdateLogPressureEnable(false)
-				}
+					tsMs := timeToUs(time.Time(m.Time))
+					diff := tsMs - lastPulseTimestamp
+					if lastPulseTimestamp == 0 {
+						diff = 0
+					}
+					s := strconv.FormatInt(tsMs, 10) + "," + strconv.FormatInt(diff, 10)
+					err := logPulse.Write(s)
+					if err != nil {
+						log.Println("Error writing pulse to file: ", err)
+						out <- isdata.UpdateLogPulseEnable(false)
+					}
+					lastPulseTimestamp = tsMs*/
 
-			case isdata.Flow:
-				if !config.LogFlowData {
-					continue
-				}
+				case isdata.SampleTypeFlow:
+					/*if !config.LogFlowData {
+						continue
+					}
 
-				tsUs := timeToUs(m.Time)
-				s := strconv.FormatInt(tsUs, 10) + "," +
-					strconv.FormatFloat(m.Amount, 'f', 4, 64) + "," +
-					strconv.FormatFloat(m.Rate, 'f', 1, 64) + "," +
-					strconv.FormatFloat(m.RateAvg, 'f', 1, 64) + "," +
-					strconv.Itoa(m.Pulses)
-				err := logFlow.Write(s)
-				if err != nil {
-					log.Println("Error writing flow to file: ", err)
-					out <- isdata.UpdateLogFlowEnable(false)
-				}
+					tsUs := timeToUs(m.Time)
+					s := strconv.FormatInt(tsUs, 10) + "," +
+						strconv.FormatFloat(m.Amount, 'f', 4, 64) + "," +
+						strconv.FormatFloat(m.Rate, 'f', 1, 64) + "," +
+						strconv.FormatFloat(m.RateAvg, 'f', 1, 64) + "," +
+						strconv.Itoa(m.Pulses)
+					err := logFlow.Write(s)
+					if err != nil {
+						log.Println("Error writing flow to file: ", err)
+						out <- isdata.UpdateLogFlowEnable(false)
+					}*/
 
-			case isdata.Pulse:
-				if !config.LogPulseData {
-					continue
-				}
+				case isdata.SampleTypeAmount:
+				case isdata.SampleTypePressure:
+					/*if !config.LogPressureData {
+						continue
+					}
 
-				tsMs := timeToUs(time.Time(m))
-				diff := tsMs - lastPulseTimestamp
-				if lastPulseTimestamp == 0 {
-					diff = 0
+					tsUs := timeToUs(m.Time)
+					s := strconv.FormatInt(tsUs, 10) + "," +
+						strconv.FormatFloat(m.Value, 'f', 2, 64) + "," +
+						strconv.FormatFloat(m.Attributes["min"], 'f', 2, 64) + "," +
+						strconv.FormatFloat(m.Attributes["max"], 'f', 2, 64) + "," +
+						strconv.FormatFloat(m.Attributes["avg"], 'f', 2, 64)
+					err := logPressure.Write(s)
+					if err != nil {
+						log.Println("Error writing pressure to file: ", err)
+						out <- isdata.UpdateLogPressureEnable(false)
+					}*/
 				}
-				s := strconv.FormatInt(tsMs, 10) + "," + strconv.FormatInt(diff, 10)
-				err := logPulse.Write(s)
-				if err != nil {
-					log.Println("Error writing pulse to file: ", err)
-					out <- isdata.UpdateLogPulseEnable(false)
-				}
-				lastPulseTimestamp = tsMs
 			}
 		}
 	}

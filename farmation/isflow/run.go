@@ -111,8 +111,21 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 			processPulse(t)
 		case <-ticker.C:
 			if pulses > 0 {
+				pulseSample := data.Sample{
+					Type:  isdata.SampleTypePulses,
+					Time:  lastPulse,
+					Value: float64(pulses),
+				}
+				out <- pulseSample
+
 				sampleDuration := lastPulse.Sub(lastTick)
-				flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
+				flowSample, amountSample := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
+				flowSample.Type = isdata.SampleTypeFlow
+				amountSample.Type = isdata.SampleTypeAmount
+
+				out <- amountSample
+
+				// OUTDATED
 				// check if value is changing fast and reset the moving
 				// average
 				/*
@@ -121,11 +134,12 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 					}
 				*/
 
-				flowRateMovingAvg.Add(flow.Rate)
-				flow.RateAvg = flowRateMovingAvg.Avg()
-				flow.RateMin, _ = flowRateMovingAvg.Min()
-				flow.RateMax, _ = flowRateMovingAvg.Max()
-				out <- flow
+				flowRateMovingAvg.Add(flowSample.Value)
+				flowSample.Avg = flowRateMovingAvg.Avg()
+				flowSample.Min, _ = flowRateMovingAvg.Min()
+				flowSample.Max, _ = flowRateMovingAvg.Max()
+				out <- flowSample
+
 				pulses = 0
 				lastTick = lastPulse
 			}
