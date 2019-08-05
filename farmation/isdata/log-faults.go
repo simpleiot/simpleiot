@@ -56,7 +56,7 @@ type Fault struct {
 // Faults history for system
 type Faults []Fault
 
-// Below methods allow faults to be automatically sorted by time
+// Below methods allow faults to be automatically sorted by timestamp
 
 // Len return length of slice
 func (f Faults) Len() int {
