@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -60,17 +61,21 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	var lastPulseTimestamp int64
 	_ = lastPulseTimestamp
 
-	logPressure := NewLog("pressure", "timestamp(us),pressure (PSI),min,max,avg")
 	logPulse := NewLog("pulse", "timestamp(us),diff")
-	logFlow := NewLog("flow", "timestamp(us),amount,rate (GPH),average rate,pulses")
+	logFlow := NewLog("flow", "timestamp(us),rate (GPH)")
+	//logAmount := NewLog("amount", "timestamp(us),amount")
+	logPressure := NewLog("pressure", "timestamp(us),pressure (PSI),min,max,avg")
 	logFault := NewLog("faults", "timestamp,fault")
 
-	presHistoryAvg := data.NewTimeWindowAverager(10*time.Duration, func(avg Sample) {
-		// store avg in database
+	flowHistoryAvg := data.NewTimeWindowAverager(10*time.Minute, func(avg data.Sample) {
+		db.WriteSample(avg)
 	})
-
-	flowHistoryAvg := data.NewTimeWindowAverager(...)
-
+	presHistoryAvg := data.NewTimeWindowAverager(10*time.Minute, func(avg data.Sample) {
+		db.WriteSample(avg)
+	})
+	amountHistoryAvg := data.NewTimeWindowAverager(10*time.Minute, func(avg data.Sample) {
+		db.WriteSample(avg)
+	})
 
 	for {
 		select {
@@ -111,12 +116,50 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 				}
 
 				logFault.Close()
+
+				// Extract samples from database
+				samples, _ := db.ReadSamples()
+
+				// Divide samples into flow, pressure, and amount samples
+				var flows, pressures, amounts []data.Sample
+				for _, sample := range samples {
+					switch sample.Type {
+					case isdata.SampleTypeFlowWindowAvg:
+						flows = append(flows, sample)
+					case isdata.SampleTypePressure:
+						pressures = append(pressures, sample)
+					case isdata.SampleTypeAmount:
+						amounts = append(amounts, sample)
+					}
+				}
+
+				// Sort the samples by timestamp
+				/*sort.Sort(flows)
+				sort.Sort(pressures)
+				sort.Sort(amounts)*/
+
+				for _, sample := range samples {
+					s := sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+						sample.Type
+					err := logFault.Write(s)
+					if err != nil {
+						log.Println("Error writing sample to file: ", err)
+					}
+				}
+
+				err = file.SyncDisks()
+				if err != nil {
+					log.Println("sync error: ", err)
+				}
+
+				logFault.Close()
+
 				out <- isdata.ExportDataFinished{}
 
 			case data.Sample:
 				switch m.Type {
 				case isdata.SampleTypePulses:
-					/*if !config.LogPulseData {
+					if !config.LogPulseData {
 						continue
 					}
 
@@ -131,7 +174,7 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 						log.Println("Error writing pulse to file: ", err)
 						out <- isdata.UpdateLogPulseEnable(false)
 					}
-					lastPulseTimestamp = tsMs*/
+					lastPulseTimestamp = tsMs
 
 				case isdata.SampleTypeFlowInstantaneous:
 					/*if !config.LogFlowData {
@@ -151,11 +194,17 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 					}*/
 
 				case isdata.SampleTypeFlowWindowAvg:
-					// TODO store in database
+					// run flow sample through averager, which stores to
+					// database every 10 minutes
+					flowHistoryAvg.NewSample(m)
 
-				case isdata.SampleTypeAmount:
 				case isdata.SampleTypePressure:
-					/*if !config.LogPressureData {
+					// run pressure sample through averager, which stores to
+					// database every 10 minutes
+					presHistoryAvg.NewSample(m)
+
+					// log data for engineering purpuses if enabled
+					if !config.LogPressureData {
 						continue
 					}
 
@@ -169,7 +218,12 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 					if err != nil {
 						log.Println("Error writing pressure to file: ", err)
 						out <- isdata.UpdateLogPressureEnable(false)
-					}*/
+					}
+
+				case isdata.SampleTypeAmount:
+					// run amount sample through averager, which stores to
+					// database every 10 minutes
+					amountHistoryAvg.NewSample(m)
 				}
 			}
 		}
