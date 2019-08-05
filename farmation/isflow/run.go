@@ -110,6 +110,11 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 			processPulse(t)
 		case <-ticker.C:
 			if pulses > 0 {
+				// we need send 3 samples:
+				//  - pulses
+				//  - inst flow over last 1 sec
+				//  - moving window average over last X samples
+				//  - amount
 
 				// Pulse sample
 				pulseSample := data.Sample{
@@ -121,40 +126,35 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 				// Calculate flow and amount
 				sampleDuration := lastPulse.Sub(lastTick)
-				flowSample, amountSample := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
+				instFlowSample, amountSample := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
 
 				// Amount sample
-				amountSample.Type = isdata.SampleTypeAmount
+				out <- instFlowSample
 				out <- amountSample
 
-				// OUTDATED
-				// check if value is changing fast and reset the moving
-				// average
-				/*
-					if math.Abs(flow.Rate-flowRateMovingAvg.Avg()) > 5 {
-						resetFlowRateMovingAvg()
-					}
-				*/
+				flowRateMovingAvg.Add(instFlowSample.Value)
 
 				// Instantaneous flow sample
-				flowSample.Type = isdata.SampleTypeFlowInstantaneous
-				flowRateMovingAvg.Add(flowSample.Value)
-				flowSample.Min, _ = flowRateMovingAvg.Min()
-				flowSample.Max, _ = flowRateMovingAvg.Max()
-				out <- flowSample
+				// this sample is used for logging engineering data
+				avgFlowSample := data.Sample{
+					Time:  instFlowSample.Time,
+					Type:  isdata.SampleTypeFlowWindowAvg,
+					Value: flowRateMovingAvg.Avg(),
+				}
 
-				// Window average flow sample
-				flowSample.Type = isdata.SampleTypeFlowWindowAvg
-				flowSample.Value = flowRateMovingAvg.Avg()
-				out <- flowSample
+				avgFlowSample.Min, _ = flowRateMovingAvg.Min()
+				avgFlowSample.Max, _ = flowRateMovingAvg.Max()
+				out <- avgFlowSample
 
 				pulses = 0
 				lastTick = lastPulse
 			}
 
 			if time.Now().Sub(lastTick) > time.Second*5 {
-				flow := isdata.Flow{
-					Time: time.Now(),
+				flow := data.Sample{
+					Type:  isdata.SampleTypeFlowWindowAvg,
+					Time:  time.Now(),
+					Value: 0,
 				}
 				out <- flow
 				resetFlowRateMovingAvg()

@@ -6,18 +6,6 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// Flow describes the total and rate over a duration
-type Flow struct {
-	Time     time.Time
-	Duration time.Duration
-	Amount   float64
-	Rate     float64
-	RateAvg  float64
-	RateMin  float64
-	RateMax  float64
-	Pulses   int
-}
-
 // FlowToPulsePeriod calculates the pulse period for a flow (GPH).
 // This is used in simulation code.
 func FlowToPulsePeriod(flow float64, pulsesPerGal int) time.Duration {
@@ -27,17 +15,16 @@ func FlowToPulsePeriod(flow float64, pulsesPerGal int) time.Duration {
 }
 
 // PulsesToFlow creates two new Sample structs from pulse data.
-// Flow rate is GPH, and amount is in gallons
+// Returns Flow rate is GPH, and amount pumped during this interval in gallons
 func PulsesToFlow(tm time.Time, duration time.Duration, pulsesPerGal int, pulses int) (data.Sample, data.Sample) {
 	flow := data.Sample{
-		//Type:     isdata.SampleTypeFlow,
+		Type:     SampleTypeFlowInstantaneous,
 		Time:     tm,
 		Duration: duration,
-		//Attributes: make[string]float64{pulses},
 	}
 
 	amount := data.Sample{
-		//Type:  isdata.SampleTypeAmount,
+		Type:  SampleTypeAmount,
 		Time:  tm,
 		Value: float64(pulses) / float64(pulsesPerGal),
 	}
