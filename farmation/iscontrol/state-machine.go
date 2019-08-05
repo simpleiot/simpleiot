@@ -281,6 +281,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		}
 
 		if sm.config.PressureShutdownEnabled &&
+			sm.RelayInjector &&
 			lowPressure &&
 			time.Since(sm.lastGoodPressure) >= time.Duration(5)*time.Second &&
 			time.Since(sm.lastPresDialogDisplayed) >= time.Duration(30)*time.Second {
@@ -328,7 +329,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		// above.
 		switch {
 		case sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
-			sm.state.InputInjector != isdata.InputStateOff &&
+			sm.RelayInjector &&
 			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
 			sm.setState(disarm)
 			return append(ret, isdata.UpdateFault{
@@ -339,7 +340,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		case sm.config.PressureShutdownEnabled &&
 			lowPressure &&
-			sm.state.InputInjector != isdata.InputStateOff &&
+			sm.RelayInjector &&
 			time.Since(sm.lastGoodPressure) >= alarmRecognizeDuration:
 			sm.setState(disarm)
 
