@@ -65,6 +65,13 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	logFlow := NewLog("flow", "timestamp(us),amount,rate (GPH),average rate,pulses")
 	logFault := NewLog("faults", "timestamp,fault")
 
+	presHistoryAvg := data.NewTimeWindowAverager(10*time.Duration, func(avg Sample) {
+		// store avg in database
+	})
+
+	flowHistoryAvg := data.NewTimeWindowAverager(...)
+
+
 	for {
 		select {
 		case m := <-in:
