@@ -9,10 +9,8 @@ type EventType int
 
 // define valid events
 const (
-	// system booted
-	EventTypeBoot EventType = 10
-	// app had to be restarted due to crash or something
-	EventTypeRestartApp
+	EventTypeStartSystem EventType = 10
+	EventTypeStartApp
 	EventTypeSystemUpdate
 	EventTypeAppUpdate
 )
