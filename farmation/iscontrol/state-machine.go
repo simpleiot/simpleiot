@@ -240,11 +240,15 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		}
 
 		// Reset time stamps and dialogs displayed booleans
-		if !(sm.state.FlowStatus == isdata.FlowStatusOffTarget) {
+		// for flow and pressure timestamps, if parameter ok OR pump not
+		// on, reset timestamp
+		if !(sm.state.FlowStatus == isdata.FlowStatusOffTarget) ||
+			!sm.RelayInjector {
 			sm.lastGoodFlow = time.Now()
 		}
 
-		if !lowPressure {
+		if !lowPressure ||
+			!sm.RelayInjector {
 			sm.lastGoodPressure = time.Now()
 		}
 
