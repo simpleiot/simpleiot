@@ -61,22 +61,23 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	var lastPulseTimestamp int64
 	_ = lastPulseTimestamp
 
+	var amount float64
+	var amountTime time.Time
+
 	logPulse := NewLog("pulse", "timestamp(us),diff")
-	logFlow := NewLog("flow", "timestamp(us),rate (GPH)")
-	logAmount := NewLog("amount", "timestamp(us),amount")
-	logPressure := NewLog("pressure", "timestamp(us),pressure (PSI),min,max,avg")
+	logFlow := NewLog("flow", "timestamp(us),average GPH,min,max")
+	logAmount := NewLog("amount", "timestamp(us),gallons")
+	logPressure := NewLog("pressure", "timestamp(us),average PSI,min,max")
 	logFault := NewLog("faults", "timestamp,fault")
 
-	//TODO change to minute
 	flowHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
 		db.WriteSample(avg)
 	}, isdata.SampleTypeFlowWindowAvg)
 	presHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
 		db.WriteSample(avg)
 	}, isdata.SampleTypePressure)
-	amountHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
-		db.WriteSample(avg)
-	}, isdata.SampleTypeAmount)
+
+	writeAmountTicker := time.NewTicker(10 * time.Second)
 
 	for {
 		select {
@@ -142,7 +143,15 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 				// Write samples to disk
 				writeSamples(flows, logFlow)
 				writeSamples(pressures, logPressure)
-				writeSamples(amounts, logAmount)
+
+				for _, amount := range amounts {
+					s := amount.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+						strconv.FormatFloat(amount.Value, 'f', 2, 64)
+					err := logAmount.Write(s)
+					if err != nil {
+						log.Println("Error writing sample to file: ", err)
+					}
+				}
 
 				err = file.SyncDisks()
 				if err != nil {
@@ -220,11 +229,23 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 					}
 
 				case isdata.SampleTypeAmount:
-					// run amount sample through averager, which stores to
-					// database every 10 minutes
-					amountHistoryAvg.NewSample(m)
+					// accumulate amount over 10m
+					amount += m.Value
+					if m.Time.After(amountTime) {
+						amountTime = m.Time
+					}
 				}
 			}
+		case <-writeAmountTicker.C:
+			db.WriteSample(data.Sample{
+				Type:  isdata.SampleTypeAmount,
+				Time:  amountTime,
+				Value: amount,
+			})
+
+			// reset amount and time
+			amount = 0
+			amountTime = time.Now()
 		}
 	}
 }
@@ -232,7 +253,9 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 func writeSamples(samples isdata.Samples, logSample *Log) {
 	for _, sample := range samples {
 		s := sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
-			sample.Type
+			strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
+			strconv.FormatFloat(sample.Min, 'f', 2, 64) + "," +
+			strconv.FormatFloat(sample.Max, 'f', 2, 64)
 		err := logSample.Write(s)
 		if err != nil {
 			log.Println("Error writing sample to file: ", err)
