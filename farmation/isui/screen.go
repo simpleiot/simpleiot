@@ -135,7 +135,6 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		}
 	case s.state.DialogExport.Active:
 		if key == isdata.KeySK1 {
-			s.switchScreen(ScreenIDOpMode1)
 			return ScreenIDNoChange, isdata.UpdateDialogExportClose{}, true
 		}
 	case s.state.DialogArm.Active:
