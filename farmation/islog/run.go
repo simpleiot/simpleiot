@@ -63,17 +63,18 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 
 	logPulse := NewLog("pulse", "timestamp(us),diff")
 	logFlow := NewLog("flow", "timestamp(us),rate (GPH)")
-	//logAmount := NewLog("amount", "timestamp(us),amount")
+	logAmount := NewLog("amount", "timestamp(us),amount")
 	logPressure := NewLog("pressure", "timestamp(us),pressure (PSI),min,max,avg")
 	logFault := NewLog("faults", "timestamp,fault")
 
-	flowHistoryAvg := data.NewTimeWindowAverager(10*time.Minute, func(avg data.Sample) {
+	//TODO change to minute
+	flowHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
 		db.WriteSample(avg)
 	})
-	presHistoryAvg := data.NewTimeWindowAverager(10*time.Minute, func(avg data.Sample) {
+	presHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
 		db.WriteSample(avg)
 	})
-	amountHistoryAvg := data.NewTimeWindowAverager(10*time.Minute, func(avg data.Sample) {
+	amountHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
 		db.WriteSample(avg)
 	})
 
@@ -121,7 +122,7 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 				samples, _ := db.ReadSamples()
 
 				// Divide samples into flow, pressure, and amount samples
-				var flows, pressures, amounts []data.Sample
+				var flows, pressures, amounts isdata.Samples
 				for _, sample := range samples {
 					switch sample.Type {
 					case isdata.SampleTypeFlowWindowAvg:
@@ -134,25 +135,23 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 				}
 
 				// Sort the samples by timestamp
-				/*sort.Sort(flows)
+				sort.Sort(flows)
 				sort.Sort(pressures)
-				sort.Sort(amounts)*/
+				sort.Sort(amounts)
 
-				for _, sample := range samples {
-					s := sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
-						sample.Type
-					err := logFault.Write(s)
-					if err != nil {
-						log.Println("Error writing sample to file: ", err)
-					}
-				}
+				// Write samples to disk
+				writeSamples(flows, logFlow)
+				writeSamples(pressures, logPressure)
+				writeSamples(amounts, logAmount)
 
 				err = file.SyncDisks()
 				if err != nil {
 					log.Println("sync error: ", err)
 				}
 
-				logFault.Close()
+				logFlow.Close()
+				logPressure.Close()
+				logAmount.Close()
 
 				out <- isdata.ExportDataFinished{}
 
@@ -226,6 +225,17 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 					amountHistoryAvg.NewSample(m)
 				}
 			}
+		}
+	}
+}
+
+func writeSamples(samples isdata.Samples, logSample *Log) {
+	for _, sample := range samples {
+		s := sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+			sample.Type
+		err := logSample.Write(s)
+		if err != nil {
+			log.Println("Error writing sample to file: ", err)
 		}
 	}
 }

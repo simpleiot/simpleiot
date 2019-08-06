@@ -65,7 +65,11 @@ func (s *StatusScreen3) Render(img draw.Image) {
 
 	// Max and shutdown pressures
 	DrawTxt(img, max, x, y2, tightpixel15.Font)
-	DrawTxt(img, strconv.FormatFloat(s.config.PressureShutdownLow, 'f', 0, 64), x, y3, tightpixel15.Font)
+	if s.config.Arm {
+		DrawTxt(img, strconv.FormatFloat(s.config.PressureShutdownLow, 'f', 0, 64), x, y3, tightpixel15.Font)
+	} else {
+		DrawTxt(img, "--", x, y3, tightpixel15.Font)
+	}
 
 	xOffSet := 18
 

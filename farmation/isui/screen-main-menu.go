@@ -18,12 +18,12 @@ type MainMenuScreen struct {
 func NewMainMenuScreen(state *isdata.State, config *isdata.Config) *MainMenuScreen {
 	menu := Menu{}
 	menu.AddItemScreen("Tank Menu", ScreenIDTankMenu1)
-	menu.AddItemScreen("Field Menu", ScreenIDFieldMenu1)
-	menu.AddItemScreen("Operating Menu", ScreenIDOpMode1)
 	menu.AddItemScreen("Totals", ScreenIDTotals)
+	menu.AddItemScreen("Field Menu", ScreenIDFieldMenu1)
 	menu.AddItemScreen("Product Menu", ScreenIDProductMenu1)
-	menu.AddItemScreen("Calibration", ScreenIDCalibration)
+	menu.AddItemScreen("Operating Menu", ScreenIDOpMode1)
 	menu.AddItemScreen("Diag/Config", ScreenIDDiagConfig)
+	//menu.AddItemScreen("Calibration", ScreenIDCalibration)
 
 	return &MainMenuScreen{
 		softKeys: NewSoftKeys("home"),
