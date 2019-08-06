@@ -13,7 +13,7 @@ const (
 	SampleTypePressureVSense           = "pressureVSense"
 )
 
-// Samples is used to allow faults to be sorted by timestamp
+// Samples is used to allow samples to be sorted by timestamp
 type Samples []data.Sample
 
 // Below methods allow samples to be automatically sorted by timestamp

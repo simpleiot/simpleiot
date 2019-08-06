@@ -70,13 +70,13 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	//TODO change to minute
 	flowHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
 		db.WriteSample(avg)
-	})
+	}, isdata.SampleTypeFlowWindowAvg)
 	presHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
 		db.WriteSample(avg)
-	})
+	}, isdata.SampleTypePressure)
 	amountHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
 		db.WriteSample(avg)
-	})
+	}, isdata.SampleTypeAmount)
 
 	for {
 		select {

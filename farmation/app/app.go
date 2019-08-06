@@ -285,6 +285,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 					saveState()
 
+					// send data to logging goroutine to store in database
+					logChan <- m
+
 					// log amount data (engineering purposes)
 					if config.LogFlowData {
 						logChan <- m
@@ -296,7 +299,11 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					state.PressureAvg = m.Value
 					state.PressureMin = m.Min
 					state.PressureMax = m.Max
+
 					saveState()
+
+					// send data to logging goroutine to store in database
+					logChan <- m
 
 					// log pressure data (engineering purposes)
 					if config.LogPressureData {

@@ -110,7 +110,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 			processPulse(t)
 		case <-ticker.C:
 			if pulses > 0 {
-				// we need send 3 samples:
+				// we need send 4 samples:
 				//  - pulses
 				//  - inst flow over last 1 sec
 				//  - moving window average over last X samples
