@@ -231,7 +231,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		lowPressure := sm.state.PressureMin < sm.config.PressureShutdownLow
 
-		if sm.state.InputInjector != isdata.InputStateOff &&
+		if sm.RelayInjector &&
 			(sm.state.FlowStatus == isdata.FlowStatusOffTarget ||
 				(sm.config.PressureShutdownEnabled && lowPressure)) {
 			sm.CurrentLedState = LedRedBlnk
