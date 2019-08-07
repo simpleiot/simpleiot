@@ -13,6 +13,13 @@ const (
 	SampleTypePressureVSense           = "pressureVSense"
 )
 
+// Define sample sub-types for the system
+const (
+	SampleSubTypeFaultFlow     string = "flowOffTarget"
+	SampleSubTypeFaultPres            = "lowPressure"
+	SampleSubTypeFaultShutdown        = "shutdownFailed"
+)
+
 // Samples is used to allow samples to be sorted by timestamp
 type Samples []data.Sample
 
