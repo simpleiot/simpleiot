@@ -1,7 +1,6 @@
 package isdata
 
 import (
-	"runtime"
 	"time"
 
 	"github.com/blang/semver"
@@ -214,14 +213,6 @@ func InitState(s *State) (dirty bool) {
 	for len(s.FieldStates) < 4 { //not sure that 4 is the right length
 		s.FieldStates = append(s.FieldStates, [5]ProductState{})
 		dirty = true
-	}
-
-	if runtime.GOARCH == "arm" {
-		s.SystemType = SystemTypeIS
-		s.PanelDefinition = PanelDefinition{}
-	} else {
-		s.SystemType = SystemTypeISSim
-		s.PanelDefinition = PanelDefinition{Type: PanelTypeStandardPivot}
 	}
 
 	s.FlowRate = 0
