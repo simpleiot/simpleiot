@@ -335,12 +335,36 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.SampleTypeSimGpioDigInj:
 					state.GpioDigitalInjector = m.Bool()
 					saveState()
+
+					// save to database for system logs
+					db.WriteSample(data.Sample{
+						Type:  isdata.SampleTypeInputInjector,
+						Time:  time.Now(),
+						Value: boolToSampleVal(m.Bool()),
+					})
+
 				case isdata.SampleTypeSimGpioDigIrg:
 					state.GpioDigitalIrrigator = m.Bool()
 					saveState()
+
+					// save to database for system logs
+					db.WriteSample(data.Sample{
+						Type:  isdata.SampleTypeInputIrrigator,
+						Time:  time.Now(),
+						Value: boolToSampleVal(m.Bool()),
+					})
+
 				case isdata.SampleTypeSimGpioDigWaterOn:
 					state.GpioDigitalWaterOn = m.Bool()
 					saveState()
+
+					// save to database for system logs
+					db.WriteSample(data.Sample{
+						Type:  isdata.SampleTypeInputWaterOn,
+						Time:  time.Now(),
+						Value: boolToSampleVal(m.Bool()),
+					})
+
 				case isdata.SampleTypeSimGpioDigIn:
 					state.GpioDigitalIn = m.Bool()
 					saveState()
