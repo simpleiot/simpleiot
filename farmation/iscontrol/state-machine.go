@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
@@ -336,10 +337,11 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
 			sm.setState(disarm)
-			return append(ret, isdata.UpdateFault{
-				Fault: isdata.FaultTypeFlowOffTarget,
-				Time:  time.Now(),
-				Value: sm.state.FlowRate,
+			return append(ret, data.Sample{
+				Type:    isdata.SampleTypeFault,
+				SubType: isdata.SampleSubTypeFaultFlow,
+				Time:    time.Now(),
+				Value:   sm.state.FlowRate,
 			})
 
 		case sm.config.PressureShutdownEnabled &&
@@ -351,16 +353,18 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			// if flow is off target as well, prioritize this fault
 			if sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 				time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration/3 {
-				return append(ret, isdata.UpdateFault{
-					Fault: isdata.FaultTypeFlowOffTarget,
-					Time:  time.Now(),
-					Value: sm.state.FlowRate,
+				return append(ret, data.Sample{
+					Type:    isdata.SampleTypeFault,
+					SubType: isdata.SampleSubTypeFaultFlow,
+					Time:    time.Now(),
+					Value:   sm.state.FlowRate,
 				})
 			}
-			return append(ret, isdata.UpdateFault{
-				Fault: isdata.FaultTypeLowPres,
-				Time:  time.Now(),
-				Value: sm.state.PressureMin,
+			return append(ret, data.Sample{
+				Type:    isdata.SampleTypeFault,
+				SubType: isdata.SampleSubTypeFaultPres,
+				Time:    time.Now(),
+				Value:   sm.state.PressureMin,
 			})
 		}
 
@@ -418,9 +422,10 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if !sm.state.DialogStateMachine.Active {
 			sm.setState(standby)
 			if sm.state.InputWaterOn == isdata.InputStateOn {
-				return append(ret, isdata.UpdateDialogStateMachineMessage("failed to shutdown"), isdata.UpdateFault{
-					Fault: isdata.FaultTypeShutdownFailed,
-					Time:  time.Now(),
+				return append(ret, isdata.UpdateDialogStateMachineMessage("failed to shutdown"), data.Sample{
+					Type:    isdata.SampleTypeFault,
+					SubType: isdata.SampleSubTypeFaultShutdown,
+					Time:    time.Now(),
 				})
 			}
 

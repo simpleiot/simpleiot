@@ -1,7 +1,5 @@
 package isdata
 
-import "time"
-
 // UpdateFieldName is a message used to update the field name in the config
 type UpdateFieldName struct {
 	Index int
@@ -46,13 +44,6 @@ type UpdateDisarm struct{}
 
 // UpdateFaultActiveClearAll is a command to clear all **active** faults
 type UpdateFaultActiveClearAll struct{}
-
-// UpdateFault is a command to trigger a fault and a fault struct to store in the database
-type UpdateFault struct {
-	Fault FaultType
-	Time  time.Time
-	Value float64 // this is a value that can be filled with the flow or pressure that caused the fault
-}
 
 // UpdateLogPulseEnable is used to enable/disable logging of pulse data to USB
 type UpdateLogPulseEnable bool

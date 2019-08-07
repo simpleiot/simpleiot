@@ -310,6 +310,11 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 						logChan <- m
 					}
 
+				case isdata.SampleTypeFault:
+					// directly store fault sample
+					db.WriteSample(m)
+
+				// Simulator samples
 				case isdata.SampleTypePressureVRef:
 					state.PressureVRef = m.Value
 					saveState()
@@ -644,11 +649,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.UpdateFaultActiveClearAll:
 				state.FaultsActive = nil
 				saveState()
-
-			case isdata.UpdateFault:
-				state.FaultsActive = append(state.FaultsActive, isdata.Fault(m))
-				saveState()
-				db.WriteFaultHist(isdata.Fault(m))
 
 			case isdata.UpdateDialogStateMachineMessage:
 				state.DialogStateMachine.Message = string(m)

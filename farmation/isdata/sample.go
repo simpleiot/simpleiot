@@ -9,6 +9,7 @@ const (
 	SampleTypePressure                 = "pressure"
 	SampleTypePressureVRef             = "pressureVRef"
 	SampleTypePressureVSense           = "pressureVSense"
+	SampleTypeFault
 )
 
 // Define sample sub-types for the system
