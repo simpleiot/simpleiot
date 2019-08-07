@@ -229,7 +229,7 @@ func exportData(db *isdb.IsDb, out chan interface{}) {
 				"-," +
 				"-"
 
-		case isdata.SampleTypeInputInjector, isdata.SampleTypeInputIrrigator, isdata.SampleTypeInputWaterOn:
+		case isdata.SampleTypeInputInjector, isdata.SampleTypeInputIrrigator, isdata.SampleTypeInputWaterOn, isdata.SampleTypeArm:
 			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
 				sample.Type + "," +
 				boolToString(sample.Bool()) + "," +
