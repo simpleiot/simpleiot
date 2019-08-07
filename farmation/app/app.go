@@ -328,10 +328,13 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					// convert from sample to key
 					key := isdata.KeyFromString(m.ID)
 					uiChan <- key
+
 				case isdata.SampleTypeSimFlowRate:
 					flowChan <- m
+
 				case isdata.SampleTypeSimPressure:
 					presChan <- m
+
 				case isdata.SampleTypeSimGpioDigInj:
 					state.GpioDigitalInjector = m.Bool()
 					saveState()
@@ -368,10 +371,22 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.SampleTypeSimGpioDigIn:
 					state.GpioDigitalIn = m.Bool()
 					saveState()
+
 				case isdata.SampleTypeSimArm:
+					oldArm := config.Arm
 					toggleArmOrOpenDialog(&config, &state)
 					saveConfig()
 					saveState()
+
+					if config.Arm != oldArm {
+						// save to database for system logs
+						db.WriteSample(data.Sample{
+							Type:  isdata.SampleTypeArm,
+							Time:  time.Now(),
+							Value: boolToSampleVal(config.Arm),
+						})
+					}
+
 				case isdata.SampleTypeSimPanelType:
 					newPanelType(isdata.PanelDefinition{
 						Type: isdata.PanelType(m.Value),
@@ -380,12 +395,24 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				default:
 					log.Println("Sample type not handled: ", m.Type)
 				}
+
 			case isdata.Key:
 				switch m {
 				case isdata.KeyArm:
+					oldArm := config.Arm
 					toggleArmOrOpenDialog(&config, &state)
 					saveConfig()
 					saveState()
+
+					if config.Arm != oldArm {
+						// save to database for system logs
+						db.WriteSample(data.Sample{
+							Type:  isdata.SampleTypeArm,
+							Time:  time.Now(),
+							Value: boolToSampleVal(config.Arm),
+						})
+					}
+
 				default:
 					// send to ui to handle
 					uiChan <- m

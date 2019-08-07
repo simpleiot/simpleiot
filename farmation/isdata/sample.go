@@ -15,4 +15,5 @@ const (
 	SampleTypeInputInjector            = "inputInjector"
 	SampleTypeInputWaterOn             = "inputWaterOn"
 	SampleTypeInputIrrigator           = "inputIrrigator"
+	SampleTypeArm                      = "arm"
 )
