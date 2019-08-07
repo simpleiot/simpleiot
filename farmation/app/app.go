@@ -544,13 +544,34 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.GpioDigitalInjector = bool(m)
 				saveState()
 
+				// save to database for system logs
+				db.WriteSample(data.Sample{
+					Type:  isdata.SampleTypeInputInjector,
+					Time:  time.Now(),
+					Value: boolToSampleVal(bool(m)),
+				})
+
 			case isdata.UpdateGpioDigitalIrrigator:
 				state.GpioDigitalIrrigator = bool(m)
 				saveState()
 
+				// save to database for system logs
+				db.WriteSample(data.Sample{
+					Type:  isdata.SampleTypeInputIrrigator,
+					Time:  time.Now(),
+					Value: boolToSampleVal(bool(m)),
+				})
+
 			case isdata.UpdateGpioDigitalWaterOn:
 				state.GpioDigitalWaterOn = bool(m)
 				saveState()
+
+				// save to database for system logs
+				db.WriteSample(data.Sample{
+					Type:  isdata.SampleTypeInputWaterOn,
+					Time:  time.Now(),
+					Value: boolToSampleVal(bool(m)),
+				})
 
 			case isdata.UpdateGpioDigitalIn:
 				state.GpioDigitalIn = bool(m)
@@ -733,4 +754,11 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 	} else {
 		config.Arm = !config.Arm
 	}
+}
+
+func boolToSampleVal(b bool) float64 {
+	if b {
+		return float64(1)
+	}
+	return float64(0)
 }
