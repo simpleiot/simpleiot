@@ -8,9 +8,6 @@ type Sample struct {
 	// Type of sample (voltage, current, key, etc)
 	Type string `json:"type,omitempty"`
 
-	// SubType of a sample (type of a fault sample, etc)
-	SubType string
-
 	// ID of the device that provided the sample
 	ID string `json:"id,omitempty"`
 
@@ -43,14 +40,4 @@ func (s *Sample) Bool() bool {
 		return false
 	}
 	return true
-}
-
-// NewSample creates a new sample at current time
-func NewSample(ID, sampleType string, value float64) Sample {
-	return Sample{
-		ID:    ID,
-		Type:  sampleType,
-		Value: value,
-		Time:  time.Now(),
-	}
 }
