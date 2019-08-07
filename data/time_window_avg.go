@@ -27,21 +27,25 @@ func NewTimeWindowAverager(windowLen time.Duration, callBack func(Sample), sampl
 	}
 }
 
-// NewSample takes a sample, and if the window time has expired, it calls
+// NewSample takes a sample, and if the time window expired, it calls
 // the callback function with the a new sample which is avg of
 // all samples since start time.
 func (twa *TimeWindowAverager) NewSample(s Sample) {
-	// time sample was taken is set to last sample time
+	// avg sample timestamp is set to last sample time
 	if s.Time.After(twa.sampleTime) {
 		twa.sampleTime = s.Time
 	}
 
-	// update statistical values
+	// update statistical values.
 	twa.total += s.Value
 	twa.count++
-	if s.Min < twa.min {
+	// min
+	if twa.min == 0 {
+		twa.min = s.Min
+	} else if s.Min < twa.min {
 		twa.min = s.Min
 	}
+	// max
 	if s.Max > twa.max {
 		twa.max = s.Max
 	}
