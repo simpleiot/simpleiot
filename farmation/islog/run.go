@@ -3,6 +3,8 @@ package islog
 // in logging, we write all timestamps as MS
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"os"
 	"runtime"
@@ -66,9 +68,7 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 
 	logPulse := NewLog("pulse", "timestamp(us),diff")
 	logFlow := NewLog("flow", "timestamp(us),average GPH,min,max")
-	logAmount := NewLog("amount", "timestamp(us),gallons")
 	logPressure := NewLog("pressure", "timestamp(us),average PSI,min,max")
-	logFault := NewLog("faults", "timestamp,fault")
 
 	flowHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
 		db.WriteSample(avg)
@@ -97,72 +97,7 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 				}
 
 			case isdata.ExportData:
-				// Extract faults from database
-				faults, _ := db.ReadFaultHist()
-
-				// Sort the faults by timestamp
-				sort.Sort(faults)
-
-				for _, fault := range faults {
-					s := fault.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
-						fault.Fault.String()
-					err := logFault.Write(s)
-					if err != nil {
-						log.Println("Error writing fault to file: ", err)
-					}
-				}
-
-				err := file.SyncDisks()
-				if err != nil {
-					log.Println("sync error: ", err)
-				}
-
-				logFault.Close()
-
-				// Extract samples from database
-				samples, _ := db.ReadSamples()
-
-				// Divide samples into flow, pressure, and amount samples
-				var flows, pressures, amounts isdata.Samples
-				for _, sample := range samples {
-					switch sample.Type {
-					case isdata.SampleTypeFlowWindowAvg:
-						flows = append(flows, sample)
-					case isdata.SampleTypePressure:
-						pressures = append(pressures, sample)
-					case isdata.SampleTypeAmount:
-						amounts = append(amounts, sample)
-					}
-				}
-
-				// Sort the samples by timestamp
-				sort.Sort(flows)
-				sort.Sort(pressures)
-				sort.Sort(amounts)
-
-				// Write samples to disk
-				writeSamples(flows, logFlow)
-				writeSamples(pressures, logPressure)
-
-				for _, amount := range amounts {
-					s := amount.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
-						strconv.FormatFloat(amount.Value, 'f', 2, 64)
-					err := logAmount.Write(s)
-					if err != nil {
-						log.Println("Error writing sample to file: ", err)
-					}
-				}
-
-				err = file.SyncDisks()
-				if err != nil {
-					log.Println("sync error: ", err)
-				}
-
-				logFlow.Close()
-				logPressure.Close()
-				logAmount.Close()
-
-				out <- isdata.ExportDataFinished{}
+				exportData(db, out)
 
 			case data.Sample:
 				switch m.Type {
@@ -250,15 +185,118 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	}
 }
 
-func writeSamples(samples isdata.Samples, logSample *Log) {
-	for _, sample := range samples {
-		s := sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
-			strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
-			strconv.FormatFloat(sample.Min, 'f', 2, 64) + "," +
-			strconv.FormatFloat(sample.Max, 'f', 2, 64)
-		err := logSample.Write(s)
+func exportData(db *isdb.IsDb, out chan interface{}) {
+	fmt.Println("COLLIN, starting export", time.Now())
+	logFault := NewLog("faults", "timestamp,fault")
+	logFlow := NewLog("flow", "timestamp(us),average GPH,min,max")
+	logAmount := NewLog("amount", "timestamp(us),gallons")
+	logPressure := NewLog("pressure", "timestamp(us),average PSI,min,max")
+	fmt.Println("COLLIN, created logs", time.Now())
+
+	defer logFault.Close()
+	defer logFlow.Close()
+	defer logPressure.Close()
+	defer logAmount.Close()
+	defer file.SyncDisks()
+
+	var errNoUsbDisk = errors.New("No USB disk present")
+
+	// Extract faults from database
+	faults, _ := db.ReadFaultHist()
+	fmt.Println("COLLIN, read faults", time.Now())
+
+	// Sort the faults by timestamp
+	sort.Sort(faults)
+
+	// Write faults to disk
+	for _, fault := range faults {
+		s := fault.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+			fault.Fault.String()
+		err := logFault.Write(s)
 		if err != nil {
-			log.Println("Error writing sample to file: ", err)
+			log.Println("Error writing fault to file: ", err)
+			if err == errNoUsbDisk {
+				out <- isdata.NoDiskPresent{}
+			} else {
+				out <- isdata.ErrWriteDisk{}
+			}
+			return
 		}
 	}
+	fmt.Println("COLLIN, wrote faults", time.Now())
+
+	// Extract samples from database
+	samples, _ := db.ReadSamples()
+	fmt.Println("COLLIN, read samples", time.Now())
+
+	// Divide samples into flow, pressure, and amount samples
+	var flows, pressures, amounts isdata.Samples
+	for _, sample := range samples {
+		switch sample.Type {
+		case isdata.SampleTypeFlowWindowAvg:
+			flows = append(flows, sample)
+		case isdata.SampleTypePressure:
+			pressures = append(pressures, sample)
+		case isdata.SampleTypeAmount:
+			amounts = append(amounts, sample)
+		}
+	}
+	fmt.Println("COLLIN, divided samples", time.Now())
+
+	// Sort the samples by timestamp
+	sort.Sort(flows)
+	sort.Sort(pressures)
+	sort.Sort(amounts)
+	fmt.Println("COLLIN, sorted samples", time.Now())
+
+	// Write samples to disk
+	for _, flow := range flows {
+		s := flow.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+			strconv.FormatFloat(flow.Value, 'f', 2, 64) + "," +
+			strconv.FormatFloat(flow.Min, 'f', 2, 64) + "," +
+			strconv.FormatFloat(flow.Max, 'f', 2, 64)
+		err := logFlow.Write(s)
+		if err != nil {
+			log.Println("Error writing sample to file: ", err)
+			if err == errNoUsbDisk {
+				out <- isdata.NoDiskPresent{}
+			} else {
+				out <- isdata.ErrWriteDisk{}
+			}
+			return
+		}
+	}
+	for _, pressure := range pressures {
+		s := pressure.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+			strconv.FormatFloat(pressure.Value, 'f', 2, 64) + "," +
+			strconv.FormatFloat(pressure.Min, 'f', 2, 64) + "," +
+			strconv.FormatFloat(pressure.Max, 'f', 2, 64)
+		err := logPressure.Write(s)
+		if err != nil {
+			log.Println("Error writing sample to file: ", err)
+			if err == errNoUsbDisk {
+				out <- isdata.NoDiskPresent{}
+			} else {
+				out <- isdata.ErrWriteDisk{}
+			}
+			return
+		}
+	}
+	for _, amount := range amounts {
+		s := amount.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+			strconv.FormatFloat(amount.Value, 'f', 2, 64)
+		err := logAmount.Write(s)
+		if err != nil {
+			log.Println("Error writing sample to file: ", err)
+			if err == errNoUsbDisk {
+				out <- isdata.NoDiskPresent{}
+			} else {
+				out <- isdata.ErrWriteDisk{}
+			}
+			return
+		}
+	}
+	fmt.Println("COLLIN, wrote samples")
+
+	out <- isdata.ExportDataFinished{}
 }

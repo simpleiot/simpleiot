@@ -485,6 +485,14 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.DialogExport.Active = true
 				state.DialogExport.Message = "Exporting data to USB Done\nPlease remove USB disk"
 
+			case isdata.NoDiskPresent:
+				state.DialogExport.Active = true
+				state.DialogExport.Message = "Error: No USB disk present\nPlease insert USB drive\nand try again"
+
+			case isdata.ErrWriteDisk:
+				state.DialogExport.Active = true
+				state.DialogExport.Message = "Error writing to USB disk"
+
 			case isdata.UpdateTankAlertVolume:
 				config.TankAlertVolume = int(m)
 				saveConfig()
