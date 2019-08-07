@@ -9,12 +9,10 @@ const (
 	SampleTypePressure                 = "pressure"
 	SampleTypePressureVRef             = "pressureVRef"
 	SampleTypePressureVSense           = "pressureVSense"
-	SampleTypeFault                    = "fault"
-)
-
-// Define sample sub-types for the system
-const (
-	SampleSubTypeFaultFlow     string = "flowOffTarget"
-	SampleSubTypeFaultPres            = "lowPressure"
-	SampleSubTypeFaultShutdown        = "shutdownFailed"
+	SampleTypeFaultFlowOff             = "faultFlowOffTarget"
+	SampleTypeFaultPresLow             = "faultPressureLow"
+	SampleTypeFaultShutdown            = "faultShutdownFailed"
+	SampleTypeInputInjector            = "inputInjector"
+	SampleTypeInputWaterOn             = "inputWaterOn"
+	SampleTypeInputIrrigator           = "inputIrrigator"
 )

@@ -338,10 +338,9 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
 			sm.setState(disarm)
 			return append(ret, data.Sample{
-				Type:    isdata.SampleTypeFault,
-				SubType: isdata.SampleSubTypeFaultFlow,
-				Time:    time.Now(),
-				Value:   sm.state.FlowRate,
+				Type:  isdata.SampleTypeFaultFlowOff,
+				Time:  time.Now(),
+				Value: sm.state.FlowRate,
 			})
 
 		case sm.config.PressureShutdownEnabled &&
@@ -354,17 +353,15 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			if sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 				time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration/3 {
 				return append(ret, data.Sample{
-					Type:    isdata.SampleTypeFault,
-					SubType: isdata.SampleSubTypeFaultFlow,
-					Time:    time.Now(),
-					Value:   sm.state.FlowRate,
+					Type:  isdata.SampleTypeFaultFlowOff,
+					Time:  time.Now(),
+					Value: sm.state.FlowRate,
 				})
 			}
 			return append(ret, data.Sample{
-				Type:    isdata.SampleTypeFault,
-				SubType: isdata.SampleSubTypeFaultPres,
-				Time:    time.Now(),
-				Value:   sm.state.PressureMin,
+				Type:  isdata.SampleTypeFaultPresLow,
+				Time:  time.Now(),
+				Value: sm.state.PressureMin,
 			})
 		}
 
@@ -423,9 +420,8 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			sm.setState(standby)
 			if sm.state.InputWaterOn == isdata.InputStateOn {
 				return append(ret, isdata.UpdateDialogStateMachineMessage("failed to shutdown"), data.Sample{
-					Type:    isdata.SampleTypeFault,
-					SubType: isdata.SampleSubTypeFaultShutdown,
-					Time:    time.Now(),
+					Type: isdata.SampleTypeFaultShutdown,
+					Time: time.Now(),
 				})
 			}
 

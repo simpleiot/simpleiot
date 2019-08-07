@@ -318,7 +318,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					state.PressureVSense = m.Value
 					saveState()
 
-				case isdata.SampleTypeFault:
+				case isdata.SampleTypeFaultFlowOff,
+					isdata.SampleTypeFaultPresLow,
+					isdata.SampleTypeFaultShutdown:
 					// directly store fault sample
 					db.WriteSample(m)
 

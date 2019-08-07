@@ -68,10 +68,10 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	logFlow := NewLog("flow", "timestamp(us),average GPH,min,max")
 	logPressure := NewLog("pressure", "timestamp(us),average PSI,min,max")
 
-	flowHistoryAvg := data.NewTimeWindowAverager(10*time.Minute, func(avg data.Sample) {
+	flowHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
 		db.WriteSample(avg)
 	}, isdata.SampleTypeFlowWindowAvg)
-	presHistoryAvg := data.NewTimeWindowAverager(10*time.Minute, func(avg data.Sample) {
+	presHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
 		db.WriteSample(avg)
 	}, isdata.SampleTypePressure)
 
@@ -201,7 +201,7 @@ func exportData(db *isdb.IsDb, out chan interface{}) {
 		return
 	}
 
-	logData := NewLog("system_data", "timestamp (us),type,subtype,value,min,max")
+	logData := NewLog("system_data", "timestamp (us),type,value,min,max")
 
 	defer logData.Close()
 	defer file.SyncDisks()
@@ -213,12 +213,48 @@ func exportData(db *isdb.IsDb, out chan interface{}) {
 
 	// Write samples to disk
 	for _, sample := range samples {
-		s := sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
-			sample.Type + "," +
-			sample.SubType + "," +
-			strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
-			strconv.FormatFloat(sample.Min, 'f', 2, 64) + "," +
-			strconv.FormatFloat(sample.Max, 'f', 2, 64)
+		var s string
+		switch sample.Type {
+		case isdata.SampleTypeFlowWindowAvg, isdata.SampleTypePressure:
+			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+				sample.Type + "," +
+				strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
+				strconv.FormatFloat(sample.Min, 'f', 2, 64) + "," +
+				strconv.FormatFloat(sample.Max, 'f', 2, 64)
+
+		case isdata.SampleTypeAmount:
+			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+				sample.Type + "," +
+				strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
+				"-," +
+				"-"
+
+		case isdata.SampleTypeInputInjector, isdata.SampleTypeInputIrrigator, isdata.SampleTypeInputWaterOn:
+			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+				sample.Type + "," +
+				boolToString(sample.Bool()) + "," +
+				"-," +
+				"-"
+
+		case isdata.SampleTypeFaultFlowOff, isdata.SampleTypeFaultPresLow:
+			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+				sample.Type + "," +
+				strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
+				"-," +
+				"-"
+
+		case isdata.SampleTypeFaultShutdown:
+			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+				sample.Type + "," +
+				"-," +
+				"-," +
+				"-"
+
+		default:
+			log.Println("Log: unhandled sample: ", sample.Type)
+
+		}
+
 		err := logData.Write(s)
 		if err != nil {
 			log.Println("Error writing sample to file: ", err)
@@ -232,4 +268,11 @@ func exportData(db *isdb.IsDb, out chan interface{}) {
 	}
 
 	out <- isdata.ExportDataFinished{}
+}
+
+func boolToString(val bool) string {
+	if val {
+		return "on"
+	}
+	return "off"
 }
