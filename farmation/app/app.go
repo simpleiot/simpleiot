@@ -310,17 +310,18 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 						logChan <- m
 					}
 
+				case isdata.SampleTypePressureVRef:
+					state.PressureVRef = m.Value
+					saveState()
+
+				case isdata.SampleTypePressureVSense:
+					state.PressureVSense = m.Value
+					saveState()
+
 				case isdata.SampleTypeFault:
 					// directly store fault sample
 					db.WriteSample(m)
 
-				// Simulator samples
-				case isdata.SampleTypePressureVRef:
-					state.PressureVRef = m.Value
-					saveState()
-				case isdata.SampleTypePressureVSense:
-					state.PressureVSense = m.Value
-					saveState()
 				case isdata.SampleTypeKey:
 					// convert from sample to key
 					key := isdata.KeyFromString(m.ID)
@@ -485,6 +486,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				}
 				state.DialogExport.Active = true
 				state.DialogExport.Message = "Exporting data to USB Disk\nPlease Wait"
+
+			case isdata.ExportAlreadyInProcess:
+				state.DialogExport.Active = true
+				state.DialogExport.Message = "Exporting already in process\nPlease Wait"
 
 			case isdata.ExportDataFinished:
 				state.DialogExport.Active = true

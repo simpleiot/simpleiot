@@ -14,3 +14,6 @@ type NoDiskPresent struct{}
 
 // ErrWriteDisk is used to trigger a dialog if there was an error writing to a USB disk
 type ErrWriteDisk struct{}
+
+// ExportAlreadyInProcess triggers dialog
+type ExportAlreadyInProcess struct{}
