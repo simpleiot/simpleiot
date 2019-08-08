@@ -51,7 +51,7 @@ func (s *DiagLindsayScreen) Render(img draw.Image) {
 	s.menu.AddItemOnOff("accessory 2", s.state.LindsayRegs.Accessory2On(), nil)
 	s.menu.AddItemString("last update", durLastUpdateS)
 
-	Heading(img, "Lindsay Panel information")
+	Heading(img, "Vision Panel Information")
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
 }

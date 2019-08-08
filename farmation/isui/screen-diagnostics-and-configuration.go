@@ -39,7 +39,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemScreen("Inputs", ScreenIDDiagInputs)
 	s.menu.AddItemScreen("Outputs", ScreenIDDiagOutputs)
 	s.menu.AddItemScreen("Flow and Pres", ScreenIDDiagPulsesPres)
-	s.menu.AddItemScreen("Lindsay serial", ScreenIDDiagLindsay)
+	s.menu.AddItemScreen("Vision serial", ScreenIDDiagLindsay)
 
 	// Logging Enable
 	s.menu.AddItemCommand("Data", "export", isdata.ExportData{})
