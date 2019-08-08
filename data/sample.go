@@ -26,9 +26,10 @@ type Sample struct {
 	Duration time.Duration `json:"duration,omitempty"`
 
 	// Tags are additional attributes used to describe the sample
+	// You might add things like friendly name, etc.
 	Tags map[string]string `json:"tags,omitempty"`
 
-	// Attributes are additional values
+	// Attributes are additional numerical values
 	Attributes map[string]float64 `json:"attributes,omitempty"`
 }
 
