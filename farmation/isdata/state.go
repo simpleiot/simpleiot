@@ -242,6 +242,7 @@ func InitState(s *State) (dirty bool) {
 	s.GpioStatusLedGreen = false
 
 	s.DialogArm.Active = false
+	s.DialogExport.Active = false
 	s.DialogArm.Acknowledged = false
 	s.DialogReboot.Active = false
 

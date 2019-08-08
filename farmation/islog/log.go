@@ -9,7 +9,7 @@ import (
 )
 
 func createLogFile(basename string) (*os.File, error) {
-	fileName := basename + "-" + time.Now().Format(tsFilenameFormat) + ".csv"
+	fileName := basename + "_" + time.Now().Format(tsFilenameFormat) + ".csv"
 	fileName = path.Join(usbMountPoint(), fileName)
 	var err error
 	log.Println("Creating: ", fileName)

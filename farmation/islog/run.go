@@ -204,9 +204,9 @@ func exportData(db *isdb.IsDb, out chan interface{}) {
 		return
 	}
 
-	logData := NewLog("system_data", "timestamp (us),type,value,min,max")
+	historyData := NewLog("is-data", "timestamp (us),type,value,min,max")
 
-	defer logData.Close()
+	defer historyData.Close()
 	defer file.SyncDisks()
 
 	var errNoUsbDisk = errors.New("No USB disk present")
@@ -255,10 +255,11 @@ func exportData(db *isdb.IsDb, out chan interface{}) {
 
 		default:
 			log.Println("Log: unhandled sample: ", sample)
+			continue
 
 		}
 
-		err := logData.Write(s)
+		err := historyData.Write(s)
 		if err != nil {
 			log.Println("Error writing sample to file: ", err)
 			if err == errNoUsbDisk {
