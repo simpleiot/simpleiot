@@ -301,11 +301,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					// send data to logging goroutine to store in database
 					logChan <- m
 
-					// log amount data (engineering purposes)
-					if config.LogFlowData {
-						logChan <- m
-					}
-
 				case isdata.SampleTypePressure:
 
 					// update pressure
@@ -317,11 +312,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 					// send data to logging goroutine to store in database
 					logChan <- m
-
-					// log pressure data (engineering purposes)
-					if config.LogPressureData {
-						logChan <- m
-					}
 
 				case isdata.SampleTypePressureVRef:
 					state.PressureVRef = m.Value
