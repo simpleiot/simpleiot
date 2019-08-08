@@ -22,7 +22,7 @@ func RunMigrations(db *IsDb) error {
 				Type: sampType,
 			}
 
-			err := db.WriteSample(s.Time, s)
+			err := db.WriteSample(s)
 			if err != nil {
 				log.Println("Error writing sample to db during migration", err)
 			}

@@ -134,7 +134,7 @@ func (db *IsDb) ReadFaultHist() ([]data.Sample, error) {
 	query := bolthold.Where("Type").In(
 		isdata.SampleTypeFaultFlowOff,
 		isdata.SampleTypeFaultPresLow,
-		isdata.SampleTypeFaultShutdown)
+		isdata.SampleTypeFaultShutdown).Index("Type")
 
 	err := db.store.Find(&faults, query)
 
@@ -165,8 +165,8 @@ func (db *IsDb) WriteState(state *isdata.State) error {
 
 // WriteSample writes a sample to the database
 // Samples are flow, pressure, amount, etc.
-func (db *IsDb) WriteSample(time time.Time, sample data.Sample) error {
-	return db.store.Insert(time, sample)
+func (db *IsDb) WriteSample(sample data.Sample) error {
+	return db.store.Insert(sample.Time, sample)
 }
 
 // WriteFaultHist writes the system fault history to the database

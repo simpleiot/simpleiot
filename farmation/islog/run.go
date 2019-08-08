@@ -71,11 +71,11 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	historyLogPeriod := 10 * time.Minute
 
 	flowHistoryAvg := data.NewTimeWindowAverager(historyLogPeriod, func(avg data.Sample) {
-		db.WriteSample(time.Now(), avg)
+		db.WriteSample(avg)
 	}, isdata.SampleTypeFlowWindowAvg)
 
 	presHistoryAvg := data.NewTimeWindowAverager(historyLogPeriod, func(avg data.Sample) {
-		db.WriteSample(time.Now(), avg)
+		db.WriteSample(avg)
 	}, isdata.SampleTypePressure)
 
 	writeAmountTicker := time.NewTicker(historyLogPeriod)
@@ -181,7 +181,7 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 				}
 			}
 		case <-writeAmountTicker.C:
-			db.WriteSample(time.Now(), data.Sample{
+			db.WriteSample(data.Sample{
 				Type:  isdata.SampleTypeAmount,
 				Time:  amountTime,
 				Value: amount,
@@ -246,7 +246,7 @@ func exportData(db *isdb.IsDb, out chan interface{}) {
 				"-," +
 				"-"
 
-		case isdata.SampleTypeFaultShutdown:
+		case isdata.SampleTypeFaultShutdown, data.SampleTypeStartApp:
 			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
 				sample.Type + "," +
 				"-," +
@@ -256,7 +256,6 @@ func exportData(db *isdb.IsDb, out chan interface{}) {
 		default:
 			log.Println("Log: unhandled sample: ", sample)
 			continue
-
 		}
 
 		err := historyData.Write(s)
