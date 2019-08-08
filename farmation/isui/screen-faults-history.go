@@ -11,11 +11,12 @@ import (
 
 // FaultsHistoryScreen is used to display fault history
 type FaultsHistoryScreen struct {
-	softKeys *SoftKeys
-	menu     *Menu
-	state    *isdata.State
-	config   *isdata.Config
-	db       *isdb.IsDb
+	softKeys   *SoftKeys
+	menu       *Menu
+	state      *isdata.State
+	config     *isdata.Config
+	db         *isdb.IsDb
+	dataLoaded bool
 }
 
 // NewFaultsHistoryScreen initializes and returns a screen
@@ -32,20 +33,33 @@ func NewFaultsHistoryScreen(state *isdata.State, config *isdata.Config, db *isdb
 
 // Render updates the home screen, and provides an image
 func (s *FaultsHistoryScreen) Render(img draw.Image) {
-	Clear(img)
-	s.menu.ResetItems()
 
-	// extract faults from database
-	faults, _ := s.db.ReadFaultHist()
+	// we don't want to load the db every time the db renders (0.5s) as
+	// it may eventually be a long process so only do it once when the
+	// screen is first displayed
+	if !s.dataLoaded {
+		// FIXME, not sure the loading is displaying -- probably
+		// need to use a dialog instead
+		Clear(img)
+		Heading(img, "Loading History ...")
+		s.menu.ResetItems()
+		// extract faults from database
+		faults, _ := s.db.ReadFaultHist()
 
-	// display faults from most recent
-	for i := len(faults) - 1; i >= 0; i-- {
-		fault := faults[i]
-		disp := isdata.SampleTypeToDisp(fault.Type)
-		s.menu.AddItemStringLong(formatTime(fault.Time), disp)
+		// display faults from most recent
+		for i := len(faults) - 1; i >= 0; i-- {
+			fault := faults[i]
+			disp := isdata.SampleTypeToDisp(fault.Type)
+			s.menu.AddItemStringLong(formatTime(fault.Time), disp)
+		}
+
+		s.dataLoaded = true
+
 	}
 
+	Clear(img)
 	Heading(img, "Fault History")
+
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
 }
@@ -54,6 +68,7 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 func (s *FaultsHistoryScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
 	case isdata.KeySK1: // Back
+		s.dataLoaded = false
 		return ScreenIDPrev, nil, true
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)

@@ -254,7 +254,7 @@ func exportData(db *isdb.IsDb, out chan interface{}) {
 				"-"
 
 		default:
-			log.Println("Log: unhandled sample: ", sample.Type)
+			log.Println("Log: unhandled sample: ", sample)
 
 		}
 
