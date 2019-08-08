@@ -258,21 +258,15 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.LcdBltSolid:
 				webChan <- m
 
+			case isdata.Flow:
+				state.FlowPulseCount += int(m.Pulses)
+				// log flow data (engineering purposes)
+				if config.LogFlowData {
+					logChan <- m
+				}
+
 			case data.Sample:
 				switch m.Type {
-				case isdata.SampleTypePulses:
-
-					// update pulse count
-					state.FlowPulseCount += int(m.Value)
-					saveState()
-
-				case isdata.SampleTypeFlowInstantaneous:
-
-					// log flow data (engineering purposes)
-					if config.LogFlowData {
-						logChan <- m
-					}
-
 				case isdata.SampleTypeFlowWindowAvg:
 
 					// update flow rate

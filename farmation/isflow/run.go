@@ -111,35 +111,33 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 		case <-ticker.C:
 			if pulses > 0 {
 				// we need send 4 samples:
-				//  - pulses
-				//  - inst flow over last 1 sec
+				//  - inst flow over last 1 sec (include eng data such as avg,
+				//    amount, pulses, and avg
 				//  - moving window average over last X samples
 				//  - amount
 
-				// Pulse sample
-				pulseSample := data.Sample{
-					Type:  isdata.SampleTypePulses,
-					Time:  lastPulse,
-					Value: float64(pulses),
-				}
-				out <- pulseSample
-
 				// Calculate flow and amount
 				sampleDuration := lastPulse.Sub(lastTick)
-				instFlowSample, amountSample := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
+				flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
+				amountSample := data.Sample{
+					Type:  isdata.SampleTypeAmount,
+					Time:  lastPulse,
+					Value: flow.Amount,
+				}
 
-				// Amount sample
-				out <- instFlowSample
 				out <- amountSample
 
-				flowRateMovingAvg.Add(instFlowSample.Value)
+				flowRateMovingAvg.Add(flow.Rate)
+
+				flow.RateAvg = flowRateMovingAvg.Avg()
+				out <- flow
 
 				// Instantaneous flow sample
 				// this sample is used for logging engineering data
 				avgFlowSample := data.Sample{
-					Time:  instFlowSample.Time,
+					Time:  lastPulse,
 					Type:  isdata.SampleTypeFlowWindowAvg,
-					Value: flowRateMovingAvg.Avg(),
+					Value: flow.RateAvg,
 				}
 
 				avgFlowSample.Min, _ = flowRateMovingAvg.Min()
