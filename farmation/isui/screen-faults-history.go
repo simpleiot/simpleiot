@@ -2,7 +2,6 @@ package isui
 
 import (
 	"image/draw"
-	"sort"
 	"strconv"
 	"time"
 
@@ -39,13 +38,11 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 	// extract faults from database
 	faults, _ := s.db.ReadFaultHist()
 
-	// sort the faults by timestamp
-	sort.Sort(faults)
-
 	// display faults from most recent
 	for i := len(faults) - 1; i >= 0; i-- {
 		fault := faults[i]
-		s.menu.AddItemStringLong(formatTime(fault.Time), fault.Fault.String())
+		disp := isdata.SampleTypeToDisp(fault.Type)
+		s.menu.AddItemStringLong(formatTime(fault.Time), disp)
 	}
 
 	Heading(img, "Fault History")

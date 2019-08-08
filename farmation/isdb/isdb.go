@@ -109,9 +109,13 @@ func (db *IsDb) ReadSamples() ([]data.Sample, error) {
 }
 
 // ReadFaultHist reads the IS system fault history from the database
-func (db *IsDb) ReadFaultHist() (isdata.Faults, error) {
-	var faults isdata.Faults
-	err := db.store.Find(&faults, nil)
+func (db *IsDb) ReadFaultHist() ([]data.Sample, error) {
+	var faults []data.Sample
+	query := bolthold.Where("Type").Eq(isdata.SampleTypeFaultFlowOff).
+		Or(bolthold.Where("Type").Eq(isdata.SampleTypeFaultPresLow)).
+		Or(bolthold.Where("Type").Eq(isdata.SampleTypeFaultShutdown))
+
+	err := db.store.Find(&faults, query)
 
 	if err != nil {
 		if err == bolthold.ErrNotFound {
