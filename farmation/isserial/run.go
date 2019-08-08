@@ -58,8 +58,17 @@ func Run(in, out chan interface{}, configInit isdata.Config) {
 	config := configInit
 	_ = config
 
+	serialTimeout := 30 * time.Second
+	serialTimer := time.NewTimer(serialTimeout)
+
+	if runtime.GOARCH != "arm" {
+		serialTimer.Stop()
+	}
+
+	listChan := make(chan interface{}, 100)
+
 	if runtime.GOARCH == "arm" {
-		go serialListener(out)
+		go serialListener(listChan)
 	}
 
 	for {
@@ -72,6 +81,13 @@ func Run(in, out chan interface{}, configInit isdata.Config) {
 				log.Printf("isserial mux: unhandled message of type %T: %+v\r\n", m, m)
 
 			}
+		case serialData := <-listChan:
+			out <- serialData
+			serialTimer.Reset(serialTimeout)
+
+		case <-serialTimer.C:
+			// timed out waiting for serial data so send 0 values
+			out <- isdata.LindsayStatusRegs{}
 		}
 	}
 }

@@ -248,5 +248,7 @@ func InitState(s *State) (dirty bool) {
 
 	s.OSVersion, _ = version.ReadOSVersion()
 
+	s.LindsayRegs = LindsayStatusRegs{}
+
 	return
 }
