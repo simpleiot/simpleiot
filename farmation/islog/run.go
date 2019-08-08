@@ -68,10 +68,11 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	logFlow := NewLog("flow", "timestamp(us),average GPH,min,max")
 	logPressure := NewLog("pressure", "timestamp(us),average PSI,min,max")
 
-	flowHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
+	flowHistoryAvg := data.NewTimeWindowAverager(10*time.Minute, func(avg data.Sample) {
 		db.WriteSample(avg)
 	}, isdata.SampleTypeFlowWindowAvg)
-	presHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
+
+	presHistoryAvg := data.NewTimeWindowAverager(10*time.Minute, func(avg data.Sample) {
 		db.WriteSample(avg)
 	}, isdata.SampleTypePressure)
 
