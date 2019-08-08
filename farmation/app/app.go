@@ -33,7 +33,15 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	db, err := isdb.NewDb(dataDir)
 
 	if err != nil {
+		// FIXME this error  should display a message on screen to run recovery
+		// process
 		log.Fatal("Error opening db: ", err)
+	}
+
+	err = isdb.RunMigrations(db)
+
+	if err != nil {
+		log.Println("Error running migrations: ", err)
 	}
 
 	log.Println("Data directory: ", dataDir)
@@ -322,7 +330,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					isdata.SampleTypeFaultPresLow,
 					isdata.SampleTypeFaultShutdown:
 					// directly store fault sample
-					db.WriteSample(m)
+					db.WriteSample(time.Now(), m)
 
 				case isdata.SampleTypeKey:
 					// convert from sample to key
@@ -340,7 +348,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					saveState()
 
 					// save to database for system logs
-					db.WriteSample(data.Sample{
+					db.WriteSample(time.Now(), data.Sample{
 						Type:  isdata.SampleTypeInputInjector,
 						Time:  time.Now(),
 						Value: boolToSampleVal(m.Bool()),
@@ -351,7 +359,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					saveState()
 
 					// save to database for system logs
-					db.WriteSample(data.Sample{
+					db.WriteSample(time.Now(), data.Sample{
 						Type:  isdata.SampleTypeInputIrrigator,
 						Time:  time.Now(),
 						Value: boolToSampleVal(m.Bool()),
@@ -362,7 +370,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					saveState()
 
 					// save to database for system logs
-					db.WriteSample(data.Sample{
+					db.WriteSample(time.Now(), data.Sample{
 						Type:  isdata.SampleTypeInputWaterOn,
 						Time:  time.Now(),
 						Value: boolToSampleVal(m.Bool()),
@@ -380,7 +388,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 					if config.Arm != oldArm {
 						// save to database for system logs
-						db.WriteSample(data.Sample{
+						db.WriteSample(time.Now(), data.Sample{
 							Type:  isdata.SampleTypeArm,
 							Time:  time.Now(),
 							Value: boolToSampleVal(config.Arm),
@@ -406,7 +414,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 					if config.Arm != oldArm {
 						// save to database for system logs
-						db.WriteSample(data.Sample{
+						db.WriteSample(time.Now(), data.Sample{
 							Type:  isdata.SampleTypeArm,
 							Time:  time.Now(),
 							Value: boolToSampleVal(config.Arm),
@@ -598,7 +606,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 
 				// save to database for system logs
-				db.WriteSample(data.Sample{
+				db.WriteSample(time.Now(), data.Sample{
 					Type:  isdata.SampleTypeInputInjector,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),
@@ -609,7 +617,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 
 				// save to database for system logs
-				db.WriteSample(data.Sample{
+				db.WriteSample(time.Now(), data.Sample{
 					Type:  isdata.SampleTypeInputIrrigator,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),
@@ -620,7 +628,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 
 				// save to database for system logs
-				db.WriteSample(data.Sample{
+				db.WriteSample(time.Now(), data.Sample{
 					Type:  isdata.SampleTypeInputWaterOn,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),

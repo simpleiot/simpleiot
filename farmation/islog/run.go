@@ -71,11 +71,11 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	historyLogPeriod := 10 * time.Minute
 
 	flowHistoryAvg := data.NewTimeWindowAverager(historyLogPeriod, func(avg data.Sample) {
-		db.WriteSample(avg)
+		db.WriteSample(time.Now(), avg)
 	}, isdata.SampleTypeFlowWindowAvg)
 
 	presHistoryAvg := data.NewTimeWindowAverager(historyLogPeriod, func(avg data.Sample) {
-		db.WriteSample(avg)
+		db.WriteSample(time.Now(), avg)
 	}, isdata.SampleTypePressure)
 
 	writeAmountTicker := time.NewTicker(historyLogPeriod)
@@ -181,7 +181,7 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 				}
 			}
 		case <-writeAmountTicker.C:
-			db.WriteSample(data.Sample{
+			db.WriteSample(time.Now(), data.Sample{
 				Type:  isdata.SampleTypeAmount,
 				Time:  amountTime,
 				Value: amount,
