@@ -134,7 +134,7 @@ func (db *IsDb) ReadFaultHist() ([]data.Sample, error) {
 	query := bolthold.Where("Type").In(
 		isdata.SampleTypeFaultFlowOff,
 		isdata.SampleTypeFaultPresLow,
-		isdata.SampleTypeFaultShutdown).Index("Type")
+		isdata.SampleTypeFaultShutdown).Index("Type").SortBy("Time")
 
 	err := db.store.Find(&faults, query)
 
