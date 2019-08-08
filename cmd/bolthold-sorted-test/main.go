@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"time"
@@ -77,7 +78,7 @@ func main() {
 	db, err := newDb("./temp")
 
 	if err != nil {
-		fmt.Println("failed to open db: ", err)
+		log.Fatal("failed to open db: ", err)
 	}
 
 	writeHandleErr(db, &testData1, time.Now().Add(-2*time.Hour))
