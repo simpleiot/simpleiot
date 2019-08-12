@@ -18,7 +18,7 @@ var menuSpacingValues = 11
 const (
 	MenuItemTypeScreen MenuItemType = iota
 	MenuItemString
-	MenuItemStringLong
+	MenuItemTypeFaultHistory
 	MenuItemStringRight
 	MenuItemTypeInt
 	MenuItemTypeFloat
@@ -150,14 +150,13 @@ func (m *Menu) AddItemString(desc string, value string) {
 	m.updateShowValues()
 }
 
-// AddItemStringLong adds a long string to the menu
-// makes enough room by moving over arrow and lengthening
-// rect
-func (m *Menu) AddItemStringLong(desc string, value string) {
+// AddItemFaultHistory is specialized for this application:
+// Longer value, no box
+func (m *Menu) AddItemFaultHistory(desc string, value string) {
 	m.items = append(m.items, MenuItem{
 		Description: desc,
 		ValueString: value,
-		Type:        MenuItemStringLong,
+		Type:        MenuItemTypeFaultHistory,
 	})
 
 	m.updateShowValues()
@@ -233,7 +232,7 @@ func (m *Menu) Render(img draw.Image) {
 			x = 30
 			Arrow(img, x-8, 15+arrowScreenPos*menuSpacingText)
 		} else {
-			if m.items[0].Type != MenuItemStringLong {
+			if m.items[0].Type != MenuItemTypeFaultHistory {
 				Arrow(img, x+65, 15+arrowScreenPos*menuSpacingValues)
 			} else { // arrow needs moved over for long string
 				Arrow(img, x+35, 15+arrowScreenPos*menuSpacingValues)
@@ -263,7 +262,7 @@ func (m *Menu) Render(img draw.Image) {
 		if m.showValues {
 			// draw values
 			if item.Type != MenuItemTypeAutoOffOn && // auto/off/on needs slightly wider rect
-				item.Type != MenuItemStringLong {
+				item.Type != MenuItemTypeFaultHistory {
 				Rect(img, 76, 10+offsetValues, 45, menuSpacingValues)
 			}
 			switch item.Type {
@@ -275,7 +274,7 @@ func (m *Menu) Render(img draw.Image) {
 				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemString:
 				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
-			case MenuItemStringLong:
+			case MenuItemTypeFaultHistory:
 				DrawTxt(img, item.ValueString, 47, y+offsetValues, tightpixel15.Font)
 			case MenuItemStringRight:
 				DrawTxtRight(img, item.ValueString, 120, y+1+offsetValues, tightpixel15.Font)
@@ -391,7 +390,7 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 		item := m.items[m.arrowPos]
 		switch item.Type {
-		case MenuItemTypeScreen:
+		case MenuItemTypeScreen, MenuItemTypeFaultHistory:
 			return item.Screen, nil, true
 		case MenuItemTypeSelect, MenuItemTypeOnOff, MenuItemTypeAutoOffOn, MenuItemTypeCommand:
 			return ScreenIDNoChange, item.Message, true
