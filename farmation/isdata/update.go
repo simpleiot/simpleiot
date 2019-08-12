@@ -21,20 +21,8 @@ type UpdateResetTotal2 struct{}
 // UpdateResetLifetime is a command to reset the lifetime total
 type UpdateResetLifetime struct{}
 
-// UpdateResetProduct1 ...
-type UpdateResetProduct1 struct{}
-
-// UpdateResetProduct2 ...
-type UpdateResetProduct2 struct{}
-
-// UpdateResetProduct3 ...
-type UpdateResetProduct3 struct{}
-
-// UpdateResetProduct4 ...
-type UpdateResetProduct4 struct{}
-
-// UpdateResetProduct5 ...
-type UpdateResetProduct5 struct{}
+// UpdateResetCurrentProduct ...
+type UpdateResetCurrentProduct struct{}
 
 // UpdateResetFlowPulseCount is a command to reset FlowPulseCount
 type UpdateResetFlowPulseCount struct{}

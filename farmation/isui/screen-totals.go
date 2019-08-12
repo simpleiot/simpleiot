@@ -32,14 +32,13 @@ func NewTotalsScreen(state *isdata.State, config *isdata.Config) *TotalsScreen {
 func (s *TotalsScreen) Render(img draw.Image) {
 	Clear(img)
 
-	Heading(img, "Totals")
+	Heading(img, s.config.FieldConfigs[s.config.CurrentFieldIndex].Description)
 
 	s.menu.ResetItems()
-	s.menu.AddItemFloat(s.config.FieldConfigs[s.config.CurrentFieldIndex].Description,
+	s.menu.AddItemFloat(s.config.ProductConfigs[s.config.CurrentProductIndex].Description,
 		s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total)
 	s.menu.AddItemFloat("Total 1", s.state.Total1)
 	s.menu.AddItemFloat("Total 2", s.state.Total2)
-	s.menu.AddItemFloat(s.config.ProductConfigs[s.config.CurrentProductIndex].Description+" Total", s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total)
 	s.menu.AddItemFloat("Lifetime Total", s.state.LifetimeTotal)
 
 	s.menu.Render(img)
@@ -48,15 +47,10 @@ func (s *TotalsScreen) Render(img draw.Image) {
 
 // define position of various things on total screen
 const (
-	TotalScreenIndexCurrentField int = iota
+	TotalScreenIndexCurrentProduct int = iota
 	TotalScreenIndexTotal1
 	TotalScreenIndexTotal2
-	TotalScreenProduct1
-	TotalScreenProduct2
-	TotalScreenProduct3
-	TotalScreenProduct4
-	TotalScreenProduct5
-	TotalScreenLifetime
+	TotalScreenIndexLifetime
 )
 
 // Key processes keypad input to this screen
@@ -67,22 +61,14 @@ func (s *TotalsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		return ScreenIDPrev, nil, true
 	case isdata.KeySK2: // Reset
 		switch s.menu.GetArrowPos() {
+		case TotalScreenIndexCurrentProduct:
+			return ScreenIDNoChange, isdata.UpdateResetCurrentProduct{}, true
 		case TotalScreenIndexTotal1:
 			return ScreenIDNoChange, isdata.UpdateResetTotal1{}, true
 		case TotalScreenIndexTotal2:
 			return ScreenIDNoChange, isdata.UpdateResetTotal2{}, true
-			//case TotalScreenLifetime:
+			//case TotalScreenIndexLifetime:
 			//	return ScreenIDNoChange, isdata.UpdateResetLifetime{}, true
-		case TotalScreenProduct1:
-			return ScreenIDNoChange, isdata.UpdateResetProduct1{}, true
-		case TotalScreenProduct2:
-			return ScreenIDNoChange, isdata.UpdateResetProduct2{}, true
-		case TotalScreenProduct3:
-			return ScreenIDNoChange, isdata.UpdateResetProduct3{}, true
-		case TotalScreenProduct4:
-			return ScreenIDNoChange, isdata.UpdateResetProduct4{}, true
-		case TotalScreenProduct5:
-			return ScreenIDNoChange, isdata.UpdateResetProduct5{}, true
 		}
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)

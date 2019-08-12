@@ -478,24 +478,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				state.Total2 = 0
 				saveState()
 
-			case isdata.UpdateResetProduct1:
-				state.FieldStates[config.CurrentFieldIndex][0].Total = 0
-				saveState()
-
-			case isdata.UpdateResetProduct2:
-				state.FieldStates[config.CurrentFieldIndex][1].Total = 0
-				saveState()
-
-			case isdata.UpdateResetProduct3:
-				state.FieldStates[config.CurrentFieldIndex][2].Total = 0
-				saveState()
-
-			case isdata.UpdateResetProduct4:
-				state.FieldStates[config.CurrentFieldIndex][3].Total = 0
-				saveState()
-
-			case isdata.UpdateResetProduct5:
-				state.FieldStates[config.CurrentFieldIndex][4].Total = 0
+			case isdata.UpdateResetCurrentProduct:
+				state.FieldStates[config.CurrentFieldIndex][config.CurrentProductIndex].Total = 0
 				saveState()
 
 			case isdata.UpdateResetLifetime:
