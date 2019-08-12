@@ -27,7 +27,7 @@ type FaultsHistoryScreen struct {
 func NewFaultsHistoryScreen(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *FaultsHistoryScreen {
 
 	return &FaultsHistoryScreen{
-		softKeys:          NewSoftKeys("back"),
+		softKeys:          NewSoftKeys("back", "details"),
 		menu:              NewMenu(),
 		faultsHistDetails: NewFaultsHistDetailsScreen(state, config),
 		state:             state,
