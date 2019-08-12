@@ -318,6 +318,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.SampleTypeFaultFlowOff,
 					isdata.SampleTypeFaultPresLow,
 					isdata.SampleTypeFaultShutdown:
+					state.FaultsActive = append(state.FaultsActive, m)
+					saveState()
+
 					// directly store fault sample
 					db.WriteSample(m)
 

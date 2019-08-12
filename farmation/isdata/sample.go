@@ -29,3 +29,17 @@ func SampleTypeToDisp(t string) string {
 		return t
 	}
 }
+
+// SampleTypeToDispVerbose converts a sample type code to a verbose LCD display string
+func SampleTypeToDispVerbose(t string) string {
+	switch t {
+	case SampleTypeFaultFlowOff:
+		return "Shtdwn: flow off target"
+	case SampleTypeFaultPresLow:
+		return "Shtdwn: pressure low"
+	case SampleTypeFaultShutdown:
+		return "Failed to shutdown irrigator"
+	default:
+		return t
+	}
+}

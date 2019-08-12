@@ -41,8 +41,8 @@ func (s *FaultsActiveScreen) Render(img draw.Image) {
 			break
 		}
 
-		msg := s.state.FaultsActive[i].Fault.StringVerbose()
-		if s.state.FaultsActive[i].Fault != isdata.FaultTypeShutdownFailed {
+		msg := isdata.SampleTypeToDispVerbose(s.state.FaultsActive[i].Type)
+		if s.state.FaultsActive[i].Type != isdata.SampleTypeFaultShutdown {
 			msg += ", " + strconv.FormatFloat(s.state.FaultsActive[i].Value, 'f', 0, 64)
 		}
 

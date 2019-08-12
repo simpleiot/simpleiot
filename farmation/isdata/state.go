@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/version"
 )
 
@@ -160,7 +161,7 @@ func BoolToInputState(v bool) InputState {
 }
 
 // FaultsActive defines a slice for FaultsActive
-type FaultsActive []Fault
+type FaultsActive []data.Sample
 
 // ActiveFaults returns true if any fault is active and false otherwise
 func (fa FaultsActive) ActiveFaults() bool {
