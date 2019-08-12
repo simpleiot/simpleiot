@@ -33,8 +33,21 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	db, err := isdb.NewDb(dataDir)
 
 	if err != nil {
+		// FIXME this error  should display a message on screen to run recovery
+		// process
 		log.Fatal("Error opening db: ", err)
 	}
+
+	err = isdb.RunMigrations(db)
+
+	if err != nil {
+		log.Println("Error running migrations: ", err)
+	}
+
+	err = db.WriteSample(data.Sample{
+		Time: time.Now(),
+		Type: data.SampleTypeStartApp,
+	})
 
 	log.Println("Data directory: ", dataDir)
 
@@ -245,21 +258,15 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			case isdata.LcdBltSolid:
 				webChan <- m
 
+			case isdata.Flow:
+				state.FlowPulseCount += int(m.Pulses)
+				// log flow data (engineering purposes)
+				if config.LogFlowData {
+					logChan <- m
+				}
+
 			case data.Sample:
 				switch m.Type {
-				case isdata.SampleTypePulses:
-
-					// update pulse count
-					state.FlowPulseCount += int(m.Value)
-					saveState()
-
-				case isdata.SampleTypeFlowInstantaneous:
-
-					// log flow data (engineering purposes)
-					if config.LogFlowData {
-						logChan <- m
-					}
-
 				case isdata.SampleTypeFlowWindowAvg:
 
 					// update flow rate
@@ -288,11 +295,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					// send data to logging goroutine to store in database
 					logChan <- m
 
-					// log amount data (engineering purposes)
-					if config.LogFlowData {
-						logChan <- m
-					}
-
 				case isdata.SampleTypePressure:
 
 					// update pressure
@@ -304,11 +306,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 					// send data to logging goroutine to store in database
 					logChan <- m
-
-					// log pressure data (engineering purposes)
-					if config.LogPressureData {
-						logChan <- m
-					}
 
 				case isdata.SampleTypePressureVRef:
 					state.PressureVRef = m.Value

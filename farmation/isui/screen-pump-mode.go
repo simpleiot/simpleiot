@@ -32,7 +32,7 @@ func (s *PumpModeScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	// Find which operating mode is selected
-	var off, on, inj, acc1, acc2 bool
+	var off, on, inj, acc1 bool
 	switch s.config.UserPumpMode {
 	case isdata.UserPumpModeOff:
 		off = true
@@ -42,8 +42,6 @@ func (s *PumpModeScreen) Render(img draw.Image) {
 		inj = true
 	case isdata.UserPumpModeAcc1:
 		acc1 = true
-	case isdata.UserPumpModeAcc2:
-		acc2 = true
 	}
 	var mode int
 	switch s.menu.GetArrowPos() {
@@ -63,8 +61,7 @@ func (s *PumpModeScreen) Render(img draw.Image) {
 	s.menu.AddItemSelect("Off", isdata.UpdateUserPumpMode(mode), off)
 	s.menu.AddItemSelect("On", isdata.UpdateUserPumpMode(mode), on)
 	s.menu.AddItemSelect("Injector Command", isdata.UpdateUserPumpMode(mode), inj)
-	s.menu.AddItemSelect("Lindsay Accessory 1", isdata.UpdateUserPumpMode(mode), acc1)
-	s.menu.AddItemSelect("Lindsay Accessory 2", isdata.UpdateUserPumpMode(mode), acc2)
+	s.menu.AddItemSelect("Vision Serial Acc. 1", isdata.UpdateUserPumpMode(mode), acc1)
 
 	// render
 	s.menu.Render(img)

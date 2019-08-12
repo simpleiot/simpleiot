@@ -31,6 +31,20 @@ func (ft FaultType) String() string {
 	return "unknown fault"
 }
 
+// ToSampleType converts a fault type to sample type
+func (ft FaultType) ToSampleType() string {
+	switch ft {
+	case FaultTypeLowPres:
+		return SampleTypeFaultPresLow
+	case FaultTypeFlowOffTarget:
+		return SampleTypeFaultFlowOff
+	case FaultTypeShutdownFailed:
+		return SampleTypeFaultShutdown
+	default:
+		return ""
+	}
+}
+
 // StringVerbose returns a message for the active faults screen
 func (ft FaultType) StringVerbose() string {
 	switch ft {

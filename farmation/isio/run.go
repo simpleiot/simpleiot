@@ -38,9 +38,15 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 
 	gpioReadTicker := time.NewTicker(50 * time.Millisecond) // ticker to read gpio's
 	panelSenseTicker := time.NewTicker(10 * time.Second)
+
+	// output pulse at 10Hz for now
+	pulseOutTicker := time.NewTicker(50 * time.Millisecond)
+	pulseOutState := false
+
 	if runtime.GOARCH != "arm" {
 		gpioReadTicker.Stop()
 		panelSenseTicker.Stop()
+		pulseOutTicker.Stop()
 	} else {
 		readPanelResistor()
 	}
@@ -65,6 +71,10 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			default:
 				log.Printf("Isio Mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
+		case <-pulseOutTicker.C:
+			pulseOutState = !pulseOutState
+			GpioOut(GpioPulseOutput, pulseOutState)
+
 		case <-gpioReadTicker.C: // if gpio ticker fires
 			// if state of gpio changed
 			// send new state out on chan

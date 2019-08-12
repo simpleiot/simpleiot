@@ -3,7 +3,6 @@ package islog
 // in logging, we write all timestamps as MS
 
 import (
-	"errors"
 	"log"
 	"os"
 	"runtime"
@@ -65,17 +64,20 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	var amountTime time.Time
 
 	logPulse := NewLog("pulse", "timestamp(us),diff")
-	logFlow := NewLog("flow", "timestamp(us),average GPH,min,max")
+	logFlow := NewLog("flow", "timestamp(us),amount,rate (GPH),average rate,pulses")
 	logPressure := NewLog("pressure", "timestamp(us),average PSI,min,max")
 
-	flowHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
+	historyLogPeriod := 10 * time.Minute
+
+	flowHistoryAvg := data.NewTimeWindowAverager(historyLogPeriod, func(avg data.Sample) {
 		db.WriteSample(avg)
 	}, isdata.SampleTypeFlowWindowAvg)
-	presHistoryAvg := data.NewTimeWindowAverager(10*time.Second, func(avg data.Sample) {
+
+	presHistoryAvg := data.NewTimeWindowAverager(historyLogPeriod, func(avg data.Sample) {
 		db.WriteSample(avg)
 	}, isdata.SampleTypePressure)
 
-	writeAmountTicker := time.NewTicker(10 * time.Second)
+	writeAmountTicker := time.NewTicker(historyLogPeriod)
 
 	var exporting bool
 
@@ -100,48 +102,49 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 				if exporting {
 					out <- isdata.ExportAlreadyInProcess{}
 				} else {
+					// FIXME move this to a go routine at some point
 					exporting = true
-					exportData(db, out)
+					exportHistoryData(db, out)
 					exporting = false
+				}
+
+			case isdata.Pulse:
+				if !config.LogPulseData {
+					continue
+				}
+
+				tsMs := timeToUs(time.Time(m))
+				diff := tsMs - lastPulseTimestamp
+				if lastPulseTimestamp == 0 {
+					diff = 0
+				}
+				s := strconv.FormatInt(tsMs, 10) + "," + strconv.FormatInt(diff, 10)
+				err := logPulse.Write(s)
+				if err != nil {
+					log.Println("Error writing pulse to file: ", err)
+					out <- isdata.UpdateLogPulseEnable(false)
+				}
+				lastPulseTimestamp = tsMs
+
+			case isdata.Flow:
+				if !config.LogFlowData {
+					continue
+				}
+
+				tsUs := timeToUs(m.Time)
+				s := strconv.FormatInt(tsUs, 10) + "," +
+					strconv.FormatFloat(m.Amount, 'f', 4, 64) + "," +
+					strconv.FormatFloat(m.Rate, 'f', 1, 64) + "," +
+					strconv.FormatFloat(m.RateAvg, 'f', 1, 64) + "," +
+					strconv.Itoa(m.Pulses)
+				err := logFlow.Write(s)
+				if err != nil {
+					log.Println("Error writing flow to file: ", err)
+					out <- isdata.UpdateLogFlowEnable(false)
 				}
 
 			case data.Sample:
 				switch m.Type {
-				case isdata.SampleTypePulses:
-					if !config.LogPulseData {
-						continue
-					}
-
-					tsMs := timeToUs(time.Time(m.Time))
-					diff := tsMs - lastPulseTimestamp
-					if lastPulseTimestamp == 0 {
-						diff = 0
-					}
-					s := strconv.FormatInt(tsMs, 10) + "," + strconv.FormatInt(diff, 10)
-					err := logPulse.Write(s)
-					if err != nil {
-						log.Println("Error writing pulse to file: ", err)
-						out <- isdata.UpdateLogPulseEnable(false)
-					}
-					lastPulseTimestamp = tsMs
-
-				case isdata.SampleTypeFlowInstantaneous:
-					/*if !config.LogFlowData {
-						continue
-					}
-
-					tsUs := timeToUs(m.Time)
-					s := strconv.FormatInt(tsUs, 10) + "," +
-						strconv.FormatFloat(m.Amount, 'f', 4, 64) + "," +
-						strconv.FormatFloat(m.Rate, 'f', 1, 64) + "," +
-						strconv.FormatFloat(m.RateAvg, 'f', 1, 64) + "," +
-						strconv.Itoa(m.Pulses)
-					err := logFlow.Write(s)
-					if err != nil {
-						log.Println("Error writing flow to file: ", err)
-						out <- isdata.UpdateLogFlowEnable(false)
-					}*/
-
 				case isdata.SampleTypeFlowWindowAvg:
 					// run flow sample through averager, which stores to
 					// database every 10 minutes
@@ -160,9 +163,8 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 					tsUs := timeToUs(m.Time)
 					s := strconv.FormatInt(tsUs, 10) + "," +
 						strconv.FormatFloat(m.Value, 'f', 2, 64) + "," +
-						strconv.FormatFloat(m.Attributes["min"], 'f', 2, 64) + "," +
-						strconv.FormatFloat(m.Attributes["max"], 'f', 2, 64) + "," +
-						strconv.FormatFloat(m.Attributes["avg"], 'f', 2, 64)
+						strconv.FormatFloat(m.Min, 'f', 2, 64) + "," +
+						strconv.FormatFloat(m.Max, 'f', 2, 64)
 					err := logPressure.Write(s)
 					if err != nil {
 						log.Println("Error writing pressure to file: ", err)
@@ -177,6 +179,7 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 					}
 				}
 			}
+
 		case <-writeAmountTicker.C:
 			db.WriteSample(data.Sample{
 				Type:  isdata.SampleTypeAmount,
@@ -189,90 +192,4 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 			amountTime = time.Now()
 		}
 	}
-}
-
-func exportData(db *isdb.IsDb, out chan interface{}) {
-
-	// check if disk present before reading from database,
-	// because read takes time
-	usbMountPoint := usbMountPoint()
-	if usbMountPoint == "" {
-		out <- isdata.NoDiskPresent{}
-		return
-	}
-
-	logData := NewLog("system_data", "timestamp (us),type,value,min,max")
-
-	defer logData.Close()
-	defer file.SyncDisks()
-
-	var errNoUsbDisk = errors.New("No USB disk present")
-
-	// Extract samples from database
-	samples, _ := db.ReadSamples()
-
-	// Write samples to disk
-	for _, sample := range samples {
-		var s string
-		switch sample.Type {
-		case isdata.SampleTypeFlowWindowAvg, isdata.SampleTypePressure:
-			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
-				sample.Type + "," +
-				strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
-				strconv.FormatFloat(sample.Min, 'f', 2, 64) + "," +
-				strconv.FormatFloat(sample.Max, 'f', 2, 64)
-
-		case isdata.SampleTypeAmount:
-			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
-				sample.Type + "," +
-				strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
-				"-," +
-				"-"
-
-		case isdata.SampleTypeInputInjector, isdata.SampleTypeInputIrrigator, isdata.SampleTypeInputWaterOn, isdata.SampleTypeArm:
-			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
-				sample.Type + "," +
-				boolToString(sample.Bool()) + "," +
-				"-," +
-				"-"
-
-		case isdata.SampleTypeFaultFlowOff, isdata.SampleTypeFaultPresLow:
-			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
-				sample.Type + "," +
-				strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
-				"-," +
-				"-"
-
-		case isdata.SampleTypeFaultShutdown:
-			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
-				sample.Type + "," +
-				"-," +
-				"-," +
-				"-"
-
-		default:
-			log.Println("Log: unhandled sample: ", sample.Type)
-
-		}
-
-		err := logData.Write(s)
-		if err != nil {
-			log.Println("Error writing sample to file: ", err)
-			if err == errNoUsbDisk {
-				out <- isdata.NoDiskPresent{}
-			} else {
-				out <- isdata.ErrWriteDisk{}
-			}
-			return
-		}
-	}
-
-	out <- isdata.ExportDataFinished{}
-}
-
-func boolToString(val bool) string {
-	if val {
-		return "on"
-	}
-	return "off"
 }

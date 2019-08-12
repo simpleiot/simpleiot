@@ -108,10 +108,35 @@ func (db *IsDb) ReadSamples() ([]data.Sample, error) {
 	return samples, nil
 }
 
-// ReadFaultHist reads the IS system fault history from the database
-func (db *IsDb) ReadFaultHist() (isdata.Faults, error) {
+// ReadFaultHistOld reads legacy fault data from db
+// used only for migrations
+func (db *IsDb) ReadFaultHistOld() (isdata.Faults, error) {
 	var faults isdata.Faults
+
 	err := db.store.Find(&faults, nil)
+
+	if err != nil {
+		if err == bolthold.ErrNotFound {
+			// data is not stored, so simply return nil array and nil error
+			return nil, nil
+		}
+
+		// there was an error reading so return nil array and error
+		return nil, err
+	}
+
+	return faults, nil
+}
+
+// ReadFaultHist reads the IS system fault history from the database
+func (db *IsDb) ReadFaultHist() ([]data.Sample, error) {
+	var faults []data.Sample
+	query := bolthold.Where("Type").In(
+		isdata.SampleTypeFaultFlowOff,
+		isdata.SampleTypeFaultPresLow,
+		isdata.SampleTypeFaultShutdown).Index("Type").SortBy("Time")
+
+	err := db.store.Find(&faults, query)
 
 	if err != nil {
 		if err == bolthold.ErrNotFound {
@@ -141,7 +166,7 @@ func (db *IsDb) WriteState(state *isdata.State) error {
 // WriteSample writes a sample to the database
 // Samples are flow, pressure, amount, etc.
 func (db *IsDb) WriteSample(sample data.Sample) error {
-	return db.store.Insert(time.Now(), sample)
+	return db.store.Insert(sample.Time, sample)
 }
 
 // WriteFaultHist writes the system fault history to the database
