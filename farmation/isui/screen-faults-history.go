@@ -62,9 +62,9 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 				// if fault was more than 24 hrs ago, display date,
 				// else display clock time
 				if time.Since(fault.Time) >= time.Duration(24*time.Hour) {
-					timeDisplay, _ = stringTime(fault.Time)
+					timeDisplay = date(fault.Time, false)
 				} else {
-					_, timeDisplay = stringTime(fault.Time)
+					timeDisplay = clockTime(fault.Time)
 				}
 
 				s.menu.AddItemFaultHistory(timeDisplay, faultDisplay)
@@ -104,20 +104,27 @@ func (s *FaultsHistoryScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) 
 	return ScreenIDNoChange, nil, true
 }
 
-// formats a time into two strings, a date (form yy/mm/dd) and a clock time (form hh:mm:ss)
-func stringTime(t time.Time) (string, string) {
+// formats a time into a date string:
+// yyyy/mm/dd if fullYear is true and yy/mm/dd otherwise
+func date(t time.Time, fullYear bool) string {
 	y, m, d := t.Date()
 	yS, mS, dS := strconv.Itoa(int(y)), strconv.Itoa(int(m)), strconv.Itoa(int(d))
-	// if yyyy, make yy
-	if len(yS) > 2 {
-		yS = yS[2:]
+
+	if !fullYear {
+		// if yyyy, make yy
+		if len(yS) > 2 {
+			yS = yS[2:]
+		}
 	}
 
-	h, min, s := t.Clock()
-	hS, minS, sS := addZero(strconv.Itoa(h)), addZero(strconv.Itoa(min)), addZero(strconv.Itoa(s))
+	return yS + "/" + mS + "/" + dS
+}
 
-	return yS + "/" + mS + "/" + dS,
-		addZero(hS) + ":" + addZero(minS) + ":" + addZero(sS)
+// formats a time into a clock time: hh:mm:ss
+func clockTime(t time.Time) string {
+	h, m, s := t.Clock()
+	hS, mS, sS := addZero(strconv.Itoa(h)), addZero(strconv.Itoa(m)), addZero(strconv.Itoa(s))
+	return addZero(hS) + ":" + addZero(mS) + ":" + addZero(sS)
 }
 
 // add 0 in front of one digit values

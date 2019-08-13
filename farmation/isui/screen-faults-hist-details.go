@@ -3,6 +3,7 @@ package isui
 import (
 	"image/draw"
 	"strconv"
+	"time"
 
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
@@ -33,15 +34,29 @@ func (s *FaultsHistDetailsScreen) Render(img draw.Image) {
 	Heading(img, isdata.SampleTypeToDispVerbose(s.fault.Type))
 
 	// display fault time
+	x := 1
 	font := tightpixel15.Font
 	t := s.fault.Time
-	_, clockTime := stringTime(t)
-	DrawTxt(img, "On "+t.Weekday().String()+", "+t.Month().String()+" "+strconv.Itoa(t.Day())+", "+strconv.Itoa(t.Year()), 4, 15, font)
-	DrawTxt(img, "at "+clockTime, 4, 28, font)
+	clockTime := clockTime(t)
+	date := date(t, true)
+
+	weekDay := t.Weekday()
+	var weekDayStr string
+	switch weekDay {
+	case time.Wednesday:
+		weekDayStr = "Wed."
+	case time.Thursday:
+		weekDayStr = "Thurs."
+	case time.Saturday:
+		weekDayStr = "Sat."
+	default:
+		weekDayStr = weekDay.String()
+	}
+
+	DrawTxt(img, weekDayStr+" "+date+", "+clockTime, x, 15, font)
 
 	// display value that triggered fault
-	x := 4
-	y := 41
+	y := 28
 	switch s.fault.Type {
 	case isdata.SampleTypeFaultFlowOff:
 		DrawTxt(img, "Flow: "+strconv.FormatFloat(s.fault.Value, 'f', 0, 64), x, y, font)
