@@ -32,11 +32,12 @@ func NewTotalsScreen(state *isdata.State, config *isdata.Config) *TotalsScreen {
 func (s *TotalsScreen) Render(img draw.Image) {
 	Clear(img)
 
-	Heading(img, s.config.FieldConfigs[s.config.CurrentFieldIndex].Description)
+	Heading(img, s.config.FieldConfigs[s.config.CurrentFieldIndex].Description+" Totals")
 
 	s.menu.ResetItems()
 	s.menu.AddItemFloat(s.config.ProductConfigs[s.config.CurrentProductIndex].Description,
 		s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total)
+	s.menu.AddItemBreak("All Totals")
 	s.menu.AddItemFloat("Total 1", s.state.Total1)
 	s.menu.AddItemFloat("Total 2", s.state.Total2)
 	s.menu.AddItemFloat("Lifetime Total", s.state.LifetimeTotal)

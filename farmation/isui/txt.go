@@ -72,3 +72,11 @@ func Heading(img draw.Image, txt string) {
 	width := font.MeasureString(txt)
 	Line(img, 64-width/2-2, 9, 64-width/2+width, 9)
 }
+
+// MenuBreak draws a title with a line under it
+func MenuBreak(img draw.Image, txt string, y int) {
+	font := tightpixel15.Font
+	DrawTxtCentered(img, txt, 64, y, font)
+	width := font.MeasureString(txt)
+	Line(img, 64-width/2-2, y+9, 64-width/2+width, y+9)
+}

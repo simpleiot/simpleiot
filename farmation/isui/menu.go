@@ -26,6 +26,7 @@ const (
 	MenuItemTypeAutoOffOn
 	MenuItemTypeSelect
 	MenuItemTypeCommand
+	MenuItemTypeBreak
 )
 
 // MenuItem describes a field that is displayed
@@ -58,7 +59,7 @@ func NewMenu() *Menu {
 
 func (m *Menu) updateShowValues() {
 	for _, item := range m.items {
-		if item.Type != MenuItemTypeScreen && item.Type != MenuItemTypeSelect {
+		if item.Type != MenuItemTypeScreen && item.Type != MenuItemTypeSelect && item.Type != MenuItemTypeBreak {
 			m.showValues = true
 			return
 		}
@@ -208,6 +209,16 @@ func (m *Menu) AddItemCommand(desc, command string, msg interface{}) {
 	m.updateShowValues()
 }
 
+// AddItemBreak adds a menu break item
+func (m *Menu) AddItemBreak(desc string) {
+	m.items = append(m.items, MenuItem{
+		Description: desc,
+		Type:        MenuItemTypeBreak,
+	})
+
+	m.updateShowValues()
+}
+
 // Render is used to draw a list of params, handles scrolling, etc.
 func (m *Menu) Render(img draw.Image) {
 	count := len(m.items)
@@ -232,10 +243,12 @@ func (m *Menu) Render(img draw.Image) {
 			x = 30
 			Arrow(img, x-8, 15+arrowScreenPos*menuSpacingText)
 		} else {
-			if m.items[0].Type != MenuItemTypeFaultHistory {
-				Arrow(img, x+65, 15+arrowScreenPos*menuSpacingValues)
-			} else { // arrow needs moved over for long string
+			switch m.items[m.arrowPos].Type {
+			case MenuItemTypeFaultHistory:
 				Arrow(img, x+35, 15+arrowScreenPos*menuSpacingValues)
+			case MenuItemTypeBreak:
+			default:
+				Arrow(img, x+65, 15+arrowScreenPos*menuSpacingValues)
 			}
 		}
 	}
@@ -246,15 +259,15 @@ func (m *Menu) Render(img draw.Image) {
 		item := m.items[i]
 		offsetText := screenIndex * menuSpacingText
 		offsetValues := screenIndex * menuSpacingValues
-		DrawTxt(img, item.Description, x, y+offsetText, tightpixel15.Font)
+		if item.Type != MenuItemTypeBreak {
+			DrawTxt(img, item.Description, x, y+offsetText, tightpixel15.Font)
+		}
 
 		if !m.showValues {
 			switch item.Type {
 			case MenuItemTypeSelect:
 				if item.Selected {
-
 					DrawTxtRevLarge(img, item.Description, x, y+offsetText, tightpixel15.Font)
-
 				}
 			}
 		}
@@ -262,7 +275,8 @@ func (m *Menu) Render(img draw.Image) {
 		if m.showValues {
 			// draw values
 			if item.Type != MenuItemTypeAutoOffOn && // auto/off/on needs slightly wider rect
-				item.Type != MenuItemTypeFaultHistory {
+				item.Type != MenuItemTypeFaultHistory &&
+				item.Type != MenuItemTypeBreak {
 				Rect(img, 76, 10+offsetValues, 45, menuSpacingValues)
 			}
 			switch item.Type {
@@ -308,6 +322,8 @@ func (m *Menu) Render(img draw.Image) {
 				case 2:
 					DrawTxtRev(img, "on", 78+tightpixel15.Font.MeasureString("autooff")+4, yShift+offsetValues, tightpixel15.Font)
 				}
+			case MenuItemTypeBreak:
+				MenuBreak(img, item.Description, y+offsetValues)
 			}
 		}
 	}
@@ -372,15 +388,19 @@ func (m *Menu) ResetArrowPos() {
 func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
 	case isdata.KeyUp:
-		m.arrowPos--
-		if m.arrowPos < 0 {
-			m.arrowPos = 0
+		m.arrowUp()
+		item := m.items[m.arrowPos]
+		// skip past menu break positions
+		if item.Type == MenuItemTypeBreak {
+			m.arrowUp()
 		}
 	case isdata.KeyDown:
 		if len(m.items) > 0 {
-			m.arrowPos++
-			if m.arrowPos >= len(m.items) {
-				m.arrowPos = len(m.items) - 1
+			m.arrowDown()
+			item := m.items[m.arrowPos]
+			// skip past menu break positions
+			if item.Type == MenuItemTypeBreak {
+				m.arrowDown()
 			}
 		}
 	case isdata.KeyEnter:
@@ -398,4 +418,18 @@ func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	}
 
 	return ScreenIDNoChange, nil, true
+}
+
+func (m *Menu) arrowUp() {
+	m.arrowPos--
+	if m.arrowPos < 0 {
+		m.arrowPos = 0
+	}
+}
+
+func (m *Menu) arrowDown() {
+	m.arrowPos++
+	if m.arrowPos >= len(m.items) {
+		m.arrowPos = len(m.items) - 1
+	}
 }
