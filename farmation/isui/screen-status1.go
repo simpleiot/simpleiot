@@ -23,7 +23,7 @@ func NewStatusScreen1(state *isdata.State, config *isdata.Config) *StatusScreen1
 	softKeys.SetLabel(0, "home")
 
 	return &StatusScreen1{
-		softKeys: NewSoftKeys("home"),
+		softKeys: NewSoftKeys("home", "tank"),
 		icons:    NewIcons(true, false, true),
 		state:    state,
 		config:   config,
@@ -35,8 +35,6 @@ func (s *StatusScreen1) Render(img draw.Image) {
 	Clear(img)
 	DrawTxt(img, strconv.Itoa(int(s.state.CurrentTankVolume)), 4, 7, agencyfbbold40.Font)
 	DrawTxt(img, "GALLONS", 4, 38, tightpixel15.Font)
-
-	s.softKeys.Render(img, 0, 54)
 
 	// Tank level graphic
 	x := 79
@@ -83,8 +81,9 @@ func (s *StatusScreen1) Render(img draw.Image) {
 	s.icons.SetOnOff("arm", s.config.Arm)
 	s.icons.SetOnOff("pump", s.state.GpioRelayInjectorEn)
 	s.icons.SetOnOff("shutdown", s.state.GpioRelayShutdownEn)
-
 	s.icons.Render(img)
+
+	s.softKeys.Render(img, 0, 54)
 }
 
 // Key processes keypad input to this screen
@@ -94,6 +93,8 @@ func (s *StatusScreen1) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		return ScreenIDHome, nil, true
 	case isdata.KeyRight:
 		return ScreenIDStatus2, nil, true
+	case isdata.KeySK2:
+		return ScreenIDTankMenu1, nil, true
 	}
 
 	return ScreenIDNoChange, nil, true
