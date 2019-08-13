@@ -330,8 +330,8 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		alarmRecognizeDuration := time.Duration(sm.config.AlarmRecognizeSec) * time.Second
 
-		// the following switch statement is used only to determine next case. Keep all other logic
-		// above.
+		// The following switch statement is used only to determine next case.
+		// Keep all other logic above.
 		switch {
 		case sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 			sm.RelayInjector &&
@@ -341,6 +341,11 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				Type:  isdata.SampleTypeFaultFlowOff,
 				Time:  time.Now(),
 				Value: sm.state.FlowRate,
+				Attributes: map[string]float64{
+					"inputInjector":  float64(sm.state.InputInjector),
+					"inputWaterOn":   float64(sm.state.InputWaterOn),
+					"inputIrrigator": float64(sm.state.InputIrrigator),
+				},
 			})
 
 		case sm.config.PressureShutdownEnabled &&
@@ -356,12 +361,22 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 					Type:  isdata.SampleTypeFaultFlowOff,
 					Time:  time.Now(),
 					Value: sm.state.FlowRate,
+					Attributes: map[string]float64{
+						"inputInjector":  float64(sm.state.InputInjector),
+						"inputWaterOn":   float64(sm.state.InputWaterOn),
+						"inputIrrigator": float64(sm.state.InputIrrigator),
+					},
 				})
 			}
 			return append(ret, data.Sample{
 				Type:  isdata.SampleTypeFaultPresLow,
 				Time:  time.Now(),
 				Value: sm.state.PressureMin,
+				Attributes: map[string]float64{
+					"inputInjector":  float64(sm.state.InputInjector),
+					"inputWaterOn":   float64(sm.state.InputWaterOn),
+					"inputIrrigator": float64(sm.state.InputIrrigator),
+				},
 			})
 		}
 
@@ -422,6 +437,11 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				return append(ret, isdata.UpdateDialogStateMachineMessage("failed to shutdown"), data.Sample{
 					Type: isdata.SampleTypeFaultShutdown,
 					Time: time.Now(),
+					Attributes: map[string]float64{
+						"inputInjector":  float64(sm.state.InputInjector),
+						"inputWaterOn":   float64(sm.state.InputWaterOn),
+						"inputIrrigator": float64(sm.state.InputIrrigator),
+					},
 				})
 			}
 
