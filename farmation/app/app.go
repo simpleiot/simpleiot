@@ -216,6 +216,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		}
 	}
 
+	// Create an averager to calculate average flow since armed
+	// Average is reset every time the system is armed
+	flowAverager := data.NewSampleAverager(isdata.SampleTypeFlowWindowAvg)
+
 	for {
 		// max sure queues between subsystems are not full
 		for _, c := range channels {
@@ -269,8 +273,11 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				switch m.Type {
 				case isdata.SampleTypeFlowWindowAvg:
 
+					flowAverager.AddSample(m)
+
 					// update flow rate
 					state.FlowRate = m.Value
+					state.AvgFlowRate = flowAverager.GetAverage().Value
 					saveState()
 
 					// send data to logging goroutine to store in database
@@ -375,6 +382,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.SampleTypeSimArm:
 					oldArm := config.Arm
 					toggleArmOrOpenDialog(&config, &state)
+					if config.Arm {
+						flowAverager.ResetAverage()
+					}
 					saveConfig()
 					saveState()
 
@@ -401,6 +411,9 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				case isdata.KeyArm:
 					oldArm := config.Arm
 					toggleArmOrOpenDialog(&config, &state)
+					if config.Arm {
+						flowAverager.ResetAverage()
+					}
 					saveConfig()
 					saveState()
 

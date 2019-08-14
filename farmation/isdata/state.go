@@ -14,7 +14,10 @@ type State struct {
 	SystemType SystemType `json:"systemType"`
 
 	// FlowRate defines the current flow rate of the system in GPH
-	FlowRate          float64      `json:"flowRate"`
+	FlowRate float64 `json:"flowRate"`
+	// AvgFlowRate defines the average flow rate of the system since it
+	// was last armed
+	AvgFlowRate       float64      `json:"avgFlowRate"`
 	FlowRateMin       float64      `json:"flowRateMin"`
 	FlowRateMax       float64      `json:"flowRateMax"`
 	BatchApplied      float64      `json:"batchApplied"`
@@ -73,21 +76,21 @@ type State struct {
 
 	DialogArm Dialog `json:"dialogArm"`
 
-	DialogArmInputs Dialog
+	DialogArmInputs Dialog `json:"dialogArmInputs"`
 
 	DialogArmReq Dialog `json:"dialogArmReq"`
 
 	DialogApp Dialog `json:"dialogApp"`
 
-	DialogUpdate Dialog
+	DialogUpdate Dialog `json:"dialogUpdate"`
 
-	DialogExport Dialog
+	DialogExport Dialog `json:"dialogExport"`
 
-	DialogReboot Dialog
+	DialogReboot Dialog `json:"dialogReboot"`
 
-	DialogInvalidPanel Dialog
+	DialogInvalidPanel Dialog `json:"dialogInvalidPanel"`
 
-	OSVersion semver.Version
+	OSVersion semver.Version `json:"osVersion"`
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config
