@@ -23,6 +23,8 @@ const (
 	LindsayStateHoldLastTower                    = 0x13
 	LindsayStateRunningForward                   = 0x14
 	LindsayStateRunningReverse                   = 0x15
+	LindsayStateRunningLowPres                   = 0x17
+	LindsayStateSoftBarrierWarn                  = 0x1E
 	LindsayStatePositionError                    = 0x21
 	LindsayStateRunningNoPos                     = 0x29
 )
@@ -51,6 +53,10 @@ func (ls LindsayState) String() (ret string) {
 		ret = "Run For." //Running Forward
 	case LindsayStateRunningReverse:
 		ret = "Run Rev." //Running Reverse
+	case LindsayStateRunningLowPres:
+		ret = "Run Low Pres." // Running Low Pressure
+	case LindsayStateSoftBarrierWarn:
+		ret = "Soft Barrier Warn" // Soft Barrier Warning
 	case LindsayStatePositionError:
 		ret = "Pos. Err" //Position Error
 	case LindsayStateRunningNoPos:
@@ -133,9 +139,11 @@ func (lsr *LindsayStatusRegs) AutoRestart() bool {
 
 // IrrigatorRunning indicates of irrigator is running
 func (lsr *LindsayStatusRegs) IrrigatorRunning() bool {
-	return (lsr.State == LindsayStateRunningForward ||
+	return (lsr.State == LindsayStateHoldLastTower ||
+		lsr.State == LindsayStateRunningForward ||
 		lsr.State == LindsayStateRunningReverse ||
-		lsr.State == LindsayStateHoldLastTower) &&
+		lsr.State == LindsayStateRunningLowPres ||
+		lsr.State == LindsayStateSoftBarrierWarn) &&
 		(lsr.Forward() || lsr.Reverse())
 }
 
