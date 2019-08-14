@@ -1,10 +1,13 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
+	"io"
 	"strconv"
 	"time"
 
+	"github.com/pbnjay/pixfont"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -64,5 +67,42 @@ func (s *FaultsHistDetailsScreen) Render(img draw.Image) {
 		DrawTxt(img, "Pressure: "+strconv.FormatFloat(s.fault.Value, 'f', 0, 64), x, y, font)
 	}
 
+	// display input states as icon "-" On, Off, NA
+	x = 20
+	y = 43
+	DrawTxtCentered(img, "-", x, y, font)
+	DrawTxtCentered(img, "-", 3*x+2, y, font)
+	DrawTxtCentered(img, "-", 5*x+6, y, font)
+	y = 41
+	drawAndErr(img, "pump.png", x-17, y, font)
+	drawAndErr(img, "water-on.png", 3*x-12, y-1, font)
+	drawAndErr(img, "irrigator.png", 5*x-13, y+1, font)
+	x += 5
+	y = 43
+	s.drawInState(img, "inputInjector", x, y, font)
+	x += 42
+	s.drawInState(img, "inputWaterOn", x, y, font)
+	x += 45
+	s.drawInState(img, "inputIrrigator", x, y, font)
+
 	s.softKeys.Render(img, 0, 54)
+}
+
+func drawAndErr(img draw.Image, file string, x, y int, font *pixfont.PixFont) {
+	err := DrawPng(img, file, x, y)
+	if err != nil && err != io.ErrUnexpectedEOF {
+		s := fmt.Sprintf("error drawing %s: %s", file, err)
+		fmt.Println(s)
+	}
+}
+
+func (s *FaultsHistDetailsScreen) drawInState(img draw.Image, key string, x, y int, font *pixfont.PixFont) {
+	switch s.fault.Attributes[key] {
+	case float64(isdata.InputStateNA):
+		DrawTxt(img, "NA", x, y, font)
+	case float64(isdata.InputStateOff):
+		DrawTxt(img, "Off", x, y, font)
+	case float64(isdata.InputStateOn):
+		DrawTxt(img, "On", x, y, font)
+	}
 }
