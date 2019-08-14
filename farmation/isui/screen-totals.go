@@ -49,6 +49,7 @@ func (s *TotalsScreen) Render(img draw.Image) {
 // define position of various things on total screen
 const (
 	TotalScreenIndexCurrentProduct int = iota
+	TotalScreenIndexMenuBreak
 	TotalScreenIndexTotal1
 	TotalScreenIndexTotal2
 	TotalScreenIndexLifetime
