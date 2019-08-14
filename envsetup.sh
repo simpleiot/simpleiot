@@ -1,6 +1,6 @@
 RECOMMENDED_ELM_VERSION=0.19.0
 
-app_check_elm() {
+siot_check_elm() {
   if ! elm --version >/dev/null 2>&1; then
     echo "Please install elm >= 0.19"
     echo "https://guide.elm-lang.org/install.html"
@@ -16,7 +16,7 @@ app_check_elm() {
   return 0
 }
 
-app_check_gopath_bin() {
+siot_check_gopath_bin() {
   if [ -z "$GOPATH" ]; then
     GOPATH=~/go
   fi
@@ -32,21 +32,21 @@ app_check_gopath_bin() {
   return 0
 }
 
-app_setup() {
+siot_setup() {
   go mod download
   go install github.com/benbjohnson/genesis/... || return 1
-  app_check_elm || return 1
-  app_check_gopath_bin || return 1
+  siot_check_elm || return 1
+  siot_check_gopath_bin || return 1
   return 0
 }
 
-app_build_frontend() {
+siot_build_frontend() {
   (cd frontend && elm make src/Main.elm --output=public/elm.js) || return 1
   (cd frontend && cp index.html public/) || return 1
   return 0
 }
 
-app_build_assets() {
+siot_build_assets() {
   mkdir -p assets/frontend || return 1
   genesis -C frontend/public -pkg frontend \
     index.html \
@@ -56,32 +56,36 @@ app_build_assets() {
   return 0
 }
 
-app_build_dependencies() {
-  app_build_frontend || return 1
-  app_build_assets || return 1
+siot_build_dependencies() {
+  siot_build_frontend || return 1
+  siot_build_assets || return 1
   return 0
 }
 
-app_build() {
-  app_build_dependencies || return 1
+siot_build() {
+  siot_build_dependencies || return 1
   go build -o siot cmd/siot/main.go || return 1
   return 0
 }
 
-app_deploy() {
-  app_build_dependencies || return 1
+siot_deploy() {
+  siot_build_dependencies || return 1
   gcloud app deploy cmd/portal || return 1
   return 0
 }
 
-app_run() {
-  app_build_dependencies || return 1
+siot_run() {
+  siot_build_dependencies || return 1
   go run cmd/siot/main.go || return 1
   return 0
 }
 
-app_build_docs() {
+siot_build_docs() {
   snowboard lint docs/api.apib
   snowboard html docs/api.apib -o docs/api.html
   #aglio -i docs/api.apib --theme-template triple -o docs/api.html
+}
+
+siot_test() {
+  go test ./...
 }
