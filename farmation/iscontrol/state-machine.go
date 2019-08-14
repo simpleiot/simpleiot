@@ -434,7 +434,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if !sm.state.DialogStateMachine.Active {
 			sm.setState(standby)
 			if sm.state.InputWaterOn == isdata.InputStateOn {
-				return append(ret, isdata.UpdateDialogStateMachineMessage("failed to shutdown"), data.Sample{
+				return append(ret, isdata.UpdateDialogStateMachineMessage("Failed to shutdown irrigator"), data.Sample{
 					Type: isdata.SampleTypeFaultShutdown,
 					Time: time.Now(),
 					Attributes: map[string]float64{
@@ -445,7 +445,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				})
 			}
 
-			return append(ret, isdata.UpdateDialogStateMachineMessage("system shut down"))
+			return append(ret, isdata.UpdateDialogStateMachineMessage("System shut down irrigator"))
 		}
 	}
 
