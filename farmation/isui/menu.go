@@ -245,7 +245,7 @@ func (m *Menu) Render(img draw.Image) {
 		} else {
 			switch m.items[m.arrowPos].Type {
 			case MenuItemTypeFaultHistory:
-				Arrow(img, x+35, 15+arrowScreenPos*menuSpacingValues)
+				Arrow(img, x+37, 15+arrowScreenPos*menuSpacingValues)
 			case MenuItemTypeBreak:
 			default:
 				Arrow(img, x+65, 15+arrowScreenPos*menuSpacingValues)
@@ -289,7 +289,7 @@ func (m *Menu) Render(img draw.Image) {
 			case MenuItemString:
 				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeFaultHistory:
-				DrawTxt(img, item.ValueString, 47, y+offsetValues, tightpixel15.Font)
+				DrawTxt(img, item.ValueString, 49, y+offsetValues, tightpixel15.Font)
 			case MenuItemStringRight:
 				DrawTxtRight(img, item.ValueString, 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeInt: // we now have Value (float) and ValueInt
