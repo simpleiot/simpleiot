@@ -91,6 +91,9 @@ type State struct {
 
 	DialogInvalidPanel Dialog `json:"dialogInvalidPanel"`
 
+	// for Vision panel
+	DialogUnknownVisionState Dialog `json:"dialogUnknownVisionState"`
+
 	OSVersion semver.Version `json:"osVersion"`
 }
 

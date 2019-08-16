@@ -133,6 +133,10 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		if key == isdata.KeySK1 {
 			return ScreenIDNoChange, isdata.UpdateDialogInvalidPanelClose{}, true
 		}
+	case s.state.DialogUnknownVisionState.Active:
+		if key == isdata.KeySK1 {
+			return ScreenIDNoChange, isdata.UpdateDialogUnknownVisionStateClose{}, true
+		}
 	case s.state.DialogExport.Active:
 		if key == isdata.KeySK1 {
 			return ScreenIDNoChange, isdata.UpdateDialogExportClose{}, true

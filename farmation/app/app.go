@@ -720,6 +720,12 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				saveState()
 
 			case isdata.LindsayStatusRegs:
+				// if the Vision panel state is unknown, alert user
+				if m.State.String() == "Unknown" {
+					state.DialogUnknownVisionState.Message = "Vision panel state is\nunknown. Inputs shutting off."
+					state.DialogUnknownVisionState.Active = true
+				}
+
 				state.LindsayRegs = m
 				state.LindsayLastUpdate = time.Now()
 				saveState()
@@ -769,6 +775,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdateDialogInvalidPanelClose:
 				state.DialogInvalidPanel.Active = false
+				saveState()
+
+			case isdata.UpdateDialogUnknownVisionStateClose:
+				state.DialogUnknownVisionState.Active = false
 				saveState()
 
 			case isdata.PanelDefinition:
