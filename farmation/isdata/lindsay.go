@@ -31,7 +31,7 @@ const (
 
 func (ls LindsayState) String() (ret string) {
 	switch ls {
-	case LindsayStateStopped:
+	/*case LindsayStateStopped:
 		ret = "Stopped"
 	case LindsayStateFault:
 		ret = "Sfty Fault" //Safety Fault
@@ -60,7 +60,7 @@ func (ls LindsayState) String() (ret string) {
 	case LindsayStatePositionError:
 		ret = "Pos. Err" //Position Error
 	case LindsayStateRunningNoPos:
-		ret = "Run No Pos." //Running No Position
+		ret = "Run No Pos." //Running No Position*/
 	default:
 		ret = "Unknown"
 	}
