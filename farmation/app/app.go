@@ -384,6 +384,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					toggleArmOrOpenDialog(&config, &state)
 					if config.Arm {
 						flowAverager.ResetAverage()
+						state.AvgFlowRateStart = time.Now()
 					}
 					saveConfig()
 					saveState()
@@ -413,6 +414,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					toggleArmOrOpenDialog(&config, &state)
 					if config.Arm {
 						flowAverager.ResetAverage()
+						state.AvgFlowRateStart = time.Now()
 					}
 					saveConfig()
 					saveState()

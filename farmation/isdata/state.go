@@ -18,6 +18,7 @@ type State struct {
 	// AvgFlowRate defines the average flow rate of the system since it
 	// was last armed
 	AvgFlowRate       float64      `json:"avgFlowRate"`
+	AvgFlowRateStart  time.Time    `json:"avgFlowRateStart"`
 	FlowRateMin       float64      `json:"flowRateMin"`
 	FlowRateMax       float64      `json:"flowRateMax"`
 	BatchApplied      float64      `json:"batchApplied"`
