@@ -173,3 +173,7 @@ type UpdateDialogExportClose struct{}
 
 // UpdateDialogInvalidPanelClose is used to close dialog
 type UpdateDialogInvalidPanelClose struct{}
+
+// UpdateDialogUnknownVisionStateClose is used to close the dialog that alerts users of
+// an unknown state for the Vision panel
+type UpdateDialogUnknownVisionStateClose struct{}
