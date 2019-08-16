@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/pbnjay/pixfont"
 	"github.com/simpleiot/simpleiot/farmation/fonts/agencyfbbold20"
 	"github.com/simpleiot/simpleiot/farmation/fonts/agencyfbbold40"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -35,8 +36,9 @@ func NewHomeScreen(state *isdata.State, config *isdata.Config) *HomeScreen {
 // Render updates the home screen, and provides an image
 func (s *HomeScreen) Render(img draw.Image) {
 	Clear(img)
-	rateS := strconv.FormatFloat(s.state.FlowRate, 'f', 1, 64)
 	highBound, lowBound := s.config.CalculateFlowWindow()
+	x := 31
+	y := 15
 
 	// Flow rate
 	if s.config.Arm &&
@@ -47,16 +49,17 @@ func (s *HomeScreen) Render(img draw.Image) {
 			s.flowOn = !s.flowOn
 		}
 		if s.flowOn {
-			DrawTxt(img, rateS, 22, 15, agencyfbbold40.Font)
+			s.drawFlow(img, x, y, agencyfbbold40.Font)
 		}
 	} else {
-		DrawTxt(img, rateS, 22, 15, agencyfbbold40.Font)
+		s.drawFlow(img, x, y, agencyfbbold40.Font)
 	}
 
 	// Flow window
+	x = 80
 	if s.config.OperatingMode != isdata.ISOperatingModeMonitor && s.config.Arm {
-		DrawTxt(img, strconv.FormatFloat(highBound, 'f', 1, 64), 84, 14, agencyfbbold20.Font)
-		DrawTxt(img, strconv.FormatFloat(lowBound, 'f', 1, 64), 84, 32, agencyfbbold20.Font)
+		DrawTxt(img, strconv.FormatFloat(highBound, 'f', 1, 64), x, 14, agencyfbbold20.Font)
+		DrawTxt(img, strconv.FormatFloat(lowBound, 'f', 1, 64), x, 32, agencyfbbold20.Font)
 	}
 
 	s.softKeys.SetBlinking(3, s.state.FaultsActive.ActiveFaults())
@@ -96,4 +99,14 @@ func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		return ScreenIDFaultsActive, nil, true
 	}
 	return ScreenIDNoChange, nil, true
+}
+
+// if rate is < 10, draw with 1 floating point, otherwise with none
+func (s *HomeScreen) drawFlow(img draw.Image, x, y int, font *pixfont.PixFont) {
+	rate := s.state.FlowRate
+	if rate < 10 {
+		DrawTxt(img, strconv.FormatFloat(rate, 'f', 1, 64), x, y, font)
+	} else {
+		DrawTxt(img, strconv.FormatFloat(rate, 'f', 0, 64), x, y, font)
+	}
 }
