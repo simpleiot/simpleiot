@@ -21,6 +21,7 @@ type TimeWindowAverager struct {
 // NewTimeWindowAverager initializes and returns an averager
 func NewTimeWindowAverager(windowLen time.Duration, callBack func(Sample), sampleType string) *TimeWindowAverager {
 	return &TimeWindowAverager{
+		start:      time.Now(),
 		windowLen:  windowLen,
 		callBack:   callBack,
 		sampleType: sampleType,
