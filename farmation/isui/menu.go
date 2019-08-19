@@ -11,9 +11,6 @@ import (
 // MenuItemType descripts the type of a field
 type MenuItemType int
 
-var menuSpacingText = 10
-var menuSpacingValues = 11
-
 // List of possible Param Types
 const (
 	MenuItemTypeScreen MenuItemType = iota
@@ -221,6 +218,14 @@ func (m *Menu) AddItemBreak(desc string) {
 
 // Render is used to draw a list of params, handles scrolling, etc.
 func (m *Menu) Render(img draw.Image) {
+
+	var menuSpacingValues = 11
+	var menuSpacingText = 11
+	if m.items[0].Type == MenuItemTypeFaultHistory || !m.showValues {
+		menuSpacingValues = 10
+		menuSpacingText = 10
+	}
+
 	count := len(m.items)
 
 	itemsPerScreen := 4
