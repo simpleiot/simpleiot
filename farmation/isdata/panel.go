@@ -22,7 +22,7 @@ func (pt PanelType) String() string {
 	case PanelTypeInvalid:
 		return "Invalid"
 	case PanelTypeLindsay:
-		return "Lindsay"
+		return "Vision" //Lindsay, specifically Vision
 	case PanelTypeValleyIconSerial:
 		return "Val Icon"
 	case PanelTypeValleyCam:
