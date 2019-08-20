@@ -18,12 +18,16 @@ const (
 	LindsayStateServiceStop                      = 0x4
 	LindsayStateLowPressureShutdown              = 0x5
 	LindsayStateLowVoltageFault                  = 0x6
+	LindsayStateLowTemp                          = 0x7
+	LindsayStateLowFlowShutdown                  = 0x9
 	LindsayStateRestartDelay                     = 0x10
 	LindsayStatePressureWaiting                  = 0x11
 	LindsayStateHoldLastTower                    = 0x13
 	LindsayStateRunningForward                   = 0x14
 	LindsayStateRunningReverse                   = 0x15
 	LindsayStateRunningLowPres                   = 0x17
+	LindsayStateHighFlowWarn                     = 0x19
+	LindsayStateLowFlowWarn                      = 0x1A
 	LindsayStateSoftBarrierWarn                  = 0x1E
 	LindsayStatePositionError                    = 0x21
 	LindsayStateRunningNoPos                     = 0x29
@@ -43,6 +47,10 @@ func (ls LindsayState) String() (ret string) {
 		ret = "Low Pres Shtdwn" //Low Pressure Shutdown
 	case LindsayStateLowVoltageFault:
 		ret = "Low V. Shtdwn" //Low Voltage Shutdown
+	case LindsayStateLowTemp:
+		ret = "Low Temp" //Low Temperature
+	case LindsayStateLowFlowShutdown:
+		ret = "Low Flw Shtdwn" //Low Flow Shutdown
 	case LindsayStateRestartDelay:
 		ret = "Restart Del" //Restart Delay
 	case LindsayStatePressureWaiting:
@@ -54,9 +62,13 @@ func (ls LindsayState) String() (ret string) {
 	case LindsayStateRunningReverse:
 		ret = "Run Rev." //Running Reverse
 	case LindsayStateRunningLowPres:
-		ret = "Run Low Pres." // Running Low Pressure
+		ret = "Run Low Pres." //Running Low Pressure
+	case LindsayStateHighFlowWarn:
+		ret = "High Flow Warn" //High Flow Warning
+	case LindsayStateLowFlowWarn:
+		ret = "Low Flow Warn" //Low Flow Warning
 	case LindsayStateSoftBarrierWarn:
-		ret = "Soft Barrier Warn" // Soft Barrier Warning
+		ret = "Soft Barrier Warn" //Soft Barrier Warning
 	case LindsayStatePositionError:
 		ret = "Pos. Err" //Position Error
 	case LindsayStateRunningNoPos:
@@ -139,12 +151,8 @@ func (lsr *LindsayStatusRegs) AutoRestart() bool {
 
 // IrrigatorRunning indicates of irrigator is running
 func (lsr *LindsayStatusRegs) IrrigatorRunning() bool {
-	return (lsr.State == LindsayStateHoldLastTower ||
-		lsr.State == LindsayStateRunningForward ||
-		lsr.State == LindsayStateRunningReverse ||
-		lsr.State == LindsayStateRunningLowPres ||
-		lsr.State == LindsayStateSoftBarrierWarn) &&
-		(lsr.Forward() || lsr.Reverse())
+	return ((lsr.State&(1<<4)) != 0 &&
+		(lsr.Forward() || lsr.Reverse()))
 }
 
 // NewLindsayStatusRegs create Lindsay status from modbus PDU packet
