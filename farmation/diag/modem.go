@@ -62,25 +62,13 @@ func (d modemSerial) String() string {
 }
 
 func (d modemSerial) Run() error {
-	// make sure modem is not reset
-	isio.GpioOut(isio.GpioModemReset, false)
-	// modem takes about 5 seconds to show up on USB bus after reset
-	time.Sleep(6 * time.Second)
-
-	options := serial.OpenOptions{
-		PortName:              isio.SerialModem,
-		BaudRate:              9600,
-		DataBits:              8,
-		StopBits:              1,
-		MinimumReadSize:       1,
-		InterCharacterTimeout: 200,
-		RTSCTSFlowControl:     true,
-	}
-
-	p, err := serial.Open(options)
+	p, err := isio.OpenSerialModem()
 	if err != nil {
 		return err
 	}
+
+	// give modem a few seconds to power up
+	time.Sleep(6 * time.Second)
 
 	defer p.Close()
 
