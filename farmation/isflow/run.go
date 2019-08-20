@@ -97,6 +97,9 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				switch m.Type {
 				case isdata.SampleTypeSimFlowRate:
 					dur := isdata.FlowToPulsePeriod(m.Value, config.PulsesPerGallon)
+					if dur <= 0 {
+						dur = 1000 * time.Hour
+					}
 					if dur < 5*time.Millisecond {
 						dur = 25 * time.Millisecond
 					}
