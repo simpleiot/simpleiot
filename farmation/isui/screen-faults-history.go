@@ -103,8 +103,10 @@ func (s *FaultsHistoryScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) 
 			s.dataLoaded = false
 			return ScreenIDPrev, nil, true
 		case isdata.KeyEnter, isdata.KeySK2: // Details
-			s.displayDetails = true
-			s.faultsHistDetails.fault = s.faults[len(s.faults)-1-s.menu.GetArrowPos()]
+			if len(s.faults) >= 1 {
+				s.displayDetails = true
+				s.faultsHistDetails.fault = s.faults[len(s.faults)-1-s.menu.GetArrowPos()]
+			}
 		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft:
 			return s.menu.Key(key)
 		}
