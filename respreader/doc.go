@@ -22,8 +22,8 @@ when it is complete, yet it can detect the end of a response fairly quickly.
 
 The obvious disadvantage of this method of framing is that the device may insert a
 significant delay in sending the response that will cause the reader to think the
-resonse is complete. As long as this delay is still significantly shorter than
-the overall response time, it can still work fairly well. Some experiementation may
+response is complete. As long as this delay is still significantly shorter than
+the overall response time, it can still work fairly well. Some experimentation may
 be required to optimize the chunkTimeout setting.
 
 Example using a serial port:

@@ -86,9 +86,9 @@ func (rrw *ResponseReadWriter) Write(buffer []byte) (int, error) {
 // ResponseReader is used for prompt/response communication protocols where a prompt
 // is sent, and some time later a response is received. Typically, the target takes
 // some amount to formulate the response, and then streams it out. There are two delays:
-// an overall timeout, and then an intercharacter timeout that is activated once the
+// an overall timeout, and then an inter character timeout that is activated once the
 // first byte is received. The thought is that once you received the 1st byte, all the
-// data should stream out continously and a short timeout can be used to determine the
+// data should stream out continuously and a short timeout can be used to determine the
 // end of the packet.
 type ResponseReader struct {
 	reader       io.Reader
