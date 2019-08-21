@@ -126,41 +126,41 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	// Note, below needs to be the same order as in render
 	switch {
 	case s.state.DialogUpdate.Active:
-		if key == isdata.KeySK1 {
+		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 			return ScreenIDNoChange, isdata.UpdateDialogUpdateClose{}, true
 		}
 	case s.state.DialogInvalidPanel.Active:
-		if key == isdata.KeySK1 {
+		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 			return ScreenIDNoChange, isdata.UpdateDialogInvalidPanelClose{}, true
 		}
 	case s.state.DialogUnknownVisionState.Active:
-		if key == isdata.KeySK1 {
+		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 			return ScreenIDNoChange, isdata.UpdateDialogUnknownVisionStateClose{}, true
 		}
 	case s.state.DialogExport.Active:
-		if key == isdata.KeySK1 {
+		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 			return ScreenIDNoChange, isdata.UpdateDialogExportClose{}, true
 		}
 	case s.state.DialogArm.Active:
-		if key == isdata.KeySK1 {
+		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 			s.switchScreen(ScreenIDOpMode1)
 			return ScreenIDNoChange, isdata.UpdateDialogArmClose{}, true
 		}
 	case s.state.DialogArmInputs.Active:
-		if key == isdata.KeySK1 {
+		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 			s.switchScreen(ScreenIDPumpMode)
 			return ScreenIDNoChange, isdata.UpdateDialogArmInputsClose{}, true
 		}
 	case s.state.DialogArmReq.Active:
-		if key == isdata.KeySK1 {
+		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 			return ScreenIDNoChange, isdata.UpdateDialogArmReqClose{}, true
 		}
 	case s.state.DialogStateMachine.Active:
-		if key == isdata.KeySK1 {
+		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 			return ScreenIDNoChange, isdata.UpdateDialogStateMachineClose{}, true
 		}
 	case s.state.DialogApp.Active:
-		if key == isdata.KeySK1 {
+		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 			return ScreenIDNoChange, isdata.UpdateDialogAppClose{}, true
 		}
 	}
