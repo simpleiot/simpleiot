@@ -40,7 +40,10 @@ func (s *CalibrationScreen) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *CalibrationScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1:
+	case isdata.KeySK1Hold:
+		s.menu.ResetArrowPos() // return arrow to top of screen
+		return ScreenIDHome, nil, true
+	case isdata.KeySK1Release:
 		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDPrev, nil, true
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:

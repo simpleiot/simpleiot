@@ -39,7 +39,10 @@ func (s *EthernetScreen) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *EthernetScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1: // Back
+	case isdata.KeySK1Hold: // Back key held -> Home screen
+		s.menu.ResetArrowPos() // return arrow to top of screen
+		return ScreenIDHome, nil, true
+	case isdata.KeySK1Release: // Back
 		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDPrev, nil, true
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:

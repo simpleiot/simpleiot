@@ -49,9 +49,13 @@ func (s *DiagOutputsScreen) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *DiagOutputsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1: // back
+	case isdata.KeySK1Hold: // Back key held -> Home screen
 		s.menu.ResetArrowPos() // return arrow to top of screen
-		// set all relays to auto control mode
+		// set all relays to auto mode
+		return ScreenIDHome, isdata.UpdateManualRelayAll(int(isdata.RelayControlStateAuto)), true
+	case isdata.KeySK1Release: // Back
+		s.menu.ResetArrowPos() // return arrow to top of screen
+		// set all relays to auto mode
 		return ScreenIDPrev, isdata.UpdateManualRelayAll(int(isdata.RelayControlStateAuto)), true
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)

@@ -72,7 +72,7 @@ func (s *PumpModeScreen) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *PumpModeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1: // Back
+	case isdata.KeySK1: // Home
 		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDHome, nil, true
 	case isdata.KeySK2: // Test pump

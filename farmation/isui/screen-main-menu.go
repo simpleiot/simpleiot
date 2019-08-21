@@ -44,7 +44,7 @@ func (s *MainMenuScreen) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *MainMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1:
+	case isdata.KeySK1Release, isdata.KeySK1Hold:
 		return ScreenIDHome, nil, true
 	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
 		return s.menu.Key(key)

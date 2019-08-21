@@ -89,7 +89,7 @@ func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		return ScreenIDStatus1, nil, true
 	case isdata.KeyLeft:
 		return ScreenIDStatus3, nil, true
-	case isdata.KeySK1: // menu
+	case isdata.KeySK1Release, isdata.KeySK1Hold: // menu
 		return ScreenIDMainMenu, nil, true
 	case isdata.KeySK2: // operating mode
 		return ScreenIDOpMode1, nil, true

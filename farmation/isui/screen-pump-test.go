@@ -47,7 +47,11 @@ func (s *PumpTestScreen) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *PumpTestScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1: // Back
+	case isdata.KeySK1Hold: // Back key held -> Home screen
+		s.menu.ResetArrowPos() // return arrow to top of screen
+		return ScreenIDPrev, isdata.UpdateManualRelayInj(isdata.RelayControlStateAuto), true
+	case isdata.KeySK1Release: // Back
+		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDPrev, isdata.UpdateManualRelayInj(isdata.RelayControlStateAuto), true
 	case isdata.KeySK2: // On (pump)
 		return ScreenIDNoChange, isdata.UpdateManualRelayInj(isdata.RelayControlStateOn), true
