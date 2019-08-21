@@ -33,7 +33,7 @@ func NewResponseReadWriteCloser(iorw io.ReadWriteCloser, timeout time.Duration, 
 	}
 }
 
-// Read reads with timouts
+// Read response using chunkTimeout and timeout
 func (rrwc *ResponseReadWriteCloser) Read(buffer []byte) (int, error) {
 	return rrwc.reader.Read(buffer)
 }
@@ -68,7 +68,7 @@ func NewResponseReadWriter(iorw io.ReadWriter, timeout time.Duration, chunkTimeo
 	}
 }
 
-// Read reads with timouts
+// Read response
 func (rrw *ResponseReadWriter) Read(buffer []byte) (int, error) {
 	return rrw.reader.Read(buffer)
 }
@@ -121,6 +121,7 @@ func NewResponseReader(reader io.Reader, timeout time.Duration, chunkTimeout tim
 	return &rr
 }
 
+// Read response
 func (rr *ResponseReader) Read(buffer []byte) (int, error) {
 	if len(buffer) <= 0 {
 		return 0, errors.New("must supply non-zero length buffer")
