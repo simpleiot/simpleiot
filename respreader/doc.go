@@ -60,5 +60,7 @@ Example using a serial port:
 
 	// now process response ...
 
+
+Three types are provided for convenience that wrap io.Reader, io.ReadWriter, and io.ReadWriteCloser.
 */
 package respreader
