@@ -135,7 +135,7 @@ func (rrw *ResponseReadWriter) Read(buffer []byte) (int, error) {
 	return rrw.reader.Read(buffer)
 }
 
-// Write is just a passthrough call for convenience
+// Write flushes all data from reader, and then passes through write call.
 func (rrw *ResponseReadWriter) Write(buffer []byte) (int, error) {
 	n, err := rrw.reader.Flush()
 	if err != nil {
@@ -143,4 +143,41 @@ func (rrw *ResponseReadWriter) Write(buffer []byte) (int, error) {
 	}
 
 	return rrw.writer.Write(buffer)
+}
+
+// ResponseReadWriteCloser is a convenience type that implements io.ReadWriteCloser.
+// Write calls flush reader before writing the prompt.
+type ResponseReadWriteCloser struct {
+	closer io.Closer
+	writer io.Writer
+	reader *ResponseReader
+}
+
+// NewResponseReadWriteCloser creates a new response reader
+func NewResponseReadWriteCloser(iorw io.ReadWriteCloser, timeout time.Duration, chunkTimeout time.Duration) *ResponseReadWriteCloser {
+	return &ResponseReadWriteCloser{
+		closer: iorw,
+		writer: iorw,
+		reader: NewResponseReader(iorw, timeout, chunkTimeout),
+	}
+}
+
+// Read reads with timouts
+func (rrwc *ResponseReadWriteCloser) Read(buffer []byte) (int, error) {
+	return rrwc.reader.Read(buffer)
+}
+
+// Write flushes all data from reader, and then passes through write call.
+func (rrwc *ResponseReadWriteCloser) Write(buffer []byte) (int, error) {
+	n, err := rrwc.reader.Flush()
+	if err != nil {
+		return n, err
+	}
+
+	return rrwc.writer.Write(buffer)
+}
+
+// Close is a passthrough call.
+func (rrwc *ResponseReadWriteCloser) Close() error {
+	return rrwc.closer.Close()
 }
