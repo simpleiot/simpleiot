@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	nbreader "github.com/svent/go-nbreader"
+	"github.com/simpleiot/simpleiot/respreader"
 )
 
 // Flush any data from port
@@ -18,7 +18,9 @@ func Flush(port io.Reader) {
 
 // DigiCheckAt puts Digi radio and command mode and executes AT command
 func DigiCheckAt(port io.ReadWriter) error {
-	portTo := nbreader.NewNBReader(port, 100, nbreader.Timeout(500*time.Millisecond))
+	port = respreader.NewResponseReadWriter(port, 1500*time.Millisecond,
+		50*time.Millisecond)
+
 	commandMode := "+++"
 
 	_, err := port.Write([]byte(commandMode))
@@ -26,16 +28,13 @@ func DigiCheckAt(port io.ReadWriter) error {
 		return err
 	}
 
-	time.Sleep(1100 * time.Millisecond)
-	// flush any data
 	readString := make([]byte, 100)
-	n, err := portTo.Read(readString)
+	n, err := port.Read(readString)
 	readString = readString[:n]
 	fmt.Print("Digi flush: ", hex.Dump(readString))
 
 	_, err = port.Write([]byte("AT\r"))
-	time.Sleep(200 * time.Millisecond)
-	n, err = portTo.Read(readString)
+	n, err = port.Read(readString)
 
 	readString = readString[:n]
 	fmt.Print("Digi read: ", hex.Dump(readString))
