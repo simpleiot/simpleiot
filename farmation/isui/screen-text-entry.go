@@ -68,7 +68,7 @@ const (
 //Key handles some key inputs and passes the rest to inputChars
 func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 	switch key {
-	case isdata.KeySK1: // save
+	case isdata.KeySK1Release: // save
 		if s.txtEdit[s.cursorPos:] == "\x00" { // if last char is null
 			s.txtEdit = s.txtEdit[:s.cursorPos] // delete null char
 		}
@@ -103,9 +103,11 @@ func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 			s.right()
 		}
 		s.inputChars.IndexTo(s.txtEdit[s.cursorPos])
-	case isdata.KeySK3, isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
+	case isdata.KeySK3, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold:
 		s.inputChars.Key(key)
 		s.enterTxt()
+	default:
+		//log.Println("Text entry screen: unhandled key of type: ", key)
 	}
 
 	return TextEntryCommandNone

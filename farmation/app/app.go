@@ -336,7 +336,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					// convert from sample to key
 					key := isdata.KeyFromString(m.ID)
 					uiChan <- key
-					//fmt.Println(m.ID)
 
 				case isdata.SampleTypeSimFlowRate:
 					flowChan <- m
@@ -410,7 +409,6 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				}
 
 			case isdata.Key:
-				//fmt.Println(m)
 				switch m {
 				case isdata.KeyArm:
 					oldArm := config.Arm

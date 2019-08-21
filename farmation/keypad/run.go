@@ -38,6 +38,18 @@ func keypad(out chan interface{}, name string, keyPress, keyHold, keyRelease isd
 	timer := time.NewTimer(time.Millisecond * 50)
 	timer.Stop()
 
+	// ticker for scrolling with arrow keys
+	scrollTicker := time.NewTicker(time.Millisecond * 150)
+	switch keyPress {
+	case isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
+	default:
+		scrollTicker.Stop()
+	}
+
+	// tells us if the pressTimer has expired -- if so, start
+	// scrolling while the arrow key is held down
+	var scrolling bool
+
 	var timerRunning bool
 	go func() {
 		for {
@@ -50,11 +62,13 @@ func keypad(out chan interface{}, name string, keyPress, keyHold, keyRelease isd
 		select {
 		case <-cEdge:
 			if timerRunning == false {
-				//fmt.Println("got edge", p.Read())
+				// If the key was pressed and is released
 				if keyStateDown && p.Read() == gpio.High {
 					out <- keyRelease
 					pressTimer.Stop()
+					scrolling = false
 					keyStateDown = false
+					// If the key was unpressed and is pressed
 				} else if !keyStateDown && p.Read() == gpio.Low {
 					out <- keyPress
 					pressTimer.Reset(pressTimerDur)
@@ -63,10 +77,19 @@ func keypad(out chan interface{}, name string, keyPress, keyHold, keyRelease isd
 				timer.Reset(time.Millisecond * 50)
 				timerRunning = true
 			}
+			// if the time has expired, send out the keyHold
 		case <-pressTimer.C:
 			if keyStateDown && p.Read() == gpio.Low {
 				out <- keyHold
 				pressTimer.Stop()
+				scrolling = true
+			}
+		case <-scrollTicker.C:
+			if scrolling &&
+				keyStateDown &&
+				p.Read() == gpio.Low {
+				out <- keyHold
+			} else {
 			}
 		case <-timer.C:
 			timerRunning = false
