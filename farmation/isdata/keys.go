@@ -7,29 +7,40 @@ type Key int
 const (
 	KeyUnknown Key = iota
 	KeyUp          //Press
+	KeyUpHold
 	KeyUpRelease
 	KeyDown
+	KeyDownHold
 	KeyDownRelease
 	KeyLeft
+	KeyLeftHold
 	KeyLeftRelease
 	KeyRight
+	KeyRightHold
 	KeyRightRelease
 	KeyEnter
+	KeyEnterHold
 	KeyEnterRelease
 	KeySK1
+	KeySK1Hold
 	KeySK1Release
 	KeySK2
+	KeySK2Hold
 	KeySK2Release
 	KeySK3
+	KeySK3Hold
 	KeySK3Release
 	KeySK4
+	KeySK4Hold
 	KeySK4Release
 	KeyArm
+	KeyArmHold
 	KeyArmRelease
 )
 
 var keyToString = map[Key]string{
 	KeyUp:           "KeyUp",
+	KeyUpHold:       "KeyUpHold",
 	KeyUpRelease:    "KeyUpRelease",
 	KeyDown:         "KeyDown",
 	KeyDownRelease:  "KeyDownRelease",
