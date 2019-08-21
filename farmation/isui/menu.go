@@ -1,6 +1,7 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
 	"strconv"
 
@@ -221,21 +222,28 @@ func (m *Menu) Render(img draw.Image) {
 
 	var menuSpacingValues = 11
 	var menuSpacingText = 11
-	if m.items[0].Type == MenuItemTypeFaultHistory || !m.showValues {
-		menuSpacingValues = 10
-		menuSpacingText = 10
+	fmt.Println("COLLIN: 1")
+	if len(m.items) > 0 {
+		if m.items[0].Type == MenuItemTypeFaultHistory || !m.showValues {
+			menuSpacingValues = 10
+			menuSpacingText = 10
+		}
 	}
+
+	fmt.Println("COLLIN: 2")
 
 	count := len(m.items)
 
 	itemsPerScreen := 4
 	screen := m.arrowPos / itemsPerScreen
+	fmt.Println("COLLIN: 3")
 
 	y := 13
 	x := 2
 
 	arrowScreenPos := m.arrowPos % itemsPerScreen
 
+	fmt.Println("COLLIN: 4")
 	start := itemsPerScreen * screen
 	end := start + 3
 
@@ -257,11 +265,13 @@ func (m *Menu) Render(img draw.Image) {
 			}
 		}
 	}
+	fmt.Println("COLLIN: 5")
 
 	y = 11
 	for i := start; i <= end; i++ {
 		screenIndex := i - start
 		item := m.items[i]
+		fmt.Println("COLLIN: 6")
 		offsetText := screenIndex * menuSpacingText
 		offsetValues := screenIndex * menuSpacingValues
 		if item.Type != MenuItemTypeBreak {
