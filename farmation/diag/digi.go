@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/simpleiot/simpleiot/network"
+	"github.com/simpleiot/simpleiot/respreader"
 )
 
 // Flush any data from port
@@ -18,7 +18,7 @@ func Flush(port io.Reader) {
 
 // DigiCheckAt puts Digi radio and command mode and executes AT command
 func DigiCheckAt(port io.ReadWriter) error {
-	port = network.NewResponseReadWriter(port, 1500*time.Millisecond,
+	port = respreader.NewResponseReadWriter(port, 1500*time.Millisecond,
 		50*time.Millisecond)
 
 	commandMode := "+++"
