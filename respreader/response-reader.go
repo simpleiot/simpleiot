@@ -7,13 +7,14 @@
 // returns with accumulated data.
 //
 // This method of framing a response has the following advantages:
-//   * minimizes the wasted timing waiting for a response to the chunkTimeout defined
+//
+// * minimizes the wasted timing waiting for a response to the chunkTimeout defined
 //     below. More simplistic implementations may take the worste case response time
 //     for all packets and simply wait that amount of time for the response to come.
 //     This works, but the bus is tied up during the wait that could be used for
 //     more packets.
-//   * It is simple in that you don't have to parse the response on the fly to determine
-//     when it is complete.
+// * It is simple in that you don't have to parse the response on the fly to determine
+//   when it is complete.
 //
 // The obvious disadvantage of this library is that the device may insert a
 // significant delay in sending the response that will cause the reader to think the
