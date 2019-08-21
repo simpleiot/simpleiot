@@ -1,4 +1,4 @@
-package network
+package respreader
 
 import (
 	"reflect"
