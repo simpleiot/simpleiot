@@ -11,7 +11,7 @@ no data indicates the response is complete. A Read() blocks until it detects thi
 
 This method of framing a response has the following advantages:
 
-1) minimizes the wasted timing waiting for a response to the chunkTimeout defined
+1) minimizes the wasted time waiting for a response to the chunkTimeout defined
 below. More simplistic implementations often take the worst case response time
 for all packets and simply wait that amount of time for the response to arrive.
 This works, but the bus is tied up during this worst case wait that could be used for
