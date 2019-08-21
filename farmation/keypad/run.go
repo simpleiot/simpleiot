@@ -11,7 +11,7 @@ import (
 	"periph.io/x/periph/conn/gpio/gpioreg"
 )
 
-func keypad(out chan interface{}, name string, key isdata.Key) {
+func keypad(out chan interface{}, name string, keyPress, keyRelease isdata.Key) {
 	p := gpioreg.ByName(name)
 	//var lastSent time.Time
 	if p == nil {
@@ -20,12 +20,14 @@ func keypad(out chan interface{}, name string, key isdata.Key) {
 	}
 
 	// Set it as input, with an internal pull down resistor:
-	if err := p.In(gpio.Float, gpio.RisingEdge); err != nil {
+	if err := p.In(gpio.Float, gpio.BothEdges); err != nil {
 		log.Println("Error setting up gpio: ", err)
 		return
 	}
 	// make channel to send edges from button presses
 	cEdge := make(chan bool)
+
+	keyStateDown := false
 
 	// timer for use in debouncing
 	timer := time.NewTimer(time.Millisecond * 50)
@@ -44,8 +46,14 @@ func keypad(out chan interface{}, name string, key isdata.Key) {
 		case <-cEdge:
 			if timerRunning == false {
 				//fmt.Println("got edge", p.Read())
-				if p.Read() == true {
-					out <- key
+				// IF key was down and now reads low (unpressed)
+				if keyStateDown && p.Read() == gpio.High {
+					out <- keyRelease
+					keyStateDown = false
+					// IF key was up and now reads high (pressed)
+				} else if !keyStateDown && p.Read() == gpio.Low {
+					out <- keyPress
+					keyStateDown = true
 				}
 				timer.Reset(time.Millisecond * 50)
 				timerRunning = true
@@ -98,16 +106,16 @@ func getch() []byte {
 func Run(in, out chan interface{}) {
 
 	if runtime.GOARCH == "arm" {
-		go keypad(out, "PA17", isdata.KeySK4)
-		go keypad(out, "PA15", isdata.KeySK3)
-		go keypad(out, "PA19", isdata.KeySK2)
-		go keypad(out, "PA18", isdata.KeySK1)
-		go keypad(out, "PA20", isdata.KeyLeft)
-		go keypad(out, "PA21", isdata.KeyUp)
-		go keypad(out, "PD10", isdata.KeyEnter)
-		go keypad(out, "PA12", isdata.KeyDown)
-		go keypad(out, "PA11", isdata.KeyRight)
-		go keypad(out, "PC25", isdata.KeyArm)
+		go keypad(out, "PA17", isdata.KeySK4, isdata.KeySK4Release)
+		go keypad(out, "PA15", isdata.KeySK3, isdata.KeySK3Release)
+		go keypad(out, "PA19", isdata.KeySK2, isdata.KeySK2Release)
+		go keypad(out, "PA18", isdata.KeySK1, isdata.KeySK1Release)
+		go keypad(out, "PA20", isdata.KeyLeft, isdata.KeyLeftRelease)
+		go keypad(out, "PA21", isdata.KeyUp, isdata.KeyUpRelease)
+		go keypad(out, "PD10", isdata.KeyEnter, isdata.KeyEnterRelease)
+		go keypad(out, "PA12", isdata.KeyDown, isdata.KeyDownRelease)
+		go keypad(out, "PA11", isdata.KeyRight, isdata.KeyRightRelease)
+		go keypad(out, "PC25", isdata.KeyArm, isdata.KeyArmRelease)
 	}
 
 	/*

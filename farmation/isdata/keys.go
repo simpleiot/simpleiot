@@ -6,14 +6,18 @@ type Key int
 // define valid keys
 const (
 	KeyUnknown Key = iota
-	KeyUp
+	KeyUp          //Press
+	KeyUpRelease
 	KeyDown
+	KeyDownRelease
 	KeyLeft
+	KeyLeftRelease
 	KeyRight
+	KeyRightRelease
 	KeyEnter
+	KeyEnterRelease
 	KeySK1
 	KeySK1Release
-	KeySK1Hold
 	KeySK2
 	KeySK2Release
 	KeySK3
@@ -21,19 +25,30 @@ const (
 	KeySK4
 	KeySK4Release
 	KeyArm
+	KeyArmRelease
 )
 
 var keyToString = map[Key]string{
-	KeyUp:    "KeyUp",
-	KeyDown:  "KeyDown",
-	KeyRight: "KeyRight",
-	KeyLeft:  "KeyLeft",
-	KeyEnter: "KeyEnter",
-	KeySK1:   "KeySK1",
-	KeySK2:   "KeySK2",
-	KeySK3:   "KeySK3",
-	KeySK4:   "KeySK4",
-	KeyArm:   "KeyArm",
+	KeyUp:           "KeyUp",
+	KeyUpRelease:    "KeyUpRelease",
+	KeyDown:         "KeyDown",
+	KeyDownRelease:  "KeyDownRelease",
+	KeyRight:        "KeyRight",
+	KeyRightRelease: "KeyRightRelease",
+	KeyLeft:         "KeyLeft",
+	KeyLeftRelease:  "KeyLeftRelease",
+	KeyEnter:        "KeyEnter",
+	KeyEnterRelease: "KeyEnterRelease",
+	KeySK1:          "KeySK1",
+	KeySK1Release:   "KeySK1Release",
+	KeySK2:          "KeySK2",
+	KeySK2Release:   "KeySK2Release",
+	KeySK3:          "KeySK3",
+	KeySK3Release:   "KeySK3Release",
+	KeySK4:          "KeySK4",
+	KeySK4Release:   "KeySK4Release",
+	KeyArm:          "KeyArm",
+	KeyArmRelease:   "KeyArmRelease",
 }
 
 func (k Key) String() string {
@@ -45,16 +60,26 @@ func (k Key) String() string {
 }
 
 var stringToKey = map[string]Key{
-	"KeyUp":    KeyUp,
-	"KeyDown":  KeyDown,
-	"KeyRight": KeyRight,
-	"KeyLeft":  KeyLeft,
-	"KeyEnter": KeyEnter,
-	"KeySK1":   KeySK1,
-	"KeySK2":   KeySK2,
-	"KeySK3":   KeySK3,
-	"KeySK4":   KeySK4,
-	"KeyArm":   KeyArm,
+	"KeyUp":           KeyUp,
+	"KeyUpRelease":    KeyUpRelease,
+	"KeyDown":         KeyDown,
+	"KeyDownRelease":  KeyDownRelease,
+	"KeyRight":        KeyRight,
+	"KeyRightRelease": KeyRightRelease,
+	"KeyLeft":         KeyLeft,
+	"KeyLeftRelease":  KeyLeftRelease,
+	"KeyEnter":        KeyEnter,
+	"KeyEnterRelease": KeyEnterRelease,
+	"KeySK1":          KeySK1,
+	"KeySK1Release":   KeySK1Release,
+	"KeySK2":          KeySK2,
+	"KeySK2Release":   KeySK2Release,
+	"KeySK3":          KeySK3,
+	"KeySK3Release":   KeySK3Release,
+	"KeySK4":          KeySK4,
+	"KeySK4Release":   KeySK4Release,
+	"KeyArm":          KeyArm,
+	"KeyArmRelease":   KeyArmRelease,
 }
 
 // KeyFromString converts a string to a key
