@@ -30,7 +30,11 @@ type ResponseReader struct {
 	dataChan     chan []byte
 }
 
-// NewResponseReader creates a new response reader
+// NewResponseReader creates a new response reader. timeout is used to specify an
+// overall timeout. If this timeout is encountered, ErrorTimeout is returned.
+// chunkTimeout is used to specify the max timeout between chunks of data once
+// the response is started. If a delay of chunkTimeout is encountered, the response
+// is considered finished and the Read returns.
 func NewResponseReader(reader io.Reader, timeout time.Duration, chunkTimeout time.Duration) *ResponseReader {
 	rr := ResponseReader{
 		reader:       reader,
