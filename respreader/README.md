@@ -6,3 +6,6 @@ AT commands. The fundamental assumption is a device takes some variable amount o
 time to respond to a request, formats up a packet, and then streams it out the
 serial port. Once the response data starts streaming, and significant gap with
 no data indicates the response is complete.
+
+see https://godoc.org/github.com/simpleiot/simpleiot/respreader for
+documentation

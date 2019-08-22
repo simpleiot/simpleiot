@@ -1,9 +1,12 @@
+<<<<<<< HEAD
 // Package respreader provides a convenient way to read data from devices that use
 // prompt/response protocols such as Modbus (and other RS485 protocols) and modem
 // AT commands. The fundamental assumption is a device takes some variable amount of
 // time to respond to a request, formats up a packet, and then streams it out the
 // serial port. Once the response data starts streaming, and significant gap with
 // no data indicates the response is complete.
+=======
+>>>>>>> origin/master
 package respreader
 
 import (
@@ -15,12 +18,95 @@ import (
 // ErrorTimeout indicates the reader timed out
 var ErrorTimeout = errors.New("timeout")
 
+<<<<<<< HEAD
 // ResponseReader is used for prompt/response communication protocols where a prompt
 // is sent, and some time later a response is received. Typically, the target takes
 // some amount to formulate the response, and then streams it out. There are two delays:
 // an overall timeout, and then an intercharacter timeout that is activated once the
 // first byte is received. The thought is that once you received the 1st byte, all the
 // data should stream out continously and a short timeout can be used to determine the
+=======
+// ResponseReadWriteCloser is a convenience type that implements io.ReadWriteCloser.
+// Write calls flush reader before writing the prompt.
+type ResponseReadWriteCloser struct {
+	closer io.Closer
+	writer io.Writer
+	reader *ResponseReader
+}
+
+// NewResponseReadWriteCloser creates a new response reader
+//
+// timeout is used to specify an
+// overall timeout. If this timeout is encountered, ErrorTimeout is returned.
+//
+// chunkTimeout is used to specify the max timeout between chunks of data once
+// the response is started. If a delay of chunkTimeout is encountered, the response
+// is considered finished and the Read returns.
+func NewResponseReadWriteCloser(iorw io.ReadWriteCloser, timeout time.Duration, chunkTimeout time.Duration) *ResponseReadWriteCloser {
+	return &ResponseReadWriteCloser{
+		closer: iorw,
+		writer: iorw,
+		reader: NewResponseReader(iorw, timeout, chunkTimeout),
+	}
+}
+
+// Read response using chunkTimeout and timeout
+func (rrwc *ResponseReadWriteCloser) Read(buffer []byte) (int, error) {
+	return rrwc.reader.Read(buffer)
+}
+
+// Write flushes all data from reader, and then passes through write call.
+func (rrwc *ResponseReadWriteCloser) Write(buffer []byte) (int, error) {
+	n, err := rrwc.reader.Flush()
+	if err != nil {
+		return n, err
+	}
+
+	return rrwc.writer.Write(buffer)
+}
+
+// Close is a passthrough call.
+func (rrwc *ResponseReadWriteCloser) Close() error {
+	return rrwc.closer.Close()
+}
+
+// ResponseReadWriter is a convenience type that implements io.ReadWriter. Write
+// calls flush reader before writing the prompt.
+type ResponseReadWriter struct {
+	writer io.Writer
+	reader *ResponseReader
+}
+
+// NewResponseReadWriter creates a new response reader
+func NewResponseReadWriter(iorw io.ReadWriter, timeout time.Duration, chunkTimeout time.Duration) *ResponseReadWriter {
+	return &ResponseReadWriter{
+		writer: iorw,
+		reader: NewResponseReader(iorw, timeout, chunkTimeout),
+	}
+}
+
+// Read response
+func (rrw *ResponseReadWriter) Read(buffer []byte) (int, error) {
+	return rrw.reader.Read(buffer)
+}
+
+// Write flushes all data from reader, and then passes through write call.
+func (rrw *ResponseReadWriter) Write(buffer []byte) (int, error) {
+	n, err := rrw.reader.Flush()
+	if err != nil {
+		return n, err
+	}
+
+	return rrw.writer.Write(buffer)
+}
+
+// ResponseReader is used for prompt/response communication protocols where a prompt
+// is sent, and some time later a response is received. Typically, the target takes
+// some amount to formulate the response, and then streams it out. There are two delays:
+// an overall timeout, and then an inter character timeout that is activated once the
+// first byte is received. The thought is that once you received the 1st byte, all the
+// data should stream out continuously and a short timeout can be used to determine the
+>>>>>>> origin/master
 // end of the packet.
 type ResponseReader struct {
 	reader       io.Reader
@@ -30,7 +116,18 @@ type ResponseReader struct {
 	dataChan     chan []byte
 }
 
+<<<<<<< HEAD
 // NewResponseReader creates a new response reader
+=======
+// NewResponseReader creates a new response reader.
+//
+// timeout is used to specify an
+// overall timeout. If this timeout is encountered, ErrorTimeout is returned.
+//
+// chunkTimeout is used to specify the max timeout between chunks of data once
+// the response is started. If a delay of chunkTimeout is encountered, the response
+// is considered finished and the Read returns.
+>>>>>>> origin/master
 func NewResponseReader(reader io.Reader, timeout time.Duration, chunkTimeout time.Duration) *ResponseReader {
 	rr := ResponseReader{
 		reader:       reader,
@@ -46,6 +143,10 @@ func NewResponseReader(reader io.Reader, timeout time.Duration, chunkTimeout tim
 	return &rr
 }
 
+<<<<<<< HEAD
+=======
+// Read response
+>>>>>>> origin/master
 func (rr *ResponseReader) Read(buffer []byte) (int, error) {
 	if len(buffer) <= 0 {
 		return 0, errors.New("must supply non-zero length buffer")
@@ -114,6 +215,7 @@ func (rr *ResponseReader) readInput() {
 	}
 	close(rr.dataChan)
 }
+<<<<<<< HEAD
 
 // ResponseReadWriter is a convenience type that implements io.ReadWriter. Write
 // calls flush reader before writing the prompt.
@@ -144,3 +246,5 @@ func (rrw *ResponseReadWriter) Write(buffer []byte) (int, error) {
 
 	return rrw.writer.Write(buffer)
 }
+=======
+>>>>>>> origin/master
