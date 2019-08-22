@@ -75,7 +75,7 @@ func (s *TotalsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			//case TotalScreenIndexLifetime:
 			//	return ScreenIDNoChange, isdata.UpdateResetLifetime{}, true
 		}
-	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+	case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyEnter, isdata.KeyEnterHold:
 		return s.menu.Key(key)
 	}
 

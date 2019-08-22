@@ -68,7 +68,7 @@ func (s *DiagDevNameScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			s.enterEdit()
 		case isdata.KeyEnter: // Edit
 			s.enterEdit()
-		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft:
+		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
 		}
 	}

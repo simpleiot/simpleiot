@@ -60,7 +60,7 @@ func (s *DiagInputsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		case 6: // arrow is at flow pulse count menu item
 			return ScreenIDNoChange, isdata.UpdateResetFlowPulseCount{}, true
 		}
-	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+	case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyEnter, isdata.KeyEnterHold:
 		return s.menu.Key(key)
 	}
 

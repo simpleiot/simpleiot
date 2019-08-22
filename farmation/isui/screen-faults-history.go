@@ -107,7 +107,7 @@ func (s *FaultsHistoryScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) 
 				s.displayDetails = true
 				s.faultsHistDetails.fault = s.faults[len(s.faults)-1-s.menu.GetArrowPos()]
 			}
-		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft:
+		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
 		}
 	}

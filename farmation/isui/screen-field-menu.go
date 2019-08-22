@@ -74,7 +74,7 @@ func (s *FieldMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			s.edit = true
 			s.textEntryScreen.txtEdit = s.menu.Description()
 			s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit
-		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyEnter, isdata.KeyEnterHold:
 			return s.menu.Key(key)
 		}
 	}

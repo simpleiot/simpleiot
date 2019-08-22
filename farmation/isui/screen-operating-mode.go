@@ -73,7 +73,7 @@ func (s *OperatingModeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) 
 		return ScreenIDPrev, nil, true
 	case isdata.KeySK2: // Setup
 		return ScreenIDOpModeSetup, nil, true
-	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+	case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyEnter, isdata.KeyEnterHold:
 		return s.menu.Key(key)
 	}
 

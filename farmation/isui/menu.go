@@ -394,7 +394,7 @@ func (m *Menu) ResetArrowPos() {
 // Key handles key input
 func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeyUp:
+	case isdata.KeyUp, isdata.KeyUpHold:
 		m.arrowUp()
 		item := m.items[m.arrowPos]
 		// skip past menu break positions
