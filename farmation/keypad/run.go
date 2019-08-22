@@ -11,7 +11,7 @@ import (
 	"periph.io/x/periph/conn/gpio/gpioreg"
 )
 
-func keypad(out chan interface{}, name string, key isdata.Key) {
+func keypad(out chan interface{}, name string, keyPress, keyHold, keyRelease isdata.Key) {
 	p := gpioreg.ByName(name)
 	//var lastSent time.Time
 	if p == nil {
@@ -20,16 +20,35 @@ func keypad(out chan interface{}, name string, key isdata.Key) {
 	}
 
 	// Set it as input, with an internal pull down resistor:
-	if err := p.In(gpio.Float, gpio.RisingEdge); err != nil {
+	if err := p.In(gpio.Float, gpio.BothEdges); err != nil {
 		log.Println("Error setting up gpio: ", err)
 		return
 	}
 	// make channel to send edges from button presses
 	cEdge := make(chan bool)
 
+	keyStateDown := false
+
+	// timer for press-and-hold
+	pressTimerDur := time.Millisecond * 500
+	pressTimer := time.NewTimer(pressTimerDur)
+	pressTimer.Stop()
+
 	// timer for use in debouncing
 	timer := time.NewTimer(time.Millisecond * 50)
 	timer.Stop()
+
+	// ticker for scrolling with arrow keys
+	scrollTicker := time.NewTicker(time.Millisecond * 150)
+	switch keyPress {
+	case isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
+	default:
+		scrollTicker.Stop()
+	}
+
+	// tells us if the pressTimer has expired -- if so, start
+	// scrolling while the arrow key is held down
+	var scrolling bool
 
 	var timerRunning bool
 	go func() {
@@ -43,12 +62,34 @@ func keypad(out chan interface{}, name string, key isdata.Key) {
 		select {
 		case <-cEdge:
 			if timerRunning == false {
-				//fmt.Println("got edge", p.Read())
-				if p.Read() == true {
-					out <- key
+				// If the key was pressed and is released
+				if keyStateDown && p.Read() == gpio.High {
+					out <- keyRelease
+					pressTimer.Stop()
+					scrolling = false
+					keyStateDown = false
+					// If the key was unpressed and is pressed
+				} else if !keyStateDown && p.Read() == gpio.Low {
+					out <- keyPress
+					pressTimer.Reset(pressTimerDur)
+					keyStateDown = true
 				}
 				timer.Reset(time.Millisecond * 50)
 				timerRunning = true
+			}
+			// if the time has expired, send out the keyHold
+		case <-pressTimer.C:
+			if keyStateDown && p.Read() == gpio.Low {
+				out <- keyHold
+				pressTimer.Stop()
+				scrolling = true
+			}
+		case <-scrollTicker.C:
+			if scrolling &&
+				keyStateDown &&
+				p.Read() == gpio.Low {
+				out <- keyHold
+			} else {
 			}
 		case <-timer.C:
 			timerRunning = false
@@ -98,16 +139,16 @@ func getch() []byte {
 func Run(in, out chan interface{}) {
 
 	if runtime.GOARCH == "arm" {
-		go keypad(out, "PA17", isdata.KeySK4)
-		go keypad(out, "PA15", isdata.KeySK3)
-		go keypad(out, "PA19", isdata.KeySK2)
-		go keypad(out, "PA18", isdata.KeySK1)
-		go keypad(out, "PA20", isdata.KeyLeft)
-		go keypad(out, "PA21", isdata.KeyUp)
-		go keypad(out, "PD10", isdata.KeyEnter)
-		go keypad(out, "PA12", isdata.KeyDown)
-		go keypad(out, "PA11", isdata.KeyRight)
-		go keypad(out, "PC25", isdata.KeyArm)
+		go keypad(out, "PA17", isdata.KeySK4, isdata.KeySK4Hold, isdata.KeySK4Release)
+		go keypad(out, "PA15", isdata.KeySK3, isdata.KeySK3Hold, isdata.KeySK3Release)
+		go keypad(out, "PA19", isdata.KeySK2, isdata.KeySK2Hold, isdata.KeySK2Release)
+		go keypad(out, "PA18", isdata.KeySK1, isdata.KeySK1Hold, isdata.KeySK1Release)
+		go keypad(out, "PA20", isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyLeftRelease)
+		go keypad(out, "PA21", isdata.KeyUp, isdata.KeyUpHold, isdata.KeyUpRelease)
+		go keypad(out, "PD10", isdata.KeyEnter, isdata.KeyEnterHold, isdata.KeyEnterRelease)
+		go keypad(out, "PA12", isdata.KeyDown, isdata.KeyDownHold, isdata.KeyDownRelease)
+		go keypad(out, "PA11", isdata.KeyRight, isdata.KeyRightHold, isdata.KeyRightRelease)
+		go keypad(out, "PC25", isdata.KeyArm, isdata.KeyArmHold, isdata.KeyArmRelease)
 	}
 
 	/*

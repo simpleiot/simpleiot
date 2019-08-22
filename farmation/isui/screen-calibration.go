@@ -34,16 +34,25 @@ func (s *CalibrationScreen) Render(img draw.Image) {
 	Clear(img)
 	Heading(img, "Calibration")
 	s.menu.Render(img)
+
+	/*if s.menu.GetArrowPos() != ? {
+		s.softKeys.SetHidden(SK2, true)
+	} else {
+		s.softKeys.SetHidden(SK2, false)
+	}*/
 	s.softKeys.Render(img, 0, 54)
 }
 
 // Key processes keypad input to this screen
 func (s *CalibrationScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1:
+	case isdata.KeySK1Hold:
+		s.menu.ResetArrowPos() // return arrow to top of screen
+		return ScreenIDHome, nil, true
+	case isdata.KeySK1Release:
 		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDPrev, nil, true
-	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+	case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyEnter, isdata.KeyEnterHold:
 		return s.menu.Key(key)
 	}
 

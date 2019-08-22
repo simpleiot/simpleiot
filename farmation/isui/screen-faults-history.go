@@ -86,18 +86,28 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 func (s *FaultsHistoryScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	if s.displayDetails {
 		switch key {
-		case isdata.KeySK1: // Back
+		case isdata.KeySK1Hold: // Back key held -> Home screen
+			s.menu.ResetArrowPos() // return arrow to top of screen
+			return ScreenIDHome, nil, true
+		case isdata.KeySK1Release: // Back
 			s.displayDetails = false
 		}
 	} else {
 		switch key {
-		case isdata.KeySK1: // Back
+		case isdata.KeySK1Hold: // Back key held -> Home screen
+			s.menu.ResetArrowPos() // return arrow to top of screen
+			s.dataLoaded = false
+			return ScreenIDHome, nil, true
+		case isdata.KeySK1Release: // Back
+			s.menu.ResetArrowPos() // return arrow to top of screen
 			s.dataLoaded = false
 			return ScreenIDPrev, nil, true
 		case isdata.KeyEnter, isdata.KeySK2: // Details
-			s.displayDetails = true
-			s.faultsHistDetails.fault = s.faults[len(s.faults)-1-s.menu.GetArrowPos()]
-		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft:
+			if len(s.faults) >= 1 {
+				s.displayDetails = true
+				s.faultsHistDetails.fault = s.faults[len(s.faults)-1-s.menu.GetArrowPos()]
+			}
+		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
 		}
 	}

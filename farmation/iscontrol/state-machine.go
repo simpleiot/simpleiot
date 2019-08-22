@@ -431,22 +431,29 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		sm.CurrentLedState = LedRed
 
+		sm.setState(shutdownDialogAck)
+		if sm.state.InputWaterOn == isdata.InputStateOn {
+			return append(ret, isdata.UpdateDialogStateMachineMessage("Failed to shutdown irrigator"), data.Sample{
+				Type: isdata.SampleTypeFaultShutdown,
+				Time: time.Now(),
+				Attributes: map[string]float64{
+					"inputInjector":  float64(sm.state.InputInjector),
+					"inputWaterOn":   float64(sm.state.InputWaterOn),
+					"inputIrrigator": float64(sm.state.InputIrrigator),
+				},
+			})
+		}
+
+		return append(ret, isdata.UpdateDialogStateMachineMessage("System shut down irrigator"))
+
+	case shutdownDialogAck:
+
+		sm.CurrentLedState = LedRed
+
 		if !sm.state.DialogStateMachine.Active {
 			sm.setState(standby)
-			if sm.state.InputWaterOn == isdata.InputStateOn {
-				return append(ret, isdata.UpdateDialogStateMachineMessage("Failed to shutdown irrigator"), data.Sample{
-					Type: isdata.SampleTypeFaultShutdown,
-					Time: time.Now(),
-					Attributes: map[string]float64{
-						"inputInjector":  float64(sm.state.InputInjector),
-						"inputWaterOn":   float64(sm.state.InputWaterOn),
-						"inputIrrigator": float64(sm.state.InputIrrigator),
-					},
-				})
-			}
-
-			return append(ret, isdata.UpdateDialogStateMachineMessage("System shut down irrigator"))
 		}
+
 	}
 
 	return

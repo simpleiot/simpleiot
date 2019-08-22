@@ -221,9 +221,11 @@ func (m *Menu) Render(img draw.Image) {
 
 	var menuSpacingValues = 11
 	var menuSpacingText = 11
-	if m.items[0].Type == MenuItemTypeFaultHistory || !m.showValues {
-		menuSpacingValues = 10
-		menuSpacingText = 10
+	if len(m.items) > 0 {
+		if m.items[0].Type == MenuItemTypeFaultHistory || !m.showValues {
+			menuSpacingValues = 10
+			menuSpacingText = 10
+		}
 	}
 
 	count := len(m.items)
@@ -392,14 +394,14 @@ func (m *Menu) ResetArrowPos() {
 // Key handles key input
 func (m *Menu) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeyUp:
+	case isdata.KeyUp, isdata.KeyUpHold:
 		m.arrowUp()
 		item := m.items[m.arrowPos]
 		// skip past menu break positions
 		if item.Type == MenuItemTypeBreak {
 			m.arrowUp()
 		}
-	case isdata.KeyDown:
+	case isdata.KeyDown, isdata.KeyDownHold:
 		if len(m.items) > 0 {
 			m.arrowDown()
 			item := m.items[m.arrowPos]

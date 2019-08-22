@@ -58,14 +58,17 @@ func (s *DiagDevNameScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		}
 	} else {
 		switch key {
-		case isdata.KeySK1: // Back
+		case isdata.KeySK1Hold:
+			s.menu.ResetArrowPos() // return arrow to top of screen
+			return ScreenIDHome, nil, true
+		case isdata.KeySK1Release:
 			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
 			s.enterEdit()
 		case isdata.KeyEnter: // Edit
 			s.enterEdit()
-		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft:
+		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
 		}
 	}

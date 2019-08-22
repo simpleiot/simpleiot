@@ -332,9 +332,12 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 					db.WriteSample(m)
 
 				case isdata.SampleTypeKey:
+					// this is used for the simulator
 					// convert from sample to key
 					key := isdata.KeyFromString(m.ID)
+					keyRel := isdata.KeyReleaseFromString(m.ID)
 					uiChan <- key
+					uiChan <- keyRel
 
 				case isdata.SampleTypeSimFlowRate:
 					flowChan <- m

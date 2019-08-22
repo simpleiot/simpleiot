@@ -14,10 +14,19 @@ type SoftKey struct {
 	blinking  bool
 	lastBlink time.Time
 	on        bool
+	hidden    bool
 }
 
 // SoftKeys is an array of 4 SoftKey types
 type SoftKeys [4]SoftKey
+
+// Convenience constants
+const (
+	SK1 int = iota
+	SK2
+	SK3
+	SK4
+)
 
 // NewSoftKeys creates soft keys with given items
 func NewSoftKeys(items ...string) *SoftKeys {
@@ -47,10 +56,15 @@ func (k *SoftKeys) SetLabel(index int, label string) {
 
 // SetBlinking sets blinking of soft key at index
 func (k *SoftKeys) SetBlinking(index int, blinking bool) {
-	//if !k[index].blinking {
-	//		k[index].lastBlink = time.Now()
-	//	}
 	k[index].blinking = blinking
+}
+
+// SetHidden hides/unhides a soft key
+// Used if the key doesn't apply to some of the menu
+// items on a screen (example: "reset" soft key and
+// non-resetable value)
+func (k *SoftKeys) SetHidden(index int, hidden bool) {
+	k[index].hidden = hidden
 }
 
 // location of menu strings:
@@ -63,7 +77,8 @@ var menuItemWidth = 27
 
 // Render renders the menu section of the screen
 func (k *SoftKeys) Render(img draw.Image, x, y int) {
-	if len(k[0].label) > 0 {
+	if len(k[0].label) > 0 &&
+		!k[0].hidden {
 		Polyline(img,
 			0, 55,
 			1, 54,
@@ -72,7 +87,8 @@ func (k *SoftKeys) Render(img draw.Image, x, y int) {
 			31, 63)
 	}
 
-	if len(k[1].label) > 0 {
+	if len(k[1].label) > 0 &&
+		!k[1].hidden {
 		Polyline(img,
 			31, 56,
 			33, 54,
@@ -81,7 +97,8 @@ func (k *SoftKeys) Render(img draw.Image, x, y int) {
 			63, 63)
 	}
 
-	if len(k[2].label) > 0 {
+	if len(k[2].label) > 0 &&
+		!k[2].hidden {
 		Polyline(img,
 			63, 56,
 			65, 54,
@@ -90,7 +107,8 @@ func (k *SoftKeys) Render(img draw.Image, x, y int) {
 			96, 63)
 	}
 
-	if len(k[3].label) > 0 {
+	if len(k[3].label) > 0 &&
+		!k[3].hidden {
 		Polyline(img,
 			96, 56,
 			98, 54,
@@ -99,16 +117,18 @@ func (k *SoftKeys) Render(img draw.Image, x, y int) {
 	}
 
 	for i := range k {
-		if k[i].blinking {
-			if time.Since(k[i].lastBlink) >= 490*time.Millisecond {
-				k[i].lastBlink = time.Now()
-				k[i].on = !k[i].on
-			}
-			if k[i].on {
+		if !k[i].hidden {
+			if k[i].blinking {
+				if time.Since(k[i].lastBlink) >= 490*time.Millisecond {
+					k[i].lastBlink = time.Now()
+					k[i].on = !k[i].on
+				}
+				if k[i].on {
+					drawKey(img, k[i].label, i, x, y)
+				}
+			} else {
 				drawKey(img, k[i].label, i, x, y)
 			}
-		} else {
-			drawKey(img, k[i].label, i, x, y)
 		}
 	}
 }

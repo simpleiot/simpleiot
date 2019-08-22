@@ -62,7 +62,7 @@ func (s *HomeScreen) Render(img draw.Image) {
 		DrawTxt(img, strconv.FormatFloat(lowBound, 'f', 1, 64), x, 32, agencyfbbold20.Font)
 	}
 
-	s.softKeys.SetBlinking(3, s.state.FaultsActive.ActiveFaults())
+	s.softKeys.SetBlinking(SK4, s.state.FaultsActive.ActiveFaults())
 	s.softKeys.Render(img, 0, 54)
 
 	// icons

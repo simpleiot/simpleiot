@@ -16,7 +16,7 @@ type TotalsScreen struct {
 
 // NewTotalsScreen gives new Totals screen to screen.go
 func NewTotalsScreen(state *isdata.State, config *isdata.Config) *TotalsScreen {
-	isdata.InitState(state) // make sure that FieldStates[s.config.CurrentFieldIndex] and FieldStates arrays are large enough
+	isdata.InitState(state)
 	menu := Menu{}
 
 	return &TotalsScreen{
@@ -43,6 +43,12 @@ func (s *TotalsScreen) Render(img draw.Image) {
 	s.menu.AddItemFloat("Lifetime Total", s.state.LifetimeTotal)
 
 	s.menu.Render(img)
+
+	if s.menu.GetArrowPos() == TotalScreenIndexLifetime {
+		s.softKeys.SetHidden(SK2, true)
+	} else {
+		s.softKeys.SetHidden(SK2, false)
+	}
 	s.softKeys.Render(img, 0, 54)
 }
 
@@ -58,7 +64,10 @@ const (
 // Key processes keypad input to this screen
 func (s *TotalsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1: // Back
+	case isdata.KeySK1Hold: // Back key held -> Home screen
+		s.menu.ResetArrowPos() // return arrow to top of screen
+		return ScreenIDHome, nil, true
+	case isdata.KeySK1Release: // Back
 		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDPrev, nil, true
 	case isdata.KeySK2: // Reset
@@ -72,7 +81,7 @@ func (s *TotalsScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			//case TotalScreenIndexLifetime:
 			//	return ScreenIDNoChange, isdata.UpdateResetLifetime{}, true
 		}
-	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+	case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyEnter, isdata.KeyEnterHold:
 		return s.menu.Key(key)
 	}
 

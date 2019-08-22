@@ -6,34 +6,60 @@ type Key int
 // define valid keys
 const (
 	KeyUnknown Key = iota
-	KeyUp
+	KeyUp          //Press
+	KeyUpHold
+	KeyUpRelease
 	KeyDown
+	KeyDownHold
+	KeyDownRelease
 	KeyLeft
+	KeyLeftHold
+	KeyLeftRelease
 	KeyRight
+	KeyRightHold
+	KeyRightRelease
 	KeyEnter
+	KeyEnterHold
+	KeyEnterRelease
 	KeySK1
-	KeySK1Release
 	KeySK1Hold
+	KeySK1Release
 	KeySK2
+	KeySK2Hold
 	KeySK2Release
 	KeySK3
+	KeySK3Hold
 	KeySK3Release
 	KeySK4
+	KeySK4Hold
 	KeySK4Release
 	KeyArm
+	KeyArmHold
+	KeyArmRelease
 )
 
 var keyToString = map[Key]string{
-	KeyUp:    "KeyUp",
-	KeyDown:  "KeyDown",
-	KeyRight: "KeyRight",
-	KeyLeft:  "KeyLeft",
-	KeyEnter: "KeyEnter",
-	KeySK1:   "KeySK1",
-	KeySK2:   "KeySK2",
-	KeySK3:   "KeySK3",
-	KeySK4:   "KeySK4",
-	KeyArm:   "KeyArm",
+	KeyUp:           "KeyUp",
+	KeyUpHold:       "KeyUpHold",
+	KeyUpRelease:    "KeyUpRelease",
+	KeyDown:         "KeyDown",
+	KeyDownRelease:  "KeyDownRelease",
+	KeyRight:        "KeyRight",
+	KeyRightRelease: "KeyRightRelease",
+	KeyLeft:         "KeyLeft",
+	KeyLeftRelease:  "KeyLeftRelease",
+	KeyEnter:        "KeyEnter",
+	KeyEnterRelease: "KeyEnterRelease",
+	KeySK1:          "KeySK1",
+	KeySK1Release:   "KeySK1Release",
+	KeySK2:          "KeySK2",
+	KeySK2Release:   "KeySK2Release",
+	KeySK3:          "KeySK3",
+	KeySK3Release:   "KeySK3Release",
+	KeySK4:          "KeySK4",
+	KeySK4Release:   "KeySK4Release",
+	KeyArm:          "KeyArm",
+	KeyArmRelease:   "KeyArmRelease",
 }
 
 func (k Key) String() string {
@@ -45,19 +71,35 @@ func (k Key) String() string {
 }
 
 var stringToKey = map[string]Key{
-	"KeyUp":    KeyUp,
-	"KeyDown":  KeyDown,
-	"KeyRight": KeyRight,
-	"KeyLeft":  KeyLeft,
-	"KeyEnter": KeyEnter,
-	"KeySK1":   KeySK1,
-	"KeySK2":   KeySK2,
-	"KeySK3":   KeySK3,
-	"KeySK4":   KeySK4,
-	"KeyArm":   KeyArm,
+	"KeyUp":           KeyUp,
+	"KeyUpRelease":    KeyUpRelease,
+	"KeyDown":         KeyDown,
+	"KeyDownRelease":  KeyDownRelease,
+	"KeyRight":        KeyRight,
+	"KeyRightRelease": KeyRightRelease,
+	"KeyLeft":         KeyLeft,
+	"KeyLeftRelease":  KeyLeftRelease,
+	"KeyEnter":        KeyEnter,
+	"KeyEnterRelease": KeyEnterRelease,
+	"KeySK1":          KeySK1,
+	"KeySK1Release":   KeySK1Release,
+	"KeySK2":          KeySK2,
+	"KeySK2Release":   KeySK2Release,
+	"KeySK3":          KeySK3,
+	"KeySK3Release":   KeySK3Release,
+	"KeySK4":          KeySK4,
+	"KeySK4Release":   KeySK4Release,
+	"KeyArm":          KeyArm,
+	"KeyArmRelease":   KeyArmRelease,
 }
 
 // KeyFromString converts a string to a key
 func KeyFromString(s string) Key {
 	return stringToKey[s]
+}
+
+// KeyReleaseFromString returns the corresponding
+// ...Release key for any key string
+func KeyReleaseFromString(s string) Key {
+	return KeyFromString(s + "Release")
 }

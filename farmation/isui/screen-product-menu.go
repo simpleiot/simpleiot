@@ -64,14 +64,17 @@ func (s *ProductMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		}
 	} else {
 		switch key {
-		case isdata.KeySK1: // Back
+		case isdata.KeySK1Hold: // Back key held -> Home screen
+			s.menu.ResetArrowPos() // return arrow to top of screen
+			return ScreenIDHome, nil, true
+		case isdata.KeySK1Release: // Back
 			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
 			s.edit = true
 			s.textEntryScreen.txtEdit = s.menu.Description()
 			s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit
-		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyEnter, isdata.KeyEnterHold:
 			return s.menu.Key(key)
 		}
 	}

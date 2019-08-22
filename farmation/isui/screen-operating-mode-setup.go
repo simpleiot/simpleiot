@@ -51,6 +51,12 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	} else { // render regular screen
 		Heading(img, "Operating Mode Setup")
 		s.menu.Render(img)
+
+		if s.menu.GetArrowPos() == 5 {
+			s.softKeys.SetHidden(SK2, true)
+		} else {
+			s.softKeys.SetHidden(SK2, false)
+		}
 		s.softKeys.Render(img, 0, 54)
 	}
 }
@@ -87,7 +93,10 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 		}
 	} else {
 		switch key {
-		case isdata.KeySK1: // Back
+		case isdata.KeySK1Hold: // Back key held -> Home screen
+			s.menu.ResetArrowPos() // return arrow to top of screen
+			return ScreenIDHome, nil, true
+		case isdata.KeySK1Release: // Back
 			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
@@ -103,7 +112,7 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 			default:
 				s.enterEdit()
 			}
-		case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft:
+		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
 		}
 	}

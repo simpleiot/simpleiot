@@ -83,17 +83,17 @@ func (ic *InputChars) Key(key isdata.Key) byte {
 	switch key {
 	case isdata.KeySK3: // Caps
 		currentInputChar = ic.Caps()
-	case isdata.KeyRight:
+	case isdata.KeyRight, isdata.KeyRightHold:
 		currentInputChar = ic.Right()
-	case isdata.KeyLeft:
+	case isdata.KeyLeft, isdata.KeyLeftHold:
 		currentInputChar = ic.Left()
-	case isdata.KeyUp:
+	case isdata.KeyUp, isdata.KeyUpHold:
 		if ic.numbersOnly {
 			currentInputChar = ic.Right()
 		} else {
 			currentInputChar = ic.Up()
 		}
-	case isdata.KeyDown:
+	case isdata.KeyDown, isdata.KeyDownHold:
 		if ic.numbersOnly {
 			currentInputChar = ic.Left()
 		} else {
