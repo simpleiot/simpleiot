@@ -2,8 +2,10 @@ package isio
 
 import (
 	"io"
+	"time"
 
 	"github.com/cbrake/go-serial/serial"
+	"github.com/simpleiot/simpleiot/respreader"
 )
 
 // defines for serial ports on IS
@@ -30,5 +32,12 @@ func OpenSerialModem() (io.ReadWriteCloser, error) {
 		RTSCTSFlowControl:     true,
 	}
 
-	return serial.Open(options)
+	port, err := serial.Open(options)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return respreader.NewResponseReadWriteCloser(port, 2*time.Second,
+		50*time.Millisecond), nil
 }
