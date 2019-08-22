@@ -2,11 +2,9 @@ package network
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"strings"
-	"time"
-
-	"github.com/simpleiot/simpleiot/respreader"
 )
 
 // Modem is a typethat defines a modem
@@ -16,10 +14,9 @@ type Modem struct {
 }
 
 // NewModem creates a new modem type
+//
+// port should be a respreader
 func NewModem(port io.ReadWriter, debug bool) *Modem {
-	port = respreader.NewResponseReadWriter(port, 2*time.Second,
-		50*time.Millisecond)
-
 	return &Modem{
 		port:  port,
 		debug: debug,
@@ -31,6 +28,13 @@ type ModemState struct {
 	Detected  bool
 	Connected bool
 	APN       string
+}
+
+func (ms ModemState) String() string {
+	ret := fmt.Sprintf("Detected: %v\nConnected: %v\nAPN: %v",
+		ms.Detected, ms.Connected, ms.APN)
+
+	return ret
 }
 
 // ModemSettings describe the current modem settings
@@ -68,6 +72,10 @@ func (m *Modem) Cmd(cmd string) (string, error) {
 	}
 
 	readStringS := strings.TrimSpace(string(readString))
+
+	if m.debug {
+		fmt.Printf("Modem: %v -> %v\n", cmd, readStringS)
+	}
 
 	return readStringS, nil
 }
