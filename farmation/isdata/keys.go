@@ -97,3 +97,9 @@ var stringToKey = map[string]Key{
 func KeyFromString(s string) Key {
 	return stringToKey[s]
 }
+
+// KeyReleaseFromString returns the corresponding
+// ...Release key for any key string
+func KeyReleaseFromString(s string) Key {
+	return KeyFromString(s + "Release")
+}
