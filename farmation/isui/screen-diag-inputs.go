@@ -43,6 +43,12 @@ func (s *DiagInputsScreen) Render(img draw.Image) {
 
 	Heading(img, "Diagnostics Inputs")
 	s.menu.Render(img)
+
+	if s.menu.GetArrowPos() != 6 { //Flow pulse count
+		s.softKeys.SetHidden(SK2, true)
+	} else {
+		s.softKeys.SetHidden(SK2, false)
+	}
 	s.softKeys.Render(img, 0, 54)
 }
 

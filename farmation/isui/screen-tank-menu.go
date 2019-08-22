@@ -45,6 +45,12 @@ func (s *TankMenuScreen) Render(img draw.Image) {
 		s.menu.Render(img)
 
 		Heading(img, "Tank Menu")
+
+		if s.menu.GetArrowPos() != 0 {
+			s.softKeys.SetHidden(SK2, true)
+		} else {
+			s.softKeys.SetHidden(SK2, false)
+		}
 		s.softKeys.Render(img, 0, 54)
 	}
 }

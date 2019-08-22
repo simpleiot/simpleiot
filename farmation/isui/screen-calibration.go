@@ -34,6 +34,12 @@ func (s *CalibrationScreen) Render(img draw.Image) {
 	Clear(img)
 	Heading(img, "Calibration")
 	s.menu.Render(img)
+
+	/*if s.menu.GetArrowPos() != ? {
+		s.softKeys.SetHidden(SK2, true)
+	} else {
+		s.softKeys.SetHidden(SK2, false)
+	}*/
 	s.softKeys.Render(img, 0, 54)
 }
 

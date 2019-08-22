@@ -16,7 +16,7 @@ type TotalsScreen struct {
 
 // NewTotalsScreen gives new Totals screen to screen.go
 func NewTotalsScreen(state *isdata.State, config *isdata.Config) *TotalsScreen {
-	isdata.InitState(state) // make sure that FieldStates[s.config.CurrentFieldIndex] and FieldStates arrays are large enough
+	isdata.InitState(state)
 	menu := Menu{}
 
 	return &TotalsScreen{
@@ -43,6 +43,12 @@ func (s *TotalsScreen) Render(img draw.Image) {
 	s.menu.AddItemFloat("Lifetime Total", s.state.LifetimeTotal)
 
 	s.menu.Render(img)
+
+	if s.menu.GetArrowPos() == TotalScreenIndexLifetime {
+		s.softKeys.SetHidden(SK2, true)
+	} else {
+		s.softKeys.SetHidden(SK2, false)
+	}
 	s.softKeys.Render(img, 0, 54)
 }
 

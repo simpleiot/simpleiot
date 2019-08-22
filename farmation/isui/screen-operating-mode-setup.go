@@ -51,6 +51,12 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	} else { // render regular screen
 		Heading(img, "Operating Mode Setup")
 		s.menu.Render(img)
+
+		if s.menu.GetArrowPos() == 5 {
+			s.softKeys.SetHidden(SK2, true)
+		} else {
+			s.softKeys.SetHidden(SK2, false)
+		}
 		s.softKeys.Render(img, 0, 54)
 	}
 }
