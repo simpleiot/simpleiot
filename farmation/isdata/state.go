@@ -228,6 +228,7 @@ func InitState(s *State) (dirty bool) {
 		s.SystemType = SystemTypeIS
 	} else {
 		s.SystemType = SystemTypeISSim
+		s.PanelDefinition = PanelDefinition{Type: PanelTypeStandardPump}
 	}
 
 	s.FlowRate = 0
