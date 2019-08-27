@@ -373,9 +373,10 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				Time:  time.Now(),
 				Value: sm.state.PressureMin,
 				Attributes: map[string]float64{
-					"inputInjector":  float64(sm.state.InputInjector),
-					"inputWaterOn":   float64(sm.state.InputWaterOn),
-					"inputIrrigator": float64(sm.state.InputIrrigator),
+					"inputInjector":     float64(sm.state.InputInjector),
+					"inputWaterOn":      float64(sm.state.InputWaterOn),
+					"inputIrrigator":    float64(sm.state.InputIrrigator),
+					"shutdownThreshold": sm.config.PressureShutdownLow,
 				},
 			})
 		}
