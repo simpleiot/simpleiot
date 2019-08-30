@@ -1,5 +1,7 @@
 . ./envsetup.sh
 
+# IS Web UI
+
 is_setup() {
   app_setup
 }
@@ -87,4 +89,48 @@ is_run() {
 
 is_build_gpio_test() {
   GOARCH="arm" go build -o gpio-test farmation/cmd/gpio-test/main.go
+}
+
+# Portal
+
+portal_build_frontend() {
+  (cd frontend && elm make src/Farmation/Portal/Main.elm --output=public/elm.js) || return 1
+  (cd frontend && cp index.html public/) || return 1
+  return 0
+}
+
+portal_build_assets() {
+  mkdir -p farmation/assets/portal || return 1
+  genesis -C frontend/public -pkg portal\
+    index.html \
+    elm.js \
+    >farmation/assets/portal/assets.go || return 1
+
+  #genesis -C farmation/assets/portalassets -pkg portalassets \
+    #$(
+      #cd farmation/assets/portalassets
+      #ls *.png
+    #) \
+    #>farmation/assets/portalassets/assets.go || return 1
+
+  return 0
+}
+
+portal_build_dependencies() {
+  portal_build_frontend || return 1
+  portal_build_assets || return 1
+  return 0
+}
+
+portal_build() {
+  portal_build_dependencies || return 1
+  go build -o is farmation/cmd/portal/main.go || return 1
+  return 0
+
+}
+
+portal_run() {
+  portal_build_dependencies || return 1
+  go run farmation/cmd/portal/main.go || return 1
+  return 0
 }
