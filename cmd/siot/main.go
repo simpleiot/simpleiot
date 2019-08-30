@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/simpleiot/simpleiot/api"
+	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/sim"
 )
 
@@ -20,7 +21,7 @@ func main() {
 	}
 
 	// default action is to start server
-	err := api.Server()
+	err := api.Server(frontend.Asset, frontend.FileSystem())
 	if err != nil {
 		log.Println("Error starting server: ", err)
 	}

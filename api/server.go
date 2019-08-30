@@ -8,16 +8,17 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/db"
 )
 
 // IndexHandler is used to serve the index page
-type IndexHandler struct{}
+type IndexHandler struct {
+	getAsset func(string) []byte
+}
 
 func (h *IndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	fmt.Println("indexHandler")
-	f := frontend.Asset("/index.html")
+	f := h.getAsset("/index.html")
 	if f == nil {
 		rw.WriteHeader(http.StatusNotFound)
 	} else {
@@ -27,8 +28,8 @@ func (h *IndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 // NewIndexHandler returns a new Index handler
-func NewIndexHandler() http.Handler {
-	return &IndexHandler{}
+func NewIndexHandler(getAsset func(string) []byte) http.Handler {
+	return &IndexHandler{getAsset: getAsset}
 }
 
 // App is a struct that implements http.Handler interface
@@ -60,16 +61,17 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewAppHandler returns a new application (root) http handler
-func NewAppHandler(db *db.Db) http.Handler {
+func NewAppHandler(db *db.Db, getAsset func(string) []byte,
+	filesystem http.FileSystem) http.Handler {
 	return &App{
-		PublicHandler: http.FileServer(frontend.FileSystem()),
-		IndexHandler:  NewIndexHandler(),
+		PublicHandler: http.FileServer(filesystem),
+		IndexHandler:  NewIndexHandler(getAsset),
 		V1ApiHandler:  NewV1Handler(db),
 	}
 }
 
 // Server starts a API server instance
-func Server() error {
+func Server(getAsset func(string) []byte, filesystem http.FileSystem) error {
 	log.Println("Starting http server")
 
 	port := os.Getenv("SIOT_PORT")
@@ -90,5 +92,5 @@ func Server() error {
 
 	log.Println("Starting portal on port: ", port)
 	address := fmt.Sprintf(":%s", port)
-	return http.ListenAndServe(address, NewAppHandler(db))
+	return http.ListenAndServe(address, NewAppHandler(db, getAsset, filesystem))
 }
