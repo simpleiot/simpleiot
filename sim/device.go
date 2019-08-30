@@ -53,12 +53,23 @@ func DeviceSim(portal, deviceID string) {
 	voltSim := NewSim(2, 0.1, 1, 5)
 
 	for {
-		tempSample := data.NewSample("T0", "T0", tempSim.Sim())
+		tempSample := data.Sample{
+			ID:    "T0",
+			Type:  "temp",
+			Value: tempSim.Sim(),
+		}
+
 		err := sendSample(deviceID, tempSample)
 		if err != nil {
 			log.Println("Error sending sample: ", err)
 		}
-		voltSample := data.NewSample("V0", "V0", voltSim.Sim())
+
+		voltSample := data.Sample{
+			ID:    "V0",
+			Type:  "volt",
+			Value: voltSim.Sim(),
+		}
+
 		err = sendSample(deviceID, voltSample)
 		if err != nil {
 			log.Println("Error sending sample: ", err)
