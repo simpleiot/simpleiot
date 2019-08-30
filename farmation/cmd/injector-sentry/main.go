@@ -10,6 +10,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/diag"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/islog"
+	"github.com/simpleiot/simpleiot/network"
 )
 
 func main() {
@@ -22,6 +23,7 @@ func main() {
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDataDir := flag.String("datadir", "", "directory to store data in")
 	flagReadPressure := flag.Bool("readPressure", false, "read pressure sensor")
+	flagModemState := flag.Bool("modemState", false, "read modem state")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -53,6 +55,28 @@ func main() {
 
 		fmt.Printf("Pressure ref: %v, sense: %v, pres: %v\n", ref, sense, pres)
 		os.Exit(0)
+	}
+
+	if *flagModemState {
+		isio.GpioInit()
+		p, err := isio.OpenSerialModem()
+		if err != nil {
+			log.Println("Error opening modem port: ", err)
+			os.Exit(-1)
+		}
+
+		m := network.NewModem(p, true)
+
+		s, err := m.GetState()
+
+		if err != nil {
+			log.Println("Error getting modem state: ", err)
+			os.Exit(1)
+		}
+
+		fmt.Println("modem state:\n", s)
+		os.Exit(0)
+
 	}
 
 	if *flagSyslog {

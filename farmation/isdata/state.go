@@ -228,6 +228,9 @@ func InitState(s *State) (dirty bool) {
 		s.SystemType = SystemTypeIS
 	} else {
 		s.SystemType = SystemTypeISSim
+		// the Sim UI starts with panel set to standard pivot, so
+		// we need to do the same here
+		s.PanelDefinition = PanelDefinition{Type: PanelTypeStandardPivot}
 	}
 
 	s.FlowRate = 0

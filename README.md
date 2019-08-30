@@ -18,7 +18,7 @@ simulator on a local machine. The device simulator simulates sending sensor
 data to the server.
 
 - make sure Go v1.11 or newer is installed
-- `go get github.com/simpleiot/simpleiot/cmd/siot`
+- `go get -u github.com/simpleiot/simpleiot/cmd/siot`
 - start server: `~/go/bin/siot`
 - start device simulator: `~/go/bin/siot -sim`
 - open http://localhost:8080

@@ -80,6 +80,11 @@ siot_run() {
   return 0
 }
 
+siot_run_device_sim() {
+  go run cmd/device-sim/main.go || return 1
+  return 0
+}
+
 siot_build_docs() {
   snowboard lint docs/api.apib
   snowboard html docs/api.apib -o docs/api.html

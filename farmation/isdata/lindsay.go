@@ -30,7 +30,7 @@ const (
 	LindsayStateLowFlowWarn                      = 0x1A
 	LindsayStateSoftBarrierWarn                  = 0x1E
 	LindsayStatePositionError                    = 0x21
-	LindsayStateRunningNoPos                     = 0x29
+	LindsayStatePositionDelay                    = 0x29
 )
 
 func (ls LindsayState) String() (ret string) {
@@ -71,8 +71,8 @@ func (ls LindsayState) String() (ret string) {
 		ret = "Soft Barrier Warn" //Soft Barrier Warning
 	case LindsayStatePositionError:
 		ret = "Pos. Err" //Position Error
-	case LindsayStateRunningNoPos:
-		ret = "Run No Pos." //Running No Position
+	case LindsayStatePositionDelay:
+		ret = "Position Delay"
 	default:
 		ret = "Unknown"
 	}
@@ -151,7 +151,7 @@ func (lsr *LindsayStatusRegs) AutoRestart() bool {
 
 // IrrigatorRunning indicates of irrigator is running
 func (lsr *LindsayStatusRegs) IrrigatorRunning() bool {
-	return ((lsr.State&(1<<4)) != 0 &&
+	return (((lsr.State&(1<<4)) != 0 || lsr.State == LindsayStatePositionDelay) &&
 		(lsr.Forward() || lsr.Reverse()))
 }
 
