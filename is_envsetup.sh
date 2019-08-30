@@ -5,8 +5,9 @@ is_setup() {
 }
 
 is_build_frontend() {
-  (cd frontend && elm make src/Farmation/Is/Main.elm --output=public/elm.js) || return 1
-  (cd frontend && cp index.html public/) || return 1
+  rm frontend/output/*
+  (cd frontend && elm make src/Farmation/Is/Main.elm --output=output/elm.js) || return 1
+  (cd frontend && cp public/index.html output/) || return 1
   return 0
 }
 
@@ -39,7 +40,7 @@ is_gen_fonts() {
 
 is_build_assets() {
   mkdir -p farmation/assets/isfrontend || return 1
-  genesis -C frontend/public -pkg isfrontend \
+  genesis -C frontend/output -pkg isfrontend \
     index.html \
     elm.js \
     >farmation/assets/isfrontend/assets.go || return 1
