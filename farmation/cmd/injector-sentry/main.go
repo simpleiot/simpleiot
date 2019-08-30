@@ -24,6 +24,8 @@ func main() {
 	flagDataDir := flag.String("datadir", "", "directory to store data in")
 	flagReadPressure := flag.Bool("readPressure", false, "read pressure sensor")
 	flagModemState := flag.Bool("modemState", false, "read modem state")
+	flagModemSettings := flag.Bool("modemSettings", false, "read modem settings")
+	flagModemDebug := flag.Bool("modemDebug", false, "enable modem debugging")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -65,7 +67,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		m := network.NewModem(p, true)
+		m := network.NewModem(p, *flagModemDebug)
 
 		s, err := m.GetState()
 
@@ -76,7 +78,27 @@ func main() {
 
 		fmt.Println("modem state:\n", s)
 		os.Exit(0)
+	}
 
+	if *flagModemSettings {
+		isio.GpioInit()
+		p, err := isio.OpenSerialModem()
+		if err != nil {
+			log.Println("Error opening modem port: ", err)
+			os.Exit(-1)
+		}
+
+		m := network.NewModem(p, *flagModemDebug)
+
+		s, err := m.GetSettings()
+
+		if err != nil {
+			log.Println("Error getting modem settings: ", err)
+			os.Exit(1)
+		}
+
+		fmt.Println("modem settings:\n", s)
+		os.Exit(0)
 	}
 
 	if *flagSyslog {
@@ -92,5 +114,14 @@ func main() {
 	if *flagDataDir == "" {
 		*flagDataDir = "./"
 	}
-	app.Run(*flagSim, *flagDebugState, *flagDebugConfig, *flagDataDir)
+
+	params := app.Params{
+		Sim:         *flagSim,
+		DataDir:     *flagDataDir,
+		DebugState:  *flagDebugState,
+		DebugConfig: *flagDebugConfig,
+		DebugModem:  *flagModemDebug,
+	}
+
+	app.Run(params)
 }

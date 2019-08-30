@@ -28,9 +28,18 @@ import (
 	"github.com/simpleiot/simpleiot/file"
 )
 
+// Params are used to configure the app
+type Params struct {
+	Sim         bool
+	DataDir     string
+	DebugState  bool
+	DebugConfig bool
+	DebugModem  bool
+}
+
 // Run is the entry point for the IS application
-func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
-	db, err := isdb.NewDb(dataDir)
+func Run(params Params) {
+	db, err := isdb.NewDb(params.DataDir)
 
 	if err != nil {
 		// FIXME this error  should display a message on screen to run recovery
@@ -49,7 +58,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		Type: data.SampleTypeStartApp,
 	})
 
-	log.Println("Data directory: ", dataDir)
+	log.Println("Data directory: ", params.DataDir)
 
 	isio.GpioInit()
 
@@ -125,7 +134,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go isapi.Server(webChan, appChan)
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
-	go isflow.Run(flowChan, appChan, sim, config)
+	go isflow.Run(flowChan, appChan, params.Sim, config)
 	go islog.Run(logChan, appChan, db)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
@@ -133,7 +142,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	lastFillingWarning := time.Time{}
 
 	saveConfig := func() {
-		if debugConfig {
+		if params.DebugConfig {
 			fmt.Printf("Config: %+v\n", config)
 		}
 		uiChan <- config
@@ -152,7 +161,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	var lastStateSend time.Time
 
 	saveState := func() {
-		if debugState {
+		if params.DebugState {
 			fmt.Println("State:")
 			spew.Dump(state)
 		}
