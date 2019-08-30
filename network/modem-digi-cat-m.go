@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -12,15 +13,17 @@ import (
 type Modem struct {
 	port  io.ReadWriter
 	debug bool
+	apn   string
 }
 
 // NewModem creates a new modem type
 //
 // port should be a respreader
-func NewModem(port io.ReadWriter, debug bool) *Modem {
+func NewModem(port io.ReadWriter, apn string, debug bool) *Modem {
 	return &Modem{
 		port:  port,
 		debug: debug,
+		apn:   apn,
 	}
 }
 
@@ -117,9 +120,60 @@ func (mi ModemInfo) String() string {
 // Configure is used to set up the modem
 func (m *Modem) Configure() error {
 	// try 3 times
+	var err error
+	changed := false
+
 	for try := 0; try < 3; try++ {
+		err := m.SwitchCmdMode()
+		if err != nil {
+			continue
+		}
+		var settings ModemSettings
+		settings, err = m.GetSettings()
+		if err != nil {
+			continue
+		}
+
+		if settings.APN != m.apn {
+			log.Println("Modem: updating APN")
+			changed = true
+			err = m.SetAPN()
+			if err != nil {
+				continue
+			}
+		}
+
+		if settings.CarrierProfile != CarrierProfileNone {
+			log.Println("Modem: updating Carrier profile")
+			changed = true
+			err = m.SetCarrierProfile(CarrierProfileNone)
+			if err != nil {
+				continue
+			}
+		}
+
+		if settings.Technology != TechnologyLTEM {
+			log.Println("Modem: updating technology")
+			changed = true
+			err = m.SetTechnology(TechnologyLTEM)
+			if err != nil {
+				continue
+			}
+		}
+
+		if changed {
+			err = m.WriteRestart()
+			if err != nil {
+				continue
+			}
+		}
+
+		// if we got this far, everything must have worked so
+		// we're done
+		break
 	}
-	return nil
+
+	return err
 }
 
 // Cmd a command to modem and read response
@@ -295,6 +349,67 @@ func (m *Modem) GetInfo() (ret ModemInfo, err error) {
 }
 
 // SetAPN is used to set the modem APN
+// assumes modem is in command mode
 func (m *Modem) SetAPN() error {
+	resp, err := m.Cmd("ATAN " + m.apn)
+	if err != nil {
+		return err
+	}
+
+	if resp != "OK" {
+		return fmt.Errorf("unexpected response: %v", resp)
+	}
+
+	return nil
+}
+
+// WriteRestart write changes to non-voltatile memory and issues a reset
+func (m *Modem) WriteRestart() error {
+	resp, err := m.Cmd("ATWR")
+	if err != nil {
+		return err
+	}
+
+	if resp != "OK" {
+		return fmt.Errorf("unexpected response: %v", resp)
+	}
+
+	resp, err = m.Cmd("ATFR")
+	if err != nil {
+		return err
+	}
+
+	if resp != "OK" {
+		return fmt.Errorf("unexpected response: %v", resp)
+	}
+
+	return nil
+}
+
+// SetCarrierProfile updates the carrier profile in the modem
+func (m *Modem) SetCarrierProfile(profile CarrierProfile) error {
+	resp, err := m.Cmd("ATCP" + strconv.Itoa(int(profile)))
+	if err != nil {
+		return err
+	}
+
+	if resp != "OK" {
+		return fmt.Errorf("unexpected response: %v", resp)
+	}
+
+	return nil
+}
+
+// SetTechnology updates the network technology setting in the modem
+func (m *Modem) SetTechnology(tech Technology) error {
+	resp, err := m.Cmd("ATN#" + strconv.Itoa(int(tech)))
+	if err != nil {
+		return err
+	}
+
+	if resp != "OK" {
+		return fmt.Errorf("unexpected response: %v", resp)
+	}
+
 	return nil
 }
