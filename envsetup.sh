@@ -41,14 +41,15 @@ siot_setup() {
 }
 
 siot_build_frontend() {
-  (cd frontend && elm make src/Main.elm --output=public/elm.js) || return 1
-  (cd frontend && cp index.html public/) || return 1
+  rm frontend/output/*
+  (cd frontend && elm make src/Main.elm --output=output/elm.js) || return 1
+  (cd frontend && cp public/* output/) || return 1
   return 0
 }
 
 siot_build_assets() {
   mkdir -p assets/frontend || return 1
-  genesis -C frontend/public -pkg frontend \
+  genesis -C frontend/output -pkg frontend \
     index.html \
     elm.js \
     simple-iot-app-logo.png \
