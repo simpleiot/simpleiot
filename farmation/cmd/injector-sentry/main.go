@@ -27,6 +27,7 @@ func main() {
 	flagModemSettings := flag.Bool("modemSettings", false, "read modem settings")
 	flagModemInfo := flag.Bool("modemInfo", false, "read modem info")
 	flagModemDebug := flag.Bool("modemDebug", false, "enable modem debugging")
+	flagModemConfigure := flag.Bool("modemConfigure", false, "configure modem")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -60,7 +61,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *flagModemState {
+	newModem := func() *network.Modem {
 		isio.GpioInit()
 		p, err := isio.OpenSerialModem()
 		if err != nil {
@@ -68,8 +69,12 @@ func main() {
 			os.Exit(-1)
 		}
 
-		m := network.NewModem(p, *flagModemDebug)
+		return network.NewModem(p, "hologram", *flagModemDebug)
 
+	}
+
+	if *flagModemState {
+		m := newModem()
 		s, err := m.GetState()
 
 		if err != nil {
@@ -82,15 +87,7 @@ func main() {
 	}
 
 	if *flagModemSettings {
-		isio.GpioInit()
-		p, err := isio.OpenSerialModem()
-		if err != nil {
-			log.Println("Error opening modem port: ", err)
-			os.Exit(-1)
-		}
-
-		m := network.NewModem(p, *flagModemDebug)
-
+		m := newModem()
 		s, err := m.GetSettings()
 
 		if err != nil {
@@ -103,15 +100,7 @@ func main() {
 	}
 
 	if *flagModemInfo {
-		isio.GpioInit()
-		p, err := isio.OpenSerialModem()
-		if err != nil {
-			log.Println("Error opening modem port: ", err)
-			os.Exit(-1)
-		}
-
-		m := network.NewModem(p, *flagModemDebug)
-
+		m := newModem()
 		i, err := m.GetInfo()
 
 		if err != nil {
@@ -120,6 +109,16 @@ func main() {
 		}
 
 		fmt.Printf("modem info:\n%v\n", i)
+		os.Exit(0)
+	}
+
+	if *flagModemConfigure {
+		m := newModem()
+		err := m.Configure()
+		if err != nil {
+			log.Println("Error configuring modem: ", err)
+		}
+		log.Println("modem configured")
 		os.Exit(0)
 	}
 
