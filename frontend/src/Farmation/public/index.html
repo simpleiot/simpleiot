@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Simple • IoT</title>
+    <script type="text/javascript" src="public/elm.js"></script>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  </head>
+
+    <body>
+    </body>
+
+    <script type="text/javascript">
+      var app = Elm.Main.init();
+
+
+      var loc = window.location, new_uri;
+      if (loc.protocol === "https:") {
+        ws_uri = "wss:";
+      } else {
+        ws_uri = "ws:";
+      }
+      ws_uri += "//" + loc.host;
+      ws_uri += "/ws";
+      var conn = new WebSocket(ws_uri);
+      conn.onclose = function(evt) {
+        console.log("WS connection closed");
+      }
+      conn.onmessage = function(evt) {
+        var obj = JSON.parse(evt.data);
+        app.ports.portIn.send(obj);
+      }
+
+      console.log("app.ports: ", app.ports)
+      app.ports.portOut.subscribe(function(data) {
+        conn.send(JSON.stringify(data))
+      });
+
+    </script>
+</html>
