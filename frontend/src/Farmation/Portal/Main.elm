@@ -374,7 +374,7 @@ update msg model =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "Simple • IoT"
+    { title = "Farmation"
     , body =
         [ div []
             [ menu model
@@ -389,19 +389,22 @@ menu : Model -> Html Msg
 menu model =
     Navbar.config NavbarMsg
         |> Navbar.withAnimation
-        |> Navbar.brand [ href "#" ] [ img [ src "/public/simple-iot-app-logo.png", width 83, height 25 ] [] ]
-        |> Navbar.items
-            [ Navbar.itemLink [ href "#" ] [ text "Item 1" ]
-            , Navbar.itemLink [ href "#" ] [ text "Item 2" ]
-            ]
+        |> Navbar.brand [ href "#" ] [ img [ src "public/farmation-logo.png", width 254, height 63] [] ]
+        --|> Navbar.items
+            --[ Navbar.itemLink [ href "#" ] [ text "Item 1" ]
+            --, Navbar.itemLink [ href "#" ] [ text "Item 2" ]
+            --]
         |> Navbar.view model.navbarState
 
 
 mainContent : Model -> Html Msg
 mainContent model =
-    Grid.container []
-        [ h1 [] [ text "Devices" ]
-        , renderDevices model
+    div []
+        [ h1 [] [ text "IS Cloud Dashboard" ]
+        , Grid.container []
+            [ h1 [] [ text "IS Name" ]
+            , renderDevices model
+            ]
         ]
 
 
