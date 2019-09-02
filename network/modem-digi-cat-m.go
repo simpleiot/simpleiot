@@ -162,7 +162,12 @@ func (m *Modem) Configure() error {
 		}
 
 		if changed {
-			err = m.WriteRestart()
+			err = m.Write()
+			if err != nil {
+				continue
+			}
+
+			err = m.Reset()
 			if err != nil {
 				continue
 			}
@@ -269,12 +274,12 @@ func (m *Modem) GetState() (ret ModemState, err error) {
 		return
 	}
 
-	db, err := strconv.Atoi(resp)
+	db, err := strconv.ParseInt(resp, 16, 32)
 	if err != nil {
 		return
 	}
 
-	ret.Signal = db
+	ret.Signal = int(db)
 
 	return
 }
@@ -363,8 +368,8 @@ func (m *Modem) SetAPN() error {
 	return nil
 }
 
-// WriteRestart write changes to non-voltatile memory and issues a reset
-func (m *Modem) WriteRestart() error {
+// Write stores changes to non-voltatile memory
+func (m *Modem) Write() error {
 	resp, err := m.Cmd("ATWR")
 	if err != nil {
 		return err
@@ -374,7 +379,12 @@ func (m *Modem) WriteRestart() error {
 		return fmt.Errorf("unexpected response: %v", resp)
 	}
 
-	resp, err = m.Cmd("ATFR")
+	return nil
+}
+
+// Reset modem
+func (m *Modem) Reset() error {
+	resp, err := m.Cmd("ATFR")
 	if err != nil {
 		return err
 	}

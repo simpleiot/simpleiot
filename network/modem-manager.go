@@ -90,7 +90,15 @@ func (mm *ModemManager) stateMachine(modemState ModemState) {
 			if modemState.Connected {
 				mm.setState(StateConnected)
 			}
-			// TODO add timeout and reset modem
+
+			if time.Since(mm.stateStart) > time.Minute {
+				log.Println("Modem disconnected timeout -- resetting modem")
+				err := mm.modem.Reset()
+				if err != nil {
+					log.Println("Error resetting modem: ", err)
+				}
+				mm.setState(StateNotDetected)
+			}
 		case StateConnected:
 			if !modemState.Connected {
 				mm.setState(StateDisconnected)
