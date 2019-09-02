@@ -94,7 +94,7 @@ is_build_gpio_test() {
 
 # Portal
 
-portal_build_frontend() {
+is_portal_build_frontend() {
   rm frontend/output/*
   (cd frontend && elm make src/Farmation/Portal/Main.elm --output=output/elm.js) || return 1
   (cd frontend && cp src/Farmation/public/index.html output/) || return 1
@@ -102,9 +102,9 @@ portal_build_frontend() {
   return 0
 }
 
-portal_build_assets() {
+is_portal_build_assets() {
   mkdir -p farmation/assets/portal || return 1
-  genesis -C frontend/output -pkg portal\
+  genesis -C frontend/output -pkg portal \
     index.html \
     elm.js \
     farmation-logo.png \
@@ -112,20 +112,19 @@ portal_build_assets() {
   return 0
 }
 
-portal_build_dependencies() {
+is_portal_build_dependencies() {
   portal_build_frontend || return 1
   portal_build_assets || return 1
   return 0
 }
 
-portal_build() {
+is_portal_build() {
   portal_build_dependencies || return 1
-  go build -o is farmation/cmd/portal/main.go || return 1
+  go build -o is-portal farmation/cmd/portal/main.go || return 1
   return 0
-
 }
 
-portal_run() {
+is_portal_run() {
   portal_build_dependencies || return 1
   go run farmation/cmd/portal/main.go || return 1
   return 0
