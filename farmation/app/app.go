@@ -20,12 +20,14 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/islcd"
 	"github.com/simpleiot/simpleiot/farmation/islog"
+	"github.com/simpleiot/simpleiot/farmation/isnetwork"
 	"github.com/simpleiot/simpleiot/farmation/ispressure"
 	"github.com/simpleiot/simpleiot/farmation/isserial"
 	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
 	"github.com/simpleiot/simpleiot/file"
+	"github.com/simpleiot/simpleiot/network"
 )
 
 // Params are used to configure the app
@@ -107,6 +109,7 @@ func Run(params Params) {
 	logChan := make(chan interface{}, 1000)
 	presChan := make(chan interface{}, 1000)
 	serialChan := make(chan interface{}, 1000)
+	networkChan := make(chan interface{}, 100)
 
 	channels := []struct {
 		name    string
@@ -124,6 +127,7 @@ func Run(params Params) {
 		{"log", logChan},
 		{"pres", presChan},
 		{"serial", serialChan},
+		{"network", networkChan},
 	}
 
 	// fire up subsystems
@@ -138,6 +142,7 @@ func Run(params Params) {
 	go islog.Run(logChan, appChan, db)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
+	go isnetwork.Run(networkChan, appChan)
 
 	lastFillingWarning := time.Time{}
 
@@ -795,6 +800,10 @@ func Run(params Params) {
 
 			case isdata.PanelDefinition:
 				newPanelType(m)
+
+			case network.ModemState:
+				state.ModemState = m
+				saveState()
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why

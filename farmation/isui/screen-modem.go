@@ -1,0 +1,73 @@
+package isui
+
+import (
+	"image/draw"
+	"strconv"
+
+	"github.com/simpleiot/simpleiot/farmation/isdata"
+)
+
+// ModemScreen ethernet screen
+type ModemScreen struct {
+	softKeys *SoftKeys
+	state    *isdata.State
+	config   *isdata.Config
+	menu     Menu
+}
+
+// NewModemScreen creates a modem information screen
+func NewModemScreen(state *isdata.State, config *isdata.Config) *ModemScreen {
+	isdata.InitState(state) // make sure that ProductStates and FieldStates arrays are large enough
+	menu := Menu{}
+
+	return &ModemScreen{
+		// update this from sample screen
+		softKeys: NewSoftKeys("back"),
+		state:    state,
+		config:   config,
+		menu:     menu,
+	}
+}
+
+// Render updates the home screen, and provides an image
+func (s *ModemScreen) Render(img draw.Image) {
+	Clear(img)
+	s.menu.ResetItems()
+
+	Heading(img, "Modem")
+
+	detected := "no"
+	connected := "no"
+	signal := strconv.Itoa(s.state.ModemState.Signal)
+
+	if s.state.ModemState.Detected {
+		detected = "yes"
+	}
+
+	if s.state.ModemState.Connected {
+		connected = "yes"
+	}
+
+	s.menu.AddItemString("Detected", detected)
+	s.menu.AddItemString("Connected", connected)
+	s.menu.AddItemString("Signal", signal)
+	s.menu.AddItemString("Operator", s.state.ModemState.Operator)
+	s.menu.Render(img)
+	s.softKeys.Render(img, 0, 54)
+}
+
+// Key processes keypad input to this screen
+func (s *ModemScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
+	switch key {
+	case isdata.KeySK1Hold: // Back key held -> Home screen
+		s.menu.ResetArrowPos() // return arrow to top of screen
+		return ScreenIDHome, nil, true
+	case isdata.KeySK1Release: // Back
+		s.menu.ResetArrowPos() // return arrow to top of screen
+		return ScreenIDPrev, nil, true
+	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+		return s.menu.Key(key)
+	}
+
+	return ScreenIDNoChange, nil, true
+}

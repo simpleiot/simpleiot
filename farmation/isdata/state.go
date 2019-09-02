@@ -7,6 +7,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/version"
+	"github.com/simpleiot/simpleiot/network"
 )
 
 // State contains the current injectory sentry state.
@@ -95,6 +96,9 @@ type State struct {
 	DialogUnknownVisionState Dialog `json:"dialogUnknownVisionState"`
 
 	OSVersion semver.Version `json:"osVersion"`
+
+	// network information
+	ModemState network.ModemState `json:"modemState"`
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config
@@ -260,6 +264,8 @@ func InitState(s *State) (dirty bool) {
 	s.OSVersion, _ = version.ReadOSVersion()
 
 	s.LindsayRegs = LindsayStatusRegs{}
+
+	s.ModemState = network.ModemState{}
 
 	return
 }
