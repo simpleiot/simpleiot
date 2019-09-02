@@ -389,22 +389,18 @@ menu : Model -> Html Msg
 menu model =
     Navbar.config NavbarMsg
         |> Navbar.withAnimation
-        |> Navbar.brand [ href "#" ] [ img [ src "public/farmation-logo.png", width 254, height 63] [] ]
+        |> Navbar.brand [ href "#" ] [ img [ src "public/farmation-logo.png", width 254, height 63 ] [] ]
         --|> Navbar.items
-            --[ Navbar.itemLink [ href "#" ] [ text "Item 1" ]
-            --, Navbar.itemLink [ href "#" ] [ text "Item 2" ]
-            --]
+        --[ Navbar.itemLink [ href "#" ] [ text "Item 1" ]
+        --, Navbar.itemLink [ href "#" ] [ text "Item 2" ]
+        --]
         |> Navbar.view model.navbarState
 
 
 mainContent : Model -> Html Msg
 mainContent model =
-    div []
-        [ h1 [] [ text "IS Cloud Dashboard" ]
-        , Grid.container []
-            [ h1 [] [ text "IS Name" ]
-            , renderDevices model
-            ]
+    Grid.container []
+        [ renderDevices model
         ]
 
 
