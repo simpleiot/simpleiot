@@ -113,19 +113,19 @@ is_portal_build_assets() {
 }
 
 is_portal_build_dependencies() {
-  portal_build_frontend || return 1
-  portal_build_assets || return 1
+  is_portal_build_frontend || return 1
+  is_portal_build_assets || return 1
   return 0
 }
 
 is_portal_build() {
-  portal_build_dependencies || return 1
+  is_portal_build_dependencies || return 1
   go build -o is-portal farmation/cmd/portal/main.go || return 1
   return 0
 }
 
 is_portal_run() {
-  portal_build_dependencies || return 1
+  is_portal_build_dependencies || return 1
   go run farmation/cmd/portal/main.go || return 1
   return 0
 }
