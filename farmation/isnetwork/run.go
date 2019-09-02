@@ -26,6 +26,17 @@ func Run(in, out chan interface{}) {
 	modemPoll := time.NewTicker(time.Second * 10)
 	modemState := network.ModemState{}
 
+	if modemManager != nil {
+		s, err := modemManager.GetState()
+		if err != nil {
+			log.Println("Error getting modem state: ", err)
+		} else {
+			if s != modemState {
+				out <- s
+			}
+		}
+	}
+
 	for {
 		select {
 		case m := <-in:
