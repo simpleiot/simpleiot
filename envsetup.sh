@@ -41,7 +41,7 @@ siot_setup() {
 }
 
 siot_build_frontend() {
-  rm frontend/output/*
+  rm frontend/output/* || true
   (cd frontend && elm make src/Main.elm --output=output/elm.js) || return 1
   (cd frontend && cp public/* output/) || return 1
   return 0
