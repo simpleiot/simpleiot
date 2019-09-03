@@ -105,9 +105,10 @@ var pins = map[string]*pin{
 	GpioModemReset: &pin{"PA22", true, true, nil},
 	GpioModemSleep: &pin{"PA27", false, true, nil},
 
-	GpioPulseOutput: &pin{"PB7", true, true, nil},
-	GpioFlow1Pulse:  &pin{"PB8", true, false, nil},
-	GpioFlow2Pulse:  &pin{"PD13", true, false, nil},
+	// we are controlling pulse output in kernel now
+	//GpioPulseOutput: &pin{"PB7", true, true, nil},
+	GpioFlow1Pulse: &pin{"PB8", true, false, nil},
+	GpioFlow2Pulse: &pin{"PD13", true, false, nil},
 
 	GpioMainAuxPwr: &pin{"PC23", true, false, nil},
 	GpioBackupPwr:  &pin{"PD1", true, false, nil},
