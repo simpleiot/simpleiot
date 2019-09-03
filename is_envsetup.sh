@@ -7,7 +7,7 @@ is_setup() {
 }
 
 is_build_frontend() {
-  rm frontend/output/*
+  rm frontend/output/* || true
   (cd frontend && elm make src/Farmation/Is/Main.elm --output=output/elm.js) || return 1
   (cd frontend && cp public/index.html output/) || return 1
   return 0
@@ -95,7 +95,7 @@ is_build_gpio_test() {
 # Portal
 
 is_portal_build_frontend() {
-  rm frontend/output/*
+  rm frontend/output/* || true
   (cd frontend && elm make src/Farmation/Portal/Main.elm --output=output/elm.js) || return 1
   (cd frontend && cp src/Farmation/public/index.html output/) || return 1
   (cd frontend && cp src/Farmation/public/farmation-logo.png output/) || return 1
