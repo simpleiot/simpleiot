@@ -1,10 +1,14 @@
 package network
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -98,11 +102,12 @@ type ModemSettings struct {
 	APN            string
 	CarrierProfile CarrierProfile
 	Technology     Technology
+	Mode           Mode
 }
 
 func (ms ModemSettings) String() string {
-	return fmt.Sprintf("APN: %v\nCarrier Profile: %v\nTechnology: %v",
-		ms.APN, ms.CarrierProfile, ms.Technology)
+	return fmt.Sprintf("APN: %v\nCarrier Profile: %v\nTechnology: %v\nMode: %v",
+		ms.APN, ms.CarrierProfile, ms.Technology, ms.Mode)
 }
 
 // ModemInfo describes information about the modem that is fairly static
@@ -161,6 +166,15 @@ func (m *Modem) Configure() error {
 			}
 		}
 
+		if settings.Mode != ModeTransparent {
+			log.Println("Modem: updating mode to transparent")
+			changed = true
+			err = m.SetMode(ModeTransparent)
+			if err != nil {
+				continue
+			}
+		}
+
 		if changed {
 			err = m.Write()
 			if err != nil {
@@ -196,11 +210,11 @@ func (m *Modem) Cmd(cmd string) (string, error) {
 		var n int
 		n, err = m.port.Read(readString)
 
-		readString = readString[:n]
-
 		if err != nil {
 			continue
 		}
+
+		readString = readString[:n]
 
 		readStringS := strings.TrimSpace(string(readString))
 
@@ -324,6 +338,19 @@ func (m *Modem) GetSettings() (ret ModemSettings, err error) {
 
 	ret.Technology = Technology(nt)
 
+	resp, err = m.Cmd("ATAP")
+	if err != nil {
+		return
+	}
+
+	ap, err := strconv.Atoi(resp)
+
+	if err != nil {
+		return
+	}
+
+	ret.Mode = Mode(ap)
+
 	return
 }
 
@@ -422,4 +449,127 @@ func (m *Modem) SetTechnology(tech Technology) error {
 	}
 
 	return nil
+}
+
+// Mode defines operating mode
+type Mode int
+
+// define valid modes
+const (
+	ModeTransparent   Mode = 0
+	ModeAPI                = 1
+	ModeAPIWithEscape      = 2
+	ModePython             = 4
+	ModeBypass             = 5
+)
+
+func (m Mode) String() string {
+	switch m {
+	case ModeTransparent:
+		return "transparent"
+	case ModeAPI:
+		return "API"
+	case ModeAPIWithEscape:
+		return "API with escape"
+	case ModePython:
+		return "Python"
+	case ModeBypass:
+		return "Bypass"
+	default:
+		return "unknown"
+
+	}
+}
+
+// SetMode updates the operating mode
+func (m *Modem) SetMode(mode Mode) error {
+	resp, err := m.Cmd("ATAP" + strconv.Itoa(int(mode)))
+	if err != nil {
+		return err
+	}
+
+	if resp != "OK" {
+		return fmt.Errorf("unexpected response: %v", resp)
+	}
+
+	return nil
+}
+
+// HTTPGet executes a http get command
+func (m *Modem) HTTPGet(urlIn string) ([]byte, error) {
+	err := m.SwitchCmdMode()
+	if err != nil {
+		return []byte{}, err
+	}
+
+	u, err := url.Parse(urlIn)
+
+	if err != nil {
+		return []byte{}, nil
+	}
+
+	resp, err := m.Cmd("ATDL " + u.Hostname())
+
+	if err != nil {
+		return []byte{}, err
+	}
+
+	if resp != "OK" {
+		return []byte{}, errors.New("Expected OK to ATDL command")
+	}
+
+	resp, err = m.Cmd("ATDE 50")
+
+	if err != nil {
+		return []byte{}, err
+	}
+
+	if resp != "OK" {
+		return []byte{}, errors.New("Expected OK to ATDE command")
+	}
+
+	resp, err = m.Cmd("ATIP 1")
+
+	if err != nil {
+		return []byte{}, err
+	}
+
+	if resp != "OK" {
+		return []byte{}, errors.New("Expected OK to ATIP command")
+	}
+
+	resp, err = m.Cmd("ATCN")
+
+	if err != nil {
+		return []byte{}, err
+	}
+
+	if resp != "OK" {
+		return []byte{}, errors.New("Expected OK to ATCN command")
+	}
+
+	r, err := http.NewRequest(http.MethodGet, urlIn, nil)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	headbuf := bytes.NewBuffer([]byte{})
+	r.Write(headbuf)
+	fmt.Println(hex.Dump(headbuf.Bytes()))
+
+	err = r.Write(m.port)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	buf := make([]byte, 500)
+	c, err := m.port.Read(buf)
+
+	if err != nil {
+		return []byte{}, err
+	}
+
+	buf = buf[0:c]
+
+	return buf, nil
 }
