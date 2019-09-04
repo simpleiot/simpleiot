@@ -28,6 +28,8 @@ func main() {
 	flagModemInfo := flag.Bool("modemInfo", false, "read modem info")
 	flagModemDebug := flag.Bool("modemDebug", false, "enable modem debugging")
 	flagModemConfigure := flag.Bool("modemConfigure", false, "configure modem")
+	flagModemGet := flag.Bool("modemGet", false, "execute modem get request")
+	flagModemReset := flag.Bool("modemReset", false, "reset modem")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -119,6 +121,25 @@ func main() {
 			log.Println("Error configuring modem: ", err)
 		}
 		log.Println("modem configured")
+		os.Exit(0)
+	}
+
+	if *flagModemGet {
+		m := newModem()
+		r, err := m.HTTPGet("http://portal.farmation.us/v1/devices")
+		if err != nil {
+			log.Println("Error executing GET: ", err)
+		}
+
+		log.Println("GET returned: ", string(r))
+		os.Exit(0)
+
+	}
+
+	if *flagModemReset {
+		newModem()
+		isio.ResetModem()
+		log.Println("modem reset")
 		os.Exit(0)
 	}
 

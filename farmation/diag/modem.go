@@ -19,7 +19,6 @@ const modemUsbDev = "/dev/cdc-wdm0"
 
 func (d modemUsb) Run() error {
 	isio.GpioOut(isio.GpioModemSleep, false)
-	isio.GpioOut(isio.GpioModemReset, true)
 	time.Sleep(2 * time.Second)
 
 	if file.Exists(modemUsbDev) {
@@ -42,8 +41,6 @@ func (d modemUsb) Run() error {
 	}
 
 	defer p.Close()
-
-	isio.GpioOut(isio.GpioModemReset, false)
 
 	// modem takes about 5 seconds to show up on USB bus after reset
 	time.Sleep(6 * time.Second)

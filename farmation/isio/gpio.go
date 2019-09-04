@@ -1,8 +1,10 @@
 package isio
 
 import (
+	"errors"
 	"log"
 	"runtime"
+	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
@@ -48,7 +50,9 @@ const (
 
 	GpioRadioReset = "GpioRadioReset"
 	GpioRadioSleep = "GpioRadioSleep"
-	GpioModemReset = "GpioModemReset"
+	//Gpio reset for NL modem is OC, so don't use don't export
+	//symbol as we don't want this to be generally used
+	gpioModemReset = "GpioModemReset"
 	GpioModemSleep = "GpioModemSleep"
 
 	GpioPulseOutput = "GpioPulseOutput"
@@ -102,7 +106,7 @@ var pins = map[string]*pin{
 	GpioRadioReset: &pin{"PB24", true, true, nil},
 	GpioRadioSleep: &pin{"PB30", false, true, nil},
 
-	GpioModemReset: &pin{"PA22", true, true, nil},
+	gpioModemReset: &pin{"PA22", false, false, nil},
 	GpioModemSleep: &pin{"PA27", false, true, nil},
 
 	// we are controlling pulse output in kernel now
@@ -136,6 +140,8 @@ func GpioInit() {
 				pins[k].Pin.In(gpio.PullNoChange, gpio.NoEdge)
 			}
 		}
+
+		pins[gpioModemReset].Pin.In(gpio.Float, gpio.NoEdge)
 	}
 
 }
@@ -164,4 +170,26 @@ func GpioRead(name string) bool {
 	}
 
 	return bool(p.Pin.Read()) != p.ActiveLow
+}
+
+// ResetModem resets the modem
+// For NL modem, must drive as open collector
+func ResetModem() error {
+	p, ok := pins[gpioModemReset]
+	if !ok || p.Pin == nil {
+		if runtime.GOARCH == "arm" {
+			return errors.New("Error getting pin")
+		}
+		return nil
+	}
+
+	// drive pin low
+	p.Pin.Out(gpio.Low)
+
+	time.Sleep(500 * time.Millisecond)
+
+	// let pin float again
+	p.Pin.In(gpio.Float, gpio.NoEdge)
+
+	return nil
 }
