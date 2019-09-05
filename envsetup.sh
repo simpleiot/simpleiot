@@ -82,7 +82,7 @@ siot_run() {
 }
 
 siot_run_device_sim() {
-  go run cmd/device-sim/main.go || return 1
+  go run cmd/siot/main.go -sim || return 1
   return 0
 }
 
