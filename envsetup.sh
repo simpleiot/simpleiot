@@ -34,7 +34,7 @@ siot_check_gopath_bin() {
 
 siot_setup() {
   go mod download
-  go install github.com/benbjohnson/genesis/... || return 1
+  go install -u github.com/benbjohnson/genesis/... || return 1
   siot_check_elm || return 1
   siot_check_gopath_bin || return 1
   return 0
@@ -87,9 +87,11 @@ siot_run_device_sim() {
 }
 
 siot_build_docs() {
-  snowboard lint docs/api.apib
-  snowboard html docs/api.apib -o docs/api.html
-  #aglio -i docs/api.apib --theme-template triple -o docs/api.html
+  # requires aglio:
+  # npm install -g aglio
+  #snowboard lint docs/api.apib
+  #snowboard html docs/api.apib -o docs/api.html
+  aglio -i docs/api.apib --theme-variables flatly --theme-template triple -o docs/api.html
 }
 
 siot_test() {
