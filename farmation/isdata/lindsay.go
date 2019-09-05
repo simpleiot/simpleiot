@@ -153,8 +153,16 @@ func (lsr *LindsayStatusRegs) AutoRestart() bool {
 
 // IrrigatorRunning indicates of irrigator is running
 func (lsr *LindsayStatusRegs) IrrigatorRunning() bool {
-	return (((lsr.State&(1<<4)) != 0 || lsr.State == LindsayStatePositionDelay) &&
-		(lsr.Forward() || lsr.Reverse()))
+	return (lsr.State == LindsayStatePressureRecovery ||
+		lsr.State == LindsayStateHoldLastTower ||
+		lsr.State == LindsayStateRunningForward ||
+		lsr.State == LindsayStateRunningReverse ||
+		lsr.State == LindsayStateRunningLowPres ||
+		lsr.State == LindsayStateHighFlowWarn ||
+		lsr.State == LindsayStateLowFlowWarn ||
+		lsr.State == LindsayStateSoftBarrierWarn ||
+		lsr.State == LindsayStatePositionDelay) &&
+		(lsr.Forward() || lsr.Reverse())
 }
 
 // NewLindsayStatusRegs create Lindsay status from modbus PDU packet
