@@ -2,3 +2,4 @@ frontend/output
 frontend/elm-stuff
 /siot
 data.db
+assets.go
