@@ -32,15 +32,20 @@ import (
 
 // Params are used to configure the app
 type Params struct {
-	Sim         bool
-	DataDir     string
-	DebugState  bool
-	DebugConfig bool
-	DebugModem  bool
+	Sim          bool
+	DataDir      string
+	DebugState   bool
+	DebugConfig  bool
+	DebugModem   bool
+	DebugPortal  bool
+	PortalURL    string
+	SerialNumber string
 }
 
 // Run is the entry point for the IS application
 func Run(params Params) {
+	log.Println("Starting Injectory Sentry app")
+	log.Printf("App params: %+v\n", params)
 	db, err := isdb.NewDb(params.DataDir)
 
 	if err != nil {
@@ -142,7 +147,8 @@ func Run(params Params) {
 	go islog.Run(logChan, appChan, db)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
-	go isnetwork.Run(networkChan, appChan)
+	go isnetwork.Run(networkChan, appChan, state, params.SerialNumber,
+		params.PortalURL, params.DebugPortal)
 
 	lastFillingWarning := time.Time{}
 

@@ -20,16 +20,19 @@ func main() {
 	flagDiagSingle := flag.String("diagSingle", "", "Run single test")
 	flagDebugState := flag.Bool("debugState", false, "log state changes")
 	flagDebugConfig := flag.Bool("debugConfig", false, "log config changes")
+	flagDebugPortal := flag.Bool("debugPortal", false, "debug portal communication")
+	flagDebugModem := flag.Bool("debugModem", false, "enable modem debugging")
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDataDir := flag.String("datadir", "", "directory to store data in")
 	flagReadPressure := flag.Bool("readPressure", false, "read pressure sensor")
 	flagModemState := flag.Bool("modemState", false, "read modem state")
 	flagModemSettings := flag.Bool("modemSettings", false, "read modem settings")
 	flagModemInfo := flag.Bool("modemInfo", false, "read modem info")
-	flagModemDebug := flag.Bool("modemDebug", false, "enable modem debugging")
 	flagModemConfigure := flag.Bool("modemConfigure", false, "configure modem")
 	flagModemGet := flag.Bool("modemGet", false, "execute modem get request")
 	flagModemReset := flag.Bool("modemReset", false, "reset modem")
+	flagPortal := flag.String("portal", "https://portal.farmation.us", "portal URL")
+	flagSerialNumber := flag.String("serialNumber", "", "IS serial number")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -71,7 +74,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		return network.NewModem(p, "hologram", *flagModemDebug)
+		return network.NewModem(p, "hologram", *flagDebugModem)
 
 	}
 
@@ -152,17 +155,15 @@ func main() {
 		}
 	}
 
-	log.Printf("Starting IS app, debug State: %v, debug Config: %v\n", *flagDebugState, *flagDebugConfig)
-	if *flagDataDir == "" {
-		*flagDataDir = "./"
-	}
-
 	params := app.Params{
-		Sim:         *flagSim,
-		DataDir:     *flagDataDir,
-		DebugState:  *flagDebugState,
-		DebugConfig: *flagDebugConfig,
-		DebugModem:  *flagModemDebug,
+		Sim:          *flagSim,
+		DataDir:      *flagDataDir,
+		DebugState:   *flagDebugState,
+		DebugConfig:  *flagDebugConfig,
+		DebugModem:   *flagDebugModem,
+		DebugPortal:  *flagDebugPortal,
+		PortalURL:    *flagPortal,
+		SerialNumber: *flagSerialNumber,
 	}
 
 	app.Run(params)
