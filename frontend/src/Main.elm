@@ -284,7 +284,7 @@ update msg model =
                 newModel =
                     { model | devices = newDevices }
             in
-            case Debug.log "DeviceConfigPosted" result of
+            case result of
                 Ok string ->
                     ( newModel, Cmd.none )
 
