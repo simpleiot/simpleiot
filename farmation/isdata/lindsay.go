@@ -20,8 +20,10 @@ const (
 	LindsayStateLowVoltageFault                  = 0x6
 	LindsayStateLowTemp                          = 0x7
 	LindsayStateLowFlowShutdown                  = 0x9
+	LindsayStatePowerHold                        = 0xE
 	LindsayStateRestartDelay                     = 0x10
-	LindsayStatePressureWaiting                  = 0x11
+	LindsayStatePumpStartDelay                   = 0x11
+	LindsayStatePressureRecovery                 = 0x12
 	LindsayStateHoldLastTower                    = 0x13
 	LindsayStateRunningForward                   = 0x14
 	LindsayStateRunningReverse                   = 0x15
@@ -53,8 +55,8 @@ func (ls LindsayState) String() (ret string) {
 		ret = "Low Flw Shtdwn" //Low Flow Shutdown
 	case LindsayStateRestartDelay:
 		ret = "Restart Del" //Restart Delay
-	case LindsayStatePressureWaiting:
-		ret = "Pres. Wait." //Pressure Waiting
+	case LindsayStatePumpStartDelay:
+		ret = "Pump Start Del" //Pump Start Up Delay
 	case LindsayStateHoldLastTower:
 		ret = "Hold L Tow" //Hold Last Tower
 	case LindsayStateRunningForward:
@@ -116,7 +118,7 @@ func (lsr *LindsayStatusRegs) Reverse() bool {
 // WaterOn indicator
 func (lsr *LindsayStatusRegs) WaterOn() bool {
 	return ((lsr.Status & (1 << 2)) != 0) &&
-		(lsr.IrrigatorRunning() || lsr.State == LindsayStatePressureWaiting)
+		(lsr.IrrigatorRunning() || lsr.State == LindsayStatePumpStartDelay)
 }
 
 // EndGun1On indicator
