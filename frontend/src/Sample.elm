@@ -28,7 +28,7 @@ sampleDecoder =
     Decode.succeed Sample
         |> required "type" Decode.string
         |> optional "id" Decode.string ""
-        |> required "value" Decode.float
+        |> optional "value" Decode.float 0
 
 
 renderSample : Sample -> String
