@@ -16,11 +16,11 @@ func packetDelay() {
 	time.Sleep(5 * time.Second)
 }
 
-func newSendSample(portalURL string) func(string, data.Sample) error {
-	return func(id string, sample data.Sample) error {
-		sampleURL := portalURL + "/v1/devices/" + id + "/sample"
+func newSendSamples(portalURL string) func(string, []data.Sample) error {
+	return func(id string, samples []data.Sample) error {
+		sampleURL := portalURL + "/v1/devices/" + id + "/samples"
 
-		tempJSON, err := json.Marshal(sample)
+		tempJSON, err := json.Marshal(samples)
 		if err != nil {
 			log.Println("Error encoding temp: ", err)
 		}
@@ -48,30 +48,27 @@ func newSendSample(portalURL string) func(string, data.Sample) error {
 func DeviceSim(portal, deviceID string) {
 	log.Printf("starting simulator: ID: %v, portal: %v\n", deviceID, portal)
 
-	sendSample := newSendSample(portal)
+	sendSamples := newSendSamples(portal)
 	tempSim := NewSim(72, 0.2, 70, 75)
 	voltSim := NewSim(2, 0.1, 1, 5)
 
 	for {
-		tempSample := data.Sample{
+		samples := make([]data.Sample, 2)
+		samples[0] = data.Sample{
 			ID:    "T0",
 			Type:  "temp",
 			Value: tempSim.Sim(),
 		}
 
-		err := sendSample(deviceID, tempSample)
-		if err != nil {
-			log.Println("Error sending sample: ", err)
-		}
-		voltSample := data.Sample{
+		samples[1] = data.Sample{
 			ID:    "V0",
 			Type:  "volt",
 			Value: voltSim.Sim(),
 		}
 
-		err = sendSample(deviceID, voltSample)
+		err := sendSamples(deviceID, samples)
 		if err != nil {
-			log.Println("Error sending sample: ", err)
+			log.Println("Error sending samples: ", err)
 		}
 		packetDelay()
 	}

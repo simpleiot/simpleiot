@@ -31,18 +31,20 @@ func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id s
 	en.Encode(data.Response{Success: true})
 }
 
-func (h *Devices) processSample(res http.ResponseWriter, req *http.Request, id string) {
+func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
-	var s data.Sample
-	err := decoder.Decode(&s)
+	var samples []data.Sample
+	err := decoder.Decode(&samples)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = h.db.DeviceSample(id, s)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
+	for _, s := range samples {
+		err = h.db.DeviceSample(id, s)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
 	}
 
 	en := json.NewEncoder(res)
@@ -58,9 +60,9 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
 	switch head {
-	case "sample":
+	case "samples":
 		if req.Method == http.MethodPost {
-			h.processSample(res, req, id)
+			h.processSamples(res, req, id)
 		} else {
 			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
 		}
