@@ -16,7 +16,7 @@ func packetDelay() {
 func DeviceSim(portal, deviceID string) {
 	log.Printf("starting simulator: ID: %v, portal: %v\n", deviceID, portal)
 
-	sendSamples := api.NewSendSamples(portal)
+	sendSamples := api.NewSendSamples(portal, false)
 	tempSim := NewSim(72, 0.2, 70, 75)
 	voltSim := NewSim(2, 0.1, 1, 5)
 
