@@ -1,5 +1,6 @@
-module Sample exposing (Sample, encodeSample)
+module Sample exposing (Sample, encodeSample, sampleDecoder)
 
+import Json.Decode as Decode
 import Json.Encode
 
 
@@ -17,3 +18,11 @@ encodeSample s =
         , ( "id", Json.Encode.string <| s.id )
         , ( "value", Json.Encode.float <| s.value )
         ]
+
+
+sampleDecoder : Decode.Decoder Sample
+sampleDecoder =
+    Decode.map3 Sample
+        (Decode.field "type" Decode.string)
+        (Decode.field "id" Decode.string)
+        (Decode.field "value" Decode.float)
