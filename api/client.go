@@ -23,7 +23,7 @@ func NewSendSamples(portalURL string, debug bool) func(string, []data.Sample) er
 		}
 
 		if debug {
-			log.Println("Sending samples: ", tempJSON)
+			log.Println("Sending samples: ", string(tempJSON))
 		}
 
 		resp, err := http.Post(sampleURL, "application/json", bytes.NewBuffer(tempJSON))
