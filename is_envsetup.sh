@@ -84,7 +84,10 @@ is_build_windows() {
 
 is_run() {
   is_build_dependencies || return 1
-  go run farmation/cmd/injector-sentry/main.go -sim $1 $2 $4 $5 $6 || return 1
+  go run farmation/cmd/injector-sentry/main.go -sim \
+    -portal http://localhost:8080 \
+    -serialNumber "workstation" \
+    $1 $2 $4 $5 $6 || return 1
   return 0
 }
 
@@ -125,6 +128,8 @@ is_portal_build() {
 }
 
 is_portal_run() {
+  export SIOT_DATA=./portal_db
+  mkdir -p $SIOT_DATA
   is_portal_build_dependencies || return 1
   go run farmation/cmd/portal/main.go || return 1
   return 0
