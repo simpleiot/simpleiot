@@ -428,6 +428,13 @@ renderDevice dev =
         }
 
 
+
+ renderSample : Sample -> Html Msg
+ renderSample s =
+     text "hi there"
+
+
+
 renderIos : List Sample -> Accordion.CardBlock Msg
 renderIos samples =
     Accordion.listGroup
