@@ -78,12 +78,10 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 				out <- s
 			}
 		case <-sendPortal.C:
-			now := time.Now()
 			samples := []data.Sample{
 				{
 					Type:  "flowRate",
 					Value: state.FlowRate,
-					Time:  now,
 				},
 			}
 
