@@ -85,8 +85,6 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 				},
 			}
 
-			fmt.Println("CLIFF: sending samples")
-
 			err := sendSamples(sn, samples)
 			if err != nil {
 				log.Println("Error sending data to portal: ", err)
