@@ -86,7 +86,7 @@ is_run() {
   is_build_dependencies || return 1
   go run farmation/cmd/injector-sentry/main.go -sim \
     -portal http://localhost:8080 \
-    -serialNumber "workstation" \
+    -serialNumber "wk231" \
     $1 $2 $4 $5 $6 || return 1
   return 0
 }
