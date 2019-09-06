@@ -23,6 +23,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 	} else {
 		if runtime.GOARCH == "arm" {
 			manager.AddInterface(network.NewEthernet("eth0"))
+			manager.AddInterface(network.NewModem("bg96"))
 		} else {
 			manager.AddInterface(network.NewEthernet("eno1"))
 		}
