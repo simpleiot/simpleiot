@@ -2,7 +2,6 @@ package network
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"time"
 )
@@ -127,7 +126,6 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 
 		var err error
 		status, err = m.getStatus()
-		fmt.Printf("CLIFF: net status for %v: %+v\n", m.Desc(), status)
 		if err != nil {
 			log.Println("Error getting interface status: ", err)
 			continue
@@ -150,7 +148,6 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 				continue
 			}
 		case StateConnecting:
-			fmt.Println("CLIFF: StateConnecting")
 			if status.Connected {
 				m.setState(StateConnected)
 			} else {
@@ -165,7 +162,6 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 				}
 
 				// try again to connect
-				fmt.Println("CLIFF: try to connect")
 				err := m.connect()
 				if err != nil {
 					log.Println("Error connecting: ", err)

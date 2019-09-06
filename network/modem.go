@@ -11,13 +11,15 @@ import (
 type Modem struct {
 	iface      string
 	chatScript string
+	reset      func() error
 }
 
 // NewModem constructor
-func NewModem(chatScript string) *Modem {
+func NewModem(chatScript string, reset func() error) *Modem {
 	return &Modem{
 		iface:      "ppp0",
 		chatScript: chatScript,
+		reset:      reset,
 	}
 }
 
@@ -37,8 +39,7 @@ func (m *Modem) connected() bool {
 		return false
 	}
 
-	ip, err := GetIP(m.iface)
-	fmt.Println("CLIFF: modem connected, ip: ", ip)
+	_, err := GetIP(m.iface)
 	if err == nil {
 		return true
 	}
@@ -65,5 +66,5 @@ func (m *Modem) GetStatus() (InterfaceStatus, error) {
 // Reset stub
 func (m *Modem) Reset() error {
 	exec.Command("poff").Run()
-	return nil
+	return m.reset()
 }
