@@ -53,6 +53,7 @@ func (s *ModemScreen) Render(img draw.Image) {
 	s.menu.AddItemString("Detected", detected)
 	s.menu.AddItemString("Connected", connected)
 	s.menu.AddItemString("Signal", signal)
+	s.menu.AddItemString("IP", s.state.NetworkState.InterfaceStatus.IP)
 	s.menu.AddItemString("Err Count", errorCnt)
 	//s.menu.AddItemString("Operator", s.state.NetworkStatus.Operator)
 	s.menu.Render(img)
