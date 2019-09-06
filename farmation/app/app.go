@@ -28,7 +28,6 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
 	"github.com/simpleiot/simpleiot/file"
-	"github.com/simpleiot/simpleiot/network"
 )
 
 // Params are used to configure the app
@@ -827,8 +826,8 @@ func Run(params Params) {
 			case isdata.PanelDefinition:
 				newPanelType(m)
 
-			case network.ModemState:
-				state.ModemState = m
+			case isdata.NetworkState:
+				state.NetworkState = m
 				saveState()
 
 			default:

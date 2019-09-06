@@ -1,7 +1,6 @@
 package isnetwork
 
 import (
-	"fmt"
 	"log"
 	"runtime"
 	"time"
@@ -9,7 +8,6 @@ import (
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
-	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/network"
 )
 
@@ -19,7 +17,26 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 	state := stateIn
 	sendSamples := api.NewSendSamples(portal, debugPortal)
 
-	sendInitialPortalData := func() {
+	manager := network.NewManager()
+	if runtime.GOOS == "windows" {
+		manager.AddInterface(network.NewDummyInterface())
+	} else {
+		if runtime.GOARCH == "arm" {
+			manager.AddInterface(network.NewEthernet("eth0"))
+		} else {
+			manager.AddInterface(network.NewEthernet("eno1"))
+		}
+	}
+
+	networkState, interfaceStatus := manager.Run()
+	_ = networkState
+
+	initialDigitalDataSent := false
+	sendInitialDigitalData := func() {
+		if !interfaceStatus.Connected || initialDigitalDataSent {
+			return
+		}
+
 		samples := []data.Sample{
 			{
 				Type:  "inputWaterOn",
@@ -46,25 +63,14 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 		err := sendSamples(sn, samples)
 		if err != nil {
 			log.Println("Error sending data to portal: ", err)
+			return
 		}
+
+		initialDigitalDataSent = true
 	}
 
-	var modemManager *network.ModemManager
-	if runtime.GOARCH == "arm" && false {
-		port, err := isio.OpenSerialModem()
-		if err != nil {
-			fmt.Println("Error opening modem port: ", err)
-		} else {
-			modem := network.NewModem(port, "hologram", false)
-			modemManager = network.NewModemManager(modem)
-		}
-	}
-
-	modemPoll := time.NewTicker(time.Second * 10)
-	modemPoll.Stop()
-
+	manageTicker := time.NewTicker(time.Second * 10)
 	sendPortal := time.NewTicker(time.Second * 5)
-	modemState := network.ModemState{}
 
 	if sn == "" {
 		log.Println("IS Serial is not set, not sending data to portal")
@@ -76,18 +82,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 		sendPortal.Stop()
 	}
 
-	if modemManager != nil {
-		s, err := modemManager.GetState()
-		if err != nil {
-			log.Println("Error getting modem state: ", err)
-		} else {
-			if s != modemState {
-				out <- s
-			}
-		}
-	}
-
-	sendInitialPortalData()
+	sendInitialDigitalData()
 
 	for {
 		select {
@@ -166,21 +161,18 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 			default:
 				log.Printf("isnet mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
-		case <-modemPoll.C:
-			if modemManager == nil {
-				continue
+		case <-manageTicker.C:
+			networkState, interfaceStatus = manager.Run()
+			out <- isdata.NetworkState{
+				Description:     manager.Desc(),
+				InterfaceStatus: interfaceStatus,
 			}
 
-			s, err := modemManager.GetState()
-			if err != nil {
-				log.Println("Error getting modem state: ", err)
-				continue
-			}
-
-			if s != modemState {
-				out <- s
-			}
 		case <-sendPortal.C:
+			sendInitialDigitalData()
+			if !interfaceStatus.Connected {
+				continue
+			}
 			samples := []data.Sample{
 				{
 					Type:  "flowRate",

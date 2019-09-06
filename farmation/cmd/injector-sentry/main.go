@@ -11,7 +11,6 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/diag"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/islog"
-	"github.com/simpleiot/simpleiot/network"
 )
 
 func main() {
@@ -26,11 +25,13 @@ func main() {
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDataDir := flag.String("datadir", "", "directory to store data in")
 	flagReadPressure := flag.Bool("readPressure", false, "read pressure sensor")
-	flagModemState := flag.Bool("modemState", false, "read modem state")
-	flagModemSettings := flag.Bool("modemSettings", false, "read modem settings")
-	flagModemInfo := flag.Bool("modemInfo", false, "read modem info")
-	flagModemConfigure := flag.Bool("modemConfigure", false, "configure modem")
-	flagModemGet := flag.Bool("modemGet", false, "execute modem get request")
+	/*
+		flagModemState := flag.Bool("modemState", false, "read modem state")
+		flagModemSettings := flag.Bool("modemSettings", false, "read modem settings")
+		flagModemInfo := flag.Bool("modemInfo", false, "read modem info")
+		flagModemConfigure := flag.Bool("modemConfigure", false, "configure modem")
+		flagModemGet := flag.Bool("modemGet", false, "execute modem get request")
+	*/
 	flagModemReset := flag.Bool("modemReset", false, "reset modem")
 	flagPortal := flag.String("portal", "https://portal.farmation.us", "portal URL")
 	flagSerialNumber := flag.String("serialNumber", "", "IS serial number")
@@ -68,81 +69,83 @@ func main() {
 		os.Exit(0)
 	}
 
-	newModem := func() *network.Modem {
-		isio.GpioInit()
-		p, err := isio.OpenSerialModem()
-		if err != nil {
-			log.Println("Error opening modem port: ", err)
-			os.Exit(-1)
+	/*
+			newModem := func() *network.Modem {
+				isio.GpioInit()
+				p, err := isio.OpenSerialModem()
+				if err != nil {
+					log.Println("Error opening modem port: ", err)
+					os.Exit(-1)
+				}
+
+				return network.NewModem(p, "hologram", *flagDebugModem)
+
+			}
+
+		if *flagModemState {
+			m := newModem()
+			s, err := m.GetState()
+
+			if err != nil {
+				log.Println("Error getting modem state: ", err)
+				os.Exit(1)
+			}
+
+			log.Printf("modem state:\n%v\n", s)
+			os.Exit(0)
 		}
 
-		return network.NewModem(p, "hologram", *flagDebugModem)
+		if *flagModemSettings {
+			m := newModem()
+			s, err := m.GetSettings()
 
-	}
+			if err != nil {
+				log.Println("Error getting modem settings: ", err)
+				os.Exit(1)
+			}
 
-	if *flagModemState {
-		m := newModem()
-		s, err := m.GetState()
-
-		if err != nil {
-			log.Println("Error getting modem state: ", err)
-			os.Exit(1)
+			log.Printf("modem settings:\n%v\n", s)
+			os.Exit(0)
 		}
 
-		log.Printf("modem state:\n%v\n", s)
-		os.Exit(0)
-	}
+		if *flagModemInfo {
+			m := newModem()
+			i, err := m.GetInfo()
 
-	if *flagModemSettings {
-		m := newModem()
-		s, err := m.GetSettings()
+			if err != nil {
+				log.Println("Error getting modem info: ", err)
+				os.Exit(1)
+			}
 
-		if err != nil {
-			log.Println("Error getting modem settings: ", err)
-			os.Exit(1)
+			log.Printf("modem info:\n%v\n", i)
+			os.Exit(0)
 		}
 
-		log.Printf("modem settings:\n%v\n", s)
-		os.Exit(0)
-	}
-
-	if *flagModemInfo {
-		m := newModem()
-		i, err := m.GetInfo()
-
-		if err != nil {
-			log.Println("Error getting modem info: ", err)
-			os.Exit(1)
+		if *flagModemConfigure {
+			m := newModem()
+			err := m.Configure()
+			if err != nil {
+				log.Println("Error configuring modem: ", err)
+			}
+			log.Println("modem configured")
+			os.Exit(0)
 		}
 
-		log.Printf("modem info:\n%v\n", i)
-		os.Exit(0)
-	}
+		if *flagModemGet {
+			m := newModem()
+			r, err := m.HTTPGet("http://portal.farmation.us/v1/devices")
+			if err != nil {
+				log.Println("Error executing GET: ", err)
+			}
 
-	if *flagModemConfigure {
-		m := newModem()
-		err := m.Configure()
-		if err != nil {
-			log.Println("Error configuring modem: ", err)
+			log.Println("GET returned: ", string(r))
+			os.Exit(0)
+
 		}
-		log.Println("modem configured")
-		os.Exit(0)
-	}
-
-	if *flagModemGet {
-		m := newModem()
-		r, err := m.HTTPGet("http://portal.farmation.us/v1/devices")
-		if err != nil {
-			log.Println("Error executing GET: ", err)
-		}
-
-		log.Println("GET returned: ", string(r))
-		os.Exit(0)
-
-	}
+	*/
 
 	if *flagModemReset {
-		newModem()
+		isio.GpioInit()
 		isio.ResetModem()
 		log.Println("modem reset")
 		os.Exit(0)
