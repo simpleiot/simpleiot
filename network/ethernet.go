@@ -53,8 +53,12 @@ func (e *Ethernet) detected() bool {
 
 // Connected returns true if connected
 func (e *Ethernet) connected() bool {
+	if !e.detected() {
+		return false
+	}
+
 	_, err := GetIP(e.iface)
-	if err == nil && e.detected() {
+	if err == nil {
 		return true
 	}
 
@@ -63,9 +67,11 @@ func (e *Ethernet) connected() bool {
 
 // GetStatus returns ethernet interface status
 func (e *Ethernet) GetStatus() (InterfaceStatus, error) {
+	ip, _ := GetIP(e.iface)
 	return InterfaceStatus{
 		Detected:  e.detected(),
 		Connected: e.connected(),
+		IP:        ip,
 	}, nil
 }
 

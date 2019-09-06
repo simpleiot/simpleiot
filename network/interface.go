@@ -6,6 +6,7 @@ type InterfaceStatus struct {
 	Connected bool
 	Operator  string
 	Signal    int
+	IP        string
 }
 
 // Interface is an interface that network drivers implement

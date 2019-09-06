@@ -2,6 +2,7 @@ package network
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 )
@@ -41,7 +42,9 @@ type Manager struct {
 
 // NewManager constructor
 func NewManager() *Manager {
-	return &Manager{}
+	return &Manager{
+		stateStart: time.Now(),
+	}
 }
 
 // AddInterface adds a network interface to the manager. Interfaces added first
@@ -124,6 +127,7 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 
 		var err error
 		status, err = m.getStatus()
+		fmt.Printf("CLIFF: net status for %v: %+v\n", m.Desc(), status)
 		if err != nil {
 			log.Println("Error getting interface status: ", err)
 			continue
@@ -131,28 +135,37 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 
 		switch m.state {
 		case StateNotDetected:
+			// give ourselves 15 seconds or so in detecting state
+			// in case we just reset the devices
 			if status.Detected {
 				m.setState(StateConnecting)
-			} else {
+				continue
+			} else if time.Since(m.stateStart) > time.Second*15 {
+				log.Println("Network: timeout detecting")
 				if !m.nextInterface() {
 					m.setState(StateError)
+					break
 				}
+
+				continue
 			}
-			// run state machine again
-			continue
 		case StateConnecting:
+			fmt.Println("CLIFF: StateConnecting")
 			if status.Connected {
 				m.setState(StateConnected)
 			} else {
 				if time.Since(m.stateStart) > time.Minute*2 {
-					log.Println("timeout connecting")
+					log.Println("Network: timeout connecting")
 					if !m.nextInterface() {
 						m.setState(StateError)
+						break
 					}
+
 					continue
 				}
 
 				// try again to connect
+				fmt.Println("CLIFF: try to connect")
 				err := m.connect()
 				if err != nil {
 					log.Println("Error connecting: ", err)
@@ -165,6 +178,7 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 			}
 		case StateError:
 			if time.Since(m.stateStart) > time.Minute {
+				log.Println("Network: trying again ...")
 				m.setState(StateNotDetected)
 			}
 		}
