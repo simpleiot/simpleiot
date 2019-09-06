@@ -15,7 +15,7 @@ import (
 func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 	debugPortal bool) {
 	state := stateIn
-	sendSamples := api.NewSendSamples(portal, debugPortal)
+	sendSamples := api.NewSendSamples(portal, sn, time.Second*10, debugPortal)
 
 	manager := network.NewManager()
 	if runtime.GOOS == "windows" {
@@ -61,7 +61,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 			},
 		}
 
-		err := sendSamples(sn, samples)
+		err := sendSamples(samples)
 		if err != nil {
 			log.Println("Error sending data to portal: ", err)
 			return
@@ -152,7 +152,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 				}
 
 				if len(samples) > 0 {
-					err := sendSamples(sn, samples)
+					err := sendSamples(samples)
 					if err != nil {
 						log.Println("Error sending data to portal: ", err)
 					}
@@ -197,7 +197,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 				},
 			}
 
-			err := sendSamples(sn, samples)
+			err := sendSamples(samples)
 			if err != nil {
 				log.Println("Error sending data to portal: ", err)
 			}
