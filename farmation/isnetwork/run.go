@@ -83,6 +83,22 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 					Type:  "flowRate",
 					Value: state.FlowRate,
 				},
+				{
+					Type:  "currentTankVolume",
+					Value: state.CurrentTankVolume,
+				},
+				{
+					Type:  "avgFlowRate",
+					Value: state.AvgFlowRate,
+				},
+				{
+					Type:  "PressureMin",
+					Value: state.PressureMin,
+				},
+				{
+					Type:  "PressureMax",
+					Value: state.PressureMax,
+				},
 			}
 
 			err := sendSamples(sn, samples)
