@@ -193,11 +193,11 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 					Value: state.AvgFlowRate,
 				},
 				{
-					Type:  "PressureMin",
+					Type:  "pressureMin",
 					Value: state.PressureMin,
 				},
 				{
-					Type:  "PressureMax",
+					Type:  "pressureMax",
 					Value: state.PressureMax,
 				},
 			}
