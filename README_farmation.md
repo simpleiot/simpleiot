@@ -10,6 +10,11 @@ least a place to start.
 All frontend code that is specific to farmation lives in
 the `frontend/farmation/` directory.
 
+## Running
+
+- run portal: `is_portal_run`
+- run is app: `is_run`
+
 ## Fonts
 
 This project uses https://github.com/pbnjay/pixfont to extract fonts from an image
