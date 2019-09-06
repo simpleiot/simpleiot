@@ -7,15 +7,20 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/simpleiot/simpleiot/data"
 )
 
 // NewSendSamples returns a function that can be used to send samples
 // to a SimpleIoT portal instance
-func NewSendSamples(portalURL string, debug bool) func(string, []data.Sample) error {
-	return func(id string, samples []data.Sample) error {
-		sampleURL := portalURL + "/v1/devices/" + id + "/samples"
+func NewSendSamples(portalURL, deviceID string, timeout time.Duration, debug bool) func([]data.Sample) error {
+	var netClient = &http.Client{
+		Timeout: timeout,
+	}
+
+	return func(samples []data.Sample) error {
+		sampleURL := portalURL + "/v1/devices/" + deviceID + "/samples"
 
 		tempJSON, err := json.Marshal(samples)
 		if err != nil {
@@ -26,7 +31,7 @@ func NewSendSamples(portalURL string, debug bool) func(string, []data.Sample) er
 			log.Println("Sending samples: ", string(tempJSON))
 		}
 
-		resp, err := http.Post(sampleURL, "application/json", bytes.NewBuffer(tempJSON))
+		resp, err := netClient.Post(sampleURL, "application/json", bytes.NewBuffer(tempJSON))
 
 		if err != nil {
 			return err
