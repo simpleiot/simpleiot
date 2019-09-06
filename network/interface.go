@@ -1,0 +1,17 @@
+package network
+
+// InterfaceStatus defines the status of an interface
+type InterfaceStatus struct {
+	Detected  bool
+	Connected bool
+	Operator  string
+	Signal    int
+}
+
+// Interface is an interface that network drivers implement
+type Interface interface {
+	Desc() string
+	Connect() error
+	GetStatus() (InterfaceStatus, error)
+	Reset() error
+}
