@@ -47,12 +47,16 @@ type Params struct {
 func Run(params Params) {
 	log.Println("Starting Injectory Sentry app")
 
-	if params.SerialNumber == "" && runtime.GOARCH == "arm" {
-		data, err := ioutil.ReadFile("/boot/serial-number")
-		if err == nil {
-			params.SerialNumber = string(data)
+	if params.SerialNumber == "" {
+		if runtime.GOARCH == "arm" {
+			data, err := ioutil.ReadFile("/boot/serial-number")
+			if err == nil {
+				params.SerialNumber = string(data)
+			} else {
+				params.SerialNumber = "unknown"
+			}
 		} else {
-			params.SerialNumber = "unknown"
+			params.SerialNumber = "pcsim"
 		}
 	}
 
