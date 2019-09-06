@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -45,6 +46,16 @@ type Params struct {
 // Run is the entry point for the IS application
 func Run(params Params) {
 	log.Println("Starting Injectory Sentry app")
+
+	if params.SerialNumber == "" && runtime.GOARCH == "arm" {
+		data, err := ioutil.ReadFile("/boot/serial-number")
+		if err == nil {
+			params.SerialNumber = string(data)
+		} else {
+			params.SerialNumber = "unknown"
+		}
+	}
+
 	log.Printf("App params: %+v\n", params)
 	db, err := isdb.NewDb(params.DataDir)
 

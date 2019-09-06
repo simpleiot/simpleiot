@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 
 	"github.com/simpleiot/simpleiot/farmation/app"
 	"github.com/simpleiot/simpleiot/farmation/diag"
@@ -33,6 +34,7 @@ func main() {
 	flagModemReset := flag.Bool("modemReset", false, "reset modem")
 	flagPortal := flag.String("portal", "https://portal.farmation.us", "portal URL")
 	flagSerialNumber := flag.String("serialNumber", "", "IS serial number")
+	flagSetIsSN := flag.String("setSN", "", "Set IS serial number")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -62,7 +64,7 @@ func main() {
 
 		pres := isio.CalcPressure(ref, sense, 250)
 
-		fmt.Printf("Pressure ref: %v, sense: %v, pres: %v\n", ref, sense, pres)
+		log.Printf("Pressure ref: %v, sense: %v, pres: %v\n", ref, sense, pres)
 		os.Exit(0)
 	}
 
@@ -87,7 +89,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		fmt.Printf("modem state:\n%v\n", s)
+		log.Printf("modem state:\n%v\n", s)
 		os.Exit(0)
 	}
 
@@ -100,7 +102,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		fmt.Printf("modem settings:\n%v\n", s)
+		log.Printf("modem settings:\n%v\n", s)
 		os.Exit(0)
 	}
 
@@ -113,7 +115,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		fmt.Printf("modem info:\n%v\n", i)
+		log.Printf("modem info:\n%v\n", i)
 		os.Exit(0)
 	}
 
@@ -151,8 +153,24 @@ func main() {
 		if err == nil {
 			log.SetOutput(logwriter)
 		} else {
-			fmt.Println("Error sending log to syslog: ", err)
+			log.Println("Error sending log to syslog: ", err)
 		}
+	}
+
+	if *flagSetIsSN != "" {
+		if runtime.GOARCH != "arm" {
+			log.Println("Error: Can only set SN on IS")
+			os.Exit(-1)
+		}
+
+		err := ioutil.WriteFile("/boot/serial-number", []byte(*flagSetIsSN), 600)
+		if err != nil {
+			log.Println("Error writing SN: ", err)
+			os.Exit(-1)
+		}
+
+		log.Println("Serial number set, please restart system")
+		os.Exit(0)
 	}
 
 	params := app.Params{
