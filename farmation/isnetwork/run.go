@@ -50,7 +50,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 	}
 
 	var modemManager *network.ModemManager
-	if runtime.GOARCH == "arm" {
+	if runtime.GOARCH == "arm" && false {
 		port, err := isio.OpenSerialModem()
 		if err != nil {
 			fmt.Println("Error opening modem port: ", err)
@@ -61,6 +61,8 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 	}
 
 	modemPoll := time.NewTicker(time.Second * 10)
+	modemPoll.Stop()
+
 	sendPortal := time.NewTicker(time.Second * 5)
 	modemState := network.ModemState{}
 
