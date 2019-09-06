@@ -142,7 +142,7 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 				m.setState(StateConnecting)
 				continue
 			} else if time.Since(m.stateStart) > time.Second*15 {
-				log.Println("Network: timeout detecting")
+				log.Println("Network: timeout detecting: ", m.Desc())
 				if !m.nextInterface() {
 					m.setState(StateError)
 					break
@@ -155,7 +155,7 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 				m.setState(StateConnected)
 			} else {
 				if time.Since(m.stateStart) > time.Minute*2 {
-					log.Println("Network: timeout connecting")
+					log.Println("Network: timeout connecting: ", m.Desc())
 					if !m.nextInterface() {
 						m.setState(StateError)
 						break
@@ -196,11 +196,8 @@ func (m *Manager) Error() {
 	m.errCnt++
 
 	if m.errCnt >= m.errResetCnt {
-		for _, i := range m.interfaces {
-			i.Reset()
-		}
+		m.Reset()
+		m.setState(StateNotDetected)
+		m.errCnt = 0
 	}
-
-	m.setState(StateNotDetected)
-	m.errCnt = 0
 }
