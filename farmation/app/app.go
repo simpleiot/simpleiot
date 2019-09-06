@@ -313,11 +313,14 @@ func Run(params Params) {
 				switch m.Type {
 				case isdata.SampleTypeFlowWindowAvg:
 
-					flowAverager.AddSample(m)
+					// compute and update average flow rate in arming period
+					if config.Arm {
+						flowAverager.AddSample(m)
+						state.AvgFlowRate = flowAverager.GetAverage().Value
+					}
 
 					// update flow rate
 					state.FlowRate = m.Value
-					state.AvgFlowRate = flowAverager.GetAverage().Value
 					saveState()
 
 					// send data to logging goroutine to store in database
