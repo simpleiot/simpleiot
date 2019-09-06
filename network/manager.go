@@ -203,3 +203,9 @@ func (m *Manager) Error() {
 		m.errCnt = 0
 	}
 }
+
+// Success is called any time there is a network success
+// so that we know to reset the internal error count
+func (m *Manager) Success() {
+	m.errCnt = 0
+}
