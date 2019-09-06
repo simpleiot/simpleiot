@@ -36,13 +36,16 @@ type Manager struct {
 	state          State
 	stateStart     time.Time
 	interfaces     []Interface
+	errResetCnt    int
+	errCnt         int
 	interfaceIndex int
 }
 
 // NewManager constructor
-func NewManager() *Manager {
+func NewManager(errResetCnt int) *Manager {
 	return &Manager{
-		stateStart: time.Now(),
+		stateStart:  time.Now(),
+		errResetCnt: errResetCnt,
 	}
 }
 
@@ -184,4 +187,20 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 	}
 
 	return m.state, status
+}
+
+// Error is called any time there is a network error
+// after errResetCnt errors are reached, we reset all the interfaces and
+// start over
+func (m *Manager) Error() {
+	m.errCnt++
+
+	if m.errCnt >= m.errResetCnt {
+		for _, i := range m.interfaces {
+			i.Reset()
+		}
+	}
+
+	m.setState(StateNotDetected)
+	m.errCnt = 0
 }
