@@ -23,7 +23,7 @@ type Device struct {
 func (d *Device) ProcessSample(sample Sample) {
 	ioFound := false
 	for i, io := range d.State.Ios {
-		if io.ID == sample.ID {
+		if io.ID == sample.ID && io.Type == sample.Type {
 			ioFound = true
 			d.State.Ios[i] = sample
 		}
