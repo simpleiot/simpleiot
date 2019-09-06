@@ -83,13 +83,13 @@ func (m *Manager) Desc() string {
 // nextInterface returns true if there is another interface to try, otherwise
 // resets to zero and returns false
 func (m *Manager) nextInterface() bool {
+	m.interfaceIndex++
 	if m.interfaceIndex >= len(m.interfaces) {
 		m.interfaceIndex = 0
 		log.Println("Network: no more interfaces to try")
 		return false
 	}
 
-	m.interfaceIndex++
 	log.Println("Network: trying next interface: ", m.Desc())
 	return true
 }
@@ -139,6 +139,7 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 			// give ourselves 15 seconds or so in detecting state
 			// in case we just reset the devices
 			if status.Detected {
+				log.Printf("Network: %v detected\n", m.Desc())
 				m.setState(StateConnecting)
 				continue
 			} else if time.Since(m.stateStart) > time.Second*15 {
@@ -152,6 +153,7 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 			}
 		case StateConnecting:
 			if status.Connected {
+				log.Printf("Network: %v connected\n", m.Desc())
 				m.setState(StateConnected)
 			} else {
 				if time.Since(m.stateStart) > time.Minute*2 {
