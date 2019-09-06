@@ -184,6 +184,7 @@ func Run(params Params) {
 	}
 
 	var lastStateSend time.Time
+	var lastStateSendSlow time.Time
 
 	saveState := func() {
 		if params.DebugState {
@@ -195,7 +196,7 @@ func Run(params Params) {
 
 		stateDirty = true
 
-		// pace the sending of states to various subsystems every 500ms
+		// pace the sending of states to various subsystems
 		// so we don't overload things
 		now := time.Now()
 		if now.Sub(lastStateSend) > 200*time.Millisecond {
@@ -203,9 +204,13 @@ func Run(params Params) {
 			ioChan <- state
 			cntrlChan <- state
 			webChan <- state
-			networkChan <- state
 
 			lastStateSend = now
+		}
+
+		if now.Sub(lastStateSendSlow) > 5*time.Second {
+			networkChan <- state
+			lastStateSendSlow = now
 		}
 	}
 

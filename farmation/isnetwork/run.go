@@ -8,6 +8,7 @@ import (
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/network"
 )
 
@@ -17,13 +18,13 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 	state := stateIn
 	sendSamples := api.NewSendSamples(portal, sn, time.Second*10, debugPortal)
 
-	manager := network.NewManager()
+	manager := network.NewManager(10)
 	if runtime.GOOS == "windows" {
 		manager.AddInterface(network.NewDummyInterface())
 	} else {
 		if runtime.GOARCH == "arm" {
 			manager.AddInterface(network.NewEthernet("eth0"))
-			manager.AddInterface(network.NewModem("bg96"))
+			manager.AddInterface(network.NewModem("bg96", isio.ResetModem))
 		} else {
 			manager.AddInterface(network.NewEthernet("eno1"))
 		}
@@ -64,6 +65,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 		err := sendSamples(samples)
 		if err != nil {
 			log.Println("Error sending data to portal: ", err)
+			manager.Error()
 			return
 		}
 
@@ -155,6 +157,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 					err := sendSamples(samples)
 					if err != nil {
 						log.Println("Error sending data to portal: ", err)
+						manager.Error()
 					}
 				}
 
@@ -200,6 +203,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 			err := sendSamples(samples)
 			if err != nil {
 				log.Println("Error sending data to portal: ", err)
+				manager.Error()
 			}
 		}
 	}
