@@ -70,6 +70,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 			errorCnt++
 			return
 		}
+		manager.Success()
 
 		initialDigitalDataSent = true
 	}
@@ -161,6 +162,8 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 						log.Println("Error sending data to portal: ", err)
 						manager.Error()
 						errorCnt++
+					} else {
+						manager.Success()
 					}
 				}
 
@@ -209,6 +212,8 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 				log.Println("Error sending data to portal: ", err)
 				manager.Error()
 				errorCnt++
+			} else {
+				manager.Success()
 			}
 		}
 	}
