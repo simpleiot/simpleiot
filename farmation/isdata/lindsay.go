@@ -53,10 +53,14 @@ func (ls LindsayState) String() (ret string) {
 		ret = "Low Temp" //Low Temperature
 	case LindsayStateLowFlowShutdown:
 		ret = "Low Flw Shtdwn" //Low Flow Shutdown
+	case LindsayStatePowerHold:
+		ret = "Pwr Comany Hold" //Power Company Hold
 	case LindsayStateRestartDelay:
 		ret = "Restart Del" //Restart Delay
 	case LindsayStatePumpStartDelay:
 		ret = "Pump Start Del" //Pump Start Up Delay
+	case LindsayStatePressureRecovery:
+		ret = "Pressure Recovery" //PressureRecovery
 	case LindsayStateHoldLastTower:
 		ret = "Hold L Tow" //Hold Last Tower
 	case LindsayStateRunningForward:
