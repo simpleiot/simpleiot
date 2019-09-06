@@ -18,6 +18,37 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 	debugPortal bool) {
 	state := stateIn
 	sendSamples := api.NewSendSamples(portal, debugPortal)
+
+	sendInitialPortalData := func() {
+		samples := []data.Sample{
+			{
+				Type:  "inputWaterOn",
+				Value: 0,
+			},
+			{
+				Type:  "inputIrrigator",
+				Value: 0,
+			},
+			{
+				Type:  "inputInjector",
+				Value: 0,
+			},
+			{
+				Type:  "gpioRelayInjectorEn",
+				Value: 0,
+			},
+			{
+				Type:  "gpioShutdownEn",
+				Value: 0,
+			},
+		}
+
+		err := sendSamples(sn, samples)
+		if err != nil {
+			log.Println("Error sending data to portal: ", err)
+		}
+	}
+
 	var modemManager *network.ModemManager
 	if runtime.GOARCH == "arm" {
 		port, err := isio.OpenSerialModem()
@@ -54,11 +85,81 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 		}
 	}
 
+	sendInitialPortalData()
+
 	for {
 		select {
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.State:
+				samples := []data.Sample{}
+				if state.InputWaterOn != m.InputWaterOn {
+					v := 0.0
+					if m.InputWaterOn == isdata.InputStateOn {
+						v = 1.0
+					}
+					samples = append(samples,
+						data.Sample{
+							Type:  "inputWaterOn",
+							Value: v,
+						})
+				}
+
+				if state.InputIrrigator != m.InputIrrigator {
+					v := 0.0
+					if m.InputIrrigator == isdata.InputStateOn {
+						v = 1.0
+					}
+					samples = append(samples,
+						data.Sample{
+							Type:  "inputIrrigator",
+							Value: v,
+						})
+				}
+
+				if state.InputInjector != m.InputInjector {
+					v := 0.0
+					if m.InputInjector == isdata.InputStateOn {
+						v = 1.0
+					}
+					samples = append(samples,
+						data.Sample{
+							Type:  "inputInjector",
+							Value: v,
+						})
+				}
+
+				if state.GpioRelayInjectorEn != m.GpioRelayInjectorEn {
+					v := 0.0
+					if m.GpioRelayInjectorEn {
+						v = 1.0
+					}
+					samples = append(samples,
+						data.Sample{
+							Type:  "gpioRelayInjectorEn",
+							Value: v,
+						})
+				}
+
+				if state.GpioRelayShutdownEn != m.GpioRelayShutdownEn {
+					v := 0.0
+					if m.GpioRelayShutdownEn {
+						v = 1.0
+					}
+					samples = append(samples,
+						data.Sample{
+							Type:  "gpioShutdownEn",
+							Value: v,
+						})
+				}
+
+				if len(samples) > 0 {
+					err := sendSamples(sn, samples)
+					if err != nil {
+						log.Println("Error sending data to portal: ", err)
+					}
+				}
+
 				state = m
 			default:
 				log.Printf("isnet mux: unhandled message of type %T: %+v\r\n", m, m)
