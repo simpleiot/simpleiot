@@ -28,4 +28,5 @@ type NetworkState struct {
 	//ModemRSRQ        float64
 	Description     string
 	InterfaceStatus network.InterfaceStatus
+	ErrorCnt        int
 }

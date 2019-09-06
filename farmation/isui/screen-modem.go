@@ -39,6 +39,7 @@ func (s *ModemScreen) Render(img draw.Image) {
 	detected := "no"
 	connected := "no"
 	signal := strconv.Itoa(s.state.NetworkState.InterfaceStatus.Signal)
+	errorCnt := strconv.Itoa(s.state.NetworkState.ErrorCnt)
 
 	if s.state.NetworkState.InterfaceStatus.Detected {
 		detected = "yes"
@@ -52,6 +53,7 @@ func (s *ModemScreen) Render(img draw.Image) {
 	s.menu.AddItemString("Detected", detected)
 	s.menu.AddItemString("Connected", connected)
 	s.menu.AddItemString("Signal", signal)
+	s.menu.AddItemString("Err Count", errorCnt)
 	//s.menu.AddItemString("Operator", s.state.NetworkStatus.Operator)
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
