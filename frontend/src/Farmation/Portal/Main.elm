@@ -27,7 +27,7 @@ import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Json.Encode as Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
-import Round
+import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
 import Time
 import Url.Builder as Url
 
@@ -48,13 +48,6 @@ main =
 type alias Response =
     { success : Bool
     , error : String
-    }
-
-
-type alias Sample =
-    { id : String
-    , value : Float
-    , time : String
     }
 
 
@@ -155,14 +148,6 @@ responseDecoder =
     Decode.succeed Response
         |> required "success" Decode.bool
         |> optional "error" Decode.string ""
-
-
-sampleDecoder : Decode.Decoder Sample
-sampleDecoder =
-    Decode.map3 Sample
-        (Decode.field "id" Decode.string)
-        (Decode.field "value" Decode.float)
-        (Decode.field "time" Decode.string)
 
 
 samplesDecoder : Decode.Decoder (List Sample)
@@ -445,7 +430,7 @@ renderIos : List Sample -> Accordion.CardBlock Msg
 renderIos samples =
     Accordion.listGroup
         (List.map
-            (\s -> ListGroup.li [] [ text (s.id ++ ": " ++ Round.round 2 s.value) ])
+            (\s -> ListGroup.li [] [ text (renderSample s) ])
             samples
         )
 

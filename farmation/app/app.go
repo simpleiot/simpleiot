@@ -189,6 +189,7 @@ func Run(params Params) {
 			ioChan <- state
 			cntrlChan <- state
 			webChan <- state
+			networkChan <- state
 
 			lastStateSend = now
 		}

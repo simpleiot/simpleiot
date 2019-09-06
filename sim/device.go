@@ -19,11 +19,11 @@ func DeviceSim(portal, deviceID string) {
 	sendSamples := api.NewSendSamples(portal, false)
 	tempSim := NewSim(72, 0.2, 70, 75)
 	voltSim := NewSim(2, 0.1, 1, 5)
+	voltSim2 := NewSim(5, 0.5, 1, 10)
 
 	for {
-		samples := make([]data.Sample, 2)
+		samples := make([]data.Sample, 3)
 		samples[0] = data.Sample{
-			ID:    "T0",
 			Type:  "temp",
 			Value: tempSim.Sim(),
 		}
@@ -32,6 +32,12 @@ func DeviceSim(portal, deviceID string) {
 			ID:    "V0",
 			Type:  "volt",
 			Value: voltSim.Sim(),
+		}
+
+		samples[2] = data.Sample{
+			ID:    "V1",
+			Type:  "volt",
+			Value: voltSim2.Sim(),
 		}
 
 		err := sendSamples(deviceID, samples)

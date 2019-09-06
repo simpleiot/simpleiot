@@ -1,7 +1,10 @@
-module Sample exposing (Sample, encodeSample, sampleDecoder)
+module Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
 
+import Html exposing (Html)
 import Json.Decode as Decode
+import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Json.Encode
+import Round
 
 
 type alias Sample =
@@ -22,7 +25,20 @@ encodeSample s =
 
 sampleDecoder : Decode.Decoder Sample
 sampleDecoder =
-    Decode.map3 Sample
-        (Decode.field "type" Decode.string)
-        (Decode.field "id" Decode.string)
-        (Decode.field "value" Decode.float)
+    Decode.succeed Sample
+        |> required "type" Decode.string
+        |> optional "id" Decode.string ""
+        |> optional "value" Decode.float 0
+
+
+renderSample : Sample -> String
+renderSample s =
+    let
+        id =
+            if s.id == "" then
+                ""
+
+            else
+                s.id ++ ": "
+    in
+    id ++ Round.round 2 s.value ++ " (" ++ s.sType ++ ")"

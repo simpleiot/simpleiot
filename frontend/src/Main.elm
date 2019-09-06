@@ -27,8 +27,7 @@ import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Json.Encode as Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
-import Round
-import Sample exposing (Sample, encodeSample, sampleDecoder)
+import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
 import Time
 import Url.Builder as Url
 
@@ -285,7 +284,7 @@ update msg model =
                 newModel =
                     { model | devices = newDevices }
             in
-            case Debug.log "DeviceConfigPosted" result of
+            case result of
                 Ok string ->
                     ( newModel, Cmd.none )
 
@@ -432,7 +431,7 @@ renderIos : List Sample -> Accordion.CardBlock Msg
 renderIos samples =
     Accordion.listGroup
         (List.map
-            (\s -> ListGroup.li [] [ text (s.id ++ ": " ++ Round.round 2 s.value) ])
+            (\s -> ListGroup.li [] [ text (renderSample s) ])
             samples
         )
 
