@@ -260,6 +260,8 @@ func Run(params Params) {
 	// Average is reset every time the system is armed
 	flowAverager := data.NewSampleAverager(isdata.SampleTypeFlowWindowAvg)
 
+	var lastVisionUnknownStateDisplay time.Time
+
 	for {
 		// max sure queues between subsystems are not full
 		for _, c := range channels {
@@ -771,9 +773,11 @@ func Run(params Params) {
 
 			case isdata.LindsayStatusRegs:
 				// if the Vision panel state is unknown, alert user
-				if m.State.String() == "Unknown" {
-					state.DialogUnknownVisionState.Message = "Vision panel state is\nunknown. Inputs shutting off."
+				if m.State.String() == "Unknown" &&
+					time.Since(lastVisionUnknownStateDisplay) > 10*time.Minute {
+					state.DialogUnknownVisionState.Message = "Vision panel state is unknown.\nOutputs shutting off."
 					state.DialogUnknownVisionState.Active = true
+					lastVisionUnknownStateDisplay = time.Now()
 				}
 
 				state.LindsayRegs = m

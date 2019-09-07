@@ -104,6 +104,8 @@ func (s *Screens) Render(img draw.Image) {
 		s.dialog.Render(img, s.state.DialogUpdate.Message)
 	case s.state.DialogInvalidPanel.Active:
 		s.dialog.Render(img, s.state.DialogInvalidPanel.Message)
+	case s.state.DialogUnknownVisionState.Active:
+		s.dialog.Render(img, s.state.DialogUnknownVisionState.Message)
 	case s.state.DialogExport.Active:
 		s.dialog.Render(img, s.state.DialogExport.Message)
 	case s.state.DialogArm.Active:
