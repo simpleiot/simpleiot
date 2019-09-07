@@ -1,6 +1,7 @@
 package network
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -22,6 +23,7 @@ type Modem struct {
 	atCmdPortName string
 	atCmdPort     io.ReadWriteCloser
 	debug         bool
+	lastPPPRun    time.Time
 }
 
 // NewModem constructor
@@ -199,6 +201,24 @@ func (m *Modem) pppActive() bool {
 // Connect stub
 func (m *Modem) Connect() error {
 	fmt.Println("Modem: starting PPP")
+	service, _, _, _, err := m.qcsq()
+	if err != nil {
+		return err
+	}
+
+	// TODO need to set APN, etc before we do this
+	// but eventually want to make sure we have service
+	// before running PPP
+	if !service {
+
+	}
+
+	if time.Since(m.lastPPPRun) < 30*time.Second {
+		return errors.New("only run PPP once every 30s")
+	}
+
+	m.lastPPPRun = time.Now()
+
 	return exec.Command("pon", m.chatScript).Run()
 }
 

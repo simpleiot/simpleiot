@@ -156,7 +156,7 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 				log.Printf("Network: %v connected\n", m.Desc())
 				m.setState(StateConnected)
 			} else {
-				if time.Since(m.stateStart) > time.Minute*2 {
+				if time.Since(m.stateStart) > time.Minute*5 {
 					log.Println("Network: timeout connecting: ", m.Desc())
 					if !m.nextInterface() {
 						m.setState(StateError)
