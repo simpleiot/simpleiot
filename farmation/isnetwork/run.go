@@ -13,10 +13,11 @@ import (
 )
 
 // Run is the entry point for the isnetwork subsystem
-func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
+func Run(in, out chan interface{}, stateIn isdata.State, portal string,
 	debugPortal bool) {
 	state := stateIn
-	sendSamples := api.NewSendSamples(portal, sn, time.Second*10, debugPortal)
+	sendSamples := api.NewSendSamples(portal, state.SerialNumber,
+		time.Second*10, debugPortal)
 	errorCnt := 0
 
 	manager := network.NewManager(10)
@@ -81,7 +82,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, sn, portal string,
 	manageTicker := time.NewTicker(time.Second * 10)
 	sendPortal := time.NewTicker(time.Second * 5)
 
-	if sn == "" {
+	if state.SerialNumber == "" {
 		log.Println("IS Serial is not set, not sending data to portal")
 		sendPortal.Stop()
 	}

@@ -111,6 +111,8 @@ func Run(params Params) {
 	}
 
 	stateDirty = isdata.InitState(&state)
+	state.SerialNumber = params.SerialNumber
+
 	config.Init()
 
 	// incoming channel to mux
@@ -161,7 +163,7 @@ func Run(params Params) {
 	go islog.Run(logChan, appChan, db)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
-	go isnetwork.Run(networkChan, appChan, state, params.SerialNumber,
+	go isnetwork.Run(networkChan, appChan, state,
 		params.PortalURL, params.DebugPortal)
 
 	lastFillingWarning := time.Time{}

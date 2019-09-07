@@ -34,6 +34,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 
 	// Sub screens
 	s.menu.AddItemString("Version", s.state.OSVersion.String())
+	s.menu.AddItemString("Serial Num", s.state.SerialNumber)
 	s.menu.AddItemScreen("Device Name", ScreenIDDiagDevName)
 	s.menu.AddItemScreen("Panel Det", ScreenIDDiagPanel)
 	s.menu.AddItemScreen("Inputs", ScreenIDDiagInputs)
