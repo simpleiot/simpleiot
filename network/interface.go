@@ -6,6 +6,8 @@ type InterfaceStatus struct {
 	Connected bool
 	Operator  string
 	Signal    int
+	Rsrp      int
+	Rsrq      int
 	IP        string
 }
 
