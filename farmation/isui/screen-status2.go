@@ -43,7 +43,11 @@ func (s *StatusScreen2) Render(img draw.Image) {
 
 	DrawTxt(img, strconv.FormatFloat(s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total, 'f', 0, 64), x, y2, tightpixel15.Font)
 	DrawTxt(img, "Gallons", x+21, y2, tightpixel15.Font)
-	DrawTxt(img, strconv.FormatFloat(s.state.AvgFlowRate, 'f', 0, 64), x, y3, tightpixel15.Font)
+	avgFlowStr := strconv.FormatFloat(s.state.AvgFlowRate, 'f', 0, 64)
+	if avgFlowStr == "NaN" {
+		avgFlowStr = "0"
+	}
+	DrawTxt(img, avgFlowStr, x, y3, tightpixel15.Font)
 	timeSinceArm := strconv.FormatFloat(time.Since(s.state.AvgFlowRateStart).Hours(), 'f', 1, 64)
 	DrawTxtRight(img, timeSinceArm, x+31, y4, tightpixel15.Font)
 	DrawTxt(img, "hrs", x+35, y4, tightpixel15.Font)
