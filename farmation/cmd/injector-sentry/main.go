@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/diag"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/islog"
+	"github.com/simpleiot/simpleiot/network"
 )
 
 func main() {
@@ -32,6 +34,7 @@ func main() {
 		flagModemConfigure := flag.Bool("modemConfigure", false, "configure modem")
 		flagModemGet := flag.Bool("modemGet", false, "execute modem get request")
 	*/
+	flagModemStatus := flag.Bool("modemStatus", false, "get modem status")
 	flagModemReset := flag.Bool("modemReset", false, "reset modem")
 	flagPortal := flag.String("portal", "https://portal.farmation.us", "portal URL")
 	flagSerialNumber := flag.String("serialNumber", "", "IS serial number")
@@ -148,6 +151,19 @@ func main() {
 		isio.GpioInit()
 		isio.ResetModem()
 		log.Println("modem reset")
+		os.Exit(0)
+	}
+
+	if *flagModemStatus {
+		isio.GpioInit()
+		modem := network.NewModem("bg96", "/dev/ttyUSB2", nil, true)
+		status, err := modem.GetStatus()
+		if err != nil {
+			log.Println("Error getting modem status: ", err)
+			os.Exit(-1)
+		}
+
+		fmt.Printf("Modem status: %+v\n", status)
 		os.Exit(0)
 	}
 
