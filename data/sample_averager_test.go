@@ -12,9 +12,15 @@ func TestSampleAverager(t *testing.T) {
 	avg := 2000.00
 
 	sampleAverager := NewSampleAverager("testSample")
+	avgSample := sampleAverager.GetAverage()
+	if avgSample.Value != 0 {
+		t.Error("sample avg with 0 samples is not correct: ", avgSample.Value)
+	}
+
+	// Round 1.5
 	feedSamples(sampleAverager, avg, min, max)
 
-	avgSample := sampleAverager.GetAverage()
+	avgSample = sampleAverager.GetAverage()
 	if avgSample.Value != avg {
 		t.Error("sample avg is not correct")
 	}

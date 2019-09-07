@@ -54,10 +54,17 @@ func (sa *SampleAverager) ResetAverage() {
 
 // GetAverage returns the average of the accumulated samples
 func (sa *SampleAverager) GetAverage() Sample {
+	var value float64
+	if sa.count == 0 {
+		value = 0
+	} else {
+		value = sa.total / float64(sa.count)
+	}
+
 	return Sample{
 		Type:  sa.sampleType,
 		Time:  sa.sampleTime,
-		Value: sa.total / float64(sa.count),
+		Value: value,
 		Min:   sa.min,
 		Max:   sa.max,
 	}
