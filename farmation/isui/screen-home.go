@@ -37,7 +37,7 @@ func NewHomeScreen(state *isdata.State, config *isdata.Config) *HomeScreen {
 func (s *HomeScreen) Render(img draw.Image) {
 	Clear(img)
 	highBound, lowBound := s.config.CalculateFlowWindow()
-	x := 31
+	x := 60
 	y := 15
 
 	// Flow rate
@@ -49,17 +49,17 @@ func (s *HomeScreen) Render(img draw.Image) {
 			s.flowOn = !s.flowOn
 		}
 		if s.flowOn {
-			s.drawFlow(img, x, y, agencyfbbold40.Font)
+			s.drawVariablePrecision(img, s.state.FlowRate, x, y, agencyfbbold40.Font)
 		}
 	} else {
-		s.drawFlow(img, x, y, agencyfbbold40.Font)
+		s.drawVariablePrecision(img, s.state.FlowRate, x, y, agencyfbbold40.Font)
 	}
 
 	// Flow window
-	x = 80
+	x = 97
 	if s.config.OperatingMode != isdata.ISOperatingModeMonitor && s.config.Arm {
-		DrawTxt(img, strconv.FormatFloat(highBound, 'f', 1, 64), x, 14, agencyfbbold20.Font)
-		DrawTxt(img, strconv.FormatFloat(lowBound, 'f', 1, 64), x, 32, agencyfbbold20.Font)
+		s.drawVariablePrecision(img, highBound, x, 14, agencyfbbold20.Font)
+		s.drawVariablePrecision(img, lowBound, x, 32, agencyfbbold20.Font)
 	}
 
 	s.softKeys.SetBlinking(SK4, s.state.FaultsActive.ActiveFaults())
@@ -102,11 +102,10 @@ func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 }
 
 // if rate is < 10, draw with 1 floating point, otherwise with none
-func (s *HomeScreen) drawFlow(img draw.Image, x, y int, font *pixfont.PixFont) {
-	rate := s.state.FlowRate
-	if rate < 10 {
-		DrawTxt(img, strconv.FormatFloat(rate, 'f', 1, 64), x, y, font)
+func (s *HomeScreen) drawVariablePrecision(img draw.Image, value float64, x, y int, font *pixfont.PixFont) {
+	if value < 10 {
+		DrawTxtRight(img, strconv.FormatFloat(value, 'f', 1, 64), x, y, font)
 	} else {
-		DrawTxt(img, strconv.FormatFloat(rate, 'f', 0, 64), x, y, font)
+		DrawTxtRight(img, strconv.FormatFloat(value, 'f', 0, 64), x, y, font)
 	}
 }
