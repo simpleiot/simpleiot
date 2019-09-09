@@ -97,11 +97,17 @@ is_build_gpio_test() {
 
 # Portal
 
+is_portal_uglify() {
+  (cd frontend/output && mv elm.js x &&
+    uglifyjs x --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output=elm.js)
+}
+
 is_portal_build_frontend() {
   rm frontend/output/* || true
-  (cd frontend && elm make src/Farmation/Portal/Main.elm --output=output/elm.js) || return 1
+  (cd frontend && elm make --optimize src/Farmation/Portal/Main.elm --output=output/elm.js) || return 1
+  is_portal_uglify || return 1
   (cd frontend && cp src/Farmation/public/index.html output/) || return 1
-  (cd frontend && cp src/Farmation/public/farmation-logo.png output/) || return 1
+  (cd frontend && cp src/Farmation/public/*.png output/) || return 1
   return 0
 }
 
@@ -111,6 +117,11 @@ is_portal_build_assets() {
     index.html \
     elm.js \
     farmation-logo.png \
+    Injector.png \
+    WaterOn.png \
+    Irrigator.png \
+    Armed.png \
+    Shutdown.png \
     >farmation/assets/portal/assets.go || return 1
   return 0
 }
