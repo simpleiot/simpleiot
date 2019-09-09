@@ -12,9 +12,18 @@ import (
 	"github.com/simpleiot/simpleiot/network"
 )
 
+func bool2Float(in bool) float64 {
+	if in {
+		return 1
+	}
+
+	return 0
+}
+
 // Run is the entry point for the isnetwork subsystem
-func Run(in, out chan interface{}, stateIn isdata.State, portal string,
-	debugPortal bool) {
+func Run(in, out chan interface{}, configIn isdata.Config,
+	stateIn isdata.State, portal string, debugPortal bool) {
+	config := configIn
 	state := stateIn
 	sendSamples := api.NewSendSamples(portal, state.SerialNumber,
 		time.Second*10, debugPortal)
@@ -46,6 +55,10 @@ func Run(in, out chan interface{}, stateIn isdata.State, portal string,
 
 		samples := []data.Sample{
 			{
+				Type:  "armed",
+				Value: bool2Float(config.Arm),
+			},
+			{
 				Type:  "inputWaterOn",
 				Value: 0,
 			},
@@ -59,11 +72,11 @@ func Run(in, out chan interface{}, stateIn isdata.State, portal string,
 			},
 			{
 				Type:  "gpioRelayInjectorEn",
-				Value: 0,
+				Value: bool2Float(state.GpioRelayInjectorEn),
 			},
 			{
 				Type:  "gpioShutdownEn",
-				Value: 0,
+				Value: bool2Float(state.GpioRelayShutdownEn),
 			},
 		}
 
@@ -98,6 +111,29 @@ func Run(in, out chan interface{}, stateIn isdata.State, portal string,
 		select {
 		case m := <-in:
 			switch m := m.(type) {
+			case isdata.Config:
+				samples := []data.Sample{}
+				if config.Arm != m.Arm {
+					samples = append(samples,
+						data.Sample{
+							Type:  "armed",
+							Value: bool2Float(config.Arm),
+						})
+				}
+
+				if len(samples) > 0 {
+					err := sendSamples(samples)
+					if err != nil {
+						log.Println("Error sending data to portal: ", err)
+						manager.Error()
+						errorCnt++
+					} else {
+						manager.Success()
+					}
+				}
+
+				config = m
+
 			case isdata.State:
 				samples := []data.Sample{}
 				if state.InputWaterOn != m.InputWaterOn {

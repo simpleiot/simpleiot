@@ -163,7 +163,7 @@ func Run(params Params) {
 	go islog.Run(logChan, appChan, db)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
-	go isnetwork.Run(networkChan, appChan, state,
+	go isnetwork.Run(networkChan, appChan, config, state,
 		params.PortalURL, params.DebugPortal)
 
 	lastFillingWarning := time.Time{}

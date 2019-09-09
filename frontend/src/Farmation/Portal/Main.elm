@@ -27,6 +27,7 @@ import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Json.Encode as Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
+import Round
 import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
 import Time
 import Url.Builder as Url
@@ -43,6 +44,80 @@ main =
 
 
 -- Model
+
+
+type alias InjectorSentry =
+    { inputWaterOn : Bool
+    , inputIrrigator : Bool
+    , inputInjector : Bool
+    , armed : Bool
+    , outputShutdown : Bool
+    , outputInjector : Bool
+    , flowRate : Float
+    , currentTankVolume : Float
+    , pressureMin : Float
+    , pressureMax : Float
+    }
+
+
+floatToBool : Float -> Bool
+floatToBool input =
+    if input == 0 then
+        False
+
+    else
+        True
+
+
+isApplyIos : InjectorSentry -> List Sample -> InjectorSentry
+isApplyIos is ios =
+    case ios of
+        x :: xs ->
+            case x.sType of
+                "armed" ->
+                    isApplyIos { is | armed = floatToBool x.value } xs
+
+                "inputIrrigator" ->
+                    isApplyIos { is | inputIrrigator = floatToBool x.value } xs
+
+                "inputWaterOn" ->
+                    isApplyIos { is | inputWaterOn = floatToBool x.value } xs
+
+                "inputInjector" ->
+                    isApplyIos { is | inputInjector = floatToBool x.value } xs
+
+                "gpioRelayInjectorEn" ->
+                    isApplyIos { is | outputInjector = floatToBool x.value } xs
+
+                "gpioRelayShutdownEn" ->
+                    isApplyIos { is | outputShutdown = floatToBool x.value } xs
+
+                "flowRate" ->
+                    isApplyIos { is | flowRate = x.value } xs
+
+                "pressureMin" ->
+                    isApplyIos { is | pressureMin = x.value } xs
+
+                "pressureMax" ->
+                    isApplyIos { is | pressureMax = x.value } xs
+
+                "currentTankVolume" ->
+                    isApplyIos { is | currentTankVolume = x.value } xs
+
+                _ ->
+                    isApplyIos is xs
+
+        [] ->
+            is
+
+
+deviceToInjectorSentry : Device -> InjectorSentry
+deviceToInjectorSentry device =
+    let
+        is =
+            InjectorSentry False False False False False False 0 0 0 0
+    in
+    isApplyIos is device.state.ios
 
 
 type alias Response =
@@ -233,13 +308,6 @@ updateDevice devices device =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    -- uncomment the following to display model updates
-    -- let
-    --    _ =
-    --        Debug.log "update: " msg
-    -- _ =
-    --    Debug.log "model: " model
-    -- in
     case msg of
         Increment ->
             ( model, Cmd.none )
@@ -267,10 +335,6 @@ update msg model =
                             ( { model | devices = { devices = devicesUpdate, dirty = False } }, Cmd.none )
 
                         Err err ->
-                            let
-                                _ =
-                                    Debug.log "UpdateDevices error: " err
-                            in
                             ( model, Cmd.none )
 
         DeviceConfigPosted result ->
@@ -284,15 +348,12 @@ update msg model =
                 newModel =
                     { model | devices = newDevices }
             in
-            case Debug.log "DeviceConfigPosted" result of
+            case result of
+                -- fixme show error dialog
                 Ok string ->
                     ( newModel, Cmd.none )
 
                 Err err ->
-                    let
-                        _ =
-                            Debug.log "DeviceConfigPosted error: " err
-                    in
                     ( newModel, Cmd.none )
 
         EditDevice id ->
@@ -406,8 +467,70 @@ renderDeviceSummary dev =
     dev.config.description ++ " (" ++ dev.id ++ ")"
 
 
+space =
+    text "\u{00A0}\u{00A0}"
+
+
+renderISDetail : InjectorSentry -> Accordion.CardBlock Msg
+renderISDetail is =
+    Accordion.listGroup
+        [ ListGroup.li [] [ text ("Min Pressure: " ++ Round.round 0 is.pressureMin) ]
+        , ListGroup.li [] [ text ("Max Pressure: " ++ Round.round 0 is.pressureMax) ]
+        , ListGroup.li [] [ text ("Current Tank Level: " ++ Round.round 0 is.currentTankVolume) ]
+        ]
+
+
 renderDevice : Device -> Accordion.Card Msg
 renderDevice dev =
+    let
+        is =
+            deviceToInjectorSentry dev
+
+        inputInj =
+            if is.inputInjector then
+                img [ src "public/Injector.png" ] []
+
+            else
+                text ""
+
+        inputWater =
+            if is.inputWaterOn then
+                img [ src "public/WaterOn.png" ] []
+
+            else
+                text ""
+
+        inputIrr =
+            if is.inputIrrigator then
+                img [ src "public/Irrigator.png" ] []
+
+            else
+                text ""
+
+        flow =
+            Round.round 1 is.flowRate ++ " GPH"
+
+        armed =
+            if is.armed then
+                img [ src "public/Armed.png" ] []
+
+            else
+                text ""
+
+        outputInj =
+            if is.outputInjector then
+                img [ src "public/Injector.png" ] []
+
+            else
+                text ""
+
+        outputShutdown =
+            if is.outputShutdown then
+                img [ src "public/Shutdown.png" ] []
+
+            else
+                text ""
+    in
     Accordion.card
         { id = dev.id
         , options = []
@@ -421,8 +544,21 @@ renderDevice dev =
                         , class "btn btn-light"
                         ]
                         [ edit Color.black 25 ]
+                    , inputInj
+                    , space
+                    , inputWater
+                    , space
+                    , inputIrr
+                    , space
+                    , span [ style "background-color" "f2fae8" ] [ text flow ]
+                    , space
+                    , armed
+                    , space
+                    , outputInj
+                    , space
+                    , outputShutdown
                     ]
-        , blocks = [ renderIos dev.state.ios ]
+        , blocks = [ renderISDetail is ]
         }
 
 
