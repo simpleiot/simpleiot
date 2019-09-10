@@ -103,9 +103,16 @@ is_portal_uglify() {
 }
 
 is_portal_build_frontend() {
+  DEBUG=$1
   rm frontend/output/* || true
-  (cd frontend && elm make --optimize src/Farmation/Portal/Main.elm --output=output/elm.js) || return 1
-  is_portal_uglify || return 1
+  if [ -z "$DEBUG" ]; then
+    # build production version
+    (cd frontend && elm make --optimize src/Farmation/Portal/Main.elm --output=output/elm.js) || return 1
+    is_portal_uglify || return 1
+  else
+    # build debug version (can use Debug.log)
+    (cd frontend && elm make src/Farmation/Portal/Main.elm --output=output/elm.js) || return 1
+  fi
   (cd frontend && cp src/Farmation/public/index.html output/) || return 1
   (cd frontend && cp src/Farmation/public/*.png output/) || return 1
   return 0
@@ -127,7 +134,8 @@ is_portal_build_assets() {
 }
 
 is_portal_build_dependencies() {
-  is_portal_build_frontend || return 1
+  DEBUG=$1
+  is_portal_build_frontend $DEBUG || return 1
   is_portal_build_assets || return 1
   return 0
 }
@@ -141,7 +149,7 @@ is_portal_build() {
 is_portal_run() {
   export SIOT_DATA=./portal_db
   mkdir -p $SIOT_DATA
-  is_portal_build_dependencies || return 1
+  is_portal_build_dependencies debug || return 1
   go run farmation/cmd/portal/main.go || return 1
   return 0
 }
