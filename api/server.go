@@ -37,13 +37,16 @@ type App struct {
 	PublicHandler http.Handler
 	IndexHandler  http.Handler
 	V1ApiHandler  http.Handler
+	Debug         bool
 }
 
 // Top level handler for http requests in the coap-server process
 func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 
-	fmt.Println("Path: ", req.URL.Path)
+	if h.Debug {
+		fmt.Printf("HTTP %v: %v\n", req.Method, req.URL.Path)
+	}
 
 	if req.URL.Path == "/" {
 		h.IndexHandler.ServeHTTP(res, req)
@@ -62,17 +65,18 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // NewAppHandler returns a new application (root) http handler
 func NewAppHandler(db *db.Db, getAsset func(string) []byte,
-	filesystem http.FileSystem) http.Handler {
+	filesystem http.FileSystem, debug bool) http.Handler {
 	return &App{
 		PublicHandler: http.FileServer(filesystem),
 		IndexHandler:  NewIndexHandler(getAsset),
 		V1ApiHandler:  NewV1Handler(db),
+		Debug:         debug,
 	}
 }
 
 // Server starts a API server instance
-func Server(getAsset func(string) []byte, filesystem http.FileSystem) error {
-	log.Println("Starting http server")
+func Server(getAsset func(string) []byte, filesystem http.FileSystem, debug bool) error {
+	log.Println("Starting http server, debug: ", debug)
 
 	port := os.Getenv("SIOT_PORT")
 	if port == "" {
@@ -92,5 +96,5 @@ func Server(getAsset func(string) []byte, filesystem http.FileSystem) error {
 
 	log.Println("Starting portal on port: ", port)
 	address := fmt.Sprintf(":%s", port)
-	return http.ListenAndServe(address, NewAppHandler(db, getAsset, filesystem))
+	return http.ListenAndServe(address, NewAppHandler(db, getAsset, filesystem, debug))
 }
