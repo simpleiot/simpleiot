@@ -42,8 +42,7 @@ Return a list of all devices.
 
 + Response 200 (application/json)
     + Attributes (StandardResponse)
-        + data (array)
-            + (Device)
+        + data (array[Device])
 
 ## Device [/v1/devices/{id}]
 A device contains state and config for a device.
@@ -57,6 +56,14 @@ Retrieve information for a specific device.
 + Response 200 (application/json)
     + Attributes (StandardResponse)
         + data (Device) - data for the device
+
+### DELETE
+Delete a device
+
++ Response 200 (application/json)
+    + Attributes (StandardResponse)
+        + data
+            + id: 1007 (string) - ID of deleted device
 
 ## Device Config [/v1/devices/{id}/config]
 
