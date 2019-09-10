@@ -75,6 +75,11 @@ func (db *Db) Device(id string) (ret data.Device, err error) {
 	return
 }
 
+// DeviceDelete deletes a device from the database
+func (db *Db) DeviceDelete(id string) error {
+	return db.store.Delete(id, data.Device{})
+}
+
 // Devices returns all devices
 func (db *Db) Devices() (ret []data.Device, err error) {
 	err = db.store.Find(&ret, nil)
