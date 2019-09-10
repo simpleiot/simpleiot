@@ -13,6 +13,7 @@ func main() {
 	flagSim := flag.Bool("sim", false, "Start device simulator")
 	flagSimPortal := flag.String("simPortal", "http://localhost:8080", "Portal URL")
 	flagSimDeviceID := flag.String("simDeviceId", "1234", "Simulation Device ID")
+	flagDebugHTTP := flag.Bool("debugHttp", false, "Dump http requests")
 
 	flag.Parse()
 
@@ -21,7 +22,7 @@ func main() {
 	}
 
 	// default action is to start server
-	err := api.Server(portal.Asset, portal.FileSystem())
+	err := api.Server(portal.Asset, portal.FileSystem(), *flagDebugHTTP)
 	if err != nil {
 		log.Println("Error starting server: ", err)
 	}
