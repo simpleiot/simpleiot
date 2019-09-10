@@ -55,8 +55,12 @@ type alias InjectorSentry =
     , outputInjector : Bool
     , flowRate : Float
     , currentTankVolume : Float
+    , tankCapacity : Float
     , pressureMin : Float
     , pressureMax : Float
+    , flowRateTarget : Float
+    , flowWindowMin : Float
+    , flowWindowMax : Float
     }
 
 
@@ -104,6 +108,18 @@ isApplyIos is ios =
                 "currentTankVolume" ->
                     isApplyIos { is | currentTankVolume = x.value } xs
 
+                "tankCapacity" ->
+                    isApplyIos { is | tankCapacity = x.value } xs
+
+                "flowRateTarget" ->
+                    isApplyIos { is | flowRateTarget = x.value } xs
+
+                "flowWindowMin" ->
+                    isApplyIos { is | flowWindowMin = x.value } xs
+
+                "flowWindowMax" ->
+                    isApplyIos { is | flowWindowMax = x.value } xs
+
                 _ ->
                     isApplyIos is xs
 
@@ -115,7 +131,7 @@ deviceToInjectorSentry : Device -> InjectorSentry
 deviceToInjectorSentry device =
     let
         is =
-            InjectorSentry False False False False False False 0 0 0 0
+            InjectorSentry False False False False False False 0 0 0 0 0 0 0 0
     in
     isApplyIos is device.state.ios
 
@@ -171,9 +187,11 @@ type Msg
     | Tick Time.Posix
     | UpdateDevices (Result Http.Error (List Device))
     | DeviceConfigPosted (Result Http.Error Response)
+    | DeviceDelete (Result Http.Error Response)
     | EditDevice String
     | EditDeviceClose
     | EditDeviceSave
+    | EditDeviceDelete
     | EditDeviceChangeDescription String
 
 
@@ -257,7 +275,10 @@ devicesDecoder =
 
 apiGetDevices : Cmd Msg
 apiGetDevices =
-    Http.send UpdateDevices (Http.get urlDevices devicesDecoder)
+    Http.get
+        { url = urlDevices
+        , expect = Http.expectJson UpdateDevices devicesDecoder
+        }
 
 
 deviceConfigEncoder : DeviceConfig -> Encode.Value
@@ -276,7 +297,28 @@ apiPostDeviceConfig id config =
         url =
             Url.absolute [ "v1", "devices", id, "config" ] []
     in
-    Http.send DeviceConfigPosted (Http.post url body responseDecoder)
+    Http.post
+        { url = url
+        , body = body
+        , expect = Http.expectJson DeviceConfigPosted responseDecoder
+        }
+
+
+apiPostDeviceDelete : String -> Cmd Msg
+apiPostDeviceDelete id =
+    let
+        url =
+            Url.absolute [ "v1", "devices", id ] []
+    in
+    Http.request
+        { method = "DELETE"
+        , headers = []
+        , url = url
+        , body = Http.emptyBody
+        , expect = Http.expectJson DeviceDelete responseDecoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 findDevice : List Device -> String -> Maybe Device
@@ -356,6 +398,25 @@ update msg model =
                 Err err ->
                     ( newModel, Cmd.none )
 
+        DeviceDelete result ->
+            let
+                devices =
+                    model.devices
+
+                newDevices =
+                    { devices | dirty = False }
+
+                newModel =
+                    { model | devices = newDevices }
+            in
+            case result of
+                -- fixme show error dialog
+                Ok string ->
+                    ( newModel, Cmd.none )
+
+                Err err ->
+                    ( newModel, Cmd.none )
+
         EditDevice id ->
             ( { model
                 | deviceEdits = { visibility = Modal.shown, device = findDevice model.devices.devices id }
@@ -388,6 +449,9 @@ update msg model =
                 Just dev ->
                     apiPostDeviceConfig dev.id dev.config
             )
+
+        EditDeviceDelete ->
+            ( model, Cmd.none )
 
         EditDeviceChangeDescription desc ->
             case model.deviceEdits.device of
@@ -476,7 +540,7 @@ renderISDetail is =
     Accordion.listGroup
         [ ListGroup.li [] [ text ("Min Pressure: " ++ Round.round 0 is.pressureMin) ]
         , ListGroup.li [] [ text ("Max Pressure: " ++ Round.round 0 is.pressureMax) ]
-        , ListGroup.li [] [ text ("Current Tank Level: " ++ Round.round 0 is.currentTankVolume) ]
+        , ListGroup.li [] [ text ("Tank Level: " ++ Round.round 0 is.currentTankVolume ++ " of " ++ Round.round 0 is.tankCapacity ++ " gal") ]
         ]
 
 
@@ -616,5 +680,10 @@ renderEditDevice deviceEdits =
                         , Button.attrs [ onClick EditDeviceClose ]
                         ]
                         [ text "Cancel" ]
+                    , Button.button
+                        [ Button.outlineDanger
+                        , Button.attrs [ onClick EditDeviceDelete ]
+                        ]
+                        [ text "Delete" ]
                     ]
                 |> Modal.view deviceEdits.visibility
