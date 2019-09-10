@@ -80,7 +80,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			return
 		}
 
-		windowLow, windowHigh := config.CalculateFlowWindow()
+		windowHigh, windowLow := config.CalculateFlowWindow()
 
 		samples := []data.Sample{
 			{
@@ -168,8 +168,8 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 						})
 				}
 
-				windowLow, windowHigh := config.CalculateFlowWindow()
-				windowLowN, windowHighN := config.CalculateFlowWindow()
+				windowHigh, windowLow := config.CalculateFlowWindow()
+				windowHighN, windowLowN := config.CalculateFlowWindow()
 
 				if windowLow != windowLowN {
 					samples = append(samples,

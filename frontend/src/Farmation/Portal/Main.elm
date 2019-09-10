@@ -59,8 +59,8 @@ type alias InjectorSentry =
     , pressureMin : Float
     , pressureMax : Float
     , flowRateTarget : Float
-    , flowWindowMin : Float
-    , flowWindowMax : Float
+    , flowWindowLow : Float
+    , flowWindowHigh : Float
     }
 
 
@@ -114,11 +114,11 @@ isApplyIos is ios =
                 "flowRateTarget" ->
                     isApplyIos { is | flowRateTarget = x.value } xs
 
-                "flowWindowMin" ->
-                    isApplyIos { is | flowWindowMin = x.value } xs
+                "flowWindowLow" ->
+                    isApplyIos { is | flowWindowLow = x.value } xs
 
-                "flowWindowMax" ->
-                    isApplyIos { is | flowWindowMax = x.value } xs
+                "flowWindowHigh" ->
+                    isApplyIos { is | flowWindowHigh = x.value } xs
 
                 _ ->
                     isApplyIos is xs
@@ -569,8 +569,26 @@ renderISDetail : InjectorSentry -> Accordion.CardBlock Msg
 renderISDetail is =
     Accordion.listGroup
         [ ListGroup.li [] [ text ("Min Pressure: " ++ Round.round 0 is.pressureMin) ]
-        , ListGroup.li [] [ text ("Max Pressure: " ++ Round.round 0 is.pressureMax) ]
-        , ListGroup.li [] [ text ("Tank Level: " ++ Round.round 0 is.currentTankVolume ++ " of " ++ Round.round 0 is.tankCapacity ++ " gal") ]
+        , ListGroup.li [] [ text ("Max Pressure: \n" ++ Round.round 0 is.pressureMax) ]
+        , ListGroup.li []
+            [ text
+                ("Tank Level: "
+                    ++ Round.round 0
+                        is.currentTankVolume
+                    ++ " of "
+                    ++ Round.round 0 is.tankCapacity
+                    ++ " gal"
+                )
+            ]
+        , ListGroup.li [] [ text ("Target Flow: " ++ Round.round 0 is.flowRateTarget) ]
+        , ListGroup.li []
+            [ text
+                ("Target Flow Window: "
+                    ++ Round.round 0 is.flowWindowLow
+                    ++ " to "
+                    ++ Round.round 0 is.flowWindowHigh
+                )
+            ]
         ]
 
 
@@ -685,7 +703,6 @@ renderEditDevice deviceEdits =
 
         Just device ->
             Modal.config EditDeviceClose
-                |> Modal.small
                 |> Modal.h5 [] [ text ("Edit device (" ++ device.id ++ ")") ]
                 |> Modal.body []
                     [ Form.group []
