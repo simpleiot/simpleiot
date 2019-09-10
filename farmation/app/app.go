@@ -179,6 +179,7 @@ func Run(params Params) {
 		ioChan <- config
 		presChan <- config
 		cntrlChan <- config
+		networkChan <- config
 		err := db.WriteConfig(&config)
 		if err != nil {
 			log.Println("Error saving config: ", err)

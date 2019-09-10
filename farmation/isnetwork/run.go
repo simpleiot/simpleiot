@@ -156,7 +156,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 					samples = append(samples,
 						data.Sample{
 							Type:  "armed",
-							Value: bool2Float(config.Arm),
+							Value: bool2Float(m.Arm),
 						})
 				}
 
