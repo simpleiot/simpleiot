@@ -20,16 +20,43 @@ func bool2Float(in bool) float64 {
 	return 0
 }
 
+func input2Float(in isdata.InputState) float64 {
+	if in == isdata.InputStateOn {
+		return 1
+	}
+
+	return 0
+}
+
 // Run is the entry point for the isnetwork subsystem
 func Run(in, out chan interface{}, configIn isdata.Config,
 	stateIn isdata.State, portal string, debugPortal bool) {
 	config := configIn
 	state := stateIn
-	sendSamples := api.NewSendSamples(portal, state.SerialNumber,
-		time.Second*10, debugPortal)
 	errorCnt := 0
 
 	manager := network.NewManager(10)
+
+	sendSamplesAPI := api.NewSendSamples(portal, state.SerialNumber,
+		time.Second*10, debugPortal)
+
+	sendSamples := func(samples []data.Sample) error {
+		if len(samples) <= 0 {
+			return nil
+		}
+
+		err := sendSamplesAPI(samples)
+		if err != nil {
+			log.Println("Error sending data to portal: ", err)
+			manager.Error()
+			errorCnt++
+			return err
+		}
+		manager.Success()
+
+		return err
+	}
+
 	if runtime.GOOS == "windows" {
 		manager.AddInterface(network.NewDummyInterface())
 	} else {
@@ -53,22 +80,40 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			return
 		}
 
+		windowLow, windowHigh := config.CalculateFlowWindow()
+
 		samples := []data.Sample{
 			{
 				Type:  "armed",
 				Value: bool2Float(config.Arm),
 			},
 			{
+				Type:  "flowRateTarget",
+				Value: config.FlowRateTarget,
+			},
+			{
+				Type:  "flowWindowLow",
+				Value: windowLow,
+			},
+			{
+				Type:  "flowWindowHigh",
+				Value: windowHigh,
+			},
+			{
+				Type:  "tankCapacity",
+				Value: float64(config.TankCapacity),
+			},
+			{
 				Type:  "inputWaterOn",
-				Value: 0,
+				Value: input2Float(state.InputWaterOn),
 			},
 			{
 				Type:  "inputIrrigator",
-				Value: 0,
+				Value: input2Float(state.InputIrrigator),
 			},
 			{
 				Type:  "inputInjector",
-				Value: 0,
+				Value: input2Float(state.InputInjector),
 			},
 			{
 				Type:  "gpioRelayInjectorEn",
@@ -81,15 +126,9 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		}
 
 		err := sendSamples(samples)
-		if err != nil {
-			log.Println("Error sending data to portal: ", err)
-			manager.Error()
-			errorCnt++
-			return
+		if err == nil {
+			initialDigitalDataSent = true
 		}
-		manager.Success()
-
-		initialDigitalDataSent = true
 	}
 
 	manageTicker := time.NewTicker(time.Second * 10)
@@ -121,91 +160,80 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 						})
 				}
 
-				if len(samples) > 0 {
-					err := sendSamples(samples)
-					if err != nil {
-						log.Println("Error sending data to portal: ", err)
-						manager.Error()
-						errorCnt++
-					} else {
-						manager.Success()
-					}
+				if config.FlowRateTarget != m.FlowRateTarget {
+					samples = append(samples,
+						data.Sample{
+							Type:  "flowRateTarget",
+							Value: m.FlowRateTarget,
+						})
 				}
+
+				windowLow, windowHigh := config.CalculateFlowWindow()
+				windowLowN, windowHighN := config.CalculateFlowWindow()
+
+				if windowLow != windowLowN {
+					samples = append(samples,
+						data.Sample{
+							Type:  "flowWindowLow",
+							Value: windowLowN,
+						})
+				}
+
+				if windowHigh != windowHighN {
+					samples = append(samples,
+						data.Sample{
+							Type:  "flowWindowHigh",
+							Value: windowHighN,
+						})
+				}
+
+				sendSamples(samples)
 
 				config = m
 
 			case isdata.State:
 				samples := []data.Sample{}
 				if state.InputWaterOn != m.InputWaterOn {
-					v := 0.0
-					if m.InputWaterOn == isdata.InputStateOn {
-						v = 1.0
-					}
 					samples = append(samples,
 						data.Sample{
 							Type:  "inputWaterOn",
-							Value: v,
+							Value: input2Float(m.InputWaterOn),
 						})
 				}
 
 				if state.InputIrrigator != m.InputIrrigator {
-					v := 0.0
-					if m.InputIrrigator == isdata.InputStateOn {
-						v = 1.0
-					}
 					samples = append(samples,
 						data.Sample{
 							Type:  "inputIrrigator",
-							Value: v,
+							Value: input2Float(m.InputIrrigator),
 						})
 				}
 
 				if state.InputInjector != m.InputInjector {
-					v := 0.0
-					if m.InputInjector == isdata.InputStateOn {
-						v = 1.0
-					}
 					samples = append(samples,
 						data.Sample{
 							Type:  "inputInjector",
-							Value: v,
+							Value: input2Float(m.InputInjector),
 						})
 				}
 
 				if state.GpioRelayInjectorEn != m.GpioRelayInjectorEn {
-					v := 0.0
-					if m.GpioRelayInjectorEn {
-						v = 1.0
-					}
 					samples = append(samples,
 						data.Sample{
 							Type:  "gpioRelayInjectorEn",
-							Value: v,
+							Value: bool2Float(m.GpioRelayInjectorEn),
 						})
 				}
 
 				if state.GpioRelayShutdownEn != m.GpioRelayShutdownEn {
-					v := 0.0
-					if m.GpioRelayShutdownEn {
-						v = 1.0
-					}
 					samples = append(samples,
 						data.Sample{
 							Type:  "gpioShutdownEn",
-							Value: v,
+							Value: bool2Float(m.GpioRelayShutdownEn),
 						})
 				}
 
-				if len(samples) > 0 {
-					err := sendSamples(samples)
-					if err != nil {
-						log.Println("Error sending data to portal: ", err)
-						manager.Error()
-						errorCnt++
-					} else {
-						manager.Success()
-					}
-				}
+				sendSamples(samples)
 
 				state = m
 			default:
@@ -247,14 +275,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				},
 			}
 
-			err := sendSamples(samples)
-			if err != nil {
-				log.Println("Error sending data to portal: ", err)
-				manager.Error()
-				errorCnt++
-			} else {
-				manager.Success()
-			}
+			sendSamples(samples)
 		}
 	}
 }
