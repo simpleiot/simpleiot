@@ -139,6 +139,21 @@ deviceToInjectorSentry device =
 type alias Response =
     { success : Bool
     , error : String
+    , id : String
+    }
+
+
+type alias ResponseError =
+    { success : Bool
+    , error : String
+    }
+
+
+type alias ResponseSuccess =
+    { success : Bool
+    , data :
+        { id : String
+        }
     }
 
 
@@ -191,7 +206,7 @@ type Msg
     | EditDevice String
     | EditDeviceClose
     | EditDeviceSave
-    | EditDeviceDelete
+    | EditDeviceDelete String
     | EditDeviceChangeDescription String
 
 
@@ -241,6 +256,7 @@ responseDecoder =
     Decode.succeed Response
         |> required "success" Decode.bool
         |> optional "error" Decode.string ""
+        |> optional "id" Decode.string ""
 
 
 samplesDecoder : Decode.Decoder (List Sample)
@@ -411,8 +427,15 @@ update msg model =
             in
             case result of
                 -- fixme show error dialog
-                Ok string ->
-                    ( newModel, Cmd.none )
+                Ok resp ->
+                    let
+                        devicesRm =
+                            List.filter (\d -> d.id /= resp.id) newDevices.devices
+
+                        newNewDevices =
+                            { newDevices | devices = devicesRm }
+                    in
+                    ( { newModel | devices = newNewDevices }, Cmd.none )
 
                 Err err ->
                     ( newModel, Cmd.none )
@@ -450,8 +473,15 @@ update msg model =
                     apiPostDeviceConfig dev.id dev.config
             )
 
-        EditDeviceDelete ->
-            ( model, Cmd.none )
+        EditDeviceDelete id ->
+            let
+                deviceEditsIn =
+                    model.deviceEdits
+
+                deviceEdits =
+                    { deviceEditsIn | visibility = Modal.hidden }
+            in
+            ( { model | deviceEdits = deviceEdits }, apiPostDeviceDelete id )
 
         EditDeviceChangeDescription desc ->
             case model.deviceEdits.device of
@@ -682,7 +712,7 @@ renderEditDevice deviceEdits =
                         [ text "Cancel" ]
                     , Button.button
                         [ Button.outlineDanger
-                        , Button.attrs [ onClick EditDeviceDelete ]
+                        , Button.attrs [ onClick (EditDeviceDelete device.id) ]
                         ]
                         [ text "Delete" ]
                     ]
