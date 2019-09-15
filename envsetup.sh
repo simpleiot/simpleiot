@@ -43,7 +43,8 @@ siot_setup() {
 siot_build_frontend() {
   rm frontend/output/* || true
   (cd frontend && elm make src/Main.elm --output=output/elm.js) || return 1
-  (cd frontend && cp public/* output/) || return 1
+  cp frontend/public/* frontend/output/ || return 1
+  cp docs/simple-iot-app-logo.png frontend/output/ || return 1
   return 0
 }
 
