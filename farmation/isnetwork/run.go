@@ -2,6 +2,7 @@ package isnetwork
 
 import (
 	"log"
+	"math"
 	"runtime"
 	"time"
 
@@ -132,7 +133,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	}
 
 	manageTicker := time.NewTicker(time.Second * 10)
-	sendPortal := time.NewTicker(time.Second * 5)
+	sendPortal := time.NewTicker(time.Minute * 10)
 
 	if state.SerialNumber == "" {
 		log.Println("IS Serial is not set, not sending data to portal")
@@ -145,6 +146,9 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	}
 
 	sendInitialDigitalData()
+
+	lastReportedFlow := 0.0
+	lastReportedTankVolume := 0.0
 
 	for {
 		select {
@@ -233,6 +237,27 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 						})
 				}
 
+				if math.Abs(lastReportedFlow-m.FlowRate) > 5 {
+					samples = append(samples,
+						data.Sample{
+							Type:  "flowRate",
+							Value: m.FlowRate,
+						})
+
+					lastReportedFlow = m.FlowRate
+
+				}
+
+				if math.Abs(lastReportedTankVolume-m.CurrentTankVolume) > 10 {
+					samples = append(samples,
+						data.Sample{
+							Type:  "currentTankVolume",
+							Value: m.CurrentTankVolume,
+						})
+
+					lastReportedTankVolume = m.CurrentTankVolume
+				}
+
 				sendSamples(samples)
 
 				state = m
@@ -275,7 +300,12 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				},
 			}
 
-			sendSamples(samples)
+			if err := sendSamples(samples); err != nil {
+				log.Println("Error sending samples to server: ", err)
+			} else {
+				lastReportedFlow = state.FlowRate
+				lastReportedTankVolume = state.CurrentTankVolume
+			}
 		}
 	}
 }
