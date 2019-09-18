@@ -80,6 +80,26 @@ func (s *HomeScreen) Render(img draw.Image) {
 	s.icons.SetOnOff("irrigator", s.state.InputIrrigator == isdata.InputStateOn)
 
 	s.icons.Render(img)
+
+	// signal icon
+	x = 30
+	y = 1
+	Line(img, x, y, x+4, y)
+	Line(img, x+1, y+1, x+3, y+1)
+	Line(img, x+2, y+2, x+2, y+6)
+
+	if s.state.NetworkState.InterfaceStatus.Signal > 0 || true {
+		Line(img, x+4, y+6, x+4, y+6)
+	}
+	if s.state.NetworkState.InterfaceStatus.Signal > 1 || true {
+		Line(img, x+6, y+4, x+6, y+6)
+	}
+	if s.state.NetworkState.InterfaceStatus.Signal > 2 || true {
+		Line(img, x+8, y+2, x+8, y+6)
+	}
+	if s.state.NetworkState.InterfaceStatus.Signal > 3 || true {
+		Line(img, x+10, y, x+10, y+6)
+	}
 }
 
 // Key processes keypad input to this screen
