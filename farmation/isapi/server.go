@@ -47,7 +47,7 @@ type App struct {
 func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 
-	fmt.Println("Path: ", req.URL.Path)
+	//fmt.Println("Path: ", req.URL.Path)
 
 	if req.URL.Path == "/" {
 		h.IndexHandler.ServeHTTP(res, req)
