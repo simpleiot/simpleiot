@@ -132,8 +132,8 @@ func (m *Modem) qcsq() (service bool, rssi, rsrp, rsrq int, err error) {
 
 		serviceS := matches[1]
 		rssi, _ = strconv.Atoi(matches[2])
-		rsrq, _ = strconv.Atoi(matches[3])
-		rsrp, _ = strconv.Atoi(matches[5])
+		rsrp, _ = strconv.Atoi(matches[3])
+		rsrq, _ = strconv.Atoi(matches[5])
 
 		service = serviceS == "CAT-M1"
 	}
