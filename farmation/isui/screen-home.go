@@ -88,16 +88,16 @@ func (s *HomeScreen) Render(img draw.Image) {
 	Line(img, x+1, y+1, x+3, y+1)
 	Line(img, x+2, y+2, x+2, y+6)
 
-	if s.state.NetworkState.InterfaceStatus.Signal > 0 || true {
+	if s.state.NetworkState.InterfaceStatus.Rsrp > -130 { //Poor
 		Line(img, x+4, y+6, x+4, y+6)
 	}
-	if s.state.NetworkState.InterfaceStatus.Signal > 1 || true {
+	if s.state.NetworkState.InterfaceStatus.Rsrp > -111 { //Fair
 		Line(img, x+6, y+4, x+6, y+6)
 	}
-	if s.state.NetworkState.InterfaceStatus.Signal > 2 || true {
+	if s.state.NetworkState.InterfaceStatus.Rsrp > -103 { //Good
 		Line(img, x+8, y+2, x+8, y+6)
 	}
-	if s.state.NetworkState.InterfaceStatus.Signal > 3 || true {
+	if s.state.NetworkState.InterfaceStatus.Rsrp > -84 { //Excellent
 		Line(img, x+10, y, x+10, y+6)
 	}
 }
