@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"os"
 	"regexp"
@@ -24,7 +23,7 @@ func main() {
 
 	// define argument patterns
 	typePattern := regexp.MustCompile(`\w+`)
-	valuePattern := regexp.MustCompile(`\s\w+`)
+	valuePattern := regexp.MustCompile(`\s.+`)
 
 	// store current argument
 	var currentArg struct {
@@ -40,9 +39,6 @@ func main() {
 
 		currentArg.typeA = string(typePattern.FindString(arg))
 		currentArg.value = string(valuePattern.FindString(arg))
-		if len(currentArg.typeA) > 2 {
-			currentArg.typeA = currentArg.typeA[1:] // chop off leading space
-		}
 		if len(currentArg.value) > 2 {
 			currentArg.value = currentArg.value[1:] // chop off leading space
 		}
@@ -54,8 +50,6 @@ func main() {
 			splash.progress, _ = strconv.Atoi(currentArg.value)
 		}
 	}
-
-	fmt.Println("COLLIN - splash:\nMessage: ", splash.message, "\nProgress: ", splash.progress)
 
 	lcd := image.NewRGBA(image.Rect(0, 0, 128, 64))
 
