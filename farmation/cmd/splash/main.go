@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"image"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
 
-	"github.com/simpleiot/simpleiot/farmation/fonts/agencyfbbold20"
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
+	"github.com/simpleiot/simpleiot/farmation/isio"
+	"github.com/simpleiot/simpleiot/farmation/islcd"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 )
 
@@ -51,18 +54,44 @@ func main() {
 		}
 	}
 
-	lcd := image.NewRGBA(image.Rect(0, 0, 128, 64))
+	img := image.NewRGBA(image.Rect(0, 0, 128, 64))
+	isui.Clear(img)
 
+	isio.GpioInit()
+
+	file := "IS_logo_injector.png"
 	// Logo
-	isui.DrawTxtCentered(lcd, "Farmation", 64, 26, agencyfbbold20.Font)
+	err := isui.DrawPng(img, file, 26, 0)
+	if err != nil {
+		s := fmt.Sprintf("error drawing %s: %s", file, err)
+		fmt.Println(s)
+	}
 
 	// Message
-	isui.DrawTxtCentered(lcd, splash.message, 64, 36, tightpixel15.Font)
+	isui.DrawTxtCentered(img, splash.message, 64, 54, tightpixel15.Font)
 
 	// Progress bar
-	isui.Rect(lcd, 32, 40, 64, 6)
+	isui.Rect(img, 32, 45, 64, 6)
 	if splash.progress > 100 || splash.progress < 0 {
 		splash.progress = 100
 	}
-	isui.RectFilled(lcd, 33, 41, splash.progress/100*62, 6)
+	progressPerc := float64(splash.progress) * 0.01
+	isui.RectFilled(img, 33, 46, int(progressPerc*63), 4)
+
+	lcdOK := false
+	lcd, err := islcd.NewLcd()
+	if err != nil {
+		log.Println("Error opening LCD", err)
+	} else {
+		err := lcd.Init()
+		if err != nil {
+			log.Println("Error initializing LCD: ", err)
+		} else {
+			lcdOK = true
+		}
+	}
+
+	if lcdOK {
+		lcd.Write(isui.ImageToBlt(0, 0, img, false).Data)
+	}
 }
