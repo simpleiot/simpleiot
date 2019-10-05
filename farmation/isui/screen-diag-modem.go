@@ -39,8 +39,8 @@ func (s *ModemScreen) Render(img draw.Image) {
 	detected := "no"
 	connected := "no"
 	signal := strconv.Itoa(s.state.NetworkState.InterfaceStatus.Signal)
-	rsrq := strconv.Itoa(s.state.NetworkState.InterfaceStatus.Rsrq)
 	rsrp := strconv.Itoa(s.state.NetworkState.InterfaceStatus.Rsrp)
+	rsrq := strconv.Itoa(s.state.NetworkState.InterfaceStatus.Rsrq)
 	errorCnt := strconv.Itoa(s.state.NetworkState.ErrorCnt)
 
 	if s.state.NetworkState.InterfaceStatus.Detected {
@@ -55,8 +55,8 @@ func (s *ModemScreen) Render(img draw.Image) {
 	s.menu.AddItemString("Detected", detected)
 	s.menu.AddItemString("Connected", connected)
 	s.menu.AddItemStringRight("Signal", signal)
-	s.menu.AddItemStringRight("RSRQ", rsrq)
 	s.menu.AddItemStringRight("RSRP", rsrp)
+	s.menu.AddItemStringRight("RSRQ", rsrq)
 	s.menu.AddItemStringRight("Network", s.state.NetworkState.InterfaceStatus.Operator)
 	s.menu.AddItemStringDown("IP", s.state.NetworkState.InterfaceStatus.IP)
 	s.menu.AddItemStringRight("Err Count", errorCnt)
@@ -74,7 +74,7 @@ func (s *ModemScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	case isdata.KeySK1Release: // Back
 		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDPrev, nil, true
-	case isdata.KeyUp, isdata.KeyDown, isdata.KeyRight, isdata.KeyLeft, isdata.KeyEnter:
+	case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyEnter, isdata.KeyEnterHold:
 		return s.menu.Key(key)
 	}
 
