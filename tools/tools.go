@@ -1,6 +1,6 @@
 // +build tools
 
-package simpleiot
+package tools
 
 import (
 	// genesis is used to generate static assets
