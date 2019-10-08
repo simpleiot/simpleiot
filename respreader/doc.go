@@ -42,12 +42,17 @@ Example using a serial port:
 		StopBits:              1,
 		MinimumReadSize:       0,
 		// with serial ports, you just set
-		// InterCharacterTimeout to 100 or some #
-		// otherwise, the goroutine reading the serial
+		// InterCharacterTimeout to 100 or larger.
+		// Otherwise, the goroutine reading the serial
 		// port will never exit when you close the read
 		// and will still data the next time you open
 		// the port. Be aware it may take 100ms for this
-		// to close.
+		// to close. The linux kernel only accepts timeouts
+		// in increments of 0.1s. When using serial ports it
+		// makes sense to set the chunkTimeout to 100ms as well.
+		// With Go files, a read is supposed to return when
+		// the File is closed, but this does not seem to be
+		// working with Linux serial devices.
 		InterCharacterTimeout: 100,
 		RTSCTSFlowControl:     true,
 	}
