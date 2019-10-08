@@ -1,9 +1,15 @@
 package respreader
 
 import (
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/jacobsa/go-serial/serial"
 )
 
 type dataSource struct {
@@ -27,6 +33,168 @@ func (ds *dataSource) Read(data []byte) (int, error) {
 	}
 
 	return 0, nil
+}
+
+// the below test illustrates out the goroutine in the reader will close if you close
+// the underlying file descriptor.
+func TestResponseReaderClose(t *testing.T) {
+	fifo := "rrfifo"
+	os.Remove(fifo)
+	err := exec.Command("mkfifo", fifo).Run()
+	if err != nil {
+		t.Error("mkfifo returned: ", err)
+	}
+
+	fmt.Println("Fifo created")
+
+	done := make(chan bool)
+
+	go func(done chan bool) {
+		fread, err := os.OpenFile(fifo, os.O_RDONLY, 0600)
+		if err != nil {
+			t.Error("Error opening fifo: ", err)
+		}
+
+		reader := NewResponseReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
+
+		fmt.Println("reader created")
+
+		fmt.Println("read thread")
+		closed := false
+		for {
+			if closed {
+				break
+			}
+			rdata := make([]byte, 128)
+			c, err := reader.Read(rdata)
+			if err == io.EOF {
+				fmt.Println("Reader returned EOF, exiting read routine")
+				break
+			}
+			if err != nil {
+				t.Error("Read error: ", err)
+			}
+			fmt.Println("read count: ", c)
+			if !closed {
+				go func() {
+					time.Sleep(20 * time.Millisecond)
+					fmt.Println("closing read file")
+					reader.Close()
+					closed = true
+				}()
+			}
+		}
+
+		done <- true
+	}(done)
+
+	time.Sleep(20 * time.Millisecond)
+
+	fwrite, err := os.OpenFile(fifo, os.O_WRONLY, 0644)
+	if err != nil {
+		t.Error("Error opening file for writing: ", err)
+	}
+
+	c, err := fwrite.Write([]byte("Hi there"))
+
+	if err != nil {
+		t.Error("Write error: ", err)
+	}
+
+	fmt.Printf("Wrote %v bytes\n", c)
+
+	<-done
+
+	fmt.Println("removing fifo")
+
+	err = os.Remove(fifo)
+	if err != nil {
+		t.Error("Error removing fifo")
+	}
+
+	fmt.Println("test all done")
+}
+
+// the below test illustrates out the goroutine in the reader will close if you close
+// the underlying serial port descriptor.
+func TestResponseReaderSerialPortClose(t *testing.T) {
+	fmt.Println("=============================")
+	fmt.Println("Testing serial port close")
+	readCnt := make(chan int)
+
+	options := serial.OpenOptions{
+		PortName:              "/dev/ttyUSB15",
+		BaudRate:              115200,
+		DataBits:              8,
+		StopBits:              1,
+		MinimumReadSize:       0,
+		InterCharacterTimeout: 100,
+	}
+
+	go func(readCnt chan int) {
+		fread, err := serial.Open(options)
+		if err != nil {
+			t.Error("Error opening serial port: ", err)
+		}
+
+		reader := NewResponseReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
+
+		fmt.Println("reader created")
+
+		fmt.Println("read thread")
+		closed := false
+		cnt := 0
+		for {
+			rdata := make([]byte, 128)
+			fmt.Println("calling read")
+			c, err := reader.Read(rdata)
+			if err == io.EOF {
+				fmt.Println("Reader returned EOF, exiting read routine")
+				break
+			}
+			if err != nil {
+				//t.Error("Read error: ", err)
+				fmt.Println("Read error: ", err)
+			}
+			cnt = c
+			fmt.Println("read count: ", c)
+			if !closed && c > 0 {
+				go func() {
+					time.Sleep(20 * time.Millisecond)
+					fmt.Println("closing read file")
+					reader.Close()
+					closed = true
+				}()
+			}
+		}
+
+		readCnt <- cnt
+	}(readCnt)
+
+	time.Sleep(500 * time.Millisecond)
+
+	options.PortName = "/dev/ttyUSB16"
+
+	fwrite, err := serial.Open(options)
+	if err != nil {
+		t.Error("Error opening file for writing: ", err)
+	}
+
+	c, err := fwrite.Write([]byte("Hi there"))
+
+	if err != nil {
+		t.Error("Write error: ", err)
+	}
+
+	fmt.Printf("Wrote %v bytes\n", c)
+
+	readCount := <-readCnt
+
+	if readCount != 8 {
+		t.Errorf("only read %v chars, expected 8", readCount)
+	}
+
+	fmt.Println("test all done")
 }
 
 func TestResponseReader(t *testing.T) {
