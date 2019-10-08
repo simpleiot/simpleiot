@@ -220,12 +220,6 @@ func (rr *ResponseReader) readInput() {
 			break
 		}
 		length, _ := rr.reader.Read(tmp)
-		/*
-			if err != nil {
-				fmt.Println("CLIFF: closing reader goroutine")
-				break
-			}
-		*/
 		if length > 0 {
 			tmp = tmp[0:length]
 			rr.dataChan <- tmp
