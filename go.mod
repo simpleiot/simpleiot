@@ -12,3 +12,5 @@ require (
 	go.etcd.io/bbolt v1.3.0 // indirect
 	golang.org/x/sys v0.0.0-20181206074257-70b957f3b65e // indirect
 )
+
+go 1.13
