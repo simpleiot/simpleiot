@@ -1,6 +1,7 @@
 package network
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -16,7 +17,12 @@ var DebugAtCommands = false
 // retry 3 times. Port should be a RespReadWriter.
 func Cmd(port io.ReadWriter, cmd string) (string, error) {
 	var err error
+
 	for try := 0; try < 3; try++ {
+		if DebugAtCommands {
+			fmt.Println("Modem Tx: ", cmd)
+		}
+
 		readString := make([]byte, 100)
 
 		_, err = port.Write([]byte(cmd + "\r"))
@@ -28,6 +34,9 @@ func Cmd(port io.ReadWriter, cmd string) (string, error) {
 		n, err = port.Read(readString)
 
 		if err != nil {
+			if DebugAtCommands {
+				fmt.Println("Modem cmd read error: ", err)
+			}
 			continue
 		}
 
@@ -36,13 +45,35 @@ func Cmd(port io.ReadWriter, cmd string) (string, error) {
 		readStringS := strings.TrimSpace(string(readString))
 
 		if DebugAtCommands {
-			fmt.Printf("Modem: %v -> %v\n", cmd, readStringS)
+			fmt.Println("Modem Rx: ", readStringS)
 		}
 
 		return readStringS, nil
 	}
 
 	return "", err
+}
+
+// CmdOK runs the command and checks for OK response
+func CmdOK(port io.ReadWriter, cmd string) error {
+	resp, err := Cmd(port, cmd)
+	if err != nil {
+		return err
+	}
+
+	return checkRespOK(resp)
+}
+
+var errorNoOK = errors.New("command did not return OK")
+
+func checkRespOK(resp string) error {
+	for _, line := range strings.Split(string(resp), "\n") {
+		if strings.Contains(line, "OK") {
+			return nil
+		}
+	}
+
+	return errorNoOK
 }
 
 // service, rssi, rsrp, sinr, rsrq
@@ -87,7 +118,6 @@ func CmdQcsq(port io.ReadWriter) (service bool, rssi, rsrp, rsrq int, err error)
 // service, rssi, rsrp, sinr, rsrq
 // +QSPN: "CHN-UNICOM","UNICOM","",0,"46001"
 // +QSPN: "Verizon Wireless","VzW","Hologram",0,"311480"
-
 var reQspn = regexp.MustCompile(`\+QSPN:\s*"(.*)","(.*)","(.*)",(\d+),"(.*)"`)
 
 // CmdQspn is used to send the AT+QSPN command
@@ -118,4 +148,29 @@ func CmdQspn(port io.ReadWriter) (network string, err error) {
 	}
 
 	return
+}
+
+// CmdSetApn is used to set the APN using the GCDCONT command
+func CmdSetApn(port io.ReadWriter, apn string) error {
+	return CmdOK(port, "AT+CGDCONT=3,\"IPV4V6\",\""+apn+"\"")
+}
+
+// CmdFunMin sets the modem functionality to min
+func CmdFunMin(port io.ReadWriter) error {
+	return CmdOK(port, "AT+CFUN=0")
+}
+
+// CmdFunFull sets the modem functionality to full
+func CmdFunFull(port io.ReadWriter) error {
+	return CmdOK(port, "AT+CFUN=1")
+}
+
+// CmdSica is used to send SICA command
+func CmdSica(port io.ReadWriter) error {
+	return CmdOK(port, "AT^SICA=1,3")
+}
+
+// CmdAt just executes a generic at command
+func CmdAt(port io.ReadWriter) error {
+	return CmdOK(port, "AT")
 }
