@@ -59,7 +59,7 @@ func (s *StatusScreen2) Render(img draw.Image) {
 
 	// outputs and arm
 	s.icons.SetOnOff("arm", s.config.Arm)
-	s.icons.SetOnOff("pump", s.state.GpioRelayInjectorEn)
+	s.icons.SetOnOff("injector", s.state.GpioRelayInjectorEn)
 	s.icons.SetOnOff("shutdown", s.state.GpioRelayShutdownEn)
 
 	s.icons.Render(img)
