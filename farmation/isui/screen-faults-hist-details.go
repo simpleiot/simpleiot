@@ -78,7 +78,7 @@ func (s *FaultsHistDetailsScreen) Render(img draw.Image) {
 	DrawTxtCentered(img, "-", 3*x+2, y, font)
 	DrawTxtCentered(img, "-", 5*x+6, y, font)
 	y = 41
-	drawAndErr(img, "pump.png", x-17, y, font)
+	drawAndErr(img, "injector.png", x-17, y, font)
 	drawAndErr(img, "water-on.png", 3*x-12, y-1, font)
 	drawAndErr(img, "irrigator.png", 5*x-13, y+1, font)
 	x += 5

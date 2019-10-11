@@ -71,11 +71,11 @@ func (s *HomeScreen) Render(img draw.Image) {
 
 	// outputs and arm
 	s.icons.SetOnOff("arm", s.config.Arm)
-	s.icons.SetOnOff("pump", s.state.GpioRelayInjectorEn)
+	s.icons.SetOnOff("injector", s.state.GpioRelayInjectorEn)
 	s.icons.SetOnOff("shutdown", s.state.GpioRelayShutdownEn)
 
 	// inputs
-	s.icons.SetOnOff("pump in", s.state.InputInjector == isdata.InputStateOn)
+	s.icons.SetOnOff("injector_in", s.state.InputInjector == isdata.InputStateOn)
 	s.icons.SetOnOff("water", s.state.InputWaterOn == isdata.InputStateOn)
 	s.icons.SetOnOff("irrigator", s.state.InputIrrigator == isdata.InputStateOn)
 
