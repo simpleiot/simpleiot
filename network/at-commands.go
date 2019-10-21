@@ -27,6 +27,9 @@ func Cmd(port io.ReadWriter, cmd string) (string, error) {
 
 		_, err = port.Write([]byte(cmd + "\r"))
 		if err != nil {
+			if DebugAtCommands {
+				fmt.Println("Modem cmd write error: ", err)
+			}
 			continue
 		}
 
@@ -163,6 +166,11 @@ func CmdFunMin(port io.ReadWriter) error {
 // CmdFunFull sets the modem functionality to full
 func CmdFunFull(port io.ReadWriter) error {
 	return CmdOK(port, "AT+CFUN=1")
+}
+
+// CmdAttach attaches modem to network
+func CmdAttach(port io.ReadWriter) error {
+	return CmdOK(port, "AT+CGATT=1")
 }
 
 // CmdSica is used to send SICA command
