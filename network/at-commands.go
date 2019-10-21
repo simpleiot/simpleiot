@@ -174,3 +174,64 @@ func CmdSica(port io.ReadWriter) error {
 func CmdAt(port io.ReadWriter) error {
 	return CmdOK(port, "AT")
 }
+
+// BG96MAR02A07M1G_01.007.01.007
+var reCmdVersionBg96 = regexp.MustCompile(`BG96.*`)
+
+// CmdGetFwVersionBG96 gets FW version from BG96 modem
+func CmdGetFwVersionBG96(port io.ReadWriter) (string, error) {
+	resp, err := Cmd(port, "AT+CGMR")
+	if err != nil {
+		return "", err
+	}
+
+	for _, line := range strings.Split(string(resp), "\n") {
+		match := reCmdVersionBg96.FindString(line)
+		if match != "" {
+			return match, nil
+		}
+	}
+
+	return "", fmt.Errorf("Error parsing AT+CGMR response: %v", resp)
+}
+
+// 356278070013083
+var reCmdImei = regexp.MustCompile(`(\d{15,})`)
+
+// CmdGetImei gets IMEI # from modem
+func CmdGetImei(port io.ReadWriter) (string, error) {
+	resp, err := Cmd(port, "AT+CGSN")
+	if err != nil {
+		return "", err
+	}
+
+	for _, line := range strings.Split(string(resp), "\n") {
+		matches := reCmdImei.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			return matches[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("Error parsing AT+CGSN response: %v", resp)
+}
+
+// +CCID: "89148000000637720260",""
+// +ICCID: 8901260881206806423
+var reCmdSim = regexp.MustCompile(`(\d{19,})`)
+
+// CmdGetSimBg96 returns SIM for bg96 modems
+func CmdGetSimBg96(port io.ReadWriter) (string, error) {
+	resp, err := Cmd(port, "AT+QCCID")
+	if err != nil {
+		return "", err
+	}
+
+	for _, line := range strings.Split(string(resp), "\n") {
+		matches := reCmdSim.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			return matches[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("Error parsing AT+QCCID response: %v", resp)
+}
