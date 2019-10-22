@@ -243,3 +243,23 @@ func CmdGetSimBg96(port io.ReadWriter) (string, error) {
 
 	return "", fmt.Errorf("Error parsing AT+QCCID response: %v", resp)
 }
+
+// +QGPSGNMEA: $GPGGA,,,,,,0,,,,,,,,*66
+var reQGPSNEMA = regexp.MustCompile(`\+QGPSGNMEA:\s*(.*)`)
+
+// CmdGGA gets GPS information from modem
+func CmdGGA(port io.ReadWriter) (string, error) {
+	resp, err := Cmd(port, "AT+QGPSGNMEA=\"GGA\"")
+	if err != nil {
+		return "", err
+	}
+
+	for _, line := range strings.Split(string(resp), "\n") {
+		matches := reQGPSNEMA.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			return matches[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("Error parsing AT+QGPSGNMEA response: %v", resp)
+}
