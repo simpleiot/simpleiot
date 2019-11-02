@@ -40,20 +40,28 @@ is_gen_fonts() {
   is_gen_font agencyfbbold20 14 158 15 $FONTSTRING_NUM -v
 }
 
-is_build_assets() {
+is_build_assets_frontend() {
   mkdir -p farmation/assets/isfrontend || return 1
   genesis -C frontend/output -pkg isfrontend \
-    index.html \
-    elm.js \
-    >farmation/assets/isfrontend/assets.go || return 1
+      index.html \
+      elm.js \
+      >farmation/assets/isfrontend/assets.go || return 1
+  return 0
+}
 
+is_build_assets_lcd() {
   genesis -C farmation/assets/lcdassets -pkg lcdassets \
     $(
       cd farmation/assets/lcdassets
       ls *.png
     ) \
     >farmation/assets/lcdassets/assets.go || return 1
+    return 0
+}
 
+is_build_assets() {
+  is_build_assets_frontend || return 1
+  is_build_assets_lcd || return 1
   return 0
 }
 
