@@ -17,6 +17,7 @@ const (
 	MenuItemString
 	MenuItemTypeFaultHistory
 	MenuItemStringRight
+	MenuItemStringIP
 	MenuItemTypeStringDown
 	MenuItemTypeInt
 	MenuItemTypeFloat
@@ -173,6 +174,19 @@ func (m *Menu) AddItemStringRight(desc string, value string) {
 	m.updateShowValues()
 }
 
+// AddItemStringIP is customized for displaying an IP address
+// The difference from AddItemStringDown is that this type is truncated from the beginning
+// of the string instead of the end, displaying the last part of the string.
+func (m *Menu) AddItemStringIP(desc string, value string) {
+	m.items = append(m.items, MenuItem{
+		Description: desc,
+		ValueString: value,
+		Type:        MenuItemStringIP,
+	})
+
+	m.updateShowValues()
+}
+
 // AddItemStringDown adds a string item with the value rendered one pixel futhur down than
 // AddItemString
 func (m *Menu) AddItemStringDown(desc string, value string) {
@@ -316,6 +330,9 @@ func (m *Menu) Render(img draw.Image) {
 			case MenuItemStringRight:
 				v := truncateMenuVal(item.ValueString)
 				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
+			case MenuItemStringIP:
+				v := truncateMenuValBeginning(item.ValueString)
+				DrawTxt(img, v, 78, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeStringDown:
 				v := truncateMenuVal(item.ValueString)
 				DrawTxt(img, v, 78, y+1+offsetValues, tightpixel15.Font)
@@ -407,6 +424,17 @@ func truncateMenuVal(v string) string {
 		v = v[:len(v)-1]
 	}
 	return ""
+}
+
+func truncateMenuValBeginning(v string) string {
+	splitPoint := 0
+	for i := 0; i <= len(v)-1; i++ {
+		if tightpixel15.Font.MeasureString(v[splitPoint:]) <= 41 { // if the value will fit in a menu box
+			break
+		}
+		splitPoint++
+	}
+	return v[splitPoint:]
 }
 
 // MenuSelection is returned when a new item is selected
