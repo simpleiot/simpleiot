@@ -5,6 +5,7 @@ require (
 	github.com/benbjohnson/genesis v0.2.1
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
 	github.com/gorilla/websocket v1.4.0
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/pmezard/go-difflib v1.0.0 // indirect

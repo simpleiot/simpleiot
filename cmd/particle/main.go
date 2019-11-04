@@ -3,16 +3,23 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/simpleiot/simpleiot/particle"
 )
 
 func main() {
-	flagAPIKey := flag.String("apikey", "", "Particle API key")
 	flagEvent := flag.String("event", "", "Event to retrieve")
 	flag.Parse()
 
-	err := particle.SampleReader(*flagEvent, *flagAPIKey, func(data []byte) {
+	particleAPIKey := os.Getenv("PARTICLE_API_KEY")
+	if particleAPIKey == "" {
+		fmt.Println("PARTICLE_API_KEY env var must be set")
+		os.Exit(-1)
+	}
+
+	err := particle.SampleReader(*flagEvent, particleAPIKey, func(data []byte) {
+
 		fmt.Println("data: ", string(data))
 	})
 
