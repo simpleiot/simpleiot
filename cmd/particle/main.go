@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/particle"
 )
 
@@ -18,9 +19,8 @@ func main() {
 		os.Exit(-1)
 	}
 
-	err := particle.SampleReader(*flagEvent, particleAPIKey, func(data []byte) {
-
-		fmt.Println("data: ", string(data))
+	err := particle.SampleReader(*flagEvent, particleAPIKey, func(samples []data.Sample) {
+		fmt.Println("data: ", samples)
 	})
 
 	if err != nil {

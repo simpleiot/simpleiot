@@ -2,7 +2,7 @@ package particle
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/donovanhide/eventsource"
@@ -20,7 +20,7 @@ type Event struct {
 const url string = "https://api.particle.io/v1/devices/events/"
 
 // SampleReader does a streaming http read and returns when the connection closes
-func SampleReader(eventPrefix, token string, callback func([]byte)) error {
+func SampleReader(eventPrefix, token string, callback func([]data.Sample)) error {
 	urlAuth := url + eventPrefix + "?access_token=" + token
 
 	stream, err := eventsource.Subscribe(urlAuth, "")
@@ -35,21 +35,21 @@ func SampleReader(eventPrefix, token string, callback func([]byte)) error {
 			var pEvent Event
 			err := json.Unmarshal([]byte(event.Data()), &pEvent)
 			if err != nil {
-				fmt.Println("Got error decoding particle event: ", err)
+				log.Println("Got error decoding particle event: ", err)
 				continue
 			}
 
 			var samples []data.Sample
 			err = json.Unmarshal([]byte(pEvent.Data), &samples)
 			if err != nil {
-				fmt.Println("Got error decoding samples: ", err)
+				log.Println("Got error decoding samples: ", err)
 				continue
 			}
 
-			fmt.Printf("Particle samples: %+v\n", samples)
+			callback(samples)
 
 		case err := <-stream.Errors:
-			fmt.Println("Got error: ", err)
+			log.Println("Got error: ", err)
 		}
 	}
 }
