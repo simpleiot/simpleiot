@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/simpleiot/simpleiot/db"
 )
@@ -75,26 +74,14 @@ func NewAppHandler(db *db.Db, getAsset func(string) []byte,
 }
 
 // Server starts a API server instance
-func Server(getAsset func(string) []byte, filesystem http.FileSystem, debug bool) error {
+func Server(dbInst *db.Db,
+	port string,
+	getAsset func(string) []byte,
+	filesystem http.FileSystem,
+	debug bool) error {
+
 	log.Println("Starting http server, debug: ", debug)
-
-	port := os.Getenv("SIOT_PORT")
-	if port == "" {
-		port = "8080"
-	}
-
-	dataDir := os.Getenv("SIOT_DATA")
-	if dataDir == "" {
-		dataDir = "./"
-	}
-
-	db, err := db.NewDb(dataDir)
-	if err != nil {
-		log.Println("Error opening db: ", err)
-		os.Exit(-1)
-	}
-
 	log.Println("Starting portal on port: ", port)
 	address := fmt.Sprintf(":%s", port)
-	return http.ListenAndServe(address, NewAppHandler(db, getAsset, filesystem, debug))
+	return http.ListenAndServe(address, NewAppHandler(dbInst, getAsset, filesystem, debug))
 }

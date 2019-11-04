@@ -20,7 +20,7 @@ type Event struct {
 const url string = "https://api.particle.io/v1/devices/events/"
 
 // SampleReader does a streaming http read and returns when the connection closes
-func SampleReader(eventPrefix, token string, callback func([]data.Sample)) error {
+func SampleReader(eventPrefix, token string, callback func(string, []data.Sample)) error {
 	urlAuth := url + eventPrefix + "?access_token=" + token
 
 	stream, err := eventsource.Subscribe(urlAuth, "")
@@ -46,7 +46,7 @@ func SampleReader(eventPrefix, token string, callback func([]data.Sample)) error
 				continue
 			}
 
-			callback(samples)
+			callback(pEvent.CoreID, samples)
 
 		case err := <-stream.Errors:
 			log.Println("Got error: ", err)
