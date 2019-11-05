@@ -1,6 +1,6 @@
 . ./envsetup.sh
 
-# IS Web UI
+### IS Web UI
 
 is_setup() {
   app_setup
@@ -104,7 +104,7 @@ is_build_gpio_test() {
   GOARCH="arm" go build -o gpio-test farmation/cmd/gpio-test/main.go
 }
 
-# Portal
+### Portal
 
 is_portal_uglify() {
   (cd frontend/output && mv elm.js x &&
@@ -161,4 +161,31 @@ is_portal_run() {
   is_portal_build_dependencies debug || return 1
   go run farmation/cmd/portal/main.go $1 $2 $3 $4 $5 $6 $7 $8 || return 1
   return 0
+}
+
+### Google Cloud server
+
+is_start_vm() {
+  # Variable is the machine instance, ex: "instance-1"
+  gcloud compute instances start $1
+}
+
+is_stop_vm() {
+  # We have to ssh into the vm to shut it off
+  # First variable is user name
+  # Second is the machine instance, ex: "instance-1"
+  gcloud compute ssh $1@$2 --command="sudo poweroff"
+}
+
+is_ssh_vm() {
+  # First variable is user name
+  # Second is the machine instance
+  gcloud compute ssh $1@$2
+}
+
+is_scp_vm() {
+  # First variable is user name
+  # Second is the machine instance
+  # Third and fourth variables are current file path and new path
+  gcloud compute scp $1@$2:$3 $4
 }
