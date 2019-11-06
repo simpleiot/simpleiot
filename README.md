@@ -6,16 +6,13 @@ real-world systems.
 
 Demo is running at: https://portal.simpleiot.org/
 
-There is not much here yet -- mostly just a build/deployment system at
-this point.
-
 [Detailed Documentation](docs/README.md)
 
 ## Example 1 (build from source)
 
 This example shows how to run the server and simulator after cloning and building from source.
 
-- make sure elm v0.19 and Go v1.11 are installed (newer versions may work)
+- install elm v0.19.1 and Go v1.13 (newer versions may work)
 - git clone https://github.com/simpleiot/simpleiot.git
 - `cd simpleiot`
 - `. envsetup.sh`
@@ -25,6 +22,24 @@ This example shows how to run the server and simulator after cloning and buildin
 - start simulator: `./siot -sim`
 - open http://localhost:8080
 - `app_run` can be used for quicker testing
+
+## Fetch data from Particle.io
+
+If you have Particle devices running
+[Simple IoT firmware](https://github.com/simpleiot/firmware), you cat fetch the data by
+exporting the following environment variable:
+
+`PARTICLE_API_KEY=<token>`
+
+Particle API tokens can be managed by using the `particle token` cli command.
+
+## Store sample data in influxdb
+
+You can store data in influxdb 1.x by exporting the following environment variables:
+
+- `INFLUX_URL`
+- `INFLUX_USER`
+- `INFLUX_PASS`
 
 ## Running unit tests
 
@@ -56,29 +71,27 @@ not a directory. The `...` tells Go to recursively test all subdirs.
   - (mongodb, Google Cloud Datastore, influxdb, etc) for larger deployments or other
     needs.
 
-## Short term features
+## features
 
-- edit/save device config
-- esp32 client example
-- user accounts
-- store timeseries data
-- graph timeseries data
-- rules engine (conditions/consequences)
-
-done:
-
-- device management
-- simple dashboard for each device showing collected parameters
-- REST api for devices
-- Embedded database using boldhold
-
-## Long term features
-
-- efficient protocols for cellular data connections (CoAP, etc.)
-- Google Cloud Datastore
-- App Engine Deployment
-- edge computing features
-- organization support
+- [x] edit/save device config
+- [x] device management
+- [x] simple dashboard for each device showing collected parameters
+- [x] REST api for devices
+- [x] particle.io support
+- [x] boltdb support
+- [x] influxdb 1.x support
+- [ ] user authentication
+- [ ] influxdb 2.x support
+- [ ] store timeseries data in bolthold
+- [ ] esp32 client example
+- [ ] user accounts
+- [ ] graph timeseries data
+- [ ] rules engine (conditions/consequences)
+- [ ] efficient protocols for cellular data connections (CoAP, protobuf, etc.)
+- [ ] Google Cloud Datastore
+- [ ] App Engine Deployment
+- [ ] edge computing features (rules, etc)
+- [ ] organization support
 
 ## Technology choices
 
