@@ -25,13 +25,9 @@ func main() {
 		sim.DeviceSim(*flagSimPortal, *flagSimDeviceID)
 	}
 
-	// following code is to start the server instance
+	// default action is to start server
 
-	port := os.Getenv("SIOT_PORT")
-	if port == "" {
-		port = "8080"
-	}
-
+	// set up local database
 	dataDir := os.Getenv("SIOT_DATA")
 	if dataDir == "" {
 		dataDir = "./"
@@ -43,6 +39,21 @@ func main() {
 		os.Exit(-1)
 	}
 
+	// set up influxdb support if configured
+	influxURL := os.Getenv("INFLUX_URL")
+	influxUser := os.Getenv("INFLUX_USER")
+	influxPass := os.Getenv("INFLUX_PASS")
+
+	var influx *db.Influx
+
+	if influxURL != "" {
+		influx, err = db.NewInflux(influxURL, "siot", influxUser, influxPass)
+		if err != nil {
+			log.Fatal("Error connecting to influxdb: ", err)
+		}
+	}
+
+	// set up particle connection if configured
 	particleAPIKey := os.Getenv("PARTICLE_API_KEY")
 
 	if particleAPIKey != "" {
@@ -55,6 +66,12 @@ func main() {
 							log.Println("Error getting particle sample: ", err)
 						}
 					}
+					if influx != nil {
+						err = influx.WriteSamples(samples)
+						if err != nil {
+							log.Println("Error writing particle samples to influx: ", err)
+						}
+					}
 				})
 
 			if err != nil {
@@ -63,8 +80,13 @@ func main() {
 		}()
 	}
 
-	// default action is to start server
-	err = api.Server(dbInst, port, frontend.Asset,
+	// finally, start web server
+	port := os.Getenv("SIOT_PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	err = api.Server(port, dbInst, influx, frontend.Asset,
 		frontend.FileSystem(), *flagDebugHTTP)
 
 	if err != nil {

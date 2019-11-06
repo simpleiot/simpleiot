@@ -63,19 +63,21 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewAppHandler returns a new application (root) http handler
-func NewAppHandler(db *db.Db, getAsset func(string) []byte,
+func NewAppHandler(db *db.Db, influx *db.Influx, getAsset func(string) []byte,
 	filesystem http.FileSystem, debug bool) http.Handler {
 	return &App{
 		PublicHandler: http.FileServer(filesystem),
 		IndexHandler:  NewIndexHandler(getAsset),
-		V1ApiHandler:  NewV1Handler(db),
+		V1ApiHandler:  NewV1Handler(db, influx),
 		Debug:         debug,
 	}
 }
 
 // Server starts a API server instance
-func Server(dbInst *db.Db,
+func Server(
 	port string,
+	dbInst *db.Db,
+	influx *db.Influx,
 	getAsset func(string) []byte,
 	filesystem http.FileSystem,
 	debug bool) error {
@@ -83,5 +85,5 @@ func Server(dbInst *db.Db,
 	log.Println("Starting http server, debug: ", debug)
 	log.Println("Starting portal on port: ", port)
 	address := fmt.Sprintf(":%s", port)
-	return http.ListenAndServe(address, NewAppHandler(dbInst, getAsset, filesystem, debug))
+	return http.ListenAndServe(address, NewAppHandler(dbInst, influx, getAsset, filesystem, debug))
 }
