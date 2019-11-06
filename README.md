@@ -26,7 +26,7 @@ This example shows how to run the server and simulator after cloning and buildin
 ## Fetch data from Particle.io
 
 If you have Particle devices running
-[Simple IoT firmware](https://github.com/simpleiot/firmware), you cat fetch the data by
+[Simple IoT firmware](https://github.com/simpleiot/firmware), you can fetch the data by
 exporting the following environment variable:
 
 `PARTICLE_API_KEY=<token>`
@@ -61,6 +61,8 @@ not a directory. The `...` tells Go to recursively test all subdirs.
 - application technology is general, so you are not dependant on any one
   IoT company or cloud provider
 - plugin architecture for extending the system with custom functionality
+- easy to set up for small/mid size deployments -- not a lot of moving parts to worry about.
+  Can be deployed in-house if you don't need data in the cloud.
 - simple deployment process (not a lot of pieces on the backend to manage)
   - Deployment/upgrade is as simple as copying one binary.
   - All assets are embedded.
