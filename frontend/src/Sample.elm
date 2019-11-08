@@ -26,7 +26,7 @@ encodeSample s =
 sampleDecoder : Decode.Decoder Sample
 sampleDecoder =
     Decode.succeed Sample
-        |> required "type" Decode.string
+        |> optional "type" Decode.string ""
         |> optional "id" Decode.string ""
         |> optional "value" Decode.float 0
 
