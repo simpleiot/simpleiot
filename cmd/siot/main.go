@@ -40,9 +40,9 @@ func main() {
 	}
 
 	// set up influxdb support if configured
-	influxURL := os.Getenv("INFLUX_URL")
-	influxUser := os.Getenv("INFLUX_USER")
-	influxPass := os.Getenv("INFLUX_PASS")
+	influxURL := os.Getenv("SIOT_INFLUX_URL")
+	influxUser := os.Getenv("SIOT_INFLUX_USER")
+	influxPass := os.Getenv("SIOT_INFLUX_PASS")
 
 	var influx *db.Influx
 
@@ -54,7 +54,7 @@ func main() {
 	}
 
 	// set up particle connection if configured
-	particleAPIKey := os.Getenv("PARTICLE_API_KEY")
+	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
 
 	if particleAPIKey != "" {
 		go func() {
