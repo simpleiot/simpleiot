@@ -38,6 +38,7 @@ const (
 	ScreenIDDiagDevName
 	ScreenIDDiagPanel
 	ScreenIDModem
+	ScreenIDDiagIPAddress
 )
 
 // Screens is a map of all screens in the system
@@ -89,6 +90,7 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 	ret.Add(ScreenIDDiagDevName, NewDiagDevNameScreen(state, config))
 	ret.Add(ScreenIDDiagPanel, NewDiagPanelScreen(state, config))
 	ret.Add(ScreenIDModem, NewModemScreen(state, config))
+	ret.Add(ScreenIDDiagIPAddress, NewDiagIPAddressScreen(state, config))
 
 	ret.currentScreen = ScreenIDHome
 
