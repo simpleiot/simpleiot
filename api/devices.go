@@ -10,7 +10,8 @@ import (
 
 // Devices handles device requests
 type Devices struct {
-	db *db.Db
+	db     *db.Db
+	influx *db.Influx
 }
 
 func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id string) {
@@ -42,6 +43,13 @@ func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id 
 
 	for _, s := range samples {
 		err = h.db.DeviceSample(id, s)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
+	}
+
+	if h.influx != nil {
+		err = h.influx.WriteSamples(samples)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}
@@ -113,6 +121,6 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewDevicesHandler returns a new device handler
-func NewDevicesHandler(db *db.Db) http.Handler {
-	return &Devices{db}
+func NewDevicesHandler(db *db.Db, influx *db.Influx) http.Handler {
+	return &Devices{db, influx}
 }
