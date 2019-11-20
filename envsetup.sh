@@ -53,6 +53,7 @@ siot_build_assets() {
   genesis -C frontend/output -pkg frontend \
     index.html \
     elm.js \
+    ble.js \
     simple-iot-app-logo.png \
     >assets/frontend/assets.go || return 1
   return 0

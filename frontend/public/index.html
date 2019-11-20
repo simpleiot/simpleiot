@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>Simple • IoT</title>
     <script type="text/javascript" src="public/elm.js"></script>
+    <script type="text/javascript" src="public/ble.js"></script>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -17,6 +18,12 @@
     </body>
 
     <script type="text/javascript">
+        console.log("calling BleRequest");
+        console.log("navigator.bluetooth: ", navigator.bluetooth);
+        (async() => {
+          await BleRequest();
+        })()
+
         var app = Elm.Main.init();
 
         var loc = window.location, new_uri;
