@@ -1,4 +1,4 @@
-module Main exposing (Msg(..), main, update, view)
+port module Main exposing (Msg(..), main, update, view)
 
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Alert as Alert
@@ -22,9 +22,9 @@ import Html exposing (Html, button, div, h1, h4, img, span, text)
 import Html.Attributes exposing (class, height, href, placeholder, src, style, type_, value, width)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Json.Decode as Decode
+import Json.Decode
 import Json.Decode.Pipeline exposing (hardcoded, optional, required)
-import Json.Encode as Encode
+import Json.Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
 import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
@@ -100,7 +100,24 @@ type alias Model =
     , accordionState : Accordion.State
     , devices : Devices
     , deviceEdits : DeviceEdits
+    , tab : Tab
     }
+
+
+type alias PortCmd =
+    { cmd : String
+    }
+
+
+encodePortCmd : PortCmd -> Json.Encode.Value
+encodePortCmd cmd =
+    Json.Encode.object
+        [ ( "cmd", Json.Encode.string <| cmd.cmd ) ]
+
+
+type Tab
+    = TabDevices
+    | TabConfigure
 
 
 type Msg
@@ -117,6 +134,19 @@ type Msg
     | EditDeviceSave
     | EditDeviceDelete String
     | EditDeviceChangeDescription String
+    | ProcessPortValue (Result Json.Decode.Error PortValue)
+    | SetTab Tab
+    | BLEScan
+
+
+
+-- ports
+
+
+port portIn : (Json.Decode.Value -> msg) -> Sub msg
+
+
+port portOut : Json.Encode.Value -> Cmd msg
 
 
 
@@ -129,6 +159,7 @@ subscriptions model =
         [ Navbar.subscriptions model.navbarState NavbarMsg
         , Accordion.subscriptions model.accordionState AccordionMsg
         , Time.every 1000 Tick
+        , portIn (portValueDecoder >> ProcessPortValue)
         ]
 
 
@@ -147,6 +178,7 @@ init model =
       , accordionState = Accordion.initialState
       , devices = { devices = [], dirty = False }
       , deviceEdits = { device = Nothing, visibility = Modal.hidden }
+      , tab = TabDevices
       }
     , navbarCmd
     )
@@ -160,42 +192,42 @@ urlDevices =
     Url.absolute [ "v1", "devices" ] []
 
 
-responseDecoder : Decode.Decoder Response
+responseDecoder : Json.Decode.Decoder Response
 responseDecoder =
-    Decode.succeed Response
-        |> required "success" Decode.bool
-        |> optional "error" Decode.string ""
-        |> optional "id" Decode.string ""
+    Json.Decode.succeed Response
+        |> required "success" Json.Decode.bool
+        |> optional "error" Json.Decode.string ""
+        |> optional "id" Json.Decode.string ""
 
 
-samplesDecoder : Decode.Decoder (List Sample)
+samplesDecoder : Json.Decode.Decoder (List Sample)
 samplesDecoder =
-    Decode.list sampleDecoder
+    Json.Decode.list sampleDecoder
 
 
-deviceConfigDecoder : Decode.Decoder DeviceConfig
+deviceConfigDecoder : Json.Decode.Decoder DeviceConfig
 deviceConfigDecoder =
-    Decode.map DeviceConfig
-        (Decode.field "description" Decode.string)
+    Json.Decode.map DeviceConfig
+        (Json.Decode.field "description" Json.Decode.string)
 
 
-deviceStateDecoder : Decode.Decoder DeviceState
+deviceStateDecoder : Json.Decode.Decoder DeviceState
 deviceStateDecoder =
-    Decode.map DeviceState
-        (Decode.field "ios" samplesDecoder)
+    Json.Decode.map DeviceState
+        (Json.Decode.field "ios" samplesDecoder)
 
 
-deviceDecoder : Decode.Decoder Device
+deviceDecoder : Json.Decode.Decoder Device
 deviceDecoder =
-    Decode.map3 Device
-        (Decode.field "id" Decode.string)
-        (Decode.field "config" deviceConfigDecoder)
-        (Decode.field "state" deviceStateDecoder)
+    Json.Decode.map3 Device
+        (Json.Decode.field "id" Json.Decode.string)
+        (Json.Decode.field "config" deviceConfigDecoder)
+        (Json.Decode.field "state" deviceStateDecoder)
 
 
-devicesDecoder : Decode.Decoder (List Device)
+devicesDecoder : Json.Decode.Decoder (List Device)
 devicesDecoder =
-    Decode.list deviceDecoder
+    Json.Decode.list deviceDecoder
 
 
 apiGetDevices : Cmd Msg
@@ -206,10 +238,10 @@ apiGetDevices =
         }
 
 
-deviceConfigEncoder : DeviceConfig -> Encode.Value
+deviceConfigEncoder : DeviceConfig -> Json.Encode.Value
 deviceConfigEncoder deviceConfig =
-    Encode.object
-        [ ( "description", Encode.string deviceConfig.description )
+    Json.Encode.object
+        [ ( "description", Json.Encode.string deviceConfig.description )
         ]
 
 
@@ -416,19 +448,75 @@ update msg model =
                     in
                     ( { model | deviceEdits = newDeviceEdits }, Cmd.none )
 
+        ProcessPortValue result ->
+            case result of
+                Ok portValue ->
+                    processPortValue portValue model
+
+                Err err ->
+                    let
+                        _ =
+                            Debug.log "Port value decode error: " err
+                    in
+                    ( model, Cmd.none )
+
+        SetTab tab ->
+            ( { model | tab = tab }, Cmd.none )
+
+        BLEScan ->
+            ( model, PortCmd "scan" |> encodePortCmd |> portOut )
 
 
+processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
+processPortValue portValue model =
+    ( model, Cmd.none )
+
+
+
+--    case portValue of
+--PixelValue pix ->
 -- View
+
+
+viewDevices : Model -> Html Msg
+viewDevices model =
+    div []
+        [ h1 [] [ text "Devices" ]
+        , renderDevices model
+        , renderEditDevice model.deviceEdits
+        ]
+
+
+viewConfigure : Model -> Html Msg
+viewConfigure model =
+    div []
+        [ h1 [] [ text "Configure Devices" ]
+        , Button.button
+            [ Button.outlinePrimary
+            , Button.attrs [ onClick BLEScan ]
+            ]
+            [ text "Scan" ]
+        ]
 
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        content =
+            case model.tab of
+                TabDevices ->
+                    viewDevices model
+
+                TabConfigure ->
+                    viewConfigure model
+    in
     { title = "Simple • IoT"
     , body =
         [ div []
             [ menu model
-            , mainContent model
-            , renderEditDevice model.deviceEdits
+            , Grid.container []
+                [ content
+                ]
             ]
         ]
     }
@@ -440,18 +528,10 @@ menu model =
         |> Navbar.withAnimation
         |> Navbar.brand [ href "#" ] [ img [ src "/public/simple-iot-app-logo.png", width 83, height 25 ] [] ]
         |> Navbar.items
-            [ Navbar.itemLink [ href "#" ] [ text "Item 1" ]
-            , Navbar.itemLink [ href "#" ] [ text "Item 2" ]
+            [ Navbar.itemLink [ href "#", onClick (SetTab TabDevices) ] [ text "Devices" ]
+            , Navbar.itemLink [ href "#", onClick (SetTab TabConfigure) ] [ text "Configure" ]
             ]
         |> Navbar.view model.navbarState
-
-
-mainContent : Model -> Html Msg
-mainContent model =
-    Grid.container []
-        [ h1 [] [ text "Devices" ]
-        , renderDevices model
-        ]
 
 
 renderDevices : Model -> Html Msg
@@ -551,3 +631,32 @@ renderEditDevice deviceEdits =
                         [ text "Delete" ]
                     ]
                 |> Modal.view deviceEdits.visibility
+
+
+type alias WifiConfig =
+    { ssid : String
+    , pass : String
+    }
+
+
+type PortValue
+    = WifiConfigValue WifiConfig
+
+
+wifiConfigDecoder : Json.Decode.Decoder WifiConfig
+wifiConfigDecoder =
+    Json.Decode.map2 WifiConfig
+        (Json.Decode.field "ssid" Json.Decode.string)
+        (Json.Decode.field "pass" Json.Decode.string)
+
+
+portDecoder : Json.Decode.Decoder PortValue
+portDecoder =
+    Json.Decode.oneOf
+        [ Json.Decode.map WifiConfigValue wifiConfigDecoder
+        ]
+
+
+portValueDecoder : Json.Decode.Value -> Result Json.Decode.Error PortValue
+portValueDecoder v =
+    Json.Decode.decodeValue portDecoder v

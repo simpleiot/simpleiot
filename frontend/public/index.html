@@ -18,12 +18,6 @@
     </body>
 
     <script type="text/javascript">
-        console.log("calling BleRequest");
-        console.log("navigator.bluetooth: ", navigator.bluetooth);
-        (async() => {
-          await BleRequest();
-        })()
-
         var app = Elm.Main.init();
 
         var loc = window.location, new_uri;
@@ -42,5 +36,17 @@
             var obj = JSON.parse(evt.data);
             app.ports.portIn.send(obj);
         }
+
+        app.ports.portOut.subscribe(async function(data) {
+            console.log("portOut message: ", data);
+            if (data.cmd == "scan") {
+                try {
+                    let d = await BleRequest();
+                    console.log("device selected: ", d);
+                } catch(e) {
+                    console.log("scanning error: ", e);
+                }
+            }
+        });
     </script>
 </html>
