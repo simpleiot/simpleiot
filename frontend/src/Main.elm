@@ -96,6 +96,27 @@ type alias DeviceEdits =
     }
 
 
+type alias GwConfigForm =
+    { wifiSSID : String
+    , wifiPass : String
+    }
+
+
+gwConfigFormInit : GwConfigForm
+gwConfigFormInit =
+    { wifiSSID = ""
+    , wifiPass = ""
+    }
+
+
+encodeGwConfigForm : GwConfigForm -> Json.Encode.Value
+encodeGwConfigForm config =
+    Json.Encode.object
+        [ ( "wifiSSID", Json.Encode.string <| config.wifiSSID )
+        , ( "wifiPass", Json.Encode.string <| config.wifiPass )
+        ]
+
+
 type alias Model =
     { navbarState : Navbar.State
     , accordionState : Accordion.State
@@ -103,6 +124,7 @@ type alias Model =
     , deviceEdits : DeviceEdits
     , tab : Tab
     , gwConfig : GwConfig
+    , gwConfigForm : GwConfigForm
     }
 
 
@@ -140,6 +162,9 @@ type Msg
     | SetTab Tab
     | BLEScan
     | BLEDisconnect
+    | SetGwWifiSSID String
+    | SetGwWifiPass String
+    | GwWriteConfig
 
 
 
@@ -182,7 +207,8 @@ init model =
       , devices = { devices = [], dirty = False }
       , deviceEdits = { device = Nothing, visibility = Modal.hidden }
       , tab = TabDevices
-      , gwConfig = gwConfigInitState
+      , gwConfig = gwConfigInit
+      , gwConfigForm = gwConfigFormInit
       }
     , navbarCmd
     )
@@ -473,6 +499,29 @@ update msg model =
         BLEDisconnect ->
             ( model, PortCmd "disconnect" |> encodePortCmd |> portOut )
 
+        SetGwWifiSSID ssid ->
+            let
+                gwConfigForm =
+                    model.gwConfigForm
+
+                gwConfigFormNew =
+                    { gwConfigForm | wifiSSID = ssid }
+            in
+            ( { model | gwConfigForm = gwConfigFormNew }, Cmd.none )
+
+        SetGwWifiPass pass ->
+            let
+                gwConfigForm =
+                    model.gwConfigForm
+
+                gwConfigFormNew =
+                    { gwConfigForm | wifiPass = pass }
+            in
+            ( { model | gwConfigForm = gwConfigFormNew }, Cmd.none )
+
+        GwWriteConfig ->
+            ( model, model.gwConfigForm |> encodeGwConfigForm |> portOut )
+
 
 processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
 processPortValue portValue model =
@@ -516,12 +565,40 @@ viewConfigure model =
     in
     div []
         [ h1 []
-            [ text "Configure Devices" ]
+            [ text "Configure Device" ]
         , ul []
             [ li [] [ text ("Model: " ++ model.gwConfig.model) ]
             , li [] [ text ("SSID: " ++ model.gwConfig.ssid) ]
             ]
         , button
+        , viewDeviceConfigForm model
+        , Button.button
+            [ Button.outlinePrimary
+            , Button.attrs [ onClick GwWriteConfig ]
+            ]
+            [ text "Configure GW" ]
+        ]
+
+
+viewDeviceConfigForm : Model -> Html Msg
+viewDeviceConfigForm model =
+    Form.group []
+        [ Form.label [] [ text "WiFi SSID" ]
+        , Input.text
+            [ Input.attrs
+                [ placeholder "enter new SSID"
+                , onInput SetGwWifiSSID
+                , value model.gwConfigForm.wifiSSID
+                ]
+            ]
+        , Form.label [] [ text "WiFI Pass" ]
+        , Input.text
+            [ Input.attrs
+                [ placeholder "enter new password"
+                , onInput SetGwWifiPass
+                , value model.gwConfigForm.wifiPass
+                ]
+            ]
         ]
 
 
@@ -667,8 +744,8 @@ type alias GwConfig =
     }
 
 
-gwConfigInitState : GwConfig
-gwConfigInitState =
+gwConfigInit : GwConfig
+gwConfigInit =
     { model = "unknown"
     , connected = False
     , ssid = ""
