@@ -519,6 +519,7 @@ viewConfigure model =
             [ text "Configure Devices" ]
         , ul []
             [ li [] [ text ("Model: " ++ model.gwConfig.model) ]
+            , li [] [ text ("SSID: " ++ model.gwConfig.ssid) ]
             ]
         , button
         ]

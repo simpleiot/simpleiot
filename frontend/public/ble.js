@@ -1,5 +1,7 @@
 const serviceUuid = "5c1b9a0d-b5be-4a40-8f7a-66b36d0a5176";
-const charModelUuid = "fdcf0004-3fed-4ed2-84e6-04bbb9ae04d4";
+const charModelUuid = "fdcf0003-3fed-4ed2-84e6-04bbb9ae04d4";
+const charWifiSSIDUuid = "fdcf0004-3fed-4ed2-84e6-04bbb9ae04d4";
+// Const charWifiPassUuid = "fdcf0005-3fed-4ed2-84e6-04bbb9ae04d4";
 
 export class BLE {
   constructor() {
@@ -29,10 +31,15 @@ export class BLE {
     let characteristics = await service.getCharacteristics();
     console.log("characteristics: ", characteristics);
 
-    let modelChar = await service.getCharacteristic(charModelUuid);
-    let modelBuf = await modelChar.readValue();
-    let decoder = new TextDecoder("utf-8");
-    ret.model = decoder.decode(modelBuf);
+    const modelChar = await service.getCharacteristic(charModelUuid);
+    let buf = await modelChar.readValue();
+    const decoder = new TextDecoder("utf-8");
+    ret.model = decoder.decode(buf);
+
+    const ssidChar = await service.getCharacteristic(charWifiSSIDUuid);
+    buf = await ssidChar.readValue();
+    ret.ssid = decoder.decode(buf);
+
     return ret;
   }
 
