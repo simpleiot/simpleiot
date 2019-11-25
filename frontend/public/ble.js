@@ -1,25 +1,45 @@
+const serviceUuid = "5c1b9a0d-b5be-4a40-8f7a-66b36d0a5176";
+const charModelUuid = "fdcf0004-3fed-4ed2-84e6-04bbb9ae04d4";
+
 export class BLE {
   constructor() {
     this.device = null;
+    this.server = null;
   }
 
-  getState() {
+  async getState() {
     let ret = {
       connected: false,
       ssid: "",
-      pass: ""
+      pass: "",
+      model: ""
     };
 
     if (this.device && this.device.gatt.connected) {
       ret.connected = true;
     }
 
+    if (!ret.connected) {
+      // Nothing more to do
+      return ret;
+    }
+
+    // Look up attributes
+    const service = await this.server.getPrimaryService(serviceUuid);
+    let characteristics = await service.getCharacteristics();
+    console.log("characteristics: ", characteristics);
+
+    let modelChar = await service.getCharacteristic(charModelUuid);
+    let modelBuf = await modelChar.readValue();
+    let decoder = new TextDecoder("utf-8");
+    ret.model = decoder.decode(modelBuf);
     return ret;
   }
 
   async request() {
     let options = {
-      acceptAllDevices: true
+      acceptAllDevices: true,
+      optionalServices: [serviceUuid]
     };
     if (navigator.bluetooth == undefined) {
       alert("Sorry, Your device does not support Web BLE!");
@@ -35,16 +55,9 @@ export class BLE {
       throw "No device selected";
     }
 
-    await this.device.gatt.connect();
+    this.server = await this.device.gatt.connect();
 
     return this.device;
-  }
-
-  async connect() {
-    if (!this.device) {
-      return Promise.reject("no device");
-    }
-    await this.device.gatt.connect();
   }
 
   async disconnect() {

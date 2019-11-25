@@ -19,7 +19,7 @@ import Bootstrap.Modal as Modal
 import Bootstrap.Navbar as Navbar
 import Browser
 import Color exposing (Color)
-import Html exposing (Html, button, div, h1, h4, img, span, text)
+import Html exposing (Html, button, div, h1, h4, img, li, span, text, ul)
 import Html.Attributes exposing (class, height, href, placeholder, src, style, type_, value, width)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -499,29 +499,28 @@ viewDevices model =
 viewConfigure : Model -> Html Msg
 viewConfigure model =
     let
-        connected =
-            if model.gwConfig.connected then
-                "yes"
+        button =
+            if not model.gwConfig.connected then
+                Button.button
+                    [ Button.outlinePrimary
+                    , Button.attrs [ onClick BLEScan ]
+                    ]
+                    [ text "Scan" ]
 
             else
-                "no"
+                Button.button
+                    [ Button.outlineWarning
+                    , Button.attrs [ onClick BLEDisconnect ]
+                    ]
+                    [ text "Disconnect" ]
     in
     div []
         [ h1 []
             [ text "Configure Devices" ]
-        , text ("Connected: " ++ connected)
-        , div []
-            [ Button.button
-                [ Button.outlinePrimary
-                , Button.attrs [ onClick BLEScan ]
-                ]
-                [ text "Scan" ]
-            , Button.button
-                [ Button.outlineWarning
-                , Button.attrs [ onClick BLEDisconnect ]
-                ]
-                [ text "Disconnect" ]
+        , ul []
+            [ li [] [ text ("Model: " ++ model.gwConfig.model) ]
             ]
+        , button
         ]
 
 
@@ -660,7 +659,8 @@ renderEditDevice deviceEdits =
 
 
 type alias GwConfig =
-    { connected : Bool
+    { model : String
+    , connected : Bool
     , ssid : String
     , pass : String
     }
@@ -668,7 +668,8 @@ type alias GwConfig =
 
 gwConfigInitState : GwConfig
 gwConfigInitState =
-    { connected = False
+    { model = "unknown"
+    , connected = False
     , ssid = ""
     , pass = ""
     }
@@ -680,7 +681,8 @@ type PortValue
 
 gwConfigDecoder : Json.Decode.Decoder GwConfig
 gwConfigDecoder =
-    Json.Decode.map3 GwConfig
+    Json.Decode.map4 GwConfig
+        (Json.Decode.field "model" Json.Decode.string)
         (Json.Decode.field "connected" Json.Decode.bool)
         (Json.Decode.field "ssid" Json.Decode.string)
         (Json.Decode.field "pass" Json.Decode.string)

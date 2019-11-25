@@ -27,6 +27,7 @@ export const main = (app) => {
 
   app.ports.portOut.subscribe(async function(data) {
     console.log("portOut message: ", data);
+    let state;
     switch (data.cmd) {
       case "scan":
         try {
@@ -35,7 +36,8 @@ export const main = (app) => {
         } catch (e) {
           console.log("scanning error: ", e);
         }
-        app.ports.portIn.send(ble.getState());
+        state = await ble.getState();
+        app.ports.portIn.send(state);
         break;
       case "disconnect":
         try {
@@ -43,7 +45,8 @@ export const main = (app) => {
         } catch (e) {
           console.log("disconnect error: ", e);
         }
-        app.ports.portIn.send(ble.getState());
+        state = await ble.getState();
+        app.ports.portIn.send(state);
         break;
       default:
         console.log("unknown cmd: ", data.cmd);
