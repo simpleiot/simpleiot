@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image"
 	"log"
@@ -20,6 +21,8 @@ var splash struct {
 }
 
 func main() {
+
+	modeIsInit := flag.Bool("init", true, "initializing or updating")
 
 	// extract arguments from command
 	args := os.Args
@@ -55,9 +58,15 @@ func main() {
 	}
 
 	img := image.NewRGBA(image.Rect(0, 0, 128, 64))
-	isui.Clear(img)
 
-	isio.GpioInit()
+	if *modeIsInit {
+		fmt.Println("Initializing")
+		isui.Clear(img)
+		isio.GpioInit()
+	} else {
+		imgUpdate := image.NewRGBA(image.Rect(0, 45, 128, 68))
+		isui.Clear(imgUpdate)
+	}
 
 	file := "IS_logo_injector.png"
 	// Logo
@@ -68,9 +77,11 @@ func main() {
 	}
 
 	// Message
+	fmt.Println(splash.message)
 	isui.DrawTxtCentered(img, splash.message, 64, 54, tightpixel15.Font)
 
 	// Progress bar
+	fmt.Println(splash.progress)
 	isui.Rect(img, 32, 45, 64, 6)
 	if splash.progress > 100 || splash.progress < 0 {
 		splash.progress = 100
