@@ -82,7 +82,7 @@ is_build_arm() {
   GOARCH=arm go build -o is_arm farmation/cmd/injector-sentry/main.go || return 1
   GOARCH=arm go build -o lcd_test farmation/cmd/lcd-test/main.go || return 1
   GOARCH=arm go build -o lindsay_sim farmation/cmd/lindsay-sim/main.go || return 1
-  GOARCH=arm go build -o splash_screen farmation/cmd/splash/main.go || return 1
+  GOARCH=arm go build -o issplash farmation/cmd/splash/main.go || return 1
   return 0
 }
 
