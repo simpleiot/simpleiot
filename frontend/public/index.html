@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <title>Simple • IoT</title>
     <script type="text/javascript" src="public/elm.js"></script>
-    <script type="text/javascript" src="public/ble.js"></script>
+    <script type="module" src="public/ble.js"></script>
+    <script type="module" src="public/main.js"></script>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -17,36 +18,9 @@
     <body>
     </body>
 
-    <script type="text/javascript">
-        var app = Elm.Main.init();
-
-        var loc = window.location, new_uri;
-        if (loc.protocol === "https:") {
-            ws_uri = "wss:";
-        } else {
-            ws_uri = "ws:";
-        }
-        ws_uri += "//" + loc.host;
-        ws_uri += "/ws";
-        var conn = new WebSocket(ws_uri);
-        conn.onclose = function(evt) {
-            console.log("WS connection closed");
-        }
-        conn.onmessage = function(evt) {
-            var obj = JSON.parse(evt.data);
-            app.ports.portIn.send(obj);
-        }
-
-        app.ports.portOut.subscribe(async function(data) {
-            console.log("portOut message: ", data);
-            if (data.cmd == "scan") {
-                try {
-                    let d = await BleRequest();
-                    console.log("device selected: ", d);
-                } catch(e) {
-                    console.log("scanning error: ", e);
-                }
-            }
-        });
+    <script type="module">
+      import {main} from "./public/main.js";
+      var app = Elm.Main.init();
+      main(app);
     </script>
 </html>

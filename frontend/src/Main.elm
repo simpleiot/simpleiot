@@ -3,6 +3,7 @@ port module Main exposing (Msg(..), main, update, view)
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Alert as Alert
 import Bootstrap.Button as Button
+import Bootstrap.ButtonGroup as ButtonGroup
 import Bootstrap.Card.Block as Block
 import Bootstrap.Form as Form
 import Bootstrap.Form.Checkbox as Checkbox
@@ -101,6 +102,7 @@ type alias Model =
     , devices : Devices
     , deviceEdits : DeviceEdits
     , tab : Tab
+    , gwConfig : GwConfig
     }
 
 
@@ -137,6 +139,7 @@ type Msg
     | ProcessPortValue (Result Json.Decode.Error PortValue)
     | SetTab Tab
     | BLEScan
+    | BLEDisconnect
 
 
 
@@ -179,6 +182,7 @@ init model =
       , devices = { devices = [], dirty = False }
       , deviceEdits = { device = Nothing, visibility = Modal.hidden }
       , tab = TabDevices
+      , gwConfig = gwConfigInitState
       }
     , navbarCmd
     )
@@ -466,10 +470,15 @@ update msg model =
         BLEScan ->
             ( model, PortCmd "scan" |> encodePortCmd |> portOut )
 
+        BLEDisconnect ->
+            ( model, PortCmd "disconnect" |> encodePortCmd |> portOut )
+
 
 processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
 processPortValue portValue model =
-    ( model, Cmd.none )
+    case portValue of
+        GwConfigValue config ->
+            ( { model | gwConfig = config }, Cmd.none )
 
 
 
@@ -489,13 +498,30 @@ viewDevices model =
 
 viewConfigure : Model -> Html Msg
 viewConfigure model =
+    let
+        connected =
+            if model.gwConfig.connected then
+                "yes"
+
+            else
+                "no"
+    in
     div []
-        [ h1 [] [ text "Configure Devices" ]
-        , Button.button
-            [ Button.outlinePrimary
-            , Button.attrs [ onClick BLEScan ]
+        [ h1 []
+            [ text "Configure Devices" ]
+        , text ("Connected: " ++ connected)
+        , div []
+            [ Button.button
+                [ Button.outlinePrimary
+                , Button.attrs [ onClick BLEScan ]
+                ]
+                [ text "Scan" ]
+            , Button.button
+                [ Button.outlineWarning
+                , Button.attrs [ onClick BLEDisconnect ]
+                ]
+                [ text "Disconnect" ]
             ]
-            [ text "Scan" ]
         ]
 
 
@@ -633,19 +659,29 @@ renderEditDevice deviceEdits =
                 |> Modal.view deviceEdits.visibility
 
 
-type alias WifiConfig =
-    { ssid : String
+type alias GwConfig =
+    { connected : Bool
+    , ssid : String
     , pass : String
     }
 
 
+gwConfigInitState : GwConfig
+gwConfigInitState =
+    { connected = False
+    , ssid = ""
+    , pass = ""
+    }
+
+
 type PortValue
-    = WifiConfigValue WifiConfig
+    = GwConfigValue GwConfig
 
 
-wifiConfigDecoder : Json.Decode.Decoder WifiConfig
-wifiConfigDecoder =
-    Json.Decode.map2 WifiConfig
+gwConfigDecoder : Json.Decode.Decoder GwConfig
+gwConfigDecoder =
+    Json.Decode.map3 GwConfig
+        (Json.Decode.field "connected" Json.Decode.bool)
         (Json.Decode.field "ssid" Json.Decode.string)
         (Json.Decode.field "pass" Json.Decode.string)
 
@@ -653,7 +689,7 @@ wifiConfigDecoder =
 portDecoder : Json.Decode.Decoder PortValue
 portDecoder =
     Json.Decode.oneOf
-        [ Json.Decode.map WifiConfigValue wifiConfigDecoder
+        [ Json.Decode.map GwConfigValue gwConfigDecoder
         ]
 
 
