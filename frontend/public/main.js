@@ -1,7 +1,10 @@
 import {BLE} from "./ble.js";
 
 export const main = (app) => {
-  var ble = new BLE();
+  var ble = new BLE(async () => {
+    let state = await ble.getState();
+    app.ports.portIn.send(state);
+  });
 
   /*
    * Websocket code needs cleaned up
@@ -26,28 +29,36 @@ export const main = (app) => {
    */
 
   app.ports.portOut.subscribe(async function(data) {
-    console.log("portOut message: ", data);
     let state;
     switch (data.cmd) {
       case "scan":
         try {
-          let d = await ble.request();
-          console.log("device selected: ", d);
+          await ble.request();
+          state = await ble.getState();
+          app.ports.portIn.send(state);
         } catch (e) {
           console.log("scanning error: ", e);
         }
-        state = await ble.getState();
-        app.ports.portIn.send(state);
         break;
       case "disconnect":
         try {
           await ble.disconnect();
+          state = await ble.getState();
+          app.ports.portIn.send(state);
         } catch (e) {
           console.log("disconnect error: ", e);
         }
-        state = await ble.getState();
-        app.ports.portIn.send(state);
         break;
+      case "configureGw":
+        try {
+          await ble.configureGw(data);
+          state = await ble.getState();
+          app.ports.portIn.send(state);
+        } catch (e) {
+          console.log("configure GW error: ", e);
+        }
+        break;
+
       default:
         console.log("unknown cmd: ", data.cmd);
     }

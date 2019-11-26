@@ -19,7 +19,7 @@ import Bootstrap.Modal as Modal
 import Bootstrap.Navbar as Navbar
 import Browser
 import Color exposing (Color)
-import Html exposing (Html, button, div, h1, h4, img, li, span, text, ul)
+import Html exposing (Html, button, div, h1, h2, h4, img, li, span, text, ul)
 import Html.Attributes exposing (class, height, href, placeholder, src, style, type_, value, width)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -112,7 +112,8 @@ gwConfigFormInit =
 encodeGwConfigForm : GwConfigForm -> Json.Encode.Value
 encodeGwConfigForm config =
     Json.Encode.object
-        [ ( "wifiSSID", Json.Encode.string <| config.wifiSSID )
+        [ ( "cmd", Json.Encode.string <| "configureGw" )
+        , ( "wifiSSID", Json.Encode.string <| config.wifiSSID )
         , ( "wifiPass", Json.Encode.string <| config.wifiPass )
         ]
 
@@ -123,7 +124,7 @@ type alias Model =
     , devices : Devices
     , deviceEdits : DeviceEdits
     , tab : Tab
-    , gwConfig : GwConfig
+    , gwState : GwState
     , gwConfigForm : GwConfigForm
     }
 
@@ -207,7 +208,7 @@ init model =
       , devices = { devices = [], dirty = False }
       , deviceEdits = { device = Nothing, visibility = Modal.hidden }
       , tab = TabDevices
-      , gwConfig = gwConfigInit
+      , gwState = gwStateInit
       , gwConfigForm = gwConfigFormInit
       }
     , navbarCmd
@@ -526,8 +527,8 @@ update msg model =
 processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
 processPortValue portValue model =
     case portValue of
-        GwConfigValue config ->
-            ( { model | gwConfig = config }, Cmd.none )
+        GwStateValue state ->
+            ( { model | gwState = state }, Cmd.none )
 
 
 
@@ -548,35 +549,60 @@ viewDevices model =
 viewConfigure : Model -> Html Msg
 viewConfigure model =
     let
-        button =
-            if not model.gwConfig.connected then
-                Button.button
-                    [ Button.outlinePrimary
-                    , Button.attrs [ onClick BLEScan ]
-                    ]
-                    [ text "Scan" ]
+        connected =
+            if model.gwState.connected then
+                "yes"
 
             else
-                Button.button
-                    [ Button.outlineWarning
-                    , Button.attrs [ onClick BLEDisconnect ]
+                "no"
+
+        state =
+            if model.gwState.bleConnected then
+                div []
+                    [ h2 [] [ text "Device state:" ]
+                    , ul []
+                        [ li [] [ text ("Connected to portal: " ++ connected) ]
+                        , li [] [ text ("Model: " ++ model.gwState.model) ]
+                        , li [] [ text ("SSID: " ++ model.gwState.ssid) ]
+                        , li [] [ text ("Uptime: " ++ String.fromInt model.gwState.uptime) ]
+                        , li [] [ text ("Signal: " ++ String.fromInt model.gwState.signal) ]
+                        , li [] [ text ("Free Memory: " ++ String.fromInt model.gwState.freeMem) ]
+                        ]
+                    , Button.button
+                        [ Button.outlineWarning
+                        , Button.attrs [ onClick BLEDisconnect ]
+                        ]
+                        [ text "Disconnect" ]
                     ]
-                    [ text "Disconnect" ]
+
+            else
+                div []
+                    [ h2 [] [ text "not connected" ]
+                    , Button.button
+                        [ Button.outlinePrimary
+                        , Button.attrs [ onClick BLEScan ]
+                        ]
+                        [ text "Scan for device" ]
+                    ]
+
+        configure =
+            if model.gwState.bleConnected then
+                div []
+                    [ h2 [] [ text "Configure device" ]
+                    , viewDeviceConfigForm model
+                    , Button.button
+                        [ Button.outlinePrimary
+                        , Button.attrs [ onClick GwWriteConfig ]
+                        ]
+                        [ text "Configure GW" ]
+                    ]
+
+            else
+                div [] []
     in
     div []
-        [ h1 []
-            [ text "Configure Device" ]
-        , ul []
-            [ li [] [ text ("Model: " ++ model.gwConfig.model) ]
-            , li [] [ text ("SSID: " ++ model.gwConfig.ssid) ]
-            ]
-        , button
-        , viewDeviceConfigForm model
-        , Button.button
-            [ Button.outlinePrimary
-            , Button.attrs [ onClick GwWriteConfig ]
-            ]
-            [ text "Configure GW" ]
+        [ state
+        , configure
         ]
 
 
@@ -736,40 +762,52 @@ renderEditDevice deviceEdits =
                 |> Modal.view deviceEdits.visibility
 
 
-type alias GwConfig =
+type alias GwState =
     { model : String
     , connected : Bool
+    , bleConnected : Bool
     , ssid : String
     , pass : String
+    , uptime : Int
+    , signal : Int
+    , freeMem : Int
     }
 
 
-gwConfigInit : GwConfig
-gwConfigInit =
+gwStateInit : GwState
+gwStateInit =
     { model = "unknown"
     , connected = False
+    , bleConnected = False
     , ssid = ""
     , pass = ""
+    , uptime = -1
+    , signal = -1
+    , freeMem = -1
     }
 
 
 type PortValue
-    = GwConfigValue GwConfig
+    = GwStateValue GwState
 
 
-gwConfigDecoder : Json.Decode.Decoder GwConfig
-gwConfigDecoder =
-    Json.Decode.map4 GwConfig
+gwStateDecoder : Json.Decode.Decoder GwState
+gwStateDecoder =
+    Json.Decode.map8 GwState
         (Json.Decode.field "model" Json.Decode.string)
         (Json.Decode.field "connected" Json.Decode.bool)
+        (Json.Decode.field "bleConnected" Json.Decode.bool)
         (Json.Decode.field "ssid" Json.Decode.string)
         (Json.Decode.field "pass" Json.Decode.string)
+        (Json.Decode.field "uptime" Json.Decode.int)
+        (Json.Decode.field "signal" Json.Decode.int)
+        (Json.Decode.field "freeMem" Json.Decode.int)
 
 
 portDecoder : Json.Decode.Decoder PortValue
 portDecoder =
     Json.Decode.oneOf
-        [ Json.Decode.map GwConfigValue gwConfigDecoder
+        [ Json.Decode.map GwStateValue gwStateDecoder
         ]
 
 

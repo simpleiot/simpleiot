@@ -82,7 +82,6 @@ module.exports = {
     "lines-between-class-members": ["error", "always"],
     "max-classes-per-file": "error",
     "max-depth": "error",
-    "max-len": "error",
     "max-lines": "error",
     "max-nested-callbacks": "error",
     "max-params": "error",

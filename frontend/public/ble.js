@@ -1,42 +1,102 @@
 const serviceUuid = "5c1b9a0d-b5be-4a40-8f7a-66b36d0a5176";
+const charUptimeUuid = "fdcf0000-3fed-4ed2-84e6-04bbb9ae04d4";
+const charSignalUuid = "fdcf0001-3fed-4ed2-84e6-04bbb9ae04d4";
+const charFreeMemUuid = "fdcf0002-3fed-4ed2-84e6-04bbb9ae04d4";
 const charModelUuid = "fdcf0003-3fed-4ed2-84e6-04bbb9ae04d4";
 const charWifiSSIDUuid = "fdcf0004-3fed-4ed2-84e6-04bbb9ae04d4";
-// Const charWifiPassUuid = "fdcf0005-3fed-4ed2-84e6-04bbb9ae04d4";
+const charConnectedUuid = "fdcf0005-3fed-4ed2-84e6-04bbb9ae04d4";
+const charSetWifiSSIDUuid = "fdcf0006-3fed-4ed2-84e6-04bbb9ae04d4";
+const charSetWifiPassUuid = "fdcf0007-3fed-4ed2-84e6-04bbb9ae04d4";
 
 export class BLE {
-  constructor() {
+  constructor(stateChanged) {
+    this.resetState();
+    this.stateChanged = stateChanged;
+  }
+
+  resetState() {
     this.device = null;
     this.server = null;
+    this.service = null;
+    this.uptime = 0;
+    this.signal = 0;
+    this.freeMem = 0;
+    this.connected = false;
+  }
+
+  onDisconnected() {
+    this.resetState();
+    this.stateChanged();
+  }
+
+  onConnectedChanged(event) {
+    let {value} = event.target;
+    this.connected = value.getUint8();
+    if (this.connected) {
+      this.connected = true;
+    } else {
+      this.connected = false;
+    }
+    console.log("onConnectedChanged: ", value.getUint8());
+    this.stateChanged();
+  }
+
+  onUptimeChanged(event) {
+    let {value} = event.target;
+    this.uptime = value.getUint8();
+  }
+
+  onSignalChanged(event) {
+    let {value} = event.target;
+    this.signal = value.getUint8();
+  }
+
+  onFreeMemChanged(event) {
+    let {value} = event.target;
+    this.freeMem = value.getInt32();
+    this.stateChanged();
+  }
+
+  async configureGw(config) {
+    if (!this.device) {
+      throw "configure GW, no device";
+    }
+
+    const charSetWifiSSID = await this.service.getCharacteristic(charSetWifiSSIDUuid);
+    const encoder = new TextEncoder();
+    charSetWifiSSID.writeValue(encoder.encode(config.wifiSSID));
+
+    const charSetWifiPass = await this.service.getCharacteristic(charSetWifiPassUuid);
+    charSetWifiPass.writeValue(encoder.encode(config.wifiPass));
   }
 
   async getState() {
     let ret = {
-      connected: false,
+      connected: this.connected,
+      bleConnected: false,
       ssid: "",
       pass: "",
-      model: ""
+      model: "",
+      uptime: this.uptime,
+      signal: this.signal,
+      freeMem: this.freeMem
     };
 
     if (this.device && this.device.gatt.connected) {
-      ret.connected = true;
+      ret.bleConnected = true;
     }
 
-    if (!ret.connected) {
+    if (!ret.bleConnected) {
       // Nothing more to do
       return ret;
     }
 
-    // Look up attributes
-    const service = await this.server.getPrimaryService(serviceUuid);
-    let characteristics = await service.getCharacteristics();
-    console.log("characteristics: ", characteristics);
-
-    const modelChar = await service.getCharacteristic(charModelUuid);
+    const modelChar = await this.service.getCharacteristic(charModelUuid);
     let buf = await modelChar.readValue();
     const decoder = new TextDecoder("utf-8");
     ret.model = decoder.decode(buf);
 
-    const ssidChar = await service.getCharacteristic(charWifiSSIDUuid);
+    const ssidChar = await this.service.getCharacteristic(charWifiSSIDUuid);
     buf = await ssidChar.readValue();
     ret.ssid = decoder.decode(buf);
 
@@ -53,29 +113,87 @@ export class BLE {
       return;
     }
 
-    if (this.device && this.device.gatt.connected) {
-      await this.device.gatt.disconnect();
-    }
+    try {
+      if (this.device && this.device.gatt.connected) {
+        await this.device.gatt.disconnect();
+      }
 
-    this.device = await navigator.bluetooth.requestDevice(options);
-    if (!this.device) {
-      throw "No device selected";
-    }
+      this.device = await navigator.bluetooth.requestDevice(options);
+      if (!this.device) {
+        throw "No device selected";
+      }
 
-    this.server = await this.device.gatt.connect();
+      this.device.addEventListener(
+        "gattserverdisconnected",
+        this.onDisconnected.bind(this)
+      );
+
+      this.server = await this.device.gatt.connect();
+      this.service = await this.server.getPrimaryService(serviceUuid);
+
+      const connectedChar = await this.service.getCharacteristic(charConnectedUuid);
+      let buf = await connectedChar.readValue();
+      this.connected = buf.getUint8();
+
+      if (this.connected) {
+        this.connected = true;
+      } else {
+        this.connected = false;
+      }
+
+      const connectChar = await this.service.getCharacteristic(charConnectedUuid);
+      await connectChar.startNotifications();
+      connectChar.addEventListener(
+        "characteristicvaluechanged",
+        this.onConnectedChanged.bind(this)
+      );
+
+      const uptimeChar = await this.service.getCharacteristic(charUptimeUuid);
+      await uptimeChar.startNotifications();
+      uptimeChar.addEventListener(
+        "characteristicvaluechanged",
+        this.onUptimeChanged.bind(this)
+      );
+
+      const signalChar = await this.service.getCharacteristic(charSignalUuid);
+      await signalChar.startNotifications();
+      signalChar.addEventListener(
+        "characteristicvaluechanged",
+        this.onSignalChanged.bind(this)
+      );
+
+      const freeMemChar = await this.service.getCharacteristic(charFreeMemUuid);
+      await freeMemChar.startNotifications();
+      freeMemChar.addEventListener(
+        "characteristicvaluechanged",
+        this.onFreeMemChanged.bind(this)
+      );
+    } catch (e) {
+      console.log("Error connecting: ", e);
+      this.resetState();
+      throw e;
+    }
 
     return this.device;
   }
 
   async disconnect() {
     if (!this.device) {
+      this.resetState();
       throw "no device";
     }
 
     if (!this.device.gatt.connected) {
+      this.resetState();
       throw "not connected";
     }
 
-    await this.device.gatt.disconnect();
+    try {
+      await this.device.gatt.disconnect();
+    } catch (e) {
+      console.log("Error disconnecting: ", e);
+    } finally {
+      this.resetState();
+    }
   }
 }
