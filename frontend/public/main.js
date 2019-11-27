@@ -49,13 +49,32 @@ export const main = (app) => {
           console.log("disconnect error: ", e);
         }
         break;
-      case "configureGw":
+      case "configureWifi":
         try {
-          await ble.configureGw(data);
+          await ble.configureWifi(data);
           state = await ble.getState();
           app.ports.portIn.send(state);
         } catch (e) {
-          console.log("configure GW error: ", e);
+          console.log("configure GW WiFi error: ", e);
+        }
+        break;
+      case "configureTimer":
+        try {
+          await ble.configureTimer(data);
+          state = await ble.getState();
+          app.ports.portIn.send(state);
+        } catch (e) {
+          console.log("configure GW configure Timer error: ", e);
+        }
+        break;
+
+      case "fireTimer":
+        try {
+          await ble.fireTimer(data);
+          state = await ble.getState();
+          app.ports.portIn.send(state);
+        } catch (e) {
+          console.log("configure GW fire Timer error: ", e);
         }
         break;
 

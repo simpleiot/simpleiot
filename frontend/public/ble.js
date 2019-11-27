@@ -7,6 +7,10 @@ const charWifiSSIDUuid = "fdcf0004-3fed-4ed2-84e6-04bbb9ae04d4";
 const charConnectedUuid = "fdcf0005-3fed-4ed2-84e6-04bbb9ae04d4";
 const charSetWifiSSIDUuid = "fdcf0006-3fed-4ed2-84e6-04bbb9ae04d4";
 const charSetWifiPassUuid = "fdcf0007-3fed-4ed2-84e6-04bbb9ae04d4";
+// Const charDeviceNameUuid = "fdcf0008-3fed-4ed2-84e6-04bbb9ae04d4";
+const charTimerFireDurationUuid = "fdcf0009-3fed-4ed2-84e6-04bbb9ae04d4";
+const charTimerFireUuid = "fdcf000a-3fed-4ed2-84e6-04bbb9ae04d4";
+const charCurrentTimeUuid = "fdcf000b-3fed-4ed2-84e6-04bbb9ae04d4";
 
 export class BLE {
   constructor(stateChanged) {
@@ -22,10 +26,19 @@ export class BLE {
     this.signal = 0;
     this.freeMem = 0;
     this.connected = false;
+    this.currentTime = 0;
   }
 
   onDisconnected() {
     this.resetState();
+    this.stateChanged();
+  }
+
+  onCurrentTimeChanged(event) {
+    let {value} = event.target;
+    console.log("value: ", value);
+    console.log("byteLength: ", value.byteLength);
+    this.currentTime = value.getUint32();
     this.stateChanged();
   }
 
@@ -57,7 +70,7 @@ export class BLE {
     this.stateChanged();
   }
 
-  async configureGw(config) {
+  async configureWifi(config) {
     if (!this.device) {
       throw "configure GW, no device";
     }
@@ -70,6 +83,25 @@ export class BLE {
     charSetWifiPass.writeValue(encoder.encode(config.wifiPass));
   }
 
+  async configureTimer(config) {
+    if (!this.device) {
+      throw "configure GW timer, no device";
+    }
+
+    const charTimerFireDuration = await this.service.getCharacteristic(charTimerFireDurationUuid);
+    charTimerFireDuration.writeValue(Int32Array.of(config.fireDuration));
+  }
+
+  async fireTimer() {
+    if (!this.device) {
+      throw "fire timer, no device";
+    }
+
+    const charSetWifiSSID = await this.service.getCharacteristic(charTimerFireUuid);
+    let zero = 0;
+    charSetWifiSSID.writeValue(Uint8Array.of(zero));
+  }
+
   async getState() {
     let ret = {
       connected: this.connected,
@@ -79,7 +111,8 @@ export class BLE {
       model: "",
       uptime: this.uptime,
       signal: this.signal,
-      freeMem: this.freeMem
+      freeMem: this.freeMem,
+      currentTime: this.currentTime
     };
 
     if (this.device && this.device.gatt.connected) {
@@ -167,6 +200,13 @@ export class BLE {
       freeMemChar.addEventListener(
         "characteristicvaluechanged",
         this.onFreeMemChanged.bind(this)
+      );
+
+      const currentTimeChar = await this.service.getCharacteristic(charCurrentTimeUuid);
+      await currentTimeChar.startNotifications();
+      currentTimeChar.addEventListener(
+        "characteristicvaluechanged",
+        this.onCurrentTimeChanged.bind(this)
       );
     } catch (e) {
       console.log("Error connecting: ", e);
