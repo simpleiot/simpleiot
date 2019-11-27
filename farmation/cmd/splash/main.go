@@ -23,6 +23,7 @@ var splash struct {
 func main() {
 
 	modeIsInit := flag.Bool("init", true, "initializing or updating")
+	flag.Parse()
 
 	// extract arguments from command
 	args := os.Args
@@ -62,11 +63,10 @@ func main() {
 	if *modeIsInit {
 		fmt.Println("Initializing")
 		isui.Clear(img)
-		isio.GpioInit()
 	} else {
-		imgUpdate := image.NewRGBA(image.Rect(0, 45, 128, 68))
-		isui.Clear(imgUpdate)
+		isui.ClearRect(img, 0, 45, 128, 64)
 	}
+	isio.GpioInit()
 
 	file := "IS_logo_injector.png"
 	// Logo
