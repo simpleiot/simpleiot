@@ -19,7 +19,7 @@ import Bootstrap.Modal as Modal
 import Bootstrap.Navbar as Navbar
 import Browser
 import Color exposing (Color)
-import Html exposing (Html, button, div, h1, h2, h4, img, li, span, text, ul)
+import Html exposing (Html, button, div, h1, h2, h3, h4, img, li, span, text, ul)
 import Html.Attributes exposing (class, height, href, placeholder, src, style, type_, value, width)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -546,8 +546,8 @@ viewDevices model =
         ]
 
 
-viewConfigure : Model -> Html Msg
-viewConfigure model =
+viewState : Model -> Html Msg
+viewState model =
     let
         connected =
             if model.gwState.connected then
@@ -555,77 +555,76 @@ viewConfigure model =
 
             else
                 "no"
-
-        state =
-            if model.gwState.bleConnected then
-                div []
-                    [ h2 [] [ text "Device state:" ]
-                    , ul []
-                        [ li [] [ text ("Connected to portal: " ++ connected) ]
-                        , li [] [ text ("Model: " ++ model.gwState.model) ]
-                        , li [] [ text ("SSID: " ++ model.gwState.ssid) ]
-                        , li [] [ text ("Uptime: " ++ String.fromInt model.gwState.uptime) ]
-                        , li [] [ text ("Signal: " ++ String.fromInt model.gwState.signal) ]
-                        , li [] [ text ("Free Memory: " ++ String.fromInt model.gwState.freeMem) ]
-                        ]
-                    , Button.button
-                        [ Button.outlineWarning
-                        , Button.attrs [ onClick BLEDisconnect ]
-                        ]
-                        [ text "Disconnect" ]
-                    ]
-
-            else
-                div []
-                    [ h2 [] [ text "not connected" ]
-                    , Button.button
-                        [ Button.outlinePrimary
-                        , Button.attrs [ onClick BLEScan ]
-                        ]
-                        [ text "Scan for device" ]
-                    ]
-
-        configure =
-            if model.gwState.bleConnected then
-                div []
-                    [ h2 [] [ text "Configure device" ]
-                    , viewDeviceConfigForm model
-                    , Button.button
-                        [ Button.outlinePrimary
-                        , Button.attrs [ onClick GwWriteConfig ]
-                        ]
-                        [ text "Configure GW" ]
-                    ]
-
-            else
-                div [] []
     in
+    if model.gwState.bleConnected then
+        div []
+            [ h2 [] [ text "Device state:" ]
+            , ul []
+                [ li [] [ text ("Connected to portal: " ++ connected) ]
+                , li [] [ text ("Model: " ++ model.gwState.model) ]
+                , li [] [ text ("SSID: " ++ model.gwState.ssid) ]
+                , li [] [ text ("Uptime: " ++ String.fromInt model.gwState.uptime) ]
+                , li [] [ text ("Signal: " ++ String.fromInt model.gwState.signal) ]
+                , li [] [ text ("Free Memory: " ++ String.fromInt model.gwState.freeMem) ]
+                ]
+            , Button.button
+                [ Button.outlineWarning
+                , Button.attrs [ onClick BLEDisconnect ]
+                ]
+                [ text "Disconnect" ]
+            ]
+
+    else
+        div []
+            [ h2 [] [ text "not connected" ]
+            , Button.button
+                [ Button.outlinePrimary
+                , Button.attrs [ onClick BLEScan ]
+                ]
+                [ text "Scan for device" ]
+            ]
+
+
+viewConfigure : Model -> Html Msg
+viewConfigure model =
     div []
-        [ state
-        , configure
+        [ viewState model
+        , viewConfigWifi model
         ]
 
 
-viewDeviceConfigForm : Model -> Html Msg
-viewDeviceConfigForm model =
-    Form.group []
-        [ Form.label [] [ text "WiFi SSID" ]
-        , Input.text
-            [ Input.attrs
-                [ placeholder "enter new SSID"
-                , onInput SetGwWifiSSID
-                , value model.gwConfigForm.wifiSSID
+viewConfigWifi : Model -> Html Msg
+viewConfigWifi model =
+    if model.gwState.bleConnected && model.gwState.model == "Argon" then
+        div []
+            [ h3 [] [ text "Configure Wifi" ]
+            , Form.group []
+                [ Form.label [] [ text "WiFi SSID" ]
+                , Input.text
+                    [ Input.attrs
+                        [ placeholder "enter new SSID"
+                        , onInput SetGwWifiSSID
+                        , value model.gwConfigForm.wifiSSID
+                        ]
+                    ]
+                , Form.label [] [ text "WiFI Pass" ]
+                , Input.text
+                    [ Input.attrs
+                        [ placeholder "enter new password"
+                        , onInput SetGwWifiPass
+                        , value model.gwConfigForm.wifiPass
+                        ]
+                    ]
                 ]
-            ]
-        , Form.label [] [ text "WiFI Pass" ]
-        , Input.text
-            [ Input.attrs
-                [ placeholder "enter new password"
-                , onInput SetGwWifiPass
-                , value model.gwConfigForm.wifiPass
+            , Button.button
+                [ Button.outlinePrimary
+                , Button.attrs [ onClick GwWriteConfig ]
                 ]
+                [ text "Configure GW" ]
             ]
-        ]
+
+    else
+        text ""
 
 
 view : Model -> Browser.Document Msg
