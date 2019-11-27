@@ -29,6 +29,7 @@ import Json.Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
 import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
+import Task
 import Time
 import Url.Builder as Url
 
@@ -120,14 +121,14 @@ encodeGwConfigWifi config =
 
 type alias GwConfigTimer =
     { fireDuration : Int
-    , fireTime : Int
+    , fireTime : String
     }
 
 
 gwConfigTimerInit : GwConfigTimer
 gwConfigTimerInit =
     { fireDuration = 0
-    , fireTime = 0
+    , fireTime = "00:00"
     }
 
 
@@ -136,7 +137,7 @@ encodeGwConfigTimer config =
     Json.Encode.object
         [ ( "cmd", Json.Encode.string <| "configureTimer" )
         , ( "fireDuration", Json.Encode.int <| config.fireDuration )
-        , ( "fireTime", Json.Encode.int <| config.fireTime )
+        , ( "fireTime", Json.Encode.string <| config.fireTime )
         ]
 
 
@@ -149,6 +150,7 @@ type alias Model =
     , gwState : GwState
     , gwConfigWifi : GwConfigWifi
     , gwConfigTimer : GwConfigTimer
+    , timeZone : Time.Zone
     }
 
 
@@ -192,6 +194,8 @@ type Msg
     | GwWriteTimer
     | GwFireTimer
     | GwSetTimerFireDuration String
+    | GwSetTimerFireTime String
+    | GotZone Time.Zone
 
 
 
@@ -237,8 +241,9 @@ init model =
       , gwState = gwStateInit
       , gwConfigWifi = gwConfigWifiInit
       , gwConfigTimer = gwConfigTimerInit
+      , timeZone = Time.utc
       }
-    , navbarCmd
+    , Cmd.batch [ navbarCmd, Task.perform GotZone Time.here ]
     )
 
 
@@ -569,6 +574,19 @@ update msg model =
             in
             ( { model | gwConfigTimer = gwConfigTimerNew }, Cmd.none )
 
+        GwSetTimerFireTime fireTime ->
+            let
+                gwConfigTimer =
+                    model.gwConfigTimer
+
+                gwConfigTimerNew =
+                    { gwConfigTimer | fireTime = fireTime }
+            in
+            ( { model | gwConfigTimer = gwConfigTimerNew }, Cmd.none )
+
+        GotZone zone ->
+            ( { model | timeZone = zone }, Cmd.none )
+
 
 processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
 processPortValue portValue model =
@@ -598,6 +616,17 @@ viewTimer model =
         div []
             [ h3 [] [ text "Configure Timer" ]
             , Form.group []
+                [ Form.label [] [ text "Fire Time" ]
+                , Input.text
+                    [ Input.attrs
+                        [ placeholder "enter time of day to fire"
+                        , onInput GwSetTimerFireTime
+                        , value model.gwConfigTimer.fireTime
+                        , type_ "time"
+                        ]
+                    ]
+                ]
+            , Form.group []
                 [ Form.label [] [ text "Fire duration" ]
                 , Input.text
                     [ Input.attrs
@@ -623,6 +652,15 @@ viewTimer model =
         text ""
 
 
+posixTimeToString : Time.Zone -> Time.Posix -> String
+posixTimeToString zone time =
+    (String.padLeft 2 '0' <| String.fromInt <| Time.toHour zone time)
+        ++ ":"
+        ++ (String.padLeft 2 '0' <| String.fromInt <| Time.toMinute zone time)
+        ++ ":"
+        ++ (String.padLeft 2 '0' <| String.fromInt <| Time.toSecond zone time)
+
+
 viewState : Model -> Html Msg
 viewState model =
     let
@@ -632,6 +670,9 @@ viewState model =
 
             else
                 "no"
+
+        timeDisplay =
+            posixTimeToString model.timeZone (Time.millisToPosix (model.gwState.currentTime * 1000))
     in
     if model.gwState.bleConnected then
         div []
@@ -643,7 +684,9 @@ viewState model =
                 , li [] [ text ("Uptime: " ++ String.fromInt model.gwState.uptime) ]
                 , li [] [ text ("Signal: " ++ String.fromInt model.gwState.signal) ]
                 , li [] [ text ("Free Memory: " ++ String.fromInt model.gwState.freeMem) ]
-                , li [] [ text ("current time: " ++ String.fromInt model.gwState.currentTime) ]
+                , li [] [ text ("Current time: " ++ timeDisplay) ]
+                , li [] [ text ("Timer fire time: " ++ String.fromInt model.gwState.timerFireTime) ]
+                , li [] [ text ("Timer fire duration: " ++ String.fromInt model.gwState.timerFireDuration) ]
                 ]
             , Button.button
                 [ Button.outlineWarning
@@ -850,6 +893,8 @@ type alias GwState =
     , signal : Int
     , freeMem : Int
     , currentTime : Int
+    , timerFireTime : Int
+    , timerFireDuration : Int
     }
 
 
@@ -864,6 +909,8 @@ gwStateInit =
     , signal = -1
     , freeMem = -1
     , currentTime = 0
+    , timerFireTime = 0
+    , timerFireDuration = 0
     }
 
 
@@ -883,6 +930,8 @@ gwStateDecoder =
         |> required "signal" Json.Decode.int
         |> required "freeMem" Json.Decode.int
         |> required "currentTime" Json.Decode.int
+        |> required "timerFireTime" Json.Decode.int
+        |> required "timerFireDuration" Json.Decode.int
 
 
 portDecoder : Json.Decode.Decoder PortValue

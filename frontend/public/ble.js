@@ -11,6 +11,7 @@ const charSetWifiPassUuid = "fdcf0007-3fed-4ed2-84e6-04bbb9ae04d4";
 const charTimerFireDurationUuid = "fdcf0009-3fed-4ed2-84e6-04bbb9ae04d4";
 const charTimerFireUuid = "fdcf000a-3fed-4ed2-84e6-04bbb9ae04d4";
 const charCurrentTimeUuid = "fdcf000b-3fed-4ed2-84e6-04bbb9ae04d4";
+const charTimerFireTimeUuid = "fdcf000c-3fed-4ed2-84e6-04bbb9ae04d4";
 
 export class BLE {
   constructor(stateChanged) {
@@ -36,8 +37,6 @@ export class BLE {
 
   onCurrentTimeChanged(event) {
     let {value} = event.target;
-    console.log("value: ", value);
-    console.log("byteLength: ", value.byteLength);
     this.currentTime = value.getUint32();
     this.stateChanged();
   }
@@ -90,6 +89,30 @@ export class BLE {
 
     const charTimerFireDuration = await this.service.getCharacteristic(charTimerFireDurationUuid);
     charTimerFireDuration.writeValue(Int32Array.of(config.fireDuration));
+
+    const charCurrentTime = await this.service.getCharacteristic(charCurrentTimeUuid);
+    let d = new Date();
+    let n = d.getTime();
+    let k = 1000;
+    charCurrentTime.writeValue(Int32Array.of(n / k));
+
+    console.log("timer time: ", config.fireTime);
+    let parts = config.fireTime.split(":");
+    if (parts.length < 2) {
+      console.log("Error parsing time");
+      return;
+    }
+
+    let fireTimeMin =
+      Number(parts[0]) * 60 + Number(parts[1]) + d.getTimezoneOffset();
+
+    if (fireTimeMin >= 60 * 24) {
+      // Roll over into next day
+      fireTimeMin -= 60 * 24;
+    }
+    // The above is localtime, so we need to convert to UTC
+    const charTimerFireTime = await this.service.getCharacteristic(charTimerFireTimeUuid);
+    charTimerFireTime.writeValue(Int32Array.of(fireTimeMin));
   }
 
   async fireTimer() {
@@ -112,7 +135,9 @@ export class BLE {
       uptime: this.uptime,
       signal: this.signal,
       freeMem: this.freeMem,
-      currentTime: this.currentTime
+      currentTime: this.currentTime,
+      timerFireDuration: 0,
+      timerFireTime: 0
     };
 
     if (this.device && this.device.gatt.connected) {
@@ -132,6 +157,14 @@ export class BLE {
     const ssidChar = await this.service.getCharacteristic(charWifiSSIDUuid);
     buf = await ssidChar.readValue();
     ret.ssid = decoder.decode(buf);
+
+    const fireDurChar = await this.service.getCharacteristic(charTimerFireDurationUuid);
+    buf = await fireDurChar.readValue();
+    ret.timerFireDuration = buf.getUint32();
+
+    const fireTimeChar = await this.service.getCharacteristic(charTimerFireTimeUuid);
+    buf = await fireTimeChar.readValue();
+    ret.timerFireTime = buf.getUint32();
 
     return ret;
   }
