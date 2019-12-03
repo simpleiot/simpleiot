@@ -28,10 +28,16 @@ Documentation for the Simple IoT REST API.
 + config (DeviceConfig) - current config for device
 + state (DeviceState) - current state for device
 
+## StandardResponseBase (object)
+
++ success: true (boolean) - indicates if request was successful
++ error: error accessing database (string, optional) - option string describing error
+
 ## StandardResponse (object)
 
 + success: true (boolean) - indicates if request was successful
 + error: error accessing database (string, optional) - option string describing error
++ id: 1007 (string) - ID of deleted device
 
 # Group Devices
 
@@ -41,9 +47,8 @@ Documentation for the Simple IoT REST API.
 Return a list of all devices.
 
 + Response 200 (application/json)
-    + Attributes (StandardResponse)
-        + data (array)
-            + (Device)
+    + Attributes (StandardResponseBase)
+        + data (array[Device])
 
 ## Device [/v1/devices/{id}]
 A device contains state and config for a device.
@@ -57,6 +62,12 @@ Retrieve information for a specific device.
 + Response 200 (application/json)
     + Attributes (StandardResponse)
         + data (Device) - data for the device
+
+### DELETE
+Delete a device
+
++ Response 200 (application/json)
+    + Attributes (StandardResponse)
 
 ## Device Config [/v1/devices/{id}/config]
 
@@ -72,7 +83,7 @@ Update config for a particular device
 + Response 200 (application/json)
     + Attributes (StandardResponse)
 
-## Device Sample [/v1/devices/{id}/sample]
+## Device Samples [/v1/devices/{id}/samples]
 
 + Parameters
   + id: 2342 (string) - The ID of the desired device.
@@ -81,7 +92,7 @@ Update config for a particular device
 Post samples for a particular device
 
 + Request (application/json)
-    + Attributes (Sample)
+    + Attributes (array[Sample])
 
 + Response 200 (application/json)
     + Attributes (StandardResponse)

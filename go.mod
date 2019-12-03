@@ -6,11 +6,14 @@ require (
 	github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa
 	github.com/benbjohnson/genesis v0.2.1
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/cbrake/go-serial v0.0.0-20171213223811-0cd42b853914
+	github.com/cbrake/influxdbhelper/v2 v2.1.4
 	github.com/davecgh/go-spew v1.1.1
+	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/gorilla/websocket v1.4.0
+	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
+	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mxmCherry/movavg v1.1.0
 	github.com/onsi/ginkgo v1.7.0 // indirect
@@ -32,3 +35,5 @@ require (
 replace periph.io/x/periph => github.com/cbrake/periph v3.4.991+incompatible
 
 replace golang.org/x/image => github.com/cbrake/golang.org-x-image v0.0.1
+
+go 1.13

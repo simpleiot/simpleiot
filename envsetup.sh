@@ -41,14 +41,16 @@ siot_setup() {
 }
 
 siot_build_frontend() {
-  (cd frontend && elm make src/Main.elm --output=public/elm.js) || return 1
-  (cd frontend && cp index.html public/) || return 1
+  rm frontend/output/* || true
+  (cd frontend && elm make src/Main.elm --output=output/elm.js) || return 1
+  cp frontend/public/* frontend/output/ || return 1
+  cp docs/simple-iot-app-logo.png frontend/output/ || return 1
   return 0
 }
 
 siot_build_assets() {
   mkdir -p assets/frontend || return 1
-  genesis -C frontend/public -pkg frontend \
+  genesis -C frontend/output -pkg frontend \
     index.html \
     elm.js \
     simple-iot-app-logo.png \
@@ -81,14 +83,16 @@ siot_run() {
 }
 
 siot_run_device_sim() {
-  go run cmd/device-sim/main.go || return 1
+  go run cmd/siot/main.go -sim || return 1
   return 0
 }
 
 siot_build_docs() {
-  snowboard lint docs/api.apib
-  snowboard html docs/api.apib -o docs/api.html
-  #aglio -i docs/api.apib --theme-template triple -o docs/api.html
+  # requires aglio:
+  # npm install -g aglio
+  #snowboard lint docs/api.apib
+  #snowboard html docs/api.apib -o docs/api.html
+  aglio -i docs/api.apib --theme-variables flatly --theme-template triple -o docs/api.html
 }
 
 siot_test() {

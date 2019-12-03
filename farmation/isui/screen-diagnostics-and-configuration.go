@@ -34,12 +34,14 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 
 	// Sub screens
 	s.menu.AddItemString("Version", s.state.OSVersion.String())
+	s.menu.AddItemString("Serial Num", s.state.SerialNumber)
 	s.menu.AddItemScreen("Device Name", ScreenIDDiagDevName)
 	s.menu.AddItemScreen("Panel Det", ScreenIDDiagPanel)
 	s.menu.AddItemScreen("Inputs", ScreenIDDiagInputs)
 	s.menu.AddItemScreen("Outputs", ScreenIDDiagOutputs)
 	s.menu.AddItemScreen("Flow and Pres", ScreenIDDiagPulsesPres)
 	s.menu.AddItemScreen("Vision serial", ScreenIDDiagLindsay)
+	s.menu.AddItemScreen("Network", ScreenIDModem)
 
 	// Logging Enable
 	s.menu.AddItemCommand("Data", "export", isdata.ExportData{})

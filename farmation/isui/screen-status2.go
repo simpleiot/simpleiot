@@ -32,21 +32,24 @@ func (s *StatusScreen2) Render(img draw.Image) {
 	Clear(img)
 
 	x := 2
-	y1, y2, y3, y4 := 8, 19, 31, 42
+	y1, y2, yBreak, y3, y4 := 7, 18, 29, 33, 44
 
 	DrawTxt(img, s.config.FieldConfigs[s.config.CurrentFieldIndex].Description+" - "+s.config.ProductConfigs[s.config.CurrentProductIndex].Description, x, y1, tightpixel15.Font)
 	DrawTxt(img, "Total: ", x, y2, tightpixel15.Font)
 	DrawTxt(img, "Avg Flow: ", x, y3, tightpixel15.Font)
-	DrawTxt(img, "over ", x, y4, tightpixel15.Font)
+	DrawTxt(img, "Over ", x, y4, tightpixel15.Font)
 
 	x = 50
 
 	DrawTxt(img, strconv.FormatFloat(s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total, 'f', 0, 64), x, y2, tightpixel15.Font)
 	DrawTxt(img, "Gallons", x+21, y2, tightpixel15.Font)
-	DrawTxt(img, strconv.FormatFloat(s.state.AvgFlowRate, 'f', 0, 64), x, y3, tightpixel15.Font)
+	avgFlowStr := strconv.FormatFloat(s.state.AvgFlowRate, 'f', 0, 64)
+	DrawTxt(img, avgFlowStr, x, y3, tightpixel15.Font)
 	timeSinceArm := strconv.FormatFloat(time.Since(s.state.AvgFlowRateStart).Hours(), 'f', 1, 64)
 	DrawTxtRight(img, timeSinceArm, x+31, y4, tightpixel15.Font)
 	DrawTxt(img, "hrs", x+35, y4, tightpixel15.Font)
+
+	Line(img, 1, yBreak, 102, yBreak)
 
 	s.softKeys.Render(img, 0, 54)
 
@@ -56,7 +59,7 @@ func (s *StatusScreen2) Render(img draw.Image) {
 
 	// outputs and arm
 	s.icons.SetOnOff("arm", s.config.Arm)
-	s.icons.SetOnOff("pump", s.state.GpioRelayInjectorEn)
+	s.icons.SetOnOff("injector", s.state.GpioRelayInjectorEn)
 	s.icons.SetOnOff("shutdown", s.state.GpioRelayShutdownEn)
 
 	s.icons.Render(img)

@@ -1,4 +1,4 @@
-port module Main exposing (Msg(..), main, update, view)
+module Main exposing (Msg(..), main, update, view)
 
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Alert as Alert
@@ -27,7 +27,7 @@ import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Json.Encode as Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
-import Round
+import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
 import Time
 import Url.Builder as Url
 
@@ -48,13 +48,21 @@ main =
 type alias Response =
     { success : Bool
     , error : String
+    , id : String
     }
 
 
-type alias Sample =
-    { id : String
-    , value : Float
-    , time : String
+type alias ResponseError =
+    { success : Bool
+    , error : String
+    }
+
+
+type alias ResponseSuccess =
+    { success : Bool
+    , data :
+        { id : String
+        }
     }
 
 
@@ -103,9 +111,11 @@ type Msg
     | Tick Time.Posix
     | UpdateDevices (Result Http.Error (List Device))
     | DeviceConfigPosted (Result Http.Error Response)
+    | DeviceDelete (Result Http.Error Response)
     | EditDevice String
     | EditDeviceClose
     | EditDeviceSave
+    | EditDeviceDelete String
     | EditDeviceChangeDescription String
 
 
@@ -155,14 +165,7 @@ responseDecoder =
     Decode.succeed Response
         |> required "success" Decode.bool
         |> optional "error" Decode.string ""
-
-
-sampleDecoder : Decode.Decoder Sample
-sampleDecoder =
-    Decode.map3 Sample
-        (Decode.field "id" Decode.string)
-        (Decode.field "value" Decode.float)
-        (Decode.field "time" Decode.string)
+        |> optional "id" Decode.string ""
 
 
 samplesDecoder : Decode.Decoder (List Sample)
@@ -197,7 +200,10 @@ devicesDecoder =
 
 apiGetDevices : Cmd Msg
 apiGetDevices =
-    Http.send UpdateDevices (Http.get urlDevices devicesDecoder)
+    Http.get
+        { url = urlDevices
+        , expect = Http.expectJson UpdateDevices devicesDecoder
+        }
 
 
 deviceConfigEncoder : DeviceConfig -> Encode.Value
@@ -216,7 +222,28 @@ apiPostDeviceConfig id config =
         url =
             Url.absolute [ "v1", "devices", id, "config" ] []
     in
-    Http.send DeviceConfigPosted (Http.post url body responseDecoder)
+    Http.post
+        { url = url
+        , body = body
+        , expect = Http.expectJson DeviceConfigPosted responseDecoder
+        }
+
+
+apiPostDeviceDelete : String -> Cmd Msg
+apiPostDeviceDelete id =
+    let
+        url =
+            Url.absolute [ "v1", "devices", id ] []
+    in
+    Http.request
+        { method = "DELETE"
+        , headers = []
+        , url = url
+        , body = Http.emptyBody
+        , expect = Http.expectJson DeviceDelete responseDecoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 findDevice : List Device -> String -> Maybe Device
@@ -248,13 +275,6 @@ updateDevice devices device =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    -- uncomment the following to display model updates
-    -- let
-    --    _ =
-    --        Debug.log "update: " msg
-    -- _ =
-    --    Debug.log "model: " model
-    -- in
     case msg of
         Increment ->
             ( model, Cmd.none )
@@ -282,10 +302,6 @@ update msg model =
                             ( { model | devices = { devices = devicesUpdate, dirty = False } }, Cmd.none )
 
                         Err err ->
-                            let
-                                _ =
-                                    Debug.log "UpdateDevices error: " err
-                            in
                             ( model, Cmd.none )
 
         DeviceConfigPosted result ->
@@ -299,15 +315,38 @@ update msg model =
                 newModel =
                     { model | devices = newDevices }
             in
-            case Debug.log "DeviceConfigPosted" result of
+            case result of
+                -- fixme show error dialog
                 Ok string ->
                     ( newModel, Cmd.none )
 
                 Err err ->
+                    ( newModel, Cmd.none )
+
+        DeviceDelete result ->
+            let
+                devices =
+                    model.devices
+
+                newDevices =
+                    { devices | dirty = False }
+
+                newModel =
+                    { model | devices = newDevices }
+            in
+            case result of
+                -- fixme show error dialog
+                Ok resp ->
                     let
-                        _ =
-                            Debug.log "DeviceConfigPosted error: " err
+                        devicesRm =
+                            List.filter (\d -> d.id /= resp.id) newDevices.devices
+
+                        newNewDevices =
+                            { newDevices | devices = devicesRm }
                     in
+                    ( { newModel | devices = newNewDevices }, Cmd.none )
+
+                Err err ->
                     ( newModel, Cmd.none )
 
         EditDevice id ->
@@ -342,6 +381,16 @@ update msg model =
                 Just dev ->
                     apiPostDeviceConfig dev.id dev.config
             )
+
+        EditDeviceDelete id ->
+            let
+                deviceEditsIn =
+                    model.deviceEdits
+
+                deviceEdits =
+                    { deviceEditsIn | visibility = Modal.hidden }
+            in
+            ( { model | deviceEdits = deviceEdits }, apiPostDeviceDelete id )
 
         EditDeviceChangeDescription desc ->
             case model.deviceEdits.device of
@@ -446,7 +495,7 @@ renderIos : List Sample -> Accordion.CardBlock Msg
 renderIos samples =
     Accordion.listGroup
         (List.map
-            (\s -> ListGroup.li [] [ text (s.id ++ ": " ++ Round.round 2 s.value) ])
+            (\s -> ListGroup.li [] [ text (renderSample s) ])
             samples
         )
 
@@ -471,7 +520,6 @@ renderEditDevice deviceEdits =
 
         Just device ->
             Modal.config EditDeviceClose
-                |> Modal.small
                 |> Modal.h5 [] [ text ("Edit device (" ++ device.id ++ ")") ]
                 |> Modal.body []
                     [ Form.group []
@@ -496,5 +544,10 @@ renderEditDevice deviceEdits =
                         , Button.attrs [ onClick EditDeviceClose ]
                         ]
                         [ text "Cancel" ]
+                    , Button.button
+                        [ Button.outlineDanger
+                        , Button.attrs [ onClick (EditDeviceDelete device.id) ]
+                        ]
+                        [ text "Delete" ]
                     ]
                 |> Modal.view deviceEdits.visibility

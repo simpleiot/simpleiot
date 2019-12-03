@@ -17,6 +17,8 @@ const (
 	MenuItemString
 	MenuItemTypeFaultHistory
 	MenuItemStringRight
+	MenuItemStringIP
+	MenuItemTypeStringDown
 	MenuItemTypeInt
 	MenuItemTypeFloat
 	MenuItemTypeOnOff
@@ -172,6 +174,31 @@ func (m *Menu) AddItemStringRight(desc string, value string) {
 	m.updateShowValues()
 }
 
+// AddItemStringIP is customized for displaying an IP address
+// The difference from AddItemStringDown is that this type is truncated from the beginning
+// of the string instead of the end, displaying the last part of the string.
+func (m *Menu) AddItemStringIP(desc string, value string) {
+	m.items = append(m.items, MenuItem{
+		Description: desc,
+		ValueString: value,
+		Type:        MenuItemStringIP,
+	})
+
+	m.updateShowValues()
+}
+
+// AddItemStringDown adds a string item with the value rendered one pixel futhur down than
+// AddItemString
+func (m *Menu) AddItemStringDown(desc string, value string) {
+	m.items = append(m.items, MenuItem{
+		Description: desc,
+		Type:        MenuItemTypeStringDown,
+		ValueString: value,
+	})
+
+	m.updateShowValues()
+}
+
 // AddItemInt adds an integer item to menu
 func (m *Menu) AddItemInt(desc string, v int) {
 	m.items = append(m.items, MenuItem{
@@ -292,17 +319,28 @@ func (m *Menu) Render(img draw.Image) {
 			case MenuItemTypeSelect:
 				DrawTxt(img, "select", 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeCommand:
-				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
+				v := truncateMenuVal(item.ValueString)
+				DrawTxt(img, v, 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemString:
-				DrawTxt(img, item.ValueString, 78, y+offsetValues, tightpixel15.Font)
+				v := truncateMenuVal(item.ValueString)
+				DrawTxt(img, v, 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeFaultHistory:
-				DrawTxt(img, item.ValueString, 49, y+offsetValues, tightpixel15.Font)
+				v := truncateMenuVal(item.ValueString)
+				DrawTxt(img, v, 49, y+offsetValues, tightpixel15.Font)
 			case MenuItemStringRight:
-				DrawTxtRight(img, item.ValueString, 120, y+1+offsetValues, tightpixel15.Font)
+				v := truncateMenuVal(item.ValueString)
+				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
+			case MenuItemStringIP:
+				v := truncateMenuValBeginning(item.ValueString)
+				DrawTxt(img, v, 78, y+1+offsetValues, tightpixel15.Font)
+			case MenuItemTypeStringDown:
+				v := truncateMenuVal(item.ValueString)
+				DrawTxt(img, v, 78, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeInt: // we now have Value (float) and ValueInt
-				DrawTxtRight(img, strconv.Itoa(int(item.ValueInt)), 120, y+1+offsetValues, tightpixel15.Font)
+				v := truncateMenuVal(strconv.Itoa(int(item.ValueInt)))
+				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeFloat:
-				v := strconv.FormatFloat(item.Value, 'f', 2, 64)
+				v := truncateMenuVal(strconv.FormatFloat(item.Value, 'f', 2, 64))
 				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeOnOff:
 				yShift := 11
@@ -376,6 +414,27 @@ func (m *Menu) Render(img draw.Image) {
 				x+4, y+sbHeight+1)
 		}
 	}
+}
+
+func truncateMenuVal(v string) string {
+	for i := len(v) - 1; i >= 0; i-- {
+		if tightpixel15.Font.MeasureString(v) <= 41 { // if the value will fit in a menu box
+			return v
+		}
+		v = v[:len(v)-1]
+	}
+	return ""
+}
+
+func truncateMenuValBeginning(v string) string {
+	splitPoint := 0
+	for i := 0; i <= len(v)-1; i++ {
+		if tightpixel15.Font.MeasureString(v[splitPoint:]) <= 41 { // if the value will fit in a menu box
+			break
+		}
+		splitPoint++
+	}
+	return v[splitPoint:]
 }
 
 // MenuSelection is returned when a new item is selected

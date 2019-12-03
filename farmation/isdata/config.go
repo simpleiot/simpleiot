@@ -74,6 +74,7 @@ type Config struct {
 
 	// Flow meter pulses per gallon and pressure setting
 	PulsesPerGallon int
+	FlowAvgWindow   int
 	PressureSetting int
 
 	UserPumpMode UserPumpMode
@@ -385,6 +386,10 @@ func (c *Config) Init() {
 		c.PulsesPerGallon = 3785
 	}
 
+	if c.FlowAvgWindow <= 0 {
+		c.FlowAvgWindow = 30
+	}
+
 	if c.PressureSetting <= 0 {
 		c.PressureSetting = 300
 	}
@@ -413,6 +418,7 @@ func (c *Config) Init() {
 			FieldConfig{"Field Four"},
 		}
 	}
+
 	if len(c.ProductConfigs) < 5 {
 		c.ProductConfigs = []ProductConfig{
 			ProductConfig{"Product 1"},

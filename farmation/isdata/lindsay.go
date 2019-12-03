@@ -20,8 +20,10 @@ const (
 	LindsayStateLowVoltageFault                  = 0x6
 	LindsayStateLowTemp                          = 0x7
 	LindsayStateLowFlowShutdown                  = 0x9
+	LindsayStatePowerHold                        = 0xE
 	LindsayStateRestartDelay                     = 0x10
-	LindsayStatePressureWaiting                  = 0x11
+	LindsayStatePumpStartDelay                   = 0x11
+	LindsayStatePressureRecovery                 = 0x12
 	LindsayStateHoldLastTower                    = 0x13
 	LindsayStateRunningForward                   = 0x14
 	LindsayStateRunningReverse                   = 0x15
@@ -51,10 +53,14 @@ func (ls LindsayState) String() (ret string) {
 		ret = "Low Temp" //Low Temperature
 	case LindsayStateLowFlowShutdown:
 		ret = "Low Flw Shtdwn" //Low Flow Shutdown
+	case LindsayStatePowerHold:
+		ret = "Pwr Comany Hold" //Power Company Hold
 	case LindsayStateRestartDelay:
 		ret = "Restart Del" //Restart Delay
-	case LindsayStatePressureWaiting:
-		ret = "Pres. Wait." //Pressure Waiting
+	case LindsayStatePumpStartDelay:
+		ret = "Pump Start Del" //Pump Start Up Delay
+	case LindsayStatePressureRecovery:
+		ret = "Pressure Recovery" //PressureRecovery
 	case LindsayStateHoldLastTower:
 		ret = "Hold L Tow" //Hold Last Tower
 	case LindsayStateRunningForward:
@@ -116,7 +122,7 @@ func (lsr *LindsayStatusRegs) Reverse() bool {
 // WaterOn indicator
 func (lsr *LindsayStatusRegs) WaterOn() bool {
 	return ((lsr.Status & (1 << 2)) != 0) &&
-		(lsr.IrrigatorRunning() || lsr.State == LindsayStatePressureWaiting)
+		(lsr.IrrigatorRunning() || lsr.State == LindsayStatePumpStartDelay)
 }
 
 // EndGun1On indicator
@@ -151,8 +157,16 @@ func (lsr *LindsayStatusRegs) AutoRestart() bool {
 
 // IrrigatorRunning indicates of irrigator is running
 func (lsr *LindsayStatusRegs) IrrigatorRunning() bool {
-	return (((lsr.State&(1<<4)) != 0 || lsr.State == LindsayStatePositionDelay) &&
-		(lsr.Forward() || lsr.Reverse()))
+	return (lsr.State == LindsayStatePressureRecovery ||
+		lsr.State == LindsayStateHoldLastTower ||
+		lsr.State == LindsayStateRunningForward ||
+		lsr.State == LindsayStateRunningReverse ||
+		lsr.State == LindsayStateRunningLowPres ||
+		lsr.State == LindsayStateHighFlowWarn ||
+		lsr.State == LindsayStateLowFlowWarn ||
+		lsr.State == LindsayStateSoftBarrierWarn ||
+		lsr.State == LindsayStatePositionDelay) &&
+		(lsr.Forward() || lsr.Reverse())
 }
 
 // NewLindsayStatusRegs create Lindsay status from modbus PDU packet

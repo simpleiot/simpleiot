@@ -1,5 +1,7 @@
 package isdata
 
+import "github.com/simpleiot/simpleiot/network"
+
 // NetworkInterface defines the current network interface
 type NetworkInterface int
 
@@ -20,8 +22,11 @@ type NetworkConfig struct {
 
 // NetworkState defines the current network state
 type NetworkState struct {
-	EthernetDetected bool
-	ModemDetected    bool
-	Connected        bool
-	ModemRSRQ        float64
+	//EthernetDetected bool
+	//ModemDetected    bool
+	//Connected        bool
+	//ModemRSRQ        float64
+	Description     string
+	InterfaceStatus network.InterfaceStatus
+	ErrorCnt        int
 }

@@ -1,7 +1,11 @@
-frontend/public
+frontend/output
 frontend/elm-stuff
 /siot
 data.db
+temp
+tags
+.idea
+assets.go
 temp
 tags
 .idea
@@ -22,3 +26,4 @@ gpio-test
 /flow*
 /lindsay_sim
 /update-not
+is-portal

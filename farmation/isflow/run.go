@@ -70,10 +70,10 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 	ticker := time.NewTicker(1000 * time.Millisecond)
 
-	flowRateMovingAvg := movingaverage.New(30)
+	flowRateMovingAvg := movingaverage.New(config.FlowAvgWindow)
 
-	resetFlowRateMovingAvg := func() {
-		flowRateMovingAvg = movingaverage.New(30)
+	resetFlowRateMovingAvg := func(win int) {
+		flowRateMovingAvg = movingaverage.New(win)
 	}
 
 	var lastTick time.Time
@@ -92,6 +92,9 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.Config:
+				if config.FlowAvgWindow != m.FlowAvgWindow {
+					resetFlowRateMovingAvg(m.FlowAvgWindow)
+				}
 				config = m
 			case data.Sample:
 				switch m.Type {
@@ -158,7 +161,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 					Value: 0,
 				}
 				out <- flow
-				resetFlowRateMovingAvg()
+				resetFlowRateMovingAvg(config.FlowAvgWindow)
 			}
 
 		case t := <-simTicker.C:

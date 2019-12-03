@@ -94,7 +94,8 @@ type State struct {
 	// for Vision panel
 	DialogUnknownVisionState Dialog `json:"dialogUnknownVisionState"`
 
-	OSVersion semver.Version `json:"osVersion"`
+	OSVersion    semver.Version `json:"osVersion"`
+	SerialNumber string         `json:"serialNumber"`
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config

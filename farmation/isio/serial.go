@@ -20,7 +20,7 @@ const (
 
 // OpenSerialModem opens the modem serial port
 func OpenSerialModem() (io.ReadWriteCloser, error) {
-	GpioOut(GpioModemReset, false)
+	ResetModem()
 
 	options := serial.OpenOptions{
 		PortName:              SerialModem,

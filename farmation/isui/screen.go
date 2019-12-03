@@ -37,6 +37,8 @@ const (
 	ScreenIDDiagLindsay
 	ScreenIDDiagDevName
 	ScreenIDDiagPanel
+	ScreenIDModem
+	ScreenIDDiagIPAddress
 )
 
 // Screens is a map of all screens in the system
@@ -87,6 +89,8 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 	ret.Add(ScreenIDDiagLindsay, NewDiagLindsayScreen(state, config))
 	ret.Add(ScreenIDDiagDevName, NewDiagDevNameScreen(state, config))
 	ret.Add(ScreenIDDiagPanel, NewDiagPanelScreen(state, config))
+	ret.Add(ScreenIDModem, NewModemScreen(state, config))
+	ret.Add(ScreenIDDiagIPAddress, NewDiagIPAddressScreen(state, config))
 
 	ret.currentScreen = ScreenIDHome
 
@@ -102,6 +106,8 @@ func (s *Screens) Render(img draw.Image) {
 		s.dialog.Render(img, s.state.DialogUpdate.Message)
 	case s.state.DialogInvalidPanel.Active:
 		s.dialog.Render(img, s.state.DialogInvalidPanel.Message)
+	case s.state.DialogUnknownVisionState.Active:
+		s.dialog.Render(img, s.state.DialogUnknownVisionState.Message)
 	case s.state.DialogExport.Active:
 		s.dialog.Render(img, s.state.DialogExport.Message)
 	case s.state.DialogArm.Active:

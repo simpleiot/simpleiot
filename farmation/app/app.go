@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -20,6 +21,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/islcd"
 	"github.com/simpleiot/simpleiot/farmation/islog"
+	"github.com/simpleiot/simpleiot/farmation/isnetwork"
 	"github.com/simpleiot/simpleiot/farmation/ispressure"
 	"github.com/simpleiot/simpleiot/farmation/isserial"
 	"github.com/simpleiot/simpleiot/farmation/issim"
@@ -28,9 +30,37 @@ import (
 	"github.com/simpleiot/simpleiot/file"
 )
 
+// Params are used to configure the app
+type Params struct {
+	Sim          bool
+	DataDir      string
+	DebugState   bool
+	DebugConfig  bool
+	DebugModem   bool
+	DebugPortal  bool
+	PortalURL    string
+	SerialNumber string
+}
+
 // Run is the entry point for the IS application
-func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
-	db, err := isdb.NewDb(dataDir)
+func Run(params Params) {
+	log.Println("Starting Injectory Sentry app")
+
+	if params.SerialNumber == "" {
+		if runtime.GOARCH == "arm" {
+			data, err := ioutil.ReadFile("/boot/serial-number")
+			if err == nil {
+				params.SerialNumber = string(data)
+			} else {
+				params.SerialNumber = "unknown"
+			}
+		} else {
+			params.SerialNumber = "pcsim"
+		}
+	}
+
+	log.Printf("App params: %+v\n", params)
+	db, err := isdb.NewDb(params.DataDir)
 
 	if err != nil {
 		// FIXME this error  should display a message on screen to run recovery
@@ -49,7 +79,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		Type: data.SampleTypeStartApp,
 	})
 
-	log.Println("Data directory: ", dataDir)
+	log.Println("Data directory: ", params.DataDir)
 
 	isio.GpioInit()
 
@@ -81,6 +111,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	}
 
 	stateDirty = isdata.InitState(&state)
+	state.SerialNumber = params.SerialNumber
+
 	config.Init()
 
 	// incoming channel to mux
@@ -98,6 +130,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	logChan := make(chan interface{}, 1000)
 	presChan := make(chan interface{}, 1000)
 	serialChan := make(chan interface{}, 1000)
+	networkChan := make(chan interface{}, 100)
 
 	channels := []struct {
 		name    string
@@ -115,6 +148,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		{"log", logChan},
 		{"pres", presChan},
 		{"serial", serialChan},
+		{"network", networkChan},
 	}
 
 	// fire up subsystems
@@ -125,15 +159,17 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	go isapi.Server(webChan, appChan)
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
-	go isflow.Run(flowChan, appChan, sim, config)
+	go isflow.Run(flowChan, appChan, params.Sim, config)
 	go islog.Run(logChan, appChan, db)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
+	go isnetwork.Run(networkChan, appChan, config, state,
+		params.PortalURL, params.DebugPortal)
 
 	lastFillingWarning := time.Time{}
 
 	saveConfig := func() {
-		if debugConfig {
+		if params.DebugConfig {
 			fmt.Printf("Config: %+v\n", config)
 		}
 		uiChan <- config
@@ -143,6 +179,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 		ioChan <- config
 		presChan <- config
 		cntrlChan <- config
+		networkChan <- config
 		err := db.WriteConfig(&config)
 		if err != nil {
 			log.Println("Error saving config: ", err)
@@ -150,9 +187,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	}
 
 	var lastStateSend time.Time
+	var lastStateSendSlow time.Time
 
 	saveState := func() {
-		if debugState {
+		if params.DebugState {
 			fmt.Println("State:")
 			spew.Dump(state)
 		}
@@ -161,7 +199,7 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 		stateDirty = true
 
-		// pace the sending of states to various subsystems every 500ms
+		// pace the sending of states to various subsystems
 		// so we don't overload things
 		now := time.Now()
 		if now.Sub(lastStateSend) > 200*time.Millisecond {
@@ -171,6 +209,11 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 			webChan <- state
 
 			lastStateSend = now
+		}
+
+		if now.Sub(lastStateSendSlow) > 5*time.Second {
+			networkChan <- state
+			lastStateSendSlow = now
 		}
 	}
 
@@ -219,6 +262,8 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 	// Create an averager to calculate average flow since armed
 	// Average is reset every time the system is armed
 	flowAverager := data.NewSampleAverager(isdata.SampleTypeFlowWindowAvg)
+
+	var lastVisionUnknownStateDisplay time.Time
 
 	for {
 		// max sure queues between subsystems are not full
@@ -273,11 +318,14 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 				switch m.Type {
 				case isdata.SampleTypeFlowWindowAvg:
 
-					flowAverager.AddSample(m)
+					// compute and update average flow rate in arming period
+					if config.Arm {
+						flowAverager.AddSample(m)
+						state.AvgFlowRate = flowAverager.GetAverage().Value
+					}
 
 					// update flow rate
 					state.FlowRate = m.Value
-					state.AvgFlowRate = flowAverager.GetAverage().Value
 					saveState()
 
 					// send data to logging goroutine to store in database
@@ -450,6 +498,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.UpdatePulsesPerGallon:
 				config.PulsesPerGallon = int(m)
+				saveConfig()
+
+			case isdata.UpdateFlowAvgWindow:
+				config.FlowAvgWindow = int(m)
 				saveConfig()
 
 			case isdata.UpdatePressureSetting:
@@ -724,9 +776,11 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.LindsayStatusRegs:
 				// if the Vision panel state is unknown, alert user
-				if m.State.String() == "Unknown" {
-					state.DialogUnknownVisionState.Message = "Vision panel state is\nunknown. Inputs shutting off."
+				if m.State.String() == "Unknown" &&
+					time.Since(lastVisionUnknownStateDisplay) > 10*time.Minute {
+					state.DialogUnknownVisionState.Message = "Vision panel state is unknown.\nOutputs shutting off."
 					state.DialogUnknownVisionState.Active = true
+					lastVisionUnknownStateDisplay = time.Now()
 				}
 
 				state.LindsayRegs = m
@@ -786,6 +840,10 @@ func Run(sim bool, debugState bool, debugConfig bool, dataDir string) {
 
 			case isdata.PanelDefinition:
 				newPanelType(m)
+
+			case isdata.NetworkState:
+				state.NetworkState = m
+				saveState()
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why

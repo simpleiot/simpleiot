@@ -81,6 +81,9 @@ type UpdateGpioRelayAux bool
 // UpdatePulsesPerGallon is used to send new flow meter pulses/gal. config to app.go
 type UpdatePulsesPerGallon int
 
+// UpdateFlowAvgWindow is used to update the flow window averaging window (seconds)
+type UpdateFlowAvgWindow int
+
 // UpdatePressureSetting is used to send new pressure setting (number) config to app.go
 type UpdatePressureSetting int
 
