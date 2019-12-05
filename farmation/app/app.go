@@ -841,6 +841,10 @@ func Run(params Params) {
 			case isdata.PanelDefinition:
 				newPanelType(m)
 
+			case isdata.PanelType:
+				config.PanelType = m
+				saveConfig()
+
 			case isdata.NetworkState:
 				state.NetworkState = m
 				saveState()

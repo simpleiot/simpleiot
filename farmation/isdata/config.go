@@ -78,6 +78,8 @@ type Config struct {
 	PressureSetting int
 
 	UserPumpMode UserPumpMode
+
+	PanelType PanelType
 }
 
 // UserPumpMode describes the state of the pump button in UI
