@@ -36,7 +36,6 @@ type State struct {
 	FieldStates     [][5]ProductState `json:"fieldStates"`
 	GpsPos          GpsPos            `json:"gpsPos"`
 	FlowStatus      FlowStatus        `json:"flowStatus"`
-	Ios             []ISIo            `json:"ios"`
 	PressureMin     float64           `json:"pressureMin"`
 	PressureMax     float64           `json:"pressureMax"`
 	PressureAvg     float64           `json:"pressureAvg"`
