@@ -321,4 +321,10 @@ func (c *Config) Init() {
 			ProductConfig{"Product 5"},
 		}
 	}
+
+	if c.PanelType != PanelTypeStandardPump ||
+		c.PanelType != PanelTypeStandardPivot ||
+		c.PanelType != PanelTypeLindsay {
+		c.PanelType = PanelTypeStandardPump
+	}
 }

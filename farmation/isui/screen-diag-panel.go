@@ -1,7 +1,6 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -32,10 +31,9 @@ func (s *DiagPanelScreen) Render(img draw.Image) {
 	Clear(img)
 	s.menu.ResetItems()
 
-	voltage := fmt.Sprintf("%.2fV", s.state.PanelDefinition.Voltage)
-
-	s.menu.AddItemString("Type", s.state.PanelDefinition.Type.String())
-	s.menu.AddItemStringRight("Voltage", voltage)
+	//voltage := fmt.Sprintf("%.2fV", s.state.PanelDefinition.Voltage)
+	//s.menu.AddItemString("Type", s.state.PanelDefinition.Type.String())
+	//s.menu.AddItemStringRight("Voltage", voltage)
 
 	Heading(img, "Panel Detection")
 	s.menu.Render(img)
