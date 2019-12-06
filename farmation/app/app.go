@@ -508,6 +508,14 @@ func Run(params Params) {
 				config.FlowAvgWindow = int(m)
 				saveConfig()
 
+			case isdata.UpdateFlowAvgWindowLong:
+				config.FlowAvgWindowLong = int(m)
+				saveConfig()
+
+			case isdata.UpdateFlowAvgPercDiff:
+				config.FlowAvgPercDiff = int(m)
+				saveConfig()
+
 			case isdata.UpdatePressureSetting:
 				config.PressureSetting = int(m)
 				saveConfig()
