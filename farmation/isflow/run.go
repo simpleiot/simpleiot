@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
 
 	movingaverage "github.com/RobinUS2/golang-moving-average"
@@ -23,7 +24,16 @@ func edgeTsToTime(data []byte) time.Time {
 func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 	config := configInit
 	pulseCh := make(chan time.Time)
+
+	var fPulseOutputPeriod *os.File
+
 	if runtime.GOARCH == "arm" {
+		var err error
+		fPulseOutputPeriod, err = os.OpenFile("/sys/devices/platform/gpio_et/output_pulse_timer_period_ns", os.O_WRONLY, 0644)
+		if err != nil {
+			log.Println("Error opening pulse output file: ", err)
+		}
+
 		go func() {
 			// open file for reading
 			byteSlice := make([]byte, 128)
@@ -136,7 +146,16 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				flowRateMovingAvg.Add(flow.Rate)
 
 				flow.RateAvg = flowRateMovingAvg.Avg()
+
 				out <- flow
+
+				if fPulseOutputPeriod != nil {
+					nsPerPulseOut := int64((1e9 * 3600) / (float64(config.PulseOutputK) * flow.RateAvg))
+					_, err := fPulseOutputPeriod.WriteString(strconv.FormatInt(nsPerPulseOut, 10) + "\n")
+					if err != nil {
+						log.Println("Error writing pulse output: ", err)
+					}
+				}
 
 				// Instantaneous flow sample
 				// this sample is used for logging engineering data

@@ -37,6 +37,7 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	s.menu.AddItemInt("Flw Pulses/Gal", s.config.PulsesPerGallon)
 	s.menu.AddItemInt("Flw Avg Window", s.config.FlowAvgWindow)
 	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
+	s.menu.AddItemInt("Pulse Output K", s.config.PulseOutputK)
 
 	if s.edit { // render text entry screen
 		s.textEntryScreen.Render(img)
@@ -65,6 +66,9 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 
 			case 2:
 				return ScreenIDNoChange, isdata.UpdatePressureSetting(value), true
+
+			case 3:
+				return ScreenIDNoChange, isdata.UpdatePulseOutputK(value), true
 
 			}
 		case TextEntryCommandCancel: // cancel
@@ -108,6 +112,9 @@ func (s *DiagPulsesPresScreen) enterEdit() {
 	case 2:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureSetting) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Pressure setting"
+	case 3:
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulseOutputK)
+		s.textEntryScreen.headerLabel = "Pulse output K"
 	}
 	// move inputChars cursor to current pos in txtEdit
 	s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos])
