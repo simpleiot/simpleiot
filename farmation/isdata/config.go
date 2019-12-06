@@ -76,6 +76,7 @@ type Config struct {
 	PulsesPerGallon int
 	FlowAvgWindow   int
 	PressureSetting int
+	FlowOutputK     int
 
 	UserPumpMode UserPumpMode
 
@@ -322,8 +323,8 @@ func (c *Config) Init() {
 		}
 	}
 
-	if c.PanelType != PanelTypeStandardPump ||
-		c.PanelType != PanelTypeStandardPivot ||
+	if c.PanelType != PanelTypeStandardPump &&
+		c.PanelType != PanelTypeStandardPivot &&
 		c.PanelType != PanelTypeLindsay {
 		c.PanelType = PanelTypeStandardPump
 	}
