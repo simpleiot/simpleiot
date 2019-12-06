@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"runtime"
 	"time"
@@ -71,9 +72,13 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 	ticker := time.NewTicker(1000 * time.Millisecond)
 
 	flowRateMovingAvg := movingaverage.New(config.FlowAvgWindow)
+	flowRateMovingAvgLong := movingaverage.New(config.FlowAvgWindowLong)
 
 	resetFlowRateMovingAvg := func(win int) {
 		flowRateMovingAvg = movingaverage.New(win)
+	}
+	resetFlowRateMovingAvgLong := func(win int) {
+		flowRateMovingAvgLong = movingaverage.New(win)
 	}
 
 	var lastTick time.Time
@@ -92,8 +97,12 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.Config:
+				// In case the user changes the averaging window
 				if config.FlowAvgWindow != m.FlowAvgWindow {
 					resetFlowRateMovingAvg(m.FlowAvgWindow)
+				}
+				if config.FlowAvgWindowLong != m.FlowAvgWindowLong {
+					resetFlowRateMovingAvgLong(m.FlowAvgWindowLong)
 				}
 				config = m
 			case data.Sample:
@@ -134,8 +143,19 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				out <- amountSample
 
 				flowRateMovingAvg.Add(flow.Rate)
+				flowRateMovingAvgLong.Add(flow.Rate)
 
 				flow.RateAvg = flowRateMovingAvg.Avg()
+
+				// If the flow rate calculated from the short-window
+				// moving average is inconsistent with the rate from
+				// the long-window average, set the output flow rate
+				// to the average from the long window
+				flowRateAvgLong := flowRateMovingAvgLong.Avg()
+				percentDiff := int(math.Abs(flow.RateAvg-flowRateAvgLong) / flowRateAvgLong)
+				if percentDiff > config.FlowAvgPercDiff {
+					flow.RateAvg = flowRateAvgLong
+				}
 				out <- flow
 
 				// Instantaneous flow sample
