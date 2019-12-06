@@ -73,18 +73,14 @@ type Config struct {
 	ManualRelayShutdown RelayControlStateType
 
 	// Flow meter pulses per gallon, flow moving average time
-	// windows and percent difference, and pressure setting
+	// windows and percent difference, pressure setting, K-factor
+	// for output pulses
 	PulsesPerGallon   int
 	FlowAvgWindow     int
 	FlowAvgWindowLong int
 	FlowAvgPercDiff   int
 	PressureSetting   int
-
-	// Flow meter pulses per gallon and pressure setting
-	PulsesPerGallon int
-	FlowAvgWindow   int
-	PressureSetting int
-	FlowOutputK     int
+	FlowOutputK       int
 
 	UserPumpMode UserPumpMode
 
