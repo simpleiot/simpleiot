@@ -19,7 +19,7 @@ func edgeTsToTime(data []byte) time.Time {
 	return time.Unix(int64(tSec), int64(tNsec))
 }
 
-// Run goroutine for IO code
+// Run goroutine for flow calculation code
 func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 	config := configInit
 	pulseCh := make(chan time.Time)
