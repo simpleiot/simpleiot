@@ -80,6 +80,12 @@ type Config struct {
 	FlowAvgPercDiff   int
 	PressureSetting   int
 
+	// Flow meter pulses per gallon and pressure setting
+	PulsesPerGallon int
+	FlowAvgWindow   int
+	PressureSetting int
+	FlowOutputK     int
+
 	UserPumpMode UserPumpMode
 
 	PanelType PanelType
@@ -333,8 +339,8 @@ func (c *Config) Init() {
 		}
 	}
 
-	if c.PanelType != PanelTypeStandardPump ||
-		c.PanelType != PanelTypeStandardPivot ||
+	if c.PanelType != PanelTypeStandardPump &&
+		c.PanelType != PanelTypeStandardPivot &&
 		c.PanelType != PanelTypeLindsay {
 		c.PanelType = PanelTypeStandardPump
 	}
