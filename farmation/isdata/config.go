@@ -72,10 +72,13 @@ type Config struct {
 	ManualRelayAux      RelayControlStateType
 	ManualRelayShutdown RelayControlStateType
 
-	// Flow meter pulses per gallon and pressure setting
-	PulsesPerGallon int
-	FlowAvgWindow   int
-	PressureSetting int
+	// Flow meter pulses per gallon, flow moving average time
+	// windows and percent difference, and pressure setting
+	PulsesPerGallon   int
+	FlowAvgWindow     int
+	FlowAvgWindowLong int
+	FlowAvgPercDiff   int
+	PressureSetting   int
 
 	UserPumpMode UserPumpMode
 
@@ -281,6 +284,14 @@ func (c *Config) Init() {
 
 	if c.FlowAvgWindow <= 0 {
 		c.FlowAvgWindow = 30
+	}
+
+	if c.FlowAvgWindowLong <= 0 {
+		c.FlowAvgWindowLong = 300
+	}
+
+	if c.FlowAvgPercDiff <= 0 {
+		c.FlowAvgPercDiff = 30
 	}
 
 	if c.PressureSetting <= 0 {
