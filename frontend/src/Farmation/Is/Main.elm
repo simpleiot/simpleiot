@@ -663,9 +663,7 @@ view model =
         simInputs =
             if model.state.systemType == systemTypeISSim then
                 div []
-                    [ h4 [] [ text "Panel Type" ]
-                    , renderPanelTypeInput model.simInputs.panelType
-                    , h4 [] [ text "Simulation Inputs" ]
+                    [ h4 [] [ text "Simulation Inputs" ]
                     , renderSimInputs model.simInputs
 
                     --, renderLindsaySimInputs model.simInputs

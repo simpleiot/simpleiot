@@ -30,18 +30,14 @@ type State struct {
 	CurrentTankVolume float64      `json:"currentTankVolume"`
 	NetworkState      NetworkState `json:"networkState"`
 
-	// PanelDefinition will be populated based on the panel detected
-	// by the sense resistor.
-	PanelDefinition PanelDefinition   `json:"panelConfig"`
-	FieldStates     [][5]ProductState `json:"fieldStates"`
-	GpsPos          GpsPos            `json:"gpsPos"`
-	FlowStatus      FlowStatus        `json:"flowStatus"`
-	Ios             []ISIo            `json:"ios"`
-	PressureMin     float64           `json:"pressureMin"`
-	PressureMax     float64           `json:"pressureMax"`
-	PressureAvg     float64           `json:"pressureAvg"`
-	PressureVRef    float64           `json:"pressureVRef"`
-	PressureVSense  float64           `json:"pressureVSense"`
+	FieldStates    [][5]ProductState `json:"fieldStates"`
+	GpsPos         GpsPos            `json:"gpsPos"`
+	FlowStatus     FlowStatus        `json:"flowStatus"`
+	PressureMin    float64           `json:"pressureMin"`
+	PressureMax    float64           `json:"pressureMax"`
+	PressureAvg    float64           `json:"pressureAvg"`
+	PressureVRef   float64           `json:"pressureVRef"`
+	PressureVSense float64           `json:"pressureVSense"`
 
 	// Gpio's
 	GpioDigitalInjector  bool `json:"gpioDigitalInjector"`
@@ -96,12 +92,17 @@ type State struct {
 
 	OSVersion    semver.Version `json:"osVersion"`
 	SerialNumber string         `json:"serialNumber"`
+
+	// Deleted Fields
+	// PanelDefinition will be populated based on the panel detected
+	// by the sense resistor.
+	// PanelDefinition PanelDefinition `json:"panelConfig"`
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config
 func (s *State) UpdateInputs(config *Config) {
 	// set water on based on panel type
-	switch s.PanelDefinition.Type {
+	switch config.PanelType {
 	case PanelTypeStandardPump:
 		s.InputWaterOn = BoolToInputState(s.GpioDigitalWaterOn)
 		s.InputIrrigator = InputStateNA
@@ -113,6 +114,7 @@ func (s *State) UpdateInputs(config *Config) {
 		s.InputIrrigator = BoolToInputState(s.LindsayRegs.IrrigatorRunning())
 	default:
 		// for invalid/unsupported panels, simply default to GPIO inputs
+		// or StandardPivot
 		s.InputWaterOn = BoolToInputState(s.GpioDigitalWaterOn)
 		s.InputIrrigator = BoolToInputState(s.GpioDigitalIrrigator)
 	}
@@ -229,9 +231,6 @@ func InitState(s *State) (dirty bool) {
 		s.SystemType = SystemTypeIS
 	} else {
 		s.SystemType = SystemTypeISSim
-		// the Sim UI starts with panel set to standard pivot, so
-		// we need to do the same here
-		s.PanelDefinition = PanelDefinition{Type: PanelTypeStandardPivot}
 	}
 
 	s.FlowRate = 0

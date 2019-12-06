@@ -6,42 +6,43 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-// DiagPanelScreen is a diagnostics sub screen
-type DiagPanelScreen struct {
+// PanelTypeScreen is used to select the panel type
+type PanelTypeScreen struct {
 	softKeys *SoftKeys
 	state    *isdata.State
 	config   *isdata.Config
 	menu     Menu
 }
 
-// NewDiagPanelScreen gives new screen to screen.go
-func NewDiagPanelScreen(state *isdata.State, config *isdata.Config) *DiagPanelScreen {
-	menu := Menu{}
-
-	return &DiagPanelScreen{
+// NewPanelTypeScreen initializes and returns a panel type screen
+func NewPanelTypeScreen(state *isdata.State, config *isdata.Config) *PanelTypeScreen {
+	return &PanelTypeScreen{
 		softKeys: NewSoftKeys("back"),
 		state:    state,
 		config:   config,
-		menu:     menu,
+		menu:     Menu{},
 	}
 }
 
 // Render updates the home screen, and provides an image
-func (s *DiagPanelScreen) Render(img draw.Image) {
+func (s *PanelTypeScreen) Render(img draw.Image) {
 	Clear(img)
+
 	s.menu.ResetItems()
 
-	//voltage := fmt.Sprintf("%.2fV", s.state.PanelDefinition.Voltage)
-	//s.menu.AddItemString("Type", s.state.PanelDefinition.Type.String())
-	//s.menu.AddItemStringRight("Voltage", voltage)
+	// add menu items
+	s.menu.AddItemSelect("Standard Pump", isdata.PanelTypeStandardPump, s.config.PanelType == isdata.PanelTypeStandardPump)
+	s.menu.AddItemSelect("Standard Pivot", isdata.PanelTypeStandardPivot, s.config.PanelType == isdata.PanelTypeStandardPivot)
+	s.menu.AddItemSelect("Vision", isdata.PanelTypeLindsay, s.config.PanelType == isdata.PanelTypeLindsay)
 
-	Heading(img, "Panel Detection")
+	// render
 	s.menu.Render(img)
+	Heading(img, "Panel Type")
 	s.softKeys.Render(img, 0, 54)
 }
 
 // Key processes keypad input to this screen
-func (s *DiagPanelScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
+func (s *PanelTypeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
 	case isdata.KeySK1Hold: // Back key held -> Home screen
 		s.menu.ResetArrowPos() // return arrow to top of screen

@@ -78,6 +78,8 @@ type Config struct {
 	PressureSetting int
 
 	UserPumpMode UserPumpMode
+
+	PanelType PanelType
 }
 
 // UserPumpMode describes the state of the pump button in UI
@@ -172,115 +174,6 @@ const (
 	IOTypeSerial
 	IOTypeDigIn
 )
-
-// ISPanelConfig defines a panel the IS is connected to
-type ISPanelConfig struct {
-	ADCValue         float64
-	Description      string
-	SerialType       SerialType
-	IrrigatorRunning IOType
-	WaterOn          IOType
-	InjectorOn       IOType
-	Position         IOType
-	Direction        IOType
-	PowerCoControl   IOType
-	Aux1             IOType
-	Aux2             IOType
-}
-
-// PanelConfigs describes all of the currently supported
-// panels. Based on the ADCValue, the appropriate config will
-// be selected and populated in the ISState
-var PanelConfigs = []ISPanelConfig{
-	ISPanelConfig{
-		ADCValue:         117,
-		Description:      "Lindsay Vision and Boss",
-		SerialType:       SerialTypeRS485,
-		IrrigatorRunning: IOTypeSerial,
-		WaterOn:          IOTypeSerial,
-		InjectorOn:       IOTypeSerial,
-		Position:         IOTypeSerial,
-		Direction:        IOTypeSerial,
-		PowerCoControl:   IOTypeSerial,
-		Aux1:             IOTypeSerial,
-		Aux2:             IOTypeSerial,
-	},
-	ISPanelConfig{
-		ADCValue:         224,
-		Description:      "Valley Icon serial",
-		SerialType:       SerialTypeRS232,
-		IrrigatorRunning: IOTypeSerial,
-		WaterOn:          IOTypeSerial,
-		InjectorOn:       IOTypeSerial,
-		Position:         IOTypeSerial,
-		Direction:        IOTypeSerial,
-		PowerCoControl:   IOTypeNA,
-		Aux1:             IOTypeSerial,
-		Aux2:             IOTypeSerial,
-	},
-	ISPanelConfig{
-		ADCValue:         340,
-		Description:      "Valley CAM Panel",
-		SerialType:       SerialTypeRS232,
-		IrrigatorRunning: IOTypeSerial,
-		WaterOn:          IOTypeSerial,
-		InjectorOn:       IOTypeSerial,
-		Position:         IOTypeSerial,
-		Direction:        IOTypeSerial,
-		PowerCoControl:   IOTypeNA,
-		Aux1:             IOTypeNA,
-		Aux2:             IOTypeNA,
-	},
-	ISPanelConfig{
-		ADCValue:         799,
-		Description:      "Standard Pump Panel",
-		SerialType:       SerialTypeNone,
-		IrrigatorRunning: IOTypeNA,
-		WaterOn:          IOTypeDigIn,
-		InjectorOn:       IOTypeDigIn,
-		Position:         IOTypeNA,
-		Direction:        IOTypeNA,
-		PowerCoControl:   IOTypeNA,
-		Aux1:             IOTypeNA,
-		Aux2:             IOTypeNA,
-	},
-	ISPanelConfig{
-		ADCValue:         913,
-		Description:      "Standard Pivot Panel",
-		SerialType:       SerialTypeNone,
-		IrrigatorRunning: IOTypeDigIn,
-		WaterOn:          IOTypeDigIn,
-		InjectorOn:       IOTypeDigIn,
-		Position:         IOTypeNA,
-		Direction:        IOTypeNA,
-		PowerCoControl:   IOTypeNA,
-		Aux1:             IOTypeNA,
-		Aux2:             IOTypeNA,
-	},
-}
-
-// IOs
-
-// ISIoType defines various IO types
-type ISIoType int
-
-// define valid ISIoTypes
-const (
-	ISIoType4to20In ISIoType = iota
-	ISIoTypeAnalogIn
-	ISIoTypeDigIn
-	ISIoTypePwmOut
-	ISIoTypePulseIn
-	ISIotype4to20Out
-)
-
-// ISIo holds IO attributes
-type ISIo struct {
-	Type        ISIoType
-	Description string
-	Fault       bool
-	Value       float64
-}
 
 // RelayControlStateType is a type for relays that
 // are either in auto or manual mode
@@ -427,5 +320,11 @@ func (c *Config) Init() {
 			ProductConfig{"Product 4"},
 			ProductConfig{"Product 5"},
 		}
+	}
+
+	if c.PanelType != PanelTypeStandardPump ||
+		c.PanelType != PanelTypeStandardPivot ||
+		c.PanelType != PanelTypeLindsay {
+		c.PanelType = PanelTypeStandardPump
 	}
 }
