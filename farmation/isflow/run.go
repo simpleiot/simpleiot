@@ -138,7 +138,6 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				if sampleDuration > 10*time.Second {
 					break
 				}
-				fmt.Println("sampleDuration: ", sampleDuration)
 				flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
 				amountSample := data.Sample{
 					Type:  isdata.SampleTypeAmount,
