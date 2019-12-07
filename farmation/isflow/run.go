@@ -134,6 +134,11 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 				// Calculate flow and amount
 				sampleDuration := lastPulse.Sub(lastTick)
+				lastTick = lastPulse
+				if sampleDuration > 10*time.Second {
+					break
+				}
+				fmt.Println("sampleDuration: ", sampleDuration)
 				flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
 				amountSample := data.Sample{
 					Type:  isdata.SampleTypeAmount,
@@ -170,7 +175,6 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				out <- avgFlowSample
 
 				pulses = 0
-				lastTick = lastPulse
 			}
 
 			if time.Now().Sub(lastTick) > time.Second*5 {
@@ -181,6 +185,11 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				}
 				out <- flow
 				resetFlowRateMovingAvg(config.FlowAvgWindow)
+				_, err := fPulseOutputPeriod.WriteString("0\n")
+				if err != nil {
+					log.Println("Error writing pulse output: ", err)
+				}
+
 			}
 
 		case t := <-simTicker.C:
