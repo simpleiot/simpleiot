@@ -33,11 +33,12 @@ func NewStatusScreen1(state *isdata.State, config *isdata.Config) *StatusScreen1
 // Render updates the home screen, and provides an image
 func (s *StatusScreen1) Render(img draw.Image) {
 	Clear(img)
-	DrawTxt(img, strconv.Itoa(int(s.state.CurrentTankVolume)), 4, 7, agencyfbbold40.Font)
-	DrawTxt(img, "GALLONS", 4, 38, tightpixel15.Font)
+	x := 8
+	DrawTxt(img, strconv.Itoa(int(s.state.CurrentTankVolume)), x, 7, agencyfbbold40.Font)
+	DrawTxt(img, "GALLONS", x, 38, tightpixel15.Font)
 
 	// Tank level graphic
-	x := 79
+	x = 88
 	y := 21
 	h := 30
 	w := 30
