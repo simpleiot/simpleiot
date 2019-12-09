@@ -51,18 +51,12 @@ func (s *StatusScreen2) Render(img draw.Image) {
 
 	Line(img, 1, yBreak, 102, yBreak)
 
-	s.softKeys.Render(img, 0, 54)
-
 	// icons
 	// page indicator
 	s.icons.SetPage("page indicator", 2) // set page indicator icon to home
-
-	// outputs and arm
-	s.icons.SetOnOff("arm", s.config.Arm)
-	s.icons.SetOnOff("injector", s.state.GpioRelayInjectorEn)
-	s.icons.SetOnOff("shutdown", s.state.GpioRelayShutdownEn)
-
 	s.icons.Render(img)
+
+	s.softKeys.Render(img, 0, 54)
 }
 
 // Key processes keypad input to this screen

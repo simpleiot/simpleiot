@@ -76,11 +76,6 @@ func (s *StatusScreen1) Render(img draw.Image) {
 	// icons
 	// page indicator
 	s.icons.SetPage("page indicator", 1) // set page indicator icon to status1
-
-	// outputs and arm
-	s.icons.SetOnOff("arm", s.config.Arm)
-	s.icons.SetOnOff("injector", s.state.GpioRelayInjectorEn)
-	s.icons.SetOnOff("shutdown", s.state.GpioRelayShutdownEn)
 	s.icons.Render(img)
 
 	s.softKeys.Render(img, 0, 54)

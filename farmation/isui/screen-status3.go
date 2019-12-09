@@ -77,11 +77,12 @@ func (s *StatusScreen3) Render(img draw.Image) {
 	DrawTxt(img, "PSI", x+xOffSet, y2, tightpixel15.Font)
 	DrawTxt(img, "PSI", x+xOffSet, y3, tightpixel15.Font)
 
-	s.softKeys.Render(img, 0, 54)
-
 	// icons
+	// Page indicator
 	s.icons.SetPage("page indicator", 3)
 	s.icons.Render(img)
+
+	s.softKeys.Render(img, 0, 54)
 }
 
 // Key processes keypad input to this screen
