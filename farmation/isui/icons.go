@@ -41,13 +41,13 @@ func NewIcons(pageInd, inputs, outputs bool) *Icons {
 		ret.icons["page indicator"] = &iconFields{icon1: "indicator-home.png", icon2: "indicator-status1.png", icon3: "indicator-status2.png", icon4: "indicator-status3.png", x: marginCenter, y: 1}
 	}
 	if inputs {
-		ret.icons["injector_in"] = &iconFields{iconOn: "pump.png", iconOff: "", x: marginLeft, y: 4}
+		ret.icons["injector_in"] = &iconFields{iconOn: "injector.png", iconOff: "", x: marginLeft, y: 4}
 		ret.icons["water"] = &iconFields{iconOn: "water-on.png", iconOff: "", x: marginLeft + 3, y: 20}
 		ret.icons["irrigator"] = &iconFields{iconOn: "irrigator.png", iconOff: "", x: marginLeft, y: 40}
 	}
 	if outputs {
 		ret.icons["arm"] = &iconFields{iconOn: "arm.png", iconOff: "", x: marginRight - 1, y: 2}
-		ret.icons["injector"] = &iconFields{iconOn: "pump.png", iconOff: "", x: marginRight - 2, y: 22}
+		ret.icons["injector"] = &iconFields{iconOn: "injector.png", iconOff: "", x: marginRight - 2, y: 22}
 		ret.icons["shutdown"] = &iconFields{iconOn: "shutdown.png", iconOff: "", x: marginRight - 1, y: 38}
 	}
 
