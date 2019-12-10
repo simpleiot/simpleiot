@@ -46,10 +46,10 @@ func (s *StatusScreen2) Render(img draw.Image) {
 	avgFlowStr := strconv.FormatFloat(s.state.AvgFlowRate, 'f', 0, 64)
 	DrawTxt(img, avgFlowStr, x, y3, tightpixel15.Font)
 	timeSinceArm := strconv.FormatFloat(time.Since(s.state.AvgFlowRateStart).Hours(), 'f', 1, 64)
-	DrawTxtRight(img, timeSinceArm, x+31, y4, tightpixel15.Font)
-	DrawTxt(img, "hrs", x+35, y4, tightpixel15.Font)
+	DrawTxtRight(img, timeSinceArm, x+27, y4, tightpixel15.Font)
+	DrawTxt(img, "hrs", x+31, y4, tightpixel15.Font)
 
-	Line(img, 1, yBreak, 102, yBreak)
+	Line(img, 1, yBreak, 163, yBreak)
 
 	// icons
 	// page indicator
