@@ -29,7 +29,7 @@ func NewModemScreen(state *isdata.State, config *isdata.Config) *ModemScreen {
 	}
 }
 
-// Render updates the home screen, and provides an image
+// Render updates the screen, and provides an image
 func (s *ModemScreen) Render(img draw.Image) {
 	Clear(img)
 	s.menu.ResetItems()
