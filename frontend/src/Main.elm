@@ -616,7 +616,7 @@ viewTimer model =
         div []
             [ h3 [] [ text "Configure Timer" ]
             , Form.group []
-                [ Form.label [] [ text "Fire Time" ]
+                [ Form.label [] [ text "Time of day to fire" ]
                 , Input.text
                     [ Input.attrs
                         [ placeholder "enter time of day to fire"
@@ -627,7 +627,7 @@ viewTimer model =
                     ]
                 ]
             , Form.group []
-                [ Form.label [] [ text "Fire duration" ]
+                [ Form.label [] [ text "Fire duration (seconds)" ]
                 , Input.text
                     [ Input.attrs
                         [ placeholder "enter time in seconds"
@@ -673,6 +673,17 @@ viewState model =
 
         timeDisplay =
             posixTimeToString model.timeZone (Time.millisToPosix (model.gwState.currentTime * 1000))
+
+        hours =
+            model.gwState.timerFireTime // 60
+
+        min =
+            model.gwState.timerFireTime - hours * 60
+
+        timerFireTimeDisplay =
+            (String.padLeft 2 '0' <| String.fromInt <| hours)
+                ++ ":"
+                ++ (String.padLeft 2 '0' <| String.fromInt <| min)
     in
     if model.gwState.bleConnected then
         div []
@@ -685,7 +696,7 @@ viewState model =
                 , li [] [ text ("Signal: " ++ String.fromInt model.gwState.signal) ]
                 , li [] [ text ("Free Memory: " ++ String.fromInt model.gwState.freeMem) ]
                 , li [] [ text ("Current time: " ++ timeDisplay) ]
-                , li [] [ text ("Timer fire time: " ++ String.fromInt model.gwState.timerFireTime) ]
+                , li [] [ text ("Timer fire time: " ++ timerFireTimeDisplay) ]
                 , li [] [ text ("Timer fire duration: " ++ String.fromInt model.gwState.timerFireDuration) ]
                 ]
             , Button.button

@@ -96,7 +96,6 @@ export class BLE {
     let k = 1000;
     charCurrentTime.writeValue(Int32Array.of(n / k));
 
-    console.log("timer time: ", config.fireTime);
     let parts = config.fireTime.split(":");
     if (parts.length < 2) {
       console.log("Error parsing time");
@@ -111,7 +110,7 @@ export class BLE {
       fireTimeMin -= 60 * 24;
     }
     // The above is localtime, so we need to convert to UTC
-    const charTimerFireTime = await this.service.getCharacteristic(charTimerFireTimeUuid);
+    let charTimerFireTime = await this.service.getCharacteristic(charTimerFireTimeUuid);
     charTimerFireTime.writeValue(Int32Array.of(fireTimeMin));
   }
 
@@ -165,6 +164,12 @@ export class BLE {
     const fireTimeChar = await this.service.getCharacteristic(charTimerFireTimeUuid);
     buf = await fireTimeChar.readValue();
     ret.timerFireTime = buf.getUint32();
+
+    let d = new Date();
+    ret.timerFireTime -= d.getTimezoneOffset();
+    if (ret.timerFireTime < 0) {
+      ret.timerFireTime += 24 * 60;
+    }
 
     return ret;
   }
