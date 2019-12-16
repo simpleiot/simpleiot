@@ -39,25 +39,36 @@ func NewFlowMovAvg(winLong, winShort, percentDiff int) FlowMovAvg {
 
 // AddDataPoint adds a new flow rate data point to the
 // moving averages and returns the new flow rate, min, and max
-func (f FlowMovAvg) AddDataPoint(data float64) (avg, min, max float64) {
+func (f FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64) {
 	f.movAvgLong.Add(data)
 	f.movAvgShort.Add(data)
 
-	avgLong := f.movAvgLong.Avg()
-	avg = f.movAvgShort.Avg()
-	min, _ = f.movAvgShort.Min()
-	max, _ = f.movAvgShort.Max()
+	avg = f.movAvgLong.Avg()
+	min, _ = f.movAvgLong.Min()
+	max, _ = f.movAvgLong.Max()
+	avgShort = f.movAvgShort.Avg()
 
-	// If the flow rate calculated from the short-window
-	// moving average is inconsistent with the rate from
-	// the long-window average, set the output flow rate
-	// to the average from the long window
-	calculatedDiff := int(math.Abs(avgLong-avg) / avgLong)
-	if calculatedDiff > f.percentDiff/100 {
-		avg = avgLong
+	// We are using the short-window moving average
+	// to track instantaneous change. If the instantaneous
+	// change is big enough, we reset the long-window
+	// moving avg to the short avg in order provide a
+	// shorter response time to the user.
+	acceptedVal := (avg + avgShort) / 2
+	calculatedPercentDiff := int(math.Abs(avgShort-avg) / acceptedVal * 100)
+	if calculatedPercentDiff >= f.percentDiff {
+		// Return the value from the short-window
+		// averager
+		avg = avgShort
+		min, _ = f.movAvgShort.Min()
+		max, _ = f.movAvgShort.Max()
+		// Reset the long-window averager
+		f.movAvgLong = movingaverage.New(f.winLong)
+		// Add the current data point back to the long
+		// average to start it off.
+		f.movAvgLong.Add(data)
 	}
 
-	return avg, min, max
+	return avg, min, max, avgShort
 }
 
 // ResetAvg resets the average specified by whichAvg to

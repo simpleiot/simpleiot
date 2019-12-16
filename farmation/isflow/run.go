@@ -137,7 +137,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 				out <- amountSample
 
-				flow.RateAvg, flow.RateMin, flow.RateMax = fma.AddDataPoint(flow.Rate)
+				flow.RateAvg, flow.RateMin, flow.RateMax, _ = fma.AddDataPoint(flow.Rate)
 
 				// Instantaneous flow sample
 				// this sample is used for logging engineering data
