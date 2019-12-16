@@ -80,7 +80,7 @@ type Config struct {
 	FlowAvgWindowLong int
 	FlowAvgPercDiff   int
 	PressureSetting   int
-	FlowOutputK       int
+	PulseOutputK      int
 
 	UserPumpMode UserPumpMode
 
