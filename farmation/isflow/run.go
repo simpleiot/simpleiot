@@ -99,13 +99,13 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 			case isdata.Config:
 				// In case the user changes the averaging window or the percent diff
 				if config.FlowAvgWindowLong != m.FlowAvgWindowLong {
-					fma.ResetAvg(MovAvgLong, m.FlowAvgWindowLong)
+					fma.UpdateReset(WindowLong, m.FlowAvgWindowLong)
 				}
 				if config.FlowAvgWindow != m.FlowAvgWindow {
-					fma.ResetAvg(MovAvgShort, m.FlowAvgWindow)
+					fma.UpdateReset(WindowShort, m.FlowAvgWindow)
 				}
 				if config.FlowAvgPercDiff != m.FlowAvgPercDiff {
-					fma.UpdatePercentDiff(m.FlowAvgPercDiff)
+					fma.UpdateReset(PercentDiff, m.FlowAvgPercDiff)
 				}
 				config = m
 			case data.Sample:
@@ -188,12 +188,12 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 					Value: 0,
 				}
 				out <- flow
-				resetFlowRateMovingAvg(config.FlowAvgWindow)
-				if fPulseOutputPeriod != nil {
-					_, err := fPulseOutputPeriod.WriteString("0\n")
-					if err != nil {
-						log.Println("Error writing pulse output: ", err)
-					}
+				fma.UpdateReset(WindowLong, config.FlowAvgWindowLong)
+				fma.UpdateReset(WindowShort, config.FlowAvgWindow)
+
+				_, err := fPulseOutputPeriod.WriteString("0\n")
+				if err != nil {
+					log.Println("Error writing pulse output: ", err)
 				}
 			}
 

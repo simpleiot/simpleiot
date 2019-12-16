@@ -73,7 +73,7 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			case 4:
 				return ScreenIDNoChange, isdata.UpdatePressureSetting(value), true
 
-			case 3:
+			case 5:
 				return ScreenIDNoChange, isdata.UpdatePulseOutputK(value), true
 
 			}
@@ -124,7 +124,7 @@ func (s *DiagPulsesPresScreen) enterEdit() {
 	case 4:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureSetting) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Pressure setting"
-	case 3:
+	case 5:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulseOutputK)
 		s.textEntryScreen.headerLabel = "Pulse output K"
 	}

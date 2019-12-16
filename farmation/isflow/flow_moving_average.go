@@ -20,15 +20,16 @@ type FlowMovAvg struct {
 	percentDiff int
 }
 
-// Define values to reference different averagers by
+// Define values to reference different values by
 const (
-	MovAvgLong int = iota
-	MovAvgShort
+	WindowLong int = iota
+	WindowShort
+	PercentDiff
 )
 
 // NewFlowMovAvg intitializes a new pointer to a FlowMovAvg type
-func NewFlowMovAvg(winLong, winShort, percentDiff int) FlowMovAvg {
-	return FlowMovAvg{
+func NewFlowMovAvg(winLong, winShort, percentDiff int) *FlowMovAvg {
+	return &FlowMovAvg{
 		winLong:     winLong,
 		winShort:    winShort,
 		movAvgLong:  movingaverage.New(winLong),
@@ -39,7 +40,7 @@ func NewFlowMovAvg(winLong, winShort, percentDiff int) FlowMovAvg {
 
 // AddDataPoint adds a new flow rate data point to the
 // moving averages and returns the new flow rate, min, and max
-func (f FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64) {
+func (f *FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64) {
 	f.movAvgLong.Add(data)
 	f.movAvgShort.Add(data)
 
@@ -71,19 +72,18 @@ func (f FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64)
 	return avg, min, max, avgShort
 }
 
-// ResetAvg resets the average specified by whichAvg to
-// the time window given by win
-func (f FlowMovAvg) ResetAvg(whichAvg, win int) {
-	switch whichAvg {
-	case MovAvgLong:
-		f.movAvgLong = movingaverage.New(win)
-	case MovAvgShort:
-		f.movAvgShort = movingaverage.New(win)
+// UpdateReset updates the specified field to the given value
+// If the field is an averager window, UpdateReset resets the
+// averager
+func (f *FlowMovAvg) UpdateReset(whichVal, val int) {
+	switch whichVal {
+	case WindowLong:
+		f.movAvgLong = movingaverage.New(val)
+		f.winLong = val
+	case WindowShort:
+		f.movAvgShort = movingaverage.New(val)
+		f.winShort = val
+	case PercentDiff:
+		f.percentDiff = val
 	}
-}
-
-// UpdatePercentDiff is used to update this stored field in the
-// FlowMovAvg struct if this value changes in the system config
-func (f FlowMovAvg) UpdatePercentDiff(newVal int) {
-	f.percentDiff = newVal
 }
