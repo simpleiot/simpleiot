@@ -285,15 +285,15 @@ func (c *Config) Init() {
 	}
 
 	if c.FlowAvgWindow <= 0 {
-		c.FlowAvgWindow = 30
+		c.FlowAvgWindow = 10
 	}
 
 	if c.FlowAvgWindowLong <= 0 {
-		c.FlowAvgWindowLong = 300
+		c.FlowAvgWindowLong = 40
 	}
 
 	if c.FlowAvgPercDiff <= 0 {
-		c.FlowAvgPercDiff = 30
+		c.FlowAvgPercDiff = 10
 	}
 
 	if c.PressureSetting <= 0 {

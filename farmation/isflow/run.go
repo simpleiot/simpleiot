@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	movingaverage "github.com/RobinUS2/golang-moving-average"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
@@ -80,11 +79,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 	ticker := time.NewTicker(1000 * time.Millisecond)
 
-	flowRateMovingAvg := movingaverage.New(config.FlowAvgWindow)
-
-	resetFlowRateMovingAvg := func(win int) {
-		flowRateMovingAvg = movingaverage.New(win)
-	}
+	fma := NewFlowMovAvg(config.FlowAvgWindowLong, config.FlowAvgWindow, config.FlowAvgPercDiff)
 
 	var lastTick time.Time
 	var lastPulse time.Time
@@ -102,8 +97,15 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 		case m := <-in:
 			switch m := m.(type) {
 			case isdata.Config:
+				// In case the user changes the averaging window or the percent diff
+				if config.FlowAvgWindowLong != m.FlowAvgWindowLong {
+					fma.ResetAvg(MovAvgLong, m.FlowAvgWindowLong)
+				}
 				if config.FlowAvgWindow != m.FlowAvgWindow {
-					resetFlowRateMovingAvg(m.FlowAvgWindow)
+					fma.ResetAvg(MovAvgShort, m.FlowAvgWindow)
+				}
+				if config.FlowAvgPercDiff != m.FlowAvgPercDiff {
+					fma.UpdatePercentDiff(m.FlowAvgPercDiff)
 				}
 				config = m
 			case data.Sample:
@@ -126,9 +128,9 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 			processPulse(t)
 		case <-ticker.C:
 			if pulses > 0 {
-				// we need send 4 samples:
+				// we need to send the following samples:
 				//  - inst flow over last 1 sec (include eng data such as avg,
-				//    amount, pulses, and avg
+				//    amount, pulses, and avg)
 				//  - moving window average over last X samples
 				//  - amount
 
@@ -140,6 +142,8 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 					break
 				}
 				flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
+
+				// Amount
 				amountSample := data.Sample{
 					Type:  isdata.SampleTypeAmount,
 					Time:  lastPulse,
@@ -148,11 +152,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 				out <- amountSample
 
-				flowRateMovingAvg.Add(flow.Rate)
-
-				flow.RateAvg = flowRateMovingAvg.Avg()
-
-				out <- flow
+				flow.RateAvg, flow.RateMin, flow.RateMax, _ = fma.AddDataPoint(flow.Rate)
 
 				if fPulseOutputPeriod != nil {
 					nsPerPulseOut := int64((1e9 * 3600) / (float64(config.PulseOutputK) * flow.RateAvg))
@@ -164,20 +164,24 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 				// Instantaneous flow sample
 				// this sample is used for logging engineering data
+				out <- flow
+
+				// Flow rate. This sample is used to update the flow
+				// rate stored in system state
 				avgFlowSample := data.Sample{
 					Time:  lastPulse,
 					Type:  isdata.SampleTypeFlowWindowAvg,
 					Value: flow.RateAvg,
+					Min:   flow.RateMin,
+					Max:   flow.RateMax,
 				}
 
-				avgFlowSample.Min, _ = flowRateMovingAvg.Min()
-				avgFlowSample.Max, _ = flowRateMovingAvg.Max()
 				out <- avgFlowSample
 
 				pulses = 0
 			}
 
-			if time.Now().Sub(lastTick) > time.Second*5 {
+			if time.Since(lastTick) > time.Second*5 {
 				flow := data.Sample{
 					Type:  isdata.SampleTypeFlowWindowAvg,
 					Time:  time.Now(),

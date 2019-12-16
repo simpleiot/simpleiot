@@ -84,6 +84,12 @@ type UpdatePulsesPerGallon int
 // UpdateFlowAvgWindow is used to update the flow window averaging window (seconds)
 type UpdateFlowAvgWindow int
 
+// UpdateFlowAvgWindowLong is used to update the flow window long averaging window (seconds)
+type UpdateFlowAvgWindowLong int
+
+// UpdateFlowAvgPercDiff is used to update the flow window percent difference
+type UpdateFlowAvgPercDiff int
+
 // UpdatePressureSetting is used to send new pressure setting (number) config to app.go
 type UpdatePressureSetting int
 
