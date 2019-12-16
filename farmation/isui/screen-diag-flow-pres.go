@@ -35,7 +35,9 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	s.menu.AddItemInt("Flw Pulses/Gal", s.config.PulsesPerGallon)
-	s.menu.AddItemInt("Flw Avg Window", s.config.FlowAvgWindow)
+	s.menu.AddItemInt("FlwAvg Win Short", s.config.FlowAvgWindow)
+	s.menu.AddItemInt("FlwAvg Window", s.config.FlowAvgWindowLong)
+	s.menu.AddItemInt("FlwAvg PercDiff", s.config.FlowAvgPercDiff)
 	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
 	s.menu.AddItemInt("Pulse Output K", s.config.PulseOutputK)
 
@@ -65,6 +67,10 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 				return ScreenIDNoChange, isdata.UpdateFlowAvgWindow(value), true
 
 			case 2:
+				return ScreenIDNoChange, isdata.UpdateFlowAvgWindowLong(value), true
+			case 3:
+				return ScreenIDNoChange, isdata.UpdateFlowAvgPercDiff(value), true
+			case 4:
 				return ScreenIDNoChange, isdata.UpdatePressureSetting(value), true
 
 			case 3:
@@ -108,8 +114,14 @@ func (s *DiagPulsesPresScreen) enterEdit() {
 		s.textEntryScreen.headerLabel = "Pulses/gal"
 	case 1:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.FlowAvgWindow) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Flow Avg Window"
+		s.textEntryScreen.headerLabel = "FlowAvg Win Short"
 	case 2:
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.FlowAvgWindowLong) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "Flow Avg Window"
+	case 3:
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.FlowAvgPercDiff) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.headerLabel = "Flow Avg Percent Diff"
+	case 4:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureSetting) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Pressure setting"
 	case 3:
