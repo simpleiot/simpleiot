@@ -37,7 +37,7 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	s.menu.AddItemInt("Flw Pulses/Gal", s.config.PulsesPerGallon)
 	s.menu.AddItemInt("FlwAvg Win Short", s.config.FlowAvgWindow)
 	s.menu.AddItemInt("FlwAvg Window", s.config.FlowAvgWindowLong)
-	s.menu.AddItemInt("FlwAvg PercDif", s.config.FlowAvgPercDiff)
+	s.menu.AddItemInt("FlwAvg PercDiff", s.config.FlowAvgPercDiff)
 	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
 
 	if s.edit { // render text entry screen
