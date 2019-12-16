@@ -520,6 +520,10 @@ func Run(params Params) {
 				config.PressureSetting = int(m)
 				saveConfig()
 
+			case isdata.UpdatePulseOutputK:
+				config.PulseOutputK = int(m)
+				saveConfig()
+
 			case isdata.UpdateAlarmRecognizeSec:
 				config.AlarmRecognizeSec = float64(m)
 				saveConfig()

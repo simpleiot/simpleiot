@@ -1,6 +1,7 @@
 package isflow
 
 import (
+	"fmt"
 	"math"
 
 	movingaverage "github.com/RobinUS2/golang-moving-average"
@@ -20,10 +21,11 @@ type FlowMovAvg struct {
 	percentDiff int
 }
 
-// Define values to reference different averagers by
+// Define values to reference different values by
 const (
-	MovAvgLong int = iota
-	MovAvgShort
+	WindowLong int = iota
+	WindowShort
+	PercentDiff
 )
 
 // NewFlowMovAvg intitializes a new pointer to a FlowMovAvg type
@@ -48,6 +50,11 @@ func (f FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64)
 	max, _ = f.movAvgLong.Max()
 	avgShort = f.movAvgShort.Avg()
 
+	// FIXME
+	fmt.Println("Long:", f.movAvgLong.Count(), f.winLong)
+	fmt.Println("Short:", f.movAvgShort.Count(), f.winShort)
+	fmt.Println("PercentDiff:", f.percentDiff)
+
 	// We are using the short-window moving average
 	// to track instantaneous change. If the instantaneous
 	// change is big enough, we reset the long-window
@@ -71,19 +78,21 @@ func (f FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64)
 	return avg, min, max, avgShort
 }
 
-// ResetAvg resets the average specified by whichAvg to
-// the time window given by win
-func (f FlowMovAvg) ResetAvg(whichAvg, win int) {
-	switch whichAvg {
-	case MovAvgLong:
-		f.movAvgLong = movingaverage.New(win)
-	case MovAvgShort:
-		f.movAvgShort = movingaverage.New(win)
+// UpdateReset updates the specified field to the given value
+// If the field is an averager window, UpdateReset resets the
+// averager
+func (f FlowMovAvg) UpdateReset(whichVal, val int) {
+	// FIXME
+	fmt.Println("Update/Reset")
+	switch whichVal {
+	case WindowLong:
+		fmt.Println("hello")
+		f.movAvgLong = movingaverage.New(val)
+		f.winLong = val
+	case WindowShort:
+		f.movAvgShort = movingaverage.New(val)
+		f.winShort = val
+	case PercentDiff:
+		f.percentDiff = val
 	}
-}
-
-// UpdatePercentDiff is used to update this stored field in the
-// FlowMovAvg struct if this value changes in the system config
-func (f FlowMovAvg) UpdatePercentDiff(newVal int) {
-	f.percentDiff = newVal
 }

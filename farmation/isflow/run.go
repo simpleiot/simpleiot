@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -22,7 +23,16 @@ func edgeTsToTime(data []byte) time.Time {
 func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 	config := configInit
 	pulseCh := make(chan time.Time)
+
+	var fPulseOutputPeriod *os.File
+
 	if runtime.GOARCH == "arm" {
+		var err error
+		fPulseOutputPeriod, err = os.OpenFile("/sys/devices/platform/gpio_et/output_pulse_timer_period_ns", os.O_WRONLY, 0644)
+		if err != nil {
+			log.Println("Error opening pulse output file: ", err)
+		}
+
 		go func() {
 			// open file for reading
 			byteSlice := make([]byte, 128)
@@ -129,6 +139,10 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 				// Calculate flow and amount
 				sampleDuration := lastPulse.Sub(lastTick)
+				lastTick = lastPulse
+				if sampleDuration > 10*time.Second {
+					break
+				}
 				flow := isdata.PulsesToFlow(lastPulse, sampleDuration, config.PulsesPerGallon, pulses)
 
 				// Amount
@@ -141,6 +155,14 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				out <- amountSample
 
 				flow.RateAvg, flow.RateMin, flow.RateMax, _ = fma.AddDataPoint(flow.Rate)
+
+				if fPulseOutputPeriod != nil {
+					nsPerPulseOut := int64((1e9 * 3600) / (float64(config.PulseOutputK) * flow.RateAvg))
+					_, err := fPulseOutputPeriod.WriteString(strconv.FormatInt(nsPerPulseOut, 10) + "\n")
+					if err != nil {
+						log.Println("Error writing pulse output: ", err)
+					}
+				}
 
 				// Instantaneous flow sample
 				// this sample is used for logging engineering data
@@ -159,7 +181,6 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				out <- avgFlowSample
 
 				pulses = 0
-				lastTick = lastPulse
 			}
 
 			if time.Since(lastTick) > time.Second*5 {
@@ -171,6 +192,12 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				out <- flow
 				fma.UpdateReset(WindowLong, config.FlowAvgWindowLong)
 				fma.UpdateReset(WindowShort, config.FlowAvgWindow)
+
+				_, err := fPulseOutputPeriod.WriteString("0\n")
+				if err != nil {
+					log.Println("Error writing pulse output: ", err)
+				}
+
 			}
 
 		case t := <-simTicker.C:

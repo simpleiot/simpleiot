@@ -93,6 +93,9 @@ type UpdateFlowAvgPercDiff int
 // UpdatePressureSetting is used to send new pressure setting (number) config to app.go
 type UpdatePressureSetting int
 
+// UpdatePulseOutputK is used to send new setting to app.go
+type UpdatePulseOutputK int
+
 // UpdateFlowStatus is used to send an updated flow status to app.go
 type UpdateFlowStatus int
 
