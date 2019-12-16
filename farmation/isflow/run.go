@@ -99,15 +99,12 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 			case isdata.Config:
 				// In case the user changes the averaging window or the percent diff
 				if config.FlowAvgWindowLong != m.FlowAvgWindowLong {
-					fmt.Println("WindowLong", config.FlowAvgWindowLong, m.FlowAvgWindowLong)
 					fma.UpdateReset(WindowLong, m.FlowAvgWindowLong)
 				}
 				if config.FlowAvgWindow != m.FlowAvgWindow {
-					fmt.Println("WindowShort", config.FlowAvgWindow, m.FlowAvgWindow)
 					fma.UpdateReset(WindowShort, m.FlowAvgWindow)
 				}
 				if config.FlowAvgPercDiff != m.FlowAvgPercDiff {
-					fmt.Println("PercentDiff", config.FlowAvgPercDiff, m.FlowAvgPercDiff)
 					fma.UpdateReset(PercentDiff, m.FlowAvgPercDiff)
 				}
 				config = m

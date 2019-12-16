@@ -1,7 +1,6 @@
 package isflow
 
 import (
-	"fmt"
 	"math"
 
 	movingaverage "github.com/RobinUS2/golang-moving-average"
@@ -29,8 +28,8 @@ const (
 )
 
 // NewFlowMovAvg intitializes a new pointer to a FlowMovAvg type
-func NewFlowMovAvg(winLong, winShort, percentDiff int) FlowMovAvg {
-	return FlowMovAvg{
+func NewFlowMovAvg(winLong, winShort, percentDiff int) *FlowMovAvg {
+	return &FlowMovAvg{
 		winLong:     winLong,
 		winShort:    winShort,
 		movAvgLong:  movingaverage.New(winLong),
@@ -41,7 +40,7 @@ func NewFlowMovAvg(winLong, winShort, percentDiff int) FlowMovAvg {
 
 // AddDataPoint adds a new flow rate data point to the
 // moving averages and returns the new flow rate, min, and max
-func (f FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64) {
+func (f *FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64) {
 	f.movAvgLong.Add(data)
 	f.movAvgShort.Add(data)
 
@@ -49,11 +48,6 @@ func (f FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64)
 	min, _ = f.movAvgLong.Min()
 	max, _ = f.movAvgLong.Max()
 	avgShort = f.movAvgShort.Avg()
-
-	// FIXME
-	fmt.Println("Long:", f.movAvgLong.Count(), f.winLong)
-	fmt.Println("Short:", f.movAvgShort.Count(), f.winShort)
-	fmt.Println("PercentDiff:", f.percentDiff)
 
 	// We are using the short-window moving average
 	// to track instantaneous change. If the instantaneous
@@ -81,12 +75,9 @@ func (f FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64)
 // UpdateReset updates the specified field to the given value
 // If the field is an averager window, UpdateReset resets the
 // averager
-func (f FlowMovAvg) UpdateReset(whichVal, val int) {
-	// FIXME
-	fmt.Println("Update/Reset")
+func (f *FlowMovAvg) UpdateReset(whichVal, val int) {
 	switch whichVal {
 	case WindowLong:
-		fmt.Println("hello")
 		f.movAvgLong = movingaverage.New(val)
 		f.winLong = val
 	case WindowShort:
