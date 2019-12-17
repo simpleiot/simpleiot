@@ -111,6 +111,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 					fma.UpdateReset(SampleDuration, m.SampleDuration)
 					fma.UpdateReset(WindowLong, m.FlowAvgWindowLong)
 					fma.UpdateReset(WindowShort, m.FlowAvgWindow)
+					ticker = time.NewTicker(time.Second * time.Duration(m.SampleDuration))
 				}
 				config = m
 			case data.Sample:
