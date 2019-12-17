@@ -533,6 +533,7 @@ func Run(params Params) {
 
 			case isdata.UpdateMaxNoPulseDuration:
 				config.MaxNoPulseDuration = int(m)
+				config.SetFlowAvgWindows()
 				saveConfig()
 
 			case isdata.UpdateAlarmRecognizeSec:

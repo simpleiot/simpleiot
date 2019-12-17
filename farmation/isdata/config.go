@@ -1,6 +1,8 @@
 package isdata
 
-import "strconv"
+import (
+	"strconv"
+)
 
 // Config represents configuration data for the Injectory
 // Sentry system.
@@ -280,7 +282,7 @@ func (c *Config) SetFlowAvgWindows() {
 		c.FlowAvgWindow = c.SampleDuration * 2
 	}
 	if c.FlowAvgWindowLong < c.FlowAvgWindow*2 {
-		c.FlowAvgWindow = c.FlowAvgWindow * 2
+		c.FlowAvgWindowLong = c.FlowAvgWindow * 2
 	}
 }
 
