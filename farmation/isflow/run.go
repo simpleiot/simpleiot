@@ -197,9 +197,11 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				fma.UpdateReset(WindowLong, config.FlowAvgWindowLong)
 				fma.UpdateReset(WindowShort, config.FlowAvgWindow)
 
-				_, err := fPulseOutputPeriod.WriteString("0\n")
-				if err != nil {
-					log.Println("Error writing pulse output: ", err)
+				if fPulseOutputPeriod != nil {
+					_, err := fPulseOutputPeriod.WriteString("0\n")
+					if err != nil {
+						log.Println("Error writing pulse output: ", err)
+					}
 				}
 			}
 
