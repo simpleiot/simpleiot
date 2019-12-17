@@ -37,9 +37,11 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	s.menu.AddItemInt("Flw Pulses/Gal", s.config.PulsesPerGallon)
 	s.menu.AddItemInt("FlwAvg Win Short", s.config.FlowAvgWindow)
 	s.menu.AddItemInt("FlwAvg Window", s.config.FlowAvgWindowLong)
-	s.menu.AddItemInt("FlwAvg PercDiff", s.config.FlowAvgPercDiff)
+	s.menu.AddItemInt("FlwAvg Diff", s.config.FlowAvgPercDiff)
 	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
 	s.menu.AddItemInt("Pulse Output K", s.config.PulseOutputK)
+	s.menu.AddItemInt("Sample Time", s.config.SampleDuration)
+	s.menu.AddItemInt("Max Time", s.config.MaxNoPulseDuration)
 
 	if s.edit { // render text entry screen
 		s.textEntryScreen.Render(img)
@@ -75,6 +77,10 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 
 			case 5:
 				return ScreenIDNoChange, isdata.UpdatePulseOutputK(value), true
+			case 6:
+				return ScreenIDNoChange, isdata.UpdateSampleDuration(value), true
+			case 7:
+				return ScreenIDNoChange, isdata.UpdateMaxNoPulseDuration(value), true
 
 			}
 		case TextEntryCommandCancel: // cancel
@@ -127,6 +133,12 @@ func (s *DiagPulsesPresScreen) enterEdit() {
 	case 5:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulseOutputK)
 		s.textEntryScreen.headerLabel = "Pulse output K"
+	case 6:
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.SampleDuration)
+		s.textEntryScreen.headerLabel = "Sample Time"
+	case 7:
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.MaxNoPulseDuration)
+		s.textEntryScreen.headerLabel = "Time w/ No Pulse"
 	}
 	// move inputChars cursor to current pos in txtEdit
 	s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos])

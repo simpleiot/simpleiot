@@ -96,6 +96,12 @@ type UpdatePressureSetting int
 // UpdatePulseOutputK is used to send new setting to app.go
 type UpdatePulseOutputK int
 
+// UpdateSampleDuration is used to set this value
+type UpdateSampleDuration int
+
+// UpdateMaxNoPulseDuration is used to set this value
+type UpdateMaxNoPulseDuration int
+
 // UpdateFlowStatus is used to send an updated flow status to app.go
 type UpdateFlowStatus int
 

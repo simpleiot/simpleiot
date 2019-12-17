@@ -81,6 +81,12 @@ type Config struct {
 	FlowAvgPercDiff   int
 	PressureSetting   int
 	PulseOutputK      int
+	// Frequency with which flow rate is calculated and pulses dumped
+	// -- bucket size
+	SampleDuration int
+	// Maximum time with no pulses before moving averages are reset and
+	// flow is zeroed
+	MaxNoPulseDuration int
 
 	UserPumpMode UserPumpMode
 
@@ -262,6 +268,19 @@ func (c *Config) CalculateFlowWindow() (float64, float64) {
 	return highBound, lowBound
 }
 
+// SetFlowAvgWindows forces these values to be greater than SampleDuration
+func (c *Config) SetFlowAvgWindows() {
+	if c.SampleDuration <= 0 {
+		c.SampleDuration = 1
+	}
+	if c.FlowAvgWindow < c.SampleDuration*2 {
+		c.FlowAvgWindow = c.SampleDuration * 2
+	}
+	if c.FlowAvgWindowLong < c.FlowAvgWindow*2 {
+		c.FlowAvgWindow = c.FlowAvgWindow * 2
+	}
+}
+
 // Init is used to inialize the config
 func (c *Config) Init() {
 	// always turn off logging of pulse data -- this should be
@@ -298,6 +317,14 @@ func (c *Config) Init() {
 
 	if c.PressureSetting <= 0 {
 		c.PressureSetting = 300
+	}
+
+	if c.SampleDuration <= 0 {
+		c.SampleDuration = 1
+	}
+
+	if c.MaxNoPulseDuration <= 0 {
+		c.MaxNoPulseDuration = c.SampleDuration + 4
 	}
 
 	if c.HighWindowPerc <= 0 {
