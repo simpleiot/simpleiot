@@ -187,7 +187,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				pulses = 0
 			}
 
-			if time.Since(lastTick) > time.Second*time.Duration(config.SampleDuration+4) {
+			if time.Since(lastTick) > time.Duration(config.MaxNoPulseDuration)*time.Second {
 				flow := data.Sample{
 					Type:  isdata.SampleTypeFlowWindowAvg,
 					Time:  time.Now(),
