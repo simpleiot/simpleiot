@@ -506,10 +506,12 @@ func Run(params Params) {
 
 			case isdata.UpdateFlowAvgWindow:
 				config.FlowAvgWindow = int(m)
+				config.SetFlowAvgWindows()
 				saveConfig()
 
 			case isdata.UpdateFlowAvgWindowLong:
 				config.FlowAvgWindowLong = int(m)
+				config.SetFlowAvgWindows()
 				saveConfig()
 
 			case isdata.UpdateFlowAvgPercDiff:
@@ -522,6 +524,15 @@ func Run(params Params) {
 
 			case isdata.UpdatePulseOutputK:
 				config.PulseOutputK = int(m)
+				saveConfig()
+
+			case isdata.UpdateSampleDuration:
+				config.SampleDuration = int(m)
+				config.SetFlowAvgWindows()
+				saveConfig()
+
+			case isdata.UpdateMaxNoPulseDuration:
+				config.MaxNoPulseDuration = int(m)
 				saveConfig()
 
 			case isdata.UpdateAlarmRecognizeSec:

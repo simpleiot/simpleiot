@@ -77,9 +77,9 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 	pulses := 0
 
-	ticker := time.NewTicker(1000 * time.Millisecond)
+	ticker := time.NewTicker(time.Second * time.Duration(config.SampleDuration))
 
-	fma := NewFlowMovAvg(config.FlowAvgWindowLong, config.FlowAvgWindow, config.FlowAvgPercDiff)
+	fma := NewFlowMovAvg(config.FlowAvgWindowLong, config.FlowAvgWindow, config.FlowAvgPercDiff, config.SampleDuration)
 
 	var lastTick time.Time
 	var lastPulse time.Time
@@ -106,6 +106,11 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				}
 				if config.FlowAvgPercDiff != m.FlowAvgPercDiff {
 					fma.UpdateReset(PercentDiff, m.FlowAvgPercDiff)
+				}
+				if config.SampleDuration != m.SampleDuration {
+					fma.UpdateReset(SampleDuration, m.SampleDuration)
+					fma.UpdateReset(WindowLong, m.FlowAvgWindowLong)
+					fma.UpdateReset(WindowShort, m.FlowAvgWindow)
 				}
 				config = m
 			case data.Sample:
@@ -137,7 +142,8 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				// Calculate flow and amount
 				sampleDuration := lastPulse.Sub(lastTick)
 				lastTick = lastPulse
-				if sampleDuration > 3*time.Second {
+
+				if sampleDuration > time.Duration(config.SampleDuration*3)*time.Second {
 					pulses = 0
 					break
 				}
@@ -181,7 +187,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				pulses = 0
 			}
 
-			if time.Since(lastTick) > time.Second*5 {
+			if time.Since(lastTick) > time.Duration(config.MaxNoPulseDuration)*time.Second {
 				flow := data.Sample{
 					Type:  isdata.SampleTypeFlowWindowAvg,
 					Time:  time.Now(),
