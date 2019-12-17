@@ -40,6 +40,7 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	s.menu.AddItemInt("FlwAvg PercDiff", s.config.FlowAvgPercDiff)
 	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
 	s.menu.AddItemInt("Pulse Output K", s.config.PulseOutputK)
+	s.menu.AddItemScreen("Pulse Test", ScreenIDPulseOutputTest)
 
 	if s.edit { // render text entry screen
 		s.textEntryScreen.Render(img)
@@ -90,8 +91,13 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
 			s.enterEdit()
-		case isdata.KeyEnter: // Edit
-			s.enterEdit()
+		case isdata.KeyEnter:
+			switch s.menu.GetArrowPos() {
+			case 6: // Open Pulse Output Test screen
+				return s.menu.Key(key)
+			default:
+				s.enterEdit()
+			}
 		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
 		}
@@ -123,10 +129,10 @@ func (s *DiagPulsesPresScreen) enterEdit() {
 		s.textEntryScreen.headerLabel = "Flow Avg Percent Diff"
 	case 4:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureSetting) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Pressure setting"
+		s.textEntryScreen.headerLabel = "Pressure Setting"
 	case 5:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulseOutputK)
-		s.textEntryScreen.headerLabel = "Pulse output K"
+		s.textEntryScreen.headerLabel = "Pulse Output K"
 	}
 	// move inputChars cursor to current pos in txtEdit
 	s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos])

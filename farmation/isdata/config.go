@@ -81,6 +81,8 @@ type Config struct {
 	FlowAvgPercDiff   int
 	PressureSetting   int
 	PulseOutputK      int
+	PulseTestFlowRate int
+	PulseTestOnOff    bool
 
 	UserPumpMode UserPumpMode
 
@@ -298,6 +300,14 @@ func (c *Config) Init() {
 
 	if c.PressureSetting <= 0 {
 		c.PressureSetting = 300
+	}
+
+	if c.PulseOutputK <= 0 {
+		c.PulseOutputK = 1
+	}
+
+	if c.PulseTestFlowRate <= 0 {
+		c.PulseTestFlowRate = 37
 	}
 
 	if c.HighWindowPerc <= 0 {
