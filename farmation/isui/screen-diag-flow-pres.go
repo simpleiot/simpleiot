@@ -40,6 +40,7 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	s.menu.AddItemInt("Flo Avg Diff", s.config.FlowAvgPercDiff)
 	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
 	s.menu.AddItemInt("Pulse Output K", s.config.PulseOutputK)
+	s.menu.AddItemScreen("Pulse Test", ScreenIDPulseOutputTest)
 	s.menu.AddItemInt("Sample Time", s.config.SampleDuration)
 	s.menu.AddItemInt("No Flo Timeout", s.config.MaxNoPulseDuration)
 
@@ -78,8 +79,10 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			case 5:
 				return ScreenIDNoChange, isdata.UpdatePulseOutputK(value), true
 			case 6:
-				return ScreenIDNoChange, isdata.UpdateSampleDuration(value), true
+				// Pulse output test screen, do nothing
 			case 7:
+				return ScreenIDNoChange, isdata.UpdateSampleDuration(value), true
+			case 8:
 				return ScreenIDNoChange, isdata.UpdateMaxNoPulseDuration(value), true
 
 			}
@@ -96,8 +99,13 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
 			s.enterEdit()
-		case isdata.KeyEnter: // Edit
-			s.enterEdit()
+		case isdata.KeyEnter:
+			switch s.menu.GetArrowPos() {
+			case 6: // Open Pulse Output Test screen
+				return s.menu.Key(key)
+			default:
+				s.enterEdit()
+			}
 		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
 		}
@@ -129,14 +137,16 @@ func (s *DiagPulsesPresScreen) enterEdit() {
 		s.textEntryScreen.headerLabel = "Flo Avg Percent Diff"
 	case 4:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureSetting) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Pressure setting"
+		s.textEntryScreen.headerLabel = "Pressure Setting"
 	case 5:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulseOutputK)
 		s.textEntryScreen.headerLabel = "Pulse output K"
 	case 6:
+		// Pulse output test screen, do nothing
+	case 7:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.SampleDuration)
 		s.textEntryScreen.headerLabel = "Sample Time"
-	case 7:
+	case 8:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.MaxNoPulseDuration)
 		s.textEntryScreen.headerLabel = "No Flow Timeout"
 	}

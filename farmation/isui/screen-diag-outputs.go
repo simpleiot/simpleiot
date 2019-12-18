@@ -40,6 +40,7 @@ func (s *DiagOutputsScreen) Render(img draw.Image) {
 	s.menu.AddItemAutoOffOn("Injector: "+BoolToString(injS), inj, isdata.UpdateManualRelayInj(inj.GetMsg()))
 	s.menu.AddItemAutoOffOn("Aux: "+BoolToString(auxS), aux, isdata.UpdateManualRelayAux(aux.GetMsg()))
 	s.menu.AddItemAutoOffOn("Shutdown: "+BoolToString(shtdwnS), shtdwn, isdata.UpdateManualRelayShutdown(shtdwn.GetMsg()))
+	s.menu.AddItemScreen("Pulse Test", ScreenIDPulseOutputTest)
 
 	Heading(img, "Diagnostics Outputs")
 	s.menu.Render(img)

@@ -77,12 +77,14 @@ type Config struct {
 	// Flow meter pulses per gallon, flow moving average time
 	// windows and percent difference, pressure setting, K-factor
 	// for output pulses
-	PulsesPerGallon   int
-	FlowAvgWindow     int
-	FlowAvgWindowLong int
-	FlowAvgPercDiff   int
-	PressureSetting   int
-	PulseOutputK      int
+	PulsesPerGallon         int
+	FlowAvgWindow           int
+	FlowAvgWindowLong       int
+	FlowAvgPercDiff         int
+	PressureSetting         int
+	PulseOutputK            int
+	PulseOutputTestFlowRate int
+	PulseOutputTestOn       bool
 	// Frequency with which flow rate is calculated and pulses dumped
 	// -- bucket size
 	SampleDuration int
@@ -325,6 +327,14 @@ func (c *Config) Init() {
 
 	if c.PressureSetting <= 0 {
 		c.PressureSetting = 300
+	}
+
+	if c.PulseOutputK <= 0 {
+		c.PulseOutputK = 1
+	}
+
+	if c.PulseOutputTestFlowRate <= 0 {
+		c.PulseOutputTestFlowRate = 37
 	}
 
 	if c.HighWindowPerc <= 0 {
