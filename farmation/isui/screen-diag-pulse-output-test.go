@@ -74,9 +74,17 @@ func (s *PulseOutputTestScreen) Key(key isdata.Key) (ScreenID, interface{}, bool
 		switch key {
 		case isdata.KeySK1Hold: // Back key held -> Home screen
 			s.menu.ResetArrowPos() // return arrow to top of screen
+			// Turn off test mode
+			if s.config.PulseOutputTestOn {
+				return ScreenIDHome, isdata.UpdatePulseOutputTestOn(false), true
+			}
 			return ScreenIDHome, nil, true
 		case isdata.KeySK1Release: // Back
 			s.menu.ResetArrowPos() // return arrow to top of screen
+			// Turn off test mode
+			if s.config.PulseOutputTestOn {
+				return ScreenIDPrev, isdata.UpdatePulseOutputTestOn(false), true
+			}
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
 			switch s.menu.GetArrowPos() {
