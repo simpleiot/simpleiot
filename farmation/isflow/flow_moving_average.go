@@ -37,11 +37,12 @@ func NewFlowMovAvg(winLong, winShort, percentDiff, sampleDuration int) *FlowMovA
 	winShort = forceMultiple(winShort, sampleDuration)
 
 	return &FlowMovAvg{
-		winLong:     winLong,
-		winShort:    winShort,
-		movAvgLong:  movingaverage.New(winLong / sampleDuration),
-		movAvgShort: movingaverage.New(winShort / sampleDuration),
-		percentDiff: percentDiff,
+		winLong:        winLong,
+		winShort:       winShort,
+		movAvgLong:     movingaverage.New(winLong / sampleDuration),
+		movAvgShort:    movingaverage.New(winShort / sampleDuration),
+		percentDiff:    percentDiff,
+		sampleDuration: sampleDuration,
 	}
 }
 
