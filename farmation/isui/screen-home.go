@@ -105,6 +105,17 @@ func (s *HomeScreen) Render(img draw.Image) {
 		// First bar
 		Line(img, x+4, y+5, x+4, y+6)
 	}
+
+	// flow moving average window indicator. On if short window used
+	if s.config.FlowAvgWindowShortUsed {
+		x = 88
+		y = 1
+		w := 8
+		h := 4
+		Rect(img, x, y, w, h)
+		Line(img, x, y+2, x+w, y+2)
+		Line(img, x+4, y, x+4, y+h)
+	}
 }
 
 // Key processes keypad input to this screen

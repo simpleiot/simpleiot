@@ -80,6 +80,7 @@ type Config struct {
 	PulsesPerGallon         int
 	FlowAvgWindow           int
 	FlowAvgWindowLong       int
+	FlowAvgWindowShortUsed  bool
 	FlowAvgPercDiff         int
 	PressureSetting         int
 	PulseOutputK            int
