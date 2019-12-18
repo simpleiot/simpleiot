@@ -86,20 +86,24 @@ func (s *HomeScreen) Render(img draw.Image) {
 	y = 1
 
 	switch {
-	case s.state.NetworkState.InterfaceStatus.Rsrp == 0: // Get rid of edge case
+	case s.state.NetworkState.InterfaceStatus.Rsrp >= 0: // Get rid of invalid signal case
+		//case s.state.NetworkState.InterfaceStatus.Rsrp > -84: //Excellent
+	case s.state.NetworkState.InterfaceStatus.Rsrp > -103: // Good
+		Line(img, x+10, y, x+10, y+6)
+		fallthrough
+	case s.state.NetworkState.InterfaceStatus.Rsrp > -111: // Fair
+		Line(img, x+8, y+2, x+8, y+6)
+		fallthrough
 	case s.state.NetworkState.InterfaceStatus.Rsrp > -130: // Poor
+		Line(img, x+6, y+4, x+6, y+6)
+		fallthrough
+	case true: // Signal is a valid negative number
 		// Tower symbol
 		Line(img, x, y, x+4, y)
 		Line(img, x+1, y+1, x+3, y+1)
 		Line(img, x+2, y+2, x+2, y+6)
 		// First bar
-		Line(img, x+4, y+6, x+4, y+6)
-	case s.state.NetworkState.InterfaceStatus.Rsrp > -111: // Fair
-		Line(img, x+6, y+4, x+6, y+6)
-	case s.state.NetworkState.InterfaceStatus.Rsrp > -103: // Good
-		Line(img, x+8, y+2, x+8, y+6)
-	case s.state.NetworkState.InterfaceStatus.Rsrp > -84: //Excellent
-		Line(img, x+10, y, x+10, y+6)
+		Line(img, x+4, y+5, x+4, y+6)
 	}
 }
 
