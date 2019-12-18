@@ -159,7 +159,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 				out <- amountSample
 
-				flow.RateAvg, flow.RateMin, flow.RateMax, _ = fma.AddDataPoint(flow.Rate)
+				flow.RateAvg, flow.RateMin, flow.RateMax, _, flow.ShortWin = fma.AddDataPoint(flow.Rate)
 
 				// Set flow rate to be sent out
 				pulseOutputFlowRate := flow.RateAvg

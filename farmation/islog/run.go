@@ -64,7 +64,7 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	var amountTime time.Time
 
 	logPulse := NewLog("pulse", "timestamp(us),diff")
-	logFlow := NewLog("flow", "timestamp(us),amount,rate (GPH),average rate,pulses")
+	logFlow := NewLog("flow", "timestamp(us),amount,rate (GPH),average rate,pulses,shortWin")
 	logPressure := NewLog("pressure", "timestamp(us),average PSI,min,max")
 
 	historyLogPeriod := 10 * time.Minute
@@ -136,7 +136,8 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 					strconv.FormatFloat(m.Amount, 'f', 4, 64) + "," +
 					strconv.FormatFloat(m.Rate, 'f', 1, 64) + "," +
 					strconv.FormatFloat(m.RateAvg, 'f', 1, 64) + "," +
-					strconv.Itoa(m.Pulses)
+					strconv.Itoa(m.Pulses) + "," +
+					boolToYesNo(m.ShortWin)
 				err := logFlow.Write(s)
 				if err != nil {
 					log.Println("Error writing flow to file: ", err)
@@ -192,4 +193,11 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 			amountTime = time.Now()
 		}
 	}
+}
+
+func boolToYesNo(val bool) string {
+	if val {
+		return "yes"
+	}
+	return "no"
 }
