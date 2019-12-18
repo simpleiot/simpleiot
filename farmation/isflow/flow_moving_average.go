@@ -70,7 +70,7 @@ func (f *FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64
 		min, _ = f.movAvgShort.Min()
 		max, _ = f.movAvgShort.Max()
 		// Reset the long-window averager
-		f.movAvgLong = movingaverage.New(f.winLong)
+		f.movAvgLong = movingaverage.New(f.winLong / f.sampleDuration)
 		// Add the current data point back to the long
 		// average to start it off.
 		f.movAvgLong.Add(data)
