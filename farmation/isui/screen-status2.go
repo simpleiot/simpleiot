@@ -46,23 +46,17 @@ func (s *StatusScreen2) Render(img draw.Image) {
 	avgFlowStr := strconv.FormatFloat(s.state.AvgFlowRate, 'f', 0, 64)
 	DrawTxt(img, avgFlowStr, x, y3, tightpixel15.Font)
 	timeSinceArm := strconv.FormatFloat(time.Since(s.state.AvgFlowRateStart).Hours(), 'f', 1, 64)
-	DrawTxtRight(img, timeSinceArm, x+31, y4, tightpixel15.Font)
-	DrawTxt(img, "hrs", x+35, y4, tightpixel15.Font)
+	DrawTxtRight(img, timeSinceArm, x+27, y4, tightpixel15.Font)
+	DrawTxt(img, "hrs", x+31, y4, tightpixel15.Font)
 
-	Line(img, 1, yBreak, 102, yBreak)
-
-	s.softKeys.Render(img, 0, 54)
+	Line(img, 1, yBreak, 163, yBreak)
 
 	// icons
 	// page indicator
 	s.icons.SetPage("page indicator", 2) // set page indicator icon to home
-
-	// outputs and arm
-	s.icons.SetOnOff("arm", s.config.Arm)
-	s.icons.SetOnOff("injector", s.state.GpioRelayInjectorEn)
-	s.icons.SetOnOff("shutdown", s.state.GpioRelayShutdownEn)
-
 	s.icons.Render(img)
+
+	s.softKeys.Render(img, 0, 54)
 }
 
 // Key processes keypad input to this screen
