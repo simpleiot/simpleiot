@@ -102,6 +102,12 @@ type UpdatePulseTestOnOff bool
 // UpdatePulseTestFlowRate is used to update this value
 type UpdatePulseTestFlowRate int
 
+// UpdateSampleDuration is used to set this value
+type UpdateSampleDuration int
+
+// UpdateMaxNoPulseDuration is used to set this value
+type UpdateMaxNoPulseDuration int
+
 // UpdateFlowStatus is used to send an updated flow status to app.go
 type UpdateFlowStatus int
 

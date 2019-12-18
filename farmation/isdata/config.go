@@ -1,6 +1,8 @@
 package isdata
 
-import "strconv"
+import (
+	"strconv"
+)
 
 // Config represents configuration data for the Injectory
 // Sentry system.
@@ -83,6 +85,12 @@ type Config struct {
 	PulseOutputK      int
 	PulseTestFlowRate int
 	PulseTestOnOff    bool
+	// Frequency with which flow rate is calculated and pulses dumped
+	// -- bucket size
+	SampleDuration int
+	// Maximum time with no pulses before moving averages are reset and
+	// flow is zeroed
+	MaxNoPulseDuration int
 
 	UserPumpMode UserPumpMode
 
@@ -264,6 +272,22 @@ func (c *Config) CalculateFlowWindow() (float64, float64) {
 	return highBound, lowBound
 }
 
+// SetFlowAvgWindows forces these values to be greater than SampleDuration
+func (c *Config) SetFlowAvgWindows() {
+	if c.SampleDuration <= 0 {
+		c.SampleDuration = 1
+	}
+	if c.MaxNoPulseDuration <= c.SampleDuration+4 {
+		c.MaxNoPulseDuration = c.SampleDuration + 4
+	}
+	if c.FlowAvgWindow < c.SampleDuration*2 {
+		c.FlowAvgWindow = c.SampleDuration * 2
+	}
+	if c.FlowAvgWindowLong < c.FlowAvgWindow*2 {
+		c.FlowAvgWindowLong = c.FlowAvgWindow * 2
+	}
+}
+
 // Init is used to inialize the config
 func (c *Config) Init() {
 	// always turn off logging of pulse data -- this should be
@@ -287,16 +311,19 @@ func (c *Config) Init() {
 	}
 
 	if c.FlowAvgWindow <= 0 {
-		c.FlowAvgWindow = 10
+		c.FlowAvgWindow = 5
 	}
 
 	if c.FlowAvgWindowLong <= 0 {
-		c.FlowAvgWindowLong = 40
+		c.FlowAvgWindowLong = 30
 	}
 
 	if c.FlowAvgPercDiff <= 0 {
 		c.FlowAvgPercDiff = 10
 	}
+
+	// Check window size
+	c.SetFlowAvgWindows()
 
 	if c.PressureSetting <= 0 {
 		c.PressureSetting = 300
