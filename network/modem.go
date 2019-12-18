@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/cbrake/go-serial/serial"
+	"github.com/jacobsa/go-serial/serial"
 	"github.com/simpleiot/simpleiot/file"
 	"github.com/simpleiot/simpleiot/respreader"
 )

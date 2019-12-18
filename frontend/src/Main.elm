@@ -1,4 +1,4 @@
-port module Main exposing (Msg(..), main, update, view)
+module Main exposing (Msg(..), main, update, view)
 
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Alert as Alert

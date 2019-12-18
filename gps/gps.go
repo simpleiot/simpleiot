@@ -8,7 +8,7 @@ import (
 	"time"
 
 	nmea "github.com/adrianmo/go-nmea"
-	"github.com/cbrake/go-serial/serial"
+	"github.com/jacobsa/go-serial/serial"
 	"github.com/simpleiot/simpleiot/data"
 )
 

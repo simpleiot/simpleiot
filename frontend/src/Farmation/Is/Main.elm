@@ -1,4 +1,4 @@
-port module Main exposing (Msg(..), main, update, view)
+port module Farmation.Is.Main exposing (Msg(..), main, update, view)
 
 import Array
 import Bootstrap.Button as Button
@@ -567,7 +567,10 @@ renderLindsaySimInputs inputs =
         ]
 
 
+
 -- note below defines must match those in Go code (panel.go)
+
+
 renderPanelTypeInput : Int -> Html Msg
 renderPanelTypeInput panelType =
     select [ on "change" (Json.Decode.map SetPanelType targetValueIntParse) ]
@@ -660,9 +663,7 @@ view model =
         simInputs =
             if model.state.systemType == systemTypeISSim then
                 div []
-                    [ h4 [] [ text "Panel Type" ]
-                    , renderPanelTypeInput model.simInputs.panelType
-                    , h4 [] [ text "Simulation Inputs" ]
+                    [ h4 [] [ text "Simulation Inputs" ]
                     , renderSimInputs model.simInputs
 
                     --, renderLindsaySimInputs model.simInputs

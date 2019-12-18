@@ -39,6 +39,7 @@ func main() {
 	flagPortal := flag.String("portal", "https://portal.farmation.us", "portal URL")
 	flagSerialNumber := flag.String("serialNumber", "", "IS serial number")
 	flagSetIsSN := flag.String("setSN", "", "Set IS serial number")
+	flagEnableAuxRelay := flag.Bool("enableAuxRelay", false, "enable aux relay")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -189,6 +190,12 @@ func main() {
 		}
 
 		log.Println("Serial number set, please restart system")
+		os.Exit(0)
+	}
+
+	if *flagEnableAuxRelay {
+		isio.GpioInit()
+		isio.GpioOut(isio.GpioRelayAuxEn, true)
 		os.Exit(0)
 	}
 

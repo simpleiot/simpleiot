@@ -9,7 +9,7 @@ is_setup() {
 is_build_frontend() {
   rm frontend/output/* || true
   (cd frontend && elm make src/Farmation/Is/Main.elm --output=output/elm.js) || return 1
-  (cd frontend && cp public/index.html output/) || return 1
+  (cd frontend && cp src/Farmation/Is/index.html output/) || return 1
   return 0
 }
 
@@ -43,9 +43,9 @@ is_gen_fonts() {
 is_build_assets_frontend() {
   mkdir -p farmation/assets/isfrontend || return 1
   genesis -C frontend/output -pkg isfrontend \
-      index.html \
-      elm.js \
-      >farmation/assets/isfrontend/assets.go || return 1
+    index.html \
+    elm.js \
+    >farmation/assets/isfrontend/assets.go || return 1
   return 0
 }
 
@@ -56,7 +56,7 @@ is_build_assets_lcd() {
       ls *.png
     ) \
     >farmation/assets/lcdassets/assets.go || return 1
-    return 0
+  return 0
 }
 
 is_build_assets() {

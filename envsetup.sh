@@ -34,7 +34,7 @@ siot_check_gopath_bin() {
 
 siot_setup() {
   go mod download
-  go install -u github.com/benbjohnson/genesis/... || return 1
+  go install github.com/benbjohnson/genesis/... || return 1
   siot_check_elm || return 1
   siot_check_gopath_bin || return 1
   return 0

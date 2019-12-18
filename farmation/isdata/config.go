@@ -1,6 +1,8 @@
 package isdata
 
-import "strconv"
+import (
+	"strconv"
+)
 
 // Config represents configuration data for the Injectory
 // Sentry system.
@@ -72,12 +74,25 @@ type Config struct {
 	ManualRelayAux      RelayControlStateType
 	ManualRelayShutdown RelayControlStateType
 
-	// Flow meter pulses per gallon and pressure setting
-	PulsesPerGallon int
-	FlowAvgWindow   int
-	PressureSetting int
+	// Flow meter pulses per gallon, flow moving average time
+	// windows and percent difference, pressure setting, K-factor
+	// for output pulses
+	PulsesPerGallon   int
+	FlowAvgWindow     int
+	FlowAvgWindowLong int
+	FlowAvgPercDiff   int
+	PressureSetting   int
+	PulseOutputK      int
+	// Frequency with which flow rate is calculated and pulses dumped
+	// -- bucket size
+	SampleDuration int
+	// Maximum time with no pulses before moving averages are reset and
+	// flow is zeroed
+	MaxNoPulseDuration int
 
 	UserPumpMode UserPumpMode
+
+	PanelType PanelType
 }
 
 // UserPumpMode describes the state of the pump button in UI
@@ -173,115 +188,6 @@ const (
 	IOTypeDigIn
 )
 
-// ISPanelConfig defines a panel the IS is connected to
-type ISPanelConfig struct {
-	ADCValue         float64
-	Description      string
-	SerialType       SerialType
-	IrrigatorRunning IOType
-	WaterOn          IOType
-	InjectorOn       IOType
-	Position         IOType
-	Direction        IOType
-	PowerCoControl   IOType
-	Aux1             IOType
-	Aux2             IOType
-}
-
-// PanelConfigs describes all of the currently supported
-// panels. Based on the ADCValue, the appropriate config will
-// be selected and populated in the ISState
-var PanelConfigs = []ISPanelConfig{
-	ISPanelConfig{
-		ADCValue:         117,
-		Description:      "Lindsay Vision and Boss",
-		SerialType:       SerialTypeRS485,
-		IrrigatorRunning: IOTypeSerial,
-		WaterOn:          IOTypeSerial,
-		InjectorOn:       IOTypeSerial,
-		Position:         IOTypeSerial,
-		Direction:        IOTypeSerial,
-		PowerCoControl:   IOTypeSerial,
-		Aux1:             IOTypeSerial,
-		Aux2:             IOTypeSerial,
-	},
-	ISPanelConfig{
-		ADCValue:         224,
-		Description:      "Valley Icon serial",
-		SerialType:       SerialTypeRS232,
-		IrrigatorRunning: IOTypeSerial,
-		WaterOn:          IOTypeSerial,
-		InjectorOn:       IOTypeSerial,
-		Position:         IOTypeSerial,
-		Direction:        IOTypeSerial,
-		PowerCoControl:   IOTypeNA,
-		Aux1:             IOTypeSerial,
-		Aux2:             IOTypeSerial,
-	},
-	ISPanelConfig{
-		ADCValue:         340,
-		Description:      "Valley CAM Panel",
-		SerialType:       SerialTypeRS232,
-		IrrigatorRunning: IOTypeSerial,
-		WaterOn:          IOTypeSerial,
-		InjectorOn:       IOTypeSerial,
-		Position:         IOTypeSerial,
-		Direction:        IOTypeSerial,
-		PowerCoControl:   IOTypeNA,
-		Aux1:             IOTypeNA,
-		Aux2:             IOTypeNA,
-	},
-	ISPanelConfig{
-		ADCValue:         799,
-		Description:      "Standard Pump Panel",
-		SerialType:       SerialTypeNone,
-		IrrigatorRunning: IOTypeNA,
-		WaterOn:          IOTypeDigIn,
-		InjectorOn:       IOTypeDigIn,
-		Position:         IOTypeNA,
-		Direction:        IOTypeNA,
-		PowerCoControl:   IOTypeNA,
-		Aux1:             IOTypeNA,
-		Aux2:             IOTypeNA,
-	},
-	ISPanelConfig{
-		ADCValue:         913,
-		Description:      "Standard Pivot Panel",
-		SerialType:       SerialTypeNone,
-		IrrigatorRunning: IOTypeDigIn,
-		WaterOn:          IOTypeDigIn,
-		InjectorOn:       IOTypeDigIn,
-		Position:         IOTypeNA,
-		Direction:        IOTypeNA,
-		PowerCoControl:   IOTypeNA,
-		Aux1:             IOTypeNA,
-		Aux2:             IOTypeNA,
-	},
-}
-
-// IOs
-
-// ISIoType defines various IO types
-type ISIoType int
-
-// define valid ISIoTypes
-const (
-	ISIoType4to20In ISIoType = iota
-	ISIoTypeAnalogIn
-	ISIoTypeDigIn
-	ISIoTypePwmOut
-	ISIoTypePulseIn
-	ISIotype4to20Out
-)
-
-// ISIo holds IO attributes
-type ISIo struct {
-	Type        ISIoType
-	Description string
-	Fault       bool
-	Value       float64
-}
-
 // RelayControlStateType is a type for relays that
 // are either in auto or manual mode
 type RelayControlStateType int
@@ -364,6 +270,22 @@ func (c *Config) CalculateFlowWindow() (float64, float64) {
 	return highBound, lowBound
 }
 
+// SetFlowAvgWindows forces these values to be greater than SampleDuration
+func (c *Config) SetFlowAvgWindows() {
+	if c.SampleDuration <= 0 {
+		c.SampleDuration = 1
+	}
+	if c.MaxNoPulseDuration <= c.SampleDuration+4 {
+		c.MaxNoPulseDuration = c.SampleDuration + 4
+	}
+	if c.FlowAvgWindow < c.SampleDuration*2 {
+		c.FlowAvgWindow = c.SampleDuration * 2
+	}
+	if c.FlowAvgWindowLong < c.FlowAvgWindow*2 {
+		c.FlowAvgWindowLong = c.FlowAvgWindow * 2
+	}
+}
+
 // Init is used to inialize the config
 func (c *Config) Init() {
 	// always turn off logging of pulse data -- this should be
@@ -387,8 +309,19 @@ func (c *Config) Init() {
 	}
 
 	if c.FlowAvgWindow <= 0 {
-		c.FlowAvgWindow = 30
+		c.FlowAvgWindow = 5
 	}
+
+	if c.FlowAvgWindowLong <= 0 {
+		c.FlowAvgWindowLong = 30
+	}
+
+	if c.FlowAvgPercDiff <= 0 {
+		c.FlowAvgPercDiff = 10
+	}
+
+	// Check window size
+	c.SetFlowAvgWindows()
 
 	if c.PressureSetting <= 0 {
 		c.PressureSetting = 300
@@ -427,5 +360,11 @@ func (c *Config) Init() {
 			ProductConfig{"Product 4"},
 			ProductConfig{"Product 5"},
 		}
+	}
+
+	if c.PanelType != PanelTypeStandardPump &&
+		c.PanelType != PanelTypeStandardPivot &&
+		c.PanelType != PanelTypeLindsay {
+		c.PanelType = PanelTypeStandardPump
 	}
 }

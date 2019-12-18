@@ -235,29 +235,31 @@ func Run(params Params) {
 		saveState()
 	}
 
-	var lastPanelDialog time.Time
-	var panelChangeCount int
+	//var lastPanelDialog time.Time
+	//var panelChangeCount int
 
-	newPanelType := func(def isdata.PanelDefinition) {
-		if def.Type != state.PanelDefinition.Type {
-			state.PanelDefinition = def
-			saveState()
-			panelChangeCount++
+	/*
+		newPanelType := func(def isdata.PanelDefinition) {
+			if def.Type != state.PanelDefinition.Type {
+				state.PanelDefinition = def
+				saveState()
+				panelChangeCount++
 
-			if panelChangeCount < 5 || time.Since(lastPanelDialog) > 30*time.Minute {
-				switch state.PanelDefinition.Type {
-				case isdata.PanelTypeLindsay, isdata.PanelTypeStandardPump, isdata.PanelTypeStandardPivot:
-					state.DialogInvalidPanel.Active = true
-					state.DialogInvalidPanel.Message = "Panel detected\nType: " + state.PanelDefinition.Type.String()
-				default:
-					state.DialogInvalidPanel.Active = true
-					state.DialogInvalidPanel.Message = "Unsupported panel detected\nType: " + state.PanelDefinition.Type.String()
-					saveState()
+				if panelChangeCount < 5 || time.Since(lastPanelDialog) > 30*time.Minute {
+					switch state.PanelDefinition.Type {
+					case isdata.PanelTypeLindsay, isdata.PanelTypeStandardPump, isdata.PanelTypeStandardPivot:
+						state.DialogInvalidPanel.Active = true
+						state.DialogInvalidPanel.Message = "Panel detected\nType: " + state.PanelDefinition.Type.String()
+					default:
+						state.DialogInvalidPanel.Active = true
+						state.DialogInvalidPanel.Message = "Unsupported panel detected\nType: " + state.PanelDefinition.Type.String()
+						saveState()
+					}
+					lastPanelDialog = time.Now()
 				}
-				lastPanelDialog = time.Now()
 			}
 		}
-	}
+	*/
 
 	// Create an averager to calculate average flow since armed
 	// Average is reset every time the system is armed
@@ -450,9 +452,11 @@ func Run(params Params) {
 					}
 
 				case isdata.SampleTypeSimPanelType:
-					newPanelType(isdata.PanelDefinition{
-						Type: isdata.PanelType(m.Value),
-					})
+					/*
+						newPanelType(isdata.PanelDefinition{
+							Type: isdata.PanelType(m.Value),
+						})
+					*/
 
 				default:
 					log.Println("Sample type not handled: ", m.Type)
@@ -502,10 +506,34 @@ func Run(params Params) {
 
 			case isdata.UpdateFlowAvgWindow:
 				config.FlowAvgWindow = int(m)
+				config.SetFlowAvgWindows()
+				saveConfig()
+
+			case isdata.UpdateFlowAvgWindowLong:
+				config.FlowAvgWindowLong = int(m)
+				config.SetFlowAvgWindows()
+				saveConfig()
+
+			case isdata.UpdateFlowAvgPercDiff:
+				config.FlowAvgPercDiff = int(m)
 				saveConfig()
 
 			case isdata.UpdatePressureSetting:
 				config.PressureSetting = int(m)
+				saveConfig()
+
+			case isdata.UpdatePulseOutputK:
+				config.PulseOutputK = int(m)
+				saveConfig()
+
+			case isdata.UpdateSampleDuration:
+				config.SampleDuration = int(m)
+				config.SetFlowAvgWindows()
+				saveConfig()
+
+			case isdata.UpdateMaxNoPulseDuration:
+				config.MaxNoPulseDuration = int(m)
+				config.SetFlowAvgWindows()
 				saveConfig()
 
 			case isdata.UpdateAlarmRecognizeSec:
@@ -839,7 +867,11 @@ func Run(params Params) {
 				saveState()
 
 			case isdata.PanelDefinition:
-				newPanelType(m)
+				//newPanelType(m)
+
+			case isdata.PanelType:
+				config.PanelType = m
+				saveConfig()
 
 			case isdata.NetworkState:
 				state.NetworkState = m

@@ -111,8 +111,8 @@ var pins = map[string]*pin{
 
 	// we are controlling pulse output in kernel now
 	//GpioPulseOutput: &pin{"PB7", true, true, nil},
-	GpioFlow1Pulse: &pin{"PB8", true, false, nil},
-	GpioFlow2Pulse: &pin{"PD13", true, false, nil},
+	//GpioFlow1Pulse: &pin{"PB8", true, false, nil},
+	//GpioFlow2Pulse: &pin{"PD13", true, false, nil},
 
 	GpioMainAuxPwr: &pin{"PC23", true, false, nil},
 	GpioBackupPwr:  &pin{"PD1", true, false, nil},

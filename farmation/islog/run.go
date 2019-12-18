@@ -54,7 +54,7 @@ func timeToUs(t time.Time) int64 {
 
 var tsFilenameFormat = "2006-01-02T150405Z07:00"
 
-// Run goroutine for ui code
+// Run goroutine for data logging code
 func Run(in, out chan interface{}, db *isdb.IsDb) {
 	config := isdata.Config{}
 	var lastPulseTimestamp int64
