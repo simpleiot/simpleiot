@@ -20,7 +20,7 @@ type StatusScreen2 struct {
 // NewStatusScreen2 initializes and returns a HomeScreen
 func NewStatusScreen2(state *isdata.State, config *isdata.Config) *StatusScreen2 {
 	return &StatusScreen2{
-		softKeys: NewSoftKeys("home"),
+		softKeys: NewSoftKeys("home", "field", "prod."),
 		icons:    NewIcons(true, false, true),
 		state:    state,
 		config:   config,
@@ -68,8 +68,12 @@ func (s *StatusScreen2) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *StatusScreen2) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1:
+	case isdata.KeySK1: // Home
 		return ScreenIDHome, nil, true
+	case isdata.KeySK2: // Field Menu Screen
+		return ScreenIDFieldMenu1, nil, true
+	case isdata.KeySK3: // Product Menu Screen
+		return ScreenIDProductMenu1, nil, true
 	case isdata.KeyLeft:
 		return ScreenIDStatus1, nil, true
 	case isdata.KeyRight:
