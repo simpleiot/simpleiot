@@ -526,12 +526,12 @@ func Run(params Params) {
 				config.PulseOutputK = int(m)
 				saveConfig()
 
-			case isdata.UpdatePulseTestOnOff:
-				config.PulseTestOnOff = bool(m)
+			case isdata.UpdatePulseOutputTestOn:
+				config.PulseOutputTestOn = bool(m)
 				saveConfig()
 
-			case isdata.UpdatePulseTestFlowRate:
-				config.PulseTestFlowRate = int(m)
+			case isdata.UpdatePulseOutputTestFlowRate:
+				config.PulseOutputTestFlowRate = int(m)
 				saveConfig()
 
 			case isdata.UpdateSampleDuration:

@@ -96,11 +96,11 @@ type UpdatePressureSetting int
 // UpdatePulseOutputK is used to send new setting to app.go
 type UpdatePulseOutputK int
 
-// UpdatePulseTestOnOff is used to toggle the pulse test output
-type UpdatePulseTestOnOff bool
+// UpdatePulseOutputTestOn is used to toggle the pulse test output
+type UpdatePulseOutputTestOn bool
 
-// UpdatePulseTestFlowRate is used to update this value
-type UpdatePulseTestFlowRate int
+// UpdatePulseOutputTestFlowRate is used to update this value
+type UpdatePulseOutputTestFlowRate int
 
 // UpdateSampleDuration is used to set this value
 type UpdateSampleDuration int

@@ -40,8 +40,8 @@ func (s *PulseOutputTestScreen) Render(img draw.Image) {
 
 		Heading(img, "Test Pulse Output")
 
-		s.menu.AddItemOnOff("Output", s.config.PulseTestOnOff, isdata.UpdatePulseTestOnOff(!s.config.PulseTestOnOff))
-		s.menu.AddItemInt("Flow Rate", s.config.PulseTestFlowRate)
+		s.menu.AddItemOnOff("Test Output", s.config.PulseOutputTestOn, isdata.UpdatePulseOutputTestOn(!s.config.PulseOutputTestOn))
+		s.menu.AddItemInt("Flow Rate", s.config.PulseOutputTestFlowRate)
 
 		s.menu.Render(img)
 
@@ -65,7 +65,7 @@ func (s *PulseOutputTestScreen) Key(key isdata.Key) (ScreenID, interface{}, bool
 			value, _ := strconv.Atoi(s.textEntryScreen.GetTextEdit()) // convert edited string to integer
 			switch s.menu.GetArrowPos() {
 			case 1:
-				return ScreenIDNoChange, isdata.UpdatePulseTestFlowRate(value), true
+				return ScreenIDNoChange, isdata.UpdatePulseOutputTestFlowRate(value), true
 			}
 		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
@@ -110,7 +110,7 @@ func (s *PulseOutputTestScreen) enterEdit() {
 	// set the text being edited and the header label
 	switch s.menu.GetArrowPos() {
 	case 1:
-		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulseTestFlowRate) // convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulseOutputTestFlowRate) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Flow Rate"
 	}
 
