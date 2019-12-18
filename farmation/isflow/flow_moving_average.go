@@ -1,7 +1,6 @@
 package isflow
 
 import (
-	"fmt"
 	"math"
 
 	movingaverage "github.com/RobinUS2/golang-moving-average"
@@ -78,8 +77,6 @@ func (f *FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64
 		// average to start it off.
 		f.movAvgLong.Add(data)
 	}
-
-	fmt.Println(shortWinUsed)
 
 	return avg, min, max, avgShort, shortWinUsed
 }
