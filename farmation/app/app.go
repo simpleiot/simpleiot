@@ -526,6 +526,14 @@ func Run(params Params) {
 				config.PulseOutputK = int(m)
 				saveConfig()
 
+			case isdata.UpdatePulseTestOnOff:
+				config.PulseTestOnOff = bool(m)
+				saveConfig()
+
+			case isdata.UpdatePulseTestFlowRate:
+				config.PulseTestFlowRate = int(m)
+				saveConfig()
+
 			case isdata.UpdateSampleDuration:
 				config.SampleDuration = int(m)
 				config.SetFlowAvgWindows()

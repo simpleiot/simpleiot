@@ -40,12 +40,12 @@ func (s *PulseOutputTestScreen) Render(img draw.Image) {
 
 		Heading(img, "Test Pulse Output")
 
-		s.menu.AddItemInt("Flow Rate", s.config.PulseTestFlowRate)
 		s.menu.AddItemOnOff("Output", s.config.PulseTestOnOff, isdata.UpdatePulseTestOnOff(!s.config.PulseTestOnOff))
+		s.menu.AddItemInt("Flow Rate", s.config.PulseTestFlowRate)
 
 		s.menu.Render(img)
 
-		if s.menu.GetArrowPos() == 1 {
+		if s.menu.GetArrowPos() == 0 {
 			s.softKeys.SetHidden(SK2, true)
 		} else {
 			s.softKeys.SetHidden(SK2, false)
@@ -64,7 +64,7 @@ func (s *PulseOutputTestScreen) Key(key isdata.Key) (ScreenID, interface{}, bool
 			s.exitEdit()
 			value, _ := strconv.Atoi(s.textEntryScreen.GetTextEdit()) // convert edited string to integer
 			switch s.menu.GetArrowPos() {
-			case 0:
+			case 1:
 				return ScreenIDNoChange, isdata.UpdatePulseTestFlowRate(value), true
 			}
 		case TextEntryCommandCancel: // cancel
@@ -78,15 +78,15 @@ func (s *PulseOutputTestScreen) Key(key isdata.Key) (ScreenID, interface{}, bool
 		case isdata.KeySK1Release: // Back
 			s.menu.ResetArrowPos() // return arrow to top of screen
 			return ScreenIDPrev, nil, true
-		case isdata.KeySK2:
+		case isdata.KeySK2: // Edit
 			switch s.menu.GetArrowPos() {
-			case 0:
+			case 1:
 				s.enterEdit()
 			}
 
 		case isdata.KeyEnter:
 			switch s.menu.GetArrowPos() {
-			case 0:
+			case 1:
 				s.enterEdit()
 			default:
 				return s.menu.Key(key)
@@ -109,8 +109,8 @@ func (s *PulseOutputTestScreen) enterEdit() {
 
 	// set the text being edited and the header label
 	switch s.menu.GetArrowPos() {
-	case 0:
-		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.)) // convert integer value into string to edit w/ text entry screen
+	case 1:
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulseTestFlowRate) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Flow Rate"
 	}
 
