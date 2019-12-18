@@ -86,11 +86,11 @@ func (f *FlowMovAvg) UpdateReset(whichVal, val int) {
 	switch whichVal {
 	case WindowLong:
 		val = forceMultiple(val, f.sampleDuration)
-		f.movAvgLong = movingaverage.New(val)
+		f.movAvgLong = movingaverage.New(val / f.sampleDuration)
 		f.winLong = val
 	case WindowShort:
 		val = forceMultiple(val, f.sampleDuration)
-		f.movAvgShort = movingaverage.New(val)
+		f.movAvgShort = movingaverage.New(val / f.sampleDuration)
 		f.winShort = val
 	case PercentDiff:
 		f.percentDiff = val
