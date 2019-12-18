@@ -161,8 +161,15 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 				flow.RateAvg, flow.RateMin, flow.RateMax, _ = fma.AddDataPoint(flow.Rate)
 
+				// Set flow rate to be sent out
+				pulseOutputFlowRate := flow.RateAvg
+				if config.PulseOutputTestOn {
+					pulseOutputFlowRate = float64(config.PulseOutputTestFlowRate)
+				}
+
+				// Output pulses
 				if fPulseOutputPeriod != nil {
-					nsPerPulseOut := int64((1e9 * 3600) / (float64(config.PulseOutputK) * flow.RateAvg))
+					nsPerPulseOut := int64((1e9 * 3600) / (float64(config.PulseOutputK) * pulseOutputFlowRate))
 					_, err := fPulseOutputPeriod.WriteString(strconv.FormatInt(nsPerPulseOut, 10) + "\n")
 					if err != nil {
 						log.Println("Error writing pulse output: ", err)
