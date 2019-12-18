@@ -39,8 +39,8 @@ func NewFlowMovAvg(winLong, winShort, percentDiff, sampleDuration int) *FlowMovA
 	return &FlowMovAvg{
 		winLong:     winLong,
 		winShort:    winShort,
-		movAvgLong:  movingaverage.New(winLong),
-		movAvgShort: movingaverage.New(winShort),
+		movAvgLong:  movingaverage.New(winLong / sampleDuration),
+		movAvgShort: movingaverage.New(winShort / sampleDuration),
 		percentDiff: percentDiff,
 	}
 }
@@ -70,7 +70,7 @@ func (f *FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64
 		min, _ = f.movAvgShort.Min()
 		max, _ = f.movAvgShort.Max()
 		// Reset the long-window averager
-		f.movAvgLong = movingaverage.New(f.winLong)
+		f.movAvgLong = movingaverage.New(f.winLong / f.sampleDuration)
 		// Add the current data point back to the long
 		// average to start it off.
 		f.movAvgLong.Add(data)
@@ -86,11 +86,11 @@ func (f *FlowMovAvg) UpdateReset(whichVal, val int) {
 	switch whichVal {
 	case WindowLong:
 		val = forceMultiple(val, f.sampleDuration)
-		f.movAvgLong = movingaverage.New(val)
+		f.movAvgLong = movingaverage.New(val / f.sampleDuration)
 		f.winLong = val
 	case WindowShort:
 		val = forceMultiple(val, f.sampleDuration)
-		f.movAvgShort = movingaverage.New(val)
+		f.movAvgShort = movingaverage.New(val / f.sampleDuration)
 		f.winShort = val
 	case PercentDiff:
 		f.percentDiff = val
