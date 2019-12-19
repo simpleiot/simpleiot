@@ -35,21 +35,27 @@ func (s *StatusScreen2) Render(img draw.Image) {
 	y1, y2, yBreak, y3, y4 := 7, 18, 29, 33, 44
 
 	DrawTxt(img, s.config.FieldConfigs[s.config.CurrentFieldIndex].Description+" - "+s.config.ProductConfigs[s.config.CurrentProductIndex].Description, x, y1, tightpixel15.Font)
-	DrawTxt(img, "Total: ", x, y2, tightpixel15.Font)
-	DrawTxt(img, "Avg Flow: ", x, y3, tightpixel15.Font)
-	DrawTxt(img, "Over ", x, y4, tightpixel15.Font)
+	DrawTxt(img, "Total:", x, y2, tightpixel15.Font)
+	DrawTxt(img, "Avg Flow:", x, y3, tightpixel15.Font)
+	DrawTxt(img, "Over:", x, y4, tightpixel15.Font)
 
-	x = 50
+	x = 77
 
-	DrawTxt(img, strconv.FormatFloat(s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total, 'f', 0, 64), x, y2, tightpixel15.Font)
-	DrawTxt(img, "Gallons", x+21, y2, tightpixel15.Font)
-	avgFlowStr := strconv.FormatFloat(s.state.AvgFlowRate, 'f', 0, 64)
-	DrawTxt(img, avgFlowStr, x, y3, tightpixel15.Font)
-	timeSinceArm := strconv.FormatFloat(time.Since(s.state.AvgFlowRateStart).Hours(), 'f', 1, 64)
-	DrawTxtRight(img, timeSinceArm, x+27, y4, tightpixel15.Font)
-	DrawTxt(img, "hrs", x+31, y4, tightpixel15.Font)
+	// Total
+	DrawTxtRight(img, strconv.FormatFloat(s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total, 'f', 0, 64), x, y2, tightpixel15.Font)
+	DrawTxt(img, "Gallons", x+4, y2, tightpixel15.Font)
 
+	// Break
 	Line(img, 1, yBreak, 163, yBreak)
+
+	// Avg Flow
+	avgFlowStr := strconv.FormatFloat(s.state.AvgFlowRate, 'f', 0, 64)
+	DrawTxtRight(img, avgFlowStr, x, y3, tightpixel15.Font)
+
+	// Avg Over
+	timeSinceArm := strconv.FormatFloat(time.Since(s.state.AvgFlowRateStart).Hours(), 'f', 1, 64)
+	DrawTxtRight(img, timeSinceArm, x, y4, tightpixel15.Font)
+	DrawTxt(img, "hrs", x+4, y4, tightpixel15.Font)
 
 	// icons
 	// page indicator
