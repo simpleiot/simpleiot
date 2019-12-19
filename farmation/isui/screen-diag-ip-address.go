@@ -21,7 +21,7 @@ func NewDiagIPAddressScreen(state *isdata.State, config *isdata.Config) *DiagIPA
 		softKeys: NewSoftKeys("back"),
 		state:    state,
 		config:   config,
-		menu:     NewMenu(),
+		menu:     &Menu{},
 	}
 }
 

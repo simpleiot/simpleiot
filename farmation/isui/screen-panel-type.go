@@ -11,16 +11,28 @@ type PanelTypeScreen struct {
 	softKeys *SoftKeys
 	state    *isdata.State
 	config   *isdata.Config
-	menu     Menu
+	menu     *Menu
 }
 
 // NewPanelTypeScreen initializes and returns a panel type screen
 func NewPanelTypeScreen(state *isdata.State, config *isdata.Config) *PanelTypeScreen {
+
+	// Find which panel type to initialize the arrow at
+	var selectedIndex int
+	switch config.PanelType {
+	case isdata.PanelTypeStandardPivot:
+		selectedIndex = 1
+	case isdata.PanelTypeStandardPump:
+		selectedIndex = 0
+	case isdata.PanelTypeLindsay:
+		selectedIndex = 2
+	}
+
 	return &PanelTypeScreen{
 		softKeys: NewSoftKeys("back"),
 		state:    state,
 		config:   config,
-		menu:     Menu{},
+		menu:     NewMenu(true, selectedIndex),
 	}
 }
 

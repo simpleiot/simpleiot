@@ -22,7 +22,7 @@ func NewProductMenuScreen(state *isdata.State, config *isdata.Config) *ProductMe
 		softKeys:        NewSoftKeys("back", "edit", "import"),
 		state:           state,
 		config:          config,
-		menu:            NewMenu(),
+		menu:            NewMenu(true, config.CurrentProductIndex),
 		textEntryScreen: NewTextEntryScreen(true, true),
 	}
 }
@@ -65,10 +65,10 @@ func (s *ProductMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	} else {
 		switch key {
 		case isdata.KeySK1Hold: // Back key held -> Home screen
-			s.menu.ResetArrowPos() // return arrow to top of screen
+			s.menu.ResetArrowPos()
 			return ScreenIDHome, nil, true
 		case isdata.KeySK1Release: // Back
-			s.menu.ResetArrowPos() // return arrow to top of screen
+			s.menu.ResetArrowPos()
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
 			s.edit = true

@@ -23,7 +23,7 @@ func NewDiagPulsesPresScreen(state *isdata.State, config *isdata.Config) *DiagPu
 		softKeys:        NewSoftKeys("back", "edit"),
 		state:           state,
 		config:          config,
-		menu:            NewMenu(),
+		menu:            &Menu{},
 		textEntryScreen: NewTextEntryScreen(false, true),
 	}
 }

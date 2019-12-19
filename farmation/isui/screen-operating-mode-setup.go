@@ -23,7 +23,7 @@ func NewOperatingModeSetupScreen(state *isdata.State, config *isdata.Config) *Op
 		softKeys:        NewSoftKeys("back", "edit"),
 		state:           state,
 		config:          config,
-		menu:            NewMenu(),
+		menu:            &Menu{},
 		textEntryScreen: NewTextEntryScreen(false, true),
 	}
 }
