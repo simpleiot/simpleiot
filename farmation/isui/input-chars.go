@@ -64,6 +64,11 @@ func (ic *InputChars) Render(img draw.Image) {
 
 // Caps sets to upper case
 func (ic *InputChars) Caps() byte {
+
+	if ic.numbersOnly {
+		return ic.GetCurrent()
+	}
+
 	if ic.caps {
 		ic.lines[0] = alphaLowerLine1
 		ic.lines[1] = alphaLowerLine2
