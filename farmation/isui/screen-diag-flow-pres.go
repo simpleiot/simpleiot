@@ -35,14 +35,14 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	s.menu.AddItemInt("Flo Pulses/Gal", s.config.PulsesPerGallon)
-	s.menu.AddItemInt("Avg Win Short", s.config.FlowAvgWindow)
-	s.menu.AddItemInt("Flo Avg Win", s.config.FlowAvgWindowLong)
-	s.menu.AddItemInt("Flo Avg Diff", s.config.FlowAvgPercDiff)
+	s.menu.AddItemStringRight("Avg Win Short", strconv.Itoa(s.config.FlowAvgWindow)+" s")
+	s.menu.AddItemStringRight("Flo Avg Win", strconv.Itoa(s.config.FlowAvgWindowLong)+" s")
+	s.menu.AddItemStringRight("Flo Avg Diff", strconv.Itoa(s.config.FlowAvgPercDiff)+" %")
 	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
 	s.menu.AddItemInt("Pulse Output K", s.config.PulseOutputK)
 	s.menu.AddItemScreen("Pulse Test", ScreenIDPulseOutputTest)
-	s.menu.AddItemInt("Sample Time", s.config.SampleDuration)
-	s.menu.AddItemInt("No Flo Timeout", s.config.MaxNoPulseDuration)
+	s.menu.AddItemStringRight("Sample Time", strconv.Itoa(s.config.SampleDuration)+" s")
+	s.menu.AddItemStringRight("No Flo Timeout", strconv.Itoa(s.config.MaxNoPulseDuration)+" s")
 
 	if s.edit { // render text entry screen
 		s.textEntryScreen.Render(img)
