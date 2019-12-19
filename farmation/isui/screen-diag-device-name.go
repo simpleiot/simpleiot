@@ -22,7 +22,7 @@ func NewDiagDevNameScreen(state *isdata.State, config *isdata.Config) *DiagDevNa
 		softKeys:        NewSoftKeys("back", "edit"),
 		state:           state,
 		config:          config,
-		menu:            NewMenu(),
+		menu:            &Menu{},
 		textEntryScreen: NewTextEntryScreen(true, true),
 	}
 }

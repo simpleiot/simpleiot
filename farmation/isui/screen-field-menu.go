@@ -22,7 +22,7 @@ func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuSc
 		softKeys:        NewSoftKeys("back", "edit", "import"),
 		state:           state,
 		config:          config,
-		menu:            NewMenu(),
+		menu:            NewMenu(true, config.CurrentFieldIndex),
 		textEntryScreen: NewTextEntryScreen(true, true),
 	}
 }

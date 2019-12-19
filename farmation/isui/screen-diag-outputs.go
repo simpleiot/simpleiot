@@ -16,7 +16,7 @@ type DiagOutputsScreen struct {
 
 // NewDiagOutputsScreen gives new screen to screen.go
 func NewDiagOutputsScreen(state *isdata.State, config *isdata.Config) *DiagOutputsScreen {
-	isdata.InitState(state) // !!! comment from sample screen !!! make sure that ProductStates and FieldStates arrays are large enough
+	isdata.InitState(state)
 	menu := Menu{}
 
 	return &DiagOutputsScreen{

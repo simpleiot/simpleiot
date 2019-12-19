@@ -11,17 +11,32 @@ type PumpModeScreen struct {
 	softKeys *SoftKeys
 	state    *isdata.State
 	config   *isdata.Config
-	menu     Menu
+	menu     *Menu
 }
 
 // NewPumpModeScreen initializes and returns a HomeScreen
 func NewPumpModeScreen(state *isdata.State, config *isdata.Config) *PumpModeScreen {
 
+	// Find which pump mode to initialize the arrow at
+	var selectedIndex int
+	switch config.UserPumpMode {
+	case isdata.UserPumpModeOff:
+		selectedIndex = 0
+	case isdata.UserPumpModeOn:
+		selectedIndex = 1
+	case isdata.UserPumpModeInj:
+		selectedIndex = 2
+	case isdata.UserPumpModeAcc1:
+		selectedIndex = 3
+	case isdata.UserPumpModeAcc2:
+		selectedIndex = 4
+	}
+
 	return &PumpModeScreen{
 		softKeys: NewSoftKeys("home", "test"),
 		state:    state,
 		config:   config,
-		menu:     Menu{},
+		menu:     NewMenu(true, selectedIndex),
 	}
 }
 
@@ -43,6 +58,8 @@ func (s *PumpModeScreen) Render(img draw.Image) {
 	case isdata.UserPumpModeAcc1:
 		acc1 = true
 	}
+
+	// Find correct message for
 	var mode int
 	switch s.menu.GetArrowPos() {
 	case 0:

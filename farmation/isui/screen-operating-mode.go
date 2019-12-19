@@ -11,17 +11,28 @@ type OperatingModeScreen struct {
 	softKeys *SoftKeys
 	state    *isdata.State
 	config   *isdata.Config
-	menu     Menu
+	menu     *Menu
 }
 
 // NewOperatingModeScreen initializes and returns a HomeScreen
 func NewOperatingModeScreen(state *isdata.State, config *isdata.Config) *OperatingModeScreen {
 
+	// Find which operating mode to initialize the arrow at
+	var selectedIndex int
+	switch config.OperatingMode {
+	case isdata.ISOperatingModeMonitor:
+		selectedIndex = 1
+	case isdata.ISOperatingModeMonitorAndShutdown:
+		selectedIndex = 0
+		// case isdata.ISOperatingModeMonitorAndBatch:
+		// selectedIndex = 2
+	}
+
 	return &OperatingModeScreen{
 		softKeys: NewSoftKeys("back", "setup"),
 		state:    state,
 		config:   config,
-		menu:     Menu{},
+		menu:     NewMenu(true, selectedIndex),
 	}
 }
 

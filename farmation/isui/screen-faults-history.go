@@ -28,7 +28,7 @@ func NewFaultsHistoryScreen(state *isdata.State, config *isdata.Config, db *isdb
 
 	return &FaultsHistoryScreen{
 		softKeys:          NewSoftKeys("back", "details"),
-		menu:              NewMenu(),
+		menu:              &Menu{},
 		faultsHistDetails: NewFaultsHistDetailsScreen(state, config),
 		state:             state,
 		config:            config,

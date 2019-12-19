@@ -52,7 +52,13 @@ type Menu struct {
 }
 
 // NewMenu creates a new menu
-func NewMenu() *Menu {
+func NewMenu(selectMenu bool, selectedIndex int) *Menu {
+	if selectMenu {
+		return &Menu{
+			arrowPos: selectedIndex,
+		}
+	}
+
 	return &Menu{}
 }
 
@@ -448,6 +454,13 @@ func (m *Menu) GetArrowPos() int {
 // ResetArrowPos resets the arrow pos
 func (m *Menu) ResetArrowPos() {
 	m.arrowPos = 0
+	if m.items[0].Type == MenuItemTypeSelect {
+		for index, item := range m.items {
+			if item.Selected {
+				m.arrowPos = index
+			}
+		}
+	}
 }
 
 // Key handles key input
