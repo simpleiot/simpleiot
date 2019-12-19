@@ -278,8 +278,8 @@ func (c *Config) SetFlowAvgWindows() {
 	if c.SampleDuration <= 0 {
 		c.SampleDuration = 1
 	}
-	if c.MaxNoPulseDuration <= c.SampleDuration+4 {
-		c.MaxNoPulseDuration = c.SampleDuration + 4
+	if c.MaxNoPulseDuration <= c.SampleDuration*2 {
+		c.MaxNoPulseDuration = c.SampleDuration * 2
 	}
 	if c.FlowAvgWindow < c.SampleDuration*2 {
 		c.FlowAvgWindow = c.SampleDuration * 2
@@ -312,7 +312,7 @@ func (c *Config) Init() {
 	}
 
 	if c.FlowAvgWindow <= 0 {
-		c.FlowAvgWindow = 5
+		c.FlowAvgWindow = 8
 	}
 
 	if c.FlowAvgWindowLong <= 0 {
