@@ -331,7 +331,7 @@ func (c *Config) Init() {
 	}
 
 	if c.PulseOutputK <= 0 {
-		c.PulseOutputK = 1
+		c.PulseOutputK = c.PulsesPerGallon
 	}
 
 	if c.PulseOutputTestFlowRate <= 0 {
