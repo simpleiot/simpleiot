@@ -315,6 +315,10 @@ func Run(params Params) {
 				if config.LogFlowData {
 					logChan <- m
 				}
+				// update short moving average window used
+				config.FlowAvgWindowShortUsed = m.ShortWin
+				saveState()
+				saveConfig()
 
 			case data.Sample:
 				switch m.Type {

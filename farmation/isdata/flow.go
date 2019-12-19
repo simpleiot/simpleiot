@@ -14,6 +14,7 @@ type Flow struct {
 	RateMin  float64
 	RateMax  float64
 	Pulses   int
+	ShortWin bool
 }
 
 // FlowToPulsePeriod calculates the pulse period for a flow (GPH).

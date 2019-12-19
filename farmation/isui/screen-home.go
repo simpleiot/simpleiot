@@ -105,6 +105,17 @@ func (s *HomeScreen) Render(img draw.Image) {
 		// First bar
 		Line(img, x+4, y+5, x+4, y+6)
 	}
+
+	// flow moving average window indicator. On if short window used
+	if s.config.FlowAvgWindowShortUsed {
+		x = 88
+		y = 1
+		w := 8
+		h := 4
+		Rect(img, x, y, w, h)
+		Line(img, x, y+2, x+w, y+2)
+		Line(img, x+4, y, x+4, y+h)
+	}
 }
 
 // Key processes keypad input to this screen
@@ -128,6 +139,14 @@ func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 // if rate is < 10, draw with 1 floating point, otherwise with none
 func (s *HomeScreen) drawVariablePrecision(img draw.Image, value float64, x, y int, font *pixfont.PixFont) {
+
+	// If the value is less than 10 but would round up to
+	// 10, we set it to 10 so that the displayed flow rate
+	// isn't 10.0
+	if value < 10 && value >= 9.95 {
+		value = 10
+	}
+
 	if value < 10 {
 		DrawTxtRight(img, strconv.FormatFloat(value, 'f', 1, 64), x, y, font)
 	} else {

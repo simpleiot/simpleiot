@@ -140,7 +140,7 @@ func (s *DiagPulsesPresScreen) enterEdit() {
 		s.textEntryScreen.headerLabel = "Pressure Setting"
 	case 5:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulseOutputK)
-		s.textEntryScreen.headerLabel = "Pulse output K"
+		s.textEntryScreen.headerLabel = "Output Pulses/gal"
 	case 6:
 		// Pulse output test screen, do nothing
 	case 7:

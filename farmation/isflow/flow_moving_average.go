@@ -48,7 +48,7 @@ func NewFlowMovAvg(winLong, winShort, percentDiff, sampleDuration int) *FlowMovA
 
 // AddDataPoint adds a new flow rate data point to the
 // moving averages and returns the new flow rate, min, and max
-func (f *FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64) {
+func (f *FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64, shortWinUsed bool) {
 	f.movAvgLong.Add(data)
 	f.movAvgShort.Add(data)
 
@@ -65,6 +65,7 @@ func (f *FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64
 	acceptedVal := (avg + avgShort) / 2
 	calculatedPercentDiff := int(math.Abs(avgShort-avg) / acceptedVal * 100)
 	if calculatedPercentDiff >= f.percentDiff {
+		shortWinUsed = true
 		// Return the value from the short-window
 		// averager
 		avg = avgShort
@@ -77,7 +78,7 @@ func (f *FlowMovAvg) AddDataPoint(data float64) (avg, min, max, avgShort float64
 		f.movAvgLong.Add(data)
 	}
 
-	return avg, min, max, avgShort
+	return avg, min, max, avgShort, shortWinUsed
 }
 
 // UpdateReset updates the specified field to the given value
