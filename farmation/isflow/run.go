@@ -133,6 +133,11 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 		case t := <-pulseCh:
 			processPulse(t)
 		case <-ticker.C:
+
+			if config.PulseOutputTestOn {
+				setPulseInterval(fPulseOutputPeriod, float64(config.PulseOutputTestFlowRate), config.PulseOutputK)
+			}
+
 			if pulses > 0 {
 				// we need to send the following samples:
 				//  - inst flow over last 1 sec (include eng data such as avg,
@@ -161,19 +166,9 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 				flow.RateAvg, flow.RateMin, flow.RateMax, _, flow.ShortWin = fma.AddDataPoint(flow.Rate)
 
-				// Set flow rate to be sent out
-				pulseOutputFlowRate := flow.RateAvg
-				if config.PulseOutputTestOn {
-					pulseOutputFlowRate = float64(config.PulseOutputTestFlowRate)
-				}
-
 				// Output pulses
-				if fPulseOutputPeriod != nil {
-					nsPerPulseOut := int64((1e9 * 3600) / (float64(config.PulseOutputK) * pulseOutputFlowRate))
-					_, err := fPulseOutputPeriod.WriteString(strconv.FormatInt(nsPerPulseOut, 10) + "\n")
-					if err != nil {
-						log.Println("Error writing pulse output: ", err)
-					}
+				if !config.PulseOutputTestOn {
+					setPulseInterval(fPulseOutputPeriod, flow.RateAvg, config.PulseOutputK)
 				}
 
 				// Instantaneous flow sample
@@ -215,6 +210,17 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 		case t := <-simTicker.C:
 			processPulse(t)
+		}
+	}
+}
+
+// Set pulse output interval in nanoseconds
+func setPulseInterval(fPulseOutputPeriod *os.File, flowRate float64, pulsesPerFlow int) {
+	if fPulseOutputPeriod != nil {
+		nsPerPulseOut := int64((1e9 * 3600) / (float64(pulsesPerFlow) * flowRate))
+		_, err := fPulseOutputPeriod.WriteString(strconv.FormatInt(nsPerPulseOut, 10) + "\n")
+		if err != nil {
+			log.Println("Error writing pulse output: ", err)
 		}
 	}
 }
