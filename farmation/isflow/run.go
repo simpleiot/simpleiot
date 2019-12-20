@@ -92,6 +92,16 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 		}
 	}
 
+	setPulseInterval := func(flowRate float64) {
+		if fPulseOutputPeriod != nil {
+			nsPerPulseOut := int64((1e9 * 3600) / (float64(config.PulseOutputK) * flowRate))
+			_, err := fPulseOutputPeriod.WriteString(strconv.FormatInt(nsPerPulseOut, 10) + "\n")
+			if err != nil {
+				log.Println("Error writing pulse output: ", err)
+			}
+		}
+	}
+
 	for {
 		select {
 		case m := <-in:
@@ -113,7 +123,21 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 					fma.UpdateReset(WindowShort, m.FlowAvgWindow)
 					ticker = time.NewTicker(time.Second * time.Duration(m.SampleDuration))
 				}
+
+				if m.PulseOutputTestOn {
+					if config.PulseOutputTestOn != m.PulseOutputTestOn {
+						setPulseInterval(float64(config.PulseOutputTestFlowRate))
+					}
+					if config.PulseOutputTestFlowRate != m.PulseOutputTestFlowRate {
+						setPulseInterval(float64(m.PulseOutputTestFlowRate))
+					}
+					// The other parameter that the test mode relies on is the
+					// PulseOutputK, but that cannot be changed without leaving
+					// the test screen and shutting off the test mode
+				}
+
 				config = m
+
 			case data.Sample:
 				switch m.Type {
 				case isdata.SampleTypeSimFlowRate:
@@ -161,19 +185,9 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 				flow.RateAvg, flow.RateMin, flow.RateMax, _, flow.ShortWin = fma.AddDataPoint(flow.Rate)
 
-				// Set flow rate to be sent out
-				pulseOutputFlowRate := flow.RateAvg
-				if config.PulseOutputTestOn {
-					pulseOutputFlowRate = float64(config.PulseOutputTestFlowRate)
-				}
-
 				// Output pulses
-				if fPulseOutputPeriod != nil {
-					nsPerPulseOut := int64((1e9 * 3600) / (float64(config.PulseOutputK) * pulseOutputFlowRate))
-					_, err := fPulseOutputPeriod.WriteString(strconv.FormatInt(nsPerPulseOut, 10) + "\n")
-					if err != nil {
-						log.Println("Error writing pulse output: ", err)
-					}
+				if !config.PulseOutputTestOn {
+					setPulseInterval(flow.Rate)
 				}
 
 				// Instantaneous flow sample
@@ -205,7 +219,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				fma.UpdateReset(WindowLong, config.FlowAvgWindowLong)
 				fma.UpdateReset(WindowShort, config.FlowAvgWindow)
 
-				if fPulseOutputPeriod != nil {
+				if fPulseOutputPeriod != nil && !config.PulseOutputTestOn {
 					_, err := fPulseOutputPeriod.WriteString("0\n")
 					if err != nil {
 						log.Println("Error writing pulse output: ", err)
