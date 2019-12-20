@@ -297,6 +297,9 @@ func (c *Config) Init() {
 	c.LogFlowData = false
 	c.LogPressureData = false
 
+	// Initialize pulse output test to off
+	c.PulseOutputTestOn = false
+
 	// set relays to auto mode in case
 	// power lost while relays were in manual mode
 	c.ManualRelayInj = RelayControlStateAuto
