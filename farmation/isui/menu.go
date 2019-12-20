@@ -454,6 +454,11 @@ func (m *Menu) GetArrowPos() int {
 // ResetArrowPos resets the arrow pos
 func (m *Menu) ResetArrowPos() {
 	m.arrowPos = 0
+
+	if len(m.items) <= 0 {
+		return
+	}
+
 	if m.items[0].Type == MenuItemTypeSelect {
 		for index, item := range m.items {
 			if item.Selected {
