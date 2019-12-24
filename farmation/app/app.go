@@ -169,6 +169,11 @@ func Run(params Params) {
 	lastFillingWarning := time.Time{}
 
 	saveConfig := func() {
+
+		// Make sure all config items are within
+		// reasonable bounds
+		config.ApplyBounds()
+
 		if params.DebugConfig {
 			fmt.Printf("Config: %+v\n", config)
 		}
@@ -510,12 +515,10 @@ func Run(params Params) {
 
 			case isdata.UpdateFlowAvgWindow:
 				config.FlowAvgWindow = int(m)
-				config.SetFlowAvgWindows()
 				saveConfig()
 
 			case isdata.UpdateFlowAvgWindowLong:
 				config.FlowAvgWindowLong = int(m)
-				config.SetFlowAvgWindows()
 				saveConfig()
 
 			case isdata.UpdateFlowAvgPercDiff:
@@ -540,12 +543,10 @@ func Run(params Params) {
 
 			case isdata.UpdateSampleDuration:
 				config.SampleDuration = int(m)
-				config.SetFlowAvgWindows()
 				saveConfig()
 
 			case isdata.UpdateMaxNoPulseDuration:
 				config.MaxNoPulseDuration = int(m)
-				config.SetFlowAvgWindows()
 				saveConfig()
 
 			case isdata.UpdateAlarmRecognizeSec:

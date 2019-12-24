@@ -274,6 +274,7 @@ func (c *Config) CalculateFlowWindow() (float64, float64) {
 }
 
 // SetFlowAvgWindows forces these values to be greater than SampleDuration
+// DEPRECIATED. Replaced by ApplyBounds()
 func (c *Config) SetFlowAvgWindows() {
 	if c.SampleDuration <= 0 {
 		c.SampleDuration = 1
@@ -380,5 +381,111 @@ func (c *Config) Init() {
 		c.PanelType != PanelTypeStandardPivot &&
 		c.PanelType != PanelTypeLindsay {
 		c.PanelType = PanelTypeStandardPump
+	}
+}
+
+// ApplyBounds makes sure that all the config items are within
+// reasonable bounds
+func (c *Config) ApplyBounds() {
+	if c.PressureStartupLow < 0 {
+		c.PressureStartupLow = 0
+	} else if c.PressureStartupLow > 9999 {
+		c.PressureStartupLow = 9999
+	}
+
+	if c.HighWindowPerc < 0 {
+		c.HighWindowPerc = 0
+	} else if c.HighWindowPerc > 9999 {
+		c.HighWindowPerc = 9999
+	}
+
+	if c.LowWindowPerc < 0 {
+		c.LowWindowPerc = 0
+	} else if c.LowWindowPerc > 9999 {
+		c.LowWindowPerc = 9999
+	}
+
+	if c.ManualHighAlarmGPH < 0 {
+		c.ManualHighAlarmGPH = 0
+	} else if c.ManualHighAlarmGPH > 9999 {
+		c.ManualHighAlarmGPH = 9999
+	}
+
+	if c.ManualLowAlarmGPH < 0 {
+		c.ManualLowAlarmGPH = 0
+	} else if c.ManualLowAlarmGPH > 9999 {
+		c.ManualLowAlarmGPH = 9999
+	}
+
+	if c.LowPresPerc < 0 {
+		c.LowPresPerc = 0
+	} else if c.LowPresPerc > 9999 {
+		c.LowPresPerc = 9999
+	}
+
+	if c.AlarmRecognizeSec < 0 {
+		c.AlarmRecognizeSec = 0
+	} else if c.AlarmRecognizeSec > 9999 {
+		c.AlarmRecognizeSec = 9999
+	}
+
+	if c.BatchAmount < 0 {
+		c.BatchAmount = 0
+	} else if c.BatchAmount > 9999 {
+		c.BatchAmount = 9999
+	}
+
+	if c.PulsesPerGallon <= 0 { // PulsesPerGallon can't be 0
+		c.PulsesPerGallon = 1
+	} else if c.PulsesPerGallon > 9999 {
+		c.PulsesPerGallon = 9999
+	}
+
+	if c.SampleDuration < 1 {
+		c.SampleDuration = 1
+	} else if c.SampleDuration > 300 {
+		c.SampleDuration = 300
+	}
+
+	if c.MaxNoPulseDuration < 2*c.SampleDuration {
+		c.MaxNoPulseDuration = 2 * c.SampleDuration
+	} else if c.MaxNoPulseDuration > 600 {
+		c.MaxNoPulseDuration = 600
+	}
+
+	if c.FlowAvgWindow < 2*c.SampleDuration {
+		c.FlowAvgWindow = 2 * c.SampleDuration
+	} else if c.FlowAvgWindow > 600 {
+		c.FlowAvgWindow = 600
+	}
+
+	if c.FlowAvgWindowLong < 2*c.FlowAvgWindow {
+		c.FlowAvgWindowLong = 2 * c.FlowAvgWindow
+	} else if c.FlowAvgWindowLong > 1200 {
+		c.FlowAvgWindowLong = 1200
+	}
+
+	if c.FlowAvgPercDiff < 0 {
+		c.FlowAvgPercDiff = 0
+	} else if c.FlowAvgPercDiff > 9999 {
+		c.FlowAvgPercDiff = 9999
+	}
+
+	if c.PressureSetting < 0 {
+		c.PressureSetting = 0
+	} else if c.PressureSetting > 9999 {
+		c.PressureSetting = 9999
+	}
+
+	if c.PulseOutputK <= 0 { // PulseOutputK can't be 0
+		c.PulseOutputK = 1
+	} else if c.PulseOutputK > 9999 {
+		c.PulseOutputK = 9999
+	}
+
+	if c.PulseOutputTestFlowRate < 0 {
+		c.PulseOutputTestFlowRate = 0
+	} else if c.PulseOutputTestFlowRate > 9999 {
+		c.PulseOutputTestFlowRate = 9999
 	}
 }
