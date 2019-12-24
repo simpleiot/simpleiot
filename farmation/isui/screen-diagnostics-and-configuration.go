@@ -36,6 +36,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemString("Version", s.state.OSVersion.String())
 	s.menu.AddItemString("Serial Num", s.state.SerialNumber)
 	s.menu.AddItemScreen("Device Name", ScreenIDDiagDevName)
+	s.menu.AddItemScreen("System Time", ScreenIDDiagSystemTime)
 	s.menu.AddItemScreen("Panel Type", ScreenIDPanelType)
 	s.menu.AddItemScreen("Inputs", ScreenIDDiagInputs)
 	s.menu.AddItemScreen("Outputs", ScreenIDDiagOutputs)

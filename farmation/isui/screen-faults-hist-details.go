@@ -40,8 +40,8 @@ func (s *FaultsHistDetailsScreen) Render(img draw.Image) {
 	x := 1
 	font := tightpixel15.Font
 	t := s.fault.Time
-	clockTime := clockTime(t)
-	date := date(t, true)
+	clockTime := Clock(t)
+	date := Date(t, true)
 
 	weekDay := t.Weekday()
 	var weekDayStr string

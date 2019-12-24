@@ -37,6 +37,7 @@ const (
 	ScreenIDPulseOutputTest
 	ScreenIDDiagLindsay
 	ScreenIDDiagDevName
+	ScreenIDDiagSystemTime
 	ScreenIDDiagPanel
 	ScreenIDModem
 	ScreenIDDiagIPAddress
@@ -91,6 +92,7 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 	ret.Add(ScreenIDPulseOutputTest, NewPulseOutputTestScreen(state, config))
 	ret.Add(ScreenIDDiagLindsay, NewDiagLindsayScreen(state, config))
 	ret.Add(ScreenIDDiagDevName, NewDiagDevNameScreen(state, config))
+	ret.Add(ScreenIDDiagSystemTime, NewDiagSystemTimeScreen(state, config))
 	ret.Add(ScreenIDDiagPanel, NewDiagPanelScreen(state, config))
 	ret.Add(ScreenIDModem, NewModemScreen(state, config))
 	ret.Add(ScreenIDDiagIPAddress, NewDiagIPAddressScreen(state, config))
