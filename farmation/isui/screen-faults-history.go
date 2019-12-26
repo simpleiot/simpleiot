@@ -61,9 +61,11 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 				// if fault was more than 24 hrs ago, display date,
 				// else display clock time
 				if time.Since(fault.Time) >= time.Duration(24*time.Hour) {
-					timeDisplay = Date(fault.Time, false)
+					year, month, day := Date(fault.Time, false)
+					timeDisplay = year + "/" + month + "/" + day
 				} else {
-					timeDisplay = Clock(fault.Time)
+					hour, min, sec := Clock(fault.Time)
+					timeDisplay = hour + ":" + min + ":" + sec
 				}
 
 				s.menu.AddItemFaultHistory(timeDisplay, faultDisplay)

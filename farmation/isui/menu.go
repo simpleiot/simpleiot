@@ -3,7 +3,6 @@ package isui
 import (
 	"image/draw"
 	"strconv"
-	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -22,7 +21,6 @@ const (
 	MenuItemTypeStringDown
 	MenuItemTypeInt
 	MenuItemTypeFloat
-	MenuItemTypeTime
 	MenuItemTypeOnOff
 	MenuItemTypeAutoOffOn
 	MenuItemTypeSelect
@@ -37,7 +35,6 @@ type MenuItem struct {
 	Screen      ScreenID
 	ValueInt    int
 	Value       float64
-	ValueTime   time.Time
 	ValueString string
 	On          bool
 	AutoOffOn   isdata.RelayControlStateType
@@ -230,17 +227,6 @@ func (m *Menu) AddItemFloat(desc string, v float64) {
 	m.updateShowValues()
 }
 
-// AddItemTime adds a time menu item
-func (m *Menu) AddItemTime(desc string, v time.Time) {
-	m.items = append(m.items, MenuItem{
-		Description: desc,
-		Type:        MenuItemTypeTime,
-		ValueTime:   v,
-	})
-
-	m.updateShowValues()
-}
-
 // AddItemCommand adds a command menu item
 func (m *Menu) AddItemCommand(desc, command string, msg interface{}) {
 	m.items = append(m.items, MenuItem{
@@ -360,9 +346,6 @@ func (m *Menu) Render(img draw.Image) {
 				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeFloat:
 				v := truncateMenuVal(strconv.FormatFloat(item.Value, 'f', 2, 64))
-				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
-			case MenuItemTypeTime:
-				v := Clock(item.ValueTime)
 				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeOnOff:
 				yShift := 11

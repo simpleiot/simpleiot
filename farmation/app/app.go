@@ -509,6 +509,10 @@ func Run(params Params) {
 				config.DeviceName = string(m)
 				saveConfig()
 
+			case isdata.UpdateEditedTime:
+				config.EditedTime = time.Time(m)
+				saveConfig()
+
 			case isdata.UpdatePulsesPerGallon:
 				config.PulsesPerGallon = int(m)
 				saveConfig()

@@ -2,6 +2,7 @@ package isdata
 
 import (
 	"strconv"
+	"time"
 )
 
 // Config represents configuration data for the Injectory
@@ -9,6 +10,10 @@ import (
 type Config struct {
 	// ID is an alphanumeric name limitted to 16 chars in length
 	ID string
+
+	// EditedTime stores the user-edited time from the System Time screen
+	// so the clock can be set from it
+	EditedTime time.Time
 
 	// FlowRateTarget is set by pressing the arm switch
 	FlowRateTarget float64
