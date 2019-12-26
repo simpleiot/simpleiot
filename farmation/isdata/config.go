@@ -15,6 +15,8 @@ type Config struct {
 	// so the clock can be set from it
 	EditedTime time.Time
 
+	TimeZone string
+
 	// FlowRateTarget is set by pressing the arm switch
 	FlowRateTarget float64
 
