@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"regexp"
 )
 
 // ReadTimezones returns a list of possible time zones
@@ -12,7 +13,7 @@ import (
 //	"" (root dir)
 //	"US"
 //	"posix/America"
-func ReadTimezones(zoneInfoDir string) (list []string, err error) {
+func ReadTimezones(zoneInfoDir string) (listZones []string, err error) {
 
 	file, err := os.Open(path.Join(zoneInfoPath, zoneInfoDir))
 	if err != nil {
@@ -28,27 +29,44 @@ func ReadTimezones(zoneInfoDir string) (list []string, err error) {
 
 	for _, fi := range fileInfo {
 		if !fi.IsDir() { // if file, not directory
-			list = append(list, fi.Name())
+			listZones = append(listZones, fi.Name())
 		}
 	}
 
-	return list, nil
+	return listZones, nil
 }
 
-// GetTimezone returns the current system time zone
-func GetTimezone() (string, error) {
+// GetTimezone returns the current system timezone and
+// its path after zoneInfoPath
+func GetTimezone() (zoneInfoDir, zone string, err error) {
 
 	link, err := os.Readlink(zoneLink)
 	if err != nil {
 		log.Println("Error finding time zone, ", err)
-		return "", err
+		return "", "", err
 	}
 
-	return link, nil
+	// extract the timezone and the zoneInfoDir from the full path
+	pattern := regexp.MustCompile(`/usr/share/zoneinfo/(.+)`)
+	matches := pattern.FindStringSubmatch(link)
+
+	if len(matches) < 2 {
+		log.Println("Couldn't extract timezone: ", link)
+		return "", "", nil
+	}
+
+	pattern2 := regexp.MustCompile(`(.+)/(.+)`)
+	matches2 := pattern2.FindStringSubmatch(matches[1])
+
+	if len(matches2) < 3 {
+		return "", matches[1], nil
+	}
+
+	return matches2[1], matches2[2], nil
 }
 
 // SetTimezone sets the current system time zone
-func SetTimezone(zoneInfoDir, zone string) error {
+func SetTimezone(zoneInfoDir, zone string) (err error) {
 
 	if _, err := os.Lstat(zoneLink); err == nil {
 		err := os.Remove(zoneLink)
@@ -58,7 +76,7 @@ func SetTimezone(zoneInfoDir, zone string) error {
 		}
 	}
 
-	err := os.Symlink(path.Join(zoneInfoPath, zoneInfoDir, zone), zoneLink)
+	err = os.Symlink(path.Join(zoneInfoPath, zoneInfoDir, zone), zoneLink)
 	if err != nil {
 		log.Println("Error linking to new time zone, ", err)
 		return err
