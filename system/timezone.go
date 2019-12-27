@@ -3,6 +3,7 @@ package system
 import (
 	"log"
 	"os"
+	"path"
 )
 
 // ReadTimezones returns a list of possible time zones
@@ -13,9 +14,7 @@ import (
 //	"posix/America"
 func ReadTimezones(zoneInfoDir string) (list []string, err error) {
 
-	zoneInfoPath := setZoneInfoPath(zoneInfoDir)
-
-	file, err := os.Open(zoneInfoPath)
+	file, err := os.Open(path.Join(zoneInfoPath, zoneInfoDir))
 	if err != nil {
 		log.Println("Error opening time zone file, ", err)
 		return nil, err
@@ -59,9 +58,7 @@ func SetTimezone(zoneInfoDir, zone string) error {
 		}
 	}
 
-	zoneInfoPath := setZoneInfoPath(zoneInfoDir)
-
-	err := os.Symlink(zoneInfoPath+zone, zoneLink)
+	err := os.Symlink(path.Join(zoneInfoPath, zoneInfoDir, zone), zoneLink)
 	if err != nil {
 		log.Println("Error linking to new time zone, ", err)
 		return err
@@ -70,13 +67,8 @@ func SetTimezone(zoneInfoDir, zone string) error {
 	return nil
 }
 
+// Path to zoneinfo
+const zoneInfoPath = "/usr/share/zoneinfo/"
+
 // Symbolic link for the system timezone
 const zoneLink = "/etc/localtime"
-
-func setZoneInfoPath(zoneInfoDir string) (zoneInfoPath string) {
-	zoneInfoPath = "/usr/share/zoneinfo/"
-	if zoneInfoDir == "" {
-		return zoneInfoPath
-	}
-	return zoneInfoPath + zoneInfoDir + "/"
-}
