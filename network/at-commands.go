@@ -193,7 +193,7 @@ func CmdGetFwVersionBG96(port io.ReadWriter) (string, error) {
 		return "", err
 	}
 
-	for _, line := range strings.Split(string(resp), "\n") {
+	for _, line := range strings.Split(resp, "\n") {
 		match := reCmdVersionBg96.FindString(line)
 		if match != "" {
 			return match, nil
@@ -213,7 +213,7 @@ func CmdGetImei(port io.ReadWriter) (string, error) {
 		return "", err
 	}
 
-	for _, line := range strings.Split(string(resp), "\n") {
+	for _, line := range strings.Split(resp, "\n") {
 		matches := reCmdImei.FindStringSubmatch(line)
 		if len(matches) >= 2 {
 			return matches[1], nil
@@ -234,7 +234,7 @@ func CmdGetSimBg96(port io.ReadWriter) (string, error) {
 		return "", err
 	}
 
-	for _, line := range strings.Split(string(resp), "\n") {
+	for _, line := range strings.Split(resp, "\n") {
 		matches := reCmdSim.FindStringSubmatch(line)
 		if len(matches) >= 2 {
 			return matches[1], nil
@@ -254,7 +254,7 @@ func CmdGGA(port io.ReadWriter) (string, error) {
 		return "", err
 	}
 
-	for _, line := range strings.Split(string(resp), "\n") {
+	for _, line := range strings.Split(resp, "\n") {
 		matches := reQGPSNEMA.FindStringSubmatch(line)
 		if len(matches) >= 2 {
 			return matches[1], nil
@@ -262,4 +262,46 @@ func CmdGGA(port io.ReadWriter) (string, error) {
 	}
 
 	return "", fmt.Errorf("Error parsing AT+QGPSGNMEA response: %v", resp)
+}
+
+// CmdBg96ForceLTE forces BG96 modems to use LTE only, (no 2G)
+func CmdBg96ForceLTE(port io.ReadWriter) error {
+	return CmdOK(port, "AT+QCFG=\"nwscanmode\",3,1")
+}
+
+// BG96ScanMode is a type that defines the varios BG96 scan modes
+type BG96ScanMode int
+
+// valid scan modes
+const (
+	BG96ScanModeUnknown BG96ScanMode = -1
+	BG96ScanModeAuto                 = 0
+	BG96ScanModeGSM                  = 1
+	BG96ScanModeLTE                  = 3
+)
+
+// +QCFG: "nwscanmode",3
+var reBg96ScanMode = regexp.MustCompile(`\++QCFG: "nwscanmode",(\d+)`)
+
+// CmdBg96GetScanMode returns the current modem scan mode
+func CmdBg96GetScanMode(port io.ReadWriter) (BG96ScanMode, error) {
+	resp, err := Cmd(port, "AT+QGPSGNMEA=\"GGA\"")
+	if err != nil {
+		return BG96ScanModeUnknown, err
+	}
+
+	for _, line := range strings.Split(resp, "\n") {
+		matches := reBg96ScanMode.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			mode, err := strconv.Atoi(matches[1])
+			if err != nil {
+				continue
+			}
+
+			return BG96ScanMode(mode), nil
+		}
+	}
+
+	return BG96ScanModeUnknown,
+		fmt.Errorf("Error parsing AT+QGPSGNMEA response: %v", resp)
 }
