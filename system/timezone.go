@@ -7,7 +7,7 @@ import (
 
 // ReadTimezones returns a list of possible time zones
 // from the system
-// Some valid arguments for zoneInfoDir:
+// Possible arguments for zoneInfoDir:
 //	"" (root dir)
 //	"US"
 //	"posix/America"
