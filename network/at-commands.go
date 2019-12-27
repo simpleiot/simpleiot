@@ -281,11 +281,11 @@ const (
 )
 
 // +QCFG: "nwscanmode",3
-var reBg96ScanMode = regexp.MustCompile(`\++QCFG: "nwscanmode",(\d+)`)
+var reBg96ScanMode = regexp.MustCompile(`\++QCFG: "nwscanmode",(\d)`)
 
 // CmdBg96GetScanMode returns the current modem scan mode
 func CmdBg96GetScanMode(port io.ReadWriter) (BG96ScanMode, error) {
-	resp, err := Cmd(port, "AT+QGPSGNMEA=\"GGA\"")
+	resp, err := Cmd(port, "AT+QCFG=\"nwscanmode\"")
 	if err != nil {
 		return BG96ScanModeUnknown, err
 	}
