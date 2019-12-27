@@ -2,8 +2,8 @@ package network
 
 import (
 	"errors"
-	"fmt"
 	"io"
+	"log"
 	"os/exec"
 	"time"
 
@@ -91,7 +91,22 @@ func (m *Modem) Connect() error {
 		return err
 	}
 
-	fmt.Println("Modem: starting PPP")
+	mode, err := CmdBg96GetScanMode(m.atCmdPort)
+
+	if err != nil {
+		return err
+	}
+
+	log.Println("BG96 scan mode: ", mode)
+
+	if mode != BG96ScanModeLTE {
+		log.Println("Setting BG96 scan mode")
+		err := CmdBg96ForceLTE(m.atCmdPort)
+		if err != nil {
+			return err
+		}
+	}
+
 	service, _, _, _, err := CmdQcsq(m.atCmdPort)
 	if err != nil {
 		return err
@@ -110,6 +125,7 @@ func (m *Modem) Connect() error {
 
 	m.lastPPPRun = time.Now()
 
+	log.Println("Modem: starting PPP")
 	return exec.Command("pon", m.chatScript).Run()
 }
 
@@ -127,9 +143,13 @@ func (m *Modem) GetStatus() (InterfaceStatus, error) {
 		retError = err
 	}
 
-	network, err := CmdQspn(m.atCmdPort)
-	if err != nil {
-		retError = err
+	var network string
+
+	if service {
+		network, err = CmdCops(m.atCmdPort)
+		if err != nil {
+			retError = err
+		}
 	}
 
 	return InterfaceStatus{
