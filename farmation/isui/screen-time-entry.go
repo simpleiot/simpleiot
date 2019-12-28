@@ -88,7 +88,7 @@ func (s *TimeEntryScreen) Key(key isdata.Key) TextEntryCommand {
 	case isdata.KeySK1Release: // save
 		s.applyLimits()
 		return TextEntryCommandSave
-	case isdata.KeySK4: // cancel
+	case isdata.KeySK2: // cancel
 		s.applyLimits()
 		return TextEntryCommandCancel
 	case isdata.KeyEnter:

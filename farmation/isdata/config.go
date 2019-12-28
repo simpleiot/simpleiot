@@ -15,7 +15,7 @@ type Config struct {
 	// so the clock can be set from it
 	EditedTime time.Time
 
-	TimeZone string
+	Timezone string
 
 	// FlowRateTarget is set by pressing the arm switch
 	FlowRateTarget float64
@@ -314,8 +314,12 @@ func (c *Config) Init() {
 	c.ManualRelayAux = RelayControlStateAuto
 	c.ManualRelayShutdown = RelayControlStateAuto
 
-	if len(c.DeviceName) == 0 {
+	if c.DeviceName == "" {
 		c.DeviceName = "InjectorSentry"
+	}
+
+	if c.Timezone == "" {
+		c.Timezone = "Central"
 	}
 
 	if c.PulsesPerGallon <= 0 {

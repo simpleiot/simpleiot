@@ -8,6 +8,7 @@ import (
 	"github.com/pbnjay/pixfont"
 	"github.com/simpleiot/simpleiot/farmation/fonts/agencyfbbold20"
 	"github.com/simpleiot/simpleiot/farmation/fonts/agencyfbbold40"
+	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
@@ -81,8 +82,12 @@ func (s *HomeScreen) Render(img draw.Image) {
 
 	s.icons.Render(img)
 
+	// time
+	hour, min, _ := Clock(time.Now())
+	DrawTxtRight(img, hour+":"+min, 108, 1, tightpixel15.Font)
+
 	// signal icon
-	x = 30
+	x = 20
 	y = 1
 
 	switch {
@@ -108,7 +113,7 @@ func (s *HomeScreen) Render(img draw.Image) {
 
 	// flow moving average window indicator. On if short window used
 	if s.config.FlowAvgWindowShortUsed {
-		x = 88
+		x = 35
 		y = 1
 		w := 8
 		h := 4

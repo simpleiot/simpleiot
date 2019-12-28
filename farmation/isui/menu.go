@@ -458,6 +458,7 @@ func (m *Menu) ResetArrowPos() {
 		return
 	}
 
+	// If the screen is a select list screen
 	if m.items[0].Type == MenuItemTypeSelect {
 		for index, item := range m.items {
 			if item.Selected {

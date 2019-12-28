@@ -1,11 +1,11 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"github.com/simpleiot/simpleiot/system"
 )
 
 // DiagSystemTimeScreen is used to configure system time
@@ -38,15 +38,21 @@ func (s *DiagSystemTimeScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 	hour, min, _ := Clock(time.Now())
 	s.menu.AddItemStringDown("Time", hour+":"+min)
+	s.menu.AddItemScreen("Timezone", ScreenIDDiagSystemTimezone)
 
 	if s.edit { // render text entry screen
 		s.timeEntryScreen.Render(img)
 	} else { // render regular screen
 		Heading(img, "System Time")
 		s.menu.Render(img)
+
+		if s.menu.GetArrowPos() != 0 {
+			s.softKeys.SetHidden(SK2, true)
+		} else {
+			s.softKeys.SetHidden(SK2, false)
+		}
 		s.softKeys.Render(img, 0, 54)
 	}
-	fmt.Println(s.config.EditedTime)
 }
 
 // Key processes key inputs to this screen
@@ -57,6 +63,7 @@ func (s *DiagSystemTimeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 		case TextEntryCommandNone: // do nothing
 		case TextEntryCommandSave: //save
 			s.exitEdit()
+			system.SetTime(s.timeEntryScreen.GetTimeEdit())
 			return ScreenIDNoChange, isdata.UpdateEditedTime(s.timeEntryScreen.GetTimeEdit()), true
 		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
@@ -64,15 +71,23 @@ func (s *DiagSystemTimeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 	} else {
 		switch key {
 		case isdata.KeySK1Hold:
-			s.menu.ResetArrowPos() // return arrow to top of screen
+			s.menu.ResetArrowPos()
 			return ScreenIDHome, nil, true
 		case isdata.KeySK1Release:
-			s.menu.ResetArrowPos() // return arrow to top of screen
+			s.menu.ResetArrowPos()
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
-			s.enterEdit()
-		case isdata.KeyEnter: // Edit
-			s.enterEdit()
+			switch s.menu.GetArrowPos() {
+			case 0:
+				s.enterEdit()
+			}
+		case isdata.KeyEnter:
+			switch s.menu.GetArrowPos() {
+			case 0:
+				s.enterEdit()
+			default:
+				return s.menu.Key(key)
+			}
 		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
 		}

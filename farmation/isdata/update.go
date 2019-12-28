@@ -155,6 +155,9 @@ type UpdateDevName string
 // UpdateEditedTime is used to update this value
 type UpdateEditedTime time.Time
 
+// UpdateTimezone is used to update this string value
+type UpdateTimezone string
+
 // UpdateCurrentFieldIndex is used to select a new field
 type UpdateCurrentFieldIndex int
 

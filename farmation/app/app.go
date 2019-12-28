@@ -28,6 +28,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
 	"github.com/simpleiot/simpleiot/file"
+	"github.com/simpleiot/simpleiot/system"
 )
 
 // Params are used to configure the app
@@ -114,6 +115,13 @@ func Run(params Params) {
 	state.SerialNumber = params.SerialNumber
 
 	config.Init()
+
+	// Check that the system timezone didn't get messed up
+	zonePath, zone, _ := system.GetTimezone()
+
+	if zone != config.Timezone || zonePath != "US" {
+		system.SetTimezone("US", config.Timezone)
+	}
 
 	// incoming channel to mux
 	appChan := make(chan interface{}, 1000)
@@ -511,6 +519,10 @@ func Run(params Params) {
 
 			case isdata.UpdateEditedTime:
 				config.EditedTime = time.Time(m)
+				saveConfig()
+
+			case isdata.UpdateTimezone:
+				config.Timezone = string(m)
 				saveConfig()
 
 			case isdata.UpdatePulsesPerGallon:
