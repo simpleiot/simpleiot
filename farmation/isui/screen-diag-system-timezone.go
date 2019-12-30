@@ -2,7 +2,6 @@ package isui
 
 import (
 	"image/draw"
-	"os/exec"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/system"
@@ -64,21 +63,23 @@ func (s *DiagSystemTimezoneScreen) Render(img draw.Image) {
 func (s *DiagSystemTimezoneScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
 	case isdata.KeySK1Hold: // Home
-		s.exit()
-		return ScreenIDHome, nil, true
+		interfaceMsg := s.exit()
+		return ScreenIDHome, interfaceMsg, true
 	case isdata.KeySK1Release: // Back
-		s.exit()
-		return ScreenIDPrev, nil, true
+		interfaceMsg := s.exit()
+		return ScreenIDPrev, interfaceMsg, true
 	case isdata.KeyEnter, isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 		return s.menu.Key(key)
 	}
 	return ScreenIDNoChange, nil, true
 }
 
-func (s *DiagSystemTimezoneScreen) exit() {
+func (s *DiagSystemTimezoneScreen) exit() interface{} {
 	s.menu.ResetArrowPos()
 	system.SetTimezone("US", s.config.Timezone)
 	if s.config.Timezone != s.initialZone {
-		exec.Command("/etc/init.d/isapp", "restart").Run()
+		return isdata.RestartApp{}
 	}
+
+	return nil
 }

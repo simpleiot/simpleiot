@@ -643,6 +643,10 @@ func Run(params Params) {
 					}
 				}
 
+			case isdata.RestartApp:
+				state.DialogRestartApp.Active = true
+				state.DialogRestartApp.Message = "The timezone was changed.\nThe IS will be restarted."
+
 			case isdata.ExportData:
 				if !state.DialogExport.Active {
 					// we only want one export process running at a time
@@ -847,6 +851,11 @@ func Run(params Params) {
 			case isdata.UpdateFaultActiveClearAll:
 				state.FaultsActive = nil
 				saveState()
+
+			case isdata.UpdateDialogRestartAppClose:
+				state.DialogRestartApp.Active = false
+				saveState()
+				exec.Command("/etc/init.d/isapp", "restart").Run()
 
 			case isdata.UpdateDialogStateMachineMessage:
 				state.DialogStateMachine.Message = string(m)

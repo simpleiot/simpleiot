@@ -110,6 +110,8 @@ func (s *Screens) Render(img draw.Image) {
 	switch {
 	case s.state.DialogReboot.Active:
 		s.dialog.Render(img, s.state.DialogReboot.Message)
+	case s.state.DialogRestartApp.Active:
+		s.dialog.Render(img, s.state.DialogRestartApp.Message)
 	case s.state.DialogUpdate.Active:
 		s.dialog.Render(img, s.state.DialogUpdate.Message)
 	case s.state.DialogInvalidPanel.Active:
@@ -139,6 +141,10 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	// dialogs
 	// Note, below needs to be the same order as in render
 	switch {
+	case s.state.DialogRestartApp.Active:
+		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
+			return ScreenIDNoChange, isdata.UpdateDialogRestartAppClose{}, true
+		}
 	case s.state.DialogUpdate.Active:
 		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 			return ScreenIDNoChange, isdata.UpdateDialogUpdateClose{}, true

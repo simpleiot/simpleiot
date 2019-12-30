@@ -3,6 +3,10 @@ package isdata
 // Reboot is a message that causes the system to reboot
 type Reboot struct{}
 
+// RestartApp is a message that fires a dialog warning user
+// Used when timezone is changed in diagnostics/config
+type RestartApp struct{}
+
 // ExportData is a message that causes the system to export faults
 type ExportData struct{}
 
