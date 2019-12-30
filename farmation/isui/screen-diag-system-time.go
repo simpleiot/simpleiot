@@ -2,6 +2,7 @@ package isui
 
 import (
 	"image/draw"
+	"path"
 	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -63,8 +64,8 @@ func (s *DiagSystemTimeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 		case TextEntryCommandNone: // do nothing
 		case TextEntryCommandSave: //save
 			s.exitEdit()
-			system.SetTime(s.timeEntryScreen.GetTimeEdit())
-			return ScreenIDNoChange, isdata.UpdateEditedTime(s.timeEntryScreen.GetTimeEdit()), true
+			timeEdit := s.setTime()
+			return ScreenIDNoChange, isdata.UpdateEditedTime(timeEdit), true
 		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
 		}
@@ -94,6 +95,15 @@ func (s *DiagSystemTimeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 	}
 
 	return ScreenIDNoChange, nil, true
+}
+
+func (s *DiagSystemTimeScreen) setTime() time.Time {
+	year, month, day, hour, min := s.timeEntryScreen.GetTimeEdit()
+	loc, _ := time.LoadLocation(path.Join("US", s.config.Timezone))
+	timeEdit := time.Date(year, time.Month(month), day, hour, min, 0, 0, loc)
+	system.SetTime(timeEdit)
+
+	return timeEdit
 }
 
 func (s *DiagSystemTimeScreen) exitEdit() {

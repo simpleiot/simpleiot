@@ -2,6 +2,7 @@ package isui
 
 import (
 	"image/draw"
+	"os/exec"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/system"
@@ -9,11 +10,12 @@ import (
 
 // DiagSystemTimezoneScreen is used to configure system time
 type DiagSystemTimezoneScreen struct {
-	softKeys  *SoftKeys
-	state     *isdata.State
-	config    *isdata.Config
-	menu      *Menu
-	timezones []string
+	softKeys    *SoftKeys
+	state       *isdata.State
+	config      *isdata.Config
+	menu        *Menu
+	timezones   []string
+	initialZone string
 }
 
 // NewDiagSystemTimezoneScreen initializes and returns a screen used to select a system timezone
@@ -29,26 +31,16 @@ func NewDiagSystemTimezoneScreen(state *isdata.State, config *isdata.Config) *Di
 		}
 	}
 
-	ret := &DiagSystemTimezoneScreen{
-		softKeys:  NewSoftKeys("back"),
-		state:     state,
-		config:    config,
-		menu:      NewMenu(true, selectedIndex),
-		timezones: timezones,
-	}
+	_, zone, _ := system.GetTimezone()
 
-	/*fmt.Println("COLLIN, timezones: ", ret.timezones)
-	zoneDir, timezone, _ := system.GetTimezone()
-	fmt.Println("COLLIN, current timezone: ", zoneDir, timezone)
-	system.SetTimezone("US", "Eastern")
-	zoneDir, timezone, _ = system.GetTimezone()
-	fmt.Println("COLLIN, current timezone: ", zoneDir, timezone)
-	system.SetTimezone("US", "Central")
-	zoneDir, timezone, _ = system.GetTimezone()
-	fmt.Println("COLLIN, current timezone: ", zoneDir, timezone)
-	system.SetTimezone("America", "Nome")
-	zoneDir, timezone, _ = system.GetTimezone()
-	fmt.Println("COLLIN, current timezone: ", zoneDir, timezone)*/
+	ret := &DiagSystemTimezoneScreen{
+		softKeys:    NewSoftKeys("back"),
+		state:       state,
+		config:      config,
+		menu:        NewMenu(true, selectedIndex),
+		timezones:   timezones,
+		initialZone: zone,
+	}
 
 	return ret
 }
@@ -72,17 +64,21 @@ func (s *DiagSystemTimezoneScreen) Render(img draw.Image) {
 func (s *DiagSystemTimezoneScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
 	case isdata.KeySK1Hold: // Home
-		system.SetTimezone("US", s.config.Timezone)
-		//system.SetTime(time.Now()) // Reset time with new timezone
-		s.menu.ResetArrowPos()
+		s.exit()
 		return ScreenIDHome, nil, true
 	case isdata.KeySK1Release: // Back
-		system.SetTimezone("US", s.config.Timezone)
-		//system.SetTime(time.Now()) // Reset time with new timezone
-		s.menu.ResetArrowPos()
+		s.exit()
 		return ScreenIDPrev, nil, true
 	case isdata.KeyEnter, isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 		return s.menu.Key(key)
 	}
 	return ScreenIDNoChange, nil, true
+}
+
+func (s *DiagSystemTimezoneScreen) exit() {
+	s.menu.ResetArrowPos()
+	system.SetTimezone("US", s.config.Timezone)
+	if s.config.Timezone != s.initialZone {
+		exec.Command("/etc/init.d/isapp", "restart").Run()
+	}
 }

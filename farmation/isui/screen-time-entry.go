@@ -105,7 +105,7 @@ func (s *TimeEntryScreen) Key(key isdata.Key) TextEntryCommand {
 }
 
 // GetTimeEdit returns the text that is being edited
-func (s *TimeEntryScreen) GetTimeEdit() time.Time {
+func (s *TimeEntryScreen) GetTimeEdit() (int, int, int, int, int) {
 
 	year, _ := strconv.Atoi(s.timeEdit[posYear])
 	month, _ := strconv.Atoi(s.timeEdit[posMonth])
@@ -113,8 +113,7 @@ func (s *TimeEntryScreen) GetTimeEdit() time.Time {
 	hour, _ := strconv.Atoi(s.timeEdit[posHour])
 	min, _ := strconv.Atoi(s.timeEdit[posMin])
 
-	// FIXME use correct timezone
-	return time.Date(year, time.Month(month), day, hour, min, 0, 0, time.UTC)
+	return year, month, day, hour, min
 }
 
 //ExitEdit resets the position and index
