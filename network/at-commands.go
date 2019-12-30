@@ -80,8 +80,11 @@ func checkRespOK(resp string) error {
 }
 
 // service, rssi, rsrp, sinr, rsrq
+// +QCSQ: "NOSERVICE"
+// +QCSQ: "GSM",-69
 // +QCSQ: "CAT-M1",-52,-81,195,-10
-var reQcsq = regexp.MustCompile(`\+QCSQ:\s*"(.+)",(-*\d+),(-*\d+),(\d+),(-*\d+)`)
+var reQcsq = regexp.MustCompile(`\+QCSQ:\s*"(.+)"`)
+var reQcsqM1 = regexp.MustCompile(`\+QCSQ:\s*"(.+)",(-*\d+),(-*\d+),(\d+),(-*\d+)`)
 
 // CmdQcsq is used to send the AT+QCSQ command
 func CmdQcsq(port io.ReadWriter) (service bool, rssi, rsrp, rsrq int, err error) {
@@ -94,19 +97,23 @@ func CmdQcsq(port io.ReadWriter) (service bool, rssi, rsrp, rsrq int, err error)
 	found := false
 
 	for _, line := range strings.Split(string(resp), "\n") {
-
 		matches := reQcsq.FindStringSubmatch(line)
 
-		if len(matches) < 6 {
+		if len(matches) < 2 {
 			continue
 		}
 
 		found = true
 
 		serviceS := matches[1]
-		rssi, _ = strconv.Atoi(matches[2])
-		rsrq, _ = strconv.Atoi(matches[3])
-		rsrp, _ = strconv.Atoi(matches[5])
+
+		matches = reQcsqM1.FindStringSubmatch(line)
+
+		if len(matches) >= 6 {
+			rssi, _ = strconv.Atoi(matches[2])
+			rsrq, _ = strconv.Atoi(matches[3])
+			rsrp, _ = strconv.Atoi(matches[5])
+		}
 
 		service = serviceS == "CAT-M1"
 	}
@@ -118,10 +125,12 @@ func CmdQcsq(port io.ReadWriter) (service bool, rssi, rsrp, rsrq int, err error)
 	return
 }
 
+// possible return values
 // service, rssi, rsrp, sinr, rsrq
+// ERROR (if no connection)
 // +QSPN: "CHN-UNICOM","UNICOM","",0,"46001"
 // +QSPN: "Verizon Wireless","VzW","Hologram",0,"311480"
-var reQspn = regexp.MustCompile(`\+QSPN:\s*"(.*)","(.*)","(.*)",(\d+),"(.*)"`)
+var reQspn = regexp.MustCompile(`\+QSPN:\s*"(.*)"`)
 
 // CmdQspn is used to send the AT+QSPN command
 func CmdQspn(port io.ReadWriter) (network string, err error) {
@@ -134,10 +143,9 @@ func CmdQspn(port io.ReadWriter) (network string, err error) {
 	found := false
 
 	for _, line := range strings.Split(string(resp), "\n") {
-
 		matches := reQspn.FindStringSubmatch(line)
 
-		if len(matches) < 6 {
+		if len(matches) < 2 {
 			continue
 		}
 
@@ -193,7 +201,7 @@ func CmdGetFwVersionBG96(port io.ReadWriter) (string, error) {
 		return "", err
 	}
 
-	for _, line := range strings.Split(string(resp), "\n") {
+	for _, line := range strings.Split(resp, "\n") {
 		match := reCmdVersionBg96.FindString(line)
 		if match != "" {
 			return match, nil
@@ -213,7 +221,7 @@ func CmdGetImei(port io.ReadWriter) (string, error) {
 		return "", err
 	}
 
-	for _, line := range strings.Split(string(resp), "\n") {
+	for _, line := range strings.Split(resp, "\n") {
 		matches := reCmdImei.FindStringSubmatch(line)
 		if len(matches) >= 2 {
 			return matches[1], nil
@@ -234,7 +242,7 @@ func CmdGetSimBg96(port io.ReadWriter) (string, error) {
 		return "", err
 	}
 
-	for _, line := range strings.Split(string(resp), "\n") {
+	for _, line := range strings.Split(resp, "\n") {
 		matches := reCmdSim.FindStringSubmatch(line)
 		if len(matches) >= 2 {
 			return matches[1], nil
@@ -254,7 +262,7 @@ func CmdGGA(port io.ReadWriter) (string, error) {
 		return "", err
 	}
 
-	for _, line := range strings.Split(string(resp), "\n") {
+	for _, line := range strings.Split(resp, "\n") {
 		matches := reQGPSNEMA.FindStringSubmatch(line)
 		if len(matches) >= 2 {
 			return matches[1], nil
@@ -262,4 +270,84 @@ func CmdGGA(port io.ReadWriter) (string, error) {
 	}
 
 	return "", fmt.Errorf("Error parsing AT+QGPSGNMEA response: %v", resp)
+}
+
+// CmdBg96ForceLTE forces BG96 modems to use LTE only, (no 2G)
+func CmdBg96ForceLTE(port io.ReadWriter) error {
+	return CmdOK(port, "AT+QCFG=\"nwscanmode\",3,1")
+}
+
+// BG96ScanMode is a type that defines the varios BG96 scan modes
+type BG96ScanMode int
+
+// valid scan modes
+const (
+	BG96ScanModeUnknown BG96ScanMode = -1
+	BG96ScanModeAuto                 = 0
+	BG96ScanModeGSM                  = 1
+	BG96ScanModeLTE                  = 3
+)
+
+// +QCFG: "nwscanmode",3
+var reBg96ScanMode = regexp.MustCompile(`\++QCFG: "nwscanmode",(\d)`)
+
+// CmdBg96GetScanMode returns the current modem scan mode
+func CmdBg96GetScanMode(port io.ReadWriter) (BG96ScanMode, error) {
+	resp, err := Cmd(port, "AT+QCFG=\"nwscanmode\"")
+	if err != nil {
+		return BG96ScanModeUnknown, err
+	}
+
+	for _, line := range strings.Split(resp, "\n") {
+		matches := reBg96ScanMode.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			mode, err := strconv.Atoi(matches[1])
+			if err != nil {
+				continue
+			}
+
+			return BG96ScanMode(mode), nil
+		}
+	}
+
+	return BG96ScanModeUnknown,
+		fmt.Errorf("Error parsing AT+QGPSGNMEA response: %v", resp)
+}
+
+// TODO, add AT+COPS command to get current carrier
+// AT+COPS?
+// +COPS: 0 (no connection)
+// +COPS: 0,0,"AT&T Hologram",8
+var reCops = regexp.MustCompile(`\+COPS:`)
+var reCopsCon = regexp.MustCompile(`\+COPS:\s*(.*),(.*),"(.+)"`)
+
+// CmdCops is used determine what carrier we are connected to
+func CmdCops(port io.ReadWriter) (carrier string, err error) {
+	var resp string
+	resp, err = Cmd(port, "AT+COPS?")
+	if err != nil {
+		return
+	}
+
+	found := false
+
+	for _, line := range strings.Split(string(resp), "\n") {
+		if reCops.FindStringIndex(line) == nil {
+			continue
+		}
+
+		found = true
+
+		matches := reCopsCon.FindStringSubmatch(line)
+
+		if len(matches) >= 4 {
+			carrier = matches[3]
+		}
+	}
+
+	if !found {
+		err = fmt.Errorf("Error parsing COPS? response: %v", resp)
+	}
+
+	return
 }
