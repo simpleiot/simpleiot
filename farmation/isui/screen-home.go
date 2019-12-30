@@ -84,10 +84,10 @@ func (s *HomeScreen) Render(img draw.Image) {
 
 	// time
 	hour, min, _ := Clock(time.Now())
-	DrawTxtRight(img, hour+":"+min, 108, 1, tightpixel15.Font)
+	DrawTxtRight(img, hour+":"+min, 104, 1, tightpixel15.Font)
 
 	// signal icon
-	x = 20
+	x = 24
 	y = 1
 
 	switch {
@@ -113,7 +113,7 @@ func (s *HomeScreen) Render(img draw.Image) {
 
 	// flow moving average window indicator. On if short window used
 	if s.config.FlowAvgWindowShortUsed {
-		x = 35
+		x = 42
 		y = 1
 		w := 8
 		h := 4
