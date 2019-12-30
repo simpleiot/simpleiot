@@ -1,6 +1,7 @@
 package db
 
 import (
+	"log"
 	"path"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -20,6 +21,26 @@ func NewDb(dataDir string) (*Db, error) {
 	store, err := bolthold.Open(dbFile, 0666, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	// make sure there is one user, otherwise add admin user
+	var users []data.User
+	err = store.Find(&users, nil)
+
+	if len(users) <= 0 {
+		log.Println("Creating admin user")
+		err = store.Insert(
+			bolthold.NextSequence(), data.User{
+				FirstName: "admin",
+				LastName:  "user",
+				Email:     "admin@admin.com",
+				Admin:     true,
+				Pass:      "admin",
+			})
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Db{
