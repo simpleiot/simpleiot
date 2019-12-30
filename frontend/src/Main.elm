@@ -19,7 +19,7 @@ import Bootstrap.Modal as Modal
 import Bootstrap.Navbar as Navbar
 import Browser
 import Color exposing (Color)
-import Html exposing (Html, button, div, h1, h2, h3, h4, img, li, span, text, ul)
+import Html exposing (Html, a, button, div, h1, h2, h3, h4, img, li, span, text, ul)
 import Html.Attributes exposing (class, height, href, placeholder, src, style, type_, value, width)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -151,6 +151,7 @@ type alias Model =
     , gwConfigWifi : GwConfigWifi
     , gwConfigTimer : GwConfigTimer
     , timeZone : Time.Zone
+    , loggedIn : Bool
     }
 
 
@@ -196,6 +197,8 @@ type Msg
     | GwSetTimerFireDuration String
     | GwSetTimerFireTime String
     | GotZone Time.Zone
+    | Login
+    | Logout
 
 
 
@@ -242,6 +245,7 @@ init model =
       , gwConfigWifi = gwConfigWifiInit
       , gwConfigTimer = gwConfigTimerInit
       , timeZone = Time.utc
+      , loggedIn = False
       }
     , Cmd.batch [ navbarCmd, Task.perform GotZone Time.here ]
     )
@@ -587,6 +591,12 @@ update msg model =
         GotZone zone ->
             ( { model | timeZone = zone }, Cmd.none )
 
+        Login ->
+            ( { model | loggedIn = True }, Cmd.none )
+
+        Logout ->
+            ( { model | loggedIn = False }, Cmd.none )
+
 
 processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
 processPortValue portValue model =
@@ -785,13 +795,24 @@ view model =
 
 menu : Model -> Html Msg
 menu model =
-    Navbar.config NavbarMsg
-        |> Navbar.withAnimation
-        |> Navbar.brand [ href "#" ] [ img [ src "/public/simple-iot-app-logo.png", width 83, height 25 ] [] ]
-        |> Navbar.items
+    let
+        loginItem =
+            if model.loggedIn then
+                Navbar.customItem (a [ href "#", onClick Logout ] [ text "Logout" ])
+
+            else
+                Navbar.customItem (a [ href "#", onClick Login ] [ text "Login" ])
+
+        menuItems =
             [ Navbar.itemLink [ href "#", onClick (SetTab TabDevices) ] [ text "Devices" ]
             , Navbar.itemLink [ href "#", onClick (SetTab TabConfigure) ] [ text "Configure" ]
             ]
+    in
+    Navbar.config NavbarMsg
+        |> Navbar.withAnimation
+        |> Navbar.brand [ href "#" ] [ img [ src "/public/simple-iot-app-logo.png", width 83, height 25 ] [] ]
+        |> Navbar.items menuItems
+        |> Navbar.customItems [ loginItem ]
         |> Navbar.view model.navbarState
 
 
@@ -801,7 +822,7 @@ renderDevices model =
         |> Accordion.withAnimation
         |> Accordion.cards
             (List.map
-                renderDevice
+                (renderDevice model.loggedIn)
                 model.devices.devices
             )
         |> Accordion.view model.accordionState
@@ -812,8 +833,8 @@ renderDeviceSummary dev =
     dev.config.description ++ " (" ++ dev.id ++ ")"
 
 
-renderDevice : Device -> Accordion.Card Msg
-renderDevice dev =
+renderDevice : Bool -> Device -> Accordion.Card Msg
+renderDevice canEdit dev =
     Accordion.card
         { id = dev.id
         , options = []
@@ -821,12 +842,16 @@ renderDevice dev =
             Accordion.header []
                 (Accordion.toggle [] [ h4 [] [ text (renderDeviceSummary dev) ] ])
                 |> Accordion.appendHeader
-                    [ button
-                        [ type_ "button"
-                        , onClick (EditDevice dev.id)
-                        , class "btn btn-light"
-                        ]
-                        [ edit Color.black 25 ]
+                    [ if canEdit then
+                        button
+                            [ type_ "button"
+                            , onClick (EditDevice dev.id)
+                            , class "btn btn-light"
+                            ]
+                            [ edit Color.black 25 ]
+
+                      else
+                        text ""
                     ]
         , blocks = [ renderIos dev.state.ios ]
         }
