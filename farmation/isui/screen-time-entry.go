@@ -91,7 +91,7 @@ func (s *TimeEntryScreen) Key(key isdata.Key) TextEntryCommand {
 	case isdata.KeySK2: // cancel
 		s.applyLimits()
 		return TextEntryCommandCancel
-	case isdata.KeyEnter:
+	case isdata.KeyEnter, isdata.KeyEnterHold:
 		s.right()
 	case isdata.KeyUp, isdata.KeyUpHold:
 		s.increment()

@@ -41,7 +41,7 @@ func keypad(out chan interface{}, name string, keyPress, keyHold, keyRelease isd
 	// ticker for scrolling with arrow keys
 	scrollTicker := time.NewTicker(time.Millisecond * 150)
 	switch keyPress {
-	case isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown:
+	case isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown, isdata.KeyEnter:
 	default:
 		scrollTicker.Stop()
 	}
