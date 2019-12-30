@@ -1,8 +1,9 @@
-module Main exposing (Msg(..), main, update, view)
+port module Main exposing (Msg(..), main, update, view)
 
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Alert as Alert
 import Bootstrap.Button as Button
+import Bootstrap.ButtonGroup as ButtonGroup
 import Bootstrap.Card.Block as Block
 import Bootstrap.Form as Form
 import Bootstrap.Form.Checkbox as Checkbox
@@ -18,16 +19,17 @@ import Bootstrap.Modal as Modal
 import Bootstrap.Navbar as Navbar
 import Browser
 import Color exposing (Color)
-import Html exposing (Html, button, div, h1, h4, img, span, text)
+import Html exposing (Html, button, div, h1, h2, h3, h4, img, li, span, text, ul)
 import Html.Attributes exposing (class, height, href, placeholder, src, style, type_, value, width)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Json.Decode as Decode
+import Json.Decode
 import Json.Decode.Pipeline exposing (hardcoded, optional, required)
-import Json.Encode as Encode
+import Json.Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
 import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
+import Task
 import Time
 import Url.Builder as Url
 
@@ -95,12 +97,77 @@ type alias DeviceEdits =
     }
 
 
+type alias GwConfigWifi =
+    { wifiSSID : String
+    , wifiPass : String
+    }
+
+
+gwConfigWifiInit : GwConfigWifi
+gwConfigWifiInit =
+    { wifiSSID = ""
+    , wifiPass = ""
+    }
+
+
+encodeGwConfigWifi : GwConfigWifi -> Json.Encode.Value
+encodeGwConfigWifi config =
+    Json.Encode.object
+        [ ( "cmd", Json.Encode.string <| "configureWifi" )
+        , ( "wifiSSID", Json.Encode.string <| config.wifiSSID )
+        , ( "wifiPass", Json.Encode.string <| config.wifiPass )
+        ]
+
+
+type alias GwConfigTimer =
+    { fireDuration : Int
+    , fireTime : String
+    }
+
+
+gwConfigTimerInit : GwConfigTimer
+gwConfigTimerInit =
+    { fireDuration = 0
+    , fireTime = "00:00"
+    }
+
+
+encodeGwConfigTimer : GwConfigTimer -> Json.Encode.Value
+encodeGwConfigTimer config =
+    Json.Encode.object
+        [ ( "cmd", Json.Encode.string <| "configureTimer" )
+        , ( "fireDuration", Json.Encode.int <| config.fireDuration )
+        , ( "fireTime", Json.Encode.string <| config.fireTime )
+        ]
+
+
 type alias Model =
     { navbarState : Navbar.State
     , accordionState : Accordion.State
     , devices : Devices
     , deviceEdits : DeviceEdits
+    , tab : Tab
+    , gwState : GwState
+    , gwConfigWifi : GwConfigWifi
+    , gwConfigTimer : GwConfigTimer
+    , timeZone : Time.Zone
     }
+
+
+type alias PortCmd =
+    { cmd : String
+    }
+
+
+encodePortCmd : PortCmd -> Json.Encode.Value
+encodePortCmd cmd =
+    Json.Encode.object
+        [ ( "cmd", Json.Encode.string <| cmd.cmd ) ]
+
+
+type Tab
+    = TabDevices
+    | TabConfigure
 
 
 type Msg
@@ -117,6 +184,28 @@ type Msg
     | EditDeviceSave
     | EditDeviceDelete String
     | EditDeviceChangeDescription String
+    | ProcessPortValue (Result Json.Decode.Error PortValue)
+    | SetTab Tab
+    | BLEScan
+    | BLEDisconnect
+    | SetGwWifiSSID String
+    | SetGwWifiPass String
+    | GwWriteWifi
+    | GwWriteTimer
+    | GwFireTimer
+    | GwSetTimerFireDuration String
+    | GwSetTimerFireTime String
+    | GotZone Time.Zone
+
+
+
+-- ports
+
+
+port portIn : (Json.Decode.Value -> msg) -> Sub msg
+
+
+port portOut : Json.Encode.Value -> Cmd msg
 
 
 
@@ -129,6 +218,7 @@ subscriptions model =
         [ Navbar.subscriptions model.navbarState NavbarMsg
         , Accordion.subscriptions model.accordionState AccordionMsg
         , Time.every 1000 Tick
+        , portIn (portValueDecoder >> ProcessPortValue)
         ]
 
 
@@ -147,8 +237,13 @@ init model =
       , accordionState = Accordion.initialState
       , devices = { devices = [], dirty = False }
       , deviceEdits = { device = Nothing, visibility = Modal.hidden }
+      , tab = TabDevices
+      , gwState = gwStateInit
+      , gwConfigWifi = gwConfigWifiInit
+      , gwConfigTimer = gwConfigTimerInit
+      , timeZone = Time.utc
       }
-    , navbarCmd
+    , Cmd.batch [ navbarCmd, Task.perform GotZone Time.here ]
     )
 
 
@@ -160,42 +255,42 @@ urlDevices =
     Url.absolute [ "v1", "devices" ] []
 
 
-responseDecoder : Decode.Decoder Response
+responseDecoder : Json.Decode.Decoder Response
 responseDecoder =
-    Decode.succeed Response
-        |> required "success" Decode.bool
-        |> optional "error" Decode.string ""
-        |> optional "id" Decode.string ""
+    Json.Decode.succeed Response
+        |> required "success" Json.Decode.bool
+        |> optional "error" Json.Decode.string ""
+        |> optional "id" Json.Decode.string ""
 
 
-samplesDecoder : Decode.Decoder (List Sample)
+samplesDecoder : Json.Decode.Decoder (List Sample)
 samplesDecoder =
-    Decode.list sampleDecoder
+    Json.Decode.list sampleDecoder
 
 
-deviceConfigDecoder : Decode.Decoder DeviceConfig
+deviceConfigDecoder : Json.Decode.Decoder DeviceConfig
 deviceConfigDecoder =
-    Decode.map DeviceConfig
-        (Decode.field "description" Decode.string)
+    Json.Decode.map DeviceConfig
+        (Json.Decode.field "description" Json.Decode.string)
 
 
-deviceStateDecoder : Decode.Decoder DeviceState
+deviceStateDecoder : Json.Decode.Decoder DeviceState
 deviceStateDecoder =
-    Decode.map DeviceState
-        (Decode.field "ios" samplesDecoder)
+    Json.Decode.map DeviceState
+        (Json.Decode.field "ios" samplesDecoder)
 
 
-deviceDecoder : Decode.Decoder Device
+deviceDecoder : Json.Decode.Decoder Device
 deviceDecoder =
-    Decode.map3 Device
-        (Decode.field "id" Decode.string)
-        (Decode.field "config" deviceConfigDecoder)
-        (Decode.field "state" deviceStateDecoder)
+    Json.Decode.map3 Device
+        (Json.Decode.field "id" Json.Decode.string)
+        (Json.Decode.field "config" deviceConfigDecoder)
+        (Json.Decode.field "state" deviceStateDecoder)
 
 
-devicesDecoder : Decode.Decoder (List Device)
+devicesDecoder : Json.Decode.Decoder (List Device)
 devicesDecoder =
-    Decode.list deviceDecoder
+    Json.Decode.list deviceDecoder
 
 
 apiGetDevices : Cmd Msg
@@ -206,10 +301,10 @@ apiGetDevices =
         }
 
 
-deviceConfigEncoder : DeviceConfig -> Encode.Value
+deviceConfigEncoder : DeviceConfig -> Json.Encode.Value
 deviceConfigEncoder deviceConfig =
-    Encode.object
-        [ ( "description", Encode.string deviceConfig.description )
+    Json.Encode.object
+        [ ( "description", Json.Encode.string deviceConfig.description )
         ]
 
 
@@ -416,19 +511,273 @@ update msg model =
                     in
                     ( { model | deviceEdits = newDeviceEdits }, Cmd.none )
 
+        ProcessPortValue result ->
+            case result of
+                Ok portValue ->
+                    processPortValue portValue model
+
+                Err err ->
+                    let
+                        _ =
+                            Debug.log "Port value decode error: " err
+                    in
+                    ( model, Cmd.none )
+
+        SetTab tab ->
+            ( { model | tab = tab }, Cmd.none )
+
+        BLEScan ->
+            ( model, PortCmd "scan" |> encodePortCmd |> portOut )
+
+        BLEDisconnect ->
+            ( model, PortCmd "disconnect" |> encodePortCmd |> portOut )
+
+        SetGwWifiSSID ssid ->
+            let
+                gwConfigWifi =
+                    model.gwConfigWifi
+
+                gwConfigWifiNew =
+                    { gwConfigWifi | wifiSSID = ssid }
+            in
+            ( { model | gwConfigWifi = gwConfigWifiNew }, Cmd.none )
+
+        SetGwWifiPass pass ->
+            let
+                gwConfigWifi =
+                    model.gwConfigWifi
+
+                gwConfigWifiNew =
+                    { gwConfigWifi | wifiPass = pass }
+            in
+            ( { model | gwConfigWifi = gwConfigWifiNew }, Cmd.none )
+
+        GwWriteWifi ->
+            ( model, model.gwConfigWifi |> encodeGwConfigWifi |> portOut )
+
+        GwWriteTimer ->
+            ( model, model.gwConfigTimer |> encodeGwConfigTimer |> portOut )
+
+        GwFireTimer ->
+            ( model, PortCmd "fireTimer" |> encodePortCmd |> portOut )
+
+        GwSetTimerFireDuration fireDuration ->
+            let
+                gwConfigTimer =
+                    model.gwConfigTimer
+
+                fireDurationInt =
+                    Maybe.withDefault 0 (String.toInt fireDuration)
+
+                gwConfigTimerNew =
+                    { gwConfigTimer | fireDuration = fireDurationInt }
+            in
+            ( { model | gwConfigTimer = gwConfigTimerNew }, Cmd.none )
+
+        GwSetTimerFireTime fireTime ->
+            let
+                gwConfigTimer =
+                    model.gwConfigTimer
+
+                gwConfigTimerNew =
+                    { gwConfigTimer | fireTime = fireTime }
+            in
+            ( { model | gwConfigTimer = gwConfigTimerNew }, Cmd.none )
+
+        GotZone zone ->
+            ( { model | timeZone = zone }, Cmd.none )
 
 
+processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
+processPortValue portValue model =
+    case portValue of
+        GwStateValue state ->
+            ( { model | gwState = state }, Cmd.none )
+
+
+
+--    case portValue of
+--PixelValue pix ->
 -- View
+
+
+viewDevices : Model -> Html Msg
+viewDevices model =
+    div []
+        [ h1 [] [ text "Devices" ]
+        , renderDevices model
+        , renderEditDevice model.deviceEdits
+        ]
+
+
+viewTimer : Model -> Html Msg
+viewTimer model =
+    if model.gwState.bleConnected then
+        div []
+            [ h3 [] [ text "Configure Timer" ]
+            , Form.group []
+                [ Form.label [] [ text "Time of day to fire" ]
+                , Input.text
+                    [ Input.attrs
+                        [ placeholder "enter time of day to fire"
+                        , onInput GwSetTimerFireTime
+                        , value model.gwConfigTimer.fireTime
+                        , type_ "time"
+                        ]
+                    ]
+                ]
+            , Form.group []
+                [ Form.label [] [ text "Fire duration (seconds)" ]
+                , Input.text
+                    [ Input.attrs
+                        [ placeholder "enter time in seconds"
+                        , onInput GwSetTimerFireDuration
+                        , value (String.fromInt model.gwConfigTimer.fireDuration)
+                        ]
+                    ]
+                ]
+            , Button.button
+                [ Button.outlinePrimary
+                , Button.attrs [ onClick GwWriteTimer ]
+                ]
+                [ text "Save Timer Settings" ]
+            , Button.button
+                [ Button.outlinePrimary
+                , Button.attrs [ onClick GwFireTimer ]
+                ]
+                [ text "Fire timer now" ]
+            ]
+
+    else
+        text ""
+
+
+posixTimeToString : Time.Zone -> Time.Posix -> String
+posixTimeToString zone time =
+    (String.padLeft 2 '0' <| String.fromInt <| Time.toHour zone time)
+        ++ ":"
+        ++ (String.padLeft 2 '0' <| String.fromInt <| Time.toMinute zone time)
+        ++ ":"
+        ++ (String.padLeft 2 '0' <| String.fromInt <| Time.toSecond zone time)
+
+
+viewState : Model -> Html Msg
+viewState model =
+    let
+        connected =
+            if model.gwState.connected then
+                "yes"
+
+            else
+                "no"
+
+        timeDisplay =
+            posixTimeToString model.timeZone (Time.millisToPosix (model.gwState.currentTime * 1000))
+
+        hours =
+            model.gwState.timerFireTime // 60
+
+        min =
+            model.gwState.timerFireTime - hours * 60
+
+        timerFireTimeDisplay =
+            (String.padLeft 2 '0' <| String.fromInt <| hours)
+                ++ ":"
+                ++ (String.padLeft 2 '0' <| String.fromInt <| min)
+    in
+    if model.gwState.bleConnected then
+        div []
+            [ h2 [] [ text "Device state:" ]
+            , ul []
+                [ li [] [ text ("Connected to portal: " ++ connected) ]
+                , li [] [ text ("Model: " ++ model.gwState.model) ]
+                , li [] [ text ("SSID: " ++ model.gwState.ssid) ]
+                , li [] [ text ("Uptime: " ++ String.fromInt model.gwState.uptime) ]
+                , li [] [ text ("Signal: " ++ String.fromInt model.gwState.signal) ]
+                , li [] [ text ("Free Memory: " ++ String.fromInt model.gwState.freeMem) ]
+                , li [] [ text ("Current time: " ++ timeDisplay) ]
+                , li [] [ text ("Timer fire time: " ++ timerFireTimeDisplay) ]
+                , li [] [ text ("Timer fire duration: " ++ String.fromInt model.gwState.timerFireDuration) ]
+                ]
+            , Button.button
+                [ Button.outlineWarning
+                , Button.attrs [ onClick BLEDisconnect ]
+                ]
+                [ text "Disconnect" ]
+            ]
+
+    else
+        div []
+            [ h2 [] [ text "not connected" ]
+            , Button.button
+                [ Button.outlinePrimary
+                , Button.attrs [ onClick BLEScan ]
+                ]
+                [ text "Scan for device" ]
+            ]
+
+
+viewConfigure : Model -> Html Msg
+viewConfigure model =
+    div []
+        [ viewState model
+        , viewConfigWifi model
+        , viewTimer model
+        ]
+
+
+viewConfigWifi : Model -> Html Msg
+viewConfigWifi model =
+    if model.gwState.bleConnected && model.gwState.model == "Argon" then
+        div []
+            [ h3 [] [ text "Configure Wifi" ]
+            , Form.group []
+                [ Form.label [] [ text "WiFi SSID" ]
+                , Input.text
+                    [ Input.attrs
+                        [ placeholder "enter new SSID"
+                        , onInput SetGwWifiSSID
+                        , value model.gwConfigWifi.wifiSSID
+                        ]
+                    ]
+                , Form.label [] [ text "WiFI Pass" ]
+                , Input.text
+                    [ Input.attrs
+                        [ placeholder "enter new password"
+                        , onInput SetGwWifiPass
+                        , value model.gwConfigWifi.wifiPass
+                        ]
+                    ]
+                ]
+            , Button.button
+                [ Button.outlinePrimary
+                , Button.attrs [ onClick GwWriteWifi ]
+                ]
+                [ text "Save WiFi settings" ]
+            ]
+
+    else
+        text ""
 
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        content =
+            case model.tab of
+                TabDevices ->
+                    viewDevices model
+
+                TabConfigure ->
+                    viewConfigure model
+    in
     { title = "Simple • IoT"
     , body =
         [ div []
             [ menu model
-            , mainContent model
-            , renderEditDevice model.deviceEdits
+            , Grid.container []
+                [ content
+                ]
             ]
         ]
     }
@@ -440,18 +789,10 @@ menu model =
         |> Navbar.withAnimation
         |> Navbar.brand [ href "#" ] [ img [ src "/public/simple-iot-app-logo.png", width 83, height 25 ] [] ]
         |> Navbar.items
-            [ Navbar.itemLink [ href "#" ] [ text "Item 1" ]
-            , Navbar.itemLink [ href "#" ] [ text "Item 2" ]
+            [ Navbar.itemLink [ href "#", onClick (SetTab TabDevices) ] [ text "Devices" ]
+            , Navbar.itemLink [ href "#", onClick (SetTab TabConfigure) ] [ text "Configure" ]
             ]
         |> Navbar.view model.navbarState
-
-
-mainContent : Model -> Html Msg
-mainContent model =
-    Grid.container []
-        [ h1 [] [ text "Devices" ]
-        , renderDevices model
-        ]
 
 
 renderDevices : Model -> Html Msg
@@ -551,3 +892,66 @@ renderEditDevice deviceEdits =
                         [ text "Delete" ]
                     ]
                 |> Modal.view deviceEdits.visibility
+
+
+type alias GwState =
+    { model : String
+    , connected : Bool
+    , bleConnected : Bool
+    , ssid : String
+    , pass : String
+    , uptime : Int
+    , signal : Int
+    , freeMem : Int
+    , currentTime : Int
+    , timerFireTime : Int
+    , timerFireDuration : Int
+    }
+
+
+gwStateInit : GwState
+gwStateInit =
+    { model = "unknown"
+    , connected = False
+    , bleConnected = False
+    , ssid = ""
+    , pass = ""
+    , uptime = -1
+    , signal = -1
+    , freeMem = -1
+    , currentTime = 0
+    , timerFireTime = 0
+    , timerFireDuration = 0
+    }
+
+
+type PortValue
+    = GwStateValue GwState
+
+
+gwStateDecoder : Json.Decode.Decoder GwState
+gwStateDecoder =
+    Json.Decode.succeed GwState
+        |> required "model" Json.Decode.string
+        |> required "connected" Json.Decode.bool
+        |> required "bleConnected" Json.Decode.bool
+        |> required "ssid" Json.Decode.string
+        |> required "pass" Json.Decode.string
+        |> required "uptime" Json.Decode.int
+        |> required "signal" Json.Decode.int
+        |> required "freeMem" Json.Decode.int
+        |> required "currentTime" Json.Decode.int
+        |> required "timerFireTime" Json.Decode.int
+        |> required "timerFireDuration" Json.Decode.int
+
+
+portDecoder : Json.Decode.Decoder PortValue
+portDecoder =
+    Json.Decode.oneOf
+        [ Json.Decode.map GwStateValue gwStateDecoder
+        ]
+
+
+portValueDecoder : Json.Decode.Value -> Result Json.Decode.Error PortValue
+portValueDecoder v =
+    Json.Decode.decodeValue portDecoder v
