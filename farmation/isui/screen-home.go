@@ -83,7 +83,7 @@ func (s *HomeScreen) Render(img draw.Image) {
 	s.icons.Render(img)
 
 	// time
-	hour, min, _ := Clock(time.Now())
+	hour, min, _ := Clock(time.Now(), false)
 	DrawTxtRight(img, hour+":"+min, 104, 1, tightpixel15.Font)
 
 	// signal icon

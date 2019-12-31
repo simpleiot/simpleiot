@@ -2,17 +2,14 @@ package isui
 
 import (
 	"image/draw"
-	"strconv"
 	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-type position int
-
 const (
-	posYear position = iota
+	posYear int = iota
 	posMonth
 	posDay
 	posHour
@@ -21,62 +18,40 @@ const (
 
 // TimeEntryScreen is a customized textEntryScreen
 type TimeEntryScreen struct {
-	timeEdit [5]string
-	position position
-	index    int
+	timeEdit time.Time
+	position int
 	softKeys *SoftKeys
 }
 
 // NewTimeEntryScreen returns a new time entry screen
 func NewTimeEntryScreen() *TimeEntryScreen {
 	return &TimeEntryScreen{
-		index:    2, // start index at third digit of year
 		softKeys: NewSoftKeys("done", "cancel"),
 	}
 }
 
 // InitTimeEdit initializes the fields of timeEdit
 func (s *TimeEntryScreen) InitTimeEdit() {
-
-	s.index = 2 // start at 3rd digit of year
-
-	year, month, day := Date(time.Now(), true)
-	hour, min, _ := Clock(time.Now())
-
-	s.timeEdit[posYear] = year
-	s.timeEdit[posMonth] = month
-	s.timeEdit[posDay] = day
-	s.timeEdit[posHour] = hour
-	s.timeEdit[posMin] = min
+	s.timeEdit = time.Now()
 }
 
 //Render renders the text entry screen
 func (s *TimeEntryScreen) Render(img draw.Image) {
 
-	time := s.timeEdit[posYear] + "/" + s.timeEdit[posMonth] + "/" + s.timeEdit[posDay] + " " + s.timeEdit[posHour] + ":" + s.timeEdit[posMin]
+	year, month, day := Date(s.timeEdit, true, true)
+	hour, min, _ := Clock(s.timeEdit, true)
+	timeStr := year + "/" + month + "/" + day + " " + hour + ":" + min
+
 	// Header - time being edited
-	txtStartX := DrawTxtCentered(img, time, 64, 2, tightpixel15.Font) //assign margin, draw text
+	txtStartX := DrawTxtCentered(img, timeStr, 64, 2, tightpixel15.Font) //assign margin, draw text
 	width := 116
 	Rect(img, 64-width/2-2, 0, width+2, 13)
 
 	// cursor
-	var widthString int
-	var dividerChar string
-	for i, str := range s.timeEdit[:s.position] {
-		switch i {
-		case int(posDay):
-			dividerChar = " "
-		case int(posHour):
-			dividerChar = ":"
-		default:
-			dividerChar = "/"
-		}
-		widthString = widthString + tightpixel15.Font.MeasureString(str+dividerChar)
-	}
-	widthString = widthString + tightpixel15.Font.MeasureString(s.timeEdit[s.position][:s.index])
-
-	_, widthChar := tightpixel15.Font.MeasureRune(rune(s.timeEdit[s.position][s.index]))
-	Line(img, txtStartX+widthString+widthChar/2-2, 11, txtStartX+widthString+widthChar/2+2, 11)
+	index := 3
+	index = index + s.position*3
+	widthString := tightpixel15.Font.MeasureString(timeStr[:index])
+	Line(img, txtStartX+widthString, 11, txtStartX+widthString+4, 11)
 
 	// soft keys
 	s.softKeys.Render(img, 0, 54)
@@ -86,13 +61,13 @@ func (s *TimeEntryScreen) Render(img draw.Image) {
 func (s *TimeEntryScreen) Key(key isdata.Key) TextEntryCommand {
 	switch key {
 	case isdata.KeySK1Release: // save
-		s.applyLimits()
 		return TextEntryCommandSave
 	case isdata.KeySK2: // cancel
-		s.applyLimits()
 		return TextEntryCommandCancel
-	case isdata.KeyEnter, isdata.KeyEnterHold:
+	case isdata.KeyEnter, isdata.KeyEnterHold, isdata.KeyRight, isdata.KeyRightHold:
 		s.right()
+	case isdata.KeyLeft, isdata.KeyLeftHold:
+		s.left()
 	case isdata.KeyUp, isdata.KeyUpHold:
 		s.increment()
 	case isdata.KeyDown, isdata.KeyDownHold:
@@ -105,83 +80,55 @@ func (s *TimeEntryScreen) Key(key isdata.Key) TextEntryCommand {
 }
 
 // GetTimeEdit returns the text that is being edited
-func (s *TimeEntryScreen) GetTimeEdit() (int, int, int, int, int) {
-
-	year, _ := strconv.Atoi(s.timeEdit[posYear])
-	month, _ := strconv.Atoi(s.timeEdit[posMonth])
-	day, _ := strconv.Atoi(s.timeEdit[posDay])
-	hour, _ := strconv.Atoi(s.timeEdit[posHour])
-	min, _ := strconv.Atoi(s.timeEdit[posMin])
-
-	return year, month, day, hour, min
+func (s *TimeEntryScreen) GetTimeEdit() time.Time {
+	return s.timeEdit
 }
 
 //ExitEdit resets the position and index
 func (s *TimeEntryScreen) ExitEdit() {
 	s.position = posYear
-	s.index = 0
 }
 
 func (s *TimeEntryScreen) right() {
-	s.index++
-	if s.index >= len(s.timeEdit[s.position]) {
+	s.position++
+	if s.position > posMin {
+		s.position = posMin
+	}
+}
 
-		// check to make sure the edited value is within upper limit
-		s.applyLimits()
-
-		s.index = 0
-		s.position++
-		if s.position > posMin {
-			s.position = posYear
-			// start index at 3rd digit in year
-			// don't allow user to edit first two
-			s.index = 2
-		}
-
+func (s *TimeEntryScreen) left() {
+	s.position--
+	if s.position < posYear {
+		s.position = posYear
 	}
 }
 
 func (s *TimeEntryScreen) increment() {
-	byteEdit := []byte(s.timeEdit[s.position]) // convert to a slice of bytes to replace characters
-	v := int(s.timeEdit[s.position][s.index])
-	v++
-	if v > 57 {
-		v = 48
+	switch s.position {
+	case posYear:
+		s.timeEdit = s.timeEdit.AddDate(1, 0, 0)
+	case posMonth:
+		s.timeEdit = s.timeEdit.AddDate(0, 1, 0)
+	case posDay:
+		s.timeEdit = s.timeEdit.AddDate(0, 0, 1)
+	case posHour:
+		s.timeEdit = s.timeEdit.Add(time.Hour)
+	case posMin:
+		s.timeEdit = s.timeEdit.Add(time.Minute)
 	}
-	byteEdit[s.index] = byte(v)
-	s.timeEdit[s.position] = string(byteEdit)
 }
 
 func (s *TimeEntryScreen) decrement() {
-	byteEdit := []byte(s.timeEdit[s.position])
-	v := int(s.timeEdit[s.position][s.index])
-	v--
-	if v < 48 {
-		v = 57
-	}
-	byteEdit[s.index] = byte(v)
-	s.timeEdit[s.position] = string(byteEdit)
-}
-
-func (s *TimeEntryScreen) applyLimits() {
-	value, _ := strconv.Atoi(s.timeEdit[s.position])
 	switch s.position {
+	case posYear:
+		s.timeEdit = s.timeEdit.AddDate(-1, 0, 0)
 	case posMonth:
-		if value > 12 {
-			s.timeEdit[s.position] = strconv.Itoa(12)
-		}
+		s.timeEdit = s.timeEdit.AddDate(0, -1, 0)
 	case posDay:
-		// FIXME adjust for month
-		if value > 31 {
-			s.timeEdit[s.position] = strconv.Itoa(31)
-		}
+		s.timeEdit = s.timeEdit.AddDate(0, 0, -1)
 	case posHour:
-		if value > 24 {
-			s.timeEdit[s.position] = strconv.Itoa(24)
-		}
+		s.timeEdit = s.timeEdit.Add(-1 * time.Hour)
 	case posMin:
-		if value > 59 {
-			s.timeEdit[s.position] = strconv.Itoa(59)
-		}
+		s.timeEdit = s.timeEdit.Add(-1 * time.Minute)
 	}
 }

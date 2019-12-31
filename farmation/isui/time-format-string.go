@@ -7,7 +7,7 @@ import (
 
 // Date formats a time into strings:
 // yyyy, mm, dd if fullYear is true and yy, mm, dd otherwise
-func Date(t time.Time, fullYear bool) (string, string, string) {
+func Date(t time.Time, fullYear bool, addZero bool) (string, string, string) {
 	y, m, d := t.Date()
 	yS, mS, dS := strconv.Itoa(int(y)), strconv.Itoa(int(m)), strconv.Itoa(int(d))
 
@@ -18,14 +18,23 @@ func Date(t time.Time, fullYear bool) (string, string, string) {
 		}
 	}
 
+	if addZero {
+		return AddZero(yS), AddZero(mS), AddZero(dS)
+	}
+
 	return yS, mS, dS
 }
 
 // Clock formats a time into a clock time: hh, mm, and ss
-func Clock(t time.Time) (string, string, string) {
+func Clock(t time.Time, addZeroHour bool) (string, string, string) {
 	h, m, s := t.Clock()
-	hS, mS, sS := AddZero(strconv.Itoa(h)), AddZero(strconv.Itoa(m)), AddZero(strconv.Itoa(s))
-	return AddZero(hS), AddZero(mS), AddZero(sS)
+	hS, mS, sS := strconv.Itoa(h), strconv.Itoa(m), strconv.Itoa(s)
+
+	if addZeroHour {
+		return AddZero(hS), AddZero(mS), AddZero(sS)
+	}
+
+	return hS, AddZero(mS), AddZero(sS)
 }
 
 // AddZero adds a 0 in front of one digit values

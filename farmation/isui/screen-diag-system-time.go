@@ -2,7 +2,6 @@ package isui
 
 import (
 	"image/draw"
-	"path"
 	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -37,7 +36,9 @@ func (s *DiagSystemTimeScreen) Render(img draw.Image) {
 	Clear(img)
 
 	s.menu.ResetItems()
-	hour, min, _ := Clock(time.Now())
+	year, month, day := Date(time.Now(), false, false)
+	hour, min, _ := Clock(time.Now(), false)
+	s.menu.AddItemStringDown("Date", year+"/"+month+"/"+day)
 	s.menu.AddItemStringDown("Time", hour+":"+min)
 	s.menu.AddItemScreen("Timezone", ScreenIDDiagSystemTimezone)
 
@@ -47,7 +48,7 @@ func (s *DiagSystemTimeScreen) Render(img draw.Image) {
 		Heading(img, "System Time")
 		s.menu.Render(img)
 
-		if s.menu.GetArrowPos() != 0 {
+		if s.menu.GetArrowPos() == 2 {
 			s.softKeys.SetHidden(SK2, true)
 		} else {
 			s.softKeys.SetHidden(SK2, false)
@@ -64,8 +65,8 @@ func (s *DiagSystemTimeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 		case TextEntryCommandNone: // do nothing
 		case TextEntryCommandSave: //save
 			s.exitEdit()
-			timeEdit := s.setTime()
-			return ScreenIDNoChange, isdata.UpdateEditedTime(timeEdit), true
+			system.SetTime(s.timeEntryScreen.GetTimeEdit())
+			return ScreenIDNoChange, nil, true
 		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
 		}
@@ -79,15 +80,16 @@ func (s *DiagSystemTimeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
 			switch s.menu.GetArrowPos() {
-			case 0:
+			case 2:
+			default:
 				s.enterEdit()
 			}
 		case isdata.KeyEnter:
 			switch s.menu.GetArrowPos() {
-			case 0:
-				s.enterEdit()
-			default:
+			case 2:
 				return s.menu.Key(key)
+			default:
+				s.enterEdit()
 			}
 		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
@@ -95,15 +97,6 @@ func (s *DiagSystemTimeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 	}
 
 	return ScreenIDNoChange, nil, true
-}
-
-func (s *DiagSystemTimeScreen) setTime() time.Time {
-	year, month, day, hour, min := s.timeEntryScreen.GetTimeEdit()
-	loc, _ := time.LoadLocation(path.Join("US", s.config.Timezone))
-	timeEdit := time.Date(year, time.Month(month), day, hour, min, 0, 0, loc)
-	system.SetTime(timeEdit)
-
-	return timeEdit
 }
 
 func (s *DiagSystemTimeScreen) exitEdit() {
