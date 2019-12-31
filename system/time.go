@@ -18,5 +18,12 @@ func SetTime(t time.Time) (err error) {
 		return err
 	}
 
+	// Sync the real-time clock
+	err = exec.Command("hwclock", "-w").Run()
+	if err != nil {
+		log.Println("Error syncing real-time clock: ", err)
+		return err
+	}
+
 	return nil
 }
