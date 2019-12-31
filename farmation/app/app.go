@@ -645,7 +645,7 @@ func Run(params Params) {
 
 			case isdata.RestartApp:
 				state.DialogRestartApp.Active = true
-				state.DialogRestartApp.Message = "The timezone was changed.\nThe IS will be restarted."
+				state.DialogRestartApp.Message = "The timezone was changed,\nso the Injector Sentry will\nbe restarted."
 
 			case isdata.ExportData:
 				if !state.DialogExport.Active {
@@ -855,7 +855,10 @@ func Run(params Params) {
 			case isdata.UpdateDialogRestartAppClose:
 				state.DialogRestartApp.Active = false
 				saveState()
-				exec.Command("/etc/init.d/isapp", "restart").Run()
+
+				// Start a detached process versus using Run() and
+				// Creating a child process
+				exec.Command("/etc/init.d/isapp", "restart").Start()
 
 			case isdata.UpdateDialogStateMachineMessage:
 				state.DialogStateMachine.Message = string(m)
