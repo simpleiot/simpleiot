@@ -111,8 +111,8 @@ func CmdQcsq(port io.ReadWriter) (service bool, rssi, rsrp, rsrq int, err error)
 
 		if len(matches) >= 6 {
 			rssi, _ = strconv.Atoi(matches[2])
-			rsrq, _ = strconv.Atoi(matches[3])
-			rsrp, _ = strconv.Atoi(matches[5])
+			rsrp, _ = strconv.Atoi(matches[3])
+			rsrq, _ = strconv.Atoi(matches[5])
 		}
 
 		service = serviceS == "CAT-M1"
