@@ -33,7 +33,7 @@ func NewDiagSystemTimezoneScreen(state *isdata.State, config *isdata.Config) *Di
 	_, zone, _ := system.GetTimezone()
 
 	ret := &DiagSystemTimezoneScreen{
-		softKeys:    NewSoftKeys("back"),
+		softKeys:    NewSoftKeys("done"),
 		state:       state,
 		config:      config,
 		menu:        NewMenu(true, selectedIndex),
@@ -65,7 +65,7 @@ func (s *DiagSystemTimezoneScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 	case isdata.KeySK1Hold: // Home
 		interfaceMsg := s.exit()
 		return ScreenIDHome, interfaceMsg, true
-	case isdata.KeySK1Release: // Back
+	case isdata.KeySK1Release: // Done
 		interfaceMsg := s.exit()
 		return ScreenIDPrev, interfaceMsg, true
 	case isdata.KeyEnter, isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
