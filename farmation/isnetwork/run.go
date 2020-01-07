@@ -4,8 +4,10 @@ import (
 	"log"
 	"math"
 	"runtime"
+	"syscall"
 	"time"
 
+	"github.com/beevik/ntp"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -134,6 +136,11 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	manageTicker := time.NewTicker(time.Second * 10)
 	sendPortal := time.NewTicker(time.Minute * 10)
+
+	// Update the system clock and set at ticker to continue updating
+	// on 1 hour intervals
+	updateTime()
+	updateTimeTicker := time.NewTicker(time.Hour)
 
 	if state.SerialNumber == "" {
 		log.Println("IS Serial is not set, not sending data to portal")
@@ -306,6 +313,28 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				lastReportedFlow = state.FlowRate
 				lastReportedTankVolume = state.CurrentTankVolume
 			}
+
+		case <-updateTimeTicker.C:
+			updateTime()
 		}
 	}
+}
+
+func updateTime() (err error) {
+
+	current, err := ntp.Time("0.pool.ntp.org")
+	if err != nil {
+		log.Println("Error fetching time from ntp.org: ", err)
+		return err
+	}
+	log.Println("Time: ", current)
+
+	tv := syscall.NsecToTimeval(current.UnixNano())
+	err = syscall.Settimeofday(&tv)
+	if err != nil {
+		log.Println("Error synchronizing system clock: ", err)
+		return err
+	}
+
+	return nil
 }
