@@ -139,7 +139,9 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	// Update the system clock and set at ticker to continue updating
 	// on 1 hour intervals
-	updateTime()
+	if interfaceStatus.Connected {
+		updateTime()
+	}
 	updateTimeTicker := time.NewTicker(time.Hour)
 
 	if state.SerialNumber == "" {
@@ -315,7 +317,9 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			}
 
 		case <-updateTimeTicker.C:
-			updateTime()
+			if interfaceStatus.Connected {
+				updateTime()
+			}
 		}
 	}
 }
