@@ -121,6 +121,7 @@ func Run(params Params) {
 
 	if zone != config.Timezone || zonePath != "US" {
 		system.SetTimezone("US", config.Timezone)
+		exec.Command("/etc/init.d/isapp", "restart").Start()
 	}
 
 	// incoming channel to mux
