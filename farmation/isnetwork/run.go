@@ -137,12 +137,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	manageTicker := time.NewTicker(time.Second * 10)
 	sendPortal := time.NewTicker(time.Minute * 10)
 
-	// Update the system clock and set at ticker to continue updating
-	// on 1 hour intervals
-	if interfaceStatus.Connected {
-		updateTime()
-	}
-	updateTimeTicker := time.NewTicker(time.Hour)
+	var lastTimeSync time.Time
 
 	if state.SerialNumber == "" {
 		log.Println("IS Serial is not set, not sending data to portal")
@@ -281,6 +276,13 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				ErrorCnt:        errorCnt,
 			}
 
+			// Time syncing through network
+			if interfaceStatus.Connected &&
+				(lastTimeSync.IsZero() || time.Since(lastTimeSync) >= time.Hour) {
+				updateTime()
+				lastTimeSync = time.Now()
+			}
+
 		case <-sendPortal.C:
 			sendInitialDigitalData()
 			if !interfaceStatus.Connected {
@@ -314,11 +316,6 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			} else {
 				lastReportedFlow = state.FlowRate
 				lastReportedTankVolume = state.CurrentTankVolume
-			}
-
-		case <-updateTimeTicker.C:
-			if interfaceStatus.Connected {
-				updateTime()
 			}
 		}
 	}
