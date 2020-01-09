@@ -91,7 +91,7 @@ type State struct {
 	DialogUnknownVisionState Dialog `json:"dialogUnknownVisionState"`
 
 	// To warn user when restarting app
-	DialogRestartApp Dialog
+	DialogRestartApp Dialog `json:"dialogRestartApp"`
 
 	OSVersion    semver.Version `json:"osVersion"`
 	SerialNumber string         `json:"serialNumber"`
