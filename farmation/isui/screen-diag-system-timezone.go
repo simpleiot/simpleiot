@@ -2,6 +2,7 @@ package isui
 
 import (
 	"image/draw"
+	"log"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/system"
@@ -21,7 +22,10 @@ type DiagSystemTimezoneScreen struct {
 func NewDiagSystemTimezoneScreen(state *isdata.State, config *isdata.Config) *DiagSystemTimezoneScreen {
 
 	// Fetch list of possible US timezones
-	timezones, _ := system.ReadTimezones("US")
+	timezones, err := system.ReadTimezones("US")
+	if err != nil {
+		log.Println("Error reading timezones: ", err)
+	}
 
 	var selectedIndex int
 	for i, timezone := range timezones {
@@ -30,7 +34,10 @@ func NewDiagSystemTimezoneScreen(state *isdata.State, config *isdata.Config) *Di
 		}
 	}
 
-	_, zone, _ := system.GetTimezone()
+	_, zone, err := system.GetTimezone()
+	if err != nil {
+		log.Println("Error fetching current timezone: ", err)
+	}
 
 	ret := &DiagSystemTimezoneScreen{
 		softKeys:    NewSoftKeys("done"),
@@ -75,8 +82,14 @@ func (s *DiagSystemTimezoneScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 }
 
 func (s *DiagSystemTimezoneScreen) exit() interface{} {
+
 	s.menu.ResetArrowPos()
-	system.SetTimezone("US", s.config.Timezone)
+
+	err := system.SetTimezone("US", s.config.Timezone)
+	if err != nil {
+		log.Println("Error setting timezone: ", err)
+	}
+
 	if s.config.Timezone != s.initialZone {
 		return isdata.RestartApp{}
 	}

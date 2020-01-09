@@ -117,10 +117,18 @@ func Run(params Params) {
 	config.Init()
 
 	// Check that the system timezone didn't get messed up
-	zonePath, zone, _ := system.GetTimezone()
+	zonePath, zone, err := system.GetTimezone()
+	if err != nil {
+		log.Println("Error fetching current timezone: ", err)
+	}
 
 	if zone != config.Timezone || zonePath != "US" {
-		system.SetTimezone("US", config.Timezone)
+
+		err = system.SetTimezone("US", config.Timezone)
+		if err != nil {
+			log.Println("Error setting timezone: ", err)
+		}
+
 		exec.Command("/etc/init.d/isapp", "restart").Start()
 	}
 

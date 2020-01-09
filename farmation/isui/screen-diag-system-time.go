@@ -2,6 +2,7 @@ package isui
 
 import (
 	"image/draw"
+	"log"
 	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -65,7 +66,10 @@ func (s *DiagSystemTimeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 		case TextEntryCommandNone: // do nothing
 		case TextEntryCommandSave: //save
 			s.exitEdit()
-			system.SetTime(s.timeEntryScreen.GetTimeEdit())
+			err := system.SetTime(s.timeEntryScreen.GetTimeEdit())
+			if err != nil {
+				log.Println("Error setting system time: ", err)
+			}
 			return ScreenIDNoChange, nil, true
 		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
