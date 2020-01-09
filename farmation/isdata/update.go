@@ -150,6 +150,9 @@ type UpdateTankAlertEnable bool
 // UpdateDevName is used to send a new device name for the IS to app.go
 type UpdateDevName string
 
+// UpdateTimezone is used to update this string value
+type UpdateTimezone string
+
 // UpdateCurrentFieldIndex is used to select a new field
 type UpdateCurrentFieldIndex int
 
@@ -188,6 +191,9 @@ type UpdateDialogArmReqClose struct{}
 
 // UpdateDialogAppClose is used to close the error dialog that originates from app.go
 type UpdateDialogAppClose struct{}
+
+// UpdateDialogRestartAppClose is used to close this dialog
+type UpdateDialogRestartAppClose struct{}
 
 // UpdateDialogUpdateClose is used to close the update dialog
 type UpdateDialogUpdateClose struct{}

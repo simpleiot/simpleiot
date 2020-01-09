@@ -10,6 +10,11 @@ type Config struct {
 	// ID is an alphanumeric name limitted to 16 chars in length
 	ID string
 
+	// Timezone is used to store the current timezone so that the system zone can be set
+	// after the timezone is edited by the user and so the timezone can be set if it is
+	// erased in a system update or otherwise
+	Timezone string
+
 	// FlowRateTarget is set by pressing the arm switch
 	FlowRateTarget float64
 
@@ -307,8 +312,12 @@ func (c *Config) Init() {
 	c.ManualRelayAux = RelayControlStateAuto
 	c.ManualRelayShutdown = RelayControlStateAuto
 
-	if len(c.DeviceName) == 0 {
+	if c.DeviceName == "" {
 		c.DeviceName = "InjectorSentry"
+	}
+
+	if c.Timezone == "" {
+		c.Timezone = "Central"
 	}
 
 	if c.PulsesPerGallon <= 0 {

@@ -331,8 +331,7 @@ func (m *Menu) Render(img draw.Image) {
 				v := truncateMenuVal(item.ValueString)
 				DrawTxt(img, v, 78, y+offsetValues, tightpixel15.Font)
 			case MenuItemTypeFaultHistory:
-				v := truncateMenuVal(item.ValueString)
-				DrawTxt(img, v, 49, y+offsetValues, tightpixel15.Font)
+				DrawTxt(img, item.ValueString, 49, y+offsetValues, tightpixel15.Font)
 			case MenuItemStringRight:
 				v := truncateMenuVal(item.ValueString)
 				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
@@ -459,6 +458,7 @@ func (m *Menu) ResetArrowPos() {
 		return
 	}
 
+	// If the screen is a select list screen
 	if m.items[0].Type == MenuItemTypeSelect {
 		for index, item := range m.items {
 			if item.Selected {

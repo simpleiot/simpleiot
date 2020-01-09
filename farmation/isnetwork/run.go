@@ -4,8 +4,10 @@ import (
 	"log"
 	"math"
 	"runtime"
+	"syscall"
 	"time"
 
+	"github.com/beevik/ntp"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -134,6 +136,8 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	manageTicker := time.NewTicker(time.Second * 10)
 	sendPortal := time.NewTicker(time.Minute * 10)
+
+	var lastTimeSync time.Time
 
 	if state.SerialNumber == "" {
 		log.Println("IS Serial is not set, not sending data to portal")
@@ -272,6 +276,13 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				ErrorCnt:        errorCnt,
 			}
 
+			// Time syncing through network
+			if interfaceStatus.Connected &&
+				(lastTimeSync.IsZero() || time.Since(lastTimeSync) >= time.Hour) {
+				updateTime()
+				lastTimeSync = time.Now()
+			}
+
 		case <-sendPortal.C:
 			sendInitialDigitalData()
 			if !interfaceStatus.Connected {
@@ -308,4 +319,23 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			}
 		}
 	}
+}
+
+func updateTime() (err error) {
+
+	current, err := ntp.Time("0.pool.ntp.org")
+	if err != nil {
+		log.Println("Error fetching time from ntp.org: ", err)
+		return err
+	}
+	log.Println("Time: ", current)
+
+	tv := syscall.NsecToTimeval(current.UnixNano())
+	err = syscall.Settimeofday(&tv)
+	if err != nil {
+		log.Println("Error synchronizing system clock: ", err)
+		return err
+	}
+
+	return nil
 }

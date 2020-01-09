@@ -37,6 +37,8 @@ const (
 	ScreenIDPulseOutputTest
 	ScreenIDDiagLindsay
 	ScreenIDDiagDevName
+	ScreenIDDiagSystemTime
+	ScreenIDDiagSystemTimezone
 	ScreenIDDiagPanel
 	ScreenIDModem
 	ScreenIDDiagIPAddress
@@ -91,6 +93,8 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 	ret.Add(ScreenIDPulseOutputTest, NewPulseOutputTestScreen(state, config))
 	ret.Add(ScreenIDDiagLindsay, NewDiagLindsayScreen(state, config))
 	ret.Add(ScreenIDDiagDevName, NewDiagDevNameScreen(state, config))
+	ret.Add(ScreenIDDiagSystemTime, NewDiagSystemTimeScreen(state, config))
+	ret.Add(ScreenIDDiagSystemTimezone, NewDiagSystemTimezoneScreen(state, config))
 	ret.Add(ScreenIDDiagPanel, NewDiagPanelScreen(state, config))
 	ret.Add(ScreenIDModem, NewModemScreen(state, config))
 	ret.Add(ScreenIDDiagIPAddress, NewDiagIPAddressScreen(state, config))
@@ -106,6 +110,8 @@ func (s *Screens) Render(img draw.Image) {
 	switch {
 	case s.state.DialogReboot.Active:
 		s.dialog.Render(img, s.state.DialogReboot.Message)
+	case s.state.DialogRestartApp.Active:
+		s.dialog.Render(img, s.state.DialogRestartApp.Message)
 	case s.state.DialogUpdate.Active:
 		s.dialog.Render(img, s.state.DialogUpdate.Message)
 	case s.state.DialogInvalidPanel.Active:
@@ -135,6 +141,10 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	// dialogs
 	// Note, below needs to be the same order as in render
 	switch {
+	case s.state.DialogRestartApp.Active:
+		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
+			return ScreenIDNoChange, isdata.UpdateDialogRestartAppClose{}, true
+		}
 	case s.state.DialogUpdate.Active:
 		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 			return ScreenIDNoChange, isdata.UpdateDialogUpdateClose{}, true

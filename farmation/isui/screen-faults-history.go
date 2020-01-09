@@ -2,7 +2,6 @@ package isui
 
 import (
 	"image/draw"
-	"strconv"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -62,9 +61,11 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 				// if fault was more than 24 hrs ago, display date,
 				// else display clock time
 				if time.Since(fault.Time) >= time.Duration(24*time.Hour) {
-					timeDisplay = date(fault.Time, false)
+					year, month, day := Date(fault.Time, false, false)
+					timeDisplay = year + "/" + month + "/" + day
 				} else {
-					timeDisplay = clockTime(fault.Time)
+					hour, min, sec := Clock(fault.Time, true)
+					timeDisplay = hour + ":" + min + ":" + sec
 				}
 
 				s.menu.AddItemFaultHistory(timeDisplay, faultDisplay)
@@ -112,35 +113,4 @@ func (s *FaultsHistoryScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) 
 		}
 	}
 	return ScreenIDNoChange, nil, true
-}
-
-// formats a time into a date string:
-// yyyy/mm/dd if fullYear is true and yy/mm/dd otherwise
-func date(t time.Time, fullYear bool) string {
-	y, m, d := t.Date()
-	yS, mS, dS := strconv.Itoa(int(y)), strconv.Itoa(int(m)), strconv.Itoa(int(d))
-
-	if !fullYear {
-		// if yyyy, make yy
-		if len(yS) > 2 {
-			yS = yS[2:]
-		}
-	}
-
-	return yS + "/" + mS + "/" + dS
-}
-
-// formats a time into a clock time: hh:mm:ss
-func clockTime(t time.Time) string {
-	h, m, s := t.Clock()
-	hS, mS, sS := addZero(strconv.Itoa(h)), addZero(strconv.Itoa(m)), addZero(strconv.Itoa(s))
-	return addZero(hS) + ":" + addZero(mS) + ":" + addZero(sS)
-}
-
-// add 0 in front of one digit values
-func addZero(a string) string {
-	if len(a) <= 1 {
-		a = "0" + a
-	}
-	return a
 }

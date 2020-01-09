@@ -28,6 +28,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
 	"github.com/simpleiot/simpleiot/file"
+	"github.com/simpleiot/simpleiot/system"
 )
 
 // Params are used to configure the app
@@ -114,6 +115,22 @@ func Run(params Params) {
 	state.SerialNumber = params.SerialNumber
 
 	config.Init()
+
+	// Check that the system timezone didn't get messed up
+	zonePath, zone, err := system.GetTimezone()
+	if err != nil {
+		log.Println("Error fetching current timezone: ", err)
+	}
+
+	if zone != config.Timezone || zonePath != "US" {
+
+		err = system.SetTimezone("US", config.Timezone)
+		if err != nil {
+			log.Println("Error setting timezone: ", err)
+		}
+
+		exec.Command("/etc/init.d/isapp", "restart").Start()
+	}
 
 	// incoming channel to mux
 	appChan := make(chan interface{}, 1000)
@@ -509,6 +526,10 @@ func Run(params Params) {
 				config.DeviceName = string(m)
 				saveConfig()
 
+			case isdata.UpdateTimezone:
+				config.Timezone = string(m)
+				saveConfig()
+
 			case isdata.UpdatePulsesPerGallon:
 				config.PulsesPerGallon = int(m)
 				saveConfig()
@@ -626,6 +647,10 @@ func Run(params Params) {
 						log.Println("sync error: ", err)
 					}
 				}
+
+			case isdata.RestartApp:
+				state.DialogRestartApp.Active = true
+				state.DialogRestartApp.Message = "The timezone was changed,\nso the Injector Sentry will\nbe restarted."
 
 			case isdata.ExportData:
 				if !state.DialogExport.Active {
@@ -831,6 +856,14 @@ func Run(params Params) {
 			case isdata.UpdateFaultActiveClearAll:
 				state.FaultsActive = nil
 				saveState()
+
+			case isdata.UpdateDialogRestartAppClose:
+				state.DialogRestartApp.Active = false
+				saveState()
+
+				// Start a detached process versus using Run() and
+				// Creating a child process
+				exec.Command("/etc/init.d/isapp", "restart").Start()
 
 			case isdata.UpdateDialogStateMachineMessage:
 				state.DialogStateMachine.Message = string(m)
