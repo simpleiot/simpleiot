@@ -35,6 +35,17 @@ func (s *TimeEntryScreen) InitTimeEdit() {
 	s.timeEdit = time.Now()
 }
 
+// InitCursorPos initializes the cursor at the given position
+func (s *TimeEntryScreen) InitCursorPos(pos int) {
+	s.position = pos
+	if s.position > posMin {
+		s.position = posMin
+	}
+	if s.position < posYear {
+		s.position = posYear
+	}
+}
+
 //Render renders the text entry screen
 func (s *TimeEntryScreen) Render(img draw.Image) {
 

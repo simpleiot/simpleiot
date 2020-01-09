@@ -80,16 +80,19 @@ func (s *DiagSystemTimeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
 			switch s.menu.GetArrowPos() {
-			case 2:
-			default:
-				s.enterEdit()
+			case 0:
+				s.enterEdit(0)
+			case 1:
+				s.enterEdit(3)
 			}
 		case isdata.KeyEnter:
 			switch s.menu.GetArrowPos() {
-			case 2:
-				return s.menu.Key(key)
+			case 0:
+				s.enterEdit(0)
+			case 1:
+				s.enterEdit(3)
 			default:
-				s.enterEdit()
+				return s.menu.Key(key)
 			}
 		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
@@ -104,7 +107,8 @@ func (s *DiagSystemTimeScreen) exitEdit() {
 	s.timeEntryScreen.ExitEdit()
 }
 
-func (s *DiagSystemTimeScreen) enterEdit() {
+func (s *DiagSystemTimeScreen) enterEdit(cursorPos int) {
 	s.edit = true
 	s.timeEntryScreen.InitTimeEdit()
+	s.timeEntryScreen.InitCursorPos(cursorPos)
 }
