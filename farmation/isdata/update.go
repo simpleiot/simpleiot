@@ -1,7 +1,5 @@
 package isdata
 
-import "time"
-
 // UpdateFieldName is a message used to update the field name in the config
 type UpdateFieldName struct {
 	Index int
@@ -151,9 +149,6 @@ type UpdateTankAlertEnable bool
 
 // UpdateDevName is used to send a new device name for the IS to app.go
 type UpdateDevName string
-
-// UpdateEditedTime is used to update this value
-type UpdateEditedTime time.Time
 
 // UpdateTimezone is used to update this string value
 type UpdateTimezone string
