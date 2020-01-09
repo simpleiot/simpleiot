@@ -1,7 +1,6 @@
 package system
 
 import (
-	"log"
 	"os"
 	"path"
 	"regexp"
@@ -17,13 +16,11 @@ func ReadTimezones(zoneInfoDir string) (listZones []string, err error) {
 
 	file, err := os.Open(path.Join(zoneInfoPath, zoneInfoDir))
 	if err != nil {
-		log.Println("Error opening time zone file, ", err)
 		return nil, err
 	}
 
 	fileInfo, err := file.Readdir(-1)
 	if err != nil {
-		log.Println("Error reading time zones, ", err)
 		return nil, err
 	}
 
@@ -42,7 +39,6 @@ func GetTimezone() (zoneInfoDir, zone string, err error) {
 
 	link, err := os.Readlink(zoneLink)
 	if err != nil {
-		log.Println("Error finding time zone, ", err)
 		return "", "", err
 	}
 
@@ -51,7 +47,6 @@ func GetTimezone() (zoneInfoDir, zone string, err error) {
 	matches := pattern.FindStringSubmatch(link)
 
 	if len(matches) < 2 {
-		log.Println("Couldn't extract timezone: ", link)
 		return "", "", nil
 	}
 
@@ -71,14 +66,12 @@ func SetTimezone(zoneInfoDir, zone string) (err error) {
 	if _, err := os.Lstat(zoneLink); err == nil {
 		err := os.Remove(zoneLink)
 		if err != nil {
-			log.Println("Error removing old time zone link, ", err)
 			return err
 		}
 	}
 
 	err = os.Symlink(path.Join(zoneInfoPath, zoneInfoDir, zone), zoneLink)
 	if err != nil {
-		log.Println("Error linking to new time zone, ", err)
 		return err
 	}
 

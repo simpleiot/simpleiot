@@ -1,7 +1,6 @@
 package system
 
 import (
-	"log"
 	"os/exec"
 	"time"
 )
@@ -14,14 +13,12 @@ func SetTime(t time.Time) (err error) {
 
 	err = exec.Command("date", "-s", tStr).Run()
 	if err != nil {
-		log.Println("Error setting system time: ", err)
 		return err
 	}
 
 	// Sync the real-time clock
 	err = exec.Command("hwclock", "-w").Run()
 	if err != nil {
-		log.Println("Error syncing real-time clock: ", err)
 		return err
 	}
 
