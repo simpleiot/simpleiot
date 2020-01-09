@@ -367,12 +367,18 @@ func (c *Config) Init() {
 		c.AlarmRecognizeSec = 30
 	}
 
-	if len(c.FieldConfigs) < 4 {
-		c.FieldConfigs = []FieldConfig{
-			FieldConfig{"Field One"},
-			FieldConfig{"Field Two"},
-			FieldConfig{"Field Three"},
-			FieldConfig{"Field Four"},
+	// If the FieldConfigs array needs initialized
+	if len(c.FieldConfigs) < 30 {
+
+		// Make sure it is clean
+		c.FieldConfigs = []FieldConfig{}
+
+		// Initialize with 30 fields
+		for i := 0; i < 30; i++ {
+			fieldConfig := FieldConfig{
+				Description: "Field " + strconv.Itoa(i+1),
+			}
+			c.FieldConfigs = append(c.FieldConfigs, fieldConfig)
 		}
 	}
 

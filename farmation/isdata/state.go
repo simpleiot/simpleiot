@@ -225,7 +225,7 @@ type GpsPos struct {
 
 // InitState initializes multiple states
 func InitState(s *State) (dirty bool) {
-	for len(s.FieldStates) < 4 { //not sure that 4 is the right length
+	for len(s.FieldStates) < 30 {
 		s.FieldStates = append(s.FieldStates, [5]ProductState{})
 		dirty = true
 	}
