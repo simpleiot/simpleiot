@@ -165,25 +165,25 @@ is_portal_run() {
 
 ### Google Cloud server
 
+INSTANCE="instance-1"
 
 is_vm_start() {
-  INSTANCE=$1
   gcloud compute instances start $INSTANCE
 }
 
 is_vm_stop() {
   # We have to ssh into the vm to shut it off
-  USER=$1 INSTANCE=$2
+  USER=$1
   gcloud compute ssh $USER@$INSTANCE --command="sudo poweroff"
 }
 
 is_vm_ssh() {
-  USER=$1 INSTANCE=$2
+  USER=$1
   gcloud compute ssh $USER@$INSTANCE
 }
 
 is_vm_scp() {
-  USER=$1 INSTANCE=$2 PATH_CURRENT=$3 PATH_NEW=$4
+  USER=$1 PATH_CURRENT=$2 PATH_NEW=$3
   gcloud compute scp $USER@$INSTANCE:$PATH_CURRENT $PATH_NEW
 }
 
