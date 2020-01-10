@@ -124,11 +124,11 @@ var pins = map[string]*pin{
 }
 
 // GpioInit is used to initialize gpios
-func GpioInit() {
+func GpioInit() error {
 	// Load periph.io drivers:
 	if _, err := host.Init(); err != nil {
 		log.Println("Error initializing periph.io host", err)
-		return
+		return err
 	}
 
 	if runtime.GOARCH == "arm" {
@@ -137,13 +137,20 @@ func GpioInit() {
 			if pins[k].Pin == nil {
 				log.Println("Warning, could init Gpio: ", k, v.Port)
 			} else if !v.Output {
-				pins[k].Pin.In(gpio.PullNoChange, gpio.NoEdge)
+				err := pins[k].Pin.In(gpio.PullNoChange, gpio.NoEdge)
+				if err != nil {
+					log.Println("Error setting pin mode: ", err)
+				}
 			}
 		}
 
-		pins[gpioModemReset].Pin.In(gpio.Float, gpio.NoEdge)
+		err := pins[gpioModemReset].Pin.In(gpio.Float, gpio.NoEdge)
+		if err != nil {
+			log.Println("Error setting pin mode: ", err)
+		}
 	}
 
+	return nil
 }
 
 // GpioOut sets a Gpio value

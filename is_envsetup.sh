@@ -82,7 +82,7 @@ is_build_arm() {
   GOARCH=arm go build -o is_arm farmation/cmd/injector-sentry/main.go || return 1
   GOARCH=arm go build -o lcd_test farmation/cmd/lcd-test/main.go || return 1
   GOARCH=arm go build -o lindsay_sim farmation/cmd/lindsay-sim/main.go || return 1
-  GOARCH=arm go build -o splash_screen farmation/cmd/splash/main.go || return 1
+  GOARCH=arm go build -o issplash farmation/cmd/splash/main.go || return 1
   return 0
 }
 
@@ -165,27 +165,29 @@ is_portal_run() {
 
 ### Google Cloud server
 
-is_start_vm() {
-  # Variable is the machine instance, ex: "instance-1"
-  gcloud compute instances start $1
+
+is_vm_start() {
+  INSTANCE=$1
+  gcloud compute instances start $INSTANCE
 }
 
-is_stop_vm() {
+is_vm_stop() {
   # We have to ssh into the vm to shut it off
-  # First variable is user name
-  # Second is the machine instance, ex: "instance-1"
-  gcloud compute ssh $1@$2 --command="sudo poweroff"
+  USER=$1 INSTANCE=$2
+  gcloud compute ssh $USER@$INSTANCE --command="sudo poweroff"
 }
 
-is_ssh_vm() {
-  # First variable is user name
-  # Second is the machine instance
-  gcloud compute ssh $1@$2
+is_vm_ssh() {
+  USER=$1 INSTANCE=$2
+  gcloud compute ssh $USER@$INSTANCE
 }
 
-is_scp_vm() {
-  # First variable is user name
-  # Second is the machine instance
-  # Third and fourth variables are current file path and new path
-  gcloud compute scp $1@$2:$3 $4
+is_vm_scp() {
+  USER=$1 INSTANCE=$2 PATH_CURRENT=$3 PATH_NEW=$4
+  gcloud compute scp $USER@$INSTANCE:$PATH_CURRENT $PATH_NEW
+}
+
+# For uploading images from server
+is_vm_upload() {
+  gsutil
 }

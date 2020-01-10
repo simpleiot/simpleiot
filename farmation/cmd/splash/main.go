@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image"
 	"log"
@@ -20,6 +21,9 @@ var splash struct {
 }
 
 func main() {
+
+	modeIsInit := flag.Bool("init", true, "initializing or updating")
+	flag.Parse()
 
 	// extract arguments from command
 	args := os.Args
@@ -54,23 +58,45 @@ func main() {
 		}
 	}
 
+	lcd, err := islcd.NewLcd()
+
+	if err != nil {
+		log.Println("Error opening LCD", err)
+		os.Exit(-1)
+	}
+
+	err = isio.GpioInit()
+	if err != nil {
+		log.Println("Error initializing GPIO: ", err)
+		os.Exit(-1)
+	}
+
+	if *modeIsInit {
+		fmt.Println("Initializing")
+		err := lcd.Init()
+		if err != nil {
+			log.Println("Error initializing LCD: ", err)
+			os.Exit(-1)
+		}
+	}
+
 	img := image.NewRGBA(image.Rect(0, 0, 128, 64))
 	isui.Clear(img)
 
-	isio.GpioInit()
-
 	file := "IS_logo_injector.png"
 	// Logo
-	err := isui.DrawPng(img, file, 26, 0)
+	err = isui.DrawPng(img, file, 26, 0)
 	if err != nil {
 		s := fmt.Sprintf("error drawing %s: %s", file, err)
 		fmt.Println(s)
 	}
 
 	// Message
+	fmt.Println(splash.message)
 	isui.DrawTxtCentered(img, splash.message, 64, 54, tightpixel15.Font)
 
 	// Progress bar
+	fmt.Println(splash.progress)
 	isui.Rect(img, 32, 45, 64, 6)
 	if splash.progress > 100 || splash.progress < 0 {
 		splash.progress = 100
@@ -78,20 +104,5 @@ func main() {
 	progressPerc := float64(splash.progress) * 0.01
 	isui.RectFilled(img, 33, 46, int(progressPerc*63), 4)
 
-	lcdOK := false
-	lcd, err := islcd.NewLcd()
-	if err != nil {
-		log.Println("Error opening LCD", err)
-	} else {
-		err := lcd.Init()
-		if err != nil {
-			log.Println("Error initializing LCD: ", err)
-		} else {
-			lcdOK = true
-		}
-	}
-
-	if lcdOK {
-		lcd.Write(isui.ImageToBlt(0, 0, img, false).Data)
-	}
+	lcd.Write(isui.ImageToBlt(0, 0, img, false).Data)
 }
