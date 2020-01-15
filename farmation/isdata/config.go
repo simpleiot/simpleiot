@@ -395,7 +395,7 @@ func (c *Config) Init() {
 	if c.PanelType != PanelTypeStandardPump &&
 		c.PanelType != PanelTypeStandardPivot &&
 		c.PanelType != PanelTypeLindsay {
-		c.PanelType = PanelTypeStandardPump
+		c.PanelType = PanelTypeStandardPivot
 	}
 }
 
