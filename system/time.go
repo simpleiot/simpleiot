@@ -16,8 +16,9 @@ func SetTime(t time.Time) (err error) {
 		return err
 	}
 
-	// Sync the real-time clock
-	err = exec.Command("hwclock", "-w").Run()
+	// Sync the real-time clock (RTC)
+	// Always store time in UTC on the RTC
+	err = exec.Command("hwclock", "-w", "-u").Run()
 	if err != nil {
 		return err
 	}
