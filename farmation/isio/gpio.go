@@ -52,8 +52,10 @@ const (
 	GpioRadioSleep = "GpioRadioSleep"
 	//Gpio reset for NL modem is OC, so don't use don't export
 	//symbol as we don't want this to be generally used
-	gpioModemReset = "GpioModemReset"
-	GpioModemSleep = "GpioModemSleep"
+	//same with modem power on
+	gpioModemReset   = "GpioModemReset"
+	gpioModemPowerOn = "GpioModemPowerOn"
+	GpioModemSleep   = "GpioModemSleep"
 
 	GpioPulseOutput = "GpioPulseOutput"
 	GpioFlow1Pulse  = "GpioFlow1Pulse"
@@ -66,6 +68,15 @@ const (
 	GpioLcdPinSel = "GpioLcdPinSel"
 	GpioLcdReset  = "GpioLcdReset"
 	GpioLcdPwm    = "GpioLcdPwm"
+
+	// HWID
+	GpioHwID0 = "GpioHwID0"
+	GpioHwID1 = "GpioHwID1"
+	GpioHwID2 = "GpioHwID2"
+
+	// Regulator valve
+	GpioRegValve1 = "GpioRegValve1"
+	GpioRegValve2 = "GpioRegValve2"
 )
 
 type pin struct {
@@ -106,8 +117,9 @@ var pins = map[string]*pin{
 	GpioRadioReset: &pin{"PB24", true, true, nil},
 	GpioRadioSleep: &pin{"PB30", false, true, nil},
 
-	gpioModemReset: &pin{"PA22", false, false, nil},
-	GpioModemSleep: &pin{"PA27", false, true, nil},
+	gpioModemReset:   &pin{"PA22", false, false, nil},
+	GpioModemSleep:   &pin{"PA27", false, true, nil},
+	gpioModemPowerOn: &pin{"PA31", false, false, nil},
 
 	// we are controlling pulse output in kernel now
 	//GpioPulseOutput: &pin{"PB7", true, true, nil},
@@ -121,6 +133,11 @@ var pins = map[string]*pin{
 	GpioLcdPinSel: &pin{"PC5", false, true, nil},
 	GpioLcdReset:  &pin{"PC8", true, true, nil},
 	GpioLcdPwm:    &pin{"PC3", false, true, nil},
+
+	// HWID
+	GpioHwID0: &pin{"PB11", false, false, nil},
+	GpioHwID1: &pin{"PC18", false, false, nil},
+	GpioHwID2: &pin{"PC16", false, false, nil},
 }
 
 // GpioInit is used to initialize gpios
@@ -146,7 +163,28 @@ func GpioInit() error {
 
 		err := pins[gpioModemReset].Pin.In(gpio.Float, gpio.NoEdge)
 		if err != nil {
-			log.Println("Error setting pin mode: ", err)
+			log.Println("Error setting pin mode for modem reset: ", err)
+		}
+
+		// set modem on signal low to always power on the modem
+		err = pins[gpioModemPowerOn].Pin.Out(gpio.Low)
+		if err != nil {
+			log.Println("Error setting pin mode for modem power on: ", err)
+		}
+
+		err = pins[GpioHwID0].Pin.In(gpio.Float, gpio.NoEdge)
+		if err != nil {
+			log.Println("Error setting pin mode for HwID0: ", err)
+		}
+
+		err = pins[GpioHwID1].Pin.In(gpio.Float, gpio.NoEdge)
+		if err != nil {
+			log.Println("Error setting pin mode for HwID1: ", err)
+		}
+
+		err = pins[GpioHwID2].Pin.In(gpio.Float, gpio.NoEdge)
+		if err != nil {
+			log.Println("Error setting pin mode for HwID2: ", err)
 		}
 	}
 
@@ -199,4 +237,27 @@ func ResetModem() error {
 	p.Pin.In(gpio.Float, gpio.NoEdge)
 
 	return nil
+}
+
+// GetHwID returns the hardware ID/Version
+func GetHwID() int {
+	if runtime.GOARCH != "arm" {
+		return 99
+	}
+
+	ver := 0
+
+	if GpioRead(GpioHwID0) {
+		ver += 1 << 0
+	}
+
+	if GpioRead(GpioHwID1) {
+		ver += 1 << 1
+	}
+
+	if GpioRead(GpioHwID2) {
+		ver += 1 << 2
+	}
+
+	return ver
 }

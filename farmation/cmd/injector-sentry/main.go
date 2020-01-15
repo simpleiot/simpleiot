@@ -40,6 +40,7 @@ func main() {
 	flagSerialNumber := flag.String("serialNumber", "", "IS serial number")
 	flagSetIsSN := flag.String("setSN", "", "Set IS serial number")
 	flagEnableAuxRelay := flag.Bool("enableAuxRelay", false, "enable aux relay")
+	flagHwID := flag.Bool("hwId", false, "display HW ID")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -57,6 +58,12 @@ func main() {
 		isio.GpioInit()
 		diag.RunSingle(*flagDiagSingle)
 		return
+	}
+
+	if *flagHwID {
+		isio.GpioInit()
+		fmt.Println("HW ID: ", isio.GetHwID())
+		os.Exit(0)
 	}
 
 	if *flagReadPressure {
