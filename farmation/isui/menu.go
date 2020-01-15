@@ -17,7 +17,7 @@ const (
 	MenuItemString
 	MenuItemTypeFaultHistory
 	MenuItemStringRight
-	MenuItemStringIP
+	MenuItemStringIP // UNUSED
 	MenuItemTypeStringDown
 	MenuItemTypeInt
 	MenuItemTypeFloat
@@ -183,6 +183,7 @@ func (m *Menu) AddItemStringRight(desc string, value string) {
 // AddItemStringIP is customized for displaying an IP address
 // The difference from AddItemStringDown is that this type is truncated from the beginning
 // of the string instead of the end, displaying the last part of the string.
+// UNUSED
 func (m *Menu) AddItemStringIP(desc string, value string) {
 	m.items = append(m.items, MenuItem{
 		Description: desc,
@@ -335,7 +336,7 @@ func (m *Menu) Render(img draw.Image) {
 			case MenuItemStringRight:
 				v := truncateMenuVal(item.ValueString)
 				DrawTxtRight(img, v, 120, y+1+offsetValues, tightpixel15.Font)
-			case MenuItemStringIP:
+			case MenuItemStringIP: // UNUSED
 				v := truncateMenuValBeginning(item.ValueString)
 				DrawTxt(img, v, 78, y+1+offsetValues, tightpixel15.Font)
 			case MenuItemTypeStringDown:
