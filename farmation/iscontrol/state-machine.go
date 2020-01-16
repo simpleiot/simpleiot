@@ -60,8 +60,8 @@ const (
 	disarm
 	shutdown1
 	shutdownMonitor1
-	shutdown2
-	shutdownMonitor2
+	shutdown2        // UNUSED
+	shutdownMonitor2 // UNUSED
 	shutdownDialog
 	shutdownDialogAck
 	monitorShutdownEnd
@@ -400,27 +400,6 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		}
 
 	case shutdownMonitor1:
-
-		sm.CurrentLedState = LedRed
-
-		if sm.elapsed() > 10*time.Second {
-			if sm.state.InputWaterOn == isdata.InputStateOn {
-				sm.setState(shutdown2)
-			} else {
-				sm.setState(shutdownDialog)
-			}
-		}
-
-	case shutdown2:
-
-		sm.RelayShutdown = true
-		sm.CurrentLedState = LedRed
-
-		if sm.elapsed() > 10*time.Second {
-			sm.setState(shutdownMonitor2)
-		}
-
-	case shutdownMonitor2:
 
 		sm.CurrentLedState = LedRed
 
