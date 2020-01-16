@@ -23,7 +23,7 @@ type StateMachine struct {
 	lastPresDialogDisplayed time.Time
 	waitingWaterDisplayed   bool
 	waitingIrrDisplayed     bool
-	tankAlertDisplayed      bool
+	//tankAlertDisplayed      bool
 
 	// state machine static outputs
 	RelayShutdown   bool
@@ -193,7 +193,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			}
 		}
 
-		if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
+		/*if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
 			sm.tankAlertDisplayed = false
 		}
 
@@ -203,7 +203,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
 			return append(ret, isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level"))
-		}
+		}*/
 
 	// below states are for monitor/shutdown
 	case standby:
@@ -215,7 +215,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			sm.setState(monitoringFlow)
 		}
 
-		if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
+		/*if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
 			sm.tankAlertDisplayed = false
 		}
 
@@ -225,7 +225,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
 			return append(ret, isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level"))
-		}
+		}*/
 
 	case monitoringFlow:
 		controlInjector()
@@ -261,15 +261,15 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			sm.waitingIrrDisplayed = false
 		}
 
-		if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
+		/*if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
 			sm.tankAlertDisplayed = false
-		}
+		}*/
 
 		// Display dialogs
 		waterMsg := "Waiting for water"
 		irrMsg := "Waiting for irrigator"
 		lowPresMsg := "Pressure below\nshutdown threshold"
-		lowTankMsg := "Tank volume below\nalert level"
+		//lowTankMsg := "Tank volume below\nalert level"
 
 		if sm.state.InputWaterOn == isdata.InputStateOff &&
 			!sm.waitingWaterDisplayed &&
@@ -294,13 +294,13 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			return append(ret, isdata.UpdateDialogStateMachineMessage(lowPresMsg))
 		}
 
-		if sm.config.TankAlertOn &&
+		/*if sm.config.TankAlertOn &&
 			int(sm.state.CurrentTankVolume) <= sm.config.TankAlertVolume &&
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
 			return append(ret, isdata.UpdateDialogStateMachineMessage(lowTankMsg))
-		}
+		}*/
 
 		// Close dialogs if problem goes away
 		if sm.state.InputWaterOn != isdata.InputStateOff &&
