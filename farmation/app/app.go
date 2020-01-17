@@ -676,9 +676,9 @@ func Run(params Params) {
 				state.DialogExport.Active = true
 				state.DialogExport.Message = "Error writing to USB disk"
 
-			case isdata.UpdateTankAlertVolume:
-				config.TankAlertVolume = int(m)
-				saveConfig()
+			/*case isdata.UpdateTankAlertVolume:
+			config.TankAlertVolume = int(m)
+			saveConfig()*/
 
 			case isdata.UpdateTankCapacity:
 				config.TankCapacity = int(m)

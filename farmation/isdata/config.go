@@ -64,10 +64,10 @@ type Config struct {
 
 	NetworkConfig   NetworkConfig
 	TankCapacity    int
-	TankAlertVolume int
-	TankAlertOn     bool
-	FlowMeterPPG    int // how many pulses in one US gallon
-	FlowMeterMaxflo int // Meter's maximum flow rate in GPM or LPM
+	TankAlertVolume int  // UNUSED
+	TankAlertOn     bool // UNUSED
+	FlowMeterPPG    int  // how many pulses in one US gallon
+	FlowMeterMaxflo int  // Meter's maximum flow rate in GPM or LPM
 
 	// Logging options
 	LogPulseData    bool

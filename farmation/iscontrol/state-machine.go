@@ -23,7 +23,7 @@ type StateMachine struct {
 	lastPresDialogDisplayed time.Time
 	waitingWaterDisplayed   bool
 	waitingIrrDisplayed     bool
-	tankAlertDisplayed      bool
+	//tankAlertDisplayed      bool
 
 	// state machine static outputs
 	RelayShutdown   bool
@@ -57,11 +57,10 @@ const (
 	standby
 	monitoringFlow
 	shutdownStart
-	disarm
 	shutdown1
 	shutdownMonitor1
-	shutdown2
-	shutdownMonitor2
+	shutdown2        // UNUSED
+	shutdownMonitor2 // UNUSED
 	shutdownDialog
 	shutdownDialogAck
 	monitorShutdownEnd
@@ -77,8 +76,6 @@ func (s state) String() string {
 		return "standby"
 	case monitoringFlow:
 		return "monitoringFlow"
-	case disarm:
-		return "disarm"
 	case shutdown1:
 		return "shutdown1"
 	case shutdownMonitor1:
@@ -193,7 +190,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			}
 		}
 
-		if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
+		/*if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
 			sm.tankAlertDisplayed = false
 		}
 
@@ -203,7 +200,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
 			return append(ret, isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level"))
-		}
+		}*/
 
 	// below states are for monitor/shutdown
 	case standby:
@@ -215,7 +212,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			sm.setState(monitoringFlow)
 		}
 
-		if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
+		/*if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
 			sm.tankAlertDisplayed = false
 		}
 
@@ -225,7 +222,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
 			return append(ret, isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level"))
-		}
+		}*/
 
 	case monitoringFlow:
 		controlInjector()
@@ -261,15 +258,15 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			sm.waitingIrrDisplayed = false
 		}
 
-		if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
+		/*if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
 			sm.tankAlertDisplayed = false
-		}
+		}*/
 
 		// Display dialogs
 		waterMsg := "Waiting for water"
 		irrMsg := "Waiting for irrigator"
 		lowPresMsg := "Pressure below\nshutdown threshold"
-		lowTankMsg := "Tank volume below\nalert level"
+		//lowTankMsg := "Tank volume below\nalert level"
 
 		if sm.state.InputWaterOn == isdata.InputStateOff &&
 			!sm.waitingWaterDisplayed &&
@@ -294,13 +291,13 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			return append(ret, isdata.UpdateDialogStateMachineMessage(lowPresMsg))
 		}
 
-		if sm.config.TankAlertOn &&
+		/*if sm.config.TankAlertOn &&
 			int(sm.state.CurrentTankVolume) <= sm.config.TankAlertVolume &&
 			!sm.tankAlertDisplayed &&
 			!sm.state.DialogStateMachine.Active {
 			sm.tankAlertDisplayed = true
 			return append(ret, isdata.UpdateDialogStateMachineMessage(lowTankMsg))
-		}
+		}*/
 
 		// Close dialogs if problem goes away
 		if sm.state.InputWaterOn != isdata.InputStateOff &&
@@ -336,7 +333,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		case sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
-			sm.setState(disarm)
+			sm.setState(shutdown1)
 			return append(ret, data.Sample{
 				Type:  isdata.SampleTypeFaultFlowOff,
 				Time:  time.Now(),
@@ -352,7 +349,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			lowPressure &&
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodPressure) >= alarmRecognizeDuration:
-			sm.setState(disarm)
+			sm.setState(shutdown1)
 
 			// if flow is off target as well, prioritize this fault
 			if sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
@@ -381,22 +378,19 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			})
 		}
 
-	case disarm:
-
-		sm.CurrentLedState = LedRed
-
-		if sm.config.Arm {
-			return append(ret, isdata.UpdateDisarm{})
-		}
-		sm.setState(shutdown1)
-
 	case shutdown1:
 
 		sm.RelayShutdown = true
 		sm.CurrentLedState = LedRed
 
-		if sm.elapsed() > 10*time.Second {
+		if sm.elapsed() > 12*time.Second {
 			sm.setState(shutdownMonitor1)
+		}
+
+		// If user toggles the arm switch, shutdown cycle is aborted
+		if !sm.config.Arm {
+			sm.setState(standby)
+			return append(ret, isdata.UpdateDialogStateMachineMessage("User disarmed system.\nShutdown aborted."))
 		}
 
 	case shutdownMonitor1:
@@ -404,28 +398,13 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		sm.CurrentLedState = LedRed
 
 		if sm.elapsed() > 10*time.Second {
-			if sm.state.InputWaterOn == isdata.InputStateOn {
-				sm.setState(shutdown2)
-			} else {
-				sm.setState(shutdownDialog)
-			}
-		}
-
-	case shutdown2:
-
-		sm.RelayShutdown = true
-		sm.CurrentLedState = LedRed
-
-		if sm.elapsed() > 10*time.Second {
-			sm.setState(shutdownMonitor2)
-		}
-
-	case shutdownMonitor2:
-
-		sm.CurrentLedState = LedRed
-
-		if sm.elapsed() > 10*time.Second {
 			sm.setState(shutdownDialog)
+		}
+
+		// If user toggles the arm switch, shutdown cycle is aborted
+		if !sm.config.Arm {
+			sm.setState(standby)
+			return append(ret, isdata.UpdateDialogStateMachineMessage("User disarmed system.\nShutdown aborted."))
 		}
 
 	case shutdownDialog:
@@ -433,6 +412,9 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		sm.CurrentLedState = LedRed
 
 		sm.setState(shutdownDialogAck)
+
+		ret = append(ret, isdata.UpdateDisarm{})
+
 		if sm.state.InputWaterOn == isdata.InputStateOn {
 			return append(ret, isdata.UpdateDialogStateMachineMessage("Failed to shutdown irrigator"), data.Sample{
 				Type: isdata.SampleTypeFaultShutdown,

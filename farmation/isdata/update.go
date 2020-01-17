@@ -132,8 +132,8 @@ type UpdateManualHighAlarmGPH float64
 // UpdateAlarmRecognizeSec is used to send a new time
 type UpdateAlarmRecognizeSec float64
 
-// UpdateTankAlertVolume ...
-type UpdateTankAlertVolume int
+// UpdateTankAlertVolume UNUSED
+//type UpdateTankAlertVolume int
 
 // UpdateTankCapacity is used to set a new tank size from the tank menu
 type UpdateTankCapacity int

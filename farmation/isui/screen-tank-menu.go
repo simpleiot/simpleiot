@@ -37,10 +37,10 @@ func (s *TankMenuScreen) Render(img draw.Image) {
 	} else {
 		s.menu.ResetItems()
 		s.menu.AddItemInt("Current Volume", int(s.state.CurrentTankVolume))
-		s.menu.AddItemInt("Alert Level", int(s.config.TankAlertVolume))
+		//s.menu.AddItemInt("Alert Level", int(s.config.TankAlertVolume))
 		s.menu.AddItemInt("Tank Size", int(s.config.TankCapacity))
-		s.menu.AddItemOnOff("Alert On/Off", s.config.TankAlertOn,
-			isdata.UpdateTankAlertEnable(!s.config.TankAlertOn))
+		//s.menu.AddItemOnOff("Alert On/Off", s.config.TankAlertOn,
+		//isdata.UpdateTankAlertEnable(!s.config.TankAlertOn))
 
 		s.menu.Render(img)
 
@@ -67,9 +67,9 @@ func (s *TankMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			switch s.menu.GetArrowPos() {
 			case 0:
 				return ScreenIDNoChange, isdata.UpdateCurrentTankVolume(value), true
+			/*case 1:
+			return ScreenIDNoChange, isdata.UpdateTankAlertVolume(value), true*/
 			case 1:
-				return ScreenIDNoChange, isdata.UpdateTankAlertVolume(value), true
-			case 2:
 				return ScreenIDNoChange, isdata.UpdateTankCapacity(value), true
 			}
 		case TextEntryCommandCancel: // cancel
@@ -85,19 +85,14 @@ func (s *TankMenuScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Full (tank is full)
 			return ScreenIDNoChange, isdata.UpdateTankFull{}, true
-		/*case isdata.KeySK3: // Edit
-		switch s.menu.GetArrowPos() {
-		case 3: // an on/off selection -- do nothing
-		default:
-			s.enterEdit()
-		}*/
 		case isdata.KeyEnter: // Edit
-			switch s.menu.GetArrowPos() {
+			s.enterEdit()
+			/*switch s.menu.GetArrowPos() {
 			case 3:
 				return s.menu.Key(key)
 			default:
 				s.enterEdit()
-			}
+			}*/
 		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
 		}
@@ -119,10 +114,10 @@ func (s *TankMenuScreen) enterEdit() {
 	case 0:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.state.CurrentTankVolume)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Current Volume"
+	/*case 1:
+	s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.TankAlertVolume)) // convert integer value into string to edit w/ text entry screen
+	s.textEntryScreen.headerLabel = "Alert Level"*/
 	case 1:
-		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.TankAlertVolume)) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Alert Level"
-	case 2:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.TankCapacity)) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Tank Size"
 	}
