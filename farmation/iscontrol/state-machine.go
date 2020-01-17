@@ -57,7 +57,6 @@ const (
 	standby
 	monitoringFlow
 	shutdownStart
-	disarm
 	shutdown1
 	shutdownMonitor1
 	shutdown2        // UNUSED
@@ -77,8 +76,6 @@ func (s state) String() string {
 		return "standby"
 	case monitoringFlow:
 		return "monitoringFlow"
-	case disarm:
-		return "disarm"
 	case shutdown1:
 		return "shutdown1"
 	case shutdownMonitor1:
@@ -336,7 +333,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		case sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
-			sm.setState(disarm)
+			sm.setState(shutdown1)
 			return append(ret, data.Sample{
 				Type:  isdata.SampleTypeFaultFlowOff,
 				Time:  time.Now(),
@@ -352,7 +349,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			lowPressure &&
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodPressure) >= alarmRecognizeDuration:
-			sm.setState(disarm)
+			sm.setState(shutdown1)
 
 			// if flow is off target as well, prioritize this fault
 			if sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
@@ -381,15 +378,6 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			})
 		}
 
-	case disarm:
-
-		sm.CurrentLedState = LedRed
-
-		if sm.config.Arm {
-			return append(ret, isdata.UpdateDisarm{})
-		}
-		sm.setState(shutdown1)
-
 	case shutdown1:
 
 		sm.RelayShutdown = true
@@ -397,6 +385,12 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		if sm.elapsed() > 12*time.Second {
 			sm.setState(shutdownMonitor1)
+		}
+
+		// If user toggles the arm switch, shutdown cycle is aborted
+		if !sm.config.Arm {
+			sm.setState(standby)
+			return append(ret, isdata.UpdateDialogStateMachineMessage("User disarmed system.\nShutdown aborted."))
 		}
 
 	case shutdownMonitor1:
@@ -407,11 +401,20 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			sm.setState(shutdownDialog)
 		}
 
+		// If user toggles the arm switch, shutdown cycle is aborted
+		if !sm.config.Arm {
+			sm.setState(standby)
+			return append(ret, isdata.UpdateDialogStateMachineMessage("User disarmed system.\nShutdown aborted."))
+		}
+
 	case shutdownDialog:
 
 		sm.CurrentLedState = LedRed
 
 		sm.setState(shutdownDialogAck)
+
+		ret = append(ret, isdata.UpdateDisarm{})
+
 		if sm.state.InputWaterOn == isdata.InputStateOn {
 			return append(ret, isdata.UpdateDialogStateMachineMessage("Failed to shutdown irrigator"), data.Sample{
 				Type: isdata.SampleTypeFaultShutdown,
