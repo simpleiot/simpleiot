@@ -395,7 +395,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		sm.RelayShutdown = true
 		sm.CurrentLedState = LedRed
 
-		if sm.elapsed() > 10*time.Second {
+		if sm.elapsed() > 12*time.Second {
 			sm.setState(shutdownMonitor1)
 		}
 
