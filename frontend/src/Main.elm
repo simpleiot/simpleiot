@@ -708,6 +708,7 @@ viewState model =
                 , li [] [ text ("Current time: " ++ timeDisplay) ]
                 , li [] [ text ("Timer fire time: " ++ timerFireTimeDisplay) ]
                 , li [] [ text ("Timer fire duration: " ++ String.fromInt model.gwState.timerFireDuration) ]
+                , li [] [ text ("Timer fire count: " ++ String.fromInt model.gwState.timerFireCount) ]
                 ]
             , Button.button
                 [ Button.outlineWarning
@@ -931,6 +932,7 @@ type alias GwState =
     , currentTime : Int
     , timerFireTime : Int
     , timerFireDuration : Int
+    , timerFireCount : Int
     }
 
 
@@ -947,6 +949,7 @@ gwStateInit =
     , currentTime = 0
     , timerFireTime = 0
     , timerFireDuration = 0
+    , timerFireCount = 0
     }
 
 
@@ -968,6 +971,7 @@ gwStateDecoder =
         |> required "currentTime" Json.Decode.int
         |> required "timerFireTime" Json.Decode.int
         |> required "timerFireDuration" Json.Decode.int
+        |> required "timerFireCount" Json.Decode.int
 
 
 portDecoder : Json.Decode.Decoder PortValue

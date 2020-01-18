@@ -12,6 +12,7 @@ const charTimerFireDurationUuid = "fdcf0009-3fed-4ed2-84e6-04bbb9ae04d4";
 const charTimerFireUuid = "fdcf000a-3fed-4ed2-84e6-04bbb9ae04d4";
 const charCurrentTimeUuid = "fdcf000b-3fed-4ed2-84e6-04bbb9ae04d4";
 const charTimerFireTimeUuid = "fdcf000c-3fed-4ed2-84e6-04bbb9ae04d4";
+const charTimerFireCountUuid = "fdcf000d-3fed-4ed2-84e6-04bbb9ae04d4";
 
 export class BLE {
   constructor(stateChanged) {
@@ -28,6 +29,7 @@ export class BLE {
     this.freeMem = 0;
     this.connected = false;
     this.currentTime = 0;
+    this.timerFireCount = 0;
   }
 
   onDisconnected() {
@@ -66,6 +68,12 @@ export class BLE {
   onFreeMemChanged(event) {
     let {value} = event.target;
     this.freeMem = value.getInt32();
+    this.stateChanged();
+  }
+
+  onTimerFireCountChanged(event) {
+    let {value} = event.target;
+    this.timerFireCount = value.getInt32();
     this.stateChanged();
   }
 
@@ -136,7 +144,8 @@ export class BLE {
       freeMem: this.freeMem,
       currentTime: this.currentTime,
       timerFireDuration: 0,
-      timerFireTime: 0
+      timerFireTime: 0,
+      timerFireCount: this.timerFireCount
     };
 
     if (this.device && this.device.gatt.connected) {
@@ -239,6 +248,17 @@ export class BLE {
         "characteristicvaluechanged",
         this.onFreeMemChanged.bind(this)
       );
+
+      try {
+        const timerFireCountChar = await this.service.getCharacteristic(charTimerFireCountUuid);
+        await timerFireCountChar.startNotifications();
+        timerFireCountChar.addEventListener(
+          "characteristicvaluechanged",
+          this.onTimerFireCountChanged.bind(this)
+        );
+      } catch (e) {
+        console.log("Error getting timerCountChar");
+      }
 
       const currentTimeChar = await this.service.getCharacteristic(charCurrentTimeUuid);
       await currentTimeChar.startNotifications();
