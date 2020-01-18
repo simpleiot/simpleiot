@@ -28,6 +28,7 @@ import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Json.Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
+import Round
 import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
 import Task
 import Time
@@ -694,6 +695,13 @@ viewState model =
             (String.padLeft 2 '0' <| String.fromInt <| hours)
                 ++ ":"
                 ++ (String.padLeft 2 '0' <| String.fromInt <| min)
+
+        uptimeDisplay =
+            if model.gwState.uptime < 60 * 60 * 24 then
+                Round.round 2 (toFloat model.gwState.uptime / (60 * 60)) ++ " hours"
+
+            else
+                Round.round 2 (toFloat model.gwState.uptime / (60 * 60 * 24)) ++ " days"
     in
     if model.gwState.bleConnected then
         div []
@@ -702,7 +710,7 @@ viewState model =
                 [ li [] [ text ("Connected to portal: " ++ connected) ]
                 , li [] [ text ("Model: " ++ model.gwState.model) ]
                 , li [] [ text ("SSID: " ++ model.gwState.ssid) ]
-                , li [] [ text ("Uptime: " ++ String.fromInt model.gwState.uptime) ]
+                , li [] [ text ("Uptime: " ++ uptimeDisplay) ]
                 , li [] [ text ("Signal: " ++ String.fromInt model.gwState.signal) ]
                 , li [] [ text ("Free Memory: " ++ String.fromInt model.gwState.freeMem) ]
                 , li [] [ text ("Current time: " ++ timeDisplay) ]

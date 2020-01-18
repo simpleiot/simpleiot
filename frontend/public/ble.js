@@ -57,7 +57,7 @@ export class BLE {
 
   onUptimeChanged(event) {
     let {value} = event.target;
-    this.uptime = value.getUint8();
+    this.uptime = value.getInt32();
   }
 
   onSignalChanged(event) {
