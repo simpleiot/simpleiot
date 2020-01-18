@@ -133,6 +133,7 @@ export class BLE {
   }
 
   async getState() {
+    console.log("getState: service: ", this.service);
     let ret = {
       connected: this.connected,
       bleConnected: false,
