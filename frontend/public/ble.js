@@ -256,6 +256,9 @@ export class BLE {
           "characteristicvaluechanged",
           this.onTimerFireCountChanged.bind(this)
         );
+
+        buf = await timerFireCountChar.readValue();
+        this.timerFireCount = buf.getInt32();
       } catch (e) {
         console.log("Error getting timerCountChar");
       }
