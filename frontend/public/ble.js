@@ -231,12 +231,14 @@ export class BLE {
         this.onConnectedChanged.bind(this)
       );
 
-      const uptimeChar = await this.service.getCharacteristic(charUptimeUuid);
-      await uptimeChar.startNotifications();
-      uptimeChar.addEventListener(
-        "characteristicvaluechanged",
-        this.onUptimeChanged.bind(this)
-      );
+      /*
+       * Const uptimeChar = await this.service.getCharacteristic(charUptimeUuid);
+       * await uptimeChar.startNotifications();
+       * uptimeChar.addEventListener(
+       * "characteristicvaluechanged",
+       * this.onUptimeChanged.bind(this)
+       * );
+       */
 
       const signalChar = await this.service.getCharacteristic(charSignalUuid);
       await signalChar.startNotifications();
