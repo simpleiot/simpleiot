@@ -211,6 +211,8 @@ export class BLE {
       this.server = await this.device.gatt.connect();
       this.service = await this.server.getPrimaryService(serviceUuid);
 
+      console.log("CLIFF: got service");
+
       const connectedChar = await this.service.getCharacteristic(charConnectedUuid);
       let buf = await connectedChar.readValue();
       this.connected = buf.getUint8();
