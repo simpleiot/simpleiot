@@ -13,6 +13,10 @@ type ExportData struct{}
 // ExportDataFinished is used to signal the system that export process has completed
 type ExportDataFinished struct{}
 
+// ExportFieldProductTotals is a message that causes the system to export totals for
+// each field and product
+type ExportFieldProductTotals struct{}
+
 // NoDiskPresent is used to trigger a dialog if no USB disk is inserted
 type NoDiskPresent struct{}
 

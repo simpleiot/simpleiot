@@ -41,10 +41,11 @@ func (s *TotalsScreen) Render(img draw.Image) {
 	s.menu.AddItemFloat("Total 1", s.state.Total1)
 	s.menu.AddItemFloat("Total 2", s.state.Total2)
 	s.menu.AddItemFloat("Lifetime Total", s.state.LifetimeTotal)
+	s.menu.AddItemCommand("All Totals", "export", isdata.ExportFieldProductTotals{})
 
 	s.menu.Render(img)
 
-	if s.menu.GetArrowPos() == TotalScreenIndexLifetime {
+	if s.menu.GetArrowPos() == TotalScreenIndexLifetime || s.menu.GetArrowPos() == TotalScreenIndexExport {
 		s.softKeys.SetHidden(SK2, true)
 	} else {
 		s.softKeys.SetHidden(SK2, false)
@@ -59,6 +60,7 @@ const (
 	TotalScreenIndexTotal1
 	TotalScreenIndexTotal2
 	TotalScreenIndexLifetime
+	TotalScreenIndexExport
 )
 
 // Key processes keypad input to this screen

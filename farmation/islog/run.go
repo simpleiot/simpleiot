@@ -55,8 +55,10 @@ func timeToUs(t time.Time) int64 {
 var tsFilenameFormat = "2006-01-02T150405Z07:00"
 
 // Run goroutine for data logging code
-func Run(in, out chan interface{}, db *isdb.IsDb) {
+func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 	config := isdata.Config{}
+	state := stateIn
+
 	var lastPulseTimestamp int64
 	_ = lastPulseTimestamp
 
@@ -79,8 +81,6 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 
 	writeAmountTicker := time.NewTicker(historyLogPeriod)
 
-	var exporting bool
-
 	for {
 		select {
 		case m := <-in:
@@ -98,15 +98,14 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 					logPressure.Close()
 				}
 
+			case isdata.State:
+				state = m
+
 			case isdata.ExportData:
-				if exporting {
-					out <- isdata.ExportAlreadyInProcess{}
-				} else {
-					// FIXME move this to a go routine at some point
-					exporting = true
-					exportHistoryData(db, out)
-					exporting = false
-				}
+				exportHistoryData(db, out)
+
+			case isdata.ExportFieldProductTotals:
+				exportFieldTotals(&state, &config, out)
 
 			case isdata.Pulse:
 				if !config.LogPulseData {
