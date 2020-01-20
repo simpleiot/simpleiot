@@ -65,9 +65,9 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 	var amount float64
 	var amountTime time.Time
 
-	logPulse := NewLog("pulse", "timestamp(us),diff")
-	logFlow := NewLog("flow", "timestamp(us),amount,rate (GPH),average rate,pulses,shortWin")
-	logPressure := NewLog("pressure", "timestamp(us),average PSI,min,max")
+	logPulse := NewLog("is-pulse", "timestamp(us),diff")
+	logFlow := NewLog("is-flow", "timestamp(us),amount,rate (GPH),average rate,pulses,shortWin")
+	logPressure := NewLog("is-pressure", "timestamp(us),average PSI,min,max")
 
 	historyLogPeriod := 10 * time.Minute
 
