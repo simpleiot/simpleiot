@@ -52,7 +52,7 @@ func timeToUs(t time.Time) int64 {
 	return t.UnixNano() / (1000)
 }
 
-var tsFilenameFormat = "2006-01-02T150405Z07:00"
+var tsFilenameFormat = "2006-01-02_15h04m05s"
 
 // Run goroutine for data logging code
 func Run(in, out chan interface{}, db *isdb.IsDb) {
