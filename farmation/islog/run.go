@@ -65,9 +65,9 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 	var amount float64
 	var amountTime time.Time
 
-	logPulse := NewLog("is-pulse", "timestamp(us),diff")
-	logFlow := NewLog("is-flow", "timestamp(us),amount,rate (GPH),average rate,pulses,shortWin")
-	logPressure := NewLog("is-pressure", "timestamp(us),average PSI,min,max")
+	logPulse := NewLog("is-"+state.SerialNumber+"-pulse", "timestamp(us),diff")
+	logFlow := NewLog("is-"+state.SerialNumber+"-flow", "timestamp(us),amount,rate (GPH),average rate,pulses,shortWin")
+	logPressure := NewLog("is-"+state.SerialNumber+"-pressure", "timestamp(us),average PSI,min,max")
 
 	historyLogPeriod := 10 * time.Minute
 
@@ -102,7 +102,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 				state = m
 
 			case isdata.ExportData:
-				exportHistoryData(db, out)
+				exportHistoryData(&state, db, out)
 
 			case isdata.ExportFieldProductTotals:
 				exportFieldTotals(&state, &config, out)

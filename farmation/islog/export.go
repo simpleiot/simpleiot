@@ -12,7 +12,7 @@ import (
 	"github.com/simpleiot/simpleiot/file"
 )
 
-func exportHistoryData(db *isdb.IsDb, out chan interface{}) {
+func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{}) {
 
 	// check if disk present before reading from database,
 	// because read takes time
@@ -22,7 +22,7 @@ func exportHistoryData(db *isdb.IsDb, out chan interface{}) {
 		return
 	}
 
-	historyData := NewLog("is-data", "timestamp (us),type,value,min,max")
+	historyData := NewLog("is-"+state.SerialNumber+"-data", "timestamp (us),type,value,min,max")
 
 	defer historyData.Close()
 
@@ -202,7 +202,7 @@ func exportFieldTotals(state *isdata.State, config *isdata.Config, out chan inte
 	}
 
 	// Save file
-	err = totals.SaveAs("is-totals_" + tStamp + ".xlsx")
+	err = totals.SaveAs("is-" + state.SerialNumber + "-totals_" + tStamp + ".xlsx")
 	if err != nil {
 		log.Println("Error saving .xlsx file: ", err)
 	}
