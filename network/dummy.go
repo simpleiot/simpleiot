@@ -15,8 +15,8 @@ func (d *DummyInterface) Desc() string {
 }
 
 // Configure stub
-func (d *DummyInterface) Configure() error {
-	return nil
+func (d *DummyInterface) Configure() (InterfaceConfig, error) {
+	return InterfaceConfig{}, nil
 }
 
 // Connect stub

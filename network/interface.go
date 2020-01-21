@@ -11,10 +11,19 @@ type InterfaceStatus struct {
 	IP        string
 }
 
+// InterfaceConfig contains static information about
+// an interface
+type InterfaceConfig struct {
+	Imei    string
+	Sim     string
+	Apn     string
+	Version string
+}
+
 // Interface is an interface that network drivers implement
 type Interface interface {
 	Desc() string
-	Configure() error
+	Configure() (InterfaceConfig, error)
 	Connect() error
 	GetStatus() (InterfaceStatus, error)
 	Reset() error

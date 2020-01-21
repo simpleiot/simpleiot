@@ -24,8 +24,8 @@ func (e *Ethernet) Desc() string {
 }
 
 // Configure the interface
-func (e *Ethernet) Configure() error {
-	return nil
+func (e *Ethernet) Configure() (InterfaceConfig, error) {
+	return InterfaceConfig{}, nil
 }
 
 // Connect network interface
