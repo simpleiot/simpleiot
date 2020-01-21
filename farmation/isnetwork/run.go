@@ -64,9 +64,15 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		manager.AddInterface(network.NewDummyInterface())
 	} else {
 		if runtime.GOARCH == "arm" {
-			manager.AddInterface(network.NewEthernet("eth0"))
-			manager.AddInterface(network.NewModem("bg96",
-				"/dev/ttyUSB2", isio.ResetModem, false))
+			//manager.AddInterface(network.NewEthernet("eth0"))
+			manager.AddInterface(network.NewModem(
+				network.ModemConfig{
+					ChatScript:    "bg96",
+					AtCmdPortName: "/dev/ttyUSB2",
+					Reset:         isio.ResetModem,
+					Debug:         false,
+					APN:           "vzwinternet",
+				}))
 		} else {
 			// various interfaces on development machines
 			manager.AddInterface(network.NewEthernet("eno1"))

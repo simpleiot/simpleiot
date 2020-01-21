@@ -164,7 +164,15 @@ func main() {
 
 	if *flagModemStatus {
 		isio.GpioInit()
-		modem := network.NewModem("bg96", "/dev/ttyUSB2", nil, true)
+		modem := network.NewModem(
+			network.ModemConfig{
+				ChatScript:    "bg96",
+				AtCmdPortName: "/dev/ttyUSB2",
+				Reset:         isio.ResetModem,
+				Debug:         false,
+				APN:           "vzwinternet",
+			})
+
 		status, err := modem.GetStatus()
 		if err != nil {
 			log.Println("Error getting modem status: ", err)
