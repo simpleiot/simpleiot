@@ -16,12 +16,12 @@ This example shows how to run the server and simulator after cloning and buildin
 - git clone https://github.com/simpleiot/simpleiot.git
 - `cd simpleiot`
 - `. envsetup.sh`
-- `app_setup`
-- `app_build`
+- `siot_setup`
+- `siot_build`
 - start server: `./siot`
 - start simulator: `./siot -sim`
 - open http://localhost:8080
-- `app_run` can be used for quicker testing
+- `siot_run` can be used for quicker testing
 
 ## Fetch data from Particle.io
 

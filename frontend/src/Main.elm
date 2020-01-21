@@ -17,10 +17,11 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Modal as Modal
 import Bootstrap.Navbar as Navbar
+import Bootstrap.Table as Table
 import Browser
 import Color exposing (Color)
-import Html exposing (Html, button, div, h1, h2, h3, h4, img, li, span, text, ul)
-import Html.Attributes exposing (class, height, href, placeholder, src, style, type_, value, width)
+import Html exposing (Html, a, button, div, h1, h2, h3, h4, img, input, li, span, text, ul)
+import Html.Attributes exposing (checked, class, disabled, height, href, placeholder, src, style, type_, value, width)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode
@@ -28,6 +29,7 @@ import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Json.Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
+import Round
 import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
 import Task
 import Time
@@ -91,8 +93,21 @@ type alias Devices =
     }
 
 
+type alias User =
+    { firstName : String
+    , lastName : String
+    , admin : Bool
+    }
+
+
 type alias DeviceEdits =
     { device : Maybe Device
+    , visibility : Modal.Visibility
+    }
+
+
+type alias UserEdits =
+    { user : Maybe User
     , visibility : Modal.Visibility
     }
 
@@ -145,12 +160,15 @@ type alias Model =
     { navbarState : Navbar.State
     , accordionState : Accordion.State
     , devices : Devices
+    , users : List User
     , deviceEdits : DeviceEdits
+    , userEdits : UserEdits
     , tab : Tab
     , gwState : GwState
     , gwConfigWifi : GwConfigWifi
     , gwConfigTimer : GwConfigTimer
     , timeZone : Time.Zone
+    , loggedIn : Bool
     }
 
 
@@ -167,6 +185,7 @@ encodePortCmd cmd =
 
 type Tab
     = TabDevices
+    | TabUsers
     | TabConfigure
 
 
@@ -196,6 +215,8 @@ type Msg
     | GwSetTimerFireDuration String
     | GwSetTimerFireTime String
     | GotZone Time.Zone
+    | Login
+    | Logout
 
 
 
@@ -236,12 +257,15 @@ init model =
     ( { navbarState = navbarState
       , accordionState = Accordion.initialState
       , devices = { devices = [], dirty = False }
+      , users = []
       , deviceEdits = { device = Nothing, visibility = Modal.hidden }
+      , userEdits = { user = Nothing, visibility = Modal.hidden }
       , tab = TabDevices
       , gwState = gwStateInit
       , gwConfigWifi = gwConfigWifiInit
       , gwConfigTimer = gwConfigTimerInit
       , timeZone = Time.utc
+      , loggedIn = False
       }
     , Cmd.batch [ navbarCmd, Task.perform GotZone Time.here ]
     )
@@ -587,6 +611,12 @@ update msg model =
         GotZone zone ->
             ( { model | timeZone = zone }, Cmd.none )
 
+        Login ->
+            ( { model | loggedIn = True }, Cmd.none )
+
+        Logout ->
+            ( { model | loggedIn = False }, Cmd.none )
+
 
 processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
 processPortValue portValue model =
@@ -599,6 +629,30 @@ processPortValue portValue model =
 --    case portValue of
 --PixelValue pix ->
 -- View
+
+
+viewUsers : Model -> Html Msg
+viewUsers model =
+    div []
+        [ h1 [] [ text "Users" ]
+        , Table.table
+            { options = [ Table.striped ]
+            , thead =
+                Table.simpleThead
+                    [ Table.th [] [ text "Name" ]
+                    , Table.th [] [ text "Email" ]
+                    , Table.th [] [ text "Admin" ]
+                    ]
+            , tbody =
+                Table.tbody []
+                    [ Table.tr []
+                        [ Table.td [] [ text "Cliff Brake" ]
+                        , Table.td [] [ text "cbrake@bec-systems.com" ]
+                        , Table.td [] [ input [ type_ "checkbox", checked True, disabled True ] [] ]
+                        ]
+                    ]
+            }
+        ]
 
 
 viewDevices : Model -> Html Msg
@@ -684,6 +738,13 @@ viewState model =
             (String.padLeft 2 '0' <| String.fromInt <| hours)
                 ++ ":"
                 ++ (String.padLeft 2 '0' <| String.fromInt <| min)
+
+        uptimeDisplay =
+            if model.gwState.uptime < 60 * 60 * 24 then
+                Round.round 2 (toFloat model.gwState.uptime / (60 * 60)) ++ " hours"
+
+            else
+                Round.round 2 (toFloat model.gwState.uptime / (60 * 60 * 24)) ++ " days"
     in
     if model.gwState.bleConnected then
         div []
@@ -692,12 +753,13 @@ viewState model =
                 [ li [] [ text ("Connected to portal: " ++ connected) ]
                 , li [] [ text ("Model: " ++ model.gwState.model) ]
                 , li [] [ text ("SSID: " ++ model.gwState.ssid) ]
-                , li [] [ text ("Uptime: " ++ String.fromInt model.gwState.uptime) ]
+                , li [] [ text ("Uptime: " ++ uptimeDisplay) ]
                 , li [] [ text ("Signal: " ++ String.fromInt model.gwState.signal) ]
                 , li [] [ text ("Free Memory: " ++ String.fromInt model.gwState.freeMem) ]
                 , li [] [ text ("Current time: " ++ timeDisplay) ]
                 , li [] [ text ("Timer fire time: " ++ timerFireTimeDisplay) ]
                 , li [] [ text ("Timer fire duration: " ++ String.fromInt model.gwState.timerFireDuration) ]
+                , li [] [ text ("Timer fire count: " ++ String.fromInt model.gwState.timerFireCount) ]
                 ]
             , Button.button
                 [ Button.outlineWarning
@@ -768,6 +830,9 @@ view model =
                 TabDevices ->
                     viewDevices model
 
+                TabUsers ->
+                    viewUsers model
+
                 TabConfigure ->
                     viewConfigure model
     in
@@ -785,13 +850,25 @@ view model =
 
 menu : Model -> Html Msg
 menu model =
+    let
+        loginItem =
+            if model.loggedIn then
+                Navbar.customItem (a [ href "#", onClick Logout ] [ text "Logout" ])
+
+            else
+                Navbar.customItem (a [ href "#", onClick Login ] [ text "Login" ])
+
+        menuItems =
+            [ Navbar.itemLink [ href "#", onClick (SetTab TabDevices) ] [ text "Devices" ]
+            , Navbar.itemLink [ href "#", onClick (SetTab TabUsers) ] [ text "Users" ]
+            , Navbar.itemLink [ href "#", onClick (SetTab TabConfigure) ] [ text "Configure" ]
+            ]
+    in
     Navbar.config NavbarMsg
         |> Navbar.withAnimation
         |> Navbar.brand [ href "#" ] [ img [ src "/public/simple-iot-app-logo.png", width 83, height 25 ] [] ]
-        |> Navbar.items
-            [ Navbar.itemLink [ href "#", onClick (SetTab TabDevices) ] [ text "Devices" ]
-            , Navbar.itemLink [ href "#", onClick (SetTab TabConfigure) ] [ text "Configure" ]
-            ]
+        |> Navbar.items menuItems
+        |> Navbar.customItems [ loginItem ]
         |> Navbar.view model.navbarState
 
 
@@ -801,7 +878,7 @@ renderDevices model =
         |> Accordion.withAnimation
         |> Accordion.cards
             (List.map
-                renderDevice
+                (renderDevice model.loggedIn)
                 model.devices.devices
             )
         |> Accordion.view model.accordionState
@@ -812,8 +889,8 @@ renderDeviceSummary dev =
     dev.config.description ++ " (" ++ dev.id ++ ")"
 
 
-renderDevice : Device -> Accordion.Card Msg
-renderDevice dev =
+renderDevice : Bool -> Device -> Accordion.Card Msg
+renderDevice canEdit dev =
     Accordion.card
         { id = dev.id
         , options = []
@@ -821,12 +898,16 @@ renderDevice dev =
             Accordion.header []
                 (Accordion.toggle [] [ h4 [] [ text (renderDeviceSummary dev) ] ])
                 |> Accordion.appendHeader
-                    [ button
-                        [ type_ "button"
-                        , onClick (EditDevice dev.id)
-                        , class "btn btn-light"
-                        ]
-                        [ edit Color.black 25 ]
+                    [ if canEdit then
+                        button
+                            [ type_ "button"
+                            , onClick (EditDevice dev.id)
+                            , class "btn btn-light"
+                            ]
+                            [ edit Color.black 25 ]
+
+                      else
+                        text ""
                     ]
         , blocks = [ renderIos dev.state.ios ]
         }
@@ -906,6 +987,7 @@ type alias GwState =
     , currentTime : Int
     , timerFireTime : Int
     , timerFireDuration : Int
+    , timerFireCount : Int
     }
 
 
@@ -922,6 +1004,7 @@ gwStateInit =
     , currentTime = 0
     , timerFireTime = 0
     , timerFireDuration = 0
+    , timerFireCount = 0
     }
 
 
@@ -943,6 +1026,7 @@ gwStateDecoder =
         |> required "currentTime" Json.Decode.int
         |> required "timerFireTime" Json.Decode.int
         |> required "timerFireDuration" Json.Decode.int
+        |> required "timerFireCount" Json.Decode.int
 
 
 portDecoder : Json.Decode.Decoder PortValue
