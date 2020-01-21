@@ -41,6 +41,7 @@ type Params struct {
 	DebugPortal  bool
 	PortalURL    string
 	SerialNumber string
+	ViewMsg      bool
 }
 
 // Run is the entry point for the IS application
@@ -113,6 +114,7 @@ func Run(params Params) {
 
 	stateDirty = isdata.InitState(&state)
 	state.SerialNumber = params.SerialNumber
+	state.ViewMsg = params.ViewMsg
 
 	config.Init()
 
@@ -321,6 +323,11 @@ func Run(params Params) {
 				stateDirty = false
 			}
 		case m := <-appChan:
+
+			if state.ViewMsg {
+				fmt.Printf("Message: %T\n", m)
+			}
+
 			switch m := m.(type) {
 			case isdata.LcdPixel:
 				webChan <- m

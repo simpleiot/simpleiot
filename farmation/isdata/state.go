@@ -96,6 +96,10 @@ type State struct {
 	OSVersion    semver.Version `json:"osVersion"`
 	SerialNumber string         `json:"serialNumber"`
 
+	// ViewMsg is set by the -msg flag on startup
+	// determines if messages on the app channel are displayed in console
+	ViewMsg bool `json:"viewMsg"`
+
 	// Deleted Fields
 	// PanelDefinition will be populated based on the panel detected
 	// by the sense resistor.

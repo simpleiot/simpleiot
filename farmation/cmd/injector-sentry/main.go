@@ -41,6 +41,7 @@ func main() {
 	flagSetIsSN := flag.String("setSN", "", "Set IS serial number")
 	flagEnableAuxRelay := flag.Bool("enableAuxRelay", false, "enable aux relay")
 	flagHwID := flag.Bool("hwId", false, "display HW ID")
+	flagViewMsg := flag.Bool("msg", false, "view channel messages to app")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -215,6 +216,7 @@ func main() {
 		DebugPortal:  *flagDebugPortal,
 		PortalURL:    *flagPortal,
 		SerialNumber: *flagSerialNumber,
+		ViewMsg:      *flagViewMsg,
 	}
 
 	app.Run(params)
