@@ -14,6 +14,11 @@ func (d *DummyInterface) Desc() string {
 	return "net"
 }
 
+// Configure stub
+func (d *DummyInterface) Configure() error {
+	return nil
+}
+
 // Connect stub
 func (d *DummyInterface) Connect() error {
 	return nil

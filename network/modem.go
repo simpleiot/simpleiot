@@ -2,6 +2,7 @@ package network
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os/exec"
@@ -12,26 +13,34 @@ import (
 	"github.com/simpleiot/simpleiot/respreader"
 )
 
+const apnVerizon = "vzwinternet"
+const apnHologram = "hologram"
+
 // Modem is an interface that always reports detected/connected
 type Modem struct {
-	iface         string
-	chatScript    string
-	reset         func() error
-	atCmdPortName string
-	atCmdPort     io.ReadWriteCloser
-	debug         bool
-	lastPPPRun    time.Time
+	iface      string
+	atCmdPort  io.ReadWriteCloser
+	lastPPPRun time.Time
+	config     ModemConfig
+}
+
+// ModemConfig describes the configuration for a modem
+type ModemConfig struct {
+	ChatScript    string
+	AtCmdPortName string
+	Reset         func() error
+	Debug         bool
+	APN           string
 }
 
 // NewModem constructor
-func NewModem(chatScript string, atCmdPortName string, reset func() error, debug bool) *Modem {
+func NewModem(config ModemConfig) *Modem {
 	ret := &Modem{
-		iface:         "ppp0",
-		chatScript:    chatScript,
-		reset:         reset,
-		atCmdPortName: atCmdPortName,
-		debug:         debug,
+		iface:  "ppp0",
+		config: config,
 	}
+
+	DebugAtCommands = config.Debug
 
 	return ret
 }
@@ -42,7 +51,7 @@ func (m *Modem) openCmdPort() error {
 	}
 
 	options := serial.OpenOptions{
-		PortName:          m.atCmdPortName,
+		PortName:          m.config.AtCmdPortName,
 		BaudRate:          115200,
 		DataBits:          8,
 		StopBits:          1,
@@ -83,6 +92,85 @@ func (m *Modem) pppActive() bool {
 	}
 
 	return false
+}
+
+// Configure modem interface
+func (m *Modem) Configure() error {
+	// current sets APN and configures for internal SIM
+	if err := m.openCmdPort(); err != nil {
+		return err
+	}
+
+	// disable echo as it messes up the respreader in that it
+	// echos the command, which is not part of the response
+
+	err := CmdOK(m.atCmdPort, "ATE0")
+	if err != nil {
+		return err
+	}
+
+	err = CmdSetApn(m.atCmdPort, m.config.APN)
+	if err != nil {
+		return err
+	}
+
+	mode, err := CmdBg96GetScanMode(m.atCmdPort)
+	fmt.Println("BG96 scan mode: ", mode)
+	if err != nil {
+		return fmt.Errorf("Error getting scan mode: %v", err.Error())
+	}
+
+	if mode != BG96ScanModeLTE {
+		fmt.Println("Setting BG96 scan mode ...")
+		err := CmdBg96ForceLTE(m.atCmdPort)
+		if err != nil {
+			return fmt.Errorf("Error setting scan mode: %v", err.Error())
+		}
+	}
+
+	err = CmdFunMin(m.atCmdPort)
+	if err != nil {
+		return fmt.Errorf("Error setting fun Min: %v", err.Error())
+	}
+
+	err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",1,26,1,0,0,1")
+	if err != nil {
+		return fmt.Errorf("Error setting GPIO: %v", err.Error())
+	}
+
+	if m.config.APN == apnVerizon {
+		err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",3,26,1,1")
+		if err != nil {
+			return fmt.Errorf("Error setting GPIO: %v", err.Error())
+		}
+
+	} else {
+		err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",3,26,0,1")
+		if err != nil {
+			return fmt.Errorf("Error setting GPIO: %v", err.Error())
+		}
+
+	}
+
+	err = CmdFunFull(m.atCmdPort)
+	if err != nil {
+		return fmt.Errorf("Error setting fun full: %v", err.Error())
+	}
+
+	// enable GPS
+	/* for some reason this is failing -- likely a timing issue
+	err = CmdOK(m.atCmdPort, "AT+QGPS=1")
+	if err != nil {
+		return fmt.Errorf("Error enabling GPS: %v", err.Error())
+	}
+
+	err = CmdOK(m.atCmdPort, "AT+QGPSCFG=\"nmeasrc\",1")
+	if err != nil {
+		return fmt.Errorf("Error settings GPS source: %v", err.Error())
+	}
+	*/
+
+	return nil
 }
 
 // Connect stub
@@ -126,7 +214,7 @@ func (m *Modem) Connect() error {
 	m.lastPPPRun = time.Now()
 
 	log.Println("Modem: starting PPP")
-	return exec.Command("pon", m.chatScript).Run()
+	return exec.Command("pon", m.config.ChatScript).Run()
 }
 
 // GetStatus return interface status
@@ -171,5 +259,5 @@ func (m *Modem) Reset() error {
 	}
 
 	exec.Command("poff").Run()
-	return m.reset()
+	return m.config.Reset()
 }

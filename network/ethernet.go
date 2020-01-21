@@ -23,6 +23,11 @@ func (e *Ethernet) Desc() string {
 	return fmt.Sprintf("Eth(%v)", e.iface)
 }
 
+// Configure the interface
+func (e *Ethernet) Configure() error {
+	return nil
+}
+
 // Connect network interface
 func (e *Ethernet) Connect() error {
 	// this is handled by system so no-op

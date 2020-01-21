@@ -12,6 +12,7 @@ type State int
 // define valid states
 const (
 	StateNotDetected State = iota
+	StateConfigure
 	StateConnecting
 	StateConnected
 	StateError
@@ -21,6 +22,8 @@ func (s State) String() string {
 	switch s {
 	case StateNotDetected:
 		return "Not detected"
+	case StateConfigure:
+		return "Configure"
 	case StateConnecting:
 		return "Connecting"
 	case StateConnected:
@@ -80,18 +83,21 @@ func (m *Manager) Desc() string {
 	return m.interfaces[m.interfaceIndex].Desc()
 }
 
-// nextInterface returns true if there is another interface to try, otherwise
-// resets to zero and returns false
-func (m *Manager) nextInterface() bool {
+// nextInterface resets state and checks if there is another interface to try.
+// If there are no more interfaces, sets state to error.
+func (m *Manager) nextInterface() {
 	m.interfaceIndex++
 	if m.interfaceIndex >= len(m.interfaces) {
 		m.interfaceIndex = 0
+		m.setState(StateError)
 		log.Println("Network: no more interfaces to try")
-		return false
+		return
 	}
 
+	m.setState(StateNotDetected)
+
 	log.Println("Network: trying next interface: ", m.Desc())
-	return true
+	return
 }
 
 func (m *Manager) connect() error {
@@ -100,6 +106,14 @@ func (m *Manager) connect() error {
 	}
 
 	return m.interfaces[m.interfaceIndex].Connect()
+}
+
+func (m *Manager) configure() error {
+	if len(m.interfaces) <= 0 {
+		return errors.New("No interfaces to configure")
+	}
+
+	return m.interfaces[m.interfaceIndex].Configure()
 }
 
 // Reset resets all network interfaces
@@ -140,17 +154,37 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 			// in case we just reset the devices
 			if status.Detected {
 				log.Printf("Network: %v detected\n", m.Desc())
-				m.setState(StateConnecting)
+				m.setState(StateConfigure)
 				continue
 			} else if time.Since(m.stateStart) > time.Second*15 {
 				log.Println("Network: timeout detecting: ", m.Desc())
-				if !m.nextInterface() {
-					m.setState(StateError)
-					break
-				}
-
+				m.nextInterface()
 				continue
 			}
+		case StateConfigure:
+			try := 0
+			for ; try < 3; try++ {
+				if try > 0 {
+					log.Println("Trying again ...")
+				}
+				err := m.configure()
+				if err != nil {
+					log.Printf("Error configuring device: %v: %v\n",
+						m.Desc(), err)
+
+					continue
+				}
+
+				break
+			}
+
+			if try < 3 {
+				m.setState(StateConnecting)
+			} else {
+				log.Println("giving up configuring device: ", m.Desc())
+				m.nextInterface()
+			}
+
 		case StateConnecting:
 			if status.Connected {
 				log.Printf("Network: %v connected\n", m.Desc())
@@ -158,13 +192,7 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 			} else {
 				if time.Since(m.stateStart) > time.Minute {
 					log.Println("Network: timeout connecting: ", m.Desc())
-					if !m.nextInterface() {
-						m.setState(StateError)
-						break
-					}
-
-					m.stateStart = time.Now()
-
+					m.nextInterface()
 					continue
 				}
 
