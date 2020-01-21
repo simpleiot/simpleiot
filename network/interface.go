@@ -14,6 +14,7 @@ type InterfaceStatus struct {
 // Interface is an interface that network drivers implement
 type Interface interface {
 	Desc() string
+	Configure() error
 	Connect() error
 	GetStatus() (InterfaceStatus, error)
 	Reset() error
