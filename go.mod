@@ -1,6 +1,7 @@
 module github.com/simpleiot/simpleiot
 
 require (
+	github.com/360EntSecGroup-Skylar/excelize/v2 v2.0.2
 	github.com/RobinUS2/golang-moving-average v0.0.0-20190414143424-55c2d531d53f
 	github.com/StephaneBunel/bresenham v0.0.0-20190213085234-b50c292e2054
 	github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa
@@ -24,7 +25,7 @@ require (
 	github.com/timshannon/badgerhold v0.0.0-20190415130923-192650dd187a
 	github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944
 	go.etcd.io/bbolt v1.3.3 // indirect
-	golang.org/x/image v0.0.0-20190118043309-183bebdce1b2
+	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a
 	golang.org/x/net v0.0.0-20190328230028-74de082e2cca // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
 	golang.org/x/sys v0.0.0-20190402142545-baf5eb976a8c // indirect

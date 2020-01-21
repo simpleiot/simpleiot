@@ -392,6 +392,14 @@ func (c *Config) Init() {
 		}
 	}
 
+	if c.CurrentFieldIndex > len(c.FieldConfigs)-1 {
+		c.CurrentFieldIndex = len(c.FieldConfigs) - 1
+	}
+
+	if c.CurrentProductIndex > len(c.ProductConfigs)-1 {
+		c.CurrentProductIndex = len(c.ProductConfigs) - 1
+	}
+
 	if c.PanelType != PanelTypeStandardPump &&
 		c.PanelType != PanelTypeStandardPivot &&
 		c.PanelType != PanelTypeLindsay {

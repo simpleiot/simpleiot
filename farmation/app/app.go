@@ -42,6 +42,7 @@ type Params struct {
 	DebugPortal  bool
 	PortalURL    string
 	SerialNumber string
+	ViewMsg      bool
 }
 
 // Run is the entry point for the IS application
@@ -114,6 +115,7 @@ func Run(params Params) {
 
 	stateDirty = isdata.InitState(&state)
 	state.SerialNumber = params.SerialNumber
+	state.ViewMsg = params.ViewMsg
 
 	config.Init()
 
@@ -178,7 +180,7 @@ func Run(params Params) {
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
 	go isflow.Run(flowChan, appChan, params.Sim, config)
-	go islog.Run(logChan, appChan, db)
+	go islog.Run(logChan, appChan, state, db)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
 	go isnetwork.Run(networkChan, appChan, config, state,
@@ -230,6 +232,7 @@ func Run(params Params) {
 			ioChan <- state
 			cntrlChan <- state
 			webChan <- state
+			logChan <- state
 
 			lastStateSend = now
 		}
@@ -321,6 +324,11 @@ func Run(params Params) {
 				stateDirty = false
 			}
 		case m := <-appChan:
+
+			if state.ViewMsg {
+				fmt.Printf("Message: %T\n", m)
+			}
+
 			switch m := m.(type) {
 			case isdata.LcdPixel:
 				webChan <- m
@@ -657,6 +665,14 @@ func Run(params Params) {
 				if !state.DialogExport.Active {
 					// we only want one export process running at a time
 					logChan <- isdata.ExportData{}
+				}
+				state.DialogExport.Active = true
+				state.DialogExport.Message = "Exporting data to USB Disk\nPlease Wait"
+
+			case isdata.ExportFieldProductTotals:
+				if !state.DialogExport.Active {
+					// we only want one export process running at a time
+					logChan <- isdata.ExportFieldProductTotals{}
 				}
 				state.DialogExport.Active = true
 				state.DialogExport.Message = "Exporting data to USB Disk\nPlease Wait"

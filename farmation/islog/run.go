@@ -44,6 +44,31 @@ func usbMountPoint() string {
 	return ""
 }
 
+var usbDevices = []string{
+	"/dev/sda1",
+	"/dev/sda",
+	"/dev/sdb1",
+	"/dev/sdb",
+	"/dev/sdc1",
+	"/dev/sdc",
+	"/dev/sdd1",
+	"/dev/sdd",
+}
+
+// Check if the device is actually there at /dev/
+func usbDeviceExists() bool {
+	if runtime.GOARCH == "arm" {
+		for _, d := range usbDevices {
+			if file.Exists(d) {
+				return true
+			}
+		}
+	} else { // doesn't check for non-target systems
+		return true
+	}
+	return false
+}
+
 func timeToMs(t time.Time) int64 {
 	return t.UnixNano() / (1000 * 1000)
 }
@@ -55,17 +80,19 @@ func timeToUs(t time.Time) int64 {
 var tsFilenameFormat = "2006-01-02_15h04m05s"
 
 // Run goroutine for data logging code
-func Run(in, out chan interface{}, db *isdb.IsDb) {
+func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 	config := isdata.Config{}
+	state := stateIn
+
 	var lastPulseTimestamp int64
 	_ = lastPulseTimestamp
 
 	var amount float64
 	var amountTime time.Time
 
-	logPulse := NewLog("pulse", "timestamp(us),diff")
-	logFlow := NewLog("flow", "timestamp(us),amount,rate (GPH),average rate,pulses,shortWin")
-	logPressure := NewLog("pressure", "timestamp(us),average PSI,min,max")
+	logPulse := NewLog("is-"+state.SerialNumber+"-pulse", "timestamp(us),diff")
+	logFlow := NewLog("is-"+state.SerialNumber+"-flow", "timestamp(us),amount,rate (GPH),average rate,pulses,shortWin")
+	logPressure := NewLog("is-"+state.SerialNumber+"-pressure", "timestamp(us),average PSI,min,max")
 
 	historyLogPeriod := 10 * time.Minute
 
@@ -78,8 +105,6 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 	}, isdata.SampleTypePressure)
 
 	writeAmountTicker := time.NewTicker(historyLogPeriod)
-
-	var exporting bool
 
 	for {
 		select {
@@ -98,18 +123,25 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 					logPressure.Close()
 				}
 
+			case isdata.State:
+				state = m
+
 			case isdata.ExportData:
-				if exporting {
-					out <- isdata.ExportAlreadyInProcess{}
-				} else {
-					// FIXME move this to a go routine at some point
-					exporting = true
-					exportHistoryData(db, out)
-					exporting = false
-				}
+				exportHistoryData(&state, db, out)
+
+			case isdata.ExportFieldProductTotals:
+				exportFieldTotals(&state, &config, out)
 
 			case isdata.Pulse:
 				if !config.LogPulseData {
+					continue
+				}
+
+				// Check for usb disk
+				usbMountPoint := usbMountPoint()
+				if usbMountPoint == "" || !usbDeviceExists() {
+					out <- isdata.UpdateLogPulseEnable(false)
+					out <- isdata.NoDiskPresent{}
 					continue
 				}
 
@@ -128,6 +160,14 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 
 			case isdata.Flow:
 				if !config.LogFlowData {
+					continue
+				}
+
+				// Check for usb disk
+				usbMountPoint := usbMountPoint()
+				if usbMountPoint == "" || !usbDeviceExists() {
+					out <- isdata.UpdateLogFlowEnable(false)
+					out <- isdata.NoDiskPresent{}
 					continue
 				}
 
@@ -158,6 +198,14 @@ func Run(in, out chan interface{}, db *isdb.IsDb) {
 
 					// log data for engineering purpuses if enabled
 					if !config.LogPressureData {
+						continue
+					}
+
+					// Check for usb disk
+					usbMountPoint := usbMountPoint()
+					if usbMountPoint == "" || !usbDeviceExists() {
+						out <- isdata.UpdateLogPressureEnable(false)
+						out <- isdata.NoDiskPresent{}
 						continue
 					}
 
