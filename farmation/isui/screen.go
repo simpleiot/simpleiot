@@ -42,6 +42,8 @@ const (
 	ScreenIDDiagPanel
 	ScreenIDModem
 	ScreenIDDiagIPAddress
+	ScreenIDDiagSIMImei
+	ScreenIDDiag
 	ScreenIDPanelType
 )
 
@@ -98,6 +100,7 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 	ret.Add(ScreenIDDiagPanel, NewDiagPanelScreen(state, config))
 	ret.Add(ScreenIDModem, NewModemScreen(state, config))
 	ret.Add(ScreenIDDiagIPAddress, NewDiagIPAddressScreen(state, config))
+	ret.Add(ScreenIDDiagSIMImei, NewDiagSimImeiScreen(state, config))
 	ret.Add(ScreenIDPanelType, NewPanelTypeScreen(state, config))
 
 	ret.currentScreen = ScreenIDHome

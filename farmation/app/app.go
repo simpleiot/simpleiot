@@ -28,6 +28,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
 	"github.com/simpleiot/simpleiot/file"
+	"github.com/simpleiot/simpleiot/network"
 	"github.com/simpleiot/simpleiot/system"
 )
 
@@ -921,6 +922,10 @@ func Run(params Params) {
 
 			case isdata.NetworkState:
 				state.NetworkState = m
+				saveState()
+
+			case network.InterfaceConfig:
+				state.NetworkInterfaceConfig = m
 				saveState()
 
 			default:

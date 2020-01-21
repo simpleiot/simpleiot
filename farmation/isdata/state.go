@@ -7,6 +7,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/version"
+	"github.com/simpleiot/simpleiot/network"
 )
 
 // State contains the current injectory sentry state.
@@ -100,6 +101,8 @@ type State struct {
 	// PanelDefinition will be populated based on the panel detected
 	// by the sense resistor.
 	// PanelDefinition PanelDefinition `json:"panelConfig"`
+
+	NetworkInterfaceConfig network.InterfaceConfig
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config
@@ -263,6 +266,8 @@ func InitState(s *State) (dirty bool) {
 	s.OSVersion, _ = version.ReadOSVersion()
 
 	s.LindsayRegs = LindsayStatusRegs{}
+
+	s.NetworkInterfaceConfig = network.InterfaceConfig{}
 
 	return
 }

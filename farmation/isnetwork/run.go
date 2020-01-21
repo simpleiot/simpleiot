@@ -80,8 +80,13 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		}
 	}
 
-	networkState, interfaceStatus := manager.Run()
+	networkState, interfaceConfig, interfaceStatus := manager.Run()
 	_ = networkState
+
+	if interfaceConfig.Apn != "" {
+		out <- interfaceConfig
+		log.Printf("Network Interface Config: %+v\n", interfaceConfig)
+	}
 
 	initialDigitalDataSent := false
 	sendInitialDigitalData := func() {
@@ -275,7 +280,12 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				log.Printf("isnet mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
 		case <-manageTicker.C:
-			networkState, interfaceStatus = manager.Run()
+			networkState, interfaceConfig, interfaceStatus = manager.Run()
+
+			if interfaceConfig.Apn != "" {
+				out <- interfaceConfig
+			}
+
 			out <- isdata.NetworkState{
 				Description:     manager.Desc(),
 				InterfaceStatus: interfaceStatus,

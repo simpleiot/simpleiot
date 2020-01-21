@@ -59,8 +59,8 @@ func (s *ModemScreen) Render(img draw.Image) {
 	s.menu.AddItemStringRight("RSRQ", rsrq)
 	s.menu.AddItemStringRight("Network", s.state.NetworkState.InterfaceStatus.Operator)
 	s.menu.AddItemScreen("IP", ScreenIDDiagIPAddress)
+	s.menu.AddItemScreen("SIM/IMEI", ScreenIDDiagSIMImei)
 	s.menu.AddItemStringRight("Err Count", errorCnt)
-	//s.menu.AddItemString("Operator", s.state.NetworkStatus.Operator)
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
 }
