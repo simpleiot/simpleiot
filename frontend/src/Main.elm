@@ -29,6 +29,7 @@ import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Json.Encode
 import List.Extra as ListExtra
 import Material.Icons.Image exposing (edit)
+import Round
 import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
 import Task
 import Time
@@ -737,6 +738,13 @@ viewState model =
             (String.padLeft 2 '0' <| String.fromInt <| hours)
                 ++ ":"
                 ++ (String.padLeft 2 '0' <| String.fromInt <| min)
+
+        uptimeDisplay =
+            if model.gwState.uptime < 60 * 60 * 24 then
+                Round.round 2 (toFloat model.gwState.uptime / (60 * 60)) ++ " hours"
+
+            else
+                Round.round 2 (toFloat model.gwState.uptime / (60 * 60 * 24)) ++ " days"
     in
     if model.gwState.bleConnected then
         div []
@@ -745,12 +753,13 @@ viewState model =
                 [ li [] [ text ("Connected to portal: " ++ connected) ]
                 , li [] [ text ("Model: " ++ model.gwState.model) ]
                 , li [] [ text ("SSID: " ++ model.gwState.ssid) ]
-                , li [] [ text ("Uptime: " ++ String.fromInt model.gwState.uptime) ]
+                , li [] [ text ("Uptime: " ++ uptimeDisplay) ]
                 , li [] [ text ("Signal: " ++ String.fromInt model.gwState.signal) ]
                 , li [] [ text ("Free Memory: " ++ String.fromInt model.gwState.freeMem) ]
                 , li [] [ text ("Current time: " ++ timeDisplay) ]
                 , li [] [ text ("Timer fire time: " ++ timerFireTimeDisplay) ]
                 , li [] [ text ("Timer fire duration: " ++ String.fromInt model.gwState.timerFireDuration) ]
+                , li [] [ text ("Timer fire count: " ++ String.fromInt model.gwState.timerFireCount) ]
                 ]
             , Button.button
                 [ Button.outlineWarning
@@ -978,6 +987,7 @@ type alias GwState =
     , currentTime : Int
     , timerFireTime : Int
     , timerFireDuration : Int
+    , timerFireCount : Int
     }
 
 
@@ -994,6 +1004,7 @@ gwStateInit =
     , currentTime = 0
     , timerFireTime = 0
     , timerFireDuration = 0
+    , timerFireCount = 0
     }
 
 
@@ -1015,6 +1026,7 @@ gwStateDecoder =
         |> required "currentTime" Json.Decode.int
         |> required "timerFireTime" Json.Decode.int
         |> required "timerFireDuration" Json.Decode.int
+        |> required "timerFireCount" Json.Decode.int
 
 
 portDecoder : Json.Decode.Decoder PortValue
