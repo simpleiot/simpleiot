@@ -17,10 +17,11 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Modal as Modal
 import Bootstrap.Navbar as Navbar
+import Bootstrap.Table as Table
 import Browser
 import Color exposing (Color)
-import Html exposing (Html, a, button, div, h1, h2, h3, h4, img, li, span, text, ul)
-import Html.Attributes exposing (class, height, href, placeholder, src, style, type_, value, width)
+import Html exposing (Html, a, button, div, h1, h2, h3, h4, img, input, li, span, text, ul)
+import Html.Attributes exposing (checked, class, disabled, height, href, placeholder, src, style, type_, value, width)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode
@@ -91,8 +92,21 @@ type alias Devices =
     }
 
 
+type alias User =
+    { firstName : String
+    , lastName : String
+    , admin : Bool
+    }
+
+
 type alias DeviceEdits =
     { device : Maybe Device
+    , visibility : Modal.Visibility
+    }
+
+
+type alias UserEdits =
+    { user : Maybe User
     , visibility : Modal.Visibility
     }
 
@@ -145,7 +159,9 @@ type alias Model =
     { navbarState : Navbar.State
     , accordionState : Accordion.State
     , devices : Devices
+    , users : List User
     , deviceEdits : DeviceEdits
+    , userEdits : UserEdits
     , tab : Tab
     , gwState : GwState
     , gwConfigWifi : GwConfigWifi
@@ -168,6 +184,7 @@ encodePortCmd cmd =
 
 type Tab
     = TabDevices
+    | TabUsers
     | TabConfigure
 
 
@@ -239,7 +256,9 @@ init model =
     ( { navbarState = navbarState
       , accordionState = Accordion.initialState
       , devices = { devices = [], dirty = False }
+      , users = []
       , deviceEdits = { device = Nothing, visibility = Modal.hidden }
+      , userEdits = { user = Nothing, visibility = Modal.hidden }
       , tab = TabDevices
       , gwState = gwStateInit
       , gwConfigWifi = gwConfigWifiInit
@@ -611,6 +630,30 @@ processPortValue portValue model =
 -- View
 
 
+viewUsers : Model -> Html Msg
+viewUsers model =
+    div []
+        [ h1 [] [ text "Users" ]
+        , Table.table
+            { options = [ Table.striped ]
+            , thead =
+                Table.simpleThead
+                    [ Table.th [] [ text "Name" ]
+                    , Table.th [] [ text "Email" ]
+                    , Table.th [] [ text "Admin" ]
+                    ]
+            , tbody =
+                Table.tbody []
+                    [ Table.tr []
+                        [ Table.td [] [ text "Cliff Brake" ]
+                        , Table.td [] [ text "cbrake@bec-systems.com" ]
+                        , Table.td [] [ input [ type_ "checkbox", checked True, disabled True ] [] ]
+                        ]
+                    ]
+            }
+        ]
+
+
 viewDevices : Model -> Html Msg
 viewDevices model =
     div []
@@ -778,6 +821,9 @@ view model =
                 TabDevices ->
                     viewDevices model
 
+                TabUsers ->
+                    viewUsers model
+
                 TabConfigure ->
                     viewConfigure model
     in
@@ -805,6 +851,7 @@ menu model =
 
         menuItems =
             [ Navbar.itemLink [ href "#", onClick (SetTab TabDevices) ] [ text "Devices" ]
+            , Navbar.itemLink [ href "#", onClick (SetTab TabUsers) ] [ text "Users" ]
             , Navbar.itemLink [ href "#", onClick (SetTab TabConfigure) ] [ text "Configure" ]
             ]
     in
