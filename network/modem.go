@@ -95,10 +95,14 @@ func (m *Modem) pppActive() bool {
 }
 
 // Configure modem interface
-func (m *Modem) Configure() error {
+func (m *Modem) Configure() (InterfaceConfig, error) {
+	ret := InterfaceConfig{
+		Apn: m.config.APN,
+	}
+
 	// current sets APN and configures for internal SIM
 	if err := m.openCmdPort(); err != nil {
-		return err
+		return ret, err
 	}
 
 	// disable echo as it messes up the respreader in that it
@@ -106,55 +110,55 @@ func (m *Modem) Configure() error {
 
 	err := CmdOK(m.atCmdPort, "ATE0")
 	if err != nil {
-		return err
+		return ret, err
 	}
 
 	err = CmdSetApn(m.atCmdPort, m.config.APN)
 	if err != nil {
-		return err
+		return ret, err
 	}
 
 	mode, err := CmdBg96GetScanMode(m.atCmdPort)
 	fmt.Println("BG96 scan mode: ", mode)
 	if err != nil {
-		return fmt.Errorf("Error getting scan mode: %v", err.Error())
+		return ret, fmt.Errorf("Error getting scan mode: %v", err.Error())
 	}
 
 	if mode != BG96ScanModeLTE {
 		fmt.Println("Setting BG96 scan mode ...")
 		err := CmdBg96ForceLTE(m.atCmdPort)
 		if err != nil {
-			return fmt.Errorf("Error setting scan mode: %v", err.Error())
+			return ret, fmt.Errorf("Error setting scan mode: %v", err.Error())
 		}
 	}
 
 	err = CmdFunMin(m.atCmdPort)
 	if err != nil {
-		return fmt.Errorf("Error setting fun Min: %v", err.Error())
+		return ret, fmt.Errorf("Error setting fun Min: %v", err.Error())
 	}
 
 	err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",1,26,1,0,0,1")
 	if err != nil {
-		return fmt.Errorf("Error setting GPIO: %v", err.Error())
+		return ret, fmt.Errorf("Error setting GPIO: %v", err.Error())
 	}
 
 	if m.config.APN == apnVerizon {
 		err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",3,26,1,1")
 		if err != nil {
-			return fmt.Errorf("Error setting GPIO: %v", err.Error())
+			return ret, fmt.Errorf("Error setting GPIO: %v", err.Error())
 		}
 
 	} else {
 		err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",3,26,0,1")
 		if err != nil {
-			return fmt.Errorf("Error setting GPIO: %v", err.Error())
+			return ret, fmt.Errorf("Error setting GPIO: %v", err.Error())
 		}
 
 	}
 
 	err = CmdFunFull(m.atCmdPort)
 	if err != nil {
-		return fmt.Errorf("Error setting fun full: %v", err.Error())
+		return ret, fmt.Errorf("Error setting fun full: %v", err.Error())
 	}
 
 	// enable GPS
@@ -170,7 +174,31 @@ func (m *Modem) Configure() error {
 	}
 	*/
 
-	return nil
+	sim, err := CmdGetSimBg96(m.atCmdPort)
+
+	if err != nil {
+		return ret, fmt.Errorf("Error getting SIM #: %v", err.Error())
+	}
+
+	ret.Sim = sim
+
+	imei, err := CmdGetImei(m.atCmdPort)
+
+	if err != nil {
+		return ret, fmt.Errorf("Error getting IMEI #: %v", err.Error())
+	}
+
+	ret.Imei = imei
+
+	version, err := CmdGetFwVersionBG96(m.atCmdPort)
+
+	if err != nil {
+		return ret, fmt.Errorf("Error getting fw version #: %v", err.Error())
+	}
+
+	ret.Version = version
+
+	return ret, nil
 }
 
 // Connect stub

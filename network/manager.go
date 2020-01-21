@@ -108,9 +108,9 @@ func (m *Manager) connect() error {
 	return m.interfaces[m.interfaceIndex].Connect()
 }
 
-func (m *Manager) configure() error {
+func (m *Manager) configure() (InterfaceConfig, error) {
 	if len(m.interfaces) <= 0 {
-		return errors.New("No interfaces to configure")
+		return InterfaceConfig{}, errors.New("No interfaces to configure")
 	}
 
 	return m.interfaces[m.interfaceIndex].Configure()
@@ -128,17 +128,18 @@ func (m *Manager) Reset() {
 
 // Run must be called periodically to process the network life cycle
 // -- perhaps every 10s
-func (m *Manager) Run() (State, InterfaceStatus) {
+func (m *Manager) Run() (State, InterfaceConfig, InterfaceStatus) {
 	count := 0
 
 	status := InterfaceStatus{}
+	config := InterfaceConfig{}
 
 	// state machine for network manager
 	for {
 		count++
 		if count > 10 {
 			log.Println("network state machine ran too many times")
-			return m.state, status
+			return m.state, config, status
 		}
 
 		var err error
@@ -167,7 +168,8 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 				if try > 0 {
 					log.Println("Trying again ...")
 				}
-				err := m.configure()
+				var err error
+				config, err = m.configure()
 				if err != nil {
 					log.Printf("Error configuring device: %v: %v\n",
 						m.Desc(), err)
@@ -218,7 +220,7 @@ func (m *Manager) Run() (State, InterfaceStatus) {
 		break
 	}
 
-	return m.state, status
+	return m.state, config, status
 }
 
 // Error is called any time there is a network error
