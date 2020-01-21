@@ -1,8 +1,9 @@
 package islog
 
 import (
-	"errors"
+	"fmt"
 	"log"
+	"path"
 	"strconv"
 	"time"
 
@@ -17,7 +18,7 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 	// check if disk present before reading from database,
 	// because read takes time
 	usbMountPoint := usbMountPoint()
-	if usbMountPoint == "" {
+	if usbMountPoint == "" || !usbDeviceExists() {
 		out <- isdata.NoDiskPresent{}
 		return
 	}
@@ -33,8 +34,6 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 			log.Println("Error syncing disks: ", err)
 		}
 	}()
-
-	var errNoUsbDisk = errors.New("No USB disk present")
 
 	// Extract samples from database
 	samples, _ := db.ReadSamples()
@@ -102,7 +101,7 @@ func exportFieldTotals(state *isdata.State, config *isdata.Config, out chan inte
 
 	// Check for usb disk
 	usbMountPoint := usbMountPoint()
-	if usbMountPoint == "" {
+	if usbMountPoint == "" || !usbDeviceExists() {
 		out <- isdata.NoDiskPresent{}
 		return
 	}
@@ -202,9 +201,17 @@ func exportFieldTotals(state *isdata.State, config *isdata.Config, out chan inte
 	}
 
 	// Save file
-	err = totals.SaveAs("is-" + state.SerialNumber + "-totals_" + tStamp + ".xlsx")
+	fileName := "is-" + state.SerialNumber + "-totals_" + tStamp + ".xlsx"
+
+	// If runtime.GOARCH != "arm", usbMountPoint will be either the working
+	// directory or an empty string, either of which works for method SaveAs.
+	fileName = path.Join(usbMountPoint, fileName)
+
+	fmt.Println("Saving", fileName)
+
+	err = totals.SaveAs(fileName)
 	if err != nil {
-		log.Println("Error saving .xlsx file: ", err)
+		log.Println("Error saving "+fileName+": ", err)
 	}
 
 	// Send out finished signal - close dialog

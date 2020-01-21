@@ -44,6 +44,31 @@ func usbMountPoint() string {
 	return ""
 }
 
+var usbDevices = []string{
+	"/dev/sda1",
+	"/dev/sda",
+	"/dev/sdb1",
+	"/dev/sdb",
+	"/dev/sdc1",
+	"/dev/sdc",
+	"/dev/sdd1",
+	"/dev/sdd",
+}
+
+// Check if the device is actually there at /dev/
+func usbDeviceExists() bool {
+	if runtime.GOARCH == "arm" {
+		for _, d := range usbDevices {
+			if file.Exists(d) {
+				return true
+			}
+		}
+	} else { // doesn't check for non-target systems
+		return true
+	}
+	return false
+}
+
 func timeToMs(t time.Time) int64 {
 	return t.UnixNano() / (1000 * 1000)
 }
@@ -112,6 +137,14 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 					continue
 				}
 
+				// Check for usb disk
+				usbMountPoint := usbMountPoint()
+				if usbMountPoint == "" || !usbDeviceExists() {
+					out <- isdata.UpdateLogPulseEnable(false)
+					out <- isdata.NoDiskPresent{}
+					continue
+				}
+
 				tsMs := timeToUs(time.Time(m))
 				diff := tsMs - lastPulseTimestamp
 				if lastPulseTimestamp == 0 {
@@ -127,6 +160,14 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 
 			case isdata.Flow:
 				if !config.LogFlowData {
+					continue
+				}
+
+				// Check for usb disk
+				usbMountPoint := usbMountPoint()
+				if usbMountPoint == "" || !usbDeviceExists() {
+					out <- isdata.UpdateLogFlowEnable(false)
+					out <- isdata.NoDiskPresent{}
 					continue
 				}
 
@@ -157,6 +198,14 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 
 					// log data for engineering purpuses if enabled
 					if !config.LogPressureData {
+						continue
+					}
+
+					// Check for usb disk
+					usbMountPoint := usbMountPoint()
+					if usbMountPoint == "" || !usbDeviceExists() {
+						out <- isdata.UpdateLogPressureEnable(false)
+						out <- isdata.NoDiskPresent{}
 						continue
 					}
 
