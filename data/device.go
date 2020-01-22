@@ -9,7 +9,8 @@ type DeviceConfig struct {
 // DeviceState represents information about a device that is
 // collected, vs set by user.
 type DeviceState struct {
-	Ios []Sample `json:"ios"`
+	Version DeviceVersion `json:"version"`
+	Ios     []Sample      `json:"ios"`
 }
 
 // Device represents the state of a device
@@ -51,4 +52,11 @@ type DeviceCmd struct {
 	ID     string `json:"id,omitempty" boltholdKey:"ID"`
 	Cmd    string `json:"cmd"`
 	Detail string `json:"detail,omitempty"`
+}
+
+// DeviceVersion represents the device SW version
+type DeviceVersion struct {
+	OS  string `json:"os"`
+	App string `json:"app"`
+	HW  string `json:"hw"`
 }

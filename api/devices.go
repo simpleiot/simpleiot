@@ -29,6 +29,26 @@ func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id stri
 	err = h.db.DeviceSetCmd(c)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	en := json.NewEncoder(res)
+	en.Encode(data.StandardResponse{Success: true, ID: id})
+}
+
+func (h *Devices) processVersion(res http.ResponseWriter, req *http.Request, id string) {
+	decoder := json.NewDecoder(req.Body)
+	var v data.DeviceVersion
+	err := decoder.Decode(&v)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = h.db.DeviceSetVersion(id, v)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	en := json.NewEncoder(res)
@@ -117,6 +137,12 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			h.processCmd(res, req, id)
 		} else {
 			http.Error(res, "only GET allowed", http.StatusMethodNotAllowed)
+		}
+	case "version":
+		if req.Method == http.MethodPost {
+			h.processVersion(res, req, id)
+		} else {
+			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
 		}
 	default:
 		if id == "" {
