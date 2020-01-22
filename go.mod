@@ -12,6 +12,7 @@ require (
 	github.com/cbrake/influxdbhelper/v2 v2.1.4
 	github.com/davecgh/go-spew v1.1.1
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
+	github.com/go-ocf/go-coap v0.0.0-20200110075231-40e35a4cacdf
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/gorilla/websocket v1.4.0
 	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
@@ -26,11 +27,8 @@ require (
 	github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944
 	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a
-	golang.org/x/net v0.0.0-20190328230028-74de082e2cca // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
-	golang.org/x/sys v0.0.0-20190402142545-baf5eb976a8c // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-	gopkg.in/yaml.v2 v2.2.2 // indirect
 	periph.io/x/periph v3.4.0+incompatible
 )
 
