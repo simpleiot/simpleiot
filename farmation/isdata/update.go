@@ -120,8 +120,11 @@ type UpdateHighWindowPerc float64
 // UpdateManualLowAlarmGPH is used to send a new flow rate window low gallons per hour
 type UpdateManualLowAlarmGPH float64
 
-// UpdateLowPresPerc is used to send a new pressure low
+// UpdateLowPresPerc is used to update the config LowPresPerc value
 type UpdateLowPresPerc float64
+
+// UpdateHighPres is used to update the config HighPres value
+type UpdateHighPres int
 
 // UpdatePressureStartupLow is used to send a new minimum required startup pressure
 type UpdatePressureStartupLow int

@@ -43,6 +43,10 @@ type Config struct {
 	// LowPresPerc is the percent lower than the current pressure min necessary to shutdown the system
 	LowPresPerc float64
 
+	// HighPres is a limit that, if tripped, will immediately shutdown the irrigator in
+	// monitor and shutdown mode
+	HighPres int
+
 	// This is the time in seconds until the system recognizes flow off target
 	AlarmRecognizeSec float64
 
