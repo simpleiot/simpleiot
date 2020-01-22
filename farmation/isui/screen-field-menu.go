@@ -19,7 +19,7 @@ type FieldMenuScreen struct {
 // NewFieldMenuScreen initializes and returns a HomeScreen
 func NewFieldMenuScreen(state *isdata.State, config *isdata.Config) *FieldMenuScreen {
 	return &FieldMenuScreen{
-		softKeys:        NewSoftKeys("back", "edit", "import"),
+		softKeys:        NewSoftKeys("back", "edit"), //, "import"),
 		state:           state,
 		config:          config,
 		menu:            NewMenu(true, config.CurrentFieldIndex),
