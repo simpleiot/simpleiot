@@ -113,6 +113,22 @@ func (db *Db) DeviceDelete(id string) error {
 	return db.store.Delete(id, data.Device{})
 }
 
+// DeviceSetVersion sets a cmd for a device, and sets the
+// CmdPending flag in the device structure.
+func (db *Db) DeviceSetVersion(id string, ver data.DeviceVersion) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	var dev data.Device
+	err := db.store.Get(id, &dev)
+	if err != nil {
+		return err
+	}
+
+	dev.State.Version = ver
+	return db.store.Update(id, dev)
+}
+
 // DeviceSetCmd sets a cmd for a device, and sets the
 // CmdPending flag in the device structure.
 func (db *Db) DeviceSetCmd(cmd data.DeviceCmd) error {
