@@ -54,10 +54,10 @@ is_build_assets_frontend() {
 
 is_build_assets_lcd() {
   genesis -C farmation/assets/lcdassets -pkg lcdassets \
-    "$(
+    $(
       cd farmation/assets/lcdassets
       ls ./*.png
-    )" \
+    ) \
     >farmation/assets/lcdassets/assets.go || return 1
   return 0
 }
