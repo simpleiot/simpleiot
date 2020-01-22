@@ -27,6 +27,7 @@ Documentation for the Simple IoT REST API.
 
 + config (DeviceConfig) - current config for device
 + state (DeviceState) - current state for device
++ cmdPending (boolean) - indicates if a command is pending
 
 ## StandardResponseBase (object)
 
@@ -38,6 +39,11 @@ Documentation for the Simple IoT REST API.
 + success: true (boolean) - indicates if request was successful
 + error: error accessing database (string, optional) - option string describing error
 + id: 1007 (string) - ID of deleted device
+
+## Command (object)
+
++ cmd (string) - command to execute
++ detail (string) - additional parameters for the command
 
 # Group Devices
 
@@ -93,6 +99,28 @@ Post samples for a particular device
 
 + Request (application/json)
     + Attributes (array[Sample])
+
++ Response 200 (application/json)
+    + Attributes (StandardResponse)
+
+## Device Command [/v1/devices/{id}/cmd]
+
++ Parameters
+  + id: 2342 (string) - The ID of the desired device.
+
+### GET
+Gets a command for a device and clears it from the queue.
+Also clears the CmdPending flag in the Device.
+
++ Response 200 (application/json)
+    + Attributes (Command)
+
+### POST
+Post a cmd for a particular device and sets the CmdPending flag
+in the Device.
+
++ Request (application/json)
+    + Attributes (Command)
 
 + Response 200 (application/json)
     + Attributes (StandardResponse)

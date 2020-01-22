@@ -3,6 +3,7 @@ package db
 import (
 	"log"
 	"path"
+	"sync"
 
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/timshannon/bolthold"
@@ -13,6 +14,7 @@ import (
 // handle multiple Db backends.
 type Db struct {
 	store *bolthold.Store
+	lock  sync.RWMutex
 }
 
 // NewDb creates a new Db instance for the app
@@ -50,11 +52,15 @@ func NewDb(dataDir string) (*Db, error) {
 
 // DeviceUpdate updates a devices state in the database
 func (db *Db) DeviceUpdate(device data.Device) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	return db.store.Upsert(device.ID, &device)
 }
 
 // DeviceUpdateConfig updates the config for a particular device
 func (db *Db) DeviceUpdateConfig(id string, config data.DeviceConfig) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	var dev data.Device
 	err := db.store.Get(id, &dev)
 
@@ -69,6 +75,8 @@ func (db *Db) DeviceUpdateConfig(id string, config data.DeviceConfig) error {
 
 // DeviceSample processes a sample for a particular device
 func (db *Db) DeviceSample(id string, sample data.Sample) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	var dev data.Device
 	err := db.store.Get(id, &dev)
 
@@ -92,13 +100,80 @@ func (db *Db) DeviceSample(id string, sample data.Sample) error {
 
 // Device returns data for a particular device
 func (db *Db) Device(id string) (ret data.Device, err error) {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
 	err = db.store.Get(id, &ret)
 	return
 }
 
 // DeviceDelete deletes a device from the database
 func (db *Db) DeviceDelete(id string) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	return db.store.Delete(id, data.Device{})
+}
+
+// DeviceSetCmd sets a cmd for a device, and sets the
+// CmdPending flag in the device structure.
+func (db *Db) DeviceSetCmd(cmd data.DeviceCmd) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	err := db.store.Upsert(cmd.ID, &cmd)
+	if err != nil {
+		return err
+	}
+
+	// and clear the device pending flag
+	var dev data.Device
+	err = db.store.Get(cmd.ID, &dev)
+	if err != nil {
+		return err
+	}
+
+	dev.CmdPending = true
+	return db.store.Update(cmd.ID, dev)
+}
+
+// DeviceGetCmd gets a cmd for a device. If the cmd is no null,
+// the command is deleted, and the cmdPending flag cleared in
+// the Device data structure.
+func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
+	var cmd data.DeviceCmd
+	err := db.store.Get(id, &cmd)
+	if err == bolthold.ErrNotFound {
+		// we don't consider this an error in this case
+		err = nil
+	}
+
+	if err != nil {
+		return cmd, err
+	}
+
+	if cmd.Cmd != "" {
+		// a device has fetched a command, delete it
+		db.lock.Lock()
+		defer db.lock.Unlock()
+		err := db.store.Delete(id, data.DeviceCmd{})
+		if err != nil {
+			return cmd, err
+		}
+
+		// and clear the device pending flag
+		var dev data.Device
+		err = db.store.Get(id, &dev)
+		if err != nil {
+			return cmd, err
+		}
+
+		dev.CmdPending = false
+		err = db.store.Update(id, dev)
+		if err != nil {
+			return cmd, err
+		}
+	}
+
+	return cmd, err
 }
 
 // Devices returns all devices

@@ -14,6 +14,27 @@ type Devices struct {
 	influx *db.Influx
 }
 
+func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id string) {
+	decoder := json.NewDecoder(req.Body)
+	var c data.DeviceCmd
+	err := decoder.Decode(&c)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// set ID in case it is not set in API call
+	c.ID = id
+
+	err = h.db.DeviceSetCmd(c)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+
+	en := json.NewEncoder(res)
+	en.Encode(data.StandardResponse{Success: true, ID: id})
+}
+
 func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
 	var c data.DeviceConfig
@@ -79,6 +100,23 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			h.processConfig(res, req, id)
 		} else {
 			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+		}
+	case "cmd":
+		if req.Method == http.MethodGet {
+			cmd, err := h.db.DeviceGetCmd(id)
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusInternalServerError)
+			}
+
+			// id is not required
+			cmd.ID = ""
+
+			en := json.NewEncoder(res)
+			en.Encode(cmd)
+		} else if req.Method == http.MethodPost {
+			h.processCmd(res, req, id)
+		} else {
+			http.Error(res, "only GET allowed", http.StatusMethodNotAllowed)
 		}
 	default:
 		if id == "" {

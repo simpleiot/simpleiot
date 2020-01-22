@@ -13,10 +13,15 @@ type DeviceState struct {
 }
 
 // Device represents the state of a device
+// The config is typically updated by the portal/UI, and the
+// State is updated by the device. Keeping these datastructures
+// separate reduces the possibility that one update will step
+// on another.
 type Device struct {
-	ID     string       `json:"id" boltholdKey:"ID"`
-	Config DeviceConfig `json:"config"`
-	State  DeviceState  `json:"state"`
+	ID         string       `json:"id" boltholdKey:"ID"`
+	Config     DeviceConfig `json:"config"`
+	State      DeviceState  `json:"state"`
+	CmdPending bool         `json:"cmdPending"`
 }
 
 // ProcessSample takes a sample for a device and adds/updates in Ios
@@ -32,4 +37,18 @@ func (d *Device) ProcessSample(sample Sample) {
 	if !ioFound {
 		d.State.Ios = append(d.State.Ios, sample)
 	}
+}
+
+// define valid commands
+const (
+	CmdUpdateApp string = "updateApp"
+	CmdPoll             = "poll"
+	CmdFieldMode        = "fieldMode"
+)
+
+// DeviceCmd represents a command to be sent to a device
+type DeviceCmd struct {
+	ID     string `json:"id,omitempty" boltholdKey:"ID"`
+	Cmd    string `json:"cmd"`
+	Detail string `json:"detail,omitempty"`
 }
