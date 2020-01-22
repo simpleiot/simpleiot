@@ -90,11 +90,10 @@ siot_run_device_sim() {
 }
 
 siot_build_docs() {
-  # requires aglio:
-  # npm install -g aglio
-  #snowboard lint docs/api.apib
-  #snowboard html docs/api.apib -o docs/api.html
-  aglio -i docs/api.apib --theme-variables flatly --theme-template triple -o docs/api.html
+  # download snowboard binary from: https://github.com/bukalapak/snowboard/releases
+  # and stash in /usr/local/bin
+  snowboard lint docs/api.apib || return 1
+  snowboard html docs/api.apib -o docs/api.html || return 1
 }
 
 siot_test() {
