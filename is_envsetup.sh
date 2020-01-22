@@ -23,13 +23,16 @@ is_gen_font() {
   h=$4
   fontstring=$5
   var=$6
-  cd farmation/fonts
-  rm -rf $name
-  mkdir -p $name
-  fontgen -x=$x -y=$y -h=$h -a=$fontstring $var -img fonts.png >$name/$name.txt
-  fontgen -x=$x -y=$y -h=$h -a=$fontstring $var -img fonts.png -o $name
-  mv $name.go $name/
-  cd -
+  cd farmation/fonts || {
+    echo "cd failure"
+    exit 1
+  }
+  rm -rf "$name"
+  mkdir -p "$name"
+  fontgen -x="$x" -y="$y" -h="$h" -a="$fontstring" "$var" -img fonts.png >"$name/$name.txt"
+  fontgen -x="$x" -y="$y" -h="$h" -a="$fontstring" "$var" -img fonts.png -o "$name"
+  mv "$name.go" "$name/"
+  cd - || exit 1
 }
 
 is_gen_fonts() {
@@ -51,10 +54,10 @@ is_build_assets_frontend() {
 
 is_build_assets_lcd() {
   genesis -C farmation/assets/lcdassets -pkg lcdassets \
-    $(
+    "$(
       cd farmation/assets/lcdassets
-      ls *.png
-    ) \
+      ls ./*.png
+    )" \
     >farmation/assets/lcdassets/assets.go || return 1
   return 0
 }
@@ -96,7 +99,7 @@ is_run() {
   go run farmation/cmd/injector-sentry/main.go -sim \
     -portal http://localhost:8080 \
     -serialNumber "wk231" \
-    $1 $2 $4 $5 $6 || return 1
+    "$1" "$2" "$4" "$5" "$6" || return 1
   return 0
 }
 
@@ -144,7 +147,7 @@ is_portal_build_assets() {
 
 is_portal_build_dependencies() {
   DEBUG=$1
-  is_portal_build_frontend $DEBUG || return 1
+  is_portal_build_frontend "$DEBUG" || return 1
   is_portal_build_assets || return 1
   return 0
 }
@@ -159,7 +162,7 @@ is_portal_run() {
   export SIOT_DATA=./portal_db
   mkdir -p $SIOT_DATA
   is_portal_build_dependencies debug || return 1
-  go run farmation/cmd/portal/main.go $1 $2 $3 $4 $5 $6 $7 $8 || return 1
+  go run farmation/cmd/portal/main.go "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" || return 1
   return 0
 }
 
@@ -174,17 +177,17 @@ is_vm_start() {
 is_vm_stop() {
   # We have to ssh into the vm to shut it off
   USER=$1
-  gcloud compute ssh $USER@$INSTANCE --command="sudo poweroff"
+  gcloud compute ssh "$USER@$INSTANCE" --command="sudo poweroff"
 }
 
 is_vm_ssh() {
   USER=$1
-  gcloud compute ssh $USER@$INSTANCE
+  gcloud compute ssh "$USER@$INSTANCE"
 }
 
 is_vm_scp() {
   USER=$1 PATH_CURRENT=$2 PATH_NEW=$3
-  gcloud compute scp $USER@$INSTANCE:$PATH_CURRENT $PATH_NEW
+  gcloud compute scp "$USER@$INSTANCE:$PATH_CURRENT $PATH_NEW"
 }
 
 # For uploading images from server
