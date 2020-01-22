@@ -125,7 +125,7 @@ is_portal_build_frontend() {
     # build debug version (can use Debug.log)
     (cd frontend && elm make src/Farmation/Portal/Main.elm --output=output/elm.js) || return 1
   fi
-  (cd frontend && cp src/Farmation/public/index.html output/) || return 1
+  (cd frontend && cp src/Farmation/Portal/index.html output/) || return 1
   (cd frontend && cp src/Farmation/public/*.png output/) || return 1
   return 0
 }
