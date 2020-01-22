@@ -19,7 +19,7 @@ type ProductMenuScreen struct {
 // NewProductMenuScreen initializes and returns a HomeScreen
 func NewProductMenuScreen(state *isdata.State, config *isdata.Config) *ProductMenuScreen {
 	return &ProductMenuScreen{
-		softKeys:        NewSoftKeys("back", "edit", "import"),
+		softKeys:        NewSoftKeys("back", "edit"), //"import"),
 		state:           state,
 		config:          config,
 		menu:            NewMenu(true, config.CurrentProductIndex),
