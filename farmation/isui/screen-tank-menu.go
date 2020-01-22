@@ -20,7 +20,7 @@ type TankMenuScreen struct {
 // NewTankMenuScreen initializes and returns a HomeScreen
 func NewTankMenuScreen(state *isdata.State, config *isdata.Config) *TankMenuScreen {
 	return &TankMenuScreen{
-		softKeys:        NewSoftKeys("back", "full"),
+		softKeys:        NewSoftKeys("back", "fill"),
 		state:           state,
 		config:          config,
 		menu:            Menu{},
