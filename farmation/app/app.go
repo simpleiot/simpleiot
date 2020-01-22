@@ -26,6 +26,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isserial"
 	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
+	"github.com/simpleiot/simpleiot/farmation/isupdate"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
 	"github.com/simpleiot/simpleiot/file"
 	"github.com/simpleiot/simpleiot/network"
@@ -116,6 +117,7 @@ func Run(params Params) {
 	stateDirty = isdata.InitState(&state)
 	state.SerialNumber = params.SerialNumber
 	state.ViewMsg = params.ViewMsg
+	state.HWVersion = isio.GetHwID()
 
 	config.Init()
 
@@ -151,6 +153,7 @@ func Run(params Params) {
 	presChan := make(chan interface{}, 1000)
 	serialChan := make(chan interface{}, 1000)
 	networkChan := make(chan interface{}, 100)
+	updateChan := make(chan interface{}, 100)
 
 	channels := []struct {
 		name    string
@@ -169,6 +172,7 @@ func Run(params Params) {
 		{"pres", presChan},
 		{"serial", serialChan},
 		{"network", networkChan},
+		{"update", updateChan},
 	}
 
 	// fire up subsystems
@@ -185,6 +189,8 @@ func Run(params Params) {
 	go isserial.Run(serialChan, appChan, config)
 	go isnetwork.Run(networkChan, appChan, config, state,
 		params.PortalURL, params.DebugPortal)
+
+	go isupdate.Run(updateChan, appChan)
 
 	lastFillingWarning := time.Time{}
 
@@ -943,6 +949,12 @@ func Run(params Params) {
 			case network.InterfaceConfig:
 				state.NetworkInterfaceConfig = m
 				saveState()
+
+			case data.DeviceCmd:
+				switch m.Cmd {
+				case data.CmdUpdateApp:
+					updateChan <- m
+				}
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why

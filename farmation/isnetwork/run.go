@@ -4,6 +4,7 @@ import (
 	"log"
 	"math"
 	"runtime"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isio"
+	"github.com/simpleiot/simpleiot/farmation/version"
 	"github.com/simpleiot/simpleiot/network"
 )
 
@@ -40,8 +42,11 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	manager := network.NewManager(10)
 
-	sendSamplesAPI := api.NewSendSamples(portal, state.SerialNumber,
-		time.Second*10, debugPortal)
+	sendSamplesAPI := api.NewSendSamples(portal, state.SerialNumber, time.Second*10, debugPortal)
+	getCmdAPI := api.NewGetCmd(portal, state.SerialNumber, time.Second*10, debugPortal)
+	setVersionAPI := api.NewSetVersion(portal, state.SerialNumber, time.Second*10, debugPortal)
+
+	versionSent := false
 
 	sendSamples := func(samples []data.Sample) error {
 		if len(samples) <= 0 {
@@ -147,17 +152,25 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	manageTicker := time.NewTicker(time.Second * 10)
 	sendPortal := time.NewTicker(time.Minute * 10)
+	pollPortal := time.NewTicker(time.Minute)
+
+	if runtime.GOARCH != "arm" {
+		// poll faster on development systems
+		pollPortal = time.NewTicker(time.Second * 5)
+	}
 
 	var lastTimeSync time.Time
 
 	if state.SerialNumber == "" {
 		log.Println("IS Serial is not set, not sending data to portal")
 		sendPortal.Stop()
+		pollPortal.Stop()
 	}
 
 	if portal == "" {
 		log.Println("Portal URL is not set, not sending data to portal")
 		sendPortal.Stop()
+		pollPortal.Stop()
 	}
 
 	sendInitialDigitalData()
@@ -297,6 +310,38 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				(lastTimeSync.IsZero() || time.Since(lastTimeSync) >= time.Hour) {
 				updateTime()
 				lastTimeSync = time.Now()
+			}
+
+		case <-pollPortal.C:
+			// look for commands from portal
+			if !interfaceStatus.Connected {
+				continue
+			}
+
+			cmd, err := getCmdAPI()
+
+			if err != nil {
+				log.Println("Error getting command from portal: ", err)
+				continue
+			}
+
+			if cmd.Cmd != "" {
+				out <- cmd
+			}
+
+			if !versionSent {
+				err := setVersionAPI(data.DeviceVersion{
+					OS:  state.OSVersion.String(),
+					App: version.AppVersion,
+					HW:  strconv.Itoa(state.HWVersion),
+				})
+
+				if err != nil {
+					log.Println("Error sending version info to portal: ", err)
+					continue
+				}
+
+				versionSent = true
 			}
 
 		case <-sendPortal.C:

@@ -107,6 +107,8 @@ type State struct {
 	// PanelDefinition PanelDefinition `json:"panelConfig"`
 
 	NetworkInterfaceConfig network.InterfaceConfig
+
+	HWVersion int
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config

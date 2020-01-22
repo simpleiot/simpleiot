@@ -4,6 +4,7 @@ import (
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"github.com/simpleiot/simpleiot/farmation/version"
 )
 
 // DiagnosticsScreen diagnostics screen
@@ -33,7 +34,8 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	// Sub screens
-	s.menu.AddItemStringDown("Version", s.state.OSVersion.String())
+	s.menu.AddItemStringDown("OS Version", s.state.OSVersion.String())
+	s.menu.AddItemStringDown("App Version", version.AppVersion)
 	s.menu.AddItemStringDown("Serial Num", s.state.SerialNumber)
 	s.menu.AddItemScreen("Device Name", ScreenIDDiagDevName)
 	s.menu.AddItemScreen("System Time", ScreenIDDiagSystemTime)
