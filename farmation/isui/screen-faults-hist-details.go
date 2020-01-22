@@ -66,14 +66,18 @@ func (s *FaultsHistDetailsScreen) Render(img draw.Image) {
 	case isdata.SampleTypeFaultFlowOff:
 		DrawTxt(img, "Flow: "+strconv.FormatFloat(s.fault.Value, 'f', 0, 64), x, y, font)
 	case isdata.SampleTypeFaultPresLow:
-		pressureStr := "Pressure: " + strconv.FormatFloat(s.fault.Value, 'f', 0, 64)
-		if s.fault.Attributes["shutdownThreshold"] != 0 {
-			pressureStr = pressureStr + ", Threshold: " + strconv.FormatFloat(s.fault.Attributes["shutdownThreshold"], 'f', 0, 64)
-		}
+		pressureStr := "Pres: " + strconv.FormatFloat(s.fault.Value, 'f', 0, 64) +
+			", Threshold: " +
+			strconv.FormatFloat(s.fault.Attributes["shutdownThreshold"], 'f', 0, 64)
+		DrawTxt(img, pressureStr, x, y, font)
+	case isdata.SampleTypeFaultPresHigh:
+		pressureStr := "Pres: " + strconv.FormatFloat(s.fault.Value, 'f', 0, 64) +
+			", Threshold: " +
+			strconv.FormatFloat(s.fault.Attributes["shutdownThresHigh"], 'f', 0, 64)
 		DrawTxt(img, pressureStr, x, y, font)
 	}
 
-	// display input states as icon "-" On, Off, NA
+	// display input states as <icon> "-" On, Off, NA
 	x = 20
 	y = 43
 	DrawTxtCentered(img, "-", x, y, font)

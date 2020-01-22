@@ -7,7 +7,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-// OperatingModeSetupScreen is used to display and edit shutdown mode settings
+// OperatingModeSetupScreen is used to display and edit mode settings
 type OperatingModeSetupScreen struct {
 	textEntryScreen *TextEntryScreen
 	softKeys        *SoftKeys
@@ -43,6 +43,7 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled, isdata.UpdatePressureShutdownEnabled{})
 	s.menu.AddItemStringRight("Pres Low", strconv.Itoa(int(s.config.LowPresPerc))+" %")
 	s.menu.AddItemStringRight("Pres Start", strconv.Itoa(s.config.PressureStartupLow)+" PSI")
+	s.menu.AddItemStringRight("Pres High", strconv.Itoa(s.config.HighPres)+" PSI")
 	//s.menu.AddItemInt("Batch Amount", int(config.BatchAmount))
 	//s.menu.AddItemInt("Batch Applied", 0)
 
@@ -87,6 +88,8 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 				return ScreenIDNoChange, isdata.UpdateLowPresPerc(value), true
 			case 7:
 				return ScreenIDNoChange, isdata.UpdatePressureStartupLow(value), true
+			case 8:
+				return ScreenIDNoChange, isdata.UpdateHighPres(value), true
 			}
 		case TextEntryCommandCancel: // cancel
 			s.exitEdit()
@@ -151,6 +154,9 @@ func (s *OperatingModeSetupScreen) enterEdit() {
 	case 7:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureStartupLow) // convert integer value into string to edit w/ text entry screen
 		s.textEntryScreen.headerLabel = "Startup Min PSI"
+	case 8:
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.HighPres)
+		s.textEntryScreen.headerLabel = "High PSI"
 	}
 
 	s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit

@@ -376,6 +376,20 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 					"shutdownThreshold": sm.config.PressureShutdownLow,
 				},
 			})
+
+		case sm.state.PressureMax >= float64(sm.config.HighPres):
+			sm.setState(shutdown1)
+			return append(ret, data.Sample{
+				Type:  isdata.SampleTypeFaultPresHigh,
+				Time:  time.Now(),
+				Value: sm.state.PressureMax,
+				Attributes: map[string]float64{
+					"inputInjector":     float64(sm.state.InputInjector),
+					"inputWaterOn":      float64(sm.state.InputWaterOn),
+					"inputIrrigator":    float64(sm.state.InputIrrigator),
+					"shutdownThresHigh": float64(sm.config.HighPres),
+				},
+			})
 		}
 
 	case shutdown1:
