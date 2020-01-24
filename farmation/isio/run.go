@@ -39,7 +39,7 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 		}
 	}
 
-	gpioReadTicker := time.NewTicker(50 * time.Millisecond) // ticker to read gpio's
+	gpioReadTicker := time.NewTicker(500 * time.Millisecond) // ticker to read gpio's
 	panelSenseTicker := time.NewTicker(10 * time.Second)
 
 	if runtime.GOARCH != "arm" {
