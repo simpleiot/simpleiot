@@ -299,13 +299,26 @@ func Run(params Params) {
 
 	var lastVisionUnknownStateDisplay time.Time
 
+	var lastChannelDialogDisplay time.Time
+
 	for {
+
 		// max sure queues between subsystems are not full
 		for _, c := range channels {
 			if len(c.channel) >= cap(c.channel)-1 {
 				log.Println("Warning channel full: ", c.name, len(c.channel))
 				e := <-c.channel
 				log.Printf("dropping entry of type: %T\n", e)
+
+				// Fire a dialog to let user know about problem
+				if time.Since(lastChannelDialogDisplay) > time.Hour {
+					state.DialogApp.Active = true
+					state.DialogApp.Message = "System overloaded: " +
+						c.name +
+						"\nchannel is full. Please\ncontact Farmation support."
+					lastChannelDialogDisplay = time.Now()
+				}
+
 			} else if len(c.channel) > 30 &&
 				time.Now().Sub(lastFillingWarning) > time.Minute {
 				log.Println("Warning channel is filling: ", c.name, len(c.channel))
