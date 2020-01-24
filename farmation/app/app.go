@@ -748,34 +748,34 @@ func Run(params Params) {
 				state.GpioDigitalInjector = bool(m)
 				saveState()
 
-				// save to database for system logs
-				db.WriteSample(data.Sample{
+				// send to logging thread to be saved to database for system logs
+				logChan <- data.Sample{
 					Type:  isdata.SampleTypeInputInjector,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),
-				})
+				}
 
 			case isdata.UpdateGpioDigitalIrrigator:
 				state.GpioDigitalIrrigator = bool(m)
 				saveState()
 
-				// save to database for system logs
-				db.WriteSample(data.Sample{
+				// send to logging thread to be saved to database for system logs
+				logChan <- data.Sample{
 					Type:  isdata.SampleTypeInputIrrigator,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),
-				})
+				}
 
 			case isdata.UpdateGpioDigitalWaterOn:
 				state.GpioDigitalWaterOn = bool(m)
 				saveState()
 
-				// save to database for system logs
-				db.WriteSample(data.Sample{
+				// send to logging thread to be saved to database for system logs
+				logChan <- data.Sample{
 					Type:  isdata.SampleTypeInputWaterOn,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),
-				})
+				}
 
 			case isdata.UpdateGpioDigitalIn:
 				state.GpioDigitalIn = bool(m)
