@@ -43,6 +43,10 @@ type Config struct {
 	// LowPresPerc is the percent lower than the current pressure min necessary to shutdown the system
 	LowPresPerc float64
 
+	// HighPres is a limit that, if tripped, will immediately shutdown the irrigator in
+	// monitor and shutdown mode
+	HighPres int
+
 	// This is the time in seconds until the system recognizes flow off target
 	AlarmRecognizeSec float64
 
@@ -363,6 +367,10 @@ func (c *Config) Init() {
 		c.LowPresPerc = 50
 	}
 
+	if c.HighPres <= 0 {
+		c.HighPres = 250
+	}
+
 	if c.AlarmRecognizeSec <= 0 {
 		c.AlarmRecognizeSec = 30
 	}
@@ -444,6 +452,12 @@ func (c *Config) ApplyBounds() {
 		c.LowPresPerc = 0
 	} else if c.LowPresPerc > 9999 {
 		c.LowPresPerc = 9999
+	}
+
+	if c.HighPres <= 0 {
+		c.HighPres = 1
+	} else if c.HighPres > 9999 {
+		c.HighPres = 9999
 	}
 
 	if c.AlarmRecognizeSec < 0 {

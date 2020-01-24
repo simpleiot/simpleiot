@@ -1,6 +1,8 @@
 package isdata
 
 // Define sample types for the system
+// NOTE: If any "Fault" sample types are added,
+// isdb.ReadFaultHist() must be updated with new type
 const (
 	SampleTypeFlowWindowAvg  string = "flowWindowAvg"
 	SampleTypeAmount                = "amount"
@@ -9,6 +11,7 @@ const (
 	SampleTypePressureVSense        = "pressureVSense"
 	SampleTypeFaultFlowOff          = "faultFlowOffTarget"
 	SampleTypeFaultPresLow          = "faultPressureLow"
+	SampleTypeFaultPresHigh         = "faultPressureHigh"
 	SampleTypeFaultShutdown         = "faultShutdownFailed"
 	SampleTypeInputInjector         = "inputInjector"
 	SampleTypeInputWaterOn          = "inputWaterOn"
@@ -23,6 +26,8 @@ func SampleTypeToDisp(t string) string {
 		return "flow off target"
 	case SampleTypeFaultPresLow:
 		return "low pressure"
+	case SampleTypeFaultPresHigh:
+		return "high pressure"
 	case SampleTypeFaultShutdown:
 		return "shutdown failed"
 	default:
@@ -37,6 +42,8 @@ func SampleTypeToDispVerbose(t string) string {
 		return "Shtdwn: flow off target"
 	case SampleTypeFaultPresLow:
 		return "Shtdwn: pressure low"
+	case SampleTypeFaultPresHigh:
+		return "Shtdwn: pressure high"
 	case SampleTypeFaultShutdown:
 		return "Failed to shutdown irrigator"
 	default:

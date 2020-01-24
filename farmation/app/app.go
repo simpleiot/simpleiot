@@ -415,12 +415,16 @@ func Run(params Params) {
 
 				case isdata.SampleTypeFaultFlowOff,
 					isdata.SampleTypeFaultPresLow,
+					isdata.SampleTypeFaultPresHigh,
 					isdata.SampleTypeFaultShutdown:
 					state.FaultsActive = append(state.FaultsActive, m)
 					saveState()
 
 					// directly store fault sample
-					db.WriteSample(m)
+					err := db.WriteSample(m)
+					if err != nil {
+						log.Println("Error writing sample to db: ", err)
+					}
 
 				case isdata.SampleTypeKey:
 					// this is used for the simulator
@@ -603,6 +607,10 @@ func Run(params Params) {
 
 			case isdata.UpdateLowPresPerc:
 				config.LowPresPerc = float64(m)
+				saveConfig()
+
+			case isdata.UpdateHighPres:
+				config.HighPres = int(m)
 				saveConfig()
 
 			case isdata.UpdateManualHighAlarmGPH:

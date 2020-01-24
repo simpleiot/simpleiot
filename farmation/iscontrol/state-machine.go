@@ -376,6 +376,28 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 					"shutdownThreshold": sm.config.PressureShutdownLow,
 				},
 			})
+			/*return append(ret, isdata.UpdateDialogStateMachineMessage(
+			"Shutdown: low pressure, "+
+				strconv.FormatFloat(sm.state.PressureMin, 'f', 0, 64)+
+				"\nAbort by disarming"))*/
+
+		case sm.state.PressureMax >= float64(sm.config.HighPres):
+			sm.setState(shutdown1)
+			ret = append(ret, data.Sample{
+				Type:  isdata.SampleTypeFaultPresHigh,
+				Time:  time.Now(),
+				Value: sm.state.PressureMax,
+				Attributes: map[string]float64{
+					"inputInjector":     float64(sm.state.InputInjector),
+					"inputWaterOn":      float64(sm.state.InputWaterOn),
+					"inputIrrigator":    float64(sm.state.InputIrrigator),
+					"shutdownThresHigh": float64(sm.config.HighPres),
+				},
+			})
+			return append(ret, isdata.UpdateDialogStateMachineMessage(
+				"Shutdown: high pressure\nreading of "+
+					strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64)+
+					".\nAbort by disarming."))
 		}
 
 	case shutdown1:
