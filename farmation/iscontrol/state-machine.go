@@ -395,9 +395,9 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				},
 			})
 			return append(ret, isdata.UpdateDialogStateMachineMessage(
-				"Shutdown: high pressure, "+
+				"Shutdown: high pressure\nreading of "+
 					strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64)+
-					"\nAbort by disarming"))
+					".\nAbort by disarming."))
 		}
 
 	case shutdown1:
