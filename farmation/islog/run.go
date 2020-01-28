@@ -229,9 +229,23 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 
 				case isdata.SampleTypeInputInjector,
 					isdata.SampleTypeInputIrrigator,
-					isdata.SampleTypeInputWaterOn:
-					db.WriteSample(m)
+					isdata.SampleTypeInputWaterOn,
+					isdata.SampleTypeArm,
+					isdata.SampleTypeFaultFlowOff,
+					isdata.SampleTypeFaultPresLow,
+					isdata.SampleTypeFaultPresHigh,
+					isdata.SampleTypeFaultShutdown:
+					err := db.WriteSample(m)
+					if err != nil {
+						log.Println("Error writing sample to database: ", err)
+					}
+
+				default:
+					log.Println("Sample type not handled: ", m.Type)
 				}
+
+			default:
+				log.Printf("Log Mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
 
 		case <-writeAmountTicker.C:

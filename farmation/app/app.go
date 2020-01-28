@@ -433,11 +433,7 @@ func Run(params Params) {
 					state.FaultsActive = append(state.FaultsActive, m)
 					saveState()
 
-					// directly store fault sample
-					err := db.WriteSample(m)
-					if err != nil {
-						log.Println("Error writing sample to db: ", err)
-					}
+					logChan <- m
 
 				case isdata.SampleTypeKey:
 					// this is used for the simulator
@@ -533,12 +529,11 @@ func Run(params Params) {
 					saveState()
 
 					if config.Arm != oldArm {
-						// save to database for system logs
-						db.WriteSample(data.Sample{
+						logChan <- data.Sample{
 							Type:  isdata.SampleTypeArm,
 							Time:  time.Now(),
 							Value: boolToSampleVal(config.Arm),
-						})
+						}
 					}
 
 				default:
