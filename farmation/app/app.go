@@ -492,6 +492,11 @@ func Run(params Params) {
 					if config.Arm {
 						flowAverager.ResetAverage()
 						state.AvgFlowRateStart = time.Now()
+						if config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify &&
+							!state.NetworkState.InterfaceStatus.Connected {
+							fmt.Println("COLLIN: sending signal")
+							appChan <- isdata.NoNetworkConnection{}
+						}
 					}
 					saveConfig()
 					saveState()
@@ -715,6 +720,13 @@ func Run(params Params) {
 				state.DialogExport.Active = true
 				state.DialogExport.Message = "Error writing to USB disk"
 
+			case isdata.NoNetworkConnection:
+				state.DialogApp.Active = true
+				state.DialogApp.Message = `The IS is not connected\n
+				to a network. Monitor\n
+				and Notify mode is not\n
+				functional.`
+
 			/*case isdata.UpdateTankAlertVolume:
 			config.TankAlertVolume = int(m)
 			saveConfig()*/
@@ -835,6 +847,10 @@ func Run(params Params) {
 				config.OperatingMode = isdata.ISOperatingMode(m)
 				if config.OperatingMode == isdata.ISOperatingModeMonitor {
 					config.Arm = false // system can't be armed in monitor only mode
+				}
+				if config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify &&
+					!state.NetworkState.InterfaceStatus.Connected {
+					appChan <- isdata.NoNetworkConnection{}
 				}
 				saveConfig()
 
