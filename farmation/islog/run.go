@@ -226,6 +226,11 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 					if m.Time.After(amountTime) {
 						amountTime = m.Time
 					}
+
+				case isdata.SampleTypeInputInjector,
+					isdata.SampleTypeInputIrrigator,
+					isdata.SampleTypeInputWaterOn:
+					db.WriteSample(m)
 				}
 			}
 
