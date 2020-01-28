@@ -13,6 +13,26 @@ import (
 // debug at commands
 var DebugAtCommands = false
 
+// RsrqValueToDb converts AT value to dB
+func RsrqValueToDb(value int) float64 {
+	if value < 0 || value > 34 {
+		// unknown value
+		return 0
+	}
+
+	return -20 + float64(value)*0.5
+}
+
+// RsrpValueToDb converts AT value to dB
+func RsrpValueToDb(value int) float64 {
+	if value < 0 || value > 97 {
+		// unknown value
+		return 0
+	}
+
+	return -141 + float64(value)
+}
+
 // Cmd send a command to modem and read response
 // retry 3 times. Port should be a RespReadWriter.
 func Cmd(port io.ReadWriter, cmd string) (string, error) {
@@ -77,6 +97,41 @@ func checkRespOK(resp string) error {
 	}
 
 	return errorNoOK
+}
+
+// +CESQ: 99,99,255,255,13,34
+// +CESQ: rxlen,ber,rscp,ecno,rsrq,rsrp
+var reCesq = regexp.MustCompile(`\+CESQ:\s*(\d+),(\d+),(\d+),(\d+),(\d+),(\d+)`)
+
+// CmdCesq is used to send the AT+CESQ command
+func CmdCesq(port io.ReadWriter) (rsrq, rsrp int, err error) {
+	var resp string
+	resp, err = Cmd(port, "AT+CESQ")
+	if err != nil {
+		return
+	}
+
+	found := false
+
+	for _, line := range strings.Split(string(resp), "\n") {
+		matches := reQcsq.FindStringSubmatch(line)
+
+		if len(matches) >= 6 {
+			rsrqI, _ := strconv.Atoi(matches[5])
+			rsrpI, _ := strconv.Atoi(matches[6])
+
+			rsrq = int(RsrqValueToDb(rsrqI))
+			rsrp = int(RsrpValueToDb(rsrpI))
+
+			return
+		}
+	}
+
+	if !found {
+		err = fmt.Errorf("Error parsing CESQ response: %v", resp)
+	}
+
+	return
 }
 
 // service, rssi, rsrp, sinr, rsrq
@@ -211,6 +266,106 @@ func CmdGetFwVersionBG96(port io.ReadWriter) (string, error) {
 	return "", fmt.Errorf("Error parsing AT+CGMR response: %v", resp)
 }
 
+//REVISION 4.3.1.0c
+var reATI = regexp.MustCompile(`REVISION (\S+)`)
+
+// CmdATI gets version # from modem
+func CmdATI(port io.ReadWriter) (string, error) {
+	resp, err := Cmd(port, "ATI")
+	if err != nil {
+		return "", err
+	}
+
+	for _, line := range strings.Split(resp, "\n") {
+		matches := reATI.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			return matches[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("Error parsing ATI response: %v", resp)
+}
+
+// looking for: +CSQ: 9,99
+var reSig = regexp.MustCompile(`\+CSQ:\s*(\d+),(\d+)`)
+
+// CmdGetSignal gets signal strength
+func CmdGetSignal(port io.ReadWriter) (int, int, error) {
+	resp, err := Cmd(port, "AT+CSQ")
+	if err != nil {
+		return 0, 0, err
+	}
+
+	for _, line := range strings.Split(resp, "\n") {
+		matches := reSig.FindStringSubmatch(line)
+		if len(matches) >= 3 {
+			signalStrengthF, _ := strconv.ParseFloat(matches[1], 32)
+			bitErrorRateF, _ := strconv.ParseFloat(matches[2], 32)
+
+			var signalStrength, bitErrorRate int
+
+			// normalize numbers and return -1 if not known
+			if signalStrengthF == 99 {
+				signalStrength = -1
+			} else {
+				signalStrength = int(signalStrengthF * 100 / 31)
+			}
+
+			if bitErrorRateF == 99 {
+				bitErrorRate = -1
+			} else {
+				bitErrorRate = int(bitErrorRateF * 100 / 7)
+			}
+
+			return signalStrength, bitErrorRate, nil
+		}
+	}
+
+	return 0, 0, fmt.Errorf("Error parsing AT+CSQ response: %v", resp)
+}
+
+//+CNUM: "Line 1","+15717759540",145
+//+CNUM: "","18167882915",129
+var reCmdPhoneNum = regexp.MustCompile(`(\d{11,})`)
+
+// CmdGetPhoneNum gets phone number from modem
+func CmdGetPhoneNum(port io.ReadWriter) (string, error) {
+	resp, err := Cmd(port, "AT+CNUM")
+	if err != nil {
+		return "", err
+	}
+
+	for _, line := range strings.Split(resp, "\n") {
+		matches := reCmdPhoneNum.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			return matches[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("Error parsing AT+CNUM response: %v", resp)
+}
+
+// +CCID: "89148000000637720260",""
+// +ICCID: 8901260881206806423
+var reCmdSim = regexp.MustCompile(`(\d{19,})`)
+
+// CmdGetSim gets SIM # from modem
+func CmdGetSim(port io.ReadWriter) (string, error) {
+	resp, err := Cmd(port, "AT+CCID?")
+	if err != nil {
+		return "", err
+	}
+
+	for _, line := range strings.Split(resp, "\n") {
+		matches := reCmdSim.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			return matches[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("Error parsing AT+CCID? response: %v", resp)
+}
+
 // 356278070013083
 var reCmdImei = regexp.MustCompile(`(\d{15,})`)
 
@@ -230,10 +385,6 @@ func CmdGetImei(port io.ReadWriter) (string, error) {
 
 	return "", fmt.Errorf("Error parsing AT+CGSN response: %v", resp)
 }
-
-// +CCID: "89148000000637720260",""
-// +ICCID: 8901260881206806423
-var reCmdSim = regexp.MustCompile(`(\d{19,})`)
 
 // CmdGetSimBg96 returns SIM for bg96 modems
 func CmdGetSimBg96(port io.ReadWriter) (string, error) {
@@ -350,4 +501,9 @@ func CmdCops(port io.ReadWriter) (carrier string, err error) {
 	}
 
 	return
+}
+
+// CmdReboot reboots modem
+func CmdReboot(port io.ReadWriter) error {
+	return CmdOK(port, "AT+CFUN=1,1")
 }
