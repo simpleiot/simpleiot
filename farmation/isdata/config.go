@@ -126,6 +126,7 @@ type ISOperatingMode int
 // define the possible operating modes
 const (
 	ISOperatingModeMonitor ISOperatingMode = iota
+	ISOperatingModeMonitorAndNotify
 	ISOperatingModeMonitorAndShutdown
 	ISOperatingModeMonitorAndBatch
 )

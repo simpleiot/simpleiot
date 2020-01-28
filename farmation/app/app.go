@@ -984,7 +984,7 @@ func Run(params Params) {
 func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 	if config.OperatingMode == isdata.ISOperatingModeMonitor {
 		state.DialogArm.Active = true
-		state.DialogArm.Message = "Error: Cannot arm in Monitor \nonly mode, please switch \nto Monitor and Shutdown \nmode"
+		state.DialogArm.Message = "Error: Cannot arm in Monitor \nOnly mode, please switch \nmodes"
 		return
 	}
 	if config.UserPumpMode == isdata.UserPumpModeNotSet {
