@@ -542,7 +542,7 @@ func Run(params Params) {
 							Value: boolToSampleVal(config.Arm),
 						}
 						logChan <- s
-						networkChan <- s
+						//networkChan <- s
 					}
 
 				default:
@@ -778,7 +778,7 @@ func Run(params Params) {
 					Value: boolToSampleVal(bool(m)),
 				}
 				logChan <- s
-				networkChan <- s
+				//networkChan <- s
 
 			case isdata.UpdateGpioDigitalIrrigator:
 				state.GpioDigitalIrrigator = bool(m)
@@ -792,7 +792,7 @@ func Run(params Params) {
 					Value: boolToSampleVal(bool(m)),
 				}
 				logChan <- s
-				networkChan <- s
+				//networkChan <- s
 
 			case isdata.UpdateGpioDigitalWaterOn:
 				state.GpioDigitalWaterOn = bool(m)
@@ -806,7 +806,7 @@ func Run(params Params) {
 					Value: boolToSampleVal(bool(m)),
 				}
 				logChan <- s
-				networkChan <- s
+				//networkChan <- s
 
 			case isdata.UpdateGpioDigitalIn:
 				state.GpioDigitalIn = bool(m)

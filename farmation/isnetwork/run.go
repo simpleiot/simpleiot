@@ -292,11 +292,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 			case data.Sample:
 				switch m.Type {
-				case isdata.SampleTypeInputInjector,
-					isdata.SampleTypeInputIrrigator,
-					isdata.SampleTypeInputWaterOn,
-					isdata.SampleTypeArm,
-					isdata.SampleTypeFaultFlowOff,
+				case isdata.SampleTypeFaultFlowOff,
 					isdata.SampleTypeFaultPresLow,
 					isdata.SampleTypeFaultPresHigh,
 					isdata.SampleTypeFaultShutdown:
