@@ -289,9 +289,14 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				sendSamples(samples)
 
 				state = m
+
+			case isdata.NoNetworkDialogDisplayed:
+				lastLostConnectionAlert = time.Now()
+
 			default:
 				log.Printf("isnet mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
+
 		case <-manageTicker.C:
 			networkState, interfaceConfig, interfaceStatus = manager.Run()
 
@@ -319,6 +324,9 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				(lastLostConnectionAlert.IsZero() ||
 					time.Since(lastLostConnectionAlert) >= time.Hour) {
 				out <- isdata.NoNetworkConnection{}
+				// This is also happening when the NoNetworkDialogDisplayed message
+				// comes in, but doing it here just to make sure it doesn't get
+				// stuck in a loop of displaying the dialog
 				lastLostConnectionAlert = time.Now()
 			}
 

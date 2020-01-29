@@ -494,7 +494,6 @@ func Run(params Params) {
 						state.AvgFlowRateStart = time.Now()
 						if config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify &&
 							!state.NetworkState.InterfaceStatus.Connected {
-							fmt.Println("COLLIN: sending signal")
 							appChan <- isdata.NoNetworkConnection{}
 						}
 					}
@@ -722,10 +721,8 @@ func Run(params Params) {
 
 			case isdata.NoNetworkConnection:
 				state.DialogApp.Active = true
-				state.DialogApp.Message = `The IS is not connected\n
-				to a network. Monitor\n
-				and Notify mode is not\n
-				functional.`
+				state.DialogApp.Message = "The IS is not connected to\na network. Monitor and\nNotify mode is not functional."
+				networkChan <- isdata.NoNetworkDialogDisplayed{}
 
 			/*case isdata.UpdateTankAlertVolume:
 			config.TankAlertVolume = int(m)
