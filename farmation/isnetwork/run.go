@@ -1,7 +1,6 @@
 package isnetwork
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"runtime"
@@ -301,7 +300,6 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 					isdata.SampleTypeFaultPresLow,
 					isdata.SampleTypeFaultPresHigh,
 					isdata.SampleTypeFaultShutdown:
-					fmt.Println("COLLIN, network thread -- got sample of type: ", m.Type)
 					samples := []data.Sample{m}
 					sendSamples(samples)
 				}
