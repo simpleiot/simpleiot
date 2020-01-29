@@ -61,6 +61,7 @@ const (
 	shutdownMonitor1
 	shutdown2        // UNUSED
 	shutdownMonitor2 // UNUSED
+	disarm
 	shutdownDialog
 	shutdownDialogAck
 	notifiedSoDisarm
@@ -453,13 +454,19 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			return append(ret, isdata.UpdateDialogStateMachineMessage("User disarmed system.\nShutdown aborted."))
 		}
 
+	case disarm:
+		sm.CurrentLedState = LedRed
+
+		if sm.config.Arm {
+			return append(ret, isdata.UpdateDisarm{})
+		}
+		sm.setState(standby)
+
 	case shutdownDialog:
 
 		sm.CurrentLedState = LedRed
 
 		sm.setState(shutdownDialogAck)
-
-		ret = append(ret, isdata.UpdateDisarm{})
 
 		if sm.state.InputWaterOn == isdata.InputStateOn {
 			return append(ret, isdata.UpdateDialogStateMachineMessage("Failed to shutdown irrigator"), data.Sample{
@@ -484,8 +491,12 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		}
 
 	case notifiedSoDisarm:
-
 		sm.CurrentLedState = LedRed
+
+		if sm.config.Arm {
+			return append(ret, isdata.UpdateDisarm{})
+		}
+		sm.setState(standby)
 
 	}
 
