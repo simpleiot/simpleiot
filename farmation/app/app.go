@@ -434,6 +434,7 @@ func Run(params Params) {
 					saveState()
 
 					logChan <- m
+					networkChan <- m
 
 				case isdata.SampleTypeKey:
 					// this is used for the simulator
@@ -532,12 +533,16 @@ func Run(params Params) {
 					saveConfig()
 					saveState()
 
+					// send to logging thread to be saved to database for system logs
+					// send to network thread to be sent to portal
 					if config.Arm != oldArm {
-						logChan <- data.Sample{
+						s := data.Sample{
 							Type:  isdata.SampleTypeArm,
 							Time:  time.Now(),
 							Value: boolToSampleVal(config.Arm),
 						}
+						logChan <- s
+						networkChan <- s
 					}
 
 				default:
@@ -766,33 +771,42 @@ func Run(params Params) {
 				saveState()
 
 				// send to logging thread to be saved to database for system logs
-				logChan <- data.Sample{
+				// send to network thread to be sent to portal
+				s := data.Sample{
 					Type:  isdata.SampleTypeInputInjector,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),
 				}
+				logChan <- s
+				networkChan <- s
 
 			case isdata.UpdateGpioDigitalIrrigator:
 				state.GpioDigitalIrrigator = bool(m)
 				saveState()
 
 				// send to logging thread to be saved to database for system logs
-				logChan <- data.Sample{
+				// send to network thread to be sent to portal
+				s := data.Sample{
 					Type:  isdata.SampleTypeInputIrrigator,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),
 				}
+				logChan <- s
+				networkChan <- s
 
 			case isdata.UpdateGpioDigitalWaterOn:
 				state.GpioDigitalWaterOn = bool(m)
 				saveState()
 
 				// send to logging thread to be saved to database for system logs
-				logChan <- data.Sample{
+				// send to network thread to be sent to portal
+				s := data.Sample{
 					Type:  isdata.SampleTypeInputWaterOn,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),
 				}
+				logChan <- s
+				networkChan <- s
 
 			case isdata.UpdateGpioDigitalIn:
 				state.GpioDigitalIn = bool(m)

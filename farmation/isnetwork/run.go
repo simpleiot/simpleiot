@@ -1,6 +1,7 @@
 package isnetwork
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"runtime"
@@ -289,6 +290,21 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				sendSamples(samples)
 
 				state = m
+
+			case data.Sample:
+				switch m.Type {
+				case isdata.SampleTypeInputInjector,
+					isdata.SampleTypeInputIrrigator,
+					isdata.SampleTypeInputWaterOn,
+					isdata.SampleTypeArm,
+					isdata.SampleTypeFaultFlowOff,
+					isdata.SampleTypeFaultPresLow,
+					isdata.SampleTypeFaultPresHigh,
+					isdata.SampleTypeFaultShutdown:
+					fmt.Println("COLLIN, network thread -- got sample of type: ", m.Type)
+					samples := []data.Sample{m}
+					sendSamples(samples)
+				}
 
 			case isdata.NoNetworkDialogDisplayed:
 				lastLostConnectionAlert = time.Now()
