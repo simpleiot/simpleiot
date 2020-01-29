@@ -63,6 +63,7 @@ const (
 	shutdownMonitor2 // UNUSED
 	shutdownDialog
 	shutdownDialogAck
+	notifiedSoDisarm
 	monitorShutdownEnd
 
 	// states for monitor/batch
@@ -88,6 +89,8 @@ func (s state) String() string {
 		return "shutdownDialog"
 	case shutdownDialogAck:
 		return "shutdownDialogAck"
+	case notifiedSoDisarm:
+		return "notifiedSoDisarm"
 	default:
 		return strconv.Itoa(int(s))
 	}
@@ -159,11 +162,14 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 	// before running state machine:
 	if sm.inMonitorShutdownStates() {
-		if sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndShutdown {
+		if sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndShutdown &&
+			sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndNotify {
+
 			sm.setState(monitorOnly)
 			return
 		}
-		// if disarmed in non-shutdown and non-standbyWaiting states, go to standby
+		// If disarmed in non-shutdown and non-standbyWaiting states, go to standby
+		// Is this only for if the user disarms in monitoringFlow state?
 		if !sm.inShutdownStates() &&
 			!sm.config.Arm {
 			sm.setState(standby)
@@ -182,7 +188,8 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		sm.CurrentLedState = LedGreenBlnk
 
-		if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndShutdown {
+		if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndShutdown ||
+			sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify {
 			if !sm.config.Arm {
 				sm.setState(standby)
 			} else { // if armed on startup, go to monitoring flow
@@ -202,7 +209,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			return append(ret, isdata.UpdateDialogStateMachineMessage("Tank volume below\nalert level"))
 		}*/
 
-	// below states are for monitor/shutdown
+	// below states are for Monitor and Shutdown and Monitor and Notify modes
 	case standby:
 		controlInjector()
 
@@ -333,7 +340,13 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		case sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
-			sm.setState(shutdown1)
+
+			if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify {
+				sm.setState(notifiedSoDisarm)
+			} else {
+				sm.setState(shutdown1)
+			}
+
 			return append(ret, data.Sample{
 				Type:  isdata.SampleTypeFaultFlowOff,
 				Time:  time.Now(),
@@ -349,7 +362,12 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			lowPressure &&
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodPressure) >= alarmRecognizeDuration:
-			sm.setState(shutdown1)
+
+			if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify {
+				sm.setState(notifiedSoDisarm)
+			} else {
+				sm.setState(shutdown1)
+			}
 
 			// if flow is off target as well, prioritize this fault
 			if sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
@@ -382,7 +400,13 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				"\nAbort by disarming"))*/
 
 		case sm.state.PressureMax >= float64(sm.config.HighPres):
-			sm.setState(shutdown1)
+
+			if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify {
+				sm.setState(notifiedSoDisarm)
+			} else {
+				sm.setState(shutdown1)
+			}
+
 			ret = append(ret, data.Sample{
 				Type:  isdata.SampleTypeFaultPresHigh,
 				Time:  time.Now(),
@@ -458,6 +482,10 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if !sm.state.DialogStateMachine.Active {
 			sm.setState(standby)
 		}
+
+	case notifiedSoDisarm:
+
+		sm.CurrentLedState = LedRed
 
 	}
 
