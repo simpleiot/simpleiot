@@ -100,6 +100,7 @@ func checkRespOK(resp string) error {
 }
 
 // +CESQ: 99,99,255,255,13,34
+// +CESQ: 99,99,255,255,17,42
 // +CESQ: rxlen,ber,rscp,ecno,rsrq,rsrp
 var reCesq = regexp.MustCompile(`\+CESQ:\s*(\d+),(\d+),(\d+),(\d+),(\d+),(\d+)`)
 
@@ -114,7 +115,7 @@ func CmdCesq(port io.ReadWriter) (rsrq, rsrp int, err error) {
 	found := false
 
 	for _, line := range strings.Split(string(resp), "\n") {
-		matches := reQcsq.FindStringSubmatch(line)
+		matches := reCesq.FindStringSubmatch(line)
 
 		if len(matches) >= 6 {
 			rsrqI, _ := strconv.Atoi(matches[5])
