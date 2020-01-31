@@ -63,14 +63,17 @@ func (s *FaultsHistDetailsScreen) Render(img draw.Image) {
 	// display value that triggered fault
 	y := 28
 	switch s.fault.Type {
-	case isdata.SampleTypeFaultFlowOff:
+	case isdata.SampleTypeFaultFlowOff,
+		isdata.SampleTypeFaultNtFlowOff:
 		DrawTxt(img, "Flow: "+strconv.FormatFloat(s.fault.Value, 'f', 0, 64), x, y, font)
-	case isdata.SampleTypeFaultPresLow:
+	case isdata.SampleTypeFaultPresLow,
+		isdata.SampleTypeFaultNtPresLow:
 		pressureStr := "Pres: " + strconv.FormatFloat(s.fault.Value, 'f', 0, 64) +
 			", Threshold: " +
 			strconv.FormatFloat(s.fault.Attributes["shutdownThreshold"], 'f', 0, 64)
 		DrawTxt(img, pressureStr, x, y, font)
-	case isdata.SampleTypeFaultPresHigh:
+	case isdata.SampleTypeFaultPresHigh,
+		isdata.SampleTypeFaultNtPresHigh:
 		pressureStr := "Pres: " + strconv.FormatFloat(s.fault.Value, 'f', 0, 64) +
 			", Threshold: " +
 			strconv.FormatFloat(s.fault.Attributes["shutdownThresHigh"], 'f', 0, 64)

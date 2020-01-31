@@ -36,9 +36,9 @@ func SampleTypeToDisp(t string) string {
 	case SampleTypeFaultNtFlowOff:
 		return "notify flow off"
 	case SampleTypeFaultNtPresLow:
-		return "notify pres low"
+		return "notify low pres "
 	case SampleTypeFaultNtPresHigh:
-		return "notify pres high"
+		return "notify high pres"
 	default:
 		return t
 	}
