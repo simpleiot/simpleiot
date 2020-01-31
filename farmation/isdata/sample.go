@@ -4,19 +4,22 @@ package isdata
 // NOTE: If any "Fault" sample types are added,
 // isdb.ReadFaultHist() must be updated with new type
 const (
-	SampleTypeFlowWindowAvg  string = "flowWindowAvg"
-	SampleTypeAmount                = "amount"
-	SampleTypePressure              = "pressure"
-	SampleTypePressureVRef          = "pressureVRef"
-	SampleTypePressureVSense        = "pressureVSense"
-	SampleTypeFaultFlowOff          = "faultFlowOffTarget"
-	SampleTypeFaultPresLow          = "faultPressureLow"
-	SampleTypeFaultPresHigh         = "faultPressureHigh"
-	SampleTypeFaultShutdown         = "faultShutdownFailed"
-	SampleTypeInputInjector         = "inputInjector"
-	SampleTypeInputWaterOn          = "inputWaterOn"
-	SampleTypeInputIrrigator        = "inputIrrigator"
-	SampleTypeArm                   = "arm"
+	SampleTypeFlowWindowAvg   string = "flowWindowAvg"
+	SampleTypeAmount                 = "amount"
+	SampleTypePressure               = "pressure"
+	SampleTypePressureVRef           = "pressureVRef"
+	SampleTypePressureVSense         = "pressureVSense"
+	SampleTypeFaultFlowOff           = "faultFlowOffTarget"
+	SampleTypeFaultPresLow           = "faultPressureLow"
+	SampleTypeFaultPresHigh          = "faultPressureHigh"
+	SampleTypeFaultShutdown          = "faultShutdownFailed"
+	SampleTypeFaultNtFlowOff         = "faultNotificationFlowOffTarget"
+	SampleTypeFaultNtPresLow         = "faultNotificationPressureLow"
+	SampleTypeFaultNtPresHigh        = "faultNotificationPressureHigh"
+	SampleTypeInputInjector          = "inputInjector"
+	SampleTypeInputWaterOn           = "inputWaterOn"
+	SampleTypeInputIrrigator         = "inputIrrigator"
+	SampleTypeArm                    = "arm"
 )
 
 // SampleTypeToDisp converts a sample type code to LCD display string
@@ -30,6 +33,12 @@ func SampleTypeToDisp(t string) string {
 		return "high pressure"
 	case SampleTypeFaultShutdown:
 		return "shutdown failed"
+	case SampleTypeFaultNtFlowOff:
+		return "notify flow off"
+	case SampleTypeFaultNtPresLow:
+		return "notify pres low"
+	case SampleTypeFaultNtPresHigh:
+		return "notify pres high"
 	default:
 		return t
 	}
@@ -46,6 +55,12 @@ func SampleTypeToDispVerbose(t string) string {
 		return "Shtdwn: pressure high"
 	case SampleTypeFaultShutdown:
 		return "Failed to shutdown irrigator"
+	case SampleTypeFaultNtFlowOff:
+		return "Notification: flow off"
+	case SampleTypeFaultNtPresLow:
+		return "Notification: pres low"
+	case SampleTypeFaultNtPresHigh:
+		return "Notification: pres high"
 	default:
 		return t
 	}

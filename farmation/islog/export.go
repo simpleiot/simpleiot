@@ -63,7 +63,12 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 				"-," +
 				"-"
 
-		case isdata.SampleTypeFaultFlowOff, isdata.SampleTypeFaultPresLow:
+		case isdata.SampleTypeFaultFlowOff,
+			isdata.SampleTypeFaultPresLow,
+			isdata.SampleTypeFaultPresHigh,
+			isdata.SampleTypeFaultNtFlowOff,
+			isdata.SampleTypeFaultNtPresLow,
+			isdata.SampleTypeFaultNtPresHigh:
 			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
 				sample.Type + "," +
 				strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +

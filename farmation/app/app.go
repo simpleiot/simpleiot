@@ -429,7 +429,10 @@ func Run(params Params) {
 				case isdata.SampleTypeFaultFlowOff,
 					isdata.SampleTypeFaultPresLow,
 					isdata.SampleTypeFaultPresHigh,
-					isdata.SampleTypeFaultShutdown:
+					isdata.SampleTypeFaultShutdown,
+					isdata.SampleTypeFaultNtFlowOff,
+					isdata.SampleTypeFaultNtPresLow,
+					isdata.SampleTypeFaultNtPresHigh:
 					state.FaultsActive = append(state.FaultsActive, m)
 					saveState()
 

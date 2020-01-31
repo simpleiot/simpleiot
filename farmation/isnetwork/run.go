@@ -295,7 +295,10 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				case isdata.SampleTypeFaultFlowOff,
 					isdata.SampleTypeFaultPresLow,
 					isdata.SampleTypeFaultPresHigh,
-					isdata.SampleTypeFaultShutdown:
+					isdata.SampleTypeFaultShutdown,
+					isdata.SampleTypeFaultNtFlowOff,
+					isdata.SampleTypeFaultNtPresLow,
+					isdata.SampleTypeFaultNtPresHigh:
 					samples := []data.Sample{m}
 					sendSamples(samples)
 				}
