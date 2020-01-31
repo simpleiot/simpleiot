@@ -21,7 +21,7 @@ type StatusScreen2 struct {
 func NewStatusScreen2(state *isdata.State, config *isdata.Config) *StatusScreen2 {
 	return &StatusScreen2{
 		softKeys: NewSoftKeys("home", "field", "prod."),
-		icons:    NewIcons(true, false, true),
+		icons:    NewIcons(true, false, false),
 		state:    state,
 		config:   config,
 	}

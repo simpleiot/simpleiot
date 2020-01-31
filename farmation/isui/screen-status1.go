@@ -24,7 +24,7 @@ func NewStatusScreen1(state *isdata.State, config *isdata.Config) *StatusScreen1
 
 	return &StatusScreen1{
 		softKeys: NewSoftKeys("home", "tank"),
-		icons:    NewIcons(true, false, true),
+		icons:    NewIcons(true, false, false),
 		state:    state,
 		config:   config,
 	}
