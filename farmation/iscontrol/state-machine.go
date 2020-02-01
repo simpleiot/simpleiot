@@ -373,7 +373,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				faultType = isdata.SampleTypeFaultNtPresLow
 			} else {
 				sm.setState(shutdown1)
-				faultType = isdata.SampleTypeFaultNtPresHigh
+				faultType = isdata.SampleTypeFaultPresLow
 			}
 
 			// if flow is off target as well, prioritize this fault
