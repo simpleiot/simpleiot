@@ -21,6 +21,8 @@ func NewOperatingModeScreen(state *isdata.State, config *isdata.Config) *Operati
 	var selectedIndex int
 	switch config.OperatingMode {
 	case isdata.ISOperatingModeMonitor:
+		selectedIndex = 2
+	case isdata.ISOperatingModeMonitorAndNotify:
 		selectedIndex = 1
 	case isdata.ISOperatingModeMonitorAndShutdown:
 		selectedIndex = 0
@@ -43,10 +45,12 @@ func (s *OperatingModeScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	// Find which operating mode is selected
-	var monitor, shtdwn /*, batch*/ bool
+	var monitor, notify, shtdwn /*, batch*/ bool
 	switch s.config.OperatingMode {
 	case isdata.ISOperatingModeMonitor:
 		monitor = true
+	case isdata.ISOperatingModeMonitorAndNotify:
+		notify = true
 	case isdata.ISOperatingModeMonitorAndShutdown:
 		shtdwn = true
 		/*case isdata.ISOperatingModeMonitorAndBatch:
@@ -57,14 +61,17 @@ func (s *OperatingModeScreen) Render(img draw.Image) {
 	case 0:
 		mode = int(isdata.ISOperatingModeMonitorAndShutdown)
 	case 1:
-		mode = int(isdata.ISOperatingModeMonitor)
+		mode = int(isdata.ISOperatingModeMonitorAndNotify)
 	case 2:
+		mode = int(isdata.ISOperatingModeMonitor)
+	case 3:
 		mode = int(isdata.ISOperatingModeMonitorAndBatch)
 	}
 
 	// add menu items
 	s.menu.AddItemSelect("Monitor and Shutdown", isdata.UpdateOperatingMode(mode), shtdwn)
-	s.menu.AddItemSelect("Monitor only", isdata.UpdateOperatingMode(mode), monitor)
+	s.menu.AddItemSelect("Monitor and Notify", isdata.UpdateOperatingMode(mode), notify)
+	s.menu.AddItemSelect("Monitor Only", isdata.UpdateOperatingMode(mode), monitor)
 	//s.menu.AddItemSelect("Monitor and Batch", isdata.UpdateOperatingMode(mode), batch)
 
 	// render

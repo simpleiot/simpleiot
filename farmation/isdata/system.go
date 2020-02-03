@@ -25,3 +25,14 @@ type ErrWriteDisk struct{}
 
 // ExportAlreadyInProcess triggers dialog
 type ExportAlreadyInProcess struct{}
+
+// NoNetworkConnection triggers a dialog to warn user of lost or nonexistent network
+// connection when the IS is in Monitor and Notify mode, which relys on network for
+// functionality
+type NoNetworkConnection struct{}
+
+// NoNetworkDialogDisplayed is message for the network thread that this dialog has been
+// displayed. The network thread resets the timer for this dialog so that the user doesn't
+// get it multiple times, like, if they switch to Notify mode, get the dialog, and then
+// it fires again from the network thread
+type NoNetworkDialogDisplayed struct{}

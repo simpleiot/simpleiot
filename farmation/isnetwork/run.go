@@ -159,7 +159,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		pollPortal = time.NewTicker(time.Second * 5)
 	}
 
-	var lastTimeSync time.Time
+	var lastTimeSync, lastLostConnectionAlert time.Time
 
 	if state.SerialNumber == "" {
 		log.Println("IS Serial is not set, not sending data to portal")
@@ -289,9 +289,27 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				sendSamples(samples)
 
 				state = m
+
+			case data.Sample:
+				switch m.Type {
+				case isdata.SampleTypeFaultFlowOff,
+					isdata.SampleTypeFaultPresLow,
+					isdata.SampleTypeFaultPresHigh,
+					isdata.SampleTypeFaultShutdown,
+					isdata.SampleTypeFaultNtFlowOff,
+					isdata.SampleTypeFaultNtPresLow,
+					isdata.SampleTypeFaultNtPresHigh:
+					samples := []data.Sample{m}
+					sendSamples(samples)
+				}
+
+			case isdata.NoNetworkDialogDisplayed:
+				lastLostConnectionAlert = time.Now()
+
 			default:
 				log.Printf("isnet mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
+
 		case <-manageTicker.C:
 			networkState, interfaceConfig, interfaceStatus = manager.Run()
 
@@ -310,6 +328,19 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				(lastTimeSync.IsZero() || time.Since(lastTimeSync) >= time.Hour) {
 				updateTime()
 				lastTimeSync = time.Now()
+			}
+
+			// If the system is in Monitor and Notify mode, alert
+			// of lost network connection
+			if config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify &&
+				!interfaceStatus.Connected &&
+				(lastLostConnectionAlert.IsZero() ||
+					time.Since(lastLostConnectionAlert) >= time.Hour) {
+				out <- isdata.NoNetworkConnection{}
+				// This is also happening when the NoNetworkDialogDisplayed message
+				// comes in, but doing it here just to make sure it doesn't get
+				// stuck in a loop of displaying the dialog
+				lastLostConnectionAlert = time.Now()
 			}
 
 		case <-pollPortal.C:

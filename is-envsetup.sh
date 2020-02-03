@@ -53,11 +53,15 @@ is_build_assets_frontend() {
 }
 
 is_build_assets_lcd() {
+
+  # shellcheck disable=SC2046
+  # shellcheck disable=SC2091
   genesis -C farmation/assets/lcdassets -pkg lcdassets \
-    $(
-      cd farmation/assets/lcdassets
-      ls ./*.png
-    ) \
+  $(
+    cd farmation/assets/lcdassets
+    # shellcheck disable=SC2035
+    ls *.png
+  ) \
     >farmation/assets/lcdassets/assets.go || return 1
   return 0
 }

@@ -8,7 +8,17 @@ import (
 
 // DrawPng draws a bmp on the image
 func DrawPng(img draw.Image, name string, x, y int) error {
-	imgPng, err := png.Decode(GetLcdAsset(name))
+	a, err := GetLcdAsset(name)
+
+	if a == nil {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	imgPng, err := png.Decode(a)
 	if err != nil {
 		return err
 	}

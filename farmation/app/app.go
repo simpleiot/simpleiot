@@ -429,11 +429,15 @@ func Run(params Params) {
 				case isdata.SampleTypeFaultFlowOff,
 					isdata.SampleTypeFaultPresLow,
 					isdata.SampleTypeFaultPresHigh,
-					isdata.SampleTypeFaultShutdown:
+					isdata.SampleTypeFaultShutdown,
+					isdata.SampleTypeFaultNtFlowOff,
+					isdata.SampleTypeFaultNtPresLow,
+					isdata.SampleTypeFaultNtPresHigh:
 					state.FaultsActive = append(state.FaultsActive, m)
 					saveState()
 
 					logChan <- m
+					networkChan <- m
 
 				case isdata.SampleTypeKey:
 					// this is used for the simulator
@@ -492,6 +496,10 @@ func Run(params Params) {
 					if config.Arm {
 						flowAverager.ResetAverage()
 						state.AvgFlowRateStart = time.Now()
+						if config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify &&
+							!state.NetworkState.InterfaceStatus.Connected {
+							appChan <- isdata.NoNetworkConnection{}
+						}
 					}
 					saveConfig()
 					saveState()
@@ -528,12 +536,16 @@ func Run(params Params) {
 					saveConfig()
 					saveState()
 
+					// send to logging thread to be saved to database for system logs
+					// send to network thread to be sent to portal
 					if config.Arm != oldArm {
-						logChan <- data.Sample{
+						s := data.Sample{
 							Type:  isdata.SampleTypeArm,
 							Time:  time.Now(),
 							Value: boolToSampleVal(config.Arm),
 						}
+						logChan <- s
+						//networkChan <- s
 					}
 
 				default:
@@ -715,6 +727,11 @@ func Run(params Params) {
 				state.DialogExport.Active = true
 				state.DialogExport.Message = "Error writing to USB disk"
 
+			case isdata.NoNetworkConnection:
+				state.DialogApp.Active = true
+				state.DialogApp.Message = "The IS is not connected to\na network. Monitor and\nNotify mode is not functional."
+				networkChan <- isdata.NoNetworkDialogDisplayed{}
+
 			/*case isdata.UpdateTankAlertVolume:
 			config.TankAlertVolume = int(m)
 			saveConfig()*/
@@ -757,33 +774,42 @@ func Run(params Params) {
 				saveState()
 
 				// send to logging thread to be saved to database for system logs
-				logChan <- data.Sample{
+				// send to network thread to be sent to portal
+				s := data.Sample{
 					Type:  isdata.SampleTypeInputInjector,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),
 				}
+				logChan <- s
+				//networkChan <- s
 
 			case isdata.UpdateGpioDigitalIrrigator:
 				state.GpioDigitalIrrigator = bool(m)
 				saveState()
 
 				// send to logging thread to be saved to database for system logs
-				logChan <- data.Sample{
+				// send to network thread to be sent to portal
+				s := data.Sample{
 					Type:  isdata.SampleTypeInputIrrigator,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),
 				}
+				logChan <- s
+				//networkChan <- s
 
 			case isdata.UpdateGpioDigitalWaterOn:
 				state.GpioDigitalWaterOn = bool(m)
 				saveState()
 
 				// send to logging thread to be saved to database for system logs
-				logChan <- data.Sample{
+				// send to network thread to be sent to portal
+				s := data.Sample{
 					Type:  isdata.SampleTypeInputWaterOn,
 					Time:  time.Now(),
 					Value: boolToSampleVal(bool(m)),
 				}
+				logChan <- s
+				//networkChan <- s
 
 			case isdata.UpdateGpioDigitalIn:
 				state.GpioDigitalIn = bool(m)
@@ -835,6 +861,10 @@ func Run(params Params) {
 				config.OperatingMode = isdata.ISOperatingMode(m)
 				if config.OperatingMode == isdata.ISOperatingModeMonitor {
 					config.Arm = false // system can't be armed in monitor only mode
+				}
+				if config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify &&
+					!state.NetworkState.InterfaceStatus.Connected {
+					appChan <- isdata.NoNetworkConnection{}
 				}
 				saveConfig()
 
@@ -984,7 +1014,7 @@ func Run(params Params) {
 func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 	if config.OperatingMode == isdata.ISOperatingModeMonitor {
 		state.DialogArm.Active = true
-		state.DialogArm.Message = "Error: Cannot arm in Monitor \nonly mode, please switch \nto Monitor and Shutdown \nmode"
+		state.DialogArm.Message = "Error: Cannot arm in Monitor \nOnly mode, please switch \nmodes"
 		return
 	}
 	if config.UserPumpMode == isdata.UserPumpModeNotSet {

@@ -234,7 +234,10 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 					isdata.SampleTypeFaultFlowOff,
 					isdata.SampleTypeFaultPresLow,
 					isdata.SampleTypeFaultPresHigh,
-					isdata.SampleTypeFaultShutdown:
+					isdata.SampleTypeFaultShutdown,
+					isdata.SampleTypeFaultNtFlowOff,
+					isdata.SampleTypeFaultNtPresLow,
+					isdata.SampleTypeFaultNtPresHigh:
 					err := db.WriteSample(m)
 					if err != nil {
 						log.Println("Error writing sample to database: ", err)

@@ -135,7 +135,10 @@ func (db *IsDb) ReadFaultHist() ([]data.Sample, error) {
 		isdata.SampleTypeFaultFlowOff,
 		isdata.SampleTypeFaultPresLow,
 		isdata.SampleTypeFaultShutdown,
-		isdata.SampleTypeFaultPresHigh).Index("Type").SortBy("Time")
+		isdata.SampleTypeFaultPresHigh,
+		isdata.SampleTypeFaultNtFlowOff,
+		isdata.SampleTypeFaultNtPresLow,
+		isdata.SampleTypeFaultNtPresHigh).Index("Type").SortBy("Time")
 
 	err := db.store.Find(&faults, query)
 

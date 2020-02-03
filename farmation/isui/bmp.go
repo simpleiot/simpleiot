@@ -29,7 +29,13 @@ func bmpTest() {
 
 // DrawBmp draws a bmp on the image
 func DrawBmp(img draw.Image, name string, x, y int) error {
-	imgBmp, err := bmp.Decode(GetLcdAsset(name))
+	a, err := GetLcdAsset(name)
+
+	if err != nil {
+		return err
+	}
+
+	imgBmp, err := bmp.Decode(a)
 
 	if err != nil {
 		return err
@@ -46,10 +52,18 @@ func DrawBmp(img draw.Image, name string, x, y int) error {
 
 // GetLcdAsset returns an io.Reader
 // Used by bmp and png functions
-func GetLcdAsset(name string) io.Reader {
+func GetLcdAsset(name string) (io.Reader, error) {
+	if name == "" {
+		return nil, nil
+	}
+
 	data := lcdassets.Asset("/" + name)
 
-	return bytes.NewReader(data)
+	if data == nil {
+		return nil, fmt.Errorf("Lcd Asset not found: %v", name)
+	}
+
+	return bytes.NewReader(data), nil
 }
 
 // ImageToBlt converts an image to a LCD Blt structure

@@ -3,7 +3,6 @@ package isui
 import (
 	"fmt"
 	"image/draw"
-	"io"
 )
 
 // Icons is a widget that renders icons on the home and status screens
@@ -94,7 +93,7 @@ func (i *Icons) Render(img draw.Image) {
 
 		// draw icon
 		err := DrawPng(img, icon, iconFields.x, iconFields.y)
-		if err != nil && err != io.ErrUnexpectedEOF {
+		if err != nil {
 			s := fmt.Sprintf("error drawing %s: %s", icon, err)
 			fmt.Println(s)
 		}
