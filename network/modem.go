@@ -78,7 +78,10 @@ func (m *Modem) Desc() string {
 
 // detected returns true if modem detected
 func (m *Modem) detected() bool {
-	return file.Exists("/dev/ttyUSB2") && file.Exists("/dev/ttyUSB3")
+	return file.Exists("/dev/ttyUSB0") &&
+		file.Exists("/dev/ttyUSB1") &&
+		file.Exists("/dev/ttyUSB2") &&
+		file.Exists("/dev/ttyUSB3")
 }
 
 func (m *Modem) pppActive() bool {
@@ -247,6 +250,10 @@ func (m *Modem) Connect() error {
 
 // GetStatus return interface status
 func (m *Modem) GetStatus() (InterfaceStatus, error) {
+	if !m.detected() {
+		return InterfaceStatus{}, nil
+	}
+
 	if err := m.openCmdPort(); err != nil {
 		return InterfaceStatus{}, err
 	}

@@ -28,6 +28,8 @@ func (s State) String() string {
 		return "Connecting"
 	case StateConnected:
 		return "Connected"
+	case StateError:
+		return "Error"
 	default:
 		return "unknown"
 	}
@@ -89,8 +91,8 @@ func (m *Manager) nextInterface() {
 	m.interfaceIndex++
 	if m.interfaceIndex >= len(m.interfaces) {
 		m.interfaceIndex = 0
+		log.Println("Network: no more interfaces, go to error state")
 		m.setState(StateError)
-		log.Println("Network: no more interfaces to try")
 		return
 	}
 
@@ -139,14 +141,21 @@ func (m *Manager) Run() (State, InterfaceConfig, InterfaceStatus) {
 		count++
 		if count > 10 {
 			log.Println("network state machine ran too many times")
+			if time.Since(m.stateStart) > time.Second*15 {
+				log.Println("Network: timeout: ", m.Desc())
+				m.nextInterface()
+			}
+
 			return m.state, config, status
 		}
 
-		var err error
-		status, err = m.getStatus()
-		if err != nil {
-			log.Println("Error getting interface status: ", err)
-			continue
+		if m.state != StateError {
+			var err error
+			status, err = m.getStatus()
+			if err != nil {
+				log.Println("Error getting interface status: ", err)
+				continue
+			}
 		}
 
 		switch m.state {
@@ -162,6 +171,7 @@ func (m *Manager) Run() (State, InterfaceConfig, InterfaceStatus) {
 				m.nextInterface()
 				continue
 			}
+
 		case StateConfigure:
 			try := 0
 			for ; try < 3; try++ {
@@ -204,14 +214,17 @@ func (m *Manager) Run() (State, InterfaceConfig, InterfaceStatus) {
 					log.Println("Error connecting: ", err)
 				}
 			}
+
 		case StateConnected:
 			if !status.Connected {
 				// try to reconnect
 				m.setState(StateConnecting)
 			}
+
 		case StateError:
 			if time.Since(m.stateStart) > time.Minute {
-				log.Println("Network: trying again ...")
+				log.Println("Network: reset and try again ...")
+				m.Reset()
 				m.setState(StateNotDetected)
 			}
 		}
