@@ -167,6 +167,7 @@ func GpioInit() error {
 		}
 
 		// set modem on signal low to always power on the modem
+		// for some reason this seems to occasionly reset the modem
 		err = pins[gpioModemPowerOn].Pin.Out(gpio.Low)
 		if err != nil {
 			log.Println("Error setting pin mode for modem power on: ", err)

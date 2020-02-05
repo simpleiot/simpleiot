@@ -40,6 +40,10 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	state := stateIn
 	errorCnt := 0
 
+	// the GPIO init sometimes resets the modem, so give the modem
+	// time to come on line before network init
+	time.Sleep(5 * time.Second)
+
 	manager := network.NewManager(10)
 
 	sendSamplesAPI := api.NewSendSamples(portal, state.SerialNumber, time.Second*10, debugPortal)
