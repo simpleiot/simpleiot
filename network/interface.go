@@ -27,4 +27,5 @@ type Interface interface {
 	Connect() error
 	GetStatus() (InterfaceStatus, error)
 	Reset() error
+	Enable(bool) error
 }

@@ -36,3 +36,8 @@ func (d *DummyInterface) GetStatus() (InterfaceStatus, error) {
 func (d *DummyInterface) Reset() error {
 	return nil
 }
+
+// Enable or disable interface
+func (d *DummyInterface) Enable(en bool) error {
+	return nil
+}

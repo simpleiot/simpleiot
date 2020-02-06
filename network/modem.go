@@ -22,6 +22,7 @@ type Modem struct {
 	atCmdPort  io.ReadWriteCloser
 	lastPPPRun time.Time
 	config     ModemConfig
+	enabled    bool
 }
 
 // ModemConfig describes the configuration for a modem
@@ -48,6 +49,10 @@ func NewModem(config ModemConfig) *Modem {
 func (m *Modem) openCmdPort() error {
 	if m.atCmdPort != nil {
 		return nil
+	}
+
+	if !m.detected() {
+		return errors.New("open failed, modem not detected")
 	}
 
 	options := serial.OpenOptions{
@@ -99,6 +104,10 @@ func (m *Modem) pppActive() bool {
 
 // Configure modem interface
 func (m *Modem) Configure() (InterfaceConfig, error) {
+	if !m.enabled {
+		return InterfaceConfig{}, errors.New("Configure error, modem disabled")
+	}
+
 	ret := InterfaceConfig{
 		Apn: m.config.APN,
 	}
@@ -206,6 +215,10 @@ func (m *Modem) Configure() (InterfaceConfig, error) {
 
 // Connect stub
 func (m *Modem) Connect() error {
+	if !m.enabled {
+		return errors.New("Connect error, modem disabled")
+	}
+
 	if err := m.openCmdPort(); err != nil {
 		return err
 	}
@@ -250,7 +263,7 @@ func (m *Modem) Connect() error {
 
 // GetStatus return interface status
 func (m *Modem) GetStatus() (InterfaceStatus, error) {
-	if !m.detected() {
+	if !m.detected() || !m.enabled {
 		return InterfaceStatus{}, nil
 	}
 
@@ -294,5 +307,30 @@ func (m *Modem) Reset() error {
 	}
 
 	exec.Command("poff").Run()
-	return m.config.Reset()
+	if m.enabled {
+		err := m.config.Reset()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Enable or disable interface
+func (m *Modem) Enable(en bool) error {
+	log.Println("Modem enable: ", en)
+	var err error
+	m.enabled = en
+	if err = m.openCmdPort(); err != nil {
+		return err
+	}
+
+	if en {
+		err = CmdFunFull(m.atCmdPort)
+	} else {
+		err = CmdFunMin(m.atCmdPort)
+	}
+
+	return nil
 }
