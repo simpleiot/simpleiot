@@ -11,6 +11,11 @@ import (
 )
 
 // State contains the current injectory sentry state.
+// Note, these type is stored directly in database,
+// so you can't ever change types of fields, or remove values from
+// consts. It is safest to never delete fields, but rather comment
+// that they are no longer used, so they don't accidently get
+// reused in the future with a different type.
 type State struct {
 	SystemType SystemType `json:"systemType"`
 

@@ -7,7 +7,11 @@ import (
 var currentConfigVersion = 1
 
 // Config represents configuration data for the Injectory
-// Sentry system.
+// Sentry system. Note, these type is stored directly in database,
+// so you can't ever change types of fields, or remove values from
+// consts. It is safest to never delete fields, but rather comment
+// that they are no longer used, so they don't accidently get
+// reused in the future with a different type.
 type Config struct {
 	Version int
 
@@ -130,11 +134,13 @@ const (
 type ISOperatingMode int
 
 // define the possible operating modes
+// Note, these constants are stored in a data base, so we can't
+// ever remove or reorder them.
 const (
 	ISOperatingModeMonitor ISOperatingMode = iota
-	ISOperatingModeMonitorAndNotify
 	ISOperatingModeMonitorAndShutdown
 	ISOperatingModeMonitorAndBatch
+	ISOperatingModeMonitorAndNotify
 )
 
 func (om ISOperatingMode) String() string {
