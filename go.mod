@@ -28,6 +28,8 @@ require (
 	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
+	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
+	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	periph.io/x/periph v3.4.0+incompatible
 )
