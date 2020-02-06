@@ -42,7 +42,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	// the GPIO init sometimes resets the modem, so give the modem
 	// time to come on line before network init
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	manager := network.NewManager(10)
 
