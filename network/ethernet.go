@@ -8,7 +8,8 @@ import (
 
 // Ethernet implements the Interface interface
 type Ethernet struct {
-	iface string
+	iface   string
+	enabled bool
 }
 
 // NewEthernet contructor
@@ -82,5 +83,11 @@ func (e *Ethernet) GetStatus() (InterfaceStatus, error) {
 
 // Reset interface. Currently no-op for ethernet
 func (e *Ethernet) Reset() error {
+	return nil
+}
+
+// Enable or disable interface
+func (e *Ethernet) Enable(en bool) error {
+	e.enabled = en
 	return nil
 }
