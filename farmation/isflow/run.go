@@ -145,9 +145,6 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 					if dur <= 0 {
 						dur = 1000 * time.Hour
 					}
-					if dur < 5*time.Millisecond {
-						dur = 25 * time.Millisecond
-					}
 					simTicker = time.NewTicker(dur)
 				}
 			default:
