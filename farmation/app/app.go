@@ -691,6 +691,11 @@ func Run(params Params) {
 					}
 				}
 
+			case isdata.UpdateModemEnabled:
+				config.ModemEnabled = bool(m)
+				saveConfig()
+				networkChan <- m
+
 			case isdata.RestartApp:
 				state.DialogRestartApp.Active = true
 				state.DialogRestartApp.Message = "The timezone was changed,\nso the Injector Sentry will\nbe restarted."

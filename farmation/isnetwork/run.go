@@ -69,24 +69,31 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		return err
 	}
 
+	var modem network.Interface
+
 	if runtime.GOOS == "windows" {
 		manager.AddInterface(network.NewDummyInterface())
 	} else {
 		if runtime.GOARCH == "arm" {
 			//manager.AddInterface(network.NewEthernet("eth0"))
-			manager.AddInterface(network.NewModem(
+			modem = network.NewModem(
 				network.ModemConfig{
 					ChatScript:    "bg96",
 					AtCmdPortName: "/dev/ttyUSB2",
 					Reset:         isio.ResetModem,
 					Debug:         false,
 					APN:           "vzwinternet",
-				}))
+				})
+			manager.AddInterface(modem)
 		} else {
 			// various interfaces on development machines
 			manager.AddInterface(network.NewEthernet("eno1"))
 			manager.AddInterface(network.NewEthernet("wlp58s0"))
 		}
+	}
+
+	if modem != nil {
+		modem.Enable(config.ModemEnabled)
 	}
 
 	networkState, interfaceConfig, interfaceStatus := manager.Run()
@@ -309,6 +316,11 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 			case isdata.NoNetworkDialogDisplayed:
 				lastLostConnectionAlert = time.Now()
+
+			case isdata.UpdateModemEnabled:
+				if modem != nil {
+					modem.Enable(bool(m))
+				}
 
 			default:
 				log.Printf("isnet mux: unhandled message of type %T: %+v\r\n", m, m)

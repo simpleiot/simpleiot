@@ -4,9 +4,13 @@ import (
 	"strconv"
 )
 
+var currentConfigVersion = 1
+
 // Config represents configuration data for the Injectory
 // Sentry system.
 type Config struct {
+	Version int
+
 	// ID is an alphanumeric name limitted to 16 chars in length
 	ID string
 
@@ -105,6 +109,8 @@ type Config struct {
 	UserPumpMode UserPumpMode
 
 	PanelType PanelType
+
+	ModemEnabled bool
 }
 
 // UserPumpMode describes the state of the pump button in UI
@@ -302,6 +308,14 @@ func (c *Config) SetFlowAvgWindows() {
 
 // Init is used to inialize the config
 func (c *Config) Init() {
+	// run migrations
+
+	if c.Version < 1 {
+		c.ModemEnabled = true
+	}
+
+	c.Version = currentConfigVersion
+
 	// always turn off logging of pulse data -- this should be
 	// initiated by user each time system starts
 	c.LogPulseData = false
