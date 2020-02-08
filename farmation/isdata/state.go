@@ -55,6 +55,9 @@ type State struct {
 	GpioRelayShutdownEn bool `json:"gpioRelayShutdownEn"`
 	GpioRelayAuxEn      bool `json:"gpioRelayAuxEn"`
 
+	GpioRegValve1 bool
+	GpioRegValve2 bool
+
 	GpioStatusLedRed   bool `json:"gpioStatusLedRed"`
 	GpioStatusLedGreen bool `json:"gpioStatusLedGreen"`
 
@@ -266,6 +269,10 @@ func InitState(s *State) (dirty bool) {
 	s.GpioRelayInjectorEn = false
 	s.GpioRelayShutdownEn = false
 	s.GpioRelayAuxEn = false
+
+	s.GpioRegValve1 = false
+	s.GpioRegValve2 = false
+
 	s.GpioStatusLedRed = false
 	s.GpioStatusLedGreen = false
 

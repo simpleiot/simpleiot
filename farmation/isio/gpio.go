@@ -138,6 +138,10 @@ var pins = map[string]*pin{
 	GpioHwID0: &pin{"PB11", false, false, nil},
 	GpioHwID1: &pin{"PC18", false, false, nil},
 	GpioHwID2: &pin{"PC16", false, false, nil},
+
+	// Reg valve drive
+	GpioRegValve1: &pin{"PC26", false, true, nil},
+	GpioRegValve2: &pin{"PC27", false, true, nil},
 }
 
 // GpioInit is used to initialize gpios

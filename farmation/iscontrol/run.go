@@ -55,6 +55,16 @@ func (rc *ISControl) Update() {
 	if rc.state.GpioRelayAuxEn != b {
 		rc.out <- isdata.UpdateGpioRelayAux(b)
 	}
+
+	b = rc.config.ManualRegValve1.BoolVal()
+	if rc.state.GpioRegValve1 != b {
+		rc.out <- isdata.UpdateGpioRegValve1(b)
+	}
+
+	b = rc.config.ManualRegValve2.BoolVal()
+	if rc.state.GpioRegValve2 != b {
+		rc.out <- isdata.UpdateGpioRegValve2(b)
+	}
 }
 
 // Run goroutine for ui code

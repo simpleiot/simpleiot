@@ -90,6 +90,8 @@ type Config struct {
 	ManualRelayInj      RelayControlStateType
 	ManualRelayAux      RelayControlStateType
 	ManualRelayShutdown RelayControlStateType
+	ManualRegValve1     RelayControlStateType
+	ManualRegValve2     RelayControlStateType
 
 	// Flow meter pulses per gallon, flow moving average time
 	// windows and percent difference, pressure setting, K-factor

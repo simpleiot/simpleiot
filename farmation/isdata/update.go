@@ -63,6 +63,12 @@ type UpdateManualRelayAux int
 // UpdateManualRelayShutdown is used to toggle the shutdown relay
 type UpdateManualRelayShutdown int
 
+// UpdateManualRegValve1 is used to toggle reg valve 1
+type UpdateManualRegValve1 int
+
+// UpdateManualRegValve2 is used to toggle reg valve 2
+type UpdateManualRegValve2 int
+
 // UpdatePressureShutdownEnabled is used to enable/disable pressure-initiated shutdown
 type UpdatePressureShutdownEnabled struct{}
 
@@ -77,6 +83,12 @@ type UpdateGpioRelayShutdown bool
 
 // UpdateGpioRelayAux updates relay
 type UpdateGpioRelayAux bool
+
+// UpdateGpioRegValve1 updates reg valve 1
+type UpdateGpioRegValve1 bool
+
+// UpdateGpioRegValve2 updates reg valve 2
+type UpdateGpioRegValve2 bool
 
 // UpdatePulsesPerGallon is used to send new flow meter pulses/gal. config to app.go
 type UpdatePulsesPerGallon int

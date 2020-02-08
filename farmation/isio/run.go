@@ -8,10 +8,12 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
-func setRelay(state *isdata.State) {
+func setOutputs(state *isdata.State) {
 	GpioOut(GpioRelayInjectorEn, state.GpioRelayInjectorEn)
 	GpioOut(GpioRelayAuxEn, state.GpioRelayAuxEn)
 	GpioOut(GpioRelayShutdownEn, state.GpioRelayShutdownEn)
+	GpioOut(GpioRegValve1, state.GpioRegValve1)
+	GpioOut(GpioRegValve2, state.GpioRegValve2)
 }
 
 // Run goroutine for IO code
@@ -58,7 +60,7 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			case isdata.State:
 				state = m
 				if runtime.GOARCH == "arm" {
-					setRelay(&state)
+					setOutputs(&state)
 				}
 			case isdata.UpdateLedRed:
 				GpioOut(GpioStatusRed, bool(m))

@@ -832,10 +832,20 @@ func Run(params Params) {
 				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
 				saveConfig()
 
+			case isdata.UpdateManualRegValve1:
+				config.ManualRegValve1 = isdata.RelayControlStateType(m)
+				saveConfig()
+
+			case isdata.UpdateManualRegValve2:
+				config.ManualRegValve2 = isdata.RelayControlStateType(m)
+				saveConfig()
+
 			case isdata.UpdateManualRelayAll:
 				config.ManualRelayInj = isdata.RelayControlStateType(m)
 				config.ManualRelayAux = isdata.RelayControlStateType(m)
 				config.ManualRelayShutdown = isdata.RelayControlStateType(m)
+				config.ManualRegValve1 = isdata.RelayControlStateType(m)
+				config.ManualRegValve2 = isdata.RelayControlStateType(m)
 				saveConfig()
 
 			case isdata.UpdatePressureShutdownEnabled:
@@ -860,6 +870,14 @@ func Run(params Params) {
 
 			case isdata.UpdateGpioRelayAux:
 				state.GpioRelayAuxEn = bool(m)
+				saveState()
+
+			case isdata.UpdateGpioRegValve1:
+				state.GpioRegValve1 = bool(m)
+				saveState()
+
+			case isdata.UpdateGpioRegValve2:
+				state.GpioRegValve2 = bool(m)
 				saveState()
 
 			case isdata.UpdateOperatingMode:

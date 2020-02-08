@@ -33,13 +33,17 @@ func (s *DiagOutputsScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	// Relays
-	inj, aux, shtdwn := s.config.ManualRelayInj, s.config.ManualRelayAux, s.config.ManualRelayShutdown
-	injS, auxS, shtdwnS := s.state.GpioRelayInjectorEn,
-		s.state.GpioRelayAuxEn, s.state.GpioRelayShutdownEn
+	inj, aux, shtdwn, regValve1, regValve2 := s.config.ManualRelayInj, s.config.ManualRelayAux, s.config.ManualRelayShutdown, s.config.ManualRegValve1, s.config.ManualRegValve2
+
+	injS, auxS, shtdwnS, regValve1S, regValve2S := s.state.GpioRelayInjectorEn,
+		s.state.GpioRelayAuxEn, s.state.GpioRelayShutdownEn, s.state.GpioRegValve1,
+		s.state.GpioRegValve2
 
 	s.menu.AddItemAutoOffOn("Injector: "+BoolToString(injS), inj, isdata.UpdateManualRelayInj(inj.GetMsg()))
 	s.menu.AddItemAutoOffOn("Aux: "+BoolToString(auxS), aux, isdata.UpdateManualRelayAux(aux.GetMsg()))
 	s.menu.AddItemAutoOffOn("Shutdown: "+BoolToString(shtdwnS), shtdwn, isdata.UpdateManualRelayShutdown(shtdwn.GetMsg()))
+	s.menu.AddItemAutoOffOn("Reg Valv 1: "+BoolToString(regValve1S), regValve1, isdata.UpdateManualRegValve1(regValve1.GetMsg()))
+	s.menu.AddItemAutoOffOn("Reg Valv 2: "+BoolToString(regValve2S), regValve2, isdata.UpdateManualRegValve2(regValve2.GetMsg()))
 	s.menu.AddItemScreen("Pulse Test", ScreenIDPulseOutputTest)
 
 	Heading(img, "Diagnostics Outputs")
