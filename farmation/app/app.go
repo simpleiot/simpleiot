@@ -526,7 +526,7 @@ func Run(params Params) {
 
 			case isdata.Key:
 				switch m {
-				case isdata.KeyArm:
+				case isdata.KeyArm, isdata.KeyArmKp:
 					oldArm := config.Arm
 					toggleArmOrOpenDialog(&config, &state)
 					if config.Arm {

@@ -36,6 +36,12 @@ const (
 	KeyArm
 	KeyArmHold
 	KeyArmRelease
+	KeyArmKp
+	KeyArmKpHold
+	KeyArmKpRelease
+	KeyPump
+	KeyPumpHold
+	KeyPumpRelease
 )
 
 var keyToString = map[Key]string{
@@ -43,23 +49,38 @@ var keyToString = map[Key]string{
 	KeyUpHold:       "KeyUpHold",
 	KeyUpRelease:    "KeyUpRelease",
 	KeyDown:         "KeyDown",
+	KeyDownHold:     "KeyDownHold",
 	KeyDownRelease:  "KeyDownRelease",
 	KeyRight:        "KeyRight",
+	KeyRightHold:    "KeyRightHold",
 	KeyRightRelease: "KeyRightRelease",
 	KeyLeft:         "KeyLeft",
+	KeyLeftHold:     "KeyLeftHold",
 	KeyLeftRelease:  "KeyLeftRelease",
 	KeyEnter:        "KeyEnter",
+	KeyEnterHold:    "KeyEnterHold",
 	KeyEnterRelease: "KeyEnterRelease",
 	KeySK1:          "KeySK1",
+	KeySK1Hold:      "KeySK1Hold",
 	KeySK1Release:   "KeySK1Release",
 	KeySK2:          "KeySK2",
+	KeySK2Hold:      "KeySK2Hold",
 	KeySK2Release:   "KeySK2Release",
 	KeySK3:          "KeySK3",
+	KeySK3Hold:      "KeySK3Hold",
 	KeySK3Release:   "KeySK3Release",
 	KeySK4:          "KeySK4",
+	KeySK4Hold:      "KeySK4Hold",
 	KeySK4Release:   "KeySK4Release",
 	KeyArm:          "KeyArm",
+	KeyArmHold:      "KeyArmHold",
 	KeyArmRelease:   "KeyArmRelease",
+	KeyArmKp:        "KeyArmKp",
+	KeyArmKpHold:    "KeyArmKpHold",
+	KeyArmKpRelease: "KeyArmKpRelease",
+	KeyPump:         "KeyPump",
+	KeyPumpHold:     "KeyPumpHold",
+	KeyPumpRelease:  "KeyPumpRelease",
 }
 
 func (k Key) String() string {
@@ -91,6 +112,10 @@ var stringToKey = map[string]Key{
 	"KeySK4Release":   KeySK4Release,
 	"KeyArm":          KeyArm,
 	"KeyArmRelease":   KeyArmRelease,
+	"KeyArmKp":        KeyArmKp,
+	"KeyArmKpRelease": KeyArmKpRelease,
+	"KeyPump":         KeyPump,
+	"KeyPumpRelease":  KeyPumpRelease,
 }
 
 // KeyFromString converts a string to a key

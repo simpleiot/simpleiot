@@ -149,6 +149,8 @@ func Run(in, out chan interface{}) {
 		go keypad(out, "PA12", isdata.KeyDown, isdata.KeyDownHold, isdata.KeyDownRelease)
 		go keypad(out, "PA11", isdata.KeyRight, isdata.KeyRightHold, isdata.KeyRightRelease)
 		go keypad(out, "PC25", isdata.KeyArm, isdata.KeyArmHold, isdata.KeyArmRelease)
+		go keypad(out, "PA16", isdata.KeyArmKp, isdata.KeyArmKpHold, isdata.KeyArmKpRelease)
+		go keypad(out, "PA14", isdata.KeyPump, isdata.KeyPumpHold, isdata.KeyPumpRelease)
 	}
 
 	/*

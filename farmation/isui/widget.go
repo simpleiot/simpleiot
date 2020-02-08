@@ -34,6 +34,10 @@ func (w *Widgets) Render(img draw.Image) {
 // Key handles keycodes in reverse order. If a widget responds with the key is handled, then
 // the the Key() method is not called on the rest of the widgets.
 func (w *Widgets) Key(key isdata.Key) (ScreenID, interface{}, bool) {
+	if key == isdata.KeyPump {
+		return ScreenIDPumpMode, nil, true
+	}
+
 	for i := len(*w) - 1; i >= 0; i-- {
 		screenID, action, handled := (*w)[i].Key(key)
 		if handled {
