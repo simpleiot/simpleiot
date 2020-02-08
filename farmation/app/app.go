@@ -327,14 +327,14 @@ func Run(params Params) {
 		}
 		select {
 		case s := <-sigChan:
-			fmt.Println("Received signal: ", s)
+			log.Println("Received signal: ", s)
 			config.ManualRelayInj = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			config.ManualRelayAux = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			config.ManualRelayShutdown = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			saveConfig()
 			db.WriteState(&state)
 			db.WriteConfig(&config)
-			fmt.Println("state and config saved, SEE YA!")
+			log.Println("state and config saved, SEE YA!")
 			os.Exit(0)
 
 		case <-saveStateTimer.C:
@@ -900,7 +900,7 @@ func Run(params Params) {
 				} else {
 					err := exec.Command("reboot").Run()
 					if err != nil {
-						fmt.Println("Error running reboot command")
+						log.Println("Error running reboot command")
 					}
 				}
 
