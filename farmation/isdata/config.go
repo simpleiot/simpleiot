@@ -497,8 +497,8 @@ func (c *Config) ApplyBounds() {
 
 	if c.PulsesPerGallon <= 0 { // PulsesPerGallon can't be 0
 		c.PulsesPerGallon = 1
-	} else if c.PulsesPerGallon > 9999 {
-		c.PulsesPerGallon = 9999
+	} else if c.PulsesPerGallon > 25000 {
+		c.PulsesPerGallon = 25000
 	}
 
 	if c.SampleDuration < 1 {
