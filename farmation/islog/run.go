@@ -230,6 +230,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 				case isdata.SampleTypeInputInjector,
 					isdata.SampleTypeInputIrrigator,
 					isdata.SampleTypeInputWaterOn,
+					isdata.SampleTypeMainAuxPwr,
 					isdata.SampleTypeArm,
 					isdata.SampleTypeFaultFlowOff,
 					isdata.SampleTypeFaultPresLow,

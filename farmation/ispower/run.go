@@ -1,0 +1,50 @@
+package ispower
+
+import (
+	"log"
+	"os/exec"
+	"time"
+
+	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"github.com/simpleiot/simpleiot/farmation/isio"
+)
+
+//Run entry point for power management
+func Run(in, out chan interface{}) {
+	state := isdata.State{}
+	ticker := time.NewTicker(time.Second)
+	powerLossCount := 0
+	for {
+		select {
+		case m := <-in:
+			switch m := m.(type) {
+			case isdata.State:
+				state = m
+			}
+		case <-ticker.C:
+			if !state.GpioMainAuxPwr {
+				powerLossCount++
+			} else {
+				powerLossCount = 0
+			}
+
+			if powerLossCount > 5 {
+				log.Println("Power loss for 5 seconds, shutting down")
+				out <- isdata.Shutdown{}
+
+				// turn off backlight to save power
+				isio.GpioOut(isio.GpioLcdPwm, false)
+
+				// shutdown system
+				err := exec.Command("poweroff").Start()
+
+				if err != nil {
+					log.Println("Error executing power off command")
+				} else {
+					// sleep forever waiting for power off
+					select {}
+				}
+			}
+		}
+	}
+}

@@ -50,6 +50,7 @@ type State struct {
 	GpioDigitalIrrigator bool `json:"gpioDigitalIrrigator"`
 	GpioDigitalWaterOn   bool `json:"gpioDigitalWaterOn"`
 	GpioDigitalIn        bool `json:"gpioDigitalIn"`
+	GpioMainAuxPwr       bool
 
 	GpioRelayInjectorEn bool `json:"gpioRelayInjectorEn"`
 	GpioRelayShutdownEn bool `json:"gpioRelayShutdownEn"`
@@ -93,6 +94,8 @@ type State struct {
 	DialogExport Dialog `json:"dialogExport"`
 
 	DialogReboot Dialog `json:"dialogReboot"`
+
+	DialogShutdown Dialog `json:"dialogShutdown"`
 
 	DialogInvalidPanel Dialog `json:"dialogInvalidPanel"`
 
@@ -280,6 +283,7 @@ func InitState(s *State) (dirty bool) {
 	s.DialogExport.Active = false
 	s.DialogArm.Acknowledged = false
 	s.DialogReboot.Active = false
+	s.DialogShutdown.Active = false
 
 	s.OSVersion, _ = version.ReadOSVersion()
 

@@ -113,6 +113,8 @@ func (s *Screens) Render(img draw.Image) {
 	switch {
 	case s.state.DialogReboot.Active:
 		s.dialog.Render(img, s.state.DialogReboot.Message)
+	case s.state.DialogShutdown.Active:
+		s.dialog.Render(img, s.state.DialogShutdown.Message)
 	case s.state.DialogRestartApp.Active:
 		s.dialog.Render(img, s.state.DialogRestartApp.Message)
 	case s.state.DialogUpdate.Active:

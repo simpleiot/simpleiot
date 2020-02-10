@@ -36,3 +36,6 @@ type NoNetworkConnection struct{}
 // get it multiple times, like, if they switch to Notify mode, get the dialog, and then
 // it fires again from the network thread
 type NoNetworkDialogDisplayed struct{}
+
+// Shutdown indicates the system is shutting down
+type Shutdown struct{}

@@ -19,6 +19,7 @@ const (
 	SampleTypeInputInjector          = "inputInjector"
 	SampleTypeInputWaterOn           = "inputWaterOn"
 	SampleTypeInputIrrigator         = "inputIrrigator"
+	SampleTypeMainAuxPwr             = "mainAuxPwr"
 	SampleTypeArm                    = "arm"
 )
 

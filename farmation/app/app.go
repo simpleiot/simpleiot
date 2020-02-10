@@ -22,6 +22,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/islcd"
 	"github.com/simpleiot/simpleiot/farmation/islog"
 	"github.com/simpleiot/simpleiot/farmation/isnetwork"
+	"github.com/simpleiot/simpleiot/farmation/ispower"
 	"github.com/simpleiot/simpleiot/farmation/ispressure"
 	"github.com/simpleiot/simpleiot/farmation/isserial"
 	"github.com/simpleiot/simpleiot/farmation/issim"
@@ -154,6 +155,7 @@ func Run(params Params) {
 	serialChan := make(chan interface{}, 1000)
 	networkChan := make(chan interface{}, 100)
 	updateChan := make(chan interface{}, 100)
+	powerChan := make(chan interface{}, 100)
 
 	channels := []struct {
 		name    string
@@ -173,6 +175,7 @@ func Run(params Params) {
 		{"serial", serialChan},
 		{"network", networkChan},
 		{"update", updateChan},
+		{"power", powerChan},
 	}
 
 	// fire up subsystems
@@ -191,6 +194,7 @@ func Run(params Params) {
 		params.PortalURL, params.DebugPortal)
 
 	go isupdate.Run(updateChan, appChan)
+	go ispower.Run(powerChan, appChan)
 
 	lastFillingWarning := time.Time{}
 
@@ -239,6 +243,7 @@ func Run(params Params) {
 			cntrlChan <- state
 			webChan <- state
 			logChan <- state
+			powerChan <- state
 
 			lastStateSend = now
 		}
@@ -820,6 +825,18 @@ func Run(params Params) {
 				state.GpioDigitalIn = bool(m)
 				saveState()
 
+			case isdata.UpdateGpioMainAuxPower:
+				state.GpioMainAuxPwr = bool(m)
+				saveState()
+				// send to logging thread to be saved to database for system logs
+				// send to network thread to be sent to portal
+				s := data.Sample{
+					Type:  isdata.SampleTypeMainAuxPwr,
+					Time:  time.Now(),
+					Value: boolToSampleVal(bool(m)),
+				}
+				logChan <- s
+
 			case isdata.UpdateManualRelayInj:
 				config.ManualRelayInj = isdata.RelayControlStateType(m)
 				saveConfig()
@@ -913,6 +930,7 @@ func Run(params Params) {
 			case isdata.Reboot:
 				state.DialogReboot.Active = true
 				state.DialogReboot.Message = "Reboot started, please wait"
+				saveState()
 				if runtime.GOARCH != "arm" {
 					log.Println("on development platform, not rebooting")
 				} else {
@@ -1024,6 +1042,11 @@ func Run(params Params) {
 				case data.CmdUpdateApp:
 					updateChan <- m
 				}
+
+			case isdata.Shutdown:
+				state.DialogShutdown.Active = true
+				state.DialogShutdown.Message = "Shutting down ..."
+				saveState()
 
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
