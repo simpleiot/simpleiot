@@ -149,7 +149,7 @@ func Run(params Params) {
 	simChan := make(chan interface{}, 100)
 	lcdChan := make(chan interface{}, 100)
 	flowChan := make(chan interface{}, 100)
-	logChan := make(chan interface{}, 1000)
+	logChan := make(chan interface{}, 2000) // make this channel big to handle export processes
 	presChan := make(chan interface{}, 1000)
 	serialChan := make(chan interface{}, 1000)
 	networkChan := make(chan interface{}, 100)
