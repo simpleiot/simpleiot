@@ -79,8 +79,6 @@ func timeToUs(t time.Time) int64 {
 
 var tsFilenameFormat = "2006-01-02_15h04m05s"
 
-type stopRunExport struct{}
-
 // Run goroutine for data logging code
 func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 	config := isdata.Config{}
