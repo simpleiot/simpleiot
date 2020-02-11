@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"image"
 	"io/ioutil"
 	"log"
 	"os"
@@ -334,12 +335,18 @@ func Run(params Params) {
 		select {
 		case s := <-sigChan:
 			log.Println("Received signal: ", s)
+			img := image.NewRGBA(image.Rect(0, 0, 128, 64))
+			isui.Clear(img)
+			isui.DrawPng(img, "IS_logo_injector.png", 26, 0)
+			lcdChan <- isui.ImageToBlt(0, 0, img, false)
 			config.ManualRelayInj = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			config.ManualRelayAux = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			config.ManualRelayShutdown = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			saveConfig()
 			db.WriteState(&state)
 			db.WriteConfig(&config)
+			// give time for splash screen to be displayed
+			time.Sleep(100 * time.Millisecond)
 			log.Println("state and config saved, SEE YA!")
 			os.Exit(0)
 
