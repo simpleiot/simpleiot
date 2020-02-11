@@ -184,7 +184,7 @@ func Run(params Params) {
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
 	go isflow.Run(flowChan, appChan, params.Sim, config)
-	go islog.Run(logChan, appChan, state, db)
+	go islog.Run(logChan, appChan, state, config, db)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
 	go isnetwork.Run(networkChan, appChan, config, state,
@@ -237,6 +237,7 @@ func Run(params Params) {
 			uiChan <- state
 			ioChan <- state
 			cntrlChan <- state
+			logChan <- state
 			webChan <- state
 			logChan <- state
 
