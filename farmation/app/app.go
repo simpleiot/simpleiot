@@ -150,7 +150,7 @@ func Run(params Params) {
 	simChan := make(chan interface{}, 100)
 	lcdChan := make(chan interface{}, 100)
 	flowChan := make(chan interface{}, 100)
-	logChan := make(chan interface{}, 1000)
+	logChan := make(chan interface{}, 2000) // make this channel big to handle export processes
 	presChan := make(chan interface{}, 1000)
 	serialChan := make(chan interface{}, 1000)
 	networkChan := make(chan interface{}, 100)
@@ -187,7 +187,7 @@ func Run(params Params) {
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
 	go isflow.Run(flowChan, appChan, params.Sim, config)
-	go islog.Run(logChan, appChan, state, db)
+	go islog.Run(logChan, appChan, state, config, db)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
 	go isnetwork.Run(networkChan, appChan, config, state,
@@ -241,6 +241,7 @@ func Run(params Params) {
 			uiChan <- state
 			ioChan <- state
 			cntrlChan <- state
+			logChan <- state
 			webChan <- state
 			logChan <- state
 			powerChan <- state
@@ -723,7 +724,7 @@ func Run(params Params) {
 
 			case isdata.ExportAlreadyInProcess:
 				state.DialogExport.Active = true
-				state.DialogExport.Message = "Exporting already in process\nPlease Wait"
+				state.DialogExport.Message = "Export already in process\nPlease Wait"
 
 			case isdata.ExportDataFinished:
 				state.DialogExport.Active = true

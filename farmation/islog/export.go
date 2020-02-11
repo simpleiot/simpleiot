@@ -99,7 +99,9 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 		}
 	}
 
+	// Send out finished signal and return
 	out <- isdata.ExportDataFinished{}
+	return
 }
 
 func exportFieldTotals(state *isdata.State, config *isdata.Config, out chan interface{}) {
@@ -219,8 +221,9 @@ func exportFieldTotals(state *isdata.State, config *isdata.Config, out chan inte
 		log.Println("Error saving "+fileName+": ", err)
 	}
 
-	// Send out finished signal - close dialog
+	// Send out finished signal and return
 	out <- isdata.ExportDataFinished{}
+	return
 }
 
 func boolToString(val bool) string {

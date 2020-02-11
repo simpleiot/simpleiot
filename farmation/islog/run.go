@@ -80,9 +80,9 @@ func timeToUs(t time.Time) int64 {
 var tsFilenameFormat = "2006-01-02_15h04m05s"
 
 // Run goroutine for data logging code
-func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
-	config := isdata.Config{}
+func Run(in, out chan interface{}, stateIn isdata.State, configIn isdata.Config, db *isdb.IsDb) {
 	state := stateIn
+	config := configIn
 
 	var lastPulseTimestamp int64
 	_ = lastPulseTimestamp
@@ -106,6 +106,8 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 
 	writeAmountTicker := time.NewTicker(historyLogPeriod)
 
+	var alreadyExporting bool
+
 	for {
 		select {
 		case m := <-in:
@@ -127,10 +129,33 @@ func Run(in, out chan interface{}, stateIn isdata.State, db *isdb.IsDb) {
 				state = m
 
 			case isdata.ExportData:
-				exportHistoryData(&state, db, out)
+				// Start a goroutine for this large task so that
+				// the log channel isn't overloaded
+				// The function returns a signal when it is
+				// finished: ExportDataFinished{}
+				// The same thing happens for the next case
+				if alreadyExporting {
+					out <- isdata.ExportAlreadyInProcess{}
+					continue
+				}
+				go exportHistoryData(&state, db, in)
+				alreadyExporting = true
 
 			case isdata.ExportFieldProductTotals:
-				exportFieldTotals(&state, &config, out)
+				if alreadyExporting {
+					out <- isdata.ExportAlreadyInProcess{}
+					continue
+				}
+				go exportFieldTotals(&state, &config, in)
+				alreadyExporting = true
+
+			case isdata.ExportDataFinished,
+				isdata.NoDiskPresent,
+				isdata.ErrWriteDisk:
+				// Update exporting status and send signal
+				// to app channel so the dialog is updated
+				alreadyExporting = false
+				out <- m
 
 			case isdata.Pulse:
 				if !config.LogPulseData {
