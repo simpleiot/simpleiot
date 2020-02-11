@@ -718,7 +718,7 @@ func Run(params Params) {
 
 			case isdata.ExportAlreadyInProcess:
 				state.DialogExport.Active = true
-				state.DialogExport.Message = "Exporting already in process\nPlease Wait"
+				state.DialogExport.Message = "Export already in process\nPlease Wait"
 
 			case isdata.ExportDataFinished:
 				state.DialogExport.Active = true
