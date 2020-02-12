@@ -78,6 +78,9 @@ type State struct {
 	// Modal dialog describes a modal dialog message
 	// only for messages from state machine. Create new dialog
 	// structs for other parts of the app.
+	// NOTE: When a new dialog is added, it probably needs to
+	// be set to false in Init() so that it doesn't persist
+	// through app restarts
 	DialogStateMachine Dialog `json:"dialogStateMachine"`
 
 	DialogArm Dialog `json:"dialogArm"`
@@ -94,7 +97,7 @@ type State struct {
 
 	DialogReboot Dialog `json:"dialogReboot"`
 
-	DialogInvalidPanel Dialog `json:"dialogInvalidPanel"`
+	DialogInvalidPanel Dialog `json:"dialogInvalidPanel"` // UNUSED
 
 	// for Vision panel
 	DialogUnknownVisionState Dialog `json:"dialogUnknownVisionState"`
@@ -276,10 +279,31 @@ func InitState(s *State) (dirty bool) {
 	s.GpioStatusLedRed = false
 	s.GpioStatusLedGreen = false
 
+	// Make sure these dialogs aren't left over from previous
+	// app session
 	s.DialogArm.Active = false
+	s.DialogArmReq.Active = false
+	s.DialogArmInputs.Active = false
+	s.DialogApp.Active = false
 	s.DialogExport.Active = false
-	s.DialogArm.Acknowledged = false
+	s.DialogStateMachine.Active = false
 	s.DialogReboot.Active = false
+	s.DialogUpdate.Active = false
+	s.DialogInvalidPanel.Active = false
+	s.DialogUnknownVisionState.Active = false
+	s.DialogRestartApp.Active = false
+
+	s.DialogArm.Acknowledged = false
+	s.DialogArmReq.Acknowledged = false
+	s.DialogArmInputs.Acknowledged = false
+	s.DialogApp.Acknowledged = false
+	s.DialogExport.Acknowledged = false
+	s.DialogStateMachine.Acknowledged = false
+	s.DialogReboot.Acknowledged = false
+	s.DialogUpdate.Acknowledged = false
+	s.DialogInvalidPanel.Acknowledged = false
+	s.DialogUnknownVisionState.Acknowledged = false
+	s.DialogRestartApp.Acknowledged = false
 
 	s.OSVersion, _ = version.ReadOSVersion()
 
