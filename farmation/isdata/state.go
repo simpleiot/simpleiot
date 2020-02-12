@@ -76,34 +76,10 @@ type State struct {
 	FaultsActive FaultsActive `json:"faultsActive"`
 
 	// Modal dialog describes a modal dialog message
-	// only for messages from state machine. Create new dialog
+	// OUTDATED: only for messages from state machine. Create new dialog
 	// structs for other parts of the app.
-	// NOTE: When a new dialog is added, it probably needs to
-	// be set to false in Init() so that it doesn't persist
-	// through app restarts
-	DialogStateMachine Dialog `json:"dialogStateMachine"`
-
-	DialogArm Dialog `json:"dialogArm"`
-
-	DialogArmInputs Dialog `json:"dialogArmInputs"`
-
-	DialogArmReq Dialog `json:"dialogArmReq"`
-
-	DialogApp Dialog `json:"dialogApp"`
-
-	DialogUpdate Dialog `json:"dialogUpdate"`
-
-	DialogExport Dialog `json:"dialogExport"`
-
-	DialogReboot Dialog `json:"dialogReboot"`
-
-	DialogInvalidPanel Dialog `json:"dialogInvalidPanel"` // UNUSED
-
-	// for Vision panel
-	DialogUnknownVisionState Dialog `json:"dialogUnknownVisionState"`
-
-	// To warn user when restarting app
-	DialogRestartApp Dialog `json:"dialogRestartApp"`
+	// NOTE: Add dialogs in method InitState()
+	Dialogs map[string]Dialog
 
 	OSVersion    semver.Version `json:"osVersion"`
 	SerialNumber string         `json:"serialNumber"`
@@ -206,6 +182,7 @@ func (fa FaultsActive) ActiveFaults() bool {
 
 // Dialog defines a modal dialog that must be acknowledged
 type Dialog struct {
+	Heading      string
 	Message      string
 	Active       bool
 	Acknowledged bool
@@ -279,31 +256,14 @@ func InitState(s *State) (dirty bool) {
 	s.GpioStatusLedRed = false
 	s.GpioStatusLedGreen = false
 
-	// Make sure these dialogs aren't left over from previous
-	// app session
-	s.DialogArm.Active = false
-	s.DialogArmReq.Active = false
-	s.DialogArmInputs.Active = false
-	s.DialogApp.Active = false
-	s.DialogExport.Active = false
-	s.DialogStateMachine.Active = false
-	s.DialogReboot.Active = false
-	s.DialogUpdate.Active = false
-	s.DialogInvalidPanel.Active = false
-	s.DialogUnknownVisionState.Active = false
-	s.DialogRestartApp.Active = false
+	// Initialize all necessary dialogs
+	s.Dialogs = make(map[string]Dialog)
 
-	s.DialogArm.Acknowledged = false
-	s.DialogArmReq.Acknowledged = false
-	s.DialogArmInputs.Acknowledged = false
-	s.DialogApp.Acknowledged = false
-	s.DialogExport.Acknowledged = false
-	s.DialogStateMachine.Acknowledged = false
-	s.DialogReboot.Acknowledged = false
-	s.DialogUpdate.Acknowledged = false
-	s.DialogInvalidPanel.Acknowledged = false
-	s.DialogUnknownVisionState.Acknowledged = false
-	s.DialogRestartApp.Acknowledged = false
+	// Make sure none of the dialogs persist through app restarts
+	for i := range s.Dialogs {
+		s.Dialogs[i].Active = false
+		s.Dialogs[i].Acknowledged = false
+	}
 
 	s.OSVersion, _ = version.ReadOSVersion()
 

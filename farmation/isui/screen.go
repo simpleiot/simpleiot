@@ -112,11 +112,11 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 func (s *Screens) Render(img draw.Image) {
 	switch {
 	case s.state.DialogReboot.Active:
-		s.dialog.Render(img, s.state.DialogReboot.Message)
+		s.dialog.Render(img, s.state.DialogReboot.Heading, s.state.DialogReboot.Message)
 	case s.state.DialogRestartApp.Active:
-		s.dialog.Render(img, s.state.DialogRestartApp.Message)
+		s.dialog.Render(img, s.state.DialogRestartApp.Heading, s.state.DialogRestartApp.Message)
 	case s.state.DialogUpdate.Active:
-		s.dialog.Render(img, s.state.DialogUpdate.Message)
+		s.dialog.Render(img, s.state.DialogUpdate.Heading, s.state.DialogUpdate.Message)
 	case s.state.DialogInvalidPanel.Active:
 		s.dialog.Render(img, s.state.DialogInvalidPanel.Message)
 	case s.state.DialogUnknownVisionState.Active:
