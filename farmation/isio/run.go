@@ -93,6 +93,11 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 			if in != state.GpioDigitalIn {
 				out <- isdata.UpdateGpioDigitalIn(in)
 			}
+
+			mainPwr := GpioRead(GpioMainAuxPwr)
+			if mainPwr != state.GpioMainAuxPwr {
+				out <- isdata.UpdateGpioMainAuxPower(mainPwr)
+			}
 		case <-panelSenseTicker.C:
 			readPanelResistor()
 		}

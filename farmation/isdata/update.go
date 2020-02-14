@@ -54,6 +54,9 @@ type UpdateGpioDigitalWaterOn bool
 // UpdateGpioDigitalIn is used to transmit GpioDigitalIn value
 type UpdateGpioDigitalIn bool
 
+// UpdateGpioMainAuxPower updates the power in status
+type UpdateGpioMainAuxPower bool
+
 // UpdateManualRelayInj is used to toggles the injector relay
 type UpdateManualRelayInj int
 

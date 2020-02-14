@@ -50,6 +50,7 @@ type State struct {
 	GpioDigitalIrrigator bool `json:"gpioDigitalIrrigator"`
 	GpioDigitalWaterOn   bool `json:"gpioDigitalWaterOn"`
 	GpioDigitalIn        bool `json:"gpioDigitalIn"`
+	GpioMainAuxPwr       bool
 
 	GpioRelayInjectorEn bool `json:"gpioRelayInjectorEn"`
 	GpioRelayShutdownEn bool `json:"gpioRelayShutdownEn"`

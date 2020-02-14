@@ -37,7 +37,5 @@ type NoNetworkConnection struct{}
 // it fires again from the network thread
 type NoNetworkDialogDisplayed struct{}
 
-// DialogClose is a message that tells the app thread to close the dialog of the given key
-type DialogClose struct {
-	Key string
-}
+// Shutdown indicates the system is shutting down
+type Shutdown struct{}
