@@ -161,6 +161,9 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 	sm.RelayShutdown = false
 	sm.RelayInjector = false
 
+	// Define the key at which to access the state machine dialog
+	smKey := "StateMachine"
+
 	// before running state machine:
 	if sm.inMonitorShutdownStates() {
 		if sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndShutdown &&
@@ -278,14 +281,14 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		if sm.state.InputWaterOn == isdata.InputStateOff &&
 			!sm.waitingWaterDisplayed &&
-			!sm.state.DialogStateMachine.Active {
+			!sm.state.Dialogs[smKey].Active {
 			sm.waitingWaterDisplayed = true
 			return append(ret, isdata.UpdateDialogStateMachineMessage(waterMsg))
 		}
 
 		if sm.state.InputIrrigator == isdata.InputStateOff &&
 			!sm.waitingIrrDisplayed &&
-			!sm.state.DialogStateMachine.Active {
+			!sm.state.Dialogs[smKey].Active {
 			sm.waitingIrrDisplayed = true
 			return append(ret, isdata.UpdateDialogStateMachineMessage(irrMsg))
 		}
@@ -309,21 +312,21 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		// Close dialogs if problem goes away
 		if sm.state.InputWaterOn != isdata.InputStateOff &&
-			sm.state.DialogStateMachine.Active &&
-			sm.state.DialogStateMachine.Message == waterMsg {
-			return append(ret, isdata.UpdateDialogStateMachineClose{})
+			sm.state.Dialogs[smKey].Active &&
+			sm.state.Dialogs[smKey].Message == waterMsg {
+			return append(ret, isdata.DialogClose{smKey})
 		}
 
 		if sm.state.InputIrrigator != isdata.InputStateOff &&
-			sm.state.DialogStateMachine.Active &&
-			sm.state.DialogStateMachine.Message == irrMsg {
-			return append(ret, isdata.UpdateDialogStateMachineClose{})
+			sm.state.Dialogs[smKey].Active &&
+			sm.state.Dialogs[smKey].Message == irrMsg {
+			return append(ret, isdata.DialogClose{smKey})
 		}
 
 		if !lowPressure &&
-			sm.state.DialogStateMachine.Active &&
-			sm.state.DialogStateMachine.Message == lowPresMsg {
-			return append(ret, isdata.UpdateDialogStateMachineClose{})
+			sm.state.Dialogs[smKey].Active &&
+			sm.state.Dialogs[smKey].Message == lowPresMsg {
+			return append(ret, isdata.DialogClose{smKey})
 		}
 
 		// ***This situation will never happen***
@@ -511,7 +514,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		sm.CurrentLedState = LedRed
 
-		if !sm.state.DialogStateMachine.Active {
+		if !sm.state.Dialogs[smKey].Active {
 			sm.setState(standby)
 		}
 

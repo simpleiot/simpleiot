@@ -79,7 +79,7 @@ type State struct {
 	// OUTDATED: only for messages from state machine. Create new dialog
 	// structs for other parts of the app.
 	// NOTE: Add dialogs in method InitState()
-	Dialogs map[string]Dialog
+	Dialogs map[string]*Dialog //map[string]Dialog
 
 	OSVersion    semver.Version `json:"osVersion"`
 	SerialNumber string         `json:"serialNumber"`
@@ -182,10 +182,38 @@ func (fa FaultsActive) ActiveFaults() bool {
 
 // Dialog defines a modal dialog that must be acknowledged
 type Dialog struct {
+	Priority     int
 	Heading      string
 	Message      string
 	Active       bool
 	Acknowledged bool
+}
+
+// Define dialog priority ranking scale: 0 is highest priority
+const (
+	DialogPriorityReboot int = iota
+	DialogPriorityRestart
+	DialogPriorityUpdate
+	DialogPriorityPanelDetect
+	DialogPriorityUnknownVisionState
+	DialogPriorityArm
+	DialogPriorityArmReq
+	DialogPriorityApp
+	DialogPriorityStateMachine
+	DialogPriorityExport
+)
+
+// DialogHighestPriority returns the key to the highest priority active
+// dialog in the Dialogs map
+func (s State) DialogHighestPriority() (key string) {
+	for k, dlg := range s.Dialogs {
+		// lower value of Priority field means higher priority
+		if dlg.Active &&
+			(dlg.Priority < s.Dialogs[key].Priority || key == "") {
+			key = k
+		}
+	}
+	return key
 }
 
 // SystemType describes the system type
@@ -257,7 +285,48 @@ func InitState(s *State) (dirty bool) {
 	s.GpioStatusLedGreen = false
 
 	// Initialize all necessary dialogs
-	s.Dialogs = make(map[string]Dialog)
+	// Static messages and headings are initialized here,
+	// but text that has variable content is set elsewhere
+	s.Dialogs = make(map[string]*Dialog)
+	s.Dialogs["Reboot"] = &Dialog{
+		Priority: DialogPriorityReboot,
+		Heading:  "Notice",
+		Message:  "Reboot started, please wait",
+	}
+	s.Dialogs["Restart"] = &Dialog{
+		Priority: DialogPriorityRestart,
+		Heading:  "Notice",
+		Message: "The timezone was changed,\nso the Injector " +
+			"Sentry will\nbe restarted.",
+	}
+	s.Dialogs["Update"] = &Dialog{
+		Priority: DialogPriorityUpdate,
+		Heading:  "Notice",
+	}
+	s.Dialogs["Arm"] = &Dialog{
+		Priority: DialogPriorityArm,
+		Heading:  "Error",
+	}
+	s.Dialogs["UnknownVisionState"] = &Dialog{
+		Priority: DialogPriorityUnknownVisionState,
+		Heading:  "Warning",
+	}
+	s.Dialogs["App"] = &Dialog{
+		Priority: DialogPriorityApp,
+		Heading:  "Warning",
+	}
+	s.Dialogs["Export"] = &Dialog{
+		Priority: DialogPriorityExport,
+	}
+	s.Dialogs["StateMachine"] = &Dialog{
+		Priority: DialogPriorityStateMachine,
+	}
+	s.Dialogs["ArmReq"] = &Dialog{
+		Priority: DialogPriorityArmReq,
+	}
+	s.Dialogs["PanelDetect"] = &Dialog{
+		Priority: DialogPriorityPanelDetect,
+	}
 
 	// Make sure none of the dialogs persist through app restarts
 	for i := range s.Dialogs {

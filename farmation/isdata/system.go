@@ -36,3 +36,8 @@ type NoNetworkConnection struct{}
 // get it multiple times, like, if they switch to Notify mode, get the dialog, and then
 // it fires again from the network thread
 type NoNetworkDialogDisplayed struct{}
+
+// DialogClose is a message that tells the app thread to close the dialog of the given key
+type DialogClose struct {
+	Key string
+}
