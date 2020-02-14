@@ -310,6 +310,7 @@ func Run(params Params) {
 		dlgReboot := state.Dialogs["Reboot"]
 		dlgUnknownVisionState := state.Dialogs["UnknownVisionState"]
 		dlgApp := state.Dialogs["App"]
+		dlgStateMachine := state.Dialogs["StateMachine"]
 		dlgExport := state.Dialogs["Export"]
 
 		// max sure queues between subsystems are not full
@@ -719,6 +720,7 @@ func Run(params Params) {
 
 				logChan <- isdata.ExportData{}
 				dlgExport.Active = true
+				dlgExport.Heading = "Notice"
 				dlgExport.Message = "Exporting data to USB Disk\nPlease Wait"
 
 			case isdata.ExportFieldProductTotals:
@@ -728,22 +730,27 @@ func Run(params Params) {
 				}
 				logChan <- isdata.ExportFieldProductTotals{}
 				dlgExport.Active = true
+				dlgExport.Heading = "Notice"
 				dlgExport.Message = "Exporting data to USB Disk\nPlease Wait"
 
 			case isdata.ExportAlreadyInProcess:
 				dlgExport.Active = true
+				dlgExport.Heading = "Error"
 				dlgExport.Message = "Export already in process\nPlease Wait"
 
 			case isdata.ExportDataFinished:
 				dlgExport.Active = true
+				dlgExport.Heading = "Notice"
 				dlgExport.Message = "Exporting data to USB Done\nPlease remove USB disk"
 
 			case isdata.NoDiskPresent:
 				dlgExport.Active = true
-				dlgExport.Message = "Error: No USB disk present\nPlease insert USB drive\nand try again"
+				dlgExport.Heading = "Error"
+				dlgExport.Message = "No USB disk present\nPlease insert USB drive\nand try again"
 
 			case isdata.ErrWriteDisk:
 				dlgExport.Active = true
+				dlgExport.Heading = "Error"
 				dlgExport.Message = "Error writing to USB disk"
 
 			case isdata.NoNetworkConnection:
@@ -986,9 +993,10 @@ func Run(params Params) {
 					}
 				}
 
-			case isdata.UpdateDialogStateMachineMessage:
-				state.Dialogs["StateMachine"].Message = string(m)
-				state.Dialogs["StateMachine"].Active = true
+			case isdata.UpdateDialogStateMachine:
+				dlgStateMachine.Heading = string(m.Heading)
+				dlgStateMachine.Message = string(m.Message)
+				dlgStateMachine.Active = true
 				saveState()
 
 			case isdata.PanelDefinition:

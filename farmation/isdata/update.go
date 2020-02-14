@@ -189,6 +189,9 @@ type UpdateLedGreen bool
 // UpdateModemEnabled is a message to enable/disable modem
 type UpdateModemEnabled bool
 
-// UpdateDialogStateMachineMessage is a signal to update the Message field of the struct at key "StateMachine"
-// in the state Dialogs map
-type UpdateDialogStateMachineMessage string
+// UpdateDialogStateMachine is a signal to update the Message and Heading fields of the struct at
+// key "StateMachine" in the state Dialogs map
+type UpdateDialogStateMachine struct {
+	Heading string
+	Message string
+}

@@ -182,11 +182,10 @@ func (fa FaultsActive) ActiveFaults() bool {
 
 // Dialog defines a modal dialog that must be acknowledged
 type Dialog struct {
-	Priority     int
-	Heading      string
-	Message      string
-	Active       bool
-	Acknowledged bool
+	Priority int
+	Active   bool
+	Heading  string
+	Message  string
 }
 
 // Define dialog priority ranking scale: 0 is highest priority
@@ -326,12 +325,6 @@ func InitState(s *State) (dirty bool) {
 	}
 	s.Dialogs["PanelDetect"] = &Dialog{
 		Priority: DialogPriorityPanelDetect,
-	}
-
-	// Make sure none of the dialogs persist through app restarts
-	for i := range s.Dialogs {
-		s.Dialogs[i].Active = false
-		s.Dialogs[i].Acknowledged = false
 	}
 
 	s.OSVersion, _ = version.ReadOSVersion()
