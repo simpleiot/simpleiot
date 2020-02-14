@@ -1035,12 +1035,12 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 
 	if config.OperatingMode == isdata.ISOperatingModeMonitor {
 		dlgArm.Active = true
-		dlgArm.Message = "Error: Cannot arm in Monitor \nOnly mode, please switch \nmodes"
+		dlgArm.Message = "Cannot arm in Monitor \nOnly mode, please switch \nmodes"
 		return
 	}
 	if config.UserPumpMode == isdata.UserPumpModeNotSet {
 		dlgArm.Active = true
-		dlgArm.Message = "Error: Injector Command \nInput not selected, please \nselect before arming"
+		dlgArm.Message = "Injector Command \nInput not selected, please \nselect before arming"
 		return
 	}
 
