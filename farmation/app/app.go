@@ -1033,6 +1033,7 @@ func Run(params Params) {
 func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 
 	dlgArm := state.Dialogs["Arm"]
+	dlgArmReq := state.Dialogs["ArmReq"]
 
 	fmt.Println("COLLIN, om: ", config.OperatingMode)
 
@@ -1053,7 +1054,7 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 			config.FlowRateTarget = state.FlowRate // set target flow rate to current
 			config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
 		} else {
-			dlgArm.Active = true
+			dlgArmReq.Active = true
 		}
 	} else {
 		config.Arm = !config.Arm
