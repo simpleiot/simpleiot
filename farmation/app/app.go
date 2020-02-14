@@ -269,8 +269,10 @@ func Run(params Params) {
 	if !file.Exists(updateNotFile) {
 		log.Println("System updated to: v", state.OSVersion)
 		exec.Command("touch", updateNotFile).Run()
-		state.DialogUpdate.Active = true
-		state.DialogUpdate.Message = "System updated to v" + state.OSVersion.String()
+
+		dlgUpdate := state.Dialogs["Update"]
+		dlgUpdate.Active = true
+		dlgUpdate.Message = "System updated to v" + state.OSVersion.String()
 		saveState()
 	}
 
@@ -310,6 +312,15 @@ func Run(params Params) {
 
 	for {
 
+		// Define dialog POINTERS for use in the logic below
+		dlgShutdown := state.Dialogs["Shutdown"]
+		dlgReboot := state.Dialogs["Reboot"]
+		dlgRestart := state.Dialogs["Restart"]
+		dlgUnknownVisionState := state.Dialogs["UnknownVisionState"]
+		dlgApp := state.Dialogs["App"]
+		dlgStateMachine := state.Dialogs["StateMachine"]
+		dlgExport := state.Dialogs["Export"]
+
 		// max sure queues between subsystems are not full
 		for _, c := range channels {
 			if len(c.channel) >= cap(c.channel)-1 {
@@ -319,8 +330,8 @@ func Run(params Params) {
 
 				// Fire a dialog to let user know about problem
 				if time.Since(lastChannelDialogDisplay) > time.Hour {
-					state.DialogApp.Active = true
-					state.DialogApp.Message = "System overloaded: " +
+					dlgApp.Active = true
+					dlgApp.Message = "System overloaded: " +
 						c.name +
 						"\nchannel is full. Please\ncontact Farmation support."
 					lastChannelDialogDisplay = time.Now()
@@ -710,44 +721,55 @@ func Run(params Params) {
 				networkChan <- m
 
 			case isdata.RestartApp:
-				state.DialogRestartApp.Active = true
-				state.DialogRestartApp.Message = "The timezone was changed,\nso the Injector Sentry will\nbe restarted."
+				// This just triggers the dialog; the actual restart happens when
+				// the user closes (acknowledges) the dialog
+				dlgRestart.Active = true
 
 			case isdata.ExportData:
-				if !state.DialogExport.Active {
-					// we only want one export process running at a time
-					logChan <- isdata.ExportData{}
+
+				// we only want one export process running at a time
+				if dlgExport.Active {
+					break
 				}
-				state.DialogExport.Active = true
-				state.DialogExport.Message = "Exporting data to USB Disk\nPlease Wait"
+
+				logChan <- isdata.ExportData{}
+				dlgExport.Active = true
+				dlgExport.Heading = "Notice"
+				dlgExport.Message = "Exporting data to USB Disk\nPlease Wait"
 
 			case isdata.ExportFieldProductTotals:
-				if !state.DialogExport.Active {
+				if dlgExport.Active {
 					// we only want one export process running at a time
-					logChan <- isdata.ExportFieldProductTotals{}
+					break
 				}
-				state.DialogExport.Active = true
-				state.DialogExport.Message = "Exporting data to USB Disk\nPlease Wait"
+				logChan <- isdata.ExportFieldProductTotals{}
+				dlgExport.Active = true
+				dlgExport.Heading = "Notice"
+				dlgExport.Message = "Exporting data to USB Disk\nPlease Wait"
 
 			case isdata.ExportAlreadyInProcess:
-				state.DialogExport.Active = true
-				state.DialogExport.Message = "Export already in process\nPlease Wait"
+				dlgExport.Active = true
+				dlgExport.Heading = "Error"
+				dlgExport.Message = "Export already in process\nPlease Wait"
 
 			case isdata.ExportDataFinished:
-				state.DialogExport.Active = true
-				state.DialogExport.Message = "Exporting data to USB Done\nPlease remove USB disk"
+				dlgExport.Active = true
+				dlgExport.Heading = "Notice"
+				dlgExport.Message = "Exporting data to USB Done\nPlease remove USB disk"
 
 			case isdata.NoDiskPresent:
-				state.DialogExport.Active = true
-				state.DialogExport.Message = "Error: No USB disk present\nPlease insert USB drive\nand try again"
+				dlgExport.Active = true
+				dlgExport.Heading = "Error"
+				dlgExport.Message = "No USB disk present\nPlease insert USB drive\nand try again"
 
 			case isdata.ErrWriteDisk:
-				state.DialogExport.Active = true
-				state.DialogExport.Message = "Error writing to USB disk"
+				dlgExport.Active = true
+				dlgExport.Heading = "Error"
+				dlgExport.Message = "Error writing to USB disk"
 
 			case isdata.NoNetworkConnection:
-				state.DialogApp.Active = true
-				state.DialogApp.Message = "The IS is not connected to\na network. Monitor and\nNotify mode is not functional."
+				dlgApp.Active = true
+				dlgApp.Message = "The IS is not connected to\na network. Monitor and\nNotify mode is not functional."
 				networkChan <- isdata.NoNetworkDialogDisplayed{}
 
 			/*case isdata.UpdateTankAlertVolume:
@@ -876,8 +898,8 @@ func Run(params Params) {
 			case isdata.UpdatePressureShutdownEnabled:
 				config.PressureShutdownEnabled = !config.PressureShutdownEnabled
 				if !config.PressureShutdownEnabled {
-					state.DialogApp.Active = true
-					state.DialogApp.Message = "You just disabled low-\npressure shutdown"
+					dlgApp.Active = true
+					dlgApp.Message = "You just disabled low-\npressure shutdown"
 				}
 				saveConfig()
 
@@ -936,9 +958,8 @@ func Run(params Params) {
 				logChan <- m
 
 			case isdata.Reboot:
-				state.DialogReboot.Active = true
-				state.DialogReboot.Message = "Reboot started, please wait"
-				saveState()
+				dlgReboot.Active = true
+				dlgReboot.Message = "Reboot started, please wait"
 				if runtime.GOARCH != "arm" {
 					log.Println("on development platform, not rebooting")
 				} else {
@@ -962,8 +983,8 @@ func Run(params Params) {
 				// if the Vision panel state is unknown, alert user
 				if m.State.String() == "Unknown" &&
 					time.Since(lastVisionUnknownStateDisplay) > 10*time.Minute {
-					state.DialogUnknownVisionState.Message = "Vision panel state is unknown.\nOutputs shutting off."
-					state.DialogUnknownVisionState.Active = true
+					dlgUnknownVisionState.Message = "Vision panel state is unknown.\nOutputs shutting off."
+					dlgUnknownVisionState.Active = true
 					lastVisionUnknownStateDisplay = time.Now()
 				}
 
@@ -975,59 +996,33 @@ func Run(params Params) {
 				state.FaultsActive = nil
 				saveState()
 
-			case isdata.UpdateDialogRestartAppClose:
-				state.DialogRestartApp.Active = false
+			case isdata.DialogClose:
+
+				if _, exists := state.Dialogs[m.Key]; !exists {
+					log.Println("Error from app thread, No such entry exists in Dialogs map: ", m.Key)
+				}
+				state.Dialogs[m.Key].Active = false
 				saveState()
 
-				// Start a detached process versus using Run() and
-				// Creating a child process
-				exec.Command("/etc/init.d/isapp", "restart").Start()
+				if m.Key != "Restart" {
+					break
+				}
 
-			case isdata.UpdateDialogStateMachineMessage:
-				state.DialogStateMachine.Message = string(m)
-				state.DialogStateMachine.Active = true
-				state.DialogStateMachine.Acknowledged = false
-				saveState()
+				if runtime.GOARCH != "arm" {
+					log.Println("on development platform, not restarting")
+				} else {
+					// Start a detached process versus using Run() and
+					// Creating a child process
+					err := exec.Command("/etc/init.d/isapp", "restart").Start()
+					if err != nil {
+						log.Println("Error restarting the app")
+					}
+				}
 
-			case isdata.UpdateDialogStateMachineAck:
-				state.DialogStateMachine.Acknowledged = true
-				state.DialogStateMachine.Active = false
-				saveState()
-
-			case isdata.UpdateDialogStateMachineClose:
-				state.DialogStateMachine.Active = false
-				saveState()
-
-			case isdata.UpdateDialogUpdateClose:
-				state.DialogUpdate.Active = false
-				saveState()
-
-			case isdata.UpdateDialogArmClose:
-				state.DialogArm.Active = false
-				saveState()
-
-			case isdata.UpdateDialogArmInputsClose:
-				state.DialogArmInputs.Active = false
-				saveState()
-
-			case isdata.UpdateDialogArmReqClose:
-				state.DialogArmReq.Active = false
-				saveState()
-
-			case isdata.UpdateDialogAppClose:
-				state.DialogApp.Active = false
-				saveState()
-
-			case isdata.UpdateDialogExportClose:
-				state.DialogExport.Active = false
-				saveState()
-
-			case isdata.UpdateDialogInvalidPanelClose:
-				state.DialogInvalidPanel.Active = false
-				saveState()
-
-			case isdata.UpdateDialogUnknownVisionStateClose:
-				state.DialogUnknownVisionState.Active = false
+			case isdata.UpdateDialogStateMachine:
+				dlgStateMachine.Heading = string(m.Heading)
+				dlgStateMachine.Message = string(m.Message)
+				dlgStateMachine.Active = true
 				saveState()
 
 			case isdata.PanelDefinition:
@@ -1052,8 +1047,7 @@ func Run(params Params) {
 				}
 
 			case isdata.Shutdown:
-				state.DialogShutdown.Active = true
-				state.DialogShutdown.Message = "Shutting down ..."
+				dlgShutdown.Active = true
 				saveState()
 
 			default:
@@ -1066,14 +1060,20 @@ func Run(params Params) {
 }
 
 func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
+
+	dlgArm := state.Dialogs["Arm"]
+	dlgArmReq := state.Dialogs["ArmReq"]
+
+	fmt.Println("COLLIN, om: ", config.OperatingMode)
+
 	if config.OperatingMode == isdata.ISOperatingModeMonitor {
-		state.DialogArm.Active = true
-		state.DialogArm.Message = "Error: Cannot arm in Monitor \nOnly mode, please switch \nmodes"
+		dlgArm.Active = true
+		dlgArm.Message = "Cannot arm in Monitor \nOnly mode, please switch \nmodes"
 		return
 	}
 	if config.UserPumpMode == isdata.UserPumpModeNotSet {
-		state.DialogArmInputs.Active = true
-		state.DialogArmInputs.Message = "Error: Injector Command \nInput not selected, please \nselect before arming"
+		dlgArm.Active = true
+		dlgArm.Message = "Injector Command \nInput not selected, please \nselect before arming"
 		return
 	}
 
@@ -1083,7 +1083,7 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 			config.FlowRateTarget = state.FlowRate // set target flow rate to current
 			config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
 		} else {
-			state.DialogArmReq.Active = true
+			dlgArmReq.Active = true
 		}
 	} else {
 		config.Arm = !config.Arm

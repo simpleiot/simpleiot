@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
+	"github.com/simpleiot/simpleiot/farmation/isdata"
 )
 
 // DialogScreen is used to display modal dialog messages
@@ -20,14 +21,14 @@ func NewDialogScreen() *DialogScreen {
 }
 
 // Render screen
-func (s *DialogScreen) Render(img draw.Image, message string) {
+func (s *DialogScreen) Render(img draw.Image, dialog *isdata.Dialog) {
 	Clear(img)
-	Heading(img, "Warning")
+	Heading(img, dialog.Heading)
 	font := tightpixel15.Font
 
 	var lineCount int
 
-	for _, line := range strings.Split(message, "\n") {
+	for _, line := range strings.Split(dialog.Message, "\n") {
 
 		x := 1
 		y := lineCount*font.GetHeight() + 11

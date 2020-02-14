@@ -77,33 +77,10 @@ type State struct {
 	FaultsActive FaultsActive `json:"faultsActive"`
 
 	// Modal dialog describes a modal dialog message
-	// only for messages from state machine. Create new dialog
+	// OUTDATED: only for messages from state machine. Create new dialog
 	// structs for other parts of the app.
-	DialogStateMachine Dialog `json:"dialogStateMachine"`
-
-	DialogArm Dialog `json:"dialogArm"`
-
-	DialogArmInputs Dialog `json:"dialogArmInputs"`
-
-	DialogArmReq Dialog `json:"dialogArmReq"`
-
-	DialogApp Dialog `json:"dialogApp"`
-
-	DialogUpdate Dialog `json:"dialogUpdate"`
-
-	DialogExport Dialog `json:"dialogExport"`
-
-	DialogReboot Dialog `json:"dialogReboot"`
-
-	DialogShutdown Dialog `json:"dialogShutdown"`
-
-	DialogInvalidPanel Dialog `json:"dialogInvalidPanel"`
-
-	// for Vision panel
-	DialogUnknownVisionState Dialog `json:"dialogUnknownVisionState"`
-
-	// To warn user when restarting app
-	DialogRestartApp Dialog `json:"dialogRestartApp"`
+	// NOTE: Add dialogs in method InitState()
+	Dialogs map[string]*Dialog //map[string]Dialog
 
 	OSVersion    semver.Version `json:"osVersion"`
 	SerialNumber string         `json:"serialNumber"`
@@ -206,9 +183,38 @@ func (fa FaultsActive) ActiveFaults() bool {
 
 // Dialog defines a modal dialog that must be acknowledged
 type Dialog struct {
-	Message      string
-	Active       bool
-	Acknowledged bool
+	Priority int
+	Active   bool
+	Heading  string
+	Message  string
+}
+
+// Define dialog priority ranking scale: 0 is highest priority
+const (
+	DialogPriorityShutdown int = iota
+	DialogPriorityReboot
+	DialogPriorityRestart
+	DialogPriorityUpdate
+	DialogPriorityPanelDetect
+	DialogPriorityUnknownVisionState
+	DialogPriorityApp
+	DialogPriorityArm
+	DialogPriorityArmReq
+	DialogPriorityStateMachine
+	DialogPriorityExport
+)
+
+// DialogHighestPriority returns the key to the highest priority active
+// dialog in the Dialogs map
+func (s State) DialogHighestPriority() (key string) {
+	for k, dlg := range s.Dialogs {
+		// lower value of Priority field means higher priority
+		if dlg.Active &&
+			(key == "" || dlg.Priority < s.Dialogs[key].Priority) {
+			key = k
+		}
+	}
+	return key
 }
 
 // SystemType describes the system type
@@ -279,11 +285,54 @@ func InitState(s *State) (dirty bool) {
 	s.GpioStatusLedRed = false
 	s.GpioStatusLedGreen = false
 
-	s.DialogArm.Active = false
-	s.DialogExport.Active = false
-	s.DialogArm.Acknowledged = false
-	s.DialogReboot.Active = false
-	s.DialogShutdown.Active = false
+	// Initialize all necessary dialogs
+	// Static messages and headings are initialized here,
+	// but text that has variable content is set elsewhere
+	s.Dialogs = make(map[string]*Dialog)
+	s.Dialogs["Shutdown"] = &Dialog{
+		Priority: DialogPriorityShutdown,
+		Heading:  "Notice",
+		Message:  "Shutting down ...",
+	}
+	s.Dialogs["Reboot"] = &Dialog{
+		Priority: DialogPriorityReboot,
+		Heading:  "Notice",
+		Message:  "Reboot started, please wait",
+	}
+	s.Dialogs["Restart"] = &Dialog{
+		Priority: DialogPriorityRestart,
+		Heading:  "Notice",
+		Message: "The timezone was changed,\nso the Injector " +
+			"Sentry will\nbe restarted.",
+	}
+	s.Dialogs["Update"] = &Dialog{
+		Priority: DialogPriorityUpdate,
+		Heading:  "Notice",
+	}
+	s.Dialogs["Arm"] = &Dialog{
+		Priority: DialogPriorityArm,
+		Heading:  "Error",
+	}
+	s.Dialogs["UnknownVisionState"] = &Dialog{
+		Priority: DialogPriorityUnknownVisionState,
+		Heading:  "Warning",
+	}
+	s.Dialogs["App"] = &Dialog{
+		Priority: DialogPriorityApp,
+		Heading:  "Warning",
+	}
+	s.Dialogs["Export"] = &Dialog{
+		Priority: DialogPriorityExport,
+	}
+	s.Dialogs["StateMachine"] = &Dialog{
+		Priority: DialogPriorityStateMachine,
+	}
+	s.Dialogs["ArmReq"] = &Dialog{
+		Priority: DialogPriorityArmReq,
+	}
+	s.Dialogs["PanelDetect"] = &Dialog{
+		Priority: DialogPriorityPanelDetect,
+	}
 
 	s.OSVersion, _ = version.ReadOSVersion()
 

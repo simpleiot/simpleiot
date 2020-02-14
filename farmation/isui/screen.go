@@ -110,112 +110,54 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 
 // Render is used to draw a list of params, handles scrolling, etc.
 func (s *Screens) Render(img draw.Image) {
-	switch {
-	case s.state.DialogReboot.Active:
-		s.dialog.Render(img, s.state.DialogReboot.Message)
-	case s.state.DialogShutdown.Active:
-		s.dialog.Render(img, s.state.DialogShutdown.Message)
-	case s.state.DialogRestartApp.Active:
-		s.dialog.Render(img, s.state.DialogRestartApp.Message)
-	case s.state.DialogUpdate.Active:
-		s.dialog.Render(img, s.state.DialogUpdate.Message)
-	case s.state.DialogInvalidPanel.Active:
-		s.dialog.Render(img, s.state.DialogInvalidPanel.Message)
-	case s.state.DialogUnknownVisionState.Active:
-		s.dialog.Render(img, s.state.DialogUnknownVisionState.Message)
-	case s.state.DialogExport.Active:
-		s.dialog.Render(img, s.state.DialogExport.Message)
-	case s.state.DialogArm.Active:
-		s.dialog.Render(img, s.state.DialogArm.Message)
-	case s.state.DialogArmInputs.Active:
-		s.dialog.Render(img, s.state.DialogArmInputs.Message)
-	case s.state.DialogArmReq.Active:
-		s.dialogArmReq.Render(img, s.state.DialogArmReq.Message)
-	case s.state.DialogStateMachine.Active:
-		s.dialog.Render(img, s.state.DialogStateMachine.Message)
-	case s.state.DialogApp.Active:
-		s.dialog.Render(img, s.state.DialogApp.Message)
-	default:
+
+	dlgKey := s.state.DialogHighestPriority()
+
+	if _, exists := s.state.Dialogs[dlgKey]; !exists {
 		s.screens[s.currentScreen].Render(img)
+		return
 	}
+
+	if dlgKey != "ArmReq" {
+		s.dialog.Render(img, s.state.Dialogs[dlgKey])
+		return
+	}
+
+	// ArmRequirements dialog requires a special render method
+	s.dialogArmReq.Render(img)
 }
 
 // Key handles key input
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
-	// dialogs
-	// Note, below needs to be the same order as in render
-	switch {
-	case s.state.DialogRestartApp.Active:
-		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-			return ScreenIDNoChange, isdata.UpdateDialogRestartAppClose{}, true
+	// DialogHighestPriority returns a key to the current active dialog
+	dlgKey := s.state.DialogHighestPriority()
+
+	// If the key is an empty string (no active dialogs) or invalid
+	if _, exists := s.state.Dialogs[dlgKey]; !exists {
+		// other screens
+		screenID, action, handled := s.screens[s.currentScreen].Key(key)
+		switch screenID {
+		case ScreenIDNoChange:
+		case ScreenIDPrev:
+			s.currentScreen = s.prevScreens[len(s.prevScreens)-1] // go to prev screen
+			s.prevScreens = s.prevScreens[:len(s.prevScreens)-1]  // remove screen from previous screens slice
+		default:
+			s.switchScreen(screenID)
 		}
-	case s.state.DialogUpdate.Active:
-		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-			return ScreenIDNoChange, isdata.UpdateDialogUpdateClose{}, true
+
+		// if at home screen, empty prevScreens array
+		if s.currentScreen == ScreenIDHome {
+			s.prevScreens = nil
 		}
-		return ScreenIDNoChange, nil, true
-	case s.state.DialogInvalidPanel.Active:
-		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-			return ScreenIDNoChange, isdata.UpdateDialogInvalidPanelClose{}, true
-		}
-		return ScreenIDNoChange, nil, true
-	case s.state.DialogUnknownVisionState.Active:
-		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-			return ScreenIDNoChange, isdata.UpdateDialogUnknownVisionStateClose{}, true
-		}
-		return ScreenIDNoChange, nil, true
-	case s.state.DialogExport.Active:
-		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-			return ScreenIDNoChange, isdata.UpdateDialogExportClose{}, true
-		}
-		return ScreenIDNoChange, nil, true
-	case s.state.DialogArm.Active:
-		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-			s.switchScreen(ScreenIDOpMode1)
-			return ScreenIDNoChange, isdata.UpdateDialogArmClose{}, true
-		}
-		return ScreenIDNoChange, nil, true
-	case s.state.DialogArmInputs.Active:
-		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-			s.switchScreen(ScreenIDPumpMode)
-			return ScreenIDNoChange, isdata.UpdateDialogArmInputsClose{}, true
-		}
-		return ScreenIDNoChange, nil, true
-	case s.state.DialogArmReq.Active:
-		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-			return ScreenIDNoChange, isdata.UpdateDialogArmReqClose{}, true
-		}
-		return ScreenIDNoChange, nil, true
-	case s.state.DialogStateMachine.Active:
-		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-			return ScreenIDNoChange, isdata.UpdateDialogStateMachineClose{}, true
-		}
-		return ScreenIDNoChange, nil, true
-	case s.state.DialogApp.Active:
-		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-			return ScreenIDNoChange, isdata.UpdateDialogAppClose{}, true
-		}
-		return ScreenIDNoChange, nil, true
+
+		return ScreenIDNoChange, action, handled
 	}
 
-	// other screens
-	screenID, action, handled := s.screens[s.currentScreen].Key(key)
-	switch screenID {
-	case ScreenIDNoChange:
-	case ScreenIDPrev:
-		s.currentScreen = s.prevScreens[len(s.prevScreens)-1] // go to prev screen
-		s.prevScreens = s.prevScreens[:len(s.prevScreens)-1]  // remove screen from previous screens slice
-	default:
-		s.switchScreen(screenID)
+	if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
+		return ScreenIDNoChange, isdata.DialogClose{dlgKey}, true
 	}
-
-	// if at home screen, empty prevScreens array
-	if s.currentScreen == ScreenIDHome {
-		s.prevScreens = nil
-	}
-
-	return ScreenIDNoChange, action, handled
+	return ScreenIDNoChange, nil, true
 }
 
 func (s *Screens) switchScreen(id ScreenID) {

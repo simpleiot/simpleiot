@@ -24,7 +24,7 @@ func NewDialogArmReqScreen(config *isdata.Config, state *isdata.State) *DialogAr
 }
 
 // Render screen
-func (s *DialogArmReqScreen) Render(img draw.Image, message string) {
+func (s *DialogArmReqScreen) Render(img draw.Image) {
 	Clear(img)
 
 	Heading(img, "Required to Arm")

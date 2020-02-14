@@ -189,42 +189,12 @@ type UpdateLedRed bool
 // UpdateLedGreen is used to set the led green on/off
 type UpdateLedGreen bool
 
-// UpdateDialogStateMachineMessage is used to activate and display a modal dialog
-type UpdateDialogStateMachineMessage string
-
-// UpdateDialogStateMachineAck is used to acknowledge a modal dialog
-type UpdateDialogStateMachineAck struct{}
-
-// UpdateDialogStateMachineClose is used to close a dialog after it has been acked
-type UpdateDialogStateMachineClose struct{}
-
-// UpdateDialogArmClose is used to close the arm error dialog
-type UpdateDialogArmClose struct{}
-
-// UpdateDialogArmInputsClose is used to close the arm error dialog
-type UpdateDialogArmInputsClose struct{}
-
-// UpdateDialogArmReqClose is used to close the arm requirements dialog
-type UpdateDialogArmReqClose struct{}
-
-// UpdateDialogAppClose is used to close the error dialog that originates from app.go
-type UpdateDialogAppClose struct{}
-
-// UpdateDialogRestartAppClose is used to close this dialog
-type UpdateDialogRestartAppClose struct{}
-
-// UpdateDialogUpdateClose is used to close the update dialog
-type UpdateDialogUpdateClose struct{}
-
-// UpdateDialogExportClose is used to close the export dialog
-type UpdateDialogExportClose struct{}
-
-// UpdateDialogInvalidPanelClose is used to close dialog
-type UpdateDialogInvalidPanelClose struct{}
-
-// UpdateDialogUnknownVisionStateClose is used to close the dialog that alerts users of
-// an unknown state for the Vision panel
-type UpdateDialogUnknownVisionStateClose struct{}
-
 // UpdateModemEnabled is a message to enable/disable modem
 type UpdateModemEnabled bool
+
+// UpdateDialogStateMachine is a signal to update the Message and Heading fields of the struct at
+// key "StateMachine" in the state Dialogs map
+type UpdateDialogStateMachine struct {
+	Heading string
+	Message string
+}
