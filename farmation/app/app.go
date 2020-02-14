@@ -313,6 +313,7 @@ func Run(params Params) {
 	for {
 
 		// Define dialog POINTERS for use in the logic below
+		dlgShutdown := state.Dialogs["Shutdown"]
 		dlgReboot := state.Dialogs["Reboot"]
 		dlgRestart := state.Dialogs["Restart"]
 		dlgUnknownVisionState := state.Dialogs["UnknownVisionState"]
@@ -1046,8 +1047,7 @@ func Run(params Params) {
 				}
 
 			case isdata.Shutdown:
-				state.DialogShutdown.Active = true
-				state.DialogShutdown.Message = "Shutting down ..."
+				dlgShutdown.Active = true
 				saveState()
 
 			default:

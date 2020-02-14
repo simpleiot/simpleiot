@@ -191,7 +191,8 @@ type Dialog struct {
 
 // Define dialog priority ranking scale: 0 is highest priority
 const (
-	DialogPriorityReboot int = iota
+	DialogPriorityShutdown int = iota
+	DialogPriorityReboot
 	DialogPriorityRestart
 	DialogPriorityUpdate
 	DialogPriorityPanelDetect
@@ -288,6 +289,11 @@ func InitState(s *State) (dirty bool) {
 	// Static messages and headings are initialized here,
 	// but text that has variable content is set elsewhere
 	s.Dialogs = make(map[string]*Dialog)
+	s.Dialogs["Shutdown"] = &Dialog{
+		Priority: DialogPriorityShutdown,
+		Heading:  "Notice",
+		Message:  "Shutting down ...",
+	}
 	s.Dialogs["Reboot"] = &Dialog{
 		Priority: DialogPriorityReboot,
 		Heading:  "Notice",
