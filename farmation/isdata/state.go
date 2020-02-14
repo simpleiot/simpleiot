@@ -195,9 +195,9 @@ const (
 	DialogPriorityUpdate
 	DialogPriorityPanelDetect
 	DialogPriorityUnknownVisionState
+	DialogPriorityApp
 	DialogPriorityArm
 	DialogPriorityArmReq
-	DialogPriorityApp
 	DialogPriorityStateMachine
 	DialogPriorityExport
 )
@@ -208,7 +208,7 @@ func (s State) DialogHighestPriority() (key string) {
 	for k, dlg := range s.Dialogs {
 		// lower value of Priority field means higher priority
 		if dlg.Active &&
-			(dlg.Priority < s.Dialogs[key].Priority || key == "") {
+			(key == "" || dlg.Priority < s.Dialogs[key].Priority) {
 			key = k
 		}
 	}

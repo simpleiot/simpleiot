@@ -153,6 +153,8 @@ func (om ISOperatingMode) String() string {
 		return "monitor and shutdown"
 	case ISOperatingModeMonitorAndBatch:
 		return "monitor and batch"
+	case ISOperatingModeMonitorAndNotify:
+		return "monitor and notify"
 	default:
 		return strconv.Itoa(int(om))
 	}

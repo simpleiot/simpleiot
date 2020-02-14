@@ -308,6 +308,7 @@ func Run(params Params) {
 
 		// Define dialog POINTERS for use in the logic below
 		dlgReboot := state.Dialogs["Reboot"]
+		dlgRestart := state.Dialogs["Restart"]
 		dlgUnknownVisionState := state.Dialogs["UnknownVisionState"]
 		dlgApp := state.Dialogs["App"]
 		dlgStateMachine := state.Dialogs["StateMachine"]
@@ -709,7 +710,7 @@ func Run(params Params) {
 			case isdata.RestartApp:
 				// This just triggers the dialog; the actual restart happens when
 				// the user closes (acknowledges) the dialog
-				state.Dialogs["RestartApp"].Active = true
+				dlgRestart.Active = true
 
 			case isdata.ExportData:
 
@@ -1032,6 +1033,8 @@ func Run(params Params) {
 func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 
 	dlgArm := state.Dialogs["Arm"]
+
+	fmt.Println("COLLIN, om: ", config.OperatingMode)
 
 	if config.OperatingMode == isdata.ISOperatingModeMonitor {
 		dlgArm.Active = true
