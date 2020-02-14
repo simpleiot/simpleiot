@@ -130,32 +130,34 @@ func (s *Screens) Render(img draw.Image) {
 // Key handles key input
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
+	// DialogHighestPriority returns a key to the current active dialog
 	dlgKey := s.state.DialogHighestPriority()
 
+	// If the key is an empty string (no active dialogs) or invalid
 	if _, exists := s.state.Dialogs[dlgKey]; !exists {
-		if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-			return ScreenIDNoChange, isdata.DialogClose{dlgKey}, true
+		// other screens
+		screenID, action, handled := s.screens[s.currentScreen].Key(key)
+		switch screenID {
+		case ScreenIDNoChange:
+		case ScreenIDPrev:
+			s.currentScreen = s.prevScreens[len(s.prevScreens)-1] // go to prev screen
+			s.prevScreens = s.prevScreens[:len(s.prevScreens)-1]  // remove screen from previous screens slice
+		default:
+			s.switchScreen(screenID)
 		}
-		return ScreenIDNoChange, nil, true
+
+		// if at home screen, empty prevScreens array
+		if s.currentScreen == ScreenIDHome {
+			s.prevScreens = nil
+		}
+
+		return ScreenIDNoChange, action, handled
 	}
 
-	// other screens
-	screenID, action, handled := s.screens[s.currentScreen].Key(key)
-	switch screenID {
-	case ScreenIDNoChange:
-	case ScreenIDPrev:
-		s.currentScreen = s.prevScreens[len(s.prevScreens)-1] // go to prev screen
-		s.prevScreens = s.prevScreens[:len(s.prevScreens)-1]  // remove screen from previous screens slice
-	default:
-		s.switchScreen(screenID)
+	if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
+		return ScreenIDNoChange, isdata.DialogClose{dlgKey}, true
 	}
-
-	// if at home screen, empty prevScreens array
-	if s.currentScreen == ScreenIDHome {
-		s.prevScreens = nil
-	}
-
-	return ScreenIDNoChange, action, handled
+	return ScreenIDNoChange, nil, true
 }
 
 func (s *Screens) switchScreen(id ScreenID) {
