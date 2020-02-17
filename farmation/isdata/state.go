@@ -183,38 +183,41 @@ func (fa FaultsActive) ActiveFaults() bool {
 
 // Dialog defines a modal dialog that must be acknowledged
 type Dialog struct {
-	Priority int
-	Active   bool
-	Heading  string
-	Message  string
+	ID      int
+	Active  bool
+	Heading string
+	Message string
 }
 
-// Define dialog priority ranking scale: 0 is highest priority
+// Define dialog ID's
+// They are listed in order of priority; the lower the value,
+// the higher the priority
 const (
-	DialogPriorityShutdown int = iota
-	DialogPriorityReboot
-	DialogPriorityRestart
-	DialogPriorityUpdate
-	DialogPriorityPanelDetect
-	DialogPriorityUnknownVisionState
-	DialogPriorityApp
-	DialogPriorityArm
-	DialogPriorityArmReq
-	DialogPriorityStateMachine
-	DialogPriorityExport
+	DialogShutdown int = iota
+	DialogReboot
+	DialogRestart
+	DialogUpdate
+	DialogPanelDetect
+	DialogUnknownVisionState
+	DialogApp
+	DialogArm
+	DialogArmReq
+	DialogStateMachine
+	DialogExport
 )
 
-// DialogHighestPriority returns the key to the highest priority active
-// dialog in the Dialogs map
-func (s State) DialogHighestPriority() (key string) {
+// DialogHighestPriority returns the highest priority active
+// dialog in the Dialogs map, as well as its key
+func (s State) DialogHighestPriority() (highest *Dialog, key string) {
 	for k, dlg := range s.Dialogs {
-		// lower value of Priority field means higher priority
+		// lower value of ID field means higher priority
 		if dlg.Active &&
-			(key == "" || dlg.Priority < s.Dialogs[key].Priority) {
+			(highest == nil || dlg.ID < highest.ID) {
+			highest = dlg
 			key = k
 		}
 	}
-	return key
+	return highest, key
 }
 
 // SystemType describes the system type
@@ -290,48 +293,48 @@ func InitState(s *State) (dirty bool) {
 	// but text that has variable content is set elsewhere
 	s.Dialogs = make(map[string]*Dialog)
 	s.Dialogs["Shutdown"] = &Dialog{
-		Priority: DialogPriorityShutdown,
-		Heading:  "Notice",
-		Message:  "Shutting down ...",
+		ID:      DialogShutdown,
+		Heading: "Notice",
+		Message: "Shutting down ...",
 	}
 	s.Dialogs["Reboot"] = &Dialog{
-		Priority: DialogPriorityReboot,
-		Heading:  "Notice",
-		Message:  "Reboot started, please wait",
+		ID:      DialogReboot,
+		Heading: "Notice",
+		Message: "Reboot started, please wait",
 	}
 	s.Dialogs["Restart"] = &Dialog{
-		Priority: DialogPriorityRestart,
-		Heading:  "Notice",
+		ID:      DialogRestart,
+		Heading: "Notice",
 		Message: "The timezone was changed,\nso the Injector " +
 			"Sentry will\nbe restarted.",
 	}
 	s.Dialogs["Update"] = &Dialog{
-		Priority: DialogPriorityUpdate,
-		Heading:  "Notice",
+		ID:      DialogUpdate,
+		Heading: "Notice",
 	}
 	s.Dialogs["Arm"] = &Dialog{
-		Priority: DialogPriorityArm,
-		Heading:  "Error",
+		ID:      DialogArm,
+		Heading: "Error",
 	}
 	s.Dialogs["UnknownVisionState"] = &Dialog{
-		Priority: DialogPriorityUnknownVisionState,
-		Heading:  "Warning",
+		ID:      DialogUnknownVisionState,
+		Heading: "Warning",
 	}
 	s.Dialogs["App"] = &Dialog{
-		Priority: DialogPriorityApp,
-		Heading:  "Warning",
+		ID:      DialogApp,
+		Heading: "Warning",
 	}
 	s.Dialogs["Export"] = &Dialog{
-		Priority: DialogPriorityExport,
+		ID: DialogExport,
 	}
 	s.Dialogs["StateMachine"] = &Dialog{
-		Priority: DialogPriorityStateMachine,
+		ID: DialogStateMachine,
 	}
 	s.Dialogs["ArmReq"] = &Dialog{
-		Priority: DialogPriorityArmReq,
+		ID: DialogArmReq,
 	}
 	s.Dialogs["PanelDetect"] = &Dialog{
-		Priority: DialogPriorityPanelDetect,
+		ID: DialogPanelDetect,
 	}
 
 	s.OSVersion, _ = version.ReadOSVersion()

@@ -3,6 +3,7 @@ package ispower
 import (
 	"log"
 	"os/exec"
+	"runtime"
 	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -13,6 +14,11 @@ import (
 func Run(in, out chan interface{}) {
 	state := isdata.State{}
 	ticker := time.NewTicker(time.Second)
+
+	if runtime.GOARCH != "arm" {
+		ticker.Stop()
+	}
+
 	powerLossCount := 0
 	for {
 		select {
