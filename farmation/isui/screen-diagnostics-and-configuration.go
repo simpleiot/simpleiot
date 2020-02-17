@@ -2,6 +2,7 @@ package isui
 
 import (
 	"image/draw"
+	"strconv"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/version"
@@ -34,6 +35,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	// Sub screens
+	s.menu.AddItemStringDown("HW Version", strconv.Itoa(s.state.HWVersion))
 	s.menu.AddItemStringDown("OS Version", s.state.OSVersion.String())
 	s.menu.AddItemStringDown("App Version", version.AppVersion)
 	s.menu.AddItemStringDown("Serial Num", s.state.SerialNumber)
