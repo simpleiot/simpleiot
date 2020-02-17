@@ -136,6 +136,10 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	// If the dialog is nil (no active dialogs), handle keys as coming
 	// from the current screen
 	if currentDialog == nil {
+		if key == isdata.KeyPump {
+			return ScreenIDPumpMode, nil, true
+		}
+
 		screenID, action, handled := s.screens[s.currentScreen].Key(key)
 		switch screenID {
 		case ScreenIDNoChange:
