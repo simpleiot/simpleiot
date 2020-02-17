@@ -136,9 +136,8 @@ func getch() []byte {
  */
 
 // Run goroutine for keypad code
-func Run(in, out chan interface{}) {
-
-	if runtime.GOARCH == "arm" {
+func Run(in, out chan interface{}, hwVersion int) {
+	if runtime.GOARCH == "arm" && hwVersion != 1 {
 		go keypad(out, "PA17", isdata.KeySK4, isdata.KeySK4Hold, isdata.KeySK4Release)
 		go keypad(out, "PA15", isdata.KeySK3, isdata.KeySK3Hold, isdata.KeySK3Release)
 		go keypad(out, "PA19", isdata.KeySK2, isdata.KeySK2Hold, isdata.KeySK2Release)
@@ -148,9 +147,28 @@ func Run(in, out chan interface{}) {
 		go keypad(out, "PD10", isdata.KeyEnter, isdata.KeyEnterHold, isdata.KeyEnterRelease)
 		go keypad(out, "PA12", isdata.KeyDown, isdata.KeyDownHold, isdata.KeyDownRelease)
 		go keypad(out, "PA11", isdata.KeyRight, isdata.KeyRightHold, isdata.KeyRightRelease)
-		go keypad(out, "PC25", isdata.KeyArm, isdata.KeyArmHold, isdata.KeyArmRelease)
 		go keypad(out, "PA16", isdata.KeyArmKp, isdata.KeyArmKpHold, isdata.KeyArmKpRelease)
 		go keypad(out, "PA14", isdata.KeyPump, isdata.KeyPumpHold, isdata.KeyPumpRelease)
+
+		// wired to discrete switch
+		go keypad(out, "PC25", isdata.KeyArm, isdata.KeyArmHold, isdata.KeyArmRelease)
+	}
+
+	if runtime.GOARCH == "arm" && hwVersion == 1 {
+		go keypad(out, "PA19", isdata.KeySK4, isdata.KeySK4Hold, isdata.KeySK4Release)
+		go keypad(out, "PA18", isdata.KeySK3, isdata.KeySK3Hold, isdata.KeySK3Release)
+		go keypad(out, "PA20", isdata.KeySK2, isdata.KeySK2Hold, isdata.KeySK2Release)
+		go keypad(out, "PA21", isdata.KeySK1, isdata.KeySK1Hold, isdata.KeySK1Release)
+		go keypad(out, "PA10", isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyLeftRelease)
+		go keypad(out, "PA12", isdata.KeyUp, isdata.KeyUpHold, isdata.KeyUpRelease)
+		go keypad(out, "PD11", isdata.KeyEnter, isdata.KeyEnterHold, isdata.KeyEnterRelease)
+		go keypad(out, "PA16", isdata.KeyDown, isdata.KeyDownHold, isdata.KeyDownRelease)
+		go keypad(out, "PA14", isdata.KeyRight, isdata.KeyRightHold, isdata.KeyRightRelease)
+		go keypad(out, "PA17", isdata.KeyArmKp, isdata.KeyArmKpHold, isdata.KeyArmKpRelease)
+		go keypad(out, "PA15", isdata.KeyPump, isdata.KeyPumpHold, isdata.KeyPumpRelease)
+
+		// wired to discrete switch
+		go keypad(out, "PC25", isdata.KeyArm, isdata.KeyArmHold, isdata.KeyArmRelease)
 	}
 
 	/*
