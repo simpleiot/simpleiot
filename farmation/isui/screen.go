@@ -111,15 +111,16 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 // Render is used to draw a list of params, handles scrolling, etc.
 func (s *Screens) Render(img draw.Image) {
 
-	dlgKey := s.state.DialogHighestPriority()
+	currentDialog, _ := s.state.DialogHighestPriority()
 
-	if _, exists := s.state.Dialogs[dlgKey]; !exists {
+	// If the dialog is nil (no active dialogs), render the current screen
+	if currentDialog == nil {
 		s.screens[s.currentScreen].Render(img)
 		return
 	}
 
-	if dlgKey != "ArmReq" {
-		s.dialog.Render(img, s.state.Dialogs[dlgKey])
+	if currentDialog.ID != isdata.DialogArmReq {
+		s.dialog.Render(img, currentDialog)
 		return
 	}
 
@@ -130,12 +131,11 @@ func (s *Screens) Render(img draw.Image) {
 // Key handles key input
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
-	// DialogHighestPriority returns a key to the current active dialog
-	dlgKey := s.state.DialogHighestPriority()
+	currentDialog, dialogKey := s.state.DialogHighestPriority()
 
-	// If the key is an empty string (no active dialogs) or invalid
-	if _, exists := s.state.Dialogs[dlgKey]; !exists {
-		// other screens
+	// If the dialog is nil (no active dialogs), handle keys as coming
+	// from the current screen
+	if currentDialog == nil {
 		screenID, action, handled := s.screens[s.currentScreen].Key(key)
 		switch screenID {
 		case ScreenIDNoChange:
@@ -155,7 +155,7 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	}
 
 	if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
-		return ScreenIDNoChange, isdata.DialogClose{dlgKey}, true
+		return ScreenIDNoChange, isdata.DialogClose{dialogKey}, true
 	}
 	return ScreenIDNoChange, nil, true
 }

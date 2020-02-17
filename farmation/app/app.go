@@ -310,16 +310,16 @@ func Run(params Params) {
 
 	var lastChannelDialogDisplay time.Time
 
-	for {
+	// Define dialog POINTERS for use in the logic below
+	dlgShutdown := state.Dialogs["Shutdown"]
+	dlgReboot := state.Dialogs["Reboot"]
+	dlgRestart := state.Dialogs["Restart"]
+	dlgUnknownVisionState := state.Dialogs["UnknownVisionState"]
+	dlgApp := state.Dialogs["App"]
+	dlgStateMachine := state.Dialogs["StateMachine"]
+	dlgExport := state.Dialogs["Export"]
 
-		// Define dialog POINTERS for use in the logic below
-		dlgShutdown := state.Dialogs["Shutdown"]
-		dlgReboot := state.Dialogs["Reboot"]
-		dlgRestart := state.Dialogs["Restart"]
-		dlgUnknownVisionState := state.Dialogs["UnknownVisionState"]
-		dlgApp := state.Dialogs["App"]
-		dlgStateMachine := state.Dialogs["StateMachine"]
-		dlgExport := state.Dialogs["Export"]
+	for {
 
 		// max sure queues between subsystems are not full
 		for _, c := range channels {
@@ -1063,8 +1063,6 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 
 	dlgArm := state.Dialogs["Arm"]
 	dlgArmReq := state.Dialogs["ArmReq"]
-
-	fmt.Println("COLLIN, om: ", config.OperatingMode)
 
 	if config.OperatingMode == isdata.ISOperatingModeMonitor {
 		dlgArm.Active = true
