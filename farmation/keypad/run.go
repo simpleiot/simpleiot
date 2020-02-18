@@ -161,7 +161,7 @@ func Run(in, out chan interface{}, hwVersion int) {
 		go keypad(out, "PA21", isdata.KeySK1, isdata.KeySK1Hold, isdata.KeySK1Release)
 		go keypad(out, "PA10", isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyLeftRelease)
 		go keypad(out, "PA12", isdata.KeyUp, isdata.KeyUpHold, isdata.KeyUpRelease)
-		go keypad(out, "PD11", isdata.KeyEnter, isdata.KeyEnterHold, isdata.KeyEnterRelease)
+		go keypad(out, "PA11", isdata.KeyEnter, isdata.KeyEnterHold, isdata.KeyEnterRelease)
 		go keypad(out, "PA16", isdata.KeyDown, isdata.KeyDownHold, isdata.KeyDownRelease)
 		go keypad(out, "PA14", isdata.KeyRight, isdata.KeyRightHold, isdata.KeyRightRelease)
 		go keypad(out, "PA17", isdata.KeyArmKp, isdata.KeyArmKpHold, isdata.KeyArmKpRelease)
