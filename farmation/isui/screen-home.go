@@ -91,6 +91,7 @@ func (s *HomeScreen) Render(img draw.Image) {
 	y = 1
 
 	switch {
+	case !s.state.NetworkState.InterfaceStatus.Connected: // If not connected, no icon
 	case s.state.NetworkState.InterfaceStatus.Rsrp >= 0: // Get rid of invalid signal case
 		//case s.state.NetworkState.InterfaceStatus.Rsrp > -84: //Excellent
 	case s.state.NetworkState.InterfaceStatus.Rsrp > -103: // Good
