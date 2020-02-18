@@ -20,7 +20,7 @@ func (d keys) Run() error {
 	appChan := make(chan interface{}, 100)
 	keypadChan := make(chan interface{}, 100)
 
-	go keypad.Run(appChan, keypadChan)
+	go keypad.Run(appChan, keypadChan, 1)
 
 	expectedKeys := []isdata.Key{
 		isdata.KeySK1,

@@ -549,6 +549,7 @@ func Run(params Params) {
 				}
 
 			case isdata.Key:
+				fmt.Println("Key: ", m)
 				switch m {
 				case isdata.KeyArm, isdata.KeyArmKp:
 					oldArm := config.Arm

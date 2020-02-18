@@ -130,14 +130,14 @@ func (s *Screens) Render(img draw.Image) {
 
 // Key handles key input
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
-
 	currentDialog, dialogKey := s.state.DialogHighestPriority()
 
 	// If the dialog is nil (no active dialogs), handle keys as coming
 	// from the current screen
 	if currentDialog == nil {
 		if key == isdata.KeyPump {
-			return ScreenIDPumpMode, nil, true
+			s.switchScreen(ScreenIDPumpMode)
+			return ScreenIDNoChange, nil, true
 		}
 
 		screenID, action, handled := s.screens[s.currentScreen].Key(key)
