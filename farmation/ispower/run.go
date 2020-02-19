@@ -13,7 +13,7 @@ import (
 //Run entry point for power management
 func Run(in, out chan interface{}) {
 	state := isdata.State{}
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(time.Millisecond * 250)
 
 	if runtime.GOARCH != "arm" {
 		ticker.Stop()
@@ -34,8 +34,8 @@ func Run(in, out chan interface{}) {
 				powerLossCount = 0
 			}
 
-			if powerLossCount > 5 {
-				log.Println("Power loss for 5 seconds, shutting down")
+			if powerLossCount > 3 {
+				log.Println("Power loss for 3 seconds, shutting down")
 				out <- isdata.Shutdown{}
 
 				// turn off backlight to save power
