@@ -13,11 +13,11 @@ const (
 
 // NetworkConfig defines the current network configuration
 type NetworkConfig struct {
-	Interface  NetworkInterface
-	DHCP       bool
-	StaticIP   string
-	SubnetMask string
-	DefaultGw  string
+	Interface  NetworkInterface `json:"interface"`
+	DHCP       bool             `json:"dhcp"`
+	StaticIP   string           `json:"staticIP"`
+	SubnetMask string           `json:"subnetMask"`
+	DefaultGw  string           `json:"defaultGw"`
 }
 
 // NetworkState defines the current network state

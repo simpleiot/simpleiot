@@ -1,8 +1,10 @@
 package islog
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"path"
 	"strconv"
 	"time"
@@ -12,6 +14,49 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdb"
 	"github.com/simpleiot/simpleiot/file"
 )
+
+func exportConfig(config *isdata.Config, state *isdata.State, db *isdb.IsDb, out chan interface{}) {
+
+	// check if disk present before reading from database,
+	// because read takes time
+	usbMountPoint := usbMountPoint()
+	if usbMountPoint == "" || !usbDeviceExists() {
+		out <- isdata.NoDiskPresent{}
+		return
+	}
+
+	f, err := os.Create("is-" + state.SerialNumber + "_" + time.Now().Format(tsFilenameFormat) + ".config")
+
+	if err != nil {
+		log.Println("Error opening config file: ", err)
+		out <- isdata.ErrWriteDisk{}
+		return
+	}
+
+	// Sync disks
+	defer func() {
+		f.Close()
+		err := file.SyncDisks()
+		if err != nil {
+			log.Println("Error syncing disks: ", err)
+		}
+	}()
+
+	encoder := json.NewEncoder(f)
+	encoder.SetIndent("", "   ")
+
+	err = encoder.Encode(config)
+
+	if err != nil {
+		log.Println("Error encoding config")
+		out <- isdata.ErrWriteDisk{}
+		return
+	}
+
+	// Send out finished signal and return
+	out <- isdata.ExportConfigFinished{}
+	return
+}
 
 func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{}) {
 
@@ -25,10 +70,9 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 
 	historyData := NewLog("is-"+state.SerialNumber+"-data", "timestamp (us),type,value,min,max")
 
-	defer historyData.Close()
-
 	// Sync disks
 	defer func() {
+		historyData.Close()
 		err := file.SyncDisks()
 		if err != nil {
 			log.Println("Error syncing disks: ", err)

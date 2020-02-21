@@ -738,6 +738,18 @@ func Run(params Params) {
 				dlgExport.Heading = "Notice"
 				dlgExport.Message = "Exporting data to USB Disk\nPlease Wait"
 
+			case isdata.ExportConfig:
+
+				// we only want one export process running at a time
+				if dlgExport.Active {
+					break
+				}
+
+				logChan <- isdata.ExportConfig{}
+				dlgExport.Active = true
+				dlgExport.Heading = "Notice"
+				dlgExport.Message = "Exporting config to USB Disk\nPlease Wait"
+
 			case isdata.ExportFieldProductTotals:
 				if dlgExport.Active {
 					// we only want one export process running at a time
@@ -757,6 +769,11 @@ func Run(params Params) {
 				dlgExport.Active = true
 				dlgExport.Heading = "Notice"
 				dlgExport.Message = "Exporting data to USB Done\nPlease remove USB disk"
+
+			case isdata.ExportConfigFinished:
+				dlgExport.Active = true
+				dlgExport.Heading = "Notice"
+				dlgExport.Message = "Exporting config to USB Done\nPlease remove USB disk"
 
 			case isdata.NoDiskPresent:
 				dlgExport.Active = true

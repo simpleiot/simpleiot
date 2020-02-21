@@ -48,8 +48,11 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemScreen("Vision serial", ScreenIDDiagLindsay)
 	s.menu.AddItemScreen("Network", ScreenIDModem)
 
-	// Logging Enable
+	// Data export
 	s.menu.AddItemCommand("Data", "export", isdata.ExportData{})
+	s.menu.AddItemCommand("Config", "export", isdata.ExportConfig{})
+
+	// Logging Enable
 	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData,
 		isdata.UpdateLogPulseEnable(!s.config.LogPulseData))
 	s.menu.AddItemOnOff("Flow logging", s.config.LogFlowData,

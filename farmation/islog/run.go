@@ -128,6 +128,14 @@ func Run(in, out chan interface{}, stateIn isdata.State, configIn isdata.Config,
 			case isdata.State:
 				state = m
 
+			case isdata.ExportConfig:
+				if alreadyExporting {
+					out <- isdata.ExportAlreadyInProcess{}
+					continue
+				}
+				go exportConfig(&config, &state, db, in)
+				alreadyExporting = true
+
 			case isdata.ExportData:
 				// Start a goroutine for this large task so that
 				// the log channel isn't overloaded
@@ -150,6 +158,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, configIn isdata.Config,
 				alreadyExporting = true
 
 			case isdata.ExportDataFinished,
+				isdata.ExportConfigFinished,
 				isdata.NoDiskPresent,
 				isdata.ErrWriteDisk:
 				// Update exporting status and send signal

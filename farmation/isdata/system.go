@@ -13,6 +13,12 @@ type ExportData struct{}
 // ExportDataFinished is used to signal the system that export process has completed
 type ExportDataFinished struct{}
 
+// ExportConfig is a message that causes the system to export config
+type ExportConfig struct{}
+
+// ExportConfigFinished is used to signal the system that export process has completed
+type ExportConfigFinished struct{}
+
 // ExportFieldProductTotals is a message that causes the system to export totals for
 // each field and product
 type ExportFieldProductTotals struct{}

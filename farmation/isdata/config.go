@@ -13,110 +13,110 @@ var currentConfigVersion = 1
 // that they are no longer used, so they don't accidently get
 // reused in the future with a different type.
 type Config struct {
-	Version int
+	Version int `json:"version"`
 
 	// ID is an alphanumeric name limitted to 16 chars in length
-	ID string
+	ID string `json:"id"`
 
 	// Timezone is used to store the current timezone so that the system zone can be set
 	// after the timezone is edited by the user and so the timezone can be set if it is
 	// erased in a system update or otherwise
-	Timezone string
+	Timezone string `json:"timezone"`
 
 	// FlowRateTarget is set by pressing the arm switch
-	FlowRateTarget float64
+	FlowRateTarget float64 `json:"flowRateTarget"`
 
 	// PressureShutdownEnabled allows users to disable the pressure shutdown functionality
-	PressureShutdownEnabled bool
+	PressureShutdownEnabled bool `json:"pressureShutdownEnabled"`
 
 	// PressureShutdownLow is the lower bound set by pressing the arm switch
-	PressureShutdownLow float64
+	PressureShutdownLow float64 `json:"pressureShutdownLow"`
 
 	// PressureStartupLow is the minimum pressure required to arm the system
-	PressureStartupLow int
+	PressureStartupLow int `json:"pressureStartupLow"`
 
 	// High/LowWindow will be displayed as decimal if under 10.
 	// These values are % from the flow target that will trigger
 	// and alarm.
-	HighWindowPerc float64
-	LowWindowPerc  float64
+	HighWindowPerc float64 `json:"highWindowPerc"`
+	LowWindowPerc  float64 `json:"lowWindowPerc"`
 
 	// ManualHigh/LowAlarm values are used to specify absolute
 	// GPM values that will trigger an alarm. If these values are
 	// not zero, then they will be used instead of High/LowWindowPerc
 	// for triggering an alarm.
-	ManualHighAlarmGPH float64
-	ManualLowAlarmGPH  float64
+	ManualHighAlarmGPH float64 `json:"manualHighAlarmGPH"`
+	ManualLowAlarmGPH  float64 `json:"manualLowAlarmGPH"`
 
 	// LowPresPerc is the percent lower than the current pressure min necessary to shutdown the system
-	LowPresPerc float64
+	LowPresPerc float64 `json:"lowPresPerc"`
 
 	// HighPres is a limit that, if tripped, will immediately shutdown the irrigator in
 	// monitor and shutdown mode
-	HighPres int
+	HighPres int `json:"highPres"`
 
 	// This is the time in seconds until the system recognizes flow off target
-	AlarmRecognizeSec float64
+	AlarmRecognizeSec float64 `json:"alarmRecognizeSec"`
 
 	// This is the time in minutes until the system activates the shutdown
 	// relay after recognizing that the irrigator input is off
 	// *** NOT USED ***
-	IrrigatorOffMin float64
+	IrrigatorOffMin float64 `json:"irrigatorOffMin"`
 
 	// BatchAmount max value is 9,999
-	BatchAmount         int
-	WaterOn             bool
-	Arm                 bool
-	OperatingMode       ISOperatingMode
-	CurrentFieldIndex   int // location of current (active) field
-	FieldConfigs        []FieldConfig
-	CurrentProductIndex int
-	ProductConfigs      []ProductConfig
-	DeviceName          string
+	BatchAmount         int             `json:"batchAmount"`
+	WaterOn             bool            `json:"waterOn"`
+	Arm                 bool            `json:"arm"`
+	OperatingMode       ISOperatingMode `json:"operatingMode"`
+	CurrentFieldIndex   int             `json:"currentFieldIndex"` // location of current (active) field
+	FieldConfigs        []FieldConfig   `json:"fieldConfigs"`
+	CurrentProductIndex int             `json:"currentProductIndex"`
+	ProductConfigs      []ProductConfig `json:"productConfigs"`
+	DeviceName          string          `json:"deviceName"`
 
-	NetworkConfig   NetworkConfig
-	TankCapacity    int
-	TankAlertVolume int  // UNUSED
-	TankAlertOn     bool // UNUSED
-	FlowMeterPPG    int  // how many pulses in one US gallon
-	FlowMeterMaxflo int  // Meter's maximum flow rate in GPM or LPM
+	NetworkConfig   NetworkConfig `json:"networkConfig"`
+	TankCapacity    int           `json:"tankCapacity"`
+	TankAlertVolume int           `json:"tankAlertVolume"` // UNUSED
+	TankAlertOn     bool          `json:"tankAlertOn"`     // UNUSED
+	FlowMeterPPG    int           `json:"flowMeterPPG"`    // how many pulses in one US gallon
+	FlowMeterMaxflo int           `json:"flowMeterMaxflo"` // Meter's maximum flow rate in GPM or LPM
 
 	// Logging options
-	LogPulseData    bool
-	LogFlowData     bool
-	LogPressureData bool
+	LogPulseData    bool `json:"logPulseData"`
+	LogFlowData     bool `json:"logFlowData"`
+	LogPressureData bool `json:"logPressureData"`
 
 	// Diagnostics/Config outputs
-	ManualRelayInj      RelayControlStateType
-	ManualRelayAux      RelayControlStateType
-	ManualRelayShutdown RelayControlStateType
-	ManualRegValve1     RelayControlStateType
-	ManualRegValve2     RelayControlStateType
+	ManualRelayInj      RelayControlStateType `json:"manualRelayInj"`
+	ManualRelayAux      RelayControlStateType `json:"manualRelayAux"`
+	ManualRelayShutdown RelayControlStateType `json:"manualRelayShutdown"`
+	ManualRegValve1     RelayControlStateType `json:"manualRegValve1"`
+	ManualRegValve2     RelayControlStateType `json:"manualRegValve2"`
 
 	// Flow meter pulses per gallon, flow moving average time
 	// windows and percent difference, pressure setting, K-factor
 	// for output pulses
-	PulsesPerGallon         int
-	FlowAvgWindow           int
-	FlowAvgWindowLong       int
-	FlowAvgWindowShortUsed  bool
-	FlowAvgPercDiff         int
-	PressureSetting         int
-	PulseOutputK            int
-	PulseOutputTestFlowRate int
-	PulseOutputTestOn       bool
+	PulsesPerGallon         int  `json:"pulsesPerGallon"`
+	FlowAvgWindow           int  `json:"flowAvgWindow"`
+	FlowAvgWindowLong       int  `json:"flowAvgWindowLong"`
+	FlowAvgWindowShortUsed  bool `json:"flowAvgWindowShortUsed"`
+	FlowAvgPercDiff         int  `json:"flowAvgPercDiff"`
+	PressureSetting         int  `json:"pressureSetting"`
+	PulseOutputK            int  `json:"pulseOutputK"`
+	PulseOutputTestFlowRate int  `json:"pulseOutputTestFlowRate"`
+	PulseOutputTestOn       bool `json:"pulseOutputTestOn"`
 	// Frequency with which flow rate is calculated and pulses dumped
 	// -- bucket size
-	SampleDuration int
+	SampleDuration int `json:"sampleDuration"`
 	// Maximum time with no pulses before moving averages are reset and
 	// flow is zeroed
-	MaxNoPulseDuration int
+	MaxNoPulseDuration int `json:"maxNoPulseDuration"`
 
-	UserPumpMode UserPumpMode
+	UserPumpMode UserPumpMode `json:"userPumpMode"`
 
-	PanelType PanelType
+	PanelType PanelType `json:"panelType"`
 
-	ModemEnabled bool
+	ModemEnabled bool `json:"modemEnabled"`
 }
 
 // UserPumpMode describes the state of the pump button in UI
@@ -188,12 +188,12 @@ const (
 
 // FieldConfig describes the configuration for a field
 type FieldConfig struct {
-	Description string
+	Description string `json:"description"`
 }
 
 // ProductConfig describes the configuration for a product
 type ProductConfig struct {
-	Description string
+	Description string `json:"description"`
 }
 
 // SerialType defines the type of serial communication
