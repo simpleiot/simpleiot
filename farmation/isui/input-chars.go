@@ -32,24 +32,26 @@ func NewInputChars(alpha, numbers bool) *InputChars {
 	if !alpha && !numbers { // No input chars
 		// One null input char
 		ret.lines[0] = "\x00"
+		fmt.Println("COLLIN, line 0:", ret.lines[0])
 		return &ret
 	}
 
 	if !alpha && numbers { // Just numbers
 		ret.numbersOnly = true
 		ret.lines[0] = "\x00" + numLine[:10] // Slice off space and period
+		fmt.Println("COLLIN, line 0:", ret.lines[0])
 		return &ret
 	}
 
-	ret.lines[0], ret.lines[1] = "\x00"+alphaLowerLine1, alphaLowerLine2 // Letters
+	ret.lines[0], ret.lines[1] = "a"+alphaLowerLine1, alphaLowerLine2 // Letters
 
 	if !numbers { // Just letters
+		fmt.Println("COLLIN, line 0:", ret.lines[0])
 		return &ret
 	}
 
 	ret.lines[2] = numLine
-
-	fmt.Println("COLLIN input chars: ", ret.lines)
+	fmt.Println("COLLIN, line 0:", ret.lines[0], len(ret.lines[0]))
 
 	return &ret
 }
@@ -68,32 +70,12 @@ func (ic *InputChars) Render(img draw.Image) {
 
 	font := tightpixel15fixed.Font
 
-	_, widthNull := font.MeasureRune('\x00')
+	widthNull := font.MeasureString("\x00") + 1
 
 	DrawTxtHighlight(img, ic.lines[0], currentChar, caps, margin-widthNull, line1Y, font)
 	DrawTxtHighlight(img, ic.lines[1], currentChar, caps, margin, line2Y, font)
 	DrawTxtHighlight(img, ic.lines[2], currentChar, caps, margin, line3Y, font)
 
-}
-
-// Caps sets to upper case
-func (ic *InputChars) Caps() byte {
-
-	if ic.numbersOnly {
-		return ic.GetCurrent()
-	}
-
-	if ic.caps {
-		ic.lines[0] = alphaLowerLine1
-		ic.lines[1] = alphaLowerLine2
-		ic.caps = false
-	} else {
-		ic.lines[0] = alphaUpperLine1
-		ic.lines[1] = alphaUpperLine2
-		ic.caps = true
-	}
-
-	return ic.GetCurrent()
 }
 
 // Key handles key inputs specific to inputChars
@@ -123,17 +105,46 @@ func (ic *InputChars) Key(key isdata.Key) byte {
 	return currentInputChar
 }
 
+// Caps sets to upper case
+func (ic *InputChars) Caps() byte {
+
+	if ic.numbersOnly {
+		return ic.GetCurrent()
+	}
+
+	if ic.caps {
+		ic.lines[0] = "\x00" + alphaLowerLine1
+		ic.lines[1] = alphaLowerLine2
+		ic.caps = false
+	} else {
+		ic.lines[0] = "\x00" + alphaUpperLine1
+		ic.lines[1] = alphaUpperLine2
+		ic.caps = true
+	}
+
+	return ic.GetCurrent()
+}
+
 // Right moves cursor right
 func (ic *InputChars) Right() byte {
+
 	ic.index++
+
+	// If index is greater than line length
 	if ic.index >= len(ic.lines[ic.line]) {
 		ic.index = 0
-		if ic.line >= len(ic.lines)-1 { // if we're at the end
+		ic.line++
+
+		// If this is past the last
+		// line or this line is empty,
+		// move to first line
+		if ic.line >= len(ic.lines) ||
+			len(ic.lines[ic.line]) <= 0 {
 			ic.line = 0
-		} else if len(ic.lines[ic.line+1]) > 0 { // else if next line isn't an empty string
-			ic.line++
-		} else {
-			ic.line = 0
+			// Skip over the null
+			// placeholder at the beginning
+			// of the first line
+			ic.index = 1
 		}
 	}
 
@@ -142,17 +153,27 @@ func (ic *InputChars) Right() byte {
 
 // Left moves cursor left
 func (ic *InputChars) Left() byte {
+
 	ic.index--
-	if ic.index < 0 {
+
+	if ic.index < 0 ||
+		ic.line == 0 && ic.index < 1 {
 		ic.line--
+
 		if ic.line < 0 {
-			if len(ic.lines[len(ic.lines)-1]) > 0 { // if last line isn't an empty string
+			// If the last line isn't empty,
+			// move to it
+			if len(ic.lines[len(ic.lines)-1]) > 0 {
 				ic.line = len(ic.lines) - 1
-			} else if len(ic.lines[len(ic.lines)-2]) > 0 { // else if second to last isn't empty
+				// If the second to last line isn't
+				// empty, move to it
+			} else if len(ic.lines[len(ic.lines)-2]) > 0 {
 				ic.line = len(ic.lines) - 2
+				// Move to the first line
 			} else {
 				ic.line = 0
 			}
+
 		}
 		ic.index = len(ic.lines[ic.line]) - 1
 	}
@@ -160,14 +181,19 @@ func (ic *InputChars) Left() byte {
 	return ic.GetCurrent()
 }
 
-//Up moves cursor up a line
+// Up moves cursor up a line
 func (ic *InputChars) Up() byte {
 	ic.line--
 	if ic.line < 0 {
+		// If the last line isn't empty,
+		// move to it
 		if len(ic.lines[len(ic.lines)-1]) > 0 {
 			ic.line = len(ic.lines) - 1
+			// If the second to last line isn't
+			// empty, move to it
 		} else if len(ic.lines[len(ic.lines)-2]) > 0 {
 			ic.line = len(ic.lines) - 2
+			// Move to the first line
 		} else {
 			ic.line = 0
 		}
@@ -177,10 +203,14 @@ func (ic *InputChars) Up() byte {
 		ic.index = len(ic.lines[ic.line]) - 1
 	}
 
+	if ic.index == 0 {
+		ic.index = 1
+	}
+
 	return ic.GetCurrent()
 }
 
-//Down moves cursor down a line
+// Down moves cursor down a line
 func (ic *InputChars) Down() byte {
 	ic.line++
 	if ic.line >= len(ic.lines) || len(ic.lines[ic.line]) <= 0 { //if we're past the end or this line is empty
