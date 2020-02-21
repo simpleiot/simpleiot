@@ -55,6 +55,7 @@ type Screens struct {
 	dialog        *DialogScreen
 	dialogArmReq  *DialogArmReqScreen
 	state         *isdata.State
+	config        *isdata.Config
 }
 
 // Add a new screen
@@ -65,7 +66,8 @@ func (s *Screens) Add(ID ScreenID, screen Widget) {
 // NewScreens initializes all screens
 func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Screens {
 	ret := &Screens{
-		state: state,
+		state:  state,
+		config: config,
 	}
 
 	ret.dialog = NewDialogScreen()
@@ -159,6 +161,24 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	}
 
 	if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
+
+		// Take user directly to a screen that needs attention
+		// when the dialog is closed
+		switch currentDialog.ID {
+		case isdata.DialogArm:
+			switch currentDialog.Message {
+			case "Cannot arm in Monitor \nOnly mode, please switch \nmodes":
+				s.switchScreen(ScreenIDOpMode1)
+			case "Pump Command \nInput not selected, please \nselect before arming":
+				s.switchScreen(ScreenIDPumpMode)
+			}
+		case isdata.DialogArmReq:
+			if s.state.InputInjector == isdata.InputStateOff &&
+				s.config.UserPumpMode == isdata.UserPumpModeOff {
+				s.switchScreen(ScreenIDPumpMode)
+			}
+		}
+
 		return ScreenIDNoChange, isdata.DialogClose{dialogKey}, true
 	}
 	return ScreenIDNoChange, nil, true
