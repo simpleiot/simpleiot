@@ -169,7 +169,7 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			switch currentDialog.Message {
 			case "Cannot arm in Monitor \nOnly mode, please switch \nmodes":
 				s.switchScreen(ScreenIDOpMode1)
-			case "Injector Command \nInput not selected, please \nselect before arming":
+			case "Pump Command \nInput not selected, please \nselect before arming":
 				s.switchScreen(ScreenIDPumpMode)
 			}
 		case isdata.DialogArmReq:

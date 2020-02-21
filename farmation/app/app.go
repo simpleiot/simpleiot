@@ -1077,7 +1077,7 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 	}
 	if config.UserPumpMode == isdata.UserPumpModeNotSet {
 		dlgArm.Active = true
-		dlgArm.Message = "Injector Command \nInput not selected, please \nselect before arming"
+		dlgArm.Message = "Pump Command \nInput not selected, please \nselect before arming"
 		return
 	}
 
