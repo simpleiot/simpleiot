@@ -174,7 +174,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	const (
 		displayInterval = time.Hour
-		displayWait     = 2 * time.Minute
+		displayWait     = time.Minute
 	)
 
 	lastLostConnectionAlert := time.Now().Add(-1*displayInterval + displayWait)
