@@ -26,12 +26,19 @@ type HomeScreen struct {
 
 // NewHomeScreen initializes and returns a HomeScreen
 func NewHomeScreen(state *isdata.State, config *isdata.Config) *HomeScreen {
-	return &HomeScreen{
-		softKeys: NewSoftKeys("menu", "mode", "pump", "faults"),
-		icons:    NewIcons(true, true, true),
-		state:    state,
-		config:   config,
+	ret := &HomeScreen{
+		icons:  NewIcons(true, true, true),
+		state:  state,
+		config: config,
 	}
+
+	if state.HWVersion == 1 {
+		ret.softKeys = NewSoftKeys("menu", "mode", "faults")
+	} else {
+		ret.softKeys = NewSoftKeys("menu", "mode", "pump", "faults")
+	}
+
+	return ret
 }
 
 // Render updates the home screen, and provides an image
@@ -135,10 +142,15 @@ func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		return ScreenIDMainMenu, nil, true
 	case isdata.KeySK2: // operating mode
 		return ScreenIDOpMode1, nil, true
-	case isdata.KeySK3: // pump
+	case isdata.KeySK3: // pump (IS revA), faults (> IS revA)
+		if s.state.HWVersion == 1 {
+			return ScreenIDFaultsActive, nil, true
+		}
 		return ScreenIDPumpMode, nil, true
-	case isdata.KeySK4: // faults
-		return ScreenIDFaultsActive, nil, true
+	case isdata.KeySK4: // faults (IS revA)
+		if s.state.HWVersion != 1 {
+			return ScreenIDFaultsActive, nil, true
+		}
 	}
 	return ScreenIDNoChange, nil, true
 }

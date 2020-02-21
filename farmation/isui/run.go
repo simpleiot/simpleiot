@@ -10,10 +10,10 @@ import (
 )
 
 // Run goroutine for ui code
-func Run(in, out chan interface{}, configInit isdata.Config, db *isdb.IsDb) {
+func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.State, db *isdb.IsDb) {
 	lcd := image.NewRGBA(image.Rect(0, 0, 128, 64))
 	config := configInit
-	state := isdata.State{}
+	state := stateInit
 
 	screens := NewScreens(&state, &config, db)
 	dialog := NewDialog()

@@ -181,7 +181,7 @@ func Run(params Params) {
 
 	// fire up subsystems
 	go keypad.Run(keypadChan, appChan, state.HWVersion)
-	go isui.Run(uiChan, appChan, config, db)
+	go isui.Run(uiChan, appChan, config, state, db)
 	go isio.Run(ioChan, appChan, config, state) // this is where io Run is called, w/ ioChan as in chan and appChan as out chan
 	go iscontrol.Run(cntrlChan, appChan, config, state)
 	go isapi.Server(webChan, appChan)
