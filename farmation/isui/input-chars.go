@@ -1,6 +1,7 @@
 package isui
 
 import (
+	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15fixed"
@@ -23,24 +24,32 @@ var alphaUpperLine2 = "NOPQRSTUVWXYZ"
 var numLine = "0123456789 ./"
 
 // NewInputChars creates a new inputchars widget that allows character selection.
-// alpha enables input.
+// alpha enables letter input.
 // numbers enables number input.
 func NewInputChars(alpha, numbers bool) *InputChars {
 	ret := InputChars{}
-	if alpha {
-		ret.lines[0], ret.lines[1] = alphaLowerLine1, alphaLowerLine2 // just alpha input chars
-		if numbers {                                                  // alpha and numbers
-			ret.lines[2] = numLine
-		}
-	} else if numbers { // just numbers
-		ret.lines[0] = numLine[:10] // slice off space and period
-	} else { // one null input char
+
+	if !alpha && !numbers { // No input chars
+		// One null input char
 		ret.lines[0] = "\x00"
+		return &ret
 	}
 
-	if numbers && !alpha {
+	if !alpha && numbers { // Just numbers
 		ret.numbersOnly = true
+		ret.lines[0] = "\x00" + numLine[:10] // Slice off space and period
+		return &ret
 	}
+
+	ret.lines[0], ret.lines[1] = "\x00"+alphaLowerLine1, alphaLowerLine2 // Letters
+
+	if !numbers { // Just letters
+		return &ret
+	}
+
+	ret.lines[2] = numLine
+
+	fmt.Println("COLLIN input chars: ", ret.lines)
 
 	return &ret
 }
@@ -56,9 +65,14 @@ func (ic *InputChars) Render(img draw.Image) {
 	if ic.line == 2 || ic.lines[1] == "" { // if on numbers/symbols line
 		caps = true // highlight like caps
 	}
-	DrawTxtHighlight(img, ic.lines[0], currentChar, caps, margin, line1Y, tightpixel15fixed.Font)
-	DrawTxtHighlight(img, ic.lines[1], currentChar, caps, margin, line2Y, tightpixel15fixed.Font)
-	DrawTxtHighlight(img, ic.lines[2], currentChar, caps, margin, line3Y, tightpixel15fixed.Font)
+
+	font := tightpixel15fixed.Font
+
+	_, widthNull := font.MeasureRune('\x00')
+
+	DrawTxtHighlight(img, ic.lines[0], currentChar, caps, margin-widthNull, line1Y, font)
+	DrawTxtHighlight(img, ic.lines[1], currentChar, caps, margin, line2Y, font)
+	DrawTxtHighlight(img, ic.lines[2], currentChar, caps, margin, line3Y, font)
 
 }
 
