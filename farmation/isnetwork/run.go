@@ -170,7 +170,14 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		pollPortal = time.NewTicker(time.Second * 5)
 	}
 
-	var lastTimeSync, lastLostConnectionAlert time.Time
+	var lastTimeSync time.Time
+
+	const (
+		displayInterval = time.Hour
+		displayWait     = time.Minute
+	)
+
+	lastLostConnectionAlert := time.Now().Add(-1*displayInterval + displayWait)
 
 	if state.SerialNumber == "" {
 		log.Println("IS Serial is not set, not sending data to portal")
@@ -350,8 +357,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			// of lost network connection
 			if config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify &&
 				!interfaceStatus.Connected &&
-				(lastLostConnectionAlert.IsZero() ||
-					time.Since(lastLostConnectionAlert) >= time.Hour) {
+				time.Since(lastLostConnectionAlert) >= displayInterval {
 				out <- isdata.NoNetworkConnection{}
 				// This is also happening when the NoNetworkDialogDisplayed message
 				// comes in, but doing it here just to make sure it doesn't get
