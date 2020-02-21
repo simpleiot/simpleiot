@@ -159,6 +159,18 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	}
 
 	if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
+
+		// Take user directly to a screen that needs attention
+		// when the dialog is closed
+		if currentDialog.ID == isdata.DialogArm {
+			switch currentDialog.Message {
+			case "Cannot arm in Monitor \nOnly mode, please switch \nmodes":
+				s.switchScreen(ScreenIDOpMode1)
+			case "Injector Command \nInput not selected, please \nselect before arming":
+				s.switchScreen(ScreenIDPumpMode)
+			}
+		}
+
 		return ScreenIDNoChange, isdata.DialogClose{dialogKey}, true
 	}
 	return ScreenIDNoChange, nil, true

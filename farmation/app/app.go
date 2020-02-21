@@ -1001,23 +1001,28 @@ func Run(params Params) {
 
 				if _, exists := state.Dialogs[m.Key]; !exists {
 					log.Println("Error from app thread, No such entry exists in Dialogs map: ", m.Key)
+					break
 				}
-				state.Dialogs[m.Key].Active = false
+
+				dialogPointer := state.Dialogs[m.Key]
+
+				dialogPointer.Active = false
 				saveState()
 
-				if m.Key != "Restart" {
+				if dialogPointer.ID != isdata.DialogRestart {
 					break
 				}
 
 				if runtime.GOARCH != "arm" {
 					log.Println("on development platform, not restarting")
-				} else {
-					// Start a detached process versus using Run() and
-					// Creating a child process
-					err := exec.Command("/etc/init.d/isapp", "restart").Start()
-					if err != nil {
-						log.Println("Error restarting the app")
-					}
+					break
+				}
+
+				// Start a detached process versus using Run() and
+				// Creating a child process
+				err := exec.Command("/etc/init.d/isapp", "restart").Start()
+				if err != nil {
+					log.Println("Error restarting the app")
 				}
 
 			case isdata.UpdateDialogStateMachine:
