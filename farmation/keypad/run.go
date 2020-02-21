@@ -137,7 +137,7 @@ func getch() []byte {
 
 // Run goroutine for keypad code
 func Run(in, out chan interface{}, hwVersion int) {
-	if runtime.GOARCH == "arm" { //&& hwVersion != 1 {
+	if runtime.GOARCH == "arm" && hwVersion != 1 {
 		go keypad(out, "PA17", isdata.KeySK4, isdata.KeySK4Hold, isdata.KeySK4Release)
 		go keypad(out, "PA15", isdata.KeySK3, isdata.KeySK3Hold, isdata.KeySK3Release)
 		go keypad(out, "PA19", isdata.KeySK2, isdata.KeySK2Hold, isdata.KeySK2Release)
@@ -154,7 +154,7 @@ func Run(in, out chan interface{}, hwVersion int) {
 		go keypad(out, "PC25", isdata.KeyArm, isdata.KeyArmHold, isdata.KeyArmRelease)
 	}
 
-	/*if runtime.GOARCH == "arm" && hwVersion == 1 {
+	if runtime.GOARCH == "arm" && hwVersion == 1 {
 		go keypad(out, "PA19", isdata.KeySK4, isdata.KeySK4Hold, isdata.KeySK4Release)
 		go keypad(out, "PA18", isdata.KeySK3, isdata.KeySK3Hold, isdata.KeySK3Release)
 		go keypad(out, "PA20", isdata.KeySK2, isdata.KeySK2Hold, isdata.KeySK2Release)
@@ -169,7 +169,7 @@ func Run(in, out chan interface{}, hwVersion int) {
 
 		// wired to discrete switch
 		go keypad(out, "PC25", isdata.KeyArm, isdata.KeyArmHold, isdata.KeyArmRelease)
-	}*/
+	}
 
 	/*
 		go func() {
