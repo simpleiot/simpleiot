@@ -16,7 +16,9 @@ type alias Flags =
 
 
 type alias Model =
-    {}
+    { email : String
+    , password : String
+    }
 
 
 type Msg
@@ -30,7 +32,7 @@ type alias Commands msg =
 
 init : Commands msg -> Flags -> ( Model, Cmd Msg, Cmd msg )
 init _ _ =
-    ( {}
+    ( { email = "", password = "" }
     , Cmd.none
     , Ports.log "Hello!"
     )
