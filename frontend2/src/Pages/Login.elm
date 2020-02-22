@@ -68,10 +68,9 @@ type Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update msg model =
-    ( model
-    , Cmd.none
-    , Cmd.none
-    )
+    case msg of
+        Update m ->
+            ( m, Cmd.none, Cmd.none )
 
 
 
@@ -89,10 +88,6 @@ subscriptions model =
 
 view : Model -> Element Msg
 view model =
-    let
-        _ =
-            Debug.log "Login view model" model
-    in
     column
         [ width (px 400)
         , spacing 12
