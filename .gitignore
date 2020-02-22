@@ -1,8 +1,10 @@
 frontend/output
-frontend/elm-stuff
+elm-stuff
 /siot
 data.db
 temp
 tags
 .idea
 assets.go
+node_modules
+dist
