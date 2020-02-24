@@ -1,6 +1,8 @@
 module Pages.Login exposing (Model, Msg, page)
 
 import Element exposing (..)
+import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Generated.Params as Params
@@ -64,6 +66,7 @@ init _ =
 
 type Msg
     = Update Model
+    | Login
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
@@ -71,6 +74,9 @@ update msg model =
     case msg of
         Update m ->
             ( m, Cmd.none, Cmd.none )
+
+        Login ->
+            ( model, Cmd.none, Global.Login model )
 
 
 
@@ -111,5 +117,16 @@ view model =
             , onChange = \new -> Update { model | password = new }
             , label = Input.labelAbove [ Font.size 14 ] (text "Password")
             , show = False
+            }
+        , Input.button
+            [ Background.color blue
+            , Font.color white
+            , Border.color darkBlue
+            , paddingXY 32 16
+            , Border.rounded 3
+            , width (px 200)
+            ]
+            { onPress = Nothing
+            , label = Element.text "Login"
             }
         ]

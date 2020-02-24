@@ -19,8 +19,14 @@ type alias Model =
     {}
 
 
+type alias Cred =
+    { email : String
+    , password : String
+    }
+
+
 type Msg
-    = Msg
+    = Login Cred
 
 
 type alias Commands msg =
@@ -37,11 +43,10 @@ init _ _ =
 
 
 update : Commands msg -> Msg -> Model -> ( Model, Cmd Msg, Cmd msg )
-update _ _ model =
-    ( model
-    , Cmd.none
-    , Cmd.none
-    )
+update _ msg model =
+    case msg of
+        Login cred ->
+            ( model, Cmd.none, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
