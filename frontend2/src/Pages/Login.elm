@@ -76,7 +76,7 @@ update msg model =
             ( m, Cmd.none, Cmd.none )
 
         Login ->
-            ( model, Cmd.none, Global.Login model )
+            ( model, Cmd.none, Spa.Page.send (Global.Login model) )
 
 
 
@@ -91,9 +91,8 @@ subscriptions model =
 
 -- VIEW
 
-
-view : Model -> Element Msg
-view model =
+loginForm : Model -> Element Msg
+loginForm model =
     column
         [ width (px 400)
         , spacing 12
@@ -126,7 +125,11 @@ view model =
             , Border.rounded 3
             , width (px 200)
             ]
-            { onPress = Nothing
+            { onPress = Just Login
             , label = Element.text "Login"
             }
         ]
+
+view : Model -> Element Msg
+view model =
+    loginForm model

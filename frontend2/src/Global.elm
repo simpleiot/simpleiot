@@ -16,7 +16,7 @@ type alias Flags =
 
 
 type alias Model =
-    {}
+    { authToken: Maybe String}
 
 
 type alias Cred =
@@ -36,7 +36,7 @@ type alias Commands msg =
 
 init : Commands msg -> Flags -> ( Model, Cmd Msg, Cmd msg )
 init _ _ =
-    ( {}
+    ( { authToken = Nothing}
     , Cmd.none
     , Ports.log "Hello!"
     )
@@ -46,7 +46,11 @@ update : Commands msg -> Msg -> Model -> ( Model, Cmd Msg, Cmd msg )
 update _ msg model =
     case msg of
         Login cred ->
-            ( model, Cmd.none, Cmd.none )
+            let
+                _ = Debug.log "login email: " cred.email
+                _ = Debug.log "login pass: " cred.password
+            in
+            ( {model | authToken = Just "hi there"}, Cmd.none, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
