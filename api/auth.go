@@ -10,10 +10,14 @@ import (
 // Auth handles user authentication requests.
 type Auth struct {
 	db  *db.Db
-	key Key
+	key NewTokener
 }
 
-func NewAuthHandler(db *db.Db, key Key) Auth {
+type NewTokener interface {
+	NewToken() (string, error)
+}
+
+func NewAuthHandler(db *db.Db, key NewTokener) Auth {
 	return Auth{db: db, key: key}
 }
 
@@ -57,4 +61,3 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	res.Write([]byte(token))
 }
-

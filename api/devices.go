@@ -12,6 +12,7 @@ import (
 type Devices struct {
 	db     *db.Db
 	influx *db.Influx
+	check  HeaderValidator
 }
 
 func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id string) {
@@ -102,6 +103,11 @@ func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id 
 
 // Top level handler for http requests in the coap-server process
 func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	if !h.check.ValidHeader(req) {
+		http.Error(res, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var id string
 	id, req.URL.Path = ShiftPath(req.URL.Path)
 
@@ -184,7 +190,11 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+type HeaderValidator interface {
+	ValidHeader(req *http.Request) bool
+}
+
 // NewDevicesHandler returns a new device handler
-func NewDevicesHandler(db *db.Db, influx *db.Influx) http.Handler {
-	return &Devices{db, influx}
+func NewDevicesHandler(db *db.Db, influx *db.Influx, v HeaderValidator) http.Handler {
+	return &Devices{db, influx, v}
 }

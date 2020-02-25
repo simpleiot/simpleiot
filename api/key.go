@@ -1,8 +1,10 @@
 package api
 
 import (
-	"time"
+	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -37,6 +39,13 @@ func (k Key) ValidToken(str string) bool {
 	return err == nil &&
 		token.Method.Alg() == "HS256" &&
 		token.Valid
+}
+
+func (k Key) ValidHeader(req *http.Request) bool {
+	fields := strings.Fields(req.Header.Get("Authorization"))
+	return len(fields) == 2 &&
+		fields[0] == "Bearer" &&
+		k.ValidToken(fields[1])
 }
 
 func (k Key) keyFunc(*jwt.Token) (interface{}, error) {
