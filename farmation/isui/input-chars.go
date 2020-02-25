@@ -1,7 +1,6 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15fixed"
@@ -33,26 +32,22 @@ func NewInputChars(alpha, numbers bool) *InputChars {
 	if !alpha && !numbers { // No input chars
 		// One null input char
 		ret.lines[0] = "\x00"
-		fmt.Println("COLLIN, line 0:", ret.lines[0])
 		return &ret
 	}
 
 	if !alpha && numbers { // Just numbers
 		ret.numbersOnly = true
 		ret.lines[0] = "\x00" + numLine[:10] // Slice off space and period
-		fmt.Println("COLLIN, line 0:", ret.lines[0])
 		return &ret
 	}
 
 	ret.lines[0], ret.lines[1] = "a"+alphaLowerLine1, alphaLowerLine2 // Letters
 
 	if !numbers { // Just letters
-		fmt.Println("COLLIN, line 0:", ret.lines[0])
 		return &ret
 	}
 
 	ret.lines[2] = numLine
-	fmt.Println("COLLIN, line 0:", ret.lines[0], len(ret.lines[0]))
 
 	return &ret
 }
