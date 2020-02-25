@@ -7,7 +7,7 @@ module Global exposing
     , update
     )
 
-import Generated.Routes as Routes exposing (Route)
+import Generated.Routes as Routes exposing (Route, routes)
 import Ports
 
 
@@ -46,12 +46,12 @@ init _ _ =
 
 
 update : Commands msg -> Msg -> Model -> ( Model, Cmd Msg, Cmd msg )
-update _ msg model =
+update commands msg model =
     case msg of
         SignIn cred ->
-            ( {model | authToken = Just "hi there", email = Just cred.email}, Cmd.none, Cmd.none )
+            ( {model | authToken = Just "hi there", email = Just cred.email}, Cmd.none, commands.navigate routes.top )
         SignOut ->
-            ( {model | authToken = Nothing}, Cmd.none, Cmd.none )
+            ( {model | authToken = Nothing, email = Nothing}, Cmd.none, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg

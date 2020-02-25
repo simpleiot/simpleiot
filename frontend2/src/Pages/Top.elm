@@ -35,8 +35,8 @@ view =
         , spacing 24
         ]
         [ column [ spacing 14 ]
-            [ el [ centerX, Font.size 48, Font.semiBold ] (text "elm-spa")
-            , el [ alpha 0.5 ] (text "(you're doing great already!)")
+            [ el [ centerX, Font.size 48, Font.semiBold ] (text "Simple IoT")
+            , el [ centerX, alpha 0.5 ] (text "(you're doing great already!)")
             ]
         , newTabLink
             [ Font.underline
@@ -46,6 +46,6 @@ view =
             , Font.size 16
             ]
             { label = text "learn more"
-            , url = "https://elm-spa.dev"
+            , url = "http://simpleiot.org"
             }
         ]
