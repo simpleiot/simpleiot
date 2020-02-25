@@ -16,7 +16,9 @@ type alias Flags =
 
 
 type alias Model =
-    { authToken: Maybe String}
+    { authToken: Maybe String
+    , email: Maybe String}
+
 
 
 type alias Cred =
@@ -26,7 +28,8 @@ type alias Cred =
 
 
 type Msg
-    = Login Cred
+    = SignIn Cred
+    | SignOut
 
 
 type alias Commands msg =
@@ -36,7 +39,7 @@ type alias Commands msg =
 
 init : Commands msg -> Flags -> ( Model, Cmd Msg, Cmd msg )
 init _ _ =
-    ( { authToken = Nothing}
+    ( { authToken = Nothing, email = Nothing}
     , Cmd.none
     , Ports.log "Hello!"
     )
@@ -45,12 +48,10 @@ init _ _ =
 update : Commands msg -> Msg -> Model -> ( Model, Cmd Msg, Cmd msg )
 update _ msg model =
     case msg of
-        Login cred ->
-            let
-                _ = Debug.log "login email: " cred.email
-                _ = Debug.log "login pass: " cred.password
-            in
-            ( {model | authToken = Just "hi there"}, Cmd.none, Cmd.none )
+        SignIn cred ->
+            ( {model | authToken = Just "hi there", email = Just cred.email}, Cmd.none, Cmd.none )
+        SignOut ->
+            ( {model | authToken = Nothing}, Cmd.none, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
