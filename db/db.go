@@ -5,6 +5,7 @@ import (
 	"path"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/timshannon/bolthold"
 )
@@ -33,6 +34,7 @@ func NewDb(dataDir string) (*Db, error) {
 		log.Println("Creating admin user")
 		err = store.Insert(
 			bolthold.NextSequence(), data.User{
+				ID:        uuid.New(),
 				FirstName: "admin",
 				LastName:  "user",
 				Email:     "admin@admin.com",
@@ -194,6 +196,12 @@ func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
 
 // Devices returns all devices
 func (db *Db) Devices() (ret []data.Device, err error) {
+	err = db.store.Find(&ret, nil)
+	return
+}
+
+// Users returns all users.
+func (db *Db) Users() (ret []data.User, err error) {
 	err = db.store.Find(&ret, nil)
 	return
 }
