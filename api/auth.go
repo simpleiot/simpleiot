@@ -3,20 +3,17 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/simpleiot/simpleiot/db"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 // Auth handles user authentication requests.
 type Auth struct {
 	db  *db.Db
-	key []byte
+	key Key
 }
 
-func NewAuthHandler(db *db.Db, key []byte) Auth {
+func NewAuthHandler(db *db.Db, key Key) Auth {
 	return Auth{db: db, key: key}
 }
 
@@ -52,26 +49,12 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	claims := jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(15 * time.Minute).Unix(),
-		Issuer:    "simpleiot",
-	}
-	str, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(auth.key)
+	token, err := auth.key.NewToken()
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	res.Write([]byte(str))
+	res.Write([]byte(token))
 }
 
-func (auth Auth) ValidToken(str string) bool {
-	token, err := jwt.Parse(str, auth.keyFunc)
-	return err == nil &&
-		token.Method.Alg() == "HS256" &&
-		token.Valid
-}
-
-func (auth Auth) keyFunc(*jwt.Token) (interface{}, error) {
-	return auth.key, nil
-}

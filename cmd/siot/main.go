@@ -86,7 +86,7 @@ func main() {
 		port = "8080"
 	}
 
-	key, err := newKey(20)
+	key, err := api.NewKey(20)
 	if err != nil {
 		log.Println("Error generating key: ", err)
 	}
@@ -98,16 +98,3 @@ func main() {
 		log.Println("Error starting server: ", err)
 	}
 }
-
-func newKey(size int) (key []byte, err error) {
-	var f *os.File
-	f, err = os.Open("/dev/urandom")
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	key = make([]byte, size)
-	_, err = f.Read(key)
-	return
-}
-

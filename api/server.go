@@ -64,7 +64,7 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // NewAppHandler returns a new application (root) http handler
 func NewAppHandler(db *db.Db, influx *db.Influx, getAsset func(string) []byte,
-	filesystem http.FileSystem, debug bool, key []byte) http.Handler {
+	filesystem http.FileSystem, debug bool, key Key) http.Handler {
 	return &App{
 		PublicHandler: http.FileServer(filesystem),
 		IndexHandler:  NewIndexHandler(getAsset),
@@ -81,7 +81,7 @@ func Server(
 	getAsset func(string) []byte,
 	filesystem http.FileSystem,
 	debug bool,
-	key []byte) error {
+	key Key) error {
 
 	log.Println("Starting http server, debug: ", debug)
 	log.Println("Starting portal on port: ", port)
