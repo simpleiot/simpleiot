@@ -12,6 +12,7 @@ import (
 type InputChars struct {
 	lines       [3]string
 	line        int
+	lineLast    int
 	index       int
 	numbersOnly bool
 	caps        bool
@@ -133,6 +134,7 @@ func (ic *InputChars) Right() byte {
 	// If index is greater than line length
 	if ic.index >= len(ic.lines[ic.line]) {
 		ic.index = 0
+		ic.lineLast = ic.line
 		ic.line++
 
 		// If this is past the last
@@ -140,6 +142,7 @@ func (ic *InputChars) Right() byte {
 		// move to first line
 		if ic.line >= len(ic.lines) ||
 			len(ic.lines[ic.line]) <= 0 {
+			ic.lineLast = ic.line
 			ic.line = 0
 			// Skip over the null
 			// placeholder at the beginning
@@ -147,6 +150,8 @@ func (ic *InputChars) Right() byte {
 			ic.index = 1
 		}
 	}
+
+	ic.checkIndex()
 
 	return ic.GetCurrent()
 }
@@ -158,69 +163,82 @@ func (ic *InputChars) Left() byte {
 
 	if ic.index < 0 ||
 		ic.line == 0 && ic.index < 1 {
+		ic.lineLast = ic.line
 		ic.line--
 
 		if ic.line < 0 {
-			// If the last line isn't empty,
-			// move to it
-			if len(ic.lines[len(ic.lines)-1]) > 0 {
-				ic.line = len(ic.lines) - 1
-				// If the second to last line isn't
-				// empty, move to it
-			} else if len(ic.lines[len(ic.lines)-2]) > 0 {
-				ic.line = len(ic.lines) - 2
-				// Move to the first line
-			} else {
-				ic.line = 0
-			}
 
+			// Move to the last line that isn't empty
+			for ic.line < len(ic.lines)-1 && len(ic.lines[ic.line+1]) > 0 {
+				ic.Down()
+			}
 		}
+
 		ic.index = len(ic.lines[ic.line]) - 1
 	}
+
+	ic.checkIndex()
 
 	return ic.GetCurrent()
 }
 
 // Up moves cursor up a line
 func (ic *InputChars) Up() byte {
+
+	ic.lineLast = ic.line
 	ic.line--
+
+	if ic.line == 0 {
+		ic.index++
+	}
+
 	if ic.line < 0 {
-		// If the last line isn't empty,
-		// move to it
-		if len(ic.lines[len(ic.lines)-1]) > 0 {
-			ic.line = len(ic.lines) - 1
-			// If the second to last line isn't
-			// empty, move to it
-		} else if len(ic.lines[len(ic.lines)-2]) > 0 {
-			ic.line = len(ic.lines) - 2
-			// Move to the first line
-		} else {
-			ic.line = 0
+
+		// Move to the last line that isn't empty
+		for ic.line < len(ic.lines)-1 && len(ic.lines[ic.line+1]) > 0 {
+			ic.Down()
 		}
 	}
 
-	if ic.index >= len(ic.lines[ic.line]) {
-		ic.index = len(ic.lines[ic.line]) - 1
-	}
-
-	if ic.index == 0 {
-		ic.index = 1
-	}
+	ic.checkIndex()
 
 	return ic.GetCurrent()
 }
 
 // Down moves cursor down a line
 func (ic *InputChars) Down() byte {
+
+	ic.lineLast = ic.line
 	ic.line++
-	if ic.line >= len(ic.lines) || len(ic.lines[ic.line]) <= 0 { //if we're past the end or this line is empty
-		ic.line = 0
-	}
-	if ic.index >= len(ic.lines[ic.line]) {
-		ic.index = len(ic.lines[ic.line]) - 1
+
+	if ic.lineLast == 0 {
+		ic.index--
 	}
 
+	// if we're past the end or this line is
+	// empty
+	if ic.line >= len(ic.lines) ||
+		len(ic.lines[ic.line]) <= 0 {
+		ic.lineLast = ic.line
+		ic.line = 0
+		ic.index++
+	}
+
+	ic.checkIndex()
+
 	return ic.GetCurrent()
+}
+
+// Account for different line lengths; make
+// sure we never index past the length of
+// the new line or less than 0
+func (ic *InputChars) checkIndex() {
+
+	if ic.index >= len(ic.lines[ic.line]) {
+		ic.index = len(ic.lines[ic.line]) - 1
+	} else if ic.index < 0 {
+		ic.index = 0
+	}
 }
 
 // GetCurrent returns the current character from the input
