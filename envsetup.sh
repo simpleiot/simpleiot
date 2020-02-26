@@ -1,32 +1,33 @@
 RECOMMENDED_ELM_VERSION=0.19.0
 
+if [ -z "$GOPATH" ]; then
+  export GOPATH=~/go
+fi
+
+export GOBIN=$GOPATH/bin
+
+siot_install_frontend_deps() {
+  (cd frontend &&
+    npm install elm &&
+    npm install elm-spa)
+}
+
+siot_install_backend_deps() {
+  go get -u github.com/benbjohnson/genesis/...
+  go get -u golang.org/x/lint/golint
+}
+
 siot_check_elm() {
-  if ! elm --version >/dev/null 2>&1; then
+  if ! npx elm --version >/dev/null 2>&1; then
     echo "Please install elm >= 0.19"
     echo "https://guide.elm-lang.org/install.html"
     return 1
   fi
 
-  version=$(elm --version)
+  version=$(npx elm --version)
   if [ "$version" != "$RECOMMENDED_ELM_VERSION" ]; then
     echo "found elm $version, recommend elm version $RECOMMENDED_ELM_VERSION"
     echo "not sure what will happen otherwise"
-  fi
-
-  return 0
-}
-
-siot_check_gopath_bin() {
-  if [ -z "$GOPATH" ]; then
-    GOPATH=~/go
-  fi
-
-  GOBIN=$GOPATH/bin
-
-  if [[ ":$PATH:" != *":$GOBIN:"* ]]; then
-    echo "You must add \$GOPATH/bin to your environment PATH variable"
-    echo "GOPATH defaults to ~/go"
-    return 1
   fi
 
   return 0
@@ -41,8 +42,8 @@ siot_setup() {
 }
 
 siot_build_frontend() {
-  rm "frontend$1/output"/* || true
-  (cd "frontend$1" && elm make src/Main.elm --output=output/elm.js) || return 1
+  rm -f "frontend$1/output"/* || true
+  (cd "frontend$1" && npx elm make src/Main.elm --output=output/elm.js) || return 1
   cp "frontend$1/public"/* "frontend$1/output/" || return 1
   cp "frontend$1/public/index$1.html" "frontend$1/output/index.html" || return 1
   cp docs/simple-iot-app-logo.png "frontend$1/output/" || return 1
@@ -51,7 +52,7 @@ siot_build_frontend() {
 
 siot_build_assets() {
   mkdir -p assets/frontend || return 1
-  genesis -C "frontend$1/output" -pkg frontend \
+  $GOBIN/genesis -C "frontend$1/output" -pkg frontend \
     index.html \
     elm.js \
     main.js \
@@ -100,6 +101,13 @@ siot_build_docs() {
   snowboard html docs/api.apib -o docs/api.html || return 1
 }
 
+# please run the following before pushing -- best if your editor can be set up
+# to do this automatically.
 siot_test() {
-  go test ./...
+  siot_build_dependencies 2
+  go fmt ./...
+  go test "$@" ./... || return 1
+  $GOBIN/golint -set_exit_status ./... || return 1
+  go vet ./... || return 1
+  return 0
 }
