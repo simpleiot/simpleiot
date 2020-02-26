@@ -1,4 +1,12 @@
+# SIOT notes
+
+We currently have two index.html and index2.html. Index.html is used by the dev
+server, and index2.html is used when packaged in the go app, as the paths are
+different. Maybe we should eventually look at serving the static assets from
+/ instead of public/ so both can match.
+
 # your elm-spa
+
 > learn more at [https://elm-spa.dev](https://elm-spa.dev)
 
 ### local development
