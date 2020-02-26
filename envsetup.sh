@@ -41,33 +41,37 @@ siot_setup() {
 }
 
 siot_build_frontend() {
-  rm frontend/output/* || true
-  (cd frontend && elm make src/Main.elm --output=output/elm.js) || return 1
-  cp frontend/public/* frontend/output/ || return 1
-  cp docs/simple-iot-app-logo.png frontend/output/ || return 1
+  rm "frontend$1/output"/* || true
+  (cd "frontend$1" && elm make src/Main.elm --output=output/elm.js) || return 1
+  cp "frontend$1/public"/* "frontend$1/output/" || return 1
+  cp "frontend$1/public/index$1.html" "frontend$1/output/index.html" || return 1
+  cp docs/simple-iot-app-logo.png "frontend$1/output/" || return 1
   return 0
 }
 
 siot_build_assets() {
   mkdir -p assets/frontend || return 1
-  genesis -C frontend/output -pkg frontend \
+  genesis -C "frontend$1/output" -pkg frontend \
     index.html \
     elm.js \
     main.js \
     ble.js \
     simple-iot-app-logo.png \
+    ports.js \
+    styles.css \
     >assets/frontend/assets.go || return 1
   return 0
 }
 
 siot_build_dependencies() {
-  siot_build_frontend || return 1
-  siot_build_assets || return 1
+  siot_build_frontend "$1" || return 1
+  siot_build_assets "$1" || return 1
   return 0
 }
 
+# the following can be used to build v2 of the frontend: siot_build 2
 siot_build() {
-  siot_build_dependencies || return 1
+  siot_build_dependencies "$1" || return 1
   go build -o siot cmd/siot/main.go || return 1
   return 0
 }
