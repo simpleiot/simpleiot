@@ -64,11 +64,11 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // NewAppHandler returns a new application (root) http handler
 func NewAppHandler(db *db.Db, influx *db.Influx, getAsset func(string) []byte,
-	filesystem http.FileSystem, debug bool) http.Handler {
+	filesystem http.FileSystem, debug bool, key Key) http.Handler {
 	return &App{
 		PublicHandler: http.FileServer(filesystem),
 		IndexHandler:  NewIndexHandler(getAsset),
-		V1ApiHandler:  NewV1Handler(db, influx),
+		V1ApiHandler:  NewV1Handler(db, influx, key),
 		Debug:         debug,
 	}
 }
@@ -80,10 +80,11 @@ func Server(
 	influx *db.Influx,
 	getAsset func(string) []byte,
 	filesystem http.FileSystem,
-	debug bool) error {
+	debug bool,
+	key Key) error {
 
 	log.Println("Starting http server, debug: ", debug)
 	log.Println("Starting portal on port: ", port)
 	address := fmt.Sprintf(":%s", port)
-	return http.ListenAndServe(address, NewAppHandler(dbInst, influx, getAsset, filesystem, debug))
+	return http.ListenAndServe(address, NewAppHandler(dbInst, influx, getAsset, filesystem, debug, key))
 }

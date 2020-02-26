@@ -22,7 +22,7 @@ func main() {
 	flag.Parse()
 
 	if *flagSim {
-		sim.DeviceSim(*flagSimPortal, *flagSimDeviceID)
+		go sim.DeviceSim(*flagSimPortal, *flagSimDeviceID)
 	}
 
 	// default action is to start server
@@ -86,8 +86,13 @@ func main() {
 		port = "8080"
 	}
 
+	key, err := api.NewKey(20)
+	if err != nil {
+		log.Println("Error generating key: ", err)
+	}
+
 	err = api.Server(port, dbInst, influx, frontend.Asset,
-		frontend.FileSystem(), *flagDebugHTTP)
+		frontend.FileSystem(), *flagDebugHTTP, key)
 
 	if err != nil {
 		log.Println("Error starting server: ", err)
