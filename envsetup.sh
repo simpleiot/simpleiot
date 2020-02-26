@@ -42,7 +42,10 @@ siot_setup() {
 }
 
 siot_build_frontend() {
-  rm -f "frontend$1/output"/* || true
+  rm -f "frontend$1/output"/*
+  if [ "$1" = "2" ]; then
+    (cd "frontend$1" && npx elm-spa build) || return 1
+  fi
   (cd "frontend$1" && npx elm make src/Main.elm --output=output/elm.js) || return 1
   cp "frontend$1/public"/* "frontend$1/output/" || return 1
   cp "frontend$1/public/index$1.html" "frontend$1/output/index.html" || return 1
