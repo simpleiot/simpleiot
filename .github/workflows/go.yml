@@ -1,0 +1,34 @@
+name: Go
+on: [push]
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+        id: go
+
+      - name: Set up nodejs
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+        id: node
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Get dependencies
+        run: |
+          . envsetup.sh
+          siot_install_frontend_deps
+          siot_install_backend_deps
+          # go get -v -t -d ./...
+
+      - name: Test
+        run: |
+          node --version
+          . envsetup.sh
+          siot_test

@@ -8,8 +8,6 @@ import (
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/jacobsa/go-serial/serial"
 )
 
 type dataSource struct {
@@ -115,15 +113,20 @@ func TestResponseReaderClose(t *testing.T) {
 	fmt.Println("test all done")
 }
 
+/* the following test is for documentation only
+
 // the below test illustrates out the goroutine in the reader will close if you close
 // the underlying serial port descriptor.
 func TestResponseReaderSerialPortClose(t *testing.T) {
+
 	fmt.Println("=============================")
 	fmt.Println("Testing serial port close")
 	readCnt := make(chan int)
 
+	serialPort := "/dev/ttyUSB1"
+
 	options := serial.OpenOptions{
-		PortName:              "/dev/ttyUSB15",
+		PortName:              serialPort,
 		BaudRate:              115200,
 		DataBits:              8,
 		StopBits:              1,
@@ -173,7 +176,7 @@ func TestResponseReaderSerialPortClose(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	options.PortName = "/dev/ttyUSB16"
+	options.PortName = serialPort
 
 	fwrite, err := serial.Open(options)
 	if err != nil {
@@ -196,6 +199,7 @@ func TestResponseReaderSerialPortClose(t *testing.T) {
 
 	fmt.Println("test all done")
 }
+*/
 
 func TestResponseReader(t *testing.T) {
 	source := &dataSource{}
