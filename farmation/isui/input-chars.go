@@ -11,6 +11,7 @@ import (
 type InputChars struct {
 	lines       [3]string
 	line        int
+	lineLast    int
 	index       int
 	numbersOnly bool
 	caps        bool
@@ -23,24 +24,30 @@ var alphaUpperLine2 = "NOPQRSTUVWXYZ"
 var numLine = "0123456789 ./"
 
 // NewInputChars creates a new inputchars widget that allows character selection.
-// alpha enables input.
+// alpha enables letter input.
 // numbers enables number input.
 func NewInputChars(alpha, numbers bool) *InputChars {
 	ret := InputChars{}
-	if alpha {
-		ret.lines[0], ret.lines[1] = alphaLowerLine1, alphaLowerLine2 // just alpha input chars
-		if numbers {                                                  // alpha and numbers
-			ret.lines[2] = numLine
-		}
-	} else if numbers { // just numbers
-		ret.lines[0] = numLine[:10] // slice off space and period
-	} else { // one null input char
+
+	if !alpha && !numbers { // No input chars
+		// One null input char
 		ret.lines[0] = "\x00"
+		return &ret
 	}
 
-	if numbers && !alpha {
+	if !alpha && numbers { // Just numbers
 		ret.numbersOnly = true
+		ret.lines[0] = "\x00" + numLine[:10] // Slice off space and period
+		return &ret
 	}
+
+	ret.lines[0], ret.lines[1] = "a"+alphaLowerLine1, alphaLowerLine2 // Letters
+
+	if !numbers { // Just letters
+		return &ret
+	}
+
+	ret.lines[2] = numLine
 
 	return &ret
 }
@@ -56,30 +63,15 @@ func (ic *InputChars) Render(img draw.Image) {
 	if ic.line == 2 || ic.lines[1] == "" { // if on numbers/symbols line
 		caps = true // highlight like caps
 	}
-	DrawTxtHighlight(img, ic.lines[0], currentChar, caps, margin, line1Y, tightpixel15fixed.Font)
-	DrawTxtHighlight(img, ic.lines[1], currentChar, caps, margin, line2Y, tightpixel15fixed.Font)
-	DrawTxtHighlight(img, ic.lines[2], currentChar, caps, margin, line3Y, tightpixel15fixed.Font)
 
-}
+	font := tightpixel15fixed.Font
 
-// Caps sets to upper case
-func (ic *InputChars) Caps() byte {
+	widthNull := font.MeasureString("\x00") + 1
 
-	if ic.numbersOnly {
-		return ic.GetCurrent()
-	}
+	DrawTxtHighlight(img, ic.lines[0], currentChar, caps, margin-widthNull, line1Y, font)
+	DrawTxtHighlight(img, ic.lines[1], currentChar, caps, margin, line2Y, font)
+	DrawTxtHighlight(img, ic.lines[2], currentChar, caps, margin, line3Y, font)
 
-	if ic.caps {
-		ic.lines[0] = alphaLowerLine1
-		ic.lines[1] = alphaLowerLine2
-		ic.caps = false
-	} else {
-		ic.lines[0] = alphaUpperLine1
-		ic.lines[1] = alphaUpperLine2
-		ic.caps = true
-	}
-
-	return ic.GetCurrent()
 }
 
 // Key handles key inputs specific to inputChars
@@ -109,74 +101,139 @@ func (ic *InputChars) Key(key isdata.Key) byte {
 	return currentInputChar
 }
 
+// Caps sets to upper case
+func (ic *InputChars) Caps() byte {
+
+	if ic.numbersOnly {
+		return ic.GetCurrent()
+	}
+
+	if ic.caps {
+		ic.lines[0] = "\x00" + alphaLowerLine1
+		ic.lines[1] = alphaLowerLine2
+		ic.caps = false
+	} else {
+		ic.lines[0] = "\x00" + alphaUpperLine1
+		ic.lines[1] = alphaUpperLine2
+		ic.caps = true
+	}
+
+	return ic.GetCurrent()
+}
+
 // Right moves cursor right
 func (ic *InputChars) Right() byte {
+
 	ic.index++
+
+	// If index is greater than line length
 	if ic.index >= len(ic.lines[ic.line]) {
 		ic.index = 0
-		if ic.line >= len(ic.lines)-1 { // if we're at the end
+		ic.lineLast = ic.line
+		ic.line++
+
+		// If this is past the last
+		// line or this line is empty,
+		// move to first line
+		if ic.line >= len(ic.lines) ||
+			len(ic.lines[ic.line]) <= 0 {
+			ic.lineLast = ic.line
 			ic.line = 0
-		} else if len(ic.lines[ic.line+1]) > 0 { // else if next line isn't an empty string
-			ic.line++
-		} else {
-			ic.line = 0
+			// Skip over the null
+			// placeholder at the beginning
+			// of the first line
+			ic.index = 1
 		}
 	}
+
+	ic.checkIndex()
 
 	return ic.GetCurrent()
 }
 
 // Left moves cursor left
 func (ic *InputChars) Left() byte {
+
 	ic.index--
-	if ic.index < 0 {
+
+	if ic.index < 0 ||
+		ic.line == 0 && ic.index < 1 {
+		ic.lineLast = ic.line
 		ic.line--
+
 		if ic.line < 0 {
-			if len(ic.lines[len(ic.lines)-1]) > 0 { // if last line isn't an empty string
-				ic.line = len(ic.lines) - 1
-			} else if len(ic.lines[len(ic.lines)-2]) > 0 { // else if second to last isn't empty
-				ic.line = len(ic.lines) - 2
-			} else {
-				ic.line = 0
+
+			// Move to the last line that isn't empty
+			for ic.line < len(ic.lines)-1 && len(ic.lines[ic.line+1]) > 0 {
+				ic.Down()
 			}
 		}
+
 		ic.index = len(ic.lines[ic.line]) - 1
 	}
+
+	ic.checkIndex()
 
 	return ic.GetCurrent()
 }
 
-//Up moves cursor up a line
+// Up moves cursor up a line
 func (ic *InputChars) Up() byte {
+
+	ic.lineLast = ic.line
 	ic.line--
+
+	if ic.line == 0 {
+		ic.index++
+	}
+
 	if ic.line < 0 {
-		if len(ic.lines[len(ic.lines)-1]) > 0 {
-			ic.line = len(ic.lines) - 1
-		} else if len(ic.lines[len(ic.lines)-2]) > 0 {
-			ic.line = len(ic.lines) - 2
-		} else {
-			ic.line = 0
+
+		// Move to the last line that isn't empty
+		for ic.line < len(ic.lines)-1 && len(ic.lines[ic.line+1]) > 0 {
+			ic.Down()
 		}
 	}
 
-	if ic.index >= len(ic.lines[ic.line]) {
-		ic.index = len(ic.lines[ic.line]) - 1
-	}
+	ic.checkIndex()
 
 	return ic.GetCurrent()
 }
 
-//Down moves cursor down a line
+// Down moves cursor down a line
 func (ic *InputChars) Down() byte {
+
+	ic.lineLast = ic.line
 	ic.line++
-	if ic.line >= len(ic.lines) || len(ic.lines[ic.line]) <= 0 { //if we're past the end or this line is empty
-		ic.line = 0
-	}
-	if ic.index >= len(ic.lines[ic.line]) {
-		ic.index = len(ic.lines[ic.line]) - 1
+
+	if ic.lineLast == 0 {
+		ic.index--
 	}
 
+	// if we're past the end or this line is
+	// empty
+	if ic.line >= len(ic.lines) ||
+		len(ic.lines[ic.line]) <= 0 {
+		ic.lineLast = ic.line
+		ic.line = 0
+		ic.index++
+	}
+
+	ic.checkIndex()
+
 	return ic.GetCurrent()
+}
+
+// Account for different line lengths; make
+// sure we never index past the length of
+// the new line or less than 0
+func (ic *InputChars) checkIndex() {
+
+	if ic.index >= len(ic.lines[ic.line]) {
+		ic.index = len(ic.lines[ic.line]) - 1
+	} else if ic.index < 0 {
+		ic.index = 0
+	}
 }
 
 // GetCurrent returns the current character from the input
