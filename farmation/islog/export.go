@@ -24,8 +24,11 @@ func exportConfig(config *isdata.Config, state *isdata.State, db *isdb.IsDb, out
 		out <- isdata.NoDiskPresent{}
 		return
 	}
+	fn := "is-" + state.SerialNumber + "_" + time.Now().Format(tsFilenameFormat) + ".config"
 
-	f, err := os.Create("is-" + state.SerialNumber + "_" + time.Now().Format(tsFilenameFormat) + ".config")
+	fn = path.Join(usbMountPoint, fn)
+
+	f, err := os.Create(fn)
 
 	if err != nil {
 		log.Println("Error opening config file: ", err)
