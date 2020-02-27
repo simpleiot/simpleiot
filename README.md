@@ -1,5 +1,7 @@
 <img src="docs/simple-iot-logo.png?raw=true" width="150">
 
+![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=feature-auth)
+
 Simple IoT is collection of building blocks and best practices
 for building IoT systems, learned from experience building
 real-world systems.
