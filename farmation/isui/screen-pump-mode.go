@@ -78,7 +78,10 @@ func (s *PumpModeScreen) Render(img draw.Image) {
 	s.menu.AddItemSelect("Off", isdata.UpdateUserPumpMode(mode), off)
 	s.menu.AddItemSelect("On", isdata.UpdateUserPumpMode(mode), on)
 	s.menu.AddItemSelect("Injector Command", isdata.UpdateUserPumpMode(mode), inj)
-	s.menu.AddItemSelect("Vision Serial Acc. 1", isdata.UpdateUserPumpMode(mode), acc1)
+
+	if s.state.HWVersion != 1 {
+		s.menu.AddItemSelect("Vision Serial Acc. 1", isdata.UpdateUserPumpMode(mode), acc1)
+	}
 
 	// render
 	s.menu.Render(img)

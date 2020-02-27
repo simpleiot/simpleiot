@@ -45,7 +45,9 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemScreen("Inputs", ScreenIDDiagInputs)
 	s.menu.AddItemScreen("Outputs", ScreenIDDiagOutputs)
 	s.menu.AddItemScreen("Flow and Pres", ScreenIDDiagPulsesPres)
-	s.menu.AddItemScreen("Vision serial", ScreenIDDiagLindsay)
+	if s.state.HWVersion != 1 {
+		s.menu.AddItemScreen("Vision serial", ScreenIDDiagLindsay)
+	}
 	s.menu.AddItemScreen("Modem", ScreenIDModem)
 
 	// Data export
