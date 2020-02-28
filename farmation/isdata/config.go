@@ -96,11 +96,11 @@ type Config struct {
 	// Flow meter pulses per gallon, flow moving average time
 	// windows and percent difference, pressure setting, K-factor
 	// for output pulses
-	PulsesPerGallon         int  `json:"pulsesPerGallon"`
-	FlowAvgWindow           int  `json:"flowAvgWindow"`
-	FlowAvgWindowLong       int  `json:"flowAvgWindowLong"`
-	FlowAvgWindowShortUsed  bool `json:"flowAvgWindowShortUsed"`
-	FlowAvgPercDiff         int  `json:"flowAvgPercDiff"`
+	PulsesPerGallon int `json:"pulsesPerGallon"`
+	//FlowAvgWindow           int  `json:"flowAvgWindow"`
+	FlowAvgWindowLong int `json:"flowAvgWindowLong"`
+	//FlowAvgWindowShortUsed  bool `json:"flowAvgWindowShortUsed"`
+	//FlowAvgPercDiff         int  `json:"flowAvgPercDiff"`
 	PressureSetting         int  `json:"pressureSetting"`
 	PulseOutputK            int  `json:"pulseOutputK"`
 	PulseOutputTestFlowRate int  `json:"pulseOutputTestFlowRate"`
@@ -308,12 +308,13 @@ func (c *Config) SetFlowAvgWindows() {
 	if c.MaxNoPulseDuration <= c.SampleDuration*2 {
 		c.MaxNoPulseDuration = c.SampleDuration * 2
 	}
-	if c.FlowAvgWindow < c.SampleDuration*2 {
+	/*if c.FlowAvgWindow < c.SampleDuration*2 {
 		c.FlowAvgWindow = c.SampleDuration * 2
 	}
 	if c.FlowAvgWindowLong < c.FlowAvgWindow*2 {
 		c.FlowAvgWindowLong = c.FlowAvgWindow * 2
 	}
+	*/
 }
 
 // Init is used to inialize the config
@@ -353,17 +354,19 @@ func (c *Config) Init() {
 		c.PulsesPerGallon = 3785
 	}
 
-	if c.FlowAvgWindow <= 0 {
+	/*if c.FlowAvgWindow <= 0 {
 		c.FlowAvgWindow = 8
 	}
+	*/
 
 	if c.FlowAvgWindowLong <= 0 {
 		c.FlowAvgWindowLong = 30
 	}
 
-	if c.FlowAvgPercDiff <= 0 {
+	/*if c.FlowAvgPercDiff <= 0 {
 		c.FlowAvgPercDiff = 10
 	}
+	*/
 
 	// Check window size
 	c.SetFlowAvgWindows()
@@ -515,7 +518,7 @@ func (c *Config) ApplyBounds() {
 		c.MaxNoPulseDuration = 600
 	}
 
-	if c.FlowAvgWindow < 2*c.SampleDuration {
+	/*if c.FlowAvgWindow < 2*c.SampleDuration {
 		c.FlowAvgWindow = 2 * c.SampleDuration
 	} else if c.FlowAvgWindow > 600 {
 		c.FlowAvgWindow = 600
@@ -523,15 +526,17 @@ func (c *Config) ApplyBounds() {
 
 	if c.FlowAvgWindowLong < 2*c.FlowAvgWindow {
 		c.FlowAvgWindowLong = 2 * c.FlowAvgWindow
-	} else if c.FlowAvgWindowLong > 1200 {
+	} else */if c.FlowAvgWindowLong > 1200 {
 		c.FlowAvgWindowLong = 1200
 	}
 
-	if c.FlowAvgPercDiff < 0 {
-		c.FlowAvgPercDiff = 0
-	} else if c.FlowAvgPercDiff > 9999 {
-		c.FlowAvgPercDiff = 9999
-	}
+	/*
+
+		if c.FlowAvgPercDiff < 0 {
+			c.FlowAvgPercDiff = 0
+		} else if c.FlowAvgPercDiff > 9999 {
+			c.FlowAvgPercDiff = 9999
+		}*/
 
 	if c.PressureSetting < 0 {
 		c.PressureSetting = 0

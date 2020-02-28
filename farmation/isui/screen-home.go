@@ -119,8 +119,9 @@ func (s *HomeScreen) Render(img draw.Image) {
 		Line(img, x+4, y+5, x+4, y+6)
 	}
 
+	// DISABLED
 	// flow moving average window indicator. On if short window used
-	if s.config.FlowAvgWindowShortUsed {
+	if false { //s.config.FlowAvgWindowShortUsed {
 		x = 42
 		y = 1
 		w := 8
