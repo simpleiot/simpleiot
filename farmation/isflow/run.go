@@ -78,7 +78,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 	ticker := time.NewTicker(time.Second * time.Duration(config.SampleDuration))
 
-	fma := NewFlowMovAvg(config.FlowAvgWindowLong, config.FlowAvgWindow, config.FlowAvgPercDiff, config.SampleDuration)
+	fma := NewFlowMovAvg(config.FlowAvgWindowLong /*config.FlowAvgWindow, config.FlowAvgPercDiff,*/, config.SampleDuration)
 
 	var lastTick time.Time
 	var lastPulse time.Time
@@ -110,16 +110,18 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				if config.FlowAvgWindowLong != m.FlowAvgWindowLong {
 					fma.UpdateReset(WindowLong, m.FlowAvgWindowLong)
 				}
-				if config.FlowAvgWindow != m.FlowAvgWindow {
-					fma.UpdateReset(WindowShort, m.FlowAvgWindow)
-				}
-				if config.FlowAvgPercDiff != m.FlowAvgPercDiff {
-					fma.UpdateReset(PercentDiff, m.FlowAvgPercDiff)
-				}
+				/*
+					if config.FlowAvgWindow != m.FlowAvgWindow {
+						fma.UpdateReset(WindowShort, m.FlowAvgWindow)
+					}
+					if config.FlowAvgPercDiff != m.FlowAvgPercDiff {
+						fma.UpdateReset(PercentDiff, m.FlowAvgPercDiff)
+					}
+				*/
 				if config.SampleDuration != m.SampleDuration {
 					fma.UpdateReset(SampleDuration, m.SampleDuration)
 					fma.UpdateReset(WindowLong, m.FlowAvgWindowLong)
-					fma.UpdateReset(WindowShort, m.FlowAvgWindow)
+					//fma.UpdateReset(WindowShort, m.FlowAvgWindow)
 					ticker = time.NewTicker(time.Second * time.Duration(m.SampleDuration))
 				}
 
@@ -179,7 +181,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 
 				out <- amountSample
 
-				flow.RateAvg, flow.RateMin, flow.RateMax, _, flow.ShortWin = fma.AddDataPoint(flow.Rate)
+				flow.RateAvg, flow.RateMin, flow.RateMax /*, _, flow.ShortWin*/ = fma.AddDataPoint(flow.Rate)
 
 				// Output pulses
 				if !config.PulseOutputTestOn {
@@ -213,7 +215,7 @@ func Run(in, out chan interface{}, sim bool, configInit isdata.Config) {
 				}
 				out <- flow
 				fma.UpdateReset(WindowLong, config.FlowAvgWindowLong)
-				fma.UpdateReset(WindowShort, config.FlowAvgWindow)
+				//fma.UpdateReset(WindowShort, config.FlowAvgWindow)
 
 				if fPulseOutputPeriod != nil && !config.PulseOutputTestOn {
 					_, err := fPulseOutputPeriod.WriteString("0\n")

@@ -389,8 +389,12 @@ func Run(params Params) {
 				if config.LogFlowData {
 					logChan <- m
 				}
-				// update short moving average window used
-				config.FlowAvgWindowShortUsed = m.ShortWin
+
+				/*
+					// update short moving average window used
+					config.FlowAvgWindowShortUsed = m.ShortWin
+				*/
+
 				saveState()
 				saveConfig()
 
@@ -597,17 +601,21 @@ func Run(params Params) {
 				config.PulsesPerGallon = int(m)
 				saveConfig()
 
-			case isdata.UpdateFlowAvgWindow:
-				config.FlowAvgWindow = int(m)
-				saveConfig()
+			/*
+				case isdata.UpdateFlowAvgWindow:
+					config.FlowAvgWindow = int(m)
+					saveConfig()
+			*/
 
 			case isdata.UpdateFlowAvgWindowLong:
 				config.FlowAvgWindowLong = int(m)
 				saveConfig()
 
-			case isdata.UpdateFlowAvgPercDiff:
-				config.FlowAvgPercDiff = int(m)
-				saveConfig()
+			/*
+				case isdata.UpdateFlowAvgPercDiff:
+					config.FlowAvgPercDiff = int(m)
+					saveConfig()
+			*/
 
 			case isdata.UpdatePressureSetting:
 				config.PressureSetting = int(m)
