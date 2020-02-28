@@ -117,6 +117,8 @@ type Config struct {
 	PanelType PanelType `json:"panelType"`
 
 	ModemEnabled bool `json:"modemEnabled"`
+
+	HelpScreen HelpScreen `json:"helpScreen"`
 }
 
 // UserPumpMode describes the state of the pump button in UI
@@ -317,6 +319,13 @@ func (c *Config) SetFlowAvgWindows() {
 	*/
 }
 
+// HelpScreen is the complete data structure used for a help screen
+type HelpScreen struct {
+	Active  bool
+	Heading string
+	Text    string
+}
+
 // Init is used to inialize the config
 func (c *Config) Init() {
 	// run migrations
@@ -441,6 +450,8 @@ func (c *Config) Init() {
 		c.PanelType != PanelTypeLindsay {
 		c.PanelType = PanelTypeStandardPivot
 	}
+
+	c.HelpScreen.Active = false
 }
 
 // ApplyBounds makes sure that all the config items are within

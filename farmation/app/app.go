@@ -1055,6 +1055,18 @@ func Run(params Params) {
 				dlgStateMachine.Active = true
 				saveState()
 
+			case isdata.HelpScreenContent:
+				config.HelpScreen.Heading = m.Heading
+				config.HelpScreen.Text = m.Text
+				config.HelpScreen.Active = true
+				saveConfig()
+
+			case isdata.HelpScreenClose:
+				config.HelpScreen.Heading = ""
+				config.HelpScreen.Text = ""
+				config.HelpScreen.Active = false
+				saveConfig()
+
 			case isdata.PanelDefinition:
 				//newPanelType(m)
 

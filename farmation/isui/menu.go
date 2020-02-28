@@ -41,9 +41,10 @@ type MenuItem struct {
 	Precision   int
 	Message     interface{}
 	Selected    bool
+	Help        isdata.HelpScreenContent
 }
 
-// Menu descripes a list user selectable options
+// Menu descripes a list of user selectable options
 type Menu struct {
 	items        []MenuItem
 	scrollOffset int
@@ -170,11 +171,18 @@ func (m *Menu) AddItemFaultHistory(desc string, value string) {
 
 // AddItemStringRight adds a string item with value rendered right-justified in rectagle
 // one usage is to draw a number with a symbol as a string
-func (m *Menu) AddItemStringRight(desc string, value string) {
+func (m *Menu) AddItemStringRight(desc string, value string, helpContents ...isdata.HelpScreenContent) {
+
+	var helpContent isdata.HelpScreenContent
+	if len(helpContents) > 0 {
+		helpContent = helpContents[0]
+	}
+
 	m.items = append(m.items, MenuItem{
 		Description: desc,
 		ValueString: value,
 		Type:        MenuItemStringRight,
+		Help:        helpContent,
 	})
 
 	m.updateShowValues()
@@ -449,6 +457,12 @@ type MenuSelection string
 // GetArrowPos gets the arrow pos
 func (m *Menu) GetArrowPos() int {
 	return m.arrowPos
+}
+
+// GetMenuItems returns the items from the Menu type so
+// they can be accessed outside of the file
+func (m *Menu) GetMenuItems() []MenuItem {
+	return m.items
 }
 
 // ResetArrowPos resets the arrow pos
