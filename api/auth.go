@@ -13,10 +13,12 @@ type Auth struct {
 	key NewTokener
 }
 
+// NewTokener provides a new authentication token.
 type NewTokener interface {
 	NewToken() (string, error)
 }
 
+// NewAuthHandler returns a new authentication handler using the given key.
 func NewAuthHandler(db *db.Db, key NewTokener) Auth {
 	return Auth{db: db, key: key}
 }
@@ -36,6 +38,7 @@ func (auth Auth) validLogin(email, password string) (bool, error) {
 	return false, nil
 }
 
+// ServeHTTP serves requests to authenticate.
 func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)

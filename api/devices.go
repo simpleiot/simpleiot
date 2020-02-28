@@ -12,7 +12,7 @@ import (
 type Devices struct {
 	db     *db.Db
 	influx *db.Influx
-	check  HeaderValidator
+	check  RequestValidator
 }
 
 func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id string) {
@@ -103,7 +103,7 @@ func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id 
 
 // Top level handler for http requests in the coap-server process
 func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	if !h.check.ValidHeader(req) {
+	if !h.check.Valid(req) {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -190,11 +190,12 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-type HeaderValidator interface {
-	ValidHeader(req *http.Request) bool
+// RequestValidator validates an HTTP request.
+type RequestValidator interface {
+	Valid(req *http.Request) bool
 }
 
 // NewDevicesHandler returns a new device handler
-func NewDevicesHandler(db *db.Db, influx *db.Influx, v HeaderValidator) http.Handler {
+func NewDevicesHandler(db *db.Db, influx *db.Influx, v RequestValidator) http.Handler {
 	return &Devices{db, influx, v}
 }
