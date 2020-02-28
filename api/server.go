@@ -47,9 +47,11 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		fmt.Printf("HTTP %v: %v\n", req.Method, req.URL.Path)
 	}
 
-	if req.URL.Path == "/" {
+	switch req.URL.Path {
+	case "/", "/sign-in":
 		h.IndexHandler.ServeHTTP(res, req)
-	} else {
+
+	default:
 		head, req.URL.Path = ShiftPath(req.URL.Path)
 		switch head {
 		case "public":
