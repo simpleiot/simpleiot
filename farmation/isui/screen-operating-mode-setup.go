@@ -35,7 +35,7 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	// any time items are added or removed, update render/key methods
-	s.menu.AddItemInt("Register Alm", int(s.config.AlarmRecognizeSec))
+	s.menu.AddItemStringRight("Alarm Delay", strconv.Itoa(int(s.config.AlarmRecognizeSec))+" s")
 	s.menu.AddItemStringRight("High Lev Alm", strconv.Itoa(int(s.config.HighWindowPerc))+" %")
 	s.menu.AddItemStringRight("Low Lev Alm", strconv.Itoa(int(s.config.LowWindowPerc))+" %")
 	s.menu.AddItemInt("Manual High", int(s.config.ManualHighAlarmGPH))
