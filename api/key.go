@@ -9,10 +9,12 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+// Key provides a key for signing authentication tokens.
 type Key struct {
 	bytes []byte
 }
 
+// NewKey returns a new Key of the given size.
 func NewKey(size int) (key Key, err error) {
 	var f *os.File
 	f, err = os.Open("/dev/urandom")
@@ -25,6 +27,7 @@ func NewKey(size int) (key Key, err error) {
 	return
 }
 
+// NewToken returns a new authentication token signed by the Key.
 func (k Key) NewToken() (string, error) {
 	claims := jwt.StandardClaims{
 		ExpiresAt: time.Now().Add(15 * time.Minute).Unix(),
@@ -34,6 +37,8 @@ func (k Key) NewToken() (string, error) {
 		SignedString(k.bytes)
 }
 
+// ValidToken returns whether the given string
+// is an authentication token signed by the Key.
 func (k Key) ValidToken(str string) bool {
 	token, err := jwt.Parse(str, k.keyFunc)
 	return err == nil &&
@@ -41,7 +46,9 @@ func (k Key) ValidToken(str string) bool {
 		token.Valid
 }
 
-func (k Key) ValidHeader(req *http.Request) bool {
+// Valid returns whether the given request
+// bears an authorization token signed by the Key.
+func (k Key) Valid(req *http.Request) bool {
 	fields := strings.Fields(req.Header.Get("Authorization"))
 	return len(fields) == 2 &&
 		fields[0] == "Bearer" &&
