@@ -1,5 +1,6 @@
 module Utils.Styles exposing
     ( button
+    , error
     , colors
     , fonts
     , h1
@@ -65,6 +66,19 @@ button =
         [ Font.color colors.white
         , Background.color colors.coral
         ]
+    ]
+
+
+error : List (Attribute msg)
+error =
+    [ paddingXY 16 8
+    , Font.size 14
+    , Font.color colors.white
+    , Font.bold
+    , Background.color colors.coral
+    , Border.width 2
+    , Border.rounded 4
+    , width fill
     ]
 
 
