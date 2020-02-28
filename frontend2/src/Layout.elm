@@ -30,13 +30,13 @@ view { page, global, fromGlobalMsg } =
         , height fill
         , centerX
         ]
-        [ Element.map fromGlobalMsg (viewNavbar global.email)
+        [ Element.map fromGlobalMsg (viewNavbar global)
         , page
         ]
 
 
-viewNavbar : Maybe String -> Element Global.Msg
-viewNavbar user_ =
+viewNavbar : Global.Model -> Element Global.Msg
+viewNavbar model =
     row
         [ width fill
         , spacing 24
@@ -61,14 +61,14 @@ viewNavbar user_ =
                     ]
             )
         , el [ alignRight ] <|
-            case user_ of
-                Just name ->
+            case model of
+                Global.SignedIn sess ->
                     Components.Button.view
                         { onPress = Just Global.SignOut
-                        , label = text ("sign out " ++ name)
+                        , label = text ("sign out " ++ sess.cred.email)
                         }
 
-                Nothing ->
+                _ ->
                     viewButtonLink ( "sign in", "/sign-in" )
         ]
 

@@ -1,6 +1,6 @@
 module Global exposing
     ( Flags
-    , Model
+    , Model(..)
     , Msg(..)
     , init
     , subscriptions
@@ -9,16 +9,19 @@ module Global exposing
 
 import Generated.Routes as Routes exposing (Route, routes)
 import Ports
+import Http
 
 
 type alias Flags =
     ()
 
 
-type alias Model =
-    { authToken: Maybe String
-    , email: Maybe String}
-
+type Model
+    = SignedOut
+    | SignedIn
+        { cred : Cred
+        , authToken : String
+        }
 
 
 type alias Cred =
@@ -29,6 +32,7 @@ type alias Cred =
 
 type Msg
     = SignIn Cred
+    | AuthResponse Cred (Result Http.Error String)
     | SignOut
 
 
@@ -39,20 +43,54 @@ type alias Commands msg =
 
 init : Commands msg -> Flags -> ( Model, Cmd Msg, Cmd msg )
 init _ _ =
-    ( { authToken = Nothing, email = Nothing}
+    ( SignedOut
     , Cmd.none
     , Ports.log "Hello!"
     )
+
+
+login : Cred -> Cmd Msg
+login cred =
+    Http.post
+        { body = Http.multipartBody
+            [ Http.stringPart "email" cred.email
+            , Http.stringPart "password" cred.password
+            ]
+        , url = "http://localhost:8080/v1/auth"
+        , expect = Http.expectString (\resp -> AuthResponse cred resp)
+        }
 
 
 update : Commands msg -> Msg -> Model -> ( Model, Cmd Msg, Cmd msg )
 update commands msg model =
     case msg of
         SignIn cred ->
-            ( {model | authToken = Just "hi there", email = Just cred.email}, Cmd.none, commands.navigate routes.top )
-        SignOut ->
-            ( {model | authToken = Nothing, email = Nothing}, Cmd.none, Cmd.none )
+            ( SignedOut
+            , login cred
+            , commands.navigate routes.top
+            )
 
+        SignOut ->
+            ( SignedOut
+            , Cmd.none
+            , Cmd.none
+            )
+
+        AuthResponse cred resp ->
+            ( case resp of
+                Ok token ->
+                    SignedIn
+                        { authToken = token
+                        , cred = cred
+                        }
+
+                Err err ->
+                    -- TODO: display an error message
+                    SignedOut
+
+            , Cmd.none
+            , Cmd.none
+            )
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
