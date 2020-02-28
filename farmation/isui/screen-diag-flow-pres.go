@@ -35,9 +35,9 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	s.menu.AddItemInt("Flo Pulses/Gal", s.config.PulsesPerGallon)
-	s.menu.AddItemStringRight("Avg Win Short", strconv.Itoa(s.config.FlowAvgWindow)+" s")
+	//s.menu.AddItemStringRight("Avg Win Short", strconv.Itoa(s.config.FlowAvgWindow)+" s")
 	s.menu.AddItemStringRight("Flo Avg Win", strconv.Itoa(s.config.FlowAvgWindowLong)+" s")
-	s.menu.AddItemStringRight("Flo Avg Diff", strconv.Itoa(s.config.FlowAvgPercDiff)+" %")
+	//s.menu.AddItemStringRight("Flo Avg Diff", strconv.Itoa(s.config.FlowAvgPercDiff)+" %")
 	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
 	s.menu.AddItemInt("Pulse Output K", s.config.PulseOutputK)
 	s.menu.AddItemScreen("Pulse Test", ScreenIDPulseOutputTest)
@@ -66,23 +66,23 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			case 0:
 				return ScreenIDNoChange, isdata.UpdatePulsesPerGallon(value), true
 
-			case 1:
-				return ScreenIDNoChange, isdata.UpdateFlowAvgWindow(value), true
+			//case 1:
+			//	return ScreenIDNoChange, isdata.UpdateFlowAvgWindow(value), true
 
-			case 2:
+			case 1:
 				return ScreenIDNoChange, isdata.UpdateFlowAvgWindowLong(value), true
-			case 3:
-				return ScreenIDNoChange, isdata.UpdateFlowAvgPercDiff(value), true
-			case 4:
+			//case 3:
+			//	return ScreenIDNoChange, isdata.UpdateFlowAvgPercDiff(value), true
+			case 2:
 				return ScreenIDNoChange, isdata.UpdatePressureSetting(value), true
 
-			case 5:
+			case 3:
 				return ScreenIDNoChange, isdata.UpdatePulseOutputK(value), true
-			case 6:
+			case 4:
 				// Pulse output test screen, do nothing
-			case 7:
+			case 5:
 				return ScreenIDNoChange, isdata.UpdateSampleDuration(value), true
-			case 8:
+			case 6:
 				return ScreenIDNoChange, isdata.UpdateMaxNoPulseDuration(value), true
 
 			}
@@ -101,7 +101,7 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			s.enterEdit()
 		case isdata.KeyEnter:
 			switch s.menu.GetArrowPos() {
-			case 6: // Open Pulse Output Test screen
+			case 4: // Open Pulse Output Test screen
 				return s.menu.Key(key)
 			default:
 				s.enterEdit()
@@ -124,29 +124,35 @@ func (s *DiagPulsesPresScreen) enterEdit() {
 	// set the text being edited and the header label
 	switch s.menu.GetArrowPos() {
 	case 0:
-		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulsesPerGallon) // convert integer value into string to edit w/ text entry screen
+		// convert integer value into string to edit w/ text entry screen
+
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulsesPerGallon)
 		s.textEntryScreen.headerLabel = "Pulses/gal"
+	//case 1:
+	// convert integer value into string to edit w/ text entry screen
+	//	s.textEntryScreen.txtEdit = strconv.Itoa(s.config.FlowAvgWindow)
+	//	s.textEntryScreen.headerLabel = "Flo Avg Win Short"
 	case 1:
-		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.FlowAvgWindow) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Flo Avg Win Short"
-	case 2:
-		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.FlowAvgWindowLong) // convert integer value into string to edit w/ text entry screen
+		// convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.FlowAvgWindowLong)
 		s.textEntryScreen.headerLabel = "Flow Avg Window"
-	case 3:
-		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.FlowAvgPercDiff) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Flo Avg Percent Diff"
-	case 4:
-		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureSetting) // convert integer value into string to edit w/ text entry screen
+	//case 3:
+	// convert integer value into string to edit w/ text entry screen
+	//	s.textEntryScreen.txtEdit = strconv.Itoa(s.config.FlowAvgPercDiff)
+	//	s.textEntryScreen.headerLabel = "Flo Avg Percent Diff"
+	case 2:
+		// convert integer value into string to edit w/ text entry screen
+		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureSetting)
 		s.textEntryScreen.headerLabel = "Pressure Setting"
-	case 5:
+	case 3:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PulseOutputK)
 		s.textEntryScreen.headerLabel = "Output Pulses/gal"
-	case 6:
+	case 4:
 		// Pulse output test screen, do nothing
-	case 7:
+	case 5:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.SampleDuration)
 		s.textEntryScreen.headerLabel = "Sample Time"
-	case 8:
+	case 6:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.MaxNoPulseDuration)
 		s.textEntryScreen.headerLabel = "No Flow Timeout"
 	}
