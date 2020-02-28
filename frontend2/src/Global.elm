@@ -56,7 +56,7 @@ login cred =
             [ Http.stringPart "email" cred.email
             , Http.stringPart "password" cred.password
             ]
-        , url = "http://localhost:8080/v1/auth"
+        , url = "/v1/auth"
         , expect = Http.expectString (\resp -> AuthResponse cred resp)
         }
 

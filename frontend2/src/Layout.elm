@@ -68,7 +68,7 @@ viewNavbar model =
                         , label = text ("sign out " ++ sess.cred.email)
                         }
 
-                _ ->
+                Global.SignedOut ->
                     viewButtonLink ( "sign in", "/sign-in" )
         ]
 
