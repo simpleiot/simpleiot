@@ -17,7 +17,7 @@ type alias Flags =
 
 
 type Model
-    = SignedOut
+    = SignedOut (Maybe Http.Error)
     | SignedIn
         { cred : Cred
         , authToken : String
@@ -43,7 +43,7 @@ type alias Commands msg =
 
 init : Commands msg -> Flags -> ( Model, Cmd Msg, Cmd msg )
 init _ _ =
-    ( SignedOut
+    ( SignedOut Nothing
     , Cmd.none
     , Ports.log "Hello!"
     )
@@ -57,7 +57,7 @@ login cred =
             , Http.stringPart "password" cred.password
             ]
         , url = "/v1/auth"
-        , expect = Http.expectString (\resp -> AuthResponse cred resp)
+        , expect = Http.expectString (AuthResponse cred)
         }
 
 
@@ -65,31 +65,31 @@ update : Commands msg -> Msg -> Model -> ( Model, Cmd Msg, Cmd msg )
 update commands msg model =
     case msg of
         SignIn cred ->
-            ( SignedOut
+            ( SignedOut Nothing
             , login cred
             , commands.navigate routes.top
             )
 
         SignOut ->
-            ( SignedOut
+            ( SignedOut Nothing
             , Cmd.none
             , Cmd.none
             )
 
-        AuthResponse cred resp ->
-            ( case resp of
-                Ok token ->
-                    SignedIn
-                        { authToken = token
-                        , cred = cred
-                        }
-
-                Err err ->
-                    -- TODO: display an error message
-                    SignedOut
-
+        AuthResponse cred (Ok token) ->
+            ( SignedIn
+                { authToken = token
+                , cred = cred
+                }
             , Cmd.none
             , Cmd.none
+            )
+
+
+        AuthResponse cred (Err err)->
+            ( SignedOut (Just err)
+            , Cmd.none
+            , commands.navigate routes.signIn
             )
 
 subscriptions : Model -> Sub Msg

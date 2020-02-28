@@ -31,8 +31,19 @@ view { page, global, fromGlobalMsg } =
         , centerX
         ]
         [ Element.map fromGlobalMsg (viewNavbar global)
+        , viewError global
         , page
         ]
+
+
+viewError : Global.Model -> Element msg
+viewError model =
+    case model of
+       Global.SignedOut (Just _) ->
+           el Styles.error (el [centerX] (text "Sign in failed") )
+
+       _ ->
+           none
 
 
 viewNavbar : Global.Model -> Element Global.Msg
@@ -68,8 +79,9 @@ viewNavbar model =
                         , label = text ("sign out " ++ sess.cred.email)
                         }
 
-                Global.SignedOut ->
+                Global.SignedOut _ ->
                     viewButtonLink ( "sign in", "/sign-in" )
+
         ]
 
 
