@@ -3,7 +3,6 @@ package isui
 import (
 	"image/draw"
 
-	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
 )
@@ -55,6 +54,7 @@ type Screens struct {
 	screens       map[ScreenID]Widget
 	dialog        *DialogScreen
 	dialogArmReq  *DialogArmReqScreen
+	helpScreen    *HelpScreenUI
 	state         *isdata.State
 	config        *isdata.Config
 }
@@ -67,12 +67,12 @@ func (s *Screens) Add(ID ScreenID, screen Widget) {
 // NewScreens initializes all screens
 func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Screens {
 	ret := &Screens{
-		state:  state,
-		config: config,
+		state:        state,
+		config:       config,
+		dialog:       NewDialogScreen(),
+		dialogArmReq: NewDialogArmReqScreen(config, state),
+		helpScreen:   NewHelpScreenUI(),
 	}
-
-	ret.dialog = NewDialogScreen()
-	ret.dialogArmReq = NewDialogArmReqScreen(config, state)
 
 	ret.screens = make(map[ScreenID]Widget)
 	ret.Add(ScreenIDHome, NewHomeScreen(state, config))
@@ -131,142 +131,68 @@ func (s *Screens) Render(img draw.Image) {
 
 	// If the user has activated the help screen
 	if s.config.HelpScreen.Active {
-		renderHelpScreen(img, s.config.HelpScreen)
+		s.helpScreen.UpdateContent(s.config.HelpScreen)
+		s.helpScreen.Render(img)
 		return
 	}
 
 	s.screens[s.currentScreen].Render(img)
 }
 
-func renderHelpScreen(img draw.Image, helpScreen isdata.HelpScreen) {
-
-	Clear(img)
-	Heading(img, helpScreen.Heading+" - Help")
-	font := tightpixel15.Font
-
-	textLines := splitTextLines(helpScreen.Text)
-
-	y := 13
-	lineHeight := font.GetHeight()
-
-	for _, line := range textLines {
-		DrawTxt(img, line, 2, y, font)
-		y += lineHeight + 1
-	}
-
-	// draw scroll bar if we have more than 1 screen
-	if len(lines) > 4 {
-		sbHeight := 50
-		sbWidth := 4
-		x := 123
-		y := 8
-		Rect(img, x, y, sbWidth, sbHeight)
-		screenCount := (count + itemsPerScreen - 1) / itemsPerScreen
-		blockHeight := sbHeight / screenCount
-
-		// if divides scroll bar divides unevenly, fill up remaining space at the end
-		if screen >= screenCount-1 {
-			RectFilled(img, x, y+blockHeight*screen, sbWidth, blockHeight+sbHeight%screenCount)
-		} else {
-			RectFilled(img, x, y+blockHeight*screen, sbWidth, blockHeight)
-		}
-		// draw arrows
-		if screen > 0 {
-			Polyline(img,
-				x, y,
-				x+2, y-2,
-				x+4, y)
-
-			Polyline(img,
-				x, y-1,
-				x+2, y-3,
-				x+4, y-1)
-		}
-
-		if screen < (screenCount - 1) {
-			Polyline(img,
-				x, y+sbHeight,
-				x+2, y+sbHeight+2,
-				x+4, y+sbHeight)
-
-			Polyline(img,
-				x, y+sbHeight+1,
-				x+2, y+sbHeight+3,
-				x+4, y+sbHeight+1)
-		}
-	}
-}
-
-func splitScreens(lines []string) (screens [][]string) {
-
-	for i := 0; i < len(lines); i += 4 {
-		screens = append(screens, lines[:i])
-		lines = lines[i:]
-	}
-
-	return screens
-}
-
-func splitTextLines(s string) (lines []string) {
-
-	font := tightpixel15.Font
-
-	lineLen := 0
-
-	line := ""
-
-	for _, char := range s {
-
-		line += string(char)
-
-		_, charWidth := font.MeasureRune(char)
-		lineLen += charWidth + 1
-
-		if lineLen > 115 {
-			iEnd := len(line) - 1
-			charEnd := line[iEnd]
-			line = line[:iEnd]
-			lines = append(lines, line)
-			line = string(charEnd)
-			lineLen = 0
-		}
-	}
-
-	return lines
-}
-
 // Key handles key input
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
-	if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
+	currentDialog, dialogKey := s.state.DialogHighestPriority()
 
-		currentDialog, dialogKey := s.state.DialogHighestPriority()
+	// If the dialog isn't nil (active dialogs), handle keys as coming
+	// from the dialog
+	if currentDialog != nil &&
+		// when the back key is pressed
+		key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 
-		// If the dialog isn't nil (active dialogs), handle keys as coming
-		// from the dialog
-		if currentDialog != nil { // Take user directly to a screen that needs attention
-			// when the dialog is closed
-			switch currentDialog.ID {
-			case isdata.DialogArm:
-				switch currentDialog.Message {
-				case "Cannot arm in Monitor \nOnly mode, please switch \nmodes":
-					s.switchScreen(ScreenIDOpMode1)
-				case "Pump Command \nInput not selected, please \nselect before arming":
-					s.switchScreen(ScreenIDPumpMode)
-				}
-			case isdata.DialogArmReq:
-				if s.state.InputInjector == isdata.InputStateOff &&
-					s.config.UserPumpMode == isdata.UserPumpModeOff {
-					s.switchScreen(ScreenIDPumpMode)
-				}
+		// Take user directly to a screen that needs attention
+		switch currentDialog.ID {
+		case isdata.DialogArm:
+			switch currentDialog.Message {
+			case "Cannot arm in Monitor \nOnly mode, please switch \nmodes":
+				s.switchScreen(ScreenIDOpMode1)
+			case "Pump Command \nInput not selected, please \nselect before arming":
+				s.switchScreen(ScreenIDPumpMode)
+			}
+		case isdata.DialogArmReq:
+			if s.state.InputInjector == isdata.InputStateOff &&
+				s.config.UserPumpMode == isdata.UserPumpModeOff {
+				s.switchScreen(ScreenIDPumpMode)
+			}
+		}
+
+		// Close the dialog
+		return ScreenIDNoChange, isdata.DialogClose{dialogKey}, true
+	}
+
+	if s.config.HelpScreen.Active {
+
+		switch key {
+
+		case isdata.KeySK1Release, isdata.KeySK1Hold: // Back
+			// Close the help screen
+			return ScreenIDNoChange, isdata.HelpScreenClose{}, true
+
+		case isdata.KeyDown, isdata.KeyDownHold:
+			s.helpScreen.Index++
+			indexEnd := len(s.helpScreen.Screens) - 1
+			if s.helpScreen.Index > indexEnd {
+				s.helpScreen.Index = indexEnd
 			}
 
-			return ScreenIDNoChange, isdata.DialogClose{dialogKey}, true
+		case isdata.KeyUp, isdata.KeyUpHold:
+			s.helpScreen.Index--
+			if s.helpScreen.Index < 0 {
+				s.helpScreen.Index = 0
+			}
 		}
 
-		if s.config.HelpScreen.Active {
-			return ScreenIDNoChange, isdata.HelpScreenClose{}, true
-		}
+		return ScreenIDNoChange, nil, true
 	}
 
 	if key == isdata.KeyPump {

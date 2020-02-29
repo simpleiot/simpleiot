@@ -1,0 +1,154 @@
+package isui
+
+import (
+	"fmt"
+	"image/draw"
+
+	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
+	"github.com/simpleiot/simpleiot/farmation/isdata"
+)
+
+// HelpScreenUI stores the current content of the help screen
+// as well as the part of the text that should be displayed
+// if it won't all fit on the lcd. If the content changes
+// in config.HelpScreen (we can tell this by comparing the
+// Name field in the config with the Name field in this
+// struct) the content stored here is updated
+// and the text is split into lines and screens stored in
+// Screens
+type HelpScreenUI struct {
+	Name    string
+	Screens [][]string
+
+	// This is an index that tells the Render
+	// method what part of the help screen text
+	// to draw if there is more than will fit
+	// on the lcd. Also used for scroll bar.
+	Index int
+}
+
+// NewHelpScreenUI initializes this structure. It must be used so that
+// the value of this pointer is not nil.
+func NewHelpScreenUI() *HelpScreenUI {
+	return &HelpScreenUI{}
+}
+
+// UpdateContent compares the Name field in the configHelpScreen parameter with
+// the Name field in HelpScreenUI. If they are not the same, it splits the Text
+// field from configHelpScreen into lines and screens and stores it in the Screens
+// field in HelpScreenUI. Then it resets Index to zero, and updates the Name.
+func (h *HelpScreenUI) UpdateContent(configHelpScreen isdata.HelpScreen) {
+
+	if h.Name == configHelpScreen.Name {
+		return
+	}
+
+	h.Screens = splitScreens(splitTextLines(configHelpScreen.Text))
+	h.Index = 0
+	h.Name = configHelpScreen.Name
+}
+
+// Render renders the portion of the screen designated by Index
+func (h *HelpScreenUI) Render(img draw.Image) {
+
+	Clear(img)
+	fmt.Println(h.Name)
+	Heading(img, h.Name+" - Help")
+	font := tightpixel15.Font
+
+	if len(h.Screens) <= 0 {
+		return
+	}
+
+	y := 13
+	lineHeight := font.GetHeight()
+
+	for _, line := range h.Screens[h.Index] {
+		DrawTxt(img, line, 2, y, font)
+		y += lineHeight + 1
+	}
+
+	// draw scroll bar if we have more than 1 screen
+	if len(h.Screens) > 1 {
+		sbHeight := 50
+		sbWidth := 4
+		x := 123
+		y := 8
+		Rect(img, x, y, sbWidth, sbHeight)
+		screenCount := len(h.Screens)
+		blockHeight := sbHeight / screenCount
+
+		// if divides scroll bar divides unevenly, fill up remaining space at the end
+		if h.Index >= screenCount-1 {
+			RectFilled(img, x, y+blockHeight*h.Index, sbWidth, blockHeight+sbHeight%screenCount)
+		} else {
+			RectFilled(img, x, y+blockHeight*h.Index, sbWidth, blockHeight)
+		}
+		// draw arrows
+		if h.Index > 0 {
+			Polyline(img,
+				x, y,
+				x+2, y-2,
+				x+4, y)
+
+			Polyline(img,
+				x, y-1,
+				x+2, y-3,
+				x+4, y-1)
+		}
+
+		if h.Index < (screenCount - 1) {
+			Polyline(img,
+				x, y+sbHeight,
+				x+2, y+sbHeight+2,
+				x+4, y+sbHeight)
+
+			Polyline(img,
+				x, y+sbHeight+1,
+				x+2, y+sbHeight+3,
+				x+4, y+sbHeight+1)
+		}
+	}
+}
+
+func splitScreens(lines []string) (screens [][]string) {
+
+	if len(lines) <= 4 {
+		return append(screens, lines)
+	}
+
+	for i := 4; i < len(lines); i += 4 {
+		screens = append(screens, lines[:i])
+		lines = lines[i:]
+	}
+
+	return append(screens, lines)
+}
+
+func splitTextLines(s string) (lines []string) {
+
+	font := tightpixel15.Font
+
+	lineLen := 0
+
+	line := ""
+
+	for _, char := range s {
+
+		line += string(char)
+
+		_, charWidth := font.MeasureRune(char)
+		lineLen += charWidth + 1
+
+		if lineLen > 115 {
+			iEnd := len(line) - 1
+			charEnd := line[iEnd]
+			line = line[:iEnd]
+			lines = append(lines, line)
+			line = string(charEnd)
+			lineLen = 0
+		}
+	}
+
+	return lines
+}

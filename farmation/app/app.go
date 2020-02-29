@@ -1056,13 +1056,13 @@ func Run(params Params) {
 				saveState()
 
 			case isdata.HelpScreenContent:
-				config.HelpScreen.Heading = m.Heading
+				config.HelpScreen.Name = m.Name
 				config.HelpScreen.Text = m.Text
 				config.HelpScreen.Active = true
 				saveConfig()
 
 			case isdata.HelpScreenClose:
-				config.HelpScreen.Heading = ""
+				config.HelpScreen.Name = ""
 				config.HelpScreen.Text = ""
 				config.HelpScreen.Active = false
 				saveConfig()

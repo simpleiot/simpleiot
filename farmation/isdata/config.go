@@ -321,9 +321,9 @@ func (c *Config) SetFlowAvgWindows() {
 
 // HelpScreen is the complete data structure used for a help screen
 type HelpScreen struct {
-	Active  bool
-	Heading string
-	Text    string
+	Active bool
+	Name   string
+	Text   string
 }
 
 // Init is used to inialize the config
