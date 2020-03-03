@@ -21,7 +21,7 @@ type OperatingModeSetupScreen struct {
 // NewOperatingModeSetupScreen initializes and returns screen
 func NewOperatingModeSetupScreen(state *isdata.State, config *isdata.Config) *OperatingModeSetupScreen {
 	return &OperatingModeSetupScreen{
-		softKeys:        NewSoftKeys("back", "edit"),
+		softKeys:        NewSoftKeys("back", "edit", "help"),
 		state:           state,
 		config:          config,
 		menu:            &Menu{},
@@ -63,11 +63,18 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 		Heading(img, "Operating Mode Setup")
 		s.menu.Render(img)
 
-		if s.menu.GetArrowPos() == 5 {
+		switch s.menu.GetArrowPos() {
+		case 5:
 			s.softKeys.SetHidden(SK2, true)
-		} else {
+			s.softKeys.SetHidden(SK3, true)
+		case 6, 7:
 			s.softKeys.SetHidden(SK2, false)
+			s.softKeys.SetHidden(SK3, false)
+		default:
+			s.softKeys.SetHidden(SK2, false)
+			s.softKeys.SetHidden(SK3, true)
 		}
+
 		s.softKeys.Render(img, 0, 54)
 	}
 }

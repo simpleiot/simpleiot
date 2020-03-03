@@ -3,6 +3,7 @@ package isui
 import (
 	"fmt"
 	"image/draw"
+	"strings"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -24,13 +25,16 @@ type HelpScreenUI struct {
 	// method what part of the help screen text
 	// to draw if there is more than will fit
 	// on the lcd. Also used for scroll bar.
-	Index int
+	Index    int
+	softKeys *SoftKeys
 }
 
 // NewHelpScreenUI initializes this structure. It must be used so that
 // the value of this pointer is not nil.
 func NewHelpScreenUI() *HelpScreenUI {
-	return &HelpScreenUI{}
+	return &HelpScreenUI{
+		softKeys: NewSoftKeys("back"),
+	}
 }
 
 // UpdateContent compares the Name field in the configHelpScreen parameter with
@@ -52,15 +56,20 @@ func (h *HelpScreenUI) UpdateContent(configHelpScreen isdata.HelpScreen) {
 func (h *HelpScreenUI) Render(img draw.Image) {
 
 	Clear(img)
-	fmt.Println(h.Name)
+
 	Heading(img, h.Name+" - Help")
+
+	h.softKeys.Render(img, 0, 54)
+
 	font := tightpixel15.Font
 
-	if len(h.Screens) <= 0 {
+	numScreens := len(h.Screens)
+
+	if numScreens <= 0 {
 		return
 	}
 
-	y := 13
+	y := 12
 	lineHeight := font.GetHeight()
 
 	for _, line := range h.Screens[h.Index] {
@@ -68,8 +77,8 @@ func (h *HelpScreenUI) Render(img draw.Image) {
 		y += lineHeight + 1
 	}
 
-	// draw scroll bar if we have more than 1 screen
-	if len(h.Screens) > 1 {
+	// Draw scroll bar
+	if numScreens > 1 {
 		sbHeight := 50
 		sbWidth := 4
 		x := 123
@@ -113,42 +122,45 @@ func (h *HelpScreenUI) Render(img draw.Image) {
 
 func splitScreens(lines []string) (screens [][]string) {
 
-	if len(lines) <= 4 {
-		return append(screens, lines)
-	}
-
-	for i := 4; i < len(lines); i += 4 {
+	for i := 4; i < len(lines); i = i {
 		screens = append(screens, lines[:i])
+		//fmt.Println("COLLIN2:", screens)
 		lines = lines[i:]
 	}
+	//fmt.Println("COLLIN3:", append(screens, lines))
 
 	return append(screens, lines)
 }
 
 func splitTextLines(s string) (lines []string) {
 
-	font := tightpixel15.Font
+	words := strings.SplitN(s, " ", 1000)
 
-	lineLen := 0
+	linePixels := 0
 
-	line := ""
+	var line []string
 
-	for _, char := range s {
+	for _, w := range words {
+		wordPixels := tightpixel15.Font.MeasureString(w + " ")
+		linePixels += wordPixels
 
-		line += string(char)
-
-		_, charWidth := font.MeasureRune(char)
-		lineLen += charWidth + 1
-
-		if lineLen > 115 {
-			iEnd := len(line) - 1
-			charEnd := line[iEnd]
-			line = line[:iEnd]
-			lines = append(lines, line)
-			line = string(charEnd)
-			lineLen = 0
+		if linePixels > 122 {
+			lines = append(lines, strings.Join(line, " "))
+			line = nil
+			linePixels = wordPixels
 		}
+
+		line = append(line, w)
+		fmt.Println(line, linePixels)
 	}
+
+	lines = append(lines, strings.Join(line, " "))
+
+	/*
+		for _, line := range lines {
+			fmt.Println("COLLIN, line:", line)
+		}
+	*/
 
 	return lines
 }
