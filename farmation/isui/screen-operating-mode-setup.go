@@ -37,11 +37,16 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 
 	helpPresLow := isdata.HelpScreenContent{
 		Name: "Pressure Low",
-		Text: "If Pressure Shutdown is ON, at the time of Arming this value is used to calculate the pressure level at which the InjectorSentry will shut down the irrigation system due to a drop in injection line pressure. The percentage value entered is the amount below the base pressure and is used at the time of arming to set the minimum pressure threshold.",
+		Text: "If Pressure Shutdown is ON, at the time of Arming this value is used to " +
+			"calculate the pressure level at which the InjectorSentry will shut down the " +
+			"irrigation system due to a drop in injection line pressure. The percentage " +
+			"value entered is the amount below the base pressure and is used at the time " +
+			"of arming to set the minimum pressure threshold. ",
 	}
 	helpPresStart := isdata.HelpScreenContent{
 		Name: "Pressure Startup",
-		Text: "This is the minimum amount of injection line base pressure required to Arm. 0 Disables",
+		Text: "This is the minimum amount of injection line base pressure required to Arm. " +
+			"0 Disables.",
 	}
 
 	// any time items are added or removed, update render/key methods
@@ -50,9 +55,11 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	s.menu.AddItemStringRight("Low Alm Set", strconv.Itoa(int(s.config.LowWindowPerc))+" %")
 	s.menu.AddItemInt("Manual High", int(s.config.ManualHighAlarmGPH))
 	s.menu.AddItemInt("Manual Low", int(s.config.ManualLowAlarmGPH))
-	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled, isdata.UpdatePressureShutdownEnabled{})
+	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled,
+		isdata.UpdatePressureShutdownEnabled{})
 	s.menu.AddItemStringRight("Pres Low", strconv.Itoa(int(s.config.LowPresPerc))+" %", helpPresLow)
-	s.menu.AddItemStringRight("Pres Start", strconv.Itoa(s.config.PressureStartupLow)+" PSI", helpPresStart)
+	s.menu.AddItemStringRight("Pres Start", strconv.Itoa(s.config.PressureStartupLow)+" PSI",
+		helpPresStart)
 	s.menu.AddItemStringRight("Pres High", strconv.Itoa(s.config.HighPres)+" PSI")
 	//s.menu.AddItemInt("Batch Amount", int(config.BatchAmount))
 	//s.menu.AddItemInt("Batch Applied", 0)

@@ -69,7 +69,7 @@ func (h *HelpScreenUI) Render(img draw.Image) {
 		return
 	}
 
-	y := 12
+	y := 11
 	lineHeight := font.GetHeight()
 
 	for _, line := range h.Screens[h.Index] {
