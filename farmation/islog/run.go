@@ -91,7 +91,7 @@ func Run(in, out chan interface{}, stateIn isdata.State, configIn isdata.Config,
 	var amountTime time.Time
 
 	logPulse := NewLog("is-"+state.SerialNumber+"-pulse", "timestamp(us),diff")
-	logFlow := NewLog("is-"+state.SerialNumber+"-flow", "timestamp(us),amount,rate (GPH),average rate,pulses,shortWin")
+	logFlow := NewLog("is-"+state.SerialNumber+"-flow", "timestamp(us),amount,rate (GPH),average rate,pulses" /*,shortWin"*/)
 	logPressure := NewLog("is-"+state.SerialNumber+"-pressure", "timestamp(us),average PSI,min,max")
 
 	historyLogPeriod := 10 * time.Minute
@@ -210,8 +210,8 @@ func Run(in, out chan interface{}, stateIn isdata.State, configIn isdata.Config,
 					strconv.FormatFloat(m.Amount, 'f', 4, 64) + "," +
 					strconv.FormatFloat(m.Rate, 'f', 1, 64) + "," +
 					strconv.FormatFloat(m.RateAvg, 'f', 1, 64) + "," +
-					strconv.Itoa(m.Pulses) + "," +
-					boolToYesNo(m.ShortWin)
+					strconv.Itoa(m.Pulses) /* + "," +
+					boolToYesNo(m.ShortWin)*/
 				err := logFlow.Write(s)
 				if err != nil {
 					log.Println("Error writing flow to file: ", err)

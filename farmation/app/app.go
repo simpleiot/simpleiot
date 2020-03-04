@@ -394,8 +394,12 @@ func Run(params Params) {
 				if config.LogFlowData {
 					logChan <- m
 				}
-				// update short moving average window used
-				config.FlowAvgWindowShortUsed = m.ShortWin
+
+				/*
+					// update short moving average window used
+					config.FlowAvgWindowShortUsed = m.ShortWin
+				*/
+
 				saveState()
 				saveConfig()
 
@@ -602,17 +606,21 @@ func Run(params Params) {
 				config.PulsesPerGallon = int(m)
 				saveConfig()
 
-			case isdata.UpdateFlowAvgWindow:
-				config.FlowAvgWindow = int(m)
-				saveConfig()
+			/*
+				case isdata.UpdateFlowAvgWindow:
+					config.FlowAvgWindow = int(m)
+					saveConfig()
+			*/
 
 			case isdata.UpdateFlowAvgWindowLong:
 				config.FlowAvgWindowLong = int(m)
 				saveConfig()
 
-			case isdata.UpdateFlowAvgPercDiff:
-				config.FlowAvgPercDiff = int(m)
-				saveConfig()
+			/*
+				case isdata.UpdateFlowAvgPercDiff:
+					config.FlowAvgPercDiff = int(m)
+					saveConfig()
+			*/
 
 			case isdata.UpdatePressureSetting:
 				config.PressureSetting = int(m)
@@ -1051,6 +1059,18 @@ func Run(params Params) {
 				dlgStateMachine.Message = string(m.Message)
 				dlgStateMachine.Active = true
 				saveState()
+
+			case isdata.HelpScreenContent:
+				config.HelpScreen.Name = m.Name
+				config.HelpScreen.Text = m.Text
+				config.HelpScreen.Active = true
+				saveConfig()
+
+			case isdata.HelpScreenClose:
+				config.HelpScreen.Name = ""
+				config.HelpScreen.Text = ""
+				config.HelpScreen.Active = false
+				saveConfig()
 
 			case isdata.PanelDefinition:
 				//newPanelType(m)

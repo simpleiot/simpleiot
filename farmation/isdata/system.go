@@ -49,5 +49,15 @@ type DialogClose struct {
 	Key string
 }
 
+// HelpScreenContent is a message to the app thread to open the help screen with the
+// given heading and text
+type HelpScreenContent struct {
+	Name string
+	Text string
+}
+
+// HelpScreenClose is a message to the app thread to close the help screen
+type HelpScreenClose struct{}
+
 // Shutdown indicates the system is shutting down
 type Shutdown struct{}

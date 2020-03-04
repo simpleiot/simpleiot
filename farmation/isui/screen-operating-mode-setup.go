@@ -10,6 +10,7 @@ import (
 // OperatingModeSetupScreen is used to display and edit mode settings
 type OperatingModeSetupScreen struct {
 	textEntryScreen *TextEntryScreen
+	helpContent     []isdata.HelpScreenContent
 	softKeys        *SoftKeys
 	state           *isdata.State
 	config          *isdata.Config
@@ -20,7 +21,7 @@ type OperatingModeSetupScreen struct {
 // NewOperatingModeSetupScreen initializes and returns screen
 func NewOperatingModeSetupScreen(state *isdata.State, config *isdata.Config) *OperatingModeSetupScreen {
 	return &OperatingModeSetupScreen{
-		softKeys:        NewSoftKeys("back", "edit"),
+		softKeys:        NewSoftKeys("back", "edit", "help"),
 		state:           state,
 		config:          config,
 		menu:            &Menu{},
@@ -34,15 +35,31 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 
 	s.menu.ResetItems()
 
+	helpPresLow := isdata.HelpScreenContent{
+		Name: "Pressure Low",
+		Text: "If Pressure Shutdown is ON, at the time of Arming this value is used to " +
+			"calculate the pressure level at which the InjectorSentry will shut down the " +
+			"irrigation system due to a drop in injection line pressure. The percentage " +
+			"value entered is the amount below the base pressure and is used at the time " +
+			"of arming to set the minimum pressure threshold. ",
+	}
+	helpPresStart := isdata.HelpScreenContent{
+		Name: "Pressure Startup",
+		Text: "This is the minimum amount of injection line base pressure required to Arm. " +
+			"0 Disables.",
+	}
+
 	// any time items are added or removed, update render/key methods
-	s.menu.AddItemInt("Register Alm", int(s.config.AlarmRecognizeSec))
-	s.menu.AddItemStringRight("High Lev Alm", strconv.Itoa(int(s.config.HighWindowPerc))+" %")
-	s.menu.AddItemStringRight("Low Lev Alm", strconv.Itoa(int(s.config.LowWindowPerc))+" %")
+	s.menu.AddItemStringRight("Alarm Delay", strconv.Itoa(int(s.config.AlarmRecognizeSec))+" s")
+	s.menu.AddItemStringRight("High Alm Set", strconv.Itoa(int(s.config.HighWindowPerc))+" %")
+	s.menu.AddItemStringRight("Low Alm Set", strconv.Itoa(int(s.config.LowWindowPerc))+" %")
 	s.menu.AddItemInt("Manual High", int(s.config.ManualHighAlarmGPH))
 	s.menu.AddItemInt("Manual Low", int(s.config.ManualLowAlarmGPH))
-	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled, isdata.UpdatePressureShutdownEnabled{})
-	s.menu.AddItemStringRight("Pres Low", strconv.Itoa(int(s.config.LowPresPerc))+" %")
-	s.menu.AddItemStringRight("Pres Start", strconv.Itoa(s.config.PressureStartupLow)+" PSI")
+	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled,
+		isdata.UpdatePressureShutdownEnabled{})
+	s.menu.AddItemStringRight("Pres Low", strconv.Itoa(int(s.config.LowPresPerc))+" %", helpPresLow)
+	s.menu.AddItemStringRight("Pres Start", strconv.Itoa(s.config.PressureStartupLow)+" PSI",
+		helpPresStart)
 	s.menu.AddItemStringRight("Pres High", strconv.Itoa(s.config.HighPres)+" PSI")
 	//s.menu.AddItemInt("Batch Amount", int(config.BatchAmount))
 	//s.menu.AddItemInt("Batch Applied", 0)
@@ -53,11 +70,18 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 		Heading(img, "Operating Mode Setup")
 		s.menu.Render(img)
 
-		if s.menu.GetArrowPos() == 5 {
+		switch s.menu.GetArrowPos() {
+		case 5:
 			s.softKeys.SetHidden(SK2, true)
-		} else {
+			s.softKeys.SetHidden(SK3, true)
+		case 6, 7:
 			s.softKeys.SetHidden(SK2, false)
+			s.softKeys.SetHidden(SK3, false)
+		default:
+			s.softKeys.SetHidden(SK2, false)
+			s.softKeys.SetHidden(SK3, true)
 		}
+
 		s.softKeys.Render(img, 0, 54)
 	}
 }
@@ -108,6 +132,12 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 			default:
 				s.enterEdit()
 			}
+		case isdata.KeySK3:
+			helpContent := s.menu.GetMenuItems()[s.menu.GetArrowPos()].Help
+			if helpContent.Name == "" {
+				break
+			}
+			return ScreenIDNoChange, helpContent, true
 		case isdata.KeyEnter: // Edit
 			switch s.menu.GetArrowPos() {
 			case 5:

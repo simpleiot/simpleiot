@@ -54,6 +54,7 @@ type Screens struct {
 	screens       map[ScreenID]Widget
 	dialog        *DialogScreen
 	dialogArmReq  *DialogArmReqScreen
+	helpScreen    *HelpScreenUI
 	state         *isdata.State
 	config        *isdata.Config
 }
@@ -66,12 +67,12 @@ func (s *Screens) Add(ID ScreenID, screen Widget) {
 // NewScreens initializes all screens
 func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Screens {
 	ret := &Screens{
-		state:  state,
-		config: config,
+		state:        state,
+		config:       config,
+		dialog:       NewDialogScreen(),
+		dialogArmReq: NewDialogArmReqScreen(config, state),
+		helpScreen:   NewHelpScreenUI(),
 	}
-
-	ret.dialog = NewDialogScreen()
-	ret.dialogArmReq = NewDialogArmReqScreen(config, state)
 
 	ret.screens = make(map[ScreenID]Widget)
 	ret.Add(ScreenIDHome, NewHomeScreen(state, config))
@@ -115,55 +116,41 @@ func (s *Screens) Render(img draw.Image) {
 
 	currentDialog, _ := s.state.DialogHighestPriority()
 
-	// If the dialog is nil (no active dialogs), render the current screen
-	if currentDialog == nil {
-		s.screens[s.currentScreen].Render(img)
-		return
-	}
+	// If the dialog isn't nil (there are active dialogs), render the
+	// returned active dialog
+	if currentDialog != nil {
+		if currentDialog.ID == isdata.DialogArmReq {
+			// ArmRequirements dialog requires a special render method
+			s.dialogArmReq.Render(img)
+			return
+		}
 
-	if currentDialog.ID != isdata.DialogArmReq {
 		s.dialog.Render(img, currentDialog)
 		return
 	}
 
-	// ArmRequirements dialog requires a special render method
-	s.dialogArmReq.Render(img)
+	// If the user has activated the help screen
+	if s.config.HelpScreen.Active {
+		s.helpScreen.UpdateContent(s.config.HelpScreen)
+		s.helpScreen.Render(img)
+		return
+	}
+
+	s.screens[s.currentScreen].Render(img)
 }
 
 // Key handles key input
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
+
 	currentDialog, dialogKey := s.state.DialogHighestPriority()
 
-	// If the dialog is nil (no active dialogs), handle keys as coming
-	// from the current screen
-	if currentDialog == nil {
-		if key == isdata.KeyPump {
-			s.switchScreen(ScreenIDPumpMode)
-			return ScreenIDNoChange, nil, true
-		}
-
-		screenID, action, handled := s.screens[s.currentScreen].Key(key)
-		switch screenID {
-		case ScreenIDNoChange:
-		case ScreenIDPrev:
-			s.currentScreen = s.prevScreens[len(s.prevScreens)-1] // go to prev screen
-			s.prevScreens = s.prevScreens[:len(s.prevScreens)-1]  // remove screen from previous screens slice
-		default:
-			s.switchScreen(screenID)
-		}
-
-		// if at home screen, empty prevScreens array
-		if s.currentScreen == ScreenIDHome {
-			s.prevScreens = nil
-		}
-
-		return ScreenIDNoChange, action, handled
-	}
-
-	if key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
+	// If the dialog isn't nil (active dialogs), handle keys as coming
+	// from the dialog
+	if currentDialog != nil &&
+		// when the back key is pressed
+		key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
 
 		// Take user directly to a screen that needs attention
-		// when the dialog is closed
 		switch currentDialog.ID {
 		case isdata.DialogArm:
 			switch currentDialog.Message {
@@ -179,9 +166,58 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			}
 		}
 
+		// Close the dialog
 		return ScreenIDNoChange, isdata.DialogClose{dialogKey}, true
 	}
-	return ScreenIDNoChange, nil, true
+
+	if s.config.HelpScreen.Active {
+
+		switch key {
+
+		case isdata.KeySK1Release, isdata.KeySK1Hold: // Back
+			// Close the help screen
+			return ScreenIDNoChange, isdata.HelpScreenClose{}, true
+
+		case isdata.KeyDown, isdata.KeyDownHold: // Arrow Down
+			// Scroll down
+			s.helpScreen.Index++
+			indexEnd := len(s.helpScreen.Screens) - 1
+			if s.helpScreen.Index > indexEnd {
+				s.helpScreen.Index = indexEnd
+			}
+
+		case isdata.KeyUp, isdata.KeyUpHold: // Arrow Up
+			// Scroll up
+			s.helpScreen.Index--
+			if s.helpScreen.Index < 0 {
+				s.helpScreen.Index = 0
+			}
+		}
+
+		return ScreenIDNoChange, nil, true
+	}
+
+	if key == isdata.KeyPump {
+		s.switchScreen(ScreenIDPumpMode)
+		return ScreenIDNoChange, nil, true
+	}
+
+	screenID, action, handled := s.screens[s.currentScreen].Key(key)
+	switch screenID {
+	case ScreenIDNoChange:
+	case ScreenIDPrev:
+		s.currentScreen = s.prevScreens[len(s.prevScreens)-1] // go to prev screen
+		s.prevScreens = s.prevScreens[:len(s.prevScreens)-1]  // remove screen from previous screens slice
+	default:
+		s.switchScreen(screenID)
+	}
+
+	// if at home screen, empty prevScreens array
+	if s.currentScreen == ScreenIDHome {
+		s.prevScreens = nil
+	}
+
+	return ScreenIDNoChange, action, handled
 }
 
 func (s *Screens) switchScreen(id ScreenID) {
