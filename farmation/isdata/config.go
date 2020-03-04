@@ -429,7 +429,7 @@ func (c *Config) Init() {
 
 	if len(c.ProductConfigs) < 5 {
 		c.ProductConfigs = []ProductConfig{
-			ProductConfig{"Product 1"},
+			ProductConfig{"28% UAN"},
 			ProductConfig{"Product 2"},
 			ProductConfig{"Product 3"},
 			ProductConfig{"Product 4"},
