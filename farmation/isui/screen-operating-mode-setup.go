@@ -48,6 +48,11 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 		Text: "This is the minimum amount of injection line base pressure required to Arm. " +
 			"0 Disables.",
 	}
+	helpPresHigh := isdata.HelpScreenContent{
+		Name: "Pressure High",
+		Text: "If injection line pressure exceeds this amount the irrigation system will be " +
+			"shut down.",
+	}
 
 	// any time items are added or removed, update render/key methods
 	s.menu.AddItemStringRight("Alarm Delay", strconv.Itoa(int(s.config.AlarmRecognizeSec))+" s")
@@ -57,10 +62,12 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	s.menu.AddItemInt("Manual Low", int(s.config.ManualLowAlarmGPH))
 	s.menu.AddItemOnOff("Pres Shtdwn", s.config.PressureShutdownEnabled,
 		isdata.UpdatePressureShutdownEnabled{})
-	s.menu.AddItemStringRight("Pres Low", strconv.Itoa(int(s.config.LowPresPerc))+" %", helpPresLow)
+	s.menu.AddItemStringRight("Pres Low", strconv.Itoa(int(s.config.LowPresPerc))+" %",
+		helpPresLow)
 	s.menu.AddItemStringRight("Pres Start", strconv.Itoa(s.config.PressureStartupLow)+" PSI",
 		helpPresStart)
-	s.menu.AddItemStringRight("Pres High", strconv.Itoa(s.config.HighPres)+" PSI")
+	s.menu.AddItemStringRight("Pres High", strconv.Itoa(s.config.HighPres)+" PSI",
+		helpPresHigh)
 	//s.menu.AddItemInt("Batch Amount", int(config.BatchAmount))
 	//s.menu.AddItemInt("Batch Applied", 0)
 
@@ -74,7 +81,7 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 		case 5:
 			s.softKeys.SetHidden(SK2, true)
 			s.softKeys.SetHidden(SK3, true)
-		case 6, 7:
+		case 6, 7, 8:
 			s.softKeys.SetHidden(SK2, false)
 			s.softKeys.SetHidden(SK3, false)
 		default:
