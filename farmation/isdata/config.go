@@ -427,8 +427,6 @@ func (c *Config) Init() {
 		}
 	}
 
-	c.ProductConfigs = nil
-
 	if len(c.ProductConfigs) < 5 {
 		c.ProductConfigs = []ProductConfig{
 			ProductConfig{"28% UAN"},
