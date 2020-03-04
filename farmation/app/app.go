@@ -30,6 +30,7 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/isupdate"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
+	"github.com/simpleiot/simpleiot/farmation/version"
 	"github.com/simpleiot/simpleiot/file"
 	"github.com/simpleiot/simpleiot/network"
 	"github.com/simpleiot/simpleiot/system"
@@ -120,6 +121,10 @@ func Run(params Params) {
 	state.SerialNumber = params.SerialNumber
 	state.ViewMsg = params.ViewMsg
 	state.HWVersion = isio.GetHwID()
+
+	fmt.Println("HWVersion: ", state.HWVersion)
+	fmt.Println("OSVersion: ", state.OSVersion)
+	fmt.Println("AppVersion: ", version.AppVersion)
 
 	config.Init()
 

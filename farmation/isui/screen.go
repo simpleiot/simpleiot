@@ -148,7 +148,7 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	// from the dialog
 	if currentDialog != nil &&
 		// when the back key is pressed
-		key == isdata.KeySK1Release || key == isdata.KeySK1Hold {
+		(key == isdata.KeySK1Release || key == isdata.KeySK1Hold) {
 
 		// Take user directly to a screen that needs attention
 		switch currentDialog.ID {
