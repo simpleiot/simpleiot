@@ -74,7 +74,7 @@ func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 			s.txtEdit = s.txtEdit[:s.cursorPos] // delete null char
 		}
 		return TextEntryCommandSave
-	case isdata.KeySK2: // Backspace
+	case isdata.KeySK2, isdata.KeySK2Hold: // Backspace
 		if s.cursorPos >= len(s.txtEdit)-1 { //if cursor is at end of text
 			if len(s.txtEdit) > 1 { //and if length of text is more than one character
 				s.txtEdit = s.txtEdit[:s.cursorPos] //cut current char off end
