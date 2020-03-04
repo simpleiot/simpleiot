@@ -36,10 +36,10 @@ func (s *StatusScreen2) Render(img draw.Image) {
 
 	DrawTxt(img, s.config.FieldConfigs[s.config.CurrentFieldIndex].Description+" - "+s.config.ProductConfigs[s.config.CurrentProductIndex].Description, x, y1, tightpixel15.Font)
 	DrawTxt(img, "Total:", x, y2, tightpixel15.Font)
-	DrawTxt(img, "Avg Flow:", x, y3, tightpixel15.Font)
+	DrawTxt(img, "Avg. Armed Flow:", x, y3, tightpixel15.Font)
 	DrawTxt(img, "Over:", x, y4, tightpixel15.Font)
 
-	x = 77
+	x = 94
 
 	// Total
 	DrawTxtRight(img, strconv.FormatFloat(s.state.FieldStates[s.config.CurrentFieldIndex][s.config.CurrentProductIndex].Total, 'f', 0, 64), x, y2, tightpixel15.Font)

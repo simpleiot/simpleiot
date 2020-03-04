@@ -38,14 +38,15 @@ func (s *StatusScreen3) Render(img draw.Image) {
 	x := 2
 	y1, y2, y3 := 10, 24, 38
 
-	DrawTxt(img, "Current Min Pres: ", x, y1, tightpixel15.Font)
+	DrawTxt(img, "Current Base Pres: ", x, y1, tightpixel15.Font)
 	DrawTxt(img, "Current Max Pres: ", x, y2, tightpixel15.Font)
 	DrawTxt(img, "Shtdwn Threshold: ", x, y3, tightpixel15.Font)
 
 	x = 90
 
 	// Pressure values
-	min, max := strconv.FormatFloat(s.state.PressureMin, 'f', 0, 64), strconv.FormatFloat(s.state.PressureMax, 'f', 0, 64)
+	min := strconv.FormatFloat(s.state.PressureMax, 'f', 0, 64)
+	max := strconv.FormatFloat(s.state.PressureMin, 'f', 0, 64)
 
 	// Blinking min pressure
 	if s.config.Arm &&

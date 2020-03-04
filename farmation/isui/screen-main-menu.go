@@ -21,7 +21,7 @@ func NewMainMenuScreen(state *isdata.State, config *isdata.Config) *MainMenuScre
 	menu.AddItemScreen("Totals", ScreenIDTotals)
 	menu.AddItemScreen("Field Menu", ScreenIDFieldMenu1)
 	menu.AddItemScreen("Product Menu", ScreenIDProductMenu1)
-	menu.AddItemScreen("Operating Menu", ScreenIDOpMode1)
+	menu.AddItemScreen("Operating Mode", ScreenIDOpMode1)
 	menu.AddItemScreen("Diag/Config", ScreenIDDiagConfig)
 	//menu.AddItemScreen("Calibration", ScreenIDCalibration)
 
