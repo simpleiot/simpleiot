@@ -1,4 +1,4 @@
 package version
 
 // AppVersion defines the version for the app
-var AppVersion = "0.0.108"
+var AppVersion = "0.0.109"
