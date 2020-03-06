@@ -49,6 +49,12 @@ type DialogClose struct {
 	Key string
 }
 
+// DialogCancel is an alternative message to the app thread to close a dialog
+// it will be used to cancel an action that a dialog is warning about
+type DialogCancel struct {
+	Key string
+}
+
 // HelpScreenContent is a message to the app thread to open the help screen with the
 // given heading and text
 type HelpScreenContent struct {

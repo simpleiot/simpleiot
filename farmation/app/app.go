@@ -1071,6 +1071,18 @@ func Run(params Params) {
 
 				saveState()
 
+			case isdata.DialogCancel:
+
+				if _, exists := state.Dialogs[m.Key]; !exists {
+					log.Println("Error from app thread, No such entry exists in Dialogs map: ", m.Key)
+					break
+				}
+
+				dialogPointer := state.Dialogs[m.Key]
+
+				dialogPointer.Active = false
+				saveState()
+
 			case isdata.UpdateDialogStateMachine:
 				dlgStateMachine.Heading = string(m.Heading)
 				dlgStateMachine.Message = string(m.Message)

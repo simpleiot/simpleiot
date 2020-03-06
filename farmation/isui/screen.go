@@ -149,7 +149,7 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	if currentDialog != nil {
 		// when the back key is pressed
 		switch key {
-		case isdata.KeySK1Release:
+		case isdata.KeySK1Release: // OK
 
 			// Take user directly to a screen that needs attention
 			switch currentDialog.ID {
@@ -169,6 +169,11 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 			// Close the dialog
 			return ScreenIDNoChange, isdata.DialogClose{dialogKey}, true
+
+		case isdata.KeySK2: // Cancel
+			if currentDialog.CancelActivated {
+				return ScreenIDNoChange, isdata.DialogCancel{dialogKey}, true
+			}
 		}
 
 		return ScreenIDNoChange, nil, true
