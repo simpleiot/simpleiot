@@ -146,30 +146,37 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 	// If the dialog isn't nil (active dialogs), handle keys as coming
 	// from the dialog
-	if currentDialog != nil &&
+	if currentDialog != nil {
 		// when the back key is pressed
-		// we have to check for KeySK1 here or it will not trigger this on the initial
-		// press and will get handled by the screen, not the dialog
-		(key == isdata.KeySK1Release || key == isdata.KeySK1 || key == isdata.KeySK1Hold) {
+		switch key {
+		case isdata.KeySK1Release: // OK
 
-		// Take user directly to a screen that needs attention
-		switch currentDialog.ID {
-		case isdata.DialogArm:
-			switch currentDialog.Message {
-			case "Cannot arm in Monitor \nOnly mode, please switch \nmodes":
-				s.switchScreen(ScreenIDOpMode1)
-			case "Pump Command \nInput not selected, please \nselect before arming":
-				s.switchScreen(ScreenIDPumpMode)
+			// Take user directly to a screen that needs attention
+			switch currentDialog.ID {
+			case isdata.DialogArm:
+				switch currentDialog.Message {
+				case "Cannot arm in Monitor \nOnly mode, please switch \nmodes":
+					s.switchScreen(ScreenIDOpMode1)
+				case "Pump Command \nInput not selected, please \nselect before arming":
+					s.switchScreen(ScreenIDPumpMode)
+				}
+			case isdata.DialogArmReq:
+				if s.state.InputInjector == isdata.InputStateOff &&
+					s.config.UserPumpMode == isdata.UserPumpModeOff {
+					s.switchScreen(ScreenIDPumpMode)
+				}
 			}
-		case isdata.DialogArmReq:
-			if s.state.InputInjector == isdata.InputStateOff &&
-				s.config.UserPumpMode == isdata.UserPumpModeOff {
-				s.switchScreen(ScreenIDPumpMode)
+
+			// Close the dialog
+			return ScreenIDNoChange, isdata.DialogClose{dialogKey}, true
+
+		case isdata.KeySK2: // Cancel
+			if currentDialog.CancelActivated {
+				return ScreenIDNoChange, isdata.DialogCancel{dialogKey}, true
 			}
 		}
 
-		// Close the dialog
-		return ScreenIDNoChange, isdata.DialogClose{dialogKey}, true
+		return ScreenIDNoChange, nil, true
 	}
 
 	if s.config.HelpScreen.Active {

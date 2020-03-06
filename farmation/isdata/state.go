@@ -187,6 +187,10 @@ type Dialog struct {
 	Active  bool
 	Heading string
 	Message string
+
+	// Option to cancel the action the dialog is
+	// warning about
+	CancelActivated bool
 }
 
 // Define dialog ID's
@@ -204,6 +208,9 @@ const (
 	DialogArmReq
 	DialogStateMachine
 	DialogExport
+	DialogResetTotalCurrent
+	DialogResetTotal1
+	DialogResetTotal2
 )
 
 // DialogHighestPriority returns the highest priority active
@@ -312,9 +319,8 @@ func InitState(s *State) (dirty bool) {
 		ID:      DialogUpdate,
 		Heading: "Notice",
 	}
-	s.Dialogs["Arm"] = &Dialog{
-		ID:      DialogArm,
-		Heading: "Error",
+	s.Dialogs["PanelDetect"] = &Dialog{
+		ID: DialogPanelDetect,
 	}
 	s.Dialogs["UnknownVisionState"] = &Dialog{
 		ID:      DialogUnknownVisionState,
@@ -324,17 +330,37 @@ func InitState(s *State) (dirty bool) {
 		ID:      DialogApp,
 		Heading: "Warning",
 	}
-	s.Dialogs["Export"] = &Dialog{
-		ID: DialogExport,
-	}
-	s.Dialogs["StateMachine"] = &Dialog{
-		ID: DialogStateMachine,
+	s.Dialogs["Arm"] = &Dialog{
+		ID:      DialogArm,
+		Heading: "Error",
 	}
 	s.Dialogs["ArmReq"] = &Dialog{
 		ID: DialogArmReq,
 	}
-	s.Dialogs["PanelDetect"] = &Dialog{
-		ID: DialogPanelDetect,
+	s.Dialogs["StateMachine"] = &Dialog{
+		ID: DialogStateMachine,
+	}
+	s.Dialogs["Export"] = &Dialog{
+		ID: DialogExport,
+	}
+	s.Dialogs["ResetTotalCurrent"] = &Dialog{
+		ID:      DialogResetTotalCurrent,
+		Heading: "Warning",
+		Message: "You are about to reset the\ncurrent product " +
+			"total to 0.",
+		CancelActivated: true,
+	}
+	s.Dialogs["ResetTotal1"] = &Dialog{
+		ID:              DialogResetTotal1,
+		Heading:         "Warning",
+		Message:         "You are about to reset\nTotal 1 to zero",
+		CancelActivated: true,
+	}
+	s.Dialogs["ResetTotal2"] = &Dialog{
+		ID:              DialogResetTotal2,
+		Heading:         "Warning",
+		Message:         "You are about to reset\nTotal 2 to zero",
+		CancelActivated: true,
 	}
 
 	s.OSVersion, _ = version.ReadOSVersion()

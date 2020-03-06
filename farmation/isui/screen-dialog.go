@@ -16,7 +16,7 @@ type DialogScreen struct {
 // NewDialogScreen creates a new dialog screen
 func NewDialogScreen() *DialogScreen {
 	return &DialogScreen{
-		softKeys: NewSoftKeys("OK"),
+		softKeys: NewSoftKeys("OK", "cancel"),
 	}
 }
 
@@ -37,6 +37,9 @@ func (s *DialogScreen) Render(img draw.Image, dialog *isdata.Dialog) {
 
 		lineCount++
 	}
+
+	s.softKeys.SetHidden(1, !dialog.CancelActivated)
+	s.softKeys.Render(img, 0, 54)
 
 	/*var lengthSoFar, spaceIndex, lastBreak, lineCount int
 
@@ -67,5 +70,4 @@ func (s *DialogScreen) Render(img draw.Image, dialog *isdata.Dialog) {
 		}
 	}*/
 
-	s.softKeys.Render(img, 0, 54)
 }

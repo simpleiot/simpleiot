@@ -323,6 +323,9 @@ func Run(params Params) {
 	dlgApp := state.Dialogs["App"]
 	dlgStateMachine := state.Dialogs["StateMachine"]
 	dlgExport := state.Dialogs["Export"]
+	dlgResetTotalCurrent := state.Dialogs["ResetTotalCurrent"]
+	dlgResetTotal1 := state.Dialogs["ResetTotal1"]
+	dlgResetTotal2 := state.Dialogs["ResetTotal2"]
 
 	for {
 
@@ -683,15 +686,18 @@ func Run(params Params) {
 				saveState()
 
 			case isdata.UpdateResetTotal1:
-				state.Total1 = 0
+				// Confirmation dialog
+				dlgResetTotal1.Active = true
 				saveState()
 
 			case isdata.UpdateResetTotal2:
-				state.Total2 = 0
+				// Confirmation dialog
+				dlgResetTotal2.Active = true
 				saveState()
 
 			case isdata.UpdateResetCurrentProduct:
-				state.FieldStates[config.CurrentFieldIndex][config.CurrentProductIndex].Total = 0
+				// Confirmation dialog
+				dlgResetTotalCurrent.Active = true
 				saveState()
 
 			case isdata.UpdateResetLifetime:
@@ -1038,21 +1044,44 @@ func Run(params Params) {
 				dialogPointer.Active = false
 				saveState()
 
-				if dialogPointer.ID != isdata.DialogRestart {
+				switch dialogPointer.ID {
+				case isdata.DialogRestart:
+					if runtime.GOARCH != "arm" {
+						log.Println("on development platform, not restarting")
+						break
+					}
+
+					// Start a detached process versus using Run() and
+					// Creating a child process
+					err := exec.Command("/etc/init.d/isapp", "restart").Start()
+					if err != nil {
+						log.Println("Error restarting the app")
+					}
+
+				case isdata.DialogResetTotalCurrent:
+					state.FieldStates[config.CurrentFieldIndex][config.CurrentProductIndex].Total = 0
+
+				case isdata.DialogResetTotal1:
+					state.Total1 = 0
+
+				case isdata.DialogResetTotal2:
+					state.Total2 = 0
+
+				}
+
+				saveState()
+
+			case isdata.DialogCancel:
+
+				if _, exists := state.Dialogs[m.Key]; !exists {
+					log.Println("Error from app thread, No such entry exists in Dialogs map: ", m.Key)
 					break
 				}
 
-				if runtime.GOARCH != "arm" {
-					log.Println("on development platform, not restarting")
-					break
-				}
+				dialogPointer := state.Dialogs[m.Key]
 
-				// Start a detached process versus using Run() and
-				// Creating a child process
-				err := exec.Command("/etc/init.d/isapp", "restart").Start()
-				if err != nil {
-					log.Println("Error restarting the app")
-				}
+				dialogPointer.Active = false
+				saveState()
 
 			case isdata.UpdateDialogStateMachine:
 				dlgStateMachine.Heading = string(m.Heading)
