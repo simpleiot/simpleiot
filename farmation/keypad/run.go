@@ -40,11 +40,6 @@ func keypad(out chan interface{}, name string, keyPress, keyHold, keyRelease isd
 
 	// ticker for scrolling with arrow keys
 	scrollTicker := time.NewTicker(time.Millisecond * 150)
-	switch keyPress {
-	case isdata.KeyRight, isdata.KeyLeft, isdata.KeyUp, isdata.KeyDown, isdata.KeyEnter:
-	default:
-		scrollTicker.Stop()
-	}
 
 	// tells us if the pressTimer has expired -- if so, start
 	// scrolling while the arrow key is held down
@@ -89,7 +84,6 @@ func keypad(out chan interface{}, name string, keyPress, keyHold, keyRelease isd
 				keyStateDown &&
 				p.Read() == gpio.Low {
 				out <- keyHold
-			} else {
 			}
 		case <-timer.C:
 			timerRunning = false
