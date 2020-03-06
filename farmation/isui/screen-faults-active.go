@@ -57,7 +57,7 @@ func (s *FaultsActiveScreen) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *FaultsActiveScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1: // Home
+	case isdata.KeySK1Release, isdata.KeySK1Hold: // Home
 		return ScreenIDHome, nil, true
 	case isdata.KeySK2: // Clear
 		return ScreenIDNoChange, isdata.UpdateFaultActiveClearAll{}, true
