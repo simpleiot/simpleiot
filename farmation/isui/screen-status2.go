@@ -68,7 +68,7 @@ func (s *StatusScreen2) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *StatusScreen2) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1Release, isdata.KeySK1Hold: // Home
+	case isdata.KeySK1: // Home
 		return ScreenIDHome, nil, true
 	case isdata.KeySK2: // Field Menu Screen
 		return ScreenIDFieldMenu1, nil, true
