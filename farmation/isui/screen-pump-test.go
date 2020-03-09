@@ -37,11 +37,18 @@ func (s *PumpTestScreen) Render(img draw.Image) {
 		isAutoMode = "- manual control mode -"
 	}
 
-	DrawTxt(img, "Injector Pump Relay is "+BoolToString(s.state.GpioRelayInjectorEn), 8, 19, tightpixel15.Font)
+	DrawTxt(img, "Injector Pump Relay is "+boolToONOFF(s.state.GpioRelayInjectorEn), 8, 19, tightpixel15.Font)
 	DrawTxtCentered(img, isAutoMode, 64, 35, tightpixel15.Font)
 
 	Heading(img, "Test Pump")
 	s.softKeys.Render(img, 0, 54)
+}
+
+func boolToONOFF(on bool) string {
+	if on {
+		return "ON"
+	}
+	return "OFF"
 }
 
 // Key processes keypad input to this screen

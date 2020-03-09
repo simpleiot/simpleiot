@@ -52,7 +52,7 @@ func (s *ModemScreen) Render(img draw.Image) {
 	}
 
 	s.menu.AddItemOnOff("Enable Modem", s.config.ModemEnabled, isdata.UpdateModemEnabled(!s.config.ModemEnabled))
-	s.menu.AddItemString("Desc", s.state.NetworkState.Description)
+	s.menu.AddItemString("Description", s.state.NetworkState.Description)
 	s.menu.AddItemString("Detected", detected)
 	s.menu.AddItemString("Connected", connected)
 	s.menu.AddItemStringRight("Signal", signal)
