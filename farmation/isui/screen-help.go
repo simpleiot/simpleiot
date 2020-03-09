@@ -124,10 +124,8 @@ func splitScreens(lines []string) (screens [][]string) {
 
 	for i := 4; i < len(lines); i = i {
 		screens = append(screens, lines[:i])
-		//fmt.Println("COLLIN2:", screens)
 		lines = lines[i:]
 	}
-	//fmt.Println("COLLIN3:", append(screens, lines))
 
 	return append(screens, lines)
 }
@@ -155,12 +153,6 @@ func splitTextLines(s string) (lines []string) {
 	}
 
 	lines = append(lines, strings.Join(line, " "))
-
-	/*
-		for _, line := range lines {
-			fmt.Println("COLLIN, line:", line)
-		}
-	*/
 
 	return lines
 }

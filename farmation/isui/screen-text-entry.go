@@ -91,7 +91,7 @@ func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 			s.txtEdit = s.txtEdit[:s.cursorPos] // delete null char
 		}
 		return TextEntryCommandCancel
-	case isdata.KeyEnter:
+	case isdata.KeyEnter, isdata.KeyEnterHold:
 		if s.cursorPos >= len(s.txtEdit)-1 { // if at end of txt
 			if s.txtEdit[s.cursorPos:] == "\x00" { // if last char is null
 				s.txtEdit = s.txtEdit[:s.cursorPos] // delete null char
