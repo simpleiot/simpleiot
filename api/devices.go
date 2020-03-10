@@ -102,12 +102,8 @@ func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id 
 }
 
 // Top level handler for http requests in the coap-server process
+// TODO need to add device auth
 func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	if !h.check.Valid(req) {
-		http.Error(res, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
 	var id string
 	id, req.URL.Path = ShiftPath(req.URL.Path)
 
@@ -122,6 +118,11 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
 		}
 	case "config":
+		if !h.check.Valid(req) {
+			http.Error(res, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
 		if req.Method == http.MethodPost {
 			h.processConfig(res, req, id)
 		} else {
@@ -129,6 +130,7 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		}
 	case "cmd":
 		if req.Method == http.MethodGet {
+			// Get is done by devices
 			cmd, err := h.db.DeviceGetCmd(id)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -140,17 +142,29 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			en := json.NewEncoder(res)
 			en.Encode(cmd)
 		} else if req.Method == http.MethodPost {
+			// Post is typically done by UI
+			if !h.check.Valid(req) {
+				http.Error(res, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
 			h.processCmd(res, req, id)
 		} else {
-			http.Error(res, "only GET allowed", http.StatusMethodNotAllowed)
+			http.Error(res, "only GET or POST allowed", http.StatusMethodNotAllowed)
 		}
 	case "version":
 		if req.Method == http.MethodPost {
+			// This is used by devices
 			h.processVersion(res, req, id)
 		} else {
 			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
 		}
 	default:
+		if !h.check.Valid(req) {
+			http.Error(res, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
 		if id == "" {
 			switch req.Method {
 			case http.MethodGet:
