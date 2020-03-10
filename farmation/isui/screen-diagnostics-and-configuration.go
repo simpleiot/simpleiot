@@ -63,7 +63,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 		isdata.UpdateLogPressureEnable(!s.config.LogPressureData))
 
 	s.menu.AddItemCommand("Reboot", "start", isdata.Reboot{})
-	Heading(img, "Diagnostics and Config")
+	Heading(img, "Config and Diagnostics")
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
 }

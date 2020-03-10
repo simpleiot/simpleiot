@@ -92,7 +92,11 @@ func (s *TextEntryScreen) Key(key isdata.Key) TextEntryCommand {
 		}
 		return TextEntryCommandCancel
 	case isdata.KeyEnter, isdata.KeyEnterHold:
-		if s.cursorPos >= len(s.txtEdit)-1 { // if at end of txt
+		// if at end of txt
+		if s.cursorPos >= len(s.txtEdit)-1 &&
+			// limit lenght of text
+			tightpixel15.Font.MeasureString(s.headerLabel+"  "+s.txtEdit) < 104 {
+
 			if s.txtEdit[s.cursorPos:] == "\x00" { // if last char is null
 				s.txtEdit = s.txtEdit[:s.cursorPos] // delete null char
 				s.right()                           // and loop to beginning of txt

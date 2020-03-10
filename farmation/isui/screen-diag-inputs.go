@@ -36,7 +36,7 @@ func (s *DiagInputsScreen) Render(img draw.Image) {
 	s.menu.AddItemString("Injector", BoolToString(s.state.GpioDigitalInjector))
 	s.menu.AddItemString("Irrigator", BoolToString(s.state.GpioDigitalIrrigator))
 	s.menu.AddItemString("Water On", BoolToString(s.state.GpioDigitalWaterOn))
-	s.menu.AddItemString("In", BoolToString(s.state.GpioDigitalIn))
+	s.menu.AddItemString("Aux In", BoolToString(s.state.GpioDigitalIn))
 	s.menu.AddItemFloat("Ref Voltage", s.state.PressureVRef)
 	s.menu.AddItemFloat("Pres. Voltage", s.state.PressureVSense)
 	s.menu.AddItemInt("Flow Pulse Cnt", s.state.FlowPulseCount)
