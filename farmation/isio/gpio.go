@@ -77,6 +77,9 @@ const (
 	// Regulator valve
 	GpioRegValve1 = "GpioRegValve1"
 	GpioRegValve2 = "GpioRegValve2"
+
+	// CAN transciever stby (active high)
+	GpioCanStby = "GpioCanStby"
 )
 
 type pin struct {
@@ -142,6 +145,8 @@ var pins = map[string]*pin{
 	// Reg valve drive
 	GpioRegValve1: &pin{"PC26", false, true, nil},
 	GpioRegValve2: &pin{"PC27", false, true, nil},
+
+	GpioCanStby: &pin{"PB25", false, true, nil},
 }
 
 // GpioInit is used to initialize gpios
