@@ -33,7 +33,7 @@ func NewPumpModeScreen(state *isdata.State, config *isdata.Config) *PumpModeScre
 	}
 
 	return &PumpModeScreen{
-		softKeys: NewSoftKeys("home", "test"),
+		softKeys: NewSoftKeys("back", "test"),
 		state:    state,
 		config:   config,
 		menu:     NewMenu(true, selectedIndex),
@@ -92,9 +92,9 @@ func (s *PumpModeScreen) Render(img draw.Image) {
 // Key processes keypad input to this screen
 func (s *PumpModeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	switch key {
-	case isdata.KeySK1: // Home
+	case isdata.KeySK1: // Back
 		s.menu.ResetArrowPos() // return arrow to top of screen
-		return ScreenIDHome, nil, true
+		return ScreenIDPrev, nil, true
 	case isdata.KeySK2: // Test pump
 		return ScreenIDPumpTest, nil, true
 	case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyEnter, isdata.KeyEnterHold:
