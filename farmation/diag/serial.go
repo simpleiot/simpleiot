@@ -17,7 +17,6 @@ func (d rs232) String() string {
 }
 
 func (d rs232) Run() error {
-	GetInput("rs232 loopback: connect Main pin #7 to #8")
 	isio.GpioOut(isio.GpioSerialShutdown, false)
 	isio.GpioOut(isio.GpioSerialLoopback, false)
 	isio.GpioOut(isio.GpioSerialRsSelectRs485, false)
@@ -160,5 +159,5 @@ func (d rs485) Run() error {
 
 func init() {
 	Register(rs232{})
-	Register(rs485{})
+	//Register(rs485{})
 }
