@@ -41,7 +41,7 @@ func NewInputChars(alpha, numbers bool) *InputChars {
 		return &ret
 	}
 
-	ret.lines[0], ret.lines[1] = "a"+alphaLowerLine1, alphaLowerLine2 // Letters
+	ret.lines[0], ret.lines[1] = "\x00"+alphaLowerLine1, alphaLowerLine2 // Letters
 
 	if !numbers { // Just letters
 		return &ret
