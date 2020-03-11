@@ -144,6 +144,31 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 	currentDialog, dialogKey := s.state.DialogHighestPriority()
 
+	// Prioritize this key because we want to use it from any part
+	// of the system, including dialogs and help screens
+	if key == isdata.KeyPump || key == isdata.KeyPumpHold {
+
+		switch key {
+		case isdata.KeyPump: // Pump Screen
+			if s.currentScreen != ScreenIDPumpMode {
+				s.switchScreen(ScreenIDPumpMode)
+			}
+		case isdata.KeyPumpHold: // Diagnostics Flow/Pressure
+			if s.currentScreen != ScreenIDDiagPulsesPres {
+				s.switchScreen(ScreenIDDiagPulsesPres)
+			}
+
+		}
+
+		if currentDialog != nil {
+			return ScreenIDNoChange, isdata.DialogCancel{dialogKey}, true
+		}
+		if s.config.HelpScreen.Active {
+			return ScreenIDNoChange, isdata.HelpScreenClose{}, true
+		}
+		return ScreenIDNoChange, nil, true
+	}
+
 	// If the dialog isn't nil (active dialogs), handle keys as coming
 	// from the dialog
 	if currentDialog != nil {
@@ -203,11 +228,6 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 			}
 		}
 
-		return ScreenIDNoChange, nil, true
-	}
-
-	if key == isdata.KeyPump {
-		s.switchScreen(ScreenIDPumpMode)
 		return ScreenIDNoChange, nil, true
 	}
 
