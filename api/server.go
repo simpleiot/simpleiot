@@ -65,28 +65,30 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewAppHandler returns a new application (root) http handler
-func NewAppHandler(db *db.Db, influx *db.Influx, getAsset func(string) []byte,
-	filesystem http.FileSystem, debug bool, key Key) http.Handler {
+func NewAppHandler(args ServerArgs) http.Handler {
 	return &App{
-		PublicHandler: http.FileServer(filesystem),
-		IndexHandler:  NewIndexHandler(getAsset),
-		V1ApiHandler:  NewV1Handler(db, influx, key),
-		Debug:         debug,
+		PublicHandler: http.FileServer(args.Filesystem),
+		IndexHandler:  NewIndexHandler(args.GetAsset),
+		V1ApiHandler:  NewV1Handler(args.DbInst, args.Influx, args.Auth),
+		Debug:         args.Debug,
 	}
 }
 
-// Server starts a API server instance
-func Server(
-	port string,
-	dbInst *db.Db,
-	influx *db.Influx,
-	getAsset func(string) []byte,
-	filesystem http.FileSystem,
-	debug bool,
-	key Key) error {
+// ServerArgs can be used to pass arguments to the server subsystem
+type ServerArgs struct {
+	Port       string
+	DbInst     *db.Db
+	Influx     *db.Influx
+	GetAsset   func(string) []byte
+	Filesystem http.FileSystem
+	Debug      bool
+	Auth       Authorizer
+}
 
-	log.Println("Starting http server, debug: ", debug)
-	log.Println("Starting portal on port: ", port)
-	address := fmt.Sprintf(":%s", port)
-	return http.ListenAndServe(address, NewAppHandler(dbInst, influx, getAsset, filesystem, debug, key))
+// Server starts a API server instance
+func Server(args ServerArgs) error {
+	log.Println("Starting http server, debug: ", args.Debug)
+	log.Println("Starting portal on port: ", args.Port)
+	address := fmt.Sprintf(":%s", args.Port)
+	return http.ListenAndServe(address, NewAppHandler(args))
 }
