@@ -22,7 +22,46 @@ func (d keys) Run() error {
 
 	go keypad.Run(appChan, keypadChan, 1)
 
+	ignoredKeys := []isdata.Key{
+		isdata.KeyUpHold,
+		isdata.KeyUpRelease,
+		isdata.KeyDownHold,
+		isdata.KeyDownRelease,
+		isdata.KeyLeftHold,
+		isdata.KeyLeftRelease,
+		isdata.KeyRightHold,
+		isdata.KeyRightRelease,
+		isdata.KeyEnterHold,
+		isdata.KeyEnterRelease,
+		isdata.KeySK1Hold,
+		isdata.KeySK1Release,
+		isdata.KeySK2Hold,
+		isdata.KeySK2Release,
+		isdata.KeySK3Hold,
+		isdata.KeySK3Release,
+		isdata.KeySK4Hold,
+		isdata.KeySK4Release,
+		isdata.KeyArmHold,
+		isdata.KeyArmRelease,
+		isdata.KeyArmKpHold,
+		isdata.KeyArmKpRelease,
+		isdata.KeyPumpHold,
+		isdata.KeyPumpRelease,
+	}
+
+	isIgnored := func(key isdata.Key) bool {
+		for _, k := range ignoredKeys {
+			if key == k {
+				return true
+			}
+		}
+
+		return false
+	}
+
 	expectedKeys := []isdata.Key{
+		isdata.KeyArmKp,
+		isdata.KeyPump,
 		isdata.KeySK1,
 		isdata.KeySK2,
 		isdata.KeySK3,
@@ -38,13 +77,16 @@ func (d keys) Run() error {
 
 	timeout := time.NewTimer(time.Second * 30)
 
-	fmt.Println("Press keys in sequence: sk1 sk2 sk3 sk4 left up right down enter")
+	fmt.Println("Press keys in sequence: arm pump sk1 sk2 sk3 sk4 left up right down enter")
 
 	for {
 		select {
 		case m := <-keypadChan:
 			switch m := m.(type) {
 			case isdata.Key:
+				if isIgnored(m) {
+					continue
+				}
 				fmt.Println("Key: ", m)
 				if m != expectedKeys[keyIndex] {
 					return errors.New("did not get key: " + expectedKeys[keyIndex].String())
