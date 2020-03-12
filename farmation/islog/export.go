@@ -1,8 +1,11 @@
 package islog
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -207,6 +210,7 @@ func exportFieldTotals(state *isdata.State, config *isdata.Config, out chan inte
 	totals, err := ArrayToSpreadsheet(data)
 	if err != nil {
 		log.Println("Error converting to spreadsheet format: ", err)
+		out <- isdata.ErrWriteDisk{}
 		return
 	}
 
@@ -266,6 +270,91 @@ func exportFieldTotals(state *isdata.State, config *isdata.Config, out chan inte
 	err = totals.SaveAs(fileName)
 	if err != nil {
 		log.Println("Error saving "+fileName+": ", err)
+	}
+
+	// Send out finished signal and return
+	out <- isdata.ExportDataFinished{}
+	return
+}
+
+func exportSystemLogs(state *isdata.State, out chan interface{}) {
+
+	usbMountPoint := usbMountPoint()
+	if usbMountPoint == "" || !usbDeviceExists() {
+		out <- isdata.NoDiskPresent{}
+		return
+	}
+
+	fn := "is-" + state.SerialNumber + "_syslogs_" + time.Now().Format(tsFilenameFormat) + ".zip"
+
+	fn = path.Join(usbMountPoint, fn)
+
+	zipFile, err := os.Create(fn)
+	if err != nil {
+		log.Println("Error creating logs zip file on USB: ", err)
+		out <- isdata.ErrWriteDisk{}
+		return
+	}
+
+	zipWriter := zip.NewWriter(zipFile)
+
+	// Sync disks and close output file and writer
+	defer func() {
+		zipWriter.Close()
+		zipFile.Close()
+		err := file.SyncDisks()
+		if err != nil {
+			log.Println("Error syncing disks: ", err)
+		}
+	}()
+
+	// Read file info for all of the message files in the log
+	// directory into a slice
+	msgFileDir := "/data/log/"
+	msgFileInfos, err := ioutil.ReadDir(msgFileDir)
+	if err != nil {
+		log.Println("Error reading info for message files from log dir: ", err)
+		return
+	}
+
+	for _, msgFileInfo := range msgFileInfos {
+
+		msgFilePath := path.Join(msgFileDir, msgFileInfo.Name())
+
+		// Open the current file using its name from
+		// the file info
+		msgFile, err := os.Open(msgFilePath)
+		if err != nil {
+			log.Println("Error opening a log message file: ", err)
+			out <- isdata.ErrWriteDisk{}
+			return
+		}
+
+		// The message files will be closed in reverse order due to the way defer
+		// works, but this shouldn't matter
+		defer msgFile.Close()
+
+		// Create file header from the file info
+		header, err := zip.FileInfoHeader(msgFileInfo)
+		if err != nil {
+			log.Println("Error creating log message file header: ", err)
+		}
+		// Specify full path
+		header.Name = msgFilePath
+		// Use compression
+		header.Method = zip.Deflate
+
+		// Create an io.Writer
+		writer, err := zipWriter.CreateHeader(header)
+		if err != nil {
+			log.Println("Error creating zip writer for logs: ", err)
+		}
+
+		// Write data to io.Writer type
+		_, err = io.Copy(writer, msgFile)
+		if err != nil {
+			log.Println("Error writing log message file: ", err)
+		}
 	}
 
 	// Send out finished signal and return

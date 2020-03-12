@@ -16,6 +16,9 @@ type ExportDataFinished struct{}
 // ExportConfig is a message that causes the system to export config
 type ExportConfig struct{}
 
+// ExportSystemLogs ...
+type ExportSystemLogs struct{}
+
 // ExportConfigFinished is used to signal the system that export process has completed
 type ExportConfigFinished struct{}
 

@@ -22,6 +22,7 @@ require (
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
 	github.com/pbnjay/pixfont v0.0.0-20190130005054-401bb7c6aee2
+	github.com/pkg/errors v0.8.1
 	github.com/svent/go-nbreader v0.0.0-20150201200112-7cef48da76dc
 	github.com/timshannon/badgerhold v0.0.0-20190415130923-192650dd187a
 	github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944
