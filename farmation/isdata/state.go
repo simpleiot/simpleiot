@@ -19,6 +19,10 @@ import (
 type State struct {
 	SystemType SystemType `json:"systemType"`
 
+	DBConfig struct {
+		DBVersion int
+	}
+
 	// FlowRate defines the current flow rate of the system in GPH
 	FlowRate float64 `json:"flowRate"`
 	// AvgFlowRate defines the average flow rate of the system since it
