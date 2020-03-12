@@ -17,14 +17,16 @@ func (d pwrGood) Run() error {
 	if !isio.GpioRead(isio.GpioMainAuxPwr) {
 		return errors.New("Main Aux power gpio is not active")
 	}
-	GetInput("switch off 12V power to unit")
+
+	GetEnter("switch power switch off")
+
 	time.Sleep(10 * time.Millisecond)
 
-	if isio.GpioRead(isio.GpioMainAuxPwr) {
-		return errors.New("Main Aux power gpio should be inactive when 12V is off")
-	}
+	defer GetEnter("switch power switch back on")
 
-	GetInput("switch 12V back on")
+	if isio.GpioRead(isio.GpioMainAuxPwr) {
+		return errors.New("Failed to detect loss of power")
+	}
 
 	return nil
 }
