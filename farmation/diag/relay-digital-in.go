@@ -196,5 +196,5 @@ func (d relayFault) Run() error {
 
 func init() {
 	Register(relayDigitalIn{})
-	Register(relayFault{})
+	//Register(relayFault{})
 }
