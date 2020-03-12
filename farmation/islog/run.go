@@ -157,6 +157,14 @@ func Run(in, out chan interface{}, stateIn isdata.State, configIn isdata.Config,
 				go exportFieldTotals(&state, &config, in)
 				alreadyExporting = true
 
+			case isdata.ExportSystemLogs:
+				if alreadyExporting {
+					out <- isdata.ExportAlreadyInProcess{}
+					continue
+				}
+				go exportSystemLogs(&state, in)
+				alreadyExporting = true
+
 			case isdata.ExportDataFinished,
 				isdata.ExportConfigFinished,
 				isdata.NoDiskPresent,

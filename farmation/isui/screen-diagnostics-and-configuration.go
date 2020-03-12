@@ -53,6 +53,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	// Data export
 	s.menu.AddItemCommand("Data", "export", isdata.ExportData{})
 	s.menu.AddItemCommand("Config", "export", isdata.ExportConfig{})
+	s.menu.AddItemCommand("System Logs", "export", isdata.ExportSystemLogs{})
 
 	// Logging Enable
 	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData,
