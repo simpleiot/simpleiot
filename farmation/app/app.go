@@ -768,6 +768,18 @@ func Run(params Params) {
 				dlgExport.Heading = "Notice"
 				dlgExport.Message = "Exporting config to USB Disk\nPlease Wait"
 
+			case isdata.ExportSystemLogs:
+
+				// we only want one export process running at a time
+				if dlgExport.Active {
+					break
+				}
+
+				logChan <- isdata.ExportSystemLogs{}
+				dlgExport.Active = true
+				dlgExport.Heading = "Notice"
+				dlgExport.Message = "Exporting data to USB Disk\nPlease Wait"
+
 			case isdata.ExportFieldProductTotals:
 				if dlgExport.Active {
 					// we only want one export process running at a time
