@@ -312,8 +312,8 @@ func InitState(s *State) (dirty bool) {
 	s.Dialogs["Restart"] = &Dialog{
 		ID:      DialogRestart,
 		Heading: "Notice",
-		Message: "The timezone was changed,\nso the Injector " +
-			"Sentry will\nbe restarted.",
+		Message: "Application will now restart\nfor time " +
+			"zone change to\ntake effect",
 	}
 	s.Dialogs["Update"] = &Dialog{
 		ID:      DialogUpdate,
