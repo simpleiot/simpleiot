@@ -3,6 +3,7 @@ module Utils.Styles exposing
     , error
     , colors
     , fonts
+    , size
     , h1
     , h3
     , link
@@ -33,6 +34,10 @@ fonts =
         ]
     }
 
+size =
+    { body = Font.size 16
+    , heading = Font.size 20
+    }
 
 link : List (Attribute msg)
 link =
