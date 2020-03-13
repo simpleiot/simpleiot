@@ -459,44 +459,44 @@ func (c *Config) Init() {
 func (c *Config) ApplyBounds() {
 	if c.PressureStartupLow < 0 {
 		c.PressureStartupLow = 0
-	} else if c.PressureStartupLow > 9999 {
-		c.PressureStartupLow = 9999
+	} else if c.PressureStartupLow > 100 {
+		c.PressureStartupLow = 100
 	}
 
 	if c.HighWindowPerc < 0 {
 		c.HighWindowPerc = 0
-	} else if c.HighWindowPerc > 9999 {
-		c.HighWindowPerc = 9999
+	} else if c.HighWindowPerc > 100 {
+		c.HighWindowPerc = 100
 	}
 
 	if c.LowWindowPerc < 0 {
 		c.LowWindowPerc = 0
-	} else if c.LowWindowPerc > 9999 {
-		c.LowWindowPerc = 9999
+	} else if c.LowWindowPerc > 100 {
+		c.LowWindowPerc = 100
 	}
 
 	if c.ManualHighAlarmGPH < 0 {
 		c.ManualHighAlarmGPH = 0
-	} else if c.ManualHighAlarmGPH > 9999 {
-		c.ManualHighAlarmGPH = 9999
+	} else if c.ManualHighAlarmGPH > 1000 {
+		c.ManualHighAlarmGPH = 1000
 	}
 
 	if c.ManualLowAlarmGPH < 0 {
 		c.ManualLowAlarmGPH = 0
-	} else if c.ManualLowAlarmGPH > 9999 {
-		c.ManualLowAlarmGPH = 9999
+	} else if c.ManualLowAlarmGPH > 1000 {
+		c.ManualLowAlarmGPH = 1000
 	}
 
-	if c.LowPresPerc < 0 {
-		c.LowPresPerc = 0
-	} else if c.LowPresPerc > 9999 {
-		c.LowPresPerc = 9999
+	if c.LowPresPerc < 10 {
+		c.LowPresPerc = 10
+	} else if c.LowPresPerc > 100 {
+		c.LowPresPerc = 100
 	}
 
-	if c.HighPres <= 0 {
-		c.HighPres = 1
-	} else if c.HighPres > 9999 {
-		c.HighPres = 9999
+	if c.HighPres <= 50 {
+		c.HighPres = 51
+	} else if c.HighPres > 400 {
+		c.HighPres = 400
 	}
 
 	if c.AlarmRecognizeSec < 0 {
@@ -519,14 +519,14 @@ func (c *Config) ApplyBounds() {
 
 	if c.SampleDuration < 1 {
 		c.SampleDuration = 1
-	} else if c.SampleDuration > 300 {
-		c.SampleDuration = 300
+	} else if c.SampleDuration > 25 {
+		c.SampleDuration = 25
 	}
 
 	if c.MaxNoPulseDuration < 2*c.SampleDuration {
 		c.MaxNoPulseDuration = 2 * c.SampleDuration
-	} else if c.MaxNoPulseDuration > 600 {
-		c.MaxNoPulseDuration = 600
+	} else if c.MaxNoPulseDuration > 50 {
+		c.MaxNoPulseDuration = 50
 	}
 
 	/*if c.FlowAvgWindow < 2*c.SampleDuration {
@@ -545,14 +545,14 @@ func (c *Config) ApplyBounds() {
 
 		if c.FlowAvgPercDiff < 0 {
 			c.FlowAvgPercDiff = 0
-		} else if c.FlowAvgPercDiff > 9999 {
-			c.FlowAvgPercDiff = 9999
+		} else if c.FlowAvgPercDiff > 500{
+			c.FlowAvgPercDiff = 500
 		}*/
 
 	if c.PressureSetting < 0 {
 		c.PressureSetting = 0
-	} else if c.PressureSetting > 9999 {
-		c.PressureSetting = 9999
+	} else if c.PressureSetting > 500 {
+		c.PressureSetting = 500
 	}
 
 	if c.PulseOutputK <= 0 { // PulseOutputK can't be 0
@@ -563,7 +563,7 @@ func (c *Config) ApplyBounds() {
 
 	if c.PulseOutputTestFlowRate < 0 {
 		c.PulseOutputTestFlowRate = 0
-	} else if c.PulseOutputTestFlowRate > 9999 {
-		c.PulseOutputTestFlowRate = 9999
+	} else if c.PulseOutputTestFlowRate > 1000 {
+		c.PulseOutputTestFlowRate = 1000
 	}
 }
