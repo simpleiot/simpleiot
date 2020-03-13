@@ -9,6 +9,21 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+// Authorizer defines a mechanism needed to authorize stuff
+type Authorizer interface {
+	NewToken() (string, error)
+	Valid(req *http.Request) bool
+}
+
+// AlwaysValid is used to disable authentication
+type AlwaysValid struct{}
+
+// NewToken stub
+func (AlwaysValid) NewToken() (string, error) { return "valid", nil }
+
+// Valid stub
+func (AlwaysValid) Valid(*http.Request) bool { return true }
+
 // Key provides a key for signing authentication tokens.
 type Key struct {
 	bytes []byte

@@ -1,10 +1,14 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/frontend"
@@ -14,15 +18,54 @@ import (
 	"github.com/simpleiot/simpleiot/sim"
 )
 
+func send(portal, sample string) error {
+	frags := strings.Split(sample, ":")
+	if len(frags) != 4 {
+		return errors.New("format for sample is: 'devId:sensId:value:type'")
+	}
+
+	deviceID := frags[0]
+	sampleID := frags[1]
+	value, err := strconv.ParseFloat(frags[2], 64)
+	if err != nil {
+		return err
+	}
+
+	sampleType := frags[3]
+
+	sendSamples := api.NewSendSamples(portal, deviceID, time.Second*10, false)
+
+	err = sendSamples([]data.Sample{
+		{
+			ID:    sampleID,
+			Type:  sampleType,
+			Value: value,
+		},
+	})
+
+	return err
+}
+
 func main() {
-	flagSim := flag.Bool("sim", false, "Start device simulator")
-	flagSimPortal := flag.String("simPortal", "http://localhost:8080", "Portal URL")
-	flagSimDeviceID := flag.String("simDeviceId", "1234", "Simulation Device ID")
 	flagDebugHTTP := flag.Bool("debugHttp", false, "Dump http requests")
+	flagSim := flag.Bool("sim", false, "Start device simulator")
+	flagDisableAuth := flag.Bool("disableAuth", false, "Disable auth (used for development)")
+	flagSimDeviceID := flag.String("simDeviceId", "1234", "Simulation Device ID")
+	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
+	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
 	flag.Parse()
 
+	if *flagSendSample != "" {
+		err := send(*flagPortal, *flagSendSample)
+		if err != nil {
+			log.Println(err)
+			os.Exit(-1)
+		}
+		os.Exit(0)
+	}
+
 	if *flagSim {
-		go sim.DeviceSim(*flagSimPortal, *flagSimDeviceID)
+		go sim.DeviceSim(*flagPortal, *flagSimDeviceID)
 	}
 
 	// default action is to start server
@@ -86,13 +129,25 @@ func main() {
 		port = "8080"
 	}
 
-	key, err := api.NewKey(20)
-	if err != nil {
-		log.Println("Error generating key: ", err)
+	var auth api.Authorizer
+
+	if *flagDisableAuth {
+		auth = api.AlwaysValid{}
+	} else {
+		auth, err = api.NewKey(20)
+		if err != nil {
+			log.Println("Error generating key: ", err)
+		}
 	}
 
-	err = api.Server(port, dbInst, influx, frontend.Asset,
-		frontend.FileSystem(), *flagDebugHTTP, key)
+	err = api.Server(api.ServerArgs{
+		Port:       port,
+		DbInst:     dbInst,
+		Influx:     influx,
+		GetAsset:   frontend.Asset,
+		Filesystem: frontend.FileSystem(),
+		Debug:      *flagDebugHTTP,
+		Auth:       auth})
 
 	if err != nil {
 		log.Println("Error starting server: ", err)
