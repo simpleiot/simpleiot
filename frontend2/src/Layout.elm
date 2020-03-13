@@ -19,12 +19,7 @@ view { page, global, fromGlobalMsg } =
         [ Font.size 16
         , Font.color Styles.colors.jet
         , Font.family Styles.fonts.sans
-        , paddingEach
-            { top = 32
-            , left = 16
-            , right = 16
-            , bottom = 128
-            }
+        , paddingEach { top = 0, bottom = 16, left = 0, right = 0 }
         , spacing 32
         , width (fill |> maximum 640)
         , height fill
@@ -51,6 +46,7 @@ viewNavbar model =
     row
         [ width fill
         , spacing 24
+        , padding 16
         ]
         [ row [ Font.size 18, spacing 24 ] <|
             (link
@@ -68,7 +64,7 @@ viewNavbar model =
                 }
                 :: List.map viewLink
                     [ ( "devices", "/devices" )
-                    , ( "admin", "/admin" )
+                    , ( "users", "/users" )
                     ]
             )
         , el [ alignRight ] <|
