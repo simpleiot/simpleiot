@@ -3,7 +3,6 @@ package isui
 import (
 	"image/draw"
 	"strconv"
-	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -49,11 +48,11 @@ func (s *StatusScreen2) Render(img draw.Image) {
 	Line(img, 1, yBreak, 163, yBreak)
 
 	// Avg Flow
-	avgFlowStr := strconv.FormatFloat(s.state.AvgFlowRate, 'f', 0, 64)
+	avgFlowStr := strconv.FormatFloat(s.state.AvgArmedFlowRate, 'f', 0, 64)
 	DrawTxtRight(img, avgFlowStr, x, y3, tightpixel15.Font)
 
 	// Avg Over
-	timeSinceArm := strconv.FormatFloat(time.Since(s.state.AvgFlowRateStart).Hours(), 'f', 1, 64)
+	timeSinceArm := strconv.FormatFloat(s.state.DurationArmed.Hours(), 'f', 1, 64)
 	DrawTxtRight(img, timeSinceArm, x, y4, tightpixel15.Font)
 	DrawTxt(img, "hrs", x+4, y4, tightpixel15.Font)
 

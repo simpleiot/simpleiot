@@ -413,7 +413,8 @@ func Run(params Params) {
 					// compute and update average flow rate in arming period
 					if config.Arm {
 						flowAverager.AddSample(m)
-						state.AvgFlowRate = flowAverager.GetAverage().Value
+						state.AvgArmedFlowRate = flowAverager.GetAverage().Value
+						state.DurationArmed = time.Since(state.TimeArmed)
 					}
 
 					// update flow rate
@@ -531,7 +532,7 @@ func Run(params Params) {
 					toggleArmOrOpenDialog(&config, &state)
 					if config.Arm {
 						flowAverager.ResetAverage()
-						state.AvgFlowRateStart = time.Now()
+						state.TimeArmed = time.Now()
 						if config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify &&
 							!state.NetworkState.InterfaceStatus.Connected {
 							appChan <- isdata.NoNetworkConnection{}
@@ -567,7 +568,7 @@ func Run(params Params) {
 					toggleArmOrOpenDialog(&config, &state)
 					if config.Arm {
 						flowAverager.ResetAverage()
-						state.AvgFlowRateStart = time.Now()
+						state.TimeArmed = time.Now()
 					}
 					saveConfig()
 					saveState()
