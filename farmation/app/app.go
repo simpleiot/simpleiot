@@ -261,6 +261,10 @@ func Run(params Params) {
 		}
 	}
 
+	// Save the state so that the database version from migrations is
+	// saved
+	saveState()
+
 	saveStateTimer := time.NewTicker(time.Minute)
 
 	sigChan := make(chan os.Signal, 1)

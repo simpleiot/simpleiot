@@ -327,7 +327,7 @@ type HelpScreen struct {
 	Text   string
 }
 
-// NEVER, EVER, REMOVE A FUNCTION FROM THIS SLICE OR ADD ON ANYWHERE
+// NEVER, EVER, REMOVE A FUNCTION FROM THIS SLICE OR ADD ONE ANYWHERE
 // BUT THE END!!!
 // ONLY add migration functions to the end of the migrations slice as
 // necessary when new fields are added to the config that must be
@@ -338,6 +338,7 @@ var migrations = []func(*Config){
 	migration1,
 }
 
+// Filler migration - will never run
 func migration0(c *Config) {
 }
 
@@ -351,24 +352,8 @@ func migration1(c *Config) {
 		c.Timezone = "Central"
 	}
 
-	if c.PulsesPerGallon <= 0 {
-		c.PulsesPerGallon = 3785
-	}
-
-	if c.FlowAvgWindowLong <= 0 {
-		c.FlowAvgWindowLong = 30
-	}
-
-	if c.PressureSetting <= 0 {
-		c.PressureSetting = 300
-	}
-
-	if c.PulseOutputK <= 0 {
-		c.PulseOutputK = c.PulsesPerGallon
-	}
-
-	if c.PulseOutputTestFlowRate <= 0 {
-		c.PulseOutputTestFlowRate = 37
+	if c.PressureStartupLow <= 0 {
+		c.PressureStartupLow = 10
 	}
 
 	if c.HighWindowPerc <= 0 {
@@ -379,16 +364,50 @@ func migration1(c *Config) {
 		c.LowWindowPerc = 15
 	}
 
+	// c.ManualHighAlarmGPH defaults to 0
+
+	// c.ManualLowAlarmGPH defaults to 0
+
 	if c.LowPresPerc <= 0 {
 		c.LowPresPerc = 50
 	}
 
 	if c.HighPres <= 0 {
-		c.HighPres = 250
+		c.HighPres = 300
 	}
 
 	if c.AlarmRecognizeSec <= 0 {
-		c.AlarmRecognizeSec = 30
+		c.AlarmRecognizeSec = 360
+	}
+
+	// c.BatchAmount defaults to 0
+
+	if c.PulsesPerGallon <= 0 {
+		c.PulsesPerGallon = 22710
+	}
+
+	if c.FlowAvgWindowLong <= 0 {
+		c.FlowAvgWindowLong = 20
+	}
+
+	if c.PressureSetting <= 0 {
+		c.PressureSetting = 300
+	}
+
+	if c.PulseOutputK <= 0 {
+		c.PulseOutputK = 1500
+	}
+
+	if c.PulseOutputTestFlowRate <= 0 {
+		c.PulseOutputTestFlowRate = 80
+	}
+
+	if c.SampleDuration <= 0 {
+		c.SampleDuration = 2
+	}
+
+	if c.MaxNoPulseDuration <= 0 {
+		c.MaxNoPulseDuration = 4
 	}
 
 	// If the FieldConfigs array needs initialized
@@ -426,25 +445,25 @@ func migration1(c *Config) {
 // Init is used to inialize the config
 func (c *Config) Init(state *State) {
 
+	// Run migrations
+
 	// Check that the DBVersion from the state is not
-	// a bogus value that will crash the system
+	// a bogus value
 	if state.DBConfig.DBVersion > len(migrations)-1 ||
 		state.DBConfig.DBVersion < 0 {
 		log.Println("Error running config migrations: bogus " +
 			"database version from the state.")
-		return
-	}
+	} else {
 
-	// Run migrations
-	// Will ONLY run if new migration(s) have been added
-	// and DBVersion is less than the length of migrations
-	for v, mig := range migrations[state.DBConfig.DBVersion:] {
-		mig(c)
-		state.DBConfig.DBVersion = v
-	}
+		// Will ONLY run if new migration(s) have been added
+		// and DBVersion is less than the length of migrations
+		for v, mig := range migrations {
 
-	if c.Version < 1 {
-		c.ModemEnabled = true
+			if v > state.DBConfig.DBVersion {
+				mig(c)
+				state.DBConfig.DBVersion = v
+			}
+		}
 	}
 
 	c.Version = currentConfigVersion
@@ -473,6 +492,14 @@ func (c *Config) Init(state *State) {
 	}
 
 	c.HelpScreen.Active = false
+
+	// Make sure values are in a valid range
+	c.ApplyBounds()
+
+	if c.Version < 1 {
+		c.ModemEnabled = true
+	}
+
 }
 
 // ApplyBounds makes sure that all the config items are within
