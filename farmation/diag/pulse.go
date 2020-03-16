@@ -3,9 +3,11 @@ package diag
 import (
 	"errors"
 	"fmt"
+	"os/exec"
 	"time"
 
-	"github.com/simpleiot/simpleiot/farmation/isio"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 )
 
 type pulse struct{}
@@ -15,28 +17,49 @@ func (d pulse) String() string {
 }
 
 func (d pulse) Run() error {
-	// gpio_edge_timer driver must be removed before running diags
-	isio.GpioOut(isio.GpioPulseOutput, true)
-	//fmt.Println("Flow1: ", isio.GpioRead(isio.GpioFlow1Pulse))
-	fmt.Println("Flow2: ", isio.GpioRead(isio.GpioFlow2Pulse))
-	//if isio.GpioRead(isio.GpioFlow1Pulse) != false {
-	//	return errors.New("Flow 1 pulse input should be not active")
-	//}
+	err := exec.Command("rmmod", "gpio_edge_timer").Run()
+	if err != nil {
+		fmt.Println("Error removing edge timer driver: ", err)
+	}
+	time.Sleep(100 * time.Millisecond)
 
-	if isio.GpioRead(isio.GpioFlow2Pulse) != false {
-		return errors.New("Flow 2 pulse input should be not active")
+	pOut := gpioreg.ByName("PB7")
+	pOut.Out(gpio.Low)
+
+	pIn1 := gpioreg.ByName("PB8")
+	pIn2 := gpioreg.ByName("PD13")
+
+	err = pIn1.In(gpio.PullNoChange, gpio.NoEdge)
+
+	if err != nil {
+		return err
 	}
 
-	isio.GpioOut(isio.GpioPulseOutput, false)
-	time.Sleep(200 * time.Millisecond)
-	//fmt.Println("Flow1: ", isio.GpioRead(isio.GpioFlow1Pulse))
-	fmt.Println("Flow2: ", isio.GpioRead(isio.GpioFlow2Pulse))
-	//if isio.GpioRead(isio.GpioFlow1Pulse) != true {
-	//	return errors.New("Flow 1 pulse input should be active")
-	//}
+	err = pIn2.In(gpio.PullNoChange, gpio.NoEdge)
 
-	if isio.GpioRead(isio.GpioFlow2Pulse) != true {
-		return errors.New("Flow 2 pulse input should be active")
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	if pIn1.Read() != gpio.High {
+		return errors.New("Expected pulse input 1 to be low")
+	}
+
+	if pIn2.Read() != gpio.High {
+		return errors.New("Expected pulse input 2 to be low")
+	}
+
+	pOut.Out(gpio.High)
+	time.Sleep(10 * time.Millisecond)
+
+	if pIn1.Read() != gpio.Low {
+		return errors.New("Expected pulse input 1 to be high")
+	}
+
+	if pIn2.Read() != gpio.Low {
+		return errors.New("Expected pulse input 2 to be high")
 	}
 
 	return nil

@@ -89,6 +89,13 @@ type pin struct {
 	Pin       gpio.PinIO
 }
 
+var pinsPulseTest = map[string]*pin{
+	// we are controlling pulse output in kernel now
+	GpioPulseOutput: &pin{"PB7", true, true, nil},
+	GpioFlow1Pulse:  &pin{"PB8", true, false, nil},
+	GpioFlow2Pulse:  &pin{"PD13", true, false, nil},
+}
+
 var pins = map[string]*pin{
 	GpioDigitalInjector:  &pin{"PC24", true, false, nil},
 	GpioDigitalIrrigator: &pin{"PD8", true, false, nil},
@@ -123,11 +130,6 @@ var pins = map[string]*pin{
 	gpioModemReset:   &pin{"PA22", false, false, nil},
 	GpioModemSleep:   &pin{"PA27", false, true, nil},
 	gpioModemPowerOn: &pin{"PA31", false, false, nil},
-
-	// we are controlling pulse output in kernel now
-	//GpioPulseOutput: &pin{"PB7", true, true, nil},
-	//GpioFlow1Pulse: &pin{"PB8", true, false, nil},
-	//GpioFlow2Pulse: &pin{"PD13", true, false, nil},
 
 	GpioMainAuxPwr: &pin{"PC23", true, false, nil},
 	GpioBackupPwr:  &pin{"PD1", true, false, nil},
