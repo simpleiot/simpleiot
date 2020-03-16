@@ -2,6 +2,7 @@ package diag
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/simpleiot/simpleiot/farmation/isio"
@@ -45,7 +46,32 @@ func (d backupPwrGood) Run() error {
 	return nil
 }
 
+type backupSupplyVoltage struct{}
+
+func (d backupSupplyVoltage) String() string {
+	return "backup-voltage"
+}
+
+func (d backupSupplyVoltage) Run() (ret error) {
+	v, err := isio.ReadVcap()
+	if err != nil {
+		return err
+	}
+
+	vcapNominal := 5.27
+	vcapMin := vcapNominal - vcapNominal*0.05
+	vcapMax := vcapNominal + vcapNominal*0.05
+
+	if v < vcapMin || v > vcapMax {
+		fmt.Println("vcap: ", v)
+		return errors.New("Vcap is out of range")
+	}
+
+	return
+}
+
 func init() {
 	Register(pwrGood{})
 	Register(backupPwrGood{})
+	Register(backupSupplyVoltage{})
 }
