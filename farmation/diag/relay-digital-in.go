@@ -120,6 +120,18 @@ func blinkGreenLed() {
 }
 
 func (d relayFault) Run() error {
+	// turn off all relays
+	isio.GpioOut(isio.GpioRelayInjectorEn, false)
+	isio.GpioOut(isio.GpioRelayShutdownEn, false)
+	isio.GpioOut(isio.GpioRelayAuxEn, false)
+
+	defer func() {
+		// turn off all relays
+		isio.GpioOut(isio.GpioRelayInjectorEn, false)
+		isio.GpioOut(isio.GpioRelayShutdownEn, false)
+		isio.GpioOut(isio.GpioRelayAuxEn, false)
+	}()
+
 	relayFaultGpios := []string{
 		isio.GpioRelayInjectorFault,
 		isio.GpioRelayAuxFault,
@@ -133,31 +145,19 @@ func (d relayFault) Run() error {
 		}
 	}
 
-	fmt.Println("disconnect coils from inj, aux, and shdn relays")
+	GetEnter("disconnect coils from inj, aux, and shdn relays")
 
-	start := time.Now()
-
-	relayFaultIndex := 0
-
-	for time.Now().Sub(start) < time.Minute && relayFaultIndex < len(relayFaultGpios) {
-		r := relayFaultGpios[relayFaultIndex]
-		if isio.GpioRead(r) {
-			fmt.Println("detected fault for: ", r)
-			blinkGreenLed()
-			relayFaultIndex++
+	for _, r := range relayFaultGpios {
+		if !isio.GpioRead(r) {
+			return fmt.Errorf("open coil fault test failed for %v", r)
 		}
-		time.Sleep(10 * time.Millisecond)
 	}
 
-	if relayFaultIndex < len(relayFaultGpios) {
-		return errors.New("open coil fault test failed for: " + relayFaultGpios[relayFaultIndex])
-	}
+	GetEnter("reconnect coils and press enter")
 
-	// make sure all fault signals are inactive again
-	time.Sleep(10 * time.Second)
 	for _, r := range relayFaultGpios {
 		if isio.GpioRead(r) {
-			return errors.New("relay fault is active for " + r)
+			return fmt.Errorf("relay still reading fault after connecting coils %v", r)
 		}
 	}
 
@@ -166,35 +166,21 @@ func (d relayFault) Run() error {
 	isio.GpioOut(isio.GpioRelayShutdownEn, true)
 	isio.GpioOut(isio.GpioRelayAuxEn, true)
 
-	fmt.Println("short coils on inj, aux, and shdn relays")
+	GetEnter("short coils on inj, aux, and shdn relays")
 
-	start = time.Now()
-
-	relayFaultIndex = 0
-
-	for time.Now().Sub(start) < time.Minute && relayFaultIndex < len(relayFaultGpios) {
-		r := relayFaultGpios[relayFaultIndex]
-		if isio.GpioRead(r) {
-			fmt.Println("detected short coil for: ", r)
-			blinkGreenLed()
-			relayFaultIndex++
+	for _, r := range relayFaultGpios {
+		if !isio.GpioRead(r) {
+			GetEnter("remove coil shorts")
+			return fmt.Errorf("shorted coil fault test failed for %v", r)
 		}
-		time.Sleep(10 * time.Millisecond)
 	}
 
-	if relayFaultIndex < len(relayFaultGpios) {
-		return errors.New("shorted coil fault test failed for: " + relayFaultGpios[relayFaultIndex])
-	}
-
-	// turn off all relays
-	isio.GpioOut(isio.GpioRelayInjectorEn, false)
-	isio.GpioOut(isio.GpioRelayShutdownEn, false)
-	isio.GpioOut(isio.GpioRelayAuxEn, false)
+	GetEnter("remove coil shorts")
 
 	return nil
 }
 
 func init() {
 	Register(relayDigitalIn{})
-	//Register(relayFault{})
+	Register(relayFault{})
 }
