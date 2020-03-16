@@ -94,11 +94,11 @@ func Run() {
 }
 
 // GetEnter waits for user to press enter
-func GetEnter(prompt string) {
+func GetEnter(prompt string) string {
 	fmt.Println(prompt + " and press enter")
 	var input string
 	fmt.Scanln(&input)
-	return
+	return input
 }
 
 // GetInput returns user input

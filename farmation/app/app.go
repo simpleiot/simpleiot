@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"image"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -55,9 +54,9 @@ func Run(params Params) {
 
 	if params.SerialNumber == "" {
 		if runtime.GOARCH == "arm" {
-			data, err := ioutil.ReadFile("/boot/serial-number")
+			sn, err := isdb.ReadSerialNumber()
 			if err == nil {
-				params.SerialNumber = string(data)
+				params.SerialNumber = sn
 			} else {
 				params.SerialNumber = "unknown"
 			}

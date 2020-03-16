@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"runtime"
 
 	"github.com/simpleiot/simpleiot/farmation/app"
 	"github.com/simpleiot/simpleiot/farmation/diag"
+	"github.com/simpleiot/simpleiot/farmation/isdb"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/islog"
 	"github.com/simpleiot/simpleiot/network"
@@ -199,7 +199,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		err := ioutil.WriteFile("/boot/serial-number", []byte(*flagSetIsSN), 600)
+		err := isdb.WriteSerialNumber(*flagSetIsSN)
 		if err != nil {
 			log.Println("Error writing SN: ", err)
 			os.Exit(-1)
