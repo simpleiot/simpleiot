@@ -27,7 +27,7 @@ page =
     Spa.Page.element
         { title = always "Devices"
         , init = always init
-        , update = always update
+        , update = update
         , subscriptions = subscriptions
         , view = always view
         }
@@ -72,12 +72,17 @@ type alias Response =
     }
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg )
+update context msg model =
     case msg of
         Tick _ ->
             ( model
-            , getDevices
+            , case context.global of
+                Global.SignedIn sess ->
+                    getDevices sess.authToken
+
+                Global.SignedOut _ ->
+                    Cmd.none
             )
 
         UpdateDevices (Ok devices) ->
@@ -168,11 +173,17 @@ deviceStateDecoder =
         (Decode.field "ios" samplesDecoder)
 
 
-getDevices : Cmd Msg
-getDevices =
-    Http.get
-        { url = urlDevices
+getDevices : String -> Cmd Msg
+getDevices token =
+    Http.request
+        { method = "GET"
+        , headers =
+        [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = urlDevices
         , expect = Http.expectJson UpdateDevices devicesDecoder
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
         }
 
 
