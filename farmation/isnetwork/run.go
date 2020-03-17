@@ -3,6 +3,7 @@ package isnetwork
 import (
 	"log"
 	"math"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"syscall"
@@ -349,7 +350,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			// Time syncing through network
 			if interfaceStatus.Connected &&
 				(lastTimeSync.IsZero() || time.Since(lastTimeSync) >= time.Hour) {
-				updateTime()
+				UpdateTimeFromNetwork()
 				lastTimeSync = time.Now()
 			}
 
@@ -435,7 +436,8 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	}
 }
 
-func updateTime() (err error) {
+// UpdateTimeFromNetwork fetches time from ntp server and stores in system and RTC
+func UpdateTimeFromNetwork() (err error) {
 
 	current, err := ntp.Time("0.pool.ntp.org")
 	if err != nil {
@@ -448,6 +450,13 @@ func updateTime() (err error) {
 	err = syscall.Settimeofday(&tv)
 	if err != nil {
 		log.Println("Error synchronizing system clock: ", err)
+		return err
+	}
+
+	// Sync the real-time clock (RTC)
+	// Always store time in UTC on the RTC
+	err = exec.Command("hwclock", "-w", "-u").Run()
+	if err != nil {
 		return err
 	}
 
