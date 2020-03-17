@@ -19,6 +19,10 @@ func (d pwrGood) Run() error {
 		return errors.New("Main Aux power gpio is not active")
 	}
 
+	if isio.GpioRead(isio.GpioBackupPwr) {
+		return errors.New("backup power gpio is active")
+	}
+
 	GetEnter("switch power switch off")
 
 	time.Sleep(10 * time.Millisecond)
@@ -29,18 +33,8 @@ func (d pwrGood) Run() error {
 		return errors.New("Failed to detect loss of power")
 	}
 
-	return nil
-}
-
-type backupPwrGood struct{}
-
-func (d backupPwrGood) String() string {
-	return "backup-pwr-good"
-}
-
-func (d backupPwrGood) Run() error {
-	if !isio.GpioRead(isio.GpioMainAuxPwr) {
-		return errors.New("backup power gpio is not active")
+	if !isio.GpioRead(isio.GpioBackupPwr) {
+		return errors.New("Failed to detect we are on backup power")
 	}
 
 	return nil
@@ -72,6 +66,5 @@ func (d backupSupplyVoltage) Run() (ret error) {
 
 func init() {
 	Register(pwrGood{})
-	Register(backupPwrGood{})
 	Register(backupSupplyVoltage{})
 }
