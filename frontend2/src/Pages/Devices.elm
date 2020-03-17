@@ -97,7 +97,12 @@ update context msg model =
 
         PostDeviceConfig id config ->
             ( model
-            , postDeviceConfig id config
+            , case context.global of
+                Global.SignedIn sess ->
+                    postDeviceConfig sess.authToken id config
+
+                Global.SignedOut _ ->
+                    Cmd.none
             )
 
         DeviceConfigPosted id (Ok _) ->
@@ -177,8 +182,7 @@ getDevices : String -> Cmd Msg
 getDevices token =
     Http.request
         { method = "GET"
-        , headers =
-        [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = urlDevices
         , expect = Http.expectJson UpdateDevices devicesDecoder
         , body = Http.emptyBody
@@ -392,12 +396,16 @@ deviceConfigEncoder deviceConfig =
         [ ( "description", Encode.string deviceConfig.description ) ]
 
 
-postDeviceConfig : String -> DeviceConfig -> Cmd Msg
-postDeviceConfig id config =
-    Http.post
-        { url = Url.absolute [ "v1", "devices", id, "config" ] []
-        , body = config |> deviceConfigEncoder |> Http.jsonBody
+postDeviceConfig : String -> String -> DeviceConfig -> Cmd Msg
+postDeviceConfig token id config =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "devices", id, "config" ] []
         , expect = Http.expectJson (DeviceConfigPosted id) responseDecoder
+        , body = config |> deviceConfigEncoder |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
         }
 
 
