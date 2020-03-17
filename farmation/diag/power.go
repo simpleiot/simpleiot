@@ -46,7 +46,7 @@ func (d backupSupplyVoltage) String() string {
 	return "backup-voltage"
 }
 
-func (d backupSupplyVoltage) Run() (ret error) {
+func (d backupSupplyVoltage) Run() error {
 	v, err := isio.ReadVcap()
 	if err != nil {
 		return err
@@ -56,12 +56,31 @@ func (d backupSupplyVoltage) Run() (ret error) {
 	vcapMin := vcapNominal - vcapNominal*0.05
 	vcapMax := vcapNominal + vcapNominal*0.05
 
-	if v < vcapMin || v > vcapMax {
-		fmt.Println("vcap: ", v)
-		return errors.New("Vcap is out of range")
+	if v > vcapMax {
+		return fmt.Errorf("Vcap is high, expected 5.27, got %v", v)
 	}
 
-	return
+	if v < vcapMin {
+		// check if vcap is rising at 4mV/sec -- see
+		// https://trello.com/c/S6ro11Ix for data on how fast the
+		// super caps charge
+		fmt.Println("checking if caps are charging, please wait ...")
+		time.Sleep(10 * time.Second)
+		v2, err := isio.ReadVcap()
+		if err != nil {
+			return err
+		}
+
+		minVChange := 8 * 0.00433
+		vChange := v2 - v
+
+		if vChange < minVChange {
+			return fmt.Errorf("caps are not charging at expected rate, got %v, expected %v", vChange, minVChange)
+		}
+	}
+
+	// caps are charged and everything looks good
+	return nil
 }
 
 func init() {
