@@ -46,11 +46,22 @@ type Params struct {
 	PortalURL    string
 	SerialNumber string
 	ViewMsg      bool
+	ReadVcap     bool
 }
 
 // Run is the entry point for the IS application
 func Run(params Params) {
 	log.Println("Starting Injectory Sentry app")
+
+	if params.ReadVcap {
+		v, err := isio.ReadVcap()
+		if err != nil {
+			log.Println("Error reading vcap: ", err)
+			os.Exit(-1)
+		}
+		log.Println("Vcap: ", v)
+		os.Exit(0)
+	}
 
 	if params.SerialNumber == "" {
 		if runtime.GOARCH == "arm" {

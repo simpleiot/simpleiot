@@ -42,6 +42,7 @@ func main() {
 	flagEnableAuxRelay := flag.Bool("enableAuxRelay", false, "enable aux relay")
 	flagHwID := flag.Bool("hwId", false, "display HW ID")
 	flagViewMsg := flag.Bool("msg", false, "view channel messages to app")
+	flagReadVcap := flag.Bool("readVcap", false, "read backup battery voltage")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -225,6 +226,7 @@ func main() {
 		PortalURL:    *flagPortal,
 		SerialNumber: *flagSerialNumber,
 		ViewMsg:      *flagViewMsg,
+		ReadVcap:     *flagReadVcap,
 	}
 
 	app.Run(params)
