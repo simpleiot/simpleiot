@@ -71,7 +71,7 @@ func (d backupSupplyVoltage) Run() error {
 			return err
 		}
 
-		minVChange := 8 * 0.00433
+		minVChange := 5 * 0.00433
 		vChange := v2 - v
 
 		if vChange < minVChange {
