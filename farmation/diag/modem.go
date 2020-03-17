@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cbrake/go-serial/serial"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/file"
 )
@@ -12,50 +11,36 @@ import (
 type modemUsb struct{}
 
 func (d modemUsb) String() string {
-	return "modemUsb"
+	return "modem-usb"
 }
 
-const modemUsbDev = "/dev/cdc-wdm0"
+const modemUsbDev = "/dev/ttyUSB0"
 
 func (d modemUsb) Run() error {
-	isio.GpioOut(isio.GpioModemSleep, false)
-	time.Sleep(2 * time.Second)
+	if !file.Exists(modemUsbDev) {
+		return errors.New("modem not detected on USB")
+	}
 
+	isio.ResetModem()
+
+	time.Sleep(10 * time.Millisecond)
 	if file.Exists(modemUsbDev) {
-		return errors.New("modem reset is not working")
+		return errors.New("modem still detected after reset")
 	}
 
-	options := serial.OpenOptions{
-		PortName:              isio.SerialModem,
-		BaudRate:              9600,
-		DataBits:              8,
-		StopBits:              1,
-		MinimumReadSize:       1,
-		InterCharacterTimeout: 200,
-		RTSCTSFlowControl:     true,
-	}
-
-	p, err := serial.Open(options)
-	if err != nil {
-		return err
-	}
-
-	defer p.Close()
-
-	// modem takes about 5 seconds to show up on USB bus after reset
-	time.Sleep(6 * time.Second)
+	time.Sleep(7 * time.Second)
 
 	if !file.Exists(modemUsbDev) {
-		return errors.New("Modem is not detected on USB bus")
+		return errors.New("Modem is not detected on USB bus after reset")
 	}
 
-	return DigiCheckAt(p)
+	return nil
 }
 
 type modemSerial struct{}
 
 func (d modemSerial) String() string {
-	return "modemSerial"
+	return "modem-serial"
 }
 
 func (d modemSerial) Run() error {
