@@ -4,8 +4,11 @@ import (
 	"errors"
 	"time"
 
+	"github.com/cbrake/go-serial/serial"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/file"
+	"github.com/simpleiot/simpleiot/network"
+	"github.com/simpleiot/simpleiot/respreader"
 )
 
 type modemUsb struct{}
@@ -44,17 +47,31 @@ func (d modemSerial) String() string {
 }
 
 func (d modemSerial) Run() error {
-	p, err := isio.OpenSerialModem()
+	options := serial.OpenOptions{
+		PortName:          isio.SerialModem,
+		BaudRate:          115200,
+		DataBits:          8,
+		StopBits:          1,
+		MinimumReadSize:   1,
+		RTSCTSFlowControl: true,
+	}
+
+	port, err := serial.Open(options)
+
 	if err != nil {
 		return err
 	}
 
-	// give modem a few seconds to power up
-	time.Sleep(6 * time.Second)
+	port = respreader.NewResponseReadWriteCloser(port, 1*time.Second,
+		50*time.Millisecond)
 
-	defer p.Close()
+	err = network.CmdOK(port, "AT")
 
-	return DigiCheckAt(p)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func init() {
