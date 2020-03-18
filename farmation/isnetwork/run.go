@@ -414,7 +414,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				},
 				{
 					Type:  "avgFlowRate",
-					Value: state.AvgFlowRate,
+					Value: state.AvgArmedFlowRate,
 				},
 				{
 					Type:  "pressureMin",

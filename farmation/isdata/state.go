@@ -11,7 +11,7 @@ import (
 )
 
 // State contains the current injectory sentry state.
-// Note, these type is stored directly in database,
+// Note, these types are stored directly in database,
 // so you can't ever change types of fields, or remove values from
 // consts. It is safest to never delete fields, but rather comment
 // that they are no longer used, so they don't accidently get
@@ -20,21 +20,20 @@ type State struct {
 	SystemType SystemType `json:"systemType"`
 
 	// FlowRate defines the current flow rate of the system in GPH
-	FlowRate float64 `json:"flowRate"`
-	// AvgFlowRate defines the average flow rate of the system since it
-	// was last armed
-	AvgFlowRate       float64      `json:"avgFlowRate"`
-	AvgFlowRateStart  time.Time    `json:"avgFlowRateStart"`
-	FlowRateMin       float64      `json:"flowRateMin"`
-	FlowRateMax       float64      `json:"flowRateMax"`
-	BatchApplied      float64      `json:"batchApplied"`
-	BatchRemaining    float64      `json:"batchRemaining"`
-	Total1            float64      `json:"total1"`
-	Total2            float64      `json:"total2"`
-	LifetimeTotal     float64      `json:"lifetimeTotal"`
-	FlowPulseCount    int          `json:"flowPulseCount"`
-	CurrentTankVolume float64      `json:"currentTankVolume"`
-	NetworkState      NetworkState `json:"networkState"`
+	FlowRate          float64       `json:"flowRate"`
+	AvgArmedFlowRate  float64       `json:"avgFlowRate"`
+	TimeArmed         time.Time     `json:"avgFlowRateStart"`
+	DurationArmed     time.Duration `json:"durationArmed"`
+	FlowRateMin       float64       `json:"flowRateMin"`
+	FlowRateMax       float64       `json:"flowRateMax"`
+	BatchApplied      float64       `json:"batchApplied"`
+	BatchRemaining    float64       `json:"batchRemaining"`
+	Total1            float64       `json:"total1"`
+	Total2            float64       `json:"total2"`
+	LifetimeTotal     float64       `json:"lifetimeTotal"`
+	FlowPulseCount    int           `json:"flowPulseCount"`
+	CurrentTankVolume float64       `json:"currentTankVolume"`
+	NetworkState      NetworkState  `json:"networkState"`
 
 	FieldStates    [][5]ProductState `json:"fieldStates"`
 	GpsPos         GpsPos            `json:"gpsPos"`
@@ -50,14 +49,14 @@ type State struct {
 	GpioDigitalIrrigator bool `json:"gpioDigitalIrrigator"`
 	GpioDigitalWaterOn   bool `json:"gpioDigitalWaterOn"`
 	GpioDigitalIn        bool `json:"gpioDigitalIn"`
-	GpioMainAuxPwr       bool
+	GpioMainAuxPwr       bool `json:"gpioMainAuxPwr"`
 
 	GpioRelayInjectorEn bool `json:"gpioRelayInjectorEn"`
 	GpioRelayShutdownEn bool `json:"gpioRelayShutdownEn"`
 	GpioRelayAuxEn      bool `json:"gpioRelayAuxEn"`
 
-	GpioRegValve1 bool
-	GpioRegValve2 bool
+	GpioRegValve1 bool `json:"gpioRegValve1"`
+	GpioRegValve2 bool `json:"gpioRegValve2"`
 
 	GpioStatusLedRed   bool `json:"gpioStatusLedRed"`
 	GpioStatusLedGreen bool `json:"gpioStatusLedGreen"`
@@ -80,7 +79,7 @@ type State struct {
 	// OUTDATED: only for messages from state machine. Create new dialog
 	// structs for other parts of the app.
 	// NOTE: Add dialogs in method InitState()
-	Dialogs map[string]*Dialog //map[string]Dialog
+	Dialogs map[string]*Dialog `json:"dialogs"` //map[string]Dialog
 
 	OSVersion    semver.Version `json:"osVersion"`
 	SerialNumber string         `json:"serialNumber"`
@@ -94,9 +93,9 @@ type State struct {
 	// by the sense resistor.
 	// PanelDefinition PanelDefinition `json:"panelConfig"`
 
-	NetworkInterfaceConfig network.InterfaceConfig
+	NetworkInterfaceConfig network.InterfaceConfig `json:"networkInterfaceConfig"`
 
-	HWVersion int
+	HWVersion int `json:"hwVersion"`
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config
