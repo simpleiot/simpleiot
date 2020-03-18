@@ -1,6 +1,7 @@
 package isdata
 
 import (
+	"log"
 	"strconv"
 )
 
@@ -326,30 +327,22 @@ type HelpScreen struct {
 	Text   string
 }
 
-// Init is used to inialize the config
-func (c *Config) Init() {
-	// run migrations
+// NEVER, EVER, REMOVE A FUNCTION FROM THIS SLICE OR ADD ONE ANYWHERE
+// BUT THE END!!!
+// ONLY add migration functions to the end of the migrations slice as
+// necessary when new fields are added to the config that must be
+// initialized to a default value other than zero or nil.
+// Let me repeat: NEVER, EVER, REMOVE A FUNCTION FROM THIS SLICE!!!
+var migrations = []func(*Config){
+	migration0,
+	migration1,
+}
 
-	if c.Version < 1 {
-		c.ModemEnabled = true
-	}
+// Filler migration - will never run
+func migration0(c *Config) {
+}
 
-	c.Version = currentConfigVersion
-
-	// always turn off logging of pulse data -- this should be
-	// initiated by user each time system starts
-	c.LogPulseData = false
-	c.LogFlowData = false
-	c.LogPressureData = false
-
-	// Initialize pulse output test to off
-	c.PulseOutputTestOn = false
-
-	// set relays to auto mode in case
-	// power lost while relays were in manual mode
-	c.ManualRelayInj = RelayControlStateAuto
-	c.ManualRelayAux = RelayControlStateAuto
-	c.ManualRelayShutdown = RelayControlStateAuto
+func migration1(c *Config) {
 
 	if c.DeviceName == "" {
 		c.DeviceName = "InjectorSentry"
@@ -359,37 +352,8 @@ func (c *Config) Init() {
 		c.Timezone = "Central"
 	}
 
-	if c.PulsesPerGallon <= 0 {
-		c.PulsesPerGallon = 3785
-	}
-
-	/*if c.FlowAvgWindow <= 0 {
-		c.FlowAvgWindow = 8
-	}
-	*/
-
-	if c.FlowAvgWindowLong <= 0 {
-		c.FlowAvgWindowLong = 30
-	}
-
-	/*if c.FlowAvgPercDiff <= 0 {
-		c.FlowAvgPercDiff = 10
-	}
-	*/
-
-	// Check window size
-	c.SetFlowAvgWindows()
-
-	if c.PressureSetting <= 0 {
-		c.PressureSetting = 300
-	}
-
-	if c.PulseOutputK <= 0 {
-		c.PulseOutputK = c.PulsesPerGallon
-	}
-
-	if c.PulseOutputTestFlowRate <= 0 {
-		c.PulseOutputTestFlowRate = 37
+	if c.PressureStartupLow <= 0 {
+		c.PressureStartupLow = 10
 	}
 
 	if c.HighWindowPerc <= 0 {
@@ -400,16 +364,50 @@ func (c *Config) Init() {
 		c.LowWindowPerc = 15
 	}
 
+	// c.ManualHighAlarmGPH defaults to 0
+
+	// c.ManualLowAlarmGPH defaults to 0
+
 	if c.LowPresPerc <= 0 {
 		c.LowPresPerc = 50
 	}
 
 	if c.HighPres <= 0 {
-		c.HighPres = 250
+		c.HighPres = 300
 	}
 
 	if c.AlarmRecognizeSec <= 0 {
-		c.AlarmRecognizeSec = 30
+		c.AlarmRecognizeSec = 360
+	}
+
+	// c.BatchAmount defaults to 0
+
+	if c.PulsesPerGallon <= 0 {
+		c.PulsesPerGallon = 22710
+	}
+
+	if c.FlowAvgWindowLong <= 0 {
+		c.FlowAvgWindowLong = 20
+	}
+
+	if c.PressureSetting <= 0 {
+		c.PressureSetting = 300
+	}
+
+	if c.PulseOutputK <= 0 {
+		c.PulseOutputK = 1500
+	}
+
+	if c.PulseOutputTestFlowRate <= 0 {
+		c.PulseOutputTestFlowRate = 80
+	}
+
+	if c.SampleDuration <= 0 {
+		c.SampleDuration = 2
+	}
+
+	if c.MaxNoPulseDuration <= 0 {
+		c.MaxNoPulseDuration = 4
 	}
 
 	// If the FieldConfigs array needs initialized
@@ -437,6 +435,54 @@ func (c *Config) Init() {
 		}
 	}
 
+	if c.PanelType != PanelTypeStandardPump &&
+		c.PanelType != PanelTypeStandardPivot &&
+		c.PanelType != PanelTypeLindsay {
+		c.PanelType = PanelTypeStandardPivot
+	}
+}
+
+// Init is used to inialize the config
+func (c *Config) Init(state *State) {
+
+	// Run migrations
+
+	// Check that the DBVersion from the state is not
+	// a bogus value
+	if state.DBConfig.DBVersion > len(migrations)-1 ||
+		state.DBConfig.DBVersion < 0 {
+		log.Println("Error running config migrations: bogus " +
+			"database version from the state.")
+	} else {
+
+		// Will ONLY run if new migration(s) have been added
+		// and DBVersion is less than the length of migrations
+		for v, mig := range migrations {
+
+			if v > state.DBConfig.DBVersion {
+				mig(c)
+				state.DBConfig.DBVersion = v
+			}
+		}
+	}
+
+	c.Version = currentConfigVersion
+
+	// always turn off logging of pulse data -- this should be
+	// initiated by user each time system starts
+	c.LogPulseData = false
+	c.LogFlowData = false
+	c.LogPressureData = false
+
+	// Initialize pulse output test to off
+	c.PulseOutputTestOn = false
+
+	// set relays to auto mode in case
+	// power lost while relays were in manual mode
+	c.ManualRelayInj = RelayControlStateAuto
+	c.ManualRelayAux = RelayControlStateAuto
+	c.ManualRelayShutdown = RelayControlStateAuto
+
 	if c.CurrentFieldIndex > len(c.FieldConfigs)-1 {
 		c.CurrentFieldIndex = len(c.FieldConfigs) - 1
 	}
@@ -445,13 +491,15 @@ func (c *Config) Init() {
 		c.CurrentProductIndex = len(c.ProductConfigs) - 1
 	}
 
-	if c.PanelType != PanelTypeStandardPump &&
-		c.PanelType != PanelTypeStandardPivot &&
-		c.PanelType != PanelTypeLindsay {
-		c.PanelType = PanelTypeStandardPivot
+	c.HelpScreen.Active = false
+
+	// Make sure values are in a valid range
+	c.ApplyBounds()
+
+	if c.Version < 1 {
+		c.ModemEnabled = true
 	}
 
-	c.HelpScreen.Active = false
 }
 
 // ApplyBounds makes sure that all the config items are within

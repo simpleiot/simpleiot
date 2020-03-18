@@ -136,7 +136,7 @@ func Run(params Params) {
 	fmt.Println("OSVersion: ", state.OSVersion)
 	fmt.Println("AppVersion: ", version.AppVersion)
 
-	config.Init()
+	config.Init(&state)
 
 	// Check that the system timezone didn't get messed up
 	zonePath, zone, err := system.GetTimezone()
@@ -270,6 +270,10 @@ func Run(params Params) {
 			lastStateSendSlow = now
 		}
 	}
+
+	// Save the state so that the database version from migrations is
+	// saved
+	saveState()
 
 	saveStateTimer := time.NewTicker(time.Minute)
 
