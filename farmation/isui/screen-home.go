@@ -49,9 +49,13 @@ func (s *HomeScreen) Render(img draw.Image) {
 	y := 15
 
 	// Flow rate
-	if s.config.Arm &&
+	// Blink flow rate display if injector pump is on and flow rate is off target
+	// or if it is below 10, because the flow meter is innaccurate at low flow rates
+	if (s.config.Arm &&
 		s.state.GpioRelayInjectorEn &&
-		s.state.FlowStatus == isdata.FlowStatusOffTarget { // if injector pump is on and flow rate is off target
+		s.state.FlowStatus == isdata.FlowStatusOffTarget) ||
+
+		s.state.FlowRate < 10 {
 		if time.Since(s.flowLastBlink) >= 490*time.Millisecond {
 			s.flowLastBlink = time.Now()
 			s.flowOn = !s.flowOn
