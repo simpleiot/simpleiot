@@ -49,5 +49,5 @@ func (d gpsDiag) String() string {
 }
 
 func init() {
-	Register(gpsDiag{})
+	//Register(gpsDiag{})
 }

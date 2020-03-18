@@ -47,5 +47,5 @@ func (d radio) Run() error {
 }
 
 func init() {
-	Register(radio{})
+	//Register(radio{})
 }

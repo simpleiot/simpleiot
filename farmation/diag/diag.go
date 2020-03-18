@@ -2,6 +2,7 @@ package diag
 
 import (
 	"fmt"
+	"os/exec"
 	"runtime"
 	"strings"
 )
@@ -28,8 +29,8 @@ func List() {
 }
 
 func stopMainApp() {
-	//exec.Command("/etc/init.d/iswatchdog", "stop").Run()
-	//exec.Command("/etc/init.d/isapp", "stop").Run()
+	exec.Command("/etc/init.d/iswatchdog", "stop").Run()
+	exec.Command("/etc/init.d/isapp", "stop").Run()
 }
 
 // RunSingle runs a single diag test
@@ -69,6 +70,7 @@ func ListTests() {
 // Run runs all diags
 func Run() {
 	stopMainApp()
+	failed := []string{}
 	if runtime.GOARCH != "arm" {
 		fmt.Println("Error, dianostics can only be run on IS platform")
 		return
@@ -83,13 +85,19 @@ func Run() {
 		} else {
 			fmt.Println(d, "(Failed): ", err)
 			failedCount++
+			failed = append(failed, d.String())
 		}
 	}
 
+	fmt.Println("============================")
 	if failedCount == 0 {
 		fmt.Println("All tests passed")
 	} else {
-		fmt.Println(failedCount, "tests failed")
+		fmt.Println(failedCount, "tests failed:")
+		for _, t := range failed {
+			fmt.Printf(" * %v\n", t)
+		}
+		fmt.Printf("\nYou can re-run single tests: is -diagSingle <test-name>\n\n")
 	}
 }
 

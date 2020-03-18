@@ -135,8 +135,8 @@ func (d adcAuxIn) Run() (ret error) {
 }
 
 func init() {
-	Register(adcPressureSense{})
-	Register(adcPanelSense{})
-	Register(adcAnalogIn{})
-	Register(adcAuxIn{})
+	//Register(adcPressureSense{})
+	//Register(adcPanelSense{})
+	//Register(adcAnalogIn{})
+	//Register(adcAuxIn{})
 }
