@@ -191,6 +191,10 @@ var pressureScale = 0.62825
 
 // ReadPressure reads the supply and pressure voltage
 func ReadPressure() (ref float64, sense float64, err error) {
+	if runtime.GOARCH != "arm" {
+		return
+	}
+
 	ref, err = AdcRead(AdcPressureRef)
 	ref = ref / pressureScale
 	if err != nil {
@@ -207,6 +211,10 @@ func ReadPressure() (ref float64, sense float64, err error) {
 // ReadPressureSense reads only the pressure sense voltage
 // the idea is you should not have to read the ref very often
 func ReadPressureSense() (sense float64, err error) {
+	if runtime.GOARCH != "arm" {
+		return
+	}
+
 	sense, err = AdcRead(AdcPressureSense)
 	sense = sense / pressureScale
 	if err != nil {

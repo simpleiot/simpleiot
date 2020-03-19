@@ -3,6 +3,7 @@ package islcd
 import (
 	"errors"
 	"os"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -23,6 +24,10 @@ type Lcd struct {
 
 // NewLcd creates a new LCD object and opens the SPI port
 func NewLcd() (ret Lcd, err error) {
+	if runtime.GOARCH != "arm" {
+		return
+	}
+
 	ret.fd, err = syscall.Open("/dev/spidev1.0", os.O_WRONLY, 0666)
 	if err != nil {
 		return
@@ -32,6 +37,10 @@ func NewLcd() (ret Lcd, err error) {
 }
 
 func (l *Lcd) writeLcd(data []byte) error {
+	if runtime.GOARCH != "arm" {
+		return nil
+	}
+
 	n, err := syscall.Write(l.fd, data)
 	if err != nil {
 		return err
@@ -45,6 +54,10 @@ func (l *Lcd) writeLcd(data []byte) error {
 
 // Init resets and sends init sequence to LCD
 func (l *Lcd) Init() error {
+	if runtime.GOARCH != "arm" {
+		return nil
+	}
+
 	// reset LCD
 	isio.GpioOut(isio.GpioLcdReset, false)
 	time.Sleep(10 * time.Millisecond)
@@ -68,6 +81,10 @@ func (l *Lcd) Init() error {
 }
 
 func (l *Lcd) Write(data []bool) error {
+	if runtime.GOARCH != "arm" {
+		return nil
+	}
+
 	if len(data) != 128*64 {
 		return errors.New("Must supply 128x64 pixels of data")
 	}

@@ -47,6 +47,7 @@ type Params struct {
 	SerialNumber string
 	ViewMsg      bool
 	ReadVcap     bool
+	WebUI        bool
 }
 
 // Run is the entry point for the IS application
@@ -138,20 +139,22 @@ func Run(params Params) {
 
 	config.Init(&state)
 
-	// Check that the system timezone didn't get messed up
-	zonePath, zone, err := system.GetTimezone()
-	if err != nil {
-		log.Println("Error fetching current timezone: ", err)
-	}
-
-	if zone != config.Timezone || zonePath != "US" {
-
-		err = system.SetTimezone("US", config.Timezone)
+	if runtime.GOARCH == "arm" {
+		// Check that the system timezone didn't get messed up
+		zonePath, zone, err := system.GetTimezone()
 		if err != nil {
-			log.Println("Error setting timezone: ", err)
+			log.Println("Error fetching current timezone: ", err)
 		}
 
-		exec.Command("/etc/init.d/isapp", "restart").Start()
+		if zone != config.Timezone || zonePath != "US" {
+
+			err = system.SetTimezone("US", config.Timezone)
+			if err != nil {
+				log.Println("Error setting timezone: ", err)
+			}
+
+			exec.Command("/etc/init.d/isapp", "restart").Start()
+		}
 	}
 
 	// incoming channel to mux
@@ -199,7 +202,9 @@ func Run(params Params) {
 	go isui.Run(uiChan, appChan, config, state, db)
 	go isio.Run(ioChan, appChan, config, state) // this is where io Run is called, w/ ioChan as in chan and appChan as out chan
 	go iscontrol.Run(cntrlChan, appChan, config, state)
-	go isapi.Server(webChan, appChan)
+	if params.WebUI {
+		go isapi.Server(webChan, appChan)
+	}
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
 	go isflow.Run(flowChan, appChan, params.Sim, config)
@@ -258,7 +263,9 @@ func Run(params Params) {
 			ioChan <- state
 			cntrlChan <- state
 			logChan <- state
-			webChan <- state
+			if params.WebUI {
+				webChan <- state
+			}
 			logChan <- state
 			powerChan <- state
 
@@ -396,14 +403,20 @@ func Run(params Params) {
 
 			switch m := m.(type) {
 			case isdata.LcdPixel:
-				webChan <- m
+				if params.WebUI {
+					webChan <- m
+				}
 
 			case isdata.LcdBlt:
-				webChan <- m
+				if params.WebUI {
+					webChan <- m
+				}
 				lcdChan <- m
 
 			case isdata.LcdBltSolid:
-				webChan <- m
+				if params.WebUI {
+					webChan <- m
+				}
 
 			case isdata.Flow:
 				state.FlowPulseCount += int(m.Pulses)

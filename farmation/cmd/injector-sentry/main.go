@@ -43,6 +43,7 @@ func main() {
 	flagHwID := flag.Bool("hwId", false, "display HW ID")
 	flagViewMsg := flag.Bool("msg", false, "view channel messages to app")
 	flagReadVcap := flag.Bool("readVcap", false, "read backup battery voltage")
+	flagWebUI := flag.Bool("webUI", false, "Start Web UI for remote access")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -227,6 +228,7 @@ func main() {
 		SerialNumber: *flagSerialNumber,
 		ViewMsg:      *flagViewMsg,
 		ReadVcap:     *flagReadVcap,
+		WebUI:        *flagWebUI,
 	}
 
 	app.Run(params)
