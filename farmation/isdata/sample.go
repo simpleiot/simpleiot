@@ -49,11 +49,11 @@ func SampleTypeToDisp(t string) string {
 func SampleTypeToDispVerbose(t string) string {
 	switch t {
 	case SampleTypeFaultFlowOff:
-		return "Shtdwn: flow off target"
+		return "Alarm: flow off target"
 	case SampleTypeFaultPresLow:
-		return "Shtdwn: pressure low"
+		return "Alarm: pressure low"
 	case SampleTypeFaultPresHigh:
-		return "Shtdwn: pressure high"
+		return "Alarm: pressure high"
 	case SampleTypeFaultShutdown:
 		return "Failed to shutdown irrigator"
 	case SampleTypeFaultNtFlowOff:

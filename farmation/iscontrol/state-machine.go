@@ -340,13 +340,16 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		// The following switch statement is used only to determine next case.
 		// Keep all other logic above.
+
+		msg := "Alarm state entered: flow\noff target."
+
 		switch {
 		case sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
 
 			sm.setState(shutdown1)
-			return append(ret, data.Sample{
+			ret = append(ret, data.Sample{
 				Type:  isdata.SampleTypeFaultFlowOff,
 				Time:  time.Now(),
 				Value: sm.state.FlowRate,
@@ -356,6 +359,8 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 					"inputIrrigator": float64(sm.state.InputIrrigator),
 				},
 			})
+
+			return append(ret, isdata.UpdateDialogStateMachine{"Notice", msg})
 
 		case sm.config.PressureShutdownEnabled &&
 			lowPressure &&
@@ -367,7 +372,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			// if flow is off target as well, prioritize this fault
 			if sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 				time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration/3 {
-				return append(ret, data.Sample{
+				ret = append(ret, data.Sample{
 					Type:  isdata.SampleTypeFaultFlowOff,
 					Time:  time.Now(),
 					Value: sm.state.FlowRate,
@@ -377,8 +382,10 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 						"inputIrrigator": float64(sm.state.InputIrrigator),
 					},
 				})
+
+				return append(ret, isdata.UpdateDialogStateMachine{"Notice", msg})
 			}
-			return append(ret, data.Sample{
+			ret = append(ret, data.Sample{
 				Type:  isdata.SampleTypeFaultPresLow,
 				Time:  time.Now(),
 				Value: sm.state.PressureMin,
@@ -389,10 +396,10 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 					"shutdownThreshold": sm.config.PressureShutdownLow,
 				},
 			})
-			/*return append(ret, isdata.UpdateDialogStateMachineMessage(
-			"Shutdown: low pressure, "+
-				strconv.FormatFloat(sm.state.PressureMin, 'f', 0, 64)+
-				"\nAbort by disarming"))*/
+			msg = "Alarm: low pressure\nreading of " +
+				strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64)
+
+			return append(ret, isdata.UpdateDialogStateMachine{"Notice", msg})
 
 		case sm.state.PressureMax >= float64(sm.config.HighPres):
 
@@ -409,9 +416,8 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				},
 			})
 
-			msg := "Alarm: high pressure\nreading of " +
-				strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64) +
-				".\nAbort by disarming."
+			msg = "Alarm: high pressure\nreading of " +
+				strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64)
 
 			return append(ret, isdata.UpdateDialogStateMachine{"Notice", msg})
 		}
@@ -422,7 +428,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		sm.CurrentLedState = LedRed
 
 		// if the user has acknowledged the dialog, disarm
-		if !sm.state.Dialogs["DialogStateMachine"].Active {
+		if !sm.state.Dialogs["StateMachine"].Active {
 			sm.setState(disarm)
 		}
 
@@ -452,36 +458,37 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if sm.config.Arm {
 			return append(ret, isdata.UpdateDisarm{})
 		}
-		sm.setState(shutdownDialog)
+		sm.setState(standby)
 
-	case shutdownDialog:
+		/*
+			case shutdownDialog:
 
-		sm.CurrentLedState = LedRed
+					sm.CurrentLedState = LedRed
 
-		sm.setState(shutdownDialogAck)
+					sm.setState(shutdownDialogAck)
 
-		if sm.state.InputWaterOn == isdata.InputStateOn {
-			return append(ret, isdata.UpdateDialogStateMachine{"Notice", "Failed to shutdown irrigator"}, data.Sample{
-				Type: isdata.SampleTypeFaultShutdown,
-				Time: time.Now(),
-				Attributes: map[string]float64{
-					"inputInjector":  float64(sm.state.InputInjector),
-					"inputWaterOn":   float64(sm.state.InputWaterOn),
-					"inputIrrigator": float64(sm.state.InputIrrigator),
-				},
-			})
-		}
+					if sm.state.InputWaterOn == isdata.InputStateOn {
+						return append(ret, isdata.UpdateDialogStateMachine{"Notice", "Failed to shutdown irrigator"}, data.Sample{
+							Type: isdata.SampleTypeFaultShutdown,
+							Time: time.Now(),
+							Attributes: map[string]float64{
+								"inputInjector":  float64(sm.state.InputInjector),
+								"inputWaterOn":   float64(sm.state.InputWaterOn),
+								"inputIrrigator": float64(sm.state.InputIrrigator),
+							},
+						})
+					}
 
-		return append(ret, isdata.UpdateDialogStateMachine{"Notice", "System shut down irrigator"})
+					return append(ret, isdata.UpdateDialogStateMachine{"Notice", "System shut down irrigator"})
 
-	case shutdownDialogAck:
+				case shutdownDialogAck:
 
-		sm.CurrentLedState = LedRed
+					sm.CurrentLedState = LedRed
 
-		if !sm.state.Dialogs[smKey].Active {
-			sm.setState(standby)
-		}
-
+					if !sm.state.Dialogs[smKey].Active {
+						sm.setState(standby)
+					}
+		*/
 	}
 
 	return
