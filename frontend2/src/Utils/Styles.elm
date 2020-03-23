@@ -2,6 +2,7 @@ module Utils.Styles exposing
     ( button
     , error
     , colors
+    , palette
     , fonts
     , size
     , h1
@@ -22,6 +23,18 @@ colors =
     , jet = rgb255 40 40 40
     , coral = rgb255 204 75 75
     }
+
+
+palette =
+    { black = rgb 0 0 0
+    , gray = rgb 0.5 0.5 0.5
+    , pale = rgba 0.97 0.97 0.97 0.9
+    , red = rgba 1 0.7 0.7 0.75
+    , orange = rgb 1 1 0.8
+    , yellow = rgb 1 1 0.7
+    , green = rgba 0.7 1 0.7 0.9
+    }
+
 
 
 fonts =

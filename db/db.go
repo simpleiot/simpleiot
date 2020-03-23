@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"log"
 	"path"
 	"sync"
@@ -30,26 +31,23 @@ func NewDb(dataDir string) (*Db, error) {
 	var users []data.User
 	err = store.Find(&users, nil)
 
+	db := &Db{store: store}
 	if len(users) <= 0 {
 		log.Println("Creating admin user")
-		err = store.Insert(
-			bolthold.NextSequence(), data.User{
-				ID:        uuid.New(),
-				FirstName: "admin",
-				LastName:  "user",
-				Email:     "admin@admin.com",
-				Admin:     true,
-				Pass:      "admin",
-			})
+		err = db.InsertUser(&data.User{
+			FirstName: "admin",
+			LastName:  "user",
+			Email:     "admin@admin.com",
+			Admin:     true,
+			Pass:      "admin",
+		})
 
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return &Db{
-		store: store,
-	}, nil
+	return db, nil
 }
 
 // DeviceUpdate updates a devices state in the database
@@ -204,4 +202,30 @@ func (db *Db) Devices() (ret []data.Device, err error) {
 func (db *Db) Users() (ret []data.User, err error) {
 	err = db.store.Find(&ret, nil)
 	return
+}
+
+// User returns the user with the given ID, if it exists.
+func (db *Db) User(id string) (user *data.User, err error) {
+	var result []data.User
+	err = db.store.Find(&result, bolthold.Where("ID").Eq(id))
+	if err != nil {
+		return nil, err
+	}
+	if len(result) != 1 {
+		return nil, fmt.Errorf("no such user")
+	}
+	return &result[0], err
+}
+
+// UserUpsert modifies or creates a user.
+func (db *Db) UserUpsert(id string, user data.User) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	return db.store.Upsert(user.ID, &user)
+}
+
+// Insert inserts a user with a new UUID.
+func (db *Db) InsertUser(user *data.User) error {
+	user.ID = uuid.New()
+	return db.store.Insert(user.ID, user)
 }

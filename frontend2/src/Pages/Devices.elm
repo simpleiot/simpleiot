@@ -1,6 +1,6 @@
 module Pages.Devices exposing (Model, Msg, page)
 
-import Dict exposing (Dict, get, insert)
+import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -19,7 +19,7 @@ import Spa.Types as Types
 import Time
 import Url.Builder as Url
 import Utils.Spa exposing (Page)
-import Utils.Styles exposing (size)
+import Utils.Styles exposing (size, palette)
 
 
 page : Page Params.Devices Model Msg model msg appMsg
@@ -313,17 +313,6 @@ descriptionField id config modded =
                     text "description"
         , label = Input.labelHidden "Description"
         }
-
-
-palette =
-    { black = rgb 0 0 0
-    , gray = rgb 0.5 0.5 0.5
-    , pale = rgba 0.97 0.97 0.97 0.75
-    , red = rgba 1 0.7 0.7 0.75
-    , orange = rgb 1 1 0.8
-    , yellow = rgb 1 1 0.7
-    , green = rgba 0.7 1 0.7 0.75
-    }
 
 
 fieldAttrs : Bool -> Msg -> Msg -> List (Attribute Msg)
