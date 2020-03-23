@@ -1,7 +1,7 @@
 RECOMMENDED_ELM_VERSION=0.19.0
 
 if [ -z "$GOPATH" ]; then
-  export GOPATH=~/go
+  export GOPATH=$HOME/go
 fi
 
 export GOBIN=$GOPATH/bin
