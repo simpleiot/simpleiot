@@ -178,8 +178,6 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		displayWait     = time.Minute
 	)
 
-	lastLostConnectionAlert := time.Now().Add(-1*displayInterval + displayWait)
-
 	if state.SerialNumber == "" {
 		log.Println("IS Serial is not set, not sending data to portal")
 		sendPortal.Stop()
@@ -322,9 +320,6 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 					sendSamples(samples)
 				}
 
-			case isdata.NoNetworkDialogDisplayed:
-				lastLostConnectionAlert = time.Now()
-
 			case isdata.UpdateModemEnabled:
 				if modem != nil {
 					modem.Enable(bool(m))
@@ -352,18 +347,6 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				(lastTimeSync.IsZero() || time.Since(lastTimeSync) >= time.Hour) {
 				UpdateTimeFromNetwork()
 				lastTimeSync = time.Now()
-			}
-
-			// If the system is in Monitor and Notify mode, alert
-			// of lost network connection
-			if config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify &&
-				!interfaceStatus.Connected &&
-				time.Since(lastLostConnectionAlert) >= displayInterval {
-				out <- isdata.NoNetworkConnection{}
-				// This is also happening when the NoNetworkDialogDisplayed message
-				// comes in, but doing it here just to make sure it doesn't get
-				// stuck in a loop of displaying the dialog
-				lastLostConnectionAlert = time.Now()
 			}
 
 		case <-pollPortal.C:

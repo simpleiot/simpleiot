@@ -340,22 +340,17 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		// The following switch statement is used only to determine next case.
 		// Keep all other logic above.
+
+		msg := "Alarm state entered: flow\noff target."
+
 		switch {
 		case sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
 
-			var faultType string
-			if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify {
-				sm.setState(notifiedSoDisarm)
-				faultType = isdata.SampleTypeFaultNtFlowOff
-			} else {
-				sm.setState(shutdown1)
-				faultType = isdata.SampleTypeFaultFlowOff
-			}
-
-			return append(ret, data.Sample{
-				Type:  faultType,
+			sm.setState(shutdown1)
+			ret = append(ret, data.Sample{
+				Type:  isdata.SampleTypeFaultFlowOff,
 				Time:  time.Now(),
 				Value: sm.state.FlowRate,
 				Attributes: map[string]float64{
@@ -365,34 +360,20 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				},
 			})
 
+			return append(ret, isdata.UpdateDialogStateMachine{"Notice", msg})
+
 		case sm.config.PressureShutdownEnabled &&
 			lowPressure &&
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodPressure) >= alarmRecognizeDuration:
 
-			var faultType string
-			if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify {
-				sm.setState(notifiedSoDisarm)
-				faultType = isdata.SampleTypeFaultNtPresLow
-			} else {
-				sm.setState(shutdown1)
-				faultType = isdata.SampleTypeFaultPresLow
-			}
+			sm.setState(shutdown1)
 
 			// if flow is off target as well, prioritize this fault
-
 			if sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 				time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration/3 {
-
-				// reset fault type to flow off target
-				if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify {
-					faultType = isdata.SampleTypeFaultNtFlowOff
-				} else {
-					faultType = isdata.SampleTypeFaultFlowOff
-				}
-
-				return append(ret, data.Sample{
-					Type:  faultType,
+				ret = append(ret, data.Sample{
+					Type:  isdata.SampleTypeFaultFlowOff,
 					Time:  time.Now(),
 					Value: sm.state.FlowRate,
 					Attributes: map[string]float64{
@@ -401,9 +382,11 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 						"inputIrrigator": float64(sm.state.InputIrrigator),
 					},
 				})
+
+				return append(ret, isdata.UpdateDialogStateMachine{"Notice", msg})
 			}
-			return append(ret, data.Sample{
-				Type:  faultType,
+			ret = append(ret, data.Sample{
+				Type:  isdata.SampleTypeFaultPresLow,
 				Time:  time.Now(),
 				Value: sm.state.PressureMin,
 				Attributes: map[string]float64{
@@ -413,24 +396,16 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 					"shutdownThreshold": sm.config.PressureShutdownLow,
 				},
 			})
-			/*return append(ret, isdata.UpdateDialogStateMachineMessage(
-			"Shutdown: low pressure, "+
-				strconv.FormatFloat(sm.state.PressureMin, 'f', 0, 64)+
-				"\nAbort by disarming"))*/
+			msg = "Alarm state entered: low\npressure reading of " +
+				strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64)
+
+			return append(ret, isdata.UpdateDialogStateMachine{"Notice", msg})
 
 		case sm.state.PressureMax >= float64(sm.config.HighPres):
 
-			var faultType string
-			if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify {
-				sm.setState(notifiedSoDisarm)
-				faultType = isdata.SampleTypeFaultNtPresHigh
-			} else {
-				sm.setState(shutdown1)
-				faultType = isdata.SampleTypeFaultPresHigh
-			}
-
+			sm.setState(shutdown1)
 			ret = append(ret, data.Sample{
-				Type:  faultType,
+				Type:  isdata.SampleTypeFaultPresHigh,
 				Time:  time.Now(),
 				Value: sm.state.PressureMax,
 				Attributes: map[string]float64{
@@ -441,14 +416,8 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				},
 			})
 
-			// Determine which dialog to display, depending on the operating mode
-			msg := "Shutdown: high pressure\nreading of " +
-				strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64) +
-				".\nAbort by disarming."
-			if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify {
-				msg = "Notification: high pressure\nreading of " +
-					strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64)
-			}
+			msg = "Alarm state entered: high\npressure reading of " +
+				strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64)
 
 			return append(ret, isdata.UpdateDialogStateMachine{"Notice", msg})
 		}
@@ -458,29 +427,31 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		sm.RelayShutdown = true
 		sm.CurrentLedState = LedRed
 
-		if sm.elapsed() > 12*time.Second {
-			sm.setState(shutdownMonitor1)
-		}
-
-		// If user toggles the arm switch, shutdown cycle is aborted
-		if !sm.config.Arm {
-			sm.setState(standby)
-			return append(ret, isdata.UpdateDialogStateMachine{"Notice", "User disarmed system.\nShutdown aborted."})
-		}
-
-	case shutdownMonitor1:
-
-		sm.CurrentLedState = LedRed
-
-		if sm.elapsed() > 10*time.Second {
+		// if the user has acknowledged the dialog, disarm
+		if !sm.state.Dialogs["StateMachine"].Active {
 			sm.setState(disarm)
 		}
 
-		// If user toggles the arm switch, shutdown cycle is aborted
+		// If user toggles the arm switch, alarm state is exited
 		if !sm.config.Arm {
 			sm.setState(standby)
-			return append(ret, isdata.UpdateDialogStateMachine{"Notice", "User disarmed system.\nShutdown aborted."})
+			return append(ret, isdata.UpdateDialogStateMachine{"Notice", "User disarmed" +
+				" system.\nAlarm state exited."})
 		}
+
+	/*case shutdownMonitor1:
+
+	sm.CurrentLedState = LedRed
+
+	if sm.elapsed() > 10*time.Second {
+		sm.setState(disarm)
+	}
+
+	// If user toggles the arm switch, alarm state is exited
+	if !sm.config.Arm {
+		sm.setState(standby)
+		return append(ret, isdata.UpdateDialogStateMachine{"Notice", "User disarmed system.\nShutdown aborted."})
+	}*/
 
 	case disarm:
 		sm.CurrentLedState = LedRed
@@ -488,44 +459,37 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if sm.config.Arm {
 			return append(ret, isdata.UpdateDisarm{})
 		}
-		sm.setState(shutdownDialog)
-
-	case shutdownDialog:
-
-		sm.CurrentLedState = LedRed
-
-		sm.setState(shutdownDialogAck)
-
-		if sm.state.InputWaterOn == isdata.InputStateOn {
-			return append(ret, isdata.UpdateDialogStateMachine{"Notice", "Failed to shutdown irrigator"}, data.Sample{
-				Type: isdata.SampleTypeFaultShutdown,
-				Time: time.Now(),
-				Attributes: map[string]float64{
-					"inputInjector":  float64(sm.state.InputInjector),
-					"inputWaterOn":   float64(sm.state.InputWaterOn),
-					"inputIrrigator": float64(sm.state.InputIrrigator),
-				},
-			})
-		}
-
-		return append(ret, isdata.UpdateDialogStateMachine{"Notice", "System shut down irrigator"})
-
-	case shutdownDialogAck:
-
-		sm.CurrentLedState = LedRed
-
-		if !sm.state.Dialogs[smKey].Active {
-			sm.setState(standby)
-		}
-
-	case notifiedSoDisarm:
-		sm.CurrentLedState = LedRed
-
-		if sm.config.Arm {
-			return append(ret, isdata.UpdateDisarm{})
-		}
 		sm.setState(standby)
 
+		/*
+			case shutdownDialog:
+
+					sm.CurrentLedState = LedRed
+
+					sm.setState(shutdownDialogAck)
+
+					if sm.state.InputWaterOn == isdata.InputStateOn {
+						return append(ret, isdata.UpdateDialogStateMachine{"Notice", "Failed to shutdown irrigator"}, data.Sample{
+							Type: isdata.SampleTypeFaultShutdown,
+							Time: time.Now(),
+							Attributes: map[string]float64{
+								"inputInjector":  float64(sm.state.InputInjector),
+								"inputWaterOn":   float64(sm.state.InputWaterOn),
+								"inputIrrigator": float64(sm.state.InputIrrigator),
+							},
+						})
+					}
+
+					return append(ret, isdata.UpdateDialogStateMachine{"Notice", "System shut down irrigator"})
+
+				case shutdownDialogAck:
+
+					sm.CurrentLedState = LedRed
+
+					if !sm.state.Dialogs[smKey].Active {
+						sm.setState(standby)
+					}
+		*/
 	}
 
 	return

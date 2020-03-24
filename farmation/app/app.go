@@ -560,10 +560,6 @@ func Run(params Params) {
 					if config.Arm {
 						flowAverager.ResetAverage()
 						state.TimeArmed = time.Now()
-						if config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify &&
-							!state.NetworkState.InterfaceStatus.Connected {
-							appChan <- isdata.NoNetworkConnection{}
-						}
 					}
 					saveConfig()
 					saveState()
@@ -843,11 +839,6 @@ func Run(params Params) {
 				dlgExport.Heading = "Error"
 				dlgExport.Message = "Error writing to USB disk"
 
-			case isdata.NoNetworkConnection:
-				dlgApp.Active = true
-				dlgApp.Message = "The IS is not connected to\na network. Monitor and\nNotify mode is not functional."
-				networkChan <- isdata.NoNetworkDialogDisplayed{}
-
 			/*case isdata.UpdateTankAlertVolume:
 			config.TankAlertVolume = int(m)
 			saveConfig()*/
@@ -1007,10 +998,6 @@ func Run(params Params) {
 				config.OperatingMode = isdata.ISOperatingMode(m)
 				if config.OperatingMode == isdata.ISOperatingModeMonitor {
 					config.Arm = false // system can't be armed in monitor only mode
-				}
-				if config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify &&
-					!state.NetworkState.InterfaceStatus.Connected {
-					appChan <- isdata.NoNetworkConnection{}
 				}
 				saveConfig()
 
