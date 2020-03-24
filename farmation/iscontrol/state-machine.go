@@ -396,7 +396,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 					"shutdownThreshold": sm.config.PressureShutdownLow,
 				},
 			})
-			msg = "Alarm: low pressure\nreading of " +
+			msg = "Alarm state entered: low\npressure reading of " +
 				strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64)
 
 			return append(ret, isdata.UpdateDialogStateMachine{"Notice", msg})
@@ -416,7 +416,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				},
 			})
 
-			msg = "Alarm: high pressure\nreading of " +
+			msg = "Alarm state entered: high\npressure reading of " +
 				strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64)
 
 			return append(ret, isdata.UpdateDialogStateMachine{"Notice", msg})
@@ -435,7 +435,8 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		// If user toggles the arm switch, alarm state is exited
 		if !sm.config.Arm {
 			sm.setState(standby)
-			return append(ret, isdata.UpdateDialogStateMachine{"Notice", "User disarmed system.\nShutdown aborted."})
+			return append(ret, isdata.UpdateDialogStateMachine{"Notice", "User disarmed" +
+				" system.\nAlarm state exited."})
 		}
 
 	/*case shutdownMonitor1:
