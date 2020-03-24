@@ -5,8 +5,6 @@ import (
 	"strconv"
 )
 
-var currentConfigVersion = 1
-
 // Config represents configuration data for the Injectory
 // Sentry system. Note, these type is stored directly in database,
 // so you can't ever change types of fields, or remove values from
@@ -465,8 +463,6 @@ func (c *Config) Init(state *State) {
 			}
 		}
 	}
-
-	c.Version = currentConfigVersion
 
 	// always turn off logging of pulse data -- this should be
 	// initiated by user each time system starts
