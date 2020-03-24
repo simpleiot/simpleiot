@@ -45,7 +45,8 @@ func (s *StatusScreen3) Render(img draw.Image) {
 	x = 90
 
 	// Pressure values
-	min := strconv.FormatFloat(s.state.PressureMin, 'f', 0, 64)
+	min := strconv.FormatFloat(s.state.PressureMax, 'f', 0, 64)
+	max := strconv.FormatFloat(s.state.PressureMin, 'f', 0, 64)
 
 	// Blinking min pressure
 	if s.config.Arm &&
@@ -64,7 +65,7 @@ func (s *StatusScreen3) Render(img draw.Image) {
 	}
 
 	// Max and shutdown pressures
-	DrawTxt(img, strconv.FormatFloat(s.state.PressureMax, 'f', 0, 64), x, y2, tightpixel15.Font)
+	DrawTxt(img, max, x, y2, tightpixel15.Font)
 	if s.config.Arm {
 		DrawTxt(img, strconv.FormatFloat(s.config.PressureShutdownLow, 'f', 0, 64), x, y3, tightpixel15.Font)
 	} else {
