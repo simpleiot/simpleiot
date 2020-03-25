@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"path"
-	"sync"
 
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/timshannon/bolthold"
@@ -16,7 +15,6 @@ import (
 // handle multiple Db backends.
 type Db struct {
 	store *bolthold.Store
-	lock  sync.RWMutex
 }
 
 // NewDb creates a new Db instance for the app
@@ -33,15 +31,11 @@ func NewDb(dataDir string) (*Db, error) {
 
 // DeviceUpdate updates a devices state in the database
 func (db *Db) DeviceUpdate(device data.Device) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
 	return db.store.Upsert(device.ID, &device)
 }
 
 // DeviceUpdateConfig updates the config for a particular device
 func (db *Db) DeviceUpdateConfig(id string, config data.DeviceConfig) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
 	var dev data.Device
 	err := db.store.Get(id, &dev)
 
@@ -56,8 +50,6 @@ func (db *Db) DeviceUpdateConfig(id string, config data.DeviceConfig) error {
 
 // DeviceSample processes a sample for a particular device
 func (db *Db) DeviceSample(id string, sample data.Sample) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
 	var dev data.Device
 	err := db.store.Get(id, &dev)
 
@@ -81,24 +73,18 @@ func (db *Db) DeviceSample(id string, sample data.Sample) error {
 
 // Device returns data for a particular device
 func (db *Db) Device(id string) (ret data.Device, err error) {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
 	err = db.store.Get(id, &ret)
 	return
 }
 
 // DeviceDelete deletes a device from the database
 func (db *Db) DeviceDelete(id string) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
 	return db.store.Delete(id, data.Device{})
 }
 
 // DeviceSetVersion sets a cmd for a device, and sets the
 // CmdPending flag in the device structure.
 func (db *Db) DeviceSetVersion(id string, ver data.DeviceVersion) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
 
 	var dev data.Device
 	err := db.store.Get(id, &dev)
@@ -113,8 +99,6 @@ func (db *Db) DeviceSetVersion(id string, ver data.DeviceVersion) error {
 // DeviceSetCmd sets a cmd for a device, and sets the
 // CmdPending flag in the device structure.
 func (db *Db) DeviceSetCmd(cmd data.DeviceCmd) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
 
 	err := db.store.Upsert(cmd.ID, &cmd)
 	if err != nil {
@@ -149,8 +133,6 @@ func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
 
 	if cmd.Cmd != "" {
 		// a device has fetched a command, delete it
-		db.lock.Lock()
-		defer db.lock.Unlock()
 		err := db.store.Delete(id, data.DeviceCmd{})
 		if err != nil {
 			return cmd, err
@@ -200,8 +182,6 @@ func (db *Db) User(id string) (user *data.User, err error) {
 
 // UserUpsert modifies or creates a user.
 func (db *Db) UserUpsert(id string, user data.User) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
 	return db.store.Upsert(user.ID, &user)
 }
 
