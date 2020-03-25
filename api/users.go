@@ -6,16 +6,15 @@ import (
 	"net/http"
 
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
 )
 
 // Users handles user requests.
 type Users struct {
-	db *db.Db
+	db *Db
 }
 
 // NewUsersHandler returns a new handler for user requests.
-func NewUsersHandler(db *db.Db) Users {
+func NewUsersHandler(db *Db) Users {
 	return Users{db: db}
 }
 
@@ -77,10 +76,13 @@ func (u Users) createUser(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := u.db.InsertUser(&user); err != nil {
+
+	id, err := createUser(u.db, user)
+	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
-	encode(res, data.StandardResponse{Success: true, ID: user.ID.String()})
+
+	encode(res, data.StandardResponse{Success: true, ID: id})
 }
 
 func (u Users) upsertUser(res http.ResponseWriter, req *http.Request, id string) {

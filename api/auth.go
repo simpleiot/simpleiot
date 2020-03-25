@@ -3,13 +3,11 @@ package api
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/simpleiot/simpleiot/db"
 )
 
 // Auth handles user authentication requests.
 type Auth struct {
-	db  *db.Db
+	db  *Db
 	key NewTokener
 }
 
@@ -19,7 +17,7 @@ type NewTokener interface {
 }
 
 // NewAuthHandler returns a new authentication handler using the given key.
-func NewAuthHandler(db *db.Db, key NewTokener) Auth {
+func NewAuthHandler(db *Db, key NewTokener) Auth {
 	return Auth{db: db, key: key}
 }
 

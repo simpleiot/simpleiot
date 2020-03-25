@@ -10,7 +10,7 @@ import (
 
 // Devices handles device requests
 type Devices struct {
-	db     *db.Db
+	db     *Db
 	influx *db.Influx
 	check  RequestValidator
 }
@@ -210,6 +210,6 @@ type RequestValidator interface {
 }
 
 // NewDevicesHandler returns a new device handler
-func NewDevicesHandler(db *db.Db, influx *db.Influx, v RequestValidator) http.Handler {
+func NewDevicesHandler(db *Db, influx *db.Influx, v RequestValidator) http.Handler {
 	return &Devices{db, influx, v}
 }

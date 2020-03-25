@@ -1,14 +1,14 @@
-package db
+package api
 
 import (
 	"fmt"
-	"log"
 	"path"
 	"sync"
 
-	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/timshannon/bolthold"
+	"github.com/google/uuid"
+	"go.etcd.io/bbolt"
 )
 
 // Db is used for all db access in the application.
@@ -27,27 +27,8 @@ func NewDb(dataDir string) (*Db, error) {
 		return nil, err
 	}
 
-	// make sure there is one user, otherwise add admin user
-	var users []data.User
-	err = store.Find(&users, nil)
-
 	db := &Db{store: store}
-	if len(users) <= 0 {
-		log.Println("Creating admin user")
-		err = db.InsertUser(&data.User{
-			FirstName: "admin",
-			LastName:  "user",
-			Email:     "admin@admin.com",
-			Admin:     true,
-			Pass:      "admin",
-		})
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return db, nil
+	return db, db.init()
 }
 
 // DeviceUpdate updates a devices state in the database
@@ -199,7 +180,7 @@ func (db *Db) Devices() (ret []data.Device, err error) {
 }
 
 // Users returns all users.
-func (db *Db) Users() (ret []data.User, err error) {
+func (db *Db) Users() (ret []User, err error) {
 	err = db.store.Find(&ret, nil)
 	return
 }
@@ -225,7 +206,134 @@ func (db *Db) UserUpsert(id string, user data.User) error {
 }
 
 // Insert inserts a user with a new UUID.
-func (db *Db) InsertUser(user *data.User) error {
-	user.ID = uuid.New()
-	return db.store.Insert(user.ID, user)
+func (db *Db) InsertUser(u User) (uuid.UUID, error) {
+	id := uuid.New()
+	return id, db.store.Insert(id, u)
 }
+
+func (db *Db) InsertOrg(o Org) (uuid.UUID, error) {
+	id := uuid.New()
+	return id, db.store.Insert(id, o)
+}
+
+func (db *Db) InsertRole(r Role) (uuid.UUID, error) {
+	id := uuid.New()
+	return id, db.store.Insert(id, r)
+}
+
+func (db *Db) Tx(fn func(*bolt.Tx)error) error {
+	return db.store.Bolt().Update(fn)
+}
+
+
+// User provides information about a user.
+type User struct {
+	ID        uuid.UUID
+	FirstName string
+	LastName  string
+	Email     string
+	Pass      string
+}
+
+// A Role is the role played by a user in an organization.
+type Role struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	OrgID       uuid.UUID
+	Description string
+}
+
+// An Org is an organization.
+type Org struct {
+	ID   uuid.UUID
+	Name string
+}
+
+// data.Device can be used in storage as well
+// as on the wire, because its data is not relational.
+
+// A Property is a relationship between a data.Device and an Org.
+type Property struct {
+	ID       uuid.UUID
+	DeviceID uuid.UUID
+	OrgID    uuid.UUID
+}
+
+// init initializes the database with one user (admin)
+// in one organization (root).
+// All devices are properties of the root organization.
+func (db *Db) init() error {
+	if ok, err := db.isInitialized(); err != nil {
+		return err
+	} else if ok {
+		return nil
+	}
+
+	orgID, err := db.InsertOrg(Org{Name: "root"})
+	if err != nil {
+		return err
+	}
+
+	admin := User{
+		FirstName: "admin",
+		LastName:  "user",
+		Email:     "admin@admin.com",
+		Pass:      "admin",
+	}
+
+	userID, err := db.InsertUser(admin)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.InsertRole(Role{
+		UserID:      userID,
+		OrgID:       orgID,
+		Description: "admin",
+	})
+	return err
+}
+
+func (db *Db) isInitialized() (bool, error) {
+	var orgs []Org
+	if err := db.store.Find(&orgs, bolthold.Where("Name").Eq("root")); err != nil {
+		return false, err
+	}
+
+	var roles []Role
+	if err := db.store.Find(&roles, bolthold.Where("Description").Eq("admin")); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+//
+// transformations between wire and storage types
+
+func createUser(ds *Db, user data.User) (string, error) {
+	// begin transaction
+	id, err := ds.InsertUser(User{
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Pass:      user.Pass,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	for _, role := range user.Roles {
+		if _, err := ds.InsertRole(Role{
+			UserID:      id,
+			OrgID:       role.OrgID,
+			Description: role.Description,
+		}); err != nil {
+			return "", err
+		}
+	}
+	// end transaction
+
+	return id.String(), nil
+}
+
