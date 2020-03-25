@@ -65,7 +65,7 @@ func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id s
 		return
 	}
 
-	err = h.db.DeviceUpdateConfig(id, c)
+	err = deviceUpdateConfig(h.db.store, id, c)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}

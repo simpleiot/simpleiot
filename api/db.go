@@ -34,10 +34,10 @@ func (db *Db) DeviceUpdate(device data.Device) error {
 	return db.store.Upsert(device.ID, &device)
 }
 
-// DeviceUpdateConfig updates the config for a particular device
-func (db *Db) DeviceUpdateConfig(id string, config data.DeviceConfig) error {
+// deviceUpdateConfig updates the config for a particular device
+func deviceUpdateConfig(store *bolthold.Store, id string, config data.DeviceConfig) error {
 	var dev data.Device
-	err := db.store.Get(id, &dev)
+	err := store.Get(id, &dev)
 
 	if err == bolthold.ErrNotFound {
 		return err
@@ -45,7 +45,7 @@ func (db *Db) DeviceUpdateConfig(id string, config data.DeviceConfig) error {
 
 	dev.Config = config
 
-	return db.store.Update(id, dev)
+	return store.Update(id, dev)
 }
 
 // DeviceSample processes a sample for a particular device
