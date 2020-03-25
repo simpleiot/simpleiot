@@ -84,7 +84,7 @@ func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id 
 	}
 
 	for _, s := range samples {
-		err = h.db.DeviceSample(id, s)
+		err = deviceSample(h.db.store, id, s)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}

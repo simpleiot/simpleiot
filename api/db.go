@@ -50,25 +50,32 @@ func deviceUpdateConfig(store *bolthold.Store, id string, config data.DeviceConf
 
 // DeviceSample processes a sample for a particular device
 func (db *Db) DeviceSample(id string, sample data.Sample) error {
-	var dev data.Device
-	err := db.store.Get(id, &dev)
+	return deviceSample(db.store, id, sample)
+}
 
-	if err == bolthold.ErrNotFound {
-		dev := data.Device{
-			ID: id,
-			State: data.DeviceState{
-				Ios: []data.Sample{sample},
-			},
+// deviceSample processes a sample for a particular device
+func deviceSample(store *bolthold.Store, id string, sample data.Sample) error {
+	return store.Bolt().Update(func(tx *bolt.Tx) error {
+		var dev data.Device
+		err := store.TxGet(tx, id, &dev)
+		switch err {
+		case bolthold.ErrNotFound:
+			dev := data.Device{
+				ID: id,
+				State: data.DeviceState{
+					Ios: []data.Sample{sample},
+				},
+			}
+
+			return store.TxInsert(tx, id, dev)
+
+		case nil:
+			dev.ProcessSample(sample)
+			return store.TxUpdate(tx, id, dev)
 		}
-
-		return db.store.Insert(id, dev)
-	} else if err != nil {
 		return err
-	}
 
-	dev.ProcessSample(sample)
-
-	return db.store.Update(id, dev)
+	})
 }
 
 // Device returns data for a particular device
