@@ -36,16 +36,16 @@ func (db *Db) DeviceUpdate(device data.Device) error {
 
 // deviceUpdateConfig updates the config for a particular device
 func deviceUpdateConfig(store *bolthold.Store, id string, config data.DeviceConfig) error {
-	var dev data.Device
-	err := store.Get(id, &dev)
+	return store.Bolt().Update(func(tx *bolt.Tx) error {
+		var dev data.Device
+		if err := store.TxGet(tx, id, &dev); err != nil {
+			return err
+		}
 
-	if err == bolthold.ErrNotFound {
-		return err
-	}
+		dev.Config = config
 
-	dev.Config = config
-
-	return store.Update(id, dev)
+		return store.TxUpdate(tx, id, dev)
+	})
 }
 
 // DeviceSample processes a sample for a particular device
