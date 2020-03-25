@@ -12,7 +12,7 @@ require (
 	github.com/gorilla/websocket v1.4.0
 	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
-	github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944
+	github.com/timshannon/bolthold v0.0.0-20200316231344-dc30e2b2f90c
 	go.etcd.io/bbolt v1.3.0
 )
 

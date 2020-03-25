@@ -15,6 +15,7 @@ type User struct {
 }
 
 type Role struct {
+	ID          uuid.UUID `json:"id"`
 	OrgID       uuid.UUID `json:"orgID"`
 	OrgName     string    `json:"orgName"`
 	Description string    `json:"description"`

@@ -27,17 +27,17 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		switch req.Method {
 		case http.MethodGet:
 			// get all users
-			users, err := u.db.Users()
+			users, err := users(u.db.store)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
 			}
-			json.NewEncoder(res).Encode(users)
+			encode(res, users)
 			return
 
 		case http.MethodPost:
 			// create user
-			u.createUser(res, req)
+			u.insertUser(res, req)
 			return
 
 		default:
@@ -49,14 +49,18 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
 		// get a single user
-		user, err := u.db.User(id)
+		user, err := user(u.db.store, id)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 			return
 		}
-		json.NewEncoder(res).Encode(user)
+		encode(res, user)
 		return
 
+	case http.MethodPost:
+		// update a single user
+		u.updateUser(res, req)
+		return
 	}
 
 	http.Error(res, "invalid method", http.StatusMethodNotAllowed)
@@ -70,31 +74,33 @@ func encode(w io.Writer, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-func (u Users) createUser(res http.ResponseWriter, req *http.Request) {
+func (u Users) insertUser(res http.ResponseWriter, req *http.Request) {
 	var user data.User
 	if err := decode(req.Body, &user); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	id, err := createUser(u.db, user)
+	id, err := insertUser(u.db.store, user)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	encode(res, data.StandardResponse{Success: true, ID: id})
 }
 
-func (u Users) upsertUser(res http.ResponseWriter, req *http.Request, id string) {
+func (u Users) updateUser(res http.ResponseWriter, req *http.Request) {
 	var user data.User
 	if err := decode(req.Body, &user); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err := u.db.UserUpsert(id, user); err != nil {
+	if err := updateUser(u.db.store, user); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	encode(res, data.StandardResponse{Success: true, ID: id})
+	encode(res, data.StandardResponse{Success: true, ID: user.ID.String()})
 }

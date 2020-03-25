@@ -2,13 +2,16 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"path"
 
+	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/timshannon/bolthold"
-	"github.com/google/uuid"
 	"go.etcd.io/bbolt"
 )
+
+// This file contains database manipulations.
 
 // Db is used for all db access in the application.
 // We will eventually turn this into an interface to
@@ -26,17 +29,12 @@ func NewDb(dataDir string) (*Db, error) {
 	}
 
 	db := &Db{store: store}
-	return db, db.init()
+	return db, initialize(db.store)
 }
 
-// DeviceUpdate updates a devices state in the database
-func (db *Db) DeviceUpdate(device data.Device) error {
-	return db.store.Upsert(device.ID, &device)
-}
-
-// deviceUpdateConfig updates the config for a particular device
+// deviceUpdateConfig updates the config for a device.
 func deviceUpdateConfig(store *bolthold.Store, id string, config data.DeviceConfig) error {
-	return store.Bolt().Update(func(tx *bolt.Tx) error {
+	return update(store, func(tx *bolt.Tx) error {
 		var dev data.Device
 		if err := store.TxGet(tx, id, &dev); err != nil {
 			return err
@@ -53,9 +51,17 @@ func (db *Db) DeviceSample(id string, sample data.Sample) error {
 	return deviceSample(db.store, id, sample)
 }
 
+func update(store *bolthold.Store, fn func(tx *bolt.Tx) error) error {
+	return store.Bolt().Update(fn)
+}
+
+func view(store *bolthold.Store, fn func(tx *bolt.Tx) error) error {
+	return store.Bolt().View(fn)
+}
+
 // deviceSample processes a sample for a particular device
 func deviceSample(store *bolthold.Store, id string, sample data.Sample) error {
-	return store.Bolt().Update(func(tx *bolt.Tx) error {
+	return update(store, func(tx *bolt.Tx) error {
 		var dev data.Device
 		err := store.TxGet(tx, id, &dev)
 		switch err {
@@ -78,57 +84,59 @@ func deviceSample(store *bolthold.Store, id string, sample data.Sample) error {
 	})
 }
 
-// Device returns data for a particular device
-func (db *Db) Device(id string) (ret data.Device, err error) {
-	err = db.store.Get(id, &ret)
+// device returns data for a particular device
+func device(store *bolthold.Store, id string) (ret data.Device, err error) {
+	err = store.Get(id, &ret)
 	return
 }
 
-// DeviceDelete deletes a device from the database
-func (db *Db) DeviceDelete(id string) error {
-	return db.store.Delete(id, data.Device{})
+// deviceDelete deletes a device from the database
+func deviceDelete(store *bolthold.Store, id string) error {
+	return store.Delete(id, data.Device{})
 }
 
-// DeviceSetVersion sets a cmd for a device, and sets the
+// deviceSetVersion sets a cmd for a device, and sets the
 // CmdPending flag in the device structure.
-func (db *Db) DeviceSetVersion(id string, ver data.DeviceVersion) error {
+func deviceSetVersion(store *bolthold.Store, id string, ver data.DeviceVersion) error {
+	return update(store, func(tx *bolt.Tx) error {
+		var dev data.Device
+		err := store.TxGet(tx, id, &dev)
+		if err != nil {
+			return err
+		}
 
-	var dev data.Device
-	err := db.store.Get(id, &dev)
-	if err != nil {
-		return err
-	}
-
-	dev.State.Version = ver
-	return db.store.Update(id, dev)
+		dev.State.Version = ver
+		return store.TxUpdate(tx, id, dev)
+	})
 }
 
-// DeviceSetCmd sets a cmd for a device, and sets the
+// deviceSetCmd sets a cmd for a device, and sets the
 // CmdPending flag in the device structure.
-func (db *Db) DeviceSetCmd(cmd data.DeviceCmd) error {
+func deviceSetCmd(store *bolthold.Store, cmd data.DeviceCmd) error {
+	return update(store, func(tx *bolt.Tx) error {
+		err := store.TxUpsert(tx, cmd.ID, &cmd)
+		if err != nil {
+			return err
+		}
 
-	err := db.store.Upsert(cmd.ID, &cmd)
-	if err != nil {
-		return err
-	}
+		// and clear the device pending flag
+		var dev data.Device
+		err = store.TxGet(tx, cmd.ID, &dev)
+		if err != nil {
+			return err
+		}
 
-	// and clear the device pending flag
-	var dev data.Device
-	err = db.store.Get(cmd.ID, &dev)
-	if err != nil {
-		return err
-	}
-
-	dev.CmdPending = true
-	return db.store.Update(cmd.ID, dev)
+		dev.CmdPending = true
+		return store.TxUpdate(tx, cmd.ID, dev)
+	})
 }
 
 // DeviceGetCmd gets a cmd for a device. If the cmd is no null,
 // the command is deleted, and the cmdPending flag cleared in
 // the Device data structure.
-func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
+func deviceGetCmd(store *bolthold.Store, id string) (data.DeviceCmd, error) {
 	var cmd data.DeviceCmd
-	err := db.store.Get(id, &cmd)
+	err := store.Get(id, &cmd)
 	if err == bolthold.ErrNotFound {
 		// we don't consider this an error in this case
 		err = nil
@@ -140,20 +148,20 @@ func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
 
 	if cmd.Cmd != "" {
 		// a device has fetched a command, delete it
-		err := db.store.Delete(id, data.DeviceCmd{})
+		err := store.Delete(id, data.DeviceCmd{})
 		if err != nil {
 			return cmd, err
 		}
 
 		// and clear the device pending flag
 		var dev data.Device
-		err = db.store.Get(id, &dev)
+		err = store.Get(id, &dev)
 		if err != nil {
 			return cmd, err
 		}
 
 		dev.CmdPending = false
-		err = db.store.Update(id, dev)
+		err = store.Update(id, dev)
 		if err != nil {
 			return cmd, err
 		}
@@ -162,56 +170,134 @@ func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
 	return cmd, err
 }
 
-// Devices returns all devices
-func (db *Db) Devices() (ret []data.Device, err error) {
-	err = db.store.Find(&ret, nil)
+// devices returns all devices.
+func devices(store *bolthold.Store) (ret []data.Device, err error) {
+	err = store.Find(&ret, nil)
 	return
 }
 
 // Users returns all users.
-func (db *Db) Users() (ret []User, err error) {
-	err = db.store.Find(&ret, nil)
-	return
+func users(store *bolthold.Store) ([]data.User, error) {
+	var ret []data.User
+	err := view(store, func(tx *bolt.Tx) error {
+		var users []User
+		if err := store.TxFind(tx, &users, nil); err != nil {
+			return err
+		}
+
+		ret = make([]data.User, len(users))
+		for i, user := range users {
+			r, err := userRolesData(store, tx, user.ID)
+			if err != nil {
+				return err
+			}
+
+			ret[i] = data.User{
+				ID:        user.ID,
+				FirstName: user.FirstName,
+				LastName:  user.LastName,
+				Email:     user.Email,
+				Pass:      user.Pass,
+				Roles:     r,
+			}
+		}
+		return nil
+	})
+	return ret, err
 }
 
-// User returns the user with the given ID, if it exists.
-func (db *Db) User(id string) (user *data.User, err error) {
-	var result []data.User
-	err = db.store.Find(&result, bolthold.Where("ID").Eq(id))
+func org(store *bolthold.Store, tx *bolt.Tx, id uuid.UUID) (Org, error) {
+	var org Org
+	err := store.TxFindOne(tx, &org, bolthold.Where("ID").Eq(id))
+	return org, err
+}
+
+func userRolesData(store *bolthold.Store, tx *bolt.Tx, id uuid.UUID) ([]data.Role, error) {
+	var r []data.Role
+	roles, err := userRoles(store, tx, id)
 	if err != nil {
-		return nil, err
+		return r, err
 	}
-	if len(result) != 1 {
-		return nil, fmt.Errorf("no such user")
+
+	r = make([]data.Role, len(roles))
+	for i, role := range roles {
+		org, err := org(store, tx, role.OrgID)
+		if err != nil {
+			return r, err
+		}
+
+		r[i] = data.Role{
+			ID:          role.ID,
+			OrgID:       role.OrgID,
+			OrgName:     org.Name,
+			Description: role.Description,
+		}
 	}
-	return &result[0], err
+	return r, nil
 }
 
-// UserUpsert modifies or creates a user.
-func (db *Db) UserUpsert(id string, user data.User) error {
-	return db.store.Upsert(user.ID, &user)
+func validLogin(store *bolthold.Store, email, password string) (bool, error) {
+	var users []User
+	query := bolthold.Where("Email").Eq(email).
+		And("Pass").Eq(password)
+	err := store.Find(&users, query)
+	switch err {
+	case bolthold.ErrNotFound:
+		return false, nil
+
+	case nil:
+		return true, nil
+	}
+
+	return false, err
 }
 
-// Insert inserts a user with a new UUID.
-func (db *Db) InsertUser(u User) (uuid.UUID, error) {
-	id := uuid.New()
-	return id, db.store.Insert(id, u)
+func userRoles(store *bolthold.Store, tx *bolt.Tx, id uuid.UUID) ([]Role, error) {
+	var roles []Role
+	err := store.TxFind(tx, &roles, bolthold.Where("UserID").Eq(id))
+	return roles, err
 }
 
-func (db *Db) InsertOrg(o Org) (uuid.UUID, error) {
-	id := uuid.New()
-	return id, db.store.Insert(id, o)
-}
+// user returns the user with the given ID, if it exists.
+func user(store *bolthold.Store, id string) (*data.User, error) {
+	var ret *data.User
+	err := view(store, func(tx *bolt.Tx) error {
+		var user User
+		if err := store.TxFindOne(tx, &user, bolthold.Where("ID").Eq(id)); err != nil {
+			return err
+		}
 
-func (db *Db) InsertRole(r Role) (uuid.UUID, error) {
-	id := uuid.New()
-	return id, db.store.Insert(id, r)
-}
+		roles, err := userRoles(store, tx, user.ID)
+		if err != nil {
+			return err
+		}
 
-func (db *Db) Tx(fn func(*bolt.Tx)error) error {
-	return db.store.Bolt().Update(fn)
-}
+		r := make([]data.Role, len(roles))
+		for i, role := range roles {
+			var org Org
+			if err := store.TxFindOne(tx, &org, bolthold.Where("ID").Eq(role.OrgID)); err != nil {
+				return err
+			}
+			r[i] = data.Role{
+				ID:          role.ID,
+				OrgID:       role.OrgID,
+				OrgName:     org.Name,
+				Description: role.Description,
+			}
+		}
 
+		ret = &data.User{
+			ID:        user.ID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Email:     user.Email,
+			Pass:      user.Pass,
+			Roles:     r,
+		}
+		return nil
+	})
+	return ret, err
+}
 
 // User provides information about a user.
 type User struct {
@@ -246,81 +332,133 @@ type Property struct {
 	OrgID    uuid.UUID
 }
 
-// init initializes the database with one user (admin)
+// initialize initializes the database with one user (admin)
 // in one organization (root).
 // All devices are properties of the root organization.
-func (db *Db) init() error {
-	if ok, err := db.isInitialized(); err != nil {
+func initialize(store *bolthold.Store) error {
+	if ok, err := isInitialized(store); err != nil {
 		return err
 	} else if ok {
 		return nil
 	}
 
-	orgID, err := db.InsertOrg(Org{Name: "root"})
-	if err != nil {
-		return err
-	}
+	return update(store, func(tx *bolt.Tx) error {
+		root := Org{
+			ID:   uuid.New(),
+			Name: "root",
+		}
+		if err := store.TxInsert(tx, root.ID, root); err != nil {
+			return err
+		}
+		log.Println(root)
 
-	admin := User{
-		FirstName: "admin",
-		LastName:  "user",
-		Email:     "admin@admin.com",
-		Pass:      "admin",
-	}
+		admin := User{
+			ID:        uuid.New(),
+			FirstName: "admin",
+			LastName:  "user",
+			Email:     "admin@admin.com",
+			Pass:      "admin",
+		}
 
-	userID, err := db.InsertUser(admin)
-	if err != nil {
-		return err
-	}
+		if err := store.TxInsert(tx, admin.ID, admin); err != nil {
+			return err
+		}
+		log.Println(admin)
 
-	_, err = db.InsertRole(Role{
-		UserID:      userID,
-		OrgID:       orgID,
-		Description: "admin",
+		role := Role{
+			ID:          uuid.New(),
+			UserID:      admin.ID,
+			OrgID:       root.ID,
+			Description: "admin",
+		}
+		defer log.Println(role)
+		return store.TxInsert(tx, role.ID, role)
 	})
-	return err
 }
 
-func (db *Db) isInitialized() (bool, error) {
-	var orgs []Org
-	if err := db.store.Find(&orgs, bolthold.Where("Name").Eq("root")); err != nil {
-		return false, err
+func isInitialized(store *bolthold.Store) (bool, error) {
+	// Is there an organization called root?
+	root := bolthold.Where("Name").Eq("root")
+	var org Org
+	switch err := store.FindOne(&org, root); err {
+	case nil:
+		// OK
+
+	case bolthold.ErrNotFound:
+		return false, nil
+
+	default:
+		return false, fmt.Errorf("error checking whether database is initialized: %v", err)
 	}
 
-	var roles []Role
-	if err := db.store.Find(&roles, bolthold.Where("Description").Eq("admin")); err != nil {
-		return false, err
+	// Does the root organization have an admin?
+	var role Role
+	admin := bolthold.Where("Description").Eq("admin").And("OrgID").Eq(org.ID)
+	if err := store.FindOne(&role, admin); err != nil {
+		return false, fmt.Errorf("error checking whether database is initialized: found a root org, but not an admin: %v", err)
 	}
 
 	return true, nil
 }
 
-//
-// transformations between wire and storage types
-
-func createUser(ds *Db, user data.User) (string, error) {
-	// begin transaction
-	id, err := ds.InsertUser(User{
+func insertUser(store *bolthold.Store, user data.User) (string, error) {
+	u := User{
+		ID:        uuid.New(),
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
 		Pass:      user.Pass,
-	})
-	if err != nil {
-		return "", err
 	}
 
-	for _, role := range user.Roles {
-		if _, err := ds.InsertRole(Role{
-			UserID:      id,
-			OrgID:       role.OrgID,
-			Description: role.Description,
-		}); err != nil {
-			return "", err
+	err := update(store, func(tx *bolt.Tx) error {
+		if err := store.TxInsert(tx, u.ID, user); err != nil {
+			return err
 		}
-	}
-	// end transaction
 
-	return id.String(), nil
+		for _, role := range user.Roles {
+			role := Role{
+				ID:          uuid.New(),
+				UserID:      u.ID,
+				OrgID:       role.OrgID,
+				Description: role.Description,
+			}
+			if err := store.TxInsert(tx, role.ID, role); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	return u.ID.String(), err
 }
 
+func updateUser(store *bolthold.Store, user data.User) error {
+	u := User{
+		ID:        user.ID,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Pass:      user.Pass,
+	}
+
+	return update(store, func(tx *bolt.Tx) error {
+		if err := store.TxUpdate(tx, u.ID, user); err != nil {
+			return err
+		}
+
+		// TODO: What if the set of roles changes?
+		// This code is incorrect! Consider embedding roles.
+		for _, role := range user.Roles {
+			role := Role{
+				ID:          role.ID,
+				UserID:      u.ID,
+				OrgID:       role.OrgID,
+				Description: role.Description,
+			}
+			if err := store.TxUpdate(tx, role.ID, role); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
