@@ -31,7 +31,7 @@ func (s *StatusScreen2) Render(img draw.Image) {
 	Clear(img)
 
 	x := 2
-	y1, y2, yBreak, y3, y4 := 7, 18, 29, 33, 44
+	y1, y2, yBreak, y3, y4 := 9, 20, 30, 33, 44
 
 	DrawTxt(img, s.config.FieldConfigs[s.config.CurrentFieldIndex].Description+" - "+s.config.ProductConfigs[s.config.CurrentProductIndex].Description, x, y1, tightpixel15.Font)
 	DrawTxt(img, "Total:", x, y2, tightpixel15.Font)
