@@ -38,6 +38,8 @@ github.com/stretchr/testify v1.2.1/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXf
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944 h1:gpP0SE4FIbe/r8ES2eLrs7iWmg7j9ipvqM2c+0aDJu8=
 github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944/go.mod h1:jUigdmrbdCxcIDEFrq82t4X9805XZfwFZoYUap0ET/U=
+github.com/timshannon/bolthold v0.0.0-20200316231344-dc30e2b2f90c h1:B+GHkv+kVfUdmpbEPsQYM+WrPBJdNohEwBrBqxXh0d0=
+github.com/timshannon/bolthold v0.0.0-20200316231344-dc30e2b2f90c/go.mod h1:jUigdmrbdCxcIDEFrq82t4X9805XZfwFZoYUap0ET/U=
 github.com/ugorji/go v1.1.7/go.mod h1:kZn38zHttfInRq0xu/PH0az30d+z6vm202qpg1oXVMw=
 github.com/ugorji/go/codec v1.1.7/go.mod h1:Ax+UKWsSmolVDwsd+7N3ZtXu+yMGCf907BLYF3GoBXY=
 go.etcd.io/bbolt v1.3.0 h1:oY10fI923Q5pVCVt1GBTZMn8LHo5M+RCInFpeMnV4QI=

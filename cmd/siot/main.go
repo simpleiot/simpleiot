@@ -76,7 +76,7 @@ func main() {
 		dataDir = "./"
 	}
 
-	dbInst, err := db.NewDb(dataDir)
+	dbInst, err := api.NewDb(dataDir)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)

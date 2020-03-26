@@ -10,7 +10,7 @@ import (
 
 // Devices handles device requests
 type Devices struct {
-	db     *db.Db
+	db     *Db
 	influx *db.Influx
 	check  RequestValidator
 }
@@ -27,7 +27,7 @@ func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id stri
 	// set ID in case it is not set in API call
 	c.ID = id
 
-	err = h.db.DeviceSetCmd(c)
+	err = deviceSetCmd(h.db.store, c)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -46,7 +46,7 @@ func (h *Devices) processVersion(res http.ResponseWriter, req *http.Request, id 
 		return
 	}
 
-	err = h.db.DeviceSetVersion(id, v)
+	err = deviceSetVersion(h.db.store, id, v)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -65,7 +65,7 @@ func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id s
 		return
 	}
 
-	err = h.db.DeviceUpdateConfig(id, c)
+	err = deviceUpdateConfig(h.db.store, id, c)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
@@ -84,7 +84,7 @@ func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id 
 	}
 
 	for _, s := range samples {
-		err = h.db.DeviceSample(id, s)
+		err = deviceSample(h.db.store, id, s)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}
@@ -131,7 +131,7 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case "cmd":
 		if req.Method == http.MethodGet {
 			// Get is done by devices
-			cmd, err := h.db.DeviceGetCmd(id)
+			cmd, err := deviceGetCmd(h.db.store, id)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusInternalServerError)
 			}
@@ -168,7 +168,7 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		if id == "" {
 			switch req.Method {
 			case http.MethodGet:
-				devices, err := h.db.Devices()
+				devices, err := devices(h.db.store)
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusNotFound)
 					return
@@ -181,7 +181,7 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		} else {
 			switch req.Method {
 			case http.MethodGet:
-				device, err := h.db.Device(id)
+				device, err := device(h.db.store, id)
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusNotFound)
 				} else {
@@ -189,7 +189,7 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 					en.Encode(device)
 				}
 			case http.MethodDelete:
-				err := h.db.DeviceDelete(id)
+				err := deviceDelete(h.db.store, id)
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusNotFound)
 				} else {
@@ -210,6 +210,6 @@ type RequestValidator interface {
 }
 
 // NewDevicesHandler returns a new device handler
-func NewDevicesHandler(db *db.Db, influx *db.Influx, v RequestValidator) http.Handler {
+func NewDevicesHandler(db *Db, influx *db.Influx, v RequestValidator) http.Handler {
 	return &Devices{db, influx, v}
 }

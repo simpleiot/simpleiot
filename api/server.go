@@ -48,7 +48,7 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 
 	switch req.URL.Path {
-	case "/", "/admin", "/devices", "/sign-in":
+	case "/", "/users", "/devices", "/sign-in":
 		h.IndexHandler.ServeHTTP(res, req)
 
 	default:
@@ -77,7 +77,7 @@ func NewAppHandler(args ServerArgs) http.Handler {
 // ServerArgs can be used to pass arguments to the server subsystem
 type ServerArgs struct {
 	Port       string
-	DbInst     *db.Db
+	DbInst     *Db
 	Influx     *db.Influx
 	GetAsset   func(string) []byte
 	Filesystem http.FileSystem

@@ -1,6 +1,6 @@
 module Pages.Devices exposing (Model, Msg, page)
 
-import Dict exposing (Dict, get, insert)
+import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -19,7 +19,7 @@ import Spa.Types as Types
 import Time
 import Url.Builder as Url
 import Utils.Spa exposing (Page)
-import Utils.Styles exposing (size)
+import Utils.Styles exposing (size, palette)
 
 
 page : Page Params.Devices Model Msg model msg appMsg
@@ -27,7 +27,7 @@ page =
     Spa.Page.element
         { title = always "Devices"
         , init = always init
-        , update = always update
+        , update = update
         , subscriptions = subscriptions
         , view = always view
         }
@@ -72,12 +72,17 @@ type alias Response =
     }
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg )
+update context msg model =
     case msg of
         Tick _ ->
             ( model
-            , getDevices
+            , case context.global of
+                Global.SignedIn sess ->
+                    getDevices sess.authToken
+
+                Global.SignedOut _ ->
+                    Cmd.none
             )
 
         UpdateDevices (Ok devices) ->
@@ -92,7 +97,12 @@ update msg model =
 
         PostDeviceConfig id config ->
             ( model
-            , postDeviceConfig id config
+            , case context.global of
+                Global.SignedIn sess ->
+                    postDeviceConfig sess.authToken id config
+
+                Global.SignedOut _ ->
+                    Cmd.none
             )
 
         DeviceConfigPosted id (Ok _) ->
@@ -168,11 +178,16 @@ deviceStateDecoder =
         (Decode.field "ios" samplesDecoder)
 
 
-getDevices : Cmd Msg
-getDevices =
-    Http.get
-        { url = urlDevices
+getDevices : String -> Cmd Msg
+getDevices token =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = urlDevices
         , expect = Http.expectJson UpdateDevices devicesDecoder
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
         }
 
 
@@ -300,17 +315,6 @@ descriptionField id config modded =
         }
 
 
-palette =
-    { black = rgb 0 0 0
-    , gray = rgb 0.5 0.5 0.5
-    , pale = rgba 0.97 0.97 0.97 0.75
-    , red = rgba 1 0.7 0.7 0.75
-    , orange = rgb 1 1 0.8
-    , yellow = rgb 1 1 0.7
-    , green = rgba 0.7 1 0.7 0.75
-    }
-
-
 fieldAttrs : Bool -> Msg -> Msg -> List (Attribute Msg)
 fieldAttrs modded save discard =
     [ padding 16
@@ -381,12 +385,16 @@ deviceConfigEncoder deviceConfig =
         [ ( "description", Encode.string deviceConfig.description ) ]
 
 
-postDeviceConfig : String -> DeviceConfig -> Cmd Msg
-postDeviceConfig id config =
-    Http.post
-        { url = Url.absolute [ "v1", "devices", id, "config" ] []
-        , body = config |> deviceConfigEncoder |> Http.jsonBody
+postDeviceConfig : String -> String -> DeviceConfig -> Cmd Msg
+postDeviceConfig token id config =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "devices", id, "config" ] []
         , expect = Http.expectJson (DeviceConfigPosted id) responseDecoder
+        , body = config |> deviceConfigEncoder |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
         }
 
 

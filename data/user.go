@@ -11,5 +11,12 @@ type User struct {
 	LastName  string    `json:"lastName"`
 	Email     string    `json:"email"`
 	Pass      string    `json:"pass"`
-	Admin     bool      `json:"admin"`
+	Roles     []Role    `json:"roles"`
+}
+
+type Role struct {
+	ID          uuid.UUID `json:"id"`
+	OrgID       uuid.UUID `json:"orgID"`
+	OrgName     string    `json:"orgName"`
+	Description string    `json:"description"`
 }
