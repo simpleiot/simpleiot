@@ -37,7 +37,7 @@ func NewIcons(pageInd, inputs, outputs bool) *Icons {
 	marginCenter, marginRight, marginLeft := 59, 115, 1
 	ret.icons = make(map[string]*iconFields)
 	if pageInd {
-		ret.icons["page indicator"] = &iconFields{icon1: "indicator-home.png", icon2: "indicator-status1.png", icon3: "indicator-status2.png", icon4: "indicator-status3.png", x: marginCenter, y: 1}
+		ret.icons["page indicator"] = &iconFields{icon1: "indicator-home.png", icon2: "indicator-status1.png", icon3: "indicator-status2.png", icon4: "indicator-status3.png", x: marginCenter, y: 0}
 	}
 	if inputs {
 		ret.icons["injector_in"] = &iconFields{iconOn: "injector.png", iconOff: "", x: marginLeft, y: 4}
