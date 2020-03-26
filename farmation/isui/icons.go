@@ -7,15 +7,18 @@ import (
 
 // Icons is a widget that renders icons on the home and status screens
 type Icons struct {
-	pagePosition int
-	icons        map[string]*iconFields
+	icons map[string]*iconFields
 }
 
-// Stores values used to render an icon from a png file
 type iconFields struct {
 	on      bool
 	iconOn  string
 	iconOff string
+	page    int
+	icon1   string
+	icon2   string
+	icon3   string
+	icon4   string
 	x       int
 	y       int
 }
@@ -33,6 +36,9 @@ func NewIcons(pageInd, inputs, outputs bool) *Icons {
 	// Add new icons
 	marginCenter, marginRight, marginLeft := 59, 115, 1
 	ret.icons = make(map[string]*iconFields)
+	if pageInd {
+		ret.icons["page indicator"] = &iconFields{icon1: "indicator-home.png", icon2: "indicator-status1.png", icon3: "indicator-status2.png", icon4: "indicator-status3.png", x: marginCenter, y: 1}
+	}
 	if inputs {
 		ret.icons["injector_in"] = &iconFields{iconOn: "injector.png", iconOff: "", x: marginLeft, y: 4}
 		ret.icons["water"] = &iconFields{iconOn: "water-on.png", iconOff: "", x: marginLeft + 3, y: 20}
