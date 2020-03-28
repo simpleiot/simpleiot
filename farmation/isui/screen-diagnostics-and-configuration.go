@@ -49,6 +49,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 		s.menu.AddItemScreen("Vision serial", ScreenIDDiagLindsay)
 	}
 	s.menu.AddItemScreen("Modem", ScreenIDModem)
+	s.menu.AddItemScreen("GPS", ScreenIDGps)
 
 	// Data export
 	s.menu.AddItemCommand("Data", "export", isdata.ExportData{})

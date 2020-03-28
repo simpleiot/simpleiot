@@ -20,8 +20,8 @@ type State struct {
 	SystemType SystemType `json:"systemType"`
 
 	DBConfig struct {
-		DBVersion int
-	}
+		DBVersion int `json:"dbVersion"`
+	} `json:"dbConfig"`
 
 	// FlowRate defines the current flow rate of the system in GPH
 	FlowRate          float64       `json:"flowRate"`
@@ -100,6 +100,8 @@ type State struct {
 	NetworkInterfaceConfig network.InterfaceConfig `json:"networkInterfaceConfig"`
 
 	HWVersion int `json:"hwVersion"`
+
+	Location data.GpsPos `json:"location"`
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config
@@ -297,6 +299,8 @@ func InitState(s *State) (dirty bool) {
 
 	s.GpioStatusLedRed = false
 	s.GpioStatusLedGreen = false
+
+	s.Location = data.GpsPos{}
 
 	// Initialize all necessary dialogs
 	// Static messages and headings are initialized here,

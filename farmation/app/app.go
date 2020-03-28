@@ -1153,6 +1153,10 @@ func Run(params Params) {
 				dlgShutdown.Active = true
 				saveState()
 
+			case data.GpsPos:
+				state.Location = m
+				saveState()
+
 			default:
 				// \r is required below to handle unknown keycode messages -- not sure why
 				log.Printf("App Mux: unhandled message of type %T: %+v\r\n", m, m)

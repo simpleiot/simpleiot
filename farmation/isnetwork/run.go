@@ -70,7 +70,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		return err
 	}
 
-	var modem network.Interface
+	var modem *network.Modem
 
 	if runtime.GOOS == "windows" {
 		manager.AddInterface(network.NewDummyInterface())
@@ -347,6 +347,15 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				(lastTimeSync.IsZero() || time.Since(lastTimeSync) >= time.Hour) {
 				UpdateTimeFromNetwork()
 				lastTimeSync = time.Now()
+			}
+
+			if modem != nil {
+				loc, err := modem.GetLocation()
+				if err != nil && err != network.ErrorModemNotDetected {
+					log.Println("Error reading GPS: ", err)
+				} else {
+					out <- loc
+				}
 			}
 
 		case <-pollPortal.C:
