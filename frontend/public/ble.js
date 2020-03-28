@@ -268,12 +268,16 @@ export class BLE {
         console.log("Error getting timerCountChar");
       }
 
-      const currentTimeChar = await this.service.getCharacteristic(charCurrentTimeUuid);
-      await currentTimeChar.startNotifications();
-      currentTimeChar.addEventListener(
-        "characteristicvaluechanged",
-        this.onCurrentTimeChanged.bind(this)
-      );
+      /*
+       * For some reason, this is causing BLE connection to fail on android
+       * phones
+       * const currentTimeChar = await this.service.getCharacteristic(charCurrentTimeUuid);
+       * await currentTimeChar.startNotifications();
+       * currentTimeChar.addEventListener(
+       * "characteristicvaluechanged",
+       * this.onCurrentTimeChanged.bind(this)
+       * );
+       */
     } catch (e) {
       console.log("Error connecting: ", e);
       this.resetState();

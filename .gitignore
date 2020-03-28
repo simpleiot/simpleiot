@@ -1,5 +1,5 @@
 frontend/output
-frontend/elm-stuff
+elm-stuff
 /siot
 data.db
 temp
@@ -9,22 +9,3 @@ assets.go
 temp
 tags
 .idea
-
-
-
-# Farmation stuff
-/is
-/is_arm
-/*.exe
-/lcd_test
-farmation/assets/**/assets.go
-gpio-test
-/*.png
-/spi-test
-/pulse
-/pulse*
-/flow*
-/lindsay_sim
-/update-not
-is-portal
-issplash
