@@ -3,19 +3,17 @@ package isnetwork
 import (
 	"log"
 	"math"
-	"os/exec"
 	"runtime"
 	"strconv"
-	"syscall"
 	"time"
 
-	"github.com/beevik/ntp"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/version"
 	"github.com/simpleiot/simpleiot/network"
+	"github.com/simpleiot/simpleiot/system"
 )
 
 func bool2Float(in bool) float64 {
@@ -345,7 +343,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			// Time syncing through network
 			if interfaceStatus.Connected &&
 				(lastTimeSync.IsZero() || time.Since(lastTimeSync) >= time.Hour) {
-				UpdateTimeFromNetwork()
+				system.UpdateTimeFromNetwork()
 				lastTimeSync = time.Now()
 			}
 
@@ -426,31 +424,4 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			}
 		}
 	}
-}
-
-// UpdateTimeFromNetwork fetches time from ntp server and stores in system and RTC
-func UpdateTimeFromNetwork() (err error) {
-
-	current, err := ntp.Time("0.pool.ntp.org")
-	if err != nil {
-		log.Println("Error fetching time from ntp.org: ", err)
-		return err
-	}
-	log.Println("Time: ", current)
-
-	tv := syscall.NsecToTimeval(current.UnixNano())
-	err = syscall.Settimeofday(&tv)
-	if err != nil {
-		log.Println("Error synchronizing system clock: ", err)
-		return err
-	}
-
-	// Sync the real-time clock (RTC)
-	// Always store time in UTC on the RTC
-	err = exec.Command("hwclock", "-w", "-u").Run()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

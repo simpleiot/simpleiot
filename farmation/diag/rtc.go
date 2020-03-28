@@ -1,7 +1,7 @@
 package diag
 
 import (
-	"github.com/simpleiot/simpleiot/farmation/isnetwork"
+	"github.com/simpleiot/simpleiot/system"
 )
 
 type rtc struct{}
@@ -11,7 +11,7 @@ func (d rtc) String() string {
 }
 
 func (d rtc) Run() error {
-	return isnetwork.UpdateTimeFromNetwork()
+	return system.UpdateTimeFromNetwork()
 }
 
 func init() {
