@@ -1,18 +1,20 @@
+// +build linux
+
 package system
 
 import (
+	"log"
 	"os/exec"
+	"syscall"
 	"time"
 )
 
-// SetTime sets the system time to the
-// parameter t with the date command
+// SetTime sets the system time
 func SetTime(t time.Time) (err error) {
-
-	tStr := t.Format("2006-01-02 15:04:05")
-
-	err = exec.Command("date", "-s", tStr).Run()
+	tv := syscall.NsecToTimeval(t.UnixNano())
+	err = syscall.Settimeofday(&tv)
 	if err != nil {
+		log.Println("Error synchronizing system clock: ", err)
 		return err
 	}
 
