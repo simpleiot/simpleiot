@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/farmation/app"
 	"github.com/simpleiot/simpleiot/farmation/diag"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
@@ -27,6 +28,7 @@ func main() {
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDataDir := flag.String("datadir", "", "directory to store data in")
 	flagReadPressure := flag.Bool("readPressure", false, "read pressure sensor")
+	flagCheckDb := flag.String("checkDb", "", "check database")
 	/*
 		flagModemState := flag.Bool("modemState", false, "read modem state")
 		flagModemSettings := flag.Bool("modemSettings", false, "read modem settings")
@@ -80,6 +82,16 @@ func main() {
 		pres := isio.CalcPressure(ref, sense, 250)
 
 		log.Printf("Pressure ref: %v, sense: %v, pres: %v\n", ref, sense, pres)
+		os.Exit(0)
+	}
+
+	if *flagCheckDb != "" {
+		err := db.BBoltCheck(*flagCheckDb)
+		if err != nil {
+			log.Println("check failed: ", err)
+			os.Exit(-1)
+		}
+		log.Println("check passed")
 		os.Exit(0)
 	}
 

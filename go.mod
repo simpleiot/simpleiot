@@ -26,7 +26,7 @@ require (
 	github.com/svent/go-nbreader v0.0.0-20150201200112-7cef48da76dc
 	github.com/timshannon/badgerhold v0.0.0-20190415130923-192650dd187a
 	github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944
-	go.etcd.io/bbolt v1.3.3 // indirect
+	go.etcd.io/bbolt v1.3.3
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
 	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
