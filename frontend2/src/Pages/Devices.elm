@@ -1,5 +1,10 @@
-module Pages.Devices exposing (Model, Msg, page)
+module Pages.Devices exposing
+    ( Model
+    , Msg
+    , page
+    )
 
+import Device as D
 import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
@@ -16,10 +21,9 @@ import Json.Encode as Encode
 import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
 import Spa.Page
 import Spa.Types as Types
-import Time
 import Url.Builder as Url
 import Utils.Spa exposing (Page)
-import Utils.Styles exposing (size, palette)
+import Utils.Styles exposing (palette, size)
 
 
 page : Page Params.Devices Model Msg model msg appMsg
@@ -29,7 +33,7 @@ page =
         , init = always init
         , update = update
         , subscriptions = subscriptions
-        , view = always view
+        , view = view
         }
 
 
@@ -38,15 +42,13 @@ page =
 
 
 type alias Model =
-    { devices : List Device
-    , deviceEdits : Dict String String
+    { deviceEdits : Dict String String
     }
 
 
 init : Params.Devices -> ( Model, Cmd Msg )
 init _ =
-    ( { devices = []
-      , deviceEdits = Dict.empty
+    ( { deviceEdits = Dict.empty
       }
     , Cmd.none
     )
@@ -57,12 +59,10 @@ init _ =
 
 
 type Msg
-    = Tick Time.Posix
-    | UpdateDevices (Result Http.Error (List Device))
-    | EditDeviceDescription DeviceEdit
-    | PostDeviceConfig String DeviceConfig
+    = EditDeviceDescription DeviceEdit
+    | PostConfig String D.Config
     | DiscardEditedDeviceDescription String
-    | DeviceConfigPosted String (Result Http.Error Response)
+    | ConfigPosted String (Result Http.Error Response)
 
 
 type alias Response =
@@ -75,37 +75,22 @@ type alias Response =
 update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg )
 update context msg model =
     case msg of
-        Tick _ ->
-            ( model
-            , case context.global of
-                Global.SignedIn sess ->
-                    getDevices sess.authToken
-
-                Global.SignedOut _ ->
-                    Cmd.none
-            )
-
-        UpdateDevices (Ok devices) ->
-            ( { model | devices = devices }
-            , Cmd.none
-            )
-
         EditDeviceDescription { id, description } ->
             ( { model | deviceEdits = Dict.insert id description model.deviceEdits }
             , Cmd.none
             )
 
-        PostDeviceConfig id config ->
+        PostConfig id config ->
             ( model
             , case context.global of
                 Global.SignedIn sess ->
-                    postDeviceConfig sess.authToken id config
+                    postConfig sess.authToken id config
 
                 Global.SignedOut _ ->
                     Cmd.none
             )
 
-        DeviceConfigPosted id (Ok _) ->
+        ConfigPosted id (Ok _) ->
             ( { model | deviceEdits = Dict.remove id model.deviceEdits }
             , Cmd.none
             )
@@ -121,74 +106,10 @@ update context msg model =
             )
 
 
-urlDevices =
-    Url.absolute [ "v1", "devices" ] []
-
-
-type alias Device =
-    { id : String
-    , config : DeviceConfig
-    , state : DeviceState
-    }
-
-
 type alias DeviceEdit =
     { id : String
     , description : String
     }
-
-
-type alias DeviceConfig =
-    { description : String
-    }
-
-
-type alias DeviceState =
-    { ios : List Sample
-    }
-
-
-devicesDecoder : Decode.Decoder (List Device)
-devicesDecoder =
-    Decode.list deviceDecoder
-
-
-deviceDecoder : Decode.Decoder Device
-deviceDecoder =
-    Decode.map3 Device
-        (Decode.field "id" Decode.string)
-        (Decode.field "config" deviceConfigDecoder)
-        (Decode.field "state" deviceStateDecoder)
-
-
-samplesDecoder : Decode.Decoder (List Sample)
-samplesDecoder =
-    Decode.list sampleDecoder
-
-
-deviceConfigDecoder : Decode.Decoder DeviceConfig
-deviceConfigDecoder =
-    Decode.map DeviceConfig
-        (Decode.field "description" Decode.string)
-
-
-deviceStateDecoder : Decode.Decoder DeviceState
-deviceStateDecoder =
-    Decode.map DeviceState
-        (Decode.field "ios" samplesDecoder)
-
-
-getDevices : String -> Cmd Msg
-getDevices token =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = urlDevices
-        , expect = Http.expectJson UpdateDevices devicesDecoder
-        , body = Http.emptyBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
 
 
 
@@ -197,36 +118,38 @@ getDevices token =
 
 subscriptions : Types.PageContext route Global.Model -> Model -> Sub Msg
 subscriptions context model =
-    -- TODO: Subscribe to ticker only when context.global == Global.SignedIn
-    Sub.batch
-        [ Time.every 1000 Tick
-        ]
+    Sub.none
 
 
 
 -- VIEW
 
 
-view : Model -> Element Msg
-view model =
+view : Types.PageContext route Global.Model -> Model -> Element Msg
+view context model =
     column
         [ width fill, spacing 32 ]
         [ el [ padding 16, Font.size 24 ] <| text "Devices"
-        , viewDevices model
+        , case context.global of
+            Global.SignedIn sess ->
+                viewDevices sess.data.devices model.deviceEdits
+
+            _ ->
+                el [ padding 16] <| text  "Sign in to view your devices."
         ]
 
 
-viewDevices : Model -> Element Msg
-viewDevices model =
+viewDevices : List D.Device -> Dict String String -> Element Msg
+viewDevices devices edits =
     column
         [ width fill
         , spacing 24
         ]
     <|
-        List.map (viewDevice model.deviceEdits) model.devices
+        List.map (viewDevice edits) devices
 
 
-viewDevice : Dict String String -> Device -> Element Msg
+viewDevice : Dict String String -> D.Device -> Element Msg
 viewDevice edits device =
     column
         [ width fill
@@ -240,7 +163,7 @@ viewDevice edits device =
         ]
 
 
-viewDeviceDescription : Dict String String -> Device -> Element Msg
+viewDeviceDescription : Dict String String -> D.Device -> Element Msg
 viewDeviceDescription edits device =
     descriptionField
         device.id
@@ -268,7 +191,7 @@ viewIoList ios =
         List.map (renderSample >> text) ios
 
 
-deviceDescription : Dict String String -> Device -> String
+deviceDescription : Dict String String -> D.Device -> String
 deviceDescription edits device =
     case Dict.get device.id edits of
         Just desc ->
@@ -278,7 +201,7 @@ deviceDescription edits device =
             device.config.description
 
 
-modified : Dict String String -> Device -> Bool
+modified : Dict String String -> D.Device -> Bool
 modified edits device =
     case Dict.get device.id edits of
         Just desc ->
@@ -288,12 +211,12 @@ modified edits device =
             False
 
 
-descriptionField : String -> DeviceConfig -> Bool -> Element Msg
+descriptionField : String -> D.Config -> Bool -> Element Msg
 descriptionField id config modded =
     Input.text
         (fieldAttrs
             modded
-            (PostDeviceConfig id config)
+            (PostConfig id config)
             (DiscardEditedDeviceDescription id)
         )
         { onChange =
@@ -376,22 +299,22 @@ onEnter msg =
                             Decode.fail "Not the enter key"
                     )
             )
-       )
+        )
 
 
-deviceConfigEncoder : DeviceConfig -> Encode.Value
+deviceConfigEncoder : D.Config -> Encode.Value
 deviceConfigEncoder deviceConfig =
     Encode.object
         [ ( "description", Encode.string deviceConfig.description ) ]
 
 
-postDeviceConfig : String -> String -> DeviceConfig -> Cmd Msg
-postDeviceConfig token id config =
+postConfig : String -> String -> D.Config -> Cmd Msg
+postConfig token id config =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.absolute [ "v1", "devices", id, "config" ] []
-        , expect = Http.expectJson (DeviceConfigPosted id) responseDecoder
+        , expect = Http.expectJson (ConfigPosted id) responseDecoder
         , body = config |> deviceConfigEncoder |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing

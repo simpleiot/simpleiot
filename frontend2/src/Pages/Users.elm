@@ -11,10 +11,10 @@ import Global
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (hardcoded, optional, required)
-import Json.Encode as Encode
 import Spa.Page
 import Spa.Types as Types
 import Url.Builder as Url
+import User as U
 import Utils.Spa exposing (Page)
 import Utils.Styles exposing (palette, size)
 
@@ -35,19 +35,11 @@ page =
 
 
 type alias Model =
-    { users : List User
-    , userEdits : Dict String User
+    { users : List U.User
+    , userEdits : Dict String U.User
     , error : Maybe Http.Error
     }
 
-
-emptyUser =
-    { id = ""
-    , admin = False
-    , email = ""
-    , first = ""
-    , last = ""
-    }
 
 init : Types.PageContext route Global.Model -> Params.Users -> ( Model, Cmd Msg )
 init context _ =
@@ -69,23 +61,12 @@ init context _ =
 
 
 type Msg
-    = UpdateUsers (Result Http.Error (List User))
-    | PostUser String User
+    = UpdateUsers (Result Http.Error (List U.User))
+    | PostUser String U.User
     | UserPosted String (Result Http.Error Response)
-    | EditUser String User
+    | EditUser String U.User
     | DiscardUserEdits String
     | NewUser
-
-
-type alias User =
-    { id : String
-    , first : String
-    , last : String
-    , email : String
-    , admin : Bool
-
-    --, roles : List String
-    }
 
 
 update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg )
@@ -132,7 +113,7 @@ update context msg model =
             )
 
         NewUser ->
-            ( { model | users = emptyUser :: model.users }
+            ( { model | users = U.empty :: model.users }
             , Cmd.none
             )
 
@@ -148,25 +129,11 @@ getUsers token =
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.absolute [ "v1", "users" ] []
-        , expect = Http.expectJson UpdateUsers usersDecoder
+        , expect = Http.expectJson UpdateUsers U.decodeList
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
         }
-
-
-usersDecoder : Decode.Decoder (List User)
-usersDecoder =
-    Decode.list userDecoder
-
-
-userDecoder =
-    Decode.succeed User
-        |> required "id" Decode.string
-        |> required "firstName" Decode.string
-        |> required "lastName" Decode.string
-        |> required "email" Decode.string
-        |> optional "admin" Decode.bool False
 
 
 
@@ -188,7 +155,7 @@ view model =
         [ width fill, spacing 32 ]
         [ el [ padding 16, Font.size 24 ] <| text "Users"
         , viewError model.error
-        , el [ width fill, Font.bold ] <| button "new user" palette.green NewUser
+        , el [ padding 16, width fill, Font.bold ] <| button "new user" palette.green NewUser
         , viewUsers model.userEdits model.users
         ]
 
@@ -221,9 +188,11 @@ viewUsers edits users =
         ]
     <|
         List.map
-            (\user -> viewUser
-                (modified edits user)
-                (userValue edits user))
+            (\user ->
+                viewUser
+                    (modified edits user)
+                    (userValue edits user)
+            )
             users
 
 
@@ -368,26 +337,17 @@ viewRole { role, value, action } =
         }
 
 
-postUser : String -> String -> User -> Cmd Msg
+postUser : String -> String -> U.User -> Cmd Msg
 postUser token id user =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.absolute [ "v1", "users", id ] []
         , expect = Http.expectJson (UserPosted id) responseDecoder
-        , body = user |> userEncoder |> Http.jsonBody
+        , body = user |> U.encode |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
-
-
-userEncoder : User -> Encode.Value
-userEncoder user =
-    Encode.object
-        [ ( "firstName", Encode.string user.first )
-        , ( "lastName", Encode.string user.last )
-        , ( "email", Encode.string user.email )
-        ]
 
 
 type alias Response =

@@ -60,11 +60,11 @@ viewNavbar model =
                 , mouseOver [ alpha 0.6 ]
                 ]
                 { label = text "SIOT"
-                , url = "/"
+                , url = "/devices"
                 }
                 :: List.map viewLink
-                    [ ( "devices", "/devices" )
-                    , ( "users", "/users" )
+                    [ ( "users", "/users" )
+                    , ( "orgs", "/orgs" )
                     ]
             )
         , el [ alignRight ] <|

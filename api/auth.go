@@ -2,6 +2,8 @@ package api
 
 import (
 	"net/http"
+
+	"github.com/simpleiot/simpleiot/data"
 )
 
 // Auth handles user authentication requests.
@@ -30,10 +32,14 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	email := req.FormValue("email")
 	password := req.FormValue("password")
 
-	if valid, err := validLogin(auth.db.store, email, password); err != nil {
+	priv, err := loginPrivilege(auth.db.store, email, password)
+	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
-	} else if !valid {
+	}
+
+	switch priv {
+	case none:
 		http.Error(res, "invalid login", http.StatusForbidden)
 		return
 	}
@@ -44,5 +50,8 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res.Write([]byte(token))
+	encode(res, data.Auth{
+		Privilege: string(priv),
+		Token:     token,
+	})
 }
