@@ -168,6 +168,8 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		if id == "" {
 			switch req.Method {
 			case http.MethodGet:
+				// get all devices
+				// TODO: only get user devices
 				devices, err := devices(h.db.store)
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusNotFound)

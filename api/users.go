@@ -49,7 +49,7 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
 		// get a single user
-		user, err := user(u.db.store, id)
+		user, err := userByID(u.db.store, id)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 			return
