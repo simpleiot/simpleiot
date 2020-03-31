@@ -39,11 +39,10 @@ func (s *GpsScreen) Render(img draw.Image) {
 	if s.state.Location.Fix == "" {
 		DrawTxt(img, "No data", 46, 25, tightpixel15.Font)
 	} else {
-
 		// typical GPS values:  30.166755,-85.6389933
 		// display 7 decimal places
-		lat := strconv.FormatFloat(s.state.Location.Lat, 'f', 7, 64)
-		long := strconv.FormatFloat(s.state.Location.Long, 'f', 7, 64)
+		lat := strconv.FormatFloat(s.state.Location.Lat, 'f', 9, 64)
+		long := strconv.FormatFloat(s.state.Location.Long, 'f', 9, 64)
 		numSat := strconv.Itoa(int(s.state.Location.NumSat))
 
 		DrawTxt(img, "Num satelites: "+numSat, x, y, tightpixel15.Font)
