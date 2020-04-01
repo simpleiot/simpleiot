@@ -532,7 +532,7 @@ func updateUser(store *bolthold.Store, user data.User) error {
 		}
 
 		// remove roles present in the database and not in the new data
-		return nil
+		return updateRoles()
 	})
 }
 
@@ -543,6 +543,10 @@ func containsRole(id uuid.UUID, roles []data.Role) bool {
 		}
 	}
 	return false
+}
+
+func updateRoles() error {
+	return nil
 }
 
 // Orgs returns all orgs.
