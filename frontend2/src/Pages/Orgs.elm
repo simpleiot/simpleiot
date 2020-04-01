@@ -42,6 +42,7 @@ page2 =
         }
 
 
+
 -- INIT
 
 
@@ -53,12 +54,13 @@ type alias Model =
 
 
 init2 : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg, Cmd Global.Msg )
-init2 _ _ =
-    ( { orgs = []
-      , error = Nothing
-      , emails = Dict.empty
-      }
-    , Cmd.none
+init2 context params =
+    let
+        ( model, msg ) =
+            init context params
+    in
+    ( model
+    , msg
     , Cmd.none
     )
 
