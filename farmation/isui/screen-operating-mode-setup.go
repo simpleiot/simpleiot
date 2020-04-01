@@ -51,7 +51,7 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	helpPresHigh := isdata.HelpScreenContent{
 		Name: "Pressure High",
 		Text: "If injection line pressure exceeds this amount the irrigation system will be " +
-			"shut down.",
+			"shut down immediately.",
 	}
 
 	// any time items are added or removed, update render/key methods
