@@ -33,6 +33,12 @@ page =
 
 page2 =
     Spa.Page.component
+        { title = always "Orgs"
+        , init = init2
+        , update = always update2
+        , subscriptions = always subscriptions
+        , view = always view
+        }
 
 
 -- INIT
