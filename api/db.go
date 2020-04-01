@@ -517,21 +517,66 @@ func updateUser(store *bolthold.Store, user data.User) error {
 			return err
 		}
 
-		// TODO: What if the set of roles changes?
-		// This code is incorrect! Consider embedding roles.
 		for _, role := range user.Roles {
+			// The frontend, when creating new roles, does not choose
+			// a UUID; that is the backend's responsibility. Thus if the
+			// given role ID is zero, it means the role is new and needs
+			// a fresh ID. Hence, we need to call TxUpsert rather than
+			// TxUpdate, so that new roles will be created automatically.
 			role := Role{
-				ID:          role.ID,
+				ID:          newIfZero(role.ID),
 				UserID:      u.ID,
 				OrgID:       role.OrgID,
 				Description: role.Description,
 			}
-			if err := store.TxUpdate(tx, role.ID, role); err != nil {
+			if err := store.TxUpsert(tx, role.ID, role); err != nil {
 				return err
 			}
 		}
-		return nil
+
+		// We also need to remove roles present in the
+		// database and absent from the new set of roles.
+		return cleanRoles(store, tx, user.ID, user.Roles)
 	})
+}
+
+func newIfZero(id uuid.UUID) uuid.UUID {
+	if id == zero {
+		return uuid.New()
+	}
+	return id
+}
+
+func containsRole(id uuid.UUID, roles []data.Role) bool {
+	for _, role := range roles {
+		if id == role.ID {
+			return true
+		}
+	}
+	return false
+}
+
+func cleanRoles(store *bolthold.Store, tx *bolt.Tx, userID uuid.UUID, newRoles []data.Role) error {
+	// get the current set of roles
+	roles, err := userRoles(store, tx, userID)
+	if err != nil {
+		return err
+	}
+
+	var targets []Role
+	for _, role := range roles {
+		if !containsRole(role.ID, newRoles) {
+			targets = append(targets, role)
+		}
+	}
+
+	for _, target := range targets {
+		if err := store.TxDelete(tx, target.ID, target); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Orgs returns all orgs.
