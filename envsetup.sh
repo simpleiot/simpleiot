@@ -87,7 +87,7 @@ siot_deploy() {
 }
 
 siot_run() {
-  siot_build_dependencies || return 1
+  siot_build_dependencies "$1" || return 1
   go run cmd/siot/main.go || return 1
   return 0
 }
