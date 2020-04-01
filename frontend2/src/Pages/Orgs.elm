@@ -86,6 +86,7 @@ empty =
     }
 
 
+
 -- UPDATE
 
 
@@ -97,7 +98,7 @@ type Msg
 update2 : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update2 msg model =
     let
-        (model_, msg_) =
+        ( model_, msg_ ) =
             update msg model
     in
     ( model_
