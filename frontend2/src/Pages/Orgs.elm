@@ -80,6 +80,14 @@ type Msg
     | EditEmail String String
 
 
+update2 : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
+update2 msg model =
+    ( model
+    , Cmd.none
+    , Cmd.none
+    )
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
