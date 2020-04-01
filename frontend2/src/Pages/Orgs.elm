@@ -31,6 +31,7 @@ page =
         }
 
 
+page2 : Page Params.Orgs Model Msg model msg appMsg
 page2 =
     Spa.Page.component
         { title = always "Orgs"
