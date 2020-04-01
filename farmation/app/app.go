@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"runtime"
 	"syscall"
 	"time"
@@ -33,6 +34,7 @@ import (
 	"github.com/simpleiot/simpleiot/file"
 	"github.com/simpleiot/simpleiot/network"
 	"github.com/simpleiot/simpleiot/system"
+	"github.com/timshannon/bolthold"
 )
 
 // Params are used to configure the app
@@ -78,12 +80,33 @@ func Run(params Params) {
 	}
 
 	log.Printf("App params: %+v\n", params)
-	db, err := isdb.NewDb(params.DataDir)
+
+	dbFn := path.Join(params.DataDir, "data.db")
+	dbConfigFn := path.Join(params.DataDir, "config.db")
+	dbStateFn := path.Join(params.DataDir, "state.db")
+
+	db, err := isdb.NewDb(dbFn)
 
 	if err != nil {
 		// FIXME this error  should display a message on screen to run recovery
 		// process
 		log.Fatal("Error opening db: ", err)
+	}
+
+	dbConfig, err := isdb.NewDb(dbConfigFn)
+
+	if err != nil {
+		// FIXME this error  should display a message on screen to run recovery
+		// process
+		log.Fatal("Error opening config db: ", err)
+	}
+
+	dbState, err := isdb.NewDb(dbStateFn)
+
+	if err != nil {
+		// FIXME this error  should display a message on screen to run recovery
+		// process
+		log.Fatal("Error opening state db: ", err)
 	}
 
 	err = isdb.RunMigrations(db)
@@ -108,23 +131,49 @@ func Run(params Params) {
 	state := isdata.State{}
 	stateDirty := false
 
-	err = db.ReadConfig(&config)
+	err = dbConfig.ReadConfig(&config)
 
 	if err != nil {
-		log.Println("Error reading config, resetting: ", err)
-		err := db.ResetDb()
-		if err != nil {
-			log.Println("Error resetting db: ", err)
+		if err == bolthold.ErrNotFound {
+			log.Println("config not found -- try reading from old db")
+			err := db.ReadConfig(&config)
+			if err != nil {
+				log.Println("config not found in old db -- start with blank config")
+			} else {
+				err := dbConfig.WriteConfig(&config)
+				if err != nil {
+					log.Println("Error writing config to new db", err)
+				}
+			}
+		} else {
+			log.Println("Error reading config, resetting: ", err)
+			err := dbConfig.ResetDb()
+			if err != nil {
+				log.Println("Error resetting config db: ", err)
+			}
 		}
 	}
 
-	err = db.ReadState(&state)
+	err = dbState.ReadState(&state)
 
 	if err != nil {
-		log.Println("Error reading state, resetting: ", err)
-		err := db.ResetDb()
-		if err != nil {
-			log.Println("Error resetting db: ", err)
+		if err == bolthold.ErrNotFound {
+			log.Println("state not found -- try reading from old db")
+			err := db.ReadState(&state)
+			if err != nil {
+				log.Println("state not found in old db -- start with blank config")
+			} else {
+				err := dbState.WriteState(&state)
+				if err != nil {
+					log.Println("Error writing state to new db", err)
+				}
+			}
+		} else {
+			log.Println("Error reading state, resetting: ", err)
+			err := dbState.ResetDb()
+			if err != nil {
+				log.Println("Error resetting state db: ", err)
+			}
 		}
 	}
 
@@ -236,7 +285,7 @@ func Run(params Params) {
 		presChan <- config
 		cntrlChan <- config
 		networkChan <- config
-		err := db.WriteConfig(&config)
+		err := dbConfig.WriteConfig(&config)
 		if err != nil {
 			log.Println("Error saving config: ", err)
 		}
@@ -383,8 +432,11 @@ func Run(params Params) {
 			config.ManualRelayAux = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			config.ManualRelayShutdown = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			saveConfig()
-			db.WriteState(&state)
+			dbState.WriteState(&state)
+			dbConfig.WriteConfig(&config)
+			// save config and state in data db as well for backup
 			db.WriteConfig(&config)
+			db.WriteState(&state)
 			// give time for splash screen to be displayed
 			time.Sleep(100 * time.Millisecond)
 			log.Println("state and config saved, SEE YA!")
@@ -392,7 +444,7 @@ func Run(params Params) {
 
 		case <-saveStateTimer.C:
 			if stateDirty {
-				db.WriteState(&state)
+				dbState.WriteState(&state)
 				stateDirty = false
 			}
 		case m := <-appChan:

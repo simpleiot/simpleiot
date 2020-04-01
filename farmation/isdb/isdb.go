@@ -3,7 +3,6 @@ package isdb
 import (
 	"log"
 	"os"
-	"path"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -20,15 +19,14 @@ type IsDb struct {
 }
 
 // NewDb creates a new Db instance for the app
-func NewDb(dataDir string) (*IsDb, error) {
-	dbFile := path.Join(dataDir, "data.db")
-	store, err := bolthold.Open(dbFile, 0666, nil)
+func NewDb(fileName string) (*IsDb, error) {
+	store, err := bolthold.Open(fileName, 0666, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	return &IsDb{
-		filename: dbFile,
+		filename: fileName,
 		store:    store,
 	}, nil
 }
@@ -38,12 +36,6 @@ func (db *IsDb) ReadConfig(config *isdata.Config) error {
 	err := db.store.Get(0, config)
 
 	if err != nil {
-		if err == bolthold.ErrNotFound {
-			// data is not stored, so simply return zero'd config
-			return nil
-		}
-
-		// there was an error reading so return error
 		return err
 	}
 
@@ -77,12 +69,6 @@ func (db *IsDb) ReadState(state *isdata.State) error {
 	err := db.store.Get(0, state)
 
 	if err != nil {
-		if err == bolthold.ErrNotFound {
-			// data is not stored, so simply return zero'd config
-			return nil
-		}
-
-		// there was an error reading so return error
 		return err
 	}
 
