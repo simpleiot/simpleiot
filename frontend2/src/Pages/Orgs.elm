@@ -67,18 +67,23 @@ init2 context params =
 
 init : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg )
 init context _ =
-    ( { orgs = []
-      , error = Nothing
-      , emails = Dict.empty
-      }
-    , case context.global of
+    case context.global of
         Global.SignedIn sess ->
-            getOrgs sess.authToken
+            ( empty
+            , getOrgs sess.authToken
+            )
 
         Global.SignedOut _ ->
-            Cmd.none
-    )
+            ( empty
+            , Cmd.none
+            )
 
+
+empty =
+    { orgs = []
+    , error = Nothing
+    , emails = Dict.empty
+    }
 
 
 -- UPDATE
