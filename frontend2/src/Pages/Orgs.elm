@@ -31,6 +31,9 @@ page =
         }
 
 
+page2 =
+    Spa.Page.component
+
 
 -- INIT
 
