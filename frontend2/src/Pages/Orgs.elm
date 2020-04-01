@@ -91,8 +91,12 @@ type Msg
 
 update2 : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update2 msg model =
-    ( model
-    , Cmd.none
+    let
+        (model_, msg_) =
+            update msg model
+    in
+    ( model_
+    , msg_
     , Cmd.none
     )
 
