@@ -45,7 +45,7 @@ init : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg, 
 init context _ =
     ( empty
     , Cmd.none
-    , Cmd.none
+    , Spa.Page.send <| Global.RequestOrgs
     )
 
 
