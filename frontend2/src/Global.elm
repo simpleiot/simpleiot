@@ -57,7 +57,7 @@ type alias Cred =
 
 type Msg
     = Tick Time.Posix
-    | UpdateDevices (Result Http.Error (List D.Device))
+    | DevicesResponse (Result Http.Error (List D.Device))
     | UpdateOrgs (Result Http.Error (List O.Org))
     | SignIn Cred
     | AuthResponse Cred (Result Http.Error Auth)
@@ -202,7 +202,7 @@ update commands msg model =
                     , Cmd.none
                     )
 
-                UpdateDevices (Ok devices) ->
+                DevicesResponse (Ok devices) ->
                     ( SignedIn { sess | data = { data | devices = devices } }
                     , Cmd.none
                     , Cmd.none
@@ -221,7 +221,7 @@ getDevices token =
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = urlDevices
-        , expect = Http.expectJson UpdateDevices D.decodeList
+        , expect = Http.expectJson DevicesResponse D.decodeList
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
