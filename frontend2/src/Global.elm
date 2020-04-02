@@ -56,8 +56,7 @@ type alias Cred =
 
 
 type Msg
-    = Tick Time.Posix
-    | DevicesResponse (Result Http.Error (List D.Device))
+    = DevicesResponse (Result Http.Error (List D.Device))
     | OrgsResponse (Result Http.Error (List O.Org))
     | SignIn Cred
     | AuthResponse Cred (Result Http.Error Auth)
@@ -180,12 +179,6 @@ update commands msg model =
                     sess.data
             in
             case msg of
-                Tick _ ->
-                    ( model
-                    , getDevices sess.authToken
-                    , Cmd.none
-                    )
-
                 SignOut ->
                     ( SignedOut Nothing
                     , Cmd.none
