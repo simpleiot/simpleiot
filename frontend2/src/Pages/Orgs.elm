@@ -124,12 +124,17 @@ subscriptions model =
 
 
 view : Types.PageContext route Global.Model -> Model -> Element Msg
-view _ model =
+view context model =
     column
         [ width fill, spacing 32 ]
         [ el [ padding 16, Font.size 24 ] <| text "Orgs"
         , viewError model.error
-        , viewOrgs model
+        , case context.global of
+            Global.SignedIn sess ->
+                viewOrgs model
+
+            _ ->
+                el [ padding 16 ] <| text "Sign in to view your orgs."
         ]
 
 
