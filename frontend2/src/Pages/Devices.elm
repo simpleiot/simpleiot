@@ -29,7 +29,7 @@ import Time
 
 page : Page Params.Devices Model Msg model msg appMsg
 page =
-    Spa.Page.element
+    Spa.Page.component
         { title = always "Devices"
         , init = always init
         , update = update
@@ -47,10 +47,11 @@ type alias Model =
     }
 
 
-init : Params.Devices -> ( Model, Cmd Msg )
+init : Params.Devices -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ =
     ( { deviceEdits = Dict.empty
       }
+    , Cmd.none
     , Cmd.none
     )
 
@@ -74,11 +75,12 @@ type alias Response =
     }
 
 
-update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg )
+update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update context msg model =
     case msg of
         EditDeviceDescription { id, description } ->
             ( { model | deviceEdits = Dict.insert id description model.deviceEdits }
+            , Cmd.none
             , Cmd.none
             )
 
@@ -90,20 +92,24 @@ update context msg model =
 
                 Global.SignedOut _ ->
                     Cmd.none
+            , Cmd.none
             )
 
         ConfigPosted id (Ok _) ->
             ( { model | deviceEdits = Dict.remove id model.deviceEdits }
+            , Cmd.none
             , Cmd.none
             )
 
         DiscardEditedDeviceDescription id ->
             ( { model | deviceEdits = Dict.remove id model.deviceEdits }
             , Cmd.none
+            , Cmd.none
             )
 
         _ ->
             ( model
+            , Cmd.none
             , Cmd.none
             )
 
