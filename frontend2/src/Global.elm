@@ -58,10 +58,10 @@ type alias Cred =
 type Msg
     = Tick Time.Posix
     | DevicesResponse (Result Http.Error (List D.Device))
-    | UpdateOrgs (Result Http.Error (List O.Org))
+    | OrgsResponse (Result Http.Error (List O.Org))
     | SignIn Cred
     | AuthResponse Cred (Result Http.Error Auth)
-    | UpdateData (Result Http.Error Data)
+    | DataResponse (Result Http.Error Data)
     | SignOut
 
 
@@ -96,7 +96,7 @@ getData token =
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.absolute [ "v1", "data" ] []
-        , expect = Http.expectJson UpdateData decodeData
+        , expect = Http.expectJson DataResponse decodeData
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
@@ -196,7 +196,7 @@ update commands msg model =
                     , commands.navigate routes.signIn
                     )
 
-                UpdateData (Ok newData) ->
+                DataResponse (Ok newData) ->
                     ( SignedIn { sess | data = newData }
                     , Cmd.none
                     , Cmd.none
@@ -238,7 +238,7 @@ getOrgs token =
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.absolute [ "v1", "orgs" ] []
-        , expect = Http.expectJson UpdateOrgs O.decodeList
+        , expect = Http.expectJson OrgsResponse O.decodeList
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
