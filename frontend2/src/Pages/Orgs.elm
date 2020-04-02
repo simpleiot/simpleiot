@@ -70,25 +70,12 @@ empty =
 
 
 type Msg
-    = UpdateOrgs (Result Http.Error (List O.Org))
-    | EditEmail String String
+    = EditEmail String String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update msg model =
     case msg of
-        UpdateOrgs (Ok orgs) ->
-            ( { model | orgs = orgs }
-            , Cmd.none
-            , Cmd.none
-            )
-
-        UpdateOrgs (Err err) ->
-            ( { model | error = Just err }
-            , Cmd.none
-            , Cmd.none
-            )
-
         EditEmail id email ->
             ( { model | emails = Dict.insert id email model.emails }
             , Cmd.none
