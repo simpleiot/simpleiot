@@ -47,7 +47,7 @@ init context _ =
     case context.global of
         Global.SignedIn sess ->
             ( empty
-            , getOrgs sess.authToken
+            , Cmd.none
             , Cmd.none
             )
 
