@@ -36,8 +36,7 @@ page =
 
 
 type alias Model =
-    { orgs : List O.Org
-    , error : Maybe Http.Error
+    { error : Maybe Http.Error
     , emails : Dict String String
     }
 
@@ -59,8 +58,7 @@ init context _ =
 
 
 empty =
-    { orgs = []
-    , error = Nothing
+    { error = Nothing
     , emails = Dict.empty
     }
 
