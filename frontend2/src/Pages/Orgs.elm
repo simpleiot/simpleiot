@@ -22,17 +22,6 @@ import Utils.Styles exposing (palette, size)
 
 page : Page Params.Orgs Model Msg model msg appMsg
 page =
-    Spa.Page.element
-        { title = always "Orgs"
-        , init = init
-        , update = always update
-        , subscriptions = always subscriptions
-        , view = always view
-        }
-
-
-page2 : Page Params.Orgs Model Msg model msg appMsg
-page2 =
     Spa.Page.component
         { title = always "Orgs"
         , init = init2
