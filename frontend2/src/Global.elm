@@ -215,7 +215,6 @@ update commands msg model =
                     )
 
 
-
 getDevices : String -> Cmd Msg
 getDevices token =
     Http.request
@@ -231,6 +230,19 @@ getDevices token =
 
 urlDevices =
     Url.absolute [ "v1", "devices" ] []
+
+
+getOrgs : String -> Cmd Msg
+getOrgs token =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "orgs" ] []
+        , expect = Http.expectJson UpdateOrgs O.decodeList
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 subscriptions : Model -> Sub Msg
