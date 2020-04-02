@@ -107,6 +107,12 @@ update context msg model =
             , Cmd.none
             )
 
+        Tick _ ->
+            ( model
+            , Cmd.none
+            , Spa.Page.send <| Global.RequestDevices
+            )
+
         _ ->
             ( model
             , Cmd.none
