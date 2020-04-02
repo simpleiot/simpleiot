@@ -209,6 +209,12 @@ update commands msg model =
                     , Cmd.none
                     )
 
+                RequestOrgs ->
+                    ( model
+                    , getOrgs sess.authToken
+                    , Cmd.none
+                    )
+
                 _ ->
                     ( model
                     , Cmd.none
