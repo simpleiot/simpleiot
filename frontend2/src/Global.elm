@@ -172,6 +172,10 @@ update commands msg model =
                     )
 
         SignedIn sess ->
+            let
+                data =
+                    sess.data
+            in
             case msg of
                 Tick _ ->
                     ( model
@@ -198,10 +202,6 @@ update commands msg model =
                     )
 
                 UpdateDevices (Ok devices) ->
-                    let
-                        data =
-                            sess.data
-                    in
                     ( SignedIn { sess | data = { data | devices = devices } }
                     , Cmd.none
                     , Cmd.none
