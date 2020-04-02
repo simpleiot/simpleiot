@@ -438,7 +438,13 @@ func Run(params Params) {
 				case isdata.SampleTypeFlowWindowAvg:
 
 					// compute and update average flow rate in arming period
-					if config.Arm {
+					// test for the injector relay, because we don't want to
+					// add zero values when the injector is off and pull down
+					// the average
+					// test for the injector relay, because we don't want to
+					// add zero values when the injector is off and pull down
+					// the average
+					if config.Arm && state.GpioRelayInjectorEn {
 						flowAverager.AddSample(m)
 						state.AvgArmedFlowRate = flowAverager.GetAverage().Value
 						state.DurationArmed = time.Since(state.TimeArmed)
