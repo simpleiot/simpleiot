@@ -131,20 +131,20 @@ view context model =
         , viewError model.error
         , case context.global of
             Global.SignedIn sess ->
-                viewOrgs model
+                viewOrgs model.emails model.orgs
 
             _ ->
                 el [ padding 16 ] <| text "Sign in to view your orgs."
         ]
 
 
-viewOrgs model =
+viewOrgs emails orgs =
     column
         [ width fill
         , spacing 40
         ]
     <|
-        List.map (viewOrg model.emails) model.orgs
+        List.map (viewOrg emails) orgs
 
 
 getEmail emails orgId =
