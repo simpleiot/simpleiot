@@ -132,7 +132,9 @@ type alias DeviceEdit =
 
 subscriptions : Types.PageContext route Global.Model -> Model -> Sub Msg
 subscriptions context model =
-    Sub.none
+    Sub.batch
+        [ Time.every 1000 Tick
+        ]
 
 
 

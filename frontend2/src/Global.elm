@@ -261,6 +261,4 @@ getOrgs token =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.batch
-        [ Time.every 1000 Tick
-        ]
+    Sub.none
