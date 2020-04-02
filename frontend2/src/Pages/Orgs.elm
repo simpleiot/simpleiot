@@ -131,7 +131,7 @@ view context model =
         , viewError model.error
         , case context.global of
             Global.SignedIn sess ->
-                viewOrgs model.emails model.orgs
+                viewOrgs model.emails sess.data.orgs
 
             _ ->
                 el [ padding 16 ] <| text "Sign in to view your orgs."
