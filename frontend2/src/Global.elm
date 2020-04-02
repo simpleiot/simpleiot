@@ -191,8 +191,8 @@ update commands msg model =
                     , commands.navigate routes.signIn
                     )
 
-                UpdateData (Ok data) ->
-                    ( SignedIn { sess | data = data }
+                UpdateData (Ok newData) ->
+                    ( SignedIn { sess | data = newData }
                     , Cmd.none
                     , Cmd.none
                     )
