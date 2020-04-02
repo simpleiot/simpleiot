@@ -24,6 +24,7 @@ import Spa.Types as Types
 import Url.Builder as Url
 import Utils.Spa exposing (Page)
 import Utils.Styles exposing (palette, size)
+import Time
 
 
 page : Page Params.Devices Model Msg model msg appMsg
@@ -59,7 +60,8 @@ init _ =
 
 
 type Msg
-    = EditDeviceDescription DeviceEdit
+    = Tick Time.Posix
+    | EditDeviceDescription DeviceEdit
     | PostConfig String D.Config
     | DiscardEditedDeviceDescription String
     | ConfigPosted String (Result Http.Error Response)
