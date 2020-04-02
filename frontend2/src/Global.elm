@@ -58,6 +58,7 @@ type alias Cred =
 type Msg
     = Tick Time.Posix
     | UpdateDevices (Result Http.Error (List D.Device))
+    | UpdateOrgs (Result Http.Error (List O.Org))
     | SignIn Cred
     | AuthResponse Cred (Result Http.Error Auth)
     | UpdateData (Result Http.Error Data)
