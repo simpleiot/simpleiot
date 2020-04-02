@@ -24,8 +24,8 @@ page : Page Params.Orgs Model Msg model msg appMsg
 page =
     Spa.Page.component
         { title = always "Orgs"
-        , init = init2
-        , update = always update2
+        , init = init
+        , update = always update
         , subscriptions = always subscriptions
         , view = always view
         }
@@ -42,28 +42,18 @@ type alias Model =
     }
 
 
-init2 : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg, Cmd Global.Msg )
-init2 context params =
-    let
-        ( model, msg ) =
-            init context params
-    in
-    ( model
-    , msg
-    , Cmd.none
-    )
-
-
-init : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg )
+init : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg, Cmd Global.Msg )
 init context _ =
     case context.global of
         Global.SignedIn sess ->
             ( empty
             , getOrgs sess.authToken
+            , Cmd.none
             )
 
         Global.SignedOut _ ->
             ( empty
+            , Cmd.none
             , Cmd.none
             )
 
@@ -84,33 +74,24 @@ type Msg
     | EditEmail String String
 
 
-update2 : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update2 msg model =
-    let
-        ( model_, msg_ ) =
-            update msg model
-    in
-    ( model_
-    , msg_
-    , Cmd.none
-    )
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update msg model =
     case msg of
         UpdateOrgs (Ok orgs) ->
             ( { model | orgs = orgs }
+            , Cmd.none
             , Cmd.none
             )
 
         UpdateOrgs (Err err) ->
             ( { model | error = Just err }
             , Cmd.none
+            , Cmd.none
             )
 
         EditEmail id email ->
             ( { model | emails = Dict.insert id email model.emails }
+            , Cmd.none
             , Cmd.none
               -- TODO: does this user exist?
             )
