@@ -179,10 +179,6 @@ viewDevices =
     viewList "Devices" viewDevice
 
 
-dup a =
-    (++) a a
-
-
 viewOrgName name =
     el
         [ padding 16
