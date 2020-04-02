@@ -62,6 +62,7 @@ type Msg
     | SignIn Cred
     | AuthResponse Cred (Result Http.Error Auth)
     | DataResponse (Result Http.Error Data)
+    | RequestOrgs
     | SignOut
 
 
