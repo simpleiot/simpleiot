@@ -91,7 +91,7 @@ login cred =
         }
 
 
-loadData token =
+getData token =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
@@ -162,7 +162,7 @@ update commands msg model =
                         , privilege = privilege
                         , data = emptyData
                         }
-                    , loadData token
+                    , getData token
                     , Cmd.none
                     )
 
