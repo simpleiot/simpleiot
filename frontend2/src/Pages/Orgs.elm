@@ -27,7 +27,7 @@ page =
         , init = init
         , update = always update
         , subscriptions = always subscriptions
-        , view = always view
+        , view = view
         }
 
 
@@ -123,8 +123,8 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Element Msg
-view model =
+view : Types.PageContext route Global.Model -> Model -> Element Msg
+view _ model =
     column
         [ width fill, spacing 32 ]
         [ el [ padding 16, Font.size 24 ] <| text "Orgs"
