@@ -63,6 +63,7 @@ type Msg
     | AuthResponse Cred (Result Http.Error Auth)
     | DataResponse (Result Http.Error Data)
     | RequestOrgs
+    | RequestDevices
     | SignOut
 
 
@@ -212,6 +213,12 @@ update commands msg model =
                 RequestOrgs ->
                     ( model
                     , getOrgs sess.authToken
+                    , Cmd.none
+                    )
+
+                RequestDevices ->
+                    ( model
+                    , getDevices sess.authToken
                     , Cmd.none
                     )
 
