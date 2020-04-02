@@ -43,18 +43,11 @@ type alias Model =
 
 init : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg, Cmd Global.Msg )
 init context _ =
-    case context.global of
-        Global.SignedIn sess ->
-            ( empty
-            , Cmd.none
-            , Cmd.none
-            )
+    ( empty
+    , Cmd.none
+    , Cmd.none
+    )
 
-        Global.SignedOut _ ->
-            ( empty
-            , Cmd.none
-            , Cmd.none
-            )
 
 
 empty =
