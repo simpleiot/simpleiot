@@ -22,7 +22,7 @@ var splash struct {
 
 func main() {
 
-	modeIsInit := flag.Bool("init", true, "initializing or updating")
+	flagInit := flag.Bool("init", false, "initialize display")
 	flag.Parse()
 
 	// extract arguments from command
@@ -71,7 +71,7 @@ func main() {
 		os.Exit(-1)
 	}
 
-	if *modeIsInit {
+	if *flagInit {
 		fmt.Println("Initializing")
 		err := lcd.Init()
 		if err != nil {
