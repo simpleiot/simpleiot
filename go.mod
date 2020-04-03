@@ -18,6 +18,7 @@ require (
 	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/mitchellh/go-ps v1.0.0
 	github.com/mxmCherry/movavg v1.1.0
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect

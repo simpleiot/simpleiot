@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 
+	ps "github.com/mitchellh/go-ps"
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/farmation/app"
 	"github.com/simpleiot/simpleiot/farmation/diag"
@@ -227,6 +228,27 @@ func main() {
 		isio.GpioInit()
 		isio.GpioOut(isio.GpioRelayAuxEn, true)
 		os.Exit(0)
+	}
+
+	// check if app is already running -- don't want to run two
+	// copies of the app
+	if runtime.GOARCH == "arm" {
+		processes, err := ps.Processes()
+		if err != nil {
+			log.Println("Error getting processes")
+		}
+
+		count := 0
+
+		for _, p := range processes {
+			if p.Executable() == "is" || p.Executable() == "is_arm" {
+				count++
+				if count > 1 {
+					log.Println("is app already running, bailing")
+					os.Exit(-1)
+				}
+			}
+		}
 	}
 
 	params := app.Params{
