@@ -397,7 +397,18 @@ func Run(params Params) {
 	dlgResetTotal1 := state.Dialogs["ResetTotal1"]
 	dlgResetTotal2 := state.Dialogs["ResetTotal2"]
 
+	mainloopFile := "/run/is-mainloop"
 	for {
+		if runtime.GOARCH == "arm" {
+			if !file.Exists(mainloopFile) {
+				f, err := os.Create(mainloopFile)
+				if err != nil {
+					log.Println("Error creating: ", mainloopFile)
+				} else {
+					f.Close()
+				}
+			}
+		}
 
 		// max sure queues between subsystems are not full
 		for _, c := range channels {
