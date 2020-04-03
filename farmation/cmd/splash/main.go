@@ -92,11 +92,9 @@ func main() {
 	}
 
 	// Message
-	fmt.Println(splash.message)
 	isui.DrawTxtCentered(img, splash.message, 64, 54, tightpixel15.Font)
 
 	// Progress bar
-	fmt.Println(splash.progress)
 	isui.Rect(img, 32, 45, 64, 6)
 	if splash.progress > 100 || splash.progress < 0 {
 		splash.progress = 100
