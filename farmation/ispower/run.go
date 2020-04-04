@@ -30,6 +30,7 @@ func Run(in, out chan interface{}) {
 		case <-ticker.C:
 			if !state.GpioMainAuxPwr {
 				powerLossCount++
+				log.Println("Power loss count: ", powerLossCount)
 			} else {
 				powerLossCount = 0
 			}
