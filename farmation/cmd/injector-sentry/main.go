@@ -7,6 +7,9 @@ import (
 	"os"
 	"runtime"
 
+	"net/http"
+	_ "net/http/pprof"
+
 	ps "github.com/mitchellh/go-ps"
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/farmation/app"
@@ -47,6 +50,7 @@ func main() {
 	flagViewMsg := flag.Bool("msg", false, "view channel messages to app")
 	flagReadVcap := flag.Bool("readVcap", false, "read backup battery voltage")
 	flagWebUI := flag.Bool("webUI", false, "Start Web UI for remote access")
+	flagProf := flag.Bool("prof", false, "Web UI for profiling")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -249,6 +253,15 @@ func main() {
 				}
 			}
 		}
+	}
+
+	if *flagProf {
+		// this starts a web service that can be used for profiling
+		// must uncomment import _ "net/http/pprof" above
+		go func() {
+			log.Println("Starting web interface for pprof ...")
+			log.Println(http.ListenAndServe(":6060", nil))
+		}()
 	}
 
 	params := app.Params{

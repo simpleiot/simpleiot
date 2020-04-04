@@ -13,7 +13,7 @@ import (
 //Run entry point for power management
 func Run(in, out chan interface{}) {
 	state := isdata.State{}
-	ticker := time.NewTicker(time.Millisecond * 250)
+	ticker := time.NewTicker(time.Second)
 
 	if runtime.GOARCH != "arm" {
 		ticker.Stop()
