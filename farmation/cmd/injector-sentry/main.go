@@ -8,7 +8,7 @@ import (
 	"runtime"
 
 	"net/http"
-	_ "net/http/pprof"
+	//_ "net/http/pprof"
 
 	ps "github.com/mitchellh/go-ps"
 	"github.com/simpleiot/simpleiot/db"
