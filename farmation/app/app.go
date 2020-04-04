@@ -1089,6 +1089,7 @@ func Run(params Params) {
 				if runtime.GOARCH != "arm" {
 					log.Println("on development platform, not rebooting")
 				} else {
+					log.Println("Menu reboot selected, rebooting ...")
 					err := exec.Command("reboot").Run()
 					if err != nil {
 						log.Println("Error running reboot command")
