@@ -22,12 +22,12 @@ import Utils.Styles exposing (palette, size)
 
 page : Page Params.Orgs Model Msg model msg appMsg
 page =
-    Spa.Page.element
+    Spa.Page.component
         { title = always "Orgs"
         , init = init
         , update = always update
         , subscriptions = always subscriptions
-        , view = always view
+        , view = view
         }
 
 
@@ -36,25 +36,24 @@ page =
 
 
 type alias Model =
-    { orgs : List O.Org
-    , error : Maybe Http.Error
+    { error : Maybe Http.Error
     , emails : Dict String String
     }
 
 
-init : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg )
+init : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg, Cmd Global.Msg )
 init context _ =
-    ( { orgs = []
-      , error = Nothing
-      , emails = Dict.empty
-      }
-    , case context.global of
-        Global.SignedIn sess ->
-            getOrgs sess.authToken
-
-        Global.SignedOut _ ->
-            Cmd.none
+    ( empty
+    , Cmd.none
+    , Spa.Page.send <| Global.RequestOrgs
     )
+
+
+
+empty =
+    { error = Nothing
+    , emails = Dict.empty
+    }
 
 
 
@@ -62,41 +61,18 @@ init context _ =
 
 
 type Msg
-    = UpdateOrgs (Result Http.Error (List O.Org))
-    | EditEmail String String
+    = EditEmail String String
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update msg model =
     case msg of
-        UpdateOrgs (Ok orgs) ->
-            ( { model | orgs = orgs }
-            , Cmd.none
-            )
-
-        UpdateOrgs (Err err) ->
-            ( { model | error = Just err }
-            , Cmd.none
-            )
-
         EditEmail id email ->
             ( { model | emails = Dict.insert id email model.emails }
             , Cmd.none
+            , Cmd.none
               -- TODO: does this user exist?
             )
-
-
-getOrgs : String -> Cmd Msg
-getOrgs token =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = Url.absolute [ "v1", "orgs" ] []
-        , expect = Http.expectJson UpdateOrgs O.decodeList
-        , body = Http.emptyBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
 
 
 
@@ -112,23 +88,28 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Element Msg
-view model =
+view : Types.PageContext route Global.Model -> Model -> Element Msg
+view context model =
     column
         [ width fill, spacing 32 ]
         [ el [ padding 16, Font.size 24 ] <| text "Orgs"
         , viewError model.error
-        , viewOrgs model
+        , case context.global of
+            Global.SignedIn sess ->
+                viewOrgs model.emails sess.data.orgs
+
+            _ ->
+                el [ padding 16 ] <| text "Sign in to view your orgs."
         ]
 
 
-viewOrgs model =
+viewOrgs emails orgs =
     column
         [ width fill
         , spacing 40
         ]
     <|
-        List.map (viewOrg model.emails) model.orgs
+        List.map (viewOrg emails) orgs
 
 
 getEmail emails orgId =
@@ -189,10 +170,6 @@ label kind =
 
 viewDevices =
     viewList "Devices" viewDevice
-
-
-dup a =
-    (++) a a
 
 
 viewOrgName name =

@@ -57,10 +57,12 @@ type alias Cred =
 
 type Msg
     = Tick Time.Posix
-    | UpdateDevices (Result Http.Error (List D.Device))
+    | DevicesResponse (Result Http.Error (List D.Device))
+    | OrgsResponse (Result Http.Error (List O.Org))
     | SignIn Cred
     | AuthResponse Cred (Result Http.Error Auth)
-    | UpdateData (Result Http.Error Data)
+    | DataResponse (Result Http.Error Data)
+    | RequestOrgs
     | SignOut
 
 
@@ -90,12 +92,12 @@ login cred =
         }
 
 
-loadData token =
+getData token =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.absolute [ "v1", "data" ] []
-        , expect = Http.expectJson UpdateData decodeData
+        , expect = Http.expectJson DataResponse decodeData
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
@@ -161,7 +163,7 @@ update commands msg model =
                         , privilege = privilege
                         , data = emptyData
                         }
-                    , loadData token
+                    , getData token
                     , Cmd.none
                     )
 
@@ -172,6 +174,10 @@ update commands msg model =
                     )
 
         SignedIn sess ->
+            let
+                data =
+                    sess.data
+            in
             case msg of
                 Tick _ ->
                     ( model
@@ -191,19 +197,21 @@ update commands msg model =
                     , commands.navigate routes.signIn
                     )
 
-                UpdateData (Ok data) ->
-                    ( SignedIn { sess | data = data }
+                DataResponse (Ok newData) ->
+                    ( SignedIn { sess | data = newData }
                     , Cmd.none
                     , Cmd.none
                     )
 
-                UpdateDevices (Ok devices) ->
-                    let
-                        data =
-                            sess.data
-                    in
+                DevicesResponse (Ok devices) ->
                     ( SignedIn { sess | data = { data | devices = devices } }
                     , Cmd.none
+                    , Cmd.none
+                    )
+
+                RequestOrgs ->
+                    ( model
+                    , getOrgs sess.authToken
                     , Cmd.none
                     )
 
@@ -214,14 +222,13 @@ update commands msg model =
                     )
 
 
-
 getDevices : String -> Cmd Msg
 getDevices token =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = urlDevices
-        , expect = Http.expectJson UpdateDevices D.decodeList
+        , expect = Http.expectJson DevicesResponse D.decodeList
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
@@ -230,6 +237,19 @@ getDevices token =
 
 urlDevices =
     Url.absolute [ "v1", "devices" ] []
+
+
+getOrgs : String -> Cmd Msg
+getOrgs token =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "orgs" ] []
+        , expect = Http.expectJson OrgsResponse O.decodeList
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 subscriptions : Model -> Sub Msg
