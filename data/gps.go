@@ -14,8 +14,8 @@ type GpsPos struct {
 
 // FromGPGGA converts a GPGGA string to a position/fix
 func (p *GpsPos) FromGPGGA(gpgga nmea.GPGGA) {
-	p.Lat = float64(gpgga.Latitude)
-	p.Long = float64(gpgga.Longitude)
+	p.Lat = gpgga.Latitude
+	p.Long = gpgga.Longitude
 	p.Fix = gpgga.FixQuality
 	p.NumSat = gpgga.NumSatellites
 }

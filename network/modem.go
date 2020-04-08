@@ -1,14 +1,19 @@
 package network
 
+// this module currently supports the BG96 modem connected via USB
+
 import (
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os/exec"
+	"strings"
 	"time"
 
+	nmea "github.com/adrianmo/go-nmea"
 	"github.com/jacobsa/go-serial/serial"
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/file"
 	"github.com/simpleiot/simpleiot/respreader"
 )
@@ -48,6 +53,7 @@ func NewModem(config ModemConfig) *Modem {
 
 func (m *Modem) openCmdPort() error {
 	if m.atCmdPort != nil {
+		// port is already open
 		return nil
 	}
 
@@ -173,18 +179,17 @@ func (m *Modem) Configure() (InterfaceConfig, error) {
 		return ret, fmt.Errorf("Error setting fun full: %v", err.Error())
 	}
 
-	// enable GPS
-	/* for some reason this is failing -- likely a timing issue
+	// enable GPS. Don't return error of GPS commands fail as
+	// this is not a critical error
 	err = CmdOK(m.atCmdPort, "AT+QGPS=1")
 	if err != nil {
-		return fmt.Errorf("Error enabling GPS: %v", err.Error())
+		log.Printf("Error enabling GPS: %v", err.Error())
 	}
 
 	err = CmdOK(m.atCmdPort, "AT+QGPSCFG=\"nmeasrc\",1")
 	if err != nil {
-		return fmt.Errorf("Error settings GPS source: %v", err.Error())
+		log.Printf("Error settings GPS source: %v", err.Error())
 	}
-	*/
 
 	sim, err := CmdGetSimBg96(m.atCmdPort)
 
@@ -333,4 +338,39 @@ func (m *Modem) Enable(en bool) error {
 	}
 
 	return nil
+}
+
+// ErrorModemNotDetected is returned if we try an operation and the modem
+// is not detected
+var ErrorModemNotDetected = errors.New("No modem detected")
+
+// GetLocation returns current GPS location
+func (m *Modem) GetLocation() (data.GpsPos, error) {
+	if !m.detected() {
+		return data.GpsPos{}, ErrorModemNotDetected
+	}
+
+	if err := m.openCmdPort(); err != nil {
+		return data.GpsPos{}, err
+	}
+
+	line, err := CmdGGA(m.atCmdPort)
+
+	if err != nil {
+		return data.GpsPos{}, err
+	}
+
+	s, err := nmea.Parse(strings.TrimSpace(line))
+	if err != nil {
+		return data.GpsPos{}, err
+	}
+
+	if s.DataType() != nmea.TypeGGA {
+		return data.GpsPos{}, errors.New("GPS not GGA response")
+	}
+
+	gga := s.(nmea.GGA)
+	ret := data.GpsPos{}
+	ret.FromGPGGA(gga)
+	return ret, nil
 }

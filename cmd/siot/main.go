@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/syslog"
 	"os"
 	"strconv"
 	"strings"
@@ -53,7 +54,17 @@ func main() {
 	flagSimDeviceID := flag.String("simDeviceId", "1234", "Simulation Device ID")
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
+	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flag.Parse()
+
+	if *flagSyslog {
+		lgr, err := syslog.New(syslog.LOG_NOTICE, "SIOT")
+		if err != nil {
+			log.Println("Error setting up syslog: ", err)
+		} else {
+			log.SetOutput(lgr)
+		}
+	}
 
 	if *flagSendSample != "" {
 		err := send(*flagPortal, *flagSendSample)
