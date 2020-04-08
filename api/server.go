@@ -44,7 +44,7 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 
 	if h.Debug {
-		fmt.Printf("HTTP %v: %v\n", req.Method, req.URL.Path)
+		log.Printf("HTTP %v: %v\n", req.Method, req.URL.Path)
 	}
 
 	if req.URL.Path == "/" {
