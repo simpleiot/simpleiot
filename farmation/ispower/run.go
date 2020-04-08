@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 )
@@ -14,11 +15,16 @@ import (
 func Run(in, out chan interface{}) {
 	state := isdata.State{}
 	ticker := time.NewTicker(time.Second)
+	adTicker := time.NewTicker(time.Millisecond * 50)
+	averager := data.NewSampleAverager("")
+
+	adcReader := isio.NewAdcReader(isio.AdcVcap)
 
 	if runtime.GOARCH != "arm" {
 		ticker.Stop()
 	}
 
+	lastVcap := 0.0
 	powerLossCount := 0
 	for {
 		select {
@@ -27,13 +33,32 @@ func Run(in, out chan interface{}) {
 			case isdata.State:
 				state = m
 			}
+		case <-adTicker.C:
+			vcap, err := adcReader.Read()
+			if err != nil {
+				log.Println("Error reading vcap: ", err)
+			} else {
+				averager.AddSample(data.Sample{Value: vcap / isio.VcapScale})
+			}
+
 		case <-ticker.C:
+			s := averager.GetAverage()
+
 			if !state.GpioMainAuxPwr {
-				powerLossCount++
 				log.Println("Power loss count: ", powerLossCount)
+				log.Printf("Backup voltage: %.3f, delta: %.3f: \n",
+					s.Value, s.Value-lastVcap)
+				if s.Value-lastVcap < -0.008 {
+					powerLossCount++
+				} else {
+					powerLossCount = 0
+				}
 			} else {
 				powerLossCount = 0
 			}
+
+			lastVcap = s.Value
+			averager.ResetAverage()
 
 			if powerLossCount > 3 {
 				log.Println("Power loss for 3 seconds, shutting down")
