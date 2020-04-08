@@ -189,7 +189,8 @@ func ReadVcap() (v float64, err error) {
 	return
 }
 
-var pressureScale = 0.62825
+// PressureScale can be used to scale pressure readings
+var PressureScale = 0.62825
 
 // ReadPressure reads the supply and pressure voltage
 func ReadPressure() (ref float64, sense float64, err error) {
@@ -198,12 +199,12 @@ func ReadPressure() (ref float64, sense float64, err error) {
 	}
 
 	ref, err = AdcRead(AdcPressureRef)
-	ref = ref / pressureScale
+	ref = ref / PressureScale
 	if err != nil {
 		return
 	}
 	sense, err = AdcRead(AdcPressureSense)
-	sense = sense / pressureScale
+	sense = sense / PressureScale
 	if err != nil {
 		return
 	}
@@ -218,7 +219,7 @@ func ReadPressureSense() (sense float64, err error) {
 	}
 
 	sense, err = AdcRead(AdcPressureSense)
-	sense = sense / pressureScale
+	sense = sense / PressureScale
 	if err != nil {
 		return
 	}
