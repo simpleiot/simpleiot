@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/syslog"
 	"os"
 
 	"github.com/simpleiot/simpleiot/api"
@@ -19,7 +20,17 @@ func main() {
 	flagSimPortal := flag.String("simPortal", "http://localhost:8080", "Portal URL")
 	flagSimDeviceID := flag.String("simDeviceId", "1234", "Simulation Device ID")
 	flagDebugHTTP := flag.Bool("debugHttp", false, "Dump http requests")
+	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flag.Parse()
+
+	if *flagSyslog {
+		lgr, err := syslog.New(syslog.LOG_NOTICE, "SIOT")
+		if err != nil {
+			log.Println("Error setting up syslog: ", err)
+		} else {
+			log.SetOutput(lgr)
+		}
+	}
 
 	if *flagSim {
 		sim.DeviceSim(*flagSimPortal, *flagSimDeviceID)
