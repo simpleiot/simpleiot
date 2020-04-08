@@ -22,6 +22,7 @@ func Run(in, out chan interface{}) {
 
 	if runtime.GOARCH != "arm" {
 		ticker.Stop()
+		adTicker.Stop()
 	}
 
 	lastVcap := 0.0
