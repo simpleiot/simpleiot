@@ -23,6 +23,8 @@ type State struct {
 		DBVersion int `json:"dbVersion"`
 	} `json:"dbConfig"`
 
+	StateMachineState int `json:"stateMachineState"`
+
 	// FlowRate defines the current flow rate of the system in GPH
 	FlowRate          float64       `json:"flowRate"`
 	AvgArmedFlowRate  float64       `json:"avgFlowRate"`
@@ -190,6 +192,7 @@ func (fa FaultsActive) ActiveFaults() bool {
 type Dialog struct {
 	ID      int
 	Active  bool
+	Ack     bool
 	Heading string
 	Message string
 

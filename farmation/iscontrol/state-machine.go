@@ -16,7 +16,7 @@ type StateMachine struct {
 	state  *isdata.State
 
 	// state machine internals
-	machineState            state
+	machineState            StateMachineState
 	timeStateEntered        time.Time
 	lastGoodFlow            time.Time
 	lastGoodPressure        time.Time
@@ -42,13 +42,13 @@ const (
 	LedRed
 )
 
-// State of machine
-type state int
+// StateMachineState is the state of the machine
+type StateMachineState int
 
 // define valid states
 const (
 	// states for monitor only
-	monitorOnly state = iota
+	monitorOnly StateMachineState = iota
 
 	// states for monitor/shutdown
 	// the Start/End markers are not actually used
@@ -70,7 +70,7 @@ const (
 	// states for monitor/batch
 )
 
-func (s state) String() string {
+func (s StateMachineState) String() string {
 	switch s {
 	case monitorOnly:
 		return "monitorOnly"
@@ -90,16 +90,19 @@ func (s state) String() string {
 		return "shutdownDialog"
 	case shutdownDialogAck:
 		return "shutdownDialogAck"
-	case notifiedSoDisarm:
-		return "notifiedSoDisarm"
+	case disarm:
+		return "disarm"
 	default:
 		return strconv.Itoa(int(s))
 	}
 }
 
 // NewStateMachine creates a new state machine
-func NewStateMachine(config *isdata.Config, state *isdata.State) *StateMachine {
+func NewStateMachine(config *isdata.Config, state *isdata.State, initialState StateMachineState) *StateMachine {
+
+	log.Println("Initial State:", initialState)
 	return &StateMachine{
+		machineState:            initialState,
 		config:                  config,
 		state:                   state,
 		timeStateEntered:        time.Now(),
@@ -109,7 +112,10 @@ func NewStateMachine(config *isdata.Config, state *isdata.State) *StateMachine {
 	}
 }
 
-func (sm *StateMachine) setState(newState state) {
+// SetState is used in iscontrol.Run() to set the machine state to
+// a stored value from the system state on startup, and is also used
+// throughout the state machine
+func (sm *StateMachine) SetState(newState StateMachineState) isdata.UpdateStateMachineState {
 	if sm.machineState != newState {
 		log.Println("New state: ", newState)
 		sm.machineState = newState
@@ -122,6 +128,8 @@ func (sm *StateMachine) setState(newState state) {
 			sm.lastGoodPressure = time.Now()
 		}
 	}
+
+	return isdata.UpdateStateMachineState(sm.machineState)
 }
 
 func (sm *StateMachine) elapsed() time.Duration {
@@ -169,14 +177,13 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndShutdown &&
 			sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndNotify {
 
-			sm.setState(monitorOnly)
-			return
+			return append(ret, isdata.UpdateStateMachineState(sm.SetState(monitorOnly)))
 		}
 		// If disarmed in non-shutdown and non-standbyWaiting states, go to standby
 		// Is this only for if the user disarms in monitoringFlow state?
 		if !sm.inShutdownStates() &&
 			!sm.config.Arm {
-			sm.setState(standby)
+			ret = append(ret, sm.SetState(standby))
 		}
 	}
 
@@ -195,9 +202,9 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndShutdown ||
 			sm.config.OperatingMode == isdata.ISOperatingModeMonitorAndNotify {
 			if !sm.config.Arm {
-				sm.setState(standby)
+				ret = append(ret, sm.SetState(standby))
 			} else { // if armed on startup, go to monitoring flow
-				sm.setState(monitoringFlow)
+				ret = append(ret, sm.SetState(monitoringFlow))
 			}
 		}
 
@@ -220,7 +227,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		sm.CurrentLedState = LedGreenBlnk
 
 		if sm.config.Arm {
-			sm.setState(monitoringFlow)
+			ret = append(ret, sm.SetState(monitoringFlow))
 		}
 
 		/*if int(sm.state.CurrentTankVolume) > sm.config.TankAlertVolume {
@@ -348,7 +355,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
 
-			sm.setState(shutdown1)
+			ret = append(ret, sm.SetState(shutdown1))
 			ret = append(ret, data.Sample{
 				Type:  isdata.SampleTypeFaultFlowOff,
 				Time:  time.Now(),
@@ -367,7 +374,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodPressure) >= alarmRecognizeDuration:
 
-			sm.setState(shutdown1)
+			ret = append(ret, sm.SetState(shutdown1))
 
 			// if flow is off target as well, prioritize this fault
 			if sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
@@ -403,7 +410,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 
 		case sm.state.PressureMax >= float64(sm.config.HighPres):
 
-			sm.setState(shutdown1)
+			ret = append(ret, sm.SetState(shutdown1))
 			ret = append(ret, data.Sample{
 				Type:  isdata.SampleTypeFaultPresHigh,
 				Time:  time.Now(),
@@ -427,14 +434,21 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		sm.RelayShutdown = true
 		sm.CurrentLedState = LedRed
 
+		dlgStateMachine := *sm.state.Dialogs["StateMachine"]
+
 		// if the user has acknowledged the dialog, disarm
-		if !sm.state.Dialogs["StateMachine"].Active {
-			sm.setState(disarm)
+		if !dlgStateMachine.Active {
+			if dlgStateMachine.Ack {
+				ret = append(ret, sm.SetState(disarm))
+			} else { // if the system was restarted and we are still in this state, refire the dialog
+				return append(ret, isdata.UpdateDialogStateMachine{"Notice", "Alarm state"})
+
+			}
 		}
 
 		// If user toggles the arm switch, alarm state is exited
 		if !sm.config.Arm {
-			sm.setState(standby)
+			ret = append(ret, sm.SetState(standby))
 			return append(ret, isdata.UpdateDialogStateMachine{"Notice", "User disarmed" +
 				" system.\nAlarm state exited."})
 		}
@@ -444,12 +458,12 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 	sm.CurrentLedState = LedRed
 
 	if sm.elapsed() > 10*time.Second {
-		sm.setState(disarm)
+		sm.SetState(disarm)
 	}
 
 	// If user toggles the arm switch, alarm state is exited
 	if !sm.config.Arm {
-		sm.setState(standby)
+		sm.SetState(standby)
 		return append(ret, isdata.UpdateDialogStateMachine{"Notice", "User disarmed system.\nShutdown aborted."})
 	}*/
 
@@ -459,14 +473,14 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if sm.config.Arm {
 			return append(ret, isdata.UpdateDisarm{})
 		}
-		sm.setState(standby)
+		ret = append(ret, sm.SetState(standby))
 
 		/*
 			case shutdownDialog:
 
 					sm.CurrentLedState = LedRed
 
-					sm.setState(shutdownDialogAck)
+					sm.SetState(shutdownDialogAck)
 
 					if sm.state.InputWaterOn == isdata.InputStateOn {
 						return append(ret, isdata.UpdateDialogStateMachine{"Notice", "Failed to shutdown irrigator"}, data.Sample{
@@ -487,10 +501,10 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 					sm.CurrentLedState = LedRed
 
 					if !sm.state.Dialogs[smKey].Active {
-						sm.setState(standby)
+						sm.SetState(standby)
 					}
 		*/
 	}
 
-	return
+	return ret
 }
