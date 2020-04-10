@@ -14,9 +14,21 @@ import (
 // Run goroutine for IO code
 func Run(in, out chan interface{}, configIn isdata.Config) {
 	config := configIn
-	ref, sense, err := isio.ReadPressure()
-	if err != nil {
-		log.Println("ReadPressure error: ", err)
+
+	refReader := isio.NewAdcReader(isio.AdcPressureRef)
+	senseReader := isio.NewAdcReader(isio.AdcPressureSense)
+
+	ref := 1.0
+	sense := 0.0
+
+	if runtime.GOARCH == "arm" {
+		ref, err := refReader.Read()
+		if err != nil {
+			log.Println("Error reading ref: ", err)
+			// avoid divide by 0 errors
+			ref = 1.0
+		}
+		ref = ref / isio.PressureScale
 	}
 
 	senseSamplePeriod := 10 * time.Millisecond
@@ -39,7 +51,7 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 	for {
 		select {
 		case <-senseTicker.C:
-			sense, err = isio.ReadPressureSense()
+			sense, err := senseReader.Read()
 			if err != nil {
 				log.Println("ReadPressureSense error: ", err)
 			}
@@ -60,9 +72,10 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 			}
 
 		case <-refTicker.C:
-			ref, sense, err = isio.ReadPressure()
+			var err error
+			ref, err = senseReader.Read()
 			if err != nil {
-				log.Println("ReadPressure error: ", err)
+				log.Println("Read ref error: ", err)
 			}
 
 		case <-reportTicker.C:

@@ -3,6 +3,7 @@ package isio
 import (
 	"errors"
 	"io/ioutil"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -178,16 +179,18 @@ func ReadAnalogIn(name string) (float64, error) {
 	return vin, nil
 }
 
-var vcapScale = 0.376257545
+// VcapScale can be used to scale A/D when reading backup cap voltage
+var VcapScale = 0.376257545
 
 // ReadVcap returns the voltage of the supercap supply
 func ReadVcap() (v float64, err error) {
 	v, err = AdcRead(AdcVcap)
-	v = v / vcapScale
+	v = v / VcapScale
 	return
 }
 
-var pressureScale = 0.62825
+// PressureScale can be used to scale pressure readings
+var PressureScale = 0.62825
 
 // ReadPressure reads the supply and pressure voltage
 func ReadPressure() (ref float64, sense float64, err error) {
@@ -196,12 +199,12 @@ func ReadPressure() (ref float64, sense float64, err error) {
 	}
 
 	ref, err = AdcRead(AdcPressureRef)
-	ref = ref / pressureScale
+	ref = ref / PressureScale
 	if err != nil {
 		return
 	}
 	sense, err = AdcRead(AdcPressureSense)
-	sense = sense / pressureScale
+	sense = sense / PressureScale
 	if err != nil {
 		return
 	}
@@ -216,9 +219,76 @@ func ReadPressureSense() (sense float64, err error) {
 	}
 
 	sense, err = AdcRead(AdcPressureSense)
-	sense = sense / pressureScale
+	sense = sense / PressureScale
 	if err != nil {
 		return
 	}
 	return
+}
+
+// AdcReader is used to keep A/D file open for consecutive reads
+type AdcReader struct {
+	adc string
+	f   *os.File
+}
+
+// NewAdcReader creates a new adc reader
+func NewAdcReader(adc string) *AdcReader {
+	return &AdcReader{
+		adc: adc,
+	}
+}
+
+// Read returns the voltage from the A/D
+func (adc *AdcReader) Read() (float64, error) {
+	if adc.f == nil {
+		// need to open adc first
+
+		if runtime.GOARCH != "arm" {
+			return 0, errors.New("ADC code only runs on Target")
+		}
+
+		channel, ok := adcChan[adc.adc]
+
+		if !ok {
+			return 0, errors.New("invalid ADC name")
+		}
+
+		sysfsFile := "/sys/bus/iio/devices/iio:device0/in_voltage" +
+			strconv.Itoa(channel) + "_raw"
+
+		var err error
+		adc.f, err = os.Open(sysfsFile)
+
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	_, err := adc.f.Seek(0, 0)
+
+	if err != nil {
+		return 0, err
+	}
+
+	b := make([]byte, 50)
+	c, err := adc.f.Read(b)
+	b = b[:c]
+
+	if err != nil {
+		return 0, err
+	}
+
+	countsS := strings.TrimSuffix(string(b), "\n")
+
+	counts, err := strconv.Atoi(countsS)
+	if err != nil {
+		return 0, err
+	}
+
+	scale := 0.201416015
+
+	v := float64(counts) * scale / 1000
+
+	return v, nil
 }

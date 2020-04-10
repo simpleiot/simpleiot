@@ -18,6 +18,7 @@ require (
 	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/mitchellh/go-ps v1.0.0
 	github.com/mxmCherry/movavg v1.1.0
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
@@ -26,7 +27,7 @@ require (
 	github.com/svent/go-nbreader v0.0.0-20150201200112-7cef48da76dc
 	github.com/timshannon/badgerhold v0.0.0-20190415130923-192650dd187a
 	github.com/timshannon/bolthold v0.0.0-20180829183128-83840edea944
-	go.etcd.io/bbolt v1.3.3 // indirect
+	go.etcd.io/bbolt v1.3.3
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
 	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect

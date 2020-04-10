@@ -7,6 +7,11 @@ import (
 	"os"
 	"runtime"
 
+	"net/http"
+	//_ "net/http/pprof"
+
+	ps "github.com/mitchellh/go-ps"
+	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/farmation/app"
 	"github.com/simpleiot/simpleiot/farmation/diag"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
@@ -27,6 +32,7 @@ func main() {
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDataDir := flag.String("datadir", "", "directory to store data in")
 	flagReadPressure := flag.Bool("readPressure", false, "read pressure sensor")
+	flagCheckDb := flag.String("checkDb", "", "check database")
 	/*
 		flagModemState := flag.Bool("modemState", false, "read modem state")
 		flagModemSettings := flag.Bool("modemSettings", false, "read modem settings")
@@ -44,6 +50,7 @@ func main() {
 	flagViewMsg := flag.Bool("msg", false, "view channel messages to app")
 	flagReadVcap := flag.Bool("readVcap", false, "read backup battery voltage")
 	flagWebUI := flag.Bool("webUI", false, "Start Web UI for remote access")
+	flagProf := flag.Bool("prof", false, "Web UI for profiling")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -80,6 +87,16 @@ func main() {
 		pres := isio.CalcPressure(ref, sense, 250)
 
 		log.Printf("Pressure ref: %v, sense: %v, pres: %v\n", ref, sense, pres)
+		os.Exit(0)
+	}
+
+	if *flagCheckDb != "" {
+		err := db.BBoltCheck(*flagCheckDb)
+		if err != nil {
+			log.Println("check failed: ", err)
+			os.Exit(-1)
+		}
+		log.Println("check passed")
 		os.Exit(0)
 	}
 
@@ -215,6 +232,36 @@ func main() {
 		isio.GpioInit()
 		isio.GpioOut(isio.GpioRelayAuxEn, true)
 		os.Exit(0)
+	}
+
+	// check if app is already running -- don't want to run two
+	// copies of the app
+	if runtime.GOARCH == "arm" {
+		processes, err := ps.Processes()
+		if err != nil {
+			log.Println("Error getting processes")
+		}
+
+		count := 0
+
+		for _, p := range processes {
+			if p.Executable() == "is" || p.Executable() == "is_arm" {
+				count++
+				if count > 1 {
+					log.Println("is app already running, bailing")
+					os.Exit(-1)
+				}
+			}
+		}
+	}
+
+	if *flagProf {
+		// this starts a web service that can be used for profiling
+		// must uncomment import _ "net/http/pprof" above
+		go func() {
+			log.Println("Starting web interface for pprof ...")
+			log.Println(http.ListenAndServe(":6060", nil))
+		}()
 	}
 
 	params := app.Params{

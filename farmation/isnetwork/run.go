@@ -349,8 +349,10 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 			if modem != nil {
 				loc, err := modem.GetLocation()
-				if err != nil && err != network.ErrorModemNotDetected {
-					log.Println("Error reading GPS: ", err)
+				if err != nil {
+					if err != network.ErrorModemNotDetected {
+						log.Println("Error reading GPS: ", err)
+					}
 				} else {
 					out <- loc
 				}
