@@ -397,7 +397,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 				},
 			})
 			msg = "Alarm state entered: low\npressure reading of " +
-				strconv.FormatFloat(sm.state.PressureMax, 'f', 0, 64)
+				strconv.FormatFloat(sm.state.PressureMin, 'f', 0, 64)
 
 			return append(ret, isdata.UpdateDialogStateMachine{"Notice", msg})
 
