@@ -439,8 +439,10 @@ func Run(params Params) {
 			config.ManualRelayShutdown = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			saveConfig()
 
+			fmt.Println("COLLIN, arm", config.Arm, "injrelay", state.GpioRelayInjectorEn)
 			if config.Arm && state.GpioRelayInjectorEn {
 				state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+				fmt.Println("COLLIN: sigChan", state.DurationArmedAndInjOn)
 			}
 			saveState()
 			dbState.WriteState(&state)
@@ -762,7 +764,6 @@ func Run(params Params) {
 
 			case isdata.UpdateDisarm:
 				config.Arm = false
-				fmt.Println("COLLIN, disarm")
 				state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
 				saveConfig()
 				saveState()
@@ -1037,13 +1038,12 @@ func Run(params Params) {
 				saveConfig()
 
 			case isdata.UpdateGpioRelayInjector:
-				fmt.Println("COLLIN, relay")
 
 				old := state.GpioRelayInjectorEn
 				state.GpioRelayInjectorEn = bool(m)
 
-				if config.Arm && old != state.GpioRelayShutdownEn {
-					if state.GpioRelayShutdownEn {
+				if config.Arm && old != state.GpioRelayInjectorEn {
+					if state.GpioRelayInjectorEn {
 						state.TimeArmedAndInjOn = time.Now()
 					} else {
 						state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
@@ -1072,7 +1072,6 @@ func Run(params Params) {
 				config.OperatingMode = isdata.ISOperatingMode(m)
 				if config.OperatingMode == isdata.ISOperatingModeMonitor {
 					config.Arm = false // system can't be armed in monitor only mode
-					fmt.Println("COLLIN, op mode")
 					state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
 				}
 				saveConfig()
@@ -1272,7 +1271,6 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 		}
 	} else {
 		config.Arm = false
-		fmt.Println("COLLIN, arm")
 		state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
 	}
 }
