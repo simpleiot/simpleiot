@@ -41,7 +41,7 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 			"calculate the pressure level at which the InjectorSentry will shut down the " +
 			"irrigation system due to a drop in injection line pressure. The percentage " +
 			"value entered is the amount below the base pressure and is used at the time " +
-			"of arming to set the minimum pressure threshold. ",
+			"of arming to set the minimum pressure threshold.",
 	}
 	helpPresStart := isdata.HelpScreenContent{
 		Name: "Pressure Startup",
@@ -139,7 +139,7 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 			default:
 				s.enterEdit()
 			}
-		case isdata.KeySK3:
+		case isdata.KeySK3: // Help
 			helpContent := s.menu.GetMenuItems()[s.menu.GetArrowPos()].Help
 			if helpContent.Name == "" {
 				break

@@ -10,6 +10,7 @@ import (
 // DiagPulsesPresScreen is used to display and edit two integers: flow pulses per gallon and pressure setting
 type DiagPulsesPresScreen struct {
 	textEntryScreen *TextEntryScreen
+	helpContent     []isdata.HelpScreenContent
 	softKeys        *SoftKeys
 	state           *isdata.State
 	config          *isdata.Config
@@ -20,7 +21,7 @@ type DiagPulsesPresScreen struct {
 // NewDiagPulsesPresScreen initializes and returns a HomeScreen
 func NewDiagPulsesPresScreen(state *isdata.State, config *isdata.Config) *DiagPulsesPresScreen {
 	return &DiagPulsesPresScreen{
-		softKeys:        NewSoftKeys("back", "edit"),
+		softKeys:        NewSoftKeys("back", "edit", "help"),
 		state:           state,
 		config:          config,
 		menu:            &Menu{},
@@ -34,13 +35,20 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 
 	s.menu.ResetItems()
 
+	helpPresSense := isdata.HelpScreenContent{
+		Name: "Pressure Sense PSI",
+		Text: "This is the pressure sensor maximum pressure. Default value is 300. Do not " +
+			"modify unless sensor is replaced.",
+	}
+
 	s.menu.AddItemInt("Flo Pulses/Gal", s.config.PulsesPerGallon)
 	//s.menu.AddItemStringRight("Avg Win Short", strconv.Itoa(s.config.FlowAvgWindow)+" s")
 	s.menu.AddItemStringRight("Flo Avg Time", strconv.Itoa(s.config.FlowAvgWindowLong)+" s")
 	//s.menu.AddItemStringRight("Flo Avg Diff", strconv.Itoa(s.config.FlowAvgPercDiff)+" %")
-	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
+	s.menu.AddItemStringRight("Pres Sense", strconv.Itoa(s.config.PressureSetting)+" PSI",
+		helpPresSense)
 	s.menu.AddItemInt("Pulse Output K", s.config.PulseOutputK)
-	s.menu.AddItemScreen("Pulse Test", ScreenIDPulseOutputTest)
+	s.menu.AddItemScreen("Pulse Out Test", ScreenIDPulseOutputTest)
 	s.menu.AddItemStringRight("Sample Time", strconv.Itoa(s.config.SampleDuration)+" s")
 	s.menu.AddItemStringRight("No Flo Timeout", strconv.Itoa(s.config.MaxNoPulseDuration)+" s")
 
@@ -49,6 +57,13 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	} else { // render regular screen
 		Heading(img, "Flow and Pressure Settings")
 		s.menu.Render(img)
+
+		switch s.menu.GetArrowPos() {
+		case 2:
+			s.softKeys.SetHidden(2, false)
+		default:
+			s.softKeys.SetHidden(2, true)
+		}
 		s.softKeys.Render(img, 0, 54)
 	}
 }
@@ -99,6 +114,12 @@ func (s *DiagPulsesPresScreen) Key(key isdata.Key) (ScreenID, interface{}, bool)
 			return ScreenIDPrev, nil, true
 		case isdata.KeySK2: // Edit
 			s.enterEdit()
+		case isdata.KeySK3: // Help
+			helpContent := s.menu.GetMenuItems()[s.menu.GetArrowPos()].Help
+			if helpContent.Name == "" {
+				break
+			}
+			return ScreenIDNoChange, helpContent, true
 		case isdata.KeyEnter:
 			switch s.menu.GetArrowPos() {
 			case 4: // Open Pulse Output Test screen
