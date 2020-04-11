@@ -48,7 +48,7 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 	s.menu.AddItemStringRight("Pres Sense", strconv.Itoa(s.config.PressureSetting)+" PSI",
 		helpPresSense)
 	s.menu.AddItemInt("Pulse Output K", s.config.PulseOutputK)
-	s.menu.AddItemScreen("Pulse Test", ScreenIDPulseOutputTest)
+	s.menu.AddItemScreen("Pulse Out Test", ScreenIDPulseOutputTest)
 	s.menu.AddItemStringRight("Sample Time", strconv.Itoa(s.config.SampleDuration)+" s")
 	s.menu.AddItemStringRight("No Flo Timeout", strconv.Itoa(s.config.MaxNoPulseDuration)+" s")
 
