@@ -177,7 +177,7 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 		if sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndShutdown &&
 			sm.config.OperatingMode != isdata.ISOperatingModeMonitorAndNotify {
 
-			return append(ret, isdata.UpdateStateMachineState(sm.SetState(monitorOnly)))
+			return append(ret, sm.SetState(monitorOnly))
 		}
 		// If disarmed in non-shutdown and non-standbyWaiting states, go to standby
 		// Is this only for if the user disarms in monitoringFlow state?
