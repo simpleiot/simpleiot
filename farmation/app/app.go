@@ -388,7 +388,7 @@ func Run(params Params) {
 	// Define dialog POINTERS for use in the logic below
 	dlgShutdown := state.Dialogs["Shutdown"]
 	dlgReboot := state.Dialogs["Reboot"]
-	dlgRestart := state.Dialogs["Restart"]
+	dlgSetTimezone := state.Dialogs["SetTimezone"]
 	dlgUnknownVisionState := state.Dialogs["UnknownVisionState"]
 	dlgApp := state.Dialogs["App"]
 	dlgStateMachine := state.Dialogs["StateMachine"]
@@ -830,10 +830,8 @@ func Run(params Params) {
 				saveConfig()
 				networkChan <- m
 
-			case isdata.RestartApp:
-				// This just triggers the dialog; the actual restart happens when
-				// the user closes (acknowledges) the dialog
-				dlgRestart.Active = true
+			case isdata.SetTimezone:
+				dlgSetTimezone.Active = true
 
 			case isdata.ExportData:
 
@@ -1140,7 +1138,13 @@ func Run(params Params) {
 				saveState()
 
 				switch dialogPointer.ID {
-				case isdata.DialogRestart:
+				case isdata.DialogSetTimezone:
+
+					err := system.SetTimezone("US", config.Timezone)
+					if err != nil {
+						log.Println("Error setting timezone:", err)
+					}
+
 					if runtime.GOARCH != "arm" {
 						log.Println("on development platform, not restarting")
 						break
@@ -1148,7 +1152,7 @@ func Run(params Params) {
 
 					// Start a detached process versus using Run() and
 					// Creating a child process
-					err := exec.Command("/etc/init.d/isapp", "restart").Start()
+					err = exec.Command("/etc/init.d/isapp", "restart").Start()
 					if err != nil {
 						log.Println("Error restarting the app")
 					}
@@ -1178,8 +1182,19 @@ func Run(params Params) {
 
 				dialogPointer := state.Dialogs[m.Key]
 
+				switch dialogPointer.ID {
+				case isdata.DialogSetTimezone:
+					_, zone, err := system.GetTimezone()
+					if err != nil {
+						log.Println("Error reading the timezone:", err)
+					}
+
+					config.Timezone = zone
+				}
+
 				dialogPointer.Active = false
 				saveState()
+				saveConfig()
 
 			case isdata.UpdateDialogStateMachine:
 				dlgStateMachine.Heading = string(m.Heading)

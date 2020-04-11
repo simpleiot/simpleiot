@@ -207,7 +207,7 @@ type Dialog struct {
 const (
 	DialogShutdown int = iota
 	DialogReboot
-	DialogRestart
+	DialogSetTimezone
 	DialogUpdate
 	DialogPanelDetect
 	DialogUnknownVisionState
@@ -319,11 +319,12 @@ func InitState(s *State) (dirty bool) {
 		Heading: "Notice",
 		Message: "Reboot started, please wait",
 	}
-	s.Dialogs["Restart"] = &Dialog{
-		ID:      DialogRestart,
+	s.Dialogs["SetTimezone"] = &Dialog{
+		ID:      DialogSetTimezone,
 		Heading: "Notice",
 		Message: "Application will now restart\nfor time " +
-			"zone change to\ntake effect",
+			"zone change to\ntake effect.",
+		CancelActivated: true,
 	}
 	s.Dialogs["Update"] = &Dialog{
 		ID:      DialogUpdate,
