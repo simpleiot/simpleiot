@@ -71,7 +71,7 @@ func (rc *ISControl) Update() {
 func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.State) {
 	config := configInit
 	state := stateInit
-	stateMachine := NewStateMachine(&config, &state)
+	stateMachine := NewStateMachine(&config, &state, StateMachineState(state.StateMachineState))
 	statusLed := NewStatusLed(&config, &state, stateMachine, out)
 	isControl := NewISControl(&config, &state, stateMachine, out)
 

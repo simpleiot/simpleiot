@@ -764,6 +764,10 @@ func Run(params Params) {
 				config.ManualHighAlarmGPH = float64(m)
 				saveConfig()
 
+			case isdata.UpdateStateMachineState:
+				state.StateMachineState = int(m)
+				saveState()
+
 			case isdata.UpdateDisarm:
 				config.Arm = false
 				saveConfig()
@@ -1158,6 +1162,9 @@ func Run(params Params) {
 				case isdata.DialogResetTotal2:
 					state.Total2 = 0
 
+				case isdata.DialogStateMachine:
+					dlgStateMachine.Ack = true
+
 				}
 
 				saveState()
@@ -1178,6 +1185,7 @@ func Run(params Params) {
 				dlgStateMachine.Heading = string(m.Heading)
 				dlgStateMachine.Message = string(m.Message)
 				dlgStateMachine.Active = true
+				dlgStateMachine.Ack = false
 				saveState()
 
 			case isdata.HelpScreenContent:

@@ -1,7 +1,6 @@
 package isui
 
 import (
-	"fmt"
 	"image/draw"
 	"strings"
 
@@ -149,7 +148,6 @@ func splitTextLines(s string) (lines []string) {
 		}
 
 		line = append(line, w)
-		fmt.Println(line, linePixels)
 	}
 
 	lines = append(lines, strings.Join(line, " "))

@@ -36,7 +36,7 @@ func (s *DiagPulsesPresScreen) Render(img draw.Image) {
 
 	s.menu.AddItemInt("Flo Pulses/Gal", s.config.PulsesPerGallon)
 	//s.menu.AddItemStringRight("Avg Win Short", strconv.Itoa(s.config.FlowAvgWindow)+" s")
-	s.menu.AddItemStringRight("Flo Avg Win", strconv.Itoa(s.config.FlowAvgWindowLong)+" s")
+	s.menu.AddItemStringRight("Flo Avg Time", strconv.Itoa(s.config.FlowAvgWindowLong)+" s")
 	//s.menu.AddItemStringRight("Flo Avg Diff", strconv.Itoa(s.config.FlowAvgPercDiff)+" %")
 	s.menu.AddItemInt("Pres Setting", s.config.PressureSetting)
 	s.menu.AddItemInt("Pulse Output K", s.config.PulseOutputK)
