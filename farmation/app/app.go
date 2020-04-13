@@ -182,9 +182,9 @@ func Run(params Params) {
 	state.ViewMsg = params.ViewMsg
 	state.HWVersion = isio.GetHwID()
 
-	fmt.Println("HWVersion: ", state.HWVersion)
-	fmt.Println("OSVersion: ", state.OSVersion)
-	fmt.Println("AppVersion: ", version.AppVersion)
+	log.Println("HWVersion: ", state.HWVersion)
+	log.Println("OSVersion: ", state.OSVersion)
+	log.Println("AppVersion: ", version.AppVersion)
 
 	config.Init(&state)
 
