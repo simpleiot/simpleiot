@@ -41,7 +41,7 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 			"calculate the pressure level at which the InjectorSentry will shut down the " +
 			"irrigation system due to a drop in injection line pressure. The percentage " +
 			"value entered is the amount below the base pressure and is used at the time " +
-			"of arming to set the minimum pressure threshold. ",
+			"of arming to set the minimum pressure threshold.",
 	}
 	helpPresStart := isdata.HelpScreenContent{
 		Name: "Pressure Startup",
@@ -49,9 +49,9 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 			"0 Disables.",
 	}
 	helpPresHigh := isdata.HelpScreenContent{
-		Name: "Pressure High",
-		Text: "If injection line pressure exceeds this amount the irrigation system will be " +
-			"shut down immediately.",
+		Name: "High Pressure Limit",
+		Text: "If injection line pressure exceeds this amount the pump will shut off and the " +
+			"shutdown/alarm relay will be activated immediately.",
 	}
 
 	// any time items are added or removed, update render/key methods
@@ -66,7 +66,7 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 		helpPresLow)
 	s.menu.AddItemStringRight("Pres Start", strconv.Itoa(s.config.PressureStartupLow)+" PSI",
 		helpPresStart)
-	s.menu.AddItemStringRight("Pres High", strconv.Itoa(s.config.HighPres)+" PSI",
+	s.menu.AddItemStringRight("High Pres Limit", strconv.Itoa(s.config.HighPres)+" PSI",
 		helpPresHigh)
 	//s.menu.AddItemInt("Batch Amount", int(config.BatchAmount))
 	//s.menu.AddItemInt("Batch Applied", 0)
@@ -139,7 +139,7 @@ func (s *OperatingModeSetupScreen) Key(key isdata.Key) (ScreenID, interface{}, b
 			default:
 				s.enterEdit()
 			}
-		case isdata.KeySK3:
+		case isdata.KeySK3: // Help
 			helpContent := s.menu.GetMenuItems()[s.menu.GetArrowPos()].Help
 			if helpContent.Name == "" {
 				break
@@ -175,25 +175,25 @@ func (s *OperatingModeSetupScreen) enterEdit() {
 		s.textEntryScreen.headerLabel = "Seconds"
 	case 1:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.HighWindowPerc)) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "High Percent"
+		s.textEntryScreen.headerLabel = "High Flow %"
 	case 2:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.LowWindowPerc)) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Low Percent"
+		s.textEntryScreen.headerLabel = "Low Flow %"
 	case 3:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualHighAlarmGPH)) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "High GPH"
+		s.textEntryScreen.headerLabel = "High Flow"
 	case 4:
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.ManualLowAlarmGPH)) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Low GPH"
+		s.textEntryScreen.headerLabel = "Low Flow"
 	case 6: // *** SKIP position 5 because it is an on/off menu item
 		s.textEntryScreen.txtEdit = strconv.Itoa(int(s.config.LowPresPerc)) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Pres Low Percent"
+		s.textEntryScreen.headerLabel = "Low Pres %"
 	case 7:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.PressureStartupLow) // convert integer value into string to edit w/ text entry screen
-		s.textEntryScreen.headerLabel = "Startup Min PSI"
+		s.textEntryScreen.headerLabel = "Startup Min Pres"
 	case 8:
 		s.textEntryScreen.txtEdit = strconv.Itoa(s.config.HighPres)
-		s.textEntryScreen.headerLabel = "High PSI"
+		s.textEntryScreen.headerLabel = "High Pres Limit"
 	}
 
 	s.textEntryScreen.inputChars.IndexTo(s.textEntryScreen.txtEdit[s.textEntryScreen.cursorPos]) // move inputChars cursor to current pos in txtEdit

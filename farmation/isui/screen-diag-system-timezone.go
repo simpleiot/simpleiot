@@ -85,13 +85,8 @@ func (s *DiagSystemTimezoneScreen) exit() interface{} {
 
 	s.menu.ResetArrowPos()
 
-	err := system.SetTimezone("US", s.config.Timezone)
-	if err != nil {
-		log.Println("Error setting timezone: ", err)
-	}
-
 	if s.config.Timezone != s.initialZone {
-		return isdata.RestartApp{}
+		return isdata.SetTimezone{}
 	}
 
 	return nil

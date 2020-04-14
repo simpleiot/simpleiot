@@ -23,6 +23,8 @@ type State struct {
 		DBVersion int `json:"dbVersion"`
 	} `json:"dbConfig"`
 
+	StateMachineState int `json:"stateMachineState"`
+
 	// FlowRate defines the current flow rate of the system in GPH
 	FlowRate              float64              `json:"flowRate"`
 	TimeArmedAndInjOn     time.Time            `json:"timeArmedAndInjOn"`
@@ -191,6 +193,7 @@ func (fa FaultsActive) ActiveFaults() bool {
 type Dialog struct {
 	ID      int
 	Active  bool
+	Ack     bool
 	Heading string
 	Message string
 
@@ -205,7 +208,7 @@ type Dialog struct {
 const (
 	DialogShutdown int = iota
 	DialogReboot
-	DialogRestart
+	DialogSetTimezone
 	DialogUpdate
 	DialogPanelDetect
 	DialogUnknownVisionState
@@ -317,11 +320,12 @@ func InitState(s *State) (dirty bool) {
 		Heading: "Notice",
 		Message: "Reboot started, please wait",
 	}
-	s.Dialogs["Restart"] = &Dialog{
-		ID:      DialogRestart,
+	s.Dialogs["SetTimezone"] = &Dialog{
+		ID:      DialogSetTimezone,
 		Heading: "Notice",
 		Message: "Application will now restart\nfor time " +
-			"zone change to\ntake effect",
+			"zone change to\ntake effect.",
+		CancelActivated: true,
 	}
 	s.Dialogs["Update"] = &Dialog{
 		ID:      DialogUpdate,

@@ -577,11 +577,11 @@ func (c *Config) ApplyBounds() {
 		c.FlowAvgWindow = 2 * c.SampleDuration
 	} else if c.FlowAvgWindow > 600 {
 		c.FlowAvgWindow = 600
-	}
+	}*/
 
-	if c.FlowAvgWindowLong < 2*c.FlowAvgWindow {
-		c.FlowAvgWindowLong = 2 * c.FlowAvgWindow
-	} else */if c.FlowAvgWindowLong > 1200 {
+	if c.FlowAvgWindowLong <= 0 {
+		c.FlowAvgWindowLong = 1
+	} else if c.FlowAvgWindowLong > 1200 {
 		c.FlowAvgWindowLong = 1200
 	}
 

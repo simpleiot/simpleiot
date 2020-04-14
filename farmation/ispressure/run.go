@@ -18,17 +18,21 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 	refReader := isio.NewAdcReader(isio.AdcPressureRef)
 	senseReader := isio.NewAdcReader(isio.AdcPressureSense)
 
-	ref := 1.0
-	sense := 0.0
+	var ref, sense float64
+	ref = 1.0
 
 	if runtime.GOARCH == "arm" {
-		ref, err := refReader.Read()
+		var err error
+		ref, err = refReader.Read()
+		if ref == 0 {
+			ref = 0.0001
+		}
+		ref = ref / isio.PressureScale
 		if err != nil {
 			log.Println("Error reading ref: ", err)
 			// avoid divide by 0 errors
 			ref = 1.0
 		}
-		ref = ref / isio.PressureScale
 	}
 
 	senseSamplePeriod := 10 * time.Millisecond
@@ -51,7 +55,9 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 	for {
 		select {
 		case <-senseTicker.C:
-			sense, err := senseReader.Read()
+			var err error
+			sense, err = senseReader.Read()
+			sense = sense / isio.PressureScale
 			if err != nil {
 				log.Println("ReadPressureSense error: ", err)
 			}
@@ -73,7 +79,11 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 
 		case <-refTicker.C:
 			var err error
-			ref, err = senseReader.Read()
+			ref, err = refReader.Read()
+			if ref == 0 {
+				ref = 0.0001
+			}
+			ref = ref / isio.PressureScale
 			if err != nil {
 				log.Println("Read ref error: ", err)
 			}
