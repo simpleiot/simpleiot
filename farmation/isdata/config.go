@@ -115,7 +115,8 @@ type Config struct {
 
 	PanelType PanelType `json:"panelType"`
 
-	ModemEnabled bool `json:"modemEnabled"`
+	//ModemEnabled bool `json:"modemEnabled"`
+	ModemDisabled bool `json:"modemDisabled"`
 
 	HelpScreen HelpScreen `json:"helpScreen"`
 }
@@ -491,11 +492,6 @@ func (c *Config) Init(state *State) {
 
 	// Make sure values are in a valid range
 	c.ApplyBounds()
-
-	if c.Version < 1 {
-		c.ModemEnabled = true
-	}
-
 }
 
 // ApplyBounds makes sure that all the config items are within

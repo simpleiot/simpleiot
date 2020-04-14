@@ -192,8 +192,8 @@ type UpdateLedRed bool
 // UpdateLedGreen is used to set the led green on/off
 type UpdateLedGreen bool
 
-// UpdateModemEnabled is a message to enable/disable modem
-type UpdateModemEnabled bool
+// UpdateModemDisabled is a message to enable/disable modem
+type UpdateModemDisabled bool
 
 // UpdateDialogStateMachine is a signal to update the Message and Heading fields of the struct at
 // key "StateMachine" in the state Dialogs map
