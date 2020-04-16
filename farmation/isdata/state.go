@@ -1,6 +1,7 @@
 package isdata
 
 import (
+	"fmt"
 	"runtime"
 	"time"
 
@@ -381,7 +382,10 @@ func InitState(s *State) (dirty bool) {
 
 	s.NetworkInterfaceConfig = network.InterfaceConfig{}
 
-	s.FlowAverager = data.NewSampleAverager(SampleTypeFlowWindowAvg)
+	if s.FlowAverager == nil {
+		fmt.Println("COLLIN, reset averager")
+		s.FlowAverager = data.NewSampleAverager(SampleTypeFlowWindowAvg)
+	}
 
 	return
 }

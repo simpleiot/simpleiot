@@ -327,8 +327,14 @@ func Run(params Params) {
 		}
 	}
 
-	// Save the state so that the database version from migrations is
-	// saved
+	if config.Arm && state.GpioRelayInjectorEn {
+		state.TimeArmedAndInjOn = time.Now()
+	}
+
+	fmt.Println("COLLIN, duration armed", state.DurationArmedAndInjOn)
+
+	// Save the state so that the database version from migrations
+	// and the TimeArmedAndInjOn are saved
 	saveState()
 
 	saveStateTimer := time.NewTicker(time.Minute)
@@ -442,7 +448,6 @@ func Run(params Params) {
 			fmt.Println("COLLIN, arm", config.Arm, "injrelay", state.GpioRelayInjectorEn)
 			if config.Arm && state.GpioRelayInjectorEn {
 				state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
-				fmt.Println("COLLIN: sigChan", state.DurationArmedAndInjOn)
 			}
 			saveState()
 			dbState.WriteState(&state)
@@ -451,6 +456,8 @@ func Run(params Params) {
 			// save config and state in data db as well for backup
 			db.WriteConfig(&config)
 			db.WriteState(&state)
+			fmt.Println("COLLIN: duration", state.DurationArmedAndInjOn)
+			fmt.Println("COLLIN, average flow", state.FlowAverager.GetAverage().Value)
 			// give time for splash screen to be displayed
 			time.Sleep(100 * time.Millisecond)
 			log.Println("state and config saved, SEE YA!")
