@@ -525,11 +525,11 @@ func (c *Config) ApplyBounds() {
 		c.ManualLowAlarmGPH = 0
 	}
 
-	if c.ManualHighAlarmGPH <= c.ManualLowAlarmGPH {
+	if c.ManualHighAlarmGPH <= c.ManualLowAlarmGPH && c.ManualHighAlarmGPH > 0 {
 		c.ManualHighAlarmGPH = c.ManualLowAlarmGPH + 1
 	}
 
-	if c.ManualLowAlarmGPH >= c.ManualHighAlarmGPH {
+	if c.ManualLowAlarmGPH >= c.ManualHighAlarmGPH && c.ManualLowAlarmGPH > 0 {
 		c.ManualLowAlarmGPH = c.ManualHighAlarmGPH - 1
 	}
 
