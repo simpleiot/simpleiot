@@ -65,7 +65,16 @@ func (s *FaultsHistDetailsScreen) Render(img draw.Image) {
 	switch s.fault.Type {
 	case isdata.SampleTypeFaultFlowOff,
 		isdata.SampleTypeFaultNtFlowOff:
-		DrawTxt(img, "Flow: "+strconv.FormatFloat(s.fault.Value, 'f', 0, 64), x, y, font)
+		flowStr := "Flow: " + strconv.FormatFloat(s.fault.Value, 'f', 0, 64)
+		thresHigh := s.fault.Attributes["shutdownThresHigh"]
+		thresLow := s.fault.Attributes["shutdownThresLow"]
+		if thresHigh > 0 {
+			flowStr += ", High: " + strconv.FormatFloat(thresHigh, 'f', 0, 64)
+		}
+		if thresLow > 0 {
+			flowStr += ", Low: " + strconv.FormatFloat(thresLow, 'f', 0, 64)
+		}
+		DrawTxt(img, flowStr, x, y, font)
 	case isdata.SampleTypeFaultPresLow,
 		isdata.SampleTypeFaultNtPresLow:
 		pressureStr := "Pres: " + strconv.FormatFloat(s.fault.Value, 'f', 0, 64) +
