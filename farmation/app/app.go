@@ -1152,6 +1152,7 @@ func Run(params Params) {
 
 					// Start a detached process versus using Run() and
 					// Creating a child process
+					log.Println("Timezone updated, restarting app ...")
 					err = exec.Command("/etc/init.d/isapp", "restart").Start()
 					if err != nil {
 						log.Println("Error restarting the app")
