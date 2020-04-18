@@ -219,7 +219,8 @@ func exportFieldTotals(state *isdata.State, config *isdata.Config, out chan inte
 
 	// Add unit serial number, date, and blank row
 	tStamp := time.Now().Format(tsFilenameFormat)
-	data = append(data, []string{"SERIAL #", state.SerialNumber}, []string{"DATE", tStamp}, []string{})
+	data = append(data, []string{"DEVICE", config.DeviceName},
+		[]string{"SERIAL #", state.SerialNumber}, []string{"DATE", tStamp}, []string{})
 
 	// Add product labels
 
@@ -284,19 +285,19 @@ func exportFieldTotals(state *isdata.State, config *isdata.Config, out chan inte
 	}
 
 	// Merge unused cells in top three lines
-	err = totals.MergeCell("Sheet1", "C1", "F1")
+	err = totals.MergeCell("Sheet1", "B1", "F1")
 	if err != nil {
 		log.Println("Error merging cells: ", err)
 	}
-	err = totals.MergeCell("Sheet1", "B2", "D2")
+	err = totals.MergeCell("Sheet1", "B2", "F2")
 	if err != nil {
 		log.Println("Error merging cells: ", err)
 	}
-	err = totals.MergeCell("Sheet1", "E2", "F2")
+	err = totals.MergeCell("Sheet1", "B3", "F3")
 	if err != nil {
 		log.Println("Error merging cells: ", err)
 	}
-	err = totals.MergeCell("Sheet1", "A3", "F3")
+	err = totals.MergeCell("Sheet1", "A4", "F4")
 	if err != nil {
 		log.Println("Error merging cells: ", err)
 	}
