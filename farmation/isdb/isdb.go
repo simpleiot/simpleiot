@@ -1,6 +1,7 @@
 package isdb
 
 import (
+	"errors"
 	"log"
 	"os"
 	"time"
@@ -115,7 +116,9 @@ func (db *IsDb) ReadFaultHistOld() (isdata.Faults, error) {
 }
 
 // ReadFaultHist reads the IS system fault history from the database
-func (db *IsDb) ReadFaultHist() ([]data.Sample, error) {
+// Only iterates through database for x most recent faults. Set x to
+// a negative integer to read all faults
+func (db *IsDb) ReadFaultHist(x int) ([]data.Sample, error) {
 	var faults []data.Sample
 	query := bolthold.Where("Type").In(
 		isdata.SampleTypeFaultFlowOff,
@@ -124,11 +127,24 @@ func (db *IsDb) ReadFaultHist() ([]data.Sample, error) {
 		isdata.SampleTypeFaultPresHigh,
 		isdata.SampleTypeFaultNtFlowOff,
 		isdata.SampleTypeFaultNtPresLow,
-		isdata.SampleTypeFaultNtPresHigh).Index("Type").SortBy("Time")
+		isdata.SampleTypeFaultNtPresHigh).Index("Type").SortBy("Time").Reverse()
 
-	err := db.store.Find(&faults, query)
+	errIterOverLimit := errors.New("Database iteration is greater than limit")
 
-	if err != nil {
+	count := 0
+	err := db.store.ForEach(query, func(result *data.Sample) error {
+		count++
+
+		if x >= 0 && count > x {
+			return errIterOverLimit
+		}
+
+		faults = append(faults, *result)
+
+		return nil
+	})
+
+	if err != nil && err != errIterOverLimit {
 		if err == bolthold.ErrNotFound {
 			// data is not stored, so simply return nil array and nil error
 			return nil, nil
