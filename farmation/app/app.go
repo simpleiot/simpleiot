@@ -426,7 +426,7 @@ func Run(params Params) {
 					lastChannelDialogDisplay = time.Now()
 				}
 
-			} else if len(c.channel) > 30 &&
+			} else if len(c.channel) > cap(c.channel)/2 &&
 				time.Now().Sub(lastFillingWarning) > time.Minute {
 				log.Println("Warning channel is filling: ", c.name, len(c.channel))
 				lastFillingWarning = time.Now()
