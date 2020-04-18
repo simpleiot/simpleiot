@@ -50,10 +50,10 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 			Heading(img, "Loading History ...")
 			s.menu.ResetItems()
 			// extract faults from database
-			s.faults, _ = s.db.ReadFaultHist()
+			s.faults, _ = s.db.ReadFaultHist(100)
 
 			// display faults from most recent
-			for i := len(s.faults) - 1; i >= 0; i-- {
+			for i := range s.faults {
 				fault := s.faults[i]
 				faultDisplay := isdata.SampleTypeToDisp(fault.Type)
 
@@ -106,7 +106,7 @@ func (s *FaultsHistoryScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) 
 		case isdata.KeyEnter, isdata.KeySK2: // Details
 			if len(s.faults) >= 1 {
 				s.displayDetails = true
-				s.faultsHistDetails.fault = s.faults[len(s.faults)-1-s.menu.GetArrowPos()]
+				s.faultsHistDetails.fault = s.faults[s.menu.GetArrowPos()]
 			}
 		case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
 			return s.menu.Key(key)
