@@ -1,6 +1,8 @@
 package system
 
 import (
+	"errors"
+	"log"
 	"os"
 	"path"
 	"regexp"
@@ -62,12 +64,14 @@ func GetTimezone() (zoneInfoDir, zone string, err error) {
 
 // SetTimezone sets the current system time zone
 func SetTimezone(zoneInfoDir, zone string) (err error) {
+	if zone == "" {
+		return errors.New("zone is empty, must be set")
+	}
 
-	if _, err := os.Lstat(zoneLink); err == nil {
-		err := os.Remove(zoneLink)
-		if err != nil {
-			return err
-		}
+	rmErr := os.Remove(zoneLink)
+
+	if rmErr != nil {
+		log.Println("Error removing link: ", rmErr)
 	}
 
 	err = os.Symlink(path.Join(zoneInfoPath, zoneInfoDir, zone), zoneLink)
