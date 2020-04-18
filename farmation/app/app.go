@@ -397,6 +397,8 @@ func Run(params Params) {
 	dlgResetTotal1 := state.Dialogs["ResetTotal1"]
 	dlgResetTotal2 := state.Dialogs["ResetTotal2"]
 
+	exportingDataMessage := "Exporting data to USB Disk\n\nPlease Wait ..."
+
 	mainloopFile := "/run/is-mainloop"
 	for {
 		if runtime.GOARCH == "arm" {
@@ -843,7 +845,7 @@ func Run(params Params) {
 				logChan <- isdata.ExportData{}
 				dlgExport.Active = true
 				dlgExport.Heading = "Notice"
-				dlgExport.Message = "Exporting data to USB Disk\nPlease Wait"
+				dlgExport.Message = exportingDataMessage
 
 			case isdata.ExportConfig:
 
@@ -855,7 +857,7 @@ func Run(params Params) {
 				logChan <- isdata.ExportConfig{}
 				dlgExport.Active = true
 				dlgExport.Heading = "Notice"
-				dlgExport.Message = "Exporting config to USB Disk\nPlease Wait"
+				dlgExport.Message = exportingDataMessage
 
 			case isdata.ExportSystemLogs:
 
@@ -867,7 +869,7 @@ func Run(params Params) {
 				logChan <- isdata.ExportSystemLogs{}
 				dlgExport.Active = true
 				dlgExport.Heading = "Notice"
-				dlgExport.Message = "Exporting data to USB Disk\nPlease Wait"
+				dlgExport.Message = exportingDataMessage
 
 			case isdata.ExportFieldProductTotals:
 				if dlgExport.Active {
@@ -877,27 +879,27 @@ func Run(params Params) {
 				logChan <- isdata.ExportFieldProductTotals{}
 				dlgExport.Active = true
 				dlgExport.Heading = "Notice"
-				dlgExport.Message = "Exporting data to USB Disk\nPlease Wait"
+				dlgExport.Message = exportingDataMessage
 
 			case isdata.ExportAlreadyInProcess:
 				dlgExport.Active = true
 				dlgExport.Heading = "Error"
-				dlgExport.Message = "Export already in process\nPlease Wait"
+				dlgExport.Message = "Export already in process\n\nPlease Wait ..."
 
 			case isdata.ExportDataFinished:
 				dlgExport.Active = true
 				dlgExport.Heading = "Notice"
-				dlgExport.Message = "Exporting data to USB Done\nPlease remove USB disk"
+				dlgExport.Message = "Done exporting data to USB\nUSB device ejected\nPlease remove USB disk"
 
 			case isdata.ExportConfigFinished:
 				dlgExport.Active = true
 				dlgExport.Heading = "Notice"
-				dlgExport.Message = "Exporting config to USB Done\nPlease remove USB disk"
+				dlgExport.Message = "Done exporting config to USB\nUSB device ejected\nPlease remove USB disk"
 
 			case isdata.NoDiskPresent:
 				dlgExport.Active = true
 				dlgExport.Heading = "Error"
-				dlgExport.Message = "No USB disk present\nPlease insert USB drive\nand try again"
+				dlgExport.Message = "No USB disk present\nPlease insert or reinsert\nUSB drive and try again"
 
 			case isdata.ErrWriteDisk:
 				dlgExport.Active = true

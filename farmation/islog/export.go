@@ -27,11 +27,13 @@ func exportConfig(config *isdata.Config, state *isdata.State, db *isdb.IsDb, out
 		out <- isdata.NoDiskPresent{}
 		return
 	}
+
+	// export config
 	fn := "is-" + state.SerialNumber + "_" + time.Now().Format(tsFilenameFormat) + ".config"
 
 	fn = path.Join(usbMountPoint, fn)
 
-	f, err := os.Create(fn)
+	fConfig, err := os.Create(fn)
 
 	if err != nil {
 		log.Println("Error opening config file: ", err)
@@ -41,20 +43,52 @@ func exportConfig(config *isdata.Config, state *isdata.State, db *isdb.IsDb, out
 
 	// Sync disks
 	defer func() {
-		f.Close()
+		fConfig.Close()
 		err := file.SyncDisks()
 		if err != nil {
 			log.Println("Error syncing disks: ", err)
 		}
+
+		err = umountUsb()
+		if err != nil {
+			log.Println("Error unmounting USB disks: ", err)
+		}
 	}()
 
-	encoder := json.NewEncoder(f)
+	encoder := json.NewEncoder(fConfig)
 	encoder.SetIndent("", "   ")
 
 	err = encoder.Encode(config)
 
 	if err != nil {
 		log.Println("Error encoding config")
+		out <- isdata.ErrWriteDisk{}
+		return
+	}
+
+	// export state
+	fn = "is-" + state.SerialNumber + "_" + time.Now().Format(tsFilenameFormat) + ".state"
+
+	fn = path.Join(usbMountPoint, fn)
+
+	fState, err := os.Create(fn)
+
+	if err != nil {
+		log.Println("Error opening state file: ", err)
+		out <- isdata.ErrWriteDisk{}
+		return
+	}
+
+	// Sync disks
+	defer fState.Close()
+
+	encoder = json.NewEncoder(fState)
+	encoder.SetIndent("", "   ")
+
+	err = encoder.Encode(state)
+
+	if err != nil {
+		log.Println("Error encoding state")
 		out <- isdata.ErrWriteDisk{}
 		return
 	}
@@ -82,6 +116,10 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 		err := file.SyncDisks()
 		if err != nil {
 			log.Println("Error syncing disks: ", err)
+		}
+		err = umountUsb()
+		if err != nil {
+			log.Println("Error unmounting USB disks: ", err)
 		}
 	}()
 
@@ -169,6 +207,11 @@ func exportFieldTotals(state *isdata.State, config *isdata.Config, out chan inte
 		if err != nil {
 			log.Println("Error syncing disks: ", err)
 		}
+		err = umountUsb()
+		if err != nil {
+			log.Println("Error unmounting USB disks: ", err)
+		}
+
 	}()
 
 	// Format data as a 2D array of strings
@@ -305,6 +348,10 @@ func exportSystemLogs(state *isdata.State, out chan interface{}) {
 		err := file.SyncDisks()
 		if err != nil {
 			log.Println("Error syncing disks: ", err)
+		}
+		err = umountUsb()
+		if err != nil {
+			log.Println("Error unmounting USB disks: ", err)
 		}
 	}()
 
