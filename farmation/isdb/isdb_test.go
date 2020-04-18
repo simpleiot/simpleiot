@@ -145,7 +145,7 @@ func TestFaultHist(t *testing.T) {
 		}
 	}
 
-	faultsR, err := db.ReadFaultHist()
+	faultsR, err := db.ReadFaultHist(-1)
 
 	if err != nil {
 		t.Error("failed reading faults: ", err)

@@ -355,15 +355,19 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			sm.RelayInjector &&
 			time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration:
 
+			flowThresHigh, flowThresLow := sm.config.CalculateFlowWindow()
+
 			ret = append(ret, sm.SetState(shutdown1))
 			ret = append(ret, data.Sample{
 				Type:  isdata.SampleTypeFaultFlowOff,
 				Time:  time.Now(),
 				Value: sm.state.FlowRate,
 				Attributes: map[string]float64{
-					"inputInjector":  float64(sm.state.InputInjector),
-					"inputWaterOn":   float64(sm.state.InputWaterOn),
-					"inputIrrigator": float64(sm.state.InputIrrigator),
+					"inputInjector":     float64(sm.state.InputInjector),
+					"inputWaterOn":      float64(sm.state.InputWaterOn),
+					"inputIrrigator":    float64(sm.state.InputIrrigator),
+					"shutdownThresHigh": float64(flowThresHigh),
+					"shutdownThresLow":  float64(flowThresLow),
 				},
 			})
 
@@ -379,14 +383,19 @@ func (sm *StateMachine) Run() (ret []interface{}) {
 			// if flow is off target as well, prioritize this fault
 			if sm.state.FlowStatus == isdata.FlowStatusOffTarget &&
 				time.Since(sm.lastGoodFlow) >= alarmRecognizeDuration/3 {
+
+				flowThresHigh, flowThresLow := sm.config.CalculateFlowWindow()
+
 				ret = append(ret, data.Sample{
 					Type:  isdata.SampleTypeFaultFlowOff,
 					Time:  time.Now(),
 					Value: sm.state.FlowRate,
 					Attributes: map[string]float64{
-						"inputInjector":  float64(sm.state.InputInjector),
-						"inputWaterOn":   float64(sm.state.InputWaterOn),
-						"inputIrrigator": float64(sm.state.InputIrrigator),
+						"inputInjector":     float64(sm.state.InputInjector),
+						"inputWaterOn":      float64(sm.state.InputWaterOn),
+						"inputIrrigator":    float64(sm.state.InputIrrigator),
+						"shutdownThresHigh": float64(flowThresHigh),
+						"shutdownThresLow":  float64(flowThresLow),
 					},
 				})
 

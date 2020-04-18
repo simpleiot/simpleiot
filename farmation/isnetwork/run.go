@@ -92,7 +92,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	}
 
 	if modem != nil {
-		modem.Enable(config.ModemEnabled)
+		modem.Enable(!config.ModemDisabled)
 	}
 
 	networkState, interfaceConfig, interfaceStatus := manager.Run()
@@ -318,9 +318,9 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 					sendSamples(samples)
 				}
 
-			case isdata.UpdateModemEnabled:
+			case isdata.UpdateModemDisabled:
 				if modem != nil {
-					modem.Enable(bool(m))
+					modem.Enable(!bool(m))
 				}
 
 			default:

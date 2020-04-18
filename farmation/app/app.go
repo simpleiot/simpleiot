@@ -832,8 +832,8 @@ func Run(params Params) {
 					}
 				}
 
-			case isdata.UpdateModemEnabled:
-				config.ModemEnabled = bool(m)
+			case isdata.UpdateModemDisabled:
+				config.ModemDisabled = bool(m)
 				saveConfig()
 				networkChan <- m
 
