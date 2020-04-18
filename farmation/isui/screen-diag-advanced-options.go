@@ -40,7 +40,7 @@ func (s *DiagAdvancedOptionsScreen) Render(img draw.Image) {
 		isdata.UpdateLogPressureEnable(!s.config.LogPressureData))
 
 	// Factory Reset
-	s.menu.AddItemCommand("Factory Defaults", "reset", isdata.FactoryReset{})
+	s.menu.AddItemCommand("Factory Rst", "reset", isdata.FactoryReset{})
 
 	Heading(img, "Advanced Options")
 	s.menu.Render(img)
