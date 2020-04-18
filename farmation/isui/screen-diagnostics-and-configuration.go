@@ -56,6 +56,8 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemCommand("Config", "export", isdata.ExportConfig{})
 	s.menu.AddItemCommand("System Logs", "export", isdata.ExportSystemLogs{})
 
+	s.menu.AddItemScreen("Advanced Opt", ScreenIDDiagAdvancedOptions)
+
 	s.menu.AddItemCommand("Reboot", "start", isdata.Reboot{})
 
 	Heading(img, "Config and Diagnostics")
