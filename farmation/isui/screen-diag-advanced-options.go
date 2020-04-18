@@ -39,6 +39,9 @@ func (s *DiagAdvancedOptionsScreen) Render(img draw.Image) {
 	s.menu.AddItemOnOff("Pres logging", s.config.LogPressureData,
 		isdata.UpdateLogPressureEnable(!s.config.LogPressureData))
 
+	// Factory Reset
+	s.menu.AddItemCommand("Factory Defaults", "reset", isdata.FactoryReset{})
+
 	Heading(img, "Advanced Options")
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
@@ -53,7 +56,7 @@ func (s *DiagAdvancedOptionsScreen) Key(key isdata.Key) (ScreenID, interface{}, 
 	case isdata.KeySK1Release:
 		s.menu.ResetArrowPos() // return arrow to top of screen
 		return ScreenIDPrev, nil, true
-	case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold:
+	case isdata.KeyUp, isdata.KeyUpHold, isdata.KeyDown, isdata.KeyDownHold, isdata.KeyRight, isdata.KeyRightHold, isdata.KeyLeft, isdata.KeyLeftHold, isdata.KeyEnter, isdata.KeyEnterHold:
 		return s.menu.Key(key)
 	}
 
