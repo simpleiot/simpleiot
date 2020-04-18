@@ -157,12 +157,6 @@ func (db *IsDb) ReadFaultHist(x int) ([]data.Sample, error) {
 	return faults, nil
 }
 
-// FindXSamples reads x data.Sample types from the database
-func FindXSamples(db *IsDb, result *[]data.Sample, x int) error {
-
-	return nil
-}
-
 // WriteConfig writes the IS config to the database
 func (db *IsDb) WriteConfig(config *isdata.Config) error {
 
