@@ -40,6 +40,7 @@ const (
 	ScreenIDDiagSystemTime
 	ScreenIDDiagSystemTimezone
 	ScreenIDDiagPanel
+	ScreenIDDiagAdvancedOptions
 	ScreenIDModem
 	ScreenIDDiagIPAddress
 	ScreenIDDiagSIMImei
@@ -102,6 +103,7 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 	ret.Add(ScreenIDDiagSystemTime, NewDiagSystemTimeScreen(state, config))
 	ret.Add(ScreenIDDiagSystemTimezone, NewDiagSystemTimezoneScreen(state, config))
 	ret.Add(ScreenIDDiagPanel, NewDiagPanelScreen(state, config))
+	ret.Add(ScreenIDDiagAdvancedOptions, NewDiagAdvancedOptionsScreen(state, config))
 	ret.Add(ScreenIDModem, NewModemScreen(state, config))
 	ret.Add(ScreenIDDiagIPAddress, NewDiagIPAddressScreen(state, config))
 	ret.Add(ScreenIDDiagSIMImei, NewDiagSimImeiScreen(state, config))

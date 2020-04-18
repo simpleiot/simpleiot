@@ -3,6 +3,9 @@ package isdata
 // Reboot is a message that causes the system to reboot
 type Reboot struct{}
 
+// FactoryReset resets the config to default values for a new system
+type FactoryReset struct{}
+
 // SetTimezone is a message that fires a dialog warning user
 // that the app will be restarted
 // Used when timezone is changed in diagnostics/config

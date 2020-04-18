@@ -388,6 +388,7 @@ func Run(params Params) {
 	// Define dialog POINTERS for use in the logic below
 	dlgShutdown := state.Dialogs["Shutdown"]
 	dlgReboot := state.Dialogs["Reboot"]
+	dlgFactoryReset := state.Dialogs["FactoryReset"]
 	dlgSetTimezone := state.Dialogs["SetTimezone"]
 	dlgUnknownVisionState := state.Dialogs["UnknownVisionState"]
 	dlgApp := state.Dialogs["App"]
@@ -1098,6 +1099,10 @@ func Run(params Params) {
 					}
 				}
 
+			case isdata.FactoryReset:
+				dlgFactoryReset.Active = true
+				saveState()
+
 			case isdata.UpdateLedRed:
 				ioChan <- m
 				state.GpioStatusLedRed = bool(m)
@@ -1138,6 +1143,73 @@ func Run(params Params) {
 				saveState()
 
 				switch dialogPointer.ID {
+				case isdata.DialogFactoryReset:
+
+					err := db.ResetDb()
+					if err != nil {
+						log.Println("Error resetting main db: ", err)
+					}
+					err = dbState.ResetDb()
+					if err != nil {
+						log.Println("Error resetting state db: ", err)
+					}
+					err = dbConfig.ResetDb()
+					if err != nil {
+						log.Println("Error resetting config db: ", err)
+					}
+
+					state = isdata.State{}
+					config = isdata.Config{}
+
+					// Set config database version to zero so that when the config is
+					// initialized all of the migrations are run and the config values
+					// are set to their factory defaults
+					state.DBConfig.DBVersion = 0
+					isdata.InitState(&state)
+					config.Init(&state)
+					saveState()
+					saveConfig()
+
+					err = dbState.WriteState(&state)
+					if err != nil {
+						log.Println("Error writing state to new db", err)
+					}
+					err = dbConfig.WriteConfig(&config)
+					if err != nil {
+						log.Println("Error writing config to new db", err)
+					}
+
+					// save config and state in data db as well for backup
+					err = db.WriteState(&state)
+					if err != nil {
+						log.Println("Error writing state to new backup db", err)
+					}
+					err = db.WriteConfig(&config)
+					if err != nil {
+						log.Println("Error writing config to new backup db", err)
+					}
+
+					// Redefine dialog POINTERS
+					dlgShutdown = state.Dialogs["Shutdown"]
+					dlgReboot = state.Dialogs["Reboot"]
+					dlgFactoryReset = state.Dialogs["FactoryReset"]
+					dlgSetTimezone = state.Dialogs["SetTimezone"]
+					dlgUnknownVisionState = state.Dialogs["UnknownVisionState"]
+					dlgApp = state.Dialogs["App"]
+					dlgStateMachine = state.Dialogs["StateMachine"]
+					dlgExport = state.Dialogs["Export"]
+					dlgResetTotalCurrent = state.Dialogs["ResetTotalCurrent"]
+					dlgResetTotal1 = state.Dialogs["ResetTotal1"]
+					dlgResetTotal2 = state.Dialogs["ResetTotal2"]
+
+					// FIXME: doesn't work
+					/*
+						err = exec.Command("/bin/sh", "-c", "\"rm /data/log/*\"").Run()
+						if err != nil {
+							log.Println("Error removing log message files for factory reset:", err)
+						}
+					*/
+
 				case isdata.DialogSetTimezone:
 
 					err := system.SetTimezone("US", config.Timezone)
@@ -1184,6 +1256,9 @@ func Run(params Params) {
 				dialogPointer := state.Dialogs[m.Key]
 
 				switch dialogPointer.ID {
+
+				// set the timezone value in config back to previous,
+				// because it won't be set since user cancelled restart
 				case isdata.DialogSetTimezone:
 					_, zone, err := system.GetTimezone()
 					if err != nil {

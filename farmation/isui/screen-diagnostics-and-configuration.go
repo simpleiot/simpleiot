@@ -56,15 +56,10 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemCommand("Config", "export", isdata.ExportConfig{})
 	s.menu.AddItemCommand("System Logs", "export", isdata.ExportSystemLogs{})
 
-	// Logging Enable
-	s.menu.AddItemOnOff("Pulse logging", s.config.LogPulseData,
-		isdata.UpdateLogPulseEnable(!s.config.LogPulseData))
-	s.menu.AddItemOnOff("Flow logging", s.config.LogFlowData,
-		isdata.UpdateLogFlowEnable(!s.config.LogFlowData))
-	s.menu.AddItemOnOff("Pres logging", s.config.LogPressureData,
-		isdata.UpdateLogPressureEnable(!s.config.LogPressureData))
+	s.menu.AddItemScreen("Advanced Opt", ScreenIDDiagAdvancedOptions)
 
 	s.menu.AddItemCommand("Reboot", "start", isdata.Reboot{})
+
 	Heading(img, "Config and Diagnostics")
 	s.menu.Render(img)
 	s.softKeys.Render(img, 0, 54)
