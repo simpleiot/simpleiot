@@ -206,9 +206,12 @@ type Dialog struct {
 // Define dialog ID's
 // They are listed in order of priority; the lower the value,
 // the higher the priority
+// These constants can be reorderd, deleted, etc. because
+// the dialogs are reinitialized in state at each app start
 const (
 	DialogShutdown int = iota
 	DialogReboot
+	DialogFactoryReset
 	DialogSetTimezone
 	DialogUpdate
 	DialogPanelDetect
@@ -320,6 +323,14 @@ func InitState(s *State) (dirty bool) {
 		ID:      DialogReboot,
 		Heading: "Notice",
 		Message: "Reboot started, please wait",
+	}
+	s.Dialogs["FactoryReset"] = &Dialog{
+		ID:      DialogFactoryReset,
+		Heading: "Warning",
+		Message: "You are about to reset all configurable " +
+			"values on this system to their default values from " +
+			"the factory.",
+		CancelActivated: true,
 	}
 	s.Dialogs["SetTimezone"] = &Dialog{
 		ID:      DialogSetTimezone,

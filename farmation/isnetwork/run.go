@@ -347,7 +347,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				lastTimeSync = time.Now()
 			}
 
-			if modem != nil {
+			if modem != nil && !config.ModemDisabled {
 				loc, err := modem.GetLocation()
 				if err != nil {
 					if err != network.ErrorModemNotDetected {
