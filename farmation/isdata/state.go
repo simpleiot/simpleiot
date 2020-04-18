@@ -27,19 +27,19 @@ type State struct {
 	StateMachineState int `json:"stateMachineState"`
 
 	// FlowRate defines the current flow rate of the system in GPH
-	FlowRate              float64              `json:"flowRate"`
-	TimeArmedAndInjOn     time.Time            `json:"timeArmedAndInjOn"`
-	DurationArmedAndInjOn time.Duration        `json:"durationArmed"`
-	FlowAverager          *data.SampleAverager `json:"flowAverager"`
-	FlowRateMin           float64              `json:"flowRateMin"`
-	FlowRateMax           float64              `json:"flowRateMax"`
-	BatchApplied          float64              `json:"batchApplied"`
-	BatchRemaining        float64              `json:"batchRemaining"`
-	Total1                float64              `json:"total1"`
-	Total2                float64              `json:"total2"`
-	LifetimeTotal         float64              `json:"lifetimeTotal"`
-	FlowPulseCount        int                  `json:"flowPulseCount"`
-	CurrentTankVolume     float64              `json:"currentTankVolume"`
+	FlowRate              float64             `json:"flowRate"`
+	TimeArmedAndInjOn     time.Time           `json:"timeArmedAndInjOn"`
+	DurationArmedAndInjOn time.Duration       `json:"durationArmed"`
+	FlowAverager          data.SampleAverager `json:"flowAverager"`
+	FlowRateMin           float64             `json:"flowRateMin"`
+	FlowRateMax           float64             `json:"flowRateMax"`
+	BatchApplied          float64             `json:"batchApplied"`
+	BatchRemaining        float64             `json:"batchRemaining"`
+	Total1                float64             `json:"total1"`
+	Total2                float64             `json:"total2"`
+	LifetimeTotal         float64             `json:"lifetimeTotal"`
+	FlowPulseCount        int                 `json:"flowPulseCount"`
+	CurrentTankVolume     float64             `json:"currentTankVolume"`
 
 	NetworkState NetworkState `json:"networkState"`
 
@@ -382,9 +382,9 @@ func InitState(s *State) (dirty bool) {
 
 	s.NetworkInterfaceConfig = network.InterfaceConfig{}
 
-	if s.FlowAverager == nil {
+	if s.FlowAverager.GetSampleType() == "" {
 		fmt.Println("COLLIN, reset averager")
-		s.FlowAverager = data.NewSampleAverager(SampleTypeFlowWindowAvg)
+		s.FlowAverager = *data.NewSampleAverager(SampleTypeFlowWindowAvg)
 	}
 
 	return

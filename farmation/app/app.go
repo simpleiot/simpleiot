@@ -177,6 +177,10 @@ func Run(params Params) {
 		}
 	}
 
+	fmt.Println("COLLIN, pressure high", config.HighPres)
+	fmt.Println("COLLIN, duration armed", state.DurationArmedAndInjOn)
+	//fmt.Println("COLLIN, averager", state.FlowAverager)
+
 	stateDirty = isdata.InitState(&state)
 	state.SerialNumber = params.SerialNumber
 	state.ViewMsg = params.ViewMsg
@@ -331,8 +335,6 @@ func Run(params Params) {
 		state.TimeArmedAndInjOn = time.Now()
 	}
 
-	fmt.Println("COLLIN, duration armed", state.DurationArmedAndInjOn)
-
 	// Save the state so that the database version from migrations
 	// and the TimeArmedAndInjOn are saved
 	saveState()
@@ -435,29 +437,59 @@ func Run(params Params) {
 		}
 		select {
 		case s := <-sigChan:
+
 			log.Println("Received signal: ", s)
 			img := image.NewRGBA(image.Rect(0, 0, 128, 64))
 			isui.Clear(img)
 			isui.DrawPng(img, "IS_logo_injector.png", 26, 0)
 			lcdChan <- isui.ImageToBlt(0, 0, img, false)
+
+			// Config cleanup
 			config.ManualRelayInj = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			config.ManualRelayAux = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			config.ManualRelayShutdown = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			saveConfig()
 
-			fmt.Println("COLLIN, arm", config.Arm, "injrelay", state.GpioRelayInjectorEn)
+			// State cleanup
+			//fmt.Println("COLLIN, arm", config.Arm, "injrelay", state.GpioRelayInjectorEn)
 			if config.Arm && state.GpioRelayInjectorEn {
 				state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
 			}
 			saveState()
-			dbState.WriteState(&state)
-			dbConfig.WriteConfig(&config)
+
+			err := dbState.WriteState(&state)
+			if err != nil {
+				log.Println("Error writing state to state db:", err)
+			}
+			err = dbConfig.WriteConfig(&config)
+			if err != nil {
+				log.Println("Error writing config to config db:", err)
+			}
 
 			// save config and state in data db as well for backup
-			db.WriteConfig(&config)
-			db.WriteState(&state)
+			err = db.WriteState(&state)
+			if err != nil {
+				log.Println("Error writing state to backup db:", err)
+			}
+			err = db.WriteConfig(&config)
+			if err != nil {
+				log.Println("Error writing state to backup db:", err)
+			}
+
+			// FIXME
+			state2 := isdata.State{}
+			config2 := isdata.Config{}
+			err = dbState.ReadState(&state2)
+			if err != nil {
+				fmt.Println("2", err)
+			}
+
+			dbConfig.ReadConfig(&config2)
+			fmt.Println("COLLIN, pressure high", config.HighPres)
+			fmt.Println("COLLIN, pressure high2", config2.HighPres)
 			fmt.Println("COLLIN: duration", state.DurationArmedAndInjOn)
-			fmt.Println("COLLIN, average flow", state.FlowAverager.GetAverage().Value)
+			fmt.Println("COLLIN: duration2", state2.DurationArmedAndInjOn)
+			//fmt.Println("COLLIN, average flow", state2.FlowAverager.GetAverage().Value)
 			// give time for splash screen to be displayed
 			time.Sleep(100 * time.Millisecond)
 			log.Println("state and config saved, SEE YA!")
