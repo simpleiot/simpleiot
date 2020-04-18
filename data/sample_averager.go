@@ -22,6 +22,10 @@ func NewSampleAverager(sampleType string) *SampleAverager {
 	}
 }
 
+func (sa *SampleAverager) GetSampleType() string {
+	return sa.sampleType
+}
+
 // AddSample takes a sample, and adds it to the total
 func (sa *SampleAverager) AddSample(s Sample) {
 	// avg sample timestamp is set to last sample time
