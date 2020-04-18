@@ -126,7 +126,12 @@ func (db *IsDb) ReadFaultHist() ([]data.Sample, error) {
 		isdata.SampleTypeFaultNtPresLow,
 		isdata.SampleTypeFaultNtPresHigh).Index("Type").SortBy("Time")
 
-	err := db.store.Find(&faults, query)
+	//err := db.store.ForEach(query, db.store.FindOne(&faults, query))
+	var err error
+	var fault *data.Sample
+	for i := 0; i < 100; i++ {
+		err = db.store.FindOne(&fault, query)
+	}
 
 	if err != nil {
 		if err == bolthold.ErrNotFound {
@@ -139,6 +144,12 @@ func (db *IsDb) ReadFaultHist() ([]data.Sample, error) {
 	}
 
 	return faults, nil
+}
+
+// FindXSamples reads x data.Sample types from the database
+func FindXSamples(db *IsDb, result *[]data.Sample, x int) error {
+
+	return nil
 }
 
 // WriteConfig writes the IS config to the database
