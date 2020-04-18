@@ -221,7 +221,7 @@ func Run(params Params) {
 	logChan := make(chan interface{}, 2000) // make this channel big to handle export processes
 	presChan := make(chan interface{}, 1000)
 	serialChan := make(chan interface{}, 1000)
-	networkChan := make(chan interface{}, 100)
+	networkChan := make(chan interface{}, 1000)
 	updateChan := make(chan interface{}, 100)
 	powerChan := make(chan interface{}, 100)
 
@@ -422,7 +422,7 @@ func Run(params Params) {
 					dlgApp.Active = true
 					dlgApp.Message = "System overloaded: " +
 						c.name +
-						"\nchannel is full. Please\ncontact Farmation support."
+						"\nchannel is full. Please\nrestart system."
 					lastChannelDialogDisplay = time.Now()
 				}
 
