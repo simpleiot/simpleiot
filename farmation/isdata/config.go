@@ -515,16 +515,22 @@ func (c *Config) ApplyBounds() {
 		c.LowWindowPerc = 100
 	}
 
-	if c.ManualHighAlarmGPH < 0 {
-		c.ManualHighAlarmGPH = 0
-	} else if c.ManualHighAlarmGPH > 1000 {
+	// Set the manual alarm windows in a bound
+
+	if c.ManualHighAlarmGPH > 1000 {
 		c.ManualHighAlarmGPH = 1000
 	}
 
 	if c.ManualLowAlarmGPH < 0 {
 		c.ManualLowAlarmGPH = 0
-	} else if c.ManualLowAlarmGPH > 1000 {
-		c.ManualLowAlarmGPH = 1000
+	}
+
+	if c.ManualHighAlarmGPH <= c.ManualLowAlarmGPH && c.ManualHighAlarmGPH > 0 {
+		c.ManualHighAlarmGPH = c.ManualLowAlarmGPH + 1
+	}
+
+	if c.ManualLowAlarmGPH >= c.ManualHighAlarmGPH && c.ManualLowAlarmGPH > 0 {
+		c.ManualLowAlarmGPH = c.ManualHighAlarmGPH - 1
 	}
 
 	if c.LowPresPerc < 10 {
@@ -535,8 +541,8 @@ func (c *Config) ApplyBounds() {
 
 	if c.HighPres <= 50 {
 		c.HighPres = 51
-	} else if c.HighPres > 400 {
-		c.HighPres = 400
+	} else if c.HighPres > 300 {
+		c.HighPres = 300
 	}
 
 	if c.AlarmRecognizeSec < 0 {
