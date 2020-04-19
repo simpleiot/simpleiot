@@ -51,6 +51,7 @@ func main() {
 	flagReadVcap := flag.Bool("readVcap", false, "read backup battery voltage")
 	flagWebUI := flag.Bool("webUI", false, "Start Web UI for remote access")
 	flagProf := flag.Bool("prof", false, "Web UI for profiling")
+	flagSetTimeZone := flag.Bool("setTimeZone", false, "Set system time zone from config")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -90,6 +91,15 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *flagSyslog {
+		logwriter, err := islog.Syslog()
+		if err == nil {
+			log.SetOutput(logwriter)
+		} else {
+			log.Println("Error sending log to syslog: ", err)
+		}
+	}
+
 	if *flagCheckDb != "" {
 		err := db.BBoltCheck(*flagCheckDb)
 		if err != nil {
@@ -97,6 +107,16 @@ func main() {
 			os.Exit(-1)
 		}
 		log.Println("check passed")
+		os.Exit(0)
+	}
+
+	if *flagSetTimeZone {
+		err := app.InitSystemTimezone(*flagDataDir)
+		if err != nil {
+			log.Println("Error initializing time zones: ", err)
+			os.Exit(-1)
+		}
+
 		os.Exit(0)
 	}
 
@@ -201,15 +221,6 @@ func main() {
 
 		fmt.Printf("Modem status: %+v\n", status)
 		os.Exit(0)
-	}
-
-	if *flagSyslog {
-		logwriter, err := islog.Syslog()
-		if err == nil {
-			log.SetOutput(logwriter)
-		} else {
-			log.Println("Error sending log to syslog: ", err)
-		}
 	}
 
 	if *flagSetIsSN != "" {
