@@ -58,7 +58,7 @@ func (s *StatusScreen2) Render(img draw.Image) {
 		timeSinceArm += time.Since(s.state.TimeArmedAndInjOn)
 	}
 
-	hoursSinceArm := strconv.FormatFloat(timeSinceArm.Hours(), 'f', 3, 64)
+	hoursSinceArm := strconv.FormatFloat(timeSinceArm.Hours(), 'f', 1, 64)
 	DrawTxtRight(img, hoursSinceArm, x, y4, tightpixel15.Font)
 	DrawTxt(img, "hrs", x+4, y4, tightpixel15.Font)
 

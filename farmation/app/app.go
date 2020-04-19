@@ -698,7 +698,9 @@ func Run(params Params) {
 
 			case isdata.UpdateDisarm:
 				config.Arm = false
-				state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+				if state.GpioRelayInjectorEn {
+					state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+				}
 				saveConfig()
 				saveState()
 
@@ -1004,7 +1006,9 @@ func Run(params Params) {
 				config.OperatingMode = isdata.ISOperatingMode(m)
 				if config.OperatingMode == isdata.ISOperatingModeMonitor {
 					config.Arm = false // system can't be armed in monitor only mode
-					state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+					if state.GpioRelayInjectorEn {
+						state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+					}
 				}
 				saveConfig()
 				saveState()
@@ -1299,7 +1303,9 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 		}
 	} else {
 		config.Arm = false
-		state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+		if state.GpioRelayInjectorEn {
+			state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+		}
 	}
 }
 
