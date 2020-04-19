@@ -519,18 +519,25 @@ func (c *Config) ApplyBounds() {
 
 	if c.ManualHighAlarmGPH > 1000 {
 		c.ManualHighAlarmGPH = 1000
+	} else if c.ManualHighAlarmGPH < 0 {
+		c.ManualHighAlarmGPH = 0
 	}
 
-	if c.ManualLowAlarmGPH < 0 {
+	if c.ManualLowAlarmGPH > 999 {
+		c.ManualLowAlarmGPH = 999
+	} else if c.ManualLowAlarmGPH < 0 {
 		c.ManualLowAlarmGPH = 0
 	}
 
-	if c.ManualHighAlarmGPH <= c.ManualLowAlarmGPH && c.ManualHighAlarmGPH > 0 {
-		c.ManualHighAlarmGPH = c.ManualLowAlarmGPH + 1
-	}
+	if c.ManualHighAlarmGPH > 0 && c.ManualLowAlarmGPH > 0 {
 
-	if c.ManualLowAlarmGPH >= c.ManualHighAlarmGPH && c.ManualLowAlarmGPH > 0 {
-		c.ManualLowAlarmGPH = c.ManualHighAlarmGPH - 1
+		if c.ManualHighAlarmGPH <= c.ManualLowAlarmGPH {
+			c.ManualHighAlarmGPH = c.ManualLowAlarmGPH + 1
+		}
+
+		if c.ManualLowAlarmGPH >= c.ManualHighAlarmGPH {
+			c.ManualLowAlarmGPH = c.ManualHighAlarmGPH - 1
+		}
 	}
 
 	if c.LowPresPerc < 10 {

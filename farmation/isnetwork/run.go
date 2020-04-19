@@ -406,7 +406,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				},
 				{
 					Type:  "avgFlowRate",
-					Value: state.AvgArmedFlowRate,
+					Value: state.FlowAverager.GetAverage().Value,
 				},
 				{
 					Type:  "pressureMin",
