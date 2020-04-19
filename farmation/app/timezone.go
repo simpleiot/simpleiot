@@ -10,7 +10,7 @@ import (
 )
 
 // InitSystemTimezone sets the system timezone from the config setting
-func InitSystemTimezone(params Params) error {
+func InitSystemTimezone(dataDir string) error {
 	if runtime.GOARCH != "arm" {
 		return errors.New("We only set timezone on target systems")
 	}
@@ -18,7 +18,7 @@ func InitSystemTimezone(params Params) error {
 	config := isdata.Config{}
 	state := isdata.State{}
 
-	_, _, _, err := DbInit(params.DataDir, &config, &state)
+	_, _, _, err := DbInit(dataDir, &config, &state)
 
 	if err != nil {
 		return err

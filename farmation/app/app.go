@@ -13,6 +13,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isapi"
 	"github.com/simpleiot/simpleiot/farmation/iscontrol"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
@@ -79,29 +80,48 @@ func Run(params Params) {
 
 	log.Printf("App params: %+v\n", params)
 
+	err := isio.GpioInit()
+	if err != nil {
+		log.Println("Error initializing GPIO: ", err)
+		os.Exit(-1)
+	}
+
 	config := isdata.Config{}
 	state := isdata.State{}
 
 	dbConfig, dbState, dbData, err := DbInit(params.DataDir, &config, &state)
 
 	if err != nil {
+		log.Println("Fatal error opening db: ", err)
+
 		// Fixme should display error message on display here for user
-		log.Fatal("Error opening db: ", err)
+		lcd, err := islcd.NewLcd()
+
+		if err != nil {
+			log.Println("Error opening LCD", err)
+			os.Exit(-1)
+		}
+
+		err = lcd.Init()
+		if err != nil {
+			log.Println("Error initializing LCD: ", err)
+			os.Exit(-1)
+		}
+
+		img := image.NewRGBA(image.Rect(0, 0, 128, 64))
+		isui.Clear(img)
+
+		isui.DrawTxtCentered(img, "Fatal data error", 64, 20, tightpixel15.Font)
+		isui.DrawTxtCentered(img, "Please contact support", 64, 40, tightpixel15.Font)
+		lcd.Write(isui.ImageToBlt(0, 0, img, false).Data)
+
+		os.Exit(-1)
 	}
 
 	err = dbData.WriteSample(data.Sample{
 		Time: time.Now(),
 		Type: data.SampleTypeStartApp,
 	})
-
-	isio.GpioInit()
-
-	err = dbData.WriteSample(data.Sample{
-		Time: time.Now(),
-		Type: data.SampleTypeStartApp,
-	})
-
-	isio.GpioInit()
 
 	// Config and state are *ONLY* modified in app.go
 	// Config is anything modified by the user
