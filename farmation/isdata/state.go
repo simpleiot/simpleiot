@@ -326,9 +326,9 @@ func InitState(s *State) (dirty bool) {
 	s.Dialogs["FactoryReset"] = &Dialog{
 		ID:      DialogFactoryReset,
 		Heading: "Warning",
-		Message: "You are about to reset all configurable " +
-			"values on this system to their default values from " +
-			"the factory.",
+		Message: "You are about to reset all\nof the data " +
+			"on this system.",
+
 		CancelActivated: true,
 	}
 	s.Dialogs["SetTimezone"] = &Dialog{

@@ -362,6 +362,9 @@ func exportSystemLogs(state *isdata.State, out chan interface{}) {
 	msgFileInfos, err := ioutil.ReadDir(msgFileDir)
 	if err != nil {
 		log.Println("Error reading info for message files from log dir: ", err)
+		// FIXME more complete error message
+		out <- isdata.ExportDataFinished{}
+
 		return
 	}
 
