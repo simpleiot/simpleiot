@@ -3,8 +3,10 @@ package islog
 // in logging, we write all timestamps as MS
 
 import (
+	"errors"
 	"log"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"time"
@@ -53,6 +55,21 @@ var usbDevices = []string{
 	"/dev/sdc",
 	"/dev/sdd1",
 	"/dev/sdd",
+}
+
+func umountUsb() error {
+	mntPoint := usbMountPoint()
+
+	if mntPoint == "" {
+		return errors.New("USB device not mounted")
+	}
+
+	err := exec.Command("umount", mntPoint).Run()
+	if err != nil {
+		return err
+	}
+
+	return os.Remove(mntPoint)
 }
 
 // Check if the device is actually there at /dev/
