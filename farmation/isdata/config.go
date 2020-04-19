@@ -347,10 +347,6 @@ func migration1(c *Config) {
 		c.DeviceName = "InjectorSentry"
 	}
 
-	if c.Timezone == "" {
-		c.Timezone = "Central"
-	}
-
 	if c.PressureStartupLow <= 0 {
 		c.PressureStartupLow = 10
 	}
@@ -489,6 +485,10 @@ func (c *Config) Init(state *State) {
 	}
 
 	c.HelpScreen.Active = false
+
+	if c.Timezone == "" {
+		c.Timezone = "Central"
+	}
 
 	// Make sure values are in a valid range
 	c.ApplyBounds()
