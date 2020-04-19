@@ -239,8 +239,12 @@ func Run(params Params) {
 		}
 	}
 
-	// Save the state so that the database version from migrations is
-	// saved
+	if config.Arm && state.GpioRelayInjectorEn {
+		state.TimeArmedAndInjOn = time.Now()
+	}
+
+	// Save the state so that the database version from migrations
+	// and the TimeArmedAndInjOn are saved
 	saveState()
 
 	saveStateTimer := time.NewTicker(time.Minute)
@@ -288,11 +292,6 @@ func Run(params Params) {
 			}
 		}
 	*/
-
-	// Create an averager to calculate average flow since armed
-	// Average is reset every time the system is armed
-	flowAverager := data.NewSampleAverager(isdata.SampleTypeFlowWindowAvg)
-
 	var lastVisionUnknownStateDisplay time.Time
 
 	var lastChannelDialogDisplay time.Time
@@ -349,20 +348,39 @@ func Run(params Params) {
 		}
 		select {
 		case s := <-sigChan:
+
 			log.Println("Received signal: ", s)
 			img := image.NewRGBA(image.Rect(0, 0, 128, 64))
 			isui.Clear(img)
 			isui.DrawPng(img, "IS_logo_injector.png", 26, 0)
 			lcdChan <- isui.ImageToBlt(0, 0, img, false)
+
+			// Config cleanup
 			config.ManualRelayInj = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			config.ManualRelayAux = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			config.ManualRelayShutdown = isdata.RelayControlStateType(isdata.RelayControlStateAuto)
 			saveConfig()
-			dbState.WriteState(&state)
-			dbConfig.WriteConfig(&config)
+
+			// State cleanup
+			//fmt.Println("COLLIN, arm", config.Arm, "injrelay", state.GpioRelayInjectorEn)
+			if config.Arm && state.GpioRelayInjectorEn {
+				state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+			}
+			saveState()
+
+			err := dbState.WriteState(&state)
+			if err != nil {
+				log.Println("Error writing state to state db:", err)
+			}
+			err = dbConfig.WriteConfig(&config)
+			if err != nil {
+				log.Println("Error writing config to config db:", err)
+			}
+
 			// save config and state in data db as well for backup
 			dbData.WriteConfig(&config)
 			dbData.WriteState(&state)
+
 			// give time for splash screen to be displayed
 			time.Sleep(100 * time.Millisecond)
 			log.Println("state and config saved, SEE YA!")
@@ -415,11 +433,8 @@ func Run(params Params) {
 				switch m.Type {
 				case isdata.SampleTypeFlowWindowAvg:
 
-					// compute and update average flow rate in arming period
-					if config.Arm {
-						flowAverager.AddSample(m)
-						state.AvgArmedFlowRate = flowAverager.GetAverage().Value
-						state.DurationArmed = time.Since(state.TimeArmed)
+					if config.Arm && state.GpioRelayInjectorEn {
+						state.FlowAverager.AddSample(m)
 					}
 
 					// update flow rate
@@ -536,8 +551,7 @@ func Run(params Params) {
 					oldArm := config.Arm
 					toggleArmOrOpenDialog(&config, &state)
 					if config.Arm {
-						flowAverager.ResetAverage()
-						state.TimeArmed = time.Now()
+						state.FlowAverager.ResetAverage()
 					}
 					saveConfig()
 					saveState()
@@ -568,8 +582,7 @@ func Run(params Params) {
 					oldArm := config.Arm
 					toggleArmOrOpenDialog(&config, &state)
 					if config.Arm {
-						flowAverager.ResetAverage()
-						state.TimeArmed = time.Now()
+						state.FlowAverager.ResetAverage()
 					}
 					saveConfig()
 					saveState()
@@ -685,7 +698,11 @@ func Run(params Params) {
 
 			case isdata.UpdateDisarm:
 				config.Arm = false
+				if state.GpioRelayInjectorEn {
+					state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+				}
 				saveConfig()
+				saveState()
 
 			case isdata.UpdateResetFlowPulseCount:
 				state.FlowPulseCount = 0
@@ -955,7 +972,18 @@ func Run(params Params) {
 				saveConfig()
 
 			case isdata.UpdateGpioRelayInjector:
+
+				old := state.GpioRelayInjectorEn
 				state.GpioRelayInjectorEn = bool(m)
+
+				if config.Arm && old != state.GpioRelayInjectorEn {
+					if state.GpioRelayInjectorEn {
+						state.TimeArmedAndInjOn = time.Now()
+					} else {
+						state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+					}
+				}
+
 				saveState()
 
 			case isdata.UpdateGpioRelayShutdown:
@@ -978,8 +1006,12 @@ func Run(params Params) {
 				config.OperatingMode = isdata.ISOperatingMode(m)
 				if config.OperatingMode == isdata.ISOperatingModeMonitor {
 					config.Arm = false // system can't be armed in monitor only mode
+					if state.GpioRelayInjectorEn {
+						state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+					}
 				}
 				saveConfig()
+				saveState()
 
 			case isdata.UpdateUserPumpMode:
 				config.UserPumpMode = isdata.UserPumpMode(m)
@@ -1261,14 +1293,19 @@ func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 
 	if !config.Arm { // if the arm switch will be turned on
 		if isdata.AllArmReqMet(config, state) {
-			config.Arm = !config.Arm
+			config.Arm = true                      // config.Arm = !config.Arm since Arm was false
 			config.FlowRateTarget = state.FlowRate // set target flow rate to current
 			config.PressureShutdownLow = state.PressureMin - state.PressureMin*config.LowPresPerc/100
+			state.TimeArmedAndInjOn = time.Now()
+			state.DurationArmedAndInjOn = 0
 		} else {
 			dlgArmReq.Active = true
 		}
 	} else {
-		config.Arm = !config.Arm
+		config.Arm = false
+		if state.GpioRelayInjectorEn {
+			state.DurationArmedAndInjOn += time.Since(state.TimeArmedAndInjOn)
+		}
 	}
 }
 
