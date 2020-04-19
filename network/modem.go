@@ -76,7 +76,7 @@ func (m *Modem) openCmdPort() error {
 		return err
 	}
 
-	m.atCmdPort = respreader.NewResponseReadWriteCloser(port, 10*time.Second,
+	m.atCmdPort = respreader.NewResponseReadWriteCloser(port, 5*time.Second,
 		50*time.Millisecond)
 
 	return nil
@@ -263,7 +263,9 @@ func (m *Modem) Connect() error {
 	m.lastPPPRun = time.Now()
 
 	log.Println("Modem: starting PPP")
-	return exec.Command("pon", m.config.ChatScript).Run()
+	err = exec.Command("pon", m.config.ChatScript).Start()
+
+	return err
 }
 
 // GetStatus return interface status
@@ -279,6 +281,8 @@ func (m *Modem) GetStatus() (InterfaceStatus, error) {
 	var retError error
 	ip, _ := GetIP(m.iface)
 
+	// When a PPP connection is being made, the modem
+	// does not respond to the QCSQ command
 	service, rssi, rsrp, rsrq, err := CmdQcsq(m.atCmdPort)
 	if err != nil {
 		retError = err

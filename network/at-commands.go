@@ -38,7 +38,7 @@ func RsrpValueToDb(value int) float64 {
 func Cmd(port io.ReadWriter, cmd string) (string, error) {
 	var err error
 
-	for try := 0; try < 3; try++ {
+	for try := 0; try < 2; try++ {
 		if DebugAtCommands {
 			fmt.Println("Modem Tx: ", cmd)
 		}
