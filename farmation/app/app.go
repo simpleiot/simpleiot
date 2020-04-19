@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
 	"runtime"
 	"syscall"
 	"time"
@@ -34,7 +33,6 @@ import (
 	"github.com/simpleiot/simpleiot/file"
 	"github.com/simpleiot/simpleiot/network"
 	"github.com/simpleiot/simpleiot/system"
-	"github.com/timshannon/bolthold"
 )
 
 // Params are used to configure the app
@@ -81,107 +79,35 @@ func Run(params Params) {
 
 	log.Printf("App params: %+v\n", params)
 
-	dbFn := path.Join(params.DataDir, "data.db")
-	dbConfigFn := path.Join(params.DataDir, "config.db")
-	dbStateFn := path.Join(params.DataDir, "state.db")
+	config := isdata.Config{}
+	state := isdata.State{}
 
-	db, err := isdb.NewDb(dbFn)
+	dbConfig, dbState, dbData, err := DbInit(params.DataDir, &config, &state)
 
 	if err != nil {
-		// FIXME this error  should display a message on screen to run recovery
-		// process
+		// Fixme should display error message on display here for user
 		log.Fatal("Error opening db: ", err)
 	}
 
-	dbConfig, err := isdb.NewDb(dbConfigFn)
-
-	if err != nil {
-		// FIXME this error  should display a message on screen to run recovery
-		// process
-		log.Fatal("Error opening config db: ", err)
-	}
-
-	dbState, err := isdb.NewDb(dbStateFn)
-
-	if err != nil {
-		// FIXME this error  should display a message on screen to run recovery
-		// process
-		log.Fatal("Error opening state db: ", err)
-	}
-
-	err = isdb.RunMigrations(db)
-
-	if err != nil {
-		log.Println("Error running migrations: ", err)
-	}
-
-	err = db.WriteSample(data.Sample{
+	err = dbData.WriteSample(data.Sample{
 		Time: time.Now(),
 		Type: data.SampleTypeStartApp,
 	})
 
-	log.Println("Data directory: ", params.DataDir)
+	isio.GpioInit()
+
+	err = dbData.WriteSample(data.Sample{
+		Time: time.Now(),
+		Type: data.SampleTypeStartApp,
+	})
 
 	isio.GpioInit()
 
 	// Config and state are *ONLY* modified in app.go
 	// Config is anything modified by the user
 	// State is anything modified by the program
-	config := isdata.Config{}
-	state := isdata.State{}
-	stateDirty := false
 
-	err = dbConfig.ReadConfig(&config)
-
-	if err != nil {
-		if err == bolthold.ErrNotFound {
-			log.Println("config not found -- try reading from old db")
-			err := db.ReadConfig(&config)
-			if err != nil {
-				log.Println("config not found in old db -- start with blank config")
-			} else {
-				err := dbConfig.WriteConfig(&config)
-				if err != nil {
-					log.Println("Error writing config to new db", err)
-				}
-			}
-		} else {
-			log.Println("Error reading config, resetting: ", err)
-			err := dbConfig.ResetDb()
-			if err != nil {
-				log.Println("Error resetting config db: ", err)
-			}
-		}
-	}
-
-	err = dbState.ReadState(&state)
-
-	if err != nil {
-		if err == bolthold.ErrNotFound {
-			log.Println("state not found -- try reading from old db")
-			err := db.ReadState(&state)
-			if err != nil {
-				log.Println("state not found in old db -- start with blank config")
-			} else {
-				err := dbState.WriteState(&state)
-				if err != nil {
-					log.Println("Error writing state to new db", err)
-				}
-			}
-		} else {
-			log.Println("Error reading state, resetting: ", err)
-			err := dbState.ResetDb()
-			if err != nil {
-				log.Println("Error resetting state db: ", err)
-			}
-		}
-	}
-
-	fmt.Println("COLLIN, pressure high", config.HighPres)
-	fmt.Println("COLLIN, duration armed", state.DurationArmedAndInjOn)
-	//fmt.Println("COLLIN, averager", state.FlowAverager)
-
-	stateDirty = isdata.InitState(&state)
+	stateDirty := isdata.InitState(&state)
 	state.SerialNumber = params.SerialNumber
 	state.ViewMsg = params.ViewMsg
 	state.HWVersion = isio.GetHwID()
@@ -191,24 +117,6 @@ func Run(params Params) {
 	log.Println("AppVersion: ", version.AppVersion)
 
 	config.Init(&state)
-
-	if runtime.GOARCH == "arm" {
-		// Check that the system timezone didn't get messed up
-		zonePath, zone, err := system.GetTimezone()
-		if err != nil {
-			log.Println("Error fetching current timezone: ", err)
-		}
-
-		if zone != config.Timezone || zonePath != "US" {
-
-			err = system.SetTimezone("US", config.Timezone)
-			if err != nil {
-				log.Println("Error setting timezone: ", err)
-			}
-
-			exec.Command("/etc/init.d/isapp", "restart").Start()
-		}
-	}
 
 	// incoming channel to mux
 	appChan := make(chan interface{}, 1000)
@@ -252,7 +160,7 @@ func Run(params Params) {
 
 	// fire up subsystems
 	go keypad.Run(keypadChan, appChan, state.HWVersion)
-	go isui.Run(uiChan, appChan, config, state, db)
+	go isui.Run(uiChan, appChan, config, state, dbData)
 	go isio.Run(ioChan, appChan, config, state) // this is where io Run is called, w/ ioChan as in chan and appChan as out chan
 	go iscontrol.Run(cntrlChan, appChan, config, state)
 	if params.WebUI {
@@ -261,7 +169,7 @@ func Run(params Params) {
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
 	go isflow.Run(flowChan, appChan, params.Sim, config)
-	go islog.Run(logChan, appChan, state, config, db)
+	go islog.Run(logChan, appChan, state, config, dbData)
 	go ispressure.Run(presChan, appChan, config)
 	go isserial.Run(serialChan, appChan, config)
 	go isnetwork.Run(networkChan, appChan, config, state,
@@ -470,29 +378,9 @@ func Run(params Params) {
 			}
 
 			// save config and state in data db as well for backup
-			err = db.WriteState(&state)
-			if err != nil {
-				log.Println("Error writing state to backup db:", err)
-			}
-			err = db.WriteConfig(&config)
-			if err != nil {
-				log.Println("Error writing state to backup db:", err)
-			}
+			dbData.WriteConfig(&config)
+			dbData.WriteState(&state)
 
-			// FIXME
-			state2 := isdata.State{}
-			config2 := isdata.Config{}
-			err = dbState.ReadState(&state2)
-			if err != nil {
-				fmt.Println("2", err)
-			}
-
-			dbConfig.ReadConfig(&config2)
-			fmt.Println("COLLIN, pressure high", config.HighPres)
-			fmt.Println("COLLIN, pressure high2", config2.HighPres)
-			fmt.Println("COLLIN: duration", state.DurationArmedAndInjOn)
-			fmt.Println("COLLIN: duration2", state2.DurationArmedAndInjOn)
-			//fmt.Println("COLLIN, average flow", state2.FlowAverager.GetAverage().Value)
 			// give time for splash screen to be displayed
 			time.Sleep(100 * time.Millisecond)
 			log.Println("state and config saved, SEE YA!")
@@ -627,7 +515,7 @@ func Run(params Params) {
 					saveState()
 
 					// save to database for system logs
-					db.WriteSample(data.Sample{
+					dbData.WriteSample(data.Sample{
 						Type:  isdata.SampleTypeInputInjector,
 						Time:  time.Now(),
 						Value: boolToSampleVal(m.Bool()),
@@ -638,7 +526,7 @@ func Run(params Params) {
 					saveState()
 
 					// save to database for system logs
-					db.WriteSample(data.Sample{
+					dbData.WriteSample(data.Sample{
 						Type:  isdata.SampleTypeInputIrrigator,
 						Time:  time.Now(),
 						Value: boolToSampleVal(m.Bool()),
@@ -649,7 +537,7 @@ func Run(params Params) {
 					saveState()
 
 					// save to database for system logs
-					db.WriteSample(data.Sample{
+					dbData.WriteSample(data.Sample{
 						Type:  isdata.SampleTypeInputWaterOn,
 						Time:  time.Now(),
 						Value: boolToSampleVal(m.Bool()),
@@ -670,7 +558,7 @@ func Run(params Params) {
 
 					if config.Arm != oldArm {
 						// save to database for system logs
-						db.WriteSample(data.Sample{
+						dbData.WriteSample(data.Sample{
 							Type:  isdata.SampleTypeArm,
 							Time:  time.Now(),
 							Value: boolToSampleVal(config.Arm),
@@ -1199,7 +1087,7 @@ func Run(params Params) {
 				switch dialogPointer.ID {
 				case isdata.DialogFactoryReset:
 
-					err := db.ResetDb()
+					err := dbData.ResetDb()
 					if err != nil {
 						log.Println("Error resetting main db: ", err)
 					}
@@ -1234,11 +1122,11 @@ func Run(params Params) {
 					}
 
 					// save config and state in data db as well for backup
-					err = db.WriteState(&state)
+					err = dbData.WriteState(&state)
 					if err != nil {
 						log.Println("Error writing state to new backup db", err)
 					}
-					err = db.WriteConfig(&config)
+					err = dbData.WriteConfig(&config)
 					if err != nil {
 						log.Println("Error writing config to new backup db", err)
 					}
