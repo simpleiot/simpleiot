@@ -215,12 +215,12 @@ viewUser user =
         , text user.last
         , viewRole
             { role = "user"
-            , value = True
+            , value = hasRole "user" user
             , action = EditRole
             }
         , viewRole
             { role = "admin"
-            , value = True
+            , value = hasRole "admin" user
             , action = EditRole
             }
         ]
