@@ -26,11 +26,11 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/svent/go-nbreader v0.0.0-20150201200112-7cef48da76dc
 	github.com/timshannon/badgerhold v0.0.0-20190415130923-192650dd187a
-	github.com/timshannon/bolthold v0.0.0-20200316231344-dc30e2b2f90c
-	go.etcd.io/bbolt v1.3.3
+	github.com/timshannon/bolthold v0.0.0-20200420150217-0e8c0be6fd3c
+	go.etcd.io/bbolt v1.3.4
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
-	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
+	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	periph.io/x/periph v3.4.0+incompatible
