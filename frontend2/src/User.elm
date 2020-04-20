@@ -47,6 +47,7 @@ encode user =
         , ( "email", Encode.string user.email )
         ]
 
+
 type alias Role =
     { id : String
     , orgID : String
@@ -54,3 +55,11 @@ type alias Role =
     , description : String
     }
 
+
+encodeRole role =
+    Encode.object
+        [ ( "id", Encode.string role.id )
+        , ( "orgID", Encode.string role.orgID )
+        , ( "orgName", Encode.string role.orgName )
+        , ( "description", Encode.string role.description )
+        ]
