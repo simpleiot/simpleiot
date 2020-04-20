@@ -32,6 +32,7 @@ type alias Session =
     , authToken : String
     , privilege : Privilege
     , data : Data
+    , error : Maybe Http.Error
     }
 
 
@@ -162,6 +163,7 @@ update commands msg model =
                         , cred = cred
                         , privilege = privilege
                         , data = emptyData
+                        , error = Nothing
                         }
                     , getData token
                     , Cmd.none
