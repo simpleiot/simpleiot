@@ -30,7 +30,7 @@ func main() {
 	handler.BaudRate = 115200
 	handler.DataBits = 8
 	handler.Parity = "N"
-	handler.StopBits = 0
+	handler.StopBits = 1
 	handler.SlaveId = 1
 	handler.Timeout = 5 * time.Second
 

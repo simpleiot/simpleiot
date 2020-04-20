@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
+	"github.com/goburrow/serial"
 	"github.com/tbrandon/mbserver"
-	"go.bug.st/serial"
 )
 
 func usage() {
@@ -30,7 +31,8 @@ func main() {
 
 	log.Println("Starting server on: ", *port)
 
-	serv := mbserver.NewServer(50, 50, 50, 50)
+	//serv := mbserver.NewServer(50, 50, 50, 50)
+	serv := mbserver.NewServer()
 	serv.Debug = true
 
 	// Override ReadDiscreteInputs function.
@@ -66,22 +68,22 @@ func main() {
 			return data, &mbserver.Success
 		})
 
-	/*
-		err := serv.ListenRTU(&serial.Config{
-			Address:  *port,
-			BaudRate: 115200,
-			DataBits: 8,
-			StopBits: 1,
-			Parity:   "N",
-			Timeout:  10 * time.Second})
-	*/
-
-	err := serv.ListenRTU(*port, &serial.Mode{
+	err := serv.ListenRTU(&serial.Config{
+		Address:  *port,
 		BaudRate: 115200,
 		DataBits: 8,
-		Parity:   serial.NoParity,
-		StopBits: serial.OneStopBit,
-	})
+		StopBits: 1,
+		Parity:   "N",
+		Timeout:  10 * time.Second})
+
+	/*
+		err := serv.ListenRTU(*port, &serial.Mode{
+			BaudRate: 115200,
+			DataBits: 8,
+			Parity:   serial.NoParity,
+			StopBits: serial.OneStopBit,
+		})
+	*/
 
 	if err != nil {
 		log.Println("Error opening modbus port: ", err)
