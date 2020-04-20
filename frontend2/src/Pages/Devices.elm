@@ -24,11 +24,12 @@ import Spa.Types as Types
 import Url.Builder as Url
 import Utils.Spa exposing (Page)
 import Utils.Styles exposing (palette, size)
+import Time
 
 
 page : Page Params.Devices Model Msg model msg appMsg
 page =
-    Spa.Page.element
+    Spa.Page.component
         { title = always "Devices"
         , init = always init
         , update = update
@@ -46,10 +47,11 @@ type alias Model =
     }
 
 
-init : Params.Devices -> ( Model, Cmd Msg )
+init : Params.Devices -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ =
     ( { deviceEdits = Dict.empty
       }
+    , Cmd.none
     , Cmd.none
     )
 
@@ -59,7 +61,8 @@ init _ =
 
 
 type Msg
-    = EditDeviceDescription DeviceEdit
+    = Tick Time.Posix
+    | EditDeviceDescription DeviceEdit
     | PostConfig String D.Config
     | DiscardEditedDeviceDescription String
     | ConfigPosted String (Result Http.Error Response)
@@ -72,11 +75,12 @@ type alias Response =
     }
 
 
-update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg )
+update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update context msg model =
     case msg of
         EditDeviceDescription { id, description } ->
             ( { model | deviceEdits = Dict.insert id description model.deviceEdits }
+            , Cmd.none
             , Cmd.none
             )
 
@@ -88,20 +92,30 @@ update context msg model =
 
                 Global.SignedOut _ ->
                     Cmd.none
+            , Cmd.none
             )
 
         ConfigPosted id (Ok _) ->
             ( { model | deviceEdits = Dict.remove id model.deviceEdits }
+            , Cmd.none
             , Cmd.none
             )
 
         DiscardEditedDeviceDescription id ->
             ( { model | deviceEdits = Dict.remove id model.deviceEdits }
             , Cmd.none
+            , Cmd.none
+            )
+
+        Tick _ ->
+            ( model
+            , Cmd.none
+            , Spa.Page.send <| Global.RequestDevices
             )
 
         _ ->
             ( model
+            , Cmd.none
             , Cmd.none
             )
 
@@ -118,7 +132,9 @@ type alias DeviceEdit =
 
 subscriptions : Types.PageContext route Global.Model -> Model -> Sub Msg
 subscriptions context model =
-    Sub.none
+    Sub.batch
+        [ Time.every 1000 Tick
+        ]
 
 
 
