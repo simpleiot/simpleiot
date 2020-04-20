@@ -15,13 +15,11 @@ type alias User =
     , first : String
     , last : String
     , email : String
-    , admin : Bool
     }
 
 
 empty =
     { id = ""
-    , admin = False
     , email = ""
     , first = ""
     , last = ""
@@ -39,7 +37,6 @@ decode =
         |> required "firstName" Decode.string
         |> required "lastName" Decode.string
         |> required "email" Decode.string
-        |> optional "admin" Decode.bool False
 
 
 encode : User -> Encode.Value
