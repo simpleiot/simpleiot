@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"runtime"
 	"syscall"
 	"time"
@@ -1148,13 +1149,13 @@ func Run(params Params) {
 					dlgResetTotal1 = state.Dialogs["ResetTotal1"]
 					dlgResetTotal2 = state.Dialogs["ResetTotal2"]
 
-					// FIXME: doesn't work
-					/*
-						err = exec.Command("/bin/sh", "-c", "\"rm /data/log/*\"").Run()
-						if err != nil {
-							log.Println("Error removing log message files for factory reset:", err)
-						}
-					*/
+					// Remove all log messages
+					messageFiles := []string{"messages", "messages.0", "messages.1",
+						"messages.2", "messages.3"}
+
+					for _, f := range messageFiles {
+						os.Remove(path.Join("/data/log", f))
+					}
 
 				case isdata.DialogSetTimezone:
 
