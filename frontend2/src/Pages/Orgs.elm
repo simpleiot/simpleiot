@@ -210,6 +210,16 @@ viewUser user =
         ]
 
 
+viewRole { role, value, action } =
+    Input.checkbox
+        [ padding 16 ]
+        { checked = value
+        , icon = Input.defaultCheckbox
+        , label = label Input.labelRight role
+        , onChange = action
+        }
+
+
 viewDevice : Device.Device -> Element Msg
 viewDevice device =
     viewItem
