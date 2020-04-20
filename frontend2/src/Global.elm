@@ -203,6 +203,12 @@ update commands msg model =
                     , Cmd.none
                     )
 
+                OrgsResponse (Ok orgs) ->
+                    ( SignedIn { sess | data = { data | orgs = orgs } }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
                 RequestOrgs ->
                     ( model
                     , getOrgs sess.authToken
