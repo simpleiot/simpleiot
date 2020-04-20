@@ -63,3 +63,10 @@ encodeRole role =
         , ( "orgName", Encode.string role.orgName )
         , ( "description", Encode.string role.description )
         ]
+
+decodeRole =
+    Decode.succeed Role
+        |> required "id" Decode.string
+        |> required "orgID" Decode.string
+        |> required "orgName" Decode.string
+        |> required "description" Decode.string
