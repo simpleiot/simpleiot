@@ -226,6 +226,10 @@ viewUser user =
         ]
 
 
+hasRole role user =
+    List.member role <| List.map .description user.roles
+
+
 viewRole { role, value, action } =
     Input.checkbox
         [ padding 16 ]
