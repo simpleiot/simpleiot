@@ -15,6 +15,7 @@ type alias User =
     , first : String
     , last : String
     , email : String
+    , roles : List Role
     }
 
 
@@ -23,6 +24,7 @@ empty =
     , email = ""
     , first = ""
     , last = ""
+    , roles = []
     }
 
 
@@ -37,6 +39,7 @@ decode =
         |> required "firstName" Decode.string
         |> required "lastName" Decode.string
         |> required "email" Decode.string
+        |> required "roles" decodeRoles
 
 
 encode : User -> Encode.Value
@@ -45,6 +48,7 @@ encode user =
         [ ( "firstName", Encode.string user.first )
         , ( "lastName", Encode.string user.last )
         , ( "email", Encode.string user.email )
+        , ( "roles", encodeRoles user.roles )
         ]
 
 
@@ -64,9 +68,17 @@ encodeRole role =
         , ( "description", Encode.string role.description )
         ]
 
+
+encodeRoles =
+    Encode.list encodeRole
+
+
 decodeRole =
     Decode.succeed Role
         |> required "id" Decode.string
         |> required "orgID" Decode.string
         |> required "orgName" Decode.string
         |> required "description" Decode.string
+
+decodeRoles =
+    Decode.list decodeRole
