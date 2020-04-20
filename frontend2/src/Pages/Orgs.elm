@@ -62,6 +62,7 @@ empty =
 
 type Msg
     = EditEmail String String
+    | EditRole String Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
@@ -74,6 +75,11 @@ update msg model =
               -- TODO: does this user exist?
             )
 
+        _ ->
+            ( model
+            , Cmd.none
+            , Cmd.none
+            )
 
 
 -- SUBSCRIPTIONS
@@ -207,6 +213,16 @@ viewUser user =
     viewItem
         [ text user.first
         , text user.last
+        , viewRole
+            { role = "user"
+            , value = True
+            , action = EditRole
+            }
+        , viewRole
+            { role = "admin"
+            , value = True
+            , action = EditRole
+            }
         ]
 
 
@@ -216,7 +232,7 @@ viewRole { role, value, action } =
         { checked = value
         , icon = Input.defaultCheckbox
         , label = label Input.labelRight role
-        , onChange = action
+        , onChange = action role
         }
 
 
