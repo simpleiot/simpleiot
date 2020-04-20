@@ -46,3 +46,11 @@ encode user =
         , ( "lastName", Encode.string user.last )
         , ( "email", Encode.string user.email )
         ]
+
+type alias Role =
+    { id : String
+    , orgID : String
+    , orgName : String
+    , description : String
+    }
+
