@@ -36,8 +36,8 @@ func (m *Modbus) Read() ([]byte, error) {
 	return m.bufRead.ReadBytes(0xA)
 }
 
-// PDU is a modbus protocol data unit
-type PDU struct {
+// ASCIIADU is a modbus protocol data unit
+type ASCIIADU struct {
 	Address      byte
 	FunctionCode FunctionCode
 	Data         []byte
@@ -46,35 +46,35 @@ type PDU struct {
 }
 
 // CheckLRC verifies the LRC is valid
-func (pdu *PDU) CheckLRC() bool {
+func (adu *ASCIIADU) CheckLRC() bool {
 	var sum byte
-	sum += pdu.Address
-	sum += byte(pdu.FunctionCode)
-	for _, b := range pdu.Data {
+	sum += adu.Address
+	sum += byte(adu.FunctionCode)
+	for _, b := range adu.Data {
 		sum += b
 	}
 
-	return byte(-int8(sum)) == pdu.LRC
+	return byte(-int8(sum)) == adu.LRC
 }
 
 // DecodeFunctionData extracts the function data from the PDU
-func (pdu *PDU) DecodeFunctionData() (ret interface{}, err error) {
-	switch pdu.FunctionCode {
+func (adu *ASCIIADU) DecodeFunctionData() (ret interface{}, err error) {
+	switch adu.FunctionCode {
 	case FuncCodeWriteMultipleRegisters:
-		if len(pdu.Data) < 5 {
+		if len(adu.Data) < 5 {
 			err = errors.New("not enough data for Write Mult Regs")
 			return
 		}
 		r := FuncWriteMultipleRegisterRequest{}
-		r.FunctionCode = pdu.FunctionCode
-		r.StartingAddress = uint16(pdu.Data[0])<<8 | uint16(pdu.Data[1])
-		r.RegCount = uint16(pdu.Data[2])<<8 | uint16(pdu.Data[3])
-		r.ByteCount = pdu.Data[4]
+		r.FunctionCode = adu.FunctionCode
+		r.StartingAddress = uint16(adu.Data[0])<<8 | uint16(adu.Data[1])
+		r.RegCount = uint16(adu.Data[2])<<8 | uint16(adu.Data[3])
+		r.ByteCount = adu.Data[4]
 		if r.RegCount*2 != uint16(r.ByteCount) {
 			err = errors.New("Byte count does not match reg count")
 			return
 		}
-		regData := pdu.Data[5:]
+		regData := adu.Data[5:]
 		if len(regData) != int(r.ByteCount) {
 			err = errors.New("not enough reg data")
 			return
@@ -85,7 +85,7 @@ func (pdu *PDU) DecodeFunctionData() (ret interface{}, err error) {
 		}
 		ret = r
 	default:
-		err = fmt.Errorf("Unhandled function code %v", pdu.FunctionCode)
+		err = fmt.Errorf("Unhandled function code %v", adu.FunctionCode)
 	}
 
 	return
@@ -147,14 +147,14 @@ func DecodeASCIIByteEnd(data []byte) (byte, []byte, error) {
 }
 
 // DecodeASCIIPDU decodes a ASCII modbus packet
-func DecodeASCIIPDU(data []byte) (ret PDU, err error) {
+func DecodeASCIIPDU(data []byte) (ret ASCIIADU, err error) {
 	if len(data) < asciiMinSize {
 		err = errors.New("not enough data to decode")
 		return
 	}
 
 	if data[0] != asciiStart {
-		return PDU{}, errors.New("invalid start char")
+		return ASCIIADU{}, errors.New("invalid start char")
 	}
 
 	// chop start
