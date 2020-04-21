@@ -63,7 +63,7 @@ func (s *OperatingModeScreen) Render(img draw.Image) {
 	}
 
 	// add menu items
-	s.menu.AddItemSelect("Monitor and Shutdown", isdata.UpdateOperatingMode(mode), alarmSelected)
+	s.menu.AddItemSelect("Monitor and Alarm", isdata.UpdateOperatingMode(mode), alarmSelected)
 	s.menu.AddItemSelect("Monitor Only", isdata.UpdateOperatingMode(mode), monitorSelected)
 	//s.menu.AddItemSelect("Monitor and Batch", isdata.UpdateOperatingMode(mode), batch)
 
