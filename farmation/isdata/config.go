@@ -492,6 +492,8 @@ func (c *Config) Init(state *State) {
 
 	// Make sure values are in a valid range
 	c.ApplyBounds()
+
+	c.PanelType = PanelTypeStandardPivot
 }
 
 // ApplyBounds makes sure that all the config items are within
