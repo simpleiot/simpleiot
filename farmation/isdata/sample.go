@@ -21,6 +21,7 @@ const (
 	SampleTypeInputIrrigator         = "inputIrrigator"
 	SampleTypeMainAuxPwr             = "mainAuxPwr"
 	SampleTypeArm                    = "arm"
+	SampleTypeState                  = "isState"
 )
 
 // SampleTypeToDisp converts a sample type code to LCD display string

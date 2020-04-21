@@ -115,7 +115,7 @@ func NewStateMachine(config *isdata.Config, state *isdata.State, initialState St
 // SetState is used in iscontrol.Run() to set the machine state to
 // a stored value from the system state on startup, and is also used
 // throughout the state machine
-func (sm *StateMachine) SetState(newState StateMachineState) isdata.UpdateStateMachineState {
+func (sm *StateMachine) SetState(newState StateMachineState) interface{} {
 	if sm.machineState != newState {
 		log.Println("New state: ", newState)
 		sm.machineState = newState
@@ -127,9 +127,10 @@ func (sm *StateMachine) SetState(newState StateMachineState) isdata.UpdateStateM
 			sm.lastGoodFlow = time.Now()
 			sm.lastGoodPressure = time.Now()
 		}
+		return isdata.UpdateStateMachineState{int(sm.machineState), sm.machineState.String()}
 	}
 
-	return isdata.UpdateStateMachineState(sm.machineState)
+	return nil
 }
 
 func (sm *StateMachine) elapsed() time.Duration {

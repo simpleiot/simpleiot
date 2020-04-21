@@ -1,7 +1,10 @@
 package isdata
 
 // UpdateStateMachineState ...
-type UpdateStateMachineState int
+type UpdateStateMachineState struct {
+	ID   int
+	Name string
+}
 
 // UpdateFieldName is a message used to update the field name in the config
 type UpdateFieldName struct {

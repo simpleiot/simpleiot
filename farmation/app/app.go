@@ -714,8 +714,13 @@ func Run(params Params) {
 				saveConfig()
 
 			case isdata.UpdateStateMachineState:
-				state.StateMachineState = int(m)
+				state.StateMachineState = int(m.ID)
 				saveState()
+				err = dbData.WriteSample(data.Sample{
+					Time: time.Now(),
+					Type: isdata.SampleTypeState,
+					ID:   m.Name,
+				})
 
 			case isdata.UpdateDisarm:
 				config.Arm = false
