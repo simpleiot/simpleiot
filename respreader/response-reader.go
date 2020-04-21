@@ -6,9 +6,6 @@ import (
 	"time"
 )
 
-// ErrorTimeout indicates the reader timed out
-var ErrorTimeout = errors.New("timeout")
-
 // ResponseReadWriteCloser is a convenience type that implements io.ReadWriteCloser.
 // Write calls flush reader before writing the prompt.
 type ResponseReadWriteCloser struct {
@@ -20,7 +17,7 @@ type ResponseReadWriteCloser struct {
 // NewResponseReadWriteCloser creates a new response reader
 //
 // timeout is used to specify an
-// overall timeout. If this timeout is encountered, ErrorTimeout is returned.
+// overall timeout. If this timeout is encountered, io.EOF is returned.
 //
 // chunkTimeout is used to specify the max timeout between chunks of data once
 // the response is started. If a delay of chunkTimeout is encountered, the response
@@ -64,7 +61,7 @@ type ResponseReadCloser struct {
 // NewResponseReadCloser creates a new response reader
 //
 // timeout is used to specify an
-// overall timeout. If this timeout is encountered, ErrorTimeout is returned.
+// overall timeout. If this timeout is encountered, io.EOF is returned.
 //
 // chunkTimeout is used to specify the max timeout between chunks of data once
 // the response is started. If a delay of chunkTimeout is encountered, the response
@@ -136,7 +133,7 @@ type ResponseReader struct {
 // NewResponseReader creates a new response reader.
 //
 // timeout is used to specify an
-// overall timeout. If this timeout is encountered, ErrorTimeout is returned.
+// overall timeout. If this timeout is encountered, io.EOF is returned.
 //
 // chunkTimeout is used to specify the max timeout between chunks of data once
 // the response is started. If a delay of chunkTimeout is encountered, the response
@@ -185,7 +182,7 @@ func (rr *ResponseReader) Read(buffer []byte) (int, error) {
 				return count, nil
 			}
 
-			return count, ErrorTimeout
+			return count, io.EOF
 
 		}
 	}
