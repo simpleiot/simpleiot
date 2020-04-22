@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"github.com/simpleiot/simpleiot/farmation/isio"
 )
 
 // Run goroutine for lcd code
@@ -28,6 +29,8 @@ func Run(in, out chan interface{}) {
 				if lcdOK {
 					lcd.Write(m.Data)
 				}
+			case isdata.SetBacklight:
+				isio.GpioOut(isio.GpioLcdPwm, bool(m))
 
 			default:
 				log.Printf("islcd: unhandled message of type %T: %+v\r\n", m, m)

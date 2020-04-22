@@ -31,11 +31,20 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 
 	renderScreen()
 
+	lastKey := time.Now()
+	screenSaver := false
+
 	renderTicker := time.NewTicker(500 * time.Millisecond)
 
 	for {
 		select {
 		case <-renderTicker.C:
+			if time.Since(lastKey) > 30*time.Minute && !screenSaver {
+				// show screen saver instead
+				screens.ScreenSaver(true)
+				screenSaver = true
+				out <- isdata.SetBacklight(false)
+			}
 			renderScreen()
 		case m := <-in:
 			switch m := m.(type) {
@@ -46,6 +55,9 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				config = m
 				renderScreen()
 			case isdata.Key:
+				lastKey = time.Now()
+				screenSaver = false
+				out <- isdata.SetBacklight(true)
 				_, cmd, _ := widgets.Key(m)
 				if cmd != nil {
 					out <- cmd

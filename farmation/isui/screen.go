@@ -47,6 +47,7 @@ const (
 	ScreenIDDiag
 	ScreenIDPanelType
 	ScreenIDGps
+	ScreenIDSaver
 )
 
 // Screens is a map of all screens in the system
@@ -59,11 +60,20 @@ type Screens struct {
 	helpScreen    *HelpScreenUI
 	state         *isdata.State
 	config        *isdata.Config
+	screenSaver   bool
 }
 
 // Add a new screen
 func (s *Screens) Add(ID ScreenID, screen Widget) {
 	s.screens[ID] = screen
+}
+
+// ScreenSaver control screen saver
+func (s *Screens) ScreenSaver(enable bool) {
+	s.screenSaver = enable
+	if enable {
+		s.switchScreen(ScreenIDSaver)
+	}
 }
 
 // NewScreens initializes all screens
@@ -109,6 +119,7 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 	ret.Add(ScreenIDDiagSIMImei, NewDiagSimImeiScreen(state, config))
 	ret.Add(ScreenIDPanelType, NewPanelTypeScreen(state, config))
 	ret.Add(ScreenIDGps, NewGpsScreen(state, config))
+	ret.Add(ScreenIDSaver, NewScreenSaver())
 
 	ret.currentScreen = ScreenIDHome
 
@@ -117,27 +128,28 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 
 // Render is used to draw a list of params, handles scrolling, etc.
 func (s *Screens) Render(img draw.Image) {
+	if !s.screenSaver {
+		currentDialog, _ := s.state.DialogHighestPriority()
 
-	currentDialog, _ := s.state.DialogHighestPriority()
+		// If the dialog isn't nil (there are active dialogs), render the
+		// returned active dialog
+		if currentDialog != nil {
+			if currentDialog.ID == isdata.DialogArmReq {
+				// ArmRequirements dialog requires a special render method
+				s.dialogArmReq.Render(img)
+				return
+			}
 
-	// If the dialog isn't nil (there are active dialogs), render the
-	// returned active dialog
-	if currentDialog != nil {
-		if currentDialog.ID == isdata.DialogArmReq {
-			// ArmRequirements dialog requires a special render method
-			s.dialogArmReq.Render(img)
+			s.dialog.Render(img, currentDialog)
 			return
 		}
 
-		s.dialog.Render(img, currentDialog)
-		return
-	}
-
-	// If the user has activated the help screen
-	if s.config.HelpScreen.Active {
-		s.helpScreen.UpdateContent(s.config.HelpScreen)
-		s.helpScreen.Render(img)
-		return
+		// If the user has activated the help screen
+		if s.config.HelpScreen.Active {
+			s.helpScreen.UpdateContent(s.config.HelpScreen)
+			s.helpScreen.Render(img)
+			return
+		}
 	}
 
 	s.screens[s.currentScreen].Render(img)
@@ -145,94 +157,95 @@ func (s *Screens) Render(img draw.Image) {
 
 // Key handles key input
 func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
+	if !s.screenSaver {
+		currentDialog, dialogKey := s.state.DialogHighestPriority()
 
-	currentDialog, dialogKey := s.state.DialogHighestPriority()
+		// Prioritize this key because we want to use it from any part
+		// of the system, including dialogs and help screens
+		if key == isdata.KeyPump || key == isdata.KeyPumpHold {
 
-	// Prioritize this key because we want to use it from any part
-	// of the system, including dialogs and help screens
-	if key == isdata.KeyPump || key == isdata.KeyPumpHold {
-
-		switch key {
-		case isdata.KeyPump: // Pump Screen
-			if s.currentScreen != ScreenIDPumpMode {
-				s.switchScreen(ScreenIDPumpMode)
-			}
-		case isdata.KeyPumpHold: // Diagnostics Flow/Pressure
-			if s.currentScreen != ScreenIDDiagPulsesPres {
-				s.switchScreen(ScreenIDDiagPulsesPres)
-			}
-
-		}
-
-		if currentDialog != nil {
-			return ScreenIDNoChange, isdata.DialogCancel{dialogKey}, true
-		}
-		if s.config.HelpScreen.Active {
-			return ScreenIDNoChange, isdata.HelpScreenClose{}, true
-		}
-		return ScreenIDNoChange, nil, true
-	}
-
-	// If the dialog isn't nil (active dialogs), handle keys as coming
-	// from the dialog
-	if currentDialog != nil {
-		// when the back key is pressed
-		switch key {
-		case isdata.KeySK1Release: // OK
-
-			// Take user directly to a screen that needs attention
-			switch currentDialog.ID {
-			case isdata.DialogArm:
-				switch currentDialog.Message {
-				case "Cannot arm in Monitor \nOnly mode, please switch \nmodes":
-					s.switchScreen(ScreenIDOpMode1)
-				case "Pump Command \nInput not selected, please \nselect before arming":
+			switch key {
+			case isdata.KeyPump: // Pump Screen
+				if s.currentScreen != ScreenIDPumpMode {
 					s.switchScreen(ScreenIDPumpMode)
 				}
-			case isdata.DialogArmReq:
-				if s.state.InputInjector == isdata.InputStateOff &&
-					s.config.UserPumpMode == isdata.UserPumpModeOff {
-					s.switchScreen(ScreenIDPumpMode)
+			case isdata.KeyPumpHold: // Diagnostics Flow/Pressure
+				if s.currentScreen != ScreenIDDiagPulsesPres {
+					s.switchScreen(ScreenIDDiagPulsesPres)
 				}
+
 			}
 
-			// Close the dialog
-			return ScreenIDNoChange, isdata.DialogClose{dialogKey}, true
-
-		case isdata.KeySK2: // Cancel
-			if currentDialog.CancelActivated {
+			if currentDialog != nil {
 				return ScreenIDNoChange, isdata.DialogCancel{dialogKey}, true
 			}
+			if s.config.HelpScreen.Active {
+				return ScreenIDNoChange, isdata.HelpScreenClose{}, true
+			}
+			return ScreenIDNoChange, nil, true
 		}
 
-		return ScreenIDNoChange, nil, true
-	}
+		// If the dialog isn't nil (active dialogs), handle keys as coming
+		// from the dialog
+		if currentDialog != nil {
+			// when the back key is pressed
+			switch key {
+			case isdata.KeySK1Release: // OK
 
-	if s.config.HelpScreen.Active {
+				// Take user directly to a screen that needs attention
+				switch currentDialog.ID {
+				case isdata.DialogArm:
+					switch currentDialog.Message {
+					case "Cannot arm in Monitor \nOnly mode, please switch \nmodes":
+						s.switchScreen(ScreenIDOpMode1)
+					case "Pump Command \nInput not selected, please \nselect before arming":
+						s.switchScreen(ScreenIDPumpMode)
+					}
+				case isdata.DialogArmReq:
+					if s.state.InputInjector == isdata.InputStateOff &&
+						s.config.UserPumpMode == isdata.UserPumpModeOff {
+						s.switchScreen(ScreenIDPumpMode)
+					}
+				}
 
-		switch key {
+				// Close the dialog
+				return ScreenIDNoChange, isdata.DialogClose{dialogKey}, true
 
-		case isdata.KeySK1Release, isdata.KeySK1Hold: // Back
-			// Close the help screen
-			return ScreenIDNoChange, isdata.HelpScreenClose{}, true
-
-		case isdata.KeyDown, isdata.KeyDownHold: // Arrow Down
-			// Scroll down
-			s.helpScreen.Index++
-			indexEnd := len(s.helpScreen.Screens) - 1
-			if s.helpScreen.Index > indexEnd {
-				s.helpScreen.Index = indexEnd
+			case isdata.KeySK2: // Cancel
+				if currentDialog.CancelActivated {
+					return ScreenIDNoChange, isdata.DialogCancel{dialogKey}, true
+				}
 			}
 
-		case isdata.KeyUp, isdata.KeyUpHold: // Arrow Up
-			// Scroll up
-			s.helpScreen.Index--
-			if s.helpScreen.Index < 0 {
-				s.helpScreen.Index = 0
-			}
+			return ScreenIDNoChange, nil, true
 		}
 
-		return ScreenIDNoChange, nil, true
+		if s.config.HelpScreen.Active {
+
+			switch key {
+
+			case isdata.KeySK1Release, isdata.KeySK1Hold: // Back
+				// Close the help screen
+				return ScreenIDNoChange, isdata.HelpScreenClose{}, true
+
+			case isdata.KeyDown, isdata.KeyDownHold: // Arrow Down
+				// Scroll down
+				s.helpScreen.Index++
+				indexEnd := len(s.helpScreen.Screens) - 1
+				if s.helpScreen.Index > indexEnd {
+					s.helpScreen.Index = indexEnd
+				}
+
+			case isdata.KeyUp, isdata.KeyUpHold: // Arrow Up
+				// Scroll up
+				s.helpScreen.Index--
+				if s.helpScreen.Index < 0 {
+					s.helpScreen.Index = 0
+				}
+			}
+
+			return ScreenIDNoChange, nil, true
+		}
 	}
 
 	screenID, action, handled := s.screens[s.currentScreen].Key(key)

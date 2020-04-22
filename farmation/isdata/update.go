@@ -204,3 +204,6 @@ type UpdateDialogStateMachine struct {
 	Heading string
 	Message string
 }
+
+// SetBacklight is used to turn BL on/off
+type SetBacklight bool

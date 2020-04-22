@@ -645,6 +645,9 @@ func Run(params Params) {
 				config.PulsesPerGallon = int(m)
 				saveConfig()
 
+			case isdata.SetBacklight:
+				lcdChan <- m
+
 			/*
 				case isdata.UpdateFlowAvgWindow:
 					config.FlowAvgWindow = int(m)
