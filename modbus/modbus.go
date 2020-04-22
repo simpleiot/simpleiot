@@ -23,10 +23,8 @@ const (
 	FuncCodeReadFIFOQueue              = 24
 )
 
-// PDU for Modbus packets
-type PDU struct {
-	FunctionCode FunctionCode
-	Data         []byte
+var minPacketLen = map[FunctionCode]int{
+	FuncCodeReadCoils: 8,
 }
 
 // dataBlock creates a sequence of uint16 data.
@@ -36,15 +34,4 @@ func dataBlock(value ...uint16) []byte {
 		binary.BigEndian.PutUint16(data[i*2:], v)
 	}
 	return data
-}
-
-// Add address units below are the packet address, typically drop
-// first digit from register and subtract 1
-
-// ReadCoils creates PDU to read coils
-func ReadCoils(address uint16, count uint16) PDU {
-	return PDU{
-		FunctionCode: FuncCodeReadCoils,
-		Data:         dataBlock(address, count),
-	}
 }

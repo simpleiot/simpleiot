@@ -1,6 +1,7 @@
 package modbus
 
 import (
+	"encoding/binary"
 	"errors"
 )
 
@@ -21,7 +22,7 @@ func RtuCrc(buf []byte) uint16 {
 		}
 	}
 	// Note, this number has low and high bytes swapped, so use it accordingly (or swap bytes)
-	return crc
+	return (crc >> 8) | (crc << 8)
 }
 
 // ErrCrc is returned if a crc check fails
@@ -38,8 +39,7 @@ func CheckRtuCrc(packet []byte) error {
 
 	crcCalc := RtuCrc(packet[:len(packet)-2])
 
-	crcPacket := uint16(packet[len(packet)-2]) | (uint16(packet[len(packet)-1]) << 8)
-
+	crcPacket := binary.BigEndian.Uint16(packet[len(packet)-2 : len(packet)])
 	if crcCalc != crcPacket {
 		return ErrCrc
 	}
