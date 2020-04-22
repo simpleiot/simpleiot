@@ -95,7 +95,18 @@ func (s *HomeScreen) Render(img draw.Image) {
 
 	// time
 	hour, min, _ := Clock(time.Now(), false)
-	DrawTxtRight(img, hour+":"+min, 104, 1, tightpixel15.Font)
+	hourInt, _ := strconv.Atoi(hour)
+	if hourInt > 12 {
+		hour = strconv.Itoa(hourInt - 12)
+	}
+
+	meridiem := "am"
+	if hourInt > 11 && hourInt < 24 {
+		meridiem = "pm"
+	}
+
+	DrawTxtRight(img, hour+":"+min, 98, 1, tightpixel15.Font)
+	DrawTxt(img, meridiem, 100, 1, tightpixel15.Font)
 
 	// signal icon
 	x = 24
