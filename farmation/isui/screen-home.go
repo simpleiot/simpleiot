@@ -32,7 +32,7 @@ func NewHomeScreen(state *isdata.State, config *isdata.Config) *HomeScreen {
 		config: config,
 	}
 
-	if state.HWVersion == 1 {
+	if state.HWVersion == 1 || state.HWVersion == 99 {
 		ret.softKeys = NewSoftKeys("menu", "mode", "faults")
 	} else {
 		ret.softKeys = NewSoftKeys("menu", "mode", "pump", "faults")

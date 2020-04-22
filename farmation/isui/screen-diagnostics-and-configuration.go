@@ -45,7 +45,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 	s.menu.AddItemScreen("Inputs", ScreenIDDiagInputs)
 	s.menu.AddItemScreen("Outputs", ScreenIDDiagOutputs)
 	s.menu.AddItemScreen("Flow and Pres", ScreenIDDiagPulsesPres)
-	if s.state.HWVersion != 1 {
+	if s.state.HWVersion != 1 && s.state.HWVersion != 99 {
 		s.menu.AddItemScreen("Vision serial", ScreenIDDiagLindsay)
 	}
 	s.menu.AddItemScreen("Modem", ScreenIDModem)
