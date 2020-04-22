@@ -155,6 +155,7 @@ func (m *Modem) Configure() (InterfaceConfig, error) {
 		return ret, fmt.Errorf("Error setting fun Min: %v", err.Error())
 	}
 
+	// configure which SIM card to use
 	err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",1,26,1,0,0,1")
 	if err != nil {
 		return ret, fmt.Errorf("Error setting GPIO: %v", err.Error())
@@ -179,16 +180,27 @@ func (m *Modem) Configure() (InterfaceConfig, error) {
 		return ret, fmt.Errorf("Error setting fun full: %v", err.Error())
 	}
 
+	// enable GPS LNA
+	err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",1,64,1,0,0,1")
+	if err != nil {
+		log.Printf("Error enabling GPS LNA 1: %v\n", err.Error())
+	}
+
+	err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",3,64,1,1")
+	if err != nil {
+		log.Printf("Error enabling GPS LNA 2: %v\n", err.Error())
+	}
+
 	// enable GPS. Don't return error of GPS commands fail as
 	// this is not a critical error
 	err = CmdOK(m.atCmdPort, "AT+QGPS=1")
 	if err != nil {
-		log.Printf("Error enabling GPS: %v", err.Error())
+		log.Printf("Error enabling GPS: %v\n", err.Error())
 	}
 
 	err = CmdOK(m.atCmdPort, "AT+QGPSCFG=\"nmeasrc\",1")
 	if err != nil {
-		log.Printf("Error settings GPS source: %v", err.Error())
+		log.Printf("Error settings GPS source: %v\n", err.Error())
 	}
 
 	sim, err := CmdGetSimBg96(m.atCmdPort)
