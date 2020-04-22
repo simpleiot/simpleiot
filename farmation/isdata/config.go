@@ -335,6 +335,7 @@ type HelpScreen struct {
 var migrations = []func(*Config){
 	migration0,
 	migration1,
+	migration2,
 }
 
 // Filler migration - will never run
@@ -434,6 +435,12 @@ func migration1(c *Config) {
 		c.PanelType != PanelTypeStandardPivot &&
 		c.PanelType != PanelTypeLindsay {
 		c.PanelType = PanelTypeStandardPivot
+	}
+}
+
+func migration2(c *Config) {
+	if c.HighPres <= 0 || c.HighPres == 300 {
+		c.HighPres = 250
 	}
 }
 
