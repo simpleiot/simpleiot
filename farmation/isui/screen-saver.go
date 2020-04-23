@@ -41,5 +41,5 @@ func (s *ScreenSaver) Render(img draw.Image) {
 
 // Key processes keypad input to this screen
 func (s *ScreenSaver) Key(key isdata.Key) (ScreenID, interface{}, bool) {
-	return ScreenIDHome, nil, true
+	return ScreenIDNoChange, nil, true
 }

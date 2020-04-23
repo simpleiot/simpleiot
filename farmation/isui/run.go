@@ -55,13 +55,16 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				config = m
 				renderScreen()
 			case isdata.Key:
-				lastKey = time.Now()
-				screenSaver = false
-				out <- isdata.SetBacklight(true)
 				_, cmd, _ := widgets.Key(m)
 				if cmd != nil {
 					out <- cmd
 				}
+				lastKey = time.Now()
+				if screenSaver {
+					screenSaver = false
+					screens.ScreenSaver(false)
+				}
+				out <- isdata.SetBacklight(true)
 				renderScreen()
 			default:
 				log.Printf("isui mux: unhandled message of type %T: %+v\r\n", m, m)

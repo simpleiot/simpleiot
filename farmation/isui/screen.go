@@ -70,10 +70,14 @@ func (s *Screens) Add(ID ScreenID, screen Widget) {
 
 // ScreenSaver control screen saver
 func (s *Screens) ScreenSaver(enable bool) {
-	s.screenSaver = enable
-	if enable {
-		s.switchScreen(ScreenIDSaver)
+	if enable != s.screenSaver {
+		if enable {
+			s.switchScreen(ScreenIDSaver)
+		} else {
+			s.switchScreen(ScreenIDHome)
+		}
 	}
+	s.screenSaver = enable
 }
 
 // NewScreens initializes all screens
