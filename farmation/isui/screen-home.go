@@ -32,7 +32,7 @@ func NewHomeScreen(state *isdata.State, config *isdata.Config) *HomeScreen {
 		config: config,
 	}
 
-	if state.HWVersion == 1 || state.HWVersion == 99 {
+	if state.HWVersion >= 1 {
 		ret.softKeys = NewSoftKeys("menu", "mode", "faults")
 	} else {
 		ret.softKeys = NewSoftKeys("menu", "mode", "pump", "faults")
@@ -159,12 +159,12 @@ func (s *HomeScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	case isdata.KeySK2: // operating mode
 		return ScreenIDOpMode1, nil, true
 	case isdata.KeySK3: // pump (IS revA), faults (> IS revA)
-		if s.state.HWVersion == 1 {
+		if s.state.HWVersion >= 1 {
 			return ScreenIDFaultsActive, nil, true
 		}
 		return ScreenIDPumpMode, nil, true
 	case isdata.KeySK4: // faults (IS revA)
-		if s.state.HWVersion != 1 {
+		if s.state.HWVersion == 0 {
 			return ScreenIDFaultsActive, nil, true
 		}
 	}

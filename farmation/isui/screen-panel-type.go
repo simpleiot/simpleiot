@@ -45,7 +45,7 @@ func (s *PanelTypeScreen) Render(img draw.Image) {
 	// add menu items
 	s.menu.AddItemSelect("Standard Pivot", isdata.PanelTypeStandardPivot, s.config.PanelType == isdata.PanelTypeStandardPivot)
 	s.menu.AddItemSelect("Standard Pump", isdata.PanelTypeStandardPump, s.config.PanelType == isdata.PanelTypeStandardPump)
-	if s.state.HWVersion != 1 {
+	if s.state.HWVersion == 0 {
 		s.menu.AddItemSelect("Vision", isdata.PanelTypeLindsay, s.config.PanelType == isdata.PanelTypeLindsay)
 	}
 
