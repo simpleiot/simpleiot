@@ -52,6 +52,8 @@ func main() {
 	flagWebUI := flag.Bool("webUI", false, "Start Web UI for remote access")
 	flagProf := flag.Bool("prof", false, "Web UI for profiling")
 	flagSetTimeZone := flag.Bool("setTimeZone", false, "Set system time zone from config")
+	flagPopDbTestData := flag.Bool("popDbTestData", false, "Populate db with 10yr worth of data")
+	flagDbDumpSamples := flag.Bool("dbDumpSamples", false, "Dump samples in DB")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -120,80 +122,25 @@ func main() {
 		os.Exit(0)
 	}
 
-	/*
-			newModem := func() *network.Modem {
-				isio.GpioInit()
-				p, err := isio.OpenSerialModem()
-				if err != nil {
-					log.Println("Error opening modem port: ", err)
-					os.Exit(-1)
-				}
-
-				return network.NewModem(p, "hologram", *flagDebugModem)
-
-			}
-
-		if *flagModemState {
-			m := newModem()
-			s, err := m.GetState()
-
-			if err != nil {
-				log.Println("Error getting modem state: ", err)
-				os.Exit(1)
-			}
-
-			log.Printf("modem state:\n%v\n", s)
-			os.Exit(0)
+	if *flagPopDbTestData {
+		err := isdb.PopDbTestData(*flagDataDir)
+		if err != nil {
+			log.Println("Error populating database data: ", err)
+			os.Exit(-1)
 		}
 
-		if *flagModemSettings {
-			m := newModem()
-			s, err := m.GetSettings()
+		os.Exit(0)
+	}
 
-			if err != nil {
-				log.Println("Error getting modem settings: ", err)
-				os.Exit(1)
-			}
-
-			log.Printf("modem settings:\n%v\n", s)
-			os.Exit(0)
+	if *flagDbDumpSamples {
+		err := isdb.DbDumpSamples(*flagDataDir)
+		if err != nil {
+			log.Println("Error populating database data: ", err)
+			os.Exit(-1)
 		}
 
-		if *flagModemInfo {
-			m := newModem()
-			i, err := m.GetInfo()
-
-			if err != nil {
-				log.Println("Error getting modem info: ", err)
-				os.Exit(1)
-			}
-
-			log.Printf("modem info:\n%v\n", i)
-			os.Exit(0)
-		}
-
-		if *flagModemConfigure {
-			m := newModem()
-			err := m.Configure()
-			if err != nil {
-				log.Println("Error configuring modem: ", err)
-			}
-			log.Println("modem configured")
-			os.Exit(0)
-		}
-
-		if *flagModemGet {
-			m := newModem()
-			r, err := m.HTTPGet("http://portal.farmation.us/v1/devices")
-			if err != nil {
-				log.Println("Error executing GET: ", err)
-			}
-
-			log.Println("GET returned: ", string(r))
-			os.Exit(0)
-
-		}
-	*/
+		os.Exit(0)
+	}
 
 	if *flagModemReset {
 		isio.GpioInit()

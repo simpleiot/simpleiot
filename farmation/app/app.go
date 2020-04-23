@@ -90,7 +90,7 @@ func Run(params Params) {
 	config := isdata.Config{}
 	state := isdata.State{}
 
-	dbConfig, dbState, dbData, err := DbInit(params.DataDir, &config, &state)
+	dbConfig, dbState, dbData, err := isdb.DbInit(params.DataDir, &config, &state)
 
 	if err != nil {
 		log.Println("Fatal error opening db: ", err)

@@ -1,4 +1,4 @@
-package app
+package isdb
 
 import (
 	"log"
@@ -6,36 +6,35 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
-	"github.com/simpleiot/simpleiot/farmation/isdb"
 	"github.com/timshannon/bolthold"
 )
 
 // DbInit opens databases and initializes config and state
 // returns config, state, and data databases
-func DbInit(dataDir string, config *isdata.Config, state *isdata.State) (*isdb.IsDb, *isdb.IsDb, *isdb.IsDb, error) {
+func DbInit(dataDir string, config *isdata.Config, state *isdata.State) (*IsDb, *IsDb, *IsDb, error) {
 	dbFn := path.Join(dataDir, "data.db")
 	dbConfigFn := path.Join(dataDir, "config.db")
 	dbStateFn := path.Join(dataDir, "state.db")
 
-	dbData, err := isdb.NewDb(dbFn)
+	dbData, err := NewDb(dbFn)
 
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "error opening data db")
 	}
 
-	dbConfig, err := isdb.NewDb(dbConfigFn)
+	dbConfig, err := NewDb(dbConfigFn)
 
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "error opening config db")
 	}
 
-	dbState, err := isdb.NewDb(dbStateFn)
+	dbState, err := NewDb(dbStateFn)
 
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "error opening state db")
 	}
 
-	err = isdb.RunMigrations(dbData)
+	err = RunMigrations(dbData)
 
 	if err != nil {
 		log.Println("Error running migrations: ", err)

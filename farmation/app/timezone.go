@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/simpleiot/simpleiot/farmation/isdata"
+	"github.com/simpleiot/simpleiot/farmation/isdb"
 	"github.com/simpleiot/simpleiot/system"
 )
 
@@ -18,7 +19,7 @@ func InitSystemTimezone(dataDir string) error {
 	config := isdata.Config{}
 	state := isdata.State{}
 
-	_, _, _, err := DbInit(dataDir, &config, &state)
+	_, _, _, err := isdb.DbInit(dataDir, &config, &state)
 
 	if err != nil {
 		return err
