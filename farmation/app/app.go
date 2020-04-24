@@ -331,7 +331,6 @@ func Run(params Params) {
 	dlgResetTotal2 := state.Dialogs["ResetTotal2"]
 
 	exportingDataMessage := "Exporting data to USB Disk\n\nPlease Wait ..."
-
 	mainloopFile := "/run/is-mainloop"
 	for {
 		if runtime.GOARCH == "arm" {
@@ -408,6 +407,11 @@ func Run(params Params) {
 			os.Exit(0)
 
 		case <-saveStateTimer.C:
+			state.DbSampleCount, err = dbData.GetSampleCount()
+			if err != nil {
+				log.Println("Error getting sample count: ", err)
+			}
+
 			if stateDirty {
 				dbState.WriteState(&state)
 				stateDirty = false

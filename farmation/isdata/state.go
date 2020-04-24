@@ -105,6 +105,9 @@ type State struct {
 	HWVersion int `json:"hwVersion"`
 
 	Location data.GpsPos `json:"location"`
+
+	DbSampleCount int `json:"dbSampleCount"`
+	DataUsagePerc int `json:"dataUsagePerc"`
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config

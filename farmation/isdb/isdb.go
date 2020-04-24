@@ -9,6 +9,7 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/timshannon/bolthold"
+	"go.etcd.io/bbolt"
 )
 
 // IsDb is used for all db access in the application.
@@ -21,7 +22,16 @@ type IsDb struct {
 
 // NewDb creates a new Db instance for the app
 func NewDb(fileName string) (*IsDb, error) {
-	store, err := bolthold.Open(fileName, 0666, nil)
+	boltOptions := bbolt.Options{
+		FreelistType: bbolt.FreelistArrayType,
+	}
+
+	options := bolthold.Options{
+		Encoder: bolthold.DefaultEncode,
+		Decoder: bolthold.DefaultDecode,
+		Options: &boltOptions,
+	}
+	store, err := bolthold.Open(fileName, 0666, &options)
 	if err != nil {
 		return nil, err
 	}
@@ -173,6 +183,10 @@ func (db *IsDb) WriteState(state *isdata.State) error {
 // Samples are flow, pressure, amount, etc.
 func (db *IsDb) WriteSample(sample data.Sample) error {
 	return db.store.Insert(sample.Time, sample)
+}
+
+func (db *IsDb) GetSampleCount() (int, error) {
+	return db.store.Count(data.Sample{}, nil)
 }
 
 // WriteFaultHist writes the system fault history to the database
