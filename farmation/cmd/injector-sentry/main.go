@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"time"
 
 	"net/http"
 	//_ "net/http/pprof"
@@ -14,6 +15,7 @@ import (
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/farmation/app"
 	"github.com/simpleiot/simpleiot/farmation/diag"
+	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/islog"
@@ -54,6 +56,8 @@ func main() {
 	flagSetTimeZone := flag.Bool("setTimeZone", false, "Set system time zone from config")
 	flagPopDbTestData := flag.Bool("popDbTestData", false, "Populate db with 10yr worth of data")
 	flagDbDumpSamples := flag.Bool("dbDumpSamples", false, "Dump samples in DB")
+	flagDbCountSamples := flag.Bool("dbCountSamples", false, "Count samples in DB")
+	flagDbDumpFaults := flag.Bool("dbDumpFaults", false, "Dump faults")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -138,6 +142,54 @@ func main() {
 			log.Println("Error populating database data: ", err)
 			os.Exit(-1)
 		}
+
+		os.Exit(0)
+	}
+
+	if *flagDbCountSamples {
+		config := isdata.Config{}
+		state := isdata.State{}
+
+		_, _, dbData, err := isdb.DbInit(*flagDataDir, &config, &state)
+
+		if err != nil {
+			log.Println("Error opening database: ", err)
+			os.Exit(-1)
+		}
+
+		start := time.Now()
+		count, err := dbData.GetSampleCount()
+		if err != nil {
+			log.Println("Error getting sample count: ", err)
+			os.Exit(-1)
+		}
+		log.Println("Samples in DB: ", count)
+		log.Println("Took: ", time.Since(start))
+
+		os.Exit(0)
+	}
+
+	if *flagDbDumpFaults {
+		config := isdata.Config{}
+		state := isdata.State{}
+
+		_, _, dbData, err := isdb.DbInit(*flagDataDir, &config, &state)
+
+		if err != nil {
+			log.Println("Error opening database: ", err)
+			os.Exit(-1)
+		}
+
+		start := time.Now()
+		faults, err := dbData.ReadFaultHist(5)
+		if err != nil {
+			log.Println("Error getting sample count: ", err)
+			os.Exit(-1)
+		}
+		for _, f := range faults {
+			fmt.Printf("%+v\n", f)
+		}
+		log.Printf("Fault count: %v, Took: %v", len(faults), time.Since(start))
 
 		os.Exit(0)
 	}

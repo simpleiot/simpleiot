@@ -264,8 +264,15 @@ func Run(params Params) {
 		state.TimeArmedAndInjOn = time.Now()
 	}
 
+	updateUsageStats := func() {
+		state.DbSampleCount, err = dbData.GetSampleCount()
+		state.DataUsage, err = system.FsPercentUsed("/data")
+		state.RootUsage, err = system.FsPercentUsed("/")
+	}
+
 	// Save the state so that the database version from migrations
 	// and the TimeArmedAndInjOn are saved
+	updateUsageStats()
 	saveState()
 
 	saveStateTimer := time.NewTicker(time.Minute)
@@ -407,10 +414,8 @@ func Run(params Params) {
 			os.Exit(0)
 
 		case <-saveStateTimer.C:
-			state.DbSampleCount, err = dbData.GetSampleCount()
-			if err != nil {
-				log.Println("Error getting sample count: ", err)
-			}
+			updateUsageStats()
+			saveState()
 
 			if stateDirty {
 				dbState.WriteState(&state)

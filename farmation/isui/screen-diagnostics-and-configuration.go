@@ -53,6 +53,7 @@ func (s *DiagnosticsScreen) Render(img draw.Image) {
 
 	// Data export
 	s.menu.AddItemCommand("Data", "export", isdata.ExportData{})
+	s.menu.AddItemScreen("Storage admin", ScreenIDStorage)
 
 	s.menu.AddItemScreen("Advanced Opt", ScreenIDDiagAdvancedOptions)
 

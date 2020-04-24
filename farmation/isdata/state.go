@@ -106,8 +106,9 @@ type State struct {
 
 	Location data.GpsPos `json:"location"`
 
-	DbSampleCount int `json:"dbSampleCount"`
-	DataUsagePerc int `json:"dataUsagePerc"`
+	DbSampleCount int     `json:"dbSampleCount"`
+	DataUsage     float64 `json:"dataUsage"`
+	RootUsage     float64 `json:"rootUsage"`
 }
 
 // UpdateInputs update virtual inputs based on panel type and pump config

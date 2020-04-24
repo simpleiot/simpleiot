@@ -48,6 +48,7 @@ const (
 	ScreenIDPanelType
 	ScreenIDGps
 	ScreenIDSaver
+	ScreenIDStorage
 )
 
 // Screens is a map of all screens in the system
@@ -124,6 +125,7 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 	ret.Add(ScreenIDPanelType, NewPanelTypeScreen(state, config))
 	ret.Add(ScreenIDGps, NewGpsScreen(state, config))
 	ret.Add(ScreenIDSaver, NewScreenSaver())
+	ret.Add(ScreenIDStorage, NewStorageScreen(state, config))
 
 	ret.currentScreen = ScreenIDHome
 

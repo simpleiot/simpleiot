@@ -22,7 +22,7 @@ func DbDumpSamples(dataDir string) error {
 	count := 0
 
 	err = dbData.store.ForEach(nil, func(samp *data.Sample) error {
-		//fmt.Printf("%+v\n", samp)
+		fmt.Printf("%+v\n", samp)
 		count++
 		return nil
 	})
@@ -54,11 +54,7 @@ func PopDbTestData(dataDir string) error {
 
 	//37:&{Type:faultFlowOffTarget ID: Value:2.000010202716653 Min:0 Max:0 Time:2020-04-23 11:05:49.039262969 -0400 EDT Duration:0s Tags:map[] Attributes:map[inputInjector:2 inputIrrigator:2 inputWaterOn:2 shutdownThresHigh:7.291944775264274 shutdownThresLow:5.389698312151855]}
 
-	day := time.Hour * 24
-	//month := day * 30
-	year := day * 365
-
-	ts := time.Now().Add(-5 * year)
+	ts := time.Now().AddDate(0, -1, 0)
 
 	count := 0
 	faultCount := 0
@@ -66,7 +62,7 @@ func PopDbTestData(dataDir string) error {
 	timeLastPrint := time.Now()
 
 	for {
-		if ts.After(time.Now()) {
+		if ts.After(time.Now()) || count > 5000 {
 			break
 		}
 

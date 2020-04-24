@@ -1,7 +1,6 @@
 package isdb
 
 import (
-	"errors"
 	"log"
 	"os"
 	"time"
@@ -130,39 +129,48 @@ func (db *IsDb) ReadFaultHistOld() (isdata.Faults, error) {
 // a negative integer to read all faults
 func (db *IsDb) ReadFaultHist(x int) ([]data.Sample, error) {
 	var faults []data.Sample
-	query := bolthold.Where("Type").In(
+	start := time.Now().AddDate(0, -1, 0)
+	query := bolthold.Where(bolthold.Key).Gt(start).And("Type").In(
 		isdata.SampleTypeFaultFlowOff,
 		isdata.SampleTypeFaultPresLow,
 		isdata.SampleTypeFaultShutdown,
 		isdata.SampleTypeFaultPresHigh,
 		isdata.SampleTypeFaultNtFlowOff,
 		isdata.SampleTypeFaultNtPresLow,
-		isdata.SampleTypeFaultNtPresHigh).Index("Type").SortBy("Time").Reverse()
+		isdata.SampleTypeFaultNtPresHigh).Reverse()
 
-	errIterOverLimit := errors.New("Database iteration is greater than limit")
+	//errIterOverLimit := errors.New("Database iteration is greater than limit")
 
-	count := 0
-	err := db.store.ForEach(query, func(result *data.Sample) error {
-		count++
+	err := db.store.Find(&faults, query)
 
-		if x >= 0 && count > x {
-			return errIterOverLimit
-		}
-
-		faults = append(faults, *result)
-
-		return nil
-	})
-
-	if err != nil && err != errIterOverLimit {
-		if err == bolthold.ErrNotFound {
-			// data is not stored, so simply return nil array and nil error
-			return nil, nil
-		}
-
-		// there was an error reading so return nil array and error
-		return nil, err
+	if err != nil {
+		return faults, err
 	}
+
+	/*
+			count := 0
+			err := db.store.ForEach(query, func(result *data.Sample) error {
+				count++
+
+				if x >= 0 && count > x {
+					return errIterOverLimit
+				}
+
+				faults = append(faults, *result)
+
+				return nil
+			})
+
+		if err != nil && err != errIterOverLimit {
+			if err == bolthold.ErrNotFound {
+				// data is not stored, so simply return nil array and nil error
+				return nil, nil
+			}
+
+			// there was an error reading so return nil array and error
+			return nil, err
+		}
+	*/
 
 	return faults, nil
 }
@@ -179,14 +187,46 @@ func (db *IsDb) WriteState(state *isdata.State) error {
 	return db.store.Upsert(0, state)
 }
 
+// DataMeta is used to store meta information about data in the database
+type DataMeta struct {
+	SampleCount int
+}
+
 // WriteSample writes a sample to the database
 // Samples are flow, pressure, amount, etc.
 func (db *IsDb) WriteSample(sample data.Sample) error {
-	return db.store.Insert(sample.Time, sample)
+	dataMeta := DataMeta{}
+	err := db.store.Get(0, &dataMeta)
+	if err != nil {
+		// attempt to init metadata
+		_, err = db.GetSampleCount()
+		if err != nil {
+			return err
+		}
+	}
+	err = db.store.Insert(sample.Time, sample)
+	if err != nil {
+		return err
+	}
+
+	dataMeta.SampleCount++
+	return db.store.Upsert(0, &dataMeta)
 }
 
+// GetSampleCount from database. Warning, this function
+// is very inefficient as it appears to simply iterate through
+// all samples.
 func (db *IsDb) GetSampleCount() (int, error) {
-	return db.store.Count(data.Sample{}, nil)
+	dataMeta := DataMeta{}
+	err := db.store.Get(0, &dataMeta)
+	if err != nil {
+		err = db.store.Upsert(0, &dataMeta)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return dataMeta.SampleCount, nil
 }
 
 // WriteFaultHist writes the system fault history to the database
