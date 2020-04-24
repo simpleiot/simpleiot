@@ -14,7 +14,7 @@ const (
 // graphed.
 type Sample struct {
 	// Type of sample (voltage, current, key, etc)
-	Type string `json:"type,omitempty" boltholdIndex:"Type" influx:"type,tag"`
+	Type string `json:"type,omitempty" influx:"type,tag"`
 
 	// ID of the device that provided the sample
 	ID string `json:"id,omitempty" influx:"id,tag"`
