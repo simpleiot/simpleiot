@@ -127,50 +127,55 @@ func (db *IsDb) ReadFaultHistOld() (isdata.Faults, error) {
 // ReadFaultHist reads the IS system fault history from the database
 // Only iterates through database for x most recent faults. Set x to
 // a negative integer to read all faults
-func (db *IsDb) ReadFaultHist(x int) ([]data.Sample, error) {
+func (db *IsDb) ReadFaultHist(cnt int) ([]data.Sample, error) {
 	var faults []data.Sample
-	start := time.Now().AddDate(0, -1, 0)
-	query := bolthold.Where(bolthold.Key).Gt(start).And("Type").In(
-		isdata.SampleTypeFaultFlowOff,
-		isdata.SampleTypeFaultPresLow,
-		isdata.SampleTypeFaultShutdown,
-		isdata.SampleTypeFaultPresHigh,
-		isdata.SampleTypeFaultNtFlowOff,
-		isdata.SampleTypeFaultNtPresLow,
-		isdata.SampleTypeFaultNtPresHigh).Reverse()
+	boltdb := db.store.Bolt()
 
-	//errIterOverLimit := errors.New("Database iteration is greater than limit")
+	isFault := func(s data.Sample) bool {
+		switch s.Type {
+		case isdata.SampleTypeFaultFlowOff,
+			isdata.SampleTypeFaultPresLow,
+			isdata.SampleTypeFaultShutdown,
+			isdata.SampleTypeFaultPresHigh,
+			isdata.SampleTypeFaultNtFlowOff,
+			isdata.SampleTypeFaultNtPresLow,
+			isdata.SampleTypeFaultNtPresHigh:
+			return true
+		}
 
-	err := db.store.Find(&faults, query)
-
-	if err != nil {
-		return faults, err
+		return false
 	}
 
-	/*
-			count := 0
-			err := db.store.ForEach(query, func(result *data.Sample) error {
+	count := 0
+
+	boltdb.View(func(tx *bbolt.Tx) error {
+		// Assume bucket exists and has keys
+		c := tx.Bucket([]byte("Sample")).Cursor()
+
+		for k, v := c.Last(); k != nil; k, v = c.Prev() {
+			t := time.Time{}
+			err := bolthold.DefaultDecode(k, &t)
+			if err != nil {
+				return err
+			}
+			s := data.Sample{}
+			err = bolthold.DefaultDecode(v, &s)
+			if err != nil {
+				return err
+			}
+			if isFault(s) {
 				count++
-
-				if x >= 0 && count > x {
-					return errIterOverLimit
-				}
-
-				faults = append(faults, *result)
-
-				return nil
-			})
-
-		if err != nil && err != errIterOverLimit {
-			if err == bolthold.ErrNotFound {
-				// data is not stored, so simply return nil array and nil error
-				return nil, nil
+				s.Time = t
+				faults = append(faults, s)
 			}
 
-			// there was an error reading so return nil array and error
-			return nil, err
+			if count >= cnt {
+				break
+			}
 		}
-	*/
+
+		return nil
+	})
 
 	return faults, nil
 }

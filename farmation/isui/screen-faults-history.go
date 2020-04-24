@@ -2,6 +2,7 @@ package isui
 
 import (
 	"image/draw"
+	"log"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -50,7 +51,12 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 			Heading(img, "Loading History ...")
 			s.menu.ResetItems()
 			// extract faults from database
-			s.faults, _ = s.db.ReadFaultHist(100)
+			var err error
+			s.faults, err = s.db.ReadFaultHist(100)
+
+			if err != nil {
+				log.Println("Error reading faults: ", err)
+			}
 
 			// display faults from most recent
 			for i := range s.faults {
