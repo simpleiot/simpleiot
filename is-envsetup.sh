@@ -2,6 +2,10 @@
 
 ### IS Web UI
 
+genesis() {
+  go run github.com/benbjohnson/genesis/cmd/genesis $@
+}
+
 is_setup() {
   app_setup
 }
