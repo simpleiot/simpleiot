@@ -123,33 +123,35 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 		}
 	}()
 
+	expTimeFormat := "2006-01-02T15:04:05Z07:00"
+
 	// Write samples to disk
 	processSample := func(sample data.Sample) error {
 		var s string
 		switch sample.Type {
 		case isdata.SampleTypeFlowWindowAvg, isdata.SampleTypePressure:
-			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+			s = sample.Time.Format(expTimeFormat) + "," +
 				sample.Type + "," +
 				strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
 				strconv.FormatFloat(sample.Min, 'f', 2, 64) + "," +
 				strconv.FormatFloat(sample.Max, 'f', 2, 64)
 
 		case isdata.SampleTypeAmount:
-			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+			s = sample.Time.Format(expTimeFormat) + "," +
 				sample.Type + "," +
 				strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
 				"-," +
 				"-"
 
 		case isdata.SampleTypeInputInjector, isdata.SampleTypeInputIrrigator, isdata.SampleTypeInputWaterOn, isdata.SampleTypeArm:
-			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+			s = sample.Time.Format(expTimeFormat) + "," +
 				sample.Type + "," +
 				boolToString(sample.Bool()) + "," +
 				"-," +
 				"-"
 
 		case isdata.SampleTypeState:
-			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+			s = sample.Time.Format(expTimeFormat) + "," +
 				sample.Type + "," +
 				sample.ID + "," +
 				"-," +
@@ -161,14 +163,14 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 			isdata.SampleTypeFaultNtFlowOff,
 			isdata.SampleTypeFaultNtPresLow,
 			isdata.SampleTypeFaultNtPresHigh:
-			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+			s = sample.Time.Format(expTimeFormat) + "," +
 				sample.Type + "," +
 				strconv.FormatFloat(sample.Value, 'f', 2, 64) + "," +
 				"-," +
 				"-"
 
 		case isdata.SampleTypeFaultShutdown, data.SampleTypeStartApp:
-			s = sample.Time.Format("2006-01-02T15:04:05Z07:00") + "," +
+			s = sample.Time.Format(expTimeFormat) + "," +
 				sample.Type + "," +
 				"-," +
 				"-," +
