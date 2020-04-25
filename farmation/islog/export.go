@@ -123,11 +123,8 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 		}
 	}()
 
-	// Extract samples from database
-	samples, _ := db.ReadSamples()
-
 	// Write samples to disk
-	for _, sample := range samples {
+	processSample := func(sample data.Sample) error {
 		var s string
 		switch sample.Type {
 		case isdata.SampleTypeFlowWindowAvg, isdata.SampleTypePressure:
@@ -179,19 +176,29 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 
 		default:
 			log.Println("Log: unhandled sample: ", sample)
-			continue
+			return nil
 		}
 
 		err := historyData.Write(s)
 		if err != nil {
-			log.Println("Error writing sample to file: ", err)
-			if err == errNoUsbDisk {
-				out <- isdata.NoDiskPresent{}
-			} else {
-				out <- isdata.ErrWriteDisk{}
-			}
-			return
+			return err
 		}
+
+		return nil
+	}
+
+	// Extract samples from database
+	start := time.Now().AddDate(0, -2, 0)
+	err := db.ReadSamples(start, processSample)
+
+	if err != nil {
+		log.Println("Error exporting data: ", err)
+		if err == errNoUsbDisk {
+			out <- isdata.NoDiskPresent{}
+		} else {
+			out <- isdata.ErrWriteDisk{}
+		}
+		return
 	}
 
 	// Send out finished signal and return

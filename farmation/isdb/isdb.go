@@ -1,6 +1,7 @@
 package isdb
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -87,21 +88,45 @@ func (db *IsDb) ReadState(state *isdata.State) error {
 
 // ReadSamples reads samples from the database
 // Samples are flow, pressure, amount, etc.
-func (db *IsDb) ReadSamples() ([]data.Sample, error) {
-	var samples []data.Sample
-	err := db.store.Find(&samples, nil)
+// if callback returns error, this function returns with that error
+func (db *IsDb) ReadSamples(start time.Time, callback func(s data.Sample) error) error {
+	boltdb := db.store.Bolt()
 
+	key, err := bolthold.DefaultEncode(start)
 	if err != nil {
-		if err == bolthold.ErrNotFound {
-			// data is not stored, so simply return nil array and nil error
-			return nil, nil
-		}
-
-		// there was an error reading so return nil array and error
-		return nil, err
+		return err
 	}
 
-	return samples, nil
+	err = boltdb.View(func(tx *bbolt.Tx) error {
+		// Assume bucket exists and has keys
+		c := tx.Bucket([]byte("Sample")).Cursor()
+
+		for k, v := c.Seek(key); k != nil; k, v = c.Next() {
+			t := time.Time{}
+			err := bolthold.DefaultDecode(k, &t)
+			if err != nil {
+				return err
+			}
+			s := data.Sample{}
+			err = bolthold.DefaultDecode(v, &s)
+			if err != nil {
+				return err
+			}
+			s.Time = t
+			err = callback(s)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ReadFaultHistOld reads legacy fault data from db
@@ -130,6 +155,8 @@ func (db *IsDb) ReadFaultHistOld() (isdata.Faults, error) {
 func (db *IsDb) ReadFaultHist(start time.Time) ([]data.Sample, error) {
 	var faults []data.Sample
 	boltdb := db.store.Bolt()
+
+	fmt.Println("CLIFF: start: ", start)
 
 	key, err := bolthold.DefaultEncode(start)
 	if err != nil {
@@ -161,6 +188,7 @@ func (db *IsDb) ReadFaultHist(start time.Time) ([]data.Sample, error) {
 			if err != nil {
 				return err
 			}
+			//fmt.Println("cliff: t: ", t)
 			s := data.Sample{}
 			err = bolthold.DefaultDecode(v, &s)
 			if err != nil {
