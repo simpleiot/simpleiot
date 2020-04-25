@@ -1,7 +1,7 @@
 package db
 
 import (
-	"log"
+	"fmt"
 
 	"go.etcd.io/bbolt"
 )
@@ -13,10 +13,10 @@ import (
 // the main app starts to verify the database is
 // valid and any recovery action taken outside the
 // application using bbolt.
-func BBoltCheck(fileName string) error {
+func BBoltCheck(fileName string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("db crashed", r)
+			err = fmt.Errorf("db crashed: %v", r)
 		}
 	}()
 
@@ -28,15 +28,14 @@ func BBoltCheck(fileName string) error {
 
 	return db.View(func(tx *bbolt.Tx) error {
 		c := tx.Check()
-		var ret error
 		for {
 			err, ok := <-c
 			if !ok {
-				return ret
+				return nil
 			}
 
 			if err != nil {
-				log.Printf("Error checking database %v: %v\n", fileName, err)
+				return err
 			}
 		}
 	})
