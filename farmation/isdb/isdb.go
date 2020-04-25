@@ -127,9 +127,14 @@ func (db *IsDb) ReadFaultHistOld() (isdata.Faults, error) {
 // ReadFaultHist reads the IS system fault history from the database
 // Only iterates through database for x most recent faults. Set x to
 // a negative integer to read all faults
-func (db *IsDb) ReadFaultHist(cnt int) ([]data.Sample, error) {
+func (db *IsDb) ReadFaultHist(start time.Time) ([]data.Sample, error) {
 	var faults []data.Sample
 	boltdb := db.store.Bolt()
+
+	key, err := bolthold.DefaultEncode(start)
+	if err != nil {
+		return faults, err
+	}
 
 	isFault := func(s data.Sample) bool {
 		switch s.Type {
@@ -146,13 +151,11 @@ func (db *IsDb) ReadFaultHist(cnt int) ([]data.Sample, error) {
 		return false
 	}
 
-	count := 0
-
 	boltdb.View(func(tx *bbolt.Tx) error {
 		// Assume bucket exists and has keys
 		c := tx.Bucket([]byte("Sample")).Cursor()
 
-		for k, v := c.Last(); k != nil; k, v = c.Prev() {
+		for k, v := c.Seek(key); k != nil; k, v = c.Next() {
 			t := time.Time{}
 			err := bolthold.DefaultDecode(k, &t)
 			if err != nil {
@@ -164,13 +167,8 @@ func (db *IsDb) ReadFaultHist(cnt int) ([]data.Sample, error) {
 				return err
 			}
 			if isFault(s) {
-				count++
 				s.Time = t
 				faults = append(faults, s)
-			}
-
-			if count >= cnt {
-				break
 			}
 		}
 

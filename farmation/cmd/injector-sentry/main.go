@@ -181,7 +181,7 @@ func main() {
 		}
 
 		start := time.Now()
-		faults, err := dbData.ReadFaultHist(5)
+		faults, err := dbData.ReadFaultHist(start.AddDate(0, 0, -7))
 		if err != nil {
 			log.Println("Error getting sample count: ", err)
 			os.Exit(-1)

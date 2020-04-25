@@ -6,8 +6,16 @@ import (
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
+)
+
+// define state used for loading history data
+const (
+	hsStateEnter = iota
+	hsStateLoading
+	hsStateLoaded
 )
 
 // FaultsHistoryScreen is used to display fault history
@@ -20,7 +28,8 @@ type FaultsHistoryScreen struct {
 	db                *isdb.IsDb
 	faultsHistDetails *FaultsHistDetailsScreen
 	displayDetails    bool
-	dataLoaded        bool
+	ch                chan []data.Sample
+	hsState           int
 }
 
 // NewFaultsHistoryScreen initializes and returns a screen
@@ -41,50 +50,68 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 	if s.displayDetails {
 		s.faultsHistDetails.Render(img)
 	} else {
-		// we don't want to load the db every time the db renders (0.5s) as
-		// it may eventually be a long process so only do it once when the
-		// screen is first displayed
-		if !s.dataLoaded {
-			// FIXME, not sure the loading is displaying -- probably
-			// need to use a dialog instead
+		switch s.hsState {
+		case hsStateEnter:
+			s.ch = make(chan []data.Sample)
+			go func(c chan []data.Sample) {
+				start := time.Now().AddDate(0, 0, -7)
+				faults, err := s.db.ReadFaultHist(start)
+
+				if err != nil {
+					log.Println("Error reading faults: ", err)
+				}
+				c <- faults
+			}(s.ch)
+
 			Clear(img)
-			Heading(img, "Loading History ...")
+			Heading(img, "Loading History")
+			DrawTxt(img, "This may take a bit", 8, 15, tightpixel15.Font)
+			DrawTxt(img, "please wait ...", 8, 25, tightpixel15.Font)
 			s.menu.ResetItems()
-			// extract faults from database
-			var err error
-			s.faults, err = s.db.ReadFaultHist(100)
-
-			if err != nil {
-				log.Println("Error reading faults: ", err)
-			}
-
-			// display faults from most recent
-			for i := range s.faults {
-				fault := s.faults[i]
-				faultDisplay := isdata.SampleTypeToDisp(fault.Type)
-
-				var timeDisplay string
-				// if fault was more than 24 hrs ago, display date,
-				// else display clock time
-				if time.Since(fault.Time) >= time.Duration(24*time.Hour) {
-					year, month, day := Date(fault.Time, false, false)
-					timeDisplay = year + "/" + month + "/" + day
+			s.hsState = hsStateLoading
+		case hsStateLoading:
+			select {
+			case faults, ok := <-s.ch:
+				if ok {
+					s.faults = faults
 				} else {
-					hour, min, sec := Clock(fault.Time, true)
-					timeDisplay = hour + ":" + min + ":" + sec
+					log.Println("Channel closed!")
+				}
+				// display faults from most recent
+				for i := range s.faults {
+					fault := s.faults[i]
+					faultDisplay := isdata.SampleTypeToDisp(fault.Type)
+
+					var timeDisplay string
+					// if fault was more than 24 hrs ago, display date,
+					// else display clock time
+					if time.Since(fault.Time) >= time.Duration(24*time.Hour) {
+						year, month, day := Date(fault.Time, false, false)
+						timeDisplay = year + "/" + month + "/" + day
+					} else {
+						hour, min, sec := Clock(fault.Time, true)
+						timeDisplay = hour + ":" + min + ":" + sec
+					}
+
+					s.menu.AddItemFaultHistory(timeDisplay, faultDisplay)
 				}
 
-				s.menu.AddItemFaultHistory(timeDisplay, faultDisplay)
+				s.hsState = hsStateLoaded
+			default:
+				// no-op used to make channel non blocking
 			}
 
-			s.dataLoaded = true
+		case hsStateLoaded:
+			Clear(img)
+			if len(s.faults) > 0 {
+				Heading(img, "Fault history in past week")
+			} else {
+				Heading(img, "Yay, no faults in past week")
+			}
+
+			s.menu.Render(img)
 
 		}
-
-		Clear(img)
-		Heading(img, "Fault History")
-
-		s.menu.Render(img)
 		s.softKeys.Render(img, 0, 54)
 	}
 }
@@ -103,11 +130,11 @@ func (s *FaultsHistoryScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) 
 		switch key {
 		case isdata.KeySK1Hold: // Back key held -> Home screen
 			s.menu.ResetArrowPos() // return arrow to top of screen
-			s.dataLoaded = false
+			s.hsState = hsStateEnter
 			return ScreenIDHome, nil, true
 		case isdata.KeySK1Release: // Back
 			s.menu.ResetArrowPos() // return arrow to top of screen
-			s.dataLoaded = false
+			s.hsState = hsStateEnter
 			return ScreenIDPrev, nil, true
 		case isdata.KeyEnter, isdata.KeySK2: // Details
 			if len(s.faults) >= 1 {
