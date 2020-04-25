@@ -45,6 +45,37 @@ func NewFaultsHistoryScreen(state *isdata.State, config *isdata.Config, db *isdb
 	}
 }
 
+func (s *FaultsHistoryScreen) storeFaults(faultsIn []data.Sample) {
+	// need to reverse faults here
+	s.faults = make([]data.Sample, len(faultsIn))
+	fi := 0
+	for i := len(faultsIn) - 1; i >= 0; i-- {
+		s.faults[fi] = faultsIn[i]
+		fi++
+	}
+
+	s.menu.ResetItems()
+
+	// display faults from most recent
+	for i := range s.faults {
+		fault := s.faults[i]
+		faultDisplay := isdata.SampleTypeToDisp(fault.Type)
+
+		var timeDisplay string
+		// if fault was more than 24 hrs ago, display date,
+		// else display clock time
+		if time.Since(fault.Time) >= time.Duration(24*time.Hour) {
+			year, month, day := Date(fault.Time, false, false)
+			timeDisplay = year + "/" + month + "/" + day
+		} else {
+			hour, min, sec := Clock(fault.Time, true)
+			timeDisplay = hour + ":" + min + ":" + sec
+		}
+
+		s.menu.AddItemFaultHistory(timeDisplay, faultDisplay)
+	}
+}
+
 // Render updates the home screen, and provides an image
 func (s *FaultsHistoryScreen) Render(img draw.Image) {
 	if s.displayDetails {
@@ -56,6 +87,7 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 			go func(c chan []data.Sample) {
 				start := time.Now().AddDate(0, 0, -7)
 				faults, err := s.db.ReadFaultHist(start)
+				log.Printf("displaying %v faults\n", len(faults))
 
 				if err != nil {
 					log.Println("Error reading faults: ", err)
@@ -72,30 +104,10 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 		case hsStateLoading:
 			select {
 			case faults, ok := <-s.ch:
-				if ok {
-					s.faults = faults
-				} else {
+				if !ok {
 					log.Println("Channel closed!")
 				}
-				// display faults from most recent
-				for i := range s.faults {
-					fault := s.faults[i]
-					faultDisplay := isdata.SampleTypeToDisp(fault.Type)
-
-					var timeDisplay string
-					// if fault was more than 24 hrs ago, display date,
-					// else display clock time
-					if time.Since(fault.Time) >= time.Duration(24*time.Hour) {
-						year, month, day := Date(fault.Time, false, false)
-						timeDisplay = year + "/" + month + "/" + day
-					} else {
-						hour, min, sec := Clock(fault.Time, true)
-						timeDisplay = hour + ":" + min + ":" + sec
-					}
-
-					s.menu.AddItemFaultHistory(timeDisplay, faultDisplay)
-				}
-
+				s.storeFaults(faults)
 				s.hsState = hsStateLoaded
 			default:
 				// no-op used to make channel non blocking
