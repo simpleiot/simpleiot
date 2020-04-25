@@ -72,7 +72,10 @@ func PopDbTestData(dataDir string) error {
 			Value: 10.32,
 		}
 
-		dbData.WriteSample(s)
+		err := dbData.WriteSample(s)
+		if err != nil {
+			return err
+		}
 		count++
 
 		s = data.Sample{
