@@ -1,6 +1,7 @@
 package isdata
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 )
@@ -463,6 +464,7 @@ func (c *Config) Init(state *State) {
 
 			if v > state.DBConfig.DBVersion {
 				mig(c)
+				fmt.Println("COLLIN, migration", v)
 				state.DBConfig.DBVersion = v
 			}
 		}
