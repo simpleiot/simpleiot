@@ -413,7 +413,7 @@ func InitState(s *State) (dirty bool) {
 	s.Dialogs[DialogHistoryDataS] = &Dialog{
 		ID:              DialogHistoryData,
 		Heading:         "Warning",
-		Message:         "Please export history data\nto USB disk and purge data.",
+		Message:         "History storage is near full\nPlease export history data\nto USB disk and purge data.",
 		CancelActivated: true,
 	}
 

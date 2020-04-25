@@ -284,11 +284,10 @@ func Run(params Params) {
 
 	updateUsageStats := func() {
 		state.DbSampleCount, err = dbData.GetSampleCount()
-		fmt.Println("CLIFF: sample count: ", state.DbSampleCount)
 		state.DataUsage, err = system.FsPercentUsed("/data")
 		state.RootUsage, err = system.FsPercentUsed("/")
 		if state.DbSampleCount > 7500 && time.Since(lastHistoryDialogDisplay) > time.Hour*24 {
-			fmt.Println("CLIFF: activating history dialog")
+			log.Println("activating history dialog")
 			dlgHistoryData.Active = true
 			lastHistoryDialogDisplay = time.Now()
 		}
