@@ -16,6 +16,10 @@ siot_check_elm() {
   return 0
 }
 
+bbolt() {
+  go run go.etcd.io/bbolt/cmd/bbolt $@
+}
+
 siot_check_gopath_bin() {
   if [ -z "$GOPATH" ]; then
     GOPATH=~/go
