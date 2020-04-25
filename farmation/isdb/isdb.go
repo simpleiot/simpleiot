@@ -24,6 +24,7 @@ type IsDb struct {
 // NewDb creates a new Db instance for the app
 func NewDb(fileName string) (*IsDb, error) {
 	boltOptions := bbolt.Options{
+		Timeout:      5 * time.Second,
 		FreelistType: bbolt.FreelistArrayType,
 	}
 
@@ -95,19 +96,52 @@ func (db *IsDb) ReadState(state *isdata.State) error {
 	return nil
 }
 
+// DeleteSamples used to purse sample data
+func (db *IsDb) DeleteSamples() error {
+	boltdb := db.store.Bolt()
+
+	return boltdb.Update(func(tx *bbolt.Tx) error {
+		err := tx.DeleteBucket([]byte(sampleBucket))
+
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.CreateBucketIfNotExists([]byte(sampleBucket))
+		if err != nil {
+			return fmt.Errorf("create sample bucket: %s", err)
+		}
+
+		dataMeta := DataMeta{}
+		// reset sample count
+		return db.store.TxUpsert(tx, 0, &dataMeta)
+	})
+}
+
 // ReadSamples reads samples from the database
 // Samples are flow, pressure, amount, etc.
 // if callback returns error, this function returns with that error
-func (db *IsDb) ReadSamples(start time.Time, callback func(s data.Sample) error) error {
+func (db *IsDb) ReadSamples(cnt int, callback func(s data.Sample) error) error {
 	boltdb := db.store.Bolt()
 
-	key := itob(start.UnixNano())
-
-	err := boltdb.View(func(tx *bbolt.Tx) error {
+	return boltdb.View(func(tx *bbolt.Tx) error {
 		// Assume bucket exists and has keys
 		c := tx.Bucket([]byte(sampleBucket)).Cursor()
 
-		for k, v := c.Seek(key); k != nil; k, v = c.Next() {
+		count := 0
+
+		// rewind 5000 records
+		for k, _ := c.Last(); k != nil && count <= cnt; c.Prev() {
+			count++
+		}
+
+		if count <= 0 {
+			// no records
+			return nil
+		}
+
+		// now replay forward to end of records
+		for k, v := c.Next(); k != nil; k, v = c.Next() {
 			tUnix := btoi(k)
 			t := time.Unix(0, tUnix)
 
@@ -125,12 +159,6 @@ func (db *IsDb) ReadSamples(start time.Time, callback func(s data.Sample) error)
 
 		return nil
 	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // ReadFaultHistOld reads legacy fault data from db

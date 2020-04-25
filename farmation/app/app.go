@@ -144,7 +144,7 @@ func Run(params Params) {
 
 	// outgoing channels to various other parts of the system
 	keypadChan := make(chan interface{}, 100)
-	uiChan := make(chan interface{}, 100)
+	uiChan := make(chan interface{}, 1000)
 	ioChan := make(chan interface{}, 100)
 	cntrlChan := make(chan interface{}, 100)
 	webChan := make(chan interface{}, 100)

@@ -189,9 +189,12 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 		return nil
 	}
 
+	start := time.Now()
+
 	// Extract samples from database
-	start := time.Now().AddDate(0, -1, 0)
-	err := db.ReadSamples(start, processSample)
+	err := db.ReadSamples(10000, processSample)
+
+	log.Println("Time to export samples: ", time.Since(start))
 
 	if err != nil {
 		log.Println("Error exporting data: ", err)
