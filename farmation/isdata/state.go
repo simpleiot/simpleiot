@@ -227,6 +227,7 @@ const (
 	DialogResetTotalCurrent
 	DialogResetTotal1
 	DialogResetTotal2
+	DialogHistoryData
 )
 
 // DialogHighestPriority returns the highest priority active
@@ -275,6 +276,26 @@ type GpsPos struct {
 	NumSats int
 }
 
+// dialog keys
+const (
+	DialogShutdownS           string = "Shutdown"
+	DialogRebootS                    = "Reboot"
+	DialogFactoryResetS              = "FactoryReset"
+	DialogSetTimezoneS               = "SetTimezone"
+	DialogUpdateS                    = "Update"
+	DialogPanelDetectS               = "PanelDetect"
+	DialogUnknownVisionStateS        = "UnknownVisionState"
+	DialogAppS                       = "App"
+	DialogArmS                       = "Arm"
+	DialogArmReqS                    = "ArmReq"
+	DialogStateMachineS              = "StateMachine"
+	DialogExportS                    = "Export"
+	DialogResetTotalCurrentS         = "ResetTotalCurrent"
+	DialogResetTotal1S               = "ResetTotal1"
+	DialogResetTotal2S               = "ResetTotal2"
+	DialogHistoryDataS               = "HistoryDataS"
+)
+
 // InitState initializes multiple states
 func InitState(s *State) (dirty bool) {
 	for len(s.FieldStates) < 30 {
@@ -317,17 +338,17 @@ func InitState(s *State) (dirty bool) {
 	// Static messages and headings are initialized here,
 	// but text that has variable content is set elsewhere
 	s.Dialogs = make(map[string]*Dialog)
-	s.Dialogs["Shutdown"] = &Dialog{
+	s.Dialogs[DialogShutdownS] = &Dialog{
 		ID:      DialogShutdown,
 		Heading: "Notice",
 		Message: "Shutting down ...",
 	}
-	s.Dialogs["Reboot"] = &Dialog{
+	s.Dialogs[DialogRebootS] = &Dialog{
 		ID:      DialogReboot,
 		Heading: "Notice",
 		Message: "Reboot started, please wait",
 	}
-	s.Dialogs["FactoryReset"] = &Dialog{
+	s.Dialogs[DialogFactoryResetS] = &Dialog{
 		ID:      DialogFactoryReset,
 		Heading: "Warning",
 		Message: "You are about to reset all\nof the data " +
@@ -335,58 +356,64 @@ func InitState(s *State) (dirty bool) {
 
 		CancelActivated: true,
 	}
-	s.Dialogs["SetTimezone"] = &Dialog{
+	s.Dialogs[DialogSetTimezoneS] = &Dialog{
 		ID:      DialogSetTimezone,
 		Heading: "Notice",
 		Message: "Application will now restart\nfor time " +
 			"zone change to\ntake effect.",
 		CancelActivated: true,
 	}
-	s.Dialogs["Update"] = &Dialog{
+	s.Dialogs[DialogUpdateS] = &Dialog{
 		ID:      DialogUpdate,
 		Heading: "Notice",
 	}
-	s.Dialogs["PanelDetect"] = &Dialog{
+	s.Dialogs[DialogPanelDetectS] = &Dialog{
 		ID: DialogPanelDetect,
 	}
-	s.Dialogs["UnknownVisionState"] = &Dialog{
+	s.Dialogs[DialogUnknownVisionStateS] = &Dialog{
 		ID:      DialogUnknownVisionState,
 		Heading: "Warning",
 	}
-	s.Dialogs["App"] = &Dialog{
+	s.Dialogs[DialogAppS] = &Dialog{
 		ID:      DialogApp,
 		Heading: "Warning",
 	}
-	s.Dialogs["Arm"] = &Dialog{
+	s.Dialogs[DialogArmS] = &Dialog{
 		ID:      DialogArm,
 		Heading: "Error",
 	}
-	s.Dialogs["ArmReq"] = &Dialog{
+	s.Dialogs[DialogArmReqS] = &Dialog{
 		ID: DialogArmReq,
 	}
-	s.Dialogs["StateMachine"] = &Dialog{
+	s.Dialogs[DialogStateMachineS] = &Dialog{
 		ID: DialogStateMachine,
 	}
-	s.Dialogs["Export"] = &Dialog{
+	s.Dialogs[DialogExportS] = &Dialog{
 		ID: DialogExport,
 	}
-	s.Dialogs["ResetTotalCurrent"] = &Dialog{
+	s.Dialogs[DialogResetTotalCurrentS] = &Dialog{
 		ID:      DialogResetTotalCurrent,
 		Heading: "Warning",
 		Message: "You are about to reset the\ncurrent product " +
 			"total to 0.",
 		CancelActivated: true,
 	}
-	s.Dialogs["ResetTotal1"] = &Dialog{
+	s.Dialogs[DialogResetTotal1S] = &Dialog{
 		ID:              DialogResetTotal1,
 		Heading:         "Warning",
 		Message:         "You are about to reset\nTotal 1 to zero",
 		CancelActivated: true,
 	}
-	s.Dialogs["ResetTotal2"] = &Dialog{
+	s.Dialogs[DialogResetTotal2S] = &Dialog{
 		ID:              DialogResetTotal2,
 		Heading:         "Warning",
 		Message:         "You are about to reset\nTotal 2 to zero",
+		CancelActivated: true,
+	}
+	s.Dialogs[DialogHistoryDataS] = &Dialog{
+		ID:              DialogHistoryData,
+		Heading:         "Warning",
+		Message:         "Please export history data\nto USB disk and purge data.",
 		CancelActivated: true,
 	}
 

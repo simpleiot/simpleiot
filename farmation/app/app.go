@@ -264,10 +264,34 @@ func Run(params Params) {
 		state.TimeArmedAndInjOn = time.Now()
 	}
 
+	var lastHistoryDialogDisplay time.Time
+	var lastVisionUnknownStateDisplay time.Time
+	var lastChannelDialogDisplay time.Time
+
+	// Define dialog POINTERS for use in the logic below
+	dlgShutdown := state.Dialogs[isdata.DialogShutdownS]
+	dlgReboot := state.Dialogs[isdata.DialogRebootS]
+	dlgFactoryReset := state.Dialogs[isdata.DialogFactoryResetS]
+	dlgSetTimezone := state.Dialogs[isdata.DialogSetTimezoneS]
+	dlgUnknownVisionState := state.Dialogs[isdata.DialogUnknownVisionStateS]
+	dlgApp := state.Dialogs[isdata.DialogAppS]
+	dlgStateMachine := state.Dialogs[isdata.DialogStateMachineS]
+	dlgExport := state.Dialogs[isdata.DialogExportS]
+	dlgResetTotalCurrent := state.Dialogs[isdata.DialogResetTotalCurrentS]
+	dlgResetTotal1 := state.Dialogs[isdata.DialogResetTotal1S]
+	dlgResetTotal2 := state.Dialogs[isdata.DialogResetTotal2S]
+	dlgHistoryData := state.Dialogs[isdata.DialogHistoryDataS]
+
 	updateUsageStats := func() {
 		state.DbSampleCount, err = dbData.GetSampleCount()
+		fmt.Println("CLIFF: sample count: ", state.DbSampleCount)
 		state.DataUsage, err = system.FsPercentUsed("/data")
 		state.RootUsage, err = system.FsPercentUsed("/")
+		if state.DbSampleCount > 7500 && time.Since(lastHistoryDialogDisplay) > time.Hour*24 {
+			fmt.Println("CLIFF: activating history dialog")
+			dlgHistoryData.Active = true
+			lastHistoryDialogDisplay = time.Now()
+		}
 	}
 
 	// Save the state so that the database version from migrations
@@ -289,7 +313,7 @@ func Run(params Params) {
 		log.Println("System updated to: v", state.OSVersion)
 		exec.Command("touch", updateNotFile).Run()
 
-		dlgUpdate := state.Dialogs["Update"]
+		dlgUpdate := state.Dialogs[isdata.DialogUpdateS]
 		dlgUpdate.Active = true
 		dlgUpdate.Message = "System updated to v" + state.OSVersion.String()
 		saveState()
@@ -320,22 +344,6 @@ func Run(params Params) {
 			}
 		}
 	*/
-	var lastVisionUnknownStateDisplay time.Time
-
-	var lastChannelDialogDisplay time.Time
-
-	// Define dialog POINTERS for use in the logic below
-	dlgShutdown := state.Dialogs["Shutdown"]
-	dlgReboot := state.Dialogs["Reboot"]
-	dlgFactoryReset := state.Dialogs["FactoryReset"]
-	dlgSetTimezone := state.Dialogs["SetTimezone"]
-	dlgUnknownVisionState := state.Dialogs["UnknownVisionState"]
-	dlgApp := state.Dialogs["App"]
-	dlgStateMachine := state.Dialogs["StateMachine"]
-	dlgExport := state.Dialogs["Export"]
-	dlgResetTotalCurrent := state.Dialogs["ResetTotalCurrent"]
-	dlgResetTotal1 := state.Dialogs["ResetTotal1"]
-	dlgResetTotal2 := state.Dialogs["ResetTotal2"]
 
 	exportingDataMessage := "Exporting data to USB Disk\n\nPlease Wait ..."
 	mainloopFile := "/run/is-mainloop"
@@ -1174,17 +1182,18 @@ func Run(params Params) {
 					}
 
 					// Redefine dialog POINTERS
-					dlgShutdown = state.Dialogs["Shutdown"]
-					dlgReboot = state.Dialogs["Reboot"]
-					dlgFactoryReset = state.Dialogs["FactoryReset"]
-					dlgSetTimezone = state.Dialogs["SetTimezone"]
-					dlgUnknownVisionState = state.Dialogs["UnknownVisionState"]
-					dlgApp = state.Dialogs["App"]
-					dlgStateMachine = state.Dialogs["StateMachine"]
-					dlgExport = state.Dialogs["Export"]
-					dlgResetTotalCurrent = state.Dialogs["ResetTotalCurrent"]
-					dlgResetTotal1 = state.Dialogs["ResetTotal1"]
-					dlgResetTotal2 = state.Dialogs["ResetTotal2"]
+					dlgShutdown = state.Dialogs[isdata.DialogShutdownS]
+					dlgReboot = state.Dialogs[isdata.DialogRebootS]
+					dlgFactoryReset = state.Dialogs[isdata.DialogFactoryResetS]
+					dlgSetTimezone = state.Dialogs[isdata.DialogSetTimezoneS]
+					dlgUnknownVisionState = state.Dialogs[isdata.DialogUnknownVisionStateS]
+					dlgApp = state.Dialogs[isdata.DialogAppS]
+					dlgStateMachine = state.Dialogs[isdata.DialogStateMachineS]
+					dlgExport = state.Dialogs[isdata.DialogExportS]
+					dlgResetTotalCurrent = state.Dialogs[isdata.DialogResetTotalCurrentS]
+					dlgResetTotal1 = state.Dialogs[isdata.DialogResetTotal1S]
+					dlgResetTotal2 = state.Dialogs[isdata.DialogResetTotal2S]
+					dlgHistoryData = state.Dialogs[isdata.DialogHistoryDataS]
 
 					// Remove all log messages
 					messageFiles := []string{"messages", "messages.0", "messages.1",
@@ -1315,8 +1324,8 @@ func Run(params Params) {
 
 func toggleArmOrOpenDialog(config *isdata.Config, state *isdata.State) {
 
-	dlgArm := state.Dialogs["Arm"]
-	dlgArmReq := state.Dialogs["ArmReq"]
+	dlgArm := state.Dialogs[isdata.DialogArmS]
+	dlgArmReq := state.Dialogs[isdata.DialogArmReqS]
 
 	if config.OperatingMode == isdata.ISOperatingModeMonitor {
 		dlgArm.Active = true

@@ -212,6 +212,8 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 						s.config.UserPumpMode == isdata.UserPumpModeOff {
 						s.switchScreen(ScreenIDPumpMode)
 					}
+				case isdata.DialogHistoryData:
+					s.switchScreen(ScreenIDStorage)
 				}
 
 				// Close the dialog
