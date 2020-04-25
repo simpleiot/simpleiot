@@ -69,13 +69,17 @@ func Run(in, out chan interface{}, configIn isdata.Config) {
 			avg = pressureMovingAvg.Avg()
 			min, _ = pressureMovingAvg.Min()
 			max, _ = pressureMovingAvg.Max()
-			out <- data.Sample{
-				Type:  isdata.SampleTypePressure,
-				Time:  time.Now(),
-				Value: pres,
-				Min:   min,
-				Max:   max,
-			}
+			/*
+				 * leaving this out for now for preformance reasons -- need to enable
+				 * this only when pressure logging is enabled.
+					out <- data.Sample{
+						Type:  isdata.SampleTypePressure,
+						Time:  time.Now(),
+						Value: pres,
+						Min:   min,
+						Max:   max,
+					}
+			*/
 
 		case <-refTicker.C:
 			var err error
