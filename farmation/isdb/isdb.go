@@ -1,6 +1,7 @@
 package isdb
 
 import (
+	"encoding/binary"
 	"fmt"
 	"log"
 	"os"
@@ -35,6 +36,14 @@ func NewDb(fileName string) (*IsDb, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	err = store.Bolt().Update(func(tx *bbolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(sampleBucket))
+		if err != nil {
+			return fmt.Errorf("create sample bucket: %s", err)
+		}
+		return nil
+	})
 
 	return &IsDb{
 		filename: fileName,
@@ -92,23 +101,18 @@ func (db *IsDb) ReadState(state *isdata.State) error {
 func (db *IsDb) ReadSamples(start time.Time, callback func(s data.Sample) error) error {
 	boltdb := db.store.Bolt()
 
-	key, err := bolthold.DefaultEncode(start)
-	if err != nil {
-		return err
-	}
+	key := itob(start.UnixNano())
 
-	err = boltdb.View(func(tx *bbolt.Tx) error {
+	err := boltdb.View(func(tx *bbolt.Tx) error {
 		// Assume bucket exists and has keys
-		c := tx.Bucket([]byte("Sample")).Cursor()
+		c := tx.Bucket([]byte(sampleBucket)).Cursor()
 
 		for k, v := c.Seek(key); k != nil; k, v = c.Next() {
-			t := time.Time{}
-			err := bolthold.DefaultDecode(k, &t)
-			if err != nil {
-				return err
-			}
+			tUnix := btoi(k)
+			t := time.Unix(0, tUnix)
+
 			s := data.Sample{}
-			err = bolthold.DefaultDecode(v, &s)
+			err := bolthold.DefaultDecode(v, &s)
 			if err != nil {
 				return err
 			}
@@ -156,12 +160,7 @@ func (db *IsDb) ReadFaultHist(start time.Time) ([]data.Sample, error) {
 	var faults []data.Sample
 	boltdb := db.store.Bolt()
 
-	fmt.Println("CLIFF: start: ", start)
-
-	key, err := bolthold.DefaultEncode(start)
-	if err != nil {
-		return faults, err
-	}
+	key := itob(start.UnixNano())
 
 	isFault := func(s data.Sample) bool {
 		switch s.Type {
@@ -178,19 +177,16 @@ func (db *IsDb) ReadFaultHist(start time.Time) ([]data.Sample, error) {
 		return false
 	}
 
-	boltdb.View(func(tx *bbolt.Tx) error {
+	err := boltdb.View(func(tx *bbolt.Tx) error {
 		// Assume bucket exists and has keys
-		c := tx.Bucket([]byte("Sample")).Cursor()
+		c := tx.Bucket([]byte(sampleBucket)).Cursor()
 
 		for k, v := c.Seek(key); k != nil; k, v = c.Next() {
-			t := time.Time{}
-			err := bolthold.DefaultDecode(k, &t)
-			if err != nil {
-				return err
-			}
-			//fmt.Println("cliff: t: ", t)
+			tUnix := btoi(k)
+			t := time.Unix(0, tUnix)
+
 			s := data.Sample{}
-			err = bolthold.DefaultDecode(v, &s)
+			err := bolthold.DefaultDecode(v, &s)
 			if err != nil {
 				return err
 			}
@@ -202,6 +198,10 @@ func (db *IsDb) ReadFaultHist(start time.Time) ([]data.Sample, error) {
 
 		return nil
 	})
+
+	if err != nil {
+		return faults, err
+	}
 
 	return faults, nil
 }
@@ -223,25 +223,52 @@ type DataMeta struct {
 	SampleCount int
 }
 
+// itob returns an 8-byte big endian representation of v.
+func itob(v int64) []byte {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(v))
+	return b
+}
+
+// btoi converts 8-byte big endian to int
+func btoi(buf []byte) int64 {
+	return int64(binary.BigEndian.Uint64(buf))
+}
+
+// create a unique name for buckets that we don't manage with bolthold
+var sampleBucket = "CustSamples"
+
 // WriteSample writes a sample to the database
 // Samples are flow, pressure, amount, etc.
 func (db *IsDb) WriteSample(sample data.Sample) error {
-	dataMeta := DataMeta{}
-	err := db.store.Get(0, &dataMeta)
-	if err != nil {
-		// attempt to init metadata
-		_, err = db.GetSampleCount()
+	return db.store.Bolt().Update(func(tx *bbolt.Tx) error {
+		dataMeta := DataMeta{}
+		err := db.store.TxGet(tx, 0, &dataMeta)
+		if err != nil {
+			// attempt to init metadata
+			err = db.store.TxUpsert(tx, 0, &dataMeta)
+			if err != nil {
+				return err
+			}
+		}
+
+		key := sample.Time.UnixNano()
+		keyB := itob(key)
+
+		bucket := tx.Bucket([]byte(sampleBucket))
+		sampleE, err := bolthold.DefaultEncode(sample)
 		if err != nil {
 			return err
 		}
-	}
-	err = db.store.Insert(sample.Time, sample)
-	if err != nil {
-		return err
-	}
 
-	dataMeta.SampleCount++
-	return db.store.Upsert(0, &dataMeta)
+		err = bucket.Put(keyB, sampleE)
+		if err != nil {
+			return err
+		}
+
+		dataMeta.SampleCount++
+		return db.store.TxUpsert(tx, 0, &dataMeta)
+	})
 }
 
 // GetSampleCount from database. Warning, this function

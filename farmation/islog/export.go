@@ -190,7 +190,7 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 	}
 
 	// Extract samples from database
-	start := time.Now().AddDate(0, -2, 0)
+	start := time.Now().AddDate(0, -1, 0)
 	err := db.ReadSamples(start, processSample)
 
 	if err != nil {
