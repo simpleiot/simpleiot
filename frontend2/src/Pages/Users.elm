@@ -231,16 +231,6 @@ viewUser modded user =
             , value = user.email
             , action = \x -> EditUser user.id { user | email = x }
             }
-        , viewRoles
-            [ { role = "user"
-              , value = True
-              , action = \x -> EditUser user.id user
-              }
-            , { role = "admin"
-              , value = user.admin
-              , action = \x -> EditUser user.id { user | admin = x }
-              }
-            ]
         ]
 
 

@@ -15,16 +15,16 @@ type alias User =
     , first : String
     , last : String
     , email : String
-    , admin : Bool
+    , roles : List Role
     }
 
 
 empty =
     { id = ""
-    , admin = False
     , email = ""
     , first = ""
     , last = ""
+    , roles = []
     }
 
 
@@ -39,7 +39,7 @@ decode =
         |> required "firstName" Decode.string
         |> required "lastName" Decode.string
         |> required "email" Decode.string
-        |> optional "admin" Decode.bool False
+        |> required "roles" decodeRoles
 
 
 encode : User -> Encode.Value
@@ -48,4 +48,37 @@ encode user =
         [ ( "firstName", Encode.string user.first )
         , ( "lastName", Encode.string user.last )
         , ( "email", Encode.string user.email )
+        , ( "roles", encodeRoles user.roles )
         ]
+
+
+type alias Role =
+    { id : String
+    , orgID : String
+    , orgName : String
+    , description : String
+    }
+
+
+encodeRole role =
+    Encode.object
+        [ ( "id", Encode.string role.id )
+        , ( "orgID", Encode.string role.orgID )
+        , ( "orgName", Encode.string role.orgName )
+        , ( "description", Encode.string role.description )
+        ]
+
+
+encodeRoles =
+    Encode.list encodeRole
+
+
+decodeRole =
+    Decode.succeed Role
+        |> required "id" Decode.string
+        |> required "orgID" Decode.string
+        |> required "orgName" Decode.string
+        |> required "description" Decode.string
+
+decodeRoles =
+    Decode.list decodeRole

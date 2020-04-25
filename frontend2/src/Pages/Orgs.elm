@@ -62,6 +62,7 @@ empty =
 
 type Msg
     = EditEmail String String
+    | EditRole String Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
@@ -74,6 +75,11 @@ update msg model =
               -- TODO: does this user exist?
             )
 
+        _ ->
+            ( model
+            , Cmd.none
+            , Cmd.none
+            )
 
 
 -- SUBSCRIPTIONS
@@ -207,7 +213,31 @@ viewUser user =
     viewItem
         [ text user.first
         , text user.last
+        , viewRole
+            { role = "user"
+            , value = hasRole "user" user
+            , action = EditRole
+            }
+        , viewRole
+            { role = "admin"
+            , value = hasRole "admin" user
+            , action = EditRole
+            }
         ]
+
+
+hasRole role user =
+    List.member role <| List.map .description user.roles
+
+
+viewRole { role, value, action } =
+    Input.checkbox
+        [ padding 16 ]
+        { checked = value
+        , icon = Input.defaultCheckbox
+        , label = label Input.labelRight role
+        , onChange = action role
+        }
 
 
 viewDevice : Device.Device -> Element Msg

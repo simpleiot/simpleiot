@@ -32,6 +32,7 @@ type alias Session =
     , authToken : String
     , privilege : Privilege
     , data : Data
+    , error : Maybe Http.Error
     }
 
 
@@ -162,6 +163,7 @@ update commands msg model =
                         , cred = cred
                         , privilege = privilege
                         , data = emptyData
+                        , error = Nothing
                         }
                     , getData token
                     , Cmd.none
@@ -199,6 +201,12 @@ update commands msg model =
 
                 DevicesResponse (Ok devices) ->
                     ( SignedIn { sess | data = { data | devices = devices } }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                OrgsResponse (Ok orgs) ->
+                    ( SignedIn { sess | data = { data | orgs = orgs } }
                     , Cmd.none
                     , Cmd.none
                     )
