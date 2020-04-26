@@ -1136,23 +1136,18 @@ func Run(params Params) {
 				switch dialogPointer.ID {
 				case isdata.DialogFactoryReset:
 
-					err := dbData.ResetDb()
+					// Delete all the samples to reset the data in the main db
+					err := dbData.DeleteSamples()
 					if err != nil {
 						log.Println("Error resetting main db: ", err)
 					}
-					err = dbState.ResetDb()
-					if err != nil {
-						log.Println("Error resetting state db: ", err)
-					}
-					err = dbConfig.ResetDb()
-					if err != nil {
-						log.Println("Error resetting config db: ", err)
-					}
 
+					// For state and config db's, just null out the state and config and
+					// write fresh structs to db's after initializing
 					state = isdata.State{}
 					config = isdata.Config{}
 
-					// Set config database version to zero so that when the config is
+					// Make sure config version in state is zero so that when the config is
 					// initialized all of the migrations are run and the config values
 					// are set to their factory defaults
 					state.DBConfig.DBVersion = 0
@@ -1163,21 +1158,21 @@ func Run(params Params) {
 
 					err = dbState.WriteState(&state)
 					if err != nil {
-						log.Println("Error writing state to new db", err)
+						log.Println("Error writing state to new db:", err)
 					}
 					err = dbConfig.WriteConfig(&config)
 					if err != nil {
-						log.Println("Error writing config to new db", err)
+						log.Println("Error writing config to new db:", err)
 					}
 
 					// save config and state in data db as well for backup
 					err = dbData.WriteState(&state)
 					if err != nil {
-						log.Println("Error writing state to new backup db", err)
+						log.Println("Error writing state to new backup db:", err)
 					}
 					err = dbData.WriteConfig(&config)
 					if err != nil {
-						log.Println("Error writing config to new backup db", err)
+						log.Println("Error writing config to new backup db:", err)
 					}
 
 					// Redefine dialog POINTERS
@@ -1199,7 +1194,10 @@ func Run(params Params) {
 						"messages.2", "messages.3"}
 
 					for _, f := range messageFiles {
-						os.Remove(path.Join("/data/log", f))
+						err := os.Remove(path.Join("/data/log", f))
+						if err != nil {
+							log.Println("Error removing log message file:", err)
+						}
 					}
 
 				case isdata.DialogSetTimezone:

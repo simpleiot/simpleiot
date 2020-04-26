@@ -124,6 +124,13 @@ func (s *FaultsHistoryScreen) Render(img draw.Image) {
 			s.menu.Render(img)
 
 		}
+
+		// Don't display details soft key before faults are loaded
+		if s.hsState != hsStateLoaded {
+			s.softKeys.SetHidden(1, true)
+		} else {
+			s.softKeys.SetHidden(1, false)
+		}
 		s.softKeys.Render(img, 0, 54)
 	}
 }
@@ -149,6 +156,12 @@ func (s *FaultsHistoryScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) 
 			s.hsState = hsStateEnter
 			return ScreenIDPrev, nil, true
 		case isdata.KeyEnter, isdata.KeySK2: // Details
+
+			// Don't take action on details soft key before faults are loaded
+			if s.hsState != hsStateLoaded {
+				break
+			}
+
 			if len(s.faults) >= 1 {
 				s.displayDetails = true
 				s.faultsHistDetails.fault = s.faults[s.menu.GetArrowPos()]

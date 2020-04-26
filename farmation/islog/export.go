@@ -282,7 +282,7 @@ func exportFieldTotals(state *isdata.State, config *isdata.Config, out chan inte
 	if err != nil {
 		log.Println("Error creating style: ", err)
 	}
-	err = totals.SetCellStyle("Sheet1", "B4", "F4", bold)
+	err = totals.SetCellStyle("Sheet1", "B5", "F5", bold)
 	if err != nil {
 		log.Println("Error setting cell style: ", err)
 	}
