@@ -5,13 +5,13 @@ import (
 )
 
 func TestPdu(t *testing.T) {
-	s := Regs{}
-	s.AddReg(8) // add register 8 for coil 128
-	s.WriteReg(8, 1)
+	regs := Regs{}
+	regs.AddCoil(128) // add register 8 for coil 128
+	regs.WriteCoil(128, true)
 
 	pdu := ReadCoils(128, 1)
 
-	_, resp, err := pdu.ProcessRequest(&s)
+	_, resp, err := pdu.ProcessRequest(&regs)
 
 	if err != nil {
 		t.Errorf("Error processing request: %v", err)
