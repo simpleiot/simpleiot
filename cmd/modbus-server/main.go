@@ -52,7 +52,7 @@ func main() {
 
 	serv := modbus.NewServer(1, portRR)
 	serv.Regs.AddCoil(128)
-	err = serv.Regs.WriteCoil(128, false)
+	err = serv.Regs.WriteCoil(128, true)
 	if err != nil {
 		log.Println("Error writing coil: ", err)
 		os.Exit(-1)
