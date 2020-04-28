@@ -1,14 +1,16 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"path"
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/timshannon/bolthold"
-	"go.etcd.io/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 // This file contains database manipulations.
@@ -646,4 +648,37 @@ func roleUsersData(store *bolthold.Store, tx *bolt.Tx, roles []Role) (users []da
 		})
 	}
 	return users, err
+}
+
+type dbDump struct {
+	Devices []data.Device `json:"devices"`
+	Users   []data.User   `json:"users"`
+	Orgs    []data.Org    `json:"orgs"`
+}
+
+// DumpDb dumps the entire db to a file
+func DumpDb(db *Db, out io.Writer) error {
+	dump := dbDump{}
+
+	var err error
+
+	dump.Devices, err = devices(db.store)
+	if err != nil {
+		return err
+	}
+
+	dump.Users, err = users(db.store)
+	if err != nil {
+		return err
+	}
+
+	dump.Orgs, err = orgs(db.store)
+	if err != nil {
+		return err
+	}
+
+	encoder := json.NewEncoder(out)
+	encoder.SetIndent("", "   ")
+
+	return encoder.Encode(dump)
 }

@@ -55,6 +55,7 @@ func main() {
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
+	flagDumpDb := flag.Bool("dumpDb", false, "dump database to file")
 	flag.Parse()
 
 	if *flagSyslog {
@@ -91,6 +92,25 @@ func main() {
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)
+	}
+
+	if *flagDumpDb {
+		f, err := os.Create("data.json")
+		if err != nil {
+			log.Println("Error opening data.json: ", err)
+			os.Exit(-1)
+		}
+		err = api.DumpDb(dbInst, f)
+
+		if err != nil {
+			log.Println("Error dumping database: ", err)
+			os.Exit(-1)
+		}
+
+		f.Close()
+		log.Println("Database written to data.json")
+
+		os.Exit(0)
 	}
 
 	// set up influxdb support if configured

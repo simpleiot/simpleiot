@@ -9,3 +9,4 @@ tags
 assets.go
 node_modules
 dist
+data.json
