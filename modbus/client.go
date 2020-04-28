@@ -2,7 +2,6 @@ package modbus
 
 import (
 	"io"
-	"time"
 )
 
 // Client defines a Modbus client (master)
@@ -29,8 +28,6 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	if err != nil {
 		return ret, err
 	}
-
-	time.Sleep(time.Second)
 
 	// FIXME, what is max modbus packet size?
 	buf := make([]byte, 200)
