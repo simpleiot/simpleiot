@@ -12,6 +12,11 @@ type PDU struct {
 	Data         []byte
 }
 
+func (p PDU) String() string {
+	return fmt.Sprintf("PDU: %v: %v", p.FunctionCode,
+		HexDump(p.Data))
+}
+
 //RegChange is a type that describes a modbus register change
 // the address, old value and new value of the register are provided.
 // This allows application software to take action when things change.
@@ -34,7 +39,7 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 	case FuncCodeReadCoils, FuncCodeReadDiscreteInputs:
 		address := binary.BigEndian.Uint16(p.Data[:2])
 		count := binary.BigEndian.Uint16(p.Data[2:4])
-		// FIXME, do something with count
+		// FIXME, do something with count to handle a range of reads
 		_ = count
 		v, err := regs.ReadReg(address / 16)
 		if err != nil {
@@ -56,6 +61,9 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 // RespReadBits reads coils and discrete inputs from a
 // response PDU.
 func (p *PDU) RespReadBits() ([]bool, error) {
+	if len(p.Data) < 2 {
+		return []bool{}, errors.New("not enough data")
+	}
 	switch p.FunctionCode {
 	case FuncCodeReadCoils, FuncCodeReadDiscreteInputs:
 		// ok

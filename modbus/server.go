@@ -33,7 +33,6 @@ func (s *Server) Listen(errorCallback func(error),
 	for {
 		buf := make([]byte, 200)
 		cnt, err := s.port.Read(buf)
-
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading serial port: ", err)

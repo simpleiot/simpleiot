@@ -44,7 +44,7 @@ func RtuDecode(packet []byte) (PDU, error) {
 		return PDU{}, fmt.Errorf("not enough data for function code %v, expected %v, got %v", ret.FunctionCode, minPacketLen, len(packet))
 	}
 
-	copy(ret.Data, packet[2:len(packet)-2])
+	ret.Data = packet[2 : len(packet)-2]
 
 	return ret, nil
 }
