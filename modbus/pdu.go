@@ -49,6 +49,21 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 		bitPos := address % 16
 		bitV := (v >> bitPos) & 0x1
 		resp.Data = []byte{1, byte(bitV)}
+	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
+		address := binary.BigEndian.Uint16(p.Data[:2])
+		count := binary.BigEndian.Uint16(p.Data[2:4])
+		// FIXME, do something with count to handle a range of reads
+		_ = count
+		v, err := regs.ReadReg(address)
+		if err != nil {
+			return []RegChange{}, PDU{}, errors.New(
+				"Did not find modbus reg")
+		}
+
+		resp.Data = make([]byte, 1+2*count)
+		resp.Data[0] = uint8(count * 2)
+		binary.BigEndian.PutUint16(resp.Data[1:3], v)
+
 	default:
 		return []RegChange{}, PDU{},
 			fmt.Errorf("unsupported function code: %v", p.FunctionCode)
@@ -95,6 +110,14 @@ func (p *PDU) RespReadBits() ([]bool, error) {
 func ReadCoils(address uint16, count uint16) PDU {
 	return PDU{
 		FunctionCode: FuncCodeReadCoils,
-		Data:         dataBlock(address, count),
+		Data:         PutUint16Array(address, count),
+	}
+}
+
+// ReadHoldingRegs creates a PDU to read a holding regs
+func ReadHoldingRegs(address uint16, count uint16) PDU {
+	return PDU{
+		FunctionCode: FuncCodeReadHoldingRegisters,
+		Data:         PutUint16Array(address, count),
 	}
 }
