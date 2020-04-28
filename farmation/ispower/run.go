@@ -27,6 +27,8 @@ func Run(in, out chan interface{}) {
 
 	lastVcap := 0.0
 	powerLossCount := 0
+	vStartPowerLoss := 0.0
+
 	for {
 		select {
 		case m := <-in:
@@ -46,14 +48,13 @@ func Run(in, out chan interface{}) {
 			s := averager.GetAverage()
 
 			if !state.GpioMainAuxPwr {
+				if powerLossCount == 0 {
+					vStartPowerLoss = s.Value
+				}
 				log.Println("Power loss count: ", powerLossCount)
 				log.Printf("Backup voltage: %.3f, delta: %.3f: \n",
 					s.Value, s.Value-lastVcap)
-				if s.Value-lastVcap < -0.008 {
-					powerLossCount++
-				} else {
-					powerLossCount = 0
-				}
+				powerLossCount++
 			} else {
 				powerLossCount = 0
 			}
@@ -62,20 +63,27 @@ func Run(in, out chan interface{}) {
 			averager.ResetAverage()
 
 			if powerLossCount > 3 {
-				log.Println("Power loss for 3 seconds, shutting down")
-				out <- isdata.Shutdown{}
+				log.Printf("after 3sec, backup voltage delta is: %.3f\n", s.Value-vStartPowerLoss)
+				if s.Value-vStartPowerLoss < -0.008 {
+					log.Println("Power loss for 3 seconds, shutting down")
+					out <- isdata.Shutdown{}
 
-				// turn off backlight to save power
-				isio.GpioOut(isio.GpioLcdPwm, false)
+					// turn off backlight to save power
+					isio.GpioOut(isio.GpioLcdPwm, false)
 
-				// shutdown system
-				err := exec.Command("poweroff").Start()
+					// shutdown system
+					err := exec.Command("poweroff").Start()
 
-				if err != nil {
-					log.Println("Error executing power off command")
+					if err != nil {
+						log.Println("Error executing power off command")
+					} else {
+						// sleep forever waiting for power off
+						select {}
+					}
+
 				} else {
-					// sleep forever waiting for power off
-					select {}
+					log.Println("After 3 seconds, super cap does not seem to be dropping, start over")
+					powerLossCount = 0
 				}
 			}
 		}
