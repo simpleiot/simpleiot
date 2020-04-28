@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
-	"github.com/goburrow/modbus"
+	"github.com/simpleiot/simpleiot/modbus"
+	"github.com/simpleiot/simpleiot/respreader"
+	"go.bug.st/serial"
 )
 
 func usage() {
@@ -19,34 +22,39 @@ func usage() {
 func main() {
 	log.Println("modbus client")
 
-	port := flag.String("port", "", "serial port")
+	flagPort := flag.String("port", "", "serial port")
+	flagBaud := flag.String("baud", "9600", "baud rate")
 	flag.Parse()
 
-	if *port == "" {
+	if *flagPort == "" {
 		usage()
 	}
 
-	handler := modbus.NewRTUClientHandler(*port)
-	handler.BaudRate = 115200
-	handler.DataBits = 8
-	handler.Parity = "N"
-	handler.StopBits = 1
-	handler.SlaveId = 1
-	handler.Timeout = 5 * time.Second
+	baud, err := strconv.Atoi(*flagBaud)
 
-	err := handler.Connect()
 	if err != nil {
-		log.Printf("%v\n", err)
-		return
+		log.Println("Baud rate error: ", err)
+		os.Exit(-1)
 	}
-	defer handler.Close()
-	client := modbus.NewClient(handler)
+
+	mode := &serial.Mode{
+		BaudRate: baud,
+	}
+
+	port, err := serial.Open(*flagPort, mode)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	portRR := respreader.NewResponseReadWriteCloser(port, time.Second*5, time.Millisecond*50)
+	client := modbus.NewClient(portRR)
 
 	// Read discrete inputs.
-	results, err := client.ReadDiscreteInputs(0, 16)
-	if err != nil {
-		log.Printf("%v\n", err)
+	results, err := client.ReadCoils(1, 128, 1)
+	if len(results) != 1 {
+		log.Println("Error: Expected one coil result")
+		os.Exit(-1)
 	}
 
-	fmt.Printf("results %v\n", results)
+	log.Println("Coil results: ", results)
 }
