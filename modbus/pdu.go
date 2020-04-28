@@ -1,0 +1,123 @@
+package modbus
+
+import (
+	"encoding/binary"
+	"errors"
+	"fmt"
+)
+
+// PDU for Modbus packets
+type PDU struct {
+	FunctionCode FunctionCode
+	Data         []byte
+}
+
+func (p PDU) String() string {
+	return fmt.Sprintf("PDU: %v: %v", p.FunctionCode,
+		HexDump(p.Data))
+}
+
+//RegChange is a type that describes a modbus register change
+// the address, old value and new value of the register are provided.
+// This allows application software to take action when things change.
+type RegChange struct {
+	Address uint16
+	Old     uint16
+	New     uint16
+}
+
+// ProcessRequest a modbus request. Registers are read and written
+// through the server interface argument.
+// This function returns any register changes, the modbus respose,
+// and any errors
+func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
+	changes := []RegChange{}
+	resp := PDU{}
+	resp.FunctionCode = p.FunctionCode
+
+	switch p.FunctionCode {
+	case FuncCodeReadCoils, FuncCodeReadDiscreteInputs:
+		address := binary.BigEndian.Uint16(p.Data[:2])
+		count := binary.BigEndian.Uint16(p.Data[2:4])
+		// FIXME, do something with count to handle a range of reads
+		_ = count
+		v, err := regs.ReadReg(address / 16)
+		if err != nil {
+			return []RegChange{}, PDU{}, errors.New(
+				"Did not find modbus reg")
+		}
+		bitPos := address % 16
+		bitV := (v >> bitPos) & 0x1
+		resp.Data = []byte{1, byte(bitV)}
+	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
+		address := binary.BigEndian.Uint16(p.Data[:2])
+		count := binary.BigEndian.Uint16(p.Data[2:4])
+		// FIXME, do something with count to handle a range of reads
+		_ = count
+		v, err := regs.ReadReg(address)
+		if err != nil {
+			return []RegChange{}, PDU{}, errors.New(
+				"Did not find modbus reg")
+		}
+
+		resp.Data = make([]byte, 1+2*count)
+		resp.Data[0] = uint8(count * 2)
+		binary.BigEndian.PutUint16(resp.Data[1:3], v)
+
+	default:
+		return []RegChange{}, PDU{},
+			fmt.Errorf("unsupported function code: %v", p.FunctionCode)
+
+	}
+
+	return changes, resp, nil
+}
+
+// RespReadBits reads coils and discrete inputs from a
+// response PDU.
+func (p *PDU) RespReadBits() ([]bool, error) {
+	if len(p.Data) < 2 {
+		return []bool{}, errors.New("not enough data")
+	}
+	switch p.FunctionCode {
+	case FuncCodeReadCoils, FuncCodeReadDiscreteInputs:
+		// ok
+	default:
+		return []bool{}, errors.New("invalid function code to read bits")
+	}
+
+	count := p.Data[0]
+	ret := make([]bool, count)
+	byteIndex := 0
+	bitIndex := 0
+
+	for i := byte(0); i < count; i++ {
+		ret[i] = ((p.Data[byteIndex+1] >> bitIndex) & 0x1) == 0x1
+		bitIndex++
+		if bitIndex >= 8 {
+			byteIndex++
+			bitIndex = 0
+		}
+	}
+
+	return ret, nil
+}
+
+// Add address units below are the packet address, typically drop
+// first digit from register and subtract 1
+
+// ReadCoils creates PDU to read coils
+func ReadCoils(address uint16, count uint16) PDU {
+	return PDU{
+		FunctionCode: FuncCodeReadCoils,
+		Data:         PutUint16Array(address, count),
+	}
+}
+
+// ReadHoldingRegs creates a PDU to read a holding regs
+func ReadHoldingRegs(address uint16, count uint16) PDU {
+	return PDU{
+		FunctionCode: FuncCodeReadHoldingRegisters,
+		Data:         PutUint16Array(address, count),
+	}
+}
