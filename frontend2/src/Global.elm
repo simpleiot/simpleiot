@@ -154,7 +154,7 @@ update commands msg model =
                 SignIn cred ->
                     ( SignedOut Nothing
                     , login cred
-                    , commands.navigate routes.devices
+                    , commands.navigate routes.top
                     )
 
                 AuthResponse cred (Ok { token, privilege }) ->
