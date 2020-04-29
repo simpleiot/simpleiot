@@ -191,7 +191,7 @@ update commands msg model =
                 SignOut ->
                     ( SignedOut Nothing
                     , Cmd.none
-                    , Cmd.none
+                    , commands.navigate routes.top
                     )
 
                 AuthResponse cred (Err err) ->
