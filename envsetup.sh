@@ -49,7 +49,7 @@ siot_build_frontend() {
   if [ "$1" = "2" ]; then
     (cd "frontend$1" && npx elm-spa build) || return 1
   fi
-  (cd "frontend$1" && npx elm make src/Main.elm --output=output/elm.js) || return 1
+  (cd "frontend$1" && npx elm make --debug src/Main.elm --output=output/elm.js) || return 1
   cp "frontend$1/public"/* "frontend$1/output/" || return 1
   cp "frontend$1/public/index$1.html" "frontend$1/output/index.html" || return 1
   cp docs/simple-iot-app-logo.png "frontend$1/output/" || return 1
@@ -90,8 +90,14 @@ siot_deploy() {
 }
 
 siot_run() {
-  siot_build_dependencies "$1" || return 1
-  go run cmd/siot/main.go || return 1
+  frontend_version=""
+  if [ "$1" = "2" ]; then
+    frontend_version=2
+    shift
+  fi
+
+  siot_build_dependencies "$frontend_version" || return 1
+  go run cmd/siot/main.go $@ || return 1
   return 0
 }
 
