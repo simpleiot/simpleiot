@@ -24,8 +24,6 @@ jobs:
         run: |
           . envsetup.sh
           siot_install_frontend_deps
-          siot_install_backend_deps
-          # go get -v -t -d ./...
 
       - name: Test
         run: |
