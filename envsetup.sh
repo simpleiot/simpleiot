@@ -9,11 +9,11 @@ export GOBIN=$GOPATH/bin
 # map tools from project go modules
 
 genesis() {
-  go run github.com/benbjohnson/genesis/cmd/genesis $@
+  go run github.com/benbjohnson/genesis/cmd/genesis "$@"
 }
 
 golint() {
-  go run golang.org/x/lint/golint $@
+  go run golang.org/x/lint/golint "$@"
 }
 
 siot_install_frontend_deps() {
@@ -56,7 +56,7 @@ siot_build_frontend() {
 
 siot_build_assets() {
   mkdir -p assets/frontend || return 1
-  $GOBIN/genesis -C "frontend$1/output" -pkg frontend \
+  genesis -C "frontend$1/output" -pkg frontend \
     index.html \
     elm.js \
     main.js \
@@ -95,7 +95,7 @@ siot_run() {
   fi
 
   siot_build_dependencies "$frontend_version" || return 1
-  go run cmd/siot/main.go $@ || return 1
+  go run cmd/siot/main.go "$@" || return 1
   return 0
 }
 
@@ -117,7 +117,7 @@ siot_test() {
   siot_build_dependencies 2
   go fmt ./...
   go test "$@" ./... || return 1
-  $GOBIN/golint -set_exit_status ./... || return 1
+  golint -set_exit_status ./... || return 1
   go vet ./... || return 1
   return 0
 }
