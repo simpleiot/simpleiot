@@ -252,7 +252,7 @@ func TestResponseReaderTimeout(t *testing.T) {
 
 	dur := time.Since(start)
 
-	if err != ErrorTimeout {
+	if err != io.EOF {
 		t.Error("expected timeout error, got: ", err)
 	}
 
@@ -312,7 +312,7 @@ func TestResponseReaderWrite(t *testing.T) {
 
 	dur := time.Since(start)
 
-	if err != ErrorTimeout {
+	if err != io.EOF {
 		t.Error("expected timeout error: ", err)
 	}
 
