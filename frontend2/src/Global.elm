@@ -154,7 +154,7 @@ update commands msg model =
                 SignIn cred ->
                     ( SignedOut Nothing
                     , login cred
-                    , commands.navigate routes.top
+                    , Cmd.none
                     )
 
                 AuthResponse cred (Ok { token, privilege }) ->
@@ -166,7 +166,7 @@ update commands msg model =
                         , error = Nothing
                         }
                     , getData token
-                    , Cmd.none
+                    , commands.navigate routes.top
                     )
 
                 _ ->
