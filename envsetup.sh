@@ -17,9 +17,7 @@ golint() {
 }
 
 siot_install_frontend_deps() {
-  (cd frontend &&
-    npm install elm &&
-    npm install elm-spa)
+  (cd frontend && npm install)
 }
 
 siot_check_elm() {
