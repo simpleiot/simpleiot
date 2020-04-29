@@ -1,4 +1,4 @@
-RECOMMENDED_ELM_VERSION=0.19.0
+RECOMMENDED_ELM_VERSION=0.19.1
 
 if [ -z "$GOPATH" ]; then
   export GOPATH=$HOME/go
@@ -6,15 +6,20 @@ fi
 
 export GOBIN=$GOPATH/bin
 
+# map tools from project go modules
+
+genesis() {
+  go run github.com/benbjohnson/genesis/cmd/genesis $@
+}
+
+golint() {
+  go run golang.org/x/lint/golint $@
+}
+
 siot_install_frontend_deps() {
   (cd frontend &&
     npm install elm &&
     npm install elm-spa)
-}
-
-siot_install_backend_deps() {
-  go get -u github.com/benbjohnson/genesis/...
-  go get -u golang.org/x/lint/golint
 }
 
 siot_check_elm() {

@@ -14,6 +14,7 @@ require (
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/timshannon/bolthold v0.0.0-20200316231344-dc30e2b2f90c
 	go.etcd.io/bbolt v1.3.0
+	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 )
 
 go 1.13
