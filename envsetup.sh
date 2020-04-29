@@ -17,7 +17,7 @@ golint() {
 }
 
 siot_install_frontend_deps() {
-  (cd frontend && npm install)
+  (cd "frontend$1" && npm install)
 }
 
 siot_check_elm() {
