@@ -62,12 +62,16 @@ viewNavbar model =
                 { label = text "SIOT"
                 , url = "/"
                 }
-                :: List.map viewLink
-                    [ ( "devices", "/devices" )
-                    , ( "users", "/users" )
-                    , ( "orgs", "/orgs" )
-                    ]
-            )
+                ::
+                case model of
+                    Global.SignedIn sess ->
+                        List.map viewLink [ ( "devices", "/devices" )
+                        , ( "users", "/users" )
+                        , ( "orgs", "/orgs" )
+                        ]
+                    Global.SignedOut _ ->
+                        List.map viewLink []
+             )
         , el [ alignRight ] <|
             case model of
                 Global.SignedIn sess ->
