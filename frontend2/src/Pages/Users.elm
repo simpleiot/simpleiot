@@ -231,6 +231,11 @@ viewUser modded user =
             , value = user.email
             , action = \x -> EditUser user.id { user | email = x }
             }
+        , viewTextProperty
+            { name = "Password"
+            , value = user.pass
+            , action = \x -> EditUser user.id { user | pass = x }
+            }
         ]
 
 

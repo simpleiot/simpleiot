@@ -15,6 +15,7 @@ type alias User =
     , first : String
     , last : String
     , email : String
+    , pass : String
     , roles : List Role
     }
 
@@ -22,6 +23,7 @@ type alias User =
 empty =
     { id = ""
     , email = ""
+    , pass = ""
     , first = ""
     , last = ""
     , roles = []
@@ -39,6 +41,7 @@ decode =
         |> required "firstName" Decode.string
         |> required "lastName" Decode.string
         |> required "email" Decode.string
+        |> required "pass" Decode.string
         |> required "roles" decodeRoles
 
 
@@ -48,6 +51,7 @@ encode user =
         [ ( "firstName", Encode.string user.first )
         , ( "lastName", Encode.string user.last )
         , ( "email", Encode.string user.email )
+        , ( "pass", Encode.string user.pass )
         , ( "roles", encodeRoles user.roles )
         ]
 
