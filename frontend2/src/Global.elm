@@ -169,6 +169,13 @@ update commands msg model =
                     , commands.navigate routes.top
                     )
 
+                AuthResponse cred (Err error) ->
+                    let
+                        _ = Debug.log "Auth error" error
+                    in
+                        (SignedOut (Just error), Cmd.none, Cmd.none)
+
+
                 _ ->
                     ( model
                     , Cmd.none
