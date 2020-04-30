@@ -129,7 +129,6 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 
 	// Write samples to disk
 	processSample := func(sample data.Sample) error {
-		fmt.Println("CLIFF: sample: ", sample)
 		var s string
 		switch sample.Type {
 		case isdata.SampleTypeFlowWindowAvg, isdata.SampleTypePressure:
