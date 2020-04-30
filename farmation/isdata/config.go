@@ -336,6 +336,7 @@ var migrations = []func(*Config){
 	migration0,
 	migration1,
 	migration2,
+	migration3,
 }
 
 // Filler migration - will never run
@@ -474,6 +475,7 @@ func (c *Config) Init(state *State) {
 			if v > state.DBConfig.DBVersion {
 				mig(c)
 				state.DBConfig.DBVersion = v
+				log.Println("Config migration number", v)
 			}
 		}
 	}
