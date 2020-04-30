@@ -38,8 +38,8 @@ func (s *OperatingModeSetupScreen) Render(img draw.Image) {
 	helpPresLow := isdata.HelpScreenContent{
 		Name: "Pressure Low",
 		Text: "If Pressure Shutdown is ON, at the time of Arming this value is used to " +
-			"calculate the pressure level at which the InjectorSentry will shut down the " +
-			"irrigation system due to a drop in injection line pressure. The percentage " +
+			"calculate the pressure level at which the InjectorSentry will alarm " +
+			"due to a drop in injection line pressure. The percentage " +
 			"value entered is the amount below the base pressure and is used at the time " +
 			"of arming to set the minimum pressure threshold.",
 	}
