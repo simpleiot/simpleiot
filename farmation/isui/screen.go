@@ -88,7 +88,7 @@ func NewScreens(state *isdata.State, config *isdata.Config, db *isdb.IsDb) *Scre
 		config:       config,
 		dialog:       NewDialogScreen(),
 		dialogArmReq: NewDialogArmReqScreen(config, state),
-		helpScreen:   NewHelpScreenUI(),
+		helpScreen:   NewHelpScreenUI("", [][]string{{""}}),
 	}
 
 	ret.screens = make(map[ScreenID]Widget)
@@ -194,7 +194,14 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		// If the dialog isn't nil (active dialogs), handle keys as coming
 		// from the dialog
 		if currentDialog != nil {
-			// when the back key is pressed
+
+			if currentDialog.ID == isdata.DialogArmReq {
+				_, _, handled := s.dialogArmReq.Key(key)
+				if handled {
+					return ScreenIDNoChange, nil, true
+				}
+			}
+
 			switch key {
 			case isdata.KeySK1Release: // OK
 
@@ -230,29 +237,8 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 		if s.config.HelpScreen.Active {
 
-			switch key {
+			return ScreenIDNoChange, s.helpScreen.Key(key), true
 
-			case isdata.KeySK1Release, isdata.KeySK1Hold: // Back
-				// Close the help screen
-				return ScreenIDNoChange, isdata.HelpScreenClose{}, true
-
-			case isdata.KeyDown, isdata.KeyDownHold: // Arrow Down
-				// Scroll down
-				s.helpScreen.Index++
-				indexEnd := len(s.helpScreen.Screens) - 1
-				if s.helpScreen.Index > indexEnd {
-					s.helpScreen.Index = indexEnd
-				}
-
-			case isdata.KeyUp, isdata.KeyUpHold: // Arrow Up
-				// Scroll up
-				s.helpScreen.Index--
-				if s.helpScreen.Index < 0 {
-					s.helpScreen.Index = 0
-				}
-			}
-
-			return ScreenIDNoChange, nil, true
 		}
 	}
 
