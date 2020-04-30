@@ -9,12 +9,11 @@ import (
 
 // DialogArmReqScreen is used to display modal dialog messages
 type DialogArmReqScreen struct {
-	config            *isdata.Config
-	state             *isdata.State
-	softKeys          *SoftKeys
-	helpScreenActive  bool
-	helpScreen        *HelpScreenUI
-	helpScreenContent [][]string
+	config           *isdata.Config
+	state            *isdata.State
+	softKeys         *SoftKeys
+	helpScreenActive bool
+	helpScreen       *HelpScreenUI
 }
 
 // NewDialogArmReqScreen creates a new dialog screen
