@@ -20,16 +20,16 @@ type DialogArmReqScreen struct {
 // NewDialogArmReqScreen creates a new dialog screen
 func NewDialogArmReqScreen(config *isdata.Config, state *isdata.State) *DialogArmReqScreen {
 	return &DialogArmReqScreen{
-		config:     config,
-		state:      state,
-		softKeys:   NewSoftKeys("OK"),
-		helpScreen: NewHelpScreenUI(),
-		helpScreenContent: SplitScreens(SplitTextLines("Irrigator, Water and Injector " +
-			"Command need to be on in order to arm. If Injector Command is not on be sure " +
-			"that correct pump command source is selected. This is accessed by the pump " +
-			"key. Flow rate needs to be greater than 5 and base pressure needs to be higher " +
-			"than start pressure to arm. Start pressure can be changed or disabled in the " +
-			"Operating Mode Setup screen.")),
+		config:   config,
+		state:    state,
+		softKeys: NewSoftKeys("OK", "help"),
+		helpScreen: NewHelpScreenUI("Arming Requirements",
+			SplitScreens(SplitTextLines("Irrigator, Water and Injector "+
+				"Command need to be on in order to arm. If Injector Command is not on be sure "+
+				"that correct pump command source is selected. This is accessed by the pump "+
+				"key. Flow rate needs to be greater than 5 and base pressure needs to be higher "+
+				"than start pressure to arm. Start pressure can be changed or disabled in the "+
+				"Operating Mode Setup screen."))),
 	}
 }
 
@@ -66,6 +66,26 @@ func (s *DialogArmReqScreen) Render(img draw.Image) {
 
 	} else {
 		s.helpScreen.Render(img)
+	}
+}
+
+func (s *DialogArmReqScreen) Key(key isdata.Key) (ScreenID, interface{}, bool) {
+	if !s.helpScreenActive {
+		if key == isdata.KeySK2 {
+			s.helpScreenActive = true
+			return ScreenIDNoChange, nil, true
+		}
+		// return false as last argument so Key method in screen.go will
+		// handle keys for this screen state
+		return ScreenIDNoChange, nil, false
+	} else {
+		if key == isdata.KeySK1Release {
+			s.helpScreenActive = false
+		} else {
+			s.helpScreen.Key(key)
+		}
+
+		return ScreenIDNoChange, nil, true
 	}
 }
 

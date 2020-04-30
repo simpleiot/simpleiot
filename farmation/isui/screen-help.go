@@ -30,8 +30,10 @@ type HelpScreenUI struct {
 
 // NewHelpScreenUI initializes this structure. It must be used so that
 // the value of this pointer is not nil.
-func NewHelpScreenUI() *HelpScreenUI {
+func NewHelpScreenUI(name string, screens [][]string) *HelpScreenUI {
 	return &HelpScreenUI{
+		Name:     name,
+		Screens:  screens,
 		softKeys: NewSoftKeys("back"),
 	}
 }
@@ -120,13 +122,13 @@ func (h *HelpScreenUI) Render(img draw.Image) {
 }
 
 // Key handles the key strokes for a help screen
-func (h *HelpScreenUI) Key(key isdata.Key) (ScreenID, interface{}, bool) {
+func (h *HelpScreenUI) Key(key isdata.Key) interface{} {
 
 	switch key {
 
 	case isdata.KeySK1Release, isdata.KeySK1Hold: // Back
 		// Close the help screen
-		return ScreenIDNoChange, isdata.HelpScreenClose{}, true
+		return isdata.HelpScreenClose{}
 
 	case isdata.KeyDown, isdata.KeyDownHold: // Arrow Down
 		// Scroll down
@@ -144,7 +146,7 @@ func (h *HelpScreenUI) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 		}
 	}
 
-	return ScreenIDNoChange, nil, true
+	return nil
 }
 
 // SplitScreens splits a 1D slice of strings into a 2D slice of groups
