@@ -444,6 +444,16 @@ func migration2(c *Config) {
 	}
 }
 
+func migration3(c *Config) {
+	if c.PulseOutputK <= 0 || c.PulseOutputK == 1500 {
+		c.PulseOutputK = 1200
+	}
+
+	c.OperatingMode = ISOperatingModeMonitorAndShutdown
+
+	c.PressureShutdownEnabled = true
+}
+
 // Init is used to inialize the config
 func (c *Config) Init(state *State) {
 
