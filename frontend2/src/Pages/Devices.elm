@@ -120,6 +120,7 @@ update context msg model =
             )
 
 
+
 type alias DeviceEdit =
     { id : String
     , description : String
@@ -131,7 +132,7 @@ type alias DeviceEdit =
 
 
 subscriptions : Types.PageContext route Global.Model -> Model -> Sub Msg
-subscriptions context model =
+subscriptions _ _ =
     Sub.batch
         [ Time.every 1000 Tick
         ]

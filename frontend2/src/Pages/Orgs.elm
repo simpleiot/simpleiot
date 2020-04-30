@@ -213,16 +213,6 @@ viewUser user =
     viewItem
         [ text user.first
         , text user.last
-        , viewRole
-            { role = "user"
-            , value = hasRole "user" user
-            , action = EditRole
-            }
-        , viewRole
-            { role = "admin"
-            , value = hasRole "admin" user
-            , action = EditRole
-            }
         ]
 
 

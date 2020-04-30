@@ -212,7 +212,6 @@ func users(store *bolthold.Store) ([]data.User, error) {
 				LastName:  user.LastName,
 				Email:     user.Email,
 				Pass:      user.Pass,
-				Roles:     r,
 			}
 		}
 		return nil
