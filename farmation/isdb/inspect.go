@@ -21,6 +21,11 @@ func DbDumpSamples(dataDir string) error {
 
 	count := 0
 
+	err = dbData.ReadSamples(10000, func(s data.Sample) error {
+		fmt.Printf("%+v\n", s)
+		return nil
+	})
+
 	err = dbData.store.ForEach(nil, func(samp *data.Sample) error {
 		fmt.Printf("%+v\n", samp)
 		count++

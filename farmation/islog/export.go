@@ -125,8 +125,11 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 
 	expTimeFormat := "2006-01-02T15:04:05Z07:00"
 
+	count := 0
+
 	// Write samples to disk
 	processSample := func(sample data.Sample) error {
+		fmt.Println("CLIFF: sample: ", sample)
 		var s string
 		switch sample.Type {
 		case isdata.SampleTypeFlowWindowAvg, isdata.SampleTypePressure:
@@ -181,6 +184,8 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 			return nil
 		}
 
+		count++
+
 		err := historyData.Write(s)
 		if err != nil {
 			return err
@@ -194,7 +199,7 @@ func exportHistoryData(state *isdata.State, db *isdb.IsDb, out chan interface{})
 	// Extract samples from database
 	err := db.ReadSamples(10000, processSample)
 
-	log.Println("Time to export samples: ", time.Since(start))
+	log.Printf("Time to export %v samples: %v", count, time.Since(start))
 
 	if err != nil {
 		log.Println("Error exporting data: ", err)

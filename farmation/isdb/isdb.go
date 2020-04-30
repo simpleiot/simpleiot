@@ -131,7 +131,9 @@ func (db *IsDb) ReadSamples(cnt int, callback func(s data.Sample) error) error {
 		count := 0
 
 		// rewind 5000 records
-		for k, _ := c.Last(); k != nil && count <= cnt; c.Prev() {
+		var k, v []byte
+		for k, _ = c.Last(); k != nil && count <= cnt; k, _ = c.Prev() {
+			fmt.Println("CLIFF: rewinding")
 			count++
 		}
 
@@ -140,8 +142,12 @@ func (db *IsDb) ReadSamples(cnt int, callback func(s data.Sample) error) error {
 			return nil
 		}
 
+		if k == nil {
+			k, _ = c.First()
+		}
+
 		// now replay forward to end of records
-		for k, v := c.Next(); k != nil; k, v = c.Next() {
+		for ; k != nil; k, v = c.Next() {
 			tUnix := btoi(k)
 			t := time.Unix(0, tUnix)
 
