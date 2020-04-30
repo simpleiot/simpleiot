@@ -1153,6 +1153,10 @@ func Run(params Params) {
 					state.DBConfig.DBVersion = 0
 					isdata.InitState(&state)
 					config.Init(&state)
+					state.SerialNumber = params.SerialNumber
+					state.ViewMsg = params.ViewMsg
+					state.HWVersion = isio.GetHwID()
+
 					saveState()
 					saveConfig()
 
