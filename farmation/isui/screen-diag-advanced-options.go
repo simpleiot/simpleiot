@@ -32,6 +32,7 @@ func (s *DiagAdvancedOptionsScreen) Render(img draw.Image) {
 	s.menu.ResetItems()
 
 	// Advanced Export Options
+	s.menu.AddItemScreen("Storage Admin", ScreenIDStorage)
 	s.menu.AddItemCommand("System Logs", "export", isdata.ExportSystemLogs{})
 	s.menu.AddItemCommand("Config", "export", isdata.ExportConfig{})
 
