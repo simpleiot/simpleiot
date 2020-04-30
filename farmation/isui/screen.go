@@ -230,29 +230,8 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 
 		if s.config.HelpScreen.Active {
 
-			switch key {
+			return s.helpScreen.Key(key)
 
-			case isdata.KeySK1Release, isdata.KeySK1Hold: // Back
-				// Close the help screen
-				return ScreenIDNoChange, isdata.HelpScreenClose{}, true
-
-			case isdata.KeyDown, isdata.KeyDownHold: // Arrow Down
-				// Scroll down
-				s.helpScreen.Index++
-				indexEnd := len(s.helpScreen.Screens) - 1
-				if s.helpScreen.Index > indexEnd {
-					s.helpScreen.Index = indexEnd
-				}
-
-			case isdata.KeyUp, isdata.KeyUpHold: // Arrow Up
-				// Scroll up
-				s.helpScreen.Index--
-				if s.helpScreen.Index < 0 {
-					s.helpScreen.Index = 0
-				}
-			}
-
-			return ScreenIDNoChange, nil, true
 		}
 	}
 

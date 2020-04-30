@@ -46,7 +46,7 @@ func (h *HelpScreenUI) UpdateContent(configHelpScreen isdata.HelpScreen) {
 		return
 	}
 
-	h.Screens = splitScreens(splitTextLines(configHelpScreen.Text))
+	h.Screens = SplitScreens(SplitTextLines(configHelpScreen.Text))
 	h.Index = 0
 	h.Name = configHelpScreen.Name
 }
@@ -119,7 +119,37 @@ func (h *HelpScreenUI) Render(img draw.Image) {
 	}
 }
 
-func splitScreens(lines []string) (screens [][]string) {
+// Key handles the key strokes for a help screen
+func (h *HelpScreenUI) Key(key isdata.Key) (ScreenID, interface{}, bool) {
+
+	switch key {
+
+	case isdata.KeySK1Release, isdata.KeySK1Hold: // Back
+		// Close the help screen
+		return ScreenIDNoChange, isdata.HelpScreenClose{}, true
+
+	case isdata.KeyDown, isdata.KeyDownHold: // Arrow Down
+		// Scroll down
+		h.Index++
+		indexEnd := len(h.Screens) - 1
+		if h.Index > indexEnd {
+			h.Index = indexEnd
+		}
+
+	case isdata.KeyUp, isdata.KeyUpHold: // Arrow Up
+		// Scroll up
+		h.Index--
+		if h.Index < 0 {
+			h.Index = 0
+		}
+	}
+
+	return ScreenIDNoChange, nil, true
+}
+
+// SplitScreens splits a 1D slice of strings into a 2D slice of groups
+// of four slices of strings
+func SplitScreens(lines []string) (screens [][]string) {
 
 	for i := 4; i < len(lines); i = i {
 		screens = append(screens, lines[:i])
@@ -129,7 +159,9 @@ func splitScreens(lines []string) (screens [][]string) {
 	return append(screens, lines)
 }
 
-func splitTextLines(s string) (lines []string) {
+// SplitTextLines splits a string into lines of 122 pixel length
+// assumes tightPixel15 font
+func SplitTextLines(s string) (lines []string) {
 
 	words := strings.SplitN(s, " ", 1000)
 
