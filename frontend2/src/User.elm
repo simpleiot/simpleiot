@@ -6,7 +6,7 @@ module User exposing
     )
 
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (hardcoded, optional, required)
+import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 
 
@@ -19,6 +19,7 @@ type alias User =
     }
 
 
+empty : User
 empty =
     { id = ""
     , email = ""
@@ -33,6 +34,7 @@ decodeList =
     Decode.list decode
 
 
+decode : Decode.Decoder User
 decode =
     Decode.succeed User
         |> required "id" Decode.string
@@ -60,6 +62,7 @@ type alias Role =
     }
 
 
+encodeRole : Role -> Encode.Value
 encodeRole role =
     Encode.object
         [ ( "id", Encode.string role.id )
@@ -69,10 +72,12 @@ encodeRole role =
         ]
 
 
+encodeRoles : List Role -> Encode.Value
 encodeRoles =
     Encode.list encodeRole
 
 
+decodeRole : Decode.Decoder Role
 decodeRole =
     Decode.succeed Role
         |> required "id" Decode.string
@@ -80,5 +85,7 @@ decodeRole =
         |> required "orgName" Decode.string
         |> required "description" Decode.string
 
+
+decodeRoles : Decode.Decoder (List Role)
 decodeRoles =
     Decode.list decodeRole

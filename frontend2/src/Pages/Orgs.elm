@@ -9,12 +9,9 @@ import Element.Input as Input
 import Generated.Params as Params
 import Global
 import Http
-import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Org as O
 import Spa.Page
 import Spa.Types as Types
-import Url.Builder as Url
 import User
 import Utils.Spa exposing (Page)
 import Utils.Styles exposing (palette, size)
@@ -42,12 +39,11 @@ type alias Model =
 
 
 init : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg, Cmd Global.Msg )
-init context _ =
+init _ _ =
     ( empty
     , Cmd.none
     , Spa.Page.send <| Global.RequestOrgs
     )
-
 
 
 empty =
@@ -75,18 +71,16 @@ update msg model =
               -- TODO: does this user exist?
             )
 
-        _ ->
-            ( model
-            , Cmd.none
-            , Cmd.none
-            )
+        EditRole _ _ ->
+            ( model, Cmd.none, Cmd.none )
+
 
 
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
