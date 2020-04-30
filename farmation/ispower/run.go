@@ -28,6 +28,7 @@ func Run(in, out chan interface{}) {
 	lastVcap := 0.0
 	powerLossCount := 0
 	vStartPowerLoss := 0.0
+	poweringOff := false
 
 	for {
 		select {
@@ -62,7 +63,7 @@ func Run(in, out chan interface{}) {
 			lastVcap = s.Value
 			averager.ResetAverage()
 
-			if powerLossCount > 3 {
+			if powerLossCount > 3 && !poweringOff {
 				log.Printf("after 3sec, backup voltage delta is: %.3f\n", s.Value-vStartPowerLoss)
 				if s.Value-vStartPowerLoss < -0.008 {
 					log.Println("Power loss for 3 seconds, shutting down")
@@ -78,7 +79,7 @@ func Run(in, out chan interface{}) {
 						log.Println("Error executing power off command")
 					} else {
 						// sleep forever waiting for power off
-						select {}
+						poweringOff = true
 					}
 
 				} else {
