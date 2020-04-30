@@ -60,13 +60,18 @@ func (l *Log) Write(line string) error {
 			return err
 		}
 
-		l.file.Write([]byte(l.heading + "\n"))
-	} else {
-		_, err := l.file.Write([]byte(line + "\n"))
+		_, err = l.file.Write([]byte(l.heading + "\n"))
 		if err != nil {
 			l.Close()
 			return err
 		}
+
+	}
+
+	_, err := l.file.Write([]byte(line + "\n"))
+	if err != nil {
+		l.Close()
+		return err
 	}
 
 	return nil
