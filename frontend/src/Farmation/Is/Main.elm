@@ -2,7 +2,6 @@ port module Farmation.Is.Main exposing (Msg(..), main, update, view)
 
 import Array
 import Bootstrap.Button as Button
-import Bootstrap.ButtonGroup as ButtonGroup
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Grid as Grid
@@ -11,8 +10,8 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Browser
 import Farmation.Is.Lcd as Lcd
 import Farmation.Is.Outputs as Outputs
-import Html exposing (Html, button, div, h2, h3, h4, input, map, option, select, text)
-import Html.Attributes exposing (class, placeholder, selected, type_, value)
+import Html exposing (Html, button, div, h2, h4, map, option, select, text)
+import Html.Attributes exposing (placeholder, selected, type_, value)
 import Html.Events exposing (on, onClick, onInput)
 import Html.Events.Extra exposing (targetValueIntParse)
 import Json.Decode
@@ -138,6 +137,7 @@ type Msg
     | ButtonWaterOn
     | ButtonDigIn
     | ButtonArm
+    | ButtonPump
     | ButtonLindsayWaterOn
     | ButtonLindsayAcc1
     | ButtonLindsayIrg
@@ -472,6 +472,13 @@ update msg model =
                 |> portOut
             )
 
+        ButtonPump ->
+            ( model
+            , Sample "simPump" "" 0
+                |> encodeSample
+                |> portOut
+            )
+
         Tick _ ->
             ( model, Cmd.none )
 
@@ -653,6 +660,14 @@ renderSimInputs inputs =
                     ]
                 ]
                 [ text "Arm" ]
+            , Button.button
+                [ Button.secondary
+                , Button.attrs
+                    [ Spacing.m1
+                    , onClick ButtonPump
+                    ]
+                ]
+                [ text "Pump" ]
             ]
         ]
 

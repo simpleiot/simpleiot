@@ -602,6 +602,9 @@ func Run(params Params) {
 						})
 					}
 
+				case isdata.SampleTypeSimPump:
+					uiChan <- isdata.KeyPump
+
 				case isdata.SampleTypeSimPanelType:
 					/*
 						newPanelType(isdata.PanelDefinition{

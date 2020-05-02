@@ -10,6 +10,7 @@ const (
 	SampleTypeSimGpioDigWaterOn   = "simGpioDigWaterOn"
 	SampleTypeSimGpioDigIn        = "simGpioDigIn"
 	SampleTypeSimArm              = "simArm"
+	SampleTypeSimPump             = "simPump"
 	SampleTypeSimLindsayAcc1      = "simLindsayAcc1"
 	SampleTypeSimLindsayWaterOn   = "simLindsayWaterOn"
 	SampleTypeSimLindsayIrrigator = "simLindsayIrrigator"
