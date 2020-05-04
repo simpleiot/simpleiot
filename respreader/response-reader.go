@@ -45,6 +45,11 @@ func (rrwc *ResponseReadWriteCloser) Write(buffer []byte) (int, error) {
 	return rrwc.writer.Write(buffer)
 }
 
+// SetTimeout can be used to update the reader timeout
+func (rrwc *ResponseReadWriteCloser) SetTimeout(timeout time.Duration) {
+	rrwc.reader.SetTimeout(timeout)
+}
+
 // Close is a passthrough call.
 func (rrwc *ResponseReadWriteCloser) Close() error {
 	rrwc.reader.closed = true
@@ -74,14 +79,19 @@ func NewResponseReadCloser(iorw io.ReadCloser, timeout time.Duration, chunkTimeo
 }
 
 // Read response using chunkTimeout and timeout
-func (rrwc *ResponseReadCloser) Read(buffer []byte) (int, error) {
-	return rrwc.reader.Read(buffer)
+func (rrc *ResponseReadCloser) Read(buffer []byte) (int, error) {
+	return rrc.reader.Read(buffer)
 }
 
 // Close is a passthrough call.
-func (rrwc *ResponseReadCloser) Close() error {
-	rrwc.reader.closed = true
-	return rrwc.closer.Close()
+func (rrc *ResponseReadCloser) Close() error {
+	rrc.reader.closed = true
+	return rrc.closer.Close()
+}
+
+// SetTimeout can be used to update the reader timeout
+func (rrc *ResponseReadCloser) SetTimeout(timeout time.Duration) {
+	rrc.reader.SetTimeout(timeout)
 }
 
 // ResponseReadWriter is a convenience type that implements io.ReadWriter. Write
@@ -112,6 +122,11 @@ func (rrw *ResponseReadWriter) Write(buffer []byte) (int, error) {
 	}
 
 	return rrw.writer.Write(buffer)
+}
+
+// SetTimeout can be used to update the reader timeout
+func (rrw *ResponseReadWriter) SetTimeout(timeout time.Duration) {
+	rrw.reader.SetTimeout(timeout)
 }
 
 // ResponseReader is used for prompt/response communication protocols where a prompt
@@ -207,6 +222,11 @@ func (rr *ResponseReader) Flush() (int, error) {
 			return count, nil
 		}
 	}
+}
+
+// SetTimeout can be used to update the reader timeout
+func (rr *ResponseReader) SetTimeout(timeout time.Duration) {
+	rr.timeout = timeout
 }
 
 // readInput is used by a goroutine to read data from the underlying io.Reader
