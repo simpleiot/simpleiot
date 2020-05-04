@@ -10,6 +10,9 @@ type Client struct {
 }
 
 // NewClient is used to create a new modbus client
+// port must return an entire packet for each Read().
+// github.com/simpleiot/simpleiot/respreader is a good
+// way to do this.
 func NewClient(port io.ReadWriter) *Client {
 	return &Client{
 		port: port,
