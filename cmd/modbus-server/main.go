@@ -48,7 +48,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	portRR := respreader.NewResponseReadWriteCloser(port, time.Second, time.Millisecond*50)
+	portRR := respreader.NewReadWriteCloser(port, time.Second, time.Millisecond*50)
 
 	serv := modbus.NewServer(1, portRR)
 	serv.Regs.AddCoil(128)

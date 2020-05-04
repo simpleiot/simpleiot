@@ -17,7 +17,7 @@ func TestRtuEndToEnd(t *testing.T) {
 	wire := NewIoSim(false)
 
 	// first set up the server (slave) to process data
-	portA := respreader.NewResponseReadWriter(wire.GetA(), time.Second*2,
+	portA := respreader.NewReadWriter(wire.GetA(), time.Second*2,
 		5*time.Millisecond)
 	slave := NewServer(id, portA)
 	slave.Regs.AddCoil(128)
@@ -34,7 +34,7 @@ func TestRtuEndToEnd(t *testing.T) {
 	})
 
 	// set up client (master)
-	portB := respreader.NewResponseReadWriter(wire.GetB(), time.Second*2,
+	portB := respreader.NewReadWriter(wire.GetB(), time.Second*2,
 		5*time.Millisecond)
 	master := NewClient(portB)
 

@@ -76,7 +76,7 @@ func (m *Modem) openCmdPort() error {
 		return err
 	}
 
-	m.atCmdPort = respreader.NewResponseReadWriteCloser(port, 10*time.Second,
+	m.atCmdPort = respreader.NewReadWriteCloser(port, 10*time.Second,
 		50*time.Millisecond)
 
 	return nil

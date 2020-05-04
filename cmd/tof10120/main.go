@@ -38,7 +38,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	portRR := respreader.NewResponseReadWriteCloser(port, time.Second, time.Millisecond*20)
+	portRR := respreader.NewReadWriteCloser(port, time.Second, time.Millisecond*20)
 
 	tof := sensors.NewTOF10120(portRR)
 

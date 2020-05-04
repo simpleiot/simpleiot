@@ -46,7 +46,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	portRR := respreader.NewResponseReadWriteCloser(port, time.Second*5, time.Millisecond*50)
+	portRR := respreader.NewReadWriteCloser(port, time.Second*5, time.Millisecond*50)
 	client := modbus.NewClient(portRR)
 
 	// Read discrete inputs.
