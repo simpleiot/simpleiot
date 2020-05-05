@@ -48,7 +48,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	portRR := respreader.NewReadWriteCloser(port, time.Second, time.Millisecond*50)
+	portRR := respreader.NewReadWriteCloser(port, time.Second, time.Millisecond*100)
 
 	serv := modbus.NewServer(1, portRR)
 	serv.Regs.AddCoil(128)
@@ -59,7 +59,7 @@ func main() {
 	}
 
 	// start slave so it can respond to requests
-	go serv.Listen(func(err error) {
+	go serv.Listen(9, func(err error) {
 		log.Println("modbus server listen error: ", err)
 	}, func(changes []modbus.RegChange) {
 		log.Printf("modbus changes: %+v\n", changes)

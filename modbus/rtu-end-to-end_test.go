@@ -27,7 +27,7 @@ func TestRtuEndToEnd(t *testing.T) {
 	}
 
 	// start slave so it can respond to requests
-	go slave.Listen(func(err error) {
+	go slave.Listen(0, func(err error) {
 		log.Println("modbus server listen error: ", err)
 	}, func(changes []RegChange) {
 		log.Printf("modbus changes: %+v\n", changes)
@@ -36,7 +36,7 @@ func TestRtuEndToEnd(t *testing.T) {
 	// set up client (master)
 	portB := respreader.NewReadWriter(wire.GetB(), time.Second*2,
 		5*time.Millisecond)
-	master := NewClient(portB)
+	master := NewClient(portB, 0)
 
 	coils, err := master.ReadCoils(id, 128, 1)
 	if err != nil {

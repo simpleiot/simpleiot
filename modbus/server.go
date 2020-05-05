@@ -2,6 +2,7 @@ package modbus
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 )
@@ -28,7 +29,10 @@ func NewServer(id byte, port io.ReadWriter) *Server {
 
 // Listen starts the server and listens for modbus requests
 // this function does not return unless and error occurs
-func (s *Server) Listen(errorCallback func(error),
+// The listen function supports various debug levels:
+// 1 - dump packets
+// 9 - dump raw data
+func (s *Server) Listen(debug int, errorCallback func(error),
 	changesCallback func([]RegChange)) {
 	for {
 		buf := make([]byte, 200)
@@ -47,6 +51,10 @@ func (s *Server) Listen(errorCallback func(error),
 
 		// parse packet from server
 		packet := buf[:cnt]
+
+		if debug >= 9 {
+			fmt.Println("Modbus server raw data received: ", HexDump(packet))
+		}
 
 		if packet[0] != s.id {
 			// packet is not for this device
