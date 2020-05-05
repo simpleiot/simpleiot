@@ -53,7 +53,7 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 		packet := buf[:cnt]
 
 		if debug >= 9 {
-			fmt.Println("Modbus server raw data received: ", HexDump(packet))
+			fmt.Println("Modbus server rx: ", HexDump(packet))
 		}
 
 		if packet[0] != s.id {
@@ -67,13 +67,17 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 			continue
 		}
 
-		pdu, err := RtuDecode(packet)
+		req, err := RtuDecode(packet)
 		if err != nil {
 			errorCallback(err)
 			continue
 		}
 
-		changes, resp, err := pdu.ProcessRequest(&s.Regs)
+		if debug >= 1 {
+			fmt.Println("Modbus server req: ", req)
+		}
+
+		changes, resp, err := req.ProcessRequest(&s.Regs)
 		if len(changes) > 0 {
 			changesCallback(changes)
 		}
@@ -83,10 +87,18 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 			continue
 		}
 
+		if debug >= 1 {
+			fmt.Println("Modbus server resp: ", resp)
+		}
+
 		respRtu, err := RtuEncode(s.id, resp)
 		if err != nil {
 			errorCallback(err)
 			continue
+		}
+
+		if debug >= 9 {
+			fmt.Println("Modbus server tx: ", HexDump(respRtu))
 		}
 
 		_, err = s.port.Write(respRtu)

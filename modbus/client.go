@@ -25,7 +25,11 @@ func NewClient(port io.ReadWriter, debug int) *Client {
 // ReadCoils is used to read modbus coils
 func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	ret := []bool{}
-	packet, err := RtuEncode(id, ReadCoils(coil, count))
+	req := ReadCoils(coil, count)
+	if c.debug >= 1 {
+		fmt.Println("Modbus Client Readcoils req: ", req)
+	}
+	packet, err := RtuEncode(id, req)
 	if err != nil {
 		return ret, err
 	}
