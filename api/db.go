@@ -194,25 +194,8 @@ func devices(store *bolthold.Store) (ret []data.Device, err error) {
 func users(store *bolthold.Store) ([]data.User, error) {
 	var ret []data.User
 	err := view(store, func(tx *bolt.Tx) error {
-		var users []User
-		if err := store.TxFind(tx, &users, nil); err != nil {
+		if err := store.TxFind(tx, &ret, nil); err != nil {
 			return err
-		}
-
-		ret = make([]data.User, len(users))
-		for i, user := range users {
-			r, err := userRolesData(store, tx, user.ID)
-			if err != nil {
-				return err
-			}
-
-			ret[i] = data.User{
-				ID:        user.ID,
-				FirstName: user.FirstName,
-				LastName:  user.LastName,
-				Email:     user.Email,
-				Pass:      user.Pass,
-			}
 		}
 		return nil
 	})
@@ -224,30 +207,6 @@ func org(store *bolthold.Store, tx *bolt.Tx, id uuid.UUID) (Org, error) {
 	var org Org
 	err := store.TxFindOne(tx, &org, bolthold.Where("ID").Eq(id))
 	return org, err
-}
-
-func userRolesData(store *bolthold.Store, tx *bolt.Tx, id uuid.UUID) ([]data.Role, error) {
-	var r []data.Role
-	roles, err := userRoles(store, tx, id)
-	if err != nil {
-		return r, err
-	}
-
-	r = make([]data.Role, len(roles))
-	for i, role := range roles {
-		org, err := org(store, tx, role.OrgID)
-		if err != nil {
-			return r, err
-		}
-
-		r[i] = data.Role{
-			ID:          role.ID,
-			OrgID:       role.OrgID,
-			OrgName:     org.Name,
-			Description: role.Description,
-		}
-	}
-	return r, nil
 }
 
 type privilege string
@@ -298,33 +257,6 @@ func userByID(store *bolthold.Store, id string) (*data.User, error) {
 			return err
 		}
 
-		roles, err := userRoles(store, tx, user.ID)
-		if err != nil {
-			return err
-		}
-
-		r := make([]data.Role, len(roles))
-		for i, role := range roles {
-			var org Org
-			if err := store.TxFindOne(tx, &org, bolthold.Where("ID").Eq(role.OrgID)); err != nil {
-				return err
-			}
-			r[i] = data.Role{
-				ID:          role.ID,
-				OrgID:       role.OrgID,
-				OrgName:     org.Name,
-				Description: role.Description,
-			}
-		}
-
-		ret = &data.User{
-			ID:        user.ID,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Email:     user.Email,
-			Pass:      user.Pass,
-			Roles:     r,
-		}
 		return nil
 	})
 	return ret, err
@@ -474,70 +406,26 @@ func orgDevices(store *bolthold.Store, tx *bolt.Tx, orgID uuid.UUID) ([]data.Dev
 }
 
 func insertUser(store *bolthold.Store, user data.User) (string, error) {
-	u := User{
-		ID:        uuid.New(),
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
-		Pass:      user.Pass,
-	}
+	id := uuid.New()
 
 	err := update(store, func(tx *bolt.Tx) error {
-		if err := store.TxInsert(tx, u.ID, user); err != nil {
+		if err := store.TxInsert(tx, id, user); err != nil {
 			return err
 		}
 
-		for _, role := range user.Roles {
-			role := Role{
-				ID:          uuid.New(),
-				UserID:      u.ID,
-				OrgID:       role.OrgID,
-				Description: role.Description,
-			}
-			if err := store.TxInsert(tx, role.ID, role); err != nil {
-				return err
-			}
-		}
 		return nil
 	})
 
-	return u.ID.String(), err
+	return id.String(), err
 }
 
 func updateUser(store *bolthold.Store, user data.User) error {
-	u := User{
-		ID:        user.ID,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
-		Pass:      user.Pass,
-	}
-
 	return update(store, func(tx *bolt.Tx) error {
-		if err := store.TxUpdate(tx, u.ID, user); err != nil {
+		if err := store.TxUpdate(tx, user.ID, user); err != nil {
 			return err
 		}
 
-		for _, role := range user.Roles {
-			// The frontend, when creating new roles, does not choose
-			// a UUID; that is the backend's responsibility. Thus if the
-			// given role ID is zero, it means the role is new and needs
-			// a fresh ID. Hence, we need to call TxUpsert rather than
-			// TxUpdate, so that new roles will be created automatically.
-			role := Role{
-				ID:          newIfZero(role.ID),
-				UserID:      u.ID,
-				OrgID:       role.OrgID,
-				Description: role.Description,
-			}
-			if err := store.TxUpsert(tx, role.ID, role); err != nil {
-				return err
-			}
-		}
-
-		// We also need to remove roles present in the
-		// database and absent from the new set of roles.
-		return cleanRoles(store, tx, user.ID, user.Roles)
+		return nil
 	})
 }
 
@@ -584,30 +472,10 @@ func cleanRoles(store *bolthold.Store, tx *bolt.Tx, userID uuid.UUID, newRoles [
 func orgs(store *bolthold.Store) ([]data.Org, error) {
 	var ret []data.Org
 	err := view(store, func(tx *bolt.Tx) error {
-		var orgs []Org
-		if err := store.TxFind(tx, &orgs, nil); err != nil {
+		if err := store.TxFind(tx, &ret, nil); err != nil {
 			return fmt.Errorf("problem finding orgs: %v", err)
 		}
 
-		ret = make([]data.Org, len(orgs))
-		for i, org := range orgs {
-			users, err := orgRoleUsers(store, tx, org.ID)
-			if err != nil {
-				return fmt.Errorf("problem finding org users: %v", err)
-			}
-
-			devices, err := orgDevices(store, tx, org.ID)
-			if err != nil {
-				return fmt.Errorf("problem finding org devices: %v", err)
-			}
-
-			ret[i] = data.Org{
-				ID:      org.ID,
-				Name:    org.Name,
-				Users:   users,
-				Devices: devices,
-			}
-		}
 		return nil
 	})
 	return ret, err
