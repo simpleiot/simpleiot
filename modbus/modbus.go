@@ -22,5 +22,6 @@ const (
 )
 
 var minPacketLen = map[FunctionCode]int{
-	FuncCodeReadCoils: 6,
+	FuncCodeReadCoils:            6,
+	FuncCodeReadHoldingRegisters: 7,
 }

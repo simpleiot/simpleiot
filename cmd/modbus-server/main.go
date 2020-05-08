@@ -48,13 +48,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	portRR := respreader.NewReadWriteCloser(port, time.Second, time.Millisecond*100)
+	portRR := respreader.NewReadWriteCloser(port, time.Second, time.Millisecond*30)
 
 	serv := modbus.NewServer(1, portRR)
 	serv.Regs.AddCoil(128)
 	err = serv.Regs.WriteCoil(128, true)
 	if err != nil {
 		log.Println("Error writing coil: ", err)
+		os.Exit(-1)
+	}
+
+	serv.Regs.AddReg(2)
+	err = serv.Regs.WriteReg(2, 0x1234)
+	if err != nil {
+		log.Println("Error writing reg: ", err)
 		os.Exit(-1)
 	}
 
@@ -69,6 +76,11 @@ func main() {
 		log.Println("Error opening modbus port: ", err)
 	}
 
-	select {}
+	value := true
 
+	for {
+		time.Sleep(time.Second * 10)
+		value = !value
+		serv.Regs.WriteCoil(128, value)
+	}
 }

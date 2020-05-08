@@ -103,6 +103,34 @@ func (p *PDU) RespReadBits() ([]bool, error) {
 	return ret, nil
 }
 
+// RespReadRegs reads register values from a
+// response PDU.
+func (p *PDU) RespReadRegs() ([]uint16, error) {
+	if len(p.Data) < 2 {
+		return []uint16{}, errors.New("not enough data")
+	}
+	switch p.FunctionCode {
+	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
+		// ok
+	default:
+		return []uint16{}, errors.New("invalid function code to read regs")
+	}
+
+	count := p.Data[0] / 2
+
+	if len(p.Data) < 1+int(count)*2 {
+		return []uint16{}, errors.New("RespReadRegs not enough data")
+	}
+
+	ret := make([]uint16, count)
+
+	for i := 0; i < int(count); i++ {
+		ret[i] = binary.BigEndian.Uint16(p.Data[1+i*2 : 1+i*2+2])
+	}
+
+	return ret, nil
+}
+
 // Add address units below are the packet address, typically drop
 // first digit from register and subtract 1
 

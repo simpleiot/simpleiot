@@ -27,7 +27,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	ret := []bool{}
 	req := ReadCoils(coil, count)
 	if c.debug >= 1 {
-		fmt.Println("Modbus Client Readcoils req: ", req)
+		fmt.Println("Modbus client Readcoils req: ", req)
 	}
 	packet, err := RtuEncode(id, req)
 	if err != nil {
@@ -35,7 +35,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	}
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus Client ReadCoils Write: ", HexDump(packet))
+		fmt.Println("Modbus client ReadCoils tx: ", HexDump(packet))
 	}
 
 	_, err = c.port.Write(packet)
@@ -53,7 +53,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	buf = buf[:cnt]
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus Client ReadCoils Read: ", HexDump(buf))
+		fmt.Println("Modbus client ReadCoils rx: ", HexDump(buf))
 	}
 
 	resp, err := RtuDecode(buf)
@@ -62,8 +62,54 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	}
 
 	if c.debug >= 1 {
-		fmt.Println("Modbus Client Readcoils resp: ", resp)
+		fmt.Println("Modbus client Readcoils resp: ", resp)
 	}
 
 	return resp.RespReadBits()
+}
+
+// ReadHoldingRegs is used to read modbus coils
+func (c *Client) ReadHoldingRegs(id byte, coil, count uint16) ([]uint16, error) {
+	ret := []uint16{}
+	req := ReadHoldingRegs(coil, count)
+	if c.debug >= 1 {
+		fmt.Println("Modbus client ReadHoldingRegs req: ", req)
+	}
+	packet, err := RtuEncode(id, req)
+	if err != nil {
+		return ret, err
+	}
+
+	if c.debug >= 9 {
+		fmt.Println("Modbus client ReadHoldingRegs tx: ", HexDump(packet))
+	}
+
+	_, err = c.port.Write(packet)
+	if err != nil {
+		return ret, err
+	}
+
+	// FIXME, what is max modbus packet size?
+	buf := make([]byte, 200)
+	cnt, err := c.port.Read(buf)
+	if err != nil {
+		return ret, err
+	}
+
+	buf = buf[:cnt]
+
+	if c.debug >= 9 {
+		fmt.Println("Modbus client ReadHoldingRegs rx: ", HexDump(buf))
+	}
+
+	resp, err := RtuDecode(buf)
+	if err != nil {
+		return ret, err
+	}
+
+	if c.debug >= 1 {
+		fmt.Println("Modbus client ReadHoldingRegs resp: ", resp)
+	}
+
+	return resp.RespReadRegs()
 }

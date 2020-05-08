@@ -46,15 +46,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	portRR := respreader.NewReadWriteCloser(port, time.Second*5, time.Millisecond*50)
+	portRR := respreader.NewReadWriteCloser(port, time.Second*1, time.Millisecond*30)
 	client := modbus.NewClient(portRR, 1)
 
 	// Read discrete inputs.
-	results, err := client.ReadCoils(1, 128, 1)
-	if len(results) != 1 {
+	coils, err := client.ReadCoils(1, 128, 1)
+	if len(coils) != 1 {
 		log.Println("Error: Expected one coil result")
 		os.Exit(-1)
 	}
 
-	log.Println("Coil results: ", results)
+	log.Println("Coil results: ", coils)
+
+	// read holding reg
+	regs, err := client.ReadHoldingRegs(1, 2, 1)
+	if len(regs) != 1 {
+		log.Println("Error: Expected one reg result")
+		os.Exit(-1)
+	}
+
+	log.Printf("Reg result: 0x%x\n", regs[0])
 }
