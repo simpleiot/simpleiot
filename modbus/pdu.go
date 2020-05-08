@@ -47,7 +47,7 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 				"Did not find modbus reg")
 		}
 		bitPos := address % 16
-		bitV := (v >> bitPos) & 0x1
+		bitV := (v >> uint(bitPos)) & 0x1
 		resp.Data = []byte{1, byte(bitV)}
 	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
 		address := binary.BigEndian.Uint16(p.Data[:2])
@@ -89,7 +89,7 @@ func (p *PDU) RespReadBits() ([]bool, error) {
 	count := p.Data[0]
 	ret := make([]bool, count)
 	byteIndex := 0
-	bitIndex := 0
+	bitIndex := uint(0)
 
 	for i := byte(0); i < count; i++ {
 		ret[i] = ((p.Data[byteIndex+1] >> bitIndex) & 0x1) == 0x1
