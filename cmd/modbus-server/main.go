@@ -59,7 +59,7 @@ func main() {
 	}
 
 	serv.Regs.AddReg(2)
-	err = serv.Regs.WriteReg(2, 0x1234)
+	err = serv.Regs.WriteReg(2, 5)
 	if err != nil {
 		log.Println("Error writing reg: ", err)
 		os.Exit(-1)
@@ -77,10 +77,26 @@ func main() {
 	}
 
 	value := true
+	regValue := 0
+	up := true
 
 	for {
 		time.Sleep(time.Second * 10)
+
 		value = !value
 		serv.Regs.WriteCoil(128, value)
+
+		if up {
+			regValue = regValue + 1
+			if regValue >= 10 {
+				up = false
+			}
+		} else {
+			regValue = regValue - 1
+			if regValue <= 0 {
+				up = true
+			}
+		}
+		serv.Regs.WriteReg(2, uint16(regValue))
 	}
 }
