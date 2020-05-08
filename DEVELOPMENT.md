@@ -1,7 +1,7 @@
 # Simple IoT Development
 
 This document attempts to outlines the basic architecture and development
-philosophy. The basics are covered in the [readme][readme.md]. As the name
+philosophy. The basics are covered in the [readme](readme.md). As the name
 suggests, a core value of the project is simplicity. Thus any changes should be
 made with this in mind. This project is far from perfect and there are likely
 many better ways to do things.
