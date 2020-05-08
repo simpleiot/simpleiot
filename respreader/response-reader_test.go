@@ -35,7 +35,7 @@ func (ds *dataSource) Read(data []byte) (int, error) {
 
 // the below test illustrates out the goroutine in the reader will close if you close
 // the underlying file descriptor.
-func TestResponseReaderClose(t *testing.T) {
+func TestReadCloser(t *testing.T) {
 	fifo := "rrfifo"
 	os.Remove(fifo)
 	err := exec.Command("mkfifo", fifo).Run()
@@ -53,7 +53,7 @@ func TestResponseReaderClose(t *testing.T) {
 			t.Error("Error opening fifo: ", err)
 		}
 
-		reader := NewResponseReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
+		reader := NewReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
 
 		fmt.Println("reader created")
 
@@ -118,7 +118,6 @@ func TestResponseReaderClose(t *testing.T) {
 // the below test illustrates out the goroutine in the reader will close if you close
 // the underlying serial port descriptor.
 func TestResponseReaderSerialPortClose(t *testing.T) {
-
 	fmt.Println("=============================")
 	fmt.Println("Testing serial port close")
 	readCnt := make(chan int)
@@ -140,7 +139,7 @@ func TestResponseReaderSerialPortClose(t *testing.T) {
 			t.Error("Error opening serial port: ", err)
 		}
 
-		reader := NewResponseReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
+		reader := NewReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
 
 		fmt.Println("reader created")
 
@@ -201,9 +200,9 @@ func TestResponseReaderSerialPortClose(t *testing.T) {
 }
 */
 
-func TestResponseReader(t *testing.T) {
+func TestReader(t *testing.T) {
 	source := &dataSource{}
-	reader := NewResponseReader(source, time.Second, time.Millisecond*10)
+	reader := NewReader(source, time.Second, time.Millisecond*10)
 
 	start := time.Now()
 	data := make([]byte, 100)
@@ -244,7 +243,7 @@ func (ds *dataSourceTimeout) Read(data []byte) (int, error) {
 
 func TestResponseReaderTimeout(t *testing.T) {
 	source := &dataSourceTimeout{}
-	reader := NewResponseReader(source, time.Second, time.Millisecond*10)
+	reader := NewReader(source, time.Second, time.Millisecond*10)
 
 	start := time.Now()
 	data := make([]byte, 100)
@@ -299,9 +298,9 @@ func (ds *dataSourceWrite) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func TestResponseReaderWrite(t *testing.T) {
+func TestReadWriter(t *testing.T) {
 	source := &dataSourceWrite{}
-	readWriter := NewResponseReadWriter(source, time.Second, time.Millisecond*10)
+	readWriter := NewReadWriter(source, time.Second, time.Millisecond*10)
 
 	writeData := []byte{1, 2}
 	readWriter.Write(writeData)

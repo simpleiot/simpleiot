@@ -47,7 +47,7 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 				"Did not find modbus reg")
 		}
 		bitPos := address % 16
-		bitV := (v >> bitPos) & 0x1
+		bitV := (v >> uint(bitPos)) & 0x1
 		resp.Data = []byte{1, byte(bitV)}
 	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
 		address := binary.BigEndian.Uint16(p.Data[:2])
@@ -89,7 +89,7 @@ func (p *PDU) RespReadBits() ([]bool, error) {
 	count := p.Data[0]
 	ret := make([]bool, count)
 	byteIndex := 0
-	bitIndex := 0
+	bitIndex := uint(0)
 
 	for i := byte(0); i < count; i++ {
 		ret[i] = ((p.Data[byteIndex+1] >> bitIndex) & 0x1) == 0x1
@@ -98,6 +98,34 @@ func (p *PDU) RespReadBits() ([]bool, error) {
 			byteIndex++
 			bitIndex = 0
 		}
+	}
+
+	return ret, nil
+}
+
+// RespReadRegs reads register values from a
+// response PDU.
+func (p *PDU) RespReadRegs() ([]uint16, error) {
+	if len(p.Data) < 2 {
+		return []uint16{}, errors.New("not enough data")
+	}
+	switch p.FunctionCode {
+	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
+		// ok
+	default:
+		return []uint16{}, errors.New("invalid function code to read regs")
+	}
+
+	count := p.Data[0] / 2
+
+	if len(p.Data) < 1+int(count)*2 {
+		return []uint16{}, errors.New("RespReadRegs not enough data")
+	}
+
+	ret := make([]uint16, count)
+
+	for i := 0; i < int(count); i++ {
+		ret[i] = binary.BigEndian.Uint16(p.Data[1+i*2 : 1+i*2+2])
 	}
 
 	return ret, nil

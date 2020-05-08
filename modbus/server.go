@@ -2,6 +2,7 @@ package modbus
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 )
@@ -28,7 +29,10 @@ func NewServer(id byte, port io.ReadWriter) *Server {
 
 // Listen starts the server and listens for modbus requests
 // this function does not return unless and error occurs
-func (s *Server) Listen(errorCallback func(error),
+// The listen function supports various debug levels:
+// 1 - dump packets
+// 9 - dump raw data
+func (s *Server) Listen(debug int, errorCallback func(error),
 	changesCallback func([]RegChange)) {
 	for {
 		buf := make([]byte, 200)
@@ -48,6 +52,10 @@ func (s *Server) Listen(errorCallback func(error),
 		// parse packet from server
 		packet := buf[:cnt]
 
+		if debug >= 9 {
+			fmt.Println("Modbus server rx: ", HexDump(packet))
+		}
+
 		if packet[0] != s.id {
 			// packet is not for this device
 			continue
@@ -59,13 +67,17 @@ func (s *Server) Listen(errorCallback func(error),
 			continue
 		}
 
-		pdu, err := RtuDecode(packet)
+		req, err := RtuDecode(packet)
 		if err != nil {
 			errorCallback(err)
 			continue
 		}
 
-		changes, resp, err := pdu.ProcessRequest(&s.Regs)
+		if debug >= 1 {
+			fmt.Println("Modbus server req: ", req)
+		}
+
+		changes, resp, err := req.ProcessRequest(&s.Regs)
 		if len(changes) > 0 {
 			changesCallback(changes)
 		}
@@ -75,10 +87,18 @@ func (s *Server) Listen(errorCallback func(error),
 			continue
 		}
 
+		if debug >= 1 {
+			fmt.Println("Modbus server resp: ", resp)
+		}
+
 		respRtu, err := RtuEncode(s.id, resp)
 		if err != nil {
 			errorCallback(err)
 			continue
+		}
+
+		if debug >= 9 {
+			fmt.Println("Modbus server tx: ", HexDump(respRtu))
 		}
 
 		_, err = s.port.Write(respRtu)
