@@ -2,9 +2,8 @@
 
 ![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=feature-auth)
 
-Simple IoT is collection of building blocks and best practices
-for building IoT systems, learned from experience building
-real-world systems.
+Simple IoT is collection of building blocks and best practices for building IoT
+systems, learned from experience building real-world systems.
 
 Demo is running at: https://portal.simpleiot.org/
 
@@ -12,7 +11,8 @@ Demo is running at: https://portal.simpleiot.org/
 
 ## Example 1 (build from source)
 
-This example shows how to run the server and simulator after cloning and building from source.
+This example shows how to run the server and simulator after cloning and
+building from source.
 
 - install elm v0.19.1 and Go v1.13 (newer versions may work)
 - git clone https://github.com/simpleiot/simpleiot.git
@@ -28,8 +28,8 @@ This example shows how to run the server and simulator after cloning and buildin
 ## Fetch data from Particle.io
 
 If you have Particle devices running
-[Simple IoT firmware](https://github.com/simpleiot/firmware), you can fetch the data by
-exporting the following environment variable:
+[Simple IoT firmware](https://github.com/simpleiot/firmware), you can fetch the
+data by exporting the following environment variable:
 
 `PARTICLE_API_KEY=<token>`
 
@@ -37,7 +37,8 @@ Particle API tokens can be managed by using the `particle token` cli command.
 
 ## Store sample data in influxdb
 
-You can store data in influxdb 1.x by exporting the following environment variables:
+You can store data in influxdb 1.x by exporting the following environment
+variables:
 
 - `INFLUX_URL`
 - `INFLUX_USER`
@@ -45,35 +46,36 @@ You can store data in influxdb 1.x by exporting the following environment variab
 
 ## Running unit tests
 
-There are not a lot of unit tests in the project yet, but below are some examples of
-running tests:
+There are not a lot of unit tests in the project yet, but below are some
+examples of running tests:
 
 - test everything: `go test ./...`
 - test only db directory: `go test ./db`
 
-The leading `./` is important, otherwise Go things you are giving it a package name,
-not a directory. The `...` tells Go to recursively test all subdirs.
+The leading `./` is important, otherwise Go things you are giving it a package
+name, not a directory. The `...` tells Go to recursively test all subdirs.
 
 ## Vision
 
 - built around collecting and visualizing data from devices
-- provide a good base system to build IoT products that may support a number of devices, users, rules, etc.
-- requires coding to customize. This is not a GUI for building IoT systems,
-  but rather a code base software developers can use as a starting point.
-- application technology is general, so you are not dependant on any one
-  IoT company or cloud provider
+- provide a good base system to build IoT products that may support a number of
+  devices, users, rules, etc.
+- requires coding to customize. This is not a GUI for building IoT systems, but
+  rather a code base software developers can use as a starting point.
+- application technology is general, so you are not dependant on any one IoT
+  company or cloud provider
 - plugin architecture for extending the system with custom functionality
-- easy to set up for small/mid size deployments -- not a lot of moving parts to worry about.
-  Can be deployed in-house if you don't need data in the cloud.
+- easy to set up for small/mid size deployments -- not a lot of moving parts to
+  worry about. Can be deployed in-house if you don't need data in the cloud.
 - simple deployment process (not a lot of pieces on the backend to manage)
   - Deployment/upgrade is as simple as copying one binary.
   - All assets are embedded.
-  - For small deployments (< 1000 devices), application is completely self contained
-    (no external databases or services are required).
+  - For small deployments (< 1000 devices), application is completely self
+    contained (no external databases or services are required).
 - Storage (config and sensor data) supports multiple databases
   - embedded db for small deployments
-  - (mongodb, Google Cloud Datastore, influxdb, etc) for larger deployments or other
-    needs.
+  - (mongodb, Google Cloud Datastore, influxdb, etc) for larger deployments or
+    other needs.
 
 ## features
 
@@ -99,8 +101,8 @@ not a directory. The `...` tells Go to recursively test all subdirs.
 
 ## Technology choices
 
-Choices for the technology stack emphasize simplicity, not only in the
-language, but just as important, in the deployment and tooling.
+Choices for the technology stack emphasize simplicity, not only in the language,
+but just as important, in the deployment and tooling.
 
 - **Backend**
   - [Go](https://golang.org/)
@@ -109,22 +111,24 @@ language, but just as important, in the deployment and tooling.
     - excellent tooling and build system
 - **Frontend**
   - Single Page Application (SPA) architecture
-    - programming environment is much more powerful than server rendered
-      pages (PHP, Rails, etc).
+    - programming environment is much more powerful than server rendered pages
+      (PHP, Rails, etc).
     - easier to transition to Progressive Web Apps (PWA)
   - [Elm](https://elm-lang.org/)
     - nice balance of safety + productivity
     - excellent compiler messages
     - reduces possibility for run time exceptions in browser
-    - does not require a huge/fragile build system typical in
-      Javascript frontends.
+    - does not require a huge/fragile build system typical in Javascript
+      frontends.
   - [Bootstrap](http://getbootstrap.com/)
-    - mature CSS toolkit that handles browser differences and
-      responsive design for mobile reasonably well.
+    - mature CSS toolkit that handles browser differences and responsive design
+      for mobile reasonably well.
     - widespread adoption and well understood by many developers
-    - well supported [bindings in Elm](https://package.elm-lang.org/packages/rundis/elm-bootstrap/latest/)
+    - well supported
+      [bindings in Elm](https://package.elm-lang.org/packages/rundis/elm-bootstrap/latest/)
 - **Database**
-  - Eventually support multiple databased backends depending on scaling/admin needs
+  - Eventually support multiple databased backends depending on scaling/admin
+    needs
   - Embedded db using [BoltHold](https://github.com/timshannon/bolthold)
     - no external services to configure/admin
 - **Hosting**
@@ -134,17 +138,18 @@ language, but just as important, in the deployment and tooling.
     - handle high-availability, scaling, etc.
   - (any server/hosting environment that supports Go apps can be used)
 
-In our experience, simplicity and good tooling matter. It is easy to add features
-to a language, but creating a useful language/tooling that is simple is hard.
-Since we are using Elm on the frontend, it might seem appropriate to select
-a functional language like Elixir, Scala, Clojure, etc. for the backend. These
-environments are likely excellent for many projects, but are also considerably more
-complex to work in. The programming style (procedural, functional, etc.) is important,
-but other factors such as simplicity/tooling/deployment are also important, especially
-for small teams who don't have separate staff for backend/frontend/operations. Learning two
-simple languages (Go and Elm) is a small task compared to dealing with huge
-languages, fussy build tools, and complex deployment environments.
+In our experience, simplicity and good tooling matter. It is easy to add
+features to a language, but creating a useful language/tooling that is simple is
+hard. Since we are using Elm on the frontend, it might seem appropriate to
+select a functional language like Elixir, Scala, Clojure, etc. for the backend.
+These environments are likely excellent for many projects, but are also
+considerably more complex to work in. The programming style (procedural,
+functional, etc.) is important, but other factors such as
+simplicity/tooling/deployment are also important, especially for small teams who
+don't have separate staff for backend/frontend/operations. Learning two simple
+languages (Go and Elm) is a small task compared to dealing with huge languages,
+fussy build tools, and complex deployment environments.
 
-This is just a snapshot in time -- there will likely be other better technology choices in the
-future. The backend and frontend are independent. If either needs
+This is just a snapshot in time -- there will likely be other better technology
+choices in the future. The backend and frontend are independent. If either needs
 to be swapped out for a better technology in the future, that is possible.
