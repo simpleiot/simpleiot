@@ -153,3 +153,12 @@ fussy build tools, and complex deployment environments.
 This is just a snapshot in time -- there will likely be other better technology
 choices in the future. The backend and frontend are independent. If either needs
 to be swapped out for a better technology in the future, that is possible.
+
+## Pull Requests Welcome
+
+We'd really like this to be a community project. See
+[development](DEVELOPMENT.md) for more information.
+
+## License
+
+Apache Version 2.0
