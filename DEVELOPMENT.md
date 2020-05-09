@@ -6,6 +6,11 @@ suggests, a core value of the project is simplicity. Thus any changes should be
 made with this in mind. This project is far from perfect and there are likely
 many better ways to do things.
 
+## Coding Standards
+
+Please run `siot_test` from `envsetup.sh` before submitting pull requests. All
+code should be formatted, and linted before committing.
+
 ## Frontend architecture
 
 Much of the frontend architecture is already defined by the Elm architecture.
