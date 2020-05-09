@@ -8,12 +8,11 @@ module Global exposing
     )
 
 import Device as D
-import Generated.Routes as Routes exposing (Route, routes)
+import Generated.Routes exposing (Route, routes)
 import Http
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (hardcoded, optional, required, resolve)
+import Json.Decode.Pipeline exposing (required, resolve)
 import Org as O
-import Time
 import Url.Builder as Url
 import User as U
 
@@ -36,6 +35,7 @@ type alias Session =
     }
 
 
+emptyData : Data
 emptyData =
     { orgs = []
     , users = []
@@ -93,6 +93,7 @@ login cred =
         }
 
 
+getData : string -> Http.request
 getData token =
     Http.request
         { method = "GET"
@@ -169,12 +170,12 @@ update commands msg model =
                     , commands.navigate routes.top
                     )
 
-                AuthResponse cred (Err error) ->
+                AuthResponse _ (Err error) ->
                     let
-                        _ = Debug.log "Auth error" error
+                        _ =
+                            Debug.log "Auth error" error
                     in
-                        (SignedOut (Just error), Cmd.none, Cmd.none)
-
+                    ( SignedOut (Just error), Cmd.none, Cmd.none )
 
                 _ ->
                     ( model
