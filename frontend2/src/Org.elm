@@ -5,7 +5,7 @@ module Org exposing
 
 import Device
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (hardcoded, optional, required)
+import Json.Decode.Pipeline exposing (required)
 import User
 
 
@@ -22,6 +22,7 @@ decodeList =
     Decode.list decode
 
 
+decode : Decode.Decoder Org
 decode =
     Decode.succeed Org
         |> required "id" Decode.string

@@ -1,12 +1,8 @@
 module Components.Button exposing (view)
 
-import Utils.Styles as Styles
-import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
+import Element exposing (Element, alpha)
 import Element.Input as Input
-import Html.Attributes as Attr
+import Utils.Styles as Styles
 
 
 view :

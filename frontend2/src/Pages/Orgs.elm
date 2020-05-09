@@ -46,6 +46,7 @@ init _ _ =
     )
 
 
+empty : Model
 empty =
     { error = Nothing
     , emails = Dict.empty
@@ -103,6 +104,7 @@ view context model =
         ]
 
 
+viewOrgs : Dict String String -> List O.Org -> Element Msg
 viewOrgs emails orgs =
     column
         [ width fill
@@ -112,6 +114,7 @@ viewOrgs emails orgs =
         List.map (viewOrg emails) orgs
 
 
+getEmail : Dict String String -> String -> String
 getEmail emails orgId =
     case Dict.get orgId emails of
         Just email ->
@@ -134,6 +137,7 @@ viewOrg emails org =
         ]
 
 
+viewItems : String -> O.Org -> Element Msg
 viewItems email org =
     wrappedRow
         [ width fill
@@ -159,6 +163,10 @@ viewUsers email org =
         ]
 
 
+
+-- label : String -> Element Msg
+
+
 label kind =
     kind
         [ padding 16
@@ -168,10 +176,12 @@ label kind =
         << text
 
 
+viewDevices : List Device.Device -> Element Msg
 viewDevices =
     viewList "Devices" viewDevice
 
 
+viewOrgName : String -> Element Msg
 viewOrgName name =
     el
         [ padding 16
@@ -181,6 +191,7 @@ viewOrgName name =
         text name
 
 
+viewList : String -> (a -> Element Msg) -> List a -> Element Msg
 viewList name fn list =
     column
         [ alignTop
@@ -192,6 +203,7 @@ viewList name fn list =
             ++ List.map fn list
 
 
+viewItem : List (Element Msg) -> Element Msg
 viewItem =
     wrappedRow
         [ padding 16
@@ -210,18 +222,19 @@ viewUser user =
         ]
 
 
-hasRole role user =
-    List.member role <| List.map .description user.roles
 
-
-viewRole { role, value, action } =
-    Input.checkbox
-        [ padding 16 ]
-        { checked = value
-        , icon = Input.defaultCheckbox
-        , label = label Input.labelRight role
-        , onChange = action role
-        }
+-- hasRole : String -> U.User -> Bool
+--hasRole role user =
+--    List.member role <| List.map .description user.roles
+--viewRole :
+--viewRole { role, value, action } =
+--    Input.checkbox
+--        [ padding 16 ]
+--        { checked = value
+--        , icon = Input.defaultCheckbox
+--        , label = label Input.labelRight role
+--        , onChange = action role
+--        }
 
 
 viewDevice : Device.Device -> Element Msg

@@ -16,15 +16,15 @@ import Global
 import Html.Events
 import Http
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (hardcoded, optional, required)
+import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
-import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
+import Sample exposing (Sample, renderSample)
 import Spa.Page
 import Spa.Types as Types
+import Time
 import Url.Builder as Url
 import Utils.Spa exposing (Page)
 import Utils.Styles exposing (palette, size)
-import Time
 
 
 page : Page Params.Devices Model Msg model msg appMsg
@@ -120,7 +120,6 @@ update context msg model =
             )
 
 
-
 type alias DeviceEdit =
     { id : String
     , description : String
@@ -152,7 +151,7 @@ view context model =
                 viewDevices sess.data.devices model.deviceEdits
 
             _ ->
-                el [ padding 16] <| text  "Sign in to view your devices."
+                el [ padding 16 ] <| text "Sign in to view your devices."
         ]
 
 

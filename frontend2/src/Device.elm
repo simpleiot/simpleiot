@@ -1,19 +1,20 @@
 module Device exposing
-    ( Device
-    , Config
+    ( Config
+    , Device
     , decodeList
     )
 
-import Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
-import Json.Encode as Encode
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (hardcoded, optional, required)
+import Json.Encode as Encode
+import Sample exposing (Sample, sampleDecoder)
+
 
 type alias Device =
     { id : String
     , config : Config
     , state : State
     }
+
 
 type alias Config =
     { description : String
@@ -23,7 +24,6 @@ type alias Config =
 type alias State =
     { ios : List Sample
     }
-
 
 
 decodeList : Decode.Decoder (List Device)
@@ -60,5 +60,3 @@ deviceConfigEncoder : Config -> Encode.Value
 deviceConfigEncoder deviceConfig =
     Encode.object
         [ ( "description", Encode.string deviceConfig.description ) ]
-
-

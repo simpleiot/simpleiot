@@ -10,7 +10,7 @@ import Generated.Params as Params
 import Global
 import Http
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (hardcoded, optional, required)
+import Json.Decode.Pipeline exposing (optional, required)
 import Spa.Page
 import Spa.Types as Types
 import Url.Builder as Url
@@ -102,7 +102,7 @@ update context msg model =
             , Cmd.none
             )
 
-        PostUser id user ->
+        PostUser _ user ->
             ( model
             , case context.global of
                 Global.SignedIn sess ->
@@ -141,7 +141,7 @@ getUsers token =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -160,6 +160,7 @@ view model =
         ]
 
 
+viewError : Maybe Http.Error -> Element Msg
 viewError error =
     case error of
         Just (Http.BadUrl str) ->
@@ -181,6 +182,7 @@ viewError error =
             none
 
 
+viewUsers : Dict String U.User -> List U.User -> Element Msg
 viewUsers edits users =
     column
         [ width fill
@@ -196,6 +198,7 @@ viewUsers edits users =
             users
 
 
+viewUser : Bool -> U.User -> Element Msg
 viewUser modded user =
     wrappedRow
         ([ width fill
@@ -263,6 +266,7 @@ button lbl color action =
         }
 
 
+modified : Dict String U.User -> U.User -> Bool
 modified edits user =
     case Dict.get user.id edits of
         Just u ->
@@ -272,6 +276,7 @@ modified edits user =
             False
 
 
+userValue : Dict String U.User -> U.User -> U.User
 userValue edits user =
     case Dict.get user.id edits of
         Just u ->
@@ -281,15 +286,25 @@ userValue edits user =
             user
 
 
-field edits user fld =
-    case Dict.get user.id edits of
-        Just u ->
-            fld u
 
-        Nothing ->
-            fld user
+-- field : Dict String U.User -> U.User -> String -> String
+--field edits user fld =
+--    case Dict.get user.id edits of
+--        Just u ->
+--            fld u
+--
+--        Nothing ->
+--            fld user
 
 
+type alias TextProperty =
+    { name : String
+    , value : String
+    , action : String -> Msg
+    }
+
+
+viewTextProperty : TextProperty -> Element Msg
 viewTextProperty { name, value, action } =
     Input.text
         [ padding 16
@@ -307,6 +322,10 @@ viewTextProperty { name, value, action } =
         }
 
 
+
+-- TODO label : String -> Element Msg
+
+
 label kind =
     kind
         [ padding 16
@@ -316,20 +335,19 @@ label kind =
         << text
 
 
-viewRoles =
-    row
-        []
-        << List.map viewRole
 
-
-viewRole { role, value, action } =
-    Input.checkbox
-        [ padding 16 ]
-        { checked = value
-        , icon = Input.defaultCheckbox
-        , label = label Input.labelRight role
-        , onChange = action
-        }
+--viewRoles =
+--    row
+--        []
+--        << List.map viewRole
+--viewRole { role, value, action } =
+--    Input.checkbox
+--        [ padding 16 ]
+--        { checked = value
+--        , icon = Input.defaultCheckbox
+--        , label = label Input.labelRight role
+--        , onChange = action
+--        }
 
 
 postUser : String -> String -> U.User -> Cmd Msg

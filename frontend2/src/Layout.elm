@@ -1,16 +1,11 @@
 module Layout exposing (view)
 
 import Components.Button
-import Utils.Styles as Styles
 import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
 import Global
-import Html.Attributes as Attr
-import Spa.Page
 import Utils.Spa as Spa
+import Utils.Styles as Styles
 
 
 view : Spa.LayoutContext msg -> Element msg
@@ -34,11 +29,11 @@ view { page, global, fromGlobalMsg } =
 viewError : Global.Model -> Element msg
 viewError model =
     case model of
-       Global.SignedOut (Just _) ->
-           el Styles.error (el [centerX] (text "Sign in failed") )
+        Global.SignedOut (Just _) ->
+            el Styles.error (el [ centerX ] (text "Sign in failed"))
 
-       _ ->
-           none
+        _ ->
+            none
 
 
 viewNavbar : Global.Model -> Element Global.Msg
@@ -62,16 +57,18 @@ viewNavbar model =
                 { label = text "SIOT"
                 , url = "/"
                 }
-                ::
-                case model of
-                    Global.SignedIn sess ->
-                        List.map viewLink [ ( "devices", "/devices" )
-                        , ( "users", "/users" )
-                        , ( "orgs", "/orgs" )
-                        ]
-                    Global.SignedOut _ ->
-                        List.map viewLink []
-             )
+                :: (case model of
+                        Global.SignedIn _ ->
+                            List.map viewLink
+                                [ ( "devices", "/devices" )
+                                , ( "users", "/users" )
+                                , ( "orgs", "/orgs" )
+                                ]
+
+                        Global.SignedOut _ ->
+                            List.map viewLink []
+                   )
+            )
         , el [ alignRight ] <|
             case model of
                 Global.SignedIn sess ->
@@ -82,7 +79,6 @@ viewNavbar model =
 
                 Global.SignedOut _ ->
                     viewButtonLink ( "sign in", "/sign-in" )
-
         ]
 
 

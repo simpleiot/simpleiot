@@ -93,7 +93,7 @@ login cred =
         }
 
 
-getData : string -> Http.request
+getData : String -> Cmd Msg
 getData token =
     Http.request
         { method = "GET"
@@ -106,6 +106,7 @@ getData token =
         }
 
 
+decodeData : Decode.Decoder Data
 decodeData =
     Decode.succeed Data
         |> required "orgs" O.decodeList
@@ -125,6 +126,7 @@ type Privilege
     | Root
 
 
+decodeAuth : Decode.Decoder Auth
 decodeAuth =
     Decode.succeed validate
         |> required "token" Decode.string
@@ -132,6 +134,7 @@ decodeAuth =
         |> resolve
 
 
+validate : String -> String -> Decode.Decoder Auth
 validate token privilege =
     case privilege of
         "user" ->
@@ -195,7 +198,7 @@ update commands msg model =
                     , commands.navigate routes.top
                     )
 
-                AuthResponse cred (Err err) ->
+                AuthResponse _ (Err err) ->
                     ( SignedOut (Just err)
                     , Cmd.none
                     , commands.navigate routes.signIn
@@ -251,6 +254,7 @@ getDevices token =
         }
 
 
+urlDevices : String
 urlDevices =
     Url.absolute [ "v1", "devices" ] []
 
