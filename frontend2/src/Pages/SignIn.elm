@@ -1,8 +1,5 @@
 module Pages.SignIn exposing (Model, Msg, page)
 
-import Spa.Page
-import Components.Button
-import Utils.Styles as Styles
 import Element exposing (..)
 import Element.Border as Border
 import Element.Font as Font
@@ -12,7 +9,9 @@ import Global
 import Html exposing (Html)
 import Html.Attributes as Attr
 import Html.Events as Events
+import Spa.Page
 import Utils.Spa exposing (Page)
+import Utils.Styles as Styles
 
 
 type alias Model =
@@ -47,7 +46,7 @@ page =
 
 
 init : Params.SignIn -> ( Model, Cmd Msg, Cmd Global.Msg )
-init flags =
+init _ =
     ( { email = ""
       , password = ""
       }
@@ -88,7 +87,7 @@ update msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 

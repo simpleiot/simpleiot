@@ -322,10 +322,7 @@ viewTextProperty { name, value, action } =
         }
 
 
-
--- TODO label : String -> Element Msg
-
-
+label : (List (Attribute msg) -> Element msg -> Input.Label msg) -> (String -> Input.Label msg)
 label kind =
     kind
         [ padding 16

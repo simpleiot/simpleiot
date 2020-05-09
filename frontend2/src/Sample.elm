@@ -1,8 +1,7 @@
 module Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
 
-import Html exposing (Html)
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (hardcoded, optional, required)
+import Json.Decode.Pipeline exposing (optional)
 import Json.Encode
 import Round
 

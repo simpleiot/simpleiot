@@ -54,38 +54,31 @@ encode user =
         ]
 
 
-type alias Role =
-    { id : String
-    , orgID : String
-    , orgName : String
-    , description : String
-    }
 
-
-encodeRole : Role -> Encode.Value
-encodeRole role =
-    Encode.object
-        [ ( "id", Encode.string role.id )
-        , ( "orgID", Encode.string role.orgID )
-        , ( "orgName", Encode.string role.orgName )
-        , ( "description", Encode.string role.description )
-        ]
-
-
-encodeRoles : List Role -> Encode.Value
-encodeRoles =
-    Encode.list encodeRole
-
-
-decodeRole : Decode.Decoder Role
-decodeRole =
-    Decode.succeed Role
-        |> required "id" Decode.string
-        |> required "orgID" Decode.string
-        |> required "orgName" Decode.string
-        |> required "description" Decode.string
-
-
-decodeRoles : Decode.Decoder (List Role)
-decodeRoles =
-    Decode.list decodeRole
+--type alias Role =
+--    { id : String
+--    , orgID : String
+--    , orgName : String
+--    , description : String
+--    }
+--encodeRole : Role -> Encode.Value
+--encodeRole role =
+--    Encode.object
+--        [ ( "id", Encode.string role.id )
+--        , ( "orgID", Encode.string role.orgID )
+--        , ( "orgName", Encode.string role.orgName )
+--        , ( "description", Encode.string role.description )
+--        ]
+--encodeRoles : List Role -> Encode.Value
+--encodeRoles =
+--    Encode.list encodeRole
+--decodeRole : Decode.Decoder Role
+--decodeRole =
+--    Decode.succeed Role
+--        |> required "id" Decode.string
+--        |> required "orgID" Decode.string
+--        |> required "orgName" Decode.string
+--        |> required "description" Decode.string
+--decodeRoles : Decode.Decoder (List Role)
+--decodeRoles =
+--    Decode.list decodeRole

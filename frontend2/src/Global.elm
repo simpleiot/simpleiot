@@ -174,10 +174,6 @@ update commands msg model =
                     )
 
                 AuthResponse _ (Err error) ->
-                    let
-                        _ =
-                            Debug.log "Auth error" error
-                    in
                     ( SignedOut (Just error), Cmd.none, Cmd.none )
 
                 _ ->

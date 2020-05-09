@@ -1,13 +1,13 @@
 module Utils.Styles exposing
     ( button
-    , error
     , colors
-    , palette
+    , error
     , fonts
-    , size
     , h1
     , h3
     , link
+    , palette
+    , size
     , transition
     )
 
@@ -18,6 +18,7 @@ import Element.Font as Font
 import Html.Attributes as Attr
 
 
+colors : { white : Color, jet : Color, coral : Color }
 colors =
     { white = rgb 1 1 1
     , jet = rgb255 40 40 40
@@ -25,6 +26,15 @@ colors =
     }
 
 
+palette :
+    { black : Color
+    , gray : Color
+    , pale : Color
+    , red : Color
+    , orange : Color
+    , yellow : Color
+    , green : Color
+    }
 palette =
     { black = rgb 0 0 0
     , gray = rgb 0.5 0.5 0.5
@@ -36,7 +46,7 @@ palette =
     }
 
 
-
+fonts : { sans : List Font.Font }
 fonts =
     { sans =
         [ Font.external
@@ -47,10 +57,13 @@ fonts =
         ]
     }
 
+
+size : { body : Attr dec msg, heading : Attr dec msg }
 size =
     { body = Font.size 16
     , heading = Font.size 20
     }
+
 
 link : List (Attribute msg)
 link =
@@ -134,3 +147,7 @@ transition { property, duration } =
 elWith : List (Attribute msg) -> List (Attribute msg) -> Element msg -> Element msg
 elWith styles otherStyles =
     el ([ Element.htmlAttribute (Attr.class "markdown") ] ++ styles ++ otherStyles)
+
+
+
+--  el ([ Element.htmlAttribute (Attr.class "markdown") ] ++ styles ++ otherStyles)

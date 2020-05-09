@@ -12,7 +12,7 @@ module Utils.Spa exposing
     )
 
 import Element exposing (Element)
-import Generated.Routes as Routes exposing (Route)
+import Generated.Routes exposing (Route)
 import Global
 import Spa.Page
 import Spa.Types

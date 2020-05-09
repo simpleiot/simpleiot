@@ -59,7 +59,6 @@ empty =
 
 type Msg
     = EditEmail String String
-    | EditRole String Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
@@ -69,11 +68,8 @@ update msg model =
             ( { model | emails = Dict.insert id email model.emails }
             , Cmd.none
             , Cmd.none
-              -- TODO: does this user exist?
+              -- FIXME: does this user exist?
             )
-
-        EditRole _ _ ->
-            ( model, Cmd.none, Cmd.none )
 
 
 
@@ -167,6 +163,7 @@ viewUsers email org =
 -- label : String -> Element Msg
 
 
+label : (List (Attribute Msg) -> Element Msg -> Input.Label Msg) -> (String -> Input.Label Msg)
 label kind =
     kind
         [ padding 16
@@ -245,6 +242,7 @@ viewDevice device =
         ]
 
 
+viewError : Maybe Http.Error -> Element Msg
 viewError error =
     case error of
         Just (Http.BadUrl str) ->

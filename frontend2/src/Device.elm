@@ -4,8 +4,9 @@ module Device exposing
     , decodeList
     )
 
+--import Json.Encode as Encode
+
 import Json.Decode as Decode
-import Json.Encode as Encode
 import Sample exposing (Sample, sampleDecoder)
 
 
@@ -56,7 +57,8 @@ deviceStateDecoder =
         (Decode.field "ios" samplesDecoder)
 
 
-deviceConfigEncoder : Config -> Encode.Value
-deviceConfigEncoder deviceConfig =
-    Encode.object
-        [ ( "description", Encode.string deviceConfig.description ) ]
+
+--deviceConfigEncoder : Config -> Encode.Value
+--deviceConfigEncoder deviceConfig =
+--    Encode.object
+--        [ ( "description", Encode.string deviceConfig.description ) ]
