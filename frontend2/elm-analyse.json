@@ -1,0 +1,7 @@
+{
+    "checks": {
+        "UseConsOverConcat": false,
+        "ImportAll": false,
+        "SingleFieldRecord": false
+    }
+}
