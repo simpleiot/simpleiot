@@ -111,11 +111,22 @@ siot_build_docs() {
   snowboard html docs/api.apib -o docs/api.html || return 1
 }
 
+# TODO finish this and add to siot_test ...
+check_go_format() {
+  gofiles=$(find . -name "*.go")
+  unformatted=$(gofmt -l "$gofiles")
+  if [ -n "$unformatted" ]; then
+    return 1
+  fi
+  return 0
+}
+
 # please run the following before pushing -- best if your editor can be set up
 # to do this automatically.
 siot_test() {
   siot_build_dependencies 2
-  go fmt ./...
+  (cd frontend2 && npx elm-analyse || return 1) || return 1
+  #gofmt -l ./... || return 1
   go test "$@" ./... || return 1
   golint -set_exit_status ./... || return 1
   go vet ./... || return 1
