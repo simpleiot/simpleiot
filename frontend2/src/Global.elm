@@ -236,6 +236,9 @@ update commands msg model =
                     )
 
                 UpdateDeviceConfig id config ->
+                    let
+                        devices = List.map \d ->
+                    in
                     ( model
                     , Cmd.none
                     , Cmd.none
