@@ -34,6 +34,7 @@ type alias Session =
     , privilege : Privilege
     , data : Data
     , error : Maybe Http.Error
+    , respError : Maybe String
     }
 
 
@@ -61,15 +62,19 @@ type alias Cred =
 type Msg
     = DevicesResponse (Result Http.Error (List D.Device))
     | OrgsResponse (Result Http.Error (List O.Org))
+    | UsersResponse (Result Http.Error (List U.User))
     | SignIn Cred
     | AuthResponse Cred (Result Http.Error Auth)
     | DataResponse (Result Http.Error Data)
     | RequestOrgs
     | RequestDevices
+    | RequestUsers
     | SignOut
     | Tick Time.Posix
     | UpdateDeviceConfig String D.Config
+    | UpdateUser U.User
     | ConfigPosted String (Result Http.Error Response)
+    | UserPosted String (Result Http.Error Response)
 
 
 type alias Commands msg =
@@ -83,6 +88,13 @@ init _ _ =
     , Cmd.none
     , Cmd.none
     )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.batch
+        [ Time.every 10000 Tick
+        ]
 
 
 login : Cred -> Cmd Msg
@@ -173,8 +185,9 @@ update commands msg model =
                         , privilege = privilege
                         , data = emptyData
                         , error = Nothing
+                        , respError = Nothing
                         }
-                    , getData token
+                    , Cmd.none
                     , commands.navigate routes.top
                     )
 
@@ -211,14 +224,56 @@ update commands msg model =
                     , Cmd.none
                     )
 
+                DataResponse (Err _) ->
+                    ( SignedIn { sess | respError = Just "Error getting data" }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
                 DevicesResponse (Ok devices) ->
                     ( SignedIn { sess | data = { data | devices = devices } }
                     , Cmd.none
                     , Cmd.none
                     )
 
+                DevicesResponse (Err _) ->
+                    ( SignedIn { sess | respError = Just "Error getting devices" }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                UsersResponse (Ok users) ->
+                    ( SignedIn { sess | data = { data | users = users } }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                UsersResponse (Err _) ->
+                    ( SignedIn { sess | respError = Just "Error getting users" }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                RequestDevices ->
+                    ( model
+                    , getDevices sess.authToken
+                    , Cmd.none
+                    )
+
+                RequestUsers ->
+                    ( model
+                    , getUsers sess.authToken
+                    , Cmd.none
+                    )
+
                 OrgsResponse (Ok orgs) ->
                     ( SignedIn { sess | data = { data | orgs = orgs } }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                OrgsResponse (Err _) ->
+                    ( SignedIn { sess | respError = Just "Error getting orgs" }
                     , Cmd.none
                     , Cmd.none
                     )
@@ -231,15 +286,59 @@ update commands msg model =
 
                 Tick _ ->
                     ( model
-                    , getDevices sess.authToken
+                    , Cmd.none
                     , Cmd.none
                     )
 
                 UpdateDeviceConfig id config ->
                     let
-                        devices = List.map \d ->
+                        updateConfig device =
+                            if device.id == id then
+                                { device | config = config }
+
+                            else
+                                device
+
+                        devices =
+                            List.map updateConfig sess.data.devices
+
+                        oldData =
+                            sess.data
+
+                        newData =
+                            { oldData | devices = devices }
                     in
-                    ( model
+                    ( SignedIn { sess | data = newData }
+                    , postConfig sess.authToken id config
+                    , Cmd.none
+                    )
+
+                UpdateUser user ->
+                    let
+                        -- update local model to make UI optimistic
+                        updateUser old =
+                            if old.id == user.id then
+                                user
+
+                            else
+                                old
+
+                        users =
+                            List.map updateUser sess.data.users
+                    in
+                    ( SignedIn { sess | data = { data | users = users } }
+                    , postUser sess.authToken user
+                    , Cmd.none
+                    )
+
+                ConfigPosted _ (Err _) ->
+                    ( SignedIn { sess | respError = Just "Error saving device config" }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                UserPosted _ (Err _) ->
+                    ( SignedIn { sess | respError = Just "Error saving user" }
                     , Cmd.none
                     , Cmd.none
                     )
@@ -316,8 +415,27 @@ getOrgs token =
         }
 
 
-subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.batch
-        [ Time.every 10000 Tick
-        ]
+getUsers : String -> Cmd Msg
+getUsers token =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "users" ] []
+        , expect = Http.expectJson UsersResponse U.decodeList
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postUser : String -> U.User -> Cmd Msg
+postUser token user =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "users", user.id ] []
+        , expect = Http.expectJson (UserPosted user.id) responseDecoder
+        , body = user |> U.encode |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }

@@ -49,7 +49,7 @@ init _ =
     ( { deviceEdits = Dict.empty
       }
     , Cmd.none
-    , Cmd.none
+    , Spa.Page.send Global.RequestDevices
     )
 
 
@@ -61,6 +61,7 @@ type Msg
     = EditDeviceDescription DeviceEdit
     | PostConfig String D.Config
     | DiscardEditedDeviceDescription String
+    | Tick Time.Posix
 
 
 type alias Response =
@@ -91,6 +92,12 @@ update _ msg model =
             , Cmd.none
             )
 
+        Tick _ ->
+            ( model
+            , Cmd.none
+            , Spa.Page.send Global.RequestDevices
+            )
+
 
 type alias DeviceEdit =
     { id : String
@@ -104,7 +111,9 @@ type alias DeviceEdit =
 
 subscriptions : Types.PageContext route Global.Model -> Model -> Sub Msg
 subscriptions _ _ =
-    Sub.none
+    Sub.batch
+        [ Time.every 1000 Tick
+        ]
 
 
 

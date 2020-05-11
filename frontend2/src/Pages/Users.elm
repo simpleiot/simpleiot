@@ -9,11 +9,8 @@ import Element.Input as Input
 import Generated.Params as Params
 import Global
 import Http
-import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (optional, required)
 import Spa.Page
 import Spa.Types as Types
-import Url.Builder as Url
 import User as U
 import Utils.Spa exposing (Page)
 import Utils.Styles exposing (palette, size)
@@ -21,12 +18,12 @@ import Utils.Styles exposing (palette, size)
 
 page : Page Params.Users Model Msg model msg appMsg
 page =
-    Spa.Page.element
+    Spa.Page.component
         { title = always "Users"
-        , init = init
+        , init = always init
         , update = update
-        , subscriptions = always subscriptions
-        , view = always view
+        , subscriptions = subscriptions
+        , view = view
         }
 
 
@@ -41,18 +38,14 @@ type alias Model =
     }
 
 
-init : Types.PageContext route Global.Model -> Params.Users -> ( Model, Cmd Msg )
-init context _ =
+init : Params.Users -> ( Model, Cmd Msg, Cmd Global.Msg )
+init _ =
     ( { users = []
       , userEdits = Dict.empty
       , error = Nothing
       }
-    , case context.global of
-        Global.SignedIn sess ->
-            getUsers sess.authToken
-
-        Global.SignedOut _ ->
-            Cmd.none
+    , Cmd.none
+    , Spa.Page.send Global.RequestUsers
     )
 
 
@@ -61,52 +54,33 @@ init context _ =
 
 
 type Msg
-    = UpdateUsers (Result Http.Error (List U.User))
-    | PostUser String U.User
-    | UserPosted String (Result Http.Error Response)
+    = PostUser String U.User
     | EditUser String U.User
     | DiscardUserEdits String
     | NewUser
 
 
-update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg )
+update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update context msg model =
     case msg of
-        UpdateUsers (Ok users) ->
-            ( { model | users = users }
-            , Cmd.none
-            )
-
-        UpdateUsers (Err err) ->
-            ( { model | error = Just err }
-            , Cmd.none
-            )
-
-        UserPosted id (Ok _) ->
-            ( { model | userEdits = Dict.remove id model.userEdits }
-            , case context.global of
-                Global.SignedIn sess ->
-                    getUsers sess.authToken
-
-                Global.SignedOut _ ->
-                    Cmd.none
-            )
-
         EditUser id user ->
             ( { model | userEdits = Dict.insert id user model.userEdits }
+            , Cmd.none
             , Cmd.none
             )
 
         DiscardUserEdits id ->
             ( { model | userEdits = Dict.remove id model.userEdits }
             , Cmd.none
+            , Cmd.none
             )
 
         PostUser _ user ->
             ( model
+            , Cmd.none
             , case context.global of
-                Global.SignedIn sess ->
-                    postUser sess.authToken user.id user
+                Global.SignedIn _ ->
+                    Spa.Page.send <| Global.UpdateUser user
 
                 Global.SignedOut _ ->
                     Cmd.none
@@ -115,33 +89,16 @@ update context msg model =
         NewUser ->
             ( { model | users = U.empty :: model.users }
             , Cmd.none
-            )
-
-        _ ->
-            ( model
             , Cmd.none
             )
-
-
-getUsers : String -> Cmd Msg
-getUsers token =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = Url.absolute [ "v1", "users" ] []
-        , expect = Http.expectJson UpdateUsers U.decodeList
-        , body = Http.emptyBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
 
 
 
 -- SUBSCRIPTIONS
 
 
-subscriptions : Model -> Sub Msg
-subscriptions _ =
+subscriptions : Types.PageContext route Global.Model -> Model -> Sub Msg
+subscriptions _ _ =
     Sub.none
 
 
@@ -149,15 +106,19 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> Element Msg
-view model =
-    column
-        [ width fill, spacing 32 ]
-        [ el [ padding 16, Font.size 24 ] <| text "Users"
-        , viewError model.error
-        , el [ padding 16, width fill, Font.bold ] <| button "new user" palette.green NewUser
-        , viewUsers model.userEdits model.users
-        ]
+view : Types.PageContext route Global.Model -> Model -> Element Msg
+view context model =
+    case context.global of
+        Global.SignedIn sess ->
+            column
+                [ width fill, spacing 32 ]
+                [ el [ padding 16, Font.size 24 ] <| text "Users"
+                , el [ padding 16, width fill, Font.bold ] <| button "new user" palette.green NewUser
+                , viewUsers model.userEdits sess.data.users
+                ]
+
+        _ ->
+            el [ padding 16 ] <| text "Sign in to view users."
 
 
 viewError : Maybe Http.Error -> Element Msg
@@ -345,31 +306,3 @@ label kind =
 --        , label = label Input.labelRight role
 --        , onChange = action
 --        }
-
-
-postUser : String -> String -> U.User -> Cmd Msg
-postUser token id user =
-    Http.request
-        { method = "POST"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = Url.absolute [ "v1", "users", id ] []
-        , expect = Http.expectJson (UserPosted id) responseDecoder
-        , body = user |> U.encode |> Http.jsonBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-type alias Response =
-    { success : Bool
-    , error : String
-    , id : String
-    }
-
-
-responseDecoder : Decode.Decoder Response
-responseDecoder =
-    Decode.succeed Response
-        |> required "success" Decode.bool
-        |> optional "error" Decode.string ""
-        |> optional "id" Decode.string ""

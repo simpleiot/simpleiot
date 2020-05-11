@@ -29,11 +29,19 @@ view { page, global, fromGlobalMsg } =
 viewError : Global.Model -> Element msg
 viewError model =
     case model of
+        Global.SignedOut Nothing ->
+            none
+
         Global.SignedOut (Just _) ->
             el Styles.error (el [ centerX ] (text "Sign in failed"))
 
-        _ ->
-            none
+        Global.SignedIn sess ->
+            case sess.respError of
+                Nothing ->
+                    none
+
+                Just error ->
+                    el Styles.error (el [ centerX ] (text error))
 
 
 viewNavbar : Global.Model -> Element Global.Msg

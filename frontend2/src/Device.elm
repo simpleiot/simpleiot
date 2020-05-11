@@ -57,12 +57,6 @@ deviceStateDecoder =
         (Decode.field "ios" samplesDecoder)
 
 
-updateConfig : String -> 
-
-updateConfig : List Device -> String -> Config -> List Device
-updateConfig devices id config =
-    let
-        update
 
 --deviceConfigEncoder : Config -> Encode.Value
 --deviceConfigEncoder deviceConfig =
