@@ -99,6 +99,14 @@ siot_run() {
   return 0
 }
 
+find_src_files() {
+  find . -not \( -path ./frontend2/elm-stuff -prune \) -not \( -path ./assets -prune \) -name "*.go" -o -name "*.elm"
+}
+
+siot_watch() {
+  find_src_files | entr -r /bin/sh -c ". ./envsetup.sh; siot_run 2 -debugHttp" "$@" 
+}
+
 siot_run_device_sim() {
   go run cmd/siot/main.go -sim || return 1
   return 0
