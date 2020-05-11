@@ -51,7 +51,6 @@ func main() {
 	flagDebugHTTP := flag.Bool("debugHttp", false, "Dump http requests")
 	flagSim := flag.Bool("sim", false, "Start device simulator")
 	flagDisableAuth := flag.Bool("disableAuth", false, "Disable auth (used for development)")
-	flagSimDeviceID := flag.String("simDeviceId", "1234", "Simulation Device ID")
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
@@ -77,7 +76,8 @@ func main() {
 	}
 
 	if *flagSim {
-		go sim.DeviceSim(*flagPortal, *flagSimDeviceID)
+		go sim.DeviceSim(*flagPortal, "1234")
+		go sim.DeviceSim(*flagPortal, "5678")
 	}
 
 	// default action is to start server
