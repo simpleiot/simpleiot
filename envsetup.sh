@@ -104,7 +104,7 @@ find_src_files() {
 }
 
 siot_watch() {
-  find_src_files | entr -r /bin/sh -c ". ./envsetup.sh; siot_run 2 -debugHttp" "$@" 
+  find_src_files | entr -r /bin/sh -c ". ./envsetup.sh; siot_run 2 -debugHttp -sim $@" 
 }
 
 siot_run_device_sim() {
