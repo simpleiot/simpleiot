@@ -121,28 +121,6 @@ view context model =
             el [ padding 16 ] <| text "Sign in to view users."
 
 
-viewError : Maybe Http.Error -> Element Msg
-viewError error =
-    case error of
-        Just (Http.BadUrl str) ->
-            text <| "bad URL: " ++ str
-
-        Just Http.Timeout ->
-            text "timeout"
-
-        Just Http.NetworkError ->
-            text "network error"
-
-        Just (Http.BadStatus status) ->
-            text <| "bad status: " ++ String.fromInt status
-
-        Just (Http.BadBody str) ->
-            text <| "bad body: " ++ str
-
-        Nothing ->
-            none
-
-
 viewUsers : Dict String U.User -> List U.User -> Element Msg
 viewUsers edits users =
     column

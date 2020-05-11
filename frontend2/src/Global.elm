@@ -110,27 +110,6 @@ login cred =
         }
 
 
-getData : String -> Cmd Msg
-getData token =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = Url.absolute [ "v1", "data" ] []
-        , expect = Http.expectJson DataResponse decodeData
-        , body = Http.emptyBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-decodeData : Decode.Decoder Data
-decodeData =
-    Decode.succeed Data
-        |> required "orgs" O.decodeList
-        |> required "devices" D.decodeList
-        |> required "users" U.decodeList
-
-
 type alias Auth =
     { token : String
     , privilege : Privilege
