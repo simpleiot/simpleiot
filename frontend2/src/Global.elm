@@ -11,8 +11,10 @@ import Device as D
 import Generated.Routes exposing (Route, routes)
 import Http
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (required, resolve)
+import Json.Decode.Pipeline exposing (optional, required, resolve)
+import Json.Encode as Encode
 import Org as O
+import Time
 import Url.Builder as Url
 import User as U
 
@@ -65,6 +67,9 @@ type Msg
     | RequestOrgs
     | RequestDevices
     | SignOut
+    | Tick Time.Posix
+    | UpdateDeviceConfig String D.Config
+    | ConfigPosted String (Result Http.Error Response)
 
 
 type alias Commands msg =
@@ -224,9 +229,15 @@ update commands msg model =
                     , Cmd.none
                     )
 
-                RequestDevices ->
+                Tick _ ->
                     ( model
                     , getDevices sess.authToken
+                    , Cmd.none
+                    )
+
+                UpdateDeviceConfig id config ->
+                    ( model
+                    , Cmd.none
                     , Cmd.none
                     )
 
@@ -245,6 +256,40 @@ getDevices token =
         , url = urlDevices
         , expect = Http.expectJson DevicesResponse D.decodeList
         , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+type alias Response =
+    { success : Bool
+    , error : String
+    , id : String
+    }
+
+
+deviceConfigEncoder : D.Config -> Encode.Value
+deviceConfigEncoder deviceConfig =
+    Encode.object
+        [ ( "description", Encode.string deviceConfig.description ) ]
+
+
+responseDecoder : Decode.Decoder Response
+responseDecoder =
+    Decode.succeed Response
+        |> required "success" Decode.bool
+        |> optional "error" Decode.string ""
+        |> optional "id" Decode.string ""
+
+
+postConfig : String -> String -> D.Config -> Cmd Msg
+postConfig token id config =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "devices", id, "config" ] []
+        , expect = Http.expectJson (ConfigPosted id) responseDecoder
+        , body = config |> deviceConfigEncoder |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -270,4 +315,6 @@ getOrgs token =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Sub.batch
+        [ Time.every 10000 Tick
+        ]

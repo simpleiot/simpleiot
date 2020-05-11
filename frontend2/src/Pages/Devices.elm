@@ -1,6 +1,7 @@
 module Pages.Devices exposing
     ( Model
     , Msg
+    , Response
     , page
     )
 
@@ -14,15 +15,11 @@ import Element.Input as Input
 import Generated.Params as Params
 import Global
 import Html.Events
-import Http
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (optional, required)
-import Json.Encode as Encode
 import Sample exposing (Sample, renderSample)
 import Spa.Page
 import Spa.Types as Types
 import Time
-import Url.Builder as Url
 import Utils.Spa exposing (Page)
 import Utils.Styles exposing (palette, size)
 
@@ -61,11 +58,9 @@ init _ =
 
 
 type Msg
-    = Tick Time.Posix
-    | EditDeviceDescription DeviceEdit
+    = EditDeviceDescription DeviceEdit
     | PostConfig String D.Config
     | DiscardEditedDeviceDescription String
-    | ConfigPosted String (Result Http.Error Response)
 
 
 type alias Response =
@@ -76,7 +71,7 @@ type alias Response =
 
 
 update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update context msg model =
+update _ msg model =
     case msg of
         EditDeviceDescription { id, description } ->
             ( { model | deviceEdits = Dict.insert id description model.deviceEdits }
@@ -85,36 +80,13 @@ update context msg model =
             )
 
         PostConfig id config ->
-            ( model
-            , case context.global of
-                Global.SignedIn sess ->
-                    postConfig sess.authToken id config
-
-                Global.SignedOut _ ->
-                    Cmd.none
-            , Cmd.none
-            )
-
-        ConfigPosted id (Ok _) ->
             ( { model | deviceEdits = Dict.remove id model.deviceEdits }
             , Cmd.none
-            , Cmd.none
+            , Spa.Page.send <| Global.UpdateDeviceConfig id config
             )
 
         DiscardEditedDeviceDescription id ->
             ( { model | deviceEdits = Dict.remove id model.deviceEdits }
-            , Cmd.none
-            , Cmd.none
-            )
-
-        Tick _ ->
-            ( model
-            , Cmd.none
-            , Spa.Page.send <| Global.RequestDevices
-            )
-
-        _ ->
-            ( model
             , Cmd.none
             , Cmd.none
             )
@@ -132,9 +104,7 @@ type alias DeviceEdit =
 
 subscriptions : Types.PageContext route Global.Model -> Model -> Sub Msg
 subscriptions _ _ =
-    Sub.batch
-        [ Time.every 1000 Tick
-        ]
+    Sub.none
 
 
 
@@ -316,30 +286,3 @@ onEnter msg =
                     )
             )
         )
-
-
-deviceConfigEncoder : D.Config -> Encode.Value
-deviceConfigEncoder deviceConfig =
-    Encode.object
-        [ ( "description", Encode.string deviceConfig.description ) ]
-
-
-postConfig : String -> String -> D.Config -> Cmd Msg
-postConfig token id config =
-    Http.request
-        { method = "POST"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = Url.absolute [ "v1", "devices", id, "config" ] []
-        , expect = Http.expectJson (ConfigPosted id) responseDecoder
-        , body = config |> deviceConfigEncoder |> Http.jsonBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-responseDecoder : Decode.Decoder Response
-responseDecoder =
-    Decode.succeed Response
-        |> required "success" Decode.bool
-        |> optional "error" Decode.string ""
-        |> optional "id" Decode.string ""
