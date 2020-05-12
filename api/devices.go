@@ -175,8 +175,12 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 					http.Error(res, err.Error(), http.StatusNotFound)
 					return
 				}
-				en := json.NewEncoder(res)
-				en.Encode(devices)
+				if len(devices) > 0 {
+					en := json.NewEncoder(res)
+					en.Encode(devices)
+				} else {
+					res.Write([]byte("[]"))
+				}
 			default:
 				http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 			}
