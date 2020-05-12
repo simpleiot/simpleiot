@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/http/httputil"
 
 	"github.com/simpleiot/simpleiot/db"
 )
@@ -37,24 +36,11 @@ type App struct {
 	PublicHandler http.Handler
 	IndexHandler  http.Handler
 	V1ApiHandler  http.Handler
-	Debug         bool
 }
 
 // Top level handler for http requests in the coap-server process
 func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
-
-	if h.Debug {
-		dump, _ := httputil.DumpRequest(req, true)
-		body, err := req.GetBody()
-		if err == nil {
-			buf := bytes.Buffer{}
-			_, err = buf.ReadFrom(body)
-			log.Printf("HTTP %v: %v -> %v\n", req.Method, req.URL.Path, string(buf.Bytes()))
-		} else {
-			log.Printf("HTTP %v: %v\n", req.Method, req.URL.Path)
-		}
-	}
 
 	switch req.URL.Path {
 	case "/", "/orgs", "/users", "/devices", "/sign-in":
@@ -79,7 +65,6 @@ func NewAppHandler(args ServerArgs) http.Handler {
 		PublicHandler: http.FileServer(args.Filesystem),
 		IndexHandler:  NewIndexHandler(args.GetAsset),
 		V1ApiHandler:  NewV1Handler(args.DbInst, args.Influx, args.Auth),
-		Debug:         args.Debug,
 	}
 }
 
@@ -99,5 +84,11 @@ func Server(args ServerArgs) error {
 	log.Println("Starting http server, debug: ", args.Debug)
 	log.Println("Starting portal on port: ", args.Port)
 	address := fmt.Sprintf(":%s", args.Port)
+	if args.Debug {
+		//args.Debug = false
+		httpLogger := NewHTTPLogger("api")
+		return http.ListenAndServe(address, httpLogger.Handler(NewAppHandler(args)))
+	}
+
 	return http.ListenAndServe(address, NewAppHandler(args))
 }
