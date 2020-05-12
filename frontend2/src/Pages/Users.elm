@@ -1,6 +1,5 @@
 module Pages.Users exposing (Model, Msg, page)
 
-import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -8,7 +7,6 @@ import Element.Font as Font
 import Element.Input as Input
 import Generated.Params as Params
 import Global
-import Http
 import Spa.Page
 import Spa.Types as Types
 import User as U
@@ -131,10 +129,6 @@ mergeUserEdit users userEdit =
                 usersMapped =
                     List.map
                         (\u ->
-                            let
-                                _ =
-                                    Debug.log "u" u
-                            in
                             if edit.id == u.id then
                                 { user = edit, mod = True }
 
