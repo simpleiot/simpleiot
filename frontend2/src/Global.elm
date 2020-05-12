@@ -303,7 +303,11 @@ update commands msg model =
                                 old
 
                         users =
-                            List.map updateUser sess.data.users
+                            if user.id == "" then
+                                [ user ] ++ sess.data.users
+
+                            else
+                                List.map updateUser sess.data.users
                     in
                     ( SignedIn { sess | data = { data | users = users } }
                     , postUser sess.authToken user

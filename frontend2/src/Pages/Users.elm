@@ -32,17 +32,13 @@ page =
 
 
 type alias Model =
-    { users : List U.User
-    , userEdits : Dict String U.User
-    , error : Maybe Http.Error
+    { userEdit : Maybe U.User
     }
 
 
 init : Params.Users -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ =
-    ( { users = []
-      , userEdits = Dict.empty
-      , error = Nothing
+    ( { userEdit = Nothing
       }
     , Cmd.none
     , Spa.Page.send Global.RequestUsers
@@ -54,29 +50,29 @@ init _ =
 
 
 type Msg
-    = PostUser String U.User
-    | EditUser String U.User
-    | DiscardUserEdits String
+    = PostUser U.User
+    | EditUser U.User
+    | DiscardUserEdits
     | NewUser
 
 
 update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update context msg model =
     case msg of
-        EditUser id user ->
-            ( { model | userEdits = Dict.insert id user model.userEdits }
+        EditUser user ->
+            ( { model | userEdit = Just user }
             , Cmd.none
             , Cmd.none
             )
 
-        DiscardUserEdits id ->
-            ( { model | userEdits = Dict.remove id model.userEdits }
+        DiscardUserEdits ->
+            ( { model | userEdit = Nothing }
             , Cmd.none
             , Cmd.none
             )
 
-        PostUser _ user ->
-            ( model
+        PostUser user ->
+            ( { model | userEdit = Nothing }
             , Cmd.none
             , case context.global of
                 Global.SignedIn _ ->
@@ -87,7 +83,7 @@ update context msg model =
             )
 
         NewUser ->
-            ( { model | users = U.empty :: model.users }
+            ( { model | userEdit = Just U.empty }
             , Cmd.none
             , Cmd.none
             )
@@ -114,15 +110,55 @@ view context model =
                 [ width fill, spacing 32 ]
                 [ el [ padding 16, Font.size 24 ] <| text "Users"
                 , el [ padding 16, width fill, Font.bold ] <| button "new user" palette.green NewUser
-                , viewUsers model.userEdits sess.data.users
+                , viewUsers sess.data.users model.userEdit
                 ]
 
         _ ->
             el [ padding 16 ] <| text "Sign in to view users."
 
 
-viewUsers : Dict String U.User -> List U.User -> Element Msg
-viewUsers edits users =
+type alias UserMod =
+    { user : U.User
+    , mod : Bool
+    }
+
+
+mergeUserEdit : List U.User -> Maybe U.User -> List UserMod
+mergeUserEdit users userEdit =
+    case userEdit of
+        Just edit ->
+            let
+                usersMapped =
+                    List.map
+                        (\u ->
+                            let
+                                _ =
+                                    Debug.log "u" u
+                            in
+                            if edit.id == u.id then
+                                { user = edit, mod = True }
+
+                            else
+                                { user = u, mod = False }
+                        )
+                        users
+            in
+            if edit.id == "" then
+                [ { user = edit, mod = True } ] ++ usersMapped
+
+            else
+                usersMapped
+
+        Nothing ->
+            List.map (\u -> { user = u, mod = False }) users
+
+
+viewUsers : List U.User -> Maybe U.User -> Element Msg
+viewUsers users userEdit =
+    let
+        merged =
+            mergeUserEdit users userEdit
+    in
     column
         [ width fill
         , spacing 40
@@ -130,11 +166,9 @@ viewUsers edits users =
     <|
         List.map
             (\user ->
-                viewUser
-                    (modified edits user)
-                    (userValue edits user)
+                viewUser user.mod user.user
             )
-            users
+            merged
 
 
 viewUser : Bool -> U.User -> Element Msg
@@ -149,8 +183,8 @@ viewUser modded user =
                     [ Background.color palette.orange
                     , below <|
                         buttonRow
-                            [ button "discard" palette.pale <| DiscardUserEdits user.id
-                            , button "save" palette.green <| PostUser user.id user
+                            [ button "discard" palette.pale <| DiscardUserEdits
+                            , button "save" palette.green <| PostUser user
                             ]
                     ]
 
@@ -161,22 +195,22 @@ viewUser modded user =
         [ viewTextProperty
             { name = "First name"
             , value = user.first
-            , action = \x -> EditUser user.id { user | first = x }
+            , action = \x -> EditUser { user | first = x }
             }
         , viewTextProperty
             { name = "Last name"
             , value = user.last
-            , action = \x -> EditUser user.id { user | last = x }
+            , action = \x -> EditUser { user | last = x }
             }
         , viewTextProperty
             { name = "Email"
             , value = user.email
-            , action = \x -> EditUser user.id { user | email = x }
+            , action = \x -> EditUser { user | email = x }
             }
         , viewTextProperty
             { name = "Password"
             , value = user.pass
-            , action = \x -> EditUser user.id { user | pass = x }
+            , action = \x -> EditUser { user | pass = x }
             }
         ]
 
@@ -203,37 +237,6 @@ button lbl color action =
         { onPress = Just action
         , label = el [ centerX ] <| text lbl
         }
-
-
-modified : Dict String U.User -> U.User -> Bool
-modified edits user =
-    case Dict.get user.id edits of
-        Just u ->
-            u /= user
-
-        Nothing ->
-            False
-
-
-userValue : Dict String U.User -> U.User -> U.User
-userValue edits user =
-    case Dict.get user.id edits of
-        Just u ->
-            u
-
-        Nothing ->
-            user
-
-
-
--- field : Dict String U.User -> U.User -> String -> String
---field edits user fld =
---    case Dict.get user.id edits of
---        Just u ->
---            fld u
---
---        Nothing ->
---            fld user
 
 
 type alias TextProperty =
