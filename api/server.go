@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/httputil"
 
 	"github.com/simpleiot/simpleiot/db"
 )
@@ -44,7 +45,15 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 
 	if h.Debug {
-		log.Printf("HTTP %v: %v\n", req.Method, req.URL.Path)
+		dump, _ := httputil.DumpRequest(req, true)
+		body, err := req.GetBody()
+		if err == nil {
+			buf := bytes.Buffer{}
+			_, err = buf.ReadFrom(body)
+			log.Printf("HTTP %v: %v -> %v\n", req.Method, req.URL.Path, string(buf.Bytes()))
+		} else {
+			log.Printf("HTTP %v: %v\n", req.Method, req.URL.Path)
+		}
 	}
 
 	switch req.URL.Path {
