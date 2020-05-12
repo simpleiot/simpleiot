@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 )
 
@@ -59,7 +60,7 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	case http.MethodPost:
 		// update a single user
-		u.updateUser(res, req)
+		u.updateUser(id, res, req)
 		return
 	}
 
@@ -90,10 +91,17 @@ func (u Users) insertUser(res http.ResponseWriter, req *http.Request) {
 	encode(res, data.StandardResponse{Success: true, ID: id})
 }
 
-func (u Users) updateUser(res http.ResponseWriter, req *http.Request) {
+func (u Users) updateUser(ID string, res http.ResponseWriter, req *http.Request) {
 	var user data.User
 	if err := decode(req.Body, &user); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var err error
+	user.ID, err = uuid.Parse(ID)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusRequestedRangeNotSatisfiable)
 		return
 	}
 
