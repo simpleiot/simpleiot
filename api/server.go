@@ -16,7 +16,6 @@ type IndexHandler struct {
 }
 
 func (h *IndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	fmt.Println("indexHandler")
 	f := h.getAsset("/index.html")
 	if f == nil {
 		rw.WriteHeader(http.StatusNotFound)
@@ -61,10 +60,16 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // NewAppHandler returns a new application (root) http handler
 func NewAppHandler(args ServerArgs) http.Handler {
+	v1 := NewV1Handler(args.DbInst, args.Influx, args.Auth)
+	if args.Debug {
+		//args.Debug = false
+		v1 = NewHTTPLogger("v1").Handler(v1)
+	}
+
 	return &App{
 		PublicHandler: http.FileServer(args.Filesystem),
 		IndexHandler:  NewIndexHandler(args.GetAsset),
-		V1ApiHandler:  NewV1Handler(args.DbInst, args.Influx, args.Auth),
+		V1ApiHandler:  v1,
 	}
 }
 
@@ -84,11 +89,5 @@ func Server(args ServerArgs) error {
 	log.Println("Starting http server, debug: ", args.Debug)
 	log.Println("Starting portal on port: ", args.Port)
 	address := fmt.Sprintf(":%s", args.Port)
-	if args.Debug {
-		//args.Debug = false
-		httpLogger := NewHTTPLogger("api")
-		return http.ListenAndServe(address, httpLogger.Handler(NewAppHandler(args)))
-	}
-
 	return http.ListenAndServe(address, NewAppHandler(args))
 }
