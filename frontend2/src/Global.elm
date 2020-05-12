@@ -35,6 +35,7 @@ type alias Session =
     , data : Data
     , error : Maybe Http.Error
     , respError : Maybe String
+    , posting : Bool
     }
 
 
@@ -165,6 +166,7 @@ update commands msg model =
                         , data = emptyData
                         , error = Nothing
                         , respError = Nothing
+                        , posting = False
                         }
                     , Cmd.none
                     , commands.navigate routes.top
@@ -210,13 +212,19 @@ update commands msg model =
                     )
 
                 DevicesResponse (Ok devices) ->
-                    ( SignedIn { sess | data = { data | devices = devices } }
+                    ( SignedIn
+                        { sess
+                            | data = { data | devices = devices }
+                        }
                     , Cmd.none
                     , Cmd.none
                     )
 
                 DevicesResponse (Err _) ->
-                    ( SignedIn { sess | respError = Just "Error getting devices" }
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error getting devices"
+                        }
                     , Cmd.none
                     , Cmd.none
                     )
@@ -235,7 +243,11 @@ update commands msg model =
 
                 RequestDevices ->
                     ( model
-                    , getDevices sess.authToken
+                    , if sess.posting then
+                        Cmd.none
+
+                      else
+                        getDevices sess.authToken
                     , Cmd.none
                     )
 
@@ -287,7 +299,7 @@ update commands msg model =
                         newData =
                             { oldData | devices = devices }
                     in
-                    ( SignedIn { sess | data = newData }
+                    ( SignedIn { sess | data = newData, posting = True }
                     , postConfig sess.authToken id config
                     , Cmd.none
                     )
@@ -314,8 +326,18 @@ update commands msg model =
                     , Cmd.none
                     )
 
+                ConfigPosted _ (Ok _) ->
+                    ( SignedIn { sess | posting = False }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
                 ConfigPosted _ (Err _) ->
-                    ( SignedIn { sess | respError = Just "Error saving device config" }
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error saving device config"
+                            , posting = False
+                        }
                     , Cmd.none
                     , Cmd.none
                     )
