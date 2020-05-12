@@ -46,7 +46,10 @@ func (l *HTTPLogger) Handler(next http.Handler) http.Handler {
 
 		addr := r.RemoteAddr
 		if err == nil {
-			l.Printf("(%s) \"%s %s\" %d -> %v", addr, r.Method, r.RequestURI, crw.status, rdr)
+			rBuf := bytes.Buffer{}
+			rBuf.ReadFrom(rdr)
+			l.Printf("(%s) \"%s %s\" %d -> %v -> %v", addr, r.Method, r.RequestURI,
+				crw.status, string(rBuf.Bytes()), string(crw.buf.Bytes()))
 		} else {
 			l.Printf("(%s) \"%s %s\" %d", addr, r.Method, r.RequestURI, crw.status)
 		}
@@ -58,6 +61,7 @@ type customResponseWriter struct {
 	http.ResponseWriter
 	status int
 	size   int
+	buf    bytes.Buffer
 }
 
 func (c *customResponseWriter) WriteHeader(status int) {
@@ -67,6 +71,7 @@ func (c *customResponseWriter) WriteHeader(status int) {
 
 func (c *customResponseWriter) Write(b []byte) (int, error) {
 	size, err := c.ResponseWriter.Write(b)
+	c.buf.Write(b)
 	c.size += size
 	return size, err
 }
