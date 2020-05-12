@@ -88,6 +88,7 @@ siot_deploy() {
 }
 
 siot_run() {
+  echo "run args: $@"
   frontend_version=""
   if [ "$1" = "2" ]; then
     frontend_version=2
@@ -104,12 +105,9 @@ find_src_files() {
 }
 
 siot_watch() {
-  find_src_files | entr -r /bin/sh -c ". ./envsetup.sh; siot_run 2 $@" 
-}
-
-siot_run_device_sim() {
-  go run cmd/siot/main.go -sim || return 1
-  return 0
+  echo "watch args: $@"
+  cmd=". ./envsetup.sh; siot_run 2 $@"
+  find_src_files | entr -r /bin/sh -c "$cmd"
 }
 
 siot_build_docs() {
