@@ -1,4 +1,4 @@
-module User exposing
+module Data.User exposing
     ( User
     , decodeList
     , empty

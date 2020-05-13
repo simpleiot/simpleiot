@@ -1,6 +1,8 @@
 module Pages.Orgs exposing (Model, Msg, page)
 
-import Device
+import Data.Device as D
+import Data.Org as O
+import Data.User as U
 import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Border as Border
@@ -9,10 +11,8 @@ import Element.Input as Input
 import Generated.Params as Params
 import Global
 import Http
-import Org as O
 import Spa.Page
 import Spa.Types as Types
-import User
 import Utils.Spa exposing (Page)
 import Utils.Styles exposing (palette, size)
 
@@ -173,7 +173,7 @@ label kind =
         << text
 
 
-viewDevices : List Device.Device -> Element Msg
+viewDevices : List D.Device -> Element Msg
 viewDevices =
     viewList "Devices" viewDevice
 
@@ -211,7 +211,7 @@ viewItem =
         ]
 
 
-viewUser : User.User -> Element Msg
+viewUser : U.User -> Element Msg
 viewUser user =
     viewItem
         [ text user.first
@@ -234,7 +234,7 @@ viewUser user =
 --        }
 
 
-viewDevice : Device.Device -> Element Msg
+viewDevice : D.Device -> Element Msg
 viewDevice device =
     viewItem
         [ text device.id

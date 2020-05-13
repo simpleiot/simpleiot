@@ -1,4 +1,4 @@
-module Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
+module Data.Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
 
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional)

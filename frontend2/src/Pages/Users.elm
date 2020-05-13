@@ -1,5 +1,6 @@
 module Pages.Users exposing (Model, Msg, page)
 
+import Data.User as U
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -9,7 +10,6 @@ import Generated.Params as Params
 import Global
 import Spa.Page
 import Spa.Types as Types
-import User as U
 import Utils.Spa exposing (Page)
 import Utils.Styles exposing (palette, size)
 

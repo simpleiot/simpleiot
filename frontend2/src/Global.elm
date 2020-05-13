@@ -7,16 +7,16 @@ module Global exposing
     , update
     )
 
-import Device as D
+import Data.Device as D
+import Data.Org as O
+import Data.User as U
 import Generated.Routes exposing (Route, routes)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required, resolve)
 import Json.Encode as Encode
-import Org as O
 import Time
 import Url.Builder as Url
-import User as U
 
 
 type alias Flags =

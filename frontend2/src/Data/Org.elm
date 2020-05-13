@@ -1,19 +1,19 @@
-module Org exposing
+module Data.Org exposing
     ( Org
     , decodeList
     )
 
-import Device
+import Data.Device as D
+import Data.User as U
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
-import User
 
 
 type alias Org =
     { id : String
     , name : String
-    , users : List User.User
-    , devices : List Device.Device
+    , users : List U.User
+    , devices : List D.Device
     }
 
 
@@ -27,5 +27,5 @@ decode =
     Decode.succeed Org
         |> required "id" Decode.string
         |> required "name" Decode.string
-        |> required "users" User.decodeList
-        |> required "devices" Device.decodeList
+        |> required "users" U.decodeList
+        |> required "devices" D.decodeList

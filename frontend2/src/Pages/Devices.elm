@@ -5,7 +5,8 @@ module Pages.Devices exposing
     , page
     )
 
-import Device as D
+import Data.Device as D
+import Data.Sample exposing (Sample, renderSample)
 import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
@@ -16,7 +17,6 @@ import Generated.Params as Params
 import Global
 import Html.Events
 import Json.Decode as Decode
-import Sample exposing (Sample, renderSample)
 import Spa.Page
 import Spa.Types as Types
 import Time

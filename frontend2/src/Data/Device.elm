@@ -1,4 +1,4 @@
-module Device exposing
+module Data.Device exposing
     ( Config
     , Device
     , decodeList
@@ -6,8 +6,8 @@ module Device exposing
 
 --import Json.Encode as Encode
 
+import Data.Sample exposing (Sample, sampleDecoder)
 import Json.Decode as Decode
-import Sample exposing (Sample, sampleDecoder)
 
 
 type alias Device =
