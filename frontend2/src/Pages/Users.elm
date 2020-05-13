@@ -226,7 +226,8 @@ button lbl color action =
         [ Background.color color
         , padding 16
         , width fill
-        , Border.rounded 32
+        , Border.rounded 6
+        , Border.width 2
         ]
         { onPress = Just action
         , label = el [ centerX ] <| text lbl
