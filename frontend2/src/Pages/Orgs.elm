@@ -90,7 +90,6 @@ view context model =
     column
         [ width fill, spacing 32 ]
         [ el [ padding 16, Font.size 24 ] <| text "Orgs"
-        , viewError model.error
         , case context.global of
             Global.SignedIn sess ->
                 viewOrgs model.emails sess.data.orgs
@@ -129,37 +128,34 @@ viewOrg emails org =
         , spacing 6
         ]
         [ viewOrgName org.name
-        , viewItems (getEmail emails org.id) org
-        ]
 
-
-viewItems : String -> O.Org -> Element Msg
-viewItems email org =
-    wrappedRow
-        [ width fill
-        , spacing 16
-        ]
-        [ viewUsers email org
-        , viewDevices org.devices
-        ]
-
-
-viewUsers : String -> O.Org -> Element Msg
-viewUsers email org =
-    column
-        []
-        [ Input.text
-            []
-            { onChange = EditEmail org.id
-            , text = email
-            , placeholder = Nothing
-            , label = label Input.labelAbove "Add user by email address"
-            }
-        , viewList "Users" viewUser org.users
+        --, viewItems (getEmail emails org.id) org
         ]
 
 
 
+--viewItems : String -> O.Org -> Element Msg
+--viewItems email org =
+--    wrappedRow
+--        [ width fill
+--        , spacing 16
+--        ]
+--        [ viewUsers email org
+--        , viewDevices org.devices
+--        ]
+--viewUsers : String -> O.Org -> Element Msg
+--viewUsers email org =
+--    column
+--        []
+--        [ Input.text
+--            []
+--            { onChange = EditEmail org.id
+--            , text = email
+--            , placeholder = Nothing
+--            , label = label Input.labelAbove "Add user by email address"
+--            }
+--        , viewList "Users" viewUser org.users
+--        ]
 -- label : String -> Element Msg
 
 
@@ -240,25 +236,3 @@ viewDevice device =
         [ text device.id
         , text device.config.description
         ]
-
-
-viewError : Maybe Http.Error -> Element Msg
-viewError error =
-    case error of
-        Just (Http.BadUrl str) ->
-            text <| "bad URL: " ++ str
-
-        Just Http.Timeout ->
-            text "timeout"
-
-        Just Http.NetworkError ->
-            text "network error"
-
-        Just (Http.BadStatus status) ->
-            text <| "bad status: " ++ String.fromInt status
-
-        Just (Http.BadBody str) ->
-            text <| "bad body: " ++ str
-
-        Nothing ->
-            none

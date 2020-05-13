@@ -3,8 +3,6 @@ module Data.Org exposing
     , decodeList
     )
 
-import Data.Device as D
-import Data.User as U
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
 
@@ -12,9 +10,22 @@ import Json.Decode.Pipeline exposing (required)
 type alias Org =
     { id : String
     , name : String
-    , users : List U.User
-    , devices : List D.Device
+    , parent : String
+    , users : List UserRoles
     }
+
+
+type alias UserRoles =
+    { userId : String
+    , roles : List String
+    }
+
+
+decodeUserRoles : Decode.Decoder UserRoles
+decodeUserRoles =
+    Decode.succeed UserRoles
+        |> required "userId" Decode.string
+        |> required "roles" (Decode.list Decode.string)
 
 
 decodeList : Decode.Decoder (List Org)
@@ -27,5 +38,5 @@ decode =
     Decode.succeed Org
         |> required "id" Decode.string
         |> required "name" Decode.string
-        |> required "users" U.decodeList
-        |> required "devices" D.decodeList
+        |> required "parent" Decode.string
+        |> required "users" (Decode.list decodeUserRoles)

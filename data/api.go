@@ -2,8 +2,7 @@ package data
 
 // Auth is an authentication response.
 type Auth struct {
-	Token     string `json:"token"`
-	Privilege string `json:"privilege"`
+	Token string `json:"token"`
 }
 
 // StandardResponse is the standard response to any request

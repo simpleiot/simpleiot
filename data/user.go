@@ -12,26 +12,3 @@ type User struct {
 	Email     string    `json:"email"`
 	Pass      string    `json:"pass"`
 }
-
-// A Role represents the role
-// played by a user within an Org.
-type Role struct {
-	ID     uuid.UUID `json:"id" boltholdKey:"ID"`
-	OrgID  uuid.UUID `json:"orgID"`
-	UserID uuid.UUID `json:"UserID"`
-	Roles  []string  `json:"roles"`
-}
-
-// An Org represents a named collection of
-// Users and Devices.
-type Org struct {
-	ID   uuid.UUID `json:"id" boltholdKey:"ID"`
-	Name string    `json:"name"`
-}
-
-// OrgDevice is used to bind devices to an org
-type OrgDevice struct {
-	ID       uuid.UUID `json:"id" bolholdKey:"ID"`
-	DeviceID string    `json:"deviceID"`
-	OrgID    uuid.UUID `json:"orgID"`
-}

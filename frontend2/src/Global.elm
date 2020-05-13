@@ -31,7 +31,6 @@ type Model
 type alias Session =
     { cred : Cred
     , authToken : String
-    , privilege : Privilege
     , data : Data
     , error : Maybe Http.Error
     , respError : Maybe String
@@ -113,38 +112,13 @@ login cred =
 
 type alias Auth =
     { token : String
-    , privilege : Privilege
     }
-
-
-type Privilege
-    = User
-    | Admin
-    | Root
 
 
 decodeAuth : Decode.Decoder Auth
 decodeAuth =
-    Decode.succeed validate
+    Decode.succeed Auth
         |> required "token" Decode.string
-        |> required "privilege" Decode.string
-        |> resolve
-
-
-validate : String -> String -> Decode.Decoder Auth
-validate token privilege =
-    case privilege of
-        "user" ->
-            Decode.succeed <| Auth token User
-
-        "admin" ->
-            Decode.succeed <| Auth token Admin
-
-        "root" ->
-            Decode.succeed <| Auth token Root
-
-        _ ->
-            Decode.fail "sign in failed"
 
 
 update : Commands msg -> Msg -> Model -> ( Model, Cmd Msg, Cmd msg )
@@ -158,11 +132,10 @@ update commands msg model =
                     , Cmd.none
                     )
 
-                AuthResponse cred (Ok { token, privilege }) ->
+                AuthResponse cred (Ok { token }) ->
                     ( SignedIn
                         { authToken = token
                         , cred = cred
-                        , privilege = privilege
                         , data = emptyData
                         , error = Nothing
                         , respError = Nothing

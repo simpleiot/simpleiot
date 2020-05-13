@@ -1,5 +1,7 @@
 package data
 
+import "github.com/google/uuid"
+
 // DeviceConfig represents a device configuration (stuff that
 // is set by user in UI)
 type DeviceConfig struct {
@@ -23,6 +25,7 @@ type Device struct {
 	Config     DeviceConfig `json:"config"`
 	State      DeviceState  `json:"state"`
 	CmdPending bool         `json:"cmdPending"`
+	Orgs       []uuid.UUID  `json:"orgs"`
 }
 
 // ProcessSample takes a sample for a device and adds/updates in Ios

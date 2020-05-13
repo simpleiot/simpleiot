@@ -70,25 +70,16 @@ func deviceSample(store *bolthold.Store, id string, sample data.Sample) error {
 		err := store.TxGet(tx, id, &dev)
 		switch err {
 		case bolthold.ErrNotFound:
+			// New devices are automatically part of root org
 			dev := data.Device{
 				ID: id,
 				State: data.DeviceState{
 					Ios: []data.Sample{sample},
 				},
+				Orgs: []uuid.UUID{zero},
 			}
 
-			if err := store.TxInsert(tx, id, dev); err != nil {
-				return err
-			}
-
-			// New devices are properties of root.
-			prop := Property{
-				ID:       uuid.New(),
-				DeviceID: id,
-				OrgID:    zero,
-			}
-
-			return store.TxInsert(tx, prop.ID, prop)
+			return store.TxInsert(tx, id, dev)
 
 		case nil:
 			dev.ProcessSample(sample)
@@ -203,56 +194,35 @@ func users(store *bolthold.Store) ([]data.User, error) {
 }
 
 // org returns the Org with the given ID.
-func org(store *bolthold.Store, tx *bolt.Tx, id uuid.UUID) (Org, error) {
-	var org Org
+func org(store *bolthold.Store, tx *bolt.Tx, id uuid.UUID) (data.Org, error) {
+	var org data.Org
 	err := store.TxFindOne(tx, &org, bolthold.Where("ID").Eq(id))
 	return org, err
 }
 
 type privilege string
 
-const (
-	none  privilege = ""
-	user            = "user"
-	admin           = "admin"
-	root            = "root"
-)
-
-// loginPrivilege returns the privilege level
-// associated with the given email-password combination.
-func loginPrivilege(store *bolthold.Store, email, password string) (privilege, error) {
-	var u User
+// check if user exists
+func checkUser(store *bolthold.Store, email, password string) (bool, error) {
+	var u data.User
 	query := bolthold.Where("Email").Eq(email).
 		And("Pass").Eq(password)
 	err := store.FindOne(&u, query)
-	switch err {
-	case bolthold.ErrNotFound:
-		return none, nil
-
-	case nil:
-		switch u.ID {
-		case zero:
-			return root, nil
+	if err != nil {
+		if err != bolthold.ErrNotFound {
+			return false, err
 		}
-
-		return user, nil
+		return false, nil
 	}
 
-	return none, err
-}
-
-// userRoles returns the roles played by the user with the given ID.
-func userRoles(store *bolthold.Store, tx *bolt.Tx, id uuid.UUID) ([]Role, error) {
-	var roles []Role
-	err := store.TxFind(tx, &roles, bolthold.Where("UserID").Eq(id))
-	return roles, err
+	return true, nil
 }
 
 // userByID returns the user with the given ID, if it exists.
 func userByID(store *bolthold.Store, id string) (*data.User, error) {
 	var ret *data.User
 	err := view(store, func(tx *bolt.Tx) error {
-		var user User
+		var user data.User
 		if err := store.TxFindOne(tx, &user, bolthold.Where("ID").Eq(id)); err != nil {
 			return err
 		}
@@ -262,60 +232,23 @@ func userByID(store *bolthold.Store, id string) (*data.User, error) {
 	return ret, err
 }
 
-// User provides information about a user.
-type User struct {
-	ID        uuid.UUID `boltholdKey:"ID"`
-	FirstName string
-	LastName  string
-	Email     string
-	Pass      string
-}
-
-// A Role is the role played by a user in an organization.
-type Role struct {
-	ID          uuid.UUID
-	UserID      uuid.UUID
-	OrgID       uuid.UUID
-	Description string
-}
-
-// An Org is an organization.
-type Org struct {
-	ID   uuid.UUID
-	Name string
-}
-
-// data.Device can be used in storage as well
-// as on the wire, because its data is not relational.
-
-// A Property is a relationship between a data.Device and an Org.
-type Property struct {
-	ID       uuid.UUID
-	DeviceID string
-	OrgID    uuid.UUID
-}
-
 // initialize initializes the database with one user (admin)
 // in one organization (root).
 // All devices are properties of the root organization.
 func initialize(store *bolthold.Store) error {
-	if ok, err := isInitialized(store); err != nil {
+	// initialize root org in new db
+	var org data.Org
+	err := store.FindOne(&org, bolthold.Where("Name").Eq("root"))
+
+	// org was found or we ran into an error
+	if err != bolthold.ErrNotFound {
 		return err
-	} else if ok {
-		return nil
 	}
 
+	// add root org and admin user
 	return update(store, func(tx *bolt.Tx) error {
-		root := Org{
-			ID:   zero,
-			Name: "root",
-		}
-		if err := store.TxInsert(tx, root.ID, root); err != nil {
-			return err
-		}
-		log.Println(root)
 
-		admin := User{
+		admin := data.User{
 			ID:        zero,
 			FirstName: "admin",
 			LastName:  "user",
@@ -326,80 +259,34 @@ func initialize(store *bolthold.Store) error {
 		if err := store.TxInsert(tx, admin.ID, admin); err != nil {
 			return err
 		}
-		log.Println(admin)
 
-		role := Role{
-			ID:          zero,
-			UserID:      admin.ID,
-			OrgID:       root.ID,
-			Description: "admin",
-		}
-		defer func() {
-			log.Println(role)
-			var u User
-			if err := store.TxGet(tx, admin.ID, &u); err != nil {
-				log.Println(err)
-			} else {
-				log.Println(u)
-			}
-		}()
-		return store.TxInsert(tx, role.ID, role)
-	})
-}
+		log.Println("Created admin user: ", admin)
 
-func isInitialized(store *bolthold.Store) (ok bool, err error) {
-	err = view(store, func(tx *bolt.Tx) error {
-		// Is there an organization called root?
-		root := bolthold.Where("Name").Eq("root")
-		var org Org
-		switch err := store.TxFindOne(tx, &org, root); err {
-		case nil:
-			// OK
-			log.Printf("found root org: %v", org)
-
-		case bolthold.ErrNotFound:
-			return nil
-
-		default:
-			return fmt.Errorf("error checking whether database is initialized: %v", err)
+		org := data.Org{
+			ID:   zero,
+			Name: "root",
+			Users: []data.UserRoles{
+				{UserID: zero, Roles: []data.Role{data.RoleAdmin}},
+			},
 		}
 
-		// Does the root organization have an admin?
-		var role Role
-		admin := bolthold.Where("Description").Eq("admin").And("OrgID").Eq(org.ID)
-		if err := store.TxFindOne(tx, &role, admin); err != nil {
-			return fmt.Errorf("error checking whether database is initialized: found a root org, but not an admin: %v", err)
+		if err := store.TxInsert(tx, org.ID, org); err != nil {
+			return err
 		}
 
-		log.Printf("found admin role: %v", role)
-
-		var user User
-		if err := store.TxGet(tx, role.UserID, &user); err != nil {
-			return fmt.Errorf("error checking whether database is initialized: found admin role, but no user: %v", err)
-		}
-		log.Printf("found admin user: %v", user)
-		ok = true
+		log.Println("Created root org:", org)
 		return nil
 	})
-	return
 }
 
 // orgDevices returns the devices which are property of the given Org.
 func orgDevices(store *bolthold.Store, tx *bolt.Tx, orgID uuid.UUID) ([]data.Device, error) {
 	var devices []data.Device
 	err := view(store, func(tx *bolt.Tx) error {
-		var props []Property
-		if err := store.TxFind(tx, &props, bolthold.Where("OrgID").Eq(orgID)); err != nil {
+		if err := store.TxFind(tx, &devices, bolthold.Where("Orgs").Contains(orgID)); err != nil {
 			return err
 		}
 
-		for _, prop := range props {
-			var device data.Device
-			if err := store.TxGet(tx, prop.DeviceID, &device); err != nil {
-				return err
-			}
-			devices = append(devices, device)
-		}
 		return nil
 	})
 	return devices, err
@@ -436,38 +323,6 @@ func newIfZero(id uuid.UUID) uuid.UUID {
 	return id
 }
 
-func containsRole(id uuid.UUID, roles []data.Role) bool {
-	for _, role := range roles {
-		if id == role.ID {
-			return true
-		}
-	}
-	return false
-}
-
-func cleanRoles(store *bolthold.Store, tx *bolt.Tx, userID uuid.UUID, newRoles []data.Role) error {
-	// get the current set of roles
-	roles, err := userRoles(store, tx, userID)
-	if err != nil {
-		return err
-	}
-
-	var targets []Role
-	for _, role := range roles {
-		if !containsRole(role.ID, newRoles) {
-			targets = append(targets, role)
-		}
-	}
-
-	for _, target := range targets {
-		if err := store.TxDelete(tx, target.ID, target); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // Orgs returns all orgs.
 func orgs(store *bolthold.Store) ([]data.Org, error) {
 	var ret []data.Org
@@ -479,42 +334,6 @@ func orgs(store *bolthold.Store) ([]data.Org, error) {
 		return nil
 	})
 	return ret, err
-}
-
-func orgRoleUsers(store *bolthold.Store, tx *bolt.Tx, orgID uuid.UUID) ([]data.User, error) {
-	roles, err := orgRoles(store, tx, orgID)
-	if err != nil {
-		return []data.User{}, err
-	}
-
-	return roleUsersData(store, tx, roles)
-}
-
-func orgRoles(store *bolthold.Store, tx *bolt.Tx, orgID uuid.UUID) (roles []Role, err error) {
-	err = store.TxFind(tx, &roles, bolthold.Where("OrgID").Eq(orgID))
-	return
-}
-
-func roleUsersData(store *bolthold.Store, tx *bolt.Tx, roles []Role) (users []data.User, err error) {
-	userIDs := make(map[uuid.UUID]struct{})
-	for _, role := range roles {
-		userIDs[role.UserID] = struct{}{}
-	}
-
-	for id := range userIDs {
-		var user User
-		if err := store.TxGet(tx, id, &user); err != nil {
-			return users, fmt.Errorf("problem finding user %q: %v", id, err)
-		}
-		users = append(users, data.User{
-			ID:        user.ID,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Email:     user.Email,
-			Pass:      user.Pass,
-		})
-	}
-	return users, err
 }
 
 type dbDump struct {

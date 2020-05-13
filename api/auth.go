@@ -32,14 +32,13 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	email := req.FormValue("email")
 	password := req.FormValue("password")
 
-	priv, err := loginPrivilege(auth.db.store, email, password)
+	ok, err := checkUser(auth.db.store, email, password)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	switch priv {
-	case none:
+	if !ok {
 		http.Error(res, "invalid login", http.StatusForbidden)
 		return
 	}
@@ -51,7 +50,6 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 
 	encode(res, data.Auth{
-		Privilege: string(priv),
-		Token:     token,
+		Token: token,
 	})
 }
