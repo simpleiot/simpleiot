@@ -13,7 +13,7 @@ const (
 
 // UserRoles describes a users roles in an organization
 type UserRoles struct {
-	UserID uuid.UUID `json:"userID"`
+	UserID uuid.UUID `json:"userId"`
 	Roles  []Role    `json:"roles"`
 }
 
