@@ -6,12 +6,10 @@ import Data.Data as Data
 import Data.Device as D
 import Data.Org as O
 import Data.User as U
-import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
 import Generated.Params as Params
 import Global
 import List.Extra

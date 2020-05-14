@@ -15,7 +15,6 @@ import Generated.Routes exposing (Route, routes)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
-import Json.Encode as Encode
 import Time
 import Url.Builder as Url
 

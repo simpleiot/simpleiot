@@ -5,7 +5,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Utils.Styles exposing (palette, size)
+import Utils.Styles exposing (palette)
 
 
 type alias TextProperty msg =
