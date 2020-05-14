@@ -194,9 +194,9 @@ func users(store *bolthold.Store) ([]data.User, error) {
 }
 
 // org returns the Org with the given ID.
-func org(store *bolthold.Store, tx *bolt.Tx, id uuid.UUID) (data.Org, error) {
+func org(store *bolthold.Store, id uuid.UUID) (data.Org, error) {
 	var org data.Org
-	err := store.TxFindOne(tx, &org, bolthold.Where("ID").Eq(id))
+	err := store.FindOne(&org, bolthold.Where("ID").Eq(id))
 	return org, err
 }
 
@@ -309,6 +309,32 @@ func insertUser(store *bolthold.Store, user data.User) (string, error) {
 func updateUser(store *bolthold.Store, user data.User) error {
 	return update(store, func(tx *bolt.Tx) error {
 		if err := store.TxUpdate(tx, user.ID, user); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func insertOrg(store *bolthold.Store, org data.Org) (string, error) {
+	id := uuid.New()
+
+	org.Parent = zero
+
+	err := update(store, func(tx *bolt.Tx) error {
+		if err := store.TxInsert(tx, id, org); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return id.String(), err
+}
+
+func updateOrg(store *bolthold.Store, org data.Org) error {
+	return update(store, func(tx *bolt.Tx) error {
+		if err := store.TxUpdate(tx, org.ID, org); err != nil {
 			return err
 		}
 

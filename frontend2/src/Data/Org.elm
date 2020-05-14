@@ -1,10 +1,14 @@
 module Data.Org exposing
     ( Org
+    , UserRoles
     , decodeList
+    , empty
+    , encode
     )
 
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline exposing (optional, required)
+import Json.Encode as Encode
 
 
 type alias Org =
@@ -15,17 +19,19 @@ type alias Org =
     }
 
 
+empty : Org
+empty =
+    { id = ""
+    , name = ""
+    , parent = ""
+    , users = []
+    }
+
+
 type alias UserRoles =
     { userId : String
     , roles : List String
     }
-
-
-decodeUserRoles : Decode.Decoder UserRoles
-decodeUserRoles =
-    Decode.succeed UserRoles
-        |> required "userId" Decode.string
-        |> required "roles" (Decode.list Decode.string)
 
 
 decodeList : Decode.Decoder (List Org)
@@ -39,4 +45,27 @@ decode =
         |> required "id" Decode.string
         |> required "name" Decode.string
         |> required "parent" Decode.string
-        |> required "users" (Decode.list decodeUserRoles)
+        |> optional "users" (Decode.list decodeUserRoles) []
+
+
+decodeUserRoles : Decode.Decoder UserRoles
+decodeUserRoles =
+    Decode.succeed UserRoles
+        |> required "userId" Decode.string
+        |> required "roles" (Decode.list Decode.string)
+
+
+encode : Org -> Encode.Value
+encode org =
+    Encode.object
+        [ ( "name", Encode.string org.name )
+        , ( "users", Encode.list encodeUserRoles org.users )
+        ]
+
+
+encodeUserRoles : UserRoles -> Encode.Value
+encodeUserRoles userRoles =
+    Encode.object
+        [ ( "userId", Encode.string userRoles.userId )
+        , ( "roles", Encode.list Encode.string userRoles.roles )
+        ]

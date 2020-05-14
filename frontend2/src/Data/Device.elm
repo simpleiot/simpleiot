@@ -2,12 +2,14 @@ module Data.Device exposing
     ( Config
     , Device
     , decodeList
+    , deviceConfigEncoder
     )
 
 --import Json.Encode as Encode
 
 import Data.Sample exposing (Sample, sampleDecoder)
 import Json.Decode as Decode
+import Json.Encode as Encode
 
 
 type alias Device =
@@ -55,6 +57,12 @@ deviceStateDecoder : Decode.Decoder State
 deviceStateDecoder =
     Decode.map State
         (Decode.field "ios" samplesDecoder)
+
+
+deviceConfigEncoder : Config -> Encode.Value
+deviceConfigEncoder deviceConfig =
+    Encode.object
+        [ ( "description", Encode.string deviceConfig.description ) ]
 
 
 

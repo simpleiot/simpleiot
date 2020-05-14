@@ -59,8 +59,10 @@ type Msg
     | Tick Time.Posix
     | UpdateDeviceConfig String D.Config
     | UpdateUser U.User
+    | UpdateOrg O.Org
     | ConfigPosted String (Result Http.Error Response)
     | UserPosted String (Result Http.Error Response)
+    | OrgPosted String (Result Http.Error Response)
 
 
 type alias Commands msg =
@@ -146,11 +148,17 @@ update commands msg model =
                     sess.data
             in
             case msg of
+                SignIn _ ->
+                    ( model, Cmd.none, Cmd.none )
+
                 SignOut ->
                     ( SignedOut Nothing
                     , Cmd.none
                     , commands.navigate routes.top
                     )
+
+                AuthResponse _ (Ok _) ->
+                    ( model, Cmd.none, Cmd.none )
 
                 AuthResponse _ (Err err) ->
                     ( SignedOut (Just err)
@@ -285,6 +293,28 @@ update commands msg model =
                     , Cmd.none
                     )
 
+                UpdateOrg org ->
+                    let
+                        -- update local model to make UI optimistic
+                        updateOrg old =
+                            if old.id == org.id then
+                                org
+
+                            else
+                                old
+
+                        orgs =
+                            if org.id == "" then
+                                [ org ] ++ sess.data.orgs
+
+                            else
+                                List.map updateOrg sess.data.orgs
+                    in
+                    ( SignedIn { sess | data = { data | orgs = orgs } }
+                    , postOrg sess.authToken org
+                    , Cmd.none
+                    )
+
                 ConfigPosted _ (Ok _) ->
                     ( SignedIn { sess | posting = False }
                     , Cmd.none
@@ -301,14 +331,20 @@ update commands msg model =
                     , Cmd.none
                     )
 
+                UserPosted _ (Ok _) ->
+                    ( model, Cmd.none, Cmd.none )
+
                 UserPosted _ (Err _) ->
                     ( SignedIn { sess | respError = Just "Error saving user" }
                     , Cmd.none
                     , Cmd.none
                     )
 
-                _ ->
-                    ( model
+                OrgPosted _ (Ok _) ->
+                    ( model, Cmd.none, Cmd.none )
+
+                OrgPosted _ (Err _) ->
+                    ( SignedIn { sess | respError = Just "Error saving org" }
                     , Cmd.none
                     , Cmd.none
                     )
@@ -334,12 +370,6 @@ type alias Response =
     }
 
 
-deviceConfigEncoder : D.Config -> Encode.Value
-deviceConfigEncoder deviceConfig =
-    Encode.object
-        [ ( "description", Encode.string deviceConfig.description ) ]
-
-
 responseDecoder : Decode.Decoder Response
 responseDecoder =
     Decode.succeed Response
@@ -355,7 +385,7 @@ postConfig token id config =
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.absolute [ "v1", "devices", id, "config" ] []
         , expect = Http.expectJson (ConfigPosted id) responseDecoder
-        , body = config |> deviceConfigEncoder |> Http.jsonBody
+        , body = config |> D.deviceConfigEncoder |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -400,6 +430,19 @@ postUser token user =
         , url = Url.absolute [ "v1", "users", user.id ] []
         , expect = Http.expectJson (UserPosted user.id) responseDecoder
         , body = user |> U.encode |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postOrg : String -> O.Org -> Cmd Msg
+postOrg token org =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "orgs", org.id ] []
+        , expect = Http.expectJson (OrgPosted org.id) responseDecoder
+        , body = org |> O.encode |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }

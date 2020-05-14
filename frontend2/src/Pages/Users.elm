@@ -1,11 +1,12 @@
 module Pages.Users exposing (Model, Msg, page)
 
+import Components.Button as Button
+import Components.Form as Form
 import Data.User as U
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
 import Generated.Params as Params
 import Global
 import Spa.Page
@@ -107,7 +108,7 @@ view context model =
             column
                 [ width fill, spacing 32 ]
                 [ el [ padding 16, Font.size 24 ] <| text "Users"
-                , el [ padding 16, width fill, Font.bold ] <| button "new user" palette.green NewUser
+                , el [ padding 16, width fill, Font.bold ] <| Button.view2 "new user" palette.green NewUser
                 , viewUsers sess.data.users model.userEdit
                 ]
 
@@ -149,10 +150,6 @@ mergeUserEdit users userEdit =
 
 viewUsers : List U.User -> Maybe U.User -> Element Msg
 viewUsers users userEdit =
-    let
-        merged =
-            mergeUserEdit users userEdit
-    in
     column
         [ width fill
         , spacing 40
@@ -162,7 +159,8 @@ viewUsers users userEdit =
             (\user ->
                 viewUser user.mod user.user
             )
-            merged
+        <|
+            mergeUserEdit users userEdit
 
 
 viewUser : Bool -> U.User -> Element Msg
@@ -176,9 +174,9 @@ viewUser modded user =
             ++ (if modded then
                     [ Background.color palette.orange
                     , below <|
-                        buttonRow
-                            [ button "discard" palette.pale <| DiscardUserEdits
-                            , button "save" palette.green <| PostUser user
+                        Button.viewRow
+                            [ Button.view2 "discard" palette.pale <| DiscardUserEdits
+                            , Button.view2 "save" palette.green <| PostUser user
                             ]
                     ]
 
@@ -186,87 +184,27 @@ viewUser modded user =
                     []
                )
         )
-        [ viewTextProperty
+        [ Form.viewTextProperty
             { name = "First name"
             , value = user.first
             , action = \x -> EditUser { user | first = x }
             }
-        , viewTextProperty
+        , Form.viewTextProperty
             { name = "Last name"
             , value = user.last
             , action = \x -> EditUser { user | last = x }
             }
-        , viewTextProperty
+        , Form.viewTextProperty
             { name = "Email"
             , value = user.email
             , action = \x -> EditUser { user | email = x }
             }
-        , viewTextProperty
+        , Form.viewTextProperty
             { name = "Password"
             , value = user.pass
             , action = \x -> EditUser { user | pass = x }
             }
         ]
-
-
-buttonRow : List (Element Msg) -> Element Msg
-buttonRow =
-    row
-        [ Font.size 16
-        , Font.bold
-        , width fill
-        , padding 16
-        , spacing 16
-        ]
-
-
-button : String -> Color -> Msg -> Element Msg
-button lbl color action =
-    Input.button
-        [ Background.color color
-        , padding 16
-        , width fill
-        , Border.rounded 6
-        , Border.width 2
-        ]
-        { onPress = Just action
-        , label = el [ centerX ] <| text lbl
-        }
-
-
-type alias TextProperty =
-    { name : String
-    , value : String
-    , action : String -> Msg
-    }
-
-
-viewTextProperty : TextProperty -> Element Msg
-viewTextProperty { name, value, action } =
-    Input.text
-        [ padding 16
-        , width (fill |> minimum 150)
-        , Border.width 0
-        , Border.rounded 0
-        , focused [ Background.color palette.yellow ]
-        , Background.color palette.pale
-        , spacing 0
-        ]
-        { onChange = action
-        , text = value
-        , placeholder = Nothing
-        , label = label Input.labelAbove name
-        }
-
-
-label : (List (Attribute msg) -> Element msg -> Input.Label msg) -> (String -> Input.Label msg)
-label kind =
-    kind
-        [ padding 16
-        , Font.italic
-        , Font.color palette.gray
-        ]
-        << text
 
 
 
