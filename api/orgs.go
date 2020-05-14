@@ -66,7 +66,7 @@ func (o Orgs) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	case http.MethodPost:
 		// update a single org
-		o.updateOrg(id, res, req)
+		o.updateOrg(idUUID, res, req)
 		return
 	}
 
@@ -90,19 +90,14 @@ func (o Orgs) insertOrg(res http.ResponseWriter, req *http.Request) {
 	encode(res, data.StandardResponse{Success: true, ID: id})
 }
 
-func (o Orgs) updateOrg(ID string, res http.ResponseWriter, req *http.Request) {
+func (o Orgs) updateOrg(ID uuid.UUID, res http.ResponseWriter, req *http.Request) {
 	var org data.Org
 	if err := decode(req.Body, &org); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var err error
-	org.ID, err = uuid.Parse(ID)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusRequestedRangeNotSatisfiable)
-		return
-	}
+	org.ID = ID
 
 	if err := updateOrg(o.db.store, org); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)

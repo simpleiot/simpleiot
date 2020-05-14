@@ -9,6 +9,7 @@ module Data.Device exposing
 
 import Data.Sample exposing (Sample, sampleDecoder)
 import Json.Decode as Decode
+import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 
 
@@ -16,6 +17,7 @@ type alias Device =
     { id : String
     , config : Config
     , state : State
+    , orgs : List String
     }
 
 
@@ -36,10 +38,11 @@ decodeList =
 
 deviceDecoder : Decode.Decoder Device
 deviceDecoder =
-    Decode.map3 Device
-        (Decode.field "id" Decode.string)
-        (Decode.field "config" deviceConfigDecoder)
-        (Decode.field "state" deviceStateDecoder)
+    Decode.succeed Device
+        |> required "id" Decode.string
+        |> required "config" deviceConfigDecoder
+        |> required "state" deviceStateDecoder
+        |> optional "orgs" (Decode.list Decode.string) []
 
 
 samplesDecoder : Decode.Decoder (List Sample)

@@ -49,7 +49,11 @@ init : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg, 
 init _ _ =
     ( empty
     , Cmd.none
-    , Cmd.batch [ Spa.Page.send Global.RequestOrgs, Spa.Page.send Global.RequestUsers ]
+    , Cmd.batch
+        [ Spa.Page.send Global.RequestOrgs
+        , Spa.Page.send Global.RequestUsers
+        , Spa.Page.send Global.RequestDevices
+        ]
     )
 
 
@@ -132,7 +136,7 @@ viewOrgs data orgEdit =
         , spacing 40
         ]
     <|
-        List.map (\o -> viewOrg data.users o.mod o.org) <|
+        List.map (\o -> viewOrg data o.mod o.org) <|
             mergeOrgEdit data.orgs orgEdit
 
 
@@ -168,8 +172,21 @@ mergeOrgEdit orgs orgEdit =
             List.map (\o -> { org = o, mod = False }) orgs
 
 
-viewOrg : List U.User -> Bool -> O.Org -> Element Msg
-viewOrg users modded org =
+viewOrg : Data.Data -> Bool -> O.Org -> Element Msg
+viewOrg data modded org =
+    let
+        devices =
+            List.filter
+                (\d ->
+                    case List.Extra.find (\orgId -> org.id == orgId) d.orgs of
+                        Just _ ->
+                            True
+
+                        Nothing ->
+                            False
+                )
+                data.devices
+    in
     column
         ([ width fill
          , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
@@ -195,7 +212,9 @@ viewOrg users modded org =
             , action = \x -> EditOrg { org | name = x }
             }
         , el [ padding 16, Font.italic, Font.color palette.gray ] <| text "Users"
-        , viewUsers org.users users
+        , viewUsers org.users data.users
+        , el [ padding 16, Font.italic, Font.color palette.gray ] <| text "Devices"
+        , viewDevices devices
         ]
 
 
@@ -206,7 +225,15 @@ viewUsers userRoles users =
             (\ur ->
                 case List.Extra.find (\u -> u.id == ur.userId) users of
                     Just user ->
-                        el [ padding 16 ] <| text user.first
+                        el [ padding 16 ] <|
+                            text
+                                (user.first
+                                    ++ " "
+                                    ++ user.last
+                                    ++ "<"
+                                    ++ user.email
+                                    ++ ">"
+                                )
 
                     Nothing ->
                         el [ padding 16 ] <| text "User not found"
@@ -215,106 +242,18 @@ viewUsers userRoles users =
         )
 
 
-
---viewItems : String -> O.Org -> Element Msg
---viewItems email org =
---    wrappedRow
---        [ width fill
---        , spacing 16
---        ]
---        [ viewUsers email org
---        , viewDevices org.devices
---        ]
---viewUsers : String -> O.Org -> Element Msg
---viewUsers email org =
---    column
---        []
---        [ Input.text
---            []
---            { onChange = EditEmail org.id
---            , text = email
---            , placeholder = Nothing
---            , label = label Input.labelAbove "Add user by email address"
---            }
---        , viewList "Users" viewUser org.users
---        ]
--- label : String -> Element Msg
-
-
-label : (List (Attribute Msg) -> Element Msg -> Input.Label Msg) -> (String -> Input.Label Msg)
-label kind =
-    kind
-        [ padding 16
-        , Font.italic
-        , Font.color palette.gray
-        ]
-        << text
-
-
 viewDevices : List D.Device -> Element Msg
-viewDevices =
-    viewList "Devices" viewDevice
-
-
-viewOrgName : String -> Element Msg
-viewOrgName name =
-    el
-        [ padding 16
-        , size.heading
-        ]
-    <|
-        text name
-
-
-viewList : String -> (a -> Element Msg) -> List a -> Element Msg
-viewList name fn list =
-    column
-        [ alignTop
-        , width (fill |> minimum 250)
-        , spacing 16
-        ]
-    <|
-        [ el [ padding 16 ] <| text name ]
-            ++ List.map fn list
-
-
-viewItem : List (Element Msg) -> Element Msg
-viewItem =
-    wrappedRow
-        [ padding 16
-        , spacing 25
-        , Border.widthEach { top = 1, bottom = 0, left = 0, right = 0 }
-        , Border.color palette.black
-        , width fill
-        ]
-
-
-viewUser : U.User -> Element Msg
-viewUser user =
-    viewItem
-        [ text user.first
-        , text user.last
-        ]
-
-
-
--- hasRole : String -> U.User -> Bool
---hasRole role user =
---    List.member role <| List.map .description user.roles
---viewRole :
---viewRole { role, value, action } =
---    Input.checkbox
---        [ padding 16 ]
---        { checked = value
---        , icon = Input.defaultCheckbox
---        , label = label Input.labelRight role
---        , onChange = action role
---        }
-
-
-viewDevice : D.Device -> Element Msg
-viewDevice device =
-    viewItem
-        [ text device.id
-        , text device.config.description
-        ]
+viewDevices devices =
+    column [ spacing 6, paddingEach { top = 0, right = 16, bottom = 0, left = 32 } ]
+        (List.map
+            (\d ->
+                el [ padding 16 ] <|
+                    text
+                        ("("
+                            ++ d.id
+                            ++ ") "
+                            ++ d.config.description
+                        )
+            )
+            devices
+        )
