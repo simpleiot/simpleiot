@@ -7,13 +7,14 @@ module Global exposing
     , update
     )
 
+import Data.Data as Data
 import Data.Device as D
 import Data.Org as O
 import Data.User as U
 import Generated.Routes exposing (Route, routes)
 import Http
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (optional, required, resolve)
+import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Time
 import Url.Builder as Url
@@ -31,25 +32,10 @@ type Model
 type alias Session =
     { cred : Cred
     , authToken : String
-    , data : Data
+    , data : Data.Data
     , error : Maybe Http.Error
     , respError : Maybe String
     , posting : Bool
-    }
-
-
-emptyData : Data
-emptyData =
-    { orgs = []
-    , users = []
-    , devices = []
-    }
-
-
-type alias Data =
-    { orgs : List O.Org
-    , devices : List D.Device
-    , users : List U.User
     }
 
 
@@ -65,7 +51,7 @@ type Msg
     | UsersResponse (Result Http.Error (List U.User))
     | SignIn Cred
     | AuthResponse Cred (Result Http.Error Auth)
-    | DataResponse (Result Http.Error Data)
+    | DataResponse (Result Http.Error Data.Data)
     | RequestOrgs
     | RequestDevices
     | RequestUsers
@@ -136,7 +122,7 @@ update commands msg model =
                     ( SignedIn
                         { authToken = token
                         , cred = cred
-                        , data = emptyData
+                        , data = Data.empty
                         , error = Nothing
                         , respError = Nothing
                         , posting = False

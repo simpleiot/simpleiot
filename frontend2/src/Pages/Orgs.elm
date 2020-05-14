@@ -1,5 +1,6 @@
 module Pages.Orgs exposing (Model, Msg, page)
 
+import Data.Data as Data
 import Data.Device as D
 import Data.Org as O
 import Data.User as U
@@ -10,7 +11,6 @@ import Element.Font as Font
 import Element.Input as Input
 import Generated.Params as Params
 import Global
-import Http
 import Spa.Page
 import Spa.Types as Types
 import Utils.Spa exposing (Page)
@@ -33,24 +33,20 @@ page =
 
 
 type alias Model =
-    { error : Maybe Http.Error
-    , emails : Dict String String
-    }
+    {}
 
 
 init : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ _ =
     ( empty
     , Cmd.none
-    , Spa.Page.send Global.RequestOrgs
+    , Cmd.batch [ Spa.Page.send Global.RequestOrgs, Spa.Page.send Global.RequestUsers ]
     )
 
 
 empty : Model
 empty =
-    { error = Nothing
-    , emails = Dict.empty
-    }
+    {}
 
 
 
@@ -63,13 +59,7 @@ type Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update msg model =
-    case msg of
-        EditEmail id email ->
-            ( { model | emails = Dict.insert id email model.emails }
-            , Cmd.none
-            , Cmd.none
-              -- FIXME: does this user exist?
-            )
+    ( model, Cmd.none, Cmd.none )
 
 
 
@@ -92,35 +82,25 @@ view context model =
         [ el [ padding 16, Font.size 24 ] <| text "Orgs"
         , case context.global of
             Global.SignedIn sess ->
-                viewOrgs model.emails sess.data.orgs
+                viewOrgs sess.data
 
             _ ->
                 el [ padding 16 ] <| text "Sign in to view your orgs."
         ]
 
 
-viewOrgs : Dict String String -> List O.Org -> Element Msg
-viewOrgs emails orgs =
+viewOrgs : Data.Data -> Element Msg
+viewOrgs data =
     column
         [ width fill
         , spacing 40
         ]
     <|
-        List.map (viewOrg emails) orgs
+        List.map (viewOrg data.users) data.orgs
 
 
-getEmail : Dict String String -> String -> String
-getEmail emails orgId =
-    case Dict.get orgId emails of
-        Just email ->
-            email
-
-        Nothing ->
-            ""
-
-
-viewOrg : Dict String String -> O.Org -> Element Msg
-viewOrg emails org =
+viewOrg : List U.User -> O.Org -> Element Msg
+viewOrg users org =
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }

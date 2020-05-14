@@ -3,11 +3,13 @@ module Data.User exposing
     , decodeList
     , empty
     , encode
+    , findUser
     )
 
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
+import List.Extra
 
 
 type alias User =
@@ -52,6 +54,11 @@ encode user =
         , ( "email", Encode.string user.email )
         , ( "pass", Encode.string user.pass )
         ]
+
+
+findUser : List User -> String -> Maybe User
+findUser users id =
+    List.Extra.find (\u -> u.id == id) users
 
 
 
