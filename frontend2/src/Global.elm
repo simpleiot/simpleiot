@@ -49,15 +49,14 @@ type alias Cred =
 
 
 type Msg
-    = DevicesResponse (Result Http.Error (List D.Device))
-    | OrgsResponse (Result Http.Error (List O.Org))
-    | UsersResponse (Result Http.Error (List U.User))
-    | SignIn Cred
+    = SignIn Cred
     | AuthResponse Cred (Result Http.Error Auth)
-    | DataResponse (Result Http.Error Data.Data)
     | RequestOrgs
     | RequestDevices
     | RequestUsers
+    | DevicesResponse (Result Http.Error (List D.Device))
+    | OrgsResponse (Result Http.Error (List O.Org))
+    | UsersResponse (Result Http.Error (List U.User))
     | DeleteDevice String
     | DeleteDeviceResponse String (Result Http.Error Response)
     | SignOut
@@ -178,18 +177,6 @@ update commands msg model =
                     ( SignedOut (Just err)
                     , Cmd.none
                     , commands.navigate routes.signIn
-                    )
-
-                DataResponse (Ok newData) ->
-                    ( SignedIn { sess | data = newData }
-                    , Cmd.none
-                    , Cmd.none
-                    )
-
-                DataResponse (Err _) ->
-                    ( SignedIn { sess | respError = Just "Error getting data" }
-                    , Cmd.none
-                    , Cmd.none
                     )
 
                 DevicesResponse (Ok devices) ->
