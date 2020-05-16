@@ -1,4 +1,4 @@
-module Components.Form exposing (label, viewTextProperty)
+module Components.Form exposing (button, buttonRow, label, viewTextProperty)
 
 import Element exposing (..)
 import Element.Background as Background
@@ -22,7 +22,6 @@ viewTextProperty { name, value, action } =
         , width (fill |> minimum 150)
         , Border.width 0
         , Border.rounded 0
-        , focused [ Background.color palette.yellow ]
         , Background.color palette.pale
         , spacing 0
         ]
@@ -41,3 +40,28 @@ label kind =
         , Font.color palette.gray
         ]
         << text
+
+
+buttonRow : List (Element msg) -> Element msg
+buttonRow =
+    row
+        [ Font.size 16
+        , Font.bold
+        , width fill
+        , padding 16
+        , spacing 16
+        ]
+
+
+button : String -> Color -> msg -> Element msg
+button lbl color action =
+    Input.button
+        [ Background.color color
+        , padding 16
+        , width fill
+        , Border.rounded 6
+        , Border.width 2
+        ]
+        { onPress = Just action
+        , label = el [ centerX ] <| text lbl
+        }

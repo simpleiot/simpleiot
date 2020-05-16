@@ -15,6 +15,7 @@
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
             "elm-community/list-extra": "8.2.4",
+            "feathericons/elm-feather": "1.4.0",
             "mdgriffith/elm-ui": "1.1.5",
             "myrho/elm-round": "1.0.4",
             "ryannhg/elm-spa": "3.0.0"
@@ -23,7 +24,8 @@
             "elm/browser": "1.0.2",
             "elm/bytes": "1.0.8",
             "elm/file": "1.0.5",
-            "elm/virtual-dom": "1.0.2"
+            "elm/virtual-dom": "1.0.2",
+            "elm/svg": "1.0.1"
         }
     },
     "test-dependencies": {

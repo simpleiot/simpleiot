@@ -28,6 +28,7 @@ colors =
 
 palette :
     { black : Color
+    , ltgray : Color
     , gray : Color
     , pale : Color
     , red : Color
@@ -37,6 +38,7 @@ palette :
     }
 palette =
     { black = rgb 0 0 0
+    , ltgray = rgb 0.9 0.9 0.9
     , gray = rgb 0.5 0.5 0.5
     , pale = rgba 0.97 0.97 0.97 0.9
     , red = rgba 1 0.7 0.7 0.75

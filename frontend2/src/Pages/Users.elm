@@ -1,6 +1,5 @@
 module Pages.Users exposing (Model, Msg, page)
 
-import Components.Button as Button
 import Components.Form as Form
 import Data.User as U
 import Element exposing (..)
@@ -108,7 +107,7 @@ view context model =
             column
                 [ width fill, spacing 32 ]
                 [ el [ padding 16, Font.size 24 ] <| text "Users"
-                , el [ padding 16, width fill, Font.bold ] <| Button.view2 "new user" palette.green NewUser
+                , el [ padding 16, width fill, Font.bold ] <| Form.button "new user" palette.green NewUser
                 , viewUsers sess.data.users model.userEdit
                 ]
 
@@ -174,9 +173,9 @@ viewUser modded user =
             ++ (if modded then
                     [ Background.color palette.orange
                     , below <|
-                        Button.viewRow
-                            [ Button.view2 "discard" palette.pale <| DiscardUserEdits
-                            , Button.view2 "save" palette.green <| PostUser user
+                        Form.buttonRow
+                            [ Form.button "discard" palette.pale <| DiscardUserEdits
+                            , Form.button "save" palette.green <| PostUser user
                             ]
                     ]
 
@@ -205,18 +204,3 @@ viewUser modded user =
             , action = \x -> EditUser { user | pass = x }
             }
         ]
-
-
-
---viewRoles =
---    row
---        []
---        << List.map viewRole
---viewRole { role, value, action } =
---    Input.checkbox
---        [ padding 16 ]
---        { checked = value
---        , icon = Input.defaultCheckbox
---        , label = label Input.labelRight role
---        , onChange = action
---        }

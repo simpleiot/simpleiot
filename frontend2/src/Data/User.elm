@@ -1,5 +1,6 @@
 module Data.User exposing
     ( User
+    , decode
     , decodeList
     , empty
     , encode

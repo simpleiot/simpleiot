@@ -2,6 +2,7 @@ module Global exposing
     ( Flags
     , Model(..)
     , Msg(..)
+    , Session
     , init
     , subscriptions
     , update
@@ -35,6 +36,7 @@ type alias Session =
     , error : Maybe Http.Error
     , respError : Maybe String
     , posting : Bool
+    , newOrgUser : Maybe U.User
     }
 
 
@@ -62,6 +64,8 @@ type Msg
     | ConfigPosted String (Result Http.Error Response)
     | UserPosted String (Result Http.Error Response)
     | OrgPosted String (Result Http.Error Response)
+    | CheckUser String
+    | CheckUserResponse (Result Http.Error U.User)
 
 
 type alias Commands msg =
@@ -127,6 +131,7 @@ update commands msg model =
                         , error = Nothing
                         , respError = Nothing
                         , posting = False
+                        , newOrgUser = Nothing
                         }
                     , Cmd.none
                     , commands.navigate routes.top
@@ -309,7 +314,11 @@ update commands msg model =
                             else
                                 List.map updateOrg sess.data.orgs
                     in
-                    ( SignedIn { sess | data = { data | orgs = orgs } }
+                    ( SignedIn
+                        { sess
+                            | data = { data | orgs = orgs }
+                            , newOrgUser = Nothing
+                        }
                     , postOrg sess.authToken org
                     , Cmd.none
                     )
@@ -344,6 +353,21 @@ update commands msg model =
 
                 OrgPosted _ (Err _) ->
                     ( SignedIn { sess | respError = Just "Error saving org" }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                CheckUser userEmail ->
+                    ( SignedIn { sess | newOrgUser = Nothing }
+                    , getUserByEmail sess.authToken userEmail
+                    , Cmd.none
+                    )
+
+                CheckUserResponse (Err _) ->
+                    ( model, Cmd.none, Cmd.none )
+
+                CheckUserResponse (Ok user) ->
+                    ( SignedIn { sess | newOrgUser = Just user }
                     , Cmd.none
                     , Cmd.none
                     )
@@ -415,6 +439,19 @@ getUsers token =
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.absolute [ "v1", "users" ] []
         , expect = Http.expectJson UsersResponse U.decodeList
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+getUserByEmail : String -> String -> Cmd Msg
+getUserByEmail token email =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "users" ] [ Url.string "email" email ]
+        , expect = Http.expectJson CheckUserResponse U.decode
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing

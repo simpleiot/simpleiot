@@ -5,6 +5,7 @@ module Pages.Devices exposing
     , page
     )
 
+import Components.Form as Form
 import Data.Device as D
 import Data.Sample exposing (Sample, renderSample)
 import Dict exposing (Dict)
@@ -245,40 +246,15 @@ fieldAttrs modded save discard =
                 [ Background.color palette.orange
                 , onEnter save
                 , below <|
-                    buttonRow
-                        [ button "discard" palette.pale discard
-                        , button "save" palette.green save
+                    Form.buttonRow
+                        [ Form.button "discard" palette.pale discard
+                        , Form.button "save" palette.green save
                         ]
                 ]
 
             else
                 [ Background.color palette.pale ]
            )
-
-
-buttonRow : List (Element Msg) -> Element Msg
-buttonRow =
-    row
-        [ Font.size 16
-        , Font.bold
-        , width fill
-        , padding 16
-        , spacing 16
-        ]
-
-
-button : String -> Color -> Msg -> Element Msg
-button label color action =
-    Input.button
-        [ Background.color color
-        , padding 16
-        , width fill
-        , Border.rounded 6
-        , Border.width 2
-        ]
-        { onPress = Just action
-        , label = el [ centerX ] <| text label
-        }
 
 
 onEnter : msg -> Attribute msg

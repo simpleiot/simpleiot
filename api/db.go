@@ -219,17 +219,23 @@ func checkUser(store *bolthold.Store, email, password string) (bool, error) {
 }
 
 // userByID returns the user with the given ID, if it exists.
-func userByID(store *bolthold.Store, id string) (*data.User, error) {
-	var ret *data.User
-	err := view(store, func(tx *bolt.Tx) error {
-		var user data.User
-		if err := store.TxFindOne(tx, &user, bolthold.Where("ID").Eq(id)); err != nil {
-			return err
-		}
+func userByID(store *bolthold.Store, id string) (data.User, error) {
+	var ret data.User
+	if err := store.FindOne(&ret, bolthold.Where("ID").Eq(id)); err != nil {
+		return ret, err
+	}
 
-		return nil
-	})
-	return ret, err
+	return ret, nil
+}
+
+// userByEmail returns the user with the given email, if it exists.
+func userByEmail(store *bolthold.Store, email string) (data.User, error) {
+	var ret data.User
+	if err := store.FindOne(&ret, bolthold.Where("Email").Eq(email)); err != nil {
+		return ret, err
+	}
+
+	return ret, nil
 }
 
 // initialize initializes the database with one user (admin)

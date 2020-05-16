@@ -27,7 +27,18 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if id == "" {
 		switch req.Method {
 		case http.MethodGet:
+			email := req.URL.Query().Get("email")
 			// get all users
+			if email != "" {
+				user, err := userByEmail(u.db.store, email)
+				if err != nil {
+					http.Error(res, err.Error(), http.StatusNotFound)
+					return
+				}
+				encode(res, user)
+				return
+			}
+
 			users, err := users(u.db.store)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
