@@ -422,17 +422,35 @@ update commands msg model =
                     , Cmd.none
                     )
 
-                UserPosted _ (Ok _) ->
-                    ( model, Cmd.none, Cmd.none )
+                UserPosted _ (Ok resp) ->
+                    -- populate the assigned ID in the new user
+                    let
+                        users =
+                            List.map
+                                (\u ->
+                                    if u.id == "" then
+                                        { u | id = resp.id }
 
-                UserPosted _ (Err _) ->
-                    ( SignedIn { sess | respError = Just "Error saving user" }
+                                    else
+                                        u
+                                )
+                                data.users
+                    in
+                    ( SignedIn { sess | data = { data | users = users } }
                     , Cmd.none
                     , Cmd.none
                     )
 
+                UserPosted _ (Err _) ->
+                    -- refresh users as the local users cache is now
+                    -- stale
+                    ( SignedIn { sess | respError = Just "Error saving user" }
+                    , getUsers sess.authToken
+                    , Cmd.none
+                    )
+
                 OrgPosted _ (Ok resp) ->
-                    -- populate the blank ID in the new org
+                    -- populate the assigned ID in the new org
                     let
                         orgs =
                             List.map
