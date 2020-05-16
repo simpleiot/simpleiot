@@ -288,6 +288,7 @@ update commands msg model =
                         { sess
                             | data = { data | devices = devices }
                             , posting = True
+                            , newOrgDevice = Nothing
                         }
                     , postDeviceOrgs sess.authToken id orgs
                     , Cmd.none
