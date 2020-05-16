@@ -1,6 +1,7 @@
 module Pages.Users exposing (Model, Msg, page)
 
 import Components.Form as Form
+import Components.Icon as Icon
 import Data.User as U
 import Element exposing (..)
 import Element.Background as Background
@@ -51,6 +52,7 @@ type Msg
     = PostUser U.User
     | EditUser U.User
     | DiscardUserEdits
+    | DeleteUser String
     | NewUser
 
 
@@ -78,6 +80,12 @@ update context msg model =
 
                 Global.SignedOut _ ->
                     Cmd.none
+            )
+
+        DeleteUser id ->
+            ( model
+            , Cmd.none
+            , Spa.Page.send <| Global.DeleteUser id
             )
 
         NewUser ->
@@ -203,4 +211,5 @@ viewUser modded user =
             , value = user.pass
             , action = \x -> EditUser { user | pass = x }
             }
+        , Icon.userX (DeleteUser user.id)
         ]

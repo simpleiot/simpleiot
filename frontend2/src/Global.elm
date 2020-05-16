@@ -64,6 +64,8 @@ type Msg
     | UpdateDeviceConfig String D.Config
     | UpdateDeviceOrgs String (List String)
     | UpdateUser U.User
+    | DeleteUser String
+    | DeleteUserResponse String (Result Http.Error Response)
     | UpdateOrg O.Org
     | DeleteOrg String
     | DeleteOrgResponse String (Result Http.Error Response)
@@ -512,6 +514,32 @@ update commands msg model =
                     , Cmd.none
                     )
 
+                DeleteUser id ->
+                    let
+                        users =
+                            List.filter (\u -> u.id /= id) data.users
+                    in
+                    ( SignedIn { sess | data = { data | users = users } }
+                    , deleteUser sess.authToken id
+                    , Cmd.none
+                    )
+
+                DeleteUserResponse _ (Ok _) ->
+                    ( model
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                DeleteUserResponse _ (Err _) ->
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error deleting user"
+                            , posting = False
+                        }
+                    , getUsers sess.authToken
+                    , Cmd.none
+                    )
+
 
 getDevices : String -> Cmd Msg
 getDevices token =
@@ -613,6 +641,19 @@ getUsers token =
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.absolute [ "v1", "users" ] []
         , expect = Http.expectJson UsersResponse U.decodeList
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+deleteUser : String -> String -> Cmd Msg
+deleteUser token id =
+    Http.request
+        { method = "DELETE"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "users", id ] []
+        , expect = Http.expectJson (DeleteUserResponse id) responseDecoder
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing

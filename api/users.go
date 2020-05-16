@@ -58,6 +58,12 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	idUUID, err := uuid.Parse(id)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	switch req.Method {
 	case http.MethodGet:
 		// get a single user
@@ -73,6 +79,17 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		// update a single user
 		u.updateUser(id, res, req)
 		return
+
+	case http.MethodDelete:
+		err := deleteUser(u.db.store, idUUID)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusNotFound)
+		} else {
+			en := json.NewEncoder(res)
+			en.Encode(data.StandardResponse{Success: true, ID: id})
+		}
+		return
+
 	}
 
 	http.Error(res, "invalid method", http.StatusMethodNotAllowed)

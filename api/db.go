@@ -336,6 +336,11 @@ func updateUser(store *bolthold.Store, user data.User) error {
 	})
 }
 
+// deleteUser deletes a user from the database
+func deleteUser(store *bolthold.Store, id uuid.UUID) error {
+	return store.Delete(id, data.User{})
+}
+
 func insertOrg(store *bolthold.Store, org data.Org) (string, error) {
 	id := uuid.New()
 
@@ -364,7 +369,6 @@ func updateOrg(store *bolthold.Store, org data.Org) error {
 
 // deleteOrg deletes a device from the database
 func deleteOrg(store *bolthold.Store, id uuid.UUID) error {
-	fmt.Println("CLIFF: deleteOrg: ", id)
 	return store.Delete(id, data.Org{})
 }
 

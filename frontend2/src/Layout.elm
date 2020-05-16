@@ -16,7 +16,7 @@ view { page, global, fromGlobalMsg } =
         , Font.family Styles.fonts.sans
         , paddingEach { top = 0, bottom = 16, left = 0, right = 0 }
         , spacing 32
-        , width (fill |> maximum 640)
+        , width (fill |> maximum 750)
         , height fill
         , centerX
         ]

@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -73,7 +72,6 @@ func (o Orgs) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	case http.MethodDelete:
 		err := deleteOrg(o.db.store, idUUID)
-		fmt.Println("CLIFF: Delete org: ", err)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 		} else {
