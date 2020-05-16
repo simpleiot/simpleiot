@@ -376,7 +376,11 @@ viewOrg sess model modded org =
                 , value = org.name
                 , action = \x -> EditOrg { org | name = x }
                 }
-            , Icon.x (DeleteOrg org.id)
+            , if org.id /= "00000000-0000-0000-0000-000000000000" then
+                Icon.x (DeleteOrg org.id)
+
+              else
+                Element.none
             ]
         , row []
             [ el [ padding 16, Font.italic, Font.color palette.gray ] <| text "Users"
