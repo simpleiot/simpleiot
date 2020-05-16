@@ -81,6 +81,7 @@ type Msg
     | EditOrg O.Org
     | DiscardOrgEdits
     | NewOrg
+    | DeleteOrg String
     | RemoveUser O.Org String
     | AddUser String
     | CancelAddUser
@@ -123,6 +124,12 @@ update context msg model =
                     ( { model | orgEdit = Just O.empty }
                     , Cmd.none
                     , Cmd.none
+                    )
+
+                DeleteOrg id ->
+                    ( { model | orgEdit = Nothing }
+                    , Cmd.none
+                    , Spa.Page.send <| Global.DeleteOrg id
                     )
 
                 RemoveUser org userId ->
@@ -362,11 +369,15 @@ viewOrg sess model modded org =
                     []
                )
         )
-        [ Form.viewTextProperty
-            { name = "Organization name"
-            , value = org.name
-            , action = \x -> EditOrg { org | name = x }
-            }
+        [ row
+            []
+            [ Form.viewTextProperty
+                { name = "Organization name"
+                , value = org.name
+                , action = \x -> EditOrg { org | name = x }
+                }
+            , Icon.x (DeleteOrg org.id)
+            ]
         , row []
             [ el [ padding 16, Font.italic, Font.color palette.gray ] <| text "Users"
             , case model.newUser of

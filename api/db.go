@@ -362,6 +362,12 @@ func updateOrg(store *bolthold.Store, org data.Org) error {
 	})
 }
 
+// deleteOrg deletes a device from the database
+func deleteOrg(store *bolthold.Store, id uuid.UUID) error {
+	fmt.Println("CLIFF: deleteOrg: ", id)
+	return store.Delete(id, data.Org{})
+}
+
 func newIfZero(id uuid.UUID) uuid.UUID {
 	if id == zero {
 		return uuid.New()

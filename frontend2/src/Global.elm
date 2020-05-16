@@ -58,12 +58,16 @@ type Msg
     | RequestOrgs
     | RequestDevices
     | RequestUsers
+    | DeleteDevice String
+    | DeleteDeviceResponse String (Result Http.Error Response)
     | SignOut
     | Tick Time.Posix
     | UpdateDeviceConfig String D.Config
     | UpdateDeviceOrgs String (List String)
     | UpdateUser U.User
     | UpdateOrg O.Org
+    | DeleteOrg String
+    | DeleteOrgResponse String (Result Http.Error Response)
     | ConfigPosted String (Result Http.Error Response)
     | UserPosted String (Result Http.Error Response)
     | OrgPosted String (Result Http.Error Response)
@@ -350,6 +354,58 @@ update commands msg model =
                     , Cmd.none
                     )
 
+                DeleteOrg id ->
+                    let
+                        orgs =
+                            List.filter (\o -> o.id /= id) data.orgs
+                    in
+                    ( SignedIn { sess | data = { data | orgs = orgs } }
+                    , deleteOrg sess.authToken id
+                    , Cmd.none
+                    )
+
+                DeleteOrgResponse _ (Ok _) ->
+                    ( model
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                DeleteOrgResponse _ (Err _) ->
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error deleting org"
+                            , posting = False
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                DeleteDevice id ->
+                    let
+                        devices =
+                            List.filter (\d -> d.id /= id) data.devices
+                    in
+                    ( SignedIn { sess | data = { data | devices = devices } }
+                    , deleteDevice sess.authToken id
+                    , Cmd.none
+                    )
+
+                DeleteDeviceResponse _ (Ok _) ->
+                    ( model
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                DeleteDeviceResponse _ (Err _) ->
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error deleting device"
+                            , posting = False
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
                 ConfigPosted _ (Ok _) ->
                     ( SignedIn { sess | posting = False }
                     , Cmd.none
@@ -375,12 +431,30 @@ update commands msg model =
                     , Cmd.none
                     )
 
-                OrgPosted _ (Ok _) ->
-                    ( model, Cmd.none, Cmd.none )
+                OrgPosted _ (Ok resp) ->
+                    -- populate the blank ID in the new org
+                    let
+                        orgs =
+                            List.map
+                                (\o ->
+                                    if o.id == "" then
+                                        { o | id = resp.id }
+
+                                    else
+                                        o
+                                )
+                                data.orgs
+                    in
+                    ( SignedIn { sess | data = { data | orgs = orgs } }
+                    , Cmd.none
+                    , Cmd.none
+                    )
 
                 OrgPosted _ (Err _) ->
+                    -- refresh the ids because the local org cache is
+                    -- is not correct because save did not take
                     ( SignedIn { sess | respError = Just "Error saving org" }
-                    , Cmd.none
+                    , getOrgs sess.authToken
                     , Cmd.none
                     )
 
@@ -453,6 +527,19 @@ getDeviceById token id =
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.absolute [ "v1", "devices", id ] []
         , expect = Http.expectJson CheckDeviceResponse D.decode
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+deleteDevice : String -> String -> Cmd Msg
+deleteDevice token id =
+    Http.request
+        { method = "DELETE"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "devices", id ] []
+        , expect = Http.expectJson (DeleteDeviceResponse id) responseDecoder
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
@@ -560,6 +647,19 @@ postOrg token org =
         , url = Url.absolute [ "v1", "orgs", org.id ] []
         , expect = Http.expectJson (OrgPosted org.id) responseDecoder
         , body = org |> O.encode |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+deleteOrg : String -> String -> Cmd Msg
+deleteOrg token id =
+    Http.request
+        { method = "DELETE"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "orgs", id ] []
+        , expect = Http.expectJson (DeleteOrgResponse id) responseDecoder
+        , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
         }

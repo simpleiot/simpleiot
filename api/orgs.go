@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -67,6 +69,17 @@ func (o Orgs) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case http.MethodPost:
 		// update a single org
 		o.updateOrg(idUUID, res, req)
+		return
+
+	case http.MethodDelete:
+		err := deleteOrg(o.db.store, idUUID)
+		fmt.Println("CLIFF: Delete org: ", err)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusNotFound)
+		} else {
+			en := json.NewEncoder(res)
+			en.Encode(data.StandardResponse{Success: true, ID: id})
+		}
 		return
 	}
 

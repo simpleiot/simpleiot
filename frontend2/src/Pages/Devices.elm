@@ -6,6 +6,7 @@ module Pages.Devices exposing
     )
 
 import Components.Form as Form
+import Components.Icon as Icon
 import Data.Device as D
 import Data.Sample exposing (Sample, renderSample)
 import Dict exposing (Dict)
@@ -62,6 +63,7 @@ type Msg
     = EditDeviceDescription DeviceEdit
     | PostConfig String D.Config
     | DiscardEditedDeviceDescription String
+    | DeleteDevice String
     | Tick Time.Posix
 
 
@@ -92,6 +94,9 @@ update _ msg model =
             , Cmd.none
             , Cmd.none
             )
+
+        DeleteDevice id ->
+            ( model, Cmd.none, Spa.Page.send <| Global.DeleteDevice id )
 
         Tick _ ->
             ( model
@@ -153,7 +158,10 @@ viewDevice edits device =
         , Border.color palette.black
         , spacing 6
         ]
-        [ viewDeviceId device.id
+        [ row []
+            [ viewDeviceId device.id
+            , Icon.x (DeleteDevice device.id)
+            ]
         , viewDeviceDescription edits device
         , viewIoList device.state.ios
         ]
