@@ -369,19 +369,19 @@ viewOrg sess model modded org =
                     []
                )
         )
-        [ row
-            []
-            [ Form.viewTextProperty
-                { name = "Organization name"
-                , value = org.name
-                , action = \x -> EditOrg { org | name = x }
-                }
-            , if org.id /= "00000000-0000-0000-0000-000000000000" then
-                Icon.x (DeleteOrg org.id)
+        [ if org.id == "00000000-0000-0000-0000-000000000000" then
+            el [ padding 16 ] (text org.name)
 
-              else
-                Element.none
-            ]
+          else
+            row
+                []
+                [ Form.viewTextProperty
+                    { name = "Organization name"
+                    , value = org.name
+                    , action = \x -> EditOrg { org | name = x }
+                    }
+                , Icon.x (DeleteOrg org.id)
+                ]
         , row []
             [ el [ padding 16, Font.italic, Font.color palette.gray ] <| text "Users"
             , case model.newUser of
@@ -442,7 +442,7 @@ viewOrg sess model modded org =
                             }
                         , case sess.newOrgDevice of
                             Just dev ->
-                                Icon.userPlus (SaveNewDevice org.id dev.id)
+                                Icon.plus (SaveNewDevice org.id dev.id)
 
                             Nothing ->
                                 Element.none
