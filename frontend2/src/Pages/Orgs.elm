@@ -36,6 +36,7 @@ page =
 type alias Model =
     { orgEdit : Maybe O.Org
     , newUser : Maybe NewUser
+    , newDevice : Maybe NewDevice
     }
 
 
@@ -43,12 +44,19 @@ empty : Model
 empty =
     { orgEdit = Nothing
     , newUser = Nothing
+    , newDevice = Nothing
     }
 
 
 type alias NewUser =
     { orgId : String
     , userEmail : String
+    }
+
+
+type alias NewDevice =
+    { orgId : String
+    , deviceId : String
     }
 
 
@@ -78,100 +86,175 @@ type Msg
     | CancelAddUser
     | EditNewUser String
     | SaveNewUser O.Org String
+    | RemoveDevice String String
+    | AddDevice String
+    | CancelAddDevice
+    | EditNewDevice String
+    | SaveNewDevice String String
 
 
 update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update context msg model =
-    case msg of
-        EditOrg org ->
-            ( { model | orgEdit = Just org }
-            , Cmd.none
-            , Cmd.none
-            )
+    case context.global of
+        Global.SignedOut _ ->
+            ( model, Cmd.none, Cmd.none )
 
-        DiscardOrgEdits ->
-            ( { model | orgEdit = Nothing }
-            , Cmd.none
-            , Cmd.none
-            )
-
-        PostOrg org ->
-            ( { model | orgEdit = Nothing }
-            , Cmd.none
-            , case context.global of
-                Global.SignedIn _ ->
-                    Spa.Page.send <| Global.UpdateOrg org
-
-                Global.SignedOut _ ->
-                    Cmd.none
-            )
-
-        NewOrg ->
-            ( { model | orgEdit = Just O.empty }
-            , Cmd.none
-            , Cmd.none
-            )
-
-        RemoveUser org userId ->
-            let
-                users =
-                    List.filter
-                        (\ur -> ur.userId /= userId)
-                        org.users
-
-                updatedOrg =
-                    { org | users = users }
-            in
-            ( model
-            , Cmd.none
-            , Spa.Page.send <| Global.UpdateOrg updatedOrg
-            )
-
-        AddUser orgId ->
-            ( { model | newUser = Just { orgId = orgId, userEmail = "" } }
-            , Cmd.none
-            , Cmd.none
-            )
-
-        CancelAddUser ->
-            ( { model | newUser = Nothing }
-            , Cmd.none
-            , Cmd.none
-            )
-
-        EditNewUser userEmail ->
-            case model.newUser of
-                Just newUser ->
-                    ( { model | newUser = Just { newUser | userEmail = userEmail } }
+        Global.SignedIn sess ->
+            case msg of
+                EditOrg org ->
+                    ( { model | orgEdit = Just org }
                     , Cmd.none
-                    , Spa.Page.send <| Global.CheckUser userEmail
+                    , Cmd.none
                     )
 
-                Nothing ->
-                    ( model, Cmd.none, Cmd.none )
+                DiscardOrgEdits ->
+                    ( { model | orgEdit = Nothing }
+                    , Cmd.none
+                    , Cmd.none
+                    )
 
-        SaveNewUser org userId ->
-            let
-                -- only add user if it does not already exist
-                users =
-                    case
-                        List.Extra.find
-                            (\ur -> ur.userId == userId)
-                            org.users
-                    of
-                        Just _ ->
-                            org.users
+                PostOrg org ->
+                    ( { model | orgEdit = Nothing }
+                    , Cmd.none
+                    , Spa.Page.send <| Global.UpdateOrg org
+                    )
+
+                NewOrg ->
+                    ( { model | orgEdit = Just O.empty }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                RemoveUser org userId ->
+                    let
+                        users =
+                            List.filter
+                                (\ur -> ur.userId /= userId)
+                                org.users
+
+                        updatedOrg =
+                            { org | users = users }
+                    in
+                    ( model
+                    , Cmd.none
+                    , Spa.Page.send <| Global.UpdateOrg updatedOrg
+                    )
+
+                AddUser orgId ->
+                    ( { model | newUser = Just { orgId = orgId, userEmail = "" } }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                CancelAddUser ->
+                    ( { model | newUser = Nothing }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                EditNewUser userEmail ->
+                    case model.newUser of
+                        Just newUser ->
+                            ( { model | newUser = Just { newUser | userEmail = userEmail } }
+                            , Cmd.none
+                            , Spa.Page.send <| Global.CheckUser userEmail
+                            )
 
                         Nothing ->
-                            { userId = userId, roles = [ "user" ] } :: org.users
+                            ( model, Cmd.none, Cmd.none )
 
-                updatedOrg =
-                    { org | users = users }
-            in
-            ( { model | newUser = Nothing }
-            , Cmd.none
-            , Spa.Page.send <| Global.UpdateOrg updatedOrg
-            )
+                SaveNewUser org userId ->
+                    let
+                        -- only add user if it does not already exist
+                        users =
+                            case
+                                List.Extra.find
+                                    (\ur -> ur.userId == userId)
+                                    org.users
+                            of
+                                Just _ ->
+                                    org.users
+
+                                Nothing ->
+                                    { userId = userId, roles = [ "user" ] } :: org.users
+
+                        updatedOrg =
+                            { org | users = users }
+                    in
+                    ( { model | newUser = Nothing }
+                    , Cmd.none
+                    , Spa.Page.send <| Global.UpdateOrg updatedOrg
+                    )
+
+                RemoveDevice orgId deviceId ->
+                    ( model
+                    , Cmd.none
+                    , case
+                        List.Extra.find (\d -> d.id == deviceId)
+                            sess.data.devices
+                      of
+                        Just device ->
+                            let
+                                orgs =
+                                    List.filter (\o -> o /= orgId)
+                                        device.orgs
+                            in
+                            Spa.Page.send <|
+                                Global.UpdateDeviceOrgs device.id orgs
+
+                        Nothing ->
+                            Cmd.none
+                    )
+
+                AddDevice orgId ->
+                    ( { model | newDevice = Just { orgId = orgId, deviceId = "" } }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                CancelAddDevice ->
+                    ( { model | newDevice = Nothing }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                EditNewDevice deviceId ->
+                    case model.newDevice of
+                        Just newDevice ->
+                            ( { model | newDevice = Just { newDevice | deviceId = deviceId } }
+                            , Cmd.none
+                            , Spa.Page.send <| Global.CheckDevice deviceId
+                            )
+
+                        Nothing ->
+                            ( model, Cmd.none, Cmd.none )
+
+                SaveNewDevice orgId deviceId ->
+                    ( { model | newDevice = Nothing }
+                    , Cmd.none
+                    , case
+                        List.Extra.find (\d -> d.id == deviceId)
+                            sess.data.devices
+                      of
+                        Just device ->
+                            let
+                                orgs =
+                                    case
+                                        List.Extra.find (\o -> o == orgId)
+                                            device.orgs
+                                    of
+                                        Just _ ->
+                                            device.orgs
+
+                                        Nothing ->
+                                            orgId :: device.orgs
+                            in
+                            Spa.Page.send <|
+                                Global.UpdateDeviceOrgs device.id orgs
+
+                        Nothing ->
+                            Cmd.none
+                    )
 
 
 
@@ -289,7 +372,7 @@ viewOrg sess model modded org =
             , case model.newUser of
                 Just newUser ->
                     if newUser.orgId == org.id then
-                        Icon.userMinus CancelAddUser
+                        Icon.userX CancelAddUser
 
                     else
                         Icon.userPlus (AddUser org.id)
@@ -320,8 +403,42 @@ viewOrg sess model modded org =
             Nothing ->
                 Element.none
         , viewUsers org sess.data.users
-        , el [ padding 16, Font.italic, Font.color palette.gray ] <| text "Devices"
-        , viewDevices devices
+        , row []
+            [ el [ padding 16, Font.italic, Font.color palette.gray ] <| text "Devices"
+            , case model.newDevice of
+                Just newDevice ->
+                    if newDevice.orgId == org.id then
+                        Icon.x CancelAddDevice
+
+                    else
+                        Icon.plus (AddDevice org.id)
+
+                Nothing ->
+                    Icon.plus (AddDevice org.id)
+            ]
+        , case model.newDevice of
+            Just nd ->
+                if nd.orgId == org.id then
+                    row []
+                        [ Form.viewTextProperty
+                            { name = "Enter new device ID"
+                            , value = nd.deviceId
+                            , action = \x -> EditNewDevice x
+                            }
+                        , case sess.newOrgDevice of
+                            Just dev ->
+                                Icon.userPlus (SaveNewDevice org.id dev.id)
+
+                            Nothing ->
+                                Element.none
+                        ]
+
+                else
+                    Element.none
+
+            Nothing ->
+                Element.none
+        , viewDevices org devices
         ]
 
 
@@ -341,7 +458,7 @@ viewUsers org users =
                                     ++ user.email
                                     ++ ">"
                                 )
-                            , Icon.userMinus (RemoveUser org user.id)
+                            , Icon.userX (RemoveUser org user.id)
                             ]
 
                     Nothing ->
@@ -351,18 +468,20 @@ viewUsers org users =
         )
 
 
-viewDevices : List D.Device -> Element Msg
-viewDevices devices =
+viewDevices : O.Org -> List D.Device -> Element Msg
+viewDevices org devices =
     column [ spacing 6, paddingEach { top = 0, right = 16, bottom = 0, left = 32 } ]
         (List.map
             (\d ->
-                el [ padding 16 ] <|
-                    text
+                row [ padding 16 ]
+                    [ text
                         ("("
                             ++ d.id
                             ++ ") "
                             ++ d.config.description
                         )
+                    , Icon.x (RemoveDevice org.id d.id)
+                    ]
             )
             devices
         )

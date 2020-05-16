@@ -16,6 +16,7 @@ import Generated.Routes exposing (Route, routes)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
+import List.Extra
 import Time
 import Url.Builder as Url
 
@@ -37,6 +38,7 @@ type alias Session =
     , respError : Maybe String
     , posting : Bool
     , newOrgUser : Maybe U.User
+    , newOrgDevice : Maybe D.Device
     }
 
 
@@ -59,6 +61,7 @@ type Msg
     | SignOut
     | Tick Time.Posix
     | UpdateDeviceConfig String D.Config
+    | UpdateDeviceOrgs String (List String)
     | UpdateUser U.User
     | UpdateOrg O.Org
     | ConfigPosted String (Result Http.Error Response)
@@ -66,6 +69,8 @@ type Msg
     | OrgPosted String (Result Http.Error Response)
     | CheckUser String
     | CheckUserResponse (Result Http.Error U.User)
+    | CheckDevice String
+    | CheckDeviceResponse (Result Http.Error D.Device)
 
 
 type alias Commands msg =
@@ -132,6 +137,7 @@ update commands msg model =
                         , respError = Nothing
                         , posting = False
                         , newOrgUser = Nothing
+                        , newOrgDevice = Nothing
                         }
                     , Cmd.none
                     , commands.navigate routes.top
@@ -254,24 +260,45 @@ update commands msg model =
 
                 UpdateDeviceConfig id config ->
                     let
-                        updateConfig device =
-                            if device.id == id then
-                                { device | config = config }
-
-                            else
-                                device
-
                         devices =
-                            List.map updateConfig sess.data.devices
+                            List.map
+                                (\d ->
+                                    if d.id == id then
+                                        { d | config = config }
 
-                        oldData =
-                            sess.data
-
-                        newData =
-                            { oldData | devices = devices }
+                                    else
+                                        d
+                                )
+                                data.devices
                     in
-                    ( SignedIn { sess | data = newData, posting = True }
-                    , postConfig sess.authToken id config
+                    ( SignedIn
+                        { sess
+                            | data = { data | devices = devices }
+                            , posting = True
+                        }
+                    , postDeviceConfig sess.authToken id config
+                    , Cmd.none
+                    )
+
+                UpdateDeviceOrgs id orgs ->
+                    let
+                        devices =
+                            List.map
+                                (\d ->
+                                    if d.id == id then
+                                        { d | orgs = orgs }
+
+                                    else
+                                        d
+                                )
+                                data.devices
+                    in
+                    ( SignedIn
+                        { sess
+                            | data = { data | devices = devices }
+                            , posting = True
+                        }
+                    , postDeviceOrgs sess.authToken id orgs
                     , Cmd.none
                     )
 
@@ -372,14 +399,60 @@ update commands msg model =
                     , Cmd.none
                     )
 
+                CheckDevice deviceId ->
+                    ( SignedIn { sess | newOrgDevice = Nothing }
+                    , getDeviceById sess.authToken deviceId
+                    , Cmd.none
+                    )
+
+                CheckDeviceResponse (Err _) ->
+                    ( model, Cmd.none, Cmd.none )
+
+                CheckDeviceResponse (Ok device) ->
+                    -- make sure new device is in our local cache
+                    -- of devices so we can modify it if necessary
+                    let
+                        devices =
+                            case
+                                List.Extra.find (\d -> d.id == device.id)
+                                    sess.data.devices
+                            of
+                                Just _ ->
+                                    sess.data.devices
+
+                                Nothing ->
+                                    device :: sess.data.devices
+                    in
+                    ( SignedIn
+                        { sess
+                            | newOrgDevice = Just device
+                            , data = { data | devices = devices }
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
 
 getDevices : String -> Cmd Msg
 getDevices token =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = urlDevices
+        , url = Url.absolute [ "v1", "devices" ] []
         , expect = Http.expectJson DevicesResponse D.decodeList
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+getDeviceById : String -> String -> Cmd Msg
+getDeviceById token id =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "devices", id ] []
+        , expect = Http.expectJson CheckDeviceResponse D.decode
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
@@ -401,22 +474,30 @@ responseDecoder =
         |> optional "id" Decode.string ""
 
 
-postConfig : String -> String -> D.Config -> Cmd Msg
-postConfig token id config =
+postDeviceConfig : String -> String -> D.Config -> Cmd Msg
+postDeviceConfig token id config =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.absolute [ "v1", "devices", id, "config" ] []
         , expect = Http.expectJson (ConfigPosted id) responseDecoder
-        , body = config |> D.deviceConfigEncoder |> Http.jsonBody
+        , body = config |> D.encodeConfig |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
 
 
-urlDevices : String
-urlDevices =
-    Url.absolute [ "v1", "devices" ] []
+postDeviceOrgs : String -> String -> List String -> Cmd Msg
+postDeviceOrgs token id orgs =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "devices", id, "orgs" ] []
+        , expect = Http.expectJson (ConfigPosted id) responseDecoder
+        , body = orgs |> D.encodeOrgs |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 getOrgs : String -> Cmd Msg

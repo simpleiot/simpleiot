@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
 )
@@ -74,6 +76,24 @@ func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id s
 	en.Encode(data.StandardResponse{Success: true, ID: id})
 }
 
+func (h *Devices) updateDeviceOrgs(res http.ResponseWriter, req *http.Request, id string) {
+	decoder := json.NewDecoder(req.Body)
+	var orgs []uuid.UUID
+	err := decoder.Decode(&orgs)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = deviceUpdateOrgs(h.db.store, id, orgs)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+
+	en := json.NewEncoder(res)
+	en.Encode(data.StandardResponse{Success: true, ID: id})
+}
+
 func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
 	var samples []data.Sample
@@ -128,6 +148,17 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		} else {
 			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
 		}
+	case "orgs":
+		if !h.check.Valid(req) {
+			http.Error(res, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		if req.Method == http.MethodPost {
+			h.updateDeviceOrgs(res, req, id)
+		} else {
+			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+		}
+
 	case "cmd":
 		if req.Method == http.MethodGet {
 			// Get is done by devices

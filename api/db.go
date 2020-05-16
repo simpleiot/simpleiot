@@ -48,6 +48,20 @@ func deviceUpdateConfig(store *bolthold.Store, id string, config data.DeviceConf
 	})
 }
 
+// deviceUpdateOrgs updates the orgs for a device.
+func deviceUpdateOrgs(store *bolthold.Store, id string, orgs []uuid.UUID) error {
+	return update(store, func(tx *bolt.Tx) error {
+		var dev data.Device
+		if err := store.TxGet(tx, id, &dev); err != nil {
+			return err
+		}
+
+		dev.Orgs = orgs
+
+		return store.TxUpdate(tx, id, dev)
+	})
+}
+
 // DeviceSample processes a sample for a particular device
 func (db *Db) DeviceSample(id string, sample data.Sample) error {
 	return deviceSample(db.store, id, sample)

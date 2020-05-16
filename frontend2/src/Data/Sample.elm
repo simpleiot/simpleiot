@@ -1,4 +1,4 @@
-module Data.Sample exposing (Sample, encodeSample, renderSample, sampleDecoder)
+module Data.Sample exposing (Sample, decode, encode, renderSample)
 
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional)
@@ -13,8 +13,8 @@ type alias Sample =
     }
 
 
-encodeSample : Sample -> Json.Encode.Value
-encodeSample s =
+encode : Sample -> Json.Encode.Value
+encode s =
     Json.Encode.object
         [ ( "type", Json.Encode.string <| s.sType )
         , ( "id", Json.Encode.string <| s.id )
@@ -22,8 +22,8 @@ encodeSample s =
         ]
 
 
-sampleDecoder : Decode.Decoder Sample
-sampleDecoder =
+decode : Decode.Decoder Sample
+decode =
     Decode.succeed Sample
         |> optional "type" Decode.string ""
         |> optional "id" Decode.string ""

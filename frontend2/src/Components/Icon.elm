@@ -4,6 +4,7 @@ module Components.Icon exposing
     , userCheck
     , userMinus
     , userPlus
+    , userX
     , x
     )
 
@@ -53,6 +54,11 @@ plus msg =
 userPlus : msg -> Element msg
 userPlus msg =
     i FeatherIcons.userPlus msg
+
+
+userX : msg -> Element msg
+userX msg =
+    i FeatherIcons.userX msg
 
 
 userMinus : msg -> Element msg

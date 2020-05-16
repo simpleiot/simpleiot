@@ -1,13 +1,15 @@
 module Data.Device exposing
     ( Config
     , Device
+    , decode
     , decodeList
-    , deviceConfigEncoder
+    , encodeConfig
+    , encodeOrgs
     )
 
 --import Json.Encode as Encode
 
-import Data.Sample exposing (Sample, sampleDecoder)
+import Data.Sample as Sample
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
@@ -27,49 +29,42 @@ type alias Config =
 
 
 type alias State =
-    { ios : List Sample
+    { ios : List Sample.Sample
     }
 
 
 decodeList : Decode.Decoder (List Device)
 decodeList =
-    Decode.list deviceDecoder
+    Decode.list decode
 
 
-deviceDecoder : Decode.Decoder Device
-deviceDecoder =
+decode : Decode.Decoder Device
+decode =
     Decode.succeed Device
         |> required "id" Decode.string
-        |> required "config" deviceConfigDecoder
-        |> required "state" deviceStateDecoder
+        |> required "config" decodeConfig
+        |> required "state" decodeState
         |> optional "orgs" (Decode.list Decode.string) []
 
 
-samplesDecoder : Decode.Decoder (List Sample)
-samplesDecoder =
-    Decode.list sampleDecoder
-
-
-deviceConfigDecoder : Decode.Decoder Config
-deviceConfigDecoder =
+decodeConfig : Decode.Decoder Config
+decodeConfig =
     Decode.map Config
         (Decode.field "description" Decode.string)
 
 
-deviceStateDecoder : Decode.Decoder State
-deviceStateDecoder =
+decodeState : Decode.Decoder State
+decodeState =
     Decode.map State
-        (Decode.field "ios" samplesDecoder)
+        (Decode.field "ios" (Decode.list Sample.decode))
 
 
-deviceConfigEncoder : Config -> Encode.Value
-deviceConfigEncoder deviceConfig =
+encodeConfig : Config -> Encode.Value
+encodeConfig deviceConfig =
     Encode.object
         [ ( "description", Encode.string deviceConfig.description ) ]
 
 
-
---deviceConfigEncoder : Config -> Encode.Value
---deviceConfigEncoder deviceConfig =
---    Encode.object
---        [ ( "description", Encode.string deviceConfig.description ) ]
+encodeOrgs : List String -> Encode.Value
+encodeOrgs orgs =
+    Encode.list Encode.string orgs
