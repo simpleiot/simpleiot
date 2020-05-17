@@ -39,6 +39,7 @@ type alias Session =
     , posting : Bool
     , newOrgUser : Maybe U.User
     , newOrgDevice : Maybe D.Device
+    , errorDispCount : Int
     }
 
 
@@ -94,7 +95,7 @@ init _ _ =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Time.every 10000 Tick
+        [ Time.every 1000 Tick
         ]
 
 
@@ -143,6 +144,7 @@ update commands msg model =
                         , posting = False
                         , newOrgUser = Nothing
                         , newOrgDevice = Nothing
+                        , errorDispCount = 0
                         }
                     , Cmd.none
                     , commands.navigate routes.top
@@ -194,6 +196,7 @@ update commands msg model =
                     ( SignedIn
                         { sess
                             | respError = Just "Error getting devices"
+                            , errorDispCount = 0
                         }
                     , Cmd.none
                     , Cmd.none
@@ -206,7 +209,11 @@ update commands msg model =
                     )
 
                 UsersResponse (Err _) ->
-                    ( SignedIn { sess | respError = Just "Error getting users" }
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error getting users"
+                            , errorDispCount = 0
+                        }
                     , Cmd.none
                     , Cmd.none
                     )
@@ -234,7 +241,11 @@ update commands msg model =
                     )
 
                 OrgsResponse (Err _) ->
-                    ( SignedIn { sess | respError = Just "Error getting orgs" }
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error getting orgs"
+                            , errorDispCount = 0
+                        }
                     , Cmd.none
                     , Cmd.none
                     )
@@ -246,7 +257,19 @@ update commands msg model =
                     )
 
                 Tick _ ->
-                    ( model
+                    let
+                        respError =
+                            if sess.errorDispCount > 5 then
+                                Nothing
+
+                            else
+                                sess.respError
+                    in
+                    ( SignedIn
+                        { sess
+                            | errorDispCount = sess.errorDispCount + 1
+                            , respError = respError
+                        }
                     , Cmd.none
                     , Cmd.none
                     )
@@ -365,6 +388,7 @@ update commands msg model =
                         { sess
                             | respError = Just "Error deleting org"
                             , posting = False
+                            , errorDispCount = 0
                         }
                     , Cmd.none
                     , Cmd.none
@@ -391,6 +415,7 @@ update commands msg model =
                         { sess
                             | respError = Just "Error deleting device"
                             , posting = False
+                            , errorDispCount = 0
                         }
                     , Cmd.none
                     , Cmd.none
@@ -407,6 +432,7 @@ update commands msg model =
                         { sess
                             | respError = Just "Error saving device config"
                             , posting = False
+                            , errorDispCount = 0
                         }
                     , Cmd.none
                     , Cmd.none
@@ -434,7 +460,11 @@ update commands msg model =
                 UserPosted _ (Err _) ->
                     -- refresh users as the local users cache is now
                     -- stale
-                    ( SignedIn { sess | respError = Just "Error saving user" }
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error saving user"
+                            , errorDispCount = 0
+                        }
                     , getUsers sess.authToken
                     , Cmd.none
                     )
@@ -461,7 +491,11 @@ update commands msg model =
                 OrgPosted _ (Err _) ->
                     -- refresh the ids because the local org cache is
                     -- is not correct because save did not take
-                    ( SignedIn { sess | respError = Just "Error saving org" }
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error saving org"
+                            , errorDispCount = 0
+                        }
                     , getOrgs sess.authToken
                     , Cmd.none
                     )
@@ -535,6 +569,7 @@ update commands msg model =
                         { sess
                             | respError = Just "Error deleting user"
                             , posting = False
+                            , errorDispCount = 0
                         }
                     , getUsers sess.authToken
                     , Cmd.none
