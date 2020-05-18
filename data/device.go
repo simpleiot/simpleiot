@@ -25,7 +25,7 @@ type Device struct {
 	Config     DeviceConfig `json:"config"`
 	State      DeviceState  `json:"state"`
 	CmdPending bool         `json:"cmdPending"`
-	Orgs       []uuid.UUID  `json:"orgs"`
+	Groups     []uuid.UUID  `json:"groups"`
 }
 
 // ProcessSample takes a sample for a device and adds/updates in Ios

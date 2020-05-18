@@ -9,19 +9,19 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// Orgs handles org requests.
-type Orgs struct {
+// Groups handles group requests.
+type Groups struct {
 	db        *Db
 	validator RequestValidator
 }
 
-// NewOrgsHandler returns a new handler for org requests.
-func NewOrgsHandler(db *Db, v RequestValidator) Orgs {
-	return Orgs{db: db, validator: v}
+// NewGroupsHandler returns a new handler for group requests.
+func NewGroupsHandler(db *Db, v RequestValidator) Groups {
+	return Groups{db: db, validator: v}
 }
 
-// ServeHTTP serves org requests.
-func (o Orgs) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+// ServeHTTP serves group requests.
+func (o Groups) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	validUser, userID := o.validator.Valid(req)
 	if !validUser {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
@@ -34,7 +34,7 @@ func (o Orgs) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// only allow requests if user is part of root org
+	// only allow requests if user is part of root group
 	isRoot, err := checkUserIsRoot(o.db.store, userUUID)
 
 	if !isRoot {
@@ -48,14 +48,14 @@ func (o Orgs) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if id == "" {
 		switch req.Method {
 		case http.MethodGet:
-			// get all orgs
-			orgs, err := orgs(o.db.store)
+			// get all groups
+			groups, err := groups(o.db.store)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
 			}
-			if len(orgs) > 0 {
-				encode(res, orgs)
+			if len(groups) > 0 {
+				encode(res, groups)
 			} else {
 				res.Write([]byte("[]"))
 			}
@@ -63,7 +63,7 @@ func (o Orgs) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 		case http.MethodPost:
 			// create user
-			o.insertOrg(res, req)
+			o.insertGroup(res, req)
 			return
 
 		default:
@@ -80,23 +80,23 @@ func (o Orgs) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	switch req.Method {
 	case http.MethodGet:
-		// get a single org
+		// get a single group
 
-		org, err := org(o.db.store, idUUID)
+		group, err := group(o.db.store, idUUID)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 			return
 		}
-		encode(res, org)
+		encode(res, group)
 		return
 
 	case http.MethodPost:
-		// update a single org
-		o.updateOrg(idUUID, res, req)
+		// update a single group
+		o.updateGroup(idUUID, res, req)
 		return
 
 	case http.MethodDelete:
-		err := deleteOrg(o.db.store, idUUID)
+		err := deleteGroup(o.db.store, idUUID)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 		} else {
@@ -109,15 +109,15 @@ func (o Orgs) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 }
 
-func (o Orgs) insertOrg(res http.ResponseWriter, req *http.Request) {
-	var org data.Org
-	if err := decode(req.Body, &org); err != nil {
-		log.Println("Error decoding org: ", err)
+func (o Groups) insertGroup(res http.ResponseWriter, req *http.Request) {
+	var group data.Group
+	if err := decode(req.Body, &group); err != nil {
+		log.Println("Error decoding group: ", err)
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	id, err := insertOrg(o.db.store, org)
+	id, err := insertGroup(o.db.store, group)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -126,19 +126,19 @@ func (o Orgs) insertOrg(res http.ResponseWriter, req *http.Request) {
 	encode(res, data.StandardResponse{Success: true, ID: id})
 }
 
-func (o Orgs) updateOrg(ID uuid.UUID, res http.ResponseWriter, req *http.Request) {
-	var org data.Org
-	if err := decode(req.Body, &org); err != nil {
+func (o Groups) updateGroup(ID uuid.UUID, res http.ResponseWriter, req *http.Request) {
+	var group data.Group
+	if err := decode(req.Body, &group); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	org.ID = ID
+	group.ID = ID
 
-	if err := updateOrg(o.db.store, org); err != nil {
+	if err := updateGroup(o.db.store, group); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	encode(res, data.StandardResponse{Success: true, ID: org.ID.String()})
+	encode(res, data.StandardResponse{Success: true, ID: group.ID.String()})
 }

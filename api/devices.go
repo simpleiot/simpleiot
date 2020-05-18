@@ -107,9 +107,9 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		} else {
 			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
 		}
-	case "orgs":
+	case "groups":
 		if req.Method == http.MethodPost {
-			h.updateDeviceOrgs(res, req, id)
+			h.updateDeviceGroups(res, req, id)
 		} else {
 			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
 		}
@@ -223,16 +223,16 @@ func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id s
 	en.Encode(data.StandardResponse{Success: true, ID: id})
 }
 
-func (h *Devices) updateDeviceOrgs(res http.ResponseWriter, req *http.Request, id string) {
+func (h *Devices) updateDeviceGroups(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
-	var orgs []uuid.UUID
-	err := decoder.Decode(&orgs)
+	var groups []uuid.UUID
+	err := decoder.Decode(&groups)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = deviceUpdateOrgs(h.db.store, id, orgs)
+	err = deviceUpdateGroups(h.db.store, id, groups)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}

@@ -70,7 +70,7 @@ viewNavbar model =
                             if sess.isRoot then
                                 List.map viewLink
                                     [ ( "users", "/users" )
-                                    , ( "orgs", "/orgs" )
+                                    , ( "groups", "/groups" )
                                     ]
 
                             else

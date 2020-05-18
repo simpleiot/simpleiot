@@ -4,7 +4,7 @@ module Data.Device exposing
     , decode
     , decodeList
     , encodeConfig
-    , encodeOrgs
+    , encodeGroups
     )
 
 --import Json.Encode as Encode
@@ -19,7 +19,7 @@ type alias Device =
     { id : String
     , config : Config
     , state : State
-    , orgs : List String
+    , groups : List String
     }
 
 
@@ -44,7 +44,7 @@ decode =
         |> required "id" Decode.string
         |> required "config" decodeConfig
         |> required "state" decodeState
-        |> optional "orgs" (Decode.list Decode.string) []
+        |> optional "groups" (Decode.list Decode.string) []
 
 
 decodeConfig : Decode.Decoder Config
@@ -65,6 +65,6 @@ encodeConfig deviceConfig =
         [ ( "description", Encode.string deviceConfig.description ) ]
 
 
-encodeOrgs : List String -> Encode.Value
-encodeOrgs orgs =
-    Encode.list Encode.string orgs
+encodeGroups : List String -> Encode.Value
+encodeGroups groups =
+    Encode.list Encode.string groups

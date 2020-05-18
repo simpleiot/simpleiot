@@ -10,7 +10,7 @@ module Global exposing
 
 import Data.Data as Data
 import Data.Device as D
-import Data.Org as O
+import Data.Group as G
 import Data.User as U
 import Generated.Routes exposing (Route, routes)
 import Http
@@ -38,8 +38,8 @@ type alias Session =
     , error : Maybe Http.Error
     , respError : Maybe String
     , posting : Bool
-    , newOrgUser : Maybe U.User
-    , newOrgDevice : Maybe D.Device
+    , newGroupUser : Maybe U.User
+    , newGroupDevice : Maybe D.Device
     , errorDispCount : Int
     }
 
@@ -53,27 +53,27 @@ type alias Cred =
 type Msg
     = SignIn Cred
     | AuthResponse Cred (Result Http.Error Auth)
-    | RequestOrgs
+    | RequestGroups
     | RequestDevices
     | RequestUsers
     | DevicesResponse (Result Http.Error (List D.Device))
-    | OrgsResponse (Result Http.Error (List O.Org))
+    | GroupsResponse (Result Http.Error (List G.Group))
     | UsersResponse (Result Http.Error (List U.User))
     | DeleteDevice String
     | DeleteDeviceResponse String (Result Http.Error Response)
     | SignOut
     | Tick Time.Posix
     | UpdateDeviceConfig String D.Config
-    | UpdateDeviceOrgs String (List String)
+    | UpdateDeviceGroups String (List String)
     | UpdateUser U.User
     | DeleteUser String
     | DeleteUserResponse String (Result Http.Error Response)
-    | UpdateOrg O.Org
-    | DeleteOrg String
-    | DeleteOrgResponse String (Result Http.Error Response)
+    | UpdateGroup G.Group
+    | DeleteGroup String
+    | DeleteGroupResponse String (Result Http.Error Response)
     | ConfigPosted String (Result Http.Error Response)
     | UserPosted String (Result Http.Error Response)
-    | OrgPosted String (Result Http.Error Response)
+    | GroupPosted String (Result Http.Error Response)
     | CheckUser String
     | CheckUserResponse (Result Http.Error U.User)
     | CheckDevice String
@@ -146,8 +146,8 @@ update commands msg model =
                         , error = Nothing
                         , respError = Nothing
                         , posting = False
-                        , newOrgUser = Nothing
-                        , newOrgDevice = Nothing
+                        , newGroupUser = Nothing
+                        , newGroupDevice = Nothing
                         , errorDispCount = 0
                         }
                     , Cmd.none
@@ -238,25 +238,25 @@ update commands msg model =
                     , Cmd.none
                     )
 
-                OrgsResponse (Ok orgs) ->
-                    ( SignedIn { sess | data = { data | orgs = orgs } }
+                GroupsResponse (Ok groups) ->
+                    ( SignedIn { sess | data = { data | groups = groups } }
                     , Cmd.none
                     , Cmd.none
                     )
 
-                OrgsResponse (Err _) ->
+                GroupsResponse (Err _) ->
                     ( SignedIn
                         { sess
-                            | respError = Just "Error getting orgs"
+                            | respError = Just "Error getting groups"
                             , errorDispCount = 0
                         }
                     , Cmd.none
                     , Cmd.none
                     )
 
-                RequestOrgs ->
+                RequestGroups ->
                     ( model
-                    , getOrgs sess.authToken
+                    , getGroups sess.authToken
                     , Cmd.none
                     )
 
@@ -300,13 +300,13 @@ update commands msg model =
                     , Cmd.none
                     )
 
-                UpdateDeviceOrgs id orgs ->
+                UpdateDeviceGroups id groups ->
                     let
                         devices =
                             List.map
                                 (\d ->
                                     if d.id == id then
-                                        { d | orgs = orgs }
+                                        { d | groups = groups }
 
                                     else
                                         d
@@ -317,9 +317,9 @@ update commands msg model =
                         { sess
                             | data = { data | devices = devices }
                             , posting = True
-                            , newOrgDevice = Nothing
+                            , newGroupDevice = Nothing
                         }
-                    , postDeviceOrgs sess.authToken id orgs
+                    , postDeviceGroups sess.authToken id groups
                     , Cmd.none
                     )
 
@@ -345,52 +345,52 @@ update commands msg model =
                     , Cmd.none
                     )
 
-                UpdateOrg org ->
+                UpdateGroup group ->
                     let
                         -- update local model to make UI optimistic
-                        updateOrg old =
-                            if old.id == org.id then
-                                org
+                        updateGroup old =
+                            if old.id == group.id then
+                                group
 
                             else
                                 old
 
-                        orgs =
-                            if org.id == "" then
-                                [ org ] ++ sess.data.orgs
+                        groups =
+                            if group.id == "" then
+                                [ group ] ++ sess.data.groups
 
                             else
-                                List.map updateOrg sess.data.orgs
+                                List.map updateGroup sess.data.groups
                     in
                     ( SignedIn
                         { sess
-                            | data = { data | orgs = orgs }
-                            , newOrgUser = Nothing
+                            | data = { data | groups = groups }
+                            , newGroupUser = Nothing
                         }
-                    , postOrg sess.authToken org
+                    , postGroup sess.authToken group
                     , Cmd.none
                     )
 
-                DeleteOrg id ->
+                DeleteGroup id ->
                     let
-                        orgs =
-                            List.filter (\o -> o.id /= id) data.orgs
+                        groups =
+                            List.filter (\o -> o.id /= id) data.groups
                     in
-                    ( SignedIn { sess | data = { data | orgs = orgs } }
-                    , deleteOrg sess.authToken id
+                    ( SignedIn { sess | data = { data | groups = groups } }
+                    , deleteGroup sess.authToken id
                     , Cmd.none
                     )
 
-                DeleteOrgResponse _ (Ok _) ->
+                DeleteGroupResponse _ (Ok _) ->
                     ( model
                     , Cmd.none
                     , Cmd.none
                     )
 
-                DeleteOrgResponse _ (Err _) ->
+                DeleteGroupResponse _ (Err _) ->
                     ( SignedIn
                         { sess
-                            | respError = Just "Error deleting org"
+                            | respError = Just "Error deleting group"
                             , posting = False
                             , errorDispCount = 0
                         }
@@ -473,10 +473,10 @@ update commands msg model =
                     , Cmd.none
                     )
 
-                OrgPosted _ (Ok resp) ->
-                    -- populate the assigned ID in the new org
+                GroupPosted _ (Ok resp) ->
+                    -- populate the assigned ID in the new group
                     let
-                        orgs =
+                        groups =
                             List.map
                                 (\o ->
                                     if o.id == "" then
@@ -485,27 +485,27 @@ update commands msg model =
                                     else
                                         o
                                 )
-                                data.orgs
+                                data.groups
                     in
-                    ( SignedIn { sess | data = { data | orgs = orgs } }
+                    ( SignedIn { sess | data = { data | groups = groups } }
                     , Cmd.none
                     , Cmd.none
                     )
 
-                OrgPosted _ (Err _) ->
-                    -- refresh the ids because the local org cache is
+                GroupPosted _ (Err _) ->
+                    -- refresh the ids because the local group cache is
                     -- is not correct because save did not take
                     ( SignedIn
                         { sess
-                            | respError = Just "Error saving org"
+                            | respError = Just "Error saving group"
                             , errorDispCount = 0
                         }
-                    , getOrgs sess.authToken
+                    , getGroups sess.authToken
                     , Cmd.none
                     )
 
                 CheckUser userEmail ->
-                    ( SignedIn { sess | newOrgUser = Nothing }
+                    ( SignedIn { sess | newGroupUser = Nothing }
                     , getUserByEmail sess.authToken userEmail
                     , Cmd.none
                     )
@@ -514,13 +514,13 @@ update commands msg model =
                     ( model, Cmd.none, Cmd.none )
 
                 CheckUserResponse (Ok user) ->
-                    ( SignedIn { sess | newOrgUser = Just user }
+                    ( SignedIn { sess | newGroupUser = Just user }
                     , Cmd.none
                     , Cmd.none
                     )
 
                 CheckDevice deviceId ->
-                    ( SignedIn { sess | newOrgDevice = Nothing }
+                    ( SignedIn { sess | newGroupDevice = Nothing }
                     , getDeviceById sess.authToken deviceId
                     , Cmd.none
                     )
@@ -545,7 +545,7 @@ update commands msg model =
                     in
                     ( SignedIn
                         { sess
-                            | newOrgDevice = Just device
+                            | newGroupDevice = Just device
                             , data = { data | devices = devices }
                         }
                     , Cmd.none
@@ -647,26 +647,26 @@ postDeviceConfig token id config =
         }
 
 
-postDeviceOrgs : String -> String -> List String -> Cmd Msg
-postDeviceOrgs token id orgs =
+postDeviceGroups : String -> String -> List String -> Cmd Msg
+postDeviceGroups token id groups =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = Url.absolute [ "v1", "devices", id, "orgs" ] []
+        , url = Url.absolute [ "v1", "devices", id, "groups" ] []
         , expect = Http.expectJson (ConfigPosted id) responseDecoder
-        , body = orgs |> D.encodeOrgs |> Http.jsonBody
+        , body = groups |> D.encodeGroups |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
 
 
-getOrgs : String -> Cmd Msg
-getOrgs token =
+getGroups : String -> Cmd Msg
+getGroups token =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = Url.absolute [ "v1", "orgs" ] []
-        , expect = Http.expectJson OrgsResponse O.decodeList
+        , url = Url.absolute [ "v1", "groups" ] []
+        , expect = Http.expectJson GroupsResponse G.decodeList
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
@@ -725,26 +725,26 @@ postUser token user =
         }
 
 
-postOrg : String -> O.Org -> Cmd Msg
-postOrg token org =
+postGroup : String -> G.Group -> Cmd Msg
+postGroup token group =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = Url.absolute [ "v1", "orgs", org.id ] []
-        , expect = Http.expectJson (OrgPosted org.id) responseDecoder
-        , body = org |> O.encode |> Http.jsonBody
+        , url = Url.absolute [ "v1", "groups", group.id ] []
+        , expect = Http.expectJson (GroupPosted group.id) responseDecoder
+        , body = group |> G.encode |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
 
 
-deleteOrg : String -> String -> Cmd Msg
-deleteOrg token id =
+deleteGroup : String -> String -> Cmd Msg
+deleteGroup token id =
     Http.request
         { method = "DELETE"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = Url.absolute [ "v1", "orgs", id ] []
-        , expect = Http.expectJson (DeleteOrgResponse id) responseDecoder
+        , url = Url.absolute [ "v1", "groups", id ] []
+        , expect = Http.expectJson (DeleteGroupResponse id) responseDecoder
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing

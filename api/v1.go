@@ -8,7 +8,7 @@ import (
 
 // V1 handles v1 api requests
 type V1 struct {
-	OrgsHandler    http.Handler
+	GroupsHandler  http.Handler
 	UsersHandler   http.Handler
 	DevicesHandler http.Handler
 	AuthHandler    http.Handler
@@ -19,8 +19,8 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 	switch head {
-	case "orgs":
-		h.OrgsHandler.ServeHTTP(res, req)
+	case "groups":
+		h.GroupsHandler.ServeHTTP(res, req)
 	case "users":
 		h.UsersHandler.ServeHTTP(res, req)
 	case "devices":
@@ -36,7 +36,7 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 func NewV1Handler(db *Db, influx *db.Influx, auth Authorizer) http.Handler {
 
 	return &V1{
-		OrgsHandler:    NewOrgsHandler(db, auth),
+		GroupsHandler:  NewGroupsHandler(db, auth),
 		UsersHandler:   NewUsersHandler(db, auth),
 		DevicesHandler: NewDevicesHandler(db, influx, auth),
 		AuthHandler:    NewAuthHandler(db, auth),

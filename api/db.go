@@ -48,15 +48,15 @@ func deviceUpdateConfig(store *bolthold.Store, id string, config data.DeviceConf
 	})
 }
 
-// deviceUpdateOrgs updates the orgs for a device.
-func deviceUpdateOrgs(store *bolthold.Store, id string, orgs []uuid.UUID) error {
+// deviceUpdateGroups updates the groups for a device.
+func deviceUpdateGroups(store *bolthold.Store, id string, groups []uuid.UUID) error {
 	return update(store, func(tx *bolt.Tx) error {
 		var dev data.Device
 		if err := store.TxGet(tx, id, &dev); err != nil {
 			return err
 		}
 
-		dev.Orgs = orgs
+		dev.Groups = groups
 
 		return store.TxUpdate(tx, id, dev)
 	})
@@ -84,13 +84,13 @@ func deviceSample(store *bolthold.Store, id string, sample data.Sample) error {
 		err := store.TxGet(tx, id, &dev)
 		switch err {
 		case bolthold.ErrNotFound:
-			// New devices are automatically part of root org
+			// New devices are automatically part of root group
 			dev := data.Device{
 				ID: id,
 				State: data.DeviceState{
 					Ios: []data.Sample{sample},
 				},
-				Orgs: []uuid.UUID{zero},
+				Groups: []uuid.UUID{zero},
 			}
 
 			return store.TxInsert(tx, id, dev)
@@ -199,27 +199,27 @@ func devicesForUser(store *bolthold.Store, userID uuid.UUID) ([]data.Device, err
 	var devices []data.Device
 
 	err := view(store, func(tx *bolt.Tx) error {
-		// First find orgs users is part of
-		var allOrgs []data.Org
-		err := store.TxFind(tx, &allOrgs, nil)
+		// First find groups users is part of
+		var allGroups []data.Group
+		err := store.TxFind(tx, &allGroups, nil)
 
 		if err != nil {
 			return err
 		}
 
-		var orgIDs []uuid.UUID
+		var groupIDs []uuid.UUID
 
-		for _, o := range allOrgs {
+		for _, o := range allGroups {
 			for _, ur := range o.Users {
 				if ur.UserID == userID {
-					orgIDs = append(orgIDs, o.ID)
+					groupIDs = append(groupIDs, o.ID)
 				}
 			}
 		}
 
-		// next, find devices that are part of the orgs
+		// next, find devices that are part of the groups
 		err = store.TxFind(tx, &devices,
-			bolthold.Where("Orgs").ContainsAny(bolthold.Slice(orgIDs)...))
+			bolthold.Where("Groups").ContainsAny(bolthold.Slice(groupIDs)...))
 
 		return nil
 	})
@@ -239,11 +239,11 @@ func users(store *bolthold.Store) ([]data.User, error) {
 	return ret, err
 }
 
-// org returns the Org with the given ID.
-func org(store *bolthold.Store, id uuid.UUID) (data.Org, error) {
-	var org data.Org
-	err := store.FindOne(&org, bolthold.Where("ID").Eq(id))
-	return org, err
+// group returns the Group with the given ID.
+func group(store *bolthold.Store, id uuid.UUID) (data.Group, error) {
+	var group data.Group
+	err := store.FindOne(&group, bolthold.Where("ID").Eq(id))
+	return group, err
 }
 
 type privilege string
@@ -264,17 +264,17 @@ func checkUser(store *bolthold.Store, email, password string) (*data.User, error
 	return &u, nil
 }
 
-// check is uses is port of the root org
+// check is uses is port of the root group
 func checkUserIsRoot(store *bolthold.Store, id uuid.UUID) (bool, error) {
-	var org data.Org
+	var group data.Group
 
-	err := store.FindOne(&org, bolthold.Where("ID").Eq(zero))
+	err := store.FindOne(&group, bolthold.Where("ID").Eq(zero))
 
 	if err != nil {
 		return false, err
 	}
 
-	for _, ur := range org.Users {
+	for _, ur := range group.Users {
 		if ur.UserID == id {
 			return true, nil
 		}
@@ -305,19 +305,19 @@ func userByEmail(store *bolthold.Store, email string) (data.User, error) {
 }
 
 // initialize initializes the database with one user (admin)
-// in one organization (root).
-// All devices are properties of the root organization.
+// in one groupanization (root).
+// All devices are properties of the root groupanization.
 func initialize(store *bolthold.Store) error {
-	// initialize root org in new db
-	var org data.Org
-	err := store.FindOne(&org, bolthold.Where("Name").Eq("root"))
+	// initialize root group in new db
+	var group data.Group
+	err := store.FindOne(&group, bolthold.Where("Name").Eq("root"))
 
-	// org was found or we ran into an error
+	// group was found or we ran into an error
 	if err != bolthold.ErrNotFound {
 		return err
 	}
 
-	// add root org and admin user
+	// add root group and admin user
 	return update(store, func(tx *bolt.Tx) error {
 
 		admin := data.User{
@@ -334,7 +334,7 @@ func initialize(store *bolthold.Store) error {
 
 		log.Println("Created admin user: ", admin)
 
-		org := data.Org{
+		group := data.Group{
 			ID:   zero,
 			Name: "root",
 			Users: []data.UserRoles{
@@ -342,20 +342,20 @@ func initialize(store *bolthold.Store) error {
 			},
 		}
 
-		if err := store.TxInsert(tx, org.ID, org); err != nil {
+		if err := store.TxInsert(tx, group.ID, group); err != nil {
 			return err
 		}
 
-		log.Println("Created root org:", org)
+		log.Println("Created root group:", group)
 		return nil
 	})
 }
 
-// orgDevices returns the devices which are property of the given Org.
-func orgDevices(store *bolthold.Store, tx *bolt.Tx, orgID uuid.UUID) ([]data.Device, error) {
+// groupDevices returns the devices which are property of the given Group.
+func groupDevices(store *bolthold.Store, tx *bolt.Tx, groupID uuid.UUID) ([]data.Device, error) {
 	var devices []data.Device
 	err := view(store, func(tx *bolt.Tx) error {
-		if err := store.TxFind(tx, &devices, bolthold.Where("Orgs").Contains(orgID)); err != nil {
+		if err := store.TxFind(tx, &devices, bolthold.Where("Groups").Contains(groupID)); err != nil {
 			return err
 		}
 
@@ -393,13 +393,13 @@ func deleteUser(store *bolthold.Store, id uuid.UUID) error {
 	return store.Delete(id, data.User{})
 }
 
-func insertOrg(store *bolthold.Store, org data.Org) (string, error) {
+func insertGroup(store *bolthold.Store, group data.Group) (string, error) {
 	id := uuid.New()
 
-	org.Parent = zero
+	group.Parent = zero
 
 	err := update(store, func(tx *bolt.Tx) error {
-		if err := store.TxInsert(tx, id, org); err != nil {
+		if err := store.TxInsert(tx, id, group); err != nil {
 			return err
 		}
 
@@ -409,9 +409,9 @@ func insertOrg(store *bolthold.Store, org data.Org) (string, error) {
 	return id.String(), err
 }
 
-func updateOrg(store *bolthold.Store, org data.Org) error {
+func updateGroup(store *bolthold.Store, group data.Group) error {
 	return update(store, func(tx *bolt.Tx) error {
-		if err := store.TxUpdate(tx, org.ID, org); err != nil {
+		if err := store.TxUpdate(tx, group.ID, group); err != nil {
 			return err
 		}
 
@@ -419,9 +419,9 @@ func updateOrg(store *bolthold.Store, org data.Org) error {
 	})
 }
 
-// deleteOrg deletes a device from the database
-func deleteOrg(store *bolthold.Store, id uuid.UUID) error {
-	return store.Delete(id, data.Org{})
+// deleteGroup deletes a device from the database
+func deleteGroup(store *bolthold.Store, id uuid.UUID) error {
+	return store.Delete(id, data.Group{})
 }
 
 func newIfZero(id uuid.UUID) uuid.UUID {
@@ -431,11 +431,11 @@ func newIfZero(id uuid.UUID) uuid.UUID {
 	return id
 }
 
-// Orgs returns all orgs.
-func orgs(store *bolthold.Store) ([]data.Org, error) {
-	var ret []data.Org
+// Groups returns all groups.
+func groups(store *bolthold.Store) ([]data.Group, error) {
+	var ret []data.Group
 	if err := store.Find(&ret, nil); err != nil {
-		return ret, fmt.Errorf("problem finding orgs: %v", err)
+		return ret, fmt.Errorf("problem finding groups: %v", err)
 	}
 
 	return ret, nil
@@ -444,7 +444,7 @@ func orgs(store *bolthold.Store) ([]data.Org, error) {
 type dbDump struct {
 	Devices []data.Device `json:"devices"`
 	Users   []data.User   `json:"users"`
-	Orgs    []data.Org    `json:"orgs"`
+	Groups  []data.Group  `json:"groups"`
 }
 
 // DumpDb dumps the entire db to a file
@@ -463,7 +463,7 @@ func DumpDb(db *Db, out io.Writer) error {
 		return err
 	}
 
-	dump.Orgs, err = orgs(db.store)
+	dump.Groups, err = groups(db.store)
 	if err != nil {
 		return err
 	}

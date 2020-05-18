@@ -1,5 +1,5 @@
-module Data.Org exposing
-    ( Org
+module Data.Group exposing
+    ( Group
     , UserRoles
     , decodeList
     , empty
@@ -11,7 +11,7 @@ import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 
 
-type alias Org =
+type alias Group =
     { id : String
     , name : String
     , parent : String
@@ -19,7 +19,7 @@ type alias Org =
     }
 
 
-empty : Org
+empty : Group
 empty =
     { id = ""
     , name = ""
@@ -34,14 +34,14 @@ type alias UserRoles =
     }
 
 
-decodeList : Decode.Decoder (List Org)
+decodeList : Decode.Decoder (List Group)
 decodeList =
     Decode.list decode
 
 
-decode : Decode.Decoder Org
+decode : Decode.Decoder Group
 decode =
-    Decode.succeed Org
+    Decode.succeed Group
         |> required "id" Decode.string
         |> required "name" Decode.string
         |> required "parent" Decode.string
@@ -55,11 +55,11 @@ decodeUserRoles =
         |> required "roles" (Decode.list Decode.string)
 
 
-encode : Org -> Encode.Value
-encode org =
+encode : Group -> Encode.Value
+encode group =
     Encode.object
-        [ ( "name", Encode.string org.name )
-        , ( "users", Encode.list encodeUserRoles org.users )
+        [ ( "name", Encode.string group.name )
+        , ( "users", Encode.list encodeUserRoles group.users )
         ]
 
 

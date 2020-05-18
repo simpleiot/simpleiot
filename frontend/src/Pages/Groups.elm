@@ -1,9 +1,9 @@
-module Pages.Orgs exposing (Model, Msg, page)
+module Pages.Groups exposing (Model, Msg, page)
 
 import Components.Form as Form
 import Components.Icon as Icon
 import Data.Device as D
-import Data.Org as O
+import Data.Group as O
 import Data.User as U
 import Element exposing (..)
 import Element.Background as Background
@@ -18,10 +18,10 @@ import Utils.Spa exposing (Page)
 import Utils.Styles exposing (palette, size)
 
 
-page : Page Params.Orgs Model Msg model msg appMsg
+page : Page Params.Groups Model Msg model msg appMsg
 page =
     Spa.Page.component
-        { title = always "Orgs"
+        { title = always "Groups"
         , init = init
         , update = update
         , subscriptions = always subscriptions
@@ -34,7 +34,7 @@ page =
 
 
 type alias Model =
-    { orgEdit : Maybe O.Org
+    { groupEdit : Maybe O.Group
     , newUser : Maybe NewUser
     , newDevice : Maybe NewDevice
     }
@@ -42,30 +42,30 @@ type alias Model =
 
 empty : Model
 empty =
-    { orgEdit = Nothing
+    { groupEdit = Nothing
     , newUser = Nothing
     , newDevice = Nothing
     }
 
 
 type alias NewUser =
-    { orgId : String
+    { groupId : String
     , userEmail : String
     }
 
 
 type alias NewDevice =
-    { orgId : String
+    { groupId : String
     , deviceId : String
     }
 
 
-init : Types.PageContext route Global.Model -> Params.Orgs -> ( Model, Cmd Msg, Cmd Global.Msg )
+init : Types.PageContext route Global.Model -> Params.Groups -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ _ =
     ( empty
     , Cmd.none
     , Cmd.batch
-        [ Spa.Page.send Global.RequestOrgs
+        [ Spa.Page.send Global.RequestGroups
         , Spa.Page.send Global.RequestUsers
         , Spa.Page.send Global.RequestDevices
         ]
@@ -77,16 +77,16 @@ init _ _ =
 
 
 type Msg
-    = PostOrg O.Org
-    | EditOrg O.Org
-    | DiscardOrgEdits
-    | NewOrg
-    | DeleteOrg String
-    | RemoveUser O.Org String
+    = PostGroup O.Group
+    | EditGroup O.Group
+    | DiscardGroupEdits
+    | NewGroup
+    | DeleteGroup String
+    | RemoveUser O.Group String
     | AddUser String
     | CancelAddUser
     | EditNewUser String
-    | SaveNewUser O.Org String
+    | SaveNewUser O.Group String
     | RemoveDevice String String
     | AddDevice String
     | CancelAddDevice
@@ -102,53 +102,53 @@ update context msg model =
 
         Global.SignedIn sess ->
             case msg of
-                EditOrg org ->
-                    ( { model | orgEdit = Just org }
+                EditGroup group ->
+                    ( { model | groupEdit = Just group }
                     , Cmd.none
                     , Cmd.none
                     )
 
-                DiscardOrgEdits ->
-                    ( { model | orgEdit = Nothing }
+                DiscardGroupEdits ->
+                    ( { model | groupEdit = Nothing }
                     , Cmd.none
                     , Cmd.none
                     )
 
-                PostOrg org ->
-                    ( { model | orgEdit = Nothing }
+                PostGroup group ->
+                    ( { model | groupEdit = Nothing }
                     , Cmd.none
-                    , Spa.Page.send <| Global.UpdateOrg org
+                    , Spa.Page.send <| Global.UpdateGroup group
                     )
 
-                NewOrg ->
-                    ( { model | orgEdit = Just O.empty }
+                NewGroup ->
+                    ( { model | groupEdit = Just O.empty }
                     , Cmd.none
                     , Cmd.none
                     )
 
-                DeleteOrg id ->
-                    ( { model | orgEdit = Nothing }
+                DeleteGroup id ->
+                    ( { model | groupEdit = Nothing }
                     , Cmd.none
-                    , Spa.Page.send <| Global.DeleteOrg id
+                    , Spa.Page.send <| Global.DeleteGroup id
                     )
 
-                RemoveUser org userId ->
+                RemoveUser group userId ->
                     let
                         users =
                             List.filter
                                 (\ur -> ur.userId /= userId)
-                                org.users
+                                group.users
 
-                        updatedOrg =
-                            { org | users = users }
+                        updatedGroup =
+                            { group | users = users }
                     in
                     ( model
                     , Cmd.none
-                    , Spa.Page.send <| Global.UpdateOrg updatedOrg
+                    , Spa.Page.send <| Global.UpdateGroup updatedGroup
                     )
 
-                AddUser orgId ->
-                    ( { model | newUser = Just { orgId = orgId, userEmail = "" } }
+                AddUser groupId ->
+                    ( { model | newUser = Just { groupId = groupId, userEmail = "" } }
                     , Cmd.none
                     , Cmd.none
                     )
@@ -170,30 +170,30 @@ update context msg model =
                         Nothing ->
                             ( model, Cmd.none, Cmd.none )
 
-                SaveNewUser org userId ->
+                SaveNewUser group userId ->
                     let
                         -- only add user if it does not already exist
                         users =
                             case
                                 List.Extra.find
                                     (\ur -> ur.userId == userId)
-                                    org.users
+                                    group.users
                             of
                                 Just _ ->
-                                    org.users
+                                    group.users
 
                                 Nothing ->
-                                    { userId = userId, roles = [ "user" ] } :: org.users
+                                    { userId = userId, roles = [ "user" ] } :: group.users
 
-                        updatedOrg =
-                            { org | users = users }
+                        updatedGroup =
+                            { group | users = users }
                     in
                     ( { model | newUser = Nothing }
                     , Cmd.none
-                    , Spa.Page.send <| Global.UpdateOrg updatedOrg
+                    , Spa.Page.send <| Global.UpdateGroup updatedGroup
                     )
 
-                RemoveDevice orgId deviceId ->
+                RemoveDevice groupId deviceId ->
                     ( model
                     , Cmd.none
                     , case
@@ -202,19 +202,19 @@ update context msg model =
                       of
                         Just device ->
                             let
-                                orgs =
-                                    List.filter (\o -> o /= orgId)
-                                        device.orgs
+                                groups =
+                                    List.filter (\o -> o /= groupId)
+                                        device.groups
                             in
                             Spa.Page.send <|
-                                Global.UpdateDeviceOrgs device.id orgs
+                                Global.UpdateDeviceGroups device.id groups
 
                         Nothing ->
                             Cmd.none
                     )
 
-                AddDevice orgId ->
-                    ( { model | newDevice = Just { orgId = orgId, deviceId = "" } }
+                AddDevice groupId ->
+                    ( { model | newDevice = Just { groupId = groupId, deviceId = "" } }
                     , Cmd.none
                     , Cmd.none
                     )
@@ -236,7 +236,7 @@ update context msg model =
                         Nothing ->
                             ( model, Cmd.none, Cmd.none )
 
-                SaveNewDevice orgId deviceId ->
+                SaveNewDevice groupId deviceId ->
                     ( { model | newDevice = Nothing }
                     , Cmd.none
                     , case
@@ -245,19 +245,19 @@ update context msg model =
                       of
                         Just device ->
                             let
-                                orgs =
+                                groups =
                                     case
-                                        List.Extra.find (\o -> o == orgId)
-                                            device.orgs
+                                        List.Extra.find (\o -> o == groupId)
+                                            device.groups
                                     of
                                         Just _ ->
-                                            device.orgs
+                                            device.groups
 
                                         Nothing ->
-                                            orgId :: device.orgs
+                                            groupId :: device.groups
                             in
                             Spa.Page.send <|
-                                Global.UpdateDeviceOrgs device.id orgs
+                                Global.UpdateDeviceGroups device.id groups
 
                         Nothing ->
                             Cmd.none
@@ -283,65 +283,65 @@ view context model =
         Global.SignedIn sess ->
             column
                 [ width fill, spacing 32 ]
-                [ el [ padding 16, Font.size 24 ] <| text "Orgs"
-                , el [ padding 16, width fill, Font.bold ] <| Form.button "new organization" palette.green NewOrg
-                , viewOrgs sess model
+                [ el [ padding 16, Font.size 24 ] <| text "Groups"
+                , el [ padding 16, width fill, Font.bold ] <| Form.button "new group" palette.green NewGroup
+                , viewGroups sess model
                 ]
 
         _ ->
-            el [ padding 16 ] <| text "Sign in to view your orgs."
+            el [ padding 16 ] <| text "Sign in to view your groups."
 
 
-viewOrgs : Global.Session -> Model -> Element Msg
-viewOrgs sess model =
+viewGroups : Global.Session -> Model -> Element Msg
+viewGroups sess model =
     column
         [ width fill
         , spacing 40
         ]
     <|
-        List.map (\o -> viewOrg sess model o.mod o.org) <|
-            mergeOrgEdit sess.data.orgs model.orgEdit
+        List.map (\o -> viewGroup sess model o.mod o.group) <|
+            mergeGroupEdit sess.data.groups model.groupEdit
 
 
-type alias OrgMod =
-    { org : O.Org
+type alias GroupMod =
+    { group : O.Group
     , mod : Bool
     }
 
 
-mergeOrgEdit : List O.Org -> Maybe O.Org -> List OrgMod
-mergeOrgEdit orgs orgEdit =
-    case orgEdit of
+mergeGroupEdit : List O.Group -> Maybe O.Group -> List GroupMod
+mergeGroupEdit groups groupEdit =
+    case groupEdit of
         Just edit ->
             let
-                orgsMapped =
+                groupsMapped =
                     List.map
                         (\o ->
                             if edit.id == o.id then
-                                { org = edit, mod = True }
+                                { group = edit, mod = True }
 
                             else
-                                { org = o, mod = False }
+                                { group = o, mod = False }
                         )
-                        orgs
+                        groups
             in
             if edit.id == "" then
-                [ { org = edit, mod = True } ] ++ orgsMapped
+                [ { group = edit, mod = True } ] ++ groupsMapped
 
             else
-                orgsMapped
+                groupsMapped
 
         Nothing ->
-            List.map (\o -> { org = o, mod = False }) orgs
+            List.map (\o -> { group = o, mod = False }) groups
 
 
-viewOrg : Global.Session -> Model -> Bool -> O.Org -> Element Msg
-viewOrg sess model modded org =
+viewGroup : Global.Session -> Model -> Bool -> O.Group -> Element Msg
+viewGroup sess model modded group =
     let
         devices =
             List.filter
                 (\d ->
-                    case List.Extra.find (\orgId -> org.id == orgId) d.orgs of
+                    case List.Extra.find (\groupId -> group.id == groupId) d.groups of
                         Just _ ->
                             True
 
@@ -360,8 +360,8 @@ viewOrg sess model modded org =
                     [ Background.color palette.orange
                     , below <|
                         Form.buttonRow
-                            [ Form.button "discard" palette.pale <| DiscardOrgEdits
-                            , Form.button "save" palette.green <| PostOrg org
+                            [ Form.button "discard" palette.pale <| DiscardGroupEdits
+                            , Form.button "save" palette.green <| PostGroup group
                             ]
                     ]
 
@@ -369,44 +369,44 @@ viewOrg sess model modded org =
                     []
                )
         )
-        [ if org.id == "00000000-0000-0000-0000-000000000000" then
-            el [ padding 16 ] (text org.name)
+        [ if group.id == "00000000-0000-0000-0000-000000000000" then
+            el [ padding 16 ] (text group.name)
 
           else
             row
                 []
                 [ Form.viewTextProperty
-                    { name = "Organization name"
-                    , value = org.name
-                    , action = \x -> EditOrg { org | name = x }
+                    { name = "Groupanization name"
+                    , value = group.name
+                    , action = \x -> EditGroup { group | name = x }
                     }
-                , Icon.x (DeleteOrg org.id)
+                , Icon.x (DeleteGroup group.id)
                 ]
         , row []
             [ el [ padding 16, Font.italic, Font.color palette.gray ] <| text "Users"
             , case model.newUser of
                 Just newUser ->
-                    if newUser.orgId == org.id then
+                    if newUser.groupId == group.id then
                         Icon.userX CancelAddUser
 
                     else
-                        Icon.userPlus (AddUser org.id)
+                        Icon.userPlus (AddUser group.id)
 
                 Nothing ->
-                    Icon.userPlus (AddUser org.id)
+                    Icon.userPlus (AddUser group.id)
             ]
         , case model.newUser of
             Just ua ->
-                if ua.orgId == org.id then
+                if ua.groupId == group.id then
                     row []
                         [ Form.viewTextProperty
                             { name = "Enter new user email address"
                             , value = ua.userEmail
                             , action = \x -> EditNewUser x
                             }
-                        , case sess.newOrgUser of
+                        , case sess.newGroupUser of
                             Just user ->
-                                Icon.userPlus (SaveNewUser org user.id)
+                                Icon.userPlus (SaveNewUser group user.id)
 
                             Nothing ->
                                 Element.none
@@ -417,32 +417,32 @@ viewOrg sess model modded org =
 
             Nothing ->
                 Element.none
-        , viewUsers org sess.data.users
+        , viewUsers group sess.data.users
         , row []
             [ el [ padding 16, Font.italic, Font.color palette.gray ] <| text "Devices"
             , case model.newDevice of
                 Just newDevice ->
-                    if newDevice.orgId == org.id then
+                    if newDevice.groupId == group.id then
                         Icon.x CancelAddDevice
 
                     else
-                        Icon.plus (AddDevice org.id)
+                        Icon.plus (AddDevice group.id)
 
                 Nothing ->
-                    Icon.plus (AddDevice org.id)
+                    Icon.plus (AddDevice group.id)
             ]
         , case model.newDevice of
             Just nd ->
-                if nd.orgId == org.id then
+                if nd.groupId == group.id then
                     row []
                         [ Form.viewTextProperty
                             { name = "Enter new device ID"
                             , value = nd.deviceId
                             , action = \x -> EditNewDevice x
                             }
-                        , case sess.newOrgDevice of
+                        , case sess.newGroupDevice of
                             Just dev ->
-                                Icon.plus (SaveNewDevice org.id dev.id)
+                                Icon.plus (SaveNewDevice group.id dev.id)
 
                             Nothing ->
                                 Element.none
@@ -453,12 +453,12 @@ viewOrg sess model modded org =
 
             Nothing ->
                 Element.none
-        , viewDevices org devices
+        , viewDevices group devices
         ]
 
 
-viewUsers : O.Org -> List U.User -> Element Msg
-viewUsers org users =
+viewUsers : O.Group -> List U.User -> Element Msg
+viewUsers group users =
     column [ spacing 6, paddingEach { top = 0, right = 16, bottom = 0, left = 32 } ]
         (List.map
             (\ur ->
@@ -473,18 +473,18 @@ viewUsers org users =
                                     ++ user.email
                                     ++ ">"
                                 )
-                            , Icon.userX (RemoveUser org user.id)
+                            , Icon.userX (RemoveUser group user.id)
                             ]
 
                     Nothing ->
                         el [ padding 16 ] <| text "User not found"
             )
-            org.users
+            group.users
         )
 
 
-viewDevices : O.Org -> List D.Device -> Element Msg
-viewDevices org devices =
+viewDevices : O.Group -> List D.Device -> Element Msg
+viewDevices group devices =
     column [ spacing 6, paddingEach { top = 0, right = 16, bottom = 0, left = 32 } ]
         (List.map
             (\d ->
@@ -495,7 +495,7 @@ viewDevices org devices =
                             ++ ") "
                             ++ d.config.description
                         )
-                    , Icon.x (RemoveDevice org.id d.id)
+                    , Icon.x (RemoveDevice group.id d.id)
                     ]
             )
             devices

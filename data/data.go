@@ -3,7 +3,7 @@ package data
 
 // Data provides all application data.
 type Data struct {
-	Orgs    []Org    `json:"orgs"`
+	Groups  []Group  `json:"groups"`
 	Users   []User   `json:"users"`
 	Devices []Device `json:"devices"`
 }
