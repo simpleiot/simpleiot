@@ -86,18 +86,19 @@ name, not a directory. The `...` tells Go to recursively test all subdirs.
 - [x] particle.io support
 - [x] boltdb support
 - [x] influxdb 1.x support
-- [ ] user authentication
+- [x] user authentication
+- [x] user accounts
+- [x] group support (assign users and devices to a group so users can only see
+      devices they own).
 - [ ] influxdb 2.x support
 - [ ] store timeseries data in bolthold
 - [ ] esp32 client example
-- [ ] user accounts
 - [ ] graph timeseries data
 - [ ] rules engine (conditions/consequences)
 - [ ] efficient protocols for cellular data connections (CoAP, protobuf, etc.)
 - [ ] Google Cloud Datastore
 - [ ] App Engine Deployment
 - [ ] edge computing features (rules, etc)
-- [ ] organization support
 
 ## Technology choices
 
