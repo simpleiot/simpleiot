@@ -69,8 +69,7 @@ viewNavbar model =
                         Global.SignedIn sess ->
                             if sess.isRoot then
                                 List.map viewLink
-                                    [ ( "devices", "/devices" )
-                                    , ( "users", "/users" )
+                                    [ ( "users", "/users" )
                                     , ( "orgs", "/orgs" )
                                     ]
 
