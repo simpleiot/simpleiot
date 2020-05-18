@@ -4,14 +4,164 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
 )
 
 // Devices handles device requests
 type Devices struct {
-	db     *db.Db
+	db     *Db
 	influx *db.Influx
+	check  RequestValidator
+}
+
+// NewDevicesHandler returns a new device handler
+func NewDevicesHandler(db *Db, influx *db.Influx, v RequestValidator) http.Handler {
+	return &Devices{db, influx, v}
+}
+
+// Top level handler for http requests in the coap-server process
+// TODO need to add device auth
+func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+
+	var id string
+	id, req.URL.Path = ShiftPath(req.URL.Path)
+
+	var head string
+	head, req.URL.Path = ShiftPath(req.URL.Path)
+
+	if (head == "samples" && req.Method == http.MethodPost) ||
+		(head == "cmd" && req.Method == http.MethodGet) ||
+		(head == "version" && req.Method == http.MethodPost) {
+		h.ServeHTTPDevice(res, req, id, head)
+		return
+	}
+
+	// all user based requests require valid auth
+	validUser, userID := h.check.Valid(req)
+
+	if !validUser {
+		http.Error(res, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userUUID, err := uuid.Parse(userID)
+
+	if err != nil {
+		http.Error(res, "User UUID invalid", http.StatusUnauthorized)
+		return
+	}
+
+	if id == "" {
+		switch req.Method {
+		case http.MethodGet:
+			// get all devices
+			// TODO: only get user devices
+			devices, err := devicesForUser(h.db.store, userUUID)
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+				return
+			}
+			if len(devices) > 0 {
+				en := json.NewEncoder(res)
+				en.Encode(devices)
+			} else {
+				res.Write([]byte("[]"))
+			}
+		default:
+			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
+		}
+		return
+	}
+
+	// process requests with an ID.
+	// FIXME uses userID to gate requests
+	switch head {
+	case "":
+		switch req.Method {
+		case http.MethodGet:
+			device, err := device(h.db.store, id)
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+			} else {
+				en := json.NewEncoder(res)
+				en.Encode(device)
+			}
+		case http.MethodDelete:
+			err := deviceDelete(h.db.store, id)
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+			} else {
+				en := json.NewEncoder(res)
+				en.Encode(data.StandardResponse{Success: true, ID: id})
+			}
+		default:
+			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
+		}
+
+	case "config":
+		if req.Method == http.MethodPost {
+			h.processConfig(res, req, id, userID)
+		} else {
+			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+		}
+	case "groups":
+		if req.Method == http.MethodPost {
+			h.updateDeviceGroups(res, req, id)
+		} else {
+			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+		}
+
+	case "cmd":
+		if req.Method == http.MethodPost {
+			// Post is typically done by UI
+			if !validUser {
+				http.Error(res, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			h.processCmd(res, req, id)
+		} else {
+			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+		}
+
+	}
+}
+
+// ServeHTTPDevice is used to process requests from device, currently
+// no auth and following URIs:
+// - POST samples
+// - GET cmd
+// - POST version
+// we have already checked for req type, so we can skip that check
+// here
+func (h *Devices) ServeHTTPDevice(res http.ResponseWriter, req *http.Request, id, opt string) {
+	switch opt {
+	case "samples":
+		h.processSamples(res, req, id)
+
+	case "cmd":
+		cmd, err := deviceGetCmd(h.db.store, id)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
+
+		// id is not required
+		cmd.ID = ""
+
+		en := json.NewEncoder(res)
+		en.Encode(cmd)
+
+	case "version":
+		h.processVersion(res, req, id)
+	}
+}
+
+// RequestValidator validates an HTTP request.
+type RequestValidator interface {
+	Valid(req *http.Request) (bool, string)
 }
 
 func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id string) {
@@ -26,7 +176,7 @@ func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id stri
 	// set ID in case it is not set in API call
 	c.ID = id
 
-	err = h.db.DeviceSetCmd(c)
+	err = deviceSetCmd(h.db.store, c)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -45,7 +195,7 @@ func (h *Devices) processVersion(res http.ResponseWriter, req *http.Request, id 
 		return
 	}
 
-	err = h.db.DeviceSetVersion(id, v)
+	err = deviceSetVersion(h.db.store, id, v)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -55,7 +205,7 @@ func (h *Devices) processVersion(res http.ResponseWriter, req *http.Request, id 
 	en.Encode(data.StandardResponse{Success: true, ID: id})
 }
 
-func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id string) {
+func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id string, userID string) {
 	decoder := json.NewDecoder(req.Body)
 	var c data.DeviceConfig
 	err := decoder.Decode(&c)
@@ -64,7 +214,25 @@ func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id s
 		return
 	}
 
-	err = h.db.DeviceUpdateConfig(id, c)
+	err = deviceUpdateConfig(h.db.store, id, c)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+
+	en := json.NewEncoder(res)
+	en.Encode(data.StandardResponse{Success: true, ID: id})
+}
+
+func (h *Devices) updateDeviceGroups(res http.ResponseWriter, req *http.Request, id string) {
+	decoder := json.NewDecoder(req.Body)
+	var groups []uuid.UUID
+	err := decoder.Decode(&groups)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = deviceUpdateGroups(h.db.store, id, groups)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
@@ -83,7 +251,7 @@ func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id 
 	}
 
 	for _, s := range samples {
-		err = h.db.DeviceSample(id, s)
+		err = deviceSample(h.db.store, id, s)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}
@@ -98,93 +266,4 @@ func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id 
 
 	en := json.NewEncoder(res)
 	en.Encode(data.StandardResponse{Success: true, ID: id})
-}
-
-// Top level handler for http requests in the coap-server process
-func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	var id string
-	id, req.URL.Path = ShiftPath(req.URL.Path)
-
-	var head string
-	head, req.URL.Path = ShiftPath(req.URL.Path)
-
-	switch head {
-	case "samples":
-		if req.Method == http.MethodPost {
-			h.processSamples(res, req, id)
-		} else {
-			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
-		}
-	case "config":
-		if req.Method == http.MethodPost {
-			h.processConfig(res, req, id)
-		} else {
-			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
-		}
-	case "cmd":
-		if req.Method == http.MethodGet {
-			cmd, err := h.db.DeviceGetCmd(id)
-			if err != nil {
-				http.Error(res, err.Error(), http.StatusInternalServerError)
-			}
-
-			// id is not required
-			cmd.ID = ""
-
-			en := json.NewEncoder(res)
-			en.Encode(cmd)
-		} else if req.Method == http.MethodPost {
-			h.processCmd(res, req, id)
-		} else {
-			http.Error(res, "only GET allowed", http.StatusMethodNotAllowed)
-		}
-	case "version":
-		if req.Method == http.MethodPost {
-			h.processVersion(res, req, id)
-		} else {
-			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
-		}
-	default:
-		if id == "" {
-			switch req.Method {
-			case http.MethodGet:
-				devices, err := h.db.Devices()
-				if err != nil {
-					http.Error(res, err.Error(), http.StatusNotFound)
-					return
-				}
-				en := json.NewEncoder(res)
-				en.Encode(devices)
-			default:
-				http.Error(res, "invalid method", http.StatusMethodNotAllowed)
-			}
-		} else {
-			switch req.Method {
-			case http.MethodGet:
-				device, err := h.db.Device(id)
-				if err != nil {
-					http.Error(res, err.Error(), http.StatusNotFound)
-				} else {
-					en := json.NewEncoder(res)
-					en.Encode(device)
-				}
-			case http.MethodDelete:
-				err := h.db.DeviceDelete(id)
-				if err != nil {
-					http.Error(res, err.Error(), http.StatusNotFound)
-				} else {
-					en := json.NewEncoder(res)
-					en.Encode(data.StandardResponse{Success: true, ID: id})
-				}
-
-			default:
-				http.Error(res, "invalid method", http.StatusMethodNotAllowed)
-			}
-		}
-	}
-}
-
-// NewDevicesHandler returns a new device handler
-func NewDevicesHandler(db *db.Db, influx *db.Influx) http.Handler {
-	return &Devices{db, influx}
 }

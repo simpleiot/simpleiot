@@ -16,7 +16,6 @@ type IndexHandler struct {
 }
 
 func (h *IndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	fmt.Println("indexHandler")
 	f := h.getAsset("/index.html")
 	if f == nil {
 		rw.WriteHeader(http.StatusNotFound)
@@ -36,20 +35,17 @@ type App struct {
 	PublicHandler http.Handler
 	IndexHandler  http.Handler
 	V1ApiHandler  http.Handler
-	Debug         bool
 }
 
 // Top level handler for http requests in the coap-server process
 func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 
-	if h.Debug {
-		fmt.Printf("HTTP %v: %v\n", req.Method, req.URL.Path)
-	}
-
-	if req.URL.Path == "/" {
+	switch req.URL.Path {
+	case "/", "/orgs", "/users", "/devices", "/sign-in":
 		h.IndexHandler.ServeHTTP(res, req)
-	} else {
+
+	default:
 		head, req.URL.Path = ShiftPath(req.URL.Path)
 		switch head {
 		case "public":
@@ -63,27 +59,35 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewAppHandler returns a new application (root) http handler
-func NewAppHandler(db *db.Db, influx *db.Influx, getAsset func(string) []byte,
-	filesystem http.FileSystem, debug bool) http.Handler {
+func NewAppHandler(args ServerArgs) http.Handler {
+	v1 := NewV1Handler(args.DbInst, args.Influx, args.Auth)
+	if args.Debug {
+		//args.Debug = false
+		v1 = NewHTTPLogger("v1").Handler(v1)
+	}
+
 	return &App{
-		PublicHandler: http.FileServer(filesystem),
-		IndexHandler:  NewIndexHandler(getAsset),
-		V1ApiHandler:  NewV1Handler(db, influx),
-		Debug:         debug,
+		PublicHandler: http.FileServer(args.Filesystem),
+		IndexHandler:  NewIndexHandler(args.GetAsset),
+		V1ApiHandler:  v1,
 	}
 }
 
-// Server starts a API server instance
-func Server(
-	port string,
-	dbInst *db.Db,
-	influx *db.Influx,
-	getAsset func(string) []byte,
-	filesystem http.FileSystem,
-	debug bool) error {
+// ServerArgs can be used to pass arguments to the server subsystem
+type ServerArgs struct {
+	Port       string
+	DbInst     *Db
+	Influx     *db.Influx
+	GetAsset   func(string) []byte
+	Filesystem http.FileSystem
+	Debug      bool
+	Auth       Authorizer
+}
 
-	log.Println("Starting http server, debug: ", debug)
-	log.Println("Starting portal on port: ", port)
-	address := fmt.Sprintf(":%s", port)
-	return http.ListenAndServe(address, NewAppHandler(dbInst, influx, getAsset, filesystem, debug))
+// Server starts a API server instance
+func Server(args ServerArgs) error {
+	log.Println("Starting http server, debug: ", args.Debug)
+	log.Println("Starting portal on port: ", args.Port)
+	address := fmt.Sprintf(":%s", args.Port)
+	return http.ListenAndServe(address, NewAppHandler(args))
 }

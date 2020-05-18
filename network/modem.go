@@ -76,7 +76,7 @@ func (m *Modem) openCmdPort() error {
 		return err
 	}
 
-	m.atCmdPort = respreader.NewResponseReadWriteCloser(port, 5*time.Second,
+	m.atCmdPort = respreader.NewReadWriteCloser(port, 5*time.Second,
 		50*time.Millisecond)
 
 	return nil
@@ -155,7 +155,6 @@ func (m *Modem) Configure() (InterfaceConfig, error) {
 		return ret, fmt.Errorf("Error setting fun Min: %v", err.Error())
 	}
 
-	// configure which SIM card to use
 	err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",1,26,1,0,0,1")
 	if err != nil {
 		return ret, fmt.Errorf("Error setting GPIO: %v", err.Error())
@@ -180,27 +179,16 @@ func (m *Modem) Configure() (InterfaceConfig, error) {
 		return ret, fmt.Errorf("Error setting fun full: %v", err.Error())
 	}
 
-	// enable GPS LNA
-	err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",1,64,1,0,0,1")
-	if err != nil {
-		log.Printf("Error enabling GPS LNA 1: %v\n", err.Error())
-	}
-
-	err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",3,64,1,1")
-	if err != nil {
-		log.Printf("Error enabling GPS LNA 2: %v\n", err.Error())
-	}
-
 	// enable GPS. Don't return error of GPS commands fail as
 	// this is not a critical error
 	err = CmdOK(m.atCmdPort, "AT+QGPS=1")
 	if err != nil {
-		log.Printf("Error enabling GPS: %v\n", err.Error())
+		log.Printf("Error enabling GPS: %v", err.Error())
 	}
 
 	err = CmdOK(m.atCmdPort, "AT+QGPSCFG=\"nmeasrc\",1")
 	if err != nil {
-		log.Printf("Error settings GPS source: %v\n", err.Error())
+		log.Printf("Error settings GPS source: %v", err.Error())
 	}
 
 	sim, err := CmdGetSimBg96(m.atCmdPort)
@@ -275,9 +263,7 @@ func (m *Modem) Connect() error {
 	m.lastPPPRun = time.Now()
 
 	log.Println("Modem: starting PPP")
-	err = exec.Command("pon", m.config.ChatScript).Start()
-
-	return err
+	return exec.Command("pon", m.config.ChatScript).Run()
 }
 
 // GetStatus return interface status
@@ -293,8 +279,6 @@ func (m *Modem) GetStatus() (InterfaceStatus, error) {
 	var retError error
 	ip, _ := GetIP(m.iface)
 
-	// When a PPP connection is being made, the modem
-	// does not respond to the QCSQ command
 	service, rssi, rsrp, rsrq, err := CmdQcsq(m.atCmdPort)
 	if err != nil {
 		retError = err

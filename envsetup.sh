@@ -1,13 +1,33 @@
-RECOMMENDED_ELM_VERSION=0.19.0
+RECOMMENDED_ELM_VERSION=0.19.1
+
+if [ -z "$GOPATH" ]; then
+  export GOPATH=$HOME/go
+fi
+
+export GOBIN=$GOPATH/bin
+
+# map tools from project go modules
+
+genesis() {
+  go run github.com/benbjohnson/genesis/cmd/genesis "$@"
+}
+
+golint() {
+  go run golang.org/x/lint/golint "$@"
+}
+
+siot_install_frontend_deps() {
+  (cd "frontend" && npm install)
+}
 
 siot_check_elm() {
-  if ! elm --version >/dev/null 2>&1; then
+  if ! npx elm --version >/dev/null 2>&1; then
     echo "Please install elm >= 0.19"
     echo "https://guide.elm-lang.org/install.html"
     return 1
   fi
 
-  version=$(elm --version)
+  version=$(npx elm --version)
   if [ "$version" != "$RECOMMENDED_ELM_VERSION" ]; then
     echo "found elm $version, recommend elm version $RECOMMENDED_ELM_VERSION"
     echo "not sure what will happen otherwise"
@@ -17,61 +37,51 @@ siot_check_elm() {
 }
 
 bbolt() {
-  go run go.etcd.io/bbolt/cmd/bbolt $@
-}
-
-siot_check_gopath_bin() {
-  if [ -z "$GOPATH" ]; then
-    GOPATH=~/go
-  fi
-
-  GOBIN=$GOPATH/bin
-
-  if [[ ":$PATH:" != *":$GOBIN:"* ]]; then
-    echo "You must add \$GOPATH/bin to your environment PATH variable"
-    echo "GOPATH defaults to ~/go"
-    return 1
-  fi
-
-  return 0
+  go run go.etcd.io/bbolt/cmd/bbolt "$@"
 }
 
 siot_setup() {
   go mod download
-  go install github.com/benbjohnson/genesis/... || return 1
   siot_check_elm || return 1
-  siot_check_gopath_bin || return 1
   return 0
 }
 
 siot_build_frontend() {
-  rm frontend/output/* || true
-  (cd frontend && elm make src/Main.elm --output=output/elm.js) || return 1
-  cp frontend/public/* frontend/output/ || return 1
-  cp docs/simple-iot-app-logo.png frontend/output/ || return 1
+  ELMARGS=$1
+  echo "Elm args: $ELMARGS"
+  rm -f "frontend/output"/*
+  (cd "frontend" && npx elm-spa build) || return 1
+  (cd "frontend" && npx elm make "$ELMARGS" src/Main.elm --output=output/elm.js) || return 1
+  cp "frontend/public"/* "frontend/output/" || return 1
+  cp "frontend/public/index.html" "frontend/output/index.html" || return 1
+  cp docs/simple-iot-app-logo.png "frontend/output/" || return 1
   return 0
 }
 
 siot_build_assets() {
   mkdir -p assets/frontend || return 1
-  genesis -C frontend/output -pkg frontend \
+  genesis -C "frontend/output" -pkg frontend \
     index.html \
     elm.js \
     main.js \
     ble.js \
     simple-iot-app-logo.png \
+    ports.js \
+    styles.css \
     >assets/frontend/assets.go || return 1
   return 0
 }
 
 siot_build_dependencies() {
-  siot_build_frontend || return 1
+  ELMARGS=$1
+  siot_build_frontend "$ELMARGS" || return 1
   siot_build_assets || return 1
   return 0
 }
 
+# the following can be used to build v2 of the frontend: siot_build 2
 siot_build() {
-  siot_build_dependencies || return 1
+  siot_build_dependencies --optimize || return 1
   go build -o siot cmd/siot/main.go || return 1
   return 0
 }
@@ -83,14 +93,20 @@ siot_deploy() {
 }
 
 siot_run() {
-  siot_build_dependencies || return 1
-  go run cmd/siot/main.go || return 1
+  echo "run args: $*"
+  siot_build_dependencies --debug || return 1
+  go run cmd/siot/main.go "$@" || return 1
   return 0
 }
 
-siot_run_device_sim() {
-  go run cmd/siot/main.go -sim || return 1
-  return 0
+find_src_files() {
+  find . -not \( -path ./frontend/elm-stuff -prune \) -not \( -path ./assets -prune \) -name "*.go" -o -name "*.elm"
+}
+
+siot_watch() {
+  echo "watch args: $*"
+  cmd=". ./envsetup.sh; siot_run $*"
+  find_src_files | entr -r /bin/sh -c "$cmd"
 }
 
 siot_build_docs() {
@@ -100,6 +116,24 @@ siot_build_docs() {
   snowboard html docs/api.apib -o docs/api.html || return 1
 }
 
+# TODO finish this and add to siot_test ...
+check_go_format() {
+  gofiles=$(find . -name "*.go")
+  unformatted=$(gofmt -l "$gofiles")
+  if [ -n "$unformatted" ]; then
+    return 1
+  fi
+  return 0
+}
+
+# please run the following before pushing -- best if your editor can be set up
+# to do this automatically.
 siot_test() {
-  go test ./...
+  siot_build_dependencies --optimize || return 1
+  (cd frontend && npx elm-analyse || return 1) || return 1
+  #gofmt -l ./... || return 1
+  go test "$@" ./... || return 1
+  golint -set_exit_status ./... || return 1
+  go vet ./... || return 1
+  return 0
 }

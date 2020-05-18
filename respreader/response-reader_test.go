@@ -8,8 +8,6 @@ import (
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/jacobsa/go-serial/serial"
 )
 
 type dataSource struct {
@@ -37,7 +35,7 @@ func (ds *dataSource) Read(data []byte) (int, error) {
 
 // the below test illustrates out the goroutine in the reader will close if you close
 // the underlying file descriptor.
-func TestResponseReaderClose(t *testing.T) {
+func TestReadCloser(t *testing.T) {
 	fifo := "rrfifo"
 	os.Remove(fifo)
 	err := exec.Command("mkfifo", fifo).Run()
@@ -55,7 +53,7 @@ func TestResponseReaderClose(t *testing.T) {
 			t.Error("Error opening fifo: ", err)
 		}
 
-		reader := NewResponseReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
+		reader := NewReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
 
 		fmt.Println("reader created")
 
@@ -115,6 +113,8 @@ func TestResponseReaderClose(t *testing.T) {
 	fmt.Println("test all done")
 }
 
+/* the following test is for documentation only
+
 // the below test illustrates out the goroutine in the reader will close if you close
 // the underlying serial port descriptor.
 func TestResponseReaderSerialPortClose(t *testing.T) {
@@ -122,8 +122,10 @@ func TestResponseReaderSerialPortClose(t *testing.T) {
 	fmt.Println("Testing serial port close")
 	readCnt := make(chan int)
 
+	serialPort := "/dev/ttyUSB1"
+
 	options := serial.OpenOptions{
-		PortName:              "/dev/ttyUSB15",
+		PortName:              serialPort,
 		BaudRate:              115200,
 		DataBits:              8,
 		StopBits:              1,
@@ -137,7 +139,7 @@ func TestResponseReaderSerialPortClose(t *testing.T) {
 			t.Error("Error opening serial port: ", err)
 		}
 
-		reader := NewResponseReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
+		reader := NewReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
 
 		fmt.Println("reader created")
 
@@ -173,7 +175,7 @@ func TestResponseReaderSerialPortClose(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	options.PortName = "/dev/ttyUSB16"
+	options.PortName = serialPort
 
 	fwrite, err := serial.Open(options)
 	if err != nil {
@@ -196,10 +198,11 @@ func TestResponseReaderSerialPortClose(t *testing.T) {
 
 	fmt.Println("test all done")
 }
+*/
 
-func TestResponseReader(t *testing.T) {
+func TestReader(t *testing.T) {
 	source := &dataSource{}
-	reader := NewResponseReader(source, time.Second, time.Millisecond*10)
+	reader := NewReader(source, time.Second, time.Millisecond*10)
 
 	start := time.Now()
 	data := make([]byte, 100)
@@ -240,7 +243,7 @@ func (ds *dataSourceTimeout) Read(data []byte) (int, error) {
 
 func TestResponseReaderTimeout(t *testing.T) {
 	source := &dataSourceTimeout{}
-	reader := NewResponseReader(source, time.Second, time.Millisecond*10)
+	reader := NewReader(source, time.Second, time.Millisecond*10)
 
 	start := time.Now()
 	data := make([]byte, 100)
@@ -248,7 +251,7 @@ func TestResponseReaderTimeout(t *testing.T) {
 
 	dur := time.Since(start)
 
-	if err != ErrorTimeout {
+	if err != io.EOF {
 		t.Error("expected timeout error, got: ", err)
 	}
 
@@ -295,9 +298,9 @@ func (ds *dataSourceWrite) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func TestResponseReaderWrite(t *testing.T) {
+func TestReadWriter(t *testing.T) {
 	source := &dataSourceWrite{}
-	readWriter := NewResponseReadWriter(source, time.Second, time.Millisecond*10)
+	readWriter := NewReadWriter(source, time.Second, time.Millisecond*10)
 
 	writeData := []byte{1, 2}
 	readWriter.Write(writeData)
@@ -308,7 +311,7 @@ func TestResponseReaderWrite(t *testing.T) {
 
 	dur := time.Since(start)
 
-	if err != ErrorTimeout {
+	if err != io.EOF {
 		t.Error("expected timeout error: ", err)
 	}
 

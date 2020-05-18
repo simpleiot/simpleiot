@@ -1,4 +1,5 @@
 frontend/output
+frontend2/output
 elm-stuff
 /siot
 data.db
@@ -9,3 +10,6 @@ assets.go
 temp
 tags
 .idea
+node_modules
+dist
+data.json

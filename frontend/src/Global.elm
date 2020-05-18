@@ -1,0 +1,751 @@
+module Global exposing
+    ( Flags
+    , Model(..)
+    , Msg(..)
+    , Session
+    , init
+    , subscriptions
+    , update
+    )
+
+import Data.Data as Data
+import Data.Device as D
+import Data.Group as G
+import Data.User as U
+import Generated.Routes exposing (Route, routes)
+import Http
+import Json.Decode as Decode
+import Json.Decode.Pipeline exposing (optional, required)
+import List.Extra
+import Time
+import Url.Builder as Url
+
+
+type alias Flags =
+    ()
+
+
+type Model
+    = SignedOut (Maybe Http.Error)
+    | SignedIn Session
+
+
+type alias Session =
+    { cred : Cred
+    , authToken : String
+    , isRoot : Bool
+    , data : Data.Data
+    , error : Maybe Http.Error
+    , respError : Maybe String
+    , posting : Bool
+    , newGroupUser : Maybe U.User
+    , newGroupDevice : Maybe D.Device
+    , errorDispCount : Int
+    }
+
+
+type alias Cred =
+    { email : String
+    , password : String
+    }
+
+
+type Msg
+    = SignIn Cred
+    | AuthResponse Cred (Result Http.Error Auth)
+    | RequestGroups
+    | RequestDevices
+    | RequestUsers
+    | DevicesResponse (Result Http.Error (List D.Device))
+    | GroupsResponse (Result Http.Error (List G.Group))
+    | UsersResponse (Result Http.Error (List U.User))
+    | DeleteDevice String
+    | DeleteDeviceResponse String (Result Http.Error Response)
+    | SignOut
+    | Tick Time.Posix
+    | UpdateDeviceConfig String D.Config
+    | UpdateDeviceGroups String (List String)
+    | UpdateUser U.User
+    | DeleteUser String
+    | DeleteUserResponse String (Result Http.Error Response)
+    | UpdateGroup G.Group
+    | DeleteGroup String
+    | DeleteGroupResponse String (Result Http.Error Response)
+    | ConfigPosted String (Result Http.Error Response)
+    | UserPosted String (Result Http.Error Response)
+    | GroupPosted String (Result Http.Error Response)
+    | CheckUser String
+    | CheckUserResponse (Result Http.Error U.User)
+    | CheckDevice String
+    | CheckDeviceResponse (Result Http.Error D.Device)
+
+
+type alias Commands msg =
+    { navigate : Route -> Cmd msg
+    }
+
+
+init : Commands msg -> Flags -> ( Model, Cmd Msg, Cmd msg )
+init _ _ =
+    ( SignedOut Nothing
+    , Cmd.none
+    , Cmd.none
+    )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.batch
+        [ Time.every 1000 Tick
+        ]
+
+
+login : Cred -> Cmd Msg
+login cred =
+    Http.post
+        { body =
+            Http.multipartBody
+                [ Http.stringPart "email" cred.email
+                , Http.stringPart "password" cred.password
+                ]
+        , url = Url.absolute [ "v1", "auth" ] []
+        , expect = Http.expectJson (AuthResponse cred) decodeAuth
+        }
+
+
+type alias Auth =
+    { token : String
+    , isRoot : Bool
+    }
+
+
+decodeAuth : Decode.Decoder Auth
+decodeAuth =
+    Decode.succeed Auth
+        |> required "token" Decode.string
+        |> required "isRoot" Decode.bool
+
+
+update : Commands msg -> Msg -> Model -> ( Model, Cmd Msg, Cmd msg )
+update commands msg model =
+    case model of
+        SignedOut _ ->
+            case msg of
+                SignIn cred ->
+                    ( SignedOut Nothing
+                    , login cred
+                    , Cmd.none
+                    )
+
+                AuthResponse cred (Ok resp) ->
+                    ( SignedIn
+                        { authToken = resp.token
+                        , isRoot = resp.isRoot
+                        , cred = cred
+                        , data = Data.empty
+                        , error = Nothing
+                        , respError = Nothing
+                        , posting = False
+                        , newGroupUser = Nothing
+                        , newGroupDevice = Nothing
+                        , errorDispCount = 0
+                        }
+                    , Cmd.none
+                    , commands.navigate routes.top
+                    )
+
+                AuthResponse _ (Err error) ->
+                    ( SignedOut (Just error), Cmd.none, Cmd.none )
+
+                _ ->
+                    ( model
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+        SignedIn sess ->
+            let
+                data =
+                    sess.data
+            in
+            case msg of
+                SignIn _ ->
+                    ( model, Cmd.none, Cmd.none )
+
+                SignOut ->
+                    ( SignedOut Nothing
+                    , Cmd.none
+                    , commands.navigate routes.top
+                    )
+
+                AuthResponse _ (Ok _) ->
+                    ( model, Cmd.none, Cmd.none )
+
+                AuthResponse _ (Err err) ->
+                    ( SignedOut (Just err)
+                    , Cmd.none
+                    , commands.navigate routes.signIn
+                    )
+
+                DevicesResponse (Ok devices) ->
+                    ( SignedIn
+                        { sess
+                            | data = { data | devices = devices }
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                DevicesResponse (Err _) ->
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error getting devices"
+                            , errorDispCount = 0
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                UsersResponse (Ok users) ->
+                    ( SignedIn { sess | data = { data | users = users } }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                UsersResponse (Err _) ->
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error getting users"
+                            , errorDispCount = 0
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                RequestDevices ->
+                    ( model
+                    , if sess.posting then
+                        Cmd.none
+
+                      else
+                        getDevices sess.authToken
+                    , Cmd.none
+                    )
+
+                RequestUsers ->
+                    ( model
+                    , getUsers sess.authToken
+                    , Cmd.none
+                    )
+
+                GroupsResponse (Ok groups) ->
+                    ( SignedIn { sess | data = { data | groups = groups } }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                GroupsResponse (Err _) ->
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error getting groups"
+                            , errorDispCount = 0
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                RequestGroups ->
+                    ( model
+                    , getGroups sess.authToken
+                    , Cmd.none
+                    )
+
+                Tick _ ->
+                    let
+                        respError =
+                            if sess.errorDispCount > 5 then
+                                Nothing
+
+                            else
+                                sess.respError
+                    in
+                    ( SignedIn
+                        { sess
+                            | errorDispCount = sess.errorDispCount + 1
+                            , respError = respError
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                UpdateDeviceConfig id config ->
+                    let
+                        devices =
+                            List.map
+                                (\d ->
+                                    if d.id == id then
+                                        { d | config = config }
+
+                                    else
+                                        d
+                                )
+                                data.devices
+                    in
+                    ( SignedIn
+                        { sess
+                            | data = { data | devices = devices }
+                            , posting = True
+                        }
+                    , postDeviceConfig sess.authToken id config
+                    , Cmd.none
+                    )
+
+                UpdateDeviceGroups id groups ->
+                    let
+                        devices =
+                            List.map
+                                (\d ->
+                                    if d.id == id then
+                                        { d | groups = groups }
+
+                                    else
+                                        d
+                                )
+                                data.devices
+                    in
+                    ( SignedIn
+                        { sess
+                            | data = { data | devices = devices }
+                            , posting = True
+                            , newGroupDevice = Nothing
+                        }
+                    , postDeviceGroups sess.authToken id groups
+                    , Cmd.none
+                    )
+
+                UpdateUser user ->
+                    let
+                        -- update local model to make UI optimistic
+                        updateUser old =
+                            if old.id == user.id then
+                                user
+
+                            else
+                                old
+
+                        users =
+                            if user.id == "" then
+                                [ user ] ++ sess.data.users
+
+                            else
+                                List.map updateUser sess.data.users
+                    in
+                    ( SignedIn { sess | data = { data | users = users } }
+                    , postUser sess.authToken user
+                    , Cmd.none
+                    )
+
+                UpdateGroup group ->
+                    let
+                        -- update local model to make UI optimistic
+                        updateGroup old =
+                            if old.id == group.id then
+                                group
+
+                            else
+                                old
+
+                        groups =
+                            if group.id == "" then
+                                [ group ] ++ sess.data.groups
+
+                            else
+                                List.map updateGroup sess.data.groups
+                    in
+                    ( SignedIn
+                        { sess
+                            | data = { data | groups = groups }
+                            , newGroupUser = Nothing
+                        }
+                    , postGroup sess.authToken group
+                    , Cmd.none
+                    )
+
+                DeleteGroup id ->
+                    let
+                        groups =
+                            List.filter (\o -> o.id /= id) data.groups
+                    in
+                    ( SignedIn { sess | data = { data | groups = groups } }
+                    , deleteGroup sess.authToken id
+                    , Cmd.none
+                    )
+
+                DeleteGroupResponse _ (Ok _) ->
+                    ( model
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                DeleteGroupResponse _ (Err _) ->
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error deleting group"
+                            , posting = False
+                            , errorDispCount = 0
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                DeleteDevice id ->
+                    let
+                        devices =
+                            List.filter (\d -> d.id /= id) data.devices
+                    in
+                    ( SignedIn { sess | data = { data | devices = devices } }
+                    , deleteDevice sess.authToken id
+                    , Cmd.none
+                    )
+
+                DeleteDeviceResponse _ (Ok _) ->
+                    ( model
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                DeleteDeviceResponse _ (Err _) ->
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error deleting device"
+                            , posting = False
+                            , errorDispCount = 0
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                ConfigPosted _ (Ok _) ->
+                    ( SignedIn { sess | posting = False }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                ConfigPosted _ (Err _) ->
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error saving device config"
+                            , posting = False
+                            , errorDispCount = 0
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                UserPosted _ (Ok resp) ->
+                    -- populate the assigned ID in the new user
+                    let
+                        users =
+                            List.map
+                                (\u ->
+                                    if u.id == "" then
+                                        { u | id = resp.id }
+
+                                    else
+                                        u
+                                )
+                                data.users
+                    in
+                    ( SignedIn { sess | data = { data | users = users } }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                UserPosted _ (Err _) ->
+                    -- refresh users as the local users cache is now
+                    -- stale
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error saving user"
+                            , errorDispCount = 0
+                        }
+                    , getUsers sess.authToken
+                    , Cmd.none
+                    )
+
+                GroupPosted _ (Ok resp) ->
+                    -- populate the assigned ID in the new group
+                    let
+                        groups =
+                            List.map
+                                (\o ->
+                                    if o.id == "" then
+                                        { o | id = resp.id }
+
+                                    else
+                                        o
+                                )
+                                data.groups
+                    in
+                    ( SignedIn { sess | data = { data | groups = groups } }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                GroupPosted _ (Err _) ->
+                    -- refresh the ids because the local group cache is
+                    -- is not correct because save did not take
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error saving group"
+                            , errorDispCount = 0
+                        }
+                    , getGroups sess.authToken
+                    , Cmd.none
+                    )
+
+                CheckUser userEmail ->
+                    ( SignedIn { sess | newGroupUser = Nothing }
+                    , getUserByEmail sess.authToken userEmail
+                    , Cmd.none
+                    )
+
+                CheckUserResponse (Err _) ->
+                    ( model, Cmd.none, Cmd.none )
+
+                CheckUserResponse (Ok user) ->
+                    ( SignedIn { sess | newGroupUser = Just user }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                CheckDevice deviceId ->
+                    ( SignedIn { sess | newGroupDevice = Nothing }
+                    , getDeviceById sess.authToken deviceId
+                    , Cmd.none
+                    )
+
+                CheckDeviceResponse (Err _) ->
+                    ( model, Cmd.none, Cmd.none )
+
+                CheckDeviceResponse (Ok device) ->
+                    -- make sure new device is in our local cache
+                    -- of devices so we can modify it if necessary
+                    let
+                        devices =
+                            case
+                                List.Extra.find (\d -> d.id == device.id)
+                                    sess.data.devices
+                            of
+                                Just _ ->
+                                    sess.data.devices
+
+                                Nothing ->
+                                    device :: sess.data.devices
+                    in
+                    ( SignedIn
+                        { sess
+                            | newGroupDevice = Just device
+                            , data = { data | devices = devices }
+                        }
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                DeleteUser id ->
+                    let
+                        users =
+                            List.filter (\u -> u.id /= id) data.users
+                    in
+                    ( SignedIn { sess | data = { data | users = users } }
+                    , deleteUser sess.authToken id
+                    , Cmd.none
+                    )
+
+                DeleteUserResponse _ (Ok _) ->
+                    ( model
+                    , Cmd.none
+                    , Cmd.none
+                    )
+
+                DeleteUserResponse _ (Err _) ->
+                    ( SignedIn
+                        { sess
+                            | respError = Just "Error deleting user"
+                            , posting = False
+                            , errorDispCount = 0
+                        }
+                    , getUsers sess.authToken
+                    , Cmd.none
+                    )
+
+
+getDevices : String -> Cmd Msg
+getDevices token =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "devices" ] []
+        , expect = Http.expectJson DevicesResponse D.decodeList
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+getDeviceById : String -> String -> Cmd Msg
+getDeviceById token id =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "devices", id ] []
+        , expect = Http.expectJson CheckDeviceResponse D.decode
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+deleteDevice : String -> String -> Cmd Msg
+deleteDevice token id =
+    Http.request
+        { method = "DELETE"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "devices", id ] []
+        , expect = Http.expectJson (DeleteDeviceResponse id) responseDecoder
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+type alias Response =
+    { success : Bool
+    , error : String
+    , id : String
+    }
+
+
+responseDecoder : Decode.Decoder Response
+responseDecoder =
+    Decode.succeed Response
+        |> required "success" Decode.bool
+        |> optional "error" Decode.string ""
+        |> optional "id" Decode.string ""
+
+
+postDeviceConfig : String -> String -> D.Config -> Cmd Msg
+postDeviceConfig token id config =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "devices", id, "config" ] []
+        , expect = Http.expectJson (ConfigPosted id) responseDecoder
+        , body = config |> D.encodeConfig |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postDeviceGroups : String -> String -> List String -> Cmd Msg
+postDeviceGroups token id groups =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "devices", id, "groups" ] []
+        , expect = Http.expectJson (ConfigPosted id) responseDecoder
+        , body = groups |> D.encodeGroups |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+getGroups : String -> Cmd Msg
+getGroups token =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "groups" ] []
+        , expect = Http.expectJson GroupsResponse G.decodeList
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+getUsers : String -> Cmd Msg
+getUsers token =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "users" ] []
+        , expect = Http.expectJson UsersResponse U.decodeList
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+deleteUser : String -> String -> Cmd Msg
+deleteUser token id =
+    Http.request
+        { method = "DELETE"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "users", id ] []
+        , expect = Http.expectJson (DeleteUserResponse id) responseDecoder
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+getUserByEmail : String -> String -> Cmd Msg
+getUserByEmail token email =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "users" ] [ Url.string "email" email ]
+        , expect = Http.expectJson CheckUserResponse U.decode
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postUser : String -> U.User -> Cmd Msg
+postUser token user =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "users", user.id ] []
+        , expect = Http.expectJson (UserPosted user.id) responseDecoder
+        , body = user |> U.encode |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postGroup : String -> G.Group -> Cmd Msg
+postGroup token group =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "groups", group.id ] []
+        , expect = Http.expectJson (GroupPosted group.id) responseDecoder
+        , body = group |> G.encode |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+deleteGroup : String -> String -> Cmd Msg
+deleteGroup token id =
+    Http.request
+        { method = "DELETE"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.absolute [ "v1", "groups", id ] []
+        , expect = Http.expectJson (DeleteGroupResponse id) responseDecoder
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
