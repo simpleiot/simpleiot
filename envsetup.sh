@@ -86,7 +86,7 @@ siot_deploy() {
 }
 
 siot_run() {
-  echo "run args: $@"
+  echo "run args: $*"
   siot_build_dependencies || return 1
   go run cmd/siot/main.go "$@" || return 1
   return 0
@@ -97,8 +97,8 @@ find_src_files() {
 }
 
 siot_watch() {
-  echo "watch args: $@"
-  cmd=". ./envsetup.sh; siot_run $@"
+  echo "watch args: $*"
+  cmd=". ./envsetup.sh; siot_run $*"
   find_src_files | entr -r /bin/sh -c "$cmd"
 }
 
