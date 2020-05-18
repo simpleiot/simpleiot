@@ -62,7 +62,7 @@ func (d modemSerial) Run() error {
 		return err
 	}
 
-	port = respreader.NewResponseReadWriteCloser(port, 1*time.Second,
+	port = respreader.NewReadWriteCloser(port, 1*time.Second,
 		50*time.Millisecond)
 
 	err = network.CmdOK(port, "AT")

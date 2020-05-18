@@ -38,6 +38,6 @@ func OpenSerialModem() (io.ReadWriteCloser, error) {
 		return nil, err
 	}
 
-	return respreader.NewResponseReadWriteCloser(port, 2*time.Second,
+	return respreader.NewReadWriteCloser(port, 2*time.Second,
 		50*time.Millisecond), nil
 }

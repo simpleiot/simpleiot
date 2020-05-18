@@ -24,6 +24,7 @@ var errorNotLindsayStatus = errors.New("Not lindsay status")
 
 // Read waits for a Lindsay status regs and then returns it
 func (l *Lindsay) Read() (regs isdata.LindsayStatusRegs, err error) {
+	/* FIXME: needs updated with latest siot code
 	var data []byte
 	data, err = l.modbus.Read()
 	if err != nil {
@@ -53,6 +54,7 @@ func (l *Lindsay) Read() (regs isdata.LindsayStatusRegs, err error) {
 	}
 
 	err = errorNotLindsayStatus
+	*/
 
 	return
 }
