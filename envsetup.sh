@@ -17,7 +17,7 @@ golint() {
 }
 
 siot_install_frontend_deps() {
-  (cd "frontend$1" && npm install)
+  (cd "frontend" && npm install)
 }
 
 siot_check_elm() {
@@ -43,9 +43,11 @@ siot_setup() {
 }
 
 siot_build_frontend() {
+  ELMARGS=$1
+  echo "Elm args: $ELMARGS"
   rm -f "frontend/output"/*
   (cd "frontend" && npx elm-spa build) || return 1
-  (cd "frontend" && npx elm make --debug src/Main.elm --output=output/elm.js) || return 1
+  (cd "frontend" && npx elm make "$ELMARGS" src/Main.elm --output=output/elm.js) || return 1
   cp "frontend/public"/* "frontend/output/" || return 1
   cp "frontend/public/index.html" "frontend/output/index.html" || return 1
   cp docs/simple-iot-app-logo.png "frontend/output/" || return 1
@@ -67,14 +69,15 @@ siot_build_assets() {
 }
 
 siot_build_dependencies() {
-  siot_build_frontend || return 1
+  ELMARGS=$1
+  siot_build_frontend "$ELMARGS" || return 1
   siot_build_assets || return 1
   return 0
 }
 
 # the following can be used to build v2 of the frontend: siot_build 2
 siot_build() {
-  siot_build_dependencies || return 1
+  siot_build_dependencies --optimize || return 1
   go build -o siot cmd/siot/main.go || return 1
   return 0
 }
@@ -87,7 +90,7 @@ siot_deploy() {
 
 siot_run() {
   echo "run args: $*"
-  siot_build_dependencies || return 1
+  siot_build_dependencies --debug || return 1
   go run cmd/siot/main.go "$@" || return 1
   return 0
 }
