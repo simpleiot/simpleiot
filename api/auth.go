@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 )
 
@@ -14,7 +15,7 @@ type Auth struct {
 
 // NewTokener provides a new authentication token.
 type NewTokener interface {
-	NewToken() (string, error)
+	NewToken(userID uuid.UUID) (string, error)
 }
 
 // NewAuthHandler returns a new authentication handler using the given key.
@@ -32,18 +33,18 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	email := req.FormValue("email")
 	password := req.FormValue("password")
 
-	ok, err := checkUser(auth.db.store, email, password)
+	user, err := checkUser(auth.db.store, email, password)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if !ok {
+	if user == nil {
 		http.Error(res, "invalid login", http.StatusForbidden)
 		return
 	}
 
-	token, err := auth.key.NewToken()
+	token, err := auth.key.NewToken(user.ID)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return

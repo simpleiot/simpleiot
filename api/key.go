@@ -7,22 +7,25 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 )
 
 // Authorizer defines a mechanism needed to authorize stuff
 type Authorizer interface {
-	NewToken() (string, error)
-	Valid(req *http.Request) bool
+	NewToken(id uuid.UUID) (string, error)
+	Valid(req *http.Request) (bool, string)
 }
 
 // AlwaysValid is used to disable authentication
 type AlwaysValid struct{}
 
 // NewToken stub
-func (AlwaysValid) NewToken() (string, error) { return "valid", nil }
+func (AlwaysValid) NewToken(id uuid.UUID) (string, error) { return "valid", nil }
 
 // Valid stub
-func (AlwaysValid) Valid(*http.Request) bool { return true }
+func (AlwaysValid) Valid(*http.Request) (bool, string) {
+	return true, ""
+}
 
 // Key provides a key for signing authentication tokens.
 type Key struct {
@@ -43,10 +46,13 @@ func NewKey(size int) (key Key, err error) {
 }
 
 // NewToken returns a new authentication token signed by the Key.
-func (k Key) NewToken() (string, error) {
+func (k Key) NewToken(userID uuid.UUID) (string, error) {
+	// FIXME Id is probably not the proper place to put the userid
+	// but works for now
 	claims := jwt.StandardClaims{
 		ExpiresAt: time.Now().Add(15 * time.Minute).Unix(),
 		Issuer:    "simpleiot",
+		Id:        userID.String(),
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
 		SignedString(k.bytes)
@@ -54,20 +60,37 @@ func (k Key) NewToken() (string, error) {
 
 // ValidToken returns whether the given string
 // is an authentication token signed by the Key.
-func (k Key) ValidToken(str string) bool {
+func (k Key) ValidToken(str string) (bool, string) {
 	token, err := jwt.Parse(str, k.keyFunc)
-	return err == nil &&
+	if err != nil {
+		return false, ""
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return false, ""
+	}
+	userID, ok := claims["jti"].(string)
+	if !ok {
+		return false, ""
+	}
+	return (err == nil &&
 		token.Method.Alg() == "HS256" &&
-		token.Valid
+		token.Valid), userID
 }
 
 // Valid returns whether the given request
 // bears an authorization token signed by the Key.
-func (k Key) Valid(req *http.Request) bool {
+func (k Key) Valid(req *http.Request) (bool, string) {
 	fields := strings.Fields(req.Header.Get("Authorization"))
-	return len(fields) == 2 &&
-		fields[0] == "Bearer" &&
-		k.ValidToken(fields[1])
+	if len(fields) < 2 {
+		return false, ""
+	}
+	if fields[0] != "Bearer" {
+		return false, ""
+	}
+
+	valid, userID := k.ValidToken(fields[1])
+	return valid, userID
 }
 
 func (k Key) keyFunc(*jwt.Token) (interface{}, error) {

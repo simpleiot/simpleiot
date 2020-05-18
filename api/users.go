@@ -11,16 +11,37 @@ import (
 
 // Users handles user requests.
 type Users struct {
-	db *Db
+	db        *Db
+	validator RequestValidator
 }
 
 // NewUsersHandler returns a new handler for user requests.
-func NewUsersHandler(db *Db) Users {
-	return Users{db: db}
+func NewUsersHandler(db *Db, v RequestValidator) Users {
+	return Users{db: db, validator: v}
 }
 
 // ServeHTTP serves user requests.
 func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	validUser, userID := u.validator.Valid(req)
+	if !validUser {
+		http.Error(res, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// only allow requests if user is part of root org
+	isRoot, err := checkUserIsRoot(u.db.store, userUUID)
+
+	if !isRoot {
+		res.Write([]byte("[]"))
+		return
+	}
+
 	var id string
 	id, req.URL.Path = ShiftPath(req.URL.Path)
 
@@ -44,7 +65,11 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
 			}
-			encode(res, users)
+			if len(users) > 0 {
+				encode(res, users)
+			} else {
+				res.Write([]byte("[]"))
+			}
 			return
 
 		case http.MethodPost:

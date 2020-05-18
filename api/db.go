@@ -195,6 +195,38 @@ func devices(store *bolthold.Store) (ret []data.Device, err error) {
 	return
 }
 
+func devicesForUser(store *bolthold.Store, userID uuid.UUID) ([]data.Device, error) {
+	var devices []data.Device
+
+	err := view(store, func(tx *bolt.Tx) error {
+		// First find orgs users is part of
+		var allOrgs []data.Org
+		err := store.TxFind(tx, &allOrgs, nil)
+
+		if err != nil {
+			return err
+		}
+
+		var orgIDs []uuid.UUID
+
+		for _, o := range allOrgs {
+			for _, ur := range o.Users {
+				if ur.UserID == userID {
+					orgIDs = append(orgIDs, o.ID)
+				}
+			}
+		}
+
+		// next, find devices that are part of the orgs
+		err = store.TxFind(tx, &devices,
+			bolthold.Where("Orgs").ContainsAny(bolthold.Slice(orgIDs)...))
+
+		return nil
+	})
+
+	return devices, err
+}
+
 // Users returns all users.
 func users(store *bolthold.Store) ([]data.User, error) {
 	var ret []data.User
@@ -216,20 +248,40 @@ func org(store *bolthold.Store, id uuid.UUID) (data.Org, error) {
 
 type privilege string
 
-// check if user exists
-func checkUser(store *bolthold.Store, email, password string) (bool, error) {
+// check if user/password
+func checkUser(store *bolthold.Store, email, password string) (*data.User, error) {
 	var u data.User
 	query := bolthold.Where("Email").Eq(email).
 		And("Pass").Eq(password)
 	err := store.FindOne(&u, query)
 	if err != nil {
 		if err != bolthold.ErrNotFound {
-			return false, err
+			return nil, err
 		}
-		return false, nil
+		return nil, nil
 	}
 
-	return true, nil
+	return &u, nil
+}
+
+// check is uses is port of the root org
+func checkUserIsRoot(store *bolthold.Store, id uuid.UUID) (bool, error) {
+	var org data.Org
+
+	err := store.FindOne(&org, bolthold.Where("ID").Eq(zero))
+
+	if err != nil {
+		return false, err
+	}
+
+	for _, ur := range org.Users {
+		if ur.UserID == id {
+			return true, nil
+		}
+	}
+
+	return false, nil
+
 }
 
 // userByID returns the user with the given ID, if it exists.
@@ -382,14 +434,11 @@ func newIfZero(id uuid.UUID) uuid.UUID {
 // Orgs returns all orgs.
 func orgs(store *bolthold.Store) ([]data.Org, error) {
 	var ret []data.Org
-	err := view(store, func(tx *bolt.Tx) error {
-		if err := store.TxFind(tx, &ret, nil); err != nil {
-			return fmt.Errorf("problem finding orgs: %v", err)
-		}
+	if err := store.Find(&ret, nil); err != nil {
+		return ret, fmt.Errorf("problem finding orgs: %v", err)
+	}
 
-		return nil
-	})
-	return ret, err
+	return ret, nil
 }
 
 type dbDump struct {

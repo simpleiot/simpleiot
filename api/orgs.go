@@ -11,16 +11,37 @@ import (
 
 // Orgs handles org requests.
 type Orgs struct {
-	db *Db
+	db        *Db
+	validator RequestValidator
 }
 
 // NewOrgsHandler returns a new handler for org requests.
-func NewOrgsHandler(db *Db) Orgs {
-	return Orgs{db: db}
+func NewOrgsHandler(db *Db, v RequestValidator) Orgs {
+	return Orgs{db: db, validator: v}
 }
 
 // ServeHTTP serves org requests.
 func (o Orgs) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	validUser, userID := o.validator.Valid(req)
+	if !validUser {
+		http.Error(res, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// only allow requests if user is part of root org
+	isRoot, err := checkUserIsRoot(o.db.store, userUUID)
+
+	if !isRoot {
+		res.Write([]byte("[]"))
+		return
+	}
+
 	var id string
 	id, req.URL.Path = ShiftPath(req.URL.Path)
 
@@ -33,7 +54,11 @@ func (o Orgs) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
 			}
-			encode(res, orgs)
+			if len(orgs) > 0 {
+				encode(res, orgs)
+			} else {
+				res.Write([]byte("[]"))
+			}
 			return
 
 		case http.MethodPost:

@@ -36,8 +36,8 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 func NewV1Handler(db *Db, influx *db.Influx, auth Authorizer) http.Handler {
 
 	return &V1{
-		OrgsHandler:    NewOrgsHandler(db),
-		UsersHandler:   NewUsersHandler(db),
+		OrgsHandler:    NewOrgsHandler(db, auth),
+		UsersHandler:   NewUsersHandler(db, auth),
 		DevicesHandler: NewDevicesHandler(db, influx, auth),
 		AuthHandler:    NewAuthHandler(db, auth),
 	}
