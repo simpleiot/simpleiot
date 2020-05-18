@@ -50,7 +50,14 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	isRoot, err := checkUserIsRoot(auth.db.store, user.ID)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	encode(res, data.Auth{
-		Token: token,
+		Token:  token,
+		IsRoot: isRoot,
 	})
 }

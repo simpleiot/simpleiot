@@ -33,6 +33,7 @@ type Model
 type alias Session =
     { cred : Cred
     , authToken : String
+    , isRoot : Bool
     , data : Data.Data
     , error : Maybe Http.Error
     , respError : Maybe String
@@ -114,6 +115,7 @@ login cred =
 
 type alias Auth =
     { token : String
+    , isRoot : Bool
     }
 
 
@@ -121,6 +123,7 @@ decodeAuth : Decode.Decoder Auth
 decodeAuth =
     Decode.succeed Auth
         |> required "token" Decode.string
+        |> required "isRoot" Decode.bool
 
 
 update : Commands msg -> Msg -> Model -> ( Model, Cmd Msg, Cmd msg )
@@ -134,9 +137,10 @@ update commands msg model =
                     , Cmd.none
                     )
 
-                AuthResponse cred (Ok { token }) ->
+                AuthResponse cred (Ok resp) ->
                     ( SignedIn
-                        { authToken = token
+                        { authToken = resp.token
+                        , isRoot = resp.isRoot
                         , cred = cred
                         , data = Data.empty
                         , error = Nothing

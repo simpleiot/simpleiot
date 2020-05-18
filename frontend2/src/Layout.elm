@@ -66,12 +66,16 @@ viewNavbar model =
                 , url = "/"
                 }
                 :: (case model of
-                        Global.SignedIn _ ->
-                            List.map viewLink
-                                [ ( "devices", "/devices" )
-                                , ( "users", "/users" )
-                                , ( "orgs", "/orgs" )
-                                ]
+                        Global.SignedIn sess ->
+                            if sess.isRoot then
+                                List.map viewLink
+                                    [ ( "devices", "/devices" )
+                                    , ( "users", "/users" )
+                                    , ( "orgs", "/orgs" )
+                                    ]
+
+                            else
+                                []
 
                         Global.SignedOut _ ->
                             List.map viewLink []
