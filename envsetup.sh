@@ -125,7 +125,7 @@ check_go_format() {
 # please run the following before pushing -- best if your editor can be set up
 # to do this automatically.
 siot_test() {
-  siot_build_dependencies || return 1
+  siot_build_dependencies --optimize || return 1
   (cd frontend && npx elm-analyse || return 1) || return 1
   #gofmt -l ./... || return 1
   go test "$@" ./... || return 1
