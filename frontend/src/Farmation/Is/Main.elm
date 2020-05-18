@@ -8,6 +8,7 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Utilities.Spacing as Spacing
 import Browser
+import Data.Sample as Sample
 import Farmation.Is.Lcd as Lcd
 import Farmation.Is.Outputs as Outputs
 import Html exposing (Html, button, div, h2, h4, map, option, select, text)
@@ -17,7 +18,6 @@ import Html.Events.Extra exposing (targetValueIntParse)
 import Json.Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode
-import Sample exposing (..)
 import Time
 
 
@@ -144,7 +144,7 @@ type Msg
     | SetPanelType Int
 
 
-keyToSample : Lcd.Key -> Sample
+keyToSample : Lcd.Key -> Sample.Sample
 keyToSample key =
     let
         keyString =
@@ -176,7 +176,7 @@ keyToSample key =
                 Lcd.KeySK4 ->
                     "KeySK4"
     in
-    Sample "key" keyString 0
+    Sample.Sample "key" keyString 0
 
 
 processPortValue : PortValue -> Model -> ( Model, Cmd Msg )
@@ -230,7 +230,7 @@ update msg model =
                 Lcd.GotKey key ->
                     ( model
                     , keyToSample key
-                        |> encodeSample
+                        |> Sample.encode
                         |> portOut
                     )
 
@@ -256,8 +256,8 @@ update msg model =
                     { simInputs | flowRate = rateF }
             in
             ( { model | simInputs = newSimInputs }
-            , Sample "simFlowRate" "" rateF
-                |> encodeSample
+            , Sample.Sample "simFlowRate" "" rateF
+                |> Sample.encode
                 |> portOut
             )
 
@@ -278,8 +278,8 @@ update msg model =
                     { simInputs | pressure = presF }
             in
             ( { model | simInputs = newSimInputs }
-            , Sample "simPressure" "" presF
-                |> encodeSample
+            , Sample.Sample "simPressure" "" presF
+                |> Sample.encode
                 |> portOut
             )
 
@@ -292,8 +292,8 @@ update msg model =
                     { simInputs | panelType = panelType }
             in
             ( { model | simInputs = newSimInputs }
-            , Sample "simPanelType" "" (toFloat panelType)
-                |> encodeSample
+            , Sample.Sample "simPanelType" "" (toFloat panelType)
+                |> Sample.encode
                 |> portOut
             )
 
@@ -316,8 +316,8 @@ update msg model =
                     { simInputs | gpioDigitalInjector = v }
             in
             ( { model | simInputs = simInputsNew }
-            , Sample "simGpioDigInj" "" vF
-                |> encodeSample
+            , Sample.Sample "simGpioDigInj" "" vF
+                |> Sample.encode
                 |> portOut
             )
 
@@ -340,8 +340,8 @@ update msg model =
                     { simInputs | gpioDigitalIrrigator = v }
             in
             ( { model | simInputs = simInputsNew }
-            , Sample "simGpioDigIrg" "" vF
-                |> encodeSample
+            , Sample.Sample "simGpioDigIrg" "" vF
+                |> Sample.encode
                 |> portOut
             )
 
@@ -364,8 +364,8 @@ update msg model =
                     { simInputs | gpioDigitalWaterOn = v }
             in
             ( { model | simInputs = simInputsNew }
-            , Sample "simGpioDigWaterOn" "" vF
-                |> encodeSample
+            , Sample.Sample "simGpioDigWaterOn" "" vF
+                |> Sample.encode
                 |> portOut
             )
 
@@ -388,8 +388,8 @@ update msg model =
                     { simInputs | gpioDigitalIn = v }
             in
             ( { model | simInputs = simInputsNew }
-            , Sample "simGpioDigIn" "" vF
-                |> encodeSample
+            , Sample.Sample "simGpioDigIn" "" vF
+                |> Sample.encode
                 |> portOut
             )
 
@@ -412,8 +412,8 @@ update msg model =
                     { simInputs | lindsayWaterOn = v }
             in
             ( { model | simInputs = simInputsNew }
-            , Sample "simLindsayWaterOn" "" vF
-                |> encodeSample
+            , Sample.Sample "simLindsayWaterOn" "" vF
+                |> Sample.encode
                 |> portOut
             )
 
@@ -436,8 +436,8 @@ update msg model =
                     { simInputs | lindsayAcc1 = v }
             in
             ( { model | simInputs = simInputsNew }
-            , Sample "simLindsayAcc1" "" vF
-                |> encodeSample
+            , Sample.Sample "simLindsayAcc1" "" vF
+                |> Sample.encode
                 |> portOut
             )
 
@@ -460,22 +460,22 @@ update msg model =
                     { simInputs | lindsayIrrigator = v }
             in
             ( { model | simInputs = simInputsNew }
-            , Sample "simLindsayIrrigator" "" vF
-                |> encodeSample
+            , Sample.Sample "simLindsayIrrigator" "" vF
+                |> Sample.encode
                 |> portOut
             )
 
         ButtonArm ->
             ( model
-            , Sample "simArm" "" 0
-                |> encodeSample
+            , Sample.Sample "simArm" "" 0
+                |> Sample.encode
                 |> portOut
             )
 
         ButtonPump ->
             ( model
-            , Sample "simPump" "" 0
-                |> encodeSample
+            , Sample.Sample "simPump" "" 0
+                |> Sample.encode
                 |> portOut
             )
 
