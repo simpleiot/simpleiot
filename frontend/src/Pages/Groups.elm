@@ -314,7 +314,7 @@ mergeGroupEdit groups groupEdit =
                         groups
             in
             if edit.id == "" then
-                [ { group = edit, mod = True } ] ++ groupsMapped
+                { group = edit, mod = True } :: groupsMapped
 
             else
                 groupsMapped

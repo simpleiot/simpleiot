@@ -343,7 +343,7 @@ update msg model =
 
                         users =
                             if user.id == "" then
-                                [ user ] ++ sess.data.users
+                                user :: sess.data.users
 
                             else
                                 List.map updateUser sess.data.users
@@ -366,7 +366,7 @@ update msg model =
 
                         groups =
                             if group.id == "" then
-                                [ group ] ++ sess.data.groups
+                                group :: sess.data.groups
 
                             else
                                 List.map updateGroup sess.data.groups
@@ -600,7 +600,7 @@ update msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -614,7 +614,7 @@ view :
     , toMsg : Msg -> msg
     }
     -> Document msg
-view { page, global, toMsg } =
+view { page } =
     Components.layout
         { page = page
         }

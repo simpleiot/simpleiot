@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Browser.Navigation as Nav exposing (Key)
-import Document exposing (Document)
+import Document
 import Generated.Pages as Pages
 import Generated.Route as Route exposing (Route)
 import Global

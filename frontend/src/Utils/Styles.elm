@@ -148,8 +148,4 @@ transition { property, duration } =
 
 elWith : List (Attribute msg) -> List (Attribute msg) -> Element msg -> Element msg
 elWith styles otherStyles =
-    el ([ Element.htmlAttribute (Attr.class "markdown") ] ++ styles ++ otherStyles)
-
-
-
---  el ([ Element.htmlAttribute (Attr.class "markdown") ] ++ styles ++ otherStyles)
+    el (Element.htmlAttribute (Attr.class "markdown") :: styles ++ otherStyles)

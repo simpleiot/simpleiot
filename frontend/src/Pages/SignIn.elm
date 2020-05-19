@@ -43,7 +43,7 @@ page =
 
 
 init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
-init global flags =
+init _ _ =
     ( Model "" "", Cmd.none, Cmd.none )
 
 
@@ -71,12 +71,12 @@ update _ msg model =
 
 
 subscriptions : Global.Model -> Model -> Sub Msg
-subscriptions global model =
+subscriptions _ _ =
     Sub.none
 
 
 view : Global.Model -> Model -> Document Msg
-view global model =
+view _ model =
     { title = "SignIn"
     , body =
         [ el [ centerX, centerY ] <|

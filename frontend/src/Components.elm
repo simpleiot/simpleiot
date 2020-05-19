@@ -38,14 +38,6 @@ link ( label, route ) =
         }
 
 
-externalButtonLink : ( String, String ) -> Element msg
-externalButtonLink ( label, url ) =
-    Element.newTabLink styles.button
-        { label = text label
-        , url = url
-        }
-
-
 footer : Element msg
 footer =
     row [] [ text "built with elm ❤" ]
