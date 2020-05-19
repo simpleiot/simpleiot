@@ -5,7 +5,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Utils.Styles exposing (palette)
+import Utils.Styles as Styles
 
 
 type alias TextProperty msg =
@@ -22,7 +22,7 @@ viewTextProperty { name, value, action } =
         , width (fill |> minimum 150)
         , Border.width 0
         , Border.rounded 0
-        , Background.color palette.pale
+        , Background.color Styles.colors.pale
         , spacing 0
         ]
         { onChange = action
@@ -37,7 +37,7 @@ label kind =
     kind
         [ padding 16
         , Font.italic
-        , Font.color palette.gray
+        , Font.color Styles.colors.gray
         ]
         << text
 
@@ -56,12 +56,7 @@ buttonRow =
 button : String -> Color -> msg -> Element msg
 button lbl color action =
     Input.button
-        [ Background.color color
-        , padding 16
-        , width fill
-        , Border.rounded 6
-        , Border.width 2
-        ]
+        (Styles.button color)
         { onPress = Just action
         , label = el [ centerX ] <| text lbl
         }

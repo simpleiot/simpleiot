@@ -13,7 +13,7 @@ module Global exposing
     )
 
 import Browser.Navigation as Nav
-import Components
+import Components.Form as Form
 import Data.Auth
 import Data.Data as Data
 import Data.Device as D
@@ -21,6 +21,10 @@ import Data.Group as G
 import Data.Response exposing (Response)
 import Data.User as U
 import Document exposing (Document)
+import Element exposing (..)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
 import Generated.Route as Route exposing (Route)
 import Http
 import Json.Decode as Decode
@@ -30,6 +34,7 @@ import Task
 import Time
 import Url exposing (Url)
 import Url.Builder
+import Utils.Styles as Styles
 
 
 
@@ -614,10 +619,16 @@ view :
     , toMsg : Msg -> msg
     }
     -> Document msg
-view { page } =
-    Components.layout
-        { page = page
-        }
+view { page, global, toMsg } =
+    { title = page.title
+    , body =
+        [ column [ spacing 32, padding 20, width (fill |> maximum 780), height fill, centerX ]
+            [ navbar global toMsg
+            , column [ height fill ] page.body
+            , footer
+            ]
+        ]
+    }
 
 
 
@@ -813,3 +824,79 @@ deleteGroup token id =
         , timeout = Nothing
         , tracker = Nothing
         }
+
+
+
+-- UI Stuff
+
+
+navbar : Model -> (Msg -> msg) -> Element msg
+navbar model toMsg =
+    row [ width fill, spacing 20 ]
+        [ link ( "SIOT", Route.Top )
+        , link ( "users", Route.Users )
+        , link ( "groups", Route.Groups )
+        , el [ alignRight ] <|
+            case model.auth of
+                SignedIn sess ->
+                    Form.button
+                        ("sign out " ++ sess.cred.email)
+                        Styles.colors.blue
+                        (toMsg SignOut)
+
+                SignedOut _ ->
+                    viewButtonLink ( "sign in", Route.SignIn )
+        ]
+
+
+viewButtonLink : ( String, Route ) -> Element msg
+viewButtonLink ( label, route ) =
+    Element.link (Styles.button Styles.colors.blue)
+        { label = text label
+        , url = Route.toHref route
+        }
+
+
+link : ( String, Route ) -> Element msg
+link ( label, route ) =
+    Element.link styles.link
+        { label = text label
+        , url = Route.toHref route
+        }
+
+
+footer : Element msg
+footer =
+    row [] [ Element.none ]
+
+
+
+-- STYLES
+
+
+colors : { blue : Color, white : Color, red : Color }
+colors =
+    { white = rgb 1 1 1
+    , red = rgb255 204 85 68
+    , blue = rgb255 50 100 150
+    }
+
+
+styles :
+    { link : List (Element.Attribute msg)
+    , button : List (Element.Attribute msg)
+    }
+styles =
+    { link =
+        [ Font.underline
+        , Font.color colors.blue
+        , mouseOver [ alpha 0.6 ]
+        ]
+    , button =
+        [ Font.color colors.white
+        , Background.color colors.red
+        , Border.rounded 4
+        , paddingXY 24 10
+        , mouseOver [ alpha 0.6 ]
+        ]
+    }

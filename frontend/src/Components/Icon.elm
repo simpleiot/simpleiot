@@ -22,7 +22,7 @@ i icon msg =
         [ padding 5
         , Border.rounded 50
         , mouseOver
-            [ Background.color Styles.palette.ltgray
+            [ Background.color Styles.colors.ltgray
             ]
 
         --, Element.focused

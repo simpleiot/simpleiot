@@ -12,7 +12,7 @@ import Element.Font as Font
 import Global
 import List.Extra
 import Page exposing (Document, Page)
-import Utils.Styles exposing (palette, size)
+import Utils.Styles exposing (colors, size)
 
 
 type alias Flags =
@@ -270,7 +270,7 @@ view global model =
                 column
                     [ width fill, spacing 32 ]
                     [ el [ padding 16, Font.size 24 ] <| text "Groups"
-                    , el [ padding 16, width fill, Font.bold ] <| Form.button "new group" palette.green NewGroup
+                    , el [ padding 16, width fill, Font.bold ] <| Form.button "new group" colors.blue NewGroup
                     , viewGroups sess model
                     ]
 
@@ -341,15 +341,15 @@ viewGroup sess model modded group =
     column
         ([ width fill
          , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
-         , Border.color palette.black
+         , Border.color colors.black
          , spacing 6
          ]
             ++ (if modded then
-                    [ Background.color palette.orange
+                    [ Background.color colors.orange
                     , below <|
                         Form.buttonRow
-                            [ Form.button "discard" palette.pale <| DiscardGroupEdits
-                            , Form.button "save" palette.green <| PostGroup group
+                            [ Form.button "discard" colors.gray <| DiscardGroupEdits
+                            , Form.button "save" colors.blue <| PostGroup group
                             ]
                     ]
 
@@ -364,14 +364,14 @@ viewGroup sess model modded group =
             row
                 []
                 [ Form.viewTextProperty
-                    { name = "Groupanization name"
+                    { name = "Group name"
                     , value = group.name
                     , action = \x -> EditGroup { group | name = x }
                     }
                 , Icon.x (DeleteGroup group.id)
                 ]
         , row []
-            [ el [ padding 16, Font.italic, Font.color palette.gray ] <| text "Users"
+            [ el [ padding 16, Font.italic, Font.color colors.gray ] <| text "Users"
             , case model.newUser of
                 Just newUser ->
                     if newUser.groupId == group.id then
@@ -407,7 +407,7 @@ viewGroup sess model modded group =
                 Element.none
         , viewUsers group sess.data.users
         , row []
-            [ el [ padding 16, Font.italic, Font.color palette.gray ] <| text "Devices"
+            [ el [ padding 16, Font.italic, Font.color colors.gray ] <| text "Devices"
             , case model.newDevice of
                 Just newDevice ->
                     if newDevice.groupId == group.id then

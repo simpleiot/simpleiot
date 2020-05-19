@@ -15,7 +15,7 @@ import Html.Events
 import Json.Decode as Decode
 import Page exposing (Document, Page)
 import Time
-import Utils.Styles exposing (palette, size)
+import Utils.Styles exposing (colors, size)
 
 
 type alias Flags =
@@ -127,7 +127,7 @@ viewDevice edits device =
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
-        , Border.color palette.black
+        , Border.color colors.black
         , spacing 6
         ]
         [ row []
@@ -206,7 +206,7 @@ descriptionField id config modded =
             Just <|
                 Input.placeholder
                     [ Font.italic
-                    , Font.color palette.gray
+                    , Font.color colors.gray
                     ]
                 <|
                     text "description"
@@ -220,20 +220,20 @@ fieldAttrs modded save discard =
     , width fill
     , Border.width 0
     , Border.rounded 0
-    , focused [ Background.color palette.yellow ]
+    , focused [ Background.color colors.yellow ]
     ]
         ++ (if modded then
-                [ Background.color palette.orange
+                [ Background.color colors.orange
                 , onEnter save
                 , below <|
                     Form.buttonRow
-                        [ Form.button "discard" palette.pale discard
-                        , Form.button "save" palette.green save
+                        [ Form.button "discard" colors.gray discard
+                        , Form.button "save" colors.blue save
                         ]
                 ]
 
             else
-                [ Background.color palette.pale ]
+                [ Background.color colors.pale ]
            )
 
 

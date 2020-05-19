@@ -102,13 +102,15 @@ view _ model =
                     ]
                 , el [ alignRight ] <|
                     if String.isEmpty model.email then
-                        Input.button (Styles.button ++ [ alpha 0.6 ])
+                        Input.button
+                            (Styles.button Styles.colors.blue ++ [ alpha 0.6 ])
                             { onPress = Nothing
                             , label = text "Sign In"
                             }
 
                     else
-                        Input.button (Styles.button ++ [ htmlAttribute (Attr.type_ "submit") ])
+                        Input.button
+                            (Styles.button Styles.colors.blue ++ [ htmlAttribute (Attr.type_ "submit") ])
                             { onPress = Just ClickedSignIn
                             , label = text "Sign In"
                             }

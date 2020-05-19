@@ -9,7 +9,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Global
 import Page exposing (Document, Page)
-import Utils.Styles exposing (palette, size)
+import Utils.Styles exposing (colors, size)
 
 
 type alias Flags =
@@ -97,7 +97,8 @@ view global model =
                 column
                     [ width fill, spacing 32 ]
                     [ el [ padding 16, Font.size 24 ] <| text "Users"
-                    , el [ padding 16, width fill, Font.bold ] <| Form.button "new user" palette.green NewUser
+                    , el [ padding 16, width fill, Font.bold ] <|
+                        Form.button "new user" colors.blue NewUser
                     , viewUsers sess.data.users model.userEdit
                     ]
 
@@ -159,15 +160,15 @@ viewUser modded user =
     wrappedRow
         ([ width fill
          , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
-         , Border.color palette.black
+         , Border.color colors.black
          , spacing 6
          ]
             ++ (if modded then
-                    [ Background.color palette.orange
+                    [ Background.color colors.orange
                     , below <|
                         Form.buttonRow
-                            [ Form.button "discard" palette.pale <| DiscardUserEdits
-                            , Form.button "save" palette.green <| PostUser user
+                            [ Form.button "discard" colors.gray <| DiscardUserEdits
+                            , Form.button "save" colors.blue <| PostUser user
                             ]
                     ]
 

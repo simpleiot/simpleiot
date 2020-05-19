@@ -6,7 +6,6 @@ module Utils.Styles exposing
     , h1
     , h3
     , link
-    , palette
     , size
     , transition
     )
@@ -18,33 +17,35 @@ import Element.Font as Font
 import Html.Attributes as Attr
 
 
-colors : { white : Color, jet : Color, coral : Color }
-colors =
-    { white = rgb 1 1 1
-    , jet = rgb255 40 40 40
-    , coral = rgb255 204 75 75
-    }
-
-
-palette :
-    { black : Color
+colors :
+    { white : Color
+    , jet : Color
+    , coral : Color
+    , black : Color
     , ltgray : Color
     , gray : Color
+    , darkgray : Color
     , pale : Color
     , red : Color
     , orange : Color
     , yellow : Color
     , green : Color
+    , blue : Color
     }
-palette =
-    { black = rgb 0 0 0
+colors =
+    { white = rgb 1 1 1
+    , jet = rgb255 40 40 40
+    , coral = rgb255 204 75 75
+    , black = rgb 0 0 0
     , ltgray = rgb 0.9 0.9 0.9
     , gray = rgb 0.5 0.5 0.5
+    , darkgray = rgb 0.8 0.8 0.8
     , pale = rgba 0.97 0.97 0.97 0.9
     , red = rgba 1 0.7 0.7 0.75
     , orange = rgb 1 1 0.8
     , yellow = rgb 1 1 0.7
     , green = rgba 0.7 1 0.7 0.9
+    , blue = rgba 0 0 1 0.6
     }
 
 
@@ -81,12 +82,12 @@ link =
     ]
 
 
-button : List (Attribute msg)
-button =
+button : Color -> List (Attribute msg)
+button color =
     [ paddingXY 16 8
     , Font.size 14
-    , Border.color colors.coral
-    , Font.color colors.coral
+    , Border.color color
+    , Font.color color
     , Background.color colors.white
     , Border.width 2
     , Border.rounded 4
@@ -97,7 +98,7 @@ button =
         }
     , mouseOver
         [ Font.color colors.white
-        , Background.color colors.coral
+        , Background.color color
         ]
     ]
 
