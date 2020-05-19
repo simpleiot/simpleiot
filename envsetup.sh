@@ -16,6 +16,10 @@ golint() {
   go run golang.org/x/lint/golint "$@"
 }
 
+bbolt() {
+  go run go.etcd.io/bbolt/cmd/bbolt "$@"
+}
+
 siot_install_frontend_deps() {
   (cd "frontend" && npm install)
 }
@@ -70,7 +74,7 @@ siot_build_assets() {
 
 siot_uglify() {
   (cd frontend/output && mv elm.js x &&
-    uglifyjs x --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output=elm.js)
+    npx uglifyjs x --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | npx uglifyjs --mangle --output=elm.js)
 }
 
 siot_build_dependencies() {
