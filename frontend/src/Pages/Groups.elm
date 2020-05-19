@@ -1,4 +1,4 @@
-module Pages.Groups exposing (Model, Msg, page)
+module Pages.Groups exposing (Flags, Model, Msg, page)
 
 import Components.Form as Form
 import Components.Icon as Icon
@@ -9,28 +9,14 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Generated.Params as Params
 import Global
 import List.Extra
-import Spa.Page
-import Spa.Types as Types
-import Utils.Spa exposing (Page)
+import Page exposing (Document, Page)
 import Utils.Styles exposing (palette, size)
 
 
-page : Page Params.Groups Model Msg model msg appMsg
-page =
-    Spa.Page.component
-        { title = always "Groups"
-        , init = init
-        , update = update
-        , subscriptions = always subscriptions
-        , view = view
-        }
-
-
-
--- INIT
+type alias Flags =
+    ()
 
 
 type alias Model =
@@ -60,22 +46,6 @@ type alias NewDevice =
     }
 
 
-init : Types.PageContext route Global.Model -> Params.Groups -> ( Model, Cmd Msg, Cmd Global.Msg )
-init _ _ =
-    ( empty
-    , Cmd.none
-    , Cmd.batch
-        [ Spa.Page.send Global.RequestGroups
-        , Spa.Page.send Global.RequestUsers
-        , Spa.Page.send Global.RequestDevices
-        ]
-    )
-
-
-
--- UPDATE
-
-
 type Msg
     = PostGroup O.Group
     | EditGroup O.Group
@@ -94,9 +64,31 @@ type Msg
     | SaveNewDevice String String
 
 
-update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update context msg model =
-    case context.global of
+page : Page Flags Model Msg
+page =
+    Page.component
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        }
+
+
+init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
+init _ _ =
+    ( empty
+    , Cmd.none
+    , Cmd.batch
+        [ Global.send Global.RequestGroups
+        , Global.send Global.RequestUsers
+        , Global.send Global.RequestDevices
+        ]
+    )
+
+
+update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
+update global msg model =
+    case global.auth of
         Global.SignedOut _ ->
             ( model, Cmd.none, Cmd.none )
 
@@ -117,7 +109,7 @@ update context msg model =
                 PostGroup group ->
                     ( { model | groupEdit = Nothing }
                     , Cmd.none
-                    , Spa.Page.send <| Global.UpdateGroup group
+                    , Global.send <| Global.UpdateGroup group
                     )
 
                 NewGroup ->
@@ -129,7 +121,7 @@ update context msg model =
                 DeleteGroup id ->
                     ( { model | groupEdit = Nothing }
                     , Cmd.none
-                    , Spa.Page.send <| Global.DeleteGroup id
+                    , Global.send <| Global.DeleteGroup id
                     )
 
                 RemoveUser group userId ->
@@ -144,7 +136,7 @@ update context msg model =
                     in
                     ( model
                     , Cmd.none
-                    , Spa.Page.send <| Global.UpdateGroup updatedGroup
+                    , Global.send <| Global.UpdateGroup updatedGroup
                     )
 
                 AddUser groupId ->
@@ -164,7 +156,7 @@ update context msg model =
                         Just newUser ->
                             ( { model | newUser = Just { newUser | userEmail = userEmail } }
                             , Cmd.none
-                            , Spa.Page.send <| Global.CheckUser userEmail
+                            , Global.send <| Global.CheckUser userEmail
                             )
 
                         Nothing ->
@@ -190,7 +182,7 @@ update context msg model =
                     in
                     ( { model | newUser = Nothing }
                     , Cmd.none
-                    , Spa.Page.send <| Global.UpdateGroup updatedGroup
+                    , Global.send <| Global.UpdateGroup updatedGroup
                     )
 
                 RemoveDevice groupId deviceId ->
@@ -206,7 +198,7 @@ update context msg model =
                                     List.filter (\o -> o /= groupId)
                                         device.groups
                             in
-                            Spa.Page.send <|
+                            Global.send <|
                                 Global.UpdateDeviceGroups device.id groups
 
                         Nothing ->
@@ -230,7 +222,7 @@ update context msg model =
                         Just newDevice ->
                             ( { model | newDevice = Just { newDevice | deviceId = deviceId } }
                             , Cmd.none
-                            , Spa.Page.send <| Global.CheckDevice deviceId
+                            , Global.send <| Global.CheckDevice deviceId
                             )
 
                         Nothing ->
@@ -256,7 +248,7 @@ update context msg model =
                                         Nothing ->
                                             groupId :: device.groups
                             in
-                            Spa.Page.send <|
+                            Global.send <|
                                 Global.UpdateDeviceGroups device.id groups
 
                         Nothing ->
@@ -264,32 +256,28 @@ update context msg model =
                     )
 
 
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions _ =
+subscriptions : Global.Model -> Model -> Sub Msg
+subscriptions _ _ =
     Sub.none
 
 
+view : Global.Model -> Model -> Document Msg
+view global model =
+    { title = "Groups"
+    , body =
+        [ case global.auth of
+            Global.SignedIn sess ->
+                column
+                    [ width fill, spacing 32 ]
+                    [ el [ padding 16, Font.size 24 ] <| text "Groups"
+                    , el [ padding 16, width fill, Font.bold ] <| Form.button "new group" palette.green NewGroup
+                    , viewGroups sess model
+                    ]
 
--- VIEW
-
-
-view : Types.PageContext route Global.Model -> Model -> Element Msg
-view context model =
-    case context.global of
-        Global.SignedIn sess ->
-            column
-                [ width fill, spacing 32 ]
-                [ el [ padding 16, Font.size 24 ] <| text "Groups"
-                , el [ padding 16, width fill, Font.bold ] <| Form.button "new group" palette.green NewGroup
-                , viewGroups sess model
-                ]
-
-        _ ->
-            el [ padding 16 ] <| text "Sign in to view your groups."
+            _ ->
+                el [ padding 16 ] <| text "Sign in to view your groups."
+        ]
+    }
 
 
 viewGroups : Global.Session -> Model -> Element Msg

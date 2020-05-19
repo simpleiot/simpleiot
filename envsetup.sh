@@ -96,7 +96,7 @@ siot_run() {
 }
 
 find_src_files() {
-  find . -not \( -path ./frontend/elm-stuff -prune \) -not \( -path ./assets -prune \) -name "*.go" -o -name "*.elm"
+  find . -not \( -path ./frontend/src/Generated -prune \) -not \( -path ./assets -prune \) -name "*.go" -o -name "*.elm"
 }
 
 siot_watch() {

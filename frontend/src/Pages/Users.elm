@@ -1,4 +1,4 @@
-module Pages.Users exposing (Model, Msg, page)
+module Pages.Users exposing (Flags, Model, Msg, page)
 
 import Components.Form as Form
 import Components.Icon as Icon
@@ -7,45 +7,18 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Generated.Params as Params
 import Global
-import Spa.Page
-import Spa.Types as Types
-import Utils.Spa exposing (Page)
+import Page exposing (Document, Page)
 import Utils.Styles exposing (palette, size)
 
 
-page : Page Params.Users Model Msg model msg appMsg
-page =
-    Spa.Page.component
-        { title = always "Users"
-        , init = always init
-        , update = update
-        , subscriptions = subscriptions
-        , view = view
-        }
-
-
-
--- INIT
+type alias Flags =
+    ()
 
 
 type alias Model =
     { userEdit : Maybe U.User
     }
-
-
-init : Params.Users -> ( Model, Cmd Msg, Cmd Global.Msg )
-init _ =
-    ( { userEdit = Nothing
-      }
-    , Cmd.none
-    , Spa.Page.send Global.RequestUsers
-    )
-
-
-
--- UPDATE
 
 
 type Msg
@@ -56,8 +29,23 @@ type Msg
     | NewUser
 
 
-update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update context msg model =
+page : Page Flags Model Msg
+page =
+    Page.component
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        }
+
+
+init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
+init _ _ =
+    ( Model Nothing, Cmd.none, Global.send Global.RequestUsers )
+
+
+update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
+update global msg model =
     case msg of
         EditUser user ->
             ( { model | userEdit = Just user }
@@ -74,9 +62,9 @@ update context msg model =
         PostUser user ->
             ( { model | userEdit = Nothing }
             , Cmd.none
-            , case context.global of
+            , case global.auth of
                 Global.SignedIn _ ->
-                    Spa.Page.send <| Global.UpdateUser user
+                    Global.send <| Global.UpdateUser user
 
                 Global.SignedOut _ ->
                     Cmd.none
@@ -85,7 +73,7 @@ update context msg model =
         DeleteUser id ->
             ( model
             , Cmd.none
-            , Spa.Page.send <| Global.DeleteUser id
+            , Global.send <| Global.DeleteUser id
             )
 
         NewUser ->
@@ -95,32 +83,28 @@ update context msg model =
             )
 
 
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Types.PageContext route Global.Model -> Model -> Sub Msg
+subscriptions : Global.Model -> Model -> Sub Msg
 subscriptions _ _ =
     Sub.none
 
 
+view : Global.Model -> Model -> Document Msg
+view global model =
+    { title = "Users"
+    , body =
+        [ case global.auth of
+            Global.SignedIn sess ->
+                column
+                    [ width fill, spacing 32 ]
+                    [ el [ padding 16, Font.size 24 ] <| text "Users"
+                    , el [ padding 16, width fill, Font.bold ] <| Form.button "new user" palette.green NewUser
+                    , viewUsers sess.data.users model.userEdit
+                    ]
 
--- VIEW
-
-
-view : Types.PageContext route Global.Model -> Model -> Element Msg
-view context model =
-    case context.global of
-        Global.SignedIn sess ->
-            column
-                [ width fill, spacing 32 ]
-                [ el [ padding 16, Font.size 24 ] <| text "Users"
-                , el [ padding 16, width fill, Font.bold ] <| Form.button "new user" palette.green NewUser
-                , viewUsers sess.data.users model.userEdit
-                ]
-
-        _ ->
-            el [ padding 16 ] <| text "Sign in to view users."
+            _ ->
+                el [ padding 16 ] <| text "Sign in to view users."
+        ]
+    }
 
 
 type alias UserMod =
@@ -146,7 +130,7 @@ mergeUserEdit users userEdit =
                         users
             in
             if edit.id == "" then
-                [ { user = edit, mod = True } ] ++ usersMapped
+                { user = edit, mod = True } :: usersMapped
 
             else
                 usersMapped

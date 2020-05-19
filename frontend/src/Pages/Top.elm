@@ -1,9 +1,4 @@
-module Pages.Top exposing
-    ( Model
-    , Msg
-    , Response
-    , page
-    )
+module Pages.Top exposing (Flags, Model, Msg, page)
 
 import Components.Form as Form
 import Components.Icon as Icon
@@ -15,30 +10,16 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Generated.Params as Params
 import Global
 import Html.Events
 import Json.Decode as Decode
-import Spa.Page
-import Spa.Types as Types
+import Page exposing (Document, Page)
 import Time
-import Utils.Spa exposing (Page)
 import Utils.Styles exposing (palette, size)
 
 
-page : Page Params.Top Model Msg model msg appMsg
-page =
-    Spa.Page.component
-        { title = always "Devices"
-        , init = always init
-        , update = update
-        , subscriptions = subscriptions
-        , view = view
-        }
-
-
-
--- INIT
+type alias Flags =
+    ()
 
 
 type alias Model =
@@ -46,17 +27,10 @@ type alias Model =
     }
 
 
-init : Params.Top -> ( Model, Cmd Msg, Cmd Global.Msg )
-init _ =
-    ( { deviceEdits = Dict.empty
-      }
-    , Cmd.none
-    , Spa.Page.send Global.RequestDevices
-    )
-
-
-
--- UPDATE
+type alias DeviceEdit =
+    { id : String
+    , description : String
+    }
 
 
 type Msg
@@ -67,14 +41,22 @@ type Msg
     | Tick Time.Posix
 
 
-type alias Response =
-    { success : Bool
-    , error : String
-    , id : String
-    }
+page : Page Flags Model Msg
+page =
+    Page.component
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        }
 
 
-update : Types.PageContext route Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
+init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
+init _ _ =
+    ( Model Dict.empty, Cmd.none, Global.send Global.RequestDevices )
+
+
+update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update _ msg model =
     case msg of
         EditDeviceDescription { id, description } ->
@@ -86,7 +68,7 @@ update _ msg model =
         PostConfig id config ->
             ( { model | deviceEdits = Dict.remove id model.deviceEdits }
             , Cmd.none
-            , Spa.Page.send <| Global.UpdateDeviceConfig id config
+            , Global.send <| Global.UpdateDeviceConfig id config
             )
 
         DiscardEditedDeviceDescription id ->
@@ -96,48 +78,38 @@ update _ msg model =
             )
 
         DeleteDevice id ->
-            ( model, Cmd.none, Spa.Page.send <| Global.DeleteDevice id )
+            ( model, Cmd.none, Global.send <| Global.DeleteDevice id )
 
         Tick _ ->
             ( model
             , Cmd.none
-            , Spa.Page.send Global.RequestDevices
+            , Global.send Global.RequestDevices
             )
 
 
-type alias DeviceEdit =
-    { id : String
-    , description : String
-    }
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Types.PageContext route Global.Model -> Model -> Sub Msg
+subscriptions : Global.Model -> Model -> Sub Msg
 subscriptions _ _ =
     Sub.batch
         [ Time.every 1000 Tick
         ]
 
 
+view : Global.Model -> Model -> Document Msg
+view global model =
+    { title = "Top"
+    , body =
+        [ column
+            [ width fill, spacing 32 ]
+            [ el [ padding 16, Font.size 24 ] <| text "Devices"
+            , case global.auth of
+                Global.SignedIn sess ->
+                    viewDevices sess.data.devices model.deviceEdits
 
--- VIEW
-
-
-view : Types.PageContext route Global.Model -> Model -> Element Msg
-view context model =
-    column
-        [ width fill, spacing 32 ]
-        [ el [ padding 16, Font.size 24 ] <| text "Devices"
-        , case context.global of
-            Global.SignedIn sess ->
-                viewDevices sess.data.devices model.deviceEdits
-
-            _ ->
-                el [ padding 16 ] <| text "Sign in to view your devices."
+                _ ->
+                    el [ padding 16 ] <| text "Sign in to view your devices."
+            ]
         ]
+    }
 
 
 viewDevices : List D.Device -> Dict String String -> Element Msg

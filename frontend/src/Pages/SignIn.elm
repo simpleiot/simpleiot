@@ -1,17 +1,19 @@
-module Pages.SignIn exposing (Model, Msg, page)
+module Pages.SignIn exposing (Flags, Model, Msg, page)
 
 import Element exposing (..)
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Generated.Params as Params
 import Global
-import Html exposing (Html)
+import Html
 import Html.Attributes as Attr
 import Html.Events as Events
-import Spa.Page
-import Utils.Spa exposing (Page)
+import Page exposing (Document, Page)
 import Utils.Styles as Styles
+
+
+type alias Flags =
+    ()
 
 
 type alias Model =
@@ -30,37 +32,23 @@ type Field
     | Password
 
 
-page : Page Params.SignIn Model Msg model msg appMsg
+page : Page Flags Model Msg
 page =
-    Spa.Page.component
-        { title = always "sign in | elm-spa"
-        , init = always init
-        , update = always update
-        , subscriptions = always subscriptions
-        , view = always view
+    Page.component
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
         }
 
 
-
--- INIT
-
-
-init : Params.SignIn -> ( Model, Cmd Msg, Cmd Global.Msg )
-init _ =
-    ( { email = ""
-      , password = ""
-      }
-    , Cmd.none
-    , Cmd.none
-    )
+init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
+init global flags =
+    ( Model "" "", Cmd.none, Cmd.none )
 
 
-
--- UPDATE
-
-
-update : Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update msg model =
+update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
+update _ msg model =
     case msg of
         UpdatedField Email value ->
             ( { model | email = value }
@@ -77,60 +65,56 @@ update msg model =
         ClickedSignIn ->
             ( model
             , Cmd.none
-            , Spa.Page.send <|
+            , Global.send <|
                 Global.SignIn model
             )
 
 
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions _ =
+subscriptions : Global.Model -> Model -> Sub Msg
+subscriptions global model =
     Sub.none
 
 
+view : Global.Model -> Model -> Document Msg
+view global model =
+    { title = "SignIn"
+    , body =
+        [ el [ centerX, centerY ] <|
+            form
+                { onSubmit = ClickedSignIn
+                }
+                [ spacing 32 ]
+                [ el [ Font.size 24, Font.semiBold ]
+                    (text "Sign in")
+                , column [ spacing 16 ]
+                    [ viewField
+                        { label = "Email"
+                        , onChange = UpdatedField Email
+                        , inputType = EmailInput
+                        , value = model.email
+                        }
+                    , viewField
+                        { label = "Password"
+                        , onChange = UpdatedField Password
+                        , inputType = PasswordInput
+                        , value = model.password
+                        }
+                    ]
+                , el [ alignRight ] <|
+                    if String.isEmpty model.email then
+                        Input.button (Styles.button ++ [ alpha 0.6 ])
+                            { onPress = Nothing
+                            , label = text "Sign In"
+                            }
 
--- VIEW
-
-
-view : Model -> Element Msg
-view model =
-    el [ centerX, centerY ] <|
-        form
-            { onSubmit = ClickedSignIn
-            }
-            [ spacing 32 ]
-            [ el [ Font.size 24, Font.semiBold ]
-                (text "Sign in")
-            , column [ spacing 16 ]
-                [ viewField
-                    { label = "Email"
-                    , onChange = UpdatedField Email
-                    , inputType = EmailInput
-                    , value = model.email
-                    }
-                , viewField
-                    { label = "Password"
-                    , onChange = UpdatedField Password
-                    , inputType = PasswordInput
-                    , value = model.password
-                    }
+                    else
+                        Input.button (Styles.button ++ [ htmlAttribute (Attr.type_ "submit") ])
+                            { onPress = Just ClickedSignIn
+                            , label = text "Sign In"
+                            }
                 ]
-            , el [ alignRight ] <|
-                if String.isEmpty model.email then
-                    Input.button (Styles.button ++ [ alpha 0.6 ])
-                        { onPress = Nothing
-                        , label = text "Sign In"
-                        }
-
-                else
-                    Input.button (Styles.button ++ [ htmlAttribute (Attr.type_ "submit") ])
-                        { onPress = Just ClickedSignIn
-                        , label = text "Sign In"
-                        }
-            ]
+        ]
+    }
 
 
 form : { onSubmit : msg } -> List (Attribute msg) -> List (Element msg) -> Element msg
@@ -143,7 +127,7 @@ form config attrs children =
         )
 
 
-toHtml : Element msg -> Html msg
+toHtml : Element msg -> Html.Html msg
 toHtml =
     Element.layoutWith { options = [ Element.noStaticStyleSheet ] } []
 
