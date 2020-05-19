@@ -1,4 +1,4 @@
-module Data.Auth exposing (..)
+module Data.Auth exposing (Cred, Response, decodeResponse)
 
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
