@@ -68,9 +68,18 @@ siot_build_assets() {
   return 0
 }
 
+siot_uglify() {
+  (cd frontend/output && mv elm.js x &&
+    uglifyjs x --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output=elm.js)
+}
+
 siot_build_dependencies() {
   ELMARGS=$1
   siot_build_frontend "$ELMARGS" || return 1
+  if [ "$ELMARGS" = "--optimize" ]; then
+    echo "running uglify"
+    siot_uglify
+  fi
   siot_build_assets || return 1
   return 0
 }
