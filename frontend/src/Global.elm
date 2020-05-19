@@ -606,7 +606,9 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Sub.batch
+        [ Time.every 1000 Tick
+        ]
 
 
 
@@ -624,6 +626,7 @@ view { page, global, toMsg } =
     , body =
         [ column [ spacing 32, padding 20, width (fill |> maximum 780), height fill, centerX ]
             [ navbar global toMsg
+            , viewError global
             , column [ height fill ] page.body
             , footer
             ]
@@ -900,3 +903,21 @@ styles =
         , mouseOver [ alpha 0.6 ]
         ]
     }
+
+
+viewError : Model -> Element msg
+viewError model =
+    case model.auth of
+        SignedOut Nothing ->
+            none
+
+        SignedOut (Just _) ->
+            el Styles.error (el [ centerX ] (text "Sign in failed"))
+
+        SignedIn sess ->
+            case sess.respError of
+                Nothing ->
+                    none
+
+                Just error ->
+                    el Styles.error (el [ centerX ] (text error))
