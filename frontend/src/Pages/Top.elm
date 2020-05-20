@@ -24,17 +24,12 @@ type alias Flags =
 
 type alias Model =
     { deviceEdits : Dict String String
-    }
-
-
-type alias DeviceEdit =
-    { id : String
-    , description : String
+    , deviceEdit : Maybe D.Config
     }
 
 
 type Msg
-    = EditDeviceDescription DeviceEdit
+    = EditDeviceDescription String String
     | PostConfig String D.Config
     | DiscardEditedDeviceDescription String
     | DeleteDevice String
@@ -53,13 +48,13 @@ page =
 
 init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ _ =
-    ( Model Dict.empty, Cmd.none, Global.send Global.RequestDevices )
+    ( Model Dict.empty Nothing, Cmd.none, Global.send Global.RequestDevices )
 
 
 update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update _ msg model =
     case msg of
-        EditDeviceDescription { id, description } ->
+        EditDeviceDescription id description ->
             ( { model | deviceEdits = Dict.insert id description model.deviceEdits }
             , Cmd.none
             , Cmd.none
@@ -195,12 +190,7 @@ descriptionField id config modded =
             (PostConfig id config)
             (DiscardEditedDeviceDescription id)
         )
-        { onChange =
-            \d ->
-                EditDeviceDescription
-                    { id = id
-                    , description = d
-                    }
+        { onChange = \d -> EditDeviceDescription id d
         , text = config.description
         , placeholder =
             Just <|
