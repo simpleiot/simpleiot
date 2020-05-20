@@ -159,6 +159,16 @@ is_portal_run() {
   return 0
 }
 
+is_portal_src_files() {
+  find . -not \( -path ./frontend/src/Generated -prune \) -not \( -path ./farmation/assets -prune \) -name "*.go" -o -name "*.elm"
+}
+
+is_portal_watch() {
+  echo "watch args: $*"
+  cmd=". ./is-envsetup.sh; is_portal_run $*"
+  is_portal_src_files | entr -r /bin/sh -c "$cmd"
+}
+
 ### Google Cloud server
 
 INSTANCE="instance-1"
