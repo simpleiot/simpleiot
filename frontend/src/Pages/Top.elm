@@ -120,7 +120,7 @@ viewDevices devices edits =
         , spacing 24
         ]
     <|
-        List.map Is.view devices
+        List.map (Is.view EditDeviceDescription) devices
 
 
 viewDevice : Dict String String -> D.Device -> Element Msg

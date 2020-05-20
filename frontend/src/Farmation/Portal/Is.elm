@@ -3,8 +3,10 @@ module Farmation.Portal.Is exposing (view)
 import Data.Device
 import Data.Sample exposing (Sample)
 import Element exposing (..)
+import Element.Border as Border
+import Element.Input as Input
 import Round
-import Utils.Styles as Styles
+import UI.Style as Style
 
 
 type alias InjectorSentry =
@@ -25,8 +27,8 @@ type alias InjectorSentry =
     }
 
 
-view : Data.Device.Device -> Element msg
-view dev =
+view : (String -> msg) -> Data.Device.Device -> Element msg
+view updateDesc dev =
     let
         is =
             deviceToInjectorSentry dev
@@ -76,11 +78,23 @@ view dev =
             else
                 Element.none
     in
-    column [ spacing 16 ]
-        [ row []
-            [ Styles.h3 [] <| text <| "(" ++ dev.id ++ ")"
+    column
+        [ padding 20
+        , spacing 20
+        , width fill
+        , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
+        , Border.color Style.colors.black
+        ]
+        [ wrappedRow [ spacing 10 ]
+            [ Input.text []
+                { label = Input.labelHidden "device description"
+                , text = dev.config.description
+                , placeholder = Just <| Input.placeholder [] <| text "device description"
+                , onChange = updateDesc
+                }
+            , el Style.h3 <| text <| "(" ++ dev.id ++ ")"
             ]
-        , wrappedRow []
+        , wrappedRow [ spacing 12 ]
             [ inputInj
             , space
             , inputWater
