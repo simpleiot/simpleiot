@@ -9,7 +9,7 @@ import Html
 import Html.Attributes as Attr
 import Html.Events as Events
 import Page exposing (Document, Page)
-import UI.Styles as Styles
+import UI.Style as Style
 
 
 type alias Flags =
@@ -103,14 +103,14 @@ view _ model =
                 , el [ alignRight ] <|
                     if String.isEmpty model.email then
                         Input.button
-                            (Styles.button Styles.colors.blue ++ [ alpha 0.6 ])
+                            (Style.button Style.colors.blue ++ [ alpha 0.6 ])
                             { onPress = Nothing
                             , label = text "Sign In"
                             }
 
                     else
                         Input.button
-                            (Styles.button Styles.colors.blue ++ [ htmlAttribute (Attr.type_ "submit") ])
+                            (Style.button Style.colors.blue ++ [ htmlAttribute (Attr.type_ "submit") ])
                             { onPress = Just ClickedSignIn
                             , label = text "Sign In"
                             }

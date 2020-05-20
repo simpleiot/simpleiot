@@ -2,7 +2,7 @@ module UI.Button exposing (view)
 
 import Element exposing (..)
 import Element.Input as Input
-import UI.Styles as Styles
+import UI.Style as Style
 
 
 view :
@@ -18,6 +18,6 @@ view config =
           else
             alpha 1
          )
-            :: Styles.button
+            :: Style.button
         )
         config

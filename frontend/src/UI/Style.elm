@@ -1,4 +1,4 @@
-module UI.Styles exposing
+module UI.Style exposing
     ( button
     , colors
     , error
@@ -46,11 +46,11 @@ colors =
     , gray = rgb 0.5 0.5 0.5
     , darkgray = rgb 0.8 0.8 0.8
     , pale = rgba 0.97 0.97 0.97 0.9
-    , red = rgba 1 0.7 0.7 0.75
+    , red = rgb255 204 85 68
     , orange = rgb 1 1 0.8
     , yellow = rgb 1 1 0.7
     , green = rgba 0.7 1 0.7 0.9
-    , blue = rgba 0 0 1 0.6
+    , blue = rgb255 50 100 150
     }
 
 
@@ -76,7 +76,7 @@ size =
 link : List (Attribute msg)
 link =
     [ Font.underline
-    , Font.color colors.coral
+    , Font.color colors.blue
     , transition
         { property = "opacity"
         , duration = 150

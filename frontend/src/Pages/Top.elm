@@ -15,7 +15,7 @@ import Page exposing (Document, Page)
 import Time
 import UI.Form as Form
 import UI.Icon as Icon
-import UI.Styles exposing (colors, size)
+import UI.Style as Style exposing (colors, size)
 
 
 type alias Flags =
@@ -100,7 +100,7 @@ view global model =
     , body =
         [ column
             [ width fill, spacing 32 ]
-            [ el [ padding 16, Font.size 24 ] <| text "Devices"
+            [ el Style.h2 <| text "Devices"
             , case global.auth of
                 Global.SignedIn sess ->
                     viewDevices sess.data.devices model.deviceEdits

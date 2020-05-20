@@ -21,9 +21,6 @@ import Data.Response exposing (Response)
 import Data.User as U
 import Document exposing (Document)
 import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
 import Generated.Route as Route exposing (Route)
 import Http
 import Json.Decode as Decode
@@ -32,7 +29,7 @@ import List.Extra
 import Task
 import Time
 import UI.Form as Form
-import UI.Styles as Styles
+import UI.Style as Style
 import Url exposing (Url)
 import Url.Builder
 
@@ -856,7 +853,7 @@ navbar model toMsg =
                         SignedIn sess ->
                             Form.button
                                 ("sign out " ++ sess.cred.email)
-                                Styles.colors.blue
+                                Style.colors.blue
                                 (toMsg SignOut)
 
                         SignedOut _ ->
@@ -867,7 +864,7 @@ navbar model toMsg =
 
 viewButtonLink : ( String, Route ) -> Element msg
 viewButtonLink ( label, route ) =
-    Element.link (Styles.button Styles.colors.blue)
+    Element.link (Style.button Style.colors.blue)
         { label = text label
         , url = Route.toHref route
         }
@@ -875,7 +872,7 @@ viewButtonLink ( label, route ) =
 
 link : ( String, Route ) -> Element msg
 link ( label, route ) =
-    Element.link styles.link
+    Element.link Style.link
         { label = text label
         , url = Route.toHref route
         }
@@ -890,34 +887,6 @@ footer =
 -- STYLES
 
 
-colors : { blue : Color, white : Color, red : Color }
-colors =
-    { white = rgb 1 1 1
-    , red = rgb255 204 85 68
-    , blue = rgb255 50 100 150
-    }
-
-
-styles :
-    { link : List (Element.Attribute msg)
-    , button : List (Element.Attribute msg)
-    }
-styles =
-    { link =
-        [ Font.underline
-        , Font.color colors.blue
-        , mouseOver [ alpha 0.6 ]
-        ]
-    , button =
-        [ Font.color colors.white
-        , Background.color colors.red
-        , Border.rounded 4
-        , paddingXY 24 10
-        , mouseOver [ alpha 0.6 ]
-        ]
-    }
-
-
 viewError : Model -> Element msg
 viewError model =
     case model.auth of
@@ -925,7 +894,7 @@ viewError model =
             none
 
         SignedOut (Just _) ->
-            el Styles.error (el [ centerX ] (text "Sign in failed"))
+            el Style.error (el [ centerX ] (text "Sign in failed"))
 
         SignedIn sess ->
             case sess.respError of
@@ -933,4 +902,4 @@ viewError model =
                     none
 
                 Just error ->
-                    el Styles.error (el [ centerX ] (text error))
+                    el Style.error (el [ centerX ] (text error))

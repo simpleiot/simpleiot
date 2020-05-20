@@ -9,7 +9,7 @@ import Global
 import Page exposing (Document, Page)
 import UI.Form as Form
 import UI.Icon as Icon
-import UI.Styles exposing (colors, size)
+import UI.Style as Style
 
 
 type alias Flags =
@@ -96,9 +96,9 @@ view global model =
             Global.SignedIn sess ->
                 column
                     [ width fill, spacing 32 ]
-                    [ el [ padding 16, Font.size 24 ] <| text "Users"
+                    [ el Style.h2 <| text "Users"
                     , el [ padding 16, width fill, Font.bold ] <|
-                        Form.button "new user" colors.blue NewUser
+                        Form.button "new user" Style.colors.blue NewUser
                     , viewUsers sess.data.users model.userEdit
                     ]
 
@@ -160,15 +160,21 @@ viewUser modded user =
     wrappedRow
         ([ width fill
          , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
-         , Border.color colors.black
+         , Border.color Style.colors.black
          , spacing 6
          ]
             ++ (if modded then
-                    [ Background.color colors.orange
+                    [ Background.color Style.colors.orange
                     , below <|
                         Form.buttonRow
-                            [ Form.button "discard" colors.gray <| DiscardUserEdits
-                            , Form.button "save" colors.blue <| PostUser user
+                            [ Form.button "discard"
+                                Style.colors.gray
+                              <|
+                                DiscardUserEdits
+                            , Form.button "save"
+                                Style.colors.blue
+                              <|
+                                PostUser user
                             ]
                     ]
 
