@@ -1,4 +1,4 @@
-module Components.Icon exposing
+module UI.Icon exposing
     ( check
     , plus
     , userCheck
@@ -13,7 +13,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import FeatherIcons
-import Utils.Styles as Styles
+import UI.Style as Style
 
 
 i : FeatherIcons.Icon -> msg -> Element msg
@@ -22,11 +22,11 @@ i icon msg =
         [ padding 5
         , Border.rounded 50
         , mouseOver
-            [ Background.color Styles.colors.ltgray
+            [ Background.color Style.colors.ltgray
             ]
 
         --, Element.focused
-        --    [ Background.color Styles.palette.ltgray
+        --    [ Background.color Style.palette.ltgray
         --    ]
         ]
         { onPress = Just msg
