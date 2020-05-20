@@ -6,6 +6,7 @@ import Element exposing (..)
 import Element.Border as Border
 import Element.Input as Input
 import Round
+import UI.Icon as Icon
 import UI.Style as Style
 
 
@@ -27,11 +28,19 @@ type alias InjectorSentry =
     }
 
 
-view : (String -> String -> msg) -> Data.Device.Device -> Element msg
-view updateDesc dev =
+view :
+    { msgUpdateDesc : String -> String -> msg
+    , msgDiscardUpdate : msg
+    , msgSave : String -> Data.Device.Config -> msg
+    , msgDeleteDevice : String -> msg
+    , device : Data.Device.Device
+    , mod : Bool
+    }
+    -> Element msg
+view { msgUpdateDesc, msgDiscardUpdate, msgSave, msgDeleteDevice, device, mod } =
     let
         is =
-            deviceToInjectorSentry dev
+            deviceToInjectorSentry device
 
         inputInj =
             if is.inputInjector then
@@ -85,14 +94,27 @@ view updateDesc dev =
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
         , Border.color Style.colors.black
         ]
-        [ wrappedRow [ spacing 10 ]
+        [ row [ spacing 5 ]
+            [ el Style.h2 <| text device.id
+            , Icon.x (msgDeleteDevice device.id)
+            ]
+        , wrappedRow [ spacing 10 ]
             [ Input.text []
                 { label = Input.labelHidden "device description"
-                , text = dev.config.description
+                , text = device.config.description
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
-                , onChange = \d -> updateDesc dev.id d
+                , onChange = \d -> msgUpdateDesc device.id d
                 }
-            , el Style.h3 <| text <| "(" ++ dev.id ++ ")"
+            , if mod then
+                Icon.check (msgSave device.id device.config)
+
+              else
+                Element.none
+            , if mod then
+                Icon.x msgDiscardUpdate
+
+              else
+                Element.none
             ]
         , wrappedRow [ spacing 12 ]
             [ inputInj
