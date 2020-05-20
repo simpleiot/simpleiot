@@ -155,7 +155,7 @@ is_portal_run() {
   export SIOT_DATA=./portal_db
   mkdir -p $SIOT_DATA
   is_portal_build_dependencies --debug || return 1
-  go run farmation/cmd/portal/main.go "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" || return 1
+  go run farmation/cmd/portal/main.go "$@" || return 1
   return 0
 }
 
