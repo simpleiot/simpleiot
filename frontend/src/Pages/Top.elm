@@ -2,19 +2,13 @@ module Pages.Top exposing (Flags, Model, Msg, page)
 
 import Data.Device as D
 import Data.Sample exposing (Sample, renderSample)
-import Dict exposing (Dict)
 import Element exposing (..)
-import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font
 import Element.Input as Input
 import Farmation.Portal.Is as Is
 import Global
-import Html.Events
-import Json.Decode as Decode
 import Page exposing (Document, Page)
 import Time
-import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors, size)
 
@@ -23,19 +17,21 @@ type alias Flags =
     ()
 
 
+type alias DeviceEdit =
+    { id : String
+    , config : D.Config
+    }
+
+
 type alias Model =
-    { deviceEdits : Dict String String
-<<<<<<< HEAD
-=======
-    , deviceEdit : Maybe D.Config
->>>>>>> origin/master
+    { deviceEdit : Maybe DeviceEdit
     }
 
 
 type Msg
     = EditDeviceDescription String String
     | PostConfig String D.Config
-    | DiscardEditedDeviceDescription String
+    | DiscardEditedDeviceDescription
     | DeleteDevice String
     | Tick Time.Posix
 
@@ -52,33 +48,26 @@ page =
 
 init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ _ =
-    ( Model Dict.empty Nothing, Cmd.none, Global.send Global.RequestDevices )
+    ( Model Nothing, Cmd.none, Global.send Global.RequestDevices )
 
 
 update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update _ msg model =
     case msg of
         EditDeviceDescription id description ->
-            let
-                _ =
-                    Debug.log "EditDeviceDescription id" id
-
-                _ =
-                    Debug.log "EditDeviceDescription description" description
-            in
-            ( { model | deviceEdits = Dict.insert id description model.deviceEdits }
+            ( { model | deviceEdit = Just { id = id, config = { description = description } } }
             , Cmd.none
             , Cmd.none
             )
 
         PostConfig id config ->
-            ( { model | deviceEdits = Dict.remove id model.deviceEdits }
+            ( { model | deviceEdit = Nothing }
             , Cmd.none
             , Global.send <| Global.UpdateDeviceConfig id config
             )
 
-        DiscardEditedDeviceDescription id ->
-            ( { model | deviceEdits = Dict.remove id model.deviceEdits }
+        DiscardEditedDeviceDescription ->
+            ( { model | deviceEdit = Nothing }
             , Cmd.none
             , Cmd.none
             )
@@ -109,7 +98,7 @@ view global model =
             [ el Style.h2 <| text "Devices"
             , case global.auth of
                 Global.SignedIn sess ->
-                    viewDevices sess.data.devices model.deviceEdits
+                    viewDevices sess.data.devices model.deviceEdit
 
                 _ ->
                     el [ padding 16 ] <| text "Sign in to view your devices."
@@ -118,18 +107,54 @@ view global model =
     }
 
 
-viewDevices : List D.Device -> Dict String String -> Element Msg
-viewDevices devices edits =
+viewDevices : List D.Device -> Maybe DeviceEdit -> Element Msg
+viewDevices devices deviceEdit =
     column
         [ width fill
         , spacing 24
         ]
     <|
-        List.map (Is.view EditDeviceDescription) devices
+        List.map
+            (\dm ->
+                Is.view
+                    { msgUpdateDesc = EditDeviceDescription
+                    , msgDiscardUpdate = DiscardEditedDeviceDescription
+                    , msgSave = PostConfig
+                    , msgDeleteDevice = DeleteDevice
+                    , device = dm.device
+                    , mod = dm.mod
+                    }
+            )
+        <|
+            mergeDeviceEdit devices deviceEdit
 
 
-viewDevice : Dict String String -> D.Device -> Element Msg
-viewDevice edits device =
+type alias DeviceMod =
+    { device : D.Device
+    , mod : Bool
+    }
+
+
+mergeDeviceEdit : List D.Device -> Maybe DeviceEdit -> List DeviceMod
+mergeDeviceEdit devices devConfigEdit =
+    case devConfigEdit of
+        Just edit ->
+            List.map
+                (\d ->
+                    if edit.id == d.id then
+                        { device = { d | config = edit.config }, mod = True }
+
+                    else
+                        { device = d, mod = False }
+                )
+                devices
+
+        Nothing ->
+            List.map (\d -> { device = d, mod = False }) devices
+
+
+viewDevice : Bool -> D.Device -> Element Msg
+viewDevice mod device =
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
@@ -140,17 +165,26 @@ viewDevice edits device =
             [ viewDeviceId device.id
             , Icon.x (DeleteDevice device.id)
             ]
-        , viewDeviceDescription edits device
+        , row [ spacing 10 ]
+            [ Input.text []
+                { onChange = \d -> EditDeviceDescription device.id d
+                , text = device.config.description
+                , placeholder = Just <| Input.placeholder [] <| text "device description"
+                , label = Input.labelHidden "device description"
+                }
+            , if mod then
+                Icon.check (PostConfig device.id device.config)
+
+              else
+                Element.none
+            , if mod then
+                Icon.x DiscardEditedDeviceDescription
+
+              else
+                Element.none
+            ]
         , viewIoList device.state.ios
         ]
-
-
-viewDeviceDescription : Dict String String -> D.Device -> Element Msg
-viewDeviceDescription edits device =
-    descriptionField
-        device.id
-        { description = deviceDescription edits device }
-        (modified edits device)
 
 
 viewDeviceId : String -> Element Msg
@@ -171,85 +205,3 @@ viewIoList ios =
         ]
     <|
         List.map (renderSample >> text) ios
-
-
-deviceDescription : Dict String String -> D.Device -> String
-deviceDescription edits device =
-    case Dict.get device.id edits of
-        Just desc ->
-            desc
-
-        Nothing ->
-            device.config.description
-
-
-modified : Dict String String -> D.Device -> Bool
-modified edits device =
-    case Dict.get device.id edits of
-        Just desc ->
-            desc /= device.config.description
-
-        Nothing ->
-            False
-
-
-descriptionField : String -> D.Config -> Bool -> Element Msg
-descriptionField id config modded =
-    Input.text
-        (fieldAttrs
-            modded
-            (PostConfig id config)
-            (DiscardEditedDeviceDescription id)
-        )
-        { onChange = \d -> EditDeviceDescription id d
-        , text = config.description
-        , placeholder =
-            Just <|
-                Input.placeholder
-                    [ Font.italic
-                    , Font.color colors.gray
-                    ]
-                <|
-                    text "description"
-        , label = Input.labelHidden "Description"
-        }
-
-
-fieldAttrs : Bool -> Msg -> Msg -> List (Attribute Msg)
-fieldAttrs modded save discard =
-    [ padding 16
-    , width fill
-    , Border.width 0
-    , Border.rounded 0
-    , focused [ Background.color colors.yellow ]
-    ]
-        ++ (if modded then
-                [ Background.color colors.orange
-                , onEnter save
-                , below <|
-                    Form.buttonRow
-                        [ Form.button "discard" colors.gray discard
-                        , Form.button "save" colors.blue save
-                        ]
-                ]
-
-            else
-                [ Background.color colors.pale ]
-           )
-
-
-onEnter : msg -> Attribute msg
-onEnter msg =
-    htmlAttribute
-        (Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the enter key"
-                    )
-            )
-        )
