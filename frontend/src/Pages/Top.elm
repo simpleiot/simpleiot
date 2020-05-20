@@ -10,6 +10,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Farmation.Portal.Is as Is
 import Global
 import Html.Events
 import Json.Decode as Decode
@@ -119,7 +120,7 @@ viewDevices devices edits =
         , spacing 24
         ]
     <|
-        List.map (viewDevice edits) devices
+        List.map Is.view devices
 
 
 viewDevice : Dict String String -> D.Device -> Element Msg
