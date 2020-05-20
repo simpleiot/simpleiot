@@ -27,7 +27,7 @@ type alias InjectorSentry =
     }
 
 
-view : (String -> msg) -> Data.Device.Device -> Element msg
+view : (String -> String -> msg) -> Data.Device.Device -> Element msg
 view updateDesc dev =
     let
         is =
@@ -90,7 +90,7 @@ view updateDesc dev =
                 { label = Input.labelHidden "device description"
                 , text = dev.config.description
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
-                , onChange = updateDesc
+                , onChange = \d -> updateDesc dev.id d
                 }
             , el Style.h3 <| text <| "(" ++ dev.id ++ ")"
             ]

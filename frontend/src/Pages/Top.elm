@@ -28,14 +28,8 @@ type alias Model =
     }
 
 
-type alias DeviceEdit =
-    { id : String
-    , description : String
-    }
-
-
 type Msg
-    = EditDeviceDescription DeviceEdit
+    = EditDeviceDescription String String
     | PostConfig String D.Config
     | DiscardEditedDeviceDescription String
     | DeleteDevice String
@@ -60,7 +54,14 @@ init _ _ =
 update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update _ msg model =
     case msg of
-        EditDeviceDescription { id, description } ->
+        EditDeviceDescription id description ->
+            let
+                _ =
+                    Debug.log "EditDeviceDescription id" id
+
+                _ =
+                    Debug.log "EditDeviceDescription description" description
+            in
             ( { model | deviceEdits = Dict.insert id description model.deviceEdits }
             , Cmd.none
             , Cmd.none
@@ -196,12 +197,7 @@ descriptionField id config modded =
             (PostConfig id config)
             (DiscardEditedDeviceDescription id)
         )
-        { onChange =
-            \d ->
-                EditDeviceDescription
-                    { id = id
-                    , description = d
-                    }
+        { onChange = \d -> EditDeviceDescription id d
         , text = config.description
         , placeholder =
             Just <|
