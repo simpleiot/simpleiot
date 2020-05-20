@@ -25,6 +25,10 @@ type alias Flags =
 
 type alias Model =
     { deviceEdits : Dict String String
+<<<<<<< HEAD
+=======
+    , deviceEdit : Maybe D.Config
+>>>>>>> origin/master
     }
 
 
@@ -48,7 +52,7 @@ page =
 
 init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ _ =
-    ( Model Dict.empty, Cmd.none, Global.send Global.RequestDevices )
+    ( Model Dict.empty Nothing, Cmd.none, Global.send Global.RequestDevices )
 
 
 update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
