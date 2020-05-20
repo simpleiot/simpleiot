@@ -1,7 +1,5 @@
 module Pages.Users exposing (Flags, Model, Msg, page)
 
-import Components.Form as Form
-import Components.Icon as Icon
 import Data.User as U
 import Element exposing (..)
 import Element.Background as Background
@@ -9,7 +7,9 @@ import Element.Border as Border
 import Element.Font as Font
 import Global
 import Page exposing (Document, Page)
-import Utils.Styles exposing (colors, size)
+import UI.Form as Form
+import UI.Icon as Icon
+import UI.Styles exposing (colors, size)
 
 
 type alias Flags =

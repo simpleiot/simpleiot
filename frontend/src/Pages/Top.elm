@@ -1,7 +1,5 @@
 module Pages.Top exposing (Flags, Model, Msg, page)
 
-import Components.Form as Form
-import Components.Icon as Icon
 import Data.Device as D
 import Data.Sample exposing (Sample, renderSample)
 import Dict exposing (Dict)
@@ -15,7 +13,9 @@ import Html.Events
 import Json.Decode as Decode
 import Page exposing (Document, Page)
 import Time
-import Utils.Styles exposing (colors, size)
+import UI.Form as Form
+import UI.Icon as Icon
+import UI.Styles exposing (colors, size)
 
 
 type alias Flags =

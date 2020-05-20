@@ -13,7 +13,6 @@ module Global exposing
     )
 
 import Browser.Navigation as Nav
-import Components.Form as Form
 import Data.Auth
 import Data.Data as Data
 import Data.Device as D
@@ -32,9 +31,10 @@ import Json.Decode.Pipeline exposing (optional, required)
 import List.Extra
 import Task
 import Time
+import UI.Form as Form
+import UI.Styles as Styles
 import Url exposing (Url)
 import Url.Builder
-import Utils.Styles as Styles
 
 
 

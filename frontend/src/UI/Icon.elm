@@ -1,4 +1,4 @@
-module Components.Icon exposing
+module UI.Icon exposing
     ( check
     , plus
     , userCheck
@@ -13,7 +13,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import FeatherIcons
-import Utils.Styles as Styles
+import UI.Styles as Styles
 
 
 i : FeatherIcons.Icon -> msg -> Element msg

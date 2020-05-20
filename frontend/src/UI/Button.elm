@@ -1,8 +1,8 @@
-module Components.Button exposing (view)
+module UI.Button exposing (view)
 
 import Element exposing (..)
 import Element.Input as Input
-import Utils.Styles as Styles
+import UI.Styles as Styles
 
 
 view :

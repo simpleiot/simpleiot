@@ -9,7 +9,7 @@ import Html
 import Html.Attributes as Attr
 import Html.Events as Events
 import Page exposing (Document, Page)
-import Utils.Styles as Styles
+import UI.Styles as Styles
 
 
 type alias Flags =

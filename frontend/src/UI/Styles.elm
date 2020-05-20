@@ -1,10 +1,15 @@
-module Utils.Styles exposing
+module UI.Styles exposing
     ( button
     , colors
     , error
     , fonts
     , h1
+    , h1w
+    , h2
     , h3
+    , h4
+    , h5
+    , h6
     , link
     , size
     , transition
@@ -116,22 +121,57 @@ error =
     ]
 
 
-h1 : List (Attribute msg) -> Element msg -> Element msg
+h1 : List (Attribute msg)
 h1 =
-    elWith
-        [ Font.family fonts.sans
-        , Font.semiBold
-        , Font.size 64
-        ]
+    [ Font.family fonts.sans
+    , Font.semiBold
+    , Font.size 32
+    ]
 
 
-h3 : List (Attribute msg) -> Element msg -> Element msg
+h2 : List (Attribute msg)
+h2 =
+    [ Font.family fonts.sans
+    , Font.semiBold
+    , Font.size 24
+    ]
+
+
+h3 : List (Attribute msg)
 h3 =
-    elWith
-        [ Font.family fonts.sans
-        , Font.semiBold
-        , Font.size 36
-        ]
+    [ Font.family fonts.sans
+    , Font.semiBold
+    , Font.size 19
+    ]
+
+
+h4 : List (Attribute msg)
+h4 =
+    [ Font.family fonts.sans
+    , Font.semiBold
+    , Font.size 16
+    ]
+
+
+h5 : List (Attribute msg)
+h5 =
+    [ Font.family fonts.sans
+    , Font.semiBold
+    , Font.size 13
+    ]
+
+
+h6 : List (Attribute msg)
+h6 =
+    [ Font.family fonts.sans
+    , Font.semiBold
+    , Font.size 11
+    ]
+
+
+h1w : List (Attribute msg) -> Element msg -> Element msg
+h1w =
+    elWith h1
 
 
 transition :
