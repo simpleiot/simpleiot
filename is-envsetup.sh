@@ -124,17 +124,21 @@ is_portal_build_frontend() {
 }
 
 is_portal_build_assets() {
-  mkdir -p farmation/assets/portal || return 1
-  genesis -C frontend/output -pkg portal \
+  mkdir -p assets/frontend || return 1
+  genesis -C frontend/output -pkg frontend \
     index.html \
     elm.js \
+    main.js \
+    ble.js \
+    ports.js \
+    styles.css \
     farmation-logo.png \
     Injector.png \
     WaterOn.png \
     Irrigator.png \
     Armed.png \
     Shutdown.png \
-    >farmation/assets/portal/assets.go || return 1
+    >assets/frontend/assets.go || return 1
   return 0
 }
 
@@ -159,14 +163,10 @@ is_portal_run() {
   return 0
 }
 
-is_portal_src_files() {
-  find . -not \( -path ./frontend/src/Generated -prune \) -not \( -path ./farmation/assets -prune \) -name "*.go" -o -name "*.elm"
-}
-
 is_portal_watch() {
   echo "watch args: $*"
   cmd=". ./is-envsetup.sh; is_portal_run $*"
-  is_portal_src_files | entr -r /bin/sh -c "$cmd"
+  find_src_files | entr -r /bin/sh -c "$cmd"
 }
 
 ### Google Cloud server
