@@ -108,6 +108,21 @@ view global model =
     }
 
 
+viewUsers : List U.User -> Maybe U.User -> Element Msg
+viewUsers users userEdit =
+    column
+        [ width fill
+        , spacing 40
+        ]
+    <|
+        List.map
+            (\user ->
+                viewUser user.mod user.user
+            )
+        <|
+            mergeUserEdit users userEdit
+
+
 type alias UserMod =
     { user : U.User
     , mod : Bool
@@ -138,21 +153,6 @@ mergeUserEdit users userEdit =
 
         Nothing ->
             List.map (\u -> { user = u, mod = False }) users
-
-
-viewUsers : List U.User -> Maybe U.User -> Element Msg
-viewUsers users userEdit =
-    column
-        [ width fill
-        , spacing 40
-        ]
-    <|
-        List.map
-            (\user ->
-                viewUser user.mod user.user
-            )
-        <|
-            mergeUserEdit users userEdit
 
 
 viewUser : Bool -> U.User -> Element Msg
