@@ -836,7 +836,7 @@ deleteGroup token id =
 navbar : Model -> (Msg -> msg) -> Element msg
 navbar model toMsg =
     row [ width fill, spacing 20 ]
-        [ link ( "SIOT", Route.Top )
+        [ link ( "IS", Route.Top )
         , link ( "users", Route.Users )
         , link ( "groups", Route.Groups )
         , el [ alignRight ] <|

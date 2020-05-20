@@ -2,10 +2,6 @@
 
 ### IS Web UI
 
-genesis() {
-  go run github.com/benbjohnson/genesis/cmd/genesis $@
-}
-
 is_setup() {
   app_setup
 }
@@ -119,23 +115,10 @@ is_build_gpio_test() {
 
 ### Portal
 
-is_portal_uglify() {
-  (cd frontend/output && mv elm.js x &&
-    uglifyjs x --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output=elm.js)
-}
-
 is_portal_build_frontend() {
-  DEBUG=$1
+  ELMARGS="$1"
   rm frontend/output/* || true
-  if [ -z "$DEBUG" ]; then
-    # build production version
-    (cd frontend && elm make --optimize src/Farmation/Portal/Main.elm --output=output/elm.js) || return 1
-    is_portal_uglify || return 1
-  else
-    # build debug version (can use Debug.log)
-    (cd frontend && elm make src/Farmation/Portal/Main.elm --output=output/elm.js) || return 1
-  fi
-  (cd frontend && cp src/Farmation/Portal/index.html output/) || return 1
+  siot_build_frontend "$ELMARGS"
   (cd frontend && cp src/Farmation/public/*.png output/) || return 1
   return 0
 }
@@ -156,14 +139,14 @@ is_portal_build_assets() {
 }
 
 is_portal_build_dependencies() {
-  DEBUG=$1
-  is_portal_build_frontend "$DEBUG" || return 1
+  ELMARGS=$1
+  is_portal_build_frontend "$ELMARGS" || return 1
   is_portal_build_assets || return 1
   return 0
 }
 
 is_portal_build() {
-  is_portal_build_dependencies || return 1
+  is_portal_build_dependencies --optimize || return 1
   go build -o is-portal farmation/cmd/portal/main.go || return 1
   return 0
 }
@@ -171,7 +154,7 @@ is_portal_build() {
 is_portal_run() {
   export SIOT_DATA=./portal_db
   mkdir -p $SIOT_DATA
-  is_portal_build_dependencies debug || return 1
+  is_portal_build_dependencies --debug || return 1
   go run farmation/cmd/portal/main.go "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" || return 1
   return 0
 }
