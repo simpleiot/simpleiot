@@ -94,12 +94,11 @@ view { msgUpdateDesc, msgDiscardUpdate, msgSave, msgDeleteDevice, device, mod } 
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
         , Border.color Style.colors.black
         ]
-        [ row [ spacing 5 ]
+        [ wrappedRow [ spacing 10 ]
             [ el Style.h2 <| text device.id
             , Icon.x (msgDeleteDevice device.id)
-            ]
-        , wrappedRow [ spacing 10 ]
-            [ Input.text []
+            , Input.text
+                Style.h3
                 { label = Input.labelHidden "device description"
                 , text = device.config.description
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
