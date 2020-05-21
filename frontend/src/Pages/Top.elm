@@ -102,7 +102,7 @@ view global model =
             [ el Style.h2 <| text "Devices"
             , case global.auth of
                 Global.SignedIn sess ->
-                    viewDevices sess.data.devices model.deviceEdit
+                    viewDevices sess.data.devices model.deviceEdit sess.isRoot
 
                 _ ->
                     el [ padding 16 ] <| text "Sign in to view your devices."
@@ -111,8 +111,8 @@ view global model =
     }
 
 
-viewDevices : List D.Device -> Maybe DeviceEdit -> Element Msg
-viewDevices devices deviceEdit =
+viewDevices : List D.Device -> Maybe DeviceEdit -> Bool -> Element Msg
+viewDevices devices deviceEdit isRoot =
     column
         [ width fill
         , spacing 24
@@ -120,7 +120,7 @@ viewDevices devices deviceEdit =
     <|
         List.map
             (\d ->
-                viewDevice d.mod d.device
+                viewDevice d.mod d.device isRoot
             )
         <|
             mergeDeviceEdit devices deviceEdit
@@ -150,20 +150,23 @@ mergeDeviceEdit devices devConfigEdit =
             List.map (\d -> { device = d, mod = False }) devices
 
 
-viewDevice : Bool -> D.Device -> Element Msg
-viewDevice mod device =
+viewDevice : Bool -> D.Device -> Bool -> Element Msg
+viewDevice mod device isRoot =
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
         , Border.color colors.black
         , spacing 6
         ]
-        [ row []
+        [ wrappedRow [ spacing 10 ]
             [ viewDeviceId device.id
-            , Icon.x (DeleteDevice device.id)
-            ]
-        , row [ spacing 10 ]
-            [ Input.text []
+            , if isRoot then
+                Icon.x (DeleteDevice device.id)
+
+              else
+                Element.none
+            , Input.text
+                []
                 { onChange = \d -> EditDeviceDescription device.id d
                 , text = device.config.description
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
