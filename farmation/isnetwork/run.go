@@ -88,6 +88,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			// various interfaces on development machines
 			manager.AddInterface(network.NewEthernet("eno1"))
 			manager.AddInterface(network.NewEthernet("wlp58s0"))
+			manager.AddInterface(network.NewEthernet("enp39s0"))
 		}
 	}
 
