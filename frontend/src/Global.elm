@@ -76,7 +76,7 @@ init flags url key =
         url
         key
         (SignedOut Nothing)
-    , Cmd.none
+    , Nav.pushUrl key (Route.toHref Route.SignIn)
     )
 
 
@@ -173,7 +173,7 @@ update msg model =
 
                 SignOut ->
                     ( { model | auth = SignedOut Nothing }
-                    , Nav.pushUrl model.key (Route.toHref Route.Top)
+                    , Nav.pushUrl model.key (Route.toHref Route.SignIn)
                     )
 
                 AuthResponse _ (Ok _) ->
@@ -181,7 +181,7 @@ update msg model =
 
                 AuthResponse _ (Err err) ->
                     ( { model | auth = SignedOut (Just err) }
-                    , Nav.pushUrl model.key (Route.toHref Route.Top)
+                    , Nav.pushUrl model.key (Route.toHref Route.SignIn)
                     )
 
                 DevicesResponse (Ok devices) ->
@@ -206,7 +206,9 @@ update msg model =
                                     False
                     in
                     if signOut then
-                        ( { model | auth = SignedOut Nothing }, Cmd.none )
+                        ( { model | auth = SignedOut Nothing }
+                        , Nav.pushUrl model.key (Route.toHref Route.SignIn)
+                        )
 
                     else
                         ( { model
