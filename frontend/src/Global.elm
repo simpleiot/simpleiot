@@ -195,17 +195,30 @@ update msg model =
                     , Cmd.none
                     )
 
-                DevicesResponse (Err _) ->
-                    ( { model
-                        | auth =
-                            SignedIn
-                                { sess
-                                    | respError = Just "Error getting devices"
-                                    , errorDispCount = 0
-                                }
-                      }
-                    , Cmd.none
-                    )
+                DevicesResponse (Err err) ->
+                    let
+                        signOut =
+                            case err of
+                                Http.BadStatus code ->
+                                    code == 401
+
+                                _ ->
+                                    False
+                    in
+                    if signOut then
+                        ( { model | auth = SignedOut Nothing }, Cmd.none )
+
+                    else
+                        ( { model
+                            | auth =
+                                SignedIn
+                                    { sess
+                                        | respError = Just "Error getting devices"
+                                        , errorDispCount = 0
+                                    }
+                          }
+                        , Cmd.none
+                        )
 
                 UsersResponse (Ok users) ->
                     ( { model
