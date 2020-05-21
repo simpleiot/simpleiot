@@ -51,7 +51,7 @@ init _ _ =
 
 
 update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update _ msg model =
+update global msg model =
     case msg of
         EditDeviceDescription id description ->
             ( { model | deviceEdit = Just { id = id, config = { description = description } } }
@@ -77,14 +77,19 @@ update _ msg model =
         Tick _ ->
             ( model
             , Cmd.none
-            , Global.send Global.RequestDevices
+            , case global.auth of
+                Global.SignedIn _ ->
+                    Global.send Global.RequestDevices
+
+                Global.SignedOut _ ->
+                    Cmd.none
             )
 
 
 subscriptions : Global.Model -> Model -> Sub Msg
 subscriptions _ _ =
     Sub.batch
-        [ Time.every 1000 Tick
+        [ Time.every 5000 Tick
         ]
 
 
