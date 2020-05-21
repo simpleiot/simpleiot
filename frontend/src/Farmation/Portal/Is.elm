@@ -43,50 +43,59 @@ view { msgUpdateDesc, msgDiscardUpdate, msgSave, msgDeleteDevice, device, mod, i
         is =
             deviceToInjectorSentry device
 
-        inputInj =
+        inputInj l =
             if is.inputInjector then
-                image [] { src = "public/Injector.png", description = "injector" }
+                l ++ [ image [] { src = "public/Injector.png", description = "injector" } ]
 
             else
-                Element.none
+                l
 
-        inputWater =
+        inputWater l =
             if is.inputWaterOn then
-                image [] { src = "public/WaterOn.png", description = "water on" }
+                l ++ [ image [] { src = "public/WaterOn.png", description = "water on" } ]
 
             else
-                Element.none
+                l
 
-        inputIrr =
+        inputIrr l =
             if is.inputIrrigator then
-                image [] { src = "public/Irrigator.png", description = "irrigator" }
+                l ++ [ image [] { src = "public/Irrigator.png", description = "irrigator" } ]
 
             else
-                Element.none
+                l
 
-        flow =
-            text (Round.round 1 is.flowRate ++ " GPH")
+        flow l =
+            l ++ [ el Style.h3 <| text (Round.round 1 is.flowRate ++ " GPH") ]
 
-        armed =
+        armed l =
             if is.armed then
-                image [] { src = "public/Armed.png", description = "armed" }
+                l ++ [ image [] { src = "public/Armed.png", description = "armed" } ]
 
             else
-                Element.none
+                l
 
-        outputInj =
+        outputInj l =
             if is.outputInjector then
-                image [] { src = "public/Injector.png", description = "injector" }
+                l ++ [ image [] { src = "public/Injector.png", description = "injector" } ]
 
             else
-                Element.none
+                l
 
-        outputShutdown =
+        outputShutdown l =
             if is.outputShutdown then
-                image [] { src = "public/Shutdown.png", description = "shutdown" }
+                l ++ [ image [] { src = "public/Shutdown.png", description = "shutdown" } ]
 
             else
-                Element.none
+                l
+
+        statusElements =
+            inputInj []
+                |> inputWater
+                |> inputIrr
+                |> flow
+                |> armed
+                |> outputInj
+                |> outputShutdown
     in
     column
         [ padding 20
@@ -120,21 +129,7 @@ view { msgUpdateDesc, msgDiscardUpdate, msgSave, msgDeleteDevice, device, mod, i
               else
                 Element.none
             ]
-        , wrappedRow [ spacing 12 ]
-            [ inputInj
-            , space
-            , inputWater
-            , space
-            , inputIrr
-            , space
-            , flow
-            , space
-            , armed
-            , space
-            , outputInj
-            , space
-            , outputShutdown
-            ]
+        , wrappedRow [ spacing 20 ] statusElements
         , text ("Min Pressure: " ++ Round.round 0 is.pressureMin)
         , text ("Max Pressure: " ++ Round.round 0 is.pressureMax)
         , text
@@ -153,11 +148,6 @@ view { msgUpdateDesc, msgDiscardUpdate, msgSave, msgDeleteDevice, device, mod, i
                 ++ Round.round 0 is.flowWindowHigh
             )
         ]
-
-
-space : Element msg
-space =
-    text "  "
 
 
 deviceToInjectorSentry : Data.Device.Device -> InjectorSentry
