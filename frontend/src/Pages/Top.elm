@@ -159,20 +159,23 @@ mergeDeviceEdit devices devConfigEdit =
             List.map (\d -> { device = d, mod = False }) devices
 
 
-viewDevice : Bool -> D.Device -> Element Msg
-viewDevice mod device =
+viewDevice : Bool -> D.Device -> Bool -> Element Msg
+viewDevice mod device isRoot =
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
         , Border.color colors.black
         , spacing 6
         ]
-        [ row []
+        [ wrappedRow [ spacing 10 ]
             [ viewDeviceId device.id
-            , Icon.x (DeleteDevice device.id)
-            ]
-        , row [ spacing 10 ]
-            [ Input.text []
+            , if isRoot then
+                Icon.x (DeleteDevice device.id)
+
+              else
+                Element.none
+            , Input.text
+                []
                 { onChange = \d -> EditDeviceDescription device.id d
                 , text = device.config.description
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
