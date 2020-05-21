@@ -35,9 +35,10 @@ view :
     , msgDeleteDevice : String -> msg
     , device : Data.Device.Device
     , mod : Bool
+    , isRoot : Bool
     }
     -> Element msg
-view { msgUpdateDesc, msgDiscardUpdate, msgSave, msgDeleteDevice, device, mod } =
+view { msgUpdateDesc, msgDiscardUpdate, msgSave, msgDeleteDevice, device, mod, isRoot } =
     let
         is =
             deviceToInjectorSentry device
@@ -96,7 +97,11 @@ view { msgUpdateDesc, msgDiscardUpdate, msgSave, msgDeleteDevice, device, mod } 
         ]
         [ wrappedRow [ spacing 10 ]
             [ el Style.h2 <| text device.id
-            , Icon.x (msgDeleteDevice device.id)
+            , if isRoot then
+                Icon.x (msgDeleteDevice device.id)
+
+              else
+                Element.none
             , Input.text
                 Style.h3
                 { label = Input.labelHidden "device description"
