@@ -76,7 +76,7 @@ init flags url key =
         url
         key
         (SignedOut Nothing)
-    , Cmd.none
+    , Nav.pushUrl key (Route.toHref Route.SignIn)
     )
 
 
@@ -173,7 +173,7 @@ update msg model =
 
                 SignOut ->
                     ( { model | auth = SignedOut Nothing }
-                    , Nav.pushUrl model.key (Route.toHref Route.Top)
+                    , Nav.pushUrl model.key (Route.toHref Route.SignIn)
                     )
 
                 AuthResponse _ (Ok _) ->
@@ -181,7 +181,7 @@ update msg model =
 
                 AuthResponse _ (Err err) ->
                     ( { model | auth = SignedOut (Just err) }
-                    , Nav.pushUrl model.key (Route.toHref Route.Top)
+                    , Nav.pushUrl model.key (Route.toHref Route.SignIn)
                     )
 
                 DevicesResponse (Ok devices) ->
@@ -195,17 +195,32 @@ update msg model =
                     , Cmd.none
                     )
 
-                DevicesResponse (Err _) ->
-                    ( { model
-                        | auth =
-                            SignedIn
-                                { sess
-                                    | respError = Just "Error getting devices"
-                                    , errorDispCount = 0
-                                }
-                      }
-                    , Cmd.none
-                    )
+                DevicesResponse (Err err) ->
+                    let
+                        signOut =
+                            case err of
+                                Http.BadStatus code ->
+                                    code == 401
+
+                                _ ->
+                                    False
+                    in
+                    if signOut then
+                        ( { model | auth = SignedOut Nothing }
+                        , Nav.pushUrl model.key (Route.toHref Route.SignIn)
+                        )
+
+                    else
+                        ( { model
+                            | auth =
+                                SignedIn
+                                    { sess
+                                        | respError = Just "Error getting devices"
+                                        , errorDispCount = 0
+                                    }
+                          }
+                        , Cmd.none
+                        )
 
                 UsersResponse (Ok users) ->
                     ( { model
