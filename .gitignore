@@ -2,7 +2,7 @@ frontend/output
 frontend2/output
 elm-stuff
 /siot
-data.db
+*.db
 temp
 tags
 .idea
