@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"path"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
@@ -125,6 +126,19 @@ func deviceSetVersion(store *bolthold.Store, id string, ver data.DeviceVersion) 
 		}
 
 		dev.State.Version = ver
+		return store.TxUpdate(tx, id, dev)
+	})
+}
+
+func deviceActivity(store *bolthold.Store, id string) error {
+	return update(store, func(tx *bolt.Tx) error {
+		var dev data.Device
+		err := store.TxGet(tx, id, &dev)
+		if err != nil {
+			return err
+		}
+
+		dev.State.LastComm = time.Now()
 		return store.TxUpdate(tx, id, dev)
 	})
 }
