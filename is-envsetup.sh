@@ -109,6 +109,15 @@ is_run() {
   return 0
 }
 
+is_find_src_files() {
+  find . -not \( -path ./frontend/src/Generated -prune \) -not \( -path ./farmation/assets -prune \) -name "*.go" -o -name "*.elm"
+}
+
+is_watch() {
+  cmd=". ./is-envsetup.sh; is_run $*"
+  is_find_src_files | entr -r /bin/sh -c "$cmd"
+}
+
 is_build_gpio_test() {
   GOARCH="arm" go build -o gpio-test farmation/cmd/gpio-test/main.go
 }
