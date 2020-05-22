@@ -851,7 +851,7 @@ navbar model toMsg =
         ((case model.auth of
             SignedIn sess ->
                 if sess.isRoot then
-                    [ link ( "devices", Route.Users )
+                    [ link ( "devices", Route.Top )
                     , link ( "users", Route.Users )
                     , link ( "groups", Route.Groups )
                     ]
