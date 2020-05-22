@@ -5,6 +5,7 @@ import Data.Sample exposing (Sample)
 import Element exposing (..)
 import Element.Border as Border
 import Element.Input as Input
+import Iso8601
 import Round
 import UI.Icon as Icon
 import UI.Style as Style
@@ -146,6 +147,15 @@ view { msgUpdateDesc, msgDiscardUpdate, msgSave, msgDeleteDevice, device, mod, i
                 ++ Round.round 0 is.flowWindowLow
                 ++ " to "
                 ++ Round.round 0 is.flowWindowHigh
+            )
+        , text ("Last communication (UTC): " ++ Iso8601.fromTime device.state.lastComm)
+        , text
+            ("Versions: hw: "
+                ++ device.state.version.hw
+                ++ ", os: "
+                ++ device.state.version.os
+                ++ ", app: "
+                ++ device.state.version.app
             )
         ]
 
