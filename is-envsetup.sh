@@ -110,7 +110,10 @@ is_run() {
 }
 
 is_find_src_files() {
-  find . -not \( -path ./frontend/src/Generated -prune \) -not \( -path ./farmation/assets -prune \) -name "*.go" -o -name "*.elm"
+  find . -not \( -path ./frontend/src/Generated -prune \) \
+    -not \( -path ./farmation/assets -prune \) \
+    -not \( -path ./assets -prune \) \
+    -name "*.go" -o -name "*.elm"
 }
 
 is_watch() {
@@ -175,7 +178,7 @@ is_portal_run() {
 is_portal_watch() {
   echo "watch args: $*"
   cmd=". ./is-envsetup.sh; is_portal_run $*"
-  find_src_files | entr -r /bin/sh -c "$cmd"
+  is_find_src_files | entr -r /bin/sh -c "$cmd"
 }
 
 ### Google Cloud server
