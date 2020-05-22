@@ -847,22 +847,21 @@ deleteGroup token id =
 
 navbar : Model -> (Msg -> msg) -> Element msg
 navbar model toMsg =
-    row [ width fill, spacing 20 ]
-        (link
-            ( "IS", Route.Top )
-            :: (case model.auth of
-                    SignedIn sess ->
-                        if sess.isRoot then
-                            [ link ( "users", Route.Users )
-                            , link ( "groups", Route.Groups )
-                            ]
+    wrappedRow [ width fill, spacing 20 ]
+        ((case model.auth of
+            SignedIn sess ->
+                if sess.isRoot then
+                    [ link ( "devices", Route.Users )
+                    , link ( "users", Route.Users )
+                    , link ( "groups", Route.Groups )
+                    ]
 
-                        else
-                            [ Element.none ]
+                else
+                    [ Element.none ]
 
-                    SignedOut _ ->
-                        [ Element.none ]
-               )
+            SignedOut _ ->
+                [ Element.none ]
+         )
             ++ [ el [ alignRight ] <|
                     case model.auth of
                         SignedIn sess ->
@@ -887,7 +886,7 @@ viewButtonLink ( label, route ) =
 
 link : ( String, Route ) -> Element msg
 link ( label, route ) =
-    Element.link Style.link
+    Element.link (Style.link ++ Style.h3)
         { label = text label
         , url = Route.toHref route
         }
