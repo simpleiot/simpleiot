@@ -53,6 +53,70 @@ func NewGetCmd(portalURL, deviceID string, timeout time.Duration, debug bool) fu
 	}
 }
 
+// Sample is a custom value of data.Sample with Time set to a pointer. This allows
+// omitempty to work for zero timestamps to avoid bloating JSON packets.
+type Sample struct {
+	// Type of sample (voltage, current, key, etc)
+	Type string `json:"type,omitempty" influx:"type,tag"`
+
+	// ID of the device that provided the sample
+	ID string `json:"id,omitempty" influx:"id,tag"`
+
+	// Average OR
+	// Instantaneous analog or digital value of the sample.
+	// 0 and 1 are used to represent digital values
+	Value float64 `json:"value,omitempty" influx:"value"`
+
+	// statistical values that may be calculated
+	Min float64 `json:"min,omitempty" influx:"min"`
+	Max float64 `json:"max,omitempty" influx:"max"`
+
+	// Time the sample was taken
+	Time *time.Time `json:"time,omitempty" boltholdKey:"Time" gob:"-" influx:"time"`
+
+	// Duration over which the sample was taken
+	Duration time.Duration `json:"duration,omitempty" influx:"duration"`
+
+	// Tags are additional attributes used to describe the sample
+	// You might add things like friendly name, etc.
+	Tags map[string]string `json:"tags,omitempty" influx:"-"`
+
+	// Attributes are additional numerical values
+	Attributes map[string]float64 `json:"attributes,omitempty" influx:"-"`
+}
+
+// NewSample converts a data.Sample to Sample and rounds floating point
+// values to 3 dec places.
+func NewSample(s data.Sample) Sample {
+	var time *time.Time
+
+	if !s.Time.IsZero() {
+		time = &s.Time
+	}
+
+	return Sample{
+		Type:       s.Type,
+		ID:         s.ID,
+		Value:      s.Value,
+		Min:        s.Min,
+		Max:        s.Max,
+		Time:       time,
+		Tags:       s.Tags,
+		Attributes: s.Attributes,
+	}
+}
+
+// NewSamples converts []data.Sample to []Sample
+func NewSamples(samples []data.Sample) []Sample {
+	ret := make([]Sample, len(samples))
+
+	for i, s := range samples {
+		ret[i] = NewSample(s)
+	}
+
+	return ret
+}
+
 // NewSendSamples returns a function that can be used to send samples
 // to a SimpleIoT portal instance
 func NewSendSamples(portalURL, deviceID string, timeout time.Duration, debug bool) func([]data.Sample) error {
@@ -63,7 +127,7 @@ func NewSendSamples(portalURL, deviceID string, timeout time.Duration, debug boo
 	return func(samples []data.Sample) error {
 		sampleURL := portalURL + "/v1/devices/" + deviceID + "/samples"
 
-		tempJSON, err := json.Marshal(samples)
+		tempJSON, err := json.Marshal(NewSamples(samples))
 		if err != nil {
 			log.Println("Error encoding temp: ", err)
 		}
