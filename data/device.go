@@ -1,6 +1,10 @@
 package data
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // DeviceConfig represents a device configuration (stuff that
 // is set by user in UI)
@@ -11,8 +15,9 @@ type DeviceConfig struct {
 // DeviceState represents information about a device that is
 // collected, vs set by user.
 type DeviceState struct {
-	Version DeviceVersion `json:"version"`
-	Ios     []Sample      `json:"ios"`
+	Version  DeviceVersion `json:"version"`
+	Ios      []Sample      `json:"ios"`
+	LastComm time.Time     `json:"lastComm"`
 }
 
 // Device represents the state of a device

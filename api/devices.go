@@ -138,6 +138,13 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 // we have already checked for req type, so we can skip that check
 // here
 func (h *Devices) ServeHTTPDevice(res http.ResponseWriter, req *http.Request, id, opt string) {
+	// we've heard from device, update last heard timestamp
+
+	err := deviceActivity(h.db.store, id)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+
 	switch opt {
 	case "samples":
 		h.processSamples(res, req, id)
