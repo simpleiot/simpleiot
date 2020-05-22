@@ -11,8 +11,10 @@ module Data.Device exposing
 
 import Data.Sample as Sample
 import Json.Decode as Decode
+import Json.Decode.Extra
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
+import Time
 
 
 type alias Device =
@@ -29,8 +31,22 @@ type alias Config =
 
 
 type alias State =
-    { ios : List Sample.Sample
+    { version : DeviceVersion
+    , ios : List Sample.Sample
+    , lastComm : Time.Posix
     }
+
+
+type alias DeviceVersion =
+    { os : String
+    , app : String
+    , hw : String
+    }
+
+
+emptyVersion : DeviceVersion
+emptyVersion =
+    DeviceVersion "" "" ""
 
 
 decodeList : Decode.Decoder (List Device)
@@ -49,14 +65,24 @@ decode =
 
 decodeConfig : Decode.Decoder Config
 decodeConfig =
-    Decode.map Config
-        (Decode.field "description" Decode.string)
+    Decode.succeed Config
+        |> required "description" Decode.string
 
 
 decodeState : Decode.Decoder State
 decodeState =
-    Decode.map State
-        (Decode.field "ios" (Decode.list Sample.decode))
+    Decode.succeed State
+        |> optional "version" decodeVersion emptyVersion
+        |> optional "ios" (Decode.list Sample.decode) []
+        |> optional "lastComm" Json.Decode.Extra.datetime (Time.millisToPosix 0)
+
+
+decodeVersion : Decode.Decoder DeviceVersion
+decodeVersion =
+    Decode.succeed DeviceVersion
+        |> required "os" Decode.string
+        |> required "app" Decode.string
+        |> required "hw" Decode.string
 
 
 encodeConfig : Config -> Encode.Value
