@@ -11,13 +11,13 @@ many better ways to do things.
 Please run `siot_test` from `envsetup.sh` before submitting pull requests. All
 code should be formatted and linted before committing.
 
-## flexible data structures
+## Flexible data structures
 
-As we work on IoT systems, common data structures (types) tend to emerge. Common
-data structures allow us to develop common algorithms and mechanism to process
-data. Instead of defining a new data type for each type of sensor, define one
-type that will work with all sensors. Then it is trivial to support new sensors
-and applications.
+As we work on IoT systems, data structures (types) tend to emerge. Common data
+structures allow us to develop common algorithms and mechanism to process data.
+Instead of defining a new data type for each type of sensor, define one type
+that will work with all sensors. Then it is trivial to support new sensors and
+applications.
 
 These are currently defined in the `data` directory for Go code, and
 `frontend/src/Data` directory for Elm code. A few of these data structures
@@ -44,3 +44,7 @@ possible. Thoughts on how to accomplish this:
   the backend request is being made.
 
 ## Backend architecture
+
+Currently the backend architecture is very simple as everything is driven by
+REST apis. Eventually, we'll need to have goroutines running collecting data,
+etc and figure out how to flow data through the system.

@@ -61,8 +61,19 @@ name, not a directory. The `...` tells Go to recursively test all subdirs.
 - built around collecting and visualizing data from devices
 - provide a good base system to build IoT products that may support a number of
   devices, users, rules, etc.
-- requires coding to customize. This is not a GUI for building IoT systems, but
+- is useful out of the box, but requires typically requires coding to customize
+  for specific applications. This is not a GUI for building IoT systems, but
   rather a code base software developers can use as a starting point.
+- easy to extend for new devices or custom applications.
+- the `siot` app can be a client or server. Any `siot` app can be a stand-alone
+  IoT system or act as a client and forward data to another `siot` instance.
+  Consider this example:
+  1. run `siot` app on rPI to collect data from sensors attached to it. Web UI
+     can be accessed at the rPI IP address.
+  1. the rPI `siot` instance forwards data to another `siot` instance running on
+     a server in your local network.
+  1. the server `siot` instance forwards data to another `siot` instance in the
+     cloud.
 - application technology is general, so you are not dependant on any one IoT
   company or cloud provider
 - plugin architecture for extending the system with custom functionality
