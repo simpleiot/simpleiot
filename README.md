@@ -1,6 +1,6 @@
 <img src="docs/simple-iot-logo.png?raw=true" width="150">
 
-![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=feature-auth)
+![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=master)
 
 Simple IoT is collection of building blocks and best practices for building IoT
 systems, learned from experience building real-world systems.
@@ -14,16 +14,17 @@ Demo is running at: https://portal.simpleiot.org/
 This example shows how to run the server and simulator after cloning and
 building from source.
 
-- install elm v0.19.1 and Go v1.13 (newer versions may work)
+- install Go v1.13 (newer versions may work) and node/npm
 - git clone https://github.com/simpleiot/simpleiot.git
 - `cd simpleiot`
 - `. envsetup.sh`
 - `siot_setup`
 - `siot_build`
-- start server: `./siot`
-- start simulator: `./siot -sim`
+- in one terminal, start server: `./siot`
 - open http://localhost:8080
-- `siot_run` can be used for quicker testing
+  - login with user `admin@admin.com` and password `admin`
+- in another terminal, send some data: `./siot -sendSample "1823:t1:23.5:temp"`
+  - the format of the `-sendSample` argument is: `devId:sensId:value:type`
 
 ## Fetch data from Particle.io
 
@@ -57,11 +58,33 @@ name, not a directory. The `...` tells Go to recursively test all subdirs.
 
 ## Vision
 
+This section describes some high level ideas for the project and are further
+described in the project [documentation](docs/README.md).
+
 - built around collecting and visualizing data from devices
 - provide a good base system to build IoT products that may support a number of
   devices, users, rules, etc.
-- requires coding to customize. This is not a GUI for building IoT systems, but
+- is useful out of the box, but requires typically requires coding to customize
+  for specific applications. This is not a GUI for building IoT systems, but
   rather a code base software developers can use as a starting point.
+- easy to extend for new devices or custom applications.
+- the `siot` app can be a client or server. Any `siot` app can be a stand-alone
+  IoT system or act as a client and forward data to another `siot` instance.
+  Consider this example:
+  1. run `siot` app on rPI to collect data from sensors attached to it. Web UI
+     can be accessed at the rPI IP address.
+  1. the rPI `siot` instance forwards data to another `siot` instance running on
+     a server in your local network.
+  1. the server `siot` instance forwards data to another `siot` instance in the
+     cloud.
+- data can be synchronized in any direction, as long as the receiving device is
+  on an accessible network. Sending devices always initiate the connection, and
+  can thus be behind a firewall or NAT. Typically an edge gateway collects data
+  from sensors and sends it to a cloud server. But you could also have two cloud
+  servers that send data to each other if they are both configured as upstream
+  instances.
+- configuration can be synchronized between clients and servers in either
+  direction.
 - application technology is general, so you are not dependant on any one IoT
   company or cloud provider
 - plugin architecture for extending the system with custom functionality
@@ -119,14 +142,12 @@ but just as important, in the deployment and tooling.
     - nice balance of safety + productivity
     - excellent compiler messages
     - reduces possibility for run time exceptions in browser
-    - does not require a huge/fragile build system typical in Javascript
-      frontends.
-  - [Bootstrap](http://getbootstrap.com/)
-    - mature CSS toolkit that handles browser differences and responsive design
-      for mobile reasonably well.
-    - widespread adoption and well understood by many developers
-    - well supported
-      [bindings in Elm](https://package.elm-lang.org/packages/rundis/elm-bootstrap/latest/)
+    - does not require a huge/complicated/fragile build system typical in
+      Javascript frontends.
+  - [elm-ui](https://github.com/mdgriffith/elm-ui)
+    - What if you never had to write CSS again?
+    - a fun, yet powerful way to lay out a user interface and allows you to
+      efficiently make changes and get the layout you want.
 - **Database**
   - Eventually support multiple databased backends depending on scaling/admin
     needs
@@ -158,7 +179,8 @@ to be swapped out for a better technology in the future, that is possible.
 ## Pull Requests Welcome
 
 We'd really like this to be a community project. See
-[development](DEVELOPMENT.md) for more information.
+[development](docs/DEVELOPMENT.md) for more thoughts on architecture, tooling,
+etc.
 
 ## License
 

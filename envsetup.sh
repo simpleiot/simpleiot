@@ -45,8 +45,7 @@ bbolt() {
 }
 
 siot_setup() {
-  go mod download
-  siot_check_elm || return 1
+  siot_install_frontend_deps
   return 0
 }
 
@@ -147,7 +146,7 @@ siot_elm_test() {
 # to do this automatically.
 siot_test() {
   siot_build_dependencies --optimize || return 1
-  #siot_elm_test || return 1 
+  #siot_elm_test || return 1
   #gofmt -l ./... || return 1
   go test "$@" ./... || return 1
   golint -set_exit_status ./... || return 1
