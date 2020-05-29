@@ -24,10 +24,31 @@ These are currently defined in the `data` directory for Go code, and
 include:
 
 - `Device`: represents a IoT device that is capable of communicating with a siot
-  server. Typically a Device functions as a gateway or edge device agregating
+  server. Typically a Device functions as a gateway or edge device aggregating
   data from a number of sensors and then sending the data to the siot server.
 - `Sample`: a sample of sensor data.
 - `Config`: defines a configuration parameter for a Device.
+
+## Extendible architecture
+
+Any `siot` app can function as a standalone, client, server or both. As an
+example, `siot` can function both as an edge (client) and cloud apps (server).
+
+- client: initiates and maintains connection with server. Can be behind a
+  firewall, NAT, etc.
+- server: needs to be on a network that is accessible by clients
+
+## Configuration
+
+(this section is WIP -- just ideas at this point)
+
+As Simple IoT is evolving into a distributed system, the question of
+configuration and the synchronization of config needs to be considered. Both
+client and server siot instances can make configuration changes. A example might
+be a edge device that has a local LCD and keypad that allows the user to make
+configuration changes. This configuration is synchronized to a server instance
+and changes can be made there as well. Both instances will need to communicate
+changes to the other instance and know if they are in sync.
 
 ## Frontend architecture
 
@@ -46,5 +67,5 @@ possible. Thoughts on how to accomplish this:
 ## Backend architecture
 
 Currently the backend architecture is very simple as everything is driven by
-REST apis. Eventually, we'll need to have goroutines running collecting data,
-etc and figure out how to flow data through the system.
+REST APIs. Eventually, we'll need to have goroutines running collecting data,
+running rules, etc. and figure out how to flow data through the system.

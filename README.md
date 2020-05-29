@@ -58,6 +58,9 @@ name, not a directory. The `...` tells Go to recursively test all subdirs.
 
 ## Vision
 
+This section describes some high level ideas for the project and are further
+described in the project [documentation](docs/README.md).
+
 - built around collecting and visualizing data from devices
 - provide a good base system to build IoT products that may support a number of
   devices, users, rules, etc.
@@ -74,6 +77,14 @@ name, not a directory. The `...` tells Go to recursively test all subdirs.
      a server in your local network.
   1. the server `siot` instance forwards data to another `siot` instance in the
      cloud.
+- data can be synchronized in any direction, as long as the receiving device is
+  on an accessible network. Sending devices always initiate the connection, and
+  can thus be behind a firewall or NAT. Typically an edge gateway collects data
+  from sensors and sends it to a cloud server. But you could also have two cloud
+  servers that send data to each other if they are both configured as upstream
+  instances.
+- configuration can be synchronized between clients and servers in either
+  direction.
 - application technology is general, so you are not dependant on any one IoT
   company or cloud provider
 - plugin architecture for extending the system with custom functionality
