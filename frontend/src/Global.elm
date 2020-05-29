@@ -100,6 +100,7 @@ type Msg
     | Tick Time.Posix
     | UpdateDeviceConfig String D.Config
     | UpdateDeviceGroups String (List String)
+    | UpdateDeviceCmd String D.DeviceCmd
     | UpdateUser U.User
     | DeleteUser String
     | DeleteUserResponse String (Result Http.Error Response)
@@ -107,6 +108,7 @@ type Msg
     | DeleteGroup String
     | DeleteGroupResponse String (Result Http.Error Response)
     | ConfigPosted String (Result Http.Error Response)
+    | DeviceCmdPosted String (Result Http.Error Response)
     | UserPosted String (Result Http.Error Response)
     | GroupPosted String (Result Http.Error Response)
     | CheckUser String
@@ -348,6 +350,9 @@ update msg model =
                     , postDeviceGroups sess.authToken id groups
                     )
 
+                UpdateDeviceCmd id cmd ->
+                    ( model, postDeviceCmd sess.authToken id cmd )
+
                 UpdateUser user ->
                     let
                         -- update local model to make UI optimistic
@@ -448,6 +453,24 @@ update msg model =
                             SignedIn
                                 { sess
                                     | respError = Just "Error deleting device"
+                                    , posting = False
+                                    , errorDispCount = 0
+                                }
+                      }
+                    , Cmd.none
+                    )
+
+                DeviceCmdPosted _ (Ok _) ->
+                    ( model
+                    , Cmd.none
+                    )
+
+                DeviceCmdPosted _ (Err _) ->
+                    ( { model
+                        | auth =
+                            SignedIn
+                                { sess
+                                    | respError = Just "Error saving device cmd"
                                     , posting = False
                                     , errorDispCount = 0
                                 }
@@ -745,6 +768,19 @@ postDeviceGroups token id groups =
         , url = Url.Builder.absolute [ "v1", "devices", id, "groups" ] []
         , expect = Http.expectJson (ConfigPosted id) responseDecoder
         , body = groups |> D.encodeGroups |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postDeviceCmd : String -> String -> D.DeviceCmd -> Cmd Msg
+postDeviceCmd token id cmd =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.Builder.absolute [ "v1", "devices", id, "cmd" ] []
+        , expect = Http.expectJson (DeviceCmdPosted id) responseDecoder
+        , body = cmd |> D.encodeDeviceCmd |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }

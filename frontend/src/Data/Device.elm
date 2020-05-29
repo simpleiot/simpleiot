@@ -1,9 +1,11 @@
 module Data.Device exposing
     ( Config
     , Device
+    , DeviceCmd
     , decode
     , decodeList
     , encodeConfig
+    , encodeDeviceCmd
     , encodeGroups
     )
 
@@ -41,6 +43,13 @@ type alias DeviceVersion =
     { os : String
     , app : String
     , hw : String
+    }
+
+
+type alias DeviceCmd =
+    { id : String
+    , cmd : String
+    , detail : String
     }
 
 
@@ -94,3 +103,11 @@ encodeConfig deviceConfig =
 encodeGroups : List String -> Encode.Value
 encodeGroups groups =
     Encode.list Encode.string groups
+
+
+encodeDeviceCmd : DeviceCmd -> Encode.Value
+encodeDeviceCmd cmd =
+    Encode.object
+        [ ( "cmd", Encode.string cmd.cmd )
+        , ( "detail", Encode.string cmd.detail )
+        ]
