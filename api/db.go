@@ -135,11 +135,12 @@ func deviceActivity(store *bolthold.Store, id string) error {
 		var dev data.Device
 		err := store.TxGet(tx, id, &dev)
 		if err != nil {
-			return err
+			// new devices, so populate in database
+			dev.ID = id
 		}
 
 		dev.State.LastComm = time.Now()
-		return store.TxUpdate(tx, id, dev)
+		return store.TxUpsert(tx, id, dev)
 	})
 }
 
