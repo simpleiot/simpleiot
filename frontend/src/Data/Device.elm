@@ -47,8 +47,7 @@ type alias DeviceVersion =
 
 
 type alias DeviceCmd =
-    { id : String
-    , cmd : String
+    { cmd : String
     , detail : String
     }
 
