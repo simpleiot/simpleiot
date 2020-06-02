@@ -3,6 +3,7 @@ module Data.Device exposing
     , Device
     , DeviceCmd
     , decode
+    , decodeCmd
     , decodeList
     , encodeConfig
     , encodeDeviceCmd
@@ -23,6 +24,7 @@ type alias Device =
     { id : String
     , config : Config
     , state : State
+    , cmdPending : Bool
     , groups : List String
     }
 
@@ -68,6 +70,7 @@ decode =
         |> required "id" Decode.string
         |> required "config" decodeConfig
         |> required "state" decodeState
+        |> optional "cmdPending" Decode.bool False
         |> optional "groups" (Decode.list Decode.string) []
 
 
@@ -91,6 +94,13 @@ decodeVersion =
         |> required "os" Decode.string
         |> required "app" Decode.string
         |> required "hw" Decode.string
+
+
+decodeCmd : Decode.Decoder DeviceCmd
+decodeCmd =
+    Decode.succeed DeviceCmd
+        |> required "cmd" Decode.string
+        |> optional "detail" Decode.string ""
 
 
 encodeConfig : Config -> Encode.Value
