@@ -26,7 +26,6 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isnetwork"
 	"github.com/simpleiot/simpleiot/farmation/ispower"
 	"github.com/simpleiot/simpleiot/farmation/ispressure"
-	"github.com/simpleiot/simpleiot/farmation/isserial"
 	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
 	"github.com/simpleiot/simpleiot/farmation/isupdate"
@@ -192,7 +191,7 @@ func Run(params Params) {
 	go isflow.Run(flowChan, appChan, params.Sim, config)
 	go islog.Run(logChan, appChan, state, config, dbData)
 	go ispressure.Run(presChan, appChan, config)
-	go isserial.Run(serialChan, appChan, config)
+	//go isserial.Run(serialChan, appChan, config)
 	go isnetwork.Run(networkChan, appChan, config, state,
 		params.PortalURL, params.DebugPortal)
 
