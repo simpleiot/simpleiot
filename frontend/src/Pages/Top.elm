@@ -4,6 +4,7 @@ import Data.Device as D
 import Data.Sample exposing (Sample, renderSample)
 import Element exposing (..)
 import Element.Border as Border
+import Element.Font as Font
 import Element.Input as Input
 import Farmation.Portal.Is as Is
 import Global
@@ -36,6 +37,7 @@ type Msg
     | PostConfig String D.Config
     | DiscardEditedDeviceDescription
     | DeleteDevice String
+    | DeviceCancelCmd String
     | Tick Time.Posix
     | ISFillTank String
 
@@ -78,6 +80,9 @@ update global msg model =
 
         DeleteDevice id ->
             ( model, Cmd.none, Global.send <| Global.DeleteDevice id )
+
+        DeviceCancelCmd id ->
+            ( model, Cmd.none, Global.send <| Global.DeviceCancelCmd id )
 
         Tick _ ->
             ( model
@@ -310,6 +315,16 @@ viewIS device mod isRoot =
                 Element.none
             ]
         , wrappedRow [ spacing 20 ] statusElements
+        , if device.cmdPending then
+            row [ spacing 20 ]
+                [ el [ Font.color Style.colors.coral ] <| text "command pending ..."
+                , Form.button "Cancel"
+                    Style.colors.coral
+                    (DeviceCancelCmd device.id)
+                ]
+
+          else
+            Element.none
         , text ("Min Pressure: " ++ Round.round 0 is.pressureMin)
         , text ("Max Pressure: " ++ Round.round 0 is.pressureMax)
         , row [ spacing 20 ]
