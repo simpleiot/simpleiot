@@ -210,6 +210,11 @@ func devices(store *bolthold.Store) (ret []data.Device, err error) {
 	return
 }
 
+func deviceCmds(store *bolthold.Store) (ret []data.DeviceCmd, err error) {
+	err = store.Find(&ret, nil)
+	return
+}
+
 func devicesForUser(store *bolthold.Store, userID uuid.UUID) ([]data.Device, error) {
 	var devices []data.Device
 
@@ -457,9 +462,10 @@ func groups(store *bolthold.Store) ([]data.Group, error) {
 }
 
 type dbDump struct {
-	Devices []data.Device `json:"devices"`
-	Users   []data.User   `json:"users"`
-	Groups  []data.Group  `json:"groups"`
+	Devices    []data.Device    `json:"devices"`
+	Users      []data.User      `json:"users"`
+	Groups     []data.Group     `json:"groups"`
+	DeviceCmds []data.DeviceCmd `json:"deviceCmds"`
 }
 
 // DumpDb dumps the entire db to a file
@@ -479,6 +485,11 @@ func DumpDb(db *Db, out io.Writer) error {
 	}
 
 	dump.Groups, err = groups(db.store)
+	if err != nil {
+		return err
+	}
+
+	dump.DeviceCmds, err = deviceCmds(db.store)
 	if err != nil {
 		return err
 	}
