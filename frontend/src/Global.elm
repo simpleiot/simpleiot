@@ -96,6 +96,8 @@ type Msg
     | UsersResponse (Result Http.Error (List U.User))
     | DeleteDevice String
     | DeleteDeviceResponse String (Result Http.Error Response)
+    | DeviceCancelCmd String
+    | DeviceCancelCmdResponse String (Result Http.Error D.DeviceCmd)
     | SignOut
     | Tick Time.Posix
     | UpdateDeviceConfig String D.Config
@@ -460,9 +462,30 @@ update msg model =
                     , Cmd.none
                     )
 
+                DeviceCancelCmd id ->
+                    ( model, deviceGetCmd sess.authToken id )
+
+                DeviceCancelCmdResponse _ (Ok _) ->
+                    ( model
+                    , getDevices sess.authToken
+                    )
+
+                DeviceCancelCmdResponse _ (Err _) ->
+                    ( { model
+                        | auth =
+                            SignedIn
+                                { sess
+                                    | respError = Just "Error cancelling command"
+                                    , posting = False
+                                    , errorDispCount = 0
+                                }
+                      }
+                    , Cmd.none
+                    )
+
                 DeviceCmdPosted _ (Ok _) ->
                     ( model
-                    , Cmd.none
+                    , getDevices sess.authToken
                     )
 
                 DeviceCmdPosted _ (Err _) ->
@@ -733,6 +756,19 @@ deleteDevice token id =
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
         , url = Url.Builder.absolute [ "v1", "devices", id ] []
         , expect = Http.expectJson (DeleteDeviceResponse id) responseDecoder
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+deviceGetCmd : String -> String -> Cmd Msg
+deviceGetCmd token id =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.Builder.absolute [ "v1", "devices", id, "cmd" ] []
+        , expect = Http.expectJson (DeviceCancelCmdResponse id) D.decodeCmd
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing

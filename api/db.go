@@ -116,7 +116,6 @@ func deviceDelete(store *bolthold.Store, id string) error {
 }
 
 // deviceSetVersion sets a cmd for a device, and sets the
-// CmdPending flag in the device structure.
 func deviceSetVersion(store *bolthold.Store, id string, ver data.DeviceVersion) error {
 	return update(store, func(tx *bolt.Tx) error {
 		var dev data.Device
