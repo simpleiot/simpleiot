@@ -1307,6 +1307,11 @@ func Run(params Params) {
 				switch m.Cmd {
 				case data.CmdUpdateApp:
 					updateChan <- m
+				case isdata.CmdFillTank:
+					state.CurrentTankVolume = float64(config.TankCapacity)
+					saveState()
+				default:
+					log.Println("Unknown command from portal: ", m)
 				}
 
 			case isdata.Shutdown:
