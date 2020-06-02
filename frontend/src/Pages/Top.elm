@@ -7,8 +7,11 @@ import Element.Border as Border
 import Element.Input as Input
 import Farmation.Portal.Is as Is
 import Global
+import Iso8601
 import Page exposing (Document, Page)
+import Round
 import Time
+import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors, size)
 
@@ -34,6 +37,7 @@ type Msg
     | DiscardEditedDeviceDescription
     | DeleteDevice String
     | Tick Time.Posix
+    | ISFillTank String
 
 
 page : Page Flags Model Msg
@@ -86,6 +90,13 @@ update global msg model =
                     Cmd.none
             )
 
+        ISFillTank id ->
+            ( model
+            , Cmd.none
+            , Global.send <|
+                Global.UpdateDeviceCmd id { cmd = "fillTank", detail = "" }
+            )
+
 
 subscriptions : Global.Model -> Model -> Sub Msg
 subscriptions _ _ =
@@ -120,17 +131,7 @@ viewDevices devices deviceEdit isRoot =
         ]
     <|
         List.map
-            (\dm ->
-                Is.view
-                    { msgUpdateDesc = EditDeviceDescription
-                    , msgDiscardUpdate = DiscardEditedDeviceDescription
-                    , msgSave = PostConfig
-                    , msgDeleteDevice = DeleteDevice
-                    , device = dm.device
-                    , mod = dm.mod
-                    , isRoot = isRoot
-                    }
-            )
+            (\dm -> viewIS dm.device dm.mod isRoot)
         <|
             mergeDeviceEdit devices deviceEdit
 
@@ -214,3 +215,124 @@ viewIoList ios =
         ]
     <|
         List.map (renderSample >> text) ios
+
+
+viewIS : D.Device -> Bool -> Bool -> Element Msg
+viewIS device mod isRoot =
+    let
+        is =
+            Is.deviceToInjectorSentry device
+
+        inputInj l =
+            if is.inputInjector then
+                l ++ [ image [] { src = "public/Injector.png", description = "injector" } ]
+
+            else
+                l
+
+        inputWater l =
+            if is.inputWaterOn then
+                l ++ [ image [] { src = "public/WaterOn.png", description = "water on" } ]
+
+            else
+                l
+
+        inputIrr l =
+            if is.inputIrrigator then
+                l ++ [ image [] { src = "public/Irrigator.png", description = "irrigator" } ]
+
+            else
+                l
+
+        flow l =
+            l ++ [ el Style.h3 <| text (Round.round 1 is.flowRate ++ " GPH") ]
+
+        armed l =
+            if is.armed then
+                l ++ [ image [] { src = "public/Armed.png", description = "armed" } ]
+
+            else
+                l
+
+        outputInj l =
+            if is.outputInjector then
+                l ++ [ image [] { src = "public/Injector.png", description = "injector" } ]
+
+            else
+                l
+
+        outputShutdown l =
+            if is.outputShutdown then
+                l ++ [ image [] { src = "public/Shutdown.png", description = "shutdown" } ]
+
+            else
+                l
+
+        statusElements =
+            inputInj []
+                |> inputWater
+                |> inputIrr
+                |> flow
+                |> armed
+                |> outputInj
+                |> outputShutdown
+    in
+    column
+        [ padding 20
+        , spacing 20
+        , width fill
+        , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
+        , Border.color Style.colors.black
+        ]
+        [ wrappedRow [ spacing 10 ]
+            [ el Style.h2 <| text device.id
+            , if isRoot then
+                Icon.x (DeleteDevice device.id)
+
+              else
+                Element.none
+            , Input.text
+                Style.h3
+                { label = Input.labelHidden "device description"
+                , text = device.config.description
+                , placeholder = Just <| Input.placeholder [] <| text "device description"
+                , onChange = \d -> EditDeviceDescription device.id d
+                }
+            , if mod then
+                Icon.check (PostConfig device.id device.config)
+
+              else
+                Element.none
+            , if mod then
+                Icon.x DiscardEditedDeviceDescription
+
+              else
+                Element.none
+            ]
+        , wrappedRow [ spacing 20 ] statusElements
+        , text ("Min Pressure: " ++ Round.round 0 is.pressureMin)
+        , text ("Max Pressure: " ++ Round.round 0 is.pressureMax)
+        , row [ spacing 20 ]
+            [ text ("Tank Level: " ++ Round.round 0 is.currentTankVolume ++ " gal")
+            , Form.button "Fill"
+                Style.colors.blue
+                (ISFillTank device.id)
+            ]
+        , text ("Tank Capacity: " ++ Round.round 0 is.tankCapacity ++ " gal")
+        , text ("Flow: " ++ Round.round 0 is.flowRateTarget)
+        , text
+            ("Flow Window: "
+                ++ Round.round 0 is.flowWindowLow
+                ++ " to "
+                ++ Round.round 0 is.flowWindowHigh
+            )
+        , text ("Last communication (UTC): " ++ Iso8601.fromTime device.state.lastComm)
+        , text
+            ("Versions: hw: "
+                ++ device.state.version.hw
+                ++ ", os: "
+                ++ device.state.version.os
+                ++ ", app: "
+                ++ device.state.version.app
+            )
+        ]

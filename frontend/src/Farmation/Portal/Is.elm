@@ -1,14 +1,8 @@
-module Farmation.Portal.Is exposing (view)
+module Farmation.Portal.Is exposing (InjectorSentry, deviceToInjectorSentry)
 
 import Data.Device
 import Data.Sample exposing (Sample)
 import Element exposing (..)
-import Element.Border as Border
-import Element.Input as Input
-import Iso8601
-import Round
-import UI.Icon as Icon
-import UI.Style as Style
 
 
 type alias InjectorSentry =
@@ -27,137 +21,6 @@ type alias InjectorSentry =
     , flowWindowLow : Float
     , flowWindowHigh : Float
     }
-
-
-view :
-    { msgUpdateDesc : String -> String -> msg
-    , msgDiscardUpdate : msg
-    , msgSave : String -> Data.Device.Config -> msg
-    , msgDeleteDevice : String -> msg
-    , device : Data.Device.Device
-    , mod : Bool
-    , isRoot : Bool
-    }
-    -> Element msg
-view { msgUpdateDesc, msgDiscardUpdate, msgSave, msgDeleteDevice, device, mod, isRoot } =
-    let
-        is =
-            deviceToInjectorSentry device
-
-        inputInj l =
-            if is.inputInjector then
-                l ++ [ image [] { src = "public/Injector.png", description = "injector" } ]
-
-            else
-                l
-
-        inputWater l =
-            if is.inputWaterOn then
-                l ++ [ image [] { src = "public/WaterOn.png", description = "water on" } ]
-
-            else
-                l
-
-        inputIrr l =
-            if is.inputIrrigator then
-                l ++ [ image [] { src = "public/Irrigator.png", description = "irrigator" } ]
-
-            else
-                l
-
-        flow l =
-            l ++ [ el Style.h3 <| text (Round.round 1 is.flowRate ++ " GPH") ]
-
-        armed l =
-            if is.armed then
-                l ++ [ image [] { src = "public/Armed.png", description = "armed" } ]
-
-            else
-                l
-
-        outputInj l =
-            if is.outputInjector then
-                l ++ [ image [] { src = "public/Injector.png", description = "injector" } ]
-
-            else
-                l
-
-        outputShutdown l =
-            if is.outputShutdown then
-                l ++ [ image [] { src = "public/Shutdown.png", description = "shutdown" } ]
-
-            else
-                l
-
-        statusElements =
-            inputInj []
-                |> inputWater
-                |> inputIrr
-                |> flow
-                |> armed
-                |> outputInj
-                |> outputShutdown
-    in
-    column
-        [ padding 20
-        , spacing 20
-        , width fill
-        , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
-        , Border.color Style.colors.black
-        ]
-        [ wrappedRow [ spacing 10 ]
-            [ el Style.h2 <| text device.id
-            , if isRoot then
-                Icon.x (msgDeleteDevice device.id)
-
-              else
-                Element.none
-            , Input.text
-                Style.h3
-                { label = Input.labelHidden "device description"
-                , text = device.config.description
-                , placeholder = Just <| Input.placeholder [] <| text "device description"
-                , onChange = \d -> msgUpdateDesc device.id d
-                }
-            , if mod then
-                Icon.check (msgSave device.id device.config)
-
-              else
-                Element.none
-            , if mod then
-                Icon.x msgDiscardUpdate
-
-              else
-                Element.none
-            ]
-        , wrappedRow [ spacing 20 ] statusElements
-        , text ("Min Pressure: " ++ Round.round 0 is.pressureMin)
-        , text ("Max Pressure: " ++ Round.round 0 is.pressureMax)
-        , text
-            ("Tank Level: "
-                ++ Round.round 0
-                    is.currentTankVolume
-                ++ " of "
-                ++ Round.round 0 is.tankCapacity
-                ++ " gal"
-            )
-        , text ("Target Flow: " ++ Round.round 0 is.flowRateTarget)
-        , text
-            ("Target Flow Window: "
-                ++ Round.round 0 is.flowWindowLow
-                ++ " to "
-                ++ Round.round 0 is.flowWindowHigh
-            )
-        , text ("Last communication (UTC): " ++ Iso8601.fromTime device.state.lastComm)
-        , text
-            ("Versions: hw: "
-                ++ device.state.version.hw
-                ++ ", os: "
-                ++ device.state.version.os
-                ++ ", app: "
-                ++ device.state.version.app
-            )
-        ]
 
 
 deviceToInjectorSentry : Data.Device.Device -> InjectorSentry
