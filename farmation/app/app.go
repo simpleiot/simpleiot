@@ -226,7 +226,7 @@ func Run(params Params) {
 	var lastStateSend time.Time
 	var lastStateSendSlow time.Time
 
-	saveState := func() {
+	saveStateWithSync := func(syncNow bool) {
 		if params.DebugState {
 			fmt.Println("State:")
 			spew.Dump(state)
@@ -239,7 +239,7 @@ func Run(params Params) {
 		// pace the sending of states to various subsystems
 		// so we don't overload things
 		now := time.Now()
-		if now.Sub(lastStateSend) > 200*time.Millisecond {
+		if syncNow || now.Sub(lastStateSend) > 200*time.Millisecond {
 			uiChan <- state
 			ioChan <- state
 			cntrlChan <- state
@@ -253,10 +253,18 @@ func Run(params Params) {
 			lastStateSend = now
 		}
 
-		if now.Sub(lastStateSendSlow) > 5*time.Second {
+		if syncNow || now.Sub(lastStateSendSlow) > 5*time.Second {
 			networkChan <- state
 			lastStateSendSlow = now
 		}
+	}
+
+	saveState := func() {
+		saveStateWithSync(false)
+	}
+
+	saveStateSync := func() {
+		saveStateWithSync(true)
 	}
 
 	if config.Arm && state.GpioRelayInjectorEn {
@@ -1308,7 +1316,9 @@ func Run(params Params) {
 					updateChan <- m
 				case isdata.CmdFillTank:
 					state.CurrentTankVolume = float64(config.TankCapacity)
-					saveState()
+					saveStateSync()
+					networkChan <- m
+
 				default:
 					log.Println("Unknown command from portal: ", m)
 				}

@@ -265,6 +265,16 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 					modem.Enable(!bool(m))
 				}
 
+			case data.DeviceCmd:
+				if m.Cmd == isdata.CmdFillTank {
+					samples := []data.Sample{
+						{Type: "currentTankVolume",
+							Value: state.CurrentTankVolume,
+						},
+					}
+					sendSamples(samples)
+				}
+
 			default:
 				log.Printf("isnet mux: unhandled message of type %T: %+v\r\n", m, m)
 			}
