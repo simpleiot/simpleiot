@@ -344,6 +344,7 @@ func migration0(c *Config) {
 }
 
 func migration1(c *Config) {
+	c.UserPumpMode = UserPumpModeInj
 
 	if c.DeviceName == "" {
 		c.DeviceName = "InjectorSentry"
