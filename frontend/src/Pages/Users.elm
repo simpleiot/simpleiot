@@ -90,7 +90,7 @@ subscriptions _ _ =
 
 view : Global.Model -> Model -> Document Msg
 view global model =
-    { title = "Users"
+    { title = "SIOT Users"
     , body =
         [ case global.auth of
             Global.SignedIn sess ->
