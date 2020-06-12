@@ -102,7 +102,7 @@ view global model =
             [ el Style.h2 <| text "Devices"
             , case global.auth of
                 Global.SignedIn sess ->
-                    viewDevices sess.data.devices model.deviceEdit sess.isRoot
+                    viewDevices sess.data.devices model sess.isRoot
 
                 _ ->
                     el [ padding 16 ] <| text "Sign in to view your devices."
@@ -111,8 +111,8 @@ view global model =
     }
 
 
-viewDevices : List D.Device -> Maybe DeviceEdit -> Bool -> Element Msg
-viewDevices devices deviceEdit isRoot =
+viewDevices : List D.Device -> Model -> Bool -> Element Msg
+viewDevices devices model isRoot =
     column
         [ width fill
         , spacing 24
@@ -123,7 +123,7 @@ viewDevices devices deviceEdit isRoot =
                 viewDevice d.mod d.device isRoot
             )
         <|
-            mergeDeviceEdit devices deviceEdit
+            mergeDeviceEdit devices model.deviceEdit
 
 
 type alias DeviceMod =
