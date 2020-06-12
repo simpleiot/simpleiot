@@ -2,5 +2,6 @@ package isdata
 
 // define valid commands
 const (
-	CmdFillTank string = "fillTank"
+	CmdFillTank     string = "fillTank"
+	CmdSetTankLevel string = "setTankLevel"
 )

@@ -27,19 +27,36 @@ type alias DeviceEdit =
     }
 
 
+type alias SwUpdate =
+    { id : String
+    , version : String
+    }
+
+
+type alias SetTank =
+    { id : String
+    , level : Float
+    }
+
+
 type alias Model =
     { deviceEdit : Maybe DeviceEdit
+    , swUpdate : Maybe SwUpdate
+    , setTank : Maybe SetTank
     }
 
 
 type Msg
     = EditDeviceDescription String String
+    | EditSwUpdateVersion String String
+    | EditSetTank String String
     | PostConfig String D.Config
     | DiscardEditedDeviceDescription
     | DeleteDevice String
     | DeviceCancelCmd String
     | Tick Time.Posix
     | ISFillTank String
+    | DeviceCmd String String String
 
 
 page : Page Flags Model Msg
@@ -54,7 +71,7 @@ page =
 
 init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ _ =
-    ( Model Nothing, Cmd.none, Global.send Global.RequestDevices )
+    ( Model Nothing Nothing Nothing, Cmd.none, Global.send Global.RequestDevices )
 
 
 update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
@@ -102,6 +119,40 @@ update global msg model =
                 Global.UpdateDeviceCmd id { cmd = "fillTank", detail = "" }
             )
 
+        DeviceCmd id cmd detail ->
+            ( model
+            , Cmd.none
+            , Global.send <|
+                Global.UpdateDeviceCmd id { cmd = cmd, detail = detail }
+            )
+
+        EditSwUpdateVersion id version ->
+            ( { model | swUpdate = Just { id = id, version = version } }
+            , Cmd.none
+            , Cmd.none
+            )
+
+        EditSetTank id level ->
+            let
+                levelF =
+                    if level == "" then
+                        0
+
+                    else
+                        Maybe.withDefault
+                            (Maybe.withDefault
+                                { id = ""
+                                , level = 0
+                                }
+                                model.setTank
+                            ).level
+                            (String.toFloat level)
+            in
+            ( { model | setTank = Just { id = id, level = levelF } }
+            , Cmd.none
+            , Cmd.none
+            )
+
 
 subscriptions : Global.Model -> Model -> Sub Msg
 subscriptions _ _ =
@@ -136,7 +187,7 @@ viewDevices devices model isRoot =
         ]
     <|
         List.map
-            (\dm -> viewIS dm.device dm.mod isRoot)
+            (\dm -> viewIS dm.device dm.mod isRoot model)
         <|
             mergeDeviceEdit devices model.deviceEdit
 
@@ -222,8 +273,8 @@ viewIoList ios =
         List.map (renderSample >> text) ios
 
 
-viewIS : D.Device -> Bool -> Bool -> Element Msg
-viewIS device mod isRoot =
+viewIS : D.Device -> Bool -> Bool -> Model -> Element Msg
+viewIS device mod isRoot model =
     let
         is =
             Is.deviceToInjectorSentry device
@@ -333,6 +384,36 @@ viewIS device mod isRoot =
                 Style.colors.blue
                 (ISFillTank device.id)
             ]
+        , row [ spacing 20 ]
+            [ Input.text []
+                { onChange = \l -> EditSetTank device.id l
+                , text =
+                    case model.setTank of
+                        Nothing ->
+                            ""
+
+                        Just setTank ->
+                            if setTank.id == device.id then
+                                String.fromFloat setTank.level
+
+                            else
+                                ""
+                , placeholder = Just <| Input.placeholder [] <| text "tank level"
+                , label = Input.labelLeft [ centerY ] <| text "Set tank level"
+                }
+            , case model.setTank of
+                Nothing ->
+                    Element.none
+
+                Just setTank ->
+                    Form.button "Set now"
+                        Style.colors.blue
+                        (DeviceCmd
+                            setTank.id
+                            "setTankLevel"
+                            (String.fromFloat setTank.level)
+                        )
+            ]
         , text ("Tank Capacity: " ++ Round.round 0 is.tankCapacity ++ " gal")
         , text ("Flow: " ++ Round.round 0 is.flowRateTarget)
         , text
@@ -350,4 +431,41 @@ viewIS device mod isRoot =
                 ++ ", app: "
                 ++ device.state.version.app
             )
+        , if isRoot then
+            row [ spacing 20 ]
+                [ Input.text []
+                    { onChange = \v -> EditSwUpdateVersion device.id v
+                    , text =
+                        case model.swUpdate of
+                            Nothing ->
+                                ""
+
+                            Just swUpdate ->
+                                if swUpdate.id == device.id then
+                                    swUpdate.version
+
+                                else
+                                    ""
+                    , placeholder = Just <| Input.placeholder [] <| text "enter SW version"
+                    , label = Input.labelLeft [ centerY ] <| text "SW Update"
+                    }
+                , case model.swUpdate of
+                    Nothing ->
+                        Element.none
+
+                    Just swUpdate ->
+                        Form.button "Update now"
+                            Style.colors.blue
+                            (DeviceCmd
+                                swUpdate.id
+                                "updateApp"
+                                ("https://storage.googleapis.com/farmation-update/is/is-app_"
+                                    ++ swUpdate.version
+                                    ++ ".xz"
+                                )
+                            )
+                ]
+
+          else
+            Element.none
         ]

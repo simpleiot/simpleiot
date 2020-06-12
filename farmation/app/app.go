@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path"
 	"runtime"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -1311,6 +1312,7 @@ func Run(params Params) {
 				saveState()
 
 			case data.DeviceCmd:
+				log.Printf("Command from portal: %+v\n", m)
 				switch m.Cmd {
 				case data.CmdUpdateApp:
 					updateChan <- m
@@ -1318,6 +1320,15 @@ func Run(params Params) {
 					state.CurrentTankVolume = float64(config.TankCapacity)
 					saveStateSync()
 					networkChan <- m
+				case isdata.CmdSetTankLevel:
+					level, err := strconv.Atoi(m.Detail)
+					if err != nil {
+						log.Println("Error parsing command from portal: ", err)
+					} else {
+						state.CurrentTankVolume = float64(level)
+						saveStateSync()
+						networkChan <- m
+					}
 
 				default:
 					log.Println("Unknown command from portal: ", m)

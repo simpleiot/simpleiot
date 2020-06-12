@@ -266,13 +266,16 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				}
 
 			case data.DeviceCmd:
-				if m.Cmd == isdata.CmdFillTank {
+				switch m.Cmd {
+				case isdata.CmdFillTank, isdata.CmdSetTankLevel:
 					samples := []data.Sample{
 						{Type: "currentTankVolume",
 							Value: state.CurrentTankVolume,
 						},
 					}
 					sendSamples(samples)
+				default:
+					log.Println("isnetwork: unknown cmd: ", m.Cmd)
 				}
 
 			default:
