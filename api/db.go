@@ -24,15 +24,20 @@ type Db struct {
 }
 
 // NewDb creates a new Db instance for the app
-func NewDb(dataDir string) (*Db, error) {
+func NewDb(dataDir string, init bool) (*Db, error) {
 	dbFile := path.Join(dataDir, "data.db")
 	store, err := bolthold.Open(dbFile, 0666, nil)
 	if err != nil {
+		log.Println("bolthold open failed: ", err)
 		return nil, err
 	}
 
 	db := &Db{store: store}
-	return db, initialize(db.store)
+	if init {
+		return db, initialize(db.store)
+	}
+
+	return db, nil
 }
 
 // deviceUpdateConfig updates the config for a device.
@@ -264,13 +269,6 @@ func users(store *bolthold.Store) ([]data.User, error) {
 	return ret, err
 }
 
-// group returns the Group with the given ID.
-func group(store *bolthold.Store, id uuid.UUID) (data.Group, error) {
-	var group data.Group
-	err := store.FindOne(&group, bolthold.Where("ID").Eq(id))
-	return group, err
-}
-
 type privilege string
 
 // check if user/password
@@ -344,6 +342,7 @@ func initialize(store *bolthold.Store) error {
 
 	// add root group and admin user
 	return update(store, func(tx *bolt.Tx) error {
+		log.Println("adding root group and admin user ...")
 
 		admin := data.User{
 			ID:        zero,
@@ -406,6 +405,23 @@ func insertUser(store *bolthold.Store, user data.User) (string, error) {
 func updateUser(store *bolthold.Store, user data.User) error {
 	return update(store, func(tx *bolt.Tx) error {
 		if err := store.TxUpdate(tx, user.ID, user); err != nil {
+			log.Printf("Error updating user %v, try fixing key\n", user.Email)
+
+			// Delete current user with bad key
+			err := store.TxDeleteMatching(tx, data.User{},
+				bolthold.Where("ID").Eq(user.ID))
+
+			if err != nil {
+				log.Println("Error deleting user when trying to fix up: ", err)
+				return err
+			}
+
+			// try to insert group
+			if err = store.TxUpsert(tx, user.ID, user); err != nil {
+				log.Println("Error updating user after delete: ", err)
+				return err
+			}
+
 			return err
 		}
 
@@ -416,6 +432,23 @@ func updateUser(store *bolthold.Store, user data.User) error {
 // deleteUser deletes a user from the database
 func deleteUser(store *bolthold.Store, id uuid.UUID) error {
 	return store.Delete(id, data.User{})
+}
+
+// Groups returns all groups.
+func groups(store *bolthold.Store) ([]data.Group, error) {
+	var ret []data.Group
+	if err := store.Find(&ret, nil); err != nil {
+		return ret, fmt.Errorf("problem finding groups: %v", err)
+	}
+
+	return ret, nil
+}
+
+// group returns the Group with the given ID.
+func group(store *bolthold.Store, id uuid.UUID) (data.Group, error) {
+	var group data.Group
+	err := store.FindOne(&group, bolthold.Where("ID").Eq(id))
+	return group, err
 }
 
 func insertGroup(store *bolthold.Store, group data.Group) (string, error) {
@@ -434,10 +467,25 @@ func insertGroup(store *bolthold.Store, group data.Group) (string, error) {
 	return id.String(), err
 }
 
-func updateGroup(store *bolthold.Store, group data.Group) error {
+func updateGroup(store *bolthold.Store, gUpdate data.Group) error {
 	return update(store, func(tx *bolt.Tx) error {
-		if err := store.TxUpdate(tx, group.ID, group); err != nil {
-			return err
+		if err := store.TxUpdate(tx, gUpdate.ID, gUpdate); err != nil {
+			log.Printf("Error updating group %v, try fixing key\n", gUpdate.Name)
+
+			// Delete current group with bad key
+			err := store.TxDeleteMatching(tx, data.Group{},
+				bolthold.Where("ID").Eq(gUpdate.ID))
+
+			if err != nil {
+				log.Println("Error deleting group when trying to fix up: ", err)
+				return err
+			}
+
+			// try to insert group
+			if err = store.TxUpsert(tx, gUpdate.ID, gUpdate); err != nil {
+				log.Println("Error updating group after delete: ", err)
+				return err
+			}
 		}
 
 		return nil
@@ -454,16 +502,6 @@ func newIfZero(id uuid.UUID) uuid.UUID {
 		return uuid.New()
 	}
 	return id
-}
-
-// Groups returns all groups.
-func groups(store *bolthold.Store) ([]data.Group, error) {
-	var ret []data.Group
-	if err := store.Find(&ret, nil); err != nil {
-		return ret, fmt.Errorf("problem finding groups: %v", err)
-	}
-
-	return ret, nil
 }
 
 type dbDump struct {

@@ -22,25 +22,27 @@ func NewGroupsHandler(db *Db, v RequestValidator) Groups {
 
 // ServeHTTP serves group requests.
 func (o Groups) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	validUser, userID := o.validator.Valid(req)
+	validUser, _ := o.validator.Valid(req)
 	if !validUser {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	userUUID, err := uuid.Parse(userID)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
+	/*
+		userUUID, err := uuid.Parse(userID)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
 
-	// only allow requests if user is part of root group
-	isRoot, err := checkUserIsRoot(o.db.store, userUUID)
+		// only allow requests if user is part of root group
+		isRoot, err := checkUserIsRoot(o.db.store, userUUID)
 
-	if !isRoot {
-		res.Write([]byte("[]"))
-		return
-	}
+		if !isRoot {
+			res.Write([]byte("[]"))
+			return
+		}
+	*/
 
 	var id string
 	id, req.URL.Path = ShiftPath(req.URL.Path)
