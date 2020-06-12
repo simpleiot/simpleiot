@@ -116,7 +116,6 @@ func deviceDelete(store *bolthold.Store, id string) error {
 }
 
 // deviceSetVersion sets a cmd for a device, and sets the
-// CmdPending flag in the device structure.
 func deviceSetVersion(store *bolthold.Store, id string, ver data.DeviceVersion) error {
 	return update(store, func(tx *bolt.Tx) error {
 		var dev data.Device
@@ -206,6 +205,11 @@ func deviceGetCmd(store *bolthold.Store, id string) (data.DeviceCmd, error) {
 
 // devices returns all devices.
 func devices(store *bolthold.Store) (ret []data.Device, err error) {
+	err = store.Find(&ret, nil)
+	return
+}
+
+func deviceCmds(store *bolthold.Store) (ret []data.DeviceCmd, err error) {
 	err = store.Find(&ret, nil)
 	return
 }
@@ -457,9 +461,10 @@ func groups(store *bolthold.Store) ([]data.Group, error) {
 }
 
 type dbDump struct {
-	Devices []data.Device `json:"devices"`
-	Users   []data.User   `json:"users"`
-	Groups  []data.Group  `json:"groups"`
+	Devices    []data.Device    `json:"devices"`
+	Users      []data.User      `json:"users"`
+	Groups     []data.Group     `json:"groups"`
+	DeviceCmds []data.DeviceCmd `json:"deviceCmds"`
 }
 
 // DumpDb dumps the entire db to a file
@@ -479,6 +484,11 @@ func DumpDb(db *Db, out io.Writer) error {
 	}
 
 	dump.Groups, err = groups(db.store)
+	if err != nil {
+		return err
+	}
+
+	dump.DeviceCmds, err = deviceCmds(db.store)
 	if err != nil {
 		return err
 	}
