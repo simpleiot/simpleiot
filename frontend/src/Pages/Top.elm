@@ -406,13 +406,17 @@ viewIS device mod isRoot model =
                     Element.none
 
                 Just setTank ->
-                    Form.button "Set now"
-                        Style.colors.blue
-                        (DeviceCmd
-                            setTank.id
-                            "setTankLevel"
-                            (String.fromFloat setTank.level)
-                        )
+                    if setTank.id == device.id then
+                        Form.button "Set now"
+                            Style.colors.blue
+                            (DeviceCmd
+                                setTank.id
+                                "setTankLevel"
+                                (String.fromFloat setTank.level)
+                            )
+
+                    else
+                        Element.none
             ]
         , text ("Tank Capacity: " ++ Round.round 0 is.tankCapacity ++ " gal")
         , text ("Flow: " ++ Round.round 0 is.flowRateTarget)
@@ -454,16 +458,20 @@ viewIS device mod isRoot model =
                         Element.none
 
                     Just swUpdate ->
-                        Form.button "Update now"
-                            Style.colors.blue
-                            (DeviceCmd
-                                swUpdate.id
-                                "updateApp"
-                                ("https://storage.googleapis.com/farmation-update/is/is-app_"
-                                    ++ swUpdate.version
-                                    ++ ".xz"
+                        if swUpdate.id == device.id then
+                            Form.button "Update now"
+                                Style.colors.blue
+                                (DeviceCmd
+                                    swUpdate.id
+                                    "updateApp"
+                                    ("https://storage.googleapis.com/farmation-update/is/is-app_"
+                                        ++ swUpdate.version
+                                        ++ ".xz"
+                                    )
                                 )
-                            )
+
+                        else
+                            Element.none
                 ]
 
           else
