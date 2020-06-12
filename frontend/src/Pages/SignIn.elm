@@ -77,7 +77,7 @@ subscriptions _ _ =
 
 view : Global.Model -> Model -> Document Msg
 view _ model =
-    { title = "SIOT SignIn"
+    { title = "IS SignIn"
     , body =
         [ el [ centerX, centerY ] <|
             form

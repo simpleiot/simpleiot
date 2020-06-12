@@ -112,7 +112,7 @@ subscriptions _ _ =
 
 view : Global.Model -> Model -> Document Msg
 view global model =
-    { title = "SIOT Devices"
+    { title = "IS Devices"
     , body =
         [ column
             [ width fill, spacing 32 ]
