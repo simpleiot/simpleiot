@@ -7,6 +7,10 @@ systems, learned from experience building real-world systems.
 
 Demo is running at: https://portal.simpleiot.org/
 
+The Simple IoT project also includes open source gateway
+[firmware](https://github.com/simpleiot/firmware/tree/master/siot-fw) and
+[hardware](https://github.com/simpleiot/hardware) designs.
+
 [Detailed Documentation](docs/README.md)
 
 ## Example 1 (build from source)

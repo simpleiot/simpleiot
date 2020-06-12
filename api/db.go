@@ -83,24 +83,16 @@ func deviceSample(store *bolthold.Store, id string, sample data.Sample) error {
 	return update(store, func(tx *bolt.Tx) error {
 		var dev data.Device
 		err := store.TxGet(tx, id, &dev)
-		switch err {
-		case bolthold.ErrNotFound:
-			// New devices are automatically part of root group
-			dev := data.Device{
-				ID: id,
-				State: data.DeviceState{
-					Ios: []data.Sample{sample},
-				},
-				Groups: []uuid.UUID{zero},
+		if err != nil {
+			if err == bolthold.ErrNotFound {
+				dev.ID = id
+			} else {
+				return err
 			}
-
-			return store.TxInsert(tx, id, dev)
-
-		case nil:
-			dev.ProcessSample(sample)
-			return store.TxUpdate(tx, id, dev)
 		}
-		return err
+
+		dev.ProcessSample(sample)
+		return store.TxUpsert(tx, id, dev)
 	})
 }
 
@@ -134,8 +126,11 @@ func deviceActivity(store *bolthold.Store, id string) error {
 		var dev data.Device
 		err := store.TxGet(tx, id, &dev)
 		if err != nil {
-			// new devices, so populate in database
-			dev.ID = id
+			if err == bolthold.ErrNotFound {
+				dev.ID = id
+			} else {
+				return err
+			}
 		}
 
 		dev.State.LastComm = time.Now()
@@ -217,7 +212,18 @@ func deviceCmds(store *bolthold.Store) (ret []data.DeviceCmd, err error) {
 func devicesForUser(store *bolthold.Store, userID uuid.UUID) ([]data.Device, error) {
 	var devices []data.Device
 
-	err := view(store, func(tx *bolt.Tx) error {
+	isRoot, err := checkUserIsRoot(store, userID)
+	if err != nil {
+		return devices, err
+	}
+
+	if isRoot {
+		// return all devices for root users
+		err := store.Find(&devices, nil)
+		return devices, err
+	}
+
+	err = view(store, func(tx *bolt.Tx) error {
 		// First find groups users is part of
 		var allGroups []data.Group
 		err := store.TxFind(tx, &allGroups, nil)
