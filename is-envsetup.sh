@@ -86,7 +86,7 @@ is_build() {
 
 is_build_arm() {
   is_build_dependencies || return 1
-  GOARCH=arm go build -o is_arm farmation/cmd/injector-sentry/main.go || return 1
+  GOARCH=arm GOARM=7 go build -ldflags="-s -w" -o is_arm farmation/cmd/injector-sentry/main.go || return 1
   GOARCH=arm go build -o lcd_test farmation/cmd/lcd-test/main.go || return 1
   GOARCH=arm go build -o lindsay_sim farmation/cmd/lindsay-sim/main.go || return 1
   GOARCH=arm go build -o issplash farmation/cmd/splash/main.go || return 1
