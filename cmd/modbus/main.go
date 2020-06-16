@@ -34,6 +34,8 @@ func main() {
 	flagFormatUInt16 := flag.Bool("uint16", false, "Interpret result as 16-bit unsigned integer")
 	flagFormatInt32 := flag.Bool("int32", false, "Interpret result as 32-bit signed integer")
 	flagFormatUInt32 := flag.Bool("uint32", false, "Interpret result as 32-bit unsigned integer")
+	flagFormatFloat32 := flag.Bool("float32", false, "Interpret result as 32-bit floating point")
+	flagScale := flag.Float64("scale", 1, "Scale data by some factor")
 
 	flag.Parse()
 
@@ -60,7 +62,7 @@ func main() {
 	portRR := respreader.NewReadWriteCloser(port, time.Second*1, time.Millisecond*30)
 	client := modbus.NewClient(portRR, 1)
 
-	if *flagFormatInt32 || *flagFormatUInt32 {
+	if *flagFormatInt32 || *flagFormatUInt32 || *flagFormatFloat32 {
 		*flagCount = *flagCount * 2
 	}
 
@@ -84,19 +86,28 @@ func main() {
 		}
 
 		if *flagFormatInt16 {
+			values := modbus.RegsToInt16(regs)
+			for i, v := range values {
+				log.Printf("Value %v: %v\n", i, float64(v)*(*flagScale))
+			}
 		} else if *flagFormatUInt16 {
 			for i, r := range regs {
-				log.Printf("Value %v: %v\n", i, r)
+				log.Printf("Value %v: %v\n", i, float64(r)*(*flagScale))
 			}
 		} else if *flagFormatInt32 {
 			values := modbus.RegsToInt32(regs)
 			for i, v := range values {
-				log.Printf("Value %v: %v\n", i, v)
+				log.Printf("Value %v: %v\n", i, float64(v)*(*flagScale))
 			}
 		} else if *flagFormatUInt32 {
 			values := modbus.RegsToUint32(regs)
 			for i, v := range values {
-				log.Printf("Value %v: %v\n", i, v)
+				log.Printf("Value %v: %v\n", i, float64(v)*(*flagScale))
+			}
+		} else if *flagFormatFloat32 {
+			values := modbus.RegsToFloat32(regs)
+			for i, v := range values {
+				log.Printf("Value %v: %v\n", i, float64(v)*(*flagScale))
 			}
 		} else {
 			for i, r := range regs {

@@ -1,6 +1,9 @@
 package modbus
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"math"
+)
 
 // PutUint16Array creates a sequence of uint16 data.
 func PutUint16Array(value ...uint16) []byte {
@@ -54,6 +57,20 @@ func RegsToInt32(in []uint16) []int32 {
 		binary.BigEndian.PutUint16(buf[0:], in[i*2])
 		binary.BigEndian.PutUint16(buf[2:], in[i*2+1])
 		ret[i] = int32(binary.BigEndian.Uint32(buf))
+	}
+
+	return ret
+}
+
+// RegsToFloat32 converts modbus regs to float32 values
+func RegsToFloat32(in []uint16) []float32 {
+	count := len(in) / 2
+	ret := make([]float32, count)
+	for i := range ret {
+		buf := make([]byte, 4)
+		binary.BigEndian.PutUint16(buf[0:], in[i*2])
+		binary.BigEndian.PutUint16(buf[2:], in[i*2+1])
+		ret[i] = math.Float32frombits(binary.BigEndian.Uint32(buf))
 	}
 
 	return ret
