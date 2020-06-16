@@ -30,6 +30,10 @@ func main() {
 	flagCount := flag.Int("count", 1, "number of values to read")
 	flagReadHoldingRegs := flag.Int("readHoldingRegs", -1, "address to read")
 	flagAddress := flag.Int("address", 1, "device address")
+	flagFormatInt16 := flag.Bool("int16", false, "Interpret result as 16-bit signed integer")
+	flagFormatUInt16 := flag.Bool("uint16", false, "Interpret result as 16-bit unsigned integer")
+	flagFormatInt32 := flag.Bool("int32", false, "Interpret result as 32-bit signed integer")
+	flagFormatUInt32 := flag.Bool("uint32", false, "Interpret result as 32-bit unsigned integer")
 
 	flag.Parse()
 
@@ -56,6 +60,10 @@ func main() {
 	portRR := respreader.NewReadWriteCloser(port, time.Second*1, time.Millisecond*30)
 	client := modbus.NewClient(portRR, 1)
 
+	if *flagFormatInt32 || *flagFormatUInt32 {
+		*flagCount = *flagCount * 2
+	}
+
 	if *flagReadHoldingRegs > 0 {
 		log.Printf("Reading holding reg adr: 0x%x, cnt: %v\n",
 			*flagReadHoldingRegs, *flagCount)
@@ -75,8 +83,25 @@ func main() {
 			os.Exit(-1)
 		}
 
-		for i, r := range regs {
-			log.Printf("Reg result %v: 0x%x\n", i, r)
+		if *flagFormatInt16 {
+		} else if *flagFormatUInt16 {
+			for i, r := range regs {
+				log.Printf("Value %v: %v\n", i, r)
+			}
+		} else if *flagFormatInt32 {
+			values := modbus.RegsToInt32(regs)
+			for i, v := range values {
+				log.Printf("Value %v: %v\n", i, v)
+			}
+		} else if *flagFormatUInt32 {
+			values := modbus.RegsToUint32(regs)
+			for i, v := range values {
+				log.Printf("Value %v: %v\n", i, v)
+			}
+		} else {
+			for i, r := range regs {
+				log.Printf("Reg result %v: 0x%x\n", i, r)
+			}
 		}
 	}
 }

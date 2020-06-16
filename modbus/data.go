@@ -20,3 +20,41 @@ func Uint16Array(data []byte) []uint16 {
 	}
 	return ret
 }
+
+// RegsToInt16 converts modbus regs to int16 values
+func RegsToInt16(in []uint16) []int16 {
+	ret := make([]int16, len(in))
+	for i := range in {
+		ret[i] = int16(in[i])
+	}
+
+	return ret
+}
+
+// RegsToUint32 converts modbus regs to uint32 values
+func RegsToUint32(in []uint16) []uint32 {
+	count := len(in) / 2
+	ret := make([]uint32, count)
+	for i := range ret {
+		buf := make([]byte, 4)
+		binary.BigEndian.PutUint16(buf[0:], in[i*2])
+		binary.BigEndian.PutUint16(buf[2:], in[i*2+1])
+		ret[i] = binary.BigEndian.Uint32(buf)
+	}
+
+	return ret
+}
+
+// RegsToInt32 converts modbus regs to int32 values
+func RegsToInt32(in []uint16) []int32 {
+	count := len(in) / 2
+	ret := make([]int32, count)
+	for i := range ret {
+		buf := make([]byte, 4)
+		binary.BigEndian.PutUint16(buf[0:], in[i*2])
+		binary.BigEndian.PutUint16(buf[2:], in[i*2+1])
+		ret[i] = int32(binary.BigEndian.Uint32(buf))
+	}
+
+	return ret
+}
