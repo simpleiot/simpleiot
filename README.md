@@ -104,7 +104,7 @@ described in the project [documentation](docs/README.md).
   - (mongodb, Google Cloud Datastore, influxdb, etc) for larger deployments or
     other needs.
 
-## features
+## Features
 
 - [x] edit/save device config
 - [x] device management
@@ -117,6 +117,9 @@ described in the project [documentation](docs/README.md).
 - [x] user accounts
 - [x] group support (assign users and devices to a group so users can only see
       devices they own).
+- [x] Modbus RTU pkg (both client and server)
+- [x] Command line Modbus utlity
+- [ ] COAP API for devices
 - [ ] influxdb 2.x support
 - [ ] store timeseries data in bolthold
 - [ ] esp32 client example
