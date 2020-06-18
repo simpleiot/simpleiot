@@ -4,6 +4,7 @@ require (
 	github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa
 	github.com/beevik/ntp v0.3.0
 	github.com/benbjohnson/genesis v0.2.1
+	github.com/cavaliercoder/grab v2.0.0+incompatible
 	github.com/cbrake/influxdbhelper/v2 v2.1.4
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
