@@ -88,13 +88,13 @@ func main() {
 		dataDir = "./"
 	}
 
-	dbInst, err := api.NewDb(dataDir)
-	if err != nil {
-		log.Println("Error opening db: ", err)
-		os.Exit(-1)
-	}
-
 	if *flagDumpDb {
+		dbInst, err := api.NewDb(dataDir, false)
+		if err != nil {
+			log.Println("Error opening db: ", err)
+			os.Exit(-1)
+		}
+
 		f, err := os.Create("data.json")
 		if err != nil {
 			log.Println("Error opening data.json: ", err)
@@ -111,6 +111,12 @@ func main() {
 		log.Println("Database written to data.json")
 
 		os.Exit(0)
+	}
+
+	dbInst, err := api.NewDb(dataDir, true)
+	if err != nil {
+		log.Println("Error opening db: ", err)
+		os.Exit(-1)
 	}
 
 	// set up influxdb support if configured

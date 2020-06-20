@@ -42,7 +42,7 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 
 	switch req.URL.Path {
-	case "/", "/orgs", "/users", "/devices", "/sign-in":
+	case "/", "/orgs", "/users", "/devices", "/sign-in", "/groups":
 		h.IndexHandler.ServeHTTP(res, req)
 
 	default:
