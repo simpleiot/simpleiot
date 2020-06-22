@@ -50,7 +50,7 @@ func (k Key) NewToken(userID uuid.UUID) (string, error) {
 	// FIXME Id is probably not the proper place to put the userid
 	// but works for now
 	claims := jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(30 * time.Minute).Unix(),
+		ExpiresAt: time.Now().Add(768 * time.Hour).Unix(),
 		Issuer:    "simpleiot",
 		Id:        userID.String(),
 	}
