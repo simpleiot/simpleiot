@@ -353,6 +353,8 @@ func Run(params Params) {
 	*/
 
 	exportingDataMessage := "Exporting data to USB Disk\n\nPlease Wait ..."
+	poweroffStarted := false
+
 	mainloopFile := "/run/is-mainloop"
 	for {
 		if runtime.GOARCH == "arm" {
@@ -1093,6 +1095,7 @@ func Run(params Params) {
 				dlgReboot.Message = "Reboot started, please wait"
 				if runtime.GOARCH != "arm" {
 					log.Println("on development platform, not rebooting")
+					appChan <- isdata.ShutdownStart{}
 				} else {
 					log.Println("Menu reboot selected, rebooting ...")
 					err := exec.Command("reboot").Run()
@@ -1334,8 +1337,41 @@ func Run(params Params) {
 					log.Println("Unknown command from portal: ", m)
 				}
 
-			case isdata.Shutdown:
+			// shutdown is sent to the network channel to
+			// communicate to portal that we are shutting down
+			// once this is done, the network channel sends
+			// back the Shutdown message
+			case isdata.ShutdownStart:
+				log.Println("Starting shutdown sequence")
 				dlgShutdown.Active = true
+				networkChan <- m
+
+				go func() {
+					// after 20s start shutdown seq
+					// anyway in case network go routine
+					// is stuck sending data to portal
+					time.Sleep(20 * time.Second)
+					appChan <- isdata.Shutdown{}
+				}()
+
+			case isdata.Shutdown:
+				// shutdown system
+				if !poweroffStarted {
+					log.Println("Powering off system")
+					poweroffStarted = true
+					if runtime.GOARCH != "arm" {
+						err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+						if err != nil {
+							log.Println("Error sending int signal to self: ", err)
+						}
+					} else {
+						err := exec.Command("poweroff").Start()
+
+						if err != nil {
+							log.Println("Error executing power off command")
+						}
+					}
+				}
 				saveState()
 
 			case data.GpsPos:

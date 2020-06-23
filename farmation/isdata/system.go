@@ -72,5 +72,8 @@ type HelpScreenContent struct {
 // HelpScreenClose is a message to the app thread to close the help screen
 type HelpScreenClose struct{}
 
+// ShutdownStart starts shutdown sequence
+type ShutdownStart struct{}
+
 // Shutdown indicates the system is shutting down
 type Shutdown struct{}

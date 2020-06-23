@@ -125,6 +125,18 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	getCmdAPI := api.NewGetCmd(portal, state.SerialNumber, time.Second*10, debugPortal)
 	setVersionAPI := api.NewSetVersion(portal, state.SerialNumber, time.Second*10, debugPortal)
 
+	// the following function is used to stub out portal communication
+	// during shutdown
+	stopTalking := func() {
+		sendSamplesAPI = func(samples []data.Sample) error {
+			return nil
+		}
+
+		getCmdAPI = func() (data.DeviceCmd, error) {
+			return data.DeviceCmd{}, nil
+		}
+	}
+
 	whenChangedSamplesFilter := api.NewSampleFilter(0, 15*time.Minute)
 	analogSamplesFilter := api.NewSampleFilter(30*time.Second, 15*time.Minute)
 
@@ -277,6 +289,26 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				default:
 					log.Println("isnetwork: unknown cmd: ", m.Cmd)
 				}
+
+			case isdata.ShutdownStart:
+				if !interfaceStatus.Connected {
+					log.Println("Sending poweroff state to portal")
+					// send latest data to portal and then
+					// power off cmd
+					samples := getConfigSamples(&config)
+					samples = append(samples, getDigIoSamples(&state)...)
+					samples = append(samples, getAnalogSamples(&state)...)
+					samples = append(samples, data.Sample{
+						Type:  data.SampleTypeSysState,
+						Value: float64(data.SysStatePowerOff),
+					})
+					sendSamples(samples)
+				}
+				// it is important no additional samples be sent
+				// after poweroff system state or else the portal
+				// will tag the GW as being online
+				stopTalking()
+				out <- isdata.Shutdown{}
 
 			default:
 				log.Printf("isnet mux: unhandled message of type %T: %+v\r\n", m, m)

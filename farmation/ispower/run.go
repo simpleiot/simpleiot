@@ -2,7 +2,6 @@ package ispower
 
 import (
 	"log"
-	"os/exec"
 	"runtime"
 	"time"
 
@@ -67,20 +66,12 @@ func Run(in, out chan interface{}) {
 				log.Printf("after 3sec, backup voltage delta is: %.3f\n", s.Value-vStartPowerLoss)
 				if s.Value-vStartPowerLoss < -0.008 {
 					log.Println("Power loss for 3 seconds, shutting down")
-					out <- isdata.Shutdown{}
+					out <- isdata.ShutdownStart{}
 
 					// turn off backlight to save power
 					isio.GpioOut(isio.GpioLcdPwm, false)
 
-					// shutdown system
-					err := exec.Command("poweroff").Start()
-
-					if err != nil {
-						log.Println("Error executing power off command")
-					} else {
-						// sleep forever waiting for power off
-						poweringOff = true
-					}
+					poweringOff = true
 
 				} else {
 					log.Println("After 3 seconds, super cap does not seem to be dropping, start over")
