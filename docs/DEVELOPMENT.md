@@ -1,4 +1,8 @@
-# Simple IoT Development
+---
+id: development
+title: Development
+sidebar_label: Development
+---
 
 This document attempts to outlines the basic architecture and development
 philosophy. The basics are covered in the [readme](../README.md). As the name

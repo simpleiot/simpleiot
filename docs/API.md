@@ -1,4 +1,8 @@
-# API
+---
+id: api
+title: API
+sidebar_label: API
+---
 
 (the current API documentation is not current -- looking for a better way to
 document that API)

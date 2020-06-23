@@ -1,4 +1,8 @@
-# Environment Variables
+---
+id: envvars
+title: Environment Variables
+sidebar_label: Environment Variables
+---
 
 Environment variables are used to control various aspects of the application.
 The following are currently defined:
