@@ -139,6 +139,7 @@ func deviceActivity(store *bolthold.Store, id string) error {
 		}
 
 		dev.State.LastComm = time.Now()
+		dev.State.SysState = data.SysStateOnline
 		return store.TxUpsert(tx, id, dev)
 	})
 }
