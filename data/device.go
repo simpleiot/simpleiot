@@ -12,12 +12,26 @@ type DeviceConfig struct {
 	Description string `json:"description"`
 }
 
+// SysState defines the system state
+type SysState int
+
+// define valid system states
+// don't even think about changing the below as it used
+// in communications -- add new numbers
+// if something needs changed/added.
+const (
+	SysStatePowerOff SysState = 1
+	SysStateOffline           = 2
+	SysStateOnline            = 3
+)
+
 // DeviceState represents information about a device that is
 // collected, vs set by user.
 type DeviceState struct {
 	Version  DeviceVersion `json:"version"`
 	Ios      []Sample      `json:"ios"`
 	LastComm time.Time     `json:"lastComm"`
+	SysState SysState      `json:"sysState"`
 }
 
 // Device represents the state of a device
@@ -36,15 +50,23 @@ type Device struct {
 // ProcessSample takes a sample for a device and adds/updates in Ios
 func (d *Device) ProcessSample(sample Sample) {
 	ioFound := false
-	for i, io := range d.State.Ios {
-		if io.ID == sample.ID && io.Type == sample.Type {
-			ioFound = true
-			d.State.Ios[i] = sample
+	// decide if sample is for IOs or device state
+	if sample.ForDevice() {
+		switch sample.Type {
+		case SampleTypeSysState:
+			d.State.SysState = SysState(sample.Value)
 		}
-	}
+	} else {
+		for i, io := range d.State.Ios {
+			if io.ID == sample.ID && io.Type == sample.Type {
+				ioFound = true
+				d.State.Ios[i] = sample
+			}
+		}
 
-	if !ioFound {
-		d.State.Ios = append(d.State.Ios, sample)
+		if !ioFound {
+			d.State.Ios = append(d.State.Ios, sample)
+		}
 	}
 }
 

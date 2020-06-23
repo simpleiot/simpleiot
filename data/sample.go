@@ -8,6 +8,7 @@ const (
 	SampleTypeStartSystem        = "startSystem"
 	SampleTypeUpdateOS           = "updateOS"
 	SampleTypeUpdateApp          = "updateApp"
+	SampleTypeSysState           = "sysState"
 )
 
 // Sample represents a value in time and should include data that may be
@@ -40,6 +41,14 @@ type Sample struct {
 
 	// Attributes are additional numerical values
 	Attributes map[string]float64 `json:"attributes,omitempty" influx:"-"`
+}
+
+func (s Sample) ForDevice() bool {
+	if s.Type == SampleTypeSysState {
+		return true
+	}
+
+	return false
 }
 
 // Bool returns a bool representation of value
