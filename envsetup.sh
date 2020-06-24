@@ -9,11 +9,11 @@ export GOBIN=$GOPATH/bin
 # map tools from project go modules
 
 genesis() {
-  go run github.com/benbjohnson/genesis/cmd/genesis "$@"
+  GOARCH= go run github.com/benbjohnson/genesis/cmd/genesis "$@"
 }
 
 golint() {
-  go run golang.org/x/lint/golint "$@"
+  GOARCH= go run golang.org/x/lint/golint "$@"
 }
 
 bbolt() {

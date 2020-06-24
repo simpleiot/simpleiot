@@ -43,6 +43,7 @@ type Sample struct {
 	Attributes map[string]float64 `json:"attributes,omitempty" influx:"-"`
 }
 
+// ForDevice tells us if a sample is for device (vs IO)
 func (s Sample) ForDevice() bool {
 	if s.Type == SampleTypeSysState {
 		return true

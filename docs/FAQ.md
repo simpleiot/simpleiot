@@ -1,4 +1,8 @@
-# Simple IoT FAQ
+---
+id: faq
+title: FAQ
+sidebar_label: FAQ
+---
 
 ### Q: How is this project different than Home Assistant, OpenHAB, Domoticz, etc.?
 

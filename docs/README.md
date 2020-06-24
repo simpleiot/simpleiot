@@ -1,3 +1,9 @@
+---
+id: overview
+title: Overview
+sidebar_label: Overview
+---
+
 # Simple IoT Documentation
 
 - [Development](DEVELOPMENT.md)
