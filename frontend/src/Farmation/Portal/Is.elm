@@ -52,7 +52,7 @@ isApplyIos is ios =
                 "gpioRelayInjectorEn" ->
                     isApplyIos { is | outputInjector = floatToBool x.value } xs
 
-                "gpioRelayShutdownEn" ->
+                "gpioShutdownEn" ->
                     isApplyIos { is | outputShutdown = floatToBool x.value } xs
 
                 "flowRate" ->
