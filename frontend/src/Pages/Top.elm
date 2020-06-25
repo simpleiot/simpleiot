@@ -3,6 +3,7 @@ module Pages.Top exposing (Flags, Model, Msg, page)
 import Data.Device as D
 import Data.Sample exposing (Sample, renderSample)
 import Element exposing (..)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -312,6 +313,14 @@ viewIS device mod isRoot model =
                 _ ->
                     Element.none
 
+        background =
+            case device.state.sysState of
+                3 ->
+                    Style.colors.white
+
+                _ ->
+                    Style.colors.gray
+
         is =
             Is.deviceToInjectorSentry device
 
@@ -375,6 +384,7 @@ viewIS device mod isRoot model =
         , width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
         , Border.color Style.colors.black
+        , Background.color background
         ]
         [ wrappedRow [ spacing 10 ]
             [ sysStateIcon
@@ -385,7 +395,7 @@ viewIS device mod isRoot model =
               else
                 Element.none
             , Input.text
-                Style.h3
+                (Background.color background :: Style.h3)
                 { label = Input.labelHidden "device description"
                 , text = device.config.description
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
@@ -417,44 +427,52 @@ viewIS device mod isRoot model =
         , text ("Max Pressure: " ++ Round.round 0 is.pressureMax)
         , row [ spacing 20 ]
             [ text ("Tank Level: " ++ Round.round 0 is.currentTankVolume ++ " gal")
-            , Form.button "Fill"
-                Style.colors.blue
-                (ISFillTank device.id)
+            , if device.state.sysState == 3 then
+                Form.button "Fill"
+                    Style.colors.blue
+                    (ISFillTank device.id)
+
+              else
+                Element.none
             ]
-        , row [ spacing 20 ]
-            [ Input.text []
-                { onChange = \l -> EditSetTank device.id l
-                , text =
-                    case model.setTank of
-                        Nothing ->
-                            ""
-
-                        Just setTank ->
-                            if setTank.id == device.id then
-                                String.fromFloat setTank.level
-
-                            else
+        , if device.state.sysState == 3 then
+            row [ spacing 20 ]
+                [ Input.text []
+                    { onChange = \l -> EditSetTank device.id l
+                    , text =
+                        case model.setTank of
+                            Nothing ->
                                 ""
-                , placeholder = Just <| Input.placeholder [] <| text "tank level"
-                , label = Input.labelLeft [ centerY ] <| text "Set tank level"
-                }
-            , case model.setTank of
-                Nothing ->
-                    Element.none
 
-                Just setTank ->
-                    if setTank.id == device.id then
-                        Form.button "Set now"
-                            Style.colors.blue
-                            (DeviceCmd
-                                setTank.id
-                                "setTankLevel"
-                                (String.fromFloat setTank.level)
-                            )
+                            Just setTank ->
+                                if setTank.id == device.id then
+                                    String.fromFloat setTank.level
 
-                    else
+                                else
+                                    ""
+                    , placeholder = Just <| Input.placeholder [] <| text "tank level"
+                    , label = Input.labelLeft [ centerY ] <| text "Set tank level"
+                    }
+                , case model.setTank of
+                    Nothing ->
                         Element.none
-            ]
+
+                    Just setTank ->
+                        if setTank.id == device.id then
+                            Form.button "Set now"
+                                Style.colors.blue
+                                (DeviceCmd
+                                    setTank.id
+                                    "setTankLevel"
+                                    (String.fromFloat setTank.level)
+                                )
+
+                        else
+                            Element.none
+                ]
+
+          else
+            Element.none
         , text ("Tank Capacity: " ++ Round.round 0 is.tankCapacity ++ " gal")
         , text ("Flow Setpoint: " ++ Round.round 0 is.flowRateTarget)
         , text
@@ -472,7 +490,7 @@ viewIS device mod isRoot model =
                 ++ ", app: "
                 ++ device.state.version.app
             )
-        , if isRoot then
+        , if isRoot && device.state.sysState == 3 then
             row [ spacing 20 ]
                 [ Input.text []
                     { onChange = \v -> EditSwUpdateVersion device.id v
