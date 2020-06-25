@@ -40,6 +40,31 @@ func NewDb(dataDir string, init bool) (*Db, error) {
 	return db, nil
 }
 
+func (db *Db) update(fn func(tx *bolt.Tx) error) error {
+	return db.store.Bolt().Update(fn)
+}
+
+func (db *Db) view(fn func(tx *bolt.Tx) error) error {
+	return db.store.Bolt().View(fn)
+}
+
+// device returns data for a particular device
+func (db *Db) Device(id string) (ret data.Device, err error) {
+	err = db.store.Get(id, &ret)
+	return
+}
+
+// Devices returns all devices.
+func (db *Db) Devices() (ret []data.Device, err error) {
+	err = db.store.Find(&ret, nil)
+	return
+}
+
+// DeviceDelete deletes a device from the database
+func (db *Db) DeviceDelete(id string) error {
+	return db.store.Delete(id, data.Device{})
+}
+
 // DeviceUpdateConfig updates the config for a device.
 func (db *Db) DeviceUpdateConfig(id string, config data.DeviceConfig) error {
 	return db.update(func(tx *bolt.Tx) error {
@@ -68,14 +93,6 @@ func (db *Db) DeviceUpdateGroups(id string, groups []uuid.UUID) error {
 	})
 }
 
-func (db *Db) update(fn func(tx *bolt.Tx) error) error {
-	return db.store.Bolt().Update(fn)
-}
-
-func (db *Db) view(fn func(tx *bolt.Tx) error) error {
-	return db.store.Bolt().View(fn)
-}
-
 var zero uuid.UUID
 
 // DeviceSample processes a sample for a particular device
@@ -94,17 +111,6 @@ func (db *Db) DeviceSample(id string, sample data.Sample) error {
 		dev.ProcessSample(sample)
 		return db.store.TxUpsert(tx, id, dev)
 	})
-}
-
-// device returns data for a particular device
-func (db *Db) Device(id string) (ret data.Device, err error) {
-	err = db.store.Get(id, &ret)
-	return
-}
-
-// DeviceDelete deletes a device from the database
-func (db *Db) DeviceDelete(id string) error {
-	return db.store.Delete(id, data.Device{})
 }
 
 // DeviceSetVersion sets a cmd for a device, and sets the
@@ -197,12 +203,6 @@ func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
 	}
 
 	return cmd, err
-}
-
-// Devices returns all devices.
-func (db *Db) Devices() (ret []data.Device, err error) {
-	err = db.store.Find(&ret, nil)
-	return
 }
 
 // DeviceCmds returns all commands for device
