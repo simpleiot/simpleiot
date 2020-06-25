@@ -456,7 +456,7 @@ viewIS device mod isRoot model =
                         Element.none
             ]
         , text ("Tank Capacity: " ++ Round.round 0 is.tankCapacity ++ " gal")
-        , text ("Flow: " ++ Round.round 0 is.flowRateTarget)
+        , text ("Flow Setpoint: " ++ Round.round 0 is.flowRateTarget)
         , text
             ("Flow Window: "
                 ++ Round.round 0 is.flowWindowLow
