@@ -7,22 +7,23 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/db"
 )
 
 // Users handles user requests.
 type Users struct {
-	db        *Db
+	db        *db.Db
 	validator RequestValidator
 }
 
 // NewUsersHandler returns a new handler for user requests.
-func NewUsersHandler(db *Db, v RequestValidator) Users {
+func NewUsersHandler(db *db.Db, v RequestValidator) Users {
 	return Users{db: db, validator: v}
 }
 
 // ServeHTTP serves user requests.
-func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	validUser, userID := u.validator.Valid(req)
+func (h Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	validUser, userID := h.validator.Valid(req)
 	if !validUser {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -35,7 +36,7 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// only allow requests if user is part of root org
-	isRoot, err := checkUserIsRoot(u.db.store, userUUID)
+	isRoot, err := h.db.UserIsRoot(userUUID)
 
 	if !isRoot {
 		res.Write([]byte("[]"))
@@ -51,7 +52,7 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			email := req.URL.Query().Get("email")
 			// get all users
 			if email != "" {
-				user, err := userByEmail(u.db.store, email)
+				user, err := h.db.UserByEmail(email)
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusNotFound)
 					return
@@ -60,7 +61,7 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			users, err := users(u.db.store)
+			users, err := h.db.Users()
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
@@ -74,7 +75,7 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 		case http.MethodPost:
 			// create user
-			u.insertUser(res, req)
+			h.insertUser(res, req)
 			return
 
 		default:
@@ -92,7 +93,7 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
 		// get a single user
-		user, err := userByID(u.db.store, id)
+		user, err := h.db.UserByID(id)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 			return
@@ -102,11 +103,11 @@ func (u Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	case http.MethodPost:
 		// update a single user
-		u.updateUser(id, res, req)
+		h.updateUser(id, res, req)
 		return
 
 	case http.MethodDelete:
-		err := deleteUser(u.db.store, idUUID)
+		err := h.db.UserDelete(idUUID)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 		} else {
@@ -128,14 +129,14 @@ func encode(w io.Writer, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-func (u Users) insertUser(res http.ResponseWriter, req *http.Request) {
+func (h Users) insertUser(res http.ResponseWriter, req *http.Request) {
 	var user data.User
 	if err := decode(req.Body, &user); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	id, err := insertUser(u.db.store, user)
+	id, err := h.db.UserInsert(user)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -144,7 +145,7 @@ func (u Users) insertUser(res http.ResponseWriter, req *http.Request) {
 	encode(res, data.StandardResponse{Success: true, ID: id})
 }
 
-func (u Users) updateUser(ID string, res http.ResponseWriter, req *http.Request) {
+func (h Users) updateUser(ID string, res http.ResponseWriter, req *http.Request) {
 	var user data.User
 	if err := decode(req.Body, &user); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
@@ -158,7 +159,7 @@ func (u Users) updateUser(ID string, res http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	if err := updateUser(u.db.store, user); err != nil {
+	if err := h.db.UserUpdate(user); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -7,22 +7,23 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/db"
 )
 
 // Groups handles group requests.
 type Groups struct {
-	db        *Db
+	db        *db.Db
 	validator RequestValidator
 }
 
 // NewGroupsHandler returns a new handler for group requests.
-func NewGroupsHandler(db *Db, v RequestValidator) Groups {
+func NewGroupsHandler(db *db.Db, v RequestValidator) Groups {
 	return Groups{db: db, validator: v}
 }
 
 // ServeHTTP serves group requests.
-func (o Groups) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	validUser, _ := o.validator.Valid(req)
+func (h Groups) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	validUser, _ := h.validator.Valid(req)
 	if !validUser {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -51,7 +52,7 @@ func (o Groups) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		switch req.Method {
 		case http.MethodGet:
 			// get all groups
-			groups, err := groups(o.db.store)
+			groups, err := h.db.Groups()
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
@@ -65,7 +66,7 @@ func (o Groups) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 		case http.MethodPost:
 			// create user
-			o.insertGroup(res, req)
+			h.insertGroup(res, req)
 			return
 
 		default:
@@ -84,7 +85,7 @@ func (o Groups) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case http.MethodGet:
 		// get a single group
 
-		group, err := group(o.db.store, idUUID)
+		group, err := h.db.Group(idUUID)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 			return
@@ -94,11 +95,11 @@ func (o Groups) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	case http.MethodPost:
 		// update a single group
-		o.updateGroup(idUUID, res, req)
+		h.updateGroup(idUUID, res, req)
 		return
 
 	case http.MethodDelete:
-		err := deleteGroup(o.db.store, idUUID)
+		err := h.db.GroupDelete(idUUID)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 		} else {
@@ -111,7 +112,7 @@ func (o Groups) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 }
 
-func (o Groups) insertGroup(res http.ResponseWriter, req *http.Request) {
+func (h Groups) insertGroup(res http.ResponseWriter, req *http.Request) {
 	var group data.Group
 	if err := decode(req.Body, &group); err != nil {
 		log.Println("Error decoding group: ", err)
@@ -119,7 +120,7 @@ func (o Groups) insertGroup(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := insertGroup(o.db.store, group)
+	id, err := h.db.GroupInsert(group)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -128,7 +129,7 @@ func (o Groups) insertGroup(res http.ResponseWriter, req *http.Request) {
 	encode(res, data.StandardResponse{Success: true, ID: id})
 }
 
-func (o Groups) updateGroup(ID uuid.UUID, res http.ResponseWriter, req *http.Request) {
+func (h Groups) updateGroup(ID uuid.UUID, res http.ResponseWriter, req *http.Request) {
 	var group data.Group
 	if err := decode(req.Body, &group); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
@@ -137,7 +138,7 @@ func (o Groups) updateGroup(ID uuid.UUID, res http.ResponseWriter, req *http.Req
 
 	group.ID = ID
 
-	if err := updateGroup(o.db.store, group); err != nil {
+	if err := h.db.GroupUpdate(group); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}

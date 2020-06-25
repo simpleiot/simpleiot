@@ -20,7 +20,8 @@ type SysState int
 // in communications -- add new numbers
 // if something needs changed/added.
 const (
-	SysStatePowerOff SysState = 1
+	SysStateUnknown  SysState = 0
+	SysStatePowerOff          = 1
 	SysStateOffline           = 2
 	SysStateOnline            = 3
 )
@@ -68,6 +69,22 @@ func (d *Device) ProcessSample(sample Sample) {
 			d.State.Ios = append(d.State.Ios, sample)
 		}
 	}
+}
+
+// UpdateState does routine updates of state (offline status, etc).
+// Returns true if state was updated.
+func (d *Device) UpdateState() bool {
+	switch d.State.SysState {
+	case SysStateUnknown, SysStateOnline:
+		if time.Since(d.State.LastComm) > 30*time.Second {
+			// mark device as offline
+			d.State.SysState = SysStateOffline
+			return true
+
+		}
+	}
+
+	return false
 }
 
 // define valid commands
