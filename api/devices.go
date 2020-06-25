@@ -12,13 +12,13 @@ import (
 
 // Devices handles device requests
 type Devices struct {
-	db     *Db
+	db     *db.Db
 	influx *db.Influx
 	check  RequestValidator
 }
 
 // NewDevicesHandler returns a new device handler
-func NewDevicesHandler(db *Db, influx *db.Influx, v RequestValidator) http.Handler {
+func NewDevicesHandler(db *db.Db, influx *db.Influx, v RequestValidator) http.Handler {
 	return &Devices{db, influx, v}
 }
 
@@ -57,9 +57,7 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if id == "" {
 		switch req.Method {
 		case http.MethodGet:
-			// get all devices
-			// TODO: only get user devices
-			devices, err := devicesForUser(h.db.store, userUUID)
+			devices, err := h.db.DevicesForUser(userUUID)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
@@ -77,12 +75,11 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// process requests with an ID.
-	// FIXME uses userID to gate requests
 	switch head {
 	case "":
 		switch req.Method {
 		case http.MethodGet:
-			device, err := device(h.db.store, id)
+			device, err := h.db.Device(id)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
@@ -90,7 +87,7 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				en.Encode(device)
 			}
 		case http.MethodDelete:
-			err := deviceDelete(h.db.store, id)
+			err := h.db.DeviceDelete(id)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
@@ -140,7 +137,7 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 func (h *Devices) ServeHTTPDevice(res http.ResponseWriter, req *http.Request, id, opt string) {
 	// we've heard from device, update last heard timestamp
 
-	err := deviceActivity(h.db.store, id)
+	err := h.db.DeviceActivity(id)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
@@ -150,7 +147,7 @@ func (h *Devices) ServeHTTPDevice(res http.ResponseWriter, req *http.Request, id
 		h.processSamples(res, req, id)
 
 	case "cmd":
-		cmd, err := deviceGetCmd(h.db.store, id)
+		cmd, err := h.db.DeviceGetCmd(id)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}
@@ -183,7 +180,7 @@ func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id stri
 	// set ID in case it is not set in API call
 	c.ID = id
 
-	err = deviceSetCmd(h.db.store, c)
+	err = h.db.DeviceSetCmd(c)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -202,7 +199,7 @@ func (h *Devices) processVersion(res http.ResponseWriter, req *http.Request, id 
 		return
 	}
 
-	err = deviceSetVersion(h.db.store, id, v)
+	err = h.db.DeviceSetVersion(id, v)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -221,7 +218,7 @@ func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id s
 		return
 	}
 
-	err = deviceUpdateConfig(h.db.store, id, c)
+	err = h.db.DeviceUpdateConfig(id, c)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
@@ -239,7 +236,7 @@ func (h *Devices) updateDeviceGroups(res http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	err = deviceUpdateGroups(h.db.store, id, groups)
+	err = h.db.DeviceUpdateGroups(id, groups)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
@@ -258,7 +255,7 @@ func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id 
 	}
 
 	for _, s := range samples {
-		err = deviceSample(h.db.store, id, s)
+		err = h.db.DeviceSample(id, s)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}

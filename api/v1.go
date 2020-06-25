@@ -33,7 +33,7 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 // NewV1Handler returns a handle for V1 API
-func NewV1Handler(db *Db, influx *db.Influx, auth Authorizer) http.Handler {
+func NewV1Handler(db *db.Db, influx *db.Influx, auth Authorizer) http.Handler {
 
 	return &V1{
 		GroupsHandler:  NewGroupsHandler(db, auth),

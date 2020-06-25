@@ -5,11 +5,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/db"
 )
 
 // Auth handles user authentication requests.
 type Auth struct {
-	db  *Db
+	db  *db.Db
 	key NewTokener
 }
 
@@ -19,7 +20,7 @@ type NewTokener interface {
 }
 
 // NewAuthHandler returns a new authentication handler using the given key.
-func NewAuthHandler(db *Db, key NewTokener) Auth {
+func NewAuthHandler(db *db.Db, key NewTokener) Auth {
 	return Auth{db: db, key: key}
 }
 
@@ -33,7 +34,7 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	email := req.FormValue("email")
 	password := req.FormValue("password")
 
-	user, err := checkUser(auth.db.store, email, password)
+	user, err := auth.db.UserCheck(email, password)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -50,7 +51,7 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	isRoot, err := checkUserIsRoot(auth.db.store, user.ID)
+	isRoot, err := auth.db.UserIsRoot(user.ID)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return

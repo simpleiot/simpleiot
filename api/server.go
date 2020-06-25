@@ -76,7 +76,7 @@ func NewAppHandler(args ServerArgs) http.Handler {
 // ServerArgs can be used to pass arguments to the server subsystem
 type ServerArgs struct {
 	Port       string
-	DbInst     *Db
+	DbInst     *db.Db
 	Influx     *db.Influx
 	GetAsset   func(string) []byte
 	Filesystem http.FileSystem

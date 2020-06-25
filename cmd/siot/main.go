@@ -89,7 +89,7 @@ func main() {
 	}
 
 	if *flagDumpDb {
-		dbInst, err := api.NewDb(dataDir, false)
+		dbInst, err := db.NewDb(dataDir, false)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -100,7 +100,7 @@ func main() {
 			log.Println("Error opening data.json: ", err)
 			os.Exit(-1)
 		}
-		err = api.DumpDb(dbInst, f)
+		err = db.DumpDb(dbInst, f)
 
 		if err != nil {
 			log.Println("Error dumping database: ", err)
@@ -113,7 +113,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	dbInst, err := api.NewDb(dataDir, true)
+	dbInst, err := db.NewDb(dataDir, true)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)
