@@ -15,6 +15,7 @@ import (
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/device"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
 )
@@ -176,6 +177,8 @@ func main() {
 			log.Println("Error generating key: ", err)
 		}
 	}
+
+	go device.Manager(dbInst)
 
 	err = api.Server(api.ServerArgs{
 		Port:       port,

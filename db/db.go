@@ -61,7 +61,7 @@ func (db *Db) Devices() (ret []data.Device, err error) {
 }
 
 // DeviceEach iterates through each device calling provided function
-func (db *Db) DeviceEach(callback func(device *data.Device)) error {
+func (db *Db) DeviceEach(callback func(device *data.Device) error) error {
 	return db.store.ForEach(nil, callback)
 }
 
@@ -129,6 +129,24 @@ func (db *Db) DeviceSetVersion(id string, ver data.DeviceVersion) error {
 
 		dev.State.Version = ver
 		return db.store.TxUpdate(tx, id, dev)
+	})
+}
+
+// DeviceSetState is used to set the current system state
+func (db *Db) DeviceSetState(id string, state data.SysState) error {
+	return db.update(func(tx *bolt.Tx) error {
+		var dev data.Device
+		err := db.store.TxGet(tx, id, &dev)
+		if err != nil {
+			if err == bolthold.ErrNotFound {
+				dev.ID = id
+			} else {
+				return err
+			}
+		}
+
+		dev.State.SysState = state
+		return db.store.TxUpsert(tx, id, dev)
 	})
 }
 
