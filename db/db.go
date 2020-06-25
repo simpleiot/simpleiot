@@ -48,7 +48,7 @@ func (db *Db) view(fn func(tx *bolt.Tx) error) error {
 	return db.store.Bolt().View(fn)
 }
 
-// device returns data for a particular device
+// Device returns data for a particular device
 func (db *Db) Device(id string) (ret data.Device, err error) {
 	err = db.store.Get(id, &ret)
 	return
@@ -58,6 +58,11 @@ func (db *Db) Device(id string) (ret data.Device, err error) {
 func (db *Db) Devices() (ret []data.Device, err error) {
 	err = db.store.Find(&ret, nil)
 	return
+}
+
+// DeviceEach iterates through each device calling provided function
+func (db *Db) DeviceEach(callback func(device *data.Device)) error {
+	return db.store.ForEach(nil, callback)
 }
 
 // DeviceDelete deletes a device from the database
@@ -127,6 +132,8 @@ func (db *Db) DeviceSetVersion(id string, ver data.DeviceVersion) error {
 	})
 }
 
+// DeviceActivity is used to tell the system there has been activity
+// from this device
 func (db *Db) DeviceActivity(id string) error {
 	return db.update(func(tx *bolt.Tx) error {
 		var dev data.Device
@@ -145,7 +152,7 @@ func (db *Db) DeviceActivity(id string) error {
 	})
 }
 
-// deviceSetCmd sets a cmd for a device, and sets the
+// DeviceSetCmd sets a cmd for a device, and sets the
 // CmdPending flag in the device structure.
 func (db *Db) DeviceSetCmd(cmd data.DeviceCmd) error {
 	return db.update(func(tx *bolt.Tx) error {
@@ -375,12 +382,14 @@ func (db *Db) DevicesForGroup(tx *bolt.Tx, groupID uuid.UUID) ([]data.Device, er
 	return devices, err
 }
 
+// UserInsert inserts a new user
 func (db *Db) UserInsert(user data.User) (string, error) {
 	id := uuid.New()
 	err := db.store.Insert(id, user)
 	return id.String(), err
 }
 
+// UserUpdate updates a new user
 func (db *Db) UserUpdate(user data.User) error {
 	return db.update(func(tx *bolt.Tx) error {
 		if err := db.store.TxUpdate(tx, user.ID, user); err != nil {
@@ -423,13 +432,14 @@ func (db *Db) Groups() ([]data.Group, error) {
 	return ret, nil
 }
 
-// Broup returns the Group with the given ID.
+// Group returns the Group with the given ID.
 func (db *Db) Group(id uuid.UUID) (data.Group, error) {
 	var group data.Group
 	err := db.store.FindOne(&group, bolthold.Where("ID").Eq(id))
 	return group, err
 }
 
+// GroupInsert inserts a new group
 func (db *Db) GroupInsert(group data.Group) (string, error) {
 	id := uuid.New()
 
