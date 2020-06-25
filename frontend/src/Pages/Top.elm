@@ -152,6 +152,22 @@ mergeDeviceEdit devices devConfigEdit =
 
 viewDevice : Bool -> D.Device -> Bool -> Element Msg
 viewDevice mod device isRoot =
+    let
+        sysStateIcon =
+            case device.state.sysState of
+                -- not sure who D.sysStatePowerOff does not work here ...
+                1 ->
+                    Icon.power
+
+                2 ->
+                    Icon.cloudOff
+
+                3 ->
+                    Icon.cloud
+
+                _ ->
+                    Element.none
+    in
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
@@ -159,7 +175,8 @@ viewDevice mod device isRoot =
         , spacing 6
         ]
         [ wrappedRow [ spacing 10 ]
-            [ viewDeviceId device.id
+            [ sysStateIcon
+            , viewDeviceId device.id
             , if isRoot then
                 Icon.x (DeleteDevice device.id)
 
