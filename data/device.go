@@ -76,7 +76,7 @@ func (d *Device) ProcessSample(sample Sample) {
 func (d *Device) UpdateState() bool {
 	switch d.State.SysState {
 	case SysStateUnknown, SysStateOnline:
-		if time.Since(d.State.LastComm) > 30*time.Second {
+		if time.Since(d.State.LastComm) > 15*time.Minute {
 			// mark device as offline
 			d.State.SysState = SysStateOffline
 			return true
