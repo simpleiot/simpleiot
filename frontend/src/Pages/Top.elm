@@ -276,6 +276,25 @@ viewIoList ios =
 viewIS : D.Device -> Bool -> Bool -> Model -> Element Msg
 viewIS device mod isRoot model =
     let
+        -- following is just to make linter happy
+        _ =
+            viewDevice
+
+        sysStateIcon =
+            case device.state.sysState of
+                -- not sure who D.sysStatePowerOff does not work here ...
+                1 ->
+                    Icon.power
+
+                2 ->
+                    Icon.cloudOff
+
+                3 ->
+                    Icon.cloud
+
+                _ ->
+                    Element.none
+
         is =
             Is.deviceToInjectorSentry device
 
@@ -341,7 +360,8 @@ viewIS device mod isRoot model =
         , Border.color Style.colors.black
         ]
         [ wrappedRow [ spacing 10 ]
-            [ el Style.h2 <| text device.id
+            [ sysStateIcon
+            , el Style.h2 <| text device.id
             , if isRoot then
                 Icon.x (DeleteDevice device.id)
 
