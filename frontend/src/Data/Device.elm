@@ -8,6 +8,9 @@ module Data.Device exposing
     , encodeConfig
     , encodeDeviceCmd
     , encodeGroups
+    , sysStateOffline
+    , sysStateOnline
+    , sysStatePowerOff
     )
 
 --import Json.Encode as Encode
@@ -18,6 +21,21 @@ import Json.Decode.Extra
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Time
+
+
+sysStatePowerOff : Int
+sysStatePowerOff =
+    1
+
+
+sysStateOffline : Int
+sysStateOffline =
+    2
+
+
+sysStateOnline : Int
+sysStateOnline =
+    3
 
 
 type alias Device =
@@ -38,6 +56,7 @@ type alias State =
     { version : DeviceVersion
     , ios : List Sample.Sample
     , lastComm : Time.Posix
+    , sysState : Int
     }
 
 
@@ -86,6 +105,7 @@ decodeState =
         |> optional "version" decodeVersion emptyVersion
         |> optional "ios" (Decode.list Sample.decode) []
         |> optional "lastComm" Json.Decode.Extra.datetime (Time.millisToPosix 0)
+        |> optional "sysState" Decode.int 0
 
 
 decodeVersion : Decode.Decoder DeviceVersion

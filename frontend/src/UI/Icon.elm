@@ -18,7 +18,7 @@ import Element.Border as Border
 import Element.Input as Input
 import FeatherIcons
 import Global exposing (Msg)
-import Svg exposing (Svg, svg)
+import Svg
 import Svg.Attributes exposing (..)
 import UI.Style as Style
 
@@ -45,7 +45,7 @@ button iconIn msg =
 
 icon : FeatherIcons.Icon -> Element msg
 icon iconIn =
-    html <| FeatherIcons.toHtml [] iconIn
+    el [ padding 5 ] <| html <| FeatherIcons.toHtml [] iconIn
 
 
 x : msg -> Element msg
