@@ -3,6 +3,7 @@ module Pages.Top exposing (Flags, Model, Msg, page)
 import Data.Device as D
 import Data.Sample exposing (Sample, renderSample)
 import Element exposing (..)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import Global
@@ -167,11 +168,20 @@ viewDevice mod device isRoot =
 
                 _ ->
                     Element.none
+
+        background =
+            case device.state.sysState of
+                3 ->
+                    Style.colors.white
+
+                _ ->
+                    Style.colors.gray
     in
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
         , Border.color colors.black
+        , Background.color background
         , spacing 6
         ]
         [ wrappedRow [ spacing 10 ]
@@ -183,7 +193,7 @@ viewDevice mod device isRoot =
               else
                 Element.none
             , Input.text
-                []
+                [ Background.color background ]
                 { onChange = \d -> EditDeviceDescription device.id d
                 , text = device.config.description
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
