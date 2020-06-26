@@ -8,6 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [[0.0.6] - 2020-06-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.6)
+
+### Added
+
+- add modbus API to change debug level at runtime
+- add cloud/cloud off icon to indicate connection status of devices
+- grey out devices that are not currently connected
+- added background process to determine if devices are offline
+
 ### Fixed
 
 - workaround for issue where group key in database does not match ID in struct
