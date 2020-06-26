@@ -22,6 +22,11 @@ func NewClient(port io.ReadWriter, debug int) *Client {
 	}
 }
 
+// SetDebugLevel allows you to change debug level on the fly
+func (c *Client) SetDebugLevel(debug int) {
+	c.debug = debug
+}
+
 // ReadCoils is used to read modbus coils
 func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	ret := []bool{}
