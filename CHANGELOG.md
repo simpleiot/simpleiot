@@ -8,6 +8,13 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [[0.0.7] - 2020-07-04](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.7)
+
+### Added
+
+- display device last update time
+- display time since last update
+
 ## [[0.0.6] - 2020-06-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.6)
 
 ### Added
