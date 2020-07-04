@@ -25,6 +25,7 @@ type alias DeviceEdit =
 
 type alias Model =
     { deviceEdit : Maybe DeviceEdit
+    , now : Time.Posix
     }
 
 
@@ -48,7 +49,7 @@ page =
 
 init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ _ =
-    ( Model Nothing, Cmd.none, Global.send Global.RequestDevices )
+    ( Model Nothing (Time.millisToPosix 0), Cmd.none, Global.send Global.RequestDevices )
 
 
 update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
@@ -75,8 +76,8 @@ update global msg model =
         DeleteDevice id ->
             ( model, Cmd.none, Global.send <| Global.DeleteDevice id )
 
-        Tick _ ->
-            ( model
+        Tick now ->
+            ( { model | now = now }
             , Cmd.none
             , case global.auth of
                 Global.SignedIn _ ->
@@ -121,7 +122,7 @@ viewDevices devices model isRoot =
     <|
         List.map
             (\d ->
-                viewDevice d.mod d.device isRoot
+                viewDevice model d.mod d.device isRoot
             )
         <|
             mergeDeviceEdit devices model.deviceEdit
@@ -151,8 +152,8 @@ mergeDeviceEdit devices devConfigEdit =
             List.map (\d -> { device = d, mod = False }) devices
 
 
-viewDevice : Bool -> D.Device -> Bool -> Element Msg
-viewDevice mod device isRoot =
+viewDevice : Model -> Bool -> D.Device -> Bool -> Element Msg
+viewDevice model modified device isRoot =
     let
         sysStateIcon =
             case device.state.sysState of
@@ -199,18 +200,19 @@ viewDevice mod device isRoot =
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
                 , label = Input.labelHidden "device description"
                 }
-            , if mod then
+            , if modified then
                 Icon.check (PostConfig device.id device.config)
 
               else
                 Element.none
-            , if mod then
+            , if modified then
                 Icon.x DiscardEditedDeviceDescription
 
               else
                 Element.none
             ]
         , viewIoList device.state.ios
+        , text ("Time since last update: " ++ viewTimeSince device.state.lastComm model.now)
         ]
 
 
@@ -232,3 +234,25 @@ viewIoList ios =
         ]
     <|
         List.map (renderSample >> text) ios
+
+
+viewTimeSince : Time.Posix -> Time.Posix -> String
+viewTimeSince time now =
+    let
+        durMs =
+            Time.posixToMillis now - Time.posixToMillis time
+    in
+    if durMs > 1000 * 60 * 60 * 24 then
+        String.fromInt (durMs // 1000 // 60 // 60 // 24) ++ " days"
+
+    else if durMs > 1000 * 60 * 60 then
+        String.fromInt (durMs // 1000 // 60 // 60) ++ " hrs"
+
+    else if durMs > 1000 * 60 then
+        String.fromInt (durMs // 1000 // 60) ++ " mins"
+
+    else if durMs > 1000 then
+        String.fromInt (durMs // 1000) ++ " s"
+
+    else
+        String.fromInt durMs ++ " ms"
