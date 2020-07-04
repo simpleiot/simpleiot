@@ -54,11 +54,27 @@ toString dur =
         seconds =
             minutesR // msInSec
     in
-    String.fromInt days
-        ++ "d "
-        ++ String.fromInt hours
-        ++ "h "
-        ++ String.fromInt minutes
-        ++ "m "
-        ++ String.fromInt seconds
-        ++ "s"
+    (if days > 0 then
+        String.fromInt days ++ "d "
+
+     else
+        ""
+    )
+        ++ (if hours > 0 then
+                String.fromInt hours ++ "h "
+
+            else
+                ""
+           )
+        ++ (if minutes > 0 then
+                String.fromInt minutes ++ "m "
+
+            else
+                ""
+           )
+        ++ (if seconds > 0 then
+                String.fromInt seconds ++ "s"
+
+            else
+                ""
+           )

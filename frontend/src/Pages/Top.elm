@@ -1,6 +1,7 @@
 module Pages.Top exposing (Flags, Model, Msg, page)
 
 import Data.Device as D
+import Data.Duration as Duration
 import Data.Sample exposing (Sample, renderSample)
 import Element exposing (..)
 import Element.Background as Background
@@ -212,7 +213,13 @@ viewDevice model modified device isRoot =
                 Element.none
             ]
         , viewIoList device.state.ios
-        , text ("Time since last update: " ++ viewTimeSince device.state.lastComm model.now)
+        , text
+            ("Time since last update: "
+                ++ Duration.toString
+                    (Time.posixToMillis model.now
+                        - Time.posixToMillis device.state.lastComm
+                    )
+            )
         ]
 
 
