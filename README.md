@@ -189,6 +189,9 @@ We'd really like this to be a community project. See
 [development](docs/DEVELOPMENT.md) for more thoughts on architecture, tooling,
 etc.
 
+For support or to discuss this project, please visit the
+[Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
+
 ## License
 
 Apache Version 2.0
