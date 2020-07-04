@@ -8,7 +8,9 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import Global
+import Iso8601
 import Page exposing (Document, Page)
+import Task
 import Time
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors, size)
@@ -26,6 +28,7 @@ type alias DeviceEdit =
 
 type alias Model =
     { deviceEdit : Maybe DeviceEdit
+    , zone : Time.Zone
     , now : Time.Posix
     }
 
@@ -36,6 +39,7 @@ type Msg
     | DiscardEditedDeviceDescription
     | DeleteDevice String
     | Tick Time.Posix
+    | Zone Time.Zone
 
 
 page : Page Flags Model Msg
@@ -50,7 +54,10 @@ page =
 
 init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ _ =
-    ( Model Nothing (Time.millisToPosix 0), Cmd.none, Global.send Global.RequestDevices )
+    ( Model Nothing Time.utc (Time.millisToPosix 0)
+    , Cmd.batch [ Task.perform Zone Time.here, Task.perform Tick Time.now ]
+    , Cmd.none
+    )
 
 
 update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
@@ -76,6 +83,9 @@ update global msg model =
 
         DeleteDevice id ->
             ( model, Cmd.none, Global.send <| Global.DeleteDevice id )
+
+        Zone zone ->
+            ( { model | zone = zone }, Cmd.none, Cmd.none )
 
         Tick now ->
             ( { model | now = now }
@@ -213,6 +223,7 @@ viewDevice model modified device isRoot =
                 Element.none
             ]
         , viewIoList device.state.ios
+        , text ("Last update: " ++ Iso8601.toDateTimeString model.zone device.state.lastComm)
         , text
             ("Time since last update: "
                 ++ Duration.toString
@@ -241,25 +252,3 @@ viewIoList ios =
         ]
     <|
         List.map (renderSample >> text) ios
-
-
-viewTimeSince : Time.Posix -> Time.Posix -> String
-viewTimeSince time now =
-    let
-        durMs =
-            Time.posixToMillis now - Time.posixToMillis time
-    in
-    if durMs > 1000 * 60 * 60 * 24 then
-        String.fromInt (durMs // 1000 // 60 // 60 // 24) ++ " days"
-
-    else if durMs > 1000 * 60 * 60 then
-        String.fromInt (durMs // 1000 // 60 // 60) ++ " hrs"
-
-    else if durMs > 1000 * 60 then
-        String.fromInt (durMs // 1000 // 60) ++ " mins"
-
-    else if durMs > 1000 then
-        String.fromInt (durMs // 1000) ++ " s"
-
-    else
-        String.fromInt durMs ++ " ms"
