@@ -2,13 +2,13 @@ module Pages.Top exposing (Flags, Model, Msg, page)
 
 import Data.Device as D
 import Data.Duration as Duration
+import Data.Iso8601 as Iso8601
 import Data.Sample exposing (Sample, renderSample)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import Global
-import Iso8601
 import Page exposing (Document, Page)
 import Task
 import Time
