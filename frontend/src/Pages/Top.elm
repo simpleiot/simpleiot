@@ -80,7 +80,7 @@ page =
 
 init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ _ =
-    ( Model Nothing Time.utc (Time.millisToPosix 0)
+    ( Model Nothing Time.utc (Time.millisToPosix 0) Nothing Nothing
     , Cmd.batch [ Task.perform Zone Time.here, Task.perform Tick Time.now ]
     , Cmd.none
     )
@@ -514,7 +514,14 @@ viewIS device mod isRoot model =
                 ++ " to "
                 ++ Round.round 0 is.flowWindowHigh
             )
-        , text ("Last communication (UTC): " ++ Iso8601.fromTime device.state.lastComm)
+        , text ("Last update: " ++ Iso8601.toDateTimeString model.zone device.state.lastComm)
+        , text
+            ("Time since last update: "
+                ++ Duration.toString
+                    (Time.posixToMillis model.now
+                        - Time.posixToMillis device.state.lastComm
+                    )
+            )
         , text
             ("Versions: hw: "
                 ++ device.state.version.hw
