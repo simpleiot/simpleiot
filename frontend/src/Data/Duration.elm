@@ -5,29 +5,28 @@ type alias Duration =
     Int
 
 
+msInSec : Int
 msInSec =
     1000
 
 
+msInMin : Int
 msInMin =
     msInSec * 60
 
 
+msInHour : Int
 msInHour =
     msInMin * 60
 
 
+msInDay : Int
 msInDay =
     msInHour * 24
 
 
 
 -- returns days and remainding ms
-
-
-extract : Duration -> ( Int, Int )
-extract dur =
-    ( dur // msInDay, modBy msInDay dur )
 
 
 toString : Duration -> String
@@ -72,7 +71,7 @@ toString dur =
             else
                 ""
            )
-        ++ (if seconds > 0 then
+        ++ (if seconds > 0 || (days <= 0 && hours <= 0 && minutes <= 0) then
                 String.fromInt seconds ++ "s"
 
             else
