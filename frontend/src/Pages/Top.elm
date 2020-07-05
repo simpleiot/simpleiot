@@ -203,7 +203,7 @@ viewDevices devices model isRoot =
     <|
         List.map
             (\d ->
-                viewDevice model d.mod d.device isRoot
+                viewIS model d.mod d.device isRoot
             )
         <|
             mergeDeviceEdit devices model.deviceEdit
@@ -324,8 +324,8 @@ viewIoList ios =
         List.map (renderSample >> text) ios
 
 
-viewIS : D.Device -> Bool -> Bool -> Model -> Element Msg
-viewIS device mod isRoot model =
+viewIS : Model -> Bool -> D.Device -> Bool -> Element Msg
+viewIS model mod device isRoot =
     let
         -- following is just to make linter happy
         _ =
