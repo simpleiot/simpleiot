@@ -18,6 +18,7 @@
             "elm-community/html-extra": "3.4.0",
             "elm-community/json-extra": "4.2.0",
             "elm-community/list-extra": "8.2.4",
+            "f0i/iso8601": "1.1.1",
             "feathericons/elm-feather": "1.5.0",
             "mdgriffith/elm-ui": "1.1.5",
             "myrho/elm-round": "1.0.4",
@@ -35,7 +36,11 @@
         }
     },
     "test-dependencies": {
-        "direct": {},
-        "indirect": {}
+        "direct": {
+            "elm-explorations/test": "1.2.2"
+        },
+        "indirect": {
+            "elm/random": "1.0.0"
+        }
     }
 }

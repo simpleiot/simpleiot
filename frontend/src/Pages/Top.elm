@@ -1,6 +1,7 @@
 module Pages.Top exposing (Flags, Model, Msg, page)
 
 import Data.Device as D
+import Data.Duration as Duration
 import Data.Sample exposing (Sample, renderSample)
 import Element exposing (..)
 import Element.Background as Background
@@ -12,6 +13,7 @@ import Global
 import Iso8601
 import Page exposing (Document, Page)
 import Round
+import Task
 import Time
 import UI.Form as Form
 import UI.Icon as Icon
@@ -42,6 +44,10 @@ type alias SetTank =
 
 type alias Model =
     { deviceEdit : Maybe DeviceEdit
+    , zone : Time.Zone
+    , now : Time.Posix
+
+    -- IS mods
     , swUpdate : Maybe SwUpdate
     , setTank : Maybe SetTank
     }
@@ -56,6 +62,8 @@ type Msg
     | DeleteDevice String
     | DeviceCancelCmd String
     | Tick Time.Posix
+    | Zone Time.Zone
+      -- IS messages
     | ISFillTank String
     | DeviceCmd String String String
 
@@ -72,7 +80,10 @@ page =
 
 init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ _ =
-    ( Model Nothing Nothing Nothing, Cmd.none, Global.send Global.RequestDevices )
+    ( Model Nothing Time.utc (Time.millisToPosix 0)
+    , Cmd.batch [ Task.perform Zone Time.here, Task.perform Tick Time.now ]
+    , Cmd.none
+    )
 
 
 update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
@@ -102,8 +113,11 @@ update global msg model =
         DeviceCancelCmd id ->
             ( model, Cmd.none, Global.send <| Global.DeviceCancelCmd id )
 
-        Tick _ ->
-            ( model
+        Zone zone ->
+            ( { model | zone = zone }, Cmd.none, Cmd.none )
+
+        Tick now ->
+            ( { model | now = now }
             , Cmd.none
             , case global.auth of
                 Global.SignedIn _ ->
@@ -188,7 +202,9 @@ viewDevices devices model isRoot =
         ]
     <|
         List.map
-            (\dm -> viewIS dm.device dm.mod isRoot model)
+            (\d ->
+                viewDevice model d.mod d.device isRoot
+            )
         <|
             mergeDeviceEdit devices model.deviceEdit
 
@@ -217,8 +233,8 @@ mergeDeviceEdit devices devConfigEdit =
             List.map (\d -> { device = d, mod = False }) devices
 
 
-viewDevice : Bool -> D.Device -> Bool -> Element Msg
-viewDevice mod device isRoot =
+viewDevice : Model -> Bool -> D.Device -> Bool -> Element Msg
+viewDevice model modified device isRoot =
     let
         sysStateIcon =
             case device.state.sysState of
@@ -234,11 +250,20 @@ viewDevice mod device isRoot =
 
                 _ ->
                     Element.none
+
+        background =
+            case device.state.sysState of
+                3 ->
+                    Style.colors.white
+
+                _ ->
+                    Style.colors.gray
     in
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
         , Border.color colors.black
+        , Background.color background
         , spacing 6
         ]
         [ wrappedRow [ spacing 10 ]
@@ -250,24 +275,32 @@ viewDevice mod device isRoot =
               else
                 Element.none
             , Input.text
-                []
+                [ Background.color background ]
                 { onChange = \d -> EditDeviceDescription device.id d
                 , text = device.config.description
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
                 , label = Input.labelHidden "device description"
                 }
-            , if mod then
+            , if modified then
                 Icon.check (PostConfig device.id device.config)
 
               else
                 Element.none
-            , if mod then
+            , if modified then
                 Icon.x DiscardEditedDeviceDescription
 
               else
                 Element.none
             ]
         , viewIoList device.state.ios
+        , text ("Last update: " ++ Iso8601.toDateTimeString model.zone device.state.lastComm)
+        , text
+            ("Time since last update: "
+                ++ Duration.toString
+                    (Time.posixToMillis model.now
+                        - Time.posixToMillis device.state.lastComm
+                    )
+            )
         ]
 
 
