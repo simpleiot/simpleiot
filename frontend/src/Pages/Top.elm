@@ -2,6 +2,7 @@ module Pages.Top exposing (Flags, Model, Msg, page)
 
 import Data.Device as D
 import Data.Duration as Duration
+import Data.Iso8601 as Iso8601
 import Data.Sample exposing (Sample, renderSample)
 import Element exposing (..)
 import Element.Background as Background
@@ -10,7 +11,6 @@ import Element.Font as Font
 import Element.Input as Input
 import Farmation.Portal.Is as Is
 import Global
-import Iso8601
 import Page exposing (Document, Page)
 import Round
 import Task
