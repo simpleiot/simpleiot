@@ -463,11 +463,21 @@ func (c *Config) Init(state *State) {
 
 	// Check that the DBVersion from the state is not
 	// a bogus value
-	if state.DBConfig.DBVersion > len(migrations)-1 ||
-		state.DBConfig.DBVersion < 0 {
-		log.Println("Error running config migrations: bogus " +
-			"database version from the state.")
+	if state.DBConfig.DBVersion < 0 {
+		log.Println("Error running config migrations: bogus "+
+			"database version from the state:",
+			state.DBConfig.DBVersion)
 	} else {
+
+		// If a migration is added and then removed, adjust
+		// migration number
+		migLen := len(migrations) - 1
+		if state.DBConfig.DBVersion > migLen {
+			log.Printf("Detected removed migration(s) - "+
+				"decreased config version: %v -> %v",
+				state.DBConfig.DBVersion, migLen)
+			state.DBConfig.DBVersion = migLen
+		}
 
 		// Will ONLY run if new migration(s) have been added
 		// and DBVersion is less than the length of migrations
