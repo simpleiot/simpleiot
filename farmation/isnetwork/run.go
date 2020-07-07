@@ -137,7 +137,9 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		}
 	}
 
+	// when changed filter is used to store config settings and digio values from state
 	whenChangedSamplesFilter := api.NewSampleFilter(0, 15*time.Minute)
+	// analog sample filter is used to store analog values from state
 	analogSamplesFilter := api.NewSampleFilter(30*time.Second, 15*time.Minute)
 
 	versionSent := false
@@ -199,18 +201,20 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		log.Printf("Network Interface Config: %+v\n", interfaceConfig)
 	}
 
-	initialDigitalDataSent := false
-	sendInitialDigitalData := func() {
-		if !interfaceStatus.Connected || initialDigitalDataSent {
+	initialDataSent := false
+	sendInitialData := func() {
+		if !interfaceStatus.Connected || initialDataSent {
 			return
 		}
 
 		samples := whenChangedSamplesFilter.Add(getConfigSamples(&config))
-		samples = append(samples, analogSamplesFilter.Add(getDigIoSamples(&state))...)
+		samples = append(samples, whenChangedSamplesFilter.Add(getDigIoSamples(&state))...)
+		samples = append(samples, analogSamplesFilter.Add(getAnalogSamples(&state))...)
+		sendSamples(samples)
 
 		err := sendSamples(samples)
 		if err == nil {
-			initialDigitalDataSent = true
+			initialDataSent = true
 		}
 	}
 
@@ -239,7 +243,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		pollPortal.Stop()
 	}
 
-	sendInitialDigitalData()
+	sendInitialData()
 
 	for {
 		select {
@@ -252,11 +256,8 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 			case isdata.State:
 				state = m
-
 				samples := whenChangedSamplesFilter.Add(getDigIoSamples(&state))
-				sendSamples(samples)
-
-				samples = analogSamplesFilter.Add(getAnalogSamples(&state))
+				samples = append(samples, analogSamplesFilter.Add(getAnalogSamples(&state))...)
 				sendSamples(samples)
 
 			case data.Sample:
@@ -352,7 +353,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				continue
 			}
 
-			sendInitialDigitalData()
+			sendInitialData()
 
 			cmd, err := getCmdAPI()
 
