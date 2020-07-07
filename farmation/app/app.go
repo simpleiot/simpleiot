@@ -1351,6 +1351,7 @@ func Run(params Params) {
 					// anyway in case network go routine
 					// is stuck sending data to portal
 					time.Sleep(20 * time.Second)
+					log.Println("It has been 20s and still waiting for network thread to respond in shutdown sequence -- shutting down anyway ...")
 					appChan <- isdata.Shutdown{}
 				}()
 

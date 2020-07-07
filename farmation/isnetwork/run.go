@@ -291,7 +291,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				}
 
 			case isdata.ShutdownStart:
-				if !interfaceStatus.Connected {
+				if interfaceStatus.Connected {
 					log.Println("Sending poweroff state to portal")
 					// send latest data to portal and then
 					// power off cmd
@@ -307,6 +307,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				// it is important no additional samples be sent
 				// after poweroff system state or else the portal
 				// will tag the GW as being online
+				log.Println("Network thread finished, shutting down")
 				stopTalking()
 				out <- isdata.Shutdown{}
 
