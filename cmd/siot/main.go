@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -18,32 +19,82 @@ import (
 	"github.com/simpleiot/simpleiot/device"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
+
+	"github.com/nats-io/nats-server/v2/server"
+	"github.com/nats-io/nats.go"
 )
 
-func send(portal, sample string) error {
-	frags := strings.Split(sample, ":")
+func parseSample(s string) (string, data.Sample, error) {
+	frags := strings.Split(s, ":")
 	if len(frags) != 4 {
-		return errors.New("format for sample is: 'devId:sensId:value:type'")
+		return "", data.Sample{},
+			errors.New("format for sample is: 'devId:sensId:value:type'")
 	}
 
 	deviceID := frags[0]
 	sampleID := frags[1]
 	value, err := strconv.ParseFloat(frags[2], 64)
 	if err != nil {
-		return err
+		return "", data.Sample{}, err
 	}
 
 	sampleType := frags[3]
 
+	return deviceID, data.Sample{
+		ID:    sampleID,
+		Type:  sampleType,
+		Value: value,
+	}, nil
+
+}
+
+func send(portal, s string) error {
+	deviceID, sample, err := parseSample(s)
+
+	if err != nil {
+		return err
+	}
+
 	sendSamples := api.NewSendSamples(portal, deviceID, time.Second*10, false)
 
-	err = sendSamples([]data.Sample{
-		{
-			ID:    sampleID,
-			Type:  sampleType,
-			Value: value,
-		},
-	})
+	err = sendSamples([]data.Sample{sample})
+
+	return err
+}
+
+func sendNats(natsServer, authToken, s string, count int) error {
+	deviceID, sample, err := parseSample(s)
+
+	if err != nil {
+		return err
+	}
+
+	nc, err := nats.Connect(natsServer,
+		nats.Timeout(10*time.Second),
+		nats.PingInterval(60*2*time.Second),
+		nats.MaxPingsOutstanding(5),
+		nats.ReconnectBufSize(5*1024*1024),
+		//nats.Token(authToken),
+	)
+	if err != nil {
+		return err
+	}
+	defer nc.Close()
+
+	subject := fmt.Sprintf("dev.s.%v", deviceID)
+
+	data, err := json.Marshal(sample)
+
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < count; i++ {
+		if err := nc.Publish(subject, data); err != nil {
+			return err
+		}
+		time.Sleep(time.Second)
+	}
 
 	return err
 }
@@ -54,8 +105,12 @@ func main() {
 	flagDisableAuth := flag.Bool("disableAuth", false, "Disable auth (used for development)")
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
+	flagNatsServer := flag.String("natsServer", "nats://localhost:4222", "NATS Server")
+	flagSendSampleNats := flag.String("sendSampleNats", "", "Send sample to 'portal' via NATS: 'devId:sensId:value:type'")
+	flagSendCount := flag.Int("sendCount", 1, "number of samples to send")
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDumpDb := flag.Bool("dumpDb", false, "dump database to file")
+	flagAuthToken := flag.String("token", "ecffb459-779a-4623-abb1-7f10d34b3883", "Auth token")
 	flag.Parse()
 
 	if *flagSyslog {
@@ -69,6 +124,16 @@ func main() {
 
 	if *flagSendSample != "" {
 		err := send(*flagPortal, *flagSendSample)
+		if err != nil {
+			log.Println(err)
+			os.Exit(-1)
+		}
+		os.Exit(0)
+	}
+
+	if *flagSendSampleNats != "" {
+		err := sendNats(*flagNatsServer, *flagAuthToken,
+			*flagSendSampleNats, *flagSendCount)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -179,6 +244,15 @@ func main() {
 	}
 
 	go device.Manager(dbInst)
+
+	opts := server.Options{}
+
+	natsServer, err := server.NewServer(&opts)
+
+	go natsServer.Start()
+
+	natsHandler := api.NewNatsHandler()
+	go natsHandler.Listen(*flagNatsServer)
 
 	err = api.Server(api.ServerArgs{
 		Port:       port,
