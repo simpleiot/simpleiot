@@ -13,6 +13,8 @@ require (
 	github.com/gorilla/websocket v1.4.0
 	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
+	github.com/nats-io/nats-server/v2 v2.1.7
+	github.com/nats-io/nats.go v1.10.0
 	github.com/timshannon/bolthold v0.0.0-20200316231344-dc30e2b2f90c
 	go.bug.st/serial v1.1.0
 	go.etcd.io/bbolt v1.3.4
