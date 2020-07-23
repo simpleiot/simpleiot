@@ -15,32 +15,32 @@ const (
 // graphed.
 type Sample struct {
 	// Type of sample (voltage, current, key, etc)
-	Type string `json:"type,omitempty" boltholdIndex:"Type" influx:"type,tag"`
+	Type string `json:"type,omitempty" boltholdIndex:"Type"`
 
-	// ID of the device that provided the sample
-	ID string `json:"id,omitempty" influx:"id,tag"`
+	// ID of the sensor that provided the sample
+	ID string `json:"id,omitempty"`
 
 	// Average OR
 	// Instantaneous analog or digital value of the sample.
 	// 0 and 1 are used to represent digital values
-	Value float64 `json:"value,omitempty" influx:"value"`
+	Value float64 `json:"value,omitempty"`
 
 	// statistical values that may be calculated
-	Min float64 `json:"min,omitempty" influx:"min"`
-	Max float64 `json:"max,omitempty" influx:"max"`
+	Min float64 `json:"min,omitempty"`
+	Max float64 `json:"max,omitempty"`
 
 	// Time the sample was taken
-	Time time.Time `json:"time,omitempty" boltholdKey:"Time" gob:"-" influx:"time"`
+	Time time.Time `json:"time,omitempty" boltholdKey:"Time" gob:"-"`
 
 	// Duration over which the sample was taken
-	Duration time.Duration `json:"duration,omitempty" influx:"duration"`
+	Duration time.Duration `json:"duration,omitempty"`
 
 	// Tags are additional attributes used to describe the sample
 	// You might add things like friendly name, etc.
-	Tags map[string]string `json:"tags,omitempty" influx:"-"`
+	Tags map[string]string `json:"tags,omitempty"`
 
 	// Attributes are additional numerical values
-	Attributes map[string]float64 `json:"attributes,omitempty" influx:"-"`
+	Attributes map[string]float64 `json:"attributes,omitempty"`
 }
 
 // ForDevice tells us if a sample is for device (vs IO)

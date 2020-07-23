@@ -12,14 +12,13 @@ import (
 
 // Devices handles device requests
 type Devices struct {
-	db     *db.Db
-	influx *db.Influx
-	check  RequestValidator
+	db    *db.Db
+	check RequestValidator
 }
 
 // NewDevicesHandler returns a new device handler
-func NewDevicesHandler(db *db.Db, influx *db.Influx, v RequestValidator) http.Handler {
-	return &Devices{db, influx, v}
+func NewDevicesHandler(db *db.Db, v RequestValidator) http.Handler {
+	return &Devices{db, v}
 }
 
 // Top level handler for http requests in the coap-server process
@@ -256,13 +255,6 @@ func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id 
 
 	for _, s := range samples {
 		err = h.db.DeviceSample(id, s)
-		if err != nil {
-			http.Error(res, err.Error(), http.StatusInternalServerError)
-		}
-	}
-
-	if h.influx != nil {
-		err = h.influx.WriteSamples(samples)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}
