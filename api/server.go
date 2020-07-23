@@ -60,7 +60,7 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // NewAppHandler returns a new application (root) http handler
 func NewAppHandler(args ServerArgs) http.Handler {
-	v1 := NewV1Handler(args.DbInst, args.Influx, args.Auth)
+	v1 := NewV1Handler(args.DbInst, args.Auth)
 	if args.Debug {
 		//args.Debug = false
 		v1 = NewHTTPLogger("v1").Handler(v1)
@@ -77,7 +77,6 @@ func NewAppHandler(args ServerArgs) http.Handler {
 type ServerArgs struct {
 	Port       string
 	DbInst     *db.Db
-	Influx     *db.Influx
 	GetAsset   func(string) []byte
 	Filesystem http.FileSystem
 	Debug      bool

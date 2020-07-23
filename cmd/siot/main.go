@@ -90,7 +90,7 @@ func main() {
 	}
 
 	if *flagDumpDb {
-		dbInst, err := db.NewDb(dataDir, false)
+		dbInst, err := db.NewDb(dataDir, nil, false)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -114,12 +114,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	dbInst, err := db.NewDb(dataDir, true)
-	if err != nil {
-		log.Println("Error opening db: ", err)
-		os.Exit(-1)
-	}
-
 	// set up influxdb support if configured
 	influxURL := os.Getenv("SIOT_INFLUX_URL")
 	influxUser := os.Getenv("SIOT_INFLUX_USER")
@@ -129,10 +123,17 @@ func main() {
 	var influx *db.Influx
 
 	if influxURL != "" {
+		var err error
 		influx, err = db.NewInflux(influxURL, influxDb, influxUser, influxPass)
 		if err != nil {
 			log.Fatal("Error connecting to influxdb: ", err)
 		}
+	}
+
+	dbInst, err := db.NewDb(dataDir, influx, true)
+	if err != nil {
+		log.Println("Error opening db: ", err)
+		os.Exit(-1)
 	}
 
 	// set up particle connection if configured
@@ -146,12 +147,6 @@ func main() {
 						err = dbInst.DeviceSample(id, s)
 						if err != nil {
 							log.Println("Error getting particle sample: ", err)
-						}
-					}
-					if influx != nil {
-						err = influx.WriteSamples(samples)
-						if err != nil {
-							log.Println("Error writing particle samples to influx: ", err)
 						}
 					}
 				})
@@ -184,7 +179,6 @@ func main() {
 	err = api.Server(api.ServerArgs{
 		Port:       port,
 		DbInst:     dbInst,
-		Influx:     influx,
 		GetAsset:   frontend.Asset,
 		Filesystem: frontend.FileSystem(),
 		Debug:      *flagDebugHTTP,
