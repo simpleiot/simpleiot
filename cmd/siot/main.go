@@ -124,11 +124,12 @@ func main() {
 	influxURL := os.Getenv("SIOT_INFLUX_URL")
 	influxUser := os.Getenv("SIOT_INFLUX_USER")
 	influxPass := os.Getenv("SIOT_INFLUX_PASS")
+	influxDb := os.Getenv("SIOT_INFLUX_DB")
 
 	var influx *db.Influx
 
 	if influxURL != "" {
-		influx, err = db.NewInflux(influxURL, "siot", influxUser, influxPass)
+		influx, err = db.NewInflux(influxURL, influxDb, influxUser, influxPass)
 		if err != nil {
 			log.Fatal("Error connecting to influxdb: ", err)
 		}
