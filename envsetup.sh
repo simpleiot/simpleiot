@@ -150,3 +150,11 @@ siot_test() {
   go vet ./... || return 1
   return 0
 }
+
+# following can be used to set up influxdb for local testing
+siot_setup_influx() {
+  export SIOT_INFLUX_URL=http://localhost:8086
+  #export SIOT_INFLUX_USER=admin
+  #export SIOT_INFLUX_PASS=admin
+  export SIOT_INFLUX_DB=siot
+}

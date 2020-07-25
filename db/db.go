@@ -20,11 +20,12 @@ import (
 // We will eventually turn this into an interface to
 // handle multiple Db backends.
 type Db struct {
-	store *bolthold.Store
+	store  *bolthold.Store
+	influx *Influx
 }
 
 // NewDb creates a new Db instance for the app
-func NewDb(dataDir string, init bool) (*Db, error) {
+func NewDb(dataDir string, influx *Influx, init bool) (*Db, error) {
 	dbFile := path.Join(dataDir, "data.db")
 	store, err := bolthold.Open(dbFile, 0666, nil)
 	if err != nil {
@@ -32,7 +33,7 @@ func NewDb(dataDir string, init bool) (*Db, error) {
 		return nil, err
 	}
 
-	db := &Db{store: store}
+	db := &Db{store: store, influx: influx}
 	if init {
 		return db, db.initialize()
 	}
@@ -102,6 +103,20 @@ var zero uuid.UUID
 
 // DeviceSample processes a sample for a particular device
 func (db *Db) DeviceSample(id string, sample data.Sample) error {
+	// for now, we process one sample at a time. We may eventually
+	// want to create DeviceSamples to process multiple samples so
+	// we can batch influx writes for performance
+
+	if db.influx != nil {
+		samples := []InfluxSample{
+			SampleToInfluxSample(id, sample),
+		}
+		err := db.influx.WriteSamples(samples)
+		if err != nil {
+			log.Println("Error writing particle samples to influx: ", err)
+		}
+	}
+
 	return db.update(func(tx *bolt.Tx) error {
 		var dev data.Device
 		err := db.store.TxGet(tx, id, &dev)

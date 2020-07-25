@@ -11,6 +11,12 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- moved influxDb operations to db package so they are common for all samples
+- added env variable to specify Influx database SIOT_INFLUX_DB
+- added device ID tag to sample data stored in influx
+
 ## [[0.0.7] - 2020-07-04](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.7)
 
 ### Added

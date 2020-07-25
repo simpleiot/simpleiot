@@ -48,6 +48,7 @@ variables:
 - `INFLUX_URL`
 - `INFLUX_USER`
 - `INFLUX_PASS`
+- `INFLUX_DB`
 
 ## Running unit tests
 

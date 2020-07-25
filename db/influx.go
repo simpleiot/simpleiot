@@ -1,10 +1,53 @@
 package db
 
 import (
+	"time"
+
 	"github.com/cbrake/influxdbhelper/v2"
 	client "github.com/influxdata/influxdb1-client/v2"
 	"github.com/simpleiot/simpleiot/data"
 )
+
+// InfluxSample represents a sample that is written into influxdb
+type InfluxSample struct {
+	// Type of sample (voltage, current, key, etc)
+	Type string `influx:"type,tag"`
+
+	// ID of the sensor that provided the sample
+	ID string `influx:"id,tag"`
+
+	// DeviceID of the ID of the device that provided the sample
+	DeviceID string `influx:"deviceId,tag"`
+
+	// Average OR
+	// Instantaneous analog or digital value of the sample.
+	// 0 and 1 are used to represent digital values
+	Value float64 `influx:"value"`
+
+	// statistical values that may be calculated
+	Min float64 `influx:"min"`
+	Max float64 `influx:"max"`
+
+	// Time the sample was taken
+	Time time.Time `influx:"time"`
+
+	// Duration over which the sample was taken
+	Duration time.Duration `influx:"duration"`
+}
+
+// SampleToInfluxSample converts a sample to influx sample
+func SampleToInfluxSample(deviceID string, s data.Sample) InfluxSample {
+	return InfluxSample{
+		Type:     s.Type,
+		ID:       s.ID,
+		DeviceID: deviceID,
+		Value:    s.Value,
+		Min:      s.Min,
+		Max:      s.Max,
+		Time:     s.Time,
+		Duration: s.Duration,
+	}
+}
 
 // Influx represents and influxdb that we can write samples to
 type Influx struct {
@@ -36,7 +79,7 @@ func NewInflux(url, dbName, user, password string) (*Influx, error) {
 }
 
 // WriteSamples to influxdb
-func (i *Influx) WriteSamples(samples []data.Sample) error {
+func (i *Influx) WriteSamples(samples []InfluxSample) error {
 	for _, s := range samples {
 		err := i.client.UseMeasurement("samples").WritePoint(s)
 		if err != nil {
