@@ -238,6 +238,7 @@ func (h *Devices) updateDeviceGroups(res http.ResponseWriter, req *http.Request,
 	err = h.db.DeviceUpdateGroups(id, groups)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	en := json.NewEncoder(res)
@@ -257,6 +258,7 @@ func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id 
 		err = h.db.DeviceSample(id, s)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 
