@@ -9,15 +9,19 @@ export GOBIN=$GOPATH/bin
 # map tools from project go modules
 
 genesis() {
-  GOARCH= go run github.com/benbjohnson/genesis/cmd/genesis "$@"
+  GOARCH='' go run github.com/benbjohnson/genesis/cmd/genesis "$@"
 }
 
 golint() {
-  GOARCH= go run golang.org/x/lint/golint "$@"
+  GOARCH='' go run golang.org/x/lint/golint "$@"
 }
 
 bbolt() {
   go run go.etcd.io/bbolt/cmd/bbolt "$@"
+}
+
+siot_install_proto_gen_go() {
+  cd ~ && go get -u google.golang.org/protobuf/cmd/protoc-gen-go
 }
 
 siot_install_frontend_deps() {
@@ -157,4 +161,8 @@ siot_setup_influx() {
   #export SIOT_INFLUX_USER=admin
   #export SIOT_INFLUX_PASS=admin
   export SIOT_INFLUX_DB=siot
+}
+
+siot_protobuf() {
+  (cd internal/pb && protoc --go_out=./ ./*.proto) || return 1
 }

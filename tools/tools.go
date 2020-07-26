@@ -7,4 +7,5 @@ import (
 	// to embed in binary
 	_ "github.com/benbjohnson/genesis/cmd/genesis"
 	_ "golang.org/x/lint/golint"
+	_ "google.golang.org/protobuf"
 )

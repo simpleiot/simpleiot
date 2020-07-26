@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -44,6 +43,7 @@ func parseSample(s string) (string, data.Sample, error) {
 		ID:    sampleID,
 		Type:  sampleType,
 		Value: value,
+		Time:  time.Now(),
 	}, nil
 
 }
@@ -81,20 +81,26 @@ func sendNats(natsServer, authToken, s string, count int) error {
 	}
 	defer nc.Close()
 
-	subject := fmt.Sprintf("dev.s.%v", deviceID)
+	subject := fmt.Sprintf("device.%v.samples", deviceID)
 
-	data, err := json.Marshal(sample)
+	samples := data.Samples{}
+
+	for i := 0; i < count; i++ {
+		samples = append(samples, sample)
+	}
+
+	data, err := samples.PbEncode()
 
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < count; i++ {
-		if err := nc.Publish(subject, data); err != nil {
-			return err
-		}
-		time.Sleep(time.Second)
+	//for i := 0; i < count; i++ {
+	if err := nc.Publish(subject, data); err != nil {
+		return err
 	}
+	//time.Sleep(time.Second)
+	//}
 
 	return err
 }
@@ -247,7 +253,7 @@ func main() {
 
 	go natsServer.Start()
 
-	natsHandler := api.NewNatsHandler()
+	natsHandler := api.NewNatsHandler(dbInst)
 	go natsHandler.Listen(*flagNatsServer)
 
 	err = api.Server(api.ServerArgs{

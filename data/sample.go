@@ -1,6 +1,12 @@
 package data
 
-import "time"
+import (
+	"time"
+
+	"github.com/golang/protobuf/ptypes"
+	"github.com/simpleiot/simpleiot/internal/pb"
+	"google.golang.org/protobuf/proto"
+)
 
 // define common sample types
 const (
@@ -43,6 +49,22 @@ type Sample struct {
 	Attributes map[string]float64 `json:"attributes,omitempty"`
 }
 
+// PbEncode() encodes sample in protobuf format
+func (s Sample) ToPb() (pb.Sample, error) {
+	ts, err := ptypes.TimestampProto(s.Time)
+	if err != nil {
+		return pb.Sample{}, err
+	}
+
+	return pb.Sample{
+		Type:     s.Type,
+		Id:       s.ID,
+		Value:    float32(s.Value),
+		Time:     ts,
+		Duration: ptypes.DurationProto(s.Duration),
+	}, nil
+}
+
 // ForDevice tells us if a sample is for device (vs IO)
 func (s Sample) ForDevice() bool {
 	if s.Type == SampleTypeSysState {
@@ -58,4 +80,68 @@ func (s *Sample) Bool() bool {
 		return false
 	}
 	return true
+}
+
+// Samples is an array of Sample
+type Samples []Sample
+
+// PbEncode encodes an array of samples into protobuf
+func (s *Samples) PbEncode() ([]byte, error) {
+	pbSamples := make([]*pb.Sample, len(*s))
+	for i, s := range *s {
+		sPb, err := s.ToPb()
+		if err != nil {
+			return []byte{}, err
+		}
+
+		pbSamples[i] = &sPb
+	}
+
+	return proto.Marshal(&pb.Samples{Samples: pbSamples})
+}
+
+// question -- should be using []*Sample instead of []Sample?
+
+func PbSampleToSample(sPb *pb.Sample) (Sample, error) {
+
+	ts, err := ptypes.Timestamp(sPb.Time)
+	if err != nil {
+		return Sample{}, err
+	}
+
+	dur, err := ptypes.Duration(sPb.Duration)
+	if err != nil {
+		return Sample{}, err
+	}
+
+	ret := Sample{
+		ID:       sPb.Id,
+		Type:     sPb.Type,
+		Value:    float64(sPb.Value),
+		Time:     ts,
+		Duration: dur,
+	}
+
+	return ret, nil
+}
+
+// PbDecodeSamples decode protobuf encoded samples
+func PbDecodeSamples(data []byte) ([]Sample, error) {
+	pbSamples := &pb.Samples{}
+	err := proto.Unmarshal(data, pbSamples)
+	if err != nil {
+		return []Sample{}, err
+	}
+
+	ret := make([]Sample, len(pbSamples.Samples))
+
+	for i, sPb := range pbSamples.Samples {
+		s, err := PbSampleToSample(sPb)
+		if err != nil {
+			return []Sample{}, err
+		}
+		ret[i] = s
+	}
+
+	return ret, nil
 }
