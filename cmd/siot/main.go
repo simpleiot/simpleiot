@@ -85,9 +85,9 @@ func sendNats(natsServer, authToken, s string, count int) error {
 
 	samples := data.Samples{}
 
-	for i := 0; i < count; i++ {
-		samples = append(samples, sample)
-	}
+	//for i := 0; i < count; i++ {
+	samples = append(samples, sample)
+	//}
 
 	data, err := samples.PbEncode()
 
@@ -95,12 +95,14 @@ func sendNats(natsServer, authToken, s string, count int) error {
 		return err
 	}
 
-	//for i := 0; i < count; i++ {
-	if err := nc.Publish(subject, data); err != nil {
-		return err
+	for i := 0; i < count; i++ {
+		if err := nc.Publish(subject, data); err != nil {
+			return err
+		}
+		time.Sleep(time.Second)
 	}
-	//time.Sleep(time.Second)
-	//}
+
+	nc.Close()
 
 	return err
 }
