@@ -49,7 +49,7 @@ type Sample struct {
 	Attributes map[string]float64 `json:"attributes,omitempty"`
 }
 
-// PbEncode() encodes sample in protobuf format
+// ToPb encodes sample in protobuf format
 func (s Sample) ToPb() (pb.Sample, error) {
 	ts, err := ptypes.TimestampProto(s.Time)
 	if err != nil {
@@ -102,6 +102,7 @@ func (s *Samples) PbEncode() ([]byte, error) {
 
 // question -- should be using []*Sample instead of []Sample?
 
+//PbSampleToSample converts pb sample to sample
 func PbSampleToSample(sPb *pb.Sample) (Sample, error) {
 
 	ts, err := ptypes.Timestamp(sPb.Time)

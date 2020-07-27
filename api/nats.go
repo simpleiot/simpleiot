@@ -47,20 +47,20 @@ func (nh *NatsHandler) Listen(server string) {
 					log.Println("Error decoding device asmples subject: ", m.Subject)
 					return
 				}
-				deviceId := chunks[1]
+				deviceID := chunks[1]
 				samples, err := data.PbDecodeSamples(m.Data)
 				if err != nil {
 					log.Println("Error decoding Pb Samples: ", err)
 					return
 				}
 
-				err = nh.db.DeviceActivity(deviceId)
+				err = nh.db.DeviceActivity(deviceID)
 				if err != nil {
 					log.Println("Error updating device activity: ", err)
 					return
 				}
 				for _, s := range samples {
-					err = nh.db.DeviceSample(deviceId, s)
+					err = nh.db.DeviceSample(deviceID, s)
 					if err != nil {
 						log.Println("Error writting sample to Db: ", err)
 						return
