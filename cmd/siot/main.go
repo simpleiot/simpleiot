@@ -102,6 +102,9 @@ func sendNats(natsServer, authToken, s string, count int) error {
 		time.Sleep(time.Second)
 	}
 
+	// wait for everything to get sent to server
+	nc.Flush()
+
 	nc.Close()
 
 	return err
