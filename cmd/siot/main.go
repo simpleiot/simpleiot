@@ -81,6 +81,23 @@ func sendNats(natsServer, authToken, s string, count int) error {
 	}
 	defer nc.Close()
 
+	nc.SetErrorHandler(func(_ *nats.Conn, _ *nats.Subscription,
+		err error) {
+		log.Printf("NATS Error: %s\n", err)
+	})
+
+	nc.SetReconnectHandler(func(_ *nats.Conn) {
+		log.Println("NATS Reconnected!")
+	})
+
+	nc.SetDisconnectHandler(func(_ *nats.Conn) {
+		log.Println("NATS Disconnected!")
+	})
+
+	nc.SetClosedHandler(func(_ *nats.Conn) {
+		panic("Connection to NATS is closed!")
+	})
+
 	subject := fmt.Sprintf("device.%v.samples", deviceID)
 
 	samples := data.Samples{}
