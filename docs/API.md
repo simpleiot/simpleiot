@@ -58,6 +58,14 @@ Most APIs that do not return specific data (update/delete) return a
 
 ## NATS
 
+[NATS.io](https://nats.io/) allows more complex and efficient interactions
+between various system components (device, cloud, and web UI). These three parts
+of the system make IoT systems inheriently distributed. NATS focuses on
+simplicity and is written in Go which ensures the Go client is a 1st class
+citizen and also allows for interesting possibilities such as embedding in the
+NATS server in various parts of the system. This allows us to keep our
+one-binary deployment model.
+
 - Devices
   - `device.<id>.samples`
     - device publishes samples and the server updates device state and stores
@@ -65,21 +73,3 @@ Most APIs that do not return specific data (update/delete) return a
   - `device.<id>.file`
     - is used to transfer files to a device in chunks, which is optimized for
       unreliable networks like cellular.
-
-## Old
-
-Previous, the API documentation was done with API Blueprint and will eventually
-be removed.
-
-(the current API documentation is not current -- looking for a better way to
-document that API)
-
-The REST API used by the frontend and devices is documented (below is no longer
-current -- currently evaluating the best path forward to document that API).
-[here](https://htmlpreview.github.io/?https://github.com/simpleiot/simpleiot/blob/master/docs/api.html)
-using [API Blueprint](api.apibp).
-
-### Examples of looking at API data
-
-- install `wget` and `jq`
-- `wget -qO - http://localhost:8080/v1/devices | jq -C`
