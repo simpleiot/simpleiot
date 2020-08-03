@@ -1,0 +1,16 @@
+syntax = "proto3";
+package pb;
+
+option go_package = "github.com/simpleiot/simpleiot/internal/pb";
+
+message  FileChunk{
+  enum State {
+    NONE = 0;
+    START = 1;
+    DONE = 2;
+  }
+
+  State state = 1;
+  int32 seq = 2;
+  bytes data = 3;
+}
