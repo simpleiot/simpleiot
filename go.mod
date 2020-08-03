@@ -20,9 +20,10 @@ require (
 	go.bug.st/serial v1.1.0
 	go.etcd.io/bbolt v1.3.4
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
+	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect
 	google.golang.org/protobuf v1.25.0
 )
 
-replace github.com/nats-io/nats-server/v2 => ../nats-server
+replace github.com/nats-io/nats-server/v2 => github.com/cbrake/nats-server/v2 v2.1.8-0.20200731221538-c267fe885cb5
 
 go 1.13
