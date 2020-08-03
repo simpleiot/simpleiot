@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"log/syslog"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -74,6 +75,9 @@ func sendNats(natsServer, authToken, s string, count int) error {
 		nats.PingInterval(60*2*time.Second),
 		nats.MaxPingsOutstanding(5),
 		nats.ReconnectBufSize(5*1024*1024),
+		nats.SetCustomDialer(&net.Dialer{
+			KeepAlive: -1,
+		}),
 		//nats.Token(authToken),
 	)
 	if err != nil {
