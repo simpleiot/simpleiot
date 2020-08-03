@@ -23,11 +23,11 @@ Most APIs that do not return specific data (update/delete) return a
   - `/v1/devices/:id`
     - GET: return info about a specific device
     - DELETE: delete a device
-  - `/v1/devices/:id/config
+  - `/v1/devices/:id/config`
     - POST: update config for a device
-  - `/v1/devices/:id/samples
+  - `/v1/devices/:id/samples`
     - POST: post samples for a device
-  - `/v1/devices/:id/cmd
+  - `/v1/devices/:id/cmd`
     - GET: gets a command for a device and clears it from the queue. Also clears
       the CmdPending flag in the Device state.
     - POST: posts a cmd for the device and sets the device CmdPending flag.
@@ -37,7 +37,7 @@ Most APIs that do not return specific data (update/delete) return a
     - GET: default is to return list of all users. An `email` query parameter
       can also be used to find a specific user by email.
     - POST: create a new user
-  - `/v1/users/:id
+  - `/v1/users/:id`
     - GET: return info for a single user
     - POST: update a user
     - DELETE: delete a user
@@ -46,7 +46,7 @@ Most APIs that do not return specific data (update/delete) return a
   - `/v1/groups`
     - GET: return list of all groups
     - POST: create a new group
-  - `/v1/groups/:id
+  - `/v1/groups/:id`
     - GET: return info for a single group
     - POST: update a group
     - DELETE: delete a group
