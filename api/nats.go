@@ -2,6 +2,7 @@ package api
 
 import (
 	"log"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -29,6 +30,9 @@ func (nh *NatsHandler) Listen(server string) {
 		nats.PingInterval(60*5*time.Second),
 		nats.MaxPingsOutstanding(5),
 		nats.ReconnectBufSize(5*1024*1024),
+		nats.SetCustomDialer(&net.Dialer{
+			KeepAlive: -1,
+		}),
 		//nats.Token(authToken),
 	)
 
