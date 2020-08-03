@@ -121,13 +121,6 @@ siot_watch() {
   find_src_files | entr -r /bin/sh -c "$cmd"
 }
 
-siot_build_docs() {
-  # download snowboard binary from: https://github.com/bukalapak/snowboard/releases
-  # and stash in /usr/local/bin
-  snowboard lint docs/api.apib || return 1
-  snowboard html docs/api.apib -o docs/api.html || return 1
-}
-
 # TODO finish this and add to siot_test ...
 check_go_format() {
   gofiles=$(find . -name "*.go")
@@ -164,5 +157,11 @@ siot_setup_influx() {
 }
 
 siot_protobuf() {
-  (cd internal/pb && protoc --go_out=./ ./*.proto) || return 1
+  protoc internal/pb/*.proto --go_out=./internal/pb/ || return 1
+  mv internal/pb/github.com/simpleiot/simpleiot/internal/pb/* internal/pb || return 1
+  rm -rf internal/pb/github.com
+}
+
+siot_edge_run() {
+  go run cmd/edge/main.go
 }
