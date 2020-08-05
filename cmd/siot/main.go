@@ -138,6 +138,7 @@ func main() {
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
 	flagNatsServer := flag.String("natsServer", "nats://localhost:4222", "NATS Server")
+	flagNatsAuth := flag.String("natsAuth", "", "NATS auth token")
 	flagSendSampleNats := flag.String("sendSampleNats", "", "Send sample to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendCount := flag.Int("sendCount", 1, "number of samples to send")
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
@@ -273,13 +274,13 @@ func main() {
 
 	go device.Manager(dbInst)
 
-	opts := server.Options{}
+	opts := server.Options{Authorization: *flagNatsAuth}
 
 	natsServer, err := server.NewServer(&opts)
 
 	go natsServer.Start()
 
-	natsHandler := api.NewNatsHandler(dbInst)
+	natsHandler := api.NewNatsHandler(dbInst, *flagNatsAuth)
 	go natsHandler.Listen(*flagNatsServer)
 
 	err = api.Server(api.ServerArgs{

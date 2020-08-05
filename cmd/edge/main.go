@@ -11,12 +11,13 @@ import (
 func main() {
 	flagNatsServer := flag.String("natsServer", "nats://localhost:4222", "NATS Server")
 	flagID := flag.String("id", "1234", "ID of edge device")
+	flagNatsAuth := flag.String("natsAuth", "", "NATS auth token")
 
 	flag.Parse()
 
 	log.Printf("SIOT Edge, ID: %v, server: %v\n", *flagID, *flagNatsServer)
 
-	nc, err := api.NatsEdgeConnect(*flagNatsServer, "")
+	nc, err := api.NatsEdgeConnect(*flagNatsServer, *flagNatsAuth)
 
 	if err != nil {
 		log.Println("Error connecting to NATS server: ", err)

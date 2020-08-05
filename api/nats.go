@@ -14,12 +14,16 @@ import (
 
 // NatsHandler implements the SIOT NATS api
 type NatsHandler struct {
-	db *db.Db
+	db        *db.Db
+	authToken string
 }
 
 // NewNatsHandler creates a new NATS client for handling SIOT requests
-func NewNatsHandler(db *db.Db) *NatsHandler {
-	return &NatsHandler{db: db}
+func NewNatsHandler(db *db.Db, authToken string) *NatsHandler {
+	return &NatsHandler{
+		db:        db,
+		authToken: authToken,
+	}
 }
 
 // Listen for nats requests comming in and process them
@@ -33,7 +37,7 @@ func (nh *NatsHandler) Listen(server string) {
 		nats.SetCustomDialer(&net.Dialer{
 			KeepAlive: -1,
 		}),
-		//nats.Token(authToken),
+		nats.Token(nh.authToken),
 	)
 
 	if err != nil {
@@ -81,20 +85,14 @@ func (nh *NatsHandler) Listen(server string) {
 	}
 }
 
-// NatsEdge is used to manage a connection to a server for an edge device and
-type NatsEdge struct {
-	nc        *nats.Conn
-	server    string
-	authToken string
-}
-
 // NatsEdgeConnect is a function that attempts connections for edge devices with appropriate
-// timeouts, backups, etc.
+// timeouts, backups, etc. Currently set to disconnect if we don't have a connection after 10m,
+// and then exp backup to try to connect every 10m after that.
 func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
 	nc, err := nats.Connect(server,
-		nats.Timeout(10*time.Second),
-		nats.DrainTimeout(10*time.Second),
-		nats.PingInterval(60*2*time.Second),
+		nats.Timeout(30*time.Second),
+		nats.DrainTimeout(30*time.Second),
+		nats.PingInterval(2*time.Minute),
 		nats.MaxPingsOutstanding(5),
 		nats.RetryOnFailedConnect(true),
 		nats.ReconnectBufSize(5*1024*1024),
@@ -107,8 +105,12 @@ func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
 			log.Printf("NATS reconnect attempts: %v, delay: %v", attempts, delay)
 			return delay
 		}),
-		//nats.Token(authToken),
+		nats.Token(authToken),
 	)
+
+	if err != nil {
+		return nil, err
+	}
 
 	nc.SetErrorHandler(func(_ *nats.Conn, _ *nats.Subscription,
 		err error) {
@@ -124,8 +126,8 @@ func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
 	})
 
 	nc.SetClosedHandler(func(_ *nats.Conn) {
-		panic("Connection to NATS is closed!")
+		log.Println("Connection to NATS is closed!")
 	})
 
-	return nc, err
+	return nc, nil
 }

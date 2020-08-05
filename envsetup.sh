@@ -163,5 +163,5 @@ siot_protobuf() {
 }
 
 siot_edge_run() {
-  go run cmd/edge/main.go
+  go run cmd/edge/main.go "$*"
 }
