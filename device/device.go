@@ -8,7 +8,7 @@ import (
 	"github.com/simpleiot/simpleiot/db"
 )
 
-// Manager is responsible for maintaining device state
+// Manager is responsible for maintaining device state, running rules, etc
 func Manager(db *db.Db) {
 	for {
 		db.DeviceEach(func(device *data.Device) error {
@@ -23,6 +23,5 @@ func Manager(db *db.Db) {
 		})
 
 		time.Sleep(10 * time.Second)
-
 	}
 }
