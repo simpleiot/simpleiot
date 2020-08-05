@@ -80,3 +80,52 @@ func (nh *NatsHandler) Listen(server string) {
 		wg.Wait()
 	}
 }
+
+// NatsEdge is used to manage a connection to a server for an edge device and
+type NatsEdge struct {
+	nc        *nats.Conn
+	server    string
+	authToken string
+}
+
+// NatsEdgeConnect is a function that attempts connections for edge devices with appropriate
+// timeouts, backups, etc.
+func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
+	nc, err := nats.Connect(server,
+		nats.Timeout(10*time.Second),
+		nats.DrainTimeout(10*time.Second),
+		nats.PingInterval(60*2*time.Second),
+		nats.MaxPingsOutstanding(5),
+		nats.RetryOnFailedConnect(true),
+		nats.ReconnectBufSize(5*1024*1024),
+		nats.MaxReconnects(-1),
+		nats.SetCustomDialer(&net.Dialer{
+			KeepAlive: -1,
+		}),
+		nats.CustomReconnectDelay(func(attempts int) time.Duration {
+			delay := ExpBackoff(attempts, 30*time.Minute)
+			log.Printf("NATS reconnect attempts: %v, delay: %v", attempts, delay)
+			return delay
+		}),
+		//nats.Token(authToken),
+	)
+
+	nc.SetErrorHandler(func(_ *nats.Conn, _ *nats.Subscription,
+		err error) {
+		log.Printf("NATS Error: %s\n", err)
+	})
+
+	nc.SetReconnectHandler(func(_ *nats.Conn) {
+		log.Println("NATS Reconnected!")
+	})
+
+	nc.SetDisconnectHandler(func(_ *nats.Conn) {
+		log.Println("NATS Disconnected!")
+	})
+
+	nc.SetClosedHandler(func(_ *nats.Conn) {
+		panic("Connection to NATS is closed!")
+	})
+
+	return nc, err
+}

@@ -23,9 +23,9 @@ type fileDownload struct {
 }
 
 // NatsListenForFile listens for a file sent from server
-func NatsListenForFile(nc *nats.Conn, deviceID string) {
+func NatsListenForFile(nc *nats.Conn, deviceID string, callback func(path string)) error {
 	dl := fileDownload{}
-	nc.Subscribe(fmt.Sprintf("device.%v.file", deviceID), func(m *nats.Msg) {
+	_, err := nc.Subscribe(fmt.Sprintf("device.%v.file", deviceID), func(m *nats.Msg) {
 		chunk := &pb.FileChunk{}
 
 		err := proto.Unmarshal(m.Data, chunk)
@@ -63,7 +63,6 @@ func NatsListenForFile(nc *nats.Conn, deviceID string) {
 			// reset download
 			dl = fileDownload{}
 		case pb.FileChunk_DONE:
-			log.Println("received file, writing: ", dl.name)
 			err := ioutil.WriteFile(dl.name, dl.data, 0644)
 			if err != nil {
 				log.Println("Error writing dl file: ", err)
@@ -73,6 +72,8 @@ func NatsListenForFile(nc *nats.Conn, deviceID string) {
 					return
 				}
 			}
+
+			callback(dl.name)
 		}
 
 		err = nc.Publish(m.Reply, []byte("OK"))
@@ -80,6 +81,8 @@ func NatsListenForFile(nc *nats.Conn, deviceID string) {
 			log.Println("Error replying to file download: ", err)
 		}
 	})
+
+	return err
 }
 
 // NatsSendFileFromHTTP fetchs a file using http and sends via nats
@@ -129,7 +132,6 @@ func NatsSendFile(nc *nats.Conn, deviceID string, reader io.Reader, name string)
 
 		if err != nil {
 			if err != io.EOF {
-				// FIXME send ERROR to device?
 				chunk.State = pb.FileChunk_ERROR
 			} else {
 				chunk.State = pb.FileChunk_DONE
