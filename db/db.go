@@ -512,6 +512,53 @@ func (db *Db) GroupDelete(id uuid.UUID) error {
 	return db.store.Delete(id, data.Group{})
 }
 
+// Rules returns all rules.
+func (db *Db) Rules() ([]data.Rule, error) {
+	var ret []data.Rule
+	err := db.store.Find(&ret, nil)
+	return ret, err
+}
+
+// RuleInsert inserts a new rule
+func (db *Db) RuleInsert(rule data.Rule) (string, error) {
+	id := uuid.New()
+	err := db.store.Insert(id, rule)
+	return id.String(), err
+}
+
+// RuleUpdate updates a rule
+func (db *Db) RuleUpdate(rule data.Rule) error {
+	return db.update(func(tx *bolt.Tx) error {
+		if err := db.store.TxUpdate(tx, rule.ID, rule); err != nil {
+			log.Printf("Error updating rule %v, try fixing key\n", rule.ID)
+
+			// Delete current user with bad key
+			err := db.store.TxDeleteMatching(tx, data.Rule{},
+				bolthold.Where("ID").Eq(rule.ID))
+
+			if err != nil {
+				log.Println("Error deleting rule when trying to fix up: ", err)
+				return err
+			}
+
+			// try to insert group
+			if err = db.store.TxUpsert(tx, rule.ID, rule); err != nil {
+				log.Println("Error updating rule after delete: ", err)
+				return err
+			}
+
+			return err
+		}
+
+		return nil
+	})
+}
+
+// RuleDelete deletes a rule from the database
+func (db *Db) RuleDelete(id uuid.UUID) error {
+	return db.store.Delete(id, data.Rule{})
+}
+
 func newIfZero(id uuid.UUID) uuid.UUID {
 	if id == zero {
 		return uuid.New()
@@ -523,6 +570,7 @@ type dbDump struct {
 	Devices    []data.Device    `json:"devices"`
 	Users      []data.User      `json:"users"`
 	Groups     []data.Group     `json:"groups"`
+	Rules      []data.Rule      `json:"rules"`
 	DeviceCmds []data.DeviceCmd `json:"deviceCmds"`
 }
 
@@ -543,6 +591,11 @@ func DumpDb(db *Db, out io.Writer) error {
 	}
 
 	dump.Groups, err = db.Groups()
+	if err != nil {
+		return err
+	}
+
+	dump.Rules, err = db.Rules()
 	if err != nil {
 		return err
 	}
