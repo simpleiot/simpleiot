@@ -193,6 +193,11 @@ viewUser modded user =
             , action = \x -> EditUser { user | last = x }
             }
         , Form.viewTextProperty
+            { name = "Phone #"
+            , value = user.phone
+            , action = \x -> EditUser { user | phone = x }
+            }
+        , Form.viewTextProperty
             { name = "Email"
             , value = user.email
             , action = \x -> EditUser { user | email = x }

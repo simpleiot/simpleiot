@@ -17,6 +17,7 @@ type alias User =
     { id : String
     , first : String
     , last : String
+    , phone : String
     , email : String
     , pass : String
     }
@@ -29,6 +30,7 @@ empty =
     , pass = ""
     , first = ""
     , last = ""
+    , phone = ""
     }
 
 
@@ -43,6 +45,7 @@ decode =
         |> required "id" Decode.string
         |> required "firstName" Decode.string
         |> required "lastName" Decode.string
+        |> required "phone" Decode.string
         |> required "email" Decode.string
         |> required "pass" Decode.string
 
@@ -52,6 +55,7 @@ encode user =
     Encode.object
         [ ( "firstName", Encode.string user.first )
         , ( "lastName", Encode.string user.last )
+        , ( "phone", Encode.string user.phone )
         , ( "email", Encode.string user.email )
         , ( "pass", Encode.string user.pass )
         ]
