@@ -103,7 +103,7 @@ func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
 			KeepAlive: -1,
 		}),
 		nats.CustomReconnectDelay(func(attempts int) time.Duration {
-			delay := ExpBackoff(attempts, 30*time.Minute)
+			delay := ExpBackoff(attempts, 10*time.Minute)
 			log.Printf("NATS reconnect attempts: %v, delay: %v", attempts, delay)
 			return delay
 		}),
