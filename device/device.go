@@ -1,8 +1,10 @@
 package device
 
 import (
+	"bytes"
 	"fmt"
 	"log"
+	"text/template"
 	"time"
 
 	"github.com/google/uuid"
@@ -58,7 +60,7 @@ func (m *Manager) Run() {
 			}
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }
 
@@ -88,7 +90,7 @@ func (m *Manager) runRule(device *data.Device, rule *data.Rule) error {
 			if !rule.State.Active && rule.Config.Repeat == 0 {
 				for _, a := range rule.Config.Actions {
 					if a.Type == data.ActionTypeNotify {
-						err := m.notify(rule.Config.Description, device.Desc(), a.Template, device.Groups)
+						err := m.notify(device, rule.Config.Description, a.Template, device.Groups)
 						if err != nil {
 							log.Println("Error notifying: ", err)
 						}
@@ -108,7 +110,7 @@ func (m *Manager) runRule(device *data.Device, rule *data.Rule) error {
 	return nil
 }
 
-func (m *Manager) notify(ruleDesc, devDesc, template string, groups []uuid.UUID) error {
+func (m *Manager) notify(device *data.Device, ruleDesc, msgTemplate string, groups []uuid.UUID) error {
 	// find users for the groups
 	var users []data.User
 	for _, gID := range groups {
@@ -124,10 +126,16 @@ func (m *Manager) notify(ruleDesc, devDesc, template string, groups []uuid.UUID)
 
 	// send notification to all users
 	var msg string
-	if template == "" {
-		msg = fmt.Sprintf("Notification: %v at %v fired", ruleDesc, devDesc)
+	if msgTemplate == "" {
+		msg = fmt.Sprintf("Notification: %v at %v fired", ruleDesc, device.Desc())
 	} else {
-		log.Println("FIXME, notify templates not implemented yet")
+		var err error
+		msg, err = renderNotifyTemplate(device, msgTemplate)
+		if err != nil {
+			log.Printf("Error rendering template %v: %v\n",
+				msgTemplate, err)
+			msg = fmt.Sprintf("Notification: %v at %v fired", ruleDesc, device.Desc())
+		}
 	}
 
 	for _, u := range uniqueUsers {
@@ -143,4 +151,45 @@ func (m *Manager) notify(ruleDesc, devDesc, template string, groups []uuid.UUID)
 	}
 
 	return nil
+}
+
+type deviceTemplateData struct {
+	ID          string
+	Description string
+	Ios         map[string]float64
+}
+
+func renderNotifyTemplate(device *data.Device, msgTemplate string) (string, error) {
+	// build map of IO values so they are easy to reference by type or ID in template
+	dtd := deviceTemplateData{
+		ID:          device.ID,
+		Description: device.Desc(),
+		Ios:         make(map[string]float64),
+	}
+
+	for _, io := range device.State.Ios {
+		if io.Type != "" {
+			dtd.Ios[io.Type] = io.Value
+		}
+		if io.ID != "" {
+			dtd.Ios[io.ID] = io.Value
+		}
+	}
+
+	buf := new(bytes.Buffer)
+
+	tmpl, err := template.New("msg").Parse(msgTemplate)
+
+	if err != nil {
+		return "", err
+	}
+
+	err = tmpl.Execute(buf, dtd)
+
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+
 }
