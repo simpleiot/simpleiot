@@ -16,9 +16,50 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/device"
+	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
 )
+
+func checkRules(db *db.Db) {
+	rule := data.Rule{
+		Config: data.RuleConfig{
+			Description: "IS Alarm",
+			Conditions: []data.Condition{
+				data.Condition{
+					SampleType: "gpioShutdownEn",
+					Value:      1,
+					Operator:   "=",
+				},
+			},
+			Actions: []data.Action{
+				data.Action{
+					Type: data.ActionTypeNotify,
+				},
+			},
+		},
+	}
+
+	for {
+		devices, err := db.Devices()
+		if err != nil {
+			log.Println("Error getting devices")
+		} else {
+			for _, device := range devices {
+				if len(device.Rules) < 1 {
+					rule.Config.DeviceID = device.ID
+					log.Println("Adding alarm rule for ", device.Desc())
+					_, err := db.RuleInsert(rule)
+					if err != nil {
+						log.Println("Error adding rule to device: ", err)
+					}
+				}
+			}
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+}
 
 func send(portal, sample string) error {
 	frags := strings.Split(sample, ":")
@@ -158,6 +199,16 @@ func main() {
 		}()
 	}
 
+	// get twilio info if enabled
+	twilioSid := os.Getenv("TWILIO_SID")
+	twilioAuth := os.Getenv("TWILIO_AUTH_TOKEN")
+	twilioFrom := os.Getenv("TWILIO_FROM")
+
+	var messenger *msg.Messenger
+	if twilioSid != "" && twilioAuth != "" {
+		messenger = msg.NewMessenger(twilioSid, twilioAuth, twilioFrom)
+	}
+
 	// finally, start web server
 	port := os.Getenv("SIOT_PORT")
 	if port == "" {
@@ -175,7 +226,10 @@ func main() {
 		}
 	}
 
-	go device.Manager(dbInst)
+	go checkRules(dbInst)
+
+	deviceManager := device.NewManger(dbInst, messenger)
+	go deviceManager.Run()
 
 	err = api.Server(api.ServerArgs{
 		Port:       port,
