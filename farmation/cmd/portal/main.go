@@ -21,24 +21,45 @@ import (
 	"github.com/simpleiot/simpleiot/sim"
 )
 
-func checkRules(db *db.Db) {
-	rule := data.Rule{
-		Config: data.RuleConfig{
-			Description: "IS Alarm",
-			Conditions: []data.Condition{
-				data.Condition{
-					SampleType: "gpioShutdownEn",
-					Value:      1,
-					Operator:   "=",
-				},
-			},
-			Actions: []data.Action{
-				data.Action{
-					Type: data.ActionTypeNotify,
-				},
+var alarmRule = data.Rule{
+	Config: data.RuleConfig{
+		Description: "IS Alarm",
+		Conditions: []data.Condition{
+			data.Condition{
+				SampleType: "gpioShutdownEn",
+				Value:      1,
+				Operator:   "=",
 			},
 		},
-	}
+		Actions: []data.Action{
+			data.Action{
+				Type:     data.ActionTypeNotify,
+				Template: `Farmation: InjectorSentry Alert. {{.Description}} is in ALARM state with tank level of {{printf "%.1f" (index .Ios "currentTankVolume")}}.`,
+			},
+		},
+	},
+}
+
+var armedRule = data.Rule{
+	Config: data.RuleConfig{
+		Description: "IS Armed",
+		Conditions: []data.Condition{
+			data.Condition{
+				SampleType: "armed",
+				Value:      1,
+				Operator:   "=",
+			},
+		},
+		Actions: []data.Action{
+			data.Action{
+				Type:     data.ActionTypeNotify,
+				Template: `Farmation: InjectorSentry Alert. {{.Description}} was ARMED with target flow rate of {{printf "%.1f" (index .Ios "flowRateTarget")}} and with tank level of {{printf "%.1f" (index .Ios "currentTankVolume")}}.`,
+			},
+		},
+	},
+}
+
+func checkRules(db *db.Db) {
 
 	for {
 		devices, err := db.Devices()
@@ -46,18 +67,24 @@ func checkRules(db *db.Db) {
 			log.Println("Error getting devices")
 		} else {
 			for _, device := range devices {
-				if len(device.Rules) < 1 {
-					rule.Config.DeviceID = device.ID
-					log.Println("Adding alarm rule for ", device.Desc())
-					_, err := db.RuleInsert(rule)
+				if len(device.Rules) < 2 {
+					log.Println("Adding rules for ", device.Desc())
+					alarmRule.Config.DeviceID = device.ID
+					_, err := db.RuleInsert(alarmRule)
 					if err != nil {
 						log.Println("Error adding rule to device: ", err)
 					}
+					armedRule.Config.DeviceID = device.ID
+					_, err = db.RuleInsert(armedRule)
+					if err != nil {
+						log.Println("Error adding rule to device: ", err)
+					}
+
 				}
 			}
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(1 * time.Minute)
 	}
 }
 
