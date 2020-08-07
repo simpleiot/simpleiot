@@ -61,6 +61,16 @@ func (db *Db) Devices() (ret []data.Device, err error) {
 	return
 }
 
+// DeviceByID returns a device for a given ID
+func (db *Db) DeviceByID(id string) (data.Device, error) {
+	var ret data.Device
+	if err := db.store.Get(id, &ret); err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
 // DeviceEach iterates through each device calling provided function
 func (db *Db) DeviceEach(callback func(device *data.Device) error) error {
 	return db.store.ForEach(nil, callback)
@@ -68,7 +78,22 @@ func (db *Db) DeviceEach(callback func(device *data.Device) error) error {
 
 // DeviceDelete deletes a device from the database
 func (db *Db) DeviceDelete(id string) error {
-	return db.store.Delete(id, data.Device{})
+	return db.update(func(tx *bolt.Tx) error {
+		// first delete all rules for device
+		var device data.Device
+		err := db.store.TxGet(tx, id, &device)
+		if err != nil {
+			return err
+		}
+
+		for _, r := range device.Rules {
+			err := db.store.TxDelete(tx, r.ID, data.Rule{})
+			if err != nil {
+				return err
+			}
+		}
+		return db.store.TxDelete(tx, id, data.Device{})
+	})
 }
 
 // DeviceUpdateConfig updates the config for a device.
@@ -360,6 +385,31 @@ func (db *Db) UserByEmail(email string) (data.User, error) {
 	return ret, nil
 }
 
+// UsersForGroup returns all users who who are connected to a device by a group.
+func (db *Db) UsersForGroup(id uuid.UUID) ([]data.User, error) {
+	var ret []data.User
+
+	err := db.view(func(tx *bolt.Tx) error {
+		var group data.Group
+		err := db.store.TxGet(tx, id, &group)
+		if err != nil {
+			return err
+		}
+
+		for _, role := range group.Users {
+			var user data.User
+			err := db.store.TxGet(tx, role.UserID, &user)
+			if err != nil {
+				return err
+			}
+			ret = append(ret, user)
+		}
+		return nil
+	})
+
+	return ret, err
+}
+
 // initialize initializes the database with one user (admin)
 // in one groupanization (root).
 // All devices are properties of the root groupanization.
@@ -519,44 +569,86 @@ func (db *Db) Rules() ([]data.Rule, error) {
 	return ret, err
 }
 
-// RuleInsert inserts a new rule
-func (db *Db) RuleInsert(rule data.Rule) (string, error) {
-	id := uuid.New()
-	err := db.store.Insert(id, rule)
-	return id.String(), err
+// RuleByID finds a rule given the ID
+func (db *Db) RuleByID(id uuid.UUID) (data.Rule, error) {
+	var rule data.Rule
+	err := db.store.Get(id, &rule)
+	return rule, err
 }
 
-// RuleUpdate updates a rule
-func (db *Db) RuleUpdate(rule data.Rule) error {
-	return db.update(func(tx *bolt.Tx) error {
-		if err := db.store.TxUpdate(tx, rule.ID, rule); err != nil {
-			log.Printf("Error updating rule %v, try fixing key\n", rule.ID)
-
-			// Delete current user with bad key
-			err := db.store.TxDeleteMatching(tx, data.Rule{},
-				bolthold.Where("ID").Eq(rule.ID))
-
-			if err != nil {
-				log.Println("Error deleting rule when trying to fix up: ", err)
-				return err
-			}
-
-			// try to insert group
-			if err = db.store.TxUpsert(tx, rule.ID, rule); err != nil {
-				log.Println("Error updating rule after delete: ", err)
-				return err
-			}
-
+// RuleInsert inserts a new rule
+func (db *Db) RuleInsert(rule data.Rule) (uuid.UUID, error) {
+	rule.ID = uuid.New()
+	err := db.update(func(tx *bolt.Tx) error {
+		err := db.store.TxInsert(tx, rule.ID, rule)
+		if err != nil {
 			return err
 		}
 
-		return nil
+		var device data.Device
+		err = db.store.TxGet(tx, rule.Config.DeviceID, &device)
+		if err != nil {
+			return err
+		}
+
+		device.Rules = append(device.Rules, rule.ID)
+
+		err = db.store.TxUpdate(tx, device.ID, device)
+		return err
+	})
+
+	return rule.ID, err
+}
+
+// RuleUpdateConfig updates a rule config
+func (db *Db) RuleUpdateConfig(id uuid.UUID, config data.RuleConfig) error {
+	return db.update(func(tx *bolt.Tx) error {
+		var rule data.Rule
+		if err := db.store.TxGet(tx, id, &rule); err != nil {
+			return err
+		}
+
+		rule.Config = config
+
+		return db.store.TxUpdate(tx, id, rule)
+	})
+}
+
+// RuleUpdateState updates a rule state
+func (db *Db) RuleUpdateState(id uuid.UUID, state data.RuleState) error {
+	return db.update(func(tx *bolt.Tx) error {
+		var rule data.Rule
+		if err := db.store.TxGet(tx, id, &rule); err != nil {
+			return err
+		}
+
+		rule.State = state
+
+		return db.store.TxUpdate(tx, id, rule)
 	})
 }
 
 // RuleDelete deletes a rule from the database
 func (db *Db) RuleDelete(id uuid.UUID) error {
-	return db.store.Delete(id, data.Rule{})
+	return db.update(func(tx *bolt.Tx) error {
+		var rule data.Rule
+		err := db.store.TxGet(tx, id, &rule)
+		if err != nil {
+			return err
+		}
+		// delete references from device
+		var device data.Device
+		err = db.store.TxGet(tx, rule.Config.DeviceID, &device)
+		if err != nil {
+			return err
+		}
+		return db.store.TxDelete(tx, id, data.Rule{})
+	})
+}
+
+// RuleEach iterates through each rule calling provided function
+func (db *Db) RuleEach(callback func(rule *data.Rule) error) error {
+	return db.store.ForEach(nil, callback)
 }
 
 func newIfZero(id uuid.UUID) uuid.UUID {
