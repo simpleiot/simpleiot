@@ -46,6 +46,16 @@ type Device struct {
 	State      DeviceState  `json:"state"`
 	CmdPending bool         `json:"cmdPending"`
 	Groups     []uuid.UUID  `json:"groups"`
+	Rules      []uuid.UUID  `json:"rules"`
+}
+
+// Desc returns Description if set, otherwise ID
+func (d *Device) Desc() string {
+	if d.Config.Description != "" {
+		return d.Config.Description
+	}
+
+	return d.ID
 }
 
 // ProcessSample takes a sample for a device and adds/updates in Ios
