@@ -123,6 +123,7 @@ described in the project [documentation](docs/README.md).
 - [x] Command line Modbus utlity
 - [x] [rules engine](docs/rules.md) (conditions/consequences)
 - [x] [sms](docs/environment-variables.md) notifications
+- [x] [modem/network management](https://pkg.go.dev/github.com/simpleiot/simpleiot/network)
 - [ ] NATS.io integration
       ([WIP](https://github.com/simpleiot/simpleiot/tree/feature-nats))
 - [ ] file transfer API (over NATs)
@@ -133,9 +134,7 @@ described in the project [documentation](docs/README.md).
 - [ ] esp32 client example
 - [ ] graph timeseries data
 - [ ] efficient protocols for cellular data connections (CoAP, protobuf, etc.)
-- [ ] Google Cloud Datastore
-- [ ] App Engine Deployment
-- [ ] edge computing features (rules, etc)
+- [ ] WiFi management
 
 ## Technology choices
 
