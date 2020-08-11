@@ -8,7 +8,7 @@ The Simple IoT server currently provides both Http and NATS.io APIs. We've tried
 to keep the two APIs a similar as possible so it is easy to switch from one to
 the other. The Http API currently accepts JSON, and the NATS API uses protobuf.
 
-## Http
+## HTTP
 
 For details on data payloads, it is simplest to just refer to the Go types which
 have JSON tags.
@@ -60,11 +60,17 @@ Most APIs that do not return specific data (update/delete) return a
 
 [NATS.io](https://nats.io/) allows more complex and efficient interactions
 between various system components (device, cloud, and web UI). These three parts
-of the system make IoT systems inheriently distributed. NATS focuses on
+of the system make IoT systems inherently distributed. NATS focuses on
 simplicity and is written in Go which ensures the Go client is a 1st class
 citizen and also allows for interesting possibilities such as embedding in the
 NATS server in various parts of the system. This allows us to keep our
 one-binary deployment model.
+
+The `siot` binary embeds the NATS server, so there is no need to deploy and run
+a separate NATS server.
+
+For the NATS transport, protobuf encoding is used for all transfers and are
+defined [here](../internal/pb).
 
 - Devices
   - `device.<id>.samples`
@@ -72,4 +78,10 @@ one-binary deployment model.
       sample in database.
   - `device.<id>.file`
     - is used to transfer files to a device in chunks, which is optimized for
-      unreliable networks like cellular.
+      unreliable networks like cellular and is handy for transfering software
+      update files. There is Go code [available](../api/nats-file.go) to manage
+      both ends of the transfer as well as a utility to [send](../cmd/siotutil)
+      files and an example [edge](../cmd/edge) application to receive files.
+  - `device.<id>.cmd`
+    - send a [DeviceCmd](../data/device.go) to a device. `siotutil` can be used
+      to test sending commands to devices using NATS.

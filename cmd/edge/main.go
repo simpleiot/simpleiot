@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/simpleiot/simpleiot/api"
+	"github.com/simpleiot/simpleiot/data"
 )
 
 func main() {
@@ -28,6 +29,10 @@ func main() {
 
 	api.NatsListenForFile(nc, *flagID, func(name string) {
 		log.Println("File downloaded: ", name)
+	})
+
+	api.NatsListenForCmd(nc, *flagID, func(cmd data.DeviceCmd) {
+		log.Println("Received command: ", cmd)
 	})
 
 	select {}

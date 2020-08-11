@@ -102,8 +102,8 @@ func (s *Samples) PbEncode() ([]byte, error) {
 
 // question -- should be using []*Sample instead of []Sample?
 
-//PbSampleToSample converts pb sample to sample
-func PbSampleToSample(sPb *pb.Sample) (Sample, error) {
+//PbToSample converts pb sample to sample
+func PbToSample(sPb *pb.Sample) (Sample, error) {
 
 	ts, err := ptypes.Timestamp(sPb.Time)
 	if err != nil {
@@ -137,7 +137,7 @@ func PbDecodeSamples(data []byte) ([]Sample, error) {
 	ret := make([]Sample, len(pbSamples.Samples))
 
 	for i, sPb := range pbSamples.Samples {
-		s, err := PbSampleToSample(sPb)
+		s, err := PbToSample(sPb)
 		if err != nil {
 			return []Sample{}, err
 		}

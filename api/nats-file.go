@@ -147,16 +147,28 @@ func NatsSendFile(nc *nats.Conn, deviceID string, reader io.Reader, name string)
 
 		subject := fmt.Sprintf("device.%v.file", deviceID)
 
-		msg, err := nc.Request(subject, out, time.Minute*2)
+		retry := 0
+		for ; retry < 3; retry++ {
+			msg, err := nc.Request(subject, out, time.Minute)
 
-		msgS := string(msg.Data)
+			if err != nil {
+				log.Println("Error sending file, retrying: ", retry, err)
+				continue
+			}
 
-		if msgS != "OK" {
-			return errors.New("Error from device: " + msgS)
+			msgS := string(msg.Data)
+
+			if msgS != "OK" {
+				log.Println("Error from device when sending file: ", retry, msgS)
+				continue
+			}
+
+			// we must have sent OK, break out of loop
+			break
 		}
 
-		if err != nil {
-			return err
+		if retry >= 3 {
+			return errors.New("Error sending file to device")
 		}
 
 		if done {
