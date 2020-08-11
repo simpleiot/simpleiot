@@ -110,19 +110,21 @@ described in the project [documentation](docs/README.md).
 - [x] edit/save device config
 - [x] device management
 - [x] simple dashboard for each device showing collected parameters
-- [x] REST api for devices
-- [x] particle.io support
+- [x] REST [api](docs/API.md) for devices
+- [x] [particle.io](docs/environment-variables.md) support
 - [x] boltdb support
-- [x] influxdb 1.x support
+- [x] [influxdb 1.x](docs/environment-variables.md) support
 - [x] user authentication
 - [x] user accounts
 - [x] group support (assign users and devices to a group so users can only see
       devices they own).
-- [x] Modbus RTU pkg (both client and server)
+- [x] [Modbus RTU pkg](https://pkg.go.dev/github.com/simpleiot/simpleiot/modbus)
+      (both client and server)
 - [x] Command line Modbus utlity
-- [x] rules engine (conditions/consequences)
-- [x] sms notifications
+- [x] [rules engine](docs/rules.md) (conditions/consequences)
+- [x] [sms](docs/environment-variables.md) notifications
 - [ ] NATS.io integration
+      ([WIP](https://github.com/simpleiot/simpleiot/tree/feature-nats))
 - [ ] file transfer API (over NATs)
 - [ ] email notifications
 - [ ] COAP API for devices
