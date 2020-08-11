@@ -9,18 +9,26 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
 	github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea
+	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.0
+	github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
+	github.com/kevinburke/go-types v0.0.0-20200309064045-f2d4aea18a7a // indirect
+	github.com/kevinburke/go.uuid v1.2.0 // indirect
+	github.com/kevinburke/rest v0.0.0-20200429221318-0d2892b400f8 // indirect
+	github.com/kevinburke/twilio-go v0.0.0-20200810163702-320748330fac
+	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.8-0.20200617224755-fa744fdcdaa3
 	github.com/nats-io/nats.go v1.10.1-0.20200720131241-97eff70ce747
 	github.com/timshannon/bolthold v0.0.0-20200316231344-dc30e2b2f90c
+	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
+	github.com/ttacon/libphonenumber v1.1.0 // indirect
 	go.bug.st/serial v1.1.0
 	go.etcd.io/bbolt v1.3.4
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
-	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect
 	google.golang.org/protobuf v1.25.0
 )
 
