@@ -11,11 +11,19 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.8] - 2020-08-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.8)
+
 ### Added
 
 - moved influxDb operations to db package so they are common for all samples
 - added env variable to specify Influx database SIOT_INFLUX_DB
 - added device ID tag to sample data stored in influx
+- add rules engine
+- add SMS notifications using Twilio
+
+### Changed
+
+- clean up documentation organization
 
 ## [[0.0.7] - 2020-07-04](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.7)
 
