@@ -16,6 +16,7 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/device"
+	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
 )
@@ -157,6 +158,16 @@ func main() {
 		}()
 	}
 
+	// get twilio info if enabled
+	twilioSid := os.Getenv("TWILIO_SID")
+	twilioAuth := os.Getenv("TWILIO_AUTH_TOKEN")
+	twilioFrom := os.Getenv("TWILIO_FROM")
+
+	var messenger *msg.Messenger
+	if twilioSid != "" && twilioAuth != "" {
+		messenger = msg.NewMessenger(twilioSid, twilioAuth, twilioFrom)
+	}
+
 	// finally, start web server
 	port := os.Getenv("SIOT_PORT")
 	if port == "" {
@@ -174,7 +185,8 @@ func main() {
 		}
 	}
 
-	go device.Manager(dbInst)
+	deviceManager := device.NewManger(dbInst, messenger)
+	go deviceManager.Run()
 
 	err = api.Server(api.ServerArgs{
 		Port:       port,
