@@ -78,7 +78,7 @@ you need help setting this up -- it is relatively simple.
 ## Support, Pull Requests, etc.
 
 This is a community project. See [development](docs/DEVELOPMENT.md) for more
-thoughts on architecture, tooling, etc. Issues are lableled with "help wanted"
+thoughts on architecture, tooling, etc. Issues are labelled with "help wanted"
 and "good first issue" if you would like to contribute to this project.
 
 For support or to discuss this project, please visit the
