@@ -12,7 +12,8 @@ The following are currently defined:
   - `SIOT_DATA`: directory where any data is stored
 - Particle.io
   - `SIOT_PARTICLE_API_KEY`: key used to fetch data from Particle.io devices
-- InfluxDB
+    running [Simple IoT firmware](https://github.com/simpleiot/firmware)
+- InfluxDB 1.x
   - `SIOT_INFLUX_URL`: url for influxdb. The presense of this variable enables
     influxdb 1.x support. Typically this is `http://localhost:8086`.
   - `SIOT_INFLUX_USER`: user name for influxdb
