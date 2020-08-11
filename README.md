@@ -120,12 +120,16 @@ described in the project [documentation](docs/README.md).
       devices they own).
 - [x] Modbus RTU pkg (both client and server)
 - [x] Command line Modbus utlity
+- [x] rules engine (conditions/consequences)
+- [x] sms notifications
+- [ ] NATS.io integration
+- [ ] file transfer API (over NATs)
+- [ ] email notifications
 - [ ] COAP API for devices
 - [ ] influxdb 2.x support
 - [ ] store timeseries data in bolthold
 - [ ] esp32 client example
 - [ ] graph timeseries data
-- [ ] rules engine (conditions/consequences)
 - [ ] efficient protocols for cellular data connections (CoAP, protobuf, etc.)
 - [ ] Google Cloud Datastore
 - [ ] App Engine Deployment
@@ -162,11 +166,8 @@ but just as important, in the deployment and tooling.
   - Embedded db using [BoltHold](https://github.com/timshannon/bolthold)
     - no external services to configure/admin
 - **Hosting**
-  - Any server (Digital Ocean, Linode, etc)
-  - [Google App Engine](https://cloud.google.com/appengine/)
-    - is simple to deploy Go applications
-    - handle high-availability, scaling, etc.
-  - (any server/hosting environment that supports Go apps can be used)
+  - Any server that provides ability run long-lived Go applications (Digital
+    Ocean, Linode, GCP compute engine, AWS ec2, etc)
 
 In our experience, simplicity and good tooling matter. It is easy to add
 features to a language, but creating a useful language/tooling that is simple is
@@ -186,9 +187,8 @@ to be swapped out for a better technology in the future, that is possible.
 
 ## Pull Requests Welcome
 
-We'd really like this to be a community project. See
-[development](docs/DEVELOPMENT.md) for more thoughts on architecture, tooling,
-etc.
+This is a community project. See [development](docs/DEVELOPMENT.md) for more
+thoughts on architecture, tooling, etc.
 
 For support or to discuss this project, please visit the
 [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
