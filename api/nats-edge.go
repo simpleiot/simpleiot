@@ -1,0 +1,56 @@
+package api
+
+import (
+	"log"
+	"net"
+	"time"
+
+	"github.com/nats-io/nats.go"
+)
+
+// NatsEdgeConnect is a function that attempts connections for edge devices with appropriate
+// timeouts, backups, etc. Currently set to disconnect if we don't have a connection after 10m,
+// and then exp backup to try to connect every 10m after that.
+func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
+	nc, err := nats.Connect(server,
+		nats.Timeout(30*time.Second),
+		nats.DrainTimeout(30*time.Second),
+		nats.PingInterval(2*time.Minute),
+		nats.MaxPingsOutstanding(5),
+		nats.RetryOnFailedConnect(true),
+		nats.ReconnectBufSize(5*1024*1024),
+		nats.MaxReconnects(-1),
+		nats.SetCustomDialer(&net.Dialer{
+			KeepAlive: -1,
+		}),
+		nats.CustomReconnectDelay(func(attempts int) time.Duration {
+			delay := ExpBackoff(attempts, 10*time.Minute)
+			log.Printf("NATS reconnect attempts: %v, delay: %v", attempts, delay)
+			return delay
+		}),
+		nats.Token(authToken),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	nc.SetErrorHandler(func(_ *nats.Conn, _ *nats.Subscription,
+		err error) {
+		log.Printf("NATS Error: %s\n", err)
+	})
+
+	nc.SetReconnectHandler(func(_ *nats.Conn) {
+		log.Println("NATS Reconnected!")
+	})
+
+	nc.SetDisconnectHandler(func(_ *nats.Conn) {
+		log.Println("NATS Disconnected!")
+	})
+
+	nc.SetClosedHandler(func(_ *nats.Conn) {
+		log.Println("Connection to NATS is closed!")
+	})
+
+	return nc, nil
+}
