@@ -26,7 +26,9 @@ This example shows how to run the server and and send data to it:
 - in one terminal, start server: `./siot`
 - open http://localhost:8080
   - login with user `admin@admin.com` and password `admin`
-- in another terminal, send some data: `./siot -sendSample "1823:t1:23.5:temp"`
+- in another terminal, send some data
+  - using HTTP: `./siot -sendSample "1823:t1:23.5:temp"`
+  - using NATS: `./siot -sendSampleNats "1234:v2:12.5:volt"`
   - the format of the `-sendSample` argument is: `devId:sensId:value:type`
 
 ## Configuration

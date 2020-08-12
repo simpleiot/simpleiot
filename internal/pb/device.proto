@@ -1,0 +1,10 @@
+syntax = "proto3";
+package pb;
+
+option go_package = "github.com/simpleiot/simpleiot/internal/pb";
+
+message DeviceCmd {
+  string id = 1;
+  string cmd = 2;
+  string detail = 3;
+}

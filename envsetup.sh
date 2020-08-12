@@ -9,15 +9,19 @@ export GOBIN=$GOPATH/bin
 # map tools from project go modules
 
 genesis() {
-  GOARCH= go run github.com/benbjohnson/genesis/cmd/genesis "$@"
+  GOARCH='' go run github.com/benbjohnson/genesis/cmd/genesis "$@"
 }
 
 golint() {
-  GOARCH= go run golang.org/x/lint/golint "$@"
+  GOARCH='' go run golang.org/x/lint/golint "$@"
 }
 
 bbolt() {
   go run go.etcd.io/bbolt/cmd/bbolt "$@"
+}
+
+siot_install_proto_gen_go() {
+  cd ~ && go get -u google.golang.org/protobuf/cmd/protoc-gen-go
 }
 
 siot_install_frontend_deps() {
@@ -121,13 +125,6 @@ siot_watch() {
   find_src_files | entr -r /bin/sh -c "$cmd"
 }
 
-siot_build_docs() {
-  # download snowboard binary from: https://github.com/bukalapak/snowboard/releases
-  # and stash in /usr/local/bin
-  snowboard lint docs/api.apib || return 1
-  snowboard html docs/api.apib -o docs/api.html || return 1
-}
-
 # TODO finish this and add to siot_test ...
 check_go_format() {
   gofiles=$(find . -name "*.go")
@@ -161,4 +158,14 @@ siot_setup_influx() {
   #export SIOT_INFLUX_USER=admin
   #export SIOT_INFLUX_PASS=admin
   export SIOT_INFLUX_DB=siot
+}
+
+siot_protobuf() {
+  protoc internal/pb/*.proto --go_out=./internal/pb/ || return 1
+  mv internal/pb/github.com/simpleiot/simpleiot/internal/pb/* internal/pb || return 1
+  rm -rf internal/pb/github.com
+}
+
+siot_edge_run() {
+  go run cmd/edge/main.go "$*"
 }

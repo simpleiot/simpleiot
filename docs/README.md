@@ -10,4 +10,5 @@ sidebar_label: Overview
 - [FAQ](FAQ.md)
 - [Environment Variables](environment-variables.md)
 - [API](API.md)
+- [Database](database.md)
 - [Rules](rules.md)
