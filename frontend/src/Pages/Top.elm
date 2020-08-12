@@ -231,6 +231,14 @@ viewDevice model modified device isRoot =
                         - Time.posixToMillis device.state.lastComm
                     )
             )
+        , text
+            ("Version: HW: "
+                ++ device.state.version.hw
+                ++ " OS: "
+                ++ device.state.version.os
+                ++ " App: "
+                ++ device.state.version.app
+            )
         ]
 
 
