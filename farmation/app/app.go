@@ -50,6 +50,7 @@ type Params struct {
 	ViewMsg      bool
 	ReadVcap     bool
 	WebUI        bool
+	AuthToken    string
 }
 
 // Run is the entry point for the IS application
@@ -194,7 +195,7 @@ func Run(params Params) {
 	go ispressure.Run(presChan, appChan, config)
 	//go isserial.Run(serialChan, appChan, config)
 	go isnetwork.Run(networkChan, appChan, config, state,
-		params.PortalURL, params.DebugPortal)
+		params.PortalURL, params.DebugPortal, params.AuthToken)
 
 	go isupdate.Run(updateChan, appChan)
 	go ispower.Run(powerChan, appChan)

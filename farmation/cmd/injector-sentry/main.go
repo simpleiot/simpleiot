@@ -58,6 +58,7 @@ func main() {
 	flagDbDumpSamples := flag.Bool("dbDumpSamples", false, "Dump samples in DB")
 	flagDbCountSamples := flag.Bool("dbCountSamples", false, "Count samples in DB")
 	flagDbDumpFaults := flag.Bool("dbDumpFaults", false, "Dump faults")
+	flagAuth := flag.String("auth", "", "auth token")
 	flag.Parse()
 
 	if *flagDiagRun {
@@ -286,6 +287,7 @@ func main() {
 		ViewMsg:      *flagViewMsg,
 		ReadVcap:     *flagReadVcap,
 		WebUI:        *flagWebUI,
+		AuthToken:    *flagAuth,
 	}
 
 	app.Run(params)

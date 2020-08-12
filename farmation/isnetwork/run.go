@@ -110,7 +110,8 @@ func getAnalogSamples(state *isdata.State) []data.Sample {
 
 // Run is the entry point for the isnetwork subsystem
 func Run(in, out chan interface{}, configIn isdata.Config,
-	stateIn isdata.State, portal string, debugPortal bool) {
+	stateIn isdata.State, portal string, debugPortal bool,
+	authToken string) {
 	config := configIn
 	state := stateIn
 	errorCnt := 0
