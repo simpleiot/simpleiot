@@ -17,6 +17,7 @@ require (
 	github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
+	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.0
 	github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 // indirect
@@ -30,6 +31,8 @@ require (
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/mxmCherry/movavg v1.1.0
+	github.com/nats-io/nats-server/v2 v2.1.8-0.20200617224755-fa744fdcdaa3
+	github.com/nats-io/nats.go v1.10.1-0.20200720131241-97eff70ce747
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
 	github.com/pbnjay/pixfont v0.0.0-20190130005054-401bb7c6aee2
@@ -45,6 +48,7 @@ require (
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4 // indirect
 	golang.org/x/text v0.3.2 // indirect
+	google.golang.org/protobuf v1.25.0
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	periph.io/x/periph v3.4.0+incompatible
 )
@@ -52,5 +56,7 @@ require (
 replace periph.io/x/periph => github.com/cbrake/periph v3.4.991+incompatible
 
 replace golang.org/x/image => github.com/cbrake/golang.org-x-image v0.0.1
+
+replace github.com/nats-io/nats-server/v2 => github.com/cbrake/nats-server/v2 v2.1.8-0.20200731221538-c267fe885cb5
 
 go 1.13
