@@ -8,3 +8,9 @@ message DeviceCmd {
   string cmd = 2;
   string detail = 3;
 }
+
+message DeviceVersion {
+  string os = 1;
+  string app = 2;
+  string hw = 3;
+}
