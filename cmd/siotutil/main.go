@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -11,17 +12,20 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/internal/pb"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
 	flagNatsServer := flag.String("natsServer", "nats://localhost:4222", "NATS Server")
 	flagSendFile := flag.String("sendFile", "", "URL of file to send")
 	flagSendCmd := flag.String("sendCmd", "", "Command to send (cmd:detail)")
+	flagSendVersion := flag.String("sendVersion", "", "Command to send version to portal (HW:OS:App)")
 	flagID := flag.String("id", "1234", "ID of edge device")
 
 	flag.Parse()
 
-	if (*flagSendFile == "" && *flagSendCmd == "") || *flagID == "" {
+	if (*flagSendFile == "" && *flagSendCmd == "" && *flagSendVersion == "") || *flagID == "" {
 		log.Println("Error, must provide sendFile/sendCmd and device")
 		flag.Usage()
 		os.Exit(-1)
@@ -92,5 +96,37 @@ func main() {
 		}
 
 		log.Println("Command sent!")
+	}
+
+	if *flagSendVersion != "" {
+		chunks := strings.Split(*flagSendVersion, ":")
+		if len(chunks) < 3 {
+			log.Println("Error, we need 3 chunks for version")
+			flag.Usage()
+			os.Exit(-1)
+		}
+
+		v := &pb.DeviceVersion{
+			Hw:  chunks[0],
+			Os:  chunks[1],
+			App: chunks[2],
+		}
+
+		out, err := proto.Marshal(v)
+
+		if err != nil {
+			log.Println("Error marshalling version: ", err)
+			os.Exit(-1)
+		}
+
+		subject := fmt.Sprintf("device.%v.version", *flagID)
+		err = nc.Publish(subject, out)
+
+		if err != nil {
+			log.Println("Error sending version: ", err)
+			os.Exit(-1)
+		}
+
+		log.Println("Version sent!")
 	}
 }
