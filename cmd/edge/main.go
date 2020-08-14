@@ -36,7 +36,4 @@ func main() {
 	})
 
 	select {}
-
-	// FIXME, add exit handler
-	defer nc.Close()
 }
