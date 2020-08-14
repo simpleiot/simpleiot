@@ -21,7 +21,7 @@ require (
 	github.com/kevinburke/rest v0.0.0-20200429221318-0d2892b400f8 // indirect
 	github.com/kevinburke/twilio-go v0.0.0-20200810163702-320748330fac
 	github.com/mattn/go-colorable v0.1.7 // indirect
-	github.com/nats-io/nats-server/v2 v2.1.8-0.20200617224755-fa744fdcdaa3
+	github.com/nats-io/nats-server/v2 v2.1.8-0.20200814173904-d30550166e2f
 	github.com/nats-io/nats.go v1.10.1-0.20200720131241-97eff70ce747
 	github.com/timshannon/bolthold v0.0.0-20200316231344-dc30e2b2f90c
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
@@ -31,7 +31,5 @@ require (
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 	google.golang.org/protobuf v1.25.0
 )
-
-replace github.com/nats-io/nats-server/v2 => github.com/cbrake/nats-server/v2 v2.1.8-0.20200731221538-c267fe885cb5
 
 go 1.13
