@@ -43,6 +43,7 @@ type alias Device =
     , config : Config
     , state : State
     , cmdPending : Bool
+    , swUpdateState : SwUpdateState
     , groups : List String
     }
 
@@ -73,6 +74,13 @@ type alias DeviceCmd =
     }
 
 
+type alias SwUpdateState =
+    { running : Bool
+    , error : String
+    , percentDone : Int
+    }
+
+
 emptyVersion : DeviceVersion
 emptyVersion =
     DeviceVersion "" "" ""
@@ -90,6 +98,7 @@ decode =
         |> required "config" decodeConfig
         |> required "state" decodeState
         |> optional "cmdPending" Decode.bool False
+        |> required "swUpdateState" decodeSwUpdateState
         |> optional "groups" (Decode.list Decode.string) []
 
 
@@ -114,6 +123,14 @@ decodeVersion =
         |> required "os" Decode.string
         |> required "app" Decode.string
         |> required "hw" Decode.string
+
+
+decodeSwUpdateState : Decode.Decoder SwUpdateState
+decodeSwUpdateState =
+    Decode.succeed SwUpdateState
+        |> required "running" Decode.bool
+        |> required "error" Decode.string
+        |> required "percentDone" Decode.int
 
 
 decodeCmd : Decode.Decoder DeviceCmd
