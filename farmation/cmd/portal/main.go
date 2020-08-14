@@ -363,7 +363,10 @@ func main() {
 	go natsServer.Start()
 
 	natsHandler := api.NewNatsHandler(dbInst, *flagNatsAuth)
-	go natsHandler.Listen(*flagNatsServer)
+	err = natsHandler.Connect(*flagNatsServer)
+	if err != nil {
+		log.Fatal("Error connecting to NATs server: ", err)
+	}
 
 	err = api.Server(api.ServerArgs{
 		Port:       port,
@@ -371,7 +374,9 @@ func main() {
 		GetAsset:   frontend.Asset,
 		Filesystem: frontend.FileSystem(),
 		Debug:      *flagDebugHTTP,
-		Auth:       auth})
+		Auth:       auth,
+		NH:         natsHandler,
+	})
 
 	if err != nil {
 		log.Println("Error starting server: ", err)

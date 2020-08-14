@@ -539,7 +539,7 @@ viewIS model mod device isRoot =
                 ++ device.state.version.app
             )
         , if isRoot && device.state.sysState == 3 then
-            row [ spacing 20 ]
+            wrappedRow [ spacing 20 ]
                 [ Input.text []
                     { onChange = \v -> EditSwUpdateVersion device.id v
                     , text =
@@ -575,6 +575,16 @@ viewIS model mod device isRoot =
 
                         else
                             Element.none
+                , text <|
+                    "SW update running: "
+                        ++ (if device.swUpdateState.running then
+                                "yes"
+
+                            else
+                                "no"
+                           )
+                , text <| "Bytes transfered: " ++ String.fromInt device.swUpdateState.percentDone
+                , text <| "Error: " ++ device.swUpdateState.error
                 ]
 
           else

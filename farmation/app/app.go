@@ -29,7 +29,6 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/ispressure"
 	"github.com/simpleiot/simpleiot/farmation/issim"
 	"github.com/simpleiot/simpleiot/farmation/isui"
-	"github.com/simpleiot/simpleiot/farmation/isupdate"
 	"github.com/simpleiot/simpleiot/farmation/keypad"
 	"github.com/simpleiot/simpleiot/farmation/version"
 	"github.com/simpleiot/simpleiot/file"
@@ -156,7 +155,6 @@ func Run(params Params) {
 	presChan := make(chan interface{}, 1000)
 	serialChan := make(chan interface{}, 1000)
 	networkChan := make(chan interface{}, 1000)
-	updateChan := make(chan interface{}, 100)
 	powerChan := make(chan interface{}, 100)
 
 	channels := []struct {
@@ -176,7 +174,6 @@ func Run(params Params) {
 		{"pres", presChan},
 		{"serial", serialChan},
 		{"network", networkChan},
-		{"update", updateChan},
 		{"power", powerChan},
 	}
 
@@ -197,7 +194,6 @@ func Run(params Params) {
 	go isnetwork.Run(networkChan, appChan, config, state,
 		params.PortalURL, params.DebugPortal, params.AuthToken)
 
-	go isupdate.Run(updateChan, appChan)
 	go ispower.Run(powerChan, appChan)
 
 	lastFillingWarning := time.Time{}
@@ -1319,7 +1315,8 @@ func Run(params Params) {
 				log.Printf("Command from portal: %+v\n", m)
 				switch m.Cmd {
 				case data.CmdUpdateApp:
-					updateChan <- m
+					// do nothing with this for now as we now use NATS to process updates
+					//updateChan <- m
 				case isdata.CmdFillTank:
 					state.CurrentTankVolume = float64(config.TankCapacity)
 					saveStateSync()

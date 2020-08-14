@@ -1,9 +1,13 @@
 package isnetwork
 
 import (
+	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/simpleiot/simpleiot/api"
@@ -11,9 +15,49 @@ import (
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/version"
+	"github.com/simpleiot/simpleiot/internal/pb"
 	"github.com/simpleiot/simpleiot/network"
 	"github.com/simpleiot/simpleiot/system"
+	"google.golang.org/protobuf/proto"
 )
+
+// updateApp is meant to be run as a goroutine and sends status to
+// out channel
+func updateApp(updateDir, filePath string) error {
+	log.Println("Starting app update: ", filePath)
+
+	filePathUnzipped := strings.TrimSuffix(filePath, ".xz")
+
+	err := exec.Command("xz", "-d", filePath).Run()
+	if err != nil {
+		return fmt.Errorf("Error decompressing update: %w", err)
+	}
+
+	if runtime.GOARCH != "arm" {
+		// nothing more to do if not on target device
+		return fmt.Errorf("App update done, not installing on dev machine")
+	}
+
+	err = exec.Command("mv", filePathUnzipped, "/usr/bin/is").Run()
+	if err != nil {
+		return fmt.Errorf("App update: error installing binary: %w", err)
+	}
+
+	err = exec.Command("chmod", "755", "/usr/bin/is").Run()
+	if err != nil {
+		return fmt.Errorf("App update: error setting mode: %w", err)
+	}
+
+	log.Println("App update finished, restarting app")
+
+	err = exec.Command("/etc/init.d/isapp", "restart").Start()
+
+	if err != nil {
+		return fmt.Errorf("App update: error restarting app: %w", err)
+	}
+
+	return nil
+}
 
 func bool2Float(in bool) float64 {
 	if in {
@@ -118,24 +162,105 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	// the GPIO init sometimes resets the modem, so give the modem
 	// time to come on line before network init
-	time.Sleep(10 * time.Second)
+
+	if runtime.GOARCH == "arm" {
+		time.Sleep(10 * time.Second)
+	}
 
 	manager := network.NewManager(10)
 
-	sendSamplesAPI := api.NewSendSamples(portal, state.SerialNumber, time.Second*10, debugPortal)
-	getCmdAPI := api.NewGetCmd(portal, state.SerialNumber, time.Second*10, debugPortal)
-	setVersionAPI := api.NewSetVersion(portal, state.SerialNumber, time.Second*10, debugPortal)
+	nc, err := api.NatsEdgeConnect(portal, authToken)
+	if err != nil {
+		log.Println("NatsEdgeConnect error: ", err)
+		nc = nil
+	} else {
+		log.Println("Nats started")
+		err := api.NatsListenForCmd(nc, state.SerialNumber, func(cmd data.DeviceCmd) {
+			if cmd.Cmd != "" {
+				out <- cmd
+			}
+		})
+
+		if err != nil {
+			log.Println("Error subscribing to cmd subject: ", err)
+		}
+
+		updateDir := "./"
+
+		if runtime.GOARCH == "arm" {
+			updateDir = "/data/update"
+
+			// clean up update dir on app startup
+
+			if err := os.RemoveAll(updateDir); err != nil {
+				log.Println("Error cleaning update dir")
+			}
+
+			if err := os.MkdirAll(updateDir, os.ModeDir); err != nil {
+				log.Println("Error creating update directory")
+			}
+		}
+
+		err = api.NatsListenForFile(nc, updateDir, state.SerialNumber, func(path string) {
+			err := updateApp(updateDir, path)
+
+			if err != nil {
+				log.Println("Error updating app: ", err)
+			}
+		})
+
+		if err != nil {
+			log.Println("Error listening for NATS sw updates: ", err)
+		}
+
+	}
+
+	setVersionAPI := func(ver data.DeviceVersion) error {
+		subject := fmt.Sprintf("device.%v.version", state.SerialNumber)
+		vPb := &pb.DeviceVersion{
+			Hw:  ver.HW,
+			Os:  ver.OS,
+			App: ver.App,
+		}
+
+		out, err := proto.Marshal(vPb)
+
+		if err != nil {
+			return err
+		}
+
+		return nc.Publish(subject, out)
+	}
+
+	sendSamplesAPI := func(samples data.Samples) error {
+		subject := fmt.Sprintf("device.%v.samples", state.SerialNumber)
+		out, err := samples.PbEncode()
+		if err != nil {
+			return err
+		}
+
+		err = nc.Publish(subject, out)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
 
 	// the following function is used to stub out portal communication
 	// during shutdown
 	stopTalking := func() {
-		sendSamplesAPI = func(samples []data.Sample) error {
+		sendSamplesAPI = func(samples data.Samples) error {
 			return nil
 		}
 
-		getCmdAPI = func() (data.DeviceCmd, error) {
-			return data.DeviceCmd{}, nil
+		setVersionAPI = func(ver data.DeviceVersion) error {
+			return nil
 		}
+	}
+
+	if nc == nil {
+		stopTalking()
 	}
 
 	// when changed filter is used to store config settings and digio values from state
@@ -355,17 +480,6 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			}
 
 			sendInitialData()
-
-			cmd, err := getCmdAPI()
-
-			if err != nil {
-				log.Println("Error getting command from portal: ", err)
-				continue
-			}
-
-			if cmd.Cmd != "" {
-				out <- cmd
-			}
 
 			if !versionSent {
 				err := setVersionAPI(data.DeviceVersion{

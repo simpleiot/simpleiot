@@ -44,7 +44,7 @@ func main() {
 	*/
 	flagModemStatus := flag.Bool("modemStatus", false, "get modem status")
 	flagModemReset := flag.Bool("modemReset", false, "reset modem")
-	flagPortal := flag.String("portal", "https://portal.farmation.us", "portal URL")
+	flagPortal := flag.String("portal", "nats://portal.farmation.us:4222", "portal URL")
 	flagSerialNumber := flag.String("serialNumber", "", "IS serial number")
 	flagSetIsSN := flag.String("setSN", "", "Set IS serial number")
 	flagEnableAuxRelay := flag.Bool("enableAuxRelay", false, "enable aux relay")

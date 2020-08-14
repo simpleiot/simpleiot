@@ -103,7 +103,7 @@ is_run() {
   go run farmation/cmd/injector-sentry/main.go \
     -sim \
     -webUI \
-    -portal http://localhost:8080 \
+    -portal nats://localhost:4222 \
     -serialNumber "wk231" \
     "$1" "$2" "$4" "$5" "$6" || return 1
   return 0
