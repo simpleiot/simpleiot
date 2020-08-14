@@ -60,7 +60,7 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // NewAppHandler returns a new application (root) http handler
 func NewAppHandler(args ServerArgs) http.Handler {
-	v1 := NewV1Handler(args.DbInst, args.Auth)
+	v1 := NewV1Handler(args.DbInst, args.Auth, args.NH)
 	if args.Debug {
 		//args.Debug = false
 		v1 = NewHTTPLogger("v1").Handler(v1)
@@ -81,6 +81,7 @@ type ServerArgs struct {
 	Filesystem http.FileSystem
 	Debug      bool
 	Auth       Authorizer
+	NH         *NatsHandler
 }
 
 // Server starts a API server instance

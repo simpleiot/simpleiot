@@ -35,18 +35,26 @@ type DeviceState struct {
 	SysState SysState      `json:"sysState"`
 }
 
+// SwUpdateState represents the state of an update
+type SwUpdateState struct {
+	Running     bool   `json:"running"`
+	Error       string `json:"error"`
+	PercentDone int    `json:"percentDone"`
+}
+
 // Device represents the state of a device
 // The config is typically updated by the portal/UI, and the
 // State is updated by the device. Keeping these datastructures
 // separate reduces the possibility that one update will step
 // on another.
 type Device struct {
-	ID         string       `json:"id" boltholdKey:"ID"`
-	Config     DeviceConfig `json:"config"`
-	State      DeviceState  `json:"state"`
-	CmdPending bool         `json:"cmdPending"`
-	Groups     []uuid.UUID  `json:"groups"`
-	Rules      []uuid.UUID  `json:"rules"`
+	ID            string        `json:"id" boltholdKey:"ID"`
+	Config        DeviceConfig  `json:"config"`
+	State         DeviceState   `json:"state"`
+	CmdPending    bool          `json:"cmdPending"`
+	SwUpdateState SwUpdateState `json:"swUpdateState"`
+	Groups        []uuid.UUID   `json:"groups"`
+	Rules         []uuid.UUID   `json:"rules"`
 }
 
 // Desc returns Description if set, otherwise ID

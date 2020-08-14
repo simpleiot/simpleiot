@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -14,11 +16,12 @@ import (
 type Devices struct {
 	db    *db.Db
 	check RequestValidator
+	nh    *NatsHandler
 }
 
 // NewDevicesHandler returns a new device handler
-func NewDevicesHandler(db *db.Db, v RequestValidator) http.Handler {
-	return &Devices{db, v}
+func NewDevicesHandler(db *db.Db, v RequestValidator, nh *NatsHandler) http.Handler {
+	return &Devices{db, v, nh}
 }
 
 // Top level handler for http requests in the coap-server process
@@ -169,20 +172,47 @@ type RequestValidator interface {
 
 func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
-	var c data.DeviceCmd
-	err := decoder.Decode(&c)
+	var cmd data.DeviceCmd
+	err := decoder.Decode(&cmd)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// set ID in case it is not set in API call
-	c.ID = id
+	cmd.ID = id
 
-	err = h.db.DeviceSetCmd(c)
+	// set cmd in DB for legacy devices that still fetch over http
+	err = h.db.DeviceSetCmd(cmd)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// TODO how to support old devices still fetching commands via http
+	// perhaps check if device is connected via NATs
+	err = NatsSendCmd(h.nh.Nc, cmd, time.Second*10)
+	if err != nil {
+		log.Printf("Error sending command (%v) to device: ", err)
+		// don't return HTTP error for now as some units still fetch over http
+		//http.Error(res, "Error sending command to device", http.StatusInternalServerError)
+		//return
+	} else {
+		err = h.db.DeviceDeleteCmd(cmd.ID)
+		if err != nil {
+			log.Printf("Error deleting command for device %v: %v", id, err)
+		}
+	}
+
+	// process updates that are now pushed
+	if cmd.Cmd == data.CmdUpdateApp {
+		log.Printf("Sending %v to device %v\n", cmd.Detail, cmd.ID)
+		err := h.nh.StartUpdate(cmd.ID, cmd.Detail)
+		if err != nil {
+			log.Println("Error starting app update: ", err)
+			http.Error(res, "error starting update", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	en := json.NewEncoder(res)

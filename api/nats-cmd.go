@@ -45,7 +45,7 @@ func NatsListenForCmd(nc *nats.Conn, deviceID string, callback func(cmd data.Dev
 }
 
 // NatsSendCmd sends a command to device via NATS
-func NatsSendCmd(nc *nats.Conn, cmd data.DeviceCmd) error {
+func NatsSendCmd(nc *nats.Conn, cmd data.DeviceCmd, timeout time.Duration) error {
 	cmdPb := &pb.DeviceCmd{
 		Id:     cmd.ID,
 		Cmd:    cmd.Cmd,
@@ -59,28 +59,16 @@ func NatsSendCmd(nc *nats.Conn, cmd data.DeviceCmd) error {
 
 	subject := fmt.Sprintf("device.%v.cmd", cmd.ID)
 
-	retry := 0
-	for ; retry < 3; retry++ {
-		msg, err := nc.Request(subject, out, time.Minute)
+	msg, err := nc.Request(subject, out, timeout)
 
-		if err != nil {
-			log.Println("Error sending cmd, retrying: ", retry, err)
-			continue
-		}
-
-		msgS := string(msg.Data)
-
-		if msgS != "OK" {
-			log.Println("Error from device when sending cmd: ", retry, msgS)
-			continue
-		}
-
-		// we must have sent OK, break out of loop
-		break
+	if err != nil {
+		return err
 	}
 
-	if retry >= 3 {
-		return fmt.Errorf("Error sending cmd %v to device %v", cmd.Cmd, cmd.ID)
+	msgS := string(msg.Data)
+
+	if msgS != "OK" {
+		return fmt.Errorf("Error sending cmd to %v, received: %v", cmd.ID, msgS)
 	}
 
 	return nil

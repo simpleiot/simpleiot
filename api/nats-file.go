@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -22,8 +23,9 @@ type fileDownload struct {
 	seq  int32
 }
 
-// NatsListenForFile listens for a file sent from server
-func NatsListenForFile(nc *nats.Conn, deviceID string, callback func(path string)) error {
+// NatsListenForFile listens for a file sent from server. dir is the directly to place
+// downloaded files.
+func NatsListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path string)) error {
 	dl := fileDownload{}
 	_, err := nc.Subscribe(fmt.Sprintf("device.%v.file", deviceID), func(m *nats.Msg) {
 		chunk := &pb.FileChunk{}
@@ -63,7 +65,8 @@ func NatsListenForFile(nc *nats.Conn, deviceID string, callback func(path string
 			// reset download
 			dl = fileDownload{}
 		case pb.FileChunk_DONE:
-			err := ioutil.WriteFile(dl.name, dl.data, 0644)
+			filePath := path.Join(dir, dl.name)
+			err := ioutil.WriteFile(filePath, dl.data, 0644)
 			if err != nil {
 				log.Println("Error writing dl file: ", err)
 				err := nc.Publish(m.Reply, []byte("error writing"))
@@ -73,7 +76,7 @@ func NatsListenForFile(nc *nats.Conn, deviceID string, callback func(path string
 				}
 			}
 
-			callback(dl.name)
+			callback(filePath)
 		}
 
 		err = nc.Publish(m.Reply, []byte("OK"))
@@ -85,8 +88,8 @@ func NatsListenForFile(nc *nats.Conn, deviceID string, callback func(path string
 	return err
 }
 
-// NatsSendFileFromHTTP fetchs a file using http and sends via nats
-func NatsSendFileFromHTTP(nc *nats.Conn, deviceID string, url string) error {
+// NatsSendFileFromHTTP fetchs a file using http and sends via nats. Callback provides % complete (0-100).
+func NatsSendFileFromHTTP(nc *nats.Conn, deviceID string, url string, callback func(int)) error {
 	var netClient = &http.Client{
 		Timeout: time.Second * 60,
 	}
@@ -109,20 +112,24 @@ func NatsSendFileFromHTTP(nc *nats.Conn, deviceID string, url string) error {
 	}
 	name := urlS[len(urlS)-1]
 
-	return NatsSendFile(nc, deviceID, resp.Body, name)
+	return NatsSendFile(nc, deviceID, resp.Body, name, func(bytesTx int) {
+		callback(bytesTx)
+	})
 }
 
-// NatsSendFile can be used to send a file to a device
-func NatsSendFile(nc *nats.Conn, deviceID string, reader io.Reader, name string) error {
+// NatsSendFile can be used to send a file to a device. Callback provides bytes transfered.
+func NatsSendFile(nc *nats.Conn, deviceID string, reader io.Reader, name string, callback func(int)) error {
 	done := false
 	seq := int32(0)
+
+	bytesTx := 0
 
 	// send file in chunks
 	for {
 		var err error
 		data := make([]byte, 50*1024)
-		c, err := reader.Read(data)
-		data = data[:c]
+		count, err := reader.Read(data)
+		data = data[:count]
 
 		chunk := &pb.FileChunk{Seq: seq, Data: data}
 
@@ -170,6 +177,9 @@ func NatsSendFile(nc *nats.Conn, deviceID string, reader io.Reader, name string)
 		if retry >= 3 {
 			return errors.New("Error sending file to device")
 		}
+
+		bytesTx += count
+		callback(bytesTx)
 
 		if done {
 			break
