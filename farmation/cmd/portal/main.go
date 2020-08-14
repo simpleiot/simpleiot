@@ -363,7 +363,20 @@ func main() {
 	go natsServer.Start()
 
 	natsHandler := api.NewNatsHandler(dbInst, *flagNatsAuth)
-	err = natsHandler.Connect(*flagNatsServer)
+
+	// this is a bit of a hack, but we're not sure when the NATS
+	// server will be started, so try several times
+	for i := 0; i < 10; i++ {
+		err = natsHandler.Connect(*flagNatsServer)
+		if err != nil {
+			log.Println("NATS local connect retry: ", i)
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+
+		break
+	}
+
 	if err != nil {
 		log.Fatal("Error connecting to NATs server: ", err)
 	}
