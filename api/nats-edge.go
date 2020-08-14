@@ -3,6 +3,7 @@ package api
 import (
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -49,7 +50,9 @@ func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
 	})
 
 	nc.SetClosedHandler(func(_ *nats.Conn) {
-		log.Println("Connection to NATS is closed!")
+		log.Println("Connection to NATS is closed! -- this should never happen, waiting 15m then exitting")
+		time.Sleep(15 * time.Minute)
+		os.Exit(-1)
 	})
 
 	return nc, nil

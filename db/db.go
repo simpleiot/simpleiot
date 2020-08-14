@@ -190,6 +190,24 @@ func (db *Db) DeviceSetState(id string, state data.SysState) error {
 	})
 }
 
+// DeviceSetSwUpdateState is used to set the SW update state of the device
+func (db *Db) DeviceSetSwUpdateState(id string, state data.SwUpdateState) error {
+	return db.update(func(tx *bolt.Tx) error {
+		var dev data.Device
+		err := db.store.TxGet(tx, id, &dev)
+		if err != nil {
+			if err == bolthold.ErrNotFound {
+				dev.ID = id
+			} else {
+				return err
+			}
+		}
+
+		dev.SwUpdateState = state
+		return db.store.TxUpsert(tx, id, dev)
+	})
+}
+
 // DeviceActivity is used to tell the system there has been activity
 // from this device
 func (db *Db) DeviceActivity(id string) error {
@@ -231,41 +249,72 @@ func (db *Db) DeviceSetCmd(cmd data.DeviceCmd) error {
 	})
 }
 
+// DeviceDeleteCmd delets a cmd for a device and clears the
+// the cmd pending flag
+func (db *Db) DeviceDeleteCmd(id string) error {
+	return db.update(func(tx *bolt.Tx) error {
+		err := db.store.TxDelete(tx, id, data.DeviceCmd{})
+		if err != nil {
+			return err
+		}
+
+		// and clear the device pending flag
+		var dev data.Device
+		err = db.store.TxGet(tx, id, &dev)
+		if err != nil {
+			return err
+		}
+
+		dev.CmdPending = false
+		err = db.store.TxUpdate(tx, id, dev)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
 // DeviceGetCmd gets a cmd for a device. If the cmd is no null,
 // the command is deleted, and the cmdPending flag cleared in
 // the Device data structure.
 func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
 	var cmd data.DeviceCmd
-	err := db.store.Get(id, &cmd)
-	if err == bolthold.ErrNotFound {
-		// we don't consider this an error in this case
-		err = nil
-	}
 
-	if err != nil {
-		return cmd, err
-	}
-
-	if cmd.Cmd != "" {
-		// a device has fetched a command, delete it
-		err := db.store.Delete(id, data.DeviceCmd{})
-		if err != nil {
-			return cmd, err
+	err := db.update(func(tx *bolt.Tx) error {
+		err := db.store.TxGet(tx, id, &cmd)
+		if err == bolthold.ErrNotFound {
+			// we don't consider this an error in this case
+			err = nil
 		}
 
-		// and clear the device pending flag
-		var dev data.Device
-		err = db.store.Get(id, &dev)
 		if err != nil {
-			return cmd, err
+			return err
 		}
 
-		dev.CmdPending = false
-		err = db.store.Update(id, dev)
-		if err != nil {
-			return cmd, err
+		if cmd.Cmd != "" {
+			// a device has fetched a command, delete it
+			err := db.store.TxDelete(tx, id, data.DeviceCmd{})
+			if err != nil {
+				return err
+			}
+
+			// and clear the device pending flag
+			var dev data.Device
+			err = db.store.TxGet(tx, id, &dev)
+			if err != nil {
+				return err
+			}
+
+			dev.CmdPending = false
+			err = db.store.TxUpdate(tx, id, dev)
+			if err != nil {
+				return err
+			}
 		}
-	}
+
+		return nil
+	})
 
 	return cmd, err
 }
