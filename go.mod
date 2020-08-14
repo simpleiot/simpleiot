@@ -31,7 +31,7 @@ require (
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/mxmCherry/movavg v1.1.0
-	github.com/nats-io/nats-server/v2 v2.1.8-0.20200617224755-fa744fdcdaa3
+	github.com/nats-io/nats-server/v2 v2.1.8-0.20200814173904-d30550166e2f
 	github.com/nats-io/nats.go v1.10.1-0.20200720131241-97eff70ce747
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
@@ -56,7 +56,5 @@ require (
 replace periph.io/x/periph => github.com/cbrake/periph v3.4.991+incompatible
 
 replace golang.org/x/image => github.com/cbrake/golang.org-x-image v0.0.1
-
-replace github.com/nats-io/nats-server/v2 => github.com/cbrake/nats-server/v2 v2.1.8-0.20200731221538-c267fe885cb5
 
 go 1.13
