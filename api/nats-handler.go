@@ -47,7 +47,7 @@ func (nh *NatsHandler) Connect(server string) error {
 	)
 
 	if err != nil {
-		log.Fatal("Error connecting to nats server: ", err)
+		return err
 	}
 
 	nh.Nc = nc
