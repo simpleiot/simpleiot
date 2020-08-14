@@ -67,7 +67,9 @@ func main() {
 	})
 
 	if *flagSendFile != "" {
-		err = api.NatsSendFileFromHTTP(nc, *flagID, *flagSendFile)
+		err = api.NatsSendFileFromHTTP(nc, *flagID, *flagSendFile, func(percDone int) {
+			log.Println("% done: ", percDone)
+		})
 
 		if err != nil {
 			log.Println("Error sending file: ", err)
@@ -88,7 +90,7 @@ func main() {
 			cmd.Detail = chunks[1]
 		}
 
-		err := api.NatsSendCmd(nc, cmd)
+		err := api.NatsSendCmd(nc, cmd, 10*time.Second)
 
 		if err != nil {
 			log.Println("Error sending cmd: ", err)

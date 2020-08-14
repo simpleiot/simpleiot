@@ -27,7 +27,7 @@ func main() {
 
 	log.Println("Connected to server")
 
-	api.NatsListenForFile(nc, *flagID, func(name string) {
+	api.NatsListenForFile(nc, "./", *flagID, func(name string) {
 		log.Println("File downloaded: ", name)
 	})
 
