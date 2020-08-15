@@ -69,6 +69,11 @@ is_build_assets_lcd() {
 is_build_assets() {
   is_build_assets_frontend || return 1
   is_build_assets_lcd || return 1
+
+  genesis -C "assets/files" -pkg files \
+    dummy \
+    >assets/files/assets.go || return 1
+
   return 0
 }
 
@@ -103,7 +108,7 @@ is_run() {
   go run farmation/cmd/injector-sentry/main.go \
     -sim \
     -webUI \
-    -portal nats://localhost:4222 \
+    -portal nats://localhost:4333 \
     -serialNumber "wk231" \
     "$1" "$2" "$4" "$5" "$6" || return 1
   return 0
@@ -169,6 +174,10 @@ is_portal_build() {
 
 is_portal_run() {
   export SIOT_DATA=./portal_db
+  export SIOT_NATS_PORT=4333
+  export SIOT_NATS_TLS_CERT=server-cert.pem
+  export SIOT_NATS_TLS_KEY=server-key.pem
+  export SIOT_NATS_SERVER=nats://localhost:4333
   mkdir -p $SIOT_DATA
   is_portal_build_dependencies --debug || return 1
   go run farmation/cmd/portal/main.go "$@" || return 1
