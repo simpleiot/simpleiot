@@ -72,6 +72,11 @@ siot_build_assets() {
     ports.js \
     styles.css \
     >assets/frontend/assets.go || return 1
+
+  genesis -C "assets/files" -pkg files \
+    server-cert.pem \
+    server-key.pem \
+    >assets/files/assets.go || return 1
   return 0
 }
 

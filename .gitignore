@@ -10,3 +10,4 @@ assets.go
 node_modules
 dist
 data.json
+/*.pem

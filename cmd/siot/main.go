@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/simpleiot/simpleiot/api"
+	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
@@ -21,7 +22,6 @@ import (
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
 
-	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 )
 
@@ -139,13 +139,67 @@ func main() {
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
 	flagNatsServer := flag.String("natsServer", "nats://localhost:4222", "NATS Server")
-	flagNatsAuth := flag.String("natsAuth", "", "NATS auth token")
+	flagNatsDisableServer := flag.Bool("natsDisableServer", false, "Disable NATS server (if you want to run NATS separately)")
 	flagSendSampleNats := flag.String("sendSampleNats", "", "Send sample to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendCount := flag.Int("sendCount", 1, "number of samples to send")
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDumpDb := flag.Bool("dumpDb", false, "dump database to file")
-	flagAuthToken := flag.String("token", "ecffb459-779a-4623-abb1-7f10d34b3883", "Auth token")
+	flagAuthToken := flag.String("token", "", "Auth token")
 	flag.Parse()
+
+	// set up local database
+	dataDir := os.Getenv("SIOT_DATA")
+	if dataDir == "" {
+		dataDir = "./"
+	}
+
+	// populate files in file system
+	err := files.UpdateFiles(dataDir)
+
+	if err != nil {
+		log.Println("Error updating files: ", err)
+		os.Exit(-1)
+	}
+
+	// populate general args
+	natsPort := 4222
+
+	natsPortE := os.Getenv("SIOT_NATS_PORT")
+	if natsPortE != "" {
+		n, err := strconv.Atoi(natsPortE)
+		if err != nil {
+			log.Println("Error parsing SIOT_NATS_PORT: ", err)
+			os.Exit(-1)
+		}
+		natsPort = n
+	}
+
+	natsHTTPPort := 8222
+
+	natsHTTPPortE := os.Getenv("SIOT_NATS_HTTP_PORT")
+	if natsHTTPPortE != "" {
+		n, err := strconv.Atoi(natsHTTPPortE)
+		if err != nil {
+			log.Println("Error parsing SIOT_NATS_HTTP_PORT: ", err)
+			os.Exit(-1)
+		}
+		natsHTTPPort = n
+	}
+
+	natsServer := "nats://localhost:4222"
+	natsServerE := os.Getenv("SIOT_NATS_SERVER")
+	if natsServerE != "" {
+		natsServer = natsServerE
+	}
+
+	if *flagNatsServer != "" {
+		natsServer = *flagNatsServer
+	}
+
+	authToken := os.Getenv("SIOT_AUTH_TOKEN")
+	if *flagAuthToken != "" {
+		authToken = *flagAuthToken
+	}
 
 	if *flagSyslog {
 		lgr, err := syslog.New(syslog.LOG_NOTICE, "SIOT")
@@ -166,7 +220,7 @@ func main() {
 	}
 
 	if *flagSendSampleNats != "" {
-		err := sendNats(*flagNatsServer, *flagAuthToken,
+		err := sendNats(*flagNatsServer, authToken,
 			*flagSendSampleNats, *flagSendCount)
 		if err != nil {
 			log.Println(err)
@@ -181,12 +235,6 @@ func main() {
 	}
 
 	// default action is to start server
-
-	// set up local database
-	dataDir := os.Getenv("SIOT_DATA")
-	if dataDir == "" {
-		dataDir = "./"
-	}
 
 	if *flagDumpDb {
 		dbInst, err := db.NewDb(dataDir, nil, false)
@@ -286,18 +334,16 @@ func main() {
 	deviceManager := device.NewManger(dbInst, messenger)
 	go deviceManager.Run()
 
-	opts := server.Options{Authorization: *flagNatsAuth}
+	if !*flagNatsDisableServer {
+		go api.StartNatsServer(natsPort, natsHTTPPort, authToken)
+	}
 
-	natsServer, err := server.NewServer(&opts)
-
-	go natsServer.Start()
-
-	natsHandler := api.NewNatsHandler(dbInst, *flagNatsAuth)
+	natsHandler := api.NewNatsHandler(dbInst, authToken)
 
 	// this is a bit of a hack, but we're not sure when the NATS
 	// server will be started, so try several times
 	for i := 0; i < 10; i++ {
-		err = natsHandler.Connect(*flagNatsServer)
+		err = natsHandler.Connect(natsServer)
 		if err != nil {
 			log.Println("NATS local connect retry: ", i)
 			time.Sleep(500 * time.Millisecond)
