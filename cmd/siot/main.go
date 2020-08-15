@@ -367,7 +367,9 @@ func main() {
 		GetAsset:   frontend.Asset,
 		Filesystem: frontend.FileSystem(),
 		Debug:      *flagDebugHTTP,
-		Auth:       auth})
+		Auth:       auth,
+		NH:         natsHandler,
+	})
 
 	if err != nil {
 		log.Println("Error starting server: ", err)
