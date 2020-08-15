@@ -2,10 +2,17 @@
 
 ![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=master)
 
-Simple IoT is collection of building blocks and best practices for building IoT
-systems, learned from experience building real-world systems. This project
-provides a portal application (typically deployed in the cloud) as well as
-packages for implementing an edge application to run on embedded Linux systems.
+Simple IoT is collection of building blocks to help you build custom IoT systems
+quickly, but yet provide full flexibility to customize the system. Many features
+like device communication, device update, rules, user/group management, user
+portal, etc. are needed for every IoT system. This project provides a solid
+foundation of common features so that you can focus on the specific problem you
+are solving. See [vision](docs/vision.md) for more information.
+
+Simple IoT was developed while building real world real-world systems. This
+project provides a portal application (typically deployed in the cloud) as well
+as packages for implementing an edge application to run on embedded Linux
+systems.
 
 The Simple IoT project also includes open source gateway
 [firmware](https://github.com/simpleiot/firmware/tree/master/siot-fw) and
@@ -64,7 +71,7 @@ you need help setting this up -- it is relatively simple.
 - [x] [rules engine](docs/rules.md) (conditions/consequences)
 - [x] [sms](docs/environment-variables.md) notifications
 - [x] [modem/network management](https://pkg.go.dev/github.com/simpleiot/simpleiot/network)
-- [ ] NATS.io integration
+- [x] NATS.io integration
       ([WIP](https://github.com/simpleiot/simpleiot/tree/feature-nats))
 - [ ] file transfer API (over NATs)
 - [ ] email notifications
