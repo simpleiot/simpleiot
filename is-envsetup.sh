@@ -70,10 +70,6 @@ is_build_assets() {
   is_build_assets_frontend || return 1
   is_build_assets_lcd || return 1
 
-  genesis -C "assets/files" -pkg files \
-    dummy \
-    >assets/files/assets.go || return 1
-
   return 0
 }
 
@@ -141,6 +137,10 @@ is_portal_build_frontend() {
 }
 
 is_portal_build_assets() {
+  genesis -C "assets/files" -pkg files \
+    dummy \
+    >assets/files/assets.go || return 1
+
   mkdir -p assets/frontend || return 1
   genesis -C frontend/output -pkg frontend \
     index.html \
