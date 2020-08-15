@@ -11,6 +11,19 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.9] - 2020-08-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.9)
+
+### Added
+
+- NATS integration for device communication
+
+### Changed
+
+- documentation improvements
+  - moved API documentation to simple Markdown
+  - better organization
+  - add list of guiding principles to the [README](README.md)
+
 ## [[0.0.8] - 2020-08-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.8)
 
 ### Added

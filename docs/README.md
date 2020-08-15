@@ -6,9 +6,10 @@ sidebar_label: Overview
 
 # Simple IoT Documentation
 
-- [Development](DEVELOPMENT.md)
-- [FAQ](FAQ.md)
+- [Vision](vision.md)
+- [Development](development.md)
 - [Environment Variables](environment-variables.md)
-- [API](API.md)
+- [API](api.md)
 - [Database](database.md)
 - [Rules](rules.md)
+- [FAQ](faq.md)

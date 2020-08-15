@@ -20,3 +20,4 @@ is
 is-portal
 update-not
 twilio.sh
+*.pem

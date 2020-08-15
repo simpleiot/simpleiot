@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -35,6 +36,8 @@ func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("NATS: TLS required: ", nc.TLSRequired())
 
 	nc.SetErrorHandler(func(_ *nats.Conn, _ *nats.Subscription,
 		err error) {
