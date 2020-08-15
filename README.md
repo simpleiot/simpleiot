@@ -11,22 +11,22 @@ are solving.
 
 A few guiding principles.
 
-- Simple concepts are flexible and scale well.
-- There are a lot of IoT applications that are
-  [not Google](https://blog.bradfieldcs.com/you-are-not-google-84912cf44afb)
-  scale (10-1000 device range).
-- A single engineer should be able to build and deploy an IoT system.
-- We don't need to spend gobs of time on operations. For smaller deployments, we
-  deploy one binary to a cloud server and we are done with operations. We don't
-  need 20 microservices when one
-  [monolith](https://m.signalvnoise.com/the-majestic-monolith/) will
-  [work](https://changelog.com/posts/monoliths-are-the-future) just
-  [fine](https://m.signalvnoise.com/integrated-systems-for-integrated-programmers/).
-- There is significant opportunity in the long tail of IoT, which is our focus.
-  We are not an "enterprise" platform.
-- There is value in custom solutions (programming vs drag-n-drop).
-- There are more problems to solve than people to solve them, thus it makes
-  sense to collaborate on the common technology pieces.
+1. Simple concepts are flexible and scale well.
+1. There are a lot of IoT applications that are
+   [not Google](https://blog.bradfieldcs.com/you-are-not-google-84912cf44afb)
+   scale (10-1000 device range).
+1. A single engineer should be able to build and deploy an IoT system.
+1. We don't need to spend gobs of time on operations. For smaller deployments,
+   we deploy one binary to a cloud server and we are done with operations. We
+   don't need 20 microservices when one
+   [monolith](https://m.signalvnoise.com/the-majestic-monolith/) will
+   [work](https://changelog.com/posts/monoliths-are-the-future) just
+   [fine](https://m.signalvnoise.com/integrated-systems-for-integrated-programmers/).
+1. There is significant opportunity in the long tail of IoT, which is our focus.
+   We are not an "enterprise" platform.
+1. There is value in custom solutions (programming vs drag-n-drop).
+1. There are more problems to solve than people to solve them, thus it makes
+   sense to collaborate on the common technology pieces.
 
 Though we are focusing on smaller deployments initially, there is no reason
 Simple IoT can't scale to large systems by swapping out the internal database
