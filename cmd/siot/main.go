@@ -196,6 +196,9 @@ func main() {
 		natsServer = *flagNatsServer
 	}
 
+	natsTlsCert := os.Getenv("SIOT_NATS_TLS_CERT")
+	natsTlsKey := os.Getenv("SIOT_NATS_TLS_KEY")
+
 	authToken := os.Getenv("SIOT_AUTH_TOKEN")
 	if *flagAuthToken != "" {
 		authToken = *flagAuthToken
@@ -335,7 +338,8 @@ func main() {
 	go deviceManager.Run()
 
 	if !*flagNatsDisableServer {
-		go api.StartNatsServer(natsPort, natsHTTPPort, authToken)
+		go api.StartNatsServer(natsPort, natsHTTPPort, authToken,
+			natsTlsCert, natsTlsKey)
 	}
 
 	natsHandler := api.NewNatsHandler(dbInst, authToken)

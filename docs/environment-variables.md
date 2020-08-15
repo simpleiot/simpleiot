@@ -17,6 +17,9 @@ The following are currently defined:
   - `SIOT_NATS_PORT`: Port to run NATS on (default is 4222 if not set)
   - `SIOT_NATS_HTTP_PORT`: Port to run NATS monitoring interface (default is
   - `SIOT_NATS_SERVER`: defaults to nats://localhost:4222
+  - `SIOT_NATS_TLS_CERT`: points to TLS certificate file. If not set, TLS is not
+    used.
+  - `SIOT_NATS_TLS_KEY`: points to TLS certificate key
 - Particle.io
   - `SIOT_PARTICLE_API_KEY`: key used to fetch data from Particle.io devices
     running [Simple IoT firmware](https://github.com/simpleiot/firmware)

@@ -9,27 +9,30 @@ import (
 
 // StartNatsServer starts a nats server instance. This function will block
 // so should be started with a go routine
-func StartNatsServer(port, httpPort int, auth string) {
+func StartNatsServer(port, httpPort int, auth, tlsCert, tlsKey string) {
 	opts := server.Options{
 		Port:          port,
 		HTTPPort:      httpPort,
 		Authorization: auth,
-		TLS:           true,
-		TLSCert:       "server-cert.pem",
-		TLSKey:        "server-key.pem",
 	}
 
-	tc := server.TLSConfigOpts{}
-	tc.CertFile = opts.TLSCert
-	tc.KeyFile = opts.TLSKey
-	tc.CaFile = opts.TLSCaCert
-	tc.Verify = opts.TLSVerify
+	if tlsCert != "" && tlsKey != "" {
+		log.Println("Setting up NATS TLS ...")
+		opts.TLS = true
+		opts.TLSCert = tlsCert
+		opts.TLSKey = tlsKey
+		tc := server.TLSConfigOpts{}
+		tc.CertFile = opts.TLSCert
+		tc.KeyFile = opts.TLSKey
+		tc.CaFile = opts.TLSCaCert
+		tc.Verify = opts.TLSVerify
 
-	var err error
-	opts.TLSConfig, err = server.GenTLSConfig(&tc)
+		var err error
+		opts.TLSConfig, err = server.GenTLSConfig(&tc)
 
-	if err != nil {
-		log.Fatal("Error setting up TLS: ", err)
+		if err != nil {
+			log.Fatal("Error setting up TLS: ", err)
+		}
 	}
 
 	natsServer, err := server.NewServer(&opts)

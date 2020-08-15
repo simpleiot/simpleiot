@@ -18,8 +18,7 @@ type FileUpdate struct {
 // UpdateFiles updates various files in the system
 func UpdateFiles(dataDir string) error {
 	fileUpdates := []FileUpdate{
-		{path.Join(dataDir, "server-cert.pem"), 0644, nil},
-		{path.Join(dataDir, "server-key.pem"), 0644, nil},
+		// currently not using this, saving for future use
 	}
 
 	for _, fu := range fileUpdates {
