@@ -92,7 +92,9 @@ just at the brainstorming stage and has not been implemented yet.
   direction.
 - application technology is general, so you are not dependant on any one IoT
   company or cloud provider
-- plugin architecture for extending the system with custom functionality
+- plugin architecture for extending the system with custom functionality.
+  Perhaps plugins can use a NATS api -- this would allow any executable that
+  speaks NATs to plug into the system later.
 - easy to set up for small/mid size deployments -- not a lot of moving parts to
   worry about. Can be deployed in-house if you don't need data in the cloud.
 - simple deployment process (not a lot of pieces on the backend to manage)
