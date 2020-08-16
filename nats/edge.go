@@ -20,7 +20,7 @@ func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
 		nats.PingInterval(2*time.Minute),
 		nats.MaxPingsOutstanding(5),
 		nats.RetryOnFailedConnect(true),
-		nats.ReconnectBufSize(5*1024*1024),
+		nats.ReconnectBufSize(128*1024),
 		nats.MaxReconnects(-1),
 		nats.SetCustomDialer(&net.Dialer{
 			KeepAlive: -1,
