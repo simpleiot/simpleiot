@@ -1,4 +1,4 @@
-package api
+package nats
 
 import (
 	"errors"
@@ -6,9 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -86,35 +84,6 @@ func NatsListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path s
 	})
 
 	return err
-}
-
-// NatsSendFileFromHTTP fetchs a file using http and sends via nats. Callback provides % complete (0-100).
-func NatsSendFileFromHTTP(nc *nats.Conn, deviceID string, url string, callback func(int)) error {
-	var netClient = &http.Client{
-		Timeout: time.Second * 60,
-	}
-
-	resp, err := netClient.Get(url)
-
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("Error reading file over http: " + resp.Status)
-	}
-
-	urlS := strings.Split(url, "/")
-	if len(urlS) < 2 {
-		return errors.New("Error parsing URL")
-	}
-	name := urlS[len(urlS)-1]
-
-	return NatsSendFile(nc, deviceID, resp.Body, name, func(bytesTx int) {
-		callback(bytesTx)
-	})
 }
 
 // NatsSendFile can be used to send a file to a device. Callback provides bytes transfered.
