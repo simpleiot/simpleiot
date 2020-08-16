@@ -20,6 +20,7 @@ import (
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/device"
 	"github.com/simpleiot/simpleiot/msg"
+	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
 )
@@ -410,7 +411,7 @@ func main() {
 	go deviceManager.Run()
 
 	if !*flagNatsDisableServer {
-		go api.StartNatsServer(natsPort, natsHTTPPort, authToken,
+		go natsserver.StartNatsServer(natsPort, natsHTTPPort, authToken,
 			natsTLSCert, natsTLSKey)
 	}
 

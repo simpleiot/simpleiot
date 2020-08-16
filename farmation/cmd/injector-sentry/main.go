@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"time"
 
-	"net/http"
 	//_ "net/http/pprof"
 
 	ps "github.com/mitchellh/go-ps"
@@ -52,7 +51,7 @@ func main() {
 	flagViewMsg := flag.Bool("msg", false, "view channel messages to app")
 	flagReadVcap := flag.Bool("readVcap", false, "read backup battery voltage")
 	flagWebUI := flag.Bool("webUI", false, "Start Web UI for remote access")
-	flagProf := flag.Bool("prof", false, "Web UI for profiling")
+	//flagProf := flag.Bool("prof", false, "Web UI for profiling")
 	flagSetTimeZone := flag.Bool("setTimeZone", false, "Set system time zone from config")
 	flagPopDbTestData := flag.Bool("popDbTestData", false, "Populate db with 10yr worth of data")
 	flagDbDumpSamples := flag.Bool("dbDumpSamples", false, "Dump samples in DB")
@@ -266,14 +265,16 @@ func main() {
 		}
 	}
 
-	if *flagProf {
-		// this starts a web service that can be used for profiling
-		// must uncomment import _ "net/http/pprof" above
-		go func() {
-			log.Println("Starting web interface for pprof ...")
-			log.Println(http.ListenAndServe(":6060", nil))
-		}()
-	}
+	/*
+		if *flagProf {
+			// this starts a web service that can be used for profiling
+			// must uncomment import _ "net/http/pprof" above
+			go func() {
+				log.Println("Starting web interface for pprof ...")
+				log.Println(http.ListenAndServe(":6060", nil))
+			}()
+		}
+	*/
 
 	params := app.Params{
 		Sim:          *flagSim,

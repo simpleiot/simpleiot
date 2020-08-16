@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isio"
 	"github.com/simpleiot/simpleiot/farmation/version"
 	"github.com/simpleiot/simpleiot/internal/pb"
+	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/network"
 	"github.com/simpleiot/simpleiot/system"
 	"google.golang.org/protobuf/proto"
@@ -169,13 +169,13 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	manager := network.NewManager(10)
 
-	nc, err := api.NatsEdgeConnect(portal, authToken)
+	nc, err := nats.NatsEdgeConnect(portal, authToken)
 	if err != nil {
 		log.Println("NatsEdgeConnect error: ", err)
 		nc = nil
 	} else {
 		log.Println("Nats started")
-		err := api.NatsListenForCmd(nc, state.SerialNumber, func(cmd data.DeviceCmd) {
+		err := nats.NatsListenForCmd(nc, state.SerialNumber, func(cmd data.DeviceCmd) {
 			if cmd.Cmd != "" {
 				out <- cmd
 			}
@@ -201,7 +201,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			}
 		}
 
-		err = api.NatsListenForFile(nc, updateDir, state.SerialNumber, func(path string) {
+		err = nats.NatsListenForFile(nc, updateDir, state.SerialNumber, func(path string) {
 			err := updateApp(updateDir, path)
 
 			if err != nil {
@@ -264,9 +264,9 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	}
 
 	// when changed filter is used to store config settings and digio values from state
-	whenChangedSamplesFilter := api.NewSampleFilter(0, 15*time.Minute)
+	whenChangedSamplesFilter := data.NewSampleFilter(0, 15*time.Minute)
 	// analog sample filter is used to store analog values from state
-	analogSamplesFilter := api.NewSampleFilter(30*time.Second, 15*time.Minute)
+	analogSamplesFilter := data.NewSampleFilter(30*time.Second, 15*time.Minute)
 
 	versionSent := false
 

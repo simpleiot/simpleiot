@@ -16,7 +16,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
-	"github.com/simpleiot/simpleiot/farmation/isapi"
 	"github.com/simpleiot/simpleiot/farmation/iscontrol"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
@@ -183,7 +182,7 @@ func Run(params Params) {
 	go isio.Run(ioChan, appChan, config, state) // this is where io Run is called, w/ ioChan as in chan and appChan as out chan
 	go iscontrol.Run(cntrlChan, appChan, config, state)
 	if params.WebUI {
-		go isapi.Server(webChan, appChan)
+		//go isapi.Server(webChan, appChan)
 	}
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
