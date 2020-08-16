@@ -146,3 +146,79 @@ func PbDecodeSamples(data []byte) ([]Sample, error) {
 
 	return ret, nil
 }
+
+// SampleFilter is used to send samples upstream. It only sends
+// the data has changed, and at a max frequency
+type SampleFilter struct {
+	minSend          time.Duration
+	periodicSend     time.Duration
+	samples          []Sample
+	lastSent         time.Time
+	lastPeriodicSend time.Time
+}
+
+// NewSampleFilter is used to creat a new sample filter
+// If samples have changed that get sent out at a minSend interval
+// frequency of minSend.
+// All samples are periodically sent at lastPeriodicSend interval.
+// Set minSend to 0 for things like config settings where you want them
+// to be sent whenever anything changes.
+func NewSampleFilter(minSend, periodicSend time.Duration) *SampleFilter {
+	return &SampleFilter{
+		minSend:      minSend,
+		periodicSend: periodicSend,
+	}
+}
+
+// returns true if sample has changed, and merges sample with saved samples
+func (sf *SampleFilter) add(sample Sample) bool {
+	for i, s := range sf.samples {
+		if sample.ID == s.ID && sample.Type == s.Type {
+			if sample.Value == s.Value {
+				return false
+			}
+
+			sf.samples[i].Value = sample.Value
+			return true
+		}
+	}
+
+	// sample not found, add to array
+	sf.samples = append(sf.samples, sample)
+	return true
+}
+
+// Add adds samples and returns samples that meet the filter criteria
+func (sf *SampleFilter) Add(samples []Sample) []Sample {
+	if time.Since(sf.lastPeriodicSend) > sf.periodicSend {
+		// send all samples
+		for _, s := range samples {
+			sf.add(s)
+		}
+
+		sf.lastPeriodicSend = time.Now()
+		sf.lastSent = sf.lastPeriodicSend
+		return sf.samples
+	}
+
+	if sf.minSend != 0 && time.Since(sf.lastSent) < sf.minSend {
+		// don't return anything as
+		return []Sample{}
+	}
+
+	// now check if anything has changed and just send what has changed
+	// only
+	var ret []Sample
+
+	for _, s := range samples {
+		if sf.add(s) {
+			ret = append(ret, s)
+		}
+	}
+
+	if len(ret) > 0 {
+		sf.lastSent = time.Now()
+	}
+
+	return ret
+}
