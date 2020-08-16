@@ -57,7 +57,7 @@ func main() {
 	flagDbDumpSamples := flag.Bool("dbDumpSamples", false, "Dump samples in DB")
 	flagDbCountSamples := flag.Bool("dbCountSamples", false, "Count samples in DB")
 	flagDbDumpFaults := flag.Bool("dbDumpFaults", false, "Dump faults")
-	flagAuth := flag.String("auth", "", "auth token")
+	flagAuth := flag.String("auth", "e6f98318-8c1c-48c4-a26f-714e06618dd9", "auth token")
 	flag.Parse()
 
 	if *flagDiagRun {
