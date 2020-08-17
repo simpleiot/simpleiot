@@ -9,7 +9,7 @@ import (
 
 // StartNatsServer starts a nats server instance. This function will block
 // so should be started with a go routine
-func StartNatsServer(port, httpPort int, auth, tlsCert, tlsKey string) {
+func StartNatsServer(port, httpPort int, auth, tlsCert, tlsKey string, tlsTimeout float64) {
 	opts := server.Options{
 		Port:          port,
 		HTTPPort:      httpPort,
@@ -21,6 +21,7 @@ func StartNatsServer(port, httpPort int, auth, tlsCert, tlsKey string) {
 		opts.TLS = true
 		opts.TLSCert = tlsCert
 		opts.TLSKey = tlsKey
+		opts.TLSTimeout = tlsTimeout
 		tc := server.TLSConfigOpts{}
 		tc.CertFile = opts.TLSCert
 		tc.KeyFile = opts.TLSKey
