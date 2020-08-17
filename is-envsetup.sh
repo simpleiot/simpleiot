@@ -106,6 +106,7 @@ is_run() {
     -webUI \
     -portal nats://localhost:4333 \
     -serialNumber "wk231" \
+    -auth="1234" \
     "$1" "$2" "$4" "$5" "$6" || return 1
   return 0
 }
@@ -174,6 +175,7 @@ is_portal_build() {
 
 is_portal_run() {
   export SIOT_DATA=./portal_db
+  export SIOT_AUTH=1234
   export SIOT_NATS_PORT=4333
   export SIOT_NATS_TLS_CERT=server-cert.pem
   export SIOT_NATS_TLS_KEY=server-key.pem
