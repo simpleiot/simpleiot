@@ -155,7 +155,7 @@ func getAnalogSamples(state *isdata.State) []data.Sample {
 // Run is the entry point for the isnetwork subsystem
 func Run(in, out chan interface{}, configIn isdata.Config,
 	stateIn isdata.State, portal string, debugPortal bool,
-	authToken string) {
+	authToken string, disableModemManager bool) {
 	config := configIn
 	state := stateIn
 	errorCnt := 0
@@ -296,7 +296,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	if runtime.GOOS == "windows" {
 		manager.AddInterface(network.NewDummyInterface())
 	} else {
-		if runtime.GOARCH == "arm" {
+		if runtime.GOARCH == "arm" && !disableModemManager {
 			//manager.AddInterface(network.NewEthernet("eth0"))
 			modem = network.NewModem(
 				network.ModemConfig{

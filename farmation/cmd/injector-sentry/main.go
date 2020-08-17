@@ -57,6 +57,7 @@ func main() {
 	flagDbDumpSamples := flag.Bool("dbDumpSamples", false, "Dump samples in DB")
 	flagDbCountSamples := flag.Bool("dbCountSamples", false, "Count samples in DB")
 	flagDbDumpFaults := flag.Bool("dbDumpFaults", false, "Dump faults")
+	flagDisableModemManager := flag.Bool("disableModemManager", false, "Disable modem manager")
 	flagAuth := flag.String("auth", "e6f98318-8c1c-48c4-a26f-714e06618dd9", "auth token")
 	flag.Parse()
 
@@ -277,18 +278,19 @@ func main() {
 	*/
 
 	params := app.Params{
-		Sim:          *flagSim,
-		DataDir:      *flagDataDir,
-		DebugState:   *flagDebugState,
-		DebugConfig:  *flagDebugConfig,
-		DebugModem:   *flagDebugModem,
-		DebugPortal:  *flagDebugPortal,
-		PortalURL:    *flagPortal,
-		SerialNumber: *flagSerialNumber,
-		ViewMsg:      *flagViewMsg,
-		ReadVcap:     *flagReadVcap,
-		WebUI:        *flagWebUI,
-		AuthToken:    *flagAuth,
+		Sim:                 *flagSim,
+		DataDir:             *flagDataDir,
+		DebugState:          *flagDebugState,
+		DebugConfig:         *flagDebugConfig,
+		DebugModem:          *flagDebugModem,
+		DebugPortal:         *flagDebugPortal,
+		PortalURL:           *flagPortal,
+		SerialNumber:        *flagSerialNumber,
+		ViewMsg:             *flagViewMsg,
+		ReadVcap:            *flagReadVcap,
+		WebUI:               *flagWebUI,
+		AuthToken:           *flagAuth,
+		DisableModemManager: *flagDisableModemManager,
 	}
 
 	app.Run(params)

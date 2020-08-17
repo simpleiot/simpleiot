@@ -16,6 +16,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
+	"github.com/simpleiot/simpleiot/farmation/isapi"
 	"github.com/simpleiot/simpleiot/farmation/iscontrol"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
@@ -37,18 +38,19 @@ import (
 
 // Params are used to configure the app
 type Params struct {
-	Sim          bool
-	DataDir      string
-	DebugState   bool
-	DebugConfig  bool
-	DebugModem   bool
-	DebugPortal  bool
-	PortalURL    string
-	SerialNumber string
-	ViewMsg      bool
-	ReadVcap     bool
-	WebUI        bool
-	AuthToken    string
+	Sim                 bool
+	DataDir             string
+	DebugState          bool
+	DebugConfig         bool
+	DebugModem          bool
+	DebugPortal         bool
+	PortalURL           string
+	SerialNumber        string
+	ViewMsg             bool
+	ReadVcap            bool
+	WebUI               bool
+	AuthToken           string
+	DisableModemManager bool
 }
 
 // Run is the entry point for the IS application
@@ -182,7 +184,7 @@ func Run(params Params) {
 	go isio.Run(ioChan, appChan, config, state) // this is where io Run is called, w/ ioChan as in chan and appChan as out chan
 	go iscontrol.Run(cntrlChan, appChan, config, state)
 	if params.WebUI {
-		//go isapi.Server(webChan, appChan)
+		go isapi.Server(webChan, appChan)
 	}
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
@@ -191,7 +193,8 @@ func Run(params Params) {
 	go ispressure.Run(presChan, appChan, config)
 	//go isserial.Run(serialChan, appChan, config)
 	go isnetwork.Run(networkChan, appChan, config, state,
-		params.PortalURL, params.DebugPortal, params.AuthToken)
+		params.PortalURL, params.DebugPortal, params.AuthToken,
+		params.DisableModemManager)
 
 	go ispower.Run(powerChan, appChan)
 

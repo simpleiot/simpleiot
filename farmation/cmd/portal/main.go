@@ -269,6 +269,17 @@ func main() {
 
 	natsTLSCert := os.Getenv("SIOT_NATS_TLS_CERT")
 	natsTLSKey := os.Getenv("SIOT_NATS_TLS_KEY")
+	natsTLSTimeoutS := os.Getenv("SIOT_NATS_TLS_TIMEOUT")
+
+	natsTLSTimeout := 0.5
+
+	if natsTLSTimeoutS != "" {
+		natsTLSTimeout, err = strconv.ParseFloat(natsTLSTimeoutS, 64)
+		if err != nil {
+			log.Println("Error parsing nats TLS timeout: ", err)
+			os.Exit(-1)
+		}
+	}
 
 	authToken := os.Getenv("SIOT_AUTH_TOKEN")
 	if *flagAuthToken != "" {
@@ -412,7 +423,7 @@ func main() {
 
 	if !*flagNatsDisableServer {
 		go natsserver.StartNatsServer(natsPort, natsHTTPPort, authToken,
-			natsTLSCert, natsTLSKey)
+			natsTLSCert, natsTLSKey, natsTLSTimeout)
 	}
 
 	natsHandler := api.NewNatsHandler(dbInst, authToken)
