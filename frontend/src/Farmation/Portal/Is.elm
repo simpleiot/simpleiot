@@ -23,6 +23,7 @@ type alias InjectorSentry =
     , signal : Float
     , rsrq : Float
     , rsrp : Float
+    , operatingMode : String
     }
 
 
@@ -30,9 +31,31 @@ deviceToInjectorSentry : Data.Device.Device -> InjectorSentry
 deviceToInjectorSentry device =
     let
         is =
-            InjectorSentry False False False False False False 0 0 0 0 0 0 0 0 0 0 0
+            InjectorSentry False False False False False False 0 0 0 0 0 0 0 0 0 0 0 ""
     in
     isApplyIos is device.state.ios
+
+
+opModeString : Int -> String
+opModeString mode =
+    case mode of
+        0 ->
+            "monitor"
+
+        1 ->
+            "monitor and alarm"
+
+        2 ->
+            "monitor and batch"
+
+        3 ->
+            "monitor and notify"
+
+        4 ->
+            "static rate control"
+
+        _ ->
+            "unknown"
 
 
 isApplyIos : InjectorSentry -> List Sample -> InjectorSentry
@@ -90,6 +113,9 @@ isApplyIos is ios =
 
                 "signal" ->
                     isApplyIos { is | signal = x.value } xs
+
+                "operatingMode" ->
+                    isApplyIos { is | operatingMode = opModeString (round x.value) } xs
 
                 _ ->
                     isApplyIos is xs

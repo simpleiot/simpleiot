@@ -42,6 +42,12 @@ type alias SetTank =
     }
 
 
+type alias SetFlowRate =
+    { id : String
+    , rate : Float
+    }
+
+
 type alias Model =
     { deviceEdit : Maybe DeviceEdit
     , zone : Time.Zone
@@ -50,6 +56,7 @@ type alias Model =
     -- IS mods
     , swUpdate : Maybe SwUpdate
     , setTank : Maybe SetTank
+    , setFlowRate : Maybe SetFlowRate
     }
 
 
@@ -57,6 +64,7 @@ type Msg
     = EditDeviceDescription String String
     | EditSwUpdateVersion String String
     | EditSetTank String String
+    | EditSetFlowRate String String
     | PostConfig String D.Config
     | DiscardEditedDeviceDescription
     | DeleteDevice String
@@ -80,7 +88,7 @@ page =
 
 init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
 init _ _ =
-    ( Model Nothing Time.utc (Time.millisToPosix 0) Nothing Nothing
+    ( Model Nothing Time.utc (Time.millisToPosix 0) Nothing Nothing Nothing
     , Cmd.batch [ Task.perform Zone Time.here, Task.perform Tick Time.now ]
     , Cmd.none
     )
@@ -164,6 +172,27 @@ update global msg model =
                             (String.toFloat level)
             in
             ( { model | setTank = Just { id = id, level = levelF } }
+            , Cmd.none
+            , Cmd.none
+            )
+
+        EditSetFlowRate id rate ->
+            let
+                rateF =
+                    if rate == "" then
+                        0
+
+                    else
+                        Maybe.withDefault
+                            (Maybe.withDefault
+                                { id = ""
+                                , rate = 0
+                                }
+                                model.setFlowRate
+                            ).rate
+                            (String.toFloat rate)
+            in
+            ( { model | setFlowRate = Just { id = id, rate = rateF } }
             , Cmd.none
             , Cmd.none
             )
@@ -464,6 +493,7 @@ viewIS model mod device isRoot =
 
           else
             Element.none
+        , text ("Operating mode: " ++ is.operatingMode)
         , text ("Min Pressure: " ++ Round.round 0 is.pressureMin)
         , text ("Max Pressure: " ++ Round.round 0 is.pressureMax)
         , row [ spacing 20 ]
@@ -492,7 +522,7 @@ viewIS model mod device isRoot =
                                 else
                                     ""
                     , placeholder = Just <| Input.placeholder [] <| text "tank level"
-                    , label = Input.labelLeft [ centerY ] <| text "Set tank level"
+                    , label = Input.labelLeft [ centerY ] <| text "Set Tank Level"
                     }
                 , case model.setTank of
                     Nothing ->
@@ -516,6 +546,44 @@ viewIS model mod device isRoot =
             Element.none
         , text ("Tank Capacity: " ++ Round.round 0 is.tankCapacity ++ " gal")
         , text ("Flow Setpoint: " ++ Round.round 0 is.flowRateTarget)
+        , if device.state.sysState == 3 && is.operatingMode == "static rate control" then
+            row [ spacing 20 ]
+                [ Input.text []
+                    { onChange = \l -> EditSetFlowRate device.id l
+                    , text =
+                        case model.setFlowRate of
+                            Nothing ->
+                                ""
+
+                            Just setFlowRate ->
+                                if setFlowRate.id == device.id then
+                                    String.fromFloat setFlowRate.rate
+
+                                else
+                                    ""
+                    , placeholder = Just <| Input.placeholder [] <| text "flow rate"
+                    , label = Input.labelLeft [ centerY ] <| text "Set Flow Setpoint"
+                    }
+                , case model.setFlowRate of
+                    Nothing ->
+                        Element.none
+
+                    Just setFlowRate ->
+                        if setFlowRate.id == device.id then
+                            Form.button "Set now"
+                                Style.colors.blue
+                                (DeviceCmd
+                                    setFlowRate.id
+                                    "setFlowRate"
+                                    (String.fromFloat setFlowRate.rate)
+                                )
+
+                        else
+                            Element.none
+                ]
+
+          else
+            Element.none
         , text
             ("Flow Window: "
                 ++ Round.round 0 is.flowWindowLow
