@@ -17,6 +17,7 @@ import (
 
 // NatsHandler implements the SIOT NATS api
 type NatsHandler struct {
+	server    string
 	Nc        *nats.Conn
 	db        *db.Db
 	authToken string
@@ -25,18 +26,19 @@ type NatsHandler struct {
 }
 
 // NewNatsHandler creates a new NATS client for handling SIOT requests
-func NewNatsHandler(db *db.Db, authToken string) *NatsHandler {
+func NewNatsHandler(db *db.Db, authToken, server string) *NatsHandler {
+	log.Println("NATS handler connecting to: ", server)
 	return &NatsHandler{
 		db:        db,
 		authToken: authToken,
 		updates:   make(map[string]time.Time),
+		server:    server,
 	}
 }
 
 // Connect to NATS server and set up handlers for things we are interested in
-func (nh *NatsHandler) Connect(server string) error {
-	log.Println("NATS handler connecting to: ", server)
-	nc, err := nats.Connect(server,
+func (nh *NatsHandler) Connect() error {
+	nc, err := nats.Connect(nh.server,
 		nats.Timeout(10*time.Second),
 		nats.PingInterval(60*5*time.Second),
 		nats.MaxPingsOutstanding(5),

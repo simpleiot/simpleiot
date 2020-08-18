@@ -347,12 +347,12 @@ func main() {
 			natsTLSCert, natsTLSKey, natsTLSTimeout)
 	}
 
-	natsHandler := api.NewNatsHandler(dbInst, authToken)
+	natsHandler := api.NewNatsHandler(dbInst, authToken, natsServer)
 
 	// this is a bit of a hack, but we're not sure when the NATS
 	// server will be started, so try several times
 	for i := 0; i < 10; i++ {
-		err = natsHandler.Connect(natsServer)
+		err = natsHandler.Connect()
 		if err != nil {
 			log.Println("NATS local connect retry: ", i)
 			time.Sleep(500 * time.Millisecond)
