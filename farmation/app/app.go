@@ -16,6 +16,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/farmation/fonts/tightpixel15"
+	"github.com/simpleiot/simpleiot/farmation/isapi"
 	"github.com/simpleiot/simpleiot/farmation/iscontrol"
 	"github.com/simpleiot/simpleiot/farmation/isdata"
 	"github.com/simpleiot/simpleiot/farmation/isdb"
@@ -183,7 +184,7 @@ func Run(params Params) {
 	go isio.Run(ioChan, appChan, config, state) // this is where io Run is called, w/ ioChan as in chan and appChan as out chan
 	go iscontrol.Run(cntrlChan, appChan, config, state)
 	if params.WebUI {
-		//go isapi.Server(webChan, appChan)
+		go isapi.Server(webChan, appChan)
 	}
 	go issim.Run(simChan, appChan)
 	go islcd.Run(lcdChan, appChan)
@@ -1322,6 +1323,7 @@ func Run(params Params) {
 					state.CurrentTankVolume = float64(config.TankCapacity)
 					saveStateSync()
 					networkChan <- m
+
 				case isdata.CmdSetTankLevel:
 					level, err := strconv.Atoi(m.Detail)
 					if err != nil {
@@ -1330,6 +1332,15 @@ func Run(params Params) {
 						state.CurrentTankVolume = float64(level)
 						saveStateSync()
 						networkChan <- m
+					}
+
+				case isdata.CmdSetFlowRateTarget:
+					level, err := strconv.ParseFloat(m.Detail, 64)
+					if err != nil {
+						log.Println("Error parsing command from portal: ", err)
+					} else {
+						config.FlowRateTarget = float64(level)
+						saveConfig()
 					}
 
 				default:

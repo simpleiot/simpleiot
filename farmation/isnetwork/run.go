@@ -99,6 +99,10 @@ func getConfigSamples(config *isdata.Config) []data.Sample {
 			Type:  "tankCapacity",
 			Value: float64(config.TankCapacity),
 		},
+		{
+			Type:  "operatingMode",
+			Value: float64(config.OperatingMode),
+		},
 	}
 }
 
@@ -267,6 +271,8 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	whenChangedSamplesFilter := data.NewSampleFilter(0, 15*time.Minute)
 	// analog sample filter is used to store analog values from state
 	analogSamplesFilter := data.NewSampleFilter(30*time.Second, 15*time.Minute)
+
+	lastSendNetworkStats := time.Time{}
 
 	versionSent := false
 
@@ -460,6 +466,28 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				(lastTimeSync.IsZero() || time.Since(lastTimeSync) >= time.Hour) {
 				system.UpdateTimeFromNetwork()
 				lastTimeSync = time.Now()
+
+				if time.Since(lastSendNetworkStats) >= time.Minute*30 {
+					s := []data.Sample{
+						{
+							Type:  "rsrq",
+							Value: float64(interfaceStatus.Rsrq),
+						},
+						{
+							Type:  "rsrp",
+							Value: float64(interfaceStatus.Rsrp),
+						},
+						{
+							Type:  "signal",
+							Value: float64(interfaceStatus.Signal),
+						},
+					}
+
+					err := sendSamples(s)
+					if err != nil {
+						lastSendNetworkStats = time.Now()
+					}
+				}
 			}
 
 			if modem != nil && !config.ModemDisabled {
