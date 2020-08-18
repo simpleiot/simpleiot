@@ -72,7 +72,7 @@ func sendNats(natsServer, authToken, s string, count int) error {
 		return err
 	}
 
-	nc, err := nats.NatsEdgeConnect(natsServer, authToken)
+	nc, err := nats.EdgeConnect(natsServer, authToken)
 
 	if err != nil {
 		return err

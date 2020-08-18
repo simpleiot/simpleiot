@@ -18,7 +18,7 @@ func main() {
 
 	log.Printf("SIOT Edge, ID: %v, server: %v\n", *flagID, *flagNatsServer)
 
-	nc, err := nats.NatsEdgeConnect(*flagNatsServer, *flagNatsAuth)
+	nc, err := nats.EdgeConnect(*flagNatsServer, *flagNatsAuth)
 
 	if err != nil {
 		log.Println("Error connecting to NATS server: ", err)
@@ -27,11 +27,11 @@ func main() {
 
 	log.Println("Connected to server")
 
-	nats.NatsListenForFile(nc, "./", *flagID, func(name string) {
+	nats.ListenForFile(nc, "./", *flagID, func(name string) {
 		log.Println("File downloaded: ", name)
 	})
 
-	nats.NatsListenForCmd(nc, *flagID, func(cmd data.DeviceCmd) {
+	nats.ListenForCmd(nc, *flagID, func(cmd data.DeviceCmd) {
 		log.Println("Received command: ", cmd)
 	})
 

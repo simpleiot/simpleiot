@@ -32,7 +32,7 @@ func main() {
 		os.Exit(-1)
 	}
 
-	nc, err := nats.NatsEdgeConnect(*flagNatsServer, *flagNatsAuth)
+	nc, err := nats.EdgeConnect(*flagNatsServer, *flagNatsAuth)
 
 	if err != nil {
 		log.Println("Error connecting to NATS server: ", err)
@@ -82,7 +82,7 @@ func main() {
 			cmd.Detail = chunks[1]
 		}
 
-		err := nats.NatsSendCmd(nc, cmd, 10*time.Second)
+		err := nats.SendCmd(nc, cmd, 10*time.Second)
 
 		if err != nil {
 			log.Println("Error sending cmd: ", err)

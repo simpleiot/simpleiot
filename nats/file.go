@@ -21,9 +21,9 @@ type fileDownload struct {
 	seq  int32
 }
 
-// NatsListenForFile listens for a file sent from server. dir is the directly to place
+// ListenForFile listens for a file sent from server. dir is the directly to place
 // downloaded files.
-func NatsListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path string)) error {
+func ListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path string)) error {
 	dl := fileDownload{}
 	_, err := nc.Subscribe(fmt.Sprintf("device.%v.file", deviceID), func(m *nats.Msg) {
 		chunk := &pb.FileChunk{}
@@ -86,8 +86,8 @@ func NatsListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path s
 	return err
 }
 
-// NatsSendFile can be used to send a file to a device. Callback provides bytes transfered.
-func NatsSendFile(nc *nats.Conn, deviceID string, reader io.Reader, name string, callback func(int)) error {
+// SendFile can be used to send a file to a device. Callback provides bytes transfered.
+func SendFile(nc *nats.Conn, deviceID string, reader io.Reader, name string, callback func(int)) error {
 	done := false
 	seq := int32(0)
 
