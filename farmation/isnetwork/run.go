@@ -173,7 +173,25 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	manager := network.NewManager(10)
 
-	nc, err := nats.EdgeConnect(portal, authToken)
+	opts := nats.EdgeOptions{
+		Server:    portal,
+		AuthToken: authToken,
+		Disconnected: func() {
+			log.Println("NATS Disconnected")
+			// reset modem to attempt to reconnect
+			manager.Reset()
+		},
+		Reconnected: func() {
+			log.Println("NATS Reconnected")
+		},
+		Closed: func() {
+			log.Println("NATS Closed, this should never happen")
+			time.Sleep(15 * time.Minute)
+			os.Exit(-1)
+		},
+	}
+
+	nc, err := nats.EdgeConnect(opts)
 	if err != nil {
 		log.Println("NATS EdgeConnect error: ", err)
 		nc = nil
@@ -219,6 +237,13 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	}
 
+	// when changed filter is used to store config settings and digio values from state
+	whenChangedSamplesFilter := data.NewSampleFilter(0, 15*time.Minute)
+	// analog sample filter is used to store analog values from state
+	analogSamplesFilter := data.NewSampleFilter(30*time.Second, 15*time.Minute)
+
+	lastSendNetworkStats := time.Time{}
+
 	setVersionAPI := func(ver data.DeviceVersion) error {
 		subject := fmt.Sprintf("device.%v.version", state.SerialNumber)
 		vPb := &pb.DeviceVersion{
@@ -233,7 +258,17 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			return err
 		}
 
-		return nc.Publish(subject, out)
+		msg, err := nc.Request(subject, out, 20*time.Second)
+
+		if err != nil {
+			return err
+		}
+
+		if string(msg.Data) != "" {
+			return fmt.Errorf("Error sending version: %w", err)
+		}
+
+		return nil
 	}
 
 	sendSamplesAPI := func(samples data.Samples) error {
@@ -243,9 +278,14 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			return err
 		}
 
-		err = nc.Publish(subject, out)
+		msg, err := nc.Request(subject, out, 20*time.Second)
+
 		if err != nil {
 			return err
+		}
+
+		if string(msg.Data) != "" {
+			return fmt.Errorf("Error sending sample: %w", err)
 		}
 
 		return nil
@@ -266,13 +306,6 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	if nc == nil {
 		stopTalking()
 	}
-
-	// when changed filter is used to store config settings and digio values from state
-	whenChangedSamplesFilter := data.NewSampleFilter(0, 15*time.Minute)
-	// analog sample filter is used to store analog values from state
-	analogSamplesFilter := data.NewSampleFilter(30*time.Second, 15*time.Minute)
-
-	lastSendNetworkStats := time.Time{}
 
 	versionSent := false
 
@@ -313,6 +346,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 					APN:           "vzwinternet",
 				})
 			manager.AddInterface(modem)
+			manager.AddInterface(network.NewEthernet("eth1"))
 		} else {
 			// various interfaces on development machines
 			manager.AddInterface(network.NewEthernet("eno1"))
@@ -390,6 +424,10 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				state = m
 				samples := whenChangedSamplesFilter.Add(getDigIoSamples(&state))
 				samples = append(samples, analogSamplesFilter.Add(getAnalogSamples(&state))...)
+				samples = append(samples, data.Sample{
+					Type:  "commError",
+					Value: float64(errorCnt),
+				})
 				sendSamples(samples)
 
 			case data.Sample:
