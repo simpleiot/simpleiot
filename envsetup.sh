@@ -115,6 +115,21 @@ siot_run() {
   return 0
 }
 
+# run siot_mkcert first
+siot_run_tls() {
+  echo "run args: $*"
+  export SIOT_NATS_TLS_CERT=server-cert.pem
+  export SIOT_NATS_TLS_KEY=server-key.pem
+  siot_build_dependencies --debug || return 1
+  go run cmd/siot/main.go "$@" || return 1
+  return 0
+}
+
+# please install mkcert and run mkcert -install first
+siot_mkcert() {
+  mkcert -cert-file server-cert.pem -key-file server-key.pem localhost ::1
+}
+
 find_src_files() {
   find . -not \( -path ./frontend/src/Generated -prune \) -not \( -path ./assets -prune \) -name "*.go" -o -name "*.elm"
 }
