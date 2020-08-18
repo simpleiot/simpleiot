@@ -32,4 +32,6 @@ require (
 	google.golang.org/protobuf v1.25.0
 )
 
+replace github.com/nats-io/nats.go => github.com/cbrake/nats.go v1.10.1-0.20200817210920-7a8e05e18c84
+
 go 1.13
