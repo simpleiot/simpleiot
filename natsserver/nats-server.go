@@ -42,7 +42,15 @@ func StartNatsServer(port, httpPort int, auth, tlsCert, tlsKey string, tlsTimeou
 		log.Fatal("Error create new Nats server: ", err)
 	}
 
-	log.Printf("Starting NATS server, port: %v, http port: %v\n", port, httpPort)
+	authEnabled := "no"
+
+	if auth != "" {
+		authEnabled = "yes"
+	}
+
+	log.Printf("Starting NATS server, port: %v, http port: %v, auth enabled: %v\n",
+		port, httpPort, authEnabled)
+
 	natsServer.Start()
 
 	natsServer.WaitForShutdown()
