@@ -19,7 +19,7 @@ func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
 		nats.Timeout(30*time.Second),
 		nats.DrainTimeout(30*time.Second),
 		nats.PingInterval(2*time.Minute),
-		nats.MaxPingsOutstanding(5),
+		nats.MaxPingsOutstanding(3),
 		nats.RetryOnFailedConnect(true),
 		nats.ReconnectBufSize(128*1024),
 		nats.ReconnectWait(10*time.Second),
