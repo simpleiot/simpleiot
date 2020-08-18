@@ -39,7 +39,7 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 	for {
 		select {
 		case <-renderTicker.C:
-			if time.Since(lastKey) > 30*time.Minute && !screenSaver {
+			if time.Since(lastKey) > 10*time.Second && !screenSaver {
 				// show screen saver instead
 				screens.ScreenSaver(true)
 				screenSaver = true
@@ -55,6 +55,12 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 				config = m
 				renderScreen()
 			case isdata.Key:
+				// Don't clear the screen saver with a soft key 1 press, because
+				// it will always be followed by a release, and we don't want that
+				// to take action, so it must be "absorbed" by the screen saver.
+				if screenSaver && m == isdata.KeySK1 {
+					continue
+				}
 				_, cmd, _ := widgets.Key(m)
 				if cmd != nil {
 					out <- cmd
