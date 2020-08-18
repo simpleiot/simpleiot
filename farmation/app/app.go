@@ -593,22 +593,7 @@ func Run(params Params) {
 					saveState()
 
 				case isdata.SampleTypeSimArm:
-					oldArm := config.Arm
-					toggleArmOrOpenDialog(&config, &state)
-					if config.Arm {
-						state.FlowAverager.ResetAverage()
-					}
-					saveConfig()
-					saveState()
-
-					if config.Arm != oldArm {
-						// save to database for system logs
-						dbData.WriteSample(data.Sample{
-							Type:  isdata.SampleTypeArm,
-							Time:  time.Now(),
-							Value: boolToSampleVal(config.Arm),
-						})
-					}
+					uiChan <- isdata.KeyArm
 
 				case isdata.SampleTypeSimPump:
 					uiChan <- isdata.KeyPump
@@ -625,31 +610,29 @@ func Run(params Params) {
 				}
 
 			case isdata.Key:
-				switch m {
-				case isdata.KeyArm, isdata.KeyArmKp:
-					oldArm := config.Arm
-					toggleArmOrOpenDialog(&config, &state)
-					if config.Arm {
-						state.FlowAverager.ResetAverage()
-					}
-					saveConfig()
-					saveState()
+				//case isdata.KeyArm, isdata.KeyArmKp:
+				// send to ui to handle
+				uiChan <- m
 
-					// send to logging thread to be saved to database for system logs
-					// send to network thread to be sent to portal
-					if config.Arm != oldArm {
-						s := data.Sample{
-							Type:  isdata.SampleTypeArm,
-							Time:  time.Now(),
-							Value: boolToSampleVal(config.Arm),
-						}
-						logChan <- s
-						//networkChan <- s
-					}
+			case isdata.ToggleArmOrOpenDialog:
+				oldArm := config.Arm
+				toggleArmOrOpenDialog(&config, &state)
+				if config.Arm {
+					state.FlowAverager.ResetAverage()
+				}
+				saveConfig()
+				saveState()
 
-				default:
-					// send to ui to handle
-					uiChan <- m
+				// send to logging thread to be saved to database for system logs
+				// send to network thread to be sent to portal
+				if config.Arm != oldArm {
+					s := data.Sample{
+						Type:  isdata.SampleTypeArm,
+						Time:  time.Now(),
+						Value: boolToSampleVal(config.Arm),
+					}
+					logChan <- s
+					//networkChan <- s
 				}
 
 			case isdata.UpdateFieldName:

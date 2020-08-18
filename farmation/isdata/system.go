@@ -77,3 +77,15 @@ type ShutdownStart struct{}
 
 // Shutdown indicates the system is shutting down
 type Shutdown struct{}
+
+// SMSwitchedToPressurizeState is a message to the iscontrolflow routine that
+// the main state machine switched to the PressurizeCalibrate state. The flow
+// control state machine uses this information to decide when to start controlling
+// the flow
+type SMSwitchedToPressurizeState struct{}
+
+// ToggleArmOrOpenDialog sends a signal to the app chanel to run a function of
+// this name. The ui thread has to sort out whether the arm key should clear a
+// screen saver or actually arm the system, so this cannot be handled soley in the
+// main app thread.
+type ToggleArmOrOpenDialog struct{}

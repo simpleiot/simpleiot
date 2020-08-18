@@ -166,8 +166,11 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 	if !s.screenSaver {
 		currentDialog, dialogKey := s.state.DialogHighestPriority()
 
-		// Prioritize this key because we want to use it from any part
-		// of the system, including dialogs and help screens
+		// Prioritize the pump and arm keys because we want to use them from
+		// any part of the system, including dialogs and help screens
+		if key == isdata.KeyArm || key == isdata.KeyArmKp {
+			return ScreenIDNoChange, isdata.ToggleArmOrOpenDialog{}, true
+		}
 		if key == isdata.KeyPump || key == isdata.KeyPumpHold {
 
 			switch key {
@@ -179,7 +182,6 @@ func (s *Screens) Key(key isdata.Key) (ScreenID, interface{}, bool) {
 				if s.currentScreen != ScreenIDDiagPulsesPres {
 					s.switchScreen(ScreenIDDiagPulsesPres)
 				}
-
 			}
 
 			if currentDialog != nil {
