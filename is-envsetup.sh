@@ -175,15 +175,20 @@ is_portal_build() {
 
 is_portal_run() {
   export SIOT_DATA=./portal_db
-  export SIOT_AUTH=1234
+  export SIOT_AUTH_TOKEN=1234
   export SIOT_NATS_PORT=4333
-  export SIOT_NATS_TLS_CERT=server-cert.pem
-  export SIOT_NATS_TLS_KEY=server-key.pem
+  export SIOT_NATS_HTTP_PORT=8333
   export SIOT_NATS_SERVER=nats://localhost:4333
   mkdir -p $SIOT_DATA
   is_portal_build_dependencies --debug || return 1
   go run farmation/cmd/portal/main.go "$@" || return 1
   return 0
+}
+
+is_portal_run_tls() {
+  export SIOT_NATS_TLS_CERT=server-cert.pem
+  export SIOT_NATS_TLS_KEY=server-key.pem
+  is_portal_run "$@"
 }
 
 is_portal_watch() {

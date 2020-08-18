@@ -173,13 +173,13 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	manager := network.NewManager(10)
 
-	nc, err := nats.NatsEdgeConnect(portal, authToken)
+	nc, err := nats.EdgeConnect(portal, authToken)
 	if err != nil {
-		log.Println("NatsEdgeConnect error: ", err)
+		log.Println("NATS EdgeConnect error: ", err)
 		nc = nil
 	} else {
 		log.Println("Nats started")
-		err := nats.NatsListenForCmd(nc, state.SerialNumber, func(cmd data.DeviceCmd) {
+		err := nats.ListenForCmd(nc, state.SerialNumber, func(cmd data.DeviceCmd) {
 			if cmd.Cmd != "" {
 				out <- cmd
 			}
@@ -205,7 +205,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 			}
 		}
 
-		err = nats.NatsListenForFile(nc, updateDir, state.SerialNumber, func(path string) {
+		err = nats.ListenForFile(nc, updateDir, state.SerialNumber, func(path string) {
 			err := updateApp(updateDir, path)
 
 			if err != nil {
