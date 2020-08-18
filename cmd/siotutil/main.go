@@ -4,15 +4,15 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/nats-io/nats.go"
+	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/internal/pb"
+	"github.com/simpleiot/simpleiot/nats"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -22,6 +22,7 @@ func main() {
 	flagSendCmd := flag.String("sendCmd", "", "Command to send (cmd:detail)")
 	flagSendVersion := flag.String("sendVersion", "", "Command to send version to portal (HW:OS:App)")
 	flagID := flag.String("id", "1234", "ID of edge device")
+	flagNatsAuth := flag.String("natsAuth", "", "NATS auth token")
 
 	flag.Parse()
 
@@ -31,17 +32,8 @@ func main() {
 		os.Exit(-1)
 	}
 
-	nc, err := nats.Connect(*flagNatsServer,
-		nats.Timeout(10*time.Second),
-		nats.PingInterval(60*2*time.Second),
-		nats.MaxPingsOutstanding(5),
-		nats.ReconnectBufSize(5*1024*1024),
-		nats.MaxReconnects(-1),
-		nats.SetCustomDialer(&net.Dialer{
-			KeepAlive: -1,
-		}),
-		//nats.Token(authToken),
-	)
+	nc, err := nats.NatsEdgeConnect(*flagNatsServer, *flagNatsAuth)
+
 	if err != nil {
 		log.Println("Error connecting to NATS server: ", err)
 		os.Exit(-1)
@@ -49,20 +41,20 @@ func main() {
 
 	log.Println("Connected to server")
 
-	nc.SetErrorHandler(func(_ *nats.Conn, _ *nats.Subscription,
+	nc.SetErrorHandler(func(_ *natsgo.Conn, _ *natsgo.Subscription,
 		err error) {
 		log.Printf("NATS Error: %s\n", err)
 	})
 
-	nc.SetReconnectHandler(func(_ *nats.Conn) {
+	nc.SetReconnectHandler(func(_ *natsgo.Conn) {
 		log.Println("NATS Reconnected!")
 	})
 
-	nc.SetDisconnectHandler(func(_ *nats.Conn) {
+	nc.SetDisconnectHandler(func(_ *natsgo.Conn) {
 		log.Println("NATS Disconnected!")
 	})
 
-	nc.SetClosedHandler(func(_ *nats.Conn) {
+	nc.SetClosedHandler(func(_ *natsgo.Conn) {
 		panic("Connection to NATS is closed!")
 	})
 
@@ -90,7 +82,7 @@ func main() {
 			cmd.Detail = chunks[1]
 		}
 
-		err := api.NatsSendCmd(nc, cmd, 10*time.Second)
+		err := nats.NatsSendCmd(nc, cmd, 10*time.Second)
 
 		if err != nil {
 			log.Println("Error sending cmd: ", err)

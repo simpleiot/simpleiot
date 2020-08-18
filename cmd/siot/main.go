@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"log/syslog"
-	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -19,10 +18,12 @@ import (
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/device"
 	"github.com/simpleiot/simpleiot/msg"
+	"github.com/simpleiot/simpleiot/nats"
+	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
 
-	"github.com/nats-io/nats.go"
+	natsgo "github.com/nats-io/nats.go"
 )
 
 func parseSample(s string) (string, data.Sample, error) {
@@ -71,35 +72,27 @@ func sendNats(natsServer, authToken, s string, count int) error {
 		return err
 	}
 
-	nc, err := nats.Connect(natsServer,
-		nats.Timeout(10*time.Second),
-		nats.PingInterval(60*2*time.Second),
-		nats.MaxPingsOutstanding(5),
-		nats.ReconnectBufSize(5*1024*1024),
-		nats.SetCustomDialer(&net.Dialer{
-			KeepAlive: -1,
-		}),
-		//nats.Token(authToken),
-	)
+	nc, err := nats.NatsEdgeConnect(natsServer, authToken)
+
 	if err != nil {
 		return err
 	}
 	defer nc.Close()
 
-	nc.SetErrorHandler(func(_ *nats.Conn, _ *nats.Subscription,
+	nc.SetErrorHandler(func(_ *natsgo.Conn, _ *natsgo.Subscription,
 		err error) {
 		log.Printf("NATS Error: %s\n", err)
 	})
 
-	nc.SetReconnectHandler(func(_ *nats.Conn) {
+	nc.SetReconnectHandler(func(_ *natsgo.Conn) {
 		log.Println("NATS Reconnected!")
 	})
 
-	nc.SetDisconnectHandler(func(_ *nats.Conn) {
+	nc.SetDisconnectHandler(func(_ *natsgo.Conn) {
 		log.Println("NATS Disconnected!")
 	})
 
-	nc.SetClosedHandler(func(_ *nats.Conn) {
+	nc.SetClosedHandler(func(_ *natsgo.Conn) {
 		panic("Connection to NATS is closed!")
 	})
 
@@ -133,12 +126,13 @@ func sendNats(natsServer, authToken, s string, count int) error {
 }
 
 func main() {
+	defaultNatsServer := "nats://localhost:4222"
 	flagDebugHTTP := flag.Bool("debugHttp", false, "Dump http requests")
 	flagSim := flag.Bool("sim", false, "Start device simulator")
 	flagDisableAuth := flag.Bool("disableAuth", false, "Disable auth (used for development)")
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
-	flagNatsServer := flag.String("natsServer", "nats://localhost:4222", "NATS Server")
+	flagNatsServer := flag.String("natsServer", defaultNatsServer, "NATS Server")
 	flagNatsDisableServer := flag.Bool("natsDisableServer", false, "Disable NATS server (if you want to run NATS separately)")
 	flagSendSampleNats := flag.String("sendSampleNats", "", "Send sample to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendCount := flag.Int("sendCount", 1, "number of samples to send")
@@ -186,18 +180,29 @@ func main() {
 		natsHTTPPort = n
 	}
 
-	natsServer := "nats://localhost:4222"
-	natsServerE := os.Getenv("SIOT_NATS_SERVER")
-	if natsServerE != "" {
-		natsServer = natsServerE
-	}
-
-	if *flagNatsServer != "" {
-		natsServer = *flagNatsServer
+	natsServer := *flagNatsServer
+	// only consider env if command line option is something different
+	// that default
+	if natsServer == defaultNatsServer {
+		natsServerE := os.Getenv("SIOT_NATS_SERVER")
+		if natsServerE != "" {
+			natsServer = natsServerE
+		}
 	}
 
 	natsTLSCert := os.Getenv("SIOT_NATS_TLS_CERT")
 	natsTLSKey := os.Getenv("SIOT_NATS_TLS_KEY")
+	natsTLSTimeoutS := os.Getenv("SIOT_NATS_TLS_TIMEOUT")
+
+	natsTLSTimeout := 0.5
+
+	if natsTLSTimeoutS != "" {
+		natsTLSTimeout, err = strconv.ParseFloat(natsTLSTimeoutS, 64)
+		if err != nil {
+			log.Println("Error parsing nats TLS timeout: ", err)
+			os.Exit(-1)
+		}
+	}
 
 	authToken := os.Getenv("SIOT_AUTH_TOKEN")
 	if *flagAuthToken != "" {
@@ -338,8 +343,8 @@ func main() {
 	go deviceManager.Run()
 
 	if !*flagNatsDisableServer {
-		go api.StartNatsServer(natsPort, natsHTTPPort, authToken,
-			natsTLSCert, natsTLSKey)
+		go natsserver.StartNatsServer(natsPort, natsHTTPPort, authToken,
+			natsTLSCert, natsTLSKey, natsTLSTimeout)
 	}
 
 	natsHandler := api.NewNatsHandler(dbInst, authToken)
