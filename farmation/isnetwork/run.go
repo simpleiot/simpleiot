@@ -285,7 +285,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	}
 
 	setVersionAPI := func(ver data.DeviceVersion) error {
-		if networkState != network.StateConnected {
+		if networkState != network.StateConnected || !nc.IsConnected() {
 			return errors.New("Cannot send, not connected")
 		}
 
@@ -316,7 +316,7 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	}
 
 	sendSamplesAPI := func(samples data.Samples) error {
-		if networkState != network.StateConnected {
+		if networkState != network.StateConnected || !nc.IsConnected() {
 			return nil
 		}
 
@@ -566,7 +566,8 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				})
 
 				if err != nil {
-					log.Println("Error sending version info to portal: ", err)
+					// this fills up logs for systems that don't have network
+					//log.Println("Error sending version info to portal: ", err)
 					continue
 				}
 
