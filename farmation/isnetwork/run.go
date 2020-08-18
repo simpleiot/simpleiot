@@ -435,10 +435,13 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 				state = m
 				samples := whenChangedSamplesFilter.Add(getDigIoSamples(&state))
 				samples = append(samples, analogSamplesFilter.Add(getAnalogSamples(&state))...)
-				samples = append(samples, data.Sample{
-					Type:  "commError",
-					Value: float64(errorCnt),
-				})
+				samples = append(samples,
+					analogSamplesFilter.Add([]data.Sample{
+						{
+							Type:  "commError",
+							Value: float64(errorCnt),
+						},
+					})...)
 				sendSamples(samples)
 
 			case data.Sample:
