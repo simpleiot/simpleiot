@@ -70,6 +70,33 @@ it:
   - using HTTP: `./siot -sendSample "1823:t1:23.5:temp"`
   - using NATS: `./siot -sendSampleNats "1234:v2:12.5:volt"`
   - the format of the `-sendSample` argument is: `devId:sensId:value:type`
+  - ./siot -sendVersion "6:7:8" -id=1823
+- in a few seconds, devices should be populated in the web application
+
+![portal](docs/portal-devices.png)
+
+## Example 2 (send commands/files to device)
+
+- `./siot`
+- in another terminal, start edge device example: `go run cmd/edge/main.go`
+- in a 3rd terminal:
+  - send command to device: `./siot -sendCmd=setTank:150
+  - send file to device:
+    `./siot -sendFile=https://raw.githubusercontent.com/simpleiot/simpleiot/master/README.md`
+
+## Example 3 (send data with acknowledgments from server)
+
+- ./siot -sendSampleNats "1234:v2:12.5:volt" -natsAck
+- ./siot -sendVersion "1:2:3" -natsAck
+
+## User/Group management
+
+Users can be added to the system. If a user and device are in the same group,
+then the user can see the device.
+
+![users](docs/portal-users.png)
+
+![groups](docs/portal-groups.png)
 
 ## Configuration
 
@@ -82,8 +109,8 @@ Additionally, command line option help can be viewed by running `siot --help`.
 
 Although Simple IoT provides a rudimentary dashboard and device listing, it does
 not provide graphs yet. If you need graphs, using InfluxDb + Grafana may be a
-good interim solution. [Contact](https://community.tmpdir.org/c/simple-iot/5) if
-you need help setting this up -- it is relatively simple.
+good interim solution. [Contact](https://community.tmpdir.org/c/simple-iot/5) us
+if you need help setting this up -- it is relatively simple.
 
 ## Features
 
