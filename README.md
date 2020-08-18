@@ -86,8 +86,8 @@ it:
 
 ## Example 3 (send data with acknowledgments from server)
 
-- ./siot -sendSampleNats "1234:v2:12.5:volt" -natsAck
-- ./siot -sendVersion "1:2:3" -natsAck
+- `./siot -sendSampleNats "1234:v2:12.5:volt" -natsAck`
+- `./siot -sendVersion "1:2:3" -natsAck`
 
 ## User/Group management
 
@@ -144,14 +144,15 @@ if you need help setting this up -- it is relatively simple.
 - [ ] WiFi management
 - [ ] Graphs
 
-## Support, Pull Requests, etc.
+## Support, Contributing, etc.
 
-This is a community project. See [development](docs/DEVELOPMENT.md) for more
+Pull requests are welcome -- see [development](docs/DEVELOPMENT.md) for more
 thoughts on architecture, tooling, etc. Issues are labelled with "help wanted"
 and "good first issue" if you would like to contribute to this project.
 
-For support or to discuss this project, please visit the
-[Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
+For support or to discuss this project, please ask on the
+[Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5) or
+open an issue.
 
 ## License
 
