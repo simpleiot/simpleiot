@@ -80,7 +80,7 @@ it:
 - `./siot`
 - in another terminal, start edge device example: `go run cmd/edge/main.go`
 - in a 3rd terminal:
-  - send command to device: `./siot -sendCmd=setTank:150
+  - send command to device: `./siot -sendCmd=setTank:150`
   - send file to device:
     `./siot -sendFile=https://raw.githubusercontent.com/simpleiot/simpleiot/master/README.md`
 
