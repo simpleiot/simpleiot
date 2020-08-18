@@ -4,22 +4,30 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"time"
 
 	"github.com/nats-io/nats.go"
 )
 
+// EdgeOptions describes options for connecting edge devices
+type EdgeOptions struct {
+	Server       string
+	AuthToken    string
+	Disconnected func()
+	Reconnected  func()
+	Closed       func()
+}
+
 // EdgeConnect is a function that attempts connections for edge devices with appropriate
 // timeouts, backups, etc. Currently set to disconnect if we don't have a connection after 6m,
 // and then exp backup to try to connect every 6m after that.
-func EdgeConnect(server, authToken string) (*nats.Conn, error) {
+func EdgeConnect(o EdgeOptions) (*nats.Conn, error) {
 	authEnabled := "no"
-	if authToken != "" {
+	if o.AuthToken != "" {
 		authEnabled = "yes"
 	}
-	log.Printf("NATS edge connect to: %v, auth enabled: %v", server, authEnabled)
-	nc, err := nats.Connect(server,
+	log.Printf("NATS edge connect to: %v, auth enabled: %v", o.Server, authEnabled)
+	nc, err := nats.Connect(o.Server,
 		nats.Timeout(30*time.Second),
 		nats.DrainTimeout(30*time.Second),
 		nats.PingInterval(2*time.Minute),
@@ -36,7 +44,7 @@ func EdgeConnect(server, authToken string) (*nats.Conn, error) {
 			log.Printf("NATS reconnect attempts: %v, delay: %v", attempts, delay)
 			return delay
 		}),
-		nats.Token(authToken),
+		nats.Token(o.AuthToken),
 	)
 
 	if err != nil {
@@ -51,17 +59,15 @@ func EdgeConnect(server, authToken string) (*nats.Conn, error) {
 	})
 
 	nc.SetReconnectHandler(func(_ *nats.Conn) {
-		log.Println("NATS Reconnected!")
+		o.Reconnected()
 	})
 
 	nc.SetDisconnectHandler(func(_ *nats.Conn) {
-		log.Println("NATS Disconnected!")
+		o.Disconnected()
 	})
 
 	nc.SetClosedHandler(func(_ *nats.Conn) {
-		log.Println("Connection to NATS is closed! -- this should never happen, waiting 15m then exitting")
-		time.Sleep(15 * time.Minute)
-		os.Exit(-1)
+		o.Closed()
 	})
 
 	return nc, nil

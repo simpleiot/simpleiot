@@ -18,14 +18,27 @@ func main() {
 
 	log.Printf("SIOT Edge, ID: %v, server: %v\n", *flagID, *flagNatsServer)
 
-	nc, err := nats.EdgeConnect(*flagNatsServer, *flagNatsAuth)
+	opts := nats.EdgeOptions{
+		Server:    *flagNatsServer,
+		AuthToken: *flagNatsAuth,
+		Disconnected: func() {
+			log.Println("NATS Disconnected")
+		},
+		Reconnected: func() {
+			log.Println("NATS Reconnected")
+		},
+		Closed: func() {
+			log.Println("NATS Closed")
+			os.Exit(0)
+		},
+	}
+
+	nc, err := nats.EdgeConnect(opts)
 
 	if err != nil {
 		log.Println("Error connecting to NATS server: ", err)
 		os.Exit(-1)
 	}
-
-	log.Println("Connected to server")
 
 	nats.ListenForFile(nc, "./", *flagID, func(name string) {
 		log.Println("File downloaded: ", name)
