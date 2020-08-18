@@ -175,6 +175,7 @@ is_portal_build() {
 
 is_portal_run() {
   export SIOT_DATA=./portal_db
+  export SIOT_PORT=8081
   export SIOT_AUTH_TOKEN=1234
   export SIOT_NATS_PORT=4333
   export SIOT_NATS_HTTP_PORT=8333
