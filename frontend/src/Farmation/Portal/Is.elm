@@ -20,6 +20,9 @@ type alias InjectorSentry =
     , flowRateTarget : Float
     , flowWindowLow : Float
     , flowWindowHigh : Float
+    , signal : Float
+    , rsrq : Float
+    , rsrp : Float
     }
 
 
@@ -27,7 +30,7 @@ deviceToInjectorSentry : Data.Device.Device -> InjectorSentry
 deviceToInjectorSentry device =
     let
         is =
-            InjectorSentry False False False False False False 0 0 0 0 0 0 0 0
+            InjectorSentry False False False False False False 0 0 0 0 0 0 0 0 0 0 0
     in
     isApplyIos is device.state.ios
 
@@ -78,6 +81,15 @@ isApplyIos is ios =
 
                 "flowWindowHigh" ->
                     isApplyIos { is | flowWindowHigh = x.value } xs
+
+                "rsrq" ->
+                    isApplyIos { is | rsrq = x.value } xs
+
+                "rsrp" ->
+                    isApplyIos { is | rsrp = x.value } xs
+
+                "signal" ->
+                    isApplyIos { is | signal = x.value } xs
 
                 _ ->
                     isApplyIos is xs

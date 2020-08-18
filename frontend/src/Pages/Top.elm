@@ -589,4 +589,13 @@ viewIS model mod device isRoot =
 
           else
             Element.none
+        , if isRoot && device.state.sysState == 3 then
+            wrappedRow [ spacing 20 ]
+                [ text <| "RSRQ: " ++ String.fromFloat is.rsrq
+                , text <| "RSRP: " ++ String.fromFloat is.rsrp
+                , text <| "Signal: " ++ String.fromFloat is.signal
+                ]
+
+          else
+            Element.none
         ]
