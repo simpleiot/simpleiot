@@ -1,6 +1,7 @@
 package isnetwork
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -173,13 +174,59 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	manager := network.NewManager(10)
 
+	// when changed filter is used to store config settings and digio values from state
+	whenChangedSamplesFilter := data.NewSampleFilter(0, 15*time.Minute)
+	// analog sample filter is used to store analog values from state
+	analogSamplesFilter := data.NewSampleFilter(30*time.Second, 15*time.Minute)
+
+	lastSendNetworkStats := time.Time{}
+
+	var modem *network.Modem
+
+	if runtime.GOOS == "windows" {
+		manager.AddInterface(network.NewDummyInterface())
+	} else {
+		if runtime.GOARCH == "arm" && !disableModemManager {
+			//manager.AddInterface(network.NewEthernet("eth0"))
+			modem = network.NewModem(
+				network.ModemConfig{
+					ChatScript:    "bg96",
+					AtCmdPortName: "/dev/ttyUSB2",
+					Reset:         isio.ResetModem,
+					Debug:         false,
+					APN:           "vzwinternet",
+				})
+			manager.AddInterface(modem)
+			manager.AddInterface(network.NewEthernet("eth1"))
+		} else {
+			// various interfaces on development machines
+			manager.AddInterface(network.NewEthernet("eno1"))
+			manager.AddInterface(network.NewEthernet("wlp58s0"))
+			manager.AddInterface(network.NewEthernet("enp39s0"))
+		}
+	}
+
+	if modem != nil {
+		modem.Enable(!config.ModemDisabled)
+	}
+
+	networkState, interfaceConfig, interfaceStatus := manager.Run()
+
+	if interfaceConfig.Apn != "" {
+		out <- interfaceConfig
+		log.Printf("Network Interface Config: %+v\n", interfaceConfig)
+	}
+
 	opts := nats.EdgeOptions{
 		Server:    portal,
 		AuthToken: authToken,
 		Disconnected: func() {
 			log.Println("NATS Disconnected")
-			// reset modem to attempt to reconnect
-			manager.Reset()
+			// if we think we are connected, and NATS disconnected, then
+			// something is wrong, reset modem
+			if networkState == network.StateConnected {
+				manager.Reset()
+			}
 		},
 		Reconnected: func() {
 			log.Println("NATS Reconnected")
@@ -237,14 +284,11 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 
 	}
 
-	// when changed filter is used to store config settings and digio values from state
-	whenChangedSamplesFilter := data.NewSampleFilter(0, 15*time.Minute)
-	// analog sample filter is used to store analog values from state
-	analogSamplesFilter := data.NewSampleFilter(30*time.Second, 15*time.Minute)
-
-	lastSendNetworkStats := time.Time{}
-
 	setVersionAPI := func(ver data.DeviceVersion) error {
+		if networkState != network.StateConnected {
+			return errors.New("Cannot send, not connected")
+		}
+
 		subject := fmt.Sprintf("device.%v.version", state.SerialNumber)
 		vPb := &pb.DeviceVersion{
 			Hw:  ver.HW,
@@ -272,6 +316,10 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 	}
 
 	sendSamplesAPI := func(samples data.Samples) error {
+		if networkState != network.StateConnected {
+			return nil
+		}
+
 		subject := fmt.Sprintf("device.%v.samples", state.SerialNumber)
 		out, err := samples.PbEncode()
 		if err != nil {
@@ -330,46 +378,9 @@ func Run(in, out chan interface{}, configIn isdata.Config,
 		return err
 	}
 
-	var modem *network.Modem
-
-	if runtime.GOOS == "windows" {
-		manager.AddInterface(network.NewDummyInterface())
-	} else {
-		if runtime.GOARCH == "arm" && !disableModemManager {
-			//manager.AddInterface(network.NewEthernet("eth0"))
-			modem = network.NewModem(
-				network.ModemConfig{
-					ChatScript:    "bg96",
-					AtCmdPortName: "/dev/ttyUSB2",
-					Reset:         isio.ResetModem,
-					Debug:         false,
-					APN:           "vzwinternet",
-				})
-			manager.AddInterface(modem)
-			manager.AddInterface(network.NewEthernet("eth1"))
-		} else {
-			// various interfaces on development machines
-			manager.AddInterface(network.NewEthernet("eno1"))
-			manager.AddInterface(network.NewEthernet("wlp58s0"))
-			manager.AddInterface(network.NewEthernet("enp39s0"))
-		}
-	}
-
-	if modem != nil {
-		modem.Enable(!config.ModemDisabled)
-	}
-
-	networkState, interfaceConfig, interfaceStatus := manager.Run()
-	_ = networkState
-
-	if interfaceConfig.Apn != "" {
-		out <- interfaceConfig
-		log.Printf("Network Interface Config: %+v\n", interfaceConfig)
-	}
-
 	initialDataSent := false
 	sendInitialData := func() {
-		if !interfaceStatus.Connected || initialDataSent {
+		if networkState != network.StateConnected || initialDataSent {
 			return
 		}
 
