@@ -34,7 +34,7 @@ func NatsSendFileFromHTTP(nc *n.Conn, deviceID string, url string, callback func
 	}
 	name := urlS[len(urlS)-1]
 
-	return nats.NatsSendFile(nc, deviceID, resp.Body, name, func(bytesTx int) {
+	return nats.SendFile(nc, deviceID, resp.Body, name, func(bytesTx int) {
 		callback(bytesTx)
 	})
 }

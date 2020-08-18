@@ -35,6 +35,7 @@ func NewNatsHandler(db *db.Db, authToken string) *NatsHandler {
 
 // Connect to NATS server and set up handlers for things we are interested in
 func (nh *NatsHandler) Connect(server string) error {
+	log.Println("NATS handler connecting to: ", server)
 	nc, err := nats.Connect(server,
 		nats.Timeout(10*time.Second),
 		nats.PingInterval(60*5*time.Second),

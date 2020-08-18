@@ -192,7 +192,7 @@ func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id stri
 
 	// TODO how to support old devices still fetching commands via http
 	// perhaps check if device is connected via NATs
-	err = nats.NatsSendCmd(h.nh.Nc, cmd, time.Second*10)
+	err = nats.SendCmd(h.nh.Nc, cmd, time.Second*10)
 	if err != nil {
 		log.Printf("Error sending command (%v) to device: ", err)
 		// don't return HTTP error for now as some units still fetch over http

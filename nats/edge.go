@@ -10,10 +10,15 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// NatsEdgeConnect is a function that attempts connections for edge devices with appropriate
+// EdgeConnect is a function that attempts connections for edge devices with appropriate
 // timeouts, backups, etc. Currently set to disconnect if we don't have a connection after 6m,
 // and then exp backup to try to connect every 6m after that.
-func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
+func EdgeConnect(server, authToken string) (*nats.Conn, error) {
+	authEnabled := "no"
+	if authToken != "" {
+		authEnabled = "yes"
+	}
+	log.Printf("NATS edge connect to: %v, auth enabled: %v", server, authEnabled)
 	nc, err := nats.Connect(server,
 		nats.Timeout(30*time.Second),
 		nats.DrainTimeout(30*time.Second),

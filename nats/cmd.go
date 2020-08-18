@@ -11,8 +11,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// NatsListenForCmd listens for a file sent from server
-func NatsListenForCmd(nc *nats.Conn, deviceID string, callback func(cmd data.DeviceCmd)) error {
+// ListenForCmd listens for a file sent from server
+func ListenForCmd(nc *nats.Conn, deviceID string, callback func(cmd data.DeviceCmd)) error {
 	_, err := nc.Subscribe(fmt.Sprintf("device.%v.cmd", deviceID), func(m *nats.Msg) {
 		cmdPb := &pb.DeviceCmd{}
 
@@ -44,8 +44,8 @@ func NatsListenForCmd(nc *nats.Conn, deviceID string, callback func(cmd data.Dev
 	return err
 }
 
-// NatsSendCmd sends a command to device via NATS
-func NatsSendCmd(nc *nats.Conn, cmd data.DeviceCmd, timeout time.Duration) error {
+// SendCmd sends a command to device via NATS
+func SendCmd(nc *nats.Conn, cmd data.DeviceCmd, timeout time.Duration) error {
 	cmdPb := &pb.DeviceCmd{
 		Id:     cmd.ID,
 		Cmd:    cmd.Cmd,
