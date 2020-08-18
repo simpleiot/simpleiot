@@ -67,7 +67,7 @@ func SendCmd(nc *nats.Conn, cmd data.DeviceCmd, timeout time.Duration) error {
 
 	msgS := string(msg.Data)
 
-	if msgS != "OK" {
+	if msgS != "OK" && msgS != "" {
 		return fmt.Errorf("Error sending cmd to %v, received: %v", cmd.ID, msgS)
 	}
 

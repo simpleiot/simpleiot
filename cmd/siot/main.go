@@ -17,11 +17,13 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/device"
+	"github.com/simpleiot/simpleiot/internal/pb"
 	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
+	"google.golang.org/protobuf/proto"
 
 	natsgo "github.com/nats-io/nats.go"
 )
@@ -51,7 +53,7 @@ func parseSample(s string) (string, data.Sample, error) {
 
 }
 
-func send(portal, s string) error {
+func sendSample(portal, s string) error {
 	deviceID, sample, err := parseSample(s)
 
 	if err != nil {
@@ -65,44 +67,18 @@ func send(portal, s string) error {
 	return err
 }
 
-func sendNats(natsServer, authToken, s string, count int) error {
+func sendSampleNats(nc *natsgo.Conn, authToken, s string, ack bool) error {
 	deviceID, sample, err := parseSample(s)
 
 	if err != nil {
 		return err
 	}
 
-	nc, err := nats.EdgeConnect(natsServer, authToken)
-
-	if err != nil {
-		return err
-	}
-	defer nc.Close()
-
-	nc.SetErrorHandler(func(_ *natsgo.Conn, _ *natsgo.Subscription,
-		err error) {
-		log.Printf("NATS Error: %s\n", err)
-	})
-
-	nc.SetReconnectHandler(func(_ *natsgo.Conn) {
-		log.Println("NATS Reconnected!")
-	})
-
-	nc.SetDisconnectHandler(func(_ *natsgo.Conn) {
-		log.Println("NATS Disconnected!")
-	})
-
-	nc.SetClosedHandler(func(_ *natsgo.Conn) {
-		panic("Connection to NATS is closed!")
-	})
-
 	subject := fmt.Sprintf("device.%v.samples", deviceID)
 
 	samples := data.Samples{}
 
-	//for i := 0; i < count; i++ {
 	samples = append(samples, sample)
-	//}
 
 	data, err := samples.PbEncode()
 
@@ -110,36 +86,55 @@ func sendNats(natsServer, authToken, s string, count int) error {
 		return err
 	}
 
-	for i := 0; i < count; i++ {
+	if ack {
+		msg, err := nc.Request(subject, data, time.Second)
+
+		if err != nil {
+			return err
+		}
+
+		if string(msg.Data) != "" {
+			log.Println("Request returned error: ", string(msg.Data))
+		}
+
+	} else {
 		if err := nc.Publish(subject, data); err != nil {
 			return err
 		}
-		time.Sleep(time.Second)
 	}
-
-	// wait for everything to get sent to server
-	nc.Flush()
-
-	nc.Close()
 
 	return err
 }
 
 func main() {
 	defaultNatsServer := "nats://localhost:4222"
+
+	// =============================================
+	// Command line options
+	// =============================================
+
 	flagDebugHTTP := flag.Bool("debugHttp", false, "Dump http requests")
 	flagSim := flag.Bool("sim", false, "Start device simulator")
-	flagDisableAuth := flag.Bool("disableAuth", false, "Disable auth (used for development)")
+	flagDisableAuth := flag.Bool("disableAuth", false, "Disable user auth (used for development)")
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
 	flagNatsServer := flag.String("natsServer", defaultNatsServer, "NATS Server")
 	flagNatsDisableServer := flag.Bool("natsDisableServer", false, "Disable NATS server (if you want to run NATS separately)")
+	flagNatsAck := flag.Bool("natsAck", false, "request response")
 	flagSendSampleNats := flag.String("sendSampleNats", "", "Send sample to 'portal' via NATS: 'devId:sensId:value:type'")
-	flagSendCount := flag.Int("sendCount", 1, "number of samples to send")
+	flagSendFile := flag.String("sendFile", "", "URL of file to send")
+	flagSendCmd := flag.String("sendCmd", "", "Command to send (cmd:detail)")
+	flagSendVersion := flag.String("sendVersion", "", "Command to send version to portal (HW:OS:App)")
+	flagID := flag.String("id", "1234", "ID of device")
+
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDumpDb := flag.Bool("dumpDb", false, "dump database to file")
 	flagAuthToken := flag.String("token", "", "Auth token")
 	flag.Parse()
+
+	// =============================================
+	// General Setup
+	// =============================================
 
 	// set up local database
 	dataDir := os.Getenv("SIOT_DATA")
@@ -154,6 +149,10 @@ func main() {
 		log.Println("Error updating files: ", err)
 		os.Exit(-1)
 	}
+
+	// =============================================
+	// NATS stuff
+	// =============================================
 
 	// populate general args
 	natsPort := 4222
@@ -218,18 +217,133 @@ func main() {
 		}
 	}
 
-	if *flagSendSample != "" {
-		err := send(*flagPortal, *flagSendSample)
+	var nc *natsgo.Conn
+
+	if *flagSendSampleNats != "" ||
+		*flagSendFile != "" ||
+		*flagSendCmd != "" ||
+		*flagSendVersion != "" {
+
+		opts := nats.EdgeOptions{
+			Server:    natsServer,
+			AuthToken: *flagAuthToken,
+			Disconnected: func() {
+				log.Println("NATS Disconnected")
+			},
+			Reconnected: func() {
+				log.Println("NATS Reconnected")
+			},
+			Closed: func() {
+				log.Println("NATS Closed")
+				os.Exit(0)
+			},
+		}
+
+		nc, err = nats.EdgeConnect(opts)
+
+		if err != nil {
+			log.Println("Error connecting to NATS server: ", err)
+			os.Exit(-1)
+		}
+	}
+
+	if *flagSendFile != "" {
+		err = api.NatsSendFileFromHTTP(nc, *flagID, *flagSendFile, func(percDone int) {
+			log.Println("% done: ", percDone)
+		})
+
+		if err != nil {
+			log.Println("Error sending file: ", err)
+		}
+
+		log.Println("File sent!")
+	}
+
+	if *flagSendCmd != "" {
+		chunks := strings.Split(*flagSendCmd, ":")
+		cmd := data.DeviceCmd{
+			ID:  *flagID,
+			Cmd: chunks[0],
+		}
+
+		if len(chunks) > 1 {
+			cmd.Detail = chunks[1]
+		}
+
+		err := nats.SendCmd(nc, cmd, 10*time.Second)
+
+		if err != nil {
+			log.Println("Error sending cmd: ", err)
+			os.Exit(-1)
+		}
+
+		log.Println("Command sent!")
+	}
+
+	if *flagSendVersion != "" {
+		chunks := strings.Split(*flagSendVersion, ":")
+		if len(chunks) < 3 {
+			log.Println("Error, we need 3 chunks for version")
+			flag.Usage()
+			os.Exit(-1)
+		}
+
+		v := &pb.DeviceVersion{
+			Hw:  chunks[0],
+			Os:  chunks[1],
+			App: chunks[2],
+		}
+
+		out, err := proto.Marshal(v)
+
+		if err != nil {
+			log.Println("Error marshalling version: ", err)
+			os.Exit(-1)
+		}
+
+		subject := fmt.Sprintf("device.%v.version", *flagID)
+		if *flagNatsAck {
+			msg, err := nc.Request(subject, out, time.Second)
+
+			if err != nil {
+				log.Println("Error sending version: ", err)
+				os.Exit(-1)
+			}
+
+			log.Println("set version returned: ", string(msg.Data))
+		} else {
+			err = nc.Publish(subject, out)
+
+			if err != nil {
+				log.Println("Error sending version: ", err)
+				os.Exit(-1)
+			}
+		}
+
+		log.Println("Version sent!")
+	}
+
+	if *flagSendSampleNats != "" {
+		err := sendSampleNats(nc, authToken, *flagSendSampleNats, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
 		}
+	}
+
+	if nc != nil {
+		// wait for everything to get sent to server
+		nc.Flush()
+		nc.Close()
 		os.Exit(0)
 	}
 
-	if *flagSendSampleNats != "" {
-		err := sendNats(*flagNatsServer, authToken,
-			*flagSendSampleNats, *flagSendCount)
+	// =============================================
+	// HTTP request
+	// =============================================
+
+	if *flagSendSample != "" {
+		err := sendSample(*flagPortal, *flagSendSample)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -242,7 +356,9 @@ func main() {
 		go sim.DeviceSim(*flagPortal, "5678")
 	}
 
-	// default action is to start server
+	// =============================================
+	// Dump Database
+	// =============================================
 
 	if *flagDumpDb {
 		dbInst, err := db.NewDb(dataDir, nil, false)
@@ -268,6 +384,10 @@ func main() {
 
 		os.Exit(0)
 	}
+
+	// =============================================
+	// Start server, default action
+	// =============================================
 
 	// set up influxdb support if configured
 	influxURL := os.Getenv("SIOT_INFLUX_URL")

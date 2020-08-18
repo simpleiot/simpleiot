@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -125,35 +126,41 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 func (nh *NatsHandler) handleSamples(msg *nats.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {
-		log.Println("Error decoding device asmples subject: ", msg.Subject)
+		log.Println("Error decoding device samples subject: ", msg.Subject)
+		nh.reply(msg.Reply, errors.New("error decoding device samples subject"))
 		return
 	}
 	deviceID := chunks[1]
 	samples, err := data.PbDecodeSamples(msg.Data)
 	if err != nil {
 		log.Println("Error decoding Pb Samples: ", err)
+		nh.reply(msg.Reply, err)
 		return
 	}
 
 	err = nh.db.DeviceActivity(deviceID)
 	if err != nil {
 		log.Println("Error updating device activity: ", err)
+		nh.reply(msg.Reply, err)
 		return
 	}
 	for _, s := range samples {
 		err = nh.db.DeviceSample(deviceID, s)
 		if err != nil {
 			log.Println("Error writting sample to Db: ", err)
+			nh.reply(msg.Reply, err)
 			return
 		}
 	}
 
+	nh.reply(msg.Reply, nil)
 }
 
 func (nh *NatsHandler) handleVersion(msg *nats.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {
 		log.Println("Error decoding device version subject: ", msg.Subject)
+		nh.reply(msg.Reply, errors.New("Error decoding"))
 		return
 	}
 	deviceID := chunks[1]
@@ -164,6 +171,7 @@ func (nh *NatsHandler) handleVersion(msg *nats.Msg) {
 	err = nh.db.DeviceActivity(deviceID)
 	if err != nil {
 		log.Println("Error updating device activity: ", err)
+		nh.reply(msg.Reply, err)
 		return
 	}
 
@@ -177,4 +185,21 @@ func (nh *NatsHandler) handleVersion(msg *nats.Msg) {
 	if err != nil {
 		log.Println("Error setting device version: ", err)
 	}
+	nh.reply(msg.Reply, err)
+}
+
+// used for messages that want an ACK
+func (nh *NatsHandler) reply(subject string, err error) {
+	if subject == "" {
+		// device is not expecting a reply
+		return
+	}
+
+	reply := ""
+
+	if err != nil {
+		reply = err.Error()
+	}
+
+	nh.Nc.Publish(subject, []byte(reply))
 }
