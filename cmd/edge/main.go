@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/nats"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 
 	log.Printf("SIOT Edge, ID: %v, server: %v\n", *flagID, *flagNatsServer)
 
-	nc, err := api.NatsEdgeConnect(*flagNatsServer, *flagNatsAuth)
+	nc, err := nats.NatsEdgeConnect(*flagNatsServer, *flagNatsAuth)
 
 	if err != nil {
 		log.Println("Error connecting to NATS server: ", err)
@@ -27,11 +27,11 @@ func main() {
 
 	log.Println("Connected to server")
 
-	api.NatsListenForFile(nc, "./", *flagID, func(name string) {
+	nats.NatsListenForFile(nc, "./", *flagID, func(name string) {
 		log.Println("File downloaded: ", name)
 	})
 
-	api.NatsListenForCmd(nc, *flagID, func(cmd data.DeviceCmd) {
+	nats.NatsListenForCmd(nc, *flagID, func(cmd data.DeviceCmd) {
 		log.Println("Received command: ", cmd)
 	})
 
