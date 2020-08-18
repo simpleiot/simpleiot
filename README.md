@@ -69,8 +69,8 @@ it:
 - in another terminal, send some data
   - using HTTP: `./siot -sendSample "1823:t1:23.5:temp"`
   - using NATS: `./siot -sendSampleNats "1234:v2:12.5:volt"`
-  - the format of the `-sendSample` argument is: `devId:sensId:value:type`
-  - ./siot -sendVersion "6:7:8" -id=1823
+  - (the format of the `-sendSample` argument is: `devId:sensId:value:type`)
+  - `./siot -sendVersion "6:7:8" -id=1823`
 - in a few seconds, devices should be populated in the web application
 
 ![portal](docs/portal-devices.png)
