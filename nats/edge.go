@@ -1,7 +1,6 @@
 package nats
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
@@ -12,8 +11,8 @@ import (
 )
 
 // NatsEdgeConnect is a function that attempts connections for edge devices with appropriate
-// timeouts, backups, etc. Currently set to disconnect if we don't have a connection after 10m,
-// and then exp backup to try to connect every 10m after that.
+// timeouts, backups, etc. Currently set to disconnect if we don't have a connection after 6m,
+// and then exp backup to try to connect every 6m after that.
 func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
 	nc, err := nats.Connect(server,
 		nats.Timeout(30*time.Second),
@@ -27,9 +26,8 @@ func NatsEdgeConnect(server, authToken string) (*nats.Conn, error) {
 		nats.SetCustomDialer(&net.Dialer{
 			KeepAlive: -1,
 		}),
-		nats.Secure(&tls.Config{MaxVersion: tls.VersionTLS12}),
 		nats.CustomReconnectDelay(func(attempts int) time.Duration {
-			delay := ExpBackoff(attempts, 5*time.Minute)
+			delay := ExpBackoff(attempts, 6*time.Minute)
 			log.Printf("NATS reconnect attempts: %v, delay: %v", attempts, delay)
 			return delay
 		}),
