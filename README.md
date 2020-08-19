@@ -57,7 +57,7 @@ The Simple IoT project also includes open source gateway
 This example (only tested on Linux) shows how to run the server and send data to
 it:
 
-- install Go v1.13 (newer versions may work) and node/npm
+- install Go v1.14 (newer versions will likely work) and node/npm
 - git clone https://github.com/simpleiot/simpleiot.git
 - `cd simpleiot`
 - `. envsetup.sh`
