@@ -20,6 +20,12 @@ The following are currently defined:
   - `SIOT_NATS_TLS_CERT`: points to TLS certificate file. If not set, TLS is not
     used.
   - `SIOT_NATS_TLS_KEY`: points to TLS certificate key
+  - `SIOT_NATS_TLS_TIMEOUT`: Configure the TLS upgrade timeout. NATS defaults to
+    a 0.5s timeout for TLS upgrade, but that is too short for some embedded
+    systems that run on low end CPUs connected over cellular modems (we've see
+    this process take as long as 4s). See NATS
+    [documentation](https://docs.nats.io/nats-server/configuration/securing_nats/tls#tls-timeout)
+    for more information.
 - Particle.io
   - `SIOT_PARTICLE_API_KEY`: key used to fetch data from Particle.io devices
     running [Simple IoT firmware](https://github.com/simpleiot/firmware)
