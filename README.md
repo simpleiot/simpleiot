@@ -150,9 +150,12 @@ Pull requests are welcome -- see [development](docs/DEVELOPMENT.md) for more
 thoughts on architecture, tooling, etc. Issues are labelled with "help wanted"
 and "good first issue" if you would like to contribute to this project.
 
-For support or to discuss this project, please ask on the
-[Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5) or
-open an issue.
+For support or to discuss this project, use one of the following options:
+
+- [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
+- #simpleiot Slack channel is available on
+  [gophers.slack.com](https://gophers.slack.com/messages/simpleiot/)
+- open a github issue
 
 ## License
 
