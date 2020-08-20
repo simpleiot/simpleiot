@@ -39,7 +39,7 @@ func Run(in, out chan interface{}, configInit isdata.Config, stateInit isdata.St
 	for {
 		select {
 		case <-renderTicker.C:
-			if time.Since(lastKey) > 10*time.Second && !screenSaver {
+			if time.Since(lastKey) > 30*time.Minute && !screenSaver {
 				// show screen saver instead
 				screens.ScreenSaver(true)
 				screenSaver = true
