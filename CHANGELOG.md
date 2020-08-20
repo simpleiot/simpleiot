@@ -11,6 +11,16 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.10] - 2020-08-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.10)
+
+### Changed
+
+- documentation improvements
+- specify TLS certs using variables instead of embedding
+- code cleanup around NATS integration
+- NATS don't force TLS 1.2 in client
+- remove siotutil functionality and fold into siot exe
+
 ## [[0.0.9] - 2020-08-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.9)
 
 ### Added
