@@ -114,6 +114,10 @@ if you need help setting this up -- it is relatively simple.
 
 ## Features
 
+Note, Simple IoT is under heavy development right now and APIs may change. If
+you can't find something, it likely got moved to a different package, or renamed
+-- feel free to ask if you run into problems.
+
 - [x] edit/save device config
 - [x] device management
 - [x] dashboard showing each device and collected parameters
