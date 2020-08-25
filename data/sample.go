@@ -20,11 +20,23 @@ const (
 // Sample represents a value in time and should include data that may be
 // graphed.
 type Sample struct {
+	// ID of the sensor that provided the sample
+	ID string `json:"id,omitempty"`
+
 	// Type of sample (voltage, current, key, etc)
 	Type string `json:"type,omitempty" boltholdIndex:"Type"`
 
-	// ID of the sensor that provided the sample
-	ID string `json:"id,omitempty"`
+	// Time the sample was taken
+	Time time.Time `json:"time,omitempty" boltholdKey:"Time" gob:"-"`
+
+	// Duration over which the sample was taken. This is useful
+	// for averaged values to know what time period the value applies
+	// to.
+	Duration time.Duration `json:"duration,omitempty"`
+
+	// Index is used to specify a position in an array such as
+	// which pump, temp sensor, etc.
+	Index int
 
 	// Average OR
 	// Instantaneous analog or digital value of the sample.
@@ -34,12 +46,6 @@ type Sample struct {
 	// statistical values that may be calculated
 	Min float64 `json:"min,omitempty"`
 	Max float64 `json:"max,omitempty"`
-
-	// Time the sample was taken
-	Time time.Time `json:"time,omitempty" boltholdKey:"Time" gob:"-"`
-
-	// Duration over which the sample was taken
-	Duration time.Duration `json:"duration,omitempty"`
 
 	// Tags are additional attributes used to describe the sample
 	// You might add things like friendly name, etc.
