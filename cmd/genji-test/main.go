@@ -18,21 +18,9 @@ type User struct {
 	Email       string
 }
 
-func main() {
-	db, err := genji.Open("genji-test.db")
-
-	if err != nil {
-
-		log.Fatal(err)
-	}
-
-	defer db.Close()
-
-	id := 0
-
-	dataExists := false
-
-	err = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY);")
+// returns true if db already exists
+func setup(db *genji.DB) bool {
+	err := db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY);")
 	if err != nil {
 		if err != database.ErrTableAlreadyExists {
 			log.Fatal("error creating users: ", err)
@@ -44,105 +32,101 @@ func main() {
 		if err != database.ErrIndexAlreadyExists {
 			log.Fatal("error creating index: ", err)
 		}
-		dataExists = true
+		return true
 	}
 
-	if !dataExists {
+	return false
+}
 
-		// insert first user, then a lot of another user
-		u := User{
-			ID:          id,
-			FirstName:   "Joe",
-			LastName:    "Oak",
-			PhoneNumber: "123-456-7890",
-			Email:       "joe@admin.com",
-		}
+func populateData(db *genji.DB) {
+	id := 0
 
+	// insert first user, then a lot of another user
+	u := User{
+		ID:          id,
+		FirstName:   "Joe",
+		LastName:    "Oak",
+		PhoneNumber: "123-456-7890",
+		Email:       "joe@admin.com",
+	}
+
+	id++
+
+	err := db.Exec("INSERT INTO users VALUES ?", &u)
+	if err != nil {
+		log.Fatal("Error inserting user: ", err)
+	}
+
+	u = User{
+		FirstName:   "Fred",
+		LastName:    "Maple",
+		PhoneNumber: "123-789-4562",
+		Email:       "fred@admin.com",
+	}
+
+	count := 100000
+	start := time.Now()
+	for i := 0; i < count; i++ {
+		u.ID = id
 		id++
-
 		err = db.Exec("INSERT INTO users VALUES ?", &u)
 		if err != nil {
 			log.Fatal("Error inserting user: ", err)
 		}
-
-		u = User{
-			FirstName:   "Fred",
-			LastName:    "Maple",
-			PhoneNumber: "123-789-4562",
-			Email:       "fred@admin.com",
-		}
-
-		count := 100000
-		start := time.Now()
-		for i := 0; i < count; i++ {
-			u.ID = id
-			id++
-			err = db.Exec("INSERT INTO users VALUES ?", &u)
-			if err != nil {
-				log.Fatal("Error inserting user: ", err)
-			}
-		}
-
-		log.Println("Insert time per record: ", time.Since(start)/time.Duration(count))
 	}
 
-	func() {
-		start := time.Now()
+	log.Println("Insert time per record: ", time.Since(start)/time.Duration(count))
+}
 
-		res, err := db.Query("SELECT * FROM users WHERE email = ?", "joe@admin.com")
+func query(db *genji.DB, q string) {
+	start := time.Now()
 
+	res, err := db.Query(q)
+
+	if err != nil {
+		log.Fatal("query error: ", err)
+	}
+
+	defer res.Close()
+
+	count := 0
+
+	err = res.Iterate(func(d document.Document) error {
+		u := User{}
+		err := document.StructScan(d, &u)
 		if err != nil {
-			log.Fatal("query error: ", err)
+			log.Fatal("Error scanning document: ", err)
 		}
 
-		defer res.Close()
+		count++
 
-		count := 0
+		return nil
+	})
 
-		err = res.Iterate(func(d document.Document) error {
-			u := User{}
-			err := document.StructScan(d, &u)
-			if err != nil {
-				log.Fatal("Error scanning document: ", err)
-			}
+	log.Printf("%v: documents found: %v, time: %v", q, count, time.Since(start))
+}
 
-			count++
+func main() {
+	db, err := genji.Open("genji-test.db")
 
-			return nil
-		})
+	if err != nil {
 
-		log.Printf("email query, documents found: %v, time: %v", count, time.Since(start))
+		log.Fatal(err)
+	}
 
-	}()
+	defer db.Close()
 
-	func() {
-		start := time.Now()
+	dataExists := setup(db)
 
-		res, err := db.Query("SELECT * FROM users WHERE firstname = ?", "Joe")
+	if !dataExists {
+		populateData(db)
+	}
 
-		if err != nil {
-			log.Fatal("query error: ", err)
-		}
-
-		defer res.Close()
-
-		count := 0
-
-		err = res.Iterate(func(d document.Document) error {
-			u := User{}
-			err := document.StructScan(d, &u)
-			if err != nil {
-				log.Fatal("Error scanning document: ", err)
-			}
-
-			count++
-
-			return nil
-		})
-
-		log.Printf("firstname query, documents found: %v, time: %v", count, time.Since(start))
-
-	}()
+	query(db, `SELECT * FROM users WHERE email = "joe@admin.com"`)
+	query(db, `SELECT * FROM users WHERE firstname = "Joe"`)
+	query(db, `SELECT * FROM users WHERE email = "fred@admin.com"`)
+	query(db, `SELECT * FROM users WHERE firstname = "Fred"`)
+	query(db, `SELECT * FROM users`)
 
 	log.Println("All done :-)")
 }
