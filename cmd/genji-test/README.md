@@ -7,12 +7,14 @@ Following obtained by running `main.go` in this directory.
 Command output:
 
 ```
-2020/08/26 16:12:06 SELECT * FROM users WHERE email = "joe@admin.com": documents found: 1, time: 113.778µs
-2020/08/26 16:12:06 SELECT * FROM users WHERE firstname = "Joe": documents found: 1, time: 76.951541ms
-2020/08/26 16:12:06 SELECT * FROM users WHERE email = "fred@admin.com": documents found: 29, time: 519.651µs
-2020/08/26 16:12:06 SELECT * FROM users WHERE firstname = "Fred": documents found: 100000, time: 591.640536ms
-2020/08/26 16:12:07 SELECT * FROM users: documents found: 100001, time: 505.113878ms
-2020/08/26 16:12:07 All done :-)
+2020/08/27 07:11:41 SELECT * FROM users WHERE email = "joe@admin.com": documents found: 1, time: 144.188µs
+2020/08/27 07:11:41 SELECT * FROM users WHERE firstname = "Joe": documents found: 1, time: 84.728459ms
+2020/08/27 07:11:41 SELECT * FROM users WHERE email = "fred@admin.com": documents found: 29, time: 491.235µs
+2020/08/27 07:11:42 SELECT * FROM users WHERE firstname = "Fred": documents found: 100000, time: 573.662079ms
+2020/08/27 07:11:42 SELECT * FROM users WHERE email = "mary@admin.com": documents found: 1, time: 197.37µs
+2020/08/27 07:11:42 SELECT * FROM users WHERE firstname = "Mary": documents found: 1, time: 79.074007ms
+2020/08/27 07:11:43 SELECT * FROM users: documents found: 100002, time: 457.428444ms
+2020/08/27 07:11:43 All done :-)
 
 ```
 

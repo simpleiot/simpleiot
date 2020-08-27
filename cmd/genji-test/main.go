@@ -75,6 +75,21 @@ func populateData(db *genji.DB) {
 		}
 	}
 
+	u = User{
+		ID:          id,
+		FirstName:   "Mary",
+		LastName:    "Ash",
+		PhoneNumber: "123-456-2222",
+		Email:       "mary@admin.com",
+	}
+
+	id++
+
+	err = db.Exec("INSERT INTO users VALUES ?", &u)
+	if err != nil {
+		log.Fatal("Error inserting user: ", err)
+	}
+
 	log.Println("Insert time per record: ", time.Since(start)/time.Duration(count))
 }
 
@@ -122,10 +137,15 @@ func main() {
 		populateData(db)
 	}
 
+	// look for the record at the beginning of the collection
 	query(db, `SELECT * FROM users WHERE email = "joe@admin.com"`)
 	query(db, `SELECT * FROM users WHERE firstname = "Joe"`)
+	// look for the 100,000 records in the middle
 	query(db, `SELECT * FROM users WHERE email = "fred@admin.com"`)
 	query(db, `SELECT * FROM users WHERE firstname = "Fred"`)
+	// look for the record at the end of the collection
+	query(db, `SELECT * FROM users WHERE email = "mary@admin.com"`)
+	query(db, `SELECT * FROM users WHERE firstname = "Mary"`)
 	query(db, `SELECT * FROM users`)
 
 	log.Println("All done :-)")
