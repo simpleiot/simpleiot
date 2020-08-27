@@ -18,6 +18,9 @@ Command output:
 
 ```
 
+Question: why does the search for `email = "fred@admin.com"` only return 29
+documents? Should return 100,000.
+
 Notes:
 
 - User insert time (100 users)
