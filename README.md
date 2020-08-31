@@ -76,6 +76,11 @@ send data to it:
   - `./siot -sendVersion "6:7:8" -id=1823`
 - in a few seconds, devices should be populated in the web application
 
+### SIOT web interface screenshot
+
+Below is a screenshot of the siot web interface. The greyed out device is one
+that is longer communicating and is considered "offline".
+
 ![portal](docs/portal-devices.png)
 
 ## Example 2 (send commands/files to device)
@@ -97,7 +102,14 @@ send data to it:
 Users can be added to the system. If a user and device are in the same group,
 then the user can see the device.
 
+### User page screenshot
+
 ![users](docs/portal-users.png)
+
+### Group page screenshot
+
+In the below example, Joe and Cliff will both have access to the "1234" device
+because they are all in the "Building A" group.
 
 ![groups](docs/portal-groups.png)
 
