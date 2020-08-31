@@ -54,13 +54,16 @@ The Simple IoT project also includes open source gateway
 
 ## Example 1 (build from source)
 
-This example (only tested on Linux) shows how to run the server and send data to
-it:
+This example (only tested on Linux and MacOS) shows how to run the server and
+send data to it:
 
-- install Go v1.14 (newer versions will likely work) and node/npm
+- install Go v1.14 (newer versions will likely work) and node/npm (tested with
+  v12 and v14)
 - git clone https://github.com/simpleiot/simpleiot.git
 - `cd simpleiot`
-- `. envsetup.sh`
+- `. envsetup.sh` (note space is required between `.` and `envsetup.sh`. Another
+  way to type this is `source envsetup.sh`. This command populates your terminal
+  sessions with all the functions defined in `envsetup.sh`.)
 - `siot_setup`
 - `siot_build`
 - in one terminal, start server: `./siot`
