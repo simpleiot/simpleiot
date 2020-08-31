@@ -63,7 +63,7 @@ send data to it:
 - `cd simpleiot`
 - `. envsetup.sh` (note space is required between `.` and `envsetup.sh`. Another
   way to type this is `source envsetup.sh`. This command populates your terminal
-  sessions with all the functions defined in `envsetup.sh`.)
+  session with all the functions defined in `envsetup.sh`.)
 - `siot_setup`
 - `siot_build`
 - in one terminal, start server: `./siot`
