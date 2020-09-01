@@ -63,7 +63,9 @@ the system are `Devices` and `Points`. A `Device` can have one or more `Points`.
 A `Point` can represent a sensor value, or a configuration parameter for the
 device. With sensor values and configuration represented as `Points`, it becomes
 easy to use both sensor data and configuration in rule or equations because the
-mechanism to use both is the same.
+mechanism to use both is the same. Additionally, if all `Point` changes are
+recorded in a time series database (for instance Influxdb), you automatically
+have a record of all configuration changes for a device.
 
 `devices` can have parents or children and thus be represented in a hiearchy. To
 add structure to the system, you simply add nested `Devices`. The `Device`
@@ -134,6 +136,8 @@ probably not a big deal. It may also make sense to occasionally request
 `Device:Points` synchronization -- say once per hour. Perhaps the `Device` data
 structure could have a `LastSychronized` field and the server could initiate a
 sycnronization at some interval.
+
+TODO, how to sync device hiearchy ...
 
 ## Extendible architecture
 

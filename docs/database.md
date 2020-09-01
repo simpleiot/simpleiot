@@ -19,9 +19,12 @@ that contain relational data are shown.
 
 - Users
 - Groups
-  - Users [{UserID, []Role}]
+  - Users []{UserID, []Role}
 - Devices
+  - Points
+    - Devices []DeviceID
   - Groups []GroupID
+  - Parents []DeviceID
 
 The idea is a Group will have a limitted number of users, so it is OK to embed
 IDs. However, a group may contain 1000's of devices, but a Device will belong to

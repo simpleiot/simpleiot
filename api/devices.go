@@ -35,20 +35,15 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
-	if (head == "samples" && req.Method == http.MethodPost) ||
-		(head == "cmd" && req.Method == http.MethodGet) ||
-		(head == "version" && req.Method == http.MethodPost) {
-		h.ServeHTTPDevice(res, req, id, head)
-		return
-	}
-
-	// all user based requests require valid auth
+	// all requests require valid JWT or authToken validation
 	validUser, userID := h.check.Valid(req)
 
 	if !validUser {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+
+	// TODO: add auth token validation
 
 	userUUID, err := uuid.Parse(userID)
 
@@ -73,6 +68,7 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
+			return
 		}
 		return
 	}
@@ -99,20 +95,25 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
+			return
 		}
 
-	case "config":
+	case "samples", "points":
 		if req.Method == http.MethodPost {
-			h.processConfig(res, req, id, userID)
-		} else {
-			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+			h.processPoints(res, req, id)
+			return
 		}
+
+		http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+		return
+
 	case "groups":
 		if req.Method == http.MethodPost {
 			h.updateDeviceGroups(res, req, id)
-		} else {
-			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+			return
 		}
+		http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+		return
 
 	case "cmd":
 		if req.Method == http.MethodPost {
@@ -123,46 +124,23 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			h.processCmd(res, req, id)
+			return
+		} else if req.Method == http.MethodGet {
+			cmd, err := h.db.DeviceGetCmd(id)
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusInternalServerError)
+			}
+
+			// id is not required
+			cmd.ID = ""
+
+			en := json.NewEncoder(res)
+			en.Encode(cmd)
+			return
 		} else {
-			http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+			http.Error(res, "only POST/GET allowed", http.StatusMethodNotAllowed)
+			return
 		}
-
-	}
-}
-
-// ServeHTTPDevice is used to process requests from device, currently
-// no auth and following URIs:
-// - POST samples
-// - GET cmd
-// - POST version
-// we have already checked for req type, so we can skip that check
-// here
-func (h *Devices) ServeHTTPDevice(res http.ResponseWriter, req *http.Request, id, opt string) {
-	// we've heard from device, update last heard timestamp
-
-	err := h.db.DeviceActivity(id)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-	}
-
-	switch opt {
-	case "samples":
-		h.processSamples(res, req, id)
-
-	case "cmd":
-		cmd, err := h.db.DeviceGetCmd(id)
-		if err != nil {
-			http.Error(res, err.Error(), http.StatusInternalServerError)
-		}
-
-		// id is not required
-		cmd.ID = ""
-
-		en := json.NewEncoder(res)
-		en.Encode(cmd)
-
-	case "version":
-		h.processVersion(res, req, id)
 	}
 }
 
@@ -220,43 +198,6 @@ func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id stri
 	en.Encode(data.StandardResponse{Success: true, ID: id})
 }
 
-func (h *Devices) processVersion(res http.ResponseWriter, req *http.Request, id string) {
-	decoder := json.NewDecoder(req.Body)
-	var v data.DeviceVersion
-	err := decoder.Decode(&v)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	err = h.db.DeviceSetVersion(id, v)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	en := json.NewEncoder(res)
-	en.Encode(data.StandardResponse{Success: true, ID: id})
-}
-
-func (h *Devices) processConfig(res http.ResponseWriter, req *http.Request, id string, userID string) {
-	decoder := json.NewDecoder(req.Body)
-	var c data.DeviceConfig
-	err := decoder.Decode(&c)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	err = h.db.DeviceUpdateConfig(id, c)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-	}
-
-	en := json.NewEncoder(res)
-	en.Encode(data.StandardResponse{Success: true, ID: id})
-}
-
 func (h *Devices) updateDeviceGroups(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
 	var groups []uuid.UUID
@@ -276,17 +217,17 @@ func (h *Devices) updateDeviceGroups(res http.ResponseWriter, req *http.Request,
 	en.Encode(data.StandardResponse{Success: true, ID: id})
 }
 
-func (h *Devices) processSamples(res http.ResponseWriter, req *http.Request, id string) {
+func (h *Devices) processPoints(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
-	var samples []data.Sample
-	err := decoder.Decode(&samples)
+	var points data.Points
+	err := decoder.Decode(&points)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	for _, s := range samples {
-		err = h.db.DeviceSample(id, s)
+	for _, p := range points {
+		err = h.db.DevicePoint(id, p)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return

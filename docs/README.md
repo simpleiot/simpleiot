@@ -12,4 +12,5 @@ sidebar_label: Overview
 - [API](api.md)
 - [Database](database.md)
 - [Rules](rules.md)
+- [Security](security.md)
 - [FAQ](faq.md)

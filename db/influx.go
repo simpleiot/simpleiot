@@ -35,17 +35,17 @@ type InfluxSample struct {
 	Duration time.Duration `influx:"duration"`
 }
 
-// SampleToInfluxSample converts a sample to influx sample
-func SampleToInfluxSample(deviceID string, s data.Sample) InfluxSample {
+// PointToInfluxSample converts a sample to influx sample
+func PointToInfluxSample(deviceID string, p data.Point) InfluxSample {
 	return InfluxSample{
-		Type:     s.Type,
-		ID:       s.ID,
+		Type:     p.Type,
+		ID:       p.ID,
 		DeviceID: deviceID,
-		Value:    s.Value,
-		Min:      s.Min,
-		Max:      s.Max,
-		Time:     s.Time,
-		Duration: s.Duration,
+		Value:    p.Value,
+		Min:      p.Min,
+		Max:      p.Max,
+		Time:     p.Time,
+		Duration: p.Duration,
 	}
 }
 
