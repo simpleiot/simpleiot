@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -20,7 +21,7 @@ func dumpBboltKeys(filepath string) {
 		tx.ForEach(func(name []byte, b *bolt.Bucket) error {
 			fmt.Println("Bucket: ", string(name))
 			b.ForEach(func(k, v []byte) error {
-				fmt.Printf("   key2=%s, value2=%s\n", k, v)
+				fmt.Printf("   key=%v, value=%s\n", hex.Dump(k), v)
 				return nil
 			})
 			return nil

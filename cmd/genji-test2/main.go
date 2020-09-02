@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/genjidb/genji"
@@ -11,13 +12,14 @@ import (
 
 // Test type
 type Test struct {
+	ID     string
 	Field1 string
 	Field2 string
 }
 
 // returns true if db already exists
 func setup(db *genji.DB) bool {
-	err := db.Exec("CREATE TABLE tests;")
+	err := db.Exec("CREATE TABLE tests (id TEXT PRIMARY KEY NOT NULL);")
 	if err != nil {
 		if err != database.ErrTableAlreadyExists {
 			log.Fatal("error creating tests: ", err)
@@ -36,14 +38,18 @@ func setup(db *genji.DB) bool {
 }
 
 func populateData(db *genji.DB) {
+	id := 0
+
 	// insert first user, then a lot of another user
 	t := Test{
-		Field1: "test1",
-		Field2: "test1",
+		Field1: "hi",
+		Field2: "there",
 	}
 
-	count := 100
+	count := 10
 	for i := 0; i < count; i++ {
+		t.ID = strconv.Itoa(id)
+		id++
 		err := db.Exec("INSERT INTO tests VALUES ?", &t)
 		if err != nil {
 			log.Fatal("Error inserting test: ", err)
@@ -82,7 +88,8 @@ func query(db *genji.DB, q string) int {
 }
 
 func main() {
-	db, err := genji.Open(":memory:")
+	//db, err := genji.Open(":memory:")
+	db, err := genji.Open("test.db")
 
 	if err != nil {
 		log.Fatal(err)
@@ -97,8 +104,8 @@ func main() {
 	}
 
 	// look for the record at the beginning of the collection
-	count1 := query(db, `SELECT * FROM tests WHERE field1 = "test1"`)
-	count2 := query(db, `SELECT * FROM tests WHERE field2 = "test1"`)
+	count1 := query(db, `SELECT * FROM tests WHERE field1 = "hi"`)
+	count2 := query(db, `SELECT * FROM tests WHERE field2 = "there"`)
 
 	if count1 != count2 {
 		log.Printf("indexed field returned %v records, non indexed filed returned %v records, expected 100 records for both", count1, count2)
