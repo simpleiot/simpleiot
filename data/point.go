@@ -30,12 +30,17 @@ const (
 
 // Point is a flexible data structure that can be used to represent
 // a sensor value or a configuration parameter.
+// ID, Type, and Index uniquely identify a point in a device
 type Point struct {
 	// ID of the sensor that provided the point
 	ID string `json:"id,omitempty"`
 
 	// Type of point (voltage, current, key, etc)
 	Type string `json:"type,omitempty" boltholdIndex:"Type"`
+
+	// Index is used to specify a position in an array such as
+	// which pump, temp sensor, etc.
+	Index int `json:"index,omitempty"`
 
 	// Time the point was taken
 	Time time.Time `json:"time,omitempty" boltholdKey:"Time" gob:"-"`
@@ -44,10 +49,6 @@ type Point struct {
 	// for averaged values to know what time period the value applies
 	// to.
 	Duration time.Duration `json:"duration,omitempty"`
-
-	// Index is used to specify a position in an array such as
-	// which pump, temp sensor, etc.
-	Index int `json:"index,omitempty"`
 
 	// Average OR
 	// Instantaneous analog or digital value of the point.

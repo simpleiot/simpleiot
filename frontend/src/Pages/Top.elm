@@ -3,7 +3,7 @@ module Pages.Top exposing (Flags, Model, Msg, page)
 import Data.Device as D
 import Data.Duration as Duration
 import Data.Iso8601 as Iso8601
-import Data.Sample exposing (Sample, renderSample)
+import Data.Point as P
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -22,7 +22,7 @@ type alias Flags =
 
 type alias DeviceEdit =
     { id : String
-    , config : D.Config
+    , point : P.Point
     }
 
 
@@ -35,7 +35,7 @@ type alias Model =
 
 type Msg
     = EditDeviceDescription String String
-    | PostConfig String D.Config
+    | PostPoint String P.Point
     | DiscardEditedDeviceDescription
     | DeleteDevice String
     | Tick Time.Posix
@@ -64,15 +64,21 @@ update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
 update global msg model =
     case msg of
         EditDeviceDescription id description ->
-            ( { model | deviceEdit = Just { id = id, config = { description = description } } }
+            ( { model
+                | deviceEdit =
+                    Just
+                        { id = id
+                        , point = P.newText "" P.typeDescription description
+                        }
+              }
             , Cmd.none
             , Cmd.none
             )
 
-        PostConfig id config ->
+        PostPoint id point ->
             ( { model | deviceEdit = Nothing }
             , Cmd.none
-            , Global.send <| Global.UpdateDeviceConfig id config
+            , Global.send <| Global.UpdateDevicePoint id point
             )
 
         DiscardEditedDeviceDescription ->
@@ -152,7 +158,10 @@ mergeDeviceEdit devices devConfigEdit =
             List.map
                 (\d ->
                     if edit.id == d.id then
-                        { device = { d | config = edit.config }, mod = True }
+                        { device =
+                            { d | points = P.updatePoint d.points edit.point }
+                        , mod = True
+                        }
 
                     else
                         { device = d, mod = False }
@@ -166,9 +175,17 @@ mergeDeviceEdit devices devConfigEdit =
 viewDevice : Model -> Bool -> D.Device -> Bool -> Element Msg
 viewDevice model modified device isRoot =
     let
+        sysState =
+            case P.getPoint device.points "" P.typeSysState 0 of
+                Just point ->
+                    round point.value
+
+                Nothing ->
+                    0
+
         sysStateIcon =
-            case device.state.sysState of
-                -- not sure who D.sysStatePowerOff does not work here ...
+            case sysState of
+                -- not sure why I can't use defines in Device.elm here
                 1 ->
                     Icon.power
 
@@ -182,12 +199,44 @@ viewDevice model modified device isRoot =
                     Element.none
 
         background =
-            case device.state.sysState of
+            case sysState of
                 3 ->
                     Style.colors.white
 
                 _ ->
                     Style.colors.gray
+
+        hwVersion =
+            case P.getPoint device.points "" P.typeHwVersion 0 of
+                Just point ->
+                    point.text
+
+                Nothing ->
+                    "?"
+
+        osVersion =
+            case P.getPoint device.points "" P.typeOSVersion 0 of
+                Just point ->
+                    point.text
+
+                Nothing ->
+                    "?"
+
+        appVersion =
+            case P.getPoint device.points "" P.typeAppVersion 0 of
+                Just point ->
+                    point.text
+
+                Nothing ->
+                    "?"
+
+        latestPointTime =
+            case P.getLatest device.points of
+                Just point ->
+                    point.time
+
+                Nothing ->
+                    Time.millisToPosix 0
     in
     column
         [ width fill
@@ -207,12 +256,23 @@ viewDevice model modified device isRoot =
             , Input.text
                 [ Background.color background ]
                 { onChange = \d -> EditDeviceDescription device.id d
-                , text = device.config.description
+                , text = D.description device
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
                 , label = Input.labelHidden "device description"
                 }
             , if modified then
-                Icon.check (PostConfig device.id device.config)
+                Icon.check
+                    (PostPoint device.id
+                        { typ = P.typeDescription
+                        , id = ""
+                        , index = 0
+                        , time = model.now
+                        , value = 0
+                        , text = D.description device
+                        , min = 0
+                        , max = 0
+                        }
+                    )
 
               else
                 Element.none
@@ -222,22 +282,22 @@ viewDevice model modified device isRoot =
               else
                 Element.none
             ]
-        , viewIoList device.state.ios
-        , text ("Last update: " ++ Iso8601.toDateTimeString model.zone device.state.lastComm)
+        , viewPoints device.points
+        , text ("Last update: " ++ Iso8601.toDateTimeString model.zone latestPointTime)
         , text
             ("Time since last update: "
                 ++ Duration.toString
                     (Time.posixToMillis model.now
-                        - Time.posixToMillis device.state.lastComm
+                        - Time.posixToMillis latestPointTime
                     )
             )
         , text
             ("Version: HW: "
-                ++ device.state.version.hw
+                ++ hwVersion
                 ++ " OS: "
-                ++ device.state.version.os
+                ++ osVersion
                 ++ " App: "
-                ++ device.state.version.app
+                ++ appVersion
             )
         ]
 
@@ -252,11 +312,11 @@ viewDeviceId id =
         text id
 
 
-viewIoList : List Sample -> Element Msg
-viewIoList ios =
+viewPoints : List P.Point -> Element Msg
+viewPoints ios =
     column
         [ padding 16
         , spacing 6
         ]
     <|
-        List.map (renderSample >> text) ios
+        List.map (P.renderPoint >> text) ios
