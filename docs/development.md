@@ -144,9 +144,16 @@ TODO, how to sync device hiearchy ...
 Any `siot` app can function as a standalone, client, server or both. As an
 example, `siot` can function both as an edge (client) and cloud apps (server).
 
-- client: initiates and maintains connection with server. Can be behind a
-  firewall, NAT, etc.
+- full client: full siot node that initiates and maintains connection with
+  another siot instance on a server. Can be behind a firewall, NAT, etc. May
+  eventually use
+  [NATS leaf node](https://docs.nats.io/nats-server/configuration/leafnodes)
+  functionality for this.
 - server: needs to be on a network that is accessible by clients
+
+We also need the concept of a lean client where an effort is made to minimize
+the application size to facilitate updates over IoT cellular networks where data
+is expensive.
 
 ## Frontend architecture
 
