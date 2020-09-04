@@ -249,7 +249,7 @@ func NewPoints(points []data.Point) []Point {
 
 // NewSendPoints returns a function that can be used to send points
 // to a SimpleIoT portal instance
-func NewSendPoints(portalURL, deviceID string, timeout time.Duration, debug bool) func(data.Points) error {
+func NewSendPoints(portalURL, deviceID, authToken string, timeout time.Duration, debug bool) func(data.Points) error {
 	var netClient = &http.Client{
 		Timeout: timeout,
 	}
@@ -259,14 +259,21 @@ func NewSendPoints(portalURL, deviceID string, timeout time.Duration, debug bool
 
 		tempJSON, err := json.Marshal(NewPoints(points))
 		if err != nil {
-			log.Println("Error encoding temp: ", err)
+			return err
 		}
 
 		if debug {
 			log.Println("Sending samples: ", string(tempJSON))
 		}
 
-		resp, err := netClient.Post(sampleURL, "application/json", bytes.NewBuffer(tempJSON))
+		req, err := http.NewRequest("POST", sampleURL, bytes.NewBuffer(tempJSON))
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", authToken)
+		resp, err := netClient.Do(req)
 
 		if err != nil {
 			return err

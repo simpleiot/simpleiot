@@ -15,14 +15,16 @@ import (
 
 // Devices handles device requests
 type Devices struct {
-	db    *db.Db
-	check RequestValidator
-	nh    *NatsHandler
+	db        *db.Db
+	check     RequestValidator
+	nh        *NatsHandler
+	authToken string
 }
 
 // NewDevicesHandler returns a new device handler
-func NewDevicesHandler(db *db.Db, v RequestValidator, nh *NatsHandler) http.Handler {
-	return &Devices{db, v, nh}
+func NewDevicesHandler(db *db.Db, v RequestValidator, authToken string,
+	nh *NatsHandler) http.Handler {
+	return &Devices{db, v, nh, authToken}
 }
 
 // Top level handler for http requests in the coap-server process
@@ -35,26 +37,36 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
-	// all requests require valid JWT or authToken validation
-	validUser, userID := h.check.Valid(req)
+	var validUser bool
+	var userUUID uuid.UUID
 
-	if !validUser {
-		http.Error(res, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+	if req.Header.Get("Authorization") != h.authToken {
+		// all requests require valid JWT or authToken validation
+		var userID string
+		validUser, userID = h.check.Valid(req)
 
-	// TODO: add auth token validation
+		if !validUser {
+			http.Error(res, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 
-	userUUID, err := uuid.Parse(userID)
+		var err error
+		userUUID, err = uuid.Parse(userID)
 
-	if err != nil {
-		http.Error(res, "User UUID invalid", http.StatusUnauthorized)
-		return
+		if err != nil {
+			http.Error(res, "User UUID invalid", http.StatusUnauthorized)
+			return
+		}
 	}
 
 	if id == "" {
 		switch req.Method {
 		case http.MethodGet:
+			if !validUser {
+				http.Error(res, "invalid user", http.StatusMethodNotAllowed)
+				return
+			}
+
 			devices, err := h.db.DevicesForUser(userUUID)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)

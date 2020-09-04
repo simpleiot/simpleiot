@@ -53,14 +53,14 @@ func parsePoint(s string) (string, data.Point, error) {
 
 }
 
-func sendPoint(portal, s string) error {
+func sendPoint(portal, authToken, s string) error {
 	deviceID, point, err := parsePoint(s)
 
 	if err != nil {
 		return err
 	}
 
-	sendPoints := api.NewSendPoints(portal, deviceID, time.Second*10, false)
+	sendPoints := api.NewSendPoints(portal, deviceID, authToken, time.Second*10, false)
 
 	err = sendPoints([]data.Point{point})
 
@@ -131,7 +131,7 @@ func parseSample(s string) (string, data.Sample, error) {
 
 }
 
-func sendSample(portal, s string) error {
+func sendSample(portal, authToken, s string) error {
 	deviceID, sample, err := parseSample(s)
 
 	if err != nil {
@@ -432,7 +432,7 @@ func main() {
 	// =============================================
 
 	if *flagSendSample != "" {
-		err := sendSample(*flagPortal, *flagSendSample)
+		err := sendSample(*flagPortal, *flagAuthToken, *flagSendSample)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -441,7 +441,7 @@ func main() {
 	}
 
 	if *flagSendPoint != "" {
-		err := sendSample(*flagPortal, *flagSendPoint)
+		err := sendPoint(*flagPortal, *flagAuthToken, *flagSendPoint)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -590,7 +590,8 @@ func main() {
 		GetAsset:   frontend.Asset,
 		Filesystem: frontend.FileSystem(),
 		Debug:      *flagDebugHTTP,
-		Auth:       auth,
+		JwtAuth:    auth,
+		AuthToken:  authToken,
 		NH:         natsHandler,
 	})
 
