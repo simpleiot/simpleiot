@@ -59,13 +59,19 @@ applications.
 
 These are currently defined in the `data` directory for Go code, and
 `frontend/src/Data` directory for Elm code. The fundamental data structures for
-the system are `Devices` and `Points`. A `Device` can have one or more `Points`.
-A `Point` can represent a sensor value, or a configuration parameter for the
-device. With sensor values and configuration represented as `Points`, it becomes
-easy to use both sensor data and configuration in rule or equations because the
-mechanism to use both is the same. Additionally, if all `Point` changes are
-recorded in a time series database (for instance Influxdb), you automatically
-have a record of all configuration changes for a device.
+the system are [`Devices`](../data/device.go) and [`Points`](../data/point.go).
+A `Device` can have one or more `Points`. A `Point` can represent a sensor
+value, or a configuration parameter for the device. With sensor values and
+configuration represented as `Points`, it becomes easy to use both sensor data
+and configuration in rule or equations because the mechanism to use both is the
+same. Additionally, if all `Point` changes are recorded in a time series
+database (for instance Influxdb), you automatically have a record of all
+configuration changes for a device.
+
+Treating most data as `Points` also has another benefit in that we can easily
+simulate a device -- simply provide a UI or write a program to modify any point
+and we can shift from working on real data to simulating scenarios we want to
+test.
 
 `devices` can have parents or children and thus be represented in a hiearchy. To
 add structure to the system, you simply add nested `Devices`. The `Device`
@@ -77,6 +83,14 @@ data from sensors. Several examples of virtual devices:
 - implement moving averages, scaling, etc on sensor data.
 - combine data from multiple sensors
 - implement custom logic for a particular application
+- a component in an edge device such as a cellular modem
+
+Being able to arranged devices in an arbitrary hiearchy also opens up some
+interesting possibilities such as creating virtual devices that have a number of
+children that are collecting data. The parent virtual device could have rules or
+logic that operate off data from child devices. In this case, the virtual parent
+device might be a town or city, and the child devices are physical gateways
+collecting data.
 
 Eventually, it seems logical to have a scriping language where formulas can be
 written to operate on any `Device:Point` data. While there are likely many other
@@ -90,16 +104,11 @@ connected systems, device IDs need to be unique. A unique serial number or UUID
 is recommended.
 
 When a `Point` changes, all `Devices` that depend on this data need to be
-updated. This can be done in one of two ways:
-
-- polling: simply recompute all virtual points every X amount of time. This does
-  not scale.
-- event driven: when a point changes, all `devices` that depend on this value
-  recompute their values/rules, etc.
-
-For the event driven model, we need to track all `Devices` that depend on a
-`Point`. The simplest thing seems for the `Point` data structure to contain a
-list of `Devices` that depend on the `Point`.
+updated. One _simple_ way to handle this is notify all parent devices in the
+hiearchy and re-run any rules or computed values on these devices. This keeps
+point/device dependency management simple -- devices can only depend on data
+from child devices. No extra data is required to track relationships. If devices
+need to share data, do that through a shared parent device.
 
 ## Configuration and Synchronization
 
