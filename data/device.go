@@ -42,67 +42,111 @@ type SwUpdateState struct {
 	PercentDone int    `json:"percentDone"`
 }
 
-// Device represents the state of a device
-// The config is typically updated by the portal/UI, and the
-// State is updated by the device. Keeping these datastructures
-// separate reduces the possibility that one update will step
-// on another.
+// Device represents the state of a device. UUID is recommended
+// for ID. Parents is a list of devices this device is a child of. If
+// Parents has a length of zero, this indicates it is a top level device.
+// Groups and Rules likewise list groups and rules this device
+// belongs to.
 type Device struct {
-	ID            string        `json:"id" boltholdKey:"ID"`
-	Config        DeviceConfig  `json:"config"`
-	State         DeviceState   `json:"state"`
-	CmdPending    bool          `json:"cmdPending"`
-	SwUpdateState SwUpdateState `json:"swUpdateState"`
-	Groups        []uuid.UUID   `json:"groups"`
-	Rules         []uuid.UUID   `json:"rules"`
+	ID      string      `json:"id" boltholdKey:"ID"`
+	Points  Points      `json:"points"`
+	Parents []string    `json:"devices"`
+	Groups  []uuid.UUID `json:"groups"`
+	Rules   []uuid.UUID `json:"rules"`
 }
 
 // Desc returns Description if set, otherwise ID
 func (d *Device) Desc() string {
-	if d.Config.Description != "" {
-		return d.Config.Description
+	desc, ok := d.Points.Text("", PointTypeDescription, 0)
+	if ok && desc != "" {
+		return desc
 	}
 
 	return d.ID
 }
 
-// ProcessSample takes a sample for a device and adds/updates in Ios
-func (d *Device) ProcessSample(sample Sample) {
-	ioFound := false
-	// decide if sample is for IOs or device state
-	if sample.ForDevice() {
-		switch sample.Type {
-		case SampleTypeSysState:
-			d.State.SysState = SysState(sample.Value)
-		}
-	} else {
-		for i, io := range d.State.Ios {
-			if io.ID == sample.ID && io.Type == sample.Type {
-				ioFound = true
-				d.State.Ios[i] = sample
-			}
-		}
+// SetState sets the device state
+func (d *Device) SetState(state SysState) {
+	d.ProcessPoint(Point{
+		Type:  PointTypeSysState,
+		Value: float64(state),
+	})
+}
 
-		if !ioFound {
-			d.State.Ios = append(d.State.Ios, sample)
+// SetCmdPending for device
+func (d *Device) SetCmdPending(pending bool) {
+	val := 0.0
+	if pending {
+		val = 1
+	}
+	d.ProcessPoint(Point{
+		Type:  PointTypeCmdPending,
+		Value: val,
+	})
+}
+
+// SetSwUpdateState for a device
+func (d *Device) SetSwUpdateState(state SwUpdateState) {
+	running := 0.0
+	if state.Running {
+		running = 1
+	}
+	d.ProcessPoint(Point{
+		Type:  PointTypeSwUpdateRunning,
+		Value: running,
+	})
+
+	d.ProcessPoint(Point{
+		Type: PointTypeSwUpdateError,
+		Text: state.Error,
+	})
+
+	d.ProcessPoint(Point{
+		Type:  PointTypeSwUpdatePercComplete,
+		Value: float64(state.PercentDone),
+	})
+}
+
+// ProcessPoint takes a point for a device and adds/updates its array of points
+func (d *Device) ProcessPoint(pIn Point) {
+	pFound := false
+	for i, p := range d.Points {
+		if p.ID == pIn.ID && p.Type == pIn.Type && p.Index == pIn.Index {
+			pFound = true
+			d.Points[i] = pIn
 		}
+	}
+
+	if !pFound {
+		d.Points = append(d.Points, pIn)
 	}
 }
 
 // UpdateState does routine updates of state (offline status, etc).
-// Returns true if state was updated.
-func (d *Device) UpdateState() bool {
-	switch d.State.SysState {
+// Returns true if state was updated. We originally considered
+// offline to be when we did not receive data from a remote device
+// for X minutes. However, with points that could represent a config
+// change as well. Eventually we may want to improve this to look
+// at point types, but this is probably OK for now.
+func (d *Device) UpdateState() (SysState, bool) {
+	sysStateF, _ := d.Points.Value("", PointTypeSysState, 0)
+	sysState := SysState(sysStateF)
+	switch sysState {
 	case SysStateUnknown, SysStateOnline:
-		if time.Since(d.State.LastComm) > 15*time.Minute {
+		if time.Since(d.Points.LatestTime()) > 15*time.Minute {
 			// mark device as offline
-			d.State.SysState = SysStateOffline
-			return true
-
+			d.SetState(SysStateOffline)
+			return SysStateOffline, true
 		}
 	}
 
-	return false
+	return sysState, false
+}
+
+// State returns the current state of a device
+func (d *Device) State() SysState {
+	s, _ := d.Points.Value("", PointTypeSysState, 0)
+	return SysState(s)
 }
 
 // define valid commands

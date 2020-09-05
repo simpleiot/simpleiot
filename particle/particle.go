@@ -19,8 +19,8 @@ type Event struct {
 
 const url string = "https://api.particle.io/v1/devices/events/"
 
-// SampleReader does a streaming http read and returns when the connection closes
-func SampleReader(eventPrefix, token string, callback func(string, []data.Sample)) error {
+// PointReader does a streaming http read and returns when the connection closes
+func PointReader(eventPrefix, token string, callback func(string, data.Points)) error {
 	urlAuth := url + eventPrefix + "?access_token=" + token
 
 	stream, err := eventsource.Subscribe(urlAuth, "")
@@ -39,14 +39,14 @@ func SampleReader(eventPrefix, token string, callback func(string, []data.Sample
 				continue
 			}
 
-			var samples []data.Sample
-			err = json.Unmarshal([]byte(pEvent.Data), &samples)
+			var points []data.Point
+			err = json.Unmarshal([]byte(pEvent.Data), &points)
 			if err != nil {
 				log.Println("Got error decoding samples: ", err)
 				continue
 			}
 
-			callback(pEvent.CoreID, samples)
+			callback(pEvent.CoreID, points)
 
 		case err := <-stream.Errors:
 			log.Println("Got error: ", err)
