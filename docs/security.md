@@ -19,6 +19,9 @@ The Web UI uses JWT (JSON web tokens).
 Devices can also communicate via HTTP and use a simple auth token. Eventually
 may want to switch to JWT or something similiar to what NATS uses.
 
+NOTE, it is important to set an auth token -- otherwise there is no restriction
+on accessing the device API.
+
 ## NATS
 
 Currently devices communicating via NATS use a common auth token. It would be
