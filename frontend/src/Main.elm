@@ -1,11 +1,11 @@
 module Main exposing (main)
 
 import Browser
-import Browser.Navigation as Nav exposing (Key)
-import Document
-import Generated.Pages as Pages
-import Generated.Route as Route exposing (Route)
-import Global
+import Browser.Navigation as Nav
+import Shared exposing (Flags)
+import Spa.Document as Document exposing (Document)
+import Spa.Generated.Pages as Pages
+import Spa.Generated.Route as Route exposing (Route)
 import Url exposing (Url)
 
 
@@ -13,9 +13,9 @@ main : Program Flags Model Msg
 main =
     Browser.application
         { init = init
-        , view = view
         , update = update
         , subscriptions = subscriptions
+        , view = view >> Document.toBrowserDocument
         , onUrlRequest = LinkClicked
         , onUrlChange = UrlChanged
         }
@@ -25,106 +25,119 @@ main =
 -- INIT
 
 
-type alias Flags =
-    ()
-
-
 type alias Model =
-    { key : Key
-    , url : Url
-    , global : Global.Model
+    { shared : Shared.Model
     , page : Pages.Model
     }
 
 
-init : Flags -> Url -> Key -> ( Model, Cmd Msg )
+init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
-        ( global, globalCmd ) =
-            Global.init flags url key
+        ( shared, sharedCmd ) =
+            Shared.init flags url key
 
-        ( page, pageCmd, pageGlobalCmd ) =
-            Pages.init (fromUrl url) global
+        ( page, pageCmd ) =
+            Pages.init (fromUrl url) shared
     in
-    ( Model key url global page
+    ( Model shared page
     , Cmd.batch
-        [ Cmd.map Global globalCmd
-        , Cmd.map Global pageGlobalCmd
-        , Cmd.map Page pageCmd
+        [ Cmd.map Shared sharedCmd
+        , Cmd.map Pages pageCmd
         ]
     )
+
+
+
+-- UPDATE
 
 
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url
-    | Global Global.Msg
-    | Page Pages.Msg
+    | Shared Shared.Msg
+    | Pages Pages.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         LinkClicked (Browser.Internal url) ->
-            ( model, Nav.pushUrl model.key (Url.toString url) )
+            ( model
+            , Nav.pushUrl model.shared.key (Url.toString url)
+            )
 
         LinkClicked (Browser.External href) ->
-            ( model, Nav.load href )
+            ( model
+            , Nav.load href
+            )
 
         UrlChanged url ->
             let
-                ( page, pageCmd, globalCmd ) =
-                    Pages.init (fromUrl url) model.global
+                original =
+                    model.shared
+
+                shared =
+                    { original | url = url }
+
+                ( page, pageCmd ) =
+                    Pages.init (fromUrl url) shared
             in
-            ( { model | url = url, page = page }
+            ( { model | page = page, shared = Pages.save page shared }
+            , Cmd.map Pages pageCmd
+            )
+
+        Shared sharedMsg ->
+            let
+                ( shared, sharedCmd ) =
+                    Shared.update sharedMsg model.shared
+
+                ( page, pageCmd ) =
+                    Pages.load model.page shared
+            in
+            ( { model | page = page, shared = shared }
             , Cmd.batch
-                [ Cmd.map Page pageCmd
-                , Cmd.map Global globalCmd
+                [ Cmd.map Shared sharedCmd
+                , Cmd.map Pages pageCmd
                 ]
             )
 
-        Global globalMsg ->
+        Pages pageMsg ->
             let
-                ( global, globalCmd ) =
-                    Global.update globalMsg model.global
+                ( page, pageCmd ) =
+                    Pages.update pageMsg model.page
+
+                shared =
+                    Pages.save page model.shared
             in
-            ( { model | global = global }
-            , Cmd.map Global globalCmd
+            ( { model | page = page, shared = shared }
+            , Cmd.map Pages pageCmd
             )
 
-        Page pageMsg ->
-            let
-                ( page, pageCmd, globalCmd ) =
-                    Pages.update pageMsg model.page model.global
-            in
-            ( { model | page = page }
-            , Cmd.batch
-                [ Cmd.map Page pageCmd
-                , Cmd.map Global globalCmd
-                ]
-            )
+
+view : Model -> Document Msg
+view model =
+    Shared.view
+        { page =
+            Pages.view model.page
+                |> Document.map Pages
+        , toMsg = Shared
+        }
+        model.shared
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ model.global
-            |> Global.subscriptions
-            |> Sub.map Global
-        , model.page
-            |> (\page -> Pages.subscriptions page model.global)
-            |> Sub.map Page
+        [ Shared.subscriptions model.shared
+            |> Sub.map Shared
+        , Pages.subscriptions model.page
+            |> Sub.map Pages
         ]
 
 
-view : Model -> Browser.Document Msg
-view model =
-    Document.toBrowserDocument <|
-        Global.view
-            { page = Pages.view model.page model.global |> Document.map Page
-            , global = model.global
-            , toMsg = Global
-            }
+
+-- URL
 
 
 fromUrl : Url -> Route

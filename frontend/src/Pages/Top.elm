@@ -1,4 +1,4 @@
-module Pages.Top exposing (Flags, Model, Msg, page)
+module Pages.Top exposing (Model, Msg, Params, page)
 
 import Data.Device as D
 import Data.Duration as Duration
@@ -8,15 +8,32 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
-import Global
-import Page exposing (Document, Page)
-import Task
+import Shared
+import Spa.Document exposing (Document)
+import Spa.Page as Page exposing (Page)
+import Spa.Url as Url exposing (Url)
 import Time
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors, size)
 
 
-type alias Flags =
+page : Page Params Model Msg
+page =
+    Page.application
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        , save = save
+        , load = load
+        }
+
+
+
+-- INIT
+
+
+type alias Params =
     ()
 
 
@@ -33,6 +50,17 @@ type alias Model =
     }
 
 
+init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
+init shared { params } =
+    ( Model Nothing Time.utc (Time.millisToPosix 0)
+    , Cmd.none
+    )
+
+
+
+-- UPDATE
+
+
 type Msg
     = EditDeviceDescription String String
     | PostPoint String P.Point
@@ -42,26 +70,8 @@ type Msg
     | Zone Time.Zone
 
 
-page : Page Flags Model Msg
-page =
-    Page.component
-        { init = init
-        , update = update
-        , subscriptions = subscriptions
-        , view = view
-        }
-
-
-init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
-init _ _ =
-    ( Model Nothing Time.utc (Time.millisToPosix 0)
-    , Cmd.batch [ Task.perform Zone Time.here, Task.perform Tick Time.now ]
-    , Cmd.none
-    )
-
-
-update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update global msg model =
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
         EditDeviceDescription id description ->
             ( { model
@@ -72,59 +82,72 @@ update global msg model =
                         }
               }
             , Cmd.none
-            , Cmd.none
             )
 
         PostPoint id point ->
             ( { model | deviceEdit = Nothing }
             , Cmd.none
-            , Global.send <| Global.UpdateDevicePoint id point
+              --Global.send <| Global.UpdateDevicePoint id point
             )
 
         DiscardEditedDeviceDescription ->
             ( { model | deviceEdit = Nothing }
             , Cmd.none
-            , Cmd.none
             )
 
         DeleteDevice id ->
-            ( model, Cmd.none, Global.send <| Global.DeleteDevice id )
+            ( model
+            , Cmd.none
+              --Global.send <| Global.DeleteDevice id
+            )
 
         Zone zone ->
-            ( { model | zone = zone }, Cmd.none, Cmd.none )
+            ( { model | zone = zone }, Cmd.none )
 
         Tick now ->
             ( { model | now = now }
             , Cmd.none
-            , case global.auth of
-                Global.SignedIn _ ->
-                    Global.send Global.RequestDevices
-
-                Global.SignedOut _ ->
-                    Cmd.none
+              --case global.auth of
+              --    Global.SignedIn _ ->
+              --        Global.send Global.RequestDevices
+              --    Global.SignedOut _ ->
+              --        Cmd.none
             )
 
 
-subscriptions : Global.Model -> Model -> Sub Msg
-subscriptions _ _ =
+save : Model -> Shared.Model -> Shared.Model
+save model shared =
+    shared
+
+
+load : Shared.Model -> Model -> ( Model, Cmd Msg )
+load shared model =
+    ( model, Cmd.none )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
     Sub.batch
         [ Time.every 5000 Tick
         ]
 
 
-view : Global.Model -> Model -> Document Msg
-view global model =
+
+-- VIEW
+
+
+view : Model -> Document Msg
+view model =
     { title = "SIOT Devices"
     , body =
         [ column
             [ width fill, spacing 32 ]
             [ el Style.h2 <| text "Devices"
-            , case global.auth of
-                Global.SignedIn sess ->
-                    viewDevices sess.data.devices model sess.isRoot
-
-                _ ->
-                    el [ padding 16 ] <| text "Sign in to view your devices."
+            , --case global.auth of
+              --    Global.SignedIn sess ->
+              --        viewDevices sess.data.devices model sess.isRoot
+              --    _ ->
+              el [ padding 16 ] <| text "Sign in to view your devices."
             ]
         ]
     }
