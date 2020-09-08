@@ -1,189 +1,95 @@
-module Pages.SignIn exposing (Flags, Model, Msg, page)
+module Pages.SignIn exposing (Model, Msg, Params, page)
 
-import Element exposing (..)
-import Element.Border as Border
-import Element.Font as Font
-import Element.Input as Input
-import Global
-import Html
-import Html.Attributes as Attr
-import Html.Events as Events
-import Page exposing (Document, Page)
-import UI.Style as Style
+import Api.Auth as Auth
+import Api.Data exposing (Data)
+import Browser.Navigation exposing (Key)
+import Shared
+import Spa.Document exposing (Document)
+import Spa.Page as Page exposing (Page)
+import Spa.Url as Url exposing (Url)
 
 
-type alias Flags =
-    ()
-
-
-type alias Model =
-    { email : String
-    , password : String
-    }
-
-
-type Msg
-    = UpdatedField Field String
-    | ClickedSignIn
-
-
-type Field
-    = Email
-    | Password
-
-
-page : Page Flags Model Msg
+page : Page Params Model Msg
 page =
-    Page.component
+    Page.application
         { init = init
         , update = update
         , subscriptions = subscriptions
         , view = view
+        , save = save
+        , load = load
         }
 
 
-init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
-init _ _ =
-    ( Model "" "", Cmd.none, Cmd.none )
+
+-- INIT
 
 
-update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update _ msg model =
+type alias Params =
+    ()
+
+
+type alias Model =
+    { authCred : Data Auth.Cred
+    , key : Key
+    , email : String
+    , password : String
+    }
+
+
+init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
+init shared { key } =
+    ( Model
+        (case shared.authCred of
+            Just cred ->
+                Api.Data.Success cred
+
+            Nothing ->
+                Api.Data.NotAsked
+        )
+        key
+        ""
+        ""
+    , Cmd.none
+    )
+
+
+
+-- UPDATE
+
+
+type Msg
+    = ReplaceMe
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
-        UpdatedField Email value ->
-            ( { model | email = value }
-            , Cmd.none
-            , Cmd.none
-            )
-
-        UpdatedField Password value ->
-            ( { model | password = value }
-            , Cmd.none
-            , Cmd.none
-            )
-
-        ClickedSignIn ->
-            ( model
-            , Cmd.none
-            , Global.send <|
-                Global.SignIn model
-            )
+        ReplaceMe ->
+            ( model, Cmd.none )
 
 
-subscriptions : Global.Model -> Model -> Sub Msg
-subscriptions _ _ =
+save : Model -> Shared.Model -> Shared.Model
+save _ shared =
+    shared
+
+
+load : Shared.Model -> Model -> ( Model, Cmd Msg )
+load _ model =
+    ( model, Cmd.none )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
     Sub.none
 
 
-view : Global.Model -> Model -> Document Msg
-view _ model =
-    { title = "SIOT SignIn"
-    , body =
-        [ el [ centerX, centerY ] <|
-            form
-                { onSubmit = ClickedSignIn
-                }
-                [ spacing 32 ]
-                [ el [ Font.size 24, Font.semiBold ]
-                    (text "Sign in")
-                , column [ spacing 16 ]
-                    [ viewField
-                        { label = "Email"
-                        , onChange = UpdatedField Email
-                        , inputType = EmailInput
-                        , value = model.email
-                        }
-                    , viewField
-                        { label = "Password"
-                        , onChange = UpdatedField Password
-                        , inputType = PasswordInput
-                        , value = model.password
-                        }
-                    ]
-                , el [ alignRight ] <|
-                    if String.isEmpty model.email then
-                        Input.button
-                            (Style.button Style.colors.blue ++ [ alpha 0.6 ])
-                            { onPress = Nothing
-                            , label = text "Sign In"
-                            }
 
-                    else
-                        Input.button
-                            (Style.button Style.colors.blue ++ [ htmlAttribute (Attr.type_ "submit") ])
-                            { onPress = Just ClickedSignIn
-                            , label = text "Sign In"
-                            }
-                ]
-        ]
+-- VIEW
+
+
+view : Model -> Document Msg
+view model =
+    { title = "SignIn"
+    , body = []
     }
-
-
-form : { onSubmit : msg } -> List (Attribute msg) -> List (Element msg) -> Element msg
-form config attrs children =
-    Element.html
-        (Html.form
-            [ Events.onSubmit config.onSubmit ]
-            [ toHtml (column attrs children)
-            ]
-        )
-
-
-toHtml : Element msg -> Html.Html msg
-toHtml =
-    Element.layoutWith { options = [ Element.noStaticStyleSheet ] } []
-
-
-type InputType
-    = EmailInput
-    | PasswordInput
-
-
-viewField :
-    { inputType : InputType
-    , label : String
-    , onChange : String -> msg
-    , value : String
-    }
-    -> Element msg
-viewField config =
-    let
-        styles =
-            { field =
-                [ paddingXY 4 4
-                , Border.rounded 0
-                , Border.widthEach
-                    { top = 0
-                    , left = 0
-                    , right = 0
-                    , bottom = 1
-                    }
-                ]
-            , label =
-                [ Font.size 16
-                , Font.semiBold
-                ]
-            }
-
-        label =
-            Input.labelAbove
-                styles.label
-                (text config.label)
-    in
-    case config.inputType of
-        EmailInput ->
-            Input.email styles.field
-                { onChange = config.onChange
-                , text = config.value
-                , placeholder = Nothing
-                , label = label
-                }
-
-        PasswordInput ->
-            Input.currentPassword styles.field
-                { onChange = config.onChange
-                , text = config.value
-                , placeholder = Nothing
-                , label = label
-                , show = False
-                }

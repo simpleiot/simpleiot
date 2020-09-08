@@ -4,7 +4,6 @@ module UI.Icon exposing
     , cloudOff
     , plus
     , power
-    , powerOff
     , userCheck
     , userMinus
     , userPlus
@@ -17,9 +16,6 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import FeatherIcons
-import Global exposing (Msg)
-import Svg
-import Svg.Attributes exposing (..)
 import UI.Style as Style
 
 
@@ -96,16 +92,3 @@ cloud =
 power : Element msg
 power =
     icon FeatherIcons.power
-
-
-
--- powerOff icon is not finished yet
-
-
-powerOff : Element Msg
-powerOff =
-    [ Svg.path [ d "M18.36 6.64a9 9 0 1 1-12.73 0" ] []
-    , Svg.line [ x1 "12", y1 "2", x2 "12", y2 "12" ] []
-    ]
-        |> FeatherIcons.customIcon
-        |> icon
