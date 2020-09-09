@@ -28,7 +28,7 @@ builds:
         goarch: 386
     hooks:
       pre:
-        - /bin/sh -c '. ./envsetup.sh && siot_setup && siot_build_dependencies'
+        #- /bin/sh -c '. ./envsetup.sh && siot_setup && siot_build_dependencies'
 archives:
   - replacements:
       darwin: Darwin
