@@ -9,6 +9,16 @@ and this project adheres to
 For more details or to discuss releases, please visit the
 [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
 
+## [[0.0.11] - 2020-09-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.11)
+
+### Changed
+
+- switched data storage to
+  [points](https://github.com/simpleiot/simpleiot/blob/master/docs/development.md#flexible-data-structures)
+  vs sensor data and config
+- add token auth for device HTTP communication
+- documentation improvements
+
 ## [Unreleased]
 
 ## [[0.0.10] - 2020-08-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.10)
