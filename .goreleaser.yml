@@ -7,12 +7,28 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
-  - env:
+  - main: ./cmd/siot/main.go
+    id: siot
+    binary: siot
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
-      - windows
       - darwin
+    goarch:
+      - amd64
+      - arm
+      - arm64
+      - 386
+    goarm:
+      - 6
+      - 7
+    ignore:
+      - goos: darwin
+        goarch: 386
+    hooks:
+      pre:
+        - /bin/sh -c '. ./envsetup.sh && siot_setup && siot_build_dependencies'
 archives:
   - replacements:
       darwin: Darwin
@@ -21,12 +37,14 @@ archives:
       386: i386
       amd64: x86_64
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - "^docs:"
+      - "^test:"
+env_files:
+  github_token: GITHUB_TOKEN
