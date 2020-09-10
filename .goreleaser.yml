@@ -6,6 +6,8 @@ before:
     - go mod download
     # you may remove this if you don't need go generate
     - go generate ./...
+changelog:
+  skip: true
 builds:
   - main: ./cmd/siot/main.go
     id: siot
@@ -15,6 +17,7 @@ builds:
     goos:
       - linux
       - darwin
+      - windows
     goarch:
       - amd64
       - arm
@@ -30,7 +33,30 @@ builds:
       pre:
         #- /bin/sh -c '. ./envsetup.sh && siot_setup && siot_build_dependencies'
 archives:
-  - replacements:
+  - name_template:
+      "{{.ProjectName}}-{{.Tag}}-{{.Os}}-{{.Arch}}{{if .Arm}}{{.Arm}}{{end}}"
+    wrap_in_directory: true
+    format: zip
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+  - name_template:
+      "{{.ProjectName}}-{{.Tag}}-{{.Os}}-{{.Arch}}{{if .Arm}}{{.Arm}}{{end}}"
+    id: targz-archives
+    wrap_in_directory: true
+    format: tar.gz
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+    replacements:
       darwin: Darwin
       linux: Linux
       windows: Windows
@@ -40,11 +66,5 @@ checksum:
   name_template: "checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
 env_files:
   github_token: GITHUB_TOKEN

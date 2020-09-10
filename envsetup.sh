@@ -195,6 +195,6 @@ siot_goreleaser_build() {
 
 siot_goreleaser_release() {
   #TODO add depend build to goreleaser config
-  siot_build_dependencies
+  siot_build_dependencies --optimize
   goreleaser release
 }
