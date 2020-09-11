@@ -18,8 +18,14 @@ import (
 	"github.com/simpleiot/simpleiot/respreader"
 )
 
-const apnVerizon = "vzwinternet"
-const apnHologram = "hologram"
+// APNVerizon is the APN to use on VZ network
+const APNVerizon = "vzwinternet"
+
+// APNKajeet is the APN to use on the Kajeet network
+const APNKajeet = "kajeet.gw12.vzwentp"
+
+// APNHologram is the APN to use on the Hologram network
+const APNHologram = "hologram"
 
 // Modem is an interface that always reports detected/connected
 type Modem struct {
@@ -160,7 +166,8 @@ func (m *Modem) Configure() (InterfaceConfig, error) {
 		return ret, fmt.Errorf("Error setting GPIO: %v", err.Error())
 	}
 
-	if m.config.APN == apnVerizon {
+	// VZ and Kajeet can use internal VZ SIM, Hologram needs external SIM
+	if m.config.APN == APNVerizon || m.config.APN == APNKajeet {
 		err = CmdOK(m.atCmdPort, "AT+QCFG=\"gpio\",3,26,1,1")
 		if err != nil {
 			return ret, fmt.Errorf("Error setting GPIO: %v", err.Error())
