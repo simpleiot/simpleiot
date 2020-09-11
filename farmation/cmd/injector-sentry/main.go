@@ -210,7 +210,7 @@ func main() {
 				AtCmdPortName: "/dev/ttyUSB2",
 				Reset:         isio.ResetModem,
 				Debug:         false,
-				APN:           "vzwinternet",
+				APN:           network.APNKajeet,
 			})
 
 		status, err := modem.GetStatus()
