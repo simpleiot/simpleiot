@@ -482,7 +482,7 @@ viewDevices group devices =
                         ("("
                             ++ d.id
                             ++ ") "
-                            ++ d.config.description
+                            ++ D.description d
                         )
                     , Icon.x (RemoveDevice group.id d.id)
                     ]

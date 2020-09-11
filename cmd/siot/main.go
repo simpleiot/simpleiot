@@ -28,6 +28,84 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 )
 
+func parsePoint(s string) (string, data.Point, error) {
+	frags := strings.Split(s, ":")
+	if len(frags) != 4 {
+		return "", data.Point{},
+			errors.New("format for sample is: 'devId:sensId:value:type'")
+	}
+
+	deviceID := frags[0]
+	sampleID := frags[1]
+	value, err := strconv.ParseFloat(frags[2], 64)
+	if err != nil {
+		return "", data.Point{}, err
+	}
+
+	sampleType := frags[3]
+
+	return deviceID, data.Point{
+		ID:    sampleID,
+		Type:  sampleType,
+		Value: value,
+		Time:  time.Now(),
+	}, nil
+
+}
+
+func sendPoint(portal, authToken, s string) error {
+	deviceID, point, err := parsePoint(s)
+
+	if err != nil {
+		return err
+	}
+
+	sendPoints := api.NewSendPoints(portal, deviceID, authToken, time.Second*10, false)
+
+	err = sendPoints([]data.Point{point})
+
+	return err
+}
+
+func sendPointNats(nc *natsgo.Conn, authToken, s string, ack bool) error {
+	deviceID, point, err := parsePoint(s)
+
+	if err != nil {
+		return err
+	}
+
+	subject := fmt.Sprintf("device.%v.points", deviceID)
+
+	points := data.Points{}
+
+	points = append(points, point)
+
+	data, err := points.PbEncode()
+
+	if err != nil {
+		return err
+	}
+
+	if ack {
+		msg, err := nc.Request(subject, data, time.Second)
+
+		if err != nil {
+			return err
+		}
+
+		if string(msg.Data) != "" {
+			log.Println("Request returned error: ", string(msg.Data))
+		}
+
+	} else {
+		if err := nc.Publish(subject, data); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
 func parseSample(s string) (string, data.Sample, error) {
 	frags := strings.Split(s, ":")
 	if len(frags) != 4 {
@@ -53,7 +131,7 @@ func parseSample(s string) (string, data.Sample, error) {
 
 }
 
-func sendSample(portal, s string) error {
+func sendSample(portal, authToken, s string) error {
 	deviceID, sample, err := parseSample(s)
 
 	if err != nil {
@@ -118,10 +196,12 @@ func main() {
 	flagDisableAuth := flag.Bool("disableAuth", false, "Disable user auth (used for development)")
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
+	flagSendPoint := flag.String("sendPoint", "", "Send point to 'portal': 'devId:sensId:value:type'")
 	flagNatsServer := flag.String("natsServer", defaultNatsServer, "NATS Server")
 	flagNatsDisableServer := flag.Bool("natsDisableServer", false, "Disable NATS server (if you want to run NATS separately)")
 	flagNatsAck := flag.Bool("natsAck", false, "request response")
 	flagSendSampleNats := flag.String("sendSampleNats", "", "Send sample to 'portal' via NATS: 'devId:sensId:value:type'")
+	flagSendPointNats := flag.String("sendPointNats", "", "Send point to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendFile := flag.String("sendFile", "", "URL of file to send")
 	flagSendCmd := flag.String("sendCmd", "", "Command to send (cmd:detail)")
 	flagSendVersion := flag.String("sendVersion", "", "Command to send version to portal (HW:OS:App)")
@@ -220,6 +300,7 @@ func main() {
 	var nc *natsgo.Conn
 
 	if *flagSendSampleNats != "" ||
+		*flagSendPointNats != "" ||
 		*flagSendFile != "" ||
 		*flagSendCmd != "" ||
 		*flagSendVersion != "" {
@@ -331,6 +412,14 @@ func main() {
 		}
 	}
 
+	if *flagSendPointNats != "" {
+		err := sendPointNats(nc, authToken, *flagSendPointNats, *flagNatsAck)
+		if err != nil {
+			log.Println(err)
+			os.Exit(-1)
+		}
+	}
+
 	if nc != nil {
 		// wait for everything to get sent to server
 		nc.Flush()
@@ -343,7 +432,16 @@ func main() {
 	// =============================================
 
 	if *flagSendSample != "" {
-		err := sendSample(*flagPortal, *flagSendSample)
+		err := sendSample(*flagPortal, *flagAuthToken, *flagSendSample)
+		if err != nil {
+			log.Println(err)
+			os.Exit(-1)
+		}
+		os.Exit(0)
+	}
+
+	if *flagSendPoint != "" {
+		err := sendPoint(*flagPortal, *flagAuthToken, *flagSendPoint)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -416,10 +514,10 @@ func main() {
 
 	if particleAPIKey != "" {
 		go func() {
-			err := particle.SampleReader("sample", particleAPIKey,
-				func(id string, samples []data.Sample) {
-					for _, s := range samples {
-						err = dbInst.DeviceSample(id, s)
+			err := particle.PointReader("sample", particleAPIKey,
+				func(id string, points data.Points) {
+					for _, p := range points {
+						err = dbInst.DevicePoint(id, p)
 						if err != nil {
 							log.Println("Error getting particle sample: ", err)
 						}
@@ -492,7 +590,8 @@ func main() {
 		GetAsset:   frontend.Asset,
 		Filesystem: frontend.FileSystem(),
 		Debug:      *flagDebugHTTP,
-		Auth:       auth,
+		JwtAuth:    auth,
+		AuthToken:  authToken,
 		NH:         natsHandler,
 	})
 

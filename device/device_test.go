@@ -10,21 +10,20 @@ import (
 func TestNotifyTemplate(t *testing.T) {
 	device := data.Device{
 		ID: "1234",
-		Config: data.DeviceConfig{
-			Description: "My Device",
-		},
-		State: data.DeviceState{
-			Ios: []data.Sample{
-				{
-					Type:  "tankLevel",
-					ID:    "",
-					Value: 12.523423423,
-				},
-				{
-					Type:  "current",
-					ID:    "c0",
-					Value: 1.52323,
-				},
+		Points: []data.Point{
+			{
+				Type: data.PointTypeDescription,
+				Text: "My Device",
+			},
+			{
+				Type:  "tankLevel",
+				ID:    "",
+				Value: 12.523423423,
+			},
+			{
+				Type:  "current",
+				ID:    "c0",
+				Value: 1.52323,
 			},
 		},
 	}

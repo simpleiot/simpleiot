@@ -17,6 +17,7 @@ import Data.Auth
 import Data.Data as Data
 import Data.Device as D
 import Data.Group as G
+import Data.Point as P
 import Data.Response exposing (Response)
 import Data.User as U
 import Document exposing (Document)
@@ -100,7 +101,7 @@ type Msg
     | DeviceCancelCmdResponse String (Result Http.Error D.DeviceCmd)
     | SignOut
     | Tick Time.Posix
-    | UpdateDeviceConfig String D.Config
+    | UpdateDevicePoint String P.Point
     | UpdateDeviceGroups String (List String)
     | UpdateDeviceCmd String D.DeviceCmd
     | UpdateUser U.User
@@ -111,6 +112,7 @@ type Msg
     | DeleteGroupResponse String (Result Http.Error Response)
     | ConfigPosted String (Result Http.Error Response)
     | DeviceCmdPosted String (Result Http.Error Response)
+    | DevicePointPosted String (Result Http.Error Response)
     | UserPosted String (Result Http.Error Response)
     | GroupPosted String (Result Http.Error Response)
     | CheckUser String
@@ -219,7 +221,7 @@ update msg model =
                             | auth =
                                 SignedIn
                                     { sess
-                                        | respError = Just "Error getting devices"
+                                        | respError = Just ("Error getting devices: " ++ errorToString err)
                                         , errorDispCount = 0
                                     }
                           }
@@ -233,12 +235,12 @@ update msg model =
                     , Cmd.none
                     )
 
-                UsersResponse (Err _) ->
+                UsersResponse (Err err) ->
                     ( { model
                         | auth =
                             SignedIn
                                 { sess
-                                    | respError = Just "Error getting users"
+                                    | respError = Just ("Error getting users: " ++ errorToString err)
                                     , errorDispCount = 0
                                 }
                       }
@@ -266,12 +268,12 @@ update msg model =
                     , Cmd.none
                     )
 
-                GroupsResponse (Err _) ->
+                GroupsResponse (Err err) ->
                     ( { model
                         | auth =
                             SignedIn
                                 { sess
-                                    | respError = Just "Error getting groups"
+                                    | respError = Just ("Error getting groups" ++ errorToString err)
                                     , errorDispCount = 0
                                 }
                       }
@@ -303,13 +305,13 @@ update msg model =
                     , Cmd.none
                     )
 
-                UpdateDeviceConfig id config ->
+                UpdateDevicePoint id point ->
                     let
                         devices =
                             List.map
                                 (\d ->
                                     if d.id == id then
-                                        { d | config = config }
+                                        { d | points = P.updatePoint d.points point }
 
                                     else
                                         d
@@ -324,7 +326,7 @@ update msg model =
                                     , posting = True
                                 }
                       }
-                    , postDeviceConfig sess.authToken id config
+                    , postDevicePoint sess.authToken id point
                     )
 
                 UpdateDeviceGroups id groups ->
@@ -422,12 +424,12 @@ update msg model =
                     , Cmd.none
                     )
 
-                DeleteGroupResponse _ (Err _) ->
+                DeleteGroupResponse _ (Err err) ->
                     ( { model
                         | auth =
                             SignedIn
                                 { sess
-                                    | respError = Just "Error deleting group"
+                                    | respError = Just ("Error deleting group" ++ errorToString err)
                                     , posting = False
                                     , errorDispCount = 0
                                 }
@@ -449,12 +451,12 @@ update msg model =
                     , Cmd.none
                     )
 
-                DeleteDeviceResponse _ (Err _) ->
+                DeleteDeviceResponse _ (Err err) ->
                     ( { model
                         | auth =
                             SignedIn
                                 { sess
-                                    | respError = Just "Error deleting device"
+                                    | respError = Just ("Error deleting device" ++ errorToString err)
                                     , posting = False
                                     , errorDispCount = 0
                                 }
@@ -470,12 +472,12 @@ update msg model =
                     , getDevices sess.authToken
                     )
 
-                DeviceCancelCmdResponse _ (Err _) ->
+                DeviceCancelCmdResponse _ (Err err) ->
                     ( { model
                         | auth =
                             SignedIn
                                 { sess
-                                    | respError = Just "Error cancelling command"
+                                    | respError = Just ("Error cancelling command" ++ errorToString err)
                                     , posting = False
                                     , errorDispCount = 0
                                 }
@@ -488,12 +490,37 @@ update msg model =
                     , getDevices sess.authToken
                     )
 
-                DeviceCmdPosted _ (Err _) ->
+                DeviceCmdPosted _ (Err err) ->
                     ( { model
                         | auth =
                             SignedIn
                                 { sess
-                                    | respError = Just "Error saving device cmd"
+                                    | respError = Just ("Error saving device cmd" ++ errorToString err)
+                                    , posting = False
+                                    , errorDispCount = 0
+                                }
+                      }
+                    , Cmd.none
+                    )
+
+                DevicePointPosted _ (Ok _) ->
+                    ( { model
+                        | auth =
+                            SignedIn
+                                { sess
+                                    | posting = False
+                                    , errorDispCount = 0
+                                }
+                      }
+                    , getDevices sess.authToken
+                    )
+
+                DevicePointPosted _ (Err err) ->
+                    ( { model
+                        | auth =
+                            SignedIn
+                                { sess
+                                    | respError = Just ("Error saving device config" ++ errorToString err)
                                     , posting = False
                                     , errorDispCount = 0
                                 }
@@ -506,12 +533,12 @@ update msg model =
                     , Cmd.none
                     )
 
-                ConfigPosted _ (Err _) ->
+                ConfigPosted _ (Err err) ->
                     ( { model
                         | auth =
                             SignedIn
                                 { sess
-                                    | respError = Just "Error saving device config"
+                                    | respError = Just ("Error saving device config" ++ errorToString err)
                                     , posting = False
                                     , errorDispCount = 0
                                 }
@@ -537,14 +564,14 @@ update msg model =
                     , Cmd.none
                     )
 
-                UserPosted _ (Err _) ->
+                UserPosted _ (Err err) ->
                     -- refresh users as the local users cache is now
                     -- stale
                     ( { model
                         | auth =
                             SignedIn
                                 { sess
-                                    | respError = Just "Error saving user"
+                                    | respError = Just ("Error saving user" ++ errorToString err)
                                     , errorDispCount = 0
                                 }
                       }
@@ -569,14 +596,14 @@ update msg model =
                     , Cmd.none
                     )
 
-                GroupPosted _ (Err _) ->
+                GroupPosted _ (Err err) ->
                     -- refresh the ids because the local group cache is
                     -- is not correct because save did not take
                     ( { model
                         | auth =
                             SignedIn
                                 { sess
-                                    | respError = Just "Error saving group"
+                                    | respError = Just ("Error saving group" ++ errorToString err)
                                     , errorDispCount = 0
                                 }
                       }
@@ -644,12 +671,12 @@ update msg model =
                     , Cmd.none
                     )
 
-                DeleteUserResponse _ (Err _) ->
+                DeleteUserResponse _ (Err err) ->
                     ( { model
                         | auth =
                             SignedIn
                                 { sess
-                                    | respError = Just "Error deleting user"
+                                    | respError = Just ("Error deleting user" ++ errorToString err)
                                     , posting = False
                                     , errorDispCount = 0
                                 }
@@ -783,19 +810,6 @@ responseDecoder =
         |> optional "id" Decode.string ""
 
 
-postDeviceConfig : String -> String -> D.Config -> Cmd Msg
-postDeviceConfig token id config =
-    Http.request
-        { method = "POST"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = Url.Builder.absolute [ "v1", "devices", id, "config" ] []
-        , expect = Http.expectJson (ConfigPosted id) responseDecoder
-        , body = config |> D.encodeConfig |> Http.jsonBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
 postDeviceGroups : String -> String -> List String -> Cmd Msg
 postDeviceGroups token id groups =
     Http.request
@@ -817,6 +831,19 @@ postDeviceCmd token id cmd =
         , url = Url.Builder.absolute [ "v1", "devices", id, "cmd" ] []
         , expect = Http.expectJson (DeviceCmdPosted id) responseDecoder
         , body = cmd |> D.encodeDeviceCmd |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postDevicePoint : String -> String -> P.Point -> Cmd Msg
+postDevicePoint token id point =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
+        , url = Url.Builder.absolute [ "v1", "devices", id, "points" ] []
+        , expect = Http.expectJson (DevicePointPosted id) responseDecoder
+        , body = [ point ] |> P.encodeList |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -980,8 +1007,8 @@ viewError model =
         SignedOut Nothing ->
             none
 
-        SignedOut (Just _) ->
-            el Style.error (el [ centerX ] (text "Sign in failed"))
+        SignedOut (Just err) ->
+            el Style.error (el [ centerX ] (text ("Sign in failed: " ++ errorToString err)))
 
         SignedIn sess ->
             case sess.respError of
@@ -990,3 +1017,22 @@ viewError model =
 
                 Just error ->
                     el Style.error (el [ centerX ] (text error))
+
+
+errorToString : Http.Error -> String
+errorToString err =
+    case err of
+        Http.BadUrl url ->
+            "Malformed url: " ++ url
+
+        Http.Timeout ->
+            "Timeout exceeded"
+
+        Http.NetworkError ->
+            "Network error"
+
+        Http.BadStatus resp ->
+            "Bad status: " ++ String.fromInt resp
+
+        Http.BadBody resp ->
+            "Bad body: " ++ resp

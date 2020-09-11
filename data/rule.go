@@ -58,32 +58,32 @@ type Rule struct {
 }
 
 // IsActive checks if the rule is active against a data sample set
-func (r *Rule) IsActive(ios []Sample) bool {
+func (r *Rule) IsActive(points []Point) bool {
 	active := true
 	// any of the below conditions can turn active false
 	for _, c := range r.Config.Conditions {
-		for _, io := range ios {
-			if c.SampleType != "" && c.SampleType != io.Type {
+		for _, p := range points {
+			if c.SampleType != "" && c.SampleType != p.Type {
 				continue
 			}
-			if c.SampleID != "" && c.SampleID != io.ID {
+			if c.SampleID != "" && c.SampleID != p.ID {
 				continue
 			}
 
 			// rule matches IO, no check condition
 			switch c.Operator {
 			case ">":
-				if io.Value <= c.Value {
+				if p.Value <= c.Value {
 					active = false
 					break
 				}
 			case "<":
-				if io.Value >= c.Value {
+				if p.Value >= c.Value {
 					active = false
 					break
 				}
 			case "=":
-				if io.Value != c.Value {
+				if p.Value != c.Value {
 					active = false
 					break
 				}

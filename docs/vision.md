@@ -48,8 +48,8 @@ but just as important, in the deployment and tooling.
 In our experience, simplicity and good tooling matter. It is easy to add
 features to a language, but creating a useful language/tooling that is simple is
 hard. Since we are using Elm on the frontend, it might seem appropriate to
-select a functional language like Elixir, Scala, Clojure, etc. for the backend.
-These environments are likely excellent for many projects, but are also
+select a functional language like Elixir, Scala, Clojure, Haskell, etc. for the
+backend. These environments are likely excellent for many projects, but are also
 considerably more complex to work in. The programming style (procedural,
 functional, etc.) is important, but other factors such as
 simplicity/tooling/deployment are also important, especially for small teams who

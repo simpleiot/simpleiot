@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"path"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
@@ -96,20 +95,6 @@ func (db *Db) DeviceDelete(id string) error {
 	})
 }
 
-// DeviceUpdateConfig updates the config for a device.
-func (db *Db) DeviceUpdateConfig(id string, config data.DeviceConfig) error {
-	return db.update(func(tx *bolt.Tx) error {
-		var dev data.Device
-		if err := db.store.TxGet(tx, id, &dev); err != nil {
-			return err
-		}
-
-		dev.Config = config
-
-		return db.store.TxUpdate(tx, id, dev)
-	})
-}
-
 // DeviceUpdateGroups updates the groups for a device.
 func (db *Db) DeviceUpdateGroups(id string, groups []uuid.UUID) error {
 	return db.update(func(tx *bolt.Tx) error {
@@ -126,17 +111,17 @@ func (db *Db) DeviceUpdateGroups(id string, groups []uuid.UUID) error {
 
 var zero uuid.UUID
 
-// DeviceSample processes a sample for a particular device
-func (db *Db) DeviceSample(id string, sample data.Sample) error {
-	// for now, we process one sample at a time. We may eventually
+// DevicePoint processes a Point for a particular device
+func (db *Db) DevicePoint(id string, point data.Point) error {
+	// for now, we process one point at a time. We may eventually
 	// want to create DeviceSamples to process multiple samples so
 	// we can batch influx writes for performance
 
 	if db.influx != nil {
-		samples := []InfluxSample{
-			SampleToInfluxSample(id, sample),
+		points := []InfluxSample{
+			PointToInfluxSample(id, point),
 		}
-		err := db.influx.WriteSamples(samples)
+		err := db.influx.WriteSamples(points)
 		if err != nil {
 			log.Println("Error writing particle samples to influx: ", err)
 		}
@@ -153,22 +138,9 @@ func (db *Db) DeviceSample(id string, sample data.Sample) error {
 			}
 		}
 
-		dev.ProcessSample(sample)
+		dev.ProcessPoint(point)
+		dev.SetState(data.SysStateOnline)
 		return db.store.TxUpsert(tx, id, dev)
-	})
-}
-
-// DeviceSetVersion sets a cmd for a device, and sets the
-func (db *Db) DeviceSetVersion(id string, ver data.DeviceVersion) error {
-	return db.update(func(tx *bolt.Tx) error {
-		var dev data.Device
-		err := db.store.TxGet(tx, id, &dev)
-		if err != nil {
-			return err
-		}
-
-		dev.State.Version = ver
-		return db.store.TxUpdate(tx, id, dev)
 	})
 }
 
@@ -185,7 +157,7 @@ func (db *Db) DeviceSetState(id string, state data.SysState) error {
 			}
 		}
 
-		dev.State.SysState = state
+		dev.SetState(state)
 		return db.store.TxUpsert(tx, id, dev)
 	})
 }
@@ -203,27 +175,7 @@ func (db *Db) DeviceSetSwUpdateState(id string, state data.SwUpdateState) error 
 			}
 		}
 
-		dev.SwUpdateState = state
-		return db.store.TxUpsert(tx, id, dev)
-	})
-}
-
-// DeviceActivity is used to tell the system there has been activity
-// from this device
-func (db *Db) DeviceActivity(id string) error {
-	return db.update(func(tx *bolt.Tx) error {
-		var dev data.Device
-		err := db.store.TxGet(tx, id, &dev)
-		if err != nil {
-			if err == bolthold.ErrNotFound {
-				dev.ID = id
-			} else {
-				return err
-			}
-		}
-
-		dev.State.LastComm = time.Now()
-		dev.State.SysState = data.SysStateOnline
+		dev.SetSwUpdateState(state)
 		return db.store.TxUpsert(tx, id, dev)
 	})
 }
@@ -237,14 +189,14 @@ func (db *Db) DeviceSetCmd(cmd data.DeviceCmd) error {
 			return err
 		}
 
-		// and clear the device pending flag
+		// and set the device pending flag
 		var dev data.Device
 		err = db.store.TxGet(tx, cmd.ID, &dev)
 		if err != nil {
 			return err
 		}
 
-		dev.CmdPending = true
+		dev.SetCmdPending(true)
 		return db.store.TxUpdate(tx, cmd.ID, dev)
 	})
 }
@@ -265,7 +217,7 @@ func (db *Db) DeviceDeleteCmd(id string) error {
 			return err
 		}
 
-		dev.CmdPending = false
+		dev.SetCmdPending(false)
 		err = db.store.TxUpdate(tx, id, dev)
 		if err != nil {
 			return err
@@ -306,7 +258,7 @@ func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
 				return err
 			}
 
-			dev.CmdPending = false
+			dev.SetCmdPending(false)
 			err = db.store.TxUpdate(tx, id, dev)
 			if err != nil {
 				return err

@@ -12,8 +12,6 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
-	"github.com/simpleiot/simpleiot/internal/pb"
-	"google.golang.org/protobuf/proto"
 )
 
 // NatsHandler implements the SIOT NATS api
@@ -56,12 +54,12 @@ func (nh *NatsHandler) Connect() error {
 
 	nh.Nc = nc
 
-	if _, err := nc.Subscribe("device.*.samples", nh.handleSamples); err != nil {
+	if _, err := nc.Subscribe("device.*.samples", nh.handlePoints); err != nil {
 		return fmt.Errorf("Subscribe device samples error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("device.*.version", nh.handleVersion); err != nil {
-		return fmt.Errorf("Subscribe device version error: %w", err)
+	if _, err := nc.Subscribe("device.*.points", nh.handlePoints); err != nil {
+		return fmt.Errorf("Subscribe device points error: %w", err)
 	}
 
 	return nil
@@ -123,7 +121,7 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 	return nil
 }
 
-func (nh *NatsHandler) handleSamples(msg *nats.Msg) {
+func (nh *NatsHandler) handlePoints(msg *nats.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {
 		log.Println("Error decoding device samples subject: ", msg.Subject)
@@ -131,21 +129,15 @@ func (nh *NatsHandler) handleSamples(msg *nats.Msg) {
 		return
 	}
 	deviceID := chunks[1]
-	samples, err := data.PbDecodeSamples(msg.Data)
+	points, err := data.PbDecodePoints(msg.Data)
 	if err != nil {
 		log.Println("Error decoding Pb Samples: ", err)
 		nh.reply(msg.Reply, err)
 		return
 	}
 
-	err = nh.db.DeviceActivity(deviceID)
-	if err != nil {
-		log.Println("Error updating device activity: ", err)
-		nh.reply(msg.Reply, err)
-		return
-	}
-	for _, s := range samples {
-		err = nh.db.DeviceSample(deviceID, s)
+	for _, p := range points {
+		err = nh.db.DevicePoint(deviceID, p)
 		if err != nil {
 			log.Println("Error writting sample to Db: ", err)
 			nh.reply(msg.Reply, err)
@@ -154,38 +146,6 @@ func (nh *NatsHandler) handleSamples(msg *nats.Msg) {
 	}
 
 	nh.reply(msg.Reply, nil)
-}
-
-func (nh *NatsHandler) handleVersion(msg *nats.Msg) {
-	chunks := strings.Split(msg.Subject, ".")
-	if len(chunks) < 3 {
-		log.Println("Error decoding device version subject: ", msg.Subject)
-		nh.reply(msg.Reply, errors.New("Error decoding"))
-		return
-	}
-	deviceID := chunks[1]
-
-	vPb := &pb.DeviceVersion{}
-	err := proto.Unmarshal(msg.Data, vPb)
-
-	err = nh.db.DeviceActivity(deviceID)
-	if err != nil {
-		log.Println("Error updating device activity: ", err)
-		nh.reply(msg.Reply, err)
-		return
-	}
-
-	v := data.DeviceVersion{
-		OS:  vPb.Os,
-		App: vPb.App,
-		HW:  vPb.Hw,
-	}
-
-	err = nh.db.DeviceSetVersion(deviceID, v)
-	if err != nil {
-		log.Println("Error setting device version: ", err)
-	}
-	nh.reply(msg.Reply, err)
 }
 
 // used for messages that want an ACK

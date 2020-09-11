@@ -1,11 +1,10 @@
 module Data.Device exposing
-    ( Config
-    , Device
+    ( Device
     , DeviceCmd
     , decode
     , decodeCmd
     , decodeList
-    , encodeConfig
+    , description
     , encodeDeviceCmd
     , encodeGroups
     , sysStateOffline
@@ -15,12 +14,10 @@ module Data.Device exposing
 
 --import Json.Encode as Encode
 
-import Data.Sample as Sample
+import Data.Point as P
 import Json.Decode as Decode
-import Json.Decode.Extra
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
-import Time
 
 
 sysStatePowerOff : Int
@@ -40,31 +37,8 @@ sysStateOnline =
 
 type alias Device =
     { id : String
-    , config : Config
-    , state : State
-    , cmdPending : Bool
-    , swUpdateState : SwUpdateState
+    , points : List P.Point
     , groups : List String
-    }
-
-
-type alias Config =
-    { description : String
-    }
-
-
-type alias State =
-    { version : DeviceVersion
-    , ios : List Sample.Sample
-    , lastComm : Time.Posix
-    , sysState : Int
-    }
-
-
-type alias DeviceVersion =
-    { os : String
-    , app : String
-    , hw : String
     }
 
 
@@ -72,18 +46,6 @@ type alias DeviceCmd =
     { cmd : String
     , detail : String
     }
-
-
-type alias SwUpdateState =
-    { running : Bool
-    , error : String
-    , percentDone : Int
-    }
-
-
-emptyVersion : DeviceVersion
-emptyVersion =
-    DeviceVersion "" "" ""
 
 
 decodeList : Decode.Decoder (List Device)
@@ -95,42 +57,8 @@ decode : Decode.Decoder Device
 decode =
     Decode.succeed Device
         |> required "id" Decode.string
-        |> required "config" decodeConfig
-        |> required "state" decodeState
-        |> optional "cmdPending" Decode.bool False
-        |> required "swUpdateState" decodeSwUpdateState
+        |> optional "points" (Decode.list P.decode) []
         |> optional "groups" (Decode.list Decode.string) []
-
-
-decodeConfig : Decode.Decoder Config
-decodeConfig =
-    Decode.succeed Config
-        |> required "description" Decode.string
-
-
-decodeState : Decode.Decoder State
-decodeState =
-    Decode.succeed State
-        |> optional "version" decodeVersion emptyVersion
-        |> optional "ios" (Decode.list Sample.decode) []
-        |> optional "lastComm" Json.Decode.Extra.datetime (Time.millisToPosix 0)
-        |> optional "sysState" Decode.int 0
-
-
-decodeVersion : Decode.Decoder DeviceVersion
-decodeVersion =
-    Decode.succeed DeviceVersion
-        |> required "os" Decode.string
-        |> required "app" Decode.string
-        |> required "hw" Decode.string
-
-
-decodeSwUpdateState : Decode.Decoder SwUpdateState
-decodeSwUpdateState =
-    Decode.succeed SwUpdateState
-        |> required "running" Decode.bool
-        |> required "error" Decode.string
-        |> required "percentDone" Decode.int
 
 
 decodeCmd : Decode.Decoder DeviceCmd
@@ -138,12 +66,6 @@ decodeCmd =
     Decode.succeed DeviceCmd
         |> required "cmd" Decode.string
         |> optional "detail" Decode.string ""
-
-
-encodeConfig : Config -> Encode.Value
-encodeConfig deviceConfig =
-    Encode.object
-        [ ( "description", Encode.string deviceConfig.description ) ]
 
 
 encodeGroups : List String -> Encode.Value
@@ -157,3 +79,13 @@ encodeDeviceCmd cmd =
         [ ( "cmd", Encode.string cmd.cmd )
         , ( "detail", Encode.string cmd.detail )
         ]
+
+
+description : Device -> String
+description d =
+    case P.getPoint d.points "" P.typeDescription 0 of
+        Just point ->
+            point.text
+
+        Nothing ->
+            ""

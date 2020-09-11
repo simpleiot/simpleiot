@@ -38,9 +38,9 @@ func (m *Manager) Run() {
 		}
 		for _, device := range devices {
 			// update device state
-			changed := device.UpdateState()
+			state, changed := device.UpdateState()
 			if changed {
-				err := m.db.DeviceSetState(device.ID, device.State.SysState)
+				err := m.db.DeviceSetState(device.ID, state)
 				if err != nil {
 					log.Println("Error updating device state: ", err)
 				}
@@ -77,12 +77,12 @@ func uniqueUsers(users []data.User) []data.User {
 }
 
 func (m *Manager) runRule(device *data.Device, rule *data.Rule) error {
-	if device.State.SysState != data.SysStateOnline {
+	if device.State() != data.SysStateOnline {
 		// only run rules if device is in online state
 		return nil
 	}
 
-	active := rule.IsActive(device.State.Ios)
+	active := rule.IsActive(device.Points)
 	if active != rule.State.Active {
 		state := data.RuleState{Active: active}
 		if active {
@@ -167,7 +167,7 @@ func renderNotifyTemplate(device *data.Device, msgTemplate string) (string, erro
 		Ios:         make(map[string]float64),
 	}
 
-	for _, io := range device.State.Ios {
+	for _, io := range device.Points {
 		if io.Type != "" {
 			dtd.Ios[io.Type] = io.Value
 		}

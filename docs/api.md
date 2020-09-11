@@ -8,6 +8,9 @@ The Simple IoT server currently provides both Http and NATS.io APIs. We've tried
 to keep the two APIs a similar as possible so it is easy to switch from one to
 the other. The Http API currently accepts JSON, and the NATS API uses protobuf.
 
+**NOTE, the Simple IoT API is not final and will continue to be refined in the
+coming months.**
+
 ## HTTP
 
 For details on data payloads, it is simplest to just refer to the Go types which
@@ -23,10 +26,8 @@ Most APIs that do not return specific data (update/delete) return a
   - `/v1/devices/:id`
     - GET: return info about a specific device
     - DELETE: delete a device
-  - `/v1/devices/:id/config`
-    - POST: update config for a device
-  - `/v1/devices/:id/samples`
-    - POST: post samples for a device
+  - `/v1/devices/:id/points`
+    - POST: post points for a device
   - `/v1/devices/:id/cmd`
     - GET: gets a command for a device and clears it from the queue. Also clears
       the CmdPending flag in the Device state.

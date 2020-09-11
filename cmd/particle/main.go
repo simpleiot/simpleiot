@@ -19,9 +19,9 @@ func main() {
 		os.Exit(-1)
 	}
 
-	err := particle.SampleReader(*flagEvent, particleAPIKey,
-		func(id string, samples []data.Sample) {
-			fmt.Printf("ID: %v, data: %+v\n", id, samples)
+	err := particle.PointReader(*flagEvent, particleAPIKey,
+		func(id string, points data.Points) {
+			fmt.Printf("ID: %v, data: %+v\n", id, points)
 		})
 
 	if err != nil {

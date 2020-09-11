@@ -187,3 +187,14 @@ siot_protobuf() {
 siot_edge_run() {
   go run cmd/edge/main.go "$*"
 }
+
+# This can be useful to test/debug the release process locally
+siot_goreleaser_build() {
+  goreleaser build --skip-validate --rm-dist
+}
+
+siot_goreleaser_release() {
+  #TODO add depend build to goreleaser config
+  siot_build_dependencies --optimize
+  goreleaser release
+}

@@ -60,7 +60,7 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // NewAppHandler returns a new application (root) http handler
 func NewAppHandler(args ServerArgs) http.Handler {
-	v1 := NewV1Handler(args.DbInst, args.Auth, args.NH)
+	v1 := NewV1Handler(args.DbInst, args.JwtAuth, args.AuthToken, args.NH)
 	if args.Debug {
 		//args.Debug = false
 		v1 = NewHTTPLogger("v1").Handler(v1)
@@ -80,7 +80,8 @@ type ServerArgs struct {
 	GetAsset   func(string) []byte
 	Filesystem http.FileSystem
 	Debug      bool
-	Auth       Authorizer
+	JwtAuth    Authorizer
+	AuthToken  string
 	NH         *NatsHandler
 }
 
