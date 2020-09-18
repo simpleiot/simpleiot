@@ -8,8 +8,8 @@ module Shared exposing
     , view
     )
 
+import Api.Auth exposing (Auth)
 import Browser.Navigation exposing (Key)
-import Data.Auth as Auth
 import Element exposing (..)
 import Element.Font as Font
 import Spa.Document exposing (Document)
@@ -28,7 +28,7 @@ type alias Flags =
 type alias Model =
     { url : Url
     , key : Key
-    , authCred : Maybe Auth.Cred
+    , auth : Maybe Auth
     }
 
 
@@ -51,7 +51,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SignOut ->
-            ( { model | authCred = Nothing }, Cmd.none )
+            ( { model | auth = Nothing }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -73,6 +73,7 @@ view { page, toMsg } model =
         [ column [ padding 20, spacing 20, height fill ]
             [ row [ spacing 20 ]
                 [ link [ Font.color (rgb 0 0.25 0.5), Font.underline ] { url = Route.toString Route.Top, label = text "Homepage" }
+                , link [ Font.color (rgb 0 0.25 0.5), Font.underline ] { url = Route.toString Route.SignIn, label = text "Sign In" }
                 , link [ Font.color (rgb 0 0.25 0.5), Font.underline ] { url = Route.toString Route.NotFound, label = text "Not found" }
                 ]
             , column [ height fill ] page.body

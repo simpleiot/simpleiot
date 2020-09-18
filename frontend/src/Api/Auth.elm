@@ -1,6 +1,6 @@
 module Api.Auth exposing
-    ( Cred
-    , Response
+    ( Auth
+    , Cred
     , login
     )
 
@@ -17,27 +17,31 @@ type alias Cred =
     }
 
 
-type alias Response =
+type alias Auth =
     { token : String
     , isRoot : Bool
     }
 
 
-decodeResponse : Decode.Decoder Response
+decodeResponse : Decode.Decoder Auth
 decodeResponse =
-    Decode.succeed Response
+    Decode.succeed Auth
         |> required "token" Decode.string
         |> required "isRoot" Decode.bool
 
 
-login : Cred -> (Data Response -> msg) -> Cmd msg
-login cred onResponse =
+login :
+    { user : { user | email : String, password : String }
+    , onResponse : Data Auth -> msg
+    }
+    -> Cmd msg
+login options =
     Http.post
         { body =
             Http.multipartBody
-                [ Http.stringPart "email" cred.email
-                , Http.stringPart "password" cred.password
+                [ Http.stringPart "email" options.user.email
+                , Http.stringPart "password" options.user.password
                 ]
         , url = Url.Builder.absolute [ "v1", "auth" ] []
-        , expect = Api.Data.expectJson onResponse decodeResponse
+        , expect = Api.Data.expectJson options.onResponse decodeResponse
         }
