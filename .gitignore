@@ -1,5 +1,5 @@
-frontend/output
-frontend2/output
+/frontend/output
+/frontend/src/Generated
 elm-stuff
 /siot
 data.db
