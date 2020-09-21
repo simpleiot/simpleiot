@@ -53,10 +53,15 @@ buttonRow =
         ]
 
 
-button : String -> Color -> msg -> Element msg
-button lbl color action =
+button :
+    { color : Color
+    , onPress : msg
+    , label : String
+    }
+    -> Element msg
+button options =
     Input.button
-        (Style.button color)
-        { onPress = Just action
-        , label = el [ centerX ] <| text lbl
+        (Style.button options.color)
+        { onPress = Just options.onPress
+        , label = el [ centerX ] <| text options.label
         }

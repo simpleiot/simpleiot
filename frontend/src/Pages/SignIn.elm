@@ -10,7 +10,7 @@ import Shared
 import Spa.Document exposing (Document)
 import Spa.Generated.Route as Route
 import Spa.Page as Page exposing (Page)
-import Spa.Url as Url exposing (Url)
+import Spa.Url exposing (Url)
 import UI.Form as Form
 import UI.Style as Style
 import Utils.Route
@@ -49,7 +49,7 @@ init shared { key } =
     ( Model
         (case shared.auth of
             Just auth ->
-                Api.Data.Success auth
+                Api.Data.Success { token = auth.token, isRoot = auth.isRoot }
 
             Nothing ->
                 Api.Data.NotAsked
@@ -99,7 +99,7 @@ update msg model =
         GotUser auth ->
             ( { model | auth = auth }
             , case Api.Data.toMaybe auth of
-                Just auth_ ->
+                Just _ ->
                     Utils.Route.navigate model.key Route.Top
 
                 Nothing ->
@@ -113,7 +113,7 @@ save model shared =
         | auth =
             case Api.Data.toMaybe model.auth of
                 Just auth ->
-                    Just auth
+                    Just { email = model.email, token = auth.token, isRoot = auth.isRoot }
 
                 Nothing ->
                     shared.auth
@@ -161,10 +161,18 @@ view model =
                         }
                     , el [ alignRight ] <|
                         if String.isEmpty model.email then
-                            Form.button "Sign In" Style.colors.gray NoOp
+                            Form.button
+                                { label = "Sign In"
+                                , color = Style.colors.gray
+                                , onPress = NoOp
+                                }
 
                         else
-                            Form.button "Sign In" Style.colors.blue SignIn
+                            Form.button
+                                { label = "Sign In"
+                                , color = Style.colors.blue
+                                , onPress = SignIn
+                                }
                     ]
                 ]
         ]

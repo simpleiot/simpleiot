@@ -8,12 +8,10 @@ module Shared exposing
     , view
     )
 
-import Api.Auth exposing (Auth)
 import Browser.Navigation exposing (Key)
+import Components.Navbar exposing (navbar)
 import Element exposing (..)
-import Element.Font as Font
 import Spa.Document exposing (Document)
-import Spa.Generated.Route as Route
 import Url exposing (Url)
 
 
@@ -23,6 +21,13 @@ import Url exposing (Url)
 
 type alias Flags =
     ()
+
+
+type alias Auth =
+    { email : String
+    , token : String
+    , isRoot : Bool
+    }
 
 
 type alias Model =
@@ -68,14 +73,24 @@ view :
     -> Model
     -> Document msg
 view { page, toMsg } model =
+    let
+        ( authenticated, isRoot, email ) =
+            case model.auth of
+                Just auth ->
+                    ( True, auth.isRoot, auth.email )
+
+                Nothing ->
+                    ( False, False, "" )
+    in
     { title = page.title
     , body =
         [ column [ padding 20, spacing 20, height fill ]
-            [ row [ spacing 20 ]
-                [ link [ Font.color (rgb 0 0.25 0.5), Font.underline ] { url = Route.toString Route.Top, label = text "Homepage" }
-                , link [ Font.color (rgb 0 0.25 0.5), Font.underline ] { url = Route.toString Route.SignIn, label = text "Sign In" }
-                , link [ Font.color (rgb 0 0.25 0.5), Font.underline ] { url = Route.toString Route.NotFound, label = text "Not found" }
-                ]
+            [ navbar
+                { onSignOut = toMsg SignOut
+                , authenticated = authenticated
+                , isRoot = isRoot
+                , email = email
+                }
             , column [ height fill ] page.body
             ]
         ]
