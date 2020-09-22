@@ -14,3 +14,4 @@ sidebar_label: Overview
 - [Rules](rules.md)
 - [Security](security.md)
 - [FAQ](faq.md)
+- [Research](research.md)
