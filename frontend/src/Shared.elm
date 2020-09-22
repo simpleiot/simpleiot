@@ -12,7 +12,9 @@ import Browser.Navigation exposing (Key)
 import Components.Navbar exposing (navbar)
 import Element exposing (..)
 import Spa.Document exposing (Document)
+import Spa.Generated.Route as Route
 import Url exposing (Url)
+import Utils.Route
 
 
 
@@ -56,7 +58,9 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SignOut ->
-            ( { model | auth = Nothing }, Cmd.none )
+            ( { model | auth = Nothing }
+            , Utils.Route.navigate model.key Route.SignIn
+            )
 
 
 subscriptions : Model -> Sub Msg

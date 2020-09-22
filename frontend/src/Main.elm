@@ -38,7 +38,7 @@ init flags url key =
             Shared.init flags url key
 
         ( page, pageCmd ) =
-            Pages.init (fromUrl url) shared
+            Pages.init (fromUrl url shared) shared
     in
     ( Model shared page
     , Cmd.batch
@@ -81,7 +81,7 @@ update msg model =
                     { original | url = url }
 
                 ( page, pageCmd ) =
-                    Pages.init (fromUrl url) shared
+                    Pages.init (fromUrl url shared) shared
             in
             ( { model | page = page, shared = Pages.save page shared }
             , Cmd.map Pages pageCmd
@@ -140,6 +140,10 @@ subscriptions model =
 -- URL
 
 
-fromUrl : Url -> Route
-fromUrl =
-    Route.fromUrl >> Maybe.withDefault Route.NotFound
+fromUrl : Url -> Shared.Model -> Route
+fromUrl url shared =
+    if shared.auth == Nothing && url.path /= "/sign-in" then
+        Route.SignIn
+
+    else
+        Route.fromUrl url |> Maybe.withDefault Route.NotFound
