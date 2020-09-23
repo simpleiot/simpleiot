@@ -8,6 +8,7 @@ module Shared exposing
     , view
     )
 
+import Api.Auth exposing (Auth)
 import Browser.Navigation exposing (Key)
 import Components.Navbar exposing (navbar)
 import Element exposing (..)
@@ -23,13 +24,6 @@ import Utils.Route
 
 type alias Flags =
     ()
-
-
-type alias Auth =
-    { email : String
-    , token : String
-    , isRoot : Bool
-    }
 
 
 type alias Model =
