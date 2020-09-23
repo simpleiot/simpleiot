@@ -14,6 +14,7 @@ import Shared
 import Spa.Document exposing (Document)
 import Spa.Page as Page exposing (Page)
 import Spa.Url exposing (Url)
+import Task
 import Time
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors, size)
@@ -50,20 +51,32 @@ type alias Model =
     , zone : Time.Zone
     , now : Time.Posix
     , devices : Data (List D.Device)
-    , auth : Maybe Auth
+    , auth : Auth
     }
 
 
 defaultModel : Model
 defaultModel =
-    Model Nothing Time.utc (Time.millisToPosix 0) Api.Data.Loading Nothing
+    Model Nothing Time.utc (Time.millisToPosix 0) Api.Data.Loading { email = "", token = "", isRoot = False }
 
 
 init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
-init shared { params } =
-    ( { defaultModel | auth = shared.auth }
-    , Cmd.none
-    )
+init shared _ =
+    case shared.auth of
+        Just auth ->
+            ( { defaultModel | auth = auth }
+            , Cmd.batch
+                [ Task.perform Zone Time.here
+                , Task.perform Tick Time.now
+                , D.list { onResponse = GotDevices, token = auth.token }
+                ]
+            )
+
+        Nothing ->
+            -- this is not ever used as site is redirected at high levels to sign-in
+            ( defaultModel
+            , Cmd.none
+            )
 
 
 
@@ -116,12 +129,7 @@ update msg model =
 
         Tick now ->
             ( { model | now = now }
-            , Cmd.none
-              --case global.auth of
-              --    Global.SignedIn _ ->
-              --        Global.send Global.RequestDevices
-              --    Global.SignedOut _ ->
-              --        Cmd.none
+            , D.list { onResponse = GotDevices, token = model.auth.token }
             )
 
         GotDevices devices ->
@@ -129,12 +137,12 @@ update msg model =
 
 
 save : Model -> Shared.Model -> Shared.Model
-save model shared =
+save _ shared =
     shared
 
 
 load : Shared.Model -> Model -> ( Model, Cmd Msg )
-load shared model =
+load _ model =
     ( model, Cmd.none )
 
 
@@ -156,19 +164,14 @@ view model =
         [ column
             [ width fill, spacing 32 ]
             [ el Style.h2 <| text "Devices"
-            , case model.auth of
-                Just auth ->
-                    viewDevices model auth
-
-                _ ->
-                    el [ padding 16 ] <| text "Sign in to view your devices."
+            , viewDevices model
             ]
         ]
     }
 
 
-viewDevices : Model -> Auth -> Element Msg
-viewDevices model auth =
+viewDevices : Model -> Element Msg
+viewDevices model =
     column
         [ width fill
         , spacing 24
@@ -181,7 +184,7 @@ viewDevices model auth =
             Api.Data.Success devices ->
                 List.map
                     (\d ->
-                        viewDevice model d.mod d.device auth.isRoot
+                        viewDevice model d.mod d.device
                     )
                 <|
                     mergeDeviceEdit devices model.deviceEdit
@@ -220,8 +223,8 @@ mergeDeviceEdit devices devConfigEdit =
             List.map (\d -> { device = d, mod = False }) devices
 
 
-viewDevice : Model -> Bool -> D.Device -> Bool -> Element Msg
-viewDevice model modified device isRoot =
+viewDevice : Model -> Bool -> D.Device -> Element Msg
+viewDevice model modified device =
     let
         sysState =
             case P.getPoint device.points "" P.typeSysState 0 of
@@ -296,7 +299,7 @@ viewDevice model modified device isRoot =
         [ wrappedRow [ spacing 10 ]
             [ sysStateIcon
             , viewDeviceId device.id
-            , if isRoot then
+            , if model.auth.isRoot then
                 Icon.x (DeleteDevice device.id)
 
               else
