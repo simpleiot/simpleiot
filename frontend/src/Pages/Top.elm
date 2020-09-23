@@ -1,12 +1,12 @@
 module Pages.Top exposing (Model, Msg, Params, page)
 
 import Api.Auth exposing (Auth)
-import Api.Data exposing (Data)
-import Api.Device as D
+import Api.Data as Data exposing (Data)
+import Api.Device as Dev
 import Api.Response exposing (Response)
 import Data.Duration as Duration
 import Data.Iso8601 as Iso8601
-import Data.Point as P
+import Data.Point as Point exposing (Point)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -43,7 +43,7 @@ type alias Params =
 
 type alias DeviceEdit =
     { id : String
-    , point : P.Point
+    , point : Point
     }
 
 
@@ -51,14 +51,14 @@ type alias Model =
     { deviceEdit : Maybe DeviceEdit
     , zone : Time.Zone
     , now : Time.Posix
-    , devices : Data (List D.Device)
+    , devices : List Dev.Device
     , auth : Auth
     }
 
 
 defaultModel : Model
 defaultModel =
-    Model Nothing Time.utc (Time.millisToPosix 0) Api.Data.Loading { email = "", token = "", isRoot = False }
+    Model Nothing Time.utc (Time.millisToPosix 0) [] { email = "", token = "", isRoot = False }
 
 
 init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
@@ -69,7 +69,7 @@ init shared _ =
             , Cmd.batch
                 [ Task.perform Zone Time.here
                 , Task.perform Tick Time.now
-                , D.list { onResponse = GotDevices, token = auth.token }
+                , Dev.list { onResponse = GotDevices, token = auth.token }
                 ]
             )
 
@@ -86,13 +86,14 @@ init shared _ =
 
 type Msg
     = EditDeviceDescription String String
-    | PostPoint String P.Point
+    | PostPoint String Point
     | DiscardEditedDeviceDescription
     | DeleteDevice String
     | Tick Time.Posix
     | Zone Time.Zone
-    | GotDevices (Data (List D.Device))
+    | GotDevices (Data (List Dev.Device))
     | GotDeviceDeleted (Data Response)
+    | GotPointPosted (Data Response)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -103,16 +104,33 @@ update msg model =
                 | deviceEdit =
                     Just
                         { id = id
-                        , point = P.newText "" P.typeDescription description
+                        , point = Point.newText "" Point.typeDescription description
                         }
               }
             , Cmd.none
             )
 
         PostPoint id point ->
-            ( { model | deviceEdit = Nothing }
-            , Cmd.none
-              --Global.send <| Global.UpdateDevicePoint id point
+            let
+                -- optimistically update devices
+                devices =
+                    List.map
+                        (\d ->
+                            if d.id == id then
+                                { d | points = Point.updatePoint d.points point }
+
+                            else
+                                d
+                        )
+                        model.devices
+            in
+            ( { model | deviceEdit = Nothing, devices = devices }
+            , Dev.postPoint
+                { token = model.auth.token
+                , id = id
+                , point = point
+                , onResponse = GotPointPosted
+                }
             )
 
         DiscardEditedDeviceDescription ->
@@ -121,8 +139,13 @@ update msg model =
             )
 
         DeleteDevice id ->
-            ( model
-            , D.delete { token = model.auth.token, id = id, onResponse = GotDeviceDeleted }
+            -- optimistically update devices
+            let
+                devices =
+                    List.filter (\d -> d.id /= id) model.devices
+            in
+            ( { model | devices = devices }
+            , Dev.delete { token = model.auth.token, id = id, onResponse = GotDeviceDeleted }
             )
 
         Zone zone ->
@@ -130,16 +153,40 @@ update msg model =
 
         Tick now ->
             ( { model | now = now }
-            , D.list { onResponse = GotDevices, token = model.auth.token }
+            , Dev.list { onResponse = GotDevices, token = model.auth.token }
             )
 
         GotDevices devices ->
-            ( { model | devices = devices }, Cmd.none )
+            case devices of
+                Data.Success d ->
+                    ( { model | devices = d }, Cmd.none )
+
+                _ ->
+                    -- FIXME handle errors
+                    ( model, Cmd.none )
 
         GotDeviceDeleted _ ->
             ( model
-            , D.list { onResponse = GotDevices, token = model.auth.token }
+            , Dev.list { onResponse = GotDevices, token = model.auth.token }
             )
+
+        GotPointPosted resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model
+                    , Dev.list { onResponse = GotDevices, token = model.auth.token }
+                    )
+
+                Data.Failure _ ->
+                    -- FIXME handle error here
+                    ( model
+                    , Dev.list { onResponse = GotDevices, token = model.auth.token }
+                    )
+
+                _ ->
+                    ( model
+                    , Dev.list { onResponse = GotDevices, token = model.auth.token }
+                    )
 
 
 save : Model -> Shared.Model -> Shared.Model
@@ -153,7 +200,7 @@ load _ model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.batch
         [ Time.every 5000 Tick
         ]
@@ -183,32 +230,21 @@ viewDevices model =
         , spacing 24
         ]
     <|
-        case model.devices of
-            Api.Data.Loading ->
-                [ text "Loading ..." ]
-
-            Api.Data.Success devices ->
-                List.map
-                    (\d ->
-                        viewDevice model d.mod d.device
-                    )
-                <|
-                    mergeDeviceEdit devices model.deviceEdit
-
-            Api.Data.Failure _ ->
-                [ text "Failed to load devices" ]
-
-            Api.Data.NotAsked ->
-                [ text "Not asked -- should never get this ..." ]
+        List.map
+            (\d ->
+                viewDevice model d.mod d.device
+            )
+        <|
+            mergeDeviceEdit model.devices model.deviceEdit
 
 
 type alias DeviceMod =
-    { device : D.Device
+    { device : Dev.Device
     , mod : Bool
     }
 
 
-mergeDeviceEdit : List D.Device -> Maybe DeviceEdit -> List DeviceMod
+mergeDeviceEdit : List Dev.Device -> Maybe DeviceEdit -> List DeviceMod
 mergeDeviceEdit devices devConfigEdit =
     case devConfigEdit of
         Just edit ->
@@ -216,7 +252,7 @@ mergeDeviceEdit devices devConfigEdit =
                 (\d ->
                     if edit.id == d.id then
                         { device =
-                            { d | points = P.updatePoint d.points edit.point }
+                            { d | points = Point.updatePoint d.points edit.point }
                         , mod = True
                         }
 
@@ -229,11 +265,11 @@ mergeDeviceEdit devices devConfigEdit =
             List.map (\d -> { device = d, mod = False }) devices
 
 
-viewDevice : Model -> Bool -> D.Device -> Element Msg
+viewDevice : Model -> Bool -> Dev.Device -> Element Msg
 viewDevice model modified device =
     let
         sysState =
-            case P.getPoint device.points "" P.typeSysState 0 of
+            case Point.getPoint device.points "" Point.typeSysState 0 of
                 Just point ->
                     round point.value
 
@@ -264,7 +300,7 @@ viewDevice model modified device =
                     Style.colors.gray
 
         hwVersion =
-            case P.getPoint device.points "" P.typeHwVersion 0 of
+            case Point.getPoint device.points "" Point.typeHwVersion 0 of
                 Just point ->
                     point.text
 
@@ -272,7 +308,7 @@ viewDevice model modified device =
                     "?"
 
         osVersion =
-            case P.getPoint device.points "" P.typeOSVersion 0 of
+            case Point.getPoint device.points "" Point.typeOSVersion 0 of
                 Just point ->
                     point.text
 
@@ -280,7 +316,7 @@ viewDevice model modified device =
                     "?"
 
         appVersion =
-            case P.getPoint device.points "" P.typeAppVersion 0 of
+            case Point.getPoint device.points "" Point.typeAppVersion 0 of
                 Just point ->
                     point.text
 
@@ -288,7 +324,7 @@ viewDevice model modified device =
                     "?"
 
         latestPointTime =
-            case P.getLatest device.points of
+            case Point.getLatest device.points of
                 Just point ->
                     point.time
 
@@ -313,19 +349,19 @@ viewDevice model modified device =
             , Input.text
                 [ Background.color background ]
                 { onChange = \d -> EditDeviceDescription device.id d
-                , text = D.description device
+                , text = Dev.description device
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
                 , label = Input.labelHidden "device description"
                 }
             , if modified then
                 Icon.check
                     (PostPoint device.id
-                        { typ = P.typeDescription
+                        { typ = Point.typeDescription
                         , id = ""
                         , index = 0
                         , time = model.now
                         , value = 0
-                        , text = D.description device
+                        , text = Dev.description device
                         , min = 0
                         , max = 0
                         }
@@ -369,11 +405,11 @@ viewDeviceId id =
         text id
 
 
-viewPoints : List P.Point -> Element Msg
+viewPoints : List Point.Point -> Element Msg
 viewPoints ios =
     column
         [ padding 16
         , spacing 6
         ]
     <|
-        List.map (P.renderPoint >> text) ios
+        List.map (Point.renderPoint >> text) ios
