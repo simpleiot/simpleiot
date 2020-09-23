@@ -1,6 +1,8 @@
 module Pages.Top exposing (Model, Msg, Params, page)
 
-import Data.Device as D
+import Api.Auth exposing (Auth)
+import Api.Data exposing (Data)
+import Api.Device as D
 import Data.Duration as Duration
 import Data.Iso8601 as Iso8601
 import Data.Point as P
@@ -11,7 +13,7 @@ import Element.Input as Input
 import Shared
 import Spa.Document exposing (Document)
 import Spa.Page as Page exposing (Page)
-import Spa.Url as Url exposing (Url)
+import Spa.Url exposing (Url)
 import Time
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors, size)
@@ -47,12 +49,19 @@ type alias Model =
     { deviceEdit : Maybe DeviceEdit
     , zone : Time.Zone
     , now : Time.Posix
+    , devices : Data (List D.Device)
+    , auth : Maybe Auth
     }
+
+
+defaultModel : Model
+defaultModel =
+    Model Nothing Time.utc (Time.millisToPosix 0) Api.Data.Loading Nothing
 
 
 init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
 init shared { params } =
-    ( Model Nothing Time.utc (Time.millisToPosix 0)
+    ( { defaultModel | auth = shared.auth }
     , Cmd.none
     )
 
@@ -68,6 +77,7 @@ type Msg
     | DeleteDevice String
     | Tick Time.Posix
     | Zone Time.Zone
+    | GotDevices (Data (List D.Device))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -114,6 +124,9 @@ update msg model =
               --        Cmd.none
             )
 
+        GotDevices devices ->
+            ( { model | devices = devices }, Cmd.none )
+
 
 save : Model -> Shared.Model -> Shared.Model
 save model shared =
@@ -143,29 +156,41 @@ view model =
         [ column
             [ width fill, spacing 32 ]
             [ el Style.h2 <| text "Devices"
-            , --case global.auth of
-              --    Global.SignedIn sess ->
-              --        viewDevices sess.data.devices model sess.isRoot
-              --    _ ->
-              el [ padding 16 ] <| text "Sign in to view your devices."
+            , case model.auth of
+                Just auth ->
+                    viewDevices model auth
+
+                _ ->
+                    el [ padding 16 ] <| text "Sign in to view your devices."
             ]
         ]
     }
 
 
-viewDevices : List D.Device -> Model -> Bool -> Element Msg
-viewDevices devices model isRoot =
+viewDevices : Model -> Auth -> Element Msg
+viewDevices model auth =
     column
         [ width fill
         , spacing 24
         ]
     <|
-        List.map
-            (\d ->
-                viewDevice model d.mod d.device isRoot
-            )
-        <|
-            mergeDeviceEdit devices model.deviceEdit
+        case model.devices of
+            Api.Data.Loading ->
+                [ text "Loading ..." ]
+
+            Api.Data.Success devices ->
+                List.map
+                    (\d ->
+                        viewDevice model d.mod d.device auth.isRoot
+                    )
+                <|
+                    mergeDeviceEdit devices model.deviceEdit
+
+            Api.Data.Failure _ ->
+                [ text "Failed to load devices" ]
+
+            Api.Data.NotAsked ->
+                [ text "Not asked -- should never get this ..." ]
 
 
 type alias DeviceMod =

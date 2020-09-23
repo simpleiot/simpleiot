@@ -49,7 +49,7 @@ init shared { key } =
     ( Model
         (case shared.auth of
             Just auth ->
-                Api.Data.Success { token = auth.token, isRoot = auth.isRoot }
+                Api.Data.Success auth
 
             Nothing ->
                 Api.Data.NotAsked

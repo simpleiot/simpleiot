@@ -20,6 +20,7 @@ type alias Cred =
 type alias Auth =
     { token : String
     , isRoot : Bool
+    , email : String
     }
 
 
@@ -28,6 +29,7 @@ decodeResponse =
     Decode.succeed Auth
         |> required "token" Decode.string
         |> required "isRoot" Decode.bool
+        |> required "email" Decode.string
 
 
 login :
