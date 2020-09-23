@@ -2,15 +2,20 @@ module Api.Device exposing
     ( Device
     , delete
     , description
+    , get
+    , getCmd
     , list
+    , postCmd
+    , postGroups
+    , postPoint
     , sysStateOffline
     , sysStateOnline
     , sysStatePowerOff
     )
 
 import Api.Data exposing (Data)
-import Api.Point as P
-import Api.Response exposing (Response)
+import Api.Point as Point exposing (Point)
+import Api.Response as Response exposing (Response)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
@@ -35,7 +40,7 @@ sysStateOnline =
 
 type alias Device =
     { id : String
-    , points : List P.Point
+    , points : List Point
     , groups : List String
     }
 
@@ -55,7 +60,7 @@ decode : Decode.Decoder Device
 decode =
     Decode.succeed Device
         |> required "id" Decode.string
-        |> optional "points" (Decode.list P.decode) []
+        |> optional "points" (Decode.list Point.decode) []
         |> optional "groups" (Decode.list Decode.string) []
 
 
@@ -81,7 +86,7 @@ encodeDeviceCmd cmd =
 
 description : Device -> String
 description d =
-    case P.getPoint d.points "" P.typeDescription 0 of
+    case Point.getPoint d.points "" Point.typeDescription 0 of
         Just point ->
             point.text
 
@@ -106,6 +111,42 @@ list options =
         }
 
 
+get :
+    { token : String
+    , id : String
+    , onResponse : Data Device -> msg
+    }
+    -> Cmd msg
+get options =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "devices", options.id ] []
+        , expect = Api.Data.expectJson options.onResponse decode
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+getCmd :
+    { token : String
+    , id : String
+    , onResponse : Data DeviceCmd -> msg
+    }
+    -> Cmd msg
+getCmd options =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "devices", options.id, "cmd" ] []
+        , expect = Api.Data.expectJson options.onResponse decodeCmd
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
 delete :
     { token : String
     , id : String
@@ -117,8 +158,65 @@ delete options =
         { method = "DELETE"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
         , url = Url.Builder.absolute [ "v1", "devices", options.id ] []
-        , expect = Api.Data.expectJson options.onResponse Api.Response.decoder
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postGroups :
+    { token : String
+    , id : String
+    , groups : List String
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+postGroups options =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "devices", options.id, "groups" ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body = options.groups |> encodeGroups |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postCmd :
+    { token : String
+    , id : String
+    , cmd : DeviceCmd
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+postCmd options =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "devices", options.id, "cmd" ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body = options.cmd |> encodeDeviceCmd |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+postPoint :
+    { token : String
+    , id : String
+    , point : Point
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+postPoint options =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "devices", options.id, "points" ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body = [ options.point ] |> Point.encodeList |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
