@@ -3,6 +3,7 @@ module Pages.Top exposing (Model, Msg, Params, page)
 import Api.Auth exposing (Auth)
 import Api.Data exposing (Data)
 import Api.Device as D
+import Api.Response exposing (Response)
 import Data.Duration as Duration
 import Data.Iso8601 as Iso8601
 import Data.Point as P
@@ -91,6 +92,7 @@ type Msg
     | Tick Time.Posix
     | Zone Time.Zone
     | GotDevices (Data (List D.Device))
+    | GotDeviceDeleted (Data Response)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -120,8 +122,7 @@ update msg model =
 
         DeleteDevice id ->
             ( model
-            , Cmd.none
-              --Global.send <| Global.DeleteDevice id
+            , D.delete { token = model.auth.token, id = id, onResponse = GotDeviceDeleted }
             )
 
         Zone zone ->
@@ -134,6 +135,11 @@ update msg model =
 
         GotDevices devices ->
             ( { model | devices = devices }, Cmd.none )
+
+        GotDeviceDeleted _ ->
+            ( model
+            , D.list { onResponse = GotDevices, token = model.auth.token }
+            )
 
 
 save : Model -> Shared.Model -> Shared.Model

@@ -1,5 +1,6 @@
 module Api.Device exposing
     ( Device
+    , delete
     , description
     , list
     , sysStateOffline
@@ -9,6 +10,7 @@ module Api.Device exposing
 
 import Api.Data exposing (Data)
 import Api.Point as P
+import Api.Response exposing (Response)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
@@ -98,6 +100,24 @@ list options =
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
         , url = Url.Builder.absolute [ "v1", "devices" ] []
         , expect = Api.Data.expectJson options.onResponse decodeList
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+delete :
+    { token : String
+    , id : String
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+delete options =
+    Http.request
+        { method = "DELETE"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "devices", options.id ] []
+        , expect = Api.Data.expectJson options.onResponse Api.Response.decoder
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
