@@ -3,11 +3,9 @@ module Pages.Top exposing (Model, Msg, Params, page)
 import Api.Auth exposing (Auth)
 import Api.Data as Data exposing (Data)
 import Api.Device as Dev
+import Api.Point as Point exposing (Point)
 import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
-import Data.Duration as Duration
-import Data.Iso8601 as Iso8601
-import Data.Point as Point exposing (Point)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -22,6 +20,8 @@ import Task
 import Time
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors, size)
+import Utils.Duration as Duration
+import Utils.Iso8601 as Iso8601
 import Utils.Route
 
 

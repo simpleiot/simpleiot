@@ -1,4 +1,4 @@
-module Data.Duration exposing (Duration, toString)
+module Utils.Duration exposing (Duration, toString)
 
 
 type alias Duration =
