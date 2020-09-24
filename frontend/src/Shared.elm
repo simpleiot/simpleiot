@@ -14,6 +14,8 @@ import Components.Navbar exposing (navbar)
 import Element exposing (..)
 import Spa.Document exposing (Document)
 import Spa.Generated.Route as Route
+import Time
+import UI.Style as Style
 import Url exposing (Url)
 import Utils.Route
 
@@ -30,12 +32,15 @@ type alias Model =
     { url : Url
     , key : Key
     , auth : Maybe Auth
+    , error : Maybe String
+    , now : Time.Posix
+    , lastError : Time.Posix
     }
 
 
 init : Flags -> Url -> Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( Model url key Nothing
+    ( Model url key Nothing Nothing (Time.millisToPosix 0) (Time.millisToPosix 0)
     , Cmd.none
     )
 
@@ -46,6 +51,7 @@ init _ url key =
 
 type Msg
     = SignOut
+    | Tick Time.Posix
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -56,10 +62,23 @@ update msg model =
             , Utils.Route.navigate model.key Route.SignIn
             )
 
+        Tick now ->
+            let
+                error =
+                    if Time.posixToMillis now - Time.posixToMillis model.lastError > 5 * 1000 then
+                        Nothing
+
+                    else
+                        model.error
+            in
+            ( { model | now = now, error = error }, Cmd.none )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Sub.batch
+        [ Time.every 1000 Tick
+        ]
 
 
 
@@ -89,7 +108,18 @@ view { page, toMsg } model =
                 , isRoot = isRoot
                 , email = email
                 }
+            , viewError model.error
             , column [ height fill ] page.body
             ]
         ]
     }
+
+
+viewError : Maybe String -> Element msg
+viewError error =
+    case error of
+        Just err ->
+            el Style.error (el [ centerX ] (text err))
+
+        Nothing ->
+            none

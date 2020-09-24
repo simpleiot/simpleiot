@@ -41,6 +41,7 @@ type alias Model =
     , key : Key
     , email : String
     , password : String
+    , error : Maybe String
     }
 
 
@@ -57,6 +58,7 @@ init shared { key } =
         key
         ""
         ""
+        Nothing
     , Cmd.none
     )
 
@@ -97,7 +99,19 @@ update msg model =
             ( model, Cmd.none )
 
         GotUser auth ->
-            ( { model | auth = auth }
+            let
+                error =
+                    case auth of
+                        Api.Data.Success _ ->
+                            Nothing
+
+                        Api.Data.Failure _ ->
+                            Just "Login Failure"
+
+                        _ ->
+                            Just "Login unknown state"
+            in
+            ( { model | auth = auth, error = error }
             , case Api.Data.toMaybe auth of
                 Just _ ->
                     Utils.Route.navigate model.key Route.Top
@@ -117,12 +131,26 @@ save model shared =
 
                 Nothing ->
                     shared.auth
+        , error =
+            case model.error of
+                Nothing ->
+                    shared.error
+
+                Just _ ->
+                    model.error
+        , lastError =
+            case model.error of
+                Nothing ->
+                    shared.lastError
+
+                Just _ ->
+                    shared.now
     }
 
 
 load : Shared.Model -> Model -> ( Model, Cmd Msg )
 load _ model =
-    ( model, Cmd.none )
+    ( { model | error = Nothing }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
