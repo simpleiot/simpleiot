@@ -1,5 +1,6 @@
 module Api.Data exposing
     ( Data(..)
+    , errorToString
     , expectJson
     , map
     , toMaybe
@@ -12,7 +13,7 @@ import Json.Decode as Json
 type Data value
     = NotAsked
     | Loading
-    | Failure (List String)
+    | Failure Http.Error
     | Success value
 
 
@@ -47,22 +48,17 @@ expectJson toMsg decoder =
     Http.expectStringResponse (fromResult >> toMsg) <|
         \response ->
             case response of
-                Http.BadUrl_ _ ->
-                    Err [ "Bad URL" ]
+                Http.BadUrl_ url ->
+                    Err (Http.BadUrl url)
 
                 Http.Timeout_ ->
-                    Err [ "Request timeout" ]
+                    Err Http.Timeout
 
                 Http.NetworkError_ ->
-                    Err [ "Connection issues" ]
+                    Err Http.NetworkError
 
-                Http.BadStatus_ _ body ->
-                    case Json.decodeString errorDecoder body of
-                        Ok errors ->
-                            Err errors
-
-                        Err _ ->
-                            Err [ "Bad status code" ]
+                Http.BadStatus_ metadata _ ->
+                    Err (Http.BadStatus metadata.statusCode)
 
                 Http.GoodStatus_ _ body ->
                     case Json.decodeString decoder body of
@@ -70,17 +66,10 @@ expectJson toMsg decoder =
                             Ok value
 
                         Err err ->
-                            Err [ Json.errorToString err ]
+                            Err (Http.BadBody (Json.errorToString err))
 
 
-errorDecoder : Json.Decoder (List String)
-errorDecoder =
-    Json.keyValuePairs (Json.list Json.string)
-        |> Json.field "errors"
-        |> Json.map (List.concatMap (\( key, values ) -> values |> List.map (\value -> key ++ " " ++ value)))
-
-
-fromResult : Result (List String) value -> Data value
+fromResult : Result Http.Error value -> Data value
 fromResult result =
     case result of
         Ok value ->
@@ -88,3 +77,22 @@ fromResult result =
 
         Err reasons ->
             Failure reasons
+
+
+errorToString : Http.Error -> String
+errorToString err =
+    case err of
+        Http.BadUrl url ->
+            "Malformed url: " ++ url
+
+        Http.Timeout ->
+            "Timeout exceeded"
+
+        Http.NetworkError ->
+            "Network error"
+
+        Http.BadStatus resp ->
+            "Bad status: " ++ String.fromInt resp
+
+        Http.BadBody resp ->
+            "Bad body: " ++ resp
