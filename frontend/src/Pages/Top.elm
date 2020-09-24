@@ -4,6 +4,7 @@ import Api.Auth exposing (Auth)
 import Api.Data as Data exposing (Data)
 import Api.Device as Dev
 import Api.Response exposing (Response)
+import Browser.Navigation exposing (Key)
 import Data.Duration as Duration
 import Data.Iso8601 as Iso8601
 import Data.Point as Point exposing (Point)
@@ -11,6 +12,7 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
+import Http
 import Shared
 import Spa.Document exposing (Document)
 import Spa.Generated.Route as Route
@@ -50,24 +52,37 @@ type alias DeviceEdit =
 
 
 type alias Model =
-    { deviceEdit : Maybe DeviceEdit
+    { key : Key
+    , deviceEdit : Maybe DeviceEdit
     , zone : Time.Zone
     , now : Time.Posix
     , devices : List Dev.Device
     , auth : Auth
+    , error : Maybe String
     }
 
 
-defaultModel : Model
-defaultModel =
-    Model Nothing Time.utc (Time.millisToPosix 0) [] { email = "", token = "", isRoot = False }
+defaultModel : Key -> Model
+defaultModel key =
+    Model
+        key
+        Nothing
+        Time.utc
+        (Time.millisToPosix 0)
+        []
+        { email = "", token = "", isRoot = False }
+        Nothing
 
 
 init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
-init shared _ =
+init shared { key } =
+    let
+        model =
+            defaultModel key
+    in
     case shared.auth of
         Just auth ->
-            ( { defaultModel | auth = auth }
+            ( { model | auth = auth }
             , Cmd.batch
                 [ Task.perform Zone Time.here
                 , Task.perform Tick Time.now
@@ -77,7 +92,7 @@ init shared _ =
 
         Nothing ->
             -- this is not ever used as site is redirected at high levels to sign-in
-            ( defaultModel
+            ( model
             , Utils.Route.navigate shared.key Route.SignIn
             )
 
@@ -155,7 +170,7 @@ update msg model =
 
         Tick now ->
             ( { model | now = now }
-            , Dev.list { onResponse = GotDevices, token = model.auth.token }
+            , updateDevices model
             )
 
         GotDevices devices ->
@@ -163,42 +178,97 @@ update msg model =
                 Data.Success d ->
                     ( { model | devices = d }, Cmd.none )
 
+                Data.Failure err ->
+                    let
+                        signOut =
+                            case err of
+                                Http.BadStatus code ->
+                                    code == 401
+
+                                _ ->
+                                    False
+                    in
+                    if signOut then
+                        ( { model | error = Just "Signed Out" }
+                        , Utils.Route.navigate model.key Route.SignIn
+                        )
+
+                    else
+                        ( popError "Error getting devices" err model
+                        , Cmd.none
+                        )
+
                 _ ->
-                    -- FIXME handle errors
                     ( model, Cmd.none )
 
-        GotDeviceDeleted _ ->
-            ( model
-            , Dev.list { onResponse = GotDevices, token = model.auth.token }
-            )
+        GotDeviceDeleted resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model
+                    , updateDevices model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error deleting device" err model
+                    , updateDevices model
+                    )
+
+                _ ->
+                    ( model
+                    , updateDevices model
+                    )
 
         GotPointPosted resp ->
             case resp of
                 Data.Success _ ->
                     ( model
-                    , Dev.list { onResponse = GotDevices, token = model.auth.token }
+                    , updateDevices model
                     )
 
-                Data.Failure _ ->
-                    -- FIXME handle error here
-                    ( model
-                    , Dev.list { onResponse = GotDevices, token = model.auth.token }
+                Data.Failure err ->
+                    ( popError "Error posting point" err model
+                    , updateDevices model
                     )
 
                 _ ->
                     ( model
-                    , Dev.list { onResponse = GotDevices, token = model.auth.token }
+                    , updateDevices model
                     )
 
 
+popError : String -> Http.Error -> Model -> Model
+popError desc err model =
+    { model | error = Just (desc ++ ": " ++ Data.errorToString err) }
+
+
+updateDevices : Model -> Cmd Msg
+updateDevices model =
+    Dev.list { onResponse = GotDevices, token = model.auth.token }
+
+
 save : Model -> Shared.Model -> Shared.Model
-save _ shared =
-    shared
+save model shared =
+    { shared
+        | error =
+            case model.error of
+                Nothing ->
+                    shared.error
+
+                Just _ ->
+                    model.error
+        , lastError =
+            case model.error of
+                Nothing ->
+                    shared.lastError
+
+                Just _ ->
+                    shared.now
+    }
 
 
 load : Shared.Model -> Model -> ( Model, Cmd Msg )
-load _ model =
-    ( model, Cmd.none )
+load shared model =
+    ( { model | key = shared.key, error = Nothing }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
