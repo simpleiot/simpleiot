@@ -13,12 +13,14 @@ import Element.Border as Border
 import Element.Input as Input
 import Shared
 import Spa.Document exposing (Document)
+import Spa.Generated.Route as Route
 import Spa.Page as Page exposing (Page)
 import Spa.Url exposing (Url)
 import Task
 import Time
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors, size)
+import Utils.Route
 
 
 page : Page Params Model Msg
@@ -76,7 +78,7 @@ init shared _ =
         Nothing ->
             -- this is not ever used as site is redirected at high levels to sign-in
             ( defaultModel
-            , Cmd.none
+            , Utils.Route.navigate shared.key Route.SignIn
             )
 
 

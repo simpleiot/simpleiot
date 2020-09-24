@@ -1,9 +1,11 @@
-module Pages.Groups exposing (Params, Model, Msg, page)
+module Pages.Groups exposing (Model, Msg, Params, page)
 
 import Shared
 import Spa.Document exposing (Document)
+import Spa.Generated.Route as Route
 import Spa.Page as Page exposing (Page)
-import Spa.Url as Url exposing (Url)
+import Spa.Url exposing (Url)
+import Utils.Route
 
 
 page : Page Params Model Msg
@@ -32,7 +34,14 @@ type alias Model =
 
 init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
 init shared { params } =
-    ( {}, Cmd.none )
+    case shared.auth of
+        Just _ ->
+            ( {}, Cmd.none )
+
+        Nothing ->
+            ( {}
+            , Utils.Route.navigate shared.key Route.SignIn
+            )
 
 
 
