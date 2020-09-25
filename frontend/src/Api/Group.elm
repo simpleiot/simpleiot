@@ -1,14 +1,20 @@
-module Data.Group exposing
+module Api.Group exposing
     ( Group
     , UserRoles
     , decodeList
+    , delete
     , empty
     , encode
+    , update
     )
 
+import Api.Data exposing (Data)
+import Api.Response as Response exposing (Response)
+import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
+import Url.Builder
 
 
 type alias Group =
@@ -69,3 +75,39 @@ encodeUserRoles userRoles =
         [ ( "userId", Encode.string userRoles.userId )
         , ( "roles", Encode.list Encode.string userRoles.roles )
         ]
+
+
+update :
+    { token : String
+    , group : Group
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+update options =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "groups", options.group.id ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body = options.group |> encode |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+delete :
+    { token : String
+    , id : String
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+delete options =
+    Http.request
+        { method = "DELETE"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "groups", options.id ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
