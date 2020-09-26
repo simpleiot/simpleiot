@@ -171,14 +171,60 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
-        ApiUpdate group ->
-            ( { model | groupEdit = Nothing }
+        AddDevice groupId ->
+            ( { model | newDevice = Just { groupId = groupId, deviceId = "" } }
             , Cmd.none
             )
 
-        ApiDelete id ->
-            ( { model | groupEdit = Nothing }
+        CancelAddDevice ->
+            ( { model | newDevice = Nothing }
             , Cmd.none
+            )
+
+        EditNewDevice deviceId ->
+            case model.newDevice of
+                Just newDevice ->
+                    ( { model | newDevice = Just { newDevice | deviceId = deviceId } }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        ApiUpdate group ->
+            let
+                -- optimistically update groups
+                groups =
+                    List.map
+                        (\g ->
+                            if g.id == group.id then
+                                group
+
+                            else
+                                g
+                        )
+                        model.groups
+            in
+            ( { model | groupEdit = Nothing, groups = groups }
+            , Group.update
+                { token = model.auth.token
+                , group = group
+                , onResponse = ApiRespUpdate
+                }
+            )
+
+        ApiDelete id ->
+            let
+                -- optimistically delete group
+                groups =
+                    List.filter (\g -> g.id /= id) model.groups
+            in
+            ( { model | groupEdit = Nothing, groups = groups }
+            , Group.delete
+                { token = model.auth.token
+                , id = id
+                , onResponse = ApiRespDelete
+                }
             )
 
         ApiRemoveUser group userId ->
@@ -190,9 +236,25 @@ update msg model =
 
                 updatedGroup =
                     { group | users = users }
+
+                -- optimistically update groups
+                groups =
+                    List.map
+                        (\g ->
+                            if g.id == group.id then
+                                group
+
+                            else
+                                g
+                        )
+                        model.groups
             in
-            ( model
-            , Cmd.none
+            ( { model | groups = groups }
+            , Group.update
+                { token = model.auth.token
+                , group = updatedGroup
+                , onResponse = ApiRespUpdate
+                }
             )
 
         ApiNewUser group userId ->
@@ -212,49 +274,59 @@ update msg model =
 
                 updatedGroup =
                     { group | users = users }
+
+                -- optimistically update groups
+                groups =
+                    List.map
+                        (\g ->
+                            if g.id == group.id then
+                                group
+
+                            else
+                                g
+                        )
+                        model.groups
             in
-            ( { model | newUser = Nothing }
-            , Cmd.none
+            ( { model | newUser = Nothing, groups = groups }
+            , Group.update
+                { token = model.auth.token
+                , group = updatedGroup
+                , onResponse = ApiRespUpdate
+                }
             )
 
-        ApiRemoveDevice groupId deviceId ->
-            ( model
-            , case
-                List.Extra.find (\d -> d.id == deviceId)
-                    model.devices
-              of
+        ApiRemoveDevice deviceId groupId ->
+            case
+                List.Extra.find (\d -> d.id == deviceId) model.devices
+            of
                 Just device ->
                     let
                         groups =
                             List.filter (\o -> o /= groupId)
                                 device.groups
+
+                        -- optimistically update devices
+                        updatedDevice =
+                            { device | groups = groups }
+
+                        devices =
+                            List.map
+                                (\d ->
+                                    if d.id == device.id then
+                                        updatedDevice
+
+                                    else
+                                        d
+                                )
+                                model.devices
                     in
-                    Dev.postGroups
+                    ( { model | devices = devices }
+                    , Dev.postGroups
                         { token = model.auth.token
                         , id = device.id
                         , groups = groups
                         , onResponse = ApiRespNewDevice
                         }
-
-                Nothing ->
-                    Cmd.none
-            )
-
-        AddDevice groupId ->
-            ( { model | newDevice = Just { groupId = groupId, deviceId = "" } }
-            , Cmd.none
-            )
-
-        CancelAddDevice ->
-            ( { model | newDevice = Nothing }
-            , Cmd.none
-            )
-
-        EditNewDevice deviceId ->
-            case model.newDevice of
-                Just newDevice ->
-                    ( { model | newDevice = Just { newDevice | deviceId = deviceId } }
-                    , Cmd.none
                     )
 
                 Nothing ->
@@ -585,7 +657,7 @@ viewDevices group devices =
                             ++ ") "
                             ++ Dev.description d
                         )
-                    , Icon.x (ApiRemoveDevice group.id d.id)
+                    , Icon.x (ApiRemoveDevice d.id group.id)
                     ]
             )
             devices
