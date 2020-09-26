@@ -95,10 +95,9 @@ siot_build_dependencies() {
   return 0
 }
 
-# the following can be used to build v2 of the frontend: siot_build 2
 siot_build() {
   siot_build_dependencies --optimize || return 1
-  go build -o siot cmd/siot/main.go || return 1
+  CGO_ENABLED=0 go build -o siot cmd/siot/main.go || return 1
   return 0
 }
 
