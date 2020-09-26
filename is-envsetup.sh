@@ -169,7 +169,7 @@ is_portal_build_dependencies() {
 
 is_portal_build() {
   is_portal_build_dependencies --optimize || return 1
-  go build -o is-portal farmation/cmd/portal/main.go || return 1
+  CGO_ENABLED=0 go build -o is-portal farmation/cmd/portal/main.go || return 1
   return 0
 }
 
