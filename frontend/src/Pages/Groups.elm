@@ -155,7 +155,10 @@ update msg model =
             )
 
         AddUser groupId ->
-            ( { model | newUser = Just { groupId = groupId, userEmail = "" } }
+            ( { model
+                | newUser = Just { groupId = groupId, userEmail = "" }
+                , newGroupUserFound = Nothing
+              }
             , Cmd.none
             )
 
@@ -179,7 +182,10 @@ update msg model =
                     ( model, Cmd.none )
 
         AddDevice groupId ->
-            ( { model | newDevice = Just { groupId = groupId, deviceId = "" } }
+            ( { model
+                | newDevice = Just { groupId = groupId, deviceId = "" }
+                , newGroupDeviceFound = Nothing
+              }
             , Cmd.none
             )
 
