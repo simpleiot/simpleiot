@@ -112,7 +112,7 @@ delete options =
 getByEmail :
     { token : String
     , email : String
-    , onResponse : Data Response -> msg
+    , onResponse : Data User -> msg
     }
     -> Cmd msg
 getByEmail options =
@@ -120,7 +120,7 @@ getByEmail options =
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
         , url = Url.Builder.absolute [ "v1", "users" ] [ Url.Builder.string "email" options.email ]
-        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , expect = Api.Data.expectJson options.onResponse decode
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
