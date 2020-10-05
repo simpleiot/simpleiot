@@ -86,7 +86,7 @@ init shared { key } =
             , Cmd.batch
                 [ Task.perform Zone Time.here
                 , Task.perform Tick Time.now
-                , Dev.list { onResponse = GotDevices, token = auth.token }
+                , Dev.list { onResponse = ApiRespList, token = auth.token }
                 ]
             )
 
@@ -102,15 +102,15 @@ init shared { key } =
 
 
 type Msg
-    = EditDeviceDescription String String
-    | PostPoint String Point
-    | DiscardEditedDeviceDescription
-    | DeleteDevice String
-    | Tick Time.Posix
+    = Tick Time.Posix
     | Zone Time.Zone
-    | GotDevices (Data (List Dev.Device))
-    | GotDeviceDeleted (Data Response)
-    | GotPointPosted (Data Response)
+    | EditDeviceDescription String String
+    | DiscardEditedDeviceDescription
+    | ApiDelete String
+    | ApiPostPoint String Point
+    | ApiRespList (Data (List Dev.Device))
+    | ApiRespDelete (Data Response)
+    | ApiRespPostPoint (Data Response)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -127,7 +127,7 @@ update msg model =
             , Cmd.none
             )
 
-        PostPoint id point ->
+        ApiPostPoint id point ->
             let
                 -- optimistically update devices
                 devices =
@@ -146,7 +146,7 @@ update msg model =
                 { token = model.auth.token
                 , id = id
                 , point = point
-                , onResponse = GotPointPosted
+                , onResponse = ApiRespPostPoint
                 }
             )
 
@@ -155,14 +155,14 @@ update msg model =
             , Cmd.none
             )
 
-        DeleteDevice id ->
+        ApiDelete id ->
             -- optimistically update devices
             let
                 devices =
                     List.filter (\d -> d.id /= id) model.devices
             in
             ( { model | devices = devices }
-            , Dev.delete { token = model.auth.token, id = id, onResponse = GotDeviceDeleted }
+            , Dev.delete { token = model.auth.token, id = id, onResponse = ApiRespDelete }
             )
 
         Zone zone ->
@@ -173,7 +173,7 @@ update msg model =
             , updateDevices model
             )
 
-        GotDevices devices ->
+        ApiRespList devices ->
             case devices of
                 Data.Success d ->
                     ( { model | devices = d }, Cmd.none )
@@ -201,7 +201,7 @@ update msg model =
                 _ ->
                     ( model, Cmd.none )
 
-        GotDeviceDeleted resp ->
+        ApiRespDelete resp ->
             case resp of
                 Data.Success _ ->
                     ( model
@@ -218,7 +218,7 @@ update msg model =
                     , updateDevices model
                     )
 
-        GotPointPosted resp ->
+        ApiRespPostPoint resp ->
             case resp of
                 Data.Success _ ->
                     ( model
@@ -243,7 +243,7 @@ popError desc err model =
 
 updateDevices : Model -> Cmd Msg
 updateDevices model =
-    Dev.list { onResponse = GotDevices, token = model.auth.token }
+    Dev.list { onResponse = ApiRespList, token = model.auth.token }
 
 
 save : Model -> Shared.Model -> Shared.Model
@@ -414,7 +414,7 @@ viewDevice model modified device =
             [ sysStateIcon
             , viewDeviceId device.id
             , if model.auth.isRoot then
-                Icon.x (DeleteDevice device.id)
+                Icon.x (ApiDelete device.id)
 
               else
                 Element.none
@@ -427,7 +427,7 @@ viewDevice model modified device =
                 }
             , if modified then
                 Icon.check
-                    (PostPoint device.id
+                    (ApiPostPoint device.id
                         { typ = Point.typeDescription
                         , id = ""
                         , index = 0
