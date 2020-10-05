@@ -133,6 +133,7 @@ type Msg
     | ApiRespDeviceList (Data (List Dev.Device))
     | ApiRespList (Data (List Group))
     | ApiRespGetUserByEmail (Data User)
+    | ApiRespGetDeviceById (Data Dev.Device)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -191,7 +192,11 @@ update msg model =
             case model.newDevice of
                 Just newDevice ->
                     ( { model | newDevice = Just { newDevice | deviceId = deviceId } }
-                    , Cmd.none
+                    , Dev.get
+                        { token = model.auth.token
+                        , id = deviceId
+                        , onResponse = ApiRespGetDeviceById
+                        }
                     )
 
                 Nothing ->
@@ -452,6 +457,14 @@ update msg model =
             case resp of
                 Data.Success user ->
                     ( { model | newGroupUserFound = Just user }, Cmd.none )
+
+                _ ->
+                    ( { model | newGroupUserFound = Nothing }, Cmd.none )
+
+        ApiRespGetDeviceById resp ->
+            case resp of
+                Data.Success d ->
+                    ( { model | newGroupDeviceFound = Just d }, Cmd.none )
 
                 _ ->
                     ( { model | newGroupUserFound = Nothing }, Cmd.none )
