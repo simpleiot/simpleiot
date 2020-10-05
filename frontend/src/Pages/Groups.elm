@@ -631,13 +631,13 @@ viewGroup model modded group =
             , case model.newUser of
                 Just newUser ->
                     if newUser.groupId == group.id then
-                        Icon.userX CancelAddUser
+                        Icon.x CancelAddUser
 
                     else
-                        Icon.userPlus (AddUser group.id)
+                        Icon.plus (AddUser group.id)
 
                 Nothing ->
-                    Icon.userPlus (AddUser group.id)
+                    Icon.plus (AddUser group.id)
             ]
         , case model.newUser of
             Just ua ->
@@ -650,7 +650,7 @@ viewGroup model modded group =
                             }
                         , case model.newGroupUserFound of
                             Just user ->
-                                Icon.userPlus (ApiNewUser group user.id)
+                                Icon.plus (ApiNewUser group user.id)
 
                             Nothing ->
                                 Element.none
@@ -717,7 +717,7 @@ viewUsers group users =
                                     ++ user.email
                                     ++ ">"
                                 )
-                            , Icon.userX (ApiRemoveUser group user.id)
+                            , Icon.x (ApiRemoveUser group user.id)
                             ]
 
                     Nothing ->
