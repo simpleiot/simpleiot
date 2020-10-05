@@ -80,19 +80,24 @@ init shared _ =
 
 
 type Msg
-    = Update User
+    = New
     | Edit User
     | DiscardEdits
-    | Delete String
-    | New
-    | RespUpdate (Data Response)
-    | RespList (Data (List User))
-    | RespDelete (Data Response)
+    | ApiUpdate User
+    | ApiDelete String
+    | ApiRespUpdate (Data Response)
+    | ApiRespList (Data (List User))
+    | ApiRespDelete (Data Response)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        New ->
+            ( { model | userEdit = Just User.empty }
+            , Cmd.none
+            )
+
         Edit user ->
             ( { model | userEdit = Just user }
             , Cmd.none
@@ -103,7 +108,7 @@ update msg model =
             , Cmd.none
             )
 
-        Update user ->
+        ApiUpdate user ->
             let
                 -- optimistically update users
                 users =
@@ -121,11 +126,11 @@ update msg model =
             , User.update
                 { token = model.auth.token
                 , user = user
-                , onResponse = RespUpdate
+                , onResponse = ApiRespUpdate
                 }
             )
 
-        Delete id ->
+        ApiDelete id ->
             let
                 -- optimisitically delete user
                 users =
@@ -135,16 +140,11 @@ update msg model =
             , User.delete
                 { token = model.auth.token
                 , id = id
-                , onResponse = RespDelete
+                , onResponse = ApiRespDelete
                 }
             )
 
-        New ->
-            ( { model | userEdit = Just User.empty }
-            , Cmd.none
-            )
-
-        RespUpdate resp ->
+        ApiRespUpdate resp ->
             case resp of
                 Data.Success _ ->
                     ( model, updateUsers model )
@@ -155,7 +155,7 @@ update msg model =
                 _ ->
                     ( model, updateUsers model )
 
-        RespList resp ->
+        ApiRespList resp ->
             case resp of
                 Data.Success users ->
                     ( { model | users = users }, Cmd.none )
@@ -166,7 +166,7 @@ update msg model =
                 _ ->
                     ( model, Cmd.none )
 
-        RespDelete resp ->
+        ApiRespDelete resp ->
             case resp of
                 Data.Success _ ->
                     ( model, updateUsers model )
@@ -185,7 +185,7 @@ popError desc err model =
 
 updateUsers : Model -> Cmd Msg
 updateUsers model =
-    User.list { onResponse = RespList, token = model.auth.token }
+    User.list { onResponse = ApiRespList, token = model.auth.token }
 
 
 save : Model -> Shared.Model -> Shared.Model
@@ -308,7 +308,7 @@ viewUser modded user =
                             , Form.button
                                 { label = "save"
                                 , color = Style.colors.blue
-                                , onPress = Update user
+                                , onPress = ApiUpdate user
                                 }
                             ]
                     ]
@@ -342,5 +342,5 @@ viewUser modded user =
             , value = user.pass
             , action = \x -> Edit { user | pass = x }
             }
-        , Icon.userX (Delete user.id)
+        , Icon.userX (ApiDelete user.id)
         ]
