@@ -130,7 +130,7 @@ siot_mkcert() {
 }
 
 find_src_files() {
-  find . -not \( -path ./frontend/src/Generated -prune \) -not \( -path ./assets -prune \) -name "*.go" -o -name "*.elm"
+  find . -not \( -path ./frontend/src/Spa/Generated -prune \) -not \( -path ./assets -prune \) -name "*.go" -o -name "*.elm"
 }
 
 siot_watch() {
