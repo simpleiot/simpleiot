@@ -96,6 +96,7 @@ init shared _ =
             , Cmd.batch
                 [ User.list { token = auth.token, onResponse = ApiRespUserList }
                 , Dev.list { token = auth.token, onResponse = ApiRespDeviceList }
+                , Group.list { token = auth.token, onResponse = ApiRespList }
                 ]
             )
 
@@ -119,7 +120,6 @@ type Msg
     | AddDevice String
     | CancelAddDevice
     | EditNewDevice String
-    | ApiRespList (Data (List Group))
     | ApiUpdate Group
     | ApiDelete String
     | ApiNewDevice String String
@@ -131,6 +131,8 @@ type Msg
     | ApiRespNewDevice (Data Response)
     | ApiRespUserList (Data (List User))
     | ApiRespDeviceList (Data (List Dev.Device))
+    | ApiRespList (Data (List Group))
+    | ApiRespGetUserByEmail (Data User)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -165,7 +167,11 @@ update msg model =
             case model.newUser of
                 Just newUser ->
                     ( { model | newUser = Just { newUser | userEmail = userEmail } }
-                    , Cmd.none
+                    , User.getByEmail
+                        { token = model.auth.token
+                        , email = userEmail
+                        , onResponse = ApiRespGetUserByEmail
+                        }
                     )
 
                 Nothing ->
@@ -374,23 +380,86 @@ update msg model =
                 Nothing ->
                     ( { model | newDevice = Nothing }, Cmd.none )
 
-        ApiRespUpdate _ ->
-            ( model, Cmd.none )
+        ApiRespUpdate resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model
+                    , Group.list { token = model.auth.token, onResponse = ApiRespList }
+                    )
 
-        ApiRespDelete _ ->
-            ( model, Cmd.none )
+                Data.Failure err ->
+                    ( popError "Error updating group" err model
+                    , Group.list { token = model.auth.token, onResponse = ApiRespList }
+                    )
 
-        ApiRespList _ ->
-            ( model, Cmd.none )
+                _ ->
+                    ( model
+                    , Group.list { token = model.auth.token, onResponse = ApiRespList }
+                    )
+
+        ApiRespDelete resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model, Cmd.none )
+
+                Data.Failure err ->
+                    ( popError "Error deleting group" err model
+                    , Group.list { token = model.auth.token, onResponse = ApiRespList }
+                    )
+
+                _ ->
+                    ( model
+                    , Group.list { token = model.auth.token, onResponse = ApiRespList }
+                    )
 
         ApiRespNewDevice _ ->
             ( model, Cmd.none )
 
-        ApiRespUserList _ ->
-            ( model, Cmd.none )
+        ApiRespUserList resp ->
+            case resp of
+                Data.Success users ->
+                    ( { model | users = users }, Cmd.none )
 
-        ApiRespDeviceList _ ->
-            ( model, Cmd.none )
+                Data.Failure err ->
+                    ( popError "Error getting users" err model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ApiRespDeviceList resp ->
+            case resp of
+                Data.Success devices ->
+                    ( { model | devices = devices }, Cmd.none )
+
+                Data.Failure err ->
+                    ( popError "Error getting devices" err model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ApiRespList resp ->
+            case resp of
+                Data.Success groups ->
+                    ( { model | groups = groups }, Cmd.none )
+
+                Data.Failure err ->
+                    ( popError "Error getting groups" err model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ApiRespGetUserByEmail resp ->
+            case resp of
+                Data.Success user ->
+                    ( { model | newGroupUserFound = Just user }, Cmd.none )
+
+                _ ->
+                    ( { model | newGroupUserFound = Nothing }, Cmd.none )
+
+
+popError : String -> Http.Error -> Model -> Model
+popError desc err model =
+    { model | error = Just (desc ++ ": " ++ Data.errorToString err) }
 
 
 save : Model -> Shared.Model -> Shared.Model
@@ -515,14 +584,14 @@ viewGroup model modded group =
                     , below <|
                         Form.buttonRow
                             [ Form.button
-                                { label = "discard"
-                                , color = Style.colors.gray
-                                , onPress = DiscardGroupEdits
-                                }
-                            , Form.button
                                 { label = "save"
                                 , color = Style.colors.blue
                                 , onPress = ApiUpdate group
+                                }
+                            , Form.button
+                                { label = "discard"
+                                , color = Style.colors.gray
+                                , onPress = DiscardGroupEdits
                                 }
                             ]
                     ]

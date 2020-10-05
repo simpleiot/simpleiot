@@ -150,7 +150,7 @@ update msg model =
                     ( model, updateUsers model )
 
                 Data.Failure err ->
-                    ( popError "Error getting users" err model, updateUsers model )
+                    ( popError "Error updating user" err model, updateUsers model )
 
                 _ ->
                     ( model, updateUsers model )

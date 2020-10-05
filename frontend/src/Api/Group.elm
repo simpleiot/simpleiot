@@ -5,6 +5,7 @@ module Api.Group exposing
     , delete
     , empty
     , encode
+    , list
     , update
     )
 
@@ -75,6 +76,23 @@ encodeUserRoles userRoles =
         [ ( "userId", Encode.string userRoles.userId )
         , ( "roles", Encode.list Encode.string userRoles.roles )
         ]
+
+
+list :
+    { token : String
+    , onResponse : Data (List Group) -> msg
+    }
+    -> Cmd msg
+list options =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "groups" ] []
+        , expect = Api.Data.expectJson options.onResponse decodeList
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 update :
