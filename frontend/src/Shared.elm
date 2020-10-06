@@ -101,7 +101,7 @@ view { page, toMsg } model =
     in
     { title = page.title
     , body =
-        [ column [ padding 20, spacing 20, height fill ]
+        [ column [ spacing 32, padding 20, width (fill |> maximum 780), height fill, centerX ]
             [ navbar
                 { onSignOut = toMsg SignOut
                 , authenticated = authenticated
