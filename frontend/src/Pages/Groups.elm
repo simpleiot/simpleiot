@@ -473,7 +473,7 @@ update msg model =
                     ( { model | newGroupDeviceFound = Just d }, Cmd.none )
 
                 _ ->
-                    ( { model | newGroupUserFound = Nothing }, Cmd.none )
+                    ( { model | newGroupDeviceFound = Nothing }, Cmd.none )
 
 
 popError : String -> Http.Error -> Model -> Model
