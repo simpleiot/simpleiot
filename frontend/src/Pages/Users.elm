@@ -301,14 +301,14 @@ viewUser modded user =
                     , below <|
                         Form.buttonRow
                             [ Form.button
-                                { label = "discard"
-                                , color = Style.colors.gray
-                                , onPress = DiscardEdits
-                                }
-                            , Form.button
                                 { label = "save"
                                 , color = Style.colors.blue
                                 , onPress = ApiUpdate user
+                                }
+                            , Form.button
+                                { label = "discard"
+                                , color = Style.colors.gray
+                                , onPress = DiscardEdits
                                 }
                             ]
                     ]
