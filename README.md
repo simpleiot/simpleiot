@@ -35,7 +35,7 @@ A few guiding principles.
 
 Though we are focusing on smaller deployments initially, there is no reason
 Simple IoT can't scale to large systems by swapping out the internal database
-for MongoDB + InfluxDB.
+for MongoDB/Dgraph/InfluxDB/etc.
 
 See [vision](docs/vision.md) for addition discussion.
 
