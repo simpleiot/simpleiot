@@ -4,4 +4,5 @@ package data
 type Auth struct {
 	Token  string `json:"token"`
 	IsRoot bool   `json:"isRoot"`
+	Email  string `json:"email"`
 }

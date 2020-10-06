@@ -1,4 +1,4 @@
-module Data.Point exposing
+module Api.Point exposing
     ( Point
     , decode
     , encode
@@ -35,58 +35,72 @@ import Round
 import Time
 
 
+typeDescription : String
 typeDescription =
     "description"
 
 
+typeCmdPending : String
 typeCmdPending =
     "cmdPending"
 
 
+typeSwUpdateState : String
 typeSwUpdateState =
     "swUpdateState"
 
 
+typeStartApp : String
 typeStartApp =
     "startApp"
 
 
+typeStartSystem : String
 typeStartSystem =
     "startSystem"
 
 
+typeUpdateOS : String
 typeUpdateOS =
     "updateOS"
 
 
+typeUpdateApp : String
 typeUpdateApp =
     "updateApp"
 
 
+typeSysState : String
 typeSysState =
     "sysState"
 
 
+typeSwUpdateRunning : String
 typeSwUpdateRunning =
     "swUpdateRunning"
 
 
+typeSwUpdateError : String
 typeSwUpdateError =
     "swUpdateError"
 
 
+typeSwUpdatePercComplete : String
 typeSwUpdatePercComplete =
     "swUpdatePercComplete"
 
 
+typeOSVersion : String
 typeOSVersion =
     "osVersion"
 
 
+typeAppVersion : String
 typeAppVersion =
     "appVersion"
 
 
+typeHwVersion : String
 typeHwVersion =
     "hwVersion"
 

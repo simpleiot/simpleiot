@@ -1,4 +1,4 @@
-module Data.Iso8601 exposing
+module Utils.Iso8601 exposing
     ( toUtcString
     , toUtcDateString, toUtcTimeString, toUtcTimeMilliString
     , toUtcDateTimeString, toUtcDateTimeMilliString

@@ -1,4 +1,4 @@
-module Document exposing
+module Spa.Document exposing
     ( Document
     , map
     , toBrowserDocument
@@ -6,7 +6,6 @@ module Document exposing
 
 import Browser
 import Element exposing (..)
-import Element.Font as Font
 
 
 type alias Document msg =
@@ -26,7 +25,7 @@ toBrowserDocument : Document msg -> Browser.Document msg
 toBrowserDocument doc =
     { title = doc.title
     , body =
-        [ Element.layout [ Font.size 16 ] <|
-            column [ width fill, height fill ] doc.body
+        [ Element.layout [ width fill, height fill ]
+            (column [ width fill, height fill ] doc.body)
         ]
     }

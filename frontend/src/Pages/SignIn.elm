@@ -1,189 +1,207 @@
-module Pages.SignIn exposing (Flags, Model, Msg, page)
+module Pages.SignIn exposing (Model, Msg, Params, page)
 
+import Api.Auth exposing (Auth)
+import Api.Data exposing (Data)
+import Browser.Navigation exposing (Key)
 import Element exposing (..)
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Global
-import Html
-import Html.Attributes as Attr
-import Html.Events as Events
-import Page exposing (Document, Page)
+import Shared
+import Spa.Document exposing (Document)
+import Spa.Generated.Route as Route
+import Spa.Page as Page exposing (Page)
+import Spa.Url exposing (Url)
+import UI.Form as Form
 import UI.Style as Style
+import Utils.Route
 
 
-type alias Flags =
-    ()
-
-
-type alias Model =
-    { email : String
-    , password : String
-    }
-
-
-type Msg
-    = UpdatedField Field String
-    | ClickedSignIn
-
-
-type Field
-    = Email
-    | Password
-
-
-page : Page Flags Model Msg
+page : Page Params Model Msg
 page =
-    Page.component
+    Page.application
         { init = init
         , update = update
         , subscriptions = subscriptions
         , view = view
+        , save = save
+        , load = load
         }
 
 
-init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
-init _ _ =
-    ( Model "" "", Cmd.none, Cmd.none )
+
+-- INIT
 
 
-update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update _ msg model =
+type alias Params =
+    ()
+
+
+type alias Model =
+    { auth : Data Auth
+    , key : Key
+    , email : String
+    , password : String
+    , error : Maybe String
+    }
+
+
+init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
+init shared { key } =
+    ( Model
+        (case shared.auth of
+            Just auth ->
+                Api.Data.Success auth
+
+            Nothing ->
+                Api.Data.NotAsked
+        )
+        key
+        ""
+        ""
+        Nothing
+    , Cmd.none
+    )
+
+
+
+-- UPDATE
+
+
+type Msg
+    = EditEmail String
+    | EditPass String
+    | SignIn
+    | GotUser (Data Auth)
+    | NoOp
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
-        UpdatedField Email value ->
-            ( { model | email = value }
-            , Cmd.none
-            , Cmd.none
-            )
+        EditEmail email ->
+            ( { model | email = email }, Cmd.none )
 
-        UpdatedField Password value ->
-            ( { model | password = value }
-            , Cmd.none
-            , Cmd.none
-            )
+        EditPass password ->
+            ( { model | password = password }, Cmd.none )
 
-        ClickedSignIn ->
+        SignIn ->
             ( model
-            , Cmd.none
-            , Global.send <|
-                Global.SignIn model
+            , Api.Auth.login
+                { user =
+                    { email = model.email
+                    , password = model.password
+                    }
+                , onResponse = GotUser
+                }
+            )
+
+        NoOp ->
+            ( model, Cmd.none )
+
+        GotUser auth ->
+            let
+                error =
+                    case auth of
+                        Api.Data.Success _ ->
+                            Nothing
+
+                        Api.Data.Failure _ ->
+                            Just "Login Failure"
+
+                        _ ->
+                            Just "Login unknown state"
+            in
+            ( { model | auth = auth, error = error }
+            , case Api.Data.toMaybe auth of
+                Just _ ->
+                    Utils.Route.navigate model.key Route.Top
+
+                Nothing ->
+                    Cmd.none
             )
 
 
-subscriptions : Global.Model -> Model -> Sub Msg
-subscriptions _ _ =
+save : Model -> Shared.Model -> Shared.Model
+save model shared =
+    { shared
+        | auth =
+            case Api.Data.toMaybe model.auth of
+                Just auth ->
+                    Just { email = model.email, token = auth.token, isRoot = auth.isRoot }
+
+                Nothing ->
+                    shared.auth
+        , error =
+            case model.error of
+                Nothing ->
+                    shared.error
+
+                Just _ ->
+                    model.error
+        , lastError =
+            case model.error of
+                Nothing ->
+                    shared.lastError
+
+                Just _ ->
+                    shared.now
+    }
+
+
+load : Shared.Model -> Model -> ( Model, Cmd Msg )
+load _ model =
+    ( { model | error = Nothing }, Cmd.none )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
     Sub.none
 
 
-view : Global.Model -> Model -> Document Msg
-view _ model =
+
+-- VIEW
+
+
+view : Model -> Document Msg
+view model =
     { title = "SIOT SignIn"
     , body =
         [ el [ centerX, centerY ] <|
-            form
-                { onSubmit = ClickedSignIn
-                }
+            column
                 [ spacing 32 ]
                 [ el [ Font.size 24, Font.semiBold ]
                     (text "Sign in")
                 , column [ spacing 16 ]
-                    [ viewField
-                        { label = "Email"
-                        , onChange = UpdatedField Email
-                        , inputType = EmailInput
-                        , value = model.email
+                    [ Input.email
+                        []
+                        { onChange = \e -> EditEmail e
+                        , text = model.email
+                        , placeholder = Just <| Input.placeholder [] <| text "email"
+                        , label = Input.labelAbove [] <| text "Email"
                         }
-                    , viewField
-                        { label = "Password"
-                        , onChange = UpdatedField Password
-                        , inputType = PasswordInput
-                        , value = model.password
+                    , Input.newPassword
+                        []
+                        { onChange = \p -> EditPass p
+                        , show = False
+                        , text = model.password
+                        , placeholder = Just <| Input.placeholder [] <| text "password"
+                        , label = Input.labelAbove [] <| text "Password"
                         }
-                    ]
-                , el [ alignRight ] <|
-                    if String.isEmpty model.email then
-                        Input.button
-                            (Style.button Style.colors.blue ++ [ alpha 0.6 ])
-                            { onPress = Nothing
-                            , label = text "Sign In"
-                            }
+                    , el [ alignRight ] <|
+                        if String.isEmpty model.email then
+                            Form.button
+                                { label = "Sign In"
+                                , color = Style.colors.gray
+                                , onPress = NoOp
+                                }
 
-                    else
-                        Input.button
-                            (Style.button Style.colors.blue ++ [ htmlAttribute (Attr.type_ "submit") ])
-                            { onPress = Just ClickedSignIn
-                            , label = text "Sign In"
-                            }
+                        else
+                            Form.button
+                                { label = "Sign In"
+                                , color = Style.colors.blue
+                                , onPress = SignIn
+                                }
+                    ]
                 ]
         ]
     }
-
-
-form : { onSubmit : msg } -> List (Attribute msg) -> List (Element msg) -> Element msg
-form config attrs children =
-    Element.html
-        (Html.form
-            [ Events.onSubmit config.onSubmit ]
-            [ toHtml (column attrs children)
-            ]
-        )
-
-
-toHtml : Element msg -> Html.Html msg
-toHtml =
-    Element.layoutWith { options = [ Element.noStaticStyleSheet ] } []
-
-
-type InputType
-    = EmailInput
-    | PasswordInput
-
-
-viewField :
-    { inputType : InputType
-    , label : String
-    , onChange : String -> msg
-    , value : String
-    }
-    -> Element msg
-viewField config =
-    let
-        styles =
-            { field =
-                [ paddingXY 4 4
-                , Border.rounded 0
-                , Border.widthEach
-                    { top = 0
-                    , left = 0
-                    , right = 0
-                    , bottom = 1
-                    }
-                ]
-            , label =
-                [ Font.size 16
-                , Font.semiBold
-                ]
-            }
-
-        label =
-            Input.labelAbove
-                styles.label
-                (text config.label)
-    in
-    case config.inputType of
-        EmailInput ->
-            Input.email styles.field
-                { onChange = config.onChange
-                , text = config.value
-                , placeholder = Nothing
-                , label = label
-                }
-
-        PasswordInput ->
-            Input.currentPassword styles.field
-                { onChange = config.onChange
-                , text = config.value
-                , placeholder = Nothing
-                , label = label
-                , show = False
-                }

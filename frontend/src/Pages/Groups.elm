@@ -1,36 +1,74 @@
-module Pages.Groups exposing (Flags, Model, Msg, page)
+module Pages.Groups exposing (Model, Msg, Params, page)
 
-import Data.Device as D
-import Data.Group as O
-import Data.User as U
+import Api.Auth exposing (Auth)
+import Api.Data as Data exposing (Data)
+import Api.Device as Dev
+import Api.Group as Group exposing (Group)
+import Api.Response exposing (Response)
+import Api.User as User exposing (User)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Global
+import Http
 import List.Extra
-import Page exposing (Document, Page)
+import Shared
+import Spa.Document exposing (Document)
+import Spa.Generated.Route as Route
+import Spa.Page as Page exposing (Page)
+import Spa.Url exposing (Url)
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style as Style
+import Utils.Route
 
 
-type alias Flags =
+page : Page Params Model Msg
+page =
+    Page.application
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        , save = save
+        , load = load
+        }
+
+
+
+-- INIT
+
+
+type alias Params =
     ()
 
 
 type alias Model =
-    { groupEdit : Maybe O.Group
+    { auth : Auth
+    , groupEdit : Maybe Group
     , newUser : Maybe NewUser
     , newDevice : Maybe NewDevice
+    , error : Maybe String
+    , groups : List Group
+    , devices : List Dev.Device
+    , users : List User
+    , newGroupUserFound : Maybe User
+    , newGroupDeviceFound : Maybe Dev.Device
     }
 
 
-empty : Model
-empty =
-    { groupEdit = Nothing
+defaultModel : Model
+defaultModel =
+    { auth = { email = "", token = "", isRoot = False }
+    , groupEdit = Nothing
     , newUser = Nothing
     , newDevice = Nothing
+    , error = Nothing
+    , groups = []
+    , devices = []
+    , users = []
+    , newGroupUserFound = Nothing
+    , newGroupDeviceFound = Nothing
     }
 
 
@@ -46,259 +84,474 @@ type alias NewDevice =
     }
 
 
+init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
+init shared _ =
+    case shared.auth of
+        Just auth ->
+            let
+                model =
+                    { defaultModel | auth = auth }
+            in
+            ( model
+            , Cmd.batch
+                [ User.list { token = auth.token, onResponse = ApiRespUserList }
+                , Dev.list { token = auth.token, onResponse = ApiRespDeviceList }
+                , Group.list { token = auth.token, onResponse = ApiRespList }
+                ]
+            )
+
+        Nothing ->
+            ( defaultModel
+            , Utils.Route.navigate shared.key Route.SignIn
+            )
+
+
+
+-- UPDATE
+
+
 type Msg
-    = PostGroup O.Group
-    | EditGroup O.Group
+    = EditGroup Group
     | DiscardGroupEdits
-    | NewGroup
-    | DeleteGroup String
-    | RemoveUser O.Group String
+    | New
     | AddUser String
     | CancelAddUser
     | EditNewUser String
-    | SaveNewUser O.Group String
-    | RemoveDevice String String
     | AddDevice String
     | CancelAddDevice
     | EditNewDevice String
-    | SaveNewDevice String String
+    | ApiUpdate Group
+    | ApiDelete String
+    | ApiNewDevice String String
+    | ApiRemoveDevice String String
+    | ApiNewUser Group String
+    | ApiRemoveUser Group String
+    | ApiRespUpdate (Data Response)
+    | ApiRespDelete (Data Response)
+    | ApiRespNewDevice (Data Response)
+    | ApiRespUserList (Data (List User))
+    | ApiRespDeviceList (Data (List Dev.Device))
+    | ApiRespList (Data (List Group))
+    | ApiRespGetUserByEmail (Data User)
+    | ApiRespGetDeviceById (Data Dev.Device)
 
 
-page : Page Flags Model Msg
-page =
-    Page.component
-        { init = init
-        , update = update
-        , subscriptions = subscriptions
-        , view = view
-        }
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        EditGroup group ->
+            ( { model | groupEdit = Just group }
+            , Cmd.none
+            )
 
+        DiscardGroupEdits ->
+            ( { model | groupEdit = Nothing }
+            , Cmd.none
+            )
 
-init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
-init _ _ =
-    ( empty
-    , Cmd.none
-    , Cmd.batch
-        [ Global.send Global.RequestGroups
-        , Global.send Global.RequestUsers
-        , Global.send Global.RequestDevices
-        ]
-    )
+        New ->
+            ( { model | groupEdit = Just Group.empty }
+            , Cmd.none
+            )
 
+        AddUser groupId ->
+            ( { model
+                | newUser = Just { groupId = groupId, userEmail = "" }
+                , newGroupUserFound = Nothing
+              }
+            , Cmd.none
+            )
 
-update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update global msg model =
-    case global.auth of
-        Global.SignedOut _ ->
-            ( model, Cmd.none, Cmd.none )
+        CancelAddUser ->
+            ( { model | newUser = Nothing }
+            , Cmd.none
+            )
 
-        Global.SignedIn sess ->
-            case msg of
-                EditGroup group ->
-                    ( { model | groupEdit = Just group }
-                    , Cmd.none
-                    , Cmd.none
+        EditNewUser userEmail ->
+            case model.newUser of
+                Just newUser ->
+                    ( { model | newUser = Just { newUser | userEmail = userEmail } }
+                    , User.getByEmail
+                        { token = model.auth.token
+                        , email = userEmail
+                        , onResponse = ApiRespGetUserByEmail
+                        }
                     )
 
-                DiscardGroupEdits ->
-                    ( { model | groupEdit = Nothing }
-                    , Cmd.none
-                    , Cmd.none
+                Nothing ->
+                    ( model, Cmd.none )
+
+        AddDevice groupId ->
+            ( { model
+                | newDevice = Just { groupId = groupId, deviceId = "" }
+                , newGroupDeviceFound = Nothing
+              }
+            , Cmd.none
+            )
+
+        CancelAddDevice ->
+            ( { model | newDevice = Nothing }
+            , Cmd.none
+            )
+
+        EditNewDevice deviceId ->
+            case model.newDevice of
+                Just newDevice ->
+                    ( { model | newDevice = Just { newDevice | deviceId = deviceId } }
+                    , Dev.get
+                        { token = model.auth.token
+                        , id = deviceId
+                        , onResponse = ApiRespGetDeviceById
+                        }
                     )
 
-                PostGroup group ->
-                    ( { model | groupEdit = Nothing }
-                    , Cmd.none
-                    , Global.send <| Global.UpdateGroup group
-                    )
+                Nothing ->
+                    ( model, Cmd.none )
 
-                NewGroup ->
-                    ( { model | groupEdit = Just O.empty }
-                    , Cmd.none
-                    , Cmd.none
-                    )
+        ApiUpdate group ->
+            let
+                -- optimistically update groups
+                groups =
+                    List.map
+                        (\g ->
+                            if g.id == group.id then
+                                group
 
-                DeleteGroup id ->
-                    ( { model | groupEdit = Nothing }
-                    , Cmd.none
-                    , Global.send <| Global.DeleteGroup id
-                    )
+                            else
+                                g
+                        )
+                        model.groups
+            in
+            ( { model | groupEdit = Nothing, groups = groups }
+            , Group.update
+                { token = model.auth.token
+                , group = group
+                , onResponse = ApiRespUpdate
+                }
+            )
 
-                RemoveUser group userId ->
-                    let
-                        users =
-                            List.filter
-                                (\ur -> ur.userId /= userId)
-                                group.users
+        ApiDelete id ->
+            let
+                -- optimistically delete group
+                groups =
+                    List.filter (\g -> g.id /= id) model.groups
+            in
+            ( { model | groupEdit = Nothing, groups = groups }
+            , Group.delete
+                { token = model.auth.token
+                , id = id
+                , onResponse = ApiRespDelete
+                }
+            )
 
-                        updatedGroup =
-                            { group | users = users }
-                    in
-                    ( model
-                    , Cmd.none
-                    , Global.send <| Global.UpdateGroup updatedGroup
-                    )
+        ApiRemoveUser group userId ->
+            let
+                users =
+                    List.filter
+                        (\ur -> ur.userId /= userId)
+                        group.users
 
-                AddUser groupId ->
-                    ( { model | newUser = Just { groupId = groupId, userEmail = "" } }
-                    , Cmd.none
-                    , Cmd.none
-                    )
+                updatedGroup =
+                    { group | users = users }
 
-                CancelAddUser ->
-                    ( { model | newUser = Nothing }
-                    , Cmd.none
-                    , Cmd.none
-                    )
+                -- optimistically update groups
+                groups =
+                    List.map
+                        (\g ->
+                            if g.id == group.id then
+                                group
 
-                EditNewUser userEmail ->
-                    case model.newUser of
-                        Just newUser ->
-                            ( { model | newUser = Just { newUser | userEmail = userEmail } }
-                            , Cmd.none
-                            , Global.send <| Global.CheckUser userEmail
-                            )
+                            else
+                                g
+                        )
+                        model.groups
+            in
+            ( { model | groups = groups }
+            , Group.update
+                { token = model.auth.token
+                , group = updatedGroup
+                , onResponse = ApiRespUpdate
+                }
+            )
+
+        ApiNewUser group userId ->
+            let
+                -- only add user if it does not already exist
+                users =
+                    case
+                        List.Extra.find
+                            (\ur -> ur.userId == userId)
+                            group.users
+                    of
+                        Just _ ->
+                            group.users
 
                         Nothing ->
-                            ( model, Cmd.none, Cmd.none )
+                            { userId = userId, roles = [ "user" ] } :: group.users
 
-                SaveNewUser group userId ->
+                updatedGroup =
+                    { group | users = users }
+
+                -- optimistically update groups
+                groups =
+                    List.map
+                        (\g ->
+                            if g.id == group.id then
+                                group
+
+                            else
+                                g
+                        )
+                        model.groups
+            in
+            ( { model | newUser = Nothing, groups = groups }
+            , Group.update
+                { token = model.auth.token
+                , group = updatedGroup
+                , onResponse = ApiRespUpdate
+                }
+            )
+
+        ApiRemoveDevice deviceId groupId ->
+            case
+                List.Extra.find (\d -> d.id == deviceId) model.devices
+            of
+                Just device ->
                     let
-                        -- only add user if it does not already exist
-                        users =
+                        groups =
+                            List.filter (\o -> o /= groupId)
+                                device.groups
+
+                        -- optimistically update devices
+                        updatedDevice =
+                            { device | groups = groups }
+
+                        devices =
+                            List.map
+                                (\d ->
+                                    if d.id == device.id then
+                                        updatedDevice
+
+                                    else
+                                        d
+                                )
+                                model.devices
+                    in
+                    ( { model | devices = devices }
+                    , Dev.postGroups
+                        { token = model.auth.token
+                        , id = device.id
+                        , groups = groups
+                        , onResponse = ApiRespNewDevice
+                        }
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        ApiNewDevice groupId deviceId ->
+            case
+                List.Extra.find (\d -> d.id == deviceId)
+                    model.devices
+            of
+                Just device ->
+                    let
+                        groups =
                             case
-                                List.Extra.find
-                                    (\ur -> ur.userId == userId)
-                                    group.users
+                                List.Extra.find (\o -> o == groupId)
+                                    device.groups
                             of
                                 Just _ ->
-                                    group.users
+                                    device.groups
 
                                 Nothing ->
-                                    { userId = userId, roles = [ "user" ] } :: group.users
+                                    groupId :: device.groups
 
-                        updatedGroup =
-                            { group | users = users }
+                        -- optimistically update devices
+                        devices =
+                            List.map
+                                (\d ->
+                                    if d.id == device.id then
+                                        { d | groups = groups }
+
+                                    else
+                                        d
+                                )
+                                model.devices
                     in
-                    ( { model | newUser = Nothing }
-                    , Cmd.none
-                    , Global.send <| Global.UpdateGroup updatedGroup
+                    ( { model | newDevice = Nothing, devices = devices }
+                    , Dev.postGroups
+                        { token = model.auth.token
+                        , id = device.id
+                        , groups = groups
+                        , onResponse = ApiRespNewDevice
+                        }
                     )
 
-                RemoveDevice groupId deviceId ->
+                Nothing ->
+                    ( { model | newDevice = Nothing }, Cmd.none )
+
+        ApiRespUpdate resp ->
+            case resp of
+                Data.Success _ ->
                     ( model
-                    , Cmd.none
-                    , case
-                        List.Extra.find (\d -> d.id == deviceId)
-                            sess.data.devices
-                      of
-                        Just device ->
-                            let
-                                groups =
-                                    List.filter (\o -> o /= groupId)
-                                        device.groups
-                            in
-                            Global.send <|
-                                Global.UpdateDeviceGroups device.id groups
-
-                        Nothing ->
-                            Cmd.none
+                    , Group.list { token = model.auth.token, onResponse = ApiRespList }
                     )
 
-                AddDevice groupId ->
-                    ( { model | newDevice = Just { groupId = groupId, deviceId = "" } }
-                    , Cmd.none
-                    , Cmd.none
+                Data.Failure err ->
+                    ( popError "Error updating group" err model
+                    , Group.list { token = model.auth.token, onResponse = ApiRespList }
                     )
 
-                CancelAddDevice ->
-                    ( { model | newDevice = Nothing }
-                    , Cmd.none
-                    , Cmd.none
+                _ ->
+                    ( model
+                    , Group.list { token = model.auth.token, onResponse = ApiRespList }
                     )
 
-                EditNewDevice deviceId ->
-                    case model.newDevice of
-                        Just newDevice ->
-                            ( { model | newDevice = Just { newDevice | deviceId = deviceId } }
-                            , Cmd.none
-                            , Global.send <| Global.CheckDevice deviceId
-                            )
+        ApiRespDelete resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model, Cmd.none )
 
-                        Nothing ->
-                            ( model, Cmd.none, Cmd.none )
-
-                SaveNewDevice groupId deviceId ->
-                    ( { model | newDevice = Nothing }
-                    , Cmd.none
-                    , case
-                        List.Extra.find (\d -> d.id == deviceId)
-                            sess.data.devices
-                      of
-                        Just device ->
-                            let
-                                groups =
-                                    case
-                                        List.Extra.find (\o -> o == groupId)
-                                            device.groups
-                                    of
-                                        Just _ ->
-                                            device.groups
-
-                                        Nothing ->
-                                            groupId :: device.groups
-                            in
-                            Global.send <|
-                                Global.UpdateDeviceGroups device.id groups
-
-                        Nothing ->
-                            Cmd.none
+                Data.Failure err ->
+                    ( popError "Error deleting group" err model
+                    , Group.list { token = model.auth.token, onResponse = ApiRespList }
                     )
 
+                _ ->
+                    ( model
+                    , Group.list { token = model.auth.token, onResponse = ApiRespList }
+                    )
 
-subscriptions : Global.Model -> Model -> Sub Msg
-subscriptions _ _ =
+        ApiRespNewDevice _ ->
+            ( model, Cmd.none )
+
+        ApiRespUserList resp ->
+            case resp of
+                Data.Success users ->
+                    ( { model | users = users }, Cmd.none )
+
+                Data.Failure err ->
+                    ( popError "Error getting users" err model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ApiRespDeviceList resp ->
+            case resp of
+                Data.Success devices ->
+                    ( { model | devices = devices }, Cmd.none )
+
+                Data.Failure err ->
+                    ( popError "Error getting devices" err model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ApiRespList resp ->
+            case resp of
+                Data.Success groups ->
+                    ( { model | groups = groups }, Cmd.none )
+
+                Data.Failure err ->
+                    ( popError "Error getting groups" err model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ApiRespGetUserByEmail resp ->
+            case resp of
+                Data.Success user ->
+                    ( { model | newGroupUserFound = Just user }, Cmd.none )
+
+                _ ->
+                    ( { model | newGroupUserFound = Nothing }, Cmd.none )
+
+        ApiRespGetDeviceById resp ->
+            case resp of
+                Data.Success d ->
+                    ( { model | newGroupDeviceFound = Just d }, Cmd.none )
+
+                _ ->
+                    ( { model | newGroupDeviceFound = Nothing }, Cmd.none )
+
+
+popError : String -> Http.Error -> Model -> Model
+popError desc err model =
+    { model | error = Just (desc ++ ": " ++ Data.errorToString err) }
+
+
+save : Model -> Shared.Model -> Shared.Model
+save model shared =
+    { shared
+        | error =
+            case model.error of
+                Nothing ->
+                    shared.error
+
+                Just _ ->
+                    model.error
+        , lastError =
+            case model.error of
+                Nothing ->
+                    shared.lastError
+
+                Just _ ->
+                    shared.now
+    }
+
+
+load : Shared.Model -> Model -> ( Model, Cmd Msg )
+load _ model =
+    ( { model | error = Nothing }, Cmd.none )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
     Sub.none
 
 
-view : Global.Model -> Model -> Document Msg
-view global model =
+
+-- VIEW
+
+
+view : Model -> Document Msg
+view model =
     { title = "SIOT Groups"
     , body =
-        [ case global.auth of
-            Global.SignedIn sess ->
-                column
-                    [ width fill, spacing 32 ]
-                    [ el Style.h2 <| text "Groups"
-                    , el [ padding 16, width fill, Font.bold ] <|
-                        Form.button "new group" Style.colors.blue NewGroup
-                    , viewGroups sess model
-                    ]
-
-            _ ->
-                el [ padding 16 ] <| text "Sign in to view your groups."
+        [ column
+            [ width fill, spacing 32 ]
+            [ el Style.h2 <| text "Groups"
+            , el [ padding 16, width fill, Font.bold ] <|
+                Form.button
+                    { label = "new group"
+                    , color = Style.colors.blue
+                    , onPress = New
+                    }
+            , viewGroups model
+            ]
         ]
     }
 
 
-viewGroups : Global.Session -> Model -> Element Msg
-viewGroups sess model =
+viewGroups : Model -> Element Msg
+viewGroups model =
     column
         [ width fill
         , spacing 40
         ]
     <|
-        List.map (\o -> viewGroup sess model o.mod o.group) <|
-            mergeGroupEdit sess.data.groups model.groupEdit
+        List.map (\o -> viewGroup model o.mod o.group) <|
+            mergeGroupEdit model.groups model.groupEdit
 
 
 type alias GroupMod =
-    { group : O.Group
+    { group : Group
     , mod : Bool
     }
 
 
-mergeGroupEdit : List O.Group -> Maybe O.Group -> List GroupMod
+mergeGroupEdit : List Group -> Maybe Group -> List GroupMod
 mergeGroupEdit groups groupEdit =
     case groupEdit of
         Just edit ->
@@ -324,8 +577,8 @@ mergeGroupEdit groups groupEdit =
             List.map (\o -> { group = o, mod = False }) groups
 
 
-viewGroup : Global.Session -> Model -> Bool -> O.Group -> Element Msg
-viewGroup sess model modded group =
+viewGroup : Model -> Bool -> Group -> Element Msg
+viewGroup model modded group =
     let
         devices =
             List.filter
@@ -337,7 +590,7 @@ viewGroup sess model modded group =
                         Nothing ->
                             False
                 )
-                sess.data.devices
+                model.devices
     in
     column
         ([ width fill
@@ -349,8 +602,16 @@ viewGroup sess model modded group =
                     [ Background.color Style.colors.orange
                     , below <|
                         Form.buttonRow
-                            [ Form.button "discard" Style.colors.gray <| DiscardGroupEdits
-                            , Form.button "save" Style.colors.blue <| PostGroup group
+                            [ Form.button
+                                { label = "save"
+                                , color = Style.colors.blue
+                                , onPress = ApiUpdate group
+                                }
+                            , Form.button
+                                { label = "discard"
+                                , color = Style.colors.gray
+                                , onPress = DiscardGroupEdits
+                                }
                             ]
                     ]
 
@@ -369,20 +630,20 @@ viewGroup sess model modded group =
                     , value = group.name
                     , action = \x -> EditGroup { group | name = x }
                     }
-                , Icon.x (DeleteGroup group.id)
+                , Icon.x (ApiDelete group.id)
                 ]
         , row []
             [ el [ padding 16, Font.italic, Font.color Style.colors.gray ] <| text "Users"
             , case model.newUser of
                 Just newUser ->
                     if newUser.groupId == group.id then
-                        Icon.userX CancelAddUser
+                        Icon.x CancelAddUser
 
                     else
-                        Icon.userPlus (AddUser group.id)
+                        Icon.plus (AddUser group.id)
 
                 Nothing ->
-                    Icon.userPlus (AddUser group.id)
+                    Icon.plus (AddUser group.id)
             ]
         , case model.newUser of
             Just ua ->
@@ -393,9 +654,9 @@ viewGroup sess model modded group =
                             , value = ua.userEmail
                             , action = \x -> EditNewUser x
                             }
-                        , case sess.newGroupUser of
+                        , case model.newGroupUserFound of
                             Just user ->
-                                Icon.userPlus (SaveNewUser group user.id)
+                                Icon.plus (ApiNewUser group user.id)
 
                             Nothing ->
                                 Element.none
@@ -406,7 +667,7 @@ viewGroup sess model modded group =
 
             Nothing ->
                 Element.none
-        , viewUsers group sess.data.users
+        , viewUsers group model.users
         , row []
             [ el [ padding 16, Font.italic, Font.color Style.colors.gray ] <| text "Devices"
             , case model.newDevice of
@@ -429,9 +690,9 @@ viewGroup sess model modded group =
                             , value = nd.deviceId
                             , action = \x -> EditNewDevice x
                             }
-                        , case sess.newGroupDevice of
+                        , case model.newGroupDeviceFound of
                             Just dev ->
-                                Icon.plus (SaveNewDevice group.id dev.id)
+                                Icon.plus (ApiNewDevice group.id dev.id)
 
                             Nothing ->
                                 Element.none
@@ -446,7 +707,7 @@ viewGroup sess model modded group =
         ]
 
 
-viewUsers : O.Group -> List U.User -> Element Msg
+viewUsers : Group -> List User -> Element Msg
 viewUsers group users =
     column [ spacing 6, paddingEach { top = 0, right = 16, bottom = 0, left = 32 } ]
         (List.map
@@ -462,7 +723,7 @@ viewUsers group users =
                                     ++ user.email
                                     ++ ">"
                                 )
-                            , Icon.userX (RemoveUser group user.id)
+                            , Icon.x (ApiRemoveUser group user.id)
                             ]
 
                     Nothing ->
@@ -472,7 +733,7 @@ viewUsers group users =
         )
 
 
-viewDevices : O.Group -> List D.Device -> Element Msg
+viewDevices : Group -> List Dev.Device -> Element Msg
 viewDevices group devices =
     column [ spacing 6, paddingEach { top = 0, right = 16, bottom = 0, left = 32 } ]
         (List.map
@@ -482,9 +743,9 @@ viewDevices group devices =
                         ("("
                             ++ d.id
                             ++ ") "
-                            ++ D.description d
+                            ++ Dev.description d
                         )
-                    , Icon.x (RemoveDevice group.id d.id)
+                    , Icon.x (ApiRemoveDevice d.id group.id)
                     ]
             )
             devices

@@ -60,5 +60,6 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	encode(res, data.Auth{
 		Token:  token,
 		IsRoot: isRoot,
+		Email:  email,
 	})
 }

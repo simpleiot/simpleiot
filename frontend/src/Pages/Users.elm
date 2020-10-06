@@ -1,114 +1,247 @@
-module Pages.Users exposing (Flags, Model, Msg, page)
+module Pages.Users exposing (Model, Msg, Params, page)
 
-import Data.User as U
+import Api.Auth exposing (Auth)
+import Api.Data as Data exposing (Data)
+import Api.Response exposing (Response)
+import Api.User as User exposing (User)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Global
-import Page exposing (Document, Page)
+import Http
+import Shared
+import Spa.Document exposing (Document)
+import Spa.Generated.Route as Route
+import Spa.Page as Page exposing (Page)
+import Spa.Url exposing (Url)
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style as Style
+import Utils.Route
 
 
-type alias Flags =
-    ()
-
-
-type alias Model =
-    { userEdit : Maybe U.User
-    }
-
-
-type Msg
-    = PostUser U.User
-    | EditUser U.User
-    | DiscardUserEdits
-    | DeleteUser String
-    | NewUser
-
-
-page : Page Flags Model Msg
+page : Page Params Model Msg
 page =
-    Page.component
+    Page.application
         { init = init
         , update = update
         , subscriptions = subscriptions
         , view = view
+        , save = save
+        , load = load
         }
 
 
-init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
-init _ _ =
-    ( Model Nothing, Cmd.none, Global.send Global.RequestUsers )
+
+-- INIT
 
 
-update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update global msg model =
+type alias Params =
+    ()
+
+
+type alias Model =
+    { userEdit : Maybe User
+    , users : List User
+    , auth : Auth
+    , error : Maybe String
+    }
+
+
+defaultModel : Model
+defaultModel =
+    Model
+        Nothing
+        []
+        { email = "", token = "", isRoot = False }
+        Nothing
+
+
+init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
+init shared _ =
+    case shared.auth of
+        Just auth ->
+            let
+                model =
+                    { defaultModel | auth = auth }
+            in
+            ( model
+            , updateUsers model
+            )
+
+        Nothing ->
+            ( defaultModel
+            , Utils.Route.navigate shared.key Route.SignIn
+            )
+
+
+
+-- UPDATE
+
+
+type Msg
+    = New
+    | Edit User
+    | DiscardEdits
+    | ApiUpdate User
+    | ApiDelete String
+    | ApiRespUpdate (Data Response)
+    | ApiRespList (Data (List User))
+    | ApiRespDelete (Data Response)
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
-        EditUser user ->
+        New ->
+            ( { model | userEdit = Just User.empty }
+            , Cmd.none
+            )
+
+        Edit user ->
             ( { model | userEdit = Just user }
             , Cmd.none
-            , Cmd.none
             )
 
-        DiscardUserEdits ->
+        DiscardEdits ->
             ( { model | userEdit = Nothing }
             , Cmd.none
-            , Cmd.none
             )
 
-        PostUser user ->
-            ( { model | userEdit = Nothing }
-            , Cmd.none
-            , case global.auth of
-                Global.SignedIn _ ->
-                    Global.send <| Global.UpdateUser user
+        ApiUpdate user ->
+            let
+                -- optimistically update users
+                users =
+                    List.map
+                        (\u ->
+                            if u.id == user.id then
+                                user
 
-                Global.SignedOut _ ->
-                    Cmd.none
+                            else
+                                u
+                        )
+                        model.users
+            in
+            ( { model | userEdit = Nothing, users = users }
+            , User.update
+                { token = model.auth.token
+                , user = user
+                , onResponse = ApiRespUpdate
+                }
             )
 
-        DeleteUser id ->
-            ( model
-            , Cmd.none
-            , Global.send <| Global.DeleteUser id
+        ApiDelete id ->
+            let
+                -- optimisitically delete user
+                users =
+                    List.filter (\u -> u.id /= id) model.users
+            in
+            ( { model | users = users }
+            , User.delete
+                { token = model.auth.token
+                , id = id
+                , onResponse = ApiRespDelete
+                }
             )
 
-        NewUser ->
-            ( { model | userEdit = Just U.empty }
-            , Cmd.none
-            , Cmd.none
-            )
+        ApiRespUpdate resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model, updateUsers model )
+
+                Data.Failure err ->
+                    ( popError "Error updating user" err model, updateUsers model )
+
+                _ ->
+                    ( model, updateUsers model )
+
+        ApiRespList resp ->
+            case resp of
+                Data.Success users ->
+                    ( { model | users = users }, Cmd.none )
+
+                Data.Failure err ->
+                    ( popError "Error getting users" err model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ApiRespDelete resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model, updateUsers model )
+
+                Data.Failure err ->
+                    ( popError "Error deleting user" err model, updateUsers model )
+
+                _ ->
+                    ( model, updateUsers model )
 
 
-subscriptions : Global.Model -> Model -> Sub Msg
-subscriptions _ _ =
+popError : String -> Http.Error -> Model -> Model
+popError desc err model =
+    { model | error = Just (desc ++ ": " ++ Data.errorToString err) }
+
+
+updateUsers : Model -> Cmd Msg
+updateUsers model =
+    User.list { onResponse = ApiRespList, token = model.auth.token }
+
+
+save : Model -> Shared.Model -> Shared.Model
+save model shared =
+    { shared
+        | error =
+            case model.error of
+                Nothing ->
+                    shared.error
+
+                Just _ ->
+                    model.error
+        , lastError =
+            case model.error of
+                Nothing ->
+                    shared.lastError
+
+                Just _ ->
+                    shared.now
+    }
+
+
+load : Shared.Model -> Model -> ( Model, Cmd Msg )
+load _ model =
+    ( { model | error = Nothing }, Cmd.none )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
     Sub.none
 
 
-view : Global.Model -> Model -> Document Msg
-view global model =
+
+-- VIEW
+
+
+view : Model -> Document Msg
+view model =
     { title = "SIOT Users"
     , body =
-        [ case global.auth of
-            Global.SignedIn sess ->
-                column
-                    [ width fill, spacing 32 ]
-                    [ el Style.h2 <| text "Users"
-                    , el [ padding 16, width fill, Font.bold ] <|
-                        Form.button "new user" Style.colors.blue NewUser
-                    , viewUsers sess.data.users model.userEdit
-                    ]
-
-            _ ->
-                el [ padding 16 ] <| text "Sign in to view users."
+        [ column
+            [ width fill, spacing 32 ]
+            [ el Style.h2 <| text "Users"
+            , el [ padding 16, width fill, Font.bold ] <|
+                Form.button
+                    { label = "new user"
+                    , color = Style.colors.blue
+                    , onPress = New
+                    }
+            , viewUsers model.users model.userEdit
+            ]
         ]
     }
 
 
-viewUsers : List U.User -> Maybe U.User -> Element Msg
+viewUsers : List User -> Maybe User -> Element Msg
 viewUsers users userEdit =
     column
         [ width fill
@@ -124,12 +257,12 @@ viewUsers users userEdit =
 
 
 type alias UserMod =
-    { user : U.User
+    { user : User
     , mod : Bool
     }
 
 
-mergeUserEdit : List U.User -> Maybe U.User -> List UserMod
+mergeUserEdit : List User -> Maybe User -> List UserMod
 mergeUserEdit users userEdit =
     case userEdit of
         Just edit ->
@@ -155,7 +288,7 @@ mergeUserEdit users userEdit =
             List.map (\u -> { user = u, mod = False }) users
 
 
-viewUser : Bool -> U.User -> Element Msg
+viewUser : Bool -> User -> Element Msg
 viewUser modded user =
     wrappedRow
         ([ width fill
@@ -167,14 +300,16 @@ viewUser modded user =
                     [ Background.color Style.colors.orange
                     , below <|
                         Form.buttonRow
-                            [ Form.button "discard"
-                                Style.colors.gray
-                              <|
-                                DiscardUserEdits
-                            , Form.button "save"
-                                Style.colors.blue
-                              <|
-                                PostUser user
+                            [ Form.button
+                                { label = "save"
+                                , color = Style.colors.blue
+                                , onPress = ApiUpdate user
+                                }
+                            , Form.button
+                                { label = "discard"
+                                , color = Style.colors.gray
+                                , onPress = DiscardEdits
+                                }
                             ]
                     ]
 
@@ -185,27 +320,27 @@ viewUser modded user =
         [ Form.viewTextProperty
             { name = "First name"
             , value = user.first
-            , action = \x -> EditUser { user | first = x }
+            , action = \x -> Edit { user | first = x }
             }
         , Form.viewTextProperty
             { name = "Last name"
             , value = user.last
-            , action = \x -> EditUser { user | last = x }
+            , action = \x -> Edit { user | last = x }
             }
         , Form.viewTextProperty
             { name = "Phone #"
             , value = user.phone
-            , action = \x -> EditUser { user | phone = x }
+            , action = \x -> Edit { user | phone = x }
             }
         , Form.viewTextProperty
             { name = "Email"
             , value = user.email
-            , action = \x -> EditUser { user | email = x }
+            , action = \x -> Edit { user | email = x }
             }
         , Form.viewTextProperty
             { name = "Password"
             , value = user.pass
-            , action = \x -> EditUser { user | pass = x }
+            , action = \x -> Edit { user | pass = x }
             }
-        , Icon.userX (DeleteUser user.id)
+        , Icon.userX (ApiDelete user.id)
         ]

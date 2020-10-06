@@ -1,137 +1,302 @@
-module Pages.Top exposing (Flags, Model, Msg, page)
+module Pages.Top exposing (Model, Msg, Params, page)
 
-import Data.Device as D
-import Data.Duration as Duration
-import Data.Iso8601 as Iso8601
-import Data.Point as P
+import Api.Auth exposing (Auth)
+import Api.Data as Data exposing (Data)
+import Api.Device as Dev
+import Api.Point as Point exposing (Point)
+import Api.Response exposing (Response)
+import Browser.Navigation exposing (Key)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
-import Global
-import Page exposing (Document, Page)
+import Http
+import Shared
+import Spa.Document exposing (Document)
+import Spa.Generated.Route as Route
+import Spa.Page as Page exposing (Page)
+import Spa.Url exposing (Url)
 import Task
 import Time
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors, size)
+import Utils.Duration as Duration
+import Utils.Iso8601 as Iso8601
+import Utils.Route
 
 
-type alias Flags =
+page : Page Params Model Msg
+page =
+    Page.application
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        , save = save
+        , load = load
+        }
+
+
+
+-- INIT
+
+
+type alias Params =
     ()
 
 
 type alias DeviceEdit =
     { id : String
-    , point : P.Point
+    , point : Point
     }
 
 
 type alias Model =
-    { deviceEdit : Maybe DeviceEdit
+    { key : Key
+    , deviceEdit : Maybe DeviceEdit
     , zone : Time.Zone
     , now : Time.Posix
+    , devices : List Dev.Device
+    , auth : Auth
+    , error : Maybe String
     }
 
 
+defaultModel : Key -> Model
+defaultModel key =
+    Model
+        key
+        Nothing
+        Time.utc
+        (Time.millisToPosix 0)
+        []
+        { email = "", token = "", isRoot = False }
+        Nothing
+
+
+init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
+init shared { key } =
+    let
+        model =
+            defaultModel key
+    in
+    case shared.auth of
+        Just auth ->
+            ( { model | auth = auth }
+            , Cmd.batch
+                [ Task.perform Zone Time.here
+                , Task.perform Tick Time.now
+                , Dev.list { onResponse = ApiRespList, token = auth.token }
+                ]
+            )
+
+        Nothing ->
+            -- this is not ever used as site is redirected at high levels to sign-in
+            ( model
+            , Utils.Route.navigate shared.key Route.SignIn
+            )
+
+
+
+-- UPDATE
+
+
 type Msg
-    = EditDeviceDescription String String
-    | PostPoint String P.Point
-    | DiscardEditedDeviceDescription
-    | DeleteDevice String
-    | Tick Time.Posix
+    = Tick Time.Posix
     | Zone Time.Zone
+    | EditDeviceDescription String String
+    | DiscardEditedDeviceDescription
+    | ApiDelete String
+    | ApiPostPoint String Point
+    | ApiRespList (Data (List Dev.Device))
+    | ApiRespDelete (Data Response)
+    | ApiRespPostPoint (Data Response)
 
 
-page : Page Flags Model Msg
-page =
-    Page.component
-        { init = init
-        , update = update
-        , subscriptions = subscriptions
-        , view = view
-        }
-
-
-init : Global.Model -> Flags -> ( Model, Cmd Msg, Cmd Global.Msg )
-init _ _ =
-    ( Model Nothing Time.utc (Time.millisToPosix 0)
-    , Cmd.batch [ Task.perform Zone Time.here, Task.perform Tick Time.now ]
-    , Cmd.none
-    )
-
-
-update : Global.Model -> Msg -> Model -> ( Model, Cmd Msg, Cmd Global.Msg )
-update global msg model =
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     case msg of
         EditDeviceDescription id description ->
             ( { model
                 | deviceEdit =
                     Just
                         { id = id
-                        , point = P.newText "" P.typeDescription description
+                        , point = Point.newText "" Point.typeDescription description
                         }
               }
             , Cmd.none
-            , Cmd.none
             )
 
-        PostPoint id point ->
-            ( { model | deviceEdit = Nothing }
-            , Cmd.none
-            , Global.send <| Global.UpdateDevicePoint id point
+        ApiPostPoint id point ->
+            let
+                -- optimistically update devices
+                devices =
+                    List.map
+                        (\d ->
+                            if d.id == id then
+                                { d | points = Point.updatePoint d.points point }
+
+                            else
+                                d
+                        )
+                        model.devices
+            in
+            ( { model | deviceEdit = Nothing, devices = devices }
+            , Dev.postPoint
+                { token = model.auth.token
+                , id = id
+                , point = point
+                , onResponse = ApiRespPostPoint
+                }
             )
 
         DiscardEditedDeviceDescription ->
             ( { model | deviceEdit = Nothing }
             , Cmd.none
-            , Cmd.none
             )
 
-        DeleteDevice id ->
-            ( model, Cmd.none, Global.send <| Global.DeleteDevice id )
+        ApiDelete id ->
+            -- optimistically update devices
+            let
+                devices =
+                    List.filter (\d -> d.id /= id) model.devices
+            in
+            ( { model | devices = devices }
+            , Dev.delete { token = model.auth.token, id = id, onResponse = ApiRespDelete }
+            )
 
         Zone zone ->
-            ( { model | zone = zone }, Cmd.none, Cmd.none )
+            ( { model | zone = zone }, Cmd.none )
 
         Tick now ->
             ( { model | now = now }
-            , Cmd.none
-            , case global.auth of
-                Global.SignedIn _ ->
-                    Global.send Global.RequestDevices
-
-                Global.SignedOut _ ->
-                    Cmd.none
+            , updateDevices model
             )
 
+        ApiRespList devices ->
+            case devices of
+                Data.Success d ->
+                    ( { model | devices = d }, Cmd.none )
 
-subscriptions : Global.Model -> Model -> Sub Msg
-subscriptions _ _ =
+                Data.Failure err ->
+                    let
+                        signOut =
+                            case err of
+                                Http.BadStatus code ->
+                                    code == 401
+
+                                _ ->
+                                    False
+                    in
+                    if signOut then
+                        ( { model | error = Just "Signed Out" }
+                        , Utils.Route.navigate model.key Route.SignIn
+                        )
+
+                    else
+                        ( popError "Error getting devices" err model
+                        , Cmd.none
+                        )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ApiRespDelete resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model
+                    , updateDevices model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error deleting device" err model
+                    , updateDevices model
+                    )
+
+                _ ->
+                    ( model
+                    , updateDevices model
+                    )
+
+        ApiRespPostPoint resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model
+                    , updateDevices model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error posting point" err model
+                    , updateDevices model
+                    )
+
+                _ ->
+                    ( model
+                    , updateDevices model
+                    )
+
+
+popError : String -> Http.Error -> Model -> Model
+popError desc err model =
+    { model | error = Just (desc ++ ": " ++ Data.errorToString err) }
+
+
+updateDevices : Model -> Cmd Msg
+updateDevices model =
+    Dev.list { onResponse = ApiRespList, token = model.auth.token }
+
+
+save : Model -> Shared.Model -> Shared.Model
+save model shared =
+    { shared
+        | error =
+            case model.error of
+                Nothing ->
+                    shared.error
+
+                Just _ ->
+                    model.error
+        , lastError =
+            case model.error of
+                Nothing ->
+                    shared.lastError
+
+                Just _ ->
+                    shared.now
+    }
+
+
+load : Shared.Model -> Model -> ( Model, Cmd Msg )
+load shared model =
+    ( { model | key = shared.key, error = Nothing }, Cmd.none )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
     Sub.batch
         [ Time.every 5000 Tick
         ]
 
 
-view : Global.Model -> Model -> Document Msg
-view global model =
+
+-- VIEW
+
+
+view : Model -> Document Msg
+view model =
     { title = "SIOT Devices"
     , body =
         [ column
             [ width fill, spacing 32 ]
             [ el Style.h2 <| text "Devices"
-            , case global.auth of
-                Global.SignedIn sess ->
-                    viewDevices sess.data.devices model sess.isRoot
-
-                _ ->
-                    el [ padding 16 ] <| text "Sign in to view your devices."
+            , viewDevices model
             ]
         ]
     }
 
 
-viewDevices : List D.Device -> Model -> Bool -> Element Msg
-viewDevices devices model isRoot =
+viewDevices : Model -> Element Msg
+viewDevices model =
     column
         [ width fill
         , spacing 24
@@ -139,19 +304,19 @@ viewDevices devices model isRoot =
     <|
         List.map
             (\d ->
-                viewDevice model d.mod d.device isRoot
+                viewDevice model d.mod d.device
             )
         <|
-            mergeDeviceEdit devices model.deviceEdit
+            mergeDeviceEdit model.devices model.deviceEdit
 
 
 type alias DeviceMod =
-    { device : D.Device
+    { device : Dev.Device
     , mod : Bool
     }
 
 
-mergeDeviceEdit : List D.Device -> Maybe DeviceEdit -> List DeviceMod
+mergeDeviceEdit : List Dev.Device -> Maybe DeviceEdit -> List DeviceMod
 mergeDeviceEdit devices devConfigEdit =
     case devConfigEdit of
         Just edit ->
@@ -159,7 +324,7 @@ mergeDeviceEdit devices devConfigEdit =
                 (\d ->
                     if edit.id == d.id then
                         { device =
-                            { d | points = P.updatePoint d.points edit.point }
+                            { d | points = Point.updatePoint d.points edit.point }
                         , mod = True
                         }
 
@@ -172,11 +337,11 @@ mergeDeviceEdit devices devConfigEdit =
             List.map (\d -> { device = d, mod = False }) devices
 
 
-viewDevice : Model -> Bool -> D.Device -> Bool -> Element Msg
-viewDevice model modified device isRoot =
+viewDevice : Model -> Bool -> Dev.Device -> Element Msg
+viewDevice model modified device =
     let
         sysState =
-            case P.getPoint device.points "" P.typeSysState 0 of
+            case Point.getPoint device.points "" Point.typeSysState 0 of
                 Just point ->
                     round point.value
 
@@ -207,7 +372,7 @@ viewDevice model modified device isRoot =
                     Style.colors.gray
 
         hwVersion =
-            case P.getPoint device.points "" P.typeHwVersion 0 of
+            case Point.getPoint device.points "" Point.typeHwVersion 0 of
                 Just point ->
                     point.text
 
@@ -215,7 +380,7 @@ viewDevice model modified device isRoot =
                     "?"
 
         osVersion =
-            case P.getPoint device.points "" P.typeOSVersion 0 of
+            case Point.getPoint device.points "" Point.typeOSVersion 0 of
                 Just point ->
                     point.text
 
@@ -223,7 +388,7 @@ viewDevice model modified device isRoot =
                     "?"
 
         appVersion =
-            case P.getPoint device.points "" P.typeAppVersion 0 of
+            case Point.getPoint device.points "" Point.typeAppVersion 0 of
                 Just point ->
                     point.text
 
@@ -231,7 +396,7 @@ viewDevice model modified device isRoot =
                     "?"
 
         latestPointTime =
-            case P.getLatest device.points of
+            case Point.getLatest device.points of
                 Just point ->
                     point.time
 
@@ -248,27 +413,27 @@ viewDevice model modified device isRoot =
         [ wrappedRow [ spacing 10 ]
             [ sysStateIcon
             , viewDeviceId device.id
-            , if isRoot then
-                Icon.x (DeleteDevice device.id)
+            , if model.auth.isRoot then
+                Icon.x (ApiDelete device.id)
 
               else
                 Element.none
             , Input.text
                 [ Background.color background ]
                 { onChange = \d -> EditDeviceDescription device.id d
-                , text = D.description device
+                , text = Dev.description device
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
                 , label = Input.labelHidden "device description"
                 }
             , if modified then
                 Icon.check
-                    (PostPoint device.id
-                        { typ = P.typeDescription
+                    (ApiPostPoint device.id
+                        { typ = Point.typeDescription
                         , id = ""
                         , index = 0
                         , time = model.now
                         , value = 0
-                        , text = D.description device
+                        , text = Dev.description device
                         , min = 0
                         , max = 0
                         }
@@ -312,11 +477,11 @@ viewDeviceId id =
         text id
 
 
-viewPoints : List P.Point -> Element Msg
+viewPoints : List Point.Point -> Element Msg
 viewPoints ios =
     column
         [ padding 16
         , spacing 6
         ]
     <|
-        List.map (P.renderPoint >> text) ios
+        List.map (Point.renderPoint >> text) ios

@@ -6,18 +6,19 @@ import UI.Style as Style
 
 
 view :
-    { onPress : Maybe msg
+    { color : Color
+    , onPress : Maybe msg
     , label : Element msg
     }
     -> Element msg
-view config =
+view options =
     Input.button
-        ((if config.onPress == Nothing then
+        ((if options.onPress == Nothing then
             alpha 0.6
 
           else
             alpha 1
          )
-            :: Style.button
+            :: Style.button options.color
         )
-        config
+        { onPress = options.onPress, label = options.label }
