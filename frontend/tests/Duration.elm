@@ -1,8 +1,8 @@
 module Duration exposing (all)
 
-import Data.Duration as Duration
 import Expect
 import Test exposing (..)
+import Utils.Duration as Duration
 
 
 all : Test
