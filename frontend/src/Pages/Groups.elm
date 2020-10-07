@@ -2,8 +2,8 @@ module Pages.Groups exposing (Model, Msg, Params, page)
 
 import Api.Auth exposing (Auth)
 import Api.Data as Data exposing (Data)
-import Api.Device as Dev
 import Api.Group as Group exposing (Group)
+import Api.Node as Node exposing (Node)
 import Api.Response exposing (Response)
 import Api.User as User exposing (User)
 import Element exposing (..)
@@ -47,13 +47,13 @@ type alias Model =
     { auth : Auth
     , groupEdit : Maybe Group
     , newUser : Maybe NewUser
-    , newDevice : Maybe NewDevice
+    , newNode : Maybe NewNode
     , error : Maybe String
     , groups : List Group
-    , devices : List Dev.Device
+    , nodes : List Node
     , users : List User
     , newGroupUserFound : Maybe User
-    , newGroupDeviceFound : Maybe Dev.Device
+    , newGroupNodeFound : Maybe Node
     }
 
 
@@ -62,13 +62,13 @@ defaultModel =
     { auth = { email = "", token = "", isRoot = False }
     , groupEdit = Nothing
     , newUser = Nothing
-    , newDevice = Nothing
+    , newNode = Nothing
     , error = Nothing
     , groups = []
-    , devices = []
+    , nodes = []
     , users = []
     , newGroupUserFound = Nothing
-    , newGroupDeviceFound = Nothing
+    , newGroupNodeFound = Nothing
     }
 
 
@@ -78,9 +78,9 @@ type alias NewUser =
     }
 
 
-type alias NewDevice =
+type alias NewNode =
     { groupId : String
-    , deviceId : String
+    , nodeId : String
     }
 
 
@@ -95,7 +95,7 @@ init shared _ =
             ( model
             , Cmd.batch
                 [ User.list { token = auth.token, onResponse = ApiRespUserList }
-                , Dev.list { token = auth.token, onResponse = ApiRespDeviceList }
+                , Node.list { token = auth.token, onResponse = ApiRespNodeList }
                 , Group.list { token = auth.token, onResponse = ApiRespList }
                 ]
             )
@@ -117,23 +117,23 @@ type Msg
     | AddUser String
     | CancelAddUser
     | EditNewUser String
-    | AddDevice String
-    | CancelAddDevice
-    | EditNewDevice String
+    | AddNode String
+    | CancelAddNode
+    | EditNewNode String
     | ApiUpdate Group
     | ApiDelete String
-    | ApiNewDevice String String
-    | ApiRemoveDevice String String
+    | ApiNewNode String String
+    | ApiRemoveNode String String
     | ApiNewUser Group String
     | ApiRemoveUser Group String
     | ApiRespUpdate (Data Response)
     | ApiRespDelete (Data Response)
-    | ApiRespNewDevice (Data Response)
+    | ApiRespNewNode (Data Response)
     | ApiRespUserList (Data (List User))
-    | ApiRespDeviceList (Data (List Dev.Device))
+    | ApiRespNodeList (Data (List Node))
     | ApiRespList (Data (List Group))
     | ApiRespGetUserByEmail (Data User)
-    | ApiRespGetDeviceById (Data Dev.Device)
+    | ApiRespGetNodeById (Data Node)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -181,27 +181,27 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
-        AddDevice groupId ->
+        AddNode groupId ->
             ( { model
-                | newDevice = Just { groupId = groupId, deviceId = "" }
-                , newGroupDeviceFound = Nothing
+                | newNode = Just { groupId = groupId, nodeId = "" }
+                , newGroupNodeFound = Nothing
               }
             , Cmd.none
             )
 
-        CancelAddDevice ->
-            ( { model | newDevice = Nothing }
+        CancelAddNode ->
+            ( { model | newNode = Nothing }
             , Cmd.none
             )
 
-        EditNewDevice deviceId ->
-            case model.newDevice of
-                Just newDevice ->
-                    ( { model | newDevice = Just { newDevice | deviceId = deviceId } }
-                    , Dev.get
+        EditNewNode nodeId ->
+            case model.newNode of
+                Just newNode ->
+                    ( { model | newNode = Just { newNode | nodeId = nodeId } }
+                    , Node.get
                         { token = model.auth.token
-                        , id = deviceId
-                        , onResponse = ApiRespGetDeviceById
+                        , id = nodeId
+                        , onResponse = ApiRespGetNodeById
                         }
                     )
 
@@ -312,84 +312,84 @@ update msg model =
                 }
             )
 
-        ApiRemoveDevice deviceId groupId ->
+        ApiRemoveNode nodeId groupId ->
             case
-                List.Extra.find (\d -> d.id == deviceId) model.devices
+                List.Extra.find (\d -> d.id == nodeId) model.nodes
             of
-                Just device ->
+                Just node ->
                     let
                         groups =
                             List.filter (\o -> o /= groupId)
-                                device.groups
+                                node.groups
 
-                        -- optimistically update devices
-                        updatedDevice =
-                            { device | groups = groups }
+                        -- optimistically update nodes
+                        updatedNode =
+                            { node | groups = groups }
 
-                        devices =
+                        nodes =
                             List.map
                                 (\d ->
-                                    if d.id == device.id then
-                                        updatedDevice
+                                    if d.id == node.id then
+                                        updatedNode
 
                                     else
                                         d
                                 )
-                                model.devices
+                                model.nodes
                     in
-                    ( { model | devices = devices }
-                    , Dev.postGroups
+                    ( { model | nodes = nodes }
+                    , Node.postGroups
                         { token = model.auth.token
-                        , id = device.id
+                        , id = node.id
                         , groups = groups
-                        , onResponse = ApiRespNewDevice
+                        , onResponse = ApiRespNewNode
                         }
                     )
 
                 Nothing ->
                     ( model, Cmd.none )
 
-        ApiNewDevice groupId deviceId ->
+        ApiNewNode groupId nodeId ->
             case
-                List.Extra.find (\d -> d.id == deviceId)
-                    model.devices
+                List.Extra.find (\d -> d.id == nodeId)
+                    model.nodes
             of
-                Just device ->
+                Just node ->
                     let
                         groups =
                             case
                                 List.Extra.find (\o -> o == groupId)
-                                    device.groups
+                                    node.groups
                             of
                                 Just _ ->
-                                    device.groups
+                                    node.groups
 
                                 Nothing ->
-                                    groupId :: device.groups
+                                    groupId :: node.groups
 
-                        -- optimistically update devices
-                        devices =
+                        -- optimistically update nodes
+                        nodes =
                             List.map
                                 (\d ->
-                                    if d.id == device.id then
+                                    if d.id == node.id then
                                         { d | groups = groups }
 
                                     else
                                         d
                                 )
-                                model.devices
+                                model.nodes
                     in
-                    ( { model | newDevice = Nothing, devices = devices }
-                    , Dev.postGroups
+                    ( { model | newNode = Nothing, nodes = nodes }
+                    , Node.postGroups
                         { token = model.auth.token
-                        , id = device.id
+                        , id = node.id
                         , groups = groups
-                        , onResponse = ApiRespNewDevice
+                        , onResponse = ApiRespNewNode
                         }
                     )
 
                 Nothing ->
-                    ( { model | newDevice = Nothing }, Cmd.none )
+                    ( { model | newNode = Nothing }, Cmd.none )
 
         ApiRespUpdate resp ->
             case resp of
@@ -423,7 +423,7 @@ update msg model =
                     , Group.list { token = model.auth.token, onResponse = ApiRespList }
                     )
 
-        ApiRespNewDevice _ ->
+        ApiRespNewNode _ ->
             ( model, Cmd.none )
 
         ApiRespUserList resp ->
@@ -437,13 +437,13 @@ update msg model =
                 _ ->
                     ( model, Cmd.none )
 
-        ApiRespDeviceList resp ->
+        ApiRespNodeList resp ->
             case resp of
-                Data.Success devices ->
-                    ( { model | devices = devices }, Cmd.none )
+                Data.Success nodes ->
+                    ( { model | nodes = nodes }, Cmd.none )
 
                 Data.Failure err ->
-                    ( popError "Error getting devices" err model, Cmd.none )
+                    ( popError "Error getting nodes" err model, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
@@ -467,13 +467,13 @@ update msg model =
                 _ ->
                     ( { model | newGroupUserFound = Nothing }, Cmd.none )
 
-        ApiRespGetDeviceById resp ->
+        ApiRespGetNodeById resp ->
             case resp of
                 Data.Success d ->
-                    ( { model | newGroupDeviceFound = Just d }, Cmd.none )
+                    ( { model | newGroupNodeFound = Just d }, Cmd.none )
 
                 _ ->
-                    ( { model | newGroupDeviceFound = Nothing }, Cmd.none )
+                    ( { model | newGroupNodeFound = Nothing }, Cmd.none )
 
 
 popError : String -> Http.Error -> Model -> Model
@@ -580,7 +580,7 @@ mergeGroupEdit groups groupEdit =
 viewGroup : Model -> Bool -> Group -> Element Msg
 viewGroup model modded group =
     let
-        devices =
+        nodes =
             List.filter
                 (\d ->
                     case List.Extra.find (\groupId -> group.id == groupId) d.groups of
@@ -590,7 +590,7 @@ viewGroup model modded group =
                         Nothing ->
                             False
                 )
-                model.devices
+                model.nodes
     in
     column
         ([ width fill
@@ -669,30 +669,30 @@ viewGroup model modded group =
                 Element.none
         , viewUsers group model.users
         , row []
-            [ el [ padding 16, Font.italic, Font.color Style.colors.gray ] <| text "Devices"
-            , case model.newDevice of
-                Just newDevice ->
-                    if newDevice.groupId == group.id then
-                        Icon.x CancelAddDevice
+            [ el [ padding 16, Font.italic, Font.color Style.colors.gray ] <| text "Nodes"
+            , case model.newNode of
+                Just newNode ->
+                    if newNode.groupId == group.id then
+                        Icon.x CancelAddNode
 
                     else
-                        Icon.plus (AddDevice group.id)
+                        Icon.plus (AddNode group.id)
 
                 Nothing ->
-                    Icon.plus (AddDevice group.id)
+                    Icon.plus (AddNode group.id)
             ]
-        , case model.newDevice of
+        , case model.newNode of
             Just nd ->
                 if nd.groupId == group.id then
                     row []
                         [ Form.viewTextProperty
-                            { name = "Enter new device ID"
-                            , value = nd.deviceId
-                            , action = \x -> EditNewDevice x
+                            { name = "Enter new node ID"
+                            , value = nd.nodeId
+                            , action = \x -> EditNewNode x
                             }
-                        , case model.newGroupDeviceFound of
+                        , case model.newGroupNodeFound of
                             Just dev ->
-                                Icon.plus (ApiNewDevice group.id dev.id)
+                                Icon.plus (ApiNewNode group.id dev.id)
 
                             Nothing ->
                                 Element.none
@@ -703,7 +703,7 @@ viewGroup model modded group =
 
             Nothing ->
                 Element.none
-        , viewDevices group devices
+        , viewNodes group nodes
         ]
 
 
@@ -733,8 +733,8 @@ viewUsers group users =
         )
 
 
-viewDevices : Group -> List Dev.Device -> Element Msg
-viewDevices group devices =
+viewNodes : Group -> List Node -> Element Msg
+viewNodes group nodes =
     column [ spacing 6, paddingEach { top = 0, right = 16, bottom = 0, left = 32 } ]
         (List.map
             (\d ->
@@ -743,10 +743,10 @@ viewDevices group devices =
                         ("("
                             ++ d.id
                             ++ ") "
-                            ++ Dev.description d
+                            ++ Node.description d
                         )
-                    , Icon.x (ApiRemoveDevice d.id group.id)
+                    , Icon.x (ApiRemoveNode d.id group.id)
                     ]
             )
-            devices
+            nodes
         )

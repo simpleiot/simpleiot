@@ -2,7 +2,7 @@ module Pages.Top exposing (Model, Msg, Params, page)
 
 import Api.Auth exposing (Auth)
 import Api.Data as Data exposing (Data)
-import Api.Device as Dev
+import Api.Node as Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
@@ -45,7 +45,7 @@ type alias Params =
     ()
 
 
-type alias DeviceEdit =
+type alias NodeEdit =
     { id : String
     , point : Point
     }
@@ -53,10 +53,10 @@ type alias DeviceEdit =
 
 type alias Model =
     { key : Key
-    , deviceEdit : Maybe DeviceEdit
+    , deviceEdit : Maybe NodeEdit
     , zone : Time.Zone
     , now : Time.Posix
-    , devices : List Dev.Device
+    , devices : List Node
     , auth : Auth
     , error : Maybe String
     }
@@ -86,7 +86,7 @@ init shared { key } =
             , Cmd.batch
                 [ Task.perform Zone Time.here
                 , Task.perform Tick Time.now
-                , Dev.list { onResponse = ApiRespList, token = auth.token }
+                , Node.list { onResponse = ApiRespList, token = auth.token }
                 ]
             )
 
@@ -104,11 +104,11 @@ init shared { key } =
 type Msg
     = Tick Time.Posix
     | Zone Time.Zone
-    | EditDeviceDescription String String
-    | DiscardEditedDeviceDescription
+    | EditNodeDescription String String
+    | DiscardEditedNodeDescription
     | ApiDelete String
     | ApiPostPoint String Point
-    | ApiRespList (Data (List Dev.Device))
+    | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
 
@@ -116,7 +116,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        EditDeviceDescription id description ->
+        EditNodeDescription id description ->
             ( { model
                 | deviceEdit =
                     Just
@@ -142,7 +142,7 @@ update msg model =
                         model.devices
             in
             ( { model | deviceEdit = Nothing, devices = devices }
-            , Dev.postPoint
+            , Node.postPoint
                 { token = model.auth.token
                 , id = id
                 , point = point
@@ -150,7 +150,7 @@ update msg model =
                 }
             )
 
-        DiscardEditedDeviceDescription ->
+        DiscardEditedNodeDescription ->
             ( { model | deviceEdit = Nothing }
             , Cmd.none
             )
@@ -162,7 +162,7 @@ update msg model =
                     List.filter (\d -> d.id /= id) model.devices
             in
             ( { model | devices = devices }
-            , Dev.delete { token = model.auth.token, id = id, onResponse = ApiRespDelete }
+            , Node.delete { token = model.auth.token, id = id, onResponse = ApiRespDelete }
             )
 
         Zone zone ->
@@ -170,7 +170,7 @@ update msg model =
 
         Tick now ->
             ( { model | now = now }
-            , updateDevices model
+            , updateNodes model
             )
 
         ApiRespList devices ->
@@ -205,34 +205,34 @@ update msg model =
             case resp of
                 Data.Success _ ->
                     ( model
-                    , updateDevices model
+                    , updateNodes model
                     )
 
                 Data.Failure err ->
                     ( popError "Error deleting device" err model
-                    , updateDevices model
+                    , updateNodes model
                     )
 
                 _ ->
                     ( model
-                    , updateDevices model
+                    , updateNodes model
                     )
 
         ApiRespPostPoint resp ->
             case resp of
                 Data.Success _ ->
                     ( model
-                    , updateDevices model
+                    , updateNodes model
                     )
 
                 Data.Failure err ->
                     ( popError "Error posting point" err model
-                    , updateDevices model
+                    , updateNodes model
                     )
 
                 _ ->
                     ( model
-                    , updateDevices model
+                    , updateNodes model
                     )
 
 
@@ -241,9 +241,9 @@ popError desc err model =
     { model | error = Just (desc ++ ": " ++ Data.errorToString err) }
 
 
-updateDevices : Model -> Cmd Msg
-updateDevices model =
-    Dev.list { onResponse = ApiRespList, token = model.auth.token }
+updateNodes : Model -> Cmd Msg
+updateNodes model =
+    Node.list { onResponse = ApiRespList, token = model.auth.token }
 
 
 save : Model -> Shared.Model -> Shared.Model
@@ -284,19 +284,19 @@ subscriptions _ =
 
 view : Model -> Document Msg
 view model =
-    { title = "SIOT Devices"
+    { title = "SIOT Nodes"
     , body =
         [ column
             [ width fill, spacing 32 ]
-            [ el Style.h2 <| text "Devices"
-            , viewDevices model
+            [ el Style.h2 <| text "Nodes"
+            , viewNodes model
             ]
         ]
     }
 
 
-viewDevices : Model -> Element Msg
-viewDevices model =
+viewNodes : Model -> Element Msg
+viewNodes model =
     column
         [ width fill
         , spacing 24
@@ -304,20 +304,20 @@ viewDevices model =
     <|
         List.map
             (\d ->
-                viewDevice model d.mod d.device
+                viewNode model d.mod d.device
             )
         <|
-            mergeDeviceEdit model.devices model.deviceEdit
+            mergeNodeEdit model.devices model.deviceEdit
 
 
-type alias DeviceMod =
-    { device : Dev.Device
+type alias NodeMod =
+    { device : Node
     , mod : Bool
     }
 
 
-mergeDeviceEdit : List Dev.Device -> Maybe DeviceEdit -> List DeviceMod
-mergeDeviceEdit devices devConfigEdit =
+mergeNodeEdit : List Node -> Maybe NodeEdit -> List NodeMod
+mergeNodeEdit devices devConfigEdit =
     case devConfigEdit of
         Just edit ->
             List.map
@@ -337,8 +337,8 @@ mergeDeviceEdit devices devConfigEdit =
             List.map (\d -> { device = d, mod = False }) devices
 
 
-viewDevice : Model -> Bool -> Dev.Device -> Element Msg
-viewDevice model modified device =
+viewNode : Model -> Bool -> Node -> Element Msg
+viewNode model modified device =
     let
         sysState =
             case Point.getPoint device.points "" Point.typeSysState 0 of
@@ -350,7 +350,7 @@ viewDevice model modified device =
 
         sysStateIcon =
             case sysState of
-                -- not sure why I can't use defines in Device.elm here
+                -- not sure why I can't use defines in Node.elm here
                 1 ->
                     Icon.power
 
@@ -412,7 +412,7 @@ viewDevice model modified device =
         ]
         [ wrappedRow [ spacing 10 ]
             [ sysStateIcon
-            , viewDeviceId device.id
+            , viewNodeId device.id
             , if model.auth.isRoot then
                 Icon.x (ApiDelete device.id)
 
@@ -420,8 +420,8 @@ viewDevice model modified device =
                 Element.none
             , Input.text
                 [ Background.color background ]
-                { onChange = \d -> EditDeviceDescription device.id d
-                , text = Dev.description device
+                { onChange = \d -> EditNodeDescription device.id d
+                , text = Node.description device
                 , placeholder = Just <| Input.placeholder [] <| text "device description"
                 , label = Input.labelHidden "device description"
                 }
@@ -433,7 +433,7 @@ viewDevice model modified device =
                         , index = 0
                         , time = model.now
                         , value = 0
-                        , text = Dev.description device
+                        , text = Node.description device
                         , min = 0
                         , max = 0
                         }
@@ -442,7 +442,7 @@ viewDevice model modified device =
               else
                 Element.none
             , if modified then
-                Icon.x DiscardEditedDeviceDescription
+                Icon.x DiscardEditedNodeDescription
 
               else
                 Element.none
@@ -467,8 +467,8 @@ viewDevice model modified device =
         ]
 
 
-viewDeviceId : String -> Element Msg
-viewDeviceId id =
+viewNodeId : String -> Element Msg
+viewNodeId id =
     el
         [ padding 16
         , size.heading

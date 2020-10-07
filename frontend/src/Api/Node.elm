@@ -1,5 +1,5 @@
-module Api.Device exposing
-    ( Device
+module Api.Node exposing
+    ( Node
     , delete
     , description
     , get
@@ -38,35 +38,35 @@ sysStateOnline =
     3
 
 
-type alias Device =
+type alias Node =
     { id : String
     , points : List Point
     , groups : List String
     }
 
 
-type alias DeviceCmd =
+type alias NodeCmd =
     { cmd : String
     , detail : String
     }
 
 
-decodeList : Decode.Decoder (List Device)
+decodeList : Decode.Decoder (List Node)
 decodeList =
     Decode.list decode
 
 
-decode : Decode.Decoder Device
+decode : Decode.Decoder Node
 decode =
-    Decode.succeed Device
+    Decode.succeed Node
         |> required "id" Decode.string
         |> optional "points" (Decode.list Point.decode) []
         |> optional "groups" (Decode.list Decode.string) []
 
 
-decodeCmd : Decode.Decoder DeviceCmd
+decodeCmd : Decode.Decoder NodeCmd
 decodeCmd =
-    Decode.succeed DeviceCmd
+    Decode.succeed NodeCmd
         |> required "cmd" Decode.string
         |> optional "detail" Decode.string ""
 
@@ -76,15 +76,15 @@ encodeGroups groups =
     Encode.list Encode.string groups
 
 
-encodeDeviceCmd : DeviceCmd -> Encode.Value
-encodeDeviceCmd cmd =
+encodeNodeCmd : NodeCmd -> Encode.Value
+encodeNodeCmd cmd =
     Encode.object
         [ ( "cmd", Encode.string cmd.cmd )
         , ( "detail", Encode.string cmd.detail )
         ]
 
 
-description : Device -> String
+description : Node -> String
 description d =
     case Point.getPoint d.points "" Point.typeDescription 0 of
         Just point ->
@@ -96,14 +96,14 @@ description d =
 
 list :
     { token : String
-    , onResponse : Data (List Device) -> msg
+    , onResponse : Data (List Node) -> msg
     }
     -> Cmd msg
 list options =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "devices" ] []
+        , url = Url.Builder.absolute [ "v1", "nodes" ] []
         , expect = Api.Data.expectJson options.onResponse decodeList
         , body = Http.emptyBody
         , timeout = Nothing
@@ -114,14 +114,14 @@ list options =
 get :
     { token : String
     , id : String
-    , onResponse : Data Device -> msg
+    , onResponse : Data Node -> msg
     }
     -> Cmd msg
 get options =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "devices", options.id ] []
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id ] []
         , expect = Api.Data.expectJson options.onResponse decode
         , body = Http.emptyBody
         , timeout = Nothing
@@ -132,14 +132,14 @@ get options =
 getCmd :
     { token : String
     , id : String
-    , onResponse : Data DeviceCmd -> msg
+    , onResponse : Data NodeCmd -> msg
     }
     -> Cmd msg
 getCmd options =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "devices", options.id, "cmd" ] []
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "cmd" ] []
         , expect = Api.Data.expectJson options.onResponse decodeCmd
         , body = Http.emptyBody
         , timeout = Nothing
@@ -157,7 +157,7 @@ delete options =
     Http.request
         { method = "DELETE"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "devices", options.id ] []
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body = Http.emptyBody
         , timeout = Nothing
@@ -176,7 +176,7 @@ postGroups options =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "devices", options.id, "groups" ] []
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "groups" ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body = options.groups |> encodeGroups |> Http.jsonBody
         , timeout = Nothing
@@ -187,7 +187,7 @@ postGroups options =
 postCmd :
     { token : String
     , id : String
-    , cmd : DeviceCmd
+    , cmd : NodeCmd
     , onResponse : Data Response -> msg
     }
     -> Cmd msg
@@ -195,9 +195,9 @@ postCmd options =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "devices", options.id, "cmd" ] []
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "cmd" ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
-        , body = options.cmd |> encodeDeviceCmd |> Http.jsonBody
+        , body = options.cmd |> encodeNodeCmd |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -214,7 +214,7 @@ postPoint options =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "devices", options.id, "points" ] []
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "points" ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body = [ options.point ] |> Point.encodeList |> Http.jsonBody
         , timeout = Nothing
