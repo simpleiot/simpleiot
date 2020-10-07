@@ -49,6 +49,30 @@ examples of running tests:
 The leading `./` is important, otherwise Go things you are giving it a package
 name, not a directory. The `...` tells Go to recursively test all subdirs.
 
+## Device communication and messaging
+
+This project is moving toward using NATS.io for messaging. Some reasons:
+
+- allows us to [push realtime data](https://youtu.be/REZ6DKvRVv0) to an edge
+  device behind a NAT, on cellular network, etc -- no public IP address, VPN,
+  etc required.
+- is more efficient than HTTP as it shares one persistent TCP connection for all
+  messages. The overhead and architecture is similar to MQTT, which is proven to
+  be a good IoT solution. It may also use less resources than something like
+  observing resources is CoAP systems, where each observation requires a
+  separate persistent connection.
+- can scale out with multiple servers to provide redundancy or more capacity.
+- is written in Go, so possible to embed the server to make deployments simpler
+  for small systems. Also, Go services are easy to manage as there are no
+  dependencies.
+- focus on simplicity -- values fit this project.
+- good security model.
+
+For systems that only need to send one value several times a day, CoAP is
+probably a better solution than NATS. Initially we are focusing on systems that
+send more data -- perhaps 5-30MB/month. There is no reason we can't support CoAP
+as well in the future.
+
 ## Flexible data structures
 
 As we work on IoT systems, data structures (types) tend to emerge. Common data
