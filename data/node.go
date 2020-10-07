@@ -6,34 +6,15 @@ import (
 	"github.com/google/uuid"
 )
 
-// DeviceConfig represents a device configuration (stuff that
-// is set by user in UI)
-type DeviceConfig struct {
-	Description string `json:"description"`
-}
-
-// SysState defines the system state
-type SysState int
-
-// define valid system states
 // don't even think about changing the below as it used
 // in communications -- add new numbers
 // if something needs changed/added.
 const (
-	SysStateUnknown  SysState = 0
-	SysStatePowerOff          = 1
-	SysStateOffline           = 2
-	SysStateOnline            = 3
+	SysStateUnknown  int = 0
+	SysStatePowerOff     = 1
+	SysStateOffline      = 2
+	SysStateOnline       = 3
 )
-
-// DeviceState represents information about a device that is
-// collected, vs set by user.
-type DeviceState struct {
-	Version  DeviceVersion `json:"version"`
-	Ios      []Sample      `json:"ios"`
-	LastComm time.Time     `json:"lastComm"`
-	SysState SysState      `json:"sysState"`
-}
 
 // SwUpdateState represents the state of an update
 type SwUpdateState struct {
@@ -42,12 +23,12 @@ type SwUpdateState struct {
 	PercentDone int    `json:"percentDone"`
 }
 
-// Device represents the state of a device. UUID is recommended
+// Node represents the state of a device. UUID is recommended
 // for ID. Parents is a list of devices this device is a child of. If
 // Parents has a length of zero, this indicates it is a top level device.
 // Groups and Rules likewise list groups and rules this device
 // belongs to.
-type Device struct {
+type Node struct {
 	ID      string      `json:"id" boltholdKey:"ID"`
 	Points  Points      `json:"points"`
 	Parents []string    `json:"devices"`
@@ -56,7 +37,7 @@ type Device struct {
 }
 
 // Desc returns Description if set, otherwise ID
-func (d *Device) Desc() string {
+func (d *Node) Desc() string {
 	desc, ok := d.Points.Text("", PointTypeDescription, 0)
 	if ok && desc != "" {
 		return desc
@@ -66,7 +47,7 @@ func (d *Device) Desc() string {
 }
 
 // SetState sets the device state
-func (d *Device) SetState(state SysState) {
+func (d *Node) SetState(state int) {
 	d.ProcessPoint(Point{
 		Type:  PointTypeSysState,
 		Value: float64(state),
@@ -74,7 +55,7 @@ func (d *Device) SetState(state SysState) {
 }
 
 // SetCmdPending for device
-func (d *Device) SetCmdPending(pending bool) {
+func (d *Node) SetCmdPending(pending bool) {
 	val := 0.0
 	if pending {
 		val = 1
@@ -86,7 +67,7 @@ func (d *Device) SetCmdPending(pending bool) {
 }
 
 // SetSwUpdateState for a device
-func (d *Device) SetSwUpdateState(state SwUpdateState) {
+func (d *Node) SetSwUpdateState(state SwUpdateState) {
 	running := 0.0
 	if state.Running {
 		running = 1
@@ -108,7 +89,7 @@ func (d *Device) SetSwUpdateState(state SwUpdateState) {
 }
 
 // ProcessPoint takes a point for a device and adds/updates its array of points
-func (d *Device) ProcessPoint(pIn Point) {
+func (d *Node) ProcessPoint(pIn Point) {
 	pFound := false
 	for i, p := range d.Points {
 		if p.ID == pIn.ID && p.Type == pIn.Type && p.Index == pIn.Index {
@@ -128,9 +109,9 @@ func (d *Device) ProcessPoint(pIn Point) {
 // for X minutes. However, with points that could represent a config
 // change as well. Eventually we may want to improve this to look
 // at point types, but this is probably OK for now.
-func (d *Device) UpdateState() (SysState, bool) {
+func (d *Node) UpdateState() (int, bool) {
 	sysStateF, _ := d.Points.Value("", PointTypeSysState, 0)
-	sysState := SysState(sysStateF)
+	sysState := int(sysStateF)
 	switch sysState {
 	case SysStateUnknown, SysStateOnline:
 		if time.Since(d.Points.LatestTime()) > 15*time.Minute {
@@ -144,9 +125,9 @@ func (d *Device) UpdateState() (SysState, bool) {
 }
 
 // State returns the current state of a device
-func (d *Device) State() SysState {
+func (d *Node) State() int {
 	s, _ := d.Points.Value("", PointTypeSysState, 0)
-	return SysState(s)
+	return int(s)
 }
 
 // define valid commands
@@ -156,15 +137,15 @@ const (
 	CmdFieldMode        = "fieldMode"
 )
 
-// DeviceCmd represents a command to be sent to a device
-type DeviceCmd struct {
+// NodeCmd represents a command to be sent to a device
+type NodeCmd struct {
 	ID     string `json:"id,omitempty" boltholdKey:"ID"`
 	Cmd    string `json:"cmd"`
 	Detail string `json:"detail,omitempty"`
 }
 
-// DeviceVersion represents the device SW version
-type DeviceVersion struct {
+// NodeVersion represents the device SW version
+type NodeVersion struct {
 	OS  string `json:"os"`
 	App string `json:"app"`
 	HW  string `json:"hw"`

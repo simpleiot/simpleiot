@@ -1,4 +1,4 @@
-package device
+package node
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"github.com/simpleiot/simpleiot/msg"
 )
 
-// Manager is responsible for maintaining device state, running rules, etc
+// Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
 	db        *db.Db
 	messenger *msg.Messenger
@@ -30,30 +30,30 @@ func NewManger(db *db.Db, messenger *msg.Messenger) *Manager {
 // Run manager
 func (m *Manager) Run() {
 	for {
-		devices, err := m.db.Devices()
+		nodes, err := m.db.Nodes()
 		if err != nil {
-			log.Println("Error getting devices: ", err)
+			log.Println("Error getting nodes: ", err)
 			time.Sleep(10 * time.Second)
 			continue
 		}
-		for _, device := range devices {
-			// update device state
-			state, changed := device.UpdateState()
+		for _, node := range nodes {
+			// update node state
+			state, changed := node.UpdateState()
 			if changed {
-				err := m.db.DeviceSetState(device.ID, state)
+				err := m.db.NodeSetState(node.ID, state)
 				if err != nil {
-					log.Println("Error updating device state: ", err)
+					log.Println("Error updating node state: ", err)
 				}
 			}
 
-			for _, ruleID := range device.Rules {
+			for _, ruleID := range node.Rules {
 				rule, err := m.db.RuleByID(ruleID)
 				if err != nil {
 					log.Printf("Error finding rule %v: %v\n", ruleID, err)
 					continue
 				}
 
-				err = m.runRule(&device, &rule)
+				err = m.runRule(&node, &rule)
 				if err != nil {
 					log.Println("Error running rule: ", ruleID)
 				}
@@ -76,13 +76,13 @@ func uniqueUsers(users []data.User) []data.User {
 	return ret
 }
 
-func (m *Manager) runRule(device *data.Device, rule *data.Rule) error {
-	if device.State() != data.SysStateOnline {
-		// only run rules if device is in online state
+func (m *Manager) runRule(node *data.Node, rule *data.Rule) error {
+	if node.State() != data.SysStateOnline {
+		// only run rules if node is in online state
 		return nil
 	}
 
-	active := rule.IsActive(device.Points)
+	active := rule.IsActive(node.Points)
 	if active != rule.State.Active {
 		state := data.RuleState{Active: active}
 		if active {
@@ -90,7 +90,7 @@ func (m *Manager) runRule(device *data.Device, rule *data.Rule) error {
 			if !rule.State.Active && rule.Config.Repeat == 0 {
 				for _, a := range rule.Config.Actions {
 					if a.Type == data.ActionTypeNotify {
-						err := m.notify(device, rule.Config.Description, a.Template, device.Groups)
+						err := m.notify(node, rule.Config.Description, a.Template, node.Groups)
 						if err != nil {
 							log.Println("Error notifying: ", err)
 						}
@@ -110,7 +110,7 @@ func (m *Manager) runRule(device *data.Device, rule *data.Rule) error {
 	return nil
 }
 
-func (m *Manager) notify(device *data.Device, ruleDesc, msgTemplate string, groups []uuid.UUID) error {
+func (m *Manager) notify(node *data.Node, ruleDesc, msgTemplate string, groups []uuid.UUID) error {
 	// find users for the groups
 	var users []data.User
 	for _, gID := range groups {
@@ -127,14 +127,14 @@ func (m *Manager) notify(device *data.Device, ruleDesc, msgTemplate string, grou
 	// send notification to all users
 	var msg string
 	if msgTemplate == "" {
-		msg = fmt.Sprintf("Notification: %v at %v fired", ruleDesc, device.Desc())
+		msg = fmt.Sprintf("Notification: %v at %v fired", ruleDesc, node.Desc())
 	} else {
 		var err error
-		msg, err = renderNotifyTemplate(device, msgTemplate)
+		msg, err = renderNotifyTemplate(node, msgTemplate)
 		if err != nil {
 			log.Printf("Error rendering template %v: %v\n",
 				msgTemplate, err)
-			msg = fmt.Sprintf("Notification: %v at %v fired", ruleDesc, device.Desc())
+			msg = fmt.Sprintf("Notification: %v at %v fired", ruleDesc, node.Desc())
 		}
 	}
 
@@ -153,21 +153,21 @@ func (m *Manager) notify(device *data.Device, ruleDesc, msgTemplate string, grou
 	return nil
 }
 
-type deviceTemplateData struct {
+type nodeTemplateData struct {
 	ID          string
 	Description string
 	Ios         map[string]float64
 }
 
-func renderNotifyTemplate(device *data.Device, msgTemplate string) (string, error) {
+func renderNotifyTemplate(node *data.Node, msgTemplate string) (string, error) {
 	// build map of IO values so they are easy to reference by type or ID in template
-	dtd := deviceTemplateData{
-		ID:          device.ID,
-		Description: device.Desc(),
+	dtd := nodeTemplateData{
+		ID:          node.ID,
+		Description: node.Desc(),
 		Ios:         make(map[string]float64),
 	}
 
-	for _, io := range device.Points {
+	for _, io := range node.Points {
 		if io.Type != "" {
 			dtd.Ios[io.Type] = io.Value
 		}

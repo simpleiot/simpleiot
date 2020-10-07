@@ -12,9 +12,9 @@ import (
 )
 
 // ListenForCmd listens for a file sent from server
-func ListenForCmd(nc *nats.Conn, deviceID string, callback func(cmd data.DeviceCmd)) error {
+func ListenForCmd(nc *nats.Conn, deviceID string, callback func(cmd data.NodeCmd)) error {
 	_, err := nc.Subscribe(fmt.Sprintf("device.%v.cmd", deviceID), func(m *nats.Msg) {
-		cmdPb := &pb.DeviceCmd{}
+		cmdPb := &pb.NodeCmd{}
 
 		err := proto.Unmarshal(m.Data, cmdPb)
 
@@ -27,7 +27,7 @@ func ListenForCmd(nc *nats.Conn, deviceID string, callback func(cmd data.DeviceC
 			}
 		}
 
-		cmd := data.DeviceCmd{
+		cmd := data.NodeCmd{
 			ID:     cmdPb.Id,
 			Cmd:    cmdPb.Cmd,
 			Detail: cmdPb.Detail,
@@ -45,8 +45,8 @@ func ListenForCmd(nc *nats.Conn, deviceID string, callback func(cmd data.DeviceC
 }
 
 // SendCmd sends a command to device via NATS
-func SendCmd(nc *nats.Conn, cmd data.DeviceCmd, timeout time.Duration) error {
-	cmdPb := &pb.DeviceCmd{
+func SendCmd(nc *nats.Conn, cmd data.NodeCmd, timeout time.Duration) error {
+	cmdPb := &pb.NodeCmd{
 		Id:     cmd.ID,
 		Cmd:    cmd.Cmd,
 		Detail: cmd.Detail,

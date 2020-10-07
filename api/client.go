@@ -14,17 +14,17 @@ import (
 
 // NewGetCmd returns a function that can be used to get device commands from the
 // portal.
-func NewGetCmd(portalURL, deviceID string, timeout time.Duration, debug bool) func() (data.DeviceCmd, error) {
+func NewGetCmd(portalURL, deviceID string, timeout time.Duration, debug bool) func() (data.NodeCmd, error) {
 	var netClient = &http.Client{
 		Timeout: timeout,
 	}
 
-	return func() (data.DeviceCmd, error) {
+	return func() (data.NodeCmd, error) {
 		sampleURL := portalURL + "/v1/devices/" + deviceID + "/cmd"
 
 		resp, err := netClient.Get(sampleURL)
 
-		var cmd data.DeviceCmd
+		var cmd data.NodeCmd
 
 		if err != nil {
 			return cmd, err
@@ -156,12 +156,12 @@ func NewSendSamples(portalURL, deviceID string, timeout time.Duration, debug boo
 }
 
 // NewSetVersion sets the device version in the portal
-func NewSetVersion(portalURL, deviceID string, timeout time.Duration, debug bool) func(ver data.DeviceVersion) error {
+func NewSetVersion(portalURL, deviceID string, timeout time.Duration, debug bool) func(ver data.NodeVersion) error {
 	var netClient = &http.Client{
 		Timeout: timeout,
 	}
 
-	return func(ver data.DeviceVersion) error {
+	return func(ver data.NodeVersion) error {
 		sampleURL := portalURL + "/v1/devices/" + deviceID + "/version"
 
 		tempJSON, err := json.Marshal(ver)

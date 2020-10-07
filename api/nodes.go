@@ -13,23 +13,23 @@ import (
 	"github.com/simpleiot/simpleiot/nats"
 )
 
-// Devices handles device requests
-type Devices struct {
+// Nodes handles node requests
+type Nodes struct {
 	db        *db.Db
 	check     RequestValidator
 	nh        *NatsHandler
 	authToken string
 }
 
-// NewDevicesHandler returns a new device handler
-func NewDevicesHandler(db *db.Db, v RequestValidator, authToken string,
+// NewNodesHandler returns a new node handler
+func NewNodesHandler(db *db.Db, v RequestValidator, authToken string,
 	nh *NatsHandler) http.Handler {
-	return &Devices{db, v, nh, authToken}
+	return &Nodes{db, v, nh, authToken}
 }
 
 // Top level handler for http requests in the coap-server process
-// TODO need to add device auth
-func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+// TODO need to add node auth
+func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	var id string
 	id, req.URL.Path = ShiftPath(req.URL.Path)
@@ -67,14 +67,14 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			devices, err := h.db.DevicesForUser(userUUID)
+			nodes, err := h.db.NodesForUser(userUUID)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
 			}
-			if len(devices) > 0 {
+			if len(nodes) > 0 {
 				en := json.NewEncoder(res)
-				en.Encode(devices)
+				en.Encode(nodes)
 			} else {
 				res.Write([]byte("[]"))
 			}
@@ -90,15 +90,15 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case "":
 		switch req.Method {
 		case http.MethodGet:
-			device, err := h.db.Device(id)
+			node, err := h.db.Node(id)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
 				en := json.NewEncoder(res)
-				en.Encode(device)
+				en.Encode(node)
 			}
 		case http.MethodDelete:
-			err := h.db.DeviceDelete(id)
+			err := h.db.NodeDelete(id)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
@@ -121,7 +121,7 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	case "groups":
 		if req.Method == http.MethodPost {
-			h.updateDeviceGroups(res, req, id)
+			h.updateNodeGroups(res, req, id)
 			return
 		}
 		http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
@@ -138,7 +138,7 @@ func (h *Devices) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			h.processCmd(res, req, id)
 			return
 		} else if req.Method == http.MethodGet {
-			cmd, err := h.db.DeviceGetCmd(id)
+			cmd, err := h.db.NodeGetCmd(id)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusInternalServerError)
 			}
@@ -161,9 +161,9 @@ type RequestValidator interface {
 	Valid(req *http.Request) (bool, string)
 }
 
-func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id string) {
+func (h *Nodes) processCmd(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
-	var cmd data.DeviceCmd
+	var cmd data.NodeCmd
 	err := decoder.Decode(&cmd)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
@@ -173,31 +173,31 @@ func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id stri
 	// set ID in case it is not set in API call
 	cmd.ID = id
 
-	// set cmd in DB for legacy devices that still fetch over http
-	err = h.db.DeviceSetCmd(cmd)
+	// set cmd in DB for legacy nodes that still fetch over http
+	err = h.db.NodeSetCmd(cmd)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// TODO how to support old devices still fetching commands via http
-	// perhaps check if device is connected via NATs
+	// TODO how to support old nodes still fetching commands via http
+	// perhaps check if node is connected via NATs
 	err = nats.SendCmd(h.nh.Nc, cmd, time.Second*10)
 	if err != nil {
-		log.Printf("Error sending command (%v) to device: ", err)
+		log.Printf("Error sending command (%v) to node: ", err)
 		// don't return HTTP error for now as some units still fetch over http
-		//http.Error(res, "Error sending command to device", http.StatusInternalServerError)
+		//http.Error(res, "Error sending command to node", http.StatusInternalServerError)
 		//return
 	} else {
-		err = h.db.DeviceDeleteCmd(cmd.ID)
+		err = h.db.NodeDeleteCmd(cmd.ID)
 		if err != nil {
-			log.Printf("Error deleting command for device %v: %v", id, err)
+			log.Printf("Error deleting command for node %v: %v", id, err)
 		}
 	}
 
 	// process updates that are now pushed
 	if cmd.Cmd == data.CmdUpdateApp {
-		log.Printf("Sending %v to device %v\n", cmd.Detail, cmd.ID)
+		log.Printf("Sending %v to node %v\n", cmd.Detail, cmd.ID)
 		err := h.nh.StartUpdate(cmd.ID, cmd.Detail)
 		if err != nil {
 			log.Println("Error starting app update: ", err)
@@ -210,7 +210,7 @@ func (h *Devices) processCmd(res http.ResponseWriter, req *http.Request, id stri
 	en.Encode(data.StandardResponse{Success: true, ID: id})
 }
 
-func (h *Devices) updateDeviceGroups(res http.ResponseWriter, req *http.Request, id string) {
+func (h *Nodes) updateNodeGroups(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
 	var groups []uuid.UUID
 	err := decoder.Decode(&groups)
@@ -219,7 +219,7 @@ func (h *Devices) updateDeviceGroups(res http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	err = h.db.DeviceUpdateGroups(id, groups)
+	err = h.db.NodeUpdateGroups(id, groups)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -229,7 +229,7 @@ func (h *Devices) updateDeviceGroups(res http.ResponseWriter, req *http.Request,
 	en.Encode(data.StandardResponse{Success: true, ID: id})
 }
 
-func (h *Devices) processPoints(res http.ResponseWriter, req *http.Request, id string) {
+func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
 	var points data.Points
 	err := decoder.Decode(&points)
@@ -239,7 +239,7 @@ func (h *Devices) processPoints(res http.ResponseWriter, req *http.Request, id s
 	}
 
 	for _, p := range points {
-		err = h.db.DevicePoint(id, p)
+		err = h.db.NodePoint(id, p)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return

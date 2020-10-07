@@ -1,4 +1,4 @@
-package device
+package node
 
 import (
 	"fmt"
@@ -8,12 +8,12 @@ import (
 )
 
 func TestNotifyTemplate(t *testing.T) {
-	device := data.Device{
+	device := data.Node{
 		ID: "1234",
 		Points: []data.Point{
 			{
 				Type: data.PointTypeDescription,
-				Text: "My Device",
+				Text: "My Node",
 			},
 			{
 				Type:  "tankLevel",
@@ -34,7 +34,7 @@ func TestNotifyTemplate(t *testing.T) {
 		t.Error("render failed: ", err)
 	}
 
-	if res != "Alarm from My Device, tank level is 12.52." {
+	if res != "Alarm from My Node, tank level is 12.52." {
 		t.Error("rendered text is not correct")
 	}
 

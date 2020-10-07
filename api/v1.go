@@ -8,10 +8,10 @@ import (
 
 // V1 handles v1 api requests
 type V1 struct {
-	GroupsHandler  http.Handler
-	UsersHandler   http.Handler
-	DevicesHandler http.Handler
-	AuthHandler    http.Handler
+	GroupsHandler http.Handler
+	UsersHandler  http.Handler
+	NodesHandler  http.Handler
+	AuthHandler   http.Handler
 }
 
 // Top level handler for http requests in the coap-server process
@@ -23,8 +23,10 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		h.GroupsHandler.ServeHTTP(res, req)
 	case "users":
 		h.UsersHandler.ServeHTTP(res, req)
+	case "nodes":
+		h.NodesHandler.ServeHTTP(res, req)
 	case "devices":
-		h.DevicesHandler.ServeHTTP(res, req)
+		h.NodesHandler.ServeHTTP(res, req)
 	case "auth":
 		h.AuthHandler.ServeHTTP(res, req)
 	default:
@@ -37,9 +39,9 @@ func NewV1Handler(db *db.Db, auth Authorizer,
 	authToken string, nh *NatsHandler) http.Handler {
 
 	return &V1{
-		GroupsHandler:  NewGroupsHandler(db, auth),
-		UsersHandler:   NewUsersHandler(db, auth),
-		DevicesHandler: NewDevicesHandler(db, auth, authToken, nh),
-		AuthHandler:    NewAuthHandler(db, auth),
+		GroupsHandler: NewGroupsHandler(db, auth),
+		UsersHandler:  NewUsersHandler(db, auth),
+		NodesHandler:  NewNodesHandler(db, auth, authToken, nh),
+		AuthHandler:   NewAuthHandler(db, auth),
 	}
 }

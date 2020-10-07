@@ -35,7 +35,7 @@ type Action struct {
 // RuleConfig contains parts of the rule that a users changes
 type RuleConfig struct {
 	Description string        `json:"description"`
-	DeviceID    string        `json:"deviceID"`
+	NodeID      string        `json:"nodeID"`
 	Conditions  []Condition   `json:"conditions"`
 	Actions     []Action      `json:"actions"`
 	Repeat      time.Duration `json:"repeat"`

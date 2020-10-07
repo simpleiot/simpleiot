@@ -54,12 +54,12 @@ func (nh *NatsHandler) Connect() error {
 
 	nh.Nc = nc
 
-	if _, err := nc.Subscribe("device.*.samples", nh.handlePoints); err != nil {
-		return fmt.Errorf("Subscribe device samples error: %w", err)
+	if _, err := nc.Subscribe("node.*.samples", nh.handlePoints); err != nil {
+		return fmt.Errorf("Subscribe node samples error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("device.*.points", nh.handlePoints); err != nil {
-		return fmt.Errorf("Subscribe device points error: %w", err)
+	if _, err := nc.Subscribe("node.*.points", nh.handlePoints); err != nil {
+		return fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
 	return nil
@@ -76,7 +76,7 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 
 	nh.updates[id] = time.Now()
 
-	err := nh.db.DeviceSetSwUpdateState(id, data.SwUpdateState{
+	err := nh.db.NodeSetSwUpdateState(id, data.SwUpdateState{
 		Running: true,
 	})
 
@@ -87,7 +87,7 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 
 	go func() {
 		err := NatsSendFileFromHTTP(nh.Nc, id, url, func(bytesTx int) {
-			err := nh.db.DeviceSetSwUpdateState(id, data.SwUpdateState{
+			err := nh.db.NodeSetSwUpdateState(id, data.SwUpdateState{
 				Running:     true,
 				PercentDone: bytesTx,
 			})
@@ -112,7 +112,7 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 		delete(nh.updates, id)
 		nh.lock.Unlock()
 
-		err = nh.db.DeviceSetSwUpdateState(id, state)
+		err = nh.db.NodeSetSwUpdateState(id, state)
 		if err != nil {
 			log.Println("Error setting sw update state: ", err)
 		}
@@ -124,11 +124,11 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 func (nh *NatsHandler) handlePoints(msg *nats.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {
-		log.Println("Error decoding device samples subject: ", msg.Subject)
-		nh.reply(msg.Reply, errors.New("error decoding device samples subject"))
+		log.Println("Error decoding node samples subject: ", msg.Subject)
+		nh.reply(msg.Reply, errors.New("error decoding node samples subject"))
 		return
 	}
-	deviceID := chunks[1]
+	nodeID := chunks[1]
 	points, err := data.PbDecodePoints(msg.Data)
 	if err != nil {
 		log.Println("Error decoding Pb Samples: ", err)
@@ -137,7 +137,7 @@ func (nh *NatsHandler) handlePoints(msg *nats.Msg) {
 	}
 
 	for _, p := range points {
-		err = nh.db.DevicePoint(deviceID, p)
+		err = nh.db.NodePoint(nodeID, p)
 		if err != nil {
 			log.Println("Error writting sample to Db: ", err)
 			nh.reply(msg.Reply, err)
@@ -151,7 +151,7 @@ func (nh *NatsHandler) handlePoints(msg *nats.Msg) {
 // used for messages that want an ACK
 func (nh *NatsHandler) reply(subject string, err error) {
 	if subject == "" {
-		// device is not expecting a reply
+		// node is not expecting a reply
 		return
 	}
 

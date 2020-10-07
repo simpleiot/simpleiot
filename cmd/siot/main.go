@@ -16,11 +16,11 @@ import (
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
-	"github.com/simpleiot/simpleiot/device"
 	"github.com/simpleiot/simpleiot/internal/pb"
 	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
+	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
 	"google.golang.org/protobuf/proto"
@@ -35,7 +35,7 @@ func parsePoint(s string) (string, data.Point, error) {
 			errors.New("format for sample is: 'devId:sensId:value:type'")
 	}
 
-	deviceID := frags[0]
+	nodeID := frags[0]
 	sampleID := frags[1]
 	value, err := strconv.ParseFloat(frags[2], 64)
 	if err != nil {
@@ -44,7 +44,7 @@ func parsePoint(s string) (string, data.Point, error) {
 
 	sampleType := frags[3]
 
-	return deviceID, data.Point{
+	return nodeID, data.Point{
 		ID:    sampleID,
 		Type:  sampleType,
 		Value: value,
@@ -54,13 +54,13 @@ func parsePoint(s string) (string, data.Point, error) {
 }
 
 func sendPoint(portal, authToken, s string) error {
-	deviceID, point, err := parsePoint(s)
+	nodeID, point, err := parsePoint(s)
 
 	if err != nil {
 		return err
 	}
 
-	sendPoints := api.NewSendPoints(portal, deviceID, authToken, time.Second*10, false)
+	sendPoints := api.NewSendPoints(portal, nodeID, authToken, time.Second*10, false)
 
 	err = sendPoints([]data.Point{point})
 
@@ -68,13 +68,13 @@ func sendPoint(portal, authToken, s string) error {
 }
 
 func sendPointNats(nc *natsgo.Conn, authToken, s string, ack bool) error {
-	deviceID, point, err := parsePoint(s)
+	nodeID, point, err := parsePoint(s)
 
 	if err != nil {
 		return err
 	}
 
-	subject := fmt.Sprintf("device.%v.points", deviceID)
+	subject := fmt.Sprintf("node.%v.points", nodeID)
 
 	points := data.Points{}
 
@@ -113,7 +113,7 @@ func parseSample(s string) (string, data.Sample, error) {
 			errors.New("format for sample is: 'devId:sensId:value:type'")
 	}
 
-	deviceID := frags[0]
+	nodeID := frags[0]
 	sampleID := frags[1]
 	value, err := strconv.ParseFloat(frags[2], 64)
 	if err != nil {
@@ -122,7 +122,7 @@ func parseSample(s string) (string, data.Sample, error) {
 
 	sampleType := frags[3]
 
-	return deviceID, data.Sample{
+	return nodeID, data.Sample{
 		ID:    sampleID,
 		Type:  sampleType,
 		Value: value,
@@ -132,13 +132,13 @@ func parseSample(s string) (string, data.Sample, error) {
 }
 
 func sendSample(portal, authToken, s string) error {
-	deviceID, sample, err := parseSample(s)
+	nodeID, sample, err := parseSample(s)
 
 	if err != nil {
 		return err
 	}
 
-	sendSamples := api.NewSendSamples(portal, deviceID, time.Second*10, false)
+	sendSamples := api.NewSendSamples(portal, nodeID, time.Second*10, false)
 
 	err = sendSamples([]data.Sample{sample})
 
@@ -146,13 +146,13 @@ func sendSample(portal, authToken, s string) error {
 }
 
 func sendSampleNats(nc *natsgo.Conn, authToken, s string, ack bool) error {
-	deviceID, sample, err := parseSample(s)
+	nodeID, sample, err := parseSample(s)
 
 	if err != nil {
 		return err
 	}
 
-	subject := fmt.Sprintf("device.%v.samples", deviceID)
+	subject := fmt.Sprintf("node.%v.samples", nodeID)
 
 	samples := data.Samples{}
 
@@ -192,7 +192,7 @@ func main() {
 	// =============================================
 
 	flagDebugHTTP := flag.Bool("debugHttp", false, "Dump http requests")
-	flagSim := flag.Bool("sim", false, "Start device simulator")
+	flagSim := flag.Bool("sim", false, "Start node simulator")
 	flagDisableAuth := flag.Bool("disableAuth", false, "Disable user auth (used for development)")
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
 	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
@@ -205,7 +205,7 @@ func main() {
 	flagSendFile := flag.String("sendFile", "", "URL of file to send")
 	flagSendCmd := flag.String("sendCmd", "", "Command to send (cmd:detail)")
 	flagSendVersion := flag.String("sendVersion", "", "Command to send version to portal (HW:OS:App)")
-	flagID := flag.String("id", "1234", "ID of device")
+	flagID := flag.String("id", "1234", "ID of node")
 
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDumpDb := flag.Bool("dumpDb", false, "dump database to file")
@@ -342,7 +342,7 @@ func main() {
 
 	if *flagSendCmd != "" {
 		chunks := strings.Split(*flagSendCmd, ":")
-		cmd := data.DeviceCmd{
+		cmd := data.NodeCmd{
 			ID:  *flagID,
 			Cmd: chunks[0],
 		}
@@ -369,7 +369,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		v := &pb.DeviceVersion{
+		v := &pb.NodeVersion{
 			Hw:  chunks[0],
 			Os:  chunks[1],
 			App: chunks[2],
@@ -382,7 +382,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		subject := fmt.Sprintf("device.%v.version", *flagID)
+		subject := fmt.Sprintf("node.%v.version", *flagID)
 		if *flagNatsAck {
 			msg, err := nc.Request(subject, out, time.Second)
 
@@ -450,8 +450,8 @@ func main() {
 	}
 
 	if *flagSim {
-		go sim.DeviceSim(*flagPortal, "1234")
-		go sim.DeviceSim(*flagPortal, "5678")
+		go sim.NodeSim(*flagPortal, "1234")
+		go sim.NodeSim(*flagPortal, "5678")
 	}
 
 	// =============================================
@@ -517,7 +517,7 @@ func main() {
 			err := particle.PointReader("sample", particleAPIKey,
 				func(id string, points data.Points) {
 					for _, p := range points {
-						err = dbInst.DevicePoint(id, p)
+						err = dbInst.NodePoint(id, p)
 						if err != nil {
 							log.Println("Error getting particle sample: ", err)
 						}
@@ -557,8 +557,8 @@ func main() {
 		}
 	}
 
-	deviceManager := device.NewManger(dbInst, messenger)
-	go deviceManager.Run()
+	nodeManager := node.NewManger(dbInst, messenger)
+	go nodeManager.Run()
 
 	if !*flagNatsDisableServer {
 		go natsserver.StartNatsServer(natsPort, natsHTTPPort, authToken,

@@ -3,13 +3,13 @@ package pb;
 
 option go_package = "github.com/simpleiot/simpleiot/internal/pb";
 
-message DeviceCmd {
+message NodeCmd {
   string id = 1;
   string cmd = 2;
   string detail = 3;
 }
 
-message DeviceVersion {
+message NodeVersion {
   string os = 1;
   string app = 2;
   string hw = 3;

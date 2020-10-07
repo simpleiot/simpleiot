@@ -48,21 +48,21 @@ func (db *Db) view(fn func(tx *bolt.Tx) error) error {
 	return db.store.Bolt().View(fn)
 }
 
-// Device returns data for a particular device
-func (db *Db) Device(id string) (ret data.Device, err error) {
+// Node returns data for a particular device
+func (db *Db) Node(id string) (ret data.Node, err error) {
 	err = db.store.Get(id, &ret)
 	return
 }
 
-// Devices returns all devices.
-func (db *Db) Devices() (ret []data.Device, err error) {
+// Nodes returns all devices.
+func (db *Db) Nodes() (ret []data.Node, err error) {
 	err = db.store.Find(&ret, nil)
 	return
 }
 
-// DeviceByID returns a device for a given ID
-func (db *Db) DeviceByID(id string) (data.Device, error) {
-	var ret data.Device
+// NodeByID returns a device for a given ID
+func (db *Db) NodeByID(id string) (data.Node, error) {
+	var ret data.Node
 	if err := db.store.Get(id, &ret); err != nil {
 		return ret, err
 	}
@@ -70,16 +70,16 @@ func (db *Db) DeviceByID(id string) (data.Device, error) {
 	return ret, nil
 }
 
-// DeviceEach iterates through each device calling provided function
-func (db *Db) DeviceEach(callback func(device *data.Device) error) error {
+// NodeEach iterates through each device calling provided function
+func (db *Db) NodeEach(callback func(device *data.Node) error) error {
 	return db.store.ForEach(nil, callback)
 }
 
-// DeviceDelete deletes a device from the database
-func (db *Db) DeviceDelete(id string) error {
+// NodeDelete deletes a device from the database
+func (db *Db) NodeDelete(id string) error {
 	return db.update(func(tx *bolt.Tx) error {
 		// first delete all rules for device
-		var device data.Device
+		var device data.Node
 		err := db.store.TxGet(tx, id, &device)
 		if err != nil {
 			return err
@@ -91,14 +91,14 @@ func (db *Db) DeviceDelete(id string) error {
 				return err
 			}
 		}
-		return db.store.TxDelete(tx, id, data.Device{})
+		return db.store.TxDelete(tx, id, data.Node{})
 	})
 }
 
-// DeviceUpdateGroups updates the groups for a device.
-func (db *Db) DeviceUpdateGroups(id string, groups []uuid.UUID) error {
+// NodeUpdateGroups updates the groups for a device.
+func (db *Db) NodeUpdateGroups(id string, groups []uuid.UUID) error {
 	return db.update(func(tx *bolt.Tx) error {
-		var dev data.Device
+		var dev data.Node
 		if err := db.store.TxGet(tx, id, &dev); err != nil {
 			return err
 		}
@@ -111,10 +111,10 @@ func (db *Db) DeviceUpdateGroups(id string, groups []uuid.UUID) error {
 
 var zero uuid.UUID
 
-// DevicePoint processes a Point for a particular device
-func (db *Db) DevicePoint(id string, point data.Point) error {
+// NodePoint processes a Point for a particular device
+func (db *Db) NodePoint(id string, point data.Point) error {
 	// for now, we process one point at a time. We may eventually
-	// want to create DeviceSamples to process multiple samples so
+	// want to create NodeSamples to process multiple samples so
 	// we can batch influx writes for performance
 
 	if db.influx != nil {
@@ -128,7 +128,7 @@ func (db *Db) DevicePoint(id string, point data.Point) error {
 	}
 
 	return db.update(func(tx *bolt.Tx) error {
-		var dev data.Device
+		var dev data.Node
 		err := db.store.TxGet(tx, id, &dev)
 		if err != nil {
 			if err == bolthold.ErrNotFound {
@@ -144,10 +144,10 @@ func (db *Db) DevicePoint(id string, point data.Point) error {
 	})
 }
 
-// DeviceSetState is used to set the current system state
-func (db *Db) DeviceSetState(id string, state data.SysState) error {
+// NodeSetState is used to set the current system state
+func (db *Db) NodeSetState(id string, state int) error {
 	return db.update(func(tx *bolt.Tx) error {
-		var dev data.Device
+		var dev data.Node
 		err := db.store.TxGet(tx, id, &dev)
 		if err != nil {
 			if err == bolthold.ErrNotFound {
@@ -162,10 +162,10 @@ func (db *Db) DeviceSetState(id string, state data.SysState) error {
 	})
 }
 
-// DeviceSetSwUpdateState is used to set the SW update state of the device
-func (db *Db) DeviceSetSwUpdateState(id string, state data.SwUpdateState) error {
+// NodeSetSwUpdateState is used to set the SW update state of the device
+func (db *Db) NodeSetSwUpdateState(id string, state data.SwUpdateState) error {
 	return db.update(func(tx *bolt.Tx) error {
-		var dev data.Device
+		var dev data.Node
 		err := db.store.TxGet(tx, id, &dev)
 		if err != nil {
 			if err == bolthold.ErrNotFound {
@@ -180,9 +180,9 @@ func (db *Db) DeviceSetSwUpdateState(id string, state data.SwUpdateState) error 
 	})
 }
 
-// DeviceSetCmd sets a cmd for a device, and sets the
+// NodeSetCmd sets a cmd for a device, and sets the
 // CmdPending flag in the device structure.
-func (db *Db) DeviceSetCmd(cmd data.DeviceCmd) error {
+func (db *Db) NodeSetCmd(cmd data.NodeCmd) error {
 	return db.update(func(tx *bolt.Tx) error {
 		err := db.store.TxUpsert(tx, cmd.ID, &cmd)
 		if err != nil {
@@ -190,7 +190,7 @@ func (db *Db) DeviceSetCmd(cmd data.DeviceCmd) error {
 		}
 
 		// and set the device pending flag
-		var dev data.Device
+		var dev data.Node
 		err = db.store.TxGet(tx, cmd.ID, &dev)
 		if err != nil {
 			return err
@@ -201,17 +201,17 @@ func (db *Db) DeviceSetCmd(cmd data.DeviceCmd) error {
 	})
 }
 
-// DeviceDeleteCmd delets a cmd for a device and clears the
+// NodeDeleteCmd delets a cmd for a device and clears the
 // the cmd pending flag
-func (db *Db) DeviceDeleteCmd(id string) error {
+func (db *Db) NodeDeleteCmd(id string) error {
 	return db.update(func(tx *bolt.Tx) error {
-		err := db.store.TxDelete(tx, id, data.DeviceCmd{})
+		err := db.store.TxDelete(tx, id, data.NodeCmd{})
 		if err != nil {
 			return err
 		}
 
 		// and clear the device pending flag
-		var dev data.Device
+		var dev data.Node
 		err = db.store.TxGet(tx, id, &dev)
 		if err != nil {
 			return err
@@ -227,11 +227,11 @@ func (db *Db) DeviceDeleteCmd(id string) error {
 	})
 }
 
-// DeviceGetCmd gets a cmd for a device. If the cmd is no null,
+// NodeGetCmd gets a cmd for a device. If the cmd is no null,
 // the command is deleted, and the cmdPending flag cleared in
-// the Device data structure.
-func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
-	var cmd data.DeviceCmd
+// the Node data structure.
+func (db *Db) NodeGetCmd(id string) (data.NodeCmd, error) {
+	var cmd data.NodeCmd
 
 	err := db.update(func(tx *bolt.Tx) error {
 		err := db.store.TxGet(tx, id, &cmd)
@@ -246,13 +246,13 @@ func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
 
 		if cmd.Cmd != "" {
 			// a device has fetched a command, delete it
-			err := db.store.TxDelete(tx, id, data.DeviceCmd{})
+			err := db.store.TxDelete(tx, id, data.NodeCmd{})
 			if err != nil {
 				return err
 			}
 
 			// and clear the device pending flag
-			var dev data.Device
+			var dev data.Node
 			err = db.store.TxGet(tx, id, &dev)
 			if err != nil {
 				return err
@@ -271,15 +271,15 @@ func (db *Db) DeviceGetCmd(id string) (data.DeviceCmd, error) {
 	return cmd, err
 }
 
-// DeviceCmds returns all commands for device
-func (db *Db) DeviceCmds() (ret []data.DeviceCmd, err error) {
+// NodeCmds returns all commands for device
+func (db *Db) NodeCmds() (ret []data.NodeCmd, err error) {
 	err = db.store.Find(&ret, nil)
 	return
 }
 
-// DevicesForUser returns all devices for a particular user
-func (db *Db) DevicesForUser(userID uuid.UUID) ([]data.Device, error) {
-	var devices []data.Device
+// NodesForUser returns all devices for a particular user
+func (db *Db) NodesForUser(userID uuid.UUID) ([]data.Node, error) {
+	var devices []data.Node
 
 	isRoot, err := db.UserIsRoot(userID)
 	if err != nil {
@@ -459,9 +459,9 @@ func (db *Db) initialize() error {
 	})
 }
 
-// DevicesForGroup returns the devices which are property of the given Group.
-func (db *Db) DevicesForGroup(tx *bolt.Tx, groupID uuid.UUID) ([]data.Device, error) {
-	var devices []data.Device
+// NodesForGroup returns the devices which are property of the given Group.
+func (db *Db) NodesForGroup(tx *bolt.Tx, groupID uuid.UUID) ([]data.Node, error) {
+	var devices []data.Node
 	err := db.store.TxFind(tx, &devices, bolthold.Where("Groups").Contains(groupID))
 	return devices, err
 }
@@ -586,8 +586,8 @@ func (db *Db) RuleInsert(rule data.Rule) (uuid.UUID, error) {
 			return err
 		}
 
-		var device data.Device
-		err = db.store.TxGet(tx, rule.Config.DeviceID, &device)
+		var device data.Node
+		err = db.store.TxGet(tx, rule.Config.NodeID, &device)
 		if err != nil {
 			return err
 		}
@@ -638,8 +638,8 @@ func (db *Db) RuleDelete(id uuid.UUID) error {
 			return err
 		}
 		// delete references from device
-		var device data.Device
-		err = db.store.TxGet(tx, rule.Config.DeviceID, &device)
+		var device data.Node
+		err = db.store.TxGet(tx, rule.Config.NodeID, &device)
 		if err != nil {
 			return err
 		}
@@ -660,11 +660,11 @@ func newIfZero(id uuid.UUID) uuid.UUID {
 }
 
 type dbDump struct {
-	Devices    []data.Device    `json:"devices"`
-	Users      []data.User      `json:"users"`
-	Groups     []data.Group     `json:"groups"`
-	Rules      []data.Rule      `json:"rules"`
-	DeviceCmds []data.DeviceCmd `json:"deviceCmds"`
+	Nodes    []data.Node    `json:"devices"`
+	Users    []data.User    `json:"users"`
+	Groups   []data.Group   `json:"groups"`
+	Rules    []data.Rule    `json:"rules"`
+	NodeCmds []data.NodeCmd `json:"deviceCmds"`
 }
 
 // DumpDb dumps the entire db to a file
@@ -673,7 +673,7 @@ func DumpDb(db *Db, out io.Writer) error {
 
 	var err error
 
-	dump.Devices, err = db.Devices()
+	dump.Nodes, err = db.Nodes()
 	if err != nil {
 		return err
 	}
@@ -693,7 +693,7 @@ func DumpDb(db *Db, out io.Writer) error {
 		return err
 	}
 
-	dump.DeviceCmds, err = db.DeviceCmds()
+	dump.NodeCmds, err = db.NodeCmds()
 	if err != nil {
 		return err
 	}
