@@ -115,8 +115,8 @@ because they are all in the "Building A" group.
 
 ## Configuration
 
-Simple IoT can be [configured](docs/environment-variables.md) to connect with a
-number of external programs/services such as Particle.io, Twilio, and Influxdb.
+Simple IoT can be [configured](docs/configuration.md) to connect with a number
+of external programs/services such as Particle.io, Twilio, and Influxdb.
 
 Additionally, command line option help can be viewed by running `siot --help`.
 
@@ -137,9 +137,9 @@ you can't find something, it likely got moved to a different package, or renamed
 - [x] device management
 - [x] dashboard showing each device and collected parameters
 - [x] REST [api](docs/API.md) for devices
-- [x] [particle.io](docs/environment-variables.md) support
+- [x] [particle.io](docs/configuration.md) support
 - [x] boltdb support
-- [x] [influxdb 1.x](docs/environment-variables.md) support
+- [x] [influxdb 1.x](docs/configuration.md) support
 - [x] user authentication
 - [x] user accounts
 - [x] group support (assign users and devices to a group so users can only see
@@ -148,7 +148,7 @@ you can't find something, it likely got moved to a different package, or renamed
       (both client and server)
 - [x] Command line Modbus utlity
 - [x] [rules engine](docs/rules.md) (conditions/consequences)
-- [x] [sms](docs/environment-variables.md) notifications
+- [x] [sms](docs/configuration.md) notifications
 - [x] [modem/network management](https://pkg.go.dev/github.com/simpleiot/simpleiot/network)
 - [x] NATS.io integration
       ([WIP](https://github.com/simpleiot/simpleiot/tree/feature-nats))

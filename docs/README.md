@@ -7,7 +7,7 @@ sidebar_label: Overview
 # Simple IoT Documentation
 
 - [Vision](vision.md)
-- [Environment Variables](environment-variables.md)
+- [Configuration](configuration.md)
 - [Development](development.md)
 - [API](api.md)
 - [Database](database.md)
