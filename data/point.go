@@ -26,6 +26,8 @@ const (
 	PointTypeOSVersion                   = "osVersion"
 	PointTypeAppVersion                  = "appVersion"
 	PointTypeHwVersion                   = "hwVersion"
+	PointMsgAll                          = "msgAll"
+	PointMsgUser                         = "msgUser"
 )
 
 // Point is a flexible data structure that can be used to represent
