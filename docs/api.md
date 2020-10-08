@@ -59,7 +59,11 @@ Most APIs that do not return specific data (update/delete) return a
   - `/v1/auth`
     - POST: accepts `email` and `password` as form values, and returns a JWT
       Auth
-      [token](https://github.com/simpleiot/simpleiot/blob/master/data/auth.go).
+      [token](https://github.com/simpleiot/simpleiot/blob/master/data/auth.go)
+- Msg
+  - `/v1/msg`
+    - POST: send message to add users. (this is temporary and will be reworked
+      once users turn into nodes). Users `Point` datatype to transmit message.
 
 ## NATS
 

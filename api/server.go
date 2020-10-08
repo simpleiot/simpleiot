@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/msg"
 )
 
 // IndexHandler is used to serve the index page
@@ -42,7 +43,7 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 
 	switch req.URL.Path {
-	case "/", "/orgs", "/users", "/devices", "/sign-in", "/groups":
+	case "/", "/orgs", "/users", "/devices", "/sign-in", "/groups", "/msg":
 		h.IndexHandler.ServeHTTP(res, req)
 
 	default:
@@ -60,7 +61,7 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // NewAppHandler returns a new application (root) http handler
 func NewAppHandler(args ServerArgs) http.Handler {
-	v1 := NewV1Handler(args.DbInst, args.JwtAuth, args.AuthToken, args.NH)
+	v1 := NewV1Handler(args)
 	if args.Debug {
 		//args.Debug = false
 		v1 = NewHTTPLogger("v1").Handler(v1)
@@ -83,6 +84,7 @@ type ServerArgs struct {
 	JwtAuth    Authorizer
 	AuthToken  string
 	NH         *NatsHandler
+	Messenger  *msg.Messenger
 }
 
 // Server starts a API server instance

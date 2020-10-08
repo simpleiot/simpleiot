@@ -11,22 +11,22 @@ import (
 
 func main() {
 	flagTo := flag.String("to", "", "destination phone number")
-	flagFrom := flag.String("from", "", "source phone number")
 	flagMsg := flag.String("msg", "", "message to send")
 
 	flag.Parse()
 
 	sid := os.Getenv("TWILIO_SID")
 	auth := os.Getenv("TWILIO_AUTH_TOKEN")
+	from := os.Getenv("TWILIO_FROM")
 
-	if *flagTo == "" || *flagFrom == "" || sid == "" ||
-		auth == "" || *flagMsg == "" {
+	if *flagTo == "" || sid == "" ||
+		auth == "" || *flagMsg == "" || from == "" {
 		log.Println("Don't have needed information")
 		flag.Usage()
 		os.Exit(-1)
 	}
 
-	messenger := msg.NewMessenger(sid, auth, *flagFrom)
+	messenger := msg.NewMessenger(sid, auth, from)
 
 	err := messenger.SendSMS(*flagTo, *flagMsg)
 

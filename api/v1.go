@@ -2,8 +2,6 @@ package api
 
 import (
 	"net/http"
-
-	"github.com/simpleiot/simpleiot/db"
 )
 
 // V1 handles v1 api requests
@@ -12,6 +10,7 @@ type V1 struct {
 	UsersHandler  http.Handler
 	NodesHandler  http.Handler
 	AuthHandler   http.Handler
+	MsgHandler    http.Handler
 }
 
 // Top level handler for http requests in the coap-server process
@@ -29,19 +28,21 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		h.NodesHandler.ServeHTTP(res, req)
 	case "auth":
 		h.AuthHandler.ServeHTTP(res, req)
+	case "msg":
+		h.MsgHandler.ServeHTTP(res, req)
 	default:
 		http.Error(res, "Not Found", http.StatusNotFound)
 	}
 }
 
 // NewV1Handler returns a handle for V1 API
-func NewV1Handler(db *db.Db, auth Authorizer,
-	authToken string, nh *NatsHandler) http.Handler {
+func NewV1Handler(args ServerArgs) http.Handler {
 
 	return &V1{
-		GroupsHandler: NewGroupsHandler(db, auth),
-		UsersHandler:  NewUsersHandler(db, auth),
-		NodesHandler:  NewNodesHandler(db, auth, authToken, nh),
-		AuthHandler:   NewAuthHandler(db, auth),
+		GroupsHandler: NewGroupsHandler(args.DbInst, args.JwtAuth),
+		UsersHandler:  NewUsersHandler(args.DbInst, args.JwtAuth),
+		NodesHandler:  NewNodesHandler(args.DbInst, args.JwtAuth, args.AuthToken, args.NH),
+		AuthHandler:   NewAuthHandler(args.DbInst, args.JwtAuth),
+		MsgHandler:    NewMsgHandler(args.DbInst, args.JwtAuth, args.Messenger),
 	}
 }

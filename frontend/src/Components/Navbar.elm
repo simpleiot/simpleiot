@@ -21,6 +21,7 @@ navbar options =
                     if options.isRoot then
                         [ link ( "users", Route.Users )
                         , link ( "groups", Route.Groups )
+                        , link ( "messaging", Route.Msg )
                         ]
 
                     else

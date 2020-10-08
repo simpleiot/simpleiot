@@ -1,6 +1,7 @@
 module Api.Point exposing
     ( Point
     , decode
+    , empty
     , encode
     , encodeList
     , getLatest
@@ -119,6 +120,19 @@ type alias Point =
     , min : Float
     , max : Float
     }
+
+
+empty : Point
+empty =
+    Point
+        ""
+        ""
+        0
+        (Time.millisToPosix 0)
+        0
+        ""
+        0
+        0
 
 
 newValue : String -> String -> Float -> Point
