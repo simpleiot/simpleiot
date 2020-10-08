@@ -44,7 +44,7 @@ func main() {
 		log.Println("File downloaded: ", name)
 	})
 
-	nats.ListenForCmd(nc, *flagID, func(cmd data.DeviceCmd) {
+	nats.ListenForCmd(nc, *flagID, func(cmd data.NodeCmd) {
 		log.Println("Received command: ", cmd)
 	})
 
