@@ -593,6 +593,7 @@ func main() {
 		JwtAuth:    auth,
 		AuthToken:  authToken,
 		NH:         natsHandler,
+		Messenger:  messenger,
 	})
 
 	if err != nil {

@@ -1,6 +1,7 @@
 module Api.Auth exposing
     ( Auth
     , Cred
+    , empty
     , login
     )
 
@@ -22,6 +23,11 @@ type alias Auth =
     , isRoot : Bool
     , email : String
     }
+
+
+empty : Auth
+empty =
+    Auth "" False ""
 
 
 decodeResponse : Decode.Decoder Auth
