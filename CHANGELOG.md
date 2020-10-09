@@ -9,6 +9,14 @@ and this project adheres to
 For more details or to discuss releases, please visit the
 [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
 
+## Next
+
+- switched data structure name from device -> node -- see
+  [this issue](https://github.com/simpleiot/simpleiot/issues/91) for dicussion
+- add page to message (currently SMS only) all users
+- UI simplification and cleanup
+- sort users on users page
+
 ## [[0.0.11] - 2020-09-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.11)
 
 ### Changed
