@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"path"
+	"sort"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
@@ -321,10 +323,26 @@ func (db *Db) NodesForUser(userID uuid.UUID) ([]data.Node, error) {
 	return devices, err
 }
 
-// Users returns all users.
+type users []data.User
+
+func (u users) Len() int {
+	return len(u)
+}
+
+func (u users) Less(i, j int) bool {
+	return strings.ToLower((u)[i].FirstName) < strings.ToLower((u)[j].FirstName)
+}
+
+func (u users) Swap(i, j int) {
+	u[i], u[j] = u[j], u[i]
+}
+
+// Users returns all users, sorted by first name.
 func (db *Db) Users() ([]data.User, error) {
-	var ret []data.User
+	var ret users
 	err := db.store.Find(&ret, nil)
+	// sort users by first name
+	sort.Sort(ret)
 	return ret, err
 }
 
