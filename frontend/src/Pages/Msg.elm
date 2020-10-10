@@ -168,7 +168,7 @@ view model =
                 , color = Style.colors.blue
                 , onPress = ApiSend
                 }
-            , paragraph [] [ text "Considering adding your name at the end of the message. A personal touch is always nice, and anonymity is rarely beneficial. :-)" ]
+            , paragraph [] [ text "Considering adding your name at the end of the message. A personal touch is always nice! :-)" ]
             ]
         ]
     }
