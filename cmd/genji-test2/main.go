@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/genjidb/genji"
@@ -12,14 +11,13 @@ import (
 
 // Test type
 type Test struct {
-	ID     string
 	Field1 string
 	Field2 string
 }
 
 // returns true if db already exists
 func setup(db *genji.DB) bool {
-	err := db.Exec("CREATE TABLE tests (id TEXT PRIMARY KEY NOT NULL);")
+	err := db.Exec("CREATE TABLE tests;")
 	if err != nil {
 		if err != database.ErrTableAlreadyExists {
 			log.Fatal("error creating tests: ", err)
@@ -38,18 +36,14 @@ func setup(db *genji.DB) bool {
 }
 
 func populateData(db *genji.DB) {
-	id := 0
-
 	// insert first user, then a lot of another user
 	t := Test{
 		Field1: "hi",
 		Field2: "there",
 	}
 
-	count := 10
+	count := 100
 	for i := 0; i < count; i++ {
-		t.ID = strconv.Itoa(id)
-		id++
 		err := db.Exec("INSERT INTO tests VALUES ?", &t)
 		if err != nil {
 			log.Fatal("Error inserting test: ", err)
@@ -89,7 +83,7 @@ func query(db *genji.DB, q string) int {
 
 func main() {
 	//db, err := genji.Open(":memory:")
-	db, err := genji.Open("test.db")
+	db, err := genji.Open("genji-test2.db")
 
 	if err != nil {
 		log.Fatal(err)
