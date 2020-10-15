@@ -7,17 +7,17 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/db/bolthold"
 )
 
 // Groups handles group requests.
 type Groups struct {
-	db        *db.Db
+	db        *bolthold.Db
 	validator RequestValidator
 }
 
 // NewGroupsHandler returns a new handler for group requests.
-func NewGroupsHandler(db *db.Db, v RequestValidator) Groups {
+func NewGroupsHandler(db *bolthold.Db, v RequestValidator) Groups {
 	return Groups{db: db, validator: v}
 }
 

@@ -9,18 +9,18 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/db/bolthold"
 	"github.com/simpleiot/simpleiot/msg"
 )
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
-	db        *db.Db
+	db        *bolthold.Db
 	messenger *msg.Messenger
 }
 
 // NewManger creates a new Manager
-func NewManger(db *db.Db, messenger *msg.Messenger) *Manager {
+func NewManger(db *bolthold.Db, messenger *msg.Messenger) *Manager {
 	return &Manager{
 		db:        db,
 		messenger: messenger,

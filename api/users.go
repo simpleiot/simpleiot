@@ -7,17 +7,17 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/db/bolthold"
 )
 
 // Users handles user requests.
 type Users struct {
-	db        *db.Db
+	db        *bolthold.Db
 	validator RequestValidator
 }
 
 // NewUsersHandler returns a new handler for user requests.
-func NewUsersHandler(db *db.Db, v RequestValidator) Users {
+func NewUsersHandler(db *bolthold.Db, v RequestValidator) Users {
 	return Users{db: db, validator: v}
 }
 

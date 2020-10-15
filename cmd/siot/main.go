@@ -16,6 +16,7 @@ import (
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/db/bolthold"
 	"github.com/simpleiot/simpleiot/internal/pb"
 	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
@@ -459,7 +460,7 @@ func main() {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := db.NewDb(dataDir, nil, false)
+		dbInst, err := bolthold.NewDb(dataDir, nil, false)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -470,7 +471,7 @@ func main() {
 			log.Println("Error opening data.json: ", err)
 			os.Exit(-1)
 		}
-		err = db.DumpDb(dbInst, f)
+		err = bolthold.DumpDb(dbInst, f)
 
 		if err != nil {
 			log.Println("Error dumping database: ", err)
@@ -503,7 +504,7 @@ func main() {
 		}
 	}
 
-	dbInst, err := db.NewDb(dataDir, influx, true)
+	dbInst, err := bolthold.NewDb(dataDir, influx, true)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)

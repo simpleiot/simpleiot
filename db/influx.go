@@ -35,8 +35,8 @@ type InfluxPoint struct {
 	Duration time.Duration `influx:"duration"`
 }
 
-// PointToInfluxSample converts a sample to influx sample
-func PointToInfluxSample(deviceID string, p data.Point) InfluxPoint {
+// PointToInfluxPoint converts a sample to influx sample
+func PointToInfluxPoint(deviceID string, p data.Point) InfluxPoint {
 	return InfluxPoint{
 		Type:     p.Type,
 		ID:       p.ID,

@@ -11,21 +11,21 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/db/bolthold"
 )
 
 // NatsHandler implements the SIOT NATS api
 type NatsHandler struct {
 	server    string
 	Nc        *nats.Conn
-	db        *db.Db
+	db        *bolthold.Db
 	authToken string
 	lock      sync.Mutex
 	updates   map[string]time.Time
 }
 
 // NewNatsHandler creates a new NATS client for handling SIOT requests
-func NewNatsHandler(db *db.Db, authToken, server string) *NatsHandler {
+func NewNatsHandler(db *bolthold.Db, authToken, server string) *NatsHandler {
 	log.Println("NATS handler connecting to: ", server)
 	return &NatsHandler{
 		db:        db,
