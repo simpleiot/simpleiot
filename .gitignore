@@ -2,7 +2,7 @@
 /frontend/src/Generated
 elm-stuff
 /siot
-data.db
+*.db
 temp
 tags
 .idea
