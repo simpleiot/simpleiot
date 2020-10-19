@@ -13,12 +13,12 @@ func ExpBackoff(attempts int, max time.Duration) time.Duration {
 	// if attempts is too large, then things soon start to overflow
 	// so only calculate when # of attempts is relatively small
 	if attempts < 30 {
-		delay := time.Duration(math.Exp2(float64(attempts))) * time.Second
+		calc := time.Duration(math.Exp2(float64(attempts))) * time.Second
 		// if math.Exp2(..) is +Inf, then converting that to duration
 		// ends up being zero. If attempts is large, then duration may
 		// be negative -- should be covered by attempts > 50 above.
-		if delay <= 0 || delay > max {
-			delay = max
+		if calc > 0 || calc < max {
+			delay = calc
 		}
 	}
 
