@@ -11,12 +11,14 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/genjidb/genji/sql/driver"
+
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
-	"github.com/simpleiot/simpleiot/db/bolthold"
+	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/internal/pb"
 	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
@@ -460,18 +462,19 @@ func main() {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := bolthold.NewDb(dataDir, nil, false)
+		dbInst, err := genji.NewDb(dataDir, nil, false)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
 		}
+		defer dbInst.Close()
 
 		f, err := os.Create("data.json")
 		if err != nil {
 			log.Println("Error opening data.json: ", err)
 			os.Exit(-1)
 		}
-		err = bolthold.DumpDb(dbInst, f)
+		err = genji.DumpDb(dbInst, f)
 
 		if err != nil {
 			log.Println("Error dumping database: ", err)
@@ -504,11 +507,12 @@ func main() {
 		}
 	}
 
-	dbInst, err := bolthold.NewDb(dataDir, influx, true)
+	dbInst, err := genji.NewDb(dataDir, influx, true)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)
 	}
+	defer dbInst.Close()
 
 	// set up particle connection if configured
 	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
