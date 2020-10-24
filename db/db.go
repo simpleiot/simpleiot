@@ -419,7 +419,8 @@ func (db *Db) UsersForGroup(id uuid.UUID) ([]data.User, error) {
 			var user data.User
 			err := db.store.TxGet(tx, role.UserID, &user)
 			if err != nil {
-				return err
+				log.Println("did not find user: ", role.UserID)
+				continue
 			}
 			ret = append(ret, user)
 		}
@@ -521,7 +522,36 @@ func (db *Db) UserUpdate(user data.User) error {
 
 // UserDelete deletes a user from the database
 func (db *Db) UserDelete(id uuid.UUID) error {
-	return db.store.Delete(id, data.User{})
+	return db.update(func(tx *bolt.Tx) error {
+		// First remove user from groups user is part of
+		var allGroups []data.Group
+		err := db.store.TxFind(tx, &allGroups, nil)
+
+		if err != nil {
+			return err
+		}
+
+		for _, g := range allGroups {
+			i := 0
+			for _, ur := range g.Users {
+				if ur.UserID != id {
+					// keep this user
+					g.Users[i] = ur
+					i++
+				}
+			}
+			if i != len(g.Users) {
+				// we deleted a users, so truncate and save
+				g.Users = g.Users[:i]
+				err := db.store.TxUpdate(tx, g.ID, g)
+				if err != nil {
+					log.Println("Error updating group while deleting user: ", err)
+				}
+			}
+		}
+
+		return db.store.TxDelete(tx, id, data.User{})
+	})
 }
 
 // Groups returns all groups.
