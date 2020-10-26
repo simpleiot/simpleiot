@@ -520,6 +520,109 @@ func (db *Db) UserUpdate(user data.User) error {
 	})
 }
 
+// FixupUsersGroups verified key and IDs match for all users and groups
+// this is a horrible hack, but for somereason bolthold is not creating
+// the correct IDs.
+func (db *Db) FixupUsersGroups() error {
+	return db.update(func(tx *bolt.Tx) error {
+		var allGroups []data.Group
+		err := db.store.TxFind(tx, &allGroups, nil)
+		if err != nil {
+			return err
+		}
+
+		for _, g := range allGroups {
+			err := db.store.TxDeleteMatching(tx, data.Group{},
+				bolthold.Where("ID").Eq(g.ID))
+
+			if err != nil {
+				log.Println("Error deleting group when trying to fix up: ", err)
+				return err
+			}
+
+			// try to insert group
+			if err = db.store.TxUpsert(tx, g.ID, g); err != nil {
+				log.Println("Error updating group after delete: ", err)
+				return err
+			}
+
+		}
+
+		var allUsers []data.User
+		err = db.store.TxFind(tx, &allUsers, nil)
+		if err != nil {
+			return err
+		}
+
+		for _, u := range allUsers {
+			err := db.store.TxDeleteMatching(tx, data.User{},
+				bolthold.Where("ID").Eq(u.ID))
+
+			if err != nil {
+				log.Println("Error deleting user when trying to fix up: ", err)
+				return err
+			}
+
+			// try to insert user
+			if err = db.store.TxUpsert(tx, u.ID, u); err != nil {
+				log.Println("Error updating user after delete: ", err)
+				return err
+			}
+
+		}
+
+		return nil
+	})
+}
+
+// UserGroupAudit cleans up group users IDs from users that have been deleted
+func (db *Db) UserGroupAudit() error {
+	return db.update(func(tx *bolt.Tx) error {
+		var allGroups []data.Group
+		err := db.store.TxFind(tx, &allGroups, nil)
+		if err != nil {
+			return err
+		}
+
+		for _, g := range allGroups {
+			i := 0
+			for _, ur := range g.Users {
+				var user data.User
+				err := db.store.TxGet(tx, ur.UserID, &user)
+				if err == nil {
+					// user must not exist, so remove from group
+					g.Users[i] = ur
+					i++
+				} else {
+					log.Printf("Removing unknown group (%v) user: %v\n", g.Name, ur.UserID)
+				}
+			}
+			if i != len(g.Users) {
+				log.Println("group users change -- saving ...")
+				// users have changed so save
+				g.Users = g.Users[:i]
+				err := db.store.TxUpdateMatching(tx, &data.Group{}, bolthold.Where("ID").Eq(g.ID),
+					func(record interface{}) error {
+						update, ok := record.(*data.Group)
+						if !ok {
+							return fmt.Errorf("update type is not correct, want group, got %T", record)
+						}
+
+						update.Users = g.Users
+						_ = update
+						return nil
+					})
+				if err != nil {
+					log.Printf("error saving group (%v): %v\n", g.ID, err)
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
+}
+
 // UserDelete deletes a user from the database
 func (db *Db) UserDelete(id uuid.UUID) error {
 	return db.update(func(tx *bolt.Tx) error {
