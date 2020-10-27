@@ -509,6 +509,24 @@ func main() {
 		os.Exit(-1)
 	}
 
+	// The below is temporary to work around some issues with keys not matching
+	// fields in bolthold -- this will go away once we switch over to Genji
+	go func() {
+		for {
+			err = dbInst.FixupUsersGroups()
+			if err != nil {
+				log.Println("Error fixing up users and groups: ", err)
+			}
+
+			err = dbInst.UserGroupAudit()
+			if err != nil {
+				log.Println("Error auditing user/group: ", err)
+			}
+
+			time.Sleep(time.Minute * 10)
+		}
+	}()
+
 	// set up particle connection if configured
 	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
 
