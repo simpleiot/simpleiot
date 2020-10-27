@@ -90,7 +90,7 @@ list options =
         , url = Url.Builder.absolute [ "v1", "groups" ] []
         , expect = Api.Data.expectJson options.onResponse decodeList
         , body = Http.emptyBody
-        , timeout = Nothing
+        , timeout = Just <| 5 * 1000
         , tracker = Nothing
         }
 
