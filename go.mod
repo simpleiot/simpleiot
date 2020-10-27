@@ -8,7 +8,7 @@ require (
 	github.com/cbrake/influxdbhelper/v2 v2.1.4
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
-	github.com/genjidb/genji v0.8.1-0.20201022063942-779c7a6f6ffd
+	github.com/genjidb/genji v0.8.1-0.20201027130408-3de6bdeb29e3
 	github.com/genjidb/genji/cmd/genji v0.8.0
 	github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea
 	github.com/go-stack/stack v1.8.0 // indirect
