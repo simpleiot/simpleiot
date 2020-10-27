@@ -8,8 +8,8 @@ require (
 	github.com/cbrake/influxdbhelper/v2 v2.1.4
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
-	github.com/genjidb/genji v0.8.0
-	github.com/genjidb/genji/cmd/genji v0.8.0 // indirect
+	github.com/genjidb/genji v0.8.1-0.20201022063942-779c7a6f6ffd
+	github.com/genjidb/genji/cmd/genji v0.8.0
 	github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/protobuf v1.4.2
@@ -31,7 +31,10 @@ require (
 	go.bug.st/serial v1.1.0
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
+	golang.org/x/sys v0.0.0-20200918174421-af09f7315aff // indirect
 	google.golang.org/protobuf v1.25.0
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )
 
 replace github.com/nats-io/nats.go => github.com/cbrake/nats.go v1.10.1-0.20200817210920-7a8e05e18c84
