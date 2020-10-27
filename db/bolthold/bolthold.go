@@ -73,11 +73,6 @@ func (bhdb *Db) NodeByID(id string) (data.Node, error) {
 	return ret, nil
 }
 
-// NodeEach iterates through each device calling provided function
-func (bhdb *Db) NodeEach(callback func(device *data.Node) error) error {
-	return bhdb.store.ForEach(nil, callback)
-}
-
 // NodeDelete deletes a device from the database
 func (bhdb *Db) NodeDelete(id string) error {
 	return bhdb.update(func(tx *bolt.Tx) error {

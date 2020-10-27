@@ -1,11 +1,11 @@
 package genji
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log"
 	"path"
-	"sort"
 	"strings"
 
 	"github.com/genjidb/genji"
@@ -14,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
-	"github.com/timshannon/bolthold"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -26,6 +25,7 @@ import (
 type Db struct {
 	store  *genji.DB
 	influx *db.Influx
+	ctx    context.Context
 }
 
 // NewDb creates a new Db instance for the app
@@ -37,27 +37,34 @@ func NewDb(dataDir string, influx *db.Influx, init bool) (*Db, error) {
 		log.Fatal(err)
 	}
 
-	err = store.Exec("CREATE TABLE IF NOT EXISTS points;")
+	ctx := context.Background()
+
+	err = store.Exec(ctx, "CREATE TABLE IF NOT EXISTS points;")
 	if err != nil {
 		return nil, err
 	}
 
-	err = store.Exec("CREATE TABLE IF NOT EXISTS users;")
+	err = store.Exec(ctx, "CREATE TABLE IF NOT EXISTS users;")
 	if err != nil {
 		return nil, err
 	}
 
-	err = store.Exec("CREATE TABLE IF NOT EXISTS groups;")
+	err = store.Exec(ctx, "CREATE TABLE IF NOT EXISTS groups;")
 	if err != nil {
 		return nil, err
 	}
 
-	err = store.Exec("CREATE TABLE IF NOT EXISTS rules;")
+	err = store.Exec(ctx, "CREATE TABLE IF NOT EXISTS rules;")
 	if err != nil {
 		return nil, err
 	}
 
-	db := &Db{store: store, influx: influx}
+	err = store.Exec(ctx, "CREATE TABLE IF NOT EXISTS cmds;")
+	if err != nil {
+		return nil, err
+	}
+
+	db := &Db{store: store, influx: influx, ctx: ctx}
 	if init {
 		return db, db.initialize()
 	}
@@ -70,78 +77,68 @@ func (gen *Db) Close() error {
 	return gen.store.Close()
 }
 
-func (gen *Db) update(fn func(tx *bolt.Tx) error) error {
-	return gen.store.Bolt().Update(fn)
-}
-
-func (gen *Db) view(fn func(tx *bolt.Tx) error) error {
-	return gen.store.Bolt().View(fn)
-}
-
-// Node returns data for a particular device
-func (gen *Db) Node(id string) (ret data.Node, err error) {
-	err = gen.store.Get(id, &ret)
-	return
-}
-
-// Nodes returns all devices.
-func (gen *Db) Nodes() (ret []data.Node, err error) {
-	err = gen.store.Find(&ret, nil)
-	return
-}
-
-// NodeByID returns a device for a given ID
-func (gen *Db) NodeByID(id string) (data.Node, error) {
-	var ret data.Node
-	if err := gen.store.Get(id, &ret); err != nil {
-		return ret, err
+// Node returns data for a particular node
+func (gen *Db) Node(id string) (data.Node, error) {
+	var node data.Node
+	doc, err := gen.store.QueryDocument(gen.ctx, `select * from nodes where id = ?`, id)
+	if err != nil {
+		return node, err
 	}
 
-	return ret, nil
+	err = document.StructScan(doc, &node)
+	return node, err
 }
 
-// NodeEach iterates through each device calling provided function
-func (gen *Db) NodeEach(callback func(device *data.Node) error) error {
-	return gen.store.ForEach(nil, callback)
-}
+func (gen *Db) txNodes(tx *genji.Tx) ([]data.Node, error) {
+	var nodes []data.Node
+	res, err := tx.Query(gen.ctx, `select * from nodes`)
+	if err != nil {
+		return nodes, err
+	}
+	res.Close()
 
-// NodeDelete deletes a device from the database
-func (gen *Db) NodeDelete(id string) error {
-	return gen.update(func(tx *bolt.Tx) error {
-		// first delete all rules for device
-		var device data.Node
-		err := gen.store.TxGet(tx, id, &device)
+	err = res.Iterate(func(d document.Document) error {
+		var node data.Node
+		err = document.StructScan(d, &node)
 		if err != nil {
 			return err
 		}
 
-		for _, r := range device.Rules {
-			err := gen.store.TxDelete(tx, r.ID, data.Rule{})
-			if err != nil {
-				return err
-			}
-		}
-		return gen.store.TxDelete(tx, id, data.Node{})
+		nodes = append(nodes, node)
+		return nil
 	})
+
+	return nodes, err
+
 }
 
-// NodeUpdateGroups updates the groups for a device.
-func (gen *Db) NodeUpdateGroups(id string, groups []uuid.UUID) error {
-	return gen.update(func(tx *bolt.Tx) error {
-		var dev data.Node
-		if err := gen.store.TxGet(tx, id, &dev); err != nil {
-			return err
-		}
+// Nodes returns all nodes.
+func (gen *Db) Nodes() ([]data.Node, error) {
+	var nodes []data.Node
 
-		dev.Groups = groups
-
-		return gen.store.TxUpdate(tx, id, dev)
+	err := gen.store.View(func(tx *genji.Tx) error {
+		var err error
+		nodes, err = gen.txNodes(tx)
+		return err
 	})
+
+	return nodes, err
+}
+
+// NodeDelete deletes a node from the database
+func (gen *Db) NodeDelete(id string) error {
+	return gen.store.Exec(gen.ctx, `delete from nodes where id = ?`, id)
+}
+
+// NodeUpdateGroups updates the groups for a node.
+func (gen *Db) NodeUpdateGroups(id string, groups []uuid.UUID) error {
+	return gen.store.Exec(gen.ctx, `update nodes set groups = ? where id = ?`,
+		groups, id)
 }
 
 var zero uuid.UUID
 
-// NodePoint processes a Point for a particular device
+// NodePoint processes a Point for a particular node
 func (gen *Db) NodePoint(id string, point data.Point) error {
 	// for now, we process one point at a time. We may eventually
 	// want to create NodeSamples to process multiple samples so
@@ -157,142 +154,176 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 		}
 	}
 
-	return gen.update(func(tx *bolt.Tx) error {
-		var dev data.Node
-		err := gen.store.TxGet(tx, id, &dev)
+	return gen.store.Update(func(tx *genji.Tx) error {
+		var node data.Node
+		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, id)
 		if err != nil {
-			if err == bolthold.ErrNotFound {
-				dev.ID = id
-			} else {
-				return err
-			}
+			return err
 		}
 
-		dev.ProcessPoint(point)
-		dev.SetState(data.SysStateOnline)
-		return gen.store.TxUpsert(tx, id, dev)
+		err = document.StructScan(doc, &node)
+		if err != nil {
+			return err
+		}
+
+		node.ProcessPoint(point)
+		node.SetState(data.SysStateOnline)
+
+		return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+			node.Points, id)
 	})
 }
 
 // NodeSetState is used to set the current system state
 func (gen *Db) NodeSetState(id string, state int) error {
-	return gen.update(func(tx *bolt.Tx) error {
-		var dev data.Node
-		err := gen.store.TxGet(tx, id, &dev)
+	return gen.store.Update(func(tx *genji.Tx) error {
+		var node data.Node
+		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, id)
 		if err != nil {
-			if err == bolthold.ErrNotFound {
-				dev.ID = id
-			} else {
-				return err
-			}
+			return err
 		}
 
-		dev.SetState(state)
-		return gen.store.TxUpsert(tx, id, dev)
+		err = document.StructScan(doc, &node)
+		if err != nil {
+			return err
+		}
+
+		node.SetState(state)
+
+		return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+			node.Points, id)
 	})
 }
 
-// NodeSetSwUpdateState is used to set the SW update state of the device
+// NodeSetSwUpdateState is used to set the SW update state of the node
 func (gen *Db) NodeSetSwUpdateState(id string, state data.SwUpdateState) error {
-	return gen.update(func(tx *bolt.Tx) error {
-		var dev data.Node
-		err := gen.store.TxGet(tx, id, &dev)
+	return gen.store.Update(func(tx *genji.Tx) error {
+		var node data.Node
+		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, id)
 		if err != nil {
-			if err == bolthold.ErrNotFound {
-				dev.ID = id
-			} else {
-				return err
-			}
+			return err
 		}
 
-		dev.SetSwUpdateState(state)
-		return gen.store.TxUpsert(tx, id, dev)
+		err = document.StructScan(doc, &node)
+		if err != nil {
+			return err
+		}
+
+		node.SetSwUpdateState(state)
+
+		return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+			node.Points, id)
 	})
 }
 
-// NodeSetCmd sets a cmd for a device, and sets the
-// CmdPending flag in the device structure.
+// NodeSetCmd sets a cmd for a node, and sets the
+// CmdPending flag in the node structure.
 func (gen *Db) NodeSetCmd(cmd data.NodeCmd) error {
-	return gen.update(func(tx *bolt.Tx) error {
-		err := gen.store.TxUpsert(tx, cmd.ID, &cmd)
+	return gen.store.Update(func(tx *genji.Tx) error {
+		// first update cmd table
+		err := tx.Exec(gen.ctx, `delete from cmds where id = ?`, cmd.ID)
 		if err != nil {
 			return err
 		}
 
-		// and set the device pending flag
-		var dev data.Node
-		err = gen.store.TxGet(tx, cmd.ID, &dev)
+		err = tx.Exec(gen.ctx, `insert into cmds values ?`, cmd)
 		if err != nil {
 			return err
 		}
 
-		dev.SetCmdPending(true)
-		return gen.store.TxUpdate(tx, cmd.ID, dev)
+		// now update cmd pending in node
+		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, cmd.ID)
+		if err != nil {
+			return err
+		}
+
+		var node data.Node
+		err = document.StructScan(doc, &node)
+		if err != nil {
+			return err
+		}
+
+		node.SetCmdPending(true)
+
+		return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+			node.Points, cmd.ID)
 	})
 }
 
-// NodeDeleteCmd delets a cmd for a device and clears the
+// NodeDeleteCmd delets a cmd for a node and clears the
 // the cmd pending flag
 func (gen *Db) NodeDeleteCmd(id string) error {
-	return gen.update(func(tx *bolt.Tx) error {
-		err := gen.store.TxDelete(tx, id, data.NodeCmd{})
+	return gen.store.Update(func(tx *genji.Tx) error {
+		err := tx.Exec(gen.ctx, `delete from cmds where id = ?`, id)
 		if err != nil {
 			return err
 		}
 
-		// and clear the device pending flag
-		var dev data.Node
-		err = gen.store.TxGet(tx, id, &dev)
+		// now update cmd pending in node
+		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, id)
 		if err != nil {
 			return err
 		}
 
-		dev.SetCmdPending(false)
-		err = gen.store.TxUpdate(tx, id, dev)
+		var node data.Node
+		err = document.StructScan(doc, &node)
 		if err != nil {
 			return err
 		}
 
-		return nil
+		node.SetCmdPending(false)
+
+		return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+			node.Points, id)
 	})
 }
 
-// NodeGetCmd gets a cmd for a device. If the cmd is no null,
+// NodeGetCmd gets a cmd for a node. If the cmd is no null,
 // the command is deleted, and the cmdPending flag cleared in
 // the Node data structure.
 func (gen *Db) NodeGetCmd(id string) (data.NodeCmd, error) {
 	var cmd data.NodeCmd
 
-	err := gen.update(func(tx *bolt.Tx) error {
-		err := gen.store.TxGet(tx, id, &cmd)
-		if err == bolthold.ErrNotFound {
-			// we don't consider this an error in this case
-			err = nil
-		}
+	err := gen.store.Update(func(tx *genji.Tx) error {
+		doc, err := tx.QueryDocument(gen.ctx, `select * from cmds where id = ?`, id)
 
 		if err != nil {
-			return err
+			if err != database.ErrDocumentNotFound {
+				return err
+			}
+		}
+
+		if err == nil {
+			err = document.StructScan(doc, &cmd)
+			if err != nil {
+				return err
+			}
 		}
 
 		if cmd.Cmd != "" {
-			// a device has fetched a command, delete it
-			err := gen.store.TxDelete(tx, id, data.NodeCmd{})
+			// a node has fetched a command, delete it
+			err := tx.Exec(gen.ctx, `delete from cmds where id = ?`, id)
 			if err != nil {
 				return err
 			}
 
-			// and clear the device pending flag
-			var dev data.Node
-			err = gen.store.TxGet(tx, id, &dev)
+			// now update cmd pending in node
+			doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, cmd.ID)
 			if err != nil {
 				return err
 			}
 
-			dev.SetCmdPending(false)
-			err = gen.store.TxUpdate(tx, id, dev)
+			var node data.Node
+			err = document.StructScan(doc, &node)
 			if err != nil {
 				return err
 			}
+
+			node.SetCmdPending(false)
+
+			return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+				node.Points, cmd.ID)
+
 		}
 
 		return nil
@@ -301,31 +332,22 @@ func (gen *Db) NodeGetCmd(id string) (data.NodeCmd, error) {
 	return cmd, err
 }
 
-// NodeCmds returns all commands for device
-func (gen *Db) NodeCmds() (ret []data.NodeCmd, err error) {
-	err = gen.store.Find(&ret, nil)
-	return
-}
-
-// NodesForUser returns all devices for a particular user
+// NodesForUser returns all nodes for a particular user
 func (gen *Db) NodesForUser(userID uuid.UUID) ([]data.Node, error) {
-	var devices []data.Node
+	var nodes []data.Node
 
 	isRoot, err := gen.UserIsRoot(userID)
 	if err != nil {
-		return devices, err
+		return nodes, err
 	}
 
 	if isRoot {
-		// return all devices for root users
-		err := gen.store.Find(&devices, nil)
-		return devices, err
+		return gen.Nodes()
 	}
 
-	err = gen.view(func(tx *bolt.Tx) error {
+	err = gen.store.View(func(tx *genji.Tx) error {
 		// First find groups users is part of
-		var allGroups []data.Group
-		err := gen.store.TxFind(tx, &allGroups, nil)
+		allGroups, err := gen.txGroups(tx)
 
 		if err != nil {
 			return err
@@ -341,14 +363,26 @@ func (gen *Db) NodesForUser(userID uuid.UUID) ([]data.Node, error) {
 			}
 		}
 
-		// next, find devices that are part of the groups
-		err = gen.store.TxFind(tx, &devices,
-			bolthold.Where("Groups").ContainsAny(bolthold.Slice(groupIDs)...))
+		allNodes, err := gen.txNodes(tx)
+
+		if err != nil {
+			return err
+		}
+
+		for _, n := range allNodes {
+			for _, ngid := range n.Groups {
+				for _, ugid := range groupIDs {
+					if ngid == ugid {
+						nodes = append(nodes, n)
+					}
+				}
+			}
+		}
 
 		return nil
 	})
 
-	return devices, err
+	return nodes, err
 }
 
 type users []data.User
@@ -367,104 +401,131 @@ func (u users) Swap(i, j int) {
 
 // Users returns all users, sorted by first name.
 func (gen *Db) Users() ([]data.User, error) {
-	var ret users
-	err := gen.store.Find(&ret, nil)
-	// sort users by first name
-	sort.Sort(ret)
-	return ret, err
+	var users []data.User
+	res, err := gen.store.Query(gen.ctx, `select * from users order by firstName`)
+	if err != nil {
+		return users, err
+	}
+	defer res.Close()
+
+	err = res.Iterate(func(d document.Document) error {
+		var user data.User
+		err = document.StructScan(d, &user)
+		if err != nil {
+			return err
+		}
+
+		users = append(users, user)
+		return nil
+	})
+
+	return users, err
 }
 
 type privilege string
 
 // UserCheck checks user authenticatino
-func (gen *Db) UserCheck(email, password string) (*data.User, error) {
-	var u data.User
-	query := bolthold.Where("Email").Eq(email).
-		And("Pass").Eq(password)
-	err := gen.store.FindOne(&u, query)
+func (gen *Db) UserCheck(email, password string) (data.User, error) {
+	var user data.User
+
+	doc, err := gen.store.QueryDocument(gen.ctx, `select * from users where email = ? and pass = ?`,
+		email, password)
+
 	if err != nil {
-		if err != bolthold.ErrNotFound {
-			return nil, err
-		}
-		return nil, nil
+		return user, err
 	}
 
-	return &u, nil
+	err = document.StructScan(doc, &user)
+	return user, err
 }
 
 // UserIsRoot checks if root user
 func (gen *Db) UserIsRoot(id uuid.UUID) (bool, error) {
-	var group data.Group
-
-	err := gen.store.FindOne(&group, bolthold.Where("ID").Eq(zero))
-
+	_, err := gen.store.QueryDocument(gen.ctx, `select * from groups where id = ? and ? in users`)
 	if err != nil {
+		if err == database.ErrDocumentNotFound {
+			return false, nil
+		}
+
 		return false, err
 	}
 
-	for _, ur := range group.Users {
-		if ur.UserID == id {
-			return true, nil
-		}
-	}
-
-	return false, nil
-
+	return true, nil
 }
 
 // UserByID returns the user with the given ID, if it exists.
 func (gen *Db) UserByID(id string) (data.User, error) {
-	var ret data.User
-	if err := gen.store.FindOne(&ret, bolthold.Where("ID").Eq(id)); err != nil {
-		return ret, err
+	var user data.User
+
+	doc, err := gen.store.QueryDocument(gen.ctx, `select * from users where id = ?`,
+		id)
+
+	if err != nil {
+		return user, err
 	}
 
-	return ret, nil
+	err = document.StructScan(doc, &user)
+	return user, err
 }
 
 // UserByEmail returns the user with the given email, if it exists.
 func (gen *Db) UserByEmail(email string) (data.User, error) {
-	var ret data.User
-	if err := gen.store.FindOne(&ret, bolthold.Where("Email").Eq(email)); err != nil {
-		return ret, err
+	var user data.User
+
+	doc, err := gen.store.QueryDocument(gen.ctx, `select * from users where email = ?`,
+		email)
+
+	if err != nil {
+		return user, err
 	}
 
-	return ret, nil
+	err = document.StructScan(doc, &user)
+	return user, err
 }
 
-// UsersForGroup returns all users who who are connected to a device by a group.
+// UsersForGroup returns all users who who are connected to a node by a group.
 func (gen *Db) UsersForGroup(id uuid.UUID) ([]data.User, error) {
-	var ret []data.User
+	var users []data.User
 
-	err := gen.view(func(tx *bolt.Tx) error {
+	err := gen.store.View(func(tx *genji.Tx) error {
+		doc, err := tx.QueryDocument(gen.ctx, `select * from groups where id = ?`, id)
+		if err != nil {
+			return err
+		}
+
 		var group data.Group
-		err := gen.store.TxGet(tx, id, &group)
+		err = document.StructScan(doc, &group)
 		if err != nil {
 			return err
 		}
 
 		for _, role := range group.Users {
-			var user data.User
-			err := gen.store.TxGet(tx, role.UserID, &user)
+			doc, err = tx.QueryDocument(gen.ctx, `select * from users where id = ?`, role.UserID)
 			if err != nil {
 				return err
 			}
-			ret = append(ret, user)
+
+			var user data.User
+			err = document.StructScan(doc, &user)
+			if err != nil {
+				return err
+			}
+			users = append(users, user)
 		}
 		return nil
 	})
 
-	return ret, err
+	return users, err
 }
 
 // initialize initializes the database with one user (admin)
 // in one groupanization (root).
-// All devices are properties of the root groupanization.
+// All nodes are properties of the root groupanization.
 func (gen *Db) initialize() error {
 	// initialize root group in new gen
 	var group data.Group
 
-	_, err := gen.store.QueryDocument("select * from groups where name = root")
+	_, err := gen.store.QueryDocument(gen.ctx, `select * from groups where name = root`)
 
 	// group was found or we ran into an error, so return
 	if err != database.ErrDocumentNotFound {
@@ -482,7 +543,7 @@ func (gen *Db) initialize() error {
 			Pass:      "admin",
 		}
 
-		err = tx.Exec(`insert into users values ?`, admin)
+		err = tx.Exec(gen.ctx, `insert into users values ?`, admin)
 
 		if err != nil {
 			return err
@@ -498,7 +559,7 @@ func (gen *Db) initialize() error {
 			},
 		}
 
-		err = tx.Exec(`insert into groups values ?`, group)
+		err = tx.Exec(gen.ctx, `insert into groups values ?`, group)
 
 		if err != nil {
 			return err
@@ -515,7 +576,7 @@ func (gen *Db) initialize() error {
 // NodesForGroup returns the nodes which are property of the given Group.
 func (gen *Db) NodesForGroup(tx *bolt.Tx, groupID uuid.UUID) ([]data.Node, error) {
 	var nodes []data.Node
-	res, err := gen.store.Query("select * from nodes where ? in groups",
+	res, err := gen.store.Query(gen.ctx, `select * from nodes where ? in groups`,
 		groupID)
 
 	defer res.Close()
@@ -538,34 +599,37 @@ func (gen *Db) NodesForGroup(tx *bolt.Tx, groupID uuid.UUID) ([]data.Node, error
 // UserInsert inserts a new user
 func (gen *Db) UserInsert(user data.User) (string, error) {
 	id := uuid.New()
-	user.Id = id
-	err := gen.store.Exec(`insert into user values ?`, user)
-	return id.String, err
+	user.ID = id
+	err := gen.store.Exec(gen.ctx, `insert into user values ?`, user)
+	return id.String(), err
 }
 
 // UserUpdate updates a new user
 func (gen *Db) UserUpdate(user data.User) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
-		err := gen.store.Exec(`delete from users where id = ?`,
-			user.id)
+		err := gen.store.Exec(gen.ctx, `delete from users where id = ?`,
+			user.ID)
 		if err != nil {
 			return err
 		}
 
-		return gen.store.Exec(`insert into user values ?`, user)
+		return gen.store.Exec(gen.ctx, `insert into user values ?`, user)
 	})
 }
 
 // UserDelete deletes a user from the database
 func (gen *Db) UserDelete(id uuid.UUID) error {
-	return gen.store.Exec(`delete from users where id = ?`, id)
+	return gen.store.Exec(gen.ctx, `delete from users where id = ?`, id)
 }
 
-// Groups returns all groups.
-func (gen *Db) Groups() ([]data.Group, error) {
+func (gen *Db) txGroups(tx *genji.Tx) ([]data.Group, error) {
 	var ret []data.Group
 
-	res, err := gen.store.Query(`select * from groups`)
+	res, err := tx.Query(gen.ctx, `select * from groups`)
+	if err != nil {
+		return ret, err
+	}
+
 	defer res.Close()
 
 	err = res.Iterate(func(d document.Document) error {
@@ -578,13 +642,27 @@ func (gen *Db) Groups() ([]data.Group, error) {
 		return nil
 	})
 
-	return ret, nil
+	return ret, err
+
+}
+
+// Groups returns all groups.
+func (gen *Db) Groups() ([]data.Group, error) {
+	var groups []data.Group
+
+	err := gen.store.View(func(tx *genji.Tx) error {
+		var err error
+		groups, err = gen.txGroups(tx)
+		return err
+	})
+
+	return groups, err
 }
 
 // Group returns the Group with the given ID.
 func (gen *Db) Group(id uuid.UUID) (data.Group, error) {
 	var ret data.Group
-	doc, err := gen.store.QueryDocument(`select * from groups where id = ?`,
+	doc, err := gen.store.QueryDocument(gen.ctx, `select * from groups where id = ?`,
 		id)
 	if err != nil {
 		return ret, err
@@ -599,38 +677,38 @@ func (gen *Db) GroupInsert(group data.Group) (string, error) {
 	id := uuid.New()
 	group.Parent = zero
 	group.ID = id
-	err := gen.store.Exec(`insert into groups values ?`, group)
+	err := gen.store.Exec(gen.ctx, `insert into groups values ?`, group)
 	return id.String(), err
 }
 
 // GroupUpdate updates a group
 func (gen *Db) GroupUpdate(gUpdate data.Group) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(`delete from groups where id = ?`, gUpdate.ID)
+		err := tx.Exec(gen.ctx, `delete from groups where id = ?`, gUpdate.ID)
 		if err != nil {
 			return err
 		}
 
-		return tx.Exec(`insert into groups values ?`, gUpdate)
+		return tx.Exec(gen.ctx, `insert into groups values ?`, gUpdate)
 	})
 }
 
-// GroupDelete deletes a device from the database
+// GroupDelete deletes a node from the database
 func (gen *Db) GroupDelete(id uuid.UUID) error {
-	return gen.store.Exec(`delete from groups where id = ?`, id)
+	return gen.store.Exec(gen.ctx, `delete from groups where id = ?`, id)
 }
 
 // Rules returns all rules.
 func (gen *Db) Rules() ([]data.Rule, error) {
 	var ret []data.Rule
-	res, err := gen.store.Query(`select * from rules`)
+	res, err := gen.store.Query(gen.ctx, `select * from rules`)
 	if err != nil {
 		return ret, err
 	}
 	res.Close()
-	err = res.Iterate(func(d document.Document) {
+	err = res.Iterate(func(d document.Document) error {
 		var rule data.Rule
-		err := d.StructScan(&rule)
+		err := document.StructScan(d, &rule)
 		if err != nil {
 			return err
 		}
@@ -646,7 +724,12 @@ func (gen *Db) Rules() ([]data.Rule, error) {
 // RuleByID finds a rule given the ID
 func (gen *Db) RuleByID(id uuid.UUID) (data.Rule, error) {
 	var rule data.Rule
-	err := gen.store.Query(`select * from rules where id = ?`, id)
+	doc, err := gen.store.QueryDocument(gen.ctx, `select * from rules where id = ?`, id)
+	if err != nil {
+		return rule, err
+	}
+
+	err = document.StructScan(doc, &rule)
 	return rule, err
 }
 
@@ -654,27 +737,27 @@ func (gen *Db) RuleByID(id uuid.UUID) (data.Rule, error) {
 func (gen *Db) RuleInsert(rule data.Rule) (uuid.UUID, error) {
 	rule.ID = uuid.New()
 	err := gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(`insert into rules values ?`, rule)
+		err := tx.Exec(gen.ctx, `insert into rules values ?`, rule)
 		if err != nil {
 			return err
 		}
 
-		doc, err := tx.QueryDocument(`select * from nodes where id = ?`,
-			rule.config.NodeID)
+		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`,
+			rule.Config.NodeID)
 
 		if err != nil {
 			return err
 		}
 
 		var node data.Node
-		err = doc.StructScan(&node)
+		err = document.StructScan(doc, &node)
 		if err != nil {
 			return err
 		}
 
 		node.Rules = append(node.Rules, rule.ID)
 
-		return tx.Exec(`update nodes set rules = ? where id = ?`,
+		return tx.Exec(gen.ctx, `update nodes set rules = ? where id = ?`,
 			node.Rules, node.ID)
 	})
 
@@ -683,33 +766,33 @@ func (gen *Db) RuleInsert(rule data.Rule) (uuid.UUID, error) {
 
 // RuleUpdateConfig updates a rule config
 func (gen *Db) RuleUpdateConfig(id uuid.UUID, config data.RuleConfig) error {
-	return gen.store.Exec(`update rules set config = ? where id = ?`,
+	return gen.store.Exec(gen.ctx, `update rules set config = ? where id = ?`,
 		config, id)
 }
 
 // RuleUpdateState updates a rule state
 func (gen *Db) RuleUpdateState(id uuid.UUID, state data.RuleState) error {
-	return gen.store.Exec(`update rules set state = ? where id = ?`,
+	return gen.store.Exec(gen.ctx, `update rules set state = ? where id = ?`,
 		state, id)
 }
 
 // RuleDelete deletes a rule from the database
 func (gen *Db) RuleDelete(id uuid.UUID) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
-		doc, err := tx.QueryDocument(`select * from rules where id = ?`,
+		doc, err := tx.QueryDocument(gen.ctx, `select * from rules where id = ?`,
 			id)
 		if err != nil {
 			return err
 		}
 
 		var rule data.Rule
-		err = doc.StructScan(&rule)
+		err = document.StructScan(doc, &rule)
 		if err != nil {
 			return err
 		}
 
 		// remove rule from node
-		doc, err = tx.QueryDocument(`select * from nodes where id = ?`,
+		doc, err = tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`,
 			rule.Config.NodeID)
 		if err != nil {
 			return err
@@ -729,22 +812,38 @@ func (gen *Db) RuleDelete(id uuid.UUID) error {
 			}
 		}
 
-		err = tx.Exec(`update nodes set rules = ? where id = ?`,
+		err = tx.Exec(gen.ctx, `update nodes set rules = ? where id = ?`,
 			newNodeRules, node.ID)
 
 		if err != nil {
 			return nil
 		}
 
-		return tx.Exec(`delete from rules where id = ?`, id)
+		return tx.Exec(gen.ctx, `delete from rules where id = ?`, id)
 	})
 }
 
-// STOPPED
+// NodeCmds returns all cmds in database
+func (gen *Db) NodeCmds() ([]data.NodeCmd, error) {
+	var cmds []data.NodeCmd
+	res, err := gen.store.Query(gen.ctx, `select * from cmds`)
+	if err != nil {
+		return cmds, err
+	}
+	defer res.Close()
 
-// RuleEach iterates through each rule calling provided function
-func (gen *Db) RuleEach(callback func(rule *data.Rule) error) error {
-	return gen.store.ForEach(nil, callback)
+	err = res.Iterate(func(d document.Document) error {
+		var cmd data.NodeCmd
+		err = document.StructScan(d, &cmd)
+		if err != nil {
+			return err
+		}
+
+		cmds = append(cmds, cmd)
+		return nil
+	})
+
+	return cmds, err
 }
 
 func newIfZero(id uuid.UUID) uuid.UUID {
@@ -755,11 +854,11 @@ func newIfZero(id uuid.UUID) uuid.UUID {
 }
 
 type genDump struct {
-	Nodes    []data.Node    `json:"devices"`
+	Nodes    []data.Node    `json:"nodes"`
 	Users    []data.User    `json:"users"`
 	Groups   []data.Group   `json:"groups"`
 	Rules    []data.Rule    `json:"rules"`
-	NodeCmds []data.NodeCmd `json:"deviceCmds"`
+	NodeCmds []data.NodeCmd `json:"nodeCmds"`
 }
 
 // DumpDb dumps the entire gen to a file
