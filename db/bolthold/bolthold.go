@@ -415,7 +415,8 @@ func (bhdb *Db) UsersForGroup(id uuid.UUID) ([]data.User, error) {
 			var user data.User
 			err := bhdb.store.TxGet(tx, role.UserID, &user)
 			if err != nil {
-				return err
+				log.Println("did not find user: ", role.UserID)
+				continue
 			}
 			ret = append(ret, user)
 		}
@@ -515,9 +516,141 @@ func (bhdb *Db) UserUpdate(user data.User) error {
 	})
 }
 
+// FixupUsersGroups verified key and IDs match for all users and groups
+// this is a horrible hack, but for somereason bolthold is not creating
+// the correct IDs.
+func (bhdb *Db) FixupUsersGroups() error {
+	return bhdb.update(func(tx *bolt.Tx) error {
+		var allGroups []data.Group
+		err := bhdb.store.TxFind(tx, &allGroups, nil)
+		if err != nil {
+			return err
+		}
+
+		for _, g := range allGroups {
+			err := bhdb.store.TxDeleteMatching(tx, data.Group{},
+				bolthold.Where("ID").Eq(g.ID))
+
+			if err != nil {
+				log.Println("Error deleting group when trying to fix up: ", err)
+				return err
+			}
+
+			// try to insert group
+			if err = bhdb.store.TxUpsert(tx, g.ID, g); err != nil {
+				log.Println("Error updating group after delete: ", err)
+				return err
+			}
+
+		}
+
+		var allUsers []data.User
+		err = bhdb.store.TxFind(tx, &allUsers, nil)
+		if err != nil {
+			return err
+		}
+
+		for _, u := range allUsers {
+			err := bhdb.store.TxDeleteMatching(tx, data.User{},
+				bolthold.Where("ID").Eq(u.ID))
+
+			if err != nil {
+				log.Println("Error deleting user when trying to fix up: ", err)
+				return err
+			}
+
+			// try to insert user
+			if err = bhdb.store.TxUpsert(tx, u.ID, u); err != nil {
+				log.Println("Error updating user after delete: ", err)
+				return err
+			}
+
+		}
+
+		return nil
+	})
+}
+
+// UserGroupAudit cleans up group users IDs from users that have been deleted
+func (bhdb *Db) UserGroupAudit() error {
+	return bhdb.update(func(tx *bolt.Tx) error {
+		var allGroups []data.Group
+		err := bhdb.store.TxFind(tx, &allGroups, nil)
+		if err != nil {
+			return err
+		}
+
+		for _, g := range allGroups {
+			i := 0
+			for _, ur := range g.Users {
+				var user data.User
+				err := bhdb.store.TxGet(tx, ur.UserID, &user)
+				if err == nil {
+					// user must not exist, so remove from group
+					g.Users[i] = ur
+					i++
+				} else {
+					log.Printf("Removing unknown group (%v) user: %v\n", g.Name, ur.UserID)
+				}
+			}
+			if i != len(g.Users) {
+				log.Println("group users change -- saving ...")
+				// users have changed so save
+				g.Users = g.Users[:i]
+				err := bhdb.store.TxUpdateMatching(tx, &data.Group{}, bolthold.Where("ID").Eq(g.ID),
+					func(record interface{}) error {
+						update, ok := record.(*data.Group)
+						if !ok {
+							return fmt.Errorf("update type is not correct, want group, got %T", record)
+						}
+
+						update.Users = g.Users
+						_ = update
+						return nil
+					})
+				if err != nil {
+					log.Printf("error saving group (%v): %v\n", g.ID, err)
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
+}
+
 // UserDelete deletes a user from the database
 func (bhdb *Db) UserDelete(id uuid.UUID) error {
-	return bhdb.store.Delete(id, data.User{})
+	return bhdb.update(func(tx *bolt.Tx) error {
+		// First remove user from groups user is part of
+		var allGroups []data.Group
+		err := bhdb.store.TxFind(tx, &allGroups, nil)
+
+		if err != nil {
+			return err
+		}
+
+		for _, g := range allGroups {
+			i := 0
+			for _, ur := range g.Users {
+				if ur.UserID != id {
+					// keep this user
+					g.Users[i] = ur
+					i++
+				}
+			}
+			if i != len(g.Users) {
+				// we deleted a users, so truncate and save
+				g.Users = g.Users[:i]
+				err := bhdb.store.TxUpdate(tx, g.ID, g)
+				if err != nil {
+					log.Println("Error updating group while deleting user: ", err)
+				}
+			}
+		}
+
+		return bhdb.store.TxDelete(tx, id, data.User{})
+	})
 }
 
 // Groups returns all groups.
