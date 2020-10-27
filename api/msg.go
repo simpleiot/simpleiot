@@ -6,19 +6,19 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/bolthold"
+	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/msg"
 )
 
 // Msg handles user requests.
 type Msg struct {
-	db        *bolthold.Db
+	db        *genji.Db
 	validator RequestValidator
 	messenger *msg.Messenger
 }
 
 // NewMsgHandler returns a new handler for sending messages.
-func NewMsgHandler(db *bolthold.Db, v RequestValidator, messenger *msg.Messenger) Msg {
+func NewMsgHandler(db *genji.Db, v RequestValidator, messenger *msg.Messenger) Msg {
 	return Msg{db: db, validator: v, messenger: messenger}
 }
 

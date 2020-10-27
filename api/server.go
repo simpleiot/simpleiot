@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/simpleiot/simpleiot/db/bolthold"
+	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/msg"
 )
 
@@ -77,7 +77,7 @@ func NewAppHandler(args ServerArgs) http.Handler {
 // ServerArgs can be used to pass arguments to the server subsystem
 type ServerArgs struct {
 	Port       string
-	DbInst     *bolthold.Db
+	DbInst     *genji.Db
 	GetAsset   func(string) []byte
 	Filesystem http.FileSystem
 	Debug      bool

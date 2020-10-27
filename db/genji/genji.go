@@ -424,19 +424,24 @@ func (gen *Db) Users() ([]data.User, error) {
 
 type privilege string
 
-// UserCheck checks user authenticatino
-func (gen *Db) UserCheck(email, password string) (data.User, error) {
+// UserCheck checks user authentication
+func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 	var user data.User
 
 	doc, err := gen.store.QueryDocument(gen.ctx, `select * from users where email = ? and pass = ?`,
 		email, password)
 
 	if err != nil {
-		return user, err
+		// just return nil user and not user if not found
+		if err == database.ErrDocumentNotFound {
+			return nil, nil
+		}
+
+		return nil, err
 	}
 
 	err = document.StructScan(doc, &user)
-	return user, err
+	return &user, err
 }
 
 // UserIsRoot checks if root user
