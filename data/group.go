@@ -1,7 +1,5 @@
 package data
 
-import "github.com/google/uuid"
-
 // Role of user
 type Role string
 
@@ -13,22 +11,22 @@ const (
 
 // UserRoles describes a users roles in a group
 type UserRoles struct {
-	UserID uuid.UUID `json:"userId"`
-	Roles  []Role    `json:"roles"`
+	UserID string `json:"userId"`
+	Roles  []Role `json:"roles"`
 }
 
 // An Group represents a named collection of
 // Users and Devices.
 type Group struct {
-	ID     uuid.UUID   `json:"id" boltholdKey:"ID"`
+	ID     string      `json:"id" boltholdKey:"ID"`
 	Name   string      `json:"name"`
-	Parent uuid.UUID   `json:"parent"`
+	Parent string      `json:"parent"`
 	Users  []UserRoles `json:"users"`
 }
 
 // FindUsers returns users for specified role
-func (o *Group) FindUsers(role Role) []uuid.UUID {
-	var ret []uuid.UUID
+func (o *Group) FindUsers(role Role) []string {
+	var ret []string
 	for _, ur := range o.Users {
 		for _, r := range ur.Roles {
 			if r == role {

@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
 )
@@ -29,14 +28,13 @@ func (h Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userUUID, err := uuid.Parse(userID)
+	// only allow requests if user is part of root org
+	isRoot, err := h.db.UserIsRoot(userID)
+
 	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
+		http.Error(res, "user error", http.StatusInternalServerError)
 		return
 	}
-
-	// only allow requests if user is part of root org
-	isRoot, err := h.db.UserIsRoot(userUUID)
 
 	if !isRoot {
 		res.Write([]byte("[]"))
@@ -84,12 +82,6 @@ func (h Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	idUUID, err := uuid.Parse(id)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	switch req.Method {
 	case http.MethodGet:
 		// get a single user
@@ -107,7 +99,7 @@ func (h Users) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 
 	case http.MethodDelete:
-		err := h.db.UserDelete(idUUID)
+		err := h.db.UserDelete(userID)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 		} else {
@@ -152,17 +144,12 @@ func (h Users) updateUser(ID string, res http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	var err error
-	user.ID, err = uuid.Parse(ID)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusRequestedRangeNotSatisfiable)
-		return
-	}
+	user.ID = ID
 
 	if err := h.db.UserUpdate(user); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	encode(res, data.StandardResponse{Success: true, ID: user.ID.String()})
+	encode(res, data.StandardResponse{Success: true, ID: user.ID})
 }

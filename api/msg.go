@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/msg"
@@ -30,16 +29,10 @@ func (m Msg) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userUUID, err := uuid.Parse(userID)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	// only allow requests if user is part of root org
-	isRoot, err := m.db.UserIsRoot(userUUID)
+	isRoot, err := m.db.UserIsRoot(userID)
 
-	if !isRoot {
+	if !isRoot || err != nil {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
 		return
 	}

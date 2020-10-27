@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/google/uuid"
 )
 
 // Authorizer defines a mechanism needed to authorize stuff
 type Authorizer interface {
-	NewToken(id uuid.UUID) (string, error)
+	NewToken(id string) (string, error)
 	Valid(req *http.Request) (bool, string)
 }
 
@@ -20,7 +19,7 @@ type Authorizer interface {
 type AlwaysValid struct{}
 
 // NewToken stub
-func (AlwaysValid) NewToken(id uuid.UUID) (string, error) { return "valid", nil }
+func (AlwaysValid) NewToken(id string) (string, error) { return "valid", nil }
 
 // Valid stub
 func (AlwaysValid) Valid(*http.Request) (bool, string) {
@@ -46,13 +45,13 @@ func NewKey(size int) (key Key, err error) {
 }
 
 // NewToken returns a new authentication token signed by the Key.
-func (k Key) NewToken(userID uuid.UUID) (string, error) {
+func (k Key) NewToken(userID string) (string, error) {
 	// FIXME Id is probably not the proper place to put the userid
 	// but works for now
 	claims := jwt.StandardClaims{
 		ExpiresAt: time.Now().Add(30 * time.Minute).Unix(),
 		Issuer:    "simpleiot",
-		Id:        userID.String(),
+		Id:        userID,
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
 		SignedString(k.bytes)

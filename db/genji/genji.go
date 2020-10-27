@@ -37,33 +37,32 @@ func NewDb(dataDir string, influx *db.Influx, init bool) (*Db, error) {
 		log.Fatal(err)
 	}
 
+	err = store.Exec("CREATE TABLE IF NOT EXISTS nodes;")
+	if err != nil {
+		return nil, err
+	}
+
+	err = store.Exec("CREATE TABLE IF NOT EXISTS users;")
+	if err != nil {
+		return nil, err
+	}
+
+	err = store.Exec("CREATE TABLE IF NOT EXISTS groups;")
+	if err != nil {
+		return nil, err
+	}
+
+	err = store.Exec("CREATE TABLE IF NOT EXISTS rules;")
+	if err != nil {
+		return nil, err
+	}
+
+	err = store.Exec("CREATE TABLE IF NOT EXISTS cmds;")
+	if err != nil {
+		return nil, err
+	}
+
 	ctx := context.Background()
-
-	err = store.Exec(ctx, "CREATE TABLE IF NOT EXISTS points;")
-	if err != nil {
-		return nil, err
-	}
-
-	err = store.Exec(ctx, "CREATE TABLE IF NOT EXISTS users;")
-	if err != nil {
-		return nil, err
-	}
-
-	err = store.Exec(ctx, "CREATE TABLE IF NOT EXISTS groups;")
-	if err != nil {
-		return nil, err
-	}
-
-	err = store.Exec(ctx, "CREATE TABLE IF NOT EXISTS rules;")
-	if err != nil {
-		return nil, err
-	}
-
-	err = store.Exec(ctx, "CREATE TABLE IF NOT EXISTS cmds;")
-	if err != nil {
-		return nil, err
-	}
-
 	db := &Db{store: store, influx: influx, ctx: ctx}
 	if init {
 		return db, db.initialize()
@@ -80,7 +79,7 @@ func (gen *Db) Close() error {
 // Node returns data for a particular node
 func (gen *Db) Node(id string) (data.Node, error) {
 	var node data.Node
-	doc, err := gen.store.QueryDocument(gen.ctx, `select * from nodes where id = ?`, id)
+	doc, err := gen.store.QueryDocument(`select * from nodes where id = ?`, id)
 	if err != nil {
 		return node, err
 	}
@@ -91,11 +90,12 @@ func (gen *Db) Node(id string) (data.Node, error) {
 
 func (gen *Db) txNodes(tx *genji.Tx) ([]data.Node, error) {
 	var nodes []data.Node
-	res, err := tx.Query(gen.ctx, `select * from nodes`)
+	res, err := tx.Query(`select * from nodes`)
 	if err != nil {
 		return nodes, err
 	}
-	res.Close()
+
+	defer res.Close()
 
 	err = res.Iterate(func(d document.Document) error {
 		var node data.Node
@@ -127,12 +127,12 @@ func (gen *Db) Nodes() ([]data.Node, error) {
 
 // NodeDelete deletes a node from the database
 func (gen *Db) NodeDelete(id string) error {
-	return gen.store.Exec(gen.ctx, `delete from nodes where id = ?`, id)
+	return gen.store.Exec(`delete from nodes where id = ?`, id)
 }
 
 // NodeUpdateGroups updates the groups for a node.
-func (gen *Db) NodeUpdateGroups(id string, groups []uuid.UUID) error {
-	return gen.store.Exec(gen.ctx, `update nodes set groups = ? where id = ?`,
+func (gen *Db) NodeUpdateGroups(id string, groups []string) error {
+	return gen.store.Exec(`update nodes set groups = ? where id = ?`,
 		groups, id)
 }
 
@@ -156,7 +156,7 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 
 	return gen.store.Update(func(tx *genji.Tx) error {
 		var node data.Node
-		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, id)
+		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
 		if err != nil {
 			return err
 		}
@@ -169,7 +169,7 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 		node.ProcessPoint(point)
 		node.SetState(data.SysStateOnline)
 
-		return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+		return tx.Exec(`update nodes set points = ? where id = ?`,
 			node.Points, id)
 	})
 }
@@ -178,7 +178,7 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 func (gen *Db) NodeSetState(id string, state int) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
 		var node data.Node
-		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, id)
+		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func (gen *Db) NodeSetState(id string, state int) error {
 
 		node.SetState(state)
 
-		return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+		return tx.Exec(`update nodes set points = ? where id = ?`,
 			node.Points, id)
 	})
 }
@@ -199,7 +199,7 @@ func (gen *Db) NodeSetState(id string, state int) error {
 func (gen *Db) NodeSetSwUpdateState(id string, state data.SwUpdateState) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
 		var node data.Node
-		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, id)
+		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
 		if err != nil {
 			return err
 		}
@@ -211,7 +211,7 @@ func (gen *Db) NodeSetSwUpdateState(id string, state data.SwUpdateState) error {
 
 		node.SetSwUpdateState(state)
 
-		return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+		return tx.Exec(`update nodes set points = ? where id = ?`,
 			node.Points, id)
 	})
 }
@@ -221,18 +221,18 @@ func (gen *Db) NodeSetSwUpdateState(id string, state data.SwUpdateState) error {
 func (gen *Db) NodeSetCmd(cmd data.NodeCmd) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
 		// first update cmd table
-		err := tx.Exec(gen.ctx, `delete from cmds where id = ?`, cmd.ID)
+		err := tx.Exec(`delete from cmds where id = ?`, cmd.ID)
 		if err != nil {
 			return err
 		}
 
-		err = tx.Exec(gen.ctx, `insert into cmds values ?`, cmd)
+		err = tx.Exec(`insert into cmds values ?`, cmd)
 		if err != nil {
 			return err
 		}
 
 		// now update cmd pending in node
-		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, cmd.ID)
+		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, cmd.ID)
 		if err != nil {
 			return err
 		}
@@ -245,7 +245,7 @@ func (gen *Db) NodeSetCmd(cmd data.NodeCmd) error {
 
 		node.SetCmdPending(true)
 
-		return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+		return tx.Exec(`update nodes set points = ? where id = ?`,
 			node.Points, cmd.ID)
 	})
 }
@@ -254,13 +254,13 @@ func (gen *Db) NodeSetCmd(cmd data.NodeCmd) error {
 // the cmd pending flag
 func (gen *Db) NodeDeleteCmd(id string) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(gen.ctx, `delete from cmds where id = ?`, id)
+		err := tx.Exec(`delete from cmds where id = ?`, id)
 		if err != nil {
 			return err
 		}
 
 		// now update cmd pending in node
-		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, id)
+		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
 		if err != nil {
 			return err
 		}
@@ -273,7 +273,7 @@ func (gen *Db) NodeDeleteCmd(id string) error {
 
 		node.SetCmdPending(false)
 
-		return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+		return tx.Exec(`update nodes set points = ? where id = ?`,
 			node.Points, id)
 	})
 }
@@ -285,7 +285,7 @@ func (gen *Db) NodeGetCmd(id string) (data.NodeCmd, error) {
 	var cmd data.NodeCmd
 
 	err := gen.store.Update(func(tx *genji.Tx) error {
-		doc, err := tx.QueryDocument(gen.ctx, `select * from cmds where id = ?`, id)
+		doc, err := tx.QueryDocument(`select * from cmds where id = ?`, id)
 
 		if err != nil {
 			if err != database.ErrDocumentNotFound {
@@ -302,13 +302,13 @@ func (gen *Db) NodeGetCmd(id string) (data.NodeCmd, error) {
 
 		if cmd.Cmd != "" {
 			// a node has fetched a command, delete it
-			err := tx.Exec(gen.ctx, `delete from cmds where id = ?`, id)
+			err := tx.Exec(`delete from cmds where id = ?`, id)
 			if err != nil {
 				return err
 			}
 
 			// now update cmd pending in node
-			doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`, cmd.ID)
+			doc, err := tx.QueryDocument(`select * from nodes where id = ?`, cmd.ID)
 			if err != nil {
 				return err
 			}
@@ -321,7 +321,7 @@ func (gen *Db) NodeGetCmd(id string) (data.NodeCmd, error) {
 
 			node.SetCmdPending(false)
 
-			return tx.Exec(gen.ctx, `update nodes set points = ? where id = ?`,
+			return tx.Exec(`update nodes set points = ? where id = ?`,
 				node.Points, cmd.ID)
 
 		}
@@ -333,7 +333,7 @@ func (gen *Db) NodeGetCmd(id string) (data.NodeCmd, error) {
 }
 
 // NodesForUser returns all nodes for a particular user
-func (gen *Db) NodesForUser(userID uuid.UUID) ([]data.Node, error) {
+func (gen *Db) NodesForUser(userID string) ([]data.Node, error) {
 	var nodes []data.Node
 
 	isRoot, err := gen.UserIsRoot(userID)
@@ -353,7 +353,7 @@ func (gen *Db) NodesForUser(userID uuid.UUID) ([]data.Node, error) {
 			return err
 		}
 
-		var groupIDs []uuid.UUID
+		var groupIDs []string
 
 		for _, o := range allGroups {
 			for _, ur := range o.Users {
@@ -402,10 +402,11 @@ func (u users) Swap(i, j int) {
 // Users returns all users, sorted by first name.
 func (gen *Db) Users() ([]data.User, error) {
 	var users []data.User
-	res, err := gen.store.Query(gen.ctx, `select * from users order by firstName`)
+	res, err := gen.store.Query(`select * from users order by firstName`)
 	if err != nil {
 		return users, err
 	}
+
 	defer res.Close()
 
 	err = res.Iterate(func(d document.Document) error {
@@ -428,7 +429,7 @@ type privilege string
 func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 	var user data.User
 
-	doc, err := gen.store.QueryDocument(gen.ctx, `select * from users where email = ? and pass = ?`,
+	doc, err := gen.store.QueryDocument(`select * from users where email = ? and pass = ?`,
 		email, password)
 
 	if err != nil {
@@ -445,8 +446,14 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 }
 
 // UserIsRoot checks if root user
-func (gen *Db) UserIsRoot(id uuid.UUID) (bool, error) {
-	_, err := gen.store.QueryDocument(gen.ctx, `select * from groups where id = ? and ? in users`)
+func (gen *Db) UserIsRoot(id string) (bool, error) {
+	_, err := gen.store.QueryDocument(`select * from groups where id = ? and ? in users`, id,
+		data.UserRoles{
+			UserID: id,
+			Roles:  []data.Role{"admin"},
+		},
+	)
+
 	if err != nil {
 		if err == database.ErrDocumentNotFound {
 			return false, nil
@@ -462,7 +469,7 @@ func (gen *Db) UserIsRoot(id uuid.UUID) (bool, error) {
 func (gen *Db) UserByID(id string) (data.User, error) {
 	var user data.User
 
-	doc, err := gen.store.QueryDocument(gen.ctx, `select * from users where id = ?`,
+	doc, err := gen.store.QueryDocument(`select * from users where id = ?`,
 		id)
 
 	if err != nil {
@@ -477,7 +484,7 @@ func (gen *Db) UserByID(id string) (data.User, error) {
 func (gen *Db) UserByEmail(email string) (data.User, error) {
 	var user data.User
 
-	doc, err := gen.store.QueryDocument(gen.ctx, `select * from users where email = ?`,
+	doc, err := gen.store.QueryDocument(`select * from users where email = ?`,
 		email)
 
 	if err != nil {
@@ -489,11 +496,11 @@ func (gen *Db) UserByEmail(email string) (data.User, error) {
 }
 
 // UsersForGroup returns all users who who are connected to a node by a group.
-func (gen *Db) UsersForGroup(id uuid.UUID) ([]data.User, error) {
+func (gen *Db) UsersForGroup(id string) ([]data.User, error) {
 	var users []data.User
 
 	err := gen.store.View(func(tx *genji.Tx) error {
-		doc, err := tx.QueryDocument(gen.ctx, `select * from groups where id = ?`, id)
+		doc, err := tx.QueryDocument(`select * from groups where id = ?`, id)
 		if err != nil {
 			return err
 		}
@@ -505,7 +512,7 @@ func (gen *Db) UsersForGroup(id uuid.UUID) ([]data.User, error) {
 		}
 
 		for _, role := range group.Users {
-			doc, err = tx.QueryDocument(gen.ctx, `select * from users where id = ?`, role.UserID)
+			doc, err = tx.QueryDocument(`select * from users where id = ?`, role.UserID)
 			if err != nil {
 				return err
 			}
@@ -530,7 +537,7 @@ func (gen *Db) initialize() error {
 	// initialize root group in new gen
 	var group data.Group
 
-	_, err := gen.store.QueryDocument(gen.ctx, `select * from groups where name = root`)
+	_, err := gen.store.QueryDocument(`select * from groups where name = 'root'`)
 
 	// group was found or we ran into an error, so return
 	if err != database.ErrDocumentNotFound {
@@ -541,14 +548,14 @@ func (gen *Db) initialize() error {
 		log.Println("adding root group and admin user ...")
 
 		admin := data.User{
-			ID:        zero,
+			ID:        zero.String(),
 			FirstName: "admin",
 			LastName:  "user",
 			Email:     "admin@admin.com",
 			Pass:      "admin",
 		}
 
-		err = tx.Exec(gen.ctx, `insert into users values ?`, admin)
+		err = tx.Exec(`insert into users values ?`, admin)
 
 		if err != nil {
 			return err
@@ -557,14 +564,14 @@ func (gen *Db) initialize() error {
 		log.Println("Created admin user: ", admin)
 
 		group = data.Group{
-			ID:   zero,
+			ID:   zero.String(),
 			Name: "root",
 			Users: []data.UserRoles{
-				{UserID: zero, Roles: []data.Role{data.RoleAdmin}},
+				{UserID: zero.String(), Roles: []data.Role{data.RoleAdmin}},
 			},
 		}
 
-		err = tx.Exec(gen.ctx, `insert into groups values ?`, group)
+		err = tx.Exec(`insert into groups values ?`, group)
 
 		if err != nil {
 			return err
@@ -579,10 +586,14 @@ func (gen *Db) initialize() error {
 }
 
 // NodesForGroup returns the nodes which are property of the given Group.
-func (gen *Db) NodesForGroup(tx *bolt.Tx, groupID uuid.UUID) ([]data.Node, error) {
+func (gen *Db) NodesForGroup(tx *bolt.Tx, groupID string) ([]data.Node, error) {
 	var nodes []data.Node
-	res, err := gen.store.Query(gen.ctx, `select * from nodes where ? in groups`,
+	res, err := gen.store.Query(`select * from nodes where ? in groups`,
 		groupID)
+
+	if err != nil {
+		return nodes, err
+	}
 
 	defer res.Close()
 
@@ -603,34 +614,34 @@ func (gen *Db) NodesForGroup(tx *bolt.Tx, groupID uuid.UUID) ([]data.Node, error
 
 // UserInsert inserts a new user
 func (gen *Db) UserInsert(user data.User) (string, error) {
-	id := uuid.New()
+	id := uuid.New().String()
 	user.ID = id
-	err := gen.store.Exec(gen.ctx, `insert into user values ?`, user)
-	return id.String(), err
+	err := gen.store.Exec(`insert into user values ?`, user)
+	return id, err
 }
 
 // UserUpdate updates a new user
 func (gen *Db) UserUpdate(user data.User) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
-		err := gen.store.Exec(gen.ctx, `delete from users where id = ?`,
+		err := gen.store.Exec(`delete from users where id = ?`,
 			user.ID)
 		if err != nil {
 			return err
 		}
 
-		return gen.store.Exec(gen.ctx, `insert into user values ?`, user)
+		return gen.store.Exec(`insert into user values ?`, user)
 	})
 }
 
 // UserDelete deletes a user from the database
-func (gen *Db) UserDelete(id uuid.UUID) error {
-	return gen.store.Exec(gen.ctx, `delete from users where id = ?`, id)
+func (gen *Db) UserDelete(id string) error {
+	return gen.store.Exec(`delete from users where id = ?`, id)
 }
 
 func (gen *Db) txGroups(tx *genji.Tx) ([]data.Group, error) {
 	var ret []data.Group
 
-	res, err := tx.Query(gen.ctx, `select * from groups`)
+	res, err := tx.Query(`select * from groups`)
 	if err != nil {
 		return ret, err
 	}
@@ -665,9 +676,9 @@ func (gen *Db) Groups() ([]data.Group, error) {
 }
 
 // Group returns the Group with the given ID.
-func (gen *Db) Group(id uuid.UUID) (data.Group, error) {
+func (gen *Db) Group(id string) (data.Group, error) {
 	var ret data.Group
-	doc, err := gen.store.QueryDocument(gen.ctx, `select * from groups where id = ?`,
+	doc, err := gen.store.QueryDocument(`select * from groups where id = ?`,
 		id)
 	if err != nil {
 		return ret, err
@@ -679,38 +690,40 @@ func (gen *Db) Group(id uuid.UUID) (data.Group, error) {
 
 // GroupInsert inserts a new group
 func (gen *Db) GroupInsert(group data.Group) (string, error) {
-	id := uuid.New()
-	group.Parent = zero
+	id := uuid.New().String()
+	group.Parent = zero.String()
 	group.ID = id
-	err := gen.store.Exec(gen.ctx, `insert into groups values ?`, group)
-	return id.String(), err
+	err := gen.store.Exec(`insert into groups values ?`, group)
+	return id, err
 }
 
 // GroupUpdate updates a group
 func (gen *Db) GroupUpdate(gUpdate data.Group) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(gen.ctx, `delete from groups where id = ?`, gUpdate.ID)
+		err := tx.Exec(`delete from groups where id = ?`, gUpdate.ID)
 		if err != nil {
 			return err
 		}
 
-		return tx.Exec(gen.ctx, `insert into groups values ?`, gUpdate)
+		return tx.Exec(`insert into groups values ?`, gUpdate)
 	})
 }
 
 // GroupDelete deletes a node from the database
-func (gen *Db) GroupDelete(id uuid.UUID) error {
-	return gen.store.Exec(gen.ctx, `delete from groups where id = ?`, id)
+func (gen *Db) GroupDelete(id string) error {
+	return gen.store.Exec(`delete from groups where id = ?`, id)
 }
 
 // Rules returns all rules.
 func (gen *Db) Rules() ([]data.Rule, error) {
 	var ret []data.Rule
-	res, err := gen.store.Query(gen.ctx, `select * from rules`)
+	res, err := gen.store.Query(`select * from rules`)
 	if err != nil {
 		return ret, err
 	}
-	res.Close()
+
+	defer res.Close()
+
 	err = res.Iterate(func(d document.Document) error {
 		var rule data.Rule
 		err := document.StructScan(d, &rule)
@@ -727,9 +740,9 @@ func (gen *Db) Rules() ([]data.Rule, error) {
 }
 
 // RuleByID finds a rule given the ID
-func (gen *Db) RuleByID(id uuid.UUID) (data.Rule, error) {
+func (gen *Db) RuleByID(id string) (data.Rule, error) {
 	var rule data.Rule
-	doc, err := gen.store.QueryDocument(gen.ctx, `select * from rules where id = ?`, id)
+	doc, err := gen.store.QueryDocument(`select * from rules where id = ?`, id)
 	if err != nil {
 		return rule, err
 	}
@@ -739,15 +752,15 @@ func (gen *Db) RuleByID(id uuid.UUID) (data.Rule, error) {
 }
 
 // RuleInsert inserts a new rule
-func (gen *Db) RuleInsert(rule data.Rule) (uuid.UUID, error) {
-	rule.ID = uuid.New()
+func (gen *Db) RuleInsert(rule data.Rule) (string, error) {
+	rule.ID = uuid.New().String()
 	err := gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(gen.ctx, `insert into rules values ?`, rule)
+		err := tx.Exec(`insert into rules values ?`, rule)
 		if err != nil {
 			return err
 		}
 
-		doc, err := tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`,
+		doc, err := tx.QueryDocument(`select * from nodes where id = ?`,
 			rule.Config.NodeID)
 
 		if err != nil {
@@ -762,7 +775,7 @@ func (gen *Db) RuleInsert(rule data.Rule) (uuid.UUID, error) {
 
 		node.Rules = append(node.Rules, rule.ID)
 
-		return tx.Exec(gen.ctx, `update nodes set rules = ? where id = ?`,
+		return tx.Exec(`update nodes set rules = ? where id = ?`,
 			node.Rules, node.ID)
 	})
 
@@ -770,21 +783,21 @@ func (gen *Db) RuleInsert(rule data.Rule) (uuid.UUID, error) {
 }
 
 // RuleUpdateConfig updates a rule config
-func (gen *Db) RuleUpdateConfig(id uuid.UUID, config data.RuleConfig) error {
-	return gen.store.Exec(gen.ctx, `update rules set config = ? where id = ?`,
+func (gen *Db) RuleUpdateConfig(id string, config data.RuleConfig) error {
+	return gen.store.Exec(`update rules set config = ? where id = ?`,
 		config, id)
 }
 
 // RuleUpdateState updates a rule state
-func (gen *Db) RuleUpdateState(id uuid.UUID, state data.RuleState) error {
-	return gen.store.Exec(gen.ctx, `update rules set state = ? where id = ?`,
+func (gen *Db) RuleUpdateState(id string, state data.RuleState) error {
+	return gen.store.Exec(`update rules set state = ? where id = ?`,
 		state, id)
 }
 
 // RuleDelete deletes a rule from the database
-func (gen *Db) RuleDelete(id uuid.UUID) error {
+func (gen *Db) RuleDelete(id string) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
-		doc, err := tx.QueryDocument(gen.ctx, `select * from rules where id = ?`,
+		doc, err := tx.QueryDocument(`select * from rules where id = ?`,
 			id)
 		if err != nil {
 			return err
@@ -797,7 +810,7 @@ func (gen *Db) RuleDelete(id uuid.UUID) error {
 		}
 
 		// remove rule from node
-		doc, err = tx.QueryDocument(gen.ctx, `select * from nodes where id = ?`,
+		doc, err = tx.QueryDocument(`select * from nodes where id = ?`,
 			rule.Config.NodeID)
 		if err != nil {
 			return err
@@ -810,31 +823,32 @@ func (gen *Db) RuleDelete(id uuid.UUID) error {
 		}
 
 		// new rules array
-		newNodeRules := []uuid.UUID{}
+		newNodeRules := []string{}
 		for _, rID := range node.Rules {
 			if rID != rule.ID {
 				newNodeRules = append(newNodeRules, rID)
 			}
 		}
 
-		err = tx.Exec(gen.ctx, `update nodes set rules = ? where id = ?`,
+		err = tx.Exec(`update nodes set rules = ? where id = ?`,
 			newNodeRules, node.ID)
 
 		if err != nil {
 			return nil
 		}
 
-		return tx.Exec(gen.ctx, `delete from rules where id = ?`, id)
+		return tx.Exec(`delete from rules where id = ?`, id)
 	})
 }
 
 // NodeCmds returns all cmds in database
 func (gen *Db) NodeCmds() ([]data.NodeCmd, error) {
 	var cmds []data.NodeCmd
-	res, err := gen.store.Query(gen.ctx, `select * from cmds`)
+	res, err := gen.store.Query(`select * from cmds`)
 	if err != nil {
 		return cmds, err
 	}
+
 	defer res.Close()
 
 	err = res.Iterate(func(d document.Document) error {

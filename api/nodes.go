@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/nats"
@@ -38,23 +36,14 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
 	var validUser bool
-	var userUUID uuid.UUID
+	var userID string
 
 	if req.Header.Get("Authorization") != h.authToken {
 		// all requests require valid JWT or authToken validation
-		var userID string
 		validUser, userID = h.check.Valid(req)
 
 		if !validUser {
 			http.Error(res, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		var err error
-		userUUID, err = uuid.Parse(userID)
-
-		if err != nil {
-			http.Error(res, "User UUID invalid", http.StatusUnauthorized)
 			return
 		}
 	}
@@ -67,7 +56,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			nodes, err := h.db.NodesForUser(userUUID)
+			nodes, err := h.db.NodesForUser(userID)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
@@ -212,7 +201,7 @@ func (h *Nodes) processCmd(res http.ResponseWriter, req *http.Request, id string
 
 func (h *Nodes) updateNodeGroups(res http.ResponseWriter, req *http.Request, id string) {
 	decoder := json.NewDecoder(req.Body)
-	var groups []uuid.UUID
+	var groups []string
 	err := decoder.Decode(&groups)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
