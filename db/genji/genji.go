@@ -69,7 +69,7 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx, init bool) (*
 		}
 
 		// Pass it to genji
-		store, err = genji.New(ng)
+		store, err = genji.New(context.Background(), ng)
 
 	default:
 		log.Fatal("Unknown store type: ", storeType)
@@ -188,7 +188,7 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 		}
 		err := gen.influx.WriteSamples(points)
 		if err != nil {
-			log.Println("Error writing particle samples to influx: ", err)
+			log.Println("Error writing points to influx: ", err)
 		}
 	}
 

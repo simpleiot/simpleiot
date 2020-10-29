@@ -9,9 +9,9 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.2
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
-	github.com/genjidb/genji v0.8.0
+	github.com/genjidb/genji v0.9.0
 	github.com/genjidb/genji/cmd/genji v0.8.0
-	github.com/genjidb/genji/engine/badgerengine v0.8.0
+	github.com/genjidb/genji/engine/badgerengine v0.9.0
 	github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/protobuf v1.4.2
@@ -25,6 +25,7 @@ require (
 	github.com/kevinburke/rest v0.0.0-20200429221318-0d2892b400f8 // indirect
 	github.com/kevinburke/twilio-go v0.0.0-20200810163702-320748330fac
 	github.com/kr/pretty v0.2.0 // indirect
+	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.8-0.20200814173904-d30550166e2f
 	github.com/nats-io/nats.go v1.10.1-0.20200720131241-97eff70ce747
 	github.com/timshannon/bolthold v0.0.0-20200316231344-dc30e2b2f90c
@@ -39,3 +40,9 @@ require (
 replace github.com/nats-io/nats.go => github.com/cbrake/nats.go v1.10.1-0.20200817210920-7a8e05e18c84
 
 go 1.13
+
+replace (
+	github.com/genjidb/genji => github.com/genjidb/genji v0.8.1-0.20201029082836-14c47075848a
+	github.com/genjidb/genji/cmd/genji => github.com/genjidb/genji/cmd/genji v0.8.1-0.20201029082836-14c47075848a
+	github.com/genjidb/genji/engine/badgerengine => github.com/genjidb/genji/engine/badgerengine v0.8.1-0.20201029082836-14c47075848a
+)
