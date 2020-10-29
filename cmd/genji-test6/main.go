@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
-	"time"
 
+	"github.com/dgraph-io/badger/v2"
 	"github.com/genjidb/genji"
+	"github.com/genjidb/genji/engine/badgerengine"
 )
 
 type value struct {
@@ -18,7 +19,16 @@ func setup(db *genji.DB) {
 
 func main() {
 	//db, err := genji.Open(":memory:")
-	db, err := genji.Open("genji-test6.db")
+	//db, err := genji.Open("genji-test6.db")
+
+	// Create a badger engine
+	ng, err := badgerengine.NewEngine(badger.DefaultOptions("mydb"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Pass it to genji
+	db, err := genji.New(ng)
 
 	if err != nil {
 		log.Fatal(err)
@@ -59,7 +69,7 @@ func main() {
 			res.Close()
 			t1Count++
 			fmt.Println("t1Count: ", t1Count)
-			time.Sleep(10 * time.Millisecond)
+			//time.Sleep(10 * time.Millisecond)
 		}
 	}()
 
@@ -72,6 +82,6 @@ func main() {
 		res.Close()
 		t2Count++
 		fmt.Println("t2Count: ", t2Count)
-		time.Sleep(11 * time.Millisecond)
+		//time.Sleep(11 * time.Millisecond)
 	}
 }
