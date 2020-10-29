@@ -13,3 +13,4 @@ data.json
 /*.pem
 GITHUB_TOKEN
 local.sh
+/badger

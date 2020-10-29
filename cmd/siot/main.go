@@ -212,6 +212,7 @@ func main() {
 
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDumpDb := flag.Bool("dumpDb", false, "dump database to file")
+	flagStore := flag.String("store", "badger", "db store type: bolt, badger, memory")
 	flagAuthToken := flag.String("token", "", "Auth token")
 	flag.Parse()
 
@@ -462,7 +463,7 @@ func main() {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := genji.NewDb(dataDir, nil, false)
+		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, nil, false)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -507,7 +508,7 @@ func main() {
 		}
 	}
 
-	dbInst, err := genji.NewDb(dataDir, influx, true)
+	dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, influx, true)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)

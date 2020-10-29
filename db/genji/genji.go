@@ -9,13 +9,25 @@ import (
 	"path"
 	"strings"
 
+	"github.com/dgraph-io/badger/v2"
 	"github.com/genjidb/genji"
 	"github.com/genjidb/genji/database"
 	"github.com/genjidb/genji/document"
+	"github.com/genjidb/genji/engine/badgerengine"
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
 	bolt "go.etcd.io/bbolt"
+)
+
+// StoreType defines the backing store used for the DB
+type StoreType string
+
+// define valid store types
+const (
+	StoreTypeMemory StoreType = "memory"
+	StoreTypeBolt             = "bolt"
+	StoreTypeBadger           = "badger"
 )
 
 // This file contains database manipulations.
@@ -30,12 +42,38 @@ type Db struct {
 }
 
 // NewDb creates a new Db instance for the app
-func NewDb(dataDir string, influx *db.Influx, init bool) (*Db, error) {
-	dbFile := path.Join(dataDir, "data.db")
+func NewDb(storeType StoreType, dataDir string, influx *db.Influx, init bool) (*Db, error) {
 
-	store, err := genji.Open(dbFile)
-	if err != nil {
-		log.Fatal(err)
+	var store *genji.DB
+	var err error
+
+	switch storeType {
+	case StoreTypeMemory:
+		store, err = genji.Open(":memory")
+		if err != nil {
+			log.Fatal("Error opening memory store: ", err)
+		}
+
+	case StoreTypeBolt:
+		dbFile := path.Join(dataDir, "data.db")
+		store, err = genji.Open(dbFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	case StoreTypeBadger:
+		// Create a badger engine
+		dbPath := path.Join(dataDir, "badger")
+		ng, err := badgerengine.NewEngine(badger.DefaultOptions(dbPath))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Pass it to genji
+		store, err = genji.New(ng)
+
+	default:
+		log.Fatal("Unknown store type: ", storeType)
 	}
 
 	err = store.Exec("CREATE TABLE IF NOT EXISTS nodes;")
