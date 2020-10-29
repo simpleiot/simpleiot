@@ -139,7 +139,7 @@ func (nh *NatsHandler) handlePoints(msg *nats.Msg) {
 	for _, p := range points {
 		err = nh.db.NodePoint(nodeID, p)
 		if err != nil {
-			log.Println("Error writting sample to Db: ", err)
+			log.Println("Error writing point to Db: ", err)
 			nh.reply(msg.Reply, err)
 			return
 		}

@@ -195,20 +195,31 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
 		var node data.Node
 		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
-		if err != nil {
-			return err
-		}
+		found := false
 
-		err = document.StructScan(doc, &node)
 		if err != nil {
-			return err
+			if err == database.ErrDocumentNotFound {
+				node.ID = id
+			} else {
+				return err
+			}
+		} else {
+			err = document.StructScan(doc, &node)
+			if err != nil {
+				return err
+			}
+			found = true
 		}
 
 		node.ProcessPoint(point)
 		node.SetState(data.SysStateOnline)
 
-		return tx.Exec(`update nodes set points = ? where id = ?`,
-			node.Points, id)
+		if found {
+			return tx.Exec(`update nodes set points = ? where id = ?`,
+				node.Points, id)
+		}
+
+		return tx.Exec(`insert into nodes values ?`, node)
 	})
 }
 
@@ -654,7 +665,7 @@ func (gen *Db) NodesForGroup(tx *bolt.Tx, groupID string) ([]data.Node, error) {
 func (gen *Db) UserInsert(user data.User) (string, error) {
 	id := uuid.New().String()
 	user.ID = id
-	err := gen.store.Exec(`insert into user values ?`, user)
+	err := gen.store.Exec(`insert into users values ?`, user)
 	return id, err
 }
 
@@ -663,8 +674,11 @@ func (gen *Db) UserUpdate(user data.User) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
 		err := gen.store.Exec(`delete from users where id = ?`,
 			user.ID)
+
 		if err != nil {
-			return err
+			if err != database.ErrDocumentNotFound {
+				return err
+			}
 		}
 
 		return gen.store.Exec(`insert into user values ?`, user)
@@ -740,7 +754,9 @@ func (gen *Db) GroupUpdate(gUpdate data.Group) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
 		err := tx.Exec(`delete from groups where id = ?`, gUpdate.ID)
 		if err != nil {
-			return err
+			if err != database.ErrDocumentNotFound {
+				return err
+			}
 		}
 
 		return tx.Exec(`insert into groups values ?`, gUpdate)
