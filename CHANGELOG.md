@@ -16,6 +16,8 @@ For more details or to discuss releases, please visit the
 - add page to message (currently SMS only) all users
 - UI simplification and cleanup
 - sort users on users page
+- changing backing store from bolthold to genji
+- switch to badger as default store as it does not have locking issues
 
 ## [[0.0.11] - 2020-09-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.11)
 
