@@ -3,7 +3,6 @@ package genji
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"path"
@@ -153,8 +152,6 @@ func (gen *Db) txNodes(tx *genji.Tx) ([]data.Node, error) {
 
 // Nodes returns all nodes.
 func (gen *Db) Nodes() ([]data.Node, error) {
-	fmt.Println("CLIFF: Nodes +")
-	defer fmt.Println("CLIFF: Nodes -")
 	var nodes []data.Node
 
 	err := gen.store.View(func(tx *genji.Tx) error {
@@ -442,8 +439,6 @@ func (u users) Swap(i, j int) {
 
 // Users returns all users, sorted by first name.
 func (gen *Db) Users() ([]data.User, error) {
-	fmt.Println("CLIFF: Users +")
-	defer fmt.Println("CLIFF: Users -")
 	var users []data.User
 	res, err := gen.store.Query(`select * from users order by firstName`)
 	if err != nil {
@@ -707,9 +702,6 @@ func (gen *Db) txGroups(tx *genji.Tx) ([]data.Group, error) {
 
 // Groups returns all groups.
 func (gen *Db) Groups() ([]data.Group, error) {
-	fmt.Println("CLIFF: Groups +")
-	defer fmt.Println("CLIFF: Groups -")
-
 	var groups []data.Group
 
 	err := gen.store.View(func(tx *genji.Tx) error {
