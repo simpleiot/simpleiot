@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 
 	"github.com/genjidb/genji"
@@ -16,20 +15,18 @@ type User struct {
 
 // returns true if db already exists
 func setup(db *genji.DB) {
-	ctx := context.Background()
-	err := db.Exec(ctx, "CREATE TABLE IF NOT EXISTS users;")
+	err := db.Exec("CREATE TABLE IF NOT EXISTS users;")
 	if err != nil {
 		log.Fatal("error creating users: ", err)
 	}
 
-	err = db.Exec(ctx, "CREATE INDEX IF NOT EXISTS idx_user_groups ON users(groups)")
+	err = db.Exec("CREATE INDEX IF NOT EXISTS idx_user_groups ON users(groups)")
 	if err != nil {
 		log.Fatal("error creating index: ", err)
 	}
 }
 
 func populateData(db *genji.DB) {
-	ctx := context.Background()
 	// insert first user, then a lot of another user
 	u1 := User{
 		Name:   "fred",
@@ -38,7 +35,7 @@ func populateData(db *genji.DB) {
 
 	count := 100
 	for i := 0; i < count; i++ {
-		err := db.Exec(ctx, "INSERT INTO users VALUES ?", &u1)
+		err := db.Exec("INSERT INTO users VALUES ?", &u1)
 		if err != nil {
 			log.Fatal("Error inserting user: ", err)
 		}
@@ -49,7 +46,7 @@ func populateData(db *genji.DB) {
 		Groups: []string{"g4", "g5", "g6"},
 	}
 
-	err := db.Exec(ctx, "INSERT INTO users VALUES ?", &u2)
+	err := db.Exec("INSERT INTO users VALUES ?", &u2)
 	if err != nil {
 		log.Fatal("Error inserting user: ", err)
 	}

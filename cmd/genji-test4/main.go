@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/genjidb/genji/document"
 )
 
+// User ...
 type User struct {
 	ID        string `json:"id" boltholdKey:"ID"`
 	FirstName string `json:"firstName"`
@@ -20,8 +20,7 @@ type User struct {
 
 // returns true if db already exists
 func setup(db *genji.DB) {
-	ctx := context.Background()
-	err := db.Exec(ctx, "CREATE TABLE IF NOT EXISTS users;")
+	err := db.Exec("CREATE TABLE IF NOT EXISTS users;")
 	if err != nil {
 		log.Fatal("error creating users: ", err)
 	}
@@ -43,14 +42,12 @@ func main() {
 	u1 := User{ID: "01", FirstName: "cliff", LastName: "brake", Phone: "",
 		Email: "admin@admin.com", Pass: "admin"}
 
-	ctx := context.Background()
-
-	err = db.Exec(ctx, `insert into users values ?`, u1)
+	err = db.Exec(`insert into users values ?`, u1)
 	if err != nil {
 		log.Fatal("Error inserting user: ", err)
 	}
 
-	doc, err := db.QueryDocument(ctx, `select * from users`)
+	doc, err := db.QueryDocument(`select * from users`)
 	if err != nil {
 		log.Fatal("Query error: ", err)
 	}

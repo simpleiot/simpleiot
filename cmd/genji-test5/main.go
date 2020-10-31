@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 
@@ -20,9 +19,7 @@ func main() {
 
 	defer db.Close()
 
-	ctx := context.Background()
-
-	doc, err := db.QueryDocument(ctx, `select * from users where email = 'admin@admin.com' and pass = 'admin'`)
+	doc, err := db.QueryDocument(`select * from users where email = 'admin@admin.com' and pass = 'admin'`)
 	if err != nil {
 		log.Fatal("Query error: ", err)
 	}
