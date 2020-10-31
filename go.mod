@@ -28,7 +28,6 @@ require (
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.8-0.20200814173904-d30550166e2f
 	github.com/nats-io/nats.go v1.10.1-0.20200720131241-97eff70ce747
-	github.com/timshannon/bolthold v0.0.0-20200316231344-dc30e2b2f90c
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.1.0 // indirect
 	go.bug.st/serial v1.1.0
