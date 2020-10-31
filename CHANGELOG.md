@@ -16,7 +16,10 @@ For more details or to discuss releases, please visit the
 - add page to message (currently SMS only) all users
 - UI simplification and cleanup
 - sort users on users page
-- changing backing store from bolthold to genji
+- port frontend to elm-spa.dev v5 (this really cleans up the frontend code and
+  makes it more idomatic Elm)
+- changing backing store from bolthold to genji (this gives us the flexibility
+  to use memory, bbolt, or badger backing stores as well as robust indexing)
 - switch to badger as default store as it does not have locking issues
 
 ## [[0.0.11] - 2020-09-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.11)
