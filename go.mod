@@ -30,9 +30,10 @@ require (
 	github.com/nats-io/nats.go v1.10.1-0.20200720131241-97eff70ce747
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.1.0 // indirect
-	go.bug.st/serial v1.1.0
+	go.bug.st/serial v1.1.1
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
+	golang.org/x/sys v0.0.0-20201029080932-201ba4db2418 // indirect
 	google.golang.org/protobuf v1.25.0
 )
 
