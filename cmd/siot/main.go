@@ -212,7 +212,7 @@ func main() {
 
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDumpDb := flag.Bool("dumpDb", false, "dump database to file")
-	flagStore := flag.String("store", "badger", "db store type: bolt, badger, memory")
+	flagStore := flag.String("store", "bolt", "db store type: bolt, badger, memory")
 	flagAuthToken := flag.String("token", "", "Auth token")
 	flag.Parse()
 

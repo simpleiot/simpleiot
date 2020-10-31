@@ -1,7 +1,6 @@
 package genji
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -37,7 +36,6 @@ const (
 type Db struct {
 	store  *genji.DB
 	influx *db.Influx
-	ctx    context.Context
 }
 
 // NewDb creates a new Db instance for the app
@@ -69,7 +67,7 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx, init bool) (*
 		}
 
 		// Pass it to genji
-		store, err = genji.New(context.Background(), ng)
+		store, err = genji.New(ng)
 
 	default:
 		log.Fatal("Unknown store type: ", storeType)
@@ -100,8 +98,7 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx, init bool) (*
 		return nil, err
 	}
 
-	ctx := context.Background()
-	db := &Db{store: store, influx: influx, ctx: ctx}
+	db := &Db{store: store, influx: influx}
 	if init {
 		return db, db.initialize()
 	}
