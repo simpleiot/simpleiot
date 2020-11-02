@@ -1,6 +1,7 @@
 package genji
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -67,7 +68,7 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx, init bool) (*
 		}
 
 		// Pass it to genji
-		store, err = genji.New(ng)
+		store, err = genji.New(context.Background(), ng)
 
 	default:
 		log.Fatal("Unknown store type: ", storeType)
