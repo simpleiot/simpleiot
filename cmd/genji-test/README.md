@@ -7,19 +7,16 @@ Following obtained by running `main.go` in this directory.
 Command output:
 
 ```
-2020/08/27 07:11:41 SELECT * FROM users WHERE email = "joe@admin.com": documents found: 1, time: 144.188µs
-2020/08/27 07:11:41 SELECT * FROM users WHERE firstname = "Joe": documents found: 1, time: 84.728459ms
-2020/08/27 07:11:41 SELECT * FROM users WHERE email = "fred@admin.com": documents found: 29, time: 491.235µs
-2020/08/27 07:11:42 SELECT * FROM users WHERE firstname = "Fred": documents found: 100000, time: 573.662079ms
-2020/08/27 07:11:42 SELECT * FROM users WHERE email = "mary@admin.com": documents found: 1, time: 197.37µs
-2020/08/27 07:11:42 SELECT * FROM users WHERE firstname = "Mary": documents found: 1, time: 79.074007ms
-2020/08/27 07:11:43 SELECT * FROM users: documents found: 100002, time: 457.428444ms
-2020/08/27 07:11:43 All done :-)
-
+2020/11/02 12:31:13 SELECT * FROM users WHERE email = "joe@admin.com": documents found: 1, time: 108.26µs
+2020/11/02 12:31:13 SELECT * FROM users WHERE firstname = "Joe": documents found: 1, time: 104.586876ms
+2020/11/02 12:31:14 SELECT * FROM users WHERE email = "fred@admin.com": documents found: 100000, time: 762.689846ms
+2020/11/02 12:31:14 SELECT * FROM users WHERE firstname = "Fred": documents found: 100000, time: 776.828214ms
+2020/11/02 12:31:14 SELECT * FROM users WHERE email = "mary@admin.com": documents found: 1, time: 93.02µs
+2020/11/02 12:31:14 SELECT * FROM users WHERE firstname = "Mary": documents found: 1, time: 104.352365ms
+2020/11/02 12:31:15 SELECT * FROM users: documents found: 100002, time: 700.470693ms
+2020/11/02 12:31:15 SELECT * FROM users WHERE id = 100001: documents found: 1, time: 85.627572ms
+2020/11/02 12:31:15 All done :-)
 ```
-
-Question: why does the search for `email = "fred@admin.com"` only return 29
-documents? Should return 100,000.
 
 Notes:
 

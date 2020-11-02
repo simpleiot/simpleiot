@@ -147,6 +147,7 @@ func main() {
 	query(db, `SELECT * FROM users WHERE email = "mary@admin.com"`)
 	query(db, `SELECT * FROM users WHERE firstname = "Mary"`)
 	query(db, `SELECT * FROM users`)
+	query(db, `SELECT * FROM users WHERE id = 100001`)
 
 	log.Println("All done :-)")
 }
