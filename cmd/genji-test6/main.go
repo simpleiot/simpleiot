@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -28,7 +29,7 @@ func main() {
 	}
 
 	// Pass it to genji
-	db, err := genji.New(ng)
+	db, err := genji.New(context.Background(), ng)
 
 	if err != nil {
 		log.Fatal(err)
