@@ -19,17 +19,36 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/db/genji"
-	"github.com/simpleiot/simpleiot/internal/pb"
 	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
-	"google.golang.org/protobuf/proto"
 
 	natsgo "github.com/nats-io/nats.go"
 )
+
+func parsePointText(s string) (string, data.Point, error) {
+	frags := strings.Split(s, ":")
+	if len(frags) != 4 {
+		return "", data.Point{},
+			errors.New("format for sample is: 'devId:sensId:value:type'")
+	}
+
+	nodeID := frags[0]
+	sampleID := frags[1]
+	text := frags[2]
+	sampleType := frags[3]
+
+	return nodeID, data.Point{
+		ID:   sampleID,
+		Type: sampleType,
+		Text: text,
+		Time: time.Now(),
+	}, nil
+
+}
 
 func parsePoint(s string) (string, data.Point, error) {
 	frags := strings.Split(s, ":")
@@ -72,6 +91,45 @@ func sendPoint(portal, authToken, s string) error {
 
 func sendPointNats(nc *natsgo.Conn, authToken, s string, ack bool) error {
 	nodeID, point, err := parsePoint(s)
+
+	if err != nil {
+		return err
+	}
+
+	subject := fmt.Sprintf("node.%v.points", nodeID)
+
+	points := data.Points{}
+
+	points = append(points, point)
+
+	data, err := points.PbEncode()
+
+	if err != nil {
+		return err
+	}
+
+	if ack {
+		msg, err := nc.Request(subject, data, time.Second)
+
+		if err != nil {
+			return err
+		}
+
+		if string(msg.Data) != "" {
+			log.Println("Request returned error: ", string(msg.Data))
+		}
+
+	} else {
+		if err := nc.Publish(subject, data); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
+func sendPointText(nc *natsgo.Conn, authToken, s string, ack bool) error {
+	nodeID, point, err := parsePointText(s)
 
 	if err != nil {
 		return err
@@ -205,9 +263,9 @@ func main() {
 	flagNatsAck := flag.Bool("natsAck", false, "request response")
 	flagSendSampleNats := flag.String("sendSampleNats", "", "Send sample to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendPointNats := flag.String("sendPointNats", "", "Send point to 'portal' via NATS: 'devId:sensId:value:type'")
+	flagSendPointText := flag.String("sendPointText", "", "Send text point to 'portal' via NATS: 'devId:sensId:text:type'")
 	flagSendFile := flag.String("sendFile", "", "URL of file to send")
 	flagSendCmd := flag.String("sendCmd", "", "Command to send (cmd:detail)")
-	flagSendVersion := flag.String("sendVersion", "", "Command to send version to portal (HW:OS:App)")
 	flagID := flag.String("id", "1234", "ID of node")
 
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
@@ -307,7 +365,7 @@ func main() {
 		*flagSendPointNats != "" ||
 		*flagSendFile != "" ||
 		*flagSendCmd != "" ||
-		*flagSendVersion != "" {
+		*flagSendPointText != "" {
 
 		opts := nats.EdgeOptions{
 			Server:    natsServer,
@@ -365,49 +423,6 @@ func main() {
 		log.Println("Command sent!")
 	}
 
-	if *flagSendVersion != "" {
-		chunks := strings.Split(*flagSendVersion, ":")
-		if len(chunks) < 3 {
-			log.Println("Error, we need 3 chunks for version")
-			flag.Usage()
-			os.Exit(-1)
-		}
-
-		v := &pb.NodeVersion{
-			Hw:  chunks[0],
-			Os:  chunks[1],
-			App: chunks[2],
-		}
-
-		out, err := proto.Marshal(v)
-
-		if err != nil {
-			log.Println("Error marshalling version: ", err)
-			os.Exit(-1)
-		}
-
-		subject := fmt.Sprintf("node.%v.version", *flagID)
-		if *flagNatsAck {
-			msg, err := nc.Request(subject, out, time.Second)
-
-			if err != nil {
-				log.Println("Error sending version: ", err)
-				os.Exit(-1)
-			}
-
-			log.Println("set version returned: ", string(msg.Data))
-		} else {
-			err = nc.Publish(subject, out)
-
-			if err != nil {
-				log.Println("Error sending version: ", err)
-				os.Exit(-1)
-			}
-		}
-
-		log.Println("Version sent!")
-	}
-
 	if *flagSendSampleNats != "" {
 		err := sendSampleNats(nc, authToken, *flagSendSampleNats, *flagNatsAck)
 		if err != nil {
@@ -418,6 +433,14 @@ func main() {
 
 	if *flagSendPointNats != "" {
 		err := sendPointNats(nc, authToken, *flagSendPointNats, *flagNatsAck)
+		if err != nil {
+			log.Println(err)
+			os.Exit(-1)
+		}
+	}
+
+	if *flagSendPointText != "" {
+		err := sendPointText(nc, authToken, *flagSendPointText, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
