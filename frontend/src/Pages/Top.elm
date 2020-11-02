@@ -447,7 +447,7 @@ viewNode model modified device =
               else
                 Element.none
             ]
-        , viewPoints device.points
+        , viewPoints <| Point.filterSpecialPoints device.points
         , text ("Last update: " ++ Iso8601.toDateTimeString model.zone latestPointTime)
         , text
             ("Time since last update: "
