@@ -83,63 +83,64 @@ applications.
 
 These are currently defined in the `data` directory for Go code, and
 `frontend/src/Data` directory for Elm code. The fundamental data structures for
-the system are [`Devices`](../data/device.go) and [`Points`](../data/point.go).
-A `Device` can have one or more `Points`. A `Point` can represent a sensor
-value, or a configuration parameter for the device. With sensor values and
-configuration represented as `Points`, it becomes easy to use both sensor data
-and configuration in rule or equations because the mechanism to use both is the
-same. Additionally, if all `Point` changes are recorded in a time series
-database (for instance Influxdb), you automatically have a record of all
-configuration changes for a device.
+the system are [`Nodes`](../data/node.go), [`Points`](../data/point.go), and
+[`Edges`](../data/edge.go). A `Device` can have one or more `Points`. A `Point`
+can represent a sensor value, or a configuration parameter for the device. With
+sensor values and configuration represented as `Points`, it becomes easy to use
+both sensor data and configuration in rule or equations because the mechanism to
+use both is the same. Additionally, if all `Point` changes are recorded in a
+time series database (for instance Influxdb), you automatically have a record of
+all configuration changes for a `node`.
 
 Treating most data as `Points` also has another benefit in that we can easily
 simulate a device -- simply provide a UI or write a program to modify any point
 and we can shift from working on real data to simulating scenarios we want to
 test.
 
-`devices` can have parents or children and thus be represented in a hiearchy. To
-add structure to the system, you simply add nested `Devices`. The `Device`
-hiearchy can reresent the physical structure of the system, or it could also
-contain virtual `Devices`. These virtual devices could contain logic to process
-data from sensors. Several examples of virtual devices:
+`Edges` are used to describe the relationships between nodes as a graph. `Nodes`
+can have parents or children and thus be represented in a hierarchy. To add
+structure to the system, you simply add nested `Nodes`. The `Node` hierarchy can
+represent the physical structure of the system, or it could also contain virtual
+`Nodes`. These virtual nodes could contain logic to process data from sensors.
+Several examples of virtual nodes:
 
-- a pump `Device` that converts motor current readings into pump events.
+- a pump `Node` that converts motor current readings into pump events.
 - implement moving averages, scaling, etc on sensor data.
 - combine data from multiple sensors
 - implement custom logic for a particular application
 - a component in an edge device such as a cellular modem
 
-Being able to arranged devices in an arbitrary hiearchy also opens up some
-interesting possibilities such as creating virtual devices that have a number of
-children that are collecting data. The parent virtual device could have rules or
-logic that operate off data from child devices. In this case, the virtual parent
-device might be a town or city, and the child devices are physical gateways
+Being able to arranged nodes in an arbitrary hierarchy also opens up some
+interesting possibilities such as creating virtual nodes that have a number of
+children that are collecting data. The parent virtual nodes could have rules or
+logic that operate off data from child nodes. In this case, the virtual parent
+nodes might be a town or city, and the child nodes are physical gateways
 collecting data.
 
-Eventually, it seems logical to have a scriping language where formulas can be
+Eventually, it seems logical to have a scripting language where formulas can be
 written to operate on any `Device:Point` data. While there are likely many other
 systems that have this type of functionality (for instance Node-RED), the focus
-of SimpleIoT is not for one-off systems where every device is manually
+of Simple IoT is not for one-off systems where every device is manually
 configured, but rather for a system that can be programmed or configured once,
 and then scales with no manual effort as additional devices and users are added.
 
 As this is a distributed system where devices may be created on any number of
-connected systems, device IDs need to be unique. A unique serial number or UUID
-is recommended.
+connected systems, node IDs need to be unique. A unique serial number or UUID is
+recommended.
 
-When a `Point` changes, all `Devices` that depend on this data need to be
-updated. One _simple_ way to handle this is notify all parent devices in the
-hiearchy and re-run any rules or computed values on these devices. This keeps
-point/device dependency management simple -- devices can only depend on data
-from child devices. No extra data is required to track relationships. If devices
-need to share data, do that through a shared parent device.
+When a `Point` changes, all `Points` that depend on this data need to be
+updated. One _simple_ way to handle this is notify all parent nodes in the
+hierarchy and re-run any rules or computed values on these nodes. This keeps
+point/node dependency management simple -- nodes can only depend on data from
+child nodes. No extra data is required to track relationships. If nodes need to
+share data, do that through a shared parent node.
 
 ## Configuration and Synchronization
 
-Typically, configuration is modifed through a user interface. As mentioned
-above, the configuration of a `Device` will be stored as `Points`. Typically the
-UI for a device will present fields for the needed configuration based on the
-`Device:Type`.
+Typically, configuration is modified through a user interface. As mentioned
+above, the configuration of a `Node` will be stored as `Points`. Typically the
+UI for a node will present fields for the needed configuration based on the
+`Node:Type`.
 
 As Simple IoT is evolving into a distributed system, the question of
 configuration and the synchronization of config needs to be considered. Both
@@ -157,7 +158,7 @@ online (say an edge device), it requests the `Device:Points` data for all
 devices it is interested in. All systems then respond with their `Point` data.
 If the timestamp of a `Point` coming in is newer than the one stored locally, it
 is then processed on that system. This ensures the latest information for all
-`Points` is propogated (even sensor data) and should cover most scenarios even
+`Points` is propagated (even sensor data) and should cover most scenarios even
 where two people edit two different configuration parameters on the same device
 on two different systems and these systems later reconnect. It may not be
 appropriate for cloud systems to request `Points` for all connected `Devices` if
@@ -168,9 +169,68 @@ so with small medium/scale systems (1000's of IoT devices), it seems this is
 probably not a big deal. It may also make sense to occasionally request
 `Device:Points` synchronization -- say once per hour. Perhaps the `Device` data
 structure could have a `LastSychronized` field and the server could initiate a
-sycnronization at some interval.
+synchronization at some interval.
 
-TODO, how to sync device hiearchy ...
+Synchronization is managed using the node `Hash` field. The `Hash` field is a
+hash of the node point timestamps, and child node `Hash` fields. Comparing the
+node `Hash` field allows us to detect node differences.
+
+Any time a node Point is modified, its `Hash` field is updated, and the `Hash`
+field in parents, grand-parents, etc are also computed. This may seem like a lot
+of overhead, but if the database is local, and the graph is reasonably
+constructed, then each update might require reading a dozen or so nodes. An
+indexed read in Genji is orders of magnitude faster than a write (at least for
+Bolt), so this overhead should be minimal. Again, we are optimizing for
+small/mid size IoT systems. If a point update requires 50ms, the system can
+handle 20 points/sec. If the average device sends 0.05pt/sec, then we can handle
+400 devices. Switching from Bolt to Badger will likely improve this by an order
+of magnitude, so that puts us well into the 1000's of devices.
+
+There are two things that need to be synchronized:
+
+1. Node point changes (this happens when sensor data changes).
+1. Node topology changes (includes adding/deleting nodes).
+
+There are two synchronization cases:
+
+1. _Catch up_ -- This is the case where one system starts after another and must
+   catchup to any changes.
+1. _Run time_ -- This is the case where two systems have "caught up" and need to
+   stay synchronized.
+
+### Catch up synchronization
+
+So for every node modification, the root node of the graph is updated. To
+synchronize the graph, you run the following steps:
+
+1. Start at root node.
+1. Does the `Hash` field match?
+1. If not push the node into a queue, fetch node's children and compare `Hash`
+   fields. For nodes where `Hash` does not match, continue fetching children
+   until you reach a point where all children match.
+1. Once you are at the bottom of the graph, walk back up the graph by popping a
+   node ID off the queue and synchronize that node's data by comparing `Hash`
+   fields.
+
+### Run Time Point Synchronization
+
+Point changes are handled by sending points to NATS topic for a node. There are
+two primary instance types:
+
+1. Cloud: will subscribe to point changes on all nodes.
+1. Edge: will subscribe to point changes only for the nodes that exist on the
+   instance.
+
+To accomplish the above, an edge instance will subscribe and publish point
+changes at its root node. This ensures it will only receive messages for the
+root node and lower. A cloud instance will publish point changes to every node
+in the parent/grandparent/etc hierarchy, and will subscribe to changes at the
+root node. NATS is very efficient, so publishing to many nodes is not a problem.
+This will require each instance to be configured as either a cloud or edge
+instance so the instance knows whether to publish points to every node in the
+hierarchy or only the root (to save bandwidth on cellular systems). With Point
+Synchronization, each instance is responsible for updating the node data in its
+local database.
 
 ## Extendible architecture
 

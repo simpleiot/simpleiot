@@ -9,6 +9,7 @@ sidebar_label: Overview
 - [Vision](vision.md)
 - [Configuration](configuration.md)
 - [Development](development.md)
+- [Node/Point Schema](node_point_schema.md)
 - [API](api.md)
 - [Database](database.md)
 - [Rules](rules.md)
