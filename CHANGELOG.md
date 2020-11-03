@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- edge:
+  - fixed issue with backoff algorith not adhearing to max
+
 ## [[0.0.12] - 2020-11-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.12)
 
 - backend:
