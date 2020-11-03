@@ -7,20 +7,19 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/msg"
 )
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
-	db        *db.Db
+	db        *genji.Db
 	messenger *msg.Messenger
 }
 
 // NewManger creates a new Manager
-func NewManger(db *db.Db, messenger *msg.Messenger) *Manager {
+func NewManger(db *genji.Db, messenger *msg.Messenger) *Manager {
 	return &Manager{
 		db:        db,
 		messenger: messenger,
@@ -65,7 +64,7 @@ func (m *Manager) Run() {
 }
 
 func uniqueUsers(users []data.User) []data.User {
-	found := make(map[uuid.UUID]bool)
+	found := make(map[string]bool)
 	ret := []data.User{}
 	for _, u := range users {
 		if _, present := found[u.ID]; !present {
@@ -110,7 +109,7 @@ func (m *Manager) runRule(node *data.Node, rule *data.Rule) error {
 	return nil
 }
 
-func (m *Manager) notify(node *data.Node, ruleDesc, msgTemplate string, groups []uuid.UUID) error {
+func (m *Manager) notify(node *data.Node, ruleDesc, msgTemplate string, groups []string) error {
 	// find users for the groups
 	var users []data.User
 	for _, gID := range groups {

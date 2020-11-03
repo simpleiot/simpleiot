@@ -70,10 +70,9 @@ send data to it:
 - open http://localhost:8080
   - login with user `admin@admin.com` and password `admin`
 - in another terminal, send some data
-  - using HTTP: `./siot -sendSample "1823:t1:23.5:temp"`
-  - using NATS: `./siot -sendSampleNats "1234:v2:12.5:volt"`
-  - (the format of the `-sendSample` argument is: `devId:sensId:value:type`)
-  - `./siot -sendVersion "6:7:8" -id=1823`
+  - using HTTP: `./siot -sendPoint "1823:t1:23.5:temp"`
+  - using NATS: `./siot -sendPointNats "1234:v2:12.5:volt"`
+  - (the format of the `-sendPoint` argument is: `devId:sensId:value:type`)
 - in a few seconds, devices should be populated in the web application
 
 ### SIOT web interface screenshot
@@ -94,8 +93,16 @@ that is longer communicating and is considered "offline".
 
 ## Example 3 (send data with acknowledgments from server)
 
-- `./siot -sendSampleNats "1234:v2:12.5:volt" -natsAck`
-- `./siot -sendVersion "1:2:3" -natsAck`
+- `./siot -sendPointNats "1234:v2:12.5:volt" -natsAck`
+
+## Example 4 (send version information to server)
+
+Hardware version information is a `Point` that encodes the version information
+in the `Text` field of a `Point`.
+
+- `./siot -sendPointText "1234::1:hwVersion"
+- `./siot -sendPointText "1234::2:osVersion"
+- `./siot -sendPointText "1234::3:appVersion"
 
 ## User/Group management
 

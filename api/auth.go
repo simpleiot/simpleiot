@@ -1,26 +1,26 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/db/genji"
 )
 
 // Auth handles user authentication requests.
 type Auth struct {
-	db  *db.Db
+	db  *genji.Db
 	key NewTokener
 }
 
 // NewTokener provides a new authentication token.
 type NewTokener interface {
-	NewToken(userID uuid.UUID) (string, error)
+	NewToken(userID string) (string, error)
 }
 
 // NewAuthHandler returns a new authentication handler using the given key.
-func NewAuthHandler(db *db.Db, key NewTokener) Auth {
+func NewAuthHandler(db *genji.Db, key NewTokener) Auth {
 	return Auth{db: db, key: key}
 }
 
@@ -47,12 +47,14 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	token, err := auth.key.NewToken(user.ID)
 	if err != nil {
+		fmt.Println("CLIFF: token error: ", token)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	isRoot, err := auth.db.UserIsRoot(user.ID)
 	if err != nil {
+		fmt.Println("CLIFF: isroot error: ", token)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}

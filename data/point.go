@@ -77,6 +77,7 @@ func (s Point) ToPb() (pb.Point, error) {
 		Type:     s.Type,
 		Id:       s.ID,
 		Value:    float32(s.Value),
+		Text:     s.Text,
 		Time:     ts,
 		Duration: ptypes.DurationProto(s.Duration),
 	}, nil
@@ -182,6 +183,7 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 	ret := Point{
 		ID:       sPb.Id,
 		Type:     sPb.Type,
+		Text:     sPb.Text,
 		Value:    float64(sPb.Value),
 		Time:     ts,
 		Duration: dur,

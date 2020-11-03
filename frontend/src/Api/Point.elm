@@ -4,6 +4,7 @@ module Api.Point exposing
     , empty
     , encode
     , encodeList
+    , filterSpecialPoints
     , getLatest
     , getPoint
     , newText
@@ -159,6 +160,20 @@ newText id typ text =
     , min = 0
     , max = 0
     }
+
+
+specialPoints : List String
+specialPoints =
+    [ typeDescription
+    , typeHwVersion
+    , typeOSVersion
+    , typeAppVersion
+    ]
+
+
+filterSpecialPoints : List Point -> List Point
+filterSpecialPoints points =
+    List.filter (\p -> not <| List.member p.typ specialPoints) points
 
 
 encode : Point -> Json.Encode.Value

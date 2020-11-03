@@ -2,8 +2,6 @@ package data
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // Condition defines parameters to look for in a sample. Either SampleType or SampleID
@@ -52,7 +50,7 @@ type RuleState struct {
 // to the Rule without config affecting state, and state affecting config as these are typically
 // done by two different entities.
 type Rule struct {
-	ID     uuid.UUID  `json:"id" boltholdKey:"ID"`
+	ID     string     `json:"id" boltholdKey:"ID"`
 	Config RuleConfig `json:"config"`
 	State  RuleState  `json:"state"`
 }

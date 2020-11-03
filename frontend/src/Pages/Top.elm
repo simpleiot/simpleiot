@@ -374,26 +374,26 @@ viewNode model modified device =
         hwVersion =
             case Point.getPoint device.points "" Point.typeHwVersion 0 of
                 Just point ->
-                    point.text
+                    "HW: " ++ point.text
 
                 Nothing ->
-                    "?"
+                    ""
 
         osVersion =
             case Point.getPoint device.points "" Point.typeOSVersion 0 of
                 Just point ->
-                    point.text
+                    "OS: " ++ point.text
 
                 Nothing ->
-                    "?"
+                    ""
 
         appVersion =
             case Point.getPoint device.points "" Point.typeAppVersion 0 of
                 Just point ->
-                    point.text
+                    "App: " ++ point.text
 
                 Nothing ->
-                    "?"
+                    ""
 
         latestPointTime =
             case Point.getLatest device.points of
@@ -447,7 +447,7 @@ viewNode model modified device =
               else
                 Element.none
             ]
-        , viewPoints device.points
+        , viewPoints <| Point.filterSpecialPoints device.points
         , text ("Last update: " ++ Iso8601.toDateTimeString model.zone latestPointTime)
         , text
             ("Time since last update: "
@@ -456,14 +456,18 @@ viewNode model modified device =
                         - Time.posixToMillis latestPointTime
                     )
             )
-        , text
-            ("Version: HW: "
-                ++ hwVersion
-                ++ " OS: "
-                ++ osVersion
-                ++ " App: "
-                ++ appVersion
-            )
+        , if hwVersion /= "" && osVersion /= "" && appVersion /= "" then
+            text
+                ("Version: "
+                    ++ hwVersion
+                    ++ " "
+                    ++ osVersion
+                    ++ " "
+                    ++ appVersion
+                )
+
+          else
+            Element.none
         ]
 
 

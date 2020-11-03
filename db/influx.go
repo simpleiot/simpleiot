@@ -8,9 +8,9 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// InfluxSample represents a sample that is written into influxdb
-type InfluxSample struct {
-	// Type of sample (voltage, current, key, etc)
+// InfluxPoint represents a sample that is written into influxdb
+type InfluxPoint struct {
+	// Type of point (voltage, current, key, etc)
 	Type string `influx:"type,tag"`
 
 	// ID of the sensor that provided the sample
@@ -35,9 +35,9 @@ type InfluxSample struct {
 	Duration time.Duration `influx:"duration"`
 }
 
-// PointToInfluxSample converts a sample to influx sample
-func PointToInfluxSample(deviceID string, p data.Point) InfluxSample {
-	return InfluxSample{
+// PointToInfluxPoint converts a sample to influx sample
+func PointToInfluxPoint(deviceID string, p data.Point) InfluxPoint {
+	return InfluxPoint{
 		Type:     p.Type,
 		ID:       p.ID,
 		DeviceID: deviceID,
@@ -79,9 +79,9 @@ func NewInflux(url, dbName, user, password string) (*Influx, error) {
 }
 
 // WriteSamples to influxdb
-func (i *Influx) WriteSamples(samples []InfluxSample) error {
+func (i *Influx) WriteSamples(samples []InfluxPoint) error {
 	for _, s := range samples {
-		err := i.client.UseMeasurement("samples").WritePoint(s)
+		err := i.client.UseMeasurement("points").WritePoint(s)
 		if err != nil {
 			return err
 		}

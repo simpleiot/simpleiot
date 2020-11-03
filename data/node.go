@@ -2,8 +2,6 @@ package data
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // don't even think about changing the below as it used
@@ -29,11 +27,11 @@ type SwUpdateState struct {
 // Groups and Rules likewise list groups and rules this device
 // belongs to.
 type Node struct {
-	ID      string      `json:"id" boltholdKey:"ID"`
-	Points  Points      `json:"points"`
-	Parents []string    `json:"devices"`
-	Groups  []uuid.UUID `json:"groups"`
-	Rules   []uuid.UUID `json:"rules"`
+	ID      string   `json:"id" boltholdKey:"ID"`
+	Points  Points   `json:"points"`
+	Parents []string `json:"devices"`
+	Groups  []string `json:"groups"`
+	Rules   []string `json:"rules"`
 }
 
 // Desc returns Description if set, otherwise ID

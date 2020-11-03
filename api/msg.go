@@ -4,21 +4,20 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/msg"
 )
 
 // Msg handles user requests.
 type Msg struct {
-	db        *db.Db
+	db        *genji.Db
 	validator RequestValidator
 	messenger *msg.Messenger
 }
 
 // NewMsgHandler returns a new handler for sending messages.
-func NewMsgHandler(db *db.Db, v RequestValidator, messenger *msg.Messenger) Msg {
+func NewMsgHandler(db *genji.Db, v RequestValidator, messenger *msg.Messenger) Msg {
 	return Msg{db: db, validator: v, messenger: messenger}
 }
 
@@ -30,16 +29,10 @@ func (m Msg) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userUUID, err := uuid.Parse(userID)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	// only allow requests if user is part of root org
-	isRoot, err := m.db.UserIsRoot(userUUID)
+	isRoot, err := m.db.UserIsRoot(userID)
 
-	if !isRoot {
+	if !isRoot || err != nil {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
 		return
 	}

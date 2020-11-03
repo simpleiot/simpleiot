@@ -11,22 +11,44 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/genjidb/genji/sql/driver"
+
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
-	"github.com/simpleiot/simpleiot/internal/pb"
+	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
-	"google.golang.org/protobuf/proto"
 
 	natsgo "github.com/nats-io/nats.go"
 )
+
+func parsePointText(s string) (string, data.Point, error) {
+	frags := strings.Split(s, ":")
+	if len(frags) != 4 {
+		return "", data.Point{},
+			errors.New("format for sample is: 'devId:sensId:value:type'")
+	}
+
+	nodeID := frags[0]
+	sampleID := frags[1]
+	text := frags[2]
+	sampleType := frags[3]
+
+	return nodeID, data.Point{
+		ID:   sampleID,
+		Type: sampleType,
+		Text: text,
+		Time: time.Now(),
+	}, nil
+
+}
 
 func parsePoint(s string) (string, data.Point, error) {
 	frags := strings.Split(s, ":")
@@ -69,6 +91,45 @@ func sendPoint(portal, authToken, s string) error {
 
 func sendPointNats(nc *natsgo.Conn, authToken, s string, ack bool) error {
 	nodeID, point, err := parsePoint(s)
+
+	if err != nil {
+		return err
+	}
+
+	subject := fmt.Sprintf("node.%v.points", nodeID)
+
+	points := data.Points{}
+
+	points = append(points, point)
+
+	data, err := points.PbEncode()
+
+	if err != nil {
+		return err
+	}
+
+	if ack {
+		msg, err := nc.Request(subject, data, time.Second)
+
+		if err != nil {
+			return err
+		}
+
+		if string(msg.Data) != "" {
+			log.Println("Request returned error: ", string(msg.Data))
+		}
+
+	} else {
+		if err := nc.Publish(subject, data); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
+func sendPointText(nc *natsgo.Conn, authToken, s string, ack bool) error {
+	nodeID, point, err := parsePointText(s)
 
 	if err != nil {
 		return err
@@ -202,13 +263,15 @@ func main() {
 	flagNatsAck := flag.Bool("natsAck", false, "request response")
 	flagSendSampleNats := flag.String("sendSampleNats", "", "Send sample to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendPointNats := flag.String("sendPointNats", "", "Send point to 'portal' via NATS: 'devId:sensId:value:type'")
+	flagSendPointText := flag.String("sendPointText", "", "Send text point to 'portal' via NATS: 'devId:sensId:text:type'")
 	flagSendFile := flag.String("sendFile", "", "URL of file to send")
 	flagSendCmd := flag.String("sendCmd", "", "Command to send (cmd:detail)")
-	flagSendVersion := flag.String("sendVersion", "", "Command to send version to portal (HW:OS:App)")
 	flagID := flag.String("id", "1234", "ID of node")
 
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
-	flagDumpDb := flag.Bool("dumpDb", false, "dump database to file")
+	flagDumpDb := flag.Bool("dumpDb", false, "dump database to data.json file")
+	flagImportDb := flag.Bool("importDb", false, "import database from data.json")
+	flagStore := flag.String("store", "bolt", "db store type: bolt, badger, memory")
 	flagAuthToken := flag.String("token", "", "Auth token")
 	flag.Parse()
 
@@ -303,7 +366,7 @@ func main() {
 		*flagSendPointNats != "" ||
 		*flagSendFile != "" ||
 		*flagSendCmd != "" ||
-		*flagSendVersion != "" {
+		*flagSendPointText != "" {
 
 		opts := nats.EdgeOptions{
 			Server:    natsServer,
@@ -361,49 +424,6 @@ func main() {
 		log.Println("Command sent!")
 	}
 
-	if *flagSendVersion != "" {
-		chunks := strings.Split(*flagSendVersion, ":")
-		if len(chunks) < 3 {
-			log.Println("Error, we need 3 chunks for version")
-			flag.Usage()
-			os.Exit(-1)
-		}
-
-		v := &pb.NodeVersion{
-			Hw:  chunks[0],
-			Os:  chunks[1],
-			App: chunks[2],
-		}
-
-		out, err := proto.Marshal(v)
-
-		if err != nil {
-			log.Println("Error marshalling version: ", err)
-			os.Exit(-1)
-		}
-
-		subject := fmt.Sprintf("node.%v.version", *flagID)
-		if *flagNatsAck {
-			msg, err := nc.Request(subject, out, time.Second)
-
-			if err != nil {
-				log.Println("Error sending version: ", err)
-				os.Exit(-1)
-			}
-
-			log.Println("set version returned: ", string(msg.Data))
-		} else {
-			err = nc.Publish(subject, out)
-
-			if err != nil {
-				log.Println("Error sending version: ", err)
-				os.Exit(-1)
-			}
-		}
-
-		log.Println("Version sent!")
-	}
-
 	if *flagSendSampleNats != "" {
 		err := sendSampleNats(nc, authToken, *flagSendSampleNats, *flagNatsAck)
 		if err != nil {
@@ -414,6 +434,14 @@ func main() {
 
 	if *flagSendPointNats != "" {
 		err := sendPointNats(nc, authToken, *flagSendPointNats, *flagNatsAck)
+		if err != nil {
+			log.Println(err)
+			os.Exit(-1)
+		}
+	}
+
+	if *flagSendPointText != "" {
+		err := sendPointText(nc, authToken, *flagSendPointText, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -459,18 +487,19 @@ func main() {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := db.NewDb(dataDir, nil, false)
+		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, nil, false)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
 		}
+		defer dbInst.Close()
 
 		f, err := os.Create("data.json")
 		if err != nil {
 			log.Println("Error opening data.json: ", err)
 			os.Exit(-1)
 		}
-		err = db.DumpDb(dbInst, f)
+		err = genji.DumpDb(dbInst, f)
 
 		if err != nil {
 			log.Println("Error dumping database: ", err)
@@ -479,6 +508,32 @@ func main() {
 
 		f.Close()
 		log.Println("Database written to data.json")
+
+		os.Exit(0)
+	}
+
+	if *flagImportDb {
+		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, nil, false)
+		if err != nil {
+			log.Println("Error opening db: ", err)
+			os.Exit(-1)
+		}
+		defer dbInst.Close()
+
+		f, err := os.Open("data.json")
+		if err != nil {
+			log.Println("Error opening data.json: ", err)
+			os.Exit(-1)
+		}
+		err = genji.ImportDb(dbInst, f)
+
+		if err != nil {
+			log.Println("Error importing database: ", err)
+			os.Exit(-1)
+		}
+
+		f.Close()
+		log.Println("Database imported from data.json")
 
 		os.Exit(0)
 	}
@@ -503,29 +558,12 @@ func main() {
 		}
 	}
 
-	dbInst, err := db.NewDb(dataDir, influx, true)
+	dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, influx, true)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)
 	}
-
-	// The below is temporary to work around some issues with keys not matching
-	// fields in bolthold -- this will go away once we switch over to Genji
-	go func() {
-		for {
-			err = dbInst.FixupUsersGroups()
-			if err != nil {
-				log.Println("Error fixing up users and groups: ", err)
-			}
-
-			err = dbInst.UserGroupAudit()
-			if err != nil {
-				log.Println("Error auditing user/group: ", err)
-			}
-
-			time.Sleep(time.Minute * 10)
-		}
-	}()
+	defer dbInst.Close()
 
 	// set up particle connection if configured
 	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")

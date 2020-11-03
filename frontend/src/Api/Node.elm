@@ -124,7 +124,7 @@ get options =
         , url = Url.Builder.absolute [ "v1", "nodes", options.id ] []
         , expect = Api.Data.expectJson options.onResponse decode
         , body = Http.emptyBody
-        , timeout = Nothing
+        , timeout = Just <| 5 * 1000
         , tracker = Nothing
         }
 

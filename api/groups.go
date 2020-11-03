@@ -5,19 +5,18 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/db/genji"
 )
 
 // Groups handles group requests.
 type Groups struct {
-	db        *db.Db
+	db        *genji.Db
 	validator RequestValidator
 }
 
 // NewGroupsHandler returns a new handler for group requests.
-func NewGroupsHandler(db *db.Db, v RequestValidator) Groups {
+func NewGroupsHandler(db *genji.Db, v RequestValidator) Groups {
 	return Groups{db: db, validator: v}
 }
 
@@ -75,17 +74,11 @@ func (h Groups) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	idUUID, err := uuid.Parse(id)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	switch req.Method {
 	case http.MethodGet:
 		// get a single group
 
-		group, err := h.db.Group(idUUID)
+		group, err := h.db.Group(id)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 			return
@@ -95,11 +88,11 @@ func (h Groups) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	case http.MethodPost:
 		// update a single group
-		h.updateGroup(idUUID, res, req)
+		h.updateGroup(id, res, req)
 		return
 
 	case http.MethodDelete:
-		err := h.db.GroupDelete(idUUID)
+		err := h.db.GroupDelete(id)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusNotFound)
 		} else {
@@ -129,7 +122,7 @@ func (h Groups) insertGroup(res http.ResponseWriter, req *http.Request) {
 	encode(res, data.StandardResponse{Success: true, ID: id})
 }
 
-func (h Groups) updateGroup(ID uuid.UUID, res http.ResponseWriter, req *http.Request) {
+func (h Groups) updateGroup(ID string, res http.ResponseWriter, req *http.Request) {
 	var group data.Group
 	if err := decode(req.Body, &group); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
@@ -143,5 +136,5 @@ func (h Groups) updateGroup(ID uuid.UUID, res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	encode(res, data.StandardResponse{Success: true, ID: group.ID.String()})
+	encode(res, data.StandardResponse{Success: true, ID: group.ID})
 }
