@@ -17,12 +17,12 @@ builds:
     goos:
       - linux
       - darwin
-      - windows
+        #- windows
     goarch:
       - amd64
-      - arm
+        #- arm
       - arm64
-      - 386
+        #- 386
     goarm:
       - 6
       - 7

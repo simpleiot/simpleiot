@@ -31,6 +31,9 @@ For more details or to discuss releases, please visit the
     points.
   - add -importDb command line option
 
+Note, the database format has changed. To migrate, dump the database with the
+old version of SIOT and them import with the new version.
+
 ## [[0.0.11] - 2020-09-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.11)
 
 ### Changed
