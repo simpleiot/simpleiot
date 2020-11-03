@@ -951,6 +951,7 @@ func (gen *Db) NodeCmds() ([]data.NodeCmd, error) {
 }
 
 type genDump struct {
+	Devices  []Device       `json:"devices"`
 	Nodes    []data.Node    `json:"nodes"`
 	Users    []data.User    `json:"users"`
 	Groups   []data.Group   `json:"groups"`
@@ -971,28 +972,36 @@ func ImportDb(gen *Db, in io.Reader) error {
 	for _, n := range dump.Nodes {
 		_, err := gen.NodeInsert(n)
 		if err != nil {
-			return fmt.Errorf("Error inserting node: %w", err)
+			return fmt.Errorf("Error inserting node (%+v): %w", n, err)
+		}
+	}
+
+	for _, d := range dump.Devices {
+		n := d.ToNode()
+		_, err := gen.NodeInsert(n)
+		if err != nil {
+			return fmt.Errorf("Error inserting node (%+v): %w", n, err)
 		}
 	}
 
 	for _, u := range dump.Users {
 		_, err := gen.UserInsert(u)
 		if err != nil {
-			return fmt.Errorf("Error inserting user: %w", err)
+			return fmt.Errorf("Error inserting user (%+v): %w", u, err)
 		}
 	}
 
 	for _, g := range dump.Groups {
 		_, err := gen.GroupInsert(g)
 		if err != nil {
-			return fmt.Errorf("Error inserting group: %w", err)
+			return fmt.Errorf("Error inserting group (%+v): %w", g, err)
 		}
 	}
 
 	for _, r := range dump.Rules {
 		_, err := gen.RuleInsert(r)
 		if err != nil {
-			return fmt.Errorf("Error inserting group: %w", err)
+			return fmt.Errorf("Error inserting rule (%+v): %w", r, err)
 		}
 	}
 
