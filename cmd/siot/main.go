@@ -269,7 +269,8 @@ func main() {
 	flagID := flag.String("id", "1234", "ID of node")
 
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
-	flagDumpDb := flag.Bool("dumpDb", false, "dump database to file")
+	flagDumpDb := flag.Bool("dumpDb", false, "dump database to data.json file")
+	flagImportDb := flag.Bool("importDb", false, "import database from data.json")
 	flagStore := flag.String("store", "bolt", "db store type: bolt, badger, memory")
 	flagAuthToken := flag.String("token", "", "Auth token")
 	flag.Parse()
@@ -507,6 +508,32 @@ func main() {
 
 		f.Close()
 		log.Println("Database written to data.json")
+
+		os.Exit(0)
+	}
+
+	if *flagImportDb {
+		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, nil, false)
+		if err != nil {
+			log.Println("Error opening db: ", err)
+			os.Exit(-1)
+		}
+		defer dbInst.Close()
+
+		f, err := os.Open("data.json")
+		if err != nil {
+			log.Println("Error opening data.json: ", err)
+			os.Exit(-1)
+		}
+		err = genji.ImportDb(dbInst, f)
+
+		if err != nil {
+			log.Println("Error importing database: ", err)
+			os.Exit(-1)
+		}
+
+		f.Close()
+		log.Println("Database imported from data.json")
 
 		os.Exit(0)
 	}

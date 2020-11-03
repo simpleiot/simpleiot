@@ -3,6 +3,7 @@ package genji
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"path"
@@ -161,6 +162,15 @@ func (gen *Db) Nodes() ([]data.Node, error) {
 	return nodes, err
 }
 
+// NodeInsert is used to insert a node into the database
+func (gen *Db) NodeInsert(node data.Node) (string, error) {
+	if node.ID == "" {
+		node.ID = uuid.New().String()
+	}
+
+	return node.ID, gen.store.Exec(`insert into nodes values ?`, node)
+}
+
 // NodeDelete deletes a node from the database
 func (gen *Db) NodeDelete(id string) error {
 	return gen.store.Exec(`delete from nodes where id = ?`, id)
@@ -172,7 +182,12 @@ func (gen *Db) NodeUpdateGroups(id string, groups []string) error {
 		groups, id)
 }
 
-var zero uuid.UUID
+var uuidZero uuid.UUID
+var zero string
+
+func init() {
+	zero = uuidZero.String()
+}
 
 // NodePoint processes a Point for a particular node
 func (gen *Db) NodePoint(id string, point data.Point) error {
@@ -595,7 +610,7 @@ func (gen *Db) initialize() error {
 		log.Println("adding root group and admin user ...")
 
 		admin := data.User{
-			ID:        zero.String(),
+			ID:        zero,
 			FirstName: "admin",
 			LastName:  "user",
 			Email:     "admin@admin.com",
@@ -611,10 +626,10 @@ func (gen *Db) initialize() error {
 		log.Println("Created admin user: ", admin)
 
 		group = data.Group{
-			ID:   zero.String(),
+			ID:   zero,
 			Name: "root",
 			Users: []data.UserRoles{
-				{UserID: zero.String(), Roles: []data.Role{data.RoleAdmin}},
+				{UserID: zero, Roles: []data.Role{data.RoleAdmin}},
 			},
 		}
 
@@ -661,10 +676,11 @@ func (gen *Db) NodesForGroup(tx *bolt.Tx, groupID string) ([]data.Node, error) {
 
 // UserInsert inserts a new user
 func (gen *Db) UserInsert(user data.User) (string, error) {
-	id := uuid.New().String()
-	user.ID = id
+	if user.ID == "" {
+		user.ID = uuid.New().String()
+	}
 	err := gen.store.Exec(`insert into users values ?`, user)
-	return id, err
+	return user.ID, err
 }
 
 // UserUpdate updates a new user
@@ -740,11 +756,14 @@ func (gen *Db) Group(id string) (data.Group, error) {
 
 // GroupInsert inserts a new group
 func (gen *Db) GroupInsert(group data.Group) (string, error) {
-	id := uuid.New().String()
-	group.Parent = zero.String()
-	group.ID = id
+	if group.ID == "" {
+		group.ID = uuid.New().String()
+	}
+	if group.Parent == "" && group.ID != zero {
+		group.Parent = zero
+	}
 	err := gen.store.Exec(`insert into groups values ?`, group)
-	return id, err
+	return group.ID, err
 }
 
 // GroupUpdate updates a group
@@ -805,7 +824,9 @@ func (gen *Db) RuleByID(id string) (data.Rule, error) {
 
 // RuleInsert inserts a new rule
 func (gen *Db) RuleInsert(rule data.Rule) (string, error) {
-	rule.ID = uuid.New().String()
+	if rule.ID == "" {
+		rule.ID = uuid.New().String()
+	}
 	err := gen.store.Update(func(tx *genji.Tx) error {
 		err := tx.Exec(`insert into rules values ?`, rule)
 		if err != nil {
@@ -825,10 +846,22 @@ func (gen *Db) RuleInsert(rule data.Rule) (string, error) {
 			return err
 		}
 
-		node.Rules = append(node.Rules, rule.ID)
+		nodeHasRule := false
 
-		return tx.Exec(`update nodes set rules = ? where id = ?`,
-			node.Rules, node.ID)
+		for _, r := range node.Rules {
+			if r == rule.ID {
+				nodeHasRule = true
+			}
+		}
+
+		if !nodeHasRule {
+			node.Rules = append(node.Rules, rule.ID)
+
+			return tx.Exec(`update nodes set rules = ? where id = ?`,
+				node.Rules, node.ID)
+		}
+
+		return nil
 	})
 
 	return rule.ID, err
@@ -917,19 +950,53 @@ func (gen *Db) NodeCmds() ([]data.NodeCmd, error) {
 	return cmds, err
 }
 
-func newIfZero(id uuid.UUID) uuid.UUID {
-	if id == zero {
-		return uuid.New()
-	}
-	return id
-}
-
 type genDump struct {
 	Nodes    []data.Node    `json:"nodes"`
 	Users    []data.User    `json:"users"`
 	Groups   []data.Group   `json:"groups"`
 	Rules    []data.Rule    `json:"rules"`
 	NodeCmds []data.NodeCmd `json:"nodeCmds"`
+}
+
+// ImportDb imports contents of file into database
+func ImportDb(gen *Db, in io.Reader) error {
+	decoder := json.NewDecoder(in)
+	dump := genDump{}
+
+	err := decoder.Decode(&dump)
+	if err != nil {
+		return err
+	}
+
+	for _, n := range dump.Nodes {
+		_, err := gen.NodeInsert(n)
+		if err != nil {
+			return fmt.Errorf("Error inserting node: %w", err)
+		}
+	}
+
+	for _, u := range dump.Users {
+		_, err := gen.UserInsert(u)
+		if err != nil {
+			return fmt.Errorf("Error inserting user: %w", err)
+		}
+	}
+
+	for _, g := range dump.Groups {
+		_, err := gen.GroupInsert(g)
+		if err != nil {
+			return fmt.Errorf("Error inserting group: %w", err)
+		}
+	}
+
+	for _, r := range dump.Rules {
+		_, err := gen.RuleInsert(r)
+		if err != nil {
+			return fmt.Errorf("Error inserting group: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // DumpDb dumps the entire gen to a file
