@@ -74,27 +74,27 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx, init bool) (*
 		log.Fatal("Unknown store type: ", storeType)
 	}
 
-	err = store.Exec("CREATE TABLE IF NOT EXISTS nodes;")
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS nodes (id TEXT PRIMARY KEY);`)
 	if err != nil {
 		return nil, err
 	}
 
-	err = store.Exec("CREATE TABLE IF NOT EXISTS users;")
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY);`)
 	if err != nil {
 		return nil, err
 	}
 
-	err = store.Exec("CREATE TABLE IF NOT EXISTS groups;")
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS groups (id TEXT PRIMARY KEY);`)
 	if err != nil {
 		return nil, err
 	}
 
-	err = store.Exec("CREATE TABLE IF NOT EXISTS rules;")
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS rules (id TEXT PRIMARY KEY);`)
 	if err != nil {
 		return nil, err
 	}
 
-	err = store.Exec("CREATE TABLE IF NOT EXISTS cmds;")
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS cmds (id TEXT PRIMARY KEY);`)
 	if err != nil {
 		return nil, err
 	}
