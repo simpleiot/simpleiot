@@ -17,7 +17,7 @@ func ExpBackoff(attempts int, max time.Duration) time.Duration {
 		// if math.Exp2(..) is +Inf, then converting that to duration
 		// ends up being zero. If attempts is large, then duration may
 		// be negative -- should be covered by attempts > 50 above.
-		if calc > 0 || calc < max {
+		if calc > 0 && calc < max {
 			delay = calc
 		}
 	}

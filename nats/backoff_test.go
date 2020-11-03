@@ -28,3 +28,10 @@ func TestBackoffLargeAttempts(t *testing.T) {
 	}
 
 }
+
+func TestBackoff16(t *testing.T) {
+	backoff := ExpBackoff(16, time.Minute*6)
+	if backoff < time.Minute*6 || backoff > time.Minute*6+time.Second {
+		t.Error("backoff should be 6m, was: ", backoff)
+	}
+}
