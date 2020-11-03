@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [[0.0.12] - 2020-11-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.12)
+
 - backend:
   - switched data structure name from device -> node -- see
     [this issue](https://github.com/simpleiot/simpleiot/issues/91) for dicussion
@@ -21,14 +23,13 @@ For more details or to discuss releases, please visit the
     makes it more idomatic Elm)
   - changing backing store from bolthold to genji (this gives us the flexibility
     to use memory, bbolt, or badger backing stores as well as robust indexing)
-  - switch to badger as default store as it does not have locking issues
-  - update to latest Genji master to get array decoding to work
   - fix bug with not support Point::Text field in Nats/Protobuf
   - fix up examples for sending device version info to portal
 - frontend:
   - only show version information if available
   - don't display special points (description, version, etc) in general node
     points.
+  - add -importDb command line option
 
 ## [[0.0.11] - 2020-09-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.11)
 
