@@ -8,6 +8,7 @@ import (
 	"log"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/genjidb/genji"
@@ -76,6 +77,11 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx, init bool) (*
 	}
 
 	err = store.Exec(`CREATE TABLE IF NOT EXISTS nodes (id TEXT PRIMARY KEY);`)
+	if err != nil {
+		return nil, err
+	}
+
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS edges (id TEXT PRIMARY KEY);`)
 	if err != nil {
 		return nil, err
 	}
@@ -194,6 +200,10 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 	// for now, we process one point at a time. We may eventually
 	// want to create NodeSamples to process multiple samples so
 	// we can batch influx writes for performance
+
+	if point.Time.IsZero() {
+		point.Time = time.Now()
+	}
 
 	if gen.influx != nil {
 		points := []db.InfluxPoint{
