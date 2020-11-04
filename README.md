@@ -33,6 +33,19 @@ A few guiding principles.
    world. Thus a single server that can be quickly rebuilt as needed is
    adequate.
 
+Core features/requirements:
+
+1. Runs in cloud and edge instances.
+1. Configuration changes can be made at either cloud or edge and are sychronized
+   efficiently in either directly.
+1. Efficient use of network bandwidth for edge systems as most are connected via
+   low cost cellular plans.
+1. Rules can run in cloud or edge devices depending on action required (sending
+   notifications or controlling outputs).
+1. System supports user authentication and grouping users and devices at
+   multiple levels.
+1. User interface updates to changes in real time.
+
 Though we are focusing on smaller deployments initially, there is no reason
 Simple IoT can't scale to large systems by swapping out the internal database
 for MongoDB/Dgraph/InfluxDB/etc.
