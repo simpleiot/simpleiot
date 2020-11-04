@@ -21,7 +21,7 @@ are solving.
    [long tail](https://www.linkedin.com/pulse/long-tail-iot-param-singh) of IoT,
    which is our focus. This is not an "enterprise" platform.
 1. There is value in custom solutions (programming vs drag-n-drop).
-1. There is value in running our own platform.
+1. There is value in running/owning our own platform.
 1. A single engineer should be able to build and deploy a custom IoT system.
 1. We don't need to spend gobs of time on operations. For smaller deployments,
    we deploy one binary to a cloud server and we are done with operations. We
