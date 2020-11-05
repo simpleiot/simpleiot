@@ -8,28 +8,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// define common point types
-const (
-	// the following are point types that describe the
-	// state of a device (vs sensor values).
-	PointTypeDescription          string = "description"
-	PointTypeCmdPending                  = "cmdPending"
-	PointTypeSwUpdateState               = "swUpdateState"
-	PointTypeStartApp                    = "startApp"
-	PointTypeStartSystem                 = "startSystem"
-	PointTypeUpdateOS                    = "updateOS"
-	PointTypeUpdateApp                   = "updateApp"
-	PointTypeSysState                    = "sysState"
-	PointTypeSwUpdateRunning             = "swUpdateRunning"
-	PointTypeSwUpdateError               = "swUpdateError"
-	PointTypeSwUpdatePercComplete        = "swUpdatePercComplete"
-	PointTypeOSVersion                   = "osVersion"
-	PointTypeAppVersion                  = "appVersion"
-	PointTypeHwVersion                   = "hwVersion"
-	PointMsgAll                          = "msgAll"
-	PointMsgUser                         = "msgUser"
-)
-
 // Point is a flexible data structure that can be used to represent
 // a sensor value or a configuration parameter.
 // ID, Type, and Index uniquely identify a point in a device

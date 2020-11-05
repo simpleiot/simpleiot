@@ -31,6 +31,12 @@ const (
 	StoreTypeBadger           = "badger"
 )
 
+// Meta contains metadata about the database
+type Meta struct {
+	Version  int
+	RootNode string
+}
+
 // This file contains database manipulations.
 
 // Db is used for all db access in the application.
@@ -39,6 +45,7 @@ const (
 type Db struct {
 	store  *genji.DB
 	influx *db.Influx
+	meta   Meta
 }
 
 // NewDb creates a new Db instance for the app
@@ -76,34 +83,54 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx, init bool) (*
 		log.Fatal("Unknown store type: ", storeType)
 	}
 
-	err = store.Exec(`CREATE TABLE IF NOT EXISTS nodes (id TEXT PRIMARY KEY);`)
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS meta`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error creating meta table: %w", err)
 	}
 
-	err = store.Exec(`CREATE TABLE IF NOT EXISTS edges (id TEXT PRIMARY KEY);`)
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS nodes (id TEXT PRIMARY KEY)`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error creating nodes table: %w", err)
 	}
 
-	err = store.Exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY);`)
+	err = store.Exec(`CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type)`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error creating idx_nodes_type: %w", err)
 	}
 
-	err = store.Exec(`CREATE TABLE IF NOT EXISTS groups (id TEXT PRIMARY KEY);`)
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS edges (id TEXT PRIMARY KEY)`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error creating edges table: %w", err)
 	}
 
-	err = store.Exec(`CREATE TABLE IF NOT EXISTS rules (id TEXT PRIMARY KEY);`)
+	err = store.Exec(`CREATE INDEX IF NOT EXISTS idx_edge_up ON edges(up)`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error creating idx_edge_up: %w", err)
 	}
 
-	err = store.Exec(`CREATE TABLE IF NOT EXISTS cmds (id TEXT PRIMARY KEY);`)
+	err = store.Exec(`CREATE INDEX IF NOT EXISTS idx_edge_down ON edges(down)`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error creating idx_edge_down: %w", err)
+	}
+
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY)`)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating users table: %w", err)
+	}
+
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS groups (id TEXT PRIMARY KEY)`)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating groups table: %w", err)
+	}
+
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS rules (id TEXT PRIMARY KEY)`)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating rules table: %w", err)
+	}
+
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS cmds (id TEXT PRIMARY KEY)`)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating cmds table: %w", err)
 	}
 
 	db := &Db{store: store, influx: influx}
@@ -112,6 +139,77 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx, init bool) (*
 	}
 
 	return db, nil
+}
+
+// initialize initializes the database with one user (admin)
+func (gen *Db) initialize() error {
+	doc, err := gen.store.QueryDocument(`select * from meta`)
+
+	// group was found or we ran into an error, so return
+	if err == nil {
+		// fetch metadata and return
+		err := document.StructScan(doc, &gen.meta)
+		if err != nil {
+			return fmt.Errorf("Error getting db meta data: %w", err)
+		}
+
+		return nil
+	}
+
+	if err != database.ErrDocumentNotFound {
+		return err
+	}
+
+	// need to initialize db
+	err = gen.store.Update(func(tx *genji.Tx) error {
+		log.Println("adding initial node structure and admin user ...")
+
+		rootNode := data.Node{Type: data.NodeTypeInst, ID: uuid.New().String()}
+
+		err = tx.Exec(`insert into nodes values ?`, rootNode)
+		if err != nil {
+			return fmt.Errorf("Error creating root node: %w", err)
+		}
+
+		// populate metadata with root node ID
+		gen.meta = Meta{RootNode: rootNode.ID}
+
+		err = tx.Exec(`insert into meta values ?`, gen.meta)
+		if err != nil {
+			return fmt.Errorf("Error inserting meta: %w", err)
+		}
+
+		// create admin user off root node
+		admin := data.User{
+			ID:        uuid.New().String(),
+			FirstName: "admin",
+			LastName:  "user",
+			Email:     "admin@admin.com",
+			Pass:      "admin",
+		}
+
+		adminUserNode := data.Node{
+			Type:   data.NodeTypeUser,
+			ID:     admin.ID,
+			Points: admin.ToPoints()}
+
+		err = tx.Exec(`insert into nodes values ?`, adminUserNode)
+		if err != nil {
+			return fmt.Errorf("Error inserting admin user: %w", err)
+		}
+
+		log.Println("Created admin user: ", admin)
+
+		// create relationship between root and user node
+		err = txEdgeInsert(tx, &data.Edge{Up: rootNode.ID, Down: adminUserNode.ID})
+		if err != nil {
+			return fmt.Errorf("Error creating root/admin edge: %w", err)
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 // Close closes the db
@@ -457,6 +555,87 @@ func (gen *Db) NodesForUser(userID string) ([]data.Node, error) {
 	return nodes, err
 }
 
+func txEdgeInsert(tx *genji.Tx, edge *data.Edge) error {
+	if edge.ID == "" {
+		edge.ID = uuid.New().String()
+	}
+
+	return tx.Exec(`insert into edges values ?`, edge)
+}
+
+// EdgeInsert is used to insert an edge into the database
+func (gen *Db) EdgeInsert(edge data.Edge) (string, error) {
+	err := gen.store.Update(func(tx *genji.Tx) error {
+		return txEdgeInsert(tx, &edge)
+	})
+
+	return edge.ID, err
+}
+
+// Edges returns all edges.
+func (gen *Db) Edges() ([]data.Edge, error) {
+	var edges []data.Edge
+
+	err := gen.store.View(func(tx *genji.Tx) error {
+		res, err := tx.Query(`select * from edges`)
+		if err != nil {
+			return err
+		}
+
+		defer res.Close()
+
+		err = res.Iterate(func(d document.Document) error {
+			var edge data.Edge
+			err = document.StructScan(d, &edge)
+			if err != nil {
+				return err
+			}
+
+			edges = append(edges, edge)
+			return nil
+		})
+
+		return nil
+	})
+
+	return edges, err
+}
+
+func txEdgeUp(tx *genji.Tx, nodeID string) ([]string, error) {
+	var ret []string
+	res, err := tx.Query(`select * from edges where down = ?`, nodeID)
+	if err != nil {
+		return ret, err
+	}
+	defer res.Close()
+
+	err = res.Iterate(func(d document.Document) error {
+		var edge data.Edge
+		err = document.StructScan(d, &edge)
+		if err != nil {
+			return err
+		}
+
+		ret = append(ret, edge.Up)
+		return nil
+	})
+
+	return ret, err
+}
+
+// EdgeUp returns an array of upstream nodes for a node
+func (gen *Db) EdgeUp(nodeID string) ([]string, error) {
+	var ret []string
+
+	err := gen.store.View(func(tx *genji.Tx) error {
+		var err error
+		ret, err = txEdgeUp(tx, nodeID)
+		return err
+	})
+
+	return ret, err
+}
+
 type users []data.User
 
 func (u users) Len() int {
@@ -498,12 +677,11 @@ func (gen *Db) Users() ([]data.User, error) {
 type privilege string
 
 // UserCheck checks user authentication
+// returns nil, nil if user is not found
 func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 	var user data.User
 
-	doc, err := gen.store.QueryDocument(`select * from users where email = ? and pass = ?`,
-		email, password)
-
+	res, err := gen.store.Query(`select * from nodes where type = ?`, data.NodeTypeUser)
 	if err != nil {
 		// just return nil user and not user if not found
 		if err == database.ErrDocumentNotFound {
@@ -512,29 +690,45 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 
 		return nil, err
 	}
+	defer res.Close()
 
-	err = document.StructScan(doc, &user)
-	return &user, err
+	err = res.Iterate(func(d document.Document) error {
+		var node data.Node
+		err = document.StructScan(d, &node)
+		if err != nil {
+			return err
+		}
+
+		u := node.ToUser()
+
+		if u.Email == email && u.Pass == password {
+			user = u
+		}
+
+		return nil
+	})
+
+	if user.ID != "" {
+		return &user, err
+	}
+
+	return nil, err
 }
 
 // UserIsRoot checks if root user
 func (gen *Db) UserIsRoot(id string) (bool, error) {
-	_, err := gen.store.QueryDocument(`select * from groups where id = ? and ? in users`, id,
-		data.UserRoles{
-			UserID: id,
-			Roles:  []data.Role{"admin"},
-		},
-	)
-
+	upstreamNodes, err := gen.EdgeUp(id)
 	if err != nil {
-		if err == database.ErrDocumentNotFound {
-			return false, nil
-		}
-
 		return false, err
 	}
 
-	return true, nil
+	for _, upID := range upstreamNodes {
+		if upID == gen.meta.RootNode {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // UserByID returns the user with the given ID, if it exists.
@@ -600,61 +794,6 @@ func (gen *Db) UsersForGroup(id string) ([]data.User, error) {
 	})
 
 	return users, err
-}
-
-// initialize initializes the database with one user (admin)
-// in one groupanization (root).
-// All nodes are properties of the root groupanization.
-func (gen *Db) initialize() error {
-	// initialize root group in new gen
-	var group data.Group
-
-	_, err := gen.store.QueryDocument(`select * from groups where name = 'root'`)
-
-	// group was found or we ran into an error, so return
-	if err != database.ErrDocumentNotFound {
-		return err
-	}
-
-	err = gen.store.Update(func(tx *genji.Tx) error {
-		log.Println("adding root group and admin user ...")
-
-		admin := data.User{
-			ID:        zero,
-			FirstName: "admin",
-			LastName:  "user",
-			Email:     "admin@admin.com",
-			Pass:      "admin",
-		}
-
-		err = tx.Exec(`insert into users values ?`, admin)
-
-		if err != nil {
-			return err
-		}
-
-		log.Println("Created admin user: ", admin)
-
-		group = data.Group{
-			ID:   zero,
-			Name: "root",
-			Users: []data.UserRoles{
-				{UserID: zero, Roles: []data.Role{data.RoleAdmin}},
-			},
-		}
-
-		err = tx.Exec(`insert into groups values ?`, group)
-
-		if err != nil {
-			return err
-		}
-
-		log.Println("Created root group:", group)
-
-		return nil
-	})
-
-	return err
 }
 
 // NodesForGroup returns the nodes which are property of the given Group.
@@ -963,6 +1102,7 @@ func (gen *Db) NodeCmds() ([]data.NodeCmd, error) {
 type genDump struct {
 	Devices  []Device       `json:"devices"`
 	Nodes    []data.Node    `json:"nodes"`
+	Edges    []data.Edge    `json:"edges"`
 	Users    []data.User    `json:"users"`
 	Groups   []data.Group   `json:"groups"`
 	Rules    []data.Rule    `json:"rules"`
@@ -983,6 +1123,13 @@ func ImportDb(gen *Db, in io.Reader) error {
 		_, err := gen.NodeInsert(n)
 		if err != nil {
 			return fmt.Errorf("Error inserting node (%+v): %w", n, err)
+		}
+	}
+
+	for _, e := range dump.Edges {
+		_, err := gen.EdgeInsert(e)
+		if err != nil {
+			return fmt.Errorf("Error inserting edge (%+v): %w", e, err)
 		}
 	}
 
@@ -1025,6 +1172,11 @@ func DumpDb(gen *Db, out io.Writer) error {
 	var err error
 
 	dump.Nodes, err = gen.Nodes()
+	if err != nil {
+		return err
+	}
+
+	dump.Edges, err = gen.Edges()
 	if err != nil {
 		return err
 	}
