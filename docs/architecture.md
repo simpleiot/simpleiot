@@ -88,6 +88,12 @@ Several examples of virtual nodes:
 - implement custom logic for a particular application
 - a component in an edge device such as a cellular modem
 
+Edges can also contain metadata (`Value`, `Text` fields) that further describe
+the relationship between nodes. Some examples:
+
+- role the user plays in the node (viewer, admin, etc)
+- order of notifications when sequencing notifications through a node's users
+
 Being able to arranged nodes in an arbitrary hierarchy also opens up some
 interesting possibilities such as creating virtual nodes that have a number of
 children that are collecting data. The parent virtual nodes could have rules or
@@ -137,6 +143,9 @@ connected systems, node IDs need to be unique. A unique serial number or UUID is
 recommended.
 
 ## Synchronization
+
+**NOTE, other than synchronization of node points, which is a fairly easy
+problem, this section in a WIP**
 
 Typically, configuration is modified through a user interface either in the
 cloud, or with a local UI (ex touchscreen LCD) at an edge device. As mentioned
