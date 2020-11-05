@@ -147,6 +147,9 @@ recommended.
 **NOTE, other than synchronization of node points, which is a fairly easy
 problem, this section in a WIP**
 
+See [research](research.md) for information on techniques that may be applicable
+to this problem.
+
 Typically, configuration is modified through a user interface either in the
 cloud, or with a local UI (ex touchscreen LCD) at an edge device. As mentioned
 above, the configuration of a `Node` will be stored as `Points`. Typically the
@@ -191,6 +194,9 @@ The node `Hash` field is a hash of:
 - node point timestamps
 - node type
 - and child node `Hash` fields
+
+_TODO: hashing the node seems to be the same concept as used by Merkle Trees,
+see [research](research.md)_
 
 Comparing the node `Hash` field allows us to detect node differences. We then
 compare the node points to determine the actual differences.

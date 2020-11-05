@@ -25,4 +25,20 @@ as NATS is core to this project.
 
 The Resgate system is primarily concerned with synchronizing browser contents.
 
-### couch/pouchdb
+### Couch/pouchdb
+
+Has some interesting ideas.
+
+### Merkle Trees
+
+- https://medium.com/@rkkautsar/synchronizing-your-hierarchical-data-with-merkle-tree-dbfe37db3ab7
+- https://en.wikipedia.org/wiki/Merkle_tree
+- https://jack-vanlightly.com/blog/2016/10/24/exploring-the-use-of-hash-trees-for-data-synchronization-part-1
+
+### Distributed key/value databases
+
+- etcd
+
+### Distributed Hash Tables
+
+- https://en.wikipedia.org/wiki/Distributed_hash_table
