@@ -34,6 +34,20 @@ Has some interesting ideas.
 - https://medium.com/@rkkautsar/synchronizing-your-hierarchical-data-with-merkle-tree-dbfe37db3ab7
 - https://en.wikipedia.org/wiki/Merkle_tree
 - https://jack-vanlightly.com/blog/2016/10/24/exploring-the-use-of-hash-trees-for-data-synchronization-part-1
+- https://www.codementor.io/blog/merkle-trees-5h9arzd3n8
+  - Version Control Systems Version control systems like Git and Mercurial use
+    specialized merkle trees to manage versions of files and even directories.
+    One advantage of using merkle trees in version control systems is we can
+    simply compare hashes of files and directories between two commits to know
+    if they've been modified or not, which is quite fast. This
+    [post](https://blog.sourced.tech/post/difftree/) discusses in detail how the
+    entire process works.
+  - No-SQL distributed database systems like Apache Cassandra and Amazon
+    DynamoDB use merkle trees to detect inconsistencies between data replicas.
+    This process of repairing the data by comparing all replicas and updating
+    each one of them to the newest version is also called anti-entropy repair.
+    The process is also described in
+    [Cassandra's documentation](https://docs.datastax.com/en/cassandra/3.0/cassandra/operations/opsRepairNodesManualRepair.html).
 
 ### Distributed key/value databases
 
