@@ -6,10 +6,8 @@ import Api.Node as Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
+import Components.NodeGeneral as NodeGeneral
 import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Input as Input
 import Http
 import Shared
 import Spa.Document exposing (Document)
@@ -18,10 +16,7 @@ import Spa.Page as Page exposing (Page)
 import Spa.Url exposing (Url)
 import Task
 import Time
-import UI.Icon as Icon
-import UI.Style as Style exposing (colors, size)
-import Utils.Duration as Duration
-import Utils.Iso8601 as Iso8601
+import UI.Style as Style
 import Utils.Route
 
 
@@ -53,10 +48,10 @@ type alias NodeEdit =
 
 type alias Model =
     { key : Key
-    , deviceEdit : Maybe NodeEdit
+    , nodeEdit : Maybe NodeEdit
     , zone : Time.Zone
     , now : Time.Posix
-    , devices : List Node
+    , nodes : List Node
     , auth : Auth
     , error : Maybe String
     }
@@ -118,7 +113,7 @@ update msg model =
     case msg of
         EditNodeDescription id description ->
             ( { model
-                | deviceEdit =
+                | nodeEdit =
                     Just
                         { id = id
                         , point = Point.newText "" Point.typeDescription description
@@ -129,8 +124,8 @@ update msg model =
 
         ApiPostPoint id point ->
             let
-                -- optimistically update devices
-                devices =
+                -- optimistically update nodes
+                nodes =
                     List.map
                         (\d ->
                             if d.id == id then
@@ -139,9 +134,9 @@ update msg model =
                             else
                                 d
                         )
-                        model.devices
+                        model.nodes
             in
-            ( { model | deviceEdit = Nothing, devices = devices }
+            ( { model | nodeEdit = Nothing, nodes = nodes }
             , Node.postPoint
                 { token = model.auth.token
                 , id = id
@@ -151,17 +146,17 @@ update msg model =
             )
 
         DiscardEditedNodeDescription ->
-            ( { model | deviceEdit = Nothing }
+            ( { model | nodeEdit = Nothing }
             , Cmd.none
             )
 
         ApiDelete id ->
-            -- optimistically update devices
+            -- optimistically update nodes
             let
-                devices =
-                    List.filter (\d -> d.id /= id) model.devices
+                nodes =
+                    List.filter (\d -> d.id /= id) model.nodes
             in
-            ( { model | devices = devices }
+            ( { model | nodes = nodes }
             , Node.delete { token = model.auth.token, id = id, onResponse = ApiRespDelete }
             )
 
@@ -173,10 +168,10 @@ update msg model =
             , updateNodes model
             )
 
-        ApiRespList devices ->
-            case devices of
-                Data.Success d ->
-                    ( { model | devices = d }, Cmd.none )
+        ApiRespList nodes ->
+            case nodes of
+                Data.Success n ->
+                    ( { model | nodes = n }, Cmd.none )
 
                 Data.Failure err ->
                     let
@@ -194,7 +189,7 @@ update msg model =
                         )
 
                     else
-                        ( popError "Error getting devices" err model
+                        ( popError "Error getting nodes" err model
                         , Cmd.none
                         )
 
@@ -303,189 +298,45 @@ viewNodes model =
         ]
     <|
         List.map
-            (\d ->
-                viewNode model d.mod d.device
+            (\n ->
+                NodeGeneral.view
+                    { isRoot = model.auth.isRoot
+                    , now = model.now
+                    , zone = model.zone
+                    , modified = n.mod
+                    , node = n.node
+                    , onApiDelete = ApiDelete
+                    , onEditNodeDescription = EditNodeDescription
+                    , onApiPostPoint = ApiPostPoint
+                    , onDiscardEditedNodeDescription = DiscardEditedNodeDescription
+                    }
             )
         <|
-            mergeNodeEdit model.devices model.deviceEdit
+            mergeNodeEdit model.nodes model.nodeEdit
 
 
 type alias NodeMod =
-    { device : Node
+    { node : Node
     , mod : Bool
     }
 
 
 mergeNodeEdit : List Node -> Maybe NodeEdit -> List NodeMod
-mergeNodeEdit devices devConfigEdit =
+mergeNodeEdit nodes devConfigEdit =
     case devConfigEdit of
         Just edit ->
             List.map
-                (\d ->
-                    if edit.id == d.id then
-                        { device =
-                            { d | points = Point.updatePoint d.points edit.point }
+                (\n ->
+                    if edit.id == n.id then
+                        { node =
+                            { n | points = Point.updatePoint n.points edit.point }
                         , mod = True
                         }
 
                     else
-                        { device = d, mod = False }
+                        { node = n, mod = False }
                 )
-                devices
+                nodes
 
         Nothing ->
-            List.map (\d -> { device = d, mod = False }) devices
-
-
-viewNode : Model -> Bool -> Node -> Element Msg
-viewNode model modified device =
-    let
-        sysState =
-            case Point.getPoint device.points "" Point.typeSysState 0 of
-                Just point ->
-                    round point.value
-
-                Nothing ->
-                    0
-
-        sysStateIcon =
-            case sysState of
-                -- not sure why I can't use defines in Node.elm here
-                1 ->
-                    Icon.power
-
-                2 ->
-                    Icon.cloudOff
-
-                3 ->
-                    Icon.cloud
-
-                _ ->
-                    Element.none
-
-        background =
-            case sysState of
-                3 ->
-                    Style.colors.white
-
-                _ ->
-                    Style.colors.gray
-
-        hwVersion =
-            case Point.getPoint device.points "" Point.typeHwVersion 0 of
-                Just point ->
-                    "HW: " ++ point.text
-
-                Nothing ->
-                    ""
-
-        osVersion =
-            case Point.getPoint device.points "" Point.typeOSVersion 0 of
-                Just point ->
-                    "OS: " ++ point.text
-
-                Nothing ->
-                    ""
-
-        appVersion =
-            case Point.getPoint device.points "" Point.typeAppVersion 0 of
-                Just point ->
-                    "App: " ++ point.text
-
-                Nothing ->
-                    ""
-
-        latestPointTime =
-            case Point.getLatest device.points of
-                Just point ->
-                    point.time
-
-                Nothing ->
-                    Time.millisToPosix 0
-    in
-    column
-        [ width fill
-        , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
-        , Border.color colors.black
-        , Background.color background
-        , spacing 6
-        ]
-        [ wrappedRow [ spacing 10 ]
-            [ sysStateIcon
-            , viewNodeId device.id
-            , if model.auth.isRoot then
-                Icon.x (ApiDelete device.id)
-
-              else
-                Element.none
-            , Input.text
-                [ Background.color background ]
-                { onChange = \d -> EditNodeDescription device.id d
-                , text = Node.description device
-                , placeholder = Just <| Input.placeholder [] <| text "device description"
-                , label = Input.labelHidden "device description"
-                }
-            , if modified then
-                Icon.check
-                    (ApiPostPoint device.id
-                        { typ = Point.typeDescription
-                        , id = ""
-                        , index = 0
-                        , time = model.now
-                        , value = 0
-                        , text = Node.description device
-                        , min = 0
-                        , max = 0
-                        }
-                    )
-
-              else
-                Element.none
-            , if modified then
-                Icon.x DiscardEditedNodeDescription
-
-              else
-                Element.none
-            ]
-        , viewPoints <| Point.filterSpecialPoints device.points
-        , text ("Last update: " ++ Iso8601.toDateTimeString model.zone latestPointTime)
-        , text
-            ("Time since last update: "
-                ++ Duration.toString
-                    (Time.posixToMillis model.now
-                        - Time.posixToMillis latestPointTime
-                    )
-            )
-        , if hwVersion /= "" && osVersion /= "" && appVersion /= "" then
-            text
-                ("Version: "
-                    ++ hwVersion
-                    ++ " "
-                    ++ osVersion
-                    ++ " "
-                    ++ appVersion
-                )
-
-          else
-            Element.none
-        ]
-
-
-viewNodeId : String -> Element Msg
-viewNodeId id =
-    el
-        [ padding 16
-        , size.heading
-        ]
-    <|
-        text id
-
-
-viewPoints : List Point.Point -> Element Msg
-viewPoints ios =
-    column
-        [ padding 16
-        , spacing 6
-        ]
-    <|
-        List.map (Point.renderPoint >> text) ios
+            List.map (\n -> { node = n, mod = False }) nodes
