@@ -56,3 +56,14 @@ Has some interesting ideas.
 ### Distributed Hash Tables
 
 - https://en.wikipedia.org/wiki/Distributed_hash_table
+
+### CRDT (Conflict-free replicated data type)
+
+- https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type
+- [Yjs](https://yjs.dev/#community)
+  - https://blog.kevinjahns.de/are-crdts-suitable-for-shared-editing/
+
+### Timestamps
+
+- [Lamport timestamp](https://en.wikipedia.org/wiki/Lamport_timestamp)
+  - used by Yjs
