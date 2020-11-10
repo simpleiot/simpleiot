@@ -32,10 +32,6 @@ Most APIs that do not return specific data (update/delete) return a
     - GET: gets a command for a device and clears it from the queue. Also clears
       the CmdPending flag in the Device state.
     - POST: posts a cmd for the device and sets the device CmdPending flag.
-  - `/v1/devices/:id/version`
-    - POST: version information sent to the server from the device that contains
-      version information.
-    - [DeviceVersion](../data/device.go)
 - Users
   - [data structure](https://github.com/simpleiot/simpleiot/blob/master/data/user.go)
   - `/v1/users`
