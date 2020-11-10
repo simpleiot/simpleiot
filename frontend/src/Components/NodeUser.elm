@@ -24,6 +24,10 @@ view :
     }
     -> Element msg
 view o =
+    let
+        textInput2 =
+            textInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+    in
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
@@ -39,56 +43,11 @@ view o =
               else
                 Element.none
             ]
-        , Input.text
-            []
-            { onChange =
-                \d ->
-                    o.onEditNodePoint o.node.id
-                        (Point "" Point.typeFirstName 0 o.now 0 d 0 0)
-            , text = Point.getPointText o.node.points Point.typeFirstName
-            , placeholder = Just <| Input.placeholder [] <| text "first name"
-            , label = Input.labelLeft [] <| text "First Name:"
-            }
-        , Input.text
-            []
-            { onChange =
-                \d ->
-                    o.onEditNodePoint o.node.id
-                        (Point "" Point.typeLastName 0 o.now 0 d 0 0)
-            , text = Point.getPointText o.node.points Point.typeLastName
-            , placeholder = Just <| Input.placeholder [] <| text "last name"
-            , label = Input.labelLeft [] <| text "Last Name:"
-            }
-        , Input.text
-            []
-            { onChange =
-                \d ->
-                    o.onEditNodePoint o.node.id
-                        (Point "" Point.typeEmail 0 o.now 0 d 0 0)
-            , text = Point.getPointText o.node.points Point.typeEmail
-            , placeholder = Just <| Input.placeholder [] <| text "email"
-            , label = Input.labelLeft [] <| text "Email:"
-            }
-        , Input.text
-            []
-            { onChange =
-                \d ->
-                    o.onEditNodePoint o.node.id
-                        (Point "" Point.typePhone 0 o.now 0 d 0 0)
-            , text = Point.getPointText o.node.points Point.typePhone
-            , placeholder = Just <| Input.placeholder [] <| text "phone number"
-            , label = Input.labelLeft [] <| text "Phone:"
-            }
-        , Input.text
-            []
-            { onChange =
-                \d ->
-                    o.onEditNodePoint o.node.id
-                        (Point "" Point.typePass 0 o.now 0 d 0 0)
-            , text = Point.getPointText o.node.points Point.typePass
-            , placeholder = Just <| Input.placeholder [] <| text "password"
-            , label = Input.labelLeft [] <| text "Password:"
-            }
+        , textInput2 Point.typeFirstName "First Name"
+        , textInput2 Point.typeLastName "Last Name"
+        , textInput2 Point.typeEmail "Email"
+        , textInput2 Point.typePhone "Phone"
+        , textInput2 Point.typePass "Pass"
         ]
             ++ (if o.modified then
                     [ Form.buttonRow
@@ -108,6 +67,27 @@ view o =
                 else
                     []
                )
+
+
+textInput :
+    { onEditNodePoint : String -> Point -> msg
+    , node : Node
+    , now : Time.Posix
+    }
+    -> String
+    -> String
+    -> Element msg
+textInput o pointName label =
+    Input.text
+        []
+        { onChange =
+            \d ->
+                o.onEditNodePoint o.node.id
+                    (Point "" pointName 0 o.now 0 d 0 0)
+        , text = Point.getPointText o.node.points pointName
+        , placeholder = Nothing
+        , label = Input.labelLeft [ width (px 100) ] <| el [ alignRight ] <| text <| label ++ ":"
+        }
 
 
 viewNodeId : String -> Element msg
