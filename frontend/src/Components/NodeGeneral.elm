@@ -20,9 +20,9 @@ view :
     , modified : Bool
     , node : Node
     , onApiDelete : String -> msg
-    , onEditNodeDescription : String -> String -> msg
-    , onApiPostPoint : String -> Point -> msg
-    , onDiscardEditedNodeDescription : msg
+    , onEditNodePoint : String -> Point -> msg
+    , onDiscardEdits : msg
+    , onApiPostPoints : String -> msg
     }
     -> Element msg
 view o =
@@ -107,29 +107,22 @@ view o =
                 Element.none
             , Input.text
                 [ Background.color background ]
-                { onChange = \d -> o.onEditNodeDescription o.node.id d
+                { onChange =
+                    \d ->
+                        o.onEditNodePoint o.node.id
+                            (Point "" Point.typeDescription 0 o.now 0 d 0 0)
                 , text = Node.description o.node
                 , placeholder = Just <| Input.placeholder [] <| text "node description"
                 , label = Input.labelHidden "node description"
                 }
             , if o.modified then
                 Icon.check
-                    (o.onApiPostPoint o.node.id
-                        { typ = Point.typeDescription
-                        , id = ""
-                        , index = 0
-                        , time = o.now
-                        , value = 0
-                        , text = Node.description o.node
-                        , min = 0
-                        , max = 0
-                        }
-                    )
+                    (o.onApiPostPoints o.node.id)
 
               else
                 Element.none
             , if o.modified then
-                Icon.x o.onDiscardEditedNodeDescription
+                Icon.x o.onDiscardEdits
 
               else
                 Element.none

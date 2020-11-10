@@ -7,6 +7,7 @@ import Api.Point as Point exposing (Point)
 import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
 import Components.NodeGeneral as NodeGeneral
+import Components.NodeUser as NodeUser
 import Element exposing (..)
 import Http
 import Shared
@@ -42,7 +43,7 @@ type alias Params =
 
 type alias NodeEdit =
     { id : String
-    , point : Point
+    , points : List Point
     }
 
 
@@ -99,10 +100,10 @@ init shared { key } =
 type Msg
     = Tick Time.Posix
     | Zone Time.Zone
-    | EditNodeDescription String String
-    | DiscardEditedNodeDescription
+    | EditNodePoint String Point
+    | DiscardEdits
     | ApiDelete String
-    | ApiPostPoint String Point
+    | ApiPostPoints String
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
@@ -111,41 +112,55 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        EditNodeDescription id description ->
+        EditNodePoint id point ->
+            let
+                editPoints =
+                    case model.nodeEdit of
+                        Just ne ->
+                            ne.points
+
+                        Nothing ->
+                            []
+            in
             ( { model
                 | nodeEdit =
                     Just
                         { id = id
-                        , point = Point.newText "" Point.typeDescription description
+                        , points = Point.updatePoint editPoints point
                         }
               }
             , Cmd.none
             )
 
-        ApiPostPoint id point ->
-            let
-                -- optimistically update nodes
-                nodes =
-                    List.map
-                        (\d ->
-                            if d.id == id then
-                                { d | points = Point.updatePoint d.points point }
+        ApiPostPoints id ->
+            case model.nodeEdit of
+                Just edit ->
+                    let
+                        -- optimistically update nodes
+                        nodes =
+                            List.map
+                                (\n ->
+                                    if n.id == id then
+                                        { n | points = Point.updatePoints n.points edit.points }
 
-                            else
-                                d
-                        )
-                        model.nodes
-            in
-            ( { model | nodeEdit = Nothing, nodes = nodes }
-            , Node.postPoint
-                { token = model.auth.token
-                , id = id
-                , point = point
-                , onResponse = ApiRespPostPoint
-                }
-            )
+                                    else
+                                        n
+                                )
+                                model.nodes
+                    in
+                    ( { model | nodeEdit = Nothing, nodes = nodes }
+                    , Node.postPoints
+                        { token = model.auth.token
+                        , id = id
+                        , points = edit.points
+                        , onResponse = ApiRespPostPoint
+                        }
+                    )
 
-        DiscardEditedNodeDescription ->
+                Nothing ->
+                    ( model, Cmd.none )
+
+        DiscardEdits ->
             ( { model | nodeEdit = Nothing }
             , Cmd.none
             )
@@ -299,16 +314,25 @@ viewNodes model =
     <|
         List.map
             (\n ->
-                NodeGeneral.view
+                let
+                    nodeView =
+                        case n.node.typ of
+                            "user" ->
+                                NodeUser.view
+
+                            _ ->
+                                NodeGeneral.view
+                in
+                nodeView
                     { isRoot = model.auth.isRoot
                     , now = model.now
                     , zone = model.zone
                     , modified = n.mod
                     , node = n.node
                     , onApiDelete = ApiDelete
-                    , onEditNodeDescription = EditNodeDescription
-                    , onApiPostPoint = ApiPostPoint
-                    , onDiscardEditedNodeDescription = DiscardEditedNodeDescription
+                    , onEditNodePoint = EditNodePoint
+                    , onDiscardEdits = DiscardEdits
+                    , onApiPostPoints = ApiPostPoints
                     }
             )
         <|
@@ -322,14 +346,14 @@ type alias NodeMod =
 
 
 mergeNodeEdit : List Node -> Maybe NodeEdit -> List NodeMod
-mergeNodeEdit nodes devConfigEdit =
-    case devConfigEdit of
+mergeNodeEdit nodes nodeEdit =
+    case nodeEdit of
         Just edit ->
             List.map
                 (\n ->
                     if edit.id == n.id then
                         { node =
-                            { n | points = Point.updatePoint n.points edit.point }
+                            { n | points = Point.updatePoints n.points edit.points }
                         , mod = True
                         }
 

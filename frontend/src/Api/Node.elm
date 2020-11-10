@@ -7,10 +7,12 @@ module Api.Node exposing
     , list
     , postCmd
     , postGroups
-    , postPoint
+    , postPoints
     , sysStateOffline
     , sysStateOnline
     , sysStatePowerOff
+    , typeInst
+    , typeUser
     )
 
 import Api.Data exposing (Data)
@@ -38,8 +40,19 @@ sysStateOnline =
     3
 
 
+typeInst : String
+typeInst =
+    "instance"
+
+
+typeUser : String
+typeUser =
+    "user"
+
+
 type alias Node =
     { id : String
+    , typ : String
     , points : List Point
     , groups : List String
     }
@@ -60,6 +73,7 @@ decode : Decode.Decoder Node
 decode =
     Decode.succeed Node
         |> required "id" Decode.string
+        |> optional "type" Decode.string typeInst
         |> optional "points" (Decode.list Point.decode) []
         |> optional "groups" (Decode.list Decode.string) []
 
@@ -203,20 +217,20 @@ postCmd options =
         }
 
 
-postPoint :
+postPoints :
     { token : String
     , id : String
-    , point : Point
+    , points : List Point
     , onResponse : Data Response -> msg
     }
     -> Cmd msg
-postPoint options =
+postPoints options =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
         , url = Url.Builder.absolute [ "v1", "nodes", options.id, "points" ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
-        , body = [ options.point ] |> Point.encodeList |> Http.jsonBody
+        , body = options.points |> Point.encodeList |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }

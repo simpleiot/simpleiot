@@ -7,14 +7,20 @@ module Api.Point exposing
     , filterSpecialPoints
     , getLatest
     , getPoint
+    , getPointText
     , newText
     , newValue
     , renderPoint
     , typeAppVersion
     , typeCmdPending
     , typeDescription
+    , typeEmail
+    , typeFirstName
     , typeHwVersion
+    , typeLastName
     , typeOSVersion
+    , typePass
+    , typePhone
     , typeStartApp
     , typeStartSystem
     , typeSwUpdateError
@@ -25,6 +31,7 @@ module Api.Point exposing
     , typeUpdateApp
     , typeUpdateOS
     , updatePoint
+    , updatePoints
     )
 
 import Iso8601
@@ -105,6 +112,31 @@ typeAppVersion =
 typeHwVersion : String
 typeHwVersion =
     "hwVersion"
+
+
+typeFirstName : String
+typeFirstName =
+    "firstName"
+
+
+typeLastName : String
+typeLastName =
+    "lastName"
+
+
+typeEmail : String
+typeEmail =
+    "email"
+
+
+typePhone : String
+typePhone =
+    "phone"
+
+
+typePass : String
+typePass =
+    "pass"
 
 
 
@@ -244,6 +276,14 @@ updatePoint points point =
             point :: points
 
 
+updatePoints : List Point -> List Point -> List Point
+updatePoints points newPoints =
+    List.foldr
+        (\newPoint updatedPoints -> updatePoint updatedPoints newPoint)
+        points
+        newPoints
+
+
 getPoint : List Point -> String -> String -> Int -> Maybe Point
 getPoint points id typ index =
     List.Extra.find
@@ -251,6 +291,22 @@ getPoint points id typ index =
             id == p.id && typ == p.typ && index == p.index
         )
         points
+
+
+getPointText : List Point -> String -> String
+getPointText points typ =
+    case
+        List.Extra.find
+            (\p ->
+                typ == p.typ
+            )
+            points
+    of
+        Just found ->
+            found.text
+
+        Nothing ->
+            ""
 
 
 getLatest : List Point -> Maybe Point
