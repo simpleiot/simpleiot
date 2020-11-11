@@ -9,6 +9,7 @@ import Element.Input as Input
 import Time
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors, size)
+import UI.ViewIf exposing (viewIf)
 import Utils.Duration as Duration
 import Utils.Iso8601 as Iso8601
 
@@ -100,11 +101,8 @@ view o =
         [ wrappedRow [ spacing 10 ]
             [ sysStateIcon
             , viewNodeId o.node.id
-            , if o.isRoot then
+            , viewIf o.isRoot <|
                 Icon.x (o.onApiDelete o.node.id)
-
-              else
-                Element.none
             , Input.text
                 [ Background.color background ]
                 { onChange =
@@ -115,17 +113,11 @@ view o =
                 , placeholder = Just <| Input.placeholder [] <| text "node description"
                 , label = Input.labelHidden "node description"
                 }
-            , if o.modified then
+            , viewIf o.modified <|
                 Icon.check
                     (o.onApiPostPoints o.node.id)
-
-              else
-                Element.none
-            , if o.modified then
+            , viewIf o.modified <|
                 Icon.x o.onDiscardEdits
-
-              else
-                Element.none
             ]
         , viewPoints <| Point.filterSpecialPoints o.node.points
         , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
@@ -136,7 +128,7 @@ view o =
                         - Time.posixToMillis latestPointTime
                     )
             )
-        , if hwVersion /= "" && osVersion /= "" && appVersion /= "" then
+        , viewIf (hwVersion /= "" && osVersion /= "" && appVersion /= "") <|
             text
                 ("Version: "
                     ++ hwVersion
@@ -145,9 +137,6 @@ view o =
                     ++ " "
                     ++ appVersion
                 )
-
-          else
-            Element.none
         ]
 
 

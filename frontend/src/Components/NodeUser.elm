@@ -9,6 +9,7 @@ import Time
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style exposing (colors, size)
+import UI.ViewIf exposing (viewIf)
 
 
 view :
@@ -34,7 +35,6 @@ view o =
         , Border.color colors.black
         , spacing 6
         ]
-    <|
         [ wrappedRow [ spacing 10 ]
             [ viewNodeId o.node.id
             , if o.isRoot then
@@ -48,25 +48,20 @@ view o =
         , textInput2 Point.typeEmail "Email"
         , textInput2 Point.typePhone "Phone"
         , textInput2 Point.typePass "Pass"
+        , viewIf o.modified <|
+            Form.buttonRow
+                [ Form.button
+                    { label = "save"
+                    , color = colors.blue
+                    , onPress = o.onApiPostPoints o.node.id
+                    }
+                , Form.button
+                    { label = "discard"
+                    , color = colors.gray
+                    , onPress = o.onDiscardEdits
+                    }
+                ]
         ]
-            ++ (if o.modified then
-                    [ Form.buttonRow
-                        [ Form.button
-                            { label = "save"
-                            , color = colors.blue
-                            , onPress = o.onApiPostPoints o.node.id
-                            }
-                        , Form.button
-                            { label = "discard"
-                            , color = colors.gray
-                            , onPress = o.onDiscardEdits
-                            }
-                        ]
-                    ]
-
-                else
-                    []
-               )
 
 
 textInput :
