@@ -4,6 +4,7 @@ module Api.Node exposing
     , description
     , get
     , getCmd
+    , insert
     , list
     , postCmd
     , postGroups
@@ -11,7 +12,8 @@ module Api.Node exposing
     , sysStateOffline
     , sysStateOnline
     , sysStatePowerOff
-    , typeInst
+    , typeDevice
+    , typeGroup
     , typeUser
     )
 
@@ -40,9 +42,14 @@ sysStateOnline =
     3
 
 
-typeInst : String
-typeInst =
-    "instance"
+typeDevice : String
+typeDevice =
+    "device"
+
+
+typeGroup : String
+typeGroup =
+    "group"
 
 
 typeUser : String
@@ -73,7 +80,7 @@ decode : Decode.Decoder Node
 decode =
     Decode.succeed Node
         |> required "id" Decode.string
-        |> optional "type" Decode.string typeInst
+        |> required "type" Decode.string
         |> optional "points" (Decode.list Point.decode) []
         |> optional "groups" (Decode.list Decode.string) []
 
@@ -83,6 +90,14 @@ decodeCmd =
     Decode.succeed NodeCmd
         |> required "cmd" Decode.string
         |> optional "detail" Decode.string ""
+
+
+encode : Node -> Encode.Value
+encode node =
+    Encode.object
+        [ ( "id", Encode.string node.id )
+        , ( "type", Encode.string node.typ )
+        ]
 
 
 encodeGroups : List String -> Encode.Value
@@ -174,6 +189,24 @@ delete options =
         , url = Url.Builder.absolute [ "v1", "nodes", options.id ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+insert :
+    { token : String
+    , node : Node
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+insert options =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "nodes", options.node.id ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body = options.node |> encode |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }

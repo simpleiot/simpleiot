@@ -1,4 +1,4 @@
-module Components.NodeGeneral exposing (view)
+module Components.NodeDevice exposing (view)
 
 import Api.Node as Node exposing (Node)
 import Api.Point as Point exposing (Point)
@@ -99,7 +99,8 @@ view o =
         , spacing 6
         ]
         [ wrappedRow [ spacing 10 ]
-            [ sysStateIcon
+            [ Icon.device
+            , sysStateIcon
             , viewNodeId o.node.id
             , viewIf o.isRoot <|
                 Icon.x (o.onApiDelete o.node.id)

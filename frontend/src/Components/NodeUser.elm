@@ -8,7 +8,7 @@ import Element.Input as Input
 import Time
 import UI.Form as Form
 import UI.Icon as Icon
-import UI.Style exposing (colors, size)
+import UI.Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
 
 
@@ -36,12 +36,13 @@ view o =
         , spacing 6
         ]
         [ wrappedRow [ spacing 10 ]
-            [ viewNodeId o.node.id
-            , if o.isRoot then
+            [ Icon.user
+            , text <|
+                Point.getPointText o.node.points Point.typeFirstName
+                    ++ " "
+                    ++ Point.getPointText o.node.points Point.typeLastName
+            , viewIf o.isRoot <|
                 Icon.x (o.onApiDelete o.node.id)
-
-              else
-                Element.none
             ]
         , textInput2 Point.typeFirstName "First Name"
         , textInput2 Point.typeLastName "Last Name"
@@ -83,13 +84,3 @@ textInput o pointName label =
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px 100) ] <| el [ alignRight ] <| text <| label ++ ":"
         }
-
-
-viewNodeId : String -> Element msg
-viewNodeId id =
-    el
-        [ padding 16
-        , size.heading
-        ]
-    <|
-        text id

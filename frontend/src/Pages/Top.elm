@@ -6,9 +6,10 @@ import Api.Node as Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
-import Components.NodeGeneral as NodeGeneral
+import Components.NodeDevice as NodeDevice
 import Components.NodeUser as NodeUser
 import Element exposing (..)
+import Element.Input as Input
 import Http
 import Shared
 import Spa.Document exposing (Document)
@@ -17,6 +18,8 @@ import Spa.Page as Page exposing (Page)
 import Spa.Url exposing (Url)
 import Task
 import Time
+import UI.Form as Form
+import UI.Icon as Icon
 import UI.Style as Style
 import Utils.Route
 
@@ -41,12 +44,6 @@ type alias Params =
     ()
 
 
-type alias NodeEdit =
-    { id : String
-    , points : List Point
-    }
-
-
 type alias Model =
     { key : Key
     , nodeEdit : Maybe NodeEdit
@@ -55,6 +52,19 @@ type alias Model =
     , nodes : List Node
     , auth : Auth
     , error : Maybe String
+    , addNode : Maybe NodeToAdd
+    }
+
+
+type alias NodeEdit =
+    { id : String
+    , points : List Point
+    }
+
+
+type alias NodeToAdd =
+    { typ : Maybe String
+    , parent : String
     }
 
 
@@ -67,6 +77,7 @@ defaultModel key =
         (Time.millisToPosix 0)
         []
         { email = "", token = "", isRoot = False }
+        Nothing
         Nothing
 
 
@@ -102,8 +113,12 @@ type Msg
     | Zone Time.Zone
     | EditNodePoint String Point
     | DiscardEdits
+    | AddNode String
+    | DiscardAddNode
+    | SelectAddNodeType String
     | ApiDelete String
     | ApiPostPoints String
+    | ApiPostAddNode
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
@@ -164,6 +179,23 @@ update msg model =
             ( { model | nodeEdit = Nothing }
             , Cmd.none
             )
+
+        AddNode id ->
+            ( { model | addNode = Just { typ = Nothing, parent = id } }, Cmd.none )
+
+        SelectAddNodeType typ ->
+            case model.addNode of
+                Just add ->
+                    ( { model | addNode = Just { add | typ = Just typ } }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        DiscardAddNode ->
+            ( { model | addNode = Nothing }, Cmd.none )
+
+        ApiPostAddNode ->
+            ( model, Cmd.none )
 
         ApiDelete id ->
             -- optimistically update nodes
@@ -321,22 +353,66 @@ viewNodes model =
                                 NodeUser.view
 
                             _ ->
-                                NodeGeneral.view
+                                NodeDevice.view
                 in
-                nodeView
-                    { isRoot = model.auth.isRoot
-                    , now = model.now
-                    , zone = model.zone
-                    , modified = n.mod
-                    , node = n.node
-                    , onApiDelete = ApiDelete
-                    , onEditNodePoint = EditNodePoint
-                    , onDiscardEdits = DiscardEdits
-                    , onApiPostPoints = ApiPostPoints
-                    }
+                column [ spacing 6 ]
+                    [ nodeView
+                        { isRoot = model.auth.isRoot
+                        , now = model.now
+                        , zone = model.zone
+                        , modified = n.mod
+                        , node = n.node
+                        , onApiDelete = ApiDelete
+                        , onEditNodePoint = EditNodePoint
+                        , onDiscardEdits = DiscardEdits
+                        , onApiPostPoints = ApiPostPoints
+                        }
+                    , case model.addNode of
+                        Just add ->
+                            if add.parent == n.node.id then
+                                viewAddNode add
+
+                            else
+                                Icon.plusCircle (AddNode n.node.id)
+
+                        Nothing ->
+                            Icon.plusCircle (AddNode n.node.id)
+                    ]
             )
         <|
             mergeNodeEdit model.nodes model.nodeEdit
+
+
+viewAddNode : NodeToAdd -> Element Msg
+viewAddNode add =
+    column [ spacing 10 ]
+        [ Input.radio [ spacing 6 ]
+            { onChange = SelectAddNodeType
+            , selected = add.typ
+            , label = Input.labelAbove [] (el [ padding 12 ] <| text "Select node type to add: ")
+            , options =
+                [ Input.option Node.typeUser (text "User")
+                , Input.option Node.typeGroup (text "Group")
+                ]
+            }
+        , Form.buttonRow
+            [ case add.typ of
+                Just _ ->
+                    Form.button
+                        { label = "add"
+                        , color = Style.colors.blue
+                        , onPress = ApiPostAddNode
+                        }
+
+                Nothing ->
+                    Element.none
+            , Form.button
+                { label = "discard"
+                , color = Style.colors.gray
+                , onPress = DiscardAddNode
+                }
+            ]
+        ]
 
 
 type alias NodeMod =

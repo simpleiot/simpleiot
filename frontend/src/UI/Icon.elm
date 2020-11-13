@@ -2,12 +2,16 @@ module UI.Icon exposing
     ( check
     , cloud
     , cloudOff
+    , device
     , plus
+    , plusCircle
     , power
+    , user
     , userCheck
     , userMinus
     , userPlus
     , userX
+    , users
     , x
     )
 
@@ -59,6 +63,11 @@ plus msg =
     button FeatherIcons.plus msg
 
 
+plusCircle : msg -> Element msg
+plusCircle msg =
+    button FeatherIcons.plusCircle msg
+
+
 userPlus : msg -> Element msg
 userPlus msg =
     button FeatherIcons.userPlus msg
@@ -92,3 +101,18 @@ cloud =
 power : Element msg
 power =
     icon FeatherIcons.power
+
+
+user : Element msg
+user =
+    icon FeatherIcons.user
+
+
+users : Element msg
+users =
+    icon FeatherIcons.users
+
+
+device : Element msg
+device =
+    icon FeatherIcons.hardDrive
