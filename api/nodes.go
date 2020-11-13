@@ -67,6 +67,9 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			} else {
 				res.Write([]byte("[]"))
 			}
+		case http.MethodPost:
+			// create node
+			h.insertNode(res, req)
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 			return
@@ -148,6 +151,22 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 // RequestValidator validates an HTTP request.
 type RequestValidator interface {
 	Valid(req *http.Request) (bool, string)
+}
+
+func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
+	var node data.Node
+	if err := decode(req.Body, &node); err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	id, err := h.db.NodeInsert(node)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	encode(res, data.StandardResponse{Success: true, ID: id})
 }
 
 func (h *Nodes) processCmd(res http.ResponseWriter, req *http.Request, id string) {

@@ -6,9 +6,9 @@ const (
 	// general point types
 	PointTypeDescription string = "description"
 
-	// An instance node describes an SIOT instance -- it may be the
-	// root node or a remote edge root node
-	NodeTypeInst                  = "instance"
+	// An device node describes an phyical device -- it may be the
+	// cloud server, gateway, etc
+	NodeTypeDevice                = "device"
 	PointTypeCmdPending           = "cmdPending"
 	PointTypeSwUpdateState        = "swUpdateState"
 	PointTypeStartApp             = "startApp"

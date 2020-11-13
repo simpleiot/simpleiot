@@ -144,6 +144,17 @@ func (n *Node) ToUser() User {
 	}
 }
 
+// ToNodeEdge converts to data structure used in API
+// requests
+func (n *Node) ToNodeEdge(parent string) NodeEdge {
+	return NodeEdge{
+		ID:     n.ID,
+		Type:   n.Type,
+		Parent: parent,
+		Points: n.Points,
+	}
+}
+
 // define valid commands
 const (
 	CmdUpdateApp string = "updateApp"
@@ -163,4 +174,21 @@ type NodeVersion struct {
 	OS  string `json:"os"`
 	App string `json:"app"`
 	HW  string `json:"hw"`
+}
+
+// NodeEdge combines node and edge data, used for APIs
+type NodeEdge struct {
+	ID     string `json:"id" boltholdKey:"ID"`
+	Type   string `json:"type"`
+	Parent string `json:"parent"`
+	Points Points `json:"points"`
+}
+
+// ToNode converts to structure stored in db
+func (n *NodeEdge) ToNode() Node {
+	return Node{
+		ID:     n.ID,
+		Type:   n.Type,
+		Points: n.Points,
+	}
 }
