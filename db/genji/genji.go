@@ -353,6 +353,7 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 		if err != nil {
 			if err == database.ErrDocumentNotFound {
 				node.ID = id
+				node.Type = data.NodeTypeDevice
 			} else {
 				return err
 			}
