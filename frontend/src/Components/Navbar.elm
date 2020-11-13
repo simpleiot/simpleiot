@@ -19,9 +19,7 @@ navbar options =
             ( "SIOT", Route.Top )
             :: (if options.authenticated then
                     if options.isRoot then
-                        [ link ( "users", Route.Users )
-                        , link ( "groups", Route.Groups )
-                        , link ( "messaging", Route.Msg )
+                        [ link ( "messaging", Route.Msg )
                         ]
 
                     else
