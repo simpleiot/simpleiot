@@ -60,8 +60,8 @@ typeUser =
 type alias Node =
     { id : String
     , typ : String
+    , parent : String
     , points : List Point
-    , groups : List String
     }
 
 
@@ -81,8 +81,8 @@ decode =
     Decode.succeed Node
         |> required "id" Decode.string
         |> required "type" Decode.string
+        |> required "parent" Decode.string
         |> optional "points" (Decode.list Point.decode) []
-        |> optional "groups" (Decode.list Decode.string) []
 
 
 decodeCmd : Decode.Decoder NodeCmd
