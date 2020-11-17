@@ -589,7 +589,7 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 			if err != nil {
 				return err
 			}
-			nodes = append(nodes, rootNode.ToNodeEdge(zero))
+			nodes = append(nodes, rootNode.ToNodeEdge(""))
 
 			childNodes, err := txFindChildNodes(tx, id)
 			if err != nil {
