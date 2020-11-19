@@ -11,6 +11,7 @@ import Components.NodeUser as NodeUser
 import Element exposing (..)
 import Element.Input as Input
 import Http
+import List.Extra
 import Shared
 import Spa.Document exposing (Document)
 import Spa.Generated.Route as Route
@@ -18,6 +19,8 @@ import Spa.Page as Page exposing (Page)
 import Spa.Url exposing (Url)
 import Task
 import Time
+import Tree exposing (Tree)
+import Tree.Zipper as Zipper
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style as Style
@@ -49,7 +52,7 @@ type alias Model =
     , nodeEdit : Maybe NodeEdit
     , zone : Time.Zone
     , now : Time.Posix
-    , nodes : List Node
+    , nodes : Maybe (Tree Node)
     , auth : Auth
     , error : Maybe String
     , addNode : Maybe NodeToAdd
@@ -75,7 +78,7 @@ defaultModel key =
         Nothing
         Time.utc
         (Time.millisToPosix 0)
-        []
+        Nothing
         { email = "", token = "", isRoot = False }
         Nothing
         Nothing
@@ -148,29 +151,34 @@ update msg model =
             )
 
         ApiPostPoints id ->
-            case model.nodeEdit of
-                Just edit ->
-                    let
-                        -- optimistically update nodes
-                        nodes =
-                            List.map
-                                (\n ->
-                                    if n.id == id then
-                                        { n | points = Point.updatePoints n.points edit.points }
+            case model.nodes of
+                Just nodes ->
+                    case model.nodeEdit of
+                        Just edit ->
+                            let
+                                -- optimistically update nodes
+                                updatedNodes =
+                                    Tree.map
+                                        (\n ->
+                                            if n.id == id then
+                                                { n | points = Point.updatePoints n.points edit.points }
 
-                                    else
-                                        n
-                                )
-                                model.nodes
-                    in
-                    ( { model | nodeEdit = Nothing, nodes = nodes }
-                    , Node.postPoints
-                        { token = model.auth.token
-                        , id = id
-                        , points = edit.points
-                        , onResponse = ApiRespPostPoint
-                        }
-                    )
+                                            else
+                                                n
+                                        )
+                                        nodes
+                            in
+                            ( { model | nodeEdit = Nothing, nodes = Just updatedNodes }
+                            , Node.postPoints
+                                { token = model.auth.token
+                                , id = id
+                                , points = edit.points
+                                , onResponse = ApiRespPostPoint
+                                }
+                            )
+
+                        Nothing ->
+                            ( model, Cmd.none )
 
                 Nothing ->
                     ( model, Cmd.none )
@@ -201,7 +209,8 @@ update msg model =
             -- optimistically update nodes
             let
                 nodes =
-                    List.filter (\d -> d.id /= id) model.nodes
+                    -- FIXME Tree.filter (\d -> d.id /= id) model.nodes
+                    model.nodes
             in
             ( { model | nodes = nodes }
             , Node.delete { token = model.auth.token, id = id, onResponse = ApiRespDelete }
@@ -215,10 +224,10 @@ update msg model =
             , updateNodes model
             )
 
-        ApiRespList nodes ->
-            case nodes of
-                Data.Success n ->
-                    ( { model | nodes = n }, Cmd.none )
+        ApiRespList resp ->
+            case resp of
+                Data.Success nodes ->
+                    ( { model | nodes = nodeListToTree nodes }, Cmd.none )
 
                 Data.Failure err ->
                     let
@@ -276,6 +285,33 @@ update msg model =
                     ( model
                     , updateNodes model
                     )
+
+
+nodeListToTree : List Node -> Maybe (Tree Node)
+nodeListToTree nodes =
+    List.Extra.find (\n -> n.parent == "") nodes
+        |> Maybe.map (populateChildren nodes)
+
+
+populateChildren : List Node -> Node -> Tree Node
+populateChildren nodes root =
+    let
+        z =
+            Zipper.fromTree <| Tree.singleton root
+    in
+    Zipper.toTree <|
+        List.foldr
+            (\n zp ->
+                if n.parent == "" then
+                    -- skip the root node
+                    zp
+
+                else
+                    -- find the parent child and add children
+                    zp
+            )
+            z
+            nodes
 
 
 popError : String -> Http.Error -> Model -> Model
@@ -344,43 +380,52 @@ viewNodes model =
         , spacing 24
         ]
     <|
-        List.map
-            (\n ->
+        case model.nodes of
+            Just nodes ->
                 let
-                    nodeView =
-                        case n.node.typ of
-                            "user" ->
-                                NodeUser.view
-
-                            _ ->
-                                NodeDevice.view
+                    nodesWithEdits =
+                        mergeNodeEdit nodes model.nodeEdit
                 in
-                column [ spacing 6 ]
-                    [ nodeView
-                        { isRoot = model.auth.isRoot
-                        , now = model.now
-                        , zone = model.zone
-                        , modified = n.mod
-                        , node = n.node
-                        , onApiDelete = ApiDelete
-                        , onEditNodePoint = EditNodePoint
-                        , onDiscardEdits = DiscardEdits
-                        , onApiPostPoints = ApiPostPoints
-                        }
-                    , case model.addNode of
-                        Just add ->
-                            if add.parent == n.node.id then
-                                viewAddNode add
+                [ viewNode model (Tree.label nodesWithEdits) ]
 
-                            else
-                                Icon.plusCircle (AddNode n.node.id)
+            Nothing ->
+                [ text "No nodes to display" ]
 
-                        Nothing ->
-                            Icon.plusCircle (AddNode n.node.id)
-                    ]
-            )
-        <|
-            mergeNodeEdit model.nodes model.nodeEdit
+
+viewNode : Model -> NodeMod -> Element Msg
+viewNode model node =
+    let
+        nodeView =
+            case node.node.typ of
+                "user" ->
+                    NodeUser.view
+
+                _ ->
+                    NodeDevice.view
+    in
+    column [ spacing 6 ]
+        [ nodeView
+            { isRoot = model.auth.isRoot
+            , now = model.now
+            , zone = model.zone
+            , modified = node.mod
+            , node = node.node
+            , onApiDelete = ApiDelete
+            , onEditNodePoint = EditNodePoint
+            , onDiscardEdits = DiscardEdits
+            , onApiPostPoints = ApiPostPoints
+            }
+        , case model.addNode of
+            Just add ->
+                if add.parent == node.node.id then
+                    viewAddNode add
+
+                else
+                    Icon.plusCircle (AddNode node.node.id)
+
+            Nothing ->
+                Icon.plusCircle (AddNode node.node.id)
+        ]
 
 
 viewAddNode : NodeToAdd -> Element Msg
@@ -421,11 +466,11 @@ type alias NodeMod =
     }
 
 
-mergeNodeEdit : List Node -> Maybe NodeEdit -> List NodeMod
+mergeNodeEdit : Tree Node -> Maybe NodeEdit -> Tree NodeMod
 mergeNodeEdit nodes nodeEdit =
     case nodeEdit of
         Just edit ->
-            List.map
+            Tree.map
                 (\n ->
                     if edit.id == n.id then
                         { node =
@@ -439,4 +484,4 @@ mergeNodeEdit nodes nodeEdit =
                 nodes
 
         Nothing ->
-            List.map (\n -> { node = n, mod = False }) nodes
+            Tree.map (\n -> { node = n, mod = False }) nodes
