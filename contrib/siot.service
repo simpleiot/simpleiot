@@ -1,0 +1,11 @@
+[Unit]
+Description=Simple IoT cloud/edge application/framework portal
+After=network.target
+
+[Service]
+PIDFile=/run/siot/%i.pid
+Environment=SIOT_PORT=80
+ExecStart=/usr/bin/siot
+
+[Install]
+WantedBy=multi-user.target
