@@ -333,16 +333,17 @@ nodeListToTree nodes =
         |> Maybe.map (populateChildren nodes)
 
 
+
+-- populateChildren takes a list of nodes with a parent field and converts
+-- this into a tree
+
+
 populateChildren : List Node -> Node -> Tree Node
 populateChildren nodes root =
-    let
-        z =
-            Zipper.fromTree <| Tree.singleton root
-
-        zWithChildren =
-            populateChildrenHelp z nodes
-    in
-    Zipper.toTree zWithChildren
+    Zipper.toTree <|
+        populateChildrenHelp
+            (Zipper.fromTree <| Tree.singleton root)
+            nodes
 
 
 populateChildrenHelp : Zipper Node -> List Node -> Zipper Node
