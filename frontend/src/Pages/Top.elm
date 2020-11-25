@@ -20,7 +20,7 @@ import Spa.Url exposing (Url)
 import Task
 import Time
 import Tree exposing (Tree)
-import Tree.Zipper as Zipper
+import Tree.Zipper as Zipper exposing (Zipper)
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style as Style
@@ -308,7 +308,16 @@ populateChildren nodes root =
 
                 else
                     -- find the parent child and add children
-                    zp
+                    case Zipper.findFromRoot (\p -> p.id == n.parent) zp of
+                        Just parent ->
+                            Zipper.mapTree
+                                (\t ->
+                                    Tree.appendChild (Tree.singleton n) t
+                                )
+                                parent
+
+                        Nothing ->
+                            zp
             )
             z
             nodes
@@ -373,6 +382,16 @@ view model =
     }
 
 
+viewNodesWalk : List (Element Msg) -> Model -> Zipper NodeMod -> List (Element Msg)
+viewNodesWalk list model z =
+    case Zipper.forward z of
+        Just zNext ->
+            viewNodesWalk (list ++ [ viewNode model (Zipper.label zNext) ]) model zNext
+
+        Nothing ->
+            list
+
+
 viewNodes : Model -> Element Msg
 viewNodes model =
     column
@@ -385,8 +404,11 @@ viewNodes model =
                 let
                     nodesWithEdits =
                         mergeNodeEdit nodes model.nodeEdit
+
+                    z =
+                        Zipper.fromTree nodesWithEdits
                 in
-                [ viewNode model (Tree.label nodesWithEdits) ]
+                viewNodesWalk [ viewNode model (Zipper.label z) ] model z
 
             Nothing ->
                 [ text "No nodes to display" ]
