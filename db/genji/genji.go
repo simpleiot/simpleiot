@@ -1173,7 +1173,7 @@ func (gen *Db) NodeCmds() ([]data.NodeCmd, error) {
 	return cmds, err
 }
 
-type genDump struct {
+type genImport struct {
 	Devices  []Device       `json:"devices"`
 	Nodes    []data.Node    `json:"nodes"`
 	Edges    []data.Edge    `json:"edges"`
@@ -1183,10 +1183,17 @@ type genDump struct {
 	NodeCmds []data.NodeCmd `json:"nodeCmds"`
 }
 
+type genDump struct {
+	Nodes    []data.Node    `json:"nodes"`
+	Edges    []data.Edge    `json:"edges"`
+	Rules    []data.Rule    `json:"rules"`
+	NodeCmds []data.NodeCmd `json:"nodeCmds"`
+}
+
 // ImportDb imports contents of file into database
 func ImportDb(gen *Db, in io.Reader) error {
 	decoder := json.NewDecoder(in)
-	dump := genDump{}
+	dump := genImport{}
 
 	err := decoder.Decode(&dump)
 	if err != nil {
@@ -1251,16 +1258,6 @@ func DumpDb(gen *Db, out io.Writer) error {
 	}
 
 	dump.Edges, err = gen.Edges()
-	if err != nil {
-		return err
-	}
-
-	dump.Users, err = gen.Users()
-	if err != nil {
-		return err
-	}
-
-	dump.Groups, err = gen.Groups()
 	if err != nil {
 		return err
 	}
