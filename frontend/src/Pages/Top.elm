@@ -20,7 +20,7 @@ import Spa.Url exposing (Url)
 import Task
 import Time
 import Tree exposing (Tree)
-import Tree.Zipper as Zipper
+import Tree.Zipper as Zipper exposing (Zipper)
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style as Style
@@ -338,29 +338,36 @@ populateChildren nodes root =
     let
         z =
             Zipper.fromTree <| Tree.singleton root
+
+        zWithChildren =
+            populateChildrenHelp z nodes
     in
-    Zipper.toTree <|
-        List.foldr
-            (\n zp ->
-                if n.parent == "" then
-                    -- skip the root node
-                    zp
+    Zipper.toTree zWithChildren
 
-                else
-                    -- find the parent child and add children
-                    case Zipper.findFromRoot (\p -> p.id == n.parent) zp of
-                        Just parent ->
-                            Zipper.mapTree
-                                (\t ->
-                                    Tree.appendChild (Tree.singleton n) t
-                                )
-                                parent
 
-                        Nothing ->
-                            zp
+populateChildrenHelp : Zipper Node -> List Node -> Zipper Node
+populateChildrenHelp z nodes =
+    case
+        Zipper.forward
+            (List.foldr
+                (\n zCur ->
+                    if (Zipper.label zCur).id == n.parent then
+                        Zipper.mapTree
+                            (\t -> Tree.appendChild (Tree.singleton n) t)
+                            zCur
+
+                    else
+                        zCur
+                )
+                z
+                nodes
             )
+    of
+        Just zMod ->
+            populateChildrenHelp zMod nodes
+
+        Nothing ->
             z
-            nodes
 
 
 popError : String -> Http.Error -> Model -> Model
