@@ -20,7 +20,7 @@ import Spa.Url exposing (Url)
 import Task
 import Time
 import Tree exposing (Tree)
-import Tree.Zipper as Zipper exposing (Zipper)
+import Tree.Zipper as Zipper
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style as Style
@@ -382,46 +382,6 @@ view model =
     }
 
 
-viewNodesWalk :
-    Int
-    -> Bool
-    -> List (Element Msg)
-    -> Model
-    -> Zipper NodeMod
-    -> List (Element Msg)
-viewNodesWalk indent done list model z =
-    if not done then
-        case Zipper.firstChild z of
-            Just child ->
-                viewNodesWalk (indent + 1) False (list ++ [ viewNode model (Zipper.label child) ]) model child
-
-            Nothing ->
-                case Zipper.nextSibling z of
-                    Just sibling ->
-                        viewNodesWalk indent False (list ++ [ viewNode model (Zipper.label sibling) ]) model sibling
-
-                    Nothing ->
-                        case Zipper.parent z of
-                            Just parent ->
-                                viewNodesWalk (indent - 1) True list model parent
-
-                            Nothing ->
-                                list
-
-    else
-        case Zipper.nextSibling z of
-            Just sibling ->
-                viewNodesWalk indent False (list ++ [ viewNode model (Zipper.label sibling) ]) model sibling
-
-            Nothing ->
-                case Zipper.parent z of
-                    Just parent ->
-                        viewNodesWalk (indent - 1) True list model parent
-
-                    Nothing ->
-                        list
-
-
 viewNodes : Model -> Element Msg
 viewNodes model =
     column
@@ -430,18 +390,36 @@ viewNodes model =
         ]
     <|
         case model.nodes of
-            Just nodes ->
+            Just tree ->
                 let
-                    nodesWithEdits =
-                        mergeNodeEdit nodes model.nodeEdit
-
-                    z =
-                        Zipper.fromTree nodesWithEdits
+                    treeWithEdits =
+                        mergeNodeEdit tree model.nodeEdit
                 in
-                viewNodesWalk 0 False [ viewNode model (Zipper.label z) ] model z
+                viewNode model (Tree.label treeWithEdits)
+                    :: viewNodes2Help 1 model treeWithEdits
 
             Nothing ->
                 [ text "No nodes to display" ]
+
+
+viewNodes2Help :
+    Int
+    -> Model
+    -> Tree NodeMod
+    -> List (Element Msg)
+viewNodes2Help depth model tree =
+    let
+        children =
+            Tree.children tree
+    in
+    List.foldr
+        (\child ret ->
+            ret
+                ++ viewNode model (Tree.label child)
+                :: viewNodes2Help (depth + 1) model child
+        )
+        []
+        children
 
 
 viewNode : Model -> NodeMod -> Element Msg
