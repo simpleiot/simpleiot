@@ -309,7 +309,24 @@ func (gen *Db) NodeInsertEdge(node data.NodeEdge) (string, error) {
 
 // NodeDelete deletes a node from the database
 func (gen *Db) NodeDelete(id string) error {
-	return gen.store.Exec(`delete from nodes where id = ?`, id)
+	return gen.store.Update(func(tx *genji.Tx) error {
+		err := tx.Exec(`delete from nodes where id = ?`, id)
+		if err != nil {
+			return err
+		}
+
+		err = tx.Exec(`delete from edges where down = ?`, id)
+		if err != nil {
+			return err
+		}
+
+		err = tx.Exec(`delete from edges where up = ?`, id)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 // NodeUpdateGroups updates the groups for a node.
@@ -553,7 +570,14 @@ func txFindChildNodes(tx *genji.Tx, id string) ([]data.NodeEdge, error) {
 	for _, downID := range downIDs {
 		node, err := txNode(tx, downID)
 		if err != nil {
-			return nodes, err
+			if err != database.ErrDocumentNotFound {
+				// something bad happened
+				return nodes, err
+			}
+			// else something is minorly wrong with db, print
+			// error and return
+			log.Println("Error finding node: ", downID)
+			continue
 		}
 
 		nodes = append(nodes, node.ToNodeEdge(id))
@@ -679,8 +703,13 @@ func txEdgeDown(tx *genji.Tx, nodeID string) ([]string, error) {
 	var ret []string
 	res, err := tx.Query(`select * from edges where up = ?`, nodeID)
 	if err != nil {
-		return ret, err
+		if err != database.ErrDocumentNotFound {
+			return ret, err
+		}
+
+		return ret, nil
 	}
+
 	defer res.Close()
 
 	err = res.Iterate(func(d document.Document) error {
