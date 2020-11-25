@@ -287,7 +287,7 @@ func (gen *Db) NodeInsert(node data.Node) (string, error) {
 }
 
 // NodeInsertEdge -- insert a node and edge
-func (gen *Db) NodeInsertEdge(node data.Node, parent string) (string, error) {
+func (gen *Db) NodeInsertEdge(node data.NodeEdge) (string, error) {
 	if node.ID == "" {
 		node.ID = uuid.New().String()
 	}
@@ -297,11 +297,11 @@ func (gen *Db) NodeInsertEdge(node data.Node, parent string) (string, error) {
 	}
 
 	err := gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(`insert into nodes values ?`, node)
+		err := tx.Exec(`insert into nodes values ?`, node.ToNode())
 		if err != nil {
 			return err
 		}
-		return txEdgeInsert(tx, &data.Edge{Up: parent, Down: node.ID})
+		return txEdgeInsert(tx, &data.Edge{Up: node.Parent, Down: node.ID})
 	})
 
 	return node.ID, err

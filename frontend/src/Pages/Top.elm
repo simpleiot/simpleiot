@@ -125,6 +125,7 @@ type Msg
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
+    | ApiRespPostAddNode (Data Response)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -203,7 +204,29 @@ update msg model =
             ( { model | addNode = Nothing }, Cmd.none )
 
         ApiPostAddNode ->
-            ( model, Cmd.none )
+            -- FIXME optimistically update nodes
+            ( { model | addNode = Nothing }
+            , case model.addNode of
+                Just addNode ->
+                    case addNode.typ of
+                        Just typ ->
+                            Node.insert
+                                { token = model.auth.token
+                                , onResponse = ApiRespPostAddNode
+                                , node =
+                                    { id = ""
+                                    , typ = typ
+                                    , parent = addNode.parent
+                                    , points = []
+                                    }
+                                }
+
+                        Nothing ->
+                            Cmd.none
+
+                Nothing ->
+                    Cmd.none
+            )
 
         ApiDelete id ->
             -- optimistically update nodes
@@ -278,6 +301,23 @@ update msg model =
 
                 Data.Failure err ->
                     ( popError "Error posting point" err model
+                    , updateNodes model
+                    )
+
+                _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+        ApiRespPostAddNode resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error adding node" err model
                     , updateNodes model
                     )
 

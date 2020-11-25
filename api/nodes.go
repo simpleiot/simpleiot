@@ -154,13 +154,13 @@ type RequestValidator interface {
 }
 
 func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
-	var node data.Node
+	var node data.NodeEdge
 	if err := decode(req.Body, &node); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	id, err := h.db.NodeInsert(node)
+	id, err := h.db.NodeInsertEdge(node)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return

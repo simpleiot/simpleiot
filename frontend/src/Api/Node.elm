@@ -96,6 +96,7 @@ encode node =
     Encode.object
         [ ( "id", Encode.string node.id )
         , ( "type", Encode.string node.typ )
+        , ( "parent", Encode.string node.parent )
         ]
 
 
