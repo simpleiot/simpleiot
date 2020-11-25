@@ -382,14 +382,44 @@ view model =
     }
 
 
-viewNodesWalk : List (Element Msg) -> Model -> Zipper NodeMod -> List (Element Msg)
-viewNodesWalk list model z =
-    case Zipper.forward z of
-        Just zNext ->
-            viewNodesWalk (list ++ [ viewNode model (Zipper.label zNext) ]) model zNext
+viewNodesWalk :
+    Int
+    -> Bool
+    -> List (Element Msg)
+    -> Model
+    -> Zipper NodeMod
+    -> List (Element Msg)
+viewNodesWalk indent done list model z =
+    if not done then
+        case Zipper.firstChild z of
+            Just child ->
+                viewNodesWalk (indent + 1) False (list ++ [ viewNode model (Zipper.label child) ]) model child
 
-        Nothing ->
-            list
+            Nothing ->
+                case Zipper.nextSibling z of
+                    Just sibling ->
+                        viewNodesWalk indent False (list ++ [ viewNode model (Zipper.label sibling) ]) model sibling
+
+                    Nothing ->
+                        case Zipper.parent z of
+                            Just parent ->
+                                viewNodesWalk (indent - 1) True list model parent
+
+                            Nothing ->
+                                list
+
+    else
+        case Zipper.nextSibling z of
+            Just sibling ->
+                viewNodesWalk indent False (list ++ [ viewNode model (Zipper.label sibling) ]) model sibling
+
+            Nothing ->
+                case Zipper.parent z of
+                    Just parent ->
+                        viewNodesWalk (indent - 1) True list model parent
+
+                    Nothing ->
+                        list
 
 
 viewNodes : Model -> Element Msg
@@ -408,7 +438,7 @@ viewNodes model =
                     z =
                         Zipper.fromTree nodesWithEdits
                 in
-                viewNodesWalk [ viewNode model (Zipper.label z) ] model z
+                viewNodesWalk 0 False [ viewNode model (Zipper.label z) ] model z
 
             Nothing ->
                 [ text "No nodes to display" ]
