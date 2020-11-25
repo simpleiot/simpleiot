@@ -395,7 +395,7 @@ viewNodes model =
                     treeWithEdits =
                         mergeNodeEdit tree model.nodeEdit
                 in
-                viewNode model (Tree.label treeWithEdits)
+                viewNode model (Tree.label treeWithEdits) 0
                     :: viewNodes2Help 1 model treeWithEdits
 
             Nothing ->
@@ -415,15 +415,15 @@ viewNodes2Help depth model tree =
     List.foldr
         (\child ret ->
             ret
-                ++ viewNode model (Tree.label child)
+                ++ viewNode model (Tree.label child) depth
                 :: viewNodes2Help (depth + 1) model child
         )
         []
         children
 
 
-viewNode : Model -> NodeMod -> Element Msg
-viewNode model node =
+viewNode : Model -> NodeMod -> Int -> Element Msg
+viewNode model node depth =
     let
         nodeView =
             case node.node.typ of
@@ -433,29 +433,31 @@ viewNode model node =
                 _ ->
                     NodeDevice.view
     in
-    column [ spacing 6 ]
-        [ nodeView
-            { isRoot = model.auth.isRoot
-            , now = model.now
-            , zone = model.zone
-            , modified = node.mod
-            , node = node.node
-            , onApiDelete = ApiDelete
-            , onEditNodePoint = EditNodePoint
-            , onDiscardEdits = DiscardEdits
-            , onApiPostPoints = ApiPostPoints
-            }
-        , case model.addNode of
-            Just add ->
-                if add.parent == node.node.id then
-                    viewAddNode add
+    el [ paddingEach { top = 0, right = 0, bottom = 0, left = depth * 35 } ] <|
+        column
+            [ spacing 6 ]
+            [ nodeView
+                { isRoot = model.auth.isRoot
+                , now = model.now
+                , zone = model.zone
+                , modified = node.mod
+                , node = node.node
+                , onApiDelete = ApiDelete
+                , onEditNodePoint = EditNodePoint
+                , onDiscardEdits = DiscardEdits
+                , onApiPostPoints = ApiPostPoints
+                }
+            , case model.addNode of
+                Just add ->
+                    if add.parent == node.node.id then
+                        viewAddNode add
 
-                else
+                    else
+                        Icon.plusCircle (AddNode node.node.id)
+
+                Nothing ->
                     Icon.plusCircle (AddNode node.node.id)
-
-            Nothing ->
-                Icon.plusCircle (AddNode node.node.id)
-        ]
+            ]
 
 
 viewAddNode : NodeToAdd -> Element Msg
