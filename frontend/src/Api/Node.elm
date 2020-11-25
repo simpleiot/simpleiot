@@ -7,7 +7,6 @@ module Api.Node exposing
     , insert
     , list
     , postCmd
-    , postGroups
     , postPoints
     , sysStateOffline
     , sysStateOnline
@@ -98,11 +97,6 @@ encode node =
         [ ( "id", Encode.string node.id )
         , ( "type", Encode.string node.typ )
         ]
-
-
-encodeGroups : List String -> Encode.Value
-encodeGroups groups =
-    Encode.list Encode.string groups
 
 
 encodeNodeCmd : NodeCmd -> Encode.Value
@@ -207,25 +201,6 @@ insert options =
         , url = Url.Builder.absolute [ "v1", "nodes", options.node.id ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body = options.node |> encode |> Http.jsonBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-postGroups :
-    { token : String
-    , id : String
-    , groups : List String
-    , onResponse : Data Response -> msg
-    }
-    -> Cmd msg
-postGroups options =
-    Http.request
-        { method = "POST"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "groups" ] []
-        , expect = Api.Data.expectJson options.onResponse Response.decoder
-        , body = options.groups |> encodeGroups |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
