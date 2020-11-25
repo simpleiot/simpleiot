@@ -594,6 +594,7 @@ func txFindChildNodes(tx *genji.Tx, id string) ([]data.NodeEdge, error) {
 }
 
 // NodesForUser returns all nodes for a particular user
+// FIXME this should be renamed to node children or something like that
 func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 	var nodes []data.NodeEdge
 
