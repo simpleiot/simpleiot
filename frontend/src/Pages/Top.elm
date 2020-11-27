@@ -7,6 +7,7 @@ import Api.Point as Point exposing (Point)
 import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
 import Components.NodeDevice as NodeDevice
+import Components.NodeGroup as NodeGroup
 import Components.NodeUser as NodeUser
 import Element exposing (..)
 import Element.Input as Input
@@ -477,6 +478,9 @@ viewNode model node depth =
             case node.node.typ of
                 "user" ->
                     NodeUser.view
+
+                "group" ->
+                    NodeGroup.view
 
                 _ ->
                     NodeDevice.view
