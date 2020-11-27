@@ -76,7 +76,8 @@ type alias NodeToAdd =
 type alias NodeMove =
     { id : String
     , description : String
-    , parent : Maybe String
+    , oldParent : String
+    , newParent : Maybe String
     }
 
 
@@ -128,7 +129,7 @@ type Msg
     | DiscardEdits
     | AddNode String
     | DiscardAddNode
-    | MoveNode String
+    | MoveNode String String
     | DiscardMoveNode
     | MoveNodeDescription String
     | SelectAddNodeType String
@@ -140,6 +141,7 @@ type Msg
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
     | ApiRespPostAddNode (Data Response)
+    | ApiRespPostMoveNode (Data Response)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -206,10 +208,15 @@ update msg model =
         AddNode id ->
             ( { model | addNode = Just { typ = Nothing, parent = id } }, Cmd.none )
 
-        MoveNode id ->
+        MoveNode id parent ->
             ( { model
                 | moveNode =
-                    Just { id = id, description = "", parent = Nothing }
+                    Just
+                        { id = id
+                        , description = ""
+                        , oldParent = parent
+                        , newParent = Nothing
+                        }
               }
             , Cmd.none
             )
@@ -230,7 +237,7 @@ update msg model =
                             (\mn ->
                                 { mn
                                     | description = desc
-                                    , parent = newId
+                                    , newParent = newId
                                 }
                             )
             in
@@ -273,7 +280,25 @@ update msg model =
             )
 
         ApiPostMoveNode ->
-            ( model, Cmd.none )
+            ( model
+            , case model.moveNode of
+                Just moveNode ->
+                    case moveNode.newParent of
+                        Just newParent ->
+                            Node.move
+                                { token = model.auth.token
+                                , id = moveNode.id
+                                , oldParent = moveNode.oldParent
+                                , newParent = newParent
+                                , onResponse = ApiRespPostMoveNode
+                                }
+
+                        Nothing ->
+                            Cmd.none
+
+                Nothing ->
+                    Cmd.none
+            )
 
         ApiDelete id ->
             -- optimistically update nodes
@@ -365,6 +390,23 @@ update msg model =
 
                 Data.Failure err ->
                     ( popError "Error adding node" err model
+                    , updateNodes model
+                    )
+
+                _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+        ApiRespPostMoveNode resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error moving node" err model
                     , updateNodes model
                     )
 
@@ -559,25 +601,25 @@ viewNode model node depth =
                         viewAddNode add
 
                     else
-                        viewNodeOperations node.node.id
+                        viewNodeOperations node.node.id node.node.parent
 
                 ( _, Just move ) ->
                     if move.id == node.node.id then
                         viewMoveNode move
 
                     else
-                        viewNodeOperations node.node.id
+                        viewNodeOperations node.node.id node.node.parent
 
                 _ ->
-                    viewNodeOperations node.node.id
+                    viewNodeOperations node.node.id node.node.parent
             ]
 
 
-viewNodeOperations : String -> Element Msg
-viewNodeOperations id =
+viewNodeOperations : String -> String -> Element Msg
+viewNodeOperations id parent =
     row [ spacing 6 ]
         [ Icon.plusCircle (AddNode id)
-        , Icon.move (MoveNode id)
+        , Icon.move (MoveNode id parent)
         ]
 
 
@@ -591,7 +633,7 @@ viewMoveNode move =
             , onChange = MoveNodeDescription
             }
         , Form.buttonRow
-            [ case move.parent of
+            [ case move.newParent of
                 Just _ ->
                     Form.button
                         { label = "move"

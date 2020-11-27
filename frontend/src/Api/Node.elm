@@ -6,6 +6,7 @@ module Api.Node exposing
     , getCmd
     , insert
     , list
+    , move
     , postCmd
     , postPoints
     , sysStateOffline
@@ -70,6 +71,13 @@ type alias NodeCmd =
     }
 
 
+type alias NodeMove =
+    { id : String
+    , oldParent : String
+    , newParent : String
+    }
+
+
 decodeList : Decode.Decoder (List Node)
 decodeList =
     Decode.list decode
@@ -105,6 +113,15 @@ encodeNodeCmd cmd =
     Encode.object
         [ ( "cmd", Encode.string cmd.cmd )
         , ( "detail", Encode.string cmd.detail )
+        ]
+
+
+encodeNodeMove : NodeMove -> Encode.Value
+encodeNodeMove nodeMove =
+    Encode.object
+        [ ( "id", Encode.string nodeMove.id )
+        , ( "oldParent", Encode.string nodeMove.oldParent )
+        , ( "newParent", Encode.string nodeMove.newParent )
         ]
 
 
@@ -240,6 +257,32 @@ postPoints options =
         , url = Url.Builder.absolute [ "v1", "nodes", options.id, "points" ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body = options.points |> Point.encodeList |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+move :
+    { token : String
+    , id : String
+    , oldParent : String
+    , newParent : String
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+move options =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "parents" ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body =
+            { id = options.id
+            , oldParent = options.oldParent
+            , newParent = options.newParent
+            }
+                |> encodeNodeMove
+                |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
