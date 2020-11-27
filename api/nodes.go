@@ -11,6 +11,13 @@ import (
 	"github.com/simpleiot/simpleiot/nats"
 )
 
+// NodeMove is a data structure used in the /node/parent api calls
+type NodeMove struct {
+	ID        string
+	OldParent string
+	NewParent string
+}
+
 // Nodes handles node requests
 type Nodes struct {
 	db        *genji.Db
@@ -110,6 +117,27 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 		http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
 		return
+
+	case "parents":
+		switch req.Method {
+		case http.MethodPost:
+			var nodeMove NodeMove
+			if err := decode(req.Body, &nodeMove); err != nil {
+				http.Error(res, err.Error(), http.StatusBadRequest)
+				return
+			}
+			err := h.db.EdgeMove(nodeMove.ID, nodeMove.OldParent,
+				nodeMove.NewParent)
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+			} else {
+				en := json.NewEncoder(res)
+				en.Encode(data.StandardResponse{Success: true, ID: id})
+			}
+			return
+		default:
+			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
+		}
 
 	case "groups":
 		if req.Method == http.MethodPost {

@@ -740,6 +740,24 @@ func (gen *Db) EdgeUp(nodeID string) ([]string, error) {
 	return ret, err
 }
 
+// EdgeMove is used to change a nodes parent
+func (gen *Db) EdgeMove(id, oldParent, newParent string) error {
+	return gen.store.Update(func(tx *genji.Tx) error {
+		err := tx.Exec(`delete from edges where up = ? and down = ?`,
+			oldParent, id)
+
+		if err != nil {
+			if err != database.ErrDocumentNotFound {
+				return err
+			}
+
+			log.Println("Could not find old parent node: ", oldParent)
+		}
+
+		return txEdgeInsert(tx, &data.Edge{Up: newParent, Down: id})
+	})
+}
+
 type users []data.User
 
 func (u users) Len() int {
