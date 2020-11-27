@@ -608,8 +608,15 @@ viewNodesHelp :
     -> List (Element Msg)
 viewNodesHelp depth model tree =
     let
+        node =
+            Tree.label tree
+
         children =
-            Tree.children tree
+            if node.expChildren then
+                Tree.children tree
+
+            else
+                []
     in
     List.foldr
         (\child ret ->
