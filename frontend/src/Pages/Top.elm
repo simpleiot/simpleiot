@@ -53,11 +53,19 @@ type alias Model =
     , nodeEdit : Maybe NodeEdit
     , zone : Time.Zone
     , now : Time.Posix
-    , nodes : Maybe (Tree Node)
+    , nodes : Maybe (Tree NodeView)
     , auth : Auth
     , error : Maybe String
     , addNode : Maybe NodeToAdd
     , moveNode : Maybe NodeMove
+    }
+
+
+type alias NodeView =
+    { node : Node
+    , expDetail : Bool
+    , expChildren : Bool
+    , mod : Bool
     }
 
 
@@ -126,6 +134,7 @@ type Msg
     = Tick Time.Posix
     | Zone Time.Zone
     | EditNodePoint String Point
+    | ToggleExpChildren String
     | DiscardEdits
     | AddNode String
     | DiscardAddNode
@@ -177,8 +186,17 @@ update msg model =
                                 updatedNodes =
                                     Tree.map
                                         (\n ->
-                                            if n.id == id then
-                                                { n | points = Point.updatePoints n.points edit.points }
+                                            if n.node.id == id then
+                                                let
+                                                    node =
+                                                        n.node
+                                                in
+                                                { n
+                                                    | node =
+                                                        { node
+                                                            | points = Point.updatePoints node.points edit.points
+                                                        }
+                                                }
 
                                             else
                                                 n
@@ -205,6 +223,13 @@ update msg model =
             , Cmd.none
             )
 
+        ToggleExpChildren id ->
+            let
+                nodes =
+                    model.nodes |> Maybe.map (toggleExpChildren id)
+            in
+            ( { model | nodes = nodes }, Cmd.none )
+
         AddNode id ->
             ( { model | addNode = Just { typ = Nothing, parent = id } }, Cmd.none )
 
@@ -229,6 +254,7 @@ update msg model =
                 newId =
                     model.nodes
                         |> Maybe.andThen (findNode desc)
+                        |> Maybe.map .node
                         |> Maybe.map .id
 
                 moveNode =
@@ -416,15 +442,28 @@ update msg model =
                     )
 
 
-findNode : String -> Tree Node -> Maybe Node
+toggleExpChildren : String -> Tree NodeView -> Tree NodeView
+toggleExpChildren id tree =
+    Tree.map
+        (\n ->
+            if n.node.id == id then
+                { n | expChildren = not n.expChildren }
+
+            else
+                n
+        )
+        tree
+
+
+findNode : String -> Tree NodeView -> Maybe NodeView
 findNode desc tree =
     Zipper.findFromRoot
-        (\n -> Node.description n == desc)
+        (\n -> Node.description n.node == desc)
         (Zipper.fromTree tree)
         |> Maybe.map Zipper.label
 
 
-nodeListToTree : List Node -> Maybe (Tree Node)
+nodeListToTree : List Node -> Maybe (Tree NodeView)
 nodeListToTree nodes =
     List.Extra.find (\n -> n.parent == "") nodes
         |> Maybe.map (populateChildren nodes)
@@ -435,23 +474,38 @@ nodeListToTree nodes =
 -- this into a tree
 
 
-populateChildren : List Node -> Node -> Tree Node
+populateChildren : List Node -> Node -> Tree NodeView
 populateChildren nodes root =
     Zipper.toTree <|
         populateChildrenHelp
-            (Zipper.fromTree <| Tree.singleton root)
+            (Zipper.fromTree <| Tree.singleton (nodeToNodeView root))
             nodes
 
 
-populateChildrenHelp : Zipper Node -> List Node -> Zipper Node
+nodeToNodeView : Node -> NodeView
+nodeToNodeView node =
+    { node = node
+    , expDetail = False
+    , expChildren = False
+    , mod = False
+    }
+
+
+populateChildrenHelp : Zipper NodeView -> List Node -> Zipper NodeView
 populateChildrenHelp z nodes =
     case
         Zipper.forward
             (List.foldr
                 (\n zCur ->
-                    if (Zipper.label zCur).id == n.parent then
+                    if (Zipper.label zCur).node.id == n.parent then
                         Zipper.mapTree
-                            (\t -> Tree.appendChild (Tree.singleton n) t)
+                            (\t ->
+                                Tree.appendChild
+                                    (Tree.singleton
+                                        (nodeToNodeView n)
+                                    )
+                                    t
+                            )
                             zCur
 
                     else
@@ -541,18 +595,18 @@ viewNodes model =
                         mergeNodeEdit tree model.nodeEdit
                 in
                 viewNode model (Tree.label treeWithEdits) 0
-                    :: viewNodes2Help 1 model treeWithEdits
+                    :: viewNodesHelp 1 model treeWithEdits
 
             Nothing ->
                 [ text "No nodes to display" ]
 
 
-viewNodes2Help :
+viewNodesHelp :
     Int
     -> Model
-    -> Tree NodeMod
+    -> Tree NodeView
     -> List (Element Msg)
-viewNodes2Help depth model tree =
+viewNodesHelp depth model tree =
     let
         children =
             Tree.children tree
@@ -561,13 +615,13 @@ viewNodes2Help depth model tree =
         (\child ret ->
             ret
                 ++ viewNode model (Tree.label child) depth
-                :: viewNodes2Help (depth + 1) model child
+                :: viewNodesHelp (depth + 1) model child
         )
         []
         children
 
 
-viewNode : Model -> NodeMod -> Int -> Element Msg
+viewNode : Model -> NodeView -> Int -> Element Msg
 viewNode model node depth =
     let
         nodeView =
@@ -581,37 +635,45 @@ viewNode model node depth =
                 _ ->
                     NodeDevice.view
     in
-    el [ paddingEach { top = 0, right = 0, bottom = 0, left = depth * 35 } ] <|
-        column
-            [ spacing 6 ]
-            [ nodeView
-                { isRoot = model.auth.isRoot
-                , now = model.now
-                , zone = model.zone
-                , modified = node.mod
-                , node = node.node
-                , onApiDelete = ApiDelete
-                , onEditNodePoint = EditNodePoint
-                , onDiscardEdits = DiscardEdits
-                , onApiPostPoints = ApiPostPoints
-                }
-            , case ( model.addNode, model.moveNode ) of
-                ( Just add, _ ) ->
-                    if add.parent == node.node.id then
-                        viewAddNode add
+    el [ width fill, paddingEach { top = 0, right = 0, bottom = 0, left = depth * 35 } ] <|
+        row [ spacing 6 ]
+            [ el [ alignTop ] <|
+                if node.expChildren then
+                    Icon.arrowDown (ToggleExpChildren node.node.id)
 
-                    else
+                else
+                    Icon.arrowRight (ToggleExpChildren node.node.id)
+            , column
+                [ spacing 6, width fill ]
+                [ nodeView
+                    { isRoot = model.auth.isRoot
+                    , now = model.now
+                    , zone = model.zone
+                    , modified = node.mod
+                    , node = node.node
+                    , onApiDelete = ApiDelete
+                    , onEditNodePoint = EditNodePoint
+                    , onDiscardEdits = DiscardEdits
+                    , onApiPostPoints = ApiPostPoints
+                    }
+                , case ( model.addNode, model.moveNode ) of
+                    ( Just add, _ ) ->
+                        if add.parent == node.node.id then
+                            viewAddNode add
+
+                        else
+                            viewNodeOperations node.node.id node.node.parent
+
+                    ( _, Just move ) ->
+                        if move.id == node.node.id then
+                            viewMoveNode move
+
+                        else
+                            viewNodeOperations node.node.id node.node.parent
+
+                    _ ->
                         viewNodeOperations node.node.id node.node.parent
-
-                ( _, Just move ) ->
-                    if move.id == node.node.id then
-                        viewMoveNode move
-
-                    else
-                        viewNodeOperations node.node.id node.node.parent
-
-                _ ->
-                    viewNodeOperations node.node.id node.node.parent
+                ]
             ]
 
 
@@ -684,28 +746,30 @@ viewAddNode add =
         ]
 
 
-type alias NodeMod =
-    { node : Node
-    , mod : Bool
-    }
-
-
-mergeNodeEdit : Tree Node -> Maybe NodeEdit -> Tree NodeMod
+mergeNodeEdit : Tree NodeView -> Maybe NodeEdit -> Tree NodeView
 mergeNodeEdit nodes nodeEdit =
     case nodeEdit of
         Just edit ->
             Tree.map
                 (\n ->
-                    if edit.id == n.id then
-                        { node =
-                            { n | points = Point.updatePoints n.points edit.points }
-                        , mod = True
+                    if edit.id == n.node.id then
+                        let
+                            node =
+                                n.node
+                        in
+                        { n
+                            | mod = True
+                            , node =
+                                { node
+                                    | points =
+                                        Point.updatePoints node.points edit.points
+                                }
                         }
 
                     else
-                        { node = n, mod = False }
+                        { n | mod = False }
                 )
                 nodes
 
         Nothing ->
-            Tree.map (\n -> { node = n, mod = False }) nodes
+            Tree.map (\n -> { n | mod = False }) nodes

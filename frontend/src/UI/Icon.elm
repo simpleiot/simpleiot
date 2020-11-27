@@ -1,8 +1,12 @@
 module UI.Icon exposing
-    ( check
+    ( arrowDown
+    , arrowRight
+    , check
     , cloud
     , cloudOff
     , device
+    , maximize
+    , minimize
     , move
     , plus
     , plusCircle
@@ -92,6 +96,26 @@ userCheck msg =
 move : msg -> Element msg
 move msg =
     button FeatherIcons.move msg
+
+
+arrowRight : msg -> Element msg
+arrowRight msg =
+    button FeatherIcons.arrowRight msg
+
+
+arrowDown : msg -> Element msg
+arrowDown msg =
+    button FeatherIcons.arrowDown msg
+
+
+minimize : msg -> Element msg
+minimize msg =
+    button FeatherIcons.minimize2 msg
+
+
+maximize : msg -> Element msg
+maximize msg =
+    button FeatherIcons.maximize2 msg
 
 
 cloudOff : Element msg
