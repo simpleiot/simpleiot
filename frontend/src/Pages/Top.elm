@@ -57,6 +57,7 @@ type alias Model =
     , auth : Auth
     , error : Maybe String
     , addNode : Maybe NodeToAdd
+    , moveNode : Maybe NodeMove
     }
 
 
@@ -72,6 +73,13 @@ type alias NodeToAdd =
     }
 
 
+type alias NodeMove =
+    { id : String
+    , description : String
+    , parent : Maybe String
+    }
+
+
 defaultModel : Key -> Model
 defaultModel key =
     Model
@@ -81,6 +89,7 @@ defaultModel key =
         (Time.millisToPosix 0)
         Nothing
         { email = "", token = "", isRoot = False }
+        Nothing
         Nothing
         Nothing
 
@@ -119,10 +128,14 @@ type Msg
     | DiscardEdits
     | AddNode String
     | DiscardAddNode
+    | MoveNode String
+    | DiscardMoveNode
+    | MoveNodeDescription String
     | SelectAddNodeType String
     | ApiDelete String
     | ApiPostPoints String
     | ApiPostAddNode
+    | ApiPostMoveNode
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
@@ -193,6 +206,36 @@ update msg model =
         AddNode id ->
             ( { model | addNode = Just { typ = Nothing, parent = id } }, Cmd.none )
 
+        MoveNode id ->
+            ( { model
+                | moveNode =
+                    Just { id = id, description = "", parent = Nothing }
+              }
+            , Cmd.none
+            )
+
+        DiscardMoveNode ->
+            ( { model | moveNode = Nothing }, Cmd.none )
+
+        MoveNodeDescription desc ->
+            let
+                newId =
+                    model.nodes
+                        |> Maybe.andThen (findNode desc)
+                        |> Maybe.map .id
+
+                moveNode =
+                    model.moveNode
+                        |> Maybe.map
+                            (\mn ->
+                                { mn
+                                    | description = desc
+                                    , parent = newId
+                                }
+                            )
+            in
+            ( { model | moveNode = moveNode }, Cmd.none )
+
         SelectAddNodeType typ ->
             case model.addNode of
                 Just add ->
@@ -228,6 +271,9 @@ update msg model =
                 Nothing ->
                     Cmd.none
             )
+
+        ApiPostMoveNode ->
+            ( model, Cmd.none )
 
         ApiDelete id ->
             -- optimistically update nodes
@@ -326,6 +372,14 @@ update msg model =
                     ( model
                     , updateNodes model
                     )
+
+
+findNode : String -> Tree Node -> Maybe Node
+findNode desc tree =
+    Zipper.findFromRoot
+        (\n -> Node.description n == desc)
+        (Zipper.fromTree tree)
+        |> Maybe.map Zipper.label
 
 
 nodeListToTree : List Node -> Maybe (Tree Node)
@@ -499,17 +553,61 @@ viewNode model node depth =
                 , onDiscardEdits = DiscardEdits
                 , onApiPostPoints = ApiPostPoints
                 }
-            , case model.addNode of
-                Just add ->
+            , case ( model.addNode, model.moveNode ) of
+                ( Just add, _ ) ->
                     if add.parent == node.node.id then
                         viewAddNode add
 
                     else
-                        Icon.plusCircle (AddNode node.node.id)
+                        viewNodeOperations node.node.id
+
+                ( _, Just move ) ->
+                    if move.id == node.node.id then
+                        viewMoveNode move
+
+                    else
+                        viewNodeOperations node.node.id
+
+                _ ->
+                    viewNodeOperations node.node.id
+            ]
+
+
+viewNodeOperations : String -> Element Msg
+viewNodeOperations id =
+    row [ spacing 6 ]
+        [ Icon.plusCircle (AddNode id)
+        , Icon.move (MoveNode id)
+        ]
+
+
+viewMoveNode : NodeMove -> Element Msg
+viewMoveNode move =
+    column [ spacing 10 ]
+        [ Input.text []
+            { text = move.description
+            , placeholder = Just <| Input.placeholder [] <| text "description"
+            , label = Input.labelAbove [] <| text "New parent node: "
+            , onChange = MoveNodeDescription
+            }
+        , Form.buttonRow
+            [ case move.parent of
+                Just _ ->
+                    Form.button
+                        { label = "move"
+                        , color = Style.colors.blue
+                        , onPress = ApiPostMoveNode
+                        }
 
                 Nothing ->
-                    Icon.plusCircle (AddNode node.node.id)
+                    Element.none
+            , Form.button
+                { label = "cancel"
+                , color = Style.colors.gray
+                , onPress = DiscardMoveNode
+                }
             ]
+        ]
 
 
 viewAddNode : NodeToAdd -> Element Msg

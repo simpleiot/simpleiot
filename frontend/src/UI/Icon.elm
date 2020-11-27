@@ -3,6 +3,7 @@ module UI.Icon exposing
     , cloud
     , cloudOff
     , device
+    , move
     , plus
     , plusCircle
     , power
@@ -86,6 +87,11 @@ userMinus msg =
 userCheck : msg -> Element msg
 userCheck msg =
     button FeatherIcons.userCheck msg
+
+
+move : msg -> Element msg
+move msg =
+    button FeatherIcons.move msg
 
 
 cloudOff : Element msg
