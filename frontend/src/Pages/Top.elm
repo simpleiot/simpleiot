@@ -348,7 +348,25 @@ update msg model =
         ApiRespList resp ->
             case resp of
                 Data.Success nodes ->
-                    ( { model | nodes = nodeListToTree nodes }, Cmd.none )
+                    let
+                        maybeNew =
+                            nodeListToTree nodes
+
+                        treeMerged =
+                            case ( model.nodes, maybeNew ) of
+                                ( Just current, Just new ) ->
+                                    Just <| mergeNodeTree current new
+
+                                ( _, Just new ) ->
+                                    Just new
+
+                                ( Just current, _ ) ->
+                                    Just current
+
+                                _ ->
+                                    Nothing
+                    in
+                    ( { model | nodes = treeMerged }, Cmd.none )
 
                 Data.Failure err ->
                     let
@@ -440,6 +458,31 @@ update msg model =
                     ( model
                     , updateNodes model
                     )
+
+
+mergeNodeTree : Tree NodeView -> Tree NodeView -> Tree NodeView
+mergeNodeTree current new =
+    let
+        z =
+            Zipper.fromTree current
+    in
+    Tree.map
+        (\n ->
+            case Zipper.findFromRoot (\o -> o.node.id == n.node.id) z of
+                Just found ->
+                    let
+                        l =
+                            Zipper.label found
+                    in
+                    { n
+                        | expChildren = l.expChildren
+                        , expDetail = l.expDetail
+                    }
+
+                Nothing ->
+                    n
+        )
+        new
 
 
 toggleExpChildren : String -> Tree NodeView -> Tree NodeView
