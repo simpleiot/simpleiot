@@ -536,7 +536,7 @@ viewAddNode add =
                 Nothing ->
                     Element.none
             , Form.button
-                { label = "discard"
+                { label = "cancel"
                 , color = Style.colors.gray
                 , onPress = DiscardAddNode
                 }
