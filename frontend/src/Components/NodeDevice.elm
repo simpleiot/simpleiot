@@ -99,7 +99,9 @@ view o =
         , Background.color background
         , spacing 6
         ]
-        [ wrappedRow [ spacing 10 ]
+    <|
+        wrappedRow
+            [ spacing 10 ]
             [ Icon.device
             , sysStateIcon
             , viewNodeId o.node.id
@@ -121,25 +123,30 @@ view o =
             , viewIf o.modified <|
                 Icon.x o.onDiscardEdits
             ]
-        , viewPoints <| Point.filterSpecialPoints o.node.points
-        , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
-        , text
-            ("Time since last update: "
-                ++ Duration.toString
-                    (Time.posixToMillis o.now
-                        - Time.posixToMillis latestPointTime
-                    )
-            )
-        , viewIf (hwVersion /= "" && osVersion /= "" && appVersion /= "") <|
-            text
-                ("Version: "
-                    ++ hwVersion
-                    ++ " "
-                    ++ osVersion
-                    ++ " "
-                    ++ appVersion
-                )
-        ]
+            :: (if o.expDetail then
+                    [ viewPoints <| Point.filterSpecialPoints o.node.points
+                    , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
+                    , text
+                        ("Time since last update: "
+                            ++ Duration.toString
+                                (Time.posixToMillis o.now
+                                    - Time.posixToMillis latestPointTime
+                                )
+                        )
+                    , viewIf (hwVersion /= "" && osVersion /= "" && appVersion /= "") <|
+                        text
+                            ("Version: "
+                                ++ hwVersion
+                                ++ " "
+                                ++ osVersion
+                                ++ " "
+                                ++ appVersion
+                            )
+                    ]
+
+                else
+                    []
+               )
 
 
 viewNodeId : String -> Element msg

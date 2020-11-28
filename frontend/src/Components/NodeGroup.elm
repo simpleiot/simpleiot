@@ -36,28 +36,34 @@ view o =
         , Border.color colors.black
         , spacing 6
         ]
-        [ wrappedRow [ spacing 10 ]
+    <|
+        wrappedRow [ spacing 10 ]
             [ Icon.users
             , text <|
                 Point.getPointText o.node.points Point.typeDescription
             , viewIf o.isRoot <|
                 Icon.x (o.onApiDelete o.node.id)
             ]
-        , textInput2 Point.typeDescription "Description"
-        , viewIf o.modified <|
-            Form.buttonRow
-                [ Form.button
-                    { label = "save"
-                    , color = colors.blue
-                    , onPress = o.onApiPostPoints o.node.id
-                    }
-                , Form.button
-                    { label = "discard"
-                    , color = colors.gray
-                    , onPress = o.onDiscardEdits
-                    }
-                ]
-        ]
+            :: (if o.expDetail then
+                    [ textInput2 Point.typeDescription "Description"
+                    , viewIf o.modified <|
+                        Form.buttonRow
+                            [ Form.button
+                                { label = "save"
+                                , color = colors.blue
+                                , onPress = o.onApiPostPoints o.node.id
+                                }
+                            , Form.button
+                                { label = "discard"
+                                , color = colors.gray
+                                , onPress = o.onDiscardEdits
+                                }
+                            ]
+                    ]
+
+                else
+                    []
+               )
 
 
 textInput :

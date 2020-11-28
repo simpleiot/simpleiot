@@ -764,22 +764,25 @@ viewNode model node depth =
                     , onDiscardEdits = DiscardEdits
                     , onApiPostPoints = ApiPostPoints
                     }
-                , case ( model.addNode, model.moveNode ) of
-                    ( Just add, _ ) ->
+                , case ( node.expDetail, model.addNode, model.moveNode ) of
+                    ( False, _, _ ) ->
+                        Element.none
+
+                    ( True, Just add, _ ) ->
                         if add.parent == node.node.id then
                             viewAddNode add
 
                         else
                             viewNodeOperations node.node.id node.node.parent
 
-                    ( _, Just move ) ->
+                    ( True, _, Just move ) ->
                         if move.id == node.node.id then
                             viewMoveNode move
 
                         else
                             viewNodeOperations node.node.id node.node.parent
 
-                    _ ->
+                    ( True, _, _ ) ->
                         viewNodeOperations node.node.id node.node.parent
                 ]
             ]

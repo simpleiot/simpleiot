@@ -36,7 +36,8 @@ view o =
         , Border.color colors.black
         , spacing 6
         ]
-        [ wrappedRow [ spacing 10 ]
+    <|
+        wrappedRow [ spacing 10 ]
             [ Icon.user
             , text <|
                 Point.getPointText o.node.points Point.typeFirstName
@@ -45,25 +46,30 @@ view o =
             , viewIf o.isRoot <|
                 Icon.x (o.onApiDelete o.node.id)
             ]
-        , textInput2 Point.typeFirstName "First Name"
-        , textInput2 Point.typeLastName "Last Name"
-        , textInput2 Point.typeEmail "Email"
-        , textInput2 Point.typePhone "Phone"
-        , textInput2 Point.typePass "Pass"
-        , viewIf o.modified <|
-            Form.buttonRow
-                [ Form.button
-                    { label = "save"
-                    , color = colors.blue
-                    , onPress = o.onApiPostPoints o.node.id
-                    }
-                , Form.button
-                    { label = "discard"
-                    , color = colors.gray
-                    , onPress = o.onDiscardEdits
-                    }
-                ]
-        ]
+            :: (if o.expDetail then
+                    [ textInput2 Point.typeFirstName "First Name"
+                    , textInput2 Point.typeLastName "Last Name"
+                    , textInput2 Point.typeEmail "Email"
+                    , textInput2 Point.typePhone "Phone"
+                    , textInput2 Point.typePass "Pass"
+                    , viewIf o.modified <|
+                        Form.buttonRow
+                            [ Form.button
+                                { label = "save"
+                                , color = colors.blue
+                                , onPress = o.onApiPostPoints o.node.id
+                                }
+                            , Form.button
+                                { label = "discard"
+                                , color = colors.gray
+                                , onPress = o.onDiscardEdits
+                                }
+                            ]
+                    ]
+
+                else
+                    []
+               )
 
 
 textInput :
