@@ -8,6 +8,7 @@ module UI.Icon exposing
     , device
     , maximize
     , minimize
+    , minus
     , move
     , plus
     , plusCircle
@@ -101,12 +102,12 @@ move msg =
 
 arrowRight : msg -> Element msg
 arrowRight msg =
-    button FeatherIcons.arrowRight msg
+    button FeatherIcons.chevronRight msg
 
 
 arrowDown : msg -> Element msg
 arrowDown msg =
-    button FeatherIcons.arrowDown msg
+    button FeatherIcons.chevronDown msg
 
 
 minimize : msg -> Element msg
@@ -147,6 +148,11 @@ users =
 device : Element msg
 device =
     icon FeatherIcons.hardDrive
+
+
+minus : Element msg
+minus =
+    icon FeatherIcons.minus
 
 
 blank : Element msg
