@@ -136,6 +136,7 @@ type Msg
     | Zone Time.Zone
     | EditNodePoint String Point
     | ToggleExpChildren String
+    | ToggleExpDetail String
     | DiscardEdits
     | AddNode String
     | DiscardAddNode
@@ -228,6 +229,13 @@ update msg model =
             let
                 nodes =
                     model.nodes |> Maybe.map (toggleExpChildren id)
+            in
+            ( { model | nodes = nodes }, Cmd.none )
+
+        ToggleExpDetail id ->
+            let
+                nodes =
+                    model.nodes |> Maybe.map (toggleExpDetail id)
             in
             ( { model | nodes = nodes }, Cmd.none )
 
@@ -500,6 +508,19 @@ toggleExpChildren id tree =
         tree
 
 
+toggleExpDetail : String -> Tree NodeView -> Tree NodeView
+toggleExpDetail id tree =
+    Tree.map
+        (\n ->
+            if n.node.id == id then
+                { n | expDetail = not n.expDetail }
+
+            else
+                n
+        )
+        tree
+
+
 findNode : String -> Tree NodeView -> Maybe NodeView
 findNode desc tree =
     Zipper.findFromRoot
@@ -720,6 +741,12 @@ viewNode model node depth =
 
                 else
                     Icon.arrowRight (ToggleExpChildren node.node.id)
+            , el [ alignTop ] <|
+                if node.expDetail then
+                    Icon.minimize (ToggleExpDetail node.node.id)
+
+                else
+                    Icon.maximize (ToggleExpDetail node.node.id)
             , column
                 [ spacing 6, width fill ]
                 [ nodeView
@@ -728,6 +755,7 @@ viewNode model node depth =
                     , zone = model.zone
                     , modified = node.mod
                     , node = node.node
+                    , expDetail = node.expDetail
                     , onApiDelete = ApiDelete
                     , onEditNodePoint = EditNodePoint
                     , onDiscardEdits = DiscardEdits

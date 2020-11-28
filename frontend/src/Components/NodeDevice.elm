@@ -19,6 +19,7 @@ view :
     , now : Time.Posix
     , zone : Time.Zone
     , modified : Bool
+    , expDetail : Bool
     , node : Node
     , onApiDelete : String -> msg
     , onEditNodePoint : String -> Point -> msg
