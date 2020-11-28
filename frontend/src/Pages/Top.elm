@@ -315,7 +315,7 @@ update msg model =
             )
 
         ApiPostMoveNode ->
-            ( model
+            ( { model | moveNode = Nothing }
             , case model.moveNode of
                 Just moveNode ->
                     case moveNode.newParent of
