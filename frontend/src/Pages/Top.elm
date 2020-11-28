@@ -789,7 +789,11 @@ viewNodeOperations : String -> String -> Element Msg
 viewNodeOperations id parent =
     row [ spacing 6 ]
         [ Icon.plusCircle (AddNode id)
-        , Icon.move (MoveNode id parent)
+        , if parent /= "" then
+            Icon.move (MoveNode id parent)
+
+          else
+            Element.none
         ]
 
 
