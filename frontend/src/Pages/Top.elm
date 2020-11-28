@@ -736,7 +736,10 @@ viewNode model node depth =
     el [ width fill, paddingEach { top = 0, right = 0, bottom = 0, left = depth * 35 } ] <|
         row [ spacing 6 ]
             [ el [ alignTop ] <|
-                if node.expChildren then
+                if not node.hasChildren then
+                    Element.none
+
+                else if node.expChildren then
                     Icon.arrowDown (ToggleExpChildren node.node.id)
 
                 else
