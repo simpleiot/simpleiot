@@ -63,6 +63,7 @@ type alias Model =
 
 type alias NodeView =
     { node : Node
+    , hasChildren : Bool
     , expDetail : Bool
     , expChildren : Bool
     , mod : Bool
@@ -351,6 +352,7 @@ update msg model =
                     let
                         maybeNew =
                             nodeListToTree nodes
+                                |> Maybe.map populateHasChildren
 
                         treeMerged =
                             case ( model.nodes, maybeNew ) of
@@ -528,6 +530,7 @@ populateChildren nodes root =
 nodeToNodeView : Node -> NodeView
 nodeToNodeView node =
     { node = node
+    , hasChildren = False
     , expDetail = False
     , expChildren = False
     , mod = False
@@ -563,6 +566,30 @@ populateChildrenHelp z nodes =
 
         Nothing ->
             z
+
+
+populateHasChildren : Tree NodeView -> Tree NodeView
+populateHasChildren tree =
+    let
+        children =
+            Tree.children tree
+
+        hasChildren =
+            List.length children > 0
+
+        label =
+            Tree.label tree
+
+        node =
+            { label | hasChildren = hasChildren }
+    in
+    tree
+        |> Tree.replaceLabel node
+        |> Tree.replaceChildren
+            (List.map
+                (\c -> populateHasChildren c)
+                children
+            )
 
 
 popError : String -> Http.Error -> Model -> Model
