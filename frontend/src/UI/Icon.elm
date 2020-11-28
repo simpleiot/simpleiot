@@ -1,6 +1,7 @@
 module UI.Icon exposing
     ( arrowDown
     , arrowRight
+    , blank
     , check
     , cloud
     , cloudOff
@@ -146,3 +147,8 @@ users =
 device : Element msg
 device =
     icon FeatherIcons.hardDrive
+
+
+blank : Element msg
+blank =
+    el [ width (px 33), height (px 33) ] <| text ""
