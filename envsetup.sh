@@ -101,7 +101,7 @@ siot_build_dependencies() {
 
 siot_build() {
   siot_build_dependencies --optimize || return 1
-  CGO_ENABLED=0 go build -o siot cmd/siot/main.go || return 1
+  CGO_ENABLED=0 go build -ldflags="-X main.siotVersion=`git describe --tags HEAD`" -o siot cmd/siot/main.go || return 1
   return 0
 }
 

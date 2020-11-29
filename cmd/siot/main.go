@@ -29,6 +29,8 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 )
 
+var siotVersion = "Development"
+
 func parsePointText(s string) (string, data.Point, error) {
 	frags := strings.Split(s, ":")
 	if len(frags) != 4 {
@@ -267,6 +269,7 @@ func main() {
 	flagSendFile := flag.String("sendFile", "", "URL of file to send")
 	flagSendCmd := flag.String("sendCmd", "", "Command to send (cmd:detail)")
 	flagID := flag.String("id", "1234", "ID of node")
+	flagVersion := flag.Bool("version", false, "Show version number")
 
 	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDumpDb := flag.Bool("dumpDb", false, "dump database to data.json file")
@@ -278,6 +281,14 @@ func main() {
 	// =============================================
 	// General Setup
 	// =============================================
+	if *flagVersion {
+		if siotVersion == "" {
+			siotVersion = "Development"
+		}
+		fmt.Printf("SimpleIOT %v\n", siotVersion)
+		os.Exit(0)
+	}
+	fmt.Printf("SimpleIOT %v\n", siotVersion)
 
 	// set up local database
 	dataDir := os.Getenv("SIOT_DATA")
