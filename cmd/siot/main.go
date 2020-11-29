@@ -498,7 +498,7 @@ func main() {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, nil, false)
+		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, nil)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -524,7 +524,7 @@ func main() {
 	}
 
 	if *flagImportDb {
-		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, nil, false)
+		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, nil)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -569,7 +569,7 @@ func main() {
 		}
 	}
 
-	dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, influx, true)
+	dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, influx)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)

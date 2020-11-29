@@ -23,3 +23,11 @@ func (u *User) ToPoints() Points {
 		{Type: PointTypePass, Time: now, Text: u.Pass},
 	}
 }
+
+// ToNode converts a user structure into a node
+func (u *User) ToNode() Node {
+	return Node{
+		Type:   NodeTypeUser,
+		Points: u.ToPoints(),
+	}
+}

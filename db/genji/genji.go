@@ -34,8 +34,8 @@ const (
 
 // Meta contains metadata about the database
 type Meta struct {
-	Version  int
-	RootNode string
+	Version int
+	RootID  string
 }
 
 // This file contains database manipulations.
@@ -50,7 +50,7 @@ type Db struct {
 }
 
 // NewDb creates a new Db instance for the app
-func NewDb(storeType StoreType, dataDir string, influx *db.Influx, init bool) (*Db, error) {
+func NewDb(storeType StoreType, dataDir string, influx *db.Influx) (*Db, error) {
 
 	var store *genji.DB
 	var err error
@@ -135,11 +135,7 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx, init bool) (*
 	}
 
 	db := &Db{store: store, influx: influx}
-	if init {
-		return db, db.initialize()
-	}
-
-	return db, nil
+	return db, db.initialize()
 }
 
 // initialize initializes the database with one user (admin)
@@ -173,7 +169,7 @@ func (gen *Db) initialize() error {
 		}
 
 		// populate metadata with root node ID
-		gen.meta = Meta{RootNode: rootNode.ID}
+		gen.meta = Meta{RootID: rootNode.ID}
 
 		err = tx.Exec(`insert into meta values ?`, gen.meta)
 		if err != nil {
@@ -393,7 +389,7 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 			}
 
 			return txEdgeInsert(tx, &data.Edge{
-				Up: gen.meta.RootNode, Down: id})
+				Up: gen.meta.RootID, Down: id})
 		}
 
 		return tx.Exec(`update nodes set points = ? where id = ?`,
@@ -845,7 +841,7 @@ func (gen *Db) UserIsRoot(id string) (bool, error) {
 	}
 
 	for _, upID := range upstreamNodes {
-		if upID == gen.meta.RootNode {
+		if upID == gen.meta.RootID {
 			return true, nil
 		}
 	}
@@ -1243,6 +1239,8 @@ func ImportDb(gen *Db, in io.Reader) error {
 	decoder := json.NewDecoder(in)
 	dump := genImport{}
 
+	fmt.Println("CLIFF: rootID: ", gen.meta.RootID)
+
 	err := decoder.Decode(&dump)
 	if err != nil {
 		return err
@@ -1271,16 +1269,11 @@ func ImportDb(gen *Db, in io.Reader) error {
 	}
 
 	for _, u := range dump.Users {
-		_, err := gen.UserInsert(u)
+		n := u.ToNode()
+		ne := n.ToNodeEdge(gen.meta.RootID)
+		_, err := gen.NodeInsertEdge(ne)
 		if err != nil {
 			return fmt.Errorf("Error inserting user (%+v): %w", u, err)
-		}
-	}
-
-	for _, g := range dump.Groups {
-		_, err := gen.GroupInsert(g)
-		if err != nil {
-			return fmt.Errorf("Error inserting group (%+v): %w", g, err)
 		}
 	}
 
@@ -1306,11 +1299,6 @@ func DumpDb(gen *Db, out io.Writer) error {
 	}
 
 	dump.Edges, err = gen.Edges()
-	if err != nil {
-		return err
-	}
-
-	dump.Rules, err = gen.Rules()
 	if err != nil {
 		return err
 	}
