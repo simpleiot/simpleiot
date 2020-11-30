@@ -875,31 +875,32 @@ viewNodeOperations id parent =
 
 viewMoveNode : NodeMove -> Element Msg
 viewMoveNode move =
-    column [ spacing 10 ]
-        [ Input.text []
-            { text = move.description
-            , placeholder = Just <| Input.placeholder [] <| text "description"
-            , label = Input.labelAbove [] <| text "New parent node: "
-            , onChange = MoveNodeDescription
-            }
-        , Form.buttonRow
-            [ case move.newParent of
-                Just _ ->
-                    Form.button
-                        { label = "move"
-                        , color = Style.colors.blue
-                        , onPress = ApiPostMoveNode
-                        }
-
-                Nothing ->
-                    Element.none
-            , Form.button
-                { label = "cancel"
-                , color = Style.colors.gray
-                , onPress = DiscardMoveNode
+    el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
+        column [ spacing 10 ]
+            [ Input.text []
+                { text = move.description
+                , placeholder = Just <| Input.placeholder [] <| text "description"
+                , label = Input.labelAbove [] <| text "New parent node: "
+                , onChange = MoveNodeDescription
                 }
+            , Form.buttonRow
+                [ case move.newParent of
+                    Just _ ->
+                        Form.button
+                            { label = "move"
+                            , color = Style.colors.blue
+                            , onPress = ApiPostMoveNode
+                            }
+
+                    Nothing ->
+                        Element.none
+                , Form.button
+                    { label = "cancel"
+                    , color = Style.colors.gray
+                    , onPress = DiscardMoveNode
+                    }
+                ]
             ]
-        ]
 
 
 viewAddNode : NodeToAdd -> Element Msg
@@ -936,29 +937,30 @@ viewAddNode add =
 
 viewMsgNode : NodeMessage -> Element Msg
 viewMsgNode msg =
-    column
-        [ width fill, spacing 32 ]
-        [ Input.multiline [ width fill ]
-            { onChange = UpdateMsg
-            , text = msg.message
-            , placeholder = Nothing
-            , label = Input.labelAbove [] <| text "Message to send:"
-            , spellcheck = True
-            }
-        , Form.buttonRow
-            [ Form.button
-                { label = "send now"
-                , color = Style.colors.blue
-                , onPress = ApiPostMsgNode
+    el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
+        column
+            [ width fill, spacing 32 ]
+            [ Input.multiline [ width fill ]
+                { onChange = UpdateMsg
+                , text = msg.message
+                , placeholder = Nothing
+                , label = Input.labelAbove [] <| text "Send message to users:"
+                , spellcheck = True
                 }
-            , Form.button
-                { label = "cancel"
-                , color = Style.colors.gray
-                , onPress = DiscardMsg
-                }
+            , Form.buttonRow
+                [ Form.button
+                    { label = "send now"
+                    , color = Style.colors.blue
+                    , onPress = ApiPostMsgNode
+                    }
+                , Form.button
+                    { label = "cancel"
+                    , color = Style.colors.gray
+                    , onPress = DiscardMsg
+                    }
+                ]
+            , paragraph [] [ text "Considering adding your name at the end of the message. A personal touch is always nice! :-)" ]
             ]
-        , paragraph [] [ text "Considering adding your name at the end of the message. A personal touch is always nice! :-)" ]
-        ]
 
 
 mergeNodeEdit : Tree NodeView -> Maybe NodeEdit -> Tree NodeView
