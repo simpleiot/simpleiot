@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -47,14 +46,12 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	token, err := auth.key.NewToken(user.ID)
 	if err != nil {
-		fmt.Println("CLIFF: token error: ", token)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	isRoot, err := auth.db.UserIsRoot(user.ID)
 	if err != nil {
-		fmt.Println("CLIFF: isroot error: ", token)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}

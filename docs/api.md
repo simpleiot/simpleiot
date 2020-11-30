@@ -19,42 +19,24 @@ have JSON tags.
 Most APIs that do not return specific data (update/delete) return a
 [StandardResponse](https://github.com/simpleiot/simpleiot/blob/master/data/api.go)
 
-- Devices
-  - [data structure](https://github.com/simpleiot/simpleiot/blob/master/data/device.go)
-  - `/v1/devices`
-    - GET: return a list of all devices
-  - `/v1/devices/:id`
-    - GET: return info about a specific device
-    - DELETE: delete a device
-  - `/v1/devices/:id/points`
-    - POST: post points for a device
-  - `/v1/devices/:id/cmd`
-    - GET: gets a command for a device and clears it from the queue. Also clears
+- Nodes
+  - [data structure](https://github.com/simpleiot/simpleiot/blob/master/data/node.go)
+  - `/v1/nodes`
+    - GET: return a list of all nodes
+  - `/v1/nodes/:id`
+    - GET: return info about a specific node
+    - DELETE: delete a node
+  - `/v1/nodes/:id/parents`
+    - POST: move node to new parent
+    - PUT: add parent _(not implemented yet)_
+  - `/v1/nodes/:id/points`
+    - POST: post points for a node
+  - `/v1/nodes/:id/cmd`
+    - GET: gets a command for a node and clears it from the queue. Also clears
       the CmdPending flag in the Device state.
-    - POST: posts a cmd for the device and sets the device CmdPending flag.
-  - `/v1/devices/:id/version`
-    - POST: version information sent to the server from the device that contains
-      version information.
-    - [DeviceVersion](../data/device.go)
-- Users
-  - [data structure](https://github.com/simpleiot/simpleiot/blob/master/data/user.go)
-  - `/v1/users`
-    - GET: default is to return list of all users. An `email` query parameter
-      can also be used to find a specific user by email.
-    - POST: create a new user
-  - `/v1/users/:id`
-    - GET: return info for a single user
-    - POST: update a user
-    - DELETE: delete a user
-- Groups
-  - [data structure](https://github.com/simpleiot/simpleiot/blob/master/data/group.go)
-  - `/v1/groups`
-    - GET: return list of all groups
-    - POST: create a new group
-  - `/v1/groups/:id`
-    - GET: return info for a single group
-    - POST: update a group
-    - DELETE: delete a group
+    - POST: posts a cmd for the node and sets the node CmdPending flag.
+  - `/v1/nodes/:id/msg`
+    - POST: send a message to all node users and descendents
 - Auth
   - `/v1/auth`
     - POST: accepts `email` and `password` as form values, and returns a JWT
@@ -63,7 +45,7 @@ Most APIs that do not return specific data (update/delete) return a
 - Msg
   - `/v1/msg`
     - POST: send message to add users. (this is temporary and will be reworked
-      once users turn into nodes). Users `Point` datatype to transmit message.
+      once users turn into nodes). Uses `Point` datatype to transmit message.
 
 ## NATS
 
@@ -81,22 +63,19 @@ a separate NATS server.
 For the NATS transport, protobuf encoding is used for all transfers and are
 defined [here](../internal/pb).
 
-- Devices
-  - `device.<id>.samples`
-    - device publishes samples and the server updates device state and stores
-      sample in database.
-  - `device.<id>.file`
-    - is used to transfer files to a device in chunks, which is optimized for
+- Nodes
+  - `node.<id>.points`
+    - device publishes points and the server updates node state and stores point
+      in database.
+  - `node.<id>.file`
+    - is used to transfer files to a node in chunks, which is optimized for
       unreliable networks like cellular and is handy for transfering software
       update files. There is Go code [available](../api/nats-file.go) to manage
       both ends of the transfer as well as a utility to [send](../cmd/siotutil)
       files and an example [edge](../cmd/edge) application to receive files.
-  - `device.<id>.cmd`
-    - send a [DeviceCmd](../data/device.go) to a device. `siotutil` can be used
-      to test sending commands to devices using NATS.
-  - `device.<id>.version`
-    - [DeviceVersion](../data/device.go) sent from device to server to inform
-      the server of the versions of various components on the device.
+  - `node.<id>.cmd`
+    - send a [DeviceCmd](../data/node.go) to a node. `siotutil` can be used to
+      test sending commands to nodes using NATS.
 - System
   - `error`
     - any errors that occur are sent to this subject

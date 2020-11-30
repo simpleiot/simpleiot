@@ -4,13 +4,18 @@ module Api.Node exposing
     , description
     , get
     , getCmd
+    , insert
     , list
+    , message
+    , move
     , postCmd
-    , postGroups
-    , postPoint
+    , postPoints
     , sysStateOffline
     , sysStateOnline
     , sysStatePowerOff
+    , typeDevice
+    , typeGroup
+    , typeUser
     )
 
 import Api.Data exposing (Data)
@@ -38,16 +43,39 @@ sysStateOnline =
     3
 
 
+typeDevice : String
+typeDevice =
+    "device"
+
+
+typeGroup : String
+typeGroup =
+    "group"
+
+
+typeUser : String
+typeUser =
+    "user"
+
+
 type alias Node =
     { id : String
+    , typ : String
+    , parent : String
     , points : List Point
-    , groups : List String
     }
 
 
 type alias NodeCmd =
     { cmd : String
     , detail : String
+    }
+
+
+type alias NodeMove =
+    { id : String
+    , oldParent : String
+    , newParent : String
     }
 
 
@@ -60,8 +88,9 @@ decode : Decode.Decoder Node
 decode =
     Decode.succeed Node
         |> required "id" Decode.string
+        |> required "type" Decode.string
+        |> required "parent" Decode.string
         |> optional "points" (Decode.list Point.decode) []
-        |> optional "groups" (Decode.list Decode.string) []
 
 
 decodeCmd : Decode.Decoder NodeCmd
@@ -71,9 +100,13 @@ decodeCmd =
         |> optional "detail" Decode.string ""
 
 
-encodeGroups : List String -> Encode.Value
-encodeGroups groups =
-    Encode.list Encode.string groups
+encode : Node -> Encode.Value
+encode node =
+    Encode.object
+        [ ( "id", Encode.string node.id )
+        , ( "type", Encode.string node.typ )
+        , ( "parent", Encode.string node.parent )
+        ]
 
 
 encodeNodeCmd : NodeCmd -> Encode.Value
@@ -81,6 +114,15 @@ encodeNodeCmd cmd =
     Encode.object
         [ ( "cmd", Encode.string cmd.cmd )
         , ( "detail", Encode.string cmd.detail )
+        ]
+
+
+encodeNodeMove : NodeMove -> Encode.Value
+encodeNodeMove nodeMove =
+    Encode.object
+        [ ( "id", Encode.string nodeMove.id )
+        , ( "oldParent", Encode.string nodeMove.oldParent )
+        , ( "newParent", Encode.string nodeMove.newParent )
         ]
 
 
@@ -165,20 +207,19 @@ delete options =
         }
 
 
-postGroups :
+insert :
     { token : String
-    , id : String
-    , groups : List String
+    , node : Node
     , onResponse : Data Response -> msg
     }
     -> Cmd msg
-postGroups options =
+insert options =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "groups" ] []
+        , url = Url.Builder.absolute [ "v1", "nodes", options.node.id ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
-        , body = options.groups |> encodeGroups |> Http.jsonBody
+        , body = options.node |> encode |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -203,20 +244,69 @@ postCmd options =
         }
 
 
-postPoint :
+postPoints :
     { token : String
     , id : String
-    , point : Point
+    , points : List Point
     , onResponse : Data Response -> msg
     }
     -> Cmd msg
-postPoint options =
+postPoints options =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
         , url = Url.Builder.absolute [ "v1", "nodes", options.id, "points" ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
-        , body = [ options.point ] |> Point.encodeList |> Http.jsonBody
+        , body = options.points |> Point.encodeList |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+message :
+    { token : String
+    , id : String
+    , message : String
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+message options =
+    let
+        emptyPoint =
+            Point.empty
+    in
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "msg" ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body = { emptyPoint | text = options.message } |> Point.encode |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+move :
+    { token : String
+    , id : String
+    , oldParent : String
+    , newParent : String
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+move options =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "parents" ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body =
+            { id = options.id
+            , oldParent = options.oldParent
+            , newParent = options.newParent
+            }
+                |> encodeNodeMove
+                |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }

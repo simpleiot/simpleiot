@@ -6,11 +6,13 @@ import Api.Node as Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
+import Components.NodeDevice as NodeDevice
+import Components.NodeGroup as NodeGroup
+import Components.NodeUser as NodeUser
 import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
 import Element.Input as Input
 import Http
+import List.Extra
 import Shared
 import Spa.Document exposing (Document)
 import Spa.Generated.Route as Route
@@ -18,10 +20,11 @@ import Spa.Page as Page exposing (Page)
 import Spa.Url exposing (Url)
 import Task
 import Time
+import Tree exposing (Tree)
+import Tree.Zipper as Zipper exposing (Zipper)
+import UI.Form as Form
 import UI.Icon as Icon
-import UI.Style as Style exposing (colors, size)
-import Utils.Duration as Duration
-import Utils.Iso8601 as Iso8601
+import UI.Style as Style
 import Utils.Route
 
 
@@ -45,20 +48,52 @@ type alias Params =
     ()
 
 
-type alias NodeEdit =
-    { id : String
-    , point : Point
+type alias Model =
+    { key : Key
+    , nodeEdit : Maybe NodeEdit
+    , zone : Time.Zone
+    , now : Time.Posix
+    , nodes : Maybe (Tree NodeView)
+    , auth : Auth
+    , error : Maybe String
+    , addNode : Maybe NodeToAdd
+    , moveNode : Maybe NodeMove
+    , msgNode : Maybe NodeMessage
     }
 
 
-type alias Model =
-    { key : Key
-    , deviceEdit : Maybe NodeEdit
-    , zone : Time.Zone
-    , now : Time.Posix
-    , devices : List Node
-    , auth : Auth
-    , error : Maybe String
+type alias NodeView =
+    { node : Node
+    , hasChildren : Bool
+    , expDetail : Bool
+    , expChildren : Bool
+    , mod : Bool
+    }
+
+
+type alias NodeEdit =
+    { id : String
+    , points : List Point
+    }
+
+
+type alias NodeToAdd =
+    { typ : Maybe String
+    , parent : String
+    }
+
+
+type alias NodeMove =
+    { id : String
+    , description : String
+    , oldParent : String
+    , newParent : Maybe String
+    }
+
+
+type alias NodeMessage =
+    { id : String
+    , message : String
     }
 
 
@@ -69,8 +104,11 @@ defaultModel key =
         Nothing
         Time.utc
         (Time.millisToPosix 0)
-        []
+        Nothing
         { email = "", token = "", isRoot = False }
+        Nothing
+        Nothing
+        Nothing
         Nothing
 
 
@@ -104,64 +142,249 @@ init shared { key } =
 type Msg
     = Tick Time.Posix
     | Zone Time.Zone
-    | EditNodeDescription String String
-    | DiscardEditedNodeDescription
+    | EditNodePoint String Point
+    | ToggleExpChildren String
+    | ToggleExpDetail String
+    | DiscardEdits
+    | AddNode String
+    | MsgNode String
+    | DiscardAddNode
+    | MoveNode String String
+    | DiscardMoveNode
+    | UpdateMsg String
+    | DiscardMsg
+    | MoveNodeDescription String
+    | SelectAddNodeType String
     | ApiDelete String
-    | ApiPostPoint String Point
+    | ApiPostPoints String
+    | ApiPostAddNode
+    | ApiPostMoveNode
+    | ApiPostMsgNode
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
+    | ApiRespPostAddNode (Data Response)
+    | ApiRespPostMoveNode (Data Response)
+    | ApiRespPostMsgNode (Data Response)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        EditNodeDescription id description ->
+        EditNodePoint id point ->
+            let
+                editPoints =
+                    case model.nodeEdit of
+                        Just ne ->
+                            ne.points
+
+                        Nothing ->
+                            []
+            in
             ( { model
-                | deviceEdit =
+                | nodeEdit =
                     Just
                         { id = id
-                        , point = Point.newText "" Point.typeDescription description
+                        , points = Point.updatePoint editPoints point
                         }
               }
             , Cmd.none
             )
 
-        ApiPostPoint id point ->
-            let
-                -- optimistically update devices
-                devices =
-                    List.map
-                        (\d ->
-                            if d.id == id then
-                                { d | points = Point.updatePoint d.points point }
+        ApiPostPoints id ->
+            case model.nodes of
+                Just nodes ->
+                    case model.nodeEdit of
+                        Just edit ->
+                            let
+                                -- optimistically update nodes
+                                updatedNodes =
+                                    Tree.map
+                                        (\n ->
+                                            if n.node.id == id then
+                                                let
+                                                    node =
+                                                        n.node
+                                                in
+                                                { n
+                                                    | node =
+                                                        { node
+                                                            | points = Point.updatePoints node.points edit.points
+                                                        }
+                                                }
 
-                            else
-                                d
-                        )
-                        model.devices
-            in
-            ( { model | deviceEdit = Nothing, devices = devices }
-            , Node.postPoint
-                { token = model.auth.token
-                , id = id
-                , point = point
-                , onResponse = ApiRespPostPoint
-                }
-            )
+                                            else
+                                                n
+                                        )
+                                        nodes
+                            in
+                            ( { model | nodeEdit = Nothing, nodes = Just updatedNodes }
+                            , Node.postPoints
+                                { token = model.auth.token
+                                , id = id
+                                , points = edit.points
+                                , onResponse = ApiRespPostPoint
+                                }
+                            )
 
-        DiscardEditedNodeDescription ->
-            ( { model | deviceEdit = Nothing }
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        DiscardEdits ->
+            ( { model | nodeEdit = Nothing }
             , Cmd.none
             )
 
-        ApiDelete id ->
-            -- optimistically update devices
+        ToggleExpChildren id ->
             let
-                devices =
-                    List.filter (\d -> d.id /= id) model.devices
+                nodes =
+                    model.nodes |> Maybe.map (toggleExpChildren id)
             in
-            ( { model | devices = devices }
+            ( { model | nodes = nodes }, Cmd.none )
+
+        ToggleExpDetail id ->
+            let
+                nodes =
+                    model.nodes |> Maybe.map (toggleExpDetail id)
+            in
+            ( { model | nodes = nodes }, Cmd.none )
+
+        AddNode id ->
+            ( { model | addNode = Just { typ = Nothing, parent = id } }, Cmd.none )
+
+        MsgNode id ->
+            ( { model | msgNode = Just { id = id, message = "" } }, Cmd.none )
+
+        MoveNode id parent ->
+            ( { model
+                | moveNode =
+                    Just
+                        { id = id
+                        , description = ""
+                        , oldParent = parent
+                        , newParent = Nothing
+                        }
+              }
+            , Cmd.none
+            )
+
+        DiscardMoveNode ->
+            ( { model | moveNode = Nothing }, Cmd.none )
+
+        UpdateMsg message ->
+            case model.msgNode of
+                Just msgNode ->
+                    ( { model | msgNode = Just { msgNode | message = message } }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        DiscardMsg ->
+            ( { model | msgNode = Nothing }, Cmd.none )
+
+        MoveNodeDescription desc ->
+            let
+                newId =
+                    model.nodes
+                        |> Maybe.andThen (findNode desc)
+                        |> Maybe.map .node
+                        |> Maybe.map .id
+
+                moveNode =
+                    model.moveNode
+                        |> Maybe.map
+                            (\mn ->
+                                { mn
+                                    | description = desc
+                                    , newParent = newId
+                                }
+                            )
+            in
+            ( { model | moveNode = moveNode }, Cmd.none )
+
+        SelectAddNodeType typ ->
+            case model.addNode of
+                Just add ->
+                    ( { model | addNode = Just { add | typ = Just typ } }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        DiscardAddNode ->
+            ( { model | addNode = Nothing }, Cmd.none )
+
+        ApiPostAddNode ->
+            -- FIXME optimistically update nodes
+            ( { model | addNode = Nothing }
+            , case model.addNode of
+                Just addNode ->
+                    case addNode.typ of
+                        Just typ ->
+                            Node.insert
+                                { token = model.auth.token
+                                , onResponse = ApiRespPostAddNode
+                                , node =
+                                    { id = ""
+                                    , typ = typ
+                                    , parent = addNode.parent
+                                    , points = []
+                                    }
+                                }
+
+                        Nothing ->
+                            Cmd.none
+
+                Nothing ->
+                    Cmd.none
+            )
+
+        ApiPostMoveNode ->
+            ( { model | moveNode = Nothing }
+            , case model.moveNode of
+                Just moveNode ->
+                    case moveNode.newParent of
+                        Just newParent ->
+                            Node.move
+                                { token = model.auth.token
+                                , id = moveNode.id
+                                , oldParent = moveNode.oldParent
+                                , newParent = newParent
+                                , onResponse = ApiRespPostMoveNode
+                                }
+
+                        Nothing ->
+                            Cmd.none
+
+                Nothing ->
+                    Cmd.none
+            )
+
+        ApiPostMsgNode ->
+            ( { model | msgNode = Nothing }
+            , case model.msgNode of
+                Just msgNode ->
+                    Node.message
+                        { token = model.auth.token
+                        , id = msgNode.id
+                        , message = msgNode.message
+                        , onResponse = ApiRespPostMsgNode
+                        }
+
+                Nothing ->
+                    Cmd.none
+            )
+
+        ApiDelete id ->
+            -- optimistically update nodes
+            let
+                nodes =
+                    -- FIXME Tree.filter (\d -> d.id /= id) model.nodes
+                    model.nodes
+            in
+            ( { model | nodes = nodes }
             , Node.delete { token = model.auth.token, id = id, onResponse = ApiRespDelete }
             )
 
@@ -173,10 +396,29 @@ update msg model =
             , updateNodes model
             )
 
-        ApiRespList devices ->
-            case devices of
-                Data.Success d ->
-                    ( { model | devices = d }, Cmd.none )
+        ApiRespList resp ->
+            case resp of
+                Data.Success nodes ->
+                    let
+                        maybeNew =
+                            nodeListToTree nodes
+                                |> Maybe.map populateHasChildren
+
+                        treeMerged =
+                            case ( model.nodes, maybeNew ) of
+                                ( Just current, Just new ) ->
+                                    Just <| mergeNodeTree current new
+
+                                ( _, Just new ) ->
+                                    Just new
+
+                                ( Just current, _ ) ->
+                                    Just current
+
+                                _ ->
+                                    Nothing
+                    in
+                    ( { model | nodes = treeMerged }, Cmd.none )
 
                 Data.Failure err ->
                     let
@@ -194,7 +436,7 @@ update msg model =
                         )
 
                     else
-                        ( popError "Error getting devices" err model
+                        ( popError "Error getting nodes" err model
                         , Cmd.none
                         )
 
@@ -234,6 +476,200 @@ update msg model =
                     ( model
                     , updateNodes model
                     )
+
+        ApiRespPostAddNode resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error adding node" err model
+                    , updateNodes model
+                    )
+
+                _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+        ApiRespPostMoveNode resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error moving node" err model
+                    , updateNodes model
+                    )
+
+                _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+        ApiRespPostMsgNode resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error messaging node" err model
+                    , updateNodes model
+                    )
+
+                _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+
+mergeNodeTree : Tree NodeView -> Tree NodeView -> Tree NodeView
+mergeNodeTree current new =
+    let
+        z =
+            Zipper.fromTree current
+    in
+    Tree.map
+        (\n ->
+            case Zipper.findFromRoot (\o -> o.node.id == n.node.id) z of
+                Just found ->
+                    let
+                        l =
+                            Zipper.label found
+                    in
+                    { n
+                        | expChildren = l.expChildren
+                        , expDetail = l.expDetail
+                    }
+
+                Nothing ->
+                    n
+        )
+        new
+
+
+toggleExpChildren : String -> Tree NodeView -> Tree NodeView
+toggleExpChildren id tree =
+    Tree.map
+        (\n ->
+            if n.node.id == id then
+                { n | expChildren = not n.expChildren }
+
+            else
+                n
+        )
+        tree
+
+
+toggleExpDetail : String -> Tree NodeView -> Tree NodeView
+toggleExpDetail id tree =
+    Tree.map
+        (\n ->
+            if n.node.id == id then
+                { n | expDetail = not n.expDetail }
+
+            else
+                n
+        )
+        tree
+
+
+findNode : String -> Tree NodeView -> Maybe NodeView
+findNode desc tree =
+    Zipper.findFromRoot
+        (\n -> Node.description n.node == desc)
+        (Zipper.fromTree tree)
+        |> Maybe.map Zipper.label
+
+
+nodeListToTree : List Node -> Maybe (Tree NodeView)
+nodeListToTree nodes =
+    List.Extra.find (\n -> n.parent == "") nodes
+        |> Maybe.map (populateChildren nodes)
+
+
+
+-- populateChildren takes a list of nodes with a parent field and converts
+-- this into a tree
+
+
+populateChildren : List Node -> Node -> Tree NodeView
+populateChildren nodes root =
+    Zipper.toTree <|
+        populateChildrenHelp
+            (Zipper.fromTree <| Tree.singleton (nodeToNodeView root))
+            nodes
+
+
+nodeToNodeView : Node -> NodeView
+nodeToNodeView node =
+    { node = node
+    , hasChildren = False
+    , expDetail = False
+    , expChildren = False
+    , mod = False
+    }
+
+
+populateChildrenHelp : Zipper NodeView -> List Node -> Zipper NodeView
+populateChildrenHelp z nodes =
+    case
+        Zipper.forward
+            (List.foldr
+                (\n zCur ->
+                    if (Zipper.label zCur).node.id == n.parent then
+                        Zipper.mapTree
+                            (\t ->
+                                Tree.appendChild
+                                    (Tree.singleton
+                                        (nodeToNodeView n)
+                                    )
+                                    t
+                            )
+                            zCur
+
+                    else
+                        zCur
+                )
+                z
+                nodes
+            )
+    of
+        Just zMod ->
+            populateChildrenHelp zMod nodes
+
+        Nothing ->
+            z
+
+
+populateHasChildren : Tree NodeView -> Tree NodeView
+populateHasChildren tree =
+    let
+        children =
+            Tree.children tree
+
+        hasChildren =
+            List.length children > 0
+
+        label =
+            Tree.label tree
+
+        node =
+            { label | hasChildren = hasChildren }
+    in
+    tree
+        |> Tree.replaceLabel node
+        |> Tree.replaceChildren
+            (List.map
+                (\c -> populateHasChildren c)
+                children
+            )
 
 
 popError : String -> Http.Error -> Model -> Model
@@ -302,190 +738,255 @@ viewNodes model =
         , spacing 24
         ]
     <|
-        List.map
-            (\d ->
-                viewNode model d.mod d.device
-            )
-        <|
-            mergeNodeEdit model.devices model.deviceEdit
+        case model.nodes of
+            Just tree ->
+                let
+                    treeWithEdits =
+                        mergeNodeEdit tree model.nodeEdit
+                in
+                viewNode model (Tree.label treeWithEdits) 0
+                    :: viewNodesHelp 1 model treeWithEdits
+
+            Nothing ->
+                [ text "No nodes to display" ]
 
 
-type alias NodeMod =
-    { device : Node
-    , mod : Bool
-    }
-
-
-mergeNodeEdit : List Node -> Maybe NodeEdit -> List NodeMod
-mergeNodeEdit devices devConfigEdit =
-    case devConfigEdit of
-        Just edit ->
-            List.map
-                (\d ->
-                    if edit.id == d.id then
-                        { device =
-                            { d | points = Point.updatePoint d.points edit.point }
-                        , mod = True
-                        }
-
-                    else
-                        { device = d, mod = False }
-                )
-                devices
-
-        Nothing ->
-            List.map (\d -> { device = d, mod = False }) devices
-
-
-viewNode : Model -> Bool -> Node -> Element Msg
-viewNode model modified device =
+viewNodesHelp :
+    Int
+    -> Model
+    -> Tree NodeView
+    -> List (Element Msg)
+viewNodesHelp depth model tree =
     let
-        sysState =
-            case Point.getPoint device.points "" Point.typeSysState 0 of
-                Just point ->
-                    round point.value
+        node =
+            Tree.label tree
 
-                Nothing ->
-                    0
+        children =
+            if node.expChildren then
+                Tree.children tree
 
-        sysStateIcon =
-            case sysState of
-                -- not sure why I can't use defines in Node.elm here
-                1 ->
-                    Icon.power
-
-                2 ->
-                    Icon.cloudOff
-
-                3 ->
-                    Icon.cloud
-
-                _ ->
-                    Element.none
-
-        background =
-            case sysState of
-                3 ->
-                    Style.colors.white
-
-                _ ->
-                    Style.colors.gray
-
-        hwVersion =
-            case Point.getPoint device.points "" Point.typeHwVersion 0 of
-                Just point ->
-                    "HW: " ++ point.text
-
-                Nothing ->
-                    ""
-
-        osVersion =
-            case Point.getPoint device.points "" Point.typeOSVersion 0 of
-                Just point ->
-                    "OS: " ++ point.text
-
-                Nothing ->
-                    ""
-
-        appVersion =
-            case Point.getPoint device.points "" Point.typeAppVersion 0 of
-                Just point ->
-                    "App: " ++ point.text
-
-                Nothing ->
-                    ""
-
-        latestPointTime =
-            case Point.getLatest device.points of
-                Just point ->
-                    point.time
-
-                Nothing ->
-                    Time.millisToPosix 0
+            else
+                []
     in
-    column
-        [ width fill
-        , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
-        , Border.color colors.black
-        , Background.color background
-        , spacing 6
-        ]
-        [ wrappedRow [ spacing 10 ]
-            [ sysStateIcon
-            , viewNodeId device.id
-            , if model.auth.isRoot then
-                Icon.x (ApiDelete device.id)
+    List.foldr
+        (\child ret ->
+            ret
+                ++ viewNode model (Tree.label child) depth
+                :: viewNodesHelp (depth + 1) model child
+        )
+        []
+        children
 
-              else
-                Element.none
-            , Input.text
-                [ Background.color background ]
-                { onChange = \d -> EditNodeDescription device.id d
-                , text = Node.description device
-                , placeholder = Just <| Input.placeholder [] <| text "device description"
-                , label = Input.labelHidden "device description"
-                }
-            , if modified then
-                Icon.check
-                    (ApiPostPoint device.id
-                        { typ = Point.typeDescription
-                        , id = ""
-                        , index = 0
-                        , time = model.now
-                        , value = 0
-                        , text = Node.description device
-                        , min = 0
-                        , max = 0
-                        }
-                    )
 
-              else
-                Element.none
-            , if modified then
-                Icon.x DiscardEditedNodeDescription
+viewNode : Model -> NodeView -> Int -> Element Msg
+viewNode model node depth =
+    let
+        nodeView =
+            case node.node.typ of
+                "user" ->
+                    NodeUser.view
 
-              else
-                Element.none
+                "group" ->
+                    NodeGroup.view
+
+                _ ->
+                    NodeDevice.view
+    in
+    el [ width fill, paddingEach { top = 0, right = 0, bottom = 0, left = depth * 35 } ] <|
+        row [ spacing 6 ]
+            [ el [ alignTop ] <|
+                if not node.hasChildren then
+                    Icon.blank
+
+                else if node.expChildren then
+                    Icon.arrowDown (ToggleExpChildren node.node.id)
+
+                else
+                    Icon.arrowRight (ToggleExpChildren node.node.id)
+            , el [ alignTop ] <|
+                if node.expDetail then
+                    Icon.minimize (ToggleExpDetail node.node.id)
+
+                else
+                    Icon.maximize (ToggleExpDetail node.node.id)
+            , column
+                [ spacing 6, width fill ]
+                [ nodeView
+                    { isRoot = model.auth.isRoot
+                    , now = model.now
+                    , zone = model.zone
+                    , modified = node.mod
+                    , node = node.node
+                    , expDetail = node.expDetail
+                    , onApiDelete = ApiDelete
+                    , onEditNodePoint = EditNodePoint
+                    , onDiscardEdits = DiscardEdits
+                    , onApiPostPoints = ApiPostPoints
+                    }
+                , if node.expDetail then
+                    case
+                        ( model.addNode
+                        , model.moveNode
+                        , model.msgNode
+                        )
+                    of
+                        ( Just add, _, _ ) ->
+                            if add.parent == node.node.id then
+                                viewAddNode add
+
+                            else
+                                viewNodeOperations node.node.id node.node.parent
+
+                        ( _, Just move, _ ) ->
+                            if move.id == node.node.id then
+                                viewMoveNode move
+
+                            else
+                                viewNodeOperations node.node.id node.node.parent
+
+                        ( _, _, Just msg ) ->
+                            if msg.id == node.node.id then
+                                viewMsgNode msg
+
+                            else
+                                viewNodeOperations node.node.id node.node.parent
+
+                        ( _, _, _ ) ->
+                            viewNodeOperations node.node.id node.node.parent
+
+                  else
+                    Element.none
+                ]
             ]
-        , viewPoints <| Point.filterSpecialPoints device.points
-        , text ("Last update: " ++ Iso8601.toDateTimeString model.zone latestPointTime)
-        , text
-            ("Time since last update: "
-                ++ Duration.toString
-                    (Time.posixToMillis model.now
-                        - Time.posixToMillis latestPointTime
-                    )
-            )
-        , if hwVersion /= "" && osVersion /= "" && appVersion /= "" then
-            text
-                ("Version: "
-                    ++ hwVersion
-                    ++ " "
-                    ++ osVersion
-                    ++ " "
-                    ++ appVersion
-                )
+
+
+viewNodeOperations : String -> String -> Element Msg
+viewNodeOperations id parent =
+    row [ spacing 6 ]
+        [ Icon.plusCircle (AddNode id)
+        , if parent /= "" then
+            Icon.move (MoveNode id parent)
 
           else
             Element.none
+        , Icon.message (MsgNode id)
         ]
 
 
-viewNodeId : String -> Element Msg
-viewNodeId id =
-    el
-        [ padding 16
-        , size.heading
-        ]
-    <|
-        text id
+viewMoveNode : NodeMove -> Element Msg
+viewMoveNode move =
+    el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
+        column [ spacing 10 ]
+            [ Input.text []
+                { text = move.description
+                , placeholder = Just <| Input.placeholder [] <| text "description"
+                , label = Input.labelAbove [] <| text "New parent node: "
+                , onChange = MoveNodeDescription
+                }
+            , Form.buttonRow
+                [ case move.newParent of
+                    Just _ ->
+                        Form.button
+                            { label = "move"
+                            , color = Style.colors.blue
+                            , onPress = ApiPostMoveNode
+                            }
+
+                    Nothing ->
+                        Element.none
+                , Form.button
+                    { label = "cancel"
+                    , color = Style.colors.gray
+                    , onPress = DiscardMoveNode
+                    }
+                ]
+            ]
 
 
-viewPoints : List Point.Point -> Element Msg
-viewPoints ios =
-    column
-        [ padding 16
-        , spacing 6
+viewAddNode : NodeToAdd -> Element Msg
+viewAddNode add =
+    column [ spacing 10 ]
+        [ Input.radio [ spacing 6 ]
+            { onChange = SelectAddNodeType
+            , selected = add.typ
+            , label = Input.labelAbove [] (el [ padding 12 ] <| text "Select node type to add: ")
+            , options =
+                [ Input.option Node.typeUser (text "User")
+                , Input.option Node.typeGroup (text "Group")
+                ]
+            }
+        , Form.buttonRow
+            [ case add.typ of
+                Just _ ->
+                    Form.button
+                        { label = "add"
+                        , color = Style.colors.blue
+                        , onPress = ApiPostAddNode
+                        }
+
+                Nothing ->
+                    Element.none
+            , Form.button
+                { label = "cancel"
+                , color = Style.colors.gray
+                , onPress = DiscardAddNode
+                }
+            ]
         ]
-    <|
-        List.map (Point.renderPoint >> text) ios
+
+
+viewMsgNode : NodeMessage -> Element Msg
+viewMsgNode msg =
+    el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
+        column
+            [ width fill, spacing 32 ]
+            [ Input.multiline [ width fill ]
+                { onChange = UpdateMsg
+                , text = msg.message
+                , placeholder = Nothing
+                , label = Input.labelAbove [] <| text "Send message to users:"
+                , spellcheck = True
+                }
+            , Form.buttonRow
+                [ Form.button
+                    { label = "send now"
+                    , color = Style.colors.blue
+                    , onPress = ApiPostMsgNode
+                    }
+                , Form.button
+                    { label = "cancel"
+                    , color = Style.colors.gray
+                    , onPress = DiscardMsg
+                    }
+                ]
+            , paragraph [] [ text "Considering adding your name at the end of the message. A personal touch is always nice! :-)" ]
+            ]
+
+
+mergeNodeEdit : Tree NodeView -> Maybe NodeEdit -> Tree NodeView
+mergeNodeEdit nodes nodeEdit =
+    case nodeEdit of
+        Just edit ->
+            Tree.map
+                (\n ->
+                    if edit.id == n.node.id then
+                        let
+                            node =
+                                n.node
+                        in
+                        { n
+                            | mod = True
+                            , node =
+                                { node
+                                    | points =
+                                        Point.updatePoints node.points edit.points
+                                }
+                        }
+
+                    else
+                        { n | mod = False }
+                )
+                nodes
+
+        Nothing ->
+            Tree.map (\n -> { n | mod = False }) nodes

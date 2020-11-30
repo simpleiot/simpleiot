@@ -49,9 +49,9 @@ require (
 replace github.com/nats-io/nats.go => github.com/cbrake/nats.go v1.10.1-0.20200817210920-7a8e05e18c84
 
 replace (
-	github.com/genjidb/genji => github.com/genjidb/genji v0.9.1-0.20201118115655-7d37cc6756ec
-	github.com/genjidb/genji/cmd/genji => github.com/genjidb/genji/cmd/genji v0.9.1-0.20201118115655-7d37cc6756ec
-	github.com/genjidb/genji/engine/badgerengine => github.com/genjidb/genji/engine/badgerengine v0.9.1-0.20201118115655-7d37cc6756ec
+	github.com/genjidb/genji => github.com/genjidb/genji v0.9.1-0.20201128170130-7bce05780a49
+	github.com/genjidb/genji/cmd/genji => github.com/genjidb/genji/cmd/genji v0.9.1-0.20201128170130-7bce05780a49
+	github.com/genjidb/genji/engine/badgerengine => github.com/genjidb/genji/engine/badgerengine v0.9.1-0.20201128170130-7bce05780a49
 )
 
 go 1.14

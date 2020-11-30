@@ -22,82 +22,80 @@ type SwUpdateState struct {
 }
 
 // Node represents the state of a device. UUID is recommended
-// for ID. Parents is a list of devices this device is a child of. If
-// Parents has a length of zero, this indicates it is a top level device.
-// Groups and Rules likewise list groups and rules this device
-// belongs to.
+// for ID to prevent collisions is distributed instances.
 type Node struct {
-	ID      string   `json:"id" boltholdKey:"ID"`
-	Points  Points   `json:"points"`
-	Parents []string `json:"devices"`
-	Groups  []string `json:"groups"`
-	Rules   []string `json:"rules"`
+	ID     string   `json:"id" boltholdKey:"ID"`
+	Type   string   `json:"type"`
+	Points Points   `json:"points"`
+	Groups []string `json:"groups"`
+	Rules  []string `json:"rules"`
 }
 
 // Desc returns Description if set, otherwise ID
-func (d *Node) Desc() string {
-	desc, ok := d.Points.Text("", PointTypeDescription, 0)
+func (n *Node) Desc() string {
+	desc, ok := n.Points.Text("", PointTypeDescription, 0)
 	if ok && desc != "" {
 		return desc
 	}
 
-	return d.ID
+	return n.ID
 }
 
 // SetState sets the device state
-func (d *Node) SetState(state int) {
-	d.ProcessPoint(Point{
+func (n *Node) SetState(state int) {
+	n.ProcessPoint(Point{
+		Time:  time.Now(),
 		Type:  PointTypeSysState,
 		Value: float64(state),
 	})
 }
 
 // SetCmdPending for device
-func (d *Node) SetCmdPending(pending bool) {
+func (n *Node) SetCmdPending(pending bool) {
 	val := 0.0
 	if pending {
 		val = 1
 	}
-	d.ProcessPoint(Point{
+	n.ProcessPoint(Point{
 		Type:  PointTypeCmdPending,
 		Value: val,
 	})
 }
 
 // SetSwUpdateState for a device
-func (d *Node) SetSwUpdateState(state SwUpdateState) {
+func (n *Node) SetSwUpdateState(state SwUpdateState) {
 	running := 0.0
 	if state.Running {
 		running = 1
 	}
-	d.ProcessPoint(Point{
+	n.ProcessPoint(Point{
 		Type:  PointTypeSwUpdateRunning,
 		Value: running,
 	})
 
-	d.ProcessPoint(Point{
+	n.ProcessPoint(Point{
 		Type: PointTypeSwUpdateError,
 		Text: state.Error,
 	})
 
-	d.ProcessPoint(Point{
+	n.ProcessPoint(Point{
 		Type:  PointTypeSwUpdatePercComplete,
 		Value: float64(state.PercentDone),
 	})
 }
 
 // ProcessPoint takes a point for a device and adds/updates its array of points
-func (d *Node) ProcessPoint(pIn Point) {
+func (n *Node) ProcessPoint(pIn Point) {
 	pFound := false
-	for i, p := range d.Points {
+	for i, p := range n.Points {
 		if p.ID == pIn.ID && p.Type == pIn.Type && p.Index == pIn.Index {
 			pFound = true
-			d.Points[i] = pIn
+			n.Points[i] = pIn
 		}
 	}
 
 	if !pFound {
-		d.Points = append(d.Points, pIn)
+		n.Points = append(n.Points, pIn)
 	}
 }
 
@@ -107,14 +105,14 @@ func (d *Node) ProcessPoint(pIn Point) {
 // for X minutes. However, with points that could represent a config
 // change as well. Eventually we may want to improve this to look
 // at point types, but this is probably OK for now.
-func (d *Node) UpdateState() (int, bool) {
-	sysStateF, _ := d.Points.Value("", PointTypeSysState, 0)
+func (n *Node) UpdateState() (int, bool) {
+	sysStateF, _ := n.Points.Value("", PointTypeSysState, 0)
 	sysState := int(sysStateF)
 	switch sysState {
 	case SysStateUnknown, SysStateOnline:
-		if time.Since(d.Points.LatestTime()) > 15*time.Minute {
+		if time.Since(n.Points.LatestTime()) > 15*time.Minute {
 			// mark device as offline
-			d.SetState(SysStateOffline)
+			n.SetState(SysStateOffline)
 			return SysStateOffline, true
 		}
 	}
@@ -123,9 +121,38 @@ func (d *Node) UpdateState() (int, bool) {
 }
 
 // State returns the current state of a device
-func (d *Node) State() int {
-	s, _ := d.Points.Value("", PointTypeSysState, 0)
+func (n *Node) State() int {
+	s, _ := n.Points.Value("", PointTypeSysState, 0)
 	return int(s)
+}
+
+// ToUser converts a node to user struct
+func (n *Node) ToUser() User {
+	first, _ := n.Points.Text("", PointTypeFirstName, 0)
+	last, _ := n.Points.Text("", PointTypeLastName, 0)
+	phone, _ := n.Points.Text("", PointTypePhone, 0)
+	email, _ := n.Points.Text("", PointTypeEmail, 0)
+	pass, _ := n.Points.Text("", PointTypePass, 0)
+
+	return User{
+		ID:        n.ID,
+		FirstName: first,
+		LastName:  last,
+		Phone:     phone,
+		Email:     email,
+		Pass:      pass,
+	}
+}
+
+// ToNodeEdge converts to data structure used in API
+// requests
+func (n *Node) ToNodeEdge(parent string) NodeEdge {
+	return NodeEdge{
+		ID:     n.ID,
+		Type:   n.Type,
+		Parent: parent,
+		Points: n.Points,
+	}
 }
 
 // define valid commands
@@ -147,4 +174,21 @@ type NodeVersion struct {
 	OS  string `json:"os"`
 	App string `json:"app"`
 	HW  string `json:"hw"`
+}
+
+// NodeEdge combines node and edge data, used for APIs
+type NodeEdge struct {
+	ID     string `json:"id" boltholdKey:"ID"`
+	Type   string `json:"type"`
+	Parent string `json:"parent"`
+	Points Points `json:"points"`
+}
+
+// ToNode converts to structure stored in db
+func (n *NodeEdge) ToNode() Node {
+	return Node{
+		ID:     n.ID,
+		Type:   n.Type,
+		Points: n.Points,
+	}
 }

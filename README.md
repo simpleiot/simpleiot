@@ -9,7 +9,7 @@ portal, etc. are needed for every IoT system. This project provides a solid
 foundation of common features so that you can focus on the specific problem you
 are solving.
 
-A few guiding principles.
+## Guiding principles
 
 1. Simple concepts are flexible and scale well.
 1. There are more problems to solve than people to solve them, thus it makes
@@ -21,7 +21,7 @@ A few guiding principles.
    [long tail](https://www.linkedin.com/pulse/long-tail-iot-param-singh) of IoT,
    which is our focus. This is not an "enterprise" platform.
 1. There is value in custom solutions (programming vs drag-n-drop).
-1. There is value in running our own platform.
+1. There is value in running/owning our own platform.
 1. A single engineer should be able to build and deploy a custom IoT system.
 1. We don't need to spend gobs of time on operations. For smaller deployments,
    we deploy one binary to a cloud server and we are done with operations. We
@@ -33,11 +33,43 @@ A few guiding principles.
    world. Thus a single server that can be quickly rebuilt as needed is
    adequate.
 
+## Core features/requirements:
+
+1. Runs in cloud and edge instances.
+1. Configuration changes can be made at either cloud, UI, or edge and are
+   synchronized efficiently in any direction.
+1. Efficient use of network bandwidth for edge systems as most are connected via
+   low cost cellular plans.
+1. Rules can run in cloud or edge devices depending on action required (sending
+   notifications or controlling outputs).
+1. System supports user authentication and grouping users and devices at
+   multiple levels.
+1. User interface updates to changes in real time.
+
+IoT Systems are inherently distributed, so even though we prefer a monolith for
+a cloud service, we can't get around the fact that we also need to synchronize
+data with edge devices and user interfaces.
+
+![System topology](docs/distributed.png)
+
+Simple IoT is build on simple data structures arranged in a graph that allows
+for very flexible configurations.
+
+![Nodes](docs/nodes2.png)
+
+Because the core of Simple IoT is designed with flexible data structures, adding
+functionality and supporting new devices is usually as simple as creating your
+custom edge device code and modifying the UI to display and configure your
+device features.
+
+![What changes](docs/constant-vs-varying-system-parts.png)
+
 Though we are focusing on smaller deployments initially, there is no reason
 Simple IoT can't scale to large systems by swapping out the internal database
 for MongoDB/Dgraph/InfluxDB/etc.
 
-See [vision](docs/vision.md) for addition discussion.
+See [vision](docs/vision.md) and [architecture](docs/architecture.md) for
+addition discussion on these points.
 
 This project was developed while building real-world applications and has
 primarily been driven by these project requirements. This project provides

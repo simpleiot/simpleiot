@@ -15,33 +15,18 @@ navbar :
     -> Element msg
 navbar options =
     row [ width fill, spacing 20 ]
-        (link
-            ( "SIOT", Route.Top )
-            :: (if options.authenticated then
-                    if options.isRoot then
-                        [ link ( "users", Route.Users )
-                        , link ( "groups", Route.Groups )
-                        , link ( "messaging", Route.Msg )
-                        ]
+        [ link ( "SIOT", Route.Top )
+        , el [ alignRight ] <|
+            if options.authenticated then
+                Form.button
+                    { label = "sign out " ++ options.email
+                    , color = Style.colors.blue
+                    , onPress = options.onSignOut
+                    }
 
-                    else
-                        [ Element.none ]
-
-                else
-                    [ Element.none ]
-               )
-            ++ [ el [ alignRight ] <|
-                    if options.authenticated then
-                        Form.button
-                            { label = "sign out " ++ options.email
-                            , color = Style.colors.blue
-                            , onPress = options.onSignOut
-                            }
-
-                    else
-                        Element.none
-               ]
-        )
+            else
+                Element.none
+        ]
 
 
 viewButtonLink : ( String, Route ) -> Element msg

@@ -1,13 +1,25 @@
 module UI.Icon exposing
-    ( check
+    ( arrowDown
+    , arrowRight
+    , blank
+    , check
     , cloud
     , cloudOff
+    , device
+    , maximize
+    , message
+    , minimize
+    , minus
+    , move
     , plus
+    , plusCircle
     , power
+    , user
     , userCheck
     , userMinus
     , userPlus
     , userX
+    , users
     , x
     )
 
@@ -59,6 +71,11 @@ plus msg =
     button FeatherIcons.plus msg
 
 
+plusCircle : msg -> Element msg
+plusCircle msg =
+    button FeatherIcons.plusCircle msg
+
+
 userPlus : msg -> Element msg
 userPlus msg =
     button FeatherIcons.userPlus msg
@@ -79,6 +96,36 @@ userCheck msg =
     button FeatherIcons.userCheck msg
 
 
+move : msg -> Element msg
+move msg =
+    button FeatherIcons.move msg
+
+
+arrowRight : msg -> Element msg
+arrowRight msg =
+    button FeatherIcons.chevronRight msg
+
+
+arrowDown : msg -> Element msg
+arrowDown msg =
+    button FeatherIcons.chevronDown msg
+
+
+minimize : msg -> Element msg
+minimize msg =
+    button FeatherIcons.minimize2 msg
+
+
+maximize : msg -> Element msg
+maximize msg =
+    button FeatherIcons.maximize2 msg
+
+
+message : msg -> Element msg
+message msg =
+    button FeatherIcons.messageSquare msg
+
+
 cloudOff : Element msg
 cloudOff =
     icon FeatherIcons.cloudOff
@@ -92,3 +139,28 @@ cloud =
 power : Element msg
 power =
     icon FeatherIcons.power
+
+
+user : Element msg
+user =
+    icon FeatherIcons.user
+
+
+users : Element msg
+users =
+    icon FeatherIcons.users
+
+
+device : Element msg
+device =
+    icon FeatherIcons.hardDrive
+
+
+minus : Element msg
+minus =
+    icon FeatherIcons.minus
+
+
+blank : Element msg
+blank =
+    el [ width (px 33), height (px 33) ] <| text ""
