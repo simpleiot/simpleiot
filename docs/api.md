@@ -35,6 +35,8 @@ Most APIs that do not return specific data (update/delete) return a
     - GET: gets a command for a node and clears it from the queue. Also clears
       the CmdPending flag in the Device state.
     - POST: posts a cmd for the node and sets the node CmdPending flag.
+  - `/v1/nodes/:id/msg`
+    - POST: send a message to all node users and descendents
 - Auth
   - `/v1/auth`
     - POST: accepts `email` and `password` as form values, and returns a JWT

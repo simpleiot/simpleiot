@@ -325,12 +325,6 @@ func (gen *Db) NodeDelete(id string) error {
 	})
 }
 
-// NodeUpdateGroups updates the groups for a node.
-func (gen *Db) NodeUpdateGroups(id string, groups []string) error {
-	return gen.store.Exec(`update nodes set groups = ? where id = ?`,
-		groups, id)
-}
-
 var uuidZero uuid.UUID
 var zero string
 
@@ -618,6 +612,38 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 			}
 
 			nodes = append(nodes, childNodes...)
+		}
+
+		return nil
+	})
+
+	return nodes, err
+}
+
+// NodeChildren returns child nodes for a particular node ID and type
+func (gen *Db) NodeChildren(id, typ string) ([]data.NodeEdge, error) {
+	var nodes []data.NodeEdge
+
+	err := gen.store.View(func(tx *genji.Tx) error {
+		rootNode, err := txNode(tx, id)
+		if err != nil {
+			return err
+		}
+		nodes = append(nodes, rootNode.ToNodeEdge(""))
+
+		childNodes, err := txFindChildNodes(tx, id)
+		if err != nil {
+			return err
+		}
+
+		if typ == "" {
+			nodes = append(nodes, childNodes...)
+		} else {
+			for _, child := range childNodes {
+				if child.Type == typ {
+					nodes = append(nodes, child)
+				}
+			}
 		}
 
 		return nil

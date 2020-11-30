@@ -6,6 +6,7 @@ module Api.Node exposing
     , getCmd
     , insert
     , list
+    , message
     , move
     , postCmd
     , postPoints
@@ -257,6 +258,29 @@ postPoints options =
         , url = Url.Builder.absolute [ "v1", "nodes", options.id, "points" ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body = options.points |> Point.encodeList |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+message :
+    { token : String
+    , id : String
+    , message : String
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+message options =
+    let
+        emptyPoint =
+            Point.empty
+    in
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "msg" ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body = { emptyPoint | text = options.message } |> Point.encode |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }

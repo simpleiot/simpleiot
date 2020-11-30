@@ -58,6 +58,7 @@ type alias Model =
     , error : Maybe String
     , addNode : Maybe NodeToAdd
     , moveNode : Maybe NodeMove
+    , msgNode : Maybe NodeMessage
     }
 
 
@@ -90,6 +91,12 @@ type alias NodeMove =
     }
 
 
+type alias NodeMessage =
+    { id : String
+    , message : String
+    }
+
+
 defaultModel : Key -> Model
 defaultModel key =
     Model
@@ -99,6 +106,7 @@ defaultModel key =
         (Time.millisToPosix 0)
         Nothing
         { email = "", token = "", isRoot = False }
+        Nothing
         Nothing
         Nothing
         Nothing
@@ -139,20 +147,25 @@ type Msg
     | ToggleExpDetail String
     | DiscardEdits
     | AddNode String
+    | MsgNode String
     | DiscardAddNode
     | MoveNode String String
     | DiscardMoveNode
+    | UpdateMsg String
+    | DiscardMsg
     | MoveNodeDescription String
     | SelectAddNodeType String
     | ApiDelete String
     | ApiPostPoints String
     | ApiPostAddNode
     | ApiPostMoveNode
+    | ApiPostMsgNode
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
     | ApiRespPostAddNode (Data Response)
     | ApiRespPostMoveNode (Data Response)
+    | ApiRespPostMsgNode (Data Response)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -242,6 +255,9 @@ update msg model =
         AddNode id ->
             ( { model | addNode = Just { typ = Nothing, parent = id } }, Cmd.none )
 
+        MsgNode id ->
+            ( { model | msgNode = Just { id = id, message = "" } }, Cmd.none )
+
         MoveNode id parent ->
             ( { model
                 | moveNode =
@@ -257,6 +273,17 @@ update msg model =
 
         DiscardMoveNode ->
             ( { model | moveNode = Nothing }, Cmd.none )
+
+        UpdateMsg message ->
+            case model.msgNode of
+                Just msgNode ->
+                    ( { model | msgNode = Just { msgNode | message = message } }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        DiscardMsg ->
+            ( { model | msgNode = Nothing }, Cmd.none )
 
         MoveNodeDescription desc ->
             let
@@ -330,6 +357,21 @@ update msg model =
 
                         Nothing ->
                             Cmd.none
+
+                Nothing ->
+                    Cmd.none
+            )
+
+        ApiPostMsgNode ->
+            ( { model | msgNode = Nothing }
+            , case model.msgNode of
+                Just msgNode ->
+                    Node.message
+                        { token = model.auth.token
+                        , id = msgNode.id
+                        , message = msgNode.message
+                        , onResponse = ApiRespPostMsgNode
+                        }
 
                 Nothing ->
                     Cmd.none
@@ -461,6 +503,23 @@ update msg model =
 
                 Data.Failure err ->
                     ( popError "Error moving node" err model
+                    , updateNodes model
+                    )
+
+                _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+        ApiRespPostMsgNode resp ->
+            case resp of
+                Data.Success _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error messaging node" err model
                     , updateNodes model
                     )
 
@@ -764,26 +823,39 @@ viewNode model node depth =
                     , onDiscardEdits = DiscardEdits
                     , onApiPostPoints = ApiPostPoints
                     }
-                , case ( node.expDetail, model.addNode, model.moveNode ) of
-                    ( False, _, _ ) ->
-                        Element.none
+                , if node.expDetail then
+                    case
+                        ( model.addNode
+                        , model.moveNode
+                        , model.msgNode
+                        )
+                    of
+                        ( Just add, _, _ ) ->
+                            if add.parent == node.node.id then
+                                viewAddNode add
 
-                    ( True, Just add, _ ) ->
-                        if add.parent == node.node.id then
-                            viewAddNode add
+                            else
+                                viewNodeOperations node.node.id node.node.parent
 
-                        else
+                        ( _, Just move, _ ) ->
+                            if move.id == node.node.id then
+                                viewMoveNode move
+
+                            else
+                                viewNodeOperations node.node.id node.node.parent
+
+                        ( _, _, Just msg ) ->
+                            if msg.id == node.node.id then
+                                viewMsgNode msg
+
+                            else
+                                viewNodeOperations node.node.id node.node.parent
+
+                        ( _, _, _ ) ->
                             viewNodeOperations node.node.id node.node.parent
 
-                    ( True, _, Just move ) ->
-                        if move.id == node.node.id then
-                            viewMoveNode move
-
-                        else
-                            viewNodeOperations node.node.id node.node.parent
-
-                    ( True, _, _ ) ->
-                        viewNodeOperations node.node.id node.node.parent
+                  else
+                    Element.none
                 ]
             ]
 
@@ -797,6 +869,7 @@ viewNodeOperations id parent =
 
           else
             Element.none
+        , Icon.message (MsgNode id)
         ]
 
 
@@ -858,6 +931,33 @@ viewAddNode add =
                 , onPress = DiscardAddNode
                 }
             ]
+        ]
+
+
+viewMsgNode : NodeMessage -> Element Msg
+viewMsgNode msg =
+    column
+        [ width fill, spacing 32 ]
+        [ Input.multiline [ width fill ]
+            { onChange = UpdateMsg
+            , text = msg.message
+            , placeholder = Nothing
+            , label = Input.labelAbove [] <| text "Message to send:"
+            , spellcheck = True
+            }
+        , Form.buttonRow
+            [ Form.button
+                { label = "send now"
+                , color = Style.colors.blue
+                , onPress = ApiPostMsgNode
+                }
+            , Form.button
+                { label = "cancel"
+                , color = Style.colors.gray
+                , onPress = DiscardMsg
+                }
+            ]
+        , paragraph [] [ text "Considering adding your name at the end of the message. A personal touch is always nice! :-)" ]
         ]
 
 

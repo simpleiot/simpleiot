@@ -24,8 +24,6 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		h.NodesHandler.ServeHTTP(res, req)
 	case "auth":
 		h.AuthHandler.ServeHTTP(res, req)
-	case "msg":
-		h.MsgHandler.ServeHTTP(res, req)
 	default:
 		http.Error(res, "Not Found", http.StatusNotFound)
 	}
@@ -35,8 +33,8 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 func NewV1Handler(args ServerArgs) http.Handler {
 
 	return &V1{
-		NodesHandler: NewNodesHandler(args.DbInst, args.JwtAuth, args.AuthToken, args.NH),
-		AuthHandler:  NewAuthHandler(args.DbInst, args.JwtAuth),
-		MsgHandler:   NewMsgHandler(args.DbInst, args.JwtAuth, args.Messenger),
+		NodesHandler: NewNodesHandler(args.DbInst, args.JwtAuth,
+			args.AuthToken, args.NH, args.Messenger),
+		AuthHandler: NewAuthHandler(args.DbInst, args.JwtAuth),
 	}
 }

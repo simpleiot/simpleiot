@@ -7,6 +7,7 @@ module UI.Icon exposing
     , cloudOff
     , device
     , maximize
+    , message
     , minimize
     , minus
     , move
@@ -118,6 +119,11 @@ minimize msg =
 maximize : msg -> Element msg
 maximize msg =
     button FeatherIcons.maximize2 msg
+
+
+message : msg -> Element msg
+message msg =
+    button FeatherIcons.messageSquare msg
 
 
 cloudOff : Element msg
