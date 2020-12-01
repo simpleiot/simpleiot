@@ -15,6 +15,8 @@ module Api.Node exposing
     , sysStatePowerOff
     , typeDevice
     , typeGroup
+    , typeModbus
+    , typeModbusIO
     , typeUser
     )
 
@@ -56,6 +58,16 @@ typeGroup =
 typeUser : String
 typeUser =
     "user"
+
+
+typeModbus : String
+typeModbus =
+    "modbus"
+
+
+typeModbusIO : String
+typeModbusIO =
+    "modbusIo"
 
 
 type alias Node =

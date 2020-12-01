@@ -11,16 +11,24 @@ module Api.Point exposing
     , newText
     , newValue
     , renderPoint
+    , typeAddress
     , typeAppVersion
+    , typeBaud
     , typeCmdPending
+    , typeDataFormat
     , typeDescription
     , typeEmail
     , typeFirstName
     , typeHwVersion
+    , typeID
     , typeLastName
+    , typeModbusIOType
     , typeOSVersion
+    , typeOffset
     , typePass
     , typePhone
+    , typePort
+    , typeScale
     , typeStartApp
     , typeStartSystem
     , typeSwUpdateError
@@ -28,10 +36,20 @@ module Api.Point exposing
     , typeSwUpdateRunning
     , typeSwUpdateState
     , typeSysState
+    , typeUnits
     , typeUpdateApp
     , typeUpdateOS
+    , typeValue
     , updatePoint
     , updatePoints
+    , valueFLOAT32
+    , valueINT16
+    , valueINT32
+    , valueModbusCoil
+    , valueModbusInput
+    , valueModbusRegister
+    , valueUINT16
+    , valueUINT32
     )
 
 import Iso8601
@@ -47,6 +65,26 @@ import Time
 typeDescription : String
 typeDescription =
     "description"
+
+
+typeScale : String
+typeScale =
+    "scale"
+
+
+typeOffset : String
+typeOffset =
+    "offset"
+
+
+typeUnits : String
+typeUnits =
+    "units"
+
+
+typeValue : String
+typeValue =
+    "value"
 
 
 typeCmdPending : String
@@ -137,6 +175,76 @@ typePhone =
 typePass : String
 typePass =
     "pass"
+
+
+typePort : String
+typePort =
+    "port"
+
+
+typeBaud : String
+typeBaud =
+    "baud"
+
+
+typeID : String
+typeID =
+    "id"
+
+
+typeAddress : String
+typeAddress =
+    "address"
+
+
+typeModbusIOType : String
+typeModbusIOType =
+    "modbusIoType"
+
+
+valueModbusInput : String
+valueModbusInput =
+    "modbusInput"
+
+
+valueModbusCoil : String
+valueModbusCoil =
+    "modbusCoil"
+
+
+valueModbusRegister : String
+valueModbusRegister =
+    "modbusRegister"
+
+
+typeDataFormat : String
+typeDataFormat =
+    "dataFormat"
+
+
+valueUINT16 : String
+valueUINT16 =
+    "uint16"
+
+
+valueINT16 : String
+valueINT16 =
+    "int16"
+
+
+valueUINT32 : String
+valueUINT32 =
+    "uint32"
+
+
+valueINT32 : String
+valueINT32 =
+    "int32"
+
+
+valueFLOAT32 : String
+valueFLOAT32 =
+    "float32"
 
 
 

@@ -5,6 +5,12 @@ package data
 const (
 	// general point types
 	PointTypeDescription string = "description"
+	PointTypeScale              = "scale"
+	PointTypeOffset             = "offset"
+	PointTypeUnits              = "units"
+	PointTypeValue              = "value"
+	PointTypeID                 = "id"
+	PointTypeAddress            = "address"
 
 	// An device node describes an phyical device -- it may be the
 	// cloud server, gateway, etc
@@ -31,6 +37,28 @@ const (
 	PointTypePhone     = "phone"
 	PointTypeEmail     = "email"
 	PointTypePass      = "pass"
+
+	// modbus nodes
+	// in modbus land, terminology is a big backwards, client is master,
+	// and server is slave.
+	NodeTypeModbusClient = "modbusClient"
+	NodeTypeModbusServer = "modbusServer"
+	PointTypePort        = "port"
+	PointTypeBaud        = "baud"
+
+	NodeTypeModbusIO = "modbusIO"
+
+	PointTypeModbusIOType    = "modbusIoType"
+	PointValueModbusInput    = "modbusInput"
+	PointValueModbusCoil     = "modbusCoil"
+	PointValueModbusRegister = "modbusRegister"
+
+	PointTypeDataFormat = "dataFormat"
+	PointValueUINT16    = "uint16"
+	PointValueINT16     = "int16"
+	PointValueUINT32    = "uint32"
+	PointValueINT32     = "int32"
+	PointValueFLOAT32   = "float32"
 
 	// A group node is used to group users and devices
 	// or generally to add structure to the node graph.

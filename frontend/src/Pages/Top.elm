@@ -8,6 +8,8 @@ import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
 import Components.NodeDevice as NodeDevice
 import Components.NodeGroup as NodeGroup
+import Components.NodeModbus as NodeModbus
+import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeUser as NodeUser
 import Element exposing (..)
 import Element.Input as Input
@@ -789,6 +791,12 @@ viewNode model node depth =
                 "group" ->
                     NodeGroup.view
 
+                "modbus" ->
+                    NodeModbus.view
+
+                "modbusIo" ->
+                    NodeModbusIO.view
+
                 _ ->
                     NodeDevice.view
     in
@@ -832,7 +840,7 @@ viewNode model node depth =
                     of
                         ( Just add, _, _ ) ->
                             if add.parent == node.node.id then
-                                viewAddNode add
+                                viewAddNode node.node add
 
                             else
                                 viewNodeOperations node.node.id node.node.parent
@@ -903,8 +911,8 @@ viewMoveNode move =
             ]
 
 
-viewAddNode : NodeToAdd -> Element Msg
-viewAddNode add =
+viewAddNode : Node -> NodeToAdd -> Element Msg
+viewAddNode parent add =
     column [ spacing 10 ]
         [ Input.radio [ spacing 6 ]
             { onChange = SelectAddNodeType
@@ -914,6 +922,18 @@ viewAddNode add =
                 [ Input.option Node.typeUser (text "User")
                 , Input.option Node.typeGroup (text "Group")
                 ]
+                    ++ (if parent.typ == Node.typeDevice then
+                            [ Input.option Node.typeModbus (text "Modbus") ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.typ == Node.typeModbus then
+                            [ Input.option Node.typeModbusIO (text "Modbus IO") ]
+
+                        else
+                            []
+                       )
             }
         , Form.buttonRow
             [ case add.typ of
