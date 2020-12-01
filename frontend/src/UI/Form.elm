@@ -1,10 +1,19 @@
-module UI.Form exposing (button, buttonRow, label, viewTextProperty)
+module UI.Form exposing
+    ( button
+    , buttonRow
+    , label
+    , nodeTextInput
+    , viewTextProperty
+    )
 
+import Api.Node exposing (Node)
+import Api.Point as Point exposing (Point)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Time
 import UI.Style as Style
 
 
@@ -64,4 +73,25 @@ button options =
         (Style.button options.color)
         { onPress = Just options.onPress
         , label = el [ centerX ] <| text options.label
+        }
+
+
+nodeTextInput :
+    { onEditNodePoint : String -> Point -> msg
+    , node : Node
+    , now : Time.Posix
+    }
+    -> String
+    -> String
+    -> Element msg
+nodeTextInput o pointName lbl =
+    Input.text
+        []
+        { onChange =
+            \d ->
+                o.onEditNodePoint o.node.id
+                    (Point "" pointName 0 o.now 0 d 0 0)
+        , text = Point.getPointText o.node.points pointName
+        , placeholder = Nothing
+        , label = Input.labelLeft [ width (px 100) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }

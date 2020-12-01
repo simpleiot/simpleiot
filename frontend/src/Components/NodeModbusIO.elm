@@ -4,7 +4,6 @@ import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Element exposing (..)
 import Element.Border as Border
-import Element.Input as Input
 import Time
 import UI.Form as Form
 import UI.Icon as Icon
@@ -28,7 +27,7 @@ view :
 view o =
     let
         textInput2 =
-            textInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+            Form.nodeTextInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
 
         modbusIOType =
             Point.getPointText o.node.points Point.typeModbusIOType
@@ -78,24 +77,3 @@ view o =
                 else
                     []
                )
-
-
-textInput :
-    { onEditNodePoint : String -> Point -> msg
-    , node : Node
-    , now : Time.Posix
-    }
-    -> String
-    -> String
-    -> Element msg
-textInput o pointName label =
-    Input.text
-        []
-        { onChange =
-            \d ->
-                o.onEditNodePoint o.node.id
-                    (Point "" pointName 0 o.now 0 d 0 0)
-        , text = Point.getPointText o.node.points pointName
-        , placeholder = Nothing
-        , label = Input.labelLeft [ width (px 100) ] <| el [ alignRight ] <| text <| label ++ ":"
-        }
