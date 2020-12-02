@@ -52,7 +52,7 @@ data with edge devices and user interfaces.
 
 ![System topology](docs/distributed.png)
 
-Simple IoT is build on simple data structures arranged in a graph that allows
+Simple IoT is built on simple data structures arranged in a graph that allows
 for very flexible configurations.
 
 ![Nodes](docs/nodes2.png)
