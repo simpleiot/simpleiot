@@ -109,29 +109,60 @@ nodeNumberInput :
     -> Element msg
 nodeNumberInput o pointName lbl =
     let
+        pMaybe =
+            Point.getPoint o.node.points "" pointName 0
+
         currentValue =
-            Point.getPointValue o.node.points pointName
+            case pMaybe of
+                Just p ->
+                    if p.text /= "" then
+                        if p.text == Point.blankMajicValue || p.text == "blank" then
+                            ""
+
+                        else
+                            p.text
+
+                    else
+                        String.fromFloat p.value
+
+                Nothing ->
+                    ""
+
+        currentValueF =
+            case pMaybe of
+                Just p ->
+                    p.value
+
+                Nothing ->
+                    0
     in
     Input.text
         []
         { onChange =
             \d ->
                 let
-                    v =
+                    dCheck =
                         if d == "" then
+                            Point.blankMajicValue
+
+                        else
+                            case String.toFloat d of
+                                Just _ ->
+                                    d
+
+                                Nothing ->
+                                    currentValue
+
+                    v =
+                        if dCheck == Point.blankMajicValue then
                             0
 
                         else
-                            Maybe.withDefault currentValue <| String.toFloat d
+                            Maybe.withDefault currentValueF <| String.toFloat dCheck
                 in
                 o.onEditNodePoint o.node.id
-                    (Point "" pointName 0 o.now v "" 0 0)
-        , text =
-            if currentValue == 0 then
-                ""
-
-            else
-                String.fromFloat currentValue
+                    (Point "" pointName 0 o.now v dCheck 0 0)
+        , text = currentValue
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px 100) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }

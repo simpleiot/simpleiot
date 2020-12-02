@@ -1,5 +1,7 @@
 module Api.Point exposing
     ( Point
+    , blankMajicValue
+    , clearText
     , decode
     , empty
     , encode
@@ -468,4 +470,27 @@ getLatest points =
                     Just p
         )
         Nothing
+        points
+
+
+
+-- clearText is used to sanitize points that have number values before saving.
+-- the text value is used by the form when editting things like decimal points
+
+
+blankMajicValue : String
+blankMajicValue =
+    "123BLANK123"
+
+
+clearText : List Point -> List Point
+clearText points =
+    List.map
+        (\p ->
+            if p.value /= 0 || p.text == blankMajicValue then
+                { p | text = "" }
+
+            else
+                p
+        )
         points

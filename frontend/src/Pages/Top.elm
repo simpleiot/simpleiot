@@ -199,6 +199,9 @@ update msg model =
                     case model.nodeEdit of
                         Just edit ->
                             let
+                                points =
+                                    Point.clearText edit.points
+
                                 -- optimistically update nodes
                                 updatedNodes =
                                     Tree.map
@@ -211,7 +214,7 @@ update msg model =
                                                 { n
                                                     | node =
                                                         { node
-                                                            | points = Point.updatePoints node.points edit.points
+                                                            | points = Point.updatePoints node.points points
                                                         }
                                                 }
 
@@ -224,7 +227,7 @@ update msg model =
                             , Node.postPoints
                                 { token = model.auth.token
                                 , id = id
-                                , points = edit.points
+                                , points = points
                                 , onResponse = ApiRespPostPoint
                                 }
                             )

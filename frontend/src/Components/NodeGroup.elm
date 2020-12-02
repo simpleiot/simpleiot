@@ -26,7 +26,7 @@ view :
     -> Element msg
 view o =
     let
-        textInput2 =
+        textInput =
             Form.nodeTextInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
     in
     column
@@ -42,7 +42,7 @@ view o =
                 Point.getPointText o.node.points Point.typeDescription
             ]
             :: (if o.expDetail then
-                    [ textInput2 Point.typeDescription "Description"
+                    [ textInput Point.typeDescription "Description"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button
