@@ -58,8 +58,6 @@ view o =
                         else
                             ""
                        )
-            , viewIf o.isRoot <|
-                Icon.x (o.onApiDelete o.node.id)
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
@@ -77,6 +75,7 @@ view o =
                         numberInput Point.typeOffset "Offset"
                     , viewIf (modbusIOType == Point.valueModbusRegister) <|
                         textInput Point.typeUnits "Units"
+                    , numberInput Point.typeValue "Value"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

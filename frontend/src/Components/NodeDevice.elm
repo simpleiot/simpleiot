@@ -105,8 +105,6 @@ view o =
             [ Icon.device
             , sysStateIcon
             , viewNodeId o.node.id
-            , viewIf o.isRoot <|
-                Icon.x (o.onApiDelete o.node.id)
             , Input.text
                 [ Background.color background ]
                 { onChange =

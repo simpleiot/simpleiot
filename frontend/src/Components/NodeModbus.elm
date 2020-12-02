@@ -43,8 +43,6 @@ view o =
             [ Icon.bus
             , text <|
                 Point.getPointText o.node.points Point.typeDescription
-            , viewIf o.isRoot <|
-                Icon.x (o.onApiDelete o.node.id)
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"

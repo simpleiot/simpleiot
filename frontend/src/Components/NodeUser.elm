@@ -42,8 +42,6 @@ view o =
                 Point.getPointText o.node.points Point.typeFirstName
                     ++ " "
                     ++ Point.getPointText o.node.points Point.typeLastName
-            , viewIf o.isRoot <|
-                Icon.x (o.onApiDelete o.node.id)
             ]
             :: (if o.expDetail then
                     [ textInput2 Point.typeFirstName "First Name"

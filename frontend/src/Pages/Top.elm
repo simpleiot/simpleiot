@@ -878,6 +878,7 @@ viewNodeOperations id parent =
           else
             Element.none
         , Icon.message (MsgNode id)
+        , Icon.x (ApiDelete id)
         ]
 
 
