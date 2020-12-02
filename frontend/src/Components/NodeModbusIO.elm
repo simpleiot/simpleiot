@@ -26,8 +26,14 @@ view :
     -> Element msg
 view o =
     let
-        textInput2 =
+        textInput =
             Form.nodeTextInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+
+        numberInput =
+            Form.nodeNumberInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+
+        optionInput =
+            Form.nodeOptionInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
 
         modbusIOType =
             Point.getPointText o.node.points Point.typeModbusIOType
@@ -42,23 +48,35 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.io
             , text <|
-                Point.getPointText o.node.points Point.typeFirstName
-                    ++ " "
-                    ++ Point.getPointText o.node.points Point.typeLastName
+                Point.getPointText o.node.points Point.typeDescription
+                    ++ ": "
+                    ++ String.fromFloat
+                        (Point.getPointValue o.node.points Point.typeValue)
+                    ++ (if modbusIOType == Point.valueModbusRegister then
+                            " " ++ Point.getPointText o.node.points Point.typeUnits
+
+                        else
+                            ""
+                       )
             , viewIf o.isRoot <|
                 Icon.x (o.onApiDelete o.node.id)
             ]
             :: (if o.expDetail then
-                    [ textInput2 Point.typeDescription "Description"
-                    , textInput2 Point.typeID "ID"
-                    , textInput2 Point.typeAddress "Address"
-                    , textInput2 Point.typeModbusIOType "IO Type"
+                    [ textInput Point.typeDescription "Description"
+                    , numberInput Point.typeID "ID"
+                    , numberInput Point.typeAddress "Address"
+                    , optionInput Point.typeModbusIOType
+                        "IO Type"
+                        [ ( Point.valueModbusInput, "input" )
+                        , ( Point.valueModbusCoil, "coil" )
+                        , ( Point.valueModbusRegister, "register" )
+                        ]
                     , viewIf (modbusIOType == Point.valueModbusRegister) <|
-                        textInput2 Point.typeScale "Scale factor"
+                        numberInput Point.typeScale "Scale factor"
                     , viewIf (modbusIOType == Point.valueModbusRegister) <|
-                        textInput2 Point.typeOffset "Offset"
+                        numberInput Point.typeOffset "Offset"
                     , viewIf (modbusIOType == Point.valueModbusRegister) <|
-                        textInput2 Point.typeUnits "Units"
+                        textInput Point.typeUnits "Units"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

@@ -26,8 +26,11 @@ view :
     -> Element msg
 view o =
     let
-        textInput2 =
+        textInput =
             Form.nodeTextInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+
+        optionInput =
+            Form.nodeOptionInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
     in
     column
         [ width fill
@@ -44,9 +47,14 @@ view o =
                 Icon.x (o.onApiDelete o.node.id)
             ]
             :: (if o.expDetail then
-                    [ textInput2 Point.typeDescription "Description"
-                    , textInput2 Point.typePort "Port"
-                    , textInput2 Point.typeBaud "Baud"
+                    [ textInput Point.typeDescription "Description"
+                    , optionInput Point.typeClientServer
+                        "Client/Server"
+                        [ ( Point.valueClient, "client" )
+                        , ( Point.valueServer, "server" )
+                        ]
+                    , textInput Point.typePort "Port"
+                    , textInput Point.typeBaud "Baud"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

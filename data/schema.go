@@ -41,10 +41,12 @@ const (
 	// modbus nodes
 	// in modbus land, terminology is a big backwards, client is master,
 	// and server is slave.
-	NodeTypeModbusClient = "modbusClient"
-	NodeTypeModbusServer = "modbusServer"
-	PointTypePort        = "port"
-	PointTypeBaud        = "baud"
+	NodeTypeModbus        = "modbus"
+	PointTypeClientServer = "clientServer"
+	PointValueClient      = "client"
+	PointValueServer      = "server"
+	PointTypePort         = "port"
+	PointTypeBaud         = "baud"
 
 	NodeTypeModbusIO = "modbusIO"
 

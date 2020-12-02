@@ -8,12 +8,14 @@ module Api.Point exposing
     , getLatest
     , getPoint
     , getPointText
+    , getPointValue
     , newText
     , newValue
     , renderPoint
     , typeAddress
     , typeAppVersion
     , typeBaud
+    , typeClientServer
     , typeCmdPending
     , typeDataFormat
     , typeDescription
@@ -42,12 +44,14 @@ module Api.Point exposing
     , typeValue
     , updatePoint
     , updatePoints
+    , valueClient
     , valueFLOAT32
     , valueINT16
     , valueINT32
     , valueModbusCoil
     , valueModbusInput
     , valueModbusRegister
+    , valueServer
     , valueUINT16
     , valueUINT32
     )
@@ -247,6 +251,21 @@ valueFLOAT32 =
     "float32"
 
 
+typeClientServer : String
+typeClientServer =
+    "clientServer"
+
+
+valueClient : String
+valueClient =
+    "client"
+
+
+valueServer : String
+valueServer =
+    "server"
+
+
 
 -- Point should match data/Point.go
 
@@ -415,6 +434,22 @@ getPointText points typ =
 
         Nothing ->
             ""
+
+
+getPointValue : List Point -> String -> Float
+getPointValue points typ =
+    case
+        List.Extra.find
+            (\p ->
+                typ == p.typ
+            )
+            points
+    of
+        Just found ->
+            found.value
+
+        Nothing ->
+            0
 
 
 getLatest : List Point -> Maybe Point
