@@ -29,8 +29,14 @@ view o =
         textInput =
             Form.nodeTextInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
 
+        numberInput =
+            Form.nodeNumberInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+
         optionInput =
             Form.nodeOptionInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+
+        clientServer =
+            Point.getPointText o.node.points Point.typeClientServer
     in
     column
         [ width fill
@@ -53,6 +59,9 @@ view o =
                         ]
                     , textInput Point.typePort "Port"
                     , textInput Point.typeBaud "Baud"
+                    , viewIf (clientServer == Point.valueServer) <|
+                        numberInput Point.typeID "Device ID"
+                    , numberInput Point.typeDebug "Debug level (0-9)"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

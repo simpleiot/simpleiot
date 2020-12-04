@@ -14,15 +14,17 @@ import (
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
-	db        *genji.Db
-	messenger *msg.Messenger
+	db            *genji.Db
+	messenger     *msg.Messenger
+	modbusManager *ModbusManager
 }
 
 // NewManger creates a new Manager
 func NewManger(db *genji.Db, messenger *msg.Messenger) *Manager {
 	return &Manager{
-		db:        db,
-		messenger: messenger,
+		db:            db,
+		messenger:     messenger,
+		modbusManager: NewModbusManager(db),
 	}
 }
 
@@ -58,6 +60,8 @@ func (m *Manager) Run() {
 				}
 			}
 		}
+
+		m.modbusManager.Update()
 
 		time.Sleep(10 * time.Second)
 	}

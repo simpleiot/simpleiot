@@ -94,6 +94,12 @@ func (ps *Points) Value(id, typ string, index int) (float64, bool) {
 	return 0, false
 }
 
+// ValueInt returns value as integer
+func (ps *Points) ValueInt(id, typ string, index int) (int, bool) {
+	f, ok := ps.Value(id, typ, index)
+	return int(f), ok
+}
+
 // Text fetches a text value from an array of points given ID, Type, and Index.
 // If ID or Type are set to "", they are ignored.
 func (ps *Points) Text(id, typ string, index int) (string, bool) {

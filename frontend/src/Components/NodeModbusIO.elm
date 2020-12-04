@@ -64,7 +64,7 @@ view o =
                     , numberInput Point.typeID "ID"
                     , numberInput Point.typeAddress "Address"
                     , optionInput Point.typeModbusIOType
-                        "IO Type"
+                        "IO type"
                         [ ( Point.valueModbusInput, "input" )
                         , ( Point.valueModbusCoil, "coil" )
                         , ( Point.valueModbusRegister, "register" )
@@ -75,6 +75,15 @@ view o =
                         numberInput Point.typeOffset "Offset"
                     , viewIf (modbusIOType == Point.valueModbusRegister) <|
                         textInput Point.typeUnits "Units"
+                    , viewIf (modbusIOType == Point.valueModbusRegister) <|
+                        optionInput Point.typeDataFormat
+                            "Data format"
+                            [ ( Point.valueUINT16, "UINT16" )
+                            , ( Point.valueINT16, "INT16" )
+                            , ( Point.valueUINT32, "UINT32" )
+                            , ( Point.valueINT32, "INT32" )
+                            , ( Point.valueFLOAT32, "FLOAT32" )
+                            ]
                     , numberInput Point.typeValue "Value"
                     , viewIf o.modified <|
                         Form.buttonRow

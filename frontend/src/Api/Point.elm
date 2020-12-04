@@ -20,6 +20,7 @@ module Api.Point exposing
     , typeClientServer
     , typeCmdPending
     , typeDataFormat
+    , typeDebug
     , typeDescription
     , typeEmail
     , typeFirstName
@@ -226,6 +227,11 @@ valueModbusRegister =
 typeDataFormat : String
 typeDataFormat =
     "dataFormat"
+
+
+typeDebug : String
+typeDebug =
+    "debug"
 
 
 valueUINT16 : String

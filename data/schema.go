@@ -11,6 +11,7 @@ const (
 	PointTypeValue              = "value"
 	PointTypeID                 = "id"
 	PointTypeAddress            = "address"
+	PointTypeDebug              = "debug"
 
 	// An device node describes an phyical device -- it may be the
 	// cloud server, gateway, etc
@@ -48,7 +49,7 @@ const (
 	PointTypePort         = "port"
 	PointTypeBaud         = "baud"
 
-	NodeTypeModbusIO = "modbusIO"
+	NodeTypeModbusIO = "modbusIo"
 
 	PointTypeModbusIOType    = "modbusIoType"
 	PointValueModbusInput    = "modbusInput"
