@@ -214,6 +214,11 @@ func (gen *Db) Close() error {
 	return gen.store.Close()
 }
 
+// RootNodeID returns the ID of the root node
+func (gen *Db) RootNodeID() string {
+	return gen.meta.RootID
+}
+
 func txNode(tx *genji.Tx, id string) (data.Node, error) {
 	var node data.Node
 	doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
