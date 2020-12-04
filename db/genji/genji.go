@@ -630,12 +630,6 @@ func (gen *Db) NodeChildren(id, typ string) ([]data.NodeEdge, error) {
 	var nodes []data.NodeEdge
 
 	err := gen.store.View(func(tx *genji.Tx) error {
-		rootNode, err := txNode(tx, id)
-		if err != nil {
-			return err
-		}
-		nodes = append(nodes, rootNode.ToNodeEdge(""))
-
 		childNodes, err := txFindChildNodes(tx, id)
 		if err != nil {
 			return err
