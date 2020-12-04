@@ -1252,13 +1252,6 @@ type genImport struct {
 	NodeCmds []data.NodeCmd `json:"nodeCmds"`
 }
 
-type genDump struct {
-	Nodes    []data.Node    `json:"nodes"`
-	Edges    []data.Edge    `json:"edges"`
-	Rules    []data.Rule    `json:"rules"`
-	NodeCmds []data.NodeCmd `json:"nodeCmds"`
-}
-
 // ImportDb imports contents of file into database
 func ImportDb(gen *Db, in io.Reader) error {
 	decoder := json.NewDecoder(in)
@@ -1312,6 +1305,14 @@ func ImportDb(gen *Db, in io.Reader) error {
 	return nil
 }
 
+type genDump struct {
+	Nodes    []data.Node    `json:"nodes"`
+	Edges    []data.Edge    `json:"edges"`
+	Rules    []data.Rule    `json:"rules"`
+	NodeCmds []data.NodeCmd `json:"nodeCmds"`
+	Meta     Meta           `json:"meta"`
+}
+
 // DumpDb dumps the entire gen to a file
 func DumpDb(gen *Db, out io.Writer) error {
 	dump := genDump{}
@@ -1332,6 +1333,8 @@ func DumpDb(gen *Db, out io.Writer) error {
 	if err != nil {
 		return err
 	}
+
+	dump.Meta = gen.meta
 
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "   ")
