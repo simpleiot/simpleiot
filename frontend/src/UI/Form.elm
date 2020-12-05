@@ -82,6 +82,7 @@ nodeTextInput :
     { onEditNodePoint : String -> Point -> msg
     , node : Node
     , now : Time.Posix
+    , labelWidth : Int
     }
     -> String
     -> String
@@ -95,7 +96,7 @@ nodeTextInput o pointName lbl =
                     (Point "" pointName 0 o.now 0 d 0 0)
         , text = Point.getPointText o.node.points pointName
         , placeholder = Nothing
-        , label = Input.labelLeft [ width (px 100) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
 
 
@@ -103,6 +104,7 @@ nodeNumberInput :
     { onEditNodePoint : String -> Point -> msg
     , node : Node
     , now : Time.Posix
+    , labelWidth : Int
     }
     -> String
     -> String
@@ -164,7 +166,7 @@ nodeNumberInput o pointName lbl =
                     (Point "" pointName 0 o.now v dCheck 0 0)
         , text = currentValue
         , placeholder = Nothing
-        , label = Input.labelLeft [ width (px 100) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
 
 
@@ -172,6 +174,7 @@ nodeOptionInput :
     { onEditNodePoint : String -> Point -> msg
     , node : Node
     , now : Time.Posix
+    , labelWidth : Int
     }
     -> String
     -> String
@@ -185,7 +188,7 @@ nodeOptionInput o pointName lbl options =
                 o.onEditNodePoint o.node.id
                     (Point "" pointName 0 o.now 0 sel 0 0)
         , label =
-            Input.labelLeft [ padding 12, width (px 100) ] <|
+            Input.labelLeft [ padding 12, width (px o.labelWidth) ] <|
                 el [ alignRight ] <|
                     text <|
                         lbl

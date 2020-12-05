@@ -27,14 +27,32 @@ view :
     -> Element msg
 view o =
     let
+        labelWidth =
+            150
+
         textInput =
-            Form.nodeTextInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+            Form.nodeTextInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
 
         numberInput =
-            Form.nodeNumberInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+            Form.nodeNumberInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
 
         optionInput =
-            Form.nodeOptionInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+            Form.nodeOptionInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
 
         modbusIOType =
             Point.getPointText o.node.points Point.typeModbusIOType

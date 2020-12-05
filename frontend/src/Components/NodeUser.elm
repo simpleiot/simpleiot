@@ -27,8 +27,16 @@ view :
     -> Element msg
 view o =
     let
+        labelWidth =
+            100
+
         textInput =
-            Form.nodeTextInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+            Form.nodeTextInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
     in
     column
         [ width fill

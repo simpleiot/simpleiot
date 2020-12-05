@@ -28,7 +28,12 @@ view :
 view o =
     let
         textInput =
-            Form.nodeTextInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+            Form.nodeTextInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = 100
+                }
     in
     column
         [ width fill
