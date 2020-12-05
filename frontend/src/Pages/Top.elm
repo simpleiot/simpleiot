@@ -749,7 +749,7 @@ viewNodes model =
                     treeWithEdits =
                         mergeNodeEdit tree model.nodeEdit
                 in
-                viewNode model (Tree.label treeWithEdits) 0
+                viewNode model Nothing (Tree.label treeWithEdits) 0
                     :: viewNodesHelp 1 model treeWithEdits
 
             Nothing ->
@@ -776,15 +776,15 @@ viewNodesHelp depth model tree =
     List.foldr
         (\child ret ->
             ret
-                ++ viewNode model (Tree.label child) depth
+                ++ viewNode model (Just node) (Tree.label child) depth
                 :: viewNodesHelp (depth + 1) model child
         )
         []
         children
 
 
-viewNode : Model -> NodeView -> Int -> Element Msg
-viewNode model node depth =
+viewNode : Model -> Maybe NodeView -> NodeView -> Int -> Element Msg
+viewNode model parent node depth =
     let
         nodeView =
             case node.node.typ of
@@ -827,6 +827,7 @@ viewNode model node depth =
                     , now = model.now
                     , zone = model.zone
                     , modified = node.mod
+                    , parent = Maybe.map .node parent
                     , node = node.node
                     , expDetail = node.expDetail
                     , onApiDelete = ApiDelete

@@ -17,6 +17,7 @@ view :
     , zone : Time.Zone
     , modified : Bool
     , expDetail : Bool
+    , parent : Maybe Node
     , node : Node
     , onApiDelete : String -> msg
     , onEditNodePoint : String -> Point -> msg
