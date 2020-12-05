@@ -231,12 +231,13 @@ func (mm *ModbusManager) Update() error {
 				// update regs with db value
 				switch io.modbusType {
 				case data.PointValueModbusRegister:
+					unscaledValue := (io.value - io.offset) / io.scale
 					switch io.modbusDataType {
 					case data.PointValueUINT16:
 						bus.server.Regs.AddReg(uint16(io.address))
 						bus.server.Regs.WriteReg(
 							uint16(io.address),
-							uint16(io.value))
+							uint16(unscaledValue))
 					default:
 						log.Println("unhandled data type: ",
 							io.modbusDataType)
