@@ -38,6 +38,14 @@ view o =
 
         modbusIOType =
             Point.getPointText o.node.points Point.typeModbusIOType
+
+        isClient =
+            case o.parent of
+                Just p ->
+                    Point.getPointText p.points Point.typeClientServer == Point.valueClient
+
+                Nothing ->
+                    False
     in
     column
         [ width fill
@@ -62,7 +70,7 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
-                    , numberInput Point.typeID "ID"
+                    , viewIf isClient <| numberInput Point.typeID "ID"
                     , numberInput Point.typeAddress "Address"
                     , optionInput Point.typeModbusIOType
                         "IO type"
