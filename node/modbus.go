@@ -26,11 +26,11 @@ type ModbusIO struct {
 }
 
 // NewModbusIO Convert node to modbus IO
-func NewModbusIO(node *data.NodeEdge) (*ModbusIO, error) {
+func NewModbusIO(busType string, node *data.NodeEdge) (*ModbusIO, error) {
 	var ret ModbusIO
 	var ok bool
 	ret.id, ok = node.Points.ValueInt("", data.PointTypeID, 0)
-	if !ok {
+	if busType == data.PointValueClient && !ok {
 		return nil, errors.New("Must define modbus ID")
 	}
 
@@ -221,7 +221,7 @@ func (mm *ModbusManager) Update() error {
 		}
 
 		for _, ioNode := range ioNodes {
-			io, err := NewModbusIO(&ioNode)
+			io, err := NewModbusIO(bus.busType, &ioNode)
 			if err != nil {
 				log.Println("Error creating new modbus IO: ", err)
 				continue
