@@ -238,6 +238,40 @@ func (mm *ModbusManager) Update() error {
 						bus.server.Regs.WriteReg(
 							uint16(io.address),
 							uint16(unscaledValue))
+					case data.PointValueINT16:
+						bus.server.Regs.AddReg(uint16(io.address))
+						bus.server.Regs.WriteReg(
+							uint16(io.address),
+							uint16(unscaledValue))
+					case data.PointValueUINT32:
+						bus.server.Regs.AddReg(uint16(io.address))
+						bus.server.Regs.AddReg(uint16(io.address + 1))
+						regs := modbus.Uint32ToRegs([]uint32{uint32(unscaledValue)})
+						for i, r := range regs {
+							bus.server.Regs.WriteReg(
+								uint16(io.address+i),
+								r)
+						}
+					case data.PointValueINT32:
+						bus.server.Regs.AddReg(uint16(io.address))
+						bus.server.Regs.AddReg(uint16(io.address + 1))
+						regs := modbus.Int32ToRegs([]int32{int32(unscaledValue)})
+						for i, r := range regs {
+							bus.server.Regs.WriteReg(
+								uint16(io.address+i),
+								r)
+						}
+
+					case data.PointValueFLOAT32:
+						bus.server.Regs.AddReg(uint16(io.address))
+						bus.server.Regs.AddReg(uint16(io.address + 1))
+						regs := modbus.Float32ToRegs([]float32{float32(unscaledValue)})
+						for i, r := range regs {
+							bus.server.Regs.WriteReg(
+								uint16(io.address+i),
+								r)
+						}
+
 					default:
 						log.Println("unhandled data type: ",
 							io.modbusDataType)
