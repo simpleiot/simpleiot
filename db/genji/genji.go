@@ -1257,8 +1257,6 @@ func ImportDb(gen *Db, in io.Reader) error {
 	decoder := json.NewDecoder(in)
 	dump := genImport{}
 
-	fmt.Println("CLIFF: rootID: ", gen.meta.RootID)
-
 	err := decoder.Decode(&dump)
 	if err != nil {
 		return err
