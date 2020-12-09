@@ -91,84 +91,6 @@ func sendPoint(portal, authToken, s string) error {
 	return err
 }
 
-func sendPointNats(nc *natsgo.Conn, s string, ack bool) error {
-	nodeID, point, err := parsePoint(s)
-
-	if err != nil {
-		return err
-	}
-
-	subject := fmt.Sprintf("node.%v.points", nodeID)
-
-	points := data.Points{}
-
-	points = append(points, point)
-
-	data, err := points.PbEncode()
-
-	if err != nil {
-		return err
-	}
-
-	if ack {
-		msg, err := nc.Request(subject, data, time.Second)
-
-		if err != nil {
-			return err
-		}
-
-		if string(msg.Data) != "" {
-			log.Println("Request returned error: ", string(msg.Data))
-		}
-
-	} else {
-		if err := nc.Publish(subject, data); err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
-func sendPointText(nc *natsgo.Conn, authToken, s string, ack bool) error {
-	nodeID, point, err := parsePointText(s)
-
-	if err != nil {
-		return err
-	}
-
-	subject := fmt.Sprintf("node.%v.points", nodeID)
-
-	points := data.Points{}
-
-	points = append(points, point)
-
-	data, err := points.PbEncode()
-
-	if err != nil {
-		return err
-	}
-
-	if ack {
-		msg, err := nc.Request(subject, data, time.Second)
-
-		if err != nil {
-			return err
-		}
-
-		if string(msg.Data) != "" {
-			log.Println("Request returned error: ", string(msg.Data))
-		}
-
-	} else {
-		if err := nc.Publish(subject, data); err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
 func main() {
 	defaultNatsServer := "nats://localhost:4222"
 
@@ -355,7 +277,13 @@ func main() {
 	}
 
 	if *flagSendPointNats != "" {
-		err := sendPointNats(nc, *flagSendPointNats, *flagNatsAck)
+		nodeID, point, err := parsePoint(*flagSendPointNats)
+		if err != nil {
+			log.Println("Error parsing point: ", err)
+			os.Exit(-1)
+		}
+
+		err = nats.SendPoint(nc, nodeID, &point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -363,7 +291,13 @@ func main() {
 	}
 
 	if *flagSendPointText != "" {
-		err := sendPointText(nc, authToken, *flagSendPointText, *flagNatsAck)
+		nodeID, point, err := parsePointText(*flagSendPointText)
+		if err != nil {
+			log.Println("Error parsing point: ", err)
+			os.Exit(-1)
+		}
+
+		err = nats.SendPoint(nc, nodeID, &point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
