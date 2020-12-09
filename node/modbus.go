@@ -10,6 +10,7 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/modbus"
+	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/respreader"
 	"go.bug.st/serial"
 )
@@ -40,12 +41,11 @@ func (mm *ModbusManager) Update() error {
 	}
 
 	// FIXME remove busses that no longer exist
-
 	for _, ne := range nodes {
 		bus, ok := mm.busses[ne.ID]
 		if !ok {
 			var err error
-			bus, err = NewModbus(&ne)
+			bus, err = NewModbus(mm.nc, &ne)
 			if err != nil {
 				log.Println("Error creating new modbus: ", err)
 				continue
@@ -95,6 +95,7 @@ func (mm *ModbusManager) Update() error {
 
 // Modbus describes a modbus bus
 type Modbus struct {
+	nc         *natsgo.Conn
 	busType    string
 	id         int // only used for server
 	ios        map[string]*ModbusIO
@@ -107,7 +108,7 @@ type Modbus struct {
 }
 
 // NewModbus creates a new bus from a node
-func NewModbus(node *data.NodeEdge) (*Modbus, error) {
+func NewModbus(nc *natsgo.Conn, node *data.NodeEdge) (*Modbus, error) {
 	busType, ok := node.Points.Text("", data.PointTypeClientServer, 0)
 	if !ok {
 		return nil, errors.New("Must define modbus client/server")
@@ -122,6 +123,7 @@ func NewModbus(node *data.NodeEdge) (*Modbus, error) {
 	}
 
 	return &Modbus{
+		nc:       nc,
 		busType:  busType,
 		portName: portName,
 		baud:     int(baud),
@@ -210,7 +212,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 	switch io.modbusType {
 	case data.PointValueModbusRegister:
 		switch io.modbusDataType {
-		case data.PointValueUINT16:
+		case data.PointValueUINT16, data.PointValueINT16:
 			regs, err := bus.client.ReadHoldingRegs(byte(io.id), uint16(io.address), 1)
 			if err != nil {
 				return err
@@ -219,12 +221,83 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 				return errors.New("Did not receive enough data")
 			}
 			v := float64(regs[0])*io.scale + io.offset
-			fmt.Println("CLIFF: uint16 value: ", v)
+			// send the point
+			p := data.Point{
+				Type:  data.PointTypeValue,
+				Value: v,
+			}
 
-		case data.PointValueINT16:
+			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			if err != nil {
+				return err
+			}
+
 		case data.PointValueUINT32:
+			regs, err := bus.client.ReadHoldingRegs(byte(io.id), uint16(io.address), 2)
+			if err != nil {
+				return err
+			}
+			if len(regs) < 2 {
+				return errors.New("Did not receive enough data")
+			}
+			v := modbus.RegsToUint32(regs)
+
+			vScaled := float64(v[0])*io.scale + io.offset
+			// send the point
+			p := data.Point{
+				Type:  data.PointTypeValue,
+				Value: vScaled,
+			}
+
+			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			if err != nil {
+				return err
+			}
+
 		case data.PointValueINT32:
+			regs, err := bus.client.ReadHoldingRegs(byte(io.id), uint16(io.address), 2)
+			if err != nil {
+				return err
+			}
+			if len(regs) < 2 {
+				return errors.New("Did not receive enough data")
+			}
+			v := modbus.RegsToInt32(regs)
+
+			vScaled := float64(v[0])*io.scale + io.offset
+			// send the point
+			p := data.Point{
+				Type:  data.PointTypeValue,
+				Value: vScaled,
+			}
+
+			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			if err != nil {
+				return err
+			}
+
 		case data.PointValueFLOAT32:
+			regs, err := bus.client.ReadHoldingRegs(byte(io.id), uint16(io.address), 2)
+			if err != nil {
+				return err
+			}
+			if len(regs) < 2 {
+				return errors.New("Did not receive enough data")
+			}
+			v := modbus.RegsToFloat32(regs)
+
+			vScaled := float64(v[0])*io.scale + io.offset
+			// send the point
+			p := data.Point{
+				Type:  data.PointTypeValue,
+				Value: vScaled,
+			}
+
+			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			if err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("unhandled data type: %v",
 				io.modbusDataType)
@@ -295,6 +368,7 @@ func (bus *Modbus) ServerIO(io *ModbusIO) error {
 
 // ModbusIO describes a modbus IO
 type ModbusIO struct {
+	nodeID         string
 	description    string
 	id             int
 	address        int
@@ -310,6 +384,9 @@ type ModbusIO struct {
 func NewModbusIO(busType string, node *data.NodeEdge) (*ModbusIO, error) {
 	var ret ModbusIO
 	var ok bool
+
+	ret.nodeID = node.ID
+
 	ret.id, ok = node.Points.ValueInt("", data.PointTypeID, 0)
 	if busType == data.PointValueClient && !ok {
 		return nil, errors.New("Must define modbus ID")
