@@ -74,9 +74,9 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 }
 
 // ReadHoldingRegs is used to read modbus coils
-func (c *Client) ReadHoldingRegs(id byte, coil, count uint16) ([]uint16, error) {
+func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 	ret := []uint16{}
-	req := ReadHoldingRegs(coil, count)
+	req := ReadHoldingRegs(reg, count)
 	if c.debug >= 1 {
 		fmt.Println("Modbus client ReadHoldingRegs req: ", req)
 	}

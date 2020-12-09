@@ -460,9 +460,6 @@ func main() {
 		}
 	}
 
-	nodeManager := node.NewManger(dbInst, messenger)
-	go nodeManager.Run()
-
 	if !*flagNatsDisableServer {
 		go natsserver.StartNatsServer(natsPort, natsHTTPPort, authToken,
 			natsTLSCert, natsTLSKey, natsTLSTimeout)
@@ -473,7 +470,8 @@ func main() {
 	// this is a bit of a hack, but we're not sure when the NATS
 	// server will be started, so try several times
 	for i := 0; i < 10; i++ {
-		err = natsHandler.Connect()
+		// FIXME should we get nc with edgeConnect here?
+		nc, err = natsHandler.Connect()
 		if err != nil {
 			log.Println("NATS local connect retry: ", i)
 			time.Sleep(500 * time.Millisecond)
@@ -483,9 +481,12 @@ func main() {
 		break
 	}
 
-	if err != nil {
+	if err != nil || nc == nil {
 		log.Fatal("Error connecting to NATs server: ", err)
 	}
+
+	nodeManager := node.NewManger(dbInst, messenger, nc)
+	go nodeManager.Run()
 
 	err = api.Server(api.ServerArgs{
 		Port:       port,
