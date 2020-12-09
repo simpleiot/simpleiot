@@ -14,54 +14,83 @@ import (
 	"go.bug.st/serial"
 )
 
-// ModbusIO describes a modbus IO
-type ModbusIO struct {
-	description    string
-	id             int
-	address        int
-	modbusType     string
-	modbusDataType string
-	scale          float64
-	offset         float64
-	value          float64
-	valueRaw       float64
+// ModbusManager manages state of modbus
+type ModbusManager struct {
+	db     *genji.Db
+	nc     *natsgo.Conn
+	busses map[string]*Modbus
 }
 
-// NewModbusIO Convert node to modbus IO
-func NewModbusIO(busType string, node *data.NodeEdge) (*ModbusIO, error) {
-	var ret ModbusIO
-	var ok bool
-	ret.id, ok = node.Points.ValueInt("", data.PointTypeID, 0)
-	if busType == data.PointValueClient && !ok {
-		return nil, errors.New("Must define modbus ID")
+// NewModbusManager creates a new modbus manager
+func NewModbusManager(db *genji.Db, nc *natsgo.Conn) *ModbusManager {
+	return &ModbusManager{
+		db:     db,
+		nc:     nc,
+		busses: make(map[string]*Modbus),
+	}
+}
+
+// Update queries DB for modbus nodes and synchronizes
+// with internal structures and updates data
+func (mm *ModbusManager) Update() error {
+	rootID := mm.db.RootNodeID()
+	nodes, err := mm.db.NodeChildren(rootID, data.NodeTypeModbus)
+	if err != nil {
+		return err
 	}
 
-	ret.address, ok = node.Points.ValueInt("", data.PointTypeAddress, 0)
-	if !ok {
-		return nil, errors.New("Must define modbus address")
-	}
-	ret.modbusType, ok = node.Points.Text("", data.PointTypeModbusIOType, 0)
-	if !ok {
-		return nil, errors.New("Must define modbus IO type")
+	// FIXME remove busses that no longer exist
+
+	for _, ne := range nodes {
+		bus, ok := mm.busses[ne.ID]
+		if !ok {
+			var err error
+			bus, err = NewModbus(&ne)
+			if err != nil {
+				log.Println("Error creating new modbus: ", err)
+				continue
+			}
+			mm.busses[ne.ID] = bus
+		}
+
+		err := bus.CheckPort(&ne)
+		if err != nil {
+			log.Println("Error initializing modbus port: ",
+				ne.ID, err)
+			continue
+		}
+
+		ioNodes, err := mm.db.NodeChildren(ne.ID, data.NodeTypeModbusIO)
+		if err != nil {
+			log.Println("Error getting modbus IO nodes: ", err)
+			continue
+		}
+
+		for _, ioNode := range ioNodes {
+			io, err := NewModbusIO(bus.busType, &ioNode)
+			if err != nil {
+				log.Println("Error creating new modbus IO: ", err)
+				continue
+			}
+
+			switch bus.busType {
+			case data.PointValueServer:
+				err := bus.ServerIO(io)
+				if err != nil {
+					log.Println("Modbus server IO error: ", err)
+				}
+			case data.PointValueClient:
+				err := bus.ClientIO(io)
+				if err != nil {
+					log.Println("Modbus server IO error: ", err)
+				}
+			default:
+				log.Println("unhandled modbus type: ", bus.busType)
+			}
+		}
 	}
 
-	if ret.modbusType == data.PointValueModbusRegister {
-		ret.modbusDataType, ok = node.Points.Text("", data.PointTypeDataFormat, 0)
-		if !ok {
-			return nil, errors.New("Data format must be specified")
-		}
-		ret.scale, ok = node.Points.Value("", data.PointTypeScale, 0)
-		if !ok {
-			return nil, errors.New("Must define modbus scale")
-		}
-		ret.offset, ok = node.Points.Value("", data.PointTypeOffset, 0)
-		if !ok {
-			return nil, errors.New("Must define modbus offset")
-		}
-	}
-	ret.value, _ = node.Points.Value("", data.PointTypeValue, 0)
-
-	return &ret, nil
+	return nil
 }
 
 // Modbus describes a modbus bus
@@ -264,81 +293,52 @@ func (bus *Modbus) ServerIO(io *ModbusIO) error {
 	return nil
 }
 
-// ModbusManager manages state of modbus
-type ModbusManager struct {
-	db     *genji.Db
-	nc     *natsgo.Conn
-	busses map[string]*Modbus
+// ModbusIO describes a modbus IO
+type ModbusIO struct {
+	description    string
+	id             int
+	address        int
+	modbusType     string
+	modbusDataType string
+	scale          float64
+	offset         float64
+	value          float64
+	valueRaw       float64
 }
 
-// NewModbusManager creates a new modbus manager
-func NewModbusManager(db *genji.Db, nc *natsgo.Conn) *ModbusManager {
-	return &ModbusManager{
-		db:     db,
-		nc:     nc,
-		busses: make(map[string]*Modbus),
-	}
-}
-
-// Update queries DB for modbus nodes and synchronizes
-// with internal structures and updates data
-func (mm *ModbusManager) Update() error {
-	rootID := mm.db.RootNodeID()
-	nodes, err := mm.db.NodeChildren(rootID, data.NodeTypeModbus)
-	if err != nil {
-		return err
+// NewModbusIO Convert node to modbus IO
+func NewModbusIO(busType string, node *data.NodeEdge) (*ModbusIO, error) {
+	var ret ModbusIO
+	var ok bool
+	ret.id, ok = node.Points.ValueInt("", data.PointTypeID, 0)
+	if busType == data.PointValueClient && !ok {
+		return nil, errors.New("Must define modbus ID")
 	}
 
-	// FIXME remove busses that no longer exist
+	ret.address, ok = node.Points.ValueInt("", data.PointTypeAddress, 0)
+	if !ok {
+		return nil, errors.New("Must define modbus address")
+	}
+	ret.modbusType, ok = node.Points.Text("", data.PointTypeModbusIOType, 0)
+	if !ok {
+		return nil, errors.New("Must define modbus IO type")
+	}
 
-	for _, ne := range nodes {
-		bus, ok := mm.busses[ne.ID]
+	if ret.modbusType == data.PointValueModbusRegister {
+		ret.modbusDataType, ok = node.Points.Text("", data.PointTypeDataFormat, 0)
 		if !ok {
-			var err error
-			bus, err = NewModbus(&ne)
-			if err != nil {
-				log.Println("Error creating new modbus: ", err)
-				continue
-			}
-			mm.busses[ne.ID] = bus
+			return nil, errors.New("Data format must be specified")
 		}
-
-		err := bus.CheckPort(&ne)
-		if err != nil {
-			log.Println("Error initializing modbus port: ",
-				ne.ID, err)
-			continue
+		ret.scale, ok = node.Points.Value("", data.PointTypeScale, 0)
+		if !ok {
+			return nil, errors.New("Must define modbus scale")
 		}
-
-		ioNodes, err := mm.db.NodeChildren(ne.ID, data.NodeTypeModbusIO)
-		if err != nil {
-			log.Println("Error getting modbus IO nodes: ", err)
-			continue
-		}
-
-		for _, ioNode := range ioNodes {
-			io, err := NewModbusIO(bus.busType, &ioNode)
-			if err != nil {
-				log.Println("Error creating new modbus IO: ", err)
-				continue
-			}
-
-			switch bus.busType {
-			case data.PointValueServer:
-				err := bus.ServerIO(io)
-				if err != nil {
-					log.Println("Modbus server IO error: ", err)
-				}
-			case data.PointValueClient:
-				err := bus.ClientIO(io)
-				if err != nil {
-					log.Println("Modbus server IO error: ", err)
-				}
-			default:
-				log.Println("unhandled modbus type: ", bus.busType)
-			}
+		ret.offset, ok = node.Points.Value("", data.PointTypeOffset, 0)
+		if !ok {
+			return nil, errors.New("Must define modbus offset")
 		}
 	}
+	ret.value, _ = node.Points.Value("", data.PointTypeValue, 0)
 
-	return nil
+	return &ret, nil
 }
