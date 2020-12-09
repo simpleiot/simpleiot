@@ -608,7 +608,7 @@ func main() {
 	}
 
 	// finally, start web server
-	port := os.Getenv("SIOT_PORT")
+	port := os.Getenv("SIOT_HTTP_PORT")
 	if port == "" {
 		port = "8080"
 	}
