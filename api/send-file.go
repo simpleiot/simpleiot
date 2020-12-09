@@ -10,6 +10,11 @@ import (
 	"github.com/simpleiot/simpleiot/nats"
 )
 
+// Note, this file is still in the api package (vs nats) as http bloats a build, and not
+// all edge devices need http.
+
+// Companion file in nats/file.go
+
 // NatsSendFileFromHTTP fetchs a file using http and sends via nats. Callback provides % complete (0-100).
 func NatsSendFileFromHTTP(nc *n.Conn, deviceID string, url string, callback func(int)) error {
 	var netClient = &http.Client{
