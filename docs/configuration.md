@@ -15,7 +15,8 @@ The following are currently defined:
     API), default is blank (no auth)
 - NATS configuration
   - `SIOT_NATS_PORT`: Port to run NATS on (default is 4222 if not set)
-  - `SIOT_NATS_HTTP_PORT`: Port to run NATS monitoring interface (default is
+  - `SIOT_NATS_HTTP_PORT`: Port to run NATS monitoring interface (default
+    is 8222)
   - `SIOT_NATS_SERVER`: defaults to nats://localhost:4222
   - `SIOT_NATS_TLS_CERT`: points to TLS certificate file. If not set, TLS is not
     used.
