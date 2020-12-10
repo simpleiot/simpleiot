@@ -314,6 +314,13 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 func (bus *Modbus) ServerIO(io *ModbusIO) error {
 	// update regs with db value
 	switch io.modbusType {
+	case data.PointValueModbusCoil, data.PointValueModbusInput:
+		on := false
+		if io.value != 0 {
+			on = true
+		}
+		bus.server.Regs.AddCoil(io.address)
+		bus.server.Regs.WriteCoil(io.address, on)
 	case data.PointValueModbusRegister:
 		unscaledValue := (io.value - io.offset) / io.scale
 		switch io.modbusDataType {
