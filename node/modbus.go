@@ -210,6 +210,30 @@ func (bus *Modbus) CheckPort(node *data.NodeEdge) error {
 func (bus *Modbus) ClientIO(io *ModbusIO) error {
 	// update regs with db value
 	switch io.modbusType {
+	case data.PointValueModbusCoil, data.PointValueModbusInput:
+		coils, err := bus.client.ReadCoils(byte(io.id), uint16(io.address), 1)
+		if err != nil {
+			return err
+		}
+		if len(coils) < 1 {
+			return errors.New("Did not receive enough data")
+		}
+		v := 0.0
+		if coils[0] {
+			v = 1
+		}
+
+		// send the point
+		p := data.Point{
+			Type:  data.PointTypeValue,
+			Value: v,
+		}
+
+		err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+		if err != nil {
+			return err
+		}
+
 	case data.PointValueModbusRegister:
 		switch io.modbusDataType {
 		case data.PointValueUINT16, data.PointValueINT16:
