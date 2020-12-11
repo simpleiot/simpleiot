@@ -210,7 +210,7 @@ func (bus *Modbus) CheckPort(node *data.NodeEdge) error {
 func (bus *Modbus) ClientIO(io *ModbusIO) error {
 	// update regs with db value
 	switch io.modbusType {
-	case data.PointValueModbusCoil, data.PointValueModbusInput:
+	case data.PointValueModbusCoil, data.PointValueModbusDiscreteInput:
 		coils, err := bus.client.ReadCoils(byte(io.id), uint16(io.address), 1)
 		if err != nil {
 			return err
@@ -234,7 +234,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 			return err
 		}
 
-	case data.PointValueModbusRegister:
+	case data.PointValueModbusInputRegister, data.PointValueModbusHoldingRegister:
 		switch io.modbusDataType {
 		case data.PointValueUINT16, data.PointValueINT16:
 			regs, err := bus.client.ReadHoldingRegs(byte(io.id), uint16(io.address), 1)
@@ -338,14 +338,14 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 func (bus *Modbus) ServerIO(io *ModbusIO) error {
 	// update regs with db value
 	switch io.modbusType {
-	case data.PointValueModbusCoil, data.PointValueModbusInput:
+	case data.PointValueModbusCoil, data.PointValueModbusDiscreteInput:
 		on := false
 		if io.value != 0 {
 			on = true
 		}
 		bus.server.Regs.AddCoil(io.address)
 		bus.server.Regs.WriteCoil(io.address, on)
-	case data.PointValueModbusRegister:
+	case data.PointValueModbusInputRegister, data.PointValueModbusHoldingRegister:
 		unscaledValue := (io.value - io.offset) / io.scale
 		switch io.modbusDataType {
 		case data.PointValueUINT16:
@@ -432,7 +432,8 @@ func NewModbusIO(busType string, node *data.NodeEdge) (*ModbusIO, error) {
 		return nil, errors.New("Must define modbus IO type")
 	}
 
-	if ret.modbusType == data.PointValueModbusRegister {
+	if ret.modbusType == data.PointValueModbusInputRegister ||
+		ret.modbusType == data.PointValueModbusHoldingRegister {
 		ret.modbusDataType, ok = node.Points.Text("", data.PointTypeDataFormat, 0)
 		if !ok {
 			return nil, errors.New("Data format must be specified")

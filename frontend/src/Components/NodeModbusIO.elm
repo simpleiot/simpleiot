@@ -76,8 +76,14 @@ view o =
         value =
             Point.getValue o.node.points Point.typeValue
 
+        isRegister =
+            modbusIOType
+                == Point.valueModbusInputRegister
+                || modbusIOType
+                == Point.valueModbusHoldingRegister
+
         valueText =
-            if modbusIOType == Point.valueModbusRegister then
+            if isRegister then
                 String.fromFloat value
 
             else if value == 0 then
@@ -99,7 +105,7 @@ view o =
                 Point.getText o.node.points Point.typeDescription
                     ++ ": "
                     ++ valueText
-                    ++ (if modbusIOType == Point.valueModbusRegister then
+                    ++ (if isRegister then
                             " " ++ Point.getText o.node.points Point.typeUnits
 
                         else
@@ -112,17 +118,18 @@ view o =
                     , numberInput Point.typeAddress "Address"
                     , optionInput Point.typeModbusIOType
                         "IO type"
-                        [ ( Point.valueModbusInput, "input" )
-                        , ( Point.valueModbusCoil, "coil" )
-                        , ( Point.valueModbusRegister, "register" )
+                        [ ( Point.valueModbusDiscreteInput, "discrete input (r)" )
+                        , ( Point.valueModbusCoil, "coil (rw)" )
+                        , ( Point.valueModbusInputRegister, "input register(r)" )
+                        , ( Point.valueModbusHoldingRegister, "holding register(rw)" )
                         ]
-                    , viewIf (modbusIOType == Point.valueModbusRegister) <|
+                    , viewIf isRegister <|
                         numberInput Point.typeScale "Scale factor"
-                    , viewIf (modbusIOType == Point.valueModbusRegister) <|
+                    , viewIf isRegister <|
                         numberInput Point.typeOffset "Offset"
-                    , viewIf (modbusIOType == Point.valueModbusRegister) <|
+                    , viewIf isRegister <|
                         textInput Point.typeUnits "Units"
-                    , viewIf (modbusIOType == Point.valueModbusRegister) <|
+                    , viewIf isRegister <|
                         optionInput Point.typeDataFormat
                             "Data format"
                             [ ( Point.valueUINT16, "UINT16" )
@@ -131,7 +138,7 @@ view o =
                             , ( Point.valueINT32, "INT32" )
                             , ( Point.valueFLOAT32, "FLOAT32" )
                             ]
-                    , if modbusIOType == Point.valueModbusRegister then
+                    , if isRegister then
                         numberInput Point.typeValue "Value"
 
                       else

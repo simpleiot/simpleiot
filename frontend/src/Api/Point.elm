@@ -52,8 +52,9 @@ module Api.Point exposing
     , valueINT16
     , valueINT32
     , valueModbusCoil
-    , valueModbusInput
-    , valueModbusRegister
+    , valueModbusDiscreteInput
+    , valueModbusHoldingRegister
+    , valueModbusInputRegister
     , valueServer
     , valueUINT16
     , valueUINT32
@@ -209,9 +210,9 @@ typeModbusIOType =
     "modbusIoType"
 
 
-valueModbusInput : String
-valueModbusInput =
-    "modbusInput"
+valueModbusDiscreteInput : String
+valueModbusDiscreteInput =
+    "modbusDiscreteInput"
 
 
 valueModbusCoil : String
@@ -219,9 +220,14 @@ valueModbusCoil =
     "modbusCoil"
 
 
-valueModbusRegister : String
-valueModbusRegister =
-    "modbusRegister"
+valueModbusInputRegister : String
+valueModbusInputRegister =
+    "modbusInputRegister"
+
+
+valueModbusHoldingRegister : String
+valueModbusHoldingRegister =
+    "modbusHoldingRegister"
 
 
 typeDataFormat : String

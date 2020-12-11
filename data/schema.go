@@ -51,10 +51,11 @@ const (
 
 	NodeTypeModbusIO = "modbusIo"
 
-	PointTypeModbusIOType    = "modbusIoType"
-	PointValueModbusInput    = "modbusInput"
-	PointValueModbusCoil     = "modbusCoil"
-	PointValueModbusRegister = "modbusRegister"
+	PointTypeModbusIOType           = "modbusIoType"
+	PointValueModbusDiscreteInput   = "modbusDiscreteInput"
+	PointValueModbusCoil            = "modbusCoil"
+	PointValueModbusInputRegister   = "modbusInputRegister"
+	PointValueModbusHoldingRegister = "modbusHoldingRegister"
 
 	PointTypeDataFormat = "dataFormat"
 	PointValueUINT16    = "uint16"
