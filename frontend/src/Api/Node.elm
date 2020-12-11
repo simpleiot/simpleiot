@@ -140,7 +140,7 @@ encodeNodeMove nodeMove =
 
 description : Node -> String
 description d =
-    case Point.getPoint d.points "" Point.typeDescription 0 of
+    case Point.get d.points "" Point.typeDescription 0 of
         Just point ->
             point.text
 

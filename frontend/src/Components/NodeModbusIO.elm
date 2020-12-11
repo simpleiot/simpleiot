@@ -46,6 +46,14 @@ view o =
                 , labelWidth = labelWidth
                 }
 
+        onOffInput =
+            Form.nodeOnOffInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
+
         optionInput =
             Form.nodeOptionInput
                 { onEditNodePoint = o.onEditNodePoint
@@ -55,15 +63,28 @@ view o =
                 }
 
         modbusIOType =
-            Point.getPointText o.node.points Point.typeModbusIOType
+            Point.getText o.node.points Point.typeModbusIOType
 
         isClient =
             case o.parent of
                 Just p ->
-                    Point.getPointText p.points Point.typeClientServer == Point.valueClient
+                    Point.getText p.points Point.typeClientServer == Point.valueClient
 
                 Nothing ->
                     False
+
+        value =
+            Point.getValue o.node.points Point.typeValue
+
+        valueText =
+            if modbusIOType == Point.valueModbusRegister then
+                String.fromFloat value
+
+            else if value == 0 then
+                "off"
+
+            else
+                "on"
     in
     column
         [ width fill
@@ -75,12 +96,11 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.io
             , text <|
-                Point.getPointText o.node.points Point.typeDescription
+                Point.getText o.node.points Point.typeDescription
                     ++ ": "
-                    ++ String.fromFloat
-                        (Point.getPointValue o.node.points Point.typeValue)
+                    ++ valueText
                     ++ (if modbusIOType == Point.valueModbusRegister then
-                            " " ++ Point.getPointText o.node.points Point.typeUnits
+                            " " ++ Point.getText o.node.points Point.typeUnits
 
                         else
                             ""
@@ -111,7 +131,11 @@ view o =
                             , ( Point.valueINT32, "INT32" )
                             , ( Point.valueFLOAT32, "FLOAT32" )
                             ]
-                    , numberInput Point.typeValue "Value"
+                    , if modbusIOType == Point.valueModbusRegister then
+                        numberInput Point.typeValue "Value"
+
+                      else
+                        onOffInput Point.typeValue "Value"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

@@ -55,7 +55,7 @@ view o =
                 }
 
         clientServer =
-            Point.getPointText o.node.points Point.typeClientServer
+            Point.getText o.node.points Point.typeClientServer
     in
     column
         [ width fill
@@ -67,7 +67,7 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.bus
             , text <|
-                Point.getPointText o.node.points Point.typeDescription
+                Point.getText o.node.points Point.typeDescription
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"

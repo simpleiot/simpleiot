@@ -3,6 +3,7 @@ module UI.Form exposing
     , buttonRow
     , label
     , nodeNumberInput
+    , nodeOnOffInput
     , nodeOptionInput
     , nodeTextInput
     , viewTextProperty
@@ -10,12 +11,16 @@ module UI.Form exposing
 
 import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
+import Color
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Time
+import TypedSvg as S
+import TypedSvg.Attributes as Sa
+import TypedSvg.Types as St
 import UI.Style as Style
 
 
@@ -94,7 +99,7 @@ nodeTextInput o pointName lbl =
             \d ->
                 o.onEditNodePoint o.node.id
                     (Point "" pointName 0 o.now 0 d 0 0)
-        , text = Point.getPointText o.node.points pointName
+        , text = Point.getText o.node.points pointName
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
@@ -112,7 +117,7 @@ nodeNumberInput :
 nodeNumberInput o pointName lbl =
     let
         pMaybe =
-            Point.getPoint o.node.points "" pointName 0
+            Point.get o.node.points "" pointName 0
 
         currentValue =
             case pMaybe of
@@ -193,7 +198,7 @@ nodeOptionInput o pointName lbl options =
                     text <|
                         lbl
                             ++ ":"
-        , selected = Just <| Point.getPointText o.node.points pointName
+        , selected = Just <| Point.getText o.node.points pointName
         , options =
             List.map
                 (\opt ->
@@ -201,3 +206,72 @@ nodeOptionInput o pointName lbl options =
                 )
                 options
         }
+
+
+nodeOnOffInput :
+    { onEditNodePoint : String -> Point -> msg
+    , node : Node
+    , now : Time.Posix
+    , labelWidth : Int
+    }
+    -> String
+    -> String
+    -> Element msg
+nodeOnOffInput o pointName lbl =
+    let
+        currentValue =
+            Point.getValue o.node.points pointName
+
+        buttonColor =
+            if currentValue == 0 then
+                Color.rgb 0.5 0.5 0.5
+
+            else
+                Color.rgb255 50 100 150
+
+        offset =
+            if currentValue == 0 then
+                3
+
+            else
+                3 + 24
+
+        newValue =
+            if currentValue == 0 then
+                1
+
+            else
+                0
+    in
+    row [ spacing 10 ]
+        [ el [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        , Input.button
+            []
+            { onPress = Just <| o.onEditNodePoint o.node.id (Point "" pointName 0 o.now newValue "" 0 0)
+            , label =
+                el [ width (px 100) ] <|
+                    html <|
+                        S.svg [ Sa.viewBox 0 0 48 24 ]
+                            [ S.rect
+                                [ Sa.x (St.px 0)
+                                , Sa.y (St.px 0)
+                                , Sa.width (St.px 48)
+                                , Sa.height (St.px 24)
+                                , Sa.ry (St.px 3)
+                                , Sa.rx (St.px 3)
+                                , Sa.fill <| St.Paint <| buttonColor
+                                ]
+                                []
+                            , S.rect
+                                [ Sa.x (St.px offset)
+                                , Sa.y (St.px 3)
+                                , Sa.width (St.px 18)
+                                , Sa.height (St.px 18)
+                                , Sa.ry (St.px 3)
+                                , Sa.rx (St.px 3)
+                                , Sa.fill <| St.Paint <| Color.white
+                                ]
+                                []
+                            ]
+            }
+        ]

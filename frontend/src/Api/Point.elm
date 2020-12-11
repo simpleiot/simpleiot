@@ -7,10 +7,10 @@ module Api.Point exposing
     , encode
     , encodeList
     , filterSpecialPoints
+    , get
     , getLatest
-    , getPoint
-    , getPointText
-    , getPointValue
+    , getText
+    , getValue
     , newText
     , newValue
     , renderPoint
@@ -419,8 +419,8 @@ updatePoints points newPoints =
         newPoints
 
 
-getPoint : List Point -> String -> String -> Int -> Maybe Point
-getPoint points id typ index =
+get : List Point -> String -> String -> Int -> Maybe Point
+get points id typ index =
     List.Extra.find
         (\p ->
             id == p.id && typ == p.typ && index == p.index
@@ -428,8 +428,8 @@ getPoint points id typ index =
         points
 
 
-getPointText : List Point -> String -> String
-getPointText points typ =
+getText : List Point -> String -> String
+getText points typ =
     case
         List.Extra.find
             (\p ->
@@ -444,8 +444,8 @@ getPointText points typ =
             ""
 
 
-getPointValue : List Point -> String -> Float
-getPointValue points typ =
+getValue : List Point -> String -> Float
+getValue points typ =
     case
         List.Extra.find
             (\p ->

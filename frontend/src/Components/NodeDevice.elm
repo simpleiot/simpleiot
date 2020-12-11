@@ -31,7 +31,7 @@ view :
 view o =
     let
         sysState =
-            case Point.getPoint o.node.points "" Point.typeSysState 0 of
+            case Point.get o.node.points "" Point.typeSysState 0 of
                 Just point ->
                     round point.value
 
@@ -62,7 +62,7 @@ view o =
                     Style.colors.gray
 
         hwVersion =
-            case Point.getPoint o.node.points "" Point.typeHwVersion 0 of
+            case Point.get o.node.points "" Point.typeHwVersion 0 of
                 Just point ->
                     "HW: " ++ point.text
 
@@ -70,7 +70,7 @@ view o =
                     ""
 
         osVersion =
-            case Point.getPoint o.node.points "" Point.typeOSVersion 0 of
+            case Point.get o.node.points "" Point.typeOSVersion 0 of
                 Just point ->
                     "OS: " ++ point.text
 
@@ -78,7 +78,7 @@ view o =
                     ""
 
         appVersion =
-            case Point.getPoint o.node.points "" Point.typeAppVersion 0 of
+            case Point.get o.node.points "" Point.typeAppVersion 0 of
                 Just point ->
                     "App: " ++ point.text
 
