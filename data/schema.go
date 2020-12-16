@@ -9,6 +9,7 @@ const (
 	PointTypeOffset             = "offset"
 	PointTypeUnits              = "units"
 	PointTypeValue              = "value"
+	PointTypeValueSet           = "valueSet"
 	PointTypeID                 = "id"
 	PointTypeAddress            = "address"
 	PointTypeDebug              = "debug"

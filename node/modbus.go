@@ -408,7 +408,7 @@ type ModbusIO struct {
 	scale          float64
 	offset         float64
 	value          float64
-	valueRaw       float64
+	valueSet       float64
 }
 
 // NewModbusIO Convert node to modbus IO
@@ -448,6 +448,7 @@ func NewModbusIO(busType string, node *data.NodeEdge) (*ModbusIO, error) {
 		}
 	}
 	ret.value, _ = node.Points.Value("", data.PointTypeValue, 0)
+	ret.valueSet, _ = node.Points.Value("", data.PointTypeValue, 0)
 
 	return &ret, nil
 }

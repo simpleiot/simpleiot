@@ -76,6 +76,9 @@ view o =
         value =
             Point.getValue o.node.points Point.typeValue
 
+        valueSet =
+            Point.getValue o.node.points Point.typeValueSet
+
         isRegister =
             modbusIOType
                 == Point.valueModbusInputRegister
@@ -138,10 +141,13 @@ view o =
                             , ( Point.valueINT32, "INT32" )
                             , ( Point.valueFLOAT32, "FLOAT32" )
                             ]
-                    , if isRegister then
+                    , viewIf (isClient && modbusIOType == Point.valueModbusHoldingRegister) <|
+                        numberInput Point.typeValueSet "Value"
+                    , viewIf (isClient && modbusIOType == Point.valueModbusCoil) <|
+                        onOffInput Point.typeValueSet "Value"
+                    , viewIf (not isClient && isRegister) <|
                         numberInput Point.typeValue "Value"
-
-                      else
+                    , viewIf (not isClient && not isRegister) <|
                         onOffInput Point.typeValue "Value"
                     , viewIf o.modified <|
                         Form.buttonRow

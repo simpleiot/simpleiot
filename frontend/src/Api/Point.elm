@@ -45,6 +45,7 @@ module Api.Point exposing
     , typeUpdateApp
     , typeUpdateOS
     , typeValue
+    , typeValueSet
     , updatePoint
     , updatePoints
     , valueClient
@@ -93,6 +94,11 @@ typeUnits =
 typeValue : String
 typeValue =
     "value"
+
+
+typeValueSet : String
+typeValueSet =
+    "valueSet"
 
 
 typeCmdPending : String
