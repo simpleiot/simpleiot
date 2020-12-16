@@ -17,10 +17,9 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Svg as S
+import Svg.Attributes as Sa
 import Time
-import TypedSvg as S
-import TypedSvg.Attributes as Sa
-import TypedSvg.Types as St
 import UI.Style as Style
 
 
@@ -216,28 +215,45 @@ nodeOnOffInput :
     }
     -> String
     -> String
+    -> String
     -> Element msg
-nodeOnOffInput o pointName lbl =
+nodeOnOffInput o pointName pointSetName lbl =
     let
         currentValue =
             Point.getValue o.node.points pointName
 
-        buttonColor =
-            if currentValue == 0 then
+        currentSetValue =
+            Point.getValue o.node.points pointSetName
+
+        fill =
+            if currentSetValue == 0 then
                 Color.rgb 0.5 0.5 0.5
 
             else
                 Color.rgb255 50 100 150
 
+        fillFade =
+            if currentSetValue == 0 then
+                Color.rgb 0.9 0.9 0.9
+
+            else
+                Color.rgb255 150 200 255
+
+        fillFadeS =
+            Color.toCssString fillFade
+
+        fillS =
+            Color.toCssString fill
+
         offset =
-            if currentValue == 0 then
+            if currentSetValue == 0 then
                 3
 
             else
                 3 + 24
 
         newValue =
-            if currentValue == 0 then
+            if currentSetValue == 0 then
                 1
 
             else
@@ -247,29 +263,46 @@ nodeOnOffInput o pointName lbl =
         [ el [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         , Input.button
             []
-            { onPress = Just <| o.onEditNodePoint o.node.id (Point "" pointName 0 o.now newValue "" 0 0)
+            { onPress = Just <| o.onEditNodePoint o.node.id (Point "" pointSetName 0 o.now newValue "" 0 0)
             , label =
                 el [ width (px 100) ] <|
                     html <|
-                        S.svg [ Sa.viewBox 0 0 48 24 ]
+                        S.svg [ Sa.viewBox "0 0 48 24" ]
                             [ S.rect
-                                [ Sa.x (St.px 0)
-                                , Sa.y (St.px 0)
-                                , Sa.width (St.px 48)
-                                , Sa.height (St.px 24)
-                                , Sa.ry (St.px 3)
-                                , Sa.rx (St.px 3)
-                                , Sa.fill <| St.Paint <| buttonColor
+                                [ Sa.x "0"
+                                , Sa.y "0"
+                                , Sa.width "48"
+                                , Sa.height "24"
+                                , Sa.ry "3"
+                                , Sa.rx "3"
+                                , Sa.fill fillS
                                 ]
-                                []
+                              <|
+                                if currentValue /= currentSetValue then
+                                    [ S.animate
+                                        [ Sa.attributeName "fill"
+                                        , Sa.dur "2s"
+                                        , Sa.repeatCount "indefinite"
+                                        , Sa.values <|
+                                            fillFadeS
+                                                ++ ";"
+                                                ++ fillS
+                                                ++ ";"
+                                                ++ fillFadeS
+                                        ]
+                                        []
+                                    ]
+
+                                else
+                                    []
                             , S.rect
-                                [ Sa.x (St.px offset)
-                                , Sa.y (St.px 3)
-                                , Sa.width (St.px 18)
-                                , Sa.height (St.px 18)
-                                , Sa.ry (St.px 3)
-                                , Sa.rx (St.px 3)
-                                , Sa.fill <| St.Paint <| Color.white
+                                [ Sa.x (String.fromFloat offset)
+                                , Sa.y "3"
+                                , Sa.width "18"
+                                , Sa.height "18"
+                                , Sa.ry "3"
+                                , Sa.rx "3"
+                                , Sa.fill (Color.toCssString Color.white)
                                 ]
                                 []
                             ]
