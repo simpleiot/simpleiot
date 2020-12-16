@@ -208,9 +208,9 @@ func (bus *Modbus) CheckPort(node *data.NodeEdge) error {
 
 // ClientIO processes an IO on a client bus
 func (bus *Modbus) ClientIO(io *ModbusIO) error {
-	// update regs with db value
+	// read value from remote device and update regs
 	switch io.modbusType {
-	case data.PointValueModbusCoil, data.PointValueModbusDiscreteInput:
+	case data.PointValueModbusCoil:
 		coils, err := bus.client.ReadCoils(byte(io.id), uint16(io.address), 1)
 		if err != nil {
 			return err
@@ -234,7 +234,31 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 			return err
 		}
 
-	case data.PointValueModbusInputRegister, data.PointValueModbusHoldingRegister:
+	case data.PointValueModbusDiscreteInput:
+		coils, err := bus.client.ReadDiscreteInputs(byte(io.id), uint16(io.address), 1)
+		if err != nil {
+			return err
+		}
+		if len(coils) < 1 {
+			return errors.New("Did not receive enough data")
+		}
+		v := 0.0
+		if coils[0] {
+			v = 1
+		}
+
+		// send the point
+		p := data.Point{
+			Type:  data.PointTypeValue,
+			Value: v,
+		}
+
+		err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+		if err != nil {
+			return err
+		}
+
+	case data.PointValueModbusHoldingRegister:
 		switch io.modbusDataType {
 		case data.PointValueUINT16, data.PointValueINT16:
 			regs, err := bus.client.ReadHoldingRegs(byte(io.id), uint16(io.address), 1)
@@ -325,6 +349,95 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 		default:
 			return fmt.Errorf("unhandled data type: %v",
 				io.modbusDataType)
+		}
+
+	case data.PointValueModbusInputRegister:
+		switch io.modbusDataType {
+		case data.PointValueUINT16, data.PointValueINT16:
+			regs, err := bus.client.ReadInputRegs(byte(io.id), uint16(io.address), 1)
+			if err != nil {
+				return err
+			}
+			if len(regs) < 1 {
+				return errors.New("Did not receive enough data")
+			}
+			v := float64(regs[0])*io.scale + io.offset
+			// send the point
+			p := data.Point{
+				Type:  data.PointTypeValue,
+				Value: v,
+			}
+
+			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			if err != nil {
+				return err
+			}
+
+		case data.PointValueUINT32:
+			regs, err := bus.client.ReadInputRegs(byte(io.id), uint16(io.address), 2)
+			if err != nil {
+				return err
+			}
+			if len(regs) < 2 {
+				return errors.New("Did not receive enough data")
+			}
+			v := modbus.RegsToUint32(regs)
+
+			vScaled := float64(v[0])*io.scale + io.offset
+			// send the point
+			p := data.Point{
+				Type:  data.PointTypeValue,
+				Value: vScaled,
+			}
+
+			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			if err != nil {
+				return err
+			}
+
+		case data.PointValueINT32:
+			regs, err := bus.client.ReadInputRegs(byte(io.id), uint16(io.address), 2)
+			if err != nil {
+				return err
+			}
+			if len(regs) < 2 {
+				return errors.New("Did not receive enough data")
+			}
+			v := modbus.RegsToInt32(regs)
+
+			vScaled := float64(v[0])*io.scale + io.offset
+			// send the point
+			p := data.Point{
+				Type:  data.PointTypeValue,
+				Value: vScaled,
+			}
+
+			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			if err != nil {
+				return err
+			}
+
+		case data.PointValueFLOAT32:
+			regs, err := bus.client.ReadInputRegs(byte(io.id), uint16(io.address), 2)
+			if err != nil {
+				return err
+			}
+			if len(regs) < 2 {
+				return errors.New("Did not receive enough data")
+			}
+			v := modbus.RegsToFloat32(regs)
+
+			vScaled := float64(v[0])*io.scale + io.offset
+			// send the point
+			p := data.Point{
+				Type:  data.PointTypeValue,
+				Value: vScaled,
+			}
+
+			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			if err != nil {
+				return err
+			}
 		}
 
 	default:

@@ -73,6 +73,52 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	return resp.RespReadBits()
 }
 
+// ReadDiscreteInputs is used to read modbus discrete inputs
+func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error) {
+	ret := []bool{}
+	req := ReadDiscreteInputs(input, count)
+	if c.debug >= 1 {
+		fmt.Println("Modbus client ReadDiscreteInputs req: ", req)
+	}
+	packet, err := RtuEncode(id, req)
+	if err != nil {
+		return ret, err
+	}
+
+	if c.debug >= 9 {
+		fmt.Println("Modbus client ReadDiscreteInputs tx: ", HexDump(packet))
+	}
+
+	_, err = c.port.Write(packet)
+	if err != nil {
+		return ret, err
+	}
+
+	// FIXME, what is max modbus packet size?
+	buf := make([]byte, 200)
+	cnt, err := c.port.Read(buf)
+	if err != nil {
+		return ret, err
+	}
+
+	buf = buf[:cnt]
+
+	if c.debug >= 9 {
+		fmt.Println("Modbus client ReadDiscreteInputs rx: ", HexDump(buf))
+	}
+
+	resp, err := RtuDecode(buf)
+	if err != nil {
+		return ret, err
+	}
+
+	if c.debug >= 1 {
+		fmt.Println("Modbus client ReadDiscreteInputs resp: ", resp)
+	}
+
+	return resp.RespReadBits()
+}
+
 // ReadHoldingRegs is used to read modbus coils
 func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 	ret := []uint16{}
@@ -114,6 +160,52 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 
 	if c.debug >= 1 {
 		fmt.Println("Modbus client ReadHoldingRegs resp: ", resp)
+	}
+
+	return resp.RespReadRegs()
+}
+
+// ReadInputRegs is used to read modbus coils
+func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
+	ret := []uint16{}
+	req := ReadInputRegs(reg, count)
+	if c.debug >= 1 {
+		fmt.Println("Modbus client ReadInputRegs req: ", req)
+	}
+	packet, err := RtuEncode(id, req)
+	if err != nil {
+		return ret, err
+	}
+
+	if c.debug >= 9 {
+		fmt.Println("Modbus client ReadInputRegs tx: ", HexDump(packet))
+	}
+
+	_, err = c.port.Write(packet)
+	if err != nil {
+		return ret, err
+	}
+
+	// FIXME, what is max modbus packet size?
+	buf := make([]byte, 200)
+	cnt, err := c.port.Read(buf)
+	if err != nil {
+		return ret, err
+	}
+
+	buf = buf[:cnt]
+
+	if c.debug >= 9 {
+		fmt.Println("Modbus client ReadInputRegs rx: ", HexDump(buf))
+	}
+
+	resp, err := RtuDecode(buf)
+	if err != nil {
+		return ret, err
+	}
+
+	if c.debug >= 1 {
+		fmt.Println("Modbus client ReadInputRegs resp: ", resp)
 	}
 
 	return resp.RespReadRegs()

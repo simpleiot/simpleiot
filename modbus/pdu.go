@@ -136,6 +136,14 @@ func (p *PDU) RespReadRegs() ([]uint16, error) {
 // Add address units below are the packet address, typically drop
 // first digit from register and subtract 1
 
+// ReadDiscreteInputs creates PDU to read descrete inputs
+func ReadDiscreteInputs(address uint16, count uint16) PDU {
+	return PDU{
+		FunctionCode: FuncCodeReadDiscreteInputs,
+		Data:         PutUint16Array(address, count),
+	}
+}
+
 // ReadCoils creates PDU to read coils
 func ReadCoils(address uint16, count uint16) PDU {
 	return PDU{
@@ -148,6 +156,14 @@ func ReadCoils(address uint16, count uint16) PDU {
 func ReadHoldingRegs(address uint16, count uint16) PDU {
 	return PDU{
 		FunctionCode: FuncCodeReadHoldingRegisters,
+		Data:         PutUint16Array(address, count),
+	}
+}
+
+// ReadInputRegs creates a PDU to read input regs
+func ReadInputRegs(address uint16, count uint16) PDU {
+	return PDU{
+		FunctionCode: FuncCodeReadInputRegisters,
 		Data:         PutUint16Array(address, count),
 	}
 }
