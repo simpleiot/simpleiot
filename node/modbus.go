@@ -234,6 +234,20 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 			return err
 		}
 
+		if io.valueSet != v {
+			vBool := false
+			if io.valueSet != 0 {
+				vBool = true
+			}
+			// we need set the remote value
+			err := bus.client.WriteSingleCoil(byte(io.id), uint16(io.address),
+				vBool)
+
+			if err != nil {
+				return err
+			}
+		}
+
 	case data.PointValueModbusDiscreteInput:
 		coils, err := bus.client.ReadDiscreteInputs(byte(io.id), uint16(io.address), 1)
 		if err != nil {
@@ -561,7 +575,7 @@ func NewModbusIO(busType string, node *data.NodeEdge) (*ModbusIO, error) {
 		}
 	}
 	ret.value, _ = node.Points.Value("", data.PointTypeValue, 0)
-	ret.valueSet, _ = node.Points.Value("", data.PointTypeValue, 0)
+	ret.valueSet, _ = node.Points.Value("", data.PointTypeValueSet, 0)
 
 	return &ret, nil
 }

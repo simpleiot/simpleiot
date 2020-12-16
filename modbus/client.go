@@ -73,6 +73,53 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	return resp.RespReadBits()
 }
 
+// WriteSingleCoil is used to read modbus coils
+func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
+	req := WriteSingleCoil(coil, v)
+	if c.debug >= 1 {
+		fmt.Println("Modbus client WriteSingleCoil req: ", req)
+	}
+	packet, err := RtuEncode(id, req)
+	if err != nil {
+		return err
+	}
+
+	if c.debug >= 9 {
+		fmt.Println("Modbus client WriteSingleCoil tx: ", HexDump(packet))
+	}
+
+	_, err = c.port.Write(packet)
+	if err != nil {
+		return err
+	}
+
+	// FIXME, what is max modbus packet size?
+	buf := make([]byte, 200)
+	cnt, err := c.port.Read(buf)
+	if err != nil {
+		return err
+	}
+
+	buf = buf[:cnt]
+
+	if c.debug >= 9 {
+		fmt.Println("Modbus client WriteSingleCoil rx: ", HexDump(buf))
+	}
+
+	resp, err := RtuDecode(buf)
+	if err != nil {
+		return err
+	}
+
+	// FIXME, check return code matches what we sent
+
+	if c.debug >= 1 {
+		fmt.Println("Modbus client WriteSingleCoil resp: ", resp)
+	}
+
+	return nil
+}
+
 // ReadDiscreteInputs is used to read modbus discrete inputs
 func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error) {
 	ret := []bool{}

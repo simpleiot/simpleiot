@@ -152,6 +152,19 @@ func ReadCoils(address uint16, count uint16) PDU {
 	}
 }
 
+// WriteSingleCoil creates PDU to read coils
+func WriteSingleCoil(address uint16, v bool) PDU {
+	value := WriteCoilValueOff
+	if v {
+		value = WriteCoilValueOn
+	}
+
+	return PDU{
+		FunctionCode: FuncCodeWriteSingleCoil,
+		Data:         PutUint16Array(address, value),
+	}
+}
+
 // ReadHoldingRegs creates a PDU to read a holding regs
 func ReadHoldingRegs(address uint16, count uint16) PDU {
 	return PDU{
