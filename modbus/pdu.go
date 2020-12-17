@@ -66,6 +66,23 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 
 		}
 
+	case FuncCodeWriteSingleCoil:
+		address := binary.BigEndian.Uint16(p.Data[:2])
+		v := binary.BigEndian.Uint16(p.Data[2:4])
+
+		vBool := false
+		if v == WriteCoilValueOn {
+			vBool = true
+		}
+
+		err := regs.WriteCoil(int(address), vBool)
+		if err != nil {
+			return []RegChange{}, PDU{}, errors.New(
+				"Did not find modbus reg")
+		}
+
+		resp.Data = PutUint16Array(v)
+
 	default:
 		return []RegChange{}, PDU{},
 			fmt.Errorf("unsupported function code: %v", p.FunctionCode)
