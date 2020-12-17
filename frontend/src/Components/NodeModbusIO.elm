@@ -76,6 +76,9 @@ view o =
         value =
             Point.getValue o.node.points Point.typeValue
 
+        valueSet =
+            Point.getValue o.node.points Point.typeValueSet
+
         isRegister =
             modbusIOType
                 == Point.valueModbusInputRegister
@@ -107,6 +110,12 @@ view o =
                     ++ valueText
                     ++ (if isRegister then
                             " " ++ Point.getText o.node.points Point.typeUnits
+
+                        else
+                            ""
+                       )
+                    ++ (if value /= valueSet then
+                            " (cmd pending)"
 
                         else
                             ""
