@@ -13,6 +13,7 @@ const (
 	PointTypeID                 = "id"
 	PointTypeAddress            = "address"
 	PointTypeDebug              = "debug"
+	PointTypeInitialized        = "initialized"
 
 	// An device node describes an phyical device -- it may be the
 	// cloud server, gateway, etc

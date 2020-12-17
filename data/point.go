@@ -100,6 +100,12 @@ func (ps *Points) ValueInt(id, typ string, index int) (int, bool) {
 	return int(f), ok
 }
 
+// ValueBool returns value as bool
+func (ps *Points) ValueBool(id, typ string, index int) (bool, bool) {
+	f, ok := ps.Value(id, typ, index)
+	return FloatToBool(f), ok
+}
+
 // Text fetches a text value from an array of points given ID, Type, and Index.
 // If ID or Type are set to "", they are ignored.
 func (ps *Points) Text(id, typ string, index int) (string, bool) {
@@ -271,4 +277,21 @@ func (sf *PointFilter) Add(points []Point) []Point {
 	}
 
 	return ret
+}
+
+// FloatToBool converts a float to bool
+func FloatToBool(v float64) bool {
+	if v == 0 {
+		return false
+	}
+
+	return true
+}
+
+// BoolToFloat converts bool to float
+func BoolToFloat(v bool) float64 {
+	if !v {
+		return 0
+	}
+	return 1
 }

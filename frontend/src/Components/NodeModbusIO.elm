@@ -138,13 +138,22 @@ view o =
                             , ( Point.valueINT32, "INT32" )
                             , ( Point.valueFLOAT32, "FLOAT32" )
                             ]
+
+                    -- this can get a little confusing, but client sets the following:
+                    --   * coil
+                    --   * holding register
+                    -- and the server sets the following
+                    --   * discrete input
+                    --   * input register
+                    -- we can't practically have both the client and server setting a
+                    -- value.
                     , viewIf (isClient && modbusIOType == Point.valueModbusHoldingRegister) <|
                         numberInput Point.typeValueSet "Value"
                     , viewIf (isClient && modbusIOType == Point.valueModbusCoil) <|
                         onOffInput Point.typeValue Point.typeValueSet "Value"
-                    , viewIf (not isClient && isRegister) <|
+                    , viewIf (not isClient && modbusIOType == Point.valueModbusInputRegister) <|
                         numberInput Point.typeValue "Value"
-                    , viewIf (not isClient && not isRegister) <|
+                    , viewIf (not isClient && modbusIOType == Point.valueModbusDiscreteInput) <|
                         onOffInput Point.typeValue Point.typeValue "Value"
                     , viewIf o.modified <|
                         Form.buttonRow

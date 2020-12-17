@@ -95,16 +95,16 @@ func (mm *ModbusManager) Update() error {
 
 // Modbus describes a modbus bus
 type Modbus struct {
-	nc         *natsgo.Conn
-	busType    string
-	id         int // only used for server
-	ios        map[string]*ModbusIO
-	portName   string
-	baud       int
-	port       *respreader.ReadWriteCloser
-	client     *modbus.Client
-	server     *modbus.Server
-	debugLevel int
+	nc            *natsgo.Conn
+	busType       string
+	id            int // only used for server
+	portName      string
+	baud          int
+	port          *respreader.ReadWriteCloser
+	client        *modbus.Client
+	server        *modbus.Server
+	debugLevel    int
+	ioInitialized map[string]bool
 }
 
 // NewModbus creates a new bus from a node
@@ -123,11 +123,11 @@ func NewModbus(nc *natsgo.Conn, node *data.NodeEdge) (*Modbus, error) {
 	}
 
 	return &Modbus{
-		nc:       nc,
-		busType:  busType,
-		portName: portName,
-		baud:     int(baud),
-		ios:      make(map[string]*ModbusIO),
+		nc:            nc,
+		busType:       busType,
+		portName:      portName,
+		baud:          int(baud),
+		ioInitialized: make(map[string]bool),
 	}, nil
 }
 
@@ -206,6 +206,17 @@ func (bus *Modbus) CheckPort(node *data.NodeEdge) error {
 	return nil
 }
 
+// SendPoint sends a point over nats
+func (bus *Modbus) SendPoint(nodeID, pointType string, value float64) error {
+	// send the point
+	p := data.Point{
+		Type:  pointType,
+		Value: value,
+	}
+
+	return nats.SendPoint(bus.nc, nodeID, &p, true)
+}
+
 // ClientIO processes an IO on a client bus
 func (bus *Modbus) ClientIO(io *ModbusIO) error {
 	// read value from remote device and update regs
@@ -223,26 +234,22 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 			v = 1
 		}
 
-		// send the point
-		p := data.Point{
-			Type:  data.PointTypeValue,
-			Value: v,
-		}
-
-		err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+		err = bus.SendPoint(io.nodeID, data.PointTypeValue, v)
 		if err != nil {
 			return err
 		}
 
 		if io.valueSet != v {
-			vBool := false
-			if io.valueSet != 0 {
-				vBool = true
-			}
+			vBool := data.FloatToBool(io.valueSet)
 			// we need set the remote value
 			err := bus.client.WriteSingleCoil(byte(io.id), uint16(io.address),
 				vBool)
 
+			if err != nil {
+				return err
+			}
+
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, io.valueSet)
 			if err != nil {
 				return err
 			}
@@ -261,13 +268,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 			v = 1
 		}
 
-		// send the point
-		p := data.Point{
-			Type:  data.PointTypeValue,
-			Value: v,
-		}
-
-		err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+		err = bus.SendPoint(io.nodeID, data.PointTypeValue, v)
 		if err != nil {
 			return err
 		}
@@ -284,12 +285,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 			}
 			v := float64(regs[0])*io.scale + io.offset
 			// send the point
-			p := data.Point{
-				Type:  data.PointTypeValue,
-				Value: v,
-			}
-
-			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, v)
 			if err != nil {
 				return err
 			}
@@ -306,12 +302,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 
 			vScaled := float64(v[0])*io.scale + io.offset
 			// send the point
-			p := data.Point{
-				Type:  data.PointTypeValue,
-				Value: vScaled,
-			}
-
-			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, vScaled)
 			if err != nil {
 				return err
 			}
@@ -328,12 +319,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 
 			vScaled := float64(v[0])*io.scale + io.offset
 			// send the point
-			p := data.Point{
-				Type:  data.PointTypeValue,
-				Value: vScaled,
-			}
-
-			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, vScaled)
 			if err != nil {
 				return err
 			}
@@ -349,13 +335,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 			v := modbus.RegsToFloat32(regs)
 
 			vScaled := float64(v[0])*io.scale + io.offset
-			// send the point
-			p := data.Point{
-				Type:  data.PointTypeValue,
-				Value: vScaled,
-			}
-
-			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, vScaled)
 			if err != nil {
 				return err
 			}
@@ -377,12 +357,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 			}
 			v := float64(regs[0])*io.scale + io.offset
 			// send the point
-			p := data.Point{
-				Type:  data.PointTypeValue,
-				Value: v,
-			}
-
-			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, v)
 			if err != nil {
 				return err
 			}
@@ -399,12 +374,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 
 			vScaled := float64(v[0])*io.scale + io.offset
 			// send the point
-			p := data.Point{
-				Type:  data.PointTypeValue,
-				Value: vScaled,
-			}
-
-			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, vScaled)
 			if err != nil {
 				return err
 			}
@@ -421,12 +391,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 
 			vScaled := float64(v[0])*io.scale + io.offset
 			// send the point
-			p := data.Point{
-				Type:  data.PointTypeValue,
-				Value: vScaled,
-			}
-
-			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, vScaled)
 			if err != nil {
 				return err
 			}
@@ -443,12 +408,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 
 			vScaled := float64(v[0])*io.scale + io.offset
 			// send the point
-			p := data.Point{
-				Type:  data.PointTypeValue,
-				Value: vScaled,
-			}
-
-			err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, vScaled)
 			if err != nil {
 				return err
 			}
@@ -465,13 +425,36 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 func (bus *Modbus) ServerIO(io *ModbusIO) error {
 	// update regs with db value
 	switch io.modbusType {
-	case data.PointValueModbusCoil, data.PointValueModbusDiscreteInput:
-		on := false
-		if io.value != 0 {
-			on = true
-		}
+	case data.PointValueModbusDiscreteInput:
 		bus.server.Regs.AddCoil(io.address)
-		bus.server.Regs.WriteCoil(io.address, on)
+		bus.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
+	case data.PointValueModbusCoil:
+		initialized := bus.ioInitialized[io.nodeID]
+		if !initialized {
+			bus.server.Regs.AddCoil(io.address)
+			bus.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
+			err := bus.SendPoint(io.nodeID, data.PointTypeInitialized, 1)
+			if err != nil {
+				return err
+			}
+			bus.ioInitialized[io.nodeID] = true
+		}
+		regValue, err := bus.server.Regs.ReadCoil(io.address)
+		if err != nil {
+			return err
+		}
+
+		dbValue := data.FloatToBool(io.value)
+
+		fmt.Println("CLIFF: regValue, dbValue: ", regValue, dbValue)
+
+		if regValue != dbValue {
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, data.BoolToFloat(regValue))
+			if err != nil {
+				return err
+			}
+		}
+
 	case data.PointValueModbusInputRegister, data.PointValueModbusHoldingRegister:
 		unscaledValue := (io.value - io.offset) / io.scale
 		switch io.modbusDataType {
