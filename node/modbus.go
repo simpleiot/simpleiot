@@ -229,10 +229,7 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 		if len(coils) < 1 {
 			return errors.New("Did not receive enough data")
 		}
-		v := 0.0
-		if coils[0] {
-			v = 1
-		}
+		v := data.BoolToFloat(coils[0])
 
 		err = bus.SendPoint(io.nodeID, data.PointTypeValue, v)
 		if err != nil {
