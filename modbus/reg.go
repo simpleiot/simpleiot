@@ -90,8 +90,8 @@ func (r *Regs) ReadCoil(num int) (bool, error) {
 	}
 
 	bitPos := uint16(num % 16)
-
-	return regValue&bitPos != 0, nil
+	ret := (regValue & (1 << bitPos)) != 0
+	return ret, nil
 }
 
 // WriteCoil writes a coil value

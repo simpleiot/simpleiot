@@ -446,8 +446,6 @@ func (bus *Modbus) ServerIO(io *ModbusIO) error {
 
 		dbValue := data.FloatToBool(io.value)
 
-		fmt.Println("CLIFF: regValue, dbValue: ", regValue, dbValue)
-
 		if regValue != dbValue {
 			err = bus.SendPoint(io.nodeID, data.PointTypeValue, data.BoolToFloat(regValue))
 			if err != nil {
