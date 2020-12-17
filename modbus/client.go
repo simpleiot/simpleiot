@@ -1,6 +1,8 @@
 package modbus
 
 import (
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -112,6 +114,24 @@ func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 	}
 
 	// FIXME, check return code matches what we sent
+	if resp.FunctionCode != FuncCodeWriteSingleCoil {
+		return errors.New("resp contains wrong function code")
+	}
+
+	if len(resp.Data) < 2 {
+		return errors.New("not enough data in resp")
+	}
+
+	ret := binary.BigEndian.Uint16(resp.Data)
+
+	exp := WriteCoilValueOff
+	if v {
+		exp = WriteCoilValueOn
+	}
+
+	if ret != exp {
+		return errors.New("Write coil did not return expected value")
+	}
 
 	if c.debug >= 1 {
 		fmt.Println("Modbus client WriteSingleCoil resp: ", resp)
