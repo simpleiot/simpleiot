@@ -46,11 +46,14 @@ but just as important, in the deployment and tooling.
 - **Database**
   - Eventually support multiple databased backends depending on scaling/admin
     needs
-  - Embedded db using [BoltHold](https://github.com/timshannon/bolthold)
+  - Embedded db using [Genji](https://genji.dev/)
     - no external services to configure/admin
 - **Hosting**
-  - Any server that provides ability run long-lived Go applications (Digital
-    Ocean, Linode, GCP compute engine, AWS ec2, etc)
+  - Any machine that provides ability run long-lived Go applications
+  - Any MAC/Linux/Windows/rPI/Beaglebone/Odroid/etc computer on your local
+    network.
+  - Cloud VMs: Digital Ocean, Linode, GCP compute engine, AWS ec2, etc. Can
+    easily host on a \$5/mo instance.
 
 In our experience, simplicity and good tooling matter. It is easy to add
 features to a language, but creating a useful language/tooling that is simple is
