@@ -41,7 +41,7 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 		count := binary.BigEndian.Uint16(p.Data[2:4])
 		// FIXME, do something with count to handle a range of reads
 		_ = count
-		v, err := regs.ReadReg(address / 16)
+		v, err := regs.ReadReg(int(address) / 16)
 		if err != nil {
 			return []RegChange{}, PDU{}, errors.New(
 				"Did not find modbus reg")
@@ -56,7 +56,7 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 		resp.Data = make([]byte, 1+2*count)
 		resp.Data[0] = uint8(count * 2)
 		for i := 0; i < int(count); i++ {
-			v, err := regs.ReadReg(address + uint16(i))
+			v, err := regs.ReadReg(int(address) + i)
 			if err != nil {
 				return []RegChange{}, PDU{}, errors.New(
 					"Did not find modbus reg")
@@ -178,6 +178,14 @@ func WriteSingleCoil(address uint16, v bool) PDU {
 
 	return PDU{
 		FunctionCode: FuncCodeWriteSingleCoil,
+		Data:         PutUint16Array(address, value),
+	}
+}
+
+// WriteSingleReg creates PDU to read coils
+func WriteSingleReg(address, value uint16) PDU {
+	return PDU{
+		FunctionCode: FuncCodeWriteSingleRegister,
 		Data:         PutUint16Array(address, value),
 	}
 }
