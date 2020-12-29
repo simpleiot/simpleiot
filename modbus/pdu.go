@@ -78,10 +78,20 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 		err := regs.WriteCoil(int(address), vBool)
 		if err != nil {
 			return []RegChange{}, PDU{}, errors.New(
-				"Did not find modbus reg")
+				"error writing to coil reg")
 		}
 
 		resp.Data = PutUint16Array(v)
+
+	case FuncCodeWriteSingleRegister:
+		address := binary.BigEndian.Uint16(p.Data[:2])
+		v := binary.BigEndian.Uint16(p.Data[2:4])
+
+		err := regs.WriteReg(int(address), v)
+		if err != nil {
+			return []RegChange{}, PDU{}, errors.New(
+				"error writing to modbus reg")
+		}
 
 	default:
 		return []RegChange{}, PDU{},

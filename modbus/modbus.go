@@ -32,5 +32,6 @@ var minPacketLen = map[FunctionCode]int{
 	FuncCodeReadDiscreteInputs:   6,
 	FuncCodeReadHoldingRegisters: 7,
 	FuncCodeReadInputRegisters:   7,
-	FuncCodeWriteSingleCoil:      4,
+	FuncCodeWriteSingleCoil:      7,
+	FuncCodeWriteSingleRegister:  7,
 }
