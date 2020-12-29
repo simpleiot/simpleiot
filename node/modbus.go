@@ -278,6 +278,68 @@ func (bus *Modbus) ReadReg(io *ModbusIO) (float64, error) {
 	return valueUnscaled * io.scale * io.offset, nil
 }
 
+// WriteBusHoldingReg used to write register values to bus
+// should only be used by client
+func (bus *Modbus) WriteBusHoldingReg(io *ModbusIO) error {
+	unscaledValue := (io.value - io.offset) / io.scale
+	switch io.modbusDataType {
+	case data.PointValueUINT16, data.PointValueINT16:
+		err := bus.client.WriteSingleReg(byte(io.id),
+			uint16(io.address), uint16(unscaledValue))
+		if err != nil {
+			return err
+		}
+	case data.PointValueUINT32:
+		regs := modbus.Uint32ToRegs([]uint32{uint32(unscaledValue)})
+		err := bus.client.WriteSingleReg(byte(io.id),
+			uint16(io.address), regs[0])
+		if err != nil {
+			return err
+		}
+
+		err = bus.client.WriteSingleReg(byte(io.id),
+			uint16(io.address+1), regs[1])
+		if err != nil {
+			return err
+		}
+
+	case data.PointValueINT32:
+		regs := modbus.Int32ToRegs([]int32{int32(unscaledValue)})
+		err := bus.client.WriteSingleReg(byte(io.id),
+			uint16(io.address), regs[0])
+		if err != nil {
+			return err
+		}
+
+		err = bus.client.WriteSingleReg(byte(io.id),
+			uint16(io.address+1), regs[1])
+		if err != nil {
+			return err
+		}
+
+	case data.PointValueFLOAT32:
+		regs := modbus.Float32ToRegs([]float32{float32(unscaledValue)})
+		err := bus.client.WriteSingleReg(byte(io.id),
+			uint16(io.address), regs[0])
+		if err != nil {
+			return err
+		}
+
+		err = bus.client.WriteSingleReg(byte(io.id),
+			uint16(io.address+1), regs[1])
+		if err != nil {
+			return err
+		}
+
+	default:
+		return fmt.Errorf("unhandled data type: %v",
+			io.modbusDataType)
+
+	}
+
+	return nil
+}
+
 // ReadBusReg reads an io value from a reg from bus
 // this function modifies io.value. This should only be called from client
 func (bus *Modbus) ReadBusReg(io *ModbusIO) error {
@@ -420,11 +482,8 @@ func (bus *Modbus) ClientIO(io *ModbusIO) error {
 		}
 
 		if io.valueSet != io.value {
-			// FIXME convert this to holding reg write
-			vBool := data.FloatToBool(io.valueSet)
 			// we need set the remote value
-			err := bus.client.WriteSingleCoil(byte(io.id), uint16(io.address),
-				vBool)
+			err := bus.WriteBusHoldingReg(io)
 
 			if err != nil {
 				return err
