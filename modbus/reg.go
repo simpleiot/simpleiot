@@ -58,7 +58,8 @@ func (r *Regs) readReg(address int) (uint16, error) {
 func (r *Regs) ReadReg(address int) (uint16, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
-	return r.readReg(address)
+	v, err := r.readReg(address)
+	return v, err
 }
 
 func (r *Regs) writeReg(address int, value uint16) error {
