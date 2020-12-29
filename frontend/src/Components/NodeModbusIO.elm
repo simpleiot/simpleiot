@@ -73,6 +73,12 @@ view o =
                 Nothing ->
                     False
 
+        isWrite =
+            modbusIOType
+                == Point.valueModbusHoldingRegister
+                || modbusIOType
+                == Point.valueModbusCoil
+
         value =
             Point.getValue o.node.points Point.typeValue
 
@@ -114,7 +120,7 @@ view o =
                         else
                             ""
                        )
-                    ++ (if value /= valueSet then
+                    ++ (if isClient && isWrite && value /= valueSet then
                             " (cmd pending)"
 
                         else
