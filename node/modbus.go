@@ -275,7 +275,8 @@ func (bus *Modbus) ReadReg(io *ModbusIO) (float64, error) {
 			io.modbusDataType)
 	}
 
-	return valueUnscaled * io.scale * io.offset, nil
+	ret := valueUnscaled*io.scale + io.offset
+	return ret, nil
 }
 
 // ReadBusReg reads an io value from a reg from bus

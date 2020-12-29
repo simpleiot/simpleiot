@@ -93,6 +93,8 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 				"error writing to modbus reg")
 		}
 
+		resp = *p
+
 	default:
 		return []RegChange{}, PDU{},
 			fmt.Errorf("unsupported function code: %v", p.FunctionCode)
