@@ -52,6 +52,7 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
 		address := binary.BigEndian.Uint16(p.Data[:2])
 		count := binary.BigEndian.Uint16(p.Data[2:4])
+		fmt.Println("CLIFF: FuncCodeReadHoldingRegisters: ", address, count)
 
 		resp.Data = make([]byte, 1+2*count)
 		resp.Data[0] = uint8(count * 2)

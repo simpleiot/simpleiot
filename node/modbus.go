@@ -217,7 +217,44 @@ func (bus *Modbus) SendPoint(nodeID, pointType string, value float64) error {
 	return nats.SendPoint(bus.nc, nodeID, &p, true)
 }
 
+// ReadReg reads an value from a reg (internal, not bus)
+// This should only be used on server
+func (bus *Modbus) ReadReg(io *ModbusIO) (float64, error) {
+	var valueUnscaled float64
+	switch io.modbusDataType {
+	case data.PointValueUINT16, data.PointValueINT16:
+		v, err := bus.server.Regs.ReadReg(io.address)
+		if err != nil {
+			return 0, err
+		}
+		valueUnscaled = float64(v)
+	case data.PointValueUINT32:
+		v, err := bus.server.Regs.ReadRegUint32(io.address)
+		if err != nil {
+			return 0, err
+		}
+		valueUnscaled = float64(v)
+	case data.PointValueINT32:
+		v, err := bus.server.Regs.ReadRegInt32(io.address)
+		if err != nil {
+			return 0, err
+		}
+		valueUnscaled = float64(v)
+	case data.PointValueFLOAT32:
+		v, err := bus.server.Regs.ReadRegFloat32(io.address)
+		if err != nil {
+			return 0, err
+		}
+		valueUnscaled = float64(v)
+	default:
+		return 0, fmt.Errorf("unhandled data type: %v",
+			io.modbusDataType)
+	}
+	return valueUnscaled*io.scale + io.offset, nil
+}
+
 // WriteReg writes an io value to a reg
+// This should only be used on server
 func (bus *Modbus) WriteReg(io *ModbusIO) error {
 	unscaledValue := (io.value - io.offset) / io.scale
 	bus.server.Regs.AddReg(io.address, regCount(io.modbusDataType))
@@ -237,35 +274,6 @@ func (bus *Modbus) WriteReg(io *ModbusIO) error {
 		return fmt.Errorf("unhandled data type: %v",
 			io.modbusDataType)
 	}
-	return nil
-}
-
-// ReadBusBit is used to read coil of discrete input values
-// this function modifies io.value
-func (bus *Modbus) ReadBusBit(io *ModbusIO) error {
-	readFunc := bus.client.ReadCoils
-	switch io.modbusType {
-	case data.PointValueModbusCoil:
-	case data.PointValueModbusDiscreteInput:
-		readFunc = bus.client.ReadDiscreteInputs
-	default:
-		return fmt.Errorf("ReadBusBit: unhandled modbusType: %v",
-			io.modbusType)
-	}
-	bits, err := readFunc(byte(io.id), uint16(io.address), 1)
-	if err != nil {
-		return err
-	}
-	if len(bits) < 1 {
-		return errors.New("Did not receive enough data")
-	}
-	io.value = data.BoolToFloat(bits[0])
-
-	err = bus.SendPoint(io.nodeID, data.PointTypeValue, io.value)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -404,6 +412,35 @@ func (bus *Modbus) ReadBusReg(io *ModbusIO) error {
 	return nil
 }
 
+// ReadBusBit is used to read coil of discrete input values from bus
+// this function modifies io.value. This should only be called from client.
+func (bus *Modbus) ReadBusBit(io *ModbusIO) error {
+	readFunc := bus.client.ReadCoils
+	switch io.modbusType {
+	case data.PointValueModbusCoil:
+	case data.PointValueModbusDiscreteInput:
+		readFunc = bus.client.ReadDiscreteInputs
+	default:
+		return fmt.Errorf("ReadBusBit: unhandled modbusType: %v",
+			io.modbusType)
+	}
+	bits, err := readFunc(byte(io.id), uint16(io.address), 1)
+	if err != nil {
+		return err
+	}
+	if len(bits) < 1 {
+		return errors.New("Did not receive enough data")
+	}
+	io.value = data.BoolToFloat(bits[0])
+
+	err = bus.SendPoint(io.nodeID, data.PointTypeValue, io.value)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ClientIO processes an IO on a client bus
 func (bus *Modbus) ClientIO(io *ModbusIO) error {
 	// read value from remote device and update regs
@@ -507,15 +544,13 @@ func (bus *Modbus) ServerIO(io *ModbusIO) error {
 			bus.WriteReg(io)
 			bus.ioInitialized[io.nodeID] = true
 		}
-		regValue, err := bus.server.Regs.ReadCoil(io.address)
+		v, err := bus.ReadReg(io)
 		if err != nil {
 			return err
 		}
 
-		dbValue := data.FloatToBool(io.value)
-
-		if regValue != dbValue {
-			err = bus.SendPoint(io.nodeID, data.PointTypeValue, data.BoolToFloat(regValue))
+		if io.value != v {
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, v)
 			if err != nil {
 				return err
 			}

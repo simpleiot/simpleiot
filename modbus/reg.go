@@ -2,6 +2,7 @@ package modbus
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -27,6 +28,7 @@ type Regs struct {
 // the callback function is called when the reg is updated
 // The register can be updated by word or bit operations.
 func (r *Regs) AddReg(address int, count int) {
+	fmt.Println("CLIFF: AddReg: ", address)
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	// first check if reg already exists
@@ -45,6 +47,8 @@ func (r *Regs) AddReg(address int, count int) {
 }
 
 func (r *Regs) readReg(address int) (uint16, error) {
+	fmt.Println("CLIFF: readReg: ", address)
+	fmt.Println("CLIFF: regs: ", r.regs)
 	for _, reg := range r.regs {
 		if reg.Address == uint16(address) {
 			return reg.Value, nil
