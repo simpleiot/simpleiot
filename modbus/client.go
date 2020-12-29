@@ -302,7 +302,6 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 	buf := make([]byte, 200)
 	cnt, err := c.port.Read(buf)
 	if err != nil {
-		fmt.Println("CLIFF: WriteSingleReg: read error: ", err)
 		return err
 	}
 
