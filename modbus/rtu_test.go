@@ -41,7 +41,7 @@ func TestRtuSc2000Level(t *testing.T) {
 	}
 
 	regs := Regs{}
-	regs.AddReg(10)
+	regs.AddReg(10, 1)
 	regs.WriteReg(10, 98)
 
 	_, resp, err := prompt.ProcessRequest(&regs)

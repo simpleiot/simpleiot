@@ -26,7 +26,7 @@ func TestRtuEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	slave.Regs.AddReg(2)
+	slave.Regs.AddReg(2, 1)
 	err = slave.Regs.WriteReg(2, 0x1234)
 	if err != nil {
 		t.Fatal(err)

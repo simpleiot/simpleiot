@@ -34,7 +34,7 @@ func TestPduReadCoils(t *testing.T) {
 
 func TestPduReadHoldingRegs(t *testing.T) {
 	regs := Regs{}
-	regs.AddReg(8)
+	regs.AddReg(8, 1)
 	regs.WriteReg(8, 0x1234)
 
 	pdu := ReadHoldingRegs(8, 1)
