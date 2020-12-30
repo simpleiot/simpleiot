@@ -40,8 +40,10 @@ func (mm *ModbusManager) Update() error {
 		return err
 	}
 
-	// FIXME remove busses that no longer exist
+	found := make(map[string]bool)
+
 	for _, ne := range nodes {
+		found[ne.ID] = true
 		bus, ok := mm.busses[ne.ID]
 		if !ok {
 			var err error
@@ -87,6 +89,21 @@ func (mm *ModbusManager) Update() error {
 			default:
 				log.Println("unhandled modbus type: ", bus.busType)
 			}
+		}
+	}
+
+	// remove busses that have been deleted
+	for id, bus := range mm.busses {
+		_, ok := found[id]
+		if !ok {
+			// bus was deleted so close and clear it
+			log.Println("Closing modbus on port: ", bus.portName)
+			err := bus.port.Close()
+			if err != nil {
+				log.Println("Error closing modbus port: ", err)
+			}
+
+			delete(mm.busses, id)
 		}
 	}
 
