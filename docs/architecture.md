@@ -44,6 +44,13 @@ probably a better solution than NATS. Initially we are focusing on systems that
 send more data -- perhaps 5-30MB/month. There is no reason we can't support CoAP
 as well in the future.
 
+## Data modification
+
+Where possible, modifying data (especially nodes) should be initiated over nats
+vs direct db calls. This ensures anything in the system can have visibility into
+data changes. Eventually we may want to hide db operations that do writes to
+force them to be initiated through a NATS message.
+
 ## Simple, Flexible data structures
 
 As we work on IoT systems, data structures (types) tend to emerge. Common data
