@@ -78,7 +78,7 @@ func (mm *ModbusManager) Update() error {
 								bus.busType)
 						}
 					case <-bus.stop:
-						log.Println("Stopping modbus for: ", bus.portName)
+						log.Println("Stopping client IO for: ", bus.portName)
 						return
 					}
 				}
