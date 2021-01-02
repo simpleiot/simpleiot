@@ -7,6 +7,8 @@ import (
 	"text/template"
 	"time"
 
+	natsgo "github.com/nats-io/nats.go"
+
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/msg"
@@ -14,15 +16,19 @@ import (
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
-	db        *genji.Db
-	messenger *msg.Messenger
+	db            *genji.Db
+	messenger     *msg.Messenger
+	modbusManager *ModbusManager
+	nc            *natsgo.Conn
 }
 
 // NewManger creates a new Manager
-func NewManger(db *genji.Db, messenger *msg.Messenger) *Manager {
+func NewManger(db *genji.Db, messenger *msg.Messenger, nc *natsgo.Conn) *Manager {
 	return &Manager{
-		db:        db,
-		messenger: messenger,
+		db:            db,
+		messenger:     messenger,
+		modbusManager: NewModbusManager(db, nc),
+		nc:            nc,
 	}
 }
 
@@ -58,6 +64,8 @@ func (m *Manager) Run() {
 				}
 			}
 		}
+
+		m.modbusManager.Update()
 
 		time.Sleep(10 * time.Second)
 	}

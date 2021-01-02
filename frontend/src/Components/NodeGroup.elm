@@ -4,7 +4,6 @@ import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Element exposing (..)
 import Element.Border as Border
-import Element.Input as Input
 import Time
 import UI.Form as Form
 import UI.Icon as Icon
@@ -18,6 +17,7 @@ view :
     , zone : Time.Zone
     , modified : Bool
     , expDetail : Bool
+    , parent : Maybe Node
     , node : Node
     , onApiDelete : String -> msg
     , onEditNodePoint : String -> Point -> msg
@@ -27,8 +27,13 @@ view :
     -> Element msg
 view o =
     let
-        textInput2 =
-            textInput { onEditNodePoint = o.onEditNodePoint, node = o.node, now = o.now }
+        textInput =
+            Form.nodeTextInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = 100
+                }
     in
     column
         [ width fill
@@ -40,12 +45,10 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.users
             , text <|
-                Point.getPointText o.node.points Point.typeDescription
-            , viewIf o.isRoot <|
-                Icon.x (o.onApiDelete o.node.id)
+                Point.getText o.node.points Point.typeDescription
             ]
             :: (if o.expDetail then
-                    [ textInput2 Point.typeDescription "Description"
+                    [ textInput Point.typeDescription "Description"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button
@@ -64,24 +67,3 @@ view o =
                 else
                     []
                )
-
-
-textInput :
-    { onEditNodePoint : String -> Point -> msg
-    , node : Node
-    , now : Time.Posix
-    }
-    -> String
-    -> String
-    -> Element msg
-textInput o pointName label =
-    Input.text
-        []
-        { onChange =
-            \d ->
-                o.onEditNodePoint o.node.id
-                    (Point "" pointName 0 o.now 0 d 0 0)
-        , text = Point.getPointText o.node.points pointName
-        , placeholder = Nothing
-        , label = Input.labelLeft [ width (px 100) ] <| el [ alignRight ] <| text <| label ++ ":"
-        }

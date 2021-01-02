@@ -21,7 +21,17 @@ const (
 	FuncCodeReadFIFOQueue              = 24
 )
 
+// define valid values for write coil
+const (
+	WriteCoilValueOn  uint16 = 0xff00
+	WriteCoilValueOff uint16 = 0
+)
+
 var minPacketLen = map[FunctionCode]int{
 	FuncCodeReadCoils:            6,
+	FuncCodeReadDiscreteInputs:   6,
 	FuncCodeReadHoldingRegisters: 7,
+	FuncCodeReadInputRegisters:   7,
+	FuncCodeWriteSingleCoil:      7,
+	FuncCodeWriteSingleRegister:  7,
 }

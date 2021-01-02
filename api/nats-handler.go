@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	natsgo "github.com/nats-io/nats.go"
+
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
@@ -36,7 +38,7 @@ func NewNatsHandler(db *genji.Db, authToken, server string) *NatsHandler {
 }
 
 // Connect to NATS server and set up handlers for things we are interested in
-func (nh *NatsHandler) Connect() error {
+func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 	nc, err := nats.Connect(nh.server,
 		nats.Timeout(10*time.Second),
 		nats.PingInterval(60*5*time.Second),
@@ -49,20 +51,20 @@ func (nh *NatsHandler) Connect() error {
 	)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	nh.Nc = nc
 
 	if _, err := nc.Subscribe("node.*.samples", nh.handlePoints); err != nil {
-		return fmt.Errorf("Subscribe node samples error: %w", err)
+		return nil, fmt.Errorf("Subscribe node samples error: %w", err)
 	}
 
 	if _, err := nc.Subscribe("node.*.points", nh.handlePoints); err != nil {
-		return fmt.Errorf("Subscribe node points error: %w", err)
+		return nil, fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
-	return nil
+	return nc, nil
 }
 
 // StartUpdate starts an update

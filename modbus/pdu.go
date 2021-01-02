@@ -41,7 +41,7 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 		count := binary.BigEndian.Uint16(p.Data[2:4])
 		// FIXME, do something with count to handle a range of reads
 		_ = count
-		v, err := regs.ReadReg(address / 16)
+		v, err := regs.ReadReg(int(address) / 16)
 		if err != nil {
 			return []RegChange{}, PDU{}, errors.New(
 				"Did not find modbus reg")
@@ -52,17 +52,48 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
 		address := binary.BigEndian.Uint16(p.Data[:2])
 		count := binary.BigEndian.Uint16(p.Data[2:4])
-		// FIXME, do something with count to handle a range of reads
-		_ = count
-		v, err := regs.ReadReg(address)
-		if err != nil {
-			return []RegChange{}, PDU{}, errors.New(
-				"Did not find modbus reg")
-		}
 
 		resp.Data = make([]byte, 1+2*count)
 		resp.Data[0] = uint8(count * 2)
-		binary.BigEndian.PutUint16(resp.Data[1:3], v)
+		for i := 0; i < int(count); i++ {
+			v, err := regs.ReadReg(int(address) + i)
+			if err != nil {
+				return []RegChange{}, PDU{}, errors.New(
+					"Did not find modbus reg")
+			}
+
+			binary.BigEndian.PutUint16(resp.Data[1+i*2:], v)
+
+		}
+
+	case FuncCodeWriteSingleCoil:
+		address := binary.BigEndian.Uint16(p.Data[:2])
+		v := binary.BigEndian.Uint16(p.Data[2:4])
+
+		vBool := false
+		if v == WriteCoilValueOn {
+			vBool = true
+		}
+
+		err := regs.WriteCoil(int(address), vBool)
+		if err != nil {
+			return []RegChange{}, PDU{}, errors.New(
+				"error writing to coil reg")
+		}
+
+		resp.Data = PutUint16Array(v)
+
+	case FuncCodeWriteSingleRegister:
+		address := binary.BigEndian.Uint16(p.Data[:2])
+		v := binary.BigEndian.Uint16(p.Data[2:4])
+
+		err := regs.WriteReg(int(address), v)
+		if err != nil {
+			return []RegChange{}, PDU{}, errors.New(
+				"error writing to modbus reg")
+		}
+
+		resp = *p
 
 	default:
 		return []RegChange{}, PDU{},
@@ -134,6 +165,14 @@ func (p *PDU) RespReadRegs() ([]uint16, error) {
 // Add address units below are the packet address, typically drop
 // first digit from register and subtract 1
 
+// ReadDiscreteInputs creates PDU to read descrete inputs
+func ReadDiscreteInputs(address uint16, count uint16) PDU {
+	return PDU{
+		FunctionCode: FuncCodeReadDiscreteInputs,
+		Data:         PutUint16Array(address, count),
+	}
+}
+
 // ReadCoils creates PDU to read coils
 func ReadCoils(address uint16, count uint16) PDU {
 	return PDU{
@@ -142,10 +181,39 @@ func ReadCoils(address uint16, count uint16) PDU {
 	}
 }
 
+// WriteSingleCoil creates PDU to read coils
+func WriteSingleCoil(address uint16, v bool) PDU {
+	value := WriteCoilValueOff
+	if v {
+		value = WriteCoilValueOn
+	}
+
+	return PDU{
+		FunctionCode: FuncCodeWriteSingleCoil,
+		Data:         PutUint16Array(address, value),
+	}
+}
+
+// WriteSingleReg creates PDU to read coils
+func WriteSingleReg(address, value uint16) PDU {
+	return PDU{
+		FunctionCode: FuncCodeWriteSingleRegister,
+		Data:         PutUint16Array(address, value),
+	}
+}
+
 // ReadHoldingRegs creates a PDU to read a holding regs
 func ReadHoldingRegs(address uint16, count uint16) PDU {
 	return PDU{
 		FunctionCode: FuncCodeReadHoldingRegisters,
+		Data:         PutUint16Array(address, count),
+	}
+}
+
+// ReadInputRegs creates a PDU to read input regs
+func ReadInputRegs(address uint16, count uint16) PDU {
+	return PDU{
+		FunctionCode: FuncCodeReadInputRegisters,
 		Data:         PutUint16Array(address, count),
 	}
 }

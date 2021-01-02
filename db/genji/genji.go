@@ -57,7 +57,7 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx) (*Db, error) 
 
 	switch storeType {
 	case StoreTypeMemory:
-		store, err = genji.Open(":memory")
+		store, err = genji.Open(":memory:")
 		if err != nil {
 			log.Fatal("Error opening memory store: ", err)
 		}
@@ -214,6 +214,11 @@ func (gen *Db) Close() error {
 	return gen.store.Close()
 }
 
+// RootNodeID returns the ID of the root node
+func (gen *Db) RootNodeID() string {
+	return gen.meta.RootID
+}
+
 func txNode(tx *genji.Tx, id string) (data.Node, error) {
 	var node data.Node
 	doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
@@ -223,6 +228,41 @@ func txNode(tx *genji.Tx, id string) (data.Node, error) {
 
 	err = document.StructScan(doc, &node)
 	return node, err
+}
+
+// recurisively find all descendents
+func txNodeFindDescendents(tx *genji.Tx, id string) ([]data.NodeEdge, error) {
+	var nodes []data.NodeEdge
+
+	downIDs, err := txEdgeDown(tx, id)
+	if err != nil {
+		return nodes, err
+	}
+
+	for _, downID := range downIDs {
+		node, err := txNode(tx, downID)
+		if err != nil {
+			if err != database.ErrDocumentNotFound {
+				// something bad happened
+				return nodes, err
+			}
+			// else something is minorly wrong with db, print
+			// error and return
+			log.Println("Error finding node: ", downID)
+			continue
+		}
+
+		nodes = append(nodes, node.ToNodeEdge(id))
+
+		downNodes, err := txNodeFindDescendents(tx, downID)
+		if err != nil {
+			return nodes, err
+		}
+
+		nodes = append(nodes, downNodes...)
+	}
+
+	return nodes, nil
 }
 
 // Node returns data for a particular node
@@ -282,7 +322,7 @@ func (gen *Db) NodeInsert(node data.Node) (string, error) {
 	return node.ID, gen.store.Exec(`insert into nodes values ?`, node)
 }
 
-// NodeInsertEdge -- insert a node and edge
+// NodeInsertEdge -- insert a node and edge and return uuid
 func (gen *Db) NodeInsertEdge(node data.NodeEdge) (string, error) {
 	if node.ID == "" {
 		node.ID = uuid.New().String()
@@ -303,25 +343,39 @@ func (gen *Db) NodeInsertEdge(node data.NodeEdge) (string, error) {
 	return node.ID, err
 }
 
-// NodeDelete deletes a node from the database
+func txNodeDelete(tx *genji.Tx, id string) error {
+	childIDs, err := txEdgeDown(tx, id)
+	if err != nil {
+		return err
+	}
+
+	for _, id := range childIDs {
+		txNodeDelete(tx, id)
+	}
+
+	err = tx.Exec(`delete from nodes where id = ?`, id)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Exec(`delete from edges where down = ?`, id)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Exec(`delete from edges where up = ?`, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// NodeDelete deletes a node from the database and recursively all
+// descendents
 func (gen *Db) NodeDelete(id string) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(`delete from nodes where id = ?`, id)
-		if err != nil {
-			return err
-		}
-
-		err = tx.Exec(`delete from edges where down = ?`, id)
-		if err != nil {
-			return err
-		}
-
-		err = tx.Exec(`delete from edges where up = ?`, id)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return txNodeDelete(tx, id)
 	})
 }
 
@@ -549,40 +603,6 @@ func (gen *Db) NodeGetCmd(id string) (data.NodeCmd, error) {
 	return cmd, err
 }
 
-func txFindChildNodes(tx *genji.Tx, id string) ([]data.NodeEdge, error) {
-	var nodes []data.NodeEdge
-
-	downIDs, err := txEdgeDown(tx, id)
-	if err != nil {
-		return nodes, err
-	}
-
-	for _, downID := range downIDs {
-		node, err := txNode(tx, downID)
-		if err != nil {
-			if err != database.ErrDocumentNotFound {
-				// something bad happened
-				return nodes, err
-			}
-			// else something is minorly wrong with db, print
-			// error and return
-			log.Println("Error finding node: ", downID)
-			continue
-		}
-
-		nodes = append(nodes, node.ToNodeEdge(id))
-
-		downNodes, err := txFindChildNodes(tx, downID)
-		if err != nil {
-			return nodes, err
-		}
-
-		nodes = append(nodes, downNodes...)
-	}
-
-	return nodes, nil
-}
-
 // NodesForUser returns all nodes for a particular user
 // FIXME this should be renamed to node children or something like that
 func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
@@ -606,7 +626,7 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 			}
 			nodes = append(nodes, rootNode.ToNodeEdge(""))
 
-			childNodes, err := txFindChildNodes(tx, id)
+			childNodes, err := txNodeFindDescendents(tx, id)
 			if err != nil {
 				return err
 			}
@@ -621,17 +641,12 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 }
 
 // NodeChildren returns child nodes for a particular node ID and type
+// set typ to blank string to find all children
 func (gen *Db) NodeChildren(id, typ string) ([]data.NodeEdge, error) {
 	var nodes []data.NodeEdge
 
 	err := gen.store.View(func(tx *genji.Tx) error {
-		rootNode, err := txNode(tx, id)
-		if err != nil {
-			return err
-		}
-		nodes = append(nodes, rootNode.ToNodeEdge(""))
-
-		childNodes, err := txFindChildNodes(tx, id)
+		childNodes, err := txNodeFindDescendents(tx, id)
 		if err != nil {
 			return err
 		}
@@ -640,7 +655,11 @@ func (gen *Db) NodeChildren(id, typ string) ([]data.NodeEdge, error) {
 			nodes = append(nodes, childNodes...)
 		} else {
 			for _, child := range childNodes {
-				if child.Type == typ {
+				if typ != "" {
+					if child.Type == typ {
+						nodes = append(nodes, child)
+					}
+				} else {
 					nodes = append(nodes, child)
 				}
 			}
@@ -1253,19 +1272,10 @@ type genImport struct {
 	NodeCmds []data.NodeCmd `json:"nodeCmds"`
 }
 
-type genDump struct {
-	Nodes    []data.Node    `json:"nodes"`
-	Edges    []data.Edge    `json:"edges"`
-	Rules    []data.Rule    `json:"rules"`
-	NodeCmds []data.NodeCmd `json:"nodeCmds"`
-}
-
 // ImportDb imports contents of file into database
 func ImportDb(gen *Db, in io.Reader) error {
 	decoder := json.NewDecoder(in)
 	dump := genImport{}
-
-	fmt.Println("CLIFF: rootID: ", gen.meta.RootID)
 
 	err := decoder.Decode(&dump)
 	if err != nil {
@@ -1313,6 +1323,14 @@ func ImportDb(gen *Db, in io.Reader) error {
 	return nil
 }
 
+type genDump struct {
+	Nodes    []data.Node    `json:"nodes"`
+	Edges    []data.Edge    `json:"edges"`
+	Rules    []data.Rule    `json:"rules"`
+	NodeCmds []data.NodeCmd `json:"nodeCmds"`
+	Meta     Meta           `json:"meta"`
+}
+
 // DumpDb dumps the entire gen to a file
 func DumpDb(gen *Db, out io.Writer) error {
 	dump := genDump{}
@@ -1333,6 +1351,8 @@ func DumpDb(gen *Db, out io.Writer) error {
 	if err != nil {
 		return err
 	}
+
+	dump.Meta = gen.meta
 
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "   ")

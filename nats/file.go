@@ -14,6 +14,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// Companion file in api/send-file.go
+
 type fileDownload struct {
 	id   string
 	name string

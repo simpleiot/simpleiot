@@ -1,4 +1,4 @@
-module Components.NodeUser exposing (view)
+module Components.NodeModbus exposing (view)
 
 import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
@@ -28,7 +28,7 @@ view :
 view o =
     let
         labelWidth =
-            100
+            180
 
         textInput =
             Form.nodeTextInput
@@ -37,6 +37,25 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+
+        numberInput =
+            Form.nodeNumberInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
+
+        optionInput =
+            Form.nodeOptionInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
+
+        clientServer =
+            Point.getText o.node.points Point.typeClientServer
     in
     column
         [ width fill
@@ -46,18 +65,22 @@ view o =
         ]
     <|
         wrappedRow [ spacing 10 ]
-            [ Icon.user
+            [ Icon.bus
             , text <|
-                Point.getText o.node.points Point.typeFirstName
-                    ++ " "
-                    ++ Point.getText o.node.points Point.typeLastName
+                Point.getText o.node.points Point.typeDescription
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeFirstName "First Name"
-                    , textInput Point.typeLastName "Last Name"
-                    , textInput Point.typeEmail "Email"
-                    , textInput Point.typePhone "Phone"
-                    , textInput Point.typePass "Pass"
+                    [ textInput Point.typeDescription "Description"
+                    , optionInput Point.typeClientServer
+                        "Client/Server"
+                        [ ( Point.valueClient, "client" )
+                        , ( Point.valueServer, "server" )
+                        ]
+                    , textInput Point.typePort "Port"
+                    , textInput Point.typeBaud "Baud"
+                    , viewIf (clientServer == Point.valueServer) <|
+                        numberInput Point.typeID "Device ID"
+                    , numberInput Point.typeDebug "Debug level (0-9)"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

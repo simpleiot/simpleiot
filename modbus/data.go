@@ -48,6 +48,19 @@ func RegsToUint32(in []uint16) []uint32 {
 	return ret
 }
 
+// Uint32ToRegs converts uint32 values to modbus regs
+func Uint32ToRegs(in []uint32) []uint16 {
+	ret := make([]uint16, len(in)*2)
+	for i, v := range in {
+		buf := make([]byte, 4)
+		binary.BigEndian.PutUint32(buf, v)
+		ret[i*2] = binary.BigEndian.Uint16(buf[0:])
+		ret[i*2+1] = binary.BigEndian.Uint16(buf[2:])
+	}
+
+	return ret
+}
+
 // RegsToInt32 converts modbus regs to int32 values
 func RegsToInt32(in []uint16) []int32 {
 	count := len(in) / 2
@@ -62,6 +75,19 @@ func RegsToInt32(in []uint16) []int32 {
 	return ret
 }
 
+// Int32ToRegs converts int32 values to modbus regs
+func Int32ToRegs(in []int32) []uint16 {
+	ret := make([]uint16, len(in)*2)
+	for i, v := range in {
+		buf := make([]byte, 4)
+		binary.BigEndian.PutUint32(buf, uint32(v))
+		ret[i*2] = binary.BigEndian.Uint16(buf[0:])
+		ret[i*2+1] = binary.BigEndian.Uint16(buf[2:])
+	}
+
+	return ret
+}
+
 // RegsToFloat32 converts modbus regs to float32 values
 func RegsToFloat32(in []uint16) []float32 {
 	count := len(in) / 2
@@ -71,6 +97,19 @@ func RegsToFloat32(in []uint16) []float32 {
 		binary.BigEndian.PutUint16(buf[0:], in[i*2])
 		binary.BigEndian.PutUint16(buf[2:], in[i*2+1])
 		ret[i] = math.Float32frombits(binary.BigEndian.Uint32(buf))
+	}
+
+	return ret
+}
+
+// Float32ToRegs converts float32 values to modbus regs
+func Float32ToRegs(in []float32) []uint16 {
+	ret := make([]uint16, len(in)*2)
+	for i, v := range in {
+		buf := make([]byte, 4)
+		binary.BigEndian.PutUint32(buf, math.Float32bits(v))
+		ret[i*2] = binary.BigEndian.Uint16(buf[0:])
+		ret[i*2+1] = binary.BigEndian.Uint16(buf[2:])
 	}
 
 	return ret

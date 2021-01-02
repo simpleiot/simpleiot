@@ -91,162 +91,6 @@ func sendPoint(portal, authToken, s string) error {
 	return err
 }
 
-func sendPointNats(nc *natsgo.Conn, authToken, s string, ack bool) error {
-	nodeID, point, err := parsePoint(s)
-
-	if err != nil {
-		return err
-	}
-
-	subject := fmt.Sprintf("node.%v.points", nodeID)
-
-	points := data.Points{}
-
-	points = append(points, point)
-
-	data, err := points.PbEncode()
-
-	if err != nil {
-		return err
-	}
-
-	if ack {
-		msg, err := nc.Request(subject, data, time.Second)
-
-		if err != nil {
-			return err
-		}
-
-		if string(msg.Data) != "" {
-			log.Println("Request returned error: ", string(msg.Data))
-		}
-
-	} else {
-		if err := nc.Publish(subject, data); err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
-func sendPointText(nc *natsgo.Conn, authToken, s string, ack bool) error {
-	nodeID, point, err := parsePointText(s)
-
-	if err != nil {
-		return err
-	}
-
-	subject := fmt.Sprintf("node.%v.points", nodeID)
-
-	points := data.Points{}
-
-	points = append(points, point)
-
-	data, err := points.PbEncode()
-
-	if err != nil {
-		return err
-	}
-
-	if ack {
-		msg, err := nc.Request(subject, data, time.Second)
-
-		if err != nil {
-			return err
-		}
-
-		if string(msg.Data) != "" {
-			log.Println("Request returned error: ", string(msg.Data))
-		}
-
-	} else {
-		if err := nc.Publish(subject, data); err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
-func parseSample(s string) (string, data.Sample, error) {
-	frags := strings.Split(s, ":")
-	if len(frags) != 4 {
-		return "", data.Sample{},
-			errors.New("format for sample is: 'devId:sensId:value:type'")
-	}
-
-	nodeID := frags[0]
-	sampleID := frags[1]
-	value, err := strconv.ParseFloat(frags[2], 64)
-	if err != nil {
-		return "", data.Sample{}, err
-	}
-
-	sampleType := frags[3]
-
-	return nodeID, data.Sample{
-		ID:    sampleID,
-		Type:  sampleType,
-		Value: value,
-		Time:  time.Now(),
-	}, nil
-
-}
-
-func sendSample(portal, authToken, s string) error {
-	nodeID, sample, err := parseSample(s)
-
-	if err != nil {
-		return err
-	}
-
-	sendSamples := api.NewSendSamples(portal, nodeID, time.Second*10, false)
-
-	err = sendSamples([]data.Sample{sample})
-
-	return err
-}
-
-func sendSampleNats(nc *natsgo.Conn, authToken, s string, ack bool) error {
-	nodeID, sample, err := parseSample(s)
-
-	if err != nil {
-		return err
-	}
-
-	subject := fmt.Sprintf("node.%v.samples", nodeID)
-
-	samples := data.Samples{}
-
-	samples = append(samples, sample)
-
-	data, err := samples.PbEncode()
-
-	if err != nil {
-		return err
-	}
-
-	if ack {
-		msg, err := nc.Request(subject, data, time.Second)
-
-		if err != nil {
-			return err
-		}
-
-		if string(msg.Data) != "" {
-			log.Println("Request returned error: ", string(msg.Data))
-		}
-
-	} else {
-		if err := nc.Publish(subject, data); err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
 func main() {
 	defaultNatsServer := "nats://localhost:4222"
 
@@ -258,12 +102,10 @@ func main() {
 	flagSim := flag.Bool("sim", false, "Start node simulator")
 	flagDisableAuth := flag.Bool("disableAuth", false, "Disable user auth (used for development)")
 	flagPortal := flag.String("portal", "http://localhost:8080", "Portal URL")
-	flagSendSample := flag.String("sendSample", "", "Send sample to 'portal': 'devId:sensId:value:type'")
 	flagSendPoint := flag.String("sendPoint", "", "Send point to 'portal': 'devId:sensId:value:type'")
 	flagNatsServer := flag.String("natsServer", defaultNatsServer, "NATS Server")
 	flagNatsDisableServer := flag.Bool("natsDisableServer", false, "Disable NATS server (if you want to run NATS separately)")
 	flagNatsAck := flag.Bool("natsAck", false, "request response")
-	flagSendSampleNats := flag.String("sendSampleNats", "", "Send sample to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendPointNats := flag.String("sendPointNats", "", "Send point to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendPointText := flag.String("sendPointText", "", "Send text point to 'portal' via NATS: 'devId:sensId:text:type'")
 	flagSendFile := flag.String("sendFile", "", "URL of file to send")
@@ -373,8 +215,7 @@ func main() {
 
 	var nc *natsgo.Conn
 
-	if *flagSendSampleNats != "" ||
-		*flagSendPointNats != "" ||
+	if *flagSendPointNats != "" ||
 		*flagSendFile != "" ||
 		*flagSendCmd != "" ||
 		*flagSendPointText != "" {
@@ -435,16 +276,14 @@ func main() {
 		log.Println("Command sent!")
 	}
 
-	if *flagSendSampleNats != "" {
-		err := sendSampleNats(nc, authToken, *flagSendSampleNats, *flagNatsAck)
+	if *flagSendPointNats != "" {
+		nodeID, point, err := parsePoint(*flagSendPointNats)
 		if err != nil {
-			log.Println(err)
+			log.Println("Error parsing point: ", err)
 			os.Exit(-1)
 		}
-	}
 
-	if *flagSendPointNats != "" {
-		err := sendPointNats(nc, authToken, *flagSendPointNats, *flagNatsAck)
+		err = nats.SendPoint(nc, nodeID, &point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -452,7 +291,13 @@ func main() {
 	}
 
 	if *flagSendPointText != "" {
-		err := sendPointText(nc, authToken, *flagSendPointText, *flagNatsAck)
+		nodeID, point, err := parsePointText(*flagSendPointText)
+		if err != nil {
+			log.Println("Error parsing point: ", err)
+			os.Exit(-1)
+		}
+
+		err = nats.SendPoint(nc, nodeID, &point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -469,15 +314,6 @@ func main() {
 	// =============================================
 	// HTTP request
 	// =============================================
-
-	if *flagSendSample != "" {
-		err := sendSample(*flagPortal, *flagAuthToken, *flagSendSample)
-		if err != nil {
-			log.Println(err)
-			os.Exit(-1)
-		}
-		os.Exit(0)
-	}
 
 	if *flagSendPoint != "" {
 		err := sendPoint(*flagPortal, *flagAuthToken, *flagSendPoint)
@@ -608,7 +444,7 @@ func main() {
 	}
 
 	// finally, start web server
-	port := os.Getenv("SIOT_PORT")
+	port := os.Getenv("SIOT_HTTP_PORT")
 	if port == "" {
 		port = "8080"
 	}
@@ -624,9 +460,6 @@ func main() {
 		}
 	}
 
-	nodeManager := node.NewManger(dbInst, messenger)
-	go nodeManager.Run()
-
 	if !*flagNatsDisableServer {
 		go natsserver.StartNatsServer(natsPort, natsHTTPPort, authToken,
 			natsTLSCert, natsTLSKey, natsTLSTimeout)
@@ -637,7 +470,8 @@ func main() {
 	// this is a bit of a hack, but we're not sure when the NATS
 	// server will be started, so try several times
 	for i := 0; i < 10; i++ {
-		err = natsHandler.Connect()
+		// FIXME should we get nc with edgeConnect here?
+		nc, err = natsHandler.Connect()
 		if err != nil {
 			log.Println("NATS local connect retry: ", i)
 			time.Sleep(500 * time.Millisecond)
@@ -647,9 +481,12 @@ func main() {
 		break
 	}
 
-	if err != nil {
+	if err != nil || nc == nil {
 		log.Fatal("Error connecting to NATs server: ", err)
 	}
+
+	nodeManager := node.NewManger(dbInst, messenger, nc)
+	go nodeManager.Run()
 
 	err = api.Server(api.ServerArgs{
 		Port:       port,

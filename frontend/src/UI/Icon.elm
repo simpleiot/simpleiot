@@ -2,10 +2,12 @@ module UI.Icon exposing
     ( arrowDown
     , arrowRight
     , blank
+    , bus
     , check
     , cloud
     , cloudOff
     , device
+    , io
     , maximize
     , message
     , minimize
@@ -28,6 +30,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import FeatherIcons
+import Svg
+import Svg.Attributes as S
 import UI.Style as Style
 
 
@@ -54,6 +58,10 @@ button iconIn msg =
 icon : FeatherIcons.Icon -> Element msg
 icon iconIn =
     el [ padding 5 ] <| html <| FeatherIcons.toHtml [] iconIn
+
+
+
+-- Button Icons
 
 
 x : msg -> Element msg
@@ -124,6 +132,32 @@ maximize msg =
 message : msg -> Element msg
 message msg =
     button FeatherIcons.messageSquare msg
+
+
+
+-- non-clickable icons
+
+
+bus : Element msg
+bus =
+    [ Svg.line [ S.x1 "11", S.y1 "3", S.x2 "11", S.y2 "14" ] []
+    , Svg.polyline [ S.points "3 14 3 9 19 9 19 14" ] []
+    , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "0", S.y "14", S.width "6", S.height "5" ] []
+    , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "8", S.y "14", S.width "6", S.height "5" ] []
+    , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "16", S.y "14", S.width "6", S.height "5" ] []
+    ]
+        |> FeatherIcons.customIcon
+        |> icon
+
+
+io : Element msg
+io =
+    [ Svg.polyline [ S.points "3 6 3 16" ] []
+    , Svg.polyline [ S.points "12 3 8 19" ] []
+    , Svg.ellipse [ S.cx "18", S.cy "11", S.rx "3", S.ry "5" ] []
+    ]
+        |> FeatherIcons.customIcon
+        |> icon
 
 
 cloudOff : Element msg

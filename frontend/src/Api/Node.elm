@@ -15,6 +15,8 @@ module Api.Node exposing
     , sysStatePowerOff
     , typeDevice
     , typeGroup
+    , typeModbus
+    , typeModbusIO
     , typeUser
     )
 
@@ -56,6 +58,16 @@ typeGroup =
 typeUser : String
 typeUser =
     "user"
+
+
+typeModbus : String
+typeModbus =
+    "modbus"
+
+
+typeModbusIO : String
+typeModbusIO =
+    "modbusIo"
 
 
 type alias Node =
@@ -128,7 +140,7 @@ encodeNodeMove nodeMove =
 
 description : Node -> String
 description d =
-    case Point.getPoint d.points "" Point.typeDescription 0 of
+    case Point.get d.points "" Point.typeDescription 0 of
         Just point ->
             point.text
 

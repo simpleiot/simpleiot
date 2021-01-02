@@ -1,26 +1,39 @@
 module Api.Point exposing
     ( Point
+    , blankMajicValue
+    , clearText
     , decode
     , empty
     , encode
     , encodeList
     , filterSpecialPoints
+    , get
     , getLatest
-    , getPoint
-    , getPointText
+    , getText
+    , getValue
     , newText
     , newValue
     , renderPoint
+    , typeAddress
     , typeAppVersion
+    , typeBaud
+    , typeClientServer
     , typeCmdPending
+    , typeDataFormat
+    , typeDebug
     , typeDescription
     , typeEmail
     , typeFirstName
     , typeHwVersion
+    , typeID
     , typeLastName
+    , typeModbusIOType
     , typeOSVersion
+    , typeOffset
     , typePass
     , typePhone
+    , typePort
+    , typeScale
     , typeStartApp
     , typeStartSystem
     , typeSwUpdateError
@@ -28,10 +41,24 @@ module Api.Point exposing
     , typeSwUpdateRunning
     , typeSwUpdateState
     , typeSysState
+    , typeUnits
     , typeUpdateApp
     , typeUpdateOS
+    , typeValue
+    , typeValueSet
     , updatePoint
     , updatePoints
+    , valueClient
+    , valueFLOAT32
+    , valueINT16
+    , valueINT32
+    , valueModbusCoil
+    , valueModbusDiscreteInput
+    , valueModbusHoldingRegister
+    , valueModbusInputRegister
+    , valueServer
+    , valueUINT16
+    , valueUINT32
     )
 
 import Iso8601
@@ -47,6 +74,31 @@ import Time
 typeDescription : String
 typeDescription =
     "description"
+
+
+typeScale : String
+typeScale =
+    "scale"
+
+
+typeOffset : String
+typeOffset =
+    "offset"
+
+
+typeUnits : String
+typeUnits =
+    "units"
+
+
+typeValue : String
+typeValue =
+    "value"
+
+
+typeValueSet : String
+typeValueSet =
+    "valueSet"
 
 
 typeCmdPending : String
@@ -137,6 +189,101 @@ typePhone =
 typePass : String
 typePass =
     "pass"
+
+
+typePort : String
+typePort =
+    "port"
+
+
+typeBaud : String
+typeBaud =
+    "baud"
+
+
+typeID : String
+typeID =
+    "id"
+
+
+typeAddress : String
+typeAddress =
+    "address"
+
+
+typeModbusIOType : String
+typeModbusIOType =
+    "modbusIoType"
+
+
+valueModbusDiscreteInput : String
+valueModbusDiscreteInput =
+    "modbusDiscreteInput"
+
+
+valueModbusCoil : String
+valueModbusCoil =
+    "modbusCoil"
+
+
+valueModbusInputRegister : String
+valueModbusInputRegister =
+    "modbusInputRegister"
+
+
+valueModbusHoldingRegister : String
+valueModbusHoldingRegister =
+    "modbusHoldingRegister"
+
+
+typeDataFormat : String
+typeDataFormat =
+    "dataFormat"
+
+
+typeDebug : String
+typeDebug =
+    "debug"
+
+
+valueUINT16 : String
+valueUINT16 =
+    "uint16"
+
+
+valueINT16 : String
+valueINT16 =
+    "int16"
+
+
+valueUINT32 : String
+valueUINT32 =
+    "uint32"
+
+
+valueINT32 : String
+valueINT32 =
+    "int32"
+
+
+valueFLOAT32 : String
+valueFLOAT32 =
+    "float32"
+
+
+typeClientServer : String
+typeClientServer =
+    "clientServer"
+
+
+valueClient : String
+valueClient =
+    "client"
+
+
+valueServer : String
+valueServer =
+    "server"
 
 
 
@@ -284,8 +431,8 @@ updatePoints points newPoints =
         newPoints
 
 
-getPoint : List Point -> String -> String -> Int -> Maybe Point
-getPoint points id typ index =
+get : List Point -> String -> String -> Int -> Maybe Point
+get points id typ index =
     List.Extra.find
         (\p ->
             id == p.id && typ == p.typ && index == p.index
@@ -293,8 +440,8 @@ getPoint points id typ index =
         points
 
 
-getPointText : List Point -> String -> String
-getPointText points typ =
+getText : List Point -> String -> String
+getText points typ =
     case
         List.Extra.find
             (\p ->
@@ -307,6 +454,22 @@ getPointText points typ =
 
         Nothing ->
             ""
+
+
+getValue : List Point -> String -> Float
+getValue points typ =
+    case
+        List.Extra.find
+            (\p ->
+                typ == p.typ
+            )
+            points
+    of
+        Just found ->
+            found.value
+
+        Nothing ->
+            0
 
 
 getLatest : List Point -> Maybe Point
@@ -325,4 +488,27 @@ getLatest points =
                     Just p
         )
         Nothing
+        points
+
+
+
+-- clearText is used to sanitize points that have number values before saving.
+-- the text value is used by the form when editting things like decimal points
+
+
+blankMajicValue : String
+blankMajicValue =
+    "123BLANK123"
+
+
+clearText : List Point -> List Point
+clearText points =
+    List.map
+        (\p ->
+            if p.value /= 0 || p.text == blankMajicValue then
+                { p | text = "" }
+
+            else
+                p
+        )
         points

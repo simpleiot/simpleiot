@@ -58,7 +58,7 @@ func main() {
 		os.Exit(-1)
 	}
 
-	serv.Regs.AddReg(2)
+	serv.Regs.AddReg(2, 1)
 	err = serv.Regs.WriteReg(2, 5)
 	if err != nil {
 		log.Println("Error writing reg: ", err)

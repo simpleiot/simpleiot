@@ -8,6 +8,8 @@ import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
 import Components.NodeDevice as NodeDevice
 import Components.NodeGroup as NodeGroup
+import Components.NodeModbus as NodeModbus
+import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeUser as NodeUser
 import Element exposing (..)
 import Element.Input as Input
@@ -197,6 +199,9 @@ update msg model =
                     case model.nodeEdit of
                         Just edit ->
                             let
+                                points =
+                                    Point.clearText edit.points
+
                                 -- optimistically update nodes
                                 updatedNodes =
                                     Tree.map
@@ -209,7 +214,7 @@ update msg model =
                                                 { n
                                                     | node =
                                                         { node
-                                                            | points = Point.updatePoints node.points edit.points
+                                                            | points = Point.updatePoints node.points points
                                                         }
                                                 }
 
@@ -222,7 +227,7 @@ update msg model =
                             , Node.postPoints
                                 { token = model.auth.token
                                 , id = id
-                                , points = edit.points
+                                , points = points
                                 , onResponse = ApiRespPostPoint
                                 }
                             )
@@ -744,7 +749,7 @@ viewNodes model =
                     treeWithEdits =
                         mergeNodeEdit tree model.nodeEdit
                 in
-                viewNode model (Tree.label treeWithEdits) 0
+                viewNode model Nothing (Tree.label treeWithEdits) 0
                     :: viewNodesHelp 1 model treeWithEdits
 
             Nothing ->
@@ -771,15 +776,15 @@ viewNodesHelp depth model tree =
     List.foldr
         (\child ret ->
             ret
-                ++ viewNode model (Tree.label child) depth
+                ++ viewNode model (Just node) (Tree.label child) depth
                 :: viewNodesHelp (depth + 1) model child
         )
         []
         children
 
 
-viewNode : Model -> NodeView -> Int -> Element Msg
-viewNode model node depth =
+viewNode : Model -> Maybe NodeView -> NodeView -> Int -> Element Msg
+viewNode model parent node depth =
     let
         nodeView =
             case node.node.typ of
@@ -788,6 +793,12 @@ viewNode model node depth =
 
                 "group" ->
                     NodeGroup.view
+
+                "modbus" ->
+                    NodeModbus.view
+
+                "modbusIo" ->
+                    NodeModbusIO.view
 
                 _ ->
                     NodeDevice.view
@@ -816,6 +827,7 @@ viewNode model node depth =
                     , now = model.now
                     , zone = model.zone
                     , modified = node.mod
+                    , parent = Maybe.map .node parent
                     , node = node.node
                     , expDetail = node.expDetail
                     , onApiDelete = ApiDelete
@@ -832,7 +844,7 @@ viewNode model node depth =
                     of
                         ( Just add, _, _ ) ->
                             if add.parent == node.node.id then
-                                viewAddNode add
+                                viewAddNode node.node add
 
                             else
                                 viewNodeOperations node.node.id node.node.parent
@@ -870,6 +882,7 @@ viewNodeOperations id parent =
           else
             Element.none
         , Icon.message (MsgNode id)
+        , Icon.x (ApiDelete id)
         ]
 
 
@@ -903,8 +916,8 @@ viewMoveNode move =
             ]
 
 
-viewAddNode : NodeToAdd -> Element Msg
-viewAddNode add =
+viewAddNode : Node -> NodeToAdd -> Element Msg
+viewAddNode parent add =
     column [ spacing 10 ]
         [ Input.radio [ spacing 6 ]
             { onChange = SelectAddNodeType
@@ -914,6 +927,18 @@ viewAddNode add =
                 [ Input.option Node.typeUser (text "User")
                 , Input.option Node.typeGroup (text "Group")
                 ]
+                    ++ (if parent.typ == Node.typeDevice then
+                            [ Input.option Node.typeModbus (text "Modbus") ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.typ == Node.typeModbus then
+                            [ Input.option Node.typeModbusIO (text "Modbus IO") ]
+
+                        else
+                            []
+                       )
             }
         , Form.buttonRow
             [ case add.typ of
