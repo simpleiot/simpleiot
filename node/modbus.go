@@ -64,7 +64,7 @@ func (mm *ModbusManager) Update() error {
 
 		if !bus.running {
 			go func() {
-				timer := time.NewTicker(time.Second * 1)
+				timer := time.NewTicker(time.Millisecond * time.Duration(bus.pollPeriod))
 				for {
 					select {
 					case <-timer.C:
@@ -125,10 +125,10 @@ type Modbus struct {
 	ioInitialized map[string]bool
 	stop          chan bool
 	running       bool
+	pollPeriod    int
 }
 
-// NewModbus creates a new bus from a node
-func NewModbus(db *genji.Db, nc *natsgo.Conn, node *data.NodeEdge) (*Modbus, error) {
+func nodeToModbus(node *data.NodeEdge) (*Modbus, error) {
 	busType, ok := node.Points.Text("", data.PointTypeClientServer, 0)
 	if !ok {
 		return nil, errors.New("Must define modbus client/server")
@@ -137,21 +137,52 @@ func NewModbus(db *genji.Db, nc *natsgo.Conn, node *data.NodeEdge) (*Modbus, err
 	if !ok {
 		return nil, errors.New("Must define modbus port name")
 	}
-	baud, ok := node.Points.Value("", data.PointTypeBaud, 0)
+	baud, ok := node.Points.ValueInt("", data.PointTypeBaud, 0)
 	if !ok {
 		return nil, errors.New("Must define modbus baud")
 	}
 
+	pollPeriod, ok := node.Points.ValueInt("", data.PointTypePollPeriod, 0)
+	if !ok {
+		return nil, errors.New("Must define modbus polling period")
+	}
+
+	debugLevel, _ := node.Points.ValueInt("", data.PointTypeDebug, 0)
+
+	id := 0
+
+	if busType == data.PointValueServer {
+		var ok bool
+		id, ok = node.Points.ValueInt("", data.PointTypeID, 0)
+		if !ok {
+			return nil, errors.New("Must define modbus ID for server bus")
+		}
+	}
+
 	return &Modbus{
-		db:            db,
-		nc:            nc,
-		nodeID:        node.ID,
-		busType:       busType,
-		portName:      portName,
-		baud:          int(baud),
-		ioInitialized: make(map[string]bool),
-		stop:          make(chan bool),
+		nodeID:     node.ID,
+		busType:    busType,
+		portName:   portName,
+		baud:       baud,
+		pollPeriod: pollPeriod,
+		debugLevel: debugLevel,
+		id:         id,
 	}, nil
+}
+
+// NewModbus creates a new bus from a node
+func NewModbus(db *genji.Db, nc *natsgo.Conn, node *data.NodeEdge) (*Modbus, error) {
+	ret, err := nodeToModbus(node)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.db = db
+	ret.nc = nc
+	ret.ioInitialized = make(map[string]bool)
+	ret.stop = make(chan bool)
+
+	return ret, nil
 }
 
 // Stop stops the bus and resets various fields
@@ -163,45 +194,29 @@ func (bus *Modbus) Stop() {
 
 // CheckPort verifies the serial port setup is correct for bus
 func (bus *Modbus) CheckPort(node *data.NodeEdge) error {
-	busType, ok := node.Points.Text("", data.PointTypeClientServer, 0)
-	if !ok {
-		return errors.New("Must define modbus client/server")
-	}
-	portName, ok := node.Points.Text("", data.PointTypePort, 0)
-	if !ok {
-		return errors.New("Must define modbus port name")
-	}
-	baud, ok := node.Points.Value("", data.PointTypeBaud, 0)
-	if !ok {
-		return errors.New("Must define modbus baud")
+	nodeBus, err := nodeToModbus(node)
+	if err != nil {
+		return err
 	}
 
-	debugLevel, _ := node.Points.Value("", data.PointTypeDebug, 0)
-
-	id := 0
-
-	if busType == data.PointValueServer {
-		var ok bool
-		id, ok = node.Points.ValueInt("", data.PointTypeID, 0)
-		if !ok {
-			return errors.New("Must define modbus ID for server bus")
-		}
-	}
-
-	if busType != bus.busType || portName != bus.portName ||
-		int(baud) != bus.baud || id != bus.id ||
-		int(debugLevel) != bus.debugLevel {
+	if nodeBus.busType != bus.busType ||
+		nodeBus.portName != bus.portName ||
+		nodeBus.baud != bus.baud ||
+		nodeBus.id != bus.id ||
+		nodeBus.debugLevel != bus.debugLevel ||
+		nodeBus.pollPeriod != bus.pollPeriod {
 		// need to re-init port if it is open
 		if bus.port != nil {
 			bus.port.Close()
 			bus.port = nil
 		}
 
-		bus.busType = busType
-		bus.portName = portName
-		bus.baud = int(baud)
-		bus.id = id
-		bus.debugLevel = int(debugLevel)
+		bus.busType = nodeBus.busType
+		bus.portName = nodeBus.portName
+		bus.baud = nodeBus.baud
+		bus.id = nodeBus.id
+		bus.debugLevel = nodeBus.debugLevel
+		bus.pollPeriod = nodeBus.pollPeriod
 	}
 
 	if bus.port == nil {

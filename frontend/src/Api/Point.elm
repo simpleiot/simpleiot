@@ -32,6 +32,7 @@ module Api.Point exposing
     , typeOffset
     , typePass
     , typePhone
+    , typePollPeriod
     , typePort
     , typeScale
     , typeStartApp
@@ -244,6 +245,11 @@ typeDataFormat =
 typeDebug : String
 typeDebug =
     "debug"
+
+
+typePollPeriod : String
+typePollPeriod =
+    "pollPeriod"
 
 
 valueUINT16 : String

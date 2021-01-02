@@ -80,6 +80,7 @@ view o =
                     , textInput Point.typeBaud "Baud"
                     , viewIf (clientServer == Point.valueServer) <|
                         numberInput Point.typeID "Device ID"
+                    , numberInput Point.typePollPeriod "Poll period (ms)"
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , viewIf o.modified <|
                         Form.buttonRow

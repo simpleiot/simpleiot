@@ -14,6 +14,7 @@ const (
 	PointTypeAddress            = "address"
 	PointTypeDebug              = "debug"
 	PointTypeInitialized        = "initialized"
+	PointTypePollPeriod         = "pollPeriod"
 
 	// An device node describes an phyical device -- it may be the
 	// cloud server, gateway, etc
