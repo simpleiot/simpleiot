@@ -67,7 +67,7 @@ func (m *Manager) Run() {
 
 		m.modbusManager.Update()
 
-		time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
