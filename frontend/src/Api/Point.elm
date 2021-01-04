@@ -23,6 +23,12 @@ module Api.Point exposing
     , typeDebug
     , typeDescription
     , typeEmail
+    , typeErrorCount
+    , typeErrorCountCRC
+    , typeErrorCountCRCReset
+    , typeErrorCountEOF
+    , typeErrorCountEOFReset
+    , typeErrorCountReset
     , typeFirstName
     , typeHwVersion
     , typeID
@@ -210,6 +216,36 @@ typeID =
 typeAddress : String
 typeAddress =
     "address"
+
+
+typeErrorCount : String
+typeErrorCount =
+    "errorCount"
+
+
+typeErrorCountEOF : String
+typeErrorCountEOF =
+    "errorCountEOF"
+
+
+typeErrorCountCRC : String
+typeErrorCountCRC =
+    "errorCountCRC"
+
+
+typeErrorCountReset : String
+typeErrorCountReset =
+    "errorCountReset"
+
+
+typeErrorCountEOFReset : String
+typeErrorCountEOFReset =
+    "errorCountEOFReset"
+
+
+typeErrorCountCRCReset : String
+typeErrorCountCRCReset =
+    "errorCountCRCReset"
 
 
 typeModbusIOType : String

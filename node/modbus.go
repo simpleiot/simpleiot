@@ -3,6 +3,7 @@ package node
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -28,6 +29,17 @@ func NewModbusManager(db *genji.Db, nc *natsgo.Conn) *ModbusManager {
 		db:     db,
 		nc:     nc,
 		busses: make(map[string]*Modbus),
+	}
+}
+
+func modbusErrorToPointType(err error) string {
+	switch err {
+	case io.EOF:
+		return data.PointTypeErrorCountEOF
+	case modbus.ErrCRC:
+		return data.PointTypeErrorCountCRC
+	default:
+		return data.PointTypeErrorCount
 	}
 }
 
@@ -87,12 +99,20 @@ func (mm *ModbusManager) Update() error {
 								if err != nil {
 									log.Printf("Modbus client %v:%v, error: %v\n",
 										bus.portName, io.description, err)
+									err := bus.LogError(modbusErrorToPointType(err))
+									if err != nil {
+										log.Println("Error logging modbus error: ", err)
+									}
 								}
 							case data.PointValueServer:
 								err := bus.ServerIO(io)
 								if err != nil {
 									log.Printf("Modbus server %v:%v, error: %v\n",
 										bus.portName, io.description, err)
+									err := bus.LogError(modbusErrorToPointType(err))
+									if err != nil {
+										log.Println("Error logging modbus error: ", err)
+									}
 								}
 							default:
 								log.Println("Uknown modbus bus type: ",
@@ -133,63 +153,71 @@ func (mm *ModbusManager) Update() error {
 
 // Modbus describes a modbus bus
 type Modbus struct {
-	db            *genji.Db
-	nc            *natsgo.Conn
-	nodeID        string
-	busType       string
-	id            int // only used for server
-	portName      string
-	baud          int
-	port          *respreader.ReadWriteCloser
-	client        *modbus.Client
-	server        *modbus.Server
-	debugLevel    int
-	ioInitialized map[string]bool
-	stop          chan bool
-	running       bool
-	pollPeriod    int
+	db                 *genji.Db
+	nc                 *natsgo.Conn
+	nodeID             string
+	busType            string
+	id                 int // only used for server
+	portName           string
+	baud               int
+	port               *respreader.ReadWriteCloser
+	client             *modbus.Client
+	server             *modbus.Server
+	debugLevel         int
+	ioInitialized      map[string]bool
+	stop               chan bool
+	running            bool
+	pollPeriod         int
+	errorCount         int
+	errorCountCRC      int
+	errorCountEOF      int
+	errorCountReset    bool
+	errorCountCRCReset bool
+	errorCountEOFReset bool
 }
 
 func nodeToModbus(node *data.NodeEdge) (*Modbus, error) {
-	busType, ok := node.Points.Text("", data.PointTypeClientServer, 0)
+	ret := Modbus{
+		nodeID: node.ID,
+	}
+
+	var ok bool
+
+	ret.busType, ok = node.Points.Text("", data.PointTypeClientServer, 0)
 	if !ok {
 		return nil, errors.New("Must define modbus client/server")
 	}
-	portName, ok := node.Points.Text("", data.PointTypePort, 0)
+	ret.portName, ok = node.Points.Text("", data.PointTypePort, 0)
 	if !ok {
 		return nil, errors.New("Must define modbus port name")
 	}
-	baud, ok := node.Points.ValueInt("", data.PointTypeBaud, 0)
+	ret.baud, ok = node.Points.ValueInt("", data.PointTypeBaud, 0)
 	if !ok {
 		return nil, errors.New("Must define modbus baud")
 	}
 
-	pollPeriod, ok := node.Points.ValueInt("", data.PointTypePollPeriod, 0)
+	ret.pollPeriod, ok = node.Points.ValueInt("", data.PointTypePollPeriod, 0)
 	if !ok {
 		return nil, errors.New("Must define modbus polling period")
 	}
 
-	debugLevel, _ := node.Points.ValueInt("", data.PointTypeDebug, 0)
+	ret.debugLevel, _ = node.Points.ValueInt("", data.PointTypeDebug, 0)
+	ret.errorCount, _ = node.Points.ValueInt("", data.PointTypeErrorCount, 0)
+	ret.errorCountCRC, _ = node.Points.ValueInt("", data.PointTypeErrorCountCRC, 0)
+	ret.errorCountEOF, _ = node.Points.ValueInt("", data.PointTypeErrorCountEOF, 0)
+	ret.errorCountReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountReset, 0)
+	ret.errorCountCRCReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountCRCReset, 0)
+	ret.errorCountEOFReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountEOFReset, 0)
 
-	id := 0
-
-	if busType == data.PointValueServer {
+	if ret.busType == data.PointValueServer {
 		var ok bool
-		id, ok = node.Points.ValueInt("", data.PointTypeID, 0)
+		ret.id, ok = node.Points.ValueInt("", data.PointTypeID, 0)
 		if !ok {
 			return nil, errors.New("Must define modbus ID for server bus")
 		}
 	}
 
-	return &Modbus{
-		nodeID:     node.ID,
-		busType:    busType,
-		portName:   portName,
-		baud:       baud,
-		pollPeriod: pollPeriod,
-		debugLevel: debugLevel,
-		id:         id,
-	}, nil
+	return &ret, nil
 }
 
 // NewModbus creates a new bus from a node
@@ -219,6 +247,51 @@ func (bus *Modbus) CheckPort(node *data.NodeEdge) error {
 	nodeBus, err := nodeToModbus(node)
 	if err != nil {
 		return err
+	}
+
+	if nodeBus.errorCountReset {
+		bus.errorCount = 0
+		p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
+		err = nats.SendPoint(bus.nc, bus.nodeID, &p, true)
+		if err != nil {
+			return err
+		}
+
+		p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
+		err = nats.SendPoint(bus.nc, bus.nodeID, &p, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	if nodeBus.errorCountCRCReset {
+		bus.errorCountCRC = 0
+		p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
+		err = nats.SendPoint(bus.nc, bus.nodeID, &p, true)
+		if err != nil {
+			return err
+		}
+
+		p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
+		err = nats.SendPoint(bus.nc, bus.nodeID, &p, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	if nodeBus.errorCountEOFReset {
+		p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
+		err = nats.SendPoint(bus.nc, bus.nodeID, &p, true)
+		if err != nil {
+			return err
+		}
+
+		p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
+		err = nats.SendPoint(bus.nc, bus.nodeID, &p, true)
+		if err != nil {
+			return err
+		}
+		bus.errorCountEOF = 0
 	}
 
 	if nodeBus.busType != bus.busType ||
@@ -287,6 +360,34 @@ func (bus *Modbus) SendPoint(nodeID, pointType string, value float64) error {
 	}
 
 	return nats.SendPoint(bus.nc, nodeID, &p, true)
+}
+
+// LogError logs any errors encountered
+func (bus *Modbus) LogError(typ string) error {
+	count := 0
+	switch typ {
+	case data.PointTypeErrorCount:
+		count = bus.errorCount
+		bus.errorCount++
+	case data.PointTypeErrorCountEOF:
+		count = bus.errorCountEOF
+		bus.errorCountEOF++
+	case data.PointTypeErrorCountCRC:
+		count = bus.errorCountCRC
+		bus.errorCountCRC++
+
+	default:
+		return fmt.Errorf("Unknown error type to log: %v", typ)
+	}
+
+	count++
+
+	p := data.Point{
+		Type:  typ,
+		Value: float64(count),
+	}
+
+	return nats.SendPoint(bus.nc, bus.nodeID, &p, true)
 }
 
 // ReadReg reads an value from a reg (internal, not bus)

@@ -2,6 +2,7 @@ module UI.Form exposing
     ( button
     , buttonRow
     , label
+    , nodeCounterWithReset
     , nodeNumberInput
     , nodeOnOffInput
     , nodeOptionInput
@@ -205,6 +206,51 @@ nodeOptionInput o pointName lbl options =
                 )
                 options
         }
+
+
+nodeCounterWithReset :
+    { onEditNodePoint : String -> Point -> msg
+    , node : Node
+    , now : Time.Posix
+    , labelWidth : Int
+    }
+    -> String
+    -> String
+    -> String
+    -> Element msg
+nodeCounterWithReset o pointName pointResetName lbl =
+    let
+        currentValue =
+            Point.getValue o.node.points pointName
+
+        currentResetValue =
+            Point.getValue o.node.points pointResetName /= 0
+    in
+    row [ spacing 20 ]
+        [ el [ width (px o.labelWidth) ] <|
+            el [ alignRight ] <|
+                text <|
+                    lbl
+                        ++ ": "
+                        ++ String.fromFloat currentValue
+        , Input.checkbox []
+            { onChange =
+                \v ->
+                    let
+                        vFloat =
+                            if v then
+                                1.0
+
+                            else
+                                0
+                    in
+                    o.onEditNodePoint o.node.id (Point "" pointResetName 0 o.now vFloat "" 0 0)
+            , icon = Input.defaultCheckbox
+            , checked = currentResetValue
+            , label =
+                Input.labelLeft [] (text "reset")
+            }
+        ]
 
 
 nodeOnOffInput :
