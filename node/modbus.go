@@ -68,14 +68,36 @@ func (mm *ModbusManager) Update() error {
 				for {
 					select {
 					case <-timer.C:
-						switch bus.busType {
-						case data.PointValueClient:
-							bus.ClientIO()
-						case data.PointValueServer:
-							bus.ServerIO()
-						default:
-							log.Println("Uknown modbus bus type: ",
-								bus.busType)
+						ioNodes, err := bus.db.NodeChildren(bus.nodeID, data.NodeTypeModbusIO)
+						if err != nil {
+							log.Println("Error getting modbus IO nodes: ", err)
+							break
+						}
+
+						for _, ioNode := range ioNodes {
+							io, err := NewModbusIO(data.PointValueClient, &ioNode)
+							if err != nil {
+								log.Println("Error with modbus IO: ", err)
+								continue
+							}
+
+							switch bus.busType {
+							case data.PointValueClient:
+								err := bus.ClientIO(io)
+								if err != nil {
+									log.Printf("Modbus client %v:%v, error: %v\n",
+										bus.portName, io.description, err)
+								}
+							case data.PointValueServer:
+								err := bus.ServerIO(io)
+								if err != nil {
+									log.Printf("Modbus server %v:%v, error: %v\n",
+										bus.portName, io.description, err)
+								}
+							default:
+								log.Println("Uknown modbus bus type: ",
+									bus.busType)
+							}
 						}
 					case <-bus.stop:
 						log.Println("Stopping client IO for: ", bus.portName)
@@ -492,150 +514,123 @@ func (bus *Modbus) ReadBusBit(io *ModbusIO) error {
 }
 
 // ClientIO processes an IO on a client bus
-func (bus *Modbus) ClientIO() error {
-	ioNodes, err := bus.db.NodeChildren(bus.nodeID, data.NodeTypeModbusIO)
-	if err != nil {
-		log.Println("Error getting modbus IO nodes: ", err)
-		return err
-	}
+func (bus *Modbus) ClientIO(io *ModbusIO) error {
 
-	for _, ioNode := range ioNodes {
-		io, err := NewModbusIO(data.PointValueClient, &ioNode)
+	// read value from remote device and update regs
+	switch io.modbusIOType {
+	case data.PointValueModbusCoil:
+		err := bus.ReadBusBit(io)
 		if err != nil {
-			log.Println("Error creating new modbus IO: ", err)
-			continue
+			return err
 		}
 
-		// read value from remote device and update regs
-		switch io.modbusIOType {
-		case data.PointValueModbusCoil:
-			err := bus.ReadBusBit(io)
+		if io.valueSet != io.value {
+			vBool := data.FloatToBool(io.valueSet)
+			// we need set the remote value
+			err := bus.client.WriteSingleCoil(byte(io.id), uint16(io.address),
+				vBool)
+
 			if err != nil {
 				return err
 			}
 
-			if io.valueSet != io.value {
-				vBool := data.FloatToBool(io.valueSet)
-				// we need set the remote value
-				err := bus.client.WriteSingleCoil(byte(io.id), uint16(io.address),
-					vBool)
-
-				if err != nil {
-					return err
-				}
-
-				err = bus.SendPoint(io.nodeID, data.PointTypeValue, io.valueSet)
-				if err != nil {
-					return err
-				}
-			}
-
-		case data.PointValueModbusDiscreteInput:
-			err := bus.ReadBusBit(io)
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, io.valueSet)
 			if err != nil {
 				return err
 			}
-
-		case data.PointValueModbusHoldingRegister:
-			err := bus.ReadBusReg(io)
-			if err != nil {
-				return err
-			}
-
-			if io.valueSet != io.value {
-				// we need set the remote value
-				err := bus.WriteBusHoldingReg(io)
-
-				if err != nil {
-					return err
-				}
-
-				err = bus.SendPoint(io.nodeID, data.PointTypeValue, io.valueSet)
-				if err != nil {
-					return err
-				}
-			}
-
-		case data.PointValueModbusInputRegister:
-			err := bus.ReadBusReg(io)
-			if err != nil {
-				return err
-			}
-
-		default:
-			return fmt.Errorf("unhandled modbus io type: %v", io.modbusIOType)
 		}
+
+	case data.PointValueModbusDiscreteInput:
+		err := bus.ReadBusBit(io)
+		if err != nil {
+			return err
+		}
+
+	case data.PointValueModbusHoldingRegister:
+		err := bus.ReadBusReg(io)
+		if err != nil {
+			return err
+		}
+
+		if io.valueSet != io.value {
+			// we need set the remote value
+			err := bus.WriteBusHoldingReg(io)
+
+			if err != nil {
+				return err
+			}
+
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, io.valueSet)
+			if err != nil {
+				return err
+			}
+		}
+
+	case data.PointValueModbusInputRegister:
+		err := bus.ReadBusReg(io)
+		if err != nil {
+			return err
+		}
+
+	default:
+		return fmt.Errorf("unhandled modbus io type: %v", io.modbusIOType)
 	}
 
 	return nil
 }
 
 // ServerIO processes an IO on a server bus
-func (bus *Modbus) ServerIO() error {
-	ioNodes, err := bus.db.NodeChildren(bus.nodeID, data.NodeTypeModbusIO)
-	if err != nil {
-		log.Println("Error getting modbus IO nodes: ", err)
-		return err
-	}
-
-	for _, ioNode := range ioNodes {
-		io, err := NewModbusIO(data.PointValueClient, &ioNode)
-		if err != nil {
-			log.Println("Error creating new modbus IO: ", err)
-			continue
-		}
-
-		// update regs with db value
-		switch io.modbusIOType {
-		case data.PointValueModbusDiscreteInput:
+func (bus *Modbus) ServerIO(io *ModbusIO) error {
+	// update regs with db value
+	switch io.modbusIOType {
+	case data.PointValueModbusDiscreteInput:
+		bus.server.Regs.AddCoil(io.address)
+		bus.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
+	case data.PointValueModbusCoil:
+		initialized := bus.ioInitialized[io.nodeID]
+		if !initialized {
 			bus.server.Regs.AddCoil(io.address)
 			bus.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
-		case data.PointValueModbusCoil:
-			initialized := bus.ioInitialized[io.nodeID]
-			if !initialized {
-				bus.server.Regs.AddCoil(io.address)
-				bus.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
-				bus.ioInitialized[io.nodeID] = true
-			}
-			regValue, err := bus.server.Regs.ReadCoil(io.address)
-			if err != nil {
-				return err
-			}
-
-			dbValue := data.FloatToBool(io.value)
-
-			if regValue != dbValue {
-				err = bus.SendPoint(io.nodeID, data.PointTypeValue, data.BoolToFloat(regValue))
-				if err != nil {
-					return err
-				}
-			}
-
-		case data.PointValueModbusInputRegister:
-			bus.WriteReg(io)
-
-		case data.PointValueModbusHoldingRegister:
-			// FIXME, how to handle case where address changes
-			initialized := bus.ioInitialized[io.nodeID]
-			if !initialized {
-				bus.WriteReg(io)
-				bus.ioInitialized[io.nodeID] = true
-			}
-			v, err := bus.ReadReg(io)
-			if err != nil {
-				return err
-			}
-
-			if io.value != v {
-				err = bus.SendPoint(io.nodeID, data.PointTypeValue, v)
-				if err != nil {
-					return err
-				}
-			}
-
-		default:
-			return fmt.Errorf("unhandled modbus io type: %v", io.modbusIOType)
+			bus.ioInitialized[io.nodeID] = true
 		}
+		regValue, err := bus.server.Regs.ReadCoil(io.address)
+		if err != nil {
+			return err
+		}
+
+		dbValue := data.FloatToBool(io.value)
+
+		if regValue != dbValue {
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, data.BoolToFloat(regValue))
+			if err != nil {
+				return err
+			}
+		}
+
+	case data.PointValueModbusInputRegister:
+		bus.WriteReg(io)
+
+	case data.PointValueModbusHoldingRegister:
+		// FIXME, how to handle case where address changes
+		initialized := bus.ioInitialized[io.nodeID]
+		if !initialized {
+			bus.WriteReg(io)
+			bus.ioInitialized[io.nodeID] = true
+		}
+		v, err := bus.ReadReg(io)
+		if err != nil {
+			return err
+		}
+
+		if io.value != v {
+			err = bus.SendPoint(io.nodeID, data.PointTypeValue, v)
+			if err != nil {
+				return err
+			}
+		}
+
+	default:
+		return fmt.Errorf("unhandled modbus io type: %v", io.modbusIOType)
 	}
 
 	return nil
@@ -668,6 +663,8 @@ func NewModbusIO(busType string, node *data.NodeEdge) (*ModbusIO, error) {
 			return nil, errors.New("Must define modbus ID")
 		}
 	}
+
+	ret.description, _ = node.Points.Text("", data.PointTypeDescription, 0)
 
 	ret.address, ok = node.Points.ValueInt("", data.PointTypeAddress, 0)
 	if !ok {
