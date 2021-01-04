@@ -25,8 +25,8 @@ func RtuCrc(buf []byte) uint16 {
 	return (crc >> 8) | (crc << 8)
 }
 
-// ErrCrc is returned if a crc check fails
-var ErrCrc = errors.New("CRC error")
+// ErrCRC is returned if a crc check fails
+var ErrCRC = errors.New("CRC error")
 
 // ErrNotEnoughData is returned if not enough data
 var ErrNotEnoughData = errors.New("Not enough data to calculate CRC")
@@ -41,7 +41,7 @@ func CheckRtuCrc(packet []byte) error {
 
 	crcPacket := binary.BigEndian.Uint16(packet[len(packet)-2 : len(packet)])
 	if crcCalc != crcPacket {
-		return ErrCrc
+		return ErrCRC
 	}
 
 	return nil
