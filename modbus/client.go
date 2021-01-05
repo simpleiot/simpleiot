@@ -1,7 +1,7 @@
 package modbus
 
 import (
-	"encoding/binary"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -83,7 +83,7 @@ func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 	}
 	packet, err := RtuEncode(id, req)
 	if err != nil {
-		return err
+		return fmt.Errorf("RtuEncode error: %w", err)
 	}
 
 	if c.debug >= 9 {
@@ -110,31 +110,19 @@ func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 
 	resp, err := RtuDecode(buf)
 	if err != nil {
-		return err
-	}
-
-	// FIXME, check return code matches what we sent
-	if resp.FunctionCode != FuncCodeWriteSingleCoil {
-		return errors.New("resp contains wrong function code")
-	}
-
-	if len(resp.Data) < 2 {
-		return errors.New("not enough data in resp")
-	}
-
-	ret := binary.BigEndian.Uint16(resp.Data)
-
-	exp := WriteCoilValueOff
-	if v {
-		exp = WriteCoilValueOn
-	}
-
-	if ret != exp {
-		return errors.New("Write coil did not return expected value")
+		return fmt.Errorf("RtuDecode error: %w", err)
 	}
 
 	if c.debug >= 1 {
 		fmt.Println("Modbus client WriteSingleCoil resp: ", resp)
+	}
+
+	if resp.FunctionCode != req.FunctionCode {
+		return errors.New("resp contains wrong function code")
+	}
+
+	if !bytes.Equal(req.Data, resp.Data) {
+		return errors.New("Did not get the correct response data")
 	}
 
 	return nil
@@ -183,6 +171,10 @@ func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error
 		fmt.Println("Modbus client ReadDiscreteInputs resp: ", resp)
 	}
 
+	if resp.FunctionCode != req.FunctionCode {
+		return []bool{}, errors.New("resp contains wrong function code")
+	}
+
 	return resp.RespReadBits()
 }
 
@@ -227,6 +219,10 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 
 	if c.debug >= 1 {
 		fmt.Println("Modbus client ReadHoldingRegs resp: ", resp)
+	}
+
+	if resp.FunctionCode != req.FunctionCode {
+		return []uint16{}, errors.New("resp contains wrong function code")
 	}
 
 	return resp.RespReadRegs()
@@ -275,6 +271,10 @@ func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 		fmt.Println("Modbus client ReadInputRegs resp: ", resp)
 	}
 
+	if resp.FunctionCode != req.FunctionCode {
+		return []uint16{}, errors.New("resp contains wrong function code")
+	}
+
 	return resp.RespReadRegs()
 }
 
@@ -316,30 +316,17 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 		return err
 	}
 
-	// FIXME, check return code matches what we sent
-	if resp.FunctionCode != FuncCodeWriteSingleRegister {
-		return errors.New("resp contains wrong function code")
-	}
-
-	if len(resp.Data) < 4 {
-		return errors.New("not enough data in resp")
-	}
-
-	retAdr := binary.BigEndian.Uint16(resp.Data)
-	retValue := binary.BigEndian.Uint16(resp.Data[2:])
-
-	if retAdr != reg {
-		return errors.New("Write single reg did not return expected address")
-	}
-
-	if retValue != value {
-		return errors.New("Write single reg did not return expected value")
-	}
-
 	if c.debug >= 1 {
 		fmt.Println("Modbus client WriteSingleReg resp: ", resp)
 	}
 
-	return nil
+	if resp.FunctionCode != req.FunctionCode {
+		return errors.New("resp contains wrong function code")
+	}
 
+	if !bytes.Equal(req.Data, resp.Data) {
+		return errors.New("Did not get the correct response data")
+	}
+
+	return nil
 }
