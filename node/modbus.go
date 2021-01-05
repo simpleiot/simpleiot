@@ -305,7 +305,7 @@ func (bus *Modbus) CheckPort(node *data.NodeEdge) error {
 			return err
 		}
 
-		bus.port = respreader.NewReadWriteCloser(port, time.Second*1, time.Millisecond*30)
+		bus.port = respreader.NewReadWriteCloser(port, time.Millisecond*200, time.Millisecond*30)
 
 		if bus.busType == data.PointValueServer {
 			bus.client = nil
@@ -434,6 +434,52 @@ func (bus *Modbus) Run() {
 					log.Println("Uknown modbus bus type: ",
 						bus.busType)
 				}
+
+				// check if error counters need reset
+				if io.errorCountReset {
+					io.errorCount = 0
+					p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
+					err := nats.SendPoint(bus.nc, io.nodeID, &p, true)
+					if err != nil {
+						log.Println("Error sending nats point: ", err)
+					}
+
+					p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
+					err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+					if err != nil {
+						log.Println("Error sending nats point: ", err)
+					}
+				}
+
+				if io.errorCountCRCReset {
+					io.errorCountCRC = 0
+					p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
+					err := nats.SendPoint(bus.nc, io.nodeID, &p, true)
+					if err != nil {
+						log.Println("Error sending nats point: ", err)
+					}
+
+					p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
+					err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+					if err != nil {
+						log.Println("Error sending nats point: ", err)
+					}
+				}
+
+				if io.errorCountEOFReset {
+					io.errorCountEOF = 0
+					p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
+					err := nats.SendPoint(bus.nc, io.nodeID, &p, true)
+					if err != nil {
+						log.Println("Error sending nats point: ", err)
+					}
+
+					p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
+					err = nats.SendPoint(bus.nc, io.nodeID, &p, true)
+					if err != nil {
+						log.Println("Error sending nats point: ", err)
+					}
+				}
 			}
 		case <-bus.chStop:
 			log.Println("Stopping client IO for: ", bus.portName)
@@ -467,12 +513,12 @@ func (bus *Modbus) LogError(io *ModbusIO, typ string) error {
 		io.errorCount++
 	case data.PointTypeErrorCountEOF:
 		busCount = bus.errorCountEOF
-		ioCount = bus.errorCountEOF
+		ioCount = io.errorCountEOF
 		bus.errorCountEOF++
 		io.errorCountEOF++
 	case data.PointTypeErrorCountCRC:
 		busCount = bus.errorCountCRC
-		ioCount = bus.errorCountCRC
+		ioCount = io.errorCountCRC
 		bus.errorCountCRC++
 		io.errorCountCRC++
 

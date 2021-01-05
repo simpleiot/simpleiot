@@ -67,7 +67,7 @@ view o =
                 { onEditNodePoint = o.onEditNodePoint
                 , node = o.node
                 , now = o.now
-                , labelWidth = labelWidth
+                , labelWidth = labelWidth + 150
                 }
 
         modbusIOType =
