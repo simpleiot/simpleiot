@@ -136,7 +136,6 @@ type Modbus struct {
 	client             *modbus.Client
 	server             *modbus.Server
 	debugLevel         int
-	ioInitialized      map[string]bool
 	chStop             chan bool
 	chIOs              chan map[string]*ModbusIO
 	running            bool
@@ -204,7 +203,6 @@ func NewModbus(db *genji.Db, nc *natsgo.Conn, node *data.NodeEdge) (*Modbus, err
 	ret.ios = make(map[string]*ModbusIO)
 	ret.db = db
 	ret.nc = nc
-	ret.ioInitialized = make(map[string]bool)
 	ret.chStop = make(chan bool)
 	ret.chIOs = make(chan map[string]*ModbusIO)
 
@@ -215,7 +213,6 @@ func NewModbus(db *genji.Db, nc *natsgo.Conn, node *data.NodeEdge) (*Modbus, err
 func (bus *Modbus) Stop() {
 	bus.chStop <- true
 	bus.running = false
-	bus.ioInitialized = make(map[string]bool)
 }
 
 // CheckPort verifies the serial port setup is correct for bus
@@ -327,6 +324,26 @@ func (bus *Modbus) CheckPort(node *data.NodeEdge) error {
 	return nil
 }
 
+// InitRegs is used in server mode to initilize the internal modbus regs when a IO changes
+func (bus *Modbus) InitRegs(io *ModbusIO) {
+	if bus.busType != data.PointValueServer {
+		return
+	}
+
+	switch io.modbusIOType {
+	case data.PointValueModbusDiscreteInput:
+		bus.server.Regs.AddCoil(io.address)
+	case data.PointValueModbusCoil:
+		bus.server.Regs.AddCoil(io.address)
+		bus.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
+	case data.PointValueModbusInputRegister:
+		bus.server.Regs.AddReg(io.address, regCount(io.modbusDataType))
+	case data.PointValueModbusHoldingRegister:
+		bus.server.Regs.AddReg(io.address, regCount(io.modbusDataType))
+		bus.WriteReg(io)
+	}
+}
+
 // CheckIOs goes through ios on the bus and handles any config changes
 func (bus *Modbus) CheckIOs() (bool, error) {
 	ioNodes, err := bus.db.NodeChildren(bus.nodeID, data.NodeTypeModbusIO)
@@ -350,6 +367,7 @@ func (bus *Modbus) CheckIOs() (bool, error) {
 				continue
 			}
 			bus.ios[ioNode.ID] = io
+			bus.InitRegs(io)
 			iosChanged = true
 		} else {
 			// check if anything has changed
@@ -362,6 +380,7 @@ func (bus *Modbus) CheckIOs() (bool, error) {
 			if changed {
 				iosChanged = true
 				bus.ios[ioNode.ID] = newIO
+				bus.InitRegs(newIO)
 			}
 		}
 	}
@@ -396,7 +415,7 @@ func (bus *Modbus) Run() {
 					if err != nil {
 						log.Printf("Modbus client %v:%v, error: %v\n",
 							bus.portName, io.description, err)
-						err := bus.LogError(modbusErrorToPointType(err))
+						err := bus.LogError(io, modbusErrorToPointType(err))
 						if err != nil {
 							log.Println("Error logging modbus error: ", err)
 						}
@@ -406,7 +425,7 @@ func (bus *Modbus) Run() {
 					if err != nil {
 						log.Printf("Modbus server %v:%v, error: %v\n",
 							bus.portName, io.description, err)
-						err := bus.LogError(modbusErrorToPointType(err))
+						err := bus.LogError(io, modbusErrorToPointType(err))
 						if err != nil {
 							log.Println("Error logging modbus error: ", err)
 						}
@@ -437,31 +456,45 @@ func (bus *Modbus) SendPoint(nodeID, pointType string, value float64) error {
 }
 
 // LogError logs any errors encountered
-func (bus *Modbus) LogError(typ string) error {
-	count := 0
+func (bus *Modbus) LogError(io *ModbusIO, typ string) error {
+	busCount := 0
+	ioCount := 0
 	switch typ {
 	case data.PointTypeErrorCount:
-		count = bus.errorCount
+		busCount = bus.errorCount
+		ioCount = io.errorCount
 		bus.errorCount++
+		io.errorCount++
 	case data.PointTypeErrorCountEOF:
-		count = bus.errorCountEOF
+		busCount = bus.errorCountEOF
+		ioCount = bus.errorCountEOF
 		bus.errorCountEOF++
+		io.errorCountEOF++
 	case data.PointTypeErrorCountCRC:
-		count = bus.errorCountCRC
+		busCount = bus.errorCountCRC
+		ioCount = bus.errorCountCRC
 		bus.errorCountCRC++
+		io.errorCountCRC++
 
 	default:
 		return fmt.Errorf("Unknown error type to log: %v", typ)
 	}
 
-	count++
+	busCount++
+	ioCount++
 
 	p := data.Point{
 		Type:  typ,
-		Value: float64(count),
+		Value: float64(busCount),
 	}
 
-	return nats.SendPoint(bus.nc, bus.nodeID, &p, true)
+	err := nats.SendPoint(bus.nc, bus.nodeID, &p, true)
+	if err != nil {
+		return err
+	}
+
+	p.Value = float64(ioCount)
+	return nats.SendPoint(bus.nc, io.nodeID, &p, true)
 }
 
 // ReadReg reads an value from a reg (internal, not bus)
@@ -504,7 +537,6 @@ func (bus *Modbus) ReadReg(io *ModbusIO) (float64, error) {
 // This should only be used on server
 func (bus *Modbus) WriteReg(io *ModbusIO) error {
 	unscaledValue := (io.value - io.offset) / io.scale
-	bus.server.Regs.AddReg(io.address, regCount(io.modbusDataType))
 	switch io.modbusDataType {
 	case data.PointValueUINT16, data.PointValueINT16:
 		bus.server.Regs.WriteReg(io.address, uint16(unscaledValue))
@@ -759,15 +791,8 @@ func (bus *Modbus) ServerIO(io *ModbusIO) error {
 	// update regs with db value
 	switch io.modbusIOType {
 	case data.PointValueModbusDiscreteInput:
-		bus.server.Regs.AddCoil(io.address)
 		bus.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
 	case data.PointValueModbusCoil:
-		initialized := bus.ioInitialized[io.nodeID]
-		if !initialized {
-			bus.server.Regs.AddCoil(io.address)
-			bus.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
-			bus.ioInitialized[io.nodeID] = true
-		}
 		regValue, err := bus.server.Regs.ReadCoil(io.address)
 		if err != nil {
 			return err
@@ -786,12 +811,6 @@ func (bus *Modbus) ServerIO(io *ModbusIO) error {
 		bus.WriteReg(io)
 
 	case data.PointValueModbusHoldingRegister:
-		// FIXME, how to handle case where address changes
-		initialized := bus.ioInitialized[io.nodeID]
-		if !initialized {
-			bus.WriteReg(io)
-			bus.ioInitialized[io.nodeID] = true
-		}
 		v, err := bus.ReadReg(io)
 		if err != nil {
 			return err
