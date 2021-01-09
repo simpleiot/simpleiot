@@ -30,7 +30,7 @@ type RegChange struct {
 // through the server interface argument.
 // This function returns any register changes, the modbus respose,
 // and any errors
-func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
+func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 	changes := []RegChange{}
 	resp := PDU{}
 	resp.FunctionCode = p.FunctionCode
@@ -39,24 +39,35 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 	case FuncCodeReadCoils, FuncCodeReadDiscreteInputs:
 		address := binary.BigEndian.Uint16(p.Data[:2])
 		count := binary.BigEndian.Uint16(p.Data[2:4])
-		// FIXME, do something with count to handle a range of reads
-		_ = count
-		v, err := regs.ReadReg(int(address) / 16)
-		if err != nil {
-			return []RegChange{}, PDU{}, errors.New(
-				"Did not find modbus reg")
+		bytes := byte((count + 7) / 8)
+		resp.Data = make([]byte, 1+bytes)
+		resp.Data[0] = bytes
+		var read = regs.ReadCoil
+		if p.FunctionCode == FuncCodeReadDiscreteInputs {
+			read = regs.ReadDiscreteInput
 		}
-		bitPos := address % 16
-		bitV := (v >> uint(bitPos)) & 0x1
-		resp.Data = []byte{1, byte(bitV)}
+		for i := 0; i < int(count); i++ {
+			v, err := read(int(address) + i)
+			if err != nil {
+				return []RegChange{}, PDU{}, errors.New(
+					"Did not find modbus reg")
+			}
+			if v {
+				resp.Data[1+i/8] |= 1 << (i % 8)
+			}
+		}
 	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
 		address := binary.BigEndian.Uint16(p.Data[:2])
 		count := binary.BigEndian.Uint16(p.Data[2:4])
 
 		resp.Data = make([]byte, 1+2*count)
 		resp.Data[0] = uint8(count * 2)
+		var read = regs.ReadReg
+		if p.FunctionCode == FuncCodeReadInputRegisters {
+			read = regs.ReadInputReg
+		}
 		for i := 0; i < int(count); i++ {
-			v, err := regs.ReadReg(int(address) + i)
+			v, err := read(int(address) + i)
 			if err != nil {
 				return []RegChange{}, PDU{}, errors.New(
 					"Did not find modbus reg")

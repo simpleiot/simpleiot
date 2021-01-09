@@ -11,6 +11,17 @@ type Reg struct {
 	Value   uint16
 }
 
+// RegProvider is the interface for a register provider.
+// Regs is the canonical implementation.
+type RegProvider interface {
+	ReadReg(address int) (uint16, error)
+	WriteReg(address int, value uint16) error
+	ReadInputReg(address int) (uint16, error)
+	ReadDiscreteInput(num int) (bool, error)
+	ReadCoil(num int) (bool, error)
+	WriteCoil(num int, value bool) error
+}
+
 // Regs represents all registers in a modbus device and provides functions
 // to read/write 16-bit and bit values. This register module assumes all
 // register types map into one address space
@@ -54,12 +65,17 @@ func (r *Regs) readReg(address int) (uint16, error) {
 	return 0, errors.New("register not found")
 }
 
-// ReadReg is used to read a modbus register
+// ReadReg is used to read a modbus holding register
 func (r *Regs) ReadReg(address int) (uint16, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 	v, err := r.readReg(address)
 	return v, err
+}
+
+// ReadInputReg is used to read a modbus input register
+func (r *Regs) ReadInputReg(address int) (uint16, error) {
+	return r.ReadReg(address)
 }
 
 func (r *Regs) writeReg(address int, value uint16) error {
@@ -88,7 +104,7 @@ func (r *Regs) AddCoil(num int) {
 	r.AddReg(regAddress, 1)
 }
 
-// ReadCoil gets a coil value (can also be used for discrete inputs)
+// ReadCoil gets a coil value
 func (r *Regs) ReadCoil(num int) (bool, error) {
 	regAddress := (num / 16)
 	regValue, err := r.ReadReg(regAddress)
@@ -99,6 +115,11 @@ func (r *Regs) ReadCoil(num int) (bool, error) {
 	bitPos := uint16(num % 16)
 	ret := (regValue & (1 << bitPos)) != 0
 	return ret, nil
+}
+
+// ReadDiscreteInput gets a discrete input
+func (r *Regs) ReadDiscreteInput(num int) (bool, error) {
+	return r.ReadCoil(num)
 }
 
 // WriteCoil writes a coil value
