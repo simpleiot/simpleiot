@@ -52,7 +52,7 @@ func (rwc *ReadWriteCloser) SetTimeout(timeout, chunkTimeout time.Duration) {
 
 // Close is a passthrough call.
 func (rwc *ReadWriteCloser) Close() error {
-	rwc.reader.closed = true
+	close(rwc.reader.stopChan)
 	return rwc.closer.Close()
 }
 
@@ -85,7 +85,7 @@ func (rc *ReadCloser) Read(buffer []byte) (int, error) {
 
 // Close is a passthrough call.
 func (rc *ReadCloser) Close() error {
-	rc.reader.closed = true
+	close(rc.reader.stopChan)
 	return rc.closer.Close()
 }
 
@@ -141,8 +141,8 @@ type Reader struct {
 	timeout      time.Duration
 	chunkTimeout time.Duration
 	size         int
-	dataChan     chan []byte
-	closed       bool
+	stopChan     chan bool
+	dataChan     <-chan []byte
 }
 
 // NewReader creates a new response reader.
@@ -159,12 +159,12 @@ func NewReader(reader io.Reader, timeout time.Duration, chunkTimeout time.Durati
 		timeout:      timeout,
 		chunkTimeout: chunkTimeout,
 		size:         128,
-		dataChan:     make(chan []byte),
+		stopChan:     make(chan bool),
 	}
 	// we have to start a reader goroutine here that lives for the life
 	// of the reader because there is no
 	// way to stop a blocked goroutine
-	go r.readInput()
+	r.dataChan = readInput(r.stopChan, r.reader, r.size)
 	return &r
 }
 
@@ -230,18 +230,26 @@ func (r *Reader) SetTimeout(timeout, chunkTimeout time.Duration) {
 	r.chunkTimeout = chunkTimeout
 }
 
-// readInput is used by a goroutine to read data from the underlying io.Reader
-func (r *Reader) readInput() {
-	for {
-		tmp := make([]byte, r.size)
-		if r.closed {
-			break
+// readInput is started as a goroutine to read data from the underlying io.Reader
+func readInput(done <-chan bool, port io.Reader, size int) <-chan []byte {
+	retData := make(chan []byte)
+	go func() {
+		defer close(retData)
+		for {
+			tmp := make([]byte, size)
+			select {
+			case <-done:
+				return
+			default:
+			}
+
+			length, _ := port.Read(tmp)
+			if length > 0 {
+				tmp = tmp[0:length]
+				retData <- tmp
+			}
 		}
-		length, _ := r.reader.Read(tmp)
-		if length > 0 {
-			tmp = tmp[0:length]
-			r.dataChan <- tmp
-		}
-	}
-	close(r.dataChan)
+	}()
+
+	return retData
 }
