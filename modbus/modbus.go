@@ -45,15 +45,21 @@ const (
 	WriteCoilValueOff uint16 = 0
 )
 
-// this is the total length of the packet with id and CRC bytes
-// you can view these raw packets by increasing debug level to 9
-var minPacketLen = map[FunctionCode]int{
-	FuncCodeReadCoils:            6,
-	FuncCodeReadDiscreteInputs:   6,
-	FuncCodeReadHoldingRegisters: 7,
-	FuncCodeReadInputRegisters:   7,
-	FuncCodeWriteSingleCoil:      7,
-	FuncCodeWriteSingleRegister:  7,
+// minRequestLen is the minimum number of PDU bytes for a request with
+// the given function code (not including slave address or checksum,
+// which are part of the ADU).
+var minRequestLen = map[FunctionCode]int{
+	FuncCodeReadDiscreteInputs:         5,
+	FuncCodeReadCoils:                  5,
+	FuncCodeWriteSingleCoil:            5,
+	FuncCodeWriteMultipleCoils:         7,
+	FuncCodeReadInputRegisters:         5,
+	FuncCodeReadHoldingRegisters:       5,
+	FuncCodeWriteSingleRegister:        5,
+	FuncCodeWriteMultipleRegisters:     8,
+	FuncCodeReadWriteMultipleRegisters: 12,
+	FuncCodeMaskWriteRegister:          7,
+	FuncCodeReadFIFOQueue:              3,
 }
 
 func (e ExceptionCode) Error() string {

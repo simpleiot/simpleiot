@@ -47,6 +47,12 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 	resp := PDU{}
 	resp.FunctionCode = p.FunctionCode
 
+	minPacketLen := minRequestLen[p.FunctionCode]
+
+	if len(p.Data) < minPacketLen-1 {
+		return nil, PDU{}, fmt.Errorf("not enough data for function code %v, expected %v, got %v", p.FunctionCode, minPacketLen, len(p.Data))
+	}
+
 	switch p.FunctionCode {
 	case FuncCodeReadCoils, FuncCodeReadDiscreteInputs:
 		address := binary.BigEndian.Uint16(p.Data[:2])
