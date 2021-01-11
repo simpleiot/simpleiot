@@ -1,7 +1,6 @@
 package modbus
 
 import (
-	"errors"
 	"sync"
 )
 
@@ -62,7 +61,7 @@ func (r *Regs) readReg(address int) (uint16, error) {
 		}
 	}
 
-	return 0, errors.New("register not found")
+	return 0, ExcIllegalAddress
 }
 
 // ReadReg is used to read a modbus holding register
@@ -86,7 +85,7 @@ func (r *Regs) writeReg(address int, value uint16) error {
 		}
 	}
 
-	return errors.New("register not found")
+	return ExcIllegalAddress
 }
 
 // WriteReg is used to write a modbus register

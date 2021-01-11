@@ -26,6 +26,18 @@ type RegChange struct {
 	New     uint16
 }
 
+// handleError translates an error into a PDU, if possible.
+func (p *PDU) handleError(err error) ([]RegChange, PDU, error) {
+	if err, ok := err.(ExceptionCode); ok {
+		resp := PDU{}
+		resp.FunctionCode = p.FunctionCode | 0x80
+		resp.Data = []byte{byte(err)}
+		return nil, resp, nil
+	}
+	// TODO: Wrap the underlying error?
+	return p.handleError(ExcServerDeviceFailure)
+}
+
 // ProcessRequest a modbus request. Registers are read and written
 // through the server interface argument.
 // This function returns any register changes, the modbus respose,
@@ -49,8 +61,7 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 		for i := 0; i < int(count); i++ {
 			v, err := read(int(address) + i)
 			if err != nil {
-				return []RegChange{}, PDU{}, errors.New(
-					"Did not find modbus reg")
+				return p.handleError(err)
 			}
 			if v {
 				resp.Data[1+i/8] |= 1 << (i % 8)
@@ -69,8 +80,7 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 		for i := 0; i < int(count); i++ {
 			v, err := read(int(address) + i)
 			if err != nil {
-				return []RegChange{}, PDU{}, errors.New(
-					"Did not find modbus reg")
+				return p.handleError(err)
 			}
 
 			binary.BigEndian.PutUint16(resp.Data[1+i*2:], v)
@@ -88,11 +98,10 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 
 		err := regs.WriteCoil(int(address), vBool)
 		if err != nil {
-			return []RegChange{}, PDU{}, errors.New(
-				"error writing to coil reg")
+			return p.handleError(err)
 		}
 
-		resp.Data = PutUint16Array(v)
+		resp.Data = p.Data
 
 	case FuncCodeWriteSingleRegister:
 		address := binary.BigEndian.Uint16(p.Data[:2])
@@ -100,16 +109,13 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 
 		err := regs.WriteReg(int(address), v)
 		if err != nil {
-			return []RegChange{}, PDU{}, errors.New(
-				"error writing to modbus reg")
+			return p.handleError(err)
 		}
 
 		resp = *p
 
 	default:
-		return []RegChange{}, PDU{},
-			fmt.Errorf("unsupported function code: %v", p.FunctionCode)
-
+		return p.handleError(ExcIllegalFunction)
 	}
 
 	return changes, resp, nil
