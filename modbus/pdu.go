@@ -81,7 +81,7 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 				"error writing to coil reg")
 		}
 
-		resp.Data = PutUint16Array(v)
+		resp = *p
 
 	case FuncCodeWriteSingleRegister:
 		address := binary.BigEndian.Uint16(p.Data[:2])

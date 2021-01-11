@@ -34,6 +34,13 @@ func NewManger(db *genji.Db, messenger *msg.Messenger, nc *natsgo.Conn) *Manager
 
 // Run manager
 func (m *Manager) Run() {
+	go func() {
+		for {
+			m.modbusManager.Update()
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
 	for {
 		nodes, err := m.db.Nodes()
 		if err != nil {
@@ -41,6 +48,7 @@ func (m *Manager) Run() {
 			time.Sleep(10 * time.Second)
 			continue
 		}
+
 		for _, node := range nodes {
 			// update node state
 			state, changed := node.UpdateState()
@@ -65,9 +73,6 @@ func (m *Manager) Run() {
 			}
 		}
 
-		m.modbusManager.Update()
-
-		time.Sleep(10 * time.Second)
 	}
 }
 

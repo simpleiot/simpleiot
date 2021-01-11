@@ -46,6 +46,14 @@ view o =
                 , labelWidth = labelWidth
                 }
 
+        counterWithReset =
+            Form.nodeCounterWithReset
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth + 120
+                }
+
         optionInput =
             Form.nodeOptionInput
                 { onEditNodePoint = o.onEditNodePoint
@@ -80,7 +88,11 @@ view o =
                     , textInput Point.typeBaud "Baud"
                     , viewIf (clientServer == Point.valueServer) <|
                         numberInput Point.typeID "Device ID"
+                    , numberInput Point.typePollPeriod "Poll period (ms)"
                     , numberInput Point.typeDebug "Debug level (0-9)"
+                    , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
+                    , counterWithReset Point.typeErrorCountEOF Point.typeErrorCountEOFReset "EOF Error Count"
+                    , counterWithReset Point.typeErrorCountCRC Point.typeErrorCountCRCReset "CRC Error Count"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

@@ -4,16 +4,23 @@ package data
 // the system.
 const (
 	// general point types
-	PointTypeDescription string = "description"
-	PointTypeScale              = "scale"
-	PointTypeOffset             = "offset"
-	PointTypeUnits              = "units"
-	PointTypeValue              = "value"
-	PointTypeValueSet           = "valueSet"
-	PointTypeID                 = "id"
-	PointTypeAddress            = "address"
-	PointTypeDebug              = "debug"
-	PointTypeInitialized        = "initialized"
+	PointTypeDescription        string = "description"
+	PointTypeScale                     = "scale"
+	PointTypeOffset                    = "offset"
+	PointTypeUnits                     = "units"
+	PointTypeValue                     = "value"
+	PointTypeValueSet                  = "valueSet"
+	PointTypeID                        = "id"
+	PointTypeAddress                   = "address"
+	PointTypeDebug                     = "debug"
+	PointTypeInitialized               = "initialized"
+	PointTypePollPeriod                = "pollPeriod"
+	PointTypeErrorCount                = "errorCount"
+	PointTypeErrorCountReset           = "errorCountReset"
+	PointTypeErrorCountEOF             = "errorCountEOF"
+	PointTypeErrorCountEOFReset        = "errorCountEOFReset"
+	PointTypeErrorCountCRC             = "errorCountCRC"
+	PointTypeErrorCountCRCReset        = "errorCountCRCReset"
 
 	// An device node describes an phyical device -- it may be the
 	// cloud server, gateway, etc

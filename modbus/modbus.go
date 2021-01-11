@@ -27,6 +27,8 @@ const (
 	WriteCoilValueOff uint16 = 0
 )
 
+// this is the total length of the packet with id and CRC bytes
+// you can view these raw packets by increasing debug level to 9
 var minPacketLen = map[FunctionCode]int{
 	FuncCodeReadCoils:            6,
 	FuncCodeReadDiscreteInputs:   6,
