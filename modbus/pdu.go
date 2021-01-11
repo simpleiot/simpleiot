@@ -26,11 +26,23 @@ type RegChange struct {
 	New     uint16
 }
 
+// handleError translates an error into a PDU, if possible.
+func (p *PDU) handleError(err error) ([]RegChange, PDU, error) {
+	if err, ok := err.(ExceptionCode); ok {
+		resp := PDU{}
+		resp.FunctionCode = p.FunctionCode | 0x80
+		resp.Data = []byte{byte(err)}
+		return nil, resp, nil
+	}
+	// TODO: Wrap the underlying error?
+	return p.handleError(ExcServerDeviceFailure)
+}
+
 // ProcessRequest a modbus request. Registers are read and written
 // through the server interface argument.
 // This function returns any register changes, the modbus respose,
 // and any errors
-func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
+func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 	changes := []RegChange{}
 	resp := PDU{}
 	resp.FunctionCode = p.FunctionCode
@@ -39,27 +51,36 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 	case FuncCodeReadCoils, FuncCodeReadDiscreteInputs:
 		address := binary.BigEndian.Uint16(p.Data[:2])
 		count := binary.BigEndian.Uint16(p.Data[2:4])
-		// FIXME, do something with count to handle a range of reads
-		_ = count
-		v, err := regs.ReadReg(int(address) / 16)
-		if err != nil {
-			return []RegChange{}, PDU{}, errors.New(
-				"Did not find modbus reg")
+		bytes := byte((count + 7) / 8)
+		resp.Data = make([]byte, 1+bytes)
+		resp.Data[0] = bytes
+		var read = regs.ReadCoil
+		if p.FunctionCode == FuncCodeReadDiscreteInputs {
+			read = regs.ReadDiscreteInput
 		}
-		bitPos := address % 16
-		bitV := (v >> uint(bitPos)) & 0x1
-		resp.Data = []byte{1, byte(bitV)}
+		for i := 0; i < int(count); i++ {
+			v, err := read(int(address) + i)
+			if err != nil {
+				return p.handleError(err)
+			}
+			if v {
+				resp.Data[1+i/8] |= 1 << (i % 8)
+			}
+		}
 	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
 		address := binary.BigEndian.Uint16(p.Data[:2])
 		count := binary.BigEndian.Uint16(p.Data[2:4])
 
 		resp.Data = make([]byte, 1+2*count)
 		resp.Data[0] = uint8(count * 2)
+		var read = regs.ReadReg
+		if p.FunctionCode == FuncCodeReadInputRegisters {
+			read = regs.ReadInputReg
+		}
 		for i := 0; i < int(count); i++ {
-			v, err := regs.ReadReg(int(address) + i)
+			v, err := read(int(address) + i)
 			if err != nil {
-				return []RegChange{}, PDU{}, errors.New(
-					"Did not find modbus reg")
+				return p.handleError(err)
 			}
 
 			binary.BigEndian.PutUint16(resp.Data[1+i*2:], v)
@@ -77,11 +98,10 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 
 		err := regs.WriteCoil(int(address), vBool)
 		if err != nil {
-			return []RegChange{}, PDU{}, errors.New(
-				"error writing to coil reg")
+			return p.handleError(err)
 		}
 
-		resp = *p
+		resp.Data = p.Data
 
 	case FuncCodeWriteSingleRegister:
 		address := binary.BigEndian.Uint16(p.Data[:2])
@@ -89,16 +109,13 @@ func (p *PDU) ProcessRequest(regs *Regs) ([]RegChange, PDU, error) {
 
 		err := regs.WriteReg(int(address), v)
 		if err != nil {
-			return []RegChange{}, PDU{}, errors.New(
-				"error writing to modbus reg")
+			return p.handleError(err)
 		}
 
 		resp = *p
 
 	default:
-		return []RegChange{}, PDU{},
-			fmt.Errorf("unsupported function code: %v", p.FunctionCode)
-
+		return p.handleError(ExcIllegalFunction)
 	}
 
 	return changes, resp, nil
