@@ -169,7 +169,7 @@ func TestProcessRequest(t *testing.T) {
 			if diff := cmp.Diff(resp, want); diff != "" {
 				t.Errorf("unexpected reply: got(-), want(+):\n%s", diff)
 			}
-			t.Logf("register state: %+v", regs)
+			t.Logf("register state: %+v", &regs)
 		})
 	}
 }
