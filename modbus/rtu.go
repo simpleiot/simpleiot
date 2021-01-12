@@ -34,14 +34,8 @@ func RtuDecode(packet []byte) (PDU, error) {
 
 	ret.FunctionCode = FunctionCode(packet[1])
 
-	minPacketLen := minPacketLen[ret.FunctionCode]
-	if minPacketLen == 0 {
-		return PDU{}, fmt.Errorf("unsupported Function code: %v",
-			ret.FunctionCode)
-	}
-
-	if len(packet) < minPacketLen {
-		return PDU{}, fmt.Errorf("not enough data for function code %v, expected %v, got %v", ret.FunctionCode, minPacketLen, len(packet))
+	if len(packet) < 4 {
+		return PDU{}, fmt.Errorf("short packet, got %d bytes", len(packet))
 	}
 
 	ret.Data = packet[2 : len(packet)-2]

@@ -47,6 +47,12 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 	resp := PDU{}
 	resp.FunctionCode = p.FunctionCode
 
+	minPacketLen := minRequestLen[p.FunctionCode]
+
+	if len(p.Data) < minPacketLen-1 {
+		return nil, PDU{}, fmt.Errorf("not enough data for function code %v, expected %v, got %v", p.FunctionCode, minPacketLen, len(p.Data))
+	}
+
 	switch p.FunctionCode {
 	case FuncCodeReadCoils, FuncCodeReadDiscreteInputs:
 		address := binary.BigEndian.Uint16(p.Data[:2])
@@ -92,8 +98,12 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 		v := binary.BigEndian.Uint16(p.Data[2:4])
 
 		vBool := false
-		if v == WriteCoilValueOn {
+		switch v {
+		case WriteCoilValueOff:
+		case WriteCoilValueOn:
 			vBool = true
+		default:
+			return p.handleError(ExcIllegalValue)
 		}
 
 		err := regs.WriteCoil(int(address), vBool)
@@ -102,6 +112,22 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 		}
 
 		resp.Data = p.Data
+
+	case FuncCodeWriteMultipleCoils:
+		address := binary.BigEndian.Uint16(p.Data[:2])
+		quantity := binary.BigEndian.Uint16(p.Data[2:4])
+		if len(p.Data) != 5+((int(quantity)+7)/8) {
+			return p.handleError(ExcIllegalValue)
+		}
+		for i := 0; i < int(quantity); i++ {
+			value := (p.Data[5+i/8]>>(i%8))&1 == 1
+			if err := regs.WriteCoil(int(address)+i, value); err != nil {
+				return p.handleError(err)
+			}
+		}
+		resp.Data = make([]byte, 4)
+		binary.BigEndian.PutUint16(resp.Data[:2], address)
+		binary.BigEndian.PutUint16(resp.Data[2:4], quantity)
 
 	case FuncCodeWriteSingleRegister:
 		address := binary.BigEndian.Uint16(p.Data[:2])
@@ -113,6 +139,22 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 		}
 
 		resp = *p
+
+	case FuncCodeWriteMultipleRegisters:
+		address := binary.BigEndian.Uint16(p.Data[:2])
+		quantity := binary.BigEndian.Uint16(p.Data[2:4])
+		if len(p.Data) != 5+(int(quantity)*2) {
+			return p.handleError(ExcIllegalValue)
+		}
+		for i := 0; i < int(quantity); i++ {
+			value := binary.BigEndian.Uint16(p.Data[5+i*2 : 5+i*2+2])
+			if err := regs.WriteReg(int(address)+i, value); err != nil {
+				return p.handleError(err)
+			}
+		}
+		resp.Data = make([]byte, 4)
+		binary.BigEndian.PutUint16(resp.Data[:2], address)
+		binary.BigEndian.PutUint16(resp.Data[2:4], quantity)
 
 	default:
 		return p.handleError(ExcIllegalFunction)
