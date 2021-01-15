@@ -11,9 +11,10 @@ import (
 // Current Server only supports Modbus RTU,
 // but could be expanded to do ASCII and TCP.
 type Server struct {
-	id   byte
-	port io.ReadWriter
-	Regs Regs
+	id     byte
+	port   io.ReadWriter
+	Regs   Regs
+	chDone chan bool
 }
 
 // NewServer creates a new server instance
@@ -22,19 +23,31 @@ type Server struct {
 // way to do this.
 func NewServer(id byte, port io.ReadWriter) *Server {
 	return &Server{
-		id:   id,
-		port: port,
+		id:     id,
+		port:   port,
+		chDone: make(chan bool),
 	}
 }
 
+// Close stops the listening channel
+func (s *Server) Close() {
+	s.chDone <- true
+}
+
 // Listen starts the server and listens for modbus requests
-// this function does not return unless and error occurs
+// this function does not return unless an error occurs
 // The listen function supports various debug levels:
 // 1 - dump packets
 // 9 - dump raw data
 func (s *Server) Listen(debug int, errorCallback func(error),
 	changesCallback func([]RegChange)) {
 	for {
+		select {
+		case <-s.chDone:
+			log.Println("Exiting modbus server listen")
+			return
+		default:
+		}
 		buf := make([]byte, 200)
 		cnt, err := s.port.Read(buf)
 		if err != nil {
