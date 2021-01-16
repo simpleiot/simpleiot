@@ -55,7 +55,7 @@ func (r *ModbusRunner) SendPoint(nodeID, pointType string, value float64) error 
 		Value: value,
 	}
 
-	return nats.SendPoint(r.nc, nodeID, &p, true)
+	return nats.SendPoint(r.nc, nodeID, p, true)
 }
 
 // WriteBusHoldingReg used to write register values to bus
@@ -457,13 +457,13 @@ func (r *ModbusRunner) LogError(io *ModbusIO, typ string) error {
 		Value: float64(busCount),
 	}
 
-	err := nats.SendPoint(r.nc, r.bus.nodeID, &p, true)
+	err := nats.SendPoint(r.nc, r.bus.nodeID, p, true)
 	if err != nil {
 		return err
 	}
 
 	p.Value = float64(ioCount)
-	return nats.SendPoint(r.nc, io.nodeID, &p, true)
+	return nats.SendPoint(r.nc, io.nodeID, p, true)
 }
 
 // Run is routine that runs the logic for a bus. Intended to be run as

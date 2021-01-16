@@ -222,6 +222,9 @@ update msg model =
                                                 n
                                         )
                                         nodes
+
+                                _ =
+                                    Debug.log "updatedNodes" updatedNodes
                             in
                             ( { model | nodeEdit = Nothing, nodes = Just updatedNodes }
                             , Node.postPoints
@@ -479,7 +482,7 @@ update msg model =
 
                 _ ->
                     ( model
-                    , updateNodes model
+                    , Cmd.none
                     )
 
         ApiRespPostAddNode resp ->
