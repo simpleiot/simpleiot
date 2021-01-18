@@ -1,8 +1,7 @@
 <img src="docs/simple-iot-logo.png?raw=true" width="150">
 
-![](https://tokei.rs/b1/github/simpleiot/simpleiot?category=code)
-
 ![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=master)
+![](https://tokei.rs/b1/github/simpleiot/simpleiot?category=code)
 
 Simple IoT is collection of building blocks to help you build custom IoT systems
 quickly, but yet provide full flexibility to customize the system. Many features
