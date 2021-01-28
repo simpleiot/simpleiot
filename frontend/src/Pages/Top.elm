@@ -222,9 +222,6 @@ update msg model =
                                                 n
                                         )
                                         nodes
-
-                                _ =
-                                    Debug.log "updatedNodes" updatedNodes
                             in
                             ( { model | nodeEdit = Nothing, nodes = Just updatedNodes }
                             , Node.postPoints
@@ -261,7 +258,11 @@ update msg model =
             ( { model | nodes = nodes }, Cmd.none )
 
         AddNode id ->
-            ( { model | addNode = Just { typ = Nothing, parent = id } }, Cmd.none )
+            ( { model
+                | addNode = Just { typ = Nothing, parent = id }
+              }
+            , Cmd.none
+            )
 
         MsgNode id ->
             ( { model | msgNode = Just { id = id, message = "" } }, Cmd.none )
@@ -326,28 +327,37 @@ update msg model =
 
         ApiPostAddNode ->
             -- FIXME optimistically update nodes
-            ( { model | addNode = Nothing }
-            , case model.addNode of
+            case model.addNode of
                 Just addNode ->
+                    let
+                        nodes =
+                            model.nodes |> Maybe.map (expChildren addNode.parent)
+                    in
                     case addNode.typ of
                         Just typ ->
-                            Node.insert
+                            ( { model | addNode = Nothing, nodes = nodes }
+                            , Node.insert
                                 { token = model.auth.token
                                 , onResponse = ApiRespPostAddNode
                                 , node =
                                     { id = ""
                                     , typ = typ
                                     , parent = addNode.parent
-                                    , points = []
+                                    , points =
+                                        [ Point.newText
+                                            ""
+                                            Point.typeDescription
+                                            "New, please edit"
+                                        ]
                                     }
                                 }
+                            )
 
                         Nothing ->
-                            Cmd.none
+                            ( { model | addNode = Nothing, nodes = nodes }, Cmd.none )
 
                 Nothing ->
-                    Cmd.none
-            )
+                    ( { model | addNode = Nothing }, Cmd.none )
 
         ApiPostMoveNode ->
             ( { model | moveNode = Nothing }
@@ -568,6 +578,19 @@ toggleExpChildren id tree =
         (\n ->
             if n.node.id == id then
                 { n | expChildren = not n.expChildren }
+
+            else
+                n
+        )
+        tree
+
+
+expChildren : String -> Tree NodeView -> Tree NodeView
+expChildren id tree =
+    Tree.map
+        (\n ->
+            if n.node.id == id then
+                { n | expChildren = True }
 
             else
                 n
