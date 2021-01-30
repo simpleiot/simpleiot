@@ -1,7 +1,6 @@
 package node
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -22,11 +21,8 @@ func NewModbusIO(nc *natsgo.Conn, node *ModbusIONode, chPoint chan<- pointWID) (
 		ioNode: node,
 	}
 
-	fmt.Println("CLIFF: NewModbusIO: ", node)
-
 	var err error
 	io.sub, err = nc.Subscribe("node."+io.ioNode.nodeID+".points", func(msg *natsgo.Msg) {
-		fmt.Println("msg: ", msg)
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
 			// FIXME, send over channel

@@ -198,6 +198,7 @@ func (b *Modbus) CheckIOs() error {
 			ioNode, err := NewModbusIONode(b.busNode.busType, &node)
 			if err != nil {
 				log.Println("Error with IO node: ", err)
+				continue
 			}
 			io, err = NewModbusIO(b.nc, ioNode, b.chPoint)
 			if err != nil {
@@ -448,13 +449,21 @@ func (b *Modbus) ReadBusBit(io *ModbusIO) error {
 		if err != nil {
 			return err
 		}
+
+		io.lastSent = time.Now()
 	}
+
+	io.ioNode.value = value
 
 	return nil
 }
 
 // ClientIO processes an IO on a client bus
 func (b *Modbus) ClientIO(io *ModbusIO) error {
+
+	if b.client == nil {
+		return errors.New("client is not set up")
+	}
 
 	// read value from remote device and update regs
 	switch io.ioNode.modbusIOType {
@@ -765,8 +774,9 @@ func (b *Modbus) Run() {
 	for {
 		select {
 		case point := <-b.chPoint:
+			p := point.point
 			if point.id == b.busNode.nodeID {
-				b.node.ProcessPoint(point.point)
+				b.node.ProcessPoint(p)
 				var err error
 				b.busNode, err = NewModbusNode(b.node)
 				if err != nil {
@@ -787,18 +797,133 @@ func (b *Modbus) Run() {
 					scanTimer = time.NewTicker(time.Millisecond * time.Duration(b.busNode.pollPeriod))
 
 				case data.PointTypeErrorCountReset:
-					//TODO
+					if b.busNode.errorCountReset {
+						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
+						err := nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+
+						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
+						err = nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+					}
+
 				case data.PointTypeErrorCountCRCReset:
-					//TODO
+					if b.busNode.errorCountCRCReset {
+						p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
+						err := nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+
+						p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
+						err = nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+					}
+
 				case data.PointTypeErrorCountEOFReset:
-					//TODO
+					if b.busNode.errorCountEOFReset {
+						p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
+						err := nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
 
-				default:
-					log.Println("unhandled point type: ", point.point.Type)
-
+						p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
+						err = nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+					}
 				}
 			} else {
+				io, ok := b.ios[point.id]
+				if !ok {
+					log.Println("received point for unknown IO: ", point.id)
+					// FIXME, we could create a new IO here
+					continue
+				}
 				// handle IO changes
+				switch p.Type {
+				case data.PointTypeID:
+					io.ioNode.id = int(p.Value)
+				case data.PointTypeDescription:
+					io.ioNode.description = p.Text
+				case data.PointTypeAddress:
+					io.ioNode.address = int(p.Value)
+				case data.PointTypeModbusIOType:
+					io.ioNode.modbusIOType = p.Text
+				case data.PointTypeDataFormat:
+					io.ioNode.modbusDataType = p.Text
+				case data.PointTypeScale:
+					io.ioNode.scale = p.Value
+				case data.PointTypeOffset:
+					io.ioNode.offset = p.Value
+				case data.PointTypeValue:
+					io.ioNode.value = p.Value
+				case data.PointTypeValueSet:
+					io.ioNode.valueSet = p.Value
+				case data.PointTypeErrorCount:
+					io.ioNode.errorCount = int(p.Value)
+				case data.PointTypeErrorCountEOF:
+					io.ioNode.errorCountEOF = int(p.Value)
+				case data.PointTypeErrorCountCRC:
+					io.ioNode.errorCountCRC = int(p.Value)
+				case data.PointTypeErrorCountReset:
+					io.ioNode.errorCountReset = data.FloatToBool(p.Value)
+					if io.ioNode.errorCountReset {
+						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
+						err := nats.SendPoint(b.nc, io.ioNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+
+						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
+						err = nats.SendPoint(b.nc, io.ioNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+					}
+
+				case data.PointTypeErrorCountEOFReset:
+					io.ioNode.errorCountEOFReset = data.FloatToBool(p.Value)
+					if io.ioNode.errorCountEOFReset {
+						p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
+						err := nats.SendPoint(b.nc, io.ioNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+
+						p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
+						err = nats.SendPoint(b.nc, io.ioNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+					}
+
+				case data.PointTypeErrorCountCRCReset:
+					io.ioNode.errorCountCRCReset = data.FloatToBool(p.Value)
+					if io.ioNode.errorCountCRCReset {
+						p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
+						err := nats.SendPoint(b.nc, io.ioNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+
+						p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
+						err = nats.SendPoint(b.nc, io.ioNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+					}
+				default:
+					log.Println("modbus: unhandled io point: ", p)
+				}
 
 			}
 		case <-b.chRegChange:
@@ -819,15 +944,15 @@ func (b *Modbus) Run() {
 			b.CheckIOs()
 
 		case <-scanTimer.C:
-			fmt.Println("CLIFF: scan timer")
 			for _, io := range b.ios {
-				fmt.Println("CLIFF: io: ", io)
 				// for scanning, we only need to process client ios
 				if b.busNode.busType == data.PointValueClient {
 					err := b.ClientIO(io)
 					if err != nil {
-						log.Printf("Modbus client %v:%v, error: %v\n",
-							b.busNode.portName, io.ioNode.description, err)
+						if b.busNode.debugLevel >= 1 {
+							log.Printf("Modbus client %v:%v, error: %v\n",
+								b.busNode.portName, io.ioNode.description, err)
+						}
 						err := b.LogError(io.ioNode, modbusErrorToPointType(err))
 						if err != nil {
 							log.Println("Error logging modbus error: ", err)
