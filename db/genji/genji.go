@@ -323,6 +323,7 @@ func (gen *Db) NodeInsert(node data.Node) (string, error) {
 }
 
 // NodeInsertEdge -- insert a node and edge and return uuid
+// FIXME can we replace this with NATS calls?
 func (gen *Db) NodeInsertEdge(node data.NodeEdge) (string, error) {
 	if node.ID == "" {
 		node.ID = uuid.New().String()

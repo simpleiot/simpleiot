@@ -192,3 +192,18 @@ func (n *NodeEdge) ToNode() Node {
 		Points: n.Points,
 	}
 }
+
+// ProcessPoint takes a point for a device and adds/updates its array of points
+func (n *NodeEdge) ProcessPoint(pIn Point) {
+	pFound := false
+	for i, p := range n.Points {
+		if p.ID == pIn.ID && p.Type == pIn.Type && p.Index == pIn.Index {
+			pFound = true
+			n.Points[i] = pIn
+		}
+	}
+
+	if !pFound {
+		n.Points = append(n.Points, pIn)
+	}
+}

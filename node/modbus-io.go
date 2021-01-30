@@ -1,100 +1,57 @@
 package node
 
 import (
-	"errors"
+	"fmt"
+	"log"
+	"time"
 
+	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// ModbusIO describes a modbus IO
+// ModbusIO represents the state of a managed modbus io
 type ModbusIO struct {
-	nodeID             string
-	description        string
-	id                 int
-	address            int
-	modbusIOType       string
-	modbusDataType     string
-	scale              float64
-	offset             float64
-	value              float64
-	valueSet           float64
-	errorCount         int
-	errorCountCRC      int
-	errorCountEOF      int
-	errorCountReset    bool
-	errorCountCRCReset bool
-	errorCountEOFReset bool
+	ioNode   *ModbusIONode
+	sub      *natsgo.Subscription
+	lastSent time.Time
 }
 
-// NewModbusIO Convert node to modbus IO
-func NewModbusIO(busType string, node *data.NodeEdge) (*ModbusIO, error) {
-	ret := ModbusIO{
-		nodeID: node.ID,
+// NewModbusIO creates a new modbus IO
+func NewModbusIO(nc *natsgo.Conn, node *ModbusIONode, chPoint chan<- pointWID) (*ModbusIO, error) {
+	io := &ModbusIO{
+		ioNode: node,
 	}
 
-	var ok bool
+	fmt.Println("CLIFF: NewModbusIO: ", node)
 
-	ret.id, ok = node.Points.ValueInt("", data.PointTypeID, 0)
-	if busType == data.PointValueClient && !ok {
-		if busType == data.PointValueServer {
-			return nil, errors.New("Must define modbus ID")
+	var err error
+	io.sub, err = nc.Subscribe("node."+io.ioNode.nodeID+".points", func(msg *natsgo.Msg) {
+		fmt.Println("msg: ", msg)
+		points, err := data.PbDecodePoints(msg.Data)
+		if err != nil {
+			// FIXME, send over channel
+			log.Println("Error decoding node data: ", err)
+			return
 		}
-	}
 
-	ret.description, _ = node.Points.Text("", data.PointTypeDescription, 0)
-
-	ret.address, ok = node.Points.ValueInt("", data.PointTypeAddress, 0)
-	if !ok {
-		return nil, errors.New("Must define modbus address")
-	}
-	ret.modbusIOType, ok = node.Points.Text("", data.PointTypeModbusIOType, 0)
-	if !ok {
-		return nil, errors.New("Must define modbus IO type")
-	}
-
-	if ret.modbusIOType == data.PointValueModbusInputRegister ||
-		ret.modbusIOType == data.PointValueModbusHoldingRegister {
-		ret.modbusDataType, ok = node.Points.Text("", data.PointTypeDataFormat, 0)
-		if !ok {
-			return nil, errors.New("Data format must be specified")
+		for _, p := range points {
+			chPoint <- pointWID{io.ioNode.nodeID, p}
 		}
-		ret.scale, ok = node.Points.Value("", data.PointTypeScale, 0)
-		if !ok {
-			return nil, errors.New("Must define modbus scale")
-		}
-		ret.offset, ok = node.Points.Value("", data.PointTypeOffset, 0)
-		if !ok {
-			return nil, errors.New("Must define modbus offset")
-		}
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	ret.value, _ = node.Points.Value("", data.PointTypeValue, 0)
-	ret.valueSet, _ = node.Points.Value("", data.PointTypeValueSet, 0)
-	ret.errorCount, _ = node.Points.ValueInt("", data.PointTypeErrorCount, 0)
-	ret.errorCountCRC, _ = node.Points.ValueInt("", data.PointTypeErrorCountCRC, 0)
-	ret.errorCountEOF, _ = node.Points.ValueInt("", data.PointTypeErrorCountEOF, 0)
-	ret.errorCountReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountReset, 0)
-	ret.errorCountCRCReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountCRCReset, 0)
-	ret.errorCountEOFReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountEOFReset, 0)
-
-	return &ret, nil
+	return io, nil
 }
 
-// Changed returns true if the config of the IO has changed
-func (io *ModbusIO) Changed(newIO *ModbusIO) bool {
-	if io.id != newIO.id ||
-		io.address != newIO.address ||
-		io.modbusIOType != newIO.modbusIOType ||
-		io.modbusDataType != newIO.modbusDataType ||
-		io.scale != newIO.scale ||
-		io.offset != newIO.offset ||
-		io.value != newIO.value ||
-		io.valueSet != newIO.valueSet ||
-		io.errorCountReset != newIO.errorCountReset ||
-		io.errorCountCRCReset != newIO.errorCountCRCReset ||
-		io.errorCountEOFReset != newIO.errorCountEOFReset {
-		return true
+// Stop io
+func (io *ModbusIO) Stop() {
+	if io.sub != nil {
+		err := io.sub.Unsubscribe()
+		if err != nil {
+			log.Println("Error unsubscribing from IO: ", err)
+		}
 	}
-
-	return false
 }

@@ -291,12 +291,11 @@ func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id str
 		return
 	}
 
-	for _, p := range points {
-		err = h.db.NodePoint(id, p)
-		if err != nil {
-			http.Error(res, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	err = nats.SendPoints(h.nh.Nc, id, points, true)
+
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	en := json.NewEncoder(res)
