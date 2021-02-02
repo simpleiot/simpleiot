@@ -61,18 +61,21 @@ func NewModbus(db *genji.Db, nc *natsgo.Conn, node *data.NodeEdge) (*Modbus, err
 
 	bus.busNode = modbusNode
 
-	bus.sub, err = nc.Subscribe("node."+bus.busNode.nodeID+".points", func(msg *natsgo.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
-		if err != nil {
-			// FIXME, send over channel
-			log.Println("Error decoding node data: ", err)
-			return
-		}
+	// closure is required so we don't get races accessing bus.busNode
+	func(id string) {
+		bus.sub, err = nc.Subscribe("node."+bus.busNode.nodeID+".points", func(msg *natsgo.Msg) {
+			points, err := data.PbDecodePoints(msg.Data)
+			if err != nil {
+				// FIXME, send over channel
+				log.Println("Error decoding node data: ", err)
+				return
+			}
 
-		for _, p := range points {
-			bus.chPoint <- pointWID{bus.busNode.nodeID, p}
-		}
-	})
+			for _, p := range points {
+				bus.chPoint <- pointWID{id, p}
+			}
+		})
+	}(bus.busNode.nodeID)
 
 	if err != nil {
 		return nil, err
