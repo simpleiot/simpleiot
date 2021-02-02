@@ -735,6 +735,7 @@ func (b *Modbus) Run() {
 					io.ioNode.description = p.Text
 				case data.PointTypeAddress:
 					io.ioNode.address = int(p.Value)
+					b.InitRegs(io.ioNode)
 				case data.PointTypeModbusIOType:
 					io.ioNode.modbusIOType = p.Text
 				case data.PointTypeDataFormat:
