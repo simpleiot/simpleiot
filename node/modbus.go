@@ -126,7 +126,7 @@ func (b *Modbus) CheckIOs() error {
 				continue
 			}
 			b.ios[node.ID] = io
-
+			b.InitRegs(io.ioNode)
 		}
 	}
 
