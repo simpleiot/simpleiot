@@ -39,7 +39,7 @@ type Modbus struct {
 	chDone      chan bool
 	chPoint     chan pointWID
 	chError     <-chan error
-	chRegChange chan modbus.RegChange
+	chRegChange chan bool
 }
 
 // NewModbus creates a new bus from a node
@@ -51,7 +51,7 @@ func NewModbus(db *genji.Db, nc *natsgo.Conn, node *data.NodeEdge) (*Modbus, err
 		ios:         make(map[string]*ModbusIO),
 		chDone:      make(chan bool),
 		chPoint:     make(chan pointWID),
-		chRegChange: make(chan modbus.RegChange),
+		chRegChange: make(chan bool),
 	}
 
 	modbusNode, err := NewModbusNode(node)
@@ -100,89 +100,6 @@ func (b *Modbus) Stop() {
 	b.chDone <- true
 }
 
-// Check verifies the Nodes for the bus and restarts it if anything
-// has changed.
-// FIXME don't think we need this any more
-func (b *Modbus) Check(node *data.NodeEdge) error {
-	nodeBus, err := NewModbusNode(node)
-	if err != nil {
-		return err
-	}
-
-	err = b.CheckIOs()
-	if err != nil {
-		return fmt.Errorf("Error checking modbus IOs: %w", err)
-	}
-
-	if nodeBus.errorCountReset {
-		b.Stop()
-		p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
-		err := nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
-		if err != nil {
-			log.Println("Send point error: ", err)
-		}
-
-		p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
-		err = nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
-		if err != nil {
-			log.Println("Send point error: ", err)
-		}
-	}
-
-	if nodeBus.errorCountCRCReset {
-		b.Stop()
-		p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
-		err := nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
-		if err != nil {
-			log.Println("Send point error: ", err)
-		}
-
-		p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
-		err = nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
-		if err != nil {
-			log.Println("Send point error: ", err)
-		}
-	}
-
-	if nodeBus.errorCountEOFReset {
-		b.Stop()
-		p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
-		err := nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
-		if err != nil {
-			log.Println("Send point error: ", err)
-		}
-
-		p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
-		err = nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
-		if err != nil {
-			log.Println("Send point error: ", err)
-		}
-	}
-
-	if nodeBus.busType != b.busNode.busType ||
-		nodeBus.portName != b.busNode.portName ||
-		nodeBus.baud != b.busNode.baud ||
-		nodeBus.id != b.busNode.id ||
-		nodeBus.debugLevel != b.busNode.debugLevel ||
-		nodeBus.pollPeriod != b.busNode.pollPeriod {
-		// bus has changed
-		b.Stop()
-		b.busNode = nodeBus
-	}
-
-	if b.chError == nil {
-		// need to start the bus. Need to pass a copy of data so that we don't run into concurrency
-		// problems
-		//busNode := *b.node
-		// ios := copyIos(b.ios)
-		// FIXME
-		//runner := NewModbusRunner(b.db, b.nc, &busNode, ios)
-		//b.chError = runner.Run()
-	}
-
-	return nil
-}
-
 // CheckIOs goes through ios on the bus and handles any config changes
 func (b *Modbus) CheckIOs() error {
 	nodes, err := b.db.NodeChildren(b.busNode.nodeID, data.NodeTypeModbusIO)
@@ -205,59 +122,12 @@ func (b *Modbus) CheckIOs() error {
 			}
 			io, err = NewModbusIO(b.nc, ioNode, b.chPoint)
 			if err != nil {
-				log.Println("Error creating new modbus: ", err)
+				log.Println("Error creating new modbus IO: ", err)
 				continue
 			}
 			b.ios[node.ID] = io
+
 		}
-
-		/*
-			// check if error counters need reset
-			if io.errorCountReset {
-				b.Stop()
-				p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
-				err := nats.SendPoint(b.nc, io.nodeID, p, true)
-				if err != nil {
-					log.Println("Error sending nats point: ", err)
-				}
-
-				p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
-				err = nats.SendPoint(b.nc, io.nodeID, p, true)
-				if err != nil {
-					log.Println("Error sending nats point: ", err)
-				}
-			}
-
-			if io.errorCountCRCReset {
-				b.Stop()
-				p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
-				err := nats.SendPoint(b.nc, io.nodeID, p, true)
-				if err != nil {
-					log.Println("Error sending nats point: ", err)
-				}
-
-				p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
-				err = nats.SendPoint(b.nc, io.nodeID, p, true)
-				if err != nil {
-					log.Println("Error sending nats point: ", err)
-				}
-			}
-
-			if io.errorCountEOFReset {
-				b.Stop()
-				p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
-				err := nats.SendPoint(b.nc, io.nodeID, p, true)
-				if err != nil {
-					log.Println("Error sending nats point: ", err)
-				}
-
-				p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
-				err = nats.SendPoint(b.nc, io.nodeID, p, true)
-				if err != nil {
-					log.Println("Error sending nats point: ", err)
-				}
-			}
-		*/
 	}
 
 	// remove ios that have been deleted
@@ -594,14 +464,19 @@ func (b *Modbus) InitRegs(io *ModbusIONode) {
 	if b.server == nil {
 		return
 	}
+
+	// we initialize all values from database, even if they are written from
+	// another device so that we preserve the last known state
 	switch io.modbusIOType {
 	case data.PointValueModbusDiscreteInput:
 		b.server.Regs.AddCoil(io.address)
+		b.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
 	case data.PointValueModbusCoil:
 		b.server.Regs.AddCoil(io.address)
 		b.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
 	case data.PointValueModbusInputRegister:
 		b.server.Regs.AddReg(io.address, regCount(io.modbusDataType))
+		b.WriteReg(io)
 	case data.PointValueModbusHoldingRegister:
 		b.server.Regs.AddReg(io.address, regCount(io.modbusDataType))
 		b.WriteReg(io)
@@ -739,12 +614,14 @@ func (b *Modbus) SetupPort() error {
 		b.server = modbus.NewServer(byte(b.busNode.id), b.port)
 		go b.server.Listen(b.busNode.debugLevel, func(err error) {
 			log.Println("Modbus server error: ", err)
-		}, func(changes []modbus.RegChange) {
+		}, func() {
 			log.Println("Modbus reg change")
-			for _, c := range changes {
-				b.chRegChange <- c
-			}
+			b.chRegChange <- true
 		})
+
+		for _, io := range b.ios {
+			b.InitRegs(io.ioNode)
+		}
 	} else if b.busNode.busType == data.PointValueClient {
 		b.client = modbus.NewClient(b.port, b.busNode.debugLevel)
 	}
@@ -768,11 +645,6 @@ func (b *Modbus) Run() {
 	b.SetupPort()
 
 	log.Println("initializing modbus port: ", b.busNode.portName)
-
-	// init all ios
-	for _, io := range b.ios {
-		b.InitRegs(io.ioNode)
-	}
 
 	for {
 		select {
@@ -851,6 +723,10 @@ func (b *Modbus) Run() {
 					// FIXME, we could create a new IO here
 					continue
 				}
+
+				valueModified := false
+				valueSetModified := false
+
 				// handle IO changes
 				switch p.Type {
 				case data.PointTypeID:
@@ -868,8 +744,10 @@ func (b *Modbus) Run() {
 				case data.PointTypeOffset:
 					io.ioNode.offset = p.Value
 				case data.PointTypeValue:
+					valueModified = true
 					io.ioNode.value = p.Value
 				case data.PointTypeValueSet:
+					valueSetModified = true
 					io.ioNode.valueSet = p.Value
 				case data.PointTypeErrorCount:
 					io.ioNode.errorCount = int(p.Value)
@@ -928,6 +806,22 @@ func (b *Modbus) Run() {
 					log.Println("modbus: unhandled io point: ", p)
 				}
 
+				if valueModified && b.busNode.busType == data.PointValueServer {
+					err := b.ServerIO(io.ioNode)
+					if err != nil {
+						b.LogError(io.ioNode, modbusErrorToPointType(err))
+					}
+				}
+
+				if valueSetModified && (b.busNode.busType == data.PointValueClient) &&
+					(io.ioNode.modbusDataType == data.PointValueModbusCoil ||
+						io.ioNode.modbusDataType == data.PointValueModbusHoldingRegister) &&
+					(io.ioNode.value != io.ioNode.valueSet) {
+					err := b.ClientIO(io)
+					if err != nil {
+						b.LogError(io.ioNode, modbusErrorToPointType(err))
+					}
+				}
 			}
 		case <-b.chRegChange:
 			// this only happens on modbus servers
