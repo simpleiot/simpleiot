@@ -40,7 +40,7 @@ func (s *Server) Close() {
 // 1 - dump packets
 // 9 - dump raw data
 func (s *Server) Listen(debug int, errorCallback func(error),
-	changesCallback func([]RegChange)) {
+	changesCallback func()) {
 	for {
 		select {
 		case <-s.chDone:
@@ -90,9 +90,9 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 			fmt.Println("Modbus server req: ", req)
 		}
 
-		changes, resp, err := req.ProcessRequest(&s.Regs)
-		if len(changes) > 0 {
-			changesCallback(changes)
+		regsChanged, resp, err := req.ProcessRequest(&s.Regs)
+		if regsChanged {
+			changesCallback()
 		}
 
 		if err != nil {

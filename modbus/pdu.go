@@ -17,22 +17,13 @@ func (p PDU) String() string {
 		HexDump(p.Data))
 }
 
-//RegChange is a type that describes a modbus register change
-// the address, old value and new value of the register are provided.
-// This allows application software to take action when things change.
-type RegChange struct {
-	Address uint16
-	Old     uint16
-	New     uint16
-}
-
 // handleError translates an error into a PDU, if possible.
-func (p *PDU) handleError(err error) ([]RegChange, PDU, error) {
+func (p *PDU) handleError(err error) (bool, PDU, error) {
 	if err, ok := err.(ExceptionCode); ok {
 		resp := PDU{}
 		resp.FunctionCode = p.FunctionCode | 0x80
 		resp.Data = []byte{byte(err)}
-		return nil, resp, nil
+		return false, resp, nil
 	}
 	// TODO: Wrap the underlying error?
 	return p.handleError(ExcServerDeviceFailure)
@@ -42,15 +33,15 @@ func (p *PDU) handleError(err error) ([]RegChange, PDU, error) {
 // through the server interface argument.
 // This function returns any register changes, the modbus respose,
 // and any errors
-func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
-	changes := []RegChange{}
+func (p *PDU) ProcessRequest(regs RegProvider) (bool, PDU, error) {
+	regsChanged := false
 	resp := PDU{}
 	resp.FunctionCode = p.FunctionCode
 
 	minPacketLen := minRequestLen[p.FunctionCode]
 
 	if len(p.Data) < minPacketLen-1 {
-		return nil, PDU{}, fmt.Errorf("not enough data for function code %v, expected %v, got %v", p.FunctionCode, minPacketLen, len(p.Data))
+		return false, PDU{}, fmt.Errorf("not enough data for function code %v, expected %v, got %v", p.FunctionCode, minPacketLen, len(p.Data))
 	}
 
 	switch p.FunctionCode {
@@ -111,6 +102,7 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 			return p.handleError(err)
 		}
 
+		regsChanged = true
 		resp.Data = p.Data
 
 	case FuncCodeWriteMultipleCoils:
@@ -128,6 +120,7 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 		resp.Data = make([]byte, 4)
 		binary.BigEndian.PutUint16(resp.Data[:2], address)
 		binary.BigEndian.PutUint16(resp.Data[2:4], quantity)
+		regsChanged = true
 
 	case FuncCodeWriteSingleRegister:
 		address := binary.BigEndian.Uint16(p.Data[:2])
@@ -139,6 +132,7 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 		}
 
 		resp = *p
+		regsChanged = true
 
 	case FuncCodeWriteMultipleRegisters:
 		address := binary.BigEndian.Uint16(p.Data[:2])
@@ -155,12 +149,13 @@ func (p *PDU) ProcessRequest(regs RegProvider) ([]RegChange, PDU, error) {
 		resp.Data = make([]byte, 4)
 		binary.BigEndian.PutUint16(resp.Data[:2], address)
 		binary.BigEndian.PutUint16(resp.Data[2:4], quantity)
+		regsChanged = true
 
 	default:
 		return p.handleError(ExcIllegalFunction)
 	}
 
-	return changes, resp, nil
+	return regsChanged, resp, nil
 }
 
 // RespReadBits reads coils and discrete inputs from a
