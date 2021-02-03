@@ -73,6 +73,7 @@ func (m *Manager) Run() {
 			}
 		}
 
+		time.Sleep(1 * time.Second)
 	}
 }
 
