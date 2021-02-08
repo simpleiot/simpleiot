@@ -625,7 +625,9 @@ func (b *Modbus) SetupPort() error {
 		go b.server.Listen(b.busNode.debugLevel, func(err error) {
 			log.Println("Modbus server error: ", err)
 		}, func() {
-			log.Println("Modbus reg change")
+			if b.busNode.debugLevel > 0 {
+				log.Println("Modbus reg change")
+			}
 			b.chRegChange <- true
 		})
 
