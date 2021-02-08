@@ -29,12 +29,13 @@ type Modbus struct {
 	ios     map[string]*ModbusIO
 
 	// data associated with running the bus
-	db     *genji.Db
-	nc     *natsgo.Conn
-	sub    *natsgo.Subscription
-	client *modbus.Client
-	server *modbus.Server
-	port   io.ReadWriteCloser
+	db           *genji.Db
+	nc           *natsgo.Conn
+	sub          *natsgo.Subscription
+	client       *modbus.Client
+	server       *modbus.Server
+	port         io.ReadWriteCloser
+	ioErrorCount int
 
 	chDone      chan bool
 	chPoint     chan pointWID
@@ -542,15 +543,17 @@ func (b *Modbus) WriteReg(io *ModbusIONode) error {
 }
 
 // LogError ...
-func (b *Modbus) LogError(io *ModbusIONode, typ string) error {
+func (b *Modbus) LogError(io *ModbusIONode, err error) error {
 	busCount := 0
 	ioCount := 0
-	switch typ {
-	case data.PointTypeErrorCount:
-		busCount = b.busNode.errorCount
-		ioCount = io.errorCount
-		b.busNode.errorCount++
-		io.errorCount++
+
+	if b.busNode.debugLevel >= 1 {
+		log.Printf("Modbus %v:%v, error: %v\n",
+			b.busNode.portName, io.description, err)
+	}
+
+	errType := modbusErrorToPointType(err)
+	switch errType {
 	case data.PointTypeErrorCountEOF:
 		busCount = b.busNode.errorCountEOF
 		ioCount = io.errorCountEOF
@@ -561,20 +564,30 @@ func (b *Modbus) LogError(io *ModbusIONode, typ string) error {
 		ioCount = io.errorCountCRC
 		b.busNode.errorCountCRC++
 		io.errorCountCRC++
-
 	default:
-		return fmt.Errorf("Unknown error type to log: %v", typ)
+		// likely not a modbus error
+		errType = data.PointTypeErrorCount
+		busCount = b.busNode.errorCount
+		ioCount = io.errorCount
+		b.busNode.errorCount++
+		io.errorCount++
 	}
+
+	// the following variable is used to re-init the port
+	// it is probably a little extreme to increment this on any error
+	// but it is cheap to re-initialize the port, so probably better to
+	// be conservative here and try to recover from any errors
+	b.ioErrorCount++
 
 	busCount++
 	ioCount++
 
 	p := data.Point{
-		Type:  typ,
+		Type:  errType,
 		Value: float64(busCount),
 	}
 
-	err := nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
+	err = nats.SendPoint(b.nc, b.busNode.nodeID, p, true)
 	if err != nil {
 		return err
 	}
@@ -814,7 +827,7 @@ func (b *Modbus) Run() {
 				if valueModified && b.busNode.busType == data.PointValueServer {
 					err := b.ServerIO(io.ioNode)
 					if err != nil {
-						b.LogError(io.ioNode, modbusErrorToPointType(err))
+						b.LogError(io.ioNode, err)
 					}
 				}
 
@@ -824,7 +837,7 @@ func (b *Modbus) Run() {
 					(io.ioNode.value != io.ioNode.valueSet) {
 					err := b.ClientIO(io)
 					if err != nil {
-						b.LogError(io.ioNode, modbusErrorToPointType(err))
+						b.LogError(io.ioNode, err)
 					}
 				}
 			}
@@ -833,9 +846,7 @@ func (b *Modbus) Run() {
 			for _, io := range b.ios {
 				err := b.ServerIO(io.ioNode)
 				if err != nil {
-					log.Printf("Modbus server %v:%v, error: %v\n",
-						b.busNode.portName, io.ioNode.description, err)
-					err := b.LogError(io.ioNode, modbusErrorToPointType(err))
+					err := b.LogError(io.ioNode, err)
 					if err != nil {
 						log.Println("Error logging modbus error: ", err)
 					}
@@ -843,7 +854,9 @@ func (b *Modbus) Run() {
 			}
 
 		case <-checkIoTimer.C:
-			if b.client == nil && b.server == nil {
+			if (b.client == nil && b.server == nil) ||
+				b.ioErrorCount > 10 {
+				b.ioErrorCount = 0
 				// try to set up port
 				if err := b.SetupPort(); err != nil {
 					log.Println("SetupPort error: ", err)
@@ -859,11 +872,7 @@ func (b *Modbus) Run() {
 				if b.busNode.busType == data.PointValueClient {
 					err := b.ClientIO(io)
 					if err != nil {
-						if b.busNode.debugLevel >= 1 {
-							log.Printf("Modbus client %v:%v, error: %v\n",
-								b.busNode.portName, io.ioNode.description, err)
-						}
-						err := b.LogError(io.ioNode, modbusErrorToPointType(err))
+						err := b.LogError(io.ioNode, err)
 						if err != nil {
 							log.Println("Error logging modbus error: ", err)
 						}

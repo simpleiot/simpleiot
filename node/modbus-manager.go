@@ -33,7 +33,7 @@ func modbusErrorToPointType(err error) string {
 	case modbus.ErrCRC:
 		return data.PointTypeErrorCountCRC
 	default:
-		return data.PointTypeErrorCount
+		return ""
 	}
 }
 
