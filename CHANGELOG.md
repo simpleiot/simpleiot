@@ -11,8 +11,14 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
-- lots of modbus work
-- expand child nodes and add default description when adding a new node
+## [[0.0.16] - 2021-02-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.16)
+
+- UI
+  - expand child nodes and add default description when adding a new node
+- modbus improvements
+  - send all writes to DB over NATS -- this allows system to be more responsive,
+    as well as simplifies code
+  - lots of cleanup and error handling
 
 ## [[0.0.15] - 2020-12-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.15)
 
