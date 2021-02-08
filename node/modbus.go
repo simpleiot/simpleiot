@@ -34,6 +34,7 @@ type Modbus struct {
 	sub          *natsgo.Subscription
 	client       *modbus.Client
 	server       *modbus.Server
+	serialPort   serial.Port
 	port         io.ReadWriteCloser
 	ioErrorCount int
 
@@ -565,19 +566,14 @@ func (b *Modbus) LogError(io *ModbusIONode, err error) error {
 		b.busNode.errorCountCRC++
 		io.errorCountCRC++
 	default:
-		// likely not a modbus error
+		// probably a more general serial port error
+		b.ioErrorCount++
 		errType = data.PointTypeErrorCount
 		busCount = b.busNode.errorCount
 		ioCount = io.errorCount
 		b.busNode.errorCount++
 		io.errorCount++
 	}
-
-	// the following variable is used to re-init the port
-	// it is probably a little extreme to increment this on any error
-	// but it is cheap to re-initialize the port, so probably better to
-	// be conservative here and try to recover from any errors
-	b.ioErrorCount++
 
 	busCount++
 	ioCount++
@@ -615,12 +611,14 @@ func (b *Modbus) SetupPort() error {
 		BaudRate: b.busNode.baud,
 	}
 
-	serialPort, err := serial.Open(b.busNode.portName, mode)
+	var err error
+	b.serialPort, err = serial.Open(b.busNode.portName, mode)
 	if err != nil {
+		b.serialPort = nil
 		return fmt.Errorf("Error opening serial port: %w", err)
 	}
 
-	b.port = respreader.NewReadWriteCloser(serialPort, time.Millisecond*200, time.Millisecond*30)
+	b.port = respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*200, time.Millisecond*30)
 
 	if b.busNode.busType == data.PointValueServer {
 		b.server = modbus.NewServer(byte(b.busNode.id), b.port)
@@ -854,8 +852,15 @@ func (b *Modbus) Run() {
 			}
 
 		case <-checkIoTimer.C:
+			var portError error
+			if b.serialPort != nil {
+				// the following handles cases where serial port
+				// may have been unplugged and plugged back in
+				_, portError = b.serialPort.GetModemStatusBits()
+			}
+
 			if (b.client == nil && b.server == nil) ||
-				b.ioErrorCount > 10 {
+				b.ioErrorCount > 10 || portError != nil {
 				b.ioErrorCount = 0
 				// try to set up port
 				if err := b.SetupPort(); err != nil {
