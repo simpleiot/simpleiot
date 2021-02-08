@@ -24,7 +24,7 @@ type pointWID struct {
 // Modbus describes a modbus bus
 type Modbus struct {
 	// node data should only be changed through NATS, so that it is only changed in one place
-	node    *data.NodeEdge
+	node    data.NodeEdge
 	busNode *ModbusNode
 	ios     map[string]*ModbusIO
 
@@ -45,7 +45,7 @@ type Modbus struct {
 }
 
 // NewModbus creates a new bus from a node
-func NewModbus(db *genji.Db, nc *natsgo.Conn, node *data.NodeEdge) (*Modbus, error) {
+func NewModbus(db *genji.Db, nc *natsgo.Conn, node data.NodeEdge) (*Modbus, error) {
 	bus := &Modbus{
 		db:          db,
 		nc:          nc,
