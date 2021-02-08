@@ -602,6 +602,10 @@ func (b *Modbus) SetupPort() error {
 		b.server = nil
 	}
 
+	if b.client != nil {
+		b.client = nil
+	}
+
 	if b.port != nil {
 		b.port.Close()
 		b.port = nil
