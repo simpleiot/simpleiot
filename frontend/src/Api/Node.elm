@@ -118,6 +118,7 @@ encode node =
         [ ( "id", Encode.string node.id )
         , ( "type", Encode.string node.typ )
         , ( "parent", Encode.string node.parent )
+        , ( "points", Point.encodeList node.points )
         ]
 
 

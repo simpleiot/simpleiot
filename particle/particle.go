@@ -39,7 +39,7 @@ func PointReader(eventPrefix, token string, callback func(string, data.Points)) 
 				continue
 			}
 
-			var points []data.Point
+			var points data.Points
 			err = json.Unmarshal([]byte(pEvent.Data), &points)
 			if err != nil {
 				log.Println("Got error decoding samples: ", err)

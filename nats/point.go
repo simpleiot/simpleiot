@@ -9,13 +9,9 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// SendPoint sends a point using the nats protocol
-func SendPoint(nc *natsgo.Conn, nodeID string, point *data.Point, ack bool) error {
+// SendPoints sends points using the nats protocol
+func SendPoints(nc *natsgo.Conn, nodeID string, points data.Points, ack bool) error {
 	subject := fmt.Sprintf("node.%v.points", nodeID)
-
-	points := data.Points{}
-
-	points = append(points, *point)
 
 	data, err := points.PbEncode()
 
@@ -41,4 +37,10 @@ func SendPoint(nc *natsgo.Conn, nodeID string, point *data.Point, ack bool) erro
 	}
 
 	return err
+}
+
+// SendPoint sends a point using the nats protocol
+func SendPoint(nc *natsgo.Conn, nodeID string, point data.Point, ack bool) error {
+	points := data.Points{point}
+	return SendPoints(nc, nodeID, points, ack)
 }

@@ -68,8 +68,8 @@ func main() {
 	// start slave so it can respond to requests
 	go serv.Listen(1, func(err error) {
 		log.Println("modbus server listen error: ", err)
-	}, func(changes []modbus.RegChange) {
-		log.Printf("modbus changes: %+v\n", changes)
+	}, func() {
+		log.Printf("modbus reg changes")
 	})
 
 	if err != nil {

@@ -123,6 +123,7 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 	return nil
 }
 
+// FIXME consider moving this to db package and then unexporting the NodePoint method
 func (nh *NatsHandler) handlePoints(msg *nats.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {

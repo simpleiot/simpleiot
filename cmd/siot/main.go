@@ -86,7 +86,7 @@ func sendPoint(portal, authToken, s string) error {
 
 	sendPoints := api.NewSendPoints(portal, nodeID, authToken, time.Second*10, false)
 
-	err = sendPoints([]data.Point{point})
+	err = sendPoints(data.Points{point})
 
 	return err
 }
@@ -283,7 +283,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		err = nats.SendPoint(nc, nodeID, &point, *flagNatsAck)
+		err = nats.SendPoint(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -297,7 +297,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		err = nats.SendPoint(nc, nodeID, &point, *flagNatsAck)
+		err = nats.SendPoint(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)

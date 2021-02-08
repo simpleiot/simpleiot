@@ -35,8 +35,8 @@ func TestRtuEndToEnd(t *testing.T) {
 	// start slave so it can respond to requests
 	go slave.Listen(9, func(err error) {
 		log.Println("modbus server listen error: ", err)
-	}, func(changes []RegChange) {
-		log.Printf("modbus changes: %+v\n", changes)
+	}, func() {
+		log.Printf("modbus reg changes")
 	})
 
 	// set up client (master)
