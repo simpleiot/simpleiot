@@ -62,7 +62,7 @@ func (mm *ModbusManager) Update() error {
 		bus, ok := mm.busses[node.ID]
 		if !ok {
 			var err error
-			bus, err = NewModbus(mm.db, mm.nc, &node)
+			bus, err = NewModbus(mm.db, mm.nc, node)
 			if err != nil {
 				log.Println("Error creating new modbus: ", err)
 				continue

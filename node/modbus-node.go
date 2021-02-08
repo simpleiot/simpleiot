@@ -24,7 +24,7 @@ type ModbusNode struct {
 }
 
 // NewModbusNode converts a node to ModbusNode data structure
-func NewModbusNode(node *data.NodeEdge) (*ModbusNode, error) {
+func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 	ret := ModbusNode{
 		nodeID: node.ID,
 	}
