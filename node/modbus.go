@@ -640,8 +640,13 @@ func (b *Modbus) Run() {
 	scanTimer := time.NewTicker(time.Millisecond * time.Duration(b.busNode.pollPeriod))
 	checkIoTimer := time.NewTicker(time.Second * 10)
 
-	b.CheckIOs()
-	b.SetupPort()
+	if err := b.CheckIOs(); err != nil {
+		log.Println("CheckIOs error: ", err)
+	}
+
+	if err := b.SetupPort(); err != nil {
+		log.Println("SetupPort error: ", err)
+	}
 
 	log.Println("initializing modbus port: ", b.busNode.portName)
 
@@ -838,7 +843,15 @@ func (b *Modbus) Run() {
 			}
 
 		case <-checkIoTimer.C:
-			b.CheckIOs()
+			if b.client == nil && b.server == nil {
+				// try to set up port
+				if err := b.SetupPort(); err != nil {
+					log.Println("SetupPort error: ", err)
+				}
+			}
+			if err := b.CheckIOs(); err != nil {
+				log.Println("CheckIOs error: ", err)
+			}
 
 		case <-scanTimer.C:
 			for _, io := range b.ios {
