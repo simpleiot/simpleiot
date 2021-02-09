@@ -622,7 +622,7 @@ func (b *Modbus) SetupPort() error {
 		return fmt.Errorf("Error opening serial port: %w", err)
 	}
 
-	b.port = respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*200, time.Millisecond*30)
+	b.port = respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*100, time.Millisecond*20)
 
 	if b.busNode.busType == data.PointValueServer {
 		b.server = modbus.NewServer(byte(b.busNode.id), b.port)
