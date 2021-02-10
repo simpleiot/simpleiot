@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- fix bug in setting modbus baud rate
+- include ID in modbus logging messages
+
 ## [[0.0.16] - 2021-02-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.16)
 
 - UI
