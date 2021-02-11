@@ -3,12 +3,14 @@ module Components.NodeModbusIO exposing (view)
 import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Element exposing (..)
+import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
 import Round
 import Time
 import UI.Form as Form
 import UI.Icon as Icon
-import UI.Style exposing (colors)
+import UI.Style as Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
 
 
@@ -120,6 +122,20 @@ view o =
 
             else
                 "on"
+
+        valueBackgroundColor =
+            if valueText == "on" then
+                Style.colors.blue
+
+            else
+                Style.colors.none
+
+        valueTextColor =
+            if valueText == "on" then
+                Style.colors.white
+
+            else
+                Style.colors.black
     in
     column
         [ width fill
@@ -133,19 +149,21 @@ view o =
             , text <|
                 Point.getText o.node.points Point.typeDescription
                     ++ ": "
-                    ++ valueText
-                    ++ (if isRegister then
-                            " " ++ Point.getText o.node.points Point.typeUnits
+            , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
+                text <|
+                    valueText
+                        ++ (if isRegister then
+                                " " ++ Point.getText o.node.points Point.typeUnits
 
-                        else
-                            ""
-                       )
-                    ++ (if isClient && isWrite && not isReadOnly && value /= valueSet then
-                            " (cmd pending)"
+                            else
+                                ""
+                           )
+            , text <|
+                if isClient && isWrite && not isReadOnly && value /= valueSet then
+                    " (cmd pending)"
 
-                        else
-                            ""
-                       )
+                else
+                    ""
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
