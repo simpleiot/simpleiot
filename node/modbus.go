@@ -347,7 +347,7 @@ func (b *Modbus) ClientIO(io *ModbusIO) error {
 			return err
 		}
 
-		if io.ioNode.valueSet != io.ioNode.value {
+		if !io.ioNode.readOnly && io.ioNode.valueSet != io.ioNode.value {
 			vBool := data.FloatToBool(io.ioNode.valueSet)
 			// we need set the remote value
 			err := b.client.WriteSingleCoil(byte(io.ioNode.id), uint16(io.ioNode.address),
@@ -375,7 +375,7 @@ func (b *Modbus) ClientIO(io *ModbusIO) error {
 			return err
 		}
 
-		if io.ioNode.valueSet != io.ioNode.value {
+		if !io.ioNode.readOnly && io.ioNode.valueSet != io.ioNode.value {
 			// we need set the remote value
 			err := b.WriteBusHoldingReg(io.ioNode)
 
@@ -761,6 +761,8 @@ func (b *Modbus) Run() {
 					io.ioNode.modbusIOType = p.Text
 				case data.PointTypeDataFormat:
 					io.ioNode.modbusDataType = p.Text
+				case data.PointTypeReadOnly:
+					io.ioNode.readOnly = data.FloatToBool(p.Value)
 				case data.PointTypeScale:
 					io.ioNode.scale = p.Value
 				case data.PointTypeOffset:
