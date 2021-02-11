@@ -62,6 +62,14 @@ view o =
                 , labelWidth = labelWidth
                 }
 
+        checkboxInput =
+            Form.nodeCheckboxInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
+
         counterWithReset =
             Form.nodeCounterWithReset
                 { onEditNodePoint = o.onEditNodePoint
@@ -99,6 +107,9 @@ view o =
                 || modbusIOType
                 == Point.valueModbusHoldingRegister
 
+        isReadOnly =
+            Point.getValue o.node.points Point.typeReadOnly == 1
+
         valueText =
             if isRegister then
                 String.fromFloat value
@@ -128,7 +139,7 @@ view o =
                         else
                             ""
                        )
-                    ++ (if isClient && isWrite && value /= valueSet then
+                    ++ (if isClient && isWrite && not isReadOnly && value /= valueSet then
                             " (cmd pending)"
 
                         else
@@ -146,6 +157,8 @@ view o =
                         , ( Point.valueModbusInputRegister, "input register(r)" )
                         , ( Point.valueModbusHoldingRegister, "holding register(rw)" )
                         ]
+                    , viewIf (isClient && isWrite) <|
+                        checkboxInput Point.typeReadOnly "Read only"
                     , viewIf isRegister <|
                         numberInput Point.typeScale "Scale factor"
                     , viewIf isRegister <|
@@ -162,17 +175,30 @@ view o =
                             , ( Point.valueFLOAT32, "FLOAT32" )
                             ]
 
-                    -- this can get a little confusing, but client sets the following:
+                    -- This can get a little confusing, but client sets the following:
                     --   * coil
                     --   * holding register
-                    -- and the server sets the following
+                    -- and the server (device) sets the following
                     --   * discrete input
                     --   * input register
+                    -- However, some devices also have read only coils and holding regs.
                     -- we can't practically have both the client and server setting a
                     -- value.
-                    , viewIf (isClient && modbusIOType == Point.valueModbusHoldingRegister) <|
+                    , viewIf
+                        (isClient
+                            && modbusIOType
+                            == Point.valueModbusHoldingRegister
+                            && not isReadOnly
+                        )
+                      <|
                         numberInput Point.typeValueSet "Value"
-                    , viewIf (isClient && modbusIOType == Point.valueModbusCoil) <|
+                    , viewIf
+                        (isClient
+                            && modbusIOType
+                            == Point.valueModbusCoil
+                            && not isReadOnly
+                        )
+                      <|
                         onOffInput Point.typeValue Point.typeValueSet "Value"
                     , viewIf (not isClient && modbusIOType == Point.valueModbusInputRegister) <|
                         numberInput Point.typeValue "Value"
