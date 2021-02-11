@@ -2,6 +2,7 @@ module UI.Form exposing
     ( button
     , buttonRow
     , label
+    , nodeCheckboxInput
     , nodeCounterWithReset
     , nodeNumberInput
     , nodeOnOffInput
@@ -101,6 +102,37 @@ nodeTextInput o pointName lbl =
                     (Point "" pointName 0 o.now 0 d 0 0)
         , text = Point.getText o.node.points pointName
         , placeholder = Nothing
+        , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        }
+
+
+nodeCheckboxInput :
+    { onEditNodePoint : String -> Point -> msg
+    , node : Node
+    , now : Time.Posix
+    , labelWidth : Int
+    }
+    -> String
+    -> String
+    -> Element msg
+nodeCheckboxInput o pointName lbl =
+    Input.checkbox
+        []
+        { onChange =
+            \d ->
+                let
+                    v =
+                        if d then
+                            1.0
+
+                        else
+                            0.0
+                in
+                o.onEditNodePoint o.node.id
+                    (Point "" pointName 0 o.now v "" 0 0)
+        , checked =
+            Point.getValue o.node.points pointName == 1
+        , icon = Input.defaultCheckbox
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
 
