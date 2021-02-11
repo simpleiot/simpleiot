@@ -18,6 +18,7 @@ For more details or to discuss releases, please visit the
 - UI
   - add nodeCheckboxInput widget
   - round numbers in places
+  - color digital values blue when ON
 
 ## [[0.0.16] - 2021-02-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.16)
 
