@@ -4,6 +4,7 @@ import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Element exposing (..)
 import Element.Border as Border
+import Round
 import Time
 import UI.Form as Form
 import UI.Icon as Icon
@@ -112,7 +113,7 @@ view o =
 
         valueText =
             if isRegister then
-                String.fromFloat value
+                String.fromFloat (Round.roundNum 2 value)
 
             else if value == 0 then
                 "off"

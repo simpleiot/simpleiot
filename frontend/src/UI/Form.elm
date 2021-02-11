@@ -19,6 +19,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Round
 import Svg as S
 import Svg.Attributes as Sa
 import Time
@@ -162,7 +163,7 @@ nodeNumberInput o pointName lbl =
                             p.text
 
                     else
-                        String.fromFloat p.value
+                        String.fromFloat (Round.roundNum 6 p.value)
 
                 Nothing ->
                     ""
