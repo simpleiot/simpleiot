@@ -3,11 +3,14 @@ module Components.NodeModbusIO exposing (view)
 import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Element exposing (..)
+import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
+import Round
 import Time
 import UI.Form as Form
 import UI.Icon as Icon
-import UI.Style exposing (colors)
+import UI.Style as Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
 
 
@@ -62,6 +65,14 @@ view o =
                 , labelWidth = labelWidth
                 }
 
+        checkboxInput =
+            Form.nodeCheckboxInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
+
         counterWithReset =
             Form.nodeCounterWithReset
                 { onEditNodePoint = o.onEditNodePoint
@@ -99,15 +110,32 @@ view o =
                 || modbusIOType
                 == Point.valueModbusHoldingRegister
 
+        isReadOnly =
+            Point.getValue o.node.points Point.typeReadOnly == 1
+
         valueText =
             if isRegister then
-                String.fromFloat value
+                String.fromFloat (Round.roundNum 2 value)
 
             else if value == 0 then
                 "off"
 
             else
                 "on"
+
+        valueBackgroundColor =
+            if valueText == "on" then
+                Style.colors.blue
+
+            else
+                Style.colors.none
+
+        valueTextColor =
+            if valueText == "on" then
+                Style.colors.white
+
+            else
+                Style.colors.black
     in
     column
         [ width fill
@@ -121,19 +149,21 @@ view o =
             , text <|
                 Point.getText o.node.points Point.typeDescription
                     ++ ": "
-                    ++ valueText
-                    ++ (if isRegister then
-                            " " ++ Point.getText o.node.points Point.typeUnits
+            , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
+                text <|
+                    valueText
+                        ++ (if isRegister then
+                                " " ++ Point.getText o.node.points Point.typeUnits
 
-                        else
-                            ""
-                       )
-                    ++ (if isClient && isWrite && value /= valueSet then
-                            " (cmd pending)"
+                            else
+                                ""
+                           )
+            , text <|
+                if isClient && isWrite && not isReadOnly && value /= valueSet then
+                    " (cmd pending)"
 
-                        else
-                            ""
-                       )
+                else
+                    ""
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
@@ -146,6 +176,8 @@ view o =
                         , ( Point.valueModbusInputRegister, "input register(r)" )
                         , ( Point.valueModbusHoldingRegister, "holding register(rw)" )
                         ]
+                    , viewIf (isClient && isWrite) <|
+                        checkboxInput Point.typeReadOnly "Read only"
                     , viewIf isRegister <|
                         numberInput Point.typeScale "Scale factor"
                     , viewIf isRegister <|
@@ -162,17 +194,30 @@ view o =
                             , ( Point.valueFLOAT32, "FLOAT32" )
                             ]
 
-                    -- this can get a little confusing, but client sets the following:
+                    -- This can get a little confusing, but client sets the following:
                     --   * coil
                     --   * holding register
-                    -- and the server sets the following
+                    -- and the server (device) sets the following
                     --   * discrete input
                     --   * input register
+                    -- However, some devices also have read only coils and holding regs.
                     -- we can't practically have both the client and server setting a
                     -- value.
-                    , viewIf (isClient && modbusIOType == Point.valueModbusHoldingRegister) <|
+                    , viewIf
+                        (isClient
+                            && modbusIOType
+                            == Point.valueModbusHoldingRegister
+                            && not isReadOnly
+                        )
+                      <|
                         numberInput Point.typeValueSet "Value"
-                    , viewIf (isClient && modbusIOType == Point.valueModbusCoil) <|
+                    , viewIf
+                        (isClient
+                            && modbusIOType
+                            == Point.valueModbusCoil
+                            && not isReadOnly
+                        )
+                      <|
                         onOffInput Point.typeValue Point.typeValueSet "Value"
                     , viewIf (not isClient && modbusIOType == Point.valueModbusInputRegister) <|
                         numberInput Point.typeValue "Value"

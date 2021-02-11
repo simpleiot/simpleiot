@@ -2,6 +2,8 @@ package node
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -39,9 +41,17 @@ func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 	if !ok {
 		return nil, errors.New("Must define modbus port name")
 	}
-	ret.baud, ok = node.Points.ValueInt("", data.PointTypeBaud, 0)
+
+	baud, ok := node.Points.Text("", data.PointTypeBaud, 0)
 	if !ok {
 		return nil, errors.New("Must define modbus baud")
+	}
+
+	var err error
+	ret.baud, err = strconv.Atoi(baud)
+
+	if err != nil {
+		return nil, fmt.Errorf("Invalid baud: %v", baud)
 	}
 
 	ret.pollPeriod, ok = node.Points.ValueInt("", data.PointTypePollPeriod, 0)

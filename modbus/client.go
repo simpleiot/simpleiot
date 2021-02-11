@@ -34,7 +34,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	ret := []bool{}
 	req := ReadCoils(coil, count)
 	if c.debug >= 1 {
-		fmt.Println("Modbus client Readcoils req: ", req)
+		fmt.Printf("Modbus client Readcoils ID:0x%x req:%v\n", id, req)
 	}
 	packet, err := RtuEncode(id, req)
 	if err != nil {
@@ -69,7 +69,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	}
 
 	if c.debug >= 1 {
-		fmt.Println("Modbus client Readcoils resp: ", resp)
+		fmt.Printf("Modbus client Readcoils ID:0x%x resp:%v\n", id, resp)
 	}
 
 	return resp.RespReadBits()
@@ -79,7 +79,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 	req := WriteSingleCoil(coil, v)
 	if c.debug >= 1 {
-		fmt.Println("Modbus client WriteSingleCoil req: ", req)
+		fmt.Printf("Modbus client WriteSingleCoil ID:0x%x req:%v\n", id, req)
 	}
 	packet, err := RtuEncode(id, req)
 	if err != nil {
@@ -114,7 +114,7 @@ func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 	}
 
 	if c.debug >= 1 {
-		fmt.Println("Modbus client WriteSingleCoil resp: ", resp)
+		fmt.Printf("Modbus client WriteSingleCoil ID:0x%x resp:%v\n", id, resp)
 	}
 
 	if resp.FunctionCode != req.FunctionCode {
@@ -133,7 +133,7 @@ func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error
 	ret := []bool{}
 	req := ReadDiscreteInputs(input, count)
 	if c.debug >= 1 {
-		fmt.Println("Modbus client ReadDiscreteInputs req: ", req)
+		fmt.Printf("Modbus client ReadDiscreteInputs ID:0x%x req:%v\n", id, req)
 	}
 	packet, err := RtuEncode(id, req)
 	if err != nil {
@@ -168,7 +168,7 @@ func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error
 	}
 
 	if c.debug >= 1 {
-		fmt.Println("Modbus client ReadDiscreteInputs resp: ", resp)
+		fmt.Printf("Modbus client ReadDiscreteInputs ID:0x%x resp:%v\n", id, resp)
 	}
 
 	if resp.FunctionCode != req.FunctionCode {
@@ -183,7 +183,7 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 	ret := []uint16{}
 	req := ReadHoldingRegs(reg, count)
 	if c.debug >= 1 {
-		fmt.Println("Modbus client ReadHoldingRegs req: ", req)
+		fmt.Printf("Modbus client ReadHoldingRegs ID:0x%x req:%v\n", id, req)
 	}
 	packet, err := RtuEncode(id, req)
 	if err != nil {
@@ -218,7 +218,7 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 	}
 
 	if c.debug >= 1 {
-		fmt.Println("Modbus client ReadHoldingRegs resp: ", resp)
+		fmt.Printf("Modbus client ReadHoldingRegs ID:0x%x resp:%v\n", id, resp)
 	}
 
 	if resp.FunctionCode != req.FunctionCode {
@@ -233,7 +233,7 @@ func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 	ret := []uint16{}
 	req := ReadInputRegs(reg, count)
 	if c.debug >= 1 {
-		fmt.Println("Modbus client ReadInputRegs req: ", req)
+		fmt.Printf("Modbus client ReadInputRegs ID:0x%x req:%v\n", id, req)
 	}
 	packet, err := RtuEncode(id, req)
 	if err != nil {
@@ -268,7 +268,7 @@ func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 	}
 
 	if c.debug >= 1 {
-		fmt.Println("Modbus client ReadInputRegs resp: ", resp)
+		fmt.Printf("Modbus client ReadInputRegs ID:0x%x resp:%v\n", id, resp)
 	}
 
 	if resp.FunctionCode != req.FunctionCode {
@@ -282,7 +282,7 @@ func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 	req := WriteSingleReg(reg, value)
 	if c.debug >= 1 {
-		fmt.Println("Modbus client WriteSingleReg req: ", req)
+		fmt.Printf("Modbus client WriteSingleReg ID:0x%x req:%v\n", id, req)
 	}
 	packet, err := RtuEncode(id, req)
 	if err != nil {
@@ -317,7 +317,7 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 	}
 
 	if c.debug >= 1 {
-		fmt.Println("Modbus client WriteSingleReg resp: ", resp)
+		fmt.Printf("Modbus client WriteSingleReg ID:0x%x resp:%v\n", id, resp)
 	}
 
 	if resp.FunctionCode != req.FunctionCode {

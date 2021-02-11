@@ -36,6 +36,7 @@ colors :
     , yellow : Color
     , green : Color
     , blue : Color
+    , none : Color
     }
 colors =
     { white = rgb 1 1 1
@@ -51,6 +52,7 @@ colors =
     , yellow = rgb 1 1 0.7
     , green = rgba 0.7 1 0.7 0.9
     , blue = rgb255 50 100 150
+    , none = rgba 0 0 0 0
     }
 
 

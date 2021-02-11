@@ -14,6 +14,7 @@ type ModbusIONode struct {
 	address            int
 	modbusIOType       string
 	modbusDataType     string
+	readOnly           bool
 	scale              float64
 	offset             float64
 	value              float64
@@ -47,10 +48,13 @@ func NewModbusIONode(busType string, node *data.NodeEdge) (*ModbusIONode, error)
 	if !ok {
 		return nil, errors.New("Must define modbus address")
 	}
+
 	ret.modbusIOType, ok = node.Points.Text("", data.PointTypeModbusIOType, 0)
 	if !ok {
 		return nil, errors.New("Must define modbus IO type")
 	}
+
+	ret.readOnly, _ = node.Points.ValueBool("", data.PointTypeReadOnly, 0)
 
 	if ret.modbusIOType == data.PointValueModbusInputRegister ||
 		ret.modbusIOType == data.PointValueModbusHoldingRegister {

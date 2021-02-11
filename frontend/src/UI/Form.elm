@@ -2,6 +2,7 @@ module UI.Form exposing
     ( button
     , buttonRow
     , label
+    , nodeCheckboxInput
     , nodeCounterWithReset
     , nodeNumberInput
     , nodeOnOffInput
@@ -18,6 +19,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Round
 import Svg as S
 import Svg.Attributes as Sa
 import Time
@@ -105,6 +107,37 @@ nodeTextInput o pointName lbl =
         }
 
 
+nodeCheckboxInput :
+    { onEditNodePoint : String -> Point -> msg
+    , node : Node
+    , now : Time.Posix
+    , labelWidth : Int
+    }
+    -> String
+    -> String
+    -> Element msg
+nodeCheckboxInput o pointName lbl =
+    Input.checkbox
+        []
+        { onChange =
+            \d ->
+                let
+                    v =
+                        if d then
+                            1.0
+
+                        else
+                            0.0
+                in
+                o.onEditNodePoint o.node.id
+                    (Point "" pointName 0 o.now v "" 0 0)
+        , checked =
+            Point.getValue o.node.points pointName == 1
+        , icon = Input.defaultCheckbox
+        , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        }
+
+
 nodeNumberInput :
     { onEditNodePoint : String -> Point -> msg
     , node : Node
@@ -130,7 +163,7 @@ nodeNumberInput o pointName lbl =
                             p.text
 
                     else
-                        String.fromFloat p.value
+                        String.fromFloat (Round.roundNum 6 p.value)
 
                 Nothing ->
                     ""

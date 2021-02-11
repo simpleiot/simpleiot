@@ -347,7 +347,7 @@ func (b *Modbus) ClientIO(io *ModbusIO) error {
 			return err
 		}
 
-		if io.ioNode.valueSet != io.ioNode.value {
+		if !io.ioNode.readOnly && io.ioNode.valueSet != io.ioNode.value {
 			vBool := data.FloatToBool(io.ioNode.valueSet)
 			// we need set the remote value
 			err := b.client.WriteSingleCoil(byte(io.ioNode.id), uint16(io.ioNode.address),
@@ -375,7 +375,7 @@ func (b *Modbus) ClientIO(io *ModbusIO) error {
 			return err
 		}
 
-		if io.ioNode.valueSet != io.ioNode.value {
+		if !io.ioNode.readOnly && io.ioNode.valueSet != io.ioNode.value {
 			// we need set the remote value
 			err := b.WriteBusHoldingReg(io.ioNode)
 
@@ -622,7 +622,7 @@ func (b *Modbus) SetupPort() error {
 		return fmt.Errorf("Error opening serial port: %w", err)
 	}
 
-	b.port = respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*200, time.Millisecond*30)
+	b.port = respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*100, time.Millisecond*20)
 
 	if b.busNode.busType == data.PointValueServer {
 		b.server = modbus.NewServer(byte(b.busNode.id), b.port)
@@ -761,6 +761,8 @@ func (b *Modbus) Run() {
 					io.ioNode.modbusIOType = p.Text
 				case data.PointTypeDataFormat:
 					io.ioNode.modbusDataType = p.Text
+				case data.PointTypeReadOnly:
+					io.ioNode.readOnly = data.FloatToBool(p.Value)
 				case data.PointTypeScale:
 					io.ioNode.scale = p.Value
 				case data.PointTypeOffset:

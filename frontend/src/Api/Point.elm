@@ -40,6 +40,7 @@ module Api.Point exposing
     , typePhone
     , typePollPeriod
     , typePort
+    , typeReadOnly
     , typeScale
     , typeStartApp
     , typeStartSystem
@@ -106,6 +107,11 @@ typeValue =
 typeValueSet : String
 typeValueSet =
     "valueSet"
+
+
+typeReadOnly : String
+typeReadOnly =
+    "readOnly"
 
 
 typeCmdPending : String
