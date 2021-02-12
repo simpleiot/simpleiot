@@ -202,6 +202,7 @@ siot_goreleaser_build() {
   goreleaser build --skip-validate --rm-dist
 }
 
+# before releasing, you need to tag the release
 siot_goreleaser_release() {
   #TODO add depend build to goreleaser config
   siot_build_dependencies --optimize
