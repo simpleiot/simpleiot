@@ -14,4 +14,6 @@ func EnableSyslog() error {
 	}
 
 	log.SetOutput(lgr)
+
+	return nil
 }
