@@ -101,7 +101,11 @@ siot_build_dependencies() {
 
 siot_build() {
   siot_build_dependencies --optimize || return 1
-  CGO_ENABLED=0 go build -ldflags="-X main.siotVersion=$(git describe --tags HEAD)" -o siot cmd/siot/main.go || return 1
+  BINARY_NAME=siot
+  if [ "${GOOS}" = "windows" ]; then
+    BINARY_NAME=siot.exe
+  fi
+  CGO_ENABLED=0 go build -ldflags="-X main.siotVersion=$(git describe --tags HEAD)" -o $BINARY_NAME cmd/siot/main.go || return 1
   return 0
 }
 
@@ -198,6 +202,7 @@ siot_goreleaser_build() {
   goreleaser build --skip-validate --rm-dist
 }
 
+# before releasing, you need to tag the release
 siot_goreleaser_release() {
   #TODO add depend build to goreleaser config
   siot_build_dependencies --optimize

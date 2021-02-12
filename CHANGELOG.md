@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [[0.0.17] - 2021-02-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.17)
+
 - modbus
   - fix bug in setting modbus baud rate
   - include ID in modbus logging messages
@@ -19,6 +21,8 @@ For more details or to discuss releases, please visit the
   - add nodeCheckboxInput widget
   - round numbers in places
   - color digital values blue when ON
+  - sort nodes by description
+- fix windows build
 
 ## [[0.0.16] - 2021-02-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.16)
 

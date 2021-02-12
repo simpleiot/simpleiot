@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"log/syslog"
 	"os"
 	"strconv"
 	"strings"
@@ -25,6 +24,7 @@ import (
 	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
+	"github.com/simpleiot/simpleiot/system"
 
 	natsgo "github.com/nats-io/nats.go"
 )
@@ -205,11 +205,9 @@ func main() {
 	}
 
 	if *flagSyslog {
-		lgr, err := syslog.New(syslog.LOG_NOTICE, "SIOT")
+		err := system.EnableSyslog()
 		if err != nil {
-			log.Println("Error setting up syslog: ", err)
-		} else {
-			log.SetOutput(lgr)
+			log.Println("Error enabling syslog: ", err)
 		}
 	}
 
