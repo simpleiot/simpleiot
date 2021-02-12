@@ -2,6 +2,7 @@
 /frontend/src/Generated
 elm-stuff
 /siot
+/siot.exe
 *.db
 temp
 tags
