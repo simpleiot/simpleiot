@@ -798,6 +798,26 @@ viewNodesHelp depth model tree =
 
             else
                 []
+
+        childrenSorted =
+            List.sortWith
+                (\a b ->
+                    let
+                        aNode =
+                            Tree.label a
+
+                        bNode =
+                            Tree.label b
+
+                        aDescription =
+                            Point.getText aNode.node.points Point.typeDescription
+
+                        bDescription =
+                            Point.getText bNode.node.points Point.typeDescription
+                    in
+                    compare bDescription aDescription
+                )
+                children
     in
     List.foldr
         (\child ret ->
@@ -806,7 +826,7 @@ viewNodesHelp depth model tree =
                 :: viewNodesHelp (depth + 1) model child
         )
         []
-        children
+        childrenSorted
 
 
 viewNode : Model -> Maybe NodeView -> NodeView -> Int -> Element Msg
