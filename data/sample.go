@@ -18,7 +18,7 @@ const (
 )
 
 // Sample represents a value in time and should include data that may be
-// graphed.
+// graphed. The Sample data structure is obsolete and has been replaced by Point
 type Sample struct {
 	// ID of the sensor that provided the sample
 	ID string `json:"id,omitempty"`

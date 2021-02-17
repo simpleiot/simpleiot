@@ -51,6 +51,8 @@ vs direct db calls. This ensures anything in the system can have visibility into
 data changes. Eventually we may want to hide db operations that do writes to
 force them to be initiated through a NATS message.
 
+![data flow](data-flow.png)
+
 ## Simple, Flexible data structures
 
 As we work on IoT systems, data structures (types) tend to emerge. Common data
