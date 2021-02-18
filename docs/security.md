@@ -1,8 +1,7 @@
----
-id: security
-title: Security
-sidebar_label: Security
----
++++
+title = "Security"
+weight = 8
++++
 
 Several classes of users/devices will need access to the system:
 

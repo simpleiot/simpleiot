@@ -1,4 +1,7 @@
-# Research
++++
+title = "Research"
+weight = 10
++++
 
 This document contains information that has been researched during the course of
 creating Simple IoT.

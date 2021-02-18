@@ -1,4 +1,7 @@
-# Simple IoT Development
++++
+title = "Development"
+weight = 3
++++
 
 ## Code Organization
 
