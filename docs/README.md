@@ -5,7 +5,14 @@ sort_by = "weight"
 insert_anchor_links = "right"
 +++
 
-# Simple IoT Documentation
+The Simple IoT [Go repository](https://github.com/simpleiot/simpleiot) contains
+a number of Go packages useful for building cloud or edge applications for IoT
+systems. There is also a
+[standalone application](https://github.com/simpleiot/simpleiot/releases) that
+is ready to run on most platforms.
+
+See the below sections for more details. Developers can view the Go
+[package documentation](https://pkg.go.dev/github.com/simpleiot/simpleiot).
 
 - [Vision](vision.md)
 - [Configuration](configuration.md)
