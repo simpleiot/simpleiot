@@ -1,8 +1,7 @@
----
-id: rules
-title: Rules
-sidebar_label: Rules
----
++++
+title = "Rules"
+weight = 7
++++
 
 The Simple IoT application has the ability to run rules. That are composed of
 one or more conditions and actions. All conditions must be true for the rule to

@@ -1,8 +1,7 @@
----
-id: architecture
-title: Vision
-sidebar_label: Vision
----
++++
+title = "Vision"
+weight = 1
++++
 
 This document attempts to outlines the project philosophy and core values. The
 basics are covered in the [readme](../README.md). As the name suggests, a core

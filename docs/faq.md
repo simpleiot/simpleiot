@@ -1,8 +1,7 @@
----
-id: faq
-title: FAQ
-sidebar_label: FAQ
----
++++
+title = "FAQ"
+weight = 9
++++
 
 ### Q: How is this project different than Home Assistant, OpenHAB, Domoticz, etc.?
 

@@ -1,4 +1,7 @@
-# Architecture
++++
+title = "Architecture"
+weight = 4
++++
 
 This document describes how the Simple IoT project fulfills the basic
 requirements as described in the top level [README](../README.md).
