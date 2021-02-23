@@ -4,16 +4,6 @@ import (
 	"time"
 )
 
-// don't even think about changing the below as it used
-// in communications -- add new numbers
-// if something needs changed/added.
-const (
-	SysStateUnknown  int = 0
-	SysStatePowerOff     = 1
-	SysStateOffline      = 2
-	SysStateOnline       = 3
-)
-
 // SwUpdateState represents the state of an update
 type SwUpdateState struct {
 	Running     bool   `json:"running"`
@@ -40,6 +30,9 @@ func (n *Node) Desc() string {
 
 	return n.ID
 }
+
+// FIXME all of the below functions need to be modified to go through NATS
+// perhaps they should be removed
 
 // SetState sets the device state
 func (n *Node) SetState(state int) {
@@ -109,11 +102,11 @@ func (n *Node) UpdateState() (int, bool) {
 	sysStateF, _ := n.Points.Value("", PointTypeSysState, 0)
 	sysState := int(sysStateF)
 	switch sysState {
-	case SysStateUnknown, SysStateOnline:
+	case PointValueSysStateUnknown, PointValueSysStateOnline:
 		if time.Since(n.Points.LatestTime()) > 15*time.Minute {
 			// mark device as offline
-			n.SetState(SysStateOffline)
-			return SysStateOffline, true
+			n.SetState(PointValueSysStateOffline)
+			return PointValueSysStateOffline, true
 		}
 	}
 

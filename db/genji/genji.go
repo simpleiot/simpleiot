@@ -428,7 +428,7 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 		}
 
 		node.ProcessPoint(point)
-		node.SetState(data.SysStateOnline)
+		node.SetState(data.PointValueSysStateOnline)
 
 		if !found {
 			err := tx.Exec(`insert into nodes values ?`, node)
