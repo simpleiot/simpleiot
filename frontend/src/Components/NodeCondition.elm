@@ -27,12 +27,31 @@ view :
     -> Element msg
 view o =
     let
+        labelWidth =
+            150
+
         textInput =
             Form.nodeTextInput
                 { onEditNodePoint = o.onEditNodePoint
                 , node = o.node
                 , now = o.now
-                , labelWidth = 100
+                , labelWidth = labelWidth
+                }
+
+        numberInput =
+            Form.nodeNumberInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
+
+        optionInput =
+            Form.nodeOptionInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
                 }
     in
     column
@@ -49,6 +68,16 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
+                    , textInput Point.typeID "Node ID"
+                    , optionInput Point.typeOperator
+                        "Operator"
+                        [ ( Point.valueGreaterThan, ">" )
+                        , ( Point.valueLessThan, "<" )
+                        , ( Point.valueEqual, "=" )
+                        , ( Point.valueOn, "on" )
+                        , ( Point.valueOff, "off" )
+                        ]
+                    , numberInput Point.typeValue "Value"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

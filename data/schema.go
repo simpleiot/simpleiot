@@ -83,6 +83,16 @@ const (
 	NodeTypeCondition = "condition"
 	NodeTypeAction    = "action"
 
+	PointTypeConditionType = "conditionType"
+	PointValueComparison   = "comparison"
+
+	PointTypeOperator     = "operator"
+	PointValueGreaterThan = ">"
+	PointValueLessThan    = "<"
+	PointValueEqual       = "="
+	PointValueOn          = "on"
+	PointValueOff         = "off"
+
 	// Transient points that are used for notifications, etc.
 	// These points are not stored in the state state of any node,
 	// but are recorded in the time series database to record history.

@@ -19,6 +19,7 @@ module Api.Point exposing
     , typeBaud
     , typeClientServer
     , typeCmdPending
+    , typeConditionType
     , typeDataFormat
     , typeDebug
     , typeDescription
@@ -36,6 +37,7 @@ module Api.Point exposing
     , typeModbusIOType
     , typeOSVersion
     , typeOffset
+    , typeOperator
     , typePass
     , typePhone
     , typePollPeriod
@@ -57,13 +59,19 @@ module Api.Point exposing
     , updatePoint
     , updatePoints
     , valueClient
+    , valueComparison
+    , valueEqual
     , valueFLOAT32
+    , valueGreaterThan
     , valueINT16
     , valueINT32
+    , valueLessThan
     , valueModbusCoil
     , valueModbusDiscreteInput
     , valueModbusHoldingRegister
     , valueModbusInputRegister
+    , valueOff
+    , valueOn
     , valueServer
     , valueUINT16
     , valueUINT32
@@ -332,6 +340,46 @@ valueClient =
 valueServer : String
 valueServer =
     "server"
+
+
+typeConditionType : String
+typeConditionType =
+    "conditionType"
+
+
+valueComparison : String
+valueComparison =
+    "comparison"
+
+
+typeOperator : String
+typeOperator =
+    "operator"
+
+
+valueGreaterThan : String
+valueGreaterThan =
+    ">"
+
+
+valueLessThan : String
+valueLessThan =
+    "<"
+
+
+valueEqual : String
+valueEqual =
+    "="
+
+
+valueOn : String
+valueOn =
+    "on"
+
+
+valueOff : String
+valueOff =
+    "off"
 
 
 
