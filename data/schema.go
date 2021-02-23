@@ -79,9 +79,9 @@ const (
 	NodeTypeGroup = "group"
 
 	// a rule node describes a rule that may run on the system
-	NodeTypeRule          = "rule"
-	NodeTypeRuleCondition = "ruleCondition"
-	NodeTypeRuleAction    = "ruleAction"
+	NodeTypeRule      = "rule"
+	NodeTypeCondition = "condition"
+	NodeTypeAction    = "action"
 
 	// Transient points that are used for notifications, etc.
 	// These points are not stored in the state state of any node,

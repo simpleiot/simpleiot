@@ -7,6 +7,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import Time
+import UI.Button as Button
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors, size)
 import UI.ViewIf exposing (viewIf)
@@ -117,10 +118,10 @@ view o =
                 , label = Input.labelHidden "node description"
                 }
             , viewIf o.modified <|
-                Icon.check
+                Button.check
                     (o.onApiPostPoints o.node.id)
             , viewIf o.modified <|
-                Icon.x o.onDiscardEdits
+                Button.x o.onDiscardEdits
             ]
             :: (if o.expDetail then
                     [ viewPoints <| Point.filterSpecialPoints o.node.points

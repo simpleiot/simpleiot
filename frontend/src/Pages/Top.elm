@@ -6,10 +6,13 @@ import Api.Node as Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
+import Components.NodeAction as NodeAction
+import Components.NodeCondition as NodeCondition
 import Components.NodeDevice as NodeDevice
 import Components.NodeGroup as NodeGroup
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
+import Components.NodeRule as NodeRule
 import Components.NodeUser as NodeUser
 import Element exposing (..)
 import Element.Input as Input
@@ -24,6 +27,7 @@ import Task
 import Time
 import Tree exposing (Tree)
 import Tree.Zipper as Zipper exposing (Zipper)
+import UI.Button as Button
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style as Style
@@ -846,6 +850,15 @@ viewNode model parent node depth =
                 "modbusIo" ->
                     NodeModbusIO.view
 
+                "rule" ->
+                    NodeRule.view
+
+                "condition" ->
+                    NodeCondition.view
+
+                "action" ->
+                    NodeAction.view
+
                 _ ->
                     NodeDevice.view
     in
@@ -856,16 +869,16 @@ viewNode model parent node depth =
                     Icon.blank
 
                 else if node.expChildren then
-                    Icon.arrowDown (ToggleExpChildren node.node.id)
+                    Button.arrowDown (ToggleExpChildren node.node.id)
 
                 else
-                    Icon.arrowRight (ToggleExpChildren node.node.id)
+                    Button.arrowRight (ToggleExpChildren node.node.id)
             , el [ alignTop ] <|
                 if node.expDetail then
-                    Icon.minimize (ToggleExpDetail node.node.id)
+                    Button.minimize (ToggleExpDetail node.node.id)
 
                 else
-                    Icon.maximize (ToggleExpDetail node.node.id)
+                    Button.maximize (ToggleExpDetail node.node.id)
             , column
                 [ spacing 6, width fill ]
                 [ nodeView
@@ -921,14 +934,14 @@ viewNode model parent node depth =
 viewNodeOperations : String -> String -> Element Msg
 viewNodeOperations id parent =
     row [ spacing 6 ]
-        [ Icon.plusCircle (AddNode id)
+        [ Button.plusCircle (AddNode id)
         , if parent /= "" then
-            Icon.move (MoveNode id parent)
+            Button.move (MoveNode id parent)
 
           else
             Element.none
-        , Icon.message (MsgNode id)
-        , Icon.x (ApiDelete id)
+        , Button.message (MsgNode id)
+        , Button.x (ApiDelete id)
         ]
 
 
@@ -970,17 +983,36 @@ viewAddNode parent add =
             , selected = add.typ
             , label = Input.labelAbove [] (el [ padding 12 ] <| text "Select node type to add: ")
             , options =
-                [ Input.option Node.typeUser (text "User")
-                , Input.option Node.typeGroup (text "Group")
-                ]
+                []
                     ++ (if parent.typ == Node.typeDevice then
-                            [ Input.option Node.typeModbus (text "Modbus") ]
+                            [ Input.option Node.typeUser (text "User")
+                            , Input.option Node.typeGroup (text "Group")
+                            , Input.option Node.typeRule (text "Rule")
+                            , Input.option Node.typeModbus (text "Modbus")
+                            ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.typ == Node.typeGroup then
+                            [ Input.option Node.typeUser (text "User")
+                            , Input.option Node.typeGroup (text "Group")
+                            , Input.option Node.typeRule (text "Rule")
+                            ]
 
                         else
                             []
                        )
                     ++ (if parent.typ == Node.typeModbus then
                             [ Input.option Node.typeModbusIO (text "Modbus IO") ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.typ == Node.typeRule then
+                            [ Input.option Node.typeCondition (text "Condition")
+                            , Input.option Node.typeAction (text "Action")
+                            ]
 
                         else
                             []
