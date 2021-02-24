@@ -23,6 +23,7 @@ import Round
 import Svg as S
 import Svg.Attributes as Sa
 import Time
+import UI.Sanitize as Sanitize
 import UI.Style as Style
 
 
@@ -160,7 +161,7 @@ nodeNumberInput o pointName lbl =
                             ""
 
                         else
-                            p.text
+                            Sanitize.float p.text
 
                     else
                         String.fromFloat (Round.roundNum 6 p.value)
