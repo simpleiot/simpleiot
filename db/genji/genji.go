@@ -447,7 +447,7 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 }
 
 // NodeSetState is used to set the current system state
-func (gen *Db) NodeSetState(id string, state int) error {
+func (gen *Db) NodeSetState(id string, state string) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
 		var node data.Node
 		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)

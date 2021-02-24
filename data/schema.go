@@ -34,10 +34,10 @@ const (
 	PointTypeUpdateApp     = "updateApp"
 	PointTypeSysState      = "sysState"
 
-	PointValueSysStateUnknown  = 0
-	PointValueSysStatePowerOff = 1
-	PointValueSysStateOffline  = 2
-	PointValueSysStateOnline   = 3
+	PointValueSysStateUnknown  = "unknown"
+	PointValueSysStatePowerOff = "powerOff"
+	PointValueSysStateOffline  = "offline"
+	PointValueSysStateOnline   = "online"
 
 	PointTypeSwUpdateRunning      = "swUpdateRunning"
 	PointTypeSwUpdateError        = "swUpdateError"
@@ -89,13 +89,17 @@ const (
 	NodeTypeCondition = "condition"
 	NodeTypeAction    = "action"
 
-	PointTypeConditionType = "conditionType"
-	PointValueComparison   = "comparison"
+	PointTypeConditionType         = "conditionType"
+	PointValueConditionValue       = "value"
+	PointValueConditionValueBool   = "valueBool"
+	PointValueConditionValueText   = "valueText"
+	PointValueConditionSystemState = "systemState"
 
 	PointTypeOperator     = "operator"
 	PointValueGreaterThan = ">"
 	PointValueLessThan    = "<"
 	PointValueEqual       = "="
+	PointValueNotEqual    = "!="
 	PointValueOn          = "on"
 	PointValueOff         = "off"
 
