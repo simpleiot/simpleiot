@@ -59,7 +59,10 @@ module Api.Point exposing
     , updatePoint
     , updatePoints
     , valueClient
-    , valueComparison
+    , valueConditionSystemState
+    , valueConditionValue
+    , valueConditionValueBool
+    , valueConditionValueText
     , valueEqual
     , valueFLOAT32
     , valueGreaterThan
@@ -70,9 +73,14 @@ module Api.Point exposing
     , valueModbusDiscreteInput
     , valueModbusHoldingRegister
     , valueModbusInputRegister
+    , valueNotEqual
     , valueOff
     , valueOn
     , valueServer
+    , valueSysStateOffline
+    , valueSysStateOnline
+    , valueSysStatePowerOff
+    , valueSysStateUnknown
     , valueUINT16
     , valueUINT32
     )
@@ -155,6 +163,26 @@ typeUpdateApp =
 typeSysState : String
 typeSysState =
     "sysState"
+
+
+valueSysStateUnknown : String
+valueSysStateUnknown =
+    "unknown"
+
+
+valueSysStatePowerOff : String
+valueSysStatePowerOff =
+    "powerOff"
+
+
+valueSysStateOffline : String
+valueSysStateOffline =
+    "offline"
+
+
+valueSysStateOnline : String
+valueSysStateOnline =
+    "online"
 
 
 typeSwUpdateRunning : String
@@ -347,9 +375,24 @@ typeConditionType =
     "conditionType"
 
 
-valueComparison : String
-valueComparison =
-    "comparison"
+valueConditionValue : String
+valueConditionValue =
+    "value"
+
+
+valueConditionValueBool : String
+valueConditionValueBool =
+    "valueBool"
+
+
+valueConditionValueText : String
+valueConditionValueText =
+    "valueText"
+
+
+valueConditionSystemState : String
+valueConditionSystemState =
+    typeSysState
 
 
 typeOperator : String
@@ -370,6 +413,11 @@ valueLessThan =
 valueEqual : String
 valueEqual =
     "="
+
+
+valueNotEqual : String
+valueNotEqual =
+    "!="
 
 
 valueOn : String

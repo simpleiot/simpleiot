@@ -53,6 +53,39 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+
+        onOffInput =
+            Form.nodeOnOffInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
+
+        conditionType =
+            Point.getText o.node.points Point.typeConditionType
+
+        operators =
+            case conditionType of
+                "value" ->
+                    [ ( Point.valueGreaterThan, ">" )
+                    , ( Point.valueLessThan, "<" )
+                    , ( Point.valueEqual, "=" )
+                    , ( Point.valueNotEqual, "!=" )
+                    ]
+
+                "valueText" ->
+                    [ ( Point.valueEqual, "=" )
+                    , ( Point.valueNotEqual, "!=" )
+                    ]
+
+                "sysState" ->
+                    [ ( Point.valueEqual, "=" )
+                    , ( Point.valueNotEqual, "!=" )
+                    ]
+
+                _ ->
+                    []
     in
     column
         [ width fill
@@ -69,15 +102,38 @@ view o =
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
                     , textInput Point.typeID "Node ID"
-                    , optionInput Point.typeOperator
-                        "Operator"
-                        [ ( Point.valueGreaterThan, ">" )
-                        , ( Point.valueLessThan, "<" )
-                        , ( Point.valueEqual, "=" )
-                        , ( Point.valueOn, "on" )
-                        , ( Point.valueOff, "off" )
+                    , optionInput Point.typeConditionType
+                        "Attribute"
+                        [ ( Point.valueConditionValue, "value" )
+                        , ( Point.valueConditionValueBool, "on/off" )
+                        , ( Point.valueConditionValueText, "text" )
+                        , ( Point.valueConditionSystemState, "system state" )
                         ]
-                    , numberInput Point.typeValue "Value"
+                    , if conditionType /= Point.valueConditionValueBool then
+                        optionInput Point.typeOperator "Operator" operators
+
+                      else
+                        Element.none
+                    , case conditionType of
+                        "value" ->
+                            numberInput Point.typeValue "Value"
+
+                        "valueBool" ->
+                            onOffInput Point.typeValue Point.typeValue "Value"
+
+                        "valueText" ->
+                            textInput Point.typeValue "Value"
+
+                        "sysState" ->
+                            optionInput Point.typeValue
+                                "Value"
+                                [ ( Point.valueSysStatePowerOff, "power off" )
+                                , ( Point.valueSysStateOffline, "offline" )
+                                , ( Point.valueSysStateOnline, "online" )
+                                ]
+
+                        _ ->
+                            Element.none
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button
