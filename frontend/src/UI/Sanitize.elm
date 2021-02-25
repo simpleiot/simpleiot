@@ -23,7 +23,7 @@ floatHelper state =
     in
     case sInList of
         c :: rest ->
-            if Char.isDigit c || c == '.' then
+            if Char.isDigit c || (c == '.' && not (String.contains "." sOut)) then
                 floatHelper ( String.fromList rest, String.fromList <| sOutList ++ [ c ] )
 
             else
