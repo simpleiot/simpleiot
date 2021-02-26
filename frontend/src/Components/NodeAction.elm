@@ -27,13 +27,51 @@ view :
     -> Element msg
 view o =
     let
+        labelWidth =
+            150
+
         textInput =
             Form.nodeTextInput
                 { onEditNodePoint = o.onEditNodePoint
                 , node = o.node
                 , now = o.now
-                , labelWidth = 100
+                , labelWidth = labelWidth
                 }
+
+        optionInput =
+            Form.nodeOptionInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
+
+        numberInput =
+            Form.nodeNumberInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
+
+        onOffInput =
+            Form.nodeOnOffInput
+                { onEditNodePoint = o.onEditNodePoint
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
+
+        actionType =
+            Point.getText o.node.points Point.typeActionType
+
+        nodeIDNeeded =
+            actionType
+                == Point.valueActionSetValue
+                || actionType
+                == Point.valueActionSetValueBool
+                || actionType
+                == Point.valueActionSetValueText
     in
     column
         [ width fill
@@ -49,6 +87,26 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
+                    , optionInput Point.typeActionType
+                        "Action"
+                        [ ( Point.valueActionNotify, "notify" )
+                        , ( Point.valueActionSetValue, "set value" )
+                        , ( Point.valueActionSetValueBool, "set on/off value" )
+                        , ( Point.valueActionSetValueText, "set text value" )
+                        ]
+                    , viewIf nodeIDNeeded <| textInput Point.typeID "Node ID"
+                    , case actionType of
+                        "setValue" ->
+                            numberInput Point.typeValue "Value"
+
+                        "setValueBool" ->
+                            onOffInput Point.typeValue Point.typeValue "Value"
+
+                        "setValueText" ->
+                            textInput Point.typeValue "Value"
+
+                        _ ->
+                            Element.none
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

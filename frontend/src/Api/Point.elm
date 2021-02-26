@@ -14,6 +14,7 @@ module Api.Point exposing
     , newText
     , newValue
     , renderPoint
+    , typeActionType
     , typeAddress
     , typeAppVersion
     , typeBaud
@@ -58,6 +59,10 @@ module Api.Point exposing
     , typeValueSet
     , updatePoint
     , updatePoints
+    , valueActionNotify
+    , valueActionSetValue
+    , valueActionSetValueBool
+    , valueActionSetValueText
     , valueClient
     , valueConditionSystemState
     , valueConditionValue
@@ -428,6 +433,31 @@ valueOn =
 valueOff : String
 valueOff =
     "off"
+
+
+typeActionType : String
+typeActionType =
+    "actionType"
+
+
+valueActionNotify : String
+valueActionNotify =
+    "notify"
+
+
+valueActionSetValue : String
+valueActionSetValue =
+    "setValue"
+
+
+valueActionSetValueBool : String
+valueActionSetValueBool =
+    "setValueBool"
+
+
+valueActionSetValueText : String
+valueActionSetValueText =
+    "setValueText"
 
 
 

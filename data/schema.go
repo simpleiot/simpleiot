@@ -87,7 +87,6 @@ const (
 	// a rule node describes a rule that may run on the system
 	NodeTypeRule      = "rule"
 	NodeTypeCondition = "condition"
-	NodeTypeAction    = "action"
 
 	PointTypeConditionType         = "conditionType"
 	PointValueConditionValue       = "value"
@@ -102,6 +101,15 @@ const (
 	PointValueNotEqual    = "!="
 	PointValueOn          = "on"
 	PointValueOff         = "off"
+
+	NodeTypeAction = "action"
+
+	PointTypeActionType = "actionType"
+
+	PointValueActionNotify       = "notify"
+	PointValueActionSetValue     = "setValue"
+	PointValueActionSetValueBool = "setValueBool"
+	PointValueActionSetValueText = "setValueText"
 
 	// Transient points that are used for notifications, etc.
 	// These points are not stored in the state of any node,
