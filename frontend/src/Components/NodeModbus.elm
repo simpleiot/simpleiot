@@ -84,6 +84,11 @@ view o =
                         [ ( Point.valueClient, "client" )
                         , ( Point.valueServer, "server" )
                         ]
+                    , optionInput Point.typeProtocol
+                        "Protocol"
+                        [ ( Point.valueRTU, "RTU" )
+                        , ( Point.valueTCP, "TCP" )
+                        ]
                     , textInput Point.typePort "Port"
                     , textInput Point.typeBaud "Baud"
                     , viewIf (clientServer == Point.valueServer) <|

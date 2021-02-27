@@ -40,6 +40,7 @@ module Api.Point exposing
     , typePhone
     , typePollPeriod
     , typePort
+    , typeProtocol
     , typeReadOnly
     , typeScale
     , typeStartApp
@@ -64,7 +65,9 @@ module Api.Point exposing
     , valueModbusDiscreteInput
     , valueModbusHoldingRegister
     , valueModbusInputRegister
+    , valueRTU
     , valueServer
+    , valueTCP
     , valueUINT16
     , valueUINT32
     )
@@ -252,6 +255,21 @@ typeErrorCountEOFReset =
 typeErrorCountCRCReset : String
 typeErrorCountCRCReset =
     "errorCountCRCReset"
+
+
+typeProtocol : String
+typeProtocol =
+    "protocol"
+
+
+valueRTU : String
+valueRTU =
+    "RTU"
+
+
+valueTCP : String
+valueTCP =
+    "TCP"
 
 
 typeModbusIOType : String
