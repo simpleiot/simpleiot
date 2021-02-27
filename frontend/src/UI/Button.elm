@@ -2,6 +2,7 @@ module UI.Button exposing
     ( arrowDown
     , arrowRight
     , check
+    , copy
     , maximize
     , message
     , minimize
@@ -115,3 +116,8 @@ maximize msg =
 message : msg -> Element msg
 message msg =
     button FeatherIcons.messageSquare msg
+
+
+copy : msg -> Element msg
+copy msg =
+    button FeatherIcons.copy msg
