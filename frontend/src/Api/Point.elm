@@ -50,6 +50,7 @@ module Api.Point exposing
     , typeSwUpdateRunning
     , typeSwUpdateState
     , typeSysState
+    , typeURI
     , typeUnits
     , typeUpdateApp
     , typeUpdateOS
@@ -350,6 +351,11 @@ valueClient =
 valueServer : String
 valueServer =
     "server"
+
+
+typeURI : String
+typeURI =
+    "uri"
 
 
 

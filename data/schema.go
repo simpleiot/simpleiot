@@ -22,6 +22,7 @@ const (
 	PointTypeErrorCountCRC             = "errorCountCRC"
 	PointTypeErrorCountCRCReset        = "errorCountCRCReset"
 	PointTypeReadOnly                  = "readOnly"
+	PointTypeURI                       = "URI"
 
 	// An device node describes an phyical device -- it may be the
 	// cloud server, gateway, etc

@@ -64,6 +64,9 @@ view o =
 
         clientServer =
             Point.getText o.node.points Point.typeClientServer
+
+        protocol =
+            Point.getText o.node.points Point.typeProtocol
     in
     column
         [ width fill
@@ -89,8 +92,23 @@ view o =
                         [ ( Point.valueRTU, "RTU" )
                         , ( Point.valueTCP, "TCP" )
                         ]
-                    , textInput Point.typePort "Port"
-                    , textInput Point.typeBaud "Baud"
+                    , viewIf
+                        (protocol
+                            == Point.valueRTU
+                            || clientServer
+                            == Point.valueServer
+                        )
+                      <|
+                        textInput Point.typePort "Port"
+                    , viewIf
+                        (protocol
+                            == Point.valueTCP
+                            && clientServer
+                            == Point.valueClient
+                        )
+                      <|
+                        textInput Point.typeURI "URI"
+                    , viewIf (protocol == Point.valueRTU) <| textInput Point.typeBaud "Baud"
                     , viewIf (clientServer == Point.valueServer) <|
                         numberInput Point.typeID "Device ID"
                     , numberInput Point.typePollPeriod "Poll period (ms)"
