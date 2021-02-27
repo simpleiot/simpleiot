@@ -11,11 +11,6 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
-## [[0.0.18] - 2021-02-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.18)
-
-- update go.bug.st/serial to support RiscV
-- update Genji dependencies
-
 ## [[0.0.17] - 2021-02-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.17)
 
 - modbus
