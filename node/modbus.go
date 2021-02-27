@@ -624,8 +624,10 @@ func (b *Modbus) SetupPort() error {
 
 	b.port = respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*100, time.Millisecond*20)
 
+	transport := modbus.NewRTU(b.port)
+
 	if b.busNode.busType == data.PointValueServer {
-		b.server = modbus.NewServer(byte(b.busNode.id), b.port)
+		b.server = modbus.NewServer(byte(b.busNode.id), transport)
 		go b.server.Listen(b.busNode.debugLevel, func(err error) {
 			log.Println("Modbus server error: ", err)
 		}, func() {
@@ -639,7 +641,7 @@ func (b *Modbus) SetupPort() error {
 			b.InitRegs(io.ioNode)
 		}
 	} else if b.busNode.busType == data.PointValueClient {
-		b.client = modbus.NewClient(b.port, b.busNode.debugLevel)
+		b.client = modbus.NewClient(transport, b.busNode.debugLevel)
 	}
 
 	return nil
