@@ -55,6 +55,4 @@ replace (
 	github.com/genjidb/genji/engine/badgerengine => github.com/genjidb/genji/engine/badgerengine v0.9.1-0.20201128170130-7bce05780a49
 )
 
-replace github.com/creack/goselect => github.com/kraj/goselect v0.0.0-20210218064725-d62c8d3140a5
-
 go 1.14
