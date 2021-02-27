@@ -11,21 +11,21 @@ import (
 // Current Server only supports Modbus RTU,
 // but could be expanded to do ASCII and TCP.
 type Server struct {
-	id     byte
-	port   io.ReadWriter
-	Regs   Regs
-	chDone chan bool
+	id        byte
+	transport Transport
+	Regs      Regs
+	chDone    chan bool
 }
 
 // NewServer creates a new server instance
 // port must return an entire packet for each Read().
 // github.com/simpleiot/simpleiot/respreader is a good
 // way to do this.
-func NewServer(id byte, port io.ReadWriter) *Server {
+func NewServer(id byte, transport Transport) *Server {
 	return &Server{
-		id:     id,
-		port:   port,
-		chDone: make(chan bool),
+		id:        id,
+		transport: transport,
+		chDone:    make(chan bool),
 	}
 }
 
@@ -49,7 +49,7 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 		default:
 		}
 		buf := make([]byte, 200)
-		cnt, err := s.port.Read(buf)
+		cnt, err := s.transport.Read(buf)
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading serial port: ", err)
@@ -80,7 +80,7 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 			continue
 		}
 
-		req, err := RtuDecode(packet)
+		req, err := s.transport.Decode(packet)
 		if err != nil {
 			errorCallback(err)
 			continue
@@ -104,7 +104,7 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 			fmt.Println("Modbus server resp: ", resp)
 		}
 
-		respRtu, err := RtuEncode(s.id, resp)
+		respRtu, err := s.transport.Encode(s.id, resp)
 		if err != nil {
 			errorCallback(err)
 			continue
@@ -114,7 +114,7 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 			fmt.Println("Modbus server tx: ", HexDump(respRtu))
 		}
 
-		_, err = s.port.Write(respRtu)
+		_, err = s.transport.Write(respRtu)
 		if err != nil {
 			errorCallback(err)
 			continue

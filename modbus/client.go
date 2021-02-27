@@ -4,23 +4,22 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 )
 
 // Client defines a Modbus client (master)
 type Client struct {
-	port  io.ReadWriter
-	debug int
+	transport Transport
+	debug     int
 }
 
 // NewClient is used to create a new modbus client
 // port must return an entire packet for each Read().
 // github.com/simpleiot/simpleiot/respreader is a good
 // way to do this.
-func NewClient(port io.ReadWriter, debug int) *Client {
+func NewClient(transport Transport, debug int) *Client {
 	return &Client{
-		port:  port,
-		debug: debug,
+		transport: transport,
+		debug:     debug,
 	}
 }
 
@@ -36,7 +35,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	if c.debug >= 1 {
 		fmt.Printf("Modbus client Readcoils ID:0x%x req:%v\n", id, req)
 	}
-	packet, err := RtuEncode(id, req)
+	packet, err := c.transport.Encode(id, req)
 	if err != nil {
 		return ret, err
 	}
@@ -45,14 +44,14 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 		fmt.Println("Modbus client ReadCoils tx: ", HexDump(packet))
 	}
 
-	_, err = c.port.Write(packet)
+	_, err = c.transport.Write(packet)
 	if err != nil {
 		return ret, err
 	}
 
 	// FIXME, what is max modbus packet size?
 	buf := make([]byte, 200)
-	cnt, err := c.port.Read(buf)
+	cnt, err := c.transport.Read(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -63,7 +62,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 		fmt.Println("Modbus client ReadCoils rx: ", HexDump(buf))
 	}
 
-	resp, err := RtuDecode(buf)
+	resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -81,7 +80,7 @@ func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 	if c.debug >= 1 {
 		fmt.Printf("Modbus client WriteSingleCoil ID:0x%x req:%v\n", id, req)
 	}
-	packet, err := RtuEncode(id, req)
+	packet, err := c.transport.Encode(id, req)
 	if err != nil {
 		return fmt.Errorf("RtuEncode error: %w", err)
 	}
@@ -90,14 +89,14 @@ func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 		fmt.Println("Modbus client WriteSingleCoil tx: ", HexDump(packet))
 	}
 
-	_, err = c.port.Write(packet)
+	_, err = c.transport.Write(packet)
 	if err != nil {
 		return err
 	}
 
 	// FIXME, what is max modbus packet size?
 	buf := make([]byte, 200)
-	cnt, err := c.port.Read(buf)
+	cnt, err := c.transport.Read(buf)
 	if err != nil {
 		return err
 	}
@@ -108,7 +107,7 @@ func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 		fmt.Println("Modbus client WriteSingleCoil rx: ", HexDump(buf))
 	}
 
-	resp, err := RtuDecode(buf)
+	resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return fmt.Errorf("RtuDecode error: %w", err)
 	}
@@ -135,7 +134,7 @@ func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error
 	if c.debug >= 1 {
 		fmt.Printf("Modbus client ReadDiscreteInputs ID:0x%x req:%v\n", id, req)
 	}
-	packet, err := RtuEncode(id, req)
+	packet, err := c.transport.Encode(id, req)
 	if err != nil {
 		return ret, err
 	}
@@ -144,14 +143,14 @@ func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error
 		fmt.Println("Modbus client ReadDiscreteInputs tx: ", HexDump(packet))
 	}
 
-	_, err = c.port.Write(packet)
+	_, err = c.transport.Write(packet)
 	if err != nil {
 		return ret, err
 	}
 
 	// FIXME, what is max modbus packet size?
 	buf := make([]byte, 200)
-	cnt, err := c.port.Read(buf)
+	cnt, err := c.transport.Read(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -162,7 +161,7 @@ func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error
 		fmt.Println("Modbus client ReadDiscreteInputs rx: ", HexDump(buf))
 	}
 
-	resp, err := RtuDecode(buf)
+	resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -185,7 +184,7 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 	if c.debug >= 1 {
 		fmt.Printf("Modbus client ReadHoldingRegs ID:0x%x req:%v\n", id, req)
 	}
-	packet, err := RtuEncode(id, req)
+	packet, err := c.transport.Encode(id, req)
 	if err != nil {
 		return ret, err
 	}
@@ -194,14 +193,14 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 		fmt.Println("Modbus client ReadHoldingRegs tx: ", HexDump(packet))
 	}
 
-	_, err = c.port.Write(packet)
+	_, err = c.transport.Write(packet)
 	if err != nil {
 		return ret, err
 	}
 
 	// FIXME, what is max modbus packet size?
 	buf := make([]byte, 200)
-	cnt, err := c.port.Read(buf)
+	cnt, err := c.transport.Read(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -212,7 +211,7 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 		fmt.Println("Modbus client ReadHoldingRegs rx: ", HexDump(buf))
 	}
 
-	resp, err := RtuDecode(buf)
+	resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -235,7 +234,7 @@ func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 	if c.debug >= 1 {
 		fmt.Printf("Modbus client ReadInputRegs ID:0x%x req:%v\n", id, req)
 	}
-	packet, err := RtuEncode(id, req)
+	packet, err := c.transport.Encode(id, req)
 	if err != nil {
 		return ret, err
 	}
@@ -244,14 +243,14 @@ func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 		fmt.Println("Modbus client ReadInputRegs tx: ", HexDump(packet))
 	}
 
-	_, err = c.port.Write(packet)
+	_, err = c.transport.Write(packet)
 	if err != nil {
 		return ret, err
 	}
 
 	// FIXME, what is max modbus packet size?
 	buf := make([]byte, 200)
-	cnt, err := c.port.Read(buf)
+	cnt, err := c.transport.Read(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -262,7 +261,7 @@ func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 		fmt.Println("Modbus client ReadInputRegs rx: ", HexDump(buf))
 	}
 
-	resp, err := RtuDecode(buf)
+	resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -284,7 +283,7 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 	if c.debug >= 1 {
 		fmt.Printf("Modbus client WriteSingleReg ID:0x%x req:%v\n", id, req)
 	}
-	packet, err := RtuEncode(id, req)
+	packet, err := c.transport.Encode(id, req)
 	if err != nil {
 		return err
 	}
@@ -293,14 +292,14 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 		fmt.Println("Modbus client WriteSingleReg tx: ", HexDump(packet))
 	}
 
-	_, err = c.port.Write(packet)
+	_, err = c.transport.Write(packet)
 	if err != nil {
 		return err
 	}
 
 	// FIXME, what is max modbus packet size?
 	buf := make([]byte, 200)
-	cnt, err := c.port.Read(buf)
+	cnt, err := c.transport.Read(buf)
 	if err != nil {
 		return err
 	}
@@ -311,7 +310,7 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 		fmt.Println("Modbus client WriteSingleReg rx: ", HexDump(buf))
 	}
 
-	resp, err := RtuDecode(buf)
+	resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return err
 	}
