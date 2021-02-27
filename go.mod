@@ -9,13 +9,13 @@ require (
 	github.com/cbrake/influxdbhelper/v2 v2.1.4
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.3-0.20201012072640-f5a7e0a1c83b
-	github.com/dgraph-io/ristretto v0.0.3 // indirect
+	github.com/dgraph-io/badger/v3 v3.2011.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
-	github.com/genjidb/genji v0.10.0
+	github.com/genjidb/genji v0.11.0
 	github.com/genjidb/genji/cmd/genji v0.9.0
-	github.com/genjidb/genji/engine/badgerengine v0.9.0
+	github.com/genjidb/genji/engine/badgerengine v0.11.0
 	github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/protobuf v1.4.3
@@ -34,7 +34,6 @@ require (
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.8-0.20200814173904-d30550166e2f
 	github.com/nats-io/nats.go v1.10.1-0.20200720131241-97eff70ce747
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.1.0 // indirect
@@ -43,16 +42,15 @@ require (
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
 	golang.org/x/sys v0.0.0-20210227040730-b0d1d43c014d // indirect
-	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.25.0
 )
 
 replace github.com/nats-io/nats.go => github.com/cbrake/nats.go v1.10.1-0.20200817210920-7a8e05e18c84
 
 replace (
-	github.com/genjidb/genji => github.com/genjidb/genji v0.9.1-0.20201128170130-7bce05780a49
-	github.com/genjidb/genji/cmd/genji => github.com/genjidb/genji/cmd/genji v0.9.1-0.20201128170130-7bce05780a49
-	github.com/genjidb/genji/engine/badgerengine => github.com/genjidb/genji/engine/badgerengine v0.9.1-0.20201128170130-7bce05780a49
+	github.com/genjidb/genji => github.com/genjidb/genji v0.10.2-0.20210227135913-106d82eb71b9
+	github.com/genjidb/genji/cmd/genji => github.com/genjidb/genji/cmd/genji v0.10.1-0.20210227135913-106d82eb71b9
+	github.com/genjidb/genji/engine/badgerengine => github.com/genjidb/genji/engine/badgerengine v0.10.1-0.20210227135913-106d82eb71b9
 )
 
 replace github.com/creack/goselect => github.com/kraj/goselect v0.0.0-20210218064725-d62c8d3140a5
