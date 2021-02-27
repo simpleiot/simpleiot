@@ -1,7 +1,7 @@
 module github.com/simpleiot/simpleiot
 
 require (
-	github.com/DataDog/zstd v1.4.8 // indirect
+	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa
 	github.com/beevik/ntp v0.3.0
 	github.com/benbjohnson/genesis v0.2.1
@@ -13,13 +13,13 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
-	github.com/genjidb/genji v0.10.1
-	github.com/genjidb/genji/cmd/genji v0.10.0
-	github.com/genjidb/genji/engine/badgerengine v0.10.0
+	github.com/genjidb/genji v0.10.0
+	github.com/genjidb/genji/cmd/genji v0.9.0
+	github.com/genjidb/genji/engine/badgerengine v0.9.0
 	github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/protobuf v1.4.3
-	github.com/golang/snappy v0.0.3 // indirect
+	github.com/golang/snappy v0.0.2 // indirect
 	github.com/google/go-cmp v0.5.0
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.0
@@ -32,27 +32,29 @@ require (
 	github.com/kevinburke/twilio-go v0.0.0-20200810163702-320748330fac
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
-	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.8-0.20200814173904-d30550166e2f
 	github.com/nats-io/nats.go v1.10.1-0.20200720131241-97eff70ce747
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.1.0 // indirect
-	github.com/vmihailenco/msgpack/v4 v4.3.11 // indirect
-	github.com/vmihailenco/msgpack/v5 v5.2.0 // indirect
 	go.bug.st/serial v1.1.3
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20210226181700-f36f78243c0c // indirect
+	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
+	golang.org/x/sys v0.0.0-20210227040730-b0d1d43c014d // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.25.0
 )
 
 replace github.com/nats-io/nats.go => github.com/cbrake/nats.go v1.10.1-0.20200817210920-7a8e05e18c84
+
+replace (
+	github.com/genjidb/genji => github.com/genjidb/genji v0.9.1-0.20201128170130-7bce05780a49
+	github.com/genjidb/genji/cmd/genji => github.com/genjidb/genji/cmd/genji v0.9.1-0.20201128170130-7bce05780a49
+	github.com/genjidb/genji/engine/badgerengine => github.com/genjidb/genji/engine/badgerengine v0.9.1-0.20201128170130-7bce05780a49
+)
+
+replace github.com/creack/goselect => github.com/kraj/goselect v0.0.0-20210218064725-d62c8d3140a5
 
 go 1.14
