@@ -50,7 +50,9 @@ func main() {
 
 	portRR := respreader.NewReadWriteCloser(port, time.Second, time.Millisecond*30)
 
-	serv := modbus.NewServer(1, portRR)
+	transport := modbus.NewRTU(portRR)
+
+	serv := modbus.NewServer(1, transport)
 	serv.Regs.AddCoil(128)
 	err = serv.Regs.WriteCoil(128, true)
 	if err != nil {

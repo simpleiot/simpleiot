@@ -19,7 +19,8 @@ func TestRtuEndToEnd(t *testing.T) {
 	// first set up the server (slave) to process data
 	portA := respreader.NewReadWriter(wire.GetA(), time.Second*2,
 		5*time.Millisecond)
-	slave := NewServer(id, portA)
+	transportA := NewRTU(portA)
+	slave := NewServer(id, transportA)
 	slave.Regs.AddCoil(128)
 	err := slave.Regs.WriteCoil(128, true)
 	if err != nil {
@@ -42,7 +43,8 @@ func TestRtuEndToEnd(t *testing.T) {
 	// set up client (master)
 	portB := respreader.NewReadWriter(wire.GetB(), time.Second*2,
 		5*time.Millisecond)
-	master := NewClient(portB, 9)
+	transportB := NewRTU(portB)
+	master := NewClient(transportB, 9)
 
 	coils, err := master.ReadCoils(id, 128, 1)
 	if err != nil {
