@@ -32,23 +32,18 @@ view :
 view o =
     let
         sysState =
-            case Point.get o.node.points "" Point.typeSysState 0 of
-                Just point ->
-                    round point.value
-
-                Nothing ->
-                    0
+            Point.getText o.node.points Point.typeSysState
 
         sysStateIcon =
             case sysState of
                 -- not sure why I can't use defines in Node.elm here
-                1 ->
+                "powerOff" ->
                     Icon.power
 
-                2 ->
+                "offline" ->
                     Icon.cloudOff
 
-                3 ->
+                "online" ->
                     Icon.cloud
 
                 _ ->
@@ -56,7 +51,7 @@ view o =
 
         background =
             case sysState of
-                3 ->
+                "online" ->
                     Style.colors.white
 
                 _ ->
