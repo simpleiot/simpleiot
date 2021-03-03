@@ -898,7 +898,6 @@ viewNode model parent node depth =
                     , onEditNodePoint = EditNodePoint
                     , onDiscardEdits = DiscardEdits
                     , onApiPostPoints = ApiPostPoints
-                    , onClipboard = Clipboard
                     }
                 , if node.expDetail then
                     case
@@ -948,6 +947,7 @@ viewNodeOperations id parent =
             Element.none
         , Button.message (MsgNode id)
         , Button.x (ApiDelete id)
+        , Button.copy (Clipboard id)
         ]
 
 

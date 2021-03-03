@@ -27,7 +27,6 @@ view :
     , onEditNodePoint : String -> Point -> msg
     , onDiscardEdits : msg
     , onApiPostPoints : String -> msg
-    , onClipboard : String -> msg
     }
     -> Element msg
 view o =
@@ -122,7 +121,6 @@ view o =
                     (o.onApiPostPoints o.node.id)
             , viewIf o.modified <|
                 Button.x o.onDiscardEdits
-            , Button.copy (o.onClipboard o.node.id)
             ]
             :: (if o.expDetail then
                     [ viewPoints <| Point.filterSpecialPoints o.node.points

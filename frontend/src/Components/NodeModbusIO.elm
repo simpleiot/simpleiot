@@ -26,7 +26,6 @@ view :
     , onEditNodePoint : String -> Point -> msg
     , onDiscardEdits : msg
     , onApiPostPoints : String -> msg
-    , onClipboard : String -> msg
     }
     -> Element msg
 view o =
