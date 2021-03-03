@@ -22,7 +22,7 @@ var writeClipboard = (data) => {
   navigator.clipboard
     .writeText(data)
     .then(() => {
-      console.log("copy success");
+      // FIXME, should probably send something back to elm
       // Success!
     })
     .catch((err) => {
