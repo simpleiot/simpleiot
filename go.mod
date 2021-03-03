@@ -38,11 +38,11 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.1.0 // indirect
-	go.bug.st/serial v1.1.1
+	go.bug.st/serial v1.1.3
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
-	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68 // indirect
+	golang.org/x/sys v0.0.0-20210227040730-b0d1d43c014d // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.25.0
 )
@@ -54,7 +54,5 @@ replace (
 	github.com/genjidb/genji/cmd/genji => github.com/genjidb/genji/cmd/genji v0.9.1-0.20201128170130-7bce05780a49
 	github.com/genjidb/genji/engine/badgerengine => github.com/genjidb/genji/engine/badgerengine v0.9.1-0.20201128170130-7bce05780a49
 )
-
-replace github.com/creack/goselect => github.com/kraj/goselect v0.0.0-20210218064725-d62c8d3140a5
 
 go 1.14
