@@ -9,7 +9,7 @@ import Element.Input as Input
 import Time
 import UI.Button as Button
 import UI.Icon as Icon
-import UI.Style as Style exposing (colors, size)
+import UI.Style as Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
 import Utils.Duration as Duration
 import Utils.Iso8601 as Iso8601
@@ -27,6 +27,7 @@ view :
     , onEditNodePoint : String -> Point -> msg
     , onDiscardEdits : msg
     , onApiPostPoints : String -> msg
+    , onClipboard : String -> msg
     }
     -> Element msg
 view o =
@@ -106,7 +107,6 @@ view o =
             [ spacing 10 ]
             [ Icon.device
             , sysStateIcon
-            , viewNodeId o.node.id
             , Input.text
                 [ Background.color background ]
                 { onChange =
@@ -122,6 +122,7 @@ view o =
                     (o.onApiPostPoints o.node.id)
             , viewIf o.modified <|
                 Button.x o.onDiscardEdits
+            , Button.copy (o.onClipboard o.node.id)
             ]
             :: (if o.expDetail then
                     [ viewPoints <| Point.filterSpecialPoints o.node.points
@@ -147,16 +148,6 @@ view o =
                 else
                     []
                )
-
-
-viewNodeId : String -> Element msg
-viewNodeId id =
-    el
-        [ padding 16
-        , size.heading
-        ]
-    <|
-        text id
 
 
 viewPoints : List Point.Point -> Element msg

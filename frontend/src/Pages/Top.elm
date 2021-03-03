@@ -4,6 +4,7 @@ import Api.Auth exposing (Auth)
 import Api.Data as Data exposing (Data)
 import Api.Node as Node exposing (Node)
 import Api.Point as Point exposing (Point)
+import Api.Port as Port
 import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
 import Components.NodeAction as NodeAction
@@ -172,6 +173,7 @@ type Msg
     | ApiRespPostAddNode (Data Response)
     | ApiRespPostMoveNode (Data Response)
     | ApiRespPostMsgNode (Data Response)
+    | Clipboard String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -550,6 +552,9 @@ update msg model =
                     , updateNodes model
                     )
 
+        Clipboard contents ->
+            ( model, Port.out <| Port.encodeClipboard contents )
+
 
 mergeNodeTree : Tree NodeView -> Tree NodeView -> Tree NodeView
 mergeNodeTree current new =
@@ -893,6 +898,7 @@ viewNode model parent node depth =
                     , onEditNodePoint = EditNodePoint
                     , onDiscardEdits = DiscardEdits
                     , onApiPostPoints = ApiPostPoints
+                    , onClipboard = Clipboard
                     }
                 , if node.expDetail then
                     case
