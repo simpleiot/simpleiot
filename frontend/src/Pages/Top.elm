@@ -834,12 +834,51 @@ viewNodesHelp depth model tree =
     in
     List.foldr
         (\child ret ->
-            ret
-                ++ viewNode model (Just node) (Tree.label child) depth
-                :: viewNodesHelp (depth + 1) model child
+            let
+                childNode =
+                    Tree.label child
+            in
+            if shouldDisplay childNode.node.typ then
+                ret
+                    ++ viewNode model (Just node) childNode depth
+                    :: viewNodesHelp (depth + 1) model child
+
+            else
+                ret
         )
         []
         childrenSorted
+
+
+shouldDisplay : String -> Bool
+shouldDisplay typ =
+    case typ of
+        "user" ->
+            True
+
+        "group" ->
+            True
+
+        "modbus" ->
+            True
+
+        "modbusIo" ->
+            True
+
+        "rule" ->
+            True
+
+        "condition" ->
+            True
+
+        "action" ->
+            True
+
+        "device" ->
+            True
+
+        _ ->
+            False
 
 
 viewNode : Model -> Maybe NodeView -> NodeView -> Int -> Element Msg
@@ -868,8 +907,11 @@ viewNode model parent node depth =
                 "action" ->
                     NodeAction.view
 
-                _ ->
+                "device" ->
                     NodeDevice.view
+
+                _ ->
+                    viewUnknown
     in
     el
         [ width fill
@@ -943,6 +985,24 @@ viewNode model parent node depth =
                     Element.none
                 ]
             ]
+
+
+viewUnknown :
+    { isRoot : Bool
+    , now : Time.Posix
+    , zone : Time.Zone
+    , modified : Bool
+    , expDetail : Bool
+    , parent : Maybe Node
+    , node : Node
+    , onApiDelete : String -> msg
+    , onEditNodePoint : String -> Point -> msg
+    , onDiscardEdits : msg
+    , onApiPostPoints : String -> msg
+    }
+    -> Element msg
+viewUnknown o =
+    Element.text <| "unknown node type: " ++ o.node.typ
 
 
 viewNodeOperations : String -> String -> Element Msg
