@@ -9,6 +9,8 @@ module UI.Form exposing
     , nodeOptionInput
     , nodeTextInput
     , onEnter
+    , onEnterEsc
+    , onEsc
     , viewTextProperty
     )
 
@@ -42,6 +44,43 @@ onEnter msg =
 
                         else
                             Decode.fail "Not the enter key"
+                    )
+            )
+        )
+
+
+onEnterEsc : msg -> msg -> Element.Attribute msg
+onEnterEsc enterMsg escMsg =
+    Element.htmlAttribute
+        (Html.Events.on "keyup"
+            (Decode.field "key" Decode.string
+                |> Decode.andThen
+                    (\key ->
+                        if key == "Enter" then
+                            Decode.succeed enterMsg
+
+                        else if key == "Escape" then
+                            Decode.succeed escMsg
+
+                        else
+                            Decode.fail "Not the enter key"
+                    )
+            )
+        )
+
+
+onEsc : msg -> Element.Attribute msg
+onEsc msg =
+    Element.htmlAttribute
+        (Html.Events.on "keyup"
+            (Decode.field "key" Decode.string
+                |> Decode.andThen
+                    (\key ->
+                        if key == "Escape" then
+                            Decode.succeed msg
+
+                        else
+                            Decode.fail "Not the esc key"
                     )
             )
         )

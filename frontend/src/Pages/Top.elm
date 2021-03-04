@@ -152,6 +152,7 @@ type Msg
     | EditNodePoint String Point
     | ToggleExpChildren String
     | ToggleExpDetail String
+    | DiscardAll
     | DiscardEdits
     | AddNode String
     | MsgNode String
@@ -243,6 +244,9 @@ update msg model =
 
                 Nothing ->
                     ( model, Cmd.none )
+
+        DiscardAll ->
+            ( { model | nodeEdit = Nothing, moveNode = Nothing, msgNode = Nothing, addNode = Nothing }, Cmd.none )
 
         DiscardEdits ->
             ( { model | nodeEdit = Nothing }
@@ -867,7 +871,12 @@ viewNode model parent node depth =
                 _ ->
                     NodeDevice.view
     in
-    el [ width fill, paddingEach { top = 0, right = 0, bottom = 0, left = depth * 35 } ] <|
+    el
+        [ width fill
+        , paddingEach { top = 0, right = 0, bottom = 0, left = depth * 35 }
+        , Form.onEnterEsc (ApiPostPoints node.node.id) DiscardAll
+        ]
+    <|
         row [ spacing 6 ]
             [ el [ alignTop ] <|
                 if not node.hasChildren then
