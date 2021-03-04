@@ -11,6 +11,7 @@ import Components.NodeAction as NodeAction
 import Components.NodeCondition as NodeCondition
 import Components.NodeDevice as NodeDevice
 import Components.NodeGroup as NodeGroup
+import Components.NodeMessageService as NodeMessageService
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeRule as NodeRule
@@ -877,6 +878,9 @@ shouldDisplay typ =
         "device" ->
             True
 
+        "msgService" ->
+            True
+
         _ ->
             False
 
@@ -909,6 +913,9 @@ viewNode model parent node depth =
 
                 "device" ->
                     NodeDevice.view
+
+                "msgService" ->
+                    NodeMessageService.view
 
                 _ ->
                     viewUnknown
@@ -1064,6 +1071,7 @@ viewAddNode parent add =
                             , Input.option Node.typeGroup (text "Group")
                             , Input.option Node.typeRule (text "Rule")
                             , Input.option Node.typeModbus (text "Modbus")
+                            , Input.option Node.typeMsgService (text "Messaging Service")
                             ]
 
                         else
@@ -1073,6 +1081,7 @@ viewAddNode parent add =
                             [ Input.option Node.typeUser (text "User")
                             , Input.option Node.typeGroup (text "Group")
                             , Input.option Node.typeRule (text "Rule")
+                            , Input.option Node.typeMsgService (text "Messaging Service")
                             ]
 
                         else

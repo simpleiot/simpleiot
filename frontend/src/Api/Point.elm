@@ -17,6 +17,7 @@ module Api.Point exposing
     , typeActionType
     , typeAddress
     , typeAppVersion
+    , typeAuthToken
     , typeBaud
     , typeClientServer
     , typeCmdPending
@@ -32,6 +33,7 @@ module Api.Point exposing
     , typeErrorCountEOFReset
     , typeErrorCountReset
     , typeFirstName
+    , typeFrom
     , typeHwVersion
     , typeID
     , typeLastName
@@ -44,7 +46,9 @@ module Api.Point exposing
     , typePollPeriod
     , typePort
     , typeReadOnly
+    , typeSID
     , typeScale
+    , typeService
     , typeStartApp
     , typeStartSystem
     , typeSwUpdateError
@@ -81,11 +85,13 @@ module Api.Point exposing
     , valueNotEqual
     , valueOff
     , valueOn
+    , valueSMTP
     , valueServer
     , valueSysStateOffline
     , valueSysStateOnline
     , valueSysStatePowerOff
     , valueSysStateUnknown
+    , valueTwilio
     , valueUINT16
     , valueUINT32
     )
@@ -458,6 +464,36 @@ valueActionSetValueBool =
 valueActionSetValueText : String
 valueActionSetValueText =
     "setValueText"
+
+
+typeService : String
+typeService =
+    "service"
+
+
+valueTwilio : String
+valueTwilio =
+    "twilio"
+
+
+valueSMTP : String
+valueSMTP =
+    "smtp"
+
+
+typeSID : String
+typeSID =
+    "sid"
+
+
+typeAuthToken : String
+typeAuthToken =
+    "authToken"
+
+
+typeFrom : String
+typeFrom =
+    "from"
 
 
 

@@ -116,4 +116,15 @@ const (
 	// but are recorded in the time series database to record history.
 	PointMsgAll  = "msgAll"
 	PointMsgUser = "msgUser"
+
+	NodeTypeMsgService = "msgService"
+
+	PointTypeService = "service"
+
+	PointValueTwilio = "twilio"
+	PointValueSMTP   = "smtp"
+
+	PointTypeSID       = "sid"
+	PointTypeAuthToken = "authToken"
+	PointTypeFrom      = "from"
 )

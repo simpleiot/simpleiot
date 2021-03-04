@@ -9,6 +9,7 @@ module UI.Icon exposing
     , list
     , minus
     , power
+    , send
     , trendingUp
     , user
     , users
@@ -104,3 +105,8 @@ check =
 trendingUp : Element msg
 trendingUp =
     icon FeatherIcons.trendingUp
+
+
+send : Element msg
+send =
+    icon FeatherIcons.send

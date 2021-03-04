@@ -19,6 +19,7 @@ module Api.Node exposing
     , typeGroup
     , typeModbus
     , typeModbusIO
+    , typeMsgService
     , typeRule
     , typeUser
     )
@@ -76,6 +77,11 @@ typeAction =
 typeUser : String
 typeUser =
     "user"
+
+
+typeMsgService : String
+typeMsgService =
+    "msgService"
 
 
 typeModbus : String
