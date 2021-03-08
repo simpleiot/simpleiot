@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os/exec"
 
 	"github.com/genjidb/genji"
 )
@@ -15,7 +16,18 @@ type Node struct {
 }
 
 func main() {
-	db, err := genji.Open(":memory:")
+	// both memory and bolt show this issue
+	//db, err := genji.Open(":memory:")
+
+	exec.Command("rm", "genji-test9.db").Run()
+
+	db, err := genji.Open("genji-test9.db")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer db.Close()
 
 	if err != nil {
 		log.Fatal(err)
