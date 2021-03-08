@@ -1,11 +1,5 @@
 RECOMMENDED_ELM_VERSION=0.19.1
 
-if [ -z "$GOPATH" ]; then
-  export GOPATH=$HOME/go
-fi
-
-export GOBIN=$GOPATH/bin
-
 # map tools from project go modules
 
 genesis() {
