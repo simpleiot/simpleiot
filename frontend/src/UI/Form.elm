@@ -8,6 +8,7 @@ module UI.Form exposing
     , nodeOnOffInput
     , nodeOptionInput
     , nodeTextInput
+    , onEnter
     , viewTextProperty
     )
 
@@ -19,11 +20,30 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Html.Events
+import Json.Decode as Decode
 import Round
 import Svg as S
 import Svg.Attributes as Sa
 import Time
 import UI.Style as Style
+
+
+onEnter : msg -> Element.Attribute msg
+onEnter msg =
+    Element.htmlAttribute
+        (Html.Events.on "keyup"
+            (Decode.field "key" Decode.string
+                |> Decode.andThen
+                    (\key ->
+                        if key == "Enter" then
+                            Decode.succeed msg
+
+                        else
+                            Decode.fail "Not the enter key"
+                    )
+            )
+        )
 
 
 type alias TextProperty msg =

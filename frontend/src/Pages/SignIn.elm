@@ -166,7 +166,7 @@ view : Model -> Document Msg
 view model =
     { title = "SIOT SignIn"
     , body =
-        [ el [ centerX, centerY ] <|
+        [ el [ centerX, centerY, Form.onEnter SignIn ] <|
             column
                 [ spacing 32 ]
                 [ el [ Font.size 24, Font.semiBold ]
