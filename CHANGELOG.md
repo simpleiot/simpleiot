@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- UI: add Form.onEnter utility function for adding enter handling
+- UI: enter can now be used to enter sign-in form
+
 ## [[0.0.19] - 2021-02-27](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.19)
 
 - revert Genji update as there are problems saving nodes
