@@ -142,9 +142,16 @@ func (nh *NatsHandler) handlePoints(msg *nats.Msg) {
 	for _, p := range points {
 		err = nh.db.NodePoint(nodeID, p)
 		if err != nil {
+			// TODO track error stats
 			log.Println("Error writing point to Db: ", err)
 			nh.reply(msg.Reply, err)
 			return
+		}
+
+		err = nh.processPointUpstream(nodeID, p)
+		if err != nil {
+			// TODO track error stats
+			log.Println("Error processing point in upstream nodes: ", err)
 		}
 	}
 
@@ -165,4 +172,20 @@ func (nh *NatsHandler) reply(subject string, err error) {
 	}
 
 	nh.Nc.Publish(subject, []byte(reply))
+}
+
+func (nh *NatsHandler) processPointUpstream(nodeID string, p data.Point) error {
+
+	upIDs, err := nh.db.EdgeUp(nodeID)
+	if err != nil {
+		return err
+	}
+
+	for _, id := range upIDs {
+		// get children and process any rules
+		_ = id
+
+	}
+
+	return nil
 }
