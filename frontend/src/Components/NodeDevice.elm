@@ -7,8 +7,9 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import Time
+import UI.Button as Button
 import UI.Icon as Icon
-import UI.Style as Style exposing (colors, size)
+import UI.Style as Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
 import Utils.Duration as Duration
 import Utils.Iso8601 as Iso8601
@@ -31,23 +32,18 @@ view :
 view o =
     let
         sysState =
-            case Point.get o.node.points "" Point.typeSysState 0 of
-                Just point ->
-                    round point.value
-
-                Nothing ->
-                    0
+            Point.getText o.node.points Point.typeSysState
 
         sysStateIcon =
             case sysState of
                 -- not sure why I can't use defines in Node.elm here
-                1 ->
+                "powerOff" ->
                     Icon.power
 
-                2 ->
+                "offline" ->
                     Icon.cloudOff
 
-                3 ->
+                "online" ->
                     Icon.cloud
 
                 _ ->
@@ -55,7 +51,7 @@ view o =
 
         background =
             case sysState of
-                3 ->
+                "online" ->
                     Style.colors.white
 
                 _ ->
@@ -105,7 +101,6 @@ view o =
             [ spacing 10 ]
             [ Icon.device
             , sysStateIcon
-            , viewNodeId o.node.id
             , Input.text
                 [ Background.color background ]
                 { onChange =
@@ -117,10 +112,10 @@ view o =
                 , label = Input.labelHidden "node description"
                 }
             , viewIf o.modified <|
-                Icon.check
+                Button.check
                     (o.onApiPostPoints o.node.id)
             , viewIf o.modified <|
-                Icon.x o.onDiscardEdits
+                Button.x o.onDiscardEdits
             ]
             :: (if o.expDetail then
                     [ viewPoints <| Point.filterSpecialPoints o.node.points
@@ -146,16 +141,6 @@ view o =
                 else
                     []
                )
-
-
-viewNodeId : String -> Element msg
-viewNodeId id =
-    el
-        [ padding 16
-        , size.heading
-        ]
-    <|
-        text id
 
 
 viewPoints : List Point.Point -> Element msg

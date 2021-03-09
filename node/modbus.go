@@ -104,7 +104,7 @@ func (b *Modbus) Stop() {
 
 // CheckIOs goes through ios on the bus and handles any config changes
 func (b *Modbus) CheckIOs() error {
-	nodes, err := b.db.NodeChildren(b.busNode.nodeID, data.NodeTypeModbusIO)
+	nodes, err := b.db.NodeDescendents(b.busNode.nodeID, data.NodeTypeModbusIO, false)
 	if err != nil {
 		return err
 	}

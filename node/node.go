@@ -53,6 +53,7 @@ func (m *Manager) Run() {
 			// update node state
 			state, changed := node.UpdateState()
 			if changed {
+				// FIXME this needs modified to go through NATS
 				err := m.db.NodeSetState(node.ID, state)
 				if err != nil {
 					log.Println("Error updating node state: ", err)
@@ -90,7 +91,7 @@ func uniqueUsers(users []data.User) []data.User {
 }
 
 func (m *Manager) runRule(node *data.Node, rule *data.Rule) error {
-	if node.State() != data.SysStateOnline {
+	if node.State() != data.PointValueSysStateOnline {
 		// only run rules if node is in online state
 		return nil
 	}

@@ -26,14 +26,20 @@ const (
 
 	// An device node describes an phyical device -- it may be the
 	// cloud server, gateway, etc
-	NodeTypeDevice                = "device"
-	PointTypeCmdPending           = "cmdPending"
-	PointTypeSwUpdateState        = "swUpdateState"
-	PointTypeStartApp             = "startApp"
-	PointTypeStartSystem          = "startSystem"
-	PointTypeUpdateOS             = "updateOS"
-	PointTypeUpdateApp            = "updateApp"
-	PointTypeSysState             = "sysState"
+	NodeTypeDevice         = "device"
+	PointTypeCmdPending    = "cmdPending"
+	PointTypeSwUpdateState = "swUpdateState"
+	PointTypeStartApp      = "startApp"
+	PointTypeStartSystem   = "startSystem"
+	PointTypeUpdateOS      = "updateOS"
+	PointTypeUpdateApp     = "updateApp"
+	PointTypeSysState      = "sysState"
+
+	PointValueSysStateUnknown  = "unknown"
+	PointValueSysStatePowerOff = "powerOff"
+	PointValueSysStateOffline  = "offline"
+	PointValueSysStateOnline   = "online"
+
 	PointTypeSwUpdateRunning      = "swUpdateRunning"
 	PointTypeSwUpdateError        = "swUpdateError"
 	PointTypeSwUpdatePercComplete = "swUpdatePercComplete"
@@ -86,13 +92,46 @@ const (
 	NodeTypeGroup = "group"
 
 	// a rule node describes a rule that may run on the system
-	NodeTypeRule          = "rule"
-	NodeTypeRuleCondition = "ruleCondition"
-	NodeTypeRuleAction    = "ruleAction"
+	NodeTypeRule      = "rule"
+	NodeTypeCondition = "condition"
+
+	PointTypeConditionType         = "conditionType"
+	PointValueConditionValue       = "value"
+	PointValueConditionValueBool   = "valueBool"
+	PointValueConditionValueText   = "valueText"
+	PointValueConditionSystemState = "systemState"
+
+	PointTypeOperator     = "operator"
+	PointValueGreaterThan = ">"
+	PointValueLessThan    = "<"
+	PointValueEqual       = "="
+	PointValueNotEqual    = "!="
+	PointValueOn          = "on"
+	PointValueOff         = "off"
+
+	NodeTypeAction = "action"
+
+	PointTypeActionType = "actionType"
+
+	PointValueActionNotify       = "notify"
+	PointValueActionSetValue     = "setValue"
+	PointValueActionSetValueBool = "setValueBool"
+	PointValueActionSetValueText = "setValueText"
 
 	// Transient points that are used for notifications, etc.
-	// These points are not stored in the state state of any node,
+	// These points are not stored in the state of any node,
 	// but are recorded in the time series database to record history.
 	PointMsgAll  = "msgAll"
 	PointMsgUser = "msgUser"
+
+	NodeTypeMsgService = "msgService"
+
+	PointTypeService = "service"
+
+	PointValueTwilio = "twilio"
+	PointValueSMTP   = "smtp"
+
+	PointTypeSID       = "sid"
+	PointTypeAuthToken = "authToken"
+	PointTypeFrom      = "from"
 )
