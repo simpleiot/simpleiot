@@ -231,7 +231,7 @@ func txNode(tx *genji.Tx, id string) (data.Node, error) {
 }
 
 // recurisively find all descendents
-func txNodeFindDescendents(tx *genji.Tx, id string) ([]data.NodeEdge, error) {
+func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool) ([]data.NodeEdge, error) {
 	var nodes []data.NodeEdge
 
 	downIDs, err := txEdgeDown(tx, id)
@@ -254,12 +254,14 @@ func txNodeFindDescendents(tx *genji.Tx, id string) ([]data.NodeEdge, error) {
 
 		nodes = append(nodes, node.ToNodeEdge(id))
 
-		downNodes, err := txNodeFindDescendents(tx, downID)
-		if err != nil {
-			return nodes, err
-		}
+		if recursive {
+			downNodes, err := txNodeFindDescendents(tx, downID, true)
+			if err != nil {
+				return nodes, err
+			}
 
-		nodes = append(nodes, downNodes...)
+			nodes = append(nodes, downNodes...)
+		}
 	}
 
 	return nodes, nil
@@ -428,7 +430,7 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 		}
 
 		node.ProcessPoint(point)
-		node.SetState(data.SysStateOnline)
+		node.SetState(data.PointValueSysStateOnline)
 
 		if !found {
 			err := tx.Exec(`insert into nodes values ?`, node)
@@ -447,7 +449,7 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 }
 
 // NodeSetState is used to set the current system state
-func (gen *Db) NodeSetState(id string, state int) error {
+func (gen *Db) NodeSetState(id string, state string) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
 		var node data.Node
 		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
@@ -627,7 +629,7 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 			}
 			nodes = append(nodes, rootNode.ToNodeEdge(""))
 
-			childNodes, err := txNodeFindDescendents(tx, id)
+			childNodes, err := txNodeFindDescendents(tx, id, true)
 			if err != nil {
 				return err
 			}
@@ -641,13 +643,14 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 	return nodes, err
 }
 
-// NodeChildren returns child nodes for a particular node ID and type
-// set typ to blank string to find all children
-func (gen *Db) NodeChildren(id, typ string) ([]data.NodeEdge, error) {
+// NodeDescendents returns all descendents for a particular node ID and type
+// set typ to blank string to find all descendents. Set recursive to false to
+// stop at children, true to recursively get all descendents.
+func (gen *Db) NodeDescendents(id, typ string, recursive bool) ([]data.NodeEdge, error) {
 	var nodes []data.NodeEdge
 
 	err := gen.store.View(func(tx *genji.Tx) error {
-		childNodes, err := txNodeFindDescendents(tx, id)
+		childNodes, err := txNodeFindDescendents(tx, id, recursive)
 		if err != nil {
 			return err
 		}

@@ -154,7 +154,8 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			var err error
 			if point.Text != "" {
 				// send message to all users
-				nodes, err := h.db.NodeChildren(id, data.NodeTypeUser)
+				// TODO do we want to notify children or all descendents here?
+				nodes, err := h.db.NodeDescendents(id, data.NodeTypeUser, false)
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusInternalServerError)
 					return

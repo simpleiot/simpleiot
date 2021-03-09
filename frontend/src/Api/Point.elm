@@ -14,11 +14,14 @@ module Api.Point exposing
     , newText
     , newValue
     , renderPoint
+    , typeActionType
     , typeAddress
     , typeAppVersion
+    , typeAuthToken
     , typeBaud
     , typeClientServer
     , typeCmdPending
+    , typeConditionType
     , typeDataFormat
     , typeDebug
     , typeDescription
@@ -30,18 +33,22 @@ module Api.Point exposing
     , typeErrorCountEOFReset
     , typeErrorCountReset
     , typeFirstName
+    , typeFrom
     , typeHwVersion
     , typeID
     , typeLastName
     , typeModbusIOType
     , typeOSVersion
     , typeOffset
+    , typeOperator
     , typePass
     , typePhone
     , typePollPeriod
     , typePort
     , typeReadOnly
+    , typeSID
     , typeScale
+    , typeService
     , typeStartApp
     , typeStartSystem
     , typeSwUpdateError
@@ -56,15 +63,35 @@ module Api.Point exposing
     , typeValueSet
     , updatePoint
     , updatePoints
+    , valueActionNotify
+    , valueActionSetValue
+    , valueActionSetValueBool
+    , valueActionSetValueText
     , valueClient
+    , valueConditionSystemState
+    , valueConditionValue
+    , valueConditionValueBool
+    , valueConditionValueText
+    , valueEqual
     , valueFLOAT32
+    , valueGreaterThan
     , valueINT16
     , valueINT32
+    , valueLessThan
     , valueModbusCoil
     , valueModbusDiscreteInput
     , valueModbusHoldingRegister
     , valueModbusInputRegister
+    , valueNotEqual
+    , valueOff
+    , valueOn
+    , valueSMTP
     , valueServer
+    , valueSysStateOffline
+    , valueSysStateOnline
+    , valueSysStatePowerOff
+    , valueSysStateUnknown
+    , valueTwilio
     , valueUINT16
     , valueUINT32
     )
@@ -147,6 +174,26 @@ typeUpdateApp =
 typeSysState : String
 typeSysState =
     "sysState"
+
+
+valueSysStateUnknown : String
+valueSysStateUnknown =
+    "unknown"
+
+
+valueSysStatePowerOff : String
+valueSysStatePowerOff =
+    "powerOff"
+
+
+valueSysStateOffline : String
+valueSysStateOffline =
+    "offline"
+
+
+valueSysStateOnline : String
+valueSysStateOnline =
+    "online"
 
 
 typeSwUpdateRunning : String
@@ -332,6 +379,121 @@ valueClient =
 valueServer : String
 valueServer =
     "server"
+
+
+typeConditionType : String
+typeConditionType =
+    "conditionType"
+
+
+valueConditionValue : String
+valueConditionValue =
+    "value"
+
+
+valueConditionValueBool : String
+valueConditionValueBool =
+    "valueBool"
+
+
+valueConditionValueText : String
+valueConditionValueText =
+    "valueText"
+
+
+valueConditionSystemState : String
+valueConditionSystemState =
+    typeSysState
+
+
+typeOperator : String
+typeOperator =
+    "operator"
+
+
+valueGreaterThan : String
+valueGreaterThan =
+    ">"
+
+
+valueLessThan : String
+valueLessThan =
+    "<"
+
+
+valueEqual : String
+valueEqual =
+    "="
+
+
+valueNotEqual : String
+valueNotEqual =
+    "!="
+
+
+valueOn : String
+valueOn =
+    "on"
+
+
+valueOff : String
+valueOff =
+    "off"
+
+
+typeActionType : String
+typeActionType =
+    "actionType"
+
+
+valueActionNotify : String
+valueActionNotify =
+    "notify"
+
+
+valueActionSetValue : String
+valueActionSetValue =
+    "setValue"
+
+
+valueActionSetValueBool : String
+valueActionSetValueBool =
+    "setValueBool"
+
+
+valueActionSetValueText : String
+valueActionSetValueText =
+    "setValueText"
+
+
+typeService : String
+typeService =
+    "service"
+
+
+valueTwilio : String
+valueTwilio =
+    "twilio"
+
+
+valueSMTP : String
+valueSMTP =
+    "smtp"
+
+
+typeSID : String
+typeSID =
+    "sid"
+
+
+typeAuthToken : String
+typeAuthToken =
+    "authToken"
+
+
+typeFrom : String
+typeFrom =
+    "from"
 
 
 
