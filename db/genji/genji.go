@@ -114,26 +114,6 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx) (*Db, error) 
 		return nil, fmt.Errorf("Error creating idx_edge_down: %w", err)
 	}
 
-	err = store.Exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY)`)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating users table: %w", err)
-	}
-
-	err = store.Exec(`CREATE TABLE IF NOT EXISTS groups (id TEXT PRIMARY KEY)`)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating groups table: %w", err)
-	}
-
-	err = store.Exec(`CREATE TABLE IF NOT EXISTS rules (id TEXT PRIMARY KEY)`)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating rules table: %w", err)
-	}
-
-	err = store.Exec(`CREATE TABLE IF NOT EXISTS cmds (id TEXT PRIMARY KEY)`)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating cmds table: %w", err)
-	}
-
 	db := &Db{store: store, influx: influx}
 	return db, db.initialize()
 }
@@ -488,122 +468,6 @@ func (gen *Db) NodeSetSwUpdateState(id string, state data.SwUpdateState) error {
 		return tx.Exec(`update nodes set points = ? where id = ?`,
 			node.Points, id)
 	})
-}
-
-// NodeSetCmd sets a cmd for a node, and sets the
-// CmdPending flag in the node structure.
-func (gen *Db) NodeSetCmd(cmd data.NodeCmd) error {
-	return gen.store.Update(func(tx *genji.Tx) error {
-		// first update cmd table
-		err := tx.Exec(`delete from cmds where id = ?`, cmd.ID)
-		if err != nil {
-			return err
-		}
-
-		err = tx.Exec(`insert into cmds values ?`, cmd)
-		if err != nil {
-			return err
-		}
-
-		// now update cmd pending in node
-		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, cmd.ID)
-		if err != nil {
-			return err
-		}
-
-		var node data.Node
-		err = document.StructScan(doc, &node)
-		if err != nil {
-			return err
-		}
-
-		node.SetCmdPending(true)
-
-		return tx.Exec(`update nodes set points = ? where id = ?`,
-			node.Points, cmd.ID)
-	})
-}
-
-// NodeDeleteCmd delets a cmd for a node and clears the
-// the cmd pending flag
-func (gen *Db) NodeDeleteCmd(id string) error {
-	return gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(`delete from cmds where id = ?`, id)
-		if err != nil {
-			return err
-		}
-
-		// now update cmd pending in node
-		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
-		if err != nil {
-			return err
-		}
-
-		var node data.Node
-		err = document.StructScan(doc, &node)
-		if err != nil {
-			return err
-		}
-
-		node.SetCmdPending(false)
-
-		return tx.Exec(`update nodes set points = ? where id = ?`,
-			node.Points, id)
-	})
-}
-
-// NodeGetCmd gets a cmd for a node. If the cmd is no null,
-// the command is deleted, and the cmdPending flag cleared in
-// the Node data structure.
-func (gen *Db) NodeGetCmd(id string) (data.NodeCmd, error) {
-	var cmd data.NodeCmd
-
-	err := gen.store.Update(func(tx *genji.Tx) error {
-		doc, err := tx.QueryDocument(`select * from cmds where id = ?`, id)
-
-		if err != nil {
-			if err != database.ErrDocumentNotFound {
-				return err
-			}
-		}
-
-		if err == nil {
-			err = document.StructScan(doc, &cmd)
-			if err != nil {
-				return err
-			}
-		}
-
-		if cmd.Cmd != "" {
-			// a node has fetched a command, delete it
-			err := tx.Exec(`delete from cmds where id = ?`, id)
-			if err != nil {
-				return err
-			}
-
-			// now update cmd pending in node
-			doc, err := tx.QueryDocument(`select * from nodes where id = ?`, cmd.ID)
-			if err != nil {
-				return err
-			}
-
-			var node data.Node
-			err = document.StructScan(doc, &node)
-			if err != nil {
-				return err
-			}
-
-			node.SetCmdPending(false)
-
-			return tx.Exec(`update nodes set points = ? where id = ?`,
-				node.Points, cmd.ID)
-
-		}
-
-		return nil
-	})
-
-	return cmd, err
 }
 
 // NodesForUser returns all nodes for a particular user
@@ -1101,179 +965,12 @@ func (gen *Db) GroupDelete(id string) error {
 	return gen.store.Exec(`delete from groups where id = ?`, id)
 }
 
-// Rules returns all rules.
-func (gen *Db) Rules() ([]data.Rule, error) {
-	var ret []data.Rule
-	res, err := gen.store.Query(`select * from rules`)
-	if err != nil {
-		return ret, err
-	}
-
-	defer res.Close()
-
-	err = res.Iterate(func(d document.Document) error {
-		var rule data.Rule
-		err := document.StructScan(d, &rule)
-		if err != nil {
-			return err
-		}
-
-		ret = append(ret, rule)
-
-		return nil
-	})
-
-	return ret, err
-}
-
-// RuleByID finds a rule given the ID
-func (gen *Db) RuleByID(id string) (data.Rule, error) {
-	var rule data.Rule
-	doc, err := gen.store.QueryDocument(`select * from rules where id = ?`, id)
-	if err != nil {
-		return rule, err
-	}
-
-	err = document.StructScan(doc, &rule)
-	return rule, err
-}
-
-// RuleInsert inserts a new rule
-func (gen *Db) RuleInsert(rule data.Rule) (string, error) {
-	if rule.ID == "" {
-		rule.ID = uuid.New().String()
-	}
-	err := gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(`insert into rules values ?`, rule)
-		if err != nil {
-			return err
-		}
-
-		doc, err := tx.QueryDocument(`select * from nodes where id = ?`,
-			rule.Config.NodeID)
-
-		if err != nil {
-			return err
-		}
-
-		var node data.Node
-		err = document.StructScan(doc, &node)
-		if err != nil {
-			return err
-		}
-
-		nodeHasRule := false
-
-		for _, r := range node.Rules {
-			if r == rule.ID {
-				nodeHasRule = true
-			}
-		}
-
-		if !nodeHasRule {
-			node.Rules = append(node.Rules, rule.ID)
-
-			return tx.Exec(`update nodes set rules = ? where id = ?`,
-				node.Rules, node.ID)
-		}
-
-		return nil
-	})
-
-	return rule.ID, err
-}
-
-// RuleUpdateConfig updates a rule config
-func (gen *Db) RuleUpdateConfig(id string, config data.RuleConfig) error {
-	return gen.store.Exec(`update rules set config = ? where id = ?`,
-		config, id)
-}
-
-// RuleUpdateState updates a rule state
-func (gen *Db) RuleUpdateState(id string, state data.RuleState) error {
-	return gen.store.Exec(`update rules set state = ? where id = ?`,
-		state, id)
-}
-
-// RuleDelete deletes a rule from the database
-func (gen *Db) RuleDelete(id string) error {
-	return gen.store.Update(func(tx *genji.Tx) error {
-		doc, err := tx.QueryDocument(`select * from rules where id = ?`,
-			id)
-		if err != nil {
-			return err
-		}
-
-		var rule data.Rule
-		err = document.StructScan(doc, &rule)
-		if err != nil {
-			return err
-		}
-
-		// remove rule from node
-		doc, err = tx.QueryDocument(`select * from nodes where id = ?`,
-			rule.Config.NodeID)
-		if err != nil {
-			return err
-		}
-
-		var node data.Node
-		err = document.StructScan(doc, &node)
-		if err != nil {
-			return err
-		}
-
-		// new rules array
-		newNodeRules := []string{}
-		for _, rID := range node.Rules {
-			if rID != rule.ID {
-				newNodeRules = append(newNodeRules, rID)
-			}
-		}
-
-		err = tx.Exec(`update nodes set rules = ? where id = ?`,
-			newNodeRules, node.ID)
-
-		if err != nil {
-			return nil
-		}
-
-		return tx.Exec(`delete from rules where id = ?`, id)
-	})
-}
-
-// NodeCmds returns all cmds in database
-func (gen *Db) NodeCmds() ([]data.NodeCmd, error) {
-	var cmds []data.NodeCmd
-	res, err := gen.store.Query(`select * from cmds`)
-	if err != nil {
-		return cmds, err
-	}
-
-	defer res.Close()
-
-	err = res.Iterate(func(d document.Document) error {
-		var cmd data.NodeCmd
-		err = document.StructScan(d, &cmd)
-		if err != nil {
-			return err
-		}
-
-		cmds = append(cmds, cmd)
-		return nil
-	})
-
-	return cmds, err
-}
-
 type genImport struct {
-	Devices  []Device       `json:"devices"`
-	Nodes    []data.Node    `json:"nodes"`
-	Edges    []data.Edge    `json:"edges"`
-	Users    []data.User    `json:"users"`
-	Groups   []data.Group   `json:"groups"`
-	Rules    []data.Rule    `json:"rules"`
-	NodeCmds []data.NodeCmd `json:"nodeCmds"`
+	Devices []Device     `json:"devices"`
+	Nodes   []data.Node  `json:"nodes"`
+	Edges   []data.Edge  `json:"edges"`
+	Users   []data.User  `json:"users"`
+	Groups  []data.Group `json:"groups"`
 }
 
 // ImportDb imports contents of file into database
@@ -1317,22 +1014,13 @@ func ImportDb(gen *Db, in io.Reader) error {
 		}
 	}
 
-	for _, r := range dump.Rules {
-		_, err := gen.RuleInsert(r)
-		if err != nil {
-			return fmt.Errorf("Error inserting rule (%+v): %w", r, err)
-		}
-	}
-
 	return nil
 }
 
 type genDump struct {
-	Nodes    []data.Node    `json:"nodes"`
-	Edges    []data.Edge    `json:"edges"`
-	Rules    []data.Rule    `json:"rules"`
-	NodeCmds []data.NodeCmd `json:"nodeCmds"`
-	Meta     Meta           `json:"meta"`
+	Nodes []data.Node `json:"nodes"`
+	Edges []data.Edge `json:"edges"`
+	Meta  Meta        `json:"meta"`
 }
 
 // DumpDb dumps the entire gen to a file
@@ -1347,11 +1035,6 @@ func DumpDb(gen *Db, out io.Writer) error {
 	}
 
 	dump.Edges, err = gen.Edges()
-	if err != nil {
-		return err
-	}
-
-	dump.NodeCmds, err = gen.NodeCmds()
 	if err != nil {
 		return err
 	}

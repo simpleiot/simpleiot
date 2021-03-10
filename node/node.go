@@ -59,19 +59,6 @@ func (m *Manager) Run() {
 					log.Println("Error updating node state: ", err)
 				}
 			}
-
-			for _, ruleID := range node.Rules {
-				rule, err := m.db.RuleByID(ruleID)
-				if err != nil {
-					log.Printf("Error finding rule %v: %v\n", ruleID, err)
-					continue
-				}
-
-				err = m.runRule(&node, &rule)
-				if err != nil {
-					log.Println("Error running rule: ", ruleID)
-				}
-			}
 		}
 
 		time.Sleep(1 * time.Second)
@@ -97,14 +84,14 @@ func (m *Manager) runRule(node *data.Node, rule *data.Rule) error {
 	}
 
 	active := rule.IsActive(node.Points)
-	if active != rule.State.Active {
+	if active != rule.Active {
 		state := data.RuleState{Active: active}
 		if active {
 			// process actions
-			if !rule.State.Active && rule.Config.Repeat == 0 {
-				for _, a := range rule.Config.Actions {
+			if !rule.Active && rule.Repeat == 0 {
+				for _, a := range rule.Actions {
 					if a.Type == data.ActionTypeNotify {
-						err := m.notify(node, rule.Config.Description, a.Template, node.Groups)
+						err := m.notify(node, rule.Description, a.Template, node.Groups)
 						if err != nil {
 							log.Println("Error notifying: ", err)
 						}
@@ -115,10 +102,10 @@ func (m *Manager) runRule(node *data.Node, rule *data.Rule) error {
 		}
 
 		// store updated state in DB
-		err := m.db.RuleUpdateState(rule.ID, state)
-		if err != nil {
-			log.Println("Error updating rule state: ", err)
-		}
+		//err := m.db.RuleUpdateState(rule.ID, state)
+		//if err != nil {
+		//		log.Println("Error updating rule state: ", err)
+		//}
 	}
 
 	return nil
