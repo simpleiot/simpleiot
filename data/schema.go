@@ -127,4 +127,9 @@ const (
 	PointTypeSID       = "sid"
 	PointTypeAuthToken = "authToken"
 	PointTypeFrom      = "from"
+
+	NodeTypeVariable      = "variable"
+	PointTypeVariableType = "variableType"
+	PointValueOnOff       = "onOff"
+	PointValueNumber      = "number"
 )

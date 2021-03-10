@@ -16,6 +16,7 @@ import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeRule as NodeRule
 import Components.NodeUser as NodeUser
+import Components.NodeVariable as NodeVariable
 import Element exposing (..)
 import Element.Input as Input
 import Http
@@ -881,6 +882,9 @@ shouldDisplay typ =
         "msgService" ->
             True
 
+        "variable" ->
+            True
+
         _ ->
             False
 
@@ -916,6 +920,9 @@ viewNode model parent node depth =
 
                 "msgService" ->
                     NodeMessageService.view
+
+                "variable" ->
+                    NodeVariable.view
 
                 _ ->
                     viewUnknown
@@ -1072,6 +1079,7 @@ viewAddNode parent add =
                             , Input.option Node.typeRule (text "Rule")
                             , Input.option Node.typeModbus (text "Modbus")
                             , Input.option Node.typeMsgService (text "Messaging Service")
+                            , Input.option Node.typeVariable (text "Variable")
                             ]
 
                         else
@@ -1082,6 +1090,7 @@ viewAddNode parent add =
                             , Input.option Node.typeGroup (text "Group")
                             , Input.option Node.typeRule (text "Rule")
                             , Input.option Node.typeMsgService (text "Messaging Service")
+                            , Input.option Node.typeVariable (text "Variable")
                             ]
 
                         else

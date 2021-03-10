@@ -61,6 +61,7 @@ module Api.Point exposing
     , typeUpdateOS
     , typeValue
     , typeValueSet
+    , typeVariableType
     , updatePoint
     , updatePoints
     , valueActionNotify
@@ -83,8 +84,10 @@ module Api.Point exposing
     , valueModbusHoldingRegister
     , valueModbusInputRegister
     , valueNotEqual
+    , valueNumber
     , valueOff
     , valueOn
+    , valueOnOff
     , valueSMTP
     , valueServer
     , valueSysStateOffline
@@ -494,6 +497,21 @@ typeAuthToken =
 typeFrom : String
 typeFrom =
     "from"
+
+
+typeVariableType : String
+typeVariableType =
+    "variableType"
+
+
+valueOnOff : String
+valueOnOff =
+    "onOff"
+
+
+valueNumber : String
+valueNumber =
+    "number"
 
 
 

@@ -22,6 +22,7 @@ module Api.Node exposing
     , typeMsgService
     , typeRule
     , typeUser
+    , typeVariable
     )
 
 import Api.Data exposing (Data)
@@ -92,6 +93,11 @@ typeModbus =
 typeModbusIO : String
 typeModbusIO =
     "modbusIo"
+
+
+typeVariable : String
+typeVariable =
+    "variable"
 
 
 type alias Node =
