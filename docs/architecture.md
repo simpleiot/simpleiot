@@ -74,7 +74,7 @@ The core data structures are currently defined in the [`data`](../data)
 directory for Go code, and [`frontend/src/Data`](../frontend/src/Data) directory
 for Elm code. The fundamental data structures for the system are
 [`Nodes`](../data/node.go), [`Points`](../data/point.go), and
-[`Edges`](../data/edge.go). A `Device` can have one or more `Points`. A `Point`
+[`Edges`](../data/edge.go). A `Node` can have one or more `Points`. A `Point`
 can represent a sensor value, or a configuration parameter for the node. With
 sensor values and configuration represented as `Points`, it becomes easy to use
 both sensor data and configuration in rule or equations because the mechanism to
