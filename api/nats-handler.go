@@ -183,8 +183,31 @@ func (nh *NatsHandler) processPointUpstream(nodeID string, p data.Point) error {
 
 	for _, id := range upIDs {
 		// get children and process any rules
-		_ = id
+		ruleNodes, err := nh.db.NodeDescendents(id, data.NodeTypeRule, false)
+		if err != nil {
+			return err
+		}
 
+		for _, ruleNode := range ruleNodes {
+			conditionNodes, err := nh.db.NodeDescendents(id, data.NodeTypeCondition, false)
+			if err != nil {
+				return err
+			}
+
+			actionNodes, err := nh.db.NodeDescendents(id, data.NodeTypeAction, false)
+			if err != nil {
+				return err
+			}
+
+			rule, err := data.NodeToRule(ruleNode, conditionNodes, actionNodes)
+
+			_ = rule
+
+			if err != nil {
+				return err
+			}
+
+		}
 	}
 
 	return nil

@@ -32,11 +32,6 @@ type Action struct {
 
 // RuleConfig contains parts of the rule that a users changes
 type RuleConfig struct {
-	Description string        `json:"description"`
-	NodeID      string        `json:"nodeID"`
-	Conditions  []Condition   `json:"conditions"`
-	Actions     []Action      `json:"actions"`
-	Repeat      time.Duration `json:"repeat"`
 }
 
 // RuleState contains parts of a rule that the system changes
@@ -50,16 +45,21 @@ type RuleState struct {
 // to the Rule without config affecting state, and state affecting config as these are typically
 // done by two different entities.
 type Rule struct {
-	ID     string     `json:"id" boltholdKey:"ID"`
-	Config RuleConfig `json:"config"`
-	State  RuleState  `json:"state"`
+	ID          string
+	Description string
+	NodeID      string
+	Conditions  []Condition
+	Actions     []Action
+	Repeat      time.Duration
+	Active      bool
+	LastAction  time.Time
 }
 
 // IsActive checks if the rule is active against a data sample set
 func (r *Rule) IsActive(points []Point) bool {
 	active := true
 	// any of the below conditions can turn active false
-	for _, c := range r.Config.Conditions {
+	for _, c := range r.Conditions {
 		for _, p := range points {
 			if c.SampleType != "" && c.SampleType != p.Type {
 				continue
@@ -92,4 +92,9 @@ func (r *Rule) IsActive(points []Point) bool {
 		}
 	}
 	return active
+}
+
+// NodeToRule converts nodes that make up a rule to a node
+func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (Rule, error) {
+	return Rule{}, nil
 }
