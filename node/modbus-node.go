@@ -12,6 +12,8 @@ import (
 type ModbusNode struct {
 	nodeID             string
 	busType            string
+	protocol           string
+	uri                string
 	id                 int // only used for server
 	portName           string
 	debugLevel         int
@@ -37,21 +39,36 @@ func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 	if !ok {
 		return nil, errors.New("Must define modbus client/server")
 	}
-	ret.portName, ok = node.Points.Text("", data.PointTypePort, 0)
+
+	ret.protocol, ok = node.Points.Text("", data.PointTypeProtocol, 0)
 	if !ok {
-		return nil, errors.New("Must define modbus port name")
+		return nil, errors.New("Must define modbus protocol")
 	}
 
-	baud, ok := node.Points.Text("", data.PointTypeBaud, 0)
-	if !ok {
-		return nil, errors.New("Must define modbus baud")
+	if ret.protocol == data.PointValueRTU {
+		ret.portName, ok = node.Points.Text("", data.PointTypePort, 0)
+		if !ok {
+			return nil, errors.New("Must define modbus port name")
+		}
+
+		baud, ok := node.Points.Text("", data.PointTypeBaud, 0)
+		if !ok {
+			return nil, errors.New("Must define modbus baud")
+		}
+
+		var err error
+		ret.baud, err = strconv.Atoi(baud)
+
+		if err != nil {
+			return nil, fmt.Errorf("Invalid baud: %v", baud)
+		}
 	}
 
-	var err error
-	ret.baud, err = strconv.Atoi(baud)
-
-	if err != nil {
-		return nil, fmt.Errorf("Invalid baud: %v", baud)
+	if ret.protocol == data.PointValueTCP {
+		ret.uri, ok = node.Points.Text("", data.PointTypeURI, 0)
+		if !ok {
+			return nil, errors.New("Must define modbus URI")
+		}
 	}
 
 	ret.pollPeriod, ok = node.Points.ValueInt("", data.PointTypePollPeriod, 0)
