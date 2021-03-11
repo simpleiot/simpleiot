@@ -33,7 +33,7 @@ func (r *TCP) Write(p []byte) (int, error) {
 	return r.port.Write(p)
 }
 
-// Encode encodes a RTU packet
+// Encode encodes a TCP packet
 func (r *TCP) Encode(id byte, pdu PDU) ([]byte, error) {
 	// increment transaction ID
 	r.txID++
@@ -57,7 +57,7 @@ func (r *TCP) Encode(id byte, pdu PDU) ([]byte, error) {
 	return ret, nil
 }
 
-// Decode decodes a RTU packet
+// Decode decodes a TCP packet
 func (r *TCP) Decode(packet []byte) (PDU, error) {
 	if len(packet) < 9 {
 		return PDU{}, fmt.Errorf("Not enough data for TCP packet: %v", len(packet))
