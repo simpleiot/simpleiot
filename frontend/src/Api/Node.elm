@@ -13,10 +13,14 @@ module Api.Node exposing
     , sysStateOffline
     , sysStateOnline
     , sysStatePowerOff
+    , typeAction
+    , typeCondition
     , typeDevice
     , typeGroup
     , typeModbus
     , typeModbusIO
+    , typeMsgService
+    , typeRule
     , typeUser
     )
 
@@ -55,9 +59,29 @@ typeGroup =
     "group"
 
 
+typeRule : String
+typeRule =
+    "rule"
+
+
+typeCondition : String
+typeCondition =
+    "condition"
+
+
+typeAction : String
+typeAction =
+    "action"
+
+
 typeUser : String
 typeUser =
     "user"
+
+
+typeMsgService : String
+typeMsgService =
+    "msgService"
 
 
 typeModbus : String
