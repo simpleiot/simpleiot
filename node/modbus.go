@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
@@ -36,6 +37,7 @@ type Modbus struct {
 	server       *modbus.Server
 	serialPort   serial.Port
 	port         io.ReadWriteCloser
+	sock         net.Conn
 	ioErrorCount int
 
 	chDone      chan bool
@@ -595,7 +597,7 @@ func (b *Modbus) LogError(io *ModbusIONode, err error) error {
 // SetupPort sets up io for the bus
 func (b *Modbus) SetupPort() error {
 	if b.busNode.debugLevel >= 1 {
-		log.Println("modbus: setting up serial port: ", b.busNode.portName)
+		log.Println("modbus: setting up modbus transport: ", b.busNode.portName)
 	}
 	if b.server != nil {
 		b.server.Close()
@@ -611,20 +613,40 @@ func (b *Modbus) SetupPort() error {
 		b.port = nil
 	}
 
-	mode := &serial.Mode{
-		BaudRate: b.busNode.baud,
+	if b.sock != nil {
+		b.sock.Close()
+		b.sock = nil
 	}
 
-	var err error
-	b.serialPort, err = serial.Open(b.busNode.portName, mode)
-	if err != nil {
-		b.serialPort = nil
-		return fmt.Errorf("Error opening serial port: %w", err)
+	var transport modbus.Transport
+
+	switch b.busNode.protocol {
+	case data.PointValueRTU:
+		mode := &serial.Mode{
+			BaudRate: b.busNode.baud,
+		}
+
+		var err error
+		b.serialPort, err = serial.Open(b.busNode.portName, mode)
+		if err != nil {
+			b.serialPort = nil
+			return fmt.Errorf("Error opening serial port: %w", err)
+		}
+
+		b.port = respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*100, time.Millisecond*20)
+
+		transport = modbus.NewRTU(b.port)
+	case data.PointValueTCP:
+		var err error
+		b.sock, err = net.DialTimeout("tcp", b.busNode.uri, 5*time.Second)
+		if err != nil {
+			return err
+		}
+
+		transport = modbus.NewTCP(b.sock)
+	default:
+		return fmt.Errorf("Unsupported modbus protocol: %v", b.busNode.protocol)
 	}
-
-	b.port = respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*100, time.Millisecond*20)
-
-	transport := modbus.NewRTU(b.port)
 
 	if b.busNode.busType == data.PointValueServer {
 		b.server = modbus.NewServer(byte(b.busNode.id), transport)
@@ -686,7 +708,8 @@ func (b *Modbus) Run() {
 					data.PointTypeID,
 					data.PointTypeDebug,
 					data.PointTypePort,
-					data.PointTypeBaud:
+					data.PointTypeBaud,
+					data.PointTypeURI:
 					err := b.SetupPort()
 					if err != nil {
 						log.Println("Error setting up serial port: ", err)
