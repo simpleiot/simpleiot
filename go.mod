@@ -8,7 +8,6 @@ require (
 	github.com/cavaliercoder/grab v2.0.0+incompatible
 	github.com/cbrake/influxdbhelper/v2 v2.1.4
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
-	github.com/dgraph-io/badger/v2 v2.2007.3-0.20201012072640-f5a7e0a1c83b
 	github.com/dgraph-io/badger/v3 v3.2011.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
