@@ -923,6 +923,9 @@ func (b *Modbus) Run() {
 
 			if (b.client == nil && b.server == nil) ||
 				b.ioErrorCount > 10 || portError != nil {
+				if b.busNode.debugLevel >= 1 {
+					log.Printf("Re-initializing modbus port, err cnt: %v, portError: %v\n", b.ioErrorCount, portError)
+				}
 				b.ioErrorCount = 0
 				// try to set up port
 				if err := b.SetupPort(); err != nil {
