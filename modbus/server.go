@@ -32,6 +32,7 @@ func NewServer(id byte, transport Transport, regs *Regs) *Server {
 
 // Close stops the listening channel
 func (s *Server) Close() error {
+	s.transport.Close()
 	s.chDone <- true
 	return nil
 }
@@ -46,16 +47,24 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 	for {
 		select {
 		case <-s.chDone:
+			// FIXME is there a way to detect closed port with serial so
+			// we don't need this channel any more?
 			log.Println("Exiting modbus server listen")
 			return
 		default:
 		}
 		buf := make([]byte, 200)
 		cnt, err := s.transport.Read(buf)
-		fmt.Println("CLIFF: Listen read returned: ", cnt, err)
 		if err != nil {
-			if err != io.EOF {
+			if err != io.EOF && s.transport.Type() == TransportTypeRTU {
+				// only print errors for RTU for now as we get timeout
+				// errors with TCP
 				log.Println("Error reading modbus port: ", err)
+			}
+
+			if err == io.EOF && s.transport.Type() == TransportTypeTCP {
+				// with TCP, EOF means we are done with this connection
+				return
 			}
 
 			// FIXME -- do we want to keep this long term?

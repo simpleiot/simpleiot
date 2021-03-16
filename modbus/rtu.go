@@ -15,11 +15,11 @@ type RtuADU struct {
 
 // RTU defines an RTU connection
 type RTU struct {
-	port io.ReadWriter
+	port io.ReadWriteCloser
 }
 
 // NewRTU creates a new RTU transport
-func NewRTU(port io.ReadWriter) *RTU {
+func NewRTU(port io.ReadWriteCloser) *RTU {
 	return &RTU{
 		port: port,
 	}
@@ -31,6 +31,11 @@ func (r *RTU) Read(p []byte) (int, error) {
 
 func (r *RTU) Write(p []byte) (int, error) {
 	return r.port.Write(p)
+}
+
+// Close closes the serial port
+func (r *RTU) Close() error {
+	return r.port.Close()
 }
 
 // Encode encodes a RTU packet
@@ -62,4 +67,9 @@ func (r *RTU) Decode(packet []byte) (PDU, error) {
 	ret.Data = packet[2 : len(packet)-2]
 
 	return ret, nil
+}
+
+// Type returns TransportType
+func (r *RTU) Type() TransportType {
+	return TransportTypeRTU
 }

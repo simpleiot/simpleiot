@@ -3,7 +3,6 @@ package node
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"time"
@@ -42,8 +41,6 @@ type Modbus struct {
 	client       *modbus.Client
 	server       server
 	serialPort   serial.Port
-	port         io.ReadWriteCloser
-	sock         net.Conn
 	ioErrorCount int
 
 	chDone      chan bool
@@ -614,17 +611,8 @@ func (b *Modbus) SetupPort() error {
 	}
 
 	if b.client != nil {
+		b.client.Close()
 		b.client = nil
-	}
-
-	if b.port != nil {
-		b.port.Close()
-		b.port = nil
-	}
-
-	if b.sock != nil {
-		b.sock.Close()
-		b.sock = nil
 	}
 
 	var transport modbus.Transport
@@ -642,18 +630,17 @@ func (b *Modbus) SetupPort() error {
 			return fmt.Errorf("Error opening serial port: %w", err)
 		}
 
-		b.port = respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*100, time.Millisecond*20)
+		port := respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*100, time.Millisecond*20)
 
-		transport = modbus.NewRTU(b.port)
+		transport = modbus.NewRTU(port)
 	case data.PointValueTCP:
 		switch b.busNode.busType {
 		case data.PointValueClient:
-			var err error
-			b.sock, err = net.DialTimeout("tcp", b.busNode.uri, 5*time.Second)
+			sock, err := net.DialTimeout("tcp", b.busNode.uri, 5*time.Second)
 			if err != nil {
 				return err
 			}
-			transport = modbus.NewTCP(b.sock, 500*time.Millisecond)
+			transport = modbus.NewTCP(sock, 500*time.Millisecond)
 		case data.PointValueServer:
 			// TCPServer does all the setup
 		default:
@@ -951,9 +938,11 @@ func (b *Modbus) Run() {
 			}
 		case <-b.chDone:
 			log.Println("Stopping client IO for: ", b.busNode.portName)
-			b.port.Close()
 			if b.server != nil {
 				b.server.Close()
+			}
+			if b.client != nil {
+				b.client.Close()
 			}
 			return
 		}

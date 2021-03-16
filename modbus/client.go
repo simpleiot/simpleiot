@@ -28,6 +28,11 @@ func (c *Client) SetDebugLevel(debug int) {
 	c.debug = debug
 }
 
+// Close closes the client transport
+func (c *Client) Close() error {
+	return c.transport.Close()
+}
+
 // ReadCoils is used to read modbus coils
 func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	ret := []bool{}

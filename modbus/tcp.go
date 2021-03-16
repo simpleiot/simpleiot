@@ -40,6 +40,11 @@ func (t *TCP) Write(p []byte) (int, error) {
 	return t.sock.Write(p)
 }
 
+// Close connection
+func (t *TCP) Close() error {
+	return t.sock.Close()
+}
+
 // Encode encodes a TCP packet
 func (t *TCP) Encode(id byte, pdu PDU) ([]byte, error) {
 	// increment transaction ID
@@ -78,6 +83,11 @@ func (t *TCP) Decode(packet []byte) (PDU, error) {
 	ret.Data = packet[8:]
 
 	return ret, nil
+}
+
+// Type returns TransportType
+func (t *TCP) Type() TransportType {
+	return TransportTypeTCP
 }
 
 // TCPServer listens for new connections and then starts a modbus listener
@@ -128,6 +138,9 @@ func (ts *TCPServer) Listen(debug int, errorCallback func(error),
 		sock, err := ts.listener.Accept()
 		if err != nil {
 			if ts.stopped {
+				if debug > 0 {
+					log.Println("Modbus TCPServer, stopping listen")
+				}
 				return
 			}
 			log.Println("Modbus TCP server: failed to accept connection: ", err)
