@@ -65,9 +65,19 @@ func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 	}
 
 	if ret.protocol == data.PointValueTCP {
-		ret.uri, ok = node.Points.Text("", data.PointTypeURI, 0)
-		if !ok {
-			return nil, errors.New("Must define modbus URI")
+		switch ret.busType {
+		case data.PointValueClient:
+			ret.uri, ok = node.Points.Text("", data.PointTypeURI, 0)
+			if !ok {
+				return nil, errors.New("Must define modbus URI")
+			}
+		case data.PointValueServer:
+			ret.portName, ok = node.Points.Text("", data.PointTypePort, 0)
+			if !ok {
+				return nil, errors.New("Must define modbus port name")
+			}
+		default:
+			return nil, fmt.Errorf("Invalid bus type: %v", ret.busType)
 		}
 	}
 

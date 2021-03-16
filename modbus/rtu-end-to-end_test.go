@@ -20,15 +20,16 @@ func TestRtuEndToEnd(t *testing.T) {
 	portA := respreader.NewReadWriter(wire.GetA(), time.Second*2,
 		5*time.Millisecond)
 	transportA := NewRTU(portA)
-	slave := NewServer(id, transportA)
-	slave.Regs.AddCoil(128)
-	err := slave.Regs.WriteCoil(128, true)
+	regs := &Regs{}
+	slave := NewServer(id, transportA, regs)
+	regs.AddCoil(128)
+	err := regs.WriteCoil(128, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	slave.Regs.AddReg(2, 1)
-	err = slave.Regs.WriteReg(2, 0x1234)
+	regs.AddReg(2, 1)
+	err = regs.WriteReg(2, 0x1234)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,23 +60,23 @@ func TestRtuEndToEnd(t *testing.T) {
 		t.Fatal("wrong coil value")
 	}
 
-	slave.Regs.WriteCoil(128, false)
+	regs.WriteCoil(128, false)
 	coils, _ = master.ReadCoils(id, 128, 1)
 
 	if coils[0] != false {
 		t.Fatal("wrong coil value")
 	}
 
-	regs, err := master.ReadHoldingRegs(id, 2, 1)
+	hr, err := master.ReadHoldingRegs(id, 2, 1)
 	if err != nil {
 		t.Fatal("read holding regs returned err: ", err)
 	}
 
-	if len(regs) != 1 {
+	if len(hr) != 1 {
 		t.Fatal("invalid regs length")
 	}
 
-	if regs[0] != 0x1234 {
-		t.Fatalf("read holding reg returned wrong value: 0x%x", regs[0])
+	if hr[0] != 0x1234 {
+		t.Fatalf("read holding reg returned wrong value: 0x%x", hr[0])
 	}
 }

@@ -1,6 +1,8 @@
 package modbus
 
-import "io"
+import (
+	"io"
+)
 
 // Transport defines an interface that various
 // transports (RTU, TCP, etc) implement and can

@@ -22,6 +22,11 @@ type pointWID struct {
 	point data.Point
 }
 
+type server interface {
+	Close() error
+	Listen(int, func(error), func())
+}
+
 // Modbus describes a modbus bus
 type Modbus struct {
 	// node data should only be changed through NATS, so that it is only changed in one place
@@ -33,8 +38,9 @@ type Modbus struct {
 	db           *genji.Db
 	nc           *natsgo.Conn
 	sub          *natsgo.Subscription
+	regs         *modbus.Regs
 	client       *modbus.Client
-	server       *modbus.Server
+	server       server
 	serialPort   serial.Port
 	port         io.ReadWriteCloser
 	sock         net.Conn
@@ -409,9 +415,9 @@ func (b *Modbus) ServerIO(io *ModbusIONode) error {
 	// update regs with db value
 	switch io.modbusIOType {
 	case data.PointValueModbusDiscreteInput:
-		b.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
+		b.regs.WriteCoil(io.address, data.FloatToBool(io.value))
 	case data.PointValueModbusCoil:
-		regValue, err := b.server.Regs.ReadCoil(io.address)
+		regValue, err := b.regs.ReadCoil(io.address)
 		if err != nil {
 			return err
 		}
@@ -472,16 +478,16 @@ func (b *Modbus) InitRegs(io *ModbusIONode) {
 	// another device so that we preserve the last known state
 	switch io.modbusIOType {
 	case data.PointValueModbusDiscreteInput:
-		b.server.Regs.AddCoil(io.address)
-		b.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
+		b.regs.AddCoil(io.address)
+		b.regs.WriteCoil(io.address, data.FloatToBool(io.value))
 	case data.PointValueModbusCoil:
-		b.server.Regs.AddCoil(io.address)
-		b.server.Regs.WriteCoil(io.address, data.FloatToBool(io.value))
+		b.regs.AddCoil(io.address)
+		b.regs.WriteCoil(io.address, data.FloatToBool(io.value))
 	case data.PointValueModbusInputRegister:
-		b.server.Regs.AddReg(io.address, regCount(io.modbusDataType))
+		b.regs.AddReg(io.address, regCount(io.modbusDataType))
 		b.WriteReg(io)
 	case data.PointValueModbusHoldingRegister:
-		b.server.Regs.AddReg(io.address, regCount(io.modbusDataType))
+		b.regs.AddReg(io.address, regCount(io.modbusDataType))
 		b.WriteReg(io)
 	}
 }
@@ -492,25 +498,25 @@ func (b *Modbus) ReadReg(io *ModbusIONode) (float64, error) {
 	var valueUnscaled float64
 	switch io.modbusDataType {
 	case data.PointValueUINT16, data.PointValueINT16:
-		v, err := b.server.Regs.ReadReg(io.address)
+		v, err := b.regs.ReadReg(io.address)
 		if err != nil {
 			return 0, err
 		}
 		valueUnscaled = float64(v)
 	case data.PointValueUINT32:
-		v, err := b.server.Regs.ReadRegUint32(io.address)
+		v, err := b.regs.ReadRegUint32(io.address)
 		if err != nil {
 			return 0, err
 		}
 		valueUnscaled = float64(v)
 	case data.PointValueINT32:
-		v, err := b.server.Regs.ReadRegInt32(io.address)
+		v, err := b.regs.ReadRegInt32(io.address)
 		if err != nil {
 			return 0, err
 		}
 		valueUnscaled = float64(v)
 	case data.PointValueFLOAT32:
-		v, err := b.server.Regs.ReadRegFloat32(io.address)
+		v, err := b.regs.ReadRegFloat32(io.address)
 		if err != nil {
 			return 0, err
 		}
@@ -528,15 +534,15 @@ func (b *Modbus) WriteReg(io *ModbusIONode) error {
 	unscaledValue := (io.value - io.offset) / io.scale
 	switch io.modbusDataType {
 	case data.PointValueUINT16, data.PointValueINT16:
-		b.server.Regs.WriteReg(io.address, uint16(unscaledValue))
+		b.regs.WriteReg(io.address, uint16(unscaledValue))
 	case data.PointValueUINT32:
-		b.server.Regs.WriteRegUint32(io.address,
+		b.regs.WriteRegUint32(io.address,
 			uint32(unscaledValue))
 	case data.PointValueINT32:
-		b.server.Regs.WriteRegInt32(io.address,
+		b.regs.WriteRegInt32(io.address,
 			int32(unscaledValue))
 	case data.PointValueFLOAT32:
-		b.server.Regs.WriteRegFloat32(io.address,
+		b.regs.WriteRegFloat32(io.address,
 			float32(unscaledValue))
 	default:
 		return fmt.Errorf("unhandled data type: %v",
@@ -600,7 +606,10 @@ func (b *Modbus) SetupPort() error {
 		log.Println("modbus: setting up modbus transport: ", b.busNode.portName)
 	}
 	if b.server != nil {
-		b.server.Close()
+		err := b.server.Close()
+		if err != nil {
+			log.Println("Error closing server: ", err)
+		}
 		b.server = nil
 	}
 
@@ -637,19 +646,39 @@ func (b *Modbus) SetupPort() error {
 
 		transport = modbus.NewRTU(b.port)
 	case data.PointValueTCP:
-		var err error
-		b.sock, err = net.DialTimeout("tcp", b.busNode.uri, 5*time.Second)
-		if err != nil {
-			return err
+		switch b.busNode.busType {
+		case data.PointValueClient:
+			var err error
+			b.sock, err = net.DialTimeout("tcp", b.busNode.uri, 5*time.Second)
+			if err != nil {
+				return err
+			}
+			transport = modbus.NewTCP(b.sock, 500*time.Millisecond)
+		case data.PointValueServer:
+			// TCPServer does all the setup
+		default:
+			log.Println("setting up modbus TCP, invalid bus type: ", b.busNode.busType)
 		}
 
-		transport = modbus.NewTCP(b.sock)
 	default:
 		return fmt.Errorf("Unsupported modbus protocol: %v", b.busNode.protocol)
 	}
 
 	if b.busNode.busType == data.PointValueServer {
-		b.server = modbus.NewServer(byte(b.busNode.id), transport)
+		b.regs = &modbus.Regs{}
+		if b.busNode.protocol == data.PointValueRTU {
+			b.server = modbus.NewServer(byte(b.busNode.id), transport, b.regs)
+		} else if b.busNode.protocol == data.PointValueTCP {
+			var err error
+			b.server, err = modbus.NewTCPServer(b.busNode.id, 5, b.busNode.portName, b.regs)
+			if err != nil {
+				b.server = nil
+				return err
+			}
+		} else {
+			return errors.New("Modbus protocol not set")
+		}
+
 		go b.server.Listen(b.busNode.debugLevel, func(err error) {
 			log.Println("Modbus server error: ", err)
 		}, func() {
