@@ -169,9 +169,9 @@ if you need help setting this up -- it is relatively simple.
 
 ## Features
 
-Note, Simple IoT is under heavy development right now and APIs may change. If
-you can't find something, it likely got moved to a different package, or renamed
--- feel free to ask if you run into problems.
+Note, Simple IoT is under heavy development right now and APIs and database
+format may change. If you can't find something, it likely got moved to a
+different package, or renamed -- feel free to ask if you run into problems.
 
 - [x] edit/save device config
 - [x] device management
@@ -194,6 +194,8 @@ you can't find something, it likely got moved to a different package, or renamed
       ([WIP](https://github.com/simpleiot/simpleiot/tree/feature-nats))
 - [x] file transfer over NATs (used for sw updates)
 - [x] efficient protocols for cellular data connections (NATs/protobuf)
+- [x] Modbus RTU support in SIOT
+- [x] Modbus TCP support in SIOT
 - [ ] email notifications
 - [ ] COAP API for devices
 - [ ] influxdb 2.x support
