@@ -12,14 +12,14 @@ func TestTCPEncodeDecode(t *testing.T) {
 		Data:         []byte{1, 2, 3},
 	}
 
-	tport := NewTCP(nil, 500*time.Millisecond)
+	tport := NewTCP(nil, 500*time.Millisecond, TransportClient)
 	data, err := tport.Encode(1, pdu)
 
 	if err != nil {
 		t.Fail()
 	}
 
-	pdu2, err := tport.Decode(data)
+	_, pdu2, err := tport.Decode(data)
 
 	if err != nil {
 		t.Fail()
