@@ -3,6 +3,7 @@ package modbus
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestTCPEncodeDecode(t *testing.T) {
@@ -11,7 +12,7 @@ func TestTCPEncodeDecode(t *testing.T) {
 		Data:         []byte{1, 2, 3},
 	}
 
-	tport := NewTCP(nil)
+	tport := NewTCP(nil, 500*time.Millisecond)
 	data, err := tport.Encode(1, pdu)
 
 	if err != nil {

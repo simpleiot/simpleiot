@@ -47,6 +47,11 @@ func (isp *IoSimPort) Write(data []byte) (int, error) {
 	return c, nil
 }
 
+// Close port
+func (isp *IoSimPort) Close() error {
+	return nil
+}
+
 // IoSim simulates a serial port and provides a io.ReadWriter
 // for both ends
 type IoSim struct {
@@ -65,11 +70,11 @@ func NewIoSim(debug bool) *IoSim {
 }
 
 // GetA returns the A port from a IoSim
-func (is *IoSim) GetA() io.ReadWriter {
+func (is *IoSim) GetA() io.ReadWriteCloser {
 	return NewIoSimPort("A", is.aToB, is.bToA, is.debug)
 }
 
 // GetB returns the B port from a IoSim
-func (is *IoSim) GetB() io.ReadWriter {
+func (is *IoSim) GetB() io.ReadWriteCloser {
 	return NewIoSimPort("B", is.bToA, is.aToB, is.debug)
 }
