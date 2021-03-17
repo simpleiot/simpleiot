@@ -80,7 +80,6 @@ func (t *TCP) Decode(packet []byte) (byte, PDU, error) {
 		return 0, PDU{}, fmt.Errorf("Not enough data for TCP packet: %v", len(packet))
 	}
 
-	// FIXME check txID
 	txID := binary.BigEndian.Uint16(packet[:2])
 
 	switch t.clientServer {
