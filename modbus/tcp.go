@@ -102,7 +102,6 @@ type TCPServer struct {
 
 	// state
 	listener net.Listener
-	clients  []net.Conn
 	servers  []*Server
 	lock     sync.Mutex
 	stopped  bool
@@ -148,9 +147,8 @@ func (ts *TCPServer) Listen(debug int, errorCallback func(error),
 
 		log.Println("New Modbus TCP connection")
 
-		if len(ts.clients) < ts.maxClients {
+		if len(ts.servers) < ts.maxClients {
 			ts.lock.Lock()
-			ts.clients = append(ts.clients, sock)
 			transport := NewTCP(sock, 500*time.Millisecond)
 			server := NewServer(byte(ts.id), transport, ts.regs)
 			go server.Listen(debug, errorCallback,
@@ -175,12 +173,6 @@ func (ts *TCPServer) Close() error {
 
 	var retErr error
 
-	err := ts.listener.Close()
-
-	if err != nil {
-		retErr = err
-	}
-
 	for _, server := range ts.servers {
 		err := server.Close()
 		if err != nil {
@@ -188,11 +180,10 @@ func (ts *TCPServer) Close() error {
 		}
 	}
 
-	for _, sock := range ts.clients {
-		err := sock.Close()
-		if err != nil {
-			retErr = err
-		}
+	err := ts.listener.Close()
+
+	if err != nil {
+		retErr = err
 	}
 
 	return retErr

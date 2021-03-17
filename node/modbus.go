@@ -622,6 +622,8 @@ func (b *Modbus) SetupPort() error {
 		log.Println("modbus: setting up modbus transport: ", b.busNode.portName)
 	}
 
+	b.ClosePort()
+
 	var transport modbus.Transport
 
 	switch b.busNode.protocol {
