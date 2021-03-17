@@ -70,19 +70,21 @@ func (t *TCP) Encode(id byte, pdu PDU) ([]byte, error) {
 }
 
 // Decode decodes a TCP packet
-func (t *TCP) Decode(packet []byte) (PDU, error) {
+func (t *TCP) Decode(packet []byte) (byte, PDU, error) {
 	if len(packet) < 9 {
-		return PDU{}, fmt.Errorf("Not enough data for TCP packet: %v", len(packet))
+		return 0, PDU{}, fmt.Errorf("Not enough data for TCP packet: %v", len(packet))
 	}
 
 	// FIXME check txID
 	ret := PDU{}
 
+	id := packet[6]
+
 	ret.FunctionCode = FunctionCode(packet[7])
 
 	ret.Data = packet[8:]
 
-	return ret, nil
+	return id, ret, nil
 }
 
 // Type returns TransportType

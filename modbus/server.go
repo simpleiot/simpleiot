@@ -89,21 +89,22 @@ func (s *Server) Listen(errorCallback func(error),
 			fmt.Println("Modbus server rx: ", HexDump(packet))
 		}
 
-		fmt.Printf("CLIFF: packet[0]: %v, s.id: %v\n", packet[0], s.id)
+		id, req, err := s.transport.Decode(packet)
 
-		if packet[0] != s.id {
-			// packet is not for this device
-			continue
-		}
-
-		req, err := s.transport.Decode(packet)
-		fmt.Println("CLIFF: Decode returned: ", req, err)
 		if err != nil {
 			errorCallback(err)
 			continue
 		}
 
-		fmt.Println("CLIFF: debug: ", s.debug)
+		if id != s.id {
+			// packet is not for this device
+			// for RTU this is normal as the devices are all listening
+			// on one bus.
+			continue
+
+			// For TCP, this should not happen, FIXME should we return
+			// an error here?
+		}
 
 		if s.debug >= 1 {
 			fmt.Println("Modbus server req: ", req)

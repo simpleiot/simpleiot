@@ -67,7 +67,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 		fmt.Println("Modbus client ReadCoils rx: ", HexDump(buf))
 	}
 
-	resp, err := c.transport.Decode(buf)
+	_, resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -112,7 +112,7 @@ func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 		fmt.Println("Modbus client WriteSingleCoil rx: ", HexDump(buf))
 	}
 
-	resp, err := c.transport.Decode(buf)
+	_, resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return fmt.Errorf("RtuDecode error: %w", err)
 	}
@@ -166,7 +166,7 @@ func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error
 		fmt.Println("Modbus client ReadDiscreteInputs rx: ", HexDump(buf))
 	}
 
-	resp, err := c.transport.Decode(buf)
+	_, resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -216,7 +216,7 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 		fmt.Println("Modbus client ReadHoldingRegs rx: ", HexDump(buf))
 	}
 
-	resp, err := c.transport.Decode(buf)
+	_, resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -266,7 +266,7 @@ func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 		fmt.Println("Modbus client ReadInputRegs rx: ", HexDump(buf))
 	}
 
-	resp, err := c.transport.Decode(buf)
+	_, resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return ret, err
 	}
@@ -315,7 +315,7 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 		fmt.Println("Modbus client WriteSingleReg rx: ", HexDump(buf))
 	}
 
-	resp, err := c.transport.Decode(buf)
+	_, resp, err := c.transport.Decode(buf)
 	if err != nil {
 		return err
 	}

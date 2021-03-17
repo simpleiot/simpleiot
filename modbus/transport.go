@@ -19,6 +19,6 @@ const (
 type Transport interface {
 	io.ReadWriteCloser
 	Encode(byte, PDU) ([]byte, error)
-	Decode([]byte) (PDU, error)
+	Decode([]byte) (byte, PDU, error)
 	Type() TransportType
 }

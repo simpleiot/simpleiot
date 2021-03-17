@@ -50,10 +50,10 @@ func (r *RTU) Encode(id byte, pdu PDU) ([]byte, error) {
 }
 
 // Decode decodes a RTU packet
-func (r *RTU) Decode(packet []byte) (PDU, error) {
+func (r *RTU) Decode(packet []byte) (byte, PDU, error) {
 	err := CheckRtuCrc(packet)
 	if err != nil {
-		return PDU{}, err
+		return 0, PDU{}, err
 	}
 
 	ret := PDU{}
@@ -61,12 +61,14 @@ func (r *RTU) Decode(packet []byte) (PDU, error) {
 	ret.FunctionCode = FunctionCode(packet[1])
 
 	if len(packet) < 4 {
-		return PDU{}, fmt.Errorf("short packet, got %d bytes", len(packet))
+		return 0, PDU{}, fmt.Errorf("short packet, got %d bytes", len(packet))
 	}
+
+	id := packet[0]
 
 	ret.Data = packet[2 : len(packet)-2]
 
-	return ret, nil
+	return id, ret, nil
 }
 
 // Type returns TransportType
