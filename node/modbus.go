@@ -649,7 +649,8 @@ func (b *Modbus) SetupPort() error {
 			if err != nil {
 				return err
 			}
-			transport = modbus.NewTCP(sock, 500*time.Millisecond)
+			transport = modbus.NewTCP(sock, 500*time.Millisecond,
+				modbus.TransportClient)
 		case data.PointValueServer:
 			// TCPServer does all the setup
 		default:

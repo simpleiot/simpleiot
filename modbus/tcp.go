@@ -17,16 +17,18 @@ type TCPADU struct {
 
 // TCP defines an TCP connection
 type TCP struct {
-	sock    net.Conn
-	txID    uint16
-	timeout time.Duration
+	sock         net.Conn
+	txID         uint16
+	timeout      time.Duration
+	clientServer TransportClientServer
 }
 
 // NewTCP creates a new TCP transport
-func NewTCP(sock net.Conn, timeout time.Duration) *TCP {
+func NewTCP(sock net.Conn, timeout time.Duration, clientServer TransportClientServer) *TCP {
 	return &TCP{
-		sock:    sock,
-		timeout: timeout,
+		sock:         sock,
+		timeout:      timeout,
+		clientServer: clientServer,
 	}
 }
 
@@ -48,7 +50,10 @@ func (t *TCP) Close() error {
 // Encode encodes a TCP packet
 func (t *TCP) Encode(id byte, pdu PDU) ([]byte, error) {
 	// increment transaction ID
-	t.txID++
+	if t.clientServer == TransportClient {
+		t.txID++
+	}
+
 	// bytes 0,1 transaction ID
 	ret := make([]byte, len(pdu.Data)+8)
 	binary.BigEndian.PutUint16(ret[0:], t.txID)
@@ -76,15 +81,26 @@ func (t *TCP) Decode(packet []byte) (byte, PDU, error) {
 	}
 
 	// FIXME check txID
-	ret := PDU{}
+	txID := binary.BigEndian.Uint16(packet[:2])
+
+	switch t.clientServer {
+	case TransportClient:
+		// need to check that echo'd tx is correct
+		if txID != t.txID {
+			return 0, PDU{}, fmt.Errorf("Transaction id not correct, expected: 0x%x, got 0x%x", t.txID, txID)
+		}
+	case TransportServer:
+		// need to store tx to echo back to client on Encode
+		t.txID = txID
+	}
 
 	id := packet[6]
 
-	ret.FunctionCode = FunctionCode(packet[7])
+	pdu := PDU{}
+	pdu.FunctionCode = FunctionCode(packet[7])
+	pdu.Data = packet[8:]
 
-	ret.Data = packet[8:]
-
-	return id, ret, nil
+	return id, pdu, nil
 }
 
 // Type returns TransportType
@@ -150,7 +166,7 @@ func (ts *TCPServer) Listen(errorCallback func(error),
 
 		ts.lock.Lock()
 		if len(ts.servers) < ts.maxClients {
-			transport := NewTCP(sock, 500*time.Millisecond)
+			transport := NewTCP(sock, 500*time.Millisecond, TransportServer)
 			server := NewServer(byte(ts.id), transport, ts.regs, ts.debug)
 			ts.servers = append(ts.servers, server)
 			go server.Listen(errorCallback,

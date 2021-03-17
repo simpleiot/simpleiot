@@ -13,6 +13,15 @@ const (
 	TransportTypeRTU               = "rtu"
 )
 
+// TransportClientServer defines if transport is being used for a client or server
+type TransportClientServer string
+
+// define valid client server types
+const (
+	TransportClient TransportClientServer = "client"
+	TransportServer                       = "server"
+)
+
 // Transport defines an interface that various
 // transports (RTU, TCP, etc) implement and can
 // be passed to clients/servers
