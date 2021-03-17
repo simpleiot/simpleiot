@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"syscall"
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
@@ -556,6 +557,14 @@ func (b *Modbus) LogError(io *ModbusIONode, err error) error {
 	if b.busNode.debugLevel >= 1 {
 		log.Printf("Modbus %v:%v, error: %v\n",
 			b.busNode.portName, io.description, err)
+	}
+
+	// if broken pipe error then close connection
+	if errors.Is(err, syscall.EPIPE) {
+		if b.busNode.debugLevel >= 1 {
+			log.Printf("Broken pipe, closing connection")
+		}
+		b.ClosePort()
 	}
 
 	errType := modbusErrorToPointType(err)
