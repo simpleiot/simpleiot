@@ -23,7 +23,7 @@ type pointWID struct {
 
 type server interface {
 	Close() error
-	Listen(int, func(error), func())
+	Listen(func(error), func())
 }
 
 // Modbus describes a modbus bus
@@ -663,10 +663,12 @@ func (b *Modbus) SetupPort() error {
 	if b.busNode.busType == data.PointValueServer {
 		b.regs = &modbus.Regs{}
 		if b.busNode.protocol == data.PointValueRTU {
-			b.server = modbus.NewServer(byte(b.busNode.id), transport, b.regs)
+			b.server = modbus.NewServer(byte(b.busNode.id), transport,
+				b.regs, b.busNode.debugLevel)
 		} else if b.busNode.protocol == data.PointValueTCP {
 			var err error
-			b.server, err = modbus.NewTCPServer(b.busNode.id, 5, b.busNode.portName, b.regs)
+			b.server, err = modbus.NewTCPServer(b.busNode.id, 5,
+				b.busNode.portName, b.regs, b.busNode.debugLevel)
 			if err != nil {
 				b.server = nil
 				return err
@@ -675,7 +677,7 @@ func (b *Modbus) SetupPort() error {
 			return errors.New("Modbus protocol not set")
 		}
 
-		go b.server.Listen(b.busNode.debugLevel, func(err error) {
+		go b.server.Listen(func(err error) {
 			log.Println("Modbus server error: ", err)
 		}, func() {
 			if b.busNode.debugLevel > 0 {

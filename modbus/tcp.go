@@ -108,7 +108,7 @@ type TCPServer struct {
 }
 
 // NewTCPServer starts a new TCP modbus server
-func NewTCPServer(id, maxClients int, port string, regs *Regs) (*TCPServer, error) {
+func NewTCPServer(id, maxClients int, port string, regs *Regs, debug int) (*TCPServer, error) {
 	listener, err := net.Listen("tcp", "localhost:"+port)
 	if err != nil {
 		return nil, err
@@ -120,6 +120,7 @@ func NewTCPServer(id, maxClients int, port string, regs *Regs) (*TCPServer, erro
 		port:       port,
 		regs:       regs,
 		listener:   listener,
+		debug:      debug,
 	}, nil
 }
 
@@ -128,16 +129,12 @@ func NewTCPServer(id, maxClients int, port string, regs *Regs) (*TCPServer, erro
 // The listen function supports various debug levels:
 // 1 - dump packets
 // 9 - dump raw data
-func (ts *TCPServer) Listen(debug int, errorCallback func(error),
-	changesCallback func()) {
-
-	ts.debug = debug
-
+func (ts *TCPServer) Listen(errorCallback func(error), changesCallback func()) {
 	for {
 		sock, err := ts.listener.Accept()
 		if err != nil {
 			if ts.stopped {
-				if debug > 0 {
+				if ts.debug > 0 {
 					log.Println("Modbus TCPServer, stopping listen")
 				}
 				return
@@ -150,8 +147,8 @@ func (ts *TCPServer) Listen(debug int, errorCallback func(error),
 		if len(ts.servers) < ts.maxClients {
 			ts.lock.Lock()
 			transport := NewTCP(sock, 500*time.Millisecond)
-			server := NewServer(byte(ts.id), transport, ts.regs)
-			go server.Listen(debug, errorCallback,
+			server := NewServer(byte(ts.id), transport, ts.regs, ts.debug)
+			go server.Listen(errorCallback,
 				changesCallback)
 			ts.servers = append(ts.servers, server)
 			ts.lock.Unlock()

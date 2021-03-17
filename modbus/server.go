@@ -15,18 +15,20 @@ type Server struct {
 	transport Transport
 	regs      *Regs
 	chDone    chan bool
+	debug     int
 }
 
 // NewServer creates a new server instance
 // port must return an entire packet for each Read().
 // github.com/simpleiot/simpleiot/respreader is a good
 // way to do this.
-func NewServer(id byte, transport Transport, regs *Regs) *Server {
+func NewServer(id byte, transport Transport, regs *Regs, debug int) *Server {
 	return &Server{
 		id:        id,
 		transport: transport,
 		regs:      regs,
 		chDone:    make(chan bool),
+		debug:     debug,
 	}
 }
 
@@ -42,7 +44,7 @@ func (s *Server) Close() error {
 // The listen function supports various debug levels:
 // 1 - dump packets
 // 9 - dump raw data
-func (s *Server) Listen(debug int, errorCallback func(error),
+func (s *Server) Listen(errorCallback func(error),
 	changesCallback func()) {
 	for {
 		select {
@@ -80,7 +82,7 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 		// parse packet from server
 		packet := buf[:cnt]
 
-		if debug >= 9 {
+		if s.debug >= 9 {
 			fmt.Println("Modbus server rx: ", HexDump(packet))
 		}
 
@@ -98,9 +100,9 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 			continue
 		}
 
-		fmt.Println("CLIFF: debug: ", debug)
+		fmt.Println("CLIFF: debug: ", s.debug)
 
-		if debug >= 1 {
+		if s.debug >= 1 {
 			fmt.Println("Modbus server req: ", req)
 		}
 
@@ -114,7 +116,7 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 			continue
 		}
 
-		if debug >= 1 {
+		if s.debug >= 1 {
 			fmt.Println("Modbus server resp: ", resp)
 		}
 
@@ -124,7 +126,7 @@ func (s *Server) Listen(debug int, errorCallback func(error),
 			continue
 		}
 
-		if debug >= 9 {
+		if s.debug >= 9 {
 			fmt.Println("Modbus server tx: ", HexDump(respRtu))
 		}
 
