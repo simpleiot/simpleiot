@@ -47,7 +47,8 @@ func main() {
 	}
 
 	portRR := respreader.NewReadWriteCloser(port, time.Second*1, time.Millisecond*30)
-	client := modbus.NewClient(portRR, 1)
+	transport := modbus.NewRTU(portRR)
+	client := modbus.NewClient(transport, 1)
 
 	// Read discrete inputs.
 	coils, err := client.ReadCoils(1, 128, 1)

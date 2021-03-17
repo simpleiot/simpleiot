@@ -50,26 +50,31 @@ func main() {
 
 	portRR := respreader.NewReadWriteCloser(port, time.Second, time.Millisecond*30)
 
-	serv := modbus.NewServer(1, portRR)
-	serv.Regs.AddCoil(128)
-	err = serv.Regs.WriteCoil(128, true)
+	transport := modbus.NewRTU(portRR)
+
+	regs := &modbus.Regs{}
+	serv := modbus.NewServer(1, transport, regs, 1)
+	regs.AddCoil(128)
+	err = regs.WriteCoil(128, true)
 	if err != nil {
 		log.Println("Error writing coil: ", err)
 		os.Exit(-1)
 	}
 
-	serv.Regs.AddReg(2, 1)
-	err = serv.Regs.WriteReg(2, 5)
+	regs.AddReg(2, 1)
+	err = regs.WriteReg(2, 5)
 	if err != nil {
 		log.Println("Error writing reg: ", err)
 		os.Exit(-1)
 	}
 
 	// start slave so it can respond to requests
-	go serv.Listen(1, func(err error) {
+	go serv.Listen(func(err error) {
 		log.Println("modbus server listen error: ", err)
 	}, func() {
 		log.Printf("modbus reg changes")
+	}, func() {
+		log.Printf("modbus listener done")
 	})
 
 	if err != nil {
@@ -84,7 +89,7 @@ func main() {
 		time.Sleep(time.Second * 10)
 
 		value = !value
-		serv.Regs.WriteCoil(128, value)
+		regs.WriteCoil(128, value)
 
 		if up {
 			regValue = regValue + 1
@@ -97,6 +102,6 @@ func main() {
 				up = true
 			}
 		}
-		serv.Regs.WriteReg(2, uint16(regValue))
+		regs.WriteReg(2, uint16(regValue))
 	}
 }

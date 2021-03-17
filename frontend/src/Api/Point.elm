@@ -45,6 +45,7 @@ module Api.Point exposing
     , typePhone
     , typePollPeriod
     , typePort
+    , typeProtocol
     , typeReadOnly
     , typeSID
     , typeScale
@@ -56,6 +57,7 @@ module Api.Point exposing
     , typeSwUpdateRunning
     , typeSwUpdateState
     , typeSysState
+    , typeURI
     , typeUnits
     , typeUpdateApp
     , typeUpdateOS
@@ -85,12 +87,14 @@ module Api.Point exposing
     , valueNotEqual
     , valueOff
     , valueOn
+    , valueRTU
     , valueSMTP
     , valueServer
     , valueSysStateOffline
     , valueSysStateOnline
     , valueSysStatePowerOff
     , valueSysStateUnknown
+    , valueTCP
     , valueTwilio
     , valueUINT16
     , valueUINT32
@@ -301,6 +305,21 @@ typeErrorCountCRCReset =
     "errorCountCRCReset"
 
 
+typeProtocol : String
+typeProtocol =
+    "protocol"
+
+
+valueRTU : String
+valueRTU =
+    "RTU"
+
+
+valueTCP : String
+valueTCP =
+    "TCP"
+
+
 typeModbusIOType : String
 typeModbusIOType =
     "modbusIoType"
@@ -379,6 +398,11 @@ valueClient =
 valueServer : String
 valueServer =
     "server"
+
+
+typeURI : String
+typeURI =
+    "uri"
 
 
 typeConditionType : String
