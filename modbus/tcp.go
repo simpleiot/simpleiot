@@ -129,7 +129,8 @@ func NewTCPServer(id, maxClients int, port string, regs *Regs, debug int) (*TCPS
 // The listen function supports various debug levels:
 // 1 - dump packets
 // 9 - dump raw data
-func (ts *TCPServer) Listen(errorCallback func(error), changesCallback func()) {
+func (ts *TCPServer) Listen(errorCallback func(error),
+	changesCallback func(), done func()) {
 	for {
 		sock, err := ts.listener.Accept()
 		if err != nil {
@@ -137,6 +138,7 @@ func (ts *TCPServer) Listen(errorCallback func(error), changesCallback func()) {
 				if ts.debug > 0 {
 					log.Println("Modbus TCPServer, stopping listen")
 				}
+				done()
 				return
 			}
 			log.Println("Modbus TCP server: failed to accept connection: ", err)
@@ -144,17 +146,28 @@ func (ts *TCPServer) Listen(errorCallback func(error), changesCallback func()) {
 
 		log.Println("New Modbus TCP connection")
 
+		ts.lock.Lock()
 		if len(ts.servers) < ts.maxClients {
-			ts.lock.Lock()
 			transport := NewTCP(sock, 500*time.Millisecond)
 			server := NewServer(byte(ts.id), transport, ts.regs, ts.debug)
-			go server.Listen(errorCallback,
-				changesCallback)
 			ts.servers = append(ts.servers, server)
-			ts.lock.Unlock()
+			go server.Listen(errorCallback,
+				changesCallback, func() {
+					// TCP server client has disconnected, remove from list
+					ts.lock.Lock()
+					for i := range ts.servers {
+						if ts.servers[i] == server {
+							ts.servers[i] = ts.servers[len(ts.servers)-1]
+							ts.servers = ts.servers[:len(ts.servers)-1]
+						}
+						break
+					}
+					ts.lock.Unlock()
+				})
 		} else {
 			log.Println("Modbus TCP server: warning reached max conn")
 		}
+		ts.lock.Unlock()
 	}
 }
 

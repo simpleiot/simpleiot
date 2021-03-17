@@ -45,13 +45,14 @@ func (s *Server) Close() error {
 // 1 - dump packets
 // 9 - dump raw data
 func (s *Server) Listen(errorCallback func(error),
-	changesCallback func()) {
+	changesCallback func(), done func()) {
 	for {
 		select {
 		case <-s.chDone:
 			// FIXME is there a way to detect closed port with serial so
 			// we don't need this channel any more?
 			log.Println("Exiting modbus server listen")
+			done()
 			return
 		default:
 		}
@@ -66,6 +67,8 @@ func (s *Server) Listen(errorCallback func(error),
 
 			if err == io.EOF && s.transport.Type() == TransportTypeTCP {
 				// with TCP, EOF means we are done with this connection
+				log.Println("Modbus TCP client disconnected")
+				done()
 				return
 			}
 

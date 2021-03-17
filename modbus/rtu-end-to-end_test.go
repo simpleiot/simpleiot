@@ -21,7 +21,7 @@ func TestRtuEndToEnd(t *testing.T) {
 		5*time.Millisecond)
 	transportA := NewRTU(portA)
 	regs := &Regs{}
-	slave := NewServer(id, transportA, regs)
+	slave := NewServer(id, transportA, regs, 9)
 	regs.AddCoil(128)
 	err := regs.WriteCoil(128, true)
 	if err != nil {
@@ -35,10 +35,12 @@ func TestRtuEndToEnd(t *testing.T) {
 	}
 
 	// start slave so it can respond to requests
-	go slave.Listen(9, func(err error) {
+	go slave.Listen(func(err error) {
 		log.Println("modbus server listen error: ", err)
 	}, func() {
 		log.Printf("modbus reg changes")
+	}, func() {
+		log.Printf("modbus listener done")
 	})
 
 	// set up client (master)

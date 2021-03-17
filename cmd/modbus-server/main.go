@@ -53,7 +53,7 @@ func main() {
 	transport := modbus.NewRTU(portRR)
 
 	regs := &modbus.Regs{}
-	serv := modbus.NewServer(1, transport, regs)
+	serv := modbus.NewServer(1, transport, regs, 1)
 	regs.AddCoil(128)
 	err = regs.WriteCoil(128, true)
 	if err != nil {
@@ -69,10 +69,12 @@ func main() {
 	}
 
 	// start slave so it can respond to requests
-	go serv.Listen(1, func(err error) {
+	go serv.Listen(func(err error) {
 		log.Println("modbus server listen error: ", err)
 	}, func() {
 		log.Printf("modbus reg changes")
+	}, func() {
+		log.Printf("modbus listener done")
 	})
 
 	if err != nil {

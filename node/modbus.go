@@ -23,7 +23,7 @@ type pointWID struct {
 
 type server interface {
 	Close() error
-	Listen(func(error), func())
+	Listen(func(error), func(), func())
 }
 
 // Modbus describes a modbus bus
@@ -684,6 +684,10 @@ func (b *Modbus) SetupPort() error {
 				log.Println("Modbus reg change")
 			}
 			b.chRegChange <- true
+		}, func() {
+			if b.busNode.debugLevel > 0 {
+				log.Println("Modbus Listener done")
+			}
 		})
 
 		for _, io := range b.ios {
