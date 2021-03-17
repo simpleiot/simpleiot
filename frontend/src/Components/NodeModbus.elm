@@ -111,7 +111,8 @@ view o =
                     , viewIf (protocol == Point.valueRTU) <| textInput Point.typeBaud "Baud"
                     , viewIf (clientServer == Point.valueServer) <|
                         numberInput Point.typeID "Device ID"
-                    , numberInput Point.typePollPeriod "Poll period (ms)"
+                    , viewIf (clientServer == Point.valueClient) <|
+                        numberInput Point.typePollPeriod "Poll period (ms)"
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     , counterWithReset Point.typeErrorCountEOF Point.typeErrorCountEOFReset "EOF Error Count"
