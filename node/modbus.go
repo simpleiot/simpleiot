@@ -597,11 +597,8 @@ func (b *Modbus) LogError(io *ModbusIONode, err error) error {
 	return nats.SendPoint(b.nc, io.nodeID, p, true)
 }
 
-// SetupPort sets up io for the bus
-func (b *Modbus) SetupPort() error {
-	if b.busNode.debugLevel >= 1 {
-		log.Println("modbus: setting up modbus transport: ", b.busNode.portName)
-	}
+// ClosePort closes both the server and client ports
+func (b *Modbus) ClosePort() {
 	if b.server != nil {
 		err := b.server.Close()
 		if err != nil {
@@ -611,8 +608,18 @@ func (b *Modbus) SetupPort() error {
 	}
 
 	if b.client != nil {
-		b.client.Close()
+		err := b.client.Close()
+		if err != nil {
+			log.Println("Error closing client: ", err)
+		}
 		b.client = nil
+	}
+}
+
+// SetupPort sets up io for the bus
+func (b *Modbus) SetupPort() error {
+	if b.busNode.debugLevel >= 1 {
+		log.Println("modbus: setting up modbus transport: ", b.busNode.portName)
 	}
 
 	var transport modbus.Transport
@@ -938,12 +945,7 @@ func (b *Modbus) Run() {
 			}
 		case <-b.chDone:
 			log.Println("Stopping client IO for: ", b.busNode.portName)
-			if b.server != nil {
-				b.server.Close()
-			}
-			if b.client != nil {
-				b.client.Close()
-			}
+			b.ClosePort()
 			return
 		}
 	}
