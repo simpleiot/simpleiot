@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [[0.0.21] - 2021-03-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.21)
+
+- modbus: fix server issue with requests not free resources
+
 ## [[0.0.20] - 2021-03-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.20)
 
 - UI: add Form.onEnter utility function for adding enter handling
