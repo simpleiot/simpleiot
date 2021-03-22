@@ -176,8 +176,8 @@ func (ts *TCPServer) Listen(errorCallback func(error),
 						if ts.servers[i] == server {
 							ts.servers[i] = ts.servers[len(ts.servers)-1]
 							ts.servers = ts.servers[:len(ts.servers)-1]
+							break
 						}
-						break
 					}
 					ts.lock.Unlock()
 				})
