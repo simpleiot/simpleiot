@@ -95,11 +95,13 @@ const (
 	NodeTypeRule      = "rule"
 	NodeTypeCondition = "condition"
 
-	PointTypeConditionType         = "conditionType"
-	PointValueConditionValue       = "value"
-	PointValueConditionValueBool   = "valueBool"
-	PointValueConditionValueText   = "valueText"
-	PointValueConditionSystemState = "systemState"
+	PointTypeConditionPointID    = "conditionPointID"
+	PointTypeConditionPointType  = "conditionPointType"
+	PointTypeConditionPointIndex = "conditionPointIndex"
+	PointTypeConditionValueType  = "conditionValueType"
+	PointValueNumber             = "number"
+	PointValueOnOff              = "bool"
+	PointValueText               = "text"
 
 	PointTypeOperator     = "operator"
 	PointValueGreaterThan = ">"
@@ -108,6 +110,7 @@ const (
 	PointValueNotEqual    = "!="
 	PointValueOn          = "on"
 	PointValueOff         = "off"
+	PointValueContains    = "contains"
 
 	NodeTypeAction = "action"
 
@@ -137,6 +140,4 @@ const (
 
 	NodeTypeVariable      = "variable"
 	PointTypeVariableType = "variableType"
-	PointValueOnOff       = "onOff"
-	PointValueNumber      = "number"
 )

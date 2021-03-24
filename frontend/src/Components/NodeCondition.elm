@@ -62,26 +62,22 @@ view o =
                 , labelWidth = labelWidth
                 }
 
-        conditionType =
-            Point.getText o.node.points Point.typeConditionType
+        conditionValueType =
+            Point.getText o.node.points Point.typeConditionValueType
 
         operators =
-            case conditionType of
-                "value" ->
+            case conditionValueType of
+                "number" ->
                     [ ( Point.valueGreaterThan, ">" )
                     , ( Point.valueLessThan, "<" )
                     , ( Point.valueEqual, "=" )
                     , ( Point.valueNotEqual, "!=" )
                     ]
 
-                "valueText" ->
+                "text" ->
                     [ ( Point.valueEqual, "=" )
                     , ( Point.valueNotEqual, "!=" )
-                    ]
-
-                "sysState" ->
-                    [ ( Point.valueEqual, "=" )
-                    , ( Point.valueNotEqual, "!=" )
+                    , ( Point.valueContains, "contains" )
                     ]
 
                 _ ->
@@ -102,35 +98,35 @@ view o =
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
                     , textInput Point.typeID "Node ID"
-                    , optionInput Point.typeConditionType
-                        "Attribute"
-                        [ ( Point.valueConditionValue, "value" )
-                        , ( Point.valueConditionValueBool, "on/off" )
-                        , ( Point.valueConditionValueText, "text" )
-                        , ( Point.valueConditionSystemState, "system state" )
+                    , optionInput Point.typeConditionPointType
+                        "Point Type"
+                        [ ( Point.typeValue, "value" )
+                        , ( Point.typeValueSet, "value set" )
+                        , ( Point.typeErrorCount, "error count" )
+                        , ( Point.typeSysState, "system state" )
                         ]
-                    , if conditionType /= Point.valueConditionValueBool then
+                    , textInput Point.typeConditionPointID "Point ID"
+                    , numberInput Point.typeConditionPointIndex "Point Index"
+                    , optionInput Point.typeConditionValueType
+                        "Point Value Type"
+                        [ ( Point.valueNumber, "number" )
+                        , ( Point.valueOnOff, "on/off" )
+                        , ( Point.valueText, "text" )
+                        ]
+                    , if conditionValueType /= Point.valueOnOff then
                         optionInput Point.typeOperator "Operator" operators
 
                       else
                         Element.none
-                    , case conditionType of
-                        "value" ->
-                            numberInput Point.typeValue "Value"
+                    , case conditionValueType of
+                        "number" ->
+                            numberInput Point.typeValue "Point Value"
 
-                        "valueBool" ->
-                            onOffInput Point.typeValue Point.typeValue "Value"
+                        "onOff" ->
+                            onOffInput Point.typeValue Point.typeValue "Point Value"
 
-                        "valueText" ->
-                            textInput Point.typeValue "Value"
-
-                        "sysState" ->
-                            optionInput Point.typeValue
-                                "Value"
-                                [ ( Point.valueSysStatePowerOff, "power off" )
-                                , ( Point.valueSysStateOffline, "offline" )
-                                , ( Point.valueSysStateOnline, "online" )
-                                ]
+                        "text" ->
+                            textInput Point.typeValue "Point Value"
 
                         _ ->
                             Element.none

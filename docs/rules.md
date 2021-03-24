@@ -5,43 +5,73 @@ weight = 7
 
 The Simple IoT application has the ability to run rules. That are composed of
 one or more conditions and actions. All conditions must be true for the rule to
-be active. Rules must currently be defined programatically by inserting a
-[Rule](../data/rule.go) type into the database. These rules are then run every
-10s. In the future, we hope to make rules event driven once the NATS.io
-integration is finished.
+be active.
 
-## Notifications
+Rules are defined by nodes and are composed of additional child nodes for
+conditions and actions. See the node/point [schema](../data/rule.go) for more
+details.
 
-Currently, the only rule action support are SMS notifications via
-[Twilio](environment-variables.md).
+Node point changes cause rules of any parent node in the tree to be run. This
+allows general rules to be written higher in the tree that are common for all
+device nodes (for instance device offline).
 
-A rule action has an optional Template field that can be used to populate a Go
-template that can be used to customize the notification message as well as
-include data from the [device state](../data/device.go). Data in the
-[deviceTemplateData](../device/device.go) is available for use in templates.
+All points should be sent out periodically, even if values are not changing to
+indicate a node is still alive and eliminate the need to periodically run rules.
+Even things like system state should be sent out to trigger device/node offline
+notifications.
 
-## Example Rule
+If a rule has not received points that meet the condition qualifications in 30m,
+it is considered offline and marked as such in the UI. This helps us detect
+stale rules, or rules that do not have working conditions.
 
-The below is an example of how to create a rule with a custom notification
-template:
+## Conditions
 
-```go
-var armedRule = data.Rule{
-	Config: data.RuleConfig{
-		Description: "IS Armed",
-		Conditions: []data.Condition{
-			data.Condition{
-				SampleType: "armed",
-				Value:      1,
-				Operator:   "=",
-			},
-		},
-		Actions: []data.Action{
-			data.Action{
-				Type:     data.ActionTypeNotify,
-				Template: `Sentry Alert. {{.Description}} was ARMED with target flow rate of {{printf "%.1f" (index .Ios "flowRateTarget")}} and with tank level of {{printf "%.1f" (index .Ios "currentTankVolume")}}.`,
-			},
-		},
-	},
-}
+Rule conditions have qualifiers that filter points the condition is interested
+in including:
+
+- node ID (if left blank, any node that is a descendent of the rule parent)
+- point ID
+- point type ("value" is probably the most common type)
+- point index
+
+If the provided qualification is met, then the condition may check the point
+value/text fields for a number of conditions including:
+
+- number: >, <, =, !=
+- text: =, !=, contains
+- boolean: on, off
+
+## Actions
+
+### Notifications
+
+Notifications are the simplest rule action and are sent out when:
+
+- all conditions are met
+- time since last notification is greater than the notify action repeat
+  interval.
+
+Every time a notification is sent out by a rule, a point is created/updated in
+the rule with the following fields:
+
+- id: node of point that triggered the rule
+- type: "lastNotificationSent"
+- time: time the notification was sent
+
+Before sending a notification we scan the points of the rule looking for when
+the last notification was sent to decide if its time to send it.
+
+A rule notitifcation action has an optional Template field that can be used to
+populate a Go template that can be used customize the notification to include
+arbitrary points from source node points.
+
+The below is an example of template:
+
 ```
+Sentry Alert. {{.Description}} was ARMED with target flow rate of {{printf "%.1f" (index .Ios "flowRateTarget")}} and with tank level of {{printf "%.1f" (index .Ios "currentTankVolume")}}.
+```
+
+### Set node point
+
+Rules can also set points in other nodes. For simplicity, the node ID must be
+currently specified along with point parameters and a number/bool/text value.

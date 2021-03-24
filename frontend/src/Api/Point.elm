@@ -21,7 +21,10 @@ module Api.Point exposing
     , typeBaud
     , typeClientServer
     , typeCmdPending
-    , typeConditionType
+    , typeConditionPointID
+    , typeConditionPointIndex
+    , typeConditionPointType
+    , typeConditionValueType
     , typeDataFormat
     , typeDebug
     , typeDescription
@@ -71,10 +74,7 @@ module Api.Point exposing
     , valueActionSetValueBool
     , valueActionSetValueText
     , valueClient
-    , valueConditionSystemState
-    , valueConditionValue
-    , valueConditionValueBool
-    , valueConditionValueText
+    , valueContains
     , valueEqual
     , valueFLOAT32
     , valueGreaterThan
@@ -98,6 +98,7 @@ module Api.Point exposing
     , valueSysStatePowerOff
     , valueSysStateUnknown
     , valueTCP
+    , valueText
     , valueTwilio
     , valueUINT16
     , valueUINT32
@@ -408,29 +409,24 @@ typeURI =
     "uri"
 
 
-typeConditionType : String
-typeConditionType =
-    "conditionType"
+typeConditionValueType : String
+typeConditionValueType =
+    "conditionValueType"
 
 
-valueConditionValue : String
-valueConditionValue =
-    "value"
+typeConditionPointID : String
+typeConditionPointID =
+    "conditionPointID"
 
 
-valueConditionValueBool : String
-valueConditionValueBool =
-    "valueBool"
+typeConditionPointType : String
+typeConditionPointType =
+    "conditionPointType"
 
 
-valueConditionValueText : String
-valueConditionValueText =
-    "valueText"
-
-
-valueConditionSystemState : String
-valueConditionSystemState =
-    typeSysState
+typeConditionPointIndex : String
+typeConditionPointIndex =
+    "conditionPointIndex"
 
 
 typeOperator : String
@@ -466,6 +462,11 @@ valueOn =
 valueOff : String
 valueOff =
     "off"
+
+
+valueContains : String
+valueContains =
+    "contains"
 
 
 typeActionType : String
@@ -536,6 +537,11 @@ valueOnOff =
 valueNumber : String
 valueNumber =
     "number"
+
+
+valueText : String
+valueText =
+    "text"
 
 
 
