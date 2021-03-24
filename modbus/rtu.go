@@ -3,6 +3,7 @@ package modbus
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 )
 
 // RtuADU defines an ADU for RTU packets
@@ -12,8 +13,33 @@ type RtuADU struct {
 	CRC     uint16
 }
 
-// RtuEncode encodes a RTU packet
-func RtuEncode(id byte, pdu PDU) ([]byte, error) {
+// RTU defines an RTU connection
+type RTU struct {
+	port io.ReadWriteCloser
+}
+
+// NewRTU creates a new RTU transport
+func NewRTU(port io.ReadWriteCloser) *RTU {
+	return &RTU{
+		port: port,
+	}
+}
+
+func (r *RTU) Read(p []byte) (int, error) {
+	return r.port.Read(p)
+}
+
+func (r *RTU) Write(p []byte) (int, error) {
+	return r.port.Write(p)
+}
+
+// Close closes the serial port
+func (r *RTU) Close() error {
+	return r.port.Close()
+}
+
+// Encode encodes a RTU packet
+func (r *RTU) Encode(id byte, pdu PDU) ([]byte, error) {
 	ret := make([]byte, len(pdu.Data)+2+2)
 	ret[0] = id
 	ret[1] = byte(pdu.FunctionCode)
@@ -23,11 +49,11 @@ func RtuEncode(id byte, pdu PDU) ([]byte, error) {
 	return ret, nil
 }
 
-// RtuDecode decodes a RTU packet
-func RtuDecode(packet []byte) (PDU, error) {
+// Decode decodes a RTU packet
+func (r *RTU) Decode(packet []byte) (byte, PDU, error) {
 	err := CheckRtuCrc(packet)
 	if err != nil {
-		return PDU{}, err
+		return 0, PDU{}, err
 	}
 
 	ret := PDU{}
@@ -35,10 +61,17 @@ func RtuDecode(packet []byte) (PDU, error) {
 	ret.FunctionCode = FunctionCode(packet[1])
 
 	if len(packet) < 4 {
-		return PDU{}, fmt.Errorf("short packet, got %d bytes", len(packet))
+		return 0, PDU{}, fmt.Errorf("short packet, got %d bytes", len(packet))
 	}
+
+	id := packet[0]
 
 	ret.Data = packet[2 : len(packet)-2]
 
-	return ret, nil
+	return id, ret, nil
+}
+
+// Type returns TransportType
+func (r *RTU) Type() TransportType {
+	return TransportTypeRTU
 }

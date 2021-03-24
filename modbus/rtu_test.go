@@ -29,8 +29,10 @@ func TestRtuSc2000Level(t *testing.T) {
 		t.Fatal("rtuSc2000LevelPrompt CRC check failed")
 	}
 
+	rtu := NewRTU(nil)
+
 	prompt := ReadHoldingRegs(10, 1)
-	promptRtu, err := RtuEncode(1, prompt)
+	promptRtu, err := rtu.Encode(1, prompt)
 
 	if err != nil {
 		t.Fatal("error encoding")
@@ -49,7 +51,7 @@ func TestRtuSc2000Level(t *testing.T) {
 		t.Fatal("error processing: ", err)
 	}
 
-	respRtu, err := RtuEncode(1, resp)
+	respRtu, err := rtu.Encode(1, resp)
 	if err != nil {
 		t.Fatal("resp encode error: ", err)
 	}
@@ -68,8 +70,10 @@ func TestRtuSc2000Coil(t *testing.T) {
 		t.Error("rtuSc2000CoilPrompt CRC check failed")
 	}
 
+	rtu := NewRTU(nil)
+
 	prompt := ReadCoils(128, 1)
-	promptRtu, err := RtuEncode(1, prompt)
+	promptRtu, err := rtu.Encode(1, prompt)
 
 	if err != nil {
 		t.Error("Error encoding packet: ", err)
@@ -88,7 +92,7 @@ func TestRtuSc2000Coil(t *testing.T) {
 		t.Fatal("error processing: ", err)
 	}
 
-	respRtu, err := RtuEncode(1, resp)
+	respRtu, err := rtu.Encode(1, resp)
 	if err != nil {
 		t.Fatal("resp encode error: ", err)
 	}

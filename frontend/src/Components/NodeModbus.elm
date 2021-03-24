@@ -64,6 +64,9 @@ view o =
 
         clientServer =
             Point.getText o.node.points Point.typeClientServer
+
+        protocol =
+            Point.getText o.node.points Point.typeProtocol
     in
     column
         [ width fill
@@ -84,11 +87,32 @@ view o =
                         [ ( Point.valueClient, "client" )
                         , ( Point.valueServer, "server" )
                         ]
-                    , textInput Point.typePort "Port"
-                    , textInput Point.typeBaud "Baud"
+                    , optionInput Point.typeProtocol
+                        "Protocol"
+                        [ ( Point.valueRTU, "RTU" )
+                        , ( Point.valueTCP, "TCP" )
+                        ]
+                    , viewIf
+                        (protocol
+                            == Point.valueRTU
+                            || clientServer
+                            == Point.valueServer
+                        )
+                      <|
+                        textInput Point.typePort "Port"
+                    , viewIf
+                        (protocol
+                            == Point.valueTCP
+                            && clientServer
+                            == Point.valueClient
+                        )
+                      <|
+                        textInput Point.typeURI "URI"
+                    , viewIf (protocol == Point.valueRTU) <| textInput Point.typeBaud "Baud"
                     , viewIf (clientServer == Point.valueServer) <|
                         numberInput Point.typeID "Device ID"
-                    , numberInput Point.typePollPeriod "Poll period (ms)"
+                    , viewIf (clientServer == Point.valueClient) <|
+                        numberInput Point.typePollPeriod "Poll period (ms)"
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     , counterWithReset Point.typeErrorCountEOF Point.typeErrorCountEOFReset "EOF Error Count"
