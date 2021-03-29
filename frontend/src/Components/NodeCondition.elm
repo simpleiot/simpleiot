@@ -63,7 +63,7 @@ view o =
                 }
 
         conditionValueType =
-            Point.getText o.node.points Point.typeConditionValueType
+            Point.getText o.node.points Point.typeValueType
 
         operators =
             case conditionValueType of
@@ -98,16 +98,16 @@ view o =
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
                     , textInput Point.typeID "Node ID"
-                    , optionInput Point.typeConditionPointType
+                    , optionInput Point.typePointType
                         "Point Type"
                         [ ( Point.typeValue, "value" )
-                        , ( Point.typeValueSet, "value set" )
+                        , ( Point.typeValueSet, "set value" )
                         , ( Point.typeErrorCount, "error count" )
                         , ( Point.typeSysState, "system state" )
                         ]
-                    , textInput Point.typeConditionPointID "Point ID"
-                    , numberInput Point.typeConditionPointIndex "Point Index"
-                    , optionInput Point.typeConditionValueType
+                    , textInput Point.typePointID "Point ID"
+                    , numberInput Point.typePointIndex "Point Index"
+                    , optionInput Point.typeValueType
                         "Point Value Type"
                         [ ( Point.valueNumber, "number" )
                         , ( Point.valueOnOff, "on/off" )
@@ -130,6 +130,7 @@ view o =
 
                         _ ->
                             Element.none
+                    , numberInput Point.typeMinActive "Min active time (m)"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

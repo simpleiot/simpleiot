@@ -26,8 +26,14 @@ stale rules, or rules that do not have working conditions.
 
 ## Conditions
 
-Rule conditions have qualifiers that filter points the condition is interested
-in including:
+Each condition may optionally specify a minimum active duration before the
+condition is considered met. This allows timing to be encoded in the rules.
+
+### Node state
+
+A node state condition looks at the point value of a node to determine if a
+condition is met. Qualifiers that filter points the condition is interested in
+may be set including:
 
 - node ID (if left blank, any node that is a descendent of the rule parent)
 - point ID
@@ -42,6 +48,9 @@ value/text fields for a number of conditions including:
 - boolean: on, off
 
 ## Actions
+
+Every action has an optional repeat interval. This allows rate limiting of
+actions like notifications.
 
 ### Notifications
 
@@ -75,3 +84,9 @@ Sentry Alert. {{.Description}} was ARMED with target flow rate of {{printf "%.1f
 
 Rules can also set points in other nodes. For simplicity, the node ID must be
 currently specified along with point parameters and a number/bool/text value.
+
+Typically a rule action is only used to set one value. In the case of on/off
+actions, one rule is used to turn a value on, and another rule is used to turn
+the same value off. This allows for hysteresis and more complex logic than in
+one rule handled both the on and off states. This also allows the rules logic to
+be stateful.

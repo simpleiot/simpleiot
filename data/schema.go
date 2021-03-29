@@ -95,13 +95,13 @@ const (
 	NodeTypeRule      = "rule"
 	NodeTypeCondition = "condition"
 
-	PointTypeConditionPointID    = "conditionPointID"
-	PointTypeConditionPointType  = "conditionPointType"
-	PointTypeConditionPointIndex = "conditionPointIndex"
-	PointTypeConditionValueType  = "conditionValueType"
-	PointValueNumber             = "number"
-	PointValueOnOff              = "bool"
-	PointValueText               = "text"
+	PointTypePointID    = "pointID"
+	PointTypePointType  = "pointType"
+	PointTypePointIndex = "pointIndex"
+	PointTypeValueType  = "valueType"
+	PointValueNumber    = "number"
+	PointValueOnOff     = "bool"
+	PointValueText      = "text"
 
 	PointTypeOperator     = "operator"
 	PointValueGreaterThan = ">"
@@ -112,14 +112,14 @@ const (
 	PointValueOff         = "off"
 	PointValueContains    = "contains"
 
+	PointTypeMinActive = "minActive"
+
 	NodeTypeAction = "action"
 
 	PointTypeActionType = "actionType"
 
-	PointValueActionNotify       = "notify"
-	PointValueActionSetValue     = "setValue"
-	PointValueActionSetValueBool = "setValueBool"
-	PointValueActionSetValueText = "setValueText"
+	PointValueActionNotify   = "notify"
+	PointValueActionSetValue = "setValue"
 
 	// Transient points that are used for notifications, etc.
 	// These points are not stored in the state of any node,

@@ -21,10 +21,6 @@ module Api.Point exposing
     , typeBaud
     , typeClientServer
     , typeCmdPending
-    , typeConditionPointID
-    , typeConditionPointIndex
-    , typeConditionPointType
-    , typeConditionValueType
     , typeDataFormat
     , typeDebug
     , typeDescription
@@ -40,12 +36,16 @@ module Api.Point exposing
     , typeHwVersion
     , typeID
     , typeLastName
+    , typeMinActive
     , typeModbusIOType
     , typeOSVersion
     , typeOffset
     , typeOperator
     , typePass
     , typePhone
+    , typePointID
+    , typePointIndex
+    , typePointType
     , typePollPeriod
     , typePort
     , typeProtocol
@@ -66,6 +66,7 @@ module Api.Point exposing
     , typeUpdateOS
     , typeValue
     , typeValueSet
+    , typeValueType
     , typeVariableType
     , updatePoint
     , updatePoints
@@ -409,24 +410,24 @@ typeURI =
     "uri"
 
 
-typeConditionValueType : String
-typeConditionValueType =
-    "conditionValueType"
+typeValueType : String
+typeValueType =
+    "valueType"
 
 
-typeConditionPointID : String
-typeConditionPointID =
-    "conditionPointID"
+typePointID : String
+typePointID =
+    "pointID"
 
 
-typeConditionPointType : String
-typeConditionPointType =
-    "conditionPointType"
+typePointType : String
+typePointType =
+    "pointType"
 
 
-typeConditionPointIndex : String
-typeConditionPointIndex =
-    "conditionPointIndex"
+typePointIndex : String
+typePointIndex =
+    "pointIndex"
 
 
 typeOperator : String
@@ -467,6 +468,11 @@ valueOff =
 valueContains : String
 valueContains =
     "contains"
+
+
+typeMinActive : String
+typeMinActive =
+    "minActive"
 
 
 typeActionType : String
