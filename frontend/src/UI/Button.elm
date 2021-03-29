@@ -2,7 +2,9 @@ module UI.Button exposing
     ( arrowDown
     , arrowRight
     , check
+    , close
     , copy
+    , edit
     , maximize
     , message
     , minimize
@@ -111,6 +113,16 @@ minimize msg =
 maximize : msg -> Element msg
 maximize msg =
     button FeatherIcons.maximize2 msg
+
+
+edit : msg -> Element msg
+edit msg =
+    button FeatherIcons.edit3 msg
+
+
+close : msg -> Element msg
+close msg =
+    button FeatherIcons.minimize msg
 
 
 message : msg -> Element msg

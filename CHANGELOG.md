@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- UI: change node min/max button to edit/close
+
 ## [[0.0.21] - 2021-03-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.21)
 
 - modbus: fix server issue with requests not free resources

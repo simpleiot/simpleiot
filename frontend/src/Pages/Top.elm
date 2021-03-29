@@ -945,10 +945,10 @@ viewNode model parent node depth =
                     Button.arrowRight (ToggleExpChildren node.node.id)
             , el [ alignTop ] <|
                 if node.expDetail then
-                    Button.minimize (ToggleExpDetail node.node.id)
+                    Button.close (ToggleExpDetail node.node.id)
 
                 else
-                    Button.maximize (ToggleExpDetail node.node.id)
+                    Button.edit (ToggleExpDetail node.node.id)
             , column
                 [ spacing 6, width fill ]
                 [ nodeView
