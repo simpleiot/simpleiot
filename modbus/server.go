@@ -67,7 +67,9 @@ func (s *Server) Listen(errorCallback func(error),
 
 			if err == io.EOF && s.transport.Type() == TransportTypeTCP {
 				// with TCP, EOF means we are done with this connection
-				log.Println("Modbus TCP client disconnected")
+				if s.debug > 0 {
+					log.Println("Modbus TCP client disconnected")
+				}
 				done()
 				return
 			}

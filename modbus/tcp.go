@@ -161,7 +161,9 @@ func (ts *TCPServer) Listen(errorCallback func(error),
 			log.Println("Modbus TCP server: failed to accept connection: ", err)
 		}
 
-		log.Println("New Modbus TCP connection")
+		if ts.debug > 0 {
+			log.Println("New Modbus TCP connection")
+		}
 
 		ts.lock.Lock()
 		if len(ts.servers) < ts.maxClients {
