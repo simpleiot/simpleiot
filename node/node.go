@@ -77,40 +77,6 @@ func uniqueUsers(users []data.User) []data.User {
 	return ret
 }
 
-func (m *Manager) runRule(node *data.Node, rule *data.Rule) error {
-	if node.State() != data.PointValueSysStateOnline {
-		// only run rules if node is in online state
-		return nil
-	}
-
-	active := rule.IsActive(node.Points)
-	if active != rule.Active {
-		state := data.RuleState{Active: active}
-		if active {
-			// process actions
-			if !rule.Active && rule.Repeat == 0 {
-				for _, a := range rule.Actions {
-					if a.Type == data.ActionTypeNotify {
-						err := m.notify(node, rule.Description, a.Template, node.Groups)
-						if err != nil {
-							log.Println("Error notifying: ", err)
-						}
-					}
-				}
-				state.LastAction = time.Now()
-			}
-		}
-
-		// store updated state in DB
-		//err := m.db.RuleUpdateState(rule.ID, state)
-		//if err != nil {
-		//		log.Println("Error updating rule state: ", err)
-		//}
-	}
-
-	return nil
-}
-
 func (m *Manager) notify(node *data.Node, ruleDesc, msgTemplate string, groups []string) error {
 	// find users for the groups
 	var users []data.User

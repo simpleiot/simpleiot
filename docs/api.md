@@ -63,6 +63,8 @@ For the NATS transport, protobuf encoding is used for all transfers and are
 defined [here](../internal/pb).
 
 - Nodes
+  - `node.<id>`
+    - can be used to request an entire node data structure
   - `node.<id>.points`
     - device publishes points and the server updates node state and stores point
       in database.
@@ -72,9 +74,6 @@ defined [here](../internal/pb).
       update files. There is Go code [available](../api/nats-file.go) to manage
       both ends of the transfer as well as a utility to [send](../cmd/siotutil)
       files and an example [edge](../cmd/edge) application to receive files.
-  - `node.<id>.cmd`
-    - send a [DeviceCmd](../data/node.go) to a node. `siotutil` can be used to
-      test sending commands to nodes using NATS.
 - System
   - `error`
     - any errors that occur are sent to this subject
