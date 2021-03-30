@@ -8,6 +8,7 @@ module Api.Point exposing
     , encodeList
     , filterSpecialPoints
     , get
+    , getBool
     , getLatest
     , getText
     , getValue
@@ -15,6 +16,7 @@ module Api.Point exposing
     , newValue
     , renderPoint
     , typeActionType
+    , typeActive
     , typeAddress
     , typeAppVersion
     , typeAuthToken
@@ -550,6 +552,11 @@ valueText =
     "text"
 
 
+typeActive : String
+typeActive =
+    "active"
+
+
 
 -- Point should match data/Point.go
 
@@ -734,6 +741,11 @@ getValue points typ =
 
         Nothing ->
             0
+
+
+getBool : List Point -> String -> Bool
+getBool points typ =
+    getValue points typ == 1
 
 
 getLatest : List Point -> Maybe Point

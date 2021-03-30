@@ -3,11 +3,13 @@ module Components.NodeCondition exposing (view)
 import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Element exposing (..)
+import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
 import Time
 import UI.Form as Form
 import UI.Icon as Icon
-import UI.Style exposing (colors)
+import UI.Style as Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
 
 
@@ -82,6 +84,23 @@ view o =
 
                 _ ->
                     []
+
+        active =
+            Point.getBool o.node.points Point.typeActive
+
+        descBackgroundColor =
+            if active then
+                Style.colors.blue
+
+            else
+                Style.colors.none
+
+        descTextColor =
+            if active then
+                Style.colors.white
+
+            else
+                Style.colors.black
     in
     column
         [ width fill
@@ -92,8 +111,9 @@ view o =
     <|
         wrappedRow [ spacing 10 ]
             [ Icon.check
-            , text <|
-                Point.getText o.node.points Point.typeDescription
+            , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
+                text <|
+                    Point.getText o.node.points Point.typeDescription
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"

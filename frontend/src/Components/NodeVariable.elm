@@ -119,7 +119,7 @@ view o =
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
                     , optionInput Point.typeVariableType
-                        "IO type"
+                        "Variable type"
                         [ ( Point.valueOnOff, "On/Off" )
                         , ( Point.valueNumber, "Number" )
                         ]
