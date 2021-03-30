@@ -14,11 +14,9 @@ type SwUpdateState struct {
 // Node represents the state of a device. UUID is recommended
 // for ID to prevent collisions is distributed instances.
 type Node struct {
-	ID     string   `json:"id" boltholdKey:"ID"`
-	Type   string   `json:"type"`
-	Points Points   `json:"points"`
-	Groups []string `json:"groups"`
-	Rules  []string `json:"rules"`
+	ID     string `json:"id" boltholdKey:"ID"`
+	Type   string `json:"type"`
+	Points Points `json:"points"`
 }
 
 // Desc returns Description if set, otherwise ID

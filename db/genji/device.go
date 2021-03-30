@@ -68,8 +68,6 @@ func (d *Device) ToNode() data.Node {
 	var node data.Node
 
 	node.ID = d.ID
-	node.Groups = d.Groups
-	node.Rules = d.Rules
 
 	node.Points = append(node.Points, d.State.Ios...)
 
