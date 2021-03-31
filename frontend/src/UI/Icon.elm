@@ -5,6 +5,7 @@ module UI.Icon exposing
     , cloud
     , cloudOff
     , device
+    , dot
     , io
     , list
     , minus
@@ -38,6 +39,20 @@ bus =
     , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "0", S.y "14", S.width "6", S.height "5" ] []
     , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "8", S.y "14", S.width "6", S.height "5" ] []
     , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "16", S.y "14", S.width "6", S.height "5" ] []
+    ]
+        |> FeatherIcons.customIcon
+        |> icon
+
+
+dot : Element msg
+dot =
+    [ Svg.circle
+        [ S.style "fill:#000000;fill-opacity:1;"
+        , S.cx "11.903377"
+        , S.cy "11.823219"
+        , S.r "3.1"
+        ]
+        []
     ]
         |> FeatherIcons.customIcon
         |> icon
