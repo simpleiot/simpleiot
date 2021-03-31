@@ -346,7 +346,6 @@ func main() {
 		}
 
 		select {}
-		os.Exit(0)
 	}
 
 	if nc != nil {

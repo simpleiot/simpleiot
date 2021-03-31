@@ -132,7 +132,7 @@ func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
 	nodeID, points, err := nats.DecodeNodeMsg(msg)
 
 	if err != nil {
-		fmt.Errorf("Error decoding nats message: %v: %v", msg.Subject, err)
+		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
 		nh.reply(msg.Reply, errors.New("error decoding node samples subject"))
 		return
 	}
