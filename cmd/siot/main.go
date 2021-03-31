@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/genjidb/genji/sql/driver"
-
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
