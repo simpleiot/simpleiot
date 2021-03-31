@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [[0.0.22] - 2021-03-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.22)
+
 - UI: change node min/max button to edit/close
 - Modbus: suppress TCP conn/disc messages at debug level 0
 - siot: add cmdline option (-logNats) to trace all node points. This can be run
