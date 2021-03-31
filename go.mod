@@ -44,9 +44,10 @@ require (
 	go.bug.st/serial v1.1.3
 	go.etcd.io/bbolt v1.3.5
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
+	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	golang.org/x/net v0.0.0-20210331060903-cb1fcc7394e5 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
+	golang.org/x/tools v0.1.0 // indirect
 	google.golang.org/protobuf v1.26.0
 )
 
