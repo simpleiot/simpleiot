@@ -1,4 +1,4 @@
-module Components.NodeCondition exposing (view)
+module Components.NodeVariable exposing (view)
 
 import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
@@ -6,6 +6,7 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Round
 import Time
 import UI.Form as Form
 import UI.Icon as Icon
@@ -40,16 +41,16 @@ view o =
                 , labelWidth = labelWidth
                 }
 
-        numberInput =
-            Form.nodeNumberInput
+        optionInput =
+            Form.nodeOptionInput
                 { onEditNodePoint = o.onEditNodePoint
                 , node = o.node
                 , now = o.now
                 , labelWidth = labelWidth
                 }
 
-        optionInput =
-            Form.nodeOptionInput
+        numberInput =
+            Form.nodeNumberInput
                 { onEditNodePoint = o.onEditNodePoint
                 , node = o.node
                 , now = o.now
@@ -64,39 +65,31 @@ view o =
                 , labelWidth = labelWidth
                 }
 
-        conditionValueType =
-            Point.getText o.node.points Point.typeValueType
+        value =
+            Point.getValue o.node.points Point.typeValue
 
-        operators =
-            case conditionValueType of
-                "number" ->
-                    [ ( Point.valueGreaterThan, ">" )
-                    , ( Point.valueLessThan, "<" )
-                    , ( Point.valueEqual, "=" )
-                    , ( Point.valueNotEqual, "!=" )
-                    ]
+        variableType =
+            Point.getText o.node.points Point.typeVariableType
 
-                "text" ->
-                    [ ( Point.valueEqual, "=" )
-                    , ( Point.valueNotEqual, "!=" )
-                    , ( Point.valueContains, "contains" )
-                    ]
+        valueText =
+            if variableType == Point.valueNumber then
+                String.fromFloat (Round.roundNum 2 value)
 
-                _ ->
-                    []
+            else if value == 0 then
+                "off"
 
-        active =
-            Point.getBool o.node.points Point.typeActive
+            else
+                "on"
 
-        descBackgroundColor =
-            if active then
+        valueBackgroundColor =
+            if valueText == "on" then
                 Style.colors.blue
 
             else
                 Style.colors.none
 
-        descTextColor =
-            if active then
+        valueTextColor =
+            if valueText == "on" then
                 Style.colors.white
 
             else
@@ -110,47 +103,35 @@ view o =
         ]
     <|
         wrappedRow [ spacing 10 ]
-            [ Icon.check
-            , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
+            [ Icon.variable
+            , text <|
+                Point.getText o.node.points Point.typeDescription
+            , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
                 text <|
-                    Point.getText o.node.points Point.typeDescription
+                    valueText
+                        ++ (if variableType == Point.valueNumber then
+                                " " ++ Point.getText o.node.points Point.typeUnits
+
+                            else
+                                ""
+                           )
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
-                    , textInput Point.typeID "Node ID"
-                    , optionInput Point.typePointType
-                        "Point Type"
-                        [ ( Point.typeValue, "value" )
-                        , ( Point.typeValueSet, "set value" )
-                        , ( Point.typeErrorCount, "error count" )
-                        , ( Point.typeSysState, "system state" )
+                    , optionInput Point.typeVariableType
+                        "Variable type"
+                        [ ( Point.valueOnOff, "On/Off" )
+                        , ( Point.valueNumber, "Number" )
                         ]
-                    , textInput Point.typePointID "Point ID"
-                    , numberInput Point.typePointIndex "Point Index"
-                    , optionInput Point.typeValueType
-                        "Point Value Type"
-                        [ ( Point.valueNumber, "number" )
-                        , ( Point.valueOnOff, "on/off" )
-                        , ( Point.valueText, "text" )
-                        ]
-                    , if conditionValueType /= Point.valueOnOff then
-                        optionInput Point.typeOperator "Operator" operators
-
-                      else
-                        Element.none
-                    , case conditionValueType of
-                        "number" ->
-                            numberInput Point.typeValue "Point Value"
-
-                        "onOff" ->
-                            onOffInput Point.typeValue Point.typeValue "Point Value"
-
-                        "text" ->
-                            textInput Point.typeValue "Point Value"
-
-                        _ ->
-                            Element.none
-                    , numberInput Point.typeMinActive "Min active time (m)"
+                    , viewIf (variableType == Point.valueOnOff) <|
+                        onOffInput
+                            Point.typeValue
+                            Point.typeValue
+                            "Value"
+                    , viewIf (variableType == Point.valueNumber) <|
+                        numberInput Point.typeValue "Value"
+                    , viewIf (variableType == Point.valueNumber) <|
+                        textInput Point.typeUnits "Units"
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

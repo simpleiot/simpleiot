@@ -4,25 +4,26 @@ package data
 // the system.
 const (
 	// general point types
-	PointTypeDescription        string = "description"
-	PointTypeScale                     = "scale"
-	PointTypeOffset                    = "offset"
-	PointTypeUnits                     = "units"
-	PointTypeValue                     = "value"
-	PointTypeValueSet                  = "valueSet"
-	PointTypeID                        = "id"
-	PointTypeAddress                   = "address"
-	PointTypeDebug                     = "debug"
-	PointTypeInitialized               = "initialized"
-	PointTypePollPeriod                = "pollPeriod"
-	PointTypeErrorCount                = "errorCount"
-	PointTypeErrorCountReset           = "errorCountReset"
-	PointTypeErrorCountEOF             = "errorCountEOF"
-	PointTypeErrorCountEOFReset        = "errorCountEOFReset"
-	PointTypeErrorCountCRC             = "errorCountCRC"
-	PointTypeErrorCountCRCReset        = "errorCountCRCReset"
-	PointTypeReadOnly                  = "readOnly"
-	PointTypeURI                       = "uri"
+	PointTypeDescription string = "description"
+	PointTypeScale              = "scale"
+	PointTypeOffset             = "offset"
+	PointTypeUnits              = "units"
+	PointTypeValue              = "value"
+	PointTypeValueSet           = "valueSet"
+	// PointTypeID typically refers to Node ID
+	PointTypeID                 = "id"
+	PointTypeAddress            = "address"
+	PointTypeDebug              = "debug"
+	PointTypeInitialized        = "initialized"
+	PointTypePollPeriod         = "pollPeriod"
+	PointTypeErrorCount         = "errorCount"
+	PointTypeErrorCountReset    = "errorCountReset"
+	PointTypeErrorCountEOF      = "errorCountEOF"
+	PointTypeErrorCountEOFReset = "errorCountEOFReset"
+	PointTypeErrorCountCRC      = "errorCountCRC"
+	PointTypeErrorCountCRCReset = "errorCountCRCReset"
+	PointTypeReadOnly           = "readOnly"
+	PointTypeURI                = "uri"
 
 	// An device node describes an phyical device -- it may be the
 	// cloud server, gateway, etc
@@ -92,14 +93,19 @@ const (
 	NodeTypeGroup = "group"
 
 	// a rule node describes a rule that may run on the system
-	NodeTypeRule      = "rule"
+	NodeTypeRule = "rule"
+
+	PointTypeActive = "active"
+
 	NodeTypeCondition = "condition"
 
-	PointTypeConditionType         = "conditionType"
-	PointValueConditionValue       = "value"
-	PointValueConditionValueBool   = "valueBool"
-	PointValueConditionValueText   = "valueText"
-	PointValueConditionSystemState = "systemState"
+	PointTypePointID    = "pointID"
+	PointTypePointType  = "pointType"
+	PointTypePointIndex = "pointIndex"
+	PointTypeValueType  = "valueType"
+	PointValueNumber    = "number"
+	PointValueOnOff     = "onOff"
+	PointValueText      = "text"
 
 	PointTypeOperator     = "operator"
 	PointValueGreaterThan = ">"
@@ -108,15 +114,16 @@ const (
 	PointValueNotEqual    = "!="
 	PointValueOn          = "on"
 	PointValueOff         = "off"
+	PointValueContains    = "contains"
+
+	PointTypeMinActive = "minActive"
 
 	NodeTypeAction = "action"
 
 	PointTypeActionType = "actionType"
 
-	PointValueActionNotify       = "notify"
-	PointValueActionSetValue     = "setValue"
-	PointValueActionSetValueBool = "setValueBool"
-	PointValueActionSetValueText = "setValueText"
+	PointValueActionNotify   = "notify"
+	PointValueActionSetValue = "setValue"
 
 	// Transient points that are used for notifications, etc.
 	// These points are not stored in the state of any node,
@@ -134,4 +141,7 @@ const (
 	PointTypeSID       = "sid"
 	PointTypeAuthToken = "authToken"
 	PointTypeFrom      = "from"
+
+	NodeTypeVariable      = "variable"
+	PointTypeVariableType = "variableType"
 )

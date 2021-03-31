@@ -11,15 +11,15 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 
-	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/nats"
 )
 
 // NatsHandler implements the SIOT NATS api
 type NatsHandler struct {
 	server    string
-	Nc        *nats.Conn
+	Nc        *natsgo.Conn
 	db        *genji.Db
 	authToken string
 	lock      sync.Mutex
@@ -39,15 +39,15 @@ func NewNatsHandler(db *genji.Db, authToken, server string) *NatsHandler {
 
 // Connect to NATS server and set up handlers for things we are interested in
 func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
-	nc, err := nats.Connect(nh.server,
-		nats.Timeout(10*time.Second),
-		nats.PingInterval(60*5*time.Second),
-		nats.MaxPingsOutstanding(5),
-		nats.ReconnectBufSize(5*1024*1024),
-		nats.SetCustomDialer(&net.Dialer{
+	nc, err := natsgo.Connect(nh.server,
+		natsgo.Timeout(10*time.Second),
+		natsgo.PingInterval(60*5*time.Second),
+		natsgo.MaxPingsOutstanding(5),
+		natsgo.ReconnectBufSize(5*1024*1024),
+		natsgo.SetCustomDialer(&net.Dialer{
 			KeepAlive: -1,
 		}),
-		nats.Token(nh.authToken),
+		natsgo.Token(nh.authToken),
 	)
 
 	if err != nil {
@@ -62,6 +62,10 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 
 	if _, err := nc.Subscribe("node.*.points", nh.handlePoints); err != nil {
 		return nil, fmt.Errorf("Subscribe node points error: %w", err)
+	}
+
+	if _, err := nc.Subscribe("node.*", nh.handleNode); err != nil {
+		return nil, fmt.Errorf("Subscribe node error: %w", err)
 	}
 
 	return nc, nil
@@ -124,18 +128,12 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 }
 
 // FIXME consider moving this to db package and then unexporting the NodePoint method
-func (nh *NatsHandler) handlePoints(msg *nats.Msg) {
-	chunks := strings.Split(msg.Subject, ".")
-	if len(chunks) < 3 {
-		log.Println("Error decoding node samples subject: ", msg.Subject)
-		nh.reply(msg.Reply, errors.New("error decoding node samples subject"))
-		return
-	}
-	nodeID := chunks[1]
-	points, err := data.PbDecodePoints(msg.Data)
+func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
+	nodeID, points, err := nats.DecodeNodeMsg(msg)
+
 	if err != nil {
-		log.Println("Error decoding Pb Samples: ", err)
-		nh.reply(msg.Reply, err)
+		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
+		nh.reply(msg.Reply, errors.New("error decoding node samples subject"))
 		return
 	}
 
@@ -143,12 +141,13 @@ func (nh *NatsHandler) handlePoints(msg *nats.Msg) {
 		err = nh.db.NodePoint(nodeID, p)
 		if err != nil {
 			// TODO track error stats
-			log.Println("Error writing point to Db: ", err)
+			log.Printf("Error writing nodeID (%v) point (%+v) to Db: %v", nodeID, p, err)
+			log.Println("msg subject: ", msg.Subject)
 			nh.reply(msg.Reply, err)
 			return
 		}
 
-		err = nh.processPointUpstream(nodeID, p)
+		err = nh.processPointUpstream(nodeID, nodeID, p)
 		if err != nil {
 			// TODO track error stats
 			log.Println("Error processing point in upstream nodes: ", err)
@@ -156,6 +155,36 @@ func (nh *NatsHandler) handlePoints(msg *nats.Msg) {
 	}
 
 	nh.reply(msg.Reply, nil)
+}
+
+func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
+	chunks := strings.Split(msg.Subject, ".")
+	if len(chunks) < 2 {
+		log.Println("Error in message subject: ", msg.Subject)
+		return
+	}
+
+	nodeID := chunks[1]
+
+	node, err := nh.db.Node(nodeID)
+
+	if err != nil {
+		log.Printf("NATS: Error getting node %v from db: %v\n", nodeID, err)
+		// TODO should we send an error back to requester
+	}
+
+	data, err := data.PbEncodeNode(node)
+
+	if err != nil {
+		log.Printf("Error pb encoding node: %v\n", err)
+		// TODO send error back to client
+	}
+
+	err = nh.Nc.Publish(msg.Reply, data)
+
+	if err != nil {
+		log.Println("NATS: Error publishing response to node request: ", err)
+	}
 }
 
 // used for messages that want an ACK
@@ -174,18 +203,180 @@ func (nh *NatsHandler) reply(subject string, err error) {
 	nh.Nc.Publish(subject, []byte(reply))
 }
 
-func (nh *NatsHandler) processPointUpstream(nodeID string, p data.Point) error {
+func (nh *NatsHandler) processPointUpstream(currentNodeID, nodeID string, p data.Point) error {
 
-	upIDs, err := nh.db.EdgeUp(nodeID)
+	if currentNodeID == nh.db.RootNodeID() {
+		// we are at, stop
+		return nil
+	}
+
+	upIDs, err := nh.db.EdgeUp(currentNodeID)
 	if err != nil {
 		return err
 	}
 
 	for _, id := range upIDs {
 		// get children and process any rules
-		_ = id
+		ruleNodes, err := nh.db.NodeDescendents(id, data.NodeTypeRule, false)
+		if err != nil {
+			return err
+		}
 
+		for _, ruleNode := range ruleNodes {
+			conditionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeCondition, false)
+			if err != nil {
+				return err
+			}
+
+			actionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeAction, false)
+			if err != nil {
+				return err
+			}
+
+			rule, err := data.NodeToRule(ruleNode, conditionNodes, actionNodes)
+
+			if err != nil {
+				return err
+			}
+
+			active, err := ruleProcessPoint(nh.Nc, rule, nodeID, p)
+
+			if err != nil {
+				log.Println("Error processing rule point: ", err)
+			}
+
+			if active {
+				err := ruleRunActions(rule, nh.Nc)
+				if err != nil {
+					log.Println("Error running rule actions: ", err)
+				}
+			}
+		}
+
+		err = nh.processPointUpstream(id, nodeID, p)
+		if err != nil {
+			log.Println("Rules -- error processing upstream node: ", err)
+		}
 	}
 
+	return nil
+}
+
+// processPoint runs a point through a rules conditions and and updates condition
+// and rule active status. Returns true if point was processed and active is true
+func ruleProcessPoint(nc *natsgo.Conn, r *data.Rule, nodeID string, p data.Point) (bool, error) {
+	allActive := true
+	pointProcessed := false
+	for _, c := range r.Conditions {
+		if c.NodeID != "" && c.NodeID != nodeID {
+			continue
+		}
+
+		if c.PointID != "" && c.PointID != p.ID {
+			continue
+		}
+
+		if c.PointType != "" && c.PointType != p.Type {
+			continue
+		}
+
+		if c.PointIndex != -1 && c.PointIndex != int(p.Index) {
+			continue
+		}
+
+		var active bool
+
+		pointProcessed = true
+
+		// conditions match, so check value
+		switch c.PointValueType {
+		case data.PointValueNumber:
+			switch c.Operator {
+			case data.PointValueGreaterThan:
+				active = p.Value > c.PointValue
+			case data.PointValueLessThan:
+				active = p.Value < c.PointValue
+			case data.PointValueEqual:
+				active = p.Value == c.PointValue
+			case data.PointValueNotEqual:
+				active = p.Value != c.PointValue
+			}
+		case data.PointValueText:
+			switch c.Operator {
+			case data.PointValueEqual:
+			case data.PointValueNotEqual:
+			case data.PointValueContains:
+			}
+		case data.PointValueOnOff:
+			condValue := c.PointValue != 0
+			pointValue := p.Value != 0
+			active = condValue == pointValue
+		}
+
+		if !active {
+			allActive = false
+		}
+
+		if active != c.Active {
+			// update condition
+			p := data.Point{
+				Type:  data.PointTypeActive,
+				Time:  time.Now(),
+				Value: data.BoolToFloat(active),
+			}
+
+			err := nats.SendPoint(nc, c.ID, p, false)
+			if err != nil {
+				log.Println("Rule error sending point: ", err)
+			}
+		}
+	}
+
+	if pointProcessed {
+		if allActive != r.Active {
+			p := data.Point{
+				Type:  data.PointTypeActive,
+				Time:  time.Now(),
+				Value: data.BoolToFloat(allActive),
+			}
+
+			err := nats.SendPoint(nc, r.ID, p, false)
+			if err != nil {
+				log.Println("Rule error sending point: ", err)
+			}
+		}
+	}
+
+	if pointProcessed && allActive {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// ruleRunActions runs rule actions
+func ruleRunActions(r *data.Rule, nc *natsgo.Conn) error {
+	for _, a := range r.Actions {
+		switch a.Action {
+		case data.PointValueActionSetValue:
+			if a.NodeID == "" {
+				log.Println("Error, node action nodeID must be set, action id: ", a.ID)
+			}
+			p := data.Point{
+				Time:  time.Now(),
+				Type:  a.PointType,
+				Value: a.PointValue,
+				Text:  a.PointTextValue,
+			}
+			err := nats.SendPoint(nc, a.NodeID, p, false)
+			if err != nil {
+				log.Println("Error sending rule action point: ", err)
+			}
+		case data.PointValueActionNotify:
+			log.Println("Notify action not supported yet")
+		default:
+			log.Println("Uknown rule action: ", a.Action)
+		}
+	}
 	return nil
 }

@@ -65,13 +65,11 @@ view o =
         actionType =
             Point.getText o.node.points Point.typeActionType
 
-        nodeIDNeeded =
-            actionType
-                == Point.valueActionSetValue
-                || actionType
-                == Point.valueActionSetValueBool
-                || actionType
-                == Point.valueActionSetValueText
+        actionSetValue =
+            actionType == Point.valueActionSetValue
+
+        valueType =
+            Point.getText o.node.points Point.typeValueType
     in
     column
         [ width fill
@@ -90,23 +88,35 @@ view o =
                     , optionInput Point.typeActionType
                         "Action"
                         [ ( Point.valueActionNotify, "notify" )
-                        , ( Point.valueActionSetValue, "set value" )
-                        , ( Point.valueActionSetValueBool, "set on/off value" )
-                        , ( Point.valueActionSetValueText, "set text value" )
+                        , ( Point.valueActionSetValue, "set node value" )
                         ]
-                    , viewIf nodeIDNeeded <| textInput Point.typeID "Node ID"
-                    , case actionType of
-                        "setValue" ->
-                            numberInput Point.typeValue "Value"
+                    , viewIf actionSetValue <|
+                        optionInput Point.typePointType
+                            "Point Type"
+                            [ ( Point.typeValue, "value" )
+                            , ( Point.typeValueSet, "set value (use for remote devices)" )
+                            ]
+                    , viewIf actionSetValue <| textInput Point.typeID "Node ID"
+                    , viewIf actionSetValue <|
+                        optionInput Point.typeValueType
+                            "Point Value Type"
+                            [ ( Point.valueNumber, "number" )
+                            , ( Point.valueOnOff, "on/off" )
+                            , ( Point.valueText, "text" )
+                            ]
+                    , viewIf actionSetValue <|
+                        case valueType of
+                            "number" ->
+                                numberInput Point.typeValue "Value"
 
-                        "setValueBool" ->
-                            onOffInput Point.typeValue Point.typeValue "Value"
+                            "onOff" ->
+                                onOffInput Point.typeValue Point.typeValue "Value"
 
-                        "setValueText" ->
-                            textInput Point.typeValue "Value"
+                            "text" ->
+                                textInput Point.typeValue "Value"
 
-                        _ ->
-                            Element.none
+                            _ ->
+                                Element.none
                     , viewIf o.modified <|
                         Form.buttonRow
                             [ Form.button

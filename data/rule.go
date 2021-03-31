@@ -7,36 +7,37 @@ import (
 // Condition defines parameters to look for in a sample. Either SampleType or SampleID
 // (or both) can be set. They can't both be "".
 type Condition struct {
-	SampleType string  `json:"sampleType"`
-	SampleID   string  `json:"sampleID"`
-	Value      float64 `json:"value"`
-	Operator   string  `json:"operator"`
+	ID             string
+	Description    string
+	NodeID         string
+	PointType      string
+	PointID        string
+	PointIndex     int
+	PointValueType string
+	Operator       string
+	PointValue     float64
+	PointTextValue string
+	MinTimeActive  float64
+	Active         bool
 }
-
-// ActionType defines the type of action to take
-type ActionType string
-
-// define valid action types
-const (
-	ActionTypeNotify = "notify"
-)
 
 // Action defines actions that can be taken if a rule is active.
 // Template can optionally be used to customize the message that is sent and
 // uses Io Type or IDs to fill in the values. Example might be:
 // JamMonitoring: Alert: {{ description }} is in ALARM state with tank level of {{ tankLevel }}.
 type Action struct {
-	Type     ActionType `json:"type"`
-	Template string     `json:"template"`
+	ID             string
+	Description    string
+	Action         string
+	NodeID         string
+	PointType      string
+	PointValueType string
+	PointValue     float64
+	PointTextValue string
 }
 
 // RuleConfig contains parts of the rule that a users changes
 type RuleConfig struct {
-	Description string        `json:"description"`
-	NodeID      string        `json:"nodeID"`
-	Conditions  []Condition   `json:"conditions"`
-	Actions     []Action      `json:"actions"`
-	Repeat      time.Duration `json:"repeat"`
 }
 
 // RuleState contains parts of a rule that the system changes
@@ -50,46 +51,79 @@ type RuleState struct {
 // to the Rule without config affecting state, and state affecting config as these are typically
 // done by two different entities.
 type Rule struct {
-	ID     string     `json:"id" boltholdKey:"ID"`
-	Config RuleConfig `json:"config"`
-	State  RuleState  `json:"state"`
+	ID          string
+	Description string
+	Active      bool
+	Conditions  []Condition
+	Actions     []Action
 }
 
-// IsActive checks if the rule is active against a data sample set
-func (r *Rule) IsActive(points []Point) bool {
-	active := true
-	// any of the below conditions can turn active false
-	for _, c := range r.Config.Conditions {
-		for _, p := range points {
-			if c.SampleType != "" && c.SampleType != p.Type {
-				continue
-			}
-			if c.SampleID != "" && c.SampleID != p.ID {
-				continue
-			}
-
-			// rule matches IO, no check condition
-			switch c.Operator {
-			case ">":
-				if p.Value <= c.Value {
-					active = false
-					break
-				}
-			case "<":
-				if p.Value >= c.Value {
-					active = false
-					break
-				}
-			case "=":
-				if p.Value != c.Value {
-					active = false
-					break
-				}
-			}
-		}
-		if !active {
-			break
+// NodeToRule converts nodes that make up a rule to a node
+func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (*Rule, error) {
+	ret := &Rule{}
+	ret.ID = ruleNode.ID
+	for _, p := range ruleNode.Points {
+		switch p.Type {
+		case PointTypeDescription:
+			ret.Description = p.Text
+		case PointTypeActive:
+			ret.Active = FloatToBool(p.Value)
 		}
 	}
-	return active
+
+	for _, cond := range conditionNodes {
+		var newCond Condition
+		newCond.ID = cond.ID
+		newCond.PointIndex = -1
+		for _, p := range cond.Points {
+			switch p.Type {
+			case PointTypeDescription:
+				newCond.Description = p.Text
+			case PointTypeID:
+				newCond.NodeID = p.Text
+			case PointTypePointType:
+				newCond.PointType = p.Text
+			case PointTypePointID:
+				newCond.PointID = p.Text
+			case PointTypePointIndex:
+				newCond.PointIndex = int(p.Value)
+			case PointTypeValueType:
+				newCond.PointValueType = p.Text
+			case PointTypeOperator:
+				newCond.Operator = p.Text
+			case PointTypeValue:
+				newCond.PointValue = p.Value
+			case PointTypeMinActive:
+				newCond.MinTimeActive = p.Value
+			case PointTypeActive:
+				newCond.Active = FloatToBool(p.Value)
+			}
+		}
+		ret.Conditions = append(ret.Conditions, newCond)
+	}
+
+	for _, act := range actionNodes {
+		var newAct Action
+		newAct.ID = act.ID
+		for _, p := range act.Points {
+			switch p.Type {
+			case PointTypeDescription:
+				newAct.Description = p.Text
+			case PointTypeActionType:
+				newAct.Action = p.Text
+			case PointTypeID:
+				newAct.NodeID = p.Text
+			case PointTypePointType:
+				newAct.PointType = p.Text
+			case PointTypeValueType:
+				newAct.PointValueType = p.Text
+			case PointTypeValue:
+				newAct.PointValue = p.Value
+				newAct.PointTextValue = p.Text
+			}
+		}
+		ret.Actions = append(ret.Actions, newAct)
+	}
+
+	return ret, nil
 }

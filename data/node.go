@@ -2,6 +2,9 @@ package data
 
 import (
 	"time"
+
+	"github.com/simpleiot/simpleiot/internal/pb"
+	"google.golang.org/protobuf/proto"
 )
 
 // SwUpdateState represents the state of an update
@@ -14,11 +17,9 @@ type SwUpdateState struct {
 // Node represents the state of a device. UUID is recommended
 // for ID to prevent collisions is distributed instances.
 type Node struct {
-	ID     string   `json:"id" boltholdKey:"ID"`
-	Type   string   `json:"type"`
-	Points Points   `json:"points"`
-	Groups []string `json:"groups"`
-	Rules  []string `json:"rules"`
+	ID     string `json:"id" boltholdKey:"ID"`
+	Type   string `json:"type"`
+	Points Points `json:"points"`
 }
 
 // Desc returns Description if set, otherwise ID
@@ -198,4 +199,54 @@ func (n *NodeEdge) ProcessPoint(pIn Point) {
 	if !pFound {
 		n.Points = append(n.Points, pIn)
 	}
+}
+
+// PbDecodeNode converts a protbuf to node data structure
+func PbDecodeNode(data []byte) (Node, error) {
+	pbNode := &pb.Node{}
+
+	err := proto.Unmarshal(data, pbNode)
+	if err != nil {
+		return Node{}, err
+	}
+
+	points := make([]Point, len(pbNode.Points))
+
+	for i, pPb := range pbNode.Points {
+		s, err := PbToPoint(pPb)
+		if err != nil {
+			return Node{}, err
+		}
+		points[i] = s
+	}
+
+	ret := Node{
+		ID:     pbNode.Id,
+		Type:   pbNode.Type,
+		Points: points,
+	}
+
+	return ret, nil
+}
+
+// PbEncodeNode encodes a node to a protobuf
+func PbEncodeNode(node Node) ([]byte, error) {
+	points := make([]*pb.Point, len(node.Points))
+
+	for i, p := range node.Points {
+		pPb, err := p.ToPb()
+		if err != nil {
+			return []byte{}, err
+		}
+
+		points[i] = &pPb
+	}
+
+	pbNode := pb.Node{
+		Id:     node.ID,
+		Type:   node.Type,
+		Points: points,
+	}
+
+	return proto.Marshal(&pbNode)
 }

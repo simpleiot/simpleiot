@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/genjidb/genji/sql/driver"
-
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
@@ -98,6 +96,7 @@ func main() {
 	// Command line options
 	// =============================================
 
+	// configuration options
 	flagDebugHTTP := flag.Bool("debugHttp", false, "Dump http requests")
 	flagSim := flag.Bool("sim", false, "Start node simulator")
 	flagDisableAuth := flag.Bool("disableAuth", false, "Disable user auth (used for development)")
@@ -105,19 +104,21 @@ func main() {
 	flagSendPoint := flag.String("sendPoint", "", "Send point to 'portal': 'devId:sensId:value:type'")
 	flagNatsServer := flag.String("natsServer", defaultNatsServer, "NATS Server")
 	flagNatsDisableServer := flag.Bool("natsDisableServer", false, "Disable NATS server (if you want to run NATS separately)")
+	flagStore := flag.String("store", "bolt", "db store type: bolt, badger, memory")
+	flagAuthToken := flag.String("token", "", "Auth token")
 	flagNatsAck := flag.Bool("natsAck", false, "request response")
+	flagID := flag.String("id", "1234", "ID of node")
+	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
+
+	// commands to run, if no commands are given the main server starts up
 	flagSendPointNats := flag.String("sendPointNats", "", "Send point to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendPointText := flag.String("sendPointText", "", "Send text point to 'portal' via NATS: 'devId:sensId:text:type'")
 	flagSendFile := flag.String("sendFile", "", "URL of file to send")
 	flagSendCmd := flag.String("sendCmd", "", "Command to send (cmd:detail)")
-	flagID := flag.String("id", "1234", "ID of node")
 	flagVersion := flag.Bool("version", false, "Show version number")
-
-	flagSyslog := flag.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDumpDb := flag.Bool("dumpDb", false, "dump database to data.json file")
 	flagImportDb := flag.Bool("importDb", false, "import database from data.json")
-	flagStore := flag.String("store", "bolt", "db store type: bolt, badger, memory")
-	flagAuthToken := flag.String("token", "", "Auth token")
+	flagLogNats := flag.Bool("logNats", false, "attach to NATS server and dump messages")
 	flag.Parse()
 
 	// =============================================
@@ -216,7 +217,8 @@ func main() {
 	if *flagSendPointNats != "" ||
 		*flagSendFile != "" ||
 		*flagSendCmd != "" ||
-		*flagSendPointText != "" {
+		*flagSendPointText != "" ||
+		*flagLogNats {
 
 		opts := nats.EdgeOptions{
 			Server:    natsServer,
@@ -300,6 +302,50 @@ func main() {
 			log.Println(err)
 			os.Exit(-1)
 		}
+	}
+
+	if *flagLogNats {
+		log.Println("Logging all NATS messages")
+		_, err := nc.Subscribe("node.*.points", func(msg *natsgo.Msg) {
+			nodeID, points, err := nats.DecodeNodeMsg(msg)
+			if err != nil {
+				log.Println("Error decoding NATS msg: ", err)
+				return
+			}
+
+			// Fetch node so we can print description
+			nodeMsg, err := nc.Request("node."+nodeID, nil, time.Second)
+
+			if err != nil {
+				log.Println("Error getting node over NATS: ", err)
+				return
+			}
+
+			node, err := data.PbDecodeNode(nodeMsg.Data)
+
+			if err != nil {
+				log.Println("Error decoding node data from server: ", err)
+				return
+			}
+
+			description, _ := node.Points.Text("", data.PointTypeDescription, 0)
+
+			log.Printf("NODE: %v (%v) (%v)\n", description, node.Type, node.ID)
+			for _, p := range points {
+				if p.Text != "" {
+					log.Printf("   - POINT: %v: %v\n", p.Type, p.Text)
+				} else {
+					log.Printf("   - POINT: %v: %v\n", p.Type, p.Value)
+				}
+			}
+		})
+
+		if err != nil {
+			log.Println("Nats subscribe error: ", err)
+			os.Exit(-1)
+		}
+
+		select {}
 	}
 
 	if nc != nil {

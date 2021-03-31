@@ -8,6 +8,7 @@ module Api.Point exposing
     , encodeList
     , filterSpecialPoints
     , get
+    , getBool
     , getLatest
     , getText
     , getValue
@@ -15,13 +16,13 @@ module Api.Point exposing
     , newValue
     , renderPoint
     , typeActionType
+    , typeActive
     , typeAddress
     , typeAppVersion
     , typeAuthToken
     , typeBaud
     , typeClientServer
     , typeCmdPending
-    , typeConditionType
     , typeDataFormat
     , typeDebug
     , typeDescription
@@ -37,12 +38,16 @@ module Api.Point exposing
     , typeHwVersion
     , typeID
     , typeLastName
+    , typeMinActive
     , typeModbusIOType
     , typeOSVersion
     , typeOffset
     , typeOperator
     , typePass
     , typePhone
+    , typePointID
+    , typePointIndex
+    , typePointType
     , typePollPeriod
     , typePort
     , typeProtocol
@@ -63,6 +68,8 @@ module Api.Point exposing
     , typeUpdateOS
     , typeValue
     , typeValueSet
+    , typeValueType
+    , typeVariableType
     , updatePoint
     , updatePoints
     , valueActionNotify
@@ -70,10 +77,7 @@ module Api.Point exposing
     , valueActionSetValueBool
     , valueActionSetValueText
     , valueClient
-    , valueConditionSystemState
-    , valueConditionValue
-    , valueConditionValueBool
-    , valueConditionValueText
+    , valueContains
     , valueEqual
     , valueFLOAT32
     , valueGreaterThan
@@ -85,8 +89,10 @@ module Api.Point exposing
     , valueModbusHoldingRegister
     , valueModbusInputRegister
     , valueNotEqual
+    , valueNumber
     , valueOff
     , valueOn
+    , valueOnOff
     , valueRTU
     , valueSMTP
     , valueServer
@@ -95,6 +101,7 @@ module Api.Point exposing
     , valueSysStatePowerOff
     , valueSysStateUnknown
     , valueTCP
+    , valueText
     , valueTwilio
     , valueUINT16
     , valueUINT32
@@ -405,29 +412,24 @@ typeURI =
     "uri"
 
 
-typeConditionType : String
-typeConditionType =
-    "conditionType"
+typeValueType : String
+typeValueType =
+    "valueType"
 
 
-valueConditionValue : String
-valueConditionValue =
-    "value"
+typePointID : String
+typePointID =
+    "pointID"
 
 
-valueConditionValueBool : String
-valueConditionValueBool =
-    "valueBool"
+typePointType : String
+typePointType =
+    "pointType"
 
 
-valueConditionValueText : String
-valueConditionValueText =
-    "valueText"
-
-
-valueConditionSystemState : String
-valueConditionSystemState =
-    typeSysState
+typePointIndex : String
+typePointIndex =
+    "pointIndex"
 
 
 typeOperator : String
@@ -463,6 +465,16 @@ valueOn =
 valueOff : String
 valueOff =
     "off"
+
+
+valueContains : String
+valueContains =
+    "contains"
+
+
+typeMinActive : String
+typeMinActive =
+    "minActive"
 
 
 typeActionType : String
@@ -518,6 +530,31 @@ typeAuthToken =
 typeFrom : String
 typeFrom =
     "from"
+
+
+typeVariableType : String
+typeVariableType =
+    "variableType"
+
+
+valueOnOff : String
+valueOnOff =
+    "onOff"
+
+
+valueNumber : String
+valueNumber =
+    "number"
+
+
+valueText : String
+valueText =
+    "text"
+
+
+typeActive : String
+typeActive =
+    "active"
 
 
 
@@ -704,6 +741,11 @@ getValue points typ =
 
         Nothing ->
             0
+
+
+getBool : List Point -> String -> Bool
+getBool points typ =
+    getValue points typ == 1
 
 
 getLatest : List Point -> Maybe Point

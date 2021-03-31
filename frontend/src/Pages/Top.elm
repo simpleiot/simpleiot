@@ -16,6 +16,7 @@ import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeRule as NodeRule
 import Components.NodeUser as NodeUser
+import Components.NodeVariable as NodeVariable
 import Element exposing (..)
 import Element.Input as Input
 import Http
@@ -881,6 +882,9 @@ shouldDisplay typ =
         "msgService" ->
             True
 
+        "variable" ->
+            True
+
         _ ->
             False
 
@@ -917,6 +921,9 @@ viewNode model parent node depth =
                 "msgService" ->
                     NodeMessageService.view
 
+                "variable" ->
+                    NodeVariable.view
+
                 _ ->
                     viewUnknown
     in
@@ -938,10 +945,10 @@ viewNode model parent node depth =
                     Button.arrowRight (ToggleExpChildren node.node.id)
             , el [ alignTop ] <|
                 if node.expDetail then
-                    Button.minimize (ToggleExpDetail node.node.id)
+                    Button.close (ToggleExpDetail node.node.id)
 
                 else
-                    Button.maximize (ToggleExpDetail node.node.id)
+                    Button.edit (ToggleExpDetail node.node.id)
             , column
                 [ spacing 6, width fill ]
                 [ nodeView
@@ -1072,6 +1079,7 @@ viewAddNode parent add =
                             , Input.option Node.typeRule (text "Rule")
                             , Input.option Node.typeModbus (text "Modbus")
                             , Input.option Node.typeMsgService (text "Messaging Service")
+                            , Input.option Node.typeVariable (text "Variable")
                             ]
 
                         else
@@ -1082,6 +1090,7 @@ viewAddNode parent add =
                             , Input.option Node.typeGroup (text "Group")
                             , Input.option Node.typeRule (text "Rule")
                             , Input.option Node.typeMsgService (text "Messaging Service")
+                            , Input.option Node.typeVariable (text "Variable")
                             ]
 
                         else
