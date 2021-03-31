@@ -96,7 +96,7 @@ func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (*Rul
 			case PointTypeMinActive:
 				newCond.MinTimeActive = p.Value
 			case PointTypeActive:
-				ret.Active = FloatToBool(p.Value)
+				newCond.Active = FloatToBool(p.Value)
 			}
 		}
 		ret.Conditions = append(ret.Conditions, newCond)

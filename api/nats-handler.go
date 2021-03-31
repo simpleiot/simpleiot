@@ -239,8 +239,6 @@ func (nh *NatsHandler) processPointUpstream(currentNodeID, nodeID string, p data
 				return err
 			}
 
-			fmt.Printf("CLIFF: rule: %+v\n", rule)
-
 			active, err := ruleProcessPoint(nh.Nc, rule, nodeID, p)
 
 			if err != nil {
@@ -267,32 +265,24 @@ func (nh *NatsHandler) processPointUpstream(currentNodeID, nodeID string, p data
 // processPoint runs a point through a rules conditions and and updates condition
 // and rule active status. Returns true if point was processed and active is true
 func ruleProcessPoint(nc *natsgo.Conn, r *data.Rule, nodeID string, p data.Point) (bool, error) {
-	fmt.Println("CLIFF: ruleProcessPoint, nodeID: ", nodeID)
-	fmt.Printf("CLIFF: point: %+v\n", p)
 	allActive := true
 	pointProcessed := false
 	for _, c := range r.Conditions {
 		if c.NodeID != "" && c.NodeID != nodeID {
-			fmt.Println("CLIFF: node id does not match, continue")
 			continue
 		}
 
 		if c.PointID != "" && c.PointID != p.ID {
-			fmt.Println("CLIFF: point id does not match, continue")
 			continue
 		}
 
 		if c.PointType != "" && c.PointType != p.Type {
-			fmt.Println("CLIFF: point type does not match, continue")
 			continue
 		}
 
 		if c.PointIndex != -1 && c.PointIndex != int(p.Index) {
-			fmt.Println("CLIFF: point index does not match, continue")
 			continue
 		}
-
-		fmt.Println("CLIFF: processing condition, PointValueType: ", c.PointValueType)
 
 		var active bool
 
@@ -320,15 +310,12 @@ func ruleProcessPoint(nc *natsgo.Conn, r *data.Rule, nodeID string, p data.Point
 		case data.PointValueOnOff:
 			condValue := c.PointValue != 0
 			pointValue := p.Value != 0
-			fmt.Println("CLIFF: condValue, pointValue: ", condValue, pointValue)
 			active = condValue == pointValue
 		}
 
 		if !active {
 			allActive = false
 		}
-
-		fmt.Println("CLIFF: active: ", active)
 
 		if active != c.Active {
 			// update condition
@@ -344,18 +331,19 @@ func ruleProcessPoint(nc *natsgo.Conn, r *data.Rule, nodeID string, p data.Point
 			}
 		}
 	}
-	fmt.Println("CLIFF: allActive: ", allActive)
 
-	if pointProcessed && allActive != r.Active {
-		p := data.Point{
-			Type:  data.PointTypeActive,
-			Time:  time.Now(),
-			Value: data.BoolToFloat(allActive),
-		}
+	if pointProcessed {
+		if allActive != r.Active {
+			p := data.Point{
+				Type:  data.PointTypeActive,
+				Time:  time.Now(),
+				Value: data.BoolToFloat(allActive),
+			}
 
-		err := nats.SendPoint(nc, r.ID, p, false)
-		if err != nil {
-			log.Println("Rule error sending point: ", err)
+			err := nats.SendPoint(nc, r.ID, p, false)
+			if err != nil {
+				log.Println("Rule error sending point: ", err)
+			}
 		}
 	}
 

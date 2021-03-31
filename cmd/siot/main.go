@@ -245,8 +245,6 @@ func main() {
 		}
 	}
 
-	log.Println("CLIFF: 1")
-
 	if *flagSendFile != "" {
 		err = api.NatsSendFileFromHTTP(nc, *flagID, *flagSendFile, func(percDone int) {
 			log.Println("% done: ", percDone)
@@ -293,7 +291,6 @@ func main() {
 			os.Exit(-1)
 		}
 	}
-	log.Println("CLIFF: 2")
 
 	if *flagSendPointText != "" {
 		nodeID, point, err := parsePointText(*flagSendPointText)
@@ -354,7 +351,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	log.Println("CLIFF: 3")
 	if nc != nil {
 		// wait for everything to get sent to server
 		nc.Flush()
