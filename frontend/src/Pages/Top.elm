@@ -431,8 +431,14 @@ update msg model =
                 Data.Success nodes ->
                     let
                         maybeNew =
-                            nodeListToTree nodes
-                                |> Maybe.map populateHasChildren
+                            case nodeListToTree nodes of
+                                Just tree ->
+                                    Just <|
+                                        populateHasChildren <|
+                                            sortNodeTree tree
+
+                                Nothing ->
+                                    Nothing
 
                         treeMerged =
                             case ( model.nodes, maybeNew ) of
@@ -718,6 +724,39 @@ populateHasChildren tree =
             )
 
 
+
+-- sortNodeTree recursively sorts the children of the nodes
+
+
+sortNodeTree : Tree NodeView -> Tree NodeView
+sortNodeTree nodes =
+    let
+        children =
+            Tree.children nodes
+
+        childrenSorted =
+            List.sortWith
+                (\a b ->
+                    let
+                        aNode =
+                            Tree.label a
+
+                        bNode =
+                            Tree.label b
+
+                        aDescription =
+                            Point.getText aNode.node.points Point.typeDescription
+
+                        bDescription =
+                            Point.getText bNode.node.points Point.typeDescription
+                    in
+                    compare bDescription aDescription
+                )
+                children
+    in
+    Tree.tree (Tree.label nodes) (List.map sortNodeTree childrenSorted)
+
+
 popError : String -> Http.Error -> Model -> Model
 popError desc err model =
     { model | error = Just (desc ++ ": " ++ Data.errorToString err) }
@@ -813,26 +852,6 @@ viewNodesHelp depth model tree =
 
             else
                 []
-
-        childrenSorted =
-            List.sortWith
-                (\a b ->
-                    let
-                        aNode =
-                            Tree.label a
-
-                        bNode =
-                            Tree.label b
-
-                        aDescription =
-                            Point.getText aNode.node.points Point.typeDescription
-
-                        bDescription =
-                            Point.getText bNode.node.points Point.typeDescription
-                    in
-                    compare bDescription aDescription
-                )
-                children
     in
     List.foldr
         (\child ret ->
@@ -849,7 +868,7 @@ viewNodesHelp depth model tree =
                 ret
         )
         []
-        childrenSorted
+        children
 
 
 shouldDisplay : String -> Bool
