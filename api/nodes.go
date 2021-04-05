@@ -11,11 +11,22 @@ import (
 	"github.com/simpleiot/simpleiot/nats"
 )
 
-// NodeMove is a data structure used in the /node/parent api calls
+// NodeMove is a data structure used in the /node/:id/parents api call
 type NodeMove struct {
 	ID        string
 	OldParent string
 	NewParent string
+}
+
+// NodeCopy is a data structured used in the /node/:id/parents api call
+type NodeCopy struct {
+	ID        string
+	NewParent string
+}
+
+// NodeDelete is a data structure used with /node/:id DELETE call
+type NodeDelete struct {
+	Parent string
 }
 
 // Nodes handles node requests
@@ -98,7 +109,13 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				en.Encode(node)
 			}
 		case http.MethodDelete:
-			err := h.db.NodeDelete(id)
+			var nodeDelete NodeDelete
+			if err := decode(req.Body, &nodeDelete); err != nil {
+				http.Error(res, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			err := h.db.NodeDelete(id, nodeDelete.Parent)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
@@ -136,6 +153,23 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				en.Encode(data.StandardResponse{Success: true, ID: id})
 			}
 			return
+
+		case http.MethodPut:
+			var nodeCopy NodeCopy
+			if err := decode(req.Body, &nodeCopy); err != nil {
+				http.Error(res, err.Error(), http.StatusBadRequest)
+				return
+			}
+			err := h.db.EdgeCopy(nodeCopy.ID,
+				nodeCopy.NewParent)
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+			} else {
+				en := json.NewEncoder(res)
+				en.Encode(data.StandardResponse{Success: true, ID: id})
+			}
+			return
+
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 		}

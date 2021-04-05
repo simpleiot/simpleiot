@@ -326,27 +326,34 @@ func (gen *Db) NodeInsertEdge(node data.NodeEdge) (string, error) {
 	return node.ID, err
 }
 
-func txNodeDelete(tx *genji.Tx, id string) error {
-	childIDs, err := txEdgeDown(tx, id)
+func txNodeDelete(tx *genji.Tx, id, parent string) error {
+	upIDs, err := txEdgeUp(tx, id)
 	if err != nil {
 		return err
 	}
 
-	for _, id := range childIDs {
-		txNodeDelete(tx, id)
+	err = tx.Exec(`delete from edges where down = ? and up = ?`, id, parent)
+	if err != nil {
+		return err
+	}
+
+	if len(upIDs) > 1 {
+		// there are still other nodes using this node
+		// so don't delete it
+		return nil
+	}
+
+	// recursively delete all downstream nodes
+	downIDs, err := txEdgeDown(tx, id)
+	if err != nil {
+		return err
+	}
+
+	for _, cid := range downIDs {
+		txNodeDelete(tx, cid, id)
 	}
 
 	err = tx.Exec(`delete from nodes where id = ?`, id)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Exec(`delete from edges where down = ?`, id)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Exec(`delete from edges where up = ?`, id)
 	if err != nil {
 		return err
 	}
@@ -356,9 +363,9 @@ func txNodeDelete(tx *genji.Tx, id string) error {
 
 // NodeDelete deletes a node from the database and recursively all
 // descendents
-func (gen *Db) NodeDelete(id string) error {
+func (gen *Db) NodeDelete(id, parent string) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
-		return txNodeDelete(tx, id)
+		return txNodeDelete(tx, id, parent)
 	})
 }
 
@@ -663,6 +670,13 @@ func (gen *Db) EdgeMove(id, oldParent, newParent string) error {
 			log.Println("Could not find old parent node: ", oldParent)
 		}
 
+		return txEdgeInsert(tx, &data.Edge{Up: newParent, Down: id})
+	})
+}
+
+// EdgeCopy is used to copy a node
+func (gen *Db) EdgeCopy(id, newParent string) error {
+	return gen.store.Update(func(tx *genji.Tx) error {
 		return txEdgeInsert(tx, &data.Edge{Up: newParent, Down: id})
 	})
 }

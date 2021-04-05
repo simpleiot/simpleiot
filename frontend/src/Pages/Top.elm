@@ -33,7 +33,8 @@ import Tree.Zipper as Zipper exposing (Zipper)
 import UI.Button as Button
 import UI.Form as Form
 import UI.Icon as Icon
-import UI.Style as Style
+import UI.Style as Style exposing (colors)
+import UI.ViewIf exposing (viewIf)
 import Utils.Route
 
 
@@ -178,7 +179,7 @@ type Msg
     | MoveNodeDescription String
     | CopyNodeDescription String
     | SelectAddNodeType String
-    | ApiDelete String
+    | ApiDelete String String
     | ApiPostPoints String
     | ApiPostAddNode
     | ApiPostMoveNode
@@ -470,7 +471,7 @@ update msg model =
                     Cmd.none
             )
 
-        ApiDelete id ->
+        ApiDelete id parent ->
             -- optimistically update nodes
             let
                 nodes =
@@ -478,7 +479,12 @@ update msg model =
                     model.nodes
             in
             ( { model | nodes = nodes }
-            , Node.delete { token = model.auth.token, id = id, onResponse = ApiRespDelete }
+            , Node.delete
+                { token = model.auth.token
+                , id = id
+                , parent = parent
+                , onResponse = ApiRespDelete
+                }
             )
 
         Zone zone ->
@@ -1058,11 +1064,21 @@ viewNode model parent node depth =
                     , parent = Maybe.map .node parent
                     , node = node.node
                     , expDetail = node.expDetail
-                    , onApiDelete = ApiDelete
                     , onEditNodePoint = EditNodePoint
-                    , onDiscardEdits = DiscardEdits
-                    , onApiPostPoints = ApiPostPoints
                     }
+                , viewIf node.mod <|
+                    Form.buttonRow
+                        [ Form.button
+                            { label = "save"
+                            , color = colors.blue
+                            , onPress = ApiPostPoints node.node.id
+                            }
+                        , Form.button
+                            { label = "discard"
+                            , color = colors.gray
+                            , onPress = DiscardEdits
+                            }
+                        ]
                 , if node.expDetail then
                     case model.nodeOp of
                         OpNone ->
@@ -1110,10 +1126,7 @@ viewUnknown :
     , expDetail : Bool
     , parent : Maybe Node
     , node : Node
-    , onApiDelete : String -> msg
     , onEditNodePoint : String -> Point -> msg
-    , onDiscardEdits : msg
-    , onApiPostPoints : String -> msg
     }
     -> Element msg
 viewUnknown o =
@@ -1130,7 +1143,7 @@ viewNodeOperations id parent =
           else
             Element.none
         , Button.message (MsgNode id)
-        , Button.x (ApiDelete id)
+        , Button.x (ApiDelete id parent)
         , Button.copy (Clipboard id)
         ]
 

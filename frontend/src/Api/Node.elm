@@ -122,9 +122,14 @@ type alias NodeMove =
     }
 
 
-type alias NodeAddParent =
+type alias NodeCopy =
     { id : String
     , newParent : String
+    }
+
+
+type alias NodeDelete =
+    { parent : String
     }
 
 
@@ -175,11 +180,18 @@ encodeNodeMove nodeMove =
         ]
 
 
-encodeNodeAddParent : NodeAddParent -> Encode.Value
-encodeNodeAddParent nodeMove =
+encodeNodeAddParent : NodeCopy -> Encode.Value
+encodeNodeAddParent nodeCopy =
     Encode.object
-        [ ( "id", Encode.string nodeMove.id )
-        , ( "newParent", Encode.string nodeMove.newParent )
+        [ ( "id", Encode.string nodeCopy.id )
+        , ( "newParent", Encode.string nodeCopy.newParent )
+        ]
+
+
+encodeNodeDelete : NodeDelete -> Encode.Value
+encodeNodeDelete nodeDelete =
+    Encode.object
+        [ ( "parent", Encode.string nodeDelete.parent )
         ]
 
 
@@ -249,6 +261,7 @@ getCmd options =
 delete :
     { token : String
     , id : String
+    , parent : String
     , onResponse : Data Response -> msg
     }
     -> Cmd msg
@@ -258,7 +271,7 @@ delete options =
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
         , url = Url.Builder.absolute [ "v1", "nodes", options.id ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
-        , body = Http.emptyBody
+        , body = encodeNodeDelete { parent = options.parent } |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }

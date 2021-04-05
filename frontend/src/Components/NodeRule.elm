@@ -10,7 +10,6 @@ import Time
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors)
-import UI.ViewIf exposing (viewIf)
 
 
 view :
@@ -21,10 +20,7 @@ view :
     , expDetail : Bool
     , parent : Maybe Node
     , node : Node
-    , onApiDelete : String -> msg
     , onEditNodePoint : String -> Point -> msg
-    , onDiscardEdits : msg
-    , onApiPostPoints : String -> msg
     }
     -> Element msg
 view o =
@@ -69,19 +65,6 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
-                    , viewIf o.modified <|
-                        Form.buttonRow
-                            [ Form.button
-                                { label = "save"
-                                , color = colors.blue
-                                , onPress = o.onApiPostPoints o.node.id
-                                }
-                            , Form.button
-                                { label = "discard"
-                                , color = colors.gray
-                                , onPress = o.onDiscardEdits
-                                }
-                            ]
                     ]
 
                 else
