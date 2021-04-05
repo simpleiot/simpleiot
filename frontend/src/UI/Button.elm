@@ -2,6 +2,7 @@ module UI.Button exposing
     ( arrowDown
     , arrowRight
     , check
+    , clipboard
     , close
     , copy
     , edit
@@ -133,3 +134,8 @@ message msg =
 copy : msg -> Element msg
 copy msg =
     button FeatherIcons.copy msg
+
+
+clipboard : msg -> Element msg
+clipboard msg =
+    button FeatherIcons.clipboard msg

@@ -65,10 +65,16 @@ type alias Model =
     , nodes : Maybe (Tree NodeView)
     , auth : Auth
     , error : Maybe String
-    , addNode : Maybe NodeToAdd
-    , moveNode : Maybe NodeMove
-    , msgNode : Maybe NodeMessage
+    , nodeOp : NodeOperation
     }
+
+
+type NodeOperation
+    = OpNone
+    | OpNodeToAdd NodeToAdd
+    | OpNodeMove NodeMove
+    | OpNodeCopy NodeCopy
+    | OpNodeMessage NodeMessage
 
 
 type alias NodeView =
@@ -94,9 +100,16 @@ type alias NodeToAdd =
 
 type alias NodeMove =
     { id : String
-    , description : String
+    , input : String
     , oldParent : String
     , newParent : Maybe String
+    }
+
+
+type alias NodeCopy =
+    { id : String
+    , input : String
+    , newChild : Maybe String
     }
 
 
@@ -116,9 +129,7 @@ defaultModel key =
         Nothing
         { email = "", token = "", isRoot = False }
         Nothing
-        Nothing
-        Nothing
-        Nothing
+        OpNone
 
 
 init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
@@ -160,21 +171,25 @@ type Msg
     | MsgNode String
     | DiscardAddNode
     | MoveNode String String
+    | CopyNode String
     | DiscardMoveNode
     | UpdateMsg String
     | DiscardMsg
     | MoveNodeDescription String
+    | CopyNodeDescription String
     | SelectAddNodeType String
     | ApiDelete String
     | ApiPostPoints String
     | ApiPostAddNode
     | ApiPostMoveNode
+    | ApiPutCopyNode
     | ApiPostMsgNode
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
     | ApiRespPostAddNode (Data Response)
     | ApiRespPostMoveNode (Data Response)
+    | ApiRespPutCopyNode (Data Response)
     | ApiRespPostMsgNode (Data Response)
     | Clipboard String
 
@@ -248,7 +263,7 @@ update msg model =
                     ( model, Cmd.none )
 
         DiscardAll ->
-            ( { model | nodeEdit = Nothing, moveNode = Nothing, msgNode = Nothing, addNode = Nothing }, Cmd.none )
+            ( { model | nodeOp = OpNone }, Cmd.none )
 
         DiscardEdits ->
             ( { model | nodeEdit = Nothing }
@@ -271,20 +286,20 @@ update msg model =
 
         AddNode id ->
             ( { model
-                | addNode = Just { typ = Nothing, parent = id }
+                | nodeOp = OpNodeToAdd { typ = Nothing, parent = id }
               }
             , Cmd.none
             )
 
         MsgNode id ->
-            ( { model | msgNode = Just { id = id, message = "" } }, Cmd.none )
+            ( { model | nodeOp = OpNodeMessage { id = id, message = "" } }, Cmd.none )
 
         MoveNode id parent ->
             ( { model
-                | moveNode =
-                    Just
+                | nodeOp =
+                    OpNodeMove
                         { id = id
-                        , description = ""
+                        , input = ""
                         , oldParent = parent
                         , newParent = Nothing
                         }
@@ -292,62 +307,90 @@ update msg model =
             , Cmd.none
             )
 
+        CopyNode id ->
+            ( { model
+                | nodeOp =
+                    OpNodeCopy
+                        { id = id
+                        , input = ""
+                        , newChild = Nothing
+                        }
+              }
+            , Cmd.none
+            )
+
         DiscardMoveNode ->
-            ( { model | moveNode = Nothing }, Cmd.none )
+            ( { model | nodeOp = OpNone }, Cmd.none )
 
         UpdateMsg message ->
-            case model.msgNode of
-                Just msgNode ->
-                    ( { model | msgNode = Just { msgNode | message = message } }, Cmd.none )
+            case model.nodeOp of
+                OpNodeMessage op ->
+                    ( { model | nodeOp = OpNodeMessage { op | message = message } }, Cmd.none )
 
-                Nothing ->
+                _ ->
                     ( model, Cmd.none )
 
         DiscardMsg ->
-            ( { model | msgNode = Nothing }, Cmd.none )
+            ( { model | nodeOp = OpNone }, Cmd.none )
 
         MoveNodeDescription desc ->
-            let
-                newId =
-                    model.nodes
-                        |> Maybe.andThen (findNode desc)
-                        |> Maybe.map .node
-                        |> Maybe.map .id
+            case model.nodeOp of
+                OpNodeMove move ->
+                    let
+                        newId =
+                            model.nodes
+                                |> Maybe.andThen (findNode desc)
+                                |> Maybe.map .node
+                                |> Maybe.map .id
 
-                moveNode =
-                    model.moveNode
-                        |> Maybe.map
-                            (\mn ->
-                                { mn
-                                    | description = desc
-                                    , newParent = newId
-                                }
-                            )
-            in
-            ( { model | moveNode = moveNode }, Cmd.none )
+                        moveNode =
+                            { move | input = desc, newParent = newId }
+                    in
+                    ( { model | nodeOp = OpNodeMove moveNode }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        CopyNodeDescription desc ->
+            case model.nodeOp of
+                OpNodeCopy copy ->
+                    let
+                        newId =
+                            model.nodes
+                                |> Maybe.andThen (findNode desc)
+                                |> Maybe.map .node
+                                |> Maybe.map .id
+
+                        copyNode =
+                            { copy | input = desc, newChild = newId }
+                    in
+                    ( { model | nodeOp = OpNodeCopy copyNode }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
         SelectAddNodeType typ ->
-            case model.addNode of
-                Just add ->
-                    ( { model | addNode = Just { add | typ = Just typ } }, Cmd.none )
+            case model.nodeOp of
+                OpNodeToAdd add ->
+                    ( { model | nodeOp = OpNodeToAdd { add | typ = Just typ } }, Cmd.none )
 
-                Nothing ->
+                _ ->
                     ( model, Cmd.none )
 
         DiscardAddNode ->
-            ( { model | addNode = Nothing }, Cmd.none )
+            ( { model | nodeOp = OpNone }, Cmd.none )
 
         ApiPostAddNode ->
             -- FIXME optimistically update nodes
-            case model.addNode of
-                Just addNode ->
+            case model.nodeOp of
+                OpNodeToAdd addNode ->
                     let
                         nodes =
                             model.nodes |> Maybe.map (expChildren addNode.parent)
                     in
                     case addNode.typ of
                         Just typ ->
-                            ( { model | addNode = Nothing, nodes = nodes }
+                            ( { model | nodeOp = OpNone, nodes = nodes }
                             , Node.insert
                                 { token = model.auth.token
                                 , onResponse = ApiRespPostAddNode
@@ -366,15 +409,15 @@ update msg model =
                             )
 
                         Nothing ->
-                            ( { model | addNode = Nothing, nodes = nodes }, Cmd.none )
+                            ( { model | nodeOp = OpNone, nodes = nodes }, Cmd.none )
 
-                Nothing ->
-                    ( { model | addNode = Nothing }, Cmd.none )
+                _ ->
+                    ( { model | nodeOp = OpNone }, Cmd.none )
 
         ApiPostMoveNode ->
-            ( { model | moveNode = Nothing }
-            , case model.moveNode of
-                Just moveNode ->
+            ( model
+            , case model.nodeOp of
+                OpNodeMove moveNode ->
                     case moveNode.newParent of
                         Just newParent ->
                             Node.move
@@ -388,14 +431,34 @@ update msg model =
                         Nothing ->
                             Cmd.none
 
-                Nothing ->
+                _ ->
+                    Cmd.none
+            )
+
+        ApiPutCopyNode ->
+            ( model
+            , case model.nodeOp of
+                OpNodeCopy copyNode ->
+                    case copyNode.newChild of
+                        Just newChild ->
+                            Node.copy
+                                { token = model.auth.token
+                                , id = newChild
+                                , newParent = copyNode.id
+                                , onResponse = ApiRespPutCopyNode
+                                }
+
+                        Nothing ->
+                            Cmd.none
+
+                _ ->
                     Cmd.none
             )
 
         ApiPostMsgNode ->
-            ( { model | msgNode = Nothing }
-            , case model.msgNode of
-                Just msgNode ->
+            ( model
+            , case model.nodeOp of
+                OpNodeMessage msgNode ->
                     Node.message
                         { token = model.auth.token
                         , id = msgNode.id
@@ -403,7 +466,7 @@ update msg model =
                         , onResponse = ApiRespPostMsgNode
                         }
 
-                Nothing ->
+                _ ->
                     Cmd.none
             )
 
@@ -533,7 +596,7 @@ update msg model =
         ApiRespPostMoveNode resp ->
             case resp of
                 Data.Success _ ->
-                    ( model
+                    ( { model | nodeOp = OpNone }
                     , updateNodes model
                     )
 
@@ -547,10 +610,27 @@ update msg model =
                     , updateNodes model
                     )
 
+        ApiRespPutCopyNode resp ->
+            case resp of
+                Data.Success _ ->
+                    ( { model | nodeOp = OpNone }
+                    , updateNodes model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error copying node" err model
+                    , updateNodes model
+                    )
+
+                _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
         ApiRespPostMsgNode resp ->
             case resp of
                 Data.Success _ ->
-                    ( model
+                    ( { model | nodeOp = OpNone }
                     , updateNodes model
                     )
 
@@ -633,9 +713,9 @@ toggleExpDetail id tree =
 
 
 findNode : String -> Tree NodeView -> Maybe NodeView
-findNode desc tree =
+findNode descId tree =
     Zipper.findFromRoot
-        (\n -> Node.description n.node == desc)
+        (\n -> Node.description n.node == descId || n.node.id == descId)
         (Zipper.fromTree tree)
         |> Maybe.map Zipper.label
 
@@ -984,35 +1064,37 @@ viewNode model parent node depth =
                     , onApiPostPoints = ApiPostPoints
                     }
                 , if node.expDetail then
-                    case
-                        ( model.addNode
-                        , model.moveNode
-                        , model.msgNode
-                        )
-                    of
-                        ( Just add, _, _ ) ->
+                    case model.nodeOp of
+                        OpNone ->
+                            viewNodeOperations node.node.id node.node.parent
+
+                        OpNodeToAdd add ->
                             if add.parent == node.node.id then
                                 viewAddNode node.node add
 
                             else
                                 viewNodeOperations node.node.id node.node.parent
 
-                        ( _, Just move, _ ) ->
+                        OpNodeMove move ->
                             if move.id == node.node.id then
                                 viewMoveNode move
 
                             else
                                 viewNodeOperations node.node.id node.node.parent
 
-                        ( _, _, Just msg ) ->
+                        OpNodeCopy copy ->
+                            if copy.id == node.node.id then
+                                viewCopyNode copy
+
+                            else
+                                viewNodeOperations node.node.id node.node.parent
+
+                        OpNodeMessage msg ->
                             if msg.id == node.node.id then
                                 viewMsgNode msg
 
                             else
                                 viewNodeOperations node.node.id node.node.parent
-
-                        ( _, _, _ ) ->
-                            viewNodeOperations node.node.id node.node.parent
 
                   else
                     Element.none
@@ -1058,8 +1140,8 @@ viewMoveNode move =
     el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
         column [ spacing 10 ]
             [ Input.text []
-                { text = move.description
-                , placeholder = Just <| Input.placeholder [] <| text "description"
+                { text = move.input
+                , placeholder = Just <| Input.placeholder [] <| text "description/id"
                 , label = Input.labelAbove [] <| text "New parent node: "
                 , onChange = MoveNodeDescription
                 }
@@ -1070,6 +1152,36 @@ viewMoveNode move =
                             { label = "move"
                             , color = Style.colors.blue
                             , onPress = ApiPostMoveNode
+                            }
+
+                    Nothing ->
+                        Element.none
+                , Form.button
+                    { label = "cancel"
+                    , color = Style.colors.gray
+                    , onPress = DiscardMoveNode
+                    }
+                ]
+            ]
+
+
+viewCopyNode : NodeCopy -> Element Msg
+viewCopyNode copy =
+    el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
+        column [ spacing 10 ]
+            [ Input.text []
+                { text = copy.input
+                , placeholder = Just <| Input.placeholder [] <| text "description/id"
+                , label = Input.labelAbove [] <| text "Add existing node: "
+                , onChange = CopyNodeDescription
+                }
+            , Form.buttonRow
+                [ case copy.newChild of
+                    Just _ ->
+                        Form.button
+                            { label = "add"
+                            , color = Style.colors.blue
+                            , onPress = ApiPutCopyNode
                             }
 
                     Nothing ->
@@ -1110,6 +1222,7 @@ viewAddNode parent add =
                             , Input.option Node.typeRule (text "Rule")
                             , Input.option Node.typeMsgService (text "Messaging Service")
                             , Input.option Node.typeVariable (text "Variable")
+                            , Input.option "existing" (text "Existing node")
                             ]
 
                         else
@@ -1136,7 +1249,12 @@ viewAddNode parent add =
                     Form.button
                         { label = "add"
                         , color = Style.colors.blue
-                        , onPress = ApiPostAddNode
+                        , onPress =
+                            if add.typ == Just "existing" then
+                                CopyNode parent.id
+
+                            else
+                                ApiPostAddNode
                         }
 
                 Nothing ->

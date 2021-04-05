@@ -1,5 +1,6 @@
 module Api.Node exposing
     ( Node
+    , copy
     , delete
     , description
     , get
@@ -121,6 +122,12 @@ type alias NodeMove =
     }
 
 
+type alias NodeAddParent =
+    { id : String
+    , newParent : String
+    }
+
+
 decodeList : Decode.Decoder (List Node)
 decodeList =
     Decode.list decode
@@ -164,7 +171,14 @@ encodeNodeMove : NodeMove -> Encode.Value
 encodeNodeMove nodeMove =
     Encode.object
         [ ( "id", Encode.string nodeMove.id )
-        , ( "oldParent", Encode.string nodeMove.oldParent )
+        , ( "newParent", Encode.string nodeMove.newParent )
+        ]
+
+
+encodeNodeAddParent : NodeAddParent -> Encode.Value
+encodeNodeAddParent nodeMove =
+    Encode.object
+        [ ( "id", Encode.string nodeMove.id )
         , ( "newParent", Encode.string nodeMove.newParent )
         ]
 
@@ -349,6 +363,30 @@ move options =
             , newParent = options.newParent
             }
                 |> encodeNodeMove
+                |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+copy :
+    { token : String
+    , id : String
+    , newParent : String
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+copy options =
+    Http.request
+        { method = "PUT"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "parents" ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body =
+            { id = options.id
+            , newParent = options.newParent
+            }
+                |> encodeNodeAddParent
                 |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
