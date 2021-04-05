@@ -80,6 +80,7 @@ type NodeOperation
 
 type alias NodeView =
     { node : Node
+    , feID : Int
     , hasChildren : Bool
     , expDetail : Bool
     , expChildren : Bool
@@ -88,7 +89,7 @@ type alias NodeView =
 
 
 type alias NodeEdit =
-    { id : String
+    { feID : Int
     , points : List Point
     }
 
@@ -163,9 +164,9 @@ init shared { key } =
 type Msg
     = Tick Time.Posix
     | Zone Time.Zone
-    | EditNodePoint String Point
-    | ToggleExpChildren String
-    | ToggleExpDetail String
+    | EditNodePoint Int Point
+    | ToggleExpChildren Int
+    | ToggleExpDetail Int
     | DiscardAll
     | DiscardEdits
     | AddNode String
@@ -198,7 +199,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        EditNodePoint id point ->
+        EditNodePoint feID point ->
             let
                 editPoints =
                     case model.nodeEdit of
@@ -211,7 +212,7 @@ update msg model =
             ( { model
                 | nodeEdit =
                     Just
-                        { id = id
+                        { feID = feID
                         , points = Point.updatePoint editPoints point
                         }
               }
@@ -271,17 +272,17 @@ update msg model =
             , Cmd.none
             )
 
-        ToggleExpChildren id ->
+        ToggleExpChildren feID ->
             let
                 nodes =
-                    model.nodes |> Maybe.map (toggleExpChildren id)
+                    model.nodes |> Maybe.map (toggleExpChildren feID)
             in
             ( { model | nodes = nodes }, Cmd.none )
 
-        ToggleExpDetail id ->
+        ToggleExpDetail feID ->
             let
                 nodes =
-                    model.nodes |> Maybe.map (toggleExpDetail id)
+                    model.nodes |> Maybe.map (toggleExpDetail feID)
             in
             ( { model | nodes = nodes }, Cmd.none )
 
@@ -504,7 +505,8 @@ update msg model =
                                 Just tree ->
                                     Just <|
                                         populateHasChildren <|
-                                            sortNodeTree tree
+                                            populateFeID <|
+                                                sortNodeTree tree
 
                                 Nothing ->
                                     Nothing
@@ -679,11 +681,20 @@ mergeNodeTree current new =
         new
 
 
-toggleExpChildren : String -> Tree NodeView -> Tree NodeView
-toggleExpChildren id tree =
+populateFeID : Tree NodeView -> Tree NodeView
+populateFeID tree =
+    Tree.indexedMap
+        (\i n ->
+            { n | feID = i }
+        )
+        tree
+
+
+toggleExpChildren : Int -> Tree NodeView -> Tree NodeView
+toggleExpChildren feID tree =
     Tree.map
         (\n ->
-            if n.node.id == id then
+            if n.feID == feID then
                 { n | expChildren = not n.expChildren }
 
             else
@@ -705,11 +716,11 @@ expChildren id tree =
         tree
 
 
-toggleExpDetail : String -> Tree NodeView -> Tree NodeView
-toggleExpDetail id tree =
+toggleExpDetail : Int -> Tree NodeView -> Tree NodeView
+toggleExpDetail feID tree =
     Tree.map
         (\n ->
-            if n.node.id == id then
+            if n.feID == feID then
                 { n | expDetail = not n.expDetail }
 
             else
@@ -748,6 +759,7 @@ populateChildren nodes root =
 nodeToNodeView : Node -> NodeView
 nodeToNodeView node =
     { node = node
+    , feID = 0
     , hasChildren = False
     , expDetail = False
     , expChildren = False
@@ -1044,16 +1056,16 @@ viewNode model parent node depth =
                     Icon.dot
 
                 else if node.expChildren then
-                    Button.arrowDown (ToggleExpChildren node.node.id)
+                    Button.arrowDown (ToggleExpChildren node.feID)
 
                 else
-                    Button.arrowRight (ToggleExpChildren node.node.id)
+                    Button.arrowRight (ToggleExpChildren node.feID)
             , el [ alignTop ] <|
                 if node.expDetail then
-                    Button.close (ToggleExpDetail node.node.id)
+                    Button.close (ToggleExpDetail node.feID)
 
                 else
-                    Button.edit (ToggleExpDetail node.node.id)
+                    Button.edit (ToggleExpDetail node.feID)
             , column
                 [ spacing 6, width fill ]
                 [ nodeView
@@ -1064,7 +1076,7 @@ viewNode model parent node depth =
                     , parent = Maybe.map .node parent
                     , node = node.node
                     , expDetail = node.expDetail
-                    , onEditNodePoint = EditNodePoint
+                    , onEditNodePoint = EditNodePoint node.feID
                     }
                 , viewIf node.mod <|
                     Form.buttonRow
@@ -1126,7 +1138,7 @@ viewUnknown :
     , expDetail : Bool
     , parent : Maybe Node
     , node : Node
-    , onEditNodePoint : String -> Point -> msg
+    , onEditNodePoint : Point -> msg
     }
     -> Element msg
 viewUnknown o =
@@ -1315,7 +1327,7 @@ mergeNodeEdit nodes nodeEdit =
         Just edit ->
             Tree.map
                 (\n ->
-                    if edit.id == n.node.id then
+                    if edit.feID == n.feID then
                         let
                             node =
                                 n.node

@@ -20,7 +20,7 @@ view :
     , expDetail : Bool
     , parent : Maybe Node
     , node : Node
-    , onEditNodePoint : String -> Point -> msg
+    , onEditNodePoint : Point -> msg
     }
     -> Element msg
 view o =

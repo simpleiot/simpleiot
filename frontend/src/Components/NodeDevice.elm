@@ -22,7 +22,7 @@ view :
     , expDetail : Bool
     , parent : Maybe Node
     , node : Node
-    , onEditNodePoint : String -> Point -> msg
+    , onEditNodePoint : Point -> msg
     }
     -> Element msg
 view o =
@@ -101,7 +101,7 @@ view o =
                 [ Background.color background ]
                 { onChange =
                     \d ->
-                        o.onEditNodePoint o.node.id
+                        o.onEditNodePoint
                             (Point "" Point.typeDescription 0 o.now 0 d 0 0)
                 , text = Node.description o.node
                 , placeholder = Just <| Input.placeholder [] <| text "node description"
