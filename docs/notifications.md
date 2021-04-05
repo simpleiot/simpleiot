@@ -1,0 +1,44 @@
++++
+title = "Notifications"
+weight = 8
++++
+
+Notifications are messages that are sent to users. There several concerns when
+processing a notification:
+
+1. The message itself and how it is generated.
+2. Who receives the messages.
+3. Mechanism for sending the message (Twilio SMS, SMTP, etc)
+4. State of the notification
+   1. sequencing through a list of users
+   2. tracking if it was acknowledged and by who
+5. Distributed concerns (more than one SIOT instance processing notifications)
+   1. Synchronization of notification state between instances.
+   2. Which instance is processing the notification.
+
+For now, we assume all notifications will be handled on a single SIOT instance
+(typically in the cloud) -- distributed aspects of notifications will
+implemented later.
+
+Notifications can be initiated by:
+
+1. rules
+2. users sending notifications through the web UI
+
+## Notification Data Structures
+
+Elsewhere in the system, configuration and sensor data are represented as
+Points. The Point data structure is optimized for synchronization and algorithms
+where simplicity and consistency allows us to easily process points with common
+code. But a Point does not have enough fields to represent a message or
+notification. We could encode the message as JSON in the Point text field, but
+it would be nice to have something a little more descriptive. Additionally, all
+notifications and messages should be stored in the time series database so there
+is a history of everything that was sent.
+
+Time series databases like InfluxDB store records with the following attributes:
+
+- timestamp
+- measurement (similar to collection, bucket, or table in other databases)
+- keys (string only, indexed)
+- values (can be a variety of data types: float, integer, string, boolean)
