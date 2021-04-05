@@ -32,7 +32,7 @@ func TestNodeDelete(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = db.NodeDelete(node1ID)
+	err = db.NodeDelete(node1ID, db.RootNodeID())
 	if err != nil {
 		t.Error(err)
 	}
