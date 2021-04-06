@@ -838,6 +838,7 @@ populateHasChildren parentID tree =
 
 
 -- sortNodeTree recursively sorts the children of the nodes
+-- sort by type and then description
 
 
 sortNodeTree : Tree NodeView -> Tree NodeView
@@ -856,13 +857,23 @@ sortNodeTree nodes =
                         bNode =
                             Tree.label b
 
+                        aType =
+                            aNode.node.typ
+
+                        bType =
+                            bNode.node.typ
+
                         aDescription =
                             Point.getText aNode.node.points Point.typeDescription
 
                         bDescription =
                             Point.getText bNode.node.points Point.typeDescription
                     in
-                    compare bDescription aDescription
+                    if aType /= bType then
+                        compare bType aType
+
+                    else
+                        compare bDescription aDescription
                 )
                 children
     in
