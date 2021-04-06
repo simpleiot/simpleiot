@@ -863,6 +863,18 @@ sortNodeTree nodes =
                         bType =
                             bNode.node.typ
 
+                        aFirst =
+                            Point.getText aNode.node.points Point.typeFirstName
+
+                        bFirst =
+                            Point.getText bNode.node.points Point.typeFirstName
+
+                        aLast =
+                            Point.getText aNode.node.points Point.typeLastName
+
+                        bLast =
+                            Point.getText bNode.node.points Point.typeLastName
+
                         aDescription =
                             Point.getText aNode.node.points Point.typeDescription
 
@@ -872,8 +884,14 @@ sortNodeTree nodes =
                     if aType /= bType then
                         compare bType aType
 
-                    else
+                    else if aDescription /= bDescription then
                         compare bDescription aDescription
+
+                    else if aFirst /= bFirst then
+                        compare bFirst aFirst
+
+                    else
+                        compare bLast aLast
                 )
                 children
     in
