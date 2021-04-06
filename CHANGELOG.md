@@ -11,7 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- Modbus: TCP listen on all interfaces instead of just localhost
 - UI: add dot for nodes that don't have children
+- UI: don't sort nodes while editting, only on fetch
+- UI: sort nodes by group, then desc, then firstname, then lastname
+- UI: move/copy node can use node ID or description
+- UI: add node icons to add node descriptions
+- support copying nodes
 
 ## [[0.0.22] - 2021-03-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.22)
 

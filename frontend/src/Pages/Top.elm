@@ -1263,6 +1263,51 @@ viewCopyNode copy =
             ]
 
 
+nodeDescUser : Element Msg
+nodeDescUser =
+    row [] [ Icon.user, text "User" ]
+
+
+nodeDescGroup : Element Msg
+nodeDescGroup =
+    row [] [ Icon.users, text "Group" ]
+
+
+nodeDescModbus : Element Msg
+nodeDescModbus =
+    row [] [ Icon.bus, text "Modbus" ]
+
+
+nodeDescModbusIO : Element Msg
+nodeDescModbusIO =
+    row [] [ Icon.io, text "Modbus IO" ]
+
+
+nodeDescRule : Element Msg
+nodeDescRule =
+    row [] [ Icon.list, text "Rule" ]
+
+
+nodeDescMsgService : Element Msg
+nodeDescMsgService =
+    row [] [ Icon.send, text "Messaging Service" ]
+
+
+nodeDescVariable : Element Msg
+nodeDescVariable =
+    row [] [ Icon.variable, text "Variable" ]
+
+
+nodeDescCondition : Element Msg
+nodeDescCondition =
+    row [] [ Icon.check, text "Condition" ]
+
+
+nodeDescAction : Element Msg
+nodeDescAction =
+    row [] [ Icon.trendingUp, text "Action" ]
+
+
 viewAddNode : Node -> NodeToAdd -> Element Msg
 viewAddNode parent add =
     column [ spacing 10 ]
@@ -1273,23 +1318,24 @@ viewAddNode parent add =
             , options =
                 []
                     ++ (if parent.typ == Node.typeDevice then
-                            [ Input.option Node.typeUser (text "User")
-                            , Input.option Node.typeGroup (text "Group")
-                            , Input.option Node.typeRule (text "Rule")
-                            , Input.option Node.typeModbus (text "Modbus")
-                            , Input.option Node.typeMsgService (text "Messaging Service")
-                            , Input.option Node.typeVariable (text "Variable")
+                            [ Input.option Node.typeUser nodeDescUser
+                            , Input.option Node.typeGroup nodeDescGroup
+                            , Input.option Node.typeRule nodeDescRule
+                            , Input.option Node.typeModbus nodeDescModbus
+                            , Input.option Node.typeMsgService nodeDescMsgService
+                            , Input.option Node.typeVariable nodeDescVariable
+                            , Input.option "existing" (text "Copy existing node")
                             ]
 
                         else
                             []
                        )
                     ++ (if parent.typ == Node.typeGroup then
-                            [ Input.option Node.typeUser (text "User")
-                            , Input.option Node.typeGroup (text "Group")
-                            , Input.option Node.typeRule (text "Rule")
-                            , Input.option Node.typeMsgService (text "Messaging Service")
-                            , Input.option Node.typeVariable (text "Variable")
+                            [ Input.option Node.typeUser nodeDescUser
+                            , Input.option Node.typeGroup nodeDescGroup
+                            , Input.option Node.typeRule nodeDescRule
+                            , Input.option Node.typeMsgService nodeDescMsgService
+                            , Input.option Node.typeVariable nodeDescVariable
                             , Input.option "existing" (text "Copy existing node")
                             ]
 
@@ -1297,14 +1343,14 @@ viewAddNode parent add =
                             []
                        )
                     ++ (if parent.typ == Node.typeModbus then
-                            [ Input.option Node.typeModbusIO (text "Modbus IO") ]
+                            [ Input.option Node.typeModbusIO nodeDescModbusIO ]
 
                         else
                             []
                        )
                     ++ (if parent.typ == Node.typeRule then
-                            [ Input.option Node.typeCondition (text "Condition")
-                            , Input.option Node.typeAction (text "Action")
+                            [ Input.option Node.typeCondition nodeDescCondition
+                            , Input.option Node.typeAction nodeDescAction
                             ]
 
                         else
