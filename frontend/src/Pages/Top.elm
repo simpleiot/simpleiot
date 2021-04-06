@@ -81,6 +81,7 @@ type NodeOperation
 type alias NodeView =
     { node : Node
     , feID : Int
+    , parentID : String
     , hasChildren : Bool
     , expDetail : Bool
     , expChildren : Bool
@@ -504,7 +505,7 @@ update msg model =
                             case nodeListToTree nodes of
                                 Just tree ->
                                     Just <|
-                                        populateHasChildren <|
+                                        populateHasChildren "" <|
                                             populateFeID <|
                                                 sortNodeTree tree
 
@@ -664,7 +665,16 @@ mergeNodeTree current new =
     in
     Tree.map
         (\n ->
-            case Zipper.findFromRoot (\o -> o.node.id == n.node.id) z of
+            case
+                Zipper.findFromRoot
+                    (\o ->
+                        o.node.id
+                            == n.node.id
+                            && o.parentID
+                            == n.parentID
+                    )
+                    z
+            of
                 Just found ->
                     let
                         l =
@@ -760,6 +770,7 @@ nodeToNodeView : Node -> NodeView
 nodeToNodeView node =
     { node = node
     , feID = 0
+    , parentID = ""
     , hasChildren = False
     , expDetail = False
     , expChildren = False
@@ -798,8 +809,8 @@ populateChildrenHelp z nodes =
             z
 
 
-populateHasChildren : Tree NodeView -> Tree NodeView
-populateHasChildren tree =
+populateHasChildren : String -> Tree NodeView -> Tree NodeView
+populateHasChildren parentID tree =
     let
         children =
             Tree.children tree
@@ -811,13 +822,16 @@ populateHasChildren tree =
             Tree.label tree
 
         node =
-            { label | hasChildren = hasChildren }
+            { label
+                | hasChildren = hasChildren
+                , parentID = parentID
+            }
     in
     tree
         |> Tree.replaceLabel node
         |> Tree.replaceChildren
             (List.map
-                (\c -> populateHasChildren c)
+                (\c -> populateHasChildren node.node.id c)
                 children
             )
 
