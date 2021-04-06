@@ -176,6 +176,7 @@ encodeNodeMove : NodeMove -> Encode.Value
 encodeNodeMove nodeMove =
     Encode.object
         [ ( "id", Encode.string nodeMove.id )
+        , ( "oldParent", Encode.string nodeMove.oldParent )
         , ( "newParent", Encode.string nodeMove.newParent )
         ]
 
