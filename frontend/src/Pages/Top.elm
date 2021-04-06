@@ -1261,7 +1261,7 @@ viewAddNode parent add =
                             , Input.option Node.typeRule (text "Rule")
                             , Input.option Node.typeMsgService (text "Messaging Service")
                             , Input.option Node.typeVariable (text "Variable")
-                            , Input.option "existing" (text "Existing node")
+                            , Input.option "existing" (text "Copy existing node")
                             ]
 
                         else
