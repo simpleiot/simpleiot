@@ -201,7 +201,7 @@ func (n *NodeEdge) ProcessPoint(pIn Point) {
 	}
 }
 
-// PbDecodeNode converts a protbuf to node data structure
+// PbDecodeNode converts a protobuf to node data structure
 func PbDecodeNode(data []byte) (Node, error) {
 	pbNode := &pb.Node{}
 
