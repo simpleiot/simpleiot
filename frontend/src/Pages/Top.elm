@@ -18,6 +18,7 @@ import Components.NodeRule as NodeRule
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
 import Element exposing (..)
+import Element.Background as Background
 import Element.Input as Input
 import Http
 import List.Extra
@@ -1086,6 +1087,13 @@ viewNode model parent node depth =
 
                 _ ->
                     viewUnknown
+
+        background =
+            if node.expDetail then
+                Style.colors.pale
+
+            else
+                Style.colors.none
     in
     el
         [ width fill
@@ -1096,7 +1104,7 @@ viewNode model parent node depth =
         row [ spacing 6 ]
             [ el [ alignTop ] <|
                 if not node.hasChildren then
-                    Icon.dot
+                    Icon.blank
 
                 else if node.expChildren then
                     Button.arrowDown (ToggleExpChildren node.feID)
@@ -1104,13 +1112,9 @@ viewNode model parent node depth =
                 else
                     Button.arrowRight (ToggleExpChildren node.feID)
             , el [ alignTop ] <|
-                if node.expDetail then
-                    Button.close (ToggleExpDetail node.feID)
-
-                else
-                    Button.edit (ToggleExpDetail node.feID)
+                Button.dot (ToggleExpDetail node.feID)
             , column
-                [ spacing 6, width fill ]
+                [ spacing 6, padding 6, width fill, Background.color background ]
                 [ nodeView
                     { isRoot = model.auth.isRoot
                     , now = model.now
