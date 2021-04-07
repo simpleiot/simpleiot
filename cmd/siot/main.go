@@ -33,17 +33,17 @@ func parsePointText(s string) (string, data.Point, error) {
 	frags := strings.Split(s, ":")
 	if len(frags) != 4 {
 		return "", data.Point{},
-			errors.New("format for sample is: 'devId:sensId:value:type'")
+			errors.New("format for point is: 'devId:sensId:value:type'")
 	}
 
 	nodeID := frags[0]
-	sampleID := frags[1]
+	pointID := frags[1]
 	text := frags[2]
-	sampleType := frags[3]
+	pointType := frags[3]
 
 	return nodeID, data.Point{
-		ID:   sampleID,
-		Type: sampleType,
+		ID:   pointID,
+		Type: pointType,
 		Text: text,
 		Time: time.Now(),
 	}, nil
@@ -54,21 +54,21 @@ func parsePoint(s string) (string, data.Point, error) {
 	frags := strings.Split(s, ":")
 	if len(frags) != 4 {
 		return "", data.Point{},
-			errors.New("format for sample is: 'devId:sensId:value:type'")
+			errors.New("format for point is: 'devId:sensId:value:type'")
 	}
 
 	nodeID := frags[0]
-	sampleID := frags[1]
+	pointID := frags[1]
 	value, err := strconv.ParseFloat(frags[2], 64)
 	if err != nil {
 		return "", data.Point{}, err
 	}
 
-	sampleType := frags[3]
+	pointType := frags[3]
 
 	return nodeID, data.Point{
-		ID:    sampleID,
-		Type:  sampleType,
+		ID:    pointID,
+		Type:  pointType,
 		Value: value,
 		Time:  time.Now(),
 	}, nil

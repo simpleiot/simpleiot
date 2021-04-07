@@ -4,36 +4,36 @@ import (
 	"time"
 )
 
-// TimeWindowAverager accumulates samples, and averages them on a fixed time
-// period and outputs the average/min/max, etc as a sample
+// TimeWindowAverager accumulates points, and averages them on a fixed time
+// period and outputs the average/min/max, etc as a point
 type TimeWindowAverager struct {
-	start      time.Time
-	windowLen  time.Duration
-	total      float64
-	count      int
-	min        float64
-	max        float64
-	callBack   func(Sample)
-	sampleType string
-	sampleTime time.Time
+	start     time.Time
+	windowLen time.Duration
+	total     float64
+	count     int
+	min       float64
+	max       float64
+	callBack  func(Point)
+	pointType string
+	pointTime time.Time
 }
 
 // NewTimeWindowAverager initializes and returns an averager
-func NewTimeWindowAverager(windowLen time.Duration, callBack func(Sample), sampleType string) *TimeWindowAverager {
+func NewTimeWindowAverager(windowLen time.Duration, callBack func(Point), pointType string) *TimeWindowAverager {
 	return &TimeWindowAverager{
-		windowLen:  windowLen,
-		callBack:   callBack,
-		sampleType: sampleType,
+		windowLen: windowLen,
+		callBack:  callBack,
+		pointType: pointType,
 	}
 }
 
-// NewSample takes a sample, and if the time window expired, it calls
-// the callback function with the a new sample which is avg of
-// all samples since start time.
-func (twa *TimeWindowAverager) NewSample(s Sample) {
-	// avg sample timestamp is set to last sample time
-	if s.Time.After(twa.sampleTime) {
-		twa.sampleTime = s.Time
+// NewPoint takes a point, and if the time window expired, it calls
+// the callback function with the a new point which is avg of
+// all points since start time.
+func (twa *TimeWindowAverager) NewPoint(s Point) {
+	// avg point timestamp is set to last point time
+	if s.Time.After(twa.pointTime) {
+		twa.pointTime = s.Time
 	}
 
 	// update statistical values.
@@ -50,17 +50,17 @@ func (twa *TimeWindowAverager) NewSample(s Sample) {
 		twa.max = s.Max
 	}
 
-	// if time has expired, callback() with avg sample
+	// if time has expired, callback() with avg point
 	if time.Since(twa.start) >= twa.windowLen {
-		avgSample := Sample{
-			Type:  twa.sampleType,
-			Time:  twa.sampleTime,
+		avgPoint := Point{
+			Type:  twa.pointType,
+			Time:  twa.pointTime,
 			Value: twa.total / float64(twa.count),
 			Min:   twa.min,
 			Max:   twa.max,
 		}
 
-		twa.callBack(avgSample)
+		twa.callBack(avgPoint)
 
 		// reset statistical values and timestamp
 		twa.total = 0

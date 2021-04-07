@@ -20,6 +20,7 @@ For more details or to discuss releases, please visit the
   - add node icons to add node descriptions
   - replace edit/collapse with dot and color exp nodes
 - support copying nodes
+- remove remnants of Sample types (we now use Point)
 
 ## [[0.0.22] - 2021-03-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.22)
 

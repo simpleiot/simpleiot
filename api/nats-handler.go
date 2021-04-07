@@ -56,10 +56,6 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 
 	nh.Nc = nc
 
-	if _, err := nc.Subscribe("node.*.samples", nh.handlePoints); err != nil {
-		return nil, fmt.Errorf("Subscribe node samples error: %w", err)
-	}
-
 	if _, err := nc.Subscribe("node.*.points", nh.handlePoints); err != nil {
 		return nil, fmt.Errorf("Subscribe node points error: %w", err)
 	}
@@ -133,7 +129,7 @@ func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
 
 	if err != nil {
 		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
-		nh.reply(msg.Reply, errors.New("error decoding node samples subject"))
+		nh.reply(msg.Reply, errors.New("error decoding node points subject"))
 		return
 	}
 

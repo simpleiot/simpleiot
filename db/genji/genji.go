@@ -379,7 +379,7 @@ func init() {
 // NodePoint processes a Point for a particular node
 func (gen *Db) NodePoint(id string, point data.Point) error {
 	// for now, we process one point at a time. We may eventually
-	// want to create NodeSamples to process multiple samples so
+	// want to create NodePoints to process multiple points so
 	// we can batch influx writes for performance
 
 	if point.Time.IsZero() {
@@ -390,7 +390,7 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 		points := []db.InfluxPoint{
 			db.PointToInfluxPoint(id, point),
 		}
-		err := gen.influx.WriteSamples(points)
+		err := gen.influx.WritePoints(points)
 		if err != nil {
 			log.Println("Error writing points to influx: ", err)
 		}
