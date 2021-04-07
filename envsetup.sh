@@ -20,6 +20,7 @@ genji() {
 
 siot_install_proto_gen_go() {
   cd ~ && go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+  cd - || exit
 }
 
 siot_install_frontend_deps() {
