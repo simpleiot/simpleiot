@@ -173,7 +173,7 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 		// TODO should we send an error back to requester
 	}
 
-	data, err := data.PbEncodeNode(node)
+	data, err := node.ToPb()
 
 	if err != nil {
 		log.Printf("Error pb encoding node: %v\n", err)

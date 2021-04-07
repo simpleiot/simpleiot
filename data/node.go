@@ -229,11 +229,11 @@ func PbDecodeNode(data []byte) (Node, error) {
 	return ret, nil
 }
 
-// PbEncodeNode encodes a node to a protobuf
-func PbEncodeNode(node Node) ([]byte, error) {
-	points := make([]*pb.Point, len(node.Points))
+// ToPb encodes a node to a protobuf
+func (n *Node) ToPb() ([]byte, error) {
+	points := make([]*pb.Point, len(n.Points))
 
-	for i, p := range node.Points {
+	for i, p := range n.Points {
 		pPb, err := p.ToPb()
 		if err != nil {
 			return []byte{}, err
@@ -243,8 +243,8 @@ func PbEncodeNode(node Node) ([]byte, error) {
 	}
 
 	pbNode := pb.Node{
-		Id:     node.ID,
-		Type:   node.Type,
+		Id:     n.ID,
+		Type:   n.Type,
 		Points: points,
 	}
 

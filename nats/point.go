@@ -13,7 +13,7 @@ import (
 func SendPoints(nc *natsgo.Conn, nodeID string, points data.Points, ack bool) error {
 	subject := fmt.Sprintf("node.%v.points", nodeID)
 
-	data, err := points.PbEncode()
+	data, err := points.ToPb()
 
 	if err != nil {
 		return err
