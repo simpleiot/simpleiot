@@ -68,6 +68,12 @@ defined [here](../internal/pb).
   - `node.<id>.points`
     - device publishes points and the server updates node state and stores point
       in database.
+  - `node.<id>.not`
+    - used when a node sends a [notification](notifications.md) (typically a
+      rule, or a message sent directly from a node)
+  - `node.<id>.msg`
+    - used when a node sends a message (SMS, email, phone call, etc). This is
+      typically initiated by a [notification](notifications.md).
   - `node.<id>.file`
     - is used to transfer files to a node in chunks, which is optimized for
       unreliable networks like cellular and is handy for transfering software
