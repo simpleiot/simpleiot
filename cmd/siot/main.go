@@ -16,7 +16,6 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/db/genji"
-	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/node"
@@ -477,16 +476,6 @@ func main() {
 		}()
 	}
 
-	// get twilio info if enabled
-	twilioSid := os.Getenv("TWILIO_SID")
-	twilioAuth := os.Getenv("TWILIO_AUTH_TOKEN")
-	twilioFrom := os.Getenv("TWILIO_FROM")
-
-	var messenger *msg.Messenger
-	if twilioSid != "" && twilioAuth != "" {
-		messenger = msg.NewMessenger(twilioSid, twilioAuth, twilioFrom)
-	}
-
 	// finally, start web server
 	port := os.Getenv("SIOT_HTTP_PORT")
 	if port == "" {
@@ -529,7 +518,7 @@ func main() {
 		log.Fatal("Error connecting to NATs server: ", err)
 	}
 
-	nodeManager := node.NewManger(dbInst, messenger, nc)
+	nodeManager := node.NewManger(dbInst, nc)
 	go nodeManager.Run()
 
 	err = api.Server(api.ServerArgs{
@@ -541,7 +530,6 @@ func main() {
 		JwtAuth:    auth,
 		AuthToken:  authToken,
 		NH:         natsHandler,
-		Messenger:  messenger,
 	})
 
 	if err != nil {

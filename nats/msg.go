@@ -19,7 +19,7 @@ func DecodeNodeMsg(msg *natsgo.Msg) (string, []data.Point, error) {
 	nodeID := chunks[1]
 	points, err := data.PbDecodePoints(msg.Data)
 	if err != nil {
-		log.Println("Error decoding Pb Samples: ", err)
+		log.Println("Error decoding Pb points: ", err)
 		return "", []data.Point{}, fmt.Errorf("Error decoding Pb points: %w", err)
 	}
 

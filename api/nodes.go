@@ -2,12 +2,11 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
-	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
 )
 
@@ -35,13 +34,12 @@ type Nodes struct {
 	check     RequestValidator
 	nh        *NatsHandler
 	authToken string
-	messenger *msg.Messenger
 }
 
 // NewNodesHandler returns a new node handler
 func NewNodesHandler(db *genji.Db, v RequestValidator, authToken string,
-	nh *NatsHandler, messenger *msg.Messenger) http.Handler {
-	return &Nodes{db, v, nh, authToken, messenger}
+	nh *NatsHandler) http.Handler {
+	return &Nodes{db, v, nh, authToken}
 }
 
 // Top level handler for http requests in the coap-server process
@@ -183,35 +181,29 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			// FIXME report errors to user
-			var err error
-			if point.Text != "" {
-				// send message to all users
-				// TODO do we want to notify children or all descendents here?
-				nodes, err := h.db.NodeDescendents(id, data.NodeTypeUser, false)
-				if err != nil {
-					http.Error(res, err.Error(), http.StatusInternalServerError)
-					return
-				}
-
-				for _, ne := range nodes {
-					n := ne.ToNode()
-					u := n.ToUser()
-					if u.Phone != "" {
-						err := h.messenger.SendSMS(u.Phone, point.Text)
-						if err != nil {
-							log.Println("Error sending message: ", err)
-						}
-					}
-				}
+			// FIXME send notification over NATS
+			not := data.Notification{
+				ID:         uuid.New().String(),
+				SourceNode: id,
+				Message:    point.Text,
 			}
+
+			d, err := not.ToPb()
 
 			if err != nil {
-				http.Error(res, err.Error(), http.StatusNotFound)
-			} else {
-				en := json.NewEncoder(res)
-				en.Encode(data.StandardResponse{Success: true, ID: id})
+				http.Error(res, err.Error(), http.StatusBadRequest)
+				return
 			}
+
+			err = h.nh.Nc.Publish("node."+id+".not", d)
+
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			en := json.NewEncoder(res)
+			en.Encode(data.StandardResponse{Success: true, ID: id})
 
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)

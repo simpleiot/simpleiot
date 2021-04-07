@@ -2,7 +2,6 @@ package node
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"text/template"
 	"time"
@@ -11,22 +10,19 @@ import (
 
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
-	"github.com/simpleiot/simpleiot/msg"
 )
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
 	db            *genji.Db
-	messenger     *msg.Messenger
 	modbusManager *ModbusManager
 	nc            *natsgo.Conn
 }
 
 // NewManger creates a new Manager
-func NewManger(db *genji.Db, messenger *msg.Messenger, nc *natsgo.Conn) *Manager {
+func NewManger(db *genji.Db, nc *natsgo.Conn) *Manager {
 	return &Manager{
 		db:            db,
-		messenger:     messenger,
 		modbusManager: NewModbusManager(db, nc),
 		nc:            nc,
 	}
@@ -75,49 +71,6 @@ func uniqueUsers(users []data.User) []data.User {
 	}
 
 	return ret
-}
-
-func (m *Manager) notify(node *data.Node, ruleDesc, msgTemplate string, groups []string) error {
-	// find users for the groups
-	var users []data.User
-	for _, gID := range groups {
-		us, err := m.db.UsersForGroup(gID)
-		if err != nil {
-			log.Printf("Error getting users for group %v: %v\n", gID, err)
-			continue
-		}
-		users = append(users, us...)
-	}
-
-	uniqueUsers := uniqueUsers(users)
-
-	// send notification to all users
-	var msg string
-	if msgTemplate == "" {
-		msg = fmt.Sprintf("Notification: %v at %v fired", ruleDesc, node.Desc())
-	} else {
-		var err error
-		msg, err = renderNotifyTemplate(node, msgTemplate)
-		if err != nil {
-			log.Printf("Error rendering template %v: %v\n",
-				msgTemplate, err)
-			msg = fmt.Sprintf("Notification: %v at %v fired", ruleDesc, node.Desc())
-		}
-	}
-
-	for _, u := range uniqueUsers {
-		if u.Phone != "" {
-			if m.messenger != nil {
-				log.Printf("Sending SMS to %v %v: %v\n", u.FirstName, u.LastName, msg)
-				err := m.messenger.SendSMS(u.Phone, msg)
-				if err != nil {
-					log.Printf("Error sending SMS to %v: %v\n", u.Phone, err)
-				}
-			}
-		}
-	}
-
-	return nil
 }
 
 type nodeTemplateData struct {

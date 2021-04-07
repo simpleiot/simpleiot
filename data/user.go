@@ -31,3 +31,25 @@ func (u *User) ToNode() Node {
 		Points: u.ToPoints(),
 	}
 }
+
+// NodeToUser converts a node to a user
+func NodeToUser(node Node) (User, error) {
+	ret := User{}
+	ret.ID = node.ID
+	for _, p := range node.Points {
+		switch p.Type {
+		case PointTypeFirstName:
+			ret.FirstName = p.Text
+		case PointTypeLastName:
+			ret.LastName = p.Text
+		case PointTypeEmail:
+			ret.Email = p.Text
+		case PointTypePhone:
+			ret.Phone = p.Text
+		case PointTypePass:
+			ret.Pass = p.Text
+		}
+	}
+
+	return ret, nil
+}

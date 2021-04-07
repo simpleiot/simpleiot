@@ -9,10 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
 
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
 )
 
@@ -62,6 +64,14 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 
 	if _, err := nc.Subscribe("node.*", nh.handleNode); err != nil {
 		return nil, fmt.Errorf("Subscribe node error: %w", err)
+	}
+
+	if _, err := nc.Subscribe("node.*.not", nh.handleNotification); err != nil {
+		return nil, fmt.Errorf("Subscribe notification error: %w", err)
+	}
+
+	if _, err := nc.Subscribe("node.*.msg", nh.handleMessage); err != nil {
+		return nil, fmt.Errorf("Subscribe message error: %w", err)
 	}
 
 	return nc, nil
@@ -143,7 +153,7 @@ func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
 			return
 		}
 
-		err = nh.processPointUpstream(nodeID, nodeID, p)
+		err = nh.processPoint(nodeID, nodeID, p)
 		if err != nil {
 			// TODO track error stats
 			log.Println("Error processing point in upstream nodes: ", err)
@@ -183,6 +193,50 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	}
 }
 
+func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
+	chunks := strings.Split(msg.Subject, ".")
+	if len(chunks) < 2 {
+		log.Println("Error in message subject: ", msg.Subject)
+		return
+	}
+
+	nodeID := chunks[1]
+
+	not, err := data.PbDecodeNotification(msg.Data)
+
+	if err != nil {
+		log.Println("Error decoding Pb notification: ", err)
+		return
+	}
+
+	err = nh.processNotification(nodeID, nodeID, not)
+	if err != nil {
+		log.Println("Error processing Pb upstream: ", err)
+	}
+}
+
+func (nh *NatsHandler) handleMessage(msg *natsgo.Msg) {
+	chunks := strings.Split(msg.Subject, ".")
+	if len(chunks) < 2 {
+		log.Println("Error in message subject: ", msg.Subject)
+		return
+	}
+
+	nodeID := chunks[1]
+
+	message, err := data.PbDecodeMessage(msg.Data)
+
+	if err != nil {
+		log.Println("Error decoding Pb message: ", err)
+		return
+	}
+
+	err = nh.processMsg(nodeID, nodeID, message)
+	if err != nil {
+		log.Println("Error processing Pb upstream: ", err)
+	}
+}
+
 // used for messages that want an ACK
 func (nh *NatsHandler) reply(subject string, err error) {
 	if subject == "" {
@@ -199,11 +253,141 @@ func (nh *NatsHandler) reply(subject string, err error) {
 	nh.Nc.Publish(subject, []byte(reply))
 }
 
-func (nh *NatsHandler) processPointUpstream(currentNodeID, nodeID string, p data.Point) error {
+func (nh *NatsHandler) processMsg(currentNodeID, nodeID string, message data.Message) error {
+	// get children and process any notification services
+	svcNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeMsgService, false)
+	if err != nil {
+		return err
+	}
 
-	if currentNodeID == nh.db.RootNodeID() {
-		// we are at, stop
-		return nil
+	for _, svcNode := range svcNodes {
+		svc, err := data.NodeToMsgService(svcNode.ToNode())
+		if err != nil {
+			return err
+		}
+
+		if svc.Service == data.PointValueTwilio &&
+			message.Phone != "" {
+			twilio := msg.NewTwilio(svc.SID, svc.AuthToken, svc.From)
+
+			err := twilio.SendSMS(message.Phone, message.Message)
+
+			if err != nil {
+				log.Printf("Error sending SMS to: %v: %v\n",
+					message.Phone, err)
+			}
+		}
+	}
+
+	// now process upstream nodes
+	upIDs, err := nh.db.EdgeUp(currentNodeID)
+	if err != nil {
+		return err
+	}
+
+	for _, id := range upIDs {
+		err = nh.processMsg(id, nodeID, message)
+		if err != nil {
+			log.Println("notifications -- error processing upstream node: ", err)
+		}
+	}
+
+	return nil
+}
+
+func (nh *NatsHandler) processNotification(currentNodeID, nodeID string, n data.Notification) error {
+	// get children and process any users
+	userNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeUser, false)
+	if err != nil {
+		return err
+	}
+
+	for _, userNode := range userNodes {
+		user, err := data.NodeToUser(userNode.ToNode())
+
+		if err != nil {
+			return err
+		}
+
+		if user.Email != "" || user.Phone != "" {
+			msg := data.Message{
+				ID:             uuid.New().String(),
+				UserID:         user.ID,
+				NotificationID: nodeID,
+				Email:          user.Email,
+				Phone:          user.Phone,
+				Subject:        n.Subject,
+				Message:        n.Message,
+			}
+
+			data, err := msg.ToPb()
+
+			if err != nil {
+				return err
+			}
+
+			err = nh.Nc.Publish("node."+user.ID+".msg", data)
+
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	// now process upstream nodes
+	upIDs, err := nh.db.EdgeUp(currentNodeID)
+	if err != nil {
+		return err
+	}
+
+	for _, id := range upIDs {
+
+		err = nh.processNotification(id, nodeID, n)
+		if err != nil {
+			log.Println("notifications -- error processing upstream node: ", err)
+		}
+	}
+
+	return nil
+}
+
+func (nh *NatsHandler) processPoint(currentNodeID, nodeID string, p data.Point) error {
+	// get children and process any rules
+	ruleNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeRule, false)
+	if err != nil {
+		return err
+	}
+
+	for _, ruleNode := range ruleNodes {
+		conditionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeCondition, false)
+		if err != nil {
+			return err
+		}
+
+		actionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeAction, false)
+		if err != nil {
+			return err
+		}
+
+		rule, err := data.NodeToRule(ruleNode, conditionNodes, actionNodes)
+
+		if err != nil {
+			return err
+		}
+
+		active, err := ruleProcessPoint(nh.Nc, rule, nodeID, p)
+
+		if err != nil {
+			log.Println("Error processing rule point: ", err)
+		}
+
+		if active {
+			err := ruleRunActions(rule, nh.Nc)
+			if err != nil {
+				log.Println("Error running rule actions: ", err)
+			}
+		}
 	}
 
 	upIDs, err := nh.db.EdgeUp(currentNodeID)
@@ -212,44 +396,8 @@ func (nh *NatsHandler) processPointUpstream(currentNodeID, nodeID string, p data
 	}
 
 	for _, id := range upIDs {
-		// get children and process any rules
-		ruleNodes, err := nh.db.NodeDescendents(id, data.NodeTypeRule, false)
-		if err != nil {
-			return err
-		}
 
-		for _, ruleNode := range ruleNodes {
-			conditionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeCondition, false)
-			if err != nil {
-				return err
-			}
-
-			actionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeAction, false)
-			if err != nil {
-				return err
-			}
-
-			rule, err := data.NodeToRule(ruleNode, conditionNodes, actionNodes)
-
-			if err != nil {
-				return err
-			}
-
-			active, err := ruleProcessPoint(nh.Nc, rule, nodeID, p)
-
-			if err != nil {
-				log.Println("Error processing rule point: ", err)
-			}
-
-			if active {
-				err := ruleRunActions(rule, nh.Nc)
-				if err != nil {
-					log.Println("Error running rule actions: ", err)
-				}
-			}
-		}
-
-		err = nh.processPointUpstream(id, nodeID, p)
+		err = nh.processPoint(id, nodeID, p)
 		if err != nil {
 			log.Println("Rules -- error processing upstream node: ", err)
 		}
@@ -258,7 +406,7 @@ func (nh *NatsHandler) processPointUpstream(currentNodeID, nodeID string, p data
 	return nil
 }
 
-// processPoint runs a point through a rules conditions and and updates condition
+// ruleProcessPoint runs a point through a rules conditions and and updates condition
 // and rule active status. Returns true if point was processed and active is true
 func ruleProcessPoint(nc *natsgo.Conn, r *data.Rule, nodeID string, p data.Point) (bool, error) {
 	allActive := true

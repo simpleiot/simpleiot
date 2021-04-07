@@ -34,8 +34,3 @@ The following are currently defined:
     influxdb 1.x support. Typically this is `http://localhost:8086`.
   - `SIOT_INFLUX_USER`: user name for influxdb
   - `SIOT_INFLUX_PASS`: password for influxdb
-- Twilio (used for SMS notifications)
-  - `TWILIO_SID`: Twilio account SID
-  - `TWILIO_AUTH_TOKEN`: Twilio account auth token
-  - `TWILIO_FROM`: sending phone number for SMS messages -- must match the phone
-    number in the Twilio account.
