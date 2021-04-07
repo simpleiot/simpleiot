@@ -10,8 +10,8 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// DecodeNodeMsg decodes NATS message into node ID and points
-func DecodeNodeMsg(msg *natsgo.Msg) (string, []data.Point, error) {
+// DecodeNodePointsMsg decodes NATS message into node ID and points
+func DecodeNodePointsMsg(msg *natsgo.Msg) (string, []data.Point, error) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {
 		return "", []data.Point{}, errors.New("Error decoding node samples subject")

@@ -135,7 +135,7 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 
 // FIXME consider moving this to db package and then unexporting the NodePoint method
 func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
-	nodeID, points, err := nats.DecodeNodeMsg(msg)
+	nodeID, points, err := nats.DecodeNodePointsMsg(msg)
 
 	if err != nil {
 		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)

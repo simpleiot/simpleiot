@@ -305,37 +305,10 @@ func main() {
 
 	if *flagLogNats {
 		log.Println("Logging all NATS messages")
-		_, err := nc.Subscribe("node.*.points", func(msg *natsgo.Msg) {
-			nodeID, points, err := nats.DecodeNodeMsg(msg)
+		_, err := nc.Subscribe("node.*.*", func(msg *natsgo.Msg) {
+			err := nats.Dump(nc, msg)
 			if err != nil {
-				log.Println("Error decoding NATS msg: ", err)
-				return
-			}
-
-			// Fetch node so we can print description
-			nodeMsg, err := nc.Request("node."+nodeID, nil, time.Second)
-
-			if err != nil {
-				log.Println("Error getting node over NATS: ", err)
-				return
-			}
-
-			node, err := data.PbDecodeNode(nodeMsg.Data)
-
-			if err != nil {
-				log.Println("Error decoding node data from server: ", err)
-				return
-			}
-
-			description, _ := node.Points.Text("", data.PointTypeDescription, 0)
-
-			log.Printf("NODE: %v (%v) (%v)\n", description, node.Type, node.ID)
-			for _, p := range points {
-				if p.Text != "" {
-					log.Printf("   - POINT: %v: %v\n", p.Type, p.Text)
-				} else {
-					log.Printf("   - POINT: %v: %v\n", p.Type, p.Value)
-				}
+				log.Println("Error dumping nats msg: ", err)
 			}
 		})
 
