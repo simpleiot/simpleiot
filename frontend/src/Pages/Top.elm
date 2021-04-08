@@ -77,6 +77,7 @@ type NodeOperation
     | OpNodeMove NodeMove
     | OpNodeCopy NodeCopy
     | OpNodeMessage NodeMessage
+    | OpNodeDelete String String
 
 
 type alias NodeView =
@@ -176,6 +177,7 @@ type Msg
     | DiscardAddNode
     | MoveNode String String
     | CopyNode String
+    | DeleteNode String String
     | DiscardMoveNode
     | UpdateMsg String
     | DiscardMsg
@@ -322,6 +324,9 @@ update msg model =
               }
             , Cmd.none
             )
+
+        DeleteNode id parent ->
+            ( { model | nodeOp = OpNodeDelete id parent }, Cmd.none )
 
         DiscardMoveNode ->
             ( { model | nodeOp = OpNone }, Cmd.none )
@@ -1174,6 +1179,13 @@ viewNode model parent node depth =
                             else
                                 viewNodeOperations node.node.id node.node.parent
 
+                        OpNodeDelete id parentId ->
+                            if id == node.node.id then
+                                viewDeleteNode id parentId
+
+                            else
+                                viewNodeOperations node.node.id node.node.parent
+
                   else
                     Element.none
                 ]
@@ -1205,7 +1217,7 @@ viewNodeOperations id parent =
           else
             Element.none
         , Button.message (MsgNode id)
-        , Button.x (ApiDelete id parent)
+        , Button.x (DeleteNode id parent)
         , Button.copy (Clipboard id)
         ]
 
@@ -1414,6 +1426,26 @@ viewMsgNode msg =
                     }
                 ]
             , paragraph [] [ text "Considering adding your name at the end of the message. A personal touch is always nice! :-)" ]
+            ]
+
+
+viewDeleteNode : String -> String -> Element Msg
+viewDeleteNode id parent =
+    el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
+        row []
+            [ text "Delete this node?"
+            , Form.buttonRow
+                [ Form.button
+                    { label = "yes"
+                    , color = colors.red
+                    , onPress = ApiDelete id parent
+                    }
+                , Form.button
+                    { label = "no"
+                    , color = colors.gray
+                    , onPress = DiscardAll
+                    }
+                ]
             ]
 
 
