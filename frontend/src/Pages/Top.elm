@@ -1094,6 +1094,9 @@ viewNode model parent node depth =
 
             else
                 Style.colors.none
+
+        buttonPadding =
+            paddingEach { top = 10, right = 0, left = 0, bottom = 0 }
     in
     el
         [ width fill
@@ -1102,7 +1105,7 @@ viewNode model parent node depth =
         ]
     <|
         row [ spacing 6 ]
-            [ el [ alignTop ] <|
+            [ el [ alignTop, buttonPadding ] <|
                 if not node.hasChildren then
                     Icon.blank
 
@@ -1111,7 +1114,7 @@ viewNode model parent node depth =
 
                 else
                     Button.arrowRight (ToggleExpChildren node.feID)
-            , el [ alignTop ] <|
+            , el [ alignTop, buttonPadding ] <|
                 Button.dot (ToggleExpDetail node.feID)
             , column
                 [ spacing 6, padding 6, width fill, Background.color background ]
