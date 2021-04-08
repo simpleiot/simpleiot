@@ -24,6 +24,7 @@ func NewTwilio(twilioSid, twilioAuth, smsFrom string) *Twilio {
 
 // SendSMS sends a sms message
 func (m *Twilio) SendSMS(to, msg string) error {
+	fmt.Println("CLIFF: SendSMS: ", to, msg)
 	if m.twilioClient == nil {
 		return errors.New("Twilio not set up")
 	}
