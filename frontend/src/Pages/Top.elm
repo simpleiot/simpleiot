@@ -1391,7 +1391,7 @@ viewAddNode parent add =
 
 viewMsgNode : NodeMessage -> Element Msg
 viewMsgNode msg =
-    el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
+    el [ width fill, paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
         column
             [ width fill, spacing 32 ]
             [ Input.multiline [ width fill ]
@@ -1413,7 +1413,6 @@ viewMsgNode msg =
                     , onPress = DiscardNodeOp
                     }
                 ]
-            , paragraph [] [ text "Considering adding your name at the end of the message. A personal touch is always nice! :-)" ]
             ]
 
 
