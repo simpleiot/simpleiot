@@ -26,9 +26,9 @@ func main() {
 		os.Exit(-1)
 	}
 
-	messenger := msg.NewMessenger(sid, auth, from)
+	twilio := msg.NewTwilio(sid, auth, from)
 
-	err := messenger.SendSMS(*flagTo, *flagMsg)
+	err := twilio.SendSMS(*flagTo, *flagMsg)
 
 	if err != nil {
 		log.Println("Error sending message: ", err)
