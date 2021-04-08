@@ -170,17 +170,14 @@ type Msg
     | EditNodePoint Int Point
     | ToggleExpChildren Int
     | ToggleExpDetail Int
-    | DiscardAll
+    | DiscardNodeOp
     | DiscardEdits
     | AddNode String
     | MsgNode String
-    | DiscardAddNode
     | MoveNode String String
     | CopyNode String
     | DeleteNode String String
-    | DiscardMoveNode
     | UpdateMsg String
-    | DiscardMsg
     | MoveNodeDescription String
     | CopyNodeDescription String
     | SelectAddNodeType String
@@ -268,7 +265,7 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
-        DiscardAll ->
+        DiscardNodeOp ->
             ( { model | nodeOp = OpNone }, Cmd.none )
 
         DiscardEdits ->
@@ -328,9 +325,6 @@ update msg model =
         DeleteNode id parent ->
             ( { model | nodeOp = OpNodeDelete id parent }, Cmd.none )
 
-        DiscardMoveNode ->
-            ( { model | nodeOp = OpNone }, Cmd.none )
-
         UpdateMsg message ->
             case model.nodeOp of
                 OpNodeMessage op ->
@@ -338,9 +332,6 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
-
-        DiscardMsg ->
-            ( { model | nodeOp = OpNone }, Cmd.none )
 
         MoveNodeDescription desc ->
             case model.nodeOp of
@@ -385,9 +376,6 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
-
-        DiscardAddNode ->
-            ( { model | nodeOp = OpNone }, Cmd.none )
 
         ApiPostAddNode ->
             -- FIXME optimistically update nodes
@@ -1106,7 +1094,7 @@ viewNode model parent node depth =
     el
         [ width fill
         , paddingEach { top = 0, right = 0, bottom = 0, left = depth * 35 }
-        , Form.onEnterEsc (ApiPostPoints node.node.id) DiscardAll
+        , Form.onEnterEsc (ApiPostPoints node.node.id) DiscardNodeOp
         ]
     <|
         row [ spacing 6 ]
@@ -1246,7 +1234,7 @@ viewMoveNode move =
                 , Form.button
                     { label = "cancel"
                     , color = Style.colors.gray
-                    , onPress = DiscardMoveNode
+                    , onPress = DiscardNodeOp
                     }
                 ]
             ]
@@ -1276,7 +1264,7 @@ viewCopyNode copy =
                 , Form.button
                     { label = "cancel"
                     , color = Style.colors.gray
-                    , onPress = DiscardMoveNode
+                    , onPress = DiscardNodeOp
                     }
                 ]
             ]
@@ -1395,7 +1383,7 @@ viewAddNode parent add =
             , Form.button
                 { label = "cancel"
                 , color = Style.colors.gray
-                , onPress = DiscardAddNode
+                , onPress = DiscardNodeOp
                 }
             ]
         ]
@@ -1422,7 +1410,7 @@ viewMsgNode msg =
                 , Form.button
                     { label = "cancel"
                     , color = Style.colors.gray
-                    , onPress = DiscardMsg
+                    , onPress = DiscardNodeOp
                     }
                 ]
             , paragraph [] [ text "Considering adding your name at the end of the message. A personal touch is always nice! :-)" ]
@@ -1443,7 +1431,7 @@ viewDeleteNode id parent =
                 , Form.button
                     { label = "no"
                     , color = colors.gray
-                    , onPress = DiscardAll
+                    , onPress = DiscardNodeOp
                     }
                 ]
             ]
