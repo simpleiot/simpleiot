@@ -474,7 +474,7 @@ update msg model =
                     -- FIXME Tree.filter (\d -> d.id /= id) model.nodes
                     model.nodes
             in
-            ( { model | nodes = nodes }
+            ( { model | nodes = nodes, nodeOp = OpNone }
             , Node.delete
                 { token = model.auth.token
                 , id = id
