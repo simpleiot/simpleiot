@@ -1,9 +1,9 @@
 syntax = "proto3";
 package pb;
 
-option go_package = "github.com/simpleiot/simpleiot/internal/pb";
+option go_package = "internal/pb";
 
-import "internal/pb/point.proto";
+import "point.proto";
 
 message NodeCmd {
   string id = 1;

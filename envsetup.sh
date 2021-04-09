@@ -180,11 +180,7 @@ siot_setup_influx() {
 
 siot_protobuf() {
   echo "generating protobufs"
-  protoc internal/pb/*.proto --go_out=./internal/pb/ || return 1
-  echo "moving back to proper loc"
-  mv internal/pb/github.com/simpleiot/simpleiot/internal/pb/* internal/pb || return 1
-  echo "removing temp dir"
-  rm -rf internal/pb/github.com
+  protoc --proto_path=internal/pb internal/pb/*.proto --go_out=./ || return 1
 }
 
 siot_edge_run() {
