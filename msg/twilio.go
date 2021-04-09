@@ -2,7 +2,6 @@ package msg
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/kevinburke/twilio-go"
 )
@@ -15,7 +14,6 @@ type Twilio struct {
 
 // NewTwilio creates a new messanger object
 func NewTwilio(twilioSid, twilioAuth, smsFrom string) *Twilio {
-	fmt.Println("NewTwilio: ", twilioSid, twilioAuth, smsFrom)
 	return &Twilio{
 		twilioClient: twilio.NewClient(twilioSid, twilioAuth, nil),
 		smsFrom:      smsFrom,
@@ -24,7 +22,6 @@ func NewTwilio(twilioSid, twilioAuth, smsFrom string) *Twilio {
 
 // SendSMS sends a sms message
 func (m *Twilio) SendSMS(to, msg string) error {
-	fmt.Println("CLIFF: SendSMS: ", to, msg)
 	if m.twilioClient == nil {
 		return errors.New("Twilio not set up")
 	}

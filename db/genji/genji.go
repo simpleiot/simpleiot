@@ -511,7 +511,7 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 		return nil
 	})
 
-	return nodes, err
+	return data.RemoveDuplicateNodes(nodes), err
 }
 
 // NodeDescendents returns all descendents for a particular node ID and type

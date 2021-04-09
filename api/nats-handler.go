@@ -215,25 +215,69 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 	}
 }
 
-func (nh *NatsHandler) handleMessage(msg *natsgo.Msg) {
-	chunks := strings.Split(msg.Subject, ".")
+func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
+	chunks := strings.Split(natsMsg.Subject, ".")
 	if len(chunks) < 2 {
-		log.Println("Error in message subject: ", msg.Subject)
+		log.Println("Error in message subject: ", natsMsg.Subject)
 		return
 	}
 
 	nodeID := chunks[1]
 
-	message, err := data.PbDecodeMessage(msg.Data)
+	message, err := data.PbDecodeMessage(natsMsg.Data)
 
 	if err != nil {
 		log.Println("Error decoding Pb message: ", err)
 		return
 	}
 
-	err = nh.processMsg(nodeID, nodeID, message)
-	if err != nil {
-		log.Println("Error processing Pb upstream: ", err)
+	svcNodes := []data.NodeEdge{}
+
+	var findSvcNodes func(string)
+
+	findSvcNodes = func(id string) {
+		nodes, err := nh.db.NodeDescendents(id, data.NodeTypeMsgService, false)
+		if err != nil {
+			log.Println("Error getting svc descendents: ", err)
+			return
+		}
+
+		svcNodes = append(svcNodes, nodes...)
+
+		// now process upstream nodes
+		upIDs, err := nh.db.EdgeUp(id)
+		if err != nil {
+			log.Println("Error getting upstream nodes: ", err)
+			return
+		}
+
+		for _, id := range upIDs {
+			findSvcNodes(id)
+		}
+	}
+
+	findSvcNodes(nodeID)
+
+	svcNodes = data.RemoveDuplicateNodes(svcNodes)
+
+	for _, svcNode := range svcNodes {
+		svc, err := data.NodeToMsgService(svcNode.ToNode())
+		if err != nil {
+			log.Println("Error converting node to msg service: ", err)
+			continue
+		}
+
+		if svc.Service == data.PointValueTwilio &&
+			message.Phone != "" {
+			twilio := msg.NewTwilio(svc.SID, svc.AuthToken, svc.From)
+
+			err := twilio.SendSMS(message.Phone, message.Message)
+
+			if err != nil {
+				log.Printf("Error sending SMS to: %v: %v\n",
+					message.Phone, err)
+			}
+		}
 	}
 }
 
@@ -251,48 +295,6 @@ func (nh *NatsHandler) reply(subject string, err error) {
 	}
 
 	nh.Nc.Publish(subject, []byte(reply))
-}
-
-func (nh *NatsHandler) processMsg(currentNodeID, nodeID string, message data.Message) error {
-	// get children and process any notification services
-	svcNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeMsgService, false)
-	if err != nil {
-		return err
-	}
-
-	for _, svcNode := range svcNodes {
-		svc, err := data.NodeToMsgService(svcNode.ToNode())
-		if err != nil {
-			return err
-		}
-
-		if svc.Service == data.PointValueTwilio &&
-			message.Phone != "" {
-			twilio := msg.NewTwilio(svc.SID, svc.AuthToken, svc.From)
-
-			err := twilio.SendSMS(message.Phone, message.Message)
-
-			if err != nil {
-				log.Printf("Error sending SMS to: %v: %v\n",
-					message.Phone, err)
-			}
-		}
-	}
-
-	// now process upstream nodes
-	upIDs, err := nh.db.EdgeUp(currentNodeID)
-	if err != nil {
-		return err
-	}
-
-	for _, id := range upIDs {
-		err = nh.processMsg(id, nodeID, message)
-		if err != nil {
-			log.Println("notifications -- error processing upstream node: ", err)
-		}
-	}
-
-	return nil
 }
 
 func (nh *NatsHandler) processNotification(currentNodeID, nodeID string, n data.Notification) error {
