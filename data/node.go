@@ -251,13 +251,31 @@ func (n *Node) ToPb() ([]byte, error) {
 	return proto.Marshal(&pbNode)
 }
 
-// RemoveDuplicateNodes removes duplicate nodes in list
-func RemoveDuplicateNodes(nodes []NodeEdge) []NodeEdge {
+// RemoveDuplicateNodesIDParent removes duplicate nodes in list with the
+// same ID and parent
+func RemoveDuplicateNodesIDParent(nodes []NodeEdge) []NodeEdge {
 	keys := make(map[string]bool)
 	ret := []NodeEdge{}
 
 	for _, n := range nodes {
 		key := n.ID + n.Parent
+		if _, ok := keys[key]; !ok {
+			keys[key] = true
+			ret = append(ret, n)
+		}
+	}
+
+	return ret
+}
+
+// RemoveDuplicateNodesID removes duplicate nodes in list with the
+// same ID (can have different parents)
+func RemoveDuplicateNodesID(nodes []NodeEdge) []NodeEdge {
+	keys := make(map[string]bool)
+	ret := []NodeEdge{}
+
+	for _, n := range nodes {
+		key := n.ID
 		if _, ok := keys[key]; !ok {
 			keys[key] = true
 			ret = append(ret, n)

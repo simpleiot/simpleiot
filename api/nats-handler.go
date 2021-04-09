@@ -209,9 +209,67 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 		return
 	}
 
-	err = nh.processNotification(nodeID, nodeID, not)
-	if err != nil {
-		log.Println("Error processing Pb upstream: ", err)
+	userNodes := []data.NodeEdge{}
+
+	var findUsers func(id string)
+
+	findUsers = func(id string) {
+		nodes, err := nh.db.NodeDescendents(id, data.NodeTypeUser, false)
+		if err != nil {
+			log.Println("Error find user nodes: ", err)
+			return
+		}
+		userNodes = append(userNodes, nodes...)
+
+		// now process upstream nodes
+		upIDs, err := nh.db.EdgeUp(id)
+		if err != nil {
+			log.Println("Error getting upstream nodes: ", err)
+			return
+		}
+
+		for _, id := range upIDs {
+			findUsers(id)
+		}
+	}
+
+	findUsers(nodeID)
+
+	userNodes = data.RemoveDuplicateNodesID(userNodes)
+
+	for _, userNode := range userNodes {
+		user, err := data.NodeToUser(userNode.ToNode())
+
+		if err != nil {
+			log.Println("Error converting node to user: ", err)
+			continue
+		}
+
+		if user.Email != "" || user.Phone != "" {
+			msg := data.Message{
+				ID:             uuid.New().String(),
+				UserID:         user.ID,
+				NotificationID: nodeID,
+				Email:          user.Email,
+				Phone:          user.Phone,
+				Subject:        not.Subject,
+				Message:        not.Message,
+			}
+
+			data, err := msg.ToPb()
+
+			if err != nil {
+				log.Println("Error serializing msg to protobuf: ", err)
+				continue
+			}
+
+			err = nh.Nc.Publish("node."+user.ID+".msg", data)
+
+			if err != nil {
+				log.Println("Error publishing message: ", err)
+				continue
+			}
+		}
 	}
 }
 
@@ -258,7 +316,7 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 
 	findSvcNodes(nodeID)
 
-	svcNodes = data.RemoveDuplicateNodes(svcNodes)
+	svcNodes = data.RemoveDuplicateNodesID(svcNodes)
 
 	for _, svcNode := range svcNodes {
 		svc, err := data.NodeToMsgService(svcNode.ToNode())
