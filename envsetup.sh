@@ -14,9 +14,10 @@ bbolt() {
   go run go.etcd.io/bbolt/cmd/bbolt "$@"
 }
 
-genji() {
-  go run github.com/genjidb/genji/cmd/genji "$@"
-}
+# genji does not work very well like this, so install the binary and run that
+#genji() {
+#  go run github.com/genjidb/genji/cmd/genji "$@"
+#}
 
 siot_install_proto_gen_go() {
   cd ~ && go get -u google.golang.org/protobuf/cmd/protoc-gen-go
