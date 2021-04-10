@@ -110,10 +110,11 @@ send data to it:
 
 ### SIOT web interface screenshot
 
-Below is a screenshot of the siot web interface. The greyed out device is one
-that is longer communicating and is considered "offline".
+Below is a screenshot of the siot web interface. Information is arranged in a
+flexible node/tree which allows for easy grouping of users, devices, and device
+attributes.
 
-![portal](docs/portal-devices.png)
+![nodes](docs/screenshot-nodes.png)
 
 ## Example 2 (send commands/files to device)
 
@@ -133,13 +134,9 @@ that is longer communicating and is considered "offline".
 Hardware version information is a `Point` that encodes the version information
 in the `Text` field of a `Point`.
 
-- `./siot -sendPointText "1234::1:hwVersion"
-- `./siot -sendPointText "1234::2:osVersion"
-- `./siot -sendPointText "1234::3:appVersion"
-
-## Flexible node/tree structure for grouping users, devices, etc
-
-![nodes](docs/screenshot-nodes.png)
+- `./siot -sendPointText "1234::1:hwVersion`
+- `./siot -sendPointText "1234::2:osVersion`
+- `./siot -sendPointText "1234::3:appVersion`
 
 ## Each nodes can be expanded to edit/view attributes
 
