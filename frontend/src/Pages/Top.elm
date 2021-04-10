@@ -68,16 +68,23 @@ type alias Model =
     , auth : Auth
     , error : Maybe String
     , nodeOp : NodeOperation
+    , copyMove : CopyMove
     }
+
+
+type CopyMove
+    = CopyMoveNone
+    | Move String String String
+    | Copy String String
 
 
 type NodeOperation
     = OpNone
     | OpNodeToAdd NodeToAdd
-    | OpNodeMove NodeMove
     | OpNodeCopy NodeCopy
     | OpNodeMessage NodeMessage
     | OpNodeDelete Int String String
+    | OpNodePaste Int String
 
 
 type alias NodeView =
@@ -139,6 +146,7 @@ defaultModel key =
         { email = "", token = "", isRoot = False }
         Nothing
         OpNone
+        CopyMoveNone
 
 
 init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
@@ -178,18 +186,18 @@ type Msg
     | DiscardEdits
     | AddNode Int String
     | MsgNode Int String
-    | MoveNode Int String String
-    | CopyNode Int String
+    | PasteNode Int String
+    | CopyNodeManual Int String
     | DeleteNode Int String String
     | UpdateMsg String
-    | MoveNodeDescription String
     | CopyNodeDescription String
     | SelectAddNodeType String
     | ApiDelete String String
     | ApiPostPoints String
     | ApiPostAddNode
-    | ApiPostMoveNode
-    | ApiPutCopyNode
+    | ApiPostMoveNode String String String
+    | ApiPutCopyNodeManual
+    | ApiPutCopyNode String String
     | ApiPostMsgNode
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
@@ -199,6 +207,8 @@ type Msg
     | ApiRespPutCopyNode (Data Response)
     | ApiRespPostMsgNode (Data Response)
     | Clipboard String
+    | CopyNode String String
+    | MoveNode String String String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -310,21 +320,10 @@ update msg model =
             , Cmd.none
             )
 
-        MoveNode feID id parent ->
-            ( { model
-                | nodeOp =
-                    OpNodeMove
-                        { id = id
-                        , feID = feID
-                        , input = ""
-                        , oldParent = parent
-                        , newParent = Nothing
-                        }
-              }
-            , Cmd.none
-            )
+        PasteNode feID id ->
+            ( { model | nodeOp = OpNodePaste feID id }, Cmd.none )
 
-        CopyNode feID id ->
+        CopyNodeManual feID id ->
             ( { model
                 | nodeOp =
                     OpNodeCopy
@@ -344,24 +343,6 @@ update msg model =
             case model.nodeOp of
                 OpNodeMessage op ->
                     ( { model | nodeOp = OpNodeMessage { op | message = message } }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
-        MoveNodeDescription desc ->
-            case model.nodeOp of
-                OpNodeMove move ->
-                    let
-                        newId =
-                            model.nodes
-                                |> Maybe.andThen (findNode desc)
-                                |> Maybe.map .node
-                                |> Maybe.map .id
-
-                        moveNode =
-                            { move | input = desc, newParent = newId }
-                    in
-                    ( { model | nodeOp = OpNodeMove moveNode }, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
@@ -426,28 +407,18 @@ update msg model =
                 _ ->
                     ( { model | nodeOp = OpNone }, Cmd.none )
 
-        ApiPostMoveNode ->
+        ApiPostMoveNode id src dest ->
             ( model
-            , case model.nodeOp of
-                OpNodeMove moveNode ->
-                    case moveNode.newParent of
-                        Just newParent ->
-                            Node.move
-                                { token = model.auth.token
-                                , id = moveNode.id
-                                , oldParent = moveNode.oldParent
-                                , newParent = newParent
-                                , onResponse = ApiRespPostMoveNode
-                                }
-
-                        Nothing ->
-                            Cmd.none
-
-                _ ->
-                    Cmd.none
+            , Node.move
+                { token = model.auth.token
+                , id = id
+                , oldParent = src
+                , newParent = dest
+                , onResponse = ApiRespPostMoveNode
+                }
             )
 
-        ApiPutCopyNode ->
+        ApiPutCopyNodeManual ->
             ( model
             , case model.nodeOp of
                 OpNodeCopy copyNode ->
@@ -465,6 +436,16 @@ update msg model =
 
                 _ ->
                     Cmd.none
+            )
+
+        ApiPutCopyNode id dest ->
+            ( model
+            , Node.copy
+                { token = model.auth.token
+                , id = id
+                , newParent = dest
+                , onResponse = ApiRespPutCopyNode
+                }
             )
 
         ApiPostMsgNode ->
@@ -614,7 +595,7 @@ update msg model =
         ApiRespPostMoveNode resp ->
             case resp of
                 Data.Success _ ->
-                    ( { model | nodeOp = OpNone }
+                    ( { model | nodeOp = OpNone, copyMove = CopyMoveNone }
                     , updateNodes model
                     )
 
@@ -631,7 +612,7 @@ update msg model =
         ApiRespPutCopyNode resp ->
             case resp of
                 Data.Success _ ->
-                    ( { model | nodeOp = OpNone }
+                    ( { model | nodeOp = OpNone, copyMove = CopyMoveNone }
                     , updateNodes model
                     )
 
@@ -664,6 +645,12 @@ update msg model =
 
         Clipboard contents ->
             ( model, Port.out <| Port.encodeClipboard contents )
+
+        CopyNode id desc ->
+            ( { model | copyMove = Copy id desc }, Cmd.none )
+
+        MoveNode id src desc ->
+            ( { model | copyMove = Move id src desc }, Cmd.none )
 
 
 mergeNodeTree : Tree NodeView -> Tree NodeView -> Tree NodeView
@@ -872,35 +859,17 @@ sortNodeTree nodes =
                         bType =
                             bNode.node.typ
 
-                        aFirst =
-                            Point.getText aNode.node.points Point.typeFirstName
+                        aDesc =
+                            String.toLower <| Point.getBestDesc aNode.node.points
 
-                        bFirst =
-                            Point.getText bNode.node.points Point.typeFirstName
-
-                        aLast =
-                            Point.getText aNode.node.points Point.typeLastName
-
-                        bLast =
-                            Point.getText bNode.node.points Point.typeLastName
-
-                        aDescription =
-                            Point.getText aNode.node.points Point.typeDescription
-
-                        bDescription =
-                            Point.getText bNode.node.points Point.typeDescription
+                        bDesc =
+                            String.toLower <| Point.getBestDesc bNode.node.points
                     in
                     if aType /= bType then
                         compare bType aType
 
-                    else if aDescription /= bDescription then
-                        compare bDescription aDescription
-
-                    else if aFirst /= bFirst then
-                        compare bFirst aFirst
-
                     else
-                        compare bLast aLast
+                        compare bDesc aDesc
                 )
                 children
     in
@@ -1107,7 +1076,7 @@ viewNode model parent node depth =
             el [ alignTop, paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ]
 
         viewNodeOps =
-            viewNodeOperations node.feID node.node.id node.node.parent
+            viewNodeOperations model.copyMove node
     in
     el
         [ width fill
@@ -1164,13 +1133,6 @@ viewNode model parent node depth =
                             else
                                 viewNodeOps
 
-                        OpNodeMove move ->
-                            if move.feID == node.feID then
-                                viewMoveNode move
-
-                            else
-                                viewNodeOps
-
                         OpNodeCopy copy ->
                             if copy.feID == node.feID then
                                 viewCopyNode copy
@@ -1188,6 +1150,13 @@ viewNode model parent node depth =
                         OpNodeDelete feID id parentId ->
                             if feID == node.feID then
                                 viewDeleteNode id parentId
+
+                            else
+                                viewNodeOps
+
+                        OpNodePaste feID id ->
+                            if feID == node.feID then
+                                viewPasteNode id model.copyMove
 
                             else
                                 viewNodeOps
@@ -1213,49 +1182,24 @@ viewUnknown o =
     Element.text <| "unknown node type: " ++ o.node.typ
 
 
-viewNodeOperations : Int -> String -> String -> Element Msg
-viewNodeOperations feID id parent =
+viewNodeOperations : CopyMove -> NodeView -> Element Msg
+viewNodeOperations copyMove node =
+    let
+        desc =
+            Point.getBestDesc node.node.points
+    in
     row [ spacing 6 ]
-        [ Button.plusCircle (AddNode feID id)
-        , if parent /= "" then
-            Button.move (MoveNode feID id parent)
+        [ Button.plusCircle (AddNode node.feID node.node.id)
+        , Button.message (MsgNode node.feID node.node.id)
+        , Button.x (DeleteNode node.feID node.node.id node.node.parent)
+        , if node.node.parent /= "" then
+            Button.move (MoveNode node.node.id node.node.parent desc)
 
           else
             Element.none
-        , Button.message (MsgNode feID id)
-        , Button.x (DeleteNode feID id parent)
-        , Button.copy (Clipboard id)
+        , Button.copy (CopyNode node.node.id desc)
+        , Button.clipboard (PasteNode node.feID node.node.id)
         ]
-
-
-viewMoveNode : NodeMove -> Element Msg
-viewMoveNode move =
-    el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
-        column [ spacing 10 ]
-            [ Input.text []
-                { text = move.input
-                , placeholder = Just <| Input.placeholder [] <| text "description/id"
-                , label = Input.labelAbove [] <| text "New parent node: "
-                , onChange = MoveNodeDescription
-                }
-            , Form.buttonRow
-                [ case move.newParent of
-                    Just _ ->
-                        Form.button
-                            { label = "move"
-                            , color = Style.colors.blue
-                            , onPress = ApiPostMoveNode
-                            }
-
-                    Nothing ->
-                        Element.none
-                , Form.button
-                    { label = "cancel"
-                    , color = Style.colors.gray
-                    , onPress = DiscardNodeOp
-                    }
-                ]
-            ]
 
 
 viewCopyNode : NodeCopy -> Element Msg
@@ -1274,7 +1218,7 @@ viewCopyNode copy =
                         Form.button
                             { label = "add"
                             , color = Style.colors.blue
-                            , onPress = ApiPutCopyNode
+                            , onPress = ApiPutCopyNodeManual
                             }
 
                     Nothing ->
@@ -1390,7 +1334,7 @@ viewAddNode parent add =
                         , color = Style.colors.blue
                         , onPress =
                             if add.typ == Just "existing" then
-                                CopyNode parent.feID parent.node.id
+                                CopyNodeManual parent.feID parent.node.id
 
                             else
                                 ApiPostAddNode
@@ -1452,6 +1396,72 @@ viewDeleteNode id parent =
                     }
                 ]
             ]
+
+
+viewPasteNode : String -> CopyMove -> Element Msg
+viewPasteNode dest copyMove =
+    let
+        noButton =
+            Form.button
+                { label = "no"
+                , color = colors.gray
+                , onPress = DiscardNodeOp
+                }
+
+        yesButton op =
+            Form.button
+                { label = "yes"
+                , color = colors.red
+                , onPress = op
+                }
+
+        discardButton =
+            Form.buttonRow
+                [ Form.button
+                    { label = "cancel"
+                    , color = colors.gray
+                    , onPress = DiscardNodeOp
+                    }
+                ]
+
+        cantCopySelf =
+            [ text "Can't copy node to itself"
+            , discardButton
+            ]
+    in
+    el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
+        case copyMove of
+            CopyMoveNone ->
+                row []
+                    [ text "Select node to copy/move first"
+                    , discardButton
+                    ]
+
+            Copy id desc ->
+                row [] <|
+                    if id == dest then
+                        cantCopySelf
+
+                    else
+                        [ text <| "Copy " ++ desc ++ " here?"
+                        , Form.buttonRow
+                            [ yesButton <| ApiPutCopyNode id dest
+                            , noButton
+                            ]
+                        ]
+
+            Move id src desc ->
+                row [] <|
+                    if id == dest then
+                        cantCopySelf
+
+                    else
+                        [ text <| "Move " ++ desc ++ " here?"
+                        , Form.buttonRow
+                            [ yesButton <| ApiPostMoveNode id src dest
+                            , noButton
+                            ]
+                        ]
 
 
 mergeNodeEdit : Tree NodeView -> Maybe NodeEdit -> Tree NodeView
