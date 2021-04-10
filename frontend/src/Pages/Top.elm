@@ -1293,7 +1293,6 @@ viewAddNode parent add =
                             , Input.option Node.typeModbus nodeDescModbus
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeVariable nodeDescVariable
-                            , Input.option "existing" (text "Copy existing node")
                             ]
 
                         else
@@ -1305,7 +1304,6 @@ viewAddNode parent add =
                             , Input.option Node.typeRule nodeDescRule
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeVariable nodeDescVariable
-                            , Input.option "existing" (text "Copy existing node")
                             ]
 
                         else
