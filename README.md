@@ -85,10 +85,12 @@ The Simple IoT project also includes open source gateway
 
 [Detailed documentation](docs/README.md)
 
-## Example 1 (build from source)
+## Example 1
 
-This example (only tested on Linux and MacOS) shows how to run the server and
-send data to it:
+This example (build only tested on Linux and MacOS) shows how to run the server
+and send data to it:
+
+Build Simple Iot or download the latest release:
 
 - install Go v1.14 (newer versions will likely work) and node/npm (tested with
   v12 and v14)
@@ -99,6 +101,9 @@ send data to it:
   session with all the functions defined in `envsetup.sh`.)
 - `siot_setup`
 - `siot_build`
+
+Now, run the example:
+
 - in one terminal, start server: `./siot`
 - open http://localhost:8080
   - login with user `admin@admin.com` and password `admin`
@@ -110,10 +115,9 @@ send data to it:
 
 ### SIOT web interface screenshot
 
-Below is a screenshot of the siot web interface. The greyed out device is one
-that is longer communicating and is considered "offline".
+Below is a screenshot of the siot web interface with the above data.
 
-![portal](docs/portal-devices.png)
+![nodes](docs/screenshot-example1.png)
 
 ## Example 2 (send commands/files to device)
 
@@ -133,11 +137,14 @@ that is longer communicating and is considered "offline".
 Hardware version information is a `Point` that encodes the version information
 in the `Text` field of a `Point`.
 
-- `./siot -sendPointText "1234::1:hwVersion"
-- `./siot -sendPointText "1234::2:osVersion"
-- `./siot -sendPointText "1234::3:appVersion"
+- `./siot -sendPointText "1234::1:hwVersion`
+- `./siot -sendPointText "1234::2:osVersion`
+- `./siot -sendPointText "1234::3:appVersion`
 
-## Flexible node/tree structure for grouping users, devices, etc
+## Flexible node view
+
+Information is arranged in a flexible node/tree which allows for easy grouping
+of users, devices, and device attributes.
 
 ![nodes](docs/screenshot-nodes.png)
 
@@ -192,10 +199,11 @@ different package, or renamed -- feel free to ask if you run into problems.
 - [x] efficient protocols for cellular data connections (NATs/protobuf)
 - [x] Modbus RTU support in SIOT
 - [x] Modbus TCP support in SIOT
+- [x] Twilio SMS notifications
 - [ ] email notifications
 - [ ] COAP API for devices
 - [ ] influxdb 2.x support
-- [ ] store timeseries data in bolthold
+- [ ] store timeseries data in bolt
 - [ ] esp32 client example
 - [ ] graph timeseries data
 - [ ] WiFi management
