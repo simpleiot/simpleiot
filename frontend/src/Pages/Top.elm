@@ -206,7 +206,6 @@ type Msg
     | ApiRespPostMoveNode (Data Response)
     | ApiRespPutCopyNode (Data Response)
     | ApiRespPostMsgNode (Data Response)
-    | Clipboard String
     | CopyNode String String
     | MoveNode String String String
 
@@ -643,11 +642,8 @@ update msg model =
                     , updateNodes model
                     )
 
-        Clipboard contents ->
-            ( model, Port.out <| Port.encodeClipboard contents )
-
         CopyNode id desc ->
-            ( { model | copyMove = Copy id desc }, Cmd.none )
+            ( { model | copyMove = Copy id desc }, Port.out <| Port.encodeClipboard id )
 
         MoveNode id src desc ->
             ( { model | copyMove = Move id src desc }, Cmd.none )
