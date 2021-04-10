@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [[0.0.23] - 2021-04-10](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.23)
+
 - Modbus: TCP listen on all interfaces instead of just localhost
 - UI
   - add dot for nodes that don't have children
@@ -21,8 +23,10 @@ For more details or to discuss releases, please visit the
   - replace edit/collapse with dot and color exp nodes
 - support copying nodes
 - remove remnants of Sample types (we now use Point)
+- create notification and message data types and NATS/Db support
 - implement node messaging (notifies all node and upstream users)
 - BUILD: simplify protobuf generation
+- implement Twilio SMS messaging
 
 ## [[0.0.22] - 2021-03-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.22)
 
