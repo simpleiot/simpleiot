@@ -85,10 +85,12 @@ The Simple IoT project also includes open source gateway
 
 [Detailed documentation](docs/README.md)
 
-## Example 1 (build from source)
+## Example 1
 
-This example (only tested on Linux and MacOS) shows how to run the server and
-send data to it:
+This example (build only tested on Linux and MacOS) shows how to run the server
+and send data to it:
+
+Build Simple Iot or download the latest release:
 
 - install Go v1.14 (newer versions will likely work) and node/npm (tested with
   v12 and v14)
@@ -99,6 +101,9 @@ send data to it:
   session with all the functions defined in `envsetup.sh`.)
 - `siot_setup`
 - `siot_build`
+
+Now, run the example:
+
 - in one terminal, start server: `./siot`
 - open http://localhost:8080
   - login with user `admin@admin.com` and password `admin`
@@ -110,11 +115,9 @@ send data to it:
 
 ### SIOT web interface screenshot
 
-Below is a screenshot of the siot web interface. Information is arranged in a
-flexible node/tree which allows for easy grouping of users, devices, and device
-attributes.
+Below is a screenshot of the siot web interface with the above data.
 
-![nodes](docs/screenshot-nodes.png)
+![nodes](docs/screenshot-example1.png)
 
 ## Example 2 (send commands/files to device)
 
@@ -137,6 +140,13 @@ in the `Text` field of a `Point`.
 - `./siot -sendPointText "1234::1:hwVersion`
 - `./siot -sendPointText "1234::2:osVersion`
 - `./siot -sendPointText "1234::3:appVersion`
+
+## Flexible node view
+
+Information is arranged in a flexible node/tree which allows for easy grouping
+of users, devices, and device attributes.
+
+![nodes](docs/screenshot-nodes.png)
 
 ## Each nodes can be expanded to edit/view attributes
 
