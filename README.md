@@ -199,10 +199,11 @@ different package, or renamed -- feel free to ask if you run into problems.
 - [x] efficient protocols for cellular data connections (NATs/protobuf)
 - [x] Modbus RTU support in SIOT
 - [x] Modbus TCP support in SIOT
+- [x] Twilio SMS notifications
 - [ ] email notifications
 - [ ] COAP API for devices
 - [ ] influxdb 2.x support
-- [ ] store timeseries data in bolthold
+- [ ] store timeseries data in bolt
 - [ ] esp32 client example
 - [ ] graph timeseries data
 - [ ] WiFi management
