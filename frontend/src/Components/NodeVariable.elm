@@ -22,10 +22,7 @@ view :
     , expDetail : Bool
     , parent : Maybe Node
     , node : Node
-    , onApiDelete : String -> msg
-    , onEditNodePoint : String -> Point -> msg
-    , onDiscardEdits : msg
-    , onApiPostPoints : String -> msg
+    , onEditNodePoint : Point -> msg
     }
     -> Element msg
 view o =
@@ -132,19 +129,6 @@ view o =
                         numberInput Point.typeValue "Value"
                     , viewIf (variableType == Point.valueNumber) <|
                         textInput Point.typeUnits "Units"
-                    , viewIf o.modified <|
-                        Form.buttonRow
-                            [ Form.button
-                                { label = "save"
-                                , color = colors.blue
-                                , onPress = o.onApiPostPoints o.node.id
-                                }
-                            , Form.button
-                                { label = "discard"
-                                , color = colors.gray
-                                , onPress = o.onDiscardEdits
-                                }
-                            ]
                     ]
 
                 else

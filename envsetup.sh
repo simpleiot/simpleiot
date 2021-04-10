@@ -14,12 +14,14 @@ bbolt() {
   go run go.etcd.io/bbolt/cmd/bbolt "$@"
 }
 
-genji() {
-  go run github.com/genjidb/genji/cmd/genji "$@"
-}
+# genji does not work very well like this, so install the binary and run that
+#genji() {
+#  go run github.com/genjidb/genji/cmd/genji "$@"
+#}
 
 siot_install_proto_gen_go() {
   cd ~ && go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+  cd - || exit
 }
 
 siot_install_frontend_deps() {
@@ -178,11 +180,7 @@ siot_setup_influx() {
 
 siot_protobuf() {
   echo "generating protobufs"
-  protoc internal/pb/*.proto --go_out=./internal/pb/ || return 1
-  echo "moving back to proper loc"
-  mv internal/pb/github.com/simpleiot/simpleiot/internal/pb/* internal/pb || return 1
-  echo "removing temp dir"
-  rm -rf internal/pb/github.com
+  protoc --proto_path=internal/pb internal/pb/*.proto --go_out=./ || return 1
 }
 
 siot_edge_run() {

@@ -2,8 +2,10 @@ module UI.Button exposing
     ( arrowDown
     , arrowRight
     , check
+    , clipboard
     , close
     , copy
+    , dot
     , edit
     , maximize
     , message
@@ -23,6 +25,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import FeatherIcons
+import Svg
+import Svg.Attributes as S
 import UI.Style as Style
 
 
@@ -133,3 +137,22 @@ message msg =
 copy : msg -> Element msg
 copy msg =
     button FeatherIcons.copy msg
+
+
+clipboard : msg -> Element msg
+clipboard msg =
+    button FeatherIcons.clipboard msg
+
+
+dot : msg -> Element msg
+dot =
+    [ Svg.circle
+        [ S.style "fill:#000000;fill-opacity:1;"
+        , S.cx "11.903377"
+        , S.cy "11.823219"
+        , S.r "4.1"
+        ]
+        []
+    ]
+        |> FeatherIcons.customIcon
+        |> button

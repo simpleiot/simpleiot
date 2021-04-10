@@ -146,7 +146,7 @@ button options =
 
 
 nodeTextInput :
-    { onEditNodePoint : String -> Point -> msg
+    { onEditNodePoint : Point -> msg
     , node : Node
     , now : Time.Posix
     , labelWidth : Int
@@ -159,8 +159,7 @@ nodeTextInput o pointName lbl =
         []
         { onChange =
             \d ->
-                o.onEditNodePoint o.node.id
-                    (Point "" pointName 0 o.now 0 d 0 0)
+                o.onEditNodePoint (Point "" pointName 0 o.now 0 d 0 0)
         , text = Point.getText o.node.points pointName
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
@@ -168,7 +167,7 @@ nodeTextInput o pointName lbl =
 
 
 nodeCheckboxInput :
-    { onEditNodePoint : String -> Point -> msg
+    { onEditNodePoint : Point -> msg
     , node : Node
     , now : Time.Posix
     , labelWidth : Int
@@ -189,7 +188,7 @@ nodeCheckboxInput o pointName lbl =
                         else
                             0.0
                 in
-                o.onEditNodePoint o.node.id
+                o.onEditNodePoint
                     (Point "" pointName 0 o.now v "" 0 0)
         , checked =
             Point.getValue o.node.points pointName == 1
@@ -199,7 +198,7 @@ nodeCheckboxInput o pointName lbl =
 
 
 nodeNumberInput :
-    { onEditNodePoint : String -> Point -> msg
+    { onEditNodePoint : Point -> msg
     , node : Node
     , now : Time.Posix
     , labelWidth : Int
@@ -260,7 +259,7 @@ nodeNumberInput o pointName lbl =
                         else
                             Maybe.withDefault currentValueF <| String.toFloat dCheck
                 in
-                o.onEditNodePoint o.node.id
+                o.onEditNodePoint
                     (Point "" pointName 0 o.now v dCheck 0 0)
         , text = currentValue
         , placeholder = Nothing
@@ -269,7 +268,7 @@ nodeNumberInput o pointName lbl =
 
 
 nodeOptionInput :
-    { onEditNodePoint : String -> Point -> msg
+    { onEditNodePoint : Point -> msg
     , node : Node
     , now : Time.Posix
     , labelWidth : Int
@@ -283,7 +282,7 @@ nodeOptionInput o pointName lbl options =
         [ spacing 6 ]
         { onChange =
             \sel ->
-                o.onEditNodePoint o.node.id
+                o.onEditNodePoint
                     (Point "" pointName 0 o.now 0 sel 0 0)
         , label =
             Input.labelLeft [ padding 12, width (px o.labelWidth) ] <|
@@ -302,7 +301,7 @@ nodeOptionInput o pointName lbl options =
 
 
 nodeCounterWithReset :
-    { onEditNodePoint : String -> Point -> msg
+    { onEditNodePoint : Point -> msg
     , node : Node
     , now : Time.Posix
     , labelWidth : Int
@@ -337,7 +336,7 @@ nodeCounterWithReset o pointName pointResetName lbl =
                             else
                                 0
                     in
-                    o.onEditNodePoint o.node.id (Point "" pointResetName 0 o.now vFloat "" 0 0)
+                    o.onEditNodePoint (Point "" pointResetName 0 o.now vFloat "" 0 0)
             , icon = Input.defaultCheckbox
             , checked = currentResetValue
             , label =
@@ -347,7 +346,7 @@ nodeCounterWithReset o pointName pointResetName lbl =
 
 
 nodeOnOffInput :
-    { onEditNodePoint : String -> Point -> msg
+    { onEditNodePoint : Point -> msg
     , node : Node
     , now : Time.Posix
     , labelWidth : Int
@@ -402,7 +401,7 @@ nodeOnOffInput o pointName pointSetName lbl =
         [ el [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         , Input.button
             []
-            { onPress = Just <| o.onEditNodePoint o.node.id (Point "" pointSetName 0 o.now newValue "" 0 0)
+            { onPress = Just <| o.onEditNodePoint (Point "" pointSetName 0 o.now newValue "" 0 0)
             , label =
                 el [ width (px 100) ] <|
                     html <|

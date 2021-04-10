@@ -1,0 +1,14 @@
+syntax = "proto3";
+package pb;
+
+option go_package = "internal/pb";
+
+message Message {
+	string id = 1;
+	string userId = 2;
+	string notificationId = 3;
+	string email = 4;
+	string phone = 5;
+	string subject = 6;
+	string message = 7;
+}

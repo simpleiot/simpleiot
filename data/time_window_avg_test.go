@@ -6,40 +6,40 @@ import (
 	"time"
 )
 
-func TestNewSample(t *testing.T) {
-	var avgSample Sample
+func TestNewPoint(t *testing.T) {
+	var avgPoint Point
 
-	sample := Sample{
+	point := Point{
 		Time:  time.Now(),
 		Value: 200,
 		Min:   100,
 		Max:   300,
 	}
 
-	sampleAverager := NewTimeWindowAverager(3*time.Second, func(avg Sample) {
+	pointAverager := NewTimeWindowAverager(3*time.Second, func(avg Point) {
 		fmt.Println("Average (Value): ", avg.Value)
 		fmt.Println("Min:             ", avg.Min)
 		fmt.Println("Max:             ", avg.Max)
 		fmt.Println()
-		avgSample = avg
+		avgPoint = avg
 	}, "hello")
 
-	sampleTicker := time.NewTicker(300 * time.Millisecond)
+	pointTicker := time.NewTicker(300 * time.Millisecond)
 	startTime := time.Now()
 
 	for time.Since(startTime) < time.Second*6 {
 		select {
-		case <-sampleTicker.C:
-			sampleAverager.NewSample(sample)
+		case <-pointTicker.C:
+			pointAverager.NewPoint(point)
 
-			if avgSample.Value != sample.Value {
-				t.Error("sample avg is not correct")
+			if avgPoint.Value != point.Value {
+				t.Error("point avg is not correct")
 			}
-			if avgSample.Min != sample.Min {
-				t.Error("sample min is not correct")
+			if avgPoint.Min != point.Min {
+				t.Error("point min is not correct")
 			}
-			if avgSample.Max != sample.Max {
-				t.Error("sample max is not correct")
+			if avgPoint.Max != point.Max {
+				t.Error("point max is not correct")
 			}
 		}
 	}

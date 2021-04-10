@@ -126,7 +126,7 @@ type TCPServer struct {
 
 // NewTCPServer starts a new TCP modbus server
 func NewTCPServer(id, maxClients int, port string, regs *Regs, debug int) (*TCPServer, error) {
-	listener, err := net.Listen("tcp", "localhost:"+port)
+	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		return nil, err
 	}

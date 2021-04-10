@@ -140,8 +140,8 @@ func (ps *Points) LatestTime() time.Time {
 	return ret
 }
 
-// PbEncode encodes an array of points into protobuf
-func (ps *Points) PbEncode() ([]byte, error) {
+// ToPb encodes an array of points into protobuf
+func (ps *Points) ToPb() ([]byte, error) {
 	pbPoints := make([]*pb.Point, len(*ps))
 	for i, s := range *ps {
 		sPb, err := s.ToPb()

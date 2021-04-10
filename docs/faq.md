@@ -1,6 +1,6 @@
 +++
 title = "FAQ"
-weight = 9
+weight = 99
 +++
 
 ### Q: How is this project different than Home Assistant, OpenHAB, Domoticz, etc.?

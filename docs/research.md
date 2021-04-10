@@ -1,6 +1,6 @@
 +++
 title = "Research"
-weight = 10
+weight = 100
 +++
 
 This document contains information that has been researched during the course of

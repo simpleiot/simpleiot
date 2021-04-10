@@ -1,5 +1,6 @@
 module Api.Node exposing
     ( Node
+    , copy
     , delete
     , description
     , get
@@ -121,6 +122,17 @@ type alias NodeMove =
     }
 
 
+type alias NodeCopy =
+    { id : String
+    , newParent : String
+    }
+
+
+type alias NodeDelete =
+    { parent : String
+    }
+
+
 decodeList : Decode.Decoder (List Node)
 decodeList =
     Decode.list decode
@@ -166,6 +178,21 @@ encodeNodeMove nodeMove =
         [ ( "id", Encode.string nodeMove.id )
         , ( "oldParent", Encode.string nodeMove.oldParent )
         , ( "newParent", Encode.string nodeMove.newParent )
+        ]
+
+
+encodeNodeAddParent : NodeCopy -> Encode.Value
+encodeNodeAddParent nodeCopy =
+    Encode.object
+        [ ( "id", Encode.string nodeCopy.id )
+        , ( "newParent", Encode.string nodeCopy.newParent )
+        ]
+
+
+encodeNodeDelete : NodeDelete -> Encode.Value
+encodeNodeDelete nodeDelete =
+    Encode.object
+        [ ( "parent", Encode.string nodeDelete.parent )
         ]
 
 
@@ -235,6 +262,7 @@ getCmd options =
 delete :
     { token : String
     , id : String
+    , parent : String
     , onResponse : Data Response -> msg
     }
     -> Cmd msg
@@ -244,7 +272,7 @@ delete options =
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
         , url = Url.Builder.absolute [ "v1", "nodes", options.id ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
-        , body = Http.emptyBody
+        , body = encodeNodeDelete { parent = options.parent } |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -349,6 +377,30 @@ move options =
             , newParent = options.newParent
             }
                 |> encodeNodeMove
+                |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+copy :
+    { token : String
+    , id : String
+    , newParent : String
+    , onResponse : Data Response -> msg
+    }
+    -> Cmd msg
+copy options =
+    Http.request
+        { method = "PUT"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "parents" ] []
+        , expect = Api.Data.expectJson options.onResponse Response.decoder
+        , body =
+            { id = options.id
+            , newParent = options.newParent
+            }
+                |> encodeNodeAddParent
                 |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing

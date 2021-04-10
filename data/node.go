@@ -201,7 +201,7 @@ func (n *NodeEdge) ProcessPoint(pIn Point) {
 	}
 }
 
-// PbDecodeNode converts a protbuf to node data structure
+// PbDecodeNode converts a protobuf to node data structure
 func PbDecodeNode(data []byte) (Node, error) {
 	pbNode := &pb.Node{}
 
@@ -229,11 +229,11 @@ func PbDecodeNode(data []byte) (Node, error) {
 	return ret, nil
 }
 
-// PbEncodeNode encodes a node to a protobuf
-func PbEncodeNode(node Node) ([]byte, error) {
-	points := make([]*pb.Point, len(node.Points))
+// ToPb encodes a node to a protobuf
+func (n *Node) ToPb() ([]byte, error) {
+	points := make([]*pb.Point, len(n.Points))
 
-	for i, p := range node.Points {
+	for i, p := range n.Points {
 		pPb, err := p.ToPb()
 		if err != nil {
 			return []byte{}, err
@@ -243,10 +243,44 @@ func PbEncodeNode(node Node) ([]byte, error) {
 	}
 
 	pbNode := pb.Node{
-		Id:     node.ID,
-		Type:   node.Type,
+		Id:     n.ID,
+		Type:   n.Type,
 		Points: points,
 	}
 
 	return proto.Marshal(&pbNode)
+}
+
+// RemoveDuplicateNodesIDParent removes duplicate nodes in list with the
+// same ID and parent
+func RemoveDuplicateNodesIDParent(nodes []NodeEdge) []NodeEdge {
+	keys := make(map[string]bool)
+	ret := []NodeEdge{}
+
+	for _, n := range nodes {
+		key := n.ID + n.Parent
+		if _, ok := keys[key]; !ok {
+			keys[key] = true
+			ret = append(ret, n)
+		}
+	}
+
+	return ret
+}
+
+// RemoveDuplicateNodesID removes duplicate nodes in list with the
+// same ID (can have different parents)
+func RemoveDuplicateNodesID(nodes []NodeEdge) []NodeEdge {
+	keys := make(map[string]bool)
+	ret := []NodeEdge{}
+
+	for _, n := range nodes {
+		key := n.ID
+		if _, ok := keys[key]; !ok {
+			keys[key] = true
+			ret = append(ret, n)
+		}
+	}
+
+	return ret
 }

@@ -8,19 +8,19 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// InfluxPoint represents a sample that is written into influxdb
+// InfluxPoint represents a point that is written into influxdb
 type InfluxPoint struct {
 	// Type of point (voltage, current, key, etc)
 	Type string `influx:"type,tag"`
 
-	// ID of the sensor that provided the sample
+	// ID of the sensor that provided the point
 	ID string `influx:"id,tag"`
 
-	// DeviceID of the ID of the device that provided the sample
+	// DeviceID of the ID of the device that provided the point
 	DeviceID string `influx:"deviceId,tag"`
 
 	// Average OR
-	// Instantaneous analog or digital value of the sample.
+	// Instantaneous analog or digital value of the point.
 	// 0 and 1 are used to represent digital values
 	Value float64 `influx:"value"`
 
@@ -28,14 +28,14 @@ type InfluxPoint struct {
 	Min float64 `influx:"min"`
 	Max float64 `influx:"max"`
 
-	// Time the sample was taken
+	// Time the point was taken
 	Time time.Time `influx:"time"`
 
-	// Duration over which the sample was taken
+	// Duration over which the point was taken
 	Duration time.Duration `influx:"duration"`
 }
 
-// PointToInfluxPoint converts a sample to influx sample
+// PointToInfluxPoint converts a point to influx point
 func PointToInfluxPoint(deviceID string, p data.Point) InfluxPoint {
 	return InfluxPoint{
 		Type:     p.Type,
@@ -49,7 +49,7 @@ func PointToInfluxPoint(deviceID string, p data.Point) InfluxPoint {
 	}
 }
 
-// Influx represents and influxdb that we can write samples to
+// Influx represents and influxdb that we can write points to
 type Influx struct {
 	client influxdbhelper.Client
 }
@@ -78,9 +78,9 @@ func NewInflux(url, dbName, user, password string) (*Influx, error) {
 	}, nil
 }
 
-// WriteSamples to influxdb
-func (i *Influx) WriteSamples(samples []InfluxPoint) error {
-	for _, s := range samples {
+// WritePoints to influxdb
+func (i *Influx) WritePoints(points []InfluxPoint) error {
+	for _, s := range points {
 		err := i.client.UseMeasurement("points").WritePoint(s)
 		if err != nil {
 			return err

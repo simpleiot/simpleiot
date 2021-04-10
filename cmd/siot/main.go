@@ -16,7 +16,6 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/db/genji"
-	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/node"
@@ -33,17 +32,17 @@ func parsePointText(s string) (string, data.Point, error) {
 	frags := strings.Split(s, ":")
 	if len(frags) != 4 {
 		return "", data.Point{},
-			errors.New("format for sample is: 'devId:sensId:value:type'")
+			errors.New("format for point is: 'devId:sensId:value:type'")
 	}
 
 	nodeID := frags[0]
-	sampleID := frags[1]
+	pointID := frags[1]
 	text := frags[2]
-	sampleType := frags[3]
+	pointType := frags[3]
 
 	return nodeID, data.Point{
-		ID:   sampleID,
-		Type: sampleType,
+		ID:   pointID,
+		Type: pointType,
 		Text: text,
 		Time: time.Now(),
 	}, nil
@@ -54,21 +53,21 @@ func parsePoint(s string) (string, data.Point, error) {
 	frags := strings.Split(s, ":")
 	if len(frags) != 4 {
 		return "", data.Point{},
-			errors.New("format for sample is: 'devId:sensId:value:type'")
+			errors.New("format for point is: 'devId:sensId:value:type'")
 	}
 
 	nodeID := frags[0]
-	sampleID := frags[1]
+	pointID := frags[1]
 	value, err := strconv.ParseFloat(frags[2], 64)
 	if err != nil {
 		return "", data.Point{}, err
 	}
 
-	sampleType := frags[3]
+	pointType := frags[3]
 
 	return nodeID, data.Point{
-		ID:    sampleID,
-		Type:  sampleType,
+		ID:    pointID,
+		Type:  pointType,
 		Value: value,
 		Time:  time.Now(),
 	}, nil
@@ -306,37 +305,10 @@ func main() {
 
 	if *flagLogNats {
 		log.Println("Logging all NATS messages")
-		_, err := nc.Subscribe("node.*.points", func(msg *natsgo.Msg) {
-			nodeID, points, err := nats.DecodeNodeMsg(msg)
+		_, err := nc.Subscribe("node.*.*", func(msg *natsgo.Msg) {
+			err := nats.Dump(nc, msg)
 			if err != nil {
-				log.Println("Error decoding NATS msg: ", err)
-				return
-			}
-
-			// Fetch node so we can print description
-			nodeMsg, err := nc.Request("node."+nodeID, nil, time.Second)
-
-			if err != nil {
-				log.Println("Error getting node over NATS: ", err)
-				return
-			}
-
-			node, err := data.PbDecodeNode(nodeMsg.Data)
-
-			if err != nil {
-				log.Println("Error decoding node data from server: ", err)
-				return
-			}
-
-			description, _ := node.Points.Text("", data.PointTypeDescription, 0)
-
-			log.Printf("NODE: %v (%v) (%v)\n", description, node.Type, node.ID)
-			for _, p := range points {
-				if p.Text != "" {
-					log.Printf("   - POINT: %v: %v\n", p.Type, p.Text)
-				} else {
-					log.Printf("   - POINT: %v: %v\n", p.Type, p.Value)
-				}
+				log.Println("Error dumping nats msg: ", err)
 			}
 		})
 
@@ -477,16 +449,6 @@ func main() {
 		}()
 	}
 
-	// get twilio info if enabled
-	twilioSid := os.Getenv("TWILIO_SID")
-	twilioAuth := os.Getenv("TWILIO_AUTH_TOKEN")
-	twilioFrom := os.Getenv("TWILIO_FROM")
-
-	var messenger *msg.Messenger
-	if twilioSid != "" && twilioAuth != "" {
-		messenger = msg.NewMessenger(twilioSid, twilioAuth, twilioFrom)
-	}
-
 	// finally, start web server
 	port := os.Getenv("SIOT_HTTP_PORT")
 	if port == "" {
@@ -529,7 +491,7 @@ func main() {
 		log.Fatal("Error connecting to NATs server: ", err)
 	}
 
-	nodeManager := node.NewManger(dbInst, messenger, nc)
+	nodeManager := node.NewManger(dbInst, nc)
 	go nodeManager.Run()
 
 	err = api.Server(api.ServerArgs{
@@ -541,7 +503,6 @@ func main() {
 		JwtAuth:    auth,
 		AuthToken:  authToken,
 		NH:         natsHandler,
-		Messenger:  messenger,
 	})
 
 	if err != nil {

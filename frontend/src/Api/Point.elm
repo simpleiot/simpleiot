@@ -8,6 +8,7 @@ module Api.Point exposing
     , encodeList
     , filterSpecialPoints
     , get
+    , getBestDesc
     , getBool
     , getLatest
     , getText
@@ -725,6 +726,25 @@ getText points typ =
 
         Nothing ->
             ""
+
+
+getBestDesc : List Point -> String
+getBestDesc points =
+    let
+        firstName =
+            getText points typeFirstName
+
+        desc =
+            getText points typeDescription
+    in
+    if firstName /= "" then
+        firstName ++ " " ++ getText points typeLastName
+
+    else if desc /= "" then
+        desc
+
+    else
+        "no description"
 
 
 getValue : List Point -> String -> Float

@@ -2,20 +2,30 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
-	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
 )
 
-// NodeMove is a data structure used in the /node/parent api calls
+// NodeMove is a data structure used in the /node/:id/parents api call
 type NodeMove struct {
 	ID        string
 	OldParent string
 	NewParent string
+}
+
+// NodeCopy is a data structured used in the /node/:id/parents api call
+type NodeCopy struct {
+	ID        string
+	NewParent string
+}
+
+// NodeDelete is a data structure used with /node/:id DELETE call
+type NodeDelete struct {
+	Parent string
 }
 
 // Nodes handles node requests
@@ -24,13 +34,12 @@ type Nodes struct {
 	check     RequestValidator
 	nh        *NatsHandler
 	authToken string
-	messenger *msg.Messenger
 }
 
 // NewNodesHandler returns a new node handler
 func NewNodesHandler(db *genji.Db, v RequestValidator, authToken string,
-	nh *NatsHandler, messenger *msg.Messenger) http.Handler {
-	return &Nodes{db, v, nh, authToken, messenger}
+	nh *NatsHandler) http.Handler {
+	return &Nodes{db, v, nh, authToken}
 }
 
 // Top level handler for http requests in the coap-server process
@@ -98,7 +107,13 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				en.Encode(node)
 			}
 		case http.MethodDelete:
-			err := h.db.NodeDelete(id)
+			var nodeDelete NodeDelete
+			if err := decode(req.Body, &nodeDelete); err != nil {
+				http.Error(res, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			err := h.db.NodeDelete(id, nodeDelete.Parent)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
@@ -136,6 +151,23 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				en.Encode(data.StandardResponse{Success: true, ID: id})
 			}
 			return
+
+		case http.MethodPut:
+			var nodeCopy NodeCopy
+			if err := decode(req.Body, &nodeCopy); err != nil {
+				http.Error(res, err.Error(), http.StatusBadRequest)
+				return
+			}
+			err := h.db.EdgeCopy(nodeCopy.ID,
+				nodeCopy.NewParent)
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+			} else {
+				en := json.NewEncoder(res)
+				en.Encode(data.StandardResponse{Success: true, ID: id})
+			}
+			return
+
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 		}
@@ -149,35 +181,29 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			// FIXME report errors to user
-			var err error
-			if point.Text != "" {
-				// send message to all users
-				// TODO do we want to notify children or all descendents here?
-				nodes, err := h.db.NodeDescendents(id, data.NodeTypeUser, false)
-				if err != nil {
-					http.Error(res, err.Error(), http.StatusInternalServerError)
-					return
-				}
-
-				for _, ne := range nodes {
-					n := ne.ToNode()
-					u := n.ToUser()
-					if u.Phone != "" {
-						err := h.messenger.SendSMS(u.Phone, point.Text)
-						if err != nil {
-							log.Println("Error sending message: ", err)
-						}
-					}
-				}
+			// FIXME send notification over NATS
+			not := data.Notification{
+				ID:         uuid.New().String(),
+				SourceNode: id,
+				Message:    point.Text,
 			}
+
+			d, err := not.ToPb()
 
 			if err != nil {
-				http.Error(res, err.Error(), http.StatusNotFound)
-			} else {
-				en := json.NewEncoder(res)
-				en.Encode(data.StandardResponse{Success: true, ID: id})
+				http.Error(res, err.Error(), http.StatusBadRequest)
+				return
 			}
+
+			err = h.nh.Nc.Publish("node."+id+".not", d)
+
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			en := json.NewEncoder(res)
+			en.Encode(data.StandardResponse{Success: true, ID: id})
 
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)

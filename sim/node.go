@@ -16,33 +16,33 @@ func packetDelay() {
 func NodeSim(portal, nodeID string) {
 	log.Printf("starting simulator: ID: %v, portal: %v\n", nodeID, portal)
 
-	sendSamples := api.NewSendSamples(portal, nodeID, time.Second*10, false)
+	sendPoints := api.NewSendPoints(portal, nodeID, "", time.Second*10, false)
 	tempSim := NewSim(72, 0.2, 70, 75)
 	voltSim := NewSim(2, 0.1, 1, 5)
 	voltSim2 := NewSim(5, 0.5, 1, 10)
 
 	for {
-		samples := make([]data.Sample, 3)
-		samples[0] = data.Sample{
+		points := make([]data.Point, 3)
+		points[0] = data.Point{
 			Type:  "temp",
 			Value: tempSim.Sim(),
 		}
 
-		samples[1] = data.Sample{
+		points[1] = data.Point{
 			ID:    "V0",
 			Type:  "volt",
 			Value: voltSim.Sim(),
 		}
 
-		samples[2] = data.Sample{
+		points[2] = data.Point{
 			ID:    "V1",
 			Type:  "volt",
 			Value: voltSim2.Sim(),
 		}
 
-		err := sendSamples(samples)
+		err := sendPoints(points)
 		if err != nil {
-			log.Println("Error sending samples: ", err)
+			log.Println("Error sending points: ", err)
 		}
 		packetDelay()
 	}

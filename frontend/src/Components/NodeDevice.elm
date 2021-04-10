@@ -7,7 +7,6 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import Time
-import UI.Button as Button
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
@@ -23,10 +22,7 @@ view :
     , expDetail : Bool
     , parent : Maybe Node
     , node : Node
-    , onApiDelete : String -> msg
-    , onEditNodePoint : String -> Point -> msg
-    , onDiscardEdits : msg
-    , onApiPostPoints : String -> msg
+    , onEditNodePoint : Point -> msg
     }
     -> Element msg
 view o =
@@ -105,17 +101,12 @@ view o =
                 [ Background.color background ]
                 { onChange =
                     \d ->
-                        o.onEditNodePoint o.node.id
+                        o.onEditNodePoint
                             (Point "" Point.typeDescription 0 o.now 0 d 0 0)
                 , text = Node.description o.node
                 , placeholder = Just <| Input.placeholder [] <| text "node description"
                 , label = Input.labelHidden "node description"
                 }
-            , viewIf o.modified <|
-                Button.check
-                    (o.onApiPostPoints o.node.id)
-            , viewIf o.modified <|
-                Button.x o.onDiscardEdits
             ]
             :: (if o.expDetail then
                     [ viewPoints <| Point.filterSpecialPoints o.node.points

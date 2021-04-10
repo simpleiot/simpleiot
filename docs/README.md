@@ -21,6 +21,7 @@ See the below sections for more details. Developers can view the Go
 - [API](api.md)
 - [Database](database.md)
 - [Rules](rules.md)
+- [Notifications](notifications.md)
 - [Security](security.md)
 - [FAQ](faq.md)
 - [Research](research.md)

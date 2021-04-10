@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/simpleiot/simpleiot/db/genji"
-	"github.com/simpleiot/simpleiot/msg"
 )
 
 // IndexHandler is used to serve the index page
@@ -84,7 +83,6 @@ type ServerArgs struct {
 	JwtAuth    Authorizer
 	AuthToken  string
 	NH         *NatsHandler
-	Messenger  *msg.Messenger
 }
 
 // Server starts a API server instance
