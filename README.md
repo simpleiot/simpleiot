@@ -137,21 +137,17 @@ in the `Text` field of a `Point`.
 - `./siot -sendPointText "1234::2:osVersion"
 - `./siot -sendPointText "1234::3:appVersion"
 
-## User/Group management
+## Flexible node/tree structure for grouping users, devices, etc
 
-Users can be added to the system. If a user and device are in the same group,
-then the user can see the device.
+![nodes](docs/screenshot-nodes.png)
 
-### User page screenshot
+## Each nodes can be expanded to edit/view attributes
 
-![users](docs/portal-users.png)
+![node-edit](docs/screenshot-node-edit.png)
 
-### Group page screenshot
+## Extensive support for modbus devices
 
-In the below example, Joe and Cliff will both have access to the "1234" device
-because they are all in the "Building A" group.
-
-![groups](docs/portal-groups.png)
+![node-modbus](docs/screenshot-modbus-io.png)
 
 ## Configuration
 
