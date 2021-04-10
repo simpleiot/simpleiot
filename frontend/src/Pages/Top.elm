@@ -77,7 +77,7 @@ type NodeOperation
     | OpNodeMove NodeMove
     | OpNodeCopy NodeCopy
     | OpNodeMessage NodeMessage
-    | OpNodeDelete String String
+    | OpNodeDelete Int String String
 
 
 type alias NodeView =
@@ -99,12 +99,14 @@ type alias NodeEdit =
 
 type alias NodeToAdd =
     { typ : Maybe String
+    , feID : Int
     , parent : String
     }
 
 
 type alias NodeMove =
-    { id : String
+    { feID : Int
+    , id : String
     , input : String
     , oldParent : String
     , newParent : Maybe String
@@ -112,14 +114,16 @@ type alias NodeMove =
 
 
 type alias NodeCopy =
-    { id : String
+    { feID : Int
+    , id : String
     , input : String
     , newChild : Maybe String
     }
 
 
 type alias NodeMessage =
-    { id : String
+    { feID : Int
+    , id : String
     , message : String
     }
 
@@ -172,11 +176,11 @@ type Msg
     | ToggleExpDetail Int
     | DiscardNodeOp
     | DiscardEdits
-    | AddNode String
-    | MsgNode String
-    | MoveNode String String
-    | CopyNode String
-    | DeleteNode String String
+    | AddNode Int String
+    | MsgNode Int String
+    | MoveNode Int String String
+    | CopyNode Int String
+    | DeleteNode Int String String
     | UpdateMsg String
     | MoveNodeDescription String
     | CopyNodeDescription String
@@ -287,21 +291,31 @@ update msg model =
             in
             ( { model | nodes = nodes }, Cmd.none )
 
-        AddNode id ->
+        AddNode feID id ->
             ( { model
-                | nodeOp = OpNodeToAdd { typ = Nothing, parent = id }
+                | nodeOp = OpNodeToAdd { typ = Nothing, feID = feID, parent = id }
               }
             , Cmd.none
             )
 
-        MsgNode id ->
-            ( { model | nodeOp = OpNodeMessage { id = id, message = "" } }, Cmd.none )
+        MsgNode feID id ->
+            ( { model
+                | nodeOp =
+                    OpNodeMessage
+                        { id = id
+                        , feID = feID
+                        , message = ""
+                        }
+              }
+            , Cmd.none
+            )
 
-        MoveNode id parent ->
+        MoveNode feID id parent ->
             ( { model
                 | nodeOp =
                     OpNodeMove
                         { id = id
+                        , feID = feID
                         , input = ""
                         , oldParent = parent
                         , newParent = Nothing
@@ -310,11 +324,12 @@ update msg model =
             , Cmd.none
             )
 
-        CopyNode id ->
+        CopyNode feID id ->
             ( { model
                 | nodeOp =
                     OpNodeCopy
-                        { id = id
+                        { feID = feID
+                        , id = id
                         , input = ""
                         , newChild = Nothing
                         }
@@ -322,8 +337,8 @@ update msg model =
             , Cmd.none
             )
 
-        DeleteNode id parent ->
-            ( { model | nodeOp = OpNodeDelete id parent }, Cmd.none )
+        DeleteNode feID id parent ->
+            ( { model | nodeOp = OpNodeDelete feID id parent }, Cmd.none )
 
         UpdateMsg message ->
             case model.nodeOp of
@@ -1090,6 +1105,9 @@ viewNode model parent node depth =
 
         alignButton =
             el [ alignTop, paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ]
+
+        viewNodeOps =
+            viewNodeOperations node.feID node.node.id node.node.parent
     in
     el
         [ width fill
@@ -1137,42 +1155,42 @@ viewNode model parent node depth =
                 , if node.expDetail then
                     case model.nodeOp of
                         OpNone ->
-                            viewNodeOperations node.node.id node.node.parent
+                            viewNodeOps
 
                         OpNodeToAdd add ->
-                            if add.parent == node.node.id then
-                                viewAddNode node.node add
+                            if add.feID == node.feID then
+                                viewAddNode node add
 
                             else
-                                viewNodeOperations node.node.id node.node.parent
+                                viewNodeOps
 
                         OpNodeMove move ->
-                            if move.id == node.node.id then
+                            if move.feID == node.feID then
                                 viewMoveNode move
 
                             else
-                                viewNodeOperations node.node.id node.node.parent
+                                viewNodeOps
 
                         OpNodeCopy copy ->
-                            if copy.id == node.node.id then
+                            if copy.feID == node.feID then
                                 viewCopyNode copy
 
                             else
-                                viewNodeOperations node.node.id node.node.parent
+                                viewNodeOps
 
                         OpNodeMessage msg ->
-                            if msg.id == node.node.id then
+                            if msg.feID == node.feID then
                                 viewMsgNode msg
 
                             else
-                                viewNodeOperations node.node.id node.node.parent
+                                viewNodeOps
 
-                        OpNodeDelete id parentId ->
-                            if id == node.node.id then
+                        OpNodeDelete feID id parentId ->
+                            if feID == node.feID then
                                 viewDeleteNode id parentId
 
                             else
-                                viewNodeOperations node.node.id node.node.parent
+                                viewNodeOps
 
                   else
                     Element.none
@@ -1195,17 +1213,17 @@ viewUnknown o =
     Element.text <| "unknown node type: " ++ o.node.typ
 
 
-viewNodeOperations : String -> String -> Element Msg
-viewNodeOperations id parent =
+viewNodeOperations : Int -> String -> String -> Element Msg
+viewNodeOperations feID id parent =
     row [ spacing 6 ]
-        [ Button.plusCircle (AddNode id)
+        [ Button.plusCircle (AddNode feID id)
         , if parent /= "" then
-            Button.move (MoveNode id parent)
+            Button.move (MoveNode feID id parent)
 
           else
             Element.none
-        , Button.message (MsgNode id)
-        , Button.x (DeleteNode id parent)
+        , Button.message (MsgNode feID id)
+        , Button.x (DeleteNode feID id parent)
         , Button.copy (Clipboard id)
         ]
 
@@ -1315,7 +1333,7 @@ nodeDescAction =
     row [] [ Icon.trendingUp, text "Action" ]
 
 
-viewAddNode : Node -> NodeToAdd -> Element Msg
+viewAddNode : NodeView -> NodeToAdd -> Element Msg
 viewAddNode parent add =
     column [ spacing 10 ]
         [ Input.radio [ spacing 6 ]
@@ -1324,7 +1342,7 @@ viewAddNode parent add =
             , label = Input.labelAbove [] (el [ padding 12 ] <| text "Select node type to add: ")
             , options =
                 []
-                    ++ (if parent.typ == Node.typeDevice then
+                    ++ (if parent.node.typ == Node.typeDevice then
                             [ Input.option Node.typeUser nodeDescUser
                             , Input.option Node.typeGroup nodeDescGroup
                             , Input.option Node.typeRule nodeDescRule
@@ -1337,7 +1355,7 @@ viewAddNode parent add =
                         else
                             []
                        )
-                    ++ (if parent.typ == Node.typeGroup then
+                    ++ (if parent.node.typ == Node.typeGroup then
                             [ Input.option Node.typeUser nodeDescUser
                             , Input.option Node.typeGroup nodeDescGroup
                             , Input.option Node.typeRule nodeDescRule
@@ -1349,13 +1367,13 @@ viewAddNode parent add =
                         else
                             []
                        )
-                    ++ (if parent.typ == Node.typeModbus then
+                    ++ (if parent.node.typ == Node.typeModbus then
                             [ Input.option Node.typeModbusIO nodeDescModbusIO ]
 
                         else
                             []
                        )
-                    ++ (if parent.typ == Node.typeRule then
+                    ++ (if parent.node.typ == Node.typeRule then
                             [ Input.option Node.typeCondition nodeDescCondition
                             , Input.option Node.typeAction nodeDescAction
                             ]
@@ -1372,7 +1390,7 @@ viewAddNode parent add =
                         , color = Style.colors.blue
                         , onPress =
                             if add.typ == Just "existing" then
-                                CopyNode parent.id
+                                CopyNode parent.feID parent.node.id
 
                             else
                                 ApiPostAddNode
