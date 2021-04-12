@@ -13,6 +13,8 @@ For more details or to discuss releases, please visit the
 
 - UI
   - display copy/move node messages for 2-3s when clicking copy/move node button
+  - support multiple top level nodes -- for instance a user that is a member of
+    multiple groups but not the root node
 
 ## [[0.0.23] - 2021-04-10](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.23)
 

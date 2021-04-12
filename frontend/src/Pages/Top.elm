@@ -64,7 +64,7 @@ type alias Model =
     , nodeEdit : Maybe NodeEdit
     , zone : Time.Zone
     , now : Time.Posix
-    , nodes : Maybe (Tree NodeView)
+    , nodes : List (Tree NodeView)
     , auth : Auth
     , error : Maybe String
     , nodeOp : NodeOperation
@@ -132,7 +132,7 @@ defaultModel key =
         Nothing
         Time.utc
         (Time.millisToPosix 0)
-        Nothing
+        []
         { email = "", token = "", isRoot = False }
         Nothing
         OpNone
@@ -222,46 +222,43 @@ update msg model =
             )
 
         ApiPostPoints id ->
-            case model.nodes of
-                Just nodes ->
-                    case model.nodeEdit of
-                        Just edit ->
-                            let
-                                points =
-                                    Point.clearText edit.points
+            case model.nodeEdit of
+                Just edit ->
+                    let
+                        points =
+                            Point.clearText edit.points
 
-                                -- optimistically update nodes
-                                updatedNodes =
-                                    Tree.map
-                                        (\n ->
-                                            if n.node.id == id then
-                                                let
-                                                    node =
-                                                        n.node
-                                                in
-                                                { n
-                                                    | node =
-                                                        { node
-                                                            | points = Point.updatePoints node.points points
-                                                        }
-                                                }
+                        -- optimistically update nodes
+                        updatedNodes =
+                            List.map
+                                (Tree.map
+                                    (\n ->
+                                        if n.node.id == id then
+                                            let
+                                                node =
+                                                    n.node
+                                            in
+                                            { n
+                                                | node =
+                                                    { node
+                                                        | points = Point.updatePoints node.points points
+                                                    }
+                                            }
 
-                                            else
-                                                n
-                                        )
-                                        nodes
-                            in
-                            ( { model | nodeEdit = Nothing, nodes = Just updatedNodes }
-                            , Node.postPoints
-                                { token = model.auth.token
-                                , id = id
-                                , points = points
-                                , onResponse = ApiRespPostPoint
-                                }
-                            )
-
-                        Nothing ->
-                            ( model, Cmd.none )
+                                        else
+                                            n
+                                    )
+                                )
+                                model.nodes
+                    in
+                    ( { model | nodeEdit = Nothing, nodes = updatedNodes }
+                    , Node.postPoints
+                        { token = model.auth.token
+                        , id = id
+                        , points = points
+                        , onResponse = ApiRespPostPoint
+                        }
+                    )
 
                 Nothing ->
                     ( model, Cmd.none )
@@ -277,14 +274,14 @@ update msg model =
         ToggleExpChildren feID ->
             let
                 nodes =
-                    model.nodes |> Maybe.map (toggleExpChildren feID)
+                    toggleExpChildren model.nodes feID
             in
             ( { model | nodes = nodes }, Cmd.none )
 
         ToggleExpDetail feID ->
             let
                 nodes =
-                    model.nodes |> Maybe.map (toggleExpDetail feID)
+                    toggleExpDetail model.nodes feID
             in
             ( { model | nodes = nodes }, Cmd.none )
 
@@ -442,32 +439,15 @@ update msg model =
             case resp of
                 Data.Success nodes ->
                     let
-                        maybeNew =
-                            case nodeListToTree nodes of
-                                Just tree ->
-                                    Just <|
-                                        populateHasChildren "" <|
-                                            populateFeID <|
-                                                sortNodeTree tree
-
-                                Nothing ->
-                                    Nothing
-
-                        treeMerged =
-                            case ( model.nodes, maybeNew ) of
-                                ( Just current, Just new ) ->
-                                    Just <| mergeNodeTree current new
-
-                                ( _, Just new ) ->
-                                    Just new
-
-                                ( Just current, _ ) ->
-                                    Just current
-
-                                _ ->
-                                    Nothing
+                        new =
+                            nodes
+                                |> nodeListToTrees
+                                |> List.map (populateHasChildren "")
+                                |> sortNodeTrees
+                                |> populateFeID
+                                |> mergeNodeTrees model.nodes
                     in
-                    ( { model | nodes = treeMerged }, Cmd.none )
+                    ( { model | nodes = new }, Cmd.none )
 
                 Data.Failure err ->
                     let
@@ -529,7 +509,7 @@ update msg model =
         ApiRespPostAddNode parentFeID resp ->
             case resp of
                 Data.Success _ ->
-                    ( { model | nodes = model.nodes |> Maybe.map (expChildren parentFeID) }
+                    ( { model | nodes = List.map (expChildren parentFeID) model.nodes }
                     , updateNodes model
                     )
 
@@ -546,7 +526,7 @@ update msg model =
         ApiRespPostMoveNode parent resp ->
             let
                 nodes =
-                    model.nodes |> Maybe.map (expChildren parent)
+                    List.map (expChildren parent) model.nodes
             in
             case resp of
                 Data.Success _ ->
@@ -567,7 +547,7 @@ update msg model =
         ApiRespPutCopyNode parent resp ->
             let
                 nodes =
-                    model.nodes |> Maybe.map (expChildren parent)
+                    List.map (expChildren parent) model.nodes
             in
             case resp of
                 Data.Success _ ->
@@ -629,6 +609,34 @@ update msg model =
             )
 
 
+mergeNodeTrees : List (Tree NodeView) -> List (Tree NodeView) -> List (Tree NodeView)
+mergeNodeTrees current new =
+    List.map
+        (\n ->
+            let
+                newRootNode =
+                    Tree.label n
+            in
+            case
+                List.Extra.find
+                    (\c ->
+                        let
+                            curRootNode =
+                                Tree.label c
+                        in
+                        newRootNode.node.id == curRootNode.node.id
+                    )
+                    current
+            of
+                Just cur ->
+                    mergeNodeTree cur n
+
+                Nothing ->
+                    n
+        )
+        new
+
+
 mergeNodeTree : Tree NodeView -> Tree NodeView -> Tree NodeView
 mergeNodeTree current new =
     let
@@ -663,26 +671,32 @@ mergeNodeTree current new =
         new
 
 
-populateFeID : Tree NodeView -> Tree NodeView
-populateFeID tree =
-    Tree.indexedMap
-        (\i n ->
-            { n | feID = i }
+populateFeID : List (Tree NodeView) -> List (Tree NodeView)
+populateFeID trees =
+    List.indexedMap
+        (\i nodes ->
+            Tree.indexedMap
+                (\j n ->
+                    { n | feID = i * 10000 + j }
+                )
+                nodes
         )
-        tree
+        trees
 
 
-toggleExpChildren : Int -> Tree NodeView -> Tree NodeView
-toggleExpChildren feID tree =
-    Tree.map
-        (\n ->
-            if n.feID == feID then
-                { n | expChildren = not n.expChildren }
+toggleExpChildren : List (Tree NodeView) -> Int -> List (Tree NodeView)
+toggleExpChildren nodes feID =
+    List.map
+        (Tree.map
+            (\n ->
+                if n.feID == feID then
+                    { n | expChildren = not n.expChildren }
 
-            else
-                n
+                else
+                    n
+            )
         )
-        tree
+        nodes
 
 
 expChildren : Int -> Tree NodeView -> Tree NodeView
@@ -698,23 +712,33 @@ expChildren feID tree =
         tree
 
 
-toggleExpDetail : Int -> Tree NodeView -> Tree NodeView
-toggleExpDetail feID tree =
-    Tree.map
-        (\n ->
-            if n.feID == feID then
-                { n | expDetail = not n.expDetail }
+toggleExpDetail : List (Tree NodeView) -> Int -> List (Tree NodeView)
+toggleExpDetail nodes feID =
+    List.map
+        (Tree.map
+            (\n ->
+                if n.feID == feID then
+                    { n | expDetail = not n.expDetail }
+
+                else
+                    n
+            )
+        )
+        nodes
+
+
+nodeListToTrees : List Node -> List (Tree NodeView)
+nodeListToTrees nodes =
+    List.foldr
+        (\n ret ->
+            if n.parent == "" then
+                populateChildren nodes n :: ret
 
             else
-                n
+                ret
         )
-        tree
-
-
-nodeListToTree : List Node -> Maybe (Tree NodeView)
-nodeListToTree nodes =
-    List.Extra.find (\n -> n.parent == "") nodes
-        |> Maybe.map (populateChildren nodes)
+        []
+        nodes
 
 
 
@@ -800,6 +824,12 @@ populateHasChildren parentID tree =
             )
 
 
+sortNodeTrees : List (Tree NodeView) -> List (Tree NodeView)
+sortNodeTrees trees =
+    -- I have no idea why nodeSortRev is needed here ???
+    List.sortWith nodeSortRev trees |> List.map sortNodeTree
+
+
 
 -- sortNodeTree recursively sorts the children of the nodes
 -- sort by type and then description
@@ -812,36 +842,42 @@ sortNodeTree nodes =
             Tree.children nodes
 
         childrenSorted =
-            List.sortWith
-                (\a b ->
-                    let
-                        aNode =
-                            Tree.label a
-
-                        bNode =
-                            Tree.label b
-
-                        aType =
-                            aNode.node.typ
-
-                        bType =
-                            bNode.node.typ
-
-                        aDesc =
-                            String.toLower <| Point.getBestDesc aNode.node.points
-
-                        bDesc =
-                            String.toLower <| Point.getBestDesc bNode.node.points
-                    in
-                    if aType /= bType then
-                        compare bType aType
-
-                    else
-                        compare bDesc aDesc
-                )
-                children
+            List.sortWith nodeSort children
     in
     Tree.tree (Tree.label nodes) (List.map sortNodeTree childrenSorted)
+
+
+nodeSortRev : Tree NodeView -> Tree NodeView -> Order
+nodeSortRev a b =
+    nodeSort b a
+
+
+nodeSort : Tree NodeView -> Tree NodeView -> Order
+nodeSort a b =
+    let
+        aNode =
+            Tree.label a
+
+        bNode =
+            Tree.label b
+
+        aType =
+            aNode.node.typ
+
+        bType =
+            bNode.node.typ
+
+        aDesc =
+            String.toLower <| Point.getBestDesc aNode.node.points
+
+        bDesc =
+            String.toLower <| Point.getBestDesc bNode.node.points
+    in
+    if aType /= bType then
+        compare bType aType
+
+    else
+        compare bDesc aDesc
 
 
 popError : String -> Http.Error -> Model -> Model
@@ -910,17 +946,17 @@ viewNodes model =
         , spacing 24
         ]
     <|
-        case model.nodes of
-            Just tree ->
-                let
-                    treeWithEdits =
-                        mergeNodeEdit tree model.nodeEdit
-                in
-                viewNode model Nothing (Tree.label treeWithEdits) 0
-                    :: viewNodesHelp 1 model treeWithEdits
-
-            Nothing ->
-                [ text "No nodes to display" ]
+        let
+            treeWithEdits =
+                mergeNodesEdit model.nodes model.nodeEdit
+        in
+        List.concat <|
+            List.map
+                (\t ->
+                    viewNode model Nothing (Tree.label t) 0
+                        :: viewNodesHelp 1 model t
+                )
+                treeWithEdits
 
 
 viewNodesHelp :
@@ -1407,30 +1443,32 @@ viewPasteNode feID dest copyMove =
                         ]
 
 
-mergeNodeEdit : Tree NodeView -> Maybe NodeEdit -> Tree NodeView
-mergeNodeEdit nodes nodeEdit =
+mergeNodesEdit : List (Tree NodeView) -> Maybe NodeEdit -> List (Tree NodeView)
+mergeNodesEdit nodes nodeEdit =
     case nodeEdit of
         Just edit ->
-            Tree.map
-                (\n ->
-                    if edit.feID == n.feID then
-                        let
-                            node =
-                                n.node
-                        in
-                        { n
-                            | mod = True
-                            , node =
-                                { node
-                                    | points =
-                                        Point.updatePoints node.points edit.points
-                                }
-                        }
+            List.map
+                (Tree.map
+                    (\n ->
+                        if edit.feID == n.feID then
+                            let
+                                node =
+                                    n.node
+                            in
+                            { n
+                                | mod = True
+                                , node =
+                                    { node
+                                        | points =
+                                            Point.updatePoints node.points edit.points
+                                    }
+                            }
 
-                    else
-                        { n | mod = False }
+                        else
+                            { n | mod = False }
+                    )
                 )
                 nodes
 
         Nothing ->
-            Tree.map (\n -> { n | mod = False }) nodes
+            List.map (Tree.map (\n -> { n | mod = False })) nodes
