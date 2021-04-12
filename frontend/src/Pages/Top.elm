@@ -69,6 +69,14 @@ type alias Model =
     , error : Maybe String
     , nodeOp : NodeOperation
     , copyMove : CopyMove
+    , nodeMsg : Maybe NodeMsg
+    }
+
+
+type alias NodeMsg =
+    { feID : Int
+    , text : String
+    , time : Time.Posix
     }
 
 
@@ -111,15 +119,6 @@ type alias NodeToAdd =
     }
 
 
-type alias NodeMove =
-    { feID : Int
-    , id : String
-    , input : String
-    , oldParent : String
-    , newParent : Maybe String
-    }
-
-
 type alias NodeCopy =
     { feID : Int
     , id : String
@@ -147,6 +146,7 @@ defaultModel key =
         Nothing
         OpNone
         CopyMoveNone
+        Nothing
 
 
 init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
@@ -206,8 +206,8 @@ type Msg
     | ApiRespPostMoveNode (Data Response)
     | ApiRespPutCopyNode (Data Response)
     | ApiRespPostMsgNode (Data Response)
-    | CopyNode String String
-    | MoveNode String String String
+    | CopyNode Int String String
+    | MoveNode Int String String String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -482,7 +482,26 @@ update msg model =
             ( { model | zone = zone }, Cmd.none )
 
         Tick now ->
-            ( { model | now = now }
+            let
+                nodeMsg =
+                    Maybe.andThen
+                        (\m ->
+                            let
+                                timeMs =
+                                    Time.posixToMillis m.time
+
+                                nowMs =
+                                    Time.posixToMillis model.now
+                            in
+                            if nowMs - timeMs > 3000 then
+                                Just m
+
+                            else
+                                Nothing
+                        )
+                        model.nodeMsg
+            in
+            ( { model | now = now, nodeMsg = nodeMsg }
             , updateNodes model
             )
 
@@ -642,11 +661,31 @@ update msg model =
                     , updateNodes model
                     )
 
-        CopyNode id desc ->
-            ( { model | copyMove = Copy id desc }, Port.out <| Port.encodeClipboard id )
+        CopyNode feID id desc ->
+            ( { model
+                | copyMove = Copy id desc
+                , nodeMsg =
+                    Just
+                        { feID = feID
+                        , text = "Node copied\nclick paste in destination node"
+                        , time = model.now
+                        }
+              }
+            , Port.out <| Port.encodeClipboard id
+            )
 
-        MoveNode id src desc ->
-            ( { model | copyMove = Move id src desc }, Cmd.none )
+        MoveNode feID id src desc ->
+            ( { model
+                | copyMove = Move id src desc
+                , nodeMsg =
+                    Just
+                        { feID = feID
+                        , text = "Node queued for move\nclick paste in destination node"
+                        , time = model.now
+                        }
+              }
+            , Cmd.none
+            )
 
 
 mergeNodeTree : Tree NodeView -> Tree NodeView -> Tree NodeView
@@ -1071,8 +1110,19 @@ viewNode model parent node depth =
         alignButton =
             el [ alignTop, paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ]
 
+        msg =
+            Maybe.andThen
+                (\m ->
+                    if m.feID == node.feID then
+                        Just m.text
+
+                    else
+                        Nothing
+                )
+                model.nodeMsg
+
         viewNodeOps =
-            viewNodeOperations model.copyMove node
+            viewNodeOperations node msg
     in
     el
         [ width fill
@@ -1136,9 +1186,9 @@ viewNode model parent node depth =
                             else
                                 viewNodeOps
 
-                        OpNodeMessage msg ->
-                            if msg.feID == node.feID then
-                                viewMsgNode msg
+                        OpNodeMessage m ->
+                            if m.feID == node.feID then
+                                viewMsgNode m
 
                             else
                                 viewNodeOps
@@ -1178,23 +1228,31 @@ viewUnknown o =
     Element.text <| "unknown node type: " ++ o.node.typ
 
 
-viewNodeOperations : CopyMove -> NodeView -> Element Msg
-viewNodeOperations copyMove node =
+viewNodeOperations : NodeView -> Maybe String -> Element Msg
+viewNodeOperations node msg =
     let
         desc =
             Point.getBestDesc node.node.points
     in
-    row [ spacing 6 ]
-        [ Button.plusCircle (AddNode node.feID node.node.id)
-        , Button.message (MsgNode node.feID node.node.id)
-        , Button.x (DeleteNode node.feID node.node.id node.node.parent)
-        , if node.node.parent /= "" then
-            Button.move (MoveNode node.node.id node.node.parent desc)
+    column [ spacing 6 ]
+        [ row [ spacing 6 ]
+            [ Button.plusCircle (AddNode node.feID node.node.id)
+            , Button.message (MsgNode node.feID node.node.id)
+            , Button.x (DeleteNode node.feID node.node.id node.node.parent)
+            , if node.node.parent /= "" then
+                Button.move (MoveNode node.feID node.node.id node.node.parent desc)
 
-          else
-            Element.none
-        , Button.copy (CopyNode node.node.id desc)
-        , Button.clipboard (PasteNode node.feID node.node.id)
+              else
+                Element.none
+            , Button.copy (CopyNode node.feID node.node.id desc)
+            , Button.clipboard (PasteNode node.feID node.node.id)
+            ]
+        , case msg of
+            Just m ->
+                text m
+
+            Nothing ->
+                Element.none
         ]
 
 
