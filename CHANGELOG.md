@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- UI
+  - display copy/move node messages for 2-3s when clicking copy/move node button
+
 ## [[0.0.23] - 2021-04-10](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.23)
 
 - Modbus: TCP listen on all interfaces instead of just localhost
