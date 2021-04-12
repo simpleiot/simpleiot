@@ -355,63 +355,6 @@ func (nh *NatsHandler) reply(subject string, err error) {
 	nh.Nc.Publish(subject, []byte(reply))
 }
 
-func (nh *NatsHandler) processNotification(currentNodeID, nodeID string, n data.Notification) error {
-	// get children and process any users
-	userNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeUser, false)
-	if err != nil {
-		return err
-	}
-
-	for _, userNode := range userNodes {
-		user, err := data.NodeToUser(userNode.ToNode())
-
-		if err != nil {
-			return err
-		}
-
-		if user.Email != "" || user.Phone != "" {
-			msg := data.Message{
-				ID:             uuid.New().String(),
-				UserID:         user.ID,
-				NotificationID: nodeID,
-				Email:          user.Email,
-				Phone:          user.Phone,
-				Subject:        n.Subject,
-				Message:        n.Message,
-			}
-
-			data, err := msg.ToPb()
-
-			if err != nil {
-				return err
-			}
-
-			err = nh.Nc.Publish("node."+user.ID+".msg", data)
-
-			if err != nil {
-				return err
-			}
-		}
-
-	}
-
-	// now process upstream nodes
-	upIDs, err := nh.db.EdgeUp(currentNodeID)
-	if err != nil {
-		return err
-	}
-
-	for _, id := range upIDs {
-
-		err = nh.processNotification(id, nodeID, n)
-		if err != nil {
-			log.Println("notifications -- error processing upstream node: ", err)
-		}
-	}
-
-	return nil
-}
-
 func (nh *NatsHandler) processPoint(currentNodeID, nodeID string, p data.Point) error {
 	// get children and process any rules
 	ruleNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeRule, false)
@@ -443,7 +386,7 @@ func (nh *NatsHandler) processPoint(currentNodeID, nodeID string, p data.Point) 
 		}
 
 		if active {
-			err := ruleRunActions(rule, nh.Nc)
+			err := nh.ruleRunActions(nh.Nc, rule, nodeID)
 			if err != nil {
 				log.Println("Error running rule actions: ", err)
 			}
@@ -559,7 +502,7 @@ func ruleProcessPoint(nc *natsgo.Conn, r *data.Rule, nodeID string, p data.Point
 }
 
 // ruleRunActions runs rule actions
-func ruleRunActions(r *data.Rule, nc *natsgo.Conn) error {
+func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, triggerNode string) error {
 	for _, a := range r.Actions {
 		switch a.Action {
 		case data.PointValueActionSetValue:
@@ -577,7 +520,31 @@ func ruleRunActions(r *data.Rule, nc *natsgo.Conn) error {
 				log.Println("Error sending rule action point: ", err)
 			}
 		case data.PointValueActionNotify:
-			log.Println("Notify action not supported yet")
+			// get node that fired the rule
+			triggerNode, err := nh.db.Node(triggerNode)
+			if err != nil {
+				return err
+			}
+
+			triggerNodeDesc, _ := triggerNode.Points.Text("", data.PointTypeDescription, 0)
+
+			n := data.Notification{
+				ID:         uuid.New().String(),
+				SourceNode: a.NodeID,
+				Message:    r.Description + " fired at " + triggerNodeDesc,
+			}
+
+			d, err := n.ToPb()
+
+			if err != nil {
+				return err
+			}
+
+			err = nh.Nc.Publish("node."+r.ID+".not", d)
+
+			if err != nil {
+				return err
+			}
 		default:
 			log.Println("Uknown rule action: ", a.Action)
 		}
