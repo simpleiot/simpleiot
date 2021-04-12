@@ -85,10 +85,12 @@ The Simple IoT project also includes open source gateway
 
 [Detailed documentation](docs/README.md)
 
-## Example 1 (build from source)
+## Example 1
 
-This example (only tested on Linux and MacOS) shows how to run the server and
-send data to it:
+This example (build only tested on Linux and MacOS) shows how to run the server
+and send data to it:
+
+Build Simple Iot or download the latest release:
 
 - install Go v1.14 (newer versions will likely work) and node/npm (tested with
   v12 and v14)
@@ -99,6 +101,9 @@ send data to it:
   session with all the functions defined in `envsetup.sh`.)
 - `siot_setup`
 - `siot_build`
+
+Now, run the example:
+
 - in one terminal, start server: `./siot`
 - open http://localhost:8080
   - login with user `admin@admin.com` and password `admin`
@@ -110,10 +115,9 @@ send data to it:
 
 ### SIOT web interface screenshot
 
-Below is a screenshot of the siot web interface. The greyed out device is one
-that is longer communicating and is considered "offline".
+Below is a screenshot of the siot web interface with the above data.
 
-![portal](docs/portal-devices.png)
+![nodes](docs/screenshot-example1.png)
 
 ## Example 2 (send commands/files to device)
 
@@ -137,21 +141,20 @@ in the `Text` field of a `Point`.
 - `./siot -sendPointText "1234::2:osVersion`
 - `./siot -sendPointText "1234::3:appVersion`
 
-## User/Group management
+## Flexible node view
 
-Users can be added to the system. If a user and device are in the same group,
-then the user can see the device.
+Information is arranged in a flexible node/tree which allows for easy grouping
+of users, devices, and device attributes.
 
-### User page screenshot
+![nodes](docs/screenshot-nodes.png)
 
-![users](docs/portal-users.png)
+## Each nodes can be expanded to edit/view attributes
 
-### Group page screenshot
+![node-edit](docs/screenshot-node-edit.png)
 
-In the below example, Joe and Cliff will both have access to the "1234" device
-because they are all in the "Building A" group.
+## Extensive support for modbus devices
 
-![groups](docs/portal-groups.png)
+![node-modbus](docs/screenshot-modbus-io.png)
 
 ## Configuration
 
@@ -196,10 +199,11 @@ different package, or renamed -- feel free to ask if you run into problems.
 - [x] efficient protocols for cellular data connections (NATs/protobuf)
 - [x] Modbus RTU support in SIOT
 - [x] Modbus TCP support in SIOT
+- [x] Twilio SMS notifications
 - [ ] email notifications
 - [ ] COAP API for devices
 - [ ] influxdb 2.x support
-- [ ] store timeseries data in bolthold
+- [ ] store timeseries data in bolt
 - [ ] esp32 client example
 - [ ] graph timeseries data
 - [ ] WiFi management
