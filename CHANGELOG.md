@@ -11,6 +11,15 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [[0.0.24] - 2021-04-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.24)
+
+- UI
+  - display copy/move node messages for 2-3s when clicking copy/move node button
+  - support multiple top level nodes -- for instance a user that is a member of
+    multiple groups but not the root node
+  - automatically expand node children when moving/copying a node
+- Implement rule notifications
+
 ## [[0.0.23] - 2021-04-10](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.23)
 
 - Modbus: TCP listen on all interfaces instead of just localhost
