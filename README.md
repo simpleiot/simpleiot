@@ -133,9 +133,9 @@ that is longer communicating and is considered "offline".
 Hardware version information is a `Point` that encodes the version information
 in the `Text` field of a `Point`.
 
-- `./siot -sendPointText "1234::1:hwVersion"
-- `./siot -sendPointText "1234::2:osVersion"
-- `./siot -sendPointText "1234::3:appVersion"
+- `./siot -sendPointText "1234::1:hwVersion`
+- `./siot -sendPointText "1234::2:osVersion`
+- `./siot -sendPointText "1234::3:appVersion`
 
 ## User/Group management
 
