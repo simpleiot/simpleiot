@@ -11,6 +11,12 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [[0.0.25] - 2021-04-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.25)
+
+- track user parent when messaging. This eliminates duplicate messages if a user
+  is part of different groups with different messaging services -- we only want
+  to message the group the user is a part of.
+
 ## [[0.0.24] - 2021-04-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.24)
 
 - UI

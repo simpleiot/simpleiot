@@ -193,6 +193,11 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	}
 }
 
+type userMessageNode struct {
+	parentID string
+	node     data.NodeEdge
+}
+
 func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 2 {
@@ -209,7 +214,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 		return
 	}
 
-	userNodes := []data.NodeEdge{}
+	userNodes := []userMessageNode{}
 
 	var findUsers func(id string)
 
@@ -219,7 +224,10 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 			log.Println("Error find user nodes: ", err)
 			return
 		}
-		userNodes = append(userNodes, nodes...)
+
+		for _, n := range nodes {
+			userNodes = append(userNodes, userMessageNode{id, n})
+		}
 
 		// now process upstream nodes
 		upIDs, err := nh.db.EdgeUp(id)
@@ -235,10 +243,8 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 
 	findUsers(nodeID)
 
-	userNodes = data.RemoveDuplicateNodesID(userNodes)
-
 	for _, userNode := range userNodes {
-		user, err := data.NodeToUser(userNode.ToNode())
+		user, err := data.NodeToUser(userNode.node.ToNode())
 
 		if err != nil {
 			log.Println("Error converting node to user: ", err)
@@ -249,6 +255,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 			msg := data.Message{
 				ID:             uuid.New().String(),
 				UserID:         user.ID,
+				ParentID:       userNode.parentID,
 				NotificationID: nodeID,
 				Email:          user.Email,
 				Phone:          user.Phone,
@@ -293,6 +300,8 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 
 	var findSvcNodes func(string)
 
+	level := 0
+
 	findSvcNodes = func(id string) {
 		nodes, err := nh.db.NodeDescendents(id, data.NodeTypeMsgService, false)
 		if err != nil {
@@ -303,11 +312,23 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 		svcNodes = append(svcNodes, nodes...)
 
 		// now process upstream nodes
-		upIDs, err := nh.db.EdgeUp(id)
-		if err != nil {
-			log.Println("Error getting upstream nodes: ", err)
-			return
+		// if we are at the first level, only process the msg user parent, instead
+		// of all user parents. This eliminates duplicate messages when a user is a
+		// member of multiple groups which may have different notification services.
+
+		var upIDs []string
+
+		if level == 0 {
+			upIDs = []string{message.ParentID}
+		} else {
+			upIDs, err = nh.db.EdgeUp(id)
+			if err != nil {
+				log.Println("Error getting upstream nodes: ", err)
+				return
+			}
 		}
+
+		level++
 
 		for _, id := range upIDs {
 			findSvcNodes(id)

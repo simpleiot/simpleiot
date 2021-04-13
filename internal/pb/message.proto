@@ -11,4 +11,5 @@ message Message {
 	string phone = 5;
 	string subject = 6;
 	string message = 7;
+    string parentId = 8;
 }
