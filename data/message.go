@@ -9,6 +9,7 @@ import (
 type Message struct {
 	ID             string
 	UserID         string
+	ParentID       string
 	NotificationID string
 	Email          string
 	Phone          string
@@ -21,6 +22,7 @@ func (m *Message) ToPb() ([]byte, error) {
 	pbMsg := pb.Message{
 		Id:             m.ID,
 		UserId:         m.UserID,
+		ParentId:       m.ParentID,
 		NotificationId: m.NotificationID,
 		Email:          m.Email,
 		Phone:          m.Phone,
@@ -43,6 +45,7 @@ func PbDecodeMessage(data []byte) (Message, error) {
 	return Message{
 		ID:             pbMsg.Id,
 		UserID:         pbMsg.UserId,
+		ParentID:       pbMsg.ParentId,
 		NotificationID: pbMsg.NotificationId,
 		Email:          pbMsg.Email,
 		Phone:          pbMsg.Phone,
