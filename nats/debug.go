@@ -53,7 +53,7 @@ func String(nc *natsgo.Conn, msg *natsgo.Msg) (string, error) {
 		return "", fmt.Errorf("Error decoding node data from server: %w", err)
 	}
 
-	description, _ := node.Points.Text("", data.PointTypeDescription, 0)
+	description := node.Desc()
 
 	ret += fmt.Sprintf("NODE: %v (%v) (%v)\n", description, node.Type, node.ID)
 

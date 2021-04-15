@@ -547,7 +547,7 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, triggerNode
 				return err
 			}
 
-			triggerNodeDesc, _ := triggerNode.Points.Text("", data.PointTypeDescription, 0)
+			triggerNodeDesc := triggerNode.Desc()
 
 			n := data.Notification{
 				ID:         uuid.New().String(),

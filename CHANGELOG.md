@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- make description in nats logger and notification messages smarter
+
 ## [[0.0.25] - 2021-04-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.25)
 
 - track user parent when messaging. This eliminates duplicate messages if a user
