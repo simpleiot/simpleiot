@@ -33,6 +33,16 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+
+        textInputLowerCase =
+            Form.nodeTextInput
+                { onEditNodePoint =
+                    \p ->
+                        o.onEditNodePoint { p | text = String.toLower p.text }
+                , node = o.node
+                , now = o.now
+                , labelWidth = labelWidth
+                }
     in
     column
         [ width fill
@@ -51,7 +61,7 @@ view o =
             :: (if o.expDetail then
                     [ textInput Point.typeFirstName "First Name"
                     , textInput Point.typeLastName "Last Name"
-                    , textInput Point.typeEmail "Email"
+                    , textInputLowerCase Point.typeEmail "Email"
                     , textInput Point.typePhone "Phone"
                     , textInput Point.typePass "Pass"
                     ]

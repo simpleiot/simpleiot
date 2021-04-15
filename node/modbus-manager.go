@@ -50,7 +50,9 @@ func copyIos(in map[string]*ModbusIO) map[string]*ModbusIO {
 // with internal structures and updates data
 func (mm *ModbusManager) Update() error {
 	rootID := mm.db.RootNodeID()
-	nodes, err := mm.db.NodeDescendents(rootID, data.NodeTypeModbus, false)
+	// TODO this should eventually be modified to not recurse into
+	// child devices
+	nodes, err := mm.db.NodeDescendents(rootID, data.NodeTypeModbus, true)
 	if err != nil {
 		return err
 	}

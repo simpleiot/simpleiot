@@ -24,8 +24,18 @@ type Node struct {
 
 // Desc returns Description if set, otherwise ID
 func (n *Node) Desc() string {
-	desc, ok := n.Points.Text("", PointTypeDescription, 0)
-	if ok && desc != "" {
+	firstName, _ := n.Points.Text("", PointTypeFirstName, 0)
+	if firstName != "" {
+		lastName, _ := n.Points.Text("", PointTypeLastName, 0)
+		if lastName == "" {
+			return firstName
+		}
+
+		return firstName + " " + lastName
+	}
+
+	desc, _ := n.Points.Text("", PointTypeDescription, 0)
+	if desc != "" {
 		return desc
 	}
 
