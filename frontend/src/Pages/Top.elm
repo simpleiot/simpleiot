@@ -1190,15 +1190,29 @@ viewUnknown o =
     Element.text <| "unknown node type: " ++ o.node.typ
 
 
+nodeTypesThatHaveChildNodes : List String
+nodeTypesThatHaveChildNodes =
+    [ Node.typeDevice
+    , Node.typeGroup
+    , Node.typeModbus
+    , Node.typeRule
+    ]
+
+
 viewNodeOperations : NodeView -> Maybe String -> Element Msg
 viewNodeOperations node msg =
     let
         desc =
             Point.getBestDesc node.node.points
+
+        showNodeAdd =
+            List.member node.node.typ
+                nodeTypesThatHaveChildNodes
     in
     column [ spacing 6 ]
         [ row [ spacing 6 ]
-            [ Button.plusCircle (AddNode node.feID node.node.id)
+            [ viewIf showNodeAdd <|
+                Button.plusCircle (AddNode node.feID node.node.id)
             , Button.message (MsgNode node.feID node.node.id)
             , Button.x (DeleteNode node.feID node.node.id node.node.parent)
             , if node.node.parent /= "" then
@@ -1288,6 +1302,7 @@ viewAddNode parent add =
                             [ Input.option Node.typeUser nodeDescUser
                             , Input.option Node.typeGroup nodeDescGroup
                             , Input.option Node.typeRule nodeDescRule
+                            , Input.option Node.typeModbus nodeDescModbus
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeVariable nodeDescVariable
                             ]
