@@ -79,7 +79,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         EditEmail email ->
-            ( { model | email = email }, Cmd.none )
+            ( { model | email = String.toLower email }, Cmd.none )
 
         EditPass password ->
             ( { model | password = password }, Cmd.none )

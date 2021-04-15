@@ -11,7 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [[0.0.26] - 2021-04-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.26)
+
 - make description in nats logger and notification messages smarter
+- allow modbus busses to be added to groups as well as devices
+- UI:
+  - don't show node + operation for nodes that can't have child-nodes
+  - force email entry to always be lowercase
 
 ## [[0.0.25] - 2021-04-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.25)
 
