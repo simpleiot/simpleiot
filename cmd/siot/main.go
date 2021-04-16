@@ -24,6 +24,9 @@ import (
 	"github.com/simpleiot/simpleiot/system"
 
 	natsgo "github.com/nats-io/nats.go"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 var siotVersion = "Development"
@@ -89,6 +92,10 @@ func sendPoint(portal, authToken, s string) error {
 }
 
 func main() {
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 	defaultNatsServer := "nats://localhost:4222"
 
 	// =============================================
