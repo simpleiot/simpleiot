@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [[0.0.27] - 2021-04-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.27)
+
+- slow down manual scanning to reduce background CPU usage
+
 ## [[0.0.26] - 2021-04-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.26)
 
 - make description in nats logger and notification messages smarter

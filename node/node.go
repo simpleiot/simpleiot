@@ -31,13 +31,16 @@ func NewManger(db *genji.Db, nc *natsgo.Conn) *Manager {
 // Run manager
 func (m *Manager) Run() {
 	go func() {
+		// TODO: this will not scale and needs to be made event driven
+		// on the creation of new nodes
 		for {
 			m.modbusManager.Update()
-			time.Sleep(1 * time.Second)
+			time.Sleep(10 * time.Second)
 		}
 	}()
 
 	for {
+		// TODO: this will not scale and needs to be made event driven
 		nodes, err := m.db.Nodes()
 		if err != nil {
 			log.Println("Error getting nodes: ", err)
@@ -57,20 +60,8 @@ func (m *Manager) Run() {
 			}
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(30 * time.Second)
 	}
-}
-
-func uniqueUsers(users []data.User) []data.User {
-	found := make(map[string]bool)
-	ret := []data.User{}
-	for _, u := range users {
-		if _, present := found[u.ID]; !present {
-			ret = append(ret, u)
-		}
-	}
-
-	return ret
 }
 
 type nodeTemplateData struct {
