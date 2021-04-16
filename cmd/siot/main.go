@@ -26,7 +26,7 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 )
 
-var siotVersion = "Development"
+var version = "Development"
 
 func parsePointText(s string) (string, data.Point, error) {
 	frags := strings.Split(s, ":")
@@ -124,13 +124,13 @@ func main() {
 	// General Setup
 	// =============================================
 	if *flagVersion {
-		if siotVersion == "" {
-			siotVersion = "Development"
+		if version == "" {
+			version = "Development"
 		}
-		fmt.Printf("SimpleIOT %v\n", siotVersion)
+		fmt.Printf("SimpleIOT %v\n", version)
 		os.Exit(0)
 	}
-	fmt.Printf("SimpleIOT %v\n", siotVersion)
+	fmt.Printf("SimpleIOT %v\n", version)
 
 	// set up local database
 	dataDir := os.Getenv("SIOT_DATA")
