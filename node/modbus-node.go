@@ -82,8 +82,8 @@ func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 	}
 
 	ret.pollPeriod, ok = node.Points.ValueInt("", data.PointTypePollPeriod, 0)
-	if !ok {
-		return nil, errors.New("Must define modbus polling period")
+	if ret.busType == data.PointValueClient && !ok {
+		return nil, errors.New("Must define modbus polling period for client devices")
 	}
 
 	ret.debugLevel, _ = node.Points.ValueInt("", data.PointTypeDebug, 0)

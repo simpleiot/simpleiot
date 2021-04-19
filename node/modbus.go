@@ -719,7 +719,18 @@ func (b *Modbus) SetupPort() error {
 func (b *Modbus) Run() {
 
 	// if we reset any error count, we set this to avoid continually resetting
-	scanTimer := time.NewTicker(time.Millisecond * time.Duration(b.busNode.pollPeriod))
+	scanTimer := time.NewTicker(24 * time.Hour)
+
+	setScanTimer := func() {
+		if b.busNode.busType == data.PointValueClient {
+			scanTimer.Reset(time.Millisecond * time.Duration(b.busNode.pollPeriod))
+		} else {
+			scanTimer.Stop()
+		}
+	}
+
+	setScanTimer()
+
 	checkIoTimer := time.NewTicker(time.Second * 10)
 
 	if err := b.CheckIOs(); err != nil {
@@ -756,7 +767,7 @@ func (b *Modbus) Run() {
 						log.Println("Error setting up serial port: ", err)
 					}
 				case data.PointTypePollPeriod:
-					scanTimer = time.NewTicker(time.Millisecond * time.Duration(b.busNode.pollPeriod))
+					setScanTimer()
 
 				case data.PointTypeErrorCountReset:
 					if b.busNode.errorCountReset {
@@ -949,9 +960,9 @@ func (b *Modbus) Run() {
 			}
 
 		case <-scanTimer.C:
-			for _, io := range b.ios {
-				// for scanning, we only need to process client ios
-				if b.busNode.busType == data.PointValueClient {
+			if b.busNode.busType == data.PointValueClient {
+				for _, io := range b.ios {
+					// for scanning, we only need to process client ios
 					err := b.ClientIO(io)
 					if err != nil {
 						err := b.LogError(io.ioNode, err)
