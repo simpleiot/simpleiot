@@ -7,7 +7,6 @@ require (
 	github.com/benbjohnson/genesis v0.2.1
 	github.com/c-bata/go-prompt v0.2.6 // indirect
 	github.com/cavaliercoder/grab v2.0.0+incompatible
-	github.com/cbrake/influxdbhelper/v2 v2.1.4
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dgraph-io/badger/v3 v3.2011.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -25,7 +24,7 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.0
 	github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 // indirect
-	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
+	github.com/influxdata/influxdb-client-go/v2 v2.2.3
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/kevinburke/go-types v0.0.0-20200309064045-f2d4aea18a7a // indirect
 	github.com/kevinburke/go.uuid v1.2.0 // indirect
