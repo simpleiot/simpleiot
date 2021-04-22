@@ -144,4 +144,6 @@ const (
 
 	NodeTypeVariable      = "variable"
 	PointTypeVariableType = "variableType"
+
+	NodeTypeUpstream = "upstream"
 )

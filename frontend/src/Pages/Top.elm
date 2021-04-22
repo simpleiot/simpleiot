@@ -15,6 +15,7 @@ import Components.NodeMessageService as NodeMessageService
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeRule as NodeRule
+import Components.NodeUpstream as NodeUpstream
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
 import Element exposing (..)
@@ -1027,6 +1028,9 @@ shouldDisplay typ =
         "variable" ->
             True
 
+        "upstream" ->
+            True
+
         _ ->
             False
 
@@ -1065,6 +1069,9 @@ viewNode model parent node depth =
 
                 "variable" ->
                     NodeVariable.view
+
+                "upstream" ->
+                    NodeUpstream.view
 
                 _ ->
                     viewUnknown
@@ -1267,6 +1274,11 @@ nodeDescVariable =
     row [] [ Icon.variable, text "Variable" ]
 
 
+nodeDescUpstream : Element Msg
+nodeDescUpstream =
+    row [] [ Icon.uploadCloud, text "Upstream" ]
+
+
 nodeDescCondition : Element Msg
 nodeDescCondition =
     row [] [ Icon.check, text "Condition" ]
@@ -1293,6 +1305,7 @@ viewAddNode parent add =
                             , Input.option Node.typeModbus nodeDescModbus
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeVariable nodeDescVariable
+                            , Input.option Node.typeUpstream nodeDescUpstream
                             ]
 
                         else

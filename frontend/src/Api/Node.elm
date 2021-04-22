@@ -22,6 +22,7 @@ module Api.Node exposing
     , typeModbusIO
     , typeMsgService
     , typeRule
+    , typeUpstream
     , typeUser
     , typeVariable
     )
@@ -99,6 +100,11 @@ typeModbusIO =
 typeVariable : String
 typeVariable =
     "variable"
+
+
+typeUpstream : String
+typeUpstream =
+    "upstream"
 
 
 type alias Node =
