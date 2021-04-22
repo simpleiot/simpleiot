@@ -22,6 +22,7 @@ module Api.Point exposing
     , typeAppVersion
     , typeAuthToken
     , typeBaud
+    , typeBucket
     , typeClientServer
     , typeCmdPending
     , typeDataFormat
@@ -44,6 +45,7 @@ module Api.Point exposing
     , typeOSVersion
     , typeOffset
     , typeOperator
+    , typeOrg
     , typePass
     , typePhone
     , typePointID
@@ -556,6 +558,16 @@ valueText =
 typeActive : String
 typeActive =
     "active"
+
+
+typeBucket : String
+typeBucket =
+    "bucket"
+
+
+typeOrg : String
+typeOrg =
+    "org"
 
 
 

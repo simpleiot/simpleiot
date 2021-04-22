@@ -4,6 +4,7 @@ module UI.Icon exposing
     , check
     , cloud
     , cloudOff
+    , database
     , device
     , dot
     , io
@@ -144,3 +145,8 @@ send =
 uploadCloud : Element msg
 uploadCloud =
     icon FeatherIcons.uploadCloud
+
+
+database : Element msg
+database =
+    icon FeatherIcons.database

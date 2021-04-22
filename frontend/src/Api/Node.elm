@@ -16,6 +16,7 @@ module Api.Node exposing
     , sysStatePowerOff
     , typeAction
     , typeCondition
+    , typeDb
     , typeDevice
     , typeGroup
     , typeModbus
@@ -85,6 +86,11 @@ typeUser =
 typeMsgService : String
 typeMsgService =
     "msgService"
+
+
+typeDb : String
+typeDb =
+    "db"
 
 
 typeModbus : String

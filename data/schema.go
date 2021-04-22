@@ -92,6 +92,11 @@ const (
 	// or generally to add structure to the node graph.
 	NodeTypeGroup = "group"
 
+	NodeTypeDb = "db"
+
+	PointTypeBucket = "bucket"
+	PointTypeOrg    = "org"
+
 	// a rule node describes a rule that may run on the system
 	NodeTypeRule = "rule"
 

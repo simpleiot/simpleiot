@@ -156,6 +156,7 @@ func (b *Modbus) CheckIOs() error {
 func (b *Modbus) SendPoint(nodeID, pointType string, value float64) error {
 	// send the point
 	p := data.Point{
+		Time:  time.Now(),
 		Type:  pointType,
 		Value: value,
 	}
@@ -296,6 +297,7 @@ func (b *Modbus) ReadBusReg(io *ModbusIO) error {
 		if err != nil {
 			return err
 		}
+		io.lastSent = time.Now()
 	}
 
 	return nil
