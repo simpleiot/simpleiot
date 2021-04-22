@@ -11,7 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
-- don't require poll period to be set for modbus server
+- modbus: don't require poll period to be set for modbus server
+- modbus: fix issue with reg values being sent every poll period, even if not
+  changing
+- modbus: add timestamp to points being sent out
+- support storing data in Influxdb 2.0
 
 ## [[0.0.27] - 2021-04-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.27)
 

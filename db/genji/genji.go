@@ -18,7 +18,6 @@ import (
 	"github.com/genjidb/genji/engine/badgerengine"
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -44,13 +43,12 @@ type Meta struct {
 // We will eventually turn this into an interface to
 // handle multiple Db backends.
 type Db struct {
-	store  *genji.DB
-	influx *db.Influx
-	meta   Meta
+	store *genji.DB
+	meta  Meta
 }
 
 // NewDb creates a new Db instance for the app
-func NewDb(storeType StoreType, dataDir string, influx *db.Influx) (*Db, error) {
+func NewDb(storeType StoreType, dataDir string) (*Db, error) {
 
 	var store *genji.DB
 	var err error
@@ -114,7 +112,7 @@ func NewDb(storeType StoreType, dataDir string, influx *db.Influx) (*Db, error) 
 		return nil, fmt.Errorf("Error creating idx_edge_down: %w", err)
 	}
 
-	db := &Db{store: store, influx: influx}
+	db := &Db{store: store}
 	return db, db.initialize()
 }
 
@@ -384,16 +382,6 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 
 	if point.Time.IsZero() {
 		point.Time = time.Now()
-	}
-
-	if gen.influx != nil {
-		points := []db.InfluxPoint{
-			db.PointToInfluxPoint(id, point),
-		}
-		err := gen.influx.WritePoints(points)
-		if err != nil {
-			log.Println("Error writing points to influx: ", err)
-		}
 	}
 
 	return gen.store.Update(func(tx *genji.Tx) error {

@@ -49,6 +49,9 @@ view o =
             :: (if o.expDetail then
                     [ text "InfluxDb 2.0 Database"
                     , textInput Point.typeDescription "Description"
+                    , textInput Point.typeURI "URL"
+                    , textInput Point.typeOrg "Organization"
+                    , textInput Point.typeBucket "Bucket"
                     , textInput Point.typeAuthToken "Auth Token"
                     ]
 

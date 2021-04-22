@@ -14,7 +14,6 @@ import (
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
@@ -350,7 +349,7 @@ func main() {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, nil)
+		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -376,7 +375,7 @@ func main() {
 	}
 
 	if *flagImportDb {
-		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, nil)
+		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -404,24 +403,7 @@ func main() {
 	// =============================================
 	// Start server, default action
 	// =============================================
-
-	// set up influxdb support if configured
-	influxURL := os.Getenv("SIOT_INFLUX_URL")
-	influxUser := os.Getenv("SIOT_INFLUX_USER")
-	influxPass := os.Getenv("SIOT_INFLUX_PASS")
-	influxDb := os.Getenv("SIOT_INFLUX_DB")
-
-	var influx *db.Influx
-
-	if influxURL != "" {
-		var err error
-		influx, err = db.NewInflux(influxURL, influxDb, influxUser, influxPass)
-		if err != nil {
-			log.Fatal("Error connecting to influxdb: ", err)
-		}
-	}
-
-	dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir, influx)
+	dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)
