@@ -13,6 +13,7 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
@@ -143,6 +144,9 @@ func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
 		return
 	}
 
+	node, err := nh.db.Node(nodeID)
+	desc := node.Desc()
+
 	for _, p := range points {
 		err = nh.db.NodePoint(nodeID, p)
 		if err != nil {
@@ -153,7 +157,7 @@ func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
 			return
 		}
 
-		err = nh.processPoint(nodeID, nodeID, p)
+		err = nh.processPoint(nodeID, nodeID, desc, p)
 		if err != nil {
 			// TODO track error stats
 			log.Println("Error processing point in upstream nodes: ", err)
@@ -376,7 +380,7 @@ func (nh *NatsHandler) reply(subject string, err error) {
 	nh.Nc.Publish(subject, []byte(reply))
 }
 
-func (nh *NatsHandler) processPoint(currentNodeID, nodeID string, p data.Point) error {
+func (nh *NatsHandler) processPoint(currentNodeID, nodeID, nodeDesc string, p data.Point) error {
 	// get children and process any rules
 	ruleNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeRule, false)
 	if err != nil {
@@ -414,6 +418,27 @@ func (nh *NatsHandler) processPoint(currentNodeID, nodeID string, p data.Point) 
 		}
 	}
 
+	// get database nodes
+	dbNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeDb, false)
+
+	for _, dbNode := range dbNodes {
+
+		influxConfig, err := db.NodeToInfluxConfig(dbNode)
+
+		if err != nil {
+			log.Println("Error with influxdb node: ", err)
+			continue
+		}
+
+		idb := db.NewInflux(influxConfig)
+
+		err = idb.WritePoint(nodeID, nodeDesc, p)
+
+		if err != nil {
+			log.Println("Error writing point to influx: ", err)
+		}
+	}
+
 	upIDs, err := nh.db.EdgeUp(currentNodeID)
 	if err != nil {
 		return err
@@ -421,7 +446,7 @@ func (nh *NatsHandler) processPoint(currentNodeID, nodeID string, p data.Point) 
 
 	for _, id := range upIDs {
 
-		err = nh.processPoint(id, nodeID, p)
+		err = nh.processPoint(id, nodeID, nodeDesc, p)
 		if err != nil {
 			log.Println("Rules -- error processing upstream node: ", err)
 		}

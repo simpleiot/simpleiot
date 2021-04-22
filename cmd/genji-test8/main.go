@@ -15,7 +15,7 @@ type Test struct {
 }
 
 func main() {
-	dbInst, err := genji.NewDb("bolt", "./", nil)
+	dbInst, err := genji.NewDb("bolt", "./")
 	if err != nil {
 		log.Fatal("Error opening db: ", err)
 	}

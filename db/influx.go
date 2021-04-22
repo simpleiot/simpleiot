@@ -1,91 +1,90 @@
 package db
 
 import (
-	"time"
+	"context"
+	"errors"
+	"strconv"
 
-	"github.com/cbrake/influxdbhelper/v2"
-	client "github.com/influxdata/influxdb1-client/v2"
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	api "github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// InfluxPoint represents a point that is written into influxdb
-type InfluxPoint struct {
-	// Type of point (voltage, current, key, etc)
-	Type string `influx:"type,tag"`
-
-	// ID of the sensor that provided the point
-	ID string `influx:"id,tag"`
-
-	// DeviceID of the ID of the device that provided the point
-	DeviceID string `influx:"deviceId,tag"`
-
-	// Average OR
-	// Instantaneous analog or digital value of the point.
-	// 0 and 1 are used to represent digital values
-	Value float64 `influx:"value"`
-
-	// statistical values that may be calculated
-	Min float64 `influx:"min"`
-	Max float64 `influx:"max"`
-
-	// Time the point was taken
-	Time time.Time `influx:"time"`
-
-	// Duration over which the point was taken
-	Duration time.Duration `influx:"duration"`
+// InfluxConfig represents an influxdb config
+type InfluxConfig struct {
+	URL    string
+	Token  string
+	Org    string
+	Bucket string
 }
 
-// PointToInfluxPoint converts a point to influx point
-func PointToInfluxPoint(deviceID string, p data.Point) InfluxPoint {
-	return InfluxPoint{
-		Type:     p.Type,
-		ID:       p.ID,
-		DeviceID: deviceID,
-		Value:    p.Value,
-		Min:      p.Min,
-		Max:      p.Max,
-		Time:     p.Time,
-		Duration: p.Duration,
+// NodeToInfluxConfig converts a node to an influx config
+func NodeToInfluxConfig(node data.NodeEdge) (*InfluxConfig, error) {
+	ret := &InfluxConfig{}
+	var ok bool
+	ret.Token, ok = node.Points.Text("", data.PointTypeAuthToken, 0)
+	if !ok || ret.Token == "" {
+		return ret, errors.New("Auth token must be set for InfluxDb")
 	}
+
+	ret.URL, ok = node.Points.Text("", data.PointTypeURI, 0)
+	if !ok || ret.URL == "" {
+		return ret, errors.New("URL must be set for InfluxDb")
+	}
+
+	ret.Bucket, ok = node.Points.Text("", data.PointTypeBucket, 0)
+	if !ok || ret.Bucket == "" {
+		return ret, errors.New("Bucket must be set for InfluxDb")
+	}
+
+	ret.Org, ok = node.Points.Text("", data.PointTypeOrg, 0)
+	if !ok || ret.Org == "" {
+		return ret, errors.New("Org must be set for InfluxDb")
+	}
+
+	return ret, nil
 }
 
 // Influx represents and influxdb that we can write points to
 type Influx struct {
-	client influxdbhelper.Client
+	client   influxdb2.Client
+	writeAPI api.WriteAPIBlocking
+	queryAPI api.QueryAPI
 }
 
 // NewInflux creates an influx helper client
-func NewInflux(url, dbName, user, password string) (*Influx, error) {
-	c, err := influxdbhelper.NewClient(url, user, password, "ns")
-	if err != nil {
-		return nil, err
-	}
-
-	c = c.UseDB(dbName)
-
-	// Create test database if it doesn't already exist
-	q := client.NewQuery("CREATE DATABASE "+dbName, "", "")
-	res, err := c.Query(q)
-	if err != nil {
-		return nil, err
-	}
-	if res.Error() != nil {
-		return nil, res.Error()
-	}
+func NewInflux(config *InfluxConfig) *Influx {
+	client := influxdb2.NewClient(config.URL, config.Token)
+	writeAPI := client.WriteAPIBlocking(config.Org, config.Bucket)
+	queryAPI := client.QueryAPI(config.Org)
 
 	return &Influx{
-		client: c,
-	}, nil
+		client:   client,
+		writeAPI: writeAPI,
+		queryAPI: queryAPI,
+	}
 }
 
-// WritePoints to influxdb
-func (i *Influx) WritePoints(points []InfluxPoint) error {
-	for _, s := range points {
-		err := i.client.UseMeasurement("points").WritePoint(s)
-		if err != nil {
-			return err
-		}
+// WritePoint to influxdb
+func (i *Influx) WritePoint(nodeID, nodeDesc string, point data.Point) error {
+	p := influxdb2.NewPoint("points",
+		map[string]string{
+			"nodeID":   nodeID,
+			"nodeDesc": nodeDesc,
+			"id":       point.ID,
+			"type":     point.Type,
+			"index":    strconv.Itoa(point.Index),
+		},
+		map[string]interface{}{
+			"value":    point.Value,
+			"text":     point.Text,
+			"duration": point.Duration.Milliseconds(),
+		},
+		point.Time)
+	err := i.writeAPI.WritePoint(context.Background(), p)
+	if err != nil {
+		return err
 	}
-
+	i.client.Close()
 	return nil
 }

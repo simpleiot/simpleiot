@@ -4,6 +4,7 @@ module UI.Icon exposing
     , check
     , cloud
     , cloudOff
+    , database
     , device
     , dot
     , io
@@ -138,3 +139,8 @@ trendingUp =
 send : Element msg
 send =
     icon FeatherIcons.send
+
+
+database : Element msg
+database =
+    icon FeatherIcons.database

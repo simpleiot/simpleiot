@@ -9,6 +9,7 @@ import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
 import Components.NodeAction as NodeAction
 import Components.NodeCondition as NodeCondition
+import Components.NodeDb as NodeDb
 import Components.NodeDevice as NodeDevice
 import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
@@ -1027,6 +1028,9 @@ shouldDisplay typ =
         "variable" ->
             True
 
+        "db" ->
+            True
+
         _ ->
             False
 
@@ -1065,6 +1069,9 @@ viewNode model parent node depth =
 
                 "variable" ->
                     NodeVariable.view
+
+                "db" ->
+                    NodeDb.view
 
                 _ ->
                     viewUnknown
@@ -1262,6 +1269,11 @@ nodeDescMsgService =
     row [] [ Icon.send, text "Messaging Service" ]
 
 
+nodeDescDb : Element Msg
+nodeDescDb =
+    row [] [ Icon.database, text "Database" ]
+
+
 nodeDescVariable : Element Msg
 nodeDescVariable =
     row [] [ Icon.variable, text "Variable" ]
@@ -1292,6 +1304,7 @@ viewAddNode parent add =
                             , Input.option Node.typeRule nodeDescRule
                             , Input.option Node.typeModbus nodeDescModbus
                             , Input.option Node.typeMsgService nodeDescMsgService
+                            , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
                             ]
 
@@ -1304,6 +1317,7 @@ viewAddNode parent add =
                             , Input.option Node.typeRule nodeDescRule
                             , Input.option Node.typeModbus nodeDescModbus
                             , Input.option Node.typeMsgService nodeDescMsgService
+                            , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
                             ]
 
