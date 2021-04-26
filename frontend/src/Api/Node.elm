@@ -7,8 +7,8 @@ module Api.Node exposing
     , getCmd
     , insert
     , list
-    , message
     , move
+    , notify
     , postCmd
     , postPoints
     , sysStateOffline
@@ -145,6 +145,15 @@ type alias NodeDelete =
     }
 
 
+type alias Notification =
+    { id : String
+    , parent : String
+    , sourceNode : String
+    , subject : String
+    , message : String
+    }
+
+
 decodeList : Decode.Decoder (List Node)
 decodeList =
     Decode.list decode
@@ -181,6 +190,17 @@ encodeNodeCmd cmd =
     Encode.object
         [ ( "cmd", Encode.string cmd.cmd )
         , ( "detail", Encode.string cmd.detail )
+        ]
+
+
+encodeNotification : Notification -> Encode.Value
+encodeNotification not =
+    Encode.object
+        [ ( "id", Encode.string not.id )
+        , ( "parent", Encode.string not.parent )
+        , ( "sourceNode", Encode.string not.sourceNode )
+        , ( "subject", Encode.string not.subject )
+        , ( "message", Encode.string not.message )
         ]
 
 
@@ -346,24 +366,19 @@ postPoints options =
         }
 
 
-message :
+notify :
     { token : String
-    , id : String
-    , message : String
+    , not : Notification
     , onResponse : Data Response -> msg
     }
     -> Cmd msg
-message options =
-    let
-        emptyPoint =
-            Point.empty
-    in
+notify options =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "msg" ] []
+        , url = Url.Builder.absolute [ "v1", "nodes", options.not.sourceNode, "not" ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
-        , body = { emptyPoint | text = options.message } |> Point.encode |> Http.jsonBody
+        , body = options.not |> encodeNotification |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }

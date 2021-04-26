@@ -8,4 +8,5 @@ message Notification {
     string sourceNode = 2;
     string subject = 3;
     string msg = 4;
+    string parent = 5;
 }

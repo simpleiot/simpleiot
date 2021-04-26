@@ -7,16 +7,18 @@ import (
 
 // Notification represents a message sent by a node
 type Notification struct {
-	ID         string
-	SourceNode string
-	Subject    string
-	Message    string
+	ID         string `json:"id"`
+	Parent     string `json:"parent"`
+	SourceNode string `json:"sourceNode"`
+	Subject    string `json:"subject"`
+	Message    string `json:"message"`
 }
 
 // ToPb converts to protobuf data
 func (n *Notification) ToPb() ([]byte, error) {
 	pbNot := pb.Notification{
 		Id:         n.ID,
+		Parent:     n.Parent,
 		SourceNode: n.SourceNode,
 		Subject:    n.Subject,
 		Msg:        n.Message,
@@ -36,6 +38,7 @@ func PbDecodeNotification(data []byte) (Notification, error) {
 
 	return Notification{
 		ID:         pbNot.Id,
+		Parent:     pbNot.Parent,
 		SourceNode: pbNot.SourceNode,
 		Subject:    pbNot.Subject,
 		Message:    pbNot.Msg,

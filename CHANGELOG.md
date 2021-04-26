@@ -11,6 +11,12 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- fix using SIOT_AUTH_TOKEN for -logNats command line option
+
+## [[0.0.29] - 2021-04-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.29)
+
+- fix sending notifications to a single user through UI
+
 ## [[0.0.28] - 2021-04-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.28)
 
 - modbus: don't require poll period to be set for modbus server
