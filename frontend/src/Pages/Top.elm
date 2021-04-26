@@ -122,6 +122,7 @@ type alias NodeToAdd =
 type alias NodeMessage =
     { feID : Int
     , id : String
+    , parent : String
     , message : String
     }
 
@@ -177,7 +178,7 @@ type Msg
     | DiscardNodeOp
     | DiscardEdits
     | AddNode Int String
-    | MsgNode Int String
+    | MsgNode Int String String
     | PasteNode Int String
     | DeleteNode Int String String
     | UpdateMsg String
@@ -187,14 +188,14 @@ type Msg
     | ApiPostAddNode Int
     | ApiPostMoveNode Int String String String
     | ApiPutCopyNode Int String String
-    | ApiPostMsgNode
+    | ApiPostNotificationNode
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
     | ApiRespPostAddNode Int (Data Response)
     | ApiRespPostMoveNode Int (Data Response)
     | ApiRespPutCopyNode Int (Data Response)
-    | ApiRespPostMsgNode (Data Response)
+    | ApiRespPostNotificationNode (Data Response)
     | CopyNode Int String String
     | MoveNode Int String String String
 
@@ -293,12 +294,13 @@ update msg model =
             , Cmd.none
             )
 
-        MsgNode feID id ->
+        MsgNode feID id parent ->
             ( { model
                 | nodeOp =
                     OpNodeMessage
                         { id = id
                         , feID = feID
+                        , parent = parent
                         , message = ""
                         }
               }
@@ -378,15 +380,20 @@ update msg model =
                 }
             )
 
-        ApiPostMsgNode ->
+        ApiPostNotificationNode ->
             ( model
             , case model.nodeOp of
                 OpNodeMessage msgNode ->
-                    Node.message
+                    Node.notify
                         { token = model.auth.token
-                        , id = msgNode.id
-                        , message = msgNode.message
-                        , onResponse = ApiRespPostMsgNode
+                        , not =
+                            { id = ""
+                            , parent = msgNode.parent
+                            , sourceNode = msgNode.id
+                            , subject = ""
+                            , message = msgNode.message
+                            }
+                        , onResponse = ApiRespPostNotificationNode
                         }
 
                 _ ->
@@ -566,7 +573,7 @@ update msg model =
                     , updateNodes model
                     )
 
-        ApiRespPostMsgNode resp ->
+        ApiRespPostNotificationNode resp ->
             case resp of
                 Data.Success _ ->
                     ( { model | nodeOp = OpNone }
@@ -1220,7 +1227,7 @@ viewNodeOperations node msg =
         [ row [ spacing 6 ]
             [ viewIf showNodeAdd <|
                 Button.plusCircle (AddNode node.feID node.node.id)
-            , Button.message (MsgNode node.feID node.node.id)
+            , Button.message (MsgNode node.feID node.node.id node.node.parent)
             , Button.x (DeleteNode node.feID node.node.id node.node.parent)
             , if node.node.parent /= "" then
                 Button.move (MoveNode node.feID node.node.id node.node.parent desc)
@@ -1375,7 +1382,7 @@ viewMsgNode msg =
                 [ Form.button
                     { label = "send now"
                     , color = Style.colors.blue
-                    , onPress = ApiPostMsgNode
+                    , onPress = ApiPostNotificationNode
                     }
                 , Form.button
                     { label = "cancel"

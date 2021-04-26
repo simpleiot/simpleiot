@@ -7,11 +7,11 @@ import (
 
 // Notification represents a message sent by a node
 type Notification struct {
-	ID         string
-	Parent     string
-	SourceNode string
-	Subject    string
-	Message    string
+	ID         string `json:"id"`
+	Parent     string `json:"parent"`
+	SourceNode string `json:"sourceNode"`
+	Subject    string `json:"subject"`
+	Message    string `json:"message"`
 }
 
 // ToPb converts to protobuf data

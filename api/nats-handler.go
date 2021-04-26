@@ -240,7 +240,20 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 		}
 	}
 
-	findUsers(nodeID)
+	node, err := nh.db.Node(nodeID)
+
+	if err != nil {
+		log.Println("Error getting node: ", nodeID)
+		return
+	}
+
+	if node.Type == data.NodeTypeUser {
+		// if we notify a user node, we only want to message this node, and not walk up the tree
+		nodeEdge := node.ToNodeEdge(not.Parent)
+		userNodes = append(userNodes, nodeEdge)
+	} else {
+		findUsers(nodeID)
+	}
 
 	for _, userNode := range userNodes {
 		user, err := data.NodeToUser(userNode.ToNode())

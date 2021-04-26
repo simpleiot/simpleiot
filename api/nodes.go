@@ -172,21 +172,16 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 		}
 
-	case "msg":
+	case "not":
 		switch req.Method {
 		case http.MethodPost:
-			var point data.Point
-			if err := decode(req.Body, &point); err != nil {
+			var not data.Notification
+			if err := decode(req.Body, &not); err != nil {
 				http.Error(res, err.Error(), http.StatusBadRequest)
 				return
 			}
 
-			// FIXME send notification over NATS
-			not := data.Notification{
-				ID:         uuid.New().String(),
-				SourceNode: id,
-				Message:    point.Text,
-			}
+			not.ID = uuid.New().String()
 
 			d, err := not.ToPb()
 
