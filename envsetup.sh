@@ -101,7 +101,7 @@ siot_build() {
   if [ "${GOOS}" = "windows" ]; then
     BINARY_NAME=siot.exe
   fi
-  CGO_ENABLED=0 go build -ldflags="-X main.siotVersion=$(git describe --tags HEAD)" -o $BINARY_NAME cmd/siot/main.go || return 1
+  CGO_ENABLED=0 go build -ldflags="-s -w -X main.siotVersion=$(git describe --tags HEAD)" -o $BINARY_NAME cmd/siot/main.go || return 1
   return 0
 }
 
