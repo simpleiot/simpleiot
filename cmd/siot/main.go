@@ -200,6 +200,7 @@ func main() {
 
 	authToken := os.Getenv("SIOT_AUTH_TOKEN")
 	if *flagAuthToken != "" {
+		fmt.Println("CLIFF: setting authToken to SIOT_AUTH_TOKEN")
 		authToken = *flagAuthToken
 	}
 
@@ -220,7 +221,7 @@ func main() {
 
 		opts := nats.EdgeOptions{
 			Server:    natsServer,
-			AuthToken: *flagAuthToken,
+			AuthToken: authToken,
 			Disconnected: func() {
 				log.Println("NATS Disconnected")
 			},
