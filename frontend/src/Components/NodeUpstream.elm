@@ -45,7 +45,8 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
-                    , textInput Point.typeURI "NATS URI"
+                    , textInput Point.typeURI "URI"
+                    , textInput Point.typeAuthToken "Auth Token"
                     ]
 
                 else
