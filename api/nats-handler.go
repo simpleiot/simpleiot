@@ -197,11 +197,6 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	}
 }
 
-type userMessageNode struct {
-	parentID string
-	node     data.NodeEdge
-}
-
 func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 2 {
@@ -218,7 +213,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 		return
 	}
 
-	userNodes := []userMessageNode{}
+	userNodes := []data.NodeEdge{}
 
 	var findUsers func(id string)
 
@@ -230,7 +225,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 		}
 
 		for _, n := range nodes {
-			userNodes = append(userNodes, userMessageNode{id, n})
+			userNodes = append(userNodes, n)
 		}
 
 		// now process upstream nodes
@@ -248,7 +243,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 	findUsers(nodeID)
 
 	for _, userNode := range userNodes {
-		user, err := data.NodeToUser(userNode.node.ToNode())
+		user, err := data.NodeToUser(userNode.ToNode())
 
 		if err != nil {
 			log.Println("Error converting node to user: ", err)
@@ -259,7 +254,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 			msg := data.Message{
 				ID:             uuid.New().String(),
 				UserID:         user.ID,
-				ParentID:       userNode.parentID,
+				ParentID:       userNode.Parent,
 				NotificationID: nodeID,
 				Email:          user.Email,
 				Phone:          user.Phone,
