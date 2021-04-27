@@ -113,10 +113,7 @@ logic that operate off data from child nodes. In this case, the virtual parent
 nodes might be a town or city, service provider, etc., and the child nodes are
 physical edge nodes collecting data, users, etc.
 
-The following diagram illustrates how nodes might be arranged in a typical
-system.
-
-![node diagram](nodes2.png)
+## Node Tree
 
 The same Simple IoT application can run in both the cloud and device instances.
 The node tree in a device would then become a subset of the nodes in the cloud
@@ -124,6 +121,11 @@ instance. Changes can be made to nodes in either the cloud or device and data is
 sycnronized in both directions.
 
 ![cloud device node tree](cloud-device-node-tree.png)
+
+The following diagram illustrates how nodes might be arranged in a typical
+system.
+
+![node diagram](nodes2.png)
 
 A few notes this structure of data:
 
