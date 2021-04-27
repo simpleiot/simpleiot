@@ -118,7 +118,13 @@ system.
 
 ![node diagram](nodes2.png)
 
-A few notes about the above diagram:
+The same Simple IoT application can run in both the cloud and device instances.
+The node tree in a device would then become a subset of the nodes in the cloud
+instance.
+
+![cloud device node tree](cloud-device-node-tree.png)
+
+A few notes this structure of data:
 
 - For authentication, a user has access to its parent nodes and its descendants.
 - Likewise, a rule node has access to points from its parent node and
