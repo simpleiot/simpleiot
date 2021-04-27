@@ -71,7 +71,7 @@ support new sensors and applications.
 ![Constant vs Varying parts of System](constant-vs-varying-system-parts.png)
 
 The core data structures are currently defined in the [`data`](../data)
-directory for Go code, and [`frontend/src/Data`](../frontend/src/Data) directory
+directory for Go code, and [`frontend/src/Data`](../frontend/src/Api) directory
 for Elm code. The fundamental data structures for the system are
 [`Nodes`](../data/node.go), [`Points`](../data/point.go), and
 [`Edges`](../data/edge.go). A `Node` can have one or more `Points`. A `Point`
@@ -120,15 +120,17 @@ system.
 
 The same Simple IoT application can run in both the cloud and device instances.
 The node tree in a device would then become a subset of the nodes in the cloud
-instance.
+instance. Changes can be made to nodes in either the cloud or device and data is
+sycnronized in both directions.
 
 ![cloud device node tree](cloud-device-node-tree.png)
 
 A few notes this structure of data:
 
-- For authentication, a user has access to its parent nodes and its descendants.
-- Likewise, a rule node has access to points from its parent node and
-  descendants.
+- A user has access to its child nodes, parent nodes, and parent node
+  descendants (parents, children, siblings, nieces/nephews).
+- Likewise, a rule node processes points from nodes using the same relationships
+  described above.
 - A user can be added to any node. This allows permissions to be granted at any
   level in the system.
 - A user can be added to multiple nodes.
@@ -140,9 +142,6 @@ A few notes this structure of data:
   This allows us to only write this rule once to cover many devices.
 - When a rule triggers a notification, the rule node and any upstream nodes can
   optionally notify its users.
-  - Notifications are configured by node points (notify all node users, sequence
-    notifications, etc).
-  - TODO: how to configure sequencing of notifications.
 
 The distributed parts of the system include the following instances:
 
@@ -152,9 +151,7 @@ The distributed parts of the system include the following instances:
   bandwidth cellular data). Edge instances would would store and synchronize the
   edge node instance and descendants (ex Edge Device 1)
 - **Web UI** (potentially dozens of instances connected via higher bandwidth
-  browser connection). The web UI would have access to any nodes that are
-  parents to the user who is logged in. Data for nodes that are currently
-  displayed would be synchronized.
+  browser connection).
 
 As this is a distributed system where nodes may be created on any number of
 connected systems, node IDs need to be unique. A unique serial number or UUID is
