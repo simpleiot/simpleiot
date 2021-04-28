@@ -33,7 +33,7 @@ func String(nc *natsgo.Conn, msg *natsgo.Msg) (string, error) {
 	nodeID := chunks[1]
 
 	if len(chunks) < 3 {
-		return "", errors.New("don't know how to decode this msg")
+		return "", fmt.Errorf("don't know how to decode this subject: %v", msg.Subject)
 	}
 
 	if chunks[0] != "node" {

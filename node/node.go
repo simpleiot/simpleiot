@@ -14,17 +14,19 @@ import (
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
-	db            *genji.Db
-	modbusManager *ModbusManager
-	nc            *natsgo.Conn
+	db              *genji.Db
+	nc              *natsgo.Conn
+	modbusManager   *ModbusManager
+	upstreamManager *UpstreamManager
 }
 
 // NewManger creates a new Manager
 func NewManger(db *genji.Db, nc *natsgo.Conn) *Manager {
 	return &Manager{
-		db:            db,
-		modbusManager: NewModbusManager(db, nc),
-		nc:            nc,
+		db:              db,
+		nc:              nc,
+		modbusManager:   NewModbusManager(db, nc),
+		upstreamManager: NewUpstreamManager(db, nc),
 	}
 }
 
@@ -35,6 +37,7 @@ func (m *Manager) Run() {
 		// on the creation of new nodes
 		for {
 			m.modbusManager.Update()
+			m.upstreamManager.Update()
 			time.Sleep(10 * time.Second)
 		}
 	}()
