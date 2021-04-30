@@ -2,7 +2,7 @@
 
 ![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=master)
 ![code stats](https://tokei.rs/b1/github/simpleiot/simpleiot?category=code)
-![report](https://goreportcard.com/badge/github.com/simpleiot/simpleiot)
+[![Go Report Card](https://goreportcard.com/badge/github.com/simpleiot/simpleiot)](https://goreportcard.com/report/github.com/simpleiot/simpleiot)
 [![Slack Widget](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=red)](http://gophers.slack.com/messages/simpleiot)
 
 Simple IoT is collection of building blocks to help you build custom IoT systems
