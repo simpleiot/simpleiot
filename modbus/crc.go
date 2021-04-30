@@ -39,7 +39,7 @@ func CheckRtuCrc(packet []byte) error {
 
 	crcCalc := RtuCrc(packet[:len(packet)-2])
 
-	crcPacket := binary.BigEndian.Uint16(packet[len(packet)-2 : len(packet)])
+	crcPacket := binary.BigEndian.Uint16(packet[len(packet)-2:])
 	if crcCalc != crcPacket {
 		return ErrCRC
 	}
