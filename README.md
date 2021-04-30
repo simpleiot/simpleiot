@@ -1,5 +1,6 @@
 <img src="docs/simple-iot-logo.png?raw=true" width="150">
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/simpleiot/simpleiot.svg)](https://pkg.go.dev/github.com/simpleiot/simpleiot)
 ![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=master)
 ![code stats](https://tokei.rs/b1/github/simpleiot/simpleiot?category=code)
 [![Go Report Card](https://goreportcard.com/badge/github.com/simpleiot/simpleiot)](https://goreportcard.com/report/github.com/simpleiot/simpleiot)
