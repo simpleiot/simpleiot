@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/db"
 )
 
@@ -82,7 +83,7 @@ type ServerArgs struct {
 	Debug      bool
 	JwtAuth    Authorizer
 	AuthToken  string
-	NH         *NatsHandler
+	Nc         *nats.Conn
 }
 
 // Server starts a API server instance

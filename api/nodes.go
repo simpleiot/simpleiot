@@ -8,6 +8,8 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
+
+	natsgo "github.com/nats-io/nats.go"
 )
 
 // NodeMove is a data structure used in the /node/:id/parents api call
@@ -32,14 +34,14 @@ type NodeDelete struct {
 type Nodes struct {
 	db        *db.Db
 	check     RequestValidator
-	nh        *NatsHandler
+	nc        *natsgo.Conn
 	authToken string
 }
 
 // NewNodesHandler returns a new node handler
 func NewNodesHandler(db *db.Db, v RequestValidator, authToken string,
-	nh *NatsHandler) http.Handler {
-	return &Nodes{db, v, nh, authToken}
+	nc *natsgo.Conn) http.Handler {
+	return &Nodes{db, v, nc, authToken}
 }
 
 // Top level handler for http requests in the coap-server process
@@ -190,7 +192,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err = h.nh.Nc.Publish("node."+id+".not", d)
+			err = h.nc.Publish("node."+id+".not", d)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusBadRequest)
@@ -236,7 +238,7 @@ func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id str
 		return
 	}
 
-	err = nats.SendPoints(h.nh.Nc, id, points, true)
+	err = nats.SendPoints(h.nc, id, points, true)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)

@@ -1,4 +1,4 @@
-package api
+package db
 
 import (
 	"errors"
@@ -11,9 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
-
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
 )
@@ -22,14 +20,14 @@ import (
 type NatsHandler struct {
 	server    string
 	Nc        *natsgo.Conn
-	db        *db.Db
+	db        *Db
 	authToken string
 	lock      sync.Mutex
 	updates   map[string]time.Time
 }
 
 // NewNatsHandler creates a new NATS client for handling SIOT requests
-func NewNatsHandler(db *db.Db, authToken, server string) *NatsHandler {
+func NewNatsHandler(db *Db, authToken, server string) *NatsHandler {
 	log.Println("NATS handler connecting to: ", server)
 	return &NatsHandler{
 		db:        db,
@@ -436,14 +434,14 @@ func (nh *NatsHandler) processPoint(currentNodeID, nodeID, nodeDesc string, p da
 
 	for _, dbNode := range dbNodes {
 
-		influxConfig, err := db.NodeToInfluxConfig(dbNode)
+		influxConfig, err := NodeToInfluxConfig(dbNode)
 
 		if err != nil {
 			log.Println("Error with influxdb node: ", err)
 			continue
 		}
 
-		idb := db.NewInflux(influxConfig)
+		idb := NewInflux(influxConfig)
 
 		err = idb.WritePoint(nodeID, nodeDesc, p)
 

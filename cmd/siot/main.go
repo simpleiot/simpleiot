@@ -240,7 +240,7 @@ func main() {
 	}
 
 	if *flagSendFile != "" {
-		err = api.NatsSendFileFromHTTP(nc, *flagID, *flagSendFile, func(percDone int) {
+		err = db.NatsSendFileFromHTTP(nc, *flagID, *flagSendFile, func(percDone int) {
 			log.Println("% done: ", percDone)
 		})
 
@@ -430,7 +430,7 @@ func main() {
 			natsTLSCert, natsTLSKey, natsTLSTimeout)
 	}
 
-	natsHandler := api.NewNatsHandler(dbInst, authToken, natsServer)
+	natsHandler := db.NewNatsHandler(dbInst, authToken, natsServer)
 
 	// this is a bit of a hack, but we're not sure when the NATS
 	// server will be started, so try several times
@@ -461,7 +461,7 @@ func main() {
 		Debug:      *flagDebugHTTP,
 		JwtAuth:    auth,
 		AuthToken:  authToken,
-		NH:         natsHandler,
+		Nc:         nc,
 	})
 
 	if err != nil {
