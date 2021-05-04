@@ -1,4 +1,4 @@
-package genji
+package db
 
 import (
 	"testing"

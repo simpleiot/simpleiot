@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
 )
 
@@ -30,14 +30,14 @@ type NodeDelete struct {
 
 // Nodes handles node requests
 type Nodes struct {
-	db        *genji.Db
+	db        *db.Db
 	check     RequestValidator
 	nh        *NatsHandler
 	authToken string
 }
 
 // NewNodesHandler returns a new node handler
-func NewNodesHandler(db *genji.Db, v RequestValidator, authToken string,
+func NewNodesHandler(db *db.Db, v RequestValidator, authToken string,
 	nh *NatsHandler) http.Handler {
 	return &Nodes{db, v, nh, authToken}
 }

@@ -10,7 +10,7 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/modbus"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/respreader"
@@ -35,7 +35,7 @@ type Modbus struct {
 	ios     map[string]*ModbusIO
 
 	// data associated with running the bus
-	db           *genji.Db
+	db           *db.Db
 	nc           *natsgo.Conn
 	sub          *natsgo.Subscription
 	regs         *modbus.Regs
@@ -51,7 +51,7 @@ type Modbus struct {
 }
 
 // NewModbus creates a new bus from a node
-func NewModbus(db *genji.Db, nc *natsgo.Conn, node data.NodeEdge) (*Modbus, error) {
+func NewModbus(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Modbus, error) {
 	bus := &Modbus{
 		db:          db,
 		nc:          nc,

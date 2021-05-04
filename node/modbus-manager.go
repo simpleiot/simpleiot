@@ -6,19 +6,19 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/modbus"
 )
 
 // ModbusManager manages state of modbus
 type ModbusManager struct {
-	db     *genji.Db
+	db     *db.Db
 	nc     *natsgo.Conn
 	busses map[string]*Modbus
 }
 
 // NewModbusManager creates a new modbus manager
-func NewModbusManager(db *genji.Db, nc *natsgo.Conn) *ModbusManager {
+func NewModbusManager(db *db.Db, nc *natsgo.Conn) *ModbusManager {
 	return &ModbusManager{
 		db:     db,
 		nc:     nc,

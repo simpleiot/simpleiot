@@ -14,7 +14,6 @@ import (
 
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db"
-	"github.com/simpleiot/simpleiot/db/genji"
 	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
 )
@@ -23,14 +22,14 @@ import (
 type NatsHandler struct {
 	server    string
 	Nc        *natsgo.Conn
-	db        *genji.Db
+	db        *db.Db
 	authToken string
 	lock      sync.Mutex
 	updates   map[string]time.Time
 }
 
 // NewNatsHandler creates a new NATS client for handling SIOT requests
-func NewNatsHandler(db *genji.Db, authToken, server string) *NatsHandler {
+func NewNatsHandler(db *db.Db, authToken, server string) *NatsHandler {
 	log.Println("NATS handler connecting to: ", server)
 	return &NatsHandler{
 		db:        db,

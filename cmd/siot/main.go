@@ -14,7 +14,7 @@ import (
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/node"
@@ -326,7 +326,7 @@ func main() {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir)
+		dbInst, err := db.NewDb(db.StoreType(*flagStore), dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -338,7 +338,7 @@ func main() {
 			log.Println("Error opening data.json: ", err)
 			os.Exit(-1)
 		}
-		err = genji.DumpDb(dbInst, f)
+		err = db.DumpDb(dbInst, f)
 
 		if err != nil {
 			log.Println("Error dumping database: ", err)
@@ -352,7 +352,7 @@ func main() {
 	}
 
 	if *flagImportDb {
-		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir)
+		dbInst, err := db.NewDb(db.StoreType(*flagStore), dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -364,7 +364,7 @@ func main() {
 			log.Println("Error opening data.json: ", err)
 			os.Exit(-1)
 		}
-		err = genji.ImportDb(dbInst, f)
+		err = db.ImportDb(dbInst, f)
 
 		if err != nil {
 			log.Println("Error importing database: ", err)
@@ -380,7 +380,7 @@ func main() {
 	// =============================================
 	// Start server, default action
 	// =============================================
-	dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir)
+	dbInst, err := db.NewDb(db.StoreType(*flagStore), dataDir)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)

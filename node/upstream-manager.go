@@ -5,18 +5,18 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/db"
 )
 
 // UpstreamManager looks for upstream nodes and creates new upstream connections
 type UpstreamManager struct {
-	db        *genji.Db
+	db        *db.Db
 	nc        *natsgo.Conn
 	upstreams map[string]*Upstream
 }
 
 // NewUpstreamManager is used to create a new upstream manager
-func NewUpstreamManager(db *genji.Db, nc *natsgo.Conn) *UpstreamManager {
+func NewUpstreamManager(db *db.Db, nc *natsgo.Conn) *UpstreamManager {
 	return &UpstreamManager{
 		nc:        nc,
 		db:        db,

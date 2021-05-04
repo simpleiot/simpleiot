@@ -7,14 +7,14 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
 )
 
 // Upstream is used to manage an upstream connection (cloud, etc)
 type Upstream struct {
 	nc       *natsgo.Conn
-	db       *genji.Db
+	db       *db.Db
 	node     data.NodeEdge
 	nodeUp   *UpstreamNode
 	uri      string
@@ -24,7 +24,7 @@ type Upstream struct {
 }
 
 // NewUpstream is used to create a new upstream connection
-func NewUpstream(db *genji.Db, nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
+func NewUpstream(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 	var err error
 
 	up := &Upstream{

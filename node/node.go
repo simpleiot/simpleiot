@@ -9,20 +9,20 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
 )
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
-	db              *genji.Db
+	db              *db.Db
 	nc              *natsgo.Conn
 	modbusManager   *ModbusManager
 	upstreamManager *UpstreamManager
 }
 
 // NewManger creates a new Manager
-func NewManger(db *genji.Db, nc *natsgo.Conn) *Manager {
+func NewManger(db *db.Db, nc *natsgo.Conn) *Manager {
 	return &Manager{
 		db:              db,
 		nc:              nc,
