@@ -1,6 +1,8 @@
 package data
 
 import (
+	"crypto/md5"
+	"encoding/binary"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -156,6 +158,33 @@ func (ps *Points) ToPb() ([]byte, error) {
 }
 
 // question -- should be using []*Point instead of []Point?
+
+// ProcessPoint takes a point and updates an existing array of points and returns
+// a hash of the time stamps
+// along with the node hash
+func (ps *Points) ProcessPoint(pIn Point) []byte {
+	pFound := false
+	for i, p := range *ps {
+		if p.ID == pIn.ID && p.Type == pIn.Type && p.Index == pIn.Index {
+			pFound = true
+			(*ps)[i] = pIn
+		}
+	}
+
+	if !pFound {
+		*ps = append(*ps, pIn)
+	}
+
+	h := md5.New()
+
+	for _, p := range *ps {
+		d := make([]byte, 8)
+		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
+		h.Write(d)
+	}
+
+	return h.Sum(nil)
+}
 
 //PbToPoint converts pb point to point
 func PbToPoint(sPb *pb.Point) (Point, error) {

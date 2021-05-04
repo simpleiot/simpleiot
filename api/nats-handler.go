@@ -78,6 +78,12 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 	return nc, nil
 }
 
+func (nh *NatsHandler) setSwUpdateState(id string, state data.SwUpdateState) error {
+	p := state.Points()
+
+	return nats.SendPoints(nh.Nc, id, p, false)
+}
+
 // StartUpdate starts an update
 func (nh *NatsHandler) StartUpdate(id, url string) error {
 	nh.lock.Lock()
@@ -89,7 +95,7 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 
 	nh.updates[id] = time.Now()
 
-	err := nh.db.NodeSetSwUpdateState(id, data.SwUpdateState{
+	err := nh.setSwUpdateState(id, data.SwUpdateState{
 		Running: true,
 	})
 
@@ -100,7 +106,7 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 
 	go func() {
 		err := NatsSendFileFromHTTP(nh.Nc, id, url, func(bytesTx int) {
-			err := nh.db.NodeSetSwUpdateState(id, data.SwUpdateState{
+			err := nh.setSwUpdateState(id, data.SwUpdateState{
 				Running:     true,
 				PercentDone: bytesTx,
 			})
@@ -125,7 +131,7 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 		delete(nh.updates, id)
 		nh.lock.Unlock()
 
-		err = nh.db.NodeSetSwUpdateState(id, state)
+		err = nh.setSwUpdateState(id, state)
 		if err != nil {
 			log.Println("Error setting sw update state: ", err)
 		}

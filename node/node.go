@@ -10,6 +10,7 @@ import (
 
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/nats"
 )
 
 // Manager is responsible for maintaining node state, running rules, etc
@@ -53,10 +54,15 @@ func (m *Manager) Run() {
 
 		for _, node := range nodes {
 			// update node state
-			state, changed := node.UpdateState()
+			state, changed := node.GetState()
 			if changed {
-				// FIXME this needs modified to go through NATS
-				err := m.db.NodeSetState(node.ID, state)
+				p := data.Point{
+					Time: time.Now(),
+					Type: data.PointTypeSysState,
+					Text: state,
+				}
+
+				err := nats.SendPoint(m.nc, node.ID, p, false)
 				if err != nil {
 					log.Println("Error updating node state: ", err)
 				}

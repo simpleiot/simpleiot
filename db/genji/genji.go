@@ -404,8 +404,17 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 			found = true
 		}
 
-		node.ProcessPoint(point)
-		node.SetState(data.PointValueSysStateOnline)
+		hash := node.Points.ProcessPoint(point)
+		state := node.State()
+		if state != data.PointValueSysStateOnline {
+			hash = node.Points.ProcessPoint(
+				data.Point{
+					Time: time.Now(),
+					Type: data.PointTypeSysState,
+					Text: data.PointValueSysStateOnline,
+				},
+			)
+		}
 
 		if !found {
 			err := tx.Exec(`insert into nodes values ?`, node)
@@ -418,50 +427,8 @@ func (gen *Db) NodePoint(id string, point data.Point) error {
 				Up: gen.meta.RootID, Down: id})
 		}
 
-		return tx.Exec(`update nodes set points = ? where id = ?`,
-			node.Points, id)
-	})
-}
-
-// NodeSetState is used to set the current system state
-func (gen *Db) NodeSetState(id string, state string) error {
-	return gen.store.Update(func(tx *genji.Tx) error {
-		var node data.Node
-		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
-		if err != nil {
-			return err
-		}
-
-		err = document.StructScan(doc, &node)
-		if err != nil {
-			return err
-		}
-
-		node.SetState(state)
-
-		return tx.Exec(`update nodes set points = ? where id = ?`,
-			node.Points, id)
-	})
-}
-
-// NodeSetSwUpdateState is used to set the SW update state of the node
-func (gen *Db) NodeSetSwUpdateState(id string, state data.SwUpdateState) error {
-	return gen.store.Update(func(tx *genji.Tx) error {
-		var node data.Node
-		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
-		if err != nil {
-			return err
-		}
-
-		err = document.StructScan(doc, &node)
-		if err != nil {
-			return err
-		}
-
-		node.SetSwUpdateState(state)
-
-		return tx.Exec(`update nodes set points = ? where id = ?`,
-			node.Points, id)
+		return tx.Exec(`update nodes set points = ?, hash = ? where id = ?`,
+			node.Points, hash, id)
 	})
 }
 

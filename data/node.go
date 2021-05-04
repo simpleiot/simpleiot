@@ -1,8 +1,6 @@
 package data
 
 import (
-	"crypto/md5"
-	"encoding/binary"
 	"time"
 
 	"github.com/simpleiot/simpleiot/internal/pb"
@@ -14,6 +12,28 @@ type SwUpdateState struct {
 	Running     bool   `json:"running"`
 	Error       string `json:"error"`
 	PercentDone int    `json:"percentDone"`
+}
+
+// Points converts SW update state to node points
+func (sws *SwUpdateState) Points() Points {
+	running := 0.0
+	if sws.Running {
+		running = 1
+	}
+
+	return Points{
+		Point{
+			Type:  PointTypeSwUpdateRunning,
+			Value: running,
+		},
+		Point{
+			Type: PointTypeSwUpdateError,
+			Text: sws.Error,
+		},
+		Point{
+			Type:  PointTypeSwUpdatePercComplete,
+			Value: float64(sws.PercentDone),
+		}}
 }
 
 // Node represents the state of a device. UUID is recommended
@@ -48,88 +68,18 @@ func (n *Node) Desc() string {
 // FIXME all of the below functions need to be modified to go through NATS
 // perhaps they should be removed
 
-// SetState sets the device state
-func (n *Node) SetState(state string) {
-	n.ProcessPoint(Point{
-		Time: time.Now(),
-		Type: PointTypeSysState,
-		Text: state,
-	})
-}
-
-// SetCmdPending for device
-func (n *Node) SetCmdPending(pending bool) {
-	val := 0.0
-	if pending {
-		val = 1
-	}
-	n.ProcessPoint(Point{
-		Type:  PointTypeCmdPending,
-		Value: val,
-	})
-}
-
-// SetSwUpdateState for a device
-func (n *Node) SetSwUpdateState(state SwUpdateState) {
-	running := 0.0
-	if state.Running {
-		running = 1
-	}
-	n.ProcessPoint(Point{
-		Type:  PointTypeSwUpdateRunning,
-		Value: running,
-	})
-
-	n.ProcessPoint(Point{
-		Type: PointTypeSwUpdateError,
-		Text: state.Error,
-	})
-
-	n.ProcessPoint(Point{
-		Type:  PointTypeSwUpdatePercComplete,
-		Value: float64(state.PercentDone),
-	})
-}
-
-// ProcessPoint takes a point for a device and adds/updates its array of points
-// along with the node hash
-func (n *Node) ProcessPoint(pIn Point) {
-	pFound := false
-	for i, p := range n.Points {
-		if p.ID == pIn.ID && p.Type == pIn.Type && p.Index == pIn.Index {
-			pFound = true
-			n.Points[i] = pIn
-		}
-	}
-
-	if !pFound {
-		n.Points = append(n.Points, pIn)
-	}
-
-	h := md5.New()
-
-	for _, p := range n.Points {
-		d := make([]byte, 8)
-		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
-		h.Write(d)
-	}
-
-	n.Hash = h.Sum(nil)
-}
-
-// UpdateState does routine updates of state (offline status, etc).
-// Returns true if state was updated. We originally considered
+// GetState checks state of node and
+// returns true if state was updated. We originally considered
 // offline to be when we did not receive data from a remote device
 // for X minutes. However, with points that could represent a config
 // change as well. Eventually we may want to improve this to look
-// at point types, but this is probably OK for now.
-func (n *Node) UpdateState() (string, bool) {
-	sysState, _ := n.Points.Text("", PointTypeSysState, 0)
+// at point types (perhaps Sample).
+func (n *Node) GetState() (string, bool) {
+	sysState := n.State()
 	switch sysState {
 	case PointValueSysStateUnknown, PointValueSysStateOnline:
 		if time.Since(n.Points.LatestTime()) > 15*time.Minute {
 			// mark device as offline
-			n.SetState(PointValueSysStateOffline)
 			return PointValueSysStateOffline, true
 		}
 	}
