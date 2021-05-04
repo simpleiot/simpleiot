@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
@@ -18,7 +17,6 @@ import (
 	"github.com/genjidb/genji/engine/badgerengine"
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	bolt "go.etcd.io/bbolt"
 )
 
 // StoreType defines the backing store used for the DB
@@ -636,44 +634,6 @@ func (gen *Db) EdgeCopy(id, newParent string) error {
 	})
 }
 
-type users []data.User
-
-func (u users) Len() int {
-	return len(u)
-}
-
-func (u users) Less(i, j int) bool {
-	return strings.ToLower((u)[i].FirstName) < strings.ToLower((u)[j].FirstName)
-}
-
-func (u users) Swap(i, j int) {
-	u[i], u[j] = u[j], u[i]
-}
-
-// Users returns all users, sorted by first name.
-func (gen *Db) Users() ([]data.User, error) {
-	var users []data.User
-	res, err := gen.store.Query(`select * from users order by firstName`)
-	if err != nil {
-		return users, err
-	}
-
-	defer res.Close()
-
-	err = res.Iterate(func(d document.Document) error {
-		var user data.User
-		err = document.StructScan(d, &user)
-		if err != nil {
-			return err
-		}
-
-		users = append(users, user)
-		return nil
-	})
-
-	return users, err
-}
-
 type privilege string
 
 // UserCheck checks user authentication
@@ -716,6 +676,8 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 }
 
 // UserIsRoot checks if root user
+// TODO: our current UI does not use the root user concept
+// but we probably should implement something like that at some point
 func (gen *Db) UserIsRoot(id string) (bool, error) {
 	upstreamNodes, err := gen.EdgeUp(id)
 	if err != nil {
@@ -731,215 +693,9 @@ func (gen *Db) UserIsRoot(id string) (bool, error) {
 	return false, nil
 }
 
-// UserByID returns the user with the given ID, if it exists.
-func (gen *Db) UserByID(id string) (data.User, error) {
-	var user data.User
-
-	doc, err := gen.store.QueryDocument(`select * from users where id = ?`,
-		id)
-
-	if err != nil {
-		return user, err
-	}
-
-	err = document.StructScan(doc, &user)
-	return user, err
-}
-
-// UserByEmail returns the user with the given email, if it exists.
-func (gen *Db) UserByEmail(email string) (data.User, error) {
-	var user data.User
-
-	doc, err := gen.store.QueryDocument(`select * from users where email = ?`,
-		email)
-
-	if err != nil {
-		return user, err
-	}
-
-	err = document.StructScan(doc, &user)
-	return user, err
-}
-
-// UsersForGroup returns all users who who are connected to a node by a group.
-func (gen *Db) UsersForGroup(id string) ([]data.User, error) {
-	var users []data.User
-
-	err := gen.store.View(func(tx *genji.Tx) error {
-		doc, err := tx.QueryDocument(`select * from groups where id = ?`, id)
-		if err != nil {
-			return err
-		}
-
-		var group data.Group
-		err = document.StructScan(doc, &group)
-		if err != nil {
-			return err
-		}
-
-		for _, role := range group.Users {
-			doc, err = tx.QueryDocument(`select * from users where id = ?`, role.UserID)
-			if err != nil {
-				return err
-			}
-
-			var user data.User
-			err = document.StructScan(doc, &user)
-			if err != nil {
-				return err
-			}
-			users = append(users, user)
-		}
-		return nil
-	})
-
-	return users, err
-}
-
-// NodesForGroup returns the nodes which are property of the given Group.
-func (gen *Db) NodesForGroup(tx *bolt.Tx, groupID string) ([]data.Node, error) {
-	var nodes []data.Node
-	res, err := gen.store.Query(`select * from nodes where ? in groups`,
-		groupID)
-
-	if err != nil {
-		return nodes, err
-	}
-
-	defer res.Close()
-
-	err = res.Iterate(func(d document.Document) error {
-		var node data.Node
-		err = document.StructScan(d, &node)
-		if err != nil {
-			return err
-		}
-
-		nodes = append(nodes, node)
-
-		return nil
-	})
-
-	return nodes, err
-}
-
-// UserInsert inserts a new user
-func (gen *Db) UserInsert(user data.User) (string, error) {
-	if user.ID == "" {
-		user.ID = uuid.New().String()
-	}
-	err := gen.store.Exec(`insert into users values ?`, user)
-	return user.ID, err
-}
-
-// UserUpdate updates a new user
-func (gen *Db) UserUpdate(user data.User) error {
-	return gen.store.Update(func(tx *genji.Tx) error {
-		err := gen.store.Exec(`delete from users where id = ?`,
-			user.ID)
-
-		if err != nil {
-			if err != database.ErrDocumentNotFound {
-				return err
-			}
-		}
-
-		return gen.store.Exec(`insert into user values ?`, user)
-	})
-}
-
-// UserDelete deletes a user from the database
-func (gen *Db) UserDelete(id string) error {
-	return gen.store.Exec(`delete from users where id = ?`, id)
-}
-
-func (gen *Db) txGroups(tx *genji.Tx) ([]data.Group, error) {
-	var ret []data.Group
-
-	res, err := tx.Query(`select * from groups`)
-	if err != nil {
-		return ret, err
-	}
-
-	defer res.Close()
-
-	err = res.Iterate(func(d document.Document) error {
-		var group data.Group
-		err := document.StructScan(d, &group)
-		if err != nil {
-			return err
-		}
-		ret = append(ret, group)
-		return nil
-	})
-
-	return ret, err
-
-}
-
-// Groups returns all groups.
-func (gen *Db) Groups() ([]data.Group, error) {
-	var groups []data.Group
-
-	err := gen.store.View(func(tx *genji.Tx) error {
-		var err error
-		groups, err = gen.txGroups(tx)
-		return err
-	})
-
-	return groups, err
-}
-
-// Group returns the Group with the given ID.
-func (gen *Db) Group(id string) (data.Group, error) {
-	var ret data.Group
-	doc, err := gen.store.QueryDocument(`select * from groups where id = ?`,
-		id)
-	if err != nil {
-		return ret, err
-	}
-
-	err = document.StructScan(doc, &ret)
-	return ret, err
-}
-
-// GroupInsert inserts a new group
-func (gen *Db) GroupInsert(group data.Group) (string, error) {
-	if group.ID == "" {
-		group.ID = uuid.New().String()
-	}
-	if group.Parent == "" && group.ID != zero {
-		group.Parent = zero
-	}
-	err := gen.store.Exec(`insert into groups values ?`, group)
-	return group.ID, err
-}
-
-// GroupUpdate updates a group
-func (gen *Db) GroupUpdate(gUpdate data.Group) error {
-	return gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(`delete from groups where id = ?`, gUpdate.ID)
-		if err != nil {
-			if err != database.ErrDocumentNotFound {
-				return err
-			}
-		}
-
-		return tx.Exec(`insert into groups values ?`, gUpdate)
-	})
-}
-
-// GroupDelete deletes a node from the database
-func (gen *Db) GroupDelete(id string) error {
-	return gen.store.Exec(`delete from groups where id = ?`, id)
-}
-
 type genImport struct {
-	Devices []Device     `json:"devices"`
-	Nodes   []data.Node  `json:"nodes"`
-	Edges   []data.Edge  `json:"edges"`
-	Users   []data.User  `json:"users"`
-	Groups  []data.Group `json:"groups"`
+	Nodes []data.Node `json:"nodes"`
+	Edges []data.Edge `json:"edges"`
 }
 
 // ImportDb imports contents of file into database
@@ -963,23 +719,6 @@ func ImportDb(gen *Db, in io.Reader) error {
 		_, err := gen.EdgeInsert(e)
 		if err != nil {
 			return fmt.Errorf("Error inserting edge (%+v): %w", e, err)
-		}
-	}
-
-	for _, d := range dump.Devices {
-		n := d.ToNode()
-		_, err := gen.NodeInsert(n)
-		if err != nil {
-			return fmt.Errorf("Error inserting node (%+v): %w", n, err)
-		}
-	}
-
-	for _, u := range dump.Users {
-		n := u.ToNode()
-		ne := n.ToNodeEdge(gen.meta.RootID)
-		_, err := gen.NodeInsertEdge(ne)
-		if err != nil {
-			return fmt.Errorf("Error inserting user (%+v): %w", u, err)
 		}
 	}
 
