@@ -5,18 +5,6 @@ option go_package = "internal/pb";
 
 import "point.proto";
 
-message NodeCmd {
-  string id = 1;
-  string cmd = 2;
-  string detail = 3;
-}
-
-message NodeVersion {
-  string os = 1;
-  string app = 2;
-  string hw = 3;
-}
-
 message Node {
     string id = 1;
     string type = 2;

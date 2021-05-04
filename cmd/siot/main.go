@@ -112,7 +112,6 @@ func main() {
 	flagSendPointNats := flag.String("sendPointNats", "", "Send point to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendPointText := flag.String("sendPointText", "", "Send text point to 'portal' via NATS: 'devId:sensId:text:type'")
 	flagSendFile := flag.String("sendFile", "", "URL of file to send")
-	flagSendCmd := flag.String("sendCmd", "", "Command to send (cmd:detail)")
 	flagVersion := flag.Bool("version", false, "Show version number")
 	flagDumpDb := flag.Bool("dumpDb", false, "dump database to data.json file")
 	flagImportDb := flag.Bool("importDb", false, "import database from data.json")
@@ -214,7 +213,6 @@ func main() {
 
 	if *flagSendPointNats != "" ||
 		*flagSendFile != "" ||
-		*flagSendCmd != "" ||
 		*flagSendPointText != "" ||
 		*flagLogNats {
 
@@ -251,27 +249,6 @@ func main() {
 		}
 
 		log.Println("File sent!")
-	}
-
-	if *flagSendCmd != "" {
-		chunks := strings.Split(*flagSendCmd, ":")
-		cmd := data.NodeCmd{
-			ID:  *flagID,
-			Cmd: chunks[0],
-		}
-
-		if len(chunks) > 1 {
-			cmd.Detail = chunks[1]
-		}
-
-		err := nats.SendCmd(nc, cmd, 10*time.Second)
-
-		if err != nil {
-			log.Println("Error sending cmd: ", err)
-			os.Exit(-1)
-		}
-
-		log.Println("Command sent!")
 	}
 
 	if *flagSendPointNats != "" {
