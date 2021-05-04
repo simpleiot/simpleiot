@@ -1,6 +1,8 @@
 package data
 
 import (
+	"crypto/md5"
+	"encoding/binary"
 	"time"
 
 	"github.com/simpleiot/simpleiot/internal/pb"
@@ -19,6 +21,7 @@ type SwUpdateState struct {
 type Node struct {
 	ID     string `json:"id" boltholdKey:"ID"`
 	Type   string `json:"type"`
+	Hash   []byte `json:"hash"`
 	Points Points `json:"points"`
 }
 
@@ -89,6 +92,7 @@ func (n *Node) SetSwUpdateState(state SwUpdateState) {
 }
 
 // ProcessPoint takes a point for a device and adds/updates its array of points
+// along with the node hash
 func (n *Node) ProcessPoint(pIn Point) {
 	pFound := false
 	for i, p := range n.Points {
@@ -101,6 +105,16 @@ func (n *Node) ProcessPoint(pIn Point) {
 	if !pFound {
 		n.Points = append(n.Points, pIn)
 	}
+
+	h := md5.New()
+
+	for _, p := range n.Points {
+		d := make([]byte, 8)
+		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
+		h.Write(d)
+	}
+
+	n.Hash = h.Sum(nil)
 }
 
 // UpdateState does routine updates of state (offline status, etc).
