@@ -1,5 +1,7 @@
 package db
 
+// FIXME could probably find a better place for this file ...
+
 import (
 	"errors"
 	"net/http"
