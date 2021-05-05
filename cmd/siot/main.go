@@ -387,27 +387,6 @@ func main() {
 	}
 	defer dbInst.Close()
 
-	// set up particle connection if configured
-	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
-
-	if particleAPIKey != "" {
-		go func() {
-			err := particle.PointReader("sample", particleAPIKey,
-				func(id string, points data.Points) {
-					for _, p := range points {
-						err = dbInst.NodePoint(id, p)
-						if err != nil {
-							log.Println("Error getting particle sample: ", err)
-						}
-					}
-				})
-
-			if err != nil {
-				fmt.Println("Get returned error: ", err)
-			}
-		}()
-	}
-
 	// finally, start web server
 	port := os.Getenv("SIOT_HTTP_PORT")
 	if port == "" {
@@ -452,6 +431,26 @@ func main() {
 
 	nodeManager := node.NewManger(dbInst, nc)
 	go nodeManager.Run()
+
+	// set up particle connection if configured
+	// todo -- move this to a node
+	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
+
+	if particleAPIKey != "" {
+		go func() {
+			err := particle.PointReader("sample", particleAPIKey,
+				func(id string, points data.Points) {
+					err := nats.SendPoints(nc, id, points, false)
+					if err != nil {
+						log.Println("Error getting particle sample: ", err)
+					}
+				})
+
+			if err != nil {
+				fmt.Println("Get returned error: ", err)
+			}
+		}()
+	}
 
 	err = api.Server(api.ServerArgs{
 		Port:       port,

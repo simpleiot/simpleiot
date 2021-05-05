@@ -151,7 +151,7 @@ func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
 	desc := node.Desc()
 
 	for _, p := range points {
-		err = nh.db.NodePoint(nodeID, p)
+		err = nh.db.nodePoint(nodeID, p)
 		if err != nil {
 			// TODO track error stats
 			log.Printf("Error writing nodeID (%v) point (%+v) to Db: %v", nodeID, p, err)

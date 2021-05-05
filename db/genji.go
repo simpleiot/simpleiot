@@ -373,7 +373,7 @@ func init() {
 }
 
 // NodePoint processes a Point for a particular node
-func (gen *Db) NodePoint(id string, point data.Point) error {
+func (gen *Db) nodePoint(id string, point data.Point) error {
 	// for now, we process one point at a time. We may eventually
 	// want to create NodePoints to process multiple points so
 	// we can batch influx writes for performance
