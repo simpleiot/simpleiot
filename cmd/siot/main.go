@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/simpleiot/simpleiot"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
@@ -17,7 +18,6 @@ import (
 	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
-	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
 	"github.com/simpleiot/simpleiot/system"
@@ -429,7 +429,7 @@ func main() {
 		log.Fatal("Error connecting to NATs server: ", err)
 	}
 
-	nodeManager := node.NewManger(dbInst, nc)
+	nodeManager := simpleiot.NewManger(dbInst, nc)
 	go nodeManager.Run()
 
 	// set up particle connection if configured

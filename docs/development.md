@@ -19,6 +19,10 @@ net/http, since we can do all network communications over NATS. We're not there
 yet, but be careful about pulling in dependencies that require net/http into the
 nats package, and other low level packages intended for use on devices.
 
+### Directories
+
+See https://pkg.go.dev/github.com/simpleiot/simpleiot#section-directories
+
 ## Coding Standards
 
 Please run `siot_test` from `envsetup.sh` before submitting pull requests. All
