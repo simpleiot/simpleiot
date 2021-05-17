@@ -8,6 +8,8 @@ import (
 	"io"
 	"log"
 	"path"
+	"sort"
+	"sync"
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
@@ -31,8 +33,8 @@ const (
 
 // Meta contains metadata about the database
 type Meta struct {
-	Version int
-	RootID  string
+	Version int    `json:"version"`
+	RootID  string `json:"rootID"`
 }
 
 // This file contains database manipulations.
@@ -43,6 +45,7 @@ type Meta struct {
 type Db struct {
 	store *genji.DB
 	meta  Meta
+	lock  sync.RWMutex
 }
 
 // NewDb creates a new Db instance for the app
@@ -114,6 +117,9 @@ func NewDb(storeType StoreType, dataDir string) (*Db, error) {
 	return db, db.initialize()
 }
 
+// DBVersion for this version of siot
+var DBVersion = 1
+
 // initialize initializes the database with one user (admin)
 func (gen *Db) initialize() error {
 	doc, err := gen.store.QueryDocument(`select * from meta`)
@@ -135,48 +141,12 @@ func (gen *Db) initialize() error {
 
 	// need to initialize db
 	err = gen.store.Update(func(tx *genji.Tx) error {
-		log.Println("adding initial node structure and admin user ...")
-
-		rootNode := data.Node{Type: data.NodeTypeDevice, ID: uuid.New().String()}
-
-		err = tx.Exec(`insert into nodes values ?`, rootNode)
-		if err != nil {
-			return fmt.Errorf("Error creating root node: %w", err)
-		}
-
 		// populate metadata with root node ID
-		gen.meta = Meta{RootID: rootNode.ID}
+		gen.meta = Meta{Version: DBVersion}
 
 		err = tx.Exec(`insert into meta values ?`, gen.meta)
 		if err != nil {
 			return fmt.Errorf("Error inserting meta: %w", err)
-		}
-
-		// create admin user off root node
-		admin := data.User{
-			ID:        uuid.New().String(),
-			FirstName: "admin",
-			LastName:  "user",
-			Email:     "admin@admin.com",
-			Pass:      "admin",
-		}
-
-		adminUserNode := data.Node{
-			Type:   data.NodeTypeUser,
-			ID:     admin.ID,
-			Points: admin.ToPoints()}
-
-		err = tx.Exec(`insert into nodes values ?`, adminUserNode)
-		if err != nil {
-			return fmt.Errorf("Error inserting admin user: %w", err)
-		}
-
-		log.Println("Created admin user: ", admin)
-
-		// create relationship between root and user node
-		err = txEdgeInsert(tx, &data.Edge{Up: rootNode.ID, Down: adminUserNode.ID})
-		if err != nil {
-			return fmt.Errorf("Error creating root/admin edge: %w", err)
 		}
 
 		return nil
@@ -192,6 +162,8 @@ func (gen *Db) Close() error {
 
 // RootNodeID returns the ID of the root node
 func (gen *Db) RootNodeID() string {
+	gen.lock.RLock()
+	defer gen.lock.RUnlock()
 	return gen.meta.RootID
 }
 
@@ -372,14 +344,16 @@ func init() {
 	zero = uuidZero.String()
 }
 
-// NodePoint processes a Point for a particular node
-func (gen *Db) nodePoint(id string, point data.Point) error {
+// nodePoints processes a Point for a particular node
+func (gen *Db) nodePoints(id string, points data.Points) error {
 	// for now, we process one point at a time. We may eventually
 	// want to create NodePoints to process multiple points so
 	// we can batch influx writes for performance
 
-	if point.Time.IsZero() {
-		point.Time = time.Now()
+	for _, p := range points {
+		if p.Time.IsZero() {
+			p.Time = time.Now()
+		}
 	}
 
 	return gen.store.Update(func(tx *genji.Tx) error {
@@ -402,10 +376,16 @@ func (gen *Db) nodePoint(id string, point data.Point) error {
 			found = true
 		}
 
-		hash := node.Points.ProcessPoint(point)
+		for _, point := range points {
+			node.Points.ProcessPoint(point)
+			if point.Type == data.PointTypeNodeType {
+				node.Type = point.Text
+			}
+		}
+
 		state := node.State()
 		if state != data.PointValueSysStateOnline {
-			hash = node.Points.ProcessPoint(
+			node.Points.ProcessPoint(
 				data.Point{
 					Time: time.Now(),
 					Type: data.PointTypeSysState,
@@ -414,6 +394,10 @@ func (gen *Db) nodePoint(id string, point data.Point) error {
 			)
 		}
 
+		sort.Sort(node.Points)
+
+		node.Hash = node.Points.Hash()
+
 		if !found {
 			err := tx.Exec(`insert into nodes values ?`, node)
 
@@ -421,12 +405,25 @@ func (gen *Db) nodePoint(id string, point data.Point) error {
 				return err
 			}
 
+			if gen.meta.RootID == "" {
+				log.Println("setting meta root id: ", node.ID)
+				err := tx.Exec(`update meta set rootid = ?`, node.ID)
+				if err != nil {
+					return err
+				}
+				gen.lock.Lock()
+				gen.meta.RootID = node.ID
+				gen.lock.Unlock()
+				return nil
+			}
+
 			return txEdgeInsert(tx, &data.Edge{
 				Up: gen.meta.RootID, Down: id})
 		}
 
-		return tx.Exec(`update nodes set points = ?, hash = ? where id = ?`,
-			node.Points, hash, id)
+		return tx.Exec(`update nodes set points = ?, hash = ?, type = ? where id = ?`,
+			node.Points, node.Hash, node.Type, id)
+
 	})
 }
 

@@ -65,26 +65,28 @@ func NewInflux(config *InfluxConfig) *Influx {
 	}
 }
 
-// WritePoint to influxdb
-func (i *Influx) WritePoint(nodeID, nodeDesc string, point data.Point) error {
-	p := influxdb2.NewPoint("points",
-		map[string]string{
-			"nodeID":   nodeID,
-			"nodeDesc": nodeDesc,
-			"id":       point.ID,
-			"type":     point.Type,
-			"index":    strconv.Itoa(point.Index),
-		},
-		map[string]interface{}{
-			"value":    point.Value,
-			"text":     point.Text,
-			"duration": point.Duration.Milliseconds(),
-		},
-		point.Time)
-	err := i.writeAPI.WritePoint(context.Background(), p)
-	if err != nil {
-		return err
+// WritePoints to influxdb
+func (i *Influx) WritePoints(nodeID, nodeDesc string, points data.Points) error {
+	for _, point := range points {
+		p := influxdb2.NewPoint("points",
+			map[string]string{
+				"nodeID":   nodeID,
+				"nodeDesc": nodeDesc,
+				"id":       point.ID,
+				"type":     point.Type,
+				"index":    strconv.Itoa(point.Index),
+			},
+			map[string]interface{}{
+				"value":    point.Value,
+				"text":     point.Text,
+				"duration": point.Duration.Milliseconds(),
+			},
+			point.Time)
+		err := i.writeAPI.WritePoint(context.Background(), p)
+		if err != nil {
+			return err
+		}
+		i.client.Close()
 	}
-	i.client.Close()
 	return nil
 }

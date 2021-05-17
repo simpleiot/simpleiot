@@ -452,6 +452,15 @@ func main() {
 		}()
 	}
 
+	if dbInst.RootNodeID() == "" {
+		log.Print("Initialize root node and admin user ...")
+		err := node.Init(nc)
+		if err != nil {
+			log.Println("Error initializing nodes: ", err)
+			os.Exit(-1)
+		}
+	}
+
 	err = api.Server(api.ServerArgs{
 		Port:       port,
 		DbInst:     dbInst,

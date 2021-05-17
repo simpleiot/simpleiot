@@ -2,10 +2,12 @@ package node
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"text/template"
 	"time"
 
+	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -29,6 +31,46 @@ func NewManger(db *db.Db, nc *natsgo.Conn) *Manager {
 		modbusManager:   NewModbusManager(db, nc),
 		upstreamManager: NewUpstreamManager(db, nc),
 	}
+}
+
+// Init initializes the tree root node and default admin if needed
+func (m *Manager) Init() error {
+	rootID := m.db.RootNodeID()
+	if rootID == "" {
+		// initialize root node and user
+		p := data.Point{
+			Time: time.Now(),
+			Type: data.PointTypeNodeType,
+			Text: data.NodeTypeDevice,
+		}
+
+		id := uuid.New().String()
+
+		err := nats.SendPoint(m.nc, id, p, false)
+		if err != nil {
+			return fmt.Errorf("Error setting root node: %v", err)
+		}
+
+		// create admin user off root node
+		admin := data.User{
+			ID:        uuid.New().String(),
+			FirstName: "admin",
+			LastName:  "user",
+			Email:     "admin@admin.com",
+			Pass:      "admin",
+		}
+
+		points := admin.ToPoints()
+		points = append(points, data.Point{Type: data.PointTypeNodeType,
+			Text: data.NodeTypeUser})
+
+		err = nats.SendPoint(m.nc, id, p, false)
+		if err != nil {
+			return fmt.Errorf("Error setting default user: %v", err)
+		}
+	}
+
+	return nil
 }
 
 // Run manager
