@@ -220,13 +220,28 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := h.db.NodeInsertEdge(node)
+	node.Points = append(node.Points, data.Point{
+		Type: data.PointTypeNodeType,
+		Text: node.Type,
+	})
+
+	node.Points = append(node.Points, data.Point{
+		Type: data.PointTypeParent,
+		Text: node.Parent,
+	})
+
+	if node.ID == "" {
+		node.ID = uuid.New().String()
+	}
+
+	err := nats.SendPoints(h.nc, node.ID, node.Points, false)
+
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	encode(res, data.StandardResponse{Success: true, ID: id})
+	encode(res, data.StandardResponse{Success: true, ID: node.ID})
 }
 
 func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id string) {

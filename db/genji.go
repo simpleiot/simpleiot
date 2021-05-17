@@ -272,28 +272,6 @@ func (gen *Db) NodeInsert(node data.Node) (string, error) {
 	return node.ID, gen.store.Exec(`insert into nodes values ?`, node)
 }
 
-// NodeInsertEdge -- insert a node and edge and return uuid
-// FIXME can we replace this with NATS calls?
-func (gen *Db) NodeInsertEdge(node data.NodeEdge) (string, error) {
-	if node.ID == "" {
-		node.ID = uuid.New().String()
-	}
-
-	if node.Type == "" {
-		return "", errors.New("New nodes must have a type")
-	}
-
-	err := gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(`insert into nodes values ?`, node.ToNode())
-		if err != nil {
-			return err
-		}
-		return txEdgeInsert(tx, &data.Edge{Up: node.Parent, Down: node.ID})
-	})
-
-	return node.ID, err
-}
-
 func txNodeDelete(tx *genji.Tx, id, parent string) error {
 	upIDs, err := txEdgeUp(tx, id)
 	if err != nil {
@@ -376,11 +354,20 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 			found = true
 		}
 
+		parent := ""
+
 		for _, point := range points {
-			node.Points.ProcessPoint(point)
 			if point.Type == data.PointTypeNodeType {
 				node.Type = point.Text
 			}
+
+			if point.Type == data.PointTypeParent {
+				parent = point.Text
+				// we don't encode parent in points
+				continue
+			}
+
+			node.Points.ProcessPoint(point)
 		}
 
 		state := node.State()
@@ -417,8 +404,12 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 				return nil
 			}
 
+			if parent == "" {
+				parent = gen.meta.RootID
+			}
+
 			return txEdgeInsert(tx, &data.Edge{
-				Up: gen.meta.RootID, Down: id})
+				Up: parent, Down: id})
 		}
 
 		return tx.Exec(`update nodes set points = ?, hash = ?, type = ? where id = ?`,
@@ -513,8 +504,8 @@ func (gen *Db) EdgeInsert(edge data.Edge) (string, error) {
 	return edge.ID, err
 }
 
-// Edges returns all edges.
-func (gen *Db) Edges() ([]data.Edge, error) {
+// edges returns all edges.
+func (gen *Db) edges() ([]data.Edge, error) {
 	var edges []data.Edge
 
 	err := gen.store.View(func(tx *genji.Tx) error {
@@ -739,7 +730,7 @@ func DumpDb(gen *Db, out io.Writer) error {
 		return err
 	}
 
-	dump.Edges, err = gen.Edges()
+	dump.Edges, err = gen.edges()
 	if err != nil {
 		return err
 	}

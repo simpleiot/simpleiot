@@ -6,6 +6,7 @@ const (
 	// general point types
 	PointTypeDescription string = "description"
 	PointTypeNodeType           = "nodeType"
+	PointTypeParent             = "parent"
 	PointTypeScale              = "scale"
 	PointTypeOffset             = "offset"
 	PointTypeUnits              = "units"
