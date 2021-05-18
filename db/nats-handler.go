@@ -18,12 +18,13 @@ import (
 
 // NatsHandler implements the SIOT NATS api
 type NatsHandler struct {
-	server    string
-	Nc        *natsgo.Conn
-	db        *Db
-	authToken string
-	lock      sync.Mutex
-	updates   map[string]time.Time
+	server         string
+	Nc             *natsgo.Conn
+	db             *Db
+	authToken      string
+	lock           sync.Mutex
+	nodeUpdateLock sync.Mutex
+	updates        map[string]time.Time
 }
 
 // NewNatsHandler creates a new NATS client for handling SIOT requests
@@ -137,8 +138,10 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 	return nil
 }
 
-// FIXME consider moving this to db package and then unexporting the NodePoint method
 func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
+	nh.nodeUpdateLock.Lock()
+	defer nh.nodeUpdateLock.Unlock()
+
 	nodeID, points, err := nats.DecodeNodePointsMsg(msg)
 
 	if err != nil {
@@ -147,9 +150,7 @@ func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
 		return
 	}
 
-	node, err := nh.db.Node(nodeID)
-	desc := node.Desc()
-
+	// write points to database
 	err = nh.db.nodePoints(nodeID, points)
 
 	if err != nil {
@@ -160,6 +161,14 @@ func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
 		return
 	}
 
+	node, err := nh.db.Node(nodeID)
+	if err != nil {
+		log.Println("handlePoints, error getting node for id: ", nodeID)
+	}
+
+	desc := node.Desc()
+
+	// process point in upstream nodes
 	err = nh.processPoints(nodeID, nodeID, desc, points)
 	if err != nil {
 		// TODO track error stats
@@ -391,6 +400,12 @@ func (nh *NatsHandler) reply(subject string, err error) {
 }
 
 func (nh *NatsHandler) processPoints(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
+	// first update the hash
+	err := nh.db.nodeUpdateHash(currentNodeID)
+	if err != nil {
+		return err
+	}
+
 	// get children and process any rules
 	ruleNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeRule, false)
 	if err != nil {

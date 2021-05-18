@@ -257,6 +257,9 @@ The node `Hash` field is a hash of:
   from the node hash as discussed above.
 - and child node `Hash` fields
 
+The points are sorted by timestamp and child nodes are sorted by hash so that
+the order is consistent when the hash is computed.
+
 This is essentially a Merkle Tree -- see [research](research.md).
 
 Comparing the node `Hash` field allows us to detect node differences. We then

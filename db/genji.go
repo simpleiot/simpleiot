@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -322,6 +324,40 @@ func init() {
 	zero = uuidZero.String()
 }
 
+func (gen *Db) nodeUpdateHash(id string) error {
+	return gen.store.Update(func(tx *genji.Tx) error {
+		node, err := txNode(tx, id)
+
+		if err != nil {
+			return err
+		}
+
+		h := md5.New()
+
+		for _, p := range node.Points {
+			d := make([]byte, 8)
+			binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
+			h.Write(d)
+		}
+
+		// get child nodes
+		childNodes, err := txNodeFindDescendents(tx, node.ID, false)
+
+		if err != nil {
+			return err
+		}
+
+		sort.Sort(data.ByHash(childNodes))
+
+		for _, n := range childNodes {
+			h.Write(n.Hash)
+		}
+
+		return tx.Exec(`update nodes set hash = ? where id = ?`,
+			h.Sum(nil), node.ID)
+	})
+}
+
 // nodePoints processes a Point for a particular node
 func (gen *Db) nodePoints(id string, points data.Points) error {
 	// for now, we process one point at a time. We may eventually
@@ -383,8 +419,6 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 		sort.Sort(node.Points)
 
-		node.Hash = node.Points.Hash()
-
 		if !found {
 			err := tx.Exec(`insert into nodes values ?`, node)
 
@@ -401,20 +435,28 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 				gen.lock.Lock()
 				gen.meta.RootID = node.ID
 				gen.lock.Unlock()
-				return nil
-			}
+			} else {
+				if parent == "" {
+					parent = gen.meta.RootID
+				}
 
-			if parent == "" {
-				parent = gen.meta.RootID
-			}
+				err := txEdgeInsert(tx, &data.Edge{
+					Up: parent, Down: id})
 
-			return txEdgeInsert(tx, &data.Edge{
-				Up: parent, Down: id})
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			err := tx.Exec(`update nodes set points = ?, type = ? where id = ?`,
+				node.Points, node.Type, id)
+
+			if err != nil {
+				return err
+			}
 		}
 
-		return tx.Exec(`update nodes set points = ?, hash = ?, type = ? where id = ?`,
-			node.Points, node.Hash, node.Type, id)
-
+		return nil
 	})
 }
 

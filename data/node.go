@@ -1,6 +1,7 @@
 package data
 
 import (
+	"bytes"
 	"time"
 
 	"github.com/simpleiot/simpleiot/internal/pb"
@@ -119,6 +120,7 @@ func (n *Node) ToNodeEdge(parent string) NodeEdge {
 		Type:   n.Type,
 		Parent: parent,
 		Points: n.Points,
+		Hash:   n.Hash,
 	}
 }
 
@@ -147,6 +149,7 @@ type NodeVersion struct {
 type NodeEdge struct {
 	ID     string `json:"id" boltholdKey:"ID"`
 	Type   string `json:"type"`
+	Hash   []byte `json:"hash"`
 	Parent string `json:"parent"`
 	Points Points `json:"points"`
 }
@@ -157,6 +160,7 @@ func (n *NodeEdge) ToNode() Node {
 		ID:     n.ID,
 		Type:   n.Type,
 		Points: n.Points,
+		Hash:   n.Hash,
 	}
 }
 
@@ -174,6 +178,18 @@ func (n *NodeEdge) ProcessPoint(pIn Point) {
 		n.Points = append(n.Points, pIn)
 	}
 }
+
+// bytesLess compares two slices of bytes and returns true if a is less than b
+func bytesLess(a, b []byte) bool {
+	return bytes.Compare(a, b) < 0
+}
+
+// ByHash implements soft interface for NodeEdge by hash
+type ByHash []NodeEdge
+
+func (a ByHash) Len() int           { return len(a) }
+func (a ByHash) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByHash) Less(i, j int) bool { return bytesLess(a[i].Hash, a[j].Hash) }
 
 // PbDecodeNode converts a protobuf to node data structure
 func PbDecodeNode(data []byte) (Node, error) {
