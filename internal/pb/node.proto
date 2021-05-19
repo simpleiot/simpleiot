@@ -9,4 +9,5 @@ message Node {
     string id = 1;
     string type = 2;
     repeated Point points = 3;
+    bytes Hash = 4;
 }

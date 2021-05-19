@@ -213,6 +213,7 @@ func PbDecodeNode(data []byte) (Node, error) {
 	ret := Node{
 		ID:     pbNode.Id,
 		Type:   pbNode.Type,
+		Hash:   pbNode.Hash,
 		Points: points,
 	}
 
@@ -235,6 +236,7 @@ func (n *Node) ToPb() ([]byte, error) {
 	pbNode := pb.Node{
 		Id:     n.ID,
 		Type:   n.Type,
+		Hash:   n.Hash,
 		Points: points,
 	}
 
