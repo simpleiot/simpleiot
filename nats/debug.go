@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -41,17 +40,13 @@ func String(nc *natsgo.Conn, msg *natsgo.Msg) (string, error) {
 	}
 
 	// Fetch node so we can print description
-	nodeMsg, err := nc.Request("node."+nodeID, nil, time.Second)
+	node, err := GetNode(nc, "node."+nodeID)
 
 	if err != nil {
-		return "", fmt.Errorf("Error getting node over NATS: %w", err)
+		return "", fmt.Errorf("Error getting node over nats: %w", err)
 	}
 
-	node, err := data.PbDecodeNode(nodeMsg.Data)
-
-	if err != nil {
-		return "", fmt.Errorf("Error decoding node data from server: %w", err)
-	}
+	fmt.Printf("CLIFF: node: %+v\n", node)
 
 	description := node.Desc()
 

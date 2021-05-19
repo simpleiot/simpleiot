@@ -263,13 +263,14 @@ the order is consistent when the hash is computed.
 This is essentially a Merkle Tree -- see [research](research.md).
 
 Comparing the node `Hash` field allows us to detect node differences. We then
-compare the node points to determine the actual differences.
+compare the node points and child nodes to determine the actual differences.
 
-Any time a node point is modified, the node's `Hash` field is updated, and the
-`Hash` field in parents, grand-parents, etc are also computed and updated. This
-may seem like a lot of overhead, but if the database is local, and the graph is
-reasonably constructed, then each update might require reading a dozen or so
-nodes and perhaps writing 3-5 nodes.
+Any time a node point (except for sample date) is modified, the node's `Hash`
+field is updated, and the `Hash` field in parents, grand-parents, etc are also
+computed and updated. This may seem like a lot of overhead, but if the database
+is local, and the graph is reasonably constructed, then each update might
+require reading a dozen or so nodes and perhaps writing 3-5 nodes. Additionally,
+non sample-data changes are relatively infrequent.
 
 Initially synchronization between edge and cloud nodes is supported. The edge
 device will contain an "upstream" node that defines a connection to another

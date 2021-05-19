@@ -1,9 +1,11 @@
 package node
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -78,6 +80,7 @@ func NewUpstream(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Upstream, err
 	rootID := up.db.RootNodeID()
 	nodes, err := up.db.NodeDescendents(rootID, "", true)
 
+	// FIXME -- handle when node structure changes (add/remove nodes)
 	for _, node := range nodes {
 		subject := nats.SubjectNodePoints(node.ID)
 		sub, err := up.ncUp.Subscribe(subject, func(msg *natsgo.Msg) {
@@ -103,6 +106,58 @@ func NewUpstream(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Upstream, err
 		up.subUps = append(up.subUps, sub)
 
 	}
+
+	go func() {
+		fetchedOnce := false
+
+		for {
+			if fetchedOnce {
+				time.Sleep(time.Minute)
+			}
+
+			fetchedOnce = true
+
+			fmt.Println("CLIFF: syncing upstream")
+
+			nodeLocal, err := nats.GetNode(up.nc, rootID)
+			if err != nil {
+				log.Println("Error getting local node: ", err)
+				continue
+			}
+
+			fmt.Printf("CLIFF: nodeLocal: %+v\n", nodeLocal)
+
+			nodeUp, err := nats.GetNode(up.ncUp, rootID)
+			if err != nil {
+				log.Println("Error getting upstream root node: ", err)
+				continue
+			}
+
+			if nodeUp.ID == "" {
+				log.Println("Upstream node does not exist, sending: ", rootID)
+				points := nodeLocal.Points
+
+				points = append(points, data.Point{
+					Type: data.PointTypeNodeType,
+					Text: nodeLocal.Type,
+				})
+
+				err := nats.SendPoints(up.ncUp, nodeLocal.ID, points, true)
+
+				if err != nil {
+					log.Println("Error sending node upstream: ", err)
+				}
+
+				continue
+			}
+
+			fmt.Printf("CLIFF: nodeUp: %+v\n", nodeUp)
+
+			if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
+				log.Println("root node hash differs")
+			}
+		}
+	}()
 
 	return up, nil
 }
