@@ -40,13 +40,11 @@ func String(nc *natsgo.Conn, msg *natsgo.Msg) (string, error) {
 	}
 
 	// Fetch node so we can print description
-	node, err := GetNode(nc, "node."+nodeID)
+	node, err := GetNode(nc, nodeID)
 
 	if err != nil {
 		return "", fmt.Errorf("Error getting node over nats: %w", err)
 	}
-
-	fmt.Printf("CLIFF: node: %+v\n", node)
 
 	description := node.Desc()
 
