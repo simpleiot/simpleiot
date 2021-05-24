@@ -62,6 +62,8 @@ defined [here](../internal/pb).
 - Nodes
   - `node.<id>`
     - can be used to request an entire node data structure
+  - `node.<id>.children`
+    - can be used to request the immediate children of a node
   - `node.<id>.points`
     - device publishes points and the server updates node state and stores point
       in database.

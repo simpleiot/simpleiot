@@ -49,7 +49,7 @@ type Point struct {
 
 func (p Point) String() string {
 	if p.Text != "" {
-		return fmt.Sprintf("%v: %v", p.Type, p.Text)
+		return fmt.Sprintf("%v: %v (%v)", p.Type, p.Text, p.Time.Format(time.RFC3339))
 	}
 	return fmt.Sprintf("%v: %v", p.Type, p.Value)
 }

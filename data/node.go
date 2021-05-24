@@ -137,6 +137,24 @@ func (n *Node) ToNodeEdge(parent string) NodeEdge {
 	}
 }
 
+// Nodes defines a list of nodes
+type Nodes []Node
+
+// ToPb converts a list of nodes to protobuf
+func (nodes *Nodes) ToPb() ([]byte, error) {
+	pbNodes := make([]*pb.Node, len(*nodes))
+	for i, n := range *nodes {
+		nPb, err := n.ToPbNode()
+		if err != nil {
+			return nil, err
+		}
+
+		pbNodes[i] = &nPb
+	}
+
+	return proto.Marshal(&pb.Nodes{Nodes: pbNodes})
+}
+
 // define valid commands
 const (
 	CmdUpdateApp string = "updateApp"
@@ -157,6 +175,11 @@ type NodeVersion struct {
 	App string `json:"app"`
 	HW  string `json:"hw"`
 }
+
+// FIXME -- seems like we could eventually get rid of node edge if we
+// do recursion in the client instead of the server. Then the client
+// could keep track of the parents and edges in tree data structures
+// on the client.
 
 // NodeEdge combines node and edge data, used for APIs
 type NodeEdge struct {
@@ -213,6 +236,12 @@ func PbDecodeNode(data []byte) (Node, error) {
 		return Node{}, err
 	}
 
+	return PbToNode(pbNode)
+}
+
+// PbToNode converts pb node to node
+func PbToNode(pbNode *pb.Node) (Node, error) {
+
 	points := make([]Point, len(pbNode.Points))
 
 	for i, pPb := range pbNode.Points {
@@ -233,14 +262,46 @@ func PbDecodeNode(data []byte) (Node, error) {
 	return ret, nil
 }
 
+// PbDecodeNodes decode probuf encoded nodes
+func PbDecodeNodes(data []byte) ([]Node, error) {
+	pbNodes := &pb.Nodes{}
+	err := proto.Unmarshal(data, pbNodes)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make([]Node, len(pbNodes.Nodes))
+
+	for i, nPb := range pbNodes.Nodes {
+		ret[i], err = PbToNode(nPb)
+
+		if err != nil {
+			return ret, err
+		}
+	}
+
+	return ret, nil
+}
+
 // ToPb encodes a node to a protobuf
 func (n *Node) ToPb() ([]byte, error) {
+
+	pbNode, err := n.ToPbNode()
+	if err != nil {
+		return nil, err
+	}
+
+	return proto.Marshal(&pbNode)
+}
+
+// ToPbNode converts a node to pb.Node type
+func (n *Node) ToPbNode() (pb.Node, error) {
 	points := make([]*pb.Point, len(n.Points))
 
 	for i, p := range n.Points {
 		pPb, err := p.ToPb()
 		if err != nil {
-			return []byte{}, err
+			return pb.Node{}, err
 		}
 
 		points[i] = &pPb
@@ -253,7 +314,7 @@ func (n *Node) ToPb() ([]byte, error) {
 		Points: points,
 	}
 
-	return proto.Marshal(&pbNode)
+	return pbNode, nil
 }
 
 // RemoveDuplicateNodesIDParent removes duplicate nodes in list with the

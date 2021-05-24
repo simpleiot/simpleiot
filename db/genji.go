@@ -502,6 +502,8 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 // NodeDescendents returns all descendents for a particular node ID and type
 // set typ to blank string to find all descendents. Set recursive to false to
 // stop at children, true to recursively get all descendents.
+// FIXME, once recursion has been moved to client, this can return only a single
+// level of []data.Node.
 func (gen *Db) NodeDescendents(id, typ string, recursive bool) ([]data.NodeEdge, error) {
 	var nodes []data.NodeEdge
 

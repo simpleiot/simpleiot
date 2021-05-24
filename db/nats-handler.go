@@ -65,6 +65,10 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 		return nil, fmt.Errorf("Subscribe node error: %w", err)
 	}
 
+	if _, err := nc.Subscribe("node.*.children", nh.handleNodeChildren); err != nil {
+		return nil, fmt.Errorf("Subscribe node error: %w", err)
+	}
+
 	if _, err := nc.Subscribe("node.*.not", nh.handleNotification); err != nil {
 		return nil, fmt.Errorf("Subscribe notification error: %w", err)
 	}
@@ -205,6 +209,43 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 
 	if err != nil {
 		log.Println("NATS: Error publishing response to node request: ", err)
+	}
+}
+
+func (nh *NatsHandler) handleNodeChildren(msg *natsgo.Msg) {
+	chunks := strings.Split(msg.Subject, ".")
+	if len(chunks) < 3 {
+		log.Println("Error in message subject: ", msg.Subject)
+		return
+	}
+
+	nodeID := chunks[1]
+
+	nodeEdges, err := nh.db.NodeDescendents(nodeID, "", false)
+
+	if err != nil {
+		log.Printf("NATS: Error getting node %v from db: %v\n", nodeID, err)
+		// TODO should we send an error back to requester
+	}
+
+	nodes := make([]data.Node, len(nodeEdges))
+
+	for i, ne := range nodeEdges {
+		nodes[i] = ne.ToNode()
+	}
+
+	nodesT := data.Nodes(nodes)
+	data, err := nodesT.ToPb()
+
+	if err != nil {
+		log.Printf("Error pb encoding nodes: %v\n", err)
+		// TODO send error back to client
+	}
+
+	err = nh.Nc.Publish(msg.Reply, data)
+
+	if err != nil {
+		log.Println("NATS: Error publishing response to node children request: ", err)
 	}
 }
 
