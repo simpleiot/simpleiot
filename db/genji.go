@@ -395,11 +395,13 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 		for _, point := range points {
 			if point.Type == data.PointTypeNodeType {
 				node.Type = point.Text
+				// we don't encode type in points as this has its own field
+				continue
 			}
 
 			if point.Type == data.PointTypeParent {
 				parent = point.Text
-				// we don't encode parent in points
+				// we don't encode parent in points as this has its own field
 				continue
 			}
 
