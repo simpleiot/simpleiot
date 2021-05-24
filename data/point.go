@@ -3,6 +3,7 @@ package data
 import (
 	"crypto/md5"
 	"encoding/binary"
+	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -46,26 +47,33 @@ type Point struct {
 	Max float64 `json:"max,omitempty"`
 }
 
+func (p Point) String() string {
+	if p.Text != "" {
+		return fmt.Sprintf("%v: %v", p.Type, p.Text)
+	}
+	return fmt.Sprintf("%v: %v", p.Type, p.Value)
+}
+
 // ToPb encodes point in protobuf format
-func (s Point) ToPb() (pb.Point, error) {
-	ts, err := ptypes.TimestampProto(s.Time)
+func (p Point) ToPb() (pb.Point, error) {
+	ts, err := ptypes.TimestampProto(p.Time)
 	if err != nil {
 		return pb.Point{}, err
 	}
 
 	return pb.Point{
-		Type:     s.Type,
-		Id:       s.ID,
-		Value:    float32(s.Value),
-		Text:     s.Text,
+		Type:     p.Type,
+		Id:       p.ID,
+		Value:    float32(p.Value),
+		Text:     p.Text,
 		Time:     ts,
-		Duration: ptypes.DurationProto(s.Duration),
+		Duration: ptypes.DurationProto(p.Duration),
 	}, nil
 }
 
 // Bool returns a bool representation of value
-func (s *Point) Bool() bool {
-	if s.Value == 0 {
+func (p *Point) Bool() bool {
+	if p.Value == 0 {
 		return false
 	}
 	return true

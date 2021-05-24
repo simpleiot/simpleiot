@@ -2,6 +2,8 @@ package data
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/simpleiot/simpleiot/internal/pb"
@@ -44,6 +46,17 @@ type Node struct {
 	Type   string `json:"type"`
 	Hash   []byte `json:"hash"`
 	Points Points `json:"points"`
+}
+
+func (n Node) String() string {
+	ret := fmt.Sprintf("NODE: %v (%v)\n", n.ID, n.Type)
+	ret += fmt.Sprintf("  - Hash: %v\n", hex.EncodeToString(n.Hash))
+
+	for _, p := range n.Points {
+		ret += fmt.Sprintf("  - Point: %v\n", p)
+	}
+
+	return ret
 }
 
 // Desc returns Description if set, otherwise ID

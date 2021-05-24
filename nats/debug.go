@@ -58,11 +58,7 @@ func String(nc *natsgo.Conn, msg *natsgo.Msg) (string, error) {
 		}
 
 		for _, p := range points {
-			if p.Text != "" {
-				ret += fmt.Sprintf("   - POINT: %v: %v\n", p.Type, p.Text)
-			} else {
-				ret += fmt.Sprintf("   - POINT: %v: %v\n", p.Type, p.Value)
-			}
+			ret += fmt.Sprintf("   - POINT: %v\n", p)
 		}
 
 	case "not":
