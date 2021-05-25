@@ -143,13 +143,58 @@ func (up *Upstream) syncNode(id string) error {
 	if nodeUp.ID == "" {
 		log.Println("Upstream node does not exist, sending: ", id)
 		return up.sendNodeUpstream(id, "")
-		return nil
 	}
 
 	fmt.Printf("CLIFF: nodeUp: %+v\n", nodeUp)
 
 	if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
 		log.Println("root node hash differs")
+
+		// first compare points
+		// key in below map is the index of the point in the upstream node
+		upstreamProcessed := make(map[int]bool)
+
+		for _, p := range nodeLocal.Points {
+			found := false
+			for i, pUp := range nodeUp.Points {
+				if p.IsMatch(pUp.ID, pUp.Type, pUp.Index) {
+					found = true
+					if p.Time.After(pUp.Time) {
+						// need to send point upstream
+						fmt.Println("CLIFF: sending point upstream: ", p)
+						err := nats.SendPoint(up.ncUp, nodeUp.ID, p, true)
+						if err != nil {
+							log.Println("Error syncing point upstream: ", err)
+						}
+					} else if p.Time.Before(pUp.Time) {
+						// need to update point locally
+						fmt.Println("CLIFF: syncing point from upstream: ", pUp)
+						err := nats.SendPoint(up.nc, nodeLocal.ID, pUp, true)
+						if err != nil {
+							log.Println("Error syncing point from upstream: ", err)
+						}
+					}
+
+					upstreamProcessed[i] = true
+				}
+			}
+
+			if !found {
+				fmt.Println("CLIFF: sending point upstream: ", p)
+				nats.SendPoint(up.ncUp, nodeUp.ID, p, true)
+			}
+		}
+
+		// check for any points that do not exist locally
+		for i, pUp := range nodeUp.Points {
+			if _, ok := upstreamProcessed[i]; !ok {
+				fmt.Println("CLIFF: syncing point from upstream: ", pUp)
+				err := nats.SendPoint(up.nc, nodeLocal.ID, pUp, true)
+				if err != nil {
+					log.Println("Error syncing point from upstream: ", err)
+				}
+			}
+		}
 	}
 
 	return nil

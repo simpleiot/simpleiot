@@ -54,6 +54,23 @@ func (p Point) String() string {
 	return fmt.Sprintf("%v: %v", p.Type, p.Value)
 }
 
+// IsMatch returns true if the point matches the params passed in
+func (p Point) IsMatch(id, typ string, index int) bool {
+	if id != "" && id != p.ID {
+		return false
+	}
+
+	if typ != "" && typ != p.Type {
+		return false
+	}
+
+	if index != p.Index {
+		return false
+	}
+
+	return true
+}
+
 // ToPb encodes point in protobuf format
 func (p Point) ToPb() (pb.Point, error) {
 	ts, err := ptypes.TimestampProto(p.Time)
@@ -86,15 +103,7 @@ type Points []Point
 // If ID or Type are set to "", they are ignored.
 func (ps *Points) Value(id, typ string, index int) (float64, bool) {
 	for _, p := range *ps {
-		if id != "" && id != p.ID {
-			continue
-		}
-
-		if typ != "" && typ != p.Type {
-			continue
-		}
-
-		if index != p.Index {
+		if !p.IsMatch(id, typ, index) {
 			continue
 		}
 
@@ -120,15 +129,7 @@ func (ps *Points) ValueBool(id, typ string, index int) (bool, bool) {
 // If ID or Type are set to "", they are ignored.
 func (ps *Points) Text(id, typ string, index int) (string, bool) {
 	for _, p := range *ps {
-		if id != "" && id != p.ID {
-			continue
-		}
-
-		if typ != "" && typ != p.Type {
-			continue
-		}
-
-		if index != p.Index {
+		if !p.IsMatch(id, typ, index) {
 			continue
 		}
 
