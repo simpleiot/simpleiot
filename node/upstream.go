@@ -83,29 +83,11 @@ func NewUpstream(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Upstream, err
 	// FIXME -- handle when node structure changes (add/remove nodes)
 	// subscribe to remote changes for all nodes on this device
 	for _, node := range nodes {
-		subject := nats.SubjectNodePoints(node.ID)
-		sub, err := up.ncUp.Subscribe(subject, func(msg *natsgo.Msg) {
-			nodeID, points, err := nats.DecodeNodePointsMsg(msg)
-
-			if err != nil {
-				log.Println("Error decoding point: ", err)
-				return
-			}
-
-			err = nats.SendPoints(up.nc, nodeID, points, false)
-
-			if err != nil {
-				log.Println("Error sending points to local system: ", err)
-			}
-		})
-
+		err := up.addUpstreamSub(node.ID)
 		if err != nil {
 			up.Stop()
-			return nil, err
+			return nil, fmt.Errorf("Failed to add upstream sub: %v", err)
 		}
-
-		up.subUps = append(up.subUps, sub)
-
 	}
 
 	// occasionally sync nodes
@@ -119,12 +101,37 @@ func NewUpstream(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Upstream, err
 
 			fetchedOnce = true
 
-			fmt.Println("CLIFF: syncing upstream")
 			up.syncNode(rootID)
 		}
 	}()
 
 	return up, nil
+}
+
+func (up *Upstream) addUpstreamSub(nodeID string) error {
+	subject := nats.SubjectNodePoints(nodeID)
+	sub, err := up.ncUp.Subscribe(subject, func(msg *natsgo.Msg) {
+		nodeID, points, err := nats.DecodeNodePointsMsg(msg)
+
+		if err != nil {
+			log.Println("Error decoding point: ", err)
+			return
+		}
+
+		err = nats.SendPoints(up.nc, nodeID, points, false)
+
+		if err != nil {
+			log.Println("Error sending points to local system: ", err)
+		}
+	})
+
+	if err != nil {
+		return err
+	}
+
+	up.subUps = append(up.subUps, sub)
+
+	return nil
 }
 
 func (up *Upstream) syncNode(id string) error {
@@ -133,8 +140,6 @@ func (up *Upstream) syncNode(id string) error {
 		return fmt.Errorf("Error getting local node: %v", err)
 	}
 
-	fmt.Printf("CLIFF: nodeLocal: %+v\n", nodeLocal)
-
 	nodeUp, err := nats.GetNode(up.ncUp, id)
 	if err != nil {
 		return fmt.Errorf("Error getting upstream root node: %v", err)
@@ -142,10 +147,8 @@ func (up *Upstream) syncNode(id string) error {
 
 	if nodeUp.ID == "" {
 		log.Println("Upstream node does not exist, sending: ", id)
-		return up.sendNodeUpstream(id, "")
+		return nats.SendNode(up.nc, up.ncUp, id, "")
 	}
-
-	fmt.Printf("CLIFF: nodeUp: %+v\n", nodeUp)
 
 	if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
 		log.Println("root node hash differs")
@@ -159,28 +162,24 @@ func (up *Upstream) syncNode(id string) error {
 			for i, pUp := range nodeUp.Points {
 				if p.IsMatch(pUp.ID, pUp.Type, pUp.Index) {
 					found = true
+					upstreamProcessed[i] = true
 					if p.Time.After(pUp.Time) {
 						// need to send point upstream
-						fmt.Println("CLIFF: sending point upstream: ", p)
 						err := nats.SendPoint(up.ncUp, nodeUp.ID, p, true)
 						if err != nil {
 							log.Println("Error syncing point upstream: ", err)
 						}
 					} else if p.Time.Before(pUp.Time) {
 						// need to update point locally
-						fmt.Println("CLIFF: syncing point from upstream: ", pUp)
 						err := nats.SendPoint(up.nc, nodeLocal.ID, pUp, true)
 						if err != nil {
 							log.Println("Error syncing point from upstream: ", err)
 						}
 					}
-
-					upstreamProcessed[i] = true
 				}
 			}
 
 			if !found {
-				fmt.Println("CLIFF: sending point upstream: ", p)
 				nats.SendPoint(up.ncUp, nodeUp.ID, p, true)
 			}
 		}
@@ -188,56 +187,70 @@ func (up *Upstream) syncNode(id string) error {
 		// check for any points that do not exist locally
 		for i, pUp := range nodeUp.Points {
 			if _, ok := upstreamProcessed[i]; !ok {
-				fmt.Println("CLIFF: syncing point from upstream: ", pUp)
 				err := nats.SendPoint(up.nc, nodeLocal.ID, pUp, true)
 				if err != nil {
 					log.Println("Error syncing point from upstream: ", err)
 				}
+
 			}
 		}
-	}
 
-	return nil
-}
-
-// sendNodeUpstream sends complete node upstream and any child nodes
-func (up *Upstream) sendNodeUpstream(id, parent string) error {
-	node, err := nats.GetNode(up.nc, id)
-	if err != nil {
-		return fmt.Errorf("Error getting local node: %v", err)
-	}
-
-	points := node.Points
-
-	points = append(points, data.Point{
-		Type: data.PointTypeNodeType,
-		Text: node.Type,
-	})
-
-	if parent != "" {
-		points = append(points, data.Point{
-			Type: data.PointTypeParent,
-			Text: parent,
-		})
-	}
-
-	err = nats.SendPoints(up.ncUp, id, points, true)
-
-	if err != nil {
-		return fmt.Errorf("Error sending node upstream: %v", err)
-	}
-
-	// process child nodes
-	childNodes, err := nats.GetNodeChildren(up.nc, id)
-	if err != nil {
-		return fmt.Errorf("Error getting node children: %v", err)
-	}
-
-	for _, childNode := range childNodes {
-		err := up.sendNodeUpstream(childNode.ID, id)
-
+		// sync child nodes
+		children, err := nats.GetNodeChildren(up.nc, nodeLocal.ID)
 		if err != nil {
-			return fmt.Errorf("Error sending child node: %v", err)
+			return fmt.Errorf("Error getting local node children: %v", err)
+		}
+
+		upChildren, err := nats.GetNodeChildren(up.ncUp, nodeUp.ID)
+		if err != nil {
+			return fmt.Errorf("Error getting upstream node children: %v", err)
+		}
+
+		// map index is index of upChildren
+		upChildProcessed := make(map[int]bool)
+
+		for _, child := range children {
+			found := false
+			for i, upChild := range upChildren {
+				if child.ID == upChild.ID {
+					found = true
+					upChildProcessed[i] = true
+					if bytes.Compare(child.Hash, upChild.Hash) != 0 {
+						err := up.syncNode(child.ID)
+						if err != nil {
+							fmt.Println("Error syncing node: ", err)
+						}
+					}
+				}
+			}
+
+			if !found {
+				// need to send node upstream
+				err := nats.SendNode(up.nc, up.ncUp, child.ID, nodeLocal.ID)
+
+				if err != nil {
+					log.Println("Error sending node upstream: ", err)
+				}
+
+				err = up.addUpstreamSub(nodeLocal.ID)
+				if err != nil {
+					log.Println("Error subscribing to upstream node: ", err)
+				}
+			}
+		}
+
+		for i, upChild := range upChildren {
+			if _, ok := upChildProcessed[i]; !ok {
+				err := nats.SendNode(up.ncUp, up.nc, upChild.ID, nodeUp.ID)
+				if err != nil {
+					log.Println("Error getting node from upstream: ", err)
+				}
+
+				err = up.addUpstreamSub(nodeLocal.ID)
+				if err != nil {
+					log.Println("Error subscribing to upstream node: ", err)
+				}
+			}
 		}
 	}
 

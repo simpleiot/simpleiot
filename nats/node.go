@@ -1,6 +1,7 @@
 package nats
 
 import (
+	"fmt"
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
@@ -37,4 +38,48 @@ func GetNodeChildren(nc *natsgo.Conn, id string) ([]data.Node, error) {
 	}
 
 	return nodes, nil
+}
+
+// SendNode is used to recursively send a node and children over nats
+func SendNode(src, dest *natsgo.Conn, id, parent string) error {
+	node, err := GetNode(src, id)
+	if err != nil {
+		return fmt.Errorf("Error getting local node: %v", err)
+	}
+
+	points := node.Points
+
+	points = append(points, data.Point{
+		Type: data.PointTypeNodeType,
+		Text: node.Type,
+	})
+
+	if parent != "" {
+		points = append(points, data.Point{
+			Type: data.PointTypeParent,
+			Text: parent,
+		})
+	}
+
+	err = SendPoints(dest, id, points, true)
+
+	if err != nil {
+		return fmt.Errorf("Error sending node upstream: %v", err)
+	}
+
+	// process child nodes
+	childNodes, err := GetNodeChildren(src, id)
+	if err != nil {
+		return fmt.Errorf("Error getting node children: %v", err)
+	}
+
+	for _, childNode := range childNodes {
+		err := SendNode(src, dest, childNode.ID, id)
+
+		if err != nil {
+			return fmt.Errorf("Error sending child node: %v", err)
+		}
+	}
+
+	return nil
 }
