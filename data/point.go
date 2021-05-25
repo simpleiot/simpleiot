@@ -187,7 +187,9 @@ func (ps *Points) ProcessPoint(pIn Point) {
 	for i, p := range *ps {
 		if p.ID == pIn.ID && p.Type == pIn.Type && p.Index == pIn.Index {
 			pFound = true
-			(*ps)[i] = pIn
+			if pIn.Time.After(p.Time) {
+				(*ps)[i] = pIn
+			}
 		}
 	}
 
