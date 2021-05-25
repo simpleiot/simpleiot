@@ -670,10 +670,66 @@ func (gen *Db) EdgeCopy(id, newParent string) error {
 
 type privilege string
 
+// minDistToRoot is used to calculate the minimum distance to the root node
+func (gen *Db) minDistToRoot(id string) (int, error) {
+	ret := 0
+	err := gen.store.View(func(tx *genji.Tx) error {
+		var countUp func(string, int) (int, error)
+
+		// recursive function to find the shortest distance to root node
+		countUp = func(id string, count int) (int, error) {
+			if gen.RootNodeID() == id {
+				return count, nil
+			}
+
+			cnt := 10000000
+			ups, err := txEdgeUp(tx, id)
+			if err != nil {
+				return count, err
+			}
+
+			for _, up := range ups {
+				c, err := countUp(up, count+1)
+				if err != nil {
+					return count, err
+				}
+				if c < cnt {
+					cnt = c
+				}
+			}
+
+			return cnt, nil
+		}
+
+		var err error
+		ret, err = countUp(id, 0)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return ret, err
+}
+
+type userDistRoot struct {
+	distRoot int
+	user     data.User
+}
+
+// we want to use the one closest to the root node for authentication
+type byDistRoot []userDistRoot
+
+// implement sort interface
+func (b byDistRoot) Len() int           { return len(b) }
+func (b byDistRoot) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
+func (b byDistRoot) Less(i, j int) bool { return b[i].distRoot < b[j].distRoot }
+
 // UserCheck checks user authentication
 // returns nil, nil if user is not found
 func (gen *Db) UserCheck(email, password string) (*data.User, error) {
-	var user data.User
+	var users []userDistRoot
 
 	res, err := gen.store.Query(`select * from nodes where type = ?`, data.NodeTypeUser)
 	if err != nil {
@@ -696,14 +752,19 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 		u := node.ToUser()
 
 		if u.Email == email && u.Pass == password {
-			user = u
+			distRoot, err := gen.minDistToRoot(u.ID)
+			if err != nil {
+				log.Println("Error getting dist to root: ", err)
+			}
+			users = append(users, userDistRoot{distRoot, u})
 		}
 
 		return nil
 	})
 
-	if user.ID != "" {
-		return &user, err
+	if len(users) > 0 {
+		sort.Sort(byDistRoot(users))
+		return &users[0].user, err
 	}
 
 	return nil, err
