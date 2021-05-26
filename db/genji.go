@@ -372,8 +372,9 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 	return gen.store.Update(func(tx *genji.Tx) error {
 		var node data.Node
-		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
 		found := false
+
+		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
 
 		if err != nil {
 			if err == database.ErrDocumentNotFound {
@@ -455,6 +456,25 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 			if err != nil {
 				return err
+			}
+
+			if parent != "" {
+				// make sure edge node to parent exists
+				_, err := tx.QueryDocument(`select * from edges where up = ? and down = ?`,
+					parent, id)
+
+				if err != nil {
+					if err == database.ErrDocumentNotFound {
+						err := txEdgeInsert(tx, &data.Edge{
+							Up: parent, Down: id})
+
+						if err != nil {
+							return err
+						}
+					} else {
+						return err
+					}
+				}
 			}
 		}
 
