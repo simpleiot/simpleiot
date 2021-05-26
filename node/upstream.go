@@ -146,12 +146,12 @@ func (up *Upstream) syncNode(id string) error {
 	}
 
 	if nodeUp.ID == "" {
-		log.Println("Upstream node does not exist, sending: ", id)
+		log.Printf("Upstream node %v does not exist, sending\n", nodeLocal.Desc())
 		return nats.SendNode(up.nc, up.ncUp, id, "")
 	}
 
 	if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
-		log.Println("root node hash differs")
+		log.Println("syncing node: ", nodeLocal.Desc())
 
 		// first compare points
 		// key in below map is the index of the point in the upstream node
