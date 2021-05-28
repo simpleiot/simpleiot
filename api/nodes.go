@@ -115,7 +115,11 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := h.db.NodeDelete(id, nodeDelete.Parent)
+			err := nats.SendPoint(h.nc, id, data.Point{
+				Type: data.PointTypeRemoveParent,
+				Text: nodeDelete.Parent,
+			}, false)
+
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
@@ -144,8 +148,17 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				http.Error(res, err.Error(), http.StatusBadRequest)
 				return
 			}
-			err := h.db.EdgeMove(nodeMove.ID, nodeMove.OldParent,
-				nodeMove.NewParent)
+			err := nats.SendPoints(h.nc, nodeMove.ID, data.Points{
+				{
+					Type: data.PointTypeRemoveParent,
+					Text: nodeMove.OldParent,
+				},
+				{
+					Type: data.PointTypeAddParent,
+					Text: nodeMove.NewParent,
+				},
+			}, false)
+
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
@@ -160,8 +173,11 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				http.Error(res, err.Error(), http.StatusBadRequest)
 				return
 			}
-			err := h.db.EdgeCopy(nodeCopy.ID,
-				nodeCopy.NewParent)
+			err := nats.SendPoint(h.nc, nodeCopy.ID, data.Point{
+				Type: data.PointTypeAddParent,
+				Text: nodeCopy.NewParent,
+			}, false)
+
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
@@ -226,7 +242,7 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
 	})
 
 	node.Points = append(node.Points, data.Point{
-		Type: data.PointTypeParent,
+		Type: data.PointTypeAddParent,
 		Text: node.Parent,
 	})
 

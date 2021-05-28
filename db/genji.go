@@ -184,13 +184,13 @@ func txNode(tx *genji.Tx, id string) (data.Node, error) {
 func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool) ([]data.NodeEdge, error) {
 	var nodes []data.NodeEdge
 
-	downIDs, err := txEdgeDown(tx, id)
+	downNodes, err := txEdgeDown(tx, id)
 	if err != nil {
 		return nodes, err
 	}
 
-	for _, downID := range downIDs {
-		node, err := txNode(tx, downID)
+	for _, downNode := range downNodes {
+		node, err := txNode(tx, downNode.id)
 		if err != nil {
 			if err != database.ErrDocumentNotFound {
 				// something bad happened
@@ -198,14 +198,14 @@ func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool) ([]data.Node
 			}
 			// else something is minorly wrong with db, print
 			// error and return
-			log.Println("Error finding node: ", downID)
+			log.Println("Error finding node: ", downNode.id)
 			continue
 		}
 
-		nodes = append(nodes, node.ToNodeEdge(id))
+		nodes = append(nodes, node.ToNodeEdge(id, downNode.tombstone))
 
-		if recursive {
-			downNodes, err := txNodeFindDescendents(tx, downID, true)
+		if recursive && !downNode.tombstone {
+			downNodes, err := txNodeFindDescendents(tx, downNode.id, true)
 			if err != nil {
 				return nodes, err
 			}
@@ -265,8 +265,8 @@ func (gen *Db) Nodes() ([]data.Node, error) {
 	return nodes, err
 }
 
-// NodeInsert is used to insert a node into the database
-func (gen *Db) NodeInsert(node data.Node) (string, error) {
+// nodeInsert is used to insert a node into the database
+func (gen *Db) nodeInsert(node data.Node) (string, error) {
 	if node.ID == "" {
 		node.ID = uuid.New().String()
 	}
@@ -280,10 +280,14 @@ func txNodeDelete(tx *genji.Tx, id, parent string) error {
 		return err
 	}
 
-	err = tx.Exec(`delete from edges where down = ? and up = ?`, id, parent)
+	err = tx.Exec(`update edges set tombstone = true where down = ? and up = ?`, id, parent)
 	if err != nil {
 		return err
 	}
+
+	_ = upIDs
+
+	/* for now we just leave all delete nodes in db -- we may change this later
 
 	if len(upIDs) > 1 {
 		// there are still other nodes using this node
@@ -305,16 +309,9 @@ func txNodeDelete(tx *genji.Tx, id, parent string) error {
 	if err != nil {
 		return err
 	}
+	*/
 
 	return nil
-}
-
-// NodeDelete deletes a node from the database and recursively all
-// descendents
-func (gen *Db) NodeDelete(id, parent string) error {
-	return gen.store.Update(func(tx *genji.Tx) error {
-		return txNodeDelete(tx, id, parent)
-	})
 }
 
 var uuidZero uuid.UUID
@@ -391,7 +388,8 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 			found = true
 		}
 
-		parent := ""
+		addParent := ""
+		removeParent := ""
 
 		for _, point := range points {
 			if point.Type == data.PointTypeNodeType {
@@ -400,8 +398,14 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 				continue
 			}
 
-			if point.Type == data.PointTypeParent {
-				parent = point.Text
+			if point.Type == data.PointTypeAddParent {
+				addParent = point.Text
+				// we don't encode parent in points as this has its own field
+				continue
+			}
+
+			if point.Type == data.PointTypeRemoveParent {
+				removeParent = point.Text
 				// we don't encode parent in points as this has its own field
 				continue
 			}
@@ -439,12 +443,12 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 				gen.meta.RootID = node.ID
 				gen.lock.Unlock()
 			} else {
-				if parent == "" {
-					parent = gen.meta.RootID
+				if addParent == "" {
+					addParent = gen.meta.RootID
 				}
 
 				err := txEdgeInsert(tx, &data.Edge{
-					Up: parent, Down: id})
+					Up: addParent, Down: id})
 
 				if err != nil {
 					return err
@@ -458,23 +462,21 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 				return err
 			}
 
-			if parent != "" {
+			if addParent != "" {
 				// make sure edge node to parent exists
-				_, err := tx.QueryDocument(`select * from edges where up = ? and down = ?`,
-					parent, id)
+				err := txEdgeInsert(tx, &data.Edge{
+					Up: addParent, Down: id})
 
 				if err != nil {
-					if err == database.ErrDocumentNotFound {
-						err := txEdgeInsert(tx, &data.Edge{
-							Up: parent, Down: id})
-
-						if err != nil {
-							return err
-						}
-					} else {
-						return err
-					}
+					return err
 				}
+			}
+		}
+
+		if removeParent != "" {
+			err := txNodeDelete(tx, id, removeParent)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -503,7 +505,7 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 			if err != nil {
 				return err
 			}
-			nodes = append(nodes, rootNode.ToNodeEdge(""))
+			nodes = append(nodes, rootNode.ToNodeEdge("", false))
 
 			childNodes, err := txNodeFindDescendents(tx, id, true)
 			if err != nil {
@@ -554,15 +556,29 @@ func (gen *Db) NodeDescendents(id, typ string, recursive bool) ([]data.NodeEdge,
 }
 
 func txEdgeInsert(tx *genji.Tx, edge *data.Edge) error {
-	if edge.ID == "" {
-		edge.ID = uuid.New().String()
+	_, err := tx.QueryDocument(`select * from edges where up = ? and down = ?`,
+		edge.Up, edge.Down)
+
+	if err != nil {
+		if err == database.ErrDocumentNotFound {
+			// create the edge entry
+			if edge.ID == "" {
+				edge.ID = uuid.New().String()
+			}
+
+			return tx.Exec(`insert into edges values ?`, edge)
+		}
+
+		return err
 	}
 
-	return tx.Exec(`insert into edges values ?`, edge)
+	// edge already exists, make sure tombstone field is false
+	return tx.Exec(`update edges set tombstone = true where up = ? and down = ?`,
+		edge.Up, edge.Down)
 }
 
-// EdgeInsert is used to insert an edge into the database
-func (gen *Db) EdgeInsert(edge data.Edge) (string, error) {
+// edgeInsert is used to insert an edge into the database
+func (gen *Db) edgeInsert(edge data.Edge) (string, error) {
 	err := gen.store.Update(func(tx *genji.Tx) error {
 		return txEdgeInsert(tx, &edge)
 	})
@@ -599,10 +615,10 @@ func (gen *Db) edges() ([]data.Edge, error) {
 	return edges, err
 }
 
-// find upstream nodes
+// find upstream nodes. Does not include tombstoned edges.
 func txEdgeUp(tx *genji.Tx, nodeID string) ([]string, error) {
 	var ret []string
-	res, err := tx.Query(`select * from edges where down = ?`, nodeID)
+	res, err := tx.Query(`select * from edges where down = ? and tombstone = false`, nodeID)
 	if err != nil {
 		return ret, err
 	}
@@ -622,9 +638,14 @@ func txEdgeUp(tx *genji.Tx, nodeID string) ([]string, error) {
 	return ret, err
 }
 
+type downNode struct {
+	id        string
+	tombstone bool
+}
+
 // find downstream nodes
-func txEdgeDown(tx *genji.Tx, nodeID string) ([]string, error) {
-	var ret []string
+func txEdgeDown(tx *genji.Tx, nodeID string) ([]downNode, error) {
+	var ret []downNode
 	res, err := tx.Query(`select * from edges where up = ?`, nodeID)
 	if err != nil {
 		if err != database.ErrDocumentNotFound {
@@ -643,14 +664,15 @@ func txEdgeDown(tx *genji.Tx, nodeID string) ([]string, error) {
 			return err
 		}
 
-		ret = append(ret, edge.Down)
+		ret = append(ret, downNode{edge.Down, edge.Tombstone})
 		return nil
 	})
 
 	return ret, err
 }
 
-// EdgeUp returns an array of upstream nodes for a node
+// EdgeUp returns an array of upstream nodes for a node. Does not include
+// tombstoned edges.
 func (gen *Db) EdgeUp(nodeID string) ([]string, error) {
 	var ret []string
 
@@ -661,31 +683,6 @@ func (gen *Db) EdgeUp(nodeID string) ([]string, error) {
 	})
 
 	return ret, err
-}
-
-// EdgeMove is used to change a nodes parent
-func (gen *Db) EdgeMove(id, oldParent, newParent string) error {
-	return gen.store.Update(func(tx *genji.Tx) error {
-		err := tx.Exec(`delete from edges where up = ? and down = ?`,
-			oldParent, id)
-
-		if err != nil {
-			if err != database.ErrDocumentNotFound {
-				return err
-			}
-
-			log.Println("Could not find old parent node: ", oldParent)
-		}
-
-		return txEdgeInsert(tx, &data.Edge{Up: newParent, Down: id})
-	})
-}
-
-// EdgeCopy is used to copy a node
-func (gen *Db) EdgeCopy(id, newParent string) error {
-	return gen.store.Update(func(tx *genji.Tx) error {
-		return txEdgeInsert(tx, &data.Edge{Up: newParent, Down: id})
-	})
 }
 
 type privilege string
@@ -824,14 +821,14 @@ func ImportDb(gen *Db, in io.Reader) error {
 	}
 
 	for _, n := range dump.Nodes {
-		_, err := gen.NodeInsert(n)
+		_, err := gen.nodeInsert(n)
 		if err != nil {
 			return fmt.Errorf("Error inserting node (%+v): %w", n, err)
 		}
 	}
 
 	for _, e := range dump.Edges {
-		_, err := gen.EdgeInsert(e)
+		_, err := gen.edgeInsert(e)
 		if err != nil {
 			return fmt.Errorf("Error inserting edge (%+v): %w", e, err)
 		}
