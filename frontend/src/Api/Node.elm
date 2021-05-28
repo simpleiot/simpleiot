@@ -118,6 +118,7 @@ type alias Node =
     , typ : String
     , parent : String
     , points : List Point
+    , tombstone : Bool
     }
 
 
@@ -166,6 +167,7 @@ decode =
         |> required "type" Decode.string
         |> required "parent" Decode.string
         |> optional "points" (Decode.list Point.decode) []
+        |> required "tombstone" Decode.bool
 
 
 decodeCmd : Decode.Decoder NodeCmd

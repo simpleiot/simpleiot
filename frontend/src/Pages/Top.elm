@@ -350,6 +350,7 @@ update msg model =
                                             Point.typeDescription
                                             "New, please edit"
                                         ]
+                                    , tombstone = False
                                     }
                                 }
                             )
@@ -991,7 +992,7 @@ viewNodesHelp depth model tree =
                 childNode =
                     Tree.label child
             in
-            if shouldDisplay childNode.node.typ then
+            if shouldDisplay childNode.node.typ && not node.node.tombstone then
                 ret
                     ++ viewNode model (Just node) childNode depth
                     :: viewNodesHelp (depth + 1) model child
