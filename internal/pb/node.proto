@@ -10,6 +10,7 @@ message Node {
     string type = 2;
     repeated Point points = 3;
     bytes hash = 4;
+    bool tombstone = 5;
 }
 
 message Nodes {

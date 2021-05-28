@@ -99,6 +99,26 @@ func (p *Point) Bool() bool {
 // Points is an array of Point
 type Points []Point
 
+// Desc returns a Description of a set of points
+func (ps Points) Desc() string {
+	firstName, _ := ps.Text("", PointTypeFirstName, 0)
+	if firstName != "" {
+		lastName, _ := ps.Text("", PointTypeLastName, 0)
+		if lastName == "" {
+			return firstName
+		}
+
+		return firstName + " " + lastName
+	}
+
+	desc, _ := ps.Text("", PointTypeDescription, 0)
+	if desc != "" {
+		return desc
+	}
+
+	return ""
+}
+
 // Value fetches a value from an array of points given ID, Type, and Index.
 // If ID or Type are set to "", they are ignored.
 func (ps *Points) Value(id, typ string, index int) (float64, bool) {

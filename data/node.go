@@ -42,10 +42,11 @@ func (sws *SwUpdateState) Points() Points {
 // Node represents the state of a device. UUID is recommended
 // for ID to prevent collisions is distributed instances.
 type Node struct {
-	ID     string `json:"id" boltholdKey:"ID"`
-	Type   string `json:"type"`
-	Hash   []byte `json:"hash"`
-	Points Points `json:"points"`
+	ID        string `json:"id" boltholdKey:"ID"`
+	Type      string `json:"type"`
+	Hash      []byte `json:"hash"`
+	Points    Points `json:"points"`
+	Tombstone bool   `json:"tombstone"`
 }
 
 func (n Node) String() string {
@@ -61,17 +62,8 @@ func (n Node) String() string {
 
 // Desc returns Description if set, otherwise ID
 func (n *Node) Desc() string {
-	firstName, _ := n.Points.Text("", PointTypeFirstName, 0)
-	if firstName != "" {
-		lastName, _ := n.Points.Text("", PointTypeLastName, 0)
-		if lastName == "" {
-			return firstName
-		}
+	desc := n.Points.Desc()
 
-		return firstName + " " + lastName
-	}
-
-	desc, _ := n.Points.Text("", PointTypeDescription, 0)
 	if desc != "" {
 		return desc
 	}
@@ -127,13 +119,14 @@ func (n *Node) ToUser() User {
 
 // ToNodeEdge converts to data structure used in API
 // requests
-func (n *Node) ToNodeEdge(parent string) NodeEdge {
+func (n *Node) ToNodeEdge(parent string, tombstone bool) NodeEdge {
 	return NodeEdge{
-		ID:     n.ID,
-		Type:   n.Type,
-		Parent: parent,
-		Points: n.Points,
-		Hash:   n.Hash,
+		ID:        n.ID,
+		Type:      n.Type,
+		Parent:    parent,
+		Points:    n.Points,
+		Hash:      n.Hash,
+		Tombstone: tombstone,
 	}
 }
 
@@ -149,7 +142,7 @@ func (nodes *Nodes) ToPb() ([]byte, error) {
 			return nil, err
 		}
 
-		pbNodes[i] = &nPb
+		pbNodes[i] = nPb
 	}
 
 	return proto.Marshal(&pb.Nodes{Nodes: pbNodes})
@@ -183,11 +176,23 @@ type NodeVersion struct {
 
 // NodeEdge combines node and edge data, used for APIs
 type NodeEdge struct {
-	ID     string `json:"id" boltholdKey:"ID"`
-	Type   string `json:"type"`
-	Hash   []byte `json:"hash"`
-	Parent string `json:"parent"`
-	Points Points `json:"points"`
+	ID        string `json:"id" boltholdKey:"ID"`
+	Type      string `json:"type"`
+	Hash      []byte `json:"hash"`
+	Parent    string `json:"parent"`
+	Points    Points `json:"points"`
+	Tombstone bool   `json:"tombstone"`
+}
+
+// Desc returns Description if set, otherwise ID
+func (n NodeEdge) Desc() string {
+	desc := n.Points.Desc()
+
+	if desc != "" {
+		return desc
+	}
+
+	return n.ID
 }
 
 // ToNode converts to structure stored in db
@@ -228,49 +233,50 @@ func (a ByHash) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByHash) Less(i, j int) bool { return bytesLess(a[i].Hash, a[j].Hash) }
 
 // PbDecodeNode converts a protobuf to node data structure
-func PbDecodeNode(data []byte) (Node, error) {
+func PbDecodeNode(data []byte) (NodeEdge, error) {
 	pbNode := &pb.Node{}
 
 	err := proto.Unmarshal(data, pbNode)
 	if err != nil {
-		return Node{}, err
+		return NodeEdge{}, err
 	}
 
 	return PbToNode(pbNode)
 }
 
 // PbToNode converts pb node to node
-func PbToNode(pbNode *pb.Node) (Node, error) {
+func PbToNode(pbNode *pb.Node) (NodeEdge, error) {
 
 	points := make([]Point, len(pbNode.Points))
 
 	for i, pPb := range pbNode.Points {
 		s, err := PbToPoint(pPb)
 		if err != nil {
-			return Node{}, err
+			return NodeEdge{}, err
 		}
 		points[i] = s
 	}
 
-	ret := Node{
-		ID:     pbNode.Id,
-		Type:   pbNode.Type,
-		Hash:   pbNode.Hash,
-		Points: points,
+	ret := NodeEdge{
+		ID:        pbNode.Id,
+		Type:      pbNode.Type,
+		Hash:      pbNode.Hash,
+		Points:    points,
+		Tombstone: pbNode.Tombstone,
 	}
 
 	return ret, nil
 }
 
 // PbDecodeNodes decode probuf encoded nodes
-func PbDecodeNodes(data []byte) ([]Node, error) {
+func PbDecodeNodes(data []byte) ([]NodeEdge, error) {
 	pbNodes := &pb.Nodes{}
 	err := proto.Unmarshal(data, pbNodes)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := make([]Node, len(pbNodes.Nodes))
+	ret := make([]NodeEdge, len(pbNodes.Nodes))
 
 	for i, nPb := range pbNodes.Nodes {
 		ret[i], err = PbToNode(nPb)
@@ -291,27 +297,28 @@ func (n *Node) ToPb() ([]byte, error) {
 		return nil, err
 	}
 
-	return proto.Marshal(&pbNode)
+	return proto.Marshal(pbNode)
 }
 
 // ToPbNode converts a node to pb.Node type
-func (n *Node) ToPbNode() (pb.Node, error) {
+func (n *Node) ToPbNode() (*pb.Node, error) {
 	points := make([]*pb.Point, len(n.Points))
 
 	for i, p := range n.Points {
 		pPb, err := p.ToPb()
 		if err != nil {
-			return pb.Node{}, err
+			return &pb.Node{}, err
 		}
 
 		points[i] = &pPb
 	}
 
-	pbNode := pb.Node{
-		Id:     n.ID,
-		Type:   n.Type,
-		Hash:   n.Hash,
-		Points: points,
+	pbNode := &pb.Node{
+		Id:        n.ID,
+		Type:      n.Type,
+		Hash:      n.Hash,
+		Points:    points,
+		Tombstone: n.Tombstone,
 	}
 
 	return pbNode, nil

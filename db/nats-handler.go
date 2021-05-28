@@ -301,7 +301,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 
 	if node.Type == data.NodeTypeUser {
 		// if we notify a user node, we only want to message this node, and not walk up the tree
-		nodeEdge := node.ToNodeEdge(not.Parent)
+		nodeEdge := node.ToNodeEdge(not.Parent, false)
 		userNodes = append(userNodes, nodeEdge)
 	} else {
 		findUsers(nodeID)

@@ -9,23 +9,23 @@ import (
 )
 
 // GetNode over NATS
-func GetNode(nc *natsgo.Conn, id string) (data.Node, error) {
+func GetNode(nc *natsgo.Conn, id string) (data.NodeEdge, error) {
 	nodeMsg, err := nc.Request("node."+id, nil, time.Second*20)
 	if err != nil {
-		return data.Node{}, err
+		return data.NodeEdge{}, err
 	}
 
 	node, err := data.PbDecodeNode(nodeMsg.Data)
 
 	if err != nil {
-		return data.Node{}, err
+		return data.NodeEdge{}, err
 	}
 
 	return node, nil
 }
 
 // GetNodeChildren over NATS (immediate children only, not recursive)
-func GetNodeChildren(nc *natsgo.Conn, id string) ([]data.Node, error) {
+func GetNodeChildren(nc *natsgo.Conn, id string) ([]data.NodeEdge, error) {
 	nodeMsg, err := nc.Request("node."+id+".children", nil, time.Second*20)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func SendNode(src, dest *natsgo.Conn, id, parent string) error {
 
 	if parent != "" {
 		points = append(points, data.Point{
-			Type: data.PointTypeParent,
+			Type: data.PointTypeAddParent,
 			Text: parent,
 		})
 	}
