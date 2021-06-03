@@ -816,7 +816,7 @@ populateHasChildren parentID tree =
         hasChildren =
             List.foldr
                 (\child count ->
-                    if child.node.tombstone then
+                    if (Tree.label child).node.tombstone then
                         count
 
                     else
