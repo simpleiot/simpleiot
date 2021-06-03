@@ -814,7 +814,17 @@ populateHasChildren parentID tree =
             Tree.children tree
 
         hasChildren =
-            List.length children > 0
+            List.foldr
+                (\child count ->
+                    if child.node.tombstone then
+                        count
+
+                    else
+                        count + 1
+                )
+                0
+                children
+                > 0
 
         label =
             Tree.label tree
@@ -992,7 +1002,7 @@ viewNodesHelp depth model tree =
                 childNode =
                     Tree.label child
             in
-            if shouldDisplay childNode.node.typ && not node.node.tombstone then
+            if shouldDisplay childNode.node.typ && not childNode.node.tombstone then
                 ret
                     ++ viewNode model (Just node) childNode depth
                     :: viewNodesHelp (depth + 1) model child
