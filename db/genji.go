@@ -180,9 +180,13 @@ func txNode(tx *genji.Tx, id string) (data.Node, error) {
 	return node, err
 }
 
-// recurisively find all descendents
-func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool) ([]data.NodeEdge, error) {
+// recurisively find all descendents -- level is used to limit recursion
+func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool, level int) ([]data.NodeEdge, error) {
 	var nodes []data.NodeEdge
+
+	if level > 100 {
+		return nodes, errors.New("Error: txNodeFindDescendents, recursion limit reached")
+	}
 
 	downNodes, err := txEdgeDown(tx, id)
 	if err != nil {
@@ -205,7 +209,7 @@ func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool) ([]data.Node
 		nodes = append(nodes, node.ToNodeEdge(id, downNode.tombstone))
 
 		if recursive && !downNode.tombstone {
-			downNodes, err := txNodeFindDescendents(tx, downNode.id, true)
+			downNodes, err := txNodeFindDescendents(tx, downNode.id, true, level+1)
 			if err != nil {
 				return nodes, err
 			}
@@ -338,7 +342,7 @@ func (gen *Db) nodeUpdateHash(id string) error {
 		}
 
 		// get child nodes
-		childNodes, err := txNodeFindDescendents(tx, node.ID, false)
+		childNodes, err := txNodeFindDescendents(tx, node.ID, false, 0)
 
 		if err != nil {
 			return err
@@ -507,7 +511,7 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 			}
 			nodes = append(nodes, rootNode.ToNodeEdge("", false))
 
-			childNodes, err := txNodeFindDescendents(tx, id, true)
+			childNodes, err := txNodeFindDescendents(tx, id, true, 0)
 			if err != nil {
 				return err
 			}
@@ -530,7 +534,7 @@ func (gen *Db) NodeDescendents(id, typ string, recursive bool) ([]data.NodeEdge,
 	var nodes []data.NodeEdge
 
 	err := gen.store.View(func(tx *genji.Tx) error {
-		childNodes, err := txNodeFindDescendents(tx, id, recursive)
+		childNodes, err := txNodeFindDescendents(tx, id, recursive, 0)
 		if err != nil {
 			return err
 		}
@@ -573,7 +577,7 @@ func txEdgeInsert(tx *genji.Tx, edge *data.Edge) error {
 	}
 
 	// edge already exists, make sure tombstone field is false
-	return tx.Exec(`update edges set tombstone = true where up = ? and down = ?`,
+	return tx.Exec(`update edges set tombstone = false where up = ? and down = ?`,
 		edge.Up, edge.Down)
 }
 
@@ -851,12 +855,12 @@ func DumpDb(gen *Db, out io.Writer) error {
 
 	dump.Nodes, err = gen.Nodes()
 	if err != nil {
-		return err
+		return fmt.Errorf("Error getting nodes: %v", err)
 	}
 
 	dump.Edges, err = gen.edges()
 	if err != nil {
-		return err
+		return fmt.Errorf("Error getting edges: %v", err)
 	}
 
 	dump.Meta = gen.meta
@@ -864,5 +868,11 @@ func DumpDb(gen *Db, out io.Writer) error {
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "   ")
 
-	return encoder.Encode(dump)
+	err = encoder.Encode(dump)
+
+	if err != nil {
+		return fmt.Errorf("Error encoding: %v", err)
+	}
+
+	return nil
 }
