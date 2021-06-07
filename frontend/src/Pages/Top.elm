@@ -32,7 +32,7 @@ import Spa.Url exposing (Url)
 import Task
 import Time
 import Tree exposing (Tree)
-import Tree.Zipper as Zipper exposing (Zipper)
+import Tree.Zipper as Zipper
 import UI.Button as Button
 import UI.Form as Form
 import UI.Icon as Icon
@@ -751,17 +751,24 @@ nodeListToTrees nodes =
         nodes
 
 
-
--- populateChildren takes a list of nodes with a parent field and converts
--- this into a tree
-
-
 populateChildren : List Node -> Node -> Tree NodeView
 populateChildren nodes root =
-    Zipper.toTree <|
-        populateChildrenHelp
-            (Zipper.fromTree <| Tree.singleton (nodeToNodeView root))
-            nodes
+    Tree.replaceChildren (List.map (populateChildren nodes) (getChildren nodes root))
+        (Tree.singleton <| nodeToNodeView root)
+
+
+getChildren : List Node -> Node -> List Node
+getChildren nodes parent =
+    List.foldr
+        (\n acc ->
+            if n.parent == parent.id then
+                n :: acc
+
+            else
+                acc
+        )
+        []
+        nodes
 
 
 nodeToNodeView : Node -> NodeView
@@ -774,37 +781,6 @@ nodeToNodeView node =
     , expChildren = False
     , mod = False
     }
-
-
-populateChildrenHelp : Zipper NodeView -> List Node -> Zipper NodeView
-populateChildrenHelp z nodes =
-    case
-        Zipper.forward
-            (List.foldr
-                (\n zCur ->
-                    if (Zipper.label zCur).node.id == n.parent then
-                        Zipper.mapTree
-                            (\t ->
-                                Tree.appendChild
-                                    (Tree.singleton
-                                        (nodeToNodeView n)
-                                    )
-                                    t
-                            )
-                            zCur
-
-                    else
-                        zCur
-                )
-                z
-                nodes
-            )
-    of
-        Just zMod ->
-            populateChildrenHelp zMod nodes
-
-        Nothing ->
-            z
 
 
 populateHasChildren : String -> Tree NodeView -> Tree NodeView
@@ -1145,7 +1121,8 @@ viewNode model parent node depth =
                 Button.dot (ToggleExpDetail node.feID)
             , column
                 [ spacing 6, padding 6, width fill, Background.color background ]
-                [ nodeView
+                [ text <| "ID: " ++ node.node.id
+                , nodeView
                     { isRoot = model.auth.isRoot
                     , now = model.now
                     , zone = model.zone
