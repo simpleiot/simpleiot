@@ -150,6 +150,17 @@ func (up *Upstream) syncNode(id, parent string) error {
 		return nats.SendNode(up.nc, up.ncUp, id, "")
 	}
 
+	if nodeUp.Tombstone != nodeLocal.Tombstone {
+		err := nats.SendPoint(up.ncUp, nodeUp.ID, data.Point{
+			Type: data.PointTypeRemoveParent,
+			Text: parent,
+		}, true)
+
+		if err != nil {
+			log.Println("Error setting tombstone setting upstream: ", err)
+		}
+	}
+
 	if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
 		log.Println("syncing node: ", nodeLocal.Desc())
 
