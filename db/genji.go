@@ -105,6 +105,8 @@ func NewDb(storeType StoreType, dataDir string) (*Db, error) {
 		return nil, fmt.Errorf("Error creating edges table: %w", err)
 	}
 
+	/* Disable index for now as it is getting scrambled
+
 	err = store.Exec(`CREATE INDEX IF NOT EXISTS idx_edge_up ON edges(up)`)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating idx_edge_up: %w", err)
@@ -114,6 +116,7 @@ func NewDb(storeType StoreType, dataDir string) (*Db, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error creating idx_edge_down: %w", err)
 	}
+	*/
 
 	db := &Db{store: store}
 	return db, db.initialize()
