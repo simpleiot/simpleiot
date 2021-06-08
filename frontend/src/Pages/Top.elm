@@ -1121,8 +1121,8 @@ viewNode model parent node depth =
                 Button.dot (ToggleExpDetail node.feID)
             , column
                 [ spacing 6, padding 6, width fill, Background.color background ]
-                [ text <| "ID: " ++ node.node.id
-                , nodeView
+                [ -- text <| "ID: " ++ node.node.id
+                  nodeView
                     { isRoot = model.auth.isRoot
                     , now = model.now
                     , zone = model.zone
