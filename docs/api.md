@@ -62,6 +62,8 @@ defined [here](../internal/pb).
 - Nodes
   - `node.<id>`
     - can be used to request an entire node data structure
+    - body can optionally include the ID of the parent node to populate node
+      with tombstone info, and other data from the edge data structure.
   - `node.<id>.children`
     - can be used to request the immediate children of a node
   - `node.<id>.points`

@@ -101,7 +101,7 @@ func NewUpstream(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Upstream, err
 
 			fetchedOnce = true
 
-			up.syncNode(rootID)
+			up.syncNode(rootID, "")
 		}
 	}()
 
@@ -134,13 +134,13 @@ func (up *Upstream) addUpstreamSub(nodeID string) error {
 	return nil
 }
 
-func (up *Upstream) syncNode(id string) error {
-	nodeLocal, err := nats.GetNode(up.nc, id)
+func (up *Upstream) syncNode(id, parent string) error {
+	nodeLocal, err := nats.GetNode(up.nc, id, parent)
 	if err != nil {
 		return fmt.Errorf("Error getting local node: %v", err)
 	}
 
-	nodeUp, err := nats.GetNode(up.ncUp, id)
+	nodeUp, err := nats.GetNode(up.ncUp, id, parent)
 	if err != nil {
 		return fmt.Errorf("Error getting upstream root node: %v", err)
 	}
@@ -215,8 +215,9 @@ func (up *Upstream) syncNode(id string) error {
 				if child.ID == upChild.ID {
 					found = true
 					upChildProcessed[i] = true
-					if bytes.Compare(child.Hash, upChild.Hash) != 0 {
-						err := up.syncNode(child.ID)
+					if bytes.Compare(child.Hash, upChild.Hash) != 0 ||
+						child.Tombstone != upChild.Tombstone {
+						err := up.syncNode(child.ID, nodeLocal.ID)
 						if err != nil {
 							fmt.Println("Error syncing node: ", err)
 						}

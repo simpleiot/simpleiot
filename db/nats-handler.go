@@ -189,9 +189,13 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 		return
 	}
 
+	fmt.Println("CLIFF: nats node request, parent: ", string(msg.Data))
+
+	parent := string(msg.Data)
+
 	nodeID := chunks[1]
 
-	node, err := nh.db.Node(nodeID)
+	node, err := nh.db.nodeEdge(nodeID, parent)
 
 	if err != nil {
 		log.Printf("NATS: Error getting node %v from db: %v\n", nodeID, err)
@@ -221,17 +225,11 @@ func (nh *NatsHandler) handleNodeChildren(msg *natsgo.Msg) {
 
 	nodeID := chunks[1]
 
-	nodeEdges, err := nh.db.NodeDescendents(nodeID, "", false)
+	nodes, err := nh.db.NodeDescendents(nodeID, "", false)
 
 	if err != nil {
 		log.Printf("NATS: Error getting node %v from db: %v\n", nodeID, err)
 		// TODO should we send an error back to requester
-	}
-
-	nodes := make([]data.Node, len(nodeEdges))
-
-	for i, ne := range nodeEdges {
-		nodes[i] = ne.ToNode()
 	}
 
 	nodesT := data.Nodes(nodes)

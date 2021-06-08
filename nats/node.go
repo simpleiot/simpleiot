@@ -9,8 +9,8 @@ import (
 )
 
 // GetNode over NATS
-func GetNode(nc *natsgo.Conn, id string) (data.NodeEdge, error) {
-	nodeMsg, err := nc.Request("node."+id, nil, time.Second*20)
+func GetNode(nc *natsgo.Conn, id, parent string) (data.NodeEdge, error) {
+	nodeMsg, err := nc.Request("node."+id, []byte(parent), time.Second*20)
 	if err != nil {
 		return data.NodeEdge{}, err
 	}
@@ -42,7 +42,7 @@ func GetNodeChildren(nc *natsgo.Conn, id string) ([]data.NodeEdge, error) {
 
 // SendNode is used to recursively send a node and children over nats
 func SendNode(src, dest *natsgo.Conn, id, parent string) error {
-	node, err := GetNode(src, id)
+	node, err := GetNode(src, id, parent)
 	if err != nil {
 		return fmt.Errorf("Error getting local node: %v", err)
 	}
@@ -55,10 +55,17 @@ func SendNode(src, dest *natsgo.Conn, id, parent string) error {
 	})
 
 	if parent != "" {
-		points = append(points, data.Point{
-			Type: data.PointTypeAddParent,
-			Text: parent,
-		})
+		if node.Tombstone {
+			points = append(points, data.Point{
+				Type: data.PointTypeRemoveParent,
+				Text: parent,
+			})
+		} else {
+			points = append(points, data.Point{
+				Type: data.PointTypeAddParent,
+				Text: parent,
+			})
+		}
 	}
 
 	err = SendPoints(dest, id, points, true)

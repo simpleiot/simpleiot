@@ -235,6 +235,43 @@ func (gen *Db) Node(id string) (data.Node, error) {
 	return node, err
 }
 
+// nodeEdge returns a node edge
+func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
+	var nodeEdge data.NodeEdge
+	err := gen.store.View(func(tx *genji.Tx) error {
+		node, err := txNode(tx, id)
+
+		if err != nil {
+			return err
+		}
+
+		if parent != "" {
+			doc, err := tx.QueryDocument(`select * from edges where up = ? and down = ?`,
+				parent, id)
+
+			if err != nil {
+				return err
+			}
+
+			var edge data.Edge
+
+			err = document.StructScan(doc, &edge)
+
+			if err != nil {
+				return err
+			}
+
+			nodeEdge = node.ToNodeEdge(parent, edge.Tombstone)
+		} else {
+			nodeEdge = node.ToNodeEdge("", false)
+		}
+
+		return nil
+	})
+
+	return nodeEdge, err
+}
+
 func (gen *Db) txNodes(tx *genji.Tx) ([]data.Node, error) {
 	var nodes []data.Node
 	res, err := tx.Query(`select * from nodes`)
@@ -355,6 +392,12 @@ func (gen *Db) nodeUpdateHash(id string) error {
 
 		for _, n := range childNodes {
 			h.Write(n.Hash)
+
+			if n.Tombstone {
+				h.Write([]byte{1})
+			} else {
+				h.Write([]byte{0})
+			}
 		}
 
 		return tx.Exec(`update nodes set hash = ? where id = ?`,

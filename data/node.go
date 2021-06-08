@@ -39,6 +39,8 @@ func (sws *SwUpdateState) Points() Points {
 		}}
 }
 
+// TODO move Node to db/store package and make it internal to that package
+
 // Node represents the state of a device. UUID is recommended
 // for ID to prevent collisions is distributed instances.
 type Node struct {
@@ -131,7 +133,7 @@ func (n *Node) ToNodeEdge(parent string, tombstone bool) NodeEdge {
 }
 
 // Nodes defines a list of nodes
-type Nodes []Node
+type Nodes []NodeEdge
 
 // ToPb converts a list of nodes to protobuf
 func (nodes *Nodes) ToPb() ([]byte, error) {
@@ -205,6 +207,42 @@ func (n *NodeEdge) ToNode() Node {
 	}
 }
 
+// ToPb encodes a node to a protobuf
+func (n *NodeEdge) ToPb() ([]byte, error) {
+
+	pbNode, err := n.ToPbNode()
+	if err != nil {
+		return nil, err
+	}
+
+	return proto.Marshal(pbNode)
+}
+
+// ToPbNode converts a node to pb.Node type
+func (n *NodeEdge) ToPbNode() (*pb.Node, error) {
+	points := make([]*pb.Point, len(n.Points))
+
+	for i, p := range n.Points {
+		pPb, err := p.ToPb()
+		if err != nil {
+			return &pb.Node{}, err
+		}
+
+		points[i] = &pPb
+	}
+
+	pbNode := &pb.Node{
+		Id:        n.ID,
+		Type:      n.Type,
+		Hash:      n.Hash,
+		Points:    points,
+		Tombstone: n.Tombstone,
+		Parent:    n.Parent,
+	}
+
+	return pbNode, nil
+}
+
 // ProcessPoint takes a point for a device and adds/updates its array of points
 func (n *NodeEdge) ProcessPoint(pIn Point) {
 	pFound := false
@@ -263,6 +301,7 @@ func PbToNode(pbNode *pb.Node) (NodeEdge, error) {
 		Hash:      pbNode.Hash,
 		Points:    points,
 		Tombstone: pbNode.Tombstone,
+		Parent:    pbNode.Parent,
 	}
 
 	return ret, nil
@@ -287,41 +326,6 @@ func PbDecodeNodes(data []byte) ([]NodeEdge, error) {
 	}
 
 	return ret, nil
-}
-
-// ToPb encodes a node to a protobuf
-func (n *Node) ToPb() ([]byte, error) {
-
-	pbNode, err := n.ToPbNode()
-	if err != nil {
-		return nil, err
-	}
-
-	return proto.Marshal(pbNode)
-}
-
-// ToPbNode converts a node to pb.Node type
-func (n *Node) ToPbNode() (*pb.Node, error) {
-	points := make([]*pb.Point, len(n.Points))
-
-	for i, p := range n.Points {
-		pPb, err := p.ToPb()
-		if err != nil {
-			return &pb.Node{}, err
-		}
-
-		points[i] = &pPb
-	}
-
-	pbNode := &pb.Node{
-		Id:        n.ID,
-		Type:      n.Type,
-		Hash:      n.Hash,
-		Points:    points,
-		Tombstone: n.Tombstone,
-	}
-
-	return pbNode, nil
 }
 
 // RemoveDuplicateNodesIDParent removes duplicate nodes in list with the
