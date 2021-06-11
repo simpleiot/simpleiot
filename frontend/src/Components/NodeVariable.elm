@@ -102,7 +102,7 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.variable
             , text <|
-                Point.getText o.node.points Point.typeDescription
+                Point.getTextIndex o.node.points Point.typeDescription 1
             , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
                 text <|
                     valueText
@@ -114,7 +114,8 @@ view o =
                            )
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeDescription "Description"
+                    [ textInput 0 Point.typeDescription "Description index 0"
+                    , textInput 1 Point.typeDescription "Description index 1"
                     , optionInput Point.typeVariableType
                         "Variable type"
                         [ ( Point.valueOnOff, "On/Off" )
@@ -128,7 +129,7 @@ view o =
                     , viewIf (variableType == Point.valueNumber) <|
                         numberInput Point.typeValue "Value"
                     , viewIf (variableType == Point.valueNumber) <|
-                        textInput Point.typeUnits "Units"
+                        textInput 0 Point.typeUnits "Units"
                     ]
 
                 else

@@ -33,6 +33,7 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                0
     in
     column
         [ width fill

@@ -35,6 +35,7 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                0
 
         numberInput =
             Form.nodeNumberInput

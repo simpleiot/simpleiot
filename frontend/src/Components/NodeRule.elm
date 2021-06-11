@@ -32,6 +32,7 @@ view o =
                 , now = o.now
                 , labelWidth = 100
                 }
+                0
 
         active =
             Point.getBool o.node.points Point.typeActive

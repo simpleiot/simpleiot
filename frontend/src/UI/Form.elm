@@ -151,16 +151,17 @@ nodeTextInput :
     , now : Time.Posix
     , labelWidth : Int
     }
+    -> Int
     -> String
     -> String
     -> Element msg
-nodeTextInput o pointName lbl =
+nodeTextInput o pointIndex pointName lbl =
     Input.text
         []
         { onChange =
             \d ->
-                o.onEditNodePoint (Point "" pointName 0 o.now 0 d 0 0)
-        , text = Point.getText o.node.points pointName
+                o.onEditNodePoint (Point "" pointName pointIndex o.now 0 d 0 0)
+        , text = Point.getTextIndex o.node.points pointName pointIndex
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }

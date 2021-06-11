@@ -12,6 +12,7 @@ module Api.Point exposing
     , getBool
     , getLatest
     , getText
+    , getTextIndex
     , getValue
     , newText
     , newValue
@@ -730,6 +731,22 @@ getText points typ =
         List.Extra.find
             (\p ->
                 typ == p.typ
+            )
+            points
+    of
+        Just found ->
+            found.text
+
+        Nothing ->
+            ""
+
+
+getTextIndex : List Point -> String -> Int -> String
+getTextIndex points typ index =
+    case
+        List.Extra.find
+            (\p ->
+                typ == p.typ && index == p.index
             )
             points
     of
