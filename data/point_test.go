@@ -19,20 +19,20 @@ func TestPointsSort(t *testing.T) {
 	sort.Sort(t1)
 
 	if !reflect.DeepEqual(t1, exp) {
-		t.Error("t1 failed")
+		t.Errorf("t1 failed: t1: %v, exp: %v", t1, exp)
 	}
 
 	t2 := Points{p2, p3, p1}
 	sort.Sort(t2)
 
 	if !reflect.DeepEqual(t2, exp) {
-		t.Error("t2 failed")
+		t.Errorf("t2 failed, t2: %v, exp: %v", t2, exp)
 	}
 
 	t3 := Points{p1, p2, p3}
 	sort.Sort(t3)
 
 	if !reflect.DeepEqual(t3, exp) {
-		t.Error("t3 failed")
+		t.Errorf("t3 failed, t3: %v, exp: %v", t3, exp)
 	}
 }
