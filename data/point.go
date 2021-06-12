@@ -100,6 +100,7 @@ func (p Point) ToPb() (pb.Point, error) {
 	return pb.Point{
 		Type:     p.Type,
 		Id:       p.ID,
+		Index:    int32(p.Index),
 		Value:    float32(p.Value),
 		Text:     p.Text,
 		Time:     ts,
@@ -271,6 +272,7 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 		ID:       sPb.Id,
 		Type:     sPb.Type,
 		Text:     sPb.Text,
+		Index:    int(sPb.Index),
 		Value:    float64(sPb.Value),
 		Time:     ts,
 		Duration: dur,
