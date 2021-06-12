@@ -30,6 +30,7 @@ view o =
                 , now = o.now
                 , labelWidth = 100
                 }
+                ""
                 0
     in
     column
@@ -42,7 +43,7 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.uploadCloud
             , text <|
-                Point.getText o.node.points Point.typeDescription
+                Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
