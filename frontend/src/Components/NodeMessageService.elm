@@ -33,6 +33,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         optionInput =
             Form.nodeOptionInput
@@ -41,6 +43,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
     in
     column
         [ width fill
@@ -52,7 +56,7 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.send
             , text <|
-                Point.getText o.node.points Point.typeDescription
+                Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"

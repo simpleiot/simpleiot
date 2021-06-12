@@ -33,6 +33,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         textInputLowerCase =
             Form.nodeTextInput
@@ -43,6 +45,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
     in
     column
         [ width fill
@@ -54,9 +58,9 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.user
             , text <|
-                Point.getText o.node.points Point.typeFirstName
+                Point.getText o.node.points "" 0 Point.typeFirstName
                     ++ " "
-                    ++ Point.getText o.node.points Point.typeLastName
+                    ++ Point.getText o.node.points "" 0 Point.typeLastName
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeFirstName "First Name"

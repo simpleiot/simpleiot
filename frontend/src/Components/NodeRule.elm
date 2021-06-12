@@ -32,9 +32,11 @@ view o =
                 , now = o.now
                 , labelWidth = 100
                 }
+                ""
+                0
 
         active =
-            Point.getBool o.node.points Point.typeActive
+            Point.getBool o.node.points "" 0 Point.typeActive
 
         descBackgroundColor =
             if active then
@@ -61,7 +63,7 @@ view o =
             [ Icon.list
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
-                    Point.getText o.node.points Point.typeDescription
+                    Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
