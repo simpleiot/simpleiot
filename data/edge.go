@@ -5,8 +5,14 @@ package data
 // Edge is used to describe the relationship
 // between two nodes
 type Edge struct {
-	ID        string `json:"id"`
-	Up        string `json:"up"`
-	Down      string `json:"down"`
-	Tombstone bool   `json:"tombstone"`
+	ID     string `json:"id"`
+	Up     string `json:"up"`
+	Down   string `json:"down"`
+	Points Points `json:"points"`
+}
+
+// IsTombstone returns true of edge points to a deleted node
+func (e *Edge) IsTombstone() bool {
+	tombstone, _ := e.Points.ValueBool("", PointTypeTombstone, 0)
+	return tombstone
 }

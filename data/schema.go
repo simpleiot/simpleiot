@@ -8,6 +8,7 @@ const (
 	PointTypeNodeType            = "nodeType"
 	PointTypeAddParent           = "addParent"
 	PointTypeRemoveParent        = "removeParent"
+	PointTypeTombstone           = "tombstone"
 	PointTypeScale               = "scale"
 	PointTypeOffset              = "offset"
 	PointTypeUnits               = "units"

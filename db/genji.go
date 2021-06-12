@@ -261,7 +261,7 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 				return err
 			}
 
-			nodeEdge = node.ToNodeEdge(parent, edge.Tombstone)
+			nodeEdge = node.ToNodeEdge(parent, edge.IsTombstone())
 		} else {
 			nodeEdge = node.ToNodeEdge("", false)
 		}
@@ -318,13 +318,48 @@ func (gen *Db) nodeInsert(node data.Node) (string, error) {
 	return node.ID, gen.store.Exec(`insert into nodes values ?`, node)
 }
 
+func txSetTombstone(tx *genji.Tx, down, up string, tombstone bool) error {
+	doc, err := tx.QueryDocument(`select * from edges where down = ? and up = ?`, down, up)
+	if err != nil {
+		return err
+	}
+
+	var edge data.Edge
+
+	err = document.StructScan(doc, &edge)
+	if err != nil {
+		return err
+	}
+
+	current, _ := edge.Points.ValueBool("", data.PointTypeTombstone, 0)
+
+	if current != tombstone {
+		edge.Points.ProcessPoint(data.Point{
+			Type:  data.PointTypeTombstone,
+			Value: data.BoolToFloat(tombstone),
+			Time:  time.Now(),
+		})
+
+		err := tx.Exec(`update edges set points = ? where id = ?`,
+			edge.Points, edge.ID)
+
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+}
+
 func txNodeDelete(tx *genji.Tx, id, parent string) error {
 	upIDs, err := txEdgeUp(tx, id)
 	if err != nil {
 		return err
 	}
 
-	err = tx.Exec(`update edges set tombstone = true where down = ? and up = ?`, id, parent)
+	err = txSetTombstone(tx, id, parent, true)
+
 	if err != nil {
 		return err
 	}
@@ -623,8 +658,7 @@ func txEdgeInsert(tx *genji.Tx, edge *data.Edge) error {
 	}
 
 	// edge already exists, make sure tombstone field is false
-	return tx.Exec(`update edges set tombstone = false where up = ? and down = ?`,
-		edge.Up, edge.Down)
+	return txSetTombstone(tx, edge.Down, edge.Up, false)
 }
 
 // edgeInsert is used to insert an edge into the database
@@ -714,7 +748,7 @@ func txEdgeDown(tx *genji.Tx, nodeID string) ([]downNode, error) {
 			return err
 		}
 
-		ret = append(ret, downNode{edge.Down, edge.Tombstone})
+		ret = append(ret, downNode{edge.Down, edge.IsTombstone()})
 		return nil
 	})
 
