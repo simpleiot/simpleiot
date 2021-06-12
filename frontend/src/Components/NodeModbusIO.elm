@@ -37,6 +37,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         numberInput =
             Form.nodeNumberInput
@@ -45,6 +47,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         onOffInput =
             Form.nodeOnOffInput
@@ -53,6 +57,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         optionInput =
             Form.nodeOptionInput
@@ -61,6 +67,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         checkboxInput =
             Form.nodeCheckboxInput
@@ -69,6 +77,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         counterWithReset =
             Form.nodeCounterWithReset
@@ -77,14 +87,16 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth + 150
                 }
+                ""
+                0
 
         modbusIOType =
-            Point.getText o.node.points Point.typeModbusIOType
+            Point.getText o.node.points "" 0 Point.typeModbusIOType
 
         isClient =
             case o.parent of
                 Just p ->
-                    Point.getText p.points Point.typeClientServer == Point.valueClient
+                    Point.getText p.points "" 0 Point.typeClientServer == Point.valueClient
 
                 Nothing ->
                     False
@@ -96,10 +108,10 @@ view o =
                 == Point.valueModbusCoil
 
         value =
-            Point.getValue o.node.points Point.typeValue
+            Point.getValue o.node.points "" 0 Point.typeValue
 
         valueSet =
-            Point.getValue o.node.points Point.typeValueSet
+            Point.getValue o.node.points "" 0 Point.typeValueSet
 
         isRegister =
             modbusIOType
@@ -108,7 +120,7 @@ view o =
                 == Point.valueModbusHoldingRegister
 
         isReadOnly =
-            Point.getValue o.node.points Point.typeReadOnly == 1
+            Point.getValue o.node.points "" 0 Point.typeReadOnly == 1
 
         valueText =
             if isRegister then
@@ -144,13 +156,13 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.io
             , text <|
-                Point.getText o.node.points Point.typeDescription
+                Point.getText o.node.points "" 0 Point.typeDescription
                     ++ ": "
             , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
                 text <|
                     valueText
                         ++ (if isRegister then
-                                " " ++ Point.getText o.node.points Point.typeUnits
+                                " " ++ Point.getText o.node.points "" 0 Point.typeUnits
 
                             else
                                 ""
