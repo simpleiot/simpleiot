@@ -19,14 +19,14 @@ type Point struct {
 	ID string `json:"id,omitempty"`
 
 	// Type of point (voltage, current, key, etc)
-	Type string `json:"type,omitempty" boltholdIndex:"Type"`
+	Type string `json:"type,omitempty"`
 
 	// Index is used to specify a position in an array such as
 	// which pump, temp sensor, etc.
 	Index int `json:"index,omitempty"`
 
 	// Time the point was taken
-	Time time.Time `json:"time,omitempty" boltholdKey:"Time" gob:"-"`
+	Time time.Time `json:"time,omitempty"`
 
 	// Duration over which the point was taken. This is useful
 	// for averaged values to know what time period the value applies
@@ -48,10 +48,29 @@ type Point struct {
 }
 
 func (p Point) String() string {
-	if p.Text != "" {
-		return fmt.Sprintf("%v: %v (%v)", p.Type, p.Text, p.Time.Format(time.RFC3339))
+	t := ""
+
+	if p.Type != "" {
+		t += "T:" + p.Type + " "
 	}
-	return fmt.Sprintf("%v: %v", p.Type, p.Value)
+
+	if p.Text != "" {
+		t += fmt.Sprintf("V:%v ", p.Text)
+	} else {
+		t += fmt.Sprintf("V:%v ", p.Value)
+	}
+
+	if p.Index != 0 {
+		t += fmt.Sprintf("I:%v ", p.Index)
+	}
+
+	if p.ID != "" {
+		t += fmt.Sprintf("ID:%v ", p.ID)
+	}
+
+	t += p.Time.Format(time.RFC3339)
+
+	return t
 }
 
 // IsMatch returns true if the point matches the params passed in
