@@ -12,6 +12,7 @@ message Node {
     bytes hash = 4;
     bool tombstone = 5;
     string parent = 6;
+    repeated Point edgePoints = 7;
 }
 
 message Nodes {

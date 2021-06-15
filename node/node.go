@@ -46,7 +46,7 @@ func (m *Manager) Init() error {
 
 		id := uuid.New().String()
 
-		err := nats.SendPoint(m.nc, id, p, false)
+		err := nats.SendNodePoint(m.nc, id, p, false)
 		if err != nil {
 			return fmt.Errorf("Error setting root node: %v", err)
 		}
@@ -64,7 +64,7 @@ func (m *Manager) Init() error {
 		points = append(points, data.Point{Type: data.PointTypeNodeType,
 			Text: data.NodeTypeUser})
 
-		err = nats.SendPoint(m.nc, id, p, false)
+		err = nats.SendNodePoint(m.nc, id, p, false)
 		if err != nil {
 			return fmt.Errorf("Error setting default user: %v", err)
 		}
@@ -104,7 +104,7 @@ func (m *Manager) Run() {
 					Text: state,
 				}
 
-				err := nats.SendPoint(m.nc, node.ID, p, false)
+				err := nats.SendNodePoint(m.nc, node.ID, p, false)
 				if err != nil {
 					log.Println("Error updating node state: ", err)
 				}

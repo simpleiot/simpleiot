@@ -115,7 +115,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := nats.SendPoint(h.nc, id, data.Point{
+			err := nats.SendNodePoint(h.nc, id, data.Point{
 				Type: data.PointTypeRemoveParent,
 				Text: nodeDelete.Parent,
 			}, false)
@@ -148,7 +148,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				http.Error(res, err.Error(), http.StatusBadRequest)
 				return
 			}
-			err := nats.SendPoints(h.nc, nodeMove.ID, data.Points{
+			err := nats.SendNodePoints(h.nc, nodeMove.ID, data.Points{
 				{
 					Type: data.PointTypeRemoveParent,
 					Text: nodeMove.OldParent,
@@ -173,7 +173,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				http.Error(res, err.Error(), http.StatusBadRequest)
 				return
 			}
-			err := nats.SendPoint(h.nc, nodeCopy.ID, data.Point{
+			err := nats.SendNodePoint(h.nc, nodeCopy.ID, data.Point{
 				Type: data.PointTypeAddParent,
 				Text: nodeCopy.NewParent,
 			}, false)
@@ -250,7 +250,7 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
 		node.ID = uuid.New().String()
 	}
 
-	err := nats.SendPoints(h.nc, node.ID, node.Points, false)
+	err := nats.SendNodePoints(h.nc, node.ID, node.Points, false)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -269,7 +269,7 @@ func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id str
 		return
 	}
 
-	err = nats.SendPoints(h.nc, id, points, true)
+	err = nats.SendNodePoints(h.nc, id, points, true)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)

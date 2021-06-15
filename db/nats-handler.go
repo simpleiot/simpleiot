@@ -61,6 +61,10 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 		return nil, fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
+	if _, err := nc.Subscribe("edge.*.points", nh.handleEdgePoints); err != nil {
+		return nil, fmt.Errorf("Subscribe edge points error: %w", err)
+	}
+
 	if _, err := nc.Subscribe("node.*", nh.handleNode); err != nil {
 		return nil, fmt.Errorf("Subscribe node error: %w", err)
 	}
@@ -83,7 +87,7 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 func (nh *NatsHandler) setSwUpdateState(id string, state data.SwUpdateState) error {
 	p := state.Points()
 
-	return nats.SendPoints(nh.Nc, id, p, false)
+	return nats.SendNodePoints(nh.Nc, id, p, false)
 }
 
 // StartUpdate starts an update
@@ -180,6 +184,29 @@ func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
 	}
 
 	nh.reply(msg.Reply, nil)
+}
+
+func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
+	nh.nodeUpdateLock.Lock()
+	defer nh.nodeUpdateLock.Unlock()
+
+	edgeID, points, err := nats.DecodeNodePointsMsg(msg)
+
+	if err != nil {
+		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
+		nh.reply(msg.Reply, errors.New("error decoding edge points subject"))
+		return
+	}
+
+	// write points to database
+	err = nh.db.edgePoints(edgeID, points)
+
+	if err != nil {
+		// TODO track error stats
+		log.Printf("Error writing edgeID (%v) points to Db: %v", edgeID, err)
+		log.Println("msg subject: ", msg.Subject)
+		nh.reply(msg.Reply, err)
+	}
 }
 
 func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
@@ -286,7 +313,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 		}
 
 		for _, id := range upIDs {
-			findUsers(id)
+			findUsers(id.Up)
 		}
 	}
 
@@ -299,7 +326,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 
 	if node.Type == data.NodeTypeUser {
 		// if we notify a user node, we only want to message this node, and not walk up the tree
-		nodeEdge := node.ToNodeEdge(not.Parent, false)
+		nodeEdge := node.ToNodeEdge(data.Edge{Up: not.Parent})
 		userNodes = append(userNodes, nodeEdge)
 	} else {
 		findUsers(nodeID)
@@ -378,10 +405,10 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 		// of all user parents. This eliminates duplicate messages when a user is a
 		// member of multiple groups which may have different notification services.
 
-		var upIDs []string
+		var upIDs []data.Edge
 
 		if level == 0 {
-			upIDs = []string{message.ParentID}
+			upIDs = []data.Edge{{Up: message.ParentID}}
 		} else {
 			upIDs, err = nh.db.EdgeUp(id)
 			if err != nil {
@@ -393,7 +420,7 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 		level++
 
 		for _, id := range upIDs {
-			findSvcNodes(id)
+			findSvcNodes(id.Up)
 		}
 	}
 
@@ -439,6 +466,8 @@ func (nh *NatsHandler) reply(subject string, err error) {
 }
 
 func (nh *NatsHandler) processPoints(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
+	// at this point, the point update has already been written to the DB
+
 	// first update the hash
 	err := nh.db.nodeUpdateHash(currentNodeID)
 	if err != nil {
@@ -503,14 +532,14 @@ func (nh *NatsHandler) processPoints(currentNodeID, nodeID, nodeDesc string, poi
 		}
 	}
 
-	upIDs, err := nh.db.EdgeUp(currentNodeID)
+	edges, err := nh.db.EdgeUp(currentNodeID)
 	if err != nil {
 		return err
 	}
 
-	for _, id := range upIDs {
+	for _, edge := range edges {
 
-		err = nh.processPoints(id, nodeID, nodeDesc, points)
+		err = nh.processPoints(edge.Up, nodeID, nodeDesc, points)
 		if err != nil {
 			log.Println("Rules -- error processing upstream node: ", err)
 		}
@@ -585,7 +614,7 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 					Value: data.BoolToFloat(active),
 				}
 
-				err := nats.SendPoint(nc, c.ID, p, false)
+				err := nats.SendNodePoint(nc, c.ID, p, false)
 				if err != nil {
 					log.Println("Rule error sending point: ", err)
 				}
@@ -600,7 +629,7 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 					Value: data.BoolToFloat(allActive),
 				}
 
-				err := nats.SendPoint(nc, r.ID, p, false)
+				err := nats.SendNodePoint(nc, r.ID, p, false)
 				if err != nil {
 					log.Println("Rule error sending point: ", err)
 				}
@@ -629,7 +658,7 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, triggerNode
 				Value: a.PointValue,
 				Text:  a.PointTextValue,
 			}
-			err := nats.SendPoint(nc, a.NodeID, p, false)
+			err := nats.SendNodePoint(nc, a.NodeID, p, false)
 			if err != nil {
 				log.Println("Error sending rule action point: ", err)
 			}

@@ -20,7 +20,7 @@ func Init(nc *natsgo.Conn) error {
 		Time: time.Now(),
 	}
 
-	err := nats.SendPoint(nc, rootID, pRoot, true)
+	err := nats.SendNodePoint(nc, rootID, pRoot, true)
 
 	if err != nil {
 		return err
@@ -34,5 +34,5 @@ func Init(nc *natsgo.Conn) error {
 		Pass:      "admin",
 	}
 
-	return nats.SendPoints(nc, admin.ID, admin.ToPoints(), true)
+	return nats.SendNodePoints(nc, admin.ID, admin.ToPoints(), true)
 }

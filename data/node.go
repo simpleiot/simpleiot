@@ -2,8 +2,8 @@ package data
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/simpleiot/simpleiot/internal/pb"
@@ -44,16 +44,13 @@ func (sws *SwUpdateState) Points() Points {
 // Node represents the state of a device. UUID is recommended
 // for ID to prevent collisions is distributed instances.
 type Node struct {
-	ID        string `json:"id" boltholdKey:"ID"`
-	Type      string `json:"type"`
-	Hash      []byte `json:"hash"`
-	Points    Points `json:"points"`
-	Tombstone bool   `json:"tombstone"`
+	ID     string `json:"id" boltholdKey:"ID"`
+	Type   string `json:"type"`
+	Points Points `json:"points"`
 }
 
 func (n Node) String() string {
 	ret := fmt.Sprintf("NODE: %v (%v)\n", n.ID, n.Type)
-	ret += fmt.Sprintf("  - Hash: %v\n", hex.EncodeToString(n.Hash))
 
 	for _, p := range n.Points {
 		ret += fmt.Sprintf("  - Point: %v\n", p)
@@ -121,14 +118,15 @@ func (n *Node) ToUser() User {
 
 // ToNodeEdge converts to data structure used in API
 // requests
-func (n *Node) ToNodeEdge(parent string, tombstone bool) NodeEdge {
+func (n *Node) ToNodeEdge(edge Edge) NodeEdge {
 	return NodeEdge{
-		ID:        n.ID,
-		Type:      n.Type,
-		Parent:    parent,
-		Points:    n.Points,
-		Hash:      n.Hash,
-		Tombstone: tombstone,
+		ID:         n.ID,
+		EdgeID:     edge.ID,
+		Type:       n.Type,
+		Parent:     edge.Up,
+		Points:     n.Points,
+		EdgePoints: edge.Points,
+		Hash:       edge.Hash,
 	}
 }
 
@@ -178,12 +176,19 @@ type NodeVersion struct {
 
 // NodeEdge combines node and edge data, used for APIs
 type NodeEdge struct {
-	ID        string `json:"id" boltholdKey:"ID"`
-	Type      string `json:"type"`
-	Hash      []byte `json:"hash"`
-	Parent    string `json:"parent"`
-	Points    Points `json:"points"`
-	Tombstone bool   `json:"tombstone"`
+	ID         string `json:"id" boltholdKey:"ID"`
+	EdgeID     string `json:"edgeID"`
+	Type       string `json:"type"`
+	Hash       []byte `json:"hash"`
+	Parent     string `json:"parent"`
+	Points     Points `json:"points"`
+	EdgePoints Points `json:"edgePoints"`
+}
+
+// IsTombstone returns Tombstone value and timestamp
+func (n NodeEdge) IsTombstone() (bool, time.Time) {
+	p, _ := n.EdgePoints.Find("", PointTypeTombstone, 0)
+	return FloatToBool(p.Value), p.Time
 }
 
 // Desc returns Description if set, otherwise ID
@@ -197,13 +202,14 @@ func (n NodeEdge) Desc() string {
 	return n.ID
 }
 
+// FIXME -- should ToNode really be used as it is lossy?
+
 // ToNode converts to structure stored in db
 func (n *NodeEdge) ToNode() Node {
 	return Node{
 		ID:     n.ID,
 		Type:   n.Type,
 		Points: n.Points,
-		Hash:   n.Hash,
 	}
 }
 
@@ -221,6 +227,7 @@ func (n *NodeEdge) ToPb() ([]byte, error) {
 // ToPbNode converts a node to pb.Node type
 func (n *NodeEdge) ToPbNode() (*pb.Node, error) {
 	points := make([]*pb.Point, len(n.Points))
+	edgePoints := make([]*pb.Point, len(n.EdgePoints))
 
 	for i, p := range n.Points {
 		pPb, err := p.ToPb()
@@ -231,13 +238,22 @@ func (n *NodeEdge) ToPbNode() (*pb.Node, error) {
 		points[i] = &pPb
 	}
 
+	for i, p := range n.EdgePoints {
+		pPb, err := p.ToPb()
+		if err != nil {
+			return &pb.Node{}, err
+		}
+
+		edgePoints[i] = &pPb
+	}
+
 	pbNode := &pb.Node{
-		Id:        n.ID,
-		Type:      n.Type,
-		Hash:      n.Hash,
-		Points:    points,
-		Tombstone: n.Tombstone,
-		Parent:    n.Parent,
+		Id:         n.ID,
+		Type:       n.Type,
+		Hash:       n.Hash,
+		Points:     points,
+		EdgePoints: edgePoints,
+		Parent:     n.Parent,
 	}
 
 	return pbNode, nil
@@ -263,12 +279,19 @@ func bytesLess(a, b []byte) bool {
 	return bytes.Compare(a, b) < 0
 }
 
-// ByHash implements soft interface for NodeEdge by hash
-type ByHash []NodeEdge
+// ByNodeEdgeHash implements sort interface for NodeEdge by hash
+type ByNodeEdgeHash []NodeEdge
 
-func (a ByHash) Len() int           { return len(a) }
-func (a ByHash) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByHash) Less(i, j int) bool { return bytesLess(a[i].Hash, a[j].Hash) }
+func (a ByNodeEdgeHash) Len() int           { return len(a) }
+func (a ByNodeEdgeHash) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByNodeEdgeHash) Less(i, j int) bool { return bytesLess(a[i].Hash, a[j].Hash) }
+
+// ByNodeEdgeID implements sort interface for NodeEdge by ID
+type ByNodeEdgeID []NodeEdge
+
+func (a ByNodeEdgeID) Len() int           { return len(a) }
+func (a ByNodeEdgeID) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByNodeEdgeID) Less(i, j int) bool { return strings.Compare(a[i].ID, a[j].ID) < 0 }
 
 // PbDecodeNode converts a protobuf to node data structure
 func PbDecodeNode(data []byte) (NodeEdge, error) {
@@ -286,6 +309,7 @@ func PbDecodeNode(data []byte) (NodeEdge, error) {
 func PbToNode(pbNode *pb.Node) (NodeEdge, error) {
 
 	points := make([]Point, len(pbNode.Points))
+	edgePoints := make([]Point, len(pbNode.EdgePoints))
 
 	for i, pPb := range pbNode.Points {
 		s, err := PbToPoint(pPb)
@@ -295,13 +319,21 @@ func PbToNode(pbNode *pb.Node) (NodeEdge, error) {
 		points[i] = s
 	}
 
+	for i, pPb := range pbNode.EdgePoints {
+		s, err := PbToPoint(pPb)
+		if err != nil {
+			return NodeEdge{}, err
+		}
+		edgePoints[i] = s
+	}
+
 	ret := NodeEdge{
-		ID:        pbNode.Id,
-		Type:      pbNode.Type,
-		Hash:      pbNode.Hash,
-		Points:    points,
-		Tombstone: pbNode.Tombstone,
-		Parent:    pbNode.Parent,
+		ID:         pbNode.Id,
+		Type:       pbNode.Type,
+		Hash:       pbNode.Hash,
+		Points:     points,
+		EdgePoints: edgePoints,
+		Parent:     pbNode.Parent,
 	}
 
 	return ret, nil

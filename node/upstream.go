@@ -70,7 +70,7 @@ func NewUpstream(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Upstream, err
 			return
 		}
 
-		err = nats.SendPoints(up.ncUp, nodeID, points, false)
+		err = nats.SendNodePoints(up.ncUp, nodeID, points, false)
 
 		if err != nil {
 			log.Println("Error sending points to remote system: ", err)
@@ -118,7 +118,7 @@ func (up *Upstream) addUpstreamSub(nodeID string) error {
 			return
 		}
 
-		err = nats.SendPoints(up.nc, nodeID, points, false)
+		err = nats.SendNodePoints(up.nc, nodeID, points, false)
 
 		if err != nil {
 			log.Println("Error sending points to local system: ", err)
@@ -150,21 +150,10 @@ func (up *Upstream) syncNode(id, parent string) error {
 		return nats.SendNode(up.nc, up.ncUp, id, "")
 	}
 
-	if nodeUp.Tombstone != nodeLocal.Tombstone {
-		err := nats.SendPoint(up.ncUp, nodeUp.ID, data.Point{
-			Type: data.PointTypeRemoveParent,
-			Text: parent,
-		}, true)
-
-		if err != nil {
-			log.Println("Error setting tombstone setting upstream: ", err)
-		}
-	}
-
 	if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
 		log.Println("syncing node: ", nodeLocal.Desc())
 
-		// first compare points
+		// first compare node points
 		// key in below map is the index of the point in the upstream node
 		upstreamProcessed := make(map[int]bool)
 
@@ -176,13 +165,13 @@ func (up *Upstream) syncNode(id, parent string) error {
 					upstreamProcessed[i] = true
 					if p.Time.After(pUp.Time) {
 						// need to send point upstream
-						err := nats.SendPoint(up.ncUp, nodeUp.ID, p, true)
+						err := nats.SendNodePoint(up.ncUp, nodeUp.ID, p, true)
 						if err != nil {
 							log.Println("Error syncing point upstream: ", err)
 						}
 					} else if p.Time.Before(pUp.Time) {
 						// need to update point locally
-						err := nats.SendPoint(up.nc, nodeLocal.ID, pUp, true)
+						err := nats.SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
 						if err != nil {
 							log.Println("Error syncing point from upstream: ", err)
 						}
@@ -191,18 +180,59 @@ func (up *Upstream) syncNode(id, parent string) error {
 			}
 
 			if !found {
-				nats.SendPoint(up.ncUp, nodeUp.ID, p, true)
+				nats.SendNodePoint(up.ncUp, nodeUp.ID, p, true)
 			}
 		}
 
 		// check for any points that do not exist locally
 		for i, pUp := range nodeUp.Points {
 			if _, ok := upstreamProcessed[i]; !ok {
-				err := nats.SendPoint(up.nc, nodeLocal.ID, pUp, true)
+				err := nats.SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
 				if err != nil {
 					log.Println("Error syncing point from upstream: ", err)
 				}
 
+			}
+		}
+
+		// now compare edge points
+		// key in below map is the index of the point in the upstream node
+		upstreamProcessed = make(map[int]bool)
+
+		for _, p := range nodeLocal.EdgePoints {
+			found := false
+			for i, pUp := range nodeUp.EdgePoints {
+				if p.IsMatch(pUp.ID, pUp.Type, pUp.Index) {
+					found = true
+					upstreamProcessed[i] = true
+					if p.Time.After(pUp.Time) {
+						// need to send point upstream
+						err := nats.SendEdgePoint(up.ncUp, nodeUp.EdgeID, p, true)
+						if err != nil {
+							log.Println("Error syncing point upstream: ", err)
+						}
+					} else if p.Time.Before(pUp.Time) {
+						// need to update point locally
+						err := nats.SendEdgePoint(up.nc, nodeLocal.EdgeID, pUp, true)
+						if err != nil {
+							log.Println("Error syncing point from upstream: ", err)
+						}
+					}
+				}
+			}
+
+			if !found {
+				nats.SendEdgePoint(up.ncUp, nodeUp.EdgeID, p, true)
+			}
+		}
+
+		// check for any points that do not exist locally
+		for i, pUp := range nodeUp.EdgePoints {
+			if _, ok := upstreamProcessed[i]; !ok {
+				err := nats.SendEdgePoint(up.nc, nodeLocal.EdgeID, pUp, true)
+				if err != nil {
+					log.Println("Error syncing edge point from upstream: ", err)
+				}
 			}
 		}
 
@@ -212,6 +242,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 			return fmt.Errorf("Error getting local node children: %v", err)
 		}
 
+		// FIXME optimization we get the edges here and not the full child node
 		upChildren, err := nats.GetNodeChildren(up.ncUp, nodeUp.ID)
 		if err != nil {
 			return fmt.Errorf("Error getting upstream node children: %v", err)
@@ -226,8 +257,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 				if child.ID == upChild.ID {
 					found = true
 					upChildProcessed[i] = true
-					if bytes.Compare(child.Hash, upChild.Hash) != 0 ||
-						child.Tombstone != upChild.Tombstone {
+					if bytes.Compare(child.Hash, upChild.Hash) != 0 {
 						err := up.syncNode(child.ID, nodeLocal.ID)
 						if err != nil {
 							fmt.Println("Error syncing node: ", err)

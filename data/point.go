@@ -139,18 +139,25 @@ func (ps Points) Desc() string {
 	return ""
 }
 
-// Value fetches a value from an array of points given ID, Type, and Index.
-// If ID or Type are set to "", they are ignored.
-func (ps *Points) Value(id, typ string, index int) (float64, bool) {
+// Find fetches a point given ID, Type, and Index
+// and true of found, or false if not found
+func (ps *Points) Find(id, typ string, index int) (Point, bool) {
 	for _, p := range *ps {
 		if !p.IsMatch(id, typ, index) {
 			continue
 		}
 
-		return p.Value, true
+		return p, true
 	}
 
-	return 0, false
+	return Point{}, false
+}
+
+// Value fetches a value from an array of points given ID, Type, and Index.
+// If ID or Type are set to "", they are ignored.
+func (ps *Points) Value(id, typ string, index int) (float64, bool) {
+	p, ok := ps.Find(id, typ, index)
+	return p.Value, ok
 }
 
 // ValueInt returns value as integer
@@ -168,15 +175,8 @@ func (ps *Points) ValueBool(id, typ string, index int) (bool, bool) {
 // Text fetches a text value from an array of points given ID, Type, and Index.
 // If ID or Type are set to "", they are ignored.
 func (ps *Points) Text(id, typ string, index int) (string, bool) {
-	for _, p := range *ps {
-		if !p.IsMatch(id, typ, index) {
-			continue
-		}
-
-		return p.Text, true
-	}
-
-	return "", false
+	p, ok := ps.Find(id, typ, index)
+	return p.Text, ok
 }
 
 // LatestTime returns the latest timestamp of a devices points

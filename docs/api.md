@@ -67,8 +67,7 @@ defined [here](../internal/pb).
   - `node.<id>.children`
     - can be used to request the immediate children of a node
   - `node.<id>.points`
-    - device publishes points and the server updates node state and stores point
-      in database.
+    - used to listen for or publish node point changes
   - `node.<id>.not`
     - used when a node sends a [notification](notifications.md) (typically a
       rule, or a message sent directly from a node)
@@ -81,6 +80,9 @@ defined [here](../internal/pb).
       update files. There is Go code [available](../api/nats-file.go) to manage
       both ends of the transfer as well as a utility to [send](../cmd/siotutil)
       files and an example [edge](../cmd/edge) application to receive files.
+- Edges
+  - `edge.<id>.points`
+    - used to listen for or publish node edge point changes
 - System
   - `error`
     - any errors that occur are sent to this subject

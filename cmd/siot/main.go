@@ -258,7 +258,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		err = nats.SendPoint(nc, nodeID, point, *flagNatsAck)
+		err = nats.SendNodePoint(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -272,7 +272,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		err = nats.SendPoint(nc, nodeID, point, *flagNatsAck)
+		err = nats.SendNodePoint(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -440,7 +440,7 @@ func main() {
 		go func() {
 			err := particle.PointReader("sample", particleAPIKey,
 				func(id string, points data.Points) {
-					err := nats.SendPoints(nc, id, points, false)
+					err := nats.SendNodePoints(nc, id, points, false)
 					if err != nil {
 						log.Println("Error getting particle sample: ", err)
 					}

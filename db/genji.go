@@ -35,8 +35,9 @@ const (
 
 // Meta contains metadata about the database
 type Meta struct {
-	Version int    `json:"version"`
-	RootID  string `json:"rootID"`
+	Version  int    `json:"version"`
+	RootID   string `json:"rootID"`
+	RootHash []byte `json:"rootHash"`
 }
 
 // This file contains database manipulations.
@@ -191,13 +192,13 @@ func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool, level int) (
 		return nodes, errors.New("Error: txNodeFindDescendents, recursion limit reached")
 	}
 
-	downNodes, err := txEdgeDown(tx, id)
+	edges, err := txEdgeDown(tx, id)
 	if err != nil {
 		return nodes, err
 	}
 
-	for _, downNode := range downNodes {
-		node, err := txNode(tx, downNode.id)
+	for _, edge := range edges {
+		node, err := txNode(tx, edge.Down)
 		if err != nil {
 			if err != database.ErrDocumentNotFound {
 				// something bad happened
@@ -205,14 +206,18 @@ func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool, level int) (
 			}
 			// else something is minorly wrong with db, print
 			// error and return
-			log.Println("Error finding node: ", downNode.id)
+			log.Println("Error finding node: ", edge.Down)
 			continue
 		}
 
-		nodes = append(nodes, node.ToNodeEdge(id, downNode.tombstone))
+		n := node.ToNodeEdge(edge)
 
-		if recursive && !downNode.tombstone {
-			downNodes, err := txNodeFindDescendents(tx, downNode.id, true, level+1)
+		nodes = append(nodes, n)
+
+		tombstone, _ := n.IsTombstone()
+
+		if recursive && !tombstone {
+			downNodes, err := txNodeFindDescendents(tx, edge.Down, true, level+1)
 			if err != nil {
 				return nodes, err
 			}
@@ -223,6 +228,8 @@ func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool, level int) (
 
 	return nodes, nil
 }
+
+// FIXME, we should eventually remove this, or unexport it
 
 // Node returns data for a particular node
 func (gen *Db) Node(id string) (data.Node, error) {
@@ -261,9 +268,13 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 				return err
 			}
 
-			nodeEdge = node.ToNodeEdge(parent, edge.IsTombstone())
+			nodeEdge = node.ToNodeEdge(edge)
 		} else {
-			nodeEdge = node.ToNodeEdge("", false)
+			hash := []byte{}
+			if gen.meta.RootID == id {
+				hash = gen.meta.RootHash
+			}
+			nodeEdge = node.ToNodeEdge(data.Edge{Hash: hash})
 		}
 
 		return nil
@@ -408,36 +419,117 @@ func (gen *Db) nodeUpdateHash(id string) error {
 			return err
 		}
 
-		h := md5.New()
+		isRoot := gen.meta.RootID == id
 
-		for _, p := range node.Points {
-			d := make([]byte, 8)
-			binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
-			h.Write(d)
+		// we need to update hash in all upstream paths from parent
+
+		if !isRoot {
+			upEdges, err := txEdgeUp(tx, id)
+
+			if err != nil {
+				return err
+			}
+
+			for _, upEdge := range upEdges {
+				h := md5.New()
+
+				for _, p := range upEdge.Points {
+					d := make([]byte, 8)
+					binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
+					h.Write(d)
+				}
+
+				for _, p := range node.Points {
+					d := make([]byte, 8)
+					binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
+					h.Write(d)
+				}
+
+				// get child edges
+				downEdges, err := txEdgeDown(tx, id)
+
+				if err != nil {
+					return err
+				}
+
+				sort.Sort(data.ByEdgeID(downEdges))
+
+				for _, downEdge := range downEdges {
+					h.Write(downEdge.Hash)
+				}
+
+				// update hash in parent edge
+				return tx.Exec(`update edges set hash = ? where id = ?`,
+					h.Sum(nil), upEdge.ID)
+			}
+		} else {
+			h := md5.New()
+
+			for _, p := range node.Points {
+				d := make([]byte, 8)
+				binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
+				h.Write(d)
+			}
+
+			// get child edges
+			downEdges, err := txEdgeDown(tx, id)
+
+			if err != nil {
+				return err
+			}
+
+			sort.Sort(data.ByEdgeID(downEdges))
+
+			for _, downEdge := range downEdges {
+				h.Write(downEdge.Hash)
+			}
+
+			// update hash in parent edge
+			return tx.Exec(`update meta set roothash = ?`,
+				h.Sum(nil))
 		}
 
-		// get child nodes
-		childNodes, err := txNodeFindDescendents(tx, node.ID, false, 0)
+		return nil
+	})
+}
+
+func (gen *Db) edgePoints(id string, points data.Points) error {
+	for _, p := range points {
+		if p.Time.IsZero() {
+			p.Time = time.Now()
+		}
+	}
+
+	return gen.store.Update(func(tx *genji.Tx) error {
+		var edge data.Edge
+
+		doc, err := tx.QueryDocument(`select * from edges where id = ?`, id)
 
 		if err != nil {
 			return err
 		}
 
-		sort.Sort(data.ByHash(childNodes))
-
-		for _, n := range childNodes {
-			h.Write(n.Hash)
-
-			if n.Tombstone {
-				h.Write([]byte{1})
-			} else {
-				h.Write([]byte{0})
-			}
+		err = document.StructScan(doc, &edge)
+		if err != nil {
+			return err
 		}
 
-		return tx.Exec(`update nodes set hash = ? where id = ?`,
-			h.Sum(nil), node.ID)
+		for _, point := range points {
+			edge.Points.ProcessPoint(point)
+		}
+
+		sort.Sort(edge.Points)
+
+		err = tx.Exec(`update edges set points = ? where id = ?`,
+			edge.Points, id)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
 	})
+
 }
 
 // nodePoints processes a Point for a particular node
@@ -576,23 +668,23 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 
 	err := gen.store.View(func(tx *genji.Tx) error {
 		// first find parents of user node
-		rootNodeIDs, err := txEdgeUp(tx, userID)
+		edges, err := txEdgeUp(tx, userID)
 		if err != nil {
 			return err
 		}
 
-		if len(rootNodeIDs) == 0 {
+		if len(edges) == 0 {
 			return errors.New("orphaned user")
 		}
 
-		for _, id := range rootNodeIDs {
-			rootNode, err := txNode(tx, id)
+		for _, edge := range edges {
+			rootNode, err := txNode(tx, edge.Up)
 			if err != nil {
 				return err
 			}
-			nodes = append(nodes, rootNode.ToNodeEdge("", false))
+			nodes = append(nodes, rootNode.ToNodeEdge(data.Edge{}))
 
-			childNodes, err := txNodeFindDescendents(tx, id, true, 0)
+			childNodes, err := txNodeFindDescendents(tx, rootNode.ID, true, 0)
 			if err != nil {
 				return err
 			}
@@ -700,9 +792,9 @@ func (gen *Db) edges() ([]data.Edge, error) {
 }
 
 // find upstream nodes. Does not include tombstoned edges.
-func txEdgeUp(tx *genji.Tx, nodeID string) ([]string, error) {
-	var ret []string
-	res, err := tx.Query(`select * from edges where down = ? and tombstone = false`, nodeID)
+func txEdgeUp(tx *genji.Tx, nodeID string) ([]data.Edge, error) {
+	var ret []data.Edge
+	res, err := tx.Query(`select * from edges where down = ?`, nodeID)
 	if err != nil {
 		return ret, err
 	}
@@ -715,7 +807,9 @@ func txEdgeUp(tx *genji.Tx, nodeID string) ([]string, error) {
 			return err
 		}
 
-		ret = append(ret, edge.Up)
+		if !edge.IsTombstone() {
+			ret = append(ret, edge)
+		}
 		return nil
 	})
 
@@ -728,8 +822,8 @@ type downNode struct {
 }
 
 // find downstream nodes
-func txEdgeDown(tx *genji.Tx, nodeID string) ([]downNode, error) {
-	var ret []downNode
+func txEdgeDown(tx *genji.Tx, nodeID string) ([]data.Edge, error) {
+	var ret []data.Edge
 	res, err := tx.Query(`select * from edges where up = ?`, nodeID)
 	if err != nil {
 		if err != database.ErrDocumentNotFound {
@@ -748,7 +842,7 @@ func txEdgeDown(tx *genji.Tx, nodeID string) ([]downNode, error) {
 			return err
 		}
 
-		ret = append(ret, downNode{edge.Down, edge.IsTombstone()})
+		ret = append(ret, edge)
 		return nil
 	})
 
@@ -757,8 +851,8 @@ func txEdgeDown(tx *genji.Tx, nodeID string) ([]downNode, error) {
 
 // EdgeUp returns an array of upstream nodes for a node. Does not include
 // tombstoned edges.
-func (gen *Db) EdgeUp(nodeID string) ([]string, error) {
-	var ret []string
+func (gen *Db) EdgeUp(nodeID string) ([]data.Edge, error) {
+	var ret []data.Edge
 
 	err := gen.store.View(func(tx *genji.Tx) error {
 		var err error
@@ -790,7 +884,7 @@ func (gen *Db) minDistToRoot(id string) (int, error) {
 			}
 
 			for _, up := range ups {
-				c, err := countUp(up, count+1)
+				c, err := countUp(up.Up, count+1)
 				if err != nil {
 					return count, err
 				}
@@ -880,8 +974,8 @@ func (gen *Db) UserIsRoot(id string) (bool, error) {
 		return false, err
 	}
 
-	for _, upID := range upstreamNodes {
-		if upID == gen.meta.RootID {
+	for _, up := range upstreamNodes {
+		if up.Up == gen.meta.RootID {
 			return true, nil
 		}
 	}
