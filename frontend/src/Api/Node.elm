@@ -113,12 +113,17 @@ typeUpstream =
     "upstream"
 
 
+
+-- Node corresponds with Go NodeEdge struct
+
+
 type alias Node =
     { id : String
+    , edgeId : String
     , typ : String
     , parent : String
     , points : List Point
-    , tombstone : Bool
+    , edgePoints : List Point
     }
 
 
@@ -164,10 +169,11 @@ decode : Decode.Decoder Node
 decode =
     Decode.succeed Node
         |> required "id" Decode.string
+        |> required "edgeId" Decode.string
         |> required "type" Decode.string
         |> required "parent" Decode.string
         |> optional "points" (Decode.list Point.decode) []
-        |> required "tombstone" Decode.bool
+        |> optional "edgePoints" (Decode.list Point.decode) []
 
 
 decodeCmd : Decode.Decoder NodeCmd
@@ -181,9 +187,11 @@ encode : Node -> Encode.Value
 encode node =
     Encode.object
         [ ( "id", Encode.string node.id )
+        , ( "edgeId", Encode.string node.edgeId )
         , ( "type", Encode.string node.typ )
         , ( "parent", Encode.string node.parent )
         , ( "points", Point.encodeList node.points )
+        , ( "edgePoints", Point.encodeList node.edgePoints )
         ]
 
 

@@ -42,6 +42,7 @@ module Api.Point exposing
     , typeLastName
     , typeMinActive
     , typeModbusIOType
+    , typeNodeType
     , typeOSVersion
     , typeOffset
     , typeOperator
@@ -65,6 +66,7 @@ module Api.Point exposing
     , typeSwUpdateRunning
     , typeSwUpdateState
     , typeSysState
+    , typeTombstone
     , typeURI
     , typeUnits
     , typeUpdateApp
@@ -538,6 +540,16 @@ typeFrom =
 typeVariableType : String
 typeVariableType =
     "variableType"
+
+
+typeNodeType : String
+typeNodeType =
+    "nodeType"
+
+
+typeTombstone : String
+typeTombstone =
+    "tombstone"
 
 
 valueOnOff : String

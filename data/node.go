@@ -177,7 +177,7 @@ type NodeVersion struct {
 // NodeEdge combines node and edge data, used for APIs
 type NodeEdge struct {
 	ID         string `json:"id" boltholdKey:"ID"`
-	EdgeID     string `json:"edgeID"`
+	EdgeID     string `json:"edgeId"`
 	Type       string `json:"type"`
 	Hash       []byte `json:"hash"`
 	Parent     string `json:"parent"`
@@ -249,6 +249,7 @@ func (n *NodeEdge) ToPbNode() (*pb.Node, error) {
 
 	pbNode := &pb.Node{
 		Id:         n.ID,
+		EdgeId:     n.EdgeID,
 		Type:       n.Type,
 		Hash:       n.Hash,
 		Points:     points,
@@ -329,6 +330,7 @@ func PbToNode(pbNode *pb.Node) (NodeEdge, error) {
 
 	ret := NodeEdge{
 		ID:         pbNode.Id,
+		EdgeID:     pbNode.EdgeId,
 		Type:       pbNode.Type,
 		Hash:       pbNode.Hash,
 		Points:     points,

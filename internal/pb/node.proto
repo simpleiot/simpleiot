@@ -13,6 +13,7 @@ message Node {
     bool tombstone = 5;
     string parent = 6;
     repeated Point edgePoints = 7;
+    string edgeId = 8;
 }
 
 message Nodes {
