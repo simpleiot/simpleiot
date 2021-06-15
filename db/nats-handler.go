@@ -216,11 +216,13 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 		return
 	}
 
-	fmt.Println("CLIFF: nats node request, parent: ", string(msg.Data))
-
 	parent := string(msg.Data)
 
 	nodeID := chunks[1]
+
+	if nodeID == "root" {
+		nodeID = nh.db.RootNodeID()
+	}
 
 	node, err := nh.db.nodeEdge(nodeID, parent)
 

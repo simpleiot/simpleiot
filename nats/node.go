@@ -8,7 +8,7 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// GetNode over NATS
+// GetNode over NATS. If id is "root", the root node is fetched.
 func GetNode(nc *natsgo.Conn, id, parent string) (data.NodeEdge, error) {
 	nodeMsg, err := nc.Request("node."+id, []byte(parent), time.Second*20)
 	if err != nil {
