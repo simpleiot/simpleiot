@@ -293,6 +293,30 @@ func main() {
 			os.Exit(-1)
 		}
 
+		_, err = nc.Subscribe("node.*", func(msg *natsgo.Msg) {
+			err := nats.Dump(nc, msg)
+			if err != nil {
+				log.Println("Error dumping nats msg: ", err)
+			}
+		})
+
+		if err != nil {
+			log.Println("Nats subscribe error: ", err)
+			os.Exit(-1)
+		}
+
+		_, err = nc.Subscribe("edge.*.*", func(msg *natsgo.Msg) {
+			err := nats.Dump(nc, msg)
+			if err != nil {
+				log.Println("Error dumping nats msg: ", err)
+			}
+		})
+
+		if err != nil {
+			log.Println("Nats subscribe error: ", err)
+			os.Exit(-1)
+		}
+
 		select {}
 	}
 
