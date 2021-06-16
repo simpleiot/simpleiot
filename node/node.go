@@ -29,7 +29,7 @@ func NewManger(db *db.Db, nc *natsgo.Conn) *Manager {
 		db:              db,
 		nc:              nc,
 		modbusManager:   NewModbusManager(db, nc),
-		upstreamManager: NewUpstreamManager(db, nc),
+		upstreamManager: NewUpstreamManager(nc),
 	}
 }
 

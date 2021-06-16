@@ -9,30 +9,30 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
 )
 
 // Upstream is used to manage an upstream connection (cloud, etc)
 type Upstream struct {
-	nc       *natsgo.Conn
-	db       *db.Db
-	node     data.NodeEdge
-	nodeUp   *UpstreamNode
-	uri      string
-	ncUp     *natsgo.Conn
-	subUps   []*natsgo.Subscription
-	subLocal *natsgo.Subscription
+	nc              *natsgo.Conn
+	node            data.NodeEdge
+	nodeUp          *UpstreamNode
+	uri             string
+	ncUp            *natsgo.Conn
+	subUpNodePoints map[string]*natsgo.Subscription
+	subUpEdgePoints map[string]*natsgo.Subscription
+	subLocal        *natsgo.Subscription
 }
 
 // NewUpstream is used to create a new upstream connection
-func NewUpstream(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
+func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 	var err error
 
 	up := &Upstream{
-		nc:   nc,
-		db:   db,
-		node: node,
+		nc:              nc,
+		node:            node,
+		subUpNodePoints: make(map[string]*natsgo.Subscription),
+		subUpEdgePoints: make(map[string]*natsgo.Subscription),
 	}
 
 	up.nodeUp, err = NewUpstreamNode(node)
@@ -77,17 +77,40 @@ func NewUpstream(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Upstream, err
 		}
 	})
 
-	rootID := up.db.RootNodeID()
-	nodes, err := up.db.NodeDescendents(rootID, "", true)
+	rootNode, err := nats.GetNode(nc, "root", "")
 
-	// FIXME -- handle when node structure changes (add/remove nodes)
-	// subscribe to remote changes for all nodes on this device
-	for _, node := range nodes {
-		err := up.addUpstreamSub(node.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var watchNode func(node data.NodeEdge) error
+
+	watchNode = func(node data.NodeEdge) error {
+		err := up.addUpstreamSub(node)
 		if err != nil {
-			up.Stop()
-			return nil, fmt.Errorf("Failed to add upstream sub: %v", err)
+			return fmt.Errorf("Failed to add upstream sub: %v", err)
 		}
+
+		childNodes, err := nats.GetNodeChildren(nc, node.ID)
+		if err != nil {
+			return err
+		}
+
+		for _, child := range childNodes {
+			err := watchNode(child)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	err = watchNode(rootNode)
+
+	if err != nil {
+		up.Stop()
+		return nil, fmt.Errorf("failed to watch nodes: %v", err)
 	}
 
 	// occasionally sync nodes
@@ -101,14 +124,36 @@ func NewUpstream(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Upstream, err
 
 			fetchedOnce = true
 
-			up.syncNode(rootID, "")
+			up.syncNode(rootNode.ID, "")
 		}
 	}()
 
 	return up, nil
 }
 
-func (up *Upstream) addUpstreamSub(nodeID string) error {
+func (up *Upstream) addUpstreamSub(node data.NodeEdge) error {
+	err := up.addUpstreamNodeSub(node.ID)
+	if err != nil {
+		return fmt.Errorf("Error adding upstream node sub: %v", err)
+	}
+
+	err = up.addUpstreamEdgeSub(node.EdgeID)
+	if err != nil {
+		return fmt.Errorf("Error adding upstream edge sub: %v", err)
+	}
+
+	return nil
+}
+
+func (up *Upstream) addUpstreamNodeSub(nodeID string) error {
+	// check if subscriptional already exists
+	_, ok := up.subUpNodePoints[nodeID]
+	if ok {
+		// subscription allready exists
+		return nil
+	}
+
+	// create subscription
 	subject := nats.SubjectNodePoints(nodeID)
 	sub, err := up.ncUp.Subscribe(subject, func(msg *natsgo.Msg) {
 		nodeID, points, err := nats.DecodeNodePointsMsg(msg)
@@ -129,7 +174,45 @@ func (up *Upstream) addUpstreamSub(nodeID string) error {
 		return err
 	}
 
-	up.subUps = append(up.subUps, sub)
+	up.subUpNodePoints[nodeID] = sub
+
+	return nil
+}
+
+func (up *Upstream) addUpstreamEdgeSub(edgeID string) error {
+	if edgeID == "" {
+		// the root node does not have an edge id
+		return nil
+	}
+	// check if subscriptional already exists
+	_, ok := up.subUpEdgePoints[edgeID]
+	if ok {
+		// subscription allready exists
+		return nil
+	}
+
+	// create subscription
+	subject := nats.SubjectEdgePoints(edgeID)
+	sub, err := up.ncUp.Subscribe(subject, func(msg *natsgo.Msg) {
+		edgeID, points, err := nats.DecodeNodePointsMsg(msg)
+
+		if err != nil {
+			log.Println("Error decoding point: ", err)
+			return
+		}
+
+		err = nats.SendEdgePoints(up.nc, edgeID, points, false)
+
+		if err != nil {
+			log.Println("Error sending edge points to local system: ", err)
+		}
+	})
+
+	if err != nil {
+		return err
+	}
+
+	up.subUpEdgePoints[edgeID] = sub
 
 	return nil
 }
@@ -274,7 +357,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 					log.Println("Error sending node upstream: ", err)
 				}
 
-				err = up.addUpstreamSub(nodeLocal.ID)
+				err = up.addUpstreamSub(nodeLocal)
 				if err != nil {
 					log.Println("Error subscribing to upstream node: ", err)
 				}
@@ -288,7 +371,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 					log.Println("Error getting node from upstream: ", err)
 				}
 
-				err = up.addUpstreamSub(nodeLocal.ID)
+				err = up.addUpstreamSub(nodeLocal)
 				if err != nil {
 					log.Println("Error subscribing to upstream node: ", err)
 				}
@@ -308,7 +391,14 @@ func (up *Upstream) Stop() {
 		}
 	}
 
-	for _, sub := range up.subUps {
+	for _, sub := range up.subUpNodePoints {
+		err := sub.Unsubscribe()
+		if err != nil {
+			log.Println("Error unsubscribing from upstream bus: ", err)
+		}
+	}
+
+	for _, sub := range up.subUpEdgePoints {
 		err := sub.Unsubscribe()
 		if err != nil {
 			log.Println("Error unsubscribing from upstream bus: ", err)

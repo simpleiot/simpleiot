@@ -5,21 +5,19 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
+	"github.com/simpleiot/simpleiot/nats"
 )
 
 // UpstreamManager looks for upstream nodes and creates new upstream connections
 type UpstreamManager struct {
-	db        *db.Db
 	nc        *natsgo.Conn
 	upstreams map[string]*Upstream
 }
 
 // NewUpstreamManager is used to create a new upstream manager
-func NewUpstreamManager(db *db.Db, nc *natsgo.Conn) *UpstreamManager {
+func NewUpstreamManager(nc *natsgo.Conn) *UpstreamManager {
 	return &UpstreamManager{
 		nc:        nc,
-		db:        db,
 		upstreams: make(map[string]*Upstream),
 	}
 }
@@ -27,8 +25,12 @@ func NewUpstreamManager(db *db.Db, nc *natsgo.Conn) *UpstreamManager {
 // Update queries DB for modbus nodes and synchronizes
 // with internal structures and updates data
 func (upm *UpstreamManager) Update() error {
-	rootID := upm.db.RootNodeID()
-	nodes, err := upm.db.NodeDescendents(rootID, data.NodeTypeUpstream, false)
+	rootNode, err := nats.GetNode(upm.nc, "root", "")
+	if err != nil {
+		return err
+	}
+
+	nodes, err := nats.GetNodeChildren(upm.nc, rootNode.ID)
 	if err != nil {
 		return err
 	}
@@ -36,11 +38,15 @@ func (upm *UpstreamManager) Update() error {
 	found := make(map[string]bool)
 
 	for _, node := range nodes {
+		if node.Type != data.NodeTypeUpstream {
+			continue
+		}
+
 		found[node.ID] = true
 		up, ok := upm.upstreams[node.ID]
 		if !ok {
 			var err error
-			up, err = NewUpstream(upm.db, upm.nc, node)
+			up, err = NewUpstream(upm.nc, node)
 			if err != nil {
 				log.Println("Error creating new Upstream: ", err)
 				continue
