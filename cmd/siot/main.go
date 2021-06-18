@@ -219,6 +219,7 @@ func main() {
 		opts := nats.EdgeOptions{
 			Server:    natsServer,
 			AuthToken: authToken,
+			NoEcho:    true,
 			Disconnected: func() {
 				log.Println("NATS Disconnected")
 			},
