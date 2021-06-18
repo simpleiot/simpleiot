@@ -10,7 +10,6 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/modbus"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/respreader"
@@ -35,7 +34,6 @@ type Modbus struct {
 	ios     map[string]*ModbusIO
 
 	// data associated with running the bus
-	db           *db.Db
 	nc           *natsgo.Conn
 	sub          *natsgo.Subscription
 	regs         *modbus.Regs
@@ -51,9 +49,8 @@ type Modbus struct {
 }
 
 // NewModbus creates a new bus from a node
-func NewModbus(db *db.Db, nc *natsgo.Conn, node data.NodeEdge) (*Modbus, error) {
+func NewModbus(nc *natsgo.Conn, node data.NodeEdge) (*Modbus, error) {
 	bus := &Modbus{
-		db:          db,
 		nc:          nc,
 		node:        node,
 		ios:         make(map[string]*ModbusIO),
@@ -110,7 +107,7 @@ func (b *Modbus) Stop() {
 
 // CheckIOs goes through ios on the bus and handles any config changes
 func (b *Modbus) CheckIOs() error {
-	nodes, err := b.db.NodeDescendents(b.busNode.nodeID, data.NodeTypeModbusIO, false)
+	nodes, err := nats.GetNodeChildren(b.nc, b.busNode.nodeID, data.NodeTypeModbusIO, false)
 	if err != nil {
 		return err
 	}

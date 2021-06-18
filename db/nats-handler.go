@@ -12,8 +12,10 @@ import (
 	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/internal/pb"
 	"github.com/simpleiot/simpleiot/msg"
 	"github.com/simpleiot/simpleiot/nats"
+	"google.golang.org/protobuf/proto"
 )
 
 // NatsHandler implements the SIOT NATS api
@@ -252,9 +254,20 @@ func (nh *NatsHandler) handleNodeChildren(msg *natsgo.Msg) {
 		return
 	}
 
+	// decode request params
+	params := pb.NatsRequest{}
+
+	if len(msg.Data) > 0 {
+		err := proto.Unmarshal(msg.Data, &params)
+		if err != nil {
+			log.Println("Error decoding Node children request params: ", err)
+			return
+		}
+	}
+
 	nodeID := chunks[1]
 
-	nodes, err := nh.db.NodeDescendents(nodeID, "", false)
+	nodes, err := nh.db.NodeDescendents(nodeID, params.Type, false, params.IncludeDel)
 
 	if err != nil {
 		log.Printf("NATS: Error getting node %v from db: %v\n", nodeID, err)
@@ -297,7 +310,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 	var findUsers func(id string)
 
 	findUsers = func(id string) {
-		nodes, err := nh.db.NodeDescendents(id, data.NodeTypeUser, false)
+		nodes, err := nh.db.NodeDescendents(id, data.NodeTypeUser, false, false)
 		if err != nil {
 			log.Println("Error find user nodes: ", err)
 			return
@@ -394,7 +407,7 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 	level := 0
 
 	findSvcNodes = func(id string) {
-		nodes, err := nh.db.NodeDescendents(id, data.NodeTypeMsgService, false)
+		nodes, err := nh.db.NodeDescendents(id, data.NodeTypeMsgService, false, false)
 		if err != nil {
 			log.Println("Error getting svc descendents: ", err)
 			return
@@ -477,18 +490,20 @@ func (nh *NatsHandler) processPoints(currentNodeID, nodeID, nodeDesc string, poi
 	}
 
 	// get children and process any rules
-	ruleNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeRule, false)
+	ruleNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeRule, false, false)
 	if err != nil {
 		return err
 	}
 
 	for _, ruleNode := range ruleNodes {
-		conditionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeCondition, false)
+		conditionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeCondition,
+			false, false)
 		if err != nil {
 			return err
 		}
 
-		actionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeAction, false)
+		actionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeAction,
+			false, false)
 		if err != nil {
 			return err
 		}
@@ -514,7 +529,7 @@ func (nh *NatsHandler) processPoints(currentNodeID, nodeID, nodeDesc string, poi
 	}
 
 	// get database nodes
-	dbNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeDb, false)
+	dbNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeDb, false, false)
 
 	for _, dbNode := range dbNodes {
 

@@ -454,7 +454,11 @@ func main() {
 		log.Fatal("Error connecting to NATs server: ", err)
 	}
 
-	nodeManager := node.NewManger(dbInst, nc)
+	nodeManager := node.NewManger(nc)
+	err = nodeManager.Init()
+	if err != nil {
+		log.Fatal("Error initializing node manager: ", err)
+	}
 	go nodeManager.Run()
 
 	// set up particle connection if configured

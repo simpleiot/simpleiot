@@ -703,7 +703,7 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 // stop at children, true to recursively get all descendents.
 // FIXME, once recursion has been moved to client, this can return only a single
 // level of []data.Node.
-func (gen *Db) NodeDescendents(id, typ string, recursive bool) ([]data.NodeEdge, error) {
+func (gen *Db) NodeDescendents(id, typ string, recursive, includeDel bool) ([]data.NodeEdge, error) {
 	var nodes []data.NodeEdge
 
 	err := gen.store.View(func(tx *genji.Tx) error {
@@ -716,6 +716,13 @@ func (gen *Db) NodeDescendents(id, typ string, recursive bool) ([]data.NodeEdge,
 			nodes = append(nodes, childNodes...)
 		} else {
 			for _, child := range childNodes {
+				if !includeDel {
+					tombstone, _ := child.IsTombstone()
+					if tombstone {
+						// skip deleted nodes
+						continue
+					}
+				}
 				if typ != "" {
 					if child.Type == typ {
 						nodes = append(nodes, child)

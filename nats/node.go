@@ -6,6 +6,8 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/internal/pb"
+	"google.golang.org/protobuf/proto"
 )
 
 // GetNode over NATS. If id is "root", the root node is fetched.
@@ -25,8 +27,18 @@ func GetNode(nc *natsgo.Conn, id, parent string) (data.NodeEdge, error) {
 }
 
 // GetNodeChildren over NATS (immediate children only, not recursive)
-func GetNodeChildren(nc *natsgo.Conn, id string) ([]data.NodeEdge, error) {
-	nodeMsg, err := nc.Request("node."+id+".children", nil, time.Second*20)
+// deleted nodes are skipped unless includeDel is set to true. typ
+// can be used to limit nodes to a particular type, otherwise, all nodes
+// are returned.
+func GetNodeChildren(nc *natsgo.Conn, id, typ string, includeDel bool) ([]data.NodeEdge, error) {
+	reqData, err := proto.Marshal(&pb.NatsRequest{IncludeDel: includeDel,
+		Type: typ})
+
+	if err != nil {
+		return nil, err
+	}
+
+	nodeMsg, err := nc.Request("node."+id+".children", reqData, time.Second*20)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +88,7 @@ func SendNode(src, dest *natsgo.Conn, id, parent string) error {
 	}
 
 	// process child nodes
-	childNodes, err := GetNodeChildren(src, id)
+	childNodes, err := GetNodeChildren(src, id, "", false)
 	if err != nil {
 		return fmt.Errorf("Error getting node children: %v", err)
 	}

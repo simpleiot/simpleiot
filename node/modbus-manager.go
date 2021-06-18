@@ -6,23 +6,23 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/modbus"
+	"github.com/simpleiot/simpleiot/nats"
 )
 
 // ModbusManager manages state of modbus
 type ModbusManager struct {
-	db     *db.Db
-	nc     *natsgo.Conn
-	busses map[string]*Modbus
+	nc         *natsgo.Conn
+	busses     map[string]*Modbus
+	rootNodeID string
 }
 
 // NewModbusManager creates a new modbus manager
-func NewModbusManager(db *db.Db, nc *natsgo.Conn) *ModbusManager {
+func NewModbusManager(nc *natsgo.Conn, rootNodeID string) *ModbusManager {
 	return &ModbusManager{
-		db:     db,
-		nc:     nc,
-		busses: make(map[string]*Modbus),
+		nc:         nc,
+		busses:     make(map[string]*Modbus),
+		rootNodeID: rootNodeID,
 	}
 }
 
@@ -49,10 +49,7 @@ func copyIos(in map[string]*ModbusIO) map[string]*ModbusIO {
 // Update queries DB for modbus nodes and synchronizes
 // with internal structures and updates data
 func (mm *ModbusManager) Update() error {
-	rootID := mm.db.RootNodeID()
-	// TODO this should eventually be modified to not recurse into
-	// child devices
-	nodes, err := mm.db.NodeDescendents(rootID, data.NodeTypeModbus, true)
+	nodes, err := nats.GetNodeChildren(mm.nc, mm.rootNodeID, data.NodeTypeModbus, false)
 	if err != nil {
 		return err
 	}
@@ -64,7 +61,7 @@ func (mm *ModbusManager) Update() error {
 		bus, ok := mm.busses[node.ID]
 		if !ok {
 			var err error
-			bus, err = NewModbus(mm.db, mm.nc, node)
+			bus, err = NewModbus(mm.nc, node)
 			if err != nil {
 				log.Println("Error creating new modbus: ", err)
 				continue

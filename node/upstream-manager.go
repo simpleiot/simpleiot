@@ -10,27 +10,24 @@ import (
 
 // UpstreamManager looks for upstream nodes and creates new upstream connections
 type UpstreamManager struct {
-	nc        *natsgo.Conn
-	upstreams map[string]*Upstream
+	nc         *natsgo.Conn
+	upstreams  map[string]*Upstream
+	rootNodeID string
 }
 
 // NewUpstreamManager is used to create a new upstream manager
-func NewUpstreamManager(nc *natsgo.Conn) *UpstreamManager {
+func NewUpstreamManager(nc *natsgo.Conn, rootNodeID string) *UpstreamManager {
 	return &UpstreamManager{
-		nc:        nc,
-		upstreams: make(map[string]*Upstream),
+		nc:         nc,
+		upstreams:  make(map[string]*Upstream),
+		rootNodeID: rootNodeID,
 	}
 }
 
 // Update queries DB for modbus nodes and synchronizes
 // with internal structures and updates data
 func (upm *UpstreamManager) Update() error {
-	rootNode, err := nats.GetNode(upm.nc, "root", "")
-	if err != nil {
-		return err
-	}
-
-	nodes, err := nats.GetNodeChildren(upm.nc, rootNode.ID)
+	nodes, err := nats.GetNodeChildren(upm.nc, upm.rootNodeID, data.NodeTypeUpstream, false)
 	if err != nil {
 		return err
 	}
@@ -38,10 +35,6 @@ func (upm *UpstreamManager) Update() error {
 	found := make(map[string]bool)
 
 	for _, node := range nodes {
-		if node.Type != data.NodeTypeUpstream {
-			continue
-		}
-
 		found[node.ID] = true
 		up, ok := upm.upstreams[node.ID]
 		if !ok {

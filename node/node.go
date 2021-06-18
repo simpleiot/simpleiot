@@ -11,32 +11,35 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
 )
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
-	db              *db.Db
 	nc              *natsgo.Conn
 	modbusManager   *ModbusManager
 	upstreamManager *UpstreamManager
+	rootNodeID      string
 }
 
 // NewManger creates a new Manager
-func NewManger(db *db.Db, nc *natsgo.Conn) *Manager {
+func NewManger(nc *natsgo.Conn) *Manager {
 	return &Manager{
-		db:              db,
-		nc:              nc,
-		modbusManager:   NewModbusManager(db, nc),
-		upstreamManager: NewUpstreamManager(nc),
+		nc: nc,
 	}
 }
 
 // Init initializes the tree root node and default admin if needed
 func (m *Manager) Init() error {
-	rootID := m.db.RootNodeID()
-	if rootID == "" {
+	rootNode, err := nats.GetNode(m.nc, "root", "")
+
+	if err != nil {
+		log.Println("Error getting root node: ", err)
+	} else {
+		m.rootNodeID = rootNode.ID
+	}
+
+	if rootNode.ID == "" {
 		// initialize root node and user
 		p := data.Point{
 			Time: time.Now(),
@@ -68,7 +71,12 @@ func (m *Manager) Init() error {
 		if err != nil {
 			return fmt.Errorf("Error setting default user: %v", err)
 		}
+
+		m.rootNodeID = id
 	}
+
+	m.modbusManager = NewModbusManager(m.nc, m.rootNodeID)
+	m.upstreamManager = NewUpstreamManager(m.nc, m.rootNodeID)
 
 	return nil
 }
@@ -79,12 +87,19 @@ func (m *Manager) Run() {
 		// TODO: this will not scale and needs to be made event driven
 		// on the creation of new nodes
 		for {
-			m.modbusManager.Update()
-			m.upstreamManager.Update()
+			if m.modbusManager != nil {
+				m.modbusManager.Update()
+			}
+			if m.upstreamManager != nil {
+				m.upstreamManager.Update()
+			}
 			time.Sleep(10 * time.Second)
 		}
 	}()
 
+	select {}
+
+	/* the following code needs redone, so commenting out for now
 	for {
 		// TODO: this will not scale and needs to be made event driven
 		nodes, err := m.db.Nodes()
@@ -113,6 +128,7 @@ func (m *Manager) Run() {
 
 		time.Sleep(30 * time.Second)
 	}
+	*/
 }
 
 type nodeTemplateData struct {
