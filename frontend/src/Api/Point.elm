@@ -93,6 +93,9 @@ module Api.Point exposing
     , valueModbusDiscreteInput
     , valueModbusHoldingRegister
     , valueModbusInputRegister
+    , valueModbusWP8024ADAM
+    , valueModbusWP8025ADAM
+    , valueModbusWP8026ADAM
     , valueNotEqual
     , valueNumber
     , valueOff
@@ -355,6 +358,21 @@ valueModbusInputRegister =
 valueModbusHoldingRegister : String
 valueModbusHoldingRegister =
     "modbusHoldingRegister"
+
+
+valueModbusWP8024ADAM : String
+valueModbusWP8024ADAM =
+    "modbusWP8024ADAM"
+
+
+valueModbusWP8025ADAM : String
+valueModbusWP8025ADAM =
+    "modbusWP8025ADAM"
+
+
+valueModbusWP8026ADAM : String
+valueModbusWP8026ADAM =
+    "modbusWP8026ADAM"
 
 
 typeDataFormat : String
