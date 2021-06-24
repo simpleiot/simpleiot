@@ -41,6 +41,7 @@ func (m *Manager) Init() error {
 
 	if rootNode.ID == "" {
 		// initialize root node and user
+		log.Println("NODE: Initialize root node and admin user")
 		p := data.Point{
 			Time: time.Now(),
 			Type: data.PointTypeNodeType,
@@ -67,7 +68,7 @@ func (m *Manager) Init() error {
 		points = append(points, data.Point{Type: data.PointTypeNodeType,
 			Text: data.NodeTypeUser})
 
-		err = nats.SendNodePoint(m.nc, id, p, false)
+		err = nats.SendNodePoints(m.nc, admin.ID, points, false)
 		if err != nil {
 			return fmt.Errorf("Error setting default user: %v", err)
 		}

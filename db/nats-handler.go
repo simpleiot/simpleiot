@@ -229,7 +229,7 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	node, err := nh.db.nodeEdge(nodeID, parent)
 
 	if err != nil {
-		log.Printf("NATS: Error getting node %v from db: %v\n", nodeID, err)
+		log.Printf("NATS handler: Error getting node %v from db: %v\n", nodeID, err)
 		// TODO should we send an error back to requester
 	}
 
