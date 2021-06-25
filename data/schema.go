@@ -84,6 +84,9 @@ const (
 	PointValueModbusCoil            = "modbusCoil"
 	PointValueModbusInputRegister   = "modbusInputRegister"
 	PointValueModbusHoldingRegister = "modbusHoldingRegister"
+	PointValueModbusWP8024ADAM      = "modbusWP8024ADAM"
+	PointValueModbusWP8025ADAM      = "modbusWP8025ADAM"
+	PointValueModbusWP8026ADAM      = "modbusWP8026ADAM"
 
 	PointTypeDataFormat = "dataFormat"
 	PointValueUINT16    = "uint16"

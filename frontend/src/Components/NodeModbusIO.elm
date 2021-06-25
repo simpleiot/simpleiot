@@ -2,6 +2,7 @@ module Components.NodeModbusIO exposing (view)
 
 import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
+import Color
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -154,40 +155,64 @@ view o =
                     { onChange =
                         \d ->
                             o.onEditNodePoint (Point "" index Point.typeDescription o.now 0 d 0 0)
-                    , text = Point.getText o.node.points "" index Point.typeDescription
+                    , text = Point.getText o.node.points "" index Point.typeDescription -- TODO figure out if this works since we already have one description - do we need another type???
                     , placeholder = Just <| Input.placeholder [] <| text "Digital input description"
                     , label = Input.labelLeft [ width (px 150) ] <| el [ alignRight ] <| text <| ("DI_" ++ labelNum ++ ": ")
                     }
-                , text <| valueText index
+                , el [ paddingXY 40 7, Background.color (valueBackgroundColor index), Font.color (valueTextColor index) ] <|
+                    text <|
+                        valueText index
+
+                -- display the index for reference by user
+                , text <|
+                    " ("
+                        ++ twoDigitNumber index
+                        ++ ")"
                 ]
 
         -- Modbus relay UI element
         ry : Int -> String -> Element msg
         ry index labelNum =
-            Form.nodeOnOffInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                index
-                Point.typeValue
-                Point.typeValueSet
-                ("RY_"
-                    ++ labelNum
-                )
+            row [ spacing 10 ]
+                [ Input.text
+                    []
+                    { onChange =
+                        \d ->
+                            o.onEditNodePoint (Point "" index Point.typeDescription o.now 0 d 0 0)
+                    , text = Point.getText o.node.points "" index Point.typeDescription -- TODO figure out if this works since we already have one description - do we need another type???
+                    , placeholder = Just <| Input.placeholder [] <| text "Relay description"
+                    , label = Input.labelLeft [ width (px 150) ] <| el [ alignRight ] <| text <| ("RY_" ++ labelNum ++ ": ")
+                    }
+                , Form.nodeOnOffInputWithoutColon
+                    { onEditNodePoint = o.onEditNodePoint
+                    , node = o.node
+                    , now = o.now
+                    , labelWidth = 0
+                    }
+                    ""
+                    index
+                    Point.typeValue
+                    Point.typeValueSet
+                    ""
+
+                -- display the index for reference by user
+                , text <|
+                    " ("
+                        ++ twoDigitNumber index
+                        ++ ")"
+                ]
 
         -- TODO, these should probably take an index as well for consistency
-        valueBackgroundColor =
-            if valueText 0 == "on" then
+        valueBackgroundColor : Int -> Color
+        valueBackgroundColor index =
+            if valueText index == "on" then
                 Style.colors.blue
 
             else
-                Style.colors.none
+                Style.colors.gray
 
-        valueTextColor =
-            if valueText 0 == "on" then
+        valueTextColor index =
+            if True then
                 Style.colors.white
 
             else
@@ -314,37 +339,36 @@ view o =
                                 , di 10 "07"
                                 , di 11 "08"
                                 ]
-                                {-
-                                   else if modbusIOType == Point.valueModbusWP8025ADAM then
-                                       [ rly 0
-                                       , rly 1
-                                       , rly 2
-                                       , rly 3
-                                       , rly 4
-                                       , rly 5
-                                       , rly 6
-                                       , rly 7
-                                       ]
 
-                                   else if modbusIOType == Point.valueModbusWP8026ADAM then
-                                       [ di 0
-                                       , di 1
-                                       , di 2
-                                       , di 3
-                                       , di 4
-                                       , di 5
-                                       , di 6
-                                       , di 7
-                                       , di 8
-                                       , di 9
-                                       , di 10
-                                       , di 11
-                                       , di 12
-                                       , di 13
-                                       , di 14
-                                       , di 15
-                                       ]
-                                -}
+                            else if modbusIOType == Point.valueModbusWP8025ADAM then
+                                [ ry 0 "00"
+                                , ry 1 "01"
+                                , ry 2 "02"
+                                , ry 3 "03"
+                                , ry 4 "04"
+                                , ry 5 "05"
+                                , ry 6 "06"
+                                , ry 7 "07"
+                                ]
+
+                            else if modbusIOType == Point.valueModbusWP8026ADAM then
+                                [ di 0 "00"
+                                , di 1 "01"
+                                , di 2 "02"
+                                , di 3 "03"
+                                , di 4 "04"
+                                , di 5 "05"
+                                , di 6 "06"
+                                , di 7 "07"
+                                , di 8 "08"
+                                , di 9 "09"
+                                , di 10 "10"
+                                , di 11 "11"
+                                , di 12 "12"
+                                , di 13 "13"
+                                , di 14 "14"
+                                , di 15 "15"
+                                ]
 
                             else
                                 []

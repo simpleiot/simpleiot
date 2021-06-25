@@ -8,17 +8,25 @@ import (
 
 // ModbusIONode describes a modbus IO db node
 type ModbusIONode struct {
-	nodeID             string
-	description        string
-	id                 int
-	address            int
-	modbusIOType       string
-	modbusDataType     string
-	readOnly           bool
-	scale              float64
-	offset             float64
-	value              float64
-	valueSet           float64
+	nodeID         string
+	description    string
+	id             int
+	address        int
+	modbusIOType   string
+	modbusDataType string
+	readOnly       bool
+	scale          float64
+	offset         float64
+
+	// Used for single digital inputs or relays
+	value    float64
+	valueSet float64
+
+	// Used for modules like the WellPro WP8024ADAM with multiple digital inputs
+	// and or relays
+	valueArray    [16]float64
+	valueSetArray [16]float64
+
 	errorCount         int
 	errorCountCRC      int
 	errorCountEOF      int
@@ -44,14 +52,20 @@ func NewModbusIONode(busType string, node *data.NodeEdge) (*ModbusIONode, error)
 
 	ret.description, _ = node.Points.Text("", data.PointTypeDescription, 0)
 
-	ret.address, ok = node.Points.ValueInt("", data.PointTypeAddress, 0)
-	if !ok {
-		return nil, errors.New("Must define modbus address")
-	}
-
 	ret.modbusIOType, ok = node.Points.Text("", data.PointTypeModbusIOType, 0)
 	if !ok {
 		return nil, errors.New("Must define modbus IO type")
+	}
+
+	if ret.modbusIOType == data.PointValueModbusCoil ||
+		ret.modbusIOType == data.PointValueModbusDiscreteInput ||
+		ret.modbusIOType == data.PointValueModbusHoldingRegister ||
+		ret.modbusIOType == data.PointValueModbusInputRegister {
+
+		ret.address, ok = node.Points.ValueInt("", data.PointTypeAddress, 0)
+		if !ok {
+			return nil, errors.New("Must define modbus address")
+		}
 	}
 
 	ret.readOnly, _ = node.Points.ValueBool("", data.PointTypeReadOnly, 0)
@@ -74,6 +88,10 @@ func NewModbusIONode(busType string, node *data.NodeEdge) (*ModbusIONode, error)
 
 	ret.value, _ = node.Points.Value("", data.PointTypeValue, 0)
 	ret.valueSet, _ = node.Points.Value("", data.PointTypeValueSet, 0)
+	for i, _ := range ret.valueArray {
+		ret.valueArray[i], _ = node.Points.Value("", data.PointTypeValue, i)
+		ret.valueSetArray[i], _ = node.Points.Value("", data.PointTypeValueSet, i)
+	}
 	ret.errorCount, _ = node.Points.ValueInt("", data.PointTypeErrorCount, 0)
 	ret.errorCountCRC, _ = node.Points.ValueInt("", data.PointTypeErrorCountCRC, 0)
 	ret.errorCountEOF, _ = node.Points.ValueInt("", data.PointTypeErrorCountEOF, 0)
