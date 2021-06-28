@@ -121,6 +121,7 @@ type alias Node =
     { id : String
     , edgeId : String
     , typ : String
+    , hash : String
     , parent : String
     , points : List Point
     , edgePoints : List Point
@@ -171,6 +172,7 @@ decode =
         |> required "id" Decode.string
         |> required "edgeId" Decode.string
         |> required "type" Decode.string
+        |> optional "hash" Decode.string ""
         |> required "parent" Decode.string
         |> optional "points" (Decode.list Point.decode) []
         |> optional "edgePoints" (Decode.list Point.decode) []
@@ -189,6 +191,7 @@ encode node =
         [ ( "id", Encode.string node.id )
         , ( "edgeId", Encode.string node.edgeId )
         , ( "type", Encode.string node.typ )
+        , ( "hash", Encode.string node.hash )
         , ( "parent", Encode.string node.parent )
         , ( "points", Point.encodeList node.points )
         , ( "edgePoints", Point.encodeList node.edgePoints )
