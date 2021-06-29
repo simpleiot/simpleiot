@@ -594,16 +594,19 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 			node.Points.ProcessPoint(point)
 		}
 
-		state := node.State()
-		if state != data.PointValueSysStateOnline {
-			node.Points.ProcessPoint(
-				data.Point{
-					Time: time.Now(),
-					Type: data.PointTypeSysState,
-					Text: data.PointValueSysStateOnline,
-				},
-			)
-		}
+		/*
+			 * FIXME: need to clean up offline processing
+			state := node.State()
+			if state != data.PointValueSysStateOnline {
+				node.Points.ProcessPoint(
+					data.Point{
+						Time: time.Now(),
+						Type: data.PointTypeSysState,
+						Text: data.PointValueSysStateOnline,
+					},
+				)
+			}
+		*/
 
 		sort.Sort(node.Points)
 
