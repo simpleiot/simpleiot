@@ -271,17 +271,20 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 			nodeEdge = node.ToNodeEdge(edge)
 		} else {
 			hash := []byte{}
+			/* FIXME, for some reason root hash is not working here
 			if gen.meta.RootID == id {
 				hash = gen.meta.RootHash
 			} else {
-				// calculate hash from node and downstream data, as this node
-				// might be a device in the middle of the tree
-				var err error
-				hash, err = gen.txCalcHash(tx, node, data.Edge{})
-				if err != nil {
-					return err
-				}
+			*/
+			// calculate hash from node and downstream data, as this node
+			// might be a device in the middle of the tree
+			var err error
+			fmt.Println("CLIFF: caculating hash")
+			hash, err = gen.txCalcHash(tx, node, data.Edge{})
+			if err != nil {
+				return err
 			}
+
 			nodeEdge = node.ToNodeEdge(data.Edge{Hash: hash})
 		}
 
