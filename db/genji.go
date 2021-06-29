@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"crypto/md5"
-	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -280,7 +279,6 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 			// calculate hash from node and downstream data, as this node
 			// might be a device in the middle of the tree
 			var err error
-			fmt.Println("CLIFF: caculating hash")
 			hash, err = gen.txCalcHash(tx, node, data.Edge{})
 			if err != nil {
 				return err
@@ -291,8 +289,6 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 
 		return nil
 	})
-
-	fmt.Println("CLIFF: getnode: ", nodeEdge)
 
 	return nodeEdge, err
 }
@@ -429,14 +425,12 @@ func (gen *Db) txCalcHash(tx *genji.Tx, node data.Node, upEdge data.Edge) ([]byt
 	h := md5.New()
 
 	for _, p := range upEdge.Points {
-		fmt.Println("CLIFF: adding upedge point to hash: ", p)
 		d := make([]byte, 8)
 		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
 		h.Write(d)
 	}
 
 	for _, p := range node.Points {
-		fmt.Println("CLIFF: adding node point to hash: ", p)
 		d := make([]byte, 8)
 		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
 		h.Write(d)
@@ -452,8 +446,6 @@ func (gen *Db) txCalcHash(tx *genji.Tx, node data.Node, upEdge data.Edge) ([]byt
 	sort.Sort(data.ByHash(downEdges))
 
 	for _, downEdge := range downEdges {
-		fmt.Println("CLIFF: adding down edge hash: ", base64.StdEncoding.EncodeToString(downEdge.Hash))
-
 		h.Write(downEdge.Hash)
 	}
 
