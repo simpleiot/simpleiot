@@ -273,6 +273,14 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 			hash := []byte{}
 			if gen.meta.RootID == id {
 				hash = gen.meta.RootHash
+			} else {
+				// calculate hash from node and downstream data, as this node
+				// might be a device in the middle of the tree
+				var err error
+				hash, err = gen.txCalcHash(tx, node, data.Edge{})
+				if err != nil {
+					return err
+				}
 			}
 			nodeEdge = node.ToNodeEdge(data.Edge{Hash: hash})
 		}
@@ -411,6 +419,37 @@ func init() {
 	zero = uuidZero.String()
 }
 
+func (gen *Db) txCalcHash(tx *genji.Tx, node data.Node, upEdge data.Edge) ([]byte, error) {
+	h := md5.New()
+
+	for _, p := range upEdge.Points {
+		d := make([]byte, 8)
+		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
+		h.Write(d)
+	}
+
+	for _, p := range node.Points {
+		d := make([]byte, 8)
+		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
+		h.Write(d)
+	}
+
+	// get child edges
+	downEdges, err := txEdgeDown(tx, node.ID)
+
+	if err != nil {
+		return []byte{}, err
+	}
+
+	sort.Sort(data.ByEdgeID(downEdges))
+
+	for _, downEdge := range downEdges {
+		h.Write(downEdge.Hash)
+	}
+
+	return h.Sum(nil), nil
+}
+
 func (gen *Db) nodeUpdateHash(id string) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
 		node, err := txNode(tx, id)
@@ -431,62 +470,25 @@ func (gen *Db) nodeUpdateHash(id string) error {
 			}
 
 			for _, upEdge := range upEdges {
-				h := md5.New()
-
-				for _, p := range upEdge.Points {
-					d := make([]byte, 8)
-					binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
-					h.Write(d)
-				}
-
-				for _, p := range node.Points {
-					d := make([]byte, 8)
-					binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
-					h.Write(d)
-				}
-
-				// get child edges
-				downEdges, err := txEdgeDown(tx, id)
+				hash, err := gen.txCalcHash(tx, node, upEdge)
 
 				if err != nil {
 					return err
 				}
 
-				sort.Sort(data.ByEdgeID(downEdges))
-
-				for _, downEdge := range downEdges {
-					h.Write(downEdge.Hash)
-				}
-
 				// update hash in parent edge
 				return tx.Exec(`update edges set hash = ? where id = ?`,
-					h.Sum(nil), upEdge.ID)
+					hash, upEdge.ID)
 			}
 		} else {
-			h := md5.New()
-
-			for _, p := range node.Points {
-				d := make([]byte, 8)
-				binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
-				h.Write(d)
-			}
-
-			// get child edges
-			downEdges, err := txEdgeDown(tx, id)
+			hash, err := gen.txCalcHash(tx, node, data.Edge{})
 
 			if err != nil {
 				return err
 			}
 
-			sort.Sort(data.ByEdgeID(downEdges))
-
-			for _, downEdge := range downEdges {
-				h.Write(downEdge.Hash)
-			}
-
 			// update hash in parent edge
-			return tx.Exec(`update meta set roothash = ?`,
-				h.Sum(nil))
+			return tx.Exec(`update meta set roothash = ?`, hash)
 		}
 
 		return nil
@@ -682,7 +684,15 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 			if err != nil {
 				return err
 			}
-			nodes = append(nodes, rootNode.ToNodeEdge(data.Edge{}))
+
+			rootNodeEdge := rootNode.ToNodeEdge(data.Edge{})
+			rootNodeEdge.Hash, err = gen.txCalcHash(tx, rootNode, data.Edge{})
+
+			if err != nil {
+				return err
+			}
+
+			nodes = append(nodes, rootNodeEdge)
 
 			childNodes, err := txNodeFindDescendents(tx, rootNode.ID, true, 0)
 			if err != nil {
