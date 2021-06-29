@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -428,12 +429,14 @@ func (gen *Db) txCalcHash(tx *genji.Tx, node data.Node, upEdge data.Edge) ([]byt
 	h := md5.New()
 
 	for _, p := range upEdge.Points {
+		fmt.Println("CLIFF: adding upedge point to hash: ", p)
 		d := make([]byte, 8)
 		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
 		h.Write(d)
 	}
 
 	for _, p := range node.Points {
+		fmt.Println("CLIFF: adding node point to hash: ", p)
 		d := make([]byte, 8)
 		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
 		h.Write(d)
@@ -449,6 +452,8 @@ func (gen *Db) txCalcHash(tx *genji.Tx, node data.Node, upEdge data.Edge) ([]byt
 	sort.Sort(data.ByEdgeID(downEdges))
 
 	for _, downEdge := range downEdges {
+		fmt.Println("CLIFF: adding down edge hash: ", base64.StdEncoding.EncodeToString(downEdge.Hash))
+
 		h.Write(downEdge.Hash)
 	}
 
