@@ -288,6 +288,8 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 		return nil
 	})
 
+	fmt.Println("CLIFF: getnode: ", nodeEdge)
+
 	return nodeEdge, err
 }
 

@@ -2,7 +2,7 @@ package data
 
 import (
 	"bytes"
-	"encoding/hex"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -188,7 +188,7 @@ type NodeEdge struct {
 
 func (n NodeEdge) String() string {
 	ret := fmt.Sprintf("NODE: %v (%v)\n", n.ID, n.Type)
-	ret += fmt.Sprintf("  - Hash: %v\n", hex.Dump(n.Hash))
+	ret += fmt.Sprintf("  - Hash: %v\n", base64.StdEncoding.EncodeToString(n.Hash))
 
 	for _, p := range n.Points {
 		ret += fmt.Sprintf("  - Point: %v\n", p)
