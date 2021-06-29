@@ -1,6 +1,9 @@
 package data
 
-import "strings"
+import (
+	"bytes"
+	"strings"
+)
 
 // TODO -- would like to move this to db/store package and make it internal
 
@@ -26,3 +29,10 @@ type ByEdgeID []Edge
 func (a ByEdgeID) Len() int           { return len(a) }
 func (a ByEdgeID) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByEdgeID) Less(i, j int) bool { return strings.Compare(a[i].ID, a[j].ID) < 0 }
+
+// ByHash implements sort interface for NodeEdge by Hash
+type ByHash []Edge
+
+func (a ByHash) Len() int           { return len(a) }
+func (a ByHash) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByHash) Less(i, j int) bool { return bytes.Compare(a[i].Hash, a[j].Hash) < 0 }
