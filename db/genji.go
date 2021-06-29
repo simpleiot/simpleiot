@@ -449,7 +449,7 @@ func (gen *Db) txCalcHash(tx *genji.Tx, node data.Node, upEdge data.Edge) ([]byt
 		return []byte{}, err
 	}
 
-	sort.Sort(data.ByEdgeID(downEdges))
+	sort.Sort(data.ByHash(downEdges))
 
 	for _, downEdge := range downEdges {
 		fmt.Println("CLIFF: adding down edge hash: ", base64.StdEncoding.EncodeToString(downEdge.Hash))
