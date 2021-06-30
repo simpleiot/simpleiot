@@ -59,7 +59,7 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 
 	nh.Nc = nc
 
-	if _, err := nc.Subscribe("node.*.points", nh.handlePoints); err != nil {
+	if _, err := nc.Subscribe("node.*.points", nh.handleNodePoints); err != nil {
 		return nil, fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
@@ -148,7 +148,7 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 	return nil
 }
 
-func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
+func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
 	nh.nodeUpdateLock.Lock()
 	defer nh.nodeUpdateLock.Unlock()
 
@@ -173,13 +173,13 @@ func (nh *NatsHandler) handlePoints(msg *natsgo.Msg) {
 
 	node, err := nh.db.Node(nodeID)
 	if err != nil {
-		log.Println("handlePoints, error getting node for id: ", nodeID)
+		log.Println("handleNodePoints, error getting node for id: ", nodeID)
 	}
 
 	desc := node.Desc()
 
 	// process point in upstream nodes
-	err = nh.processPoints(nodeID, nodeID, desc, points)
+	err = nh.processPointsUpstream(nodeID, nodeID, desc, points)
 	if err != nil {
 		// TODO track error stats
 		log.Println("Error processing point in upstream nodes: ", err)
@@ -480,14 +480,8 @@ func (nh *NatsHandler) reply(subject string, err error) {
 	nh.Nc.Publish(subject, []byte(reply))
 }
 
-func (nh *NatsHandler) processPoints(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
+func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
-
-	// first update the hash
-	err := nh.db.nodeUpdateHash(currentNodeID)
-	if err != nil {
-		return err
-	}
 
 	// get children and process any rules
 	ruleNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeRule, false, false)
@@ -556,7 +550,7 @@ func (nh *NatsHandler) processPoints(currentNodeID, nodeID, nodeDesc string, poi
 
 	for _, edge := range edges {
 
-		err = nh.processPoints(edge.Up, nodeID, nodeDesc, points)
+		err = nh.processPointsUpstream(edge.Up, nodeID, nodeDesc, points)
 		if err != nil {
 			log.Println("Rules -- error processing upstream node: ", err)
 		}

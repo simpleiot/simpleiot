@@ -330,15 +330,6 @@ func (gen *Db) Nodes() ([]data.Node, error) {
 	return nodes, err
 }
 
-// nodeInsert is used to insert a node into the database
-func (gen *Db) nodeInsert(node data.Node) (string, error) {
-	if node.ID == "" {
-		node.ID = uuid.New().String()
-	}
-
-	return node.ID, gen.store.Exec(`insert into nodes values ?`, node)
-}
-
 func txSetTombstone(tx *genji.Tx, down, up string, tombstone bool) error {
 	doc, err := tx.QueryDocument(`select * from edges where down = ? and up = ?`, down, up)
 	if err != nil {
@@ -361,55 +352,15 @@ func txSetTombstone(tx *genji.Tx, down, up string, tombstone bool) error {
 			Time:  time.Now(),
 		})
 
+		sort.Sort(edge.Points)
+
 		err := tx.Exec(`update edges set points = ? where id = ?`,
 			edge.Points, edge.ID)
 
 		if err != nil {
 			return err
 		}
-
 	}
-
-	return nil
-}
-
-func txNodeDelete(tx *genji.Tx, id, parent string) error {
-	upIDs, err := txEdgeUp(tx, id)
-	if err != nil {
-		return err
-	}
-
-	err = txSetTombstone(tx, id, parent, true)
-
-	if err != nil {
-		return err
-	}
-
-	_ = upIDs
-
-	/* for now we just leave all delete nodes in db -- we may change this later
-
-	if len(upIDs) > 1 {
-		// there are still other nodes using this node
-		// so don't delete it
-		return nil
-	}
-
-	// recursively delete all downstream nodes
-	downIDs, err := txEdgeDown(tx, id)
-	if err != nil {
-		return err
-	}
-
-	for _, cid := range downIDs {
-		txNodeDelete(tx, cid, id)
-	}
-
-	err = tx.Exec(`delete from nodes where id = ?`, id)
-	if err != nil {
-		return err
-	}
-	*/
 
 	return nil
 }
@@ -658,7 +609,7 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 		}
 
 		if removeParent != "" {
-			err := txNodeDelete(tx, id, removeParent)
+			err := txSetTombstone(tx, id, removeParent, true)
 			if err != nil {
 				return err
 			}
@@ -754,6 +705,8 @@ func (gen *Db) NodeDescendents(id, typ string, recursive, includeDel bool) ([]da
 	return nodes, err
 }
 
+// TODO: this function needs removed as this needs to happen in the context of
+// code that is updating hash values
 func txEdgeInsert(tx *genji.Tx, edge *data.Edge) error {
 	_, err := tx.QueryDocument(`select * from edges where up = ? and down = ?`,
 		edge.Up, edge.Down)
@@ -773,15 +726,6 @@ func txEdgeInsert(tx *genji.Tx, edge *data.Edge) error {
 
 	// edge already exists, make sure tombstone field is false
 	return txSetTombstone(tx, edge.Down, edge.Up, false)
-}
-
-// edgeInsert is used to insert an edge into the database
-func (gen *Db) edgeInsert(edge data.Edge) (string, error) {
-	err := gen.store.Update(func(tx *genji.Tx) error {
-		return txEdgeInsert(tx, &edge)
-	})
-
-	return edge.ID, err
 }
 
 // edges returns all edges.
@@ -1020,21 +964,24 @@ func ImportDb(gen *Db, in io.Reader) error {
 		return err
 	}
 
-	for _, n := range dump.Nodes {
-		_, err := gen.nodeInsert(n)
-		if err != nil {
-			return fmt.Errorf("Error inserting node (%+v): %w", n, err)
+	// FIXME, re-import meta?
+	return gen.store.Update(func(tx *genji.Tx) error {
+		for _, n := range dump.Nodes {
+			err := tx.Exec(`insert into nodes values ?`, n)
+			if err != nil {
+				return fmt.Errorf("Error inserting node (%+v): %w", n, err)
+			}
 		}
-	}
 
-	for _, e := range dump.Edges {
-		_, err := gen.edgeInsert(e)
-		if err != nil {
-			return fmt.Errorf("Error inserting edge (%+v): %w", e, err)
+		for _, e := range dump.Edges {
+			err := tx.Exec(`insert into edges values ?`, e)
+			if err != nil {
+				return fmt.Errorf("Error inserting edge (%+v): %w", e, err)
+			}
 		}
-	}
 
-	return nil
+		return nil
+	})
 }
 
 type genDump struct {

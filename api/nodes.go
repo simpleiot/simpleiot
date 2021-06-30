@@ -76,6 +76,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			nodes, err := h.db.NodesForUser(userID)
+
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
