@@ -76,6 +76,8 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
+			// FIXME, replace this with a NATS call so we can remove db from this
+			// module
 			nodes, err := h.db.NodesForUser(userID)
 
 			if err != nil {

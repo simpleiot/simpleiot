@@ -267,7 +267,7 @@ func (nh *NatsHandler) handleNodeChildren(msg *natsgo.Msg) {
 
 	nodeID := chunks[1]
 
-	nodes, err := nh.db.NodeDescendents(nodeID, params.Type, false, params.IncludeDel)
+	nodes, err := nh.db.nodeDescendents(nodeID, params.Type, false, params.IncludeDel)
 
 	if err != nil {
 		log.Printf("NATS: Error getting node %v from db: %v\n", nodeID, err)
@@ -310,7 +310,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 	var findUsers func(id string)
 
 	findUsers = func(id string) {
-		nodes, err := nh.db.NodeDescendents(id, data.NodeTypeUser, false, false)
+		nodes, err := nh.db.nodeDescendents(id, data.NodeTypeUser, false, false)
 		if err != nil {
 			log.Println("Error find user nodes: ", err)
 			return
@@ -407,7 +407,7 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 	level := 0
 
 	findSvcNodes = func(id string) {
-		nodes, err := nh.db.NodeDescendents(id, data.NodeTypeMsgService, false, false)
+		nodes, err := nh.db.nodeDescendents(id, data.NodeTypeMsgService, false, false)
 		if err != nil {
 			log.Println("Error getting svc descendents: ", err)
 			return
@@ -484,19 +484,19 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 	// at this point, the point update has already been written to the DB
 
 	// get children and process any rules
-	ruleNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeRule, false, false)
+	ruleNodes, err := nh.db.nodeDescendents(currentNodeID, data.NodeTypeRule, false, false)
 	if err != nil {
 		return err
 	}
 
 	for _, ruleNode := range ruleNodes {
-		conditionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeCondition,
+		conditionNodes, err := nh.db.nodeDescendents(ruleNode.ID, data.NodeTypeCondition,
 			false, false)
 		if err != nil {
 			return err
 		}
 
-		actionNodes, err := nh.db.NodeDescendents(ruleNode.ID, data.NodeTypeAction,
+		actionNodes, err := nh.db.nodeDescendents(ruleNode.ID, data.NodeTypeAction,
 			false, false)
 		if err != nil {
 			return err
@@ -523,7 +523,7 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 	}
 
 	// get database nodes
-	dbNodes, err := nh.db.NodeDescendents(currentNodeID, data.NodeTypeDb, false, false)
+	dbNodes, err := nh.db.nodeDescendents(currentNodeID, data.NodeTypeDb, false, false)
 
 	for _, dbNode := range dbNodes {
 

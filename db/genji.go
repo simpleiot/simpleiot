@@ -317,8 +317,8 @@ func (gen *Db) txNodes(tx *genji.Tx) ([]data.Node, error) {
 
 }
 
-// Nodes returns all nodes.
-func (gen *Db) Nodes() ([]data.Node, error) {
+// nodes returns all nodes.
+func (gen *Db) nodes() ([]data.Node, error) {
 	var nodes []data.Node
 
 	err := gen.store.View(func(tx *genji.Tx) error {
@@ -664,12 +664,12 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 	return data.RemoveDuplicateNodesIDParent(nodes), err
 }
 
-// NodeDescendents returns all descendents for a particular node ID and type
+// nodeDescendents returns all descendents for a particular node ID and type
 // set typ to blank string to find all descendents. Set recursive to false to
 // stop at children, true to recursively get all descendents.
 // FIXME, once recursion has been moved to client, this can return only a single
 // level of []data.Node.
-func (gen *Db) NodeDescendents(id, typ string, recursive, includeDel bool) ([]data.NodeEdge, error) {
+func (gen *Db) nodeDescendents(id, typ string, recursive, includeDel bool) ([]data.NodeEdge, error) {
 	var nodes []data.NodeEdge
 
 	err := gen.store.View(func(tx *genji.Tx) error {
@@ -978,7 +978,7 @@ func DumpDb(gen *Db, out io.Writer) error {
 
 	var err error
 
-	dump.Nodes, err = gen.Nodes()
+	dump.Nodes, err = gen.nodes()
 	if err != nil {
 		return fmt.Errorf("Error getting nodes: %v", err)
 	}
