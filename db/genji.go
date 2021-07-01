@@ -621,6 +621,7 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 // NodesForUser returns all nodes for a particular user
 // FIXME this should be renamed to node children or something like that
+// TODO we should unexport this and somehow do this through nats
 func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 	var nodes []data.NodeEdge
 
