@@ -817,7 +817,7 @@ func txEdgeDown(tx *genji.Tx, nodeID string) ([]data.Edge, error) {
 
 // EdgeUp returns an array of upstream nodes for a node. Does not include
 // tombstoned edges.
-func (gen *Db) EdgeUp(nodeID string) ([]data.Edge, error) {
+func (gen *Db) edgeUp(nodeID string) ([]data.Edge, error) {
 	var ret []data.Edge
 
 	err := gen.store.View(func(tx *genji.Tx) error {
@@ -935,7 +935,7 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 // TODO: our current UI does not use the root user concept
 // but we probably should implement something like that at some point
 func (gen *Db) UserIsRoot(id string) (bool, error) {
-	upstreamNodes, err := gen.EdgeUp(id)
+	upstreamNodes, err := gen.edgeUp(id)
 	if err != nil {
 		return false, err
 	}
