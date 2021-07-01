@@ -931,24 +931,6 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 	return nil, err
 }
 
-// UserIsRoot checks if root user
-// TODO: our current UI does not use the root user concept
-// but we probably should implement something like that at some point
-func (gen *Db) UserIsRoot(id string) (bool, error) {
-	upstreamNodes, err := gen.edgeUp(id)
-	if err != nil {
-		return false, err
-	}
-
-	for _, up := range upstreamNodes {
-		if up.Up == gen.meta.RootID {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
 type genImport struct {
 	Nodes []data.Node `json:"nodes"`
 	Edges []data.Edge `json:"edges"`

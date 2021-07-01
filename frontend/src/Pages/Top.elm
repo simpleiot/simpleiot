@@ -136,7 +136,7 @@ defaultModel key =
         Time.utc
         (Time.millisToPosix 0)
         []
-        { email = "", token = "", isRoot = False }
+        { email = "", token = "" }
         Nothing
         OpNone
         CopyMoveNone
@@ -1141,8 +1141,7 @@ viewNode model parent node depth =
                 [ text <| "ID: " ++ node.node.id
                 , text <| "Hash: " ++ node.node.hash
                 , nodeView
-                    { isRoot = model.auth.isRoot
-                    , now = model.now
+                    { now = model.now
                     , zone = model.zone
                     , modified = node.mod
                     , parent = Maybe.map .node parent
@@ -1203,8 +1202,7 @@ viewNode model parent node depth =
 
 
 viewUnknown :
-    { isRoot : Bool
-    , now : Time.Posix
+    { now : Time.Posix
     , zone : Time.Zone
     , modified : Bool
     , expDetail : Bool

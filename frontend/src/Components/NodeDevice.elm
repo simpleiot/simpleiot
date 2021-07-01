@@ -15,8 +15,7 @@ import Utils.Iso8601 as Iso8601
 
 
 view :
-    { isRoot : Bool
-    , now : Time.Posix
+    { now : Time.Posix
     , zone : Time.Zone
     , modified : Bool
     , expDetail : Bool

@@ -11,8 +11,7 @@ import UI.Style exposing (colors)
 
 
 view :
-    { isRoot : Bool
-    , now : Time.Posix
+    { now : Time.Posix
     , zone : Time.Zone
     , modified : Bool
     , expDetail : Bool
