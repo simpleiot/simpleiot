@@ -23,7 +23,8 @@ Most APIs that do not return specific data (update/delete) return a
   - `/v1/nodes`
     - GET: return a list of all nodes
   - `/v1/nodes/:id`
-    - GET: return info about a specific node
+    - GET: return info about a specific node. Body can optionally include the id
+      of parent node to include edge point information.
     - DELETE: delete a node
   - `/v1/nodes/:id/parents`
     - POST: move node to new parent
@@ -64,7 +65,7 @@ defined [here](../internal/pb).
     - can be used to request an entire node data structure. If id = "root", then
       the root node is fetched.
     - body can optionally include the ID of the parent node to populate node
-      with tombstone info, and other data from the edge data structure.
+      with points from the edge data structure.
   - `node.<id>.children`
     - can be used to request the immediate children of a node
   - `node.<id>.points`

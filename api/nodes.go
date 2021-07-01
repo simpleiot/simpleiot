@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -102,7 +103,13 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case "":
 		switch req.Method {
 		case http.MethodGet:
-			node, err := h.db.Node(id)
+			body, err := ioutil.ReadAll(req.Body)
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+				return
+			}
+
+			node, err := nats.GetNode(h.nc, id, string(body))
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {

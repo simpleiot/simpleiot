@@ -166,8 +166,8 @@ func (gen *Db) Close() error {
 	return gen.store.Close()
 }
 
-// RootNodeID returns the ID of the root node
-func (gen *Db) RootNodeID() string {
+// rootNodeID returns the ID of the root node
+func (gen *Db) rootNodeID() string {
 	gen.lock.RLock()
 	defer gen.lock.RUnlock()
 	return gen.meta.RootID
@@ -231,8 +231,8 @@ func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool, level int) (
 
 // FIXME, we should eventually remove this, or unexport it
 
-// Node returns data for a particular node
-func (gen *Db) Node(id string) (data.Node, error) {
+// node returns data for a particular node
+func (gen *Db) node(id string) (data.Node, error) {
 	var node data.Node
 	err := gen.store.View(func(tx *genji.Tx) error {
 		var err error
@@ -839,7 +839,7 @@ func (gen *Db) minDistToRoot(id string) (int, error) {
 
 		// recursive function to find the shortest distance to root node
 		countUp = func(id string, count int) (int, error) {
-			if gen.RootNodeID() == id {
+			if gen.rootNodeID() == id {
 				return count, nil
 			}
 

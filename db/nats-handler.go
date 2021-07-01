@@ -171,7 +171,7 @@ func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
 		return
 	}
 
-	node, err := nh.db.Node(nodeID)
+	node, err := nh.db.node(nodeID)
 	if err != nil {
 		log.Println("handleNodePoints, error getting node for id: ", nodeID)
 	}
@@ -223,7 +223,7 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	nodeID := chunks[1]
 
 	if nodeID == "root" {
-		nodeID = nh.db.RootNodeID()
+		nodeID = nh.db.rootNodeID()
 	}
 
 	node, err := nh.db.nodeEdge(nodeID, parent)
@@ -332,7 +332,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 		}
 	}
 
-	node, err := nh.db.Node(nodeID)
+	node, err := nh.db.node(nodeID)
 
 	if err != nil {
 		log.Println("Error getting node: ", nodeID)
@@ -675,7 +675,7 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, triggerNode
 			}
 		case data.PointValueActionNotify:
 			// get node that fired the rule
-			triggerNode, err := nh.db.Node(triggerNode)
+			triggerNode, err := nh.db.node(triggerNode)
 			if err != nil {
 				return err
 			}
