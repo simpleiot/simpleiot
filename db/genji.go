@@ -250,38 +250,22 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 			return err
 		}
 
-		if parent != "" {
-			doc, err := tx.QueryDocument(`select * from edges where up = ? and down = ?`,
-				parent, id)
+		doc, err := tx.QueryDocument(`select * from edges where up = ? and down = ?`,
+			parent, id)
 
-			if err != nil {
-				return err
-			}
-
-			var edge data.Edge
-
-			err = document.StructScan(doc, &edge)
-
-			if err != nil {
-				return err
-			}
-
-			nodeEdge = node.ToNodeEdge(edge)
-		} else {
-			hash := []byte{}
-			if gen.meta.RootID == id {
-				hash = gen.meta.RootHash
-			} else {
-				// calculate hash from node and downstream data, as this node
-				// might be a device in the middle of the tree
-				var err error
-				hash, err = gen.txCalcHash(tx, node, data.Edge{})
-				if err != nil {
-					return err
-				}
-			}
-			nodeEdge = node.ToNodeEdge(data.Edge{Hash: hash})
+		if err != nil {
+			return err
 		}
+
+		var edge data.Edge
+
+		err = document.StructScan(doc, &edge)
+
+		if err != nil {
+			return err
+		}
+
+		nodeEdge = node.ToNodeEdge(edge)
 
 		return nil
 	})
@@ -440,6 +424,13 @@ func (gen *Db) edgePoints(id string, points data.Points) error {
 
 }
 
+// The following contains node with all its edges
+type nodeAndEdges struct {
+	node *data.Node
+	up   []*data.Edge
+	down []*data.Edge
+}
+
 // nodePoints processes Points for a particular node
 // this function does the following:
 //   - updates the points in the node
@@ -452,73 +443,10 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 	}
 
 	return gen.store.Update(func(tx *genji.Tx) error {
-		var node data.Node
-		found := false
-
 		// key is node ID
-		nodeCache := make(map[string]*data.Node)
+		nodeCache := make(map[string]*nodeAndEdges)
 		// key is edge ID
 		edgeCache := make(map[string]*data.Edge)
-
-		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
-
-		if err != nil {
-			if err == genjierrors.ErrDocumentNotFound {
-				node.ID = id
-				node.Type = data.NodeTypeDevice
-			} else {
-				return err
-			}
-		} else {
-			err = document.StructScan(doc, &node)
-			if err != nil {
-				return err
-			}
-			found = true
-		}
-
-		nodeCache[node.ID] = &node
-
-		addParent := ""
-		removeParent := ""
-
-		for _, point := range points {
-			if point.Type == data.PointTypeNodeType {
-				node.Type = point.Text
-				// we don't encode type in points as this has its own field
-				continue
-			}
-
-			if point.Type == data.PointTypeAddParent {
-				addParent = point.Text
-				// we don't encode parent in points as this has its own field
-				continue
-			}
-
-			if point.Type == data.PointTypeRemoveParent {
-				removeParent = point.Text
-				// we don't encode parent in points as this has its own field
-				continue
-			}
-
-			node.Points.ProcessPoint(point)
-		}
-
-		/*
-			 * FIXME: need to clean up offline processing
-			state := node.State()
-			if state != data.PointValueSysStateOnline {
-				node.Points.ProcessPoint(
-					data.Point{
-						Time: time.Now(),
-						Type: data.PointTypeSysState,
-						Text: data.PointValueSysStateOnline,
-					},
-				)
-			}
-		*/
-
-		sort.Sort(node.Points)
 
 		// this function builds a cache of edges and replaces
 		// the edge in the array with the one in the cache if present
@@ -535,42 +463,133 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 			}
 		}
 
-		// populate cache with node and edges all the way up to root, and one level down from current node
-		var processNode func(node *data.Node) error
+		// this function gets a node, all its edges, and caches it
+		getNodeAndEdges := func(tx *genji.Tx, id string) (*nodeAndEdges, error) {
+			ret, ok := nodeCache[id]
+			if ok {
+				return ret, nil
+			}
 
-		processNode = func(node *data.Node) error {
-			// first get the child edges for current node which are needed to calc hash
-			downEdges, err := txEdgeDown(tx, node.ID)
+			ret = &nodeAndEdges{}
+
+			node, err := txNode(tx, id)
 			if err != nil {
-				return err
+				return ret, err
+			}
+
+			downEdges, err := txEdgeDown(tx, id)
+			if err != nil {
+				return ret, err
 			}
 
 			cacheEdges(downEdges)
 
-			upEdges, err := txEdgeUp(tx, node.ID)
+			upEdges, err := txEdgeUp(tx, id)
 			if err != nil {
-				return err
-			}
-
-			if len(upEdges) == 0 {
-				fmt.Println("CLIFF: FIXME, we are at root node")
+				return ret, err
 			}
 
 			cacheEdges(upEdges)
 
-			updateHash(node, upEdges, downEdges)
+			ret.node = node
+			ret.up = upEdges
+			ret.down = downEdges
 
-			for _, upEdge := range upEdges {
-				node, ok := nodeCache[upEdge.Up]
-				if !ok {
-					var err error
-					node, err = txNode(tx, upEdge.Up)
-					if err != nil {
-						return fmt.Errorf("Error getting node %v when calc upstream hashes: %w", upEdge.Up, err)
-					}
+			nodeCache[id] = ret
+
+			return ret, nil
+		}
+
+		ne, err := getNodeAndEdges(tx, id)
+
+		if err != nil {
+			if err == genjierrors.ErrDocumentNotFound {
+				edge := data.Edge{
+					ID:   uuid.New().String(),
+					Down: id,
 				}
 
-				err := processNode(node)
+				if gen.meta.RootID == "" {
+					gen.meta.RootID = id
+					edge.Up = ""
+				} else {
+					edge.Up = gen.meta.RootID
+				}
+
+				ne = &nodeAndEdges{
+					node: &data.Node{
+						ID:   id,
+						Type: data.NodeTypeDevice,
+					},
+
+					up: []*data.Edge{&edge},
+				}
+
+				cacheEdges(ne.up)
+			} else {
+				return err
+			}
+		}
+
+		addParent := ""
+		removeParent := ""
+
+		for _, point := range points {
+			if point.Type == data.PointTypeNodeType {
+				ne.node.Type = point.Text
+				// we don't encode type in points as this has its own field
+				continue
+			}
+
+			if point.Type == data.PointTypeAddParent {
+				addParent = point.Text
+				// we don't encode parent in points as this has its own field
+				continue
+			}
+
+			if point.Type == data.PointTypeRemoveParent {
+				removeParent = point.Text
+				// we don't encode parent in points as this has its own field
+				continue
+			}
+
+			ne.node.Points.ProcessPoint(point)
+		}
+
+		/*
+			 * FIXME: need to clean up offline processing
+			state := node.State()
+			if state != data.PointValueSysStateOnline {
+				node.Points.ProcessPoint(
+					data.Point{
+						Time: time.Now(),
+						Type: data.PointTypeSysState,
+						Text: data.PointValueSysStateOnline,
+					},
+				)
+			}
+		*/
+
+		sort.Sort(ne.node.Points)
+
+		// populate cache with node and edges all the way up to root, and one level down from current node
+		var processNode func(ne *nodeAndEdges) error
+
+		processNode = func(ne *nodeAndEdges) error {
+			updateHash(ne.node, ne.up, ne.down)
+
+			for _, upEdge := range ne.up {
+				if upEdge.Up == "" {
+					continue
+				}
+
+				neUp, err := getNodeAndEdges(tx, upEdge.Up)
+
+				if err != nil {
+					return fmt.Errorf("Error getting neUp: %w", err)
+				}
+
+				err = processNode(neUp)
 
 				if err != nil {
 					return fmt.Errorf("Error processing node to update hash: %w", err)
@@ -580,76 +599,84 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 			return nil
 		}
 
-		err = processNode(&node)
+		err = processNode(ne)
 
 		if err != nil {
 			return fmt.Errorf("processNode error: %w", err)
 		}
 
+		// process node add/move/copy/del
+		if addParent != "" {
+			neParent, err := getNodeAndEdges(tx, removeParent)
+			if err != nil {
+				return fmt.Errorf("Error getting parent node to remove: %w", err)
+			}
+
+			found := false
+
+			// first look if there is an edge that has already
+			// been tombstoned, and resurrect it
+			for _, e := range neParent.down {
+				if e.Down == id {
+					e.Points.ProcessPoint(data.Point{
+						Type:  data.PointTypeTombstone,
+						Value: 0,
+						Time:  time.Now(),
+					})
+
+					found = true
+				}
+			}
+
+			if !found {
+				// need to add a new edge
+				neParent.down = append(neParent.down,
+					&data.Edge{
+						ID:   uuid.New().String(),
+						Up:   addParent,
+						Down: id,
+					})
+
+				cacheEdges(neParent.down)
+			}
+		}
+
+		if removeParent != "" {
+			neParent, err := getNodeAndEdges(tx, removeParent)
+			if err != nil {
+				return fmt.Errorf("Error getting parent node to remove: %w", err)
+			}
+
+			for _, e := range neParent.down {
+				if e.Down == id {
+					e.Points.ProcessPoint(data.Point{
+						Type:  data.PointTypeTombstone,
+						Value: 1,
+						Time:  time.Now(),
+					})
+				}
+			}
+
+			err = processNode(neParent)
+
+			if err != nil {
+				return fmt.Errorf("Error updating hashes in remove node: %w", err)
+			}
+		}
+
 		// now write all edges back to DB
 		for _, e := range edgeCache {
-			err := tx.Exec(`update edges set hash = ?, points = ? where id = ?`,
-				e.Hash, e.Points, e.ID)
+			err := tx.Exec(`insert into edges values ? on conflict do replace`, e)
 
 			if err != nil {
 				return fmt.Errorf("Error updating hash in edge %v: %v", e.ID, err)
 			}
 		}
 
-		// TODO fix up node delete/copy/moves with above
-		if !found {
-			err := tx.Exec(`insert into nodes values ?`, node)
+		err = tx.Exec(`insert into nodes values ? on conflict do replace`, ne.node)
 
-			if err != nil {
-				return err
-			}
-
-			if gen.meta.RootID == "" {
-				log.Println("setting meta root id: ", node.ID)
-				err := tx.Exec(`update meta set rootid = ?`, node.ID)
-				if err != nil {
-					return err
-				}
-				gen.lock.Lock()
-				gen.meta.RootID = node.ID
-				gen.lock.Unlock()
-			} else {
-				// by default, new nodes are populated under the root
-				if addParent == "" {
-					addParent = gen.meta.RootID
-				}
-
-				err := txEdgeInsert(tx, &data.Edge{
-					Up: addParent, Down: id})
-
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			err := tx.Exec(`update nodes set points = ?, type = ? where id = ?`,
-				node.Points, node.Type, id)
-
-			if err != nil {
-				return err
-			}
-
-			if addParent != "" {
-				// make sure edge node to parent exists
-				err := txEdgeInsert(tx, &data.Edge{
-					Up: addParent, Down: id})
-
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		if removeParent != "" {
-			err := txSetTombstone(tx, id, removeParent, true)
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return fmt.Errorf("Error inserting/updating node: %w", err)
 		}
 
 		return nil
