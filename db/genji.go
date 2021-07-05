@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"crypto/md5"
 	"encoding/binary"
 	"encoding/json"
@@ -14,11 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dgraph-io/badger/v3"
 	"github.com/genjidb/genji"
-	"github.com/genjidb/genji/database"
 	"github.com/genjidb/genji/document"
-	"github.com/genjidb/genji/engine/badgerengine"
+	genjierrors "github.com/genjidb/genji/errors"
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -72,15 +69,18 @@ func NewDb(storeType StoreType, dataDir string) (*Db, error) {
 		}
 
 	case StoreTypeBadger:
-		// Create a badger engine
-		dbPath := path.Join(dataDir, "badger")
-		ng, err := badgerengine.NewEngine(badger.DefaultOptions(dbPath))
-		if err != nil {
-			log.Fatal(err)
-		}
+		log.Fatal("Badger not currently supported")
+		/*
+			// Create a badger engine
+			dbPath := path.Join(dataDir, "badger")
+			ng, err := badgerengine.NewEngine(badger.DefaultOptions(dbPath))
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		// Pass it to genji
-		store, err = genji.New(context.Background(), ng)
+			// Pass it to genji
+			store, err = genji.New(context.Background(), ng)
+		*/
 
 	default:
 		log.Fatal("Unknown store type: ", storeType)
@@ -141,7 +141,7 @@ func (gen *Db) initialize() error {
 		return nil
 	}
 
-	if err != database.ErrDocumentNotFound {
+	if err != genjierrors.ErrDocumentNotFound {
 		return err
 	}
 
@@ -200,7 +200,7 @@ func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool, level int) (
 	for _, edge := range edges {
 		node, err := txNode(tx, edge.Down)
 		if err != nil {
-			if err != database.ErrDocumentNotFound {
+			if err != genjierrors.ErrDocumentNotFound {
 				// something bad happened
 				return nodes, err
 			}
@@ -269,24 +269,24 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 			nodeEdge = node.ToNodeEdge(edge)
 		} else {
 			hash := []byte{}
-			/* FIXME, for some reason root hash is not working here
 			if gen.meta.RootID == id {
 				hash = gen.meta.RootHash
 			} else {
-			*/
-			// calculate hash from node and downstream data, as this node
-			// might be a device in the middle of the tree
-			var err error
-			hash, err = gen.txCalcHash(tx, node, data.Edge{})
-			if err != nil {
-				return err
+				// calculate hash from node and downstream data, as this node
+				// might be a device in the middle of the tree
+				var err error
+				hash, err = gen.txCalcHash(tx, node, data.Edge{})
+				if err != nil {
+					return err
+				}
 			}
-
 			nodeEdge = node.ToNodeEdge(data.Edge{Hash: hash})
 		}
 
 		return nil
 	})
+
+	fmt.Println("CLIFF: getnode: ", nodeEdge)
 
 	return nodeEdge, err
 }
@@ -392,58 +392,13 @@ func (gen *Db) txCalcHash(tx *genji.Tx, node *data.Node, upEdge data.Edge) ([]by
 		return []byte{}, err
 	}
 
-	sort.Sort(data.ByHash(downEdges))
+	sort.Sort(data.ByEdgeID(downEdges))
 
 	for _, downEdge := range downEdges {
 		h.Write(downEdge.Hash)
 	}
 
 	return h.Sum(nil), nil
-}
-
-func (gen *Db) nodeUpdateHash(id string) error {
-	return gen.store.Update(func(tx *genji.Tx) error {
-		node, err := txNode(tx, id)
-
-		if err != nil {
-			return err
-		}
-
-		isRoot := gen.meta.RootID == id
-
-		// we need to update hash in all upstream paths from parent
-
-		if !isRoot {
-			upEdges, err := txEdgeUp(tx, id)
-
-			if err != nil {
-				return err
-			}
-
-			for _, upEdge := range upEdges {
-				hash, err := gen.txCalcHash(tx, node, *upEdge)
-
-				if err != nil {
-					return err
-				}
-
-				// update hash in parent edge
-				return tx.Exec(`update edges set hash = ? where id = ?`,
-					hash, upEdge.ID)
-			}
-		} else {
-			hash, err := gen.txCalcHash(tx, node, data.Edge{})
-
-			if err != nil {
-				return err
-			}
-
-			// update hash in parent edge
-			return tx.Exec(`update meta set roothash = ?`, hash)
-		}
-
-		return nil
-	})
 }
 
 func (gen *Db) edgePoints(id string, points data.Points) error {
@@ -508,7 +463,7 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
 
 		if err != nil {
-			if err == database.ErrDocumentNotFound {
+			if err == genjierrors.ErrDocumentNotFound {
 				node.ID = id
 				node.Type = data.NodeTypeDevice
 			} else {
@@ -659,6 +614,7 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 				gen.meta.RootID = node.ID
 				gen.lock.Unlock()
 			} else {
+				// by default, new nodes are populated under the root
 				if addParent == "" {
 					addParent = gen.meta.RootID
 				}
@@ -794,7 +750,7 @@ func txEdgeInsert(tx *genji.Tx, edge *data.Edge) error {
 		edge.Up, edge.Down)
 
 	if err != nil {
-		if err == database.ErrDocumentNotFound {
+		if err == genjierrors.ErrDocumentNotFound {
 			// create the edge entry
 			if edge.ID == "" {
 				edge.ID = uuid.New().String()
@@ -874,7 +830,7 @@ func txEdgeDown(tx *genji.Tx, nodeID string) ([]*data.Edge, error) {
 	var ret []*data.Edge
 	res, err := tx.Query(`select * from edges where up = ?`, nodeID)
 	if err != nil {
-		if err != database.ErrDocumentNotFound {
+		if err != genjierrors.ErrDocumentNotFound {
 			return ret, err
 		}
 
@@ -977,7 +933,7 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 	res, err := gen.store.Query(`select * from nodes where type = ?`, data.NodeTypeUser)
 	if err != nil {
 		// just return nil user and not user if not found
-		if err == database.ErrDocumentNotFound {
+		if err == genjierrors.ErrDocumentNotFound {
 			return nil, nil
 		}
 

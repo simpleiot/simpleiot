@@ -69,7 +69,11 @@ defined [here](../internal/pb).
   - `node.<id>.children`
     - can be used to request the immediate children of a node
   - `node.<id>.points`
-    - used to listen for or publish node point changes
+    - used to listen for or publish node point changes.
+    - there are several special point types. Type point types can be used to
+      accomplish add, copy, move, and delete node operations:
+      - `addParent`: can be used to add a parent to a node
+      - `removeParent`: can be used to remove a parent from a node
   - `node.<id>.not`
     - used when a node sends a [notification](notifications.md) (typically a
       rule, or a message sent directly from a node)
