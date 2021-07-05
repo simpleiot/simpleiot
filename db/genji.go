@@ -173,15 +173,15 @@ func (gen *Db) rootNodeID() string {
 	return gen.meta.RootID
 }
 
-func txNode(tx *genji.Tx, id string) (data.Node, error) {
+func txNode(tx *genji.Tx, id string) (*data.Node, error) {
 	var node data.Node
 	doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
 	if err != nil {
-		return node, err
+		return &node, err
 	}
 
 	err = document.StructScan(doc, &node)
-	return node, err
+	return &node, err
 }
 
 // recurisively find all descendents -- level is used to limit recursion
@@ -210,7 +210,7 @@ func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool, level int) (
 			continue
 		}
 
-		n := node.ToNodeEdge(edge)
+		n := node.ToNodeEdge(*edge)
 
 		nodes = append(nodes, n)
 
@@ -229,11 +229,9 @@ func txNodeFindDescendents(tx *genji.Tx, id string, recursive bool, level int) (
 	return nodes, nil
 }
 
-// FIXME, we should eventually remove this, or unexport it
-
 // node returns data for a particular node
-func (gen *Db) node(id string) (data.Node, error) {
-	var node data.Node
+func (gen *Db) node(id string) (*data.Node, error) {
+	var node *data.Node
 	err := gen.store.View(func(tx *genji.Tx) error {
 		var err error
 		node, err = txNode(tx, id)
@@ -372,7 +370,7 @@ func init() {
 	zero = uuidZero.String()
 }
 
-func (gen *Db) txCalcHash(tx *genji.Tx, node data.Node, upEdge data.Edge) ([]byte, error) {
+func (gen *Db) txCalcHash(tx *genji.Tx, node *data.Node, upEdge data.Edge) ([]byte, error) {
 	h := md5.New()
 
 	for _, p := range upEdge.Points {
@@ -423,7 +421,7 @@ func (gen *Db) nodeUpdateHash(id string) error {
 			}
 
 			for _, upEdge := range upEdges {
-				hash, err := gen.txCalcHash(tx, node, upEdge)
+				hash, err := gen.txCalcHash(tx, node, *upEdge)
 
 				if err != nil {
 					return err
@@ -487,12 +485,11 @@ func (gen *Db) edgePoints(id string, points data.Points) error {
 
 }
 
-// nodePoints processes a Point for a particular node
+// nodePoints processes Points for a particular node
+// this function does the following:
+//   - updates the points in the node
+//   - updates hash in all upstream edges
 func (gen *Db) nodePoints(id string, points data.Points) error {
-	// for now, we process one point at a time. We may eventually
-	// want to create NodePoints to process multiple points so
-	// we can batch influx writes for performance
-
 	for _, p := range points {
 		if p.Time.IsZero() {
 			p.Time = time.Now()
@@ -502,6 +499,11 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 	return gen.store.Update(func(tx *genji.Tx) error {
 		var node data.Node
 		found := false
+
+		// key is node ID
+		nodeCache := make(map[string]*data.Node)
+		// key is edge ID
+		edgeCache := make(map[string]*data.Edge)
 
 		doc, err := tx.QueryDocument(`select * from nodes where id = ?`, id)
 
@@ -519,6 +521,8 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 			}
 			found = true
 		}
+
+		nodeCache[node.ID] = &node
 
 		addParent := ""
 		removeParent := ""
@@ -561,6 +565,83 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 		sort.Sort(node.Points)
 
+		// this function builds a cache of edges and replaces
+		// the edge in the array with the one in the cache if present
+		// this ensures the edges in the cache are the same as the ones
+		// in the array
+		cacheEdges := func(edges []*data.Edge) {
+			for i, e := range edges {
+				eCache, ok := edgeCache[e.ID]
+				if !ok {
+					edgeCache[e.ID] = e
+				} else {
+					edges[i] = eCache
+				}
+			}
+		}
+
+		// populate cache with node and edges all the way up to root, and one level down from current node
+		var processNode func(node *data.Node) error
+
+		processNode = func(node *data.Node) error {
+			// first get the child edges for current node which are needed to calc hash
+			downEdges, err := txEdgeDown(tx, node.ID)
+			if err != nil {
+				return err
+			}
+
+			cacheEdges(downEdges)
+
+			upEdges, err := txEdgeUp(tx, node.ID)
+			if err != nil {
+				return err
+			}
+
+			if len(upEdges) == 0 {
+				fmt.Println("CLIFF: FIXME, we are at root node")
+			}
+
+			cacheEdges(upEdges)
+
+			updateHash(node, upEdges, downEdges)
+
+			for _, upEdge := range upEdges {
+				node, ok := nodeCache[upEdge.Up]
+				if !ok {
+					var err error
+					node, err = txNode(tx, upEdge.Up)
+					if err != nil {
+						return fmt.Errorf("Error getting node %v when calc upstream hashes: %w", upEdge.Up, err)
+					}
+				}
+
+				err := processNode(node)
+
+				if err != nil {
+					return fmt.Errorf("Error processing node to update hash: %w", err)
+				}
+			}
+
+			return nil
+		}
+
+		err = processNode(&node)
+
+		if err != nil {
+			return fmt.Errorf("processNode error: %w", err)
+		}
+
+		// now write all edges back to DB
+		for _, e := range edgeCache {
+			err := tx.Exec(`update edges set hash = ?, points = ? where id = ?`,
+				e.Hash, e.Points, e.ID)
+
+			if err != nil {
+				return fmt.Errorf("Error updating hash in edge %v: %v", e.ID, err)
+			}
+		}
+
+		// TODO fix up node delete/copy/moves with above
 		if !found {
 			err := tx.Exec(`insert into nodes values ?`, node)
 
@@ -759,8 +840,8 @@ func (gen *Db) edges() ([]data.Edge, error) {
 }
 
 // find upstream nodes. Does not include tombstoned edges.
-func txEdgeUp(tx *genji.Tx, nodeID string) ([]data.Edge, error) {
-	var ret []data.Edge
+func txEdgeUp(tx *genji.Tx, nodeID string) ([]*data.Edge, error) {
+	var ret []*data.Edge
 	res, err := tx.Query(`select * from edges where down = ?`, nodeID)
 	if err != nil {
 		return ret, err
@@ -775,7 +856,7 @@ func txEdgeUp(tx *genji.Tx, nodeID string) ([]data.Edge, error) {
 		}
 
 		if !edge.IsTombstone() {
-			ret = append(ret, edge)
+			ret = append(ret, &edge)
 		}
 		return nil
 	})
@@ -789,8 +870,8 @@ type downNode struct {
 }
 
 // find downstream nodes
-func txEdgeDown(tx *genji.Tx, nodeID string) ([]data.Edge, error) {
-	var ret []data.Edge
+func txEdgeDown(tx *genji.Tx, nodeID string) ([]*data.Edge, error) {
+	var ret []*data.Edge
 	res, err := tx.Query(`select * from edges where up = ?`, nodeID)
 	if err != nil {
 		if err != database.ErrDocumentNotFound {
@@ -809,7 +890,7 @@ func txEdgeDown(tx *genji.Tx, nodeID string) ([]data.Edge, error) {
 			return err
 		}
 
-		ret = append(ret, edge)
+		ret = append(ret, &edge)
 		return nil
 	})
 
@@ -818,8 +899,8 @@ func txEdgeDown(tx *genji.Tx, nodeID string) ([]data.Edge, error) {
 
 // EdgeUp returns an array of upstream nodes for a node. Does not include
 // tombstoned edges.
-func (gen *Db) edgeUp(nodeID string) ([]data.Edge, error) {
-	var ret []data.Edge
+func (gen *Db) edgeUp(nodeID string) ([]*data.Edge, error) {
+	var ret []*data.Edge
 
 	err := gen.store.View(func(tx *genji.Tx) error {
 		var err error
