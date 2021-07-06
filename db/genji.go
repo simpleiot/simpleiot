@@ -32,9 +32,8 @@ const (
 
 // Meta contains metadata about the database
 type Meta struct {
-	Version  int    `json:"version"`
-	RootID   string `json:"rootID"`
-	RootHash []byte `json:"rootHash"`
+	Version int    `json:"version"`
+	RootID  string `json:"rootID"`
 }
 
 // This file contains database manipulations.
@@ -442,6 +441,8 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 		}
 	}
 
+	fmt.Println("CLIFF: nodePoints: ", points)
+
 	return gen.store.Update(func(tx *genji.Tx) error {
 		// key is node ID
 		nodeCache := make(map[string]*nodeAndEdges)
@@ -504,16 +505,14 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 		if err != nil {
 			if err == genjierrors.ErrDocumentNotFound {
-				edge := data.Edge{
-					ID:   uuid.New().String(),
-					Down: id,
-				}
-
 				if gen.meta.RootID == "" {
+					gen.lock.Lock()
+					defer gen.lock.Unlock()
 					gen.meta.RootID = id
-					edge.Up = ""
-				} else {
-					edge.Up = gen.meta.RootID
+					err := tx.Exec(`update meta set rootid = ?`, id)
+					if err != nil {
+						return fmt.Errorf("Error setting rootid in meta: %w", err)
+					}
 				}
 
 				ne = &nodeAndEdges{
@@ -521,11 +520,8 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 						ID:   id,
 						Type: data.NodeTypeDevice,
 					},
-
-					up: []*data.Edge{&edge},
 				}
 
-				cacheEdges(ne.up)
 			} else {
 				return err
 			}
@@ -578,8 +574,21 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 		processNode = func(ne *nodeAndEdges) error {
 			updateHash(ne.node, ne.up, ne.down)
 
+			/*
+				fmt.Println("CLIFF: processNode: node", *ne.node)
+
+				for _, up := range ne.up {
+					fmt.Println("  CLIFF: up edge: ", *up)
+				}
+
+				for _, down := range ne.down {
+					fmt.Println("  CLIFF: down edge: ", *down)
+				}
+			*/
+
 			for _, upEdge := range ne.up {
 				if upEdge.Up == "" {
+					fmt.Println("CLIFF: at root node")
 					continue
 				}
 
@@ -607,9 +616,9 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 		// process node add/move/copy/del
 		if addParent != "" {
-			neParent, err := getNodeAndEdges(tx, removeParent)
+			neParent, err := getNodeAndEdges(tx, addParent)
 			if err != nil {
-				return fmt.Errorf("Error getting parent node to remove: %w", err)
+				return fmt.Errorf("Error getting parent node to add: %w", err)
 			}
 
 			found := false
@@ -768,29 +777,6 @@ func (gen *Db) nodeDescendents(id, typ string, recursive, includeDel bool) ([]da
 	})
 
 	return nodes, err
-}
-
-// TODO: this function needs removed as this needs to happen in the context of
-// code that is updating hash values
-func txEdgeInsert(tx *genji.Tx, edge *data.Edge) error {
-	_, err := tx.QueryDocument(`select * from edges where up = ? and down = ?`,
-		edge.Up, edge.Down)
-
-	if err != nil {
-		if err == genjierrors.ErrDocumentNotFound {
-			// create the edge entry
-			if edge.ID == "" {
-				edge.ID = uuid.New().String()
-			}
-
-			return tx.Exec(`insert into edges values ?`, edge)
-		}
-
-		return err
-	}
-
-	// edge already exists, make sure tombstone field is false
-	return txSetTombstone(tx, edge.Down, edge.Up, false)
 }
 
 // edges returns all edges.
