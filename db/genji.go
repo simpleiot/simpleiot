@@ -372,6 +372,8 @@ func (gen *Db) edgePoints(id string, points data.Points) error {
 	}
 
 	return gen.store.Update(func(tx *genji.Tx) error {
+		nec := newNodeEdgeCache(tx)
+
 		var edge data.Edge
 
 		doc, err := tx.QueryDocument(`select * from edges where id = ?`, id)
@@ -385,22 +387,31 @@ func (gen *Db) edgePoints(id string, points data.Points) error {
 			return err
 		}
 
+		nec.cacheEdges([]*data.Edge{&edge})
+
+		ne, err := nec.getNodeAndEdges(edge.Down)
+		if err != nil {
+			return err
+		}
+
 		for _, point := range points {
 			edge.Points.ProcessPoint(point)
 		}
 
 		sort.Sort(edge.Points)
 
-		err = tx.Exec(`update edges set points = ? where id = ?`,
-			edge.Points, id)
+		err = nec.processNode(ne)
+		if err != nil {
+			return fmt.Errorf("processNode error: %w", err)
+		}
 
+		err = nec.writeEdges()
 		if err != nil {
 			return err
 		}
 
 		return nil
 	})
-
 }
 
 // nodePoints processes Points for a particular node
@@ -558,13 +569,9 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 			return fmt.Errorf("processNode error: %w", err)
 		}
 
-		// now write all edges back to DB
-		for _, e := range nec.edges {
-			err := tx.Exec(`insert into edges values ? on conflict do replace`, e)
-
-			if err != nil {
-				return fmt.Errorf("Error updating hash in edge %v: %v", e.ID, err)
-			}
+		err = nec.writeEdges()
+		if err != nil {
+			return err
 		}
 
 		err = tx.Exec(`insert into nodes values ? on conflict do replace`, ne.node)

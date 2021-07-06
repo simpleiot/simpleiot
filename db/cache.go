@@ -104,3 +104,15 @@ func (nec *nodeEdgeCache) processNode(ne *nodeAndEdges) error {
 
 	return nil
 }
+
+func (nec *nodeEdgeCache) writeEdges() error {
+	for _, e := range nec.edges {
+		err := nec.tx.Exec(`insert into edges values ? on conflict do replace`, e)
+
+		if err != nil {
+			return fmt.Errorf("Error updating hash in edge %v: %v", e.ID, err)
+		}
+	}
+
+	return nil
+}
