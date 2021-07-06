@@ -403,13 +403,6 @@ func (gen *Db) edgePoints(id string, points data.Points) error {
 
 }
 
-// The following contains node with all its edges
-type nodeAndEdges struct {
-	node *data.Node
-	up   []*data.Edge
-	down []*data.Edge
-}
-
 // nodePoints processes Points for a particular node
 // this function does the following:
 //   - updates the points in the node
@@ -422,64 +415,9 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 	}
 
 	return gen.store.Update(func(tx *genji.Tx) error {
-		// key is node ID
-		nodeCache := make(map[string]*nodeAndEdges)
-		// key is edge ID
-		edgeCache := make(map[string]*data.Edge)
+		nec := newNodeEdgeCache(tx)
 
-		// this function builds a cache of edges and replaces
-		// the edge in the array with the one in the cache if present
-		// this ensures the edges in the cache are the same as the ones
-		// in the array
-		cacheEdges := func(edges []*data.Edge) {
-			for i, e := range edges {
-				eCache, ok := edgeCache[e.ID]
-				if !ok {
-					edgeCache[e.ID] = e
-				} else {
-					edges[i] = eCache
-				}
-			}
-		}
-
-		// this function gets a node, all its edges, and caches it
-		getNodeAndEdges := func(tx *genji.Tx, id string) (*nodeAndEdges, error) {
-			ret, ok := nodeCache[id]
-			if ok {
-				return ret, nil
-			}
-
-			ret = &nodeAndEdges{}
-
-			node, err := txNode(tx, id)
-			if err != nil {
-				return ret, err
-			}
-
-			downEdges, err := txEdgeDown(tx, id)
-			if err != nil {
-				return ret, err
-			}
-
-			cacheEdges(downEdges)
-
-			upEdges, err := txEdgeUp(tx, id, true)
-			if err != nil {
-				return ret, err
-			}
-
-			cacheEdges(upEdges)
-
-			ret.node = node
-			ret.up = upEdges
-			ret.down = downEdges
-
-			nodeCache[id] = ret
-
-			return ret, nil
-		}
-
-		ne, err := getNodeAndEdges(tx, id)
+		ne, err := nec.getNodeAndEdges(id)
 
 		newNode := false
 		newRootNode := false
@@ -573,7 +511,7 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 						Down: id,
 					},
 				)
-				cacheEdges(ne.up)
+				nec.cacheEdges(ne.up)
 			} else {
 				// first look if there is an edge that has already
 				// been tombstoned, and resurrect it
@@ -598,7 +536,7 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 							Down: id,
 						})
 
-					cacheEdges(ne.up)
+					nec.cacheEdges(ne.up)
 				}
 			}
 		}
@@ -615,40 +553,13 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 			}
 		}
 
-		// populate cache with node and edges all the way up to root, and one level down from current node
-		var processNode func(ne *nodeAndEdges) error
-
-		processNode = func(ne *nodeAndEdges) error {
-			updateHash(ne.node, ne.up, ne.down)
-
-			for _, upEdge := range ne.up {
-				if upEdge.Up == "" {
-					continue
-				}
-
-				neUp, err := getNodeAndEdges(tx, upEdge.Up)
-
-				if err != nil {
-					return fmt.Errorf("Error getting neUp: %w", err)
-				}
-
-				err = processNode(neUp)
-
-				if err != nil {
-					return fmt.Errorf("Error processing node to update hash: %w", err)
-				}
-			}
-
-			return nil
-		}
-
-		err = processNode(ne)
+		err = nec.processNode(ne)
 		if err != nil {
 			return fmt.Errorf("processNode error: %w", err)
 		}
 
 		// now write all edges back to DB
-		for _, e := range edgeCache {
+		for _, e := range nec.edges {
 			err := tx.Exec(`insert into edges values ? on conflict do replace`, e)
 
 			if err != nil {
