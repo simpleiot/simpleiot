@@ -1,8 +1,6 @@
 package db
 
 import (
-	"crypto/md5"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -269,8 +267,6 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 		return nil
 	})
 
-	fmt.Println("CLIFF: getnode: ", nodeEdge)
-
 	return nodeEdge, err
 }
 
@@ -354,20 +350,6 @@ func init() {
 }
 
 func (gen *Db) txCalcHash(tx *genji.Tx, node *data.Node, upEdge data.Edge) ([]byte, error) {
-	h := md5.New()
-
-	for _, p := range upEdge.Points {
-		d := make([]byte, 8)
-		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
-		h.Write(d)
-	}
-
-	for _, p := range node.Points {
-		d := make([]byte, 8)
-		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
-		h.Write(d)
-	}
-
 	// get child edges
 	downEdges, err := txEdgeDown(tx, node.ID)
 
@@ -375,13 +357,11 @@ func (gen *Db) txCalcHash(tx *genji.Tx, node *data.Node, upEdge data.Edge) ([]by
 		return []byte{}, err
 	}
 
-	sort.Sort(data.ByEdgeID(downEdges))
+	upEdges := []*data.Edge{&upEdge}
 
-	for _, downEdge := range downEdges {
-		h.Write(downEdge.Hash)
-	}
+	updateHash(node, upEdges, downEdges)
 
-	return h.Sum(nil), nil
+	return upEdge.Hash, nil
 }
 
 func (gen *Db) edgePoints(id string, points data.Points) error {
@@ -441,8 +421,6 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 		}
 	}
 
-	fmt.Println("CLIFF: nodePoints: ", points)
-
 	return gen.store.Update(func(tx *genji.Tx) error {
 		// key is node ID
 		nodeCache := make(map[string]*nodeAndEdges)
@@ -485,7 +463,7 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 			cacheEdges(downEdges)
 
-			upEdges, err := txEdgeUp(tx, id)
+			upEdges, err := txEdgeUp(tx, id, true)
 			if err != nil {
 				return ret, err
 			}
@@ -503,6 +481,9 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 		ne, err := getNodeAndEdges(tx, id)
 
+		newNode := false
+		newRootNode := false
+
 		if err != nil {
 			if err == genjierrors.ErrDocumentNotFound {
 				if gen.meta.RootID == "" {
@@ -513,6 +494,9 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 					if err != nil {
 						return fmt.Errorf("Error setting rootid in meta: %w", err)
 					}
+					newRootNode = true
+				} else {
+					newNode = true
 				}
 
 				ne = &nodeAndEdges{
@@ -527,8 +511,8 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 			}
 		}
 
-		addParent := ""
-		removeParent := ""
+		addParent := "no"
+		removeParent := "no"
 
 		for _, point := range points {
 			if point.Type == data.PointTypeNodeType {
@@ -568,27 +552,77 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 		sort.Sort(ne.node.Points)
 
+		if newNode && addParent == "no" {
+			addParent = gen.meta.RootID
+		}
+
+		if newRootNode && addParent == "no" {
+			addParent = ""
+		}
+
+		// process node add/move/copy/del
+		if addParent != "no" {
+			found := false
+
+			if addParent == "" {
+				// add edge for root node
+				ne.up = append(ne.up,
+					&data.Edge{
+						ID:   uuid.New().String(),
+						Up:   "",
+						Down: id,
+					},
+				)
+				cacheEdges(ne.up)
+			} else {
+				// first look if there is an edge that has already
+				// been tombstoned, and resurrect it
+				for _, e := range ne.up {
+					if e.Up == addParent {
+						e.Points.ProcessPoint(data.Point{
+							Type:  data.PointTypeTombstone,
+							Value: 0,
+							Time:  time.Now(),
+						})
+
+						found = true
+					}
+				}
+
+				if !found {
+					// need to add a new edge
+					ne.up = append(ne.up,
+						&data.Edge{
+							ID:   uuid.New().String(),
+							Up:   addParent,
+							Down: id,
+						})
+
+					cacheEdges(ne.up)
+				}
+			}
+		}
+
+		if removeParent != "no" {
+			for _, e := range ne.up {
+				if e.Up == removeParent {
+					e.Points.ProcessPoint(data.Point{
+						Type:  data.PointTypeTombstone,
+						Value: 1,
+						Time:  time.Now(),
+					})
+				}
+			}
+		}
+
 		// populate cache with node and edges all the way up to root, and one level down from current node
 		var processNode func(ne *nodeAndEdges) error
 
 		processNode = func(ne *nodeAndEdges) error {
 			updateHash(ne.node, ne.up, ne.down)
 
-			/*
-				fmt.Println("CLIFF: processNode: node", *ne.node)
-
-				for _, up := range ne.up {
-					fmt.Println("  CLIFF: up edge: ", *up)
-				}
-
-				for _, down := range ne.down {
-					fmt.Println("  CLIFF: down edge: ", *down)
-				}
-			*/
-
 			for _, upEdge := range ne.up {
 				if upEdge.Up == "" {
-					fmt.Println("CLIFF: at root node")
 					continue
 				}
 
@@ -609,68 +643,8 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 		}
 
 		err = processNode(ne)
-
 		if err != nil {
 			return fmt.Errorf("processNode error: %w", err)
-		}
-
-		// process node add/move/copy/del
-		if addParent != "" {
-			neParent, err := getNodeAndEdges(tx, addParent)
-			if err != nil {
-				return fmt.Errorf("Error getting parent node to add: %w", err)
-			}
-
-			found := false
-
-			// first look if there is an edge that has already
-			// been tombstoned, and resurrect it
-			for _, e := range neParent.down {
-				if e.Down == id {
-					e.Points.ProcessPoint(data.Point{
-						Type:  data.PointTypeTombstone,
-						Value: 0,
-						Time:  time.Now(),
-					})
-
-					found = true
-				}
-			}
-
-			if !found {
-				// need to add a new edge
-				neParent.down = append(neParent.down,
-					&data.Edge{
-						ID:   uuid.New().String(),
-						Up:   addParent,
-						Down: id,
-					})
-
-				cacheEdges(neParent.down)
-			}
-		}
-
-		if removeParent != "" {
-			neParent, err := getNodeAndEdges(tx, removeParent)
-			if err != nil {
-				return fmt.Errorf("Error getting parent node to remove: %w", err)
-			}
-
-			for _, e := range neParent.down {
-				if e.Down == id {
-					e.Points.ProcessPoint(data.Point{
-						Type:  data.PointTypeTombstone,
-						Value: 1,
-						Time:  time.Now(),
-					})
-				}
-			}
-
-			err = processNode(neParent)
-
-			if err != nil {
-				return fmt.Errorf("Error updating hashes in remove node: %w", err)
-			}
 		}
 
 		// now write all edges back to DB
@@ -700,7 +674,7 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 
 	err := gen.store.View(func(tx *genji.Tx) error {
 		// first find parents of user node
-		edges, err := txEdgeUp(tx, userID)
+		edges, err := txEdgeUp(tx, userID, false)
 		if err != nil {
 			return err
 		}
@@ -809,7 +783,7 @@ func (gen *Db) edges() ([]data.Edge, error) {
 }
 
 // find upstream nodes. Does not include tombstoned edges.
-func txEdgeUp(tx *genji.Tx, nodeID string) ([]*data.Edge, error) {
+func txEdgeUp(tx *genji.Tx, nodeID string, includeTombstone bool) ([]*data.Edge, error) {
 	var ret []*data.Edge
 	res, err := tx.Query(`select * from edges where down = ?`, nodeID)
 	if err != nil {
@@ -824,7 +798,7 @@ func txEdgeUp(tx *genji.Tx, nodeID string) ([]*data.Edge, error) {
 			return err
 		}
 
-		if !edge.IsTombstone() {
+		if !edge.IsTombstone() || includeTombstone {
 			ret = append(ret, &edge)
 		}
 		return nil
@@ -873,7 +847,7 @@ func (gen *Db) edgeUp(nodeID string) ([]*data.Edge, error) {
 
 	err := gen.store.View(func(tx *genji.Tx) error {
 		var err error
-		ret, err = txEdgeUp(tx, nodeID)
+		ret, err = txEdgeUp(tx, nodeID, false)
 		return err
 	})
 
@@ -895,7 +869,7 @@ func (gen *Db) minDistToRoot(id string) (int, error) {
 			}
 
 			cnt := 10000000
-			ups, err := txEdgeUp(tx, id)
+			ups, err := txEdgeUp(tx, id, false)
 			if err != nil {
 				return count, err
 			}
