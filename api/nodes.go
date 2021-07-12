@@ -125,17 +125,18 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := nats.SendNodePoint(h.nc, id, data.Point{
-				Type: data.PointTypeRemoveParent,
-				Text: nodeDelete.Parent,
+			err := nats.SendEdgePoint(h.nc, id, nodeDelete.Parent, data.Point{
+				Type:  data.PointTypeTombstone,
+				Value: 1,
 			}, false)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
-			} else {
-				en := json.NewEncoder(res)
-				en.Encode(data.StandardResponse{Success: true, ID: id})
+				return
 			}
+
+			en := json.NewEncoder(res)
+			en.Encode(data.StandardResponse{Success: true, ID: id})
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 			return
@@ -158,23 +159,29 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				http.Error(res, err.Error(), http.StatusBadRequest)
 				return
 			}
-			err := nats.SendNodePoints(h.nc, nodeMove.ID, data.Points{
-				{
-					Type: data.PointTypeRemoveParent,
-					Text: nodeMove.OldParent,
-				},
-				{
-					Type: data.PointTypeAddParent,
-					Text: nodeMove.NewParent,
-				},
+
+			err := nats.SendEdgePoint(h.nc, id, nodeMove.OldParent, data.Point{
+				Type:  data.PointTypeTombstone,
+				Value: 1,
 			}, false)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
-			} else {
-				en := json.NewEncoder(res)
-				en.Encode(data.StandardResponse{Success: true, ID: id})
+				return
 			}
+
+			err = nats.SendEdgePoint(h.nc, id, nodeMove.NewParent, data.Point{
+				Type:  data.PointTypeTombstone,
+				Value: 0,
+			}, false)
+
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+				return
+			}
+
+			en := json.NewEncoder(res)
+			en.Encode(data.StandardResponse{Success: true, ID: id})
 			return
 
 		case http.MethodPut:
@@ -183,17 +190,20 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				http.Error(res, err.Error(), http.StatusBadRequest)
 				return
 			}
-			err := nats.SendNodePoint(h.nc, nodeCopy.ID, data.Point{
-				Type: data.PointTypeAddParent,
-				Text: nodeCopy.NewParent,
+
+			err := nats.SendEdgePoint(h.nc, id, nodeCopy.NewParent, data.Point{
+				Type:  data.PointTypeTombstone,
+				Value: 0,
 			}, false)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
-			} else {
-				en := json.NewEncoder(res)
-				en.Encode(data.StandardResponse{Success: true, ID: id})
+				return
 			}
+
+			en := json.NewEncoder(res)
+			en.Encode(data.StandardResponse{Success: true, ID: id})
+
 			return
 
 		default:
@@ -246,24 +256,29 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if node.ID == "" {
+		node.ID = uuid.New().String()
+	}
+
 	node.Points = append(node.Points, data.Point{
 		Type: data.PointTypeNodeType,
 		Text: node.Type,
 	})
 
-	node.Points = append(node.Points, data.Point{
-		Type: data.PointTypeAddParent,
-		Text: node.Parent,
-	})
-
-	if node.ID == "" {
-		node.ID = uuid.New().String()
-	}
-
-	err := nats.SendNodePoints(h.nc, node.ID, node.Points, false)
+	err := nats.SendNodePoints(h.nc, node.ID, node.Points, true)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = nats.SendEdgePoint(h.nc, node.ID, node.Parent, data.Point{
+		Type:  data.PointTypeTombstone,
+		Value: 0,
+	}, true)
+
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusNotFound)
 		return
 	}
 

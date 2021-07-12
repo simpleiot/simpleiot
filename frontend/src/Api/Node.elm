@@ -119,7 +119,6 @@ typeUpstream =
 
 type alias Node =
     { id : String
-    , edgeId : String
     , typ : String
     , hash : String
     , parent : String
@@ -170,7 +169,6 @@ decode : Decode.Decoder Node
 decode =
     Decode.succeed Node
         |> required "id" Decode.string
-        |> required "edgeId" Decode.string
         |> required "type" Decode.string
         |> optional "hash" Decode.string ""
         |> required "parent" Decode.string
@@ -189,7 +187,6 @@ encode : Node -> Encode.Value
 encode node =
     Encode.object
         [ ( "id", Encode.string node.id )
-        , ( "edgeId", Encode.string node.edgeId )
         , ( "type", Encode.string node.typ )
         , ( "hash", Encode.string node.hash )
         , ( "parent", Encode.string node.parent )

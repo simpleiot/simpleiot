@@ -4,16 +4,14 @@ package data
 // the system.
 const (
 	// general point types
-	PointTypeDescription  string = "description"
-	PointTypeNodeType            = "nodeType"
-	PointTypeAddParent           = "addParent"
-	PointTypeRemoveParent        = "removeParent"
-	PointTypeTombstone           = "tombstone"
-	PointTypeScale               = "scale"
-	PointTypeOffset              = "offset"
-	PointTypeUnits               = "units"
-	PointTypeValue               = "value"
-	PointTypeValueSet            = "valueSet"
+	PointTypeDescription string = "description"
+	PointTypeNodeType           = "nodeType"
+	PointTypeTombstone          = "tombstone"
+	PointTypeScale              = "scale"
+	PointTypeOffset             = "offset"
+	PointTypeUnits              = "units"
+	PointTypeValue              = "value"
+	PointTypeValueSet           = "valueSet"
 	// PointTypeID typically refers to Node ID
 	PointTypeID                 = "id"
 	PointTypeAddress            = "address"

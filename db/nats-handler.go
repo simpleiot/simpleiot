@@ -63,7 +63,7 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 		return nil, fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("edge.*.points", nh.handleEdgePoints); err != nil {
+	if _, err := nc.Subscribe("node.*.*.points", nh.handleEdgePoints); err != nil {
 		return nil, fmt.Errorf("Subscribe edge points error: %w", err)
 	}
 
@@ -192,7 +192,7 @@ func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
 	nh.nodeUpdateLock.Lock()
 	defer nh.nodeUpdateLock.Unlock()
 
-	edgeID, points, err := nats.DecodeNodePointsMsg(msg)
+	nodeID, parentID, points, err := nats.DecodeEdgePointsMsg(msg)
 
 	if err != nil {
 		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
@@ -201,14 +201,16 @@ func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
 	}
 
 	// write points to database
-	err = nh.db.edgePoints(edgeID, points)
+	err = nh.db.edgePoints(nodeID, parentID, points)
 
 	if err != nil {
 		// TODO track error stats
-		log.Printf("Error writing edgeID (%v) points to Db: %v", edgeID, err)
+		log.Printf("Error writing edge points (%v:%v) to Db: %v", nodeID, parentID, err)
 		log.Println("msg subject: ", msg.Subject)
 		nh.reply(msg.Reply, err)
 	}
+
+	nh.reply(msg.Reply, nil)
 }
 
 func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {

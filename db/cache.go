@@ -85,7 +85,7 @@ func (nec *nodeEdgeCache) processNode(ne *nodeAndEdges) error {
 	updateHash(ne.node, ne.up, ne.down)
 
 	for _, upEdge := range ne.up {
-		if upEdge.Up == "" {
+		if upEdge.Up == "" || upEdge.Up == "none" {
 			continue
 		}
 

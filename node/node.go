@@ -42,24 +42,24 @@ func (m *Manager) Init() error {
 	if rootNode.ID == "" {
 		// initialize root node and user
 		log.Println("NODE: Initialize root node and admin user")
-		p := data.Points{
+		rootNode.Points = data.Points{
 			{
 				Time: time.Now(),
 				Type: data.PointTypeNodeType,
 				Text: data.NodeTypeDevice,
 			},
-			{
-				Time: time.Now(),
-				Type: data.PointTypeAddParent,
-				Text: "",
-			},
 		}
 
-		id := uuid.New().String()
+		rootNode.ID = uuid.New().String()
 
-		err := nats.SendNodePoints(m.nc, id, p, false)
+		err := nats.SendNodePoints(m.nc, rootNode.ID, rootNode.Points, true)
 		if err != nil {
-			return fmt.Errorf("Error setting root node: %v", err)
+			return fmt.Errorf("Error setting root node points: %v", err)
+		}
+
+		err = nats.SendEdgePoint(m.nc, rootNode.ID, "", data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
+		if err != nil {
+			return fmt.Errorf("Error sending root node edges: %w", err)
 		}
 
 		// create admin user off root node
@@ -75,12 +75,17 @@ func (m *Manager) Init() error {
 		points = append(points, data.Point{Type: data.PointTypeNodeType,
 			Text: data.NodeTypeUser})
 
-		err = nats.SendNodePoints(m.nc, admin.ID, points, false)
+		err = nats.SendNodePoints(m.nc, admin.ID, points, true)
 		if err != nil {
 			return fmt.Errorf("Error setting default user: %v", err)
 		}
 
-		m.rootNodeID = id
+		m.rootNodeID = rootNode.ID
+
+		err = nats.SendEdgePoint(m.nc, admin.ID, rootNode.ID, data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
+		if err != nil {
+			return err
+		}
 	}
 
 	m.modbusManager = NewModbusManager(m.nc, m.rootNodeID)

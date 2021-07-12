@@ -14,7 +14,7 @@ import (
 func DecodeNodePointsMsg(msg *natsgo.Msg) (string, []data.Point, error) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {
-		return "", []data.Point{}, errors.New("Error decoding node samples subject")
+		return "", []data.Point{}, errors.New("Error decoding node points subject")
 	}
 	nodeID := chunks[1]
 	points, err := data.PbDecodePoints(msg.Data)
@@ -24,4 +24,21 @@ func DecodeNodePointsMsg(msg *natsgo.Msg) (string, []data.Point, error) {
 	}
 
 	return nodeID, points, nil
+}
+
+// DecodeEdgePointsMsg decodes NATS message into node ID and points
+func DecodeEdgePointsMsg(msg *natsgo.Msg) (string, string, []data.Point, error) {
+	chunks := strings.Split(msg.Subject, ".")
+	if len(chunks) < 4 {
+		return "", "", []data.Point{}, errors.New("Error decoding edge points subject")
+	}
+	nodeID := chunks[1]
+	parentID := chunks[2]
+	points, err := data.PbDecodePoints(msg.Data)
+	if err != nil {
+		log.Println("Error decoding Pb points: ", err)
+		return "", "", []data.Point{}, fmt.Errorf("Error decoding Pb points: %w", err)
+	}
+
+	return nodeID, parentID, points, nil
 }

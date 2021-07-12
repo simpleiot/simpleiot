@@ -70,10 +70,9 @@ defined [here](../internal/pb).
     - can be used to request the immediate children of a node
   - `node.<id>.points`
     - used to listen for or publish node point changes.
-    - there are several special point types. Type point types can be used to
-      accomplish add, copy, move, and delete node operations:
-      - `addParent`: can be used to add a parent to a node
-      - `removeParent`: can be used to remove a parent from a node
+  - `node.<id>.<parent>.points`
+    - used to publish/subscribe node edge points. The `tombstone` point type is
+      used to track if a node has been deleted or not.
   - `node.<id>.not`
     - used when a node sends a [notification](notifications.md) (typically a
       rule, or a message sent directly from a node)
@@ -86,9 +85,6 @@ defined [here](../internal/pb).
       update files. There is Go code [available](../api/nats-file.go) to manage
       both ends of the transfer as well as a utility to [send](../cmd/siotutil)
       files and an example [edge](../cmd/edge) application to receive files.
-- Edges
-  - `edge.<id>.points`
-    - used to listen for or publish node edge point changes
 - System
   - `error`
     - any errors that occur are sent to this subject

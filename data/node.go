@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/simpleiot/simpleiot/internal/pb"
@@ -122,7 +121,6 @@ func (n *Node) ToUser() User {
 func (n *Node) ToNodeEdge(edge Edge) NodeEdge {
 	return NodeEdge{
 		ID:         n.ID,
-		EdgeID:     edge.ID,
 		Type:       n.Type,
 		Parent:     edge.Up,
 		Points:     n.Points,
@@ -178,7 +176,6 @@ type NodeVersion struct {
 // NodeEdge combines node and edge data, used for APIs
 type NodeEdge struct {
 	ID         string `json:"id" boltholdKey:"ID"`
-	EdgeID     string `json:"edgeId"`
 	Type       string `json:"type"`
 	Hash       []byte `json:"hash"`
 	Parent     string `json:"parent"`
@@ -266,7 +263,6 @@ func (n *NodeEdge) ToPbNode() (*pb.Node, error) {
 
 	pbNode := &pb.Node{
 		Id:         n.ID,
-		EdgeId:     n.EdgeID,
 		Type:       n.Type,
 		Hash:       n.Hash,
 		Points:     points,
@@ -304,13 +300,6 @@ func (a ByNodeEdgeHash) Len() int           { return len(a) }
 func (a ByNodeEdgeHash) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByNodeEdgeHash) Less(i, j int) bool { return bytesLess(a[i].Hash, a[j].Hash) }
 
-// ByNodeEdgeID implements sort interface for NodeEdge by ID
-type ByNodeEdgeID []NodeEdge
-
-func (a ByNodeEdgeID) Len() int           { return len(a) }
-func (a ByNodeEdgeID) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByNodeEdgeID) Less(i, j int) bool { return strings.Compare(a[i].ID, a[j].ID) < 0 }
-
 // PbDecodeNode converts a protobuf to node data structure
 func PbDecodeNode(data []byte) (NodeEdge, error) {
 	pbNode := &pb.Node{}
@@ -347,7 +336,6 @@ func PbToNode(pbNode *pb.Node) (NodeEdge, error) {
 
 	ret := NodeEdge{
 		ID:         pbNode.Id,
-		EdgeID:     pbNode.EdgeId,
 		Type:       pbNode.Type,
 		Hash:       pbNode.Hash,
 		Points:     points,

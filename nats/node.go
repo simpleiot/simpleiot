@@ -53,12 +53,7 @@ func GetNodeChildren(nc *natsgo.Conn, id, typ string, includeDel bool) ([]data.N
 }
 
 // SendNode is used to recursively send a node and children over nats
-func SendNode(src, dest *natsgo.Conn, id, parent string) error {
-	node, err := GetNode(src, id, parent)
-	if err != nil {
-		return fmt.Errorf("Error getting local node: %v", err)
-	}
-
+func SendNode(src, dest *natsgo.Conn, node data.NodeEdge) error {
 	points := node.Points
 
 	points = append(points, data.Point{
@@ -66,35 +61,27 @@ func SendNode(src, dest *natsgo.Conn, id, parent string) error {
 		Text: node.Type,
 	})
 
-	if parent != "" {
-		tombstone, _ := node.IsTombstone()
-		if tombstone {
-			points = append(points, data.Point{
-				Type: data.PointTypeRemoveParent,
-				Text: parent,
-			})
-		} else {
-			points = append(points, data.Point{
-				Type: data.PointTypeAddParent,
-				Text: parent,
-			})
-		}
-	}
-
-	err = SendNodePoints(dest, id, points, true)
+	err := SendNodePoints(dest, node.ID, points, true)
 
 	if err != nil {
 		return fmt.Errorf("Error sending node upstream: %v", err)
 	}
 
+	if node.Parent != "" && len(node.EdgePoints) > 0 {
+		err := SendEdgePoints(dest, node.ID, node.Parent, node.EdgePoints, true)
+		if err != nil {
+			return err
+		}
+	}
+
 	// process child nodes
-	childNodes, err := GetNodeChildren(src, id, "", false)
+	childNodes, err := GetNodeChildren(src, node.ID, "", false)
 	if err != nil {
 		return fmt.Errorf("Error getting node children: %v", err)
 	}
 
 	for _, childNode := range childNodes {
-		err := SendNode(src, dest, childNode.ID, id)
+		err := SendNode(src, dest, childNode)
 
 		if err != nil {
 			return fmt.Errorf("Error sending child node: %v", err)

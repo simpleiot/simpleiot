@@ -239,6 +239,9 @@ func (gen *Db) node(id string) (*data.Node, error) {
 
 // nodeEdge returns a node edge
 func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
+	if parent == "" {
+		parent = "none"
+	}
 	var nodeEdge data.NodeEdge
 	err := gen.store.View(func(tx *genji.Tx) error {
 		node, err := txNode(tx, id)
@@ -364,7 +367,7 @@ func (gen *Db) txCalcHash(tx *genji.Tx, node *data.Node, upEdge data.Edge) ([]by
 	return upEdge.Hash, nil
 }
 
-func (gen *Db) edgePoints(id string, points data.Points) error {
+func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 	for _, p := range points {
 		if p.Time.IsZero() {
 			p.Time = time.Now()
@@ -376,22 +379,28 @@ func (gen *Db) edgePoints(id string, points data.Points) error {
 
 		var edge data.Edge
 
-		doc, err := tx.QueryDocument(`select * from edges where id = ?`, id)
+		doc, err := tx.QueryDocument(`select * from edges where down = ? and up = ?`, nodeID, parentID)
 
 		if err != nil {
-			return err
-		}
+			if err != genjierrors.ErrDocumentNotFound {
+				return err
+			}
 
-		err = document.StructScan(doc, &edge)
-		if err != nil {
-			return err
+			edge.ID = uuid.New().String()
+			edge.Up = parentID
+			edge.Down = nodeID
+		} else {
+			err = document.StructScan(doc, &edge)
+			if err != nil {
+				return err
+			}
 		}
 
 		nec.cacheEdges([]*data.Edge{&edge})
 
 		ne, err := nec.getNodeAndEdges(edge.Down)
 		if err != nil {
-			return err
+			return fmt.Errorf("getNodeAndEdges error: %w", err)
 		}
 
 		for _, point := range points {
@@ -430,9 +439,6 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 		ne, err := nec.getNodeAndEdges(id)
 
-		newNode := false
-		newRootNode := false
-
 		if err != nil {
 			if err == genjierrors.ErrDocumentNotFound {
 				if gen.meta.RootID == "" {
@@ -443,9 +449,6 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 					if err != nil {
 						return fmt.Errorf("Error setting rootid in meta: %w", err)
 					}
-					newRootNode = true
-				} else {
-					newNode = true
 				}
 
 				ne = &nodeAndEdges{
@@ -460,25 +463,10 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 			}
 		}
 
-		addParent := "no"
-		removeParent := "no"
-
 		for _, point := range points {
 			if point.Type == data.PointTypeNodeType {
 				ne.node.Type = point.Text
 				// we don't encode type in points as this has its own field
-				continue
-			}
-
-			if point.Type == data.PointTypeAddParent {
-				addParent = point.Text
-				// we don't encode parent in points as this has its own field
-				continue
-			}
-
-			if point.Type == data.PointTypeRemoveParent {
-				removeParent = point.Text
-				// we don't encode parent in points as this has its own field
 				continue
 			}
 
@@ -500,69 +488,6 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 		*/
 
 		sort.Sort(ne.node.Points)
-
-		if newNode && addParent == "no" {
-			addParent = gen.meta.RootID
-		}
-
-		if newRootNode && addParent == "no" {
-			addParent = ""
-		}
-
-		// process node add/move/copy/del
-		if addParent != "no" {
-			found := false
-
-			if addParent == "" {
-				// add edge for root node
-				ne.up = append(ne.up,
-					&data.Edge{
-						ID:   uuid.New().String(),
-						Up:   "",
-						Down: id,
-					},
-				)
-				nec.cacheEdges(ne.up)
-			} else {
-				// first look if there is an edge that has already
-				// been tombstoned, and resurrect it
-				for _, e := range ne.up {
-					if e.Up == addParent {
-						e.Points.ProcessPoint(data.Point{
-							Type:  data.PointTypeTombstone,
-							Value: 0,
-							Time:  time.Now(),
-						})
-
-						found = true
-					}
-				}
-
-				if !found {
-					// need to add a new edge
-					ne.up = append(ne.up,
-						&data.Edge{
-							ID:   uuid.New().String(),
-							Up:   addParent,
-							Down: id,
-						})
-
-					nec.cacheEdges(ne.up)
-				}
-			}
-		}
-
-		if removeParent != "no" {
-			for _, e := range ne.up {
-				if e.Up == removeParent {
-					e.Points.ProcessPoint(data.Point{
-						Type:  data.PointTypeTombstone,
-						Value: 1,
-						Time:  time.Now(),
-					})
-				}
-			}
-		}
 
 		err = nec.processNode(ne)
 		if err != nil {

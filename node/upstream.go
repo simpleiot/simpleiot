@@ -137,7 +137,7 @@ func (up *Upstream) addUpstreamSub(node data.NodeEdge) error {
 		return fmt.Errorf("Error adding upstream node sub: %v", err)
 	}
 
-	err = up.addUpstreamEdgeSub(node.EdgeID)
+	err = up.addUpstreamEdgeSub(node.ID, node.Parent)
 	if err != nil {
 		return fmt.Errorf("Error adding upstream edge sub: %v", err)
 	}
@@ -179,29 +179,32 @@ func (up *Upstream) addUpstreamNodeSub(nodeID string) error {
 	return nil
 }
 
-func (up *Upstream) addUpstreamEdgeSub(edgeID string) error {
-	if edgeID == "" {
+func (up *Upstream) addUpstreamEdgeSub(nodeID, parentID string) error {
+	if nodeID == "" || parentID == "" {
 		// the root node does not have an edge id
 		return nil
 	}
+
+	key := nodeID + ":" + parentID
+
 	// check if subscriptional already exists
-	_, ok := up.subUpEdgePoints[edgeID]
+	_, ok := up.subUpEdgePoints[key]
 	if ok {
 		// subscription allready exists
 		return nil
 	}
 
 	// create subscription
-	subject := nats.SubjectEdgePoints(edgeID)
+	subject := nats.SubjectEdgePoints(nodeID, parentID)
 	sub, err := up.ncUp.Subscribe(subject, func(msg *natsgo.Msg) {
-		edgeID, points, err := nats.DecodeNodePointsMsg(msg)
+		nodeID, parentID, points, err := nats.DecodeEdgePointsMsg(msg)
 
 		if err != nil {
 			log.Println("Error decoding point: ", err)
 			return
 		}
 
-		err = nats.SendEdgePoints(up.nc, edgeID, points, false)
+		err = nats.SendEdgePoints(up.nc, nodeID, parentID, points, false)
 
 		if err != nil {
 			log.Println("Error sending edge points to local system: ", err)
@@ -212,7 +215,7 @@ func (up *Upstream) addUpstreamEdgeSub(edgeID string) error {
 		return err
 	}
 
-	up.subUpEdgePoints[edgeID] = sub
+	up.subUpEdgePoints[key] = sub
 
 	return nil
 }
@@ -230,7 +233,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 	if nodeUp.ID == "" {
 		log.Printf("Upstream node %v does not exist, sending\n", nodeLocal.Desc())
-		return nats.SendNode(up.nc, up.ncUp, id, "")
+		return nats.SendNode(up.nc, up.ncUp, nodeLocal)
 	}
 
 	if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
@@ -290,13 +293,13 @@ func (up *Upstream) syncNode(id, parent string) error {
 					upstreamProcessed[i] = true
 					if p.Time.After(pUp.Time) {
 						// need to send point upstream
-						err := nats.SendEdgePoint(up.ncUp, nodeUp.EdgeID, p, true)
+						err := nats.SendEdgePoint(up.ncUp, nodeUp.ID, nodeUp.Parent, p, true)
 						if err != nil {
 							log.Println("Error syncing point upstream: ", err)
 						}
 					} else if p.Time.Before(pUp.Time) {
 						// need to update point locally
-						err := nats.SendEdgePoint(up.nc, nodeLocal.EdgeID, pUp, true)
+						err := nats.SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
 						if err != nil {
 							log.Println("Error syncing point from upstream: ", err)
 						}
@@ -305,14 +308,14 @@ func (up *Upstream) syncNode(id, parent string) error {
 			}
 
 			if !found {
-				nats.SendEdgePoint(up.ncUp, nodeUp.EdgeID, p, true)
+				nats.SendEdgePoint(up.ncUp, nodeUp.ID, nodeUp.Parent, p, true)
 			}
 		}
 
 		// check for any points that do not exist locally
 		for i, pUp := range nodeUp.EdgePoints {
 			if _, ok := upstreamProcessed[i]; !ok {
-				err := nats.SendEdgePoint(up.nc, nodeLocal.EdgeID, pUp, true)
+				err := nats.SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
 				if err != nil {
 					log.Println("Error syncing edge point from upstream: ", err)
 				}
@@ -351,7 +354,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 			if !found {
 				// need to send node upstream
-				err := nats.SendNode(up.nc, up.ncUp, child.ID, nodeLocal.ID)
+				err := nats.SendNode(up.nc, up.ncUp, child)
 
 				if err != nil {
 					log.Println("Error sending node upstream: ", err)
@@ -366,7 +369,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 		for i, upChild := range upChildren {
 			if _, ok := upChildProcessed[i]; !ok {
-				err := nats.SendNode(up.ncUp, up.nc, upChild.ID, nodeUp.ID)
+				err := nats.SendNode(up.ncUp, up.nc, upChild)
 				if err != nil {
 					log.Println("Error getting node from upstream: ", err)
 				}
