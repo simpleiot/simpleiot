@@ -81,9 +81,8 @@ func (nec *nodeEdgeCache) getNodeAndEdges(id string) (*nodeAndEdges, error) {
 }
 
 // populate cache and update hashes for node and edges all the way up to root, and one level down from current node
-func (nec *nodeEdgeCache) processNode(ne *nodeAndEdges) error {
+func (nec *nodeEdgeCache) processNode(ne *nodeAndEdges, newEdge bool) error {
 	updateHash(ne.node, ne.up, ne.down)
-
 	for _, upEdge := range ne.up {
 		if upEdge.Up == "" || upEdge.Up == "none" {
 			continue
@@ -95,7 +94,11 @@ func (nec *nodeEdgeCache) processNode(ne *nodeAndEdges) error {
 			return fmt.Errorf("Error getting neUp: %w", err)
 		}
 
-		err = nec.processNode(neUp)
+		if newEdge {
+			neUp.down = append(neUp.down, upEdge)
+		}
+
+		err = nec.processNode(neUp, false)
 
 		if err != nil {
 			return fmt.Errorf("Error processing node to update hash: %w", err)
@@ -106,6 +109,7 @@ func (nec *nodeEdgeCache) processNode(ne *nodeAndEdges) error {
 }
 
 func (nec *nodeEdgeCache) writeEdges() error {
+	//fmt.Println("CLIFF: edges: ", nec.edges)
 	for _, e := range nec.edges {
 		err := nec.tx.Exec(`insert into edges values ? on conflict do replace`, e)
 
