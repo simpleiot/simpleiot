@@ -377,6 +377,7 @@ func (gen *Db) txCalcHash(tx *genji.Tx, node *data.Node, upEdge data.Edge) ([]by
 }
 
 func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
+	fmt.Println("CLIFF: edgePoints: ", nodeID, parentID, points)
 	for _, p := range points {
 		if p.Time.IsZero() {
 			p.Time = time.Now()
@@ -433,7 +434,7 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 
 		sort.Sort(edge.Points)
 
-		err = nec.processNode(ne)
+		err = nec.processNode(ne, newEdge)
 		if err != nil {
 			return fmt.Errorf("processNode error: %w", err)
 		}
@@ -513,7 +514,7 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 		sort.Sort(ne.node.Points)
 
-		err = nec.processNode(ne)
+		err = nec.processNode(ne, false)
 		if err != nil {
 			return fmt.Errorf("processNode error: %w", err)
 		}
