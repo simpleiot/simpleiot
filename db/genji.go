@@ -269,6 +269,13 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 
 		nodeEdge = node.ToNodeEdge(edge)
 
+		if parent == "skip" {
+			nodeEdge.Hash, err = gen.txCalcHash(tx, node, data.Edge{})
+			if err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 
