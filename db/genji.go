@@ -381,6 +381,8 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 
 		doc, err := tx.QueryDocument(`select * from edges where down = ? and up = ?`, nodeID, parentID)
 
+		newEdge := false
+
 		if err != nil {
 			if err != genjierrors.ErrDocumentNotFound {
 				return err
@@ -389,6 +391,7 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 			edge.ID = uuid.New().String()
 			edge.Up = parentID
 			edge.Down = nodeID
+			newEdge = true
 		} else {
 			err = document.StructScan(doc, &edge)
 			if err != nil {
@@ -401,6 +404,10 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 		ne, err := nec.getNodeAndEdges(edge.Down)
 		if err != nil {
 			return fmt.Errorf("getNodeAndEdges error: %w", err)
+		}
+
+		if newEdge {
+			ne.up = append(ne.up, &edge)
 		}
 
 		for _, point := range points {
