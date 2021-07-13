@@ -85,7 +85,7 @@ type alias NodeMsg =
 type CopyMove
     = CopyMoveNone
     | Move String String String
-    | Copy String String
+    | Copy String String String
 
 
 type NodeOperation
@@ -197,7 +197,7 @@ type Msg
     | ApiRespPostMoveNode Int (Data Response)
     | ApiRespPutCopyNode Int (Data Response)
     | ApiRespPostNotificationNode (Data Response)
-    | CopyNode Int String String
+    | CopyNode Int String String String
     | MoveNode Int String String String
 
 
@@ -593,9 +593,9 @@ update msg model =
                     , updateNodes model
                     )
 
-        CopyNode feID id desc ->
+        CopyNode feID id src desc ->
             ( { model
-                | copyMove = Copy id desc
+                | copyMove = Copy id src desc
                 , nodeMsg =
                     Just
                         { feID = feID
@@ -1244,7 +1244,7 @@ viewNodeOperations node msg =
 
               else
                 Element.none
-            , Button.copy (CopyNode node.feID node.node.id desc)
+            , Button.copy (CopyNode node.feID node.node.id node.node.parent desc)
             , Button.clipboard (PasteNode node.feID node.node.id)
             ]
         , case msg of
@@ -1456,7 +1456,12 @@ viewPasteNode feID dest copyMove =
                 ]
 
         cantCopySelf =
-            [ text "Can't copy node to itself"
+            [ text "Can't move/copy node to itself"
+            , discardButton
+            ]
+
+        sameParent =
+            [ text "Can't move/copy node to the same parent"
             , discardButton
             ]
     in
@@ -1468,10 +1473,13 @@ viewPasteNode feID dest copyMove =
                     , discardButton
                     ]
 
-            Copy id desc ->
+            Copy id src desc ->
                 row [] <|
                     if id == dest then
                         cantCopySelf
+
+                    else if src == dest then
+                        sameParent
 
                     else
                         [ text <| "Copy " ++ desc ++ " here?"
@@ -1485,6 +1493,9 @@ viewPasteNode feID dest copyMove =
                 row [] <|
                     if id == dest then
                         cantCopySelf
+
+                    else if src == dest then
+                        sameParent
 
                     else
                         [ text <| "Move " ++ desc ++ " here?"
