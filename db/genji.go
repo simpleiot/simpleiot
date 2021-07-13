@@ -250,19 +250,21 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 			return err
 		}
 
-		doc, err := tx.QueryDocument(`select * from edges where up = ? and down = ?`,
-			parent, id)
-
-		if err != nil {
-			return err
-		}
-
 		var edge data.Edge
 
-		err = document.StructScan(doc, &edge)
+		if parent != "skip" {
+			doc, err := tx.QueryDocument(`select * from edges where up = ? and down = ?`,
+				parent, id)
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
+
+			err = document.StructScan(doc, &edge)
+
+			if err != nil {
+				return err
+			}
 		}
 
 		nodeEdge = node.ToNodeEdge(edge)

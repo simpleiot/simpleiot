@@ -289,6 +289,13 @@ func main() {
 			}
 		})
 
+		_, err = nc.Subscribe("node.*.*.*", func(msg *natsgo.Msg) {
+			err := nats.Dump(nc, msg)
+			if err != nil {
+				log.Println("Error dumping nats msg: ", err)
+			}
+		})
+
 		if err != nil {
 			log.Println("Nats subscribe error: ", err)
 			os.Exit(-1)

@@ -12,6 +12,9 @@ import (
 
 // GetNode over NATS. If id is "root", the root node is fetched.
 func GetNode(nc *natsgo.Conn, id, parent string) (data.NodeEdge, error) {
+	if parent == "" {
+		parent = "none"
+	}
 	nodeMsg, err := nc.Request("node."+id, []byte(parent), time.Second*20)
 	if err != nil {
 		return data.NodeEdge{}, err
