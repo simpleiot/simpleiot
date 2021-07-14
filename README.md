@@ -185,7 +185,6 @@ different package, or renamed -- feel free to ask if you run into problems.
 - [x] REST [api](docs/API.md) for devices
 - [x] [particle.io](docs/configuration.md) support
 - [x] boltdb support
-- [ ] [influxdb 1.x](docs/configuration.md) support (removed)
 - [x] user authentication
 - [x] user accounts
 - [x] group support (assign users and devices to a group so users can only see
@@ -204,6 +203,7 @@ different package, or renamed -- feel free to ask if you run into problems.
 - [x] Modbus TCP support in SIOT
 - [x] Twilio SMS notifications
 - [x] influxdb 2.x support
+- [x] synchronization with upstream instances
 - [ ] email notifications
 - [ ] COAP API for devices
 - [ ] store timeseries data in bolt
