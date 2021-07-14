@@ -70,11 +70,14 @@ func SendNode(src, dest *natsgo.Conn, node data.NodeEdge) error {
 		return fmt.Errorf("Error sending node upstream: %v", err)
 	}
 
-	if node.Parent != "" && len(node.EdgePoints) > 0 {
-		err := SendEdgePoints(dest, node.ID, node.Parent, node.EdgePoints, true)
-		if err != nil {
-			return err
-		}
+	if len(node.EdgePoints) < 0 {
+		// edge should always have a tombstone point, set to false for root node
+		node.EdgePoints = []data.Point{{Time: time.Now(), Type: data.PointTypeTombstone}}
+	}
+
+	err = SendEdgePoints(dest, node.ID, node.Parent, node.EdgePoints, true)
+	if err != nil {
+		return fmt.Errorf("Error sending edge points: %w", err)
 	}
 
 	// process child nodes
