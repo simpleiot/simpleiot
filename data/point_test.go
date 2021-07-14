@@ -8,9 +8,10 @@ import (
 )
 
 func TestPointsSort(t *testing.T) {
-	p1 := Point{Time: time.Now()}
-	p2 := Point{Time: time.Now()}
-	p3 := Point{Time: time.Now()}
+	now := time.Now()
+	p1 := Point{Time: now}
+	p2 := Point{Time: now.Add(time.Millisecond)}
+	p3 := Point{Time: now.Add(time.Millisecond * 2)}
 
 	exp := Points{p1, p2, p3}
 
