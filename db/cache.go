@@ -109,7 +109,6 @@ func (nec *nodeEdgeCache) processNode(ne *nodeAndEdges, newEdge bool) error {
 }
 
 func (nec *nodeEdgeCache) writeEdges() error {
-	//fmt.Println("CLIFF: edges: ", nec.edges)
 	for _, e := range nec.edges {
 		err := nec.tx.Exec(`insert into edges values ? on conflict do replace`, e)
 

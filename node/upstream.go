@@ -254,14 +254,12 @@ func (up *Upstream) syncNode(id, parent string) error {
 					upstreamProcessed[i] = true
 					if p.Time.After(pUp.Time) {
 						// need to send point upstream
-						fmt.Println("CLIFF: sending node point upstream: ", p)
 						err := nats.SendNodePoint(up.ncUp, nodeUp.ID, p, true)
 						if err != nil {
 							log.Println("Error syncing point upstream: ", err)
 						}
 					} else if p.Time.Before(pUp.Time) {
 						// need to update point locally
-						fmt.Println("CLIFF: getting node point from upstream: ", p)
 						err := nats.SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
 						if err != nil {
 							log.Println("Error syncing point from upstream: ", err)
@@ -271,7 +269,6 @@ func (up *Upstream) syncNode(id, parent string) error {
 			}
 
 			if !found {
-				fmt.Println("CLIFF: sending new node point upstream: ", p)
 				nats.SendNodePoint(up.ncUp, nodeUp.ID, p, true)
 			}
 		}
@@ -279,7 +276,6 @@ func (up *Upstream) syncNode(id, parent string) error {
 		// check for any points that do not exist locally
 		for i, pUp := range nodeUp.Points {
 			if _, ok := upstreamProcessed[i]; !ok {
-				fmt.Println("CLIFF: getting new node point from upstream: ", pUp)
 				err := nats.SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
 				if err != nil {
 					log.Println("Error syncing point from upstream: ", err)
@@ -299,14 +295,12 @@ func (up *Upstream) syncNode(id, parent string) error {
 					upstreamProcessed[i] = true
 					if p.Time.After(pUp.Time) {
 						// need to send point upstream
-						fmt.Println("CLIFF: sending edge point upstream: ", p)
 						err := nats.SendEdgePoint(up.ncUp, nodeUp.ID, nodeUp.Parent, p, true)
 						if err != nil {
 							log.Println("Error syncing point upstream: ", err)
 						}
 					} else if p.Time.Before(pUp.Time) {
 						// need to update point locally
-						fmt.Println("CLIFF: getting edge point from upstream: ", p)
 						err := nats.SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
 						if err != nil {
 							log.Println("Error syncing point from upstream: ", err)
@@ -316,7 +310,6 @@ func (up *Upstream) syncNode(id, parent string) error {
 			}
 
 			if !found {
-				fmt.Println("CLIFF: sending new edge point upstream: ", p)
 				nats.SendEdgePoint(up.ncUp, nodeUp.ID, nodeUp.Parent, p, true)
 			}
 		}
@@ -324,7 +317,6 @@ func (up *Upstream) syncNode(id, parent string) error {
 		// check for any points that do not exist locally
 		for i, pUp := range nodeUp.EdgePoints {
 			if _, ok := upstreamProcessed[i]; !ok {
-				fmt.Println("CLIFF: getting new edge point from upstream: ", pUp)
 				err := nats.SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
 				if err != nil {
 					log.Println("Error syncing edge point from upstream: ", err)

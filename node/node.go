@@ -75,7 +75,6 @@ func (m *Manager) Init() error {
 		points = append(points, data.Point{Type: data.PointTypeNodeType,
 			Text: data.NodeTypeUser})
 
-		fmt.Println("CLIFF: sending admin node points")
 		err = nats.SendNodePoints(m.nc, admin.ID, points, true)
 		if err != nil {
 			return fmt.Errorf("Error setting default user: %v", err)
@@ -83,7 +82,6 @@ func (m *Manager) Init() error {
 
 		m.rootNodeID = rootNode.ID
 
-		fmt.Println("CLIFF: sending admin node edge points")
 		err = nats.SendEdgePoint(m.nc, admin.ID, rootNode.ID, data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
 		if err != nil {
 			return err

@@ -377,19 +377,15 @@ func (gen *Db) txCalcHash(tx *genji.Tx, node *data.Node, upEdge data.Edge) ([]by
 }
 
 func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
-	fmt.Println("CLIFF: edgePoints: ", nodeID, parentID, points)
 	for _, p := range points {
 		if p.Time.IsZero() {
 			p.Time = time.Now()
 		}
 	}
 
-	fmt.Println("CLIFF: edgePoints: ", nodeID, parentID, points)
-
 	return gen.store.Update(func(tx *genji.Tx) error {
 		if parentID == "none" && gen.meta.RootID != "" && nodeID != gen.meta.RootID {
 			// a downstream node its root node edges, set up to rootID
-			fmt.Println("CLIFF: forcing parentID to rootID for edge points")
 			parentID = gen.meta.RootID
 		}
 
