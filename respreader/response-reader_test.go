@@ -202,7 +202,7 @@ func TestResponseReaderSerialPortClose(t *testing.T) {
 
 func TestReader(t *testing.T) {
 	source := &dataSource{}
-	reader := NewReader(source, time.Second, time.Millisecond*10)
+	reader := NewReader(source, time.Second, time.Millisecond*50)
 
 	start := time.Now()
 	data := make([]byte, 100)
@@ -214,7 +214,7 @@ func TestReader(t *testing.T) {
 		t.Error("read failed: ", err)
 	}
 
-	if dur < 100*time.Millisecond || dur > 200*time.Millisecond {
+	if dur < 100*time.Millisecond || dur > 400*time.Millisecond {
 		t.Error("expected dur to be around 150ms: ", dur)
 	}
 
