@@ -18,3 +18,8 @@ func SubjectEdgePoints(nodeID, parentID string) string {
 func SubjectNodeAllPoints() string {
 	return "node.*.points"
 }
+
+// SubjectEdgeAllPoints provides subject for all edge points for any node
+func SubjectEdgeAllPoints() string {
+	return "node.*.*.points"
+}

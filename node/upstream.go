@@ -15,14 +15,15 @@ import (
 
 // Upstream is used to manage an upstream connection (cloud, etc)
 type Upstream struct {
-	nc              *natsgo.Conn
-	node            data.NodeEdge
-	nodeUp          *UpstreamNode
-	uri             string
-	ncUp            *natsgo.Conn
-	subUpNodePoints map[string]*natsgo.Subscription
-	subUpEdgePoints map[string]*natsgo.Subscription
-	subLocal        *natsgo.Subscription
+	nc                 *natsgo.Conn
+	node               data.NodeEdge
+	nodeUp             *UpstreamNode
+	uri                string
+	ncUp               *natsgo.Conn
+	subUpNodePoints    map[string]*natsgo.Subscription
+	subUpEdgePoints    map[string]*natsgo.Subscription
+	subLocalNodePoints *natsgo.Subscription
+	subLocalEdgePoints *natsgo.Subscription
 }
 
 // NewUpstream is used to create a new upstream connection
@@ -63,7 +64,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		return nil, fmt.Errorf("Error connection to upstream NATS: %v", err)
 	}
 
-	up.subLocal, err = nc.Subscribe(nats.SubjectNodeAllPoints(), func(msg *natsgo.Msg) {
+	up.subLocalNodePoints, err = nc.Subscribe(nats.SubjectNodeAllPoints(), func(msg *natsgo.Msg) {
 		nodeID, points, err := nats.DecodeNodePointsMsg(msg)
 
 		if err != nil {
@@ -74,7 +75,22 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		err = nats.SendNodePoints(up.ncUp, nodeID, points, false)
 
 		if err != nil {
-			log.Println("Error sending points to remote system: ", err)
+			log.Println("Error sending node points to remote system: ", err)
+		}
+	})
+
+	up.subLocalEdgePoints, err = nc.Subscribe(nats.SubjectEdgeAllPoints(), func(msg *natsgo.Msg) {
+		nodeID, parentID, points, err := nats.DecodeEdgePointsMsg(msg)
+
+		if err != nil {
+			log.Println("Error decoding point: ", err)
+			return
+		}
+
+		err = nats.SendEdgePoints(up.ncUp, nodeID, parentID, points, false)
+
+		if err != nil {
+			log.Println("Error sending edge points to remote system: ", err)
 		}
 	})
 
@@ -389,10 +405,17 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 // Stop upstream instance
 func (up *Upstream) Stop() {
-	if up.subLocal != nil {
-		err := up.subLocal.Unsubscribe()
+	if up.subLocalNodePoints != nil {
+		err := up.subLocalNodePoints.Unsubscribe()
 		if err != nil {
-			log.Println("Error unsubscribing from local bus: ", err)
+			log.Println("Error unsubscribing node points from local bus: ", err)
+		}
+	}
+
+	if up.subLocalEdgePoints != nil {
+		err := up.subLocalEdgePoints.Unsubscribe()
+		if err != nil {
+			log.Println("Error unsubscribing edge points from local bus: ", err)
 		}
 	}
 
