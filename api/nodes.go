@@ -2,12 +2,15 @@ package api
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
+
+	natsgo "github.com/nats-io/nats.go"
 )
 
 // NodeMove is a data structure used in the /node/:id/parents api call
@@ -30,16 +33,16 @@ type NodeDelete struct {
 
 // Nodes handles node requests
 type Nodes struct {
-	db        *genji.Db
+	db        *db.Db
 	check     RequestValidator
-	nh        *NatsHandler
+	nc        *natsgo.Conn
 	authToken string
 }
 
 // NewNodesHandler returns a new node handler
-func NewNodesHandler(db *genji.Db, v RequestValidator, authToken string,
-	nh *NatsHandler) http.Handler {
-	return &Nodes{db, v, nh, authToken}
+func NewNodesHandler(db *db.Db, v RequestValidator, authToken string,
+	nc *natsgo.Conn) http.Handler {
+	return &Nodes{db, v, nc, authToken}
 }
 
 // Top level handler for http requests in the coap-server process
@@ -73,7 +76,10 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
+			// FIXME, replace this with a NATS call so we can remove db from this
+			// module
 			nodes, err := h.db.NodesForUser(userID)
+
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
@@ -99,7 +105,13 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case "":
 		switch req.Method {
 		case http.MethodGet:
-			node, err := h.db.Node(id)
+			body, err := ioutil.ReadAll(req.Body)
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+				return
+			}
+
+			node, err := nats.GetNode(h.nc, id, string(body))
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
@@ -113,13 +125,18 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := h.db.NodeDelete(id, nodeDelete.Parent)
+			err := nats.SendEdgePoint(h.nc, id, nodeDelete.Parent, data.Point{
+				Type:  data.PointTypeTombstone,
+				Value: 1,
+			}, true)
+
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
-			} else {
-				en := json.NewEncoder(res)
-				en.Encode(data.StandardResponse{Success: true, ID: id})
+				return
 			}
+
+			en := json.NewEncoder(res)
+			en.Encode(data.StandardResponse{Success: true, ID: id})
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 			return
@@ -142,14 +159,34 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				http.Error(res, err.Error(), http.StatusBadRequest)
 				return
 			}
-			err := h.db.EdgeMove(nodeMove.ID, nodeMove.OldParent,
-				nodeMove.NewParent)
+
+			if nodeMove.NewParent == nodeMove.OldParent {
+				http.Error(res, "can't move node to itself", http.StatusNotFound)
+				return
+			}
+
+			err := nats.SendEdgePoint(h.nc, id, nodeMove.NewParent, data.Point{
+				Type:  data.PointTypeTombstone,
+				Value: 0,
+			}, true)
+
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
-			} else {
-				en := json.NewEncoder(res)
-				en.Encode(data.StandardResponse{Success: true, ID: id})
+				return
 			}
+
+			err = nats.SendEdgePoint(h.nc, id, nodeMove.OldParent, data.Point{
+				Type:  data.PointTypeTombstone,
+				Value: 1,
+			}, true)
+
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusNotFound)
+				return
+			}
+
+			en := json.NewEncoder(res)
+			en.Encode(data.StandardResponse{Success: true, ID: id})
 			return
 
 		case http.MethodPut:
@@ -158,14 +195,20 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				http.Error(res, err.Error(), http.StatusBadRequest)
 				return
 			}
-			err := h.db.EdgeCopy(nodeCopy.ID,
-				nodeCopy.NewParent)
+
+			err := nats.SendEdgePoint(h.nc, id, nodeCopy.NewParent, data.Point{
+				Type:  data.PointTypeTombstone,
+				Value: 0,
+			}, true)
+
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
-			} else {
-				en := json.NewEncoder(res)
-				en.Encode(data.StandardResponse{Success: true, ID: id})
+				return
 			}
+
+			en := json.NewEncoder(res)
+			en.Encode(data.StandardResponse{Success: true, ID: id})
+
 			return
 
 		default:
@@ -190,7 +233,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err = h.nh.Nc.Publish("node."+id+".not", d)
+			err = h.nc.Publish("node."+id+".not", d)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusBadRequest)
@@ -218,13 +261,33 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := h.db.NodeInsertEdge(node)
+	if node.ID == "" {
+		node.ID = uuid.New().String()
+	}
+
+	node.Points = append(node.Points, data.Point{
+		Type: data.PointTypeNodeType,
+		Text: node.Type,
+	})
+
+	err := nats.SendNodePoints(h.nc, node.ID, node.Points, true)
+
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	encode(res, data.StandardResponse{Success: true, ID: id})
+	err = nats.SendEdgePoint(h.nc, node.ID, node.Parent, data.Point{
+		Type:  data.PointTypeTombstone,
+		Value: 0,
+	}, true)
+
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	encode(res, data.StandardResponse{Success: true, ID: node.ID})
 }
 
 func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id string) {
@@ -236,7 +299,7 @@ func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id str
 		return
 	}
 
-	err = nats.SendPoints(h.nh.Nc, id, points, true)
+	err = nats.SendNodePoints(h.nc, id, points, true)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)

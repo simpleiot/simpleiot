@@ -20,21 +20,19 @@ type alias Cred =
 
 type alias Auth =
     { token : String
-    , isRoot : Bool
     , email : String
     }
 
 
 empty : Auth
 empty =
-    Auth "" False ""
+    Auth "" ""
 
 
 decodeResponse : Decode.Decoder Auth
 decodeResponse =
     Decode.succeed Auth
         |> required "token" Decode.string
-        |> required "isRoot" Decode.bool
         |> required "email" Decode.string
 
 

@@ -34,7 +34,7 @@ func NewV1Handler(args ServerArgs) http.Handler {
 
 	return &V1{
 		NodesHandler: NewNodesHandler(args.DbInst, args.JwtAuth,
-			args.AuthToken, args.NH),
+			args.AuthToken, args.Nc),
 		AuthHandler: NewAuthHandler(args.DbInst, args.JwtAuth),
 	}
 }

@@ -15,8 +15,7 @@ import UI.ViewIf exposing (viewIf)
 
 
 view :
-    { isRoot : Bool
-    , now : Time.Posix
+    { now : Time.Posix
     , zone : Time.Zone
     , modified : Bool
     , expDetail : Bool
@@ -37,6 +36,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         optionInput =
             Form.nodeOptionInput
@@ -45,6 +46,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         numberInput =
             Form.nodeNumberInput
@@ -53,6 +56,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         onOffInput =
             Form.nodeOnOffInput
@@ -61,12 +66,14 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         value =
-            Point.getValue o.node.points Point.typeValue
+            Point.getValue o.node.points "" 0 Point.typeValue
 
         variableType =
-            Point.getText o.node.points Point.typeVariableType
+            Point.getText o.node.points "" 0 Point.typeVariableType
 
         valueText =
             if variableType == Point.valueNumber then
@@ -102,12 +109,12 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.variable
             , text <|
-                Point.getText o.node.points Point.typeDescription
+                Point.getText o.node.points "" 0 Point.typeDescription
             , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
                 text <|
                     valueText
                         ++ (if variableType == Point.valueNumber then
-                                " " ++ Point.getText o.node.points Point.typeUnits
+                                " " ++ Point.getText o.node.points "" 0 Point.typeUnits
 
                             else
                                 ""

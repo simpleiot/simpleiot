@@ -91,13 +91,13 @@ view :
     -> Document msg
 view { page, toMsg } model =
     let
-        ( authenticated, isRoot, email ) =
+        ( authenticated, email ) =
             case model.auth of
                 Just auth ->
-                    ( True, auth.isRoot, auth.email )
+                    ( True, auth.email )
 
                 Nothing ->
-                    ( False, False, "" )
+                    ( False, "" )
     in
     { title = page.title
     , body =
@@ -105,7 +105,6 @@ view { page, toMsg } model =
             [ navbar
                 { onSignOut = toMsg SignOut
                 , authenticated = authenticated
-                , isRoot = isRoot
                 , email = email
                 }
             , viewError model.error

@@ -23,6 +23,7 @@ module Api.Node exposing
     , typeModbusIO
     , typeMsgService
     , typeRule
+    , typeUpstream
     , typeUser
     , typeVariable
     )
@@ -107,11 +108,22 @@ typeVariable =
     "variable"
 
 
+typeUpstream : String
+typeUpstream =
+    "upstream"
+
+
+
+-- Node corresponds with Go NodeEdge struct
+
+
 type alias Node =
     { id : String
     , typ : String
+    , hash : String
     , parent : String
     , points : List Point
+    , edgePoints : List Point
     }
 
 
@@ -158,8 +170,10 @@ decode =
     Decode.succeed Node
         |> required "id" Decode.string
         |> required "type" Decode.string
+        |> optional "hash" Decode.string ""
         |> required "parent" Decode.string
         |> optional "points" (Decode.list Point.decode) []
+        |> optional "edgePoints" (Decode.list Point.decode) []
 
 
 decodeCmd : Decode.Decoder NodeCmd
@@ -174,8 +188,10 @@ encode node =
     Encode.object
         [ ( "id", Encode.string node.id )
         , ( "type", Encode.string node.typ )
+        , ( "hash", Encode.string node.hash )
         , ( "parent", Encode.string node.parent )
         , ( "points", Point.encodeList node.points )
+        , ( "edgePoints", Point.encodeList node.edgePoints )
         ]
 
 
@@ -224,7 +240,7 @@ encodeNodeDelete nodeDelete =
 
 description : Node -> String
 description d =
-    case Point.get d.points "" Point.typeDescription 0 of
+    case Point.get d.points "" 0 Point.typeDescription of
         Just point ->
             point.text
 

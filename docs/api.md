@@ -23,7 +23,8 @@ Most APIs that do not return specific data (update/delete) return a
   - `/v1/nodes`
     - GET: return a list of all nodes
   - `/v1/nodes/:id`
-    - GET: return info about a specific node
+    - GET: return info about a specific node. Body can optionally include the id
+      of parent node to include edge point information.
     - DELETE: delete a node
   - `/v1/nodes/:id/parents`
     - POST: move node to new parent
@@ -61,10 +62,17 @@ defined [here](../internal/pb).
 
 - Nodes
   - `node.<id>`
-    - can be used to request an entire node data structure
+    - can be used to request an entire node data structure. If id = "root", then
+      the root node is fetched.
+    - body can optionally include the ID of the parent node to populate node
+      with points from the edge data structure.
+  - `node.<id>.children`
+    - can be used to request the immediate children of a node
   - `node.<id>.points`
-    - device publishes points and the server updates node state and stores point
-      in database.
+    - used to listen for or publish node point changes.
+  - `node.<id>.<parent>.points`
+    - used to publish/subscribe node edge points. The `tombstone` point type is
+      used to track if a node has been deleted or not.
   - `node.<id>.not`
     - used when a node sends a [notification](notifications.md) (typically a
       rule, or a message sent directly from a node)

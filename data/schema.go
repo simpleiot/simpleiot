@@ -5,6 +5,8 @@ package data
 const (
 	// general point types
 	PointTypeDescription string = "description"
+	PointTypeNodeType           = "nodeType"
+	PointTypeTombstone          = "tombstone"
 	PointTypeScale              = "scale"
 	PointTypeOffset             = "offset"
 	PointTypeUnits              = "units"
@@ -149,4 +151,6 @@ const (
 
 	NodeTypeVariable      = "variable"
 	PointTypeVariableType = "variableType"
+
+	NodeTypeUpstream = "upstream"
 )

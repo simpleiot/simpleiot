@@ -9,7 +9,6 @@ import UI.Style as Style
 navbar :
     { onSignOut : msg
     , authenticated : Bool
-    , isRoot : Bool
     , email : String
     }
     -> Element msg

@@ -14,7 +14,7 @@ import (
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/node"
@@ -112,7 +112,6 @@ func main() {
 	flagSendPointNats := flag.String("sendPointNats", "", "Send point to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendPointText := flag.String("sendPointText", "", "Send text point to 'portal' via NATS: 'devId:sensId:text:type'")
 	flagSendFile := flag.String("sendFile", "", "URL of file to send")
-	flagSendCmd := flag.String("sendCmd", "", "Command to send (cmd:detail)")
 	flagVersion := flag.Bool("version", false, "Show version number")
 	flagDumpDb := flag.Bool("dumpDb", false, "dump database to data.json file")
 	flagImportDb := flag.Bool("importDb", false, "import database from data.json")
@@ -214,13 +213,13 @@ func main() {
 
 	if *flagSendPointNats != "" ||
 		*flagSendFile != "" ||
-		*flagSendCmd != "" ||
 		*flagSendPointText != "" ||
 		*flagLogNats {
 
 		opts := nats.EdgeOptions{
 			Server:    natsServer,
 			AuthToken: authToken,
+			NoEcho:    true,
 			Disconnected: func() {
 				log.Println("NATS Disconnected")
 			},
@@ -242,7 +241,7 @@ func main() {
 	}
 
 	if *flagSendFile != "" {
-		err = api.NatsSendFileFromHTTP(nc, *flagID, *flagSendFile, func(percDone int) {
+		err = db.NatsSendFileFromHTTP(nc, *flagID, *flagSendFile, func(percDone int) {
 			log.Println("% done: ", percDone)
 		})
 
@@ -253,27 +252,6 @@ func main() {
 		log.Println("File sent!")
 	}
 
-	if *flagSendCmd != "" {
-		chunks := strings.Split(*flagSendCmd, ":")
-		cmd := data.NodeCmd{
-			ID:  *flagID,
-			Cmd: chunks[0],
-		}
-
-		if len(chunks) > 1 {
-			cmd.Detail = chunks[1]
-		}
-
-		err := nats.SendCmd(nc, cmd, 10*time.Second)
-
-		if err != nil {
-			log.Println("Error sending cmd: ", err)
-			os.Exit(-1)
-		}
-
-		log.Println("Command sent!")
-	}
-
 	if *flagSendPointNats != "" {
 		nodeID, point, err := parsePoint(*flagSendPointNats)
 		if err != nil {
@@ -281,7 +259,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		err = nats.SendPoint(nc, nodeID, point, *flagNatsAck)
+		err = nats.SendNodePoint(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -295,7 +273,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		err = nats.SendPoint(nc, nodeID, point, *flagNatsAck)
+		err = nats.SendNodePoint(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -305,6 +283,37 @@ func main() {
 	if *flagLogNats {
 		log.Println("Logging all NATS messages")
 		_, err := nc.Subscribe("node.*.*", func(msg *natsgo.Msg) {
+			err := nats.Dump(nc, msg)
+			if err != nil {
+				log.Println("Error dumping nats msg: ", err)
+			}
+		})
+
+		_, err = nc.Subscribe("node.*.*.*", func(msg *natsgo.Msg) {
+			err := nats.Dump(nc, msg)
+			if err != nil {
+				log.Println("Error dumping nats msg: ", err)
+			}
+		})
+
+		if err != nil {
+			log.Println("Nats subscribe error: ", err)
+			os.Exit(-1)
+		}
+
+		_, err = nc.Subscribe("node.*", func(msg *natsgo.Msg) {
+			err := nats.Dump(nc, msg)
+			if err != nil {
+				log.Println("Error dumping nats msg: ", err)
+			}
+		})
+
+		if err != nil {
+			log.Println("Nats subscribe error: ", err)
+			os.Exit(-1)
+		}
+
+		_, err = nc.Subscribe("edge.*.*", func(msg *natsgo.Msg) {
 			err := nats.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
@@ -349,7 +358,7 @@ func main() {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir)
+		dbInst, err := db.NewDb(db.StoreType(*flagStore), dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -361,7 +370,7 @@ func main() {
 			log.Println("Error opening data.json: ", err)
 			os.Exit(-1)
 		}
-		err = genji.DumpDb(dbInst, f)
+		err = db.DumpDb(dbInst, f)
 
 		if err != nil {
 			log.Println("Error dumping database: ", err)
@@ -375,7 +384,7 @@ func main() {
 	}
 
 	if *flagImportDb {
-		dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir)
+		dbInst, err := db.NewDb(db.StoreType(*flagStore), dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -387,7 +396,7 @@ func main() {
 			log.Println("Error opening data.json: ", err)
 			os.Exit(-1)
 		}
-		err = genji.ImportDb(dbInst, f)
+		err = db.ImportDb(dbInst, f)
 
 		if err != nil {
 			log.Println("Error importing database: ", err)
@@ -403,33 +412,12 @@ func main() {
 	// =============================================
 	// Start server, default action
 	// =============================================
-	dbInst, err := genji.NewDb(genji.StoreType(*flagStore), dataDir)
+	dbInst, err := db.NewDb(db.StoreType(*flagStore), dataDir)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)
 	}
 	defer dbInst.Close()
-
-	// set up particle connection if configured
-	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
-
-	if particleAPIKey != "" {
-		go func() {
-			err := particle.PointReader("sample", particleAPIKey,
-				func(id string, points data.Points) {
-					for _, p := range points {
-						err = dbInst.NodePoint(id, p)
-						if err != nil {
-							log.Println("Error getting particle sample: ", err)
-						}
-					}
-				})
-
-			if err != nil {
-				fmt.Println("Get returned error: ", err)
-			}
-		}()
-	}
 
 	// finally, start web server
 	port := os.Getenv("SIOT_HTTP_PORT")
@@ -453,7 +441,7 @@ func main() {
 			natsTLSCert, natsTLSKey, natsTLSTimeout)
 	}
 
-	natsHandler := api.NewNatsHandler(dbInst, authToken, natsServer)
+	natsHandler := db.NewNatsHandler(dbInst, authToken, natsServer)
 
 	// this is a bit of a hack, but we're not sure when the NATS
 	// server will be started, so try several times
@@ -473,8 +461,32 @@ func main() {
 		log.Fatal("Error connecting to NATs server: ", err)
 	}
 
-	nodeManager := node.NewManger(dbInst, nc)
+	nodeManager := node.NewManger(nc)
+	err = nodeManager.Init()
+	if err != nil {
+		log.Fatal("Error initializing node manager: ", err)
+	}
 	go nodeManager.Run()
+
+	// set up particle connection if configured
+	// todo -- move this to a node
+	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
+
+	if particleAPIKey != "" {
+		go func() {
+			err := particle.PointReader("sample", particleAPIKey,
+				func(id string, points data.Points) {
+					err := nats.SendNodePoints(nc, id, points, false)
+					if err != nil {
+						log.Println("Error getting particle sample: ", err)
+					}
+				})
+
+			if err != nil {
+				fmt.Println("Get returned error: ", err)
+			}
+		}()
+	}
 
 	err = api.Server(api.ServerArgs{
 		Port:       port,
@@ -484,7 +496,7 @@ func main() {
 		Debug:      *flagDebugHTTP,
 		JwtAuth:    auth,
 		AuthToken:  authToken,
-		NH:         natsHandler,
+		Nc:         nc,
 	})
 
 	if err != nil {

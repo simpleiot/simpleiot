@@ -127,7 +127,7 @@ save model shared =
         | auth =
             case Api.Data.toMaybe model.auth of
                 Just auth ->
-                    Just { email = model.email, token = auth.token, isRoot = auth.isRoot }
+                    Just { email = model.email, token = auth.token }
 
                 Nothing ->
                     shared.auth

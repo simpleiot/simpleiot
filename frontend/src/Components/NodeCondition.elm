@@ -13,8 +13,7 @@ import UI.Style as Style exposing (colors)
 
 
 view :
-    { isRoot : Bool
-    , now : Time.Posix
+    { now : Time.Posix
     , zone : Time.Zone
     , modified : Bool
     , expDetail : Bool
@@ -35,6 +34,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         numberInput =
             Form.nodeNumberInput
@@ -43,6 +44,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         optionInput =
             Form.nodeOptionInput
@@ -51,6 +54,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         onOffInput =
             Form.nodeOnOffInput
@@ -59,9 +64,11 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         conditionValueType =
-            Point.getText o.node.points Point.typeValueType
+            Point.getText o.node.points "" 0 Point.typeValueType
 
         operators =
             case conditionValueType of
@@ -82,7 +89,7 @@ view o =
                     []
 
         active =
-            Point.getBool o.node.points Point.typeActive
+            Point.getBool o.node.points "" 0 Point.typeActive
 
         descBackgroundColor =
             if active then
@@ -109,7 +116,7 @@ view o =
             [ Icon.check
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
-                    Point.getText o.node.points Point.typeDescription
+                    Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"

@@ -13,6 +13,7 @@ import (
 type EdgeOptions struct {
 	Server       string
 	AuthToken    string
+	NoEcho       bool
 	Disconnected func()
 	Reconnected  func()
 	Closed       func()
@@ -21,31 +22,40 @@ type EdgeOptions struct {
 // EdgeConnect is a function that attempts connections for edge devices with appropriate
 // timeouts, backups, etc. Currently set to disconnect if we don't have a connection after 6m,
 // and then exp backup to try to connect every 6m after that.
-func EdgeConnect(o EdgeOptions) (*nats.Conn, error) {
+func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 	authEnabled := "no"
-	if o.AuthToken != "" {
+	if eo.AuthToken != "" {
 		authEnabled = "yes"
 	}
-	log.Printf("NATS edge connect to: %v, auth enabled: %v", o.Server, authEnabled)
-	nc, err := nats.Connect(o.Server,
-		nats.Timeout(30*time.Second),
-		nats.DrainTimeout(30*time.Second),
-		nats.PingInterval(2*time.Minute),
-		nats.MaxPingsOutstanding(3),
-		nats.RetryOnFailedConnect(true),
-		nats.ReconnectBufSize(128*1024),
-		nats.ReconnectWait(10*time.Second),
-		nats.MaxReconnects(-1),
+
+	siotOptions := func(o *nats.Options) error {
+		nats.Timeout(30 * time.Second)(o)
+		nats.DrainTimeout(30 * time.Second)(o)
+		nats.PingInterval(2 * time.Minute)(o)
+		nats.MaxPingsOutstanding(3)(o)
+		nats.RetryOnFailedConnect(true)(o)
+		nats.ReconnectBufSize(128 * 1024)(o)
+		nats.ReconnectWait(10 * time.Second)(o)
+		nats.MaxReconnects(-1)(o)
 		nats.SetCustomDialer(&net.Dialer{
 			KeepAlive: -1,
-		}),
+		})(o)
 		nats.CustomReconnectDelay(func(attempts int) time.Duration {
 			delay := ExpBackoff(attempts, 6*time.Minute)
 			log.Printf("NATS reconnect attempts: %v, delay: %v", attempts, delay)
 			return delay
-		}),
-		nats.Token(o.AuthToken),
-	)
+		})(o)
+		nats.Token(eo.AuthToken)(o)
+
+		if eo.NoEcho {
+			o.NoEcho = true
+		}
+
+		return nil
+	}
+
+	log.Printf("NATS edge connect to: %v, auth enabled: %v", eo.Server, authEnabled)
+	nc, err := nats.Connect(eo.Server, siotOptions)
 
 	if err != nil {
 		return nil, err
@@ -59,15 +69,15 @@ func EdgeConnect(o EdgeOptions) (*nats.Conn, error) {
 	})
 
 	nc.SetReconnectHandler(func(_ *nats.Conn) {
-		o.Reconnected()
+		eo.Reconnected()
 	})
 
 	nc.SetDisconnectHandler(func(_ *nats.Conn) {
-		o.Disconnected()
+		eo.Disconnected()
 	})
 
 	nc.SetClosedHandler(func(_ *nats.Conn) {
-		o.Closed()
+		eo.Closed()
 	})
 
 	return nc, nil

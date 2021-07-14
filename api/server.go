@@ -7,7 +7,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/db"
 )
 
 // IndexHandler is used to serve the index page
@@ -76,13 +77,13 @@ func NewAppHandler(args ServerArgs) http.Handler {
 // ServerArgs can be used to pass arguments to the server subsystem
 type ServerArgs struct {
 	Port       string
-	DbInst     *genji.Db
+	DbInst     *db.Db
 	GetAsset   func(string) []byte
 	Filesystem http.FileSystem
 	Debug      bool
 	JwtAuth    Authorizer
 	AuthToken  string
-	NH         *NatsHandler
+	Nc         *nats.Conn
 }
 
 // Server starts a API server instance

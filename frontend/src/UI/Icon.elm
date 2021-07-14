@@ -13,6 +13,7 @@ module UI.Icon exposing
     , power
     , send
     , trendingUp
+    , uploadCloud
     , user
     , users
     , variable
@@ -139,6 +140,11 @@ trendingUp =
 send : Element msg
 send =
     icon FeatherIcons.send
+
+
+uploadCloud : Element msg
+uploadCloud =
+    icon FeatherIcons.uploadCloud
 
 
 database : Element msg

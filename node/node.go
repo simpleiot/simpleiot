@@ -2,30 +2,96 @@ package node
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"text/template"
 	"time"
 
+	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
 
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/nats"
 )
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
-	db            *genji.Db
-	modbusManager *ModbusManager
-	nc            *natsgo.Conn
+	nc              *natsgo.Conn
+	modbusManager   *ModbusManager
+	upstreamManager *UpstreamManager
+	rootNodeID      string
 }
 
 // NewManger creates a new Manager
-func NewManger(db *genji.Db, nc *natsgo.Conn) *Manager {
+func NewManger(nc *natsgo.Conn) *Manager {
 	return &Manager{
-		db:            db,
-		modbusManager: NewModbusManager(db, nc),
-		nc:            nc,
+		nc: nc,
 	}
+}
+
+// Init initializes the tree root node and default admin if needed
+func (m *Manager) Init() error {
+	rootNode, err := nats.GetNode(m.nc, "root", "")
+
+	if err != nil {
+		log.Println("Error getting root node: ", err)
+	} else {
+		m.rootNodeID = rootNode.ID
+	}
+
+	if rootNode.ID == "" {
+		// initialize root node and user
+		log.Println("NODE: Initialize root node and admin user")
+		rootNode.Points = data.Points{
+			{
+				Time: time.Now(),
+				Type: data.PointTypeNodeType,
+				Text: data.NodeTypeDevice,
+			},
+		}
+
+		rootNode.ID = uuid.New().String()
+
+		err := nats.SendNodePoints(m.nc, rootNode.ID, rootNode.Points, true)
+		if err != nil {
+			return fmt.Errorf("Error setting root node points: %v", err)
+		}
+
+		err = nats.SendEdgePoint(m.nc, rootNode.ID, "", data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
+		if err != nil {
+			return fmt.Errorf("Error sending root node edges: %w", err)
+		}
+
+		// create admin user off root node
+		admin := data.User{
+			ID:        uuid.New().String(),
+			FirstName: "admin",
+			LastName:  "user",
+			Email:     "admin@admin.com",
+			Pass:      "admin",
+		}
+
+		points := admin.ToPoints()
+		points = append(points, data.Point{Type: data.PointTypeNodeType,
+			Text: data.NodeTypeUser})
+
+		err = nats.SendNodePoints(m.nc, admin.ID, points, true)
+		if err != nil {
+			return fmt.Errorf("Error setting default user: %v", err)
+		}
+
+		m.rootNodeID = rootNode.ID
+
+		err = nats.SendEdgePoint(m.nc, admin.ID, rootNode.ID, data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	m.modbusManager = NewModbusManager(m.nc, m.rootNodeID)
+	m.upstreamManager = NewUpstreamManager(m.nc, m.rootNodeID)
+
+	return nil
 }
 
 // Run manager
@@ -34,11 +100,19 @@ func (m *Manager) Run() {
 		// TODO: this will not scale and needs to be made event driven
 		// on the creation of new nodes
 		for {
-			m.modbusManager.Update()
+			if m.modbusManager != nil {
+				m.modbusManager.Update()
+			}
+			if m.upstreamManager != nil {
+				m.upstreamManager.Update()
+			}
 			time.Sleep(10 * time.Second)
 		}
 	}()
 
+	select {}
+
+	/* the following code needs redone, so commenting out for now
 	for {
 		// TODO: this will not scale and needs to be made event driven
 		nodes, err := m.db.Nodes()
@@ -50,10 +124,15 @@ func (m *Manager) Run() {
 
 		for _, node := range nodes {
 			// update node state
-			state, changed := node.UpdateState()
+			state, changed := node.GetState()
 			if changed {
-				// FIXME this needs modified to go through NATS
-				err := m.db.NodeSetState(node.ID, state)
+				p := data.Point{
+					Time: time.Now(),
+					Type: data.PointTypeSysState,
+					Text: state,
+				}
+
+				err := nats.SendNodePoint(m.nc, node.ID, p, false)
 				if err != nil {
 					log.Println("Error updating node state: ", err)
 				}
@@ -62,6 +141,7 @@ func (m *Manager) Run() {
 
 		time.Sleep(30 * time.Second)
 	}
+	*/
 }
 
 type nodeTemplateData struct {

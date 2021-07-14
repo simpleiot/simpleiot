@@ -21,6 +21,19 @@ between a number of different systems including:
 Typically, the cloud instance stores all the system data, and the edge, browser,
 and mobile devices access a subset of the system data.
 
+## Extensible architecture
+
+Any `siot` app can function as a standalone, client, server or both. As an
+example, `siot` can function both as an edge (client) and cloud apps (server).
+
+- full client: full siot node that initiates and maintains connection with
+  another siot instance on a server. Can be behind a firewall, NAT, etc.
+- server: needs to be on a network that is accessible by clients
+
+We also need the concept of a lean client where an effort is made to minimize
+the application size to facilitate updates over IoT cellular networks where data
+is expensive.
+
 ## Device communication and messaging
 
 In an IoT system, data from sensors is continually streaming, so we need some
@@ -159,7 +172,7 @@ As this is a distributed system where nodes may be created on any number of
 connected systems, node IDs need to be unique. A unique serial number or UUID is
 recommended.
 
-## Synchronization
+## Data Synchronization
 
 **NOTE, other than synchronization of node points, which is a fairly easy
 problem, this section in a WIP**
@@ -168,10 +181,11 @@ See [research](research.md) for information on techniques that may be applicable
 to this problem.
 
 Typically, configuration is modified through a user interface either in the
-cloud, or with a local UI (ex touchscreen LCD) at an edge device. As mentioned
-above, the configuration of a `Node` will be stored as `Points`. Typically the
-UI for a node will present fields for the needed configuration based on the
-`Node` `Type`, whether it be a user, rule, group, edge device, etc.
+cloud, or with a local UI (ex touchscreen LCD) at an edge device. Rules may also
+eventually change values that need to be synchronized. As mentioned above, the
+configuration of a `Node` will be stored as `Points`. Typically the UI for a
+node will present fields for the needed configuration based on the `Node`
+`Type`, whether it be a user, rule, group, edge device, etc.
 
 In the system, the Node configuration will be relatively static, but the points
 in a node may be changing often as sensor values changes, thus we need to
@@ -194,59 +208,10 @@ reason for this is that a point typically only has one source. A sensor point
 will only be updated by an edge device that has the sensor. A configuration
 parameter will only be updated by a user, and there are relatively few admin
 users, and so on. Because of this, we can assume there will rarely be collisions
-in individual point changes, and thus this issue can be ignored.
+in individual point changes, and thus this issue can be ignored. The point with
+the latest timestamp is the version to use.
 
-Synchronization is managed using the node `Hash` field and point `Time` fields .
-Because there is typically only one distributed instance updating a point value
-(sensor, user, etc), we simply consider the point with the latest time stamp the
-current value. Any time a point is requested or changed, it is broadcast via
-NATS. If the time stamp in the incoming point is newer than the locally stored
-point, you update the local copy. If the local copy is newer, then broadcast the
-local copy because someone else needs a newer copy. If a complete copy of a node
-is received, iterate through the points and replace points that are older than
-the the ones in the incoming node.
-
-The node `Hash` field is a hash of:
-
-- node point timestamps
-- node type
-- and child node `Hash` fields
-
-_TODO: hashing the node seems to be the same concept as used by Merkle Trees,
-see [research](research.md)_
-
-Comparing the node `Hash` field allows us to detect node differences. We then
-compare the node points to determine the actual differences.
-
-Any time a node point is modified, the node's `Hash` field is updated, and the
-`Hash` field in parents, grand-parents, etc are also computed and updated. This
-may seem like a lot of overhead, but if the database is local, and the graph is
-reasonably constructed, then each update might require reading a dozen or so
-nodes and perhaps writing 3-5 nodes. An indexed read in Genji is orders of
-magnitude faster than a write (at least for Bolt), so this overhead should be
-minimal. Again, we are optimizing for small/mid size IoT systems. If a point
-update requires 50ms, the system can handle 20 points/sec. If the average device
-sends 0.05pt/sec, then we can handle 400 devices. Switching storage from Bolt to
-Badger will likely improve this by an order of magnitude, so that puts us well
-into the 1000's of devices. (all this needs tested to confirm it is practical)
-
-_TODO: how to handle node and point deletions._
-
-_TODO: how to hande node type changes._
-
-There are two things that need to be synchronized:
-
-1. _Node point changes_ -- this happens when config/sensor data changes.
-1. _Node topology changes_ -- includes adding/deleting nodes.
-
-There are two synchronization cases:
-
-1. _Catch up_ -- This is the case where one system starts after another and must
-   catchup to any changes.
-1. _Run time_ -- This is the case where two systems have "caught up" and need to
-   stay synchronized.
-
-### Point synchronization
+### Real-time Point synchronization
 
 Point changes are handled by sending points to a NATS topic for a node any time
 it changes. There are three primary instance types:
@@ -260,59 +225,87 @@ it changes. There are three primary instance types:
 With Point Synchronization, each instance is responsible for updating the node
 data in its local store.
 
-### Node topology changes
+### Catch-up/non real-time synchronization
 
-Node topology changes happen when:
+Sending points over NATS will handle 99% of data synchronization needs, but
+there are a few cases this does not cover:
 
-1. A node is added or deleted.
-2. An edge is added or deleted.
+1. One system is offline for some period of time
+1. Data is lost during transmission
+1. Other errors or unforeseen situations
 
-_TODO: figure out how to synchronize these changes._
+There are two types of data:
 
-### Catch up synchronization
+1. periodic sensor readings (we'll call sample data) that is being continuously
+   updated
+1. configuration data that is infrequently updated
 
-So for every node modification, the root node of the graph is updated. To
-synchronize the graph between systems, execute the following steps:
+Any node that produces sample data should send values every 10m, even if the
+value is not changing. There are several reasons for this:
 
-1. Start at root node.
-1. Does the `Hash` field match?
-1. If not push the node ID into a queue, fetch node's children and compare
-   `Hash` fields. For nodes where `Hash` does not match, continue fetching
-   children until you reach a point where all children match.
-1. Once you are at the bottom of the graph, walk back up the graph by popping a
-   node ID off the queue and synchronize that node's point data, recompute hash,
-   etc.
+- indicates the data source is still alive
+- makes graphing easier if there is always data to plot
+- covers the synchronization problem for sample data. A new value will be coming
+  soon, so don't really need catch-up synchronization for sample data.
 
-It should be noted that run-time synchronization is running while catch-up
-synchronization is running. The catch-up process should be a background, low
-priority process and may take a number of passes to complete.
+Config data is not sent periodically. To manage synchronization of config data,
+each node will have a `Hash` field.
 
-_Other synchronization methods often rely on storing the entire history as a set
-of changes or even complete versions, and then replay changes. In an IoT system
-where sensors are updating values often, a scheme will not work very well._
+The node `Hash` field is a hash of:
 
-## Extensible architecture
+- node point timestamps except for sample points. Sample points are excluded
+  from the node hash as discussed above.
+- and child node `Hash` fields
 
-Any `siot` app can function as a standalone, client, server or both. As an
-example, `siot` can function both as an edge (client) and cloud apps (server).
+The points are sorted by timestamp and child nodes are sorted by hash so that
+the order is consistent when the hash is computed.
 
-- full client: full siot node that initiates and maintains connection with
-  another siot instance on a server. Can be behind a firewall, NAT, etc. May
-  eventually use
-  [NATS leaf node](https://docs.nats.io/nats-server/configuration/leafnodes)
-  functionality for this.
-- server: needs to be on a network that is accessible by clients
+This is essentially a Merkle Tree -- see [research](research.md).
 
-We also need the concept of a lean client where an effort is made to minimize
-the application size to facilitate updates over IoT cellular networks where data
-is expensive.
+Comparing the node `Hash` field allows us to detect node differences. We then
+compare the node points and child nodes to determine the actual differences.
+
+Any time a node point (except for sample date) is modified, the node's `Hash`
+field is updated, and the `Hash` field in parents, grand-parents, etc are also
+computed and updated. This may seem like a lot of overhead, but if the database
+is local, and the graph is reasonably constructed, then each update might
+require reading a dozen or so nodes and perhaps writing 3-5 nodes. Additionally,
+non sample-data changes are relatively infrequent.
+
+Initially synchronization between edge and cloud nodes is supported. The edge
+device will contain an "upstream" node that defines a connection to another
+instance's NATS server -- typically in the cloud. The edge node is responsible
+for synchronizing of all state using the following algorithm:
+
+1. occasionally the edge device fetches the edge device root node hash from the
+   cloud.
+1. if the hash does not match, the edge device fetches the entire node and
+   compares/updates points. If local points need updated, this process can
+   happen all on the edge device. If upstream points need updated, these are
+   simply transmitted over NATS.
+1. if node hash still does not match, a recursive operation is started to fetch
+   child node hashes and the same process is repeated.
+
+### Node additions
+
+If a node is added, the hash mechanism will detect a node has been added. If the
+node is missing on the edge device, that node is requested. If the node is
+missing in the cloud, the node is transmitted by the edge device to the cloud.
+
+### Node deletions
+
+If a node is deleted, this information needs to be recorded, otherwise the
+synchronization process will simply re-create the deleted node if it exists on
+another instance. To signify a node has been deleted, the hash will be set to a
+blank string.
 
 ## Frontend architecture
 
 Much of the frontend architecture is already defined by the Elm architecture.
 The current frontend is based on the [elm-spa.dev](https://www.elm-spa.dev/)
 project, which defines the data/page model. Data is fetched using REST APIs, but
-eventually it may make sense to get real-time data via NATS.
+eventually we would like to use the same synchronization method that is used in
+edge devices to make the web UI more real-time.
 
 We'd like to keep the UI
 [optimistic](https://blog.meteor.com/optimistic-ui-with-meteor-67b5a78c3fcf) if

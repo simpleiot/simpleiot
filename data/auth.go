@@ -2,7 +2,6 @@ package data
 
 // Auth is an authentication response.
 type Auth struct {
-	Token  string `json:"token"`
-	IsRoot bool   `json:"isRoot"`
-	Email  string `json:"email"`
+	Token string `json:"token"`
+	Email string `json:"email"`
 }

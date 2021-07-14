@@ -12,8 +12,7 @@ import UI.ViewIf exposing (viewIf)
 
 
 view :
-    { isRoot : Bool
-    , now : Time.Posix
+    { now : Time.Posix
     , zone : Time.Zone
     , modified : Bool
     , expDetail : Bool
@@ -34,6 +33,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         numberInput =
             Form.nodeNumberInput
@@ -42,6 +43,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         counterWithReset =
             Form.nodeCounterWithReset
@@ -50,6 +53,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth + 120
                 }
+                ""
+                0
 
         optionInput =
             Form.nodeOptionInput
@@ -58,12 +63,14 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         clientServer =
-            Point.getText o.node.points Point.typeClientServer
+            Point.getText o.node.points "" 0 Point.typeClientServer
 
         protocol =
-            Point.getText o.node.points Point.typeProtocol
+            Point.getText o.node.points "" 0 Point.typeProtocol
     in
     column
         [ width fill
@@ -75,7 +82,7 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.bus
             , text <|
-                Point.getText o.node.points Point.typeDescription
+                Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"

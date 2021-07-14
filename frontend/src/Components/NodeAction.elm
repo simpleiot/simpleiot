@@ -12,8 +12,7 @@ import UI.ViewIf exposing (viewIf)
 
 
 view :
-    { isRoot : Bool
-    , now : Time.Posix
+    { now : Time.Posix
     , zone : Time.Zone
     , modified : Bool
     , expDetail : Bool
@@ -34,6 +33,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         optionInput =
             Form.nodeOptionInput
@@ -42,6 +43,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         numberInput =
             Form.nodeNumberInput
@@ -50,6 +53,8 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         onOffInput =
             Form.nodeOnOffInput
@@ -58,15 +63,17 @@ view o =
                 , now = o.now
                 , labelWidth = labelWidth
                 }
+                ""
+                0
 
         actionType =
-            Point.getText o.node.points Point.typeActionType
+            Point.getText o.node.points "" 0 Point.typeActionType
 
         actionSetValue =
             actionType == Point.valueActionSetValue
 
         valueType =
-            Point.getText o.node.points Point.typeValueType
+            Point.getText o.node.points "" 0 Point.typeValueType
     in
     column
         [ width fill
@@ -78,7 +85,7 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.trendingUp
             , text <|
-                Point.getText o.node.points Point.typeDescription
+                Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"

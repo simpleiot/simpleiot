@@ -42,6 +42,7 @@ module Api.Point exposing
     , typeLastName
     , typeMinActive
     , typeModbusIOType
+    , typeNodeType
     , typeOSVersion
     , typeOffset
     , typeOperator
@@ -65,6 +66,7 @@ module Api.Point exposing
     , typeSwUpdateRunning
     , typeSwUpdateState
     , typeSysState
+    , typeTombstone
     , typeURI
     , typeUnits
     , typeUpdateApp
@@ -540,6 +542,16 @@ typeVariableType =
     "variableType"
 
 
+typeNodeType : String
+typeNodeType =
+    "nodeType"
+
+
+typeTombstone : String
+typeTombstone =
+    "tombstone"
+
+
 valueOnOff : String
 valueOnOff =
     "onOff"
@@ -576,8 +588,8 @@ typeOrg =
 
 type alias Point =
     { id : String
-    , typ : String
     , index : Int
+    , typ : String
     , time : Time.Posix
     , value : Float
     , text : String
@@ -590,8 +602,8 @@ empty : Point
 empty =
     Point
         ""
-        ""
         0
+        ""
         (Time.millisToPosix 0)
         0
         ""
@@ -643,8 +655,8 @@ encode : Point -> Json.Encode.Value
 encode s =
     Json.Encode.object
         [ ( "id", Json.Encode.string <| s.id )
-        , ( "type", Json.Encode.string <| s.typ )
         , ( "index", Json.Encode.int <| s.index )
+        , ( "type", Json.Encode.string <| s.typ )
         , ( "time", Iso8601.encode <| s.time )
         , ( "value", Json.Encode.float <| s.value )
         , ( "text", Json.Encode.string <| s.text )
@@ -662,8 +674,8 @@ decode : Decode.Decoder Point
 decode =
     Decode.succeed Point
         |> optional "id" Decode.string ""
-        |> optional "type" Decode.string ""
         |> optional "index" Decode.int 0
+        |> optional "type" Decode.string ""
         |> optional "time" Json.Decode.Extra.datetime (Time.millisToPosix 0)
         |> optional "value" Decode.float 0
         |> optional "text" Decode.string ""
@@ -715,8 +727,8 @@ updatePoints points newPoints =
         newPoints
 
 
-get : List Point -> String -> String -> Int -> Maybe Point
-get points id typ index =
+get : List Point -> String -> Int -> String -> Maybe Point
+get points id index typ =
     List.Extra.find
         (\p ->
             id == p.id && typ == p.typ && index == p.index
@@ -724,14 +736,10 @@ get points id typ index =
         points
 
 
-getText : List Point -> String -> String
-getText points typ =
+getText : List Point -> String -> Int -> String -> String
+getText points id index typ =
     case
-        List.Extra.find
-            (\p ->
-                typ == p.typ
-            )
-            points
+        get points id index typ
     of
         Just found ->
             found.text
@@ -744,13 +752,13 @@ getBestDesc : List Point -> String
 getBestDesc points =
     let
         firstName =
-            getText points typeFirstName
+            getText points "" 0 typeFirstName
 
         desc =
-            getText points typeDescription
+            getText points "" 0 typeDescription
     in
     if firstName /= "" then
-        firstName ++ " " ++ getText points typeLastName
+        firstName ++ " " ++ getText points "" 0 typeLastName
 
     else if desc /= "" then
         desc
@@ -759,14 +767,10 @@ getBestDesc points =
         "no description"
 
 
-getValue : List Point -> String -> Float
-getValue points typ =
+getValue : List Point -> String -> Int -> String -> Float
+getValue points id index typ =
     case
-        List.Extra.find
-            (\p ->
-                typ == p.typ
-            )
-            points
+        get points id index typ
     of
         Just found ->
             found.value
@@ -775,9 +779,9 @@ getValue points typ =
             0
 
 
-getBool : List Point -> String -> Bool
-getBool points typ =
-    getValue points typ == 1
+getBool : List Point -> String -> Int -> String -> Bool
+getBool points id index typ =
+    getValue points id index typ == 1
 
 
 getLatest : List Point -> Maybe Point

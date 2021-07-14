@@ -1,0 +1,9 @@
+syntax = "proto3";
+package pb;
+
+option go_package = "internal/pb";
+
+message NatsRequest {
+    bool includeDel = 1;
+    string type = 2;
+}

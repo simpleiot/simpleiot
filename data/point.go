@@ -1,6 +1,9 @@
 package data
 
 import (
+	"crypto/md5"
+	"encoding/binary"
+	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -16,14 +19,14 @@ type Point struct {
 	ID string `json:"id,omitempty"`
 
 	// Type of point (voltage, current, key, etc)
-	Type string `json:"type,omitempty" boltholdIndex:"Type"`
+	Type string `json:"type,omitempty"`
 
 	// Index is used to specify a position in an array such as
 	// which pump, temp sensor, etc.
 	Index int `json:"index,omitempty"`
 
 	// Time the point was taken
-	Time time.Time `json:"time,omitempty" boltholdKey:"Time" gob:"-"`
+	Time time.Time `json:"time,omitempty"`
 
 	// Duration over which the point was taken. This is useful
 	// for averaged values to know what time period the value applies
@@ -44,26 +47,70 @@ type Point struct {
 	Max float64 `json:"max,omitempty"`
 }
 
+func (p Point) String() string {
+	t := ""
+
+	if p.Type != "" {
+		t += "T:" + p.Type + " "
+	}
+
+	if p.Text != "" {
+		t += fmt.Sprintf("V:%v ", p.Text)
+	} else {
+		t += fmt.Sprintf("V:%v ", p.Value)
+	}
+
+	if p.Index != 0 {
+		t += fmt.Sprintf("I:%v ", p.Index)
+	}
+
+	if p.ID != "" {
+		t += fmt.Sprintf("ID:%v ", p.ID)
+	}
+
+	t += p.Time.Format(time.RFC3339)
+
+	return t
+}
+
+// IsMatch returns true if the point matches the params passed in
+func (p Point) IsMatch(id, typ string, index int) bool {
+	if id != "" && id != p.ID {
+		return false
+	}
+
+	if typ != "" && typ != p.Type {
+		return false
+	}
+
+	if index != p.Index {
+		return false
+	}
+
+	return true
+}
+
 // ToPb encodes point in protobuf format
-func (s Point) ToPb() (pb.Point, error) {
-	ts, err := ptypes.TimestampProto(s.Time)
+func (p Point) ToPb() (pb.Point, error) {
+	ts, err := ptypes.TimestampProto(p.Time)
 	if err != nil {
 		return pb.Point{}, err
 	}
 
 	return pb.Point{
-		Type:     s.Type,
-		Id:       s.ID,
-		Value:    float32(s.Value),
-		Text:     s.Text,
+		Type:     p.Type,
+		Id:       p.ID,
+		Index:    int32(p.Index),
+		Value:    float32(p.Value),
+		Text:     p.Text,
 		Time:     ts,
-		Duration: ptypes.DurationProto(s.Duration),
+		Duration: ptypes.DurationProto(p.Duration),
 	}, nil
 }
 
 // Bool returns a bool representation of value
-func (s *Point) Bool() bool {
-	if s.Value == 0 {
+func (p *Point) Bool() bool {
+	if p.Value == 0 {
 		return false
 	}
 	return true
@@ -72,26 +119,45 @@ func (s *Point) Bool() bool {
 // Points is an array of Point
 type Points []Point
 
+// Desc returns a Description of a set of points
+func (ps Points) Desc() string {
+	firstName, _ := ps.Text("", PointTypeFirstName, 0)
+	if firstName != "" {
+		lastName, _ := ps.Text("", PointTypeLastName, 0)
+		if lastName == "" {
+			return firstName
+		}
+
+		return firstName + " " + lastName
+	}
+
+	desc, _ := ps.Text("", PointTypeDescription, 0)
+	if desc != "" {
+		return desc
+	}
+
+	return ""
+}
+
+// Find fetches a point given ID, Type, and Index
+// and true of found, or false if not found
+func (ps *Points) Find(id, typ string, index int) (Point, bool) {
+	for _, p := range *ps {
+		if !p.IsMatch(id, typ, index) {
+			continue
+		}
+
+		return p, true
+	}
+
+	return Point{}, false
+}
+
 // Value fetches a value from an array of points given ID, Type, and Index.
 // If ID or Type are set to "", they are ignored.
 func (ps *Points) Value(id, typ string, index int) (float64, bool) {
-	for _, p := range *ps {
-		if id != "" && id != p.ID {
-			continue
-		}
-
-		if typ != "" && typ != p.Type {
-			continue
-		}
-
-		if index != p.Index {
-			continue
-		}
-
-		return p.Value, true
-	}
-
-	return 0, false
+	p, ok := ps.Find(id, typ, index)
+	return p.Value, ok
 }
 
 // ValueInt returns value as integer
@@ -109,23 +175,8 @@ func (ps *Points) ValueBool(id, typ string, index int) (bool, bool) {
 // Text fetches a text value from an array of points given ID, Type, and Index.
 // If ID or Type are set to "", they are ignored.
 func (ps *Points) Text(id, typ string, index int) (string, bool) {
-	for _, p := range *ps {
-		if id != "" && id != p.ID {
-			continue
-		}
-
-		if typ != "" && typ != p.Type {
-			continue
-		}
-
-		if index != p.Index {
-			continue
-		}
-
-		return p.Text, true
-	}
-
-	return "", false
+	p, ok := ps.Find(id, typ, index)
+	return p.Text, ok
 }
 
 // LatestTime returns the latest timestamp of a devices points
@@ -157,6 +208,53 @@ func (ps *Points) ToPb() ([]byte, error) {
 
 // question -- should be using []*Point instead of []Point?
 
+// Hash returns the hash of points
+func (ps *Points) Hash() []byte {
+	h := md5.New()
+
+	for _, p := range *ps {
+		d := make([]byte, 8)
+		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
+		h.Write(d)
+	}
+
+	return h.Sum(nil)
+}
+
+// ProcessPoint takes a point and updates an existing array of points
+func (ps *Points) ProcessPoint(pIn Point) {
+	pFound := false
+	for i, p := range *ps {
+		if p.ID == pIn.ID && p.Type == pIn.Type && p.Index == pIn.Index {
+			pFound = true
+			if pIn.Time.After(p.Time) {
+				(*ps)[i] = pIn
+			}
+		}
+	}
+
+	if !pFound {
+		*ps = append(*ps, pIn)
+	}
+}
+
+// Implement methods needed by sort.Interface
+
+// Len returns the number of points
+func (ps Points) Len() int {
+	return len([]Point(ps))
+}
+
+// Less is required by sort.Interface
+func (ps Points) Less(i, j int) bool {
+	return ps[i].Time.Before(ps[j].Time)
+}
+
+// Swap is required by sort.Interface
+func (ps Points) Swap(i, j int) {
+	ps[i], ps[j] = ps[j], ps[i]
+}
+
 //PbToPoint converts pb point to point
 func PbToPoint(sPb *pb.Point) (Point, error) {
 
@@ -174,6 +272,7 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 		ID:       sPb.Id,
 		Type:     sPb.Type,
 		Text:     sPb.Text,
+		Index:    int(sPb.Index),
 		Value:    float64(sPb.Value),
 		Time:     ts,
 		Duration: dur,

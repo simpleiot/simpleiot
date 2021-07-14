@@ -20,146 +20,24 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type NodeCmd struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Id     string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Cmd    string `protobuf:"bytes,2,opt,name=cmd,proto3" json:"cmd,omitempty"`
-	Detail string `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
-}
-
-func (x *NodeCmd) Reset() {
-	*x = NodeCmd{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_node_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *NodeCmd) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*NodeCmd) ProtoMessage() {}
-
-func (x *NodeCmd) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use NodeCmd.ProtoReflect.Descriptor instead.
-func (*NodeCmd) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *NodeCmd) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *NodeCmd) GetCmd() string {
-	if x != nil {
-		return x.Cmd
-	}
-	return ""
-}
-
-func (x *NodeCmd) GetDetail() string {
-	if x != nil {
-		return x.Detail
-	}
-	return ""
-}
-
-type NodeVersion struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Os  string `protobuf:"bytes,1,opt,name=os,proto3" json:"os,omitempty"`
-	App string `protobuf:"bytes,2,opt,name=app,proto3" json:"app,omitempty"`
-	Hw  string `protobuf:"bytes,3,opt,name=hw,proto3" json:"hw,omitempty"`
-}
-
-func (x *NodeVersion) Reset() {
-	*x = NodeVersion{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_node_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *NodeVersion) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*NodeVersion) ProtoMessage() {}
-
-func (x *NodeVersion) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use NodeVersion.ProtoReflect.Descriptor instead.
-func (*NodeVersion) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *NodeVersion) GetOs() string {
-	if x != nil {
-		return x.Os
-	}
-	return ""
-}
-
-func (x *NodeVersion) GetApp() string {
-	if x != nil {
-		return x.App
-	}
-	return ""
-}
-
-func (x *NodeVersion) GetHw() string {
-	if x != nil {
-		return x.Hw
-	}
-	return ""
-}
-
 type Node struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id     string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Type   string   `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Points []*Point `protobuf:"bytes,3,rep,name=points,proto3" json:"points,omitempty"`
+	Id         string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Type       string   `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Points     []*Point `protobuf:"bytes,3,rep,name=points,proto3" json:"points,omitempty"`
+	Hash       []byte   `protobuf:"bytes,4,opt,name=hash,proto3" json:"hash,omitempty"`
+	Tombstone  bool     `protobuf:"varint,5,opt,name=tombstone,proto3" json:"tombstone,omitempty"`
+	Parent     string   `protobuf:"bytes,6,opt,name=parent,proto3" json:"parent,omitempty"`
+	EdgePoints []*Point `protobuf:"bytes,7,rep,name=edgePoints,proto3" json:"edgePoints,omitempty"`
 }
 
 func (x *Node) Reset() {
 	*x = Node{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_node_proto_msgTypes[2]
+		mi := &file_node_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -172,7 +50,7 @@ func (x *Node) String() string {
 func (*Node) ProtoMessage() {}
 
 func (x *Node) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[2]
+	mi := &file_node_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -185,7 +63,7 @@ func (x *Node) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Node.ProtoReflect.Descriptor instead.
 func (*Node) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{2}
+	return file_node_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Node) GetId() string {
@@ -209,26 +87,103 @@ func (x *Node) GetPoints() []*Point {
 	return nil
 }
 
+func (x *Node) GetHash() []byte {
+	if x != nil {
+		return x.Hash
+	}
+	return nil
+}
+
+func (x *Node) GetTombstone() bool {
+	if x != nil {
+		return x.Tombstone
+	}
+	return false
+}
+
+func (x *Node) GetParent() string {
+	if x != nil {
+		return x.Parent
+	}
+	return ""
+}
+
+func (x *Node) GetEdgePoints() []*Point {
+	if x != nil {
+		return x.EdgePoints
+	}
+	return nil
+}
+
+type Nodes struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Nodes []*Node `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
+}
+
+func (x *Nodes) Reset() {
+	*x = Nodes{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_node_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Nodes) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Nodes) ProtoMessage() {}
+
+func (x *Nodes) ProtoReflect() protoreflect.Message {
+	mi := &file_node_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Nodes.ProtoReflect.Descriptor instead.
+func (*Nodes) Descriptor() ([]byte, []int) {
+	return file_node_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Nodes) GetNodes() []*Node {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
 var File_node_proto protoreflect.FileDescriptor
 
 var file_node_proto_rawDesc = []byte{
 	0x0a, 0x0a, 0x6e, 0x6f, 0x64, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x02, 0x70, 0x62,
-	0x1a, 0x0b, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x43, 0x0a,
-	0x07, 0x4e, 0x6f, 0x64, 0x65, 0x43, 0x6d, 0x64, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x63, 0x6d, 0x64, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x63, 0x6d, 0x64, 0x12, 0x16, 0x0a, 0x06, 0x64, 0x65,
-	0x74, 0x61, 0x69, 0x6c, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x64, 0x65, 0x74, 0x61,
-	0x69, 0x6c, 0x22, 0x3f, 0x0a, 0x0b, 0x4e, 0x6f, 0x64, 0x65, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f,
-	0x6e, 0x12, 0x0e, 0x0a, 0x02, 0x6f, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x6f,
-	0x73, 0x12, 0x10, 0x0a, 0x03, 0x61, 0x70, 0x70, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03,
-	0x61, 0x70, 0x70, 0x12, 0x0e, 0x0a, 0x02, 0x68, 0x77, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x02, 0x68, 0x77, 0x22, 0x4d, 0x0a, 0x04, 0x4e, 0x6f, 0x64, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x69,
-	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x74,
-	0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12,
-	0x21, 0x0a, 0x06, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32,
-	0x09, 0x2e, 0x70, 0x62, 0x2e, 0x50, 0x6f, 0x69, 0x6e, 0x74, 0x52, 0x06, 0x70, 0x6f, 0x69, 0x6e,
-	0x74, 0x73, 0x42, 0x0d, 0x5a, 0x0b, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x70,
-	0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x1a, 0x0b, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0xc2, 0x01,
+	0x0a, 0x04, 0x4e, 0x6f, 0x64, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x21, 0x0a, 0x06, 0x70, 0x6f,
+	0x69, 0x6e, 0x74, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x70, 0x62, 0x2e,
+	0x50, 0x6f, 0x69, 0x6e, 0x74, 0x52, 0x06, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x73, 0x12, 0x12, 0x0a,
+	0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x68, 0x61, 0x73,
+	0x68, 0x12, 0x1c, 0x0a, 0x09, 0x74, 0x6f, 0x6d, 0x62, 0x73, 0x74, 0x6f, 0x6e, 0x65, 0x18, 0x05,
+	0x20, 0x01, 0x28, 0x08, 0x52, 0x09, 0x74, 0x6f, 0x6d, 0x62, 0x73, 0x74, 0x6f, 0x6e, 0x65, 0x12,
+	0x16, 0x0a, 0x06, 0x70, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x06, 0x70, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x12, 0x29, 0x0a, 0x0a, 0x65, 0x64, 0x67, 0x65, 0x50,
+	0x6f, 0x69, 0x6e, 0x74, 0x73, 0x18, 0x07, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x70, 0x62,
+	0x2e, 0x50, 0x6f, 0x69, 0x6e, 0x74, 0x52, 0x0a, 0x65, 0x64, 0x67, 0x65, 0x50, 0x6f, 0x69, 0x6e,
+	0x74, 0x73, 0x22, 0x27, 0x0a, 0x05, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x12, 0x1e, 0x0a, 0x05, 0x6e,
+	0x6f, 0x64, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x08, 0x2e, 0x70, 0x62, 0x2e,
+	0x4e, 0x6f, 0x64, 0x65, 0x52, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x42, 0x0d, 0x5a, 0x0b, 0x69,
+	0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x33,
 }
 
 var (
@@ -243,20 +198,21 @@ func file_node_proto_rawDescGZIP() []byte {
 	return file_node_proto_rawDescData
 }
 
-var file_node_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_node_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_node_proto_goTypes = []interface{}{
-	(*NodeCmd)(nil),     // 0: pb.NodeCmd
-	(*NodeVersion)(nil), // 1: pb.NodeVersion
-	(*Node)(nil),        // 2: pb.Node
-	(*Point)(nil),       // 3: pb.Point
+	(*Node)(nil),  // 0: pb.Node
+	(*Nodes)(nil), // 1: pb.Nodes
+	(*Point)(nil), // 2: pb.Point
 }
 var file_node_proto_depIdxs = []int32{
-	3, // 0: pb.Node.points:type_name -> pb.Point
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 0: pb.Node.points:type_name -> pb.Point
+	2, // 1: pb.Node.edgePoints:type_name -> pb.Point
+	0, // 2: pb.Nodes.nodes:type_name -> pb.Node
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_node_proto_init() }
@@ -267,7 +223,7 @@ func file_node_proto_init() {
 	file_point_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_node_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NodeCmd); i {
+			switch v := v.(*Node); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -279,19 +235,7 @@ func file_node_proto_init() {
 			}
 		}
 		file_node_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NodeVersion); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_node_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Node); i {
+			switch v := v.(*Nodes); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -309,7 +253,7 @@ func file_node_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_node_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -4,12 +4,12 @@ import (
 	"net/http"
 
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db/genji"
+	"github.com/simpleiot/simpleiot/db"
 )
 
 // Auth handles user authentication requests.
 type Auth struct {
-	db  *genji.Db
+	db  *db.Db
 	key NewTokener
 }
 
@@ -19,7 +19,7 @@ type NewTokener interface {
 }
 
 // NewAuthHandler returns a new authentication handler using the given key.
-func NewAuthHandler(db *genji.Db, key NewTokener) Auth {
+func NewAuthHandler(db *db.Db, key NewTokener) Auth {
 	return Auth{db: db, key: key}
 }
 
@@ -50,15 +50,8 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	isRoot, err := auth.db.UserIsRoot(user.ID)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	encode(res, data.Auth{
-		Token:  token,
-		IsRoot: isRoot,
-		Email:  email,
+		Token: token,
+		Email: email,
 	})
 }

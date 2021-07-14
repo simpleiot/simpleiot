@@ -16,6 +16,7 @@ import Components.NodeMessageService as NodeMessageService
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeRule as NodeRule
+import Components.NodeUpstream as NodeUpstream
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
 import Element exposing (..)
@@ -31,7 +32,7 @@ import Spa.Url exposing (Url)
 import Task
 import Time
 import Tree exposing (Tree)
-import Tree.Zipper as Zipper exposing (Zipper)
+import Tree.Zipper as Zipper
 import UI.Button as Button
 import UI.Form as Form
 import UI.Icon as Icon
@@ -84,7 +85,7 @@ type alias NodeMsg =
 type CopyMove
     = CopyMoveNone
     | Move String String String
-    | Copy String String
+    | Copy String String String
 
 
 type NodeOperation
@@ -135,7 +136,7 @@ defaultModel key =
         Time.utc
         (Time.millisToPosix 0)
         []
-        { email = "", token = "", isRoot = False }
+        { email = "", token = "" }
         Nothing
         OpNone
         CopyMoveNone
@@ -196,7 +197,7 @@ type Msg
     | ApiRespPostMoveNode Int (Data Response)
     | ApiRespPutCopyNode Int (Data Response)
     | ApiRespPostNotificationNode (Data Response)
-    | CopyNode Int String String
+    | CopyNode Int String String String
     | MoveNode Int String String String
 
 
@@ -342,6 +343,7 @@ update msg model =
                                 , node =
                                     { id = ""
                                     , typ = typ
+                                    , hash = ""
                                     , parent = addNode.parent
                                     , points =
                                         [ Point.newText
@@ -349,6 +351,7 @@ update msg model =
                                             Point.typeDescription
                                             "New, please edit"
                                         ]
+                                    , edgePoints = []
                                     }
                                 }
                             )
@@ -590,9 +593,9 @@ update msg model =
                     , updateNodes model
                     )
 
-        CopyNode feID id desc ->
+        CopyNode feID id src desc ->
             ( { model
-                | copyMove = Copy id desc
+                | copyMove = Copy id src desc
                 , nodeMsg =
                     Just
                         { feID = feID
@@ -749,17 +752,24 @@ nodeListToTrees nodes =
         nodes
 
 
-
--- populateChildren takes a list of nodes with a parent field and converts
--- this into a tree
-
-
 populateChildren : List Node -> Node -> Tree NodeView
 populateChildren nodes root =
-    Zipper.toTree <|
-        populateChildrenHelp
-            (Zipper.fromTree <| Tree.singleton (nodeToNodeView root))
-            nodes
+    Tree.replaceChildren (List.map (populateChildren nodes) (getChildren nodes root))
+        (Tree.singleton <| nodeToNodeView root)
+
+
+getChildren : List Node -> Node -> List Node
+getChildren nodes parent =
+    List.foldr
+        (\n acc ->
+            if n.parent == parent.id then
+                n :: acc
+
+            else
+                acc
+        )
+        []
+        nodes
 
 
 nodeToNodeView : Node -> NodeView
@@ -774,37 +784,6 @@ nodeToNodeView node =
     }
 
 
-populateChildrenHelp : Zipper NodeView -> List Node -> Zipper NodeView
-populateChildrenHelp z nodes =
-    case
-        Zipper.forward
-            (List.foldr
-                (\n zCur ->
-                    if (Zipper.label zCur).node.id == n.parent then
-                        Zipper.mapTree
-                            (\t ->
-                                Tree.appendChild
-                                    (Tree.singleton
-                                        (nodeToNodeView n)
-                                    )
-                                    t
-                            )
-                            zCur
-
-                    else
-                        zCur
-                )
-                z
-                nodes
-            )
-    of
-        Just zMod ->
-            populateChildrenHelp zMod nodes
-
-        Nothing ->
-            z
-
-
 populateHasChildren : String -> Tree NodeView -> Tree NodeView
 populateHasChildren parentID tree =
     let
@@ -812,7 +791,21 @@ populateHasChildren parentID tree =
             Tree.children tree
 
         hasChildren =
-            List.length children > 0
+            List.foldr
+                (\child count ->
+                    let
+                        tombstone =
+                            isTombstone (Tree.label child).node
+                    in
+                    if tombstone then
+                        count
+
+                    else
+                        count + 1
+                )
+                0
+                children
+                > 0
 
         label =
             Tree.label tree
@@ -989,8 +982,14 @@ viewNodesHelp depth model tree =
             let
                 childNode =
                     Tree.label child
+
+                tombstone =
+                    isTombstone childNode.node
+
+                display =
+                    shouldDisplay childNode.node.typ
             in
-            if shouldDisplay childNode.node.typ then
+            if display && not tombstone then
                 ret
                     ++ viewNode model (Just node) childNode depth
                     :: viewNodesHelp (depth + 1) model child
@@ -1000,6 +999,11 @@ viewNodesHelp depth model tree =
         )
         []
         children
+
+
+isTombstone : Node -> Bool
+isTombstone node =
+    Point.getBool node.edgePoints "" 0 Point.typeTombstone
 
 
 shouldDisplay : String -> Bool
@@ -1033,6 +1037,9 @@ shouldDisplay typ =
             True
 
         "variable" ->
+            True
+
+        "upstream" ->
             True
 
         "db" ->
@@ -1076,6 +1083,9 @@ viewNode model parent node depth =
 
                 "variable" ->
                     NodeVariable.view
+
+                "upstream" ->
+                    NodeUpstream.view
 
                 "db" ->
                     NodeDb.view
@@ -1127,9 +1137,10 @@ viewNode model parent node depth =
                 Button.dot (ToggleExpDetail node.feID)
             , column
                 [ spacing 6, padding 6, width fill, Background.color background ]
-                [ nodeView
-                    { isRoot = model.auth.isRoot
-                    , now = model.now
+                [ -- text <| "ID: " ++ node.node.id
+                  -- , text <| "Hash: " ++ node.node.hash
+                  nodeView
+                    { now = model.now
                     , zone = model.zone
                     , modified = node.mod
                     , parent = Maybe.map .node parent
@@ -1190,8 +1201,7 @@ viewNode model parent node depth =
 
 
 viewUnknown :
-    { isRoot : Bool
-    , now : Time.Posix
+    { now : Time.Posix
     , zone : Time.Zone
     , modified : Bool
     , expDetail : Bool
@@ -1234,7 +1244,7 @@ viewNodeOperations node msg =
 
               else
                 Element.none
-            , Button.copy (CopyNode node.feID node.node.id desc)
+            , Button.copy (CopyNode node.feID node.node.id node.node.parent desc)
             , Button.clipboard (PasteNode node.feID node.node.id)
             ]
         , case msg of
@@ -1286,6 +1296,11 @@ nodeDescVariable =
     row [] [ Icon.variable, text "Variable" ]
 
 
+nodeDescUpstream : Element Msg
+nodeDescUpstream =
+    row [] [ Icon.uploadCloud, text "Upstream" ]
+
+
 nodeDescCondition : Element Msg
 nodeDescCondition =
     row [] [ Icon.check, text "Condition" ]
@@ -1313,6 +1328,7 @@ viewAddNode parent add =
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
+                            , Input.option Node.typeUpstream nodeDescUpstream
                             ]
 
                         else
@@ -1440,7 +1456,12 @@ viewPasteNode feID dest copyMove =
                 ]
 
         cantCopySelf =
-            [ text "Can't copy node to itself"
+            [ text "Can't move/copy node to itself"
+            , discardButton
+            ]
+
+        sameParent =
+            [ text "Can't move/copy node to the same parent"
             , discardButton
             ]
     in
@@ -1452,10 +1473,13 @@ viewPasteNode feID dest copyMove =
                     , discardButton
                     ]
 
-            Copy id desc ->
+            Copy id src desc ->
                 row [] <|
                     if id == dest then
                         cantCopySelf
+
+                    else if src == dest then
+                        sameParent
 
                     else
                         [ text <| "Copy " ++ desc ++ " here?"
@@ -1469,6 +1493,9 @@ viewPasteNode feID dest copyMove =
                 row [] <|
                     if id == dest then
                         cantCopySelf
+
+                    else if src == dest then
+                        sameParent
 
                     else
                         [ text <| "Move " ++ desc ++ " here?"

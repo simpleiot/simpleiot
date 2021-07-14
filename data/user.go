@@ -21,6 +21,7 @@ func (u *User) ToPoints() Points {
 		{Type: PointTypePhone, Time: now, Text: u.Phone},
 		{Type: PointTypeEmail, Time: now, Text: u.Email},
 		{Type: PointTypePass, Time: now, Text: u.Pass},
+		{Type: PointTypeNodeType, Time: now, Text: NodeTypeUser},
 	}
 }
 
