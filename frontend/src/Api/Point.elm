@@ -35,6 +35,7 @@ module Api.Point exposing
     , typeErrorCountEOF
     , typeErrorCountEOFReset
     , typeErrorCountReset
+    , typeFilePath
     , typeFirstName
     , typeFrom
     , typeHwVersion
@@ -78,6 +79,7 @@ module Api.Point exposing
     , updatePoint
     , updatePoints
     , valueActionNotify
+    , valueActionPlayAudio
     , valueActionSetValue
     , valueActionSetValueBool
     , valueActionSetValueText
@@ -125,6 +127,11 @@ import Time
 typeDescription : String
 typeDescription =
     "description"
+
+
+typeFilePath : String
+typeFilePath =
+    "filePath"
 
 
 typeScale : String
@@ -495,6 +502,11 @@ valueActionNotify =
 valueActionSetValue : String
 valueActionSetValue =
     "setValue"
+
+
+valueActionPlayAudio : String
+valueActionPlayAudio =
+    "playAudio"
 
 
 valueActionSetValueBool : String

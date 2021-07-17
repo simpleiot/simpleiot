@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -34,9 +35,10 @@ type Action struct {
 	PointValueType string
 	PointValue     float64
 	PointTextValue string
+	PointFilePath  string
 }
 
-// RuleConfig contains parts of the rule that a users changes
+// RuleConfig contains parts of the rule that the user changes
 type RuleConfig struct {
 }
 
@@ -118,8 +120,12 @@ func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (*Rul
 			case PointTypeValueType:
 				newAct.PointValueType = p.Text
 			case PointTypeValue:
+				fmt.Println("COLLIN, value:", p.Value)
 				newAct.PointValue = p.Value
 				newAct.PointTextValue = p.Text
+			case PointTypeFilePath:
+				fmt.Println("COLLIN, file path:", p.Text)
+				newAct.PointFilePath = p.Text
 			}
 		}
 		ret.Actions = append(ret.Actions, newAct)

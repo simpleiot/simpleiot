@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -516,7 +518,7 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 			log.Println("Error processing rule point: ", err)
 		}
 
-		if active {
+		if active || !active { // FIXME
 			err := nh.ruleRunActions(nh.Nc, rule, nodeID)
 			if err != nil {
 				log.Println("Error running rule actions: ", err)
@@ -701,6 +703,10 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, triggerNode
 			if err != nil {
 				return err
 			}
+		case data.PointValueActionPlayAudio:
+			channelNum := strconv.Itoa(int(a.PointValue))
+			out, err := exec.Command("speaker-test -D default -t wav -w " + a.PointFilePath + " -c 100 -s " + channelNum + " -r 44100").Output()
+			fmt.Println("COLLIN, output and error of speaker-test:", string(out), err)
 		default:
 			log.Println("Uknown rule action: ", a.Action)
 		}
