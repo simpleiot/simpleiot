@@ -25,10 +25,12 @@ module Api.Point exposing
     , typeBucket
     , typeClientServer
     , typeCmdPending
+    , typeConditionType
     , typeDataFormat
     , typeDebug
     , typeDescription
     , typeEmail
+    , typeEnd
     , typeErrorCount
     , typeErrorCountCRC
     , typeErrorCountCRCReset
@@ -59,6 +61,7 @@ module Api.Point exposing
     , typeSID
     , typeScale
     , typeService
+    , typeStart
     , typeStartApp
     , typeStartSystem
     , typeSwUpdateError
@@ -75,6 +78,7 @@ module Api.Point exposing
     , typeValueSet
     , typeValueType
     , typeVariableType
+    , typeWeekday
     , updatePoint
     , updatePoints
     , valueActionNotify
@@ -98,8 +102,10 @@ module Api.Point exposing
     , valueOff
     , valueOn
     , valueOnOff
+    , valuePointValue
     , valueRTU
     , valueSMTP
+    , valueSchedule
     , valueServer
     , valueSysStateOffline
     , valueSysStateOnline
@@ -417,9 +423,39 @@ typeURI =
     "uri"
 
 
+typeConditionType : String
+typeConditionType =
+    "conditionType"
+
+
+valuePointValue : String
+valuePointValue =
+    "pointValue"
+
+
+valueSchedule : String
+valueSchedule =
+    "schedule"
+
+
 typeValueType : String
 typeValueType =
     "valueType"
+
+
+typeStart : String
+typeStart =
+    "start"
+
+
+typeEnd : String
+typeEnd =
+    "end"
+
+
+typeWeekday : String
+typeWeekday =
+    "weekday"
 
 
 typePointID : String

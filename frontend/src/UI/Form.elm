@@ -8,6 +8,7 @@ module UI.Form exposing
     , nodeOnOffInput
     , nodeOptionInput
     , nodeTextInput
+    , nodeTimeInput
     , onEnter
     , onEnterEsc
     , onEsc
@@ -168,6 +169,29 @@ nodeTextInput o id index typ lbl =
         }
 
 
+nodeTimeInput :
+    { onEditNodePoint : Point -> msg
+    , node : Node
+    , now : Time.Posix
+    , labelWidth : Int
+    }
+    -> String
+    -> Int
+    -> String
+    -> String
+    -> Element msg
+nodeTimeInput o id index typ lbl =
+    Input.text
+        []
+        { onChange =
+            \d ->
+                o.onEditNodePoint (Point id index typ o.now 0 (Sanitize.time d) 0 0)
+        , text = Point.getText o.node.points id index typ
+        , placeholder = Nothing
+        , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        }
+
+
 nodeCheckboxInput :
     { onEditNodePoint : Point -> msg
     , node : Node
@@ -197,7 +221,17 @@ nodeCheckboxInput o id index typ lbl =
         , checked =
             Point.getValue o.node.points id index typ == 1
         , icon = Input.defaultCheckbox
-        , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        , label =
+            Input.labelLeft [ width (px o.labelWidth) ] <|
+                el [ alignRight ] <|
+                    text <|
+                        lbl
+                            ++ (if lbl /= "" then
+                                    ":"
+
+                                else
+                                    ""
+                               )
         }
 
 
