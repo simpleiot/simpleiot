@@ -147,6 +147,8 @@ schedule o labelWidth =
         , paddingEach { top = 15, right = 0, bottom = 0, left = 0 }
         ]
         [ wrappedRow [ spacing 10, paddingEach { top = 0, right = 0, bottom = 5, left = labelWidth } ]
+            -- here, number matches Go Weekday definitions
+            -- https://pkg.go.dev/time#Weekday
             [ weekdayCheckboxInput 0 " S"
             , weekdayCheckboxInput 1 " M"
             , weekdayCheckboxInput 2 " T"
