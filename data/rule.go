@@ -1,7 +1,6 @@
 package data
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -35,6 +34,8 @@ type Action struct {
 	PointValueType string
 	PointValue     float64
 	PointTextValue string
+	PointChannel   int
+	PointDevice    string
 	PointFilePath  string
 }
 
@@ -120,11 +121,13 @@ func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (*Rul
 			case PointTypeValueType:
 				newAct.PointValueType = p.Text
 			case PointTypeValue:
-				fmt.Println("COLLIN, value:", p.Value)
 				newAct.PointValue = p.Value
 				newAct.PointTextValue = p.Text
+			case PointTypeChannel:
+				newAct.PointChannel = int(p.Value)
+			case PointTypeDevice:
+				newAct.PointDevice = p.Text
 			case PointTypeFilePath:
-				fmt.Println("COLLIN, file path:", p.Text)
 				newAct.PointFilePath = p.Text
 			}
 		}

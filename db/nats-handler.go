@@ -518,7 +518,7 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 			log.Println("Error processing rule point: ", err)
 		}
 
-		if active || !active { // FIXME
+		if active {
 			err := nh.ruleRunActions(nh.Nc, rule, nodeID)
 			if err != nil {
 				log.Println("Error running rule actions: ", err)
@@ -704,9 +704,9 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, triggerNode
 				return err
 			}
 		case data.PointValueActionPlayAudio:
-			channelNum := strconv.Itoa(int(a.PointValue))
-			out, err := exec.Command("speaker-test -D default -t wav -w " + a.PointFilePath + " -c 100 -s " + channelNum + " -r 44100").Output()
-			fmt.Println("COLLIN, output and error of speaker-test:", string(out), err)
+			channelNum := strconv.Itoa(a.PointChannel)
+			fmt.Println("Playing audio:", a.PointDevice, channelNum, a.PointFilePath)
+			exec.Command("speaker-test", "-D"+a.PointDevice, "-twav", "-w"+a.PointFilePath, "-c5", "-s"+channelNum, "-r44100").Start()
 		default:
 			log.Println("Uknown rule action: ", a.Action)
 		}

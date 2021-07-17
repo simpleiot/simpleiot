@@ -23,11 +23,13 @@ module Api.Point exposing
     , typeAuthToken
     , typeBaud
     , typeBucket
+    , typeChannel
     , typeClientServer
     , typeCmdPending
     , typeDataFormat
     , typeDebug
     , typeDescription
+    , typeDevice
     , typeEmail
     , typeErrorCount
     , typeErrorCountCRC
@@ -122,6 +124,16 @@ import Json.Encode
 import List.Extra
 import Round
 import Time
+
+
+typeChannel : String
+typeChannel =
+    "channel"
+
+
+typeDevice : String
+typeDevice =
+    "device"
 
 
 typeDescription : String

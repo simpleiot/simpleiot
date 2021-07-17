@@ -126,7 +126,9 @@ view o =
                             _ ->
                                 Element.none
                     , viewIf actionPlayAudio <|
-                        numberInput Point.typeValue "Channel"
+                        textInput Point.typeDevice "Device"
+                    , viewIf actionPlayAudio <|
+                        numberInput Point.typeChannel "Channel"
                     , viewIf actionPlayAudio <|
                         textInput Point.typeFilePath "Wav file path"
                     ]

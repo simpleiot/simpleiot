@@ -4,8 +4,10 @@ package data
 // the system.
 const (
 	// general point types
-	PointTypeFilePath    string = "filePath"
+	PointTypeChannel     string = "channel"
+	PointTypeDevice             = "device"
 	PointTypeDescription        = "description"
+	PointTypeFilePath           = "filePath"
 	PointTypeNodeType           = "nodeType"
 	PointTypeTombstone          = "tombstone"
 	PointTypeScale              = "scale"
