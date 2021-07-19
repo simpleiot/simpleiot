@@ -417,7 +417,9 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 
 		ne, err := nec.getNodeAndEdges(edge.Down)
 		if err != nil {
-			return fmt.Errorf("getNodeAndEdges error: %w", err)
+			if err != genjierrors.ErrDocumentNotFound {
+				return fmt.Errorf("getNodeAndEdges error: %w", err)
+			}
 		}
 
 		if newEdge {
