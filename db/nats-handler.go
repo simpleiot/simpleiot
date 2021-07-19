@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	genjierrors "github.com/genjidb/genji/errors"
 	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -160,6 +161,24 @@ func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
 		return
 	}
 
+	node, err := nh.db.node(nodeID)
+	if err != nil {
+		if err != genjierrors.ErrDocumentNotFound {
+			log.Printf("handleNodePoints, error getting node for id: %v: %v", nodeID, err)
+			nh.reply(msg.Reply, err)
+			return
+		}
+
+		// need to create edge for new node
+		err := nats.SendEdgePoint(nh.Nc, nodeID, "", data.Point{Type: data.PointTypeTombstone}, false)
+
+		if err != nil {
+			log.Println("Error sending edge point for new node: ", err)
+			nh.reply(msg.Reply, err)
+			return
+		}
+	}
+
 	// write points to database
 	err = nh.db.nodePoints(nodeID, points)
 
@@ -169,11 +188,6 @@ func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
 		log.Println("msg subject: ", msg.Subject)
 		nh.reply(msg.Reply, err)
 		return
-	}
-
-	node, err := nh.db.node(nodeID)
-	if err != nil {
-		log.Println("handleNodePoints, error getting node for id: ", nodeID)
 	}
 
 	desc := node.Desc()
