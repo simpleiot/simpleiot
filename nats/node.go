@@ -11,6 +11,9 @@ import (
 )
 
 // GetNode over NATS. If id is "root", the root node is fetched.
+// If parent is set to "skip", the edge details are not included
+// and the hash is calculated without the edge points.
+// returns data.ErrDocumentNotFound if node is not found.
 func GetNode(nc *natsgo.Conn, id, parent string) (data.NodeEdge, error) {
 	if parent == "" {
 		parent = "none"
@@ -20,7 +23,7 @@ func GetNode(nc *natsgo.Conn, id, parent string) (data.NodeEdge, error) {
 		return data.NodeEdge{}, err
 	}
 
-	node, err := data.PbDecodeNode(nodeMsg.Data)
+	node, err := data.PbDecodeNodeRequest(nodeMsg.Data)
 
 	if err != nil {
 		return data.NodeEdge{}, err

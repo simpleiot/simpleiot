@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	genjierrors "github.com/genjidb/genji/errors"
 	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -214,36 +215,45 @@ func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
 }
 
 func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
+	resp := &pb.NodeRequest{}
+	var parent string
+	var nodeID string
+	var node data.NodeEdge
+	var err error
+
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 2 {
-		log.Println("Error in message subject: ", msg.Subject)
-		return
+		resp.Error = fmt.Sprintf("Error in message subject: %v", msg.Subject)
+		goto handleNodeDone
 	}
 
-	parent := string(msg.Data)
+	parent = string(msg.Data)
 
-	nodeID := chunks[1]
+	nodeID = chunks[1]
 
 	if nodeID == "root" {
 		nodeID = nh.db.rootNodeID()
 	}
 
-	node, err := nh.db.nodeEdge(nodeID, parent)
+	node, err = nh.db.nodeEdge(nodeID, parent)
 
 	if err != nil {
-		log.Printf("NATS handler: Error getting node %v from db: %v\n", nodeID, err)
-		// TODO should we send an error back to requester
+		if err != genjierrors.ErrDocumentNotFound {
+			resp.Error = fmt.Sprintf("NATS handler: Error getting node %v from db: %v\n", nodeID, err)
+		} else {
+			resp.Error = data.ErrDocumentNotFound.Error()
+		}
 	}
 
-	data, err := node.ToPb()
-
+handleNodeDone:
+	resp.Node, err = node.ToPbNode()
 	if err != nil {
-		log.Printf("Error pb encoding node: %v\n", err)
-		// TODO send error back to client
+		resp.Error = fmt.Sprintf("Error pb encoding node: %v\n", err)
 	}
+
+	data, err := proto.Marshal(resp)
 
 	err = nh.Nc.Publish(msg.Reply, data)
-
 	if err != nil {
 		log.Println("NATS: Error publishing response to node request: ", err)
 	}

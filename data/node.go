@@ -3,6 +3,7 @@ package data
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
@@ -310,6 +311,29 @@ func PbDecodeNode(data []byte) (NodeEdge, error) {
 	}
 
 	return PbToNode(pbNode)
+}
+
+// PbDecodeNodeRequest converts a protobuf to node data structure
+func PbDecodeNodeRequest(buf []byte) (NodeEdge, error) {
+	pbNodeRequest := &pb.NodeRequest{}
+
+	err := proto.Unmarshal(buf, pbNodeRequest)
+	if err != nil {
+		return NodeEdge{}, err
+	}
+
+	if pbNodeRequest.Error != "" {
+		// error compares fail if they are not the exact same
+		// error, even if they have the same text, so compare
+		// actual error string here
+		if pbNodeRequest.Error == ErrDocumentNotFound.Error() {
+			return NodeEdge{}, ErrDocumentNotFound
+		}
+
+		return NodeEdge{}, errors.New(pbNodeRequest.Error)
+	}
+
+	return PbToNode(pbNodeRequest.Node)
 }
 
 // PbToNode converts pb node to node

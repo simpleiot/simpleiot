@@ -1,12 +1,46 @@
 package nats
 
 import (
+	"fmt"
 	"log"
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
+
+// SendNodePointCreate sends a node point using the nats protocol and
+// creates the node if it does not already exist
+func SendNodePointCreate(nc *natsgo.Conn, nodeID string, point data.Point, ack bool) error {
+	_, err := GetNode(nc, nodeID, "skip")
+	newNode := false
+	if err != nil {
+		if err != data.ErrDocumentNotFound {
+			return fmt.Errorf("GetNode error: %w", err)
+		}
+
+		newNode = true
+	}
+
+	points := data.Points{point}
+	err = SendNodePoints(nc, nodeID, points, ack)
+	if err != nil {
+		return fmt.Errorf("SendNodePoints error: %w", err)
+	}
+
+	if newNode {
+		err := SendEdgePoint(nc, nodeID, "", data.Point{
+			Type:  data.PointTypeTombstone,
+			Value: 0,
+		}, true)
+
+		if err != nil {
+			return fmt.Errorf("SendEdgePoint error: %w", err)
+		}
+	}
+
+	return nil
+}
 
 // SendNodePoint sends a node point using the nats protocol
 func SendNodePoint(nc *natsgo.Conn, nodeID string, point data.Point, ack bool) error {
