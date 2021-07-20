@@ -1,8 +1,8 @@
 package nats
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
@@ -86,8 +86,8 @@ func sendPoints(nc *natsgo.Conn, subject string, points data.Points, ack bool) e
 			return err
 		}
 
-		if string(msg.Data) != "" {
-			log.Println("Request returned error: ", string(msg.Data))
+		if len(msg.Data) > 0 {
+			return errors.New(string(msg.Data))
 		}
 
 	} else {
