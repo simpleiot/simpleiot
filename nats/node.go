@@ -49,8 +49,7 @@ func GetNodeChildren(nc *natsgo.Conn, id, typ string, includeDel bool) ([]data.N
 		return nil, err
 	}
 
-	nodes, err := data.PbDecodeNodes(nodeMsg.Data)
-
+	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
 	if err != nil {
 		return nil, err
 	}

@@ -148,6 +148,21 @@ func (nodes *Nodes) ToPb() ([]byte, error) {
 	return proto.Marshal(&pb.Nodes{Nodes: pbNodes})
 }
 
+// ToPbNodes converts a list of nodes to protobuf nodes
+func (nodes *Nodes) ToPbNodes() (*pb.Nodes, error) {
+	pbNodes := make([]*pb.Node, len(*nodes))
+	for i, n := range *nodes {
+		nPb, err := n.ToPbNode()
+		if err != nil {
+			return nil, err
+		}
+
+		pbNodes[i] = nPb
+	}
+
+	return &pb.Nodes{Nodes: pbNodes}, nil
+}
+
 // define valid commands
 const (
 	CmdUpdateApp string = "updateApp"
@@ -381,6 +396,38 @@ func PbDecodeNodes(data []byte) ([]NodeEdge, error) {
 	ret := make([]NodeEdge, len(pbNodes.Nodes))
 
 	for i, nPb := range pbNodes.Nodes {
+		ret[i], err = PbToNode(nPb)
+
+		if err != nil {
+			return ret, err
+		}
+	}
+
+	return ret, nil
+}
+
+// PbDecodeNodesRequest decode probuf encoded nodes
+func PbDecodeNodesRequest(data []byte) ([]NodeEdge, error) {
+	pbNodesRequest := &pb.NodesRequest{}
+	err := proto.Unmarshal(data, pbNodesRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	if pbNodesRequest.Error != "" {
+		// error compares fail if they are not the exact same
+		// error, even if they have the same text, so compare
+		// actual error string here
+		if pbNodesRequest.Error == ErrDocumentNotFound.Error() {
+			return []NodeEdge{}, ErrDocumentNotFound
+		}
+
+		return []NodeEdge{}, errors.New(pbNodesRequest.Error)
+	}
+
+	ret := make([]NodeEdge, len(pbNodesRequest.Nodes.Nodes))
+
+	for i, nPb := range pbNodesRequest.Nodes.Nodes {
 		ret[i], err = PbToNode(nPb)
 
 		if err != nil {

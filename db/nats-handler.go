@@ -260,38 +260,45 @@ handleNodeDone:
 }
 
 func (nh *NatsHandler) handleNodeChildren(msg *natsgo.Msg) {
+	resp := &pb.NodesRequest{}
+	params := pb.NatsRequest{}
+	var err error
+	var nodes data.Nodes
+	var nodeID string
+
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {
-		log.Println("Error in message subject: ", msg.Subject)
-		return
+		resp.Error = fmt.Sprintf("Error in message subject: %v", msg.Subject)
+		goto handleNodeChildrenDone
 	}
 
 	// decode request params
-	params := pb.NatsRequest{}
-
 	if len(msg.Data) > 0 {
 		err := proto.Unmarshal(msg.Data, &params)
 		if err != nil {
-			log.Println("Error decoding Node children request params: ", err)
-			return
+			resp.Error = fmt.Sprintf("Error decoding Node children request params: %v", err)
+			goto handleNodeChildrenDone
 		}
 	}
 
-	nodeID := chunks[1]
+	nodeID = chunks[1]
 
-	nodes, err := nh.db.nodeDescendents(nodeID, params.Type, false, params.IncludeDel)
+	nodes, err = nh.db.nodeDescendents(nodeID, params.Type, false, params.IncludeDel)
 
 	if err != nil {
-		log.Printf("NATS: Error getting node %v from db: %v\n", nodeID, err)
-		// TODO should we send an error back to requester
+		resp.Error = fmt.Sprintf("NATS: Error getting node %v from db: %v\n", nodeID, err)
+		goto handleNodeChildrenDone
 	}
 
-	nodesT := data.Nodes(nodes)
-	data, err := nodesT.ToPb()
-
+handleNodeChildrenDone:
+	resp.Nodes, err = nodes.ToPbNodes()
 	if err != nil {
-		log.Printf("Error pb encoding nodes: %v\n", err)
-		// TODO send error back to client
+		resp.Error = fmt.Sprintf("Error pb encoding nodes: %v", err)
+	}
+
+	data, err := proto.Marshal(resp)
+	if err != nil {
+		resp.Error = fmt.Sprintf("Error encoding data: %v", err)
 	}
 
 	err = nh.Nc.Publish(msg.Reply, data)
