@@ -12,6 +12,12 @@ import (
 // SendNodePointCreate sends a node point using the nats protocol and
 // creates the node if it does not already exist
 func SendNodePointCreate(nc *natsgo.Conn, nodeID string, point data.Point, ack bool) error {
+	return SendNodePointsCreate(nc, nodeID, []data.Point{point}, ack)
+}
+
+// SendNodePointsCreate sends a node point using the nats protocol and
+// creates the node if it does not already exist
+func SendNodePointsCreate(nc *natsgo.Conn, nodeID string, points data.Points, ack bool) error {
 	_, err := GetNode(nc, nodeID, "skip")
 	newNode := false
 	if err != nil {
@@ -22,7 +28,6 @@ func SendNodePointCreate(nc *natsgo.Conn, nodeID string, point data.Point, ack b
 		newNode = true
 	}
 
-	points := data.Points{point}
 	err = SendNodePoints(nc, nodeID, points, ack)
 	if err != nil {
 		return fmt.Errorf("SendNodePoints error: %w", err)

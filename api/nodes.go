@@ -299,7 +299,7 @@ func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id str
 		return
 	}
 
-	err = nats.SendNodePoints(h.nc, id, points, true)
+	err = nats.SendNodePointsCreate(h.nc, id, points, true)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
