@@ -282,14 +282,28 @@ func main() {
 
 	if *flagLogNats {
 		log.Println("Logging all NATS messages")
-		_, err := nc.Subscribe("node.*.*", func(msg *natsgo.Msg) {
+		_, err := nc.Subscribe("node.*.points", func(msg *natsgo.Msg) {
 			err := nats.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
 			}
 		})
 
-		_, err = nc.Subscribe("node.*.*.*", func(msg *natsgo.Msg) {
+		_, err = nc.Subscribe("node.*.not", func(msg *natsgo.Msg) {
+			err := nats.Dump(nc, msg)
+			if err != nil {
+				log.Println("Error dumping nats msg: ", err)
+			}
+		})
+
+		_, err = nc.Subscribe("node.*.msg", func(msg *natsgo.Msg) {
+			err := nats.Dump(nc, msg)
+			if err != nil {
+				log.Println("Error dumping nats msg: ", err)
+			}
+		})
+
+		_, err = nc.Subscribe("node.*.*.points", func(msg *natsgo.Msg) {
 			err := nats.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
