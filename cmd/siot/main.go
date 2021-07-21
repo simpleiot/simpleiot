@@ -259,7 +259,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		err = nats.SendNodePoint(nc, nodeID, point, *flagNatsAck)
+		err = nats.SendNodePointCreate(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -273,7 +273,7 @@ func main() {
 			os.Exit(-1)
 		}
 
-		err = nats.SendNodePoint(nc, nodeID, point, *flagNatsAck)
+		err = nats.SendNodePointCreate(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
