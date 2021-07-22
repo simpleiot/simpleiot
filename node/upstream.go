@@ -141,7 +141,10 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 
 			fetchedOnce = true
 
-			up.syncNode(rootNode.ID, "skip")
+			err := up.syncNode(rootNode.ID, "skip")
+			if err != nil {
+				fmt.Printf("Error syncing: %v\n", err)
+			}
 		}
 	}()
 
@@ -243,12 +246,14 @@ func (up *Upstream) syncNode(id, parent string) error {
 		return fmt.Errorf("Error getting local node: %v", err)
 	}
 
-	nodeUp, err := nats.GetNode(up.ncUp, id, parent)
-	if err != nil {
-		return fmt.Errorf("Error getting upstream root node: %v", err)
+	nodeUp, upErr := nats.GetNode(up.ncUp, id, parent)
+	if upErr != nil {
+		if err != data.ErrDocumentNotFound {
+			return fmt.Errorf("Error getting upstream root node: %v", err)
+		}
 	}
 
-	if nodeUp.ID == "" {
+	if upErr == data.ErrDocumentNotFound {
 		log.Printf("Upstream node %v does not exist, sending\n", nodeLocal.Desc())
 		return nats.SendNode(up.nc, up.ncUp, nodeLocal)
 	}
