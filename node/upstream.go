@@ -255,7 +255,15 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 	if upErr == data.ErrDocumentNotFound {
 		log.Printf("Upstream node %v does not exist, sending\n", nodeLocal.Desc())
-		return nats.SendNode(up.nc, up.ncUp, nodeLocal)
+		err := nats.SendNode(up.nc, up.ncUp, nodeLocal)
+		if err != nil {
+			return fmt.Errorf("Error sending node upstream: %w", err)
+		}
+
+		err = up.addUpstreamSub(nodeLocal)
+		if err != nil {
+			log.Println("Error subscribing to upstream node: ", err)
+		}
 	}
 
 	if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
@@ -383,7 +391,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 					log.Println("Error sending node upstream: ", err)
 				}
 
-				err = up.addUpstreamSub(nodeLocal)
+				err = up.addUpstreamSub(child)
 				if err != nil {
 					log.Println("Error subscribing to upstream node: ", err)
 				}
@@ -397,7 +405,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 					log.Println("Error getting node from upstream: ", err)
 				}
 
-				err = up.addUpstreamSub(nodeLocal)
+				err = up.addUpstreamSub(upChild)
 				if err != nil {
 					log.Println("Error subscribing to upstream node: ", err)
 				}
