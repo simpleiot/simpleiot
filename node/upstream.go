@@ -248,8 +248,8 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 	nodeUp, upErr := nats.GetNode(up.ncUp, id, parent)
 	if upErr != nil {
-		if err != data.ErrDocumentNotFound {
-			return fmt.Errorf("Error getting upstream root node: %v", err)
+		if upErr != data.ErrDocumentNotFound {
+			return fmt.Errorf("Error getting upstream root node: %v", upErr)
 		}
 	}
 
