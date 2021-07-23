@@ -20,8 +20,8 @@ github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumC
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b h1:eR1P/A4QMYF2/LpHRhYAts9wyYEtF7qNk/tVNiYCWc8=
 github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b/go.mod h1:56wL82FO0bfMU5RvfXoIwSOP2ggqqxT+tAfNEIyxuHw=
-github.com/genjidb/genji v0.12.1-0.20210628204955-22e9b5f258ca h1:X+PtKS46OdnILy/Wjf4kLRifPYYKz4rhqK3na5BYapw=
-github.com/genjidb/genji v0.12.1-0.20210628204955-22e9b5f258ca/go.mod h1:2QAT8ZovhZiEDQCaeOMI4HW5UiLm6PmXUxlUiKEuSjU=
+github.com/genjidb/genji v0.13.0 h1:WKjuoy4TRemCxVgcZ1/+POGKhjkDj3ZSTB/zlHmS7l0=
+github.com/genjidb/genji v0.13.0/go.mod h1:2QAT8ZovhZiEDQCaeOMI4HW5UiLm6PmXUxlUiKEuSjU=
 github.com/getkin/kin-openapi v0.13.0/go.mod h1:WGRs2ZMM1Q8LR1QBEwUxC6RJEfaBcD0s+pcEVXFuAjw=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/go-chi/chi v4.0.2+incompatible/go.mod h1:eB3wogJHnLi3x/kFX2A+IbTBlXxmMeXJVKy9tTv1XzQ=

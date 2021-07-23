@@ -6,6 +6,7 @@ import (
 
 	"github.com/genjidb/genji"
 	"github.com/genjidb/genji/document"
+	"github.com/genjidb/genji/types"
 )
 
 // Edge is used to describe the relationship
@@ -77,7 +78,7 @@ func main() {
 	}
 
 	res, _ := db.Query(`select * from edges where up = ?`, "3")
-	res.Iterate(func(d document.Document) error {
+	res.Iterate(func(d types.Document) error {
 		var edge Edge
 		err = document.StructScan(d, &edge)
 		if err != nil {
