@@ -92,6 +92,22 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		if err != nil {
 			log.Println("Error sending edge points to remote system: ", err)
 		}
+
+		// if point contains a tombstone value, something may have been
+		// created, so watch the upstream node
+		for _, p := range points {
+			if p.Type == data.PointTypeTombstone {
+				err := up.addUpstreamNodeSub(nodeID)
+				if err != nil {
+					log.Printf("Error adding upstream node sub: %v\n", err)
+				}
+
+				err = up.addUpstreamEdgeSub(nodeID, parentID)
+				if err != nil {
+					log.Printf("Error adding upstream edge sub: %v\n", err)
+				}
+			}
+		}
 	})
 
 	rootNode, err := nats.GetNode(nc, "root", "")
