@@ -14,6 +14,7 @@ import (
 	"github.com/genjidb/genji"
 	"github.com/genjidb/genji/document"
 	genjierrors "github.com/genjidb/genji/errors"
+	"github.com/genjidb/genji/types"
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -68,15 +69,16 @@ func NewDb(storeType StoreType, dataDir string) (*Db, error) {
 	case StoreTypeBadger:
 		log.Fatal("Badger not currently supported")
 		/*
-			// Create a badger engine
-			dbPath := path.Join(dataDir, "badger")
-			ng, err := badgerengine.NewEngine(badger.DefaultOptions(dbPath))
-			if err != nil {
-				log.Fatal(err)
-			}
+			 // uncomment the following to enable badger support
+				// Create a badger engine
+				dbPath := path.Join(dataDir, "badger")
+				ng, err := badgerengine.NewEngine(badger.DefaultOptions(dbPath))
+				if err != nil {
+					log.Fatal(err)
+				}
 
-			// Pass it to genji
-			store, err = genji.New(context.Background(), ng)
+				// Pass it to genji
+				store, err = genji.New(context.Background(), ng)
 		*/
 
 	default:
@@ -291,7 +293,7 @@ func (gen *Db) txNodes(tx *genji.Tx) ([]data.Node, error) {
 
 	defer res.Close()
 
-	err = res.Iterate(func(d document.Document) error {
+	err = res.Iterate(func(d types.Document) error {
 		var node data.Node
 		err = document.StructScan(d, &node)
 		if err != nil {
@@ -629,7 +631,7 @@ func (gen *Db) edges() ([]data.Edge, error) {
 
 		defer res.Close()
 
-		err = res.Iterate(func(d document.Document) error {
+		err = res.Iterate(func(d types.Document) error {
 			var edge data.Edge
 			err = document.StructScan(d, &edge)
 			if err != nil {
@@ -655,7 +657,7 @@ func txEdgeUp(tx *genji.Tx, nodeID string, includeTombstone bool) ([]*data.Edge,
 	}
 	defer res.Close()
 
-	err = res.Iterate(func(d document.Document) error {
+	err = res.Iterate(func(d types.Document) error {
 		var edge data.Edge
 		err = document.StructScan(d, &edge)
 		if err != nil {
@@ -690,7 +692,7 @@ func txEdgeDown(tx *genji.Tx, nodeID string) ([]*data.Edge, error) {
 
 	defer res.Close()
 
-	err = res.Iterate(func(d document.Document) error {
+	err = res.Iterate(func(d types.Document) error {
 		var edge data.Edge
 		err = document.StructScan(d, &edge)
 		if err != nil {
@@ -792,7 +794,7 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 	}
 	defer res.Close()
 
-	err = res.Iterate(func(d document.Document) error {
+	err = res.Iterate(func(d types.Document) error {
 		var node data.Node
 		err = document.StructScan(d, &node)
 		if err != nil {

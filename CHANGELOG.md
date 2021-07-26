@@ -11,9 +11,17 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [[0.0.30] - 2021-07-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.29)
+
 - fix using SIOT_AUTH_TOKEN for -logNats command line option
 - upgrade to NATS 2.2.2. Increases SIOT binary by about 2MB (uncompressed), 1MB
   (compressed)
+- disable badger for now -- can be re-enabled in db/genji.go. Bolt seems to work
+  better for the current SIOT use cases and Badger just adds bloat to the
+  binary.
+- implement upstream synronization support
+  [#109](https://github.com/simpleiot/simpleiot/issues/109)
+- update to Genji v0.13.0
 
 ## [[0.0.29] - 2021-04-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.29)
 

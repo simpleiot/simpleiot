@@ -92,6 +92,22 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		if err != nil {
 			log.Println("Error sending edge points to remote system: ", err)
 		}
+
+		// if point contains a tombstone value, something may have been
+		// created, so watch the upstream node
+		for _, p := range points {
+			if p.Type == data.PointTypeTombstone {
+				err := up.addUpstreamNodeSub(nodeID)
+				if err != nil {
+					log.Printf("Error adding upstream node sub: %v\n", err)
+				}
+
+				err = up.addUpstreamEdgeSub(nodeID, parentID)
+				if err != nil {
+					log.Printf("Error adding upstream edge sub: %v\n", err)
+				}
+			}
+		}
 	})
 
 	rootNode, err := nats.GetNode(nc, "root", "")
@@ -141,7 +157,10 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 
 			fetchedOnce = true
 
-			up.syncNode(rootNode.ID, "skip")
+			err := up.syncNode(rootNode.ID, "skip")
+			if err != nil {
+				fmt.Printf("Error syncing: %v\n", err)
+			}
 		}
 	}()
 
@@ -243,14 +262,24 @@ func (up *Upstream) syncNode(id, parent string) error {
 		return fmt.Errorf("Error getting local node: %v", err)
 	}
 
-	nodeUp, err := nats.GetNode(up.ncUp, id, parent)
-	if err != nil {
-		return fmt.Errorf("Error getting upstream root node: %v", err)
+	nodeUp, upErr := nats.GetNode(up.ncUp, id, parent)
+	if upErr != nil {
+		if upErr != data.ErrDocumentNotFound {
+			return fmt.Errorf("Error getting upstream root node: %v", upErr)
+		}
 	}
 
-	if nodeUp.ID == "" {
+	if upErr == data.ErrDocumentNotFound {
 		log.Printf("Upstream node %v does not exist, sending\n", nodeLocal.Desc())
-		return nats.SendNode(up.nc, up.ncUp, nodeLocal)
+		err := nats.SendNode(up.nc, up.ncUp, nodeLocal)
+		if err != nil {
+			return fmt.Errorf("Error sending node upstream: %w", err)
+		}
+
+		err = up.addUpstreamSub(nodeLocal)
+		if err != nil {
+			log.Println("Error subscribing to upstream node: ", err)
+		}
 	}
 
 	if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
@@ -378,7 +407,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 					log.Println("Error sending node upstream: ", err)
 				}
 
-				err = up.addUpstreamSub(nodeLocal)
+				err = up.addUpstreamSub(child)
 				if err != nil {
 					log.Println("Error subscribing to upstream node: ", err)
 				}
@@ -392,7 +421,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 					log.Println("Error getting node from upstream: ", err)
 				}
 
-				err = up.addUpstreamSub(nodeLocal)
+				err = up.addUpstreamSub(upChild)
 				if err != nil {
 					log.Println("Error subscribing to upstream node: ", err)
 				}
