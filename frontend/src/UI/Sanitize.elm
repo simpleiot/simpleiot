@@ -1,4 +1,6 @@
-module UI.Sanitize exposing (float, time)
+module UI.Sanitize exposing (float, parseHM, time)
+
+import Parser exposing ((|.), Parser)
 
 
 float : String -> String
@@ -133,3 +135,42 @@ timeHelper state =
         _ ->
             -- we are done
             state
+
+
+parseHM : String -> Maybe String
+parseHM t =
+    Parser.run hmParser t
+        |> Result.toMaybe
+
+
+hmParser : Parser String
+hmParser =
+    Parser.getChompedString <|
+        Parser.succeed identity
+            |. Parser.oneOf [ altIntParser, Parser.int ]
+            |. Parser.symbol ":"
+            |. ((Parser.oneOf [ altIntParser, Parser.int ]
+                    |> Parser.andThen
+                        (\v ->
+                            if v < 0 || v > 59 then
+                                Parser.problem "minute is not in range"
+
+                            else
+                                Parser.succeed v
+                        )
+                )
+                    |> Parser.getChompedString
+                    |> Parser.andThen
+                        (\s ->
+                            if String.length s /= 2 then
+                                Parser.problem "minute must be 2 digits"
+
+                            else
+                                Parser.succeed s
+                        )
+               )
+
+
+altIntParser : Parser Int
+altIntParser =
+    Parser.symbol "0" |> Parser.andThen (\_ -> Parser.int)
