@@ -36,7 +36,4 @@ parseHM =
         , test "hour/min is 00:00" <|
             \_ ->
                 Expect.equal (run Sanitize.hmParser "00:00") (Ok "00:00")
-        , test "parse 0" <|
-            \_ ->
-                Expect.equal (run Parser.int "0") (Ok 0)
         ]
