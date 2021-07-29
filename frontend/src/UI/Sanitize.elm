@@ -1,4 +1,4 @@
-module UI.Sanitize exposing (float, parseHM, time)
+module UI.Sanitize exposing (float, hmParser, parseHM, time)
 
 import Parser exposing ((|.), Parser)
 
@@ -147,7 +147,16 @@ hmParser : Parser String
 hmParser =
     Parser.getChompedString <|
         Parser.succeed identity
-            |. Parser.oneOf [ altIntParser, Parser.int ]
+            |. (Parser.oneOf [ Parser.backtrackable altIntParser, Parser.int ]
+                    |> Parser.andThen
+                        (\v ->
+                            if v < 0 || v > 23 then
+                                Parser.problem "hour is out of range"
+
+                            else
+                                Parser.succeed v
+                        )
+               )
             |. Parser.symbol ":"
             |. ((Parser.oneOf [ altIntParser, Parser.int ]
                     |> Parser.andThen
