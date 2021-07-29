@@ -121,6 +121,7 @@ schedule o labelWidth =
                 { onEditNodePoint = o.onEditNodePoint
                 , node = o.node
                 , now = o.now
+                , zone = o.zone
                 , labelWidth = labelWidth
                 }
                 ""

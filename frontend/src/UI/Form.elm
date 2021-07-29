@@ -29,8 +29,10 @@ import Round
 import Svg as S
 import Svg.Attributes as Sa
 import Time
+import Time.Extra
 import UI.Sanitize as Sanitize
 import UI.Style as Style
+import Utils.Time exposing (toLocal, toUTC)
 
 
 onEnter : msg -> Element.Attribute msg
@@ -173,6 +175,7 @@ nodeTimeInput :
     { onEditNodePoint : Point -> msg
     , node : Node
     , now : Time.Posix
+    , zone : Time.Zone
     , labelWidth : Int
     }
     -> String
@@ -181,12 +184,39 @@ nodeTimeInput :
     -> String
     -> Element msg
 nodeTimeInput o id index typ lbl =
+    let
+        zoneOffset =
+            Time.Extra.toOffset o.zone o.now
+
+        current =
+            Point.getText o.node.points id index typ
+
+        display =
+            case Sanitize.parseHM current of
+                Just time ->
+                    toLocal zoneOffset time
+
+                Nothing ->
+                    current
+    in
     Input.text
         []
         { onChange =
             \d ->
-                o.onEditNodePoint (Point id index typ o.now 0 (Sanitize.time d) 0 0)
-        , text = Point.getText o.node.points id index typ
+                let
+                    dClean =
+                        Sanitize.time d
+
+                    sendValue =
+                        case Sanitize.parseHM dClean of
+                            Just time ->
+                                toUTC zoneOffset time
+
+                            Nothing ->
+                                d
+                in
+                o.onEditNodePoint (Point id index typ o.now 0 sendValue 0 0)
+        , text = display
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
