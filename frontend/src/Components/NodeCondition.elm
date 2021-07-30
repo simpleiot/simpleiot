@@ -2,6 +2,7 @@ module Components.NodeCondition exposing (view)
 
 import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
+import Components.NodeOptions exposing (NodeOptions)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -12,16 +13,7 @@ import UI.Icon as Icon
 import UI.Style as Style exposing (colors)
 
 
-view :
-    { now : Time.Posix
-    , zone : Time.Zone
-    , modified : Bool
-    , expDetail : Bool
-    , parent : Maybe Node
-    , node : Node
-    , onEditNodePoint : Point -> msg
-    }
-    -> Element msg
+view : NodeOptions msg -> Element msg
 view o =
     let
         labelWidth =

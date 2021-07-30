@@ -1,7 +1,8 @@
 module Components.NodeDevice exposing (view)
 
-import Api.Node as Node exposing (Node)
+import Api.Node as Node
 import Api.Point as Point exposing (Point)
+import Components.NodeOptions exposing (NodeOptions)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -14,16 +15,7 @@ import Utils.Duration as Duration
 import Utils.Iso8601 as Iso8601
 
 
-view :
-    { now : Time.Posix
-    , zone : Time.Zone
-    , modified : Bool
-    , expDetail : Bool
-    , parent : Maybe Node
-    , node : Node
-    , onEditNodePoint : Point -> msg
-    }
-    -> Element msg
+view : NodeOptions msg -> Element msg
 view o =
     let
         sysState =

@@ -1,27 +1,17 @@
 module Components.NodeRule exposing (view)
 
-import Api.Node exposing (Node)
-import Api.Point as Point exposing (Point)
+import Api.Point as Point
+import Components.NodeOptions exposing (NodeOptions)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Time
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.Style as Style exposing (colors)
 
 
-view :
-    { now : Time.Posix
-    , zone : Time.Zone
-    , modified : Bool
-    , expDetail : Bool
-    , parent : Maybe Node
-    , node : Node
-    , onEditNodePoint : Point -> msg
-    }
-    -> Element msg
+view : NodeOptions msg -> Element msg
 view o =
     let
         textInput =
