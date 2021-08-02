@@ -93,7 +93,7 @@ view o =
                 { onChange =
                     \d ->
                         o.onEditNodePoint
-                            (Point "" 0 Point.typeDescription o.now 0 d 0 0)
+                            [ Point "" 0 Point.typeDescription o.now 0 d 0 0 ]
                 , text = Node.description o.node
                 , placeholder = Just <| Input.placeholder [] <| text "node description"
                 , label = Input.labelHidden "node description"

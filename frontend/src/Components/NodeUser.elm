@@ -24,8 +24,8 @@ view o =
         textInputLowerCase =
             Form.nodeTextInput
                 { onEditNodePoint =
-                    \p ->
-                        o.onEditNodePoint { p | text = String.toLower p.text }
+                    \points ->
+                        o.onEditNodePoint <| List.map (\p -> { p | text = String.toLower p.text }) points
                 , node = o.node
                 , now = o.now
                 , zone = o.zone

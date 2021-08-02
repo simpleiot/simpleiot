@@ -15,6 +15,7 @@ import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
+import Components.NodeOptions exposing (NodeOptions)
 import Components.NodeRule as NodeRule
 import Components.NodeUpstream as NodeUpstream
 import Components.NodeUser as NodeUser
@@ -173,7 +174,7 @@ init shared { key } =
 type Msg
     = Tick Time.Posix
     | Zone Time.Zone
-    | EditNodePoint Int Point
+    | EditNodePoint Int (List Point)
     | ToggleExpChildren Int
     | ToggleExpDetail Int
     | DiscardNodeOp
@@ -204,7 +205,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        EditNodePoint feID point ->
+        EditNodePoint feID points ->
             let
                 editPoints =
                     case model.nodeEdit of
@@ -218,7 +219,7 @@ update msg model =
                 | nodeEdit =
                     Just
                         { feID = feID
-                        , points = Point.updatePoint editPoints point
+                        , points = Point.updatePoints editPoints points
                         }
               }
             , Cmd.none
@@ -1200,16 +1201,7 @@ viewNode model parent node depth =
             ]
 
 
-viewUnknown :
-    { now : Time.Posix
-    , zone : Time.Zone
-    , modified : Bool
-    , expDetail : Bool
-    , parent : Maybe Node
-    , node : Node
-    , onEditNodePoint : Point -> msg
-    }
-    -> Element msg
+viewUnknown : NodeOptions msg -> Element msg
 viewUnknown o =
     Element.text <| "unknown node type: " ++ o.node.typ
 

@@ -150,7 +150,7 @@ button options =
 
 
 type alias NodeInputOptions msg =
-    { onEditNodePoint : Point -> msg
+    { onEditNodePoint : List Point -> msg
     , node : Node
     , now : Time.Posix
     , zone : Time.Zone
@@ -170,7 +170,7 @@ nodeTextInput o id index typ lbl =
         []
         { onChange =
             \d ->
-                o.onEditNodePoint (Point id index typ o.now 0 d 0 0)
+                o.onEditNodePoint [ Point id index typ o.now 0 d 0 0 ]
         , text = Point.getText o.node.points id index typ
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
@@ -216,7 +216,7 @@ nodeTimeInput o id index typ lbl =
                             Nothing ->
                                 d
                 in
-                o.onEditNodePoint (Point id index typ o.now 0 sendValue 0 0)
+                o.onEditNodePoint [ Point id index typ o.now 0 sendValue 0 0 ]
         , text = display
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
@@ -244,7 +244,7 @@ nodeCheckboxInput o id index typ lbl =
                             0.0
                 in
                 o.onEditNodePoint
-                    (Point id index typ o.now v "" 0 0)
+                    [ Point id index typ o.now v "" 0 0 ]
         , checked =
             Point.getValue o.node.points id index typ == 1
         , icon = Input.defaultCheckbox
@@ -323,7 +323,7 @@ nodeNumberInput o id index typ lbl =
                             Maybe.withDefault currentValueF <| String.toFloat dCheck
                 in
                 o.onEditNodePoint
-                    (Point id index typ o.now v dCheck 0 0)
+                    [ Point id index typ o.now v dCheck 0 0 ]
         , text = currentValue
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
@@ -344,7 +344,7 @@ nodeOptionInput o id index typ lbl options =
         { onChange =
             \sel ->
                 o.onEditNodePoint
-                    (Point id index typ o.now 0 sel 0 0)
+                    [ Point id index typ o.now 0 sel 0 0 ]
         , label =
             Input.labelLeft [ padding 12, width (px o.labelWidth) ] <|
                 el [ alignRight ] <|
@@ -395,7 +395,7 @@ nodeCounterWithReset o id index typ pointResetName lbl =
                             else
                                 0
                     in
-                    o.onEditNodePoint (Point id index pointResetName o.now vFloat "" 0 0)
+                    o.onEditNodePoint [ Point id index pointResetName o.now vFloat "" 0 0 ]
             , icon = Input.defaultCheckbox
             , checked = currentResetValue
             , label =
@@ -458,7 +458,7 @@ nodeOnOffInput o id index typ pointSetName lbl =
         [ el [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         , Input.button
             []
-            { onPress = Just <| o.onEditNodePoint (Point id index pointSetName o.now newValue "" 0 0)
+            { onPress = Just <| o.onEditNodePoint [ Point id index pointSetName o.now newValue "" 0 0 ]
             , label =
                 el [ width (px 100) ] <|
                     html <|

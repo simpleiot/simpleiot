@@ -13,7 +13,7 @@ type alias NodeOptions msg =
     , expDetail : Bool
     , parent : Maybe Node
     , node : Node
-    , onEditNodePoint : Point -> msg
+    , onEditNodePoint : List Point -> msg
     }
 
 
