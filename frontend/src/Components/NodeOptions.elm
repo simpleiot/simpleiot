@@ -1,8 +1,9 @@
-module Components.NodeOptions exposing (NodeOptions)
+module Components.NodeOptions exposing (NodeOptions, oToInputO)
 
 import Api.Node exposing (Node)
 import Api.Point exposing (Point)
 import Time
+import UI.Form exposing (NodeInputOptions)
 
 
 type alias NodeOptions msg =
@@ -13,4 +14,14 @@ type alias NodeOptions msg =
     , parent : Maybe Node
     , node : Node
     , onEditNodePoint : Point -> msg
+    }
+
+
+oToInputO : NodeOptions msg -> Int -> NodeInputOptions msg
+oToInputO o labelWidth =
+    { onEditNodePoint = o.onEditNodePoint
+    , node = o.node
+    , now = o.now
+    , zone = o.zone
+    , labelWidth = labelWidth
     }

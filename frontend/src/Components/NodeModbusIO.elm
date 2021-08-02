@@ -1,7 +1,7 @@
 module Components.NodeModbusIO exposing (view)
 
 import Api.Point as Point
-import Components.NodeOptions exposing (NodeOptions)
+import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -19,65 +19,26 @@ view o =
         labelWidth =
             150
 
+        opts =
+            oToInputO o labelWidth
+
         textInput =
-            Form.nodeTextInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            Form.nodeTextInput opts "" 0
 
         numberInput =
-            Form.nodeNumberInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            Form.nodeNumberInput opts "" 0
 
         onOffInput =
-            Form.nodeOnOffInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            Form.nodeOnOffInput opts "" 0
 
         optionInput =
-            Form.nodeOptionInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            Form.nodeOptionInput opts "" 0
 
         checkboxInput =
-            Form.nodeCheckboxInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            Form.nodeCheckboxInput opts "" 0
 
         counterWithReset =
-            Form.nodeCounterWithReset
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth + 150
-                }
-                ""
-                0
+            Form.nodeCounterWithReset opts "" 0
 
         modbusIOType =
             Point.getText o.node.points "" 0 Point.typeModbusIOType

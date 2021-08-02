@@ -1,5 +1,6 @@
 module UI.Form exposing
-    ( button
+    ( NodeInputOptions
+    , button
     , buttonRow
     , label
     , nodeCheckboxInput
@@ -148,12 +149,17 @@ button options =
         }
 
 
-nodeTextInput :
+type alias NodeInputOptions msg =
     { onEditNodePoint : Point -> msg
     , node : Node
     , now : Time.Posix
+    , zone : Time.Zone
     , labelWidth : Int
     }
+
+
+nodeTextInput :
+    NodeInputOptions msg
     -> String
     -> Int
     -> String
@@ -172,12 +178,7 @@ nodeTextInput o id index typ lbl =
 
 
 nodeTimeInput :
-    { onEditNodePoint : Point -> msg
-    , node : Node
-    , now : Time.Posix
-    , zone : Time.Zone
-    , labelWidth : Int
-    }
+    NodeInputOptions msg
     -> String
     -> Int
     -> String
@@ -223,11 +224,7 @@ nodeTimeInput o id index typ lbl =
 
 
 nodeCheckboxInput :
-    { onEditNodePoint : Point -> msg
-    , node : Node
-    , now : Time.Posix
-    , labelWidth : Int
-    }
+    NodeInputOptions msg
     -> String
     -> Int
     -> String
@@ -266,11 +263,7 @@ nodeCheckboxInput o id index typ lbl =
 
 
 nodeNumberInput :
-    { onEditNodePoint : Point -> msg
-    , node : Node
-    , now : Time.Posix
-    , labelWidth : Int
-    }
+    NodeInputOptions msg
     -> String
     -> Int
     -> String
@@ -338,11 +331,7 @@ nodeNumberInput o id index typ lbl =
 
 
 nodeOptionInput :
-    { onEditNodePoint : Point -> msg
-    , node : Node
-    , now : Time.Posix
-    , labelWidth : Int
-    }
+    NodeInputOptions msg
     -> String
     -> Int
     -> String
@@ -373,11 +362,7 @@ nodeOptionInput o id index typ lbl options =
 
 
 nodeCounterWithReset :
-    { onEditNodePoint : Point -> msg
-    , node : Node
-    , now : Time.Posix
-    , labelWidth : Int
-    }
+    NodeInputOptions msg
     -> String
     -> Int
     -> String
@@ -420,11 +405,7 @@ nodeCounterWithReset o id index typ pointResetName lbl =
 
 
 nodeOnOffInput :
-    { onEditNodePoint : Point -> msg
-    , node : Node
-    , now : Time.Posix
-    , labelWidth : Int
-    }
+    NodeInputOptions msg
     -> String
     -> Int
     -> String

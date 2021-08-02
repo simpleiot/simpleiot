@@ -1,7 +1,7 @@
 module Components.NodeUser exposing (view)
 
 import Api.Point as Point
-import Components.NodeOptions exposing (NodeOptions)
+import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
 import UI.Form as Form
@@ -15,15 +15,11 @@ view o =
         labelWidth =
             100
 
+        opts =
+            oToInputO o labelWidth
+
         textInput =
-            Form.nodeTextInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            Form.nodeTextInput opts "" 0
 
         textInputLowerCase =
             Form.nodeTextInput
@@ -32,6 +28,7 @@ view o =
                         o.onEditNodePoint { p | text = String.toLower p.text }
                 , node = o.node
                 , now = o.now
+                , zone = o.zone
                 , labelWidth = labelWidth
                 }
                 ""

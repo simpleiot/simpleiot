@@ -1,7 +1,7 @@
 module Components.NodeVariable exposing (view)
 
 import Api.Point as Point
-import Components.NodeOptions exposing (NodeOptions)
+import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -19,45 +19,20 @@ view o =
         labelWidth =
             150
 
+        opts =
+            oToInputO o labelWidth
+
         textInput =
-            Form.nodeTextInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            Form.nodeTextInput opts "" 0
 
         optionInput =
-            Form.nodeOptionInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            Form.nodeOptionInput opts "" 0
 
         numberInput =
-            Form.nodeNumberInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            Form.nodeNumberInput opts "" 0
 
         onOffInput =
-            Form.nodeOnOffInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            Form.nodeOnOffInput opts "" 0
 
         value =
             Point.getValue o.node.points "" 0 Point.typeValue

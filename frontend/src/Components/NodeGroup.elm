@@ -1,7 +1,7 @@
 module Components.NodeGroup exposing (view)
 
 import Api.Point as Point
-import Components.NodeOptions exposing (NodeOptions)
+import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
 import UI.Form as Form
@@ -12,15 +12,11 @@ import UI.Style exposing (colors)
 view : NodeOptions msg -> Element msg
 view o =
     let
+        opts =
+            oToInputO o 100
+
         textInput =
-            Form.nodeTextInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = 100
-                }
-                ""
-                0
+            Form.nodeTextInput opts "" 0
     in
     column
         [ width fill
