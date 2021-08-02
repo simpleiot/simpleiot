@@ -4,8 +4,8 @@ import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
-import UI.Form as Form
 import UI.Icon as Icon
+import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
 
 
@@ -16,7 +16,7 @@ view o =
             oToInputO o 100
 
         textInput =
-            Form.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts "" 0
     in
     column
         [ width fill

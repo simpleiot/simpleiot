@@ -6,8 +6,8 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import UI.Form as Form
 import UI.Icon as Icon
+import UI.NodeInputs as NodeInputs
 import UI.Style as Style exposing (colors)
 
 
@@ -18,7 +18,7 @@ view o =
             oToInputO o 100
 
         textInput =
-            Form.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts "" 0
 
         active =
             Point.getBool o.node.points "" 0 Point.typeActive

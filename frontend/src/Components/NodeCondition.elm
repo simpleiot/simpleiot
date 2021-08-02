@@ -6,8 +6,8 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import UI.Form as Form
 import UI.Icon as Icon
+import UI.NodeInputs as NodeInputs
 import UI.Style as Style exposing (colors)
 
 
@@ -21,10 +21,10 @@ view o =
             oToInputO o labelWidth
 
         textInput =
-            Form.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts "" 0
 
         optionInput =
-            Form.nodeOptionInput opts "" 0
+            NodeInputs.nodeOptionInput opts "" 0
 
         conditionType =
             Point.getText o.node.points "" 0 Point.typeConditionType
@@ -86,7 +86,7 @@ schedule : NodeOptions msg -> Int -> Element msg
 schedule o labelWidth =
     let
         timeInput =
-            Form.nodeTimeInput
+            NodeInputs.nodeTimeInput
                 { onEditNodePoint = o.onEditNodePoint
                 , node = o.node
                 , now = o.now
@@ -102,7 +102,7 @@ schedule o labelWidth =
         weekdayCheckboxInput index label =
             column []
                 [ text label
-                , Form.nodeCheckboxInput opts "" index Point.typeWeekday ""
+                , NodeInputs.nodeCheckboxInput opts "" index Point.typeWeekday ""
                 ]
     in
     column
@@ -133,16 +133,16 @@ pointValue o labelWidth =
             oToInputO o labelWidth
 
         textInput =
-            Form.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts "" 0
 
         numberInput =
-            Form.nodeNumberInput opts "" 0
+            NodeInputs.nodeNumberInput opts "" 0
 
         optionInput =
-            Form.nodeOptionInput opts "" 0
+            NodeInputs.nodeOptionInput opts "" 0
 
         onOffInput =
-            Form.nodeOnOffInput opts "" 0
+            NodeInputs.nodeOnOffInput opts "" 0
 
         conditionValueType =
             Point.getText o.node.points "" 0 Point.typeValueType

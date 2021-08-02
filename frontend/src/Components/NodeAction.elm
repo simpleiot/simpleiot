@@ -4,8 +4,8 @@ import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
-import UI.Form as Form
 import UI.Icon as Icon
+import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
 
@@ -20,16 +20,16 @@ view o =
             oToInputO o labelWidth
 
         textInput =
-            Form.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts "" 0
 
         optionInput =
-            Form.nodeOptionInput opts "" 0
+            NodeInputs.nodeOptionInput opts "" 0
 
         numberInput =
-            Form.nodeNumberInput opts "" 0
+            NodeInputs.nodeNumberInput opts "" 0
 
         onOffInput =
-            Form.nodeOnOffInput opts "" 0
+            NodeInputs.nodeOnOffInput opts "" 0
 
         actionType =
             Point.getText o.node.points "" 0 Point.typeActionType

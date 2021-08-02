@@ -3,7 +3,7 @@ module Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Api.Node exposing (Node)
 import Api.Point exposing (Point)
 import Time
-import UI.Form exposing (NodeInputOptions)
+import UI.NodeInputs exposing (NodeInputOptions)
 
 
 type alias NodeOptions msg =
