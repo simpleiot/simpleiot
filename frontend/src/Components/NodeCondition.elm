@@ -85,45 +85,13 @@ view o =
 schedule : NodeOptions msg -> Int -> Element msg
 schedule o labelWidth =
     let
-        timeInput =
-            NodeInputs.nodeTimeInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , zone = o.zone
-                , labelWidth = labelWidth
-                }
-                ""
-                0
-
         opts =
             oToInputO o labelWidth
 
-        weekdayCheckboxInput index label =
-            column []
-                [ text label
-                , NodeInputs.nodeCheckboxInput opts "" index Point.typeWeekday ""
-                ]
+        timeDateInput =
+            NodeInputs.nodeTimeDateInput opts labelWidth
     in
-    column
-        [ width fill
-        , spacing 6
-        , paddingEach { top = 15, right = 0, bottom = 0, left = 0 }
-        ]
-        [ wrappedRow [ spacing 10, paddingEach { top = 0, right = 0, bottom = 5, left = labelWidth } ]
-            -- here, number matches Go Weekday definitions
-            -- https://pkg.go.dev/time#Weekday
-            [ weekdayCheckboxInput 0 " S"
-            , weekdayCheckboxInput 1 " M"
-            , weekdayCheckboxInput 2 " T"
-            , weekdayCheckboxInput 3 " W"
-            , weekdayCheckboxInput 4 " T"
-            , weekdayCheckboxInput 5 " F"
-            , weekdayCheckboxInput 6 " S"
-            ]
-        , timeInput Point.typeStart "Start time"
-        , timeInput Point.typeEnd "End time"
-        ]
+    timeDateInput
 
 
 pointValue : NodeOptions msg -> Int -> Element msg

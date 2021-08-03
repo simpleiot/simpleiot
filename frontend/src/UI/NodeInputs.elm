@@ -6,6 +6,7 @@ module UI.NodeInputs exposing
     , nodeOnOffInput
     , nodeOptionInput
     , nodeTextInput
+    , nodeTimeDateInput
     , nodeTimeInput
     )
 
@@ -97,6 +98,88 @@ nodeTimeInput o id index typ lbl =
         }
 
 
+nodeTimeDateInput : NodeInputOptions msg -> Int -> Element msg
+nodeTimeDateInput o labelWidth =
+    let
+        zoneOffset =
+            Time.Extra.toOffset o.zone o.now
+
+        start =
+            Point.getText o.node.points "" 0 Point.typeStart
+
+        startDisplay =
+            case Sanitize.parseHM start of
+                Just time ->
+                    toLocal zoneOffset time
+
+                Nothing ->
+                    start
+
+        end =
+            Point.getText o.node.points "" 0 Point.typeEnd
+
+        endDisplay =
+            case Sanitize.parseHM end of
+                Just time ->
+                    toLocal zoneOffset time
+
+                Nothing ->
+                    end
+
+        send typ d =
+            let
+                dClean =
+                    Sanitize.time d
+
+                sendValue =
+                    case Sanitize.parseHM dClean of
+                        Just time ->
+                            toUTC zoneOffset time
+
+                        Nothing ->
+                            d
+            in
+            o.onEditNodePoint [ Point "" 0 typ o.now 0 sendValue 0 0 ]
+
+        weekdayCheckboxInput index label =
+            column []
+                [ el [ alignRight ] <| text label
+                , nodeCheckboxInput o "" index Point.typeWeekday ""
+                ]
+    in
+    column [ spacing 5 ]
+        [ wrappedRow
+            [ spacing 20
+            , paddingEach { top = 0, right = 0, bottom = 5, left = 0 }
+            ]
+            -- here, number matches Go Weekday definitions
+            -- https://pkg.go.dev/time#Weekday
+            [ el [ width <| px labelWidth ] none
+            , weekdayCheckboxInput 0 "S"
+            , weekdayCheckboxInput 1 "M"
+            , weekdayCheckboxInput 2 "T"
+            , weekdayCheckboxInput 3 "W"
+            , weekdayCheckboxInput 4 "T"
+            , weekdayCheckboxInput 5 "F"
+            , weekdayCheckboxInput 6 "S"
+            ]
+        , Input.text
+            []
+            { onChange = send Point.typeStart
+            , text = startDisplay
+            , placeholder = Nothing
+            , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| "Start time:"
+            }
+        , Input.text
+            []
+            { onChange = send Point.typeEnd
+            , text = endDisplay
+            , placeholder = Nothing
+            , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| "End time:"
+            }
+        ]
+
+
 nodeCheckboxInput :
     NodeInputOptions msg
     -> String
@@ -123,16 +206,15 @@ nodeCheckboxInput o id index typ lbl =
             Point.getValue o.node.points id index typ == 1
         , icon = Input.defaultCheckbox
         , label =
-            Input.labelLeft [ width (px o.labelWidth) ] <|
-                el [ alignRight ] <|
-                    text <|
-                        lbl
-                            ++ (if lbl /= "" then
-                                    ":"
+            if lbl /= "" then
+                Input.labelLeft [ width (px o.labelWidth) ] <|
+                    el [ alignRight ] <|
+                        text <|
+                            lbl
+                                ++ ":"
 
-                                else
-                                    ""
-                               )
+            else
+                Input.labelHidden ""
         }
 
 
