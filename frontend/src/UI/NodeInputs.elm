@@ -15,13 +15,14 @@ import Api.Point as Point exposing (Point)
 import Color
 import Element exposing (..)
 import Element.Input as Input
+import List.Extra
 import Round
 import Svg as S
 import Svg.Attributes as Sa
 import Time
 import Time.Extra
 import UI.Sanitize as Sanitize
-import Utils.Time exposing (toLocal, toUTC)
+import Utils.Time exposing (scheduleToLocal, scheduleToUTC, toLocal, toUTC)
 
 
 type alias NodeInputOptions msg =
@@ -104,48 +105,34 @@ nodeTimeDateInput o labelWidth =
         zoneOffset =
             Time.Extra.toOffset o.zone o.now
 
-        start =
-            Point.getText o.node.points "" 0 Point.typeStart
+        sModel =
+            pointsToSchedule o.node.points
 
-        startDisplay =
-            case Sanitize.parseHM start of
-                Just time ->
-                    toLocal zoneOffset time
+        sDisp =
+            checkScheduleToLocal zoneOffset sModel
 
-                Nothing ->
-                    start
-
-        end =
-            Point.getText o.node.points "" 0 Point.typeEnd
-
-        endDisplay =
-            case Sanitize.parseHM end of
-                Just time ->
-                    toLocal zoneOffset time
-
-                Nothing ->
-                    end
-
-        send typ d =
+        send updateSchedule d =
             let
                 dClean =
                     Sanitize.time d
-
-                sendValue =
-                    case Sanitize.parseHM dClean of
-                        Just time ->
-                            toUTC zoneOffset time
-
-                        Nothing ->
-                            d
             in
-            o.onEditNodePoint [ Point "" 0 typ o.now 0 sendValue 0 0 ]
+            updateSchedule sDisp dClean
+                |> checkScheduleToUTC zoneOffset
+                |> scheduleToPoints o.now
+                |> o.onEditNodePoint
 
         weekdayCheckboxInput index label =
-            column []
-                [ el [ alignRight ] <| text label
-                , nodeCheckboxInput o "" index Point.typeWeekday ""
-                ]
+            Input.checkbox []
+                { onChange =
+                    \d ->
+                        updateScheduleWkday sDisp index d
+                            |> checkScheduleToUTC zoneOffset
+                            |> scheduleToPoints o.now
+                            |> o.onEditNodePoint
+                , checked = List.member index sDisp.weekdays
+                , icon = Input.defaultCheckbox
+                , label = Input.labelAbove [] <| text label
+                }
     in
     column [ spacing 5 ]
         [ wrappedRow
@@ -165,19 +152,114 @@ nodeTimeDateInput o labelWidth =
             ]
         , Input.text
             []
-            { onChange = send Point.typeStart
-            , text = startDisplay
+            { label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| "Start time:"
+            , onChange = send (\sched d -> { sched | startTime = d })
+            , text = sDisp.startTime
             , placeholder = Nothing
-            , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| "Start time:"
             }
         , Input.text
             []
-            { onChange = send Point.typeEnd
-            , text = endDisplay
+            { label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| "End time:"
+            , onChange = send (\sched d -> { sched | endTime = d })
+            , text = sDisp.endTime
             , placeholder = Nothing
-            , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| "End time:"
             }
         ]
+
+
+pointsToSchedule : List Point -> Utils.Time.Schedule
+pointsToSchedule points =
+    let
+        start =
+            Point.getText points "" 0 Point.typeStart
+
+        end =
+            Point.getText points "" 0 Point.typeEnd
+
+        weekdays =
+            List.filter
+                (\d ->
+                    let
+                        p =
+                            Point.getValue points "" d Point.typeWeekday
+                    in
+                    p == 1
+                )
+                [ 0, 1, 2, 3, 4, 5, 6 ]
+    in
+    { startTime = start
+    , endTime = end
+    , weekdays = weekdays
+    }
+
+
+scheduleToPoints : Time.Posix -> Utils.Time.Schedule -> List Point
+scheduleToPoints now sched =
+    [ Point "" 0 Point.typeStart now 0 sched.startTime 0 0
+    , Point "" 0 Point.typeEnd now 0 sched.endTime 0 0
+    ]
+        ++ List.map
+            (\wday ->
+                if List.member wday sched.weekdays then
+                    Point "" wday Point.typeWeekday now 1 "" 0 0
+
+                else
+                    Point "" wday Point.typeWeekday now 0 "" 0 0
+            )
+            [ 0, 1, 2, 3, 4, 5, 6 ]
+
+
+
+-- only convert to utc if both times are valid
+
+
+checkScheduleToUTC : Int -> Utils.Time.Schedule -> Utils.Time.Schedule
+checkScheduleToUTC offset sched =
+    if validHM sched.startTime && validHM sched.endTime then
+        scheduleToUTC offset sched
+
+    else
+        sched
+
+
+updateScheduleWkday : Utils.Time.Schedule -> Int -> Bool -> Utils.Time.Schedule
+updateScheduleWkday sched index checked =
+    let
+        weekdays =
+            if checked then
+                if List.member index sched.weekdays then
+                    sched.weekdays
+
+                else
+                    index :: sched.weekdays
+
+            else
+                List.Extra.remove index sched.weekdays
+    in
+    { sched | weekdays = List.sort weekdays }
+
+
+
+-- only convert to local if both times are valid
+
+
+checkScheduleToLocal : Int -> Utils.Time.Schedule -> Utils.Time.Schedule
+checkScheduleToLocal offset sched =
+    if validHM sched.startTime && validHM sched.endTime then
+        scheduleToLocal offset sched
+
+    else
+        sched
+
+
+validHM : String -> Bool
+validHM t =
+    case Sanitize.parseHM t of
+        Just _ ->
+            True
+
+        Nothing ->
+            False
 
 
 nodeCheckboxInput :

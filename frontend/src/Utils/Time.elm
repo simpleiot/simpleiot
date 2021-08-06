@@ -1,4 +1,4 @@
-module Utils.Time exposing (ScheduleTime, scheduleToLocal, scheduleToUTC, toLocal, toUTC)
+module Utils.Time exposing (Schedule, scheduleToLocal, scheduleToUTC, toLocal, toUTC)
 
 import TypedTime exposing (TypedTime)
 
@@ -68,14 +68,14 @@ normalizeTypedTime t =
         t
 
 
-type alias ScheduleTime =
+type alias Schedule =
     { startTime : String
     , endTime : String
     , weekdays : List Int
     }
 
 
-scheduleToLocal : Int -> ScheduleTime -> ScheduleTime
+scheduleToLocal : Int -> Schedule -> Schedule
 scheduleToLocal offset s =
     let
         ( startTime, wkoff ) =
@@ -90,7 +90,7 @@ scheduleToLocal offset s =
     }
 
 
-scheduleToUTC : Int -> ScheduleTime -> ScheduleTime
+scheduleToUTC : Int -> Schedule -> Schedule
 scheduleToUTC offset s =
     let
         ( startTime, wkoff ) =
