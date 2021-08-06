@@ -1,8 +1,8 @@
-module UtilsTime exposing (local, utc)
+module UtilsTime exposing (local, schedule, utc)
 
 import Expect
 import Test exposing (..)
-import Utils.Time exposing (toLocal, toUTC)
+import Utils.Time exposing (scheduleToLocal, toLocal, toUTC)
 
 
 local : Test
@@ -38,4 +38,58 @@ utc =
         , test "22:00+4" <|
             \_ ->
                 Expect.equal (toUTC 240 "22:00") "18:00"
+        ]
+
+
+schedule : Test
+schedule =
+    describe "schedule tests"
+        [ test "toLocal no weekday change" <|
+            \_ ->
+                let
+                    sUTC =
+                        { startTime = "05:00"
+                        , endTime = "08:00"
+                        , weekdays = [ 2, 3 ]
+                        }
+
+                    sExp =
+                        { startTime = "01:00"
+                        , endTime = "04:00"
+                        , weekdays = [ 2, 3 ]
+                        }
+                in
+                Expect.equal sExp <| scheduleToLocal -240 sUTC
+        , test "toLocal with weekday change" <|
+            \_ ->
+                let
+                    sUTC =
+                        { startTime = "02:00"
+                        , endTime = "08:00"
+                        , weekdays = [ 0, 2, 3 ]
+                        }
+
+                    sExp =
+                        { startTime = "22:00"
+                        , endTime = "04:00"
+                        , weekdays = [ 1, 2, 6 ]
+                        }
+                in
+                Expect.equal sExp <| scheduleToLocal -240 sUTC
+        , test "toLocal with weekday change pos offset" <|
+            \_ ->
+                let
+                    sUTC =
+                        { startTime = "22:00"
+                        , endTime = "02:00"
+                        , weekdays = [ 2, 3, 6 ]
+                        }
+
+                    sExp =
+                        { startTime = "02:00"
+                        , endTime = "06:00"
+                        , weekdays = [ 0, 3, 4 ]
+                        }
+                in
+                Expect.equal sExp <| scheduleToLocal 240 sUTC
         ]
