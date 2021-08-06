@@ -2,7 +2,7 @@ module UtilsTime exposing (local, schedule, utc)
 
 import Expect
 import Test exposing (..)
-import Utils.Time exposing (scheduleToLocal, toLocal, toUTC)
+import Utils.Time exposing (scheduleToLocal, scheduleToUTC, toLocal, toUTC)
 
 
 local : Test
@@ -92,4 +92,36 @@ schedule =
                         }
                 in
                 Expect.equal sExp <| scheduleToLocal 240 sUTC
+        , test "toUTC with weekday change" <|
+            \_ ->
+                let
+                    sLocal =
+                        { startTime = "22:00"
+                        , endTime = "02:00"
+                        , weekdays = [ 1, 2, 6 ]
+                        }
+
+                    sExp =
+                        { startTime = "02:00"
+                        , endTime = "06:00"
+                        , weekdays = [ 0, 2, 3 ]
+                        }
+                in
+                Expect.equal sExp <| scheduleToUTC -240 sLocal
+        , test "toUTC with weekday change pos offset" <|
+            \_ ->
+                let
+                    sLocal =
+                        { startTime = "02:00"
+                        , endTime = "06:00"
+                        , weekdays = [ 0, 3, 4 ]
+                        }
+
+                    sExp =
+                        { startTime = "22:00"
+                        , endTime = "02:00"
+                        , weekdays = [ 2, 3, 6 ]
+                        }
+                in
+                Expect.equal sExp <| scheduleToUTC 240 sLocal
         ]

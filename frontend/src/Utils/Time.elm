@@ -1,4 +1,4 @@
-module Utils.Time exposing (ScheduleTime, scheduleToLocal, toLocal, toUTC)
+module Utils.Time exposing (ScheduleTime, scheduleToLocal, scheduleToUTC, toLocal, toUTC)
 
 import TypedTime exposing (TypedTime)
 
@@ -86,6 +86,21 @@ scheduleToLocal offset s =
     in
     { startTime = startTime
     , endTime = toLocal offset s.endTime
+    , weekdays = weekdays
+    }
+
+
+scheduleToUTC : Int -> ScheduleTime -> ScheduleTime
+scheduleToUTC offset s =
+    let
+        ( startTime, wkoff ) =
+            toLocalWkdayOffset (negate offset) s.startTime
+
+        weekdays =
+            List.map (applyWkdayOffset wkoff) s.weekdays |> List.sort
+    in
+    { startTime = startTime
+    , endTime = toUTC offset s.endTime
     , weekdays = weekdays
     }
 
