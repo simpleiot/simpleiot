@@ -6,6 +6,7 @@ module UI.Form exposing
     , nodeCounterWithReset
     , nodeNumberInput
     , nodeOnOffInput
+    , nodeOnOffInputWithoutColon
     , nodeOptionInput
     , nodeTextInput
     , onEnter
@@ -368,6 +369,22 @@ nodeOnOffInput :
     -> String
     -> Element msg
 nodeOnOffInput o id index typ pointSetName lbl =
+    nodeOnOffInputWithoutColon o id index typ pointSetName (lbl ++ ":")
+
+
+nodeOnOffInputWithoutColon :
+    { onEditNodePoint : Point -> msg
+    , node : Node
+    , now : Time.Posix
+    , labelWidth : Int
+    }
+    -> String
+    -> Int
+    -> String
+    -> String
+    -> String
+    -> Element msg
+nodeOnOffInputWithoutColon o id index typ pointSetName lbl =
     let
         currentValue =
             Point.getValue o.node.points id index typ
@@ -410,7 +427,7 @@ nodeOnOffInput o id index typ pointSetName lbl =
                 0
     in
     row [ spacing 10 ]
-        [ el [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        [ el [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl
         , Input.button
             []
             { onPress = Just <| o.onEditNodePoint (Point id index pointSetName o.now newValue "" 0 0)

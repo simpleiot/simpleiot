@@ -150,10 +150,11 @@ func (b *Modbus) CheckIOs() error {
 }
 
 // SendPoint sends a point over nats
-func (b *Modbus) SendPoint(nodeID, pointType string, value float64) error {
+func (b *Modbus) SendPoint(nodeID string, index int, pointType string, value float64) error {
 	// send the point
 	p := data.Point{
 		Time:  time.Now(),
+		Index: index,
 		Type:  pointType,
 		Value: value,
 	}
@@ -290,7 +291,7 @@ func (b *Modbus) ReadBusReg(io *ModbusIO) error {
 
 	if value != io.ioNode.value || time.Since(io.lastSent) > time.Minute*10 {
 		io.ioNode.value = value
-		err := b.SendPoint(io.ioNode.nodeID, data.PointTypeValue, value)
+		err := b.SendPoint(io.ioNode.nodeID, 0, data.PointTypeValue, value)
 		if err != nil {
 			return err
 		}
@@ -324,7 +325,7 @@ func (b *Modbus) ReadBusBit(io *ModbusIO) error {
 
 	if value != io.ioNode.value || time.Since(io.lastSent) > time.Minute*10 {
 		io.ioNode.value = value
-		err := b.SendPoint(io.ioNode.nodeID, data.PointTypeValue, value)
+		err := b.SendPoint(io.ioNode.nodeID, 0, data.PointTypeValue, value)
 		if err != nil {
 			return err
 		}
@@ -333,6 +334,58 @@ func (b *Modbus) ReadBusBit(io *ModbusIO) error {
 	}
 
 	io.ioNode.value = value
+
+	return nil
+}
+
+// ReadBusBitArray is used to read coil of discrete input values from bus
+// this function modifies io.value. This should only be called from client.
+func (b *Modbus) ReadBusBitArray(io *ModbusIO) error {
+	var bits []bool
+	var err error
+	switch io.ioNode.modbusIOType {
+	case data.PointValueModbusWP8024ADAM:
+	case data.PointValueModbusWP8025ADAM:
+	case data.PointValueModbusWP8026ADAM:
+		bits, err = b.client.ReadDiscreteInputs(byte(io.ioNode.id),
+			uint16(io.ioNode.address), 16)
+	default:
+		return fmt.Errorf("ReadBusBit: unhandled modbusIOType: %v",
+			io.ioNode.modbusIOType)
+	}
+	if err != nil {
+		return err
+	}
+	if len(bits) < 1 {
+		return errors.New("Did not receive enough data")
+	}
+
+	var valueArray [16]float64
+	for i, _ := range valueArray {
+		valueArray[i] = data.BoolToFloat(bits[i])
+	}
+
+	// FIXME: for testing
+	valueArray[3] = 1
+	valueArray[15] = 1
+
+	fmt.Println("COLLIN")
+
+	for i, v := range valueArray {
+		if v != io.ioNode.valueArray[i] ||
+			time.Since(io.lastSent) > time.Minute*10 {
+
+			io.ioNode.valueArray[i] = v
+			err := b.SendPoint(io.ioNode.nodeID, i, data.PointTypeValue, v)
+			if err != nil {
+				return err
+			}
+
+			io.lastSent = time.Now()
+		}
+
+		io.ioNode.valueArray[i] = v
+	}
 
 	return nil
 }
@@ -362,7 +415,7 @@ func (b *Modbus) ClientIO(io *ModbusIO) error {
 				return err
 			}
 
-			err = b.SendPoint(io.ioNode.nodeID, data.PointTypeValue, io.ioNode.valueSet)
+			err = b.SendPoint(io.ioNode.nodeID, 0, data.PointTypeValue, io.ioNode.valueSet)
 			if err != nil {
 				return err
 			}
@@ -388,7 +441,7 @@ func (b *Modbus) ClientIO(io *ModbusIO) error {
 				return err
 			}
 
-			err = b.SendPoint(io.ioNode.nodeID, data.PointTypeValue, io.ioNode.valueSet)
+			err = b.SendPoint(io.ioNode.nodeID, 0, data.PointTypeValue, io.ioNode.valueSet)
 			if err != nil {
 				return err
 			}
@@ -396,6 +449,14 @@ func (b *Modbus) ClientIO(io *ModbusIO) error {
 
 	case data.PointValueModbusInputRegister:
 		err := b.ReadBusReg(io)
+		if err != nil {
+			return err
+		}
+
+	case data.PointValueModbusWP8024ADAM:
+	case data.PointValueModbusWP8025ADAM:
+	case data.PointValueModbusWP8026ADAM:
+		err := b.ReadBusBitArray(io)
 		if err != nil {
 			return err
 		}
@@ -422,7 +483,7 @@ func (b *Modbus) ServerIO(io *ModbusIONode) error {
 		dbValue := data.FloatToBool(io.value)
 
 		if regValue != dbValue {
-			err = b.SendPoint(io.nodeID, data.PointTypeValue, data.BoolToFloat(regValue))
+			err = b.SendPoint(io.nodeID, 0, data.PointTypeValue, data.BoolToFloat(regValue))
 			if err != nil {
 				return err
 			}
@@ -438,7 +499,7 @@ func (b *Modbus) ServerIO(io *ModbusIONode) error {
 		}
 
 		if io.value != v {
-			err = b.SendPoint(io.nodeID, data.PointTypeValue, v)
+			err = b.SendPoint(io.nodeID, 0, data.PointTypeValue, v)
 			if err != nil {
 				return err
 			}
