@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -21,6 +22,11 @@ type Condition struct {
 	Active         bool
 }
 
+func (c Condition) String() string {
+	ret := fmt.Sprintf("  COND: %v, %v\n", c.Description, c.Active)
+	return ret
+}
+
 // Action defines actions that can be taken if a rule is active.
 // Template can optionally be used to customize the message that is sent and
 // uses Io Type or IDs to fill in the values. Example might be:
@@ -34,6 +40,11 @@ type Action struct {
 	PointValueType string
 	PointValue     float64
 	PointTextValue string
+}
+
+func (a Action) String() string {
+	ret := fmt.Sprintf("  ACTION: %v, %v\n", a.Description, a.PointValue)
+	return ret
 }
 
 // RuleConfig contains parts of the rule that a users changes
@@ -56,6 +67,19 @@ type Rule struct {
 	Active      bool
 	Conditions  []Condition
 	Actions     []Action
+}
+
+func (r Rule) String() string {
+	ret := fmt.Sprintf("Rule: %v\n", r.Description)
+	ret += fmt.Sprintf("  active: %v\n", r.Active)
+	for _, c := range r.Conditions {
+		ret += fmt.Sprintf("%v", c)
+	}
+	for _, a := range r.Actions {
+		ret += fmt.Sprintf("%v", a)
+	}
+
+	return ret
 }
 
 // NodeToRule converts nodes that make up a rule to a node
