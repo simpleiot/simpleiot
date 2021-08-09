@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- improve rule condition processing to process all conditions/points rather than
+  just first match
+
 ## [[0.0.30] - 2021-07-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.29)
 
 - fix using SIOT_AUTH_TOKEN for -logNats command line option
