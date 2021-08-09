@@ -15,10 +15,10 @@ import (
 // Currently, this function only processes the first point that matches -- this should
 // handle all current uses.
 func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data.Points) (bool, error) {
+	pointsProcessed := false
+
 	for _, p := range points {
-		allActive := true
-		pointProcessed := false
-		for _, c := range r.Conditions {
+		for i, c := range r.Conditions {
 			if c.NodeID != "" && c.NodeID != nodeID {
 				continue
 			}
@@ -37,35 +37,46 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 
 			var active bool
 
-			pointProcessed = true
+			switch c.ConditionType {
+			case data.PointValuePointValue:
+				pointsProcessed = true
 
-			// conditions match, so check value
-			switch c.PointValueType {
-			case data.PointValueNumber:
-				switch c.Operator {
-				case data.PointValueGreaterThan:
-					active = p.Value > c.PointValue
-				case data.PointValueLessThan:
-					active = p.Value < c.PointValue
-				case data.PointValueEqual:
-					active = p.Value == c.PointValue
-				case data.PointValueNotEqual:
-					active = p.Value != c.PointValue
+				// conditions match, so check value
+				switch c.PointValueType {
+				case data.PointValueNumber:
+					switch c.Operator {
+					case data.PointValueGreaterThan:
+						active = p.Value > c.PointValue
+					case data.PointValueLessThan:
+						active = p.Value < c.PointValue
+					case data.PointValueEqual:
+						active = p.Value == c.PointValue
+					case data.PointValueNotEqual:
+						active = p.Value != c.PointValue
+					}
+				case data.PointValueText:
+					switch c.Operator {
+					case data.PointValueEqual:
+					case data.PointValueNotEqual:
+					case data.PointValueContains:
+					}
+				case data.PointValueOnOff:
+					condValue := c.PointValue != 0
+					pointValue := p.Value != 0
+					active = condValue == pointValue
 				}
-			case data.PointValueText:
-				switch c.Operator {
-				case data.PointValueEqual:
-				case data.PointValueNotEqual:
-				case data.PointValueContains:
+			case data.PointValueSchedule:
+				if p.Type != data.PointTypeTrigger {
+					continue
 				}
-			case data.PointValueOnOff:
-				condValue := c.PointValue != 0
-				pointValue := p.Value != 0
-				active = condValue == pointValue
-			}
+				sched := newSchedule(c.StartTime, c.EndTime, c.Weekdays)
 
-			if !active {
-				allActive = false
+				var err error
+				active, err = sched.activeForTime(p.Time)
+				if err != nil {
+					log.Println("Error parsing schedule time: ", err)
+					continue
+				}
 			}
 
 			if active != c.Active {
@@ -80,25 +91,36 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 				if err != nil {
 					log.Println("Rule error sending point: ", err)
 				}
+
+				r.Conditions[i].Active = active
+			}
+		}
+	}
+
+	if pointsProcessed {
+		allActive := true
+
+		for _, c := range r.Conditions {
+			if !c.Active {
+				allActive = false
+				break
 			}
 		}
 
-		if pointProcessed {
-			if allActive != r.Active {
-				p := data.Point{
-					Type:  data.PointTypeActive,
-					Time:  time.Now(),
-					Value: data.BoolToFloat(allActive),
-				}
+		if allActive != r.Active {
+			p := data.Point{
+				Type:  data.PointTypeActive,
+				Time:  time.Now(),
+				Value: data.BoolToFloat(allActive),
+			}
 
-				err := nats.SendNodePoint(nc, r.ID, p, false)
-				if err != nil {
-					log.Println("Rule error sending point: ", err)
-				}
+			err := nats.SendNodePoint(nc, r.ID, p, false)
+			if err != nil {
+				log.Println("Rule error sending point: ", err)
 			}
 		}
 
-		if pointProcessed && allActive {
+		if allActive {
 			return true, nil
 		}
 	}

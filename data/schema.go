@@ -110,8 +110,11 @@ const (
 	PointValuePointValue   = "pointValue"
 	PointValueSchedule     = "schedule"
 
-	PointTypeStart = "start"
-	PointTypeEnd   = "end"
+	PointTypeTrigger = "trigger"
+
+	PointTypeStart   = "start"
+	PointTypeEnd     = "end"
+	PointTypeWeekday = "weekday"
 
 	PointTypePointID    = "pointID"
 	PointTypePointType  = "pointType"

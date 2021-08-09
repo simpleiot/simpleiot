@@ -5,11 +5,16 @@ import (
 	"time"
 )
 
-// Condition defines parameters to look for in a sample. Either SampleType or SampleID
-// (or both) can be set. They can't both be "".
+// Condition defines parameters to look for in a point or a schedule.
 type Condition struct {
-	ID             string
-	Description    string
+	// general parameters
+	ID            string
+	Description   string
+	ConditionType string
+	MinTimeActive float64
+	Active        bool
+
+	// used with point value rules
 	NodeID         string
 	PointType      string
 	PointID        string
@@ -18,12 +23,15 @@ type Condition struct {
 	Operator       string
 	PointValue     float64
 	PointTextValue string
-	MinTimeActive  float64
-	Active         bool
+
+	// used with shedule rules
+	StartTime string
+	EndTime   string
+	Weekdays  []time.Weekday
 }
 
 func (c Condition) String() string {
-	ret := fmt.Sprintf("  COND: %v, %v\n", c.Description, c.Active)
+	ret := fmt.Sprintf("  COND: %v, V:%v, A:%v\n", c.Description, c.PointValue, c.Active)
 	return ret
 }
 
@@ -103,6 +111,8 @@ func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (*Rul
 			switch p.Type {
 			case PointTypeDescription:
 				newCond.Description = p.Text
+			case PointTypeConditionType:
+				newCond.ConditionType = p.Text
 			case PointTypeID:
 				newCond.NodeID = p.Text
 			case PointTypePointType:
@@ -121,6 +131,14 @@ func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (*Rul
 				newCond.MinTimeActive = p.Value
 			case PointTypeActive:
 				newCond.Active = FloatToBool(p.Value)
+			case PointTypeStart:
+				newCond.StartTime = p.Text
+			case PointTypeEnd:
+				newCond.EndTime = p.Text
+			case PointTypeWeekday:
+				if p.Value >= 0 {
+					newCond.Weekdays = append(newCond.Weekdays, time.Weekday(p.Index))
+				}
 			}
 		}
 		ret.Conditions = append(ret.Conditions, newCond)
