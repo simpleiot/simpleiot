@@ -60,3 +60,18 @@ func TestScheduleWrapDay(t *testing.T) {
 
 	tests.run(t, sched)
 }
+
+func TestScheduleWrapDayWeekday(t *testing.T) {
+	sched := newSchedule("20:00", "2:00", []time.Weekday{1})
+
+	// 2021-08-09 is a Monday
+	tests := testTable{
+		{time.Date(2021, time.August, 9, 21, 0, 0, 0, time.UTC), true},
+		// the following should is not true as sched starts on previous
+		// weekday
+		{time.Date(2021, time.August, 9, 1, 0, 0, 0, time.UTC), false},
+		{time.Date(2021, time.August, 10, 1, 0, 0, 0, time.UTC), true},
+	}
+
+	tests.run(t, sched)
+}
