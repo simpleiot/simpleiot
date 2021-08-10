@@ -136,7 +136,7 @@ func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (*Rul
 			case PointTypeEnd:
 				newCond.EndTime = p.Text
 			case PointTypeWeekday:
-				if p.Value >= 0 {
+				if p.Value > 0 {
 					newCond.Weekdays = append(newCond.Weekdays, time.Weekday(p.Index))
 				}
 			}

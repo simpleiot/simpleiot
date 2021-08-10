@@ -14,7 +14,7 @@ import (
 // and rule active status. Returns true if point was processed and active is true.
 // Currently, this function only processes the first point that matches -- this should
 // handle all current uses.
-func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data.Points) (bool, error) {
+func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data.Points) (bool, bool, error) {
 	pointsProcessed := false
 
 	for _, p := range points {
@@ -39,11 +39,11 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 
 			switch c.ConditionType {
 			case data.PointValuePointValue:
-				pointsProcessed = true
 
 				// conditions match, so check value
 				switch c.PointValueType {
 				case data.PointValueNumber:
+					pointsProcessed = true
 					switch c.Operator {
 					case data.PointValueGreaterThan:
 						active = p.Value > c.PointValue
@@ -55,12 +55,14 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 						active = p.Value != c.PointValue
 					}
 				case data.PointValueText:
+					pointsProcessed = true
 					switch c.Operator {
 					case data.PointValueEqual:
 					case data.PointValueNotEqual:
 					case data.PointValueContains:
 					}
 				case data.PointValueOnOff:
+					pointsProcessed = true
 					condValue := c.PointValue != 0
 					pointValue := p.Value != 0
 					active = condValue == pointValue
@@ -69,6 +71,7 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 				if p.Type != data.PointTypeTrigger {
 					continue
 				}
+				pointsProcessed = true
 				sched := newSchedule(c.StartTime, c.EndTime, c.Weekdays)
 
 				var err error
@@ -107,6 +110,8 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 			}
 		}
 
+		changed := false
+
 		if allActive != r.Active {
 			p := data.Point{
 				Type:  data.PointTypeActive,
@@ -118,14 +123,15 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 			if err != nil {
 				log.Println("Rule error sending point: ", err)
 			}
+			changed = true
 		}
 
 		if allActive {
-			return true, nil
+			return true, changed, nil
 		}
 	}
 
-	return false, nil
+	return false, false, nil
 }
 
 // ruleRunActions runs rule actions

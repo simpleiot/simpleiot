@@ -84,7 +84,49 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 		return nil, fmt.Errorf("Subscribe message error: %w", err)
 	}
 
+	go func() {
+		for {
+			childNodes, err := nh.db.nodeDescendents(nh.db.rootNodeID(), "", false, false)
+			if err != nil {
+				log.Println("Error getting child nodes to run schedule: ", err)
+			} else {
+				for _, c := range childNodes {
+					err := nh.runSchedule(c)
+					if err != nil {
+						log.Println("Error running schedule: ", err)
+					}
+				}
+			}
+			time.Sleep(time.Second * 5)
+		}
+	}()
+
 	return nc, nil
+}
+
+func (nh *NatsHandler) runSchedule(node data.NodeEdge) error {
+	switch node.Type {
+	case data.NodeTypeRule:
+		p := data.Point{Time: time.Now(), Type: data.PointTypeTrigger}
+		err := nh.processRuleNode(node, "", []data.Point{p})
+		if err != nil {
+			return err
+		}
+
+	case data.NodeTypeGroup:
+		childNodes, err := nh.db.nodeDescendents(node.ID, "", false, false)
+		if err != nil {
+			return err
+		}
+		for _, c := range childNodes {
+			err := nh.runSchedule(c)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (nh *NatsHandler) setSwUpdateState(id string, state data.SwUpdateState) error {
@@ -499,6 +541,40 @@ func (nh *NatsHandler) reply(subject string, err error) {
 	nh.Nc.Publish(subject, []byte(reply))
 }
 
+func (nh *NatsHandler) processRuleNode(ruleNode data.NodeEdge, sourceNodeID string, points []data.Point) error {
+	conditionNodes, err := nh.db.nodeDescendents(ruleNode.ID, data.NodeTypeCondition,
+		false, false)
+	if err != nil {
+		return err
+	}
+
+	actionNodes, err := nh.db.nodeDescendents(ruleNode.ID, data.NodeTypeAction,
+		false, false)
+	if err != nil {
+		return err
+	}
+
+	rule, err := data.NodeToRule(ruleNode, conditionNodes, actionNodes)
+
+	if err != nil {
+		return err
+	}
+
+	active, changed, err := ruleProcessPoints(nh.Nc, rule, sourceNodeID, points)
+
+	if err != nil {
+		log.Println("Error processing rule point: ", err)
+	}
+
+	if active && changed {
+		err := nh.ruleRunActions(nh.Nc, rule, sourceNodeID)
+		if err != nil {
+			log.Println("Error running rule actions: ", err)
+		}
+	}
+	return nil
+}
+
 func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
 
@@ -509,35 +585,9 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 	}
 
 	for _, ruleNode := range ruleNodes {
-		conditionNodes, err := nh.db.nodeDescendents(ruleNode.ID, data.NodeTypeCondition,
-			false, false)
+		err := nh.processRuleNode(ruleNode, nodeID, points)
 		if err != nil {
 			return err
-		}
-
-		actionNodes, err := nh.db.nodeDescendents(ruleNode.ID, data.NodeTypeAction,
-			false, false)
-		if err != nil {
-			return err
-		}
-
-		rule, err := data.NodeToRule(ruleNode, conditionNodes, actionNodes)
-
-		if err != nil {
-			return err
-		}
-
-		active, err := ruleProcessPoints(nh.Nc, rule, nodeID, points)
-
-		if err != nil {
-			log.Println("Error processing rule point: ", err)
-		}
-
-		if active {
-			err := nh.ruleRunActions(nh.Nc, rule, nodeID)
-			if err != nil {
-				log.Println("Error running rule actions: ", err)
-			}
 		}
 	}
 
