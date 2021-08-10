@@ -9,7 +9,9 @@ and this project adheres to
 For more details or to discuss releases, please visit the
 [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
 
-## Next
+## [Unreleased]
+
+## [[0.0.31] - 2021-08-10](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.31)
 
 - improve rule condition processing to process all conditions/points rather than
   just first match
@@ -17,7 +19,7 @@ For more details or to discuss releases, please visit the
 - switch from github.com/dgrijalva/jwt-go to github.com/golang-jwt/jwt/v4
 - update frontend dependencies to satisify github security checks
 
-## [[0.0.30] - 2021-07-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.29)
+## [[0.0.30] - 2021-07-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.30)
 
 - fix using SIOT_AUTH_TOKEN for -logNats command line option
 - upgrade to NATS 2.2.2. Increases SIOT binary by about 2MB (uncompressed), 1MB
@@ -200,8 +202,6 @@ old version of SIOT and them import with the new version.
   vs sensor data and config
 - add token auth for device HTTP communication
 - documentation improvements
-
-## [Unreleased]
 
 ## [[0.0.10] - 2020-08-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.10)
 
