@@ -14,6 +14,7 @@ For more details or to discuss releases, please visit the
 - improve rule condition processing to process all conditions/points rather than
   just first match
 - implement schedule conditions for rules
+- switch from github.com/dgrijalva/jwt-go to github.com/golang-jwt/jwt/v4
 
 ## [[0.0.30] - 2021-07-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.29)
 
