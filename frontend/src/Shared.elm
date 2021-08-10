@@ -14,6 +14,7 @@ import Components.Navbar exposing (navbar)
 import Element exposing (..)
 import Spa.Document exposing (Document)
 import Spa.Generated.Route as Route
+import Task
 import Time
 import UI.Style as Style
 import Url exposing (Url)
@@ -34,14 +35,15 @@ type alias Model =
     , auth : Maybe Auth
     , error : Maybe String
     , now : Time.Posix
+    , zone : Time.Zone
     , lastError : Time.Posix
     }
 
 
 init : Flags -> Url -> Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( Model url key Nothing Nothing (Time.millisToPosix 0) (Time.millisToPosix 0)
-    , Cmd.none
+    ( Model url key Nothing Nothing (Time.millisToPosix 0) Time.utc (Time.millisToPosix 0)
+    , Task.perform SetZone Time.here
     )
 
 
@@ -51,6 +53,7 @@ init _ url key =
 
 type Msg
     = SignOut
+    | SetZone Time.Zone
     | Tick Time.Posix
 
 
@@ -61,6 +64,9 @@ update msg model =
             ( { model | auth = Nothing }
             , Utils.Route.navigate model.key Route.SignIn
             )
+
+        SetZone zone ->
+            ( { model | zone = zone }, Cmd.none )
 
         Tick now ->
             let
