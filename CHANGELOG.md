@@ -11,6 +11,12 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.32] - 2021-08-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.32)
+
+- add rule audio playback action functionality for Linux (requires alsa-utils)
+- fix various bugs with rule schedule condition functionality
+- all using rule active in rule conditions (allows chaining rules)
+
 ## [[0.0.31] - 2021-08-10](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.31)
 
 - improve rule condition processing to process all conditions/points rather than
