@@ -21,26 +21,25 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 
 	for _, p := range points {
 		for i, c := range r.Conditions {
-			if c.NodeID != "" && c.NodeID != nodeID {
-				continue
-			}
-
-			if c.PointID != "" && c.PointID != p.ID {
-				continue
-			}
-
-			if c.PointType != "" && c.PointType != p.Type {
-				continue
-			}
-
-			if c.PointIndex != -1 && c.PointIndex != int(p.Index) {
-				continue
-			}
-
 			var active bool
 
 			switch c.ConditionType {
 			case data.PointValuePointValue:
+				if c.NodeID != "" && c.NodeID != nodeID {
+					continue
+				}
+
+				if c.PointID != "" && c.PointID != p.ID {
+					continue
+				}
+
+				if c.PointType != "" && c.PointType != p.Type {
+					continue
+				}
+
+				if c.PointIndex != -1 && c.PointIndex != int(p.Index) {
+					continue
+				}
 
 				// conditions match, so check value
 				switch c.PointValueType {
