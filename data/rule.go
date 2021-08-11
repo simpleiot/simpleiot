@@ -48,6 +48,9 @@ type Action struct {
 	PointValueType string
 	PointValue     float64
 	PointTextValue string
+	PointChannel   int
+	PointDevice    string
+	PointFilePath  string
 }
 
 func (a Action) String() string {
@@ -162,6 +165,12 @@ func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (*Rul
 			case PointTypeValue:
 				newAct.PointValue = p.Value
 				newAct.PointTextValue = p.Text
+			case PointTypeChannel:
+				newAct.PointChannel = int(p.Value)
+			case PointTypeDevice:
+				newAct.PointDevice = p.Text
+			case PointTypeFilePath:
+				newAct.PointFilePath = p.Text
 			}
 		}
 		ret.Actions = append(ret.Actions, newAct)

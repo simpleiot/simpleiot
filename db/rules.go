@@ -2,6 +2,8 @@ package db
 
 import (
 	"log"
+	"os/exec"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,26 +21,25 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 
 	for _, p := range points {
 		for i, c := range r.Conditions {
-			if c.NodeID != "" && c.NodeID != nodeID {
-				continue
-			}
-
-			if c.PointID != "" && c.PointID != p.ID {
-				continue
-			}
-
-			if c.PointType != "" && c.PointType != p.Type {
-				continue
-			}
-
-			if c.PointIndex != -1 && c.PointIndex != int(p.Index) {
-				continue
-			}
-
 			var active bool
 
 			switch c.ConditionType {
 			case data.PointValuePointValue:
+				if c.NodeID != "" && c.NodeID != nodeID {
+					continue
+				}
+
+				if c.PointID != "" && c.PointID != p.ID {
+					continue
+				}
+
+				if c.PointType != "" && c.PointType != p.Type {
+					continue
+				}
+
+				if c.PointIndex != -1 && c.PointIndex != int(p.Index) {
+					continue
+				}
 
 				// conditions match, so check value
 				switch c.PointValueType {
@@ -178,6 +179,15 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, triggerNode
 			if err != nil {
 				return err
 			}
+		case data.PointValueActionPlayAudio:
+			channelNum := strconv.Itoa(a.PointChannel)
+			go func() {
+				stderr, err := exec.Command("speaker-test", "-D"+a.PointDevice, "-twav", "-w"+a.PointFilePath, "-c5", "-s"+channelNum).CombinedOutput()
+				if err != nil {
+					log.Println("Play audio error: ", err)
+					log.Printf("Audio stderr: %s\n", stderr)
+				}
+			}()
 		default:
 			log.Println("Uknown rule action: ", a.Action)
 		}

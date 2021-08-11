@@ -105,6 +105,12 @@ siot_build() {
   return 0
 }
 
+siot_build_arm() {
+  siot_build_dependencies --optimize || return 1
+  GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.siotVersion=$(git describe --tags HEAD)" -o siot_arm cmd/siot/main.go || return 1
+  return 0
+}
+
 siot_deploy() {
   siot_build_dependencies || return 1
   gcloud app deploy cmd/portal || return 1

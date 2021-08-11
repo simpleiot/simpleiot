@@ -37,6 +37,9 @@ view o =
         actionSetValue =
             actionType == Point.valueActionSetValue
 
+        actionPlayAudio =
+            actionType == Point.valueActionPlayAudio
+
         valueType =
             Point.getText o.node.points "" 0 Point.typeValueType
     in
@@ -58,6 +61,7 @@ view o =
                         "Action"
                         [ ( Point.valueActionNotify, "notify" )
                         , ( Point.valueActionSetValue, "set node value" )
+                        , ( Point.valueActionPlayAudio, "play audio" )
                         ]
                     , viewIf actionSetValue <|
                         optionInput Point.typePointType
@@ -86,6 +90,12 @@ view o =
 
                             _ ->
                                 Element.none
+                    , viewIf actionPlayAudio <|
+                        textInput Point.typeDevice "Device"
+                    , viewIf actionPlayAudio <|
+                        numberInput Point.typeChannel "Channel"
+                    , viewIf actionPlayAudio <|
+                        textInput Point.typeFilePath "Wav file path"
                     ]
 
                 else

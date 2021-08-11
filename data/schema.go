@@ -4,7 +4,10 @@ package data
 // the system.
 const (
 	// general point types
-	PointTypeDescription string = "description"
+	PointTypeChannel     string = "channel"
+	PointTypeDevice             = "device"
+	PointTypeDescription        = "description"
+	PointTypeFilePath           = "filePath"
 	PointTypeNodeType           = "nodeType"
 	PointTypeTombstone          = "tombstone"
 	PointTypeScale              = "scale"
@@ -139,8 +142,9 @@ const (
 
 	PointTypeActionType = "actionType"
 
-	PointValueActionNotify   = "notify"
-	PointValueActionSetValue = "setValue"
+	PointValueActionNotify    = "notify"
+	PointValueActionSetValue  = "setValue"
+	PointValueActionPlayAudio = "playAudio"
 
 	// Transient points that are used for notifications, etc.
 	// These points are not stored in the state of any node,

@@ -23,12 +23,14 @@ module Api.Point exposing
     , typeAuthToken
     , typeBaud
     , typeBucket
+    , typeChannel
     , typeClientServer
     , typeCmdPending
     , typeConditionType
     , typeDataFormat
     , typeDebug
     , typeDescription
+    , typeDevice
     , typeEmail
     , typeEnd
     , typeErrorCount
@@ -37,6 +39,7 @@ module Api.Point exposing
     , typeErrorCountEOF
     , typeErrorCountEOFReset
     , typeErrorCountReset
+    , typeFilePath
     , typeFirstName
     , typeFrom
     , typeHwVersion
@@ -82,6 +85,7 @@ module Api.Point exposing
     , updatePoint
     , updatePoints
     , valueActionNotify
+    , valueActionPlayAudio
     , valueActionSetValue
     , valueActionSetValueBool
     , valueActionSetValueText
@@ -128,9 +132,24 @@ import Round
 import Time
 
 
+typeChannel : String
+typeChannel =
+    "channel"
+
+
+typeDevice : String
+typeDevice =
+    "device"
+
+
 typeDescription : String
 typeDescription =
     "description"
+
+
+typeFilePath : String
+typeFilePath =
+    "filePath"
 
 
 typeScale : String
@@ -531,6 +550,11 @@ valueActionNotify =
 valueActionSetValue : String
 valueActionSetValue =
     "setValue"
+
+
+valueActionPlayAudio : String
+valueActionPlayAudio =
+    "playAudio"
 
 
 valueActionSetValueBool : String
