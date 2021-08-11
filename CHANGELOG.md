@@ -9,11 +9,27 @@ and this project adheres to
 For more details or to discuss releases, please visit the
 [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
 
-## Next
+## [Unreleased]
+
+## [[0.0.31] - 2021-08-10](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.31)
+
+- improve rule condition processing to process all conditions/points rather than
+  just first match
+- implement schedule conditions for rules
+- switch from github.com/dgrijalva/jwt-go to github.com/golang-jwt/jwt/v4
+- update frontend dependencies to satisify github security checks
+
+## [[0.0.30] - 2021-07-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.30)
 
 - fix using SIOT_AUTH_TOKEN for -logNats command line option
 - upgrade to NATS 2.2.2. Increases SIOT binary by about 2MB (uncompressed), 1MB
   (compressed)
+- disable badger for now -- can be re-enabled in db/genji.go. Bolt seems to work
+  better for the current SIOT use cases and Badger just adds bloat to the
+  binary.
+- implement upstream synronization support
+  [#109](https://github.com/simpleiot/simpleiot/issues/109)
+- update to Genji v0.13.0
 
 ## [[0.0.29] - 2021-04-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.29)
 
@@ -186,8 +202,6 @@ old version of SIOT and them import with the new version.
   vs sensor data and config
 - add token auth for device HTTP communication
 - documentation improvements
-
-## [Unreleased]
 
 ## [[0.0.10] - 2020-08-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.10)
 

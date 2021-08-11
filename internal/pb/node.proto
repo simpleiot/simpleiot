@@ -15,6 +15,16 @@ message Node {
     repeated Point edgePoints = 7;
 }
 
+message NodeRequest {
+  Node node = 1;
+  string error = 2;
+}
+
 message Nodes {
   repeated Node nodes = 1;
+}
+
+message NodesRequest {
+  Nodes nodes = 1;
+  string error = 2;
 }

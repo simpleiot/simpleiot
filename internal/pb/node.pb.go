@@ -115,6 +115,61 @@ func (x *Node) GetEdgePoints() []*Point {
 	return nil
 }
 
+type NodeRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Node  *Node  `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	Error string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+}
+
+func (x *NodeRequest) Reset() {
+	*x = NodeRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_node_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *NodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeRequest) ProtoMessage() {}
+
+func (x *NodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_node_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeRequest.ProtoReflect.Descriptor instead.
+func (*NodeRequest) Descriptor() ([]byte, []int) {
+	return file_node_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *NodeRequest) GetNode() *Node {
+	if x != nil {
+		return x.Node
+	}
+	return nil
+}
+
+func (x *NodeRequest) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 type Nodes struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -126,7 +181,7 @@ type Nodes struct {
 func (x *Nodes) Reset() {
 	*x = Nodes{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_node_proto_msgTypes[1]
+		mi := &file_node_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -139,7 +194,7 @@ func (x *Nodes) String() string {
 func (*Nodes) ProtoMessage() {}
 
 func (x *Nodes) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[1]
+	mi := &file_node_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -152,7 +207,7 @@ func (x *Nodes) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Nodes.ProtoReflect.Descriptor instead.
 func (*Nodes) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{1}
+	return file_node_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Nodes) GetNodes() []*Node {
@@ -160,6 +215,61 @@ func (x *Nodes) GetNodes() []*Node {
 		return x.Nodes
 	}
 	return nil
+}
+
+type NodesRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Nodes *Nodes `protobuf:"bytes,1,opt,name=nodes,proto3" json:"nodes,omitempty"`
+	Error string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+}
+
+func (x *NodesRequest) Reset() {
+	*x = NodesRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_node_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *NodesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodesRequest) ProtoMessage() {}
+
+func (x *NodesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_node_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodesRequest.ProtoReflect.Descriptor instead.
+func (*NodesRequest) Descriptor() ([]byte, []int) {
+	return file_node_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *NodesRequest) GetNodes() *Nodes {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
+func (x *NodesRequest) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
 }
 
 var File_node_proto protoreflect.FileDescriptor
@@ -179,11 +289,19 @@ var file_node_proto_rawDesc = []byte{
 	0x06, 0x70, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x12, 0x29, 0x0a, 0x0a, 0x65, 0x64, 0x67, 0x65, 0x50,
 	0x6f, 0x69, 0x6e, 0x74, 0x73, 0x18, 0x07, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x70, 0x62,
 	0x2e, 0x50, 0x6f, 0x69, 0x6e, 0x74, 0x52, 0x0a, 0x65, 0x64, 0x67, 0x65, 0x50, 0x6f, 0x69, 0x6e,
-	0x74, 0x73, 0x22, 0x27, 0x0a, 0x05, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x12, 0x1e, 0x0a, 0x05, 0x6e,
-	0x6f, 0x64, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x08, 0x2e, 0x70, 0x62, 0x2e,
-	0x4e, 0x6f, 0x64, 0x65, 0x52, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x42, 0x0d, 0x5a, 0x0b, 0x69,
-	0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x74, 0x73, 0x22, 0x41, 0x0a, 0x0b, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x1c, 0x0a, 0x04, 0x6e, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x08, 0x2e, 0x70, 0x62, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x04, 0x6e, 0x6f, 0x64, 0x65, 0x12,
+	0x14, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05,
+	0x65, 0x72, 0x72, 0x6f, 0x72, 0x22, 0x27, 0x0a, 0x05, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x12, 0x1e,
+	0x0a, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x08, 0x2e,
+	0x70, 0x62, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x22, 0x45,
+	0x0a, 0x0c, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1f,
+	0x0a, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e,
+	0x70, 0x62, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x12,
+	0x14, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05,
+	0x65, 0x72, 0x72, 0x6f, 0x72, 0x42, 0x0d, 0x5a, 0x0b, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61,
+	0x6c, 0x2f, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -198,21 +316,25 @@ func file_node_proto_rawDescGZIP() []byte {
 	return file_node_proto_rawDescData
 }
 
-var file_node_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_node_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_node_proto_goTypes = []interface{}{
-	(*Node)(nil),  // 0: pb.Node
-	(*Nodes)(nil), // 1: pb.Nodes
-	(*Point)(nil), // 2: pb.Point
+	(*Node)(nil),         // 0: pb.Node
+	(*NodeRequest)(nil),  // 1: pb.NodeRequest
+	(*Nodes)(nil),        // 2: pb.Nodes
+	(*NodesRequest)(nil), // 3: pb.NodesRequest
+	(*Point)(nil),        // 4: pb.Point
 }
 var file_node_proto_depIdxs = []int32{
-	2, // 0: pb.Node.points:type_name -> pb.Point
-	2, // 1: pb.Node.edgePoints:type_name -> pb.Point
-	0, // 2: pb.Nodes.nodes:type_name -> pb.Node
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	4, // 0: pb.Node.points:type_name -> pb.Point
+	4, // 1: pb.Node.edgePoints:type_name -> pb.Point
+	0, // 2: pb.NodeRequest.node:type_name -> pb.Node
+	0, // 3: pb.Nodes.nodes:type_name -> pb.Node
+	2, // 4: pb.NodesRequest.nodes:type_name -> pb.Nodes
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_node_proto_init() }
@@ -235,7 +357,31 @@ func file_node_proto_init() {
 			}
 		}
 		file_node_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*NodeRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_node_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Nodes); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_node_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*NodesRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -253,7 +399,7 @@ func file_node_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_node_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

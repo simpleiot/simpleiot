@@ -1,92 +1,33 @@
 module Components.NodeCondition exposing (view)
 
-import Api.Node exposing (Node)
-import Api.Point as Point exposing (Point)
+import Api.Point as Point
+import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Time
-import UI.Form as Form
 import UI.Icon as Icon
+import UI.NodeInputs as NodeInputs
 import UI.Style as Style exposing (colors)
 
 
-view :
-    { now : Time.Posix
-    , zone : Time.Zone
-    , modified : Bool
-    , expDetail : Bool
-    , parent : Maybe Node
-    , node : Node
-    , onEditNodePoint : Point -> msg
-    }
-    -> Element msg
+view : NodeOptions msg -> Element msg
 view o =
     let
         labelWidth =
             150
 
-        textInput =
-            Form.nodeTextInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+        opts =
+            oToInputO o labelWidth
 
-        numberInput =
-            Form.nodeNumberInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+        textInput =
+            NodeInputs.nodeTextInput opts "" 0
 
         optionInput =
-            Form.nodeOptionInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            NodeInputs.nodeOptionInput opts "" 0
 
-        onOffInput =
-            Form.nodeOnOffInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
-
-        conditionValueType =
-            Point.getText o.node.points "" 0 Point.typeValueType
-
-        operators =
-            case conditionValueType of
-                "number" ->
-                    [ ( Point.valueGreaterThan, ">" )
-                    , ( Point.valueLessThan, "<" )
-                    , ( Point.valueEqual, "=" )
-                    , ( Point.valueNotEqual, "!=" )
-                    ]
-
-                "text" ->
-                    [ ( Point.valueEqual, "=" )
-                    , ( Point.valueNotEqual, "!=" )
-                    , ( Point.valueContains, "contains" )
-                    ]
-
-                _ ->
-                    []
+        conditionType =
+            Point.getText o.node.points "" 0 Point.typeConditionType
 
         active =
             Point.getBool o.node.points "" 0 Point.typeActive
@@ -120,42 +61,114 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
-                    , textInput Point.typeID "Node ID"
-                    , optionInput Point.typePointType
-                        "Point Type"
-                        [ ( Point.typeValue, "value" )
-                        , ( Point.typeValueSet, "set value" )
-                        , ( Point.typeErrorCount, "error count" )
-                        , ( Point.typeSysState, "system state" )
+                    , optionInput Point.typeConditionType
+                        "Type"
+                        [ ( Point.valuePointValue, "point value" )
+                        , ( Point.valueSchedule, "schedule" )
                         ]
-                    , textInput Point.typePointID "Point ID"
-                    , numberInput Point.typePointIndex "Point Index"
-                    , optionInput Point.typeValueType
-                        "Point Value Type"
-                        [ ( Point.valueNumber, "number" )
-                        , ( Point.valueOnOff, "on/off" )
-                        , ( Point.valueText, "text" )
-                        ]
-                    , if conditionValueType /= Point.valueOnOff then
-                        optionInput Point.typeOperator "Operator" operators
+                    , case conditionType of
+                        "pointValue" ->
+                            pointValue o labelWidth
 
-                      else
-                        Element.none
-                    , case conditionValueType of
-                        "number" ->
-                            numberInput Point.typeValue "Point Value"
-
-                        "onOff" ->
-                            onOffInput Point.typeValue Point.typeValue "Point Value"
-
-                        "text" ->
-                            textInput Point.typeValue "Point Value"
+                        "schedule" ->
+                            schedule o labelWidth
 
                         _ ->
-                            Element.none
-                    , numberInput Point.typeMinActive "Min active time (m)"
+                            text "Please select condition type"
                     ]
 
                 else
                     []
                )
+
+
+schedule : NodeOptions msg -> Int -> Element msg
+schedule o labelWidth =
+    let
+        opts =
+            oToInputO o labelWidth
+
+        timeDateInput =
+            NodeInputs.nodeTimeDateInput opts labelWidth
+    in
+    timeDateInput
+
+
+pointValue : NodeOptions msg -> Int -> Element msg
+pointValue o labelWidth =
+    let
+        opts =
+            oToInputO o labelWidth
+
+        textInput =
+            NodeInputs.nodeTextInput opts "" 0
+
+        numberInput =
+            NodeInputs.nodeNumberInput opts "" 0
+
+        optionInput =
+            NodeInputs.nodeOptionInput opts "" 0
+
+        onOffInput =
+            NodeInputs.nodeOnOffInput opts "" 0
+
+        conditionValueType =
+            Point.getText o.node.points "" 0 Point.typeValueType
+
+        operators =
+            case conditionValueType of
+                "number" ->
+                    [ ( Point.valueGreaterThan, ">" )
+                    , ( Point.valueLessThan, "<" )
+                    , ( Point.valueEqual, "=" )
+                    , ( Point.valueNotEqual, "!=" )
+                    ]
+
+                "text" ->
+                    [ ( Point.valueEqual, "=" )
+                    , ( Point.valueNotEqual, "!=" )
+                    , ( Point.valueContains, "contains" )
+                    ]
+
+                _ ->
+                    []
+    in
+    column
+        [ width fill
+        , spacing 6
+        ]
+        [ textInput Point.typeID "Node ID"
+        , optionInput Point.typePointType
+            "Point Type"
+            [ ( Point.typeValue, "value" )
+            , ( Point.typeValueSet, "set value" )
+            , ( Point.typeErrorCount, "error count" )
+            , ( Point.typeSysState, "system state" )
+            ]
+        , textInput Point.typePointID "Point ID"
+        , numberInput Point.typePointIndex "Point Index"
+        , optionInput Point.typeValueType
+            "Point Value Type"
+            [ ( Point.valueNumber, "number" )
+            , ( Point.valueOnOff, "on/off" )
+            , ( Point.valueText, "text" )
+            ]
+        , if conditionValueType /= Point.valueOnOff then
+            optionInput Point.typeOperator "Operator" operators
+
+          else
+            Element.none
+        , case conditionValueType of
+            "number" ->
+                numberInput Point.typeValue "Point Value"
+
+            "onOff" ->
+                onOffInput Point.typeValue Point.typeValue "Point Value"
+
+            "text" ->
+                textInput Point.typeValue "Point Value"
+
+            _ ->
+                Element.none
+        , numberInput Point.typeMinActive "Min active time (m)"
+        ]

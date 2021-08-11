@@ -1,47 +1,34 @@
 module Components.NodeUser exposing (view)
 
-import Api.Node exposing (Node)
-import Api.Point as Point exposing (Point)
+import Api.Point as Point
+import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
-import Time
-import UI.Form as Form
 import UI.Icon as Icon
+import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
 
 
-view :
-    { now : Time.Posix
-    , zone : Time.Zone
-    , modified : Bool
-    , expDetail : Bool
-    , parent : Maybe Node
-    , node : Node
-    , onEditNodePoint : Point -> msg
-    }
-    -> Element msg
+view : NodeOptions msg -> Element msg
 view o =
     let
         labelWidth =
             100
 
+        opts =
+            oToInputO o labelWidth
+
         textInput =
-            Form.nodeTextInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            NodeInputs.nodeTextInput opts "" 0
 
         textInputLowerCase =
-            Form.nodeTextInput
+            NodeInputs.nodeTextInput
                 { onEditNodePoint =
-                    \p ->
-                        o.onEditNodePoint { p | text = String.toLower p.text }
+                    \points ->
+                        o.onEditNodePoint <| List.map (\p -> { p | text = String.toLower p.text }) points
                 , node = o.node
                 , now = o.now
+                , zone = o.zone
                 , labelWidth = labelWidth
                 }
                 ""

@@ -1,70 +1,35 @@
 module Components.NodeModbus exposing (view)
 
-import Api.Node exposing (Node)
-import Api.Point as Point exposing (Point)
+import Api.Point as Point
+import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
-import Time
-import UI.Form as Form
 import UI.Icon as Icon
+import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
 
 
-view :
-    { now : Time.Posix
-    , zone : Time.Zone
-    , modified : Bool
-    , expDetail : Bool
-    , parent : Maybe Node
-    , node : Node
-    , onEditNodePoint : Point -> msg
-    }
-    -> Element msg
+view : NodeOptions msg -> Element msg
 view o =
     let
         labelWidth =
             180
 
+        opts =
+            oToInputO o labelWidth
+
         textInput =
-            Form.nodeTextInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            NodeInputs.nodeTextInput opts "" 0
 
         numberInput =
-            Form.nodeNumberInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            NodeInputs.nodeNumberInput opts "" 0
 
         counterWithReset =
-            Form.nodeCounterWithReset
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth + 120
-                }
-                ""
-                0
+            NodeInputs.nodeCounterWithReset opts "" 0
 
         optionInput =
-            Form.nodeOptionInput
-                { onEditNodePoint = o.onEditNodePoint
-                , node = o.node
-                , now = o.now
-                , labelWidth = labelWidth
-                }
-                ""
-                0
+            NodeInputs.nodeOptionInput opts "" 0
 
         clientServer =
             Point.getText o.node.points "" 0 Point.typeClientServer

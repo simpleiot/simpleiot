@@ -109,6 +109,16 @@ const (
 
 	NodeTypeCondition = "condition"
 
+	PointTypeConditionType = "conditionType"
+	PointValuePointValue   = "pointValue"
+	PointValueSchedule     = "schedule"
+
+	PointTypeTrigger = "trigger"
+
+	PointTypeStart   = "start"
+	PointTypeEnd     = "end"
+	PointTypeWeekday = "weekday"
+
 	PointTypePointID    = "pointID"
 	PointTypePointType  = "pointType"
 	PointTypePointIndex = "pointIndex"
