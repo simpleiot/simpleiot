@@ -592,24 +592,20 @@ func (gen *Db) nodeDescendents(id, typ string, recursive, includeDel bool) ([]da
 			return err
 		}
 
-		if typ == "" {
-			nodes = append(nodes, childNodes...)
-		} else {
-			for _, child := range childNodes {
-				if !includeDel {
-					tombstone, _ := child.IsTombstone()
-					if tombstone {
-						// skip deleted nodes
-						continue
-					}
+		for _, child := range childNodes {
+			if !includeDel {
+				tombstone, _ := child.IsTombstone()
+				if tombstone {
+					// skip deleted nodes
+					continue
 				}
-				if typ != "" {
-					if child.Type == typ {
-						nodes = append(nodes, child)
-					}
-				} else {
+			}
+			if typ != "" {
+				if child.Type == typ {
 					nodes = append(nodes, child)
 				}
+			} else {
+				nodes = append(nodes, child)
 			}
 		}
 
