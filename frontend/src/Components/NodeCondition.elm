@@ -144,6 +144,7 @@ pointValue o labelWidth =
             , ( Point.typeValueSet, "set value" )
             , ( Point.typeErrorCount, "error count" )
             , ( Point.typeSysState, "system state" )
+            , ( Point.typeActive, "active" )
             ]
         , textInput Point.typePointID "Point ID"
         , numberInput Point.typePointIndex "Point Index"
