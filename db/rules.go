@@ -181,7 +181,13 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, triggerNode
 			}
 		case data.PointValueActionPlayAudio:
 			channelNum := strconv.Itoa(a.PointChannel)
-			exec.Command("speaker-test", "-D"+a.PointDevice, "-twav", "-w"+a.PointFilePath, "-c5", "-s"+channelNum, "-r44100").Start()
+			go func() {
+				stderr, err := exec.Command("speaker-test", "-D"+a.PointDevice, "-twav", "-w"+a.PointFilePath, "-c5", "-s"+channelNum).CombinedOutput()
+				if err != nil {
+					log.Println("Play audio error: ", err)
+					log.Printf("Audio stderr: %s\n", stderr)
+				}
+			}()
 		default:
 			log.Println("Uknown rule action: ", a.Action)
 		}
