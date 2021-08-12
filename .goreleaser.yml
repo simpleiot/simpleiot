@@ -53,5 +53,5 @@ checksum:
   name_template: "checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
-env_files:
-  github_token: GITHUB_TOKEN
+#env_files:
+#github_token: GITHUB_TOKEN
