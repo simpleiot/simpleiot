@@ -11,19 +11,25 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-## [[0.0.32] - 2021-08-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.32)
+## [[0.0.33] - 2021-08-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.33)
 
+- fix frontend build issue with last two releases
 - add rule audio playback action functionality for Linux (requires alsa-utils)
 - fix various bugs with rule schedule condition functionality
 - all using rule active in rule conditions (allows chaining rules)
-
-## [[0.0.31] - 2021-08-10](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.31)
-
 - improve rule condition processing to process all conditions/points rather than
   just first match
 - implement schedule conditions for rules
 - switch from github.com/dgrijalva/jwt-go to github.com/golang-jwt/jwt/v4
 - update frontend dependencies to satisify github security checks
+
+## [[0.0.32] - 2021-08-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.32)
+
+- DO NOT USE, FRONTEND BUILD ISSUE
+
+## [[0.0.31] - 2021-08-10](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.31)
+
+- DO NOT USE, FRONTEND BUILD ISSUE
 
 ## [[0.0.30] - 2021-07-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.30)
 
