@@ -1,4 +1,4 @@
-module Components.NodeVariable exposing (view)
+module Components.NodeEquation exposing (view)
 
 import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
@@ -72,7 +72,7 @@ view o =
         ]
     <|
         wrappedRow [ spacing 10 ]
-            [ Icon.variable
+            [ Icon.divideCircle
             , text <|
                 Point.getText o.node.points "" 0 Point.typeDescription
             , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
@@ -88,6 +88,7 @@ view o =
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description"
                     , textInput Point.typeTags "Tags"
+                    , textInput Point.typeEquation "Equation"
                     , optionInput Point.typeVariableType
                         "Variable type"
                         [ ( Point.valueOnOff, "On/Off" )

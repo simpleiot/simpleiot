@@ -6,6 +6,7 @@ module UI.Icon exposing
     , cloudOff
     , database
     , device
+    , divideCircle
     , dot
     , io
     , list
@@ -150,3 +151,8 @@ uploadCloud =
 database : Element msg
 database =
     icon FeatherIcons.database
+
+
+divideCircle : Element msg
+divideCircle =
+    icon FeatherIcons.divideCircle

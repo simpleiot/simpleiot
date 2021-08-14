@@ -18,6 +18,7 @@ module Api.Node exposing
     , typeCondition
     , typeDb
     , typeDevice
+    , typeEquation
     , typeGroup
     , typeModbus
     , typeModbusIO
@@ -106,6 +107,11 @@ typeModbusIO =
 typeVariable : String
 typeVariable =
     "variable"
+
+
+typeEquation : String
+typeEquation =
+    "equation"
 
 
 typeUpstream : String

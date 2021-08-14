@@ -167,4 +167,7 @@ const (
 	PointTypeVariableType = "variableType"
 
 	NodeTypeUpstream = "upstream"
+
+	PointTypeTags     = "tags"
+	PointTypeEquation = "equation"
 )

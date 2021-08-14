@@ -33,6 +33,7 @@ module Api.Point exposing
     , typeDevice
     , typeEmail
     , typeEnd
+    , typeEquation
     , typeErrorCount
     , typeErrorCountCRC
     , typeErrorCountCRCReset
@@ -72,6 +73,7 @@ module Api.Point exposing
     , typeSwUpdateRunning
     , typeSwUpdateState
     , typeSysState
+    , typeTags
     , typeTombstone
     , typeURI
     , typeUnits
@@ -640,6 +642,16 @@ typeBucket =
 typeOrg : String
 typeOrg =
     "org"
+
+
+typeTags : String
+typeTags =
+    "tags"
+
+
+typeEquation : String
+typeEquation =
+    "equation"
 
 
 

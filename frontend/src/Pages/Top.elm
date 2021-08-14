@@ -11,6 +11,7 @@ import Components.NodeAction as NodeAction
 import Components.NodeCondition as NodeCondition
 import Components.NodeDb as NodeDb
 import Components.NodeDevice as NodeDevice
+import Components.NodeEquation as NodeEquation
 import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
 import Components.NodeModbus as NodeModbus
@@ -1040,6 +1041,9 @@ shouldDisplay typ =
         "variable" ->
             True
 
+        "equation" ->
+            True
+
         "upstream" ->
             True
 
@@ -1084,6 +1088,9 @@ viewNode model parent node depth =
 
                 "variable" ->
                     NodeVariable.view
+
+                "equation" ->
+                    NodeEquation.view
 
                 "upstream" ->
                     NodeUpstream.view
@@ -1288,6 +1295,11 @@ nodeDescVariable =
     row [] [ Icon.variable, text "Variable" ]
 
 
+nodeDescEquation : Element Msg
+nodeDescEquation =
+    row [] [ Icon.divideCircle, text "Equation" ]
+
+
 nodeDescUpstream : Element Msg
 nodeDescUpstream =
     row [] [ Icon.uploadCloud, text "Upstream" ]
@@ -1320,6 +1332,7 @@ viewAddNode parent add =
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
+                            , Input.option Node.typeEquation nodeDescEquation
                             , Input.option Node.typeUpstream nodeDescUpstream
                             ]
 
@@ -1334,6 +1347,7 @@ viewAddNode parent add =
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
+                            , Input.option Node.typeEquation nodeDescEquation
                             ]
 
                         else
