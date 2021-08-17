@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- handle audio playback where file bitrate does not match default of audio
+  device (#240)
+
 ## [[0.0.33] - 2021-08-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.33)
 
 - fix frontend build issue with last two releases
