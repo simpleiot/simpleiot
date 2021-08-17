@@ -13,6 +13,9 @@ For more details or to discuss releases, please visit the
 
 - handle audio playback where file bitrate does not match default of audio
   device (#240)
+- support rule actions that trigger when rule goes inactive (instead of active).
+  This allows a rule to do something with the run goes active as well as
+  inactive and in some cases saves us from writing two rules (#241).
 
 ## [[0.0.33] - 2021-08-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.33)
 
