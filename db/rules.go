@@ -2,10 +2,12 @@ package db
 
 import (
 	"log"
+	"os"
 	"os/exec"
 	"strconv"
 	"time"
 
+	"github.com/go-audio/wav"
 	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -180,9 +182,27 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, triggerNode
 				return err
 			}
 		case data.PointValueActionPlayAudio:
+			f, err := os.Open(a.PointFilePath)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer f.Close()
+
+			d := wav.NewDecoder(f)
+			d.ReadInfo()
+
+			format := d.Format()
+
+			if format.SampleRate < 8000 {
+				log.Println("Rule action: invalid wave file sample rate: ", format.SampleRate)
+				continue
+			}
+
 			channelNum := strconv.Itoa(a.PointChannel)
+			sampleRate := strconv.Itoa(format.SampleRate)
+
 			go func() {
-				stderr, err := exec.Command("speaker-test", "-D"+a.PointDevice, "-twav", "-w"+a.PointFilePath, "-c5", "-s"+channelNum).CombinedOutput()
+				stderr, err := exec.Command("speaker-test", "-D"+a.PointDevice, "-twav", "-w"+a.PointFilePath, "-c5", "-s"+channelNum, "-r"+sampleRate).CombinedOutput()
 				if err != nil {
 					log.Println("Play audio error: ", err)
 					log.Printf("Audio stderr: %s\n", stderr)

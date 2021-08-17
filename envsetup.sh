@@ -201,6 +201,9 @@ siot_goreleaser_build() {
 }
 
 # before releasing, you need to tag the release
+# you need to provide GITHUB_TOKEN in env or ~/.config/goreleaser/github_token
+# generate tokens: https://github.com/settings/tokens/new
+# enable repo and workflow sections
 siot_goreleaser_release() {
   #TODO add depend build to goreleaser config
   siot_build_dependencies --optimize
