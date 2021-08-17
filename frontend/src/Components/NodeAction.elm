@@ -1,5 +1,6 @@
 module Components.NodeAction exposing (view)
 
+import Api.Node as Node
 import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
@@ -15,6 +16,13 @@ view o =
     let
         labelWidth =
             150
+
+        icon =
+            if o.node.typ == Node.typeAction then
+                Icon.trendingUp
+
+            else
+                Icon.trendingDown
 
         opts =
             oToInputO o labelWidth
@@ -51,7 +59,7 @@ view o =
         ]
     <|
         wrappedRow [ spacing 10 ]
-            [ Icon.trendingUp
+            [ icon
             , text <|
                 Point.getText o.node.points "" 0 Point.typeDescription
             ]

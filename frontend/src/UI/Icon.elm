@@ -12,6 +12,7 @@ module UI.Icon exposing
     , minus
     , power
     , send
+    , trendingDown
     , trendingUp
     , uploadCloud
     , user
@@ -135,6 +136,11 @@ check =
 trendingUp : Element msg
 trendingUp =
     icon FeatherIcons.trendingUp
+
+
+trendingDown : Element msg
+trendingDown =
+    icon FeatherIcons.trendingDown
 
 
 send : Element msg

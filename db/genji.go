@@ -31,6 +31,7 @@ const (
 
 // Meta contains metadata about the database
 type Meta struct {
+	ID      int    `json:"id"`
 	Version int    `json:"version"`
 	RootID  string `json:"rootID"`
 }
@@ -85,7 +86,7 @@ func NewDb(storeType StoreType, dataDir string) (*Db, error) {
 		log.Fatal("Unknown store type: ", storeType)
 	}
 
-	err = store.Exec(`CREATE TABLE IF NOT EXISTS meta`)
+	err = store.Exec(`CREATE TABLE IF NOT EXISTS meta (id INT PRIMARY KEY)`)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating meta table: %w", err)
 	}
@@ -821,6 +822,7 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 type genImport struct {
 	Nodes []data.Node `json:"nodes"`
 	Edges []data.Edge `json:"edges"`
+	Meta  Meta        `json:"meta"`
 }
 
 // ImportDb imports contents of file into database
@@ -836,16 +838,23 @@ func ImportDb(gen *Db, in io.Reader) error {
 	// FIXME, re-import meta?
 	return gen.store.Update(func(tx *genji.Tx) error {
 		for _, n := range dump.Nodes {
-			err := tx.Exec(`insert into nodes values ?`, n)
+			err := tx.Exec(`insert into nodes values ? on conflict do replace`, n)
 			if err != nil {
 				return fmt.Errorf("Error inserting node (%+v): %w", n, err)
 			}
 		}
 
 		for _, e := range dump.Edges {
-			err := tx.Exec(`insert into edges values ?`, e)
+			err := tx.Exec(`insert into edges values ? on conflict do replace`, e)
 			if err != nil {
 				return fmt.Errorf("Error inserting edge (%+v): %w", e, err)
+			}
+		}
+
+		if dump.Meta.RootID != "" {
+			err := tx.Exec(`insert into meta values ? on conflict do replace`, dump.Meta)
+			if err != nil {
+				return fmt.Errorf("Error inserting meta (%+v): %w", dump.Meta, err)
 			}
 		}
 

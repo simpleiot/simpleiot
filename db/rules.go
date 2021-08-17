@@ -129,17 +129,15 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 			changed = true
 		}
 
-		if allActive {
-			return true, changed, nil
-		}
+		return allActive, changed, nil
 	}
 
 	return false, false, nil
 }
 
 // ruleRunActions runs rule actions
-func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, triggerNode string) error {
-	for _, a := range r.Actions {
+func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, actions []data.Action, triggerNode string) error {
+	for _, a := range actions {
 		switch a.Action {
 		case data.PointValueActionSetValue:
 			if a.NodeID == "" {
