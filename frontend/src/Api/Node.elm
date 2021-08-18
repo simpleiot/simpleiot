@@ -15,6 +15,7 @@ module Api.Node exposing
     , sysStateOnline
     , sysStatePowerOff
     , typeAction
+    , typeActionInactive
     , typeCondition
     , typeDb
     , typeDevice
@@ -76,6 +77,11 @@ typeCondition =
 typeAction : String
 typeAction =
     "action"
+
+
+typeActionInactive : String
+typeActionInactive =
+    "actionInactive"
 
 
 typeUser : String

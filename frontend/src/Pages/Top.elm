@@ -1031,6 +1031,9 @@ shouldDisplay typ =
         "action" ->
             True
 
+        "actionInactive" ->
+            True
+
         "device" ->
             True
 
@@ -1074,6 +1077,9 @@ viewNode model parent node depth =
                     NodeCondition.view
 
                 "action" ->
+                    NodeAction.view
+
+                "actionInactive" ->
                     NodeAction.view
 
                 "device" ->
@@ -1300,7 +1306,12 @@ nodeDescCondition =
 
 nodeDescAction : Element Msg
 nodeDescAction =
-    row [] [ Icon.trendingUp, text "Action" ]
+    row [] [ Icon.trendingUp, text "Action (rule active)" ]
+
+
+nodeDescActionInactive : Element Msg
+nodeDescActionInactive =
+    row [] [ Icon.trendingDown, text "Action (rule inactive)" ]
 
 
 viewAddNode : NodeView -> NodeToAdd -> Element Msg
@@ -1348,6 +1359,7 @@ viewAddNode parent add =
                     ++ (if parent.node.typ == Node.typeRule then
                             [ Input.option Node.typeCondition nodeDescCondition
                             , Input.option Node.typeAction nodeDescAction
+                            , Input.option Node.typeActionInactive nodeDescActionInactive
                             ]
 
                         else

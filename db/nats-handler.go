@@ -554,7 +554,14 @@ func (nh *NatsHandler) processRuleNode(ruleNode data.NodeEdge, sourceNodeID stri
 		return err
 	}
 
-	rule, err := data.NodeToRule(ruleNode, conditionNodes, actionNodes)
+	actionInactiveNodes, err := nh.db.nodeDescendents(ruleNode.ID,
+		data.NodeTypeActionInactive,
+		false, false)
+	if err != nil {
+		return err
+	}
+
+	rule, err := data.NodeToRule(ruleNode, conditionNodes, actionNodes, actionInactiveNodes)
 
 	if err != nil {
 		return err
@@ -567,11 +574,19 @@ func (nh *NatsHandler) processRuleNode(ruleNode data.NodeEdge, sourceNodeID stri
 	}
 
 	if active && changed {
-		err := nh.ruleRunActions(nh.Nc, rule, sourceNodeID)
+		err := nh.ruleRunActions(nh.Nc, rule, rule.Actions, sourceNodeID)
 		if err != nil {
 			log.Println("Error running rule actions: ", err)
 		}
 	}
+
+	if !active && changed {
+		err := nh.ruleRunActions(nh.Nc, rule, rule.ActionsInactive, sourceNodeID)
+		if err != nil {
+			log.Println("Error running rule actions: ", err)
+		}
+	}
+
 	return nil
 }
 

@@ -138,7 +138,8 @@ const (
 
 	PointTypeMinActive = "minActive"
 
-	NodeTypeAction = "action"
+	NodeTypeAction         = "action"
+	NodeTypeActionInactive = "actionInactive"
 
 	PointTypeActionType = "actionType"
 

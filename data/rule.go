@@ -73,11 +73,12 @@ type RuleState struct {
 // to the Rule without config affecting state, and state affecting config as these are typically
 // done by two different entities.
 type Rule struct {
-	ID          string
-	Description string
-	Active      bool
-	Conditions  []Condition
-	Actions     []Action
+	ID              string
+	Description     string
+	Active          bool
+	Conditions      []Condition
+	Actions         []Action
+	ActionsInactive []Action
 }
 
 func (r Rule) String() string {
@@ -94,7 +95,7 @@ func (r Rule) String() string {
 }
 
 // NodeToRule converts nodes that make up a rule to a node
-func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (*Rule, error) {
+func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes, actionInactiveNodes []NodeEdge) (*Rule, error) {
 	ret := &Rule{}
 	ret.ID = ruleNode.ID
 	for _, p := range ruleNode.Points {
@@ -147,10 +148,10 @@ func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (*Rul
 		ret.Conditions = append(ret.Conditions, newCond)
 	}
 
-	for _, act := range actionNodes {
+	nodeToAction := func(n NodeEdge) Action {
 		var newAct Action
-		newAct.ID = act.ID
-		for _, p := range act.Points {
+		newAct.ID = n.ID
+		for _, p := range n.Points {
 			switch p.Type {
 			case PointTypeDescription:
 				newAct.Description = p.Text
@@ -173,7 +174,16 @@ func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes []NodeEdge) (*Rul
 				newAct.PointFilePath = p.Text
 			}
 		}
-		ret.Actions = append(ret.Actions, newAct)
+
+		return newAct
+	}
+
+	for _, act := range actionNodes {
+		ret.Actions = append(ret.Actions, nodeToAction(act))
+	}
+
+	for _, act := range actionInactiveNodes {
+		ret.ActionsInactive = append(ret.ActionsInactive, nodeToAction(act))
 	}
 
 	return ret, nil
