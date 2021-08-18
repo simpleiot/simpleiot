@@ -18,12 +18,14 @@ type nodeEdgeCache struct {
 	nodes map[string]*nodeAndEdges
 	edges map[string]*data.Edge
 	tx    *genji.Tx
+	db    *Db
 }
 
-func newNodeEdgeCache(tx *genji.Tx) *nodeEdgeCache {
+func newNodeEdgeCache(db *Db, tx *genji.Tx) *nodeEdgeCache {
 	return &nodeEdgeCache{
 		nodes: make(map[string]*nodeAndEdges),
 		edges: make(map[string]*data.Edge),
+		db:    db,
 		tx:    tx,
 	}
 }
@@ -52,7 +54,7 @@ func (nec *nodeEdgeCache) getNodeAndEdges(id string) (*nodeAndEdges, error) {
 
 	ret = &nodeAndEdges{}
 
-	node, err := txNode(nec.tx, id)
+	node, err := nec.db.node(id)
 	if err != nil {
 		return ret, err
 	}
