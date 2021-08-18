@@ -168,4 +168,9 @@ const (
 	PointTypeVariableType = "variableType"
 
 	NodeTypeUpstream = "upstream"
+
+	PointTypeMetricNatsNodePoint     = "metricNatsNodePoint"
+	PointTypeMetricNatsNodeEdgePoint = "metricNatsNodeEdgePoint"
+	PointTypeMetricNatsNode          = "metricNatsNode"
+	PointTypeMetricNatsNodeChildren  = "metricNatsNodeChildren"
 )

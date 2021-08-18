@@ -21,13 +21,17 @@ import (
 
 // NatsHandler implements the SIOT NATS api
 type NatsHandler struct {
-	server         string
-	Nc             *natsgo.Conn
-	db             *Db
-	authToken      string
-	lock           sync.Mutex
-	nodeUpdateLock sync.Mutex
-	updates        map[string]time.Time
+	server              string
+	Nc                  *natsgo.Conn
+	db                  *Db
+	authToken           string
+	lock                sync.Mutex
+	nodeUpdateLock      sync.Mutex
+	updates             map[string]time.Time
+	metricNodePoint     *nats.Metric
+	metricNodeEdgePoint *nats.Metric
+	metricNode          *nats.Metric
+	metricNodeChildren  *nats.Metric
 }
 
 // NewNatsHandler creates a new NATS client for handling SIOT requests
@@ -59,6 +63,15 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 	}
 
 	nh.Nc = nc
+
+	nh.metricNodePoint = nats.NewMetric(nc, nh.db.rootNodeID(),
+		data.PointTypeMetricNatsNodePoint, time.Minute)
+	nh.metricNodeEdgePoint = nats.NewMetric(nc, nh.db.rootNodeID(),
+		data.PointTypeMetricNatsNodeEdgePoint, time.Minute)
+	nh.metricNode = nats.NewMetric(nc, nh.db.rootNodeID(),
+		data.PointTypeMetricNatsNode, time.Minute)
+	nh.metricNodeChildren = nats.NewMetric(nc, nh.db.rootNodeID(),
+		data.PointTypeMetricNatsNodeChildren, time.Minute)
 
 	if _, err := nc.Subscribe("node.*.points", nh.handleNodePoints); err != nil {
 		return nil, fmt.Errorf("Subscribe node points error: %w", err)
@@ -192,6 +205,11 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 }
 
 func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
+	start := time.Now()
+	defer func() {
+		t := time.Since(start).Milliseconds()
+		nh.metricNodePoint.AddSample(float64(t))
+	}()
 	nh.nodeUpdateLock.Lock()
 	defer nh.nodeUpdateLock.Unlock()
 
@@ -232,6 +250,12 @@ func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
 }
 
 func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
+	start := time.Now()
+	defer func() {
+		t := time.Since(start).Milliseconds()
+		nh.metricNodeEdgePoint.AddSample(float64(t))
+	}()
+
 	nh.nodeUpdateLock.Lock()
 	defer nh.nodeUpdateLock.Unlock()
 
@@ -257,6 +281,12 @@ func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
 }
 
 func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
+	start := time.Now()
+	defer func() {
+		t := time.Since(start).Milliseconds()
+		nh.metricNode.AddSample(float64(t))
+	}()
+
 	resp := &pb.NodeRequest{}
 	var parent string
 	var nodeID string
@@ -302,6 +332,12 @@ handleNodeDone:
 }
 
 func (nh *NatsHandler) handleNodeChildren(msg *natsgo.Msg) {
+	start := time.Now()
+	defer func() {
+		t := time.Since(start).Milliseconds()
+		nh.metricNodeChildren.AddSample(float64(t))
+	}()
+
 	resp := &pb.NodesRequest{}
 	params := pb.NatsRequest{}
 	var err error

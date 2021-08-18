@@ -16,6 +16,10 @@ For more details or to discuss releases, please visit the
 - support rule actions that trigger when rule goes inactive (instead of active).
   This allows a rule to do something with the run goes active as well as
   inactive and in some cases saves us from writing two rules (#241).
+- re-enable indexes on edge up/down fields (#219)
+- add point min/max to NATS packets
+- add NATS api metrics (as points to root device node) (#244)
+- don't color root node grey for now
 
 ## [[0.0.33] - 2021-08-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.33)
 

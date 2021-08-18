@@ -57,7 +57,15 @@ func (p Point) String() string {
 	if p.Text != "" {
 		t += fmt.Sprintf("V:%v ", p.Text)
 	} else {
-		t += fmt.Sprintf("V:%v ", p.Value)
+		t += fmt.Sprintf("V:%.3f ", p.Value)
+	}
+
+	if p.Min != 0 {
+		t += fmt.Sprintf("Min:%.3f ", p.Min)
+	}
+
+	if p.Max != 0 {
+		t += fmt.Sprintf("Max:%.3f ", p.Max)
 	}
 
 	if p.Index != 0 {
@@ -105,6 +113,8 @@ func (p Point) ToPb() (pb.Point, error) {
 		Text:     p.Text,
 		Time:     ts,
 		Duration: ptypes.DurationProto(p.Duration),
+		Min:      float32(p.Min),
+		Max:      float32(p.Max),
 	}, nil
 }
 
@@ -276,6 +286,8 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 		Value:    float64(sPb.Value),
 		Time:     ts,
 		Duration: dur,
+		Min:      float64(sPb.Min),
+		Max:      float64(sPb.Max),
 	}
 
 	return ret, nil
