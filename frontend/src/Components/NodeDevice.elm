@@ -42,7 +42,7 @@ view o =
                     Style.colors.white
 
                 _ ->
-                    Style.colors.gray
+                    Style.colors.white
 
         hwVersion =
             case Point.get o.node.points "" 0 Point.typeHwVersion of
