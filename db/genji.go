@@ -489,8 +489,8 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 			if err == data.ErrDocumentNotFound {
 				if gen.meta.RootID == "" {
 					gen.lock.Lock()
-					defer gen.lock.Unlock()
 					gen.meta.RootID = id
+					gen.lock.Unlock()
 					err := tx.Exec(`update meta set rootid = ?`, id)
 					if err != nil {
 						return fmt.Errorf("Error setting rootid in meta: %w", err)

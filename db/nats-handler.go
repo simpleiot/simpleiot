@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	genjierrors "github.com/genjidb/genji/errors"
 	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -310,7 +309,7 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	node, err = nh.db.nodeEdge(nodeID, parent)
 
 	if err != nil {
-		if err != genjierrors.ErrDocumentNotFound {
+		if err != data.ErrDocumentNotFound {
 			resp.Error = fmt.Sprintf("NATS handler: Error getting node %v from db: %v\n", nodeID, err)
 		} else {
 			resp.Error = data.ErrDocumentNotFound.Error()
