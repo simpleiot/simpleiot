@@ -628,6 +628,7 @@ func (nh *NatsHandler) processRuleNode(ruleNode data.NodeEdge, sourceNodeID stri
 func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
 
+	// FIXME we could optimize this a bit if the points are not valid for rule nodes ...
 	// get children and process any rules
 	ruleNodes, err := nh.db.nodeDescendents(currentNodeID, data.NodeTypeRule, false, false)
 	if err != nil {
