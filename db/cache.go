@@ -15,18 +15,20 @@ type nodeAndEdges struct {
 }
 
 type nodeEdgeCache struct {
-	nodes map[string]*nodeAndEdges
-	edges map[string]*data.Edge
-	tx    *genji.Tx
-	db    *Db
+	nodes        map[string]*nodeAndEdges
+	edges        map[string]*data.Edge
+	edgeModified map[string]bool
+	tx           *genji.Tx
+	db           *Db
 }
 
 func newNodeEdgeCache(db *Db, tx *genji.Tx) *nodeEdgeCache {
 	return &nodeEdgeCache{
-		nodes: make(map[string]*nodeAndEdges),
-		edges: make(map[string]*data.Edge),
-		db:    db,
-		tx:    tx,
+		nodes:        make(map[string]*nodeAndEdges),
+		edges:        make(map[string]*data.Edge),
+		edgeModified: make(map[string]bool),
+		db:           db,
+		tx:           tx,
 	}
 }
 
@@ -59,18 +61,10 @@ func (nec *nodeEdgeCache) getNodeAndEdges(id string) (*nodeAndEdges, error) {
 		return ret, err
 	}
 
-	downEdges, err := txEdgeDown(nec.tx, id)
-	if err != nil {
-		return ret, err
-	}
-
+	downEdges := nec.db.edgeDown(id)
 	nec.cacheEdges(downEdges)
 
-	upEdges, err := txEdgeUp(nec.tx, id, true)
-	if err != nil {
-		return ret, err
-	}
-
+	upEdges := nec.db.edgeUp(id, true)
 	nec.cacheEdges(upEdges)
 
 	ret.node = node
@@ -85,6 +79,11 @@ func (nec *nodeEdgeCache) getNodeAndEdges(id string) (*nodeAndEdges, error) {
 // populate cache and update hashes for node and edges all the way up to root, and one level down from current node
 func (nec *nodeEdgeCache) processNode(ne *nodeAndEdges, newEdge bool) error {
 	updateHash(ne.node, ne.up, ne.down)
+
+	for _, e := range ne.up {
+		nec.edgeModified[e.ID] = true
+	}
+
 	for _, upEdge := range ne.up {
 		if upEdge.Up == "" || upEdge.Up == "none" {
 			continue
@@ -111,11 +110,21 @@ func (nec *nodeEdgeCache) processNode(ne *nodeAndEdges, newEdge bool) error {
 }
 
 func (nec *nodeEdgeCache) writeEdges() error {
-	for _, e := range nec.edges {
-		err := nec.tx.Exec(`insert into edges values ? on conflict do replace`, e)
+	for id := range nec.edgeModified {
+		edge, ok := nec.edges[id]
+		if !ok {
+			return fmt.Errorf("Error could not find edge in cache: %v", id)
+			continue
+		}
+
+		nec.db.lock.Lock()
+		nec.db.edgeCache[id] = edge
+		nec.db.lock.Unlock()
+
+		err := nec.tx.Exec(`insert into edges values ? on conflict do replace`, edge)
 
 		if err != nil {
-			return fmt.Errorf("Error updating hash in edge %v: %v", e.ID, err)
+			return fmt.Errorf("Error updating hash in edge %v: %v", id, err)
 		}
 	}
 

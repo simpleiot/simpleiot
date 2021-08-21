@@ -418,7 +418,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 		}
 
 		// now process upstream nodes
-		upIDs, err := nh.db.edgeUp(id)
+		upIDs := nh.db.edgeUp(id, false)
 		if err != nil {
 			log.Println("Error getting upstream nodes: ", err)
 			return
@@ -522,7 +522,7 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 		if level == 0 {
 			upIDs = []*data.Edge{&data.Edge{Up: message.ParentID}}
 		} else {
-			upIDs, err = nh.db.edgeUp(id)
+			upIDs = nh.db.edgeUp(id, false)
 			if err != nil {
 				log.Println("Error getting upstream nodes: ", err)
 				return
@@ -663,10 +663,7 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 		}
 	}
 
-	edges, err := nh.db.edgeUp(currentNodeID)
-	if err != nil {
-		return err
-	}
+	edges := nh.db.edgeUp(currentNodeID, false)
 
 	for _, edge := range edges {
 

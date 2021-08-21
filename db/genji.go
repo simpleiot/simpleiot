@@ -140,6 +140,8 @@ func (gen *Db) initialize() error {
 
 		defer res.Close()
 
+		gen.lock.Lock()
+		defer gen.lock.Unlock()
 		err = res.Iterate(func(d types.Document) error {
 			var node data.Node
 			err = document.StructScan(d, &node)
@@ -151,7 +153,7 @@ func (gen *Db) initialize() error {
 			return nil
 		})
 
-		return nil
+		return err
 	})
 
 	if err != nil {
@@ -167,6 +169,8 @@ func (gen *Db) initialize() error {
 
 		defer res.Close()
 
+		gen.lock.Lock()
+		defer gen.lock.Unlock()
 		err = res.Iterate(func(d types.Document) error {
 			var edge data.Edge
 			err = document.StructScan(d, &edge)
@@ -178,7 +182,7 @@ func (gen *Db) initialize() error {
 			return nil
 		})
 
-		return nil
+		return err
 	})
 
 	if err != nil {
@@ -239,8 +243,9 @@ func (gen *Db) node(id string) (*data.Node, error) {
 	defer gen.lock.RUnlock()
 	n, ok := gen.nodeCache[id]
 	if !ok {
-		return nil, errors.New("node does not exist")
+		return nil, data.ErrDocumentNotFound
 	}
+	// TODO do we need to make a copy here?
 	return &(*n), nil
 }
 
@@ -252,10 +257,7 @@ func (gen *Db) txNodeFindDescendents(tx *genji.Tx, id string, recursive bool, le
 		return nodes, errors.New("Error: txNodeFindDescendents, recursion limit reached")
 	}
 
-	edges, err := txEdgeDown(tx, id)
-	if err != nil {
-		return nodes, err
-	}
+	edges := gen.edgeDown(id)
 
 	for _, edge := range edges {
 		node, err := gen.node(edge.Down)
@@ -391,11 +393,7 @@ func init() {
 
 func (gen *Db) txCalcHash(tx *genji.Tx, node *data.Node, upEdge data.Edge) ([]byte, error) {
 	// get child edges
-	downEdges, err := txEdgeDown(tx, node.ID)
-
-	if err != nil {
-		return []byte{}, err
-	}
+	downEdges := gen.edgeDown(node.ID)
 
 	upEdges := []*data.Edge{&upEdge}
 
@@ -419,29 +417,28 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 
 		nec := newNodeEdgeCache(gen, tx)
 
-		var edge data.Edge
+		edge := &data.Edge{}
+		newEdge := true
 
-		doc, err := tx.QueryDocument(`select * from edges where down = ? and up = ?`, nodeID, parentID)
-
-		newEdge := false
-
-		if err != nil {
-			if err != genjierrors.ErrDocumentNotFound {
-				return err
+		gen.lock.RLock()
+		for _, e := range gen.edgeCache {
+			if e.Down == nodeID && e.Up == parentID {
+				newEdge = false
+				edge = e
+				newEdge = false
+				break
 			}
+		}
+		gen.lock.RUnlock()
 
+		if newEdge {
 			edge.ID = uuid.New().String()
 			edge.Up = parentID
 			edge.Down = nodeID
 			newEdge = true
-		} else {
-			err = document.StructScan(doc, &edge)
-			if err != nil {
-				return err
-			}
 		}
 
-		nec.cacheEdges([]*data.Edge{&edge})
+		nec.cacheEdges([]*data.Edge{edge})
 
 		ne, err := nec.getNodeAndEdges(edge.Down)
 		if err != nil {
@@ -449,7 +446,7 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 		}
 
 		if newEdge {
-			ne.up = append(ne.up, &edge)
+			ne.up = append(ne.up, edge)
 		}
 
 		for _, point := range points {
@@ -489,7 +486,7 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 		ne, err := nec.getNodeAndEdges(id)
 
 		if err != nil {
-			if err == genjierrors.ErrDocumentNotFound {
+			if err == data.ErrDocumentNotFound {
 				if gen.meta.RootID == "" {
 					gen.lock.Lock()
 					defer gen.lock.Unlock()
@@ -569,10 +566,7 @@ func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
 
 	err := gen.store.View(func(tx *genji.Tx) error {
 		// first find parents of user node
-		edges, err := txEdgeUp(tx, userID, false)
-		if err != nil {
-			return err
-		}
+		edges := gen.edgeUp(userID, false)
 
 		if len(edges) == 0 {
 			return errors.New("orphaned user")
@@ -674,28 +668,22 @@ func (gen *Db) edges() ([]data.Edge, error) {
 }
 
 // find upstream nodes. Does not include tombstoned edges.
-func txEdgeUp(tx *genji.Tx, nodeID string, includeTombstone bool) ([]*data.Edge, error) {
+func (gen *Db) edgeUp(nodeID string, includeTombstone bool) []*data.Edge {
 	var ret []*data.Edge
-	res, err := tx.Query(`select * from edges where down = ?`, nodeID)
-	if err != nil {
-		return ret, err
+
+	gen.lock.RLock()
+	for _, e := range gen.edgeCache {
+		if e.Down != nodeID {
+			continue
+		}
+
+		if !e.IsTombstone() || includeTombstone {
+			ret = append(ret, e)
+		}
 	}
-	defer res.Close()
+	gen.lock.RUnlock()
 
-	err = res.Iterate(func(d types.Document) error {
-		var edge data.Edge
-		err = document.StructScan(d, &edge)
-		if err != nil {
-			return err
-		}
-
-		if !edge.IsTombstone() || includeTombstone {
-			ret = append(ret, &edge)
-		}
-		return nil
-	})
-
-	return ret, err
+	return ret
 }
 
 type downNode struct {
@@ -704,45 +692,18 @@ type downNode struct {
 }
 
 // find downstream nodes
-func txEdgeDown(tx *genji.Tx, nodeID string) ([]*data.Edge, error) {
+func (gen *Db) edgeDown(nodeID string) []*data.Edge {
 	var ret []*data.Edge
-	res, err := tx.Query(`select * from edges where up = ?`, nodeID)
-	if err != nil {
-		if err != genjierrors.ErrDocumentNotFound {
-			return ret, err
-		}
 
-		return ret, nil
+	gen.lock.RLock()
+	for _, e := range gen.edgeCache {
+		if e.Up == nodeID {
+			ret = append(ret, e)
+		}
 	}
+	gen.lock.RUnlock()
 
-	defer res.Close()
-
-	err = res.Iterate(func(d types.Document) error {
-		var edge data.Edge
-		err = document.StructScan(d, &edge)
-		if err != nil {
-			return err
-		}
-
-		ret = append(ret, &edge)
-		return nil
-	})
-
-	return ret, err
-}
-
-// EdgeUp returns an array of upstream nodes for a node. Does not include
-// tombstoned edges.
-func (gen *Db) edgeUp(nodeID string) ([]*data.Edge, error) {
-	var ret []*data.Edge
-
-	err := gen.store.View(func(tx *genji.Tx) error {
-		var err error
-		ret, err = txEdgeUp(tx, nodeID, false)
-		return err
-	})
-
-	return ret, err
+	return ret
 }
 
 type privilege string
@@ -760,10 +721,7 @@ func (gen *Db) minDistToRoot(id string) (int, error) {
 			}
 
 			cnt := 10000000
-			ups, err := txEdgeUp(tx, id, false)
-			if err != nil {
-				return count, err
-			}
+			ups := gen.edgeUp(id, false)
 
 			for _, up := range ups {
 				c, err := countUp(up.Up, count+1)
