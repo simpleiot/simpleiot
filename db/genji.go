@@ -46,6 +46,7 @@ type Db struct {
 	meta      Meta
 	lock      sync.RWMutex
 	nodeCache map[string]*data.Node
+	edgeCache map[string]*data.Edge
 }
 
 // NewDb creates a new Db instance for the app
@@ -120,6 +121,7 @@ func NewDb(storeType StoreType, dataDir string) (*Db, error) {
 	db := &Db{
 		store:     store,
 		nodeCache: make(map[string]*data.Node),
+		edgeCache: make(map[string]*data.Edge),
 	}
 	return db, db.initialize()
 }
@@ -129,7 +131,7 @@ var DBVersion = 1
 
 // initialize initializes the database metadata
 func (gen *Db) initialize() error {
-	// populate cache
+	// populate node cache
 	err := gen.store.View(func(tx *genji.Tx) error {
 		res, err := tx.Query(`select * from nodes`)
 		if err != nil {
@@ -146,6 +148,33 @@ func (gen *Db) initialize() error {
 			}
 
 			gen.nodeCache[node.ID] = &node
+			return nil
+		})
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// populate edge cache
+	err = gen.store.View(func(tx *genji.Tx) error {
+		res, err := tx.Query(`select * from edges`)
+		if err != nil {
+			return err
+		}
+
+		defer res.Close()
+
+		err = res.Iterate(func(d types.Document) error {
+			var edge data.Edge
+			err = document.StructScan(d, &edge)
+			if err != nil {
+				return err
+			}
+
+			gen.edgeCache[edge.ID] = &edge
 			return nil
 		})
 
