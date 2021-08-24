@@ -41,6 +41,9 @@ type NatsHandler struct {
 	// Pending counts how many points are being buffered by the NATS client
 	metricPendingNodePoint     *nats.Metric
 	metricPendingNodeEdgePoint *nats.Metric
+
+	// influx db stuff
+	influxDbs map[string]*Influx
 }
 
 // NewNatsHandler creates a new NATS client for handling SIOT requests
@@ -51,6 +54,7 @@ func NewNatsHandler(db *Db, authToken, server string) *NatsHandler {
 		authToken: authToken,
 		updates:   make(map[string]time.Time),
 		server:    server,
+		influxDbs: make(map[string]*Influx),
 	}
 }
 
@@ -701,15 +705,28 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 	dbNodes, err := nh.db.nodeDescendents(currentNodeID, data.NodeTypeDb, false, false)
 
 	for _, dbNode := range dbNodes {
+		// check if we need to configure influxdb connection
+		idb, ok := nh.influxDbs[dbNode.ID]
 
-		influxConfig, err := NodeToInfluxConfig(dbNode)
-
-		if err != nil {
-			log.Println("Error with influxdb node: ", err)
-			continue
+		if !ok {
+			influxConfig, err := NodeToInfluxConfig(dbNode)
+			if err != nil {
+				log.Println("Error with influxdb node: ", err)
+				continue
+			}
+			idb = NewInflux(influxConfig)
+			nh.influxDbs[dbNode.ID] = idb
+			time.Sleep(time.Second)
+		} else {
+			if time.Since(idb.lastChecked) > time.Second*20 {
+				influxConfig, err := NodeToInfluxConfig(dbNode)
+				if err != nil {
+					log.Println("Error with influxdb node: ", err)
+					continue
+				}
+				idb.CheckConfig(influxConfig)
+			}
 		}
-
-		idb := NewInflux(influxConfig)
 
 		err = idb.WritePoints(nodeID, nodeDesc, points)
 
