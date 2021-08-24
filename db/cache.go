@@ -114,7 +114,6 @@ func (nec *nodeEdgeCache) writeEdges() error {
 		edge, ok := nec.edges[id]
 		if !ok {
 			return fmt.Errorf("Error could not find edge in cache: %v", id)
-			continue
 		}
 
 		nec.db.lock.Lock()
