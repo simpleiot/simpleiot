@@ -52,6 +52,14 @@ Has some interesting ideas.
     The process is also described in
     [Cassandra's documentation](https://docs.datastax.com/en/cassandra/3.0/cassandra/operations/opsRepairNodesManualRepair.html).
 
+#### Scaling Merkel trees
+
+One limitation of Merkel trees is the difficulty of updating the tree
+concurrently. Some information on this:
+
+- [how to scale blockchains](https://www.forbes.com/sites/forbestechcouncil/2018/11/27/sidechains-how-to-scale-and-improve-blockchains-safely/?sh=193537e64418)
+- [Angela: A Sparse, Distributed, and Highly Concurrent Merkle Tree](https://people.eecs.berkeley.edu/~kubitron/courses/cs262a-F18/projects/reports/project1_report_ver3.pdf)
+
 ### Distributed key/value databases
 
 - etcd
