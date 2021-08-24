@@ -69,20 +69,13 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 
 	nh.Nc = nc
 
-	nh.metricCycleNodePoint = nats.NewMetric(nc, nh.db.rootNodeID(),
-		data.PointTypeMetricNatsCycleNodePoint, time.Minute)
-	nh.metricCycleNodeEdgePoint = nats.NewMetric(nc, nh.db.rootNodeID(),
-		data.PointTypeMetricNatsCycleNodeEdgePoint, time.Minute)
-	nh.metricCycleNode = nats.NewMetric(nc, nh.db.rootNodeID(),
-		data.PointTypeMetricNatsCycleNode, time.Minute)
-	nh.metricCycleNodeChildren = nats.NewMetric(nc, nh.db.rootNodeID(),
-		data.PointTypeMetricNatsCycleNodeChildren, time.Minute)
-
-	if _, err := nc.Subscribe("node.*.points", nh.handleNodePoints); err != nil {
+	subNodePoints, err := nc.Subscribe("node.*.points", nh.handleNodePoints)
+	if err != nil {
 		return nil, fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("node.*.*.points", nh.handleEdgePoints); err != nil {
+	subEdgePoints, err := nc.Subscribe("node.*.*.points", nh.handleEdgePoints)
+	if err != nil {
 		return nil, fmt.Errorf("Subscribe edge points error: %w", err)
 	}
 
@@ -116,6 +109,67 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 				}
 			}
 			time.Sleep(time.Second * 5)
+		}
+	}()
+
+	go func() {
+		// the root node gets populate by node/node.go, so we on clean database,
+		// we need start above and then wait a bit before the root node is populated
+		rootNodeID := ""
+
+		// wait for root node to be populated in DB if we are starting with a clean
+		// DB
+		start := time.Now()
+		for {
+			if time.Since(start) > time.Minute {
+				log.Fatal("Error getting root node ID, exitting")
+			}
+			rootNodeID = nh.db.rootNodeID()
+			if rootNodeID == "" {
+				time.Sleep(time.Second)
+				continue
+			}
+			break
+		}
+
+		reportMetricsPeriod := time.Second * 10
+
+		nh.metricCycleNodePoint = nats.NewMetric(nc, nh.db.rootNodeID(),
+			data.PointTypeMetricNatsCycleNodePoint, reportMetricsPeriod)
+		nh.metricCycleNodeEdgePoint = nats.NewMetric(nc, nh.db.rootNodeID(),
+			data.PointTypeMetricNatsCycleNodeEdgePoint, reportMetricsPeriod)
+		nh.metricCycleNode = nats.NewMetric(nc, nh.db.rootNodeID(),
+			data.PointTypeMetricNatsCycleNode, reportMetricsPeriod)
+		nh.metricCycleNodeChildren = nats.NewMetric(nc, nh.db.rootNodeID(),
+			data.PointTypeMetricNatsCycleNodeChildren, reportMetricsPeriod)
+
+		nh.metricPendingNodePoint = nats.NewMetric(nc, nh.db.rootNodeID(),
+			data.PointTypeMetricNatsPendingNodePoint, reportMetricsPeriod)
+		nh.metricPendingNodeEdgePoint = nats.NewMetric(nc, nh.db.rootNodeID(),
+			data.PointTypeMetricNatsPendingNodeEdgePoint, reportMetricsPeriod)
+
+		for {
+			pendingNodePoints, _, err := subNodePoints.Pending()
+			if err != nil {
+				log.Println("Error getting pendingNodePoints: ", err)
+			}
+
+			err = nh.metricPendingNodePoint.AddSample(float64(pendingNodePoints))
+			if err != nil {
+				log.Println("Error handling metric: ", err)
+			}
+
+			pendingEdgePoints, _, err := subEdgePoints.Pending()
+			if err != nil {
+				log.Println("Error getting pendingEdgePoints: ", err)
+			}
+
+			err = nh.metricPendingNodeEdgePoint.AddSample(float64(pendingEdgePoints))
+			if err != nil {
+				log.Println("Error handling metric: ", err)
+			}
+
+			time.Sleep(time.Second * 10)
 		}
 	}()
 
@@ -212,8 +266,10 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
 	start := time.Now()
 	defer func() {
-		t := time.Since(start).Milliseconds()
-		nh.metricCycleNodePoint.AddSample(float64(t))
+		if nh.metricCycleNodePoint != nil {
+			t := time.Since(start).Milliseconds()
+			nh.metricCycleNodePoint.AddSample(float64(t))
+		}
 	}()
 	nh.nodeUpdateLock.Lock()
 	defer nh.nodeUpdateLock.Unlock()
@@ -257,8 +313,10 @@ func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
 func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
 	start := time.Now()
 	defer func() {
-		t := time.Since(start).Milliseconds()
-		nh.metricCycleNodeEdgePoint.AddSample(float64(t))
+		if nh.metricCycleNodeEdgePoint != nil {
+			t := time.Since(start).Milliseconds()
+			nh.metricCycleNodeEdgePoint.AddSample(float64(t))
+		}
 	}()
 
 	nh.nodeUpdateLock.Lock()
@@ -288,8 +346,10 @@ func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
 func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	start := time.Now()
 	defer func() {
-		t := time.Since(start).Milliseconds()
-		nh.metricCycleNode.AddSample(float64(t))
+		if nh.metricCycleNode != nil {
+			t := time.Since(start).Milliseconds()
+			nh.metricCycleNode.AddSample(float64(t))
+		}
 	}()
 
 	resp := &pb.NodeRequest{}
@@ -339,8 +399,10 @@ handleNodeDone:
 func (nh *NatsHandler) handleNodeChildren(msg *natsgo.Msg) {
 	start := time.Now()
 	defer func() {
-		t := time.Since(start).Milliseconds()
-		nh.metricCycleNodeChildren.AddSample(float64(t))
+		if nh.metricCycleNodeChildren != nil {
+			t := time.Since(start).Milliseconds()
+			nh.metricCycleNodeChildren.AddSample(float64(t))
+		}
 	}()
 
 	resp := &pb.NodesRequest{}
