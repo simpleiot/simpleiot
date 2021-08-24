@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"errors"
 	"strconv"
 
@@ -48,14 +47,14 @@ func NodeToInfluxConfig(node data.NodeEdge) (*InfluxConfig, error) {
 // Influx represents and influxdb that we can write points to
 type Influx struct {
 	client   influxdb2.Client
-	writeAPI api.WriteAPIBlocking
+	writeAPI api.WriteAPI
 	queryAPI api.QueryAPI
 }
 
 // NewInflux creates an influx helper client
 func NewInflux(config *InfluxConfig) *Influx {
 	client := influxdb2.NewClient(config.URL, config.Token)
-	writeAPI := client.WriteAPIBlocking(config.Org, config.Bucket)
+	writeAPI := client.WriteAPI(config.Org, config.Bucket)
 	queryAPI := client.QueryAPI(config.Org)
 
 	return &Influx{
@@ -82,10 +81,7 @@ func (i *Influx) WritePoints(nodeID, nodeDesc string, points data.Points) error 
 				"duration": point.Duration.Milliseconds(),
 			},
 			point.Time)
-		err := i.writeAPI.WritePoint(context.Background(), p)
-		if err != nil {
-			return err
-		}
+		i.writeAPI.WritePoint(p)
 		i.client.Close()
 	}
 	return nil
