@@ -54,19 +54,19 @@ IoT Systems are inherently distributed, so even though we prefer a monolith for
 a cloud service, we can't get around the fact that we also need to synchronize
 data with edge devices and user interfaces.
 
-![System topology](docs/distributed.png)
+![System topology](docs/images/distributed.png)
 
 Simple IoT is built on simple data structures arranged in a graph that allows
 for very flexible configurations.
 
-![Nodes](docs/nodes2.png)
+![Nodes](docs/images/nodes2.png)
 
 Because the core of Simple IoT is designed with flexible data structures, adding
 functionality and supporting new devices is usually as simple as creating your
 custom edge device code and modifying the UI to display and configure your
 device features.
 
-![What changes](docs/constant-vs-varying-system-parts.png)
+![What changes](docs/images/constant-vs-varying-system-parts.png)
 
 Though we are focusing on smaller deployments initially, there is no reason
 Simple IoT can't scale to large systems by swapping out the internal database
@@ -120,7 +120,7 @@ Now, run the example:
 
 Below is a screenshot of the siot web interface with the above data.
 
-![nodes](docs/screenshot-example1.png)
+![nodes](docs/images/screenshot-example1.png)
 
 ## Example 2 (send commands/files to device)
 
@@ -149,15 +149,15 @@ in the `Text` field of a `Point`.
 Information is arranged in a flexible node/tree which allows for easy grouping
 of users, devices, and device attributes.
 
-![nodes](docs/screenshot-nodes.png)
+![nodes](docs/images/screenshot-nodes.png)
 
 ## Each nodes can be expanded to edit/view attributes
 
-![node-edit](docs/screenshot-node-edit.png)
+![node-edit](docs/images/screenshot-node-edit.png)
 
 ## Extensive support for modbus devices
 
-![node-modbus](docs/screenshot-modbus-io.png)
+![node-modbus](docs/images/screenshot-modbus-io.png)
 
 ## Configuration
 
