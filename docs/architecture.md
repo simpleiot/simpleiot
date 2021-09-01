@@ -16,7 +16,7 @@ between a number of different systems including:
 2. Edge nodes (many instances)
 3. User Interface (phone, browser)
 
-![IoT Distributed System](distributed.png)
+![IoT Distributed System](images/distributed.png)
 
 Typically, the cloud instance stores all the system data, and the edge, browser,
 and mobile devices access a subset of the system data.
@@ -67,7 +67,7 @@ vs direct db calls. This ensures anything in the system can have visibility into
 data changes. Eventually we may want to hide db operations that do writes to
 force them to be initiated through a NATS message.
 
-![data flow](data-flow.png)
+![data flow](images/data-flow.png)
 
 ## Simple, Flexible data structures
 
@@ -81,7 +81,7 @@ application and the frontend UI. Everything between these two end points can
 stay the same. This is a very powerful and flexible model as it is trivial to
 support new sensors and applications.
 
-![Constant vs Varying parts of System](constant-vs-varying-system-parts.png)
+![Constant vs Varying parts of System](images/constant-vs-varying-system-parts.png)
 
 The core data structures are currently defined in the [`data`](../data)
 directory for Go code, and [`frontend/src/Data`](../frontend/src/Api) directory
@@ -133,12 +133,12 @@ The node tree in a device would then become a subset of the nodes in the cloud
 instance. Changes can be made to nodes in either the cloud or device and data is
 sycnronized in both directions.
 
-![cloud device node tree](cloud-device-node-tree.png)
+![cloud device node tree](images/cloud-device-node-tree.png)
 
 The following diagram illustrates how nodes might be arranged in a typical
 system.
 
-![node diagram](nodes2.png)
+![node diagram](images/nodes2.png)
 
 A few notes this structure of data:
 
