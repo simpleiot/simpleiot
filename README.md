@@ -1,4 +1,4 @@
-<img src="docs/simple-iot-logo.png?raw=true" width="150">
+<img src="docs/images/simple-iot-logo.png?raw=true" width="150">
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/simpleiot/simpleiot.svg)](https://pkg.go.dev/github.com/simpleiot/simpleiot)
 ![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=master)
