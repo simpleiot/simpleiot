@@ -18,19 +18,32 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+var reportMetricsPeriod = time.Second * 10
+
 // NatsHandler implements the SIOT NATS api
 type NatsHandler struct {
-	server              string
-	Nc                  *natsgo.Conn
-	db                  *Db
-	authToken           string
-	lock                sync.Mutex
-	nodeUpdateLock      sync.Mutex
-	updates             map[string]time.Time
-	metricNodePoint     *nats.Metric
-	metricNodeEdgePoint *nats.Metric
-	metricNode          *nats.Metric
-	metricNodeChildren  *nats.Metric
+	server         string
+	Nc             *natsgo.Conn
+	subNodePoints  *natsgo.Subscription
+	subEdgePoints  *natsgo.Subscription
+	db             *Db
+	authToken      string
+	lock           sync.Mutex
+	nodeUpdateLock sync.Mutex
+	updates        map[string]time.Time
+
+	// cycle metrics track how long it takes to handle a point
+	metricCycleNodePoint     *nats.Metric
+	metricCycleNodeEdgePoint *nats.Metric
+	metricCycleNode          *nats.Metric
+	metricCycleNodeChildren  *nats.Metric
+
+	// Pending counts how many points are being buffered by the NATS client
+	metricPendingNodePoint     *nats.Metric
+	metricPendingNodeEdgePoint *nats.Metric
+
+	// influx db stuff
+	influxDbs map[string]*Influx
 }
 
 // NewNatsHandler creates a new NATS client for handling SIOT requests
@@ -41,6 +54,7 @@ func NewNatsHandler(db *Db, authToken, server string) *NatsHandler {
 		authToken: authToken,
 		updates:   make(map[string]time.Time),
 		server:    server,
+		influxDbs: make(map[string]*Influx),
 	}
 }
 
@@ -63,20 +77,13 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 
 	nh.Nc = nc
 
-	nh.metricNodePoint = nats.NewMetric(nc, nh.db.rootNodeID(),
-		data.PointTypeMetricNatsNodePoint, time.Minute)
-	nh.metricNodeEdgePoint = nats.NewMetric(nc, nh.db.rootNodeID(),
-		data.PointTypeMetricNatsNodeEdgePoint, time.Minute)
-	nh.metricNode = nats.NewMetric(nc, nh.db.rootNodeID(),
-		data.PointTypeMetricNatsNode, time.Minute)
-	nh.metricNodeChildren = nats.NewMetric(nc, nh.db.rootNodeID(),
-		data.PointTypeMetricNatsNodeChildren, time.Minute)
-
-	if _, err := nc.Subscribe("node.*.points", nh.handleNodePoints); err != nil {
+	nh.subNodePoints, err = nc.Subscribe("node.*.points", nh.handleNodePoints)
+	if err != nil {
 		return nil, fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("node.*.*.points", nh.handleEdgePoints); err != nil {
+	nh.subEdgePoints, err = nc.Subscribe("node.*.*.points", nh.handleEdgePoints)
+	if err != nil {
 		return nil, fmt.Errorf("Subscribe edge points error: %w", err)
 	}
 
@@ -113,7 +120,59 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 		}
 	}()
 
+	// we don't have node ID yet, but need to init here so we can start
+	// collecting data
+	nh.metricCycleNodePoint = nats.NewMetric(nh.Nc, "",
+		data.PointTypeMetricNatsCycleNodePoint, reportMetricsPeriod)
+	nh.metricCycleNodeEdgePoint = nats.NewMetric(nh.Nc, "",
+		data.PointTypeMetricNatsCycleNodeEdgePoint, reportMetricsPeriod)
+	nh.metricCycleNode = nats.NewMetric(nh.Nc, "",
+		data.PointTypeMetricNatsCycleNode, reportMetricsPeriod)
+	nh.metricCycleNodeChildren = nats.NewMetric(nh.Nc, "",
+		data.PointTypeMetricNatsCycleNodeChildren, reportMetricsPeriod)
+
 	return nc, nil
+}
+
+// StartMetrics for various handling operations. Metrics are sent to the node ID given
+func (nh *NatsHandler) StartMetrics(nodeID string) error {
+	nh.metricCycleNodePoint.SetNodeID(nodeID)
+	nh.metricCycleNodeEdgePoint.SetNodeID(nodeID)
+	nh.metricCycleNode.SetNodeID(nodeID)
+	nh.metricCycleNodeChildren.SetNodeID(nodeID)
+
+	nh.metricPendingNodePoint = nats.NewMetric(nh.Nc, nodeID,
+		data.PointTypeMetricNatsPendingNodePoint, reportMetricsPeriod)
+	nh.metricPendingNodeEdgePoint = nats.NewMetric(nh.Nc, nodeID,
+		data.PointTypeMetricNatsPendingNodeEdgePoint, reportMetricsPeriod)
+
+	go func() {
+		for {
+			pendingNodePoints, _, err := nh.subNodePoints.Pending()
+			if err != nil {
+				log.Println("Error getting pendingNodePoints: ", err)
+			}
+
+			err = nh.metricPendingNodePoint.AddSample(float64(pendingNodePoints))
+			if err != nil {
+				log.Println("Error handling metric: ", err)
+			}
+
+			pendingEdgePoints, _, err := nh.subEdgePoints.Pending()
+			if err != nil {
+				log.Println("Error getting pendingEdgePoints: ", err)
+			}
+
+			err = nh.metricPendingNodeEdgePoint.AddSample(float64(pendingEdgePoints))
+			if err != nil {
+				log.Println("Error handling metric: ", err)
+			}
+
+			time.Sleep(time.Second * 10)
+		}
+	}()
+
+	return nil
 }
 
 func (nh *NatsHandler) runSchedule(node data.NodeEdge) error {
@@ -207,7 +266,7 @@ func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
-		nh.metricNodePoint.AddSample(float64(t))
+		nh.metricCycleNodePoint.AddSample(float64(t))
 	}()
 	nh.nodeUpdateLock.Lock()
 	defer nh.nodeUpdateLock.Unlock()
@@ -252,7 +311,7 @@ func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
-		nh.metricNodeEdgePoint.AddSample(float64(t))
+		nh.metricCycleNodeEdgePoint.AddSample(float64(t))
 	}()
 
 	nh.nodeUpdateLock.Lock()
@@ -283,7 +342,7 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
-		nh.metricNode.AddSample(float64(t))
+		nh.metricCycleNode.AddSample(float64(t))
 	}()
 
 	resp := &pb.NodeRequest{}
@@ -334,7 +393,7 @@ func (nh *NatsHandler) handleNodeChildren(msg *natsgo.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
-		nh.metricNodeChildren.AddSample(float64(t))
+		nh.metricCycleNodeChildren.AddSample(float64(t))
 	}()
 
 	resp := &pb.NodesRequest{}
@@ -646,15 +705,28 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 	dbNodes, err := nh.db.nodeDescendents(currentNodeID, data.NodeTypeDb, false, false)
 
 	for _, dbNode := range dbNodes {
+		// check if we need to configure influxdb connection
+		idb, ok := nh.influxDbs[dbNode.ID]
 
-		influxConfig, err := NodeToInfluxConfig(dbNode)
-
-		if err != nil {
-			log.Println("Error with influxdb node: ", err)
-			continue
+		if !ok {
+			influxConfig, err := NodeToInfluxConfig(dbNode)
+			if err != nil {
+				log.Println("Error with influxdb node: ", err)
+				continue
+			}
+			idb = NewInflux(influxConfig)
+			nh.influxDbs[dbNode.ID] = idb
+			time.Sleep(time.Second)
+		} else {
+			if time.Since(idb.lastChecked) > time.Second*20 {
+				influxConfig, err := NodeToInfluxConfig(dbNode)
+				if err != nil {
+					log.Println("Error with influxdb node: ", err)
+					continue
+				}
+				idb.CheckConfig(influxConfig)
+			}
 		}
-
-		idb := NewInflux(influxConfig)
 
 		err = idb.WritePoints(nodeID, nodeDesc, points)
 

@@ -16,7 +16,8 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.1
 	github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 // indirect
-	github.com/influxdata/influxdb-client-go/v2 v2.2.3
+	github.com/influxdata/influxdb-client-go/v2 v2.5.0
+	github.com/influxdata/line-protocol v0.0.0-20210311194329-9aa0e372d097 // indirect
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/kevinburke/go-types v0.0.0-20200309064045-f2d4aea18a7a // indirect
 	github.com/kevinburke/go.uuid v1.2.0 // indirect
@@ -24,7 +25,6 @@ require (
 	github.com/kevinburke/twilio-go v0.0.0-20200810163702-320748330fac
 	github.com/klauspost/compress v1.12.1 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/nats-io/nats-server/v2 v2.2.2
 	github.com/nats-io/nats.go v1.10.1-0.20210419223411-20527524c393
@@ -35,11 +35,11 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b // indirect
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
-	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
+	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
 	golang.org/x/sys v0.0.0-20210603125802-9665404d3644 // indirect
-	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 //replace github.com/nats-io/nats.go => github.com/cbrake/nats.go v1.10.1-0.20200817210920-7a8e05e18c84

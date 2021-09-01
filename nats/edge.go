@@ -28,6 +28,24 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		authEnabled = "yes"
 	}
 
+	natsErrHandler := func(nc *nats.Conn, sub *nats.Subscription, natsErr error) {
+		fmt.Printf("error: %v\n", natsErr)
+		switch natsErr {
+		case nats.ErrSlowConsumer:
+			pendingMsgs, _, err := sub.Pending()
+			if err != nil {
+				fmt.Printf("couldn't get pending messages: %v", err)
+				return
+			}
+			fmt.Printf("Falling behind with %d pending messages on subject %q.\n",
+				pendingMsgs, sub.Subject)
+			// Log error, notify operations...
+		default:
+			log.Println("Nats client error: ", natsErr)
+		}
+		// check for other errors
+	}
+
 	siotOptions := func(o *nats.Options) error {
 		nats.Timeout(30 * time.Second)(o)
 		nats.DrainTimeout(30 * time.Second)(o)
@@ -50,6 +68,8 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		if eo.NoEcho {
 			o.NoEcho = true
 		}
+
+		nats.ErrorHandler(natsErrHandler)(o)
 
 		return nil
 	}
