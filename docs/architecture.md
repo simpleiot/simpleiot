@@ -118,6 +118,8 @@ the relationship between nodes. Some examples:
 
 - role the user plays in the node (viewer, admin, etc)
 - order of notifications when sequencing notifications through a node's users
+- node is enabled/disabled -- for instance we may want to disable a Modbus IO
+  node that is not currently functioning.
 
 Being able to arranged nodes in an arbitrary hierarchy also opens up some
 interesting possibilities such as creating virtual nodes that have a number of
