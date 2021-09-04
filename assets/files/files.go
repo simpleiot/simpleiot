@@ -3,6 +3,7 @@ package files
 import (
 	"bytes"
 	"fmt"
+	"github.com/simpleiot/simpleiot/assets/frontend"
 	"io/ioutil"
 	"os"
 	"path"
@@ -23,7 +24,7 @@ func UpdateFiles(dataDir string) error {
 
 	for _, fu := range fileUpdates {
 		f := path.Base(fu.Dest)
-		fBytes := Asset(path.Join("/", f))
+		fBytes := frontend.Asset(path.Join("/", f))
 		if fBytes == nil {
 			return fmt.Errorf("Error opening update for: %v", f)
 		}

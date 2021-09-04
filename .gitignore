@@ -1,4 +1,3 @@
-/frontend/output
 /frontend/src/Generated
 elm-stuff
 /siot
@@ -8,7 +7,6 @@ elm-stuff
 temp
 tags
 .idea
-assets.go
 node_modules
 dist
 data.json
@@ -17,3 +15,5 @@ GITHUB_TOKEN
 local.sh
 /badger
 /frontend/.elm-spa
+frontend/output/
+/assets/frontend/output/
