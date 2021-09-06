@@ -16,4 +16,3 @@ local.sh
 /badger
 /frontend/.elm-spa
 frontend/output/
-/assets/frontend/output/
