@@ -1,6 +1,6 @@
 +++
 title = "Notifications"
-weight = 8
+weight = 9
 +++
 
 Notifications are messages that are sent to users. There several concerns when

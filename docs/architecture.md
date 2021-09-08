@@ -16,7 +16,7 @@ between a number of different systems including:
 2. Edge nodes (many instances)
 3. User Interface (phone, browser)
 
-![IoT Distributed System](distributed.png)
+![IoT Distributed System](images/distributed.png)
 
 Typically, the cloud instance stores all the system data, and the edge, browser,
 and mobile devices access a subset of the system data.
@@ -67,7 +67,7 @@ vs direct db calls. This ensures anything in the system can have visibility into
 data changes. Eventually we may want to hide db operations that do writes to
 force them to be initiated through a NATS message.
 
-![data flow](data-flow.png)
+![data flow](images/data-flow.png)
 
 ## Simple, Flexible data structures
 
@@ -81,7 +81,7 @@ application and the frontend UI. Everything between these two end points can
 stay the same. This is a very powerful and flexible model as it is trivial to
 support new sensors and applications.
 
-![Constant vs Varying parts of System](constant-vs-varying-system-parts.png)
+![Constant vs Varying parts of System](images/constant-vs-varying-system-parts.png)
 
 The core data structures are currently defined in the [`data`](../data)
 directory for Go code, and [`frontend/src/Data`](../frontend/src/Api) directory
@@ -133,12 +133,12 @@ The node tree in a device would then become a subset of the nodes in the cloud
 instance. Changes can be made to nodes in either the cloud or device and data is
 sycnronized in both directions.
 
-![cloud device node tree](cloud-device-node-tree.png)
+![cloud device node tree](images/cloud-device-node-tree.png)
 
 The following diagram illustrates how nodes might be arranged in a typical
 system.
 
-![node diagram](nodes2.png)
+![node diagram](images/nodes2.png)
 
 A few notes this structure of data:
 
@@ -173,9 +173,6 @@ connected systems, node IDs need to be unique. A unique serial number or UUID is
 recommended.
 
 ## Data Synchronization
-
-**NOTE, other than synchronization of node points, which is a fairly easy
-problem, this section in a WIP**
 
 See [research](research.md) for information on techniques that may be applicable
 to this problem.
@@ -249,13 +246,16 @@ value is not changing. There are several reasons for this:
   soon, so don't really need catch-up synchronization for sample data.
 
 Config data is not sent periodically. To manage synchronization of config data,
-each node will have a `Hash` field.
+each `edge` will have a `Hash` field.
 
-The node `Hash` field is a hash of:
+The edge `Hash` field is a hash of:
 
-- node point timestamps except for sample points. Sample points are excluded
-  from the node hash as discussed above.
-- and child node `Hash` fields
+- edge and node point timestamps except for sample points. Sample points are
+  excluded from the hash as discussed above.
+- child edge `Hash` fields
+
+We store the hash in the `edge` structures because nodes (such as users) can
+exist in multiple places in the tree.
 
 The points are sorted by timestamp and child nodes are sorted by hash so that
 the order is consistent when the hash is computed.
@@ -286,18 +286,38 @@ for synchronizing of all state using the following algorithm:
 1. if node hash still does not match, a recursive operation is started to fetch
    child node hashes and the same process is repeated.
 
-### Node additions
+The md5 algorithm is used to compute the hash fields because it is relatively
+efficient to compute and reasonably small. While sha246 might be more _secure_,
+the application of this hash is not security, but rather verifiability. The
+failure mode is that two different trees will generate the same hash. Because
+the root hash is always changing, this is not really a problem as the next
+change to the tree will likely trigger a new hash -- usually within a short
+amount of time.
 
-If a node is added, the hash mechanism will detect a node has been added. If the
-node is missing on the edge device, that node is requested. If the node is
-missing in the cloud, the node is transmitted by the edge device to the cloud.
+### Node Topology changes
 
-### Node deletions
+#### Add
 
-If a node is deleted, this information needs to be recorded, otherwise the
-synchronization process will simply re-create the deleted node if it exists on
-another instance. To signify a node has been deleted, the hash will be set to a
-blank string.
+Node additions are detected in real-time by sending the points for the new node
+as well as points for the edge node that adds the node to the tree.
+
+#### Copy
+
+Node copies are are similar to add, but only the edge points are sent.
+
+#### Delete
+
+Node deletions are recorded by setting a tombstone point in the edge above the
+node to true. If a node is deleted, this information needs to be recorded,
+otherwise the synchronization process will simply re-create the deleted node if
+it exists on another instance.
+
+#### Move
+
+Move is just a combination of Copy and Delete.
+
+If the any real-time data is lost in any of the above operations, the catch up
+syncronization will propogate any node changes.
 
 ## Frontend architecture
 

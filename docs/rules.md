@@ -1,6 +1,6 @@
 +++
 title = "Rules"
-weight = 7
+weight = 8
 +++
 
 The Simple IoT application has the ability to run rules. That are composed of

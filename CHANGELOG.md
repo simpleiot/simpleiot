@@ -20,6 +20,13 @@ For more details or to discuss releases, please visit the
 - add point min/max to NATS packets
 - add NATS api metrics (as points to root device node) (#244)
 - don't color root node grey for now
+- update influxdb client to 2.5.0
+- switch to async influx DB API (batches data, retries, etc)
+- implement caching of nodes and edges to speed up read access
+- add point processing cycle time and nats client pending messages metrics
+- modbus loglevel 1 only prints errors, 2 now prints transactions
+- web UI auth expires in 24hr instead of 30m -- still not ideal, but one step at
+  a time (#249)
 
 ## [[0.0.33] - 2021-08-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.33)
 
