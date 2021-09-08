@@ -2,10 +2,6 @@ RECOMMENDED_ELM_VERSION=0.19.1
 
 # map tools from project go modules
 
-genesis() {
-  GOARCH='' go run github.com/benbjohnson/genesis/cmd/genesis "$@"
-}
-
 golint() {
   GOARCH='' go run golang.org/x/lint/golint "$@"
 }
@@ -53,29 +49,17 @@ siot_build_frontend() {
   ELMARGS=$1
   echo "Elm args: $ELMARGS"
   rm -f "frontend/output"/*
+  rm -f "assets/frontend/output"/*
   (cd "frontend" && npx elm-spa build) || return 1
   (cd "frontend" && npx elm make "$ELMARGS" src/Main.elm --output=output/elm.js) || return 1
-  cp "frontend/public"/* "frontend/output/" || return 1
-  cp "frontend/public/index.html" "frontend/output/index.html" || return 1
-  cp docs/simple-iot-app-logo.png "frontend/output/" || return 1
+  cp "frontend/public"/* "assets/frontend/output" || return 1
+  cp "frontend/public/index.html" "assets/frontend/output/index.html" || return 1
+  cp docs/simple-iot-app-logo.png "assets/frontend/output/" || return 1
   return 0
 }
 
 siot_build_assets() {
   mkdir -p assets/frontend || return 1
-  genesis -C "frontend/output" -pkg frontend \
-    index.html \
-    elm.js \
-    main.js \
-    ble.js \
-    simple-iot-app-logo.png \
-    ports.js \
-    styles.css \
-    >assets/frontend/assets.go || return 1
-
-  genesis -C "assets/files" -pkg files \
-    dummy \
-    >assets/files/assets.go || return 1
   return 0
 }
 
