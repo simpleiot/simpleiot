@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.34] - 2021-09-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.34)
+
 - handle audio playback where file bitrate does not match default of audio
   device (#240)
 - support rule actions that trigger when rule goes inactive (instead of active).
