@@ -10,7 +10,7 @@ import (
 var content embed.FS
 
 func Asset(name string) []byte {
-	const filePath = "frontend/output"
+	const filePath = "output"
 	temp, err := content.ReadFile(path.Join(filePath, name))
 	if err != nil {
 		return nil
