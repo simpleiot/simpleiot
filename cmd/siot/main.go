@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -518,7 +519,7 @@ func main() {
 		Port:       port,
 		DbInst:     dbInst,
 		GetAsset:   frontend.Asset,
-		Filesystem: frontend.FileSystem(),
+		Filesystem: http.FS(frontend.FileSystem()),
 		Debug:      *flagDebugHTTP,
 		JwtAuth:    auth,
 		AuthToken:  authToken,

@@ -2,7 +2,7 @@ package frontend
 
 import (
 	"embed"
-	"net/http"
+	"io/fs"
 	"path"
 )
 
@@ -18,6 +18,6 @@ func Asset(name string) []byte {
 	return temp
 }
 
-func FileSystem() http.FileSystem {
-	return http.FS(content)
+func FileSystem() fs.FS {
+	return content
 }
