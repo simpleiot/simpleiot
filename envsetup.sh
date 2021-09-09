@@ -50,8 +50,8 @@ siot_build_frontend() {
   echo "Elm args: $ELMARGS"
   rm -f "frontend/output"/*
   rm -f "assets/frontend/output"/*
-  (cd "frontend" && npx elm-spa build) || return 1
-  (cd "frontend" && npx elm make "$ELMARGS" src/Main.elm --output=output/elm.js) || return 1
+  (cd "frontend" && npx elm-spa@5.0.4 build) || return 1
+  (cd "frontend" && npx elm@0.19.1-5 make "$ELMARGS" src/Main.elm --output=output/elm.js) || return 1
   cp "frontend/public"/* "assets/frontend/output" || return 1
   cp "frontend/public/index.html" "assets/frontend/output/index.html" || return 1
   cp docs/simple-iot-app-logo.png "assets/frontend/output/" || return 1
