@@ -596,13 +596,13 @@ func (b *Modbus) LogError(io *ModbusIONode, err error) error {
 		Value: float64(busCount),
 	}
 
-	err = nats.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
+	err = nats.SendNodePoint(b.nc, b.busNode.nodeID, p, false)
 	if err != nil {
 		return err
 	}
 
 	p.Value = float64(ioCount)
-	return nats.SendNodePoint(b.nc, io.nodeID, p, true)
+	return nats.SendNodePoint(b.nc, io.nodeID, p, false)
 }
 
 // ClosePort closes both the server and client ports

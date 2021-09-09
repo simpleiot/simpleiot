@@ -482,6 +482,18 @@ func main() {
 	}
 	go nodeManager.Run()
 
+	rootNode, err := nats.GetNode(nc, "root", "")
+
+	if err != nil {
+		log.Println("Error getting root id for metrics: ", err)
+	} else {
+
+		err = natsHandler.StartMetrics(rootNode.ID)
+		if err != nil {
+			log.Println("Error starting nats metrics: ", err)
+		}
+	}
+
 	// set up particle connection if configured
 	// todo -- move this to a node
 	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")

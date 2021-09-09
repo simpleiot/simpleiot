@@ -108,7 +108,7 @@ func (s *Server) Listen(errorCallback func(error),
 			// an error here?
 		}
 
-		if s.debug >= 1 {
+		if s.debug >= 2 {
 			fmt.Println("Modbus server req: ", req)
 		}
 
@@ -122,7 +122,7 @@ func (s *Server) Listen(errorCallback func(error),
 			continue
 		}
 
-		if s.debug >= 1 {
+		if s.debug >= 2 {
 			fmt.Println("Modbus server resp: ", resp)
 		}
 

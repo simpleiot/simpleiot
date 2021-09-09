@@ -100,7 +100,7 @@ view o =
                 }
             ]
             :: (if o.expDetail then
-                    [ viewPoints <| Point.filterSpecialPoints o.node.points
+                    [ viewPoints <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
                     , text
                         ("Time since last update: "

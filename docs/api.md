@@ -1,6 +1,6 @@
 +++
 title = "API"
-weight = 5
+weight = 6
 +++
 
 The Simple IoT server currently provides both Http and NATS.io APIs. We've tried

@@ -16,6 +16,7 @@ module Api.Point exposing
     , newText
     , newValue
     , renderPoint
+    , sort
     , typeActionType
     , typeActive
     , typeAddress
@@ -884,3 +885,15 @@ clearText points =
                 p
         )
         points
+
+
+sort : Point -> Point -> Order
+sort a b =
+    if a.typ /= b.typ then
+        compare a.typ b.typ
+
+    else if a.index /= b.index then
+        compare a.index b.index
+
+    else
+        compare a.value b.value

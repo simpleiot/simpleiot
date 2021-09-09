@@ -169,8 +169,12 @@ const (
 
 	NodeTypeUpstream = "upstream"
 
-	PointTypeMetricNatsNodePoint     = "metricNatsNodePoint"
-	PointTypeMetricNatsNodeEdgePoint = "metricNatsNodeEdgePoint"
-	PointTypeMetricNatsNode          = "metricNatsNode"
-	PointTypeMetricNatsNodeChildren  = "metricNatsNodeChildren"
+	PointTypeMetricNatsCycleNodePoint          = "metricNatsCycleNodePoint"
+	PointTypeMetricNatsCycleNodeEdgePoint      = "metricNatsCycleNodeEdgePoint"
+	PointTypeMetricNatsCycleNode               = "metricNatsCycleNode"
+	PointTypeMetricNatsCycleNodeChildren       = "metricNatsCycleNodeChildren"
+	PointTypeMetricNatsPendingNodePoint        = "metricNatsPendingNodePoint"
+	PointTypeMetricNatsPendingNodeEdgePoint    = "metricNatsPendingNodeEdgePoint"
+	PointTypeMetricNatsThroughputNodePoint     = "metricNatsThroughputNodePoint"
+	PointTypeMetricNatsThroughputNodeEdgePoint = "metricNatsThroughputNodeEdgePoint"
 )

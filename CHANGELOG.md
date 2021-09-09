@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.34] - 2021-09-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.34)
+
 - handle audio playback where file bitrate does not match default of audio
   device (#240)
 - support rule actions that trigger when rule goes inactive (instead of active).
@@ -20,6 +22,14 @@ For more details or to discuss releases, please visit the
 - add point min/max to NATS packets
 - add NATS api metrics (as points to root device node) (#244)
 - don't color root node grey for now
+- update influxdb client to 2.5.0
+- switch to async influx DB API (batches data, retries, etc)
+- implement caching of nodes and edges to speed up read access
+- add point processing cycle time and nats client pending messages metrics
+- modbus loglevel 1 only prints errors, 2 now prints transactions
+- web UI auth expires in 24hr instead of 30m -- still not ideal, but one step at
+  a time (#249)
+- update front tar package to fix security warnings
 
 ## [[0.0.33] - 2021-08-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.33)
 

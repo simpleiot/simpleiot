@@ -37,6 +37,11 @@ func NewMetric(nc *natsgo.Conn, nodeID, pointType string, reportPeriod time.Dura
 	}
 }
 
+// SetNodeID -- this is a bit of a hack to get around some init issues
+func (m *Metric) SetNodeID(id string) {
+	m.nodeID = id
+}
+
 // AddSample adds a sample and reports it if reportPeriod has expired
 func (m *Metric) AddSample(s float64) error {
 	m.lock.Lock()

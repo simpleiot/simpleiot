@@ -1,9 +1,10 @@
 package db
 
 import (
-	"context"
 	"errors"
+	"log"
 	"strconv"
+	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	api "github.com/influxdata/influxdb-client-go/v2/api"
@@ -47,22 +48,36 @@ func NodeToInfluxConfig(node data.NodeEdge) (*InfluxConfig, error) {
 
 // Influx represents and influxdb that we can write points to
 type Influx struct {
-	client   influxdb2.Client
-	writeAPI api.WriteAPIBlocking
-	queryAPI api.QueryAPI
+	lastChecked time.Time
+	config      InfluxConfig
+	client      influxdb2.Client
+	writeAPI    api.WriteAPI
+	queryAPI    api.QueryAPI
 }
 
 // NewInflux creates an influx helper client
 func NewInflux(config *InfluxConfig) *Influx {
-	client := influxdb2.NewClient(config.URL, config.Token)
-	writeAPI := client.WriteAPIBlocking(config.Org, config.Bucket)
-	queryAPI := client.QueryAPI(config.Org)
+	ret := &Influx{}
+	ret.CheckConfig(config)
+	return ret
+}
 
-	return &Influx{
-		client:   client,
-		writeAPI: writeAPI,
-		queryAPI: queryAPI,
+// CheckConfig checks influx config and re-init if necessary
+func (i *Influx) CheckConfig(config *InfluxConfig) {
+	if i.config != *config {
+		log.Println("Setting up new influxdb client: ", config)
+		if i.client != nil {
+			i.client.Close()
+			i.client = nil
+		}
+
+		i.client = influxdb2.NewClient(config.URL, config.Token)
+		i.writeAPI = i.client.WriteAPI(config.Org, config.Bucket)
+		i.queryAPI = i.client.QueryAPI(config.Org)
+		i.config = *config
 	}
+
+	i.lastChecked = time.Now()
 }
 
 // WritePoints to influxdb
@@ -82,11 +97,12 @@ func (i *Influx) WritePoints(nodeID, nodeDesc string, points data.Points) error 
 				"duration": point.Duration.Milliseconds(),
 			},
 			point.Time)
-		err := i.writeAPI.WritePoint(context.Background(), p)
-		if err != nil {
-			return err
-		}
-		i.client.Close()
+		i.writeAPI.WritePoint(p)
 	}
 	return nil
+}
+
+// Close influx client
+func (i *Influx) Close() {
+	i.client.Close()
 }

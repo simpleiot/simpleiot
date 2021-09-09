@@ -1,6 +1,6 @@
 +++
 title = "Database"
-weight = 6
+weight = 7
 +++
 
 Currently, Simple IoT supports [bbolt](https://github.com/etcd-io/bbolt) as a
@@ -16,6 +16,6 @@ The current database schema is several MongoDb schema design posts
 As described in the [architecture](architecture.md) document, nodes and edges
 are the primary data structures stored in database.
 
-We currently use an external InfluxDB 1.x database for storing timeseries data,
+We currently use an external InfluxDB 2.x database for storing timeseries data,
 but eventually would like to have an embedded timeseries option -- perhaps built
 on bolt.

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
@@ -24,6 +25,7 @@ type Upstream struct {
 	subUpEdgePoints    map[string]*natsgo.Subscription
 	subLocalNodePoints *natsgo.Subscription
 	subLocalEdgePoints *natsgo.Subscription
+	lock               sync.Mutex
 }
 
 // NewUpstream is used to create a new upstream connection
@@ -183,7 +185,9 @@ func (up *Upstream) addUpstreamSub(node data.NodeEdge) error {
 
 func (up *Upstream) addUpstreamNodeSub(nodeID string) error {
 	// check if subscriptional already exists
+	up.lock.Lock()
 	_, ok := up.subUpNodePoints[nodeID]
+	up.lock.Unlock()
 	if ok {
 		// subscription allready exists
 		return nil
@@ -210,7 +214,9 @@ func (up *Upstream) addUpstreamNodeSub(nodeID string) error {
 		return err
 	}
 
+	up.lock.Lock()
 	up.subUpNodePoints[nodeID] = sub
+	up.lock.Unlock()
 
 	return nil
 }
@@ -224,7 +230,9 @@ func (up *Upstream) addUpstreamEdgeSub(nodeID, parentID string) error {
 	key := nodeID + ":" + parentID
 
 	// check if subscriptional already exists
+	up.lock.Lock()
 	_, ok := up.subUpEdgePoints[key]
+	up.lock.Unlock()
 	if ok {
 		// subscription allready exists
 		return nil
@@ -251,7 +259,9 @@ func (up *Upstream) addUpstreamEdgeSub(nodeID, parentID string) error {
 		return err
 	}
 
+	up.lock.Lock()
 	up.subUpEdgePoints[key] = sub
+	up.lock.Unlock()
 
 	return nil
 }
@@ -448,6 +458,7 @@ func (up *Upstream) Stop() {
 		}
 	}
 
+	up.lock.Lock()
 	for _, sub := range up.subUpNodePoints {
 		err := sub.Unsubscribe()
 		if err != nil {
@@ -461,6 +472,7 @@ func (up *Upstream) Stop() {
 			log.Println("Error unsubscribing from upstream bus: ", err)
 		}
 	}
+	up.lock.Unlock()
 
 	if up.ncUp != nil {
 		up.ncUp.Close()
