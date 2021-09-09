@@ -54,7 +54,7 @@ siot_build_frontend() {
   (cd "frontend" && npx elm@0.19.1-5 make "$ELMARGS" src/Main.elm --output=output/elm.js) || return 1
   cp "frontend/public"/* "assets/frontend/output" || return 1
   cp "frontend/public/index.html" "assets/frontend/output/index.html" || return 1
-  cp docs/simple-iot-app-logo.png "assets/frontend/output/" || return 1
+  cp docs/images/simple-iot-app-logo.png "assets/frontend/output/" || return 1
   return 0
 }
 
