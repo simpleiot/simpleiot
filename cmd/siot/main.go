@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -514,6 +515,15 @@ func main() {
 			}
 		}()
 	}
+
+	// FIXME: test code, please remove after embed assets are working
+	fs.WalkDir(frontend.FileSystem(), ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			log.Fatal("error walking embed fs: ", err)
+		}
+		fmt.Println("embed: ", path)
+		return nil
+	})
 
 	err = api.Server(api.ServerArgs{
 		Port:       port,
