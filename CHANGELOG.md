@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.34] - 2021-09-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.34)
+
 - handle audio playback where file bitrate does not match default of audio
   device (#240)
 - support rule actions that trigger when rule goes inactive (instead of active).
@@ -27,6 +29,7 @@ For more details or to discuss releases, please visit the
 - modbus loglevel 1 only prints errors, 2 now prints transactions
 - web UI auth expires in 24hr instead of 30m -- still not ideal, but one step at
   a time (#249)
+- update front tar package to fix security warnings
 
 ## [[0.0.33] - 2021-08-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.33)
 
