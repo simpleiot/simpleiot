@@ -224,7 +224,7 @@ different package, or renamed -- feel free to ask if you run into problems.
 - [ ] WiFi management
 - [ ] Graphs
 
-## Support, Contributing, etc.
+## Support, Community, Contributing, etc.
 
 Pull requests are welcome -- see [development](docs/DEVELOPMENT.md) for more
 thoughts on architecture, tooling, etc. Issues are labelled with "help wanted"
@@ -235,7 +235,11 @@ For support or to discuss this project, use one of the following options:
 - [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
 - #simpleiot Slack channel is available on
   [gophers.slack.com](https://gophers.slack.com/messages/simpleiot/)
-- open a github issue
+- open a Github issue
+
+Other resources:
+
+- [Simple IoT YouTube channel](https://www.youtube.com/channel/UCDAtjx0utMbJCexZ7Q5CbNg)
 
 ## License
 
