@@ -49,6 +49,8 @@ are solving.
 1. System supports user authentication and grouping users and devices at
    multiple levels.
 1. User interface updates to changes in real time.
+1. Easy to add custom logic/algorithms by adding processes written in any
+   language that connect to Simple IoT via NATS.
 
 IoT Systems are inherently distributed, so even though we prefer a monolith for
 a cloud service, we can't get around the fact that we also need to synchronize
