@@ -23,19 +23,19 @@ are solving.
    scale (10-1000 device range).
 1. There is significant opportunity in the
    [long tail](https://www.linkedin.com/pulse/long-tail-iot-param-singh) of IoT,
-   which is our focus. This is not an "enterprise" platform.
+   which is our focus.
 1. There is value in custom solutions (programming vs drag-n-drop).
 1. There is value in running/owning our own platform.
 1. A single engineer should be able to build and deploy a custom IoT system.
-1. We don't need to spend gobs of time on operations. For smaller deployments,
-   we deploy one binary to a cloud server and we are done with operations. We
-   don't need 20 microservices when one
+1. We don't need to spend excessive amounts of time on operations. For smaller
+   deployments, we deploy one binary to a cloud server and we are done with
+   operations. We don't need 20 microservices when one
    [monolith](https://m.signalvnoise.com/the-majestic-monolith/) will
    [work](https://changelog.com/posts/monoliths-are-the-future) just
    [fine](https://m.signalvnoise.com/integrated-systems-for-integrated-programmers/).
 1. For many applications, a couple hours of down time is not the end of the
-   world. Thus a single server that can be quickly rebuilt as needed is
-   adequate.
+   world. Thus a single server that can be quickly rebuilt as needed is adequate
+   and in many cases more reliable than complex systems with many moving parts.
 
 ## Core features/requirements:
 
@@ -49,6 +49,8 @@ are solving.
 1. System supports user authentication and grouping users and devices at
    multiple levels.
 1. User interface updates to changes in real time.
+1. Easy to add custom logic/algorithms by adding processes written in any
+   language that connect to Simple IoT via NATS.
 
 IoT Systems are inherently distributed, so even though we prefer a monolith for
 a cloud service, we can't get around the fact that we also need to synchronize
@@ -78,7 +80,7 @@ addition discussion on these points.
 This project was developed while building real-world applications and has
 primarily been driven by these project requirements. This project provides
 
-- a portal application (typically deployed in the cloud)
+- an stand-alone application that can be deployed at the edge or in the cloud
 - [packages](https://pkg.go.dev/github.com/simpleiot/simpleiot) for implementing
   an edge application to run on embedded Linux systems.
 
@@ -157,12 +159,32 @@ of users, devices, and device attributes.
 
 ## Extensive support for modbus devices
 
+Simple IoT can function as either a Modbus TCP/RTU master or client.
+
 ![node-modbus](docs/images/screenshot-modbus-io.png)
+
+[![Modbus video](http://img.youtube.com/vi/iIZWxr482mI/0.jpg)](http://www.youtube.com/watch?v=iIZWxr482mI)
+
+## Upstream support
+
+Simple IoT is designed such that one instance can be run at the edge and connect
+to another instance in the cloud. The tree in the edge instance is simply
+mirrored in the upstream tree. Changes at either place are synchronized in
+real-time. If one device is offline, the changes are synchronized the next time
+they are connected. See the below video for a demo of this.
+
+[![Modbus video](http://img.youtube.com/vi/6xB-gXUynQc/0.jpg)](http://www.youtube.com/watch?v=6xB-gXUynQc)
+
+## Rules and Notifications
+
+Simple IoT rules can be used to set node values and to trigger notifications.
+
+[![Modbus video](http://img.youtube.com/vi/Z3FVjtnoWoY/0.jpg)](http://www.youtube.com/watch?v=Z3FVjtnoWoY)
 
 ## Configuration
 
-Simple IoT can be [configured](docs/configuration.md) to connect with a number
-of external programs/services such as Particle.io, Twilio, and Influxdb.
+Simple IoT can be [configured](docs/configuration.md) for basic options such as
+port numbers, etc.
 
 Additionally, command line option help can be viewed by running `siot --help`.
 
@@ -212,7 +234,7 @@ different package, or renamed -- feel free to ask if you run into problems.
 - [ ] WiFi management
 - [ ] Graphs
 
-## Support, Contributing, etc.
+## Support, Community, Contributing, etc.
 
 Pull requests are welcome -- see [development](docs/DEVELOPMENT.md) for more
 thoughts on architecture, tooling, etc. Issues are labelled with "help wanted"
@@ -223,7 +245,11 @@ For support or to discuss this project, use one of the following options:
 - [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
 - #simpleiot Slack channel is available on
   [gophers.slack.com](https://gophers.slack.com/messages/simpleiot/)
-- open a github issue
+- open a Github issue
+
+Other resources:
+
+- [Simple IoT YouTube channel](https://www.youtube.com/channel/UCDAtjx0utMbJCexZ7Q5CbNg)
 
 ## License
 

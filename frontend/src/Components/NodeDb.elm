@@ -35,11 +35,11 @@ view o =
             ]
             :: (if o.expDetail then
                     [ text "InfluxDb 2.0 Database"
-                    , textInput Point.typeDescription "Description"
-                    , textInput Point.typeURI "URL"
-                    , textInput Point.typeOrg "Organization"
-                    , textInput Point.typeBucket "Bucket"
-                    , textInput Point.typeAuthToken "Auth Token"
+                    , textInput Point.typeDescription "Description" ""
+                    , textInput Point.typeURI "URL" "https://myserver:8086"
+                    , textInput Point.typeOrg "Organization" "org name"
+                    , textInput Point.typeBucket "Bucket" "bucket name"
+                    , textInput Point.typeAuthToken "Auth Token" ""
                     ]
 
                 else

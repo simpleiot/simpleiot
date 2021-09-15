@@ -60,7 +60,7 @@ view o =
                     Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeDescription "Description"
+                    [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeConditionType
                         "Type"
                         [ ( Point.valuePointValue, "point value" )
@@ -137,7 +137,7 @@ pointValue o labelWidth =
         [ width fill
         , spacing 6
         ]
-        [ textInput Point.typeID "Node ID"
+        [ textInput Point.typeID "Node ID" ""
         , optionInput Point.typePointType
             "Point Type"
             [ ( Point.typeValue, "value" )
@@ -146,7 +146,7 @@ pointValue o labelWidth =
             , ( Point.typeSysState, "system state" )
             , ( Point.typeActive, "active" )
             ]
-        , textInput Point.typePointID "Point ID"
+        , textInput Point.typePointID "Point ID" ""
         , numberInput Point.typePointIndex "Point Index"
         , optionInput Point.typeValueType
             "Point Value Type"
@@ -167,7 +167,7 @@ pointValue o labelWidth =
                 onOffInput Point.typeValue Point.typeValue "Point Value"
 
             "text" ->
-                textInput Point.typeValue "Point Value"
+                textInput Point.typeValue "Point Value" ""
 
             _ ->
                 Element.none

@@ -64,7 +64,7 @@ view o =
                 Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeDescription "Description"
+                    [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeActionType
                         "Action"
                         [ ( Point.valueActionNotify, "notify" )
@@ -77,7 +77,7 @@ view o =
                             [ ( Point.typeValue, "value" )
                             , ( Point.typeValueSet, "set value (use for remote devices)" )
                             ]
-                    , viewIf actionSetValue <| textInput Point.typeID "Node ID"
+                    , viewIf actionSetValue <| textInput Point.typeID "Node ID" ""
                     , viewIf actionSetValue <|
                         optionInput Point.typeValueType
                             "Point Value Type"
@@ -94,16 +94,16 @@ view o =
                                 onOffInput Point.typeValue Point.typeValue "Value"
 
                             "text" ->
-                                textInput Point.typeValue "Value"
+                                textInput Point.typeValue "Value" ""
 
                             _ ->
                                 Element.none
                     , viewIf actionPlayAudio <|
-                        textInput Point.typeDevice "Device"
+                        textInput Point.typeDevice "Device" ""
                     , viewIf actionPlayAudio <|
                         numberInput Point.typeChannel "Channel"
                     , viewIf actionPlayAudio <|
-                        textInput Point.typeFilePath "Wav file path"
+                        textInput Point.typeFilePath "Wav file path" "/absolute/path/to/sound.wav"
                     ]
 
                 else

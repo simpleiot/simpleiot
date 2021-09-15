@@ -51,7 +51,7 @@ view o =
                     Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeDescription "Description"
+                    [ textInput Point.typeDescription "Description" ""
                     ]
 
                 else

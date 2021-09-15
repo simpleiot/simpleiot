@@ -40,15 +40,16 @@ nodeTextInput :
     -> Int
     -> String
     -> String
+    -> String
     -> Element msg
-nodeTextInput o id index typ lbl =
+nodeTextInput o id index typ lbl placeholder =
     Input.text
         []
         { onChange =
             \d ->
                 o.onEditNodePoint [ Point id index typ o.now 0 d 0 0 ]
         , text = Point.getText o.node.points id index typ
-        , placeholder = Nothing
+        , placeholder = Just <| Input.placeholder [] <| text placeholder
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
 

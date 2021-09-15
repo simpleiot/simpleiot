@@ -37,14 +37,14 @@ view o =
                 Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeDescription "Description"
+                    [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeService
                         "Service"
                         [ ( Point.valueTwilio, "Twilio SMS" )
                         ]
-                    , textInput Point.typeSID "SID"
-                    , textInput Point.typeAuthToken "Auth Token"
-                    , textInput Point.typeFrom "From"
+                    , textInput Point.typeSID "SID" ""
+                    , textInput Point.typeAuthToken "Auth Token" ""
+                    , textInput Point.typeFrom "From" ""
                     ]
 
                 else
