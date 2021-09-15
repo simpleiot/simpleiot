@@ -23,19 +23,19 @@ are solving.
    scale (10-1000 device range).
 1. There is significant opportunity in the
    [long tail](https://www.linkedin.com/pulse/long-tail-iot-param-singh) of IoT,
-   which is our focus. This is not an "enterprise" platform.
+   which is our focus.
 1. There is value in custom solutions (programming vs drag-n-drop).
 1. There is value in running/owning our own platform.
 1. A single engineer should be able to build and deploy a custom IoT system.
-1. We don't need to spend gobs of time on operations. For smaller deployments,
-   we deploy one binary to a cloud server and we are done with operations. We
-   don't need 20 microservices when one
+1. We don't need to spend excessive amounts of time on operations. For smaller
+   deployments, we deploy one binary to a cloud server and we are done with
+   operations. We don't need 20 microservices when one
    [monolith](https://m.signalvnoise.com/the-majestic-monolith/) will
    [work](https://changelog.com/posts/monoliths-are-the-future) just
    [fine](https://m.signalvnoise.com/integrated-systems-for-integrated-programmers/).
 1. For many applications, a couple hours of down time is not the end of the
-   world. Thus a single server that can be quickly rebuilt as needed is
-   adequate.
+   world. Thus a single server that can be quickly rebuilt as needed is adequate
+   and in many cases more reliable than complex systems with many moving parts.
 
 ## Core features/requirements:
 
@@ -78,7 +78,7 @@ addition discussion on these points.
 This project was developed while building real-world applications and has
 primarily been driven by these project requirements. This project provides
 
-- a portal application (typically deployed in the cloud)
+- an stand-alone application that can be deployed at the edge or in the cloud
 - [packages](https://pkg.go.dev/github.com/simpleiot/simpleiot) for implementing
   an edge application to run on embedded Linux systems.
 
@@ -157,12 +157,24 @@ of users, devices, and device attributes.
 
 ## Extensive support for modbus devices
 
+Simple IoT can function as either a Modbus TCP/RTU master or client.
+
 ![node-modbus](docs/images/screenshot-modbus-io.png)
+
+## Upstream support
+
+Simple IoT is designed such that one instance can be run at the edge and connect
+to another instance in the cloud. The tree in the edge instance is simply
+mirrored in the upstream tree. Changes at either place are synchronized in
+real-time. If one device is offline, the changes are synchronized the next time
+they are connected. See the below video for a demo of this.
+
+[![Simple IoT upstream support](http://img.youtube.com/vi/6xB-gXUynQc/0.jpg)](http://www.youtube.com/watch?v=6xB-gXUynQc)
 
 ## Configuration
 
-Simple IoT can be [configured](docs/configuration.md) to connect with a number
-of external programs/services such as Particle.io, Twilio, and Influxdb.
+Simple IoT can be [configured](docs/configuration.md) for basic options such as
+port numbers, etc.
 
 Additionally, command line option help can be viewed by running `siot --help`.
 
