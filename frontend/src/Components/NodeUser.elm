@@ -49,11 +49,11 @@ view o =
                     ++ Point.getText o.node.points "" 0 Point.typeLastName
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeFirstName "First Name"
-                    , textInput Point.typeLastName "Last Name"
-                    , textInputLowerCase Point.typeEmail "Email"
-                    , textInput Point.typePhone "Phone"
-                    , textInput Point.typePass "Pass"
+                    [ textInput Point.typeFirstName "First Name" ""
+                    , textInput Point.typeLastName "Last Name" ""
+                    , textInputLowerCase Point.typeEmail "Email" ""
+                    , textInput Point.typePhone "Phone" ""
+                    , textInput Point.typePass "Pass" ""
                     ]
 
                 else

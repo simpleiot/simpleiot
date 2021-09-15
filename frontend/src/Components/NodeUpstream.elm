@@ -31,9 +31,9 @@ view o =
                 Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeDescription "Description"
-                    , textInput Point.typeURI "URI"
-                    , textInput Point.typeAuthToken "Auth Token"
+                    [ textInput Point.typeDescription "Description" ""
+                    , textInput Point.typeURI "URI" "nats://myserver:4222"
+                    , textInput Point.typeAuthToken "Auth Token" ""
                     ]
 
                 else

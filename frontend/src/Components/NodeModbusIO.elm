@@ -125,7 +125,7 @@ view o =
                     ""
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeDescription "Description"
+                    [ textInput Point.typeDescription "Description" ""
                     , viewIf isClient <| numberInput Point.typeID "ID"
                     , numberInput Point.typeAddress "Address"
                     , optionInput Point.typeModbusIOType
@@ -142,7 +142,7 @@ view o =
                     , viewIf isRegister <|
                         numberInput Point.typeOffset "Offset"
                     , viewIf isRegister <|
-                        textInput Point.typeUnits "Units"
+                        textInput Point.typeUnits "Units" ""
                     , viewIf isRegister <|
                         optionInput Point.typeDataFormat
                             "Data format"

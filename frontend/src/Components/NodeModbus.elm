@@ -50,7 +50,7 @@ view o =
                 Point.getText o.node.points "" 0 Point.typeDescription
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeDescription "Description"
+                    [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeClientServer
                         "Client/Server"
                         [ ( Point.valueClient, "client" )
@@ -62,13 +62,17 @@ view o =
                         , ( Point.valueTCP, "TCP" )
                         ]
                     , viewIf
+                        (protocol == Point.valueRTU)
+                      <|
+                        textInput Point.typePort "Port" "/dev/ttyUSB0"
+                    , viewIf
                         (protocol
-                            == Point.valueRTU
-                            || clientServer
+                            == Point.valueTCP
+                            && clientServer
                             == Point.valueServer
                         )
                       <|
-                        textInput Point.typePort "Port"
+                        textInput Point.typePort "Port" "502"
                     , viewIf
                         (protocol
                             == Point.valueTCP
@@ -76,8 +80,8 @@ view o =
                             == Point.valueClient
                         )
                       <|
-                        textInput Point.typeURI "URI"
-                    , viewIf (protocol == Point.valueRTU) <| textInput Point.typeBaud "Baud"
+                        textInput Point.typeURI "URI" "192.168.1.201:502"
+                    , viewIf (protocol == Point.valueRTU) <| textInput Point.typeBaud "Baud" "9600"
                     , viewIf (clientServer == Point.valueServer) <|
                         numberInput Point.typeID "Device ID"
                     , viewIf (clientServer == Point.valueClient) <|

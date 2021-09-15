@@ -86,7 +86,7 @@ view o =
                            )
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeDescription "Description"
+                    [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeVariableType
                         "Variable type"
                         [ ( Point.valueOnOff, "On/Off" )
@@ -100,7 +100,7 @@ view o =
                     , viewIf (variableType == Point.valueNumber) <|
                         numberInput Point.typeValue "Value"
                     , viewIf (variableType == Point.valueNumber) <|
-                        textInput Point.typeUnits "Units"
+                        textInput Point.typeUnits "Units" ""
                     ]
 
                 else
