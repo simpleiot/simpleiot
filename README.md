@@ -161,7 +161,7 @@ Simple IoT can function as either a Modbus TCP/RTU master or client.
 
 ![node-modbus](docs/images/screenshot-modbus-io.png)
 
-[![Modbus video](http://img.youtube.com/vi/iIZWxr482mI0.jpg)](http://www.youtube.com/watch?v=iIZWxr482mI)
+[![Modbus video](http://img.youtube.com/vi/iIZWxr482mI/0.jpg)](http://www.youtube.com/watch?v=iIZWxr482mI)
 
 ## Upstream support
 
@@ -171,13 +171,13 @@ mirrored in the upstream tree. Changes at either place are synchronized in
 real-time. If one device is offline, the changes are synchronized the next time
 they are connected. See the below video for a demo of this.
 
-[![Modbus video](http://img.youtube.com/vi/6xB-gXUynQc.jpg)](http://www.youtube.com/watch?v=6xB-gXUynQc)
+[![Modbus video](http://img.youtube.com/vi/6xB-gXUynQc/0.jpg)](http://www.youtube.com/watch?v=6xB-gXUynQc)
 
 ## Rules and Notifications
 
 Simple IoT rules can be used to set node values and to trigger notifications.
 
-[![Modbus video](http://img.youtube.com/vi/Z3FVjtnoWoY.jpg)](http://www.youtube.com/watch?v=Z3FVjtnoWoY)
+[![Modbus video](http://img.youtube.com/vi/Z3FVjtnoWoY/0.jpg)](http://www.youtube.com/watch?v=Z3FVjtnoWoY)
 
 ## Configuration
 
