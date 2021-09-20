@@ -19,6 +19,7 @@ type ModbusNode struct {
 	debugLevel         int
 	baud               int
 	pollPeriod         int
+	disable            bool
 	errorCount         int
 	errorCountCRC      int
 	errorCountEOF      int
@@ -87,6 +88,7 @@ func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 	}
 
 	ret.debugLevel, _ = node.Points.ValueInt("", data.PointTypeDebug, 0)
+	ret.disable, _ = node.Points.ValueBool("", data.PointTypeDisable, 0)
 	ret.errorCount, _ = node.Points.ValueInt("", data.PointTypeErrorCount, 0)
 	ret.errorCountCRC, _ = node.Points.ValueInt("", data.PointTypeErrorCountCRC, 0)
 	ret.errorCountEOF, _ = node.Points.ValueInt("", data.PointTypeErrorCountEOF, 0)

@@ -32,6 +32,7 @@ module Api.Point exposing
     , typeDebug
     , typeDescription
     , typeDevice
+    , typeDisable
     , typeEmail
     , typeEnd
     , typeErrorCount
@@ -641,6 +642,11 @@ typeBucket =
 typeOrg : String
 typeOrg =
     "org"
+
+
+typeDisable : String
+typeDisable =
+    "disable"
 
 
 

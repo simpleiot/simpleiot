@@ -31,6 +31,9 @@ view o =
         optionInput =
             NodeInputs.nodeOptionInput opts "" 0
 
+        checkboxInput =
+            NodeInputs.nodeCheckboxInput opts "" 0
+
         clientServer =
             Point.getText o.node.points "" 0 Point.typeClientServer
 
@@ -87,6 +90,7 @@ view o =
                     , viewIf (clientServer == Point.valueClient) <|
                         numberInput Point.typePollPeriod "Poll period (ms)"
                     , numberInput Point.typeDebug "Debug level (0-9)"
+                    , checkboxInput Point.typeDisable "Disable"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     , counterWithReset Point.typeErrorCountEOF Point.typeErrorCountEOFReset "EOF Error Count"
                     , counterWithReset Point.typeErrorCountCRC Point.typeErrorCountCRCReset "CRC Error Count"
