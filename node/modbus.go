@@ -50,6 +50,7 @@ type Modbus struct {
 
 // NewModbus creates a new bus from a node
 func NewModbus(nc *natsgo.Conn, node data.NodeEdge) (*Modbus, error) {
+	fmt.Println("CLIFF: NewModbus")
 	bus := &Modbus{
 		nc:          nc,
 		node:        node,
@@ -139,7 +140,7 @@ func (b *Modbus) CheckIOs() error {
 	for id, io := range b.ios {
 		_, ok := found[id]
 		if !ok {
-			// bus was deleted so close and clear it
+			// io was deleted so close and clear it
 			log.Println("modbus io removed: ", io.ioNode.description)
 			io.Stop()
 			delete(b.ios, id)
@@ -732,14 +733,6 @@ func (b *Modbus) Run() {
 
 	checkIoTimer := time.NewTicker(time.Second * 10)
 
-	if err := b.CheckIOs(); err != nil {
-		log.Println("CheckIOs error: ", err)
-	}
-
-	if err := b.SetupPort(); err != nil {
-		log.Println("SetupPort error: ", err)
-	}
-
 	log.Println("initializing modbus port: ", b.busNode.portName)
 
 	for {
@@ -849,6 +842,8 @@ func (b *Modbus) Run() {
 				case data.PointTypeValueSet:
 					valueSetModified = true
 					io.ioNode.valueSet = p.Value
+				case data.PointTypeDisable:
+					io.ioNode.disable = data.FloatToBool(p.Value)
 				case data.PointTypeErrorCount:
 					io.ioNode.errorCount = int(p.Value)
 				case data.PointTypeErrorCountEOF:
@@ -943,24 +938,31 @@ func (b *Modbus) Run() {
 				_, portError = b.serialPort.GetModemStatusBits()
 			}
 
-			if (b.client == nil && b.server == nil) ||
-				b.ioErrorCount > 10 || portError != nil {
-				if b.busNode.debugLevel >= 1 {
-					log.Printf("Re-initializing modbus port, err cnt: %v, portError: %v\n", b.ioErrorCount, portError)
+			if b.busNode.disable {
+				b.ClosePort()
+			} else {
+				if (b.client == nil && b.server == nil) ||
+					b.ioErrorCount > 10 || portError != nil {
+					if b.busNode.debugLevel >= 1 {
+						log.Printf("Re-initializing modbus port, err cnt: %v, portError: %v\n", b.ioErrorCount, portError)
+					}
+					b.ioErrorCount = 0
+					// try to set up port
+					if err := b.SetupPort(); err != nil {
+						log.Println("SetupPort error: ", err)
+					}
 				}
-				b.ioErrorCount = 0
-				// try to set up port
-				if err := b.SetupPort(); err != nil {
-					log.Println("SetupPort error: ", err)
+				if err := b.CheckIOs(); err != nil {
+					log.Println("CheckIOs error: ", err)
 				}
-			}
-			if err := b.CheckIOs(); err != nil {
-				log.Println("CheckIOs error: ", err)
 			}
 
 		case <-scanTimer.C:
-			if b.busNode.busType == data.PointValueClient {
+			if b.busNode.busType == data.PointValueClient && !b.busNode.disable {
 				for _, io := range b.ios {
+					if io.ioNode.disable {
+						continue
+					}
 					// for scanning, we only need to process client ios
 					err := b.ClientIO(io)
 					if err != nil {

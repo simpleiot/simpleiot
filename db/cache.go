@@ -78,7 +78,13 @@ func (nec *nodeEdgeCache) getNodeAndEdges(id string) (*nodeAndEdges, error) {
 
 // populate cache and update hashes for node and edges all the way up to root, and one level down from current node
 func (nec *nodeEdgeCache) processNode(ne *nodeAndEdges, newEdge bool) error {
+	// FIXME -- it is bad to be reaching back into the db to take this lock
+	// very hard to reason about.
+	// also, this cache update is not a transaction -- we need to abstract this cache
+	// out better so we can control locking better
+	nec.db.lock.Lock()
 	updateHash(ne.node, ne.up, ne.down)
+	nec.db.lock.Unlock()
 
 	for _, e := range ne.up {
 		nec.edgeModified[e.ID] = true
