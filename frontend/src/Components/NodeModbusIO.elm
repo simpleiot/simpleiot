@@ -182,7 +182,7 @@ view o =
                         numberInput Point.typeValue "Value"
                     , viewIf (not isClient && modbusIOType == Point.valueModbusDiscreteInput) <|
                         onOffInput Point.typeValue Point.typeValue "Value"
-                    , checkboxInput Point.typeDisable "Disable"
+                    , viewIf isClient <| checkboxInput Point.typeDisable "Disable"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     , counterWithReset Point.typeErrorCountEOF Point.typeErrorCountEOFReset "EOF Error Count"
                     , counterWithReset Point.typeErrorCountCRC Point.typeErrorCountCRCReset "CRC Error Count"
