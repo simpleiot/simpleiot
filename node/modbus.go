@@ -140,7 +140,7 @@ func (b *Modbus) CheckIOs() error {
 	for id, io := range b.ios {
 		_, ok := found[id]
 		if !ok {
-			// bus was deleted so close and clear it
+			// io was deleted so close and clear it
 			log.Println("modbus io removed: ", io.ioNode.description)
 			io.Stop()
 			delete(b.ios, id)
