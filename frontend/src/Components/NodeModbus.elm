@@ -39,6 +39,9 @@ view o =
 
         protocol =
             Point.getText o.node.points "" 0 Point.typeProtocol
+
+        disabled =
+            Point.getBool o.node.points "" 0 Point.typeDisable
     in
     column
         [ width fill
@@ -51,6 +54,7 @@ view o =
             [ Icon.bus
             , text <|
                 Point.getText o.node.points "" 0 Point.typeDescription
+            , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""

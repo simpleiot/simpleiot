@@ -95,6 +95,9 @@ view o =
 
             else
                 Style.colors.black
+
+        disabled =
+            Point.getBool o.node.points "" 0 Point.typeDisable
     in
     column
         [ width fill
@@ -123,6 +126,7 @@ view o =
 
                 else
                     ""
+            , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
