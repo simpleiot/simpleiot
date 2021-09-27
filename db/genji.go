@@ -275,7 +275,9 @@ func (gen *Db) nodeFindDescendents(id string, recursive bool, level int) ([]data
 			continue
 		}
 
+		gen.lock.RLock()
 		n := node.ToNodeEdge(*edge)
+		gen.lock.RUnlock()
 
 		nodes = append(nodes, n)
 
