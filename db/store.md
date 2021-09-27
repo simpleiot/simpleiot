@@ -18,4 +18,6 @@ level to do the locking:
 
 It seems locking bits of code that access the data structures is more
 maintainable as then you can nest functions without worrying about deadlocks
-where the entire function locks.
+where the entire function locks. However, we likely have issues with in that the
+store does not do transactions when updating a point -- need to investigate this
+more.
