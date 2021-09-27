@@ -842,6 +842,8 @@ func (b *Modbus) Run() {
 				case data.PointTypeValueSet:
 					valueSetModified = true
 					io.ioNode.valueSet = p.Value
+				case data.PointTypeDisable:
+					io.ioNode.disable = data.FloatToBool(p.Value)
 				case data.PointTypeErrorCount:
 					io.ioNode.errorCount = int(p.Value)
 				case data.PointTypeErrorCountEOF:
@@ -958,6 +960,9 @@ func (b *Modbus) Run() {
 		case <-scanTimer.C:
 			if b.busNode.busType == data.PointValueClient && !b.busNode.disable {
 				for _, io := range b.ios {
+					if io.ioNode.disable {
+						continue
+					}
 					// for scanning, we only need to process client ios
 					err := b.ClientIO(io)
 					if err != nil {

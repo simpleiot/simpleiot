@@ -19,6 +19,7 @@ type ModbusIONode struct {
 	offset             float64
 	value              float64
 	valueSet           float64
+	disable            bool
 	errorCount         int
 	errorCountCRC      int
 	errorCountEOF      int
@@ -74,6 +75,7 @@ func NewModbusIONode(busType string, node *data.NodeEdge) (*ModbusIONode, error)
 
 	ret.value, _ = node.Points.Value("", data.PointTypeValue, 0)
 	ret.valueSet, _ = node.Points.Value("", data.PointTypeValueSet, 0)
+	ret.disable, _ = node.Points.ValueBool("", data.PointTypeDisable, 0)
 	ret.errorCount, _ = node.Points.ValueInt("", data.PointTypeErrorCount, 0)
 	ret.errorCountCRC, _ = node.Points.ValueInt("", data.PointTypeErrorCountCRC, 0)
 	ret.errorCountEOF, _ = node.Points.ValueInt("", data.PointTypeErrorCountEOF, 0)
