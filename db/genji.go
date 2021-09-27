@@ -42,9 +42,12 @@ type Meta struct {
 // We will eventually turn this into an interface to
 // handle multiple Db backends.
 type Db struct {
-	store     *genji.DB
-	meta      Meta
-	lock      sync.RWMutex
+	store *genji.DB
+	meta  Meta
+	lock  sync.RWMutex
+
+	// when the following cache data structures are accessed, you must take
+	// the above lock
 	nodeCache map[string]*data.Node
 	edgeCache map[string]*data.Edge
 }
@@ -331,6 +334,8 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 
 // nodes returns all nodes.
 func (gen *Db) nodes() ([]data.Node, error) {
+	gen.lock.RLock()
+	defer gen.lock.RUnlock()
 	nodes := make([]data.Node, len(gen.nodeCache))
 
 	i := 0
