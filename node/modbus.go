@@ -50,7 +50,6 @@ type Modbus struct {
 
 // NewModbus creates a new bus from a node
 func NewModbus(nc *natsgo.Conn, node data.NodeEdge) (*Modbus, error) {
-	fmt.Println("CLIFF: NewModbus")
 	bus := &Modbus{
 		nc:          nc,
 		node:        node,
