@@ -1,4 +1,4 @@
-package db
+package store
 
 // FIXME could probably find a better place for this file ...
 

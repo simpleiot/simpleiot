@@ -14,12 +14,12 @@ import (
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
+	"github.com/simpleiot/simpleiot/store"
 	"github.com/simpleiot/simpleiot/system"
 
 	natsgo "github.com/nats-io/nats.go"
@@ -241,7 +241,7 @@ func main() {
 	}
 
 	if *flagSendFile != "" {
-		err = db.NatsSendFileFromHTTP(nc, *flagID, *flagSendFile, func(percDone int) {
+		err = store.NatsSendFileFromHTTP(nc, *flagID, *flagSendFile, func(percDone int) {
 			log.Println("% done: ", percDone)
 		})
 
@@ -372,7 +372,7 @@ func main() {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := db.NewDb(db.StoreType(*flagStore), dataDir)
+		dbInst, err := store.NewDb(store.Type(*flagStore), dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -384,7 +384,7 @@ func main() {
 			log.Println("Error opening data.json: ", err)
 			os.Exit(-1)
 		}
-		err = db.DumpDb(dbInst, f)
+		err = store.DumpDb(dbInst, f)
 
 		if err != nil {
 			log.Println("Error dumping database: ", err)
@@ -398,7 +398,7 @@ func main() {
 	}
 
 	if *flagImportDb {
-		dbInst, err := db.NewDb(db.StoreType(*flagStore), dataDir)
+		dbInst, err := store.NewDb(store.Type(*flagStore), dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -410,7 +410,7 @@ func main() {
 			log.Println("Error opening data.json: ", err)
 			os.Exit(-1)
 		}
-		err = db.ImportDb(dbInst, f)
+		err = store.ImportDb(dbInst, f)
 
 		if err != nil {
 			log.Println("Error importing database: ", err)
@@ -426,7 +426,7 @@ func main() {
 	// =============================================
 	// Start server, default action
 	// =============================================
-	dbInst, err := db.NewDb(db.StoreType(*flagStore), dataDir)
+	dbInst, err := store.NewDb(store.Type(*flagStore), dataDir)
 	if err != nil {
 		log.Println("Error opening db: ", err)
 		os.Exit(-1)
@@ -455,7 +455,7 @@ func main() {
 			natsTLSCert, natsTLSKey, natsTLSTimeout)
 	}
 
-	natsHandler := db.NewNatsHandler(dbInst, authToken, natsServer)
+	natsHandler := store.NewNatsHandler(dbInst, authToken, natsServer)
 
 	// this is a bit of a hack, but we're not sure when the NATS
 	// server will be started, so try several times

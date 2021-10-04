@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/db"
 	"github.com/simpleiot/simpleiot/nats"
+	"github.com/simpleiot/simpleiot/store"
 
 	natsgo "github.com/nats-io/nats.go"
 )
@@ -33,14 +33,14 @@ type NodeDelete struct {
 
 // Nodes handles node requests
 type Nodes struct {
-	db        *db.Db
+	db        *store.Db
 	check     RequestValidator
 	nc        *natsgo.Conn
 	authToken string
 }
 
 // NewNodesHandler returns a new node handler
-func NewNodesHandler(db *db.Db, v RequestValidator, authToken string,
+func NewNodesHandler(db *store.Db, v RequestValidator, authToken string,
 	nc *natsgo.Conn) http.Handler {
 	return &Nodes{db, v, nc, authToken}
 }

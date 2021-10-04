@@ -1,4 +1,4 @@
-package db
+package store
 
 import (
 	"encoding/json"
@@ -19,14 +19,14 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// StoreType defines the backing store used for the DB
-type StoreType string
+// Type defines the backing store used for the DB
+type Type string
 
 // define valid store types
 const (
-	StoreTypeMemory StoreType = "memory"
-	StoreTypeBolt             = "bolt"
-	StoreTypeBadger           = "badger"
+	StoreTypeMemory Type = "memory"
+	StoreTypeBolt        = "bolt"
+	StoreTypeBadger      = "badger"
 )
 
 // Meta contains metadata about the database
@@ -53,7 +53,7 @@ type Db struct {
 }
 
 // NewDb creates a new Db instance for the app
-func NewDb(storeType StoreType, dataDir string) (*Db, error) {
+func NewDb(storeType Type, dataDir string) (*Db, error) {
 
 	var store *genji.DB
 	var err error
