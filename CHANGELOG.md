@@ -11,8 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.35] - 2021-10-04](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.35)
+
 - add placeholders for some UI forms
 - add disable for Modbus and Modbus client nodes (#250)
+- clean up locking issues and simplify DB code
 
 ## [[0.0.34] - 2021-09-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.34)
 
