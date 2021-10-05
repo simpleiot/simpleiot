@@ -19,6 +19,7 @@ type Manager struct {
 	nc              *natsgo.Conn
 	modbusManager   *ModbusManager
 	upstreamManager *UpstreamManager
+	rootDevice      *RootDevice
 	rootNodeID      string
 }
 
@@ -90,6 +91,7 @@ func (m *Manager) Init() error {
 
 	m.modbusManager = NewModbusManager(m.nc, m.rootNodeID)
 	m.upstreamManager = NewUpstreamManager(m.nc, m.rootNodeID)
+	m.rootDevice = NewRootDevice(m.nc, m.rootNodeID)
 
 	return nil
 }

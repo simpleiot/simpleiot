@@ -178,4 +178,8 @@ const (
 	PointTypeMetricNatsPendingNodeEdgePoint    = "metricNatsPendingNodeEdgePoint"
 	PointTypeMetricNatsThroughputNodePoint     = "metricNatsThroughputNodePoint"
 	PointTypeMetricNatsThroughputNodeEdgePoint = "metricNatsThroughputNodeEdgePoint"
+
+	PointTypeMetricGoGoroutines     = "metricGoGoroutines"
+	PointTypeMetricGoTotalBytes     = "metricGoTotalBytes"
+	PointTypeMetricGoHeapAllocBytes = "metricGoHeapAllocBytes"
 )
