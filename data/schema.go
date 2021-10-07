@@ -179,7 +179,12 @@ const (
 	PointTypeMetricNatsThroughputNodePoint     = "metricNatsThroughputNodePoint"
 	PointTypeMetricNatsThroughputNodeEdgePoint = "metricNatsThroughputNodeEdgePoint"
 
-	PointTypeMetricGoGoroutines     = "metricGoGoroutines"
-	PointTypeMetricGoTotalBytes     = "metricGoTotalBytes"
-	PointTypeMetricGoHeapAllocBytes = "metricGoHeapAllocBytes"
+	PointTypeMetricGoGoroutines = "metricGoGoroutines"
+	PointTypeMetricGoTotalBytes = "metricGoTotalBytes"
+
+	PointTypeMetricProcRss = "metricProcRss"
+
+	PointTypeMetricSysLoad1  = "metricSysLoad1"
+	PointTypeMetricSysLoad5  = "metricSysLoad5"
+	PointTypeMetricSysLoad15 = "metricSysLoad15"
 )
