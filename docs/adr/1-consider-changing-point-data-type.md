@@ -97,6 +97,118 @@ programs.
 A single point could then represent weekdays instead of requiring multiple
 points.
 
+### time-series storage considerations
+
+Is it necessary to have all values in one point, so they can be grouped as one
+entry in a time series data base like influxdb? Influx has a concept of tags and
+fields, and you can have as many as you want for each sample. Tags must be
+strings and are indexed and should be low cardinality. Fields can be any
+datatype influxdb supports. This is a very flexible and flexible data structure.
+
+### Example: location data
+
+One system we are working with has extensive location information
+(City/State/Facility/Floor/Room/Isle) with each point. This is all stored in
+influx so we can easily query information for any location in the past. With
+SIOT, we could not currently store this information with each value point, but
+would rather store location information with the node as separate points. One
+concern is if the device would change location. However, if location is stored
+in points, then we will have a history of all location changes of the device. To
+query values for a location, we could run a two pass algorithm:
+
+1. query history and find time windows when devices are in a particular
+   location.
+1. query these time ranges and devices for values
+
+This has the advantage that we don't need to store location data with every
+point, but we still have a clear history of what data come from where.
+
+### Example: file system metrics
+
+When adding metrics, we end up with data like the following for disks
+partitions:
+
+```
+Filesystem     Size Used Avail Use% Mounted on
+tmpfs          16806068224 0 16806068224   0% /dev
+tmpfs          16813735936 1519616 16812216320   0% /run
+ext2/ext3      2953064402944 1948218814464 854814945280  70% /
+tmpfs          16813735936 175980544 16637755392   1% /dev/shm
+tmpfs          16813740032 3108966400 13704773632  18% /tmp
+ext2/ext3      368837799936 156350181376 193680359424  45% /old3
+msdos          313942016 60329984 253612032  19% /boot
+ext2/ext3      3561716731904 2638277668864 742441906176  78% /scratch
+tmpfs          3362746368 118784 3362627584   0% /run/user/1000
+ext2/ext3      1968874332160 418203766784 1450633895936  22% /run/media/cbrake/59b35dd4-954b-4568-9fa8-9e7df9c450fc
+fuseblk        3561716731904 2638277668864 742441906176  78% /media/fileserver
+ext2/ext3      984372027392 339508314112 594836836352  36% /run/media/cbrake/backup2
+```
+
+It would be handy if we could store filesystem as a tag, size/used/avail/% as
+fields, and mount point as text field.
+
+We already have an array of points in a node -- can we just make one array work?
+The size/used/avail/% could easily be stored as different points. The text field
+would store the mount point, which would tie all the stats for one partition
+together. Then the question is how to represent the filesystem?
+
+### Representing arrays with the current point data structure.
+
+With the `index` field, we can already represent arrays as a group of points,
+where index defines the position in the array. One example where we do this is
+for selecting days of the week in schedule rule conditions. The index field is
+used to select the weekday.
+
+### Representing maps with the current point data structure
+
+In the file system metrics example below, we would like to store a file system
+type for a particular mount type. We have 3 pieces of information:
+
+```go
+data.Point {
+  Type: "fileSystem",
+  Text: "/media/data/",
+  ????: "ext4",
+}
+```
+
+Perhaps we could add a key field:
+
+```go
+data.Point {
+  Type: "fileSystem",
+  Key: "/media/data/",
+  Text: "ext4",
+}
+```
+
+The `Key` field could also be useful for storing the mount point for other
+size/used, etc points.
+
+### making use of common algorithms and visualization tools
+
+A simple point type makes it very nice to write common algorithms that take in
+points, and can always assume the value is in the value field. If we store
+multiple values in a point, then the algorithm needs to know which point to use.
+
+If an algorithm needs multiple values, it seems we could feed in multiple point
+types and discriminated by point type. For example, if an algorithm used to
+calculate % of a partition used could take in total size and used, store each,
+and the divide them to output %. The data does not necessarily need to live in
+the same point. Could this be used to get rid of the min/max fields in the
+point? Could these simply be separate points?
+
+### Schema changes and distributed synchronization
+
+With the current point scheme, it is very easy to synchronize data, even if
+there are schema changes. All points are synchronized, so one version can write
+one set of points, and another version another, and all points will be sync'd to
+all instances. However, if we
+
+There is also a concern that if two different versions of the software use
+different combinations of field/value keys, there could be information lost. The
+simplicity and ease of merging Points into nodes is no longer simple.
+
 ## Design
 
 The point data structure would change from:
