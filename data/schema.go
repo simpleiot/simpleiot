@@ -184,7 +184,9 @@ const (
 
 	PointTypeMetricProcRss = "metricProcRss"
 
-	PointTypeMetricSysLoad1  = "metricSysLoad1"
-	PointTypeMetricSysLoad5  = "metricSysLoad5"
-	PointTypeMetricSysLoad15 = "metricSysLoad15"
+	PointTypeMetricSysLoad1         = "metricSysLoad1"
+	PointTypeMetricSysLoad5         = "metricSysLoad5"
+	PointTypeMetricSysLoad15        = "metricSysLoad15"
+	PointTypeMetricSysDiskPartTotal = "metricSysDiskPartTotal"
+	PointTypeMetricSysDiskPartUsed  = "metricSysDiskPartUsed"
 )

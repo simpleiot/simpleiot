@@ -29,6 +29,7 @@ require (
 	github.com/nats-io/nats-server/v2 v2.4.0
 	github.com/nats-io/nats.go v1.12.0
 	github.com/prometheus/procfs v0.7.3
+	github.com/shirou/gopsutil/v3 v3.21.9
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.1.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect

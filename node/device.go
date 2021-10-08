@@ -1,12 +1,14 @@
 package node
 
 import (
+	"fmt"
 	"log"
 	"runtime/metrics"
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/prometheus/procfs"
+	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/nats"
 )
@@ -82,6 +84,30 @@ func NewRootDevice(nc *natsgo.Conn, id string) *RootDevice {
 			err = ret.SendPoint(id, data.PointTypeMetricSysLoad15, float64(load.Load15))
 			if err != nil {
 				log.Fatal("Error sending sys load15: ", err)
+			}
+
+			formatter := "%-14s %v %v %v %4s %s\n"
+			fmt.Printf(formatter, "Filesystem", "Size", "Used", "Avail", "Use%", "Mounted on")
+
+			parts, _ := disk.Partitions(true)
+			for _, p := range parts {
+				device := p.Mountpoint
+				s, _ := disk.Usage(device)
+
+				if s.Total == 0 {
+					continue
+				}
+
+				percent := fmt.Sprintf("%2.f%%", s.UsedPercent)
+
+				fmt.Printf(formatter,
+					s.Fstype,
+					s.Total,
+					s.Used,
+					s.Free,
+					percent,
+					p.Mountpoint,
+				)
 			}
 		}
 	}(id)
