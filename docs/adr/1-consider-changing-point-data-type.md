@@ -1,7 +1,9 @@
 # Point Data Type Changes
 
-Author: Cliff Brake Last updated: 2021-10-08 Discussion at:
-https://github.com/simpleiot/simpleiot/issues/254 Status: Brainstorming
+- Author: Cliff Brake Last updated: 2021-10-08
+- Issue at: https://github.com/simpleiot/simpleiot/issues/254
+- PR/Discussion: https://github.com/simpleiot/simpleiot/pull/279
+- Status: Brainstorming
 
 # Problem
 
