@@ -103,7 +103,7 @@ Is it necessary to have all values in one point, so they can be grouped as one
 entry in a time series data base like influxdb? Influx has a concept of tags and
 fields, and you can have as many as you want for each sample. Tags must be
 strings and are indexed and should be low cardinality. Fields can be any
-datatype influxdb supports. This is a very flexible and flexible data structure.
+datatype influxdb supports. This is a very simple and flexible data structure.
 
 ### Example: location data
 
