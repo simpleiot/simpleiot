@@ -15,8 +15,11 @@ changed fields to support more scenarios.
 Should we consider making the point struct more flexible?
 
 The reason for this is that it is sometimes hard to describe a
-sensor/configuration value with just a few fields. Making this more general also
-increases the "evolvability" (Kleppmann) of the system. From his book:
+sensor/configuration value with just a few fields.
+
+# evolvability
+
+From Martin Kleppmann's book:
 
 > In a database, the process that writes to the database encodes the data, and
 > the process that reads from the database decodes it. There may just be a
@@ -55,12 +58,14 @@ increases the "evolvability" (Kleppmann) of the system. From his book:
 > unknown field might be lost in that translation process. Solving this is not a
 > hard problem; you just need to be aware of it.
 
-The existing min/max would just become fields. This would map better into
-influxdb. There would be some redundancy between Type and Field keys.
+Some discussion of this book:
+https://community.tmpdir.org/t/book-review-designing-data-intensive-applications/288/6
 
 One argument against this change is that adding these maps would likely increase
 the possibility of schema version conflicts between versions of software because
 points are overwritten.
+
+### Other Standards
 
 Some reference information on other standards:
 
@@ -68,42 +73,14 @@ https://github.com/eclipse/tahu/blob/master/sparkplug_b/sparkplug_b.proto
 
 https://datatracker.ietf.org/doc/html/draft-ietf-core-senml-08#page-9
 
-https://community.tmpdir.org/t/book-review-designing-data-intensive-applications/288/6?u=cbrake
-
-Still not obvious yet if Index and Duration should stay, or could they be
-encoded as fields/tags. Index is currently used for things like weekday
-checkboxs in schedule rules.
-
-In this case, the condition node has a series of weekday points with indexes 0-6
-to represent the days of the week.
-
-This could also be represented in the field map:
-
-- "0":0
-- "1":1
-- "2":0
-- "3":0
-
-or
-
-- "Sun":0
-- "Mon":1
-- "Tues:0
-- "Wed":0
-
-In practice, I've found presenting weekdays by numbers is easier to deal with in
-programs.
-
-A single point could then represent weekdays instead of requiring multiple
-points.
-
 ### time-series storage considerations
 
 Is it necessary to have all values in one point, so they can be grouped as one
 entry in a time series data base like influxdb? Influx has a concept of tags and
 fields, and you can have as many as you want for each sample. Tags must be
 strings and are indexed and should be low cardinality. Fields can be any
-datatype influxdb supports. This is a very simple and flexible data structure.
+datatype influxdb supports. This is a very simple, efficient, and flexible data
+structure.
 
 ### Example: location data
 
@@ -152,14 +129,62 @@ The size/used/avail/% could easily be stored as different points. The text field
 would store the mount point, which would tie all the stats for one partition
 together. Then the question is how to represent the filesystem?
 
-### Representing arrays with the current point data structure.
+### Representing arrays
 
 With the `index` field, we can already represent arrays as a group of points,
 where index defines the position in the array. One example where we do this is
 for selecting days of the week in schedule rule conditions. The index field is
-used to select the weekday.
+used to select the weekday. So we can have a series of points to represent
+Weekdays. In the below, Sunday is the 1st point set to 0, and Monday is the 2nd
+point, set to 1.
 
-### Representing maps with the current point data structure
+```go
+[]data.Point{
+  {
+    Type: "weekday",
+    Index: 0,
+    Value: 0,
+  },
+  {
+    Type: "weekday",
+    Index: 1,
+    Value: 0,
+  },
+}
+```
+
+In this case, the condition node has a series of weekday points with indexes 0-6
+to represent the days of the week.
+
+If we change value to map of key/values, then weekday values could be
+represented in the field map:
+
+- "0":0
+- "1":1
+- "2":0
+- "3":0
+
+or
+
+- "Sun":0
+- "Mon":1
+- "Tues:0
+- "Wed":0
+
+In practice, I've found presenting weekdays by numbers is easier to deal with in
+programs.
+
+A single point could then represent weekdays instead of requiring multiple
+points.
+
+### Duration, Min, Max
+
+The current Point data type has Duration, Min, and Max fields. This is used for
+when a sensor value is averaged over some period of time, and then reported. The
+Duration, Min, Max fields are useful for describing what time period the point
+was obtained, and what the min/max values during this period were.
+
+### Representing maps
 
 In the file system metrics example below, we would like to store a file system
 type for a particular mount type. We have 3 pieces of information:
@@ -260,6 +285,9 @@ type Point struct {
     FieldsText map[string]string
 }
 ```
+
+The existing min/max would just become fields. This would map better into
+influxdb. There would be some redundancy between Type and Field keys.
 
 ## Decision
 
