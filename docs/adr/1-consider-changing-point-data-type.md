@@ -5,19 +5,28 @@
 - PR/Discussion: https://github.com/simpleiot/simpleiot/pull/279
 - Status: Brainstorming
 
-# Problem
+## Problem
 
-The current point data type is fairly simple, but may benefit from additional or
-changed fields to support more scenarios.
+The current point data type is fairly simple and has proven useful and flexible
+to date, but we may benefit from additional or changed fields to support more
+scenarios. It seems in any data store, we need at the node level to be able to
+easily represent:
 
-# Context/Discussion
+1. arrays
+1. maps
 
-Should we consider making the point struct more flexible?
+IoT systems are distributed systems that evolve over time. If can't easily
+handle schema changes and synchronize data between systems, we don't have
+anything.
+
+## Context/Discussion
+
+Should we consider making the `point` struct more flexible?
 
 The reason for this is that it is sometimes hard to describe a
 sensor/configuration value with just a few fields.
 
-# evolvability
+### evolvability
 
 From Martin Kleppmann's book:
 
@@ -27,8 +36,10 @@ From Martin Kleppmann's book:
 > later version of the same process—in that case you can think of storing
 > something in the database as sending a message to your future self.
 >
-> Backward compatibility is clearly necessary here; otherwise your future self
-> won’t be able to decode what you previously wrote.
+> Backward compatibility is clearly
+> necehttps://community.tmpdir.org/t/the-tstorage-time-series-package-for-go/331ssary
+> here; otherwise your future self won’t be able to decode what you previously
+> wrote.
 >
 > In general, it’s common for several different processes to be accessing a
 > database at the same time. Those processes might be several different
@@ -61,17 +72,78 @@ From Martin Kleppmann's book:
 Some discussion of this book:
 https://community.tmpdir.org/t/book-review-designing-data-intensive-applications/288/6
 
-One argument against this change is that adding these maps would likely increase
-the possibility of schema version conflicts between versions of software because
-points are overwritten.
-
 ### Other Standards
 
-Some reference information on other standards:
+Some reference/discussion on other standards:
+
+#### Sparkplug
 
 https://github.com/eclipse/tahu/blob/master/sparkplug_b/sparkplug_b.proto
 
+The sparkplug data type is huge and could be used to describe very complex data.
+However, with complex types, there is no provision for syncronization -- its all
+or nothing, thus it does not seem like a good fit for SIOT.
+
+#### SenML
+
 https://datatracker.ietf.org/doc/html/draft-ietf-core-senml-08#page-9
+
+#### tstorage
+
+The tstorage Go package has
+[an interesting data storage type](https://community.tmpdir.org/t/the-tstorage-time-series-package-for-go/331):
+
+```go
+type Row struct {
+	// The unique name of metric.
+	// This field must be set.
+	Metric string
+	// An optional key-value properties to further detailed identification.
+	Labels []Label
+	// This field must be set.
+	DataPoint
+}
+
+type DataPoint struct {
+	// The actual value. This field must be set.
+	Value float64
+	// Unix timestamp.
+	Timestamp int64
+}
+
+type Label struct {
+	Name  string
+	Value string
+```
+
+In this case there is one value and an array of labels, which are essentially
+key/value strings.
+
+#### InfluxDB
+
+InfluxDB's line protocol contains the following:
+
+```go
+type Metric interface {
+	Time() time.Time
+	Name() string
+	TagList() []*Tag
+	FieldList() []*Field
+}
+
+type Tag struct {
+	Key   string
+	Value string
+}
+
+type Field struct {
+	Key   string
+	Value interface{}
+}
+```
+
+where the Field.Value must contain one of the InfluxDB supported types (bool,
+uint, int, float, time, duration, string, or bytes).
 
 ### time-series storage considerations
 
@@ -137,6 +209,7 @@ for selecting days of the week in schedule rule conditions. The index field is
 used to select the weekday. So we can have a series of points to represent
 Weekdays. In the below, Sunday is the 1st point set to 0, and Monday is the 2nd
 point, set to 1.
+https://community.tmpdir.org/t/the-tstorage-time-series-package-for-go/331
 
 ```go
 []data.Point{
@@ -170,9 +243,9 @@ or
 - "Mon":1
 - "Tues:0
 - "Wed":0
-
-In practice, I've found presenting weekdays by numbers is easier to deal with in
-programs.
+  https://community.tmpdir.org/t/the-tstorage-time-series-package-for-go/331 In
+  practice, I've found presenting weekdays by numbers is easier to deal with in
+  programs.
 
 A single point could then represent weekdays instead of requiring multiple
 points.
@@ -225,18 +298,72 @@ point? Could these simply be separate points?
 
 ### Schema changes and distributed synchronization
 
+A primary consideration of Simple IoT is easy and efficient data synchronization
+and easy schema changes.
+
+One argument against embedded maps in a point is that adding these maps would
+likely increase the possibility of schema version conflicts between versions of
+software because points are overwritten. Adding maps now introduces a schema
+into the point that is not synchronized at the key level. There will also be a
+temptation to put more information into point maps instead of creating more
+points.
+
 With the current point scheme, it is very easy to synchronize data, even if
 there are schema changes. All points are synchronized, so one version can write
 one set of points, and another version another, and all points will be sync'd to
-all instances. However, if we
+all instances.
 
 There is also a concern that if two different versions of the software use
 different combinations of field/value keys, there could be information lost. The
-simplicity and ease of merging Points into nodes is no longer simple.
+simplicity and ease of merging Points into nodes is no longer simple. As an
+example:
+
+```go
+Point {
+  Type: "motorPIDConfig",
+  Values: {
+    {"P": 23},
+    {"I": 0.8},
+    {"D": 200},
+  },
+}
+```
+
+If an instance with an older version writes a point that only has the "P" and
+"I" values, then the "D" value would get lost. We could merge all maps on writes
+to prevent losing information. However if we have a case where we have 3
+systems:
+
+Aold -> Bnew -> Cnew
+
+If Aold writes an update to the above point, but only has P,I values, then this
+point is automatically forwarded to Bnew, and then Bnew forwards it to Cnew.
+However, Bnew may have had a copy with P,I,D values, but the D is lost when the
+point is forwarded from Aold -> Cnew. We could argue that Bnew has previously
+synchronized this point to Cnew, but what if Cnew was offline and Aold sent the
+point immediately after Cnew came online before Bnew synchronized its point.
+
+The bottom line is there are edge cases where we don't know if the point map
+data is fully synchronized as the map data is not hashed. If we implement arrays
+and maps as collections of points, then we can be more sure everything is
+synchronized correctly because each point is a struct with fixed fields.
+
+### Is there any scenario where we need multiple tags/labels on a point?
+
+If we don't add maps to points, the assumption is any metadata can be added as
+additional points to the containing node. Will this cover all cases?
+
+TODO:
+
+### Is there any scenario where we need multiple values in a point vs multiple points?
+
+If we have points that need to be grouped together, they could all be sent with
+the same timestamp. Whatever process is using the points could extract them from
+a timeseries store and then re-associate them based on common timestamps.
 
 ## Design
 
-The point data structure would change from:
+### Original Point Type
 
 ```go
 type Point struct {
@@ -273,21 +400,48 @@ type Point struct {
 }
 ```
 
-to:
+### Proposal #1
+
+This proposal would move all the data into maps.
 
 ```go
 type Point struct {
+    ID string
     Time time.Time
     Type string
-    Index int
     Tags map[string]string
-    Fields map[string]float64
-    FieldsText map[string]string
+    Values map[string]float64
+    TextValues map[string]string
 }
 ```
 
 The existing min/max would just become fields. This would map better into
 influxdb. There would be some redundancy between Type and Field keys.
+
+### Proposal #2
+
+This proposal extends the original data structure the `Key` field so that we can
+represent maps in a node using points, and removes the `ID` field, as any ID
+information should be contained in the parent node. The `ID` field is a legacy
+from 1-wire setups were we represented each 1-wire sensor as a point. However,
+it seems obvious now that each 1-wire sensor should have its own node.
+
+```go
+type Point struct {
+	// The 1st three fields uniquely identify a point when receiving updates
+	Type string
+	Index int
+	Key string
+
+	// The following fields are the values for a point
+	Time time.Time
+	Duration time.Duration
+	Value float64
+	Text string
+	Min float64
+	Max float64
+}
+```
 
 ## Decision
 
