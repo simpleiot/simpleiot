@@ -361,6 +361,16 @@ If we have points that need to be grouped together, they could all be sent with
 the same timestamp. Whatever process is using the points could extract them from
 a timeseries store and then re-associate them based on common timestamps.
 
+### Is there any advantage to flat data structures?
+
+Flat data structures where the fields consist only of simple types (no nested
+objects, arrays, maps, etc). This is essentially what tables in a relational
+database are. One advantage to keeping the point type flat is it would map
+better into a relational database. If we add arrays to the Point type, then it
+will not longer map into a single relational database table.
+
+TODO -- look up in Martin's book.
+
 ## Design
 
 ### Original Point Type
