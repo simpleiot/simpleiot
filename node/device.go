@@ -3,12 +3,14 @@ package node
 import (
 	"fmt"
 	"log"
+	"os"
 	"runtime/metrics"
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/prometheus/procfs"
 	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/process"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/nats"
 )
@@ -54,6 +56,21 @@ func NewRootDevice(nc *natsgo.Conn, id string) *RootDevice {
 			smap, err := p.ProcSMapsRollup()
 			if err != nil {
 				log.Fatalf("could not get process smap rollup: %s", err)
+			}
+
+			proc, err := process.NewProcess(int32(os.Getpid()))
+			if err != nil {
+				log.Println("Could not get process: ", err)
+			} else {
+				c, err := proc.CPUPercent()
+				if err != nil {
+					log.Println("Error getting CPU percent")
+				}
+
+				err = ret.SendPoint(id, data.PointTypeMetricProcCPUUsage, c)
+				if err != nil {
+					log.Println("Error sending proc cpu usage: ", err)
+				}
 			}
 
 			err = ret.SendPoint(id, data.PointTypeMetricProcRss, float64(smap.Rss))

@@ -182,7 +182,8 @@ const (
 	PointTypeMetricGoGoroutines = "metricGoGoroutines"
 	PointTypeMetricGoTotalBytes = "metricGoTotalBytes"
 
-	PointTypeMetricProcRss = "metricProcRss"
+	PointTypeMetricProcRss      = "metricProcRss"
+	PointTypeMetricProcCPUUsage = "metricProcCPUUsage"
 
 	PointTypeMetricSysLoad1         = "metricSysLoad1"
 	PointTypeMetricSysLoad5         = "metricSysLoad5"
