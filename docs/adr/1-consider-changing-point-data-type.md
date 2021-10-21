@@ -36,10 +36,8 @@ From Martin Kleppmann's book:
 > later version of the same process—in that case you can think of storing
 > something in the database as sending a message to your future self.
 >
-> Backward compatibility is clearly
-> necehttps://community.tmpdir.org/t/the-tstorage-time-series-package-for-go/331ssary
-> here; otherwise your future self won’t be able to decode what you previously
-> wrote.
+> Backward compatibility is clearly necessary here; otherwise your future self
+> won’t be able to decode what you previously wrote.
 >
 > In general, it’s common for several different processes to be accessing a
 > database at the same time. Those processes might be several different
@@ -296,6 +294,14 @@ and the divide them to output %. The data does not necessarily need to live in
 the same point. Could this be used to get rid of the min/max fields in the
 point? Could these simply be separate points?
 
+- Having min/max/duration as separate points in influxdb should not be a problem
+  for graphing -- you would simply qualify the point on a different type vs
+  selecting a different field.
+- if there is a process that is doing advanced calculations (say taking the
+  numerical integral of flow rate to get total flow), then this process could
+  simply accumulate points and when it has all the points for a timestamp, then
+  do the calculation.
+
 ### Schema changes and distributed synchronization
 
 A primary consideration of Simple IoT is easy and efficient data synchronization
@@ -361,6 +367,9 @@ If we have points that need to be grouped together, they could all be sent with
 the same timestamp. Whatever process is using the points could extract them from
 a timeseries store and then re-associate them based on common timestamps.
 
+Could duration/min/max be sent as separate points with the same timestamp
+instead of extra fields in the point?
+
 ### Is there any advantage to flat data structures?
 
 Flat data structures where the fields consist only of simple types (no nested
@@ -368,8 +377,6 @@ objects, arrays, maps, etc). This is essentially what tables in a relational
 database are. One advantage to keeping the point type flat is it would map
 better into a relational database. If we add arrays to the Point type, then it
 will not longer map into a single relational database table.
-
-TODO -- look up in Martin's book.
 
 ## Design
 
@@ -445,14 +452,75 @@ type Point struct {
 
 	// The following fields are the values for a point
 	Time time.Time
-	Duration time.Duration
 	Value float64
 	Text string
-	Min float64
-	Max float64
+
+	// Metadata
+	Tombstone bool
 }
 ```
 
+#### Handling removing values from maps/arrays
+
+With Proposal #2, we have the issue of how to remove entries from a map/array
+that is represented by multiple points. The Tombstone field is used to indicate
+this item has been removed from an array or map.
+
 ## Decision
 
+Leaning toward #2.
+
+## Objections/concerns
+
+(Some of these are general to the node/point concept in general)
+
+- Q: _with the point datatype, we lose types_
+  - A: in single application, this concern would perhaps be a high priority, but
+    in a distributed system, data syncronization and schema migrations must be
+    given priority. Typically these collections of points are translated to a
+    type by the application code using the data, so any concerns can be handled
+    there. At least we won't get JS undefined crashes as Go will fill in zero
+    values.
+- Q: _this will be inefficient converting points to types_
+  - A: this does take processing time, but this time is short compared to the
+    network transfer times from distributed instances. Additionally,
+    applications can cache nodes they care about so they don't have to translate
+    the entire point array every time they use a node. Even a huge IoT system
+    has a finite # of devices that can easily fit into memory of modern
+    servers/machines.
+- Q: _this seems crude not to have full featured protobuf types with all the
+  fields explicitely defined in protobuf. Additionally, can't protobuf handle
+  type changes elegantly?_
+  - A: protobuf can handle field additions and removal but we still have the
+    edge cases where a point is sent from an old version of software that does
+    not contain information written by a newer versions. Also, I'm not sure it
+    is a good idea to have application specific type fields defined in protobuf,
+    otherwise, you have a lot of work all along the communication chain to
+    rebuild everything every time anything changes. With a generic types that
+    rarely have to change, your core infrastructure can remain stable and any
+    features only need to touch the edges of the system.
+- Q: _with nodes and points, we can only represent a type with a single level of
+  fields_
+  - A: this is not quite true, because with the key/index fields, we can now
+    have array and map fields in a node. However, the point is taken that a node
+    with its points cannot represent a deeply nested data structure. However,
+    nodes can be nested to represent any data structure you like. This
+    limitation is by design because otherwise syncronization would be very
+    difficult. By limitting the complexity of the core data structures, we are
+    making synchronziation and storage very simple. The tradeoff is a little
+    more work to marshall/unmarshall node/point data structures into useful
+    types in your application. However, marshalling code is easy compared to
+    distributed systems, so we need to optmize the system for the hard parts. A
+    little extra typing will not hurt anyone, and tooling could be developed if
+    needed to assist in this.
+
+Generic core data structures also opens up the possibility to dynamically extend
+the system at run time without type changes. For instance, the GUI could render
+new nodes it has never seen before by sending it configuration nodes with
+instructures on how to display the node. If core types need to change to do this
+type of thing, we have no chance at this type of intelligent functionality.
+
 ## Consequences
+
+Removing the Min/Max/Duration fields should not have any consequences now as I
+don't think we are using these fields yet.
