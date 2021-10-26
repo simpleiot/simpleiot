@@ -120,7 +120,8 @@ siot_deploy() {
 siot_run() {
   echo "run args: $*"
   siot_build_dependencies --debug || return 1
-  go run -race cmd/siot/main.go "$@" || return 1
+  go build -o siot -race cmd/siot/main.go || return 1
+  ./siot "$@"
   return 0
 }
 
