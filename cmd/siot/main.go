@@ -436,7 +436,7 @@ func main() {
 		DebugHTTP:         *flagDebugHTTP,
 	}
 
-	err = simpleiot.Start(o)
+	_, err = simpleiot.Start(o)
 
 	if err != nil {
 		log.Println("Error starting simpleiot: ", err)
