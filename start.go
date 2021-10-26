@@ -35,14 +35,13 @@ type Options struct {
 }
 
 // Start Simple IoT data store
-func Start(o Options) error {
+func Start(o Options) (*natsgo.Conn, error) {
 	// =============================================
 	// Start server, default action
 	// =============================================
 	dbInst, err := store.NewDb(o.StoreType, o.DataDir)
 	if err != nil {
-		log.Println("Error opening db: ", err)
-		os.Exit(-1)
+		return nil, fmt.Errorf("Error opening db: %v", err)
 	}
 	defer dbInst.Close()
 
@@ -140,5 +139,5 @@ func Start(o Options) error {
 		Nc:         nc,
 	})
 
-	return err
+	return nc, err
 }
