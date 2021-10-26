@@ -10,14 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/simpleiot/simpleiot"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/files"
-	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/nats"
-	"github.com/simpleiot/simpleiot/natsserver"
-	"github.com/simpleiot/simpleiot/node"
-	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
 	"github.com/simpleiot/simpleiot/store"
 	"github.com/simpleiot/simpleiot/system"
@@ -423,109 +420,37 @@ func main() {
 		os.Exit(0)
 	}
 
-	// =============================================
-	// Start server, default action
-	// =============================================
-	dbInst, err := store.NewDb(store.Type(*flagStore), dataDir)
-	if err != nil {
-		log.Println("Error opening db: ", err)
-		os.Exit(-1)
-	}
-	defer dbInst.Close()
-
 	// finally, start web server
 	port := os.Getenv("SIOT_HTTP_PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	var auth api.Authorizer
-
-	if *flagDisableAuth {
-		auth = api.AlwaysValid{}
-	} else {
-		auth, err = api.NewKey(20)
-		if err != nil {
-			log.Println("Error generating key: ", err)
-		}
-	}
-
-	if !*flagNatsDisableServer {
-		go natsserver.StartNatsServer(natsPort, natsHTTPPort, authToken,
-			natsTLSCert, natsTLSKey, natsTLSTimeout)
-	}
-
-	natsHandler := store.NewNatsHandler(dbInst, authToken, natsServer)
-
-	// this is a bit of a hack, but we're not sure when the NATS
-	// server will be started, so try several times
-	for i := 0; i < 10; i++ {
-		// FIXME should we get nc with edgeConnect here?
-		nc, err = natsHandler.Connect()
-		if err != nil {
-			log.Println("NATS local connect retry: ", i)
-			time.Sleep(500 * time.Millisecond)
-			continue
-		}
-
-		break
-	}
-
-	if err != nil || nc == nil {
-		log.Fatal("Error connecting to NATs server: ", err)
-	}
-
-	nodeManager := node.NewManger(nc)
-	err = nodeManager.Init()
-	if err != nil {
-		log.Fatal("Error initializing node manager: ", err)
-	}
-	go nodeManager.Run()
-
-	rootNode, err := nats.GetNode(nc, "root", "")
-
-	if err != nil {
-		log.Println("Error getting root id for metrics: ", err)
-	} else {
-
-		err = natsHandler.StartMetrics(rootNode.ID)
-		if err != nil {
-			log.Println("Error starting nats metrics: ", err)
-		}
-	}
-
 	// set up particle connection if configured
 	// todo -- move this to a node
 	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
 
-	if particleAPIKey != "" {
-		go func() {
-			err := particle.PointReader("sample", particleAPIKey,
-				func(id string, points data.Points) {
-					err := nats.SendNodePoints(nc, id, points, false)
-					if err != nil {
-						log.Println("Error getting particle sample: ", err)
-					}
-				})
-
-			if err != nil {
-				fmt.Println("Get returned error: ", err)
-			}
-		}()
+	// TODO, convert this to builder pattern
+	o := simpleiot.Options{
+		StoreType:         store.Type(*flagStore),
+		DataDir:           dataDir,
+		HTTPPort:          port,
+		DebugHTTP:         *flagDebugHTTP,
+		DisableAuth:       *flagDisableAuth,
+		NatsServer:        natsServer,
+		NatsDisableServer: *flagNatsDisableServer,
+		NatsPort:          natsPort,
+		NatsHTTPPort:      natsHTTPPort,
+		NatsTLSCert:       natsTLSCert,
+		NatsTLSKey:        natsTLSKey,
+		NatsTLSTimeout:    natsTLSTimeout,
+		AuthToken:         authToken,
+		ParticleAPIKey:    particleAPIKey,
 	}
 
-	err = api.Server(api.ServerArgs{
-		Port:       port,
-		DbInst:     dbInst,
-		GetAsset:   frontend.Asset,
-		Filesystem: frontend.FileSystem(),
-		Debug:      *flagDebugHTTP,
-		JwtAuth:    auth,
-		AuthToken:  authToken,
-		Nc:         nc,
-	})
+	_, err = simpleiot.Start(o)
 
 	if err != nil {
-		log.Println("Error starting server: ", err)
+		log.Println("Error starting simpleiot: ", err)
 	}
 }
