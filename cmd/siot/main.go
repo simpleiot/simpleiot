@@ -420,10 +420,22 @@ func main() {
 		os.Exit(0)
 	}
 
+	// finally, start web server
+	port := os.Getenv("SIOT_HTTP_PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	// set up particle connection if configured
+	// todo -- move this to a node
+	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
+
 	// TODO, convert this to builder pattern
 	o := simpleiot.Options{
 		StoreType:         store.Type(*flagStore),
 		DataDir:           dataDir,
+		HTTPPort:          port,
+		DebugHTTP:         *flagDebugHTTP,
 		DisableAuth:       *flagDisableAuth,
 		NatsServer:        natsServer,
 		NatsDisableServer: *flagNatsDisableServer,
@@ -433,7 +445,7 @@ func main() {
 		NatsTLSKey:        natsTLSKey,
 		NatsTLSTimeout:    natsTLSTimeout,
 		AuthToken:         authToken,
-		DebugHTTP:         *flagDebugHTTP,
+		ParticleAPIKey:    particleAPIKey,
 	}
 
 	_, err = simpleiot.Start(o)

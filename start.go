@@ -3,7 +3,6 @@ package simpleiot
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
@@ -22,6 +21,8 @@ import (
 type Options struct {
 	StoreType         store.Type
 	DataDir           string
+	HTTPPort          string
+	DebugHTTP         bool
 	DisableAuth       bool
 	NatsServer        string
 	NatsDisableServer bool
@@ -31,7 +32,7 @@ type Options struct {
 	NatsTLSKey        string
 	NatsTLSTimeout    float64
 	AuthToken         string
-	DebugHTTP         bool
+	ParticleAPIKey    string
 }
 
 // Start Simple IoT data store. The nats connection returned
@@ -45,12 +46,6 @@ func Start(o Options) (*natsgo.Conn, error) {
 		return nil, fmt.Errorf("Error opening db: %v", err)
 	}
 	defer dbInst.Close()
-
-	// finally, start web server
-	port := os.Getenv("SIOT_HTTP_PORT")
-	if port == "" {
-		port = "8080"
-	}
 
 	var auth api.Authorizer
 
@@ -87,13 +82,13 @@ func Start(o Options) (*natsgo.Conn, error) {
 	}
 
 	if err != nil || nc == nil {
-		log.Fatal("Error connecting to NATs server: ", err)
+		return nil, fmt.Errorf("Error connecting to NATs server: %v", err)
 	}
 
 	nodeManager := node.NewManger(nc)
 	err = nodeManager.Init()
 	if err != nil {
-		log.Fatal("Error initializing node manager: ", err)
+		return nil, fmt.Errorf("Error initializing node manager: %v", err)
 	}
 	go nodeManager.Run()
 
@@ -109,13 +104,9 @@ func Start(o Options) (*natsgo.Conn, error) {
 		}
 	}
 
-	// set up particle connection if configured
-	// todo -- move this to a node
-	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
-
-	if particleAPIKey != "" {
+	if o.ParticleAPIKey != "" {
 		go func() {
-			err := particle.PointReader("sample", particleAPIKey,
+			err := particle.PointReader("sample", o.ParticleAPIKey,
 				func(id string, points data.Points) {
 					err := nats.SendNodePoints(nc, id, points, false)
 					if err != nil {
@@ -130,7 +121,7 @@ func Start(o Options) (*natsgo.Conn, error) {
 	}
 
 	err = api.Server(api.ServerArgs{
-		Port:       port,
+		Port:       o.HTTPPort,
 		DbInst:     dbInst,
 		GetAsset:   frontend.Asset,
 		Filesystem: frontend.FileSystem(),
