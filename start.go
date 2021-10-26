@@ -18,7 +18,7 @@ import (
 	"github.com/simpleiot/simpleiot/store"
 )
 
-// Options used for starting SIOT
+// Options used for starting Simple IoT
 type Options struct {
 	StoreType         store.Type
 	DataDir           string
@@ -34,7 +34,8 @@ type Options struct {
 	DebugHTTP         bool
 }
 
-// Start Simple IoT data store
+// Start Simple IoT data store. The nats connection returned
+// can be used with helper functions in the simpleiot nats package
 func Start(o Options) (*natsgo.Conn, error) {
 	// =============================================
 	// Start server, default action
