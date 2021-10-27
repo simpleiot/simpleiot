@@ -56,7 +56,12 @@ func (s *Siot) Close() error {
 }
 
 // Start Simple IoT data store. The nats connection returned
-// can be used with helper functions in the simpleiot nats package
+// can be used with helper functions in the simpleiot nats package.
+// Note, this function cannot be used directly because we don't
+// checkin the frontend assets for the SIOT web ui. See this
+// example for how you can embed SIOT in your project by adding
+// it as a submodule:
+// https://github.com/simpleiot/custom-application-examples/tree/main/example-1
 func (s *Siot) Start() (*natsgo.Conn, error) {
 	// =============================================
 	// Start server, default action
