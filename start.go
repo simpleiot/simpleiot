@@ -35,17 +35,39 @@ type Options struct {
 	ParticleAPIKey    string
 }
 
+// Siot is used to manage the Siot server
+type Siot struct {
+	dbInst  *store.Db
+	options Options
+}
+
+// NewSiot create new siot instance
+func NewSiot(o Options) *Siot {
+	return &Siot{options: o}
+}
+
+// Close the siot server
+func (s *Siot) Close() error {
+	if s.dbInst != nil {
+		s.dbInst.Close()
+	}
+	// TODO can add a lot more stuff in here for clean shutdown
+	return nil
+}
+
 // Start Simple IoT data store. The nats connection returned
 // can be used with helper functions in the simpleiot nats package
-func Start(o Options) (*natsgo.Conn, error) {
+func (s *Siot) Start() (*natsgo.Conn, error) {
 	// =============================================
 	// Start server, default action
 	// =============================================
+
+	o := s.options
+
 	dbInst, err := store.NewDb(o.StoreType, o.DataDir)
 	if err != nil {
 		return nil, fmt.Errorf("Error opening db: %v", err)
 	}
-	defer dbInst.Close()
 
 	var auth api.Authorizer
 
@@ -120,16 +142,22 @@ func Start(o Options) (*natsgo.Conn, error) {
 		}()
 	}
 
-	err = api.Server(api.ServerArgs{
-		Port:       o.HTTPPort,
-		DbInst:     dbInst,
-		GetAsset:   frontend.Asset,
-		Filesystem: frontend.FileSystem(),
-		Debug:      o.DebugHTTP,
-		JwtAuth:    auth,
-		AuthToken:  o.AuthToken,
-		Nc:         nc,
-	})
+	go func() {
+		err = api.Server(api.ServerArgs{
+			Port:       o.HTTPPort,
+			DbInst:     dbInst,
+			GetAsset:   frontend.Asset,
+			Filesystem: frontend.FileSystem(),
+			Debug:      o.DebugHTTP,
+			JwtAuth:    auth,
+			AuthToken:  o.AuthToken,
+			Nc:         nc,
+		})
+
+		if err != nil {
+			log.Fatal("Error starting SIOT HTTP interface: ", err)
+		}
+	}()
 
 	return nc, err
 }
