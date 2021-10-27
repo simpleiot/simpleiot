@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/simpleiot/simpleiot"
@@ -448,9 +450,33 @@ func main() {
 		ParticleAPIKey:    particleAPIKey,
 	}
 
-	_, err = simpleiot.Start(o)
+	siot := simpleiot.NewSiot(o)
+
+	nc, err = siot.Start()
+
+	// this is not used yet
+	_ = nc
 
 	if err != nil {
-		log.Println("Error starting simpleiot: ", err)
+		log.Fatal("Error starting SIOT store: ", err)
 	}
+
+	sigs := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigs
+		log.Println()
+		log.Println(sig)
+		done <- true
+	}()
+
+	log.Println("running ...")
+	<-done
+	// cleanup
+	log.Println("cleaning up ...")
+	siot.Close()
+	log.Println("exiting")
 }
