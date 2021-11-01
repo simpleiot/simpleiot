@@ -70,6 +70,17 @@ From Martin Kleppmann's book:
 Some discussion of this book:
 https://community.tmpdir.org/t/book-review-designing-data-intensive-applications/288/6
 
+### CRDTs
+
+> I also agree CRDTs are the future, but not for any reason as specific as the
+> ones in the article. Distributed state is so fundamentally complex that I
+> think we actually need CRDTs (or something like them) to reason about it
+> effectively. And certainly to build reliable systems. The abstraction of a
+> single, global, logical truth is so nice and tidy and appealing, but it
+> becomes so leaky that I think all successful systems for distributed state
+> will abandon it beyond a certain scale. --
+> [Peter Bourgon](https://lobste.rs/s/9fufgr/i_was_wrong_crdts_are_future)
+
 ### Other Standards
 
 Some reference/discussion on other standards:
@@ -359,8 +370,6 @@ synchronized correctly because each point is a struct with fixed fields.
 If we don't add maps to points, the assumption is any metadata can be added as
 additional points to the containing node. Will this cover all cases?
 
-TODO:
-
 ### Is there any scenario where we need multiple values in a point vs multiple points?
 
 If we have points that need to be grouped together, they could all be sent with
@@ -369,6 +378,10 @@ a timeseries store and then re-associate them based on common timestamps.
 
 Could duration/min/max be sent as separate points with the same timestamp
 instead of extra fields in the point?
+
+The NATS APIs allow you to send multiple points with a message, so if there is
+ever a need to describe data with multiple values (say min/max/etc), these can
+simply be sent as multiple points in one message.
 
 ### Is there any advantage to flat data structures?
 
@@ -468,16 +481,16 @@ this item has been removed from an array or map.
 
 ## Decision
 
-Leaning toward #2.
+Going with proposal #2 for now -- we can always revisit this later if needed.
 
 ## Objections/concerns
 
 (Some of these are general to the node/point concept in general)
 
 - Q: _with the point datatype, we lose types_
-  - A: in single application, this concern would perhaps be a high priority, but
-    in a distributed system, data syncronization and schema migrations must be
-    given priority. Typically these collections of points are translated to a
+  - A: in a single application, this concern would perhaps be a high priority,
+    but in a distributed system, data syncronization and schema migrations must
+    be given priority. Typically these collections of points are translated to a
     type by the application code using the data, so any concerns can be handled
     there. At least we won't get JS undefined crashes as Go will fill in zero
     values.
