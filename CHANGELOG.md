@@ -11,7 +11,16 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.37] - 2021-10-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.37)
+
+- fix issue with setup where you sometimes get error: elm: Text file busy
+- cleanup simpleiot.Start() so it actually returns
+
+## [[0.0.36] - 2021-10-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.36)
+
 - rename `db` package to `store`
+- factor out siot server startup code into simpleiot package
+- change `siot_run` in `envsetup.sh` to `go build` instead of `go run`
 
 ## [[0.0.35] - 2021-10-04](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.35)
 

@@ -46,6 +46,10 @@ siot_check_elm() {
 
 siot_setup() {
   siot_install_frontend_deps
+  # the following is to work around a race condition
+  # where the first time you run npx elm, you get an error:
+  # elm: Text file busy
+  (cd frontend && (npx elm || true))
   return 0
 }
 
@@ -120,7 +124,8 @@ siot_deploy() {
 siot_run() {
   echo "run args: $*"
   siot_build_dependencies --debug || return 1
-  go run -race cmd/siot/main.go "$@" || return 1
+  go build -o siot -race cmd/siot/main.go || return 1
+  ./siot "$@"
   return 0
 }
 
