@@ -17,12 +17,12 @@ func TestNotifyTemplate(t *testing.T) {
 			},
 			{
 				Type:  "tankLevel",
-				ID:    "",
+				Key:   "",
 				Value: 12.523423423,
 			},
 			{
 				Type:  "current",
-				ID:    "c0",
+				Key:   "c0",
 				Value: 1.52323,
 			},
 		},

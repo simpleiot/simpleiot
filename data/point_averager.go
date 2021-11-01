@@ -32,16 +32,6 @@ func (pa *PointAverager) AddPoint(s Point) {
 	// update statistical values.
 	pa.total += s.Value
 	pa.count++
-	// min
-	if pa.min == 0 {
-		pa.min = s.Min
-	} else if s.Min < pa.min {
-		pa.min = s.Min
-	}
-	// max
-	if s.Max > pa.max {
-		pa.max = s.Max
-	}
 }
 
 // ResetAverage sets the accumulated total to zero
@@ -65,7 +55,5 @@ func (pa *PointAverager) GetAverage() Point {
 		Type:  pa.pointType,
 		Time:  pa.pointTime,
 		Value: value,
-		Min:   pa.min,
-		Max:   pa.max,
 	}
 }

@@ -4,18 +4,15 @@ package pb;
 option go_package = "internal/pb";
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/duration.proto";
 
 message Point {
-  string id = 1;
   string type = 2;
   float value = 4;
   google.protobuf.Timestamp time = 5;
-  google.protobuf.Duration duration = 6;
   int32 index = 7;
   string text = 8;
-  float min = 9;
-  float max = 10;
+  string key = 11;
+  bool tombstone = 12;
 }
 
 message Points {

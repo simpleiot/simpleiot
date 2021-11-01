@@ -162,9 +162,6 @@ func renderNotifyTemplate(node *data.Node, msgTemplate string) (string, error) {
 		if io.Type != "" {
 			dtd.Ios[io.Type] = io.Value
 		}
-		if io.ID != "" {
-			dtd.Ios[io.ID] = io.Value
-		}
 	}
 
 	buf := new(bytes.Buffer)

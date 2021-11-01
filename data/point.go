@@ -15,8 +15,8 @@ import (
 // a sensor value or a configuration parameter.
 // ID, Type, and Index uniquely identify a point in a device
 type Point struct {
-	// ID of the sensor that provided the point
-	ID string `json:"id,omitempty"`
+	//-------------------------------------------------------
+	//1st three fields uniquely identify a point when receiving updates
 
 	// Type of point (voltage, current, key, etc)
 	Type string `json:"type,omitempty"`
@@ -25,15 +25,15 @@ type Point struct {
 	// which pump, temp sensor, etc.
 	Index int `json:"index,omitempty"`
 
+	// Key is used to allow a group of points to represent a "map"
+	Key string `json:"key,omitempty"`
+
+	//-------------------------------------------------------
+	// The following fields are the values for a point
+
 	// Time the point was taken
 	Time time.Time `json:"time,omitempty"`
 
-	// Duration over which the point was taken. This is useful
-	// for averaged values to know what time period the value applies
-	// to.
-	Duration time.Duration `json:"duration,omitempty"`
-
-	// Average OR
 	// Instantaneous analog or digital value of the point.
 	// 0 and 1 are used to represent digital values
 	Value float64 `json:"value,omitempty"`
@@ -42,9 +42,11 @@ type Point struct {
 	// as a string rather than a number.
 	Text string `json:"text,omitempty"`
 
-	// statistical values that may be calculated over the duration of the point
-	Min float64 `json:"min,omitempty"`
-	Max float64 `json:"max,omitempty"`
+	//-------------------------------------------------------
+	// Metadata
+
+	// Used to indicate a point has been deleted
+	Tombstone bool `json:"tombstone,omitempty"`
 }
 
 func (p Point) String() string {
@@ -60,20 +62,8 @@ func (p Point) String() string {
 		t += fmt.Sprintf("V:%.3f ", p.Value)
 	}
 
-	if p.Min != 0 {
-		t += fmt.Sprintf("Min:%.3f ", p.Min)
-	}
-
-	if p.Max != 0 {
-		t += fmt.Sprintf("Max:%.3f ", p.Max)
-	}
-
 	if p.Index != 0 {
 		t += fmt.Sprintf("I:%v ", p.Index)
-	}
-
-	if p.ID != "" {
-		t += fmt.Sprintf("ID:%v ", p.ID)
 	}
 
 	t += p.Time.Format(time.RFC3339)
@@ -82,16 +72,16 @@ func (p Point) String() string {
 }
 
 // IsMatch returns true if the point matches the params passed in
-func (p Point) IsMatch(id, typ string, index int) bool {
-	if id != "" && id != p.ID {
-		return false
-	}
-
+func (p Point) IsMatch(typ, key string, index int) bool {
 	if typ != "" && typ != p.Type {
 		return false
 	}
 
 	if index != p.Index {
+		return false
+	}
+
+	if key != p.Key {
 		return false
 	}
 
@@ -106,15 +96,13 @@ func (p Point) ToPb() (pb.Point, error) {
 	}
 
 	return pb.Point{
-		Type:     p.Type,
-		Id:       p.ID,
-		Index:    int32(p.Index),
-		Value:    float32(p.Value),
-		Text:     p.Text,
-		Time:     ts,
-		Duration: ptypes.DurationProto(p.Duration),
-		Min:      float32(p.Min),
-		Max:      float32(p.Max),
+		Type:      p.Type,
+		Index:     int32(p.Index),
+		Key:       p.Key,
+		Value:     float32(p.Value),
+		Text:      p.Text,
+		Time:      ts,
+		Tombstone: p.Tombstone,
 	}, nil
 }
 
@@ -131,9 +119,9 @@ type Points []Point
 
 // Desc returns a Description of a set of points
 func (ps Points) Desc() string {
-	firstName, _ := ps.Text("", PointTypeFirstName, 0)
+	firstName, _ := ps.Text(PointTypeFirstName, "", 0)
 	if firstName != "" {
-		lastName, _ := ps.Text("", PointTypeLastName, 0)
+		lastName, _ := ps.Text(PointTypeLastName, "", 0)
 		if lastName == "" {
 			return firstName
 		}
@@ -141,7 +129,7 @@ func (ps Points) Desc() string {
 		return firstName + " " + lastName
 	}
 
-	desc, _ := ps.Text("", PointTypeDescription, 0)
+	desc, _ := ps.Text(PointTypeDescription, "", 0)
 	if desc != "" {
 		return desc
 	}
@@ -151,9 +139,9 @@ func (ps Points) Desc() string {
 
 // Find fetches a point given ID, Type, and Index
 // and true of found, or false if not found
-func (ps *Points) Find(id, typ string, index int) (Point, bool) {
+func (ps *Points) Find(typ, key string, index int) (Point, bool) {
 	for _, p := range *ps {
-		if !p.IsMatch(id, typ, index) {
+		if !p.IsMatch(typ, key, index) {
 			continue
 		}
 
@@ -165,27 +153,27 @@ func (ps *Points) Find(id, typ string, index int) (Point, bool) {
 
 // Value fetches a value from an array of points given ID, Type, and Index.
 // If ID or Type are set to "", they are ignored.
-func (ps *Points) Value(id, typ string, index int) (float64, bool) {
-	p, ok := ps.Find(id, typ, index)
+func (ps *Points) Value(typ, key string, index int) (float64, bool) {
+	p, ok := ps.Find(typ, key, index)
 	return p.Value, ok
 }
 
 // ValueInt returns value as integer
-func (ps *Points) ValueInt(id, typ string, index int) (int, bool) {
-	f, ok := ps.Value(id, typ, index)
+func (ps *Points) ValueInt(typ, key string, index int) (int, bool) {
+	f, ok := ps.Value(typ, key, index)
 	return int(f), ok
 }
 
 // ValueBool returns value as bool
-func (ps *Points) ValueBool(id, typ string, index int) (bool, bool) {
-	f, ok := ps.Value(id, typ, index)
+func (ps *Points) ValueBool(typ, key string, index int) (bool, bool) {
+	f, ok := ps.Value(typ, key, index)
 	return FloatToBool(f), ok
 }
 
 // Text fetches a text value from an array of points given ID, Type, and Index.
 // If ID or Type are set to "", they are ignored.
-func (ps *Points) Text(id, typ string, index int) (string, bool) {
-	p, ok := ps.Find(id, typ, index)
+func (ps *Points) Text(typ, key string, index int) (string, bool) {
+	p, ok := ps.Find(typ, key, index)
 	return p.Text, ok
 }
 
@@ -235,7 +223,7 @@ func (ps *Points) Hash() []byte {
 func (ps *Points) ProcessPoint(pIn Point) {
 	pFound := false
 	for i, p := range *ps {
-		if p.ID == pIn.ID && p.Type == pIn.Type && p.Index == pIn.Index {
+		if p.Key == pIn.Key && p.Type == pIn.Type && p.Index == pIn.Index {
 			pFound = true
 			if pIn.Time.After(p.Time) {
 				(*ps)[i] = pIn
@@ -273,21 +261,14 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 		return Point{}, err
 	}
 
-	dur, err := ptypes.Duration(sPb.Duration)
-	if err != nil {
-		return Point{}, err
-	}
-
 	ret := Point{
-		ID:       sPb.Id,
-		Type:     sPb.Type,
-		Text:     sPb.Text,
-		Index:    int(sPb.Index),
-		Value:    float64(sPb.Value),
-		Time:     ts,
-		Duration: dur,
-		Min:      float64(sPb.Min),
-		Max:      float64(sPb.Max),
+		Type:      sPb.Type,
+		Text:      sPb.Text,
+		Key:       sPb.Key,
+		Index:     int(sPb.Index),
+		Value:     float64(sPb.Value),
+		Time:      ts,
+		Tombstone: sPb.Tombstone,
 	}
 
 	return ret, nil
@@ -339,9 +320,11 @@ func NewPointFilter(minSend, periodicSend time.Duration) *PointFilter {
 
 // returns true if point has changed, and merges point with saved points
 func (sf *PointFilter) add(point Point) bool {
-	for i, s := range sf.points {
-		if point.ID == s.ID && point.Type == s.Type {
-			if point.Value == s.Value {
+	for i, p := range sf.points {
+		if point.Key == p.Key &&
+			point.Type == p.Type &&
+			point.Index == p.Index {
+			if point.Value == p.Value {
 				return false
 			}
 

@@ -95,17 +95,17 @@ func (n *Node) GetState() (string, bool) {
 
 // State returns the current state of a device
 func (n *Node) State() string {
-	s, _ := n.Points.Text("", PointTypeSysState, 0)
+	s, _ := n.Points.Text(PointTypeSysState, "", 0)
 	return s
 }
 
 // ToUser converts a node to user struct
 func (n *Node) ToUser() User {
-	first, _ := n.Points.Text("", PointTypeFirstName, 0)
-	last, _ := n.Points.Text("", PointTypeLastName, 0)
-	phone, _ := n.Points.Text("", PointTypePhone, 0)
-	email, _ := n.Points.Text("", PointTypeEmail, 0)
-	pass, _ := n.Points.Text("", PointTypePass, 0)
+	first, _ := n.Points.Text(PointTypeFirstName, "", 0)
+	last, _ := n.Points.Text(PointTypeLastName, "", 0)
+	phone, _ := n.Points.Text(PointTypePhone, "", 0)
+	email, _ := n.Points.Text(PointTypeEmail, "", 0)
+	pass, _ := n.Points.Text(PointTypePass, "", 0)
 
 	return User{
 		ID:        n.ID,
@@ -217,7 +217,7 @@ func (n NodeEdge) String() string {
 
 // IsTombstone returns Tombstone value and timestamp
 func (n NodeEdge) IsTombstone() (bool, time.Time) {
-	p, _ := n.EdgePoints.Find("", PointTypeTombstone, 0)
+	p, _ := n.EdgePoints.Find(PointTypeTombstone, "", 0)
 	return FloatToBool(p.Value), p.Time
 }
 
@@ -293,7 +293,7 @@ func (n *NodeEdge) ToPbNode() (*pb.Node, error) {
 func (n *NodeEdge) ProcessPoint(pIn Point) {
 	pFound := false
 	for i, p := range n.Points {
-		if p.ID == pIn.ID && p.Type == pIn.Type && p.Index == pIn.Index {
+		if p.Key == pIn.Key && p.Type == pIn.Type && p.Index == pIn.Index {
 			pFound = true
 			n.Points[i] = pIn
 		}

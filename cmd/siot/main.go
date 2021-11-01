@@ -34,12 +34,12 @@ func parsePointText(s string) (string, data.Point, error) {
 	}
 
 	nodeID := frags[0]
-	pointID := frags[1]
+	pointKey := frags[1]
 	text := frags[2]
 	pointType := frags[3]
 
 	return nodeID, data.Point{
-		ID:   pointID,
+		Key:  pointKey,
 		Type: pointType,
 		Text: text,
 		Time: time.Now(),
@@ -55,7 +55,7 @@ func parsePoint(s string) (string, data.Point, error) {
 	}
 
 	nodeID := frags[0]
-	pointID := frags[1]
+	pointKey := frags[1]
 	value, err := strconv.ParseFloat(frags[2], 64)
 	if err != nil {
 		return "", data.Point{}, err
@@ -64,7 +64,7 @@ func parsePoint(s string) (string, data.Point, error) {
 	pointType := frags[3]
 
 	return nodeID, data.Point{
-		ID:    pointID,
+		Key:   pointKey,
 		Type:  pointType,
 		Value: value,
 		Time:  time.Now(),

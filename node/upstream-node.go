@@ -22,10 +22,10 @@ func NewUpstreamNode(node data.NodeEdge) (*UpstreamNode, error) {
 		ID: node.ID,
 	}
 
-	ret.Description, _ = node.Points.Text("", data.PointTypeDescription, 0)
-	ret.AuthToken, _ = node.Points.Text("", data.PointTypeAuthToken, 0)
+	ret.Description, _ = node.Points.Text(data.PointTypeDescription, "", 0)
+	ret.AuthToken, _ = node.Points.Text(data.PointTypeAuthToken, "", 0)
 
-	ret.URI, ok = node.Points.Text("", data.PointTypeURI, 0)
+	ret.URI, ok = node.Points.Text(data.PointTypeURI, "", 0)
 	if !ok {
 		return nil, errors.New("URI must be specified for upstream connection")
 	}
