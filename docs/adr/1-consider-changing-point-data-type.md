@@ -26,7 +26,15 @@ Should we consider making the `point` struct more flexible?
 The reason for this is that it is sometimes hard to describe a
 sensor/configuration value with just a few fields.
 
-###
+### Requirements
+
+- IoT systems are often connected by unreliable networks (cellular, etc). All
+  devices/instances in a SIOT should be able to functional autonomously (run
+  rules, etc) and then synchronize again when connected.
+- all systems must converge to the same configuration state. We can probably
+  tolerate some lost time series data, but configuration and current state must
+  converge. When someone is remotely looking at a device state, we want to make
+  sure they are seeing the same things a local operator is seeing.
 
 ### evolvability
 
@@ -125,8 +133,12 @@ Some reference/discussion on other standards:
 https://github.com/eclipse/tahu/blob/master/sparkplug_b/sparkplug_b.proto
 
 The sparkplug data type is huge and could be used to describe very complex data.
-However, with complex types, there is no provision for syncronization -- its all
-or nothing, thus it does not seem like a good fit for SIOT.
+This standard came out of the industry 4.0 movement where a factory revolves
+around a common MQTT messaging server. The assumption is that everything is
+always connected to the MQTT server. However, with complex types, there is no
+provision for intelligent synchronization if one system is disconnected for some
+amount of time -- its all or nothing, thus it does not seem like a good fit for
+SIOT.
 
 #### SenML
 
