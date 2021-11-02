@@ -26,6 +26,8 @@ Should we consider making the `point` struct more flexible?
 The reason for this is that it is sometimes hard to describe a
 sensor/configuration value with just a few fields.
 
+###
+
 ### evolvability
 
 From Martin Kleppmann's book:
@@ -80,6 +82,8 @@ https://community.tmpdir.org/t/book-review-designing-data-intensive-applications
 > becomes so leaky that I think all successful systems for distributed state
 > will abandon it beyond a certain scale. --
 > [Peter Bourgon](https://lobste.rs/s/9fufgr/i_was_wrong_crdts_are_future)
+
+[CRDTs, the hard parts by Martin Kleppmann](https://youtu.be/x7drE24geUw)
 
 ### Other Standards
 
