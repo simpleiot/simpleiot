@@ -306,6 +306,15 @@ or
 A single point could then represent weekdays instead of requiring multiple
 points.
 
+#### Concurrent modifications to point arrays
+
+With SIOT, concurrent modifications to a point typically work out pretty well,
+as most settings can be described in a single point. However, with arrays
+represented as a group of points, there is more likelihood of conflict, because
+order in an array is sometimes important.
+
+TODO: describe various scenarios and think through them.
+
 ### Duration, Min, Max
 
 The current Point data type has Duration, Min, and Max fields. This is used for
