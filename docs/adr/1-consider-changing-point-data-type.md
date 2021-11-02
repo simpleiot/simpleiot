@@ -65,7 +65,7 @@ From Martin Kleppmann's book:
 > The encoding formats discussed previously support such preservation of unknown
 > fields, but sometimes you need to take care at an application level, as
 > illustrated in Figure 4-7. For example, if you decode a database value into
-> model objects in the application, and later reencode those model objects, the
+> model objects in the application, and later re-encode those model objects, the
 > unknown field might be lost in that translation process. Solving this is not a
 > hard problem; you just need to be aware of it.
 
@@ -84,6 +84,37 @@ https://community.tmpdir.org/t/book-review-designing-data-intensive-applications
 > [Peter Bourgon](https://lobste.rs/s/9fufgr/i_was_wrong_crdts_are_future)
 
 [CRDTs, the hard parts by Martin Kleppmann](https://youtu.be/x7drE24geUw)
+
+The SIOT Node/Point data structures are a simple CRDT that was invented before I
+know what a CRDT was.
+
+For reliable data synchronization in distributed systems, there has to be some
+metadata around data that facilitates synchronization. This can be done in two
+ways:
+
+1. add meta data in parallel to the data
+2. express all data using simple primitives that facilitate synchronization
+
+Either way, you have to accept constraints in your data storage and transmission
+formats.
+
+To date, we have chosen to follow the 2nd path (simple data primitives).
+
+### Operational transforms
+
+There are two fundamental schools of thought regarding data synchronization:
+
+1. Operation transforms. In this method, a central server arbitrates all
+   conflicts and hands the result back to other instances. This is an older
+   technique and is used in applications like Google docs.
+2. CRDTs -- this is a newer technique that works with multiple network
+   connections and does not require a central server. Each instance is capable
+   of resolving conflicts themselves and converging to the same point.
+
+While a classical OT arrangement could probably work in a traditional SIOT
+system (where all devices talk to one cloud server), it would be nice if we are
+not constrained to this architecture. This would allow us to support peer
+synchronization in the future.
 
 ### Other Standards
 
