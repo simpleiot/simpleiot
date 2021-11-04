@@ -1,6 +1,6 @@
 # Point Data Type Changes
 
-- Author: Cliff Brake Last updated: 2021-10-08
+- Author: Cliff Brake Last updated: 2021-11-04
 - Issue at: https://github.com/simpleiot/simpleiot/issues/254
 - PR/Discussion: https://github.com/simpleiot/simpleiot/pull/279
 - Status: Brainstorming
@@ -82,6 +82,8 @@ https://community.tmpdir.org/t/book-review-designing-data-intensive-applications
 
 ### CRDTs
 
+Some good talks/discussions:
+
 > I also agree CRDTs are the future, but not for any reason as specific as the
 > ones in the article. Distributed state is so fundamentally complex that I
 > think we actually need CRDTs (or something like them) to reason about it
@@ -93,14 +95,29 @@ https://community.tmpdir.org/t/book-review-designing-data-intensive-applications
 
 [CRDTs, the hard parts by Martin Kleppmann](https://youtu.be/x7drE24geUw)
 
-The SIOT Node/Point data structures are a simple CRDT that was invented before I
-know what a CRDT was.
+[Infinite Parallel Universes: State at the Edge](https://www.infoq.com/presentations/architecture-global-scale/)
+
+[Wikipedia article](https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type)
+
+Properties of CRDTs:
+
+- **Associative** (order in which operations are performed does matter)
+- **Commutative** (changing order of operands does not change result)
+- **Idempotent** (operation can be applied multiple times without changing the
+  result, tolerate over-merging)
+
+The existing SIOT Node/Point data structures were created before I know what a
+CRDT was, but they happen to already give a node many of the properties of a
+CRDT -- IE, they can be modified independently, and then later merged with a
+reasonable level of conflict resolution.
 
 For reliable data synchronization in distributed systems, there has to be some
 metadata around data that facilitates synchronization. This can be done in two
 ways:
 
-1. add meta data in parallel to the data
+1. add meta data in parallel to the data (turn JSON into a CRDT, example
+   [automerge](https://github.com/automerge/automerge) or
+   [yjs](https://docs.yjs.dev/))
 2. express all data using simple primitives that facilitate synchronization
 
 Either way, you have to accept constraints in your data storage and transmission
@@ -255,7 +272,17 @@ fields, and mount point as text field.
 We already have an array of points in a node -- can we just make one array work?
 The size/used/avail/% could easily be stored as different points. The text field
 would store the mount point, which would tie all the stats for one partition
-together. Then the question is how to represent the filesystem?
+together. Then the question is how to represent the filesystem? With the added
+`Key` field in proposal #2, we can now store the mount point as the key.
+
+| Type           | Key   | Text  | Value   |
+| -------------- | ----- | ----- | ------- |
+| filesystemSize | /home |       | 1243234 |
+| filesystemUsed | /home |       | 234222  |
+| filesystemType | /home | ext4  |         |
+| filesystemSize | /home |       | 1000000 |
+| filesystemUsed | /date |       | 10000   |
+| filesystemType | /home | btrfs |         |
 
 ### Representing arrays
 
@@ -285,8 +312,8 @@ https://community.tmpdir.org/t/the-tstorage-time-series-package-for-go/331
 In this case, the condition node has a series of weekday points with indexes 0-6
 to represent the days of the week.
 
-If we change value to map of key/values, then weekday values could be
-represented in the field map:
+If we change value to map (propsal #1) of key/values, then weekday values could
+be represented in the field map:
 
 - "0":0
 - "1":1
@@ -299,21 +326,140 @@ or
 - "Mon":1
 - "Tues:0
 - "Wed":0
-  https://community.tmpdir.org/t/the-tstorage-time-series-package-for-go/331 In
-  practice, I've found presenting weekdays by numbers is easier to deal with in
-  programs.
 
 A single point could then represent weekdays instead of requiring multiple
 points.
 
-#### Concurrent modifications to point arrays
+In practice, I've found presenting weekdays by numbers is easier to deal with in
+programs.
+
+However, an embedded map does not have strong CRDT properties, so lets return to
+proposal #2, where an array is represented as a set of points.
+
+### Concurrent modifications to node arrays
 
 With SIOT, concurrent modifications to a point typically work out pretty well,
 as most settings can be described in a single point. However, with arrays
 represented as a group of points, there is more likelihood of conflict, because
 order in an array is sometimes important.
 
-TODO: describe various scenarios and think through them.
+Much of the research with ordered set (sequence) CRDTs deals with a text editor
+scenario where interleaving letters and words is a problem. In our use case,
+interleaving is not an concern. We simply need to deal with add, remove, and
+index changes (moves) reliably.
+
+### Example: weekdays in rule condition stored as a point array
+
+In this example, we will have a list of 7, where a value of 1 indicates that
+weekday is enabled. In this case, the size and order of the array is fixed, so
+the current mechanism will work just fine.
+
+### Example: various array add/move operations.
+
+The following are all points in a node with a common Type value.
+
+t1: A creates initial array:
+
+| Index | Key   | Time | Text | Tombstone |
+| ----- | ----- | ---- | ---- | --------- |
+| 0     | UUID1 | 1    | a    | 0         |
+| 1     | UUID2 | 1    | b    | 0         |
+
+t2: C adds item to array:
+
+| Index | Key   | Time | Text | Tombstone |
+| ----- | ----- | ---- | ---- | --------- |
+| 0     | UUID1 | 1    | a    | 0         |
+| 1     | UUID2 | 1    | b    | 0         |
+| 2     | UUID3 | 2    | c    | 0         |
+
+t3: B adds a' between a and b.
+
+| Index | Key   | Time | Text | Tombstone |
+| ----- | ----- | ---- | ---- | --------- |
+| 0     | UUID1 | 1    | a    | 0         |
+| 0.5   | UUID4 | 3    | a'   | 0         |
+| 1     | UUID2 | 1    | b    | 0         |
+| 2     | UUID3 | 2    | c    | 0         |
+
+t4: move a' between b and c:
+
+| Index | Key   | Time | Text | Tombstone |
+| ----- | ----- | ---- | ---- | --------- |
+| 0     | UUID1 | 1    | a    | 0         |
+| 1     | UUID2 | 1    | b    | 0         |
+| 1.5   | UUID4 | 4    | a'   | 0         |
+| 2     | UUID3 | 2    | c    | 0         |
+
+t5: instance A adds a'' between a' and b, and instance B adds b' between a' and
+b.
+
+| Index | Key   | Time | Text | Tombstone |
+| ----- | ----- | ---- | ---- | --------- |
+| 0     | UUID1 | 1    | a    | 0         |
+| 0.5   | UUID5 | 5    | a''  | 0         |
+| 0.5   | UUID6 | 5    | b'   | 0         |
+| 1     | UUID2 | 1    | b    | 0         |
+| 1.5   | UUID4 | 4    | a'   | 0         |
+| 2     | UUID3 | 2    | c    | 0         |
+
+t6: move a' back to between a and a'':
+
+| Index | Key   | Time | Text | Tombstone |
+| ----- | ----- | ---- | ---- | --------- |
+| 0     | UUID1 | 1    | a    | 0         |
+| 0.25  | UUID4 | 6    | a'   | 0         |
+| 0.5   | UUID5 | 5    | a''  | 0         |
+| 0.5   | UUID6 | 5    | b'   | 0         |
+| 1     | UUID2 | 1    | b    | 0         |
+| 2     | UUID3 | 2    | c    | 0         |
+
+Note, for this to all work, points are matched only by Type and Key, not Index,
+as the index may change for a point. Any time an Index is used, the Key must be
+populated with a globally unique value such that this point can always be
+identified later.
+
+### Point deletions
+
+To date, we've had no need to delete points, but it may be useful in the future.
+
+Consider the following sequence of point changes:
+
+1. t1: we have a point
+1. t2: A deletes the point
+1. t3: B concurrently change the point value
+
+The below table shows the point values over time with the current point merge
+algorithm:
+
+| Time | Index | Key   | Value | Tombstone |
+| ---- | ----- | ----- | ----- | --------- |
+| t1   | 0     | UUID1 | 10    | 0         |
+| t2   | 0     | UUID1 | 10    | 1         |
+| t3   | 0     | UUID1 | 20    | 0         |
+
+In this case, the point becomes undeleted because the last write wins (LWW). Is
+this a problem? What is the desired behavior? A likely scenario is that a device
+will be continually sending value updates and a user will make a configuration
+change in the portal that deletes a point. Thus it seems delete changes should
+always have precedence. However, with the last write wins (LWW) merge algorithm,
+the tombstone value could get lost. It may make sense to:
+
+- make the tombstone value an int
+- only increment it
+- when merging points, the highest tombstone value wins
+- odd value of tombstone value means point is deleted
+
+Thus the tombstone value is merged independently of the timestamp and thus is
+always preserved, even if there concurrent modifications.
+
+The following table shows the values with the modified point merge algorithm.
+
+| Time | Index | Key   | Value | Tombstone |
+| ---- | ----- | ----- | ----- | --------- |
+| t1   | 0     | UUID1 | 10    | 0         |
+| t2   | 0     | UUID1 | 10    | 1         |
+| t3   | 0     | UUID1 | 20    | 1         |
 
 ### Duration, Min, Max
 
@@ -506,34 +652,45 @@ influxdb. There would be some redundancy between Type and Field keys.
 
 ### Proposal #2
 
-This proposal extends the original data structure the `Key` field so that we can
-represent maps in a node using points, and removes the `ID` field, as any ID
-information should be contained in the parent node. The `ID` field is a legacy
-from 1-wire setups were we represented each 1-wire sensor as a point. However,
-it seems obvious now that each 1-wire sensor should have its own node.
-
 ```go
 type Point struct {
 	// The 1st three fields uniquely identify a point when receiving updates
 	Type string
-	Index int
 	Key string
 
 	// The following fields are the values for a point
 	Time time.Time
+	Index float64
 	Value float64
 	Text string
+	Data []byte
 
 	// Metadata
-	Tombstone bool
+	Tombstone int
 }
 ```
 
-#### Handling removing values from maps/arrays
+Notable changes from the existing implementation:
 
-With Proposal #2, we have the issue of how to remove entries from a map/array
-that is represented by multiple points. The Tombstone field is used to indicate
-this item has been removed from an array or map.
+- removal of the `ID` field, as any ID information should be contained in the
+  parent node. The `ID` field is a legacy from 1-wire setups were we represented
+  each 1-wire sensor as a point. However, it seems obvious now that each 1-wire
+  sensor should have its own node.
+
+* addition of the `Key` field. This allows us to represent maps in a node, as
+  well as add extra identifying information for a point.
+* the `Point` is now identified in the merge algorithm using the `Type` and
+  `Key`. Before, the `ID`, `Type`, and `Index` were used.
+* any `Point` that uses `Index`, should also set the `Key` to some globally
+  unique value. This `Key` is used on subsequent updates to identify the point.
+* Index is changed from int to float64 so that we can move points in arrays
+  between existing points. See example above.
+* the `Data` field is added to give us the flexibility to store/transmit data
+  that does not fit in a Value or Text field. This should be used sparingly, but
+  gives us some flexibility in the future for special cases.
+* the `Tombstone` fields is added as an `int` and is always incremented. Odd
+  values of `Tombstone` mean the point was deleted. When merging points, the
+  highest tombstone value always wins.
 
 ## Decision
 
