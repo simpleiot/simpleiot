@@ -673,28 +673,31 @@ type Point struct {
 Notable changes from the existing implementation:
 
 - removal of the `ID` field, as any ID information should be contained in the
-  parent node. The `ID` field is a legacy from 1-wire setups were we represented
-  each 1-wire sensor as a point. However, it seems obvious now that each 1-wire
+  parent node. The `ID` field is a legacy from 1-wire setups where we
+  represented each 1-wire sensor as a point. However, it seems now each 1-wire
   sensor should have its own node.
-
-* addition of the `Key` field. This allows us to represent maps in a node, as
+- addition of the `Key` field. This allows us to represent maps in a node, as
   well as add extra identifying information for a point.
-* the `Point` is now identified in the merge algorithm using the `Type` and
+- the `Point` is now identified in the merge algorithm using the `Type` and
   `Key`. Before, the `ID`, `Type`, and `Index` were used.
-* any `Point` that uses `Index`, should also set the `Key` to some globally
+- any `Point` that uses `Index`, should also set the `Key` to some globally
   unique value. This `Key` is used on subsequent updates to identify the point.
-* Index is changed from int to float64 so that we can move points in arrays
+- Index is changed from int to float64 so that we can move points in arrays
   between existing points. See example above.
-* the `Data` field is added to give us the flexibility to store/transmit data
+- the `Data` field is added to give us the flexibility to store/transmit data
   that does not fit in a Value or Text field. This should be used sparingly, but
-  gives us some flexibility in the future for special cases.
-* the `Tombstone` fields is added as an `int` and is always incremented. Odd
+  gives us some flexibility in the future for special cases. This came out of
+  some comments in an Industry 4.0 community -- basically types/schemas are good
+  in a communication standard, as long as you also have the capability to send a
+  blob of data to handle all the special cases. This seems like good advice.
+- the `Tombstone` fields is added as an `int` and is always incremented. Odd
   values of `Tombstone` mean the point was deleted. When merging points, the
   highest tombstone value always wins.
 
 ## Decision
 
-Going with proposal #2 for now -- we can always revisit this later if needed.
+Going with proposal #2 -- we can always revisit this later if needed. This has
+minimal impact on the existing code base.
 
 ## Objections/concerns
 
@@ -743,10 +746,14 @@ Going with proposal #2 for now -- we can always revisit this later if needed.
 Generic core data structures also opens up the possibility to dynamically extend
 the system at run time without type changes. For instance, the GUI could render
 new nodes it has never seen before by sending it configuration nodes with
-instructures on how to display the node. If core types need to change to do this
-type of thing, we have no chance at this type of intelligent functionality.
+declarative instructions on how to display the node. If core types need to
+change to do this type of thing, we have no chance at this type of intelligent
+functionality.
 
 ## Consequences
 
 Removing the Min/Max/Duration fields should not have any consequences now as I
 don't think we are using these fields yet.
+
+Quite a bit of code needs to change to remove ID and add Key to code using
+points.
