@@ -9,10 +9,11 @@ message Point {
   string type = 2;
   float value = 4;
   google.protobuf.Timestamp time = 5;
-  int32 index = 7;
+  float index = 13;
   string text = 8;
   string key = 11;
-  bool tombstone = 12;
+  int32 tombstone = 12;
+  bytes data = 14;
 }
 
 message Points {

@@ -21,10 +21,6 @@ type Point struct {
 	// Type of point (voltage, current, key, etc)
 	Type string `json:"type,omitempty"`
 
-	// Index is used to specify a position in an array such as
-	// which pump, temp sensor, etc.
-	Index int `json:"index,omitempty"`
-
 	// Key is used to allow a group of points to represent a "map"
 	Key string `json:"key,omitempty"`
 
@@ -34,6 +30,10 @@ type Point struct {
 	// Time the point was taken
 	Time time.Time `json:"time,omitempty"`
 
+	// Index is used to specify a position in an array such as
+	// which pump, temp sensor, etc.
+	Index float64 `json:"index,omitempty"`
+
 	// Instantaneous analog or digital value of the point.
 	// 0 and 1 are used to represent digital values
 	Value float64 `json:"value,omitempty"`
@@ -42,11 +42,16 @@ type Point struct {
 	// as a string rather than a number.
 	Text string `json:"text,omitempty"`
 
+	// catchall field for data that does not fit into float or string --
+	// should be used sparingly
+	Data []byte `json:"data"`
+
 	//-------------------------------------------------------
 	// Metadata
 
-	// Used to indicate a point has been deleted
-	Tombstone bool `json:"tombstone,omitempty"`
+	// Used to indicate a point has been deleted. This value is only
+	// ever incremented. Odd values mean point is deleted.
+	Tombstone int `json:"tombstone,omitempty"`
 }
 
 func (p Point) String() string {
@@ -72,12 +77,8 @@ func (p Point) String() string {
 }
 
 // IsMatch returns true if the point matches the params passed in
-func (p Point) IsMatch(typ, key string, index int) bool {
+func (p Point) IsMatch(typ, key string) bool {
 	if typ != "" && typ != p.Type {
-		return false
-	}
-
-	if index != p.Index {
 		return false
 	}
 
@@ -97,12 +98,12 @@ func (p Point) ToPb() (pb.Point, error) {
 
 	return pb.Point{
 		Type:      p.Type,
-		Index:     int32(p.Index),
+		Index:     float32(p.Index),
 		Key:       p.Key,
 		Value:     float32(p.Value),
 		Text:      p.Text,
 		Time:      ts,
-		Tombstone: p.Tombstone,
+		Tombstone: int32(p.Tombstone),
 	}, nil
 }
 
@@ -119,9 +120,9 @@ type Points []Point
 
 // Desc returns a Description of a set of points
 func (ps Points) Desc() string {
-	firstName, _ := ps.Text(PointTypeFirstName, "", 0)
+	firstName, _ := ps.Text(PointTypeFirstName, "")
 	if firstName != "" {
-		lastName, _ := ps.Text(PointTypeLastName, "", 0)
+		lastName, _ := ps.Text(PointTypeLastName, "")
 		if lastName == "" {
 			return firstName
 		}
@@ -129,7 +130,7 @@ func (ps Points) Desc() string {
 		return firstName + " " + lastName
 	}
 
-	desc, _ := ps.Text(PointTypeDescription, "", 0)
+	desc, _ := ps.Text(PointTypeDescription, "")
 	if desc != "" {
 		return desc
 	}
@@ -139,9 +140,9 @@ func (ps Points) Desc() string {
 
 // Find fetches a point given ID, Type, and Index
 // and true of found, or false if not found
-func (ps *Points) Find(typ, key string, index int) (Point, bool) {
+func (ps *Points) Find(typ, key string) (Point, bool) {
 	for _, p := range *ps {
-		if !p.IsMatch(typ, key, index) {
+		if !p.IsMatch(typ, key) {
 			continue
 		}
 
@@ -153,27 +154,27 @@ func (ps *Points) Find(typ, key string, index int) (Point, bool) {
 
 // Value fetches a value from an array of points given ID, Type, and Index.
 // If ID or Type are set to "", they are ignored.
-func (ps *Points) Value(typ, key string, index int) (float64, bool) {
-	p, ok := ps.Find(typ, key, index)
+func (ps *Points) Value(typ, key string) (float64, bool) {
+	p, ok := ps.Find(typ, key)
 	return p.Value, ok
 }
 
 // ValueInt returns value as integer
-func (ps *Points) ValueInt(typ, key string, index int) (int, bool) {
-	f, ok := ps.Value(typ, key, index)
+func (ps *Points) ValueInt(typ, key string) (int, bool) {
+	f, ok := ps.Value(typ, key)
 	return int(f), ok
 }
 
 // ValueBool returns value as bool
-func (ps *Points) ValueBool(typ, key string, index int) (bool, bool) {
-	f, ok := ps.Value(typ, key, index)
+func (ps *Points) ValueBool(typ, key string) (bool, bool) {
+	f, ok := ps.Value(typ, key)
 	return FloatToBool(f), ok
 }
 
 // Text fetches a text value from an array of points given ID, Type, and Index.
 // If ID or Type are set to "", they are ignored.
-func (ps *Points) Text(typ, key string, index int) (string, bool) {
-	p, ok := ps.Find(typ, key, index)
+func (ps *Points) Text(typ, key string) (string, bool) {
+	p, ok := ps.Find(typ, key)
 	return p.Text, ok
 }
 
@@ -265,10 +266,10 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 		Type:      sPb.Type,
 		Text:      sPb.Text,
 		Key:       sPb.Key,
-		Index:     int(sPb.Index),
+		Index:     float64(sPb.Index),
 		Value:     float64(sPb.Value),
 		Time:      ts,
-		Tombstone: sPb.Tombstone,
+		Tombstone: int(sPb.Tombstone),
 	}
 
 	return ret, nil

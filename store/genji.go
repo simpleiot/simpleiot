@@ -362,7 +362,7 @@ func txSetTombstone(tx *genji.Tx, down, up string, tombstone bool) error {
 		return err
 	}
 
-	current, _ := edge.Points.ValueBool(data.PointTypeTombstone, "", 0)
+	current, _ := edge.Points.ValueBool(data.PointTypeTombstone, "")
 
 	if current != tombstone {
 		edge.Points.ProcessPoint(data.Point{

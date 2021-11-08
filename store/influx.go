@@ -23,22 +23,22 @@ type InfluxConfig struct {
 func NodeToInfluxConfig(node data.NodeEdge) (*InfluxConfig, error) {
 	ret := &InfluxConfig{}
 	var ok bool
-	ret.Token, ok = node.Points.Text(data.PointTypeAuthToken, "", 0)
+	ret.Token, ok = node.Points.Text(data.PointTypeAuthToken, "")
 	if !ok || ret.Token == "" {
 		return ret, errors.New("Auth token must be set for InfluxDb")
 	}
 
-	ret.URL, ok = node.Points.Text(data.PointTypeURI, "", 0)
+	ret.URL, ok = node.Points.Text(data.PointTypeURI, "")
 	if !ok || ret.URL == "" {
 		return ret, errors.New("URL must be set for InfluxDb")
 	}
 
-	ret.Bucket, ok = node.Points.Text(data.PointTypeBucket, "", 0)
+	ret.Bucket, ok = node.Points.Text(data.PointTypeBucket, "")
 	if !ok || ret.Bucket == "" {
 		return ret, errors.New("Bucket must be set for InfluxDb")
 	}
 
-	ret.Org, ok = node.Points.Text(data.PointTypeOrg, "", 0)
+	ret.Org, ok = node.Points.Text(data.PointTypeOrg, "")
 	if !ok || ret.Org == "" {
 		return ret, errors.New("Org must be set for InfluxDb")
 	}
@@ -89,7 +89,7 @@ func (i *Influx) WritePoints(nodeID, nodeDesc string, points data.Points) error 
 				"nodeDesc": nodeDesc,
 				"key":      point.Key,
 				"type":     point.Type,
-				"index":    strconv.Itoa(point.Index),
+				"index":    strconv.FormatFloat(point.Index, 'f', -1, 64),
 			},
 			map[string]interface{}{
 				"value": point.Value,
