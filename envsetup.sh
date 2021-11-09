@@ -99,19 +99,23 @@ siot_build_dependencies() {
   return 0
 }
 
+siot_version() {
+  git describe --tags HEAD
+}
+
 siot_build() {
   siot_build_dependencies --optimize || return 1
   BINARY_NAME=siot
   if [ "${GOOS}" = "windows" ]; then
     BINARY_NAME=siot.exe
   fi
-  CGO_ENABLED=0 go build -ldflags="-s -w -X main.siotVersion=$(git describe --tags HEAD)" -o $BINARY_NAME cmd/siot/main.go || return 1
+  CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$(siot_version)" -o $BINARY_NAME cmd/siot/main.go || return 1
   return 0
 }
 
 siot_build_arm() {
   siot_build_dependencies --optimize || return 1
-  GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.siotVersion=$(git describe --tags HEAD)" -o siot_arm cmd/siot/main.go || return 1
+  GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
   return 0
 }
 
@@ -124,7 +128,7 @@ siot_deploy() {
 siot_run() {
   echo "run args: $*"
   siot_build_dependencies --debug || return 1
-  go build -o siot -race cmd/siot/main.go || return 1
+  go build -ldflags="-X main.version=$(siot_version)" -o siot -race cmd/siot/main.go || return 1
   ./siot "$@"
   return 0
 }
