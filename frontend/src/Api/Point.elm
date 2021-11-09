@@ -654,14 +654,13 @@ typeDisable =
 
 
 type alias Point =
-    { id : String
-    , index : Int
-    , typ : String
+    { typ : String
+    , key : String
     , time : Time.Posix
+    , index : Float
     , value : Float
     , text : String
-    , min : Float
-    , max : Float
+    , tombstone : Int
     }
 
 
@@ -669,38 +668,35 @@ empty : Point
 empty =
     Point
         ""
-        0
         ""
         (Time.millisToPosix 0)
         0
-        ""
         0
+        ""
         0
 
 
 newValue : String -> String -> Float -> Point
-newValue id typ value =
-    { id = id
-    , typ = typ
-    , index = 0
+newValue typ key value =
+    { typ = typ
+    , key = key
     , time = Time.millisToPosix 0
+    , index = 0
     , value = value
     , text = ""
-    , min = 0
-    , max = 0
+    , tombstone = 0
     }
 
 
 newText : String -> String -> String -> Point
-newText id typ text =
-    { id = id
-    , typ = typ
-    , index = 0
+newText typ key text =
+    { typ = typ
+    , key = key
     , time = Time.millisToPosix 0
+    , index = 0
     , value = 0
     , text = text
-    , min = 0
-    , max = 0
+    , tombstone = 0
     }
 
 
@@ -719,16 +715,15 @@ filterSpecialPoints points =
 
 
 encode : Point -> Json.Encode.Value
-encode s =
+encode p =
     Json.Encode.object
-        [ ( "id", Json.Encode.string <| s.id )
-        , ( "index", Json.Encode.int <| s.index )
-        , ( "type", Json.Encode.string <| s.typ )
-        , ( "time", Iso8601.encode <| s.time )
-        , ( "value", Json.Encode.float <| s.value )
-        , ( "text", Json.Encode.string <| s.text )
-        , ( "min", Json.Encode.float <| s.min )
-        , ( "max", Json.Encode.float <| s.max )
+        [ ( "type", Json.Encode.string <| p.typ )
+        , ( "key", Json.Encode.string <| p.key )
+        , ( "time", Iso8601.encode <| p.time )
+        , ( "index", Json.Encode.float <| p.index )
+        , ( "value", Json.Encode.float <| p.value )
+        , ( "text", Json.Encode.string <| p.text )
+        , ( "tombstone", Json.Encode.int <| p.tombstone )
         ]
 
 
@@ -740,25 +735,24 @@ encodeList p =
 decode : Decode.Decoder Point
 decode =
     Decode.succeed Point
-        |> optional "id" Decode.string ""
-        |> optional "index" Decode.int 0
         |> optional "type" Decode.string ""
+        |> optional "key" Decode.string ""
         |> optional "time" Json.Decode.Extra.datetime (Time.millisToPosix 0)
+        |> optional "index" Decode.float 0
         |> optional "value" Decode.float 0
         |> optional "text" Decode.string ""
-        |> optional "min" Decode.float 0
-        |> optional "max" Decode.float 0
+        |> optional "tombstone" Decode.int 0
 
 
 renderPoint : Point -> String
 renderPoint s =
     let
-        id =
-            if s.id == "" then
+        key =
+            if s.key == "" then
                 ""
 
             else
-                s.id ++ ": "
+                s.key ++ ": "
 
         value =
             if s.text /= "" then
@@ -767,7 +761,7 @@ renderPoint s =
             else
                 Round.round 2 s.value
     in
-    id ++ value ++ " (" ++ s.typ ++ ")"
+    key ++ value ++ " (" ++ s.typ ++ ")"
 
 
 updatePoint : List Point -> Point -> List Point
@@ -775,7 +769,7 @@ updatePoint points point =
     case
         List.Extra.findIndex
             (\p ->
-                point.id == p.id && point.typ == p.typ && point.index == p.index
+                point.typ == p.typ && point.key == p.key
             )
             points
     of
@@ -794,19 +788,19 @@ updatePoints points newPoints =
         newPoints
 
 
-get : List Point -> String -> Int -> String -> Maybe Point
-get points id index typ =
+get : List Point -> String -> String -> Maybe Point
+get points typ key =
     List.Extra.find
         (\p ->
-            id == p.id && typ == p.typ && index == p.index
+            typ == p.typ && key == p.key
         )
         points
 
 
-getText : List Point -> String -> Int -> String -> String
-getText points id index typ =
+getText : List Point -> String -> String -> String
+getText points typ key =
     case
-        get points id index typ
+        get points typ key
     of
         Just found ->
             found.text
@@ -819,13 +813,13 @@ getBestDesc : List Point -> String
 getBestDesc points =
     let
         firstName =
-            getText points "" 0 typeFirstName
+            getText points typeFirstName ""
 
         desc =
-            getText points "" 0 typeDescription
+            getText points typeDescription ""
     in
     if firstName /= "" then
-        firstName ++ " " ++ getText points "" 0 typeLastName
+        firstName ++ " " ++ getText points typeLastName ""
 
     else if desc /= "" then
         desc
@@ -834,10 +828,10 @@ getBestDesc points =
         "no description"
 
 
-getValue : List Point -> String -> Int -> String -> Float
-getValue points id index typ =
+getValue : List Point -> String -> String -> Float
+getValue points typ key =
     case
-        get points id index typ
+        get points typ key
     of
         Just found ->
             found.value
@@ -846,9 +840,9 @@ getValue points id index typ =
             0
 
 
-getBool : List Point -> String -> Int -> String -> Bool
-getBool points id index typ =
-    getValue points id index typ == 1
+getBool : List Point -> String -> String -> Bool
+getBool points typ key =
+    getValue points typ key == 1
 
 
 getLatest : List Point -> Maybe Point

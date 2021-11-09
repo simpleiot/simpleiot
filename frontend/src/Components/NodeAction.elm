@@ -28,19 +28,19 @@ view o =
             oToInputO o labelWidth
 
         textInput =
-            NodeInputs.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts ""
 
         optionInput =
-            NodeInputs.nodeOptionInput opts "" 0
+            NodeInputs.nodeOptionInput opts ""
 
         numberInput =
-            NodeInputs.nodeNumberInput opts "" 0
+            NodeInputs.nodeNumberInput opts ""
 
         onOffInput =
-            NodeInputs.nodeOnOffInput opts "" 0
+            NodeInputs.nodeOnOffInput opts ""
 
         actionType =
-            Point.getText o.node.points "" 0 Point.typeActionType
+            Point.getText o.node.points Point.typeActionType ""
 
         actionSetValue =
             actionType == Point.valueActionSetValue
@@ -49,7 +49,7 @@ view o =
             actionType == Point.valueActionPlayAudio
 
         valueType =
-            Point.getText o.node.points "" 0 Point.typeValueType
+            Point.getText o.node.points Point.typeValueType ""
     in
     column
         [ width fill
@@ -61,7 +61,7 @@ view o =
         wrappedRow [ spacing 10 ]
             [ icon
             , text <|
-                Point.getText o.node.points "" 0 Point.typeDescription
+                Point.getText o.node.points Point.typeDescription ""
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
