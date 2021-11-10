@@ -58,6 +58,7 @@ module Api.Point exposing
     , typePhone
     , typePointID
     , typePointIndex
+    , typePointKey
     , typePointType
     , typePollPeriod
     , typePort
@@ -492,6 +493,11 @@ typePointType =
 typePointIndex : String
 typePointIndex =
     "pointIndex"
+
+
+typePointKey : String
+typePointKey =
+    "pointKey"
 
 
 typeOperator : String

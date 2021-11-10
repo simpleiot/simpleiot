@@ -146,8 +146,7 @@ pointValue o labelWidth =
             , ( Point.typeSysState, "system state" )
             , ( Point.typeActive, "active" )
             ]
-        , textInput Point.typePointID "Point ID" ""
-        , numberInput Point.typePointIndex "Point Index"
+        , textInput Point.typePointKey "Point Key" ""
         , optionInput Point.typeValueType
             "Point Value Type"
             [ ( Point.valueNumber, "number" )
