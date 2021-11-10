@@ -291,17 +291,7 @@ func (n *NodeEdge) ToPbNode() (*pb.Node, error) {
 
 // ProcessPoint takes a point for a device and adds/updates its array of points
 func (n *NodeEdge) ProcessPoint(pIn Point) {
-	pFound := false
-	for i, p := range n.Points {
-		if p.Key == pIn.Key && p.Type == pIn.Type && p.Index == pIn.Index {
-			pFound = true
-			n.Points[i] = pIn
-		}
-	}
-
-	if !pFound {
-		n.Points = append(n.Points, pIn)
-	}
+	n.Points.ProcessPoint(pIn)
 }
 
 // bytesLess compares two slices of bytes and returns true if a is less than b

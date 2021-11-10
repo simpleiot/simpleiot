@@ -223,12 +223,20 @@ func (ps *Points) Hash() []byte {
 // ProcessPoint takes a point and updates an existing array of points
 func (ps *Points) ProcessPoint(pIn Point) {
 	pFound := false
+
 	for i, p := range *ps {
-		if p.Key == pIn.Key && p.Type == pIn.Type && p.Index == pIn.Index {
+		if p.Key == pIn.Key && p.Type == pIn.Type {
 			pFound = true
+			// largest tombstone value always wins
+			tombstone := p.Tombstone
+			if pIn.Tombstone > p.Tombstone {
+				tombstone = pIn.Tombstone
+			}
+
 			if pIn.Time.After(p.Time) {
 				(*ps)[i] = pIn
 			}
+			(*ps)[i].Tombstone = tombstone
 		}
 	}
 
