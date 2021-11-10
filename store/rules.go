@@ -39,10 +39,6 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 					continue
 				}
 
-				if c.PointIndex != -1 && c.PointIndex != int(p.Index) {
-					continue
-				}
-
 				// conditions match, so check value
 				switch c.PointValueType {
 				case data.PointValueNumber:
