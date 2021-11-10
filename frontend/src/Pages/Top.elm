@@ -348,8 +348,8 @@ update msg model =
                                     , parent = addNode.parent
                                     , points =
                                         [ Point.newText
-                                            ""
                                             Point.typeDescription
+                                            ""
                                             "New, please edit"
                                         ]
                                     , edgePoints = []
