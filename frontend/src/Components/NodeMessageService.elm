@@ -34,7 +34,7 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.send
             , text <|
-                Point.getText o.node.points "" Point.typeDescription
+                Point.getText o.node.points Point.typeDescription ""
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""

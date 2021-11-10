@@ -21,7 +21,7 @@ view o =
             NodeInputs.nodeTextInput opts ""
 
         active =
-            Point.getBool o.node.points "" Point.typeActive
+            Point.getBool o.node.points Point.typeActive ""
 
         descBackgroundColor =
             if active then

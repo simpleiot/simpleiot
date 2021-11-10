@@ -43,9 +43,9 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.user
             , text <|
-                Point.getText o.node.points "" Point.typeFirstName
+                Point.getText o.node.points Point.typeFirstName ""
                     ++ " "
-                    ++ Point.getText o.node.points "" Point.typeLastName
+                    ++ Point.getText o.node.points Point.typeLastName ""
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeFirstName "First Name" ""

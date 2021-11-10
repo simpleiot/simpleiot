@@ -35,13 +35,13 @@ view o =
             NodeInputs.nodeCheckboxInput opts ""
 
         clientServer =
-            Point.getText o.node.points "" Point.typeClientServer
+            Point.getText o.node.points Point.typeClientServer ""
 
         protocol =
-            Point.getText o.node.points "" Point.typeProtocol
+            Point.getText o.node.points Point.typeProtocol ""
 
         disabled =
-            Point.getBool o.node.points "" Point.typeDisable
+            Point.getBool o.node.points Point.typeDisable ""
     in
     column
         [ width fill
@@ -53,7 +53,7 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.bus
             , text <|
-                Point.getText o.node.points "" Point.typeDescription
+                Point.getText o.node.points Point.typeDescription ""
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then

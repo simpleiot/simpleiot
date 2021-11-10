@@ -41,7 +41,7 @@ view o =
             NodeInputs.nodeCounterWithReset opts ""
 
         modbusIOType =
-            Point.getText o.node.points "" Point.typeModbusIOType
+            Point.getText o.node.points Point.typeModbusIOType ""
 
         isClient =
             case o.parent of
@@ -58,10 +58,10 @@ view o =
                 == Point.valueModbusCoil
 
         value =
-            Point.getValue o.node.points "" Point.typeValue
+            Point.getValue o.node.points Point.typeValue ""
 
         valueSet =
-            Point.getValue o.node.points "" Point.typeValueSet
+            Point.getValue o.node.points Point.typeValueSet ""
 
         isRegister =
             modbusIOType
@@ -70,7 +70,7 @@ view o =
                 == Point.valueModbusHoldingRegister
 
         isReadOnly =
-            Point.getValue o.node.points "" Point.typeReadOnly == 1
+            Point.getValue o.node.points Point.typeReadOnly "" == 1
 
         valueText =
             if isRegister then
@@ -97,7 +97,7 @@ view o =
                 Style.colors.black
 
         disabled =
-            Point.getBool o.node.points "" Point.typeDisable
+            Point.getBool o.node.points Point.typeDisable ""
     in
     column
         [ width fill
@@ -109,13 +109,13 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.io
             , text <|
-                Point.getText o.node.points "" Point.typeDescription
+                Point.getText o.node.points Point.typeDescription ""
                     ++ ": "
             , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
                 text <|
                     valueText
                         ++ (if isRegister then
-                                " " ++ Point.getText o.node.points "" Point.typeUnits
+                                " " ++ Point.getText o.node.points Point.typeUnits ""
 
                             else
                                 ""
