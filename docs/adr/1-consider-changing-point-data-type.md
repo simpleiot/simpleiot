@@ -757,3 +757,11 @@ don't think we are using these fields yet.
 
 Quite a bit of code needs to change to remove ID and add Key to code using
 points.
+
+# Additional Notes/Reference
+
+We also took a look at how to resolve loops in the node tree:
+
+https://github.com/simpleiot/simpleiot/issues/294
+
+This is part of the verification to confirm our basic types are robust and have adequate CRDT properties.
