@@ -9,9 +9,9 @@ import (
 
 // The following contains node with all its edges
 type nodeAndEdges struct {
-	node *data.Node
-	up   []*data.Edge
-	down []*data.Edge
+	node data.Node
+	up   []data.Edge
+	down []data.Edge
 }
 
 type nodeEdgeCache struct {
@@ -36,15 +36,17 @@ func newNodeEdgeCache(db *Db, tx *genji.Tx) *nodeEdgeCache {
 // the edge in the array with the one in the cache if present
 // this ensures the edges in the cache are the same as the ones
 // in the array. The edges parameter may be modified.
-func (nec *nodeEdgeCache) cacheEdges(edges []*data.Edge) {
+func (nec *nodeEdgeCache) cacheEdges(edges []data.Edge) []data.Edge {
 	for i, e := range edges {
 		eCache, ok := nec.edges[e.ID]
 		if !ok {
-			nec.edges[e.ID] = e
+			nec.edges[e.ID] = &e
 		} else {
-			edges[i] = eCache
+			edges[i] = *eCache
 		}
 	}
+
+	return edges
 }
 
 // this function gets a node, all its edges, and caches it
@@ -62,7 +64,7 @@ func (nec *nodeEdgeCache) getNodeAndEdges(id string) (*nodeAndEdges, error) {
 	}
 
 	downEdges := nec.db.edgeDown(id)
-	nec.cacheEdges(downEdges)
+	downEdges = nec.cacheEdges(downEdges)
 
 	upEdges := nec.db.edgeUp(id, true)
 	nec.cacheEdges(upEdges)

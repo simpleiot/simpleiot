@@ -51,3 +51,10 @@ type ByHash []*Edge
 func (a ByHash) Len() int           { return len(a) }
 func (a ByHash) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByHash) Less(i, j int) bool { return bytes.Compare(a[i].Hash, a[j].Hash) < 0 }
+
+// ByHash2 implements sort interface for NodeEdge by Hash
+type ByHash2 []Edge
+
+func (a ByHash2) Len() int           { return len(a) }
+func (a ByHash2) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByHash2) Less(i, j int) bool { return bytes.Compare(a[i].Hash, a[j].Hash) < 0 }

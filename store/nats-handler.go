@@ -575,10 +575,10 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 		// of all user parents. This eliminates duplicate messages when a user is a
 		// member of multiple groups which may have different notification services.
 
-		var upIDs []*data.Edge
+		var upIDs []data.Edge
 
 		if level == 0 {
-			upIDs = []*data.Edge{&data.Edge{Up: message.ParentID}}
+			upIDs = []data.Edge{data.Edge{Up: message.ParentID}}
 		} else {
 			upIDs = nh.db.edgeUp(id, false)
 			if err != nil {

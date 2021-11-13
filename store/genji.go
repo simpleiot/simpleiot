@@ -48,8 +48,8 @@ type Db struct {
 
 	// when the following cache data structures are accessed, you must take
 	// the above lock
-	nodeCache map[string]*data.Node
-	edgeCache map[string]*data.Edge
+	nodeCache map[string]data.Node
+	edgeCache map[string]data.Edge
 }
 
 // NewDb creates a new Db instance for the app
@@ -123,8 +123,8 @@ func NewDb(storeType Type, dataDir string) (*Db, error) {
 
 	db := &Db{
 		store:     store,
-		nodeCache: make(map[string]*data.Node),
-		edgeCache: make(map[string]*data.Edge),
+		nodeCache: make(map[string]data.Node),
+		edgeCache: make(map[string]data.Edge),
 	}
 	return db, db.initialize()
 }
@@ -152,7 +152,7 @@ func (gen *Db) initialize() error {
 				return err
 			}
 
-			gen.nodeCache[node.ID] = &node
+			gen.nodeCache[node.ID] = node
 			return nil
 		})
 
@@ -181,7 +181,7 @@ func (gen *Db) initialize() error {
 				return err
 			}
 
-			gen.edgeCache[edge.ID] = &edge
+			gen.edgeCache[edge.ID] = edge
 			return nil
 		})
 
@@ -241,15 +241,14 @@ func (gen *Db) rootNodeID() string {
 	return gen.meta.RootID
 }
 
-func (gen *Db) node(id string) (*data.Node, error) {
+func (gen *Db) node(id string) (data.Node, error) {
 	gen.lock.RLock()
 	defer gen.lock.RUnlock()
 	n, ok := gen.nodeCache[id]
 	if !ok {
-		return nil, data.ErrDocumentNotFound
+		return data.Node{}, data.ErrDocumentNotFound
 	}
-	// TODO do we need to make a copy here?
-	return &(*n), nil
+	return n, nil
 }
 
 // recurisively find all descendents -- level is used to limit recursion
@@ -276,7 +275,7 @@ func (gen *Db) nodeFindDescendents(id string, recursive bool, level int) ([]data
 		}
 
 		gen.lock.RLock()
-		n := node.ToNodeEdge(*edge)
+		n := node.ToNodeEdge(edge)
 		gen.lock.RUnlock()
 
 		nodes = append(nodes, n)
@@ -319,7 +318,7 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 			return nodeEdge, err
 		}
 
-		edge = *e
+		edge = e
 	}
 
 	nodeEdge = node.ToNodeEdge(edge)
@@ -342,7 +341,7 @@ func (gen *Db) nodes() ([]data.Node, error) {
 
 	i := 0
 	for _, v := range gen.nodeCache {
-		nodes[i] = *v
+		nodes[i] = v
 		i++
 	}
 
@@ -391,15 +390,12 @@ func init() {
 	zero = uuidZero.String()
 }
 
-func (gen *Db) calcHash(node *data.Node, upEdge data.Edge) ([]byte, error) {
+func (gen *Db) calcHash(node data.Node, upEdge data.Edge) ([]byte, error) {
 	// get child edges
 	downEdges := gen.edgeDown(node.ID)
+	sort.Sort(data.ByHash2(downEdges))
 
-	upEdges := []*data.Edge{&upEdge}
-
-	updateHash(node, upEdges, downEdges)
-
-	return upEdge.Hash, nil
+	return calcHash(node, upEdge, downEdges), nil
 }
 
 func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
@@ -417,13 +413,14 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 
 		nec := newNodeEdgeCache(gen, tx)
 
-		edge := &data.Edge{}
+		edge := data.Edge{}
 		newEdge := true
 
 		gen.lock.RLock()
 		for _, e := range gen.edgeCache {
 			if e.Down == nodeID && e.Up == parentID {
 				newEdge = false
+				// copy so we don't get races updating points
 				edge = e
 				newEdge = false
 				break
@@ -438,7 +435,7 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 			newEdge = true
 		}
 
-		nec.cacheEdges([]*data.Edge{edge})
+		nec.cacheEdges([]*data.Edge{&edge})
 
 		ne, err := nec.getNodeAndEdges(edge.Down)
 		if err != nil {
@@ -446,12 +443,14 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 		}
 
 		if newEdge {
-			ne.up = append(ne.up, edge)
+			ne.up = append(ne.up, &edge)
 		}
 
+		gen.lock.Lock()
 		for _, point := range points {
 			edge.Points.ProcessPoint(point)
 		}
+		gen.lock.Unlock()
 
 		sort.Sort(edge.Points)
 
@@ -546,7 +545,7 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 		}
 
 		gen.lock.Lock()
-		gen.nodeCache[ne.node.ID] = ne.node
+		gen.nodeCache[ne.node.ID] = *ne.node
 		gen.lock.Unlock()
 		err = tx.Exec(`insert into nodes values ? on conflict do replace`, ne.node)
 
@@ -660,8 +659,8 @@ func (gen *Db) edges() ([]data.Edge, error) {
 }
 
 // find upstream nodes. Does not include tombstoned edges.
-func (gen *Db) edgeUp(nodeID string, includeTombstone bool) []*data.Edge {
-	var ret []*data.Edge
+func (gen *Db) edgeUp(nodeID string, includeTombstone bool) []data.Edge {
+	var ret []data.Edge
 
 	gen.lock.RLock()
 	for _, e := range gen.edgeCache {
@@ -679,7 +678,7 @@ func (gen *Db) edgeUp(nodeID string, includeTombstone bool) []*data.Edge {
 }
 
 // find edge.
-func (gen *Db) edgeUpDown(upID, downID string, includeTombstone bool) (*data.Edge, error) {
+func (gen *Db) edgeUpDown(upID, downID string, includeTombstone bool) (data.Edge, error) {
 	gen.lock.RLock()
 	defer gen.lock.RUnlock()
 	for _, e := range gen.edgeCache {
@@ -688,11 +687,11 @@ func (gen *Db) edgeUpDown(upID, downID string, includeTombstone bool) (*data.Edg
 		}
 
 		if !e.IsTombstone() || includeTombstone {
-			return &(*e), nil
+			return e, nil
 		}
 	}
 
-	return nil, errors.New("Could not find edge")
+	return data.Edge{}, errors.New("Could not find edge")
 }
 
 type downNode struct {
@@ -701,8 +700,8 @@ type downNode struct {
 }
 
 // find downstream nodes
-func (gen *Db) edgeDown(nodeID string) []*data.Edge {
-	var ret []*data.Edge
+func (gen *Db) edgeDown(nodeID string) []data.Edge {
+	var ret []data.Edge
 
 	gen.lock.RLock()
 	for _, e := range gen.edgeCache {
