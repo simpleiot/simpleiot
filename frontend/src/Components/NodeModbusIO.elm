@@ -46,7 +46,7 @@ view o =
         isClient =
             case o.parent of
                 Just p ->
-                    Point.getText p.points "" Point.typeClientServer == Point.valueClient
+                    Point.getText p.points Point.typeClientServer "" == Point.valueClient
 
                 Nothing ->
                     False
