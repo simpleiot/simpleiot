@@ -1004,7 +1004,7 @@ viewNodesHelp depth model tree =
 
 isTombstone : Node -> Bool
 isTombstone node =
-    Point.getBool node.edgePoints "" Point.typeTombstone
+    Point.getBool node.edgePoints Point.typeTombstone ""
 
 
 shouldDisplay : String -> Bool
