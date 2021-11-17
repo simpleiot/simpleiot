@@ -11,7 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.38] - 2021-11-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.38)
+
 - fix population of version when building with envsetup.sh
+- changes to point data structure to make it more flexible
+  ([ADR-1](https://github.com/simpleiot/simpleiot/pull/279))
 
 ## [[0.0.37] - 2021-10-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.37)
 
