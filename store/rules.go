@@ -31,15 +31,11 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 					continue
 				}
 
-				if c.PointID != "" && c.PointID != p.ID {
+				if c.PointKey != "" && c.PointKey != p.Key {
 					continue
 				}
 
 				if c.PointType != "" && c.PointType != p.Type {
-					continue
-				}
-
-				if c.PointIndex != -1 && c.PointIndex != int(p.Index) {
 					continue
 				}
 

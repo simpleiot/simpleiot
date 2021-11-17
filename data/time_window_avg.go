@@ -11,8 +11,6 @@ type TimeWindowAverager struct {
 	windowLen time.Duration
 	total     float64
 	count     int
-	min       float64
-	max       float64
 	callBack  func(Point)
 	pointType string
 	pointTime time.Time
@@ -39,16 +37,6 @@ func (twa *TimeWindowAverager) NewPoint(s Point) {
 	// update statistical values.
 	twa.total += s.Value
 	twa.count++
-	// min
-	if twa.min == 0 {
-		twa.min = s.Min
-	} else if s.Min < twa.min {
-		twa.min = s.Min
-	}
-	// max
-	if s.Max > twa.max {
-		twa.max = s.Max
-	}
 
 	// if time has expired, callback() with avg point
 	if time.Since(twa.start) >= twa.windowLen {
@@ -56,8 +44,6 @@ func (twa *TimeWindowAverager) NewPoint(s Point) {
 			Type:  twa.pointType,
 			Time:  twa.pointTime,
 			Value: twa.total / float64(twa.count),
-			Min:   twa.min,
-			Max:   twa.max,
 		}
 
 		twa.callBack(avgPoint)
@@ -65,8 +51,6 @@ func (twa *TimeWindowAverager) NewPoint(s Point) {
 		// reset statistical values and timestamp
 		twa.total = 0
 		twa.count = 0
-		twa.min = 0
-		twa.max = 0
 		twa.start = time.Now()
 	}
 }

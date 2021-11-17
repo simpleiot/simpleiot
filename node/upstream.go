@@ -304,7 +304,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 		for _, p := range nodeLocal.Points {
 			found := false
 			for i, pUp := range nodeUp.Points {
-				if p.IsMatch(pUp.ID, pUp.Type, pUp.Index) {
+				if p.IsMatch(pUp.Type, pUp.Key) {
 					found = true
 					upstreamProcessed[i] = true
 					if p.Time.After(pUp.Time) {
@@ -345,7 +345,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 		for _, p := range nodeLocal.EdgePoints {
 			found := false
 			for i, pUp := range nodeUp.EdgePoints {
-				if p.IsMatch(pUp.ID, pUp.Type, pUp.Index) {
+				if p.IsMatch(pUp.Type, pUp.Key) {
 					found = true
 					upstreamProcessed[i] = true
 					if p.Time.After(pUp.Time) {

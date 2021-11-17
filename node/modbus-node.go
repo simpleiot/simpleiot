@@ -36,23 +36,23 @@ func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 
 	var ok bool
 
-	ret.busType, ok = node.Points.Text("", data.PointTypeClientServer, 0)
+	ret.busType, ok = node.Points.Text(data.PointTypeClientServer, "")
 	if !ok {
 		return nil, errors.New("Must define modbus client/server")
 	}
 
-	ret.protocol, ok = node.Points.Text("", data.PointTypeProtocol, 0)
+	ret.protocol, ok = node.Points.Text(data.PointTypeProtocol, "")
 	if !ok {
 		return nil, errors.New("Must define modbus protocol")
 	}
 
 	if ret.protocol == data.PointValueRTU {
-		ret.portName, ok = node.Points.Text("", data.PointTypePort, 0)
+		ret.portName, ok = node.Points.Text(data.PointTypePort, "")
 		if !ok {
 			return nil, errors.New("Must define modbus port name")
 		}
 
-		baud, ok := node.Points.Text("", data.PointTypeBaud, 0)
+		baud, ok := node.Points.Text(data.PointTypeBaud, "")
 		if !ok {
 			return nil, errors.New("Must define modbus baud")
 		}
@@ -68,12 +68,12 @@ func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 	if ret.protocol == data.PointValueTCP {
 		switch ret.busType {
 		case data.PointValueClient:
-			ret.uri, ok = node.Points.Text("", data.PointTypeURI, 0)
+			ret.uri, ok = node.Points.Text(data.PointTypeURI, "")
 			if !ok {
 				return nil, errors.New("Must define modbus URI")
 			}
 		case data.PointValueServer:
-			ret.portName, ok = node.Points.Text("", data.PointTypePort, 0)
+			ret.portName, ok = node.Points.Text(data.PointTypePort, "")
 			if !ok {
 				return nil, errors.New("Must define modbus port name")
 			}
@@ -82,23 +82,23 @@ func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 		}
 	}
 
-	ret.pollPeriod, ok = node.Points.ValueInt("", data.PointTypePollPeriod, 0)
+	ret.pollPeriod, ok = node.Points.ValueInt(data.PointTypePollPeriod, "")
 	if ret.busType == data.PointValueClient && !ok {
 		return nil, errors.New("Must define modbus polling period for client devices")
 	}
 
-	ret.debugLevel, _ = node.Points.ValueInt("", data.PointTypeDebug, 0)
-	ret.disable, _ = node.Points.ValueBool("", data.PointTypeDisable, 0)
-	ret.errorCount, _ = node.Points.ValueInt("", data.PointTypeErrorCount, 0)
-	ret.errorCountCRC, _ = node.Points.ValueInt("", data.PointTypeErrorCountCRC, 0)
-	ret.errorCountEOF, _ = node.Points.ValueInt("", data.PointTypeErrorCountEOF, 0)
-	ret.errorCountReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountReset, 0)
-	ret.errorCountCRCReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountCRCReset, 0)
-	ret.errorCountEOFReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountEOFReset, 0)
+	ret.debugLevel, _ = node.Points.ValueInt(data.PointTypeDebug, "")
+	ret.disable, _ = node.Points.ValueBool(data.PointTypeDisable, "")
+	ret.errorCount, _ = node.Points.ValueInt(data.PointTypeErrorCount, "")
+	ret.errorCountCRC, _ = node.Points.ValueInt(data.PointTypeErrorCountCRC, "")
+	ret.errorCountEOF, _ = node.Points.ValueInt(data.PointTypeErrorCountEOF, "")
+	ret.errorCountReset, _ = node.Points.ValueBool(data.PointTypeErrorCountReset, "")
+	ret.errorCountCRCReset, _ = node.Points.ValueBool(data.PointTypeErrorCountCRCReset, "")
+	ret.errorCountEOFReset, _ = node.Points.ValueBool(data.PointTypeErrorCountEOFReset, "")
 
 	if ret.busType == data.PointValueServer {
 		var ok bool
-		ret.id, ok = node.Points.ValueInt("", data.PointTypeID, 0)
+		ret.id, ok = node.Points.ValueInt(data.PointTypeID, "")
 		if !ok {
 			return nil, errors.New("Must define modbus ID for server bus")
 		}

@@ -121,6 +121,7 @@ const (
 	PointTypeWeekday = "weekday"
 
 	PointTypePointID    = "pointID"
+	PointTypePointKey   = "pointKey"
 	PointTypePointType  = "pointType"
 	PointTypePointIndex = "pointIndex"
 	PointTypeValueType  = "valueType"

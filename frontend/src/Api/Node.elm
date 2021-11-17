@@ -246,7 +246,7 @@ encodeNodeDelete nodeDelete =
 
 description : Node -> String
 description d =
-    case Point.get d.points "" 0 Point.typeDescription of
+    case Point.get d.points Point.typeDescription "" of
         Just point ->
             point.text
 

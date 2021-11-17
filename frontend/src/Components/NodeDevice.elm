@@ -19,7 +19,7 @@ view : NodeOptions msg -> Element msg
 view o =
     let
         sysState =
-            Point.getText o.node.points "" 0 Point.typeSysState
+            Point.getText o.node.points Point.typeSysState ""
 
         sysStateIcon =
             case sysState of
@@ -45,7 +45,7 @@ view o =
                     Style.colors.white
 
         hwVersion =
-            case Point.get o.node.points "" 0 Point.typeHwVersion of
+            case Point.get o.node.points Point.typeHwVersion "" of
                 Just point ->
                     "HW: " ++ point.text
 
@@ -53,7 +53,7 @@ view o =
                     ""
 
         osVersion =
-            case Point.get o.node.points "" 0 Point.typeOSVersion of
+            case Point.get o.node.points Point.typeOSVersion "" of
                 Just point ->
                     "OS: " ++ point.text
 
@@ -61,7 +61,7 @@ view o =
                     ""
 
         appVersion =
-            case Point.get o.node.points "" 0 Point.typeAppVersion of
+            case Point.get o.node.points Point.typeAppVersion "" of
                 Just point ->
                     "App: " ++ point.text
 
@@ -93,7 +93,7 @@ view o =
                 { onChange =
                     \d ->
                         o.onEditNodePoint
-                            [ Point "" 0 Point.typeDescription o.now 0 d 0 0 ]
+                            [ Point Point.typeDescription "" o.now 0 0 d 0 ]
                 , text = Node.description o.node
                 , placeholder = Just <| Input.placeholder [] <| text "node description"
                 , label = Input.labelHidden "node description"

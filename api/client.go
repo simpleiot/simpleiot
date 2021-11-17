@@ -18,17 +18,13 @@ type Point struct {
 	// Type of point (voltage, current, key, etc)
 	Type string `json:"type,omitempty" influx:"type,tag"`
 
-	// ID of the device that provided the point
-	ID string `json:"id,omitempty" influx:"id,tag"`
+	// Key of the device that provided the point
+	Key string `json:"key,omitempty" influx:"key,tag"`
 
 	// Average OR
 	// Instantaneous analog or digital value of the point.
 	// 0 and 1 are used to represent digital values
 	Value float64 `json:"value,omitempty" influx:"value"`
-
-	// statistical values that may be calculated
-	Min float64 `json:"min,omitempty" influx:"min"`
-	Max float64 `json:"max,omitempty" influx:"max"`
 
 	// Time the point was taken
 	Time *time.Time `json:"time,omitempty" boltholdKey:"Time" gob:"-" influx:"time"`
@@ -48,10 +44,8 @@ func NewPoint(s data.Point) Point {
 
 	return Point{
 		Type:  s.Type,
-		ID:    s.ID,
+		Key:   s.Key,
 		Value: s.Value,
-		Min:   s.Min,
-		Max:   s.Max,
 		Time:  time,
 	}
 }

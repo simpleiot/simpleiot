@@ -21,16 +21,16 @@ view o =
             oToInputO o labelWidth
 
         textInput =
-            NodeInputs.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts ""
 
         optionInput =
-            NodeInputs.nodeOptionInput opts "" 0
+            NodeInputs.nodeOptionInput opts ""
 
         conditionType =
-            Point.getText o.node.points "" 0 Point.typeConditionType
+            Point.getText o.node.points Point.typeConditionType ""
 
         active =
-            Point.getBool o.node.points "" 0 Point.typeActive
+            Point.getBool o.node.points Point.typeActive ""
 
         descBackgroundColor =
             if active then
@@ -57,7 +57,7 @@ view o =
             [ Icon.check
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
-                    Point.getText o.node.points "" 0 Point.typeDescription
+                    Point.getText o.node.points Point.typeDescription ""
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
@@ -101,19 +101,19 @@ pointValue o labelWidth =
             oToInputO o labelWidth
 
         textInput =
-            NodeInputs.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts ""
 
         numberInput =
-            NodeInputs.nodeNumberInput opts "" 0
+            NodeInputs.nodeNumberInput opts ""
 
         optionInput =
-            NodeInputs.nodeOptionInput opts "" 0
+            NodeInputs.nodeOptionInput opts ""
 
         onOffInput =
-            NodeInputs.nodeOnOffInput opts "" 0
+            NodeInputs.nodeOnOffInput opts ""
 
         conditionValueType =
-            Point.getText o.node.points "" 0 Point.typeValueType
+            Point.getText o.node.points Point.typeValueType ""
 
         operators =
             case conditionValueType of
@@ -146,8 +146,7 @@ pointValue o labelWidth =
             , ( Point.typeSysState, "system state" )
             , ( Point.typeActive, "active" )
             ]
-        , textInput Point.typePointID "Point ID" ""
-        , numberInput Point.typePointIndex "Point Index"
+        , textInput Point.typePointKey "Point Key" ""
         , optionInput Point.typeValueType
             "Point Value Type"
             [ ( Point.valueNumber, "number" )

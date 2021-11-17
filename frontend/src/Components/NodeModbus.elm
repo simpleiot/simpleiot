@@ -20,28 +20,28 @@ view o =
             oToInputO o labelWidth
 
         textInput =
-            NodeInputs.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts ""
 
         numberInput =
-            NodeInputs.nodeNumberInput opts "" 0
+            NodeInputs.nodeNumberInput opts ""
 
         counterWithReset =
-            NodeInputs.nodeCounterWithReset opts "" 0
+            NodeInputs.nodeCounterWithReset opts ""
 
         optionInput =
-            NodeInputs.nodeOptionInput opts "" 0
+            NodeInputs.nodeOptionInput opts ""
 
         checkboxInput =
-            NodeInputs.nodeCheckboxInput opts "" 0
+            NodeInputs.nodeCheckboxInput opts ""
 
         clientServer =
-            Point.getText o.node.points "" 0 Point.typeClientServer
+            Point.getText o.node.points Point.typeClientServer ""
 
         protocol =
-            Point.getText o.node.points "" 0 Point.typeProtocol
+            Point.getText o.node.points Point.typeProtocol ""
 
         disabled =
-            Point.getBool o.node.points "" 0 Point.typeDisable
+            Point.getBool o.node.points Point.typeDisable ""
     in
     column
         [ width fill
@@ -53,7 +53,7 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.bus
             , text <|
-                Point.getText o.node.points "" 0 Point.typeDescription
+                Point.getText o.node.points Point.typeDescription ""
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then

@@ -348,8 +348,8 @@ update msg model =
                                     , parent = addNode.parent
                                     , points =
                                         [ Point.newText
-                                            ""
                                             Point.typeDescription
+                                            ""
                                             "New, please edit"
                                         ]
                                     , edgePoints = []
@@ -1004,7 +1004,7 @@ viewNodesHelp depth model tree =
 
 isTombstone : Node -> Bool
 isTombstone node =
-    Point.getBool node.edgePoints "" 0 Point.typeTombstone
+    Point.getBool node.edgePoints Point.typeTombstone ""
 
 
 shouldDisplay : String -> Bool

@@ -17,7 +17,7 @@ type Condition struct {
 	// used with point value rules
 	NodeID         string
 	PointType      string
-	PointID        string
+	PointKey       string
 	PointIndex     int
 	PointValueType string
 	Operator       string
@@ -121,8 +121,8 @@ func NodeToRule(ruleNode NodeEdge, conditionNodes, actionNodes, actionInactiveNo
 				newCond.NodeID = p.Text
 			case PointTypePointType:
 				newCond.PointType = p.Text
-			case PointTypePointID:
-				newCond.PointID = p.Text
+			case PointTypePointKey:
+				newCond.PointKey = p.Key
 			case PointTypePointIndex:
 				newCond.PointIndex = int(p.Value)
 			case PointTypeValueType:
