@@ -297,6 +297,7 @@ func (gen *Db) nodeFindDescendents(id string, recursive bool, level int) ([]data
 }
 
 // nodeEdge returns a node edge
+// TODO: what is the difference between skip and none for parent?
 func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 	if parent == "" {
 		parent = "none"
@@ -312,7 +313,7 @@ func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
 
 	var edge data.Edge
 
-	if parent != "skip" {
+	if parent != "skip" && parent != "none" {
 		e, err := gen.edgeUpDown(parent, id, true)
 
 		if err != nil {
