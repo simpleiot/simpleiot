@@ -735,10 +735,50 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 		}
 	}
 
-	edges := nh.db.edgeUp(currentNodeID, false)
+	edges := nh.db.edgeUp(currentNodeID, true)
+
+	if currentNodeID == nodeID {
+		// check if device node that it has not been orphaned
+		node, err := nh.db.node(nodeID)
+		if err != nil {
+			log.Println("Error getting node: ", err)
+		}
+
+		if node.Type == data.NodeTypeDevice {
+			hasUpstream := false
+			for _, e := range edges {
+				if !e.IsTombstone() {
+					hasUpstream = true
+				}
+			}
+
+			if !hasUpstream {
+				fmt.Println("STORE: orphaned node: ", node)
+				if len(edges) < 1 {
+					// create upstream edge
+					err := nats.SendEdgePoint(nh.Nc, nodeID, "none", data.Point{
+						Type:  data.PointTypeTombstone,
+						Value: 0,
+					}, false)
+					if err != nil {
+						log.Println("Error sending edge point: ", err)
+					}
+				} else {
+					// undelete existing edge
+					e := edges[0]
+					err := nats.SendEdgePoint(nh.Nc, e.Down, e.Up, data.Point{
+						Type:  data.PointTypeTombstone,
+						Value: 0,
+					}, false)
+					if err != nil {
+						log.Println("Error sending edge point: ", err)
+					}
+				}
+			}
+		}
+	}
 
 	for _, edge := range edges {
-
 		err = nh.processPointsUpstream(edge.Up, nodeID, nodeDesc, points)
 		if err != nil {
 			log.Println("Rules -- error processing upstream node: ", err)
