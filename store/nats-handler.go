@@ -18,7 +18,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var reportMetricsPeriod = time.Second * 10
+var reportMetricsPeriod = time.Minute
 
 // NatsHandler implements the SIOT NATS api
 type NatsHandler struct {
