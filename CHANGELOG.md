@@ -11,7 +11,14 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-- fix issue where app exists if upstream auth is incorrect (#298)
+## [[0.0.39] - 2021-12-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.39)
+
+- fix issue where app exits if upstream auth is incorrect (#298)
+- fix issues with orphaned device nodes in upstreams. We now make sure devices
+  in upstream have upstream edges or are not deleted if the device is still
+  receiving points. (#299)
+- only report nats stats every 1m. This makes upstream work better as these
+  currently are run in sync.
 
 ## [[0.0.38] - 2021-11-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.38)
 
