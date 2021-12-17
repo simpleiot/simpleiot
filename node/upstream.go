@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 	"time"
 
@@ -56,7 +55,6 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		},
 		Closed: func() {
 			log.Println("NATS Upstream Closed")
-			os.Exit(0)
 		},
 	}
 
