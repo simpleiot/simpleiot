@@ -44,7 +44,7 @@ type Point struct {
 
 	// catchall field for data that does not fit into float or string --
 	// should be used sparingly
-	Data []byte `json:"data"`
+	Data []byte `json:"data,omitempty"`
 
 	//-------------------------------------------------------
 	// Metadata
