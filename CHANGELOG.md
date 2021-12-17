@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- fix issue where app exists if upstream auth is incorrect (#298)
+
 ## [[0.0.38] - 2021-11-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.38)
 
 - fix population of version when building with envsetup.sh
