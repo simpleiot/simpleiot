@@ -172,6 +172,17 @@ func main() {
 		natsHTTPPort = n
 	}
 
+	natsWSPort := 0
+	natsWSPortE := os.Getenv("SIOT_NATS_WS_PORT")
+	if natsWSPortE != "" {
+		n, err := strconv.Atoi(natsWSPortE)
+		if err != nil {
+			log.Println("Error parsing SIOT_NATS_WS_PORT: ", err)
+			os.Exit(-1)
+		}
+		natsWSPort = n
+	}
+
 	natsServer := *flagNatsServer
 	// only consider env if command line option is something different
 	// that default
@@ -443,6 +454,7 @@ func main() {
 		NatsDisableServer: *flagNatsDisableServer,
 		NatsPort:          natsPort,
 		NatsHTTPPort:      natsHTTPPort,
+		NatsWSPort:        natsWSPort,
 		NatsTLSCert:       natsTLSCert,
 		NatsTLSKey:        natsTLSKey,
 		NatsTLSTimeout:    natsTLSTimeout,

@@ -12,6 +12,7 @@ import (
 type Options struct {
 	Port       int
 	HTTPPort   int
+	WSPort     int
 	Auth       string
 	TLSCert    string
 	TLSKey     string
@@ -47,11 +48,13 @@ func StartNatsServer(o Options) {
 		}
 	}
 
-	opts.Websocket.Port = 9090
-	opts.Websocket.Token = o.Auth
-	opts.Websocket.AuthTimeout = o.TLSTimeout
-	opts.Websocket.NoTLS = true // will likely be fronted by Caddy anyway
-	opts.Websocket.HandshakeTimeout = time.Second * 20
+	if o.WSPort != 0 {
+		opts.Websocket.Port = o.WSPort
+		opts.Websocket.Token = o.Auth
+		opts.Websocket.AuthTimeout = o.TLSTimeout
+		opts.Websocket.NoTLS = true // will likely be fronted by Caddy anyway
+		opts.Websocket.HandshakeTimeout = time.Second * 20
+	}
 
 	natsServer, err := server.NewServer(&opts)
 
@@ -67,6 +70,10 @@ func StartNatsServer(o Options) {
 
 	log.Printf("Starting NATS server, port: %v, http port: %v, auth enabled: %v\n",
 		o.Port, o.HTTPPort, authEnabled)
+
+	if o.WSPort != 0 {
+		log.Printf("NATS server WS enabled on port: %v\n", o.WSPort)
+	}
 
 	natsServer.Start()
 

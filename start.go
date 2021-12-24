@@ -28,6 +28,7 @@ type Options struct {
 	NatsDisableServer bool
 	NatsPort          int
 	NatsHTTPPort      int
+	NatsWSPort        int
 	NatsTLSCert       string
 	NatsTLSKey        string
 	NatsTLSTimeout    float64
@@ -88,6 +89,7 @@ func (s *Siot) Start() (*natsgo.Conn, error) {
 	natsOptions := natsserver.Options{
 		Port:       o.NatsPort,
 		HTTPPort:   o.NatsHTTPPort,
+		WSPort:     o.NatsWSPort,
 		Auth:       o.AuthToken,
 		TLSCert:    o.NatsTLSCert,
 		TLSKey:     o.NatsTLSKey,
