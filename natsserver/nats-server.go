@@ -7,21 +7,31 @@ import (
 	"github.com/nats-io/nats-server/v2/server"
 )
 
+// Options for starting the nat server
+type Options struct {
+	Port       int
+	HTTPPort   int
+	Auth       string
+	TLSCert    string
+	TLSKey     string
+	TLSTimeout float64
+}
+
 // StartNatsServer starts a nats server instance. This function will block
 // so should be started with a go routine
-func StartNatsServer(port, httpPort int, auth, tlsCert, tlsKey string, tlsTimeout float64) {
+func StartNatsServer(o Options) {
 	opts := server.Options{
-		Port:          port,
-		HTTPPort:      httpPort,
-		Authorization: auth,
+		Port:          o.Port,
+		HTTPPort:      o.HTTPPort,
+		Authorization: o.Auth,
 	}
 
-	if tlsCert != "" && tlsKey != "" {
+	if o.TLSCert != "" && o.TLSKey != "" {
 		log.Println("Setting up NATS TLS ...")
 		opts.TLS = true
-		opts.TLSCert = tlsCert
-		opts.TLSKey = tlsKey
-		opts.TLSTimeout = tlsTimeout
+		opts.TLSCert = o.TLSCert
+		opts.TLSKey = o.TLSKey
+		opts.TLSTimeout = o.TLSTimeout
 		tc := server.TLSConfigOpts{}
 		tc.CertFile = opts.TLSCert
 		tc.KeyFile = opts.TLSKey
@@ -44,12 +54,12 @@ func StartNatsServer(port, httpPort int, auth, tlsCert, tlsKey string, tlsTimeou
 
 	authEnabled := "no"
 
-	if auth != "" {
+	if o.Auth != "" {
 		authEnabled = "yes"
 	}
 
 	log.Printf("Starting NATS server, port: %v, http port: %v, auth enabled: %v\n",
-		port, httpPort, authEnabled)
+		o.Port, o.HTTPPort, authEnabled)
 
 	natsServer.Start()
 

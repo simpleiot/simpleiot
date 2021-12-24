@@ -85,9 +85,17 @@ func (s *Siot) Start() (*natsgo.Conn, error) {
 		}
 	}
 
+	natsOptions := natsserver.Options{
+		Port:       o.NatsPort,
+		HTTPPort:   o.NatsHTTPPort,
+		Auth:       o.AuthToken,
+		TLSCert:    o.NatsTLSCert,
+		TLSKey:     o.NatsTLSKey,
+		TLSTimeout: o.NatsTLSTimeout,
+	}
+
 	if !o.NatsDisableServer {
-		go natsserver.StartNatsServer(o.NatsPort, o.NatsHTTPPort, o.AuthToken,
-			o.NatsTLSCert, o.NatsTLSKey, o.NatsTLSTimeout)
+		go natsserver.StartNatsServer(natsOptions)
 	}
 
 	natsHandler := store.NewNatsHandler(dbInst, o.AuthToken, o.NatsServer)
