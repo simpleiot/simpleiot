@@ -3,6 +3,7 @@ package natsserver
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/nats-io/nats-server/v2/server"
 )
@@ -45,6 +46,12 @@ func StartNatsServer(o Options) {
 			log.Fatal("Error setting up TLS: ", err)
 		}
 	}
+
+	opts.Websocket.Port = 9090
+	opts.Websocket.Token = o.Auth
+	opts.Websocket.AuthTimeout = o.TLSTimeout
+	opts.Websocket.NoTLS = true // will likely be fronted by Caddy anyway
+	opts.Websocket.HandshakeTimeout = time.Second * 20
 
 	natsServer, err := server.NewServer(&opts)
 
