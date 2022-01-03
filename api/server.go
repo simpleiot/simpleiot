@@ -6,7 +6,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 
+	"github.com/koding/websocketproxy"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/store"
 )
@@ -33,9 +35,10 @@ func NewIndexHandler(getAsset func(string) []byte) http.Handler {
 
 // App is a struct that implements http.Handler interface
 type App struct {
-	PublicHandler http.Handler
-	IndexHandler  http.Handler
-	V1ApiHandler  http.Handler
+	PublicHandler  http.Handler
+	IndexHandler   http.Handler
+	V1ApiHandler   http.Handler
+	WebsocketProxy http.Handler
 }
 
 // Top level handler for http requests in the coap-server process
@@ -43,7 +46,14 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 
 	switch req.URL.Path {
-	case "/", "/orgs", "/users", "/devices", "/sign-in", "/groups", "/msg":
+	case "/":
+		headerUpgrade := req.Header["Upgrade"]
+		if h.WebsocketProxy != nil && len(headerUpgrade) > 0 && headerUpgrade[0] == "websocket" {
+			h.WebsocketProxy.ServeHTTP(res, req)
+		} else {
+			h.IndexHandler.ServeHTTP(res, req)
+		}
+	case "/orgs", "/users", "/devices", "/sign-in", "/groups", "/msg":
 		h.IndexHandler.ServeHTTP(res, req)
 
 	default:
@@ -67,10 +77,23 @@ func NewAppHandler(args ServerArgs) http.Handler {
 		v1 = NewHTTPLogger("v1").Handler(v1)
 	}
 
+	var wsProxy http.Handler
+
+	if args.NatsWSPort > 0 {
+		uS := fmt.Sprintf("ws://localhost:%v", args.NatsWSPort)
+		u, err := url.Parse(uS)
+		if err != nil {
+			log.Println("Error with WS url: ", err)
+		} else {
+			wsProxy = websocketproxy.NewProxy(u)
+		}
+	}
+
 	return &App{
-		PublicHandler: http.FileServer(args.Filesystem),
-		IndexHandler:  NewIndexHandler(args.GetAsset),
-		V1ApiHandler:  v1,
+		PublicHandler:  http.FileServer(args.Filesystem),
+		IndexHandler:   NewIndexHandler(args.GetAsset),
+		V1ApiHandler:   v1,
+		WebsocketProxy: wsProxy,
 	}
 }
 
@@ -83,6 +106,7 @@ type ServerArgs struct {
 	Debug      bool
 	JwtAuth    Authorizer
 	AuthToken  string
+	NatsWSPort int
 	Nc         *nats.Conn
 }
 

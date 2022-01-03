@@ -160,6 +160,7 @@ func (s *Siot) Start() (*natsgo.Conn, error) {
 	go func() {
 		err = api.Server(api.ServerArgs{
 			Port:       o.HTTPPort,
+			NatsWSPort: o.NatsWSPort,
 			DbInst:     dbInst,
 			GetAsset:   frontend.Asset,
 			Filesystem: frontend.FileSystem(),
