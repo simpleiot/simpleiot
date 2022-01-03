@@ -32,7 +32,7 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
-                    , textInput Point.typeURI "URI" "nats://myserver:4222"
+                    , textInput Point.typeURI "URI" "nats://myserver:4222, ws://myserver"
                     , textInput Point.typeAuthToken "Auth Token" ""
                     ]
 
