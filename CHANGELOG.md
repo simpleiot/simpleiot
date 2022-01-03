@@ -11,6 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.40] - 2022-01-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.40)
+
+- support for NATS over WS connections to upstream. This is handy for cases
+  where the edge network may block outgoing connections on the port NATS is
+  using. HTTP(s) almost always works. In the upstream config, simply change the
+  URL to something like: `ws://my.service.com`.
+
 ## [[0.0.39] - 2021-12-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.39)
 
 - fix issue where app exits if upstream auth is incorrect (#298)
