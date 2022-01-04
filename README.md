@@ -157,36 +157,11 @@ of users, devices, and device attributes.
 
 ![node-edit](docs/images/screenshot-node-edit.png)
 
-## Extensive support for modbus devices
+## Examples/tutorial vidoes
 
-Simple IoT can function as either a Modbus TCP/RTU master or client.
-
-![node-modbus](docs/images/screenshot-modbus-io.png)
-
-[![Modbus video](http://img.youtube.com/vi/iIZWxr482mI/0.jpg)](http://www.youtube.com/watch?v=iIZWxr482mI)
-
-## Upstream support
-
-Simple IoT is designed such that one instance can be run at the edge and connect
-to another instance in the cloud. The tree in the edge instance is simply
-mirrored in the upstream tree. Changes at either place are synchronized in
-real-time. If one device is offline, the changes are synchronized the next time
-they are connected. See the below video for a demo of this.
-
-[![Modbus video](http://img.youtube.com/vi/6xB-gXUynQc/0.jpg)](http://www.youtube.com/watch?v=6xB-gXUynQc)
-
-## Rules and Notifications
-
-Simple IoT rules can be used to set node values and to trigger notifications.
-
-[![Modbus video](http://img.youtube.com/vi/Z3FVjtnoWoY/0.jpg)](http://www.youtube.com/watch?v=Z3FVjtnoWoY)
-
-## Configuration
-
-Simple IoT can be [configured](docs/configuration.md) for basic options such as
-port numbers, etc.
-
-Additionally, command line option help can be viewed by running `siot --help`.
+Our [YouTube channel](https://www.youtube.com/channel/UCDAtjx0utMbJCexZ7Q5CbNg)
+has many more examples/tutorials of how to use Simple IoT upstream connections,
+remote access to PLCs, Modbus configuration, etc.
 
 ## Dashboard and Graphing
 
@@ -213,19 +188,17 @@ different package, or renamed -- feel free to ask if you run into problems.
       devices they own).
 - [x] [Modbus RTU pkg](https://pkg.go.dev/github.com/simpleiot/simpleiot/modbus)
       (both client and server)
-- [x] Command line Modbus utlity
 - [x] [rules engine](docs/rules.md) (conditions/consequences)
 - [x] [sms](docs/configuration.md) notifications
 - [x] [modem/network management](https://pkg.go.dev/github.com/simpleiot/simpleiot/network)
 - [x] NATS.io integration
-      ([WIP](https://github.com/simpleiot/simpleiot/tree/feature-nats))
-- [x] file transfer over NATs (used for sw updates)
 - [x] efficient protocols for cellular data connections (NATs/protobuf)
-- [x] Modbus RTU support in SIOT
-- [x] Modbus TCP support in SIOT
+- [x] Modbus (server & client) RTU support in SIOT
+- [x] Modbus (server & client) TCP support in SIOT
 - [x] Twilio SMS notifications
 - [x] influxdb 2.x support
-- [x] synchronization with upstream instances
+- [x] bi-directional synchronization with upstream instances
+- [ ] file transfer over NATs (used for sw updates)
 - [ ] email notifications
 - [ ] COAP API for devices
 - [ ] store timeseries data in bolt
