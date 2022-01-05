@@ -227,7 +227,7 @@ func main() {
 		*flagLogNats {
 
 		opts := nats.EdgeOptions{
-			Server:    natsServer,
+			URI:       natsServer,
 			AuthToken: authToken,
 			NoEcho:    true,
 			Disconnected: func() {
