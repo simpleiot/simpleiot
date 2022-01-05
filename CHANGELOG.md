@@ -18,6 +18,7 @@ For more details or to discuss releases, please visit the
   port is not specified for ws or wss protocols, SIOT now sets the port to :80
   or :443. This makes the behavior more predictable, as these kinds of problems
   are very hard to debug. #315
+- if upstream config changes, restart upstream connection. #258
 
 ## [[0.0.40] - 2022-01-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.40)
 
