@@ -1,0 +1,8 @@
+{
+    debug
+}
+
+siottest.com {
+    tls ./siottest.com.pem ./siottest.com-key.pem
+    reverse_proxy localhost:8081
+}
