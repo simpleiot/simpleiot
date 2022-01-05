@@ -45,6 +45,20 @@ func (upm *UpstreamManager) Update() error {
 				continue
 			}
 			upm.upstreams[node.ID] = up
+		} else {
+			// make sure none of the config has changed
+			upNode, err := NewUpstreamNode(node)
+			if err != nil {
+				log.Println("Error with upstream node config: ", err)
+
+			} else {
+				if *upNode != *up.nodeUp {
+					// restart upstream as something changed
+					log.Println("Restarting upstream: ", upNode.Description)
+					up.Stop()
+					delete(upm.upstreams, node.ID)
+				}
+			}
 		}
 	}
 
