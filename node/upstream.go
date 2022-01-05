@@ -25,6 +25,7 @@ type Upstream struct {
 	subLocalNodePoints *natsgo.Subscription
 	subLocalEdgePoints *natsgo.Subscription
 	lock               sync.Mutex
+	closeSync          chan bool
 }
 
 // NewUpstream is used to create a new upstream connection
@@ -36,6 +37,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		node:            node,
 		subUpNodePoints: make(map[string]*natsgo.Subscription),
 		subUpEdgePoints: make(map[string]*natsgo.Subscription),
+		closeSync:       make(chan bool),
 	}
 
 	up.nodeUp, err = NewUpstreamNode(node)
@@ -147,22 +149,23 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 	}
 
 	// occasionally sync nodes
-	go func() {
-		fetchedOnce := false
+	go func(ch chan bool) {
+		timer := time.NewTimer(time.Millisecond * 10)
 
 		for {
-			if fetchedOnce {
-				time.Sleep(time.Second * 10)
-			}
-
-			fetchedOnce = true
-
-			err := up.syncNode(rootNode.ID, "skip")
-			if err != nil {
-				fmt.Printf("Error syncing: %v\n", err)
+			select {
+			case <-timer.C:
+				err := up.syncNode(rootNode.ID, "skip")
+				if err != nil {
+					fmt.Printf("Error syncing: %v\n", err)
+				}
+				timer.Reset(time.Second * 10)
+			case <-ch:
+				fmt.Println("Stopping sync for ", up.nodeUp.Description)
+				return
 			}
 		}
-	}()
+	}(up.closeSync)
 
 	return up, nil
 }
@@ -471,6 +474,8 @@ func (up *Upstream) Stop() {
 		}
 	}
 	up.lock.Unlock()
+
+	up.closeSync <- true
 
 	if up.ncUp != nil {
 		up.ncUp.Close()
