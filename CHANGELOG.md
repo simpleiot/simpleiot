@@ -11,6 +11,14 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.41] - 2022-01-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.41)
+
+- with v0.0.40, if upstream URI was specified as ws://myserver.com without the
+  port being specified, the NATS Go client assumed the port was 4222. If this
+  port is not specified for ws or wss protocols, SIOT now sets the port to :80
+  or :443. This makes the behavior more predictable, as these kinds of problems
+  are very hard to debug. #315
+
 ## [[0.0.40] - 2022-01-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.40)
 
 - support for NATS over WS connections to upstream. This is handy for cases
