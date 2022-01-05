@@ -44,7 +44,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 	}
 
 	opts := nats.EdgeOptions{
-		Server:    up.nodeUp.URI,
+		URI:       up.nodeUp.URI,
 		AuthToken: up.nodeUp.AuthToken,
 		NoEcho:    true,
 		Disconnected: func() {
