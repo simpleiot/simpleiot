@@ -74,8 +74,13 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		return nil
 	}
 
-	log.Printf("NATS edge connect to: %v, auth enabled: %v", eo.URI, authEnabled)
-	nc, err := nats.Connect(eo.URI, siotOptions)
+	uri, err := sanitizeURI(eo.URI)
+	if err != nil {
+		log.Printf("Error sanitizing URI %v: %v", eo.URI, err)
+	}
+
+	log.Printf("NATS edge connect to: %v, auth enabled: %v", uri, authEnabled)
+	nc, err := nats.Connect(uri, siotOptions)
 
 	if err != nil {
 		return nil, err
