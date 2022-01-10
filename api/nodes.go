@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -74,6 +75,14 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			if !validUser {
 				http.Error(res, "invalid user", http.StatusMethodNotAllowed)
 				return
+			}
+
+			{
+				nodes, err := nats.GetNodesForUser(h.nc, userID)
+				if err != nil {
+					log.Println("Error getting nodes for user: ", err)
+				}
+				_ = nodes
 			}
 
 			// FIXME, replace this with a NATS call so we can remove db from this

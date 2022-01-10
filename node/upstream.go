@@ -112,11 +112,13 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		}
 	})
 
-	rootNode, err := nats.GetNode(nc, "root", "")
+	rootNodes, err := nats.GetNode(nc, "root", "")
 
 	if err != nil {
 		return nil, err
 	}
+
+	var rootNode = rootNodes[0]
 
 	var watchNode func(node data.NodeEdge) error
 
@@ -268,17 +270,21 @@ func (up *Upstream) addUpstreamEdgeSub(nodeID, parentID string) error {
 }
 
 func (up *Upstream) syncNode(id, parent string) error {
-	nodeLocal, err := nats.GetNode(up.nc, id, parent)
+	nodeLocals, err := nats.GetNode(up.nc, id, parent)
 	if err != nil {
 		return fmt.Errorf("Error getting local node: %v", err)
 	}
 
-	nodeUp, upErr := nats.GetNode(up.ncUp, id, parent)
+	nodeLocal := nodeLocals[0]
+
+	nodeUps, upErr := nats.GetNode(up.ncUp, id, parent)
 	if upErr != nil {
 		if upErr != data.ErrDocumentNotFound {
 			return fmt.Errorf("Error getting upstream root node: %v", upErr)
 		}
 	}
+
+	nodeUp := nodeUps[0]
 
 	if upErr == data.ErrDocumentNotFound {
 		log.Printf("Upstream node %v does not exist, sending\n", nodeLocal.Desc())

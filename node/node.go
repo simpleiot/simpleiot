@@ -31,7 +31,13 @@ func NewManger(nc *natsgo.Conn) *Manager {
 
 // Init initializes the tree root node and default admin if needed
 func (m *Manager) Init() error {
-	rootNode, err := nats.GetNode(m.nc, "root", "")
+	rootNodes, err := nats.GetNode(m.nc, "root", "")
+
+	var rootNode data.NodeEdge
+
+	if len(rootNodes) > 0 {
+		rootNode = rootNodes[0]
+	}
 
 	if err != nil {
 		log.Println("Error getting root node: ", err)

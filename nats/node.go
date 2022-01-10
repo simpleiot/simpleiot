@@ -14,19 +14,20 @@ import (
 // If parent is set to "skip", the edge details are not included
 // and the hash is calculated without the edge points.
 // returns data.ErrDocumentNotFound if node is not found.
-func GetNode(nc *natsgo.Conn, id, parent string) (data.NodeEdge, error) {
+// if parent is set to "all", then all instances of the node are returned
+func GetNode(nc *natsgo.Conn, id, parent string) ([]data.NodeEdge, error) {
 	if parent == "" {
 		parent = "none"
 	}
 	nodeMsg, err := nc.Request("node."+id, []byte(parent), time.Second*20)
 	if err != nil {
-		return data.NodeEdge{}, err
+		return []data.NodeEdge{}, err
 	}
 
-	node, err := data.PbDecodeNodeRequest(nodeMsg.Data)
+	node, err := data.PbDecodeNodesRequest(nodeMsg.Data)
 
 	if err != nil {
-		return data.NodeEdge{}, err
+		return []data.NodeEdge{}, err
 	}
 
 	return node, nil
@@ -55,6 +56,18 @@ func GetNodeChildren(nc *natsgo.Conn, id, typ string, includeDel bool) ([]data.N
 	}
 
 	return nodes, nil
+}
+
+// GetNodesForUser gets all nodes for a user
+func GetNodesForUser(nc *natsgo.Conn, userID string) ([]data.NodeEdge, error) {
+	rootNodes, err := GetNode(nc, userID, "all")
+	if err != nil {
+		return []data.NodeEdge{}, err
+	}
+
+	fmt.Printf("CLIFF: rootNodes: %+v\n", rootNodes)
+
+	return []data.NodeEdge{}, nil
 }
 
 // SendNode is used to recursively send a node and children over nats
