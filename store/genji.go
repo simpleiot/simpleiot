@@ -304,36 +304,42 @@ func (gen *Db) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 		parent = "none"
 	}
 
-	var nodeEdge data.NodeEdge
-
+	// get node
 	node, err := gen.node(id)
+	if err != nil {
+		return []data.NodeEdge{}, err
+	}
+
+	if parent == "skip" || parent == "none" {
+		// send back one node with null parent details
+		var nodeEdge data.NodeEdge
+		nodeEdge.Hash, err = gen.calcHash(node, data.Edge{})
+		if err != nil {
+			return []data.NodeEdge{}, err
+		}
+
+		nodeEdge = node.ToNodeEdge(data.Edge{})
+		return []data.NodeEdge{nodeEdge}, nil
+	}
+
+	// find the edges and return multiple nodes
+	e, err := gen.edgeUpDown(parent, id, true)
 
 	if err != nil {
 		return []data.NodeEdge{}, err
 	}
 
-	var edge data.Edge
-
-	if parent != "skip" && parent != "none" {
-		e, err := gen.edgeUpDown(parent, id, true)
-
-		if err != nil {
-			return []data.NodeEdge{}, err
-		}
-
-		edge = *e
+	if len(e) <= 0 {
+		return []data.NodeEdge{}, errors.New("No edges found")
 	}
 
-	nodeEdge = node.ToNodeEdge(edge)
+	ret := make([]data.NodeEdge, len(e))
 
-	if parent == "skip" {
-		nodeEdge.Hash, err = gen.calcHash(node, data.Edge{})
-		if err != nil {
-			return []data.NodeEdge{}, err
-		}
+	for i := 0; i < len(e); i++ {
+		ret[i] = node.ToNodeEdge(e[i])
 	}
 
-	return []data.NodeEdge{nodeEdge}, err
+	return ret, nil
 }
 
 // nodes returns all nodes.
@@ -681,20 +687,23 @@ func (gen *Db) edgeUp(nodeID string, includeTombstone bool) []*data.Edge {
 }
 
 // find edge.
-func (gen *Db) edgeUpDown(upID, downID string, includeTombstone bool) (*data.Edge, error) {
+func (gen *Db) edgeUpDown(upID, downID string, includeTombstone bool) ([]data.Edge, error) {
 	gen.lock.RLock()
+	var ret []data.Edge
 	defer gen.lock.RUnlock()
 	for _, e := range gen.edgeCache {
-		if e.Down != downID || e.Up != upID {
-			continue
-		}
-
-		if !e.IsTombstone() || includeTombstone {
-			return &(*e), nil
+		if (e.Down == "all" || e.Down == downID) && (e.Up == "all" || e.Up == upID) {
+			if includeTombstone || !e.IsTombstone() {
+				ret = append(ret, *e)
+			}
 		}
 	}
 
-	return nil, errors.New("Could not find edge")
+	if len(ret) <= 0 {
+		return nil, fmt.Errorf("Could not find edge, up: %v, down: %v", upID, downID)
+	}
+
+	return ret, nil
 }
 
 type downNode struct {
