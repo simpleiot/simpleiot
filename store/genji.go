@@ -692,7 +692,7 @@ func (gen *Db) edgeUpDown(upID, downID string, includeTombstone bool) ([]data.Ed
 	var ret []data.Edge
 	defer gen.lock.RUnlock()
 	for _, e := range gen.edgeCache {
-		if (e.Down == "all" || e.Down == downID) && (e.Up == "all" || e.Up == upID) {
+		if (downID == "all" || e.Down == downID) && (upID == "all" || e.Up == upID) {
 			if includeTombstone || !e.IsTombstone() {
 				ret = append(ret, *e)
 			}

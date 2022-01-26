@@ -128,7 +128,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 			return fmt.Errorf("Failed to add upstream sub: %v", err)
 		}
 
-		childNodes, err := nats.GetNodeChildren(nc, node.ID, "", true)
+		childNodes, err := nats.GetNodeChildren(nc, node.ID, "", true, false)
 		if err != nil {
 			return err
 		}
@@ -387,13 +387,13 @@ func (up *Upstream) syncNode(id, parent string) error {
 		}
 
 		// sync child nodes
-		children, err := nats.GetNodeChildren(up.nc, nodeLocal.ID, "", true)
+		children, err := nats.GetNodeChildren(up.nc, nodeLocal.ID, "", true, false)
 		if err != nil {
 			return fmt.Errorf("Error getting local node children: %v", err)
 		}
 
 		// FIXME optimization we get the edges here and not the full child node
-		upChildren, err := nats.GetNodeChildren(up.ncUp, nodeUp.ID, "", true)
+		upChildren, err := nats.GetNodeChildren(up.ncUp, nodeUp.ID, "", true, false)
 		if err != nil {
 			return fmt.Errorf("Error getting upstream node children: %v", err)
 		}

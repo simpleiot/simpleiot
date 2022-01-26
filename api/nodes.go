@@ -77,17 +77,10 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			{
-				nodes, err := nats.GetNodesForUser(h.nc, userID)
-				if err != nil {
-					log.Println("Error getting nodes for user: ", err)
-				}
-				_ = nodes
+			nodes, err := nats.GetNodesForUser(h.nc, userID)
+			if err != nil {
+				log.Println("Error getting nodes for user: ", err)
 			}
-
-			// FIXME, replace this with a NATS call so we can remove db from this
-			// module
-			nodes, err := h.db.NodesForUser(userID)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
