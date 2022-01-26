@@ -566,45 +566,6 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 	})
 }
 
-// NodesForUser returns all nodes for a particular user
-// FIXME this should be renamed to node children or something like that
-// TODO we should unexport this and somehow do this through nats
-func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
-	var nodes []data.NodeEdge
-
-	// first find parents of user node
-	edges := gen.edgeUp(userID, false)
-
-	if len(edges) == 0 {
-		return []data.NodeEdge{}, errors.New("orphaned user")
-	}
-
-	for _, edge := range edges {
-		rootNode, err := gen.node(edge.Up)
-		if err != nil {
-			return []data.NodeEdge{}, err
-		}
-
-		rootNodeEdge := rootNode.ToNodeEdge(data.Edge{})
-		rootNodeEdge.Hash, err = gen.calcHash(rootNode, data.Edge{})
-
-		if err != nil {
-			return []data.NodeEdge{}, err
-		}
-
-		nodes = append(nodes, rootNodeEdge)
-
-		childNodes, err := gen.nodeFindDescendents(rootNode.ID, true, 0)
-		if err != nil {
-			return []data.NodeEdge{}, err
-		}
-
-		nodes = append(nodes, childNodes...)
-	}
-
-	return data.RemoveDuplicateNodesIDParent(nodes), nil
-}
-
 // nodeDescendents returns all descendents for a particular node ID and type
 // set typ to blank string to find all descendents. Set recursive to false to
 // stop at children, true to recursively get all descendents.

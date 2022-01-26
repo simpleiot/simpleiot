@@ -95,7 +95,7 @@ func GetNodesForUser(nc *natsgo.Conn, userID string) ([]data.NodeEdge, error) {
 		ret = append(ret, c...)
 	}
 
-	fmt.Printf("CLIFF: GetNodesForUser: %+v\n", ret)
+	ret = data.RemoveDuplicateNodesIDParent(ret)
 
 	return ret, nil
 }
