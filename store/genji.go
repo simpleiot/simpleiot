@@ -38,9 +38,7 @@ type Meta struct {
 
 // This file contains database manipulations.
 
-// Db is used for all db access in the application.
-// We will eventually turn this into an interface to
-// handle multiple Db backends.
+// Db represents the store for the application
 type Db struct {
 	store *genji.DB
 	meta  Meta
