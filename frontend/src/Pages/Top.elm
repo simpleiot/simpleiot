@@ -636,7 +636,7 @@ mergeNodeTrees current new =
                             curRootNode =
                                 Tree.label c
                         in
-                        newRootNode.node.id == curRootNode.node.id
+                        newRootNode.node.id == curRootNode.node.id && newRootNode.node.parent == curRootNode.node.parent
                     )
                     current
             of
