@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.42] - 2022-01-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.42)
+
+- move API get to nodes for user from backend API to NATS (#327)
+
 ## [[0.0.41] - 2022-01-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.41)
 
 - with v0.0.40, if upstream URI was specified as ws://myserver.com without the
