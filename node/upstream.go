@@ -3,6 +3,7 @@ package node
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -116,6 +117,10 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	if len(rootNodes) == 0 {
+		return nil, errors.New("root node not found")
 	}
 
 	var rootNode = rootNodes[0]
@@ -275,6 +280,10 @@ func (up *Upstream) syncNode(id, parent string) error {
 		return fmt.Errorf("Error getting local node: %v", err)
 	}
 
+	if len(nodeLocals) == 0 {
+		return errors.New("local nodes not found")
+	}
+
 	nodeLocal := nodeLocals[0]
 
 	nodeUps, upErr := nats.GetNode(up.ncUp, id, parent)
@@ -284,9 +293,9 @@ func (up *Upstream) syncNode(id, parent string) error {
 		}
 	}
 
-	nodeUp := nodeUps[0]
+	var nodeUp data.NodeEdge
 
-	if upErr == data.ErrDocumentNotFound {
+	if len(nodeUps) == 0 || upErr == data.ErrDocumentNotFound {
 		log.Printf("Upstream node %v does not exist, sending\n", nodeLocal.Desc())
 		err := nats.SendNode(up.nc, up.ncUp, nodeLocal)
 		if err != nil {
@@ -297,6 +306,8 @@ func (up *Upstream) syncNode(id, parent string) error {
 		if err != nil {
 			log.Println("Error subscribing to upstream node: ", err)
 		}
+	} else {
+		nodeUp = nodeUps[0]
 	}
 
 	if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
