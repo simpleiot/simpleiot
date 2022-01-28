@@ -59,7 +59,7 @@ siot_build_frontend() {
   rm -f "frontend/output"/*
   (cd "frontend" && npx elm-spa build) || return 1
   (cd "frontend" && npx elm make "$ELMARGS" src/Main.elm --output=output/elm.js) || return 1
-  cp "frontend/public"/* "frontend/output/" || return 1
+  cp -r frontend/public/* "frontend/output/" || return 1
   cp "frontend/public/index.html" "frontend/output/index.html" || return 1
   cp docs/images/simple-iot-app-logo.png "frontend/output/" || return 1
   return 0
