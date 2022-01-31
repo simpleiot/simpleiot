@@ -12,9 +12,11 @@ For more details or to discuss releases, please visit the
 ## [Unreleased]
 
 - move HTTP API to get nodes for user to use NATS instead of direct call into
-  database.
+  database (#327)
 - **BREAKING API CHANGE**: the Nats `node.<id>` subject now returns an array of
-  `data.NodeEdge` structs instead of a single node.
+  `data.NodeEdge` structs instead of a single node. Both instances of an
+  upstream connection must be upgraded.
+- don't send deleted nodes to frontend -- may fix #259
 
 ## [[0.0.41] - 2022-01-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.41)
 
