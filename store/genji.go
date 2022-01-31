@@ -295,9 +295,15 @@ func (gen *Db) nodeFindDescendents(id string, recursive bool, level int) ([]data
 }
 
 // nodeEdge returns a node edge
-// TODO: what is the difference between skip and none for parent?
-// if parent is set to "all", then all parents are fetched
+// parent can be:
+//   - id of node
+//   - none: parent details are skipped
+//   - all: all parents are fetched
 func (gen *Db) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
+	if id == "root" {
+		id = gen.rootNodeID()
+	}
+
 	if parent == "" {
 		parent = "none"
 	}
@@ -308,16 +314,16 @@ func (gen *Db) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 		return []data.NodeEdge{}, err
 	}
 
-	if parent == "skip" || parent == "none" {
+	if parent == "none" {
 		// send back one node with null parent details
-		var nodeEdge data.NodeEdge
-		nodeEdge.Hash, err = gen.calcHash(node, data.Edge{})
+		hash, err := gen.calcHash(node, data.Edge{})
 		if err != nil {
 			return []data.NodeEdge{}, err
 		}
 
-		nodeEdge = node.ToNodeEdge(data.Edge{})
-		return []data.NodeEdge{nodeEdge}, nil
+		ret := node.ToNodeEdge(data.Edge{})
+		ret.Hash = hash
+		return []data.NodeEdge{ret}, nil
 	}
 
 	// find the edges and return multiple nodes

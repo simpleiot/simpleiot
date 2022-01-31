@@ -49,7 +49,7 @@ func String(nc *natsgo.Conn, msg *natsgo.Msg) (string, error) {
 			nodeID := chunks[1]
 
 			// Fetch node so we can print description
-			node, err := GetNode(nc, nodeID, "skip")
+			node, err := GetNode(nc, nodeID, "none")
 
 			if err != nil {
 				return "", fmt.Errorf("Error getting node over nats: %w", err)
@@ -125,7 +125,7 @@ func String(nc *natsgo.Conn, msg *natsgo.Msg) (string, error) {
 			return "", fmt.Errorf("Error getting node over nats: %w", err)
 		}
 
-		parent, err := GetNode(nc, parentID, "skip")
+		parent, err := GetNode(nc, parentID, "none")
 		if err != nil {
 			return "", fmt.Errorf("Error getting parent over nats: %w", err)
 		}

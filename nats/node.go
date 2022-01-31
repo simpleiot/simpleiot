@@ -11,7 +11,7 @@ import (
 )
 
 // GetNode over NATS. If id is "root", the root node is fetched.
-// If parent is set to "skip", the edge details are not included
+// If parent is set to "none", the edge details are not included
 // and the hash is calculated without the edge points.
 // returns data.ErrDocumentNotFound if node is not found.
 // if parent is set to "all", then all instances of the node are returned

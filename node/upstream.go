@@ -46,6 +46,11 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		return nil, err
 	}
 
+	if up.nodeUp.Disabled {
+		log.Printf("Upstream %v disabled", up.nodeUp.Description)
+		return up, nil
+	}
+
 	opts := nats.EdgeOptions{
 		URI:       up.nodeUp.URI,
 		AuthToken: up.nodeUp.AuthToken,
@@ -162,7 +167,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		for {
 			select {
 			case <-timer.C:
-				err := up.syncNode(rootNode.ID, "skip")
+				err := up.syncNode(rootNode.ID, "none")
 				if err != nil {
 					fmt.Printf("Error syncing: %v\n", err)
 				}
@@ -462,6 +467,10 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 // Stop upstream instance
 func (up *Upstream) Stop() {
+	if up.nodeUp.Disabled {
+		return
+	}
+
 	if up.subLocalNodePoints != nil {
 		err := up.subLocalNodePoints.Unsubscribe()
 		if err != nil {

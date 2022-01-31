@@ -361,10 +361,6 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 
 	nodeID = chunks[1]
 
-	if nodeID == "root" {
-		nodeID = nh.db.rootNodeID()
-	}
-
 	nodes, err = nh.db.nodeEdge(nodeID, parent)
 
 	if err != nil {
