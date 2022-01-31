@@ -11,9 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-## [[0.0.42] - 2022-01-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.42)
-
-- move API get to nodes for user from backend API to NATS (#327)
+- move HTTP API to get nodes for user to use NATS instead of direct call into
+  database.
+- **BREAKING API CHANGE**: the Nats `node.<id>` subject now returns an array of
+  `data.NodeEdge` structs instead of a single node.
 
 ## [[0.0.41] - 2022-01-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.41)
 
