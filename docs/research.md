@@ -78,3 +78,18 @@ concurrently. Some information on this:
 
 - [Lamport timestamp](https://en.wikipedia.org/wiki/Lamport_timestamp)
   - used by Yjs
+
+## Other IoT Systems
+
+### AWS IoT
+
+- https://www.thingrex.com/aws_iot_thing_attributes_intro/
+  - Thing properties include the following, which are analogous to SIOT node
+    fields.
+    - Name (Desription)
+    - Type (Type)
+    - Attributes (Points)
+    - Groups (Described by tree structure)
+    - Billing Group (Can also be described by tree structure)
+- https://www.thingrex.com/aws_iot_thing_type/
+  - each type has a specified attributes -- kind of a neat idea
