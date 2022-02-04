@@ -172,7 +172,7 @@ func main() {
 		natsHTTPPort = n
 	}
 
-	natsWSPort := 0
+	natsWSPort := 9222
 	natsWSPortE := os.Getenv("SIOT_NATS_WS_PORT")
 	if natsWSPortE != "" {
 		n, err := strconv.Atoi(natsWSPortE)
