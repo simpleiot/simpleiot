@@ -17,6 +17,7 @@ For more details or to discuss releases, please visit the
   `data.NodeEdge` structs instead of a single node. Both instances of an
   upstream connection must be upgraded.
 - don't send deleted nodes to frontend -- may fix #259
+- default to nats/websocket being enabled on port 9222
 
 ## [[0.0.41] - 2022-01-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.41)
 
