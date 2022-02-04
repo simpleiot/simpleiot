@@ -18,7 +18,7 @@ func SendNodePointCreate(nc *natsgo.Conn, nodeID string, point data.Point, ack b
 // SendNodePointsCreate sends a node point using the nats protocol and
 // creates the node if it does not already exist
 func SendNodePointsCreate(nc *natsgo.Conn, nodeID string, points data.Points, ack bool) error {
-	_, err := GetNode(nc, nodeID, "skip")
+	_, err := GetNode(nc, nodeID, "none")
 	newNode := false
 	if err != nil {
 		if err != data.ErrDocumentNotFound {

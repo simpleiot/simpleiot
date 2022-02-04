@@ -38,9 +38,7 @@ type Meta struct {
 
 // This file contains database manipulations.
 
-// Db is used for all db access in the application.
-// We will eventually turn this into an interface to
-// handle multiple Db backends.
+// Db represents the store for the application
 type Db struct {
 	store *genji.DB
 	meta  Meta
@@ -297,42 +295,55 @@ func (gen *Db) nodeFindDescendents(id string, recursive bool, level int) ([]data
 }
 
 // nodeEdge returns a node edge
-// TODO: what is the difference between skip and none for parent?
-func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
+// parent can be:
+//   - id of node
+//   - none: parent details are skipped
+//   - all: all parents are fetched
+func (gen *Db) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
+	if id == "root" {
+		id = gen.rootNodeID()
+	}
+
 	if parent == "" {
 		parent = "none"
 	}
 
-	var nodeEdge data.NodeEdge
-
+	// get node
 	node, err := gen.node(id)
+	if err != nil {
+		return []data.NodeEdge{}, err
+	}
+
+	if parent == "none" {
+		// send back one node with null parent details
+		hash, err := gen.calcHash(node, data.Edge{})
+		if err != nil {
+			return []data.NodeEdge{}, err
+		}
+
+		ret := node.ToNodeEdge(data.Edge{})
+		ret.Hash = hash
+		return []data.NodeEdge{ret}, nil
+	}
+
+	// find the edges and return multiple nodes
+	e, err := gen.edgeUpDown(parent, id, true)
 
 	if err != nil {
-		return nodeEdge, err
+		return []data.NodeEdge{}, err
 	}
 
-	var edge data.Edge
-
-	if parent != "skip" && parent != "none" {
-		e, err := gen.edgeUpDown(parent, id, true)
-
-		if err != nil {
-			return nodeEdge, err
-		}
-
-		edge = *e
+	if len(e) <= 0 {
+		return []data.NodeEdge{}, errors.New("No edges found")
 	}
 
-	nodeEdge = node.ToNodeEdge(edge)
+	ret := make([]data.NodeEdge, len(e))
 
-	if parent == "skip" {
-		nodeEdge.Hash, err = gen.calcHash(node, data.Edge{})
-		if err != nil {
-			return nodeEdge, err
-		}
+	for i := 0; i < len(e); i++ {
+		ret[i] = node.ToNodeEdge(e[i])
 	}
 
-	return nodeEdge, err
+	return ret, nil
 }
 
 // nodes returns all nodes.
@@ -559,45 +570,6 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 	})
 }
 
-// NodesForUser returns all nodes for a particular user
-// FIXME this should be renamed to node children or something like that
-// TODO we should unexport this and somehow do this through nats
-func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
-	var nodes []data.NodeEdge
-
-	// first find parents of user node
-	edges := gen.edgeUp(userID, false)
-
-	if len(edges) == 0 {
-		return []data.NodeEdge{}, errors.New("orphaned user")
-	}
-
-	for _, edge := range edges {
-		rootNode, err := gen.node(edge.Up)
-		if err != nil {
-			return []data.NodeEdge{}, err
-		}
-
-		rootNodeEdge := rootNode.ToNodeEdge(data.Edge{})
-		rootNodeEdge.Hash, err = gen.calcHash(rootNode, data.Edge{})
-
-		if err != nil {
-			return []data.NodeEdge{}, err
-		}
-
-		nodes = append(nodes, rootNodeEdge)
-
-		childNodes, err := gen.nodeFindDescendents(rootNode.ID, true, 0)
-		if err != nil {
-			return []data.NodeEdge{}, err
-		}
-
-		nodes = append(nodes, childNodes...)
-	}
-
-	return data.RemoveDuplicateNodesIDParent(nodes), nil
-}
-
 // nodeDescendents returns all descendents for a particular node ID and type
 // set typ to blank string to find all descendents. Set recursive to false to
 // stop at children, true to recursively get all descendents.
@@ -680,20 +652,23 @@ func (gen *Db) edgeUp(nodeID string, includeTombstone bool) []*data.Edge {
 }
 
 // find edge.
-func (gen *Db) edgeUpDown(upID, downID string, includeTombstone bool) (*data.Edge, error) {
+func (gen *Db) edgeUpDown(upID, downID string, includeTombstone bool) ([]data.Edge, error) {
 	gen.lock.RLock()
+	var ret []data.Edge
 	defer gen.lock.RUnlock()
 	for _, e := range gen.edgeCache {
-		if e.Down != downID || e.Up != upID {
-			continue
-		}
-
-		if !e.IsTombstone() || includeTombstone {
-			return &(*e), nil
+		if (downID == "all" || e.Down == downID) && (upID == "all" || e.Up == upID) {
+			if includeTombstone || !e.IsTombstone() {
+				ret = append(ret, *e)
+			}
 		}
 	}
 
-	return nil, errors.New("Could not find edge")
+	if len(ret) <= 0 {
+		return nil, fmt.Errorf("Could not find edge, up: %v, down: %v", upID, downID)
+	}
+
+	return ret, nil
 }
 
 type downNode struct {

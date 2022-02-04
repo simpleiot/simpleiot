@@ -11,6 +11,16 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.42] - 2022-02-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.42)
+
+- move HTTP API to get nodes for user to use NATS instead of direct call into
+  database (#327)
+- **BREAKING API CHANGE**: the Nats `node.<id>` subject now returns an array of
+  `data.NodeEdge` structs instead of a single node. Both instances of an
+  upstream connection must be upgraded.
+- don't send deleted nodes to frontend -- may fix #259
+- default to nats/websocket being enabled on port 9222
+
 ## [[0.0.41] - 2022-01-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.41)
 
 - with v0.0.40, if upstream URI was specified as ws://myserver.com without the

@@ -49,7 +49,7 @@ func copyIos(in map[string]*ModbusIO) map[string]*ModbusIO {
 // Update queries DB for modbus nodes and synchronizes
 // with internal structures and updates data
 func (mm *ModbusManager) Update() error {
-	nodes, err := nats.GetNodeChildren(mm.nc, mm.rootNodeID, data.NodeTypeModbus, false)
+	nodes, err := nats.GetNodeChildren(mm.nc, mm.rootNodeID, data.NodeTypeModbus, false, false)
 	if err != nil {
 		return err
 	}

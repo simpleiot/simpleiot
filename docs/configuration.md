@@ -10,8 +10,8 @@ The following are currently defined:
   - `SIOT_HTTP_PORT`: http network port the SIOT server attaches to (default
     is 8080)
   - `SIOT_DATA`: directory where any data is stored
-  - `SIOT_AUTH_TOKEN`: auth token used for NATS (and eventually HTTP device
-    API), default is blank (no auth)
+  - `SIOT_AUTH_TOKEN`: auth token used for NATS and HTTP device API, default is
+    blank (no auth)
 - **NATS configuration**
   - `SIOT_NATS_PORT`: Port to run NATS on (default is 4222 if not set)
   - `SIOT_NATS_HTTP_PORT`: Port to run NATS monitoring interface (default
@@ -26,7 +26,8 @@ The following are currently defined:
     this process take as long as 4s). See NATS
     [documentation](https://docs.nats.io/nats-server/configuration/securing_nats/tls#tls-timeout)
     for more information.
-  - `SIOT_NATS_WS_PORT`: set to this to enable NATS websocket support
+  - `SIOT_NATS_WS_PORT`: Port to run NATS websocket (default is 9222, set to 0
+    to disable)
 - **Particle.io**
   - `SIOT_PARTICLE_API_KEY`: key used to fetch data from Particle.io devices
     running [Simple IoT firmware](https://github.com/simpleiot/firmware)

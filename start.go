@@ -133,9 +133,11 @@ func (s *Siot) Start() (*natsgo.Conn, error) {
 
 	if err != nil {
 		log.Println("Error getting root id for metrics: ", err)
+	} else if len(rootNode) == 0 {
+		log.Println("Error getting root node, no data")
 	} else {
 
-		err = natsHandler.StartMetrics(rootNode.ID)
+		err = natsHandler.StartMetrics(rootNode[0].ID)
 		if err != nil {
 			log.Println("Error starting nats metrics: ", err)
 		}

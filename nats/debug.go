@@ -41,23 +41,23 @@ func String(nc *natsgo.Conn, msg *natsgo.Msg) (string, error) {
 			return "", fmt.Errorf("Error getting node over nats: %w", err)
 		}
 
-		description := node.Desc()
-		ret += fmt.Sprintf("get NODE: %v (%v) (%v)\n", description, node.Type, node.ID)
+		description := node[0].Desc()
+		ret += fmt.Sprintf("get NODE: %v (%v) (%v)\n", description, node[0].Type, node[0].ID)
 	} else if len(chunks) == 3 {
 		switch chunks[0] {
 		case "node":
 			nodeID := chunks[1]
 
 			// Fetch node so we can print description
-			node, err := GetNode(nc, nodeID, "skip")
+			node, err := GetNode(nc, nodeID, "none")
 
 			if err != nil {
 				return "", fmt.Errorf("Error getting node over nats: %w", err)
 			}
 
-			description := node.Desc()
+			description := node[0].Desc()
 
-			ret += fmt.Sprintf("NODE: %v (%v) (%v)\n", description, node.Type, node.ID)
+			ret += fmt.Sprintf("NODE: %v (%v) (%v)\n", description, node[0].Type, node[0].ID)
 
 			switch chunks[2] {
 			case "points":
@@ -125,12 +125,12 @@ func String(nc *natsgo.Conn, msg *natsgo.Msg) (string, error) {
 			return "", fmt.Errorf("Error getting node over nats: %w", err)
 		}
 
-		parent, err := GetNode(nc, parentID, "skip")
+		parent, err := GetNode(nc, parentID, "none")
 		if err != nil {
 			return "", fmt.Errorf("Error getting parent over nats: %w", err)
 		}
 
-		ret += fmt.Sprintf("EDGE: %v (%v):%v (%v)\n", parent.Desc(), parent.ID, node.Desc(), node.ID)
+		ret += fmt.Sprintf("EDGE: %v (%v):%v (%v)\n", parent[0].Desc(), parent[0].ID, node[0].Desc(), node[0].ID)
 
 		_, points, err := DecodeNodePointsMsg(msg)
 		if err != nil {

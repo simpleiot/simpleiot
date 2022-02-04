@@ -7,6 +7,7 @@ import Element.Border as Border
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
+import UI.ViewIf exposing (viewIf)
 
 
 view : NodeOptions msg -> Element msg
@@ -17,6 +18,12 @@ view o =
 
         textInput =
             NodeInputs.nodeTextInput opts ""
+
+        checkboxInput =
+            NodeInputs.nodeCheckboxInput opts ""
+
+        disabled =
+            Point.getBool o.node.points Point.typeDisable ""
     in
     column
         [ width fill
@@ -29,11 +36,13 @@ view o =
             [ Icon.uploadCloud
             , text <|
                 Point.getText o.node.points Point.typeDescription ""
+            , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeURI "URI" "nats://myserver:4222, ws://myserver"
                     , textInput Point.typeAuthToken "Auth Token" ""
+                    , checkboxInput Point.typeDisable "Disable"
                     ]
 
                 else

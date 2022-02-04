@@ -73,10 +73,13 @@ defined [here](../internal/pb).
 
 - Nodes
   - `node.<id>`
-    - can be used to request an entire node data structure. If id = "root", then
-      the root node is fetched.
-    - body can optionally include the ID of the parent node to populate node
-      with points from the edge data structure.
+    - returns an array of `data.EdgeNode` structs that meets the specified `id`
+      and `parent`.
+    - If id = "root", then the root node is fetched.
+    - the `parent` can can optionally by specified by setting the message
+      payload to one of the following:
+      - the ID of the parent node
+      - "all" to find all instances of the node
   - `node.<id>.children`
     - can be used to request the immediate children of a node
   - `node.<id>.points`
@@ -90,7 +93,7 @@ defined [here](../internal/pb).
   - `node.<id>.msg`
     - used when a node sends a message (SMS, email, phone call, etc). This is
       typically initiated by a [notification](notifications.md).
-  - `node.<id>.file`
+  - `node.<id>.file` (not currently implemented)
     - is used to transfer files to a node in chunks, which is optimized for
       unreliable networks like cellular and is handy for transfering software
       update files. There is Go code [available](../api/nats-file.go) to manage
