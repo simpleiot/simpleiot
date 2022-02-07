@@ -28,7 +28,8 @@ Most APIs that do not return specific data (update/delete) return a
     - DELETE: delete a node
   - `/v1/nodes/:id/parents`
     - POST: move node to new parent
-    - PUT: add parent _(not implemented yet)_
+    - PUT: mirror/duplicate node
+    - body is JSON api/nodes.go:NodeMove or NodeCopy structs
   - `/v1/nodes/:id/points`
     - POST: post points for a node
   - `/v1/nodes/:id/cmd`
