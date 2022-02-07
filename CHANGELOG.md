@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- improvement in UI to fix collapsing nodes #259
+
 ## [[0.0.42] - 2022-02-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.42)
 
 - move HTTP API to get nodes for user to use NATS instead of direct call into
