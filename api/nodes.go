@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -76,9 +77,10 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			// FIXME, replace this with a NATS call so we can remove db from this
-			// module
-			nodes, err := h.db.NodesForUser(userID)
+			nodes, err := nats.GetNodesForUser(h.nc, userID)
+			if err != nil {
+				log.Println("Error getting nodes for user: ", err)
+			}
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)

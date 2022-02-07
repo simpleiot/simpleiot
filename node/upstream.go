@@ -3,6 +3,7 @@ package node
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -43,6 +44,11 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 	up.nodeUp, err = NewUpstreamNode(node)
 	if err != nil {
 		return nil, err
+	}
+
+	if up.nodeUp.Disabled {
+		log.Printf("Upstream %v disabled", up.nodeUp.Description)
+		return up, nil
 	}
 
 	opts := nats.EdgeOptions{
@@ -112,11 +118,17 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		}
 	})
 
-	rootNode, err := nats.GetNode(nc, "root", "")
+	rootNodes, err := nats.GetNode(nc, "root", "")
 
 	if err != nil {
 		return nil, err
 	}
+
+	if len(rootNodes) == 0 {
+		return nil, errors.New("root node not found")
+	}
+
+	var rootNode = rootNodes[0]
 
 	var watchNode func(node data.NodeEdge) error
 
@@ -126,7 +138,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 			return fmt.Errorf("Failed to add upstream sub: %v", err)
 		}
 
-		childNodes, err := nats.GetNodeChildren(nc, node.ID, "", true)
+		childNodes, err := nats.GetNodeChildren(nc, node.ID, "", true, false)
 		if err != nil {
 			return err
 		}
@@ -155,7 +167,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		for {
 			select {
 			case <-timer.C:
-				err := up.syncNode(rootNode.ID, "skip")
+				err := up.syncNode(rootNode.ID, "none")
 				if err != nil {
 					fmt.Printf("Error syncing: %v\n", err)
 				}
@@ -268,19 +280,27 @@ func (up *Upstream) addUpstreamEdgeSub(nodeID, parentID string) error {
 }
 
 func (up *Upstream) syncNode(id, parent string) error {
-	nodeLocal, err := nats.GetNode(up.nc, id, parent)
+	nodeLocals, err := nats.GetNode(up.nc, id, parent)
 	if err != nil {
 		return fmt.Errorf("Error getting local node: %v", err)
 	}
 
-	nodeUp, upErr := nats.GetNode(up.ncUp, id, parent)
+	if len(nodeLocals) == 0 {
+		return errors.New("local nodes not found")
+	}
+
+	nodeLocal := nodeLocals[0]
+
+	nodeUps, upErr := nats.GetNode(up.ncUp, id, parent)
 	if upErr != nil {
 		if upErr != data.ErrDocumentNotFound {
 			return fmt.Errorf("Error getting upstream root node: %v", upErr)
 		}
 	}
 
-	if upErr == data.ErrDocumentNotFound {
+	var nodeUp data.NodeEdge
+
+	if len(nodeUps) == 0 || upErr == data.ErrDocumentNotFound {
 		log.Printf("Upstream node %v does not exist, sending\n", nodeLocal.Desc())
 		err := nats.SendNode(up.nc, up.ncUp, nodeLocal)
 		if err != nil {
@@ -291,6 +311,8 @@ func (up *Upstream) syncNode(id, parent string) error {
 		if err != nil {
 			log.Println("Error subscribing to upstream node: ", err)
 		}
+	} else {
+		nodeUp = nodeUps[0]
 	}
 
 	if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
@@ -381,13 +403,13 @@ func (up *Upstream) syncNode(id, parent string) error {
 		}
 
 		// sync child nodes
-		children, err := nats.GetNodeChildren(up.nc, nodeLocal.ID, "", true)
+		children, err := nats.GetNodeChildren(up.nc, nodeLocal.ID, "", true, false)
 		if err != nil {
 			return fmt.Errorf("Error getting local node children: %v", err)
 		}
 
 		// FIXME optimization we get the edges here and not the full child node
-		upChildren, err := nats.GetNodeChildren(up.ncUp, nodeUp.ID, "", true)
+		upChildren, err := nats.GetNodeChildren(up.ncUp, nodeUp.ID, "", true, false)
 		if err != nil {
 			return fmt.Errorf("Error getting upstream node children: %v", err)
 		}
@@ -445,6 +467,10 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 // Stop upstream instance
 func (up *Upstream) Stop() {
+	if up.nodeUp.Disabled {
+		return
+	}
+
 	if up.subLocalNodePoints != nil {
 		err := up.subLocalNodePoints.Unsubscribe()
 		if err != nil {

@@ -345,10 +345,10 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 		nh.metricCycleNode.AddSample(float64(t))
 	}()
 
-	resp := &pb.NodeRequest{}
+	resp := &pb.NodesRequest{}
 	var parent string
 	var nodeID string
-	var node data.NodeEdge
+	var nodes data.Nodes
 	var err error
 
 	chunks := strings.Split(msg.Subject, ".")
@@ -361,11 +361,7 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 
 	nodeID = chunks[1]
 
-	if nodeID == "root" {
-		nodeID = nh.db.rootNodeID()
-	}
-
-	node, err = nh.db.nodeEdge(nodeID, parent)
+	nodes, err = nh.db.nodeEdge(nodeID, parent)
 
 	if err != nil {
 		if err != data.ErrDocumentNotFound {
@@ -376,7 +372,7 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	}
 
 handleNodeDone:
-	resp.Node, err = node.ToPbNode()
+	resp.Nodes, err = nodes.ToPbNodes()
 	if err != nil {
 		resp.Error = fmt.Sprintf("Error pb encoding node: %v\n", err)
 	}
