@@ -25,6 +25,7 @@ type NodeMove struct {
 type NodeCopy struct {
 	ID        string
 	NewParent string
+	Clone     bool
 }
 
 // NodeDelete is a data structure used with /node/:id DELETE call

@@ -35,6 +35,7 @@ colors :
     , orange : Color
     , yellow : Color
     , green : Color
+    , darkgreen : Color
     , blue : Color
     , none : Color
     }
@@ -51,6 +52,7 @@ colors =
     , orange = rgb 1 1 0.8
     , yellow = rgb 1 1 0.7
     , green = rgba 0.7 1 0.7 0.9
+    , darkgreen = rgb255 4 106 56
     , blue = rgb255 50 100 150
     , none = rgba 0 0 0 0
     }

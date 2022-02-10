@@ -85,7 +85,6 @@ type alias NodeMsg =
 
 type CopyMove
     = CopyMoveNone
-    | Move String String String
     | Copy String String String
 
 
@@ -189,17 +188,18 @@ type Msg
     | ApiPostPoints String
     | ApiPostAddNode Int
     | ApiPostMoveNode Int String String String
-    | ApiPutCopyNode Int String String
+    | ApiPutMirrorNode Int String String
+    | ApiPutDuplicateNode Int String String
     | ApiPostNotificationNode
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
     | ApiRespPostAddNode Int (Data Response)
     | ApiRespPostMoveNode Int (Data Response)
-    | ApiRespPutCopyNode Int (Data Response)
+    | ApiRespPutMirrorNode Int (Data Response)
+    | ApiRespPutDuplicateNode Int (Data Response)
     | ApiRespPostNotificationNode (Data Response)
     | CopyNode Int String String String
-    | MoveNode Int String String String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -374,13 +374,25 @@ update msg model =
                 }
             )
 
-        ApiPutCopyNode parent id dest ->
+        ApiPutMirrorNode parent id dest ->
             ( model
             , Node.copy
                 { token = model.auth.token
                 , id = id
                 , newParent = dest
-                , onResponse = ApiRespPutCopyNode parent
+                , clone = False
+                , onResponse = ApiRespPutMirrorNode parent
+                }
+            )
+
+        ApiPutDuplicateNode parent id dest ->
+            ( model
+            , Node.copy
+                { token = model.auth.token
+                , id = id
+                , newParent = dest
+                , clone = True
+                , onResponse = ApiRespPutDuplicateNode parent
                 }
             )
 
@@ -556,7 +568,7 @@ update msg model =
                     , updateNodes model
                     )
 
-        ApiRespPutCopyNode parent resp ->
+        ApiRespPutMirrorNode parent resp ->
             let
                 nodes =
                     List.map (expChildren parent) model.nodes
@@ -568,7 +580,28 @@ update msg model =
                     )
 
                 Data.Failure err ->
-                    ( popError "Error copying node" err model
+                    ( popError "Error mirroring node" err model
+                    , updateNodes model
+                    )
+
+                _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+        ApiRespPutDuplicateNode parent resp ->
+            let
+                nodes =
+                    List.map (expChildren parent) model.nodes
+            in
+            case resp of
+                Data.Success _ ->
+                    ( { model | nodeOp = OpNone, copyMove = CopyMoveNone, nodes = nodes }
+                    , updateNodes model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error duplicating node" err model
                     , updateNodes model
                     )
 
@@ -605,19 +638,6 @@ update msg model =
                         }
               }
             , Port.out <| Port.encodeClipboard id
-            )
-
-        MoveNode feID id src desc ->
-            ( { model
-                | copyMove = Move id src desc
-                , nodeMsg =
-                    Just
-                        { feID = feID
-                        , text = "Node queued for move\nclick paste in destination node"
-                        , time = model.now
-                        }
-              }
-            , Cmd.none
             )
 
 
@@ -1237,11 +1257,6 @@ viewNodeOperations node msg =
                 Button.plusCircle (AddNode node.feID node.node.id)
             , Button.message (MsgNode node.feID node.node.id node.node.parent)
             , Button.x (DeleteNode node.feID node.node.id node.node.parent)
-            , if node.node.parent /= "" then
-                Button.move (MoveNode node.feID node.node.id node.node.parent desc)
-
-              else
-                Element.none
             , Button.copy (CopyNode node.feID node.node.id node.node.parent desc)
             , Button.clipboard (PasteNode node.feID node.node.id)
             ]
@@ -1436,21 +1451,7 @@ viewDeleteNode id parent =
 viewPasteNode : Int -> String -> CopyMove -> Element Msg
 viewPasteNode feID dest copyMove =
     let
-        noButton =
-            Form.button
-                { label = "no"
-                , color = colors.gray
-                , onPress = DiscardNodeOp
-                }
-
-        yesButton op =
-            Form.button
-                { label = "yes"
-                , color = colors.red
-                , onPress = op
-                }
-
-        discardButton =
+        cancelButton =
             Form.buttonRow
                 [ Form.button
                     { label = "cancel"
@@ -1459,14 +1460,30 @@ viewPasteNode feID dest copyMove =
                     }
                 ]
 
+        moveButton op =
+            Form.button
+                { label = "move"
+                , color = colors.darkgreen
+                , onPress = op
+                }
+
+        mirrorButton op =
+            Form.button
+                { label = "mirror"
+                , color = colors.blue
+                , onPress = op
+                }
+
+        duplicateButton op =
+            Form.button
+                { label = "duplicate"
+                , color = colors.red
+                , onPress = op
+                }
+
         cantCopySelf =
             [ text "Can't move/copy node to itself"
-            , discardButton
-            ]
-
-        sameParent =
-            [ text "Can't move/copy node to the same parent"
-            , discardButton
+            , cancelButton
             ]
     in
     el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
@@ -1474,7 +1491,7 @@ viewPasteNode feID dest copyMove =
             CopyMoveNone ->
                 row []
                     [ text "Select node to copy/move first"
-                    , discardButton
+                    , cancelButton
                     ]
 
             Copy id src desc ->
@@ -1483,29 +1500,20 @@ viewPasteNode feID dest copyMove =
                         cantCopySelf
 
                     else if src == dest then
-                        sameParent
+                        [ text <| "Copy " ++ desc ++ " here?"
+                        , Form.buttonRow
+                            [ duplicateButton <| ApiPutDuplicateNode feID id dest
+                            , cancelButton
+                            ]
+                        ]
 
                     else
                         [ text <| "Copy " ++ desc ++ " here?"
                         , Form.buttonRow
-                            [ yesButton <| ApiPutCopyNode feID id dest
-                            , noButton
-                            ]
-                        ]
-
-            Move id src desc ->
-                row [] <|
-                    if id == dest then
-                        cantCopySelf
-
-                    else if src == dest then
-                        sameParent
-
-                    else
-                        [ text <| "Move " ++ desc ++ " here?"
-                        , Form.buttonRow
-                            [ yesButton <| ApiPostMoveNode feID id src dest
-                            , noButton
+                            [ moveButton <| ApiPostMoveNode feID id src dest
+                            , mirrorButton <| ApiPutMirrorNode feID id dest
+                            , duplicateButton <| ApiPutDuplicateNode feID id dest
+                            , cancelButton
                             ]
                         ]
 
