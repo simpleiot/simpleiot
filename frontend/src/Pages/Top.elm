@@ -380,7 +380,7 @@ update msg model =
                 { token = model.auth.token
                 , id = id
                 , newParent = dest
-                , clone = False
+                , duplicate = False
                 , onResponse = ApiRespPutMirrorNode parent
                 }
             )
@@ -391,7 +391,7 @@ update msg model =
                 { token = model.auth.token
                 , id = id
                 , newParent = dest
-                , clone = True
+                , duplicate = True
                 , onResponse = ApiRespPutDuplicateNode parent
                 }
             )

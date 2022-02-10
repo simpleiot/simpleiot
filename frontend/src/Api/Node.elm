@@ -149,7 +149,7 @@ type alias NodeMove =
 type alias NodeCopy =
     { id : String
     , newParent : String
-    , clone : Bool
+    , duplicate : Bool
     }
 
 
@@ -230,12 +230,12 @@ encodeNodeMove nodeMove =
         ]
 
 
-encodeNodeAddParent : NodeCopy -> Encode.Value
-encodeNodeAddParent nodeCopy =
+encodeNodeCopy : NodeCopy -> Encode.Value
+encodeNodeCopy nodeCopy =
     Encode.object
         [ ( "id", Encode.string nodeCopy.id )
         , ( "newParent", Encode.string nodeCopy.newParent )
-        , ( "clone", Encode.bool nodeCopy.clone )
+        , ( "duplicate", Encode.bool nodeCopy.duplicate )
         ]
 
 
@@ -432,7 +432,7 @@ copy :
     { token : String
     , id : String
     , newParent : String
-    , clone : Bool
+    , duplicate : Bool
     , onResponse : Data Response -> msg
     }
     -> Cmd msg
@@ -445,9 +445,9 @@ copy options =
         , body =
             { id = options.id
             , newParent = options.newParent
-            , clone = options.clone
+            , duplicate = options.duplicate
             }
-                |> encodeNodeAddParent
+                |> encodeNodeCopy
                 |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
