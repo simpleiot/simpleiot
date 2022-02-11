@@ -100,8 +100,25 @@ func GetNodesForUser(nc *natsgo.Conn, userID string) ([]data.NodeEdge, error) {
 	return ret, nil
 }
 
-// SendNode is used to recursively send a node and children over nats
-func SendNode(src, dest *natsgo.Conn, node data.NodeEdge) error {
+// SendNode is used to send a node to a nats server. Can be
+// used to create nodes.
+func SendNode(nc *natsgo.Conn, node data.NodeEdge) error {
+	// we need to send the edge points first if we are creating
+	// a new node, otherwise the upstream will detect an ophraned node
+	// and create a new edge to the root node
+	if node.Parent != "" && node.Parent != "none" {
+		if len(node.EdgePoints) < 0 {
+			// edge should always have a tombstone point, set to false for root node
+			node.EdgePoints = []data.Point{{Time: time.Now(), Type: data.PointTypeTombstone}}
+		}
+
+		err := SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
+		if err != nil {
+			return fmt.Errorf("Error sending edge points: %w", err)
+
+		}
+	}
+
 	points := node.Points
 
 	points = append(points, data.Point{
@@ -109,34 +126,10 @@ func SendNode(src, dest *natsgo.Conn, node data.NodeEdge) error {
 		Text: node.Type,
 	})
 
-	err := SendNodePoints(dest, node.ID, points, true)
+	err := SendNodePoints(nc, node.ID, points, true)
 
 	if err != nil {
-		return fmt.Errorf("Error sending node upstream: %v", err)
-	}
-
-	if len(node.EdgePoints) < 0 {
-		// edge should always have a tombstone point, set to false for root node
-		node.EdgePoints = []data.Point{{Time: time.Now(), Type: data.PointTypeTombstone}}
-	}
-
-	err = SendEdgePoints(dest, node.ID, node.Parent, node.EdgePoints, true)
-	if err != nil {
-		return fmt.Errorf("Error sending edge points: %w", err)
-	}
-
-	// process child nodes
-	childNodes, err := GetNodeChildren(src, node.ID, "", false, false)
-	if err != nil {
-		return fmt.Errorf("Error getting node children: %v", err)
-	}
-
-	for _, childNode := range childNodes {
-		err := SendNode(src, dest, childNode)
-
-		if err != nil {
-			return fmt.Errorf("Error sending child node: %v", err)
-		}
+		return fmt.Errorf("Error sending node: %v", err)
 	}
 
 	return nil

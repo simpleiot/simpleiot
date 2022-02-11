@@ -452,12 +452,19 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 
 		nec.cacheEdges([]*data.Edge{edge})
 
+		nodeExists := true
 		ne, err := nec.getNodeAndEdges(edge.Down)
 		if err != nil {
-			return fmt.Errorf("getNodeAndEdges error: %w", err)
+			// if this is a new node, the node may not exist
+			// yet, which is OK
+			if err != data.ErrDocumentNotFound {
+				return fmt.Errorf("getNodeAndEdges error: %w", err)
+			}
+
+			nodeExists = false
 		}
 
-		if newEdge {
+		if newEdge && nodeExists {
 			ne.up = append(ne.up, edge)
 		}
 
@@ -467,9 +474,11 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 
 		sort.Sort(edge.Points)
 
-		err = nec.processNode(ne, newEdge)
-		if err != nil {
-			return fmt.Errorf("processNode error: %w", err)
+		if nodeExists {
+			err = nec.processNode(ne, newEdge)
+			if err != nil {
+				return fmt.Errorf("processNode error: %w", err)
+			}
 		}
 
 		err = nec.writeEdges()

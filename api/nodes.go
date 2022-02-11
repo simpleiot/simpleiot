@@ -199,14 +199,18 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := nats.SendEdgePoint(h.nc, id, nodeCopy.NewParent, data.Point{
-				Type:  data.PointTypeTombstone,
-				Value: 0,
-			}, true)
+			if !nodeCopy.Duplicate {
+				err := nats.SendEdgePoint(h.nc, id, nodeCopy.NewParent, data.Point{
+					Type:  data.PointTypeTombstone,
+					Value: 0,
+				}, true)
 
-			if err != nil {
-				http.Error(res, err.Error(), http.StatusNotFound)
-				return
+				if err != nil {
+					http.Error(res, err.Error(), http.StatusNotFound)
+					return
+				}
+			} else {
+
 			}
 
 			en := json.NewEncoder(res)
