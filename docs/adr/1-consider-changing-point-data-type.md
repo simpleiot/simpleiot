@@ -3,7 +3,7 @@
 - Author: Cliff Brake Last updated: 2021-11-04
 - Issue at: https://github.com/simpleiot/simpleiot/issues/254
 - PR/Discussion: https://github.com/simpleiot/simpleiot/pull/279
-- Status: Brainstorming
+- Status: Accepted
 
 ## Problem
 
@@ -764,4 +764,5 @@ We also took a look at how to resolve loops in the node tree:
 
 https://github.com/simpleiot/simpleiot/issues/294
 
-This is part of the verification to confirm our basic types are robust and have adequate CRDT properties.
+This is part of the verification to confirm our basic types are robust and have
+adequate CRDT properties.
