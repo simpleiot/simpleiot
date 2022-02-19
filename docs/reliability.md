@@ -1,7 +1,4 @@
-+++
-title = "Reliability"
-weight = 5
-+++
+# Reliability
 
 Reliability is an important consideration in any IoT system as these systems are
 often used to monitor and control critical systems and processes. Performance is

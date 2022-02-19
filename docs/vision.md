@@ -1,7 +1,4 @@
-+++
-title = "Vision"
-weight = 1
-+++
+# Vision 
 
 This document attempts to outlines the project philosophy and core values. The
 basics are covered in the [readme](../README.md). As the name suggests, a core

@@ -1,7 +1,4 @@
-+++
-title = "Development"
-weight = 3
-+++
+# Development
 
 ## Code Organization
 

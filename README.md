@@ -6,16 +6,15 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/simpleiot/simpleiot)](https://goreportcard.com/report/github.com/simpleiot/simpleiot)
 [![Slack Widget](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=red)](http://gophers.slack.com/messages/simpleiot)
 
-Simple IoT is collection of building blocks to help you build custom IoT systems
-quickly, but yet provide full flexibility to customize the system. Many features
-such as device communication, device update, rules, user/group management, user
-portal, etc. are needed for every IoT system. This project provides a solid
-foundation of common features so that you can focus on the specific problem you
-are solving.
+Implementing IoT systems is hard. Most projects take way longer and cost more
+than they should. Simple IoT is an attempt to change this by embracing the fact
+that IoT systems are inherently distributed and building on simple concepts that
+scale.
 
 ## Guiding principles
 
 1. Simple concepts are flexible and scale well.
+1. IoT systems are inheriently distributed, and distrbuted systems are hard.
 1. There are more problems to solve than people to solve them, thus it makes
    sense to collaborate on the common technology pieces.
 1. There are a lot of IoT applications that are
@@ -25,7 +24,7 @@ are solving.
    [long tail](https://www.linkedin.com/pulse/long-tail-iot-param-singh) of IoT,
    which is our focus.
 1. There is value in custom solutions (programming vs drag-n-drop).
-1. There is value in running/owning our own platform.
+1. There is value in running/owning our [own platform](https://tmpdir.org/014/).
 1. A single engineer should be able to build and deploy a custom IoT system.
 1. We don't need to spend excessive amounts of time on operations. For smaller
    deployments, we deploy one binary to a cloud server and we are done with
@@ -37,24 +36,20 @@ are solving.
    world. Thus a single server that can be quickly rebuilt as needed is adequate
    and in many cases more reliable than complex systems with many moving parts.
 
-## Core features/requirements:
+## Features
 
-1. Runs in cloud and edge instances.
-1. Configuration changes can be made at either cloud, UI, or edge and are
-   synchronized efficiently in any direction.
-1. Efficient use of network bandwidth for edge systems as most are connected via
+1. Runs in both cloud and edge instances.
+1. Configuration and value changes can be made at either cloud, UI, or edge and
+   are synchronized efficiently in any direction.
+1. Efficient use of network bandwidth for edge systems as many are connected via
    low cost cellular plans.
 1. Rules can run in cloud or edge devices depending on action required (sending
    notifications or controlling outputs).
 1. System supports user authentication and grouping users and devices at
    multiple levels.
-1. User interface updates to changes in real time.
+1. Responds to changes in real time.
 1. Easy to add custom logic/algorithms by adding processes written in any
    language that connect to Simple IoT via NATS.
-
-IoT Systems are inherently distributed, so even though we prefer a monolith for
-a cloud service, we can't get around the fact that we also need to synchronize
-data with edge devices and user interfaces.
 
 ![System topology](docs/images/distributed.png)
 

@@ -1,7 +1,4 @@
-+++
-title = "Research"
-weight = 100
-+++
+# Research
 
 This document contains information that has been researched during the course of
 creating Simple IoT.
