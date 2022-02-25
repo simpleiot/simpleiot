@@ -36,8 +36,6 @@ Please configure your editor to run code formatters:
   more people will be reading documentation than reviewing, lets optimize for
   the reading in all scenarios -- editor, Github, and generated docs)
 
-* [Environment Variables](environment-variables.md)
-
 ## Running unit tests
 
 There are not a lot of unit tests in the project yet, but below are some

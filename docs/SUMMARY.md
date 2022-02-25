@@ -18,4 +18,4 @@
 - [Database](ref/database.md)
 - [Notificaitons](ref/notifications.md)
 - [Security](ref/security.md)
-- [Vision](ref/vision.md)
+- [Research](ref/research.md)

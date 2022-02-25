@@ -5,8 +5,9 @@ one or more conditions and actions. All conditions must be true for the rule to
 be active.
 
 Rules are defined by nodes and are composed of additional child nodes for
-conditions and actions. See the node/point [schema](../data/rule.go) for more
-details.
+conditions and actions. See the node/point
+[schema](https://github.com/simpleiot/simpleiot/blob/master/data/rule.go) for
+more details.
 
 Node point changes cause rules of any parent node in the tree to be run. This
 allows general rules to be written higher in the tree that are common for all

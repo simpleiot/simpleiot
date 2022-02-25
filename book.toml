@@ -6,3 +6,6 @@ src = "docs"
 title = "Simple IoT"
 
 [preprocessor.toc]
+
+[output.linkcheck]
+follow-web-links = true
