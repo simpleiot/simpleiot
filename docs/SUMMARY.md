@@ -16,6 +16,6 @@
 - [Reliability](ref/reliability.md)
 - [API](ref/api.md)
 - [Database](ref/database.md)
-- [Notificaitons](ref/notifications.md)
+- [Notifications](ref/notifications.md)
 - [Security](ref/security.md)
 - [Research](ref/research.md)
