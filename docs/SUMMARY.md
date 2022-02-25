@@ -10,12 +10,12 @@
 
 # Reference Guide
 
-- [Vision](vision.md)
-- [Development](development.md)
-- [Architecture](architecture.md)
-- [Reliability](reliability.md)
-- [API](api.md)
-- [Database](database.md)
-- [Notificaitons](notifications.md)
-- [Security](security.md)
-- [Vision](vision.md)
+- [Vision](ref/vision.md)
+- [Development](ref/development.md)
+- [Architecture](ref/architecture.md)
+- [Reliability](ref/reliability.md)
+- [API](ref/api.md)
+- [Database](ref/database.md)
+- [Notificaitons](ref/notifications.md)
+- [Security](ref/security.md)
+- [Vision](ref/vision.md)
