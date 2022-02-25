@@ -7,5 +7,7 @@ title = "Simple IoT"
 
 [preprocessor.toc]
 
+[output.html]
+
 [output.linkcheck]
 follow-web-links = true
