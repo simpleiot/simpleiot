@@ -17,3 +17,4 @@ GITHUB_TOKEN
 local.sh
 /badger
 /frontend/.elm-spa
+/book

@@ -1,7 +1,8 @@
-+++
-title = "API"
-weight = 6
-+++
+# API
+
+**Contents**
+
+<!-- toc -->
 
 The Simple IoT server currently provides both Http and NATS.io APIs. We've tried
 to keep the two APIs a similar as possible so it is easy to switch from one to
@@ -36,8 +37,9 @@ Most APIs that do not return specific data (update/delete) return a
       the CmdPending flag in the Device state.
     - POST: posts a cmd for the node and sets the node CmdPending flag.
   - `/v1/nodes/:id/not`
-    - POST: send a [notification](../data/notification.md) to all node users and
-      upstream users
+    - POST: send a
+      [notification](https://github.com/simpleiot/simpleiot/blob/master/data/notification.go)
+      to all node users and upstream users
 - Auth
   - `/v1/auth`
     - POST: accepts `email` and `password` as form values, and returns a JWT
@@ -69,7 +71,7 @@ The `siot` binary embeds the NATS server, so there is no need to deploy and run
 a separate NATS server.
 
 For the NATS transport, protobuf encoding is used for all transfers and are
-defined [here](../internal/pb).
+defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
 
 - Nodes
   - `node.<id>`
@@ -96,9 +98,7 @@ defined [here](../internal/pb).
   - `node.<id>.file` (not currently implemented)
     - is used to transfer files to a node in chunks, which is optimized for
       unreliable networks like cellular and is handy for transfering software
-      update files. There is Go code [available](../api/nats-file.go) to manage
-      both ends of the transfer as well as a utility to [send](../cmd/siotutil)
-      files and an example [edge](../cmd/edge) application to receive files.
+      update files.
 - System
   - `error`
     - any errors that occur are sent to this subject
