@@ -51,26 +51,26 @@ scale.
 1. Easy to add custom logic/algorithms by adding processes written in any
    language that connect to Simple IoT via NATS.
 
-![System topology](docs/images/distributed.png)
+![System topology](docs/ref/images/distributed.png)
 
 Simple IoT is built on simple data structures arranged in a graph that allows
 for very flexible configurations.
 
-![Nodes](docs/images/nodes2.png)
+![Nodes](docs/ref/images/nodes2.png)
 
 Because the core of Simple IoT is designed with flexible data structures, adding
 functionality and supporting new devices is usually as simple as creating your
 custom edge device code and modifying the UI to display and configure your
 device features.
 
-![What changes](docs/images/constant-vs-varying-system-parts.png)
+![What changes](docs/ref/images/constant-vs-varying-system-parts.png)
 
 Though we are focusing on smaller deployments initially, there is no reason
 Simple IoT can't scale to large systems by swapping out the internal database
 for MongoDB/Dgraph/InfluxDB/etc.
 
-See [vision](docs/vision.md) and [architecture](docs/architecture.md) for
-addition discussion on these points.
+See [vision](docs/ref/vision.md) and [architecture](docs/ref/architecture.md)
+for addition discussion on these points.
 
 This project was developed while building real-world applications and has
 primarily been driven by these project requirements. This project provides
@@ -83,7 +83,7 @@ The Simple IoT project also includes open source gateway
 [firmware](https://github.com/simpleiot/firmware/tree/master/siot-fw) and
 [hardware](https://github.com/simpleiot/hardware) designs.
 
-[Detailed documentation](docs/README.md)
+[Detailed documentation](https://docs.simpleiot.org)
 
 ## Example 1
 
@@ -174,8 +174,8 @@ different package, or renamed -- feel free to ask if you run into problems.
 - [x] edit/save device config
 - [x] device management
 - [x] dashboard showing each device and collected parameters
-- [x] REST [api](docs/API.md) for devices
-- [x] [particle.io](docs/configuration.md) support
+- [x] REST [api](docs/ref/api.md) for devices
+- [x] [particle.io](docs/user/configuration.md) support
 - [x] boltdb support
 - [x] user authentication
 - [x] user accounts
@@ -183,8 +183,8 @@ different package, or renamed -- feel free to ask if you run into problems.
       devices they own).
 - [x] [Modbus RTU pkg](https://pkg.go.dev/github.com/simpleiot/simpleiot/modbus)
       (both client and server)
-- [x] [rules engine](docs/rules.md) (conditions/consequences)
-- [x] [sms](docs/configuration.md) notifications
+- [x] [rules engine](docs/user/rules.md) (conditions/consequences)
+- [x] [sms](docs/user/configuration.md) notifications
 - [x] [modem/network management](https://pkg.go.dev/github.com/simpleiot/simpleiot/network)
 - [x] NATS.io integration
 - [x] efficient protocols for cellular data connections (NATs/protobuf)
@@ -204,7 +204,7 @@ different package, or renamed -- feel free to ask if you run into problems.
 
 ## Support, Community, Contributing, etc.
 
-Pull requests are welcome -- see [development](docs/DEVELOPMENT.md) for more
+Pull requests are welcome -- see [development](docs/ref/development.md) for more
 thoughts on architecture, tooling, etc. Issues are labelled with "help wanted"
 and "good first issue" if you would like to contribute to this project.
 

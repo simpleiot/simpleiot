@@ -18,7 +18,8 @@ nats package, and other low level packages intended for use on devices.
 
 ### Directories
 
-See https://pkg.go.dev/github.com/simpleiot/simpleiot#section-directories
+See Go docs
+[directory descriptions](https://pkg.go.dev/github.com/simpleiot/simpleiot#section-directories)
 
 ## Coding Standards
 

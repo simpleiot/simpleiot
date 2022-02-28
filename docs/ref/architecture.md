@@ -1,7 +1,7 @@
 # Architecture
 
 This document describes how the Simple IoT project fulfills the basic
-requirements as described in the top level [README](../README.md).
+requirements as described in the top level [README](../../).
 
 **Contents**
 

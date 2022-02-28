@@ -2,7 +2,7 @@
 authors = ["Cliff Brake"]
 language = "en"
 multilingual = false
-src = "docs"
+src = "."
 title = "Simple IoT"
 
 [preprocessor.toc]
@@ -10,4 +10,4 @@ title = "Simple IoT"
 [output.html]
 
 [output.linkcheck]
-follow-web-links = true
+#follow-web-links = true

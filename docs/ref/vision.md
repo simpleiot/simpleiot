@@ -1,12 +1,12 @@
-# Vision 
+# Vision
 
 This document attempts to outlines the project philosophy and core values. The
-basics are covered in the [readme](../README.md). As the name suggests, a core
-value of the project is simplicity. Thus any changes should be made with this in
-mind. Although this project has already proven useful on several real-world
-project, it is a work in progress and will continue to improve. As we continue
-to explore and refine the project, many things are getting simpler and more
-flexible. This process takes time and effort.
+basics are covered in the [readme](../../). As the name suggests, a core value
+of the project is simplicity. Thus any changes should be made with this in mind.
+Although this project has already proven useful on several real-world project,
+it is a work in progress and will continue to improve. As we continue to explore
+and refine the project, many things are getting simpler and more flexible. This
+process takes time and effort.
 
 > “When you first start off trying to solve a problem, the first solutions you
 > come up with are very complex, and most people stop there. But if you keep
