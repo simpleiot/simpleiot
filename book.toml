@@ -8,6 +8,8 @@ title = "Simple IoT"
 [preprocessor.toc]
 
 [output.html]
+git-repository-url = "https://github.com/simpleiot/simpleiot"
+edit-url-template = "https://github.com/simpleiot/simpleiot/edit/master/{path}"
 
 [output.linkcheck]
 #follow-web-links = true
