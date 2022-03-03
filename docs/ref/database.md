@@ -1,7 +1,4 @@
-+++
-title = "Database"
-weight = 7
-+++
+# Database
 
 Currently, Simple IoT supports [bbolt](https://github.com/etcd-io/bbolt) as a
 data store. This is an embedded keyvalue store that is used similar to how NoSQL

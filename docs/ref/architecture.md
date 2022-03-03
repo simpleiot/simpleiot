@@ -1,10 +1,11 @@
-+++
-title = "Architecture"
-weight = 4
-+++
+# Architecture
 
 This document describes how the Simple IoT project fulfills the basic
-requirements as described in the top level [README](../README.md).
+requirements as described in the top level [README](../../).
+
+**Contents**
+
+<!-- toc -->
 
 ## IoT Systems are distributed systems
 
@@ -83,17 +84,21 @@ support new sensors and applications.
 
 ![Constant vs Varying parts of System](images/constant-vs-varying-system-parts.png)
 
-The core data structures are currently defined in the [`data`](../data)
-directory for Go code, and [`frontend/src/Data`](../frontend/src/Api) directory
-for Elm code. The fundamental data structures for the system are
-[`Nodes`](../data/node.go), [`Points`](../data/point.go), and
-[`Edges`](../data/edge.go). A `Node` can have one or more `Points`. A `Point`
-can represent a sensor value, or a configuration parameter for the node. With
-sensor values and configuration represented as `Points`, it becomes easy to use
-both sensor data and configuration in rule or equations because the mechanism to
-use both is the same. Additionally, if all `Point` changes are recorded in a
-time series database (for instance Influxdb), you automatically have a record of
-all configuration and sensor changes for a `node`.
+The core data structures are currently defined in the
+[`data`](https://github.com/simpleiot/simpleiot/tree/master/data) directory for
+Go code, and
+[`frontend/src/Api`](https://github.com/simpleiot/simpleiot/tree/master/frontend/src/Api)
+directory for Elm code. The fundamental data structures for the system are
+[`Nodes`](https://github.com/simpleiot/simpleiot/blob/master/data/node.go),
+[`Points`](https://github.com/simpleiot/simpleiot/blob/master/data/point.go),
+and [`Edges`]()https://github.com/simpleiot/simpleiot/blob/master/data/edge.go.
+A `Node` can have one or more `Points`. A `Point` can represent a sensor value,
+or a configuration parameter for the node. With sensor values and configuration
+represented as `Points`, it becomes easy to use both sensor data and
+configuration in rule or equations because the mechanism to use both is the
+same. Additionally, if all `Point` changes are recorded in a time series
+database (for instance Influxdb), you automatically have a record of all
+configuration and sensor changes for a `node`.
 
 Treating most data as `Points` also has another benefit in that we can easily
 simulate a device -- simply provide a UI or write a program to modify any point

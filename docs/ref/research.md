@@ -1,7 +1,4 @@
-+++
-title = "Research"
-weight = 100
-+++
+# Research
 
 This document contains information that has been researched during the course of
 creating Simple IoT.
@@ -42,9 +39,7 @@ Has some interesting ideas.
     specialized merkle trees to manage versions of files and even directories.
     One advantage of using merkle trees in version control systems is we can
     simply compare hashes of files and directories between two commits to know
-    if they've been modified or not, which is quite fast. This
-    [post](https://blog.sourced.tech/post/difftree/) discusses in detail how the
-    entire process works.
+    if they've been modified or not, which is quite fast.
   - No-SQL distributed database systems like Apache Cassandra and Amazon
     DynamoDB use merkle trees to detect inconsistencies between data replicas.
     This process of repairing the data by comparing all replicas and updating

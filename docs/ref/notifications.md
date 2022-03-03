@@ -1,7 +1,4 @@
-+++
-title = "Notifications"
-weight = 9
-+++
+# Notifications
 
 Notifications are messages that are sent to users. There several concerns when
 processing a notification:
