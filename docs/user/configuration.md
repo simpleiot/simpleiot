@@ -1,7 +1,4 @@
-+++
-title = "Configuration"
-weight = 2
-+++
+# Configuration 
 
 Environment variables are used to control various aspects of the application.
 The following are currently defined:

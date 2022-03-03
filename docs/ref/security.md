@@ -1,7 +1,4 @@
-+++
-title = "Security"
-weight = 98
-+++
+# Security
 
 Several classes of users/devices will need access to the system:
 

@@ -1,28 +1,21 @@
-+++
-title = "Rules"
-weight = 8
-+++
+# Rules
+
+**Contents**
+
+<!-- toc -->
 
 The Simple IoT application has the ability to run rules. That are composed of
 one or more conditions and actions. All conditions must be true for the rule to
 be active.
 
-Rules are defined by nodes and are composed of additional child nodes for
-conditions and actions. See the node/point [schema](../data/rule.go) for more
-details.
-
 Node point changes cause rules of any parent node in the tree to be run. This
 allows general rules to be written higher in the tree that are common for all
 device nodes (for instance device offline).
 
-All points should be sent out periodically, even if values are not changing to
-indicate a node is still alive and eliminate the need to periodically run rules.
-Even things like system state should be sent out to trigger device/node offline
-notifications.
+In the below configuration, a change in the SBC propagates up the node tree,
+thus both the `D5 on rule` or the `Device offline rule` are eligible to be run.
 
-If a rule has not received points that meet the condition qualifications in 30m,
-it is considered offline and marked as such in the UI. This helps us detect
-stale rules, or rules that do not have working conditions.
+![rules](images/rules.png)
 
 ## Conditions
 
@@ -31,21 +24,24 @@ condition is considered met. This allows timing to be encoded in the rules.
 
 ### Node state
 
-A node state condition looks at the point value of a node to determine if a
+A point value condition looks at the point value of a node to determine if a
 condition is met. Qualifiers that filter points the condition is interested in
 may be set including:
 
 - node ID (if left blank, any node that is a descendent of the rule parent)
-- point ID
 - point type ("value" is probably the most common type)
-- point index
+- point Key (used to index into point arrays and objects)
 
 If the provided qualification is met, then the condition may check the point
 value/text fields for a number of conditions including:
 
-- number: >, <, =, !=
-- text: =, !=, contains
-- boolean: on, off
+- number: `>`, `<`, `=`, `!=`
+- text: `=`, `!=`, `contains`
+- boolean: `on`, `off`
+
+### Schedule
+
+TODO:
 
 ## Actions
 
@@ -69,16 +65,6 @@ the rule with the following fields:
 
 Before sending a notification we scan the points of the rule looking for when
 the last notification was sent to decide if its time to send it.
-
-A rule notitifcation action has an optional Template field that can be used to
-populate a Go template that can be used customize the notification to include
-arbitrary points from source node points.
-
-The below is an example of template:
-
-```
-Sentry Alert. {{.Description}} was ARMED with target flow rate of {{printf "%.1f" (index .Ios "flowRateTarget")}} and with tank level of {{printf "%.1f" (index .Ios "currentTankVolume")}}.
-```
 
 ### Set node point
 

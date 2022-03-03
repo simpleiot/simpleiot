@@ -1,7 +1,4 @@
-+++
-title = "FAQ"
-weight = 99
-+++
+# Frequently Asked Questions
 
 ### Q: How is this project different than Home Assistant, OpenHAB, Domoticz, etc.?
 
