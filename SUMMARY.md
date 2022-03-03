@@ -5,11 +5,13 @@
 # User Guide
 
 - [Installation](docs/user/installation.md)
-- [Configuration](docs/user/configuration.md)
-- [Modbus](docs/user/modbus.md)
+- [User Interface](docs/user/ui.md)
+- [Users/Groups](docs/user/users-groups.md)
 - [Rules](docs/user/rules.md)
 - [Notifications](docs/user/notifications.md)
+- [Modbus](docs/user/modbus.md)
 - [Graphing](docs/user/graphing.md)
+- [Configuration](docs/user/configuration.md)
 - [FAQ](docs/user/faq.md)
 
 # Reference Guide
@@ -20,6 +22,7 @@
 - [Reliability](docs/ref/reliability.md)
 - [API](docs/ref/api.md)
 - [Database](docs/ref/database.md)
+- [Rules](docs/ref/rules.md)
 - [Notifications](docs/ref/notifications.md)
 - [Security](docs/ref/security.md)
 - [Research](docs/ref/research.md)
