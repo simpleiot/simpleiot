@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/internal/pb"
@@ -106,18 +107,6 @@ func SendNode(nc *natsgo.Conn, node data.NodeEdge) error {
 	// we need to send the edge points first if we are creating
 	// a new node, otherwise the upstream will detect an ophraned node
 	// and create a new edge to the root node
-	if node.Parent != "" && node.Parent != "none" {
-		if len(node.EdgePoints) < 0 {
-			// edge should always have a tombstone point, set to false for root node
-			node.EdgePoints = []data.Point{{Time: time.Now(), Type: data.PointTypeTombstone}}
-		}
-
-		err := SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
-		if err != nil {
-			return fmt.Errorf("Error sending edge points: %w", err)
-
-		}
-	}
 
 	points := node.Points
 
@@ -132,5 +121,69 @@ func SendNode(nc *natsgo.Conn, node data.NodeEdge) error {
 		return fmt.Errorf("Error sending node: %v", err)
 	}
 
+	if node.Parent != "" && node.Parent != "none" {
+		if len(node.EdgePoints) < 0 {
+			// edge should always have a tombstone point, set to false for root node
+			node.EdgePoints = []data.Point{{Time: time.Now(), Type: data.PointTypeTombstone}}
+		}
+
+		err := SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
+		if err != nil {
+			return fmt.Errorf("Error sending edge points: %w", err)
+
+		}
+	}
+
 	return nil
+}
+
+func duplicateNodeHelper(nc *natsgo.Conn, node data.NodeEdge, newParent string) error {
+	children, err := GetNodeChildren(nc, node.ID, "", false, false)
+	if err != nil {
+		return fmt.Errorf("GetNodeChildren error: %v", err)
+	}
+
+	// create new ID for duplicate node
+	node.ID = uuid.New().String()
+	node.Parent = newParent
+
+	err = SendNode(nc, node)
+	if err != nil {
+		return fmt.Errorf("SendNode error: %v", err)
+	}
+
+	for _, c := range children {
+		err := duplicateNodeHelper(nc, c, node.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// DuplicateNode is used to Duplicate a node and all its children
+func DuplicateNode(nc *natsgo.Conn, id, newParent string) error {
+	nodes, err := GetNode(nc, id, "none")
+	if err != nil {
+		return fmt.Errorf("GetNode error: %v", err)
+	}
+
+	if len(nodes) < 1 {
+		return fmt.Errorf("No nodes returned")
+	}
+
+	node := nodes[0]
+
+	switch node.Type {
+	case data.NodeTypeUser:
+		lastName, _ := node.Points.Text(data.PointTypeLastName, "")
+		lastName = lastName + " (Duplicate)"
+		node.AddPoint(data.Point{Type: data.PointTypeLastName, Text: lastName})
+	default:
+		desc := node.Desc() + " (Duplicate)"
+		node.AddPoint(data.Point{Type: data.PointTypeDescription, Text: desc})
+	}
+
+	return duplicateNodeHelper(nc, node, newParent)
 }

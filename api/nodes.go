@@ -210,7 +210,12 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 					return
 				}
 			} else {
+				err := nats.DuplicateNode(h.nc, id, nodeCopy.NewParent)
 
+				if err != nil {
+					http.Error(res, err.Error(), http.StatusNotFound)
+					return
+				}
 			}
 
 			en := json.NewEncoder(res)
@@ -272,22 +277,7 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
 		node.ID = uuid.New().String()
 	}
 
-	node.Points = append(node.Points, data.Point{
-		Type: data.PointTypeNodeType,
-		Text: node.Type,
-	})
-
-	err := nats.SendNodePoints(h.nc, node.ID, node.Points, true)
-
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = nats.SendEdgePoint(h.nc, node.ID, node.Parent, data.Point{
-		Type:  data.PointTypeTombstone,
-		Value: 0,
-	}, true)
+	err := nats.SendNode(h.nc, node)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusNotFound)

@@ -739,7 +739,7 @@ func (b *Modbus) Run() {
 		case point := <-b.chPoint:
 			p := point.point
 			if point.id == b.busNode.nodeID {
-				b.node.ProcessPoint(p)
+				b.node.AddPoint(p)
 				var err error
 				b.busNode, err = NewModbusNode(b.node)
 				if err != nil {

@@ -377,7 +377,7 @@ func txSetTombstone(tx *genji.Tx, down, up string, tombstone bool) error {
 	current, _ := edge.Points.ValueBool(data.PointTypeTombstone, "")
 
 	if current != tombstone {
-		edge.Points.ProcessPoint(data.Point{
+		edge.Points.Add(data.Point{
 			Type:  data.PointTypeTombstone,
 			Value: data.BoolToFloat(tombstone),
 			Time:  time.Now(),
@@ -469,7 +469,7 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 		}
 
 		for _, point := range points {
-			edge.Points.ProcessPoint(point)
+			edge.Points.Add(point)
 		}
 
 		sort.Sort(edge.Points)
@@ -537,14 +537,14 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 				continue
 			}
 
-			ne.node.Points.ProcessPoint(point)
+			ne.node.Points.Add(point)
 		}
 
 		/*
 			 * FIXME: need to clean up offline processing
 			state := node.State()
 			if state != data.PointValueSysStateOnline {
-				node.Points.ProcessPoint(
+				node.Points.Add(
 					data.Point{
 						Time: time.Now(),
 						Type: data.PointTypeSysState,
