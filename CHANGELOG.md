@@ -16,6 +16,7 @@ For more details or to discuss releases, please visit the
 - improvement in UI to fix collapsing nodes #259
 - implemented functionality to duplicate nodes and refactored
   copy/move/mirror/duplicate UI (#312)
+- update nats-server from v2.6.6 -> v2.7.4 (and associated dependencies)
 
 ## [[0.0.42] - 2022-02-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.42)
 
