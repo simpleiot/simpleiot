@@ -11,7 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.43] - 2022-03-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.43)
+
 - improvement in UI to fix collapsing nodes #259
+- implemented functionality to duplicate nodes and refactored
+  copy/move/mirror/duplicate UI (#312)
 
 ## [[0.0.42] - 2022-02-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.42)
 
