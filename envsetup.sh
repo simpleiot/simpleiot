@@ -20,7 +20,7 @@ bbolt() {
 #}
 
 siot_install_proto_gen_go() {
-  cd ~ && go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+  cd ~ && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
   cd - || exit
 }
 
@@ -196,6 +196,7 @@ siot_setup_influx() {
 siot_protobuf() {
   echo "generating protobufs"
   protoc --proto_path=internal/pb internal/pb/*.proto --go_out=./ || return 1
+  protoc --proto_path=internal/pb internal/pb/*.proto --js_out=import_style=commonjs,binary:./internal/pb/ || return 1
 }
 
 siot_edge_run() {
