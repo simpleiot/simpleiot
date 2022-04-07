@@ -289,9 +289,9 @@ func (n *NodeEdge) ToPbNode() (*pb.Node, error) {
 	return pbNode, nil
 }
 
-// ProcessPoint takes a point for a device and adds/updates its array of points
-func (n *NodeEdge) ProcessPoint(pIn Point) {
-	n.Points.ProcessPoint(pIn)
+// AddPoint takes a point for a device and adds/updates its array of points
+func (n *NodeEdge) AddPoint(pIn Point) {
+	n.Points.Add(pIn)
 }
 
 // bytesLess compares two slices of bytes and returns true if a is less than b

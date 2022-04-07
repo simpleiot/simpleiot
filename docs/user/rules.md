@@ -15,7 +15,7 @@ device nodes (for instance device offline).
 In the below configuration, a change in the SBC propagates up the node tree,
 thus both the `D5 on rule` or the `Device offline rule` are eligible to be run.
 
-![rules](images/rules.png)
+<img src="images/rules.png" alt="rules" style="zoom:50%;" />
 
 ## Conditions
 

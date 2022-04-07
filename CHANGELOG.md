@@ -11,7 +11,27 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.44] - 2022-04-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.44)
+
+- UI: fix bug where copy node crashes UI if no on secure URL or localhost (#341)
+- support clone/duplicate node (as well as mirror) operation (#312). Now when
+  you copy and paste a node, you will be presented with a list of options as
+  shown below. The new duplicate option allows you to easily replicate complex
+  setups (for instance a bunch of modbus points) from an existing site to a new
+  site.
+
+![copy options](https://user-images.githubusercontent.com/402813/153455487-66bc2699-1026-40de-9ca6-4f30f91aeff9.png)
+
+See
+[documenation](https://docs.simpleiot.org/docs/user/ui.html#deleting-moving-mirroring-and-duplicating-nodes)
+or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
+
+## [[0.0.43] - 2022-03-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.43)
+
 - improvement in UI to fix collapsing nodes #259
+- implemented functionality to duplicate nodes and refactored
+  copy/move/mirror/duplicate UI (#312)
+- update nats-server from v2.6.6 -> v2.7.4 (and associated dependencies)
 
 ## [[0.0.42] - 2022-02-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.42)
 

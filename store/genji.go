@@ -377,7 +377,7 @@ func txSetTombstone(tx *genji.Tx, down, up string, tombstone bool) error {
 	current, _ := edge.Points.ValueBool(data.PointTypeTombstone, "")
 
 	if current != tombstone {
-		edge.Points.ProcessPoint(data.Point{
+		edge.Points.Add(data.Point{
 			Type:  data.PointTypeTombstone,
 			Value: data.BoolToFloat(tombstone),
 			Time:  time.Now(),
@@ -452,24 +452,33 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 
 		nec.cacheEdges([]*data.Edge{edge})
 
+		nodeExists := true
 		ne, err := nec.getNodeAndEdges(edge.Down)
 		if err != nil {
-			return fmt.Errorf("getNodeAndEdges error: %w", err)
+			// if this is a new node, the node may not exist
+			// yet, which is OK
+			if err != data.ErrDocumentNotFound {
+				return fmt.Errorf("getNodeAndEdges error: %w", err)
+			}
+
+			nodeExists = false
 		}
 
-		if newEdge {
+		if newEdge && nodeExists {
 			ne.up = append(ne.up, edge)
 		}
 
 		for _, point := range points {
-			edge.Points.ProcessPoint(point)
+			edge.Points.Add(point)
 		}
 
 		sort.Sort(edge.Points)
 
-		err = nec.processNode(ne, newEdge)
-		if err != nil {
-			return fmt.Errorf("processNode error: %w", err)
+		if nodeExists {
+			err = nec.processNode(ne, newEdge)
+			if err != nil {
+				return fmt.Errorf("processNode error: %w", err)
+			}
 		}
 
 		err = nec.writeEdges()
@@ -528,14 +537,14 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 				continue
 			}
 
-			ne.node.Points.ProcessPoint(point)
+			ne.node.Points.Add(point)
 		}
 
 		/*
 			 * FIXME: need to clean up offline processing
 			state := node.State()
 			if state != data.PointValueSysStateOnline {
-				node.Points.ProcessPoint(
+				node.Points.Add(
 					data.Point{
 						Time: time.Now(),
 						Type: data.PointTypeSysState,

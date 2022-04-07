@@ -279,6 +279,33 @@ func (up *Upstream) addUpstreamEdgeSub(nodeID, parentID string) error {
 	return nil
 }
 
+// sendNodesUp is used to send node and children over nats
+// from one NATS server to another. Typically from the current instance
+// to an upstream.
+func (up *Upstream) sendNodesUp(node data.NodeEdge) error {
+	err := nats.SendNode(up.ncUp, node)
+
+	if err != nil {
+		return err
+	}
+
+	// process child nodes
+	childNodes, err := nats.GetNodeChildren(up.nc, node.ID, "", false, false)
+	if err != nil {
+		return fmt.Errorf("Error getting node children: %v", err)
+	}
+
+	for _, childNode := range childNodes {
+		err := up.sendNodesUp(childNode)
+
+		if err != nil {
+			return fmt.Errorf("Error sending child node: %v", err)
+		}
+	}
+
+	return nil
+}
+
 func (up *Upstream) syncNode(id, parent string) error {
 	nodeLocals, err := nats.GetNode(up.nc, id, parent)
 	if err != nil {
@@ -302,7 +329,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 	if len(nodeUps) == 0 || upErr == data.ErrDocumentNotFound {
 		log.Printf("Upstream node %v does not exist, sending\n", nodeLocal.Desc())
-		err := nats.SendNode(up.nc, up.ncUp, nodeLocal)
+		err := up.sendNodesUp(nodeLocal)
 		if err != nil {
 			return fmt.Errorf("Error sending node upstream: %w", err)
 		}
@@ -434,7 +461,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 			if !found {
 				// need to send node upstream
-				err := nats.SendNode(up.nc, up.ncUp, child)
+				err := up.sendNodesUp(child)
 
 				if err != nil {
 					log.Println("Error sending node upstream: ", err)
@@ -449,7 +476,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 		for i, upChild := range upChildren {
 			if _, ok := upChildProcessed[i]; !ok {
-				err := nats.SendNode(up.ncUp, up.nc, upChild)
+				err := up.sendNodesUp(upChild)
 				if err != nil {
 					log.Println("Error getting node from upstream: ", err)
 				}
