@@ -75,7 +75,6 @@ proto.pb.Node.toObject = function(includeInstance, msg) {
     pointsList: jspb.Message.toObjectList(msg.getPointsList(),
     point_pb.Point.toObject, includeInstance),
     hash: msg.getHash_asB64(),
-    tombstone: jspb.Message.getFieldWithDefault(msg, 5, false),
     parent: jspb.Message.getFieldWithDefault(msg, 6, ""),
     edgepointsList: jspb.Message.toObjectList(msg.getEdgepointsList(),
     point_pb.Point.toObject, includeInstance)
@@ -131,10 +130,6 @@ proto.pb.Node.deserializeBinaryFromReader = function(msg, reader) {
     case 4:
       var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setHash(value);
-      break;
-    case 5:
-      var value = /** @type {boolean} */ (reader.readBool());
-      msg.setTombstone(value);
       break;
     case 6:
       var value = /** @type {string} */ (reader.readString());
@@ -200,13 +195,6 @@ proto.pb.Node.serializeBinaryToWriter = function(message, writer) {
   if (f.length > 0) {
     writer.writeBytes(
       4,
-      f
-    );
-  }
-  f = message.getTombstone();
-  if (f) {
-    writer.writeBool(
-      5,
       f
     );
   }
@@ -325,23 +313,6 @@ proto.pb.Node.prototype.getHash_asU8 = function() {
 /** @param {!(string|Uint8Array)} value */
 proto.pb.Node.prototype.setHash = function(value) {
   jspb.Message.setProto3BytesField(this, 4, value);
-};
-
-
-/**
- * optional bool tombstone = 5;
- * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
- * You should avoid comparisons like {@code val === true/false} in those cases.
- * @return {boolean}
- */
-proto.pb.Node.prototype.getTombstone = function() {
-  return /** @type {boolean} */ (jspb.Message.getFieldWithDefault(this, 5, false));
-};
-
-
-/** @param {boolean} value */
-proto.pb.Node.prototype.setTombstone = function(value) {
-  jspb.Message.setProto3BooleanField(this, 5, value);
 };
 
 
