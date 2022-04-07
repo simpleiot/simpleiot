@@ -22,6 +22,10 @@ For more details or to discuss releases, please visit the
 
 ![copy options](https://user-images.githubusercontent.com/402813/153455487-66bc2699-1026-40de-9ca6-4f30f91aeff9.png)
 
+See
+[documenation](https://docs.simpleiot.org/docs/user/ui.html#deleting-moving-mirroring-and-duplicating-nodes)
+or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
+
 ## [[0.0.43] - 2022-03-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.43)
 
 - improvement in UI to fix collapsing nodes #259
