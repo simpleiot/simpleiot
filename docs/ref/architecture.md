@@ -14,7 +14,7 @@ between a number of different systems including:
 
 1. Cloud (one to several instances depending on the level of reliability
    desired)
-2. Edge nodes (many instances)
+2. Edge devices (many instances)
 3. User Interface (phone, browser)
 
 ![IoT Distributed System](images/distributed.png)
@@ -105,12 +105,16 @@ simulate a device -- simply provide a UI or write a program to modify any point
 and we can shift from working on real data to simulating scenarios we want to
 test.
 
-`Edges` are used to describe the relationships between nodes as a graph. `Nodes`
-can have parents or children and thus be represented in a hierarchy. To add
-structure to the system, you simply add nested `Nodes`. The `Node` hierarchy can
-represent the physical structure of the system, or it could also contain virtual
-`Nodes`. These virtual nodes could contain logic to process data from sensors.
-Several examples of virtual nodes:
+`Edges` are used to describe the relationships between nodes as a
+[directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
+
+![dag](images/dag.svg)
+
+`Nodes` can have parents or children and thus be represented in a hierarchy. To
+add structure to the system, you simply add nested `Nodes`. The `Node` hierarchy
+can represent the physical structure of the system, or it could also contain
+virtual `Nodes`. These virtual nodes could contain logic to process data from
+sensors. Several examples of virtual nodes:
 
 - a pump `Node` that converts motor current readings into pump events.
 - implement moving averages, scaling, etc on sensor data.
