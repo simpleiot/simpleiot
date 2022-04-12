@@ -34,6 +34,7 @@ type Options struct {
 	NatsTLSTimeout    float64
 	AuthToken         string
 	ParticleAPIKey    string
+	AppVersion        string
 }
 
 // Siot is used to manage the Siot server
@@ -122,7 +123,7 @@ func (s *Siot) Start() (*natsgo.Conn, error) {
 		return nil, fmt.Errorf("Error connecting to NATs server: %v", err)
 	}
 
-	nodeManager := node.NewManger(nc)
+	nodeManager := node.NewManger(nc, o.AppVersion)
 	err = nodeManager.Init()
 	if err != nil {
 		return nil, fmt.Errorf("Error initializing node manager: %v", err)
