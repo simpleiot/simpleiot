@@ -128,10 +128,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := nats.SendEdgePoint(h.nc, id, nodeDelete.Parent, data.Point{
-				Type:  data.PointTypeTombstone,
-				Value: 1,
-			}, true)
+			err := nats.DeleteNode(h.nc, id, nodeDelete.Parent)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
@@ -163,25 +160,8 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			if nodeMove.NewParent == nodeMove.OldParent {
-				http.Error(res, "can't move node to itself", http.StatusNotFound)
-				return
-			}
-
-			err := nats.SendEdgePoint(h.nc, id, nodeMove.NewParent, data.Point{
-				Type:  data.PointTypeTombstone,
-				Value: 0,
-			}, true)
-
-			if err != nil {
-				http.Error(res, err.Error(), http.StatusNotFound)
-				return
-			}
-
-			err = nats.SendEdgePoint(h.nc, id, nodeMove.OldParent, data.Point{
-				Type:  data.PointTypeTombstone,
-				Value: 1,
-			}, true)
+			err := nats.MoveNode(h.nc, id, nodeMove.OldParent,
+				nodeMove.NewParent)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
@@ -200,10 +180,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			if !nodeCopy.Duplicate {
-				err := nats.SendEdgePoint(h.nc, id, nodeCopy.NewParent, data.Point{
-					Type:  data.PointTypeTombstone,
-					Value: 0,
-				}, true)
+				err := nats.MirrorNode(h.nc, id, nodeCopy.NewParent)
 
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusNotFound)

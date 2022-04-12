@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- add DeleteNode, MoveNode, and MirrorNode to
+  [nats package](https://pkg.go.dev/github.com/simpleiot/simpleiot@v0.0.44/nats).
+
 ## [[0.0.44] - 2022-04-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.44)
 
 - UI: fix bug where copy node crashes UI if no on secure URL or localhost (#341)

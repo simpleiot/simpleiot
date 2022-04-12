@@ -1,6 +1,7 @@
 package nats
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -186,4 +187,52 @@ func DuplicateNode(nc *natsgo.Conn, id, newParent string) error {
 	}
 
 	return duplicateNodeHelper(nc, node, newParent)
+}
+
+// DeleteNode removes a node from the specified parent node
+func DeleteNode(nc *natsgo.Conn, id, parent string) error {
+	err := SendEdgePoint(nc, id, parent, data.Point{
+		Type:  data.PointTypeTombstone,
+		Value: 1,
+	}, true)
+
+	return err
+}
+
+// MoveNode moves a node from one parent to another
+func MoveNode(nc *natsgo.Conn, id, oldParent, newParent string) error {
+	if newParent == oldParent {
+		return errors.New("can't move node to itself")
+	}
+
+	err := SendEdgePoint(nc, id, newParent, data.Point{
+		Type:  data.PointTypeTombstone,
+		Value: 0,
+	}, true)
+
+	if err != nil {
+		return err
+	}
+
+	err = SendEdgePoint(nc, id, oldParent, data.Point{
+		Type:  data.PointTypeTombstone,
+		Value: 1,
+	}, true)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MirrorNode adds a an existing node to a new parent. A node can have
+// multiple parents.
+func MirrorNode(nc *natsgo.Conn, id, newParent string) error {
+	err := SendEdgePoint(nc, id, newParent, data.Point{
+		Type:  data.PointTypeTombstone,
+		Value: 0,
+	}, true)
+
+	return err
 }
