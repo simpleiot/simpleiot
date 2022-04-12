@@ -180,10 +180,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			if !nodeCopy.Duplicate {
-				err := nats.SendEdgePoint(h.nc, id, nodeCopy.NewParent, data.Point{
-					Type:  data.PointTypeTombstone,
-					Value: 0,
-				}, true)
+				err := nats.MirrorNode(h.nc, id, nodeCopy.NewParent)
 
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusNotFound)

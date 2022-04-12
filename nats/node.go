@@ -225,3 +225,14 @@ func MoveNode(nc *natsgo.Conn, id, oldParent, newParent string) error {
 
 	return nil
 }
+
+// MirrorNode adds a an existing node to a new parent. A node can have
+// multiple parents.
+func MirrorNode(nc *natsgo.Conn, id, newParent string) error {
+	err := SendEdgePoint(nc, id, newParent, data.Point{
+		Type:  data.PointTypeTombstone,
+		Value: 0,
+	}, true)
+
+	return err
+}
