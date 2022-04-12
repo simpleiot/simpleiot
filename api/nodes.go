@@ -128,10 +128,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := nats.SendEdgePoint(h.nc, id, nodeDelete.Parent, data.Point{
-				Type:  data.PointTypeTombstone,
-				Value: 1,
-			}, true)
+			err := nats.DeleteNode(h.nc, id, nodeDelete.Parent)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)

@@ -187,3 +187,13 @@ func DuplicateNode(nc *natsgo.Conn, id, newParent string) error {
 
 	return duplicateNodeHelper(nc, node, newParent)
 }
+
+// DeleteNode removes a node from the specified parent node
+func DeleteNode(nc *natsgo.Conn, id, parent string) error {
+	err := SendEdgePoint(nc, id, parent, data.Point{
+		Type:  data.PointTypeTombstone,
+		Value: 1,
+	}, true)
+
+	return err
+}
