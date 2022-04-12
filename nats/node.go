@@ -1,6 +1,7 @@
 package nats
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -196,4 +197,31 @@ func DeleteNode(nc *natsgo.Conn, id, parent string) error {
 	}, true)
 
 	return err
+}
+
+// MoveNode moves a node from one parent to another
+func MoveNode(nc *natsgo.Conn, id, oldParent, newParent string) error {
+	if newParent == oldParent {
+		return errors.New("can't move node to itself")
+	}
+
+	err := SendEdgePoint(nc, id, newParent, data.Point{
+		Type:  data.PointTypeTombstone,
+		Value: 0,
+	}, true)
+
+	if err != nil {
+		return err
+	}
+
+	err = SendEdgePoint(nc, id, oldParent, data.Point{
+		Type:  data.PointTypeTombstone,
+		Value: 1,
+	}, true)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
