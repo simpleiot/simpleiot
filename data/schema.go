@@ -50,9 +50,9 @@ const (
 	PointTypeSwUpdateRunning      = "swUpdateRunning"
 	PointTypeSwUpdateError        = "swUpdateError"
 	PointTypeSwUpdatePercComplete = "swUpdatePercComplete"
-	PointTypeOSVersion            = "osVersion"
-	PointTypeAppVersion           = "appVersion"
-	PointTypeHwVersion            = "hwVersion"
+	PointTypeVersionOS            = "versionOS"
+	PointTypeVersionApp           = "versionApp"
+	PointTypeVersionHW            = "versionHW"
 
 	// user node describes a system user and is used to control
 	// access to the system (typically through web UI)

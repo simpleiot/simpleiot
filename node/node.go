@@ -103,11 +103,11 @@ func (m *Manager) Init() error {
 		rootNode = rootNodes[0]
 	}
 
-	ver, ok := rootNode.Points.Find(data.PointTypeAppVersion, "")
+	ver, ok := rootNode.Points.Find(data.PointTypeVersionApp, "")
 	if !ok || ver.Text != m.appVersion {
 		log.Println("Setting app version: ", m.appVersion)
 		err := nats.SendNodePoint(m.nc, rootNode.ID, data.Point{
-			Type: data.PointTypeAppVersion,
+			Type: data.PointTypeVersionApp,
 			Text: m.appVersion,
 		}, true)
 

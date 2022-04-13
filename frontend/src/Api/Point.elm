@@ -20,7 +20,6 @@ module Api.Point exposing
     , typeActionType
     , typeActive
     , typeAddress
-    , typeAppVersion
     , typeAuthToken
     , typeBaud
     , typeBucket
@@ -44,13 +43,11 @@ module Api.Point exposing
     , typeFilePath
     , typeFirstName
     , typeFrom
-    , typeHwVersion
     , typeID
     , typeLastName
     , typeMinActive
     , typeModbusIOType
     , typeNodeType
-    , typeOSVersion
     , typeOffset
     , typeOperator
     , typeOrg
@@ -84,6 +81,9 @@ module Api.Point exposing
     , typeValueSet
     , typeValueType
     , typeVariableType
+    , typeVersionApp
+    , typeVersionHW
+    , typeVersionOS
     , typeWeekday
     , updatePoint
     , updatePoints
@@ -255,19 +255,19 @@ typeSwUpdatePercComplete =
     "swUpdatePercComplete"
 
 
-typeOSVersion : String
-typeOSVersion =
-    "osVersion"
+typeVersionOS : String
+typeVersionOS =
+    "versionOS"
 
 
-typeAppVersion : String
-typeAppVersion =
-    "appVersion"
+typeVersionApp : String
+typeVersionApp =
+    "versionApp"
 
 
-typeHwVersion : String
-typeHwVersion =
-    "hwVersion"
+typeVersionHW : String
+typeVersionHW =
+    "versionHW"
 
 
 typeFirstName : String
@@ -709,9 +709,9 @@ newText typ key text =
 specialPoints : List String
 specialPoints =
     [ typeDescription
-    , typeHwVersion
-    , typeOSVersion
-    , typeAppVersion
+    , typeVersionHW
+    , typeVersionOS
+    , typeVersionApp
     ]
 
 

@@ -44,24 +44,24 @@ view o =
                 _ ->
                     Style.colors.white
 
-        hwVersion =
-            case Point.get o.node.points Point.typeHwVersion "" of
+        versionHW =
+            case Point.get o.node.points Point.typeVersionHW "" of
                 Just point ->
                     "HW: " ++ point.text
 
                 Nothing ->
                     ""
 
-        osVersion =
-            case Point.get o.node.points Point.typeOSVersion "" of
+        versionOS =
+            case Point.get o.node.points Point.typeVersionOS "" of
                 Just point ->
                     "OS: " ++ point.text
 
                 Nothing ->
                     ""
 
-        appVersion =
-            case Point.get o.node.points Point.typeAppVersion "" of
+        versionApp =
+            case Point.get o.node.points Point.typeVersionApp "" of
                 Just point ->
                     "App: " ++ point.text
 
@@ -109,14 +109,14 @@ view o =
                                     - Time.posixToMillis latestPointTime
                                 )
                         )
-                    , viewIf (hwVersion /= "" && osVersion /= "" && appVersion /= "") <|
+                    , viewIf (versionHW /= "" || versionOS /= "" || versionApp /= "") <|
                         text
                             ("Version: "
-                                ++ hwVersion
+                                ++ versionHW
                                 ++ " "
-                                ++ osVersion
+                                ++ versionOS
                                 ++ " "
-                                ++ appVersion
+                                ++ versionApp
                             )
                     ]
 
