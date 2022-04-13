@@ -460,6 +460,7 @@ func main() {
 		NatsTLSTimeout:    natsTLSTimeout,
 		AuthToken:         authToken,
 		ParticleAPIKey:    particleAPIKey,
+		AppVersion:        version,
 	}
 
 	siot := simpleiot.NewSiot(o)

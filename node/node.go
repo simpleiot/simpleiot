@@ -17,15 +17,17 @@ import (
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
 	nc              *natsgo.Conn
+	appVersion      string
 	modbusManager   *ModbusManager
 	upstreamManager *UpstreamManager
 	rootNodeID      string
 }
 
 // NewManger creates a new Manager
-func NewManger(nc *natsgo.Conn) *Manager {
+func NewManger(nc *natsgo.Conn, appVersion string) *Manager {
 	return &Manager{
-		nc: nc,
+		nc:         nc,
+		appVersion: appVersion,
 	}
 }
 
@@ -91,6 +93,26 @@ func (m *Manager) Init() error {
 		err = nats.SendEdgePoint(m.nc, admin.ID, rootNode.ID, data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
 		if err != nil {
 			return err
+		}
+	}
+
+	// check if the SW version is current
+	rootNodes, err = nats.GetNode(m.nc, "root", "")
+
+	if len(rootNodes) > 0 {
+		rootNode = rootNodes[0]
+	}
+
+	ver, ok := rootNode.Points.Find(data.PointTypeVersionApp, "")
+	if !ok || ver.Text != m.appVersion {
+		log.Println("Setting app version: ", m.appVersion)
+		err := nats.SendNodePoint(m.nc, rootNode.ID, data.Point{
+			Type: data.PointTypeVersionApp,
+			Text: m.appVersion,
+		}, true)
+
+		if err != nil {
+			log.Println("Error setting app version")
 		}
 	}
 
