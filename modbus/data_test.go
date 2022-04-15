@@ -1,6 +1,8 @@
 package modbus
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestUint32(t *testing.T) {
 	v := uint32(412345623)
@@ -35,5 +37,15 @@ func TestFloat32(t *testing.T) {
 
 	if v != v2[0] {
 		t.Error("Failed: ", v, v2[0])
+	}
+}
+
+func TestRegsToFloat32SwapWords(t *testing.T) {
+	exp := float32(0.01)
+
+	f := RegsToFloat32SwapWords([]uint16{0xd70a, 0x3c23})
+
+	if exp != f[0] {
+		t.Error("Failed: ", exp, f)
 	}
 }
