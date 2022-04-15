@@ -1,4 +1,4 @@
-# Configuration 
+# Configuration
 
 Environment variables are used to control various aspects of the application.
 The following are currently defined:
@@ -9,6 +9,10 @@ The following are currently defined:
   - `SIOT_DATA`: directory where any data is stored
   - `SIOT_AUTH_TOKEN`: auth token used for NATS and HTTP device API, default is
     blank (no auth)
+  - `OS_VERSION_FIELD`: the field in `/etc/os-release` used to extract the OS
+    version information. Default is `VERSION`, which is common in most distros.
+    The Yoe Distribution populates `VERSION_ID` with the update version, which
+    is probably more appropriate for embedded systems built with Yoe.
 - **NATS configuration**
   - `SIOT_NATS_PORT`: Port to run NATS on (default is 4222 if not set)
   - `SIOT_NATS_HTTP_PORT`: Port to run NATS monitoring interface (default
