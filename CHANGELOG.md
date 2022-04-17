@@ -14,6 +14,7 @@ For more details or to discuss releases, please visit the
 - add DeleteNode, MoveNode, and MirrorNode to
   [nats package](https://pkg.go.dev/github.com/simpleiot/simpleiot@v0.0.44/nats).
 - store and display App Version in root node
+- update go.bug.st/serial from v1.1.3 -> v1.3.5
 
 ## [[0.0.44] - 2022-04-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.44)
 
