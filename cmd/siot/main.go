@@ -439,6 +439,11 @@ func main() {
 		port = "8080"
 	}
 
+	osVersionField := os.Getenv("OS_VERSION_FIELD")
+	if osVersionField == "" {
+		osVersionField = "VERSION"
+	}
+
 	// set up particle connection if configured
 	// todo -- move this to a node
 	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
@@ -461,6 +466,7 @@ func main() {
 		AuthToken:         authToken,
 		ParticleAPIKey:    particleAPIKey,
 		AppVersion:        version,
+		OSVersionField:    osVersionField,
 	}
 
 	siot := simpleiot.NewSiot(o)

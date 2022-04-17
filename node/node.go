@@ -24,7 +24,7 @@ type Manager struct {
 }
 
 // NewManger creates a new Manager
-func NewManger(nc *natsgo.Conn, appVersion string) *Manager {
+func NewManger(nc *natsgo.Conn, appVersion, osVersionField string) *Manager {
 	return &Manager{
 		nc:         nc,
 		appVersion: appVersion,
@@ -115,6 +115,8 @@ func (m *Manager) Init() error {
 			log.Println("Error setting app version")
 		}
 	}
+
+	// check if OS version is current
 
 	m.modbusManager = NewModbusManager(m.nc, m.rootNodeID)
 	m.upstreamManager = NewUpstreamManager(m.nc, m.rootNodeID)
