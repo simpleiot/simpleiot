@@ -13,7 +13,17 @@ For more details or to discuss releases, please visit the
 
 - add DeleteNode, MoveNode, and MirrorNode to
   [nats package](https://pkg.go.dev/github.com/simpleiot/simpleiot@v0.0.44/nats).
+- store and display App Version in root node (see screenshot below). This value
+  is extracted by the SIOT build using the `git describe` command. See
+  `envsetup.sh`.
+- store and display OS version in root node (see screenshot below). On Linux,
+  this value is extracted from the `VERSION` field in `/etc/os-release`. The
+  field can be
+  [changed](https://docs.simpleiot.org/docs/user/configuration.html) using the
+  OS_VERSION_FIELD environment variable.
 - update go.bug.st/serial from v1.1.3 -> v1.3.5
+
+![os/app version](https://user-images.githubusercontent.com/402813/163829093-14c0d644-243d-49e0-9c83-acc3c642c9ab.png)
 
 ## [[0.0.44] - 2022-04-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.44)
 
