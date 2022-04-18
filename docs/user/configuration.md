@@ -12,7 +12,8 @@ The following are currently defined:
   - `OS_VERSION_FIELD`: the field in `/etc/os-release` used to extract the OS
     version information. Default is `VERSION`, which is common in most distros.
     The Yoe Distribution populates `VERSION_ID` with the update version, which
-    is probably more appropriate for embedded systems built with Yoe.
+    is probably more appropriate for embedded systems built with Yoe. See
+    [ref/version](../ref/version.md).
 - **NATS configuration**
   - `SIOT_NATS_PORT`: Port to run NATS on (default is 4222 if not set)
   - `SIOT_NATS_HTTP_PORT`: Port to run NATS monitoring interface (default

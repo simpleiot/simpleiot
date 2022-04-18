@@ -24,5 +24,6 @@
 - [Database](docs/ref/database.md)
 - [Rules](docs/ref/rules.md)
 - [Notifications](docs/ref/notifications.md)
+- [Version](docs/ref/version.md)
 - [Security](docs/ref/security.md)
 - [Research](docs/ref/research.md)
