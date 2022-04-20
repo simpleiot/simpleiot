@@ -4,6 +4,7 @@ module Api.Node exposing
     , delete
     , description
     , get
+    , getBestDesc
     , getCmd
     , insert
     , list
@@ -254,6 +255,11 @@ description d =
 
         Nothing ->
             ""
+
+
+getBestDesc : Node -> String
+getBestDesc n =
+    Point.getBestDesc n.points
 
 
 list :

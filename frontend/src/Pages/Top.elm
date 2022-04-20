@@ -20,6 +20,7 @@ import Components.NodeRule as NodeRule
 import Components.NodeUpstream as NodeUpstream
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
+import Dict
 import Element exposing (..)
 import Element.Background as Background
 import Element.Input as Input
@@ -848,8 +849,7 @@ populateHasChildren parentID tree =
 
 sortNodeTrees : List (Tree NodeView) -> List (Tree NodeView)
 sortNodeTrees trees =
-    -- I have no idea why nodeSortRev is needed here ???
-    List.sortWith nodeSortRev trees |> List.map sortNodeTree
+    List.sortWith nodeSort trees |> List.map sortNodeTree
 
 
 
@@ -869,9 +869,33 @@ sortNodeTree nodes =
     Tree.tree (Tree.label nodes) (List.map sortNodeTree childrenSorted)
 
 
-nodeSortRev : Tree NodeView -> Tree NodeView -> Order
-nodeSortRev a b =
-    nodeSort b a
+
+-- nodeCustomSortRules struct determines how we sort nodes in the UI
+
+
+nodeCustomSortRules : Dict.Dict String String
+nodeCustomSortRules =
+    Dict.fromList
+        [ ( Node.typeDevice, "A" )
+        , ( Node.typeUser, "B" )
+        , ( Node.typeGroup, "C" )
+        , ( Node.typeModbus, "D" )
+        , ( Node.typeRule, "E" )
+
+        -- rule subnodes
+        , ( Node.typeAction, "A" )
+        , ( Node.typeCondition, "B" )
+        ]
+
+
+nodeCustomSort : String -> String
+nodeCustomSort t =
+    case Dict.get t nodeCustomSortRules of
+        Just s ->
+            s
+
+        Nothing ->
+            t
 
 
 nodeSort : Tree NodeView -> Tree NodeView -> Order
@@ -884,10 +908,10 @@ nodeSort a b =
             Tree.label b
 
         aType =
-            aNode.node.typ
+            nodeCustomSort aNode.node.typ
 
         bType =
-            bNode.node.typ
+            nodeCustomSort bNode.node.typ
 
         aDesc =
             String.toLower <| Point.getBestDesc aNode.node.points
@@ -896,10 +920,10 @@ nodeSort a b =
             String.toLower <| Point.getBestDesc bNode.node.points
     in
     if aType /= bType then
-        compare bType aType
+        compare aType bType
 
     else
-        compare bDesc aDesc
+        compare aDesc bDesc
 
 
 popError : String -> Http.Error -> Model -> Model
@@ -998,7 +1022,7 @@ viewNodesHelp depth model tree =
             else
                 []
     in
-    List.foldr
+    List.foldl
         (\child ret ->
             let
                 childNode =
