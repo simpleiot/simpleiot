@@ -100,6 +100,12 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
     - is used to transfer files to a node in chunks, which is optimized for
       unreliable networks like cellular and is handy for transfering software
       update files.
+- Auth
+  - `auth.user`
+    - used to authenticate a user. Send a request with an AuthUserRequest
+      protobuf payload, and the system will respond with the User nodes if
+      valid. There may be multiple user nodes if the user is instantiated in
+      multiple places in the node graph.
 - System
   - `error`
     - any errors that occur are sent to this subject
