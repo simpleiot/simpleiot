@@ -22,6 +22,7 @@ For more details or to discuss releases, please visit the
   [changed](https://docs.simpleiot.org/docs/user/configuration.html) using the
   OS_VERSION_FIELD environment variable.
 - update go.bug.st/serial from v1.1.3 -> v1.3.5
+- sort nodes in UI a little nicer, conditions before actions, etc. #355, #337
 
 ![os/app version](https://user-images.githubusercontent.com/402813/163829093-14c0d644-243d-49e0-9c83-acc3c642c9ab.png)
 
