@@ -105,8 +105,9 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
     - used to authenticate a user. Send a request with email/password points,
       and the system will respond with the User nodes if valid. There may be
       multiple user nodes if the user is instantiated in multiple places in the
-      node graph. The frontend should then fetch the parent points for each user
-      node.
+      node graph. A JWT node will also be returned with a token point. This JWT
+      should be used to authenticate future requests. The frontend can then
+      fetch the parent node for each user node.
 - System
   - `error`
     - any errors that occur are sent to this subject

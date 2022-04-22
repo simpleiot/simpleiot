@@ -63,6 +63,10 @@ const (
 	PointTypeEmail     = "email"
 	PointTypePass      = "pass"
 
+	// User Authentication
+	NodeTypeJWT    = "jwt"
+	PointTypeToken = "token"
+
 	// modbus nodes
 	// in modbus land, terminology is a big backwards, client is master,
 	// and server is slave.
