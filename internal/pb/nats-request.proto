@@ -7,8 +7,3 @@ message NatsRequest {
     bool includeDel = 1;
     string type = 2;
 }
-
-message AuthUserRequest {
-    string email = 1;
-    string password = 2;
-}

@@ -102,10 +102,11 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
       update files.
 - Auth
   - `auth.user`
-    - used to authenticate a user. Send a request with an AuthUserRequest
-      protobuf payload, and the system will respond with the User nodes if
-      valid. There may be multiple user nodes if the user is instantiated in
-      multiple places in the node graph.
+    - used to authenticate a user. Send a request with email/password points,
+      and the system will respond with the User nodes if valid. There may be
+      multiple user nodes if the user is instantiated in multiple places in the
+      node graph. The frontend should then fetch the parent points for each user
+      node.
 - System
   - `error`
     - any errors that occur are sent to this subject
