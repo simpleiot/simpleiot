@@ -102,7 +102,7 @@ func (s *Siot) Start() (*natsgo.Conn, error) {
 		go natsserver.StartNatsServer(natsOptions)
 	}
 
-	natsHandler := store.NewNatsHandler(dbInst, o.AuthToken, o.NatsServer)
+	natsHandler := store.NewNatsHandler(dbInst, o.AuthToken, o.NatsServer, auth)
 
 	var nc *natsgo.Conn
 

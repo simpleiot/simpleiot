@@ -26,13 +26,13 @@ func GetNode(nc *natsgo.Conn, id, parent string) ([]data.NodeEdge, error) {
 		return []data.NodeEdge{}, err
 	}
 
-	node, err := data.PbDecodeNodesRequest(nodeMsg.Data)
+	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
 
 	if err != nil {
 		return []data.NodeEdge{}, err
 	}
 
-	return node, nil
+	return nodes, nil
 }
 
 // GetNodeChildren over NATS (immediate children only, not recursive)
@@ -235,4 +235,30 @@ func MirrorNode(nc *natsgo.Conn, id, newParent string) error {
 	}, true)
 
 	return err
+}
+
+// UserCheck sends a nats message to check auth of user
+func UserCheck(nc *natsgo.Conn, email, pass string) ([]data.NodeEdge, error) {
+	points := data.Points{
+		{Type: data.PointTypeEmail, Text: email},
+		{Type: data.PointTypePass, Text: pass},
+	}
+
+	pointsData, err := points.ToPb()
+	if err != nil {
+		return []data.NodeEdge{}, err
+	}
+
+	nodeMsg, err := nc.Request("auth.user", pointsData, time.Second*20)
+	if err != nil {
+		return []data.NodeEdge{}, err
+	}
+
+	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
+
+	if err != nil {
+		return []data.NodeEdge{}, err
+	}
+
+	return nodes, nil
 }
