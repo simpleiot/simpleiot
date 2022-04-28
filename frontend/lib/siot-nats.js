@@ -1,10 +1,10 @@
 import { connect as natsConnect, StringCodec } from "nats.ws"
 import { Timestamp } from "google-protobuf/google/protobuf/timestamp_pb"
-import { Points, Point } from "../../simpleiot/internal/pb/point_pb"
-import { NodesRequest } from "../../simpleiot/internal/pb/node_pb"
-import { NatsRequest } from "../../simpleiot/internal/pb/nats-request_pb"
-import { Message } from "../../simpleiot/internal/pb/message_pb"
-import { Notification } from "../../simpleiot/internal/pb/notification_pb"
+import { Points, Point } from "./protobuf/point_pb"
+import { NodesRequest } from "./protobuf/node_pb"
+import { NatsRequest } from "./protobuf/nats-request_pb"
+import { Message } from "./protobuf/message_pb"
+import { Notification } from "./protobuf/notification_pb"
 
 const sc = new StringCodec()
 
