@@ -361,6 +361,7 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	var nodeID string
 	var nodes data.Nodes
 	var err error
+	nodesRet := data.Nodes{}
 
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 2 {
@@ -374,6 +375,18 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 
 	nodes, err = nh.db.nodeEdge(nodeID, parent)
 
+	// remove deleted nodes
+	if parent == "all" {
+		for _, n := range nodes {
+			ts, _ := n.IsTombstone()
+			if !ts {
+				nodesRet = append(nodesRet, n)
+			}
+		}
+	} else {
+		nodesRet = nodes
+	}
+
 	if err != nil {
 		if err != data.ErrDocumentNotFound {
 			resp.Error = fmt.Sprintf("NATS handler: Error getting node %v from db: %v\n", nodeID, err)
@@ -383,7 +396,7 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	}
 
 handleNodeDone:
-	resp.Nodes, err = nodes.ToPbNodes()
+	resp.Nodes, err = nodesRet.ToPbNodes()
 	if err != nil {
 		resp.Error = fmt.Sprintf("Error pb encoding node: %v\n", err)
 	}

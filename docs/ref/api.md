@@ -82,7 +82,8 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
     - the `parent` can can optionally by specified by setting the message
       payload to one of the following:
       - the ID of the parent node
-      - "all" to find all instances of the node
+      - "all" to find all instances of the node. If "all" is specified,
+        tombstoned nodes are not returned.
   - `node.<id>.children`
     - can be used to request the immediate children of a node
   - `node.<id>.points`

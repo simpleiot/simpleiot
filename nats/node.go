@@ -16,7 +16,7 @@ import (
 // If parent is set to "none", the edge details are not included
 // and the hash is calculated without the edge points.
 // returns data.ErrDocumentNotFound if node is not found.
-// if parent is set to "all", then all instances of the node are returned
+// If parent is set to "all", then all living instances of the node are returned.
 func GetNode(nc *natsgo.Conn, id, parent string) ([]data.NodeEdge, error) {
 	if parent == "" {
 		parent = "none"
