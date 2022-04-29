@@ -24,6 +24,8 @@ For more details or to discuss releases, please visit the
   OS_VERSION_FIELD environment variable. #324, #353
 - update go.bug.st/serial from v1.1.3 -> v1.3.5
 - sort nodes in UI a little nicer, conditions before actions, etc. #355, #337
+- add NATS user auth API and change HTTP auth to use that. #326, #356
+- fix bug where deleted nodes where still considered for user auth
 
 ![os/app version](https://user-images.githubusercontent.com/402813/163829093-14c0d644-243d-49e0-9c83-acc3c642c9ab.png)
 
