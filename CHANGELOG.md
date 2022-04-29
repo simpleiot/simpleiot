@@ -26,6 +26,7 @@ For more details or to discuss releases, please visit the
 - sort nodes in UI a little nicer, conditions before actions, etc. #355, #337
 - add NATS user auth API and change HTTP auth to use that. #326, #356
 - fix bug where deleted nodes where still considered for user auth
+- add SIOT JS library using NATS over WebSockets (#357)
 
 ![os/app version](https://user-images.githubusercontent.com/402813/163829093-14c0d644-243d-49e0-9c83-acc3c642c9ab.png)
 
