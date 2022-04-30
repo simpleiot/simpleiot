@@ -751,10 +751,10 @@ func (b byDistRoot) Len() int           { return len(b) }
 func (b byDistRoot) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 func (b byDistRoot) Less(i, j int) bool { return b[i].distRoot < b[j].distRoot }
 
-// UserCheck checks user authentication
+// userCheck checks user authentication
 // returns nil, nil if user is not found
-func (gen *Db) UserCheck(email, password string) (*data.User, error) {
-	var users []userDistRoot
+func (gen *Db) userCheck(email, password string) (data.Nodes, error) {
+	var ret []data.NodeEdge
 
 	res, err := gen.store.Query(`select * from nodes where type = ?`, data.NodeTypeUser)
 	if err != nil {
@@ -777,22 +777,17 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 		u := node.ToUser()
 
 		if u.Email == email && u.Pass == password {
-			distRoot, err := gen.minDistToRoot(u.ID)
-			if err != nil {
-				log.Println("Error getting dist to root: ", err)
+			edges := gen.edgeUp(node.ID, false)
+			for _, edge := range edges {
+				ne := node.ToNodeEdge(*edge)
+				ret = append(ret, ne)
 			}
-			users = append(users, userDistRoot{distRoot, u})
 		}
 
 		return nil
 	})
 
-	if len(users) > 0 {
-		sort.Sort(byDistRoot(users))
-		return &users[0].user, err
-	}
-
-	return nil, err
+	return ret, err
 }
 
 type genImport struct {

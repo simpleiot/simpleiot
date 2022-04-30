@@ -290,7 +290,7 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 }
 
 // PbDecodePoints decode protobuf encoded points
-func PbDecodePoints(data []byte) ([]Point, error) {
+func PbDecodePoints(data []byte) (Points, error) {
 	pbPoints := &pb.Points{}
 	err := proto.Unmarshal(data, pbPoints)
 	if err != nil {

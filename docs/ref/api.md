@@ -82,7 +82,8 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
     - the `parent` can can optionally by specified by setting the message
       payload to one of the following:
       - the ID of the parent node
-      - "all" to find all instances of the node
+      - "all" to find all instances of the node. If "all" is specified,
+        tombstoned nodes are not returned.
   - `node.<id>.children`
     - can be used to request the immediate children of a node
   - `node.<id>.points`
@@ -100,6 +101,14 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
     - is used to transfer files to a node in chunks, which is optimized for
       unreliable networks like cellular and is handy for transfering software
       update files.
+- Auth
+  - `auth.user`
+    - used to authenticate a user. Send a request with email/password points,
+      and the system will respond with the User nodes if valid. There may be
+      multiple user nodes if the user is instantiated in multiple places in the
+      node graph. A JWT node will also be returned with a token point. This JWT
+      should be used to authenticate future requests. The frontend can then
+      fetch the parent node for each user node.
 - System
   - `error`
     - any errors that occur are sent to this subject

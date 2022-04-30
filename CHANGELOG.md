@@ -11,18 +11,25 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.45] - 2022-04-30](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.45)
+
 - add DeleteNode, MoveNode, and MirrorNode to
   [nats package](https://pkg.go.dev/github.com/simpleiot/simpleiot@v0.0.44/nats).
+  #344, #347
 - store and display App Version in root node (see screenshot below). This value
   is extracted by the SIOT build using the `git describe` command. See
-  `envsetup.sh`.
+  `envsetup.sh`. #192, #349
 - store and display OS version in root node (see screenshot below). On Linux,
   this value is extracted from the `VERSION` field in `/etc/os-release`. The
   field can be
   [changed](https://docs.simpleiot.org/docs/user/configuration.html) using the
-  OS_VERSION_FIELD environment variable.
+  OS_VERSION_FIELD environment variable. #324, #353
 - update go.bug.st/serial from v1.1.3 -> v1.3.5
-- sort nodes in UI a little nicer, conditions before actions, etc. #355, #337
+- sort nodes in UI a little nicer, conditions before actions, move more often
+  used nodes to the top, etc. #355, #337
+- add NATS user auth API and change HTTP auth to use that. #326, #356
+- fix bug where deleted nodes where still considered for user auth
+- add SIOT JS library using NATS over WebSockets (#357)
 
 ![os/app version](https://user-images.githubusercontent.com/402813/163829093-14c0d644-243d-49e0-9c83-acc3c642c9ab.png)
 

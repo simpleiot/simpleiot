@@ -21,6 +21,7 @@
 - [Architecture](docs/ref/architecture.md)
 - [Reliability](docs/ref/reliability.md)
 - [API](docs/ref/api.md)
+- [Frontend](docs/ref/frontend.md)
 - [Database](docs/ref/database.md)
 - [Rules](docs/ref/rules.md)
 - [Notifications](docs/ref/notifications.md)
