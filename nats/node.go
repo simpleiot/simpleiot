@@ -238,6 +238,7 @@ func MirrorNode(nc *natsgo.Conn, id, newParent string) error {
 }
 
 // UserCheck sends a nats message to check auth of user
+// This function returns user nodes and a JWT node which includes a token
 func UserCheck(nc *natsgo.Conn, email, pass string) ([]data.NodeEdge, error) {
 	points := data.Points{
 		{Type: data.PointTypeEmail, Text: email},
