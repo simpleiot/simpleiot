@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.0.45] - 2022-04-30](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.45)
+
 - add DeleteNode, MoveNode, and MirrorNode to
   [nats package](https://pkg.go.dev/github.com/simpleiot/simpleiot@v0.0.44/nats).
   #344, #347
