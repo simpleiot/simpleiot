@@ -23,7 +23,8 @@ For more details or to discuss releases, please visit the
   [changed](https://docs.simpleiot.org/docs/user/configuration.html) using the
   OS_VERSION_FIELD environment variable. #324, #353
 - update go.bug.st/serial from v1.1.3 -> v1.3.5
-- sort nodes in UI a little nicer, conditions before actions, etc. #355, #337
+- sort nodes in UI a little nicer, conditions before actions, move more often
+  used nodes to the top, etc. #355, #337
 - add NATS user auth API and change HTTP auth to use that. #326, #356
 - fix bug where deleted nodes where still considered for user auth
 - add SIOT JS library using NATS over WebSockets (#357)
