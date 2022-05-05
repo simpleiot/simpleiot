@@ -24,6 +24,8 @@ module Api.Node exposing
     , typeModbus
     , typeModbusIO
     , typeMsgService
+    , typeOneWire
+    , typeOneWireIO
     , typeRule
     , typeUpstream
     , typeUser
@@ -103,6 +105,16 @@ typeDb =
 typeModbus : String
 typeModbus =
     "modbus"
+
+
+typeOneWire : String
+typeOneWire =
+    "oneWire"
+
+
+typeOneWireIO : String
+typeOneWireIO =
+    "oneWireIO"
 
 
 typeModbusIO : String
