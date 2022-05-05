@@ -15,6 +15,8 @@ import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
+import Components.NodeOneWire as NodeOneWire
+import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (NodeOptions)
 import Components.NodeRule as NodeRule
 import Components.NodeUpstream as NodeUpstream
@@ -1090,6 +1092,12 @@ shouldDisplay typ =
         "upstream" ->
             True
 
+        "oneWire" ->
+            True
+
+        "oneWireIO" ->
+            True
+
         "db" ->
             True
 
@@ -1113,6 +1121,12 @@ viewNode model parent node depth =
 
                 "modbusIo" ->
                     NodeModbusIO.view
+
+                "oneWire" ->
+                    NodeOneWire.view
+
+                "oneWireIO" ->
+                    NodeOneWireIO.view
 
                 "rule" ->
                     NodeRule.view
@@ -1261,6 +1275,7 @@ nodeTypesThatHaveChildNodes =
     [ Node.typeDevice
     , Node.typeGroup
     , Node.typeModbus
+    , Node.typeOneWire
     , Node.typeRule
     ]
 
