@@ -98,6 +98,9 @@ const (
 	PointValueINT32     = "int32"
 	PointValueFLOAT32   = "float32"
 
+	NodeTypeOneWire   = "oneWire"
+	NodeTypeOneWireIO = "oneWireIO"
+
 	// A group node is used to group users and devices
 	// or generally to add structure to the node graph.
 	NodeTypeGroup = "group"
