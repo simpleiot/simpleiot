@@ -43,7 +43,6 @@ func newOneWireIONode(node *data.NodeEdge) (*oneWireIONode, error) {
 func (io *oneWireIONode) Changed(newIO *oneWireIONode) bool {
 	if io.id != newIO.id ||
 		io.value != newIO.value ||
-		io.id != newIO.id ||
 		io.errorCountReset != newIO.errorCountReset {
 		return true
 	}
