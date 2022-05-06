@@ -15,6 +15,7 @@ const (
 	PointTypeUnits              = "units"
 	PointTypeValue              = "value"
 	PointTypeValueSet           = "valueSet"
+	PointTypeIndex              = "index"
 	// PointTypeID typically refers to Node ID
 	PointTypeID                 = "id"
 	PointTypeAddress            = "address"

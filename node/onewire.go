@@ -120,4 +120,10 @@ func (ow *oneWire) CheckIOs() error {
 }
 
 func (ow *oneWire) Run() {
+	for {
+		select {
+		case <-ow.chDone:
+			return
+		}
+	}
 }

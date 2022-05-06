@@ -111,6 +111,10 @@ func SendNode(nc *natsgo.Conn, node data.NodeEdge) error {
 
 	points := node.Points
 
+	if node.ID == "" {
+		node.ID = uuid.New().String()
+	}
+
 	points = append(points, data.Point{
 		Type: data.PointTypeNodeType,
 		Text: node.Type,

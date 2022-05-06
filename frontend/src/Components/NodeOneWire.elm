@@ -33,6 +33,9 @@ view o =
 
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
+
+        index =
+            Point.getValue o.node.points Point.typeIndex ""
     in
     column
         [ width fill
@@ -49,6 +52,7 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
+                    , text <| "Bus #: " ++ String.fromFloat index
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , checkboxInput Point.typeDisable "Disable"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
