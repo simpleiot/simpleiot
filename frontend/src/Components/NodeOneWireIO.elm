@@ -27,6 +27,9 @@ view o =
 
         valueText =
             String.fromFloat (Round.roundNum 2 value)
+
+        id =
+            Point.getText o.node.points Point.typeID ""
     in
     column
         [ width fill
@@ -45,6 +48,7 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
+                    , text <| "ID: " ++ id
                     ]
 
                 else

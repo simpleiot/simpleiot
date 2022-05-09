@@ -2,6 +2,10 @@ package node
 
 import (
 	"log"
+	"os"
+	"path"
+	"path/filepath"
+	"time"
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -57,7 +61,7 @@ func newOneWire(nc *natsgo.Conn, node data.NodeEdge) (*oneWire, error) {
 		return nil, err
 	}
 
-	go bus.Run()
+	go bus.run()
 
 	return bus, nil
 }
@@ -119,11 +123,113 @@ func (ow *oneWire) CheckIOs() error {
 	return nil
 }
 
-func (ow *oneWire) Run() {
+// checkIOs goes through ios on the bus and handles any config changes
+func (ow *oneWire) checkIOs() error {
+	nodes, err := nats.GetNodeChildren(ow.nc, ow.owNode.nodeID, data.NodeTypeOneWireIO, false, false)
+	if err != nil {
+		return err
+	}
+
+	found := make(map[string]bool)
+
+	for _, node := range nodes {
+		found[node.ID] = true
+		io, ok := ow.ios[node.ID]
+		if !ok {
+			// add ios
+			var err error
+			ioNode, err := newOneWireIONode(&node)
+			if err != nil {
+				log.Println("Error with IO node: ", err)
+				continue
+			}
+			io, err = newOneWireIO(ow.nc, ioNode, ow.chPoint)
+			if err != nil {
+				log.Println("Error creating new modbus IO: ", err)
+				continue
+			}
+			ow.ios[node.ID] = io
+		}
+	}
+
+	// remove ios that have been deleted
+	for id, io := range ow.ios {
+		_, ok := found[id]
+		if !ok {
+			// io was deleted so close and clear it
+			log.Println("modbus io removed: ", io.ioNode.description)
+			io.Stop()
+			delete(ow.ios, id)
+		}
+	}
+
+	return nil
+}
+
+func (ow *oneWire) detect() {
+	// detect one wire busses
+	dirs, _ := filepath.Glob("/sys/bus/w1/devices/28-*")
+
+	for _, dir := range dirs {
+		f, _ := os.Stat(dir)
+		if f.IsDir() {
+			id := path.Base(dir)
+			found := false
+			for _, io := range ow.ios {
+				if io.ioNode.id == id {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				log.Println("adding 1-wire IO: ", id)
+
+				n := data.NodeEdge{
+					Type:   data.NodeTypeOneWireIO,
+					Parent: ow.owNode.nodeID,
+					Points: data.Points{
+						data.Point{
+							Type: data.PointTypeID,
+							Text: id,
+						},
+						data.Point{
+							Type: data.PointTypeDescription,
+							Text: "New IO, please edit",
+						},
+					},
+				}
+
+				err := nats.SendNode(ow.nc, n)
+				if err != nil {
+					log.Println("Error sending new 1-wire IO: ", err)
+				}
+			}
+		}
+	}
+}
+
+func (ow *oneWire) run() {
+	// if we reset any error count, we set this to avoid continually resetting
+	scanTimer := time.NewTicker(24 * time.Hour)
+
+	setScanTimer := func() {
+		pollPeriod := ow.owNode.pollPeriod
+		if pollPeriod <= 0 {
+			pollPeriod = 3000
+		}
+		scanTimer.Reset(time.Millisecond * time.Duration(pollPeriod))
+	}
+
+	setScanTimer()
+
 	for {
 		select {
 		case <-ow.chDone:
 			return
+		case <-scanTimer.C:
+			ow.checkIOs()
+			ow.detect()
 		}
 	}
 }

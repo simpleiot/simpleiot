@@ -9,7 +9,7 @@ import (
 type oneWireIONode struct {
 	nodeID          string
 	description     string
-	id              int
+	id              string
 	value           float64
 	disable         bool
 	errorCount      int
@@ -23,7 +23,7 @@ func newOneWireIONode(node *data.NodeEdge) (*oneWireIONode, error) {
 
 	var ok bool
 
-	ret.id, ok = node.Points.ValueInt(data.PointTypeID, "")
+	ret.id, ok = node.Points.Text(data.PointTypeID, "")
 	if !ok {
 		return nil, errors.New("Must define onewire ID")
 	}
