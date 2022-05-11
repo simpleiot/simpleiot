@@ -26,3 +26,8 @@ connections on port 4222 are blocked. In this case, its handy to be able to use
 the `wss` connection, which just uses standard HTTP(S) ports.
 
 ![upstream](images/upstream.png)
+
+There are also several videos that demostrate upstream connections:
+
+- [Simple IoT upstream synchronization support](https://youtu.be/6xB-gXUynQc)
+- [Simple IoT Integration with PLC Using Modbus](https://youtu.be/-1PuBoTAzPE)
