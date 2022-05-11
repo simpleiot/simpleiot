@@ -7,6 +7,7 @@
 - [Installation](docs/user/installation.md)
 - [User Interface](docs/user/ui.md)
 - [Users/Groups](docs/user/users-groups.md)
+- [Upstream connections](docs/user/upstream.md)
 - [Rules](docs/user/rules.md)
 - [Notifications](docs/user/notifications.md)
 - [Modbus](docs/user/modbus.md)

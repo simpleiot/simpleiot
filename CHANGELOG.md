@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- docs: add list of supported devices to install
+- docs: add upstream documentation
+
 ## [[0.0.45] - 2022-04-30](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.45)
 
 - add DeleteNode, MoveNode, and MirrorNode to
