@@ -20,14 +20,14 @@ inherently distributed and building on simple concepts that scale.
 
 - a single application with no dependencies that can be run in both cloud and
   edge instances
-- efficient syncronization data in both directions
+- efficient synchronization data in both directions
 - a powerful UI to view configuration and current values
 - a rules engine that runs on all instances that can trigger notifications or
   set data
-- extensive support for modbus -- both server and client
-- flexible graph orgnization of instances, users, groups, rules, and
+- extensive support for Modbus -- both server and client
+- flexible graph organization of instances, users, groups, rules, and
   configuration
-- intgration with other services like InfluxDB and Twilio
+- integration with other services like InfluxDB and Twilio
 - a system that is easy to extend in any language using NATS
 - a number of useful Go packages to use in your custom application
 
