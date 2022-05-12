@@ -66,8 +66,8 @@ func newOneWire(nc *natsgo.Conn, node data.NodeEdge) (*oneWire, error) {
 	return bus, nil
 }
 
-// Stop stops the bus and resets various fields
-func (ow *oneWire) Stop() {
+// stop stops the bus and resets various fields
+func (ow *oneWire) stop() {
 	if ow.sub != nil {
 		err := ow.sub.Unsubscribe()
 		if err != nil {
@@ -75,7 +75,7 @@ func (ow *oneWire) Stop() {
 		}
 	}
 	for _, io := range ow.ios {
-		io.Stop()
+		io.stop()
 	}
 	ow.chDone <- true
 }
@@ -115,7 +115,7 @@ func (ow *oneWire) CheckIOs() error {
 		if !ok {
 			// io was deleted so close and clear it
 			log.Println("modbus io removed: ", io.ioNode.description)
-			io.Stop()
+			io.stop()
 			delete(ow.ios, id)
 		}
 	}
@@ -158,7 +158,7 @@ func (ow *oneWire) checkIOs() error {
 		if !ok {
 			// io was deleted so close and clear it
 			log.Println("modbus io removed: ", io.ioNode.description)
-			io.Stop()
+			io.stop()
 			delete(ow.ios, id)
 		}
 	}
@@ -225,11 +225,71 @@ func (ow *oneWire) run() {
 
 	for {
 		select {
+		case point := <-ow.chPoint:
+			p := point.point
+			if point.id == ow.owNode.nodeID {
+				ow.node.AddPoint(p)
+				var err error
+				ow.owNode, err = newOneWireNode(ow.node)
+				if err != nil {
+					log.Println("Error updating OW node: ", err)
+				}
+
+				switch point.point.Type {
+				case data.PointTypePollPeriod:
+					setScanTimer()
+				case data.PointTypeErrorCountReset:
+					if ow.owNode.errorCountReset {
+						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
+						err := nats.SendNodePoint(ow.nc, ow.owNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+
+						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
+						err = nats.SendNodePoint(ow.nc, ow.owNode.nodeID, p, true)
+						if err != nil {
+							log.Println("Send point error: ", err)
+						}
+					}
+				}
+				continue
+			}
+
+			io, ok := ow.ios[point.id]
+			if !ok {
+				log.Println("1-wire received point for unknown node: ", point.id)
+				continue
+			}
+
+			err := io.point(p)
+			if err != nil {
+				log.Println("Error updating node point")
+			}
+
 		case <-ow.chDone:
 			return
 		case <-scanTimer.C:
 			ow.checkIOs()
 			ow.detect()
+			for _, io := range ow.ios {
+				err := io.read()
+				if err != nil {
+					log.Println("Error reading 1-wire io: ", err)
+					busCount := ow.owNode.errorCount + 1
+					ioCount := io.ioNode.errorCount + 1
+
+					err = nats.SendNodePoint(ow.nc, ow.owNode.nodeID, data.Point{
+						Type:  data.PointTypeErrorCount,
+						Value: float64(busCount),
+					}, false)
+
+					err = nats.SendNodePoint(ow.nc, io.ioNode.nodeID, data.Point{
+						Type:  data.PointTypeErrorCount,
+						Value: float64(ioCount),
+					}, false)
+				}
+			}
 		}
 	}
 }

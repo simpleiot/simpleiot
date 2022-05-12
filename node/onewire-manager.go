@@ -58,7 +58,7 @@ func (owm *oneWireManager) update() error {
 		if !ok {
 			// bus was deleted so close and clear it
 			log.Println("removing onewire bus: ", bus.owNode.description)
-			bus.Stop()
+			bus.stop()
 			delete(owm.busses, id)
 		}
 	}
