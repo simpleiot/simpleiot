@@ -26,7 +26,7 @@ view o =
             Point.getValue o.node.points Point.typeValue ""
 
         valueText =
-            String.fromFloat (Round.roundNum 2 value)
+            String.fromFloat (Round.roundNum 2 value) ++ "°C"
 
         id =
             Point.getText o.node.points Point.typeID ""
