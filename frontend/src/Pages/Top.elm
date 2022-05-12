@@ -920,12 +920,30 @@ nodeSort a b =
 
         bDesc =
             String.toLower <| Point.getBestDesc bNode.node.points
+
+        aIndex =
+            Point.getValue aNode.node.points Point.typeIndex ""
+
+        bIndex =
+            Point.getValue bNode.node.points Point.typeIndex ""
+
+        aID =
+            Point.getText aNode.node.points Point.typeID ""
+
+        bID =
+            Point.getText bNode.node.points Point.typeID ""
     in
     if aType /= bType then
         compare aType bType
 
-    else
+    else if aDesc /= bDesc then
         compare aDesc bDesc
+
+    else if aIndex /= bIndex then
+        compare aIndex bIndex
+
+    else
+        compare aID bID
 
 
 popError : String -> Http.Error -> Model -> Model
