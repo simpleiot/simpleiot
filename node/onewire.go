@@ -279,7 +279,10 @@ func (ow *oneWire) run() {
 			for _, io := range ow.ios {
 				err := io.read()
 				if err != nil {
-					log.Println("Error reading 1-wire io: ", err)
+					if ow.owNode.debugLevel > 0 {
+						log.Printf("Error reading 1-wire io %v: %v\n",
+							io.ioNode.id, err)
+					}
 					busCount := ow.owNode.errorCount + 1
 					ioCount := io.ioNode.errorCount + 1
 

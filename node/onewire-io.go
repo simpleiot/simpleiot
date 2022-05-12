@@ -2,6 +2,7 @@ package node
 
 import (
 	"fmt"
+	goio "io"
 	"io/ioutil"
 	"log"
 	"strconv"
@@ -101,6 +102,10 @@ func (io *oneWireIO) read() error {
 	d, err := ioutil.ReadFile(io.path)
 	if err != nil {
 		return err
+	}
+
+	if len(d) <= 0 {
+		return goio.EOF
 	}
 
 	vRaw, err := strconv.Atoi(strings.TrimSpace(string(d)))
