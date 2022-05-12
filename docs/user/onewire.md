@@ -20,7 +20,12 @@ To add a bus to a different pin:
 
 A 4.6kΩ pull-up resistor is needed between the 1-wire signal and 3.3V.
 
+See [this page](https://pinout.xyz/pinout/1_wire#) for more information.
+
+TODO: add schematic
+
 ## Supported devices
 
 Simple IoT currently supports 1-wire temperature sensors such as the DS18B20.
-This is a very popular and practical digital temperature sensor.
+This is a very popular and practical digital temperature sensor. Each sensor has
+a unique address so you can address a number of them using a single 1-wire port.
