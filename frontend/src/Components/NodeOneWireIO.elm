@@ -22,6 +22,9 @@ view o =
         textInput =
             NodeInputs.nodeTextInput opts ""
 
+        counterWithReset =
+            NodeInputs.nodeCounterWithReset opts ""
+
         value =
             Point.getValue o.node.points Point.typeValue ""
 
@@ -52,6 +55,7 @@ view o =
                             "ID: "
                                 ++ id
                     , textInput Point.typeDescription "Description" ""
+                    , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     ]
 
                 else
