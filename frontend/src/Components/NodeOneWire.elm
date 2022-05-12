@@ -57,6 +57,7 @@ view o =
                                 ++ String.fromFloat index
                     , textInput Point.typeDescription "Description" ""
                     , numberInput Point.typeDebug "Debug level (0-9)"
+                    , numberInput Point.typePollPeriod "Poll period (ms)"
                     , checkboxInput Point.typeDisable "Disable"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     ]
