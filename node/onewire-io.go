@@ -94,6 +94,10 @@ func (io *oneWireIO) point(p data.Point) error {
 }
 
 func (io *oneWireIO) read() error {
+	if io.ioNode.disable {
+		return nil
+	}
+
 	d, err := ioutil.ReadFile(io.path)
 	if err != nil {
 		return err

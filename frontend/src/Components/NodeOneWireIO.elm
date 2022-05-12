@@ -8,6 +8,7 @@ import Round
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
+import UI.ViewIf exposing (viewIf)
 
 
 view : NodeOptions msg -> Element msg
@@ -25,6 +26,9 @@ view o =
         counterWithReset =
             NodeInputs.nodeCounterWithReset opts ""
 
+        checkboxInput =
+            NodeInputs.nodeCheckboxInput opts ""
+
         value =
             Point.getValue o.node.points Point.typeValue ""
 
@@ -33,6 +37,9 @@ view o =
 
         id =
             Point.getText o.node.points Point.typeID ""
+
+        disabled =
+            Point.getBool o.node.points Point.typeDisable ""
     in
     column
         [ width fill
@@ -48,6 +55,7 @@ view o =
             , el [ paddingXY 7 0 ] <|
                 text <|
                     valueText
+            , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
                     [ el [ paddingEach { top = 0, right = 0, bottom = 0, left = 70 } ] <|
@@ -55,6 +63,7 @@ view o =
                             "ID: "
                                 ++ id
                     , textInput Point.typeDescription "Description" ""
+                    , checkboxInput Point.typeDisable "Disable"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     ]
 
