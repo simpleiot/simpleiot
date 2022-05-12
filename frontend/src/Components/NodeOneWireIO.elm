@@ -47,8 +47,11 @@ view o =
                     valueText
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeDescription "Description" ""
-                    , text <| "ID: " ++ id
+                    [ el [ paddingEach { top = 0, right = 0, bottom = 0, left = 70 } ] <|
+                        text <|
+                            "ID: "
+                                ++ id
+                    , textInput Point.typeDescription "Description" ""
                     ]
 
                 else

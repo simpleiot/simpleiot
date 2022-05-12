@@ -51,8 +51,11 @@ view o =
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
-                    [ textInput Point.typeDescription "Description" ""
-                    , text <| "Bus #: " ++ String.fromFloat index
+                    [ el [ paddingEach { top = 0, right = 0, bottom = 0, left = 70 } ] <|
+                        text <|
+                            "Bus #: "
+                                ++ String.fromFloat index
+                    , textInput Point.typeDescription "Description" ""
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , checkboxInput Point.typeDisable "Disable"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
