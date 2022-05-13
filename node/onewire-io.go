@@ -67,6 +67,8 @@ func (io *oneWireIO) point(p data.Point) error {
 		io.ioNode.id = p.Text
 	case data.PointTypeDescription:
 		io.ioNode.description = p.Text
+	case data.PointTypeUnits:
+		io.ioNode.units = p.Text
 	case data.PointTypeValue:
 		io.ioNode.value = p.Value
 	case data.PointTypeDisable:
@@ -114,6 +116,10 @@ func (io *oneWireIO) read() error {
 	}
 
 	v := float64(vRaw) / 1000
+
+	if io.ioNode.units == "F" {
+		v = v*1.8 + 32
+	}
 
 	if v != io.ioNode.value || time.Since(io.lastSent) > time.Minute*10 {
 		io.ioNode.value = v

@@ -1,9 +1,10 @@
 module Components.NodeOneWireIO exposing (view)
 
-import Api.Point as Point
+import Api.Point as Point exposing (Point)
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
+import Element.Input as Input
 import Round
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
@@ -29,11 +30,23 @@ view o =
         checkboxInput =
             NodeInputs.nodeCheckboxInput opts ""
 
+        fCheckboxInput =
+            fCheckbox opts "" Point.typeUnits "Fahrenheit?"
+
         value =
             Point.getValue o.node.points Point.typeValue ""
 
+        units =
+            Point.getText o.node.points Point.typeUnits ""
+
         valueText =
-            String.fromFloat (Round.roundNum 2 value) ++ "°C"
+            String.fromFloat (Round.roundNum 2 value)
+                ++ (if units == "F" then
+                        "°F"
+
+                    else
+                        "°C"
+                   )
 
         id =
             Point.getText o.node.points Point.typeID ""
@@ -63,6 +76,7 @@ view o =
                             "ID: "
                                 ++ id
                     , textInput Point.typeDescription "Description" ""
+                    , fCheckboxInput
                     , checkboxInput Point.typeDisable "Disable"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     ]
@@ -70,3 +84,40 @@ view o =
                 else
                     []
                )
+
+
+fCheckbox :
+    NodeInputs.NodeInputOptions msg
+    -> String
+    -> String
+    -> String
+    -> Element msg
+fCheckbox o key typ lbl =
+    Input.checkbox
+        []
+        { onChange =
+            \d ->
+                let
+                    t =
+                        if d then
+                            "F"
+
+                        else
+                            "C"
+                in
+                o.onEditNodePoint
+                    [ Point typ key o.now 0 0 t 0 ]
+        , checked =
+            Point.getText o.node.points typ key == "F"
+        , icon = Input.defaultCheckbox
+        , label =
+            if lbl /= "" then
+                Input.labelLeft [ width (px o.labelWidth) ] <|
+                    el [ alignRight ] <|
+                        text <|
+                            lbl
+                                ++ ":"
+
+            else
+                Input.labelHidden ""
+        }
