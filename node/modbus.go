@@ -808,7 +808,7 @@ func (b *Modbus) Run() {
 			} else {
 				io, ok := b.ios[point.id]
 				if !ok {
-					log.Println("received point for unknown IO: ", point.id)
+					log.Println("modbus received point for unknown node: ", point.id)
 					// FIXME, we could create a new IO here
 					continue
 				}

@@ -11,6 +11,7 @@
 - [Rules](docs/user/rules.md)
 - [Notifications](docs/user/notifications.md)
 - [Modbus](docs/user/modbus.md)
+- [1-Wire](docs/user/onewire.md)
 - [Graphing](docs/user/graphing.md)
 - [Configuration](docs/user/configuration.md)
 - [FAQ](docs/user/faq.md)

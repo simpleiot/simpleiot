@@ -15,6 +15,8 @@ import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
+import Components.NodeOneWire as NodeOneWire
+import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (NodeOptions)
 import Components.NodeRule as NodeRule
 import Components.NodeUpstream as NodeUpstream
@@ -918,12 +920,30 @@ nodeSort a b =
 
         bDesc =
             String.toLower <| Point.getBestDesc bNode.node.points
+
+        aIndex =
+            Point.getValue aNode.node.points Point.typeIndex ""
+
+        bIndex =
+            Point.getValue bNode.node.points Point.typeIndex ""
+
+        aID =
+            Point.getText aNode.node.points Point.typeID ""
+
+        bID =
+            Point.getText bNode.node.points Point.typeID ""
     in
     if aType /= bType then
         compare aType bType
 
-    else
+    else if aDesc /= bDesc then
         compare aDesc bDesc
+
+    else if aIndex /= bIndex then
+        compare aIndex bIndex
+
+    else
+        compare aID bID
 
 
 popError : String -> Http.Error -> Model -> Model
@@ -1090,6 +1110,12 @@ shouldDisplay typ =
         "upstream" ->
             True
 
+        "oneWire" ->
+            True
+
+        "oneWireIO" ->
+            True
+
         "db" ->
             True
 
@@ -1113,6 +1139,12 @@ viewNode model parent node depth =
 
                 "modbusIo" ->
                     NodeModbusIO.view
+
+                "oneWire" ->
+                    NodeOneWire.view
+
+                "oneWireIO" ->
+                    NodeOneWireIO.view
 
                 "rule" ->
                     NodeRule.view
@@ -1261,6 +1293,7 @@ nodeTypesThatHaveChildNodes =
     [ Node.typeDevice
     , Node.typeGroup
     , Node.typeModbus
+    , Node.typeOneWire
     , Node.typeRule
     ]
 

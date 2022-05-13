@@ -44,6 +44,7 @@ module Api.Point exposing
     , typeFirstName
     , typeFrom
     , typeID
+    , typeIndex
     , typeLastName
     , typeMinActive
     , typeModbusIOType
@@ -653,6 +654,11 @@ typeOrg =
 typeDisable : String
 typeDisable =
     "disable"
+
+
+typeIndex : String
+typeIndex =
+    "index"
 
 
 

@@ -15,6 +15,7 @@ const (
 	PointTypeUnits              = "units"
 	PointTypeValue              = "value"
 	PointTypeValueSet           = "valueSet"
+	PointTypeIndex              = "index"
 	// PointTypeID typically refers to Node ID
 	PointTypeID                 = "id"
 	PointTypeAddress            = "address"
@@ -97,6 +98,9 @@ const (
 	PointValueUINT32    = "uint32"
 	PointValueINT32     = "int32"
 	PointValueFLOAT32   = "float32"
+
+	NodeTypeOneWire   = "oneWire"
+	NodeTypeOneWireIO = "oneWireIO"
 
 	// A group node is used to group users and devices
 	// or generally to add structure to the node graph.

@@ -23,6 +23,7 @@ type Manager struct {
 	modbusManager   *ModbusManager
 	upstreamManager *UpstreamManager
 	rootNodeID      string
+	oneWireManager  *oneWireManager
 }
 
 // NewManger creates a new Manager
@@ -142,6 +143,7 @@ func (m *Manager) Init() error {
 
 	m.modbusManager = NewModbusManager(m.nc, m.rootNodeID)
 	m.upstreamManager = NewUpstreamManager(m.nc, m.rootNodeID)
+	m.oneWireManager = newOneWireManager(m.nc, m.rootNodeID)
 
 	return nil
 }
@@ -157,6 +159,9 @@ func (m *Manager) Run() {
 			}
 			if m.upstreamManager != nil {
 				m.upstreamManager.Update()
+			}
+			if m.oneWireManager != nil {
+				m.oneWireManager.update()
 			}
 			time.Sleep(10 * time.Second)
 		}

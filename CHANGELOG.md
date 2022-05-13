@@ -11,8 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.1.0] - 2022-05-13](https://github.com/simpleiot/simpleiot/releases/tag/v0.1.0)
+
 - docs: add list of supported devices to install
 - docs: add upstream documentation
+- add support for 1-wire buses, and DS18B20 temp sensor #230 #361
 
 ## [[0.0.45] - 2022-04-30](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.45)
 
