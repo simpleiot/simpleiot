@@ -4,9 +4,9 @@
 conductor. It is also possible to power some devices over the data signal as
 well, but often a third wire is run for power.
 
-Simple IoT supports 1-wire busses controlled by the
+Simple IoT supports 1-wire buses controlled by the
 [1-wire (w1) subsystem](https://www.kernel.org/doc/html/latest/w1/index.html) in
-the Linux kernel. Simple IoT will automatically create nodes for 1-wire busses
+the Linux kernel. Simple IoT will automatically create nodes for 1-wire buses
 and devices it discovers.
 
 ![1-wire nodes](images/onewire-nodes.png)
