@@ -25,6 +25,7 @@ import Components.NodeVariable as NodeVariable
 import Dict
 import Element exposing (..)
 import Element.Background as Background
+import Element.Font as Font
 import Element.Input as Input
 import Http
 import List.Extra
@@ -88,6 +89,7 @@ type alias NodeMsg =
 
 type CopyMove
     = CopyMoveNone
+      -- ID, source, description
     | Copy String String String
 
 
@@ -706,6 +708,12 @@ mergeNodeTree current new =
         new
 
 
+
+-- FeID stands for front-end ID. This is required because we may
+-- have some duplicate nodes in the data set, so we simply give each
+-- one a unique ID while we are working with them in the frontend
+
+
 populateFeID : List (Tree NodeView) -> List (Tree NodeView)
 populateFeID trees =
     List.indexedMap
@@ -998,7 +1006,18 @@ view model =
     , body =
         [ column
             [ width fill, spacing 32 ]
-            [ el Style.h2 <| text "Nodes"
+            [ wrappedRow [ spacing 10 ] <|
+                (el Style.h2 <| text "Nodes")
+                    :: (case model.copyMove of
+                            CopyMoveNone ->
+                                []
+
+                            Copy id src desc ->
+                                [ Icon.clipboard
+                                , el [ Font.italic ] <| text desc
+                                , el [ Font.size 12 ] <| text <| "(" ++ id ++ ")"
+                                ]
+                       )
             , viewNodes model
             ]
         ]
