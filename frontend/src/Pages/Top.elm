@@ -893,8 +893,9 @@ nodeCustomSortRules =
         , ( Node.typeRule, "E" )
 
         -- rule subnodes
-        , ( Node.typeAction, "A" )
-        , ( Node.typeCondition, "B" )
+        , ( Node.typeCondition, "A" )
+        , ( Node.typeAction, "B" )
+        , ( Node.typeActionInactive, "C" )
         ]
 
 
