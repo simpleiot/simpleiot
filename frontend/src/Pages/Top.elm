@@ -195,6 +195,7 @@ type Msg
     | ApiRespPutDuplicateNode Int (Data Response)
     | ApiRespPostNotificationNode (Data Response)
     | CopyNode Int String String String
+    | ClearClipboard
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -635,6 +636,9 @@ update msg model =
             , Port.out <| Port.encodeClipboard id
             )
 
+        ClearClipboard ->
+            ( { model | copyMove = CopyMoveNone }, Cmd.none )
+
 
 mergeNodeTrees : List (Tree NodeView) -> List (Tree NodeView) -> List (Tree NodeView)
 mergeNodeTrees current new =
@@ -1007,6 +1011,7 @@ view model =
                                 [ Icon.clipboard
                                 , el [ Font.italic ] <| text desc
                                 , el [ Font.size 12 ] <| text <| "(" ++ id ++ ")"
+                                , Button.x ClearClipboard
                                 ]
                        )
             , viewNodes model
