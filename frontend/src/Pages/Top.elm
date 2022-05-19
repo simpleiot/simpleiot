@@ -87,13 +87,6 @@ type alias NodeMsg =
     }
 
 
-
---type CopyMove
---    = CopyMoveNone
---      -- ID, source, description
---    | Copy String String String
-
-
 type NodeOperation
     = OpNone
     | OpNodeToAdd NodeToAdd
