@@ -772,12 +772,22 @@ func (nh *NatsHandler) processRuleNode(ruleNode data.NodeEdge, sourceNodeID stri
 		if err != nil {
 			log.Println("Error running rule actions: ", err)
 		}
+
+		err = nh.ruleRunInactiveActions(nh.Nc, rule.ActionsInactive)
+		if err != nil {
+			log.Println("Error running rule inactive actions: ", err)
+		}
 	}
 
 	if !active && changed {
 		err := nh.ruleRunActions(nh.Nc, rule, rule.ActionsInactive, sourceNodeID)
 		if err != nil {
 			log.Println("Error running rule actions: ", err)
+		}
+
+		err = nh.ruleRunInactiveActions(nh.Nc, rule.Actions)
+		if err != nil {
+			log.Println("Error running rule inactive actions: ", err)
 		}
 	}
 
