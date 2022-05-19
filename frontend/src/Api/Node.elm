@@ -1,5 +1,6 @@
 module Api.Node exposing
     ( Node
+    , NodeView
     , copy
     , delete
     , description
@@ -143,6 +144,17 @@ type alias Node =
     , parent : String
     , points : List Point
     , edgePoints : List Point
+    }
+
+
+type alias NodeView =
+    { node : Node
+    , feID : Int
+    , parentID : String
+    , hasChildren : Bool
+    , expDetail : Bool
+    , expChildren : Bool
+    , mod : Bool
     }
 
 

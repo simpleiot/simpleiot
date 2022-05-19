@@ -2,7 +2,7 @@ module Pages.Top exposing (Model, Msg, Params, page)
 
 import Api.Auth exposing (Auth)
 import Api.Data as Data exposing (Data)
-import Api.Node as Node exposing (Node)
+import Api.Node as Node exposing (Node, NodeView)
 import Api.Point as Point exposing (Point)
 import Api.Port as Port
 import Api.Response exposing (Response)
@@ -17,7 +17,7 @@ import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
-import Components.NodeOptions exposing (NodeOptions)
+import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
 import Components.NodeRule as NodeRule
 import Components.NodeUpstream as NodeUpstream
 import Components.NodeUser as NodeUser
@@ -87,10 +87,11 @@ type alias NodeMsg =
     }
 
 
-type CopyMove
-    = CopyMoveNone
-      -- ID, source, description
-    | Copy String String String
+
+--type CopyMove
+--    = CopyMoveNone
+--      -- ID, source, description
+--    | Copy String String String
 
 
 type NodeOperation
@@ -99,17 +100,6 @@ type NodeOperation
     | OpNodeMessage NodeMessage
     | OpNodeDelete Int String String
     | OpNodePaste Int String
-
-
-type alias NodeView =
-    { node : Node
-    , feID : Int
-    , parentID : String
-    , hasChildren : Bool
-    , expDetail : Bool
-    , expChildren : Bool
-    , mod : Bool
-    }
 
 
 type alias NodeEdit =
@@ -1013,7 +1003,7 @@ view model =
                             CopyMoveNone ->
                                 []
 
-                            Copy id src desc ->
+                            Copy id _ desc ->
                                 [ Icon.clipboard
                                 , el [ Font.italic ] <| text desc
                                 , el [ Font.size 12 ] <| text <| "(" ++ id ++ ")"
@@ -1248,8 +1238,10 @@ viewNode model parent node depth =
                     , modified = node.mod
                     , parent = Maybe.map .node parent
                     , node = node.node
+                    , nodes = model.nodes
                     , expDetail = node.expDetail
                     , onEditNodePoint = EditNodePoint node.feID
+                    , copy = model.copyMove
                     }
                 , viewIf node.mod <|
                     Form.buttonRow

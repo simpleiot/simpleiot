@@ -2,12 +2,14 @@ module Components.NodeAction exposing (view)
 
 import Api.Node as Node
 import Api.Point as Point
-import Components.NodeOptions exposing (NodeOptions, oToInputO)
+import Components.NodeOptions exposing (CopyMove(..), NodeOptions, findNode, oToInputO)
 import Element exposing (..)
+import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
-import UI.Style exposing (colors)
+import UI.Style as Style
 import UI.ViewIf exposing (viewIf)
 
 
@@ -50,11 +52,14 @@ view o =
 
         valueType =
             Point.getText o.node.points Point.typeValueType ""
+
+        nodeId =
+            Point.getText o.node.points Point.typeID ""
     in
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
-        , Border.color colors.black
+        , Border.color Style.colors.black
         , spacing 6
         ]
     <|
@@ -78,6 +83,48 @@ view o =
                             , ( Point.typeValueSet, "set value (use for remote devices)" )
                             ]
                     , viewIf actionSetValue <| textInput Point.typeID "Node ID" ""
+                    , if nodeId /= "" then
+                        let
+                            nodeDesc =
+                                case findNode o.nodes nodeId of
+                                    Just node ->
+                                        el [ Background.color Style.colors.ltblue ] <|
+                                            text <|
+                                                "("
+                                                    ++ Node.getBestDesc node
+                                                    ++ ")"
+
+                                    Nothing ->
+                                        el [ Background.color Style.colors.orange ] <| text "(node not found)"
+                        in
+                        el [ Font.italic, paddingEach { top = 0, right = 0, left = 170, bottom = 0 } ] <|
+                            nodeDesc
+
+                      else
+                        Element.none
+                    , case o.copy of
+                        CopyMoveNone ->
+                            Element.none
+
+                        Copy id _ desc ->
+                            if nodeId /= id then
+                                let
+                                    label =
+                                        row
+                                            [ spacing 10 ]
+                                            [ text <| "paste ID for node: "
+                                            , el
+                                                [ Font.italic
+                                                , Background.color Style.colors.ltblue
+                                                ]
+                                              <|
+                                                text desc
+                                            ]
+                                in
+                                NodeInputs.nodePasteButton opts label Point.typeID id
+
+                            else
+                                Element.none
                     , viewIf actionSetValue <|
                         optionInput Point.typeValueType
                             "Point Value Type"

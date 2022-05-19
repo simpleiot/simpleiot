@@ -9,7 +9,7 @@ import Element.Font as Font
 import Round
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
-import UI.Style as Style exposing (colors)
+import UI.Style as Style
 import UI.ViewIf exposing (viewIf)
 
 
@@ -67,7 +67,7 @@ view o =
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
-        , Border.color colors.black
+        , Border.color Style.colors.black
         , spacing 6
         ]
     <|
