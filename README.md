@@ -58,3 +58,13 @@ For support or to discuss this project, use one of the following options:
 ## License
 
 Apache Version 2.0
+
+## Contributors
+
+Thanks to contributors:
+
+<a href="https://github.com/simpleiot/simpleiot/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=simpleiot/simpleiot" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
