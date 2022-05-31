@@ -11,7 +11,26 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.2.0] - 2022-05-31](https://github.com/simpleiot/simpleiot/releases/tag/v0.2.0)
+
+(implemented in PR #362)
+
 - UI: fix sorting of Rule child nodes
+- highlight rule actions when active #266
+- better linking of nodes for rules #251
+- display clipboard contents at top of screen
+
+This release improves the process of linking nodes to rule actions or
+conditions. In the past, the system clipboard was used and you had to paste the
+system clipboard contents into the Node ID field of rule conditions and actions.
+Now, when you a copy a node, the SIOT frontend has its own clipboard and a past
+button is displayed below the Node ID fields for easy pasting the node ID.
+Additionally, the node description is displayed below the Node ID field so you
+can easily tell which node the ID is referring to.
+
+A [video is available](https://youtu.be/tqbLZ9CSzRU) which illustrates how node
+IDs can now be copied and pasted.
+[docs](https://docs.simpleiot.org/docs/user/rules.html) are also updated.
 
 ## [[0.1.0] - 2022-05-13](https://github.com/simpleiot/simpleiot/releases/tag/v0.1.0)
 
