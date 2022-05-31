@@ -6,8 +6,8 @@ children. In the below example, `Joe` has access to the `SBC` device because
 both `Joe` and `SBC` are members of the `Site 1` group. `Joe` does have access
 to the `root` node.
 
-<img src="images/group-user.png" alt="group user" style="zoom: 50%;" />
+![group user](images/group-user.png)
 
 If `Joe` logs in, the following view will be presented:
 
-<img src="images/joe-nodes.png" alt="joe nodes" style="zoom: 50%;" />
+![joe nodes](images/joe-nodes.png)
