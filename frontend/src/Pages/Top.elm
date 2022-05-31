@@ -2,7 +2,7 @@ module Pages.Top exposing (Model, Msg, Params, page)
 
 import Api.Auth exposing (Auth)
 import Api.Data as Data exposing (Data)
-import Api.Node as Node exposing (Node)
+import Api.Node as Node exposing (Node, NodeView)
 import Api.Point as Point exposing (Point)
 import Api.Port as Port
 import Api.Response exposing (Response)
@@ -17,7 +17,7 @@ import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
-import Components.NodeOptions exposing (NodeOptions)
+import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
 import Components.NodeRule as NodeRule
 import Components.NodeUpstream as NodeUpstream
 import Components.NodeUser as NodeUser
@@ -25,6 +25,7 @@ import Components.NodeVariable as NodeVariable
 import Dict
 import Element exposing (..)
 import Element.Background as Background
+import Element.Font as Font
 import Element.Input as Input
 import Http
 import List.Extra
@@ -86,28 +87,12 @@ type alias NodeMsg =
     }
 
 
-type CopyMove
-    = CopyMoveNone
-    | Copy String String String
-
-
 type NodeOperation
     = OpNone
     | OpNodeToAdd NodeToAdd
     | OpNodeMessage NodeMessage
     | OpNodeDelete Int String String
     | OpNodePaste Int String
-
-
-type alias NodeView =
-    { node : Node
-    , feID : Int
-    , parentID : String
-    , hasChildren : Bool
-    , expDetail : Bool
-    , expChildren : Bool
-    , mod : Bool
-    }
 
 
 type alias NodeEdit =
@@ -203,6 +188,7 @@ type Msg
     | ApiRespPutDuplicateNode Int (Data Response)
     | ApiRespPostNotificationNode (Data Response)
     | CopyNode Int String String String
+    | ClearClipboard
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -643,6 +629,9 @@ update msg model =
             , Port.out <| Port.encodeClipboard id
             )
 
+        ClearClipboard ->
+            ( { model | copyMove = CopyMoveNone }, Cmd.none )
+
 
 mergeNodeTrees : List (Tree NodeView) -> List (Tree NodeView) -> List (Tree NodeView)
 mergeNodeTrees current new =
@@ -704,6 +693,12 @@ mergeNodeTree current new =
                     n
         )
         new
+
+
+
+-- FeID stands for front-end ID. This is required because we may
+-- have some duplicate nodes in the data set, so we simply give each
+-- one a unique ID while we are working with them in the frontend
 
 
 populateFeID : List (Tree NodeView) -> List (Tree NodeView)
@@ -885,8 +880,9 @@ nodeCustomSortRules =
         , ( Node.typeRule, "E" )
 
         -- rule subnodes
-        , ( Node.typeAction, "A" )
-        , ( Node.typeCondition, "B" )
+        , ( Node.typeCondition, "A" )
+        , ( Node.typeAction, "B" )
+        , ( Node.typeActionInactive, "C" )
         ]
 
 
@@ -998,7 +994,19 @@ view model =
     , body =
         [ column
             [ width fill, spacing 32 ]
-            [ el Style.h2 <| text "Nodes"
+            [ wrappedRow [ spacing 10 ] <|
+                (el Style.h2 <| text "Nodes")
+                    :: (case model.copyMove of
+                            CopyMoveNone ->
+                                []
+
+                            Copy id _ desc ->
+                                [ Icon.clipboard
+                                , el [ Font.italic ] <| text desc
+                                , el [ Font.size 12 ] <| text <| "(" ++ id ++ ")"
+                                , Button.x ClearClipboard
+                                ]
+                       )
             , viewNodes model
             ]
         ]
@@ -1228,8 +1236,10 @@ viewNode model parent node depth =
                     , modified = node.mod
                     , parent = Maybe.map .node parent
                     , node = node.node
+                    , nodes = model.nodes
                     , expDetail = node.expDetail
                     , onEditNodePoint = EditNodePoint node.feID
+                    , copy = model.copyMove
                     }
                 , viewIf node.mod <|
                     Form.buttonRow

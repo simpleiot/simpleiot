@@ -15,7 +15,15 @@ device nodes (for instance device offline).
 In the below configuration, a change in the SBC propagates up the node tree,
 thus both the `D5 on rule` or the `Device offline rule` are eligible to be run.
 
-<img src="images/rules.png" alt="rules" style="zoom:50%;" />
+![rules](images/rules.png)
+
+## Node linking
+
+Both conditions and actions can be linked to a node ID. If you copy a node, its
+ID is stored in a virtual clipboard and displayed at the top of the screen. You
+can then paste this node ID into the Node ID field in a condition or action.
+
+![rule-linking](images/rule-copy-paste-node-id.png)
 
 ## Conditions
 

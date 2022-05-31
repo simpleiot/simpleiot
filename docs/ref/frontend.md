@@ -1,11 +1,5 @@
 # Frontend
 
-## Reference Implementation
-
-The reference Simple IoT frontend is implemented in Elm and located in the
-[`frontend/`](https://github.com/simpleiot/simpleiot/tree/master/frontend)
-directory.
-
 ## SIOT JavaScript library using NATS over WebSockets
 
 This is a JavaScript library avaiable in the
@@ -29,7 +23,31 @@ This library is also published on NPM (in the near future).
 
 (see [#357](https://github.com/simpleiot/simpleiot/pull/357))
 
-## Creating Custom Icons
+(Note, we are not currently using this yet in the SIOT frontend -- we still poll
+the backend over REST and fetch the entire node tree, but we are building out
+infrastructure so we don't have to do this.)
+
+## Elm Reference Implementation
+
+The reference Simple IoT frontend is implemented in Elm and located in the
+[`frontend/`](https://github.com/simpleiot/simpleiot/tree/master/frontend)
+directory.
+
+### Code Structure
+
+The frontend is based on [elm-spa](https://www.elm-spa.dev/), and is split into
+the following directories:
+
+- **Api**: contains core data structures and API code to communicate with
+  backend (currently REST).
+- **Pages**: the various pages of the application
+- **Components**: each node type has a separate module that is used to render
+  it. `NodeOptions.elm` contains a struct that is used to pass options into the
+  component views.
+- **UI**: Various UI pieces we used
+- **Utils**: Code that does not fit anywhere else (time, etc)
+
+### Creating Custom Icons
 
 SIOT icons are 24x24px pixels (based on feather icon format). One way to create
 them is to:

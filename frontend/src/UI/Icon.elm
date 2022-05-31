@@ -2,6 +2,7 @@ module UI.Icon exposing
     ( blank
     , bus
     , check
+    , clipboard
     , cloud
     , cloudOff
     , database
@@ -168,3 +169,8 @@ uploadCloud =
 database : Element msg
 database =
     icon FeatherIcons.database
+
+
+clipboard : Element msg
+clipboard =
+    icon FeatherIcons.clipboard
