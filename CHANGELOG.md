@@ -19,6 +19,8 @@ For more details or to discuss releases, please visit the
 - highlight rule actions when active #266
 - better linking of nodes for rules #251
 - display clipboard contents at top of screen
+- update elm/virtual-dom to 1.0.3 (helps
+  [prevent xss attacks](https://jfmengels.net/virtual-dom-security-patch/))
 
 This release improves the process of linking nodes to rule actions or
 conditions. In the past, the system clipboard was used and you had to paste the
