@@ -36,52 +36,52 @@ func NewModbusIONode(busType string, node *data.NodeEdge) (*ModbusIONode, error)
 
 	var ok bool
 
-	ret.id, ok = node.Points.ValueInt("", data.PointTypeID, 0)
+	ret.id, ok = node.Points.ValueInt(data.PointTypeID, "")
 	if busType == data.PointValueClient && !ok {
 		if busType == data.PointValueServer {
 			return nil, errors.New("Must define modbus ID")
 		}
 	}
 
-	ret.description, _ = node.Points.Text("", data.PointTypeDescription, 0)
+	ret.description, _ = node.Points.Text(data.PointTypeDescription, "")
 
-	ret.address, ok = node.Points.ValueInt("", data.PointTypeAddress, 0)
+	ret.address, ok = node.Points.ValueInt(data.PointTypeAddress, "")
 	if !ok {
 		return nil, errors.New("Must define modbus address")
 	}
 
-	ret.modbusIOType, ok = node.Points.Text("", data.PointTypeModbusIOType, 0)
+	ret.modbusIOType, ok = node.Points.Text(data.PointTypeModbusIOType, "")
 	if !ok {
 		return nil, errors.New("Must define modbus IO type")
 	}
 
-	ret.readOnly, _ = node.Points.ValueBool("", data.PointTypeReadOnly, 0)
+	ret.readOnly, _ = node.Points.ValueBool(data.PointTypeReadOnly, "")
 
 	if ret.modbusIOType == data.PointValueModbusInputRegister ||
 		ret.modbusIOType == data.PointValueModbusHoldingRegister {
-		ret.modbusDataType, ok = node.Points.Text("", data.PointTypeDataFormat, 0)
+		ret.modbusDataType, ok = node.Points.Text(data.PointTypeDataFormat, "")
 		if !ok {
 			return nil, errors.New("Data format must be specified")
 		}
-		ret.scale, ok = node.Points.Value("", data.PointTypeScale, 0)
+		ret.scale, ok = node.Points.Value(data.PointTypeScale, "")
 		if !ok {
 			return nil, errors.New("Must define modbus scale")
 		}
-		ret.offset, ok = node.Points.Value("", data.PointTypeOffset, 0)
+		ret.offset, ok = node.Points.Value(data.PointTypeOffset, "")
 		if !ok {
 			return nil, errors.New("Must define modbus offset")
 		}
 	}
 
-	ret.value, _ = node.Points.Value("", data.PointTypeValue, 0)
-	ret.valueSet, _ = node.Points.Value("", data.PointTypeValueSet, 0)
-	ret.disable, _ = node.Points.ValueBool("", data.PointTypeDisable, 0)
-	ret.errorCount, _ = node.Points.ValueInt("", data.PointTypeErrorCount, 0)
-	ret.errorCountCRC, _ = node.Points.ValueInt("", data.PointTypeErrorCountCRC, 0)
-	ret.errorCountEOF, _ = node.Points.ValueInt("", data.PointTypeErrorCountEOF, 0)
-	ret.errorCountReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountReset, 0)
-	ret.errorCountCRCReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountCRCReset, 0)
-	ret.errorCountEOFReset, _ = node.Points.ValueBool("", data.PointTypeErrorCountEOFReset, 0)
+	ret.value, _ = node.Points.Value(data.PointTypeValue, "")
+	ret.valueSet, _ = node.Points.Value(data.PointTypeValueSet, "")
+	ret.disable, _ = node.Points.ValueBool(data.PointTypeDisable, "")
+	ret.errorCount, _ = node.Points.ValueInt(data.PointTypeErrorCount, "")
+	ret.errorCountCRC, _ = node.Points.ValueInt(data.PointTypeErrorCountCRC, "")
+	ret.errorCountEOF, _ = node.Points.ValueInt(data.PointTypeErrorCountEOF, "")
+	ret.errorCountReset, _ = node.Points.ValueBool(data.PointTypeErrorCountReset, "")
+	ret.errorCountCRCReset, _ = node.Points.ValueBool(data.PointTypeErrorCountCRCReset, "")
+	ret.errorCountEOFReset, _ = node.Points.ValueBool(data.PointTypeErrorCountEOFReset, "")
 
 	return &ret, nil
 }

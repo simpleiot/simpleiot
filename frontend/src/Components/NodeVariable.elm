@@ -9,7 +9,7 @@ import Element.Font as Font
 import Round
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
-import UI.Style as Style exposing (colors)
+import UI.Style as Style
 import UI.ViewIf exposing (viewIf)
 
 
@@ -23,22 +23,22 @@ view o =
             oToInputO o labelWidth
 
         textInput =
-            NodeInputs.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts ""
 
         optionInput =
-            NodeInputs.nodeOptionInput opts "" 0
+            NodeInputs.nodeOptionInput opts ""
 
         numberInput =
-            NodeInputs.nodeNumberInput opts "" 0
+            NodeInputs.nodeNumberInput opts ""
 
         onOffInput =
-            NodeInputs.nodeOnOffInput opts "" 0
+            NodeInputs.nodeOnOffInput opts ""
 
         value =
-            Point.getValue o.node.points "" 0 Point.typeValue
+            Point.getValue o.node.points Point.typeValue ""
 
         variableType =
-            Point.getText o.node.points "" 0 Point.typeVariableType
+            Point.getText o.node.points Point.typeVariableType ""
 
         valueText =
             if variableType == Point.valueNumber then
@@ -67,19 +67,19 @@ view o =
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
-        , Border.color colors.black
+        , Border.color Style.colors.black
         , spacing 6
         ]
     <|
         wrappedRow [ spacing 10 ]
             [ Icon.variable
             , text <|
-                Point.getText o.node.points "" 0 Point.typeDescription
+                Point.getText o.node.points Point.typeDescription ""
             , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
                 text <|
                     valueText
                         ++ (if variableType == Point.valueNumber then
-                                " " ++ Point.getText o.node.points "" 0 Point.typeUnits
+                                " " ++ Point.getText o.node.points Point.typeUnits ""
 
                             else
                                 ""

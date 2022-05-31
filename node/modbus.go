@@ -107,7 +107,7 @@ func (b *Modbus) Stop() {
 
 // CheckIOs goes through ios on the bus and handles any config changes
 func (b *Modbus) CheckIOs() error {
-	nodes, err := nats.GetNodeChildren(b.nc, b.busNode.nodeID, data.NodeTypeModbusIO, false)
+	nodes, err := nats.GetNodeChildren(b.nc, b.busNode.nodeID, data.NodeTypeModbusIO, false, false)
 	if err != nil {
 		return err
 	}
@@ -739,7 +739,7 @@ func (b *Modbus) Run() {
 		case point := <-b.chPoint:
 			p := point.point
 			if point.id == b.busNode.nodeID {
-				b.node.ProcessPoint(p)
+				b.node.AddPoint(p)
 				var err error
 				b.busNode, err = NewModbusNode(b.node)
 				if err != nil {
@@ -808,7 +808,7 @@ func (b *Modbus) Run() {
 			} else {
 				io, ok := b.ios[point.id]
 				if !ok {
-					log.Println("received point for unknown IO: ", point.id)
+					log.Println("modbus received point for unknown node: ", point.id)
 					// FIXME, we could create a new IO here
 					continue
 				}

@@ -12,14 +12,10 @@ func TestNewPoint(t *testing.T) {
 	point := Point{
 		Time:  time.Now(),
 		Value: 200,
-		Min:   100,
-		Max:   300,
 	}
 
 	pointAverager := NewTimeWindowAverager(3*time.Second, func(avg Point) {
 		fmt.Println("Average (Value): ", avg.Value)
-		fmt.Println("Min:             ", avg.Min)
-		fmt.Println("Max:             ", avg.Max)
 		fmt.Println()
 		avgPoint = avg
 	}, "hello")
@@ -34,12 +30,6 @@ func TestNewPoint(t *testing.T) {
 
 			if avgPoint.Value != point.Value {
 				t.Error("point avg is not correct")
-			}
-			if avgPoint.Min != point.Min {
-				t.Error("point min is not correct")
-			}
-			if avgPoint.Max != point.Max {
-				t.Error("point max is not correct")
 			}
 		}
 	}

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -24,6 +25,7 @@ type NodeMove struct {
 type NodeCopy struct {
 	ID        string
 	NewParent string
+	Duplicate bool
 }
 
 // NodeDelete is a data structure used with /node/:id DELETE call
@@ -76,9 +78,10 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			// FIXME, replace this with a NATS call so we can remove db from this
-			// module
-			nodes, err := h.db.NodesForUser(userID)
+			nodes, err := nats.GetNodesForUser(h.nc, userID)
+			if err != nil {
+				log.Println("Error getting nodes for user: ", err)
+			}
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
@@ -125,10 +128,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := nats.SendEdgePoint(h.nc, id, nodeDelete.Parent, data.Point{
-				Type:  data.PointTypeTombstone,
-				Value: 1,
-			}, true)
+			err := nats.DeleteNode(h.nc, id, nodeDelete.Parent)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
@@ -160,25 +160,8 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			if nodeMove.NewParent == nodeMove.OldParent {
-				http.Error(res, "can't move node to itself", http.StatusNotFound)
-				return
-			}
-
-			err := nats.SendEdgePoint(h.nc, id, nodeMove.NewParent, data.Point{
-				Type:  data.PointTypeTombstone,
-				Value: 0,
-			}, true)
-
-			if err != nil {
-				http.Error(res, err.Error(), http.StatusNotFound)
-				return
-			}
-
-			err = nats.SendEdgePoint(h.nc, id, nodeMove.OldParent, data.Point{
-				Type:  data.PointTypeTombstone,
-				Value: 1,
-			}, true)
+			err := nats.MoveNode(h.nc, id, nodeMove.OldParent,
+				nodeMove.NewParent)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
@@ -196,14 +179,20 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := nats.SendEdgePoint(h.nc, id, nodeCopy.NewParent, data.Point{
-				Type:  data.PointTypeTombstone,
-				Value: 0,
-			}, true)
+			if !nodeCopy.Duplicate {
+				err := nats.MirrorNode(h.nc, id, nodeCopy.NewParent)
 
-			if err != nil {
-				http.Error(res, err.Error(), http.StatusNotFound)
-				return
+				if err != nil {
+					http.Error(res, err.Error(), http.StatusNotFound)
+					return
+				}
+			} else {
+				err := nats.DuplicateNode(h.nc, id, nodeCopy.NewParent)
+
+				if err != nil {
+					http.Error(res, err.Error(), http.StatusNotFound)
+					return
+				}
 			}
 
 			en := json.NewEncoder(res)
@@ -265,22 +254,7 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
 		node.ID = uuid.New().String()
 	}
 
-	node.Points = append(node.Points, data.Point{
-		Type: data.PointTypeNodeType,
-		Text: node.Type,
-	})
-
-	err := nats.SendNodePoints(h.nc, node.ID, node.Points, true)
-
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = nats.SendEdgePoint(h.nc, node.ID, node.Parent, data.Point{
-		Type:  data.PointTypeTombstone,
-		Value: 0,
-	}, true)
+	err := nats.SendNode(h.nc, node)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusNotFound)

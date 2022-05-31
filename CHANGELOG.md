@@ -11,7 +11,130 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.2.0] - 2022-05-31](https://github.com/simpleiot/simpleiot/releases/tag/v0.2.0)
+
+(implemented in PR #362)
+
+- UI: fix sorting of Rule child nodes
+- highlight rule actions when active #266
+- better linking of nodes for rules #251
+- display clipboard contents at top of screen
+- update elm/virtual-dom to 1.0.3 (helps
+  [prevent xss attacks](https://jfmengels.net/virtual-dom-security-patch/))
+
+This release improves the process of linking nodes to rule actions or
+conditions. In the past, the system clipboard was used and you had to paste the
+system clipboard contents into the Node ID field of rule conditions and actions.
+Now, when you a copy a node, the SIOT frontend has its own clipboard and a past
+button is displayed below the Node ID fields for easy pasting the node ID.
+Additionally, the node description is displayed below the Node ID field so you
+can easily tell which node the ID is referring to.
+
+A [video is available](https://youtu.be/tqbLZ9CSzRU) which illustrates how node
+IDs can now be copied and pasted.
+[docs](https://docs.simpleiot.org/docs/user/rules.html) are also updated.
+
+## [[0.1.0] - 2022-05-13](https://github.com/simpleiot/simpleiot/releases/tag/v0.1.0)
+
+- docs: add list of supported devices to install
+- docs: add upstream documentation
+- add support for 1-wire buses, and DS18B20 temp sensor #230 #361
+
+## [[0.0.45] - 2022-04-30](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.45)
+
+- add DeleteNode, MoveNode, and MirrorNode to
+  [nats package](https://pkg.go.dev/github.com/simpleiot/simpleiot@v0.0.44/nats).
+  #344, #347
+- store and display App Version in root node (see screenshot below). This value
+  is extracted by the SIOT build using the `git describe` command. See
+  `envsetup.sh`. #192, #349
+- store and display OS version in root node (see screenshot below). On Linux,
+  this value is extracted from the `VERSION` field in `/etc/os-release`. The
+  field can be
+  [changed](https://docs.simpleiot.org/docs/user/configuration.html) using the
+  OS_VERSION_FIELD environment variable. #324, #353
+- update go.bug.st/serial from v1.1.3 -> v1.3.5
+- sort nodes in UI a little nicer, conditions before actions, move more often
+  used nodes to the top, etc. #355, #337
+- add NATS user auth API and change HTTP auth to use that. #326, #356
+- fix bug where deleted nodes where still considered for user auth
+- add SIOT JS library using NATS over WebSockets (#357)
+
+![os/app version](https://user-images.githubusercontent.com/402813/163829093-14c0d644-243d-49e0-9c83-acc3c642c9ab.png)
+
+## [[0.0.44] - 2022-04-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.44)
+
+- UI: fix bug where copy node crashes UI if no on secure URL or localhost (#341)
+- support clone/duplicate node (as well as mirror) operation (#312). Now when
+  you copy and paste a node, you will be presented with a list of options as
+  shown below. The new duplicate option allows you to easily replicate complex
+  setups (for instance a bunch of modbus points) from an existing site to a new
+  site.
+
+![copy options](https://user-images.githubusercontent.com/402813/153455487-66bc2699-1026-40de-9ca6-4f30f91aeff9.png)
+
+See
+[documenation](https://docs.simpleiot.org/docs/user/ui.html#deleting-moving-mirroring-and-duplicating-nodes)
+or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
+
+## [[0.0.43] - 2022-03-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.43)
+
+- improvement in UI to fix collapsing nodes #259
+- implemented functionality to duplicate nodes and refactored
+  copy/move/mirror/duplicate UI (#312)
+- update nats-server from v2.6.6 -> v2.7.4 (and associated dependencies)
+
+## [[0.0.42] - 2022-02-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.42)
+
+- move HTTP API to get nodes for user to use NATS instead of direct call into
+  database (#327)
+- **BREAKING API CHANGE**: the Nats `node.<id>` subject now returns an array of
+  `data.NodeEdge` structs instead of a single node. Both instances of an
+  upstream connection must be upgraded.
+- don't send deleted nodes to frontend -- may fix #259
+- default to nats/websocket being enabled on port 9222
+
+## [[0.0.41] - 2022-01-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.41)
+
+- with v0.0.40, if upstream URI was specified as ws://myserver.com without the
+  port being specified, the NATS Go client assumed the port was 4222. If this
+  port is not specified for ws or wss protocols, SIOT now sets the port to :80
+  or :443. This makes the behavior more predictable, as these kinds of problems
+  are very hard to debug. #315
+- if upstream config changes, restart upstream connection. #258
+
+## [[0.0.40] - 2022-01-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.40)
+
+- support for NATS over WS connections to upstream. This is handy for cases
+  where the edge network may block outgoing connections on the port NATS is
+  using. HTTP(s) almost always works. In the upstream config, simply change the
+  URL to something like: `ws://my.service.com`.
+
+## [[0.0.39] - 2021-12-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.39)
+
+- fix issue where app exits if upstream auth is incorrect (#298)
+- fix issues with orphaned device nodes in upstreams. We now make sure devices
+  in upstream have upstream edges or are not deleted if the device is still
+  receiving points. (#299)
+- only report nats stats every 1m. This makes upstream work better as these
+  currently are run in sync.
+
+## [[0.0.38] - 2021-11-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.38)
+
+- fix population of version when building with envsetup.sh
+- changes to point data structure to make it more flexible
+  ([ADR-1](https://github.com/simpleiot/simpleiot/pull/279))
+
+## [[0.0.37] - 2021-10-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.37)
+
+- fix issue with setup where you sometimes get error: elm: Text file busy
+- cleanup simpleiot.Start() so it actually returns
+
+## [[0.0.36] - 2021-10-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.36)
+
 - rename `db` package to `store`
+- factor out siot server startup code into simpleiot package
+- change `siot_run` in `envsetup.sh` to `go build` instead of `go run`
 
 ## [[0.0.35] - 2021-10-04](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.35)
 

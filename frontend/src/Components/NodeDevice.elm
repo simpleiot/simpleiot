@@ -19,7 +19,7 @@ view : NodeOptions msg -> Element msg
 view o =
     let
         sysState =
-            Point.getText o.node.points "" 0 Point.typeSysState
+            Point.getText o.node.points Point.typeSysState ""
 
         sysStateIcon =
             case sysState of
@@ -44,24 +44,24 @@ view o =
                 _ ->
                     Style.colors.white
 
-        hwVersion =
-            case Point.get o.node.points "" 0 Point.typeHwVersion of
+        versionHW =
+            case Point.get o.node.points Point.typeVersionHW "" of
                 Just point ->
                     "HW: " ++ point.text
 
                 Nothing ->
                     ""
 
-        osVersion =
-            case Point.get o.node.points "" 0 Point.typeOSVersion of
+        versionOS =
+            case Point.get o.node.points Point.typeVersionOS "" of
                 Just point ->
                     "OS: " ++ point.text
 
                 Nothing ->
                     ""
 
-        appVersion =
-            case Point.get o.node.points "" 0 Point.typeAppVersion of
+        versionApp =
+            case Point.get o.node.points Point.typeVersionApp "" of
                 Just point ->
                     "App: " ++ point.text
 
@@ -93,7 +93,7 @@ view o =
                 { onChange =
                     \d ->
                         o.onEditNodePoint
-                            [ Point "" 0 Point.typeDescription o.now 0 d 0 0 ]
+                            [ Point Point.typeDescription "" o.now 0 0 d 0 ]
                 , text = Node.description o.node
                 , placeholder = Just <| Input.placeholder [] <| text "node description"
                 , label = Input.labelHidden "node description"
@@ -109,14 +109,14 @@ view o =
                                     - Time.posixToMillis latestPointTime
                                 )
                         )
-                    , viewIf (hwVersion /= "" && osVersion /= "" && appVersion /= "") <|
+                    , viewIf (versionHW /= "" || versionOS /= "" || versionApp /= "") <|
                         text
                             ("Version: "
-                                ++ hwVersion
+                                ++ versionHW
                                 ++ " "
-                                ++ osVersion
+                                ++ versionOS
                                 ++ " "
-                                ++ appVersion
+                                ++ versionApp
                             )
                     ]
 

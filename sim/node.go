@@ -29,13 +29,13 @@ func NodeSim(portal, nodeID string) {
 		}
 
 		points[1] = data.Point{
-			ID:    "V0",
+			Key:   "V0",
 			Type:  "volt",
 			Value: voltSim.Sim(),
 		}
 
 		points[2] = data.Point{
-			ID:    "V1",
+			Key:   "V1",
 			Type:  "volt",
 			Value: voltSim2.Sim(),
 		}

@@ -11,7 +11,7 @@ import (
 
 // EdgeOptions describes options for connecting edge devices
 type EdgeOptions struct {
-	Server       string
+	URI          string
 	AuthToken    string
 	NoEcho       bool
 	Disconnected func()
@@ -74,8 +74,13 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		return nil
 	}
 
-	log.Printf("NATS edge connect to: %v, auth enabled: %v", eo.Server, authEnabled)
-	nc, err := nats.Connect(eo.Server, siotOptions)
+	uri, err := sanitizeURI(eo.URI)
+	if err != nil {
+		log.Printf("Error sanitizing URI %v: %v", eo.URI, err)
+	}
+
+	log.Printf("NATS edge connect to: %v, auth enabled: %v", uri, authEnabled)
+	nc, err := nats.Connect(uri, siotOptions)
 
 	if err != nil {
 		return nil, err

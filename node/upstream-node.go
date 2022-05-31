@@ -12,6 +12,7 @@ type UpstreamNode struct {
 	Description string
 	URI         string
 	AuthToken   string
+	Disabled    bool
 }
 
 // NewUpstreamNode converts a node to UpstreamNode
@@ -22,10 +23,11 @@ func NewUpstreamNode(node data.NodeEdge) (*UpstreamNode, error) {
 		ID: node.ID,
 	}
 
-	ret.Description, _ = node.Points.Text("", data.PointTypeDescription, 0)
-	ret.AuthToken, _ = node.Points.Text("", data.PointTypeAuthToken, 0)
+	ret.Description, _ = node.Points.Text(data.PointTypeDescription, "")
+	ret.AuthToken, _ = node.Points.Text(data.PointTypeAuthToken, "")
+	ret.Disabled, _ = node.Points.ValueBool(data.PointTypeDisable, "")
 
-	ret.URI, ok = node.Points.Text("", data.PointTypeURI, 0)
+	ret.URI, ok = node.Points.Text(data.PointTypeURI, "")
 	if !ok {
 		return nil, errors.New("URI must be specified for upstream connection")
 	}

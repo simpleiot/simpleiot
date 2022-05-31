@@ -35,7 +35,9 @@ colors :
     , orange : Color
     , yellow : Color
     , green : Color
+    , darkgreen : Color
     , blue : Color
+    , ltblue : Color
     , none : Color
     }
 colors =
@@ -48,10 +50,12 @@ colors =
     , darkgray = rgb 0.8 0.8 0.8
     , pale = rgba 0.97 0.97 0.97 0.9
     , red = rgb255 204 85 68
-    , orange = rgb 1 1 0.8
+    , orange = rgb255 255 165 0
     , yellow = rgb 1 1 0.7
     , green = rgba 0.7 1 0.7 0.9
+    , darkgreen = rgb255 4 106 56
     , blue = rgb255 50 100 150
+    , ltblue = rgb255 135 206 250
     , none = rgba 0 0 0 0
     }
 

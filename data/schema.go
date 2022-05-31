@@ -15,6 +15,7 @@ const (
 	PointTypeUnits              = "units"
 	PointTypeValue              = "value"
 	PointTypeValueSet           = "valueSet"
+	PointTypeIndex              = "index"
 	// PointTypeID typically refers to Node ID
 	PointTypeID                 = "id"
 	PointTypeAddress            = "address"
@@ -50,9 +51,9 @@ const (
 	PointTypeSwUpdateRunning      = "swUpdateRunning"
 	PointTypeSwUpdateError        = "swUpdateError"
 	PointTypeSwUpdatePercComplete = "swUpdatePercComplete"
-	PointTypeOSVersion            = "osVersion"
-	PointTypeAppVersion           = "appVersion"
-	PointTypeHwVersion            = "hwVersion"
+	PointTypeVersionOS            = "versionOS"
+	PointTypeVersionApp           = "versionApp"
+	PointTypeVersionHW            = "versionHW"
 
 	// user node describes a system user and is used to control
 	// access to the system (typically through web UI)
@@ -62,6 +63,10 @@ const (
 	PointTypePhone     = "phone"
 	PointTypeEmail     = "email"
 	PointTypePass      = "pass"
+
+	// User Authentication
+	NodeTypeJWT    = "jwt"
+	PointTypeToken = "token"
 
 	// modbus nodes
 	// in modbus land, terminology is a big backwards, client is master,
@@ -94,6 +99,9 @@ const (
 	PointValueINT32     = "int32"
 	PointValueFLOAT32   = "float32"
 
+	NodeTypeOneWire   = "oneWire"
+	NodeTypeOneWireIO = "oneWireIO"
+
 	// A group node is used to group users and devices
 	// or generally to add structure to the node graph.
 	NodeTypeGroup = "group"
@@ -121,6 +129,7 @@ const (
 	PointTypeWeekday = "weekday"
 
 	PointTypePointID    = "pointID"
+	PointTypePointKey   = "pointKey"
 	PointTypePointType  = "pointType"
 	PointTypePointIndex = "pointIndex"
 	PointTypeValueType  = "valueType"

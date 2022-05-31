@@ -1,9 +1,11 @@
 module Api.Node exposing
     ( Node
+    , NodeView
     , copy
     , delete
     , description
     , get
+    , getBestDesc
     , getCmd
     , insert
     , list
@@ -23,6 +25,8 @@ module Api.Node exposing
     , typeModbus
     , typeModbusIO
     , typeMsgService
+    , typeOneWire
+    , typeOneWireIO
     , typeRule
     , typeUpstream
     , typeUser
@@ -104,6 +108,16 @@ typeModbus =
     "modbus"
 
 
+typeOneWire : String
+typeOneWire =
+    "oneWire"
+
+
+typeOneWireIO : String
+typeOneWireIO =
+    "oneWireIO"
+
+
 typeModbusIO : String
 typeModbusIO =
     "modbusIo"
@@ -133,6 +147,17 @@ type alias Node =
     }
 
 
+type alias NodeView =
+    { node : Node
+    , feID : Int
+    , parentID : String
+    , hasChildren : Bool
+    , expDetail : Bool
+    , expChildren : Bool
+    , mod : Bool
+    }
+
+
 type alias NodeCmd =
     { cmd : String
     , detail : String
@@ -149,6 +174,7 @@ type alias NodeMove =
 type alias NodeCopy =
     { id : String
     , newParent : String
+    , duplicate : Bool
     }
 
 
@@ -229,11 +255,12 @@ encodeNodeMove nodeMove =
         ]
 
 
-encodeNodeAddParent : NodeCopy -> Encode.Value
-encodeNodeAddParent nodeCopy =
+encodeNodeCopy : NodeCopy -> Encode.Value
+encodeNodeCopy nodeCopy =
     Encode.object
         [ ( "id", Encode.string nodeCopy.id )
         , ( "newParent", Encode.string nodeCopy.newParent )
+        , ( "duplicate", Encode.bool nodeCopy.duplicate )
         ]
 
 
@@ -246,12 +273,17 @@ encodeNodeDelete nodeDelete =
 
 description : Node -> String
 description d =
-    case Point.get d.points "" 0 Point.typeDescription of
+    case Point.get d.points Point.typeDescription "" of
         Just point ->
             point.text
 
         Nothing ->
             ""
+
+
+getBestDesc : Node -> String
+getBestDesc n =
+    Point.getBestDesc n.points
 
 
 list :
@@ -430,6 +462,7 @@ copy :
     { token : String
     , id : String
     , newParent : String
+    , duplicate : Bool
     , onResponse : Data Response -> msg
     }
     -> Cmd msg
@@ -442,8 +475,9 @@ copy options =
         , body =
             { id = options.id
             , newParent = options.newParent
+            , duplicate = options.duplicate
             }
-                |> encodeNodeAddParent
+                |> encodeNodeCopy
                 |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing

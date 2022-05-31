@@ -23,30 +23,30 @@ view o =
             oToInputO o labelWidth
 
         textInput =
-            NodeInputs.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts ""
 
         numberInput =
-            NodeInputs.nodeNumberInput opts "" 0
+            NodeInputs.nodeNumberInput opts ""
 
         onOffInput =
-            NodeInputs.nodeOnOffInput opts "" 0
+            NodeInputs.nodeOnOffInput opts ""
 
         optionInput =
-            NodeInputs.nodeOptionInput opts "" 0
+            NodeInputs.nodeOptionInput opts ""
 
         checkboxInput =
-            NodeInputs.nodeCheckboxInput opts "" 0
+            NodeInputs.nodeCheckboxInput opts ""
 
         counterWithReset =
-            NodeInputs.nodeCounterWithReset opts "" 0
+            NodeInputs.nodeCounterWithReset opts ""
 
         modbusIOType =
-            Point.getText o.node.points "" 0 Point.typeModbusIOType
+            Point.getText o.node.points Point.typeModbusIOType ""
 
         isClient =
             case o.parent of
                 Just p ->
-                    Point.getText p.points "" 0 Point.typeClientServer == Point.valueClient
+                    Point.getText p.points Point.typeClientServer "" == Point.valueClient
 
                 Nothing ->
                     False
@@ -58,10 +58,10 @@ view o =
                 == Point.valueModbusCoil
 
         value =
-            Point.getValue o.node.points "" 0 Point.typeValue
+            Point.getValue o.node.points Point.typeValue ""
 
         valueSet =
-            Point.getValue o.node.points "" 0 Point.typeValueSet
+            Point.getValue o.node.points Point.typeValueSet ""
 
         isRegister =
             modbusIOType
@@ -70,7 +70,7 @@ view o =
                 == Point.valueModbusHoldingRegister
 
         isReadOnly =
-            Point.getValue o.node.points "" 0 Point.typeReadOnly == 1
+            Point.getValue o.node.points Point.typeReadOnly "" == 1
 
         valueText =
             if isRegister then
@@ -97,7 +97,7 @@ view o =
                 Style.colors.black
 
         disabled =
-            Point.getBool o.node.points "" 0 Point.typeDisable
+            Point.getBool o.node.points Point.typeDisable ""
     in
     column
         [ width fill
@@ -109,13 +109,13 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.io
             , text <|
-                Point.getText o.node.points "" 0 Point.typeDescription
+                Point.getText o.node.points Point.typeDescription ""
                     ++ ": "
             , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
                 text <|
                     valueText
                         ++ (if isRegister then
-                                " " ++ Point.getText o.node.points "" 0 Point.typeUnits
+                                " " ++ Point.getText o.node.points Point.typeUnits ""
 
                             else
                                 ""

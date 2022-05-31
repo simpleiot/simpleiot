@@ -38,9 +38,7 @@ type Meta struct {
 
 // This file contains database manipulations.
 
-// Db is used for all db access in the application.
-// We will eventually turn this into an interface to
-// handle multiple Db backends.
+// Db represents the store for the application
 type Db struct {
 	store *genji.DB
 	meta  Meta
@@ -297,41 +295,55 @@ func (gen *Db) nodeFindDescendents(id string, recursive bool, level int) ([]data
 }
 
 // nodeEdge returns a node edge
-func (gen *Db) nodeEdge(id, parent string) (data.NodeEdge, error) {
+// parent can be:
+//   - id of node
+//   - none: parent details are skipped
+//   - all: all parents are fetched
+func (gen *Db) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
+	if id == "root" {
+		id = gen.rootNodeID()
+	}
+
 	if parent == "" {
 		parent = "none"
 	}
 
-	var nodeEdge data.NodeEdge
-
+	// get node
 	node, err := gen.node(id)
+	if err != nil {
+		return []data.NodeEdge{}, err
+	}
+
+	if parent == "none" {
+		// send back one node with null parent details
+		hash, err := gen.calcHash(node, data.Edge{})
+		if err != nil {
+			return []data.NodeEdge{}, err
+		}
+
+		ret := node.ToNodeEdge(data.Edge{})
+		ret.Hash = hash
+		return []data.NodeEdge{ret}, nil
+	}
+
+	// find the edges and return multiple nodes
+	e, err := gen.edgeUpDown(parent, id, true)
 
 	if err != nil {
-		return nodeEdge, err
+		return []data.NodeEdge{}, err
 	}
 
-	var edge data.Edge
-
-	if parent != "skip" {
-		e, err := gen.edgeUpDown(parent, id, true)
-
-		if err != nil {
-			return nodeEdge, err
-		}
-
-		edge = *e
+	if len(e) <= 0 {
+		return []data.NodeEdge{}, errors.New("No edges found")
 	}
 
-	nodeEdge = node.ToNodeEdge(edge)
+	ret := make([]data.NodeEdge, len(e))
 
-	if parent == "skip" {
-		nodeEdge.Hash, err = gen.calcHash(node, data.Edge{})
-		if err != nil {
-			return nodeEdge, err
-		}
+	for i := 0; i < len(e); i++ {
+		ret[i] = node.ToNodeEdge(e[i])
 	}
 
-	return nodeEdge, err
+	return ret, nil
 }
 
 // nodes returns all nodes.
@@ -362,10 +374,10 @@ func txSetTombstone(tx *genji.Tx, down, up string, tombstone bool) error {
 		return err
 	}
 
-	current, _ := edge.Points.ValueBool("", data.PointTypeTombstone, 0)
+	current, _ := edge.Points.ValueBool(data.PointTypeTombstone, "")
 
 	if current != tombstone {
-		edge.Points.ProcessPoint(data.Point{
+		edge.Points.Add(data.Point{
 			Type:  data.PointTypeTombstone,
 			Value: data.BoolToFloat(tombstone),
 			Time:  time.Now(),
@@ -440,24 +452,33 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 
 		nec.cacheEdges([]*data.Edge{edge})
 
+		nodeExists := true
 		ne, err := nec.getNodeAndEdges(edge.Down)
 		if err != nil {
-			return fmt.Errorf("getNodeAndEdges error: %w", err)
+			// if this is a new node, the node may not exist
+			// yet, which is OK
+			if err != data.ErrDocumentNotFound {
+				return fmt.Errorf("getNodeAndEdges error: %w", err)
+			}
+
+			nodeExists = false
 		}
 
-		if newEdge {
+		if newEdge && nodeExists {
 			ne.up = append(ne.up, edge)
 		}
 
 		for _, point := range points {
-			edge.Points.ProcessPoint(point)
+			edge.Points.Add(point)
 		}
 
 		sort.Sort(edge.Points)
 
-		err = nec.processNode(ne, newEdge)
-		if err != nil {
-			return fmt.Errorf("processNode error: %w", err)
+		if nodeExists {
+			err = nec.processNode(ne, newEdge)
+			if err != nil {
+				return fmt.Errorf("processNode error: %w", err)
+			}
 		}
 
 		err = nec.writeEdges()
@@ -516,14 +537,14 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 				continue
 			}
 
-			ne.node.Points.ProcessPoint(point)
+			ne.node.Points.Add(point)
 		}
 
 		/*
 			 * FIXME: need to clean up offline processing
 			state := node.State()
 			if state != data.PointValueSysStateOnline {
-				node.Points.ProcessPoint(
+				node.Points.Add(
 					data.Point{
 						Time: time.Now(),
 						Type: data.PointTypeSysState,
@@ -556,45 +577,6 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 
 		return nil
 	})
-}
-
-// NodesForUser returns all nodes for a particular user
-// FIXME this should be renamed to node children or something like that
-// TODO we should unexport this and somehow do this through nats
-func (gen *Db) NodesForUser(userID string) ([]data.NodeEdge, error) {
-	var nodes []data.NodeEdge
-
-	// first find parents of user node
-	edges := gen.edgeUp(userID, false)
-
-	if len(edges) == 0 {
-		return []data.NodeEdge{}, errors.New("orphaned user")
-	}
-
-	for _, edge := range edges {
-		rootNode, err := gen.node(edge.Up)
-		if err != nil {
-			return []data.NodeEdge{}, err
-		}
-
-		rootNodeEdge := rootNode.ToNodeEdge(data.Edge{})
-		rootNodeEdge.Hash, err = gen.calcHash(rootNode, data.Edge{})
-
-		if err != nil {
-			return []data.NodeEdge{}, err
-		}
-
-		nodes = append(nodes, rootNodeEdge)
-
-		childNodes, err := gen.nodeFindDescendents(rootNode.ID, true, 0)
-		if err != nil {
-			return []data.NodeEdge{}, err
-		}
-
-		nodes = append(nodes, childNodes...)
-	}
-
-	return data.RemoveDuplicateNodesIDParent(nodes), nil
 }
 
 // nodeDescendents returns all descendents for a particular node ID and type
@@ -679,20 +661,23 @@ func (gen *Db) edgeUp(nodeID string, includeTombstone bool) []*data.Edge {
 }
 
 // find edge.
-func (gen *Db) edgeUpDown(upID, downID string, includeTombstone bool) (*data.Edge, error) {
+func (gen *Db) edgeUpDown(upID, downID string, includeTombstone bool) ([]data.Edge, error) {
 	gen.lock.RLock()
+	var ret []data.Edge
 	defer gen.lock.RUnlock()
 	for _, e := range gen.edgeCache {
-		if e.Down != downID || e.Up != upID {
-			continue
-		}
-
-		if !e.IsTombstone() || includeTombstone {
-			return &(*e), nil
+		if (downID == "all" || e.Down == downID) && (upID == "all" || e.Up == upID) {
+			if includeTombstone || !e.IsTombstone() {
+				ret = append(ret, *e)
+			}
 		}
 	}
 
-	return nil, errors.New("Could not find edge")
+	if len(ret) <= 0 {
+		return nil, fmt.Errorf("Could not find edge, up: %v, down: %v", upID, downID)
+	}
+
+	return ret, nil
 }
 
 type downNode struct {
@@ -766,10 +751,10 @@ func (b byDistRoot) Len() int           { return len(b) }
 func (b byDistRoot) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 func (b byDistRoot) Less(i, j int) bool { return b[i].distRoot < b[j].distRoot }
 
-// UserCheck checks user authentication
+// userCheck checks user authentication
 // returns nil, nil if user is not found
-func (gen *Db) UserCheck(email, password string) (*data.User, error) {
-	var users []userDistRoot
+func (gen *Db) userCheck(email, password string) (data.Nodes, error) {
+	var ret []data.NodeEdge
 
 	res, err := gen.store.Query(`select * from nodes where type = ?`, data.NodeTypeUser)
 	if err != nil {
@@ -792,22 +777,17 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 		u := node.ToUser()
 
 		if u.Email == email && u.Pass == password {
-			distRoot, err := gen.minDistToRoot(u.ID)
-			if err != nil {
-				log.Println("Error getting dist to root: ", err)
+			edges := gen.edgeUp(node.ID, false)
+			for _, edge := range edges {
+				ne := node.ToNodeEdge(*edge)
+				ret = append(ret, ne)
 			}
-			users = append(users, userDistRoot{distRoot, u})
 		}
 
 		return nil
 	})
 
-	if len(users) > 0 {
-		sort.Sort(byDistRoot(users))
-		return &users[0].user, err
-	}
-
-	return nil, err
+	return ret, err
 }
 
 type genImport struct {

@@ -27,7 +27,7 @@ func NewUpstreamManager(nc *natsgo.Conn, rootNodeID string) *UpstreamManager {
 // Update queries DB for modbus nodes and synchronizes
 // with internal structures and updates data
 func (upm *UpstreamManager) Update() error {
-	nodes, err := nats.GetNodeChildren(upm.nc, upm.rootNodeID, data.NodeTypeUpstream, false)
+	nodes, err := nats.GetNodeChildren(upm.nc, upm.rootNodeID, data.NodeTypeUpstream, false, false)
 	if err != nil {
 		return err
 	}
@@ -45,6 +45,20 @@ func (upm *UpstreamManager) Update() error {
 				continue
 			}
 			upm.upstreams[node.ID] = up
+		} else {
+			// make sure none of the config has changed
+			upNode, err := NewUpstreamNode(node)
+			if err != nil {
+				log.Println("Error with upstream node config: ", err)
+
+			} else {
+				if *upNode != *up.nodeUp {
+					// restart upstream as something changed
+					log.Println("Restarting upstream: ", upNode.Description)
+					up.Stop()
+					delete(upm.upstreams, node.ID)
+				}
+			}
 		}
 	}
 

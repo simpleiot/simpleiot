@@ -5,6 +5,7 @@ module UI.NodeInputs exposing
     , nodeNumberInput
     , nodeOnOffInput
     , nodeOptionInput
+    , nodePasteButton
     , nodeTextInput
     , nodeTimeDateInput
     , nodeTimeInput
@@ -21,6 +22,7 @@ import Svg as S
 import Svg.Attributes as Sa
 import Time
 import Time.Extra
+import UI.Button
 import UI.Sanitize as Sanitize
 import Utils.Time exposing (scheduleToLocal, scheduleToUTC, toLocal, toUTC)
 
@@ -37,18 +39,17 @@ type alias NodeInputOptions msg =
 nodeTextInput :
     NodeInputOptions msg
     -> String
-    -> Int
     -> String
     -> String
     -> String
     -> Element msg
-nodeTextInput o id index typ lbl placeholder =
+nodeTextInput o key typ lbl placeholder =
     Input.text
         []
         { onChange =
             \d ->
-                o.onEditNodePoint [ Point id index typ o.now 0 d 0 0 ]
-        , text = Point.getText o.node.points id index typ
+                o.onEditNodePoint [ Point typ key o.now 0 0 d 0 ]
+        , text = Point.getText o.node.points typ key
         , placeholder = Just <| Input.placeholder [] <| text placeholder
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
@@ -57,17 +58,16 @@ nodeTextInput o id index typ lbl placeholder =
 nodeTimeInput :
     NodeInputOptions msg
     -> String
-    -> Int
     -> String
     -> String
     -> Element msg
-nodeTimeInput o id index typ lbl =
+nodeTimeInput o key typ lbl =
     let
         zoneOffset =
             Time.Extra.toOffset o.zone o.now
 
         current =
-            Point.getText o.node.points id index typ
+            Point.getText o.node.points typ key
 
         display =
             case Sanitize.parseHM current of
@@ -93,7 +93,7 @@ nodeTimeInput o id index typ lbl =
                             Nothing ->
                                 d
                 in
-                o.onEditNodePoint [ Point id index typ o.now 0 sendValue 0 0 ]
+                o.onEditNodePoint [ Point typ key o.now 0 0 sendValue 0 ]
         , text = display
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
@@ -172,17 +172,20 @@ pointsToSchedule : List Point -> Utils.Time.Schedule
 pointsToSchedule points =
     let
         start =
-            Point.getText points "" 0 Point.typeStart
+            Point.getText points Point.typeStart ""
 
         end =
-            Point.getText points "" 0 Point.typeEnd
+            Point.getText points Point.typeEnd ""
 
         weekdays =
             List.filter
                 (\d ->
                     let
+                        dString =
+                            String.fromInt d
+
                         p =
-                            Point.getValue points "" d Point.typeWeekday
+                            Point.getValue points Point.typeWeekday dString
                     in
                     p == 1
                 )
@@ -196,16 +199,16 @@ pointsToSchedule points =
 
 scheduleToPoints : Time.Posix -> Utils.Time.Schedule -> List Point
 scheduleToPoints now sched =
-    [ Point "" 0 Point.typeStart now 0 sched.startTime 0 0
-    , Point "" 0 Point.typeEnd now 0 sched.endTime 0 0
+    [ Point Point.typeStart "" now 0 0 sched.startTime 0
+    , Point Point.typeEnd "" now 0 0 sched.endTime 0
     ]
         ++ List.map
             (\wday ->
                 if List.member wday sched.weekdays then
-                    Point "" wday Point.typeWeekday now 1 "" 0 0
+                    Point Point.typeWeekday (String.fromInt wday) now (toFloat wday) 1 "" 0
 
                 else
-                    Point "" wday Point.typeWeekday now 0 "" 0 0
+                    Point Point.typeWeekday (String.fromInt wday) now (toFloat wday) 0 "" 0
             )
             [ 0, 1, 2, 3, 4, 5, 6 ]
 
@@ -266,11 +269,10 @@ validHM t =
 nodeCheckboxInput :
     NodeInputOptions msg
     -> String
-    -> Int
     -> String
     -> String
     -> Element msg
-nodeCheckboxInput o id index typ lbl =
+nodeCheckboxInput o key typ lbl =
     Input.checkbox
         []
         { onChange =
@@ -284,9 +286,9 @@ nodeCheckboxInput o id index typ lbl =
                             0.0
                 in
                 o.onEditNodePoint
-                    [ Point id index typ o.now v "" 0 0 ]
+                    [ Point typ key o.now 0 v "" 0 ]
         , checked =
-            Point.getValue o.node.points id index typ == 1
+            Point.getValue o.node.points typ key == 1
         , icon = Input.defaultCheckbox
         , label =
             if lbl /= "" then
@@ -304,14 +306,13 @@ nodeCheckboxInput o id index typ lbl =
 nodeNumberInput :
     NodeInputOptions msg
     -> String
-    -> Int
     -> String
     -> String
     -> Element msg
-nodeNumberInput o id index typ lbl =
+nodeNumberInput o key typ lbl =
     let
         pMaybe =
-            Point.get o.node.points id index typ
+            Point.get o.node.points typ key
 
         currentValue =
             case pMaybe of
@@ -362,7 +363,7 @@ nodeNumberInput o id index typ lbl =
                             Maybe.withDefault currentValueF <| String.toFloat dCheck
                 in
                 o.onEditNodePoint
-                    [ Point id index typ o.now v dCheck 0 0 ]
+                    [ Point typ key o.now 0 v dCheck 0 ]
         , text = currentValue
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
@@ -372,25 +373,24 @@ nodeNumberInput o id index typ lbl =
 nodeOptionInput :
     NodeInputOptions msg
     -> String
-    -> Int
     -> String
     -> String
     -> List ( String, String )
     -> Element msg
-nodeOptionInput o id index typ lbl options =
+nodeOptionInput o key typ lbl options =
     Input.radio
         [ spacing 6 ]
         { onChange =
             \sel ->
                 o.onEditNodePoint
-                    [ Point id index typ o.now 0 sel 0 0 ]
+                    [ Point typ key o.now 0 0 sel 0 ]
         , label =
             Input.labelLeft [ padding 12, width (px o.labelWidth) ] <|
                 el [ alignRight ] <|
                     text <|
                         lbl
                             ++ ":"
-        , selected = Just <| Point.getText o.node.points id index typ
+        , selected = Just <| Point.getText o.node.points typ key
         , options =
             List.map
                 (\opt ->
@@ -403,18 +403,17 @@ nodeOptionInput o id index typ lbl options =
 nodeCounterWithReset :
     NodeInputOptions msg
     -> String
-    -> Int
     -> String
     -> String
     -> String
     -> Element msg
-nodeCounterWithReset o id index typ pointResetName lbl =
+nodeCounterWithReset o key typ pointResetName lbl =
     let
         currentValue =
-            Point.getValue o.node.points id index typ
+            Point.getValue o.node.points typ key
 
         currentResetValue =
-            Point.getValue o.node.points id index pointResetName /= 0
+            Point.getValue o.node.points pointResetName key /= 0
     in
     row [ spacing 20 ]
         [ el [ width (px o.labelWidth) ] <|
@@ -434,7 +433,7 @@ nodeCounterWithReset o id index typ pointResetName lbl =
                             else
                                 0
                     in
-                    o.onEditNodePoint [ Point id index pointResetName o.now vFloat "" 0 0 ]
+                    o.onEditNodePoint [ Point pointResetName key o.now 0 vFloat "" 0 ]
             , icon = Input.defaultCheckbox
             , checked = currentResetValue
             , label =
@@ -446,18 +445,17 @@ nodeCounterWithReset o id index typ pointResetName lbl =
 nodeOnOffInput :
     NodeInputOptions msg
     -> String
-    -> Int
     -> String
     -> String
     -> String
     -> Element msg
-nodeOnOffInput o id index typ pointSetName lbl =
+nodeOnOffInput o key typ pointSetName lbl =
     let
         currentValue =
-            Point.getValue o.node.points id index typ
+            Point.getValue o.node.points typ key
 
         currentSetValue =
-            Point.getValue o.node.points id index pointSetName
+            Point.getValue o.node.points pointSetName key
 
         fill =
             if currentSetValue == 0 then
@@ -497,7 +495,7 @@ nodeOnOffInput o id index typ pointSetName lbl =
         [ el [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         , Input.button
             []
-            { onPress = Just <| o.onEditNodePoint [ Point id index pointSetName o.now newValue "" 0 0 ]
+            { onPress = Just <| o.onEditNodePoint [ Point pointSetName key o.now 0 newValue "" 0 ]
             , label =
                 el [ width (px 100) ] <|
                     html <|
@@ -541,4 +539,17 @@ nodeOnOffInput o id index typ pointSetName lbl =
                                 []
                             ]
             }
+        ]
+
+
+nodePasteButton :
+    NodeInputOptions msg
+    -> Element msg
+    -> String
+    -> String
+    -> Element msg
+nodePasteButton o label typ value =
+    row [ spacing 10, paddingEach { top = 0, bottom = 0, right = 0, left = 75 } ]
+        [ UI.Button.clipboard <| o.onEditNodePoint [ Point typ "" o.now 0 0 value 0 ]
+        , label
         ]

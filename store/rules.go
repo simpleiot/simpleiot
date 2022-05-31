@@ -31,15 +31,11 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 					continue
 				}
 
-				if c.PointID != "" && c.PointID != p.ID {
+				if c.PointKey != "" && c.PointKey != p.Key {
 					continue
 				}
 
 				if c.PointType != "" && c.PointType != p.Type {
-					continue
-				}
-
-				if c.PointIndex != -1 && c.PointIndex != int(p.Index) {
 					continue
 				}
 
@@ -208,6 +204,29 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, actions []d
 			}()
 		default:
 			log.Println("Uknown rule action: ", a.Action)
+		}
+
+		p := data.Point{
+			Type:  data.PointTypeActive,
+			Value: 1,
+		}
+		err := nats.SendNodePoint(nc, a.ID, p, false)
+		if err != nil {
+			log.Println("Error sending rule action point: ", err)
+		}
+	}
+	return nil
+}
+
+func (nh *NatsHandler) ruleRunInactiveActions(nc *natsgo.Conn, actions []data.Action) error {
+	for _, a := range actions {
+		p := data.Point{
+			Type:  data.PointTypeActive,
+			Value: 0,
+		}
+		err := nats.SendNodePoint(nc, a.ID, p, false)
+		if err != nil {
+			log.Println("Error sending rule action point: ", err)
 		}
 	}
 	return nil

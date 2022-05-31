@@ -20,7 +20,7 @@ bbolt() {
 #}
 
 siot_install_proto_gen_go() {
-  cd ~ && go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+  cd ~ && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
   cd - || exit
 }
 
@@ -46,6 +46,10 @@ siot_check_elm() {
 
 siot_setup() {
   siot_install_frontend_deps
+  # the following is to work around a race condition
+  # where the first time you run npx elm, you get an error:
+  # elm: Text file busy
+  (cd frontend && (npx elm || true))
   return 0
 }
 
@@ -55,7 +59,7 @@ siot_build_frontend() {
   rm -f "frontend/output"/*
   (cd "frontend" && npx elm-spa build) || return 1
   (cd "frontend" && npx elm make "$ELMARGS" src/Main.elm --output=output/elm.js) || return 1
-  cp "frontend/public"/* "frontend/output/" || return 1
+  cp -r frontend/public/* "frontend/output/" || return 1
   cp "frontend/public/index.html" "frontend/output/index.html" || return 1
   cp docs/images/simple-iot-app-logo.png "frontend/output/" || return 1
   return 0
@@ -95,19 +99,29 @@ siot_build_dependencies() {
   return 0
 }
 
+siot_version() {
+  git describe --tags HEAD
+}
+
 siot_build() {
   siot_build_dependencies --optimize || return 1
   BINARY_NAME=siot
   if [ "${GOOS}" = "windows" ]; then
     BINARY_NAME=siot.exe
   fi
-  CGO_ENABLED=0 go build -ldflags="-s -w -X main.siotVersion=$(git describe --tags HEAD)" -o $BINARY_NAME cmd/siot/main.go || return 1
+  CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$(siot_version)" -o $BINARY_NAME cmd/siot/main.go || return 1
   return 0
 }
 
 siot_build_arm() {
   siot_build_dependencies --optimize || return 1
-  GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.siotVersion=$(git describe --tags HEAD)" -o siot_arm cmd/siot/main.go || return 1
+  GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
+  return 0
+}
+
+siot_build_arm_debug() {
+  siot_build_dependencies --debug || return 1
+  GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
   return 0
 }
 
@@ -120,7 +134,8 @@ siot_deploy() {
 siot_run() {
   echo "run args: $*"
   siot_build_dependencies --debug || return 1
-  go run -race cmd/siot/main.go "$@" || return 1
+  go build -ldflags="-X main.version=$(siot_version)" -o siot -race cmd/siot/main.go || return 1
+  ./siot "$@"
   return 0
 }
 
@@ -187,6 +202,7 @@ siot_setup_influx() {
 siot_protobuf() {
   echo "generating protobufs"
   protoc --proto_path=internal/pb internal/pb/*.proto --go_out=./ || return 1
+  protoc --proto_path=internal/pb internal/pb/*.proto --js_out=import_style=commonjs,binary:./frontend/lib/protobuf/ || return 1
 }
 
 siot_edge_run() {
@@ -207,5 +223,5 @@ siot_goreleaser_build() {
 siot_goreleaser_release() {
   #TODO add depend build to goreleaser config
   siot_build_dependencies --optimize
-  goreleaser release
+  goreleaser release --rm-dist
 }

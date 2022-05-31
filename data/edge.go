@@ -34,7 +34,7 @@ func (e Edge) String() string {
 
 // IsTombstone returns true of edge points to a deleted node
 func (e *Edge) IsTombstone() bool {
-	tombstone, _ := e.Points.ValueBool("", PointTypeTombstone, 0)
+	tombstone, _ := e.Points.ValueBool(PointTypeTombstone, "")
 	return tombstone
 }
 

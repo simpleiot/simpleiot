@@ -20,8 +20,6 @@ type Metric struct {
 	// internal state
 	lastReport time.Time
 	value      float64
-	min        float64
-	max        float64
 	lock       sync.Mutex
 	avg        *data.PointAverager
 }
@@ -50,8 +48,6 @@ func (m *Metric) AddSample(s float64) error {
 	m.avg.AddPoint(data.Point{
 		Time:  now,
 		Value: s,
-		Min:   s,
-		Max:   s,
 	})
 
 	if now.Sub(m.lastReport) > m.reportPeriod {

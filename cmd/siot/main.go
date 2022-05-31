@@ -6,18 +6,17 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/simpleiot/simpleiot"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/files"
-	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/nats"
-	"github.com/simpleiot/simpleiot/natsserver"
-	"github.com/simpleiot/simpleiot/node"
-	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
 	"github.com/simpleiot/simpleiot/store"
 	"github.com/simpleiot/simpleiot/system"
@@ -35,12 +34,12 @@ func parsePointText(s string) (string, data.Point, error) {
 	}
 
 	nodeID := frags[0]
-	pointID := frags[1]
+	pointKey := frags[1]
 	text := frags[2]
 	pointType := frags[3]
 
 	return nodeID, data.Point{
-		ID:   pointID,
+		Key:  pointKey,
 		Type: pointType,
 		Text: text,
 		Time: time.Now(),
@@ -56,7 +55,7 @@ func parsePoint(s string) (string, data.Point, error) {
 	}
 
 	nodeID := frags[0]
-	pointID := frags[1]
+	pointKey := frags[1]
 	value, err := strconv.ParseFloat(frags[2], 64)
 	if err != nil {
 		return "", data.Point{}, err
@@ -65,7 +64,7 @@ func parsePoint(s string) (string, data.Point, error) {
 	pointType := frags[3]
 
 	return nodeID, data.Point{
-		ID:    pointID,
+		Key:   pointKey,
 		Type:  pointType,
 		Value: value,
 		Time:  time.Now(),
@@ -173,6 +172,17 @@ func main() {
 		natsHTTPPort = n
 	}
 
+	natsWSPort := 9222
+	natsWSPortE := os.Getenv("SIOT_NATS_WS_PORT")
+	if natsWSPortE != "" {
+		n, err := strconv.Atoi(natsWSPortE)
+		if err != nil {
+			log.Println("Error parsing SIOT_NATS_WS_PORT: ", err)
+			os.Exit(-1)
+		}
+		natsWSPort = n
+	}
+
 	natsServer := *flagNatsServer
 	// only consider env if command line option is something different
 	// that default
@@ -217,7 +227,7 @@ func main() {
 		*flagLogNats {
 
 		opts := nats.EdgeOptions{
-			Server:    natsServer,
+			URI:       natsServer,
 			AuthToken: authToken,
 			NoEcho:    true,
 			Disconnected: func() {
@@ -423,109 +433,69 @@ func main() {
 		os.Exit(0)
 	}
 
-	// =============================================
-	// Start server, default action
-	// =============================================
-	dbInst, err := store.NewDb(store.Type(*flagStore), dataDir)
-	if err != nil {
-		log.Println("Error opening db: ", err)
-		os.Exit(-1)
-	}
-	defer dbInst.Close()
-
 	// finally, start web server
 	port := os.Getenv("SIOT_HTTP_PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	var auth api.Authorizer
-
-	if *flagDisableAuth {
-		auth = api.AlwaysValid{}
-	} else {
-		auth, err = api.NewKey(20)
-		if err != nil {
-			log.Println("Error generating key: ", err)
-		}
-	}
-
-	if !*flagNatsDisableServer {
-		go natsserver.StartNatsServer(natsPort, natsHTTPPort, authToken,
-			natsTLSCert, natsTLSKey, natsTLSTimeout)
-	}
-
-	natsHandler := store.NewNatsHandler(dbInst, authToken, natsServer)
-
-	// this is a bit of a hack, but we're not sure when the NATS
-	// server will be started, so try several times
-	for i := 0; i < 10; i++ {
-		// FIXME should we get nc with edgeConnect here?
-		nc, err = natsHandler.Connect()
-		if err != nil {
-			log.Println("NATS local connect retry: ", i)
-			time.Sleep(500 * time.Millisecond)
-			continue
-		}
-
-		break
-	}
-
-	if err != nil || nc == nil {
-		log.Fatal("Error connecting to NATs server: ", err)
-	}
-
-	nodeManager := node.NewManger(nc)
-	err = nodeManager.Init()
-	if err != nil {
-		log.Fatal("Error initializing node manager: ", err)
-	}
-	go nodeManager.Run()
-
-	rootNode, err := nats.GetNode(nc, "root", "")
-
-	if err != nil {
-		log.Println("Error getting root id for metrics: ", err)
-	} else {
-
-		err = natsHandler.StartMetrics(rootNode.ID)
-		if err != nil {
-			log.Println("Error starting nats metrics: ", err)
-		}
+	osVersionField := os.Getenv("OS_VERSION_FIELD")
+	if osVersionField == "" {
+		osVersionField = "VERSION"
 	}
 
 	// set up particle connection if configured
 	// todo -- move this to a node
 	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
 
-	if particleAPIKey != "" {
-		go func() {
-			err := particle.PointReader("sample", particleAPIKey,
-				func(id string, points data.Points) {
-					err := nats.SendNodePoints(nc, id, points, false)
-					if err != nil {
-						log.Println("Error getting particle sample: ", err)
-					}
-				})
-
-			if err != nil {
-				fmt.Println("Get returned error: ", err)
-			}
-		}()
+	// TODO, convert this to builder pattern
+	o := simpleiot.Options{
+		StoreType:         store.Type(*flagStore),
+		DataDir:           dataDir,
+		HTTPPort:          port,
+		DebugHTTP:         *flagDebugHTTP,
+		DisableAuth:       *flagDisableAuth,
+		NatsServer:        natsServer,
+		NatsDisableServer: *flagNatsDisableServer,
+		NatsPort:          natsPort,
+		NatsHTTPPort:      natsHTTPPort,
+		NatsWSPort:        natsWSPort,
+		NatsTLSCert:       natsTLSCert,
+		NatsTLSKey:        natsTLSKey,
+		NatsTLSTimeout:    natsTLSTimeout,
+		AuthToken:         authToken,
+		ParticleAPIKey:    particleAPIKey,
+		AppVersion:        version,
+		OSVersionField:    osVersionField,
 	}
 
-	err = api.Server(api.ServerArgs{
-		Port:       port,
-		DbInst:     dbInst,
-		GetAsset:   frontend.Asset,
-		Filesystem: frontend.FileSystem(),
-		Debug:      *flagDebugHTTP,
-		JwtAuth:    auth,
-		AuthToken:  authToken,
-		Nc:         nc,
-	})
+	siot := simpleiot.NewSiot(o)
+
+	nc, err = siot.Start()
+
+	// this is not used yet
+	_ = nc
 
 	if err != nil {
-		log.Println("Error starting server: ", err)
+		log.Fatal("Error starting SIOT store: ", err)
 	}
+
+	sigs := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigs
+		log.Println()
+		log.Println(sig)
+		done <- true
+	}()
+
+	log.Println("running ...")
+	<-done
+	// cleanup
+	log.Println("cleaning up ...")
+	siot.Close()
+	log.Println("exiting")
 }

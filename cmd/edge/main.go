@@ -18,7 +18,7 @@ func main() {
 	log.Printf("SIOT Edge, ID: %v, server: %v\n", *flagID, *flagNatsServer)
 
 	opts := nats.EdgeOptions{
-		Server:    *flagNatsServer,
+		URI:       *flagNatsServer,
 		AuthToken: *flagNatsAuth,
 		Disconnected: func() {
 			log.Println("NATS Disconnected")

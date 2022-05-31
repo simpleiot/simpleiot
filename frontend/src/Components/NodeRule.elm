@@ -18,10 +18,10 @@ view o =
             oToInputO o 100
 
         textInput =
-            NodeInputs.nodeTextInput opts "" 0
+            NodeInputs.nodeTextInput opts ""
 
         active =
-            Point.getBool o.node.points "" 0 Point.typeActive
+            Point.getBool o.node.points Point.typeActive ""
 
         descBackgroundColor =
             if active then
@@ -48,7 +48,7 @@ view o =
             [ Icon.list
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
-                    Point.getText o.node.points "" 0 Point.typeDescription
+                    Point.getText o.node.points Point.typeDescription ""
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
