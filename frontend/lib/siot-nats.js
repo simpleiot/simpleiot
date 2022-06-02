@@ -215,8 +215,7 @@ function decodeNodesRequest(data) {
     throw new Error("NodesRequest decode error: " + error);
   }
 
-  const { nodesList } = nodes;
-  for (const n of nodesList) {
+  for (const n of nodes) {
     // Convert `time` to JavaScript date for each point
     for (const p of n.pointsList) {
       p.time = new Date(p.time.seconds * 1e3 + p.time.nanos / 1e6);
@@ -225,7 +224,7 @@ function decodeNodesRequest(data) {
       p.time = new Date(p.time.seconds * 1e3 + p.time.nanos / 1e6);
     }
   }
-  return nodesList;
+  return nodes;
 }
 
 // encodePoints returns protobuf encoded Points
