@@ -30,3 +30,8 @@
 - [Version](docs/ref/version.md)
 - [Security](docs/ref/security.md)
 - [Research](docs/ref/research.md)
+
+# Architecture Decision Records
+
+- [Overview](docs/adr/README.md)
+- [ADR-1: Point data type](docs/adr/1-consider-changing-point-data-type.md)
