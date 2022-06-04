@@ -20,3 +20,4 @@ local.sh
 /book
 *.zip
 *.bkp
+*.dtmp
