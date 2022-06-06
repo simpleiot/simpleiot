@@ -52,7 +52,7 @@ been driven by the following requirements:
   with Cat-M modems (< 100kb/s). Additionally, connectivity is not always
   reliable, and systems need to continue operating if not connected.
 
-## Simplifications
+## Core ideas
 
 The process of developing Simple IoT has been a path of reducing what started as
 a fairly complex IoT system to simpler ideas. This is what we discovered along
@@ -63,7 +63,8 @@ the way:
 2. represent this data using simple constructs (Nodes and Points).
 3. organize this data in a graph.
 4. all data flows through a message bus.
-5. run the same application in the cloud and at the edge.
+5. run the same application in the cloud and at the edge and automatically sync
+   common data.
 
 These simplifications have resulted in Simple IoT becoming a general purpose
 distributed graph database optimized for IoT datasets. We'll explore these ideas

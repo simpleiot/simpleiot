@@ -58,3 +58,9 @@ presented with the following options:
   descendants. This is useful for scenarios where you have a device or site
   configuration (perhaps a complex Modbus setup) that you want to duplicate at a
   new site.
+
+## Graphing and advanced dashboards
+
+If you need graphs and more advanced dashboards, consider coupling Simple IoT
+[with Grafana](graphing.md). Someday we hope to have dashboard capabilities
+built in.
