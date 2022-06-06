@@ -25,20 +25,49 @@ inherently distributed and building on simple concepts that scale.
 - a rules engine that runs on all instances that can trigger notifications or
   set data
 - extensive support for Modbus -- both server and client
+- support for the Linux 1-wire subsystem.
 - flexible graph organization of instances, users, groups, rules, and
   configuration
 - integration with other services like InfluxDB and Twilio
 - a system that is easy to extend in any language using NATS
 - a number of useful Go packages to use in your custom application
 
-See [vision](docs/ref/vision.md) and [architecture](docs/ref/architecture.md)
-for addition discussion on these points.
-
-This project was developed while building real-world applications and has
-primarily been driven by these project requirements.
+See [vision](docs/ref/vision.md), [architecture](docs/ref/architecture.md), and
+[integration](docs/ref/integration.md) for addition discussion on these points.
 
 See [detailed documentation](https://docs.simpleiot.org) for installation,
 usage, and development information.
+
+## Motivation
+
+This project was developed while building real-world IoT applications and has
+been driven by the following requirements:
+
+- Data (state or configuration) can be changed anywhere — at edge devices or in
+  the cloud and this data needs to be synchronized seamlessly between instances.
+  Sensors, users, rules, etc. can all change data. Some edge systems have a
+  local display where users can modify the configuration locally as well as in
+  the cloud. Rules can also run in the cloud or on edge devices and modify data.
+- Data bandwidth is limited in some IoT systems — especially those connected
+  with Cat-M modems (< 100kb/s). Additionally, connectivity is not always
+  reliable, and systems need to continue operating if not connected.
+
+## Simplifications
+
+The process of developing Simple IoT has been a path of reducing what started as
+a fairly complex IoT system to simpler ideas. This is what we discovered along
+the way:
+
+1. treat configuration and state data the same for purposes of storage and
+   syncronization.
+2. represent this data using simple constructs (Nodes and Points).
+3. organize this data in a graph.
+4. all data flows through a message bus.
+5. run the same application in the cloud and at the edge.
+
+These simplifications have resulted in Simple IoT becoming a general purpose
+distributed graph database optimized for IoT datasets. We'll explore these ideas
+more in the [documentation](https://docs.simpleiot.org).
 
 ## Support, Community, Contributing, etc.
 

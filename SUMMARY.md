@@ -5,6 +5,7 @@
 # User Guide
 
 - [Installation](docs/user/installation.md)
+- [Use Cases](docs/user/use-cases.md)
 - [User Interface](docs/user/ui.md)
 - [Users/Groups](docs/user/users-groups.md)
 - [Upstream connections](docs/user/upstream.md)
@@ -14,6 +15,7 @@
 - [1-Wire](docs/user/onewire.md)
 - [Graphing](docs/user/graphing.md)
 - [Configuration](docs/user/configuration.md)
+- [Status/Errata](docs/user/status.md)
 - [FAQ](docs/user/faq.md)
 
 # Reference Guide
@@ -27,6 +29,7 @@
 - [Database](docs/ref/database.md)
 - [Rules](docs/ref/rules.md)
 - [Notifications](docs/ref/notifications.md)
+- [Integration](docs/ref/integration.md)
 - [Version](docs/ref/version.md)
 - [Security](docs/ref/security.md)
 - [Research](docs/ref/research.md)
