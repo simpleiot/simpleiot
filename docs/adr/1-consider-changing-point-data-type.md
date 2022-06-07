@@ -5,6 +5,10 @@
 - PR/Discussion: https://github.com/simpleiot/simpleiot/pull/279
 - Status: Brainstorming
 
+**Contents**
+
+<!-- toc -->
+
 ## Problem
 
 The current point data type is fairly simple and has proven useful and flexible
@@ -764,4 +768,5 @@ We also took a look at how to resolve loops in the node tree:
 
 https://github.com/simpleiot/simpleiot/issues/294
 
-This is part of the verification to confirm our basic types are robust and have adequate CRDT properties.
+This is part of the verification to confirm our basic types are robust and have
+adequate CRDT properties.

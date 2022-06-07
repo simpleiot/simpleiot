@@ -1,9 +1,13 @@
 # Upstream connections
 
 Simple IoT provides for simple upstream connections via NATS or NATS over
-Websocket. To create an upstream, add an upstream node to the root node on the
-downstream instance. If your upstream server has a name of `myserver.com`, then
-you can use the following connections URIs:
+Websocket.
+
+![upstream](images/multiple-upstream.png)
+
+To create an upstream, add an upstream node to the root node on the downstream
+instance. If your upstream server has a name of `myserver.com`, then you can use
+the following connections URIs:
 
 - `nats://myserver.com:4222` (4222 is the default nats port)
 - `ws://myserver.com` (websocket unencrypted connection)
