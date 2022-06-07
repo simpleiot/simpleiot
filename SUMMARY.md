@@ -20,6 +20,7 @@
 
 # Reference Guide
 
+- [Documentation](docs/ref/documentation.md)
 - [Vision](docs/ref/vision.md)
 - [Development](docs/ref/development.md)
 - [Architecture](docs/ref/architecture.md)
