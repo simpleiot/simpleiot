@@ -12,7 +12,7 @@ you can use any of the available integration points at either place.
 
 ## The SIOT API
 
-Interfacing with Simple IoT is easy to as everything happens through a
+This primary way to interact with Simple IoT is through a
 [NATS API](api.html#nats). You can add additional processes written in any
 language that has a [NATS client](https://nats.io/download/). Additionally, the
 [NATS wire protocol](https://docs.nats.io/reference/reference-protocols/nats-protocol)
@@ -55,9 +55,9 @@ Simple IoT was designed with Embedded Linux systems in mind, so it is very
 efficient -- a single, statically linked Go binary with all assets embedded that
 is ~20MB in size and uses ~20MB of memory. There are no other dependencies
 required such as a runtime, other libraries, etc. This makes SIOT extremely easy
-to deploy and update. An Embedded Linux system deployed at the edge be
-configured to synchronized with a cloud instance using an
-[upstream](../user/upstream.md) connection.
+to deploy and update. An Embedded Linux system deployed at the edge can be
+synchronized with a cloud instance using an [upstream](../user/upstream.md)
+connection.
 
 ## Integration with MCU (Microcontroller) systems
 
