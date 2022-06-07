@@ -19,7 +19,7 @@ data and interact with the device.
 
 SIOT is designed to be simple to develop and deploy without a lot of moving
 parts. We've reduced an IoT system to a
-[few basic concepts](https://github.com/simpleiot/simpleiot/tree/master#simplifications)
+[few basic concepts](https://github.com/simpleiot/simpleiot/tree/master#core-ideas)
 that are exactly the same in the cloud and on edge devices. This symmetry is
 powerful and allows us to easily implement and move functionality wherever it is
 needed. If you need
