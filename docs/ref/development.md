@@ -56,3 +56,19 @@ examples of running tests:
 
 The leading `./` is important, otherwise Go things you are giving it a package
 name, not a directory. The `...` tells Go to recursively test all subdirs.
+
+## Document and test during development
+
+It is much more pleasant to write documentation and tests as you develop, rather
+than after the fact. These efforts add value to your development if done
+concurrently. Quality needs to be
+[designed-in](https://community.tmpdir.org/t/podcast-280-cristiano-amon-qualcomm-ceo-lex-fridman-podcast/515),
+and
+[leading with documentation](https://handbook.tmpdir.org/documentation/lead-with-documentation.html)
+will result in
+[better thinking](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/07/leslie_lamport.pdf)
+and a better product.
+
+If you develop a feature, please update/create any needed documentation and
+write any tests (especially end-to-end) to verify the feature works and
+continues to work.
