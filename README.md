@@ -59,7 +59,7 @@ a fairly complex IoT system to simpler ideas. This is what we discovered along
 the way:
 
 1. treat configuration and state data the same for purposes of storage and
-   syncronization.
+   synchronization.
 2. represent this data using simple constructs (Nodes and Points).
 3. organize this data in a graph.
 4. all data flows through a message bus.
