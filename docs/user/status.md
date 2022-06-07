@@ -36,6 +36,15 @@ latency of up to 4s. Long term we will run a
 in the frontend over a websocket so the UI response is real-time and new data
 gets pushed to the browser.
 
+## Security
+
+Currently, and device that has access to the system can write or write to any
+data in the system. This may be adequate for small or closed systems, but for
+larger systems, we need per-device authn/authz. See
+[issue #268](https://github.com/simpleiot/simpleiot/issues/268),
+[PR #283](https://github.com/simpleiot/simpleiot/pull/283), and our
+[security document](../ref/security.md) for more information.
+
 # Errata
 
 Any issues we find during testing we log in

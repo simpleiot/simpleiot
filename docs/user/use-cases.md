@@ -14,10 +14,19 @@ Some examples systems include:
 - industrial vehicle monitoring (commercial mowers, agricultural equipment, etc)
 - factory automation
 
+SIOT is optimized for systems where you run Embedded Linux at the edge and have
+fairly complex config/state that needs synchronized between the edge and the
+cloud.
+
+## Changes can be made anywhere
+
+Changes to config/state can be made locally or remotely in a SIOT system.
+
+![edit anywhere](images/edit-anywhere.png)
+
 ## Integration
 
-There are many ways to integrate Simple IoT with other applications. Below is an
-example:
+There are many ways to integrate Simple IoT with other applications.
 
 ![integration](images/integration.png)
 
@@ -34,5 +43,5 @@ instances at multiple levels.
 
 ![multiple upstream](images/multiple-upstream.png)
 
-This flexibility allows us to run rules at any level (cloud, local server, or
-edge gateway) where it makes sense.
+This flexibility allows us to run rules and other logic at any level (cloud,
+local server, or edge gateway) -- wherever it makes sense.
