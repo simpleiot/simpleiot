@@ -64,3 +64,7 @@ presented with the following options:
 If you need graphs and more advanced dashboards, consider coupling Simple IoT
 [with Grafana](graphing.md). Someday we hope to have dashboard capabilities
 built in.
+
+## Custom UIs
+
+See the [frontend reference documentation](../ref/frontend.md).
