@@ -16,7 +16,8 @@ Some examples systems include:
 
 ## Integration
 
-Simple IoT is easy to integration with other applications. Below is example:
+There are many ways to integrate Simple IoT with other applications. Below is an
+example:
 
 ![integration](images/integration.png)
 
@@ -32,3 +33,6 @@ Because we run the same SIOT application everywhere, we can add upstream
 instances at multiple levels.
 
 ![multiple upstream](images/multiple-upstream.png)
+
+This flexibility allows us to run rules at any level (cloud, local server, or
+edge gateway) where it makes sense.
