@@ -31,6 +31,7 @@
 - [Rules](docs/ref/rules.md)
 - [Notifications](docs/ref/notifications.md)
 - [Integration](docs/ref/integration.md)
+- [Serial Devices](docs/ref/serial.md)
 - [Version](docs/ref/version.md)
 - [Security](docs/ref/security.md)
 - [Research](docs/ref/research.md)
