@@ -189,5 +189,5 @@ For devices that support USB Device Firmware Upgrade (DFU), SIOT provides a
 mechanism to do these updates. A node that specifies USB ID and file configures
 the process.
 
-- [DFU Specification]https://www.usb.org/sites/default/files/DFU_1.1.pdf)
+- [DFU Specification](https://www.usb.org/sites/default/files/DFU_1.1.pdf)
 - [Windows Implementation](https://docs.microsoft.com/en-us/windows-hardware/drivers/stream/device-firmware-update-for-usb-devices-without-using-a-co-installer)
