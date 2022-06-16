@@ -22,6 +22,16 @@ single node with a handful of points.
 
 ![nodes/points](images/mcu-nodes.png)
 
+SIOT does not differentiate between state (ex: sensor values) and config (ex:
+pump turn on delay) -- it is all points. This simplifies the transport and
+allows changes to be made in multiple places. It also allows for the granular
+transmit and synchronization of data -- we don't need to send the entire
+state/config anytime something changes.
+
+SIOT has the ability to log points to InfluxDB, so this mechanism can also be
+used to log messages, events, state changes, whatever -- simply use an existing
+point type or define a new one, and send it upstream.
+
 ## Protocol
 
 The SIOT serial protocol mirrors the NATS
