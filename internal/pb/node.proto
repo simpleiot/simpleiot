@@ -5,13 +5,14 @@ option go_package = "internal/pb";
 
 import "point.proto";
 
+// Maps to NodeEdge type in data/node.go
 message Node {
     string id = 1;
     string type = 2;
-    repeated Point points = 3;
     bytes hash = 4;
-    bool tombstone = 5;
+    // bool tombstone = 5; // DEPRECATED: Tombstone is now an edge point
     string parent = 6;
+    repeated Point points = 3;
     repeated Point edgePoints = 7;
 }
 
@@ -25,6 +26,6 @@ message Nodes {
 }
 
 message NodesRequest {
-  Nodes nodes = 1;
+  repeated Node nodes = 1;
   string error = 2;
 }

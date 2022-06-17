@@ -220,9 +220,15 @@ func (ps *Points) Hash() []byte {
 	return h.Sum(nil)
 }
 
-// ProcessPoint takes a point and updates an existing array of points
-func (ps *Points) ProcessPoint(pIn Point) {
+// Add takes a point and updates an existing array of points. Existing points
+// are replaced if the Timestamp in pIn is > than the existing timestamp. If
+// the pIn timestamp is zero, the current time is used.
+func (ps *Points) Add(pIn Point) {
 	pFound := false
+
+	if pIn.Time.IsZero() {
+		pIn.Time = time.Now()
+	}
 
 	for i, p := range *ps {
 		if p.Key == pIn.Key && p.Type == pIn.Type {
@@ -284,7 +290,7 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 }
 
 // PbDecodePoints decode protobuf encoded points
-func PbDecodePoints(data []byte) ([]Point, error) {
+func PbDecodePoints(data []byte) (Points, error) {
 	pbPoints := &pb.Points{}
 	err := proto.Unmarshal(data, pbPoints)
 	if err != nil {

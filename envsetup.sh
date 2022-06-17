@@ -20,7 +20,7 @@ bbolt() {
 #}
 
 siot_install_proto_gen_go() {
-  cd ~ && go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+  cd ~ && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
   cd - || exit
 }
 
@@ -119,6 +119,12 @@ siot_build_arm() {
   return 0
 }
 
+siot_build_arm_debug() {
+  siot_build_dependencies --debug || return 1
+  GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
+  return 0
+}
+
 siot_deploy() {
   siot_build_dependencies || return 1
   gcloud app deploy cmd/portal || return 1
@@ -196,6 +202,7 @@ siot_setup_influx() {
 siot_protobuf() {
   echo "generating protobufs"
   protoc --proto_path=internal/pb internal/pb/*.proto --go_out=./ || return 1
+  protoc --proto_path=internal/pb internal/pb/*.proto --js_out=import_style=commonjs,binary:./frontend/lib/protobuf/ || return 1
 }
 
 siot_edge_run() {
@@ -216,5 +223,5 @@ siot_goreleaser_build() {
 siot_goreleaser_release() {
   #TODO add depend build to goreleaser config
   siot_build_dependencies --optimize
-  goreleaser release
+  goreleaser release --rm-dist
 }

@@ -377,7 +377,7 @@ func txSetTombstone(tx *genji.Tx, down, up string, tombstone bool) error {
 	current, _ := edge.Points.ValueBool(data.PointTypeTombstone, "")
 
 	if current != tombstone {
-		edge.Points.ProcessPoint(data.Point{
+		edge.Points.Add(data.Point{
 			Type:  data.PointTypeTombstone,
 			Value: data.BoolToFloat(tombstone),
 			Time:  time.Now(),
@@ -452,24 +452,33 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 
 		nec.cacheEdges([]*data.Edge{edge})
 
+		nodeExists := true
 		ne, err := nec.getNodeAndEdges(edge.Down)
 		if err != nil {
-			return fmt.Errorf("getNodeAndEdges error: %w", err)
+			// if this is a new node, the node may not exist
+			// yet, which is OK
+			if err != data.ErrDocumentNotFound {
+				return fmt.Errorf("getNodeAndEdges error: %w", err)
+			}
+
+			nodeExists = false
 		}
 
-		if newEdge {
+		if newEdge && nodeExists {
 			ne.up = append(ne.up, edge)
 		}
 
 		for _, point := range points {
-			edge.Points.ProcessPoint(point)
+			edge.Points.Add(point)
 		}
 
 		sort.Sort(edge.Points)
 
-		err = nec.processNode(ne, newEdge)
-		if err != nil {
-			return fmt.Errorf("processNode error: %w", err)
+		if nodeExists {
+			err = nec.processNode(ne, newEdge)
+			if err != nil {
+				return fmt.Errorf("processNode error: %w", err)
+			}
 		}
 
 		err = nec.writeEdges()
@@ -528,14 +537,14 @@ func (gen *Db) nodePoints(id string, points data.Points) error {
 				continue
 			}
 
-			ne.node.Points.ProcessPoint(point)
+			ne.node.Points.Add(point)
 		}
 
 		/*
 			 * FIXME: need to clean up offline processing
 			state := node.State()
 			if state != data.PointValueSysStateOnline {
-				node.Points.ProcessPoint(
+				node.Points.Add(
 					data.Point{
 						Time: time.Now(),
 						Type: data.PointTypeSysState,
@@ -742,10 +751,10 @@ func (b byDistRoot) Len() int           { return len(b) }
 func (b byDistRoot) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 func (b byDistRoot) Less(i, j int) bool { return b[i].distRoot < b[j].distRoot }
 
-// UserCheck checks user authentication
+// userCheck checks user authentication
 // returns nil, nil if user is not found
-func (gen *Db) UserCheck(email, password string) (*data.User, error) {
-	var users []userDistRoot
+func (gen *Db) userCheck(email, password string) (data.Nodes, error) {
+	var ret []data.NodeEdge
 
 	res, err := gen.store.Query(`select * from nodes where type = ?`, data.NodeTypeUser)
 	if err != nil {
@@ -768,22 +777,17 @@ func (gen *Db) UserCheck(email, password string) (*data.User, error) {
 		u := node.ToUser()
 
 		if u.Email == email && u.Pass == password {
-			distRoot, err := gen.minDistToRoot(u.ID)
-			if err != nil {
-				log.Println("Error getting dist to root: ", err)
+			edges := gen.edgeUp(node.ID, false)
+			for _, edge := range edges {
+				ne := node.ToNodeEdge(*edge)
+				ret = append(ret, ne)
 			}
-			users = append(users, userDistRoot{distRoot, u})
 		}
 
 		return nil
 	})
 
-	if len(users) > 0 {
-		sort.Sort(byDistRoot(users))
-		return &users[0].user, err
-	}
-
-	return nil, err
+	return ret, err
 }
 
 type genImport struct {

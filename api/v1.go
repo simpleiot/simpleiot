@@ -31,10 +31,9 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // NewV1Handler returns a handle for V1 API
 func NewV1Handler(args ServerArgs) http.Handler {
-
 	return &V1{
 		NodesHandler: NewNodesHandler(args.DbInst, args.JwtAuth,
 			args.AuthToken, args.Nc),
-		AuthHandler: NewAuthHandler(args.DbInst, args.JwtAuth),
+		AuthHandler: NewAuthHandler(args.Nc),
 	}
 }

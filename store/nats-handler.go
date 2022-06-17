@@ -20,6 +20,11 @@ import (
 
 var reportMetricsPeriod = time.Minute
 
+// NewTokener provides a new authentication token.
+type NewTokener interface {
+	NewToken(userID string) (string, error)
+}
+
 // NatsHandler implements the SIOT NATS api
 type NatsHandler struct {
 	server         string
@@ -31,6 +36,7 @@ type NatsHandler struct {
 	lock           sync.Mutex
 	nodeUpdateLock sync.Mutex
 	updates        map[string]time.Time
+	key            NewTokener
 
 	// cycle metrics track how long it takes to handle a point
 	metricCycleNodePoint     *nats.Metric
@@ -47,7 +53,7 @@ type NatsHandler struct {
 }
 
 // NewNatsHandler creates a new NATS client for handling SIOT requests
-func NewNatsHandler(db *Db, authToken, server string) *NatsHandler {
+func NewNatsHandler(db *Db, authToken, server string, key NewTokener) *NatsHandler {
 	log.Println("NATS handler connecting to: ", server)
 	return &NatsHandler{
 		db:        db,
@@ -55,6 +61,7 @@ func NewNatsHandler(db *Db, authToken, server string) *NatsHandler {
 		updates:   make(map[string]time.Time),
 		server:    server,
 		influxDbs: make(map[string]*Influx),
+		key:       key,
 	}
 }
 
@@ -101,6 +108,10 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 
 	if _, err := nc.Subscribe("node.*.msg", nh.handleMessage); err != nil {
 		return nil, fmt.Errorf("Subscribe message error: %w", err)
+	}
+
+	if _, err := nc.Subscribe("auth.user", nh.handleAuthUser); err != nil {
+
 	}
 
 	go func() {
@@ -350,6 +361,7 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	var nodeID string
 	var nodes data.Nodes
 	var err error
+	nodesRet := data.Nodes{}
 
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 2 {
@@ -363,6 +375,18 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 
 	nodes, err = nh.db.nodeEdge(nodeID, parent)
 
+	// remove deleted nodes
+	if parent == "all" {
+		for _, n := range nodes {
+			ts, _ := n.IsTombstone()
+			if !ts {
+				nodesRet = append(nodesRet, n)
+			}
+		}
+	} else {
+		nodesRet = nodes
+	}
+
 	if err != nil {
 		if err != data.ErrDocumentNotFound {
 			resp.Error = fmt.Sprintf("NATS handler: Error getting node %v from db: %v\n", nodeID, err)
@@ -372,6 +396,86 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 	}
 
 handleNodeDone:
+	resp.Nodes, err = nodesRet.ToPbNodes()
+	if err != nil {
+		resp.Error = fmt.Sprintf("Error pb encoding node: %v\n", err)
+	}
+
+	data, err := proto.Marshal(resp)
+
+	err = nh.Nc.Publish(msg.Reply, data)
+	if err != nil {
+		log.Println("NATS: Error publishing response to node request: ", err)
+	}
+}
+
+// TODO, maybe someday we should return error node instead of no data
+func (nh *NatsHandler) handleAuthUser(msg *natsgo.Msg) {
+	var points data.Points
+	var err error
+	resp := &pb.NodesRequest{}
+
+	returnNothing := func() {
+		err = nh.Nc.Publish(msg.Reply, nil)
+		if err != nil {
+			log.Println("NATS: Error publishing response to auth.user")
+		}
+	}
+
+	if len(msg.Data) <= 0 {
+		log.Println("No data in auth.user")
+		returnNothing()
+		return
+	}
+
+	points, err = data.PbDecodePoints(msg.Data)
+	if err != nil {
+		log.Println("Error decoding auth.user params: ", err)
+		returnNothing()
+		return
+	}
+
+	emailP, ok := points.Find(data.PointTypeEmail, "")
+	if !ok {
+		log.Println("Error, auth.user no email point")
+		returnNothing()
+		return
+	}
+
+	passP, ok := points.Find(data.PointTypePass, "")
+	if !ok {
+		log.Println("Error, auth.user no password point")
+		returnNothing()
+		return
+	}
+
+	nodes, err := nh.db.userCheck(emailP.Text, passP.Text)
+
+	if err != nil || len(nodes) <= 0 {
+		log.Println("Error, invalid user")
+		returnNothing()
+		return
+	}
+
+	user, err := data.NodeToUser(nodes[0].ToNode())
+
+	token, err := nh.key.NewToken(user.ID)
+	if err != nil {
+		log.Println("Error creating token")
+		returnNothing()
+		return
+	}
+
+	nodes = append(nodes, data.NodeEdge{
+		Type: data.NodeTypeJWT,
+		Points: data.Points{
+			{
+				Type: data.PointTypeToken,
+				Text: token,
+			},
+		},
+	})
+
 	resp.Nodes, err = nodes.ToPbNodes()
 	if err != nil {
 		resp.Error = fmt.Sprintf("Error pb encoding node: %v\n", err)
@@ -668,12 +772,22 @@ func (nh *NatsHandler) processRuleNode(ruleNode data.NodeEdge, sourceNodeID stri
 		if err != nil {
 			log.Println("Error running rule actions: ", err)
 		}
+
+		err = nh.ruleRunInactiveActions(nh.Nc, rule.ActionsInactive)
+		if err != nil {
+			log.Println("Error running rule inactive actions: ", err)
+		}
 	}
 
 	if !active && changed {
 		err := nh.ruleRunActions(nh.Nc, rule, rule.ActionsInactive, sourceNodeID)
 		if err != nil {
 			log.Println("Error running rule actions: ", err)
+		}
+
+		err = nh.ruleRunInactiveActions(nh.Nc, rule.Actions)
+		if err != nil {
+			log.Println("Error running rule inactive actions: ", err)
 		}
 	}
 

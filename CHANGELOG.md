@@ -11,7 +11,82 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+Bug fix release (PR #369)
+
+- Fix invalid users causes panic in Go code #365
+
+## [[0.2.0] - 2022-05-31](https://github.com/simpleiot/simpleiot/releases/tag/v0.2.0)
+
+(implemented in PR #362)
+
+- UI: fix sorting of Rule child nodes
+- highlight rule actions when active #266
+- better linking of nodes for rules #251
+- display clipboard contents at top of screen
+- update elm/virtual-dom to 1.0.3 (helps
+  [prevent xss attacks](https://jfmengels.net/virtual-dom-security-patch/))
+
+This release improves the process of linking nodes to rule actions or
+conditions. In the past, the system clipboard was used and you had to paste the
+system clipboard contents into the Node ID field of rule conditions and actions.
+Now, when you a copy a node, the SIOT frontend has its own clipboard and a past
+button is displayed below the Node ID fields for easy pasting the node ID.
+Additionally, the node description is displayed below the Node ID field so you
+can easily tell which node the ID is referring to.
+
+A [video is available](https://youtu.be/tqbLZ9CSzRU) which illustrates how node
+IDs can now be copied and pasted.
+[docs](https://docs.simpleiot.org/docs/user/rules.html) are also updated.
+
+## [[0.1.0] - 2022-05-13](https://github.com/simpleiot/simpleiot/releases/tag/v0.1.0)
+
+- docs: add list of supported devices to install
+- docs: add upstream documentation
+- add support for 1-wire buses, and DS18B20 temp sensor #230 #361
+
+## [[0.0.45] - 2022-04-30](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.45)
+
+- add DeleteNode, MoveNode, and MirrorNode to
+  [nats package](https://pkg.go.dev/github.com/simpleiot/simpleiot@v0.0.44/nats).
+  #344, #347
+- store and display App Version in root node (see screenshot below). This value
+  is extracted by the SIOT build using the `git describe` command. See
+  `envsetup.sh`. #192, #349
+- store and display OS version in root node (see screenshot below). On Linux,
+  this value is extracted from the `VERSION` field in `/etc/os-release`. The
+  field can be
+  [changed](https://docs.simpleiot.org/docs/user/configuration.html) using the
+  OS_VERSION_FIELD environment variable. #324, #353
+- update go.bug.st/serial from v1.1.3 -> v1.3.5
+- sort nodes in UI a little nicer, conditions before actions, move more often
+  used nodes to the top, etc. #355, #337
+- add NATS user auth API and change HTTP auth to use that. #326, #356
+- fix bug where deleted nodes where still considered for user auth
+- add SIOT JS library using NATS over WebSockets (#357)
+
+![os/app version](https://user-images.githubusercontent.com/402813/163829093-14c0d644-243d-49e0-9c83-acc3c642c9ab.png)
+
+## [[0.0.44] - 2022-04-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.44)
+
+- UI: fix bug where copy node crashes UI if no on secure URL or localhost (#341)
+- support clone/duplicate node (as well as mirror) operation (#312). Now when
+  you copy and paste a node, you will be presented with a list of options as
+  shown below. The new duplicate option allows you to easily replicate complex
+  setups (for instance a bunch of modbus points) from an existing site to a new
+  site.
+
+![copy options](https://user-images.githubusercontent.com/402813/153455487-66bc2699-1026-40de-9ca6-4f30f91aeff9.png)
+
+See
+[documenation](https://docs.simpleiot.org/docs/user/ui.html#deleting-moving-mirroring-and-duplicating-nodes)
+or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
+
+## [[0.0.43] - 2022-03-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.43)
+
 - improvement in UI to fix collapsing nodes #259
+- implemented functionality to duplicate nodes and refactored
+  copy/move/mirror/duplicate UI (#312)
+- update nats-server from v2.6.6 -> v2.7.4 (and associated dependencies)
 
 ## [[0.0.42] - 2022-02-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.42)
 

@@ -13,7 +13,13 @@ window.addEventListener("load", (_) => {
 // maps actions to functions!
 const actions = {
   LOG: (message) => console.log(`From Elm:`, message),
-  CLIPBOARD: (message) => writeClipboard(message),
+  CLIPBOARD: (message) => {
+    if (navigator.clipboard) {
+      writeClipboard(message);
+    } else {
+      console.log("clipboard not available");
+    }
+  },
 };
 
 console.log("Simple IoT Javascript code");

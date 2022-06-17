@@ -2,7 +2,7 @@ module Pages.Top exposing (Model, Msg, Params, page)
 
 import Api.Auth exposing (Auth)
 import Api.Data as Data exposing (Data)
-import Api.Node as Node exposing (Node)
+import Api.Node as Node exposing (Node, NodeView)
 import Api.Point as Point exposing (Point)
 import Api.Port as Port
 import Api.Response exposing (Response)
@@ -15,13 +15,17 @@ import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
-import Components.NodeOptions exposing (NodeOptions)
+import Components.NodeOneWire as NodeOneWire
+import Components.NodeOneWireIO as NodeOneWireIO
+import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
 import Components.NodeRule as NodeRule
 import Components.NodeUpstream as NodeUpstream
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
+import Dict
 import Element exposing (..)
 import Element.Background as Background
+import Element.Font as Font
 import Element.Input as Input
 import Http
 import List.Extra
@@ -83,29 +87,12 @@ type alias NodeMsg =
     }
 
 
-type CopyMove
-    = CopyMoveNone
-    | Move String String String
-    | Copy String String String
-
-
 type NodeOperation
     = OpNone
     | OpNodeToAdd NodeToAdd
     | OpNodeMessage NodeMessage
     | OpNodeDelete Int String String
     | OpNodePaste Int String
-
-
-type alias NodeView =
-    { node : Node
-    , feID : Int
-    , parentID : String
-    , hasChildren : Bool
-    , expDetail : Bool
-    , expChildren : Bool
-    , mod : Bool
-    }
 
 
 type alias NodeEdit =
@@ -189,17 +176,19 @@ type Msg
     | ApiPostPoints String
     | ApiPostAddNode Int
     | ApiPostMoveNode Int String String String
-    | ApiPutCopyNode Int String String
+    | ApiPutMirrorNode Int String String
+    | ApiPutDuplicateNode Int String String
     | ApiPostNotificationNode
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
     | ApiRespPostPoint (Data Response)
     | ApiRespPostAddNode Int (Data Response)
     | ApiRespPostMoveNode Int (Data Response)
-    | ApiRespPutCopyNode Int (Data Response)
+    | ApiRespPutMirrorNode Int (Data Response)
+    | ApiRespPutDuplicateNode Int (Data Response)
     | ApiRespPostNotificationNode (Data Response)
     | CopyNode Int String String String
-    | MoveNode Int String String String
+    | ClearClipboard
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -374,13 +363,25 @@ update msg model =
                 }
             )
 
-        ApiPutCopyNode parent id dest ->
+        ApiPutMirrorNode parent id dest ->
             ( model
             , Node.copy
                 { token = model.auth.token
                 , id = id
                 , newParent = dest
-                , onResponse = ApiRespPutCopyNode parent
+                , duplicate = False
+                , onResponse = ApiRespPutMirrorNode parent
+                }
+            )
+
+        ApiPutDuplicateNode parent id dest ->
+            ( model
+            , Node.copy
+                { token = model.auth.token
+                , id = id
+                , newParent = dest
+                , duplicate = True
+                , onResponse = ApiRespPutDuplicateNode parent
                 }
             )
 
@@ -556,7 +557,7 @@ update msg model =
                     , updateNodes model
                     )
 
-        ApiRespPutCopyNode parent resp ->
+        ApiRespPutMirrorNode parent resp ->
             let
                 nodes =
                     List.map (expChildren parent) model.nodes
@@ -568,7 +569,28 @@ update msg model =
                     )
 
                 Data.Failure err ->
-                    ( popError "Error copying node" err model
+                    ( popError "Error mirroring node" err model
+                    , updateNodes model
+                    )
+
+                _ ->
+                    ( model
+                    , updateNodes model
+                    )
+
+        ApiRespPutDuplicateNode parent resp ->
+            let
+                nodes =
+                    List.map (expChildren parent) model.nodes
+            in
+            case resp of
+                Data.Success _ ->
+                    ( { model | nodeOp = OpNone, copyMove = CopyMoveNone, nodes = nodes }
+                    , updateNodes model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error duplicating node" err model
                     , updateNodes model
                     )
 
@@ -607,18 +629,8 @@ update msg model =
             , Port.out <| Port.encodeClipboard id
             )
 
-        MoveNode feID id src desc ->
-            ( { model
-                | copyMove = Move id src desc
-                , nodeMsg =
-                    Just
-                        { feID = feID
-                        , text = "Node queued for move\nclick paste in destination node"
-                        , time = model.now
-                        }
-              }
-            , Cmd.none
-            )
+        ClearClipboard ->
+            ( { model | copyMove = CopyMoveNone }, Cmd.none )
 
 
 mergeNodeTrees : List (Tree NodeView) -> List (Tree NodeView) -> List (Tree NodeView)
@@ -681,6 +693,12 @@ mergeNodeTree current new =
                     n
         )
         new
+
+
+
+-- FeID stands for front-end ID. This is required because we may
+-- have some duplicate nodes in the data set, so we simply give each
+-- one a unique ID while we are working with them in the frontend
 
 
 populateFeID : List (Tree NodeView) -> List (Tree NodeView)
@@ -828,8 +846,7 @@ populateHasChildren parentID tree =
 
 sortNodeTrees : List (Tree NodeView) -> List (Tree NodeView)
 sortNodeTrees trees =
-    -- I have no idea why nodeSortRev is needed here ???
-    List.sortWith nodeSortRev trees |> List.map sortNodeTree
+    List.sortWith nodeSort trees |> List.map sortNodeTree
 
 
 
@@ -849,9 +866,34 @@ sortNodeTree nodes =
     Tree.tree (Tree.label nodes) (List.map sortNodeTree childrenSorted)
 
 
-nodeSortRev : Tree NodeView -> Tree NodeView -> Order
-nodeSortRev a b =
-    nodeSort b a
+
+-- nodeCustomSortRules struct determines how we sort nodes in the UI
+
+
+nodeCustomSortRules : Dict.Dict String String
+nodeCustomSortRules =
+    Dict.fromList
+        [ ( Node.typeDevice, "A" )
+        , ( Node.typeUser, "B" )
+        , ( Node.typeGroup, "C" )
+        , ( Node.typeModbus, "D" )
+        , ( Node.typeRule, "E" )
+
+        -- rule subnodes
+        , ( Node.typeCondition, "A" )
+        , ( Node.typeAction, "B" )
+        , ( Node.typeActionInactive, "C" )
+        ]
+
+
+nodeCustomSort : String -> String
+nodeCustomSort t =
+    case Dict.get t nodeCustomSortRules of
+        Just s ->
+            s
+
+        Nothing ->
+            t
 
 
 nodeSort : Tree NodeView -> Tree NodeView -> Order
@@ -864,22 +906,40 @@ nodeSort a b =
             Tree.label b
 
         aType =
-            aNode.node.typ
+            nodeCustomSort aNode.node.typ
 
         bType =
-            bNode.node.typ
+            nodeCustomSort bNode.node.typ
 
         aDesc =
             String.toLower <| Point.getBestDesc aNode.node.points
 
         bDesc =
             String.toLower <| Point.getBestDesc bNode.node.points
+
+        aIndex =
+            Point.getValue aNode.node.points Point.typeIndex ""
+
+        bIndex =
+            Point.getValue bNode.node.points Point.typeIndex ""
+
+        aID =
+            Point.getText aNode.node.points Point.typeID ""
+
+        bID =
+            Point.getText bNode.node.points Point.typeID ""
     in
     if aType /= bType then
-        compare bType aType
+        compare aType bType
+
+    else if aDesc /= bDesc then
+        compare aDesc bDesc
+
+    else if aIndex /= bIndex then
+        compare aIndex bIndex
 
     else
-        compare bDesc aDesc
+        compare aID bID
 
 
 popError : String -> Http.Error -> Model -> Model
@@ -934,7 +994,19 @@ view model =
     , body =
         [ column
             [ width fill, spacing 32 ]
-            [ el Style.h2 <| text "Nodes"
+            [ wrappedRow [ spacing 10 ] <|
+                (el Style.h2 <| text "Nodes")
+                    :: (case model.copyMove of
+                            CopyMoveNone ->
+                                []
+
+                            Copy id _ desc ->
+                                [ Icon.clipboard
+                                , el [ Font.italic ] <| text desc
+                                , el [ Font.size 12 ] <| text <| "(" ++ id ++ ")"
+                                , Button.x ClearClipboard
+                                ]
+                       )
             , viewNodes model
             ]
         ]
@@ -978,7 +1050,7 @@ viewNodesHelp depth model tree =
             else
                 []
     in
-    List.foldr
+    List.foldl
         (\child ret ->
             let
                 childNode =
@@ -1046,6 +1118,12 @@ shouldDisplay typ =
         "upstream" ->
             True
 
+        "oneWire" ->
+            True
+
+        "oneWireIO" ->
+            True
+
         "db" ->
             True
 
@@ -1069,6 +1147,12 @@ viewNode model parent node depth =
 
                 "modbusIo" ->
                     NodeModbusIO.view
+
+                "oneWire" ->
+                    NodeOneWire.view
+
+                "oneWireIO" ->
+                    NodeOneWireIO.view
 
                 "rule" ->
                     NodeRule.view
@@ -1152,8 +1236,10 @@ viewNode model parent node depth =
                     , modified = node.mod
                     , parent = Maybe.map .node parent
                     , node = node.node
+                    , nodes = model.nodes
                     , expDetail = node.expDetail
                     , onEditNodePoint = EditNodePoint node.feID
+                    , copy = model.copyMove
                     }
                 , viewIf node.mod <|
                     Form.buttonRow
@@ -1217,6 +1303,7 @@ nodeTypesThatHaveChildNodes =
     [ Node.typeDevice
     , Node.typeGroup
     , Node.typeModbus
+    , Node.typeOneWire
     , Node.typeRule
     ]
 
@@ -1237,11 +1324,6 @@ viewNodeOperations node msg =
                 Button.plusCircle (AddNode node.feID node.node.id)
             , Button.message (MsgNode node.feID node.node.id node.node.parent)
             , Button.x (DeleteNode node.feID node.node.id node.node.parent)
-            , if node.node.parent /= "" then
-                Button.move (MoveNode node.feID node.node.id node.node.parent desc)
-
-              else
-                Element.none
             , Button.copy (CopyNode node.feID node.node.id node.node.parent desc)
             , Button.clipboard (PasteNode node.feID node.node.id)
             ]
@@ -1436,21 +1518,7 @@ viewDeleteNode id parent =
 viewPasteNode : Int -> String -> CopyMove -> Element Msg
 viewPasteNode feID dest copyMove =
     let
-        noButton =
-            Form.button
-                { label = "no"
-                , color = colors.gray
-                , onPress = DiscardNodeOp
-                }
-
-        yesButton op =
-            Form.button
-                { label = "yes"
-                , color = colors.red
-                , onPress = op
-                }
-
-        discardButton =
+        cancelButton =
             Form.buttonRow
                 [ Form.button
                     { label = "cancel"
@@ -1459,14 +1527,30 @@ viewPasteNode feID dest copyMove =
                     }
                 ]
 
+        moveButton op =
+            Form.button
+                { label = "move"
+                , color = colors.darkgreen
+                , onPress = op
+                }
+
+        mirrorButton op =
+            Form.button
+                { label = "mirror"
+                , color = colors.blue
+                , onPress = op
+                }
+
+        duplicateButton op =
+            Form.button
+                { label = "duplicate"
+                , color = colors.red
+                , onPress = op
+                }
+
         cantCopySelf =
             [ text "Can't move/copy node to itself"
-            , discardButton
-            ]
-
-        sameParent =
-            [ text "Can't move/copy node to the same parent"
-            , discardButton
+            , cancelButton
             ]
     in
     el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
@@ -1474,7 +1558,7 @@ viewPasteNode feID dest copyMove =
             CopyMoveNone ->
                 row []
                     [ text "Select node to copy/move first"
-                    , discardButton
+                    , cancelButton
                     ]
 
             Copy id src desc ->
@@ -1483,29 +1567,20 @@ viewPasteNode feID dest copyMove =
                         cantCopySelf
 
                     else if src == dest then
-                        sameParent
+                        [ text <| "Copy " ++ desc ++ " here?"
+                        , Form.buttonRow
+                            [ duplicateButton <| ApiPutDuplicateNode feID id dest
+                            , cancelButton
+                            ]
+                        ]
 
                     else
                         [ text <| "Copy " ++ desc ++ " here?"
                         , Form.buttonRow
-                            [ yesButton <| ApiPutCopyNode feID id dest
-                            , noButton
-                            ]
-                        ]
-
-            Move id src desc ->
-                row [] <|
-                    if id == dest then
-                        cantCopySelf
-
-                    else if src == dest then
-                        sameParent
-
-                    else
-                        [ text <| "Move " ++ desc ++ " here?"
-                        , Form.buttonRow
-                            [ yesButton <| ApiPostMoveNode feID id src dest
-                            , noButton
+                            [ moveButton <| ApiPostMoveNode feID id src dest
+                            , mirrorButton <| ApiPutMirrorNode feID id dest
+                            , duplicateButton <| ApiPutDuplicateNode feID id dest
+                            , cancelButton
                             ]
                         ]
 

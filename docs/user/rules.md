@@ -17,6 +17,14 @@ thus both the `D5 on rule` or the `Device offline rule` are eligible to be run.
 
 ![rules](images/rules.png)
 
+## Node linking
+
+Both conditions and actions can be linked to a node ID. If you copy a node, its
+ID is stored in a virtual clipboard and displayed at the top of the screen. You
+can then paste this node ID into the Node ID field in a condition or action.
+
+![rule-linking](images/rule-copy-paste-node-id.png)
+
 ## Conditions
 
 Each condition may optionally specify a minimum active duration before the

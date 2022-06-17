@@ -12,20 +12,26 @@ import (
 
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/nats"
+	"github.com/simpleiot/simpleiot/system"
 )
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
 	nc              *natsgo.Conn
+	appVersion      string
+	osVersionField  string
 	modbusManager   *ModbusManager
 	upstreamManager *UpstreamManager
 	rootNodeID      string
+	oneWireManager  *oneWireManager
 }
 
 // NewManger creates a new Manager
-func NewManger(nc *natsgo.Conn) *Manager {
+func NewManger(nc *natsgo.Conn, appVersion, osVersionField string) *Manager {
 	return &Manager{
-		nc: nc,
+		nc:             nc,
+		appVersion:     appVersion,
+		osVersionField: osVersionField,
 	}
 }
 
@@ -94,8 +100,50 @@ func (m *Manager) Init() error {
 		}
 	}
 
+	// check if the SW version is current
+	rootNodes, err = nats.GetNode(m.nc, "root", "")
+
+	if len(rootNodes) > 0 {
+		rootNode = rootNodes[0]
+	}
+
+	appVer, ok := rootNode.Points.Find(data.PointTypeVersionApp, "")
+	if !ok || appVer.Text != m.appVersion {
+		log.Println("Setting app version: ", m.appVersion)
+		err := nats.SendNodePoint(m.nc, rootNode.ID, data.Point{
+			Type: data.PointTypeVersionApp,
+			Text: m.appVersion,
+		}, true)
+
+		if err != nil {
+			log.Println("Error setting app version")
+		}
+	}
+
+	// check if OS version is current
+	osVer, err := system.ReadOSVersion(m.osVersionField)
+	if err != nil {
+		log.Println("Error reading OS version: ", err)
+	} else {
+		log.Println("OS version: ", osVer)
+		osVerStored, ok := rootNode.Points.Find(data.PointTypeVersionOS, "")
+		if !ok || osVer.String() != osVerStored.Text {
+			log.Println("Setting os version: ", osVer)
+			err := nats.SendNodePoint(m.nc, rootNode.ID, data.Point{
+				Type: data.PointTypeVersionOS,
+				Text: osVer.String(),
+			}, true)
+
+			if err != nil {
+				log.Println("Error setting OS version")
+			}
+		}
+
+	}
+
 	m.modbusManager = NewModbusManager(m.nc, m.rootNodeID)
 	m.upstreamManager = NewUpstreamManager(m.nc, m.rootNodeID)
+	m.oneWireManager = newOneWireManager(m.nc, m.rootNodeID)
 
 	return nil
 }
@@ -111,6 +159,9 @@ func (m *Manager) Run() {
 			}
 			if m.upstreamManager != nil {
 				m.upstreamManager.Update()
+			}
+			if m.oneWireManager != nil {
+				m.oneWireManager.update()
 			}
 			time.Sleep(10 * time.Second)
 		}

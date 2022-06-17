@@ -5,6 +5,10 @@
 - PR/Discussion: https://github.com/simpleiot/simpleiot/pull/279
 - Status: Accepted
 
+**Contents**
+
+<!-- toc -->
+
 ## Problem
 
 The current point data type is fairly simple and has proven useful and flexible

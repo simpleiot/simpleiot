@@ -5,6 +5,7 @@ module UI.NodeInputs exposing
     , nodeNumberInput
     , nodeOnOffInput
     , nodeOptionInput
+    , nodePasteButton
     , nodeTextInput
     , nodeTimeDateInput
     , nodeTimeInput
@@ -21,6 +22,7 @@ import Svg as S
 import Svg.Attributes as Sa
 import Time
 import Time.Extra
+import UI.Button
 import UI.Sanitize as Sanitize
 import Utils.Time exposing (scheduleToLocal, scheduleToUTC, toLocal, toUTC)
 
@@ -537,4 +539,17 @@ nodeOnOffInput o key typ pointSetName lbl =
                                 []
                             ]
             }
+        ]
+
+
+nodePasteButton :
+    NodeInputOptions msg
+    -> Element msg
+    -> String
+    -> String
+    -> Element msg
+nodePasteButton o label typ value =
+    row [ spacing 10, paddingEach { top = 0, bottom = 0, right = 0, left = 75 } ]
+        [ UI.Button.clipboard <| o.onEditNodePoint [ Point typ "" o.now 0 0 value 0 ]
+        , label
         ]

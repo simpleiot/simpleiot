@@ -1,0 +1,15 @@
+{
+  "name": "simpleiot-js",
+  "version": "0.1.0",
+  "description": "SimpleIOT JavaScript API using NATS / WebSockets",
+  "main": "siot-nats.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "google-protobuf": "^3.20.1",
+    "nats.ws": "^1.7.2"
+  }
+}

@@ -3,24 +3,19 @@ package api
 import (
 	"net/http"
 
+	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/store"
+	"github.com/simpleiot/simpleiot/nats"
 )
 
 // Auth handles user authentication requests.
 type Auth struct {
-	db  *store.Db
-	key NewTokener
-}
-
-// NewTokener provides a new authentication token.
-type NewTokener interface {
-	NewToken(userID string) (string, error)
+	nc *natsgo.Conn
 }
 
 // NewAuthHandler returns a new authentication handler using the given key.
-func NewAuthHandler(db *store.Db, key NewTokener) Auth {
-	return Auth{db: db, key: key}
+func NewAuthHandler(nc *natsgo.Conn) Auth {
+	return Auth{nc: nc}
 }
 
 // ServeHTTP serves requests to authenticate.
@@ -33,21 +28,26 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	email := req.FormValue("email")
 	password := req.FormValue("password")
 
-	user, err := auth.db.UserCheck(email, password)
+	nodes, err := nats.UserCheck(auth.nc, email, password)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if user == nil {
+	if len(nodes) < 0 {
 		http.Error(res, "invalid login", http.StatusForbidden)
 		return
 	}
 
-	token, err := auth.key.NewToken(user.ID)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
+	var token string
+
+	for _, n := range nodes {
+		if n.Type == data.NodeTypeJWT {
+			p, ok := n.Points.Find(data.PointTypeToken, "")
+			if ok {
+				token = p.Text
+			}
+		}
 	}
 
 	encode(res, data.Auth{

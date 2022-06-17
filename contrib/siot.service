@@ -5,6 +5,7 @@ After=network.target
 [Service]
 PIDFile=/run/siot/%i.pid
 Environment=SIOT_PORT=80
+Environment=OS_VERSION_FIELD=VERSION
 ExecStart=/usr/bin/siot
 
 [Install]

@@ -149,7 +149,7 @@ func (nodes *Nodes) ToPb() ([]byte, error) {
 }
 
 // ToPbNodes converts a list of nodes to protobuf nodes
-func (nodes *Nodes) ToPbNodes() (*pb.Nodes, error) {
+func (nodes *Nodes) ToPbNodes() ([]*pb.Node, error) {
 	pbNodes := make([]*pb.Node, len(*nodes))
 	for i, n := range *nodes {
 		nPb, err := n.ToPbNode()
@@ -160,7 +160,7 @@ func (nodes *Nodes) ToPbNodes() (*pb.Nodes, error) {
 		pbNodes[i] = nPb
 	}
 
-	return &pb.Nodes{Nodes: pbNodes}, nil
+	return pbNodes, nil
 }
 
 // define valid commands
@@ -289,9 +289,9 @@ func (n *NodeEdge) ToPbNode() (*pb.Node, error) {
 	return pbNode, nil
 }
 
-// ProcessPoint takes a point for a device and adds/updates its array of points
-func (n *NodeEdge) ProcessPoint(pIn Point) {
-	n.Points.ProcessPoint(pIn)
+// AddPoint takes a point for a device and adds/updates its array of points
+func (n *NodeEdge) AddPoint(pIn Point) {
+	n.Points.Add(pIn)
 }
 
 // bytesLess compares two slices of bytes and returns true if a is less than b
@@ -415,9 +415,9 @@ func PbDecodeNodesRequest(data []byte) ([]NodeEdge, error) {
 		return []NodeEdge{}, errors.New(pbNodesRequest.Error)
 	}
 
-	ret := make([]NodeEdge, len(pbNodesRequest.Nodes.Nodes))
+	ret := make([]NodeEdge, len(pbNodesRequest.Nodes))
 
-	for i, nPb := range pbNodesRequest.Nodes.Nodes {
+	for i, nPb := range pbNodesRequest.Nodes {
 		ret[i], err = PbToNode(nPb)
 
 		if err != nil {
