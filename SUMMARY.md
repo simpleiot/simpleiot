@@ -39,3 +39,4 @@
 
 - [Overview](docs/adr/README.md)
 - [ADR-1: Point data type](docs/adr/1-consider-changing-point-data-type.md)
+- [ADR-2: Authz](docs/adr/2-authz.md)
