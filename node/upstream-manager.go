@@ -1,6 +1,7 @@
 package node
 
 import (
+	"fmt"
 	"log"
 
 	natsgo "github.com/nats-io/nats.go"
@@ -33,6 +34,8 @@ func (upm *UpstreamManager) Update() error {
 	}
 
 	found := make(map[string]bool)
+
+	fmt.Println("CLIFF: upstream nodes: ", nodes)
 
 	for _, node := range nodes {
 		found[node.ID] = true
