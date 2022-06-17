@@ -67,3 +67,13 @@ them is to:
 (I've tried using: https://levelteams.com/svg-to-elm, but this has not been real
 useful, so I usually end up just copying the path strings into an elm template
 and hand edit the rest)
+
+## Custom UIs
+
+The current SIOT UI is more an engineering type view than something that might
+be used by end users. For a custom/company product IoT portal where you want a
+custom web UI optimized for your products, there are several options:
+
+1. modify the existing SIOT frontend.
+1. write a new frontend, mobile app, desktop app, etc. The SIOT backend and
+   frontend are decoupled so that this is possible.
