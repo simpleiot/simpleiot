@@ -8,7 +8,11 @@ Status: Specification
 
 It is common in embedded systems architectures for a MPU (Linux based running
 SIOT) to be connected via a serial link (RS232, RS485, CAN, USB serial) to a
-MCU. See
+MCU.
+
+![mcu connection](../user/images/mcu.png)
+
+See
 [this article](http://bec-systems.com/site/1540/microcontroller-mcu-or-microprocessor-mpu)
 for a discuss on the differences between a MPU and MCU. These devices are not
 connected via a network interface, so can't use the [SIOT NATS API](api.md#nats)
