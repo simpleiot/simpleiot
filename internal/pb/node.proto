@@ -26,6 +26,6 @@ message Nodes {
 }
 
 message NodesRequest {
-  Nodes nodes = 1;
+  repeated Node nodes = 1;
   string error = 2;
 }
