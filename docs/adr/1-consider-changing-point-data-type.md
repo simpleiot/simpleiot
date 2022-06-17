@@ -3,7 +3,7 @@
 - Author: Cliff Brake Last updated: 2021-11-04
 - Issue at: https://github.com/simpleiot/simpleiot/issues/254
 - PR/Discussion: https://github.com/simpleiot/simpleiot/pull/279
-- Status: Brainstorming
+- Status: Accepted
 
 **Contents**
 
