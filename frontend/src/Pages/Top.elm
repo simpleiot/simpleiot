@@ -19,6 +19,7 @@ import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
 import Components.NodeRule as NodeRule
+import Components.NodeSerialDev as NodeSerialDev
 import Components.NodeUpstream as NodeUpstream
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
@@ -1094,6 +1095,9 @@ shouldDisplay typ =
         "modbusIo" ->
             True
 
+        "serialDev" ->
+            True
+
         "rule" ->
             True
 
@@ -1153,6 +1157,9 @@ viewNode model parent node depth =
 
                 "oneWireIO" ->
                     NodeOneWireIO.view
+
+                "serialDev" ->
+                    NodeSerialDev.view
 
                 "rule" ->
                     NodeRule.view
@@ -1304,6 +1311,7 @@ nodeTypesThatHaveChildNodes =
     , Node.typeGroup
     , Node.typeModbus
     , Node.typeOneWire
+    , Node.typeSerialDev
     , Node.typeRule
     ]
 
@@ -1354,6 +1362,11 @@ nodeDescModbus =
 nodeDescModbusIO : Element Msg
 nodeDescModbusIO =
     row [] [ Icon.io, text "Modbus IO" ]
+
+
+nodeDescSerialDev : Element Msg
+nodeDescSerialDev =
+    row [] [ Icon.serialDev, text "Serial Device" ]
 
 
 nodeDescRule : Element Msg
@@ -1410,6 +1423,7 @@ viewAddNode parent add =
                             , Input.option Node.typeGroup nodeDescGroup
                             , Input.option Node.typeRule nodeDescRule
                             , Input.option Node.typeModbus nodeDescModbus
+                            , Input.option Node.typeSerialDev nodeDescSerialDev
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
@@ -1424,6 +1438,7 @@ viewAddNode parent add =
                             , Input.option Node.typeGroup nodeDescGroup
                             , Input.option Node.typeRule nodeDescRule
                             , Input.option Node.typeModbus nodeDescModbus
+                            , Input.option Node.typeSerialDev nodeDescSerialDev
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
