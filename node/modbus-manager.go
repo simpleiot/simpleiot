@@ -1,12 +1,10 @@
 package node
 
 import (
-	"io"
 	"log"
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/modbus"
 	"github.com/simpleiot/simpleiot/nats"
 )
 
@@ -24,26 +22,6 @@ func NewModbusManager(nc *natsgo.Conn, rootNodeID string) *ModbusManager {
 		busses:     make(map[string]*Modbus),
 		rootNodeID: rootNodeID,
 	}
-}
-
-func modbusErrorToPointType(err error) string {
-	switch err {
-	case io.EOF:
-		return data.PointTypeErrorCountEOF
-	case modbus.ErrCRC:
-		return data.PointTypeErrorCountCRC
-	default:
-		return ""
-	}
-}
-
-func copyIos(in map[string]*ModbusIO) map[string]*ModbusIO {
-	out := make(map[string]*ModbusIO)
-	for k, v := range in {
-		io := *v
-		out[k] = &io
-	}
-	return out
 }
 
 // Update queries DB for modbus nodes and synchronizes

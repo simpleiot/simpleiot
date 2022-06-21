@@ -3,6 +3,7 @@ package node
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"syscall"
@@ -977,5 +978,16 @@ func (b *Modbus) Run() {
 			b.ClosePort()
 			return
 		}
+	}
+}
+
+func modbusErrorToPointType(err error) string {
+	switch err {
+	case io.EOF:
+		return data.PointTypeErrorCountEOF
+	case modbus.ErrCRC:
+		return data.PointTypeErrorCountCRC
+	default:
+		return ""
 	}
 }
