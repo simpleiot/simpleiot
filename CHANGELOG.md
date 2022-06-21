@@ -14,6 +14,7 @@ For more details or to discuss releases, please visit the
 Bug fix release (PR #369)
 
 - Fix invalid users causes panic in Go code #365
+- implement data.Decode for converting nodes to user structs
 
 ## [[0.2.0] - 2022-05-31](https://github.com/simpleiot/simpleiot/releases/tag/v0.2.0)
 
