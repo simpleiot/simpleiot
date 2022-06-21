@@ -23,8 +23,7 @@ func Encode(in interface{}) (NodeEdge, error) {
 		case reflect.Float64:
 			return Point{Type: t, Value: v.Float()}, nil
 		case reflect.Float32:
-			f := float32(v.Float())
-			return Point{Type: t, Value: float64(f)}, nil
+			return Point{Type: t, Value: v.Float()}, nil
 		case reflect.Bool:
 			return Point{Type: t, Value: BoolToFloat(v.Bool())}, nil
 		default:
