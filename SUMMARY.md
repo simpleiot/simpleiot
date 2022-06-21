@@ -24,6 +24,7 @@
 - [Vision](docs/ref/vision.md)
 - [Development](docs/ref/development.md)
 - [Architecture](docs/ref/architecture.md)
+- [Data](docs/ref/data.md)
 - [Reliability](docs/ref/reliability.md)
 - [API](docs/ref/api.md)
 - [Frontend](docs/ref/frontend.md)
