@@ -33,8 +33,6 @@ type Upstream struct {
 func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 	var err error
 
-	fmt.Println("CLIFF: NewUpstream")
-
 	up := &Upstream{
 		nc:              nc,
 		node:            node,
