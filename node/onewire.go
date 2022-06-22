@@ -26,7 +26,7 @@ type oneWire struct {
 }
 
 func newOneWire(nc *natsgo.Conn, node data.NodeEdge) (*oneWire, error) {
-	bus := &oneWire{
+	ow := &oneWire{
 		nc:      nc,
 		node:    node,
 		ios:     make(map[string]*oneWireIO),
@@ -39,11 +39,11 @@ func newOneWire(nc *natsgo.Conn, node data.NodeEdge) (*oneWire, error) {
 		return nil, err
 	}
 
-	bus.owNode = oneWireNode
+	ow.owNode = oneWireNode
 
-	// closure is required so we don't get races accessing bus.busNode
+	// closure is required so we don't get races accessing ow.busNode
 	func(id string) {
-		bus.sub, err = nc.Subscribe("node."+bus.owNode.nodeID+".points", func(msg *natsgo.Msg) {
+		ow.sub, err = nc.Subscribe("node."+ow.owNode.nodeID+".points", func(msg *natsgo.Msg) {
 			points, err := data.PbDecodePoints(msg.Data)
 			if err != nil {
 				// FIXME, send over channel
@@ -52,18 +52,18 @@ func newOneWire(nc *natsgo.Conn, node data.NodeEdge) (*oneWire, error) {
 			}
 
 			for _, p := range points {
-				bus.chPoint <- pointWID{id, p}
+				ow.chPoint <- pointWID{id, p}
 			}
 		})
-	}(bus.owNode.nodeID)
+	}(ow.owNode.nodeID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	go bus.run()
+	go ow.run()
 
-	return bus, nil
+	return ow, nil
 }
 
 // stop stops the bus and resets various fields
