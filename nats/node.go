@@ -40,6 +40,7 @@ func GetNode(nc *natsgo.Conn, id, parent string) ([]data.NodeEdge, error) {
 // can be used to limit nodes to a particular type, otherwise, all nodes
 // are returned.
 func GetNodeChildren(nc *natsgo.Conn, id, typ string, includeDel bool, recursive bool) ([]data.NodeEdge, error) {
+	fmt.Println("CLIFF: GetNodeChildren: ", id, typ)
 	reqData, err := proto.Marshal(&pb.NatsRequest{IncludeDel: includeDel,
 		Type: typ})
 
