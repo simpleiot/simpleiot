@@ -1,16 +1,16 @@
-package nats
+package client
 
 import (
 	"fmt"
 	"log"
 	"strings"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 // Dump converts displays a NATS message
-func Dump(nc *natsgo.Conn, msg *natsgo.Msg) error {
+func Dump(nc *nats.Conn, msg *nats.Msg) error {
 	s, err := String(nc, msg)
 	if err != nil {
 		return err
@@ -23,7 +23,7 @@ func Dump(nc *natsgo.Conn, msg *natsgo.Msg) error {
 }
 
 // String converts a NATS message to a string
-func String(nc *natsgo.Conn, msg *natsgo.Msg) (string, error) {
+func String(nc *nats.Conn, msg *nats.Msg) (string, error) {
 	ret := ""
 
 	chunks := strings.Split(msg.Subject, ".")

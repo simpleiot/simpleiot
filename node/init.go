@@ -4,14 +4,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 )
 
 // Init is used to create initial root node and admin
 // user
-func Init(nc *natsgo.Conn) error {
+func Init(nc *nats.Conn) error {
 	rootID := uuid.New().String()
 
 	pRoot := data.Point{
@@ -20,7 +20,7 @@ func Init(nc *natsgo.Conn) error {
 		Time: time.Now(),
 	}
 
-	err := nats.SendNodePoint(nc, rootID, pRoot, true)
+	err := client.SendNodePoint(nc, rootID, pRoot, true)
 
 	if err != nil {
 		return err
@@ -34,5 +34,5 @@ func Init(nc *natsgo.Conn) error {
 		Pass:      "admin",
 	}
 
-	return nats.SendNodePoints(nc, admin.ID, admin.ToPoints(), true)
+	return client.SendNodePoints(nc, admin.ID, admin.ToPoints(), true)
 }

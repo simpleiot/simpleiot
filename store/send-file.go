@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	natsgo "github.com/nats-io/nats.go"
-	"github.com/simpleiot/simpleiot/nats"
+	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 )
 
 // Note, this file is still in the api package (vs nats) as http bloats a build, and not
@@ -18,7 +18,7 @@ import (
 // Companion file in nats/file.go
 
 // NatsSendFileFromHTTP fetchs a file using http and sends via nats. Callback provides % complete (0-100).
-func NatsSendFileFromHTTP(nc *natsgo.Conn, deviceID string, url string, callback func(int)) error {
+func NatsSendFileFromHTTP(nc *nats.Conn, deviceID string, url string, callback func(int)) error {
 	var netClient = &http.Client{
 		Timeout: time.Second * 60,
 	}
@@ -41,7 +41,7 @@ func NatsSendFileFromHTTP(nc *natsgo.Conn, deviceID string, url string, callback
 	}
 	name := urlS[len(urlS)-1]
 
-	return nats.SendFile(nc, deviceID, resp.Body, name, func(bytesTx int) {
+	return client.SendFile(nc, deviceID, resp.Body, name, func(bytesTx int) {
 		callback(bytesTx)
 	})
 }

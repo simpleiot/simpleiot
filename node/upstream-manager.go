@@ -3,20 +3,20 @@ package node
 import (
 	"log"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 )
 
 // UpstreamManager looks for upstream nodes and creates new upstream connections
 type UpstreamManager struct {
-	nc         *natsgo.Conn
+	nc         *nats.Conn
 	upstreams  map[string]*Upstream
 	rootNodeID string
 }
 
 // NewUpstreamManager is used to create a new upstream manager
-func NewUpstreamManager(nc *natsgo.Conn, rootNodeID string) *UpstreamManager {
+func NewUpstreamManager(nc *nats.Conn, rootNodeID string) *UpstreamManager {
 	return &UpstreamManager{
 		nc:         nc,
 		upstreams:  make(map[string]*Upstream),
@@ -27,7 +27,7 @@ func NewUpstreamManager(nc *natsgo.Conn, rootNodeID string) *UpstreamManager {
 // Update queries DB for modbus nodes and synchronizes
 // with internal structures and updates data
 func (upm *UpstreamManager) Update() error {
-	nodes, err := nats.GetNodeChildren(upm.nc, upm.rootNodeID, data.NodeTypeUpstream, false, false)
+	nodes, err := client.GetNodeChildren(upm.nc, upm.rootNodeID, data.NodeTypeUpstream, false, false)
 	if err != nil {
 		return err
 	}

@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/internal/pb"
 	"github.com/simpleiot/simpleiot/msg"
-	"github.com/simpleiot/simpleiot/nats"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -25,12 +25,12 @@ type NewTokener interface {
 	NewToken(userID string) (string, error)
 }
 
-// NatsHandler implements the SIOT NATS api
-type NatsHandler struct {
+// Store implements the SIOT NATS api
+type Store struct {
 	server         string
-	Nc             *natsgo.Conn
-	subNodePoints  *natsgo.Subscription
-	subEdgePoints  *natsgo.Subscription
+	Nc             *nats.Conn
+	subNodePoints  *nats.Subscription
+	subEdgePoints  *nats.Subscription
 	db             *Db
 	authToken      string
 	lock           sync.Mutex
@@ -39,89 +39,103 @@ type NatsHandler struct {
 	key            NewTokener
 
 	// cycle metrics track how long it takes to handle a point
-	metricCycleNodePoint     *nats.Metric
-	metricCycleNodeEdgePoint *nats.Metric
-	metricCycleNode          *nats.Metric
-	metricCycleNodeChildren  *nats.Metric
+	metricCycleNodePoint     *client.Metric
+	metricCycleNodeEdgePoint *client.Metric
+	metricCycleNode          *client.Metric
+	metricCycleNodeChildren  *client.Metric
 
 	// Pending counts how many points are being buffered by the NATS client
-	metricPendingNodePoint     *nats.Metric
-	metricPendingNodeEdgePoint *nats.Metric
+	metricPendingNodePoint     *client.Metric
+	metricPendingNodeEdgePoint *client.Metric
 
 	// influx db stuff
 	influxDbs map[string]*Influx
 }
 
-// NewNatsHandler creates a new NATS client for handling SIOT requests
-func NewNatsHandler(db *Db, authToken, server string, key NewTokener) *NatsHandler {
-	log.Println("NATS handler connecting to: ", server)
-	return &NatsHandler{
-		db:        db,
-		authToken: authToken,
-		updates:   make(map[string]time.Time),
-		server:    server,
-		influxDbs: make(map[string]*Influx),
-		key:       key,
+// Params are used to configure a store
+type Params struct {
+	Type      Type
+	DataDir   string
+	AuthToken string
+	Server    string
+	Key       NewTokener
+}
+
+// NewStore creates a new NATS client for handling SIOT requests
+func NewStore(p Params) (*Store, error) {
+	db, err := NewDb(p.Type, p.DataDir)
+	if err != nil {
+		return nil, fmt.Errorf("Error opening db: %v", err)
 	}
+
+	log.Println("store connecting to nats server: ", p.Server)
+	return &Store{
+		db:        db,
+		authToken: p.AuthToken,
+		updates:   make(map[string]time.Time),
+		server:    p.Server,
+		influxDbs: make(map[string]*Influx),
+		key:       p.Key,
+	}, nil
 }
 
 // Connect to NATS server and set up handlers for things we are interested in
-func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
-	nc, err := natsgo.Connect(nh.server,
-		natsgo.Timeout(10*time.Second),
-		natsgo.PingInterval(60*5*time.Second),
-		natsgo.MaxPingsOutstanding(5),
-		natsgo.ReconnectBufSize(5*1024*1024),
-		natsgo.SetCustomDialer(&net.Dialer{
+func (st *Store) Connect() (*nats.Conn, error) {
+	nc, err := nats.Connect(st.server,
+		nats.Timeout(10*time.Second),
+		nats.PingInterval(60*5*time.Second),
+		nats.MaxPingsOutstanding(5),
+		nats.ReconnectBufSize(5*1024*1024),
+		nats.SetCustomDialer(&net.Dialer{
 			KeepAlive: -1,
 		}),
-		natsgo.Token(nh.authToken),
+		nats.Token(st.authToken),
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	nh.Nc = nc
+	st.Nc = nc
 
-	nh.subNodePoints, err = nc.Subscribe("node.*.points", nh.handleNodePoints)
+	st.subNodePoints, err = nc.Subscribe("node.*.points", st.handleNodePoints)
 	if err != nil {
 		return nil, fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
-	nh.subEdgePoints, err = nc.Subscribe("node.*.*.points", nh.handleEdgePoints)
+	st.subEdgePoints, err = nc.Subscribe("node.*.*.points", st.handleEdgePoints)
 	if err != nil {
 		return nil, fmt.Errorf("Subscribe edge points error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("node.*", nh.handleNode); err != nil {
+	if _, err := nc.Subscribe("node.*", st.handleNode); err != nil {
 		return nil, fmt.Errorf("Subscribe node error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("node.*.children", nh.handleNodeChildren); err != nil {
+	if _, err := nc.Subscribe("node.*.children", st.handleNodeChildren); err != nil {
 		return nil, fmt.Errorf("Subscribe node error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("node.*.not", nh.handleNotification); err != nil {
+	if _, err := nc.Subscribe("node.*.not", st.handleNotification); err != nil {
 		return nil, fmt.Errorf("Subscribe notification error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("node.*.msg", nh.handleMessage); err != nil {
+	if _, err := nc.Subscribe("node.*.msg", st.handleMessage); err != nil {
 		return nil, fmt.Errorf("Subscribe message error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("auth.user", nh.handleAuthUser); err != nil {
+	if _, err := nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
 
 	}
 
 	go func() {
 		for {
-			childNodes, err := nh.db.nodeDescendents(nh.db.rootNodeID(), "", false, false)
+			childNodes, err := st.db.nodeDescendents(st.db.rootNodeID(), "", false, false)
 			if err != nil {
 				log.Println("Error getting child nodes to run schedule: ", err)
 			} else {
 				for _, c := range childNodes {
-					err := nh.runSchedule(c)
+					err := st.runSchedule(c)
 					if err != nil {
 						log.Println("Error running schedule: ", err)
 					}
@@ -133,48 +147,49 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 
 	// we don't have node ID yet, but need to init here so we can start
 	// collecting data
-	nh.metricCycleNodePoint = nats.NewMetric(nh.Nc, "",
+	st.metricCycleNodePoint = client.NewMetric(st.Nc, "",
 		data.PointTypeMetricNatsCycleNodePoint, reportMetricsPeriod)
-	nh.metricCycleNodeEdgePoint = nats.NewMetric(nh.Nc, "",
+	st.metricCycleNodeEdgePoint = client.NewMetric(st.Nc, "",
 		data.PointTypeMetricNatsCycleNodeEdgePoint, reportMetricsPeriod)
-	nh.metricCycleNode = nats.NewMetric(nh.Nc, "",
+	st.metricCycleNode = client.NewMetric(st.Nc, "",
 		data.PointTypeMetricNatsCycleNode, reportMetricsPeriod)
-	nh.metricCycleNodeChildren = nats.NewMetric(nh.Nc, "",
+	st.metricCycleNodeChildren = client.NewMetric(st.Nc, "",
 		data.PointTypeMetricNatsCycleNodeChildren, reportMetricsPeriod)
 
 	return nc, nil
 }
 
 // StartMetrics for various handling operations. Metrics are sent to the node ID given
-func (nh *NatsHandler) StartMetrics(nodeID string) error {
-	nh.metricCycleNodePoint.SetNodeID(nodeID)
-	nh.metricCycleNodeEdgePoint.SetNodeID(nodeID)
-	nh.metricCycleNode.SetNodeID(nodeID)
-	nh.metricCycleNodeChildren.SetNodeID(nodeID)
+// FIXME, this can probably move to the node package for device nodes
+func (st *Store) StartMetrics(nodeID string) error {
+	st.metricCycleNodePoint.SetNodeID(nodeID)
+	st.metricCycleNodeEdgePoint.SetNodeID(nodeID)
+	st.metricCycleNode.SetNodeID(nodeID)
+	st.metricCycleNodeChildren.SetNodeID(nodeID)
 
-	nh.metricPendingNodePoint = nats.NewMetric(nh.Nc, nodeID,
+	st.metricPendingNodePoint = client.NewMetric(st.Nc, nodeID,
 		data.PointTypeMetricNatsPendingNodePoint, reportMetricsPeriod)
-	nh.metricPendingNodeEdgePoint = nats.NewMetric(nh.Nc, nodeID,
+	st.metricPendingNodeEdgePoint = client.NewMetric(st.Nc, nodeID,
 		data.PointTypeMetricNatsPendingNodeEdgePoint, reportMetricsPeriod)
 
 	go func() {
 		for {
-			pendingNodePoints, _, err := nh.subNodePoints.Pending()
+			pendingNodePoints, _, err := st.subNodePoints.Pending()
 			if err != nil {
 				log.Println("Error getting pendingNodePoints: ", err)
 			}
 
-			err = nh.metricPendingNodePoint.AddSample(float64(pendingNodePoints))
+			err = st.metricPendingNodePoint.AddSample(float64(pendingNodePoints))
 			if err != nil {
 				log.Println("Error handling metric: ", err)
 			}
 
-			pendingEdgePoints, _, err := nh.subEdgePoints.Pending()
+			pendingEdgePoints, _, err := st.subEdgePoints.Pending()
 			if err != nil {
 				log.Println("Error getting pendingEdgePoints: ", err)
 			}
 
-			err = nh.metricPendingNodeEdgePoint.AddSample(float64(pendingEdgePoints))
+			err = st.metricPendingNodeEdgePoint.AddSample(float64(pendingEdgePoints))
 			if err != nil {
 				log.Println("Error handling metric: ", err)
 			}
@@ -186,22 +201,22 @@ func (nh *NatsHandler) StartMetrics(nodeID string) error {
 	return nil
 }
 
-func (nh *NatsHandler) runSchedule(node data.NodeEdge) error {
+func (st *Store) runSchedule(node data.NodeEdge) error {
 	switch node.Type {
 	case data.NodeTypeRule:
 		p := data.Point{Time: time.Now(), Type: data.PointTypeTrigger}
-		err := nh.processRuleNode(node, "", []data.Point{p})
+		err := st.processRuleNode(node, "", []data.Point{p})
 		if err != nil {
 			return err
 		}
 
 	case data.NodeTypeGroup:
-		childNodes, err := nh.db.nodeDescendents(node.ID, "", false, false)
+		childNodes, err := st.db.nodeDescendents(node.ID, "", false, false)
 		if err != nil {
 			return err
 		}
 		for _, c := range childNodes {
-			err := nh.runSchedule(c)
+			err := st.runSchedule(c)
 			if err != nil {
 				return err
 			}
@@ -211,35 +226,35 @@ func (nh *NatsHandler) runSchedule(node data.NodeEdge) error {
 	return nil
 }
 
-func (nh *NatsHandler) setSwUpdateState(id string, state data.SwUpdateState) error {
+func (st *Store) setSwUpdateState(id string, state data.SwUpdateState) error {
 	p := state.Points()
 
-	return nats.SendNodePoints(nh.Nc, id, p, false)
+	return client.SendNodePoints(st.Nc, id, p, false)
 }
 
 // StartUpdate starts an update
-func (nh *NatsHandler) StartUpdate(id, url string) error {
-	nh.lock.Lock()
-	defer nh.lock.Unlock()
+func (st *Store) StartUpdate(id, url string) error {
+	st.lock.Lock()
+	defer st.lock.Unlock()
 
-	if _, ok := nh.updates[id]; ok {
+	if _, ok := st.updates[id]; ok {
 		return fmt.Errorf("Update already in process for dev: %v", id)
 	}
 
-	nh.updates[id] = time.Now()
+	st.updates[id] = time.Now()
 
-	err := nh.setSwUpdateState(id, data.SwUpdateState{
+	err := st.setSwUpdateState(id, data.SwUpdateState{
 		Running: true,
 	})
 
 	if err != nil {
-		delete(nh.updates, id)
+		delete(st.updates, id)
 		return err
 	}
 
 	go func() {
-		err := NatsSendFileFromHTTP(nh.Nc, id, url, func(bytesTx int) {
-			err := nh.setSwUpdateState(id, data.SwUpdateState{
+		err := NatsSendFileFromHTTP(st.Nc, id, url, func(bytesTx int) {
+			err := st.setSwUpdateState(id, data.SwUpdateState{
 				Running:     true,
 				PercentDone: bytesTx,
 			})
@@ -260,11 +275,11 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 			state.PercentDone = 100
 		}
 
-		nh.lock.Lock()
-		delete(nh.updates, id)
-		nh.lock.Unlock()
+		st.lock.Lock()
+		delete(st.updates, id)
+		st.lock.Unlock()
 
-		err = nh.setSwUpdateState(id, state)
+		err = st.setSwUpdateState(id, state)
 		if err != nil {
 			log.Println("Error setting sw update state: ", err)
 		}
@@ -273,35 +288,35 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 	return nil
 }
 
-func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
+func (st *Store) handleNodePoints(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
-		nh.metricCycleNodePoint.AddSample(float64(t))
+		st.metricCycleNodePoint.AddSample(float64(t))
 	}()
-	nh.nodeUpdateLock.Lock()
-	defer nh.nodeUpdateLock.Unlock()
+	st.nodeUpdateLock.Lock()
+	defer st.nodeUpdateLock.Unlock()
 
-	nodeID, points, err := nats.DecodeNodePointsMsg(msg)
+	nodeID, points, err := client.DecodeNodePointsMsg(msg)
 
 	if err != nil {
 		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
-		nh.reply(msg.Reply, errors.New("error decoding node points subject"))
+		st.reply(msg.Reply, errors.New("error decoding node points subject"))
 		return
 	}
 
 	// write points to database
-	err = nh.db.nodePoints(nodeID, points)
+	err = st.db.nodePoints(nodeID, points)
 
 	if err != nil {
 		// TODO track error stats
 		log.Printf("Error writing nodeID (%v) to Db: %v", nodeID, err)
 		log.Println("msg subject: ", msg.Subject)
-		nh.reply(msg.Reply, err)
+		st.reply(msg.Reply, err)
 		return
 	}
 
-	node, err := nh.db.node(nodeID)
+	node, err := st.db.node(nodeID)
 	if err != nil {
 		log.Println("handleNodePoints, error getting node for id: ", nodeID)
 	}
@@ -309,51 +324,51 @@ func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
 	desc := node.Desc()
 
 	// process point in upstream nodes
-	err = nh.processPointsUpstream(nodeID, nodeID, desc, points)
+	err = st.processPointsUpstream(nodeID, nodeID, desc, points)
 	if err != nil {
 		// TODO track error stats
 		log.Println("Error processing point in upstream nodes: ", err)
 	}
 
-	nh.reply(msg.Reply, nil)
+	st.reply(msg.Reply, nil)
 }
 
-func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
+func (st *Store) handleEdgePoints(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
-		nh.metricCycleNodeEdgePoint.AddSample(float64(t))
+		st.metricCycleNodeEdgePoint.AddSample(float64(t))
 	}()
 
-	nh.nodeUpdateLock.Lock()
-	defer nh.nodeUpdateLock.Unlock()
+	st.nodeUpdateLock.Lock()
+	defer st.nodeUpdateLock.Unlock()
 
-	nodeID, parentID, points, err := nats.DecodeEdgePointsMsg(msg)
+	nodeID, parentID, points, err := client.DecodeEdgePointsMsg(msg)
 
 	if err != nil {
 		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
-		nh.reply(msg.Reply, errors.New("error decoding edge points subject"))
+		st.reply(msg.Reply, errors.New("error decoding edge points subject"))
 		return
 	}
 
 	// write points to database
-	err = nh.db.edgePoints(nodeID, parentID, points)
+	err = st.db.edgePoints(nodeID, parentID, points)
 
 	if err != nil {
 		// TODO track error stats
 		log.Printf("Error writing edge points (%v:%v) to Db: %v", nodeID, parentID, err)
 		log.Println("msg subject: ", msg.Subject)
-		nh.reply(msg.Reply, err)
+		st.reply(msg.Reply, err)
 	}
 
-	nh.reply(msg.Reply, nil)
+	st.reply(msg.Reply, nil)
 }
 
-func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
+func (st *Store) handleNode(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
-		nh.metricCycleNode.AddSample(float64(t))
+		st.metricCycleNode.AddSample(float64(t))
 	}()
 
 	resp := &pb.NodesRequest{}
@@ -373,7 +388,7 @@ func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
 
 	nodeID = chunks[1]
 
-	nodes, err = nh.db.nodeEdge(nodeID, parent)
+	nodes, err = st.db.nodeEdge(nodeID, parent)
 
 	// remove deleted nodes
 	if parent == "all" {
@@ -403,20 +418,20 @@ handleNodeDone:
 
 	data, err := proto.Marshal(resp)
 
-	err = nh.Nc.Publish(msg.Reply, data)
+	err = st.Nc.Publish(msg.Reply, data)
 	if err != nil {
 		log.Println("NATS: Error publishing response to node request: ", err)
 	}
 }
 
 // TODO, maybe someday we should return error node instead of no data
-func (nh *NatsHandler) handleAuthUser(msg *natsgo.Msg) {
+func (st *Store) handleAuthUser(msg *nats.Msg) {
 	var points data.Points
 	var err error
 	resp := &pb.NodesRequest{}
 
 	returnNothing := func() {
-		err = nh.Nc.Publish(msg.Reply, nil)
+		err = st.Nc.Publish(msg.Reply, nil)
 		if err != nil {
 			log.Println("NATS: Error publishing response to auth.user")
 		}
@@ -449,7 +464,7 @@ func (nh *NatsHandler) handleAuthUser(msg *natsgo.Msg) {
 		return
 	}
 
-	nodes, err := nh.db.userCheck(emailP.Text, passP.Text)
+	nodes, err := st.db.userCheck(emailP.Text, passP.Text)
 
 	if err != nil || len(nodes) <= 0 {
 		log.Println("Error, invalid user")
@@ -459,7 +474,7 @@ func (nh *NatsHandler) handleAuthUser(msg *natsgo.Msg) {
 
 	user, err := data.NodeToUser(nodes[0].ToNode())
 
-	token, err := nh.key.NewToken(user.ID)
+	token, err := st.key.NewToken(user.ID)
 	if err != nil {
 		log.Println("Error creating token")
 		returnNothing()
@@ -483,17 +498,17 @@ func (nh *NatsHandler) handleAuthUser(msg *natsgo.Msg) {
 
 	data, err := proto.Marshal(resp)
 
-	err = nh.Nc.Publish(msg.Reply, data)
+	err = st.Nc.Publish(msg.Reply, data)
 	if err != nil {
 		log.Println("NATS: Error publishing response to node request: ", err)
 	}
 }
 
-func (nh *NatsHandler) handleNodeChildren(msg *natsgo.Msg) {
+func (st *Store) handleNodeChildren(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
-		nh.metricCycleNodeChildren.AddSample(float64(t))
+		st.metricCycleNodeChildren.AddSample(float64(t))
 	}()
 
 	resp := &pb.NodesRequest{}
@@ -519,7 +534,7 @@ func (nh *NatsHandler) handleNodeChildren(msg *natsgo.Msg) {
 
 	nodeID = chunks[1]
 
-	nodes, err = nh.db.nodeDescendents(nodeID, params.Type, false, params.IncludeDel)
+	nodes, err = st.db.nodeDescendents(nodeID, params.Type, false, params.IncludeDel)
 
 	if err != nil {
 		resp.Error = fmt.Sprintf("NATS: Error getting node %v from db: %v\n", nodeID, err)
@@ -537,14 +552,14 @@ handleNodeChildrenDone:
 		resp.Error = fmt.Sprintf("Error encoding data: %v", err)
 	}
 
-	err = nh.Nc.Publish(msg.Reply, data)
+	err = st.Nc.Publish(msg.Reply, data)
 
 	if err != nil {
 		log.Println("NATS: Error publishing response to node children request: ", err)
 	}
 }
 
-func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
+func (st *Store) handleNotification(msg *nats.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 2 {
 		log.Println("Error in message subject: ", msg.Subject)
@@ -565,7 +580,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 	var findUsers func(id string)
 
 	findUsers = func(id string) {
-		nodes, err := nh.db.nodeDescendents(id, data.NodeTypeUser, false, false)
+		nodes, err := st.db.nodeDescendents(id, data.NodeTypeUser, false, false)
 		if err != nil {
 			log.Println("Error find user nodes: ", err)
 			return
@@ -576,7 +591,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 		}
 
 		// now process upstream nodes
-		upIDs := nh.db.edgeUp(id, false)
+		upIDs := st.db.edgeUp(id, false)
 		if err != nil {
 			log.Println("Error getting upstream nodes: ", err)
 			return
@@ -587,7 +602,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 		}
 	}
 
-	node, err := nh.db.node(nodeID)
+	node, err := st.db.node(nodeID)
 
 	if err != nil {
 		log.Println("Error getting node: ", nodeID)
@@ -629,7 +644,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 				continue
 			}
 
-			err = nh.Nc.Publish("node."+user.ID+".msg", data)
+			err = st.Nc.Publish("node."+user.ID+".msg", data)
 
 			if err != nil {
 				log.Println("Error publishing message: ", err)
@@ -639,7 +654,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 	}
 }
 
-func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
+func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	chunks := strings.Split(natsMsg.Subject, ".")
 	if len(chunks) < 2 {
 		log.Println("Error in message subject: ", natsMsg.Subject)
@@ -662,7 +677,7 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 	level := 0
 
 	findSvcNodes = func(id string) {
-		nodes, err := nh.db.nodeDescendents(id, data.NodeTypeMsgService, false, false)
+		nodes, err := st.db.nodeDescendents(id, data.NodeTypeMsgService, false, false)
 		if err != nil {
 			log.Println("Error getting svc descendents: ", err)
 			return
@@ -680,7 +695,7 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 		if level == 0 {
 			upIDs = []*data.Edge{&data.Edge{Up: message.ParentID}}
 		} else {
-			upIDs = nh.db.edgeUp(id, false)
+			upIDs = st.db.edgeUp(id, false)
 			if err != nil {
 				log.Println("Error getting upstream nodes: ", err)
 				return
@@ -720,7 +735,7 @@ func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
 }
 
 // used for messages that want an ACK
-func (nh *NatsHandler) reply(subject string, err error) {
+func (st *Store) reply(subject string, err error) {
 	if subject == "" {
 		// node is not expecting a reply
 		return
@@ -732,23 +747,23 @@ func (nh *NatsHandler) reply(subject string, err error) {
 		reply = err.Error()
 	}
 
-	nh.Nc.Publish(subject, []byte(reply))
+	st.Nc.Publish(subject, []byte(reply))
 }
 
-func (nh *NatsHandler) processRuleNode(ruleNode data.NodeEdge, sourceNodeID string, points []data.Point) error {
-	conditionNodes, err := nh.db.nodeDescendents(ruleNode.ID, data.NodeTypeCondition,
+func (st *Store) processRuleNode(ruleNode data.NodeEdge, sourceNodeID string, points []data.Point) error {
+	conditionNodes, err := st.db.nodeDescendents(ruleNode.ID, data.NodeTypeCondition,
 		false, false)
 	if err != nil {
 		return err
 	}
 
-	actionNodes, err := nh.db.nodeDescendents(ruleNode.ID, data.NodeTypeAction,
+	actionNodes, err := st.db.nodeDescendents(ruleNode.ID, data.NodeTypeAction,
 		false, false)
 	if err != nil {
 		return err
 	}
 
-	actionInactiveNodes, err := nh.db.nodeDescendents(ruleNode.ID,
+	actionInactiveNodes, err := st.db.nodeDescendents(ruleNode.ID,
 		data.NodeTypeActionInactive,
 		false, false)
 	if err != nil {
@@ -761,31 +776,31 @@ func (nh *NatsHandler) processRuleNode(ruleNode data.NodeEdge, sourceNodeID stri
 		return err
 	}
 
-	active, changed, err := ruleProcessPoints(nh.Nc, rule, sourceNodeID, points)
+	active, changed, err := ruleProcessPoints(st.Nc, rule, sourceNodeID, points)
 
 	if err != nil {
 		log.Println("Error processing rule point: ", err)
 	}
 
 	if active && changed {
-		err := nh.ruleRunActions(nh.Nc, rule, rule.Actions, sourceNodeID)
+		err := st.ruleRunActions(st.Nc, rule, rule.Actions, sourceNodeID)
 		if err != nil {
 			log.Println("Error running rule actions: ", err)
 		}
 
-		err = nh.ruleRunInactiveActions(nh.Nc, rule.ActionsInactive)
+		err = st.ruleRunInactiveActions(st.Nc, rule.ActionsInactive)
 		if err != nil {
 			log.Println("Error running rule inactive actions: ", err)
 		}
 	}
 
 	if !active && changed {
-		err := nh.ruleRunActions(nh.Nc, rule, rule.ActionsInactive, sourceNodeID)
+		err := st.ruleRunActions(st.Nc, rule, rule.ActionsInactive, sourceNodeID)
 		if err != nil {
 			log.Println("Error running rule actions: ", err)
 		}
 
-		err = nh.ruleRunInactiveActions(nh.Nc, rule.Actions)
+		err = st.ruleRunInactiveActions(st.Nc, rule.Actions)
 		if err != nil {
 			log.Println("Error running rule inactive actions: ", err)
 		}
@@ -794,29 +809,29 @@ func (nh *NatsHandler) processRuleNode(ruleNode data.NodeEdge, sourceNodeID stri
 	return nil
 }
 
-func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
+func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
 
 	// FIXME we could optimize this a bit if the points are not valid for rule nodes ...
 	// get children and process any rules
-	ruleNodes, err := nh.db.nodeDescendents(currentNodeID, data.NodeTypeRule, false, false)
+	ruleNodes, err := st.db.nodeDescendents(currentNodeID, data.NodeTypeRule, false, false)
 	if err != nil {
 		return err
 	}
 
 	for _, ruleNode := range ruleNodes {
-		err := nh.processRuleNode(ruleNode, nodeID, points)
+		err := st.processRuleNode(ruleNode, nodeID, points)
 		if err != nil {
 			return err
 		}
 	}
 
 	// get database nodes
-	dbNodes, err := nh.db.nodeDescendents(currentNodeID, data.NodeTypeDb, false, false)
+	dbNodes, err := st.db.nodeDescendents(currentNodeID, data.NodeTypeDb, false, false)
 
 	for _, dbNode := range dbNodes {
 		// check if we need to configure influxdb connection
-		idb, ok := nh.influxDbs[dbNode.ID]
+		idb, ok := st.influxDbs[dbNode.ID]
 
 		if !ok {
 			influxConfig, err := NodeToInfluxConfig(dbNode)
@@ -825,7 +840,7 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 				continue
 			}
 			idb = NewInflux(influxConfig)
-			nh.influxDbs[dbNode.ID] = idb
+			st.influxDbs[dbNode.ID] = idb
 			time.Sleep(time.Second)
 		} else {
 			if time.Since(idb.lastChecked) > time.Second*20 {
@@ -845,11 +860,11 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 		}
 	}
 
-	edges := nh.db.edgeUp(currentNodeID, true)
+	edges := st.db.edgeUp(currentNodeID, true)
 
 	if currentNodeID == nodeID {
 		// check if device node that it has not been orphaned
-		node, err := nh.db.node(nodeID)
+		node, err := st.db.node(nodeID)
 		if err != nil {
 			log.Println("Error getting node: ", err)
 		}
@@ -866,7 +881,7 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 				fmt.Println("STORE: orphaned node: ", node)
 				if len(edges) < 1 {
 					// create upstream edge
-					err := nats.SendEdgePoint(nh.Nc, nodeID, "none", data.Point{
+					err := client.SendEdgePoint(st.Nc, nodeID, "none", data.Point{
 						Type:  data.PointTypeTombstone,
 						Value: 0,
 					}, false)
@@ -876,7 +891,7 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 				} else {
 					// undelete existing edge
 					e := edges[0]
-					err := nats.SendEdgePoint(nh.Nc, e.Down, e.Up, data.Point{
+					err := client.SendEdgePoint(st.Nc, e.Down, e.Up, data.Point{
 						Type:  data.PointTypeTombstone,
 						Value: 0,
 					}, false)
@@ -889,7 +904,7 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 	}
 
 	for _, edge := range edges {
-		err = nh.processPointsUpstream(edge.Up, nodeID, nodeDesc, points)
+		err = st.processPointsUpstream(edge.Up, nodeID, nodeDesc, points)
 		if err != nil {
 			log.Println("Rules -- error processing upstream node: ", err)
 		}

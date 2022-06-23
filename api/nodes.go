@@ -7,11 +7,9 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
-	"github.com/simpleiot/simpleiot/store"
-
-	natsgo "github.com/nats-io/nats.go"
 )
 
 // NodeMove is a data structure used in the /node/:id/parents api call
@@ -35,16 +33,15 @@ type NodeDelete struct {
 
 // Nodes handles node requests
 type Nodes struct {
-	db        *store.Db
 	check     RequestValidator
-	nc        *natsgo.Conn
+	nc        *nats.Conn
 	authToken string
 }
 
 // NewNodesHandler returns a new node handler
-func NewNodesHandler(db *store.Db, v RequestValidator, authToken string,
-	nc *natsgo.Conn) http.Handler {
-	return &Nodes{db, v, nc, authToken}
+func NewNodesHandler(v RequestValidator, authToken string,
+	nc *nats.Conn) http.Handler {
+	return &Nodes{v, nc, authToken}
 }
 
 // Top level handler for http requests in the coap-server process
@@ -78,7 +75,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			nodes, err := nats.GetNodesForUser(h.nc, userID)
+			nodes, err := client.GetNodesForUser(h.nc, userID)
 			if err != nil {
 				log.Println("Error getting nodes for user: ", err)
 			}
@@ -114,7 +111,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			node, err := nats.GetNode(h.nc, id, string(body))
+			node, err := client.GetNode(h.nc, id, string(body))
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
@@ -128,7 +125,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := nats.DeleteNode(h.nc, id, nodeDelete.Parent)
+			err := client.DeleteNode(h.nc, id, nodeDelete.Parent)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
@@ -160,7 +157,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := nats.MoveNode(h.nc, id, nodeMove.OldParent,
+			err := client.MoveNode(h.nc, id, nodeMove.OldParent,
 				nodeMove.NewParent)
 
 			if err != nil {
@@ -180,14 +177,14 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			if !nodeCopy.Duplicate {
-				err := nats.MirrorNode(h.nc, id, nodeCopy.NewParent)
+				err := client.MirrorNode(h.nc, id, nodeCopy.NewParent)
 
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusNotFound)
 					return
 				}
 			} else {
-				err := nats.DuplicateNode(h.nc, id, nodeCopy.NewParent)
+				err := client.DuplicateNode(h.nc, id, nodeCopy.NewParent)
 
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusNotFound)
@@ -254,7 +251,7 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
 		node.ID = uuid.New().String()
 	}
 
-	err := nats.SendNode(h.nc, node)
+	err := client.SendNode(h.nc, node)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusNotFound)
@@ -273,7 +270,7 @@ func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id str
 		return
 	}
 
-	err = nats.SendNodePointsCreate(h.nc, id, points, true)
+	err = client.SendNodePointsCreate(h.nc, id, points, true)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
