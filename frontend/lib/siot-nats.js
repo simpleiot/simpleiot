@@ -23,7 +23,9 @@ export async function connect(opts = {}) {
 }
 
 // SIOTConnection is a wrapper around a NatsConnectionImpl
-function SIOTConnection() {}
+function SIOTConnection() {
+  // do nothing
+}
 
 Object.assign(SIOTConnection.prototype, {
   // getNode sends a request to `node.<id>` to retrieve an array of NodeEdges for
@@ -74,7 +76,8 @@ Object.assign(SIOTConnection.prototype, {
               opts,
               _cache,
             }));
-          _cache[n.id] = children; // update cache
+          // update cache
+          _cache[n.id] = children;
           if (!flat) {
             // If not flattening, add `children` key to `n`
             n.children = children;
@@ -210,12 +213,12 @@ Object.assign(SIOTConnection.prototype, {
 // decodeNodesRequest decodes a protobuf-encoded NodesRequest and returns
 // the array of nodes returned by the request
 function decodeNodesRequest(data) {
-  const { nodes, error } = NodesRequest.deserializeBinary(data).toObject();
+  const { nodesList, error } = NodesRequest.deserializeBinary(data).toObject();
   if (error) {
     throw new Error("NodesRequest decode error: " + error);
   }
 
-  for (const n of nodes) {
+  for (const n of nodesList) {
     // Convert `time` to JavaScript date for each point
     for (const p of n.pointsList) {
       p.time = new Date(p.time.seconds * 1e3 + p.time.nanos / 1e6);
@@ -224,7 +227,7 @@ function decodeNodesRequest(data) {
       p.time = new Date(p.time.seconds * 1e3 + p.time.nanos / 1e6);
     }
   }
-  return nodes;
+  return nodesList;
 }
 
 // encodePoints returns protobuf encoded Points
@@ -235,7 +238,8 @@ function encodePoints(points) {
     if (p instanceof Point) {
       return p;
     }
-    let { time, type, key, index, value, text, tombstone, data } = p;
+    let { time } = p;
+    const { type, key, index, value, text, tombstone, data } = p;
     p = new Point();
     if (!(time instanceof Timestamp)) {
       let { seconds, nanos } = time;
