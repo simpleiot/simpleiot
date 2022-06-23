@@ -9,35 +9,35 @@ import (
 	"sync"
 	"time"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 // Upstream is used to manage an upstream connection (cloud, etc)
 type Upstream struct {
-	nc                 *natsgo.Conn
+	nc                 *nats.Conn
 	node               data.NodeEdge
 	nodeUp             *UpstreamNode
 	uri                string
-	ncUp               *natsgo.Conn
-	subUpNodePoints    map[string]*natsgo.Subscription
-	subUpEdgePoints    map[string]*natsgo.Subscription
-	subLocalNodePoints *natsgo.Subscription
-	subLocalEdgePoints *natsgo.Subscription
+	ncUp               *nats.Conn
+	subUpNodePoints    map[string]*nats.Subscription
+	subUpEdgePoints    map[string]*nats.Subscription
+	subLocalNodePoints *nats.Subscription
+	subLocalEdgePoints *nats.Subscription
 	lock               sync.Mutex
 	closeSync          chan bool
 }
 
 // NewUpstream is used to create a new upstream connection
-func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
+func NewUpstream(nc *nats.Conn, node data.NodeEdge) (*Upstream, error) {
 	var err error
 
 	up := &Upstream{
 		nc:              nc,
 		node:            node,
-		subUpNodePoints: make(map[string]*natsgo.Subscription),
-		subUpEdgePoints: make(map[string]*natsgo.Subscription),
+		subUpNodePoints: make(map[string]*nats.Subscription),
+		subUpEdgePoints: make(map[string]*nats.Subscription),
 		closeSync:       make(chan bool),
 	}
 
@@ -72,7 +72,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		return nil, fmt.Errorf("Error connection to upstream NATS: %v", err)
 	}
 
-	up.subLocalNodePoints, err = nc.Subscribe(client.SubjectNodeAllPoints(), func(msg *natsgo.Msg) {
+	up.subLocalNodePoints, err = nc.Subscribe(client.SubjectNodeAllPoints(), func(msg *nats.Msg) {
 		nodeID, points, err := client.DecodeNodePointsMsg(msg)
 
 		if err != nil {
@@ -87,7 +87,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		}
 	})
 
-	up.subLocalEdgePoints, err = nc.Subscribe(client.SubjectEdgeAllPoints(), func(msg *natsgo.Msg) {
+	up.subLocalEdgePoints, err = nc.Subscribe(client.SubjectEdgeAllPoints(), func(msg *nats.Msg) {
 		nodeID, parentID, points, err := client.DecodeEdgePointsMsg(msg)
 
 		if err != nil {
@@ -208,7 +208,7 @@ func (up *Upstream) addUpstreamNodeSub(nodeID string) error {
 
 	// create subscription
 	subject := client.SubjectNodePoints(nodeID)
-	sub, err := up.ncUp.Subscribe(subject, func(msg *natsgo.Msg) {
+	sub, err := up.ncUp.Subscribe(subject, func(msg *nats.Msg) {
 		nodeID, points, err := client.DecodeNodePointsMsg(msg)
 
 		if err != nil {
@@ -253,7 +253,7 @@ func (up *Upstream) addUpstreamEdgeSub(nodeID, parentID string) error {
 
 	// create subscription
 	subject := client.SubjectEdgePoints(nodeID, parentID)
-	sub, err := up.ncUp.Subscribe(subject, func(msg *natsgo.Msg) {
+	sub, err := up.ncUp.Subscribe(subject, func(msg *nats.Msg) {
 		nodeID, parentID, points, err := client.DecodeEdgePointsMsg(msg)
 
 		if err != nil {

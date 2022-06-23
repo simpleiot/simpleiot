@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strconv"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -15,12 +15,12 @@ import (
 // oneWireManager is responsible for finding new busses and sync database state
 // with what is here
 type oneWireManager struct {
-	nc         *natsgo.Conn
+	nc         *nats.Conn
 	busses     map[string]*oneWire
 	rootNodeID string
 }
 
-func newOneWireManager(nc *natsgo.Conn, rootNodeID string) *oneWireManager {
+func newOneWireManager(nc *nats.Conn, rootNodeID string) *oneWireManager {
 	return &oneWireManager{
 		nc:         nc,
 		busses:     make(map[string]*oneWire),

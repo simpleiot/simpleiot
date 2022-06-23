@@ -12,8 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	natsgo "github.com/nats-io/nats.go"
-
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
@@ -75,7 +74,7 @@ func (s *Siot) Close() error {
 // example for how you can embed SIOT in your project by adding
 // it as a submodule:
 // https://github.com/simpleiot/custom-application-examples/tree/main/example-1
-func (s *Siot) Start() (*natsgo.Conn, error) {
+func (s *Siot) Start() (*nats.Conn, error) {
 	// =============================================
 	// Start server, default action
 	// =============================================
@@ -114,7 +113,7 @@ func (s *Siot) Start() (*natsgo.Conn, error) {
 
 	natsHandler := store.NewNatsHandler(dbInst, o.AuthToken, o.NatsServer, auth)
 
-	var nc *natsgo.Conn
+	var nc *nats.Conn
 
 	// this is a bit of a hack, but we're not sure when the NATS
 	// server will be started, so try several times
@@ -331,7 +330,7 @@ func StartArgs(args []string) error {
 		}
 	}
 
-	var nc *natsgo.Conn
+	var nc *nats.Conn
 
 	if *flagSendPointNats != "" ||
 		*flagSendFile != "" ||
@@ -404,40 +403,28 @@ func StartArgs(args []string) error {
 
 	if *flagLogNats {
 		log.Println("Logging all NATS messages")
-		_, err := nc.Subscribe("node.*.points", func(msg *natsgo.Msg) {
+		_, err := nc.Subscribe("node.*.points", func(msg *nats.Msg) {
 			err := client.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
 			}
 		})
 
-		_, err = nc.Subscribe("node.*.not", func(msg *natsgo.Msg) {
+		_, err = nc.Subscribe("node.*.not", func(msg *nats.Msg) {
 			err := client.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
 			}
 		})
 
-		_, err = nc.Subscribe("node.*.msg", func(msg *natsgo.Msg) {
+		_, err = nc.Subscribe("node.*.msg", func(msg *nats.Msg) {
 			err := client.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
 			}
 		})
 
-		_, err = nc.Subscribe("node.*.*.points", func(msg *natsgo.Msg) {
-			err := client.Dump(nc, msg)
-			if err != nil {
-				log.Println("Error dumping nats msg: ", err)
-			}
-		})
-
-		if err != nil {
-			log.Println("Nats subscribe error: ", err)
-			os.Exit(-1)
-		}
-
-		_, err = nc.Subscribe("node.*", func(msg *natsgo.Msg) {
+		_, err = nc.Subscribe("node.*.*.points", func(msg *nats.Msg) {
 			err := client.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
@@ -449,7 +436,19 @@ func StartArgs(args []string) error {
 			os.Exit(-1)
 		}
 
-		_, err = nc.Subscribe("edge.*.*", func(msg *natsgo.Msg) {
+		_, err = nc.Subscribe("node.*", func(msg *nats.Msg) {
+			err := client.Dump(nc, msg)
+			if err != nil {
+				log.Println("Error dumping nats msg: ", err)
+			}
+		})
+
+		if err != nil {
+			log.Println("Nats subscribe error: ", err)
+			os.Exit(-1)
+		}
+
+		_, err = nc.Subscribe("edge.*.*", func(msg *nats.Msg) {
 			err := client.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)

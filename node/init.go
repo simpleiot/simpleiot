@@ -4,14 +4,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 // Init is used to create initial root node and admin
 // user
-func Init(nc *natsgo.Conn) error {
+func Init(nc *nats.Conn) error {
 	rootID := uuid.New().String()
 
 	pRoot := data.Point{

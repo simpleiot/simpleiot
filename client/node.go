@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/internal/pb"
 	"google.golang.org/protobuf/proto"
@@ -17,7 +17,7 @@ import (
 // and the hash is calculated without the edge points.
 // returns data.ErrDocumentNotFound if node is not found.
 // If parent is set to "all", then all living instances of the node are returned.
-func GetNode(nc *natsgo.Conn, id, parent string) ([]data.NodeEdge, error) {
+func GetNode(nc *nats.Conn, id, parent string) ([]data.NodeEdge, error) {
 	if parent == "" {
 		parent = "none"
 	}
@@ -39,7 +39,7 @@ func GetNode(nc *natsgo.Conn, id, parent string) ([]data.NodeEdge, error) {
 // deleted nodes are skipped unless includeDel is set to true. typ
 // can be used to limit nodes to a particular type, otherwise, all nodes
 // are returned.
-func GetNodeChildren(nc *natsgo.Conn, id, typ string, includeDel bool, recursive bool) ([]data.NodeEdge, error) {
+func GetNodeChildren(nc *nats.Conn, id, typ string, includeDel bool, recursive bool) ([]data.NodeEdge, error) {
 	reqData, err := proto.Marshal(&pb.NatsRequest{IncludeDel: includeDel,
 		Type: typ})
 
@@ -74,7 +74,7 @@ func GetNodeChildren(nc *natsgo.Conn, id, typ string, includeDel bool, recursive
 }
 
 // GetNodesForUser gets all nodes for a user
-func GetNodesForUser(nc *natsgo.Conn, userID string) ([]data.NodeEdge, error) {
+func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 	var none []data.NodeEdge
 	var ret []data.NodeEdge
 	rootNodes, err := GetNode(nc, userID, "all")
@@ -104,7 +104,7 @@ func GetNodesForUser(nc *natsgo.Conn, userID string) ([]data.NodeEdge, error) {
 
 // SendNode is used to send a node to a nats server. Can be
 // used to create nodes.
-func SendNode(nc *natsgo.Conn, node data.NodeEdge) error {
+func SendNode(nc *nats.Conn, node data.NodeEdge) error {
 	// we need to send the edge points first if we are creating
 	// a new node, otherwise the upstream will detect an ophraned node
 	// and create a new edge to the root node
@@ -142,7 +142,7 @@ func SendNode(nc *natsgo.Conn, node data.NodeEdge) error {
 	return nil
 }
 
-func duplicateNodeHelper(nc *natsgo.Conn, node data.NodeEdge, newParent string) error {
+func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent string) error {
 	children, err := GetNodeChildren(nc, node.ID, "", false, false)
 	if err != nil {
 		return fmt.Errorf("GetNodeChildren error: %v", err)
@@ -168,7 +168,7 @@ func duplicateNodeHelper(nc *natsgo.Conn, node data.NodeEdge, newParent string) 
 }
 
 // DuplicateNode is used to Duplicate a node and all its children
-func DuplicateNode(nc *natsgo.Conn, id, newParent string) error {
+func DuplicateNode(nc *nats.Conn, id, newParent string) error {
 	nodes, err := GetNode(nc, id, "none")
 	if err != nil {
 		return fmt.Errorf("GetNode error: %v", err)
@@ -194,7 +194,7 @@ func DuplicateNode(nc *natsgo.Conn, id, newParent string) error {
 }
 
 // DeleteNode removes a node from the specified parent node
-func DeleteNode(nc *natsgo.Conn, id, parent string) error {
+func DeleteNode(nc *nats.Conn, id, parent string) error {
 	err := SendEdgePoint(nc, id, parent, data.Point{
 		Type:  data.PointTypeTombstone,
 		Value: 1,
@@ -204,7 +204,7 @@ func DeleteNode(nc *natsgo.Conn, id, parent string) error {
 }
 
 // MoveNode moves a node from one parent to another
-func MoveNode(nc *natsgo.Conn, id, oldParent, newParent string) error {
+func MoveNode(nc *nats.Conn, id, oldParent, newParent string) error {
 	if newParent == oldParent {
 		return errors.New("can't move node to itself")
 	}
@@ -232,7 +232,7 @@ func MoveNode(nc *natsgo.Conn, id, oldParent, newParent string) error {
 
 // MirrorNode adds a an existing node to a new parent. A node can have
 // multiple parents.
-func MirrorNode(nc *natsgo.Conn, id, newParent string) error {
+func MirrorNode(nc *nats.Conn, id, newParent string) error {
 	err := SendEdgePoint(nc, id, newParent, data.Point{
 		Type:  data.PointTypeTombstone,
 		Value: 0,
@@ -243,7 +243,7 @@ func MirrorNode(nc *natsgo.Conn, id, newParent string) error {
 
 // UserCheck sends a nats message to check auth of user
 // This function returns user nodes and a JWT node which includes a token
-func UserCheck(nc *natsgo.Conn, email, pass string) ([]data.NodeEdge, error) {
+func UserCheck(nc *nats.Conn, email, pass string) ([]data.NodeEdge, error) {
 	points := data.Points{
 		{Type: data.PointTypeEmail, Text: email},
 		{Type: data.PointTypePass, Text: pass},

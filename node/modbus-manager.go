@@ -3,20 +3,20 @@ package node
 import (
 	"log"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 // ModbusManager manages state of modbus
 type ModbusManager struct {
-	nc         *natsgo.Conn
+	nc         *nats.Conn
 	busses     map[string]*Modbus
 	rootNodeID string
 }
 
 // NewModbusManager creates a new modbus manager
-func NewModbusManager(nc *natsgo.Conn, rootNodeID string) *ModbusManager {
+func NewModbusManager(nc *nats.Conn, rootNodeID string) *ModbusManager {
 	return &ModbusManager{
 		nc:         nc,
 		busses:     make(map[string]*Modbus),

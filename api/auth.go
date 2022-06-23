@@ -3,18 +3,18 @@ package api
 import (
 	"net/http"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 // Auth handles user authentication requests.
 type Auth struct {
-	nc *natsgo.Conn
+	nc *nats.Conn
 }
 
 // NewAuthHandler returns a new authentication handler using the given key.
-func NewAuthHandler(nc *natsgo.Conn) Auth {
+func NewAuthHandler(nc *nats.Conn) Auth {
 	return Auth{nc: nc}
 }
 

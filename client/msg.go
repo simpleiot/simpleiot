@@ -6,12 +6,12 @@ import (
 	"log"
 	"strings"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 // DecodeNodePointsMsg decodes NATS message into node ID and points
-func DecodeNodePointsMsg(msg *natsgo.Msg) (string, []data.Point, error) {
+func DecodeNodePointsMsg(msg *nats.Msg) (string, []data.Point, error) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {
 		return "", []data.Point{}, errors.New("Error decoding node points subject")
@@ -27,7 +27,7 @@ func DecodeNodePointsMsg(msg *natsgo.Msg) (string, []data.Point, error) {
 }
 
 // DecodeEdgePointsMsg decodes NATS message into node ID and points
-func DecodeEdgePointsMsg(msg *natsgo.Msg) (string, string, []data.Point, error) {
+func DecodeEdgePointsMsg(msg *nats.Msg) (string, string, []data.Point, error) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 4 {
 		return "", "", []data.Point{}, errors.New("Error decoding edge points subject")

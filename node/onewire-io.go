@@ -9,20 +9,20 @@ import (
 	"strings"
 	"time"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 type oneWireIO struct {
-	nc       *natsgo.Conn
+	nc       *nats.Conn
 	ioNode   *oneWireIONode
 	path     string
-	sub      *natsgo.Subscription
+	sub      *nats.Subscription
 	lastSent time.Time
 }
 
-func newOneWireIO(nc *natsgo.Conn, node *oneWireIONode, chPoint chan<- pointWID) (*oneWireIO, error) {
+func newOneWireIO(nc *nats.Conn, node *oneWireIONode, chPoint chan<- pointWID) (*oneWireIO, error) {
 	io := &oneWireIO{
 		nc:     nc,
 		path:   fmt.Sprintf("/sys/bus/w1/devices/%v/temperature", node.id),
@@ -30,7 +30,7 @@ func newOneWireIO(nc *natsgo.Conn, node *oneWireIONode, chPoint chan<- pointWID)
 	}
 
 	var err error
-	io.sub, err = nc.Subscribe("node."+io.ioNode.nodeID+".points", func(msg *natsgo.Msg) {
+	io.sub, err = nc.Subscribe("node."+io.ioNode.nodeID+".points", func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
 			// FIXME, send over channel

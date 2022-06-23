@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -17,7 +17,7 @@ import (
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
-	nc              *natsgo.Conn
+	nc              *nats.Conn
 	appVersion      string
 	osVersionField  string
 	modbusManager   *ModbusManager
@@ -27,7 +27,7 @@ type Manager struct {
 }
 
 // NewManger creates a new Manager
-func NewManger(nc *natsgo.Conn, appVersion, osVersionField string) *Manager {
+func NewManger(nc *nats.Conn, appVersion, osVersionField string) *Manager {
 	return &Manager{
 		nc:             nc,
 		appVersion:     appVersion,

@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-audio/wav"
 	"github.com/google/uuid"
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -18,7 +18,7 @@ import (
 // and rule active status. Returns true if point was processed and active is true.
 // Currently, this function only processes the first point that matches -- this should
 // handle all current uses.
-func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data.Points) (bool, bool, error) {
+func ruleProcessPoints(nc *nats.Conn, r *data.Rule, nodeID string, points data.Points) (bool, bool, error) {
 	pointsProcessed := false
 
 	for _, p := range points {
@@ -132,7 +132,7 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 }
 
 // ruleRunActions runs rule actions
-func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, actions []data.Action, triggerNode string) error {
+func (nh *NatsHandler) ruleRunActions(nc *nats.Conn, r *data.Rule, actions []data.Action, triggerNode string) error {
 	for _, a := range actions {
 		switch a.Action {
 		case data.PointValueActionSetValue:
@@ -218,7 +218,7 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, actions []d
 	return nil
 }
 
-func (nh *NatsHandler) ruleRunInactiveActions(nc *natsgo.Conn, actions []data.Action) error {
+func (nh *NatsHandler) ruleRunInactiveActions(nc *nats.Conn, actions []data.Action) error {
 	for _, a := range actions {
 		p := data.Point{
 			Type:  data.PointTypeActive,

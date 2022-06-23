@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -18,14 +18,14 @@ type oneWire struct {
 	ios    map[string]*oneWireIO
 
 	// data associated with running the bus
-	nc  *natsgo.Conn
-	sub *natsgo.Subscription
+	nc  *nats.Conn
+	sub *nats.Subscription
 
 	chDone  chan bool
 	chPoint chan pointWID
 }
 
-func newOneWire(nc *natsgo.Conn, node data.NodeEdge) (*oneWire, error) {
+func newOneWire(nc *nats.Conn, node data.NodeEdge) (*oneWire, error) {
 	ow := &oneWire{
 		nc:      nc,
 		node:    node,
@@ -43,7 +43,7 @@ func newOneWire(nc *natsgo.Conn, node data.NodeEdge) (*oneWire, error) {
 
 	// closure is required so we don't get races accessing ow.busNode
 	func(id string) {
-		ow.sub, err = nc.Subscribe("node."+ow.owNode.nodeID+".points", func(msg *natsgo.Msg) {
+		ow.sub, err = nc.Subscribe("node."+ow.owNode.nodeID+".points", func(msg *nats.Msg) {
 			points, err := data.PbDecodePoints(msg.Data)
 			if err != nil {
 				// FIXME, send over channel

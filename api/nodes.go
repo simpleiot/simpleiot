@@ -7,11 +7,10 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/store"
-
-	natsgo "github.com/nats-io/nats.go"
 )
 
 // NodeMove is a data structure used in the /node/:id/parents api call
@@ -37,13 +36,13 @@ type NodeDelete struct {
 type Nodes struct {
 	db        *store.Db
 	check     RequestValidator
-	nc        *natsgo.Conn
+	nc        *nats.Conn
 	authToken string
 }
 
 // NewNodesHandler returns a new node handler
 func NewNodesHandler(db *store.Db, v RequestValidator, authToken string,
-	nc *natsgo.Conn) http.Handler {
+	nc *nats.Conn) http.Handler {
 	return &Nodes{db, v, nc, authToken}
 }
 

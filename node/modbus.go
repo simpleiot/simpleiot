@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/modbus"
@@ -35,8 +35,8 @@ type Modbus struct {
 	ios     map[string]*ModbusIO
 
 	// data associated with running the bus
-	nc           *natsgo.Conn
-	sub          *natsgo.Subscription
+	nc           *nats.Conn
+	sub          *nats.Subscription
 	regs         *modbus.Regs
 	client       *modbus.Client
 	server       server
@@ -50,7 +50,7 @@ type Modbus struct {
 }
 
 // NewModbus creates a new bus from a node
-func NewModbus(nc *natsgo.Conn, node data.NodeEdge) (*Modbus, error) {
+func NewModbus(nc *nats.Conn, node data.NodeEdge) (*Modbus, error) {
 	bus := &Modbus{
 		nc:          nc,
 		node:        node,
@@ -69,7 +69,7 @@ func NewModbus(nc *natsgo.Conn, node data.NodeEdge) (*Modbus, error) {
 
 	// closure is required so we don't get races accessing bus.busNode
 	func(id string) {
-		bus.sub, err = nc.Subscribe("node."+bus.busNode.nodeID+".points", func(msg *natsgo.Msg) {
+		bus.sub, err = nc.Subscribe("node."+bus.busNode.nodeID+".points", func(msg *nats.Msg) {
 			points, err := data.PbDecodePoints(msg.Data)
 			if err != nil {
 				// FIXME, send over channel

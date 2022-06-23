@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/internal/pb"
@@ -28,9 +28,9 @@ type NewTokener interface {
 // NatsHandler implements the SIOT NATS api
 type NatsHandler struct {
 	server         string
-	Nc             *natsgo.Conn
-	subNodePoints  *natsgo.Subscription
-	subEdgePoints  *natsgo.Subscription
+	Nc             *nats.Conn
+	subNodePoints  *nats.Subscription
+	subEdgePoints  *nats.Subscription
 	db             *Db
 	authToken      string
 	lock           sync.Mutex
@@ -66,16 +66,16 @@ func NewNatsHandler(db *Db, authToken, server string, key NewTokener) *NatsHandl
 }
 
 // Connect to NATS server and set up handlers for things we are interested in
-func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
-	nc, err := natsgo.Connect(nh.server,
-		natsgo.Timeout(10*time.Second),
-		natsgo.PingInterval(60*5*time.Second),
-		natsgo.MaxPingsOutstanding(5),
-		natsgo.ReconnectBufSize(5*1024*1024),
-		natsgo.SetCustomDialer(&net.Dialer{
+func (nh *NatsHandler) Connect() (*nats.Conn, error) {
+	nc, err := nats.Connect(nh.server,
+		nats.Timeout(10*time.Second),
+		nats.PingInterval(60*5*time.Second),
+		nats.MaxPingsOutstanding(5),
+		nats.ReconnectBufSize(5*1024*1024),
+		nats.SetCustomDialer(&net.Dialer{
 			KeepAlive: -1,
 		}),
-		natsgo.Token(nh.authToken),
+		nats.Token(nh.authToken),
 	)
 
 	if err != nil {
@@ -273,7 +273,7 @@ func (nh *NatsHandler) StartUpdate(id, url string) error {
 	return nil
 }
 
-func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
+func (nh *NatsHandler) handleNodePoints(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
@@ -318,7 +318,7 @@ func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
 	nh.reply(msg.Reply, nil)
 }
 
-func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
+func (nh *NatsHandler) handleEdgePoints(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
@@ -349,7 +349,7 @@ func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
 	nh.reply(msg.Reply, nil)
 }
 
-func (nh *NatsHandler) handleNode(msg *natsgo.Msg) {
+func (nh *NatsHandler) handleNode(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
@@ -410,7 +410,7 @@ handleNodeDone:
 }
 
 // TODO, maybe someday we should return error node instead of no data
-func (nh *NatsHandler) handleAuthUser(msg *natsgo.Msg) {
+func (nh *NatsHandler) handleAuthUser(msg *nats.Msg) {
 	var points data.Points
 	var err error
 	resp := &pb.NodesRequest{}
@@ -489,7 +489,7 @@ func (nh *NatsHandler) handleAuthUser(msg *natsgo.Msg) {
 	}
 }
 
-func (nh *NatsHandler) handleNodeChildren(msg *natsgo.Msg) {
+func (nh *NatsHandler) handleNodeChildren(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
@@ -544,7 +544,7 @@ handleNodeChildrenDone:
 	}
 }
 
-func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
+func (nh *NatsHandler) handleNotification(msg *nats.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 2 {
 		log.Println("Error in message subject: ", msg.Subject)
@@ -639,7 +639,7 @@ func (nh *NatsHandler) handleNotification(msg *natsgo.Msg) {
 	}
 }
 
-func (nh *NatsHandler) handleMessage(natsMsg *natsgo.Msg) {
+func (nh *NatsHandler) handleMessage(natsMsg *nats.Msg) {
 	chunks := strings.Split(natsMsg.Subject, ".")
 	if len(chunks) < 2 {
 		log.Println("Error in message subject: ", natsMsg.Subject)
