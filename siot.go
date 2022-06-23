@@ -115,7 +115,7 @@ func (s *Siot) Start() (*nats.Conn, error) {
 		Key:       auth,
 	}
 
-	natsHandler, err := store.NewStore(storeParams)
+	siotStore, err := store.NewStore(storeParams)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error starting store: %v", err)
@@ -127,7 +127,7 @@ func (s *Siot) Start() (*nats.Conn, error) {
 	// server will be started, so try several times
 	for i := 0; i < 10; i++ {
 		// FIXME should we get nc with edgeConnect here?
-		nc, err = natsHandler.Connect()
+		nc, err = siotStore.Connect()
 		if err != nil {
 			log.Println("NATS local connect retry: ", i)
 			time.Sleep(500 * time.Millisecond)
@@ -137,8 +137,12 @@ func (s *Siot) Start() (*nats.Conn, error) {
 		break
 	}
 
-	if err != nil || nc == nil {
+	if err != nil {
 		return nil, fmt.Errorf("Error connecting to NATs server: %v", err)
+	}
+
+	if nc == nil {
+		return nil, fmt.Errorf("Timeout connecting to NATs server")
 	}
 
 	nodeManager := node.NewManger(nc, o.AppVersion, o.OSVersionField)
@@ -156,12 +160,13 @@ func (s *Siot) Start() (*nats.Conn, error) {
 		log.Println("Error getting root node, no data")
 	} else {
 
-		err = natsHandler.StartMetrics(rootNode[0].ID)
+		err = siotStore.StartMetrics(rootNode[0].ID)
 		if err != nil {
 			log.Println("Error starting nats metrics: ", err)
 		}
 	}
 
+	// FIXME move this to a node, or get rid of it
 	if o.ParticleAPIKey != "" {
 		go func() {
 			err := particle.PointReader("sample", o.ParticleAPIKey,

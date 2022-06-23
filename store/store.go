@@ -160,6 +160,7 @@ func (st *Store) Connect() (*nats.Conn, error) {
 }
 
 // StartMetrics for various handling operations. Metrics are sent to the node ID given
+// FIXME, this can probably move to the node package for device nodes
 func (st *Store) StartMetrics(nodeID string) error {
 	st.metricCycleNodePoint.SetNodeID(nodeID)
 	st.metricCycleNodeEdgePoint.SetNodeID(nodeID)
