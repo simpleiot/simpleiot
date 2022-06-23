@@ -39,6 +39,9 @@ type Meta struct {
 // This file contains database manipulations.
 
 // Db represents the store for the application
+// FIXME, Db should be made private at some point
+// and make the dump and import functions part of
+// the store type.
 type Db struct {
 	store *genji.DB
 	meta  Meta
