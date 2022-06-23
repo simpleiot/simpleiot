@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	natsgo "github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 )
 
 // Auth handles user authentication requests.
@@ -28,7 +28,7 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	email := req.FormValue("email")
 	password := req.FormValue("password")
 
-	nodes, err := nats.UserCheck(auth.nc, email, password)
+	nodes, err := client.UserCheck(auth.nc, email, password)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return

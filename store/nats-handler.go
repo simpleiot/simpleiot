@@ -11,10 +11,10 @@ import (
 
 	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/internal/pb"
 	"github.com/simpleiot/simpleiot/msg"
-	"github.com/simpleiot/simpleiot/nats"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -39,14 +39,14 @@ type NatsHandler struct {
 	key            NewTokener
 
 	// cycle metrics track how long it takes to handle a point
-	metricCycleNodePoint     *nats.Metric
-	metricCycleNodeEdgePoint *nats.Metric
-	metricCycleNode          *nats.Metric
-	metricCycleNodeChildren  *nats.Metric
+	metricCycleNodePoint     *client.Metric
+	metricCycleNodeEdgePoint *client.Metric
+	metricCycleNode          *client.Metric
+	metricCycleNodeChildren  *client.Metric
 
 	// Pending counts how many points are being buffered by the NATS client
-	metricPendingNodePoint     *nats.Metric
-	metricPendingNodeEdgePoint *nats.Metric
+	metricPendingNodePoint     *client.Metric
+	metricPendingNodeEdgePoint *client.Metric
 
 	// influx db stuff
 	influxDbs map[string]*Influx
@@ -133,13 +133,13 @@ func (nh *NatsHandler) Connect() (*natsgo.Conn, error) {
 
 	// we don't have node ID yet, but need to init here so we can start
 	// collecting data
-	nh.metricCycleNodePoint = nats.NewMetric(nh.Nc, "",
+	nh.metricCycleNodePoint = client.NewMetric(nh.Nc, "",
 		data.PointTypeMetricNatsCycleNodePoint, reportMetricsPeriod)
-	nh.metricCycleNodeEdgePoint = nats.NewMetric(nh.Nc, "",
+	nh.metricCycleNodeEdgePoint = client.NewMetric(nh.Nc, "",
 		data.PointTypeMetricNatsCycleNodeEdgePoint, reportMetricsPeriod)
-	nh.metricCycleNode = nats.NewMetric(nh.Nc, "",
+	nh.metricCycleNode = client.NewMetric(nh.Nc, "",
 		data.PointTypeMetricNatsCycleNode, reportMetricsPeriod)
-	nh.metricCycleNodeChildren = nats.NewMetric(nh.Nc, "",
+	nh.metricCycleNodeChildren = client.NewMetric(nh.Nc, "",
 		data.PointTypeMetricNatsCycleNodeChildren, reportMetricsPeriod)
 
 	return nc, nil
@@ -152,9 +152,9 @@ func (nh *NatsHandler) StartMetrics(nodeID string) error {
 	nh.metricCycleNode.SetNodeID(nodeID)
 	nh.metricCycleNodeChildren.SetNodeID(nodeID)
 
-	nh.metricPendingNodePoint = nats.NewMetric(nh.Nc, nodeID,
+	nh.metricPendingNodePoint = client.NewMetric(nh.Nc, nodeID,
 		data.PointTypeMetricNatsPendingNodePoint, reportMetricsPeriod)
-	nh.metricPendingNodeEdgePoint = nats.NewMetric(nh.Nc, nodeID,
+	nh.metricPendingNodeEdgePoint = client.NewMetric(nh.Nc, nodeID,
 		data.PointTypeMetricNatsPendingNodeEdgePoint, reportMetricsPeriod)
 
 	go func() {
@@ -214,7 +214,7 @@ func (nh *NatsHandler) runSchedule(node data.NodeEdge) error {
 func (nh *NatsHandler) setSwUpdateState(id string, state data.SwUpdateState) error {
 	p := state.Points()
 
-	return nats.SendNodePoints(nh.Nc, id, p, false)
+	return client.SendNodePoints(nh.Nc, id, p, false)
 }
 
 // StartUpdate starts an update
@@ -282,7 +282,7 @@ func (nh *NatsHandler) handleNodePoints(msg *natsgo.Msg) {
 	nh.nodeUpdateLock.Lock()
 	defer nh.nodeUpdateLock.Unlock()
 
-	nodeID, points, err := nats.DecodeNodePointsMsg(msg)
+	nodeID, points, err := client.DecodeNodePointsMsg(msg)
 
 	if err != nil {
 		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
@@ -328,7 +328,7 @@ func (nh *NatsHandler) handleEdgePoints(msg *natsgo.Msg) {
 	nh.nodeUpdateLock.Lock()
 	defer nh.nodeUpdateLock.Unlock()
 
-	nodeID, parentID, points, err := nats.DecodeEdgePointsMsg(msg)
+	nodeID, parentID, points, err := client.DecodeEdgePointsMsg(msg)
 
 	if err != nil {
 		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
@@ -866,7 +866,7 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 				fmt.Println("STORE: orphaned node: ", node)
 				if len(edges) < 1 {
 					// create upstream edge
-					err := nats.SendEdgePoint(nh.Nc, nodeID, "none", data.Point{
+					err := client.SendEdgePoint(nh.Nc, nodeID, "none", data.Point{
 						Type:  data.PointTypeTombstone,
 						Value: 0,
 					}, false)
@@ -876,7 +876,7 @@ func (nh *NatsHandler) processPointsUpstream(currentNodeID, nodeID, nodeDesc str
 				} else {
 					// undelete existing edge
 					e := edges[0]
-					err := nats.SendEdgePoint(nh.Nc, e.Down, e.Up, data.Point{
+					err := client.SendEdgePoint(nh.Nc, e.Down, e.Up, data.Point{
 						Type:  data.PointTypeTombstone,
 						Value: 0,
 					}, false)

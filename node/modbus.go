@@ -10,9 +10,9 @@ import (
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/modbus"
-	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/respreader"
 	"go.bug.st/serial"
 )
@@ -108,7 +108,7 @@ func (b *Modbus) Stop() {
 
 // CheckIOs goes through ios on the bus and handles any config changes
 func (b *Modbus) CheckIOs() error {
-	nodes, err := nats.GetNodeChildren(b.nc, b.busNode.nodeID, data.NodeTypeModbusIO, false, false)
+	nodes, err := client.GetNodeChildren(b.nc, b.busNode.nodeID, data.NodeTypeModbusIO, false, false)
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (b *Modbus) SendPoint(nodeID, pointType string, value float64) error {
 		Value: value,
 	}
 
-	return nats.SendNodePoint(b.nc, nodeID, p, true)
+	return client.SendNodePoint(b.nc, nodeID, p, true)
 }
 
 // WriteBusHoldingReg used to write register values to bus
@@ -597,13 +597,13 @@ func (b *Modbus) LogError(io *ModbusIONode, err error) error {
 		Value: float64(busCount),
 	}
 
-	err = nats.SendNodePoint(b.nc, b.busNode.nodeID, p, false)
+	err = client.SendNodePoint(b.nc, b.busNode.nodeID, p, false)
 	if err != nil {
 		return err
 	}
 
 	p.Value = float64(ioCount)
-	return nats.SendNodePoint(b.nc, io.nodeID, p, false)
+	return client.SendNodePoint(b.nc, io.nodeID, p, false)
 }
 
 // ClosePort closes both the server and client ports
@@ -764,13 +764,13 @@ func (b *Modbus) Run() {
 				case data.PointTypeErrorCountReset:
 					if b.busNode.errorCountReset {
 						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
-						err := nats.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
+						err := client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
-						err = nats.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
+						err = client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
@@ -779,13 +779,13 @@ func (b *Modbus) Run() {
 				case data.PointTypeErrorCountCRCReset:
 					if b.busNode.errorCountCRCReset {
 						p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
-						err := nats.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
+						err := client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
-						err = nats.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
+						err = client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
@@ -794,13 +794,13 @@ func (b *Modbus) Run() {
 				case data.PointTypeErrorCountEOFReset:
 					if b.busNode.errorCountEOFReset {
 						p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
-						err := nats.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
+						err := client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
-						err = nats.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
+						err = client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
@@ -854,13 +854,13 @@ func (b *Modbus) Run() {
 					io.ioNode.errorCountReset = data.FloatToBool(p.Value)
 					if io.ioNode.errorCountReset {
 						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
-						err := nats.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
+						err := client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
-						err = nats.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
+						err = client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
@@ -870,13 +870,13 @@ func (b *Modbus) Run() {
 					io.ioNode.errorCountEOFReset = data.FloatToBool(p.Value)
 					if io.ioNode.errorCountEOFReset {
 						p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
-						err := nats.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
+						err := client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
-						err = nats.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
+						err = client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
@@ -886,13 +886,13 @@ func (b *Modbus) Run() {
 					io.ioNode.errorCountCRCReset = data.FloatToBool(p.Value)
 					if io.ioNode.errorCountCRCReset {
 						p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
-						err := nats.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
+						err := client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
-						err = nats.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
+						err = client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}

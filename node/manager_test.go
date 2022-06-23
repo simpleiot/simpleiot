@@ -32,6 +32,10 @@ func (tnc *testNodeClient) Stop() {
 }
 
 func TestClientManager(t *testing.T) {
+	// import cycle not allowed ...
+	// need to just instantiate the store only part
+	//nc, err := simpleiot.Start()
+
 	m := NewClientManager("rootid", newTestNodeClient)
 	_ = m
 }

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
-	"github.com/simpleiot/simpleiot/nats"
+	"github.com/simpleiot/simpleiot/client"
 )
 
 // Note, this file is still in the api package (vs nats) as http bloats a build, and not
@@ -41,7 +41,7 @@ func NatsSendFileFromHTTP(nc *natsgo.Conn, deviceID string, url string, callback
 	}
 	name := urlS[len(urlS)-1]
 
-	return nats.SendFile(nc, deviceID, resp.Body, name, func(bytesTx int) {
+	return client.SendFile(nc, deviceID, resp.Body, name, func(bytesTx int) {
 		callback(bytesTx)
 	})
 }

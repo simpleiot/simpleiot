@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/simpleiot/simpleiot/nats"
+	"github.com/simpleiot/simpleiot/client"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 
 	log.Printf("SIOT Edge, ID: %v, server: %v\n", *flagID, *flagNatsServer)
 
-	opts := nats.EdgeOptions{
+	opts := client.EdgeOptions{
 		URI:       *flagNatsServer,
 		AuthToken: *flagNatsAuth,
 		Disconnected: func() {
@@ -32,14 +32,14 @@ func main() {
 		},
 	}
 
-	nc, err := nats.EdgeConnect(opts)
+	nc, err := client.EdgeConnect(opts)
 
 	if err != nil {
 		log.Println("Error connecting to NATS server: ", err)
 		os.Exit(-1)
 	}
 
-	nats.ListenForFile(nc, "./", *flagID, func(name string) {
+	client.ListenForFile(nc, "./", *flagID, func(name string) {
 		log.Println("File downloaded: ", name)
 	})
 

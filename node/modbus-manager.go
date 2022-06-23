@@ -4,8 +4,8 @@ import (
 	"log"
 
 	natsgo "github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 )
 
 // ModbusManager manages state of modbus
@@ -27,7 +27,7 @@ func NewModbusManager(nc *natsgo.Conn, rootNodeID string) *ModbusManager {
 // Update queries DB for modbus nodes and synchronizes
 // with internal structures and updates data
 func (mm *ModbusManager) Update() error {
-	nodes, err := nats.GetNodeChildren(mm.nc, mm.rootNodeID, data.NodeTypeModbus, false, false)
+	nodes, err := client.GetNodeChildren(mm.nc, mm.rootNodeID, data.NodeTypeModbus, false, false)
 	if err != nil {
 		return err
 	}

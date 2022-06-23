@@ -17,8 +17,8 @@ import (
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/particle"
@@ -141,7 +141,7 @@ func (s *Siot) Start() (*natsgo.Conn, error) {
 	}
 	go nodeManager.Run()
 
-	rootNode, err := nats.GetNode(nc, "root", "")
+	rootNode, err := client.GetNode(nc, "root", "")
 
 	if err != nil {
 		log.Println("Error getting root id for metrics: ", err)
@@ -159,7 +159,7 @@ func (s *Siot) Start() (*natsgo.Conn, error) {
 		go func() {
 			err := particle.PointReader("sample", o.ParticleAPIKey,
 				func(id string, points data.Points) {
-					err := nats.SendNodePoints(nc, id, points, false)
+					err := client.SendNodePoints(nc, id, points, false)
 					if err != nil {
 						log.Println("Error getting particle sample: ", err)
 					}
@@ -338,7 +338,7 @@ func StartArgs(args []string) error {
 		*flagSendPointText != "" ||
 		*flagLogNats {
 
-		opts := nats.EdgeOptions{
+		opts := client.EdgeOptions{
 			URI:       natsServer,
 			AuthToken: authToken,
 			NoEcho:    true,
@@ -354,7 +354,7 @@ func StartArgs(args []string) error {
 			},
 		}
 
-		nc, err = nats.EdgeConnect(opts)
+		nc, err = client.EdgeConnect(opts)
 
 		if err != nil {
 			log.Println("Error connecting to NATS server: ", err)
@@ -381,7 +381,7 @@ func StartArgs(args []string) error {
 			os.Exit(-1)
 		}
 
-		err = nats.SendNodePointCreate(nc, nodeID, point, *flagNatsAck)
+		err = client.SendNodePointCreate(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -395,7 +395,7 @@ func StartArgs(args []string) error {
 			os.Exit(-1)
 		}
 
-		err = nats.SendNodePointCreate(nc, nodeID, point, *flagNatsAck)
+		err = client.SendNodePointCreate(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -405,28 +405,28 @@ func StartArgs(args []string) error {
 	if *flagLogNats {
 		log.Println("Logging all NATS messages")
 		_, err := nc.Subscribe("node.*.points", func(msg *natsgo.Msg) {
-			err := nats.Dump(nc, msg)
+			err := client.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
 			}
 		})
 
 		_, err = nc.Subscribe("node.*.not", func(msg *natsgo.Msg) {
-			err := nats.Dump(nc, msg)
+			err := client.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
 			}
 		})
 
 		_, err = nc.Subscribe("node.*.msg", func(msg *natsgo.Msg) {
-			err := nats.Dump(nc, msg)
+			err := client.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
 			}
 		})
 
 		_, err = nc.Subscribe("node.*.*.points", func(msg *natsgo.Msg) {
-			err := nats.Dump(nc, msg)
+			err := client.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
 			}
@@ -438,7 +438,7 @@ func StartArgs(args []string) error {
 		}
 
 		_, err = nc.Subscribe("node.*", func(msg *natsgo.Msg) {
-			err := nats.Dump(nc, msg)
+			err := client.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
 			}
@@ -450,7 +450,7 @@ func StartArgs(args []string) error {
 		}
 
 		_, err = nc.Subscribe("edge.*.*", func(msg *natsgo.Msg) {
-			err := nats.Dump(nc, msg)
+			err := client.Dump(nc, msg)
 			if err != nil {
 				log.Println("Error dumping nats msg: ", err)
 			}

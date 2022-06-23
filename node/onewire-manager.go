@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	natsgo "github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 )
 
 // oneWireManager is responsible for finding new busses and sync database state
@@ -31,7 +31,7 @@ func newOneWireManager(nc *natsgo.Conn, rootNodeID string) *oneWireManager {
 var reBusMaster = regexp.MustCompile(`w1_bus_master(\d+)`)
 
 func (owm *oneWireManager) update() error {
-	nodes, err := nats.GetNodeChildren(owm.nc, owm.rootNodeID, data.NodeTypeOneWire, false, false)
+	nodes, err := client.GetNodeChildren(owm.nc, owm.rootNodeID, data.NodeTypeOneWire, false, false)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func (owm *oneWireManager) update() error {
 					},
 				}
 
-				err := nats.SendNode(owm.nc, n)
+				err := client.SendNode(owm.nc, n)
 				if err != nil {
 					log.Println("Error sending new 1-wire node: ", err)
 				}

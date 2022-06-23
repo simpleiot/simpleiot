@@ -10,8 +10,8 @@ import (
 	"github.com/go-audio/wav"
 	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 )
 
 // ruleProcessPoints runs points through a rules conditions and and updates condition
@@ -89,7 +89,7 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 					Value: data.BoolToFloat(active),
 				}
 
-				err := nats.SendNodePoint(nc, c.ID, p, false)
+				err := client.SendNodePoint(nc, c.ID, p, false)
 				if err != nil {
 					log.Println("Rule error sending point: ", err)
 				}
@@ -118,7 +118,7 @@ func ruleProcessPoints(nc *natsgo.Conn, r *data.Rule, nodeID string, points data
 				Value: data.BoolToFloat(allActive),
 			}
 
-			err := nats.SendNodePoint(nc, r.ID, p, false)
+			err := client.SendNodePoint(nc, r.ID, p, false)
 			if err != nil {
 				log.Println("Rule error sending point: ", err)
 			}
@@ -145,7 +145,7 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, actions []d
 				Value: a.PointValue,
 				Text:  a.PointTextValue,
 			}
-			err := nats.SendNodePoint(nc, a.NodeID, p, false)
+			err := client.SendNodePoint(nc, a.NodeID, p, false)
 			if err != nil {
 				log.Println("Error sending rule action point: ", err)
 			}
@@ -210,7 +210,7 @@ func (nh *NatsHandler) ruleRunActions(nc *natsgo.Conn, r *data.Rule, actions []d
 			Type:  data.PointTypeActive,
 			Value: 1,
 		}
-		err := nats.SendNodePoint(nc, a.ID, p, false)
+		err := client.SendNodePoint(nc, a.ID, p, false)
 		if err != nil {
 			log.Println("Error sending rule action point: ", err)
 		}
@@ -224,7 +224,7 @@ func (nh *NatsHandler) ruleRunInactiveActions(nc *natsgo.Conn, actions []data.Ac
 			Type:  data.PointTypeActive,
 			Value: 0,
 		}
-		err := nats.SendNodePoint(nc, a.ID, p, false)
+		err := client.SendNodePoint(nc, a.ID, p, false)
 		if err != nil {
 			log.Println("Error sending rule action point: ", err)
 		}

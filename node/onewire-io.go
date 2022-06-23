@@ -10,8 +10,8 @@ import (
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 )
 
 type oneWireIO struct {
@@ -83,7 +83,7 @@ func (io *oneWireIO) point(p data.Point) error {
 				{Type: data.PointTypeErrorCountReset, Value: 0},
 			}
 
-			err := nats.SendNodePoints(io.nc, io.ioNode.nodeID, p, true)
+			err := client.SendNodePoints(io.nc, io.ioNode.nodeID, p, true)
 			if err != nil {
 				log.Println("Send point error: ", err)
 			}
@@ -123,7 +123,7 @@ func (io *oneWireIO) read() error {
 
 	if v != io.ioNode.value || time.Since(io.lastSent) > time.Minute*10 {
 		io.ioNode.value = v
-		err = nats.SendNodePoint(io.nc, io.ioNode.nodeID, data.Point{
+		err = client.SendNodePoint(io.nc, io.ioNode.nodeID, data.Point{
 			Type:  data.PointTypeValue,
 			Value: v,
 		}, false)
