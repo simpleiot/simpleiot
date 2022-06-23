@@ -81,12 +81,8 @@ func (s *Siot) Start() (*nats.Conn, error) {
 
 	o := s.options
 
-	dbInst, err := store.NewDb(o.StoreType, o.DataDir)
-	if err != nil {
-		return nil, fmt.Errorf("Error opening db: %v", err)
-	}
-
 	var auth api.Authorizer
+	var err error
 
 	if o.DisableAuth {
 		auth = api.AlwaysValid{}
@@ -111,7 +107,19 @@ func (s *Siot) Start() (*nats.Conn, error) {
 		go natsserver.StartNatsServer(natsOptions)
 	}
 
-	natsHandler := store.NewNatsHandler(dbInst, o.AuthToken, o.NatsServer, auth)
+	storeParams := store.Params{
+		Type:      o.StoreType,
+		DataDir:   o.DataDir,
+		AuthToken: o.AuthToken,
+		Server:    o.NatsServer,
+		Key:       auth,
+	}
+
+	natsHandler, err := store.NewStore(storeParams)
+
+	if err != nil {
+		return nil, fmt.Errorf("Error starting store: %v", err)
+	}
 
 	var nc *nats.Conn
 

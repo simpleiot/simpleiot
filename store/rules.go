@@ -132,7 +132,7 @@ func ruleProcessPoints(nc *nats.Conn, r *data.Rule, nodeID string, points data.P
 }
 
 // ruleRunActions runs rule actions
-func (nh *NatsHandler) ruleRunActions(nc *nats.Conn, r *data.Rule, actions []data.Action, triggerNode string) error {
+func (st *Store) ruleRunActions(nc *nats.Conn, r *data.Rule, actions []data.Action, triggerNode string) error {
 	for _, a := range actions {
 		switch a.Action {
 		case data.PointValueActionSetValue:
@@ -151,7 +151,7 @@ func (nh *NatsHandler) ruleRunActions(nc *nats.Conn, r *data.Rule, actions []dat
 			}
 		case data.PointValueActionNotify:
 			// get node that fired the rule
-			triggerNode, err := nh.db.node(triggerNode)
+			triggerNode, err := st.db.node(triggerNode)
 			if err != nil {
 				return err
 			}
@@ -170,7 +170,7 @@ func (nh *NatsHandler) ruleRunActions(nc *nats.Conn, r *data.Rule, actions []dat
 				return err
 			}
 
-			err = nh.Nc.Publish("node."+r.ID+".not", d)
+			err = st.Nc.Publish("node."+r.ID+".not", d)
 
 			if err != nil {
 				return err
@@ -218,7 +218,7 @@ func (nh *NatsHandler) ruleRunActions(nc *nats.Conn, r *data.Rule, actions []dat
 	return nil
 }
 
-func (nh *NatsHandler) ruleRunInactiveActions(nc *nats.Conn, actions []data.Action) error {
+func (st *Store) ruleRunInactiveActions(nc *nats.Conn, actions []data.Action) error {
 	for _, a := range actions {
 		p := data.Point{
 			Type:  data.PointTypeActive,
