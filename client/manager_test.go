@@ -1,4 +1,4 @@
-package node
+package client
 
 import (
 	"fmt"
@@ -31,11 +31,11 @@ func (tnc *testNodeClient) Run(c <-chan data.Point) {
 func (tnc *testNodeClient) Stop() {
 }
 
-func TestClientManager(t *testing.T) {
+func TestManager(t *testing.T) {
 	// import cycle not allowed ...
 	// need to just instantiate the store only part
 	//nc, err := simpleiot.Start()
 
-	m := NewClientManager("rootid", newTestNodeClient)
+	m := NewManager("rootid", newTestNodeClient)
 	_ = m
 }
