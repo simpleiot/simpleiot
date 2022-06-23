@@ -10,7 +10,6 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/store"
 )
 
 // NodeMove is a data structure used in the /node/:id/parents api call
@@ -34,16 +33,15 @@ type NodeDelete struct {
 
 // Nodes handles node requests
 type Nodes struct {
-	db        *store.Db
 	check     RequestValidator
 	nc        *nats.Conn
 	authToken string
 }
 
 // NewNodesHandler returns a new node handler
-func NewNodesHandler(db *store.Db, v RequestValidator, authToken string,
+func NewNodesHandler(v RequestValidator, authToken string,
 	nc *nats.Conn) http.Handler {
-	return &Nodes{db, v, nc, authToken}
+	return &Nodes{v, nc, authToken}
 }
 
 // Top level handler for http requests in the coap-server process
