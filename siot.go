@@ -152,8 +152,6 @@ func (s *Siot) Start() (*nats.Conn, error) {
 	}
 	go nodeManager.Run()
 
-	asdf
-
 	rootNode, err := client.GetNode(nc, "root", "")
 
 	if err != nil {
