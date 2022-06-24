@@ -1,10 +1,13 @@
-package client
+package client_test
 
 import (
 	"fmt"
+	"log"
 	"testing"
 
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/testutil"
 )
 
 type testNode struct {
@@ -16,7 +19,7 @@ type testNodeClient struct {
 	config testNode
 }
 
-func newTestNodeClient(config testNode) Client {
+func newTestNodeClient(config testNode) client.Client {
 	return &testNodeClient{config: config}
 }
 
@@ -32,10 +35,20 @@ func (tnc *testNodeClient) Stop() {
 }
 
 func TestManager(t *testing.T) {
-	// import cycle not allowed ...
-	// need to just instantiate the store only part
-	//nc, err := simpleiot.Start()
+	nc, err := testutil.TestServer()
 
-	m := NewManager("rootid", newTestNodeClient)
+	if err != nil {
+		t.Fatal("Test server failed to start: ", err)
+	}
+
+	nodes, err := client.GetNode(nc, "root", "")
+
+	if err != nil {
+		t.Fatal("Error getting root node: ", err)
+	}
+
+	log.Println("CLIFF: rootnodes: ", nodes)
+
+	m := client.NewManager("rootid", newTestNodeClient)
 	_ = m
 }
