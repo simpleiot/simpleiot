@@ -2,28 +2,20 @@ module.exports = {
   env: {
     browser: true,
     es6: true,
-    node: true
   },
   extends: "eslint:recommended",
-  parser: "babel-eslint",
   parserOptions: {
-    ecmaVersion: 6,
-    ecmaFeatures: {
-      experimentalObjectRestSpread: true,
-      jsx: true
-    },
+    ecmaVersion: 2018,
     sourceType: "module",
     allowImportExportEverywhere: true
   },
-  plugins: ["react"],
   rules: {
     "no-console": "off",
-    "react/jsx-uses-vars": 2,
     "accessor-pairs": "error",
     "array-bracket-spacing": ["error", "never"],
     "array-callback-return": "error",
     "arrow-body-style": "off",
-    "arrow-parens": ["error", "as-needed"],
+    "arrow-parens": ["error", "always"],
     "arrow-spacing": [
       "error",
       {
@@ -36,9 +28,13 @@ module.exports = {
     "brace-style": ["error", "1tbs"],
     "callback-return": "error",
     camelcase: "error",
-    "capitalized-comments": ["error", "never"],
     // "class-methods-use-this": "error",
-    "comma-dangle": "error",
+    "comma-dangle": ["error", {
+      "arrays": "only-multiline",
+      "objects": "only-multiline",
+      "imports": "only-multiline",
+      "exports": "only-multiline",
+    }],
     "comma-spacing": [
       "error",
       {
@@ -60,7 +56,6 @@ module.exports = {
     "func-call-spacing": "error",
     "func-name-matching": "error",
     "func-names": "error",
-    "func-style": ["error", "expression"],
     "generator-star-spacing": "error",
     "global-require": "error",
     "guard-for-in": "off",
@@ -176,7 +171,6 @@ module.exports = {
     "no-unmodified-loop-condition": "error",
     "no-unneeded-ternary": "error",
     "no-unused-expressions": "error",
-    "no-use-before-define": "error",
     "no-useless-call": "error",
     "no-useless-computed-key": "error",
     "no-useless-concat": "error",
