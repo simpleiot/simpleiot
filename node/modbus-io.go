@@ -4,25 +4,25 @@ import (
 	"log"
 	"time"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 // ModbusIO represents the state of a managed modbus io
 type ModbusIO struct {
 	ioNode   *ModbusIONode
-	sub      *natsgo.Subscription
+	sub      *nats.Subscription
 	lastSent time.Time
 }
 
 // NewModbusIO creates a new modbus IO
-func NewModbusIO(nc *natsgo.Conn, node *ModbusIONode, chPoint chan<- pointWID) (*ModbusIO, error) {
+func NewModbusIO(nc *nats.Conn, node *ModbusIONode, chPoint chan<- pointWID) (*ModbusIO, error) {
 	io := &ModbusIO{
 		ioNode: node,
 	}
 
 	var err error
-	io.sub, err = nc.Subscribe("node."+io.ioNode.nodeID+".points", func(msg *natsgo.Msg) {
+	io.sub, err = nc.Subscribe("node."+io.ioNode.nodeID+".points", func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
 			// FIXME, send over channel

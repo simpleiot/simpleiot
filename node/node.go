@@ -8,16 +8,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 	"github.com/simpleiot/simpleiot/system"
 )
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
-	nc              *natsgo.Conn
+	nc              *nats.Conn
 	appVersion      string
 	osVersionField  string
 	modbusManager   *ModbusManager
@@ -27,7 +27,7 @@ type Manager struct {
 }
 
 // NewManger creates a new Manager
-func NewManger(nc *natsgo.Conn, appVersion, osVersionField string) *Manager {
+func NewManger(nc *nats.Conn, appVersion, osVersionField string) *Manager {
 	return &Manager{
 		nc:             nc,
 		appVersion:     appVersion,
@@ -37,7 +37,7 @@ func NewManger(nc *natsgo.Conn, appVersion, osVersionField string) *Manager {
 
 // Init initializes the tree root node and default admin if needed
 func (m *Manager) Init() error {
-	rootNodes, err := nats.GetNode(m.nc, "root", "")
+	rootNodes, err := client.GetNode(m.nc, "root", "")
 
 	var rootNode data.NodeEdge
 
@@ -64,12 +64,12 @@ func (m *Manager) Init() error {
 
 		rootNode.ID = uuid.New().String()
 
-		err := nats.SendNodePoints(m.nc, rootNode.ID, rootNode.Points, true)
+		err := client.SendNodePoints(m.nc, rootNode.ID, rootNode.Points, true)
 		if err != nil {
 			return fmt.Errorf("Error setting root node points: %v", err)
 		}
 
-		err = nats.SendEdgePoint(m.nc, rootNode.ID, "", data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
+		err = client.SendEdgePoint(m.nc, rootNode.ID, "", data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
 		if err != nil {
 			return fmt.Errorf("Error sending root node edges: %w", err)
 		}
@@ -87,21 +87,21 @@ func (m *Manager) Init() error {
 		points = append(points, data.Point{Type: data.PointTypeNodeType,
 			Text: data.NodeTypeUser})
 
-		err = nats.SendNodePoints(m.nc, admin.ID, points, true)
+		err = client.SendNodePoints(m.nc, admin.ID, points, true)
 		if err != nil {
 			return fmt.Errorf("Error setting default user: %v", err)
 		}
 
 		m.rootNodeID = rootNode.ID
 
-		err = nats.SendEdgePoint(m.nc, admin.ID, rootNode.ID, data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
+		err = client.SendEdgePoint(m.nc, admin.ID, rootNode.ID, data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
 		if err != nil {
 			return err
 		}
 	}
 
 	// check if the SW version is current
-	rootNodes, err = nats.GetNode(m.nc, "root", "")
+	rootNodes, err = client.GetNode(m.nc, "root", "")
 
 	if len(rootNodes) > 0 {
 		rootNode = rootNodes[0]
@@ -110,7 +110,7 @@ func (m *Manager) Init() error {
 	appVer, ok := rootNode.Points.Find(data.PointTypeVersionApp, "")
 	if !ok || appVer.Text != m.appVersion {
 		log.Println("Setting app version: ", m.appVersion)
-		err := nats.SendNodePoint(m.nc, rootNode.ID, data.Point{
+		err := client.SendNodePoint(m.nc, rootNode.ID, data.Point{
 			Type: data.PointTypeVersionApp,
 			Text: m.appVersion,
 		}, true)
@@ -129,7 +129,7 @@ func (m *Manager) Init() error {
 		osVerStored, ok := rootNode.Points.Find(data.PointTypeVersionOS, "")
 		if !ok || osVer.String() != osVerStored.Text {
 			log.Println("Setting os version: ", osVer)
-			err := nats.SendNodePoint(m.nc, rootNode.ID, data.Point{
+			err := client.SendNodePoint(m.nc, rootNode.ID, data.Point{
 				Type: data.PointTypeVersionOS,
 				Text: osVer.String(),
 			}, true)
@@ -189,7 +189,7 @@ func (m *Manager) Run() {
 					Text: state,
 				}
 
-				err := nats.SendNodePoint(m.nc, node.ID, p, false)
+				err := client.SendNodePoint(m.nc, node.ID, p, false)
 				if err != nil {
 					log.Println("Error updating node state: ", err)
 				}

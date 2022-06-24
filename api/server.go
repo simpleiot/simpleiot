@@ -10,7 +10,6 @@ import (
 
 	"github.com/koding/websocketproxy"
 	"github.com/nats-io/nats.go"
-	"github.com/simpleiot/simpleiot/store"
 )
 
 // IndexHandler is used to serve the index page
@@ -100,7 +99,6 @@ func NewAppHandler(args ServerArgs) http.Handler {
 // ServerArgs can be used to pass arguments to the server subsystem
 type ServerArgs struct {
 	Port       string
-	DbInst     *store.Db
 	GetAsset   func(string) []byte
 	Filesystem http.FileSystem
 	Debug      bool

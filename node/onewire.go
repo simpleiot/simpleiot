@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 )
 
 type oneWire struct {
@@ -18,15 +18,15 @@ type oneWire struct {
 	ios    map[string]*oneWireIO
 
 	// data associated with running the bus
-	nc  *natsgo.Conn
-	sub *natsgo.Subscription
+	nc  *nats.Conn
+	sub *nats.Subscription
 
 	chDone  chan bool
 	chPoint chan pointWID
 }
 
-func newOneWire(nc *natsgo.Conn, node data.NodeEdge) (*oneWire, error) {
-	bus := &oneWire{
+func newOneWire(nc *nats.Conn, node data.NodeEdge) (*oneWire, error) {
+	ow := &oneWire{
 		nc:      nc,
 		node:    node,
 		ios:     make(map[string]*oneWireIO),
@@ -39,11 +39,11 @@ func newOneWire(nc *natsgo.Conn, node data.NodeEdge) (*oneWire, error) {
 		return nil, err
 	}
 
-	bus.owNode = oneWireNode
+	ow.owNode = oneWireNode
 
-	// closure is required so we don't get races accessing bus.busNode
+	// closure is required so we don't get races accessing ow.busNode
 	func(id string) {
-		bus.sub, err = nc.Subscribe("node."+bus.owNode.nodeID+".points", func(msg *natsgo.Msg) {
+		ow.sub, err = nc.Subscribe("node."+ow.owNode.nodeID+".points", func(msg *nats.Msg) {
 			points, err := data.PbDecodePoints(msg.Data)
 			if err != nil {
 				// FIXME, send over channel
@@ -52,18 +52,18 @@ func newOneWire(nc *natsgo.Conn, node data.NodeEdge) (*oneWire, error) {
 			}
 
 			for _, p := range points {
-				bus.chPoint <- pointWID{id, p}
+				ow.chPoint <- pointWID{id, p}
 			}
 		})
-	}(bus.owNode.nodeID)
+	}(ow.owNode.nodeID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	go bus.run()
+	go ow.run()
 
-	return bus, nil
+	return ow, nil
 }
 
 // stop stops the bus and resets various fields
@@ -82,7 +82,7 @@ func (ow *oneWire) stop() {
 
 // CheckIOs goes through ios on the bus and handles any config changes
 func (ow *oneWire) CheckIOs() error {
-	nodes, err := nats.GetNodeChildren(ow.nc, ow.owNode.nodeID, data.NodeTypeModbusIO, false, false)
+	nodes, err := client.GetNodeChildren(ow.nc, ow.owNode.nodeID, data.NodeTypeModbusIO, false, false)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (ow *oneWire) CheckIOs() error {
 
 // checkIOs goes through ios on the bus and handles any config changes
 func (ow *oneWire) checkIOs() error {
-	nodes, err := nats.GetNodeChildren(ow.nc, ow.owNode.nodeID, data.NodeTypeOneWireIO, false, false)
+	nodes, err := client.GetNodeChildren(ow.nc, ow.owNode.nodeID, data.NodeTypeOneWireIO, false, false)
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func (ow *oneWire) detect() {
 					},
 				}
 
-				err := nats.SendNode(ow.nc, n)
+				err := client.SendNode(ow.nc, n)
 				if err != nil {
 					log.Println("Error sending new 1-wire IO: ", err)
 				}
@@ -241,13 +241,13 @@ func (ow *oneWire) run() {
 				case data.PointTypeErrorCountReset:
 					if ow.owNode.errorCountReset {
 						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
-						err := nats.SendNodePoint(ow.nc, ow.owNode.nodeID, p, true)
+						err := client.SendNodePoint(ow.nc, ow.owNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
-						err = nats.SendNodePoint(ow.nc, ow.owNode.nodeID, p, true)
+						err = client.SendNodePoint(ow.nc, ow.owNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error: ", err)
 						}
@@ -286,12 +286,12 @@ func (ow *oneWire) run() {
 					busCount := ow.owNode.errorCount + 1
 					ioCount := io.ioNode.errorCount + 1
 
-					err = nats.SendNodePoint(ow.nc, ow.owNode.nodeID, data.Point{
+					err = client.SendNodePoint(ow.nc, ow.owNode.nodeID, data.Point{
 						Type:  data.PointTypeErrorCount,
 						Value: float64(busCount),
 					}, false)
 
-					err = nats.SendNodePoint(ow.nc, io.ioNode.nodeID, data.Point{
+					err = client.SendNodePoint(ow.nc, io.ioNode.nodeID, data.Point{
 						Type:  data.PointTypeErrorCount,
 						Value: float64(ioCount),
 					}, false)

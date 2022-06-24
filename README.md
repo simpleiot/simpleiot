@@ -60,15 +60,18 @@ the way:
 
 1. treat configuration and state data the same for purposes of storage and
    synchronization.
-2. represent this data using simple constructs (Nodes and Points).
+2. represent this data using simple types (Nodes and Points).
 3. organize this data in a graph.
 4. all data flows through a message bus.
-5. run the same application in the cloud and at the edge and automatically sync
-   common data.
+5. run the same application in the cloud and at the edge.
+6. automatically sync common data between instances.
 
-These simplifications have resulted in Simple IoT becoming a general purpose
-distributed graph database optimized for IoT datasets. We'll explore these ideas
-more in the [documentation](https://docs.simpleiot.org).
+> [Design is the beauty of turning constraints into advantages.](https://www.webstock.org.nz/talks/design-is-the-beauty-of-turning-constraints-into-advantages/)
+> -- Ava Raskin
+
+These constraints have resulted in Simple IoT becoming a flexible distributed
+graph database optimized for IoT datasets. We'll explore these ideas more in the
+[documentation](https://docs.simpleiot.org).
 
 ## Support, Community, Contributing, etc.
 

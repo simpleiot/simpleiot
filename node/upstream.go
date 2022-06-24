@@ -9,35 +9,35 @@ import (
 	"sync"
 	"time"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 )
 
 // Upstream is used to manage an upstream connection (cloud, etc)
 type Upstream struct {
-	nc                 *natsgo.Conn
+	nc                 *nats.Conn
 	node               data.NodeEdge
 	nodeUp             *UpstreamNode
 	uri                string
-	ncUp               *natsgo.Conn
-	subUpNodePoints    map[string]*natsgo.Subscription
-	subUpEdgePoints    map[string]*natsgo.Subscription
-	subLocalNodePoints *natsgo.Subscription
-	subLocalEdgePoints *natsgo.Subscription
+	ncUp               *nats.Conn
+	subUpNodePoints    map[string]*nats.Subscription
+	subUpEdgePoints    map[string]*nats.Subscription
+	subLocalNodePoints *nats.Subscription
+	subLocalEdgePoints *nats.Subscription
 	lock               sync.Mutex
 	closeSync          chan bool
 }
 
 // NewUpstream is used to create a new upstream connection
-func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
+func NewUpstream(nc *nats.Conn, node data.NodeEdge) (*Upstream, error) {
 	var err error
 
 	up := &Upstream{
 		nc:              nc,
 		node:            node,
-		subUpNodePoints: make(map[string]*natsgo.Subscription),
-		subUpEdgePoints: make(map[string]*natsgo.Subscription),
+		subUpNodePoints: make(map[string]*nats.Subscription),
+		subUpEdgePoints: make(map[string]*nats.Subscription),
 		closeSync:       make(chan bool),
 	}
 
@@ -51,7 +51,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		return up, nil
 	}
 
-	opts := nats.EdgeOptions{
+	opts := client.EdgeOptions{
 		URI:       up.nodeUp.URI,
 		AuthToken: up.nodeUp.AuthToken,
 		NoEcho:    true,
@@ -66,36 +66,36 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		},
 	}
 
-	up.ncUp, err = nats.EdgeConnect(opts)
+	up.ncUp, err = client.EdgeConnect(opts)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error connection to upstream NATS: %v", err)
 	}
 
-	up.subLocalNodePoints, err = nc.Subscribe(nats.SubjectNodeAllPoints(), func(msg *natsgo.Msg) {
-		nodeID, points, err := nats.DecodeNodePointsMsg(msg)
+	up.subLocalNodePoints, err = nc.Subscribe(client.SubjectNodeAllPoints(), func(msg *nats.Msg) {
+		nodeID, points, err := client.DecodeNodePointsMsg(msg)
 
 		if err != nil {
 			log.Println("Error decoding point: ", err)
 			return
 		}
 
-		err = nats.SendNodePoints(up.ncUp, nodeID, points, false)
+		err = client.SendNodePoints(up.ncUp, nodeID, points, false)
 
 		if err != nil {
 			log.Println("Error sending node points to remote system: ", err)
 		}
 	})
 
-	up.subLocalEdgePoints, err = nc.Subscribe(nats.SubjectEdgeAllPoints(), func(msg *natsgo.Msg) {
-		nodeID, parentID, points, err := nats.DecodeEdgePointsMsg(msg)
+	up.subLocalEdgePoints, err = nc.Subscribe(client.SubjectEdgeAllPoints(), func(msg *nats.Msg) {
+		nodeID, parentID, points, err := client.DecodeEdgePointsMsg(msg)
 
 		if err != nil {
 			log.Println("Error decoding point: ", err)
 			return
 		}
 
-		err = nats.SendEdgePoints(up.ncUp, nodeID, parentID, points, false)
+		err = client.SendEdgePoints(up.ncUp, nodeID, parentID, points, false)
 
 		if err != nil {
 			log.Println("Error sending edge points to remote system: ", err)
@@ -118,7 +118,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 		}
 	})
 
-	rootNodes, err := nats.GetNode(nc, "root", "")
+	rootNodes, err := client.GetNode(nc, "root", "")
 
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ func NewUpstream(nc *natsgo.Conn, node data.NodeEdge) (*Upstream, error) {
 			return fmt.Errorf("Failed to add upstream sub: %v", err)
 		}
 
-		childNodes, err := nats.GetNodeChildren(nc, node.ID, "", true, false)
+		childNodes, err := client.GetNodeChildren(nc, node.ID, "", true, false)
 		if err != nil {
 			return err
 		}
@@ -207,16 +207,16 @@ func (up *Upstream) addUpstreamNodeSub(nodeID string) error {
 	}
 
 	// create subscription
-	subject := nats.SubjectNodePoints(nodeID)
-	sub, err := up.ncUp.Subscribe(subject, func(msg *natsgo.Msg) {
-		nodeID, points, err := nats.DecodeNodePointsMsg(msg)
+	subject := client.SubjectNodePoints(nodeID)
+	sub, err := up.ncUp.Subscribe(subject, func(msg *nats.Msg) {
+		nodeID, points, err := client.DecodeNodePointsMsg(msg)
 
 		if err != nil {
 			log.Println("Error decoding point: ", err)
 			return
 		}
 
-		err = nats.SendNodePoints(up.nc, nodeID, points, false)
+		err = client.SendNodePoints(up.nc, nodeID, points, false)
 
 		if err != nil {
 			log.Println("Error sending points to local system: ", err)
@@ -252,16 +252,16 @@ func (up *Upstream) addUpstreamEdgeSub(nodeID, parentID string) error {
 	}
 
 	// create subscription
-	subject := nats.SubjectEdgePoints(nodeID, parentID)
-	sub, err := up.ncUp.Subscribe(subject, func(msg *natsgo.Msg) {
-		nodeID, parentID, points, err := nats.DecodeEdgePointsMsg(msg)
+	subject := client.SubjectEdgePoints(nodeID, parentID)
+	sub, err := up.ncUp.Subscribe(subject, func(msg *nats.Msg) {
+		nodeID, parentID, points, err := client.DecodeEdgePointsMsg(msg)
 
 		if err != nil {
 			log.Println("Error decoding point: ", err)
 			return
 		}
 
-		err = nats.SendEdgePoints(up.nc, nodeID, parentID, points, false)
+		err = client.SendEdgePoints(up.nc, nodeID, parentID, points, false)
 
 		if err != nil {
 			log.Println("Error sending edge points to local system: ", err)
@@ -283,14 +283,14 @@ func (up *Upstream) addUpstreamEdgeSub(nodeID, parentID string) error {
 // from one NATS server to another. Typically from the current instance
 // to an upstream.
 func (up *Upstream) sendNodesUp(node data.NodeEdge) error {
-	err := nats.SendNode(up.ncUp, node)
+	err := client.SendNode(up.ncUp, node)
 
 	if err != nil {
 		return err
 	}
 
 	// process child nodes
-	childNodes, err := nats.GetNodeChildren(up.nc, node.ID, "", false, false)
+	childNodes, err := client.GetNodeChildren(up.nc, node.ID, "", false, false)
 	if err != nil {
 		return fmt.Errorf("Error getting node children: %v", err)
 	}
@@ -307,7 +307,7 @@ func (up *Upstream) sendNodesUp(node data.NodeEdge) error {
 }
 
 func (up *Upstream) syncNode(id, parent string) error {
-	nodeLocals, err := nats.GetNode(up.nc, id, parent)
+	nodeLocals, err := client.GetNode(up.nc, id, parent)
 	if err != nil {
 		return fmt.Errorf("Error getting local node: %v", err)
 	}
@@ -318,7 +318,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 	nodeLocal := nodeLocals[0]
 
-	nodeUps, upErr := nats.GetNode(up.ncUp, id, parent)
+	nodeUps, upErr := client.GetNode(up.ncUp, id, parent)
 	if upErr != nil {
 		if upErr != data.ErrDocumentNotFound {
 			return fmt.Errorf("Error getting upstream root node: %v", upErr)
@@ -359,13 +359,13 @@ func (up *Upstream) syncNode(id, parent string) error {
 					upstreamProcessed[i] = true
 					if p.Time.After(pUp.Time) {
 						// need to send point upstream
-						err := nats.SendNodePoint(up.ncUp, nodeUp.ID, p, true)
+						err := client.SendNodePoint(up.ncUp, nodeUp.ID, p, true)
 						if err != nil {
 							log.Println("Error syncing point upstream: ", err)
 						}
 					} else if p.Time.Before(pUp.Time) {
 						// need to update point locally
-						err := nats.SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
+						err := client.SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
 						if err != nil {
 							log.Println("Error syncing point from upstream: ", err)
 						}
@@ -374,14 +374,14 @@ func (up *Upstream) syncNode(id, parent string) error {
 			}
 
 			if !found {
-				nats.SendNodePoint(up.ncUp, nodeUp.ID, p, true)
+				client.SendNodePoint(up.ncUp, nodeUp.ID, p, true)
 			}
 		}
 
 		// check for any points that do not exist locally
 		for i, pUp := range nodeUp.Points {
 			if _, ok := upstreamProcessed[i]; !ok {
-				err := nats.SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
+				err := client.SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
 				if err != nil {
 					log.Println("Error syncing point from upstream: ", err)
 				}
@@ -400,13 +400,13 @@ func (up *Upstream) syncNode(id, parent string) error {
 					upstreamProcessed[i] = true
 					if p.Time.After(pUp.Time) {
 						// need to send point upstream
-						err := nats.SendEdgePoint(up.ncUp, nodeUp.ID, nodeUp.Parent, p, true)
+						err := client.SendEdgePoint(up.ncUp, nodeUp.ID, nodeUp.Parent, p, true)
 						if err != nil {
 							log.Println("Error syncing point upstream: ", err)
 						}
 					} else if p.Time.Before(pUp.Time) {
 						// need to update point locally
-						err := nats.SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
+						err := client.SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
 						if err != nil {
 							log.Println("Error syncing point from upstream: ", err)
 						}
@@ -415,14 +415,14 @@ func (up *Upstream) syncNode(id, parent string) error {
 			}
 
 			if !found {
-				nats.SendEdgePoint(up.ncUp, nodeUp.ID, nodeUp.Parent, p, true)
+				client.SendEdgePoint(up.ncUp, nodeUp.ID, nodeUp.Parent, p, true)
 			}
 		}
 
 		// check for any points that do not exist locally
 		for i, pUp := range nodeUp.EdgePoints {
 			if _, ok := upstreamProcessed[i]; !ok {
-				err := nats.SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
+				err := client.SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
 				if err != nil {
 					log.Println("Error syncing edge point from upstream: ", err)
 				}
@@ -430,13 +430,13 @@ func (up *Upstream) syncNode(id, parent string) error {
 		}
 
 		// sync child nodes
-		children, err := nats.GetNodeChildren(up.nc, nodeLocal.ID, "", true, false)
+		children, err := client.GetNodeChildren(up.nc, nodeLocal.ID, "", true, false)
 		if err != nil {
 			return fmt.Errorf("Error getting local node children: %v", err)
 		}
 
 		// FIXME optimization we get the edges here and not the full child node
-		upChildren, err := nats.GetNodeChildren(up.ncUp, nodeUp.ID, "", true, false)
+		upChildren, err := client.GetNodeChildren(up.ncUp, nodeUp.ID, "", true, false)
 		if err != nil {
 			return fmt.Errorf("Error getting upstream node children: %v", err)
 		}

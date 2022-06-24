@@ -46,6 +46,28 @@ Please configure your editor to run code formatters:
   more people will be reading documentation than reviewing, lets optimize for
   the reading in all scenarios -- editor, Github, and generated docs)
 
+## Pure Go
+
+We plan to keep the main Simple IoT application a pure Go binary if possible.
+Statically linked pure Go has huge advantages:
+
+1. you can easily cross compile to any target from any build machine.
+2. blazing fast compile times
+3. deployment is dead simple – zero dependencies. Docker is not needed.
+4. you are not vulnerable to security issues in the host systems SSL/TLS libs.
+   What you deploy is pretty much what you get.
+5. although there is high quality code written in C/C++, it is much easier to
+   write safe, reliable programs in Go, so I think long term there is much less
+   risk using a Go implementation of about anything – especially if it is widely
+   used.
+6. Go’s network programming model is much simpler than about anything else.
+   Simplicity == less bugs.
+
+Once you link to C libs in your Go program, you forgo many of the benefits of
+Go. The Go authors made a brilliant choice when they chose to build Go from the
+ground up. Yes, you loose the ability to easily use some of the popular C
+libraries, but what you gain is many times more valuable.
+
 ## Running unit tests
 
 There are not a lot of unit tests in the project yet, but below are some

@@ -1,10 +1,10 @@
-package nats
+package client
 
 import (
 	"sync"
 	"time"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
 
@@ -13,7 +13,7 @@ import (
 // out as a point.
 type Metric struct {
 	// config
-	nc           *natsgo.Conn
+	nc           *nats.Conn
 	nodeID       string
 	reportPeriod time.Duration
 
@@ -25,7 +25,7 @@ type Metric struct {
 }
 
 // NewMetric creates a new metric
-func NewMetric(nc *natsgo.Conn, nodeID, pointType string, reportPeriod time.Duration) *Metric {
+func NewMetric(nc *nats.Conn, nodeID, pointType string, reportPeriod time.Duration) *Metric {
 	return &Metric{
 		nc:           nc,
 		nodeID:       nodeID,

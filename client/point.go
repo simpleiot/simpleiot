@@ -1,23 +1,23 @@
-package nats
+package client
 
 import (
 	"errors"
 	"fmt"
 	"time"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 // SendNodePointCreate sends a node point using the nats protocol and
 // creates the node if it does not already exist
-func SendNodePointCreate(nc *natsgo.Conn, nodeID string, point data.Point, ack bool) error {
+func SendNodePointCreate(nc *nats.Conn, nodeID string, point data.Point, ack bool) error {
 	return SendNodePointsCreate(nc, nodeID, []data.Point{point}, ack)
 }
 
 // SendNodePointsCreate sends a node point using the nats protocol and
 // creates the node if it does not already exist
-func SendNodePointsCreate(nc *natsgo.Conn, nodeID string, points data.Points, ack bool) error {
+func SendNodePointsCreate(nc *nats.Conn, nodeID string, points data.Points, ack bool) error {
 	_, err := GetNode(nc, nodeID, "none")
 	newNode := false
 	if err != nil {
@@ -48,31 +48,31 @@ func SendNodePointsCreate(nc *natsgo.Conn, nodeID string, points data.Points, ac
 }
 
 // SendNodePoint sends a node point using the nats protocol
-func SendNodePoint(nc *natsgo.Conn, nodeID string, point data.Point, ack bool) error {
+func SendNodePoint(nc *nats.Conn, nodeID string, point data.Point, ack bool) error {
 	points := data.Points{point}
 	return SendNodePoints(nc, nodeID, points, ack)
 }
 
 // SendEdgePoint sends a edge point using the nats protocol
-func SendEdgePoint(nc *natsgo.Conn, nodeID, parentID string, point data.Point, ack bool) error {
+func SendEdgePoint(nc *nats.Conn, nodeID, parentID string, point data.Point, ack bool) error {
 	points := data.Points{point}
 	return SendEdgePoints(nc, nodeID, parentID, points, ack)
 }
 
 // SendNodePoints sends node points using the nats protocol
-func SendNodePoints(nc *natsgo.Conn, nodeID string, points data.Points, ack bool) error {
+func SendNodePoints(nc *nats.Conn, nodeID string, points data.Points, ack bool) error {
 	return sendPoints(nc, SubjectNodePoints(nodeID), points, ack)
 }
 
 // SendEdgePoints sends points using the nats protocol
-func SendEdgePoints(nc *natsgo.Conn, nodeID, parentID string, points data.Points, ack bool) error {
+func SendEdgePoints(nc *nats.Conn, nodeID, parentID string, points data.Points, ack bool) error {
 	if parentID == "" {
 		parentID = "none"
 	}
 	return sendPoints(nc, SubjectEdgePoints(nodeID, parentID), points, ack)
 }
 
-func sendPoints(nc *natsgo.Conn, subject string, points data.Points, ack bool) error {
+func sendPoints(nc *nats.Conn, subject string, points data.Points, ack bool) error {
 	for i := range points {
 		if points[i].Time.IsZero() {
 			points[i].Time = time.Now()

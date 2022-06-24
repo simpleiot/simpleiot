@@ -1,24 +1,22 @@
 package node
 
 import (
-	"io"
 	"log"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/modbus"
-	"github.com/simpleiot/simpleiot/nats"
 )
 
 // ModbusManager manages state of modbus
 type ModbusManager struct {
-	nc         *natsgo.Conn
+	nc         *nats.Conn
 	busses     map[string]*Modbus
 	rootNodeID string
 }
 
 // NewModbusManager creates a new modbus manager
-func NewModbusManager(nc *natsgo.Conn, rootNodeID string) *ModbusManager {
+func NewModbusManager(nc *nats.Conn, rootNodeID string) *ModbusManager {
 	return &ModbusManager{
 		nc:         nc,
 		busses:     make(map[string]*Modbus),
@@ -26,30 +24,10 @@ func NewModbusManager(nc *natsgo.Conn, rootNodeID string) *ModbusManager {
 	}
 }
 
-func modbusErrorToPointType(err error) string {
-	switch err {
-	case io.EOF:
-		return data.PointTypeErrorCountEOF
-	case modbus.ErrCRC:
-		return data.PointTypeErrorCountCRC
-	default:
-		return ""
-	}
-}
-
-func copyIos(in map[string]*ModbusIO) map[string]*ModbusIO {
-	out := make(map[string]*ModbusIO)
-	for k, v := range in {
-		io := *v
-		out[k] = &io
-	}
-	return out
-}
-
 // Update queries DB for modbus nodes and synchronizes
 // with internal structures and updates data
 func (mm *ModbusManager) Update() error {
-	nodes, err := nats.GetNodeChildren(mm.nc, mm.rootNodeID, data.NodeTypeModbus, false, false)
+	nodes, err := client.GetNodeChildren(mm.nc, mm.rootNodeID, data.NodeTypeModbus, false, false)
 	if err != nil {
 		return err
 	}

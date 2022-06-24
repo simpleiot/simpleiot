@@ -3,18 +3,18 @@ package api
 import (
 	"net/http"
 
-	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/nats"
 )
 
 // Auth handles user authentication requests.
 type Auth struct {
-	nc *natsgo.Conn
+	nc *nats.Conn
 }
 
 // NewAuthHandler returns a new authentication handler using the given key.
-func NewAuthHandler(nc *natsgo.Conn) Auth {
+func NewAuthHandler(nc *nats.Conn) Auth {
 	return Auth{nc: nc}
 }
 
@@ -28,7 +28,7 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	email := req.FormValue("email")
 	password := req.FormValue("password")
 
-	nodes, err := nats.UserCheck(auth.nc, email, password)
+	nodes, err := client.UserCheck(auth.nc, email, password)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
