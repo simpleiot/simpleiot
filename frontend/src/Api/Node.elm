@@ -28,6 +28,7 @@ module Api.Node exposing
     , typeOneWire
     , typeOneWireIO
     , typeRule
+    , typeSerialDev
     , typeUpstream
     , typeUser
     , typeVariable
@@ -108,6 +109,11 @@ typeModbus =
     "modbus"
 
 
+typeModbusIO : String
+typeModbusIO =
+    "modbusIo"
+
+
 typeOneWire : String
 typeOneWire =
     "oneWire"
@@ -118,9 +124,9 @@ typeOneWireIO =
     "oneWireIO"
 
 
-typeModbusIO : String
-typeModbusIO =
-    "modbusIo"
+typeSerialDev : String
+typeSerialDev =
+    "serialDev"
 
 
 typeVariable : String

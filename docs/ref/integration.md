@@ -78,7 +78,4 @@ server. The
 is also fairly simple and can also be implemented on top of any TCP/IP stack.
 
 If your MCU interfaces with a local SIOT system using USB, serial, or CAN, then
-you will need to write some type of adapter. This adapter can be part of the
-SIOT application, or another process that runs beside SIOT. A simple protocol
-similar to the NATS wire protocol can wrap the messages to the adapter and then
-the adapter can convert these to/from NATS messages.
+you can use the SIOT [serial adapter](serial.md).

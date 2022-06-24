@@ -1,0 +1,11 @@
+syntax = "proto3";
+package pb;
+
+option go_package = "internal/pb";
+
+import "point.proto";
+
+message Serial {
+ string subject = 1;
+ repeated Point points = 2;
+}

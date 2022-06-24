@@ -1,3 +1,5 @@
+# run cargo install mdbook mdbook-toc mdbook-linkcheck
+
 [book]
 authors = ["Cliff Brake"]
 language = "en"
@@ -11,5 +13,5 @@ title = "Simple IoT"
 git-repository-url = "https://github.com/simpleiot/simpleiot"
 edit-url-template = "https://github.com/simpleiot/simpleiot/edit/master/{path}"
 
-[output.linkcheck]
+#[output.linkcheck]
 #follow-web-links = true
