@@ -116,8 +116,6 @@ func (s *Siot) Start() (*nats.Conn, error) {
 
 	_ = natsServer
 
-	asdf
-
 	storeParams := store.Params{
 		Type:      o.StoreType,
 		DataDir:   o.DataDir,
