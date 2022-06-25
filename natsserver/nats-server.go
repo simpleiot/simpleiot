@@ -1,8 +1,8 @@
 package natsserver
 
 import (
+	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/nats-io/nats-server/v2/server"
@@ -21,7 +21,7 @@ type Options struct {
 
 // StartNatsServer starts a nats server instance. This function will block
 // so should be started with a go routine
-func StartNatsServer(o Options) {
+func StartNatsServer(o Options) (*server.Server, error) {
 	opts := server.Options{
 		Port:          o.Port,
 		HTTPPort:      o.HTTPPort,
@@ -44,7 +44,7 @@ func StartNatsServer(o Options) {
 		opts.TLSConfig, err = server.GenTLSConfig(&tc)
 
 		if err != nil {
-			log.Fatal("Error setting up TLS: ", err)
+			return nil, fmt.Errorf("Error setting up TLS: %v", err)
 		}
 	}
 
@@ -59,7 +59,7 @@ func StartNatsServer(o Options) {
 	natsServer, err := server.NewServer(&opts)
 
 	if err != nil {
-		log.Fatal("Error create new Nats server: ", err)
+		return nil, fmt.Errorf("Error create new Nats server: %v", err)
 	}
 
 	authEnabled := "no"
@@ -75,11 +75,10 @@ func StartNatsServer(o Options) {
 		log.Printf("NATS server WS enabled on port: %v\n", o.WSPort)
 	}
 
-	natsServer.Start()
+	go func() {
+		natsServer.Start()
+		log.Println("NATS server shutting down ...")
+	}()
 
-	natsServer.WaitForShutdown()
-
-	// should never get here, so exit app
-	log.Fatal("Nats server start returned, this should not happen, exitting app!")
-	os.Exit(-1)
+	return natsServer, nil
 }

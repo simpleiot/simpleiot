@@ -24,6 +24,8 @@ import (
 	"github.com/simpleiot/simpleiot/sim"
 	"github.com/simpleiot/simpleiot/store"
 	"github.com/simpleiot/simpleiot/system"
+
+	"github.com/nats-io/nats-server/v2/server"
 )
 
 // Options used for starting Simple IoT
@@ -103,9 +105,16 @@ func (s *Siot) Start() (*nats.Conn, error) {
 		TLSTimeout: o.NatsTLSTimeout,
 	}
 
+	var natsServer *server.Server
+
 	if !o.NatsDisableServer {
-		go natsserver.StartNatsServer(natsOptions)
+		natsServer, err = natsserver.StartNatsServer(natsOptions)
+		if err != nil {
+			return nil, err
+		}
 	}
+
+	_ = natsServer
 
 	storeParams := store.Params{
 		Type:      o.StoreType,
