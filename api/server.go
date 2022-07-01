@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 
@@ -108,10 +109,33 @@ type ServerArgs struct {
 	Nc         *nats.Conn
 }
 
-// Server starts a API server instance
-func Server(args ServerArgs) error {
-	log.Println("Starting http server, debug: ", args.Debug)
-	log.Println("Starting portal on port: ", args.Port)
-	address := fmt.Sprintf(":%s", args.Port)
-	return http.ListenAndServe(address, NewAppHandler(args))
+// Server represents the HTTP API server
+type Server struct {
+	args ServerArgs
+	ln   net.Listener
+}
+
+// NewServer ..
+func NewServer(args ServerArgs) *Server {
+	return &Server{args: args}
+}
+
+// Start the api server
+func (s *Server) Start() error {
+	log.Println("Starting http server, debug: ", s.args.Debug)
+	log.Println("Starting portal on port: ", s.args.Port)
+	address := fmt.Sprintf(":%s", s.args.Port)
+
+	var err error
+	s.ln, err = net.Listen("tcp", address)
+	if err != nil {
+		return fmt.Errorf("Error starting api server: %v", err)
+	}
+
+	return http.Serve(s.ln, NewAppHandler(s.args))
+}
+
+// Stop HTTP API
+func (s *Server) Stop(_ error) {
+	s.ln.Close()
 }

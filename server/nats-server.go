@@ -1,4 +1,4 @@
-package natsserver
+package server
 
 import (
 	"fmt"
@@ -8,8 +8,7 @@ import (
 	"github.com/nats-io/nats-server/v2/server"
 )
 
-// Options for starting the nat server
-type Options struct {
+type natsServerOptions struct {
 	Port       int
 	HTTPPort   int
 	WSPort     int
@@ -19,9 +18,8 @@ type Options struct {
 	TLSTimeout float64
 }
 
-// StartNatsServer starts a nats server instance. This function will block
-// so should be started with a go routine
-func StartNatsServer(o Options) (*server.Server, error) {
+// startNatsServer starts a nats server instance.
+func startNatsServer(o natsServerOptions) (*server.Server, error) {
 	opts := server.Options{
 		Port:          o.Port,
 		HTTPPort:      o.HTTPPort,

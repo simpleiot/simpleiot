@@ -170,7 +170,7 @@ func (st *Store) ruleRunActions(nc *nats.Conn, r *data.Rule, actions []data.Acti
 				return err
 			}
 
-			err = st.Nc.Publish("node."+r.ID+".not", d)
+			err = st.nc.Publish("node."+r.ID+".not", d)
 
 			if err != nil {
 				return err

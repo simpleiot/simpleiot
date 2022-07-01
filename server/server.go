@@ -1,31 +1,31 @@
-package simpleiot
+package server
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
-	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
+	"github.com/oklog/run"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/natsserver"
 	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/sim"
 	"github.com/simpleiot/simpleiot/store"
 	"github.com/simpleiot/simpleiot/system"
-
-	"github.com/nats-io/nats-server/v2/server"
 )
 
 // Options used for starting Simple IoT
@@ -49,37 +49,56 @@ type Options struct {
 	OSVersionField    string
 }
 
-// Siot is used to manage the Siot server
-type Siot struct {
-	dbInst  *store.Db
-	options Options
+// Server represents a SIOT server process
+type Server struct {
+	nc                 *nats.Conn
+	options            Options
+	natsServer         *server.Server
+	chNatsClientClosed chan struct{}
+	chStop             chan struct{}
 }
 
-// NewSiot create new siot instance
-func NewSiot(o Options) *Siot {
-	return &Siot{options: o}
+// NewServer creates a new server
+func NewServer(o Options) (*Server, *nats.Conn, error) {
+	chNatsClientClosed := make(chan struct{})
+
+	// start the server side nats client
+	nc, err := nats.Connect(o.NatsServer,
+		nats.Timeout(10*time.Second),
+		nats.PingInterval(60*5*time.Second),
+		nats.MaxPingsOutstanding(5),
+		nats.ReconnectBufSize(5*1024*1024),
+		nats.SetCustomDialer(&net.Dialer{
+			KeepAlive: -1,
+		}),
+		nats.Token(o.AuthToken),
+		nats.RetryOnFailedConnect(true),
+		nats.MaxReconnects(5),
+		nats.ReconnectWait(time.Second*3),
+		nats.ErrorHandler(func(_ *nats.Conn,
+			sub *nats.Subscription, err error) {
+			log.Printf("NATS server client error, sub: %v, err: %s\n", sub.Subject, err)
+		}),
+		nats.ReconnectHandler(func(_ *nats.Conn) {
+			log.Println("Nats server client reconnect")
+		}),
+		nats.ClosedHandler(func(_ *nats.Conn) {
+			log.Println("Nats server client closed")
+			close(chNatsClientClosed)
+		}),
+	)
+
+	return &Server{
+		nc:                 nc,
+		options:            o,
+		chNatsClientClosed: chNatsClientClosed,
+		chStop:             make(chan struct{}),
+	}, nc, err
 }
 
-// Close the siot server
-func (s *Siot) Close() error {
-	if s.dbInst != nil {
-		s.dbInst.Close()
-	}
-	// TODO can add a lot more stuff in here for clean shutdown
-	return nil
-}
-
-// Start Simple IoT data store. The nats connection returned
-// can be used with helper functions in the simpleiot nats package.
-// Note, this function cannot be used directly because we don't
-// checkin the frontend assets for the SIOT web ui. See this
-// example for how you can embed SIOT in your project by adding
-// it as a submodule:
-// https://github.com/simpleiot/custom-application-examples/tree/main/example-1
-func (s *Siot) Start() (*nats.Conn, error) {
-	// =============================================
-	// Start server, default action
-	// =============================================
+// Start the server -- only returns if there is an error
+func (s *Server) Start() error {
+	var g run.Group
 
 	o := s.options
 
@@ -95,7 +114,10 @@ func (s *Siot) Start() (*nats.Conn, error) {
 		}
 	}
 
-	natsOptions := natsserver.Options{
+	// ====================================
+	// Nats server
+	// ====================================
+	natsOptions := natsServerOptions{
 		Port:       o.NatsPort,
 		HTTPPort:   o.NatsHTTPPort,
 		WSPort:     o.NatsWSPort,
@@ -105,82 +127,74 @@ func (s *Siot) Start() (*nats.Conn, error) {
 		TLSTimeout: o.NatsTLSTimeout,
 	}
 
-	var natsServer *server.Server
-
 	if !o.NatsDisableServer {
-		natsServer, err = natsserver.StartNatsServer(natsOptions)
-		if err != nil {
-			return nil, err
-		}
+		g.Add(func() error {
+			s.natsServer, err = startNatsServer(natsOptions)
+			return fmt.Errorf("NATS server error: %v", err)
+		}, func(err error) {
+			s.natsServer.Shutdown()
+		})
 	}
 
-	_ = natsServer
+	// ====================================
+	// Monitor Nats server client
+	// ====================================
+	g.Add(func() error {
+		// block until client exits
+		<-s.chNatsClientClosed
+		return errors.New("Nats server client closed")
+	}, func(error) {
+		s.nc.Close()
+	})
 
+	// ====================================
+	// SIOT Store
+	// ====================================
 	storeParams := store.Params{
 		Type:      o.StoreType,
 		DataDir:   o.DataDir,
 		AuthToken: o.AuthToken,
 		Server:    o.NatsServer,
 		Key:       auth,
+		Nc:        s.nc,
 	}
 
 	siotStore, err := store.NewStore(storeParams)
 
-	if err != nil {
-		return nil, fmt.Errorf("Error starting store: %v", err)
-	}
+	g.Add(siotStore.Start, siotStore.Stop)
 
-	var nc *nats.Conn
+	g.Add(func() error {
+		// allow time for store and init to complete
+		// FIXME, this is a race condition that should be handled with more
+		// concrete orchestration
+		time.Sleep(10 * time.Second)
+		rootNode, err := client.GetNode(s.nc, "root", "")
 
-	// this is a bit of a hack, but we're not sure when the NATS
-	// server will be started, so try several times
-	for i := 0; i < 10; i++ {
-		// FIXME should we get nc with edgeConnect here?
-		nc, err = siotStore.Connect()
 		if err != nil {
-			log.Println("NATS local connect retry: ", i)
-			time.Sleep(500 * time.Millisecond)
-			continue
+			return fmt.Errorf("Error getting root id for metrics: %v", err)
+		} else if len(rootNode) == 0 {
+			return fmt.Errorf("Error getting root node, no data")
 		}
 
-		break
-	}
+		return siotStore.StartMetrics(rootNode[0].ID)
+	}, siotStore.StopMetrics)
 
-	if err != nil {
-		return nil, fmt.Errorf("Error connecting to NATs server: %v", err)
-	}
+	// ====================================
+	// Node client manager
+	// ====================================
+	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
+	g.Add(nodeManager.Start, nodeManager.Stop)
 
-	if nc == nil {
-		return nil, fmt.Errorf("Timeout connecting to NATs server")
-	}
-
-	nodeManager := node.NewManger(nc, o.AppVersion, o.OSVersionField)
-	err = nodeManager.Init()
-	if err != nil {
-		return nil, fmt.Errorf("Error initializing node manager: %v", err)
-	}
-	go nodeManager.Run()
-
-	rootNode, err := client.GetNode(nc, "root", "")
-
-	if err != nil {
-		log.Println("Error getting root id for metrics: ", err)
-	} else if len(rootNode) == 0 {
-		log.Println("Error getting root node, no data")
-	} else {
-
-		err = siotStore.StartMetrics(rootNode[0].ID)
-		if err != nil {
-			log.Println("Error starting nats metrics: ", err)
-		}
-	}
-
+	// ====================================
+	// Particle client
 	// FIXME move this to a node, or get rid of it
+	// ====================================
+
 	if o.ParticleAPIKey != "" {
 		go func() {
 			err := particle.PointReader("sample", o.ParticleAPIKey,
 				func(id string, points data.Points) {
-					err := client.SendNodePoints(nc, id, points, false)
+					err := client.SendNodePoints(s.nc, id, points, false)
 					if err != nil {
 						log.Println("Error getting particle sample: ", err)
 					}
@@ -192,24 +206,38 @@ func (s *Siot) Start() (*nats.Conn, error) {
 		}()
 	}
 
-	go func() {
-		err = api.Server(api.ServerArgs{
-			Port:       o.HTTPPort,
-			NatsWSPort: o.NatsWSPort,
-			GetAsset:   frontend.Asset,
-			Filesystem: frontend.FileSystem(),
-			Debug:      o.DebugHTTP,
-			JwtAuth:    auth,
-			AuthToken:  o.AuthToken,
-			Nc:         nc,
-		})
+	// ====================================
+	// HTTP API
+	// ====================================
+	httpAPI := api.NewServer(api.ServerArgs{
+		Port:       o.HTTPPort,
+		NatsWSPort: o.NatsWSPort,
+		GetAsset:   frontend.Asset,
+		Filesystem: frontend.FileSystem(),
+		Debug:      o.DebugHTTP,
+		JwtAuth:    auth,
+		AuthToken:  o.AuthToken,
+		Nc:         s.nc,
+	})
 
-		if err != nil {
-			log.Fatal("Error starting SIOT HTTP interface: ", err)
-		}
-	}()
+	g.Add(httpAPI.Start, httpAPI.Stop)
 
-	return nc, err
+	// Give us a way to stop the server
+	g.Add(func() error {
+		<-s.chStop
+		return errors.New("Server stopped")
+	}, func(_ error) {
+		// no-op, nothing to stop
+	})
+
+	// now, run all this stuff
+	return g.Run()
+}
+
+// Stop server
+func (s *Server) Stop(err error) {
+	s.nc.Close()
+	close(s.chStop)
 }
 
 var version = "Development"
@@ -601,37 +629,21 @@ func StartArgs(args []string) error {
 		OSVersionField:    osVersionField,
 	}
 
-	siot := NewSiot(o)
+	var g run.Group
 
-	nc, err = siot.Start()
-
-	// this is not used yet
-	_ = nc
+	siot, _, err := NewServer(o)
 
 	if err != nil {
-		log.Fatal("Error starting SIOT store: ", err)
+		siot.Stop(nil)
+		return fmt.Errorf("Error starting server: %v", err)
 	}
 
-	sigs := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
+	g.Add(siot.Start, siot.Stop)
 
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	g.Add(run.SignalHandler(context.Background(),
+		syscall.SIGINT, syscall.SIGTERM))
 
-	go func() {
-		sig := <-sigs
-		log.Println()
-		log.Println(sig)
-		done <- true
-	}()
-
-	log.Println("running ...")
-	<-done
-	// cleanup
-	log.Println("cleaning up ...")
-	siot.Close()
-	log.Println("exiting")
-
-	return nil
+	return g.Run()
 }
 
 func parsePointText(s string) (string, data.Point, error) {

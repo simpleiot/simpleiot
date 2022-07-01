@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"strings"
 	"sync"
 	"time"
@@ -27,16 +26,21 @@ type NewTokener interface {
 
 // Store implements the SIOT NATS api
 type Store struct {
-	server         string
-	Nc             *nats.Conn
-	subNodePoints  *nats.Subscription
-	subEdgePoints  *nats.Subscription
-	db             *Db
-	authToken      string
-	lock           sync.Mutex
-	nodeUpdateLock sync.Mutex
-	updates        map[string]time.Time
-	key            NewTokener
+	server           string
+	nc               *nats.Conn
+	subNodePoints    *nats.Subscription
+	subEdgePoints    *nats.Subscription
+	subNode          *nats.Subscription
+	subChildren      *nats.Subscription
+	subNotifications *nats.Subscription
+	subMessages      *nats.Subscription
+	subAuth          *nats.Subscription
+	db               *Db
+	authToken        string
+	lock             sync.Mutex
+	nodeUpdateLock   sync.Mutex
+	updates          map[string]time.Time
+	key              NewTokener
 
 	// cycle metrics track how long it takes to handle a point
 	metricCycleNodePoint     *client.Metric
@@ -49,7 +53,9 @@ type Store struct {
 	metricPendingNodeEdgePoint *client.Metric
 
 	// influx db stuff
-	influxDbs map[string]*Influx
+	influxDbs     map[string]*Influx
+	chStop        chan struct{}
+	chStopMetrics chan struct{}
 }
 
 // Params are used to configure a store
@@ -59,6 +65,7 @@ type Params struct {
 	AuthToken string
 	Server    string
 	Key       NewTokener
+	Nc        *nats.Conn
 }
 
 // NewStore creates a new NATS client for handling SIOT requests
@@ -70,66 +77,70 @@ func NewStore(p Params) (*Store, error) {
 
 	log.Println("store connecting to nats server: ", p.Server)
 	return &Store{
-		db:        db,
-		authToken: p.AuthToken,
-		updates:   make(map[string]time.Time),
-		server:    p.Server,
-		influxDbs: make(map[string]*Influx),
-		key:       p.Key,
+		db:            db,
+		authToken:     p.AuthToken,
+		updates:       make(map[string]time.Time),
+		server:        p.Server,
+		influxDbs:     make(map[string]*Influx),
+		key:           p.Key,
+		nc:            p.Nc,
+		chStop:        make(chan struct{}),
+		chStopMetrics: make(chan struct{}),
 	}, nil
 }
 
-// Connect to NATS server and set up handlers for things we are interested in
-func (st *Store) Connect() (*nats.Conn, error) {
-	nc, err := nats.Connect(st.server,
-		nats.Timeout(10*time.Second),
-		nats.PingInterval(60*5*time.Second),
-		nats.MaxPingsOutstanding(5),
-		nats.ReconnectBufSize(5*1024*1024),
-		nats.SetCustomDialer(&net.Dialer{
-			KeepAlive: -1,
-		}),
-		nats.Token(st.authToken),
-	)
-
+// Start connects to NATS server and set up handlers for things we are interested in
+func (st *Store) Start() error {
+	var err error
+	st.subNodePoints, err = st.nc.Subscribe("node.*.points", st.handleNodePoints)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
-	st.Nc = nc
-
-	st.subNodePoints, err = nc.Subscribe("node.*.points", st.handleNodePoints)
+	st.subEdgePoints, err = st.nc.Subscribe("node.*.*.points", st.handleEdgePoints)
 	if err != nil {
-		return nil, fmt.Errorf("Subscribe node points error: %w", err)
+		return fmt.Errorf("Subscribe edge points error: %w", err)
 	}
 
-	st.subEdgePoints, err = nc.Subscribe("node.*.*.points", st.handleEdgePoints)
-	if err != nil {
-		return nil, fmt.Errorf("Subscribe edge points error: %w", err)
+	if st.subNode, err = st.nc.Subscribe("node.*", st.handleNode); err != nil {
+		return fmt.Errorf("Subscribe node error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("node.*", st.handleNode); err != nil {
-		return nil, fmt.Errorf("Subscribe node error: %w", err)
+	if st.subChildren, err = st.nc.Subscribe("node.*.children", st.handleNodeChildren); err != nil {
+		return fmt.Errorf("Subscribe node error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("node.*.children", st.handleNodeChildren); err != nil {
-		return nil, fmt.Errorf("Subscribe node error: %w", err)
+	if st.subNotifications, err = st.nc.Subscribe("node.*.not", st.handleNotification); err != nil {
+		return fmt.Errorf("Subscribe notification error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("node.*.not", st.handleNotification); err != nil {
-		return nil, fmt.Errorf("Subscribe notification error: %w", err)
+	if st.subMessages, err = st.nc.Subscribe("node.*.msg", st.handleMessage); err != nil {
+		return fmt.Errorf("Subscribe message error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("node.*.msg", st.handleMessage); err != nil {
-		return nil, fmt.Errorf("Subscribe message error: %w", err)
+	if st.subAuth, err = st.nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
+		return fmt.Errorf("Subscribe auth error: %w", err)
 	}
 
-	if _, err := nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
+	// we don't have node ID yet, but need to init here so we can start
+	// collecting data
+	st.metricCycleNodePoint = client.NewMetric(st.nc, "",
+		data.PointTypeMetricNatsCycleNodePoint, reportMetricsPeriod)
+	st.metricCycleNodeEdgePoint = client.NewMetric(st.nc, "",
+		data.PointTypeMetricNatsCycleNodeEdgePoint, reportMetricsPeriod)
+	st.metricCycleNode = client.NewMetric(st.nc, "",
+		data.PointTypeMetricNatsCycleNode, reportMetricsPeriod)
+	st.metricCycleNodeChildren = client.NewMetric(st.nc, "",
+		data.PointTypeMetricNatsCycleNodeChildren, reportMetricsPeriod)
 
-	}
+	t := time.NewTimer(time.Millisecond)
 
-	go func() {
-		for {
+	for {
+		select {
+		case <-st.chStop:
+			log.Println("Store stopped")
+			return errors.New("Store stopped")
+		case <-t.C:
 			childNodes, err := st.db.nodeDescendents(st.db.rootNodeID(), "", false, false)
 			if err != nil {
 				log.Println("Error getting child nodes to run schedule: ", err)
@@ -141,22 +152,16 @@ func (st *Store) Connect() (*nats.Conn, error) {
 					}
 				}
 			}
-			time.Sleep(time.Second * 5)
+			t.Reset(time.Second * 5)
 		}
-	}()
+	}
 
-	// we don't have node ID yet, but need to init here so we can start
-	// collecting data
-	st.metricCycleNodePoint = client.NewMetric(st.Nc, "",
-		data.PointTypeMetricNatsCycleNodePoint, reportMetricsPeriod)
-	st.metricCycleNodeEdgePoint = client.NewMetric(st.Nc, "",
-		data.PointTypeMetricNatsCycleNodeEdgePoint, reportMetricsPeriod)
-	st.metricCycleNode = client.NewMetric(st.Nc, "",
-		data.PointTypeMetricNatsCycleNode, reportMetricsPeriod)
-	st.metricCycleNodeChildren = client.NewMetric(st.Nc, "",
-		data.PointTypeMetricNatsCycleNodeChildren, reportMetricsPeriod)
+	return nil
+}
 
-	return nc, nil
+// Stop the store
+func (st *Store) Stop(err error) {
+	close(st.chStop)
 }
 
 // StartMetrics for various handling operations. Metrics are sent to the node ID given
@@ -167,13 +172,19 @@ func (st *Store) StartMetrics(nodeID string) error {
 	st.metricCycleNode.SetNodeID(nodeID)
 	st.metricCycleNodeChildren.SetNodeID(nodeID)
 
-	st.metricPendingNodePoint = client.NewMetric(st.Nc, nodeID,
+	st.metricPendingNodePoint = client.NewMetric(st.nc, nodeID,
 		data.PointTypeMetricNatsPendingNodePoint, reportMetricsPeriod)
-	st.metricPendingNodeEdgePoint = client.NewMetric(st.Nc, nodeID,
+	st.metricPendingNodeEdgePoint = client.NewMetric(st.nc, nodeID,
 		data.PointTypeMetricNatsPendingNodeEdgePoint, reportMetricsPeriod)
 
-	go func() {
-		for {
+	t := time.NewTimer(time.Millisecond)
+
+	for {
+		select {
+		case <-st.chStopMetrics:
+			return errors.New("Store stopping metrics")
+
+		case <-t.C:
 			pendingNodePoints, _, err := st.subNodePoints.Pending()
 			if err != nil {
 				log.Println("Error getting pendingNodePoints: ", err)
@@ -193,12 +204,16 @@ func (st *Store) StartMetrics(nodeID string) error {
 			if err != nil {
 				log.Println("Error handling metric: ", err)
 			}
-
-			time.Sleep(time.Second * 10)
+			t.Reset(time.Second * 10)
 		}
-	}()
+	}
 
 	return nil
+}
+
+// StopMetrics ...
+func (st *Store) StopMetrics(_ error) {
+	close(st.chStopMetrics)
 }
 
 func (st *Store) runSchedule(node data.NodeEdge) error {
@@ -229,7 +244,7 @@ func (st *Store) runSchedule(node data.NodeEdge) error {
 func (st *Store) setSwUpdateState(id string, state data.SwUpdateState) error {
 	p := state.Points()
 
-	return client.SendNodePoints(st.Nc, id, p, false)
+	return client.SendNodePoints(st.nc, id, p, false)
 }
 
 // StartUpdate starts an update
@@ -253,7 +268,7 @@ func (st *Store) StartUpdate(id, url string) error {
 	}
 
 	go func() {
-		err := NatsSendFileFromHTTP(st.Nc, id, url, func(bytesTx int) {
+		err := NatsSendFileFromHTTP(st.nc, id, url, func(bytesTx int) {
 			err := st.setSwUpdateState(id, data.SwUpdateState{
 				Running:     true,
 				PercentDone: bytesTx,
@@ -418,7 +433,7 @@ handleNodeDone:
 
 	data, err := proto.Marshal(resp)
 
-	err = st.Nc.Publish(msg.Reply, data)
+	err = st.nc.Publish(msg.Reply, data)
 	if err != nil {
 		log.Println("NATS: Error publishing response to node request: ", err)
 	}
@@ -431,7 +446,7 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 	resp := &pb.NodesRequest{}
 
 	returnNothing := func() {
-		err = st.Nc.Publish(msg.Reply, nil)
+		err = st.nc.Publish(msg.Reply, nil)
 		if err != nil {
 			log.Println("NATS: Error publishing response to auth.user")
 		}
@@ -498,7 +513,7 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 
 	data, err := proto.Marshal(resp)
 
-	err = st.Nc.Publish(msg.Reply, data)
+	err = st.nc.Publish(msg.Reply, data)
 	if err != nil {
 		log.Println("NATS: Error publishing response to node request: ", err)
 	}
@@ -552,7 +567,7 @@ handleNodeChildrenDone:
 		resp.Error = fmt.Sprintf("Error encoding data: %v", err)
 	}
 
-	err = st.Nc.Publish(msg.Reply, data)
+	err = st.nc.Publish(msg.Reply, data)
 
 	if err != nil {
 		log.Println("NATS: Error publishing response to node children request: ", err)
@@ -644,7 +659,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 				continue
 			}
 
-			err = st.Nc.Publish("node."+user.ID+".msg", data)
+			err = st.nc.Publish("node."+user.ID+".msg", data)
 
 			if err != nil {
 				log.Println("Error publishing message: ", err)
@@ -747,7 +762,7 @@ func (st *Store) reply(subject string, err error) {
 		reply = err.Error()
 	}
 
-	st.Nc.Publish(subject, []byte(reply))
+	st.nc.Publish(subject, []byte(reply))
 }
 
 func (st *Store) processRuleNode(ruleNode data.NodeEdge, sourceNodeID string, points []data.Point) error {
@@ -776,31 +791,31 @@ func (st *Store) processRuleNode(ruleNode data.NodeEdge, sourceNodeID string, po
 		return err
 	}
 
-	active, changed, err := ruleProcessPoints(st.Nc, rule, sourceNodeID, points)
+	active, changed, err := ruleProcessPoints(st.nc, rule, sourceNodeID, points)
 
 	if err != nil {
 		log.Println("Error processing rule point: ", err)
 	}
 
 	if active && changed {
-		err := st.ruleRunActions(st.Nc, rule, rule.Actions, sourceNodeID)
+		err := st.ruleRunActions(st.nc, rule, rule.Actions, sourceNodeID)
 		if err != nil {
 			log.Println("Error running rule actions: ", err)
 		}
 
-		err = st.ruleRunInactiveActions(st.Nc, rule.ActionsInactive)
+		err = st.ruleRunInactiveActions(st.nc, rule.ActionsInactive)
 		if err != nil {
 			log.Println("Error running rule inactive actions: ", err)
 		}
 	}
 
 	if !active && changed {
-		err := st.ruleRunActions(st.Nc, rule, rule.ActionsInactive, sourceNodeID)
+		err := st.ruleRunActions(st.nc, rule, rule.ActionsInactive, sourceNodeID)
 		if err != nil {
 			log.Println("Error running rule actions: ", err)
 		}
 
-		err = st.ruleRunInactiveActions(st.Nc, rule.Actions)
+		err = st.ruleRunInactiveActions(st.nc, rule.Actions)
 		if err != nil {
 			log.Println("Error running rule inactive actions: ", err)
 		}
@@ -881,7 +896,7 @@ func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, p
 				fmt.Println("STORE: orphaned node: ", node)
 				if len(edges) < 1 {
 					// create upstream edge
-					err := client.SendEdgePoint(st.Nc, nodeID, "none", data.Point{
+					err := client.SendEdgePoint(st.nc, nodeID, "none", data.Point{
 						Type:  data.PointTypeTombstone,
 						Value: 0,
 					}, false)
@@ -891,7 +906,7 @@ func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, p
 				} else {
 					// undelete existing edge
 					e := edges[0]
-					err := client.SendEdgePoint(st.Nc, e.Down, e.Up, data.Point{
+					err := client.SendEdgePoint(st.nc, e.Down, e.Up, data.Point{
 						Type:  data.PointTypeTombstone,
 						Value: 0,
 					}, false)

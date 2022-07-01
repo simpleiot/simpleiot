@@ -88,9 +88,9 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 
 	fmt.Println("NATS: TLS required: ", nc.TLSRequired())
 
-	nc.SetErrorHandler(func(_ *nats.Conn, _ *nats.Subscription,
+	nc.SetErrorHandler(func(_ *nats.Conn, sub *nats.Subscription,
 		err error) {
-		log.Printf("NATS Error: %s\n", err)
+		log.Printf("NATS Error, sub: %v, err: %s\n", sub.Subject, err)
 	})
 
 	nc.SetReconnectHandler(func(_ *nats.Conn) {
