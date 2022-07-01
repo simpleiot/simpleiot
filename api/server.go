@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sync"
 
 	"github.com/koding/websocketproxy"
 	"github.com/nats-io/nats.go"
@@ -111,8 +112,9 @@ type ServerArgs struct {
 
 // Server represents the HTTP API server
 type Server struct {
-	args ServerArgs
-	ln   net.Listener
+	args   ServerArgs
+	ln     net.Listener
+	lnLock sync.Mutex
 }
 
 // NewServer ..
@@ -127,7 +129,9 @@ func (s *Server) Start() error {
 	address := fmt.Sprintf(":%s", s.args.Port)
 
 	var err error
+	s.lnLock.Lock()
 	s.ln, err = net.Listen("tcp", address)
+	s.lnLock.Unlock()
 	if err != nil {
 		return fmt.Errorf("Error starting api server: %v", err)
 	}
@@ -137,5 +141,7 @@ func (s *Server) Start() error {
 
 // Stop HTTP API
 func (s *Server) Stop(_ error) {
+	s.lnLock.Lock()
+	defer s.lnLock.Unlock()
 	s.ln.Close()
 }

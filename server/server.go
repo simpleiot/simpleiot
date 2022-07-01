@@ -128,11 +128,20 @@ func (s *Server) Start() error {
 	}
 
 	if !o.NatsDisableServer {
+		fmt.Printf("nats server options: %+v\n", natsOptions)
+		s.natsServer, err = newNatsServer(natsOptions)
+		if err != nil {
+			return fmt.Errorf("Error setting up nats server: %v", err)
+		}
+
 		g.Add(func() error {
-			s.natsServer, err = startNatsServer(natsOptions)
-			return fmt.Errorf("NATS server error: %v", err)
+			s.natsServer.Start()
+			fmt.Println("Exited: nats server")
+			return fmt.Errorf("NATS server stopped")
 		}, func(err error) {
+			fmt.Println("CLIFF shutdown nats server, got interrupt error: ", err)
 			s.natsServer.Shutdown()
+			fmt.Println("Shutdown: nats server")
 		})
 	}
 
@@ -142,9 +151,11 @@ func (s *Server) Start() error {
 	g.Add(func() error {
 		// block until client exits
 		<-s.chNatsClientClosed
+		fmt.Println("Exited: nats client")
 		return errors.New("Nats server client closed")
 	}, func(error) {
 		s.nc.Close()
+		fmt.Println("Shutdown: nats client")
 	})
 
 	// ====================================
@@ -161,29 +172,57 @@ func (s *Server) Start() error {
 
 	siotStore, err := store.NewStore(storeParams)
 
-	g.Add(siotStore.Start, siotStore.Stop)
+	g.Add(func() error {
+		err := siotStore.Start()
+		fmt.Println("Exited: store")
+		return err
+	}, func(err error) {
+		siotStore.Stop(err)
+		fmt.Println("Shutdown: store")
+	})
 
+	chStopMetrics := make(chan struct{})
 	g.Add(func() error {
 		// allow time for store and init to complete
 		// FIXME, this is a race condition that should be handled with more
 		// concrete orchestration
-		time.Sleep(10 * time.Second)
+		t := time.NewTimer(10 * time.Second)
+		select {
+		case <-t.C:
+		case <-chStopMetrics:
+		}
+
 		rootNode, err := client.GetNode(s.nc, "root", "")
 
 		if err != nil {
+			fmt.Println("Exited: store metrics")
 			return fmt.Errorf("Error getting root id for metrics: %v", err)
 		} else if len(rootNode) == 0 {
+			fmt.Println("Exited: store metrics")
 			return fmt.Errorf("Error getting root node, no data")
 		}
 
-		return siotStore.StartMetrics(rootNode[0].ID)
-	}, siotStore.StopMetrics)
+		err = siotStore.StartMetrics(rootNode[0].ID)
+		fmt.Println("Exited: store metrics")
+		return err
+	}, func(err error) {
+		close(chStopMetrics)
+		siotStore.StopMetrics(err)
+		fmt.Println("Shutdown: store metrics")
+	})
 
 	// ====================================
 	// Node client manager
 	// ====================================
 	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
-	g.Add(nodeManager.Start, nodeManager.Stop)
+	g.Add(func() error {
+		err := nodeManager.Start()
+		fmt.Println("Exited: node manager")
+		return err
+	}, func(err error) {
+		nodeManager.Stop(err)
+		fmt.Println("Shutdown: node manager")
+	})
 
 	// ====================================
 	// Particle client
@@ -220,14 +259,29 @@ func (s *Server) Start() error {
 		Nc:         s.nc,
 	})
 
-	g.Add(httpAPI.Start, httpAPI.Stop)
+	g.Add(func() error {
+		err := httpAPI.Start()
+		fmt.Println("Exited: http api")
+		return err
+	}, func(err error) {
+		httpAPI.Stop(err)
+		fmt.Println("Shutdown: http api")
+	})
 
 	// Give us a way to stop the server
+	chShutdown := make(chan struct{})
 	g.Add(func() error {
-		<-s.chStop
-		return errors.New("Server stopped")
+		select {
+		case <-s.chStop:
+			fmt.Println("Exited: stop handler")
+			return errors.New("Server stopped")
+		case <-chShutdown:
+			fmt.Println("Exited: stop handler")
+			return nil
+		}
 	}, func(_ error) {
-		// no-op, nothing to stop
+		close(chShutdown)
+		fmt.Println("Shutdown: stop handler")
 	})
 
 	// now, run all this stuff

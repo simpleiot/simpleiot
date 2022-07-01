@@ -18,8 +18,8 @@ type natsServerOptions struct {
 	TLSTimeout float64
 }
 
-// startNatsServer starts a nats server instance.
-func startNatsServer(o natsServerOptions) (*server.Server, error) {
+// newNatsServer creates a new nats server instance
+func newNatsServer(o natsServerOptions) (*server.Server, error) {
 	opts := server.Options{
 		Port:          o.Port,
 		HTTPPort:      o.HTTPPort,
@@ -66,17 +66,12 @@ func startNatsServer(o natsServerOptions) (*server.Server, error) {
 		authEnabled = "yes"
 	}
 
-	log.Printf("Starting NATS server, port: %v, http port: %v, auth enabled: %v\n",
+	log.Printf("NATS server, port: %v, http port: %v, auth enabled: %v\n",
 		o.Port, o.HTTPPort, authEnabled)
 
 	if o.WSPort != 0 {
 		log.Printf("NATS server WS enabled on port: %v\n", o.WSPort)
 	}
-
-	go func() {
-		natsServer.Start()
-		log.Println("NATS server shutting down ...")
-	}()
 
 	return natsServer, nil
 }
