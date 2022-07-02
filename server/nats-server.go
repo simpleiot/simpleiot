@@ -24,6 +24,7 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 		Port:          o.Port,
 		HTTPPort:      o.HTTPPort,
 		Authorization: o.Auth,
+		NoSigs:        true,
 	}
 
 	if o.TLSCert != "" && o.TLSKey != "" {
