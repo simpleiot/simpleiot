@@ -136,10 +136,10 @@ func (s *Server) Start() error {
 
 		g.Add(func() error {
 			s.natsServer.Start()
+			s.natsServer.WaitForShutdown()
 			fmt.Println("Exited: nats server")
 			return fmt.Errorf("NATS server stopped")
 		}, func(err error) {
-			fmt.Println("CLIFF shutdown nats server, got interrupt error: ", err)
 			s.natsServer.Shutdown()
 			fmt.Println("Shutdown: nats server")
 		})
