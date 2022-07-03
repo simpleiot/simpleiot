@@ -34,6 +34,7 @@ type Options struct {
 	DataDir           string
 	HTTPPort          string
 	DebugHTTP         bool
+	DebugLifecycle    bool
 	DisableAuth       bool
 	NatsServer        string
 	NatsDisableServer bool
@@ -100,6 +101,14 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 func (s *Server) Start() error {
 	var g run.Group
 
+	logLS := func(m ...any) {}
+
+	if s.options.DebugLifecycle {
+		logLS = func(m ...any) {
+			log.Println(m...)
+		}
+	}
+
 	o := s.options
 
 	var auth api.Authorizer
@@ -128,7 +137,6 @@ func (s *Server) Start() error {
 	}
 
 	if !o.NatsDisableServer {
-		fmt.Printf("nats server options: %+v\n", natsOptions)
 		s.natsServer, err = newNatsServer(natsOptions)
 		if err != nil {
 			return fmt.Errorf("Error setting up nats server: %v", err)
@@ -137,11 +145,11 @@ func (s *Server) Start() error {
 		g.Add(func() error {
 			s.natsServer.Start()
 			s.natsServer.WaitForShutdown()
-			fmt.Println("Exited: nats server")
+			logLS("LS: Exited: nats server")
 			return fmt.Errorf("NATS server stopped")
 		}, func(err error) {
 			s.natsServer.Shutdown()
-			fmt.Println("Shutdown: nats server")
+			logLS("LS: Shutdown: nats server")
 		})
 	}
 
@@ -151,11 +159,11 @@ func (s *Server) Start() error {
 	g.Add(func() error {
 		// block until client exits
 		<-s.chNatsClientClosed
-		fmt.Println("Exited: nats client")
+		logLS("LS: Exited: nats client")
 		return errors.New("Nats server client closed")
 	}, func(error) {
 		s.nc.Close()
-		fmt.Println("Shutdown: nats client")
+		logLS("LS: Shutdown: nats client")
 	})
 
 	// ====================================
@@ -174,11 +182,11 @@ func (s *Server) Start() error {
 
 	g.Add(func() error {
 		err := siotStore.Start()
-		fmt.Println("Exited: store")
+		logLS("LS: Exited: store")
 		return err
 	}, func(err error) {
 		siotStore.Stop(err)
-		fmt.Println("Shutdown: store")
+		logLS("LS: Shutdown: store")
 	})
 
 	chStopMetrics := make(chan struct{})
@@ -195,20 +203,20 @@ func (s *Server) Start() error {
 		rootNode, err := client.GetNode(s.nc, "root", "")
 
 		if err != nil {
-			fmt.Println("Exited: store metrics")
+			logLS("LS: Exited: store metrics")
 			return fmt.Errorf("Error getting root id for metrics: %v", err)
 		} else if len(rootNode) == 0 {
-			fmt.Println("Exited: store metrics")
+			logLS("LS: Exited: store metrics")
 			return fmt.Errorf("Error getting root node, no data")
 		}
 
 		err = siotStore.StartMetrics(rootNode[0].ID)
-		fmt.Println("Exited: store metrics")
+		logLS("LS: Exited: store metrics")
 		return err
 	}, func(err error) {
 		close(chStopMetrics)
 		siotStore.StopMetrics(err)
-		fmt.Println("Shutdown: store metrics")
+		logLS("LS: Shutdown: store metrics")
 	})
 
 	// ====================================
@@ -217,11 +225,11 @@ func (s *Server) Start() error {
 	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
 	g.Add(func() error {
 		err := nodeManager.Start()
-		fmt.Println("Exited: node manager")
+		logLS("LS: Exited: node manager")
 		return err
 	}, func(err error) {
 		nodeManager.Stop(err)
-		fmt.Println("Shutdown: node manager")
+		logLS("LS: Shutdown: node manager")
 	})
 
 	// ====================================
@@ -240,7 +248,7 @@ func (s *Server) Start() error {
 				})
 
 			if err != nil {
-				fmt.Println("Get returned error: ", err)
+				log.Println("Get returned error: ", err)
 			}
 		}()
 	}
@@ -261,11 +269,11 @@ func (s *Server) Start() error {
 
 	g.Add(func() error {
 		err := httpAPI.Start()
-		fmt.Println("Exited: http api")
+		logLS("LS: Exited: http api")
 		return err
 	}, func(err error) {
 		httpAPI.Stop(err)
-		fmt.Println("Shutdown: http api")
+		logLS("LS: Shutdown: http api")
 	})
 
 	// Give us a way to stop the server
@@ -273,15 +281,15 @@ func (s *Server) Start() error {
 	g.Add(func() error {
 		select {
 		case <-s.chStop:
-			fmt.Println("Exited: stop handler")
+			logLS("LS: Exited: stop handler")
 			return errors.New("Server stopped")
 		case <-chShutdown:
-			fmt.Println("Exited: stop handler")
+			logLS("LS: Exited: stop handler")
 			return nil
 		}
 	}, func(_ error) {
 		close(chShutdown)
-		fmt.Println("Shutdown: stop handler")
+		logLS("LS: Shutdown: stop handler")
 	})
 
 	// now, run all this stuff
@@ -307,6 +315,7 @@ func StartArgs(args []string) error {
 
 	// configuration options
 	flagDebugHTTP := flags.Bool("debugHttp", false, "Dump http requests")
+	flagDebugLifecycle := flags.Bool("debugLifecycle", false, "Debug program lifecycle")
 	flagSim := flags.Bool("sim", false, "Start node simulator")
 	flagDisableAuth := flags.Bool("disableAuth", false, "Disable user auth (used for development)")
 	flagPortal := flags.String("portal", "http://localhost:8080", "Portal URL")
@@ -341,7 +350,8 @@ func StartArgs(args []string) error {
 		fmt.Printf("SimpleIOT %v\n", version)
 		os.Exit(0)
 	}
-	fmt.Printf("SimpleIOT %v\n", version)
+
+	log.Printf("SimpleIOT %v\n", version)
 
 	// set up local database
 	dataDir := os.Getenv("SIOT_DATA")
@@ -668,6 +678,7 @@ func StartArgs(args []string) error {
 		DataDir:           dataDir,
 		HTTPPort:          port,
 		DebugHTTP:         *flagDebugHTTP,
+		DebugLifecycle:    *flagDebugLifecycle,
 		DisableAuth:       *flagDisableAuth,
 		NatsServer:        natsServer,
 		NatsDisableServer: *flagNatsDisableServer,
