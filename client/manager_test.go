@@ -35,7 +35,8 @@ func (tnc *testNodeClient) Stop() {
 }
 
 func TestManager(t *testing.T) {
-	nc, stop, err := test.Server()
+	nc, root, stop, err := test.Server()
+	_ = nc
 
 	if err != nil {
 		t.Fatal("Error starting test server: ", err)
@@ -43,17 +44,12 @@ func TestManager(t *testing.T) {
 
 	defer stop()
 
-	nodes, err := client.GetNode(nc, "root", "")
-
-	if err != nil {
-		t.Fatal("Error getting root node: ", err)
-	}
-
-	log.Println("CLIFF: rootnodes: ", nodes)
+	log.Println("CLIFF: rootnode: ", root)
 }
 
 func TestManager2(t *testing.T) {
-	nc, stop, err := test.Server()
+	nc, root, stop, err := test.Server()
+	_ = nc
 
 	if err != nil {
 		t.Fatal("Error starting test server: ", err)
@@ -61,11 +57,5 @@ func TestManager2(t *testing.T) {
 
 	defer stop()
 
-	nodes, err := client.GetNode(nc, "root", "")
-
-	if err != nil {
-		t.Fatal("Error getting root node: ", err)
-	}
-
-	log.Println("CLIFF: rootnodes: ", nodes)
+	log.Println("CLIFF: rootnode: ", root)
 }
