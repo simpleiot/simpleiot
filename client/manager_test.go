@@ -1,16 +1,13 @@
 package client_test
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"testing"
-	"time"
 
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/server"
-	"github.com/simpleiot/simpleiot/store"
+	"github.com/simpleiot/simpleiot/test"
 )
 
 type testNode struct {
@@ -37,41 +34,14 @@ func (tnc *testNodeClient) Run(c <-chan data.Point) {
 func (tnc *testNodeClient) Stop() {
 }
 
-var testServerOptions = server.Options{
-	StoreType:    store.StoreTypeMemory,
-	NatsPort:     4990,
-	HTTPPort:     "8990",
-	NatsHTTPPort: 8991,
-	NatsWSPort:   8992,
-	NatsServer:   "nats://localhost:4990",
-}
-
 func TestManager(t *testing.T) {
-	s, nc, err := server.NewServer(testServerOptions)
+	nc, stop, err := test.Server()
 
 	if err != nil {
-		t.Fatal("Error starting siot server: ", err)
+		t.Fatal("Error starting test server: ", err)
 	}
 
-	stopped := make(chan struct{})
-
-	go func() {
-		err := s.Start()
-		log.Println("Server start returned: ", err)
-		close(stopped)
-	}()
-
-	defer func() {
-		s.Stop(nil)
-		<-stopped
-	}()
-
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
-	err = s.WaitStart(ctx)
-
-	if err != nil {
-		t.Fatal("Error waiting for server to start: ", err)
-	}
+	defer stop()
 
 	nodes, err := client.GetNode(nc, "root", "")
 
@@ -83,23 +53,19 @@ func TestManager(t *testing.T) {
 }
 
 func TestManager2(t *testing.T) {
-	/*
-		s, nc, err := test.StartServer()
-		defer s.Stop()
+	nc, stop, err := test.Server()
 
-		if err != nil {
-			t.Fatal("Test server failed to start: ", err)
-		}
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
 
-		nodes, err := client.GetNode(nc, "root", "")
+	defer stop()
 
-		if err != nil {
-			t.Fatal("Error getting root node: ", err)
-		}
+	nodes, err := client.GetNode(nc, "root", "")
 
-		log.Println("CLIFF: rootnodes: ", nodes)
+	if err != nil {
+		t.Fatal("Error getting root node: ", err)
+	}
 
-		m := client.NewManager("rootid", newTestNodeClient)
-		_ = m
-	*/
+	log.Println("CLIFF: rootnodes: ", nodes)
 }
