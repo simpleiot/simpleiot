@@ -16,6 +16,9 @@ Bug fix release (PR #369)
 - Fix invalid users causes panic in Go code #365
 - implement data.Decode/Encode for converting nodes to user structs #384
 - improve startup/shutdown lifecycle #389
+- implemented struct <-> type
+  [encode/decode](https://github.com/simpleiot/simpleiot/blob/master/data/encode_decode_test.go)
+  functions.
 
 ## [[0.2.0] - 2022-05-31](https://github.com/simpleiot/simpleiot/releases/tag/v0.2.0)
 
