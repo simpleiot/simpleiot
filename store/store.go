@@ -168,8 +168,6 @@ func (st *Store) Start() error {
 			t.Reset(time.Second * 5)
 		}
 	}
-
-	return nil
 }
 
 // Stop the store
@@ -195,8 +193,6 @@ func (st *Store) WaitStart(ctx context.Context) error {
 	case <-wait:
 		return nil
 	}
-
-	return nil
 }
 
 // StartMetrics for various handling operations. Metrics are sent to the node ID given
@@ -242,8 +238,6 @@ func (st *Store) StartMetrics(nodeID string) error {
 			t.Reset(time.Second * 10)
 		}
 	}
-
-	return nil
 }
 
 // StopMetrics ...

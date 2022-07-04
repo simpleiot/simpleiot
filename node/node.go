@@ -179,8 +179,6 @@ func (m *Manager) Start() error {
 		}
 	}
 
-	return nil
-
 	/* the following code needs redone, so commenting out for now
 	for {
 		// TODO: this will not scale and needs to be made event driven

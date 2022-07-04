@@ -344,8 +344,6 @@ func (s *Server) WaitStart(ctx context.Context) error {
 	case <-wait:
 		return nil
 	}
-
-	return nil
 }
 
 var version = "Development"
