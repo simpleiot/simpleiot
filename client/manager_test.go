@@ -2,12 +2,10 @@ package client_test
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/test"
 )
 
 type testNode struct {
@@ -35,41 +33,45 @@ func (tnc *testNodeClient) Stop() {
 }
 
 func TestManager(t *testing.T) {
-	s, nc, err := test.StartServer()
-	defer s.Stop()
+	/*
+		s, nc, err := test.StartServer()
+		defer s.Stop()
 
-	if err != nil {
-		t.Fatal("Test server failed to start: ", err)
-	}
+		if err != nil {
+			t.Fatal("Test server failed to start: ", err)
+		}
 
-	nodes, err := client.GetNode(nc, "root", "")
+		nodes, err := client.GetNode(nc, "root", "")
 
-	if err != nil {
-		t.Fatal("Error getting root node: ", err)
-	}
+		if err != nil {
+			t.Fatal("Error getting root node: ", err)
+		}
 
-	log.Println("CLIFF: rootnodes: ", nodes)
+		log.Println("CLIFF: rootnodes: ", nodes)
 
-	m := client.NewManager("rootid", newTestNodeClient)
-	_ = m
+		m := client.NewManager("rootid", newTestNodeClient)
+		_ = m
+	*/
 }
 
 func TestManager2(t *testing.T) {
-	s, nc, err := test.StartServer()
-	defer s.Stop()
+	/*
+		s, nc, err := test.StartServer()
+		defer s.Stop()
 
-	if err != nil {
-		t.Fatal("Test server failed to start: ", err)
-	}
+		if err != nil {
+			t.Fatal("Test server failed to start: ", err)
+		}
 
-	nodes, err := client.GetNode(nc, "root", "")
+		nodes, err := client.GetNode(nc, "root", "")
 
-	if err != nil {
-		t.Fatal("Error getting root node: ", err)
-	}
+		if err != nil {
+			t.Fatal("Error getting root node: ", err)
+		}
 
-	log.Println("CLIFF: rootnodes: ", nodes)
+		log.Println("CLIFF: rootnodes: ", nodes)
 
-	m := client.NewManager("rootid", newTestNodeClient)
-	_ = m
+		m := client.NewManager("rootid", newTestNodeClient)
+		_ = m
+	*/
 }
