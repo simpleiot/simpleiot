@@ -72,8 +72,8 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		}),
 		nats.Token(o.AuthToken),
 		nats.RetryOnFailedConnect(true),
-		nats.MaxReconnects(5),
-		nats.ReconnectWait(time.Second*3),
+		nats.MaxReconnects(60),
+		nats.ReconnectWait(time.Millisecond*250),
 		nats.ErrorHandler(func(_ *nats.Conn,
 			sub *nats.Subscription, err error) {
 			log.Printf("NATS server client error, sub: %v, err: %s\n", sub.Subject, err)
