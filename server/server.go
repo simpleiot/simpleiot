@@ -232,29 +232,12 @@ func (s *Server) Start() error {
 	// Node client manager
 	// ====================================
 	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
-	nodeManagerCtx, nodeManagerCancel := context.WithTimeout(context.Background(),
-		time.Second*10)
 
 	g.Add(func() error {
-		err := siotStore.WaitStart(nodeManagerCtx)
-		if err != nil {
-			logLS("LS: Exited: node manager")
-			return err
-		}
-
-		// signal that the server is started
-		s.startedLock.Lock()
-		s.started = true
-		for _, c := range s.wait {
-			close(c)
-		}
-		s.startedLock.Unlock()
-
 		err = nodeManager.Start()
 		logLS("LS: Exited: node manager")
 		return err
 	}, func(err error) {
-		nodeManagerCancel()
 		nodeManager.Stop(err)
 		logLS("LS: Shutdown: node manager")
 	})
@@ -304,8 +287,25 @@ func (s *Server) Start() error {
 	})
 
 	// Give us a way to stop the server
+	nodeManagerCtx, nodeManagerCancel := context.WithTimeout(context.Background(),
+		time.Second*10)
+
 	chShutdown := make(chan struct{})
 	g.Add(func() error {
+		err := nodeManager.WaitStart(nodeManagerCtx)
+		if err != nil {
+			logLS("LS: Exited: node manager")
+			return err
+		}
+
+		// signal that the server is started
+		s.startedLock.Lock()
+		s.started = true
+		for _, c := range s.wait {
+			close(c)
+		}
+		s.startedLock.Unlock()
+
 		select {
 		case <-s.chStop:
 			logLS("LS: Exited: stop handler")
@@ -315,6 +315,7 @@ func (s *Server) Start() error {
 			return nil
 		}
 	}, func(_ error) {
+		nodeManagerCancel()
 		close(chShutdown)
 		logLS("LS: Shutdown: stop handler")
 	})
