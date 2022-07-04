@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -57,6 +58,11 @@ type Server struct {
 	natsServer         *server.Server
 	chNatsClientClosed chan struct{}
 	chStop             chan struct{}
+
+	// sync stuff
+	startedLock sync.Mutex
+	started     bool
+	wait        []chan struct{}
 }
 
 // NewServer creates a new server
@@ -189,15 +195,14 @@ func (s *Server) Start() error {
 		logLS("LS: Shutdown: store")
 	})
 
-	chStopMetrics := make(chan struct{})
+	metricsCtx, metricsCancel := context.WithTimeout(context.Background(),
+		time.Second*10)
+
 	g.Add(func() error {
-		// allow time for store and init to complete
-		// FIXME, this is a race condition that should be handled with more
-		// concrete orchestration
-		t := time.NewTimer(10 * time.Second)
-		select {
-		case <-t.C:
-		case <-chStopMetrics:
+		err := siotStore.WaitStart(metricsCtx)
+		if err != nil {
+			logLS("LS: Exited: node manager")
+			return err
 		}
 
 		rootNode, err := client.GetNode(s.nc, "root", "")
@@ -214,7 +219,7 @@ func (s *Server) Start() error {
 		logLS("LS: Exited: store metrics")
 		return err
 	}, func(err error) {
-		close(chStopMetrics)
+		metricsCancel()
 		siotStore.StopMetrics(err)
 		logLS("LS: Shutdown: store metrics")
 	})
@@ -223,11 +228,29 @@ func (s *Server) Start() error {
 	// Node client manager
 	// ====================================
 	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
+	nodeManagerCtx, nodeManagerCancel := context.WithTimeout(context.Background(),
+		time.Second*10)
+
 	g.Add(func() error {
-		err := nodeManager.Start()
+		err := siotStore.WaitStart(nodeManagerCtx)
+		if err != nil {
+			logLS("LS: Exited: node manager")
+			return err
+		}
+
+		// signal that the server is started
+		s.startedLock.Lock()
+		s.started = true
+		for _, c := range s.wait {
+			close(c)
+		}
+		s.startedLock.Unlock()
+
+		err = nodeManager.Start()
 		logLS("LS: Exited: node manager")
 		return err
 	}, func(err error) {
+		nodeManagerCancel()
 		nodeManager.Stop(err)
 		logLS("LS: Shutdown: node manager")
 	})
@@ -300,6 +323,29 @@ func (s *Server) Start() error {
 func (s *Server) Stop(err error) {
 	s.nc.Close()
 	close(s.chStop)
+}
+
+// WaitStart waits for server to start. Clients should wait for this
+// to complete before trying to fetch nodes, etc.
+func (s *Server) WaitStart(ctx context.Context) error {
+	s.startedLock.Lock()
+	if s.started {
+		s.startedLock.Unlock()
+		return nil
+	}
+
+	wait := make(chan struct{})
+	s.wait = append(s.wait, wait)
+	s.startedLock.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return errors.New("server wait timeout or canceled")
+	case <-wait:
+		return nil
+	}
+
+	return nil
 }
 
 var version = "Development"
@@ -707,6 +753,21 @@ func StartArgs(args []string) error {
 
 	g.Add(run.SignalHandler(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM))
+
+	// add check to make sure server started
+	chStartCheck := make(chan struct{})
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*9)
+	g.Add(func() error {
+		err := siot.WaitStart(ctx)
+		if err != nil {
+			return errors.New("Timeout waiting for SIOT to start")
+		}
+		<-chStartCheck
+		return nil
+	}, func(err error) {
+		cancel()
+		close(chStartCheck)
+	})
 
 	return g.Run()
 }

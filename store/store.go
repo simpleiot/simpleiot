@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -56,6 +57,11 @@ type Store struct {
 	influxDbs     map[string]*Influx
 	chStop        chan struct{}
 	chStopMetrics chan struct{}
+
+	// sync stuff
+	startedLock sync.Mutex
+	started     bool
+	wait        []chan struct{}
 }
 
 // Params are used to configure a store
@@ -133,6 +139,13 @@ func (st *Store) Start() error {
 	st.metricCycleNodeChildren = client.NewMetric(st.nc, "",
 		data.PointTypeMetricNatsCycleNodeChildren, reportMetricsPeriod)
 
+	st.startedLock.Lock()
+	st.started = true
+	for _, c := range st.wait {
+		close(c)
+	}
+	st.startedLock.Unlock()
+
 	t := time.NewTimer(time.Millisecond)
 
 	for {
@@ -162,6 +175,28 @@ func (st *Store) Start() error {
 // Stop the store
 func (st *Store) Stop(err error) {
 	close(st.chStop)
+}
+
+// WaitStart waits for store to start
+func (st *Store) WaitStart(ctx context.Context) error {
+	st.startedLock.Lock()
+	if st.started {
+		st.startedLock.Unlock()
+		return nil
+	}
+
+	wait := make(chan struct{})
+	st.wait = append(st.wait, wait)
+	st.startedLock.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return errors.New("Store wait timeout or canceled")
+	case <-wait:
+		return nil
+	}
+
+	return nil
 }
 
 // StartMetrics for various handling operations. Metrics are sent to the node ID given
