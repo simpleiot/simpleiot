@@ -29,6 +29,31 @@ upstream instances.
 
 ![application architecture](images/arch-app.png)
 
+## Application Lifecycle
+
+Simple IoT uses the
+[`Start()/Stop()`](https://community.tmpdir.org/t/structuring-go-apps-for-testing-and-lifecycle-management-the-start-stop-pattern/550)
+pattern for any long running processes. With any long running process, it is
+important to not only Start it, but also to be able to cleanly Stop it. This is
+important for testing, but is also good practice. Nothing runs forever so we
+should never operate under this illusion. The
+[oklog/run](https://github.com/oklog/run) packaged is used to start and shutdown
+these processes concurrently. Dependencies between processes should be minimized
+where possible through retries. If there are hard dependencies, these can be
+managed with `WaitStart()/WaitStop()` functions. See
+[`server.go`](https://github.com/simpleiot/simpleiot/blob/master/server/server.go)
+for an example.
+
+NATS lends itself very well to a decoupled application architecture because the
+NATS clients will buffer messages for some time until the server is available.
+Thus we can start all the processes that use a NATS client without waiting for
+the server to be available first.
+
+Long term, a NATS API that indicates the status of various parts (rules engine,
+etc.) of the system would be beneficial. If there are dependencies between
+processes, this can be managed inside the process instead of in the code that
+starts/stops the processes.
+
 ## User Interface
 
 Currently, the User Interface is implemented using a Single Page Architecture

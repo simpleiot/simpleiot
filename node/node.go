@@ -2,6 +2,7 @@ package node
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"text/template"
@@ -24,6 +25,7 @@ type Manager struct {
 	upstreamManager *UpstreamManager
 	rootNodeID      string
 	oneWireManager  *oneWireManager
+	chStop          chan struct{}
 }
 
 // NewManger creates a new Manager
@@ -32,11 +34,12 @@ func NewManger(nc *nats.Conn, appVersion, osVersionField string) *Manager {
 		nc:             nc,
 		appVersion:     appVersion,
 		osVersionField: osVersionField,
+		chStop:         make(chan struct{}),
 	}
 }
 
 // Init initializes the tree root node and default admin if needed
-func (m *Manager) Init() error {
+func (m *Manager) init() error {
 	rootNodes, err := client.GetNode(m.nc, "root", "")
 
 	var rootNode data.NodeEdge
@@ -148,12 +151,21 @@ func (m *Manager) Init() error {
 	return nil
 }
 
-// Run manager
-func (m *Manager) Run() {
-	go func() {
-		// TODO: this will not scale and needs to be made event driven
-		// on the creation of new nodes
-		for {
+// Start manager
+func (m *Manager) Start() error {
+	if err := m.init(); err != nil {
+		return fmt.Errorf("Error initializing nodes: %v", err)
+	}
+
+	t := time.NewTimer(time.Millisecond)
+
+	// TODO: this will not scale and needs to be made event driven
+	// on the creation of new nodes
+	for {
+		select {
+		case <-m.chStop:
+			return errors.New("node manager stopping")
+		case <-t.C:
 			if m.modbusManager != nil {
 				m.modbusManager.Update()
 			}
@@ -163,11 +175,9 @@ func (m *Manager) Run() {
 			if m.oneWireManager != nil {
 				m.oneWireManager.update()
 			}
-			time.Sleep(10 * time.Second)
+			t.Reset(time.Second * 20)
 		}
-	}()
-
-	select {}
+	}
 
 	/* the following code needs redone, so commenting out for now
 	for {
@@ -199,6 +209,11 @@ func (m *Manager) Run() {
 		time.Sleep(30 * time.Second)
 	}
 	*/
+}
+
+// Stop manager
+func (m *Manager) Stop(_ error) {
+	close(m.chStop)
 }
 
 type nodeTemplateData struct {
