@@ -21,7 +21,9 @@ type Manager[T any] struct {
 	clients []Client
 }
 
-// NewManager ...
+// NewManager takes constructor for a node client and returns a Manager for that client
+// The Node Type is inferred from the Go type passed in, so you must name Go client
+// Types to manage the node type definitions.
 func NewManager[T any](nc *nats.Conn, root string,
 	construct func(nc *nats.Conn, config T) Client) *Manager[T] {
 	var x T
@@ -30,7 +32,9 @@ func NewManager[T any](nc *nats.Conn, root string,
 	return &Manager[T]{nc: nc, root: root, nodeType: nodeType, construct: construct}
 }
 
-// Start node manager
+// Start node manager. This function looks for children of a certain node type.
+// When new nodes are found, the data is decoded into the client type config, and the
+// constructor for the node client is called.
 func (m *Manager[T]) Start() error {
 	children, err := GetNodeChildren(m.nc, m.root, m.nodeType, false, false)
 
