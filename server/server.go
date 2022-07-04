@@ -197,12 +197,23 @@ func (s *Server) Start() error {
 
 	metricsCtx, metricsCancel := context.WithTimeout(context.Background(),
 		time.Second*10)
+	cancelTimer := make(chan struct{})
 
 	g.Add(func() error {
 		err := siotStore.WaitStart(metricsCtx)
 		if err != nil {
 			logLS("LS: Exited: node manager")
 			return err
+		}
+
+		// Hack -- this needs moved to a client
+		t := time.NewTimer(10 * time.Second)
+
+		select {
+		case <-t.C:
+		case <-cancelTimer:
+			logLS("LS: Exited: store metrics")
+			return nil
 		}
 
 		rootNode, err := client.GetNode(s.nc, "root", "")
@@ -220,6 +231,7 @@ func (s *Server) Start() error {
 		return err
 	}, func(err error) {
 		metricsCancel()
+		close(cancelTimer)
 		siotStore.StopMetrics(err)
 		logLS("LS: Shutdown: store metrics")
 	})
