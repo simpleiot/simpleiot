@@ -14,29 +14,47 @@ import (
 )
 
 type testNode struct {
+	ID          string `node:"id"`
 	Description string `point:"description"`
 	Port        int    `point:"port"`
 }
 
 type testNodeClient struct {
-	nc      *nats.Conn
-	config  testNode
-	stop    chan struct{}
-	stopped chan struct{}
+	nc          *nats.Conn
+	config      testNode
+	stop        chan struct{}
+	stopped     chan struct{}
+	newPoints   chan []data.Point
+	chGetConfig chan chan testNode
 }
 
 func newTestNodeClient(nc *nats.Conn, config testNode) *testNodeClient {
 	return &testNodeClient{
-		nc:      nc,
-		config:  config,
-		stop:    make(chan struct{}),
-		stopped: make(chan struct{}),
+		nc:          nc,
+		config:      config,
+		stop:        make(chan struct{}),
+		stopped:     make(chan struct{}),
+		newPoints:   make(chan []data.Point),
+		chGetConfig: make(chan chan testNode),
 	}
 }
 
 func (tnc *testNodeClient) Start() error {
-	<-tnc.stop
-	close(tnc.stopped)
+	for {
+		select {
+		case <-tnc.stop:
+			close(tnc.stopped)
+			return nil
+		case pts := <-tnc.newPoints:
+			err := data.MergePoints(pts, &tnc.config)
+			if err != nil {
+				log.Println("error merging new points: ", err)
+			}
+		case ch := <-tnc.chGetConfig:
+			ch <- tnc.config
+		}
+	}
+
 	return nil
 }
 
@@ -45,6 +63,13 @@ func (tnc *testNodeClient) Stop(err error) {
 }
 
 func (tnc *testNodeClient) Update(points []data.Point) {
+	tnc.newPoints <- points
+}
+
+func (tnc *testNodeClient) getConfig() testNode {
+	result := make(chan testNode)
+	tnc.chGetConfig <- result
+	return <-result
 }
 
 func TestManager(t *testing.T) {
@@ -55,20 +80,9 @@ func TestManager(t *testing.T) {
 		t.Fatal("Error starting test server: ", err)
 	}
 
-	var testClient *testNodeClient
-	var testClientLock sync.Mutex
-
-	// wrap newTestNodeClient so we can stash a link to testClient
-	var newTestNodeClientWrapper = func(nc *nats.Conn, config testNode) client.Client {
-		testClientLock.Lock()
-		defer testClientLock.Unlock()
-		testClient = newTestNodeClient(nc, config)
-		return testClient
-	}
-
 	defer stop()
 
-	ne, err := data.Encode(testNode{"fancy test node", 8080})
+	ne, err := data.Encode(testNode{"", "fancy test node", 8080})
 	if err != nil {
 		t.Fatal("Error encoding node: ", err)
 	}
@@ -82,6 +96,19 @@ func TestManager(t *testing.T) {
 		t.Fatal("Error sending node: ", err)
 	}
 
+	var testClient *testNodeClient
+	var testClientLock sync.Mutex
+
+	// wrap newTestNodeClient so we can stash a link to testClient
+	var newTestNodeClientWrapper = func(nc *nats.Conn, config testNode) client.Client {
+		testClientLock.Lock()
+		defer testClientLock.Unlock()
+		testClient = newTestNodeClient(nc, config)
+		return testClient
+	}
+
+	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
+	// root and if it finds any, it instantiates a new client, and sends point updates to it
 	m := client.NewManager[testNode](nc, root.ID, newTestNodeClientWrapper)
 
 	managerStopped := make(chan struct{})
@@ -113,6 +140,19 @@ func TestManager(t *testing.T) {
 		t.Fatal("Test client not created")
 	}
 
+	// Test point updates
+	modifiedDescription := "updated description"
+
+	err = client.SendNodePoint(nc, testClient.config.ID,
+		data.Point{Type: "description", Text: modifiedDescription}, true)
+
+	time.Sleep(10 * time.Millisecond)
+
+	if testClient.getConfig().Description != modifiedDescription {
+		t.Error("Description not modified")
+	}
+
+	// Shutdown
 	m.Stop(nil)
 
 	select {

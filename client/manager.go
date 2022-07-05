@@ -13,19 +13,22 @@ import (
 // Manager manages a node type, watches for changes, adds/removes instances that get
 // added/deleted
 type Manager[T any] struct {
+	// initial state
 	nc        *nats.Conn
 	root      string
 	nodeType  string
 	construct func(*nats.Conn, T) Client
 
-	nodes   []data.NodeEdge
-	clients []Client
-
-	lock sync.Mutex
-
-	stop chan struct{}
-
+	// synchronization fields
+	stop      chan struct{}
 	clientsWG sync.WaitGroup
+
+	// The following state data is protected by the lock Mutex and must be locked
+	// before accessing
+	lock          sync.Mutex
+	nodes         map[string]data.NodeEdge
+	clients       map[string]Client
+	subscriptions map[string]*nats.Subscription
 }
 
 // NewManager takes constructor for a node client and returns a Manager for that client
@@ -37,11 +40,14 @@ func NewManager[T any](nc *nats.Conn, root string,
 	nodeType := reflect.TypeOf(x).Name()
 
 	return &Manager[T]{
-		nc:        nc,
-		root:      root,
-		nodeType:  nodeType,
-		construct: construct,
-		stop:      make(chan struct{}),
+		nc:            nc,
+		root:          root,
+		nodeType:      nodeType,
+		construct:     construct,
+		stop:          make(chan struct{}),
+		nodes:         make(map[string]data.NodeEdge),
+		clients:       make(map[string]Client),
+		subscriptions: make(map[string]*nats.Subscription),
 	}
 }
 
@@ -58,7 +64,7 @@ func (m *Manager[T]) Start() error {
 	m.lock.Lock()
 	// create nodes
 	for _, n := range children {
-		m.nodes = append(m.nodes, n)
+		m.nodes[n.ID] = n
 
 		var config T
 
@@ -69,19 +75,34 @@ func (m *Manager[T]) Start() error {
 		}
 
 		client := m.construct(m.nc, config)
-		m.clients = append(m.clients, client)
-	}
+		m.clients[n.ID] = client
 
-	for _, c := range m.clients {
-		go func() {
+		func(client Client) {
+			sub, err := m.nc.Subscribe("node."+n.ID+".points", func(msg *nats.Msg) {
+				points, err := data.PbDecodePoints(msg.Data)
+				if err != nil {
+					// FIXME, send over channel
+					log.Println("Error decoding node data: ", err)
+					return
+				}
+				client.Update(points)
+
+			})
+			if err != nil {
+				log.Println("client manager sub error: ", err)
+				return
+			}
+			m.subscriptions[n.ID] = sub
+		}(client)
+
+		go func(client Client) {
 			m.clientsWG.Add(1)
-			err := c.Start()
+			err := client.Start()
 			if err != nil {
 				log.Println("Node client returned error: ", err)
 			}
 			m.clientsWG.Done()
-		}()
-		c.Update(nil)
+		}(client)
 	}
 	m.lock.Unlock()
 
