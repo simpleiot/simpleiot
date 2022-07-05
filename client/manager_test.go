@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"fmt"
 	"log"
 	"sync"
 	"testing"
@@ -85,10 +86,12 @@ func TestManager(t *testing.T) {
 
 	managerStopped := make(chan struct{})
 
+	startErr := make(chan error)
+
 	go func() {
 		err = m.Start()
 		if err != nil {
-			t.Fatal("manager start returned error: ", err)
+			startErr <- fmt.Errorf("manager start returned error: %v", err)
 		}
 
 		close(managerStopped)
@@ -126,6 +129,12 @@ func TestManager(t *testing.T) {
 		t.Fatal("manager did not stop")
 	}
 
+	select {
+	case <-startErr:
+		t.Fatal("Manager start returned an error: ", err)
+	default:
+		// all is well
+	}
 }
 
 func TestManager2(t *testing.T) {
