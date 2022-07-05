@@ -33,36 +33,28 @@ func (ds *dataSource) Read(data []byte) (int, error) {
 	return 0, nil
 }
 
-// the below test illustrates out the goroutine in the reader will close if you close
-// the underlying file descriptor.
-func TestReadCloser(t *testing.T) {
-	fifo := "rrfifo"
+// the below test shows using a fifo with respreader
+func TestWithFifo(t *testing.T) {
+	fifo := "rrfifoo"
 	os.Remove(fifo)
 	err := exec.Command("mkfifo", fifo).Run()
 	if err != nil {
 		t.Error("mkfifo returned: ", err)
 	}
 
-	fmt.Println("Fifo created")
+	testString := "hi there"
+	done := make(chan struct{})
 
-	done := make(chan bool)
+	// need to open RDWR or open will block until fifo is opened for writing
+	fread, err := os.OpenFile(fifo, os.O_RDWR, 0600)
+	if err != nil {
+		t.Fatal("Error opening fifo: ", err)
+	}
+	reader := NewReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
 
-	go func(done chan bool) {
-		fread, err := os.OpenFile(fifo, os.O_RDONLY, 0600)
-		if err != nil {
-			t.Error("Error opening fifo: ", err)
-		}
-
-		reader := NewReadWriteCloser(fread, 2*time.Second, 50*time.Millisecond)
-
-		fmt.Println("reader created")
-
-		fmt.Println("read thread")
-		closed := false
+	// read function
+	go func() {
 		for {
-			if closed {
-				break
-			}
 			rdata := make([]byte, 128)
 			c, err := reader.Read(rdata)
 			if err == io.EOF {
@@ -72,45 +64,85 @@ func TestReadCloser(t *testing.T) {
 			if err != nil {
 				t.Error("Read error: ", err)
 			}
-			fmt.Println("read count: ", c)
-			if !closed {
-				go func() {
-					time.Sleep(20 * time.Millisecond)
-					fmt.Println("closing read file")
-					reader.Close()
-					closed = true
-				}()
+			if c > 0 {
+				rdata = rdata[:c]
+				if string(rdata) == testString {
+					close(done)
+					break
+				}
 			}
 		}
-
-		done <- true
-	}(done)
-
-	time.Sleep(20 * time.Millisecond)
+	}()
 
 	fwrite, err := os.OpenFile(fifo, os.O_WRONLY, 0644)
 	if err != nil {
-		t.Error("Error opening file for writing: ", err)
+		t.Fatal("Error opening file for writing: ", err)
 	}
 
-	c, err := fwrite.Write([]byte("Hi there"))
+	_, err = fwrite.Write([]byte(testString))
 
 	if err != nil {
 		t.Error("Write error: ", err)
 	}
 
-	fmt.Printf("Wrote %v bytes\n", c)
+	select {
+	case <-time.After(time.Second):
+		t.Error("Timeout waiting for read to complete")
+	case <-done:
+		// all is well
+	}
 
-	<-done
-
-	fmt.Println("removing fifo")
+	fwrite.Close()
+	fread.Close()
 
 	err = os.Remove(fifo)
 	if err != nil {
 		t.Error("Error removing fifo")
 	}
+}
 
-	fmt.Println("test all done")
+// the below test illustrates out the goroutine in the reader will close if you close
+// the underlying file descriptor.
+func TestReadCloser(t *testing.T) {
+	fifo := "rrfifoo"
+	os.Remove(fifo)
+	err := exec.Command("mkfifo", fifo).Run()
+	if err != nil {
+		t.Error("mkfifo returned: ", err)
+	}
+
+	done := make(chan struct{})
+
+	// need to open RDWR or open will block until fifo is opened for writing
+	fread, err := os.OpenFile(fifo, os.O_RDWR, 0600)
+	if err != nil {
+		t.Fatal("Error opening fifo: ", err)
+	}
+	reader := NewReadWriteCloser(fread, 50*time.Millisecond, 20*time.Millisecond)
+
+	// read function
+	go func() {
+		for {
+			rdata := make([]byte, 128)
+			_, err := reader.Read(rdata)
+			if err == io.EOF {
+				close(done)
+				break
+			}
+			if err != nil {
+				t.Error("Read error: ", err)
+			}
+		}
+	}()
+
+	fread.Close()
+
+	select {
+	case <-time.After(time.Second):
+		t.Error("Timeout waiting for read to complete")
+	case <-done:
+		// all is well
+	}
 }
 
 /* the following test is for documentation only
