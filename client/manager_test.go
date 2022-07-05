@@ -54,8 +54,6 @@ func (tnc *testNodeClient) Start() error {
 			ch <- tnc.config
 		}
 	}
-
-	return nil
 }
 
 func (tnc *testNodeClient) Stop(err error) {
