@@ -68,3 +68,45 @@ func TestEncode(t *testing.T) {
 	}
 
 }
+
+func TestMergePoints(t *testing.T) {
+	out := testTypeData
+
+	modifiedDescription := "test type modified"
+
+	mods := []Point{
+		{Type: "description", Text: modifiedDescription},
+	}
+
+	err := MergePoints(mods, &out)
+
+	if err != nil {
+		t.Fatal("Merge error: ", err)
+	}
+
+	if out.Description != modifiedDescription {
+		t.Errorf("Description not modified, exp: %v, got: %v", modifiedDescription,
+			out.Description)
+	}
+}
+
+func TestMergeEdgePoints(t *testing.T) {
+	out := testTypeData
+
+	modifiedRole := "user"
+
+	mods := []Point{
+		{Type: "role", Text: modifiedRole},
+	}
+
+	err := MergeEdgePoints(mods, &out)
+
+	if err != nil {
+		t.Fatal("Merge error: ", err)
+	}
+
+	if out.Role != modifiedRole {
+		t.Errorf("role not modified, exp: %v, got: %v", modifiedRole,
+			out.Role)
+	}
+}
