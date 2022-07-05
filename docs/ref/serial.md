@@ -98,7 +98,7 @@ done:
   updates any points that are newer. Relationships between nodes are defined by
   edge points (point type `tombstone`).
 
-### Timpstamps
+### Timestamps
 
 Simple IoT currently uses the default
 [protobuf timestamp format](https://developers.google.com/protocol-buffers/docs/reference/google.protobuf#google.protobuf.Timestamp),
