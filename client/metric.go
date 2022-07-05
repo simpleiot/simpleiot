@@ -37,6 +37,8 @@ func NewMetric(nc *nats.Conn, nodeID, pointType string, reportPeriod time.Durati
 
 // SetNodeID -- this is a bit of a hack to get around some init issues
 func (m *Metric) SetNodeID(id string) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	m.nodeID = id
 }
 

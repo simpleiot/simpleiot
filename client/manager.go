@@ -1,9 +1,10 @@
 package client
 
 import (
-	"fmt"
 	"log"
 	"reflect"
+	"sync"
+	"time"
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -19,6 +20,12 @@ type Manager[T any] struct {
 
 	nodes   []data.NodeEdge
 	clients []Client
+
+	lock sync.Mutex
+
+	stop chan struct{}
+
+	clientsWG sync.WaitGroup
 }
 
 // NewManager takes constructor for a node client and returns a Manager for that client
@@ -29,12 +36,18 @@ func NewManager[T any](nc *nats.Conn, root string,
 	var x T
 	nodeType := reflect.TypeOf(x).Name()
 
-	return &Manager[T]{nc: nc, root: root, nodeType: nodeType, construct: construct}
+	return &Manager[T]{
+		nc:        nc,
+		root:      root,
+		nodeType:  nodeType,
+		construct: construct,
+		stop:      make(chan struct{}),
+	}
 }
 
 // Start node manager. This function looks for children of a certain node type.
 // When new nodes are found, the data is decoded into the client type config, and the
-// constructor for the node client is called.
+// constructor for the node client is called. This call blocks until Stop is called.
 func (m *Manager[T]) Start() error {
 	children, err := GetNodeChildren(m.nc, m.root, m.nodeType, false, false)
 
@@ -42,9 +55,8 @@ func (m *Manager[T]) Start() error {
 		return err
 	}
 
+	m.lock.Lock()
 	// create nodes
-	fmt.Printf("CLIFF: node children: %+v\n", children)
-
 	for _, n := range children {
 		m.nodes = append(m.nodes, n)
 
@@ -61,8 +73,42 @@ func (m *Manager[T]) Start() error {
 	}
 
 	for _, c := range m.clients {
-		c.Run(nil)
+		go func() {
+			m.clientsWG.Add(1)
+			err := c.Start()
+			if err != nil {
+				log.Println("Node client returned error: ", err)
+			}
+			m.clientsWG.Done()
+		}()
+		c.Update(nil)
+	}
+	m.lock.Unlock()
+
+	<-m.stop
+	return nil
+}
+
+// Stop manager. This also stops all registered clients and causes Start to exit.
+func (m *Manager[T]) Stop(err error) {
+	m.lock.Lock()
+	for _, c := range m.clients {
+		c.Stop(err)
+	}
+	m.lock.Unlock()
+
+	clientsDone := make(chan struct{})
+	go func() {
+		m.clientsWG.Wait()
+		close(clientsDone)
+	}()
+
+	select {
+	case <-clientsDone:
+		// all is well
+	case <-time.After(time.Second * 5):
+		log.Println("BUG: Not all clients shutdown!")
 	}
 
-	return nil
+	close(m.stop)
 }

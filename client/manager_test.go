@@ -1,9 +1,10 @@
 package client_test
 
 import (
-	"fmt"
 	"log"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
@@ -17,23 +18,32 @@ type testNode struct {
 }
 
 type testNodeClient struct {
-	nc     *nats.Conn
-	config testNode
+	nc      *nats.Conn
+	config  testNode
+	stop    chan struct{}
+	stopped chan struct{}
 }
 
-func newTestNodeClient(nc *nats.Conn, config testNode) client.Client {
-	return &testNodeClient{nc: nc, config: config}
+func newTestNodeClient(nc *nats.Conn, config testNode) *testNodeClient {
+	return &testNodeClient{
+		nc:      nc,
+		config:  config,
+		stop:    make(chan struct{}),
+		stopped: make(chan struct{}),
+	}
 }
 
-func (tnc *testNodeClient) run() {
-	fmt.Printf("tnc client run: %+v\n", tnc)
+func (tnc *testNodeClient) Start() error {
+	<-tnc.stop
+	close(tnc.stopped)
+	return nil
 }
 
-func (tnc *testNodeClient) Run(c <-chan data.Point) {
-	tnc.run()
+func (tnc *testNodeClient) Stop(err error) {
+	close(tnc.stop)
 }
 
-func (tnc *testNodeClient) Stop() {
+func (tnc *testNodeClient) Update(points []data.Point) {
 }
 
 func TestManager(t *testing.T) {
@@ -44,9 +54,18 @@ func TestManager(t *testing.T) {
 		t.Fatal("Error starting test server: ", err)
 	}
 
-	defer stop()
+	var testClient *testNodeClient
+	var testClientLock sync.Mutex
 
-	log.Println("CLIFF: rootnode: ", root)
+	// wrap newTestNodeClient so we can stash a link to testClient
+	var newTestNodeClientWrapper = func(nc *nats.Conn, config testNode) client.Client {
+		testClientLock.Lock()
+		defer testClientLock.Unlock()
+		testClient = newTestNodeClient(nc, config)
+		return testClient
+	}
+
+	defer stop()
 
 	ne, err := data.Encode(testNode{"fancy test node", 8080})
 	if err != nil {
@@ -55,8 +74,6 @@ func TestManager(t *testing.T) {
 
 	ne.Parent = root.ID
 
-	log.Printf("CLIFF: %+v\n", ne)
-
 	// hydrate database with test data
 	err = client.SendNode(nc, ne)
 
@@ -64,12 +81,51 @@ func TestManager(t *testing.T) {
 		t.Fatal("Error sending node: ", err)
 	}
 
-	m := client.NewManager[testNode](nc, root.ID, newTestNodeClient)
+	m := client.NewManager[testNode](nc, root.ID, newTestNodeClientWrapper)
 
-	err = m.Start()
-	if err != nil {
-		t.Fatal("Error starting manager: ", err)
+	managerStopped := make(chan struct{})
+
+	go func() {
+		err = m.Start()
+		if err != nil {
+			t.Fatal("manager start returned error: ", err)
+		}
+
+		close(managerStopped)
+
+	}()
+
+	// wait for client to be created
+	start := time.Now()
+	for time.Since(start) < time.Second {
+		testClientLock.Lock()
+		if testClient != nil {
+			testClientLock.Unlock()
+			break
+		}
+		testClientLock.Unlock()
 	}
+
+	if testClient == nil {
+		t.Fatal("Test client not created")
+	}
+
+	m.Stop(nil)
+
+	select {
+	case <-testClient.stopped:
+		// all is well
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for client to be stopped")
+	}
+
+	select {
+	case <-managerStopped:
+		// all is well
+	case <-time.After(time.Second):
+		t.Fatal("manager did not stop")
+	}
+
 }
 
 func TestManager2(t *testing.T) {
