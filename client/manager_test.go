@@ -82,7 +82,9 @@ func TestManager(t *testing.T) {
 
 	defer stop()
 
-	ne, err := data.Encode(testNode{"", "fancy test node", 8080})
+	testConfig := testNode{"", "fancy test node", 8080}
+
+	ne, err := data.Encode(testConfig)
 	if err != nil {
 		t.Fatal("Error encoding node: ", err)
 	}
@@ -122,7 +124,6 @@ func TestManager(t *testing.T) {
 		}
 
 		close(managerStopped)
-
 	}()
 
 	// wait for client to be created
@@ -140,10 +141,18 @@ func TestManager(t *testing.T) {
 		t.Fatal("Test client not created")
 	}
 
+	// verify config got passed in to the constructer
+	currentConfig := testClient.getConfig()
+	// ID was not populated when we originally created the node
+	testConfig.ID = currentConfig.ID
+	if currentConfig != testConfig {
+		t.Errorf("Initial test config is not correct, exp %+v, got %+v", testConfig, currentConfig)
+	}
+
 	// Test point updates
 	modifiedDescription := "updated description"
 
-	err = client.SendNodePoint(nc, testClient.config.ID,
+	err = client.SendNodePoint(nc, currentConfig.ID,
 		data.Point{Type: "description", Text: modifiedDescription}, true)
 
 	time.Sleep(10 * time.Millisecond)
