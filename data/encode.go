@@ -33,21 +33,25 @@ func Encode(in interface{}) (NodeEdge, error) {
 
 	for i := 0; i < tIn.NumField(); i++ {
 		sf := tIn.Field(i)
-		pt := sf.Tag.Get("point")
-		if pt != "" {
+		if pt := sf.Tag.Get("point"); pt != "" {
 			p, err := valToPoint(pt, vIn.Field(i))
 			if err != nil {
 				return ret, err
 			}
 			ret.Points = append(ret.Points, p)
-		} else {
-			et := sf.Tag.Get("edgepoint")
-			if et != "" {
-				p, err := valToPoint(et, vIn.Field(i))
-				if err != nil {
-					return ret, err
+		} else if et := sf.Tag.Get("edgepoint"); et != "" {
+			p, err := valToPoint(et, vIn.Field(i))
+			if err != nil {
+				return ret, err
+			}
+			ret.EdgePoints = append(ret.EdgePoints, p)
+		} else if nt := sf.Tag.Get("node"); nt != "" {
+			if nt == "id" {
+				v := vIn.Field(i)
+				k := v.Type().Kind()
+				if k == reflect.String {
+					ret.ID = v.String()
 				}
-				ret.EdgePoints = append(ret.EdgePoints, p)
 			}
 		}
 	}

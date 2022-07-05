@@ -6,6 +6,7 @@ import (
 )
 
 type testType struct {
+	ID          string  `node:"id"`
 	Description string  `point:"description"`
 	Count       int     `point:"count"`
 	Value       float64 `point:"value"`
@@ -15,6 +16,7 @@ type testType struct {
 }
 
 var nodeEdgeTest = NodeEdge{
+	ID:   "123",
 	Type: "testType",
 	Points: []Point{
 		Point{Type: "description", Text: "test type"},
@@ -29,6 +31,7 @@ var nodeEdgeTest = NodeEdge{
 }
 
 var testTypeData = testType{
+	ID:          "123",
 	Description: "test type",
 	Count:       120,
 	Value:       15.43,

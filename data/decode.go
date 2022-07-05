@@ -14,13 +14,13 @@ func Decode(input NodeEdge, output interface{}) error {
 
 	for i := 0; i < tOut.NumField(); i++ {
 		sf := tOut.Field(i)
-		pt := sf.Tag.Get("point")
-		if pt != "" {
+		if pt := sf.Tag.Get("point"); pt != "" {
 			pointValues[pt] = vOut.Field(i)
-		} else {
-			et := sf.Tag.Get("edgepoint")
-			if et != "" {
-				edgeValues[et] = vOut.Field(i)
+		} else if et := sf.Tag.Get("edgepoint"); et != "" {
+			edgeValues[et] = vOut.Field(i)
+		} else if nt := sf.Tag.Get("node"); nt != "" {
+			if nt == "id" {
+				vOut.Field(i).SetString(input.ID)
 			}
 		}
 	}
