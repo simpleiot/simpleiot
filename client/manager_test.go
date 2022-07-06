@@ -3,7 +3,6 @@ package client_test
 import (
 	"fmt"
 	"log"
-	"sync"
 	"testing"
 	"time"
 
@@ -110,13 +109,12 @@ func TestManager(t *testing.T) {
 	}
 
 	var testClient *testNodeClient
-	var testClientLock sync.Mutex
+	newClient := make(chan *testNodeClient)
 
 	// wrap newTestNodeClient so we can stash a link to testClient
 	var newTestNodeClientWrapper = func(nc *nats.Conn, config testNode) client.Client {
-		testClientLock.Lock()
-		defer testClientLock.Unlock()
-		testClient = newTestNodeClient(nc, config)
+		testClient := newTestNodeClient(nc, config)
+		newClient <- testClient
 		return testClient
 	}
 
@@ -138,17 +136,9 @@ func TestManager(t *testing.T) {
 	}()
 
 	// wait for client to be created
-	start := time.Now()
-	for time.Since(start) < time.Second {
-		testClientLock.Lock()
-		if testClient != nil {
-			testClientLock.Unlock()
-			break
-		}
-		testClientLock.Unlock()
-	}
-
-	if testClient == nil {
+	select {
+	case testClient = <-newClient:
+	case <-time.After(time.Second):
 		t.Fatal("Test client not created")
 	}
 
