@@ -28,7 +28,8 @@ type Manager[T any] struct {
 	lock          sync.Mutex
 	nodes         map[string]data.NodeEdge
 	clients       map[string]Client
-	subscriptions map[string]*nats.Subscription
+	pointSubs     map[string]*nats.Subscription
+	edgePointSubs map[string]*nats.Subscription
 }
 
 // NewManager takes constructor for a node client and returns a Manager for that client
@@ -40,14 +41,21 @@ func NewManager[T any](nc *nats.Conn, root string,
 	nodeType := reflect.TypeOf(x).Name()
 
 	return &Manager[T]{
-		nc:            nc,
-		root:          root,
-		nodeType:      nodeType,
-		construct:     construct,
-		stop:          make(chan struct{}),
+		nc:        nc,
+		root:      root,
+		nodeType:  nodeType,
+		construct: construct,
+		stop:      make(chan struct{}),
+
+		// The keys in the below maps are the concatenation
+		// of the parent and node IDs, as we need to have a
+		// separate client for each parent/node instance as
+		// the edge points, and thus the config could be
+		// different
 		nodes:         make(map[string]data.NodeEdge),
 		clients:       make(map[string]Client),
-		subscriptions: make(map[string]*nats.Subscription),
+		pointSubs:     make(map[string]*nats.Subscription),
+		edgePointSubs: make(map[string]*nats.Subscription),
 	}
 }
 
@@ -64,7 +72,8 @@ func (m *Manager[T]) Start() error {
 	m.lock.Lock()
 	// create nodes
 	for _, n := range children {
-		m.nodes[n.ID] = n
+		mapKey := n.Parent + n.ID
+		m.nodes[mapKey] = n
 
 		var config T
 
@@ -75,24 +84,40 @@ func (m *Manager[T]) Start() error {
 		}
 
 		client := m.construct(m.nc, config)
-		m.clients[n.ID] = client
+		m.clients[mapKey] = client
 
 		func(client Client) {
-			sub, err := m.nc.Subscribe("node."+n.ID+".points", func(msg *nats.Msg) {
+			psub, err := m.nc.Subscribe("node."+n.ID+".points", func(msg *nats.Msg) {
 				points, err := data.PbDecodePoints(msg.Data)
 				if err != nil {
 					// FIXME, send over channel
-					log.Println("Error decoding node data: ", err)
+					log.Println("Error decoding point data: ", err)
 					return
 				}
-				client.Update(points)
+				client.Points(points)
 
 			})
 			if err != nil {
 				log.Println("client manager sub error: ", err)
 				return
 			}
-			m.subscriptions[n.ID] = sub
+			m.pointSubs[mapKey] = psub
+
+			esub, err := m.nc.Subscribe("node."+n.ID+"."+n.Parent+".points", func(msg *nats.Msg) {
+				points, err := data.PbDecodePoints(msg.Data)
+				if err != nil {
+					// FIXME, send over channel
+					log.Println("Error decoding edge point data: ", err)
+					return
+				}
+				client.EdgePoints(points)
+
+			})
+			if err != nil {
+				log.Println("client manager sub error: ", err)
+				return
+			}
+			m.edgePointSubs[mapKey] = esub
 		}(client)
 
 		go func(client Client) {
@@ -113,6 +138,14 @@ func (m *Manager[T]) Start() error {
 // Stop manager. This also stops all registered clients and causes Start to exit.
 func (m *Manager[T]) Stop(err error) {
 	m.lock.Lock()
+	for _, s := range m.pointSubs {
+		s.Unsubscribe()
+	}
+
+	for _, s := range m.edgePointSubs {
+		s.Unsubscribe()
+	}
+
 	for _, c := range m.clients {
 		c.Stop(err)
 	}

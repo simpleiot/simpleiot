@@ -15,27 +15,31 @@ import (
 
 type testNode struct {
 	ID          string `node:"id"`
+	Parent      string `node:"parent"`
 	Description string `point:"description"`
 	Port        int    `point:"port"`
+	Role        string `edgepoint:"role"`
 }
 
 type testNodeClient struct {
-	nc          *nats.Conn
-	config      testNode
-	stop        chan struct{}
-	stopped     chan struct{}
-	newPoints   chan []data.Point
-	chGetConfig chan chan testNode
+	nc            *nats.Conn
+	config        testNode
+	stop          chan struct{}
+	stopped       chan struct{}
+	newPoints     chan []data.Point
+	newEdgePoints chan []data.Point
+	chGetConfig   chan chan testNode
 }
 
 func newTestNodeClient(nc *nats.Conn, config testNode) *testNodeClient {
 	return &testNodeClient{
-		nc:          nc,
-		config:      config,
-		stop:        make(chan struct{}),
-		stopped:     make(chan struct{}),
-		newPoints:   make(chan []data.Point),
-		chGetConfig: make(chan chan testNode),
+		nc:            nc,
+		config:        config,
+		stop:          make(chan struct{}),
+		stopped:       make(chan struct{}),
+		newPoints:     make(chan []data.Point),
+		newEdgePoints: make(chan []data.Point),
+		chGetConfig:   make(chan chan testNode),
 	}
 }
 
@@ -50,6 +54,11 @@ func (tnc *testNodeClient) Start() error {
 			if err != nil {
 				log.Println("error merging new points: ", err)
 			}
+		case pts := <-tnc.newEdgePoints:
+			err := data.MergeEdgePoints(pts, &tnc.config)
+			if err != nil {
+				log.Println("error merging new points: ", err)
+			}
 		case ch := <-tnc.chGetConfig:
 			ch <- tnc.config
 		}
@@ -60,8 +69,12 @@ func (tnc *testNodeClient) Stop(err error) {
 	close(tnc.stop)
 }
 
-func (tnc *testNodeClient) Update(points []data.Point) {
+func (tnc *testNodeClient) Points(points []data.Point) {
 	tnc.newPoints <- points
+}
+
+func (tnc *testNodeClient) EdgePoints(points []data.Point) {
+	tnc.newEdgePoints <- points
 }
 
 func (tnc *testNodeClient) getConfig() testNode {
@@ -80,7 +93,7 @@ func TestManager(t *testing.T) {
 
 	defer stop()
 
-	testConfig := testNode{"", "fancy test node", 8080}
+	testConfig := testNode{"", "", "fancy test node", 8080, "admin"}
 
 	ne, err := data.Encode(testConfig)
 	if err != nil {
@@ -143,6 +156,7 @@ func TestManager(t *testing.T) {
 	currentConfig := testClient.getConfig()
 	// ID was not populated when we originally created the node
 	testConfig.ID = currentConfig.ID
+	testConfig.Parent = currentConfig.Parent
 	if currentConfig != testConfig {
 		t.Errorf("Initial test config is not correct, exp %+v, got %+v", testConfig, currentConfig)
 	}
@@ -153,10 +167,30 @@ func TestManager(t *testing.T) {
 	err = client.SendNodePoint(nc, currentConfig.ID,
 		data.Point{Type: "description", Text: modifiedDescription}, true)
 
+	if err != nil {
+		t.Errorf("Error sending point: %v", err)
+	}
+
 	time.Sleep(10 * time.Millisecond)
 
 	if testClient.getConfig().Description != modifiedDescription {
 		t.Error("Description not modified")
+	}
+
+	// Test edge point updates
+	modifiedRole := "user"
+
+	err = client.SendEdgePoint(nc, currentConfig.ID, currentConfig.Parent,
+		data.Point{Type: "role", Text: modifiedRole}, true)
+
+	if err != nil {
+		t.Errorf("Error sending edge point: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	if testClient.getConfig().Role != modifiedRole {
+		t.Error("Role not modified")
 	}
 
 	// Shutdown
@@ -185,7 +219,7 @@ func TestManager(t *testing.T) {
 }
 
 func TestManager2(t *testing.T) {
-	nc, root, stop, err := test.Server()
+	nc, _, stop, err := test.Server()
 	_ = nc
 
 	if err != nil {
@@ -193,6 +227,4 @@ func TestManager2(t *testing.T) {
 	}
 
 	defer stop()
-
-	log.Println("CLIFF: rootnode: ", root)
 }

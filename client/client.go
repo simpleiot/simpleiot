@@ -10,5 +10,6 @@ import "github.com/simpleiot/simpleiot/data"
 type Client interface {
 	Start() error
 	Stop(error)
-	Update([]data.Point)
+	Points([]data.Point)
+	EdgePoints([]data.Point)
 }
