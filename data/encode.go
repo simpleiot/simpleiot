@@ -52,6 +52,12 @@ func Encode(in interface{}) (NodeEdge, error) {
 				if k == reflect.String {
 					ret.ID = v.String()
 				}
+			} else if nt == "parent" {
+				v := vIn.Field(i)
+				k := v.Type().Kind()
+				if k == reflect.String {
+					ret.Parent = v.String()
+				}
 			}
 		}
 	}

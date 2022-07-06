@@ -21,6 +21,8 @@ func Decode(input NodeEdge, output interface{}) error {
 		} else if nt := sf.Tag.Get("node"); nt != "" {
 			if nt == "id" {
 				vOut.Field(i).SetString(input.ID)
+			} else if nt == "parent" {
+				vOut.Field(i).SetString(input.Parent)
 			}
 		}
 	}
