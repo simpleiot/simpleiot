@@ -279,6 +279,29 @@ func TestManagerAddRemove(t *testing.T) {
 		t.Errorf("Initial test config is not correct, exp %+v, got %+v", testConfig, currentConfig)
 	}
 
+	// wait to make sure we don't create duplicate clients on each scan
+	select {
+	case testClient = <-newClient:
+		t.Fatal("duplicate client created")
+	case <-time.After(time.Second * 10):
+		// all is well
+	}
+
+	// test deleting client
+	err = client.SendEdgePoint(nc, currentConfig.ID, currentConfig.Parent,
+		data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
+
+	if err != nil {
+		t.Errorf("Error sending edge point: %v", err)
+	}
+
+	select {
+	case <-testClient.stopped:
+		// all is well
+	case <-time.After(time.Second * 10):
+		t.Fatal("Timeout waiting for client to be removed")
+	}
+
 	m.Stop(nil)
 
 	select {

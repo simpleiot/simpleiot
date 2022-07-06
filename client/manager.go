@@ -128,9 +128,17 @@ func (m *Manager[T]) scan() error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	// create nodes
+	found := make(map[string]bool)
+
+	// create new nodes
 	for _, n := range children {
 		mapKey := n.Parent + n.ID
+		found[mapKey] = true
+
+		if _, ok := m.nodes[mapKey]; ok {
+			continue
+		}
+
 		m.nodes[mapKey] = n
 
 		var config T
@@ -186,6 +194,23 @@ func (m *Manager[T]) scan() error {
 			}
 			m.clientsWG.Done()
 		}(client)
+	}
+
+	// remove nodes that have been deleted
+	for key, client := range m.clients {
+		if _, ok := found[key]; ok {
+			continue
+		}
+
+		// bus was deleted so close and clear it
+		log.Println("removing node: ", m.nodes[key].ID)
+		m.pointSubs[key].Unsubscribe()
+		m.edgePointSubs[key].Unsubscribe()
+		client.Stop(nil)
+		delete(m.nodes, key)
+		delete(m.clients, key)
+		delete(m.pointSubs, key)
+		delete(m.edgePointSubs, key)
 	}
 
 	return nil
