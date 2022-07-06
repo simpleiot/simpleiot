@@ -63,13 +63,71 @@ func NewManager[T any](nc *nats.Conn, root string,
 // When new nodes are found, the data is decoded into the client type config, and the
 // constructor for the node client is called. This call blocks until Stop is called.
 func (m *Manager[T]) Start() error {
+	err := m.scan()
+	if err != nil {
+		log.Println("Error scanning for new nodes: ", err)
+	}
+done:
+	for {
+		select {
+		case <-m.stop:
+			break done
+		case <-time.After(time.Second * 5):
+			err := m.scan()
+			if err != nil {
+				log.Println("Error scanning for new nodes: ", err)
+			}
+		}
+	}
+	return nil
+}
+
+// Stop manager. This also stops all registered clients and causes Start to exit.
+func (m *Manager[T]) Stop(err error) {
+	m.lock.Lock()
+	for _, s := range m.pointSubs {
+		s.Unsubscribe()
+	}
+
+	for _, s := range m.edgePointSubs {
+		s.Unsubscribe()
+	}
+
+	for _, c := range m.clients {
+		c.Stop(err)
+	}
+	m.lock.Unlock()
+
+	clientsDone := make(chan struct{})
+	go func() {
+		m.clientsWG.Wait()
+		close(clientsDone)
+	}()
+
+	select {
+	case <-clientsDone:
+		// all is well
+	case <-time.After(time.Second * 5):
+		log.Println("BUG: Not all clients shutdown!")
+	}
+
+	close(m.stop)
+}
+
+func (m *Manager[T]) scan() error {
 	children, err := GetNodeChildren(m.nc, m.root, m.nodeType, false, false)
 
 	if err != nil {
 		return err
 	}
 
+	if len(children) < 0 {
+		return nil
+	}
+
 	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	// create nodes
 	for _, n := range children {
 		mapKey := n.Parent + n.ID
@@ -129,40 +187,6 @@ func (m *Manager[T]) Start() error {
 			m.clientsWG.Done()
 		}(client)
 	}
-	m.lock.Unlock()
 
-	<-m.stop
 	return nil
-}
-
-// Stop manager. This also stops all registered clients and causes Start to exit.
-func (m *Manager[T]) Stop(err error) {
-	m.lock.Lock()
-	for _, s := range m.pointSubs {
-		s.Unsubscribe()
-	}
-
-	for _, s := range m.edgePointSubs {
-		s.Unsubscribe()
-	}
-
-	for _, c := range m.clients {
-		c.Stop(err)
-	}
-	m.lock.Unlock()
-
-	clientsDone := make(chan struct{})
-	go func() {
-		m.clientsWG.Wait()
-		close(clientsDone)
-	}()
-
-	select {
-	case <-clientsDone:
-		// all is well
-	case <-time.After(time.Second * 5):
-		log.Println("BUG: Not all clients shutdown!")
-	}
-
-	close(m.stop)
 }

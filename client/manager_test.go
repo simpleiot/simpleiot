@@ -208,6 +208,94 @@ func TestManager(t *testing.T) {
 	}
 }
 
+func TestManagerAddRemove(t *testing.T) {
+	nc, root, stop, err := test.Server()
+	_ = nc
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	newClient := make(chan *testNodeClient)
+
+	// wrap newTestNodeClient so we can get a handle to new clients
+	var newTestNodeClientWrapper = func(nc *nats.Conn, config testNode) client.Client {
+		testClient := newTestNodeClient(nc, config)
+		newClient <- testClient
+		return testClient
+	}
+
+	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
+	// root and if it finds any, it instantiates a new client, and sends point updates to it
+	m := client.NewManager(nc, root.ID, newTestNodeClientWrapper)
+
+	managerStopped := make(chan struct{})
+
+	startErr := make(chan error)
+
+	go func() {
+		err = m.Start()
+		if err != nil {
+			startErr <- fmt.Errorf("manager start returned error: %v", err)
+		}
+
+		close(managerStopped)
+	}()
+
+	// populate with new testNode
+	testConfig := testNode{"", "", "fancy test node", 8080, "admin"}
+
+	ne, err := data.Encode(testConfig)
+	if err != nil {
+		t.Fatal("Error encoding node: ", err)
+	}
+
+	ne.Parent = root.ID
+
+	// populate database with test node
+	err = client.SendNode(nc, ne)
+
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	var testClient *testNodeClient
+
+	// wait for client to be created
+	select {
+	case testClient = <-newClient:
+	case <-time.After(time.Second * 10):
+		t.Fatal("Timeout waiting for new client to be created")
+	}
+
+	// verify config got passed in to the constructer
+	currentConfig := testClient.getConfig()
+	// ID was not populated when we originally created the node
+	testConfig.ID = currentConfig.ID
+	testConfig.Parent = currentConfig.Parent
+	if currentConfig != testConfig {
+		t.Errorf("Initial test config is not correct, exp %+v, got %+v", testConfig, currentConfig)
+	}
+
+	m.Stop(nil)
+
+	select {
+	case <-managerStopped:
+		// all is well
+	case <-time.After(time.Second):
+		t.Fatal("manager did not stop")
+	}
+
+	select {
+	case <-startErr:
+		t.Fatal("Manager start returned an error: ", err)
+	default:
+		// all is well
+	}
+}
+
 func TestManager2(t *testing.T) {
 	nc, _, stop, err := test.Server()
 	_ = nc
