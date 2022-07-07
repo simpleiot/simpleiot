@@ -11,7 +11,7 @@ hardware, or other clients.
 A client interacts with the system by listening for new points it is interested
 in and sending out points as it aquires new data.
 
-Simple IoT provides a utilites that assist in creating new clients. See the
+Simple IoT provides utilites that assist in creating new clients. See the
 [Go package documentation](https://pkg.go.dev/github.com/simpleiot/simpleiot/client)
 for more information. A client manager is created for each client type. This
 manager instantiates new client instances when new nodes are detected and then
