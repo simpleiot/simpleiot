@@ -83,7 +83,7 @@ func (tnc *exNodeClient) EdgePoints(points []data.Point) {
 	tnc.newEdgePoints <- points
 }
 
-func ExampleManager() {
+func ExampleNewManager() {
 	nc, root, stop, err := test.Server()
 
 	if err != nil {
@@ -94,6 +94,7 @@ func ExampleManager() {
 
 	testConfig := testNode{"", "", "fancy test node", 8080, "admin"}
 
+	// Convert our custom struct to a data.NodeEdge struct
 	ne, err := data.Encode(testConfig)
 	if err != nil {
 		log.Println("Error encoding node: ", err)
