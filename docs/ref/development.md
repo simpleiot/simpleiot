@@ -68,13 +68,33 @@ Go. The Go authors made a brilliant choice when they chose to build Go from the
 ground up. Yes, you loose the ability to easily use some of the popular C
 libraries, but what you gain is many times more valuable.
 
+## Building Simple IoT
+
+Requirements:
+
+- Go
+- Node/NPM
+
+Simple IoT build has currently been testing on Linux and MacOS systems. See
+[`envsetup.sh`](https://github.com/simpleiot/simpleiot/blob/master/envsetup.sh)
+for scripts used in building.
+
+To build:
+
+- `source envsetup.sh`
+- `siot_setup`
+- `siot_build`
+
 ## Running unit tests
 
 There are not a lot of unit tests in the project yet, but below are some
 examples of running tests:
 
-- test everything: `go test ./...`
-- test only db directory: `go test ./db`
+- test everything: `go test -race ./...`
+- test only client directory: `go test -race ./client`
+- run only a specific: `go test -race ./client -run BackoffTest (run takes a
+  RegEx)
+- `siot_test` runs tests as well as vet/lint, frontend tests, etc.
 
 The leading `./` is important, otherwise Go things you are giving it a package
 name, not a directory. The `...` tells Go to recursively test all subdirs.
