@@ -4,7 +4,19 @@ import (
 	"reflect"
 )
 
-// Decode converts a Node to custom struct
+// Decode converts a Node to custom struct.
+// output must be a struct type that contains
+// node, point, and edgepoint tags as shown below.
+// It is recommended that id and parent node tags
+// always be included.
+//	   type exType struct {
+//		ID          string  `node:"id"`
+//		Parent      string  `node:"parent"`
+//		Description string  `point:"description"`
+//		Count       int     `point:"count"`
+//		Role        string  `edgepoint:"role"`
+//		Tombstone   bool    `edgepoint:"tombstone"`
+//	   }
 func Decode(input NodeEdge, output interface{}) error {
 	vOut := reflect.ValueOf(output).Elem()
 	tOut := reflect.TypeOf(output).Elem()

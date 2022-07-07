@@ -2,7 +2,8 @@ package data
 
 import "reflect"
 
-// MergePoints takes points and appies them to a type
+// MergePoints takes points and updates fields in a type
+// that have matching point tags. See [Decode] for an example type.
 func MergePoints(points []Point, output interface{}) error {
 	vOut := reflect.ValueOf(output).Elem()
 	tOut := reflect.TypeOf(output).Elem()
@@ -42,7 +43,8 @@ func MergePoints(points []Point, output interface{}) error {
 
 }
 
-// MergeEdgePoints takes edge points and appies them to a type
+// MergeEdgePoints takes edge points and updates a type that
+// matching edgepoint tags. See [Decode] for an example type.
 func MergeEdgePoints(points []Point, output interface{}) error {
 	vOut := reflect.ValueOf(output).Elem()
 	tOut := reflect.TypeOf(output).Elem()

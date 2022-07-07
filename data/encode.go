@@ -6,7 +6,18 @@ import (
 )
 
 // Encode is used to convert a user struct to
-// a node.
+// a node. in must be a struct type that contains
+// node, point, and edgepoint tags as shown below.
+// It is recommended that id and parent node tags
+// always be included.
+//	   type exType struct {
+//		ID          string  `node:"id"`
+//		Parent      string  `node:"parent"`
+//		Description string  `point:"description"`
+//		Count       int     `point:"count"`
+//		Role        string  `edgepoint:"role"`
+//		Tombstone   bool    `edgepoint:"tombstone"`
+//	   }
 func Encode(in interface{}) (NodeEdge, error) {
 	vIn := reflect.ValueOf(in)
 	tIn := reflect.TypeOf(in)
