@@ -81,6 +81,9 @@ func NewStore(p Params) (*Store, error) {
 		return nil, fmt.Errorf("Error opening db: %v", err)
 	}
 
+	// we don't have node ID yet, but need to init here so we can start
+	// collecting data
+
 	log.Println("store connecting to nats server: ", p.Server)
 	return &Store{
 		db:            db,
@@ -92,6 +95,14 @@ func NewStore(p Params) (*Store, error) {
 		nc:            p.Nc,
 		chStop:        make(chan struct{}),
 		chStopMetrics: make(chan struct{}),
+		metricCycleNodePoint: client.NewMetric(p.Nc, "",
+			data.PointTypeMetricNatsCycleNodePoint, reportMetricsPeriod),
+		metricCycleNodeEdgePoint: client.NewMetric(p.Nc, "",
+			data.PointTypeMetricNatsCycleNodeEdgePoint, reportMetricsPeriod),
+		metricCycleNode: client.NewMetric(p.Nc, "",
+			data.PointTypeMetricNatsCycleNode, reportMetricsPeriod),
+		metricCycleNodeChildren: client.NewMetric(p.Nc, "",
+			data.PointTypeMetricNatsCycleNodeChildren, reportMetricsPeriod),
 	}, nil
 }
 
@@ -127,17 +138,6 @@ func (st *Store) Start() error {
 	if st.subAuth, err = st.nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
 		return fmt.Errorf("Subscribe auth error: %w", err)
 	}
-
-	// we don't have node ID yet, but need to init here so we can start
-	// collecting data
-	st.metricCycleNodePoint = client.NewMetric(st.nc, "",
-		data.PointTypeMetricNatsCycleNodePoint, reportMetricsPeriod)
-	st.metricCycleNodeEdgePoint = client.NewMetric(st.nc, "",
-		data.PointTypeMetricNatsCycleNodeEdgePoint, reportMetricsPeriod)
-	st.metricCycleNode = client.NewMetric(st.nc, "",
-		data.PointTypeMetricNatsCycleNode, reportMetricsPeriod)
-	st.metricCycleNodeChildren = client.NewMetric(st.nc, "",
-		data.PointTypeMetricNatsCycleNodeChildren, reportMetricsPeriod)
 
 	st.startedLock.Lock()
 	st.started = true

@@ -471,9 +471,11 @@ func (gen *Db) edgePoints(nodeID, parentID string, points data.Points) error {
 			ne.up = append(ne.up, edge)
 		}
 
+		gen.lock.Lock()
 		for _, point := range points {
 			edge.Points.Add(point)
 		}
+		gen.lock.Unlock()
 
 		sort.Sort(edge.Points)
 

@@ -4,7 +4,19 @@ import (
 	"reflect"
 )
 
-// Decode converts a Node to custom struct
+// Decode converts a Node to custom struct.
+// output must be a struct type that contains
+// node, point, and edgepoint tags as shown below.
+// It is recommended that id and parent node tags
+// always be included.
+//	   type exType struct {
+//		ID          string  `node:"id"`
+//		Parent      string  `node:"parent"`
+//		Description string  `point:"description"`
+//		Count       int     `point:"count"`
+//		Role        string  `edgepoint:"role"`
+//		Tombstone   bool    `edgepoint:"tombstone"`
+//	   }
 func Decode(input NodeEdge, output interface{}) error {
 	vOut := reflect.ValueOf(output).Elem()
 	tOut := reflect.TypeOf(output).Elem()
@@ -14,13 +26,15 @@ func Decode(input NodeEdge, output interface{}) error {
 
 	for i := 0; i < tOut.NumField(); i++ {
 		sf := tOut.Field(i)
-		pt := sf.Tag.Get("point")
-		if pt != "" {
+		if pt := sf.Tag.Get("point"); pt != "" {
 			pointValues[pt] = vOut.Field(i)
-		} else {
-			et := sf.Tag.Get("edgepoint")
-			if et != "" {
-				edgeValues[et] = vOut.Field(i)
+		} else if et := sf.Tag.Get("edgepoint"); et != "" {
+			edgeValues[et] = vOut.Field(i)
+		} else if nt := sf.Tag.Get("node"); nt != "" {
+			if nt == "id" {
+				vOut.Field(i).SetString(input.ID)
+			} else if nt == "parent" {
+				vOut.Field(i).SetString(input.Parent)
 			}
 		}
 	}

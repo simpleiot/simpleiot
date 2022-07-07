@@ -2,9 +2,11 @@ package node
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"text/template"
 	"time"
 
@@ -26,6 +28,11 @@ type Manager struct {
 	rootNodeID      string
 	oneWireManager  *oneWireManager
 	chStop          chan struct{}
+
+	// sync stuff
+	startedLock sync.Mutex
+	started     bool
+	wait        []chan struct{}
 }
 
 // NewManger creates a new Manager
@@ -157,6 +164,13 @@ func (m *Manager) Start() error {
 		return fmt.Errorf("Error initializing nodes: %v", err)
 	}
 
+	m.startedLock.Lock()
+	m.started = true
+	for _, c := range m.wait {
+		close(c)
+	}
+	m.startedLock.Unlock()
+
 	t := time.NewTimer(time.Millisecond)
 
 	// TODO: this will not scale and needs to be made event driven
@@ -214,6 +228,26 @@ func (m *Manager) Start() error {
 // Stop manager
 func (m *Manager) Stop(_ error) {
 	close(m.chStop)
+}
+
+// WaitStart waits for store to start
+func (m *Manager) WaitStart(ctx context.Context) error {
+	m.startedLock.Lock()
+	if m.started {
+		m.startedLock.Unlock()
+		return nil
+	}
+
+	wait := make(chan struct{})
+	m.wait = append(m.wait, wait)
+	m.startedLock.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return errors.New("Store wait timeout or canceled")
+	case <-wait:
+		return nil
+	}
 }
 
 type nodeTemplateData struct {

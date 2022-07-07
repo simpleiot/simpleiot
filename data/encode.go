@@ -6,7 +6,18 @@ import (
 )
 
 // Encode is used to convert a user struct to
-// a node.
+// a node. in must be a struct type that contains
+// node, point, and edgepoint tags as shown below.
+// It is recommended that id and parent node tags
+// always be included.
+//	   type exType struct {
+//		ID          string  `node:"id"`
+//		Parent      string  `node:"parent"`
+//		Description string  `point:"description"`
+//		Count       int     `point:"count"`
+//		Role        string  `edgepoint:"role"`
+//		Tombstone   bool    `edgepoint:"tombstone"`
+//	   }
 func Encode(in interface{}) (NodeEdge, error) {
 	vIn := reflect.ValueOf(in)
 	tIn := reflect.TypeOf(in)
@@ -33,21 +44,31 @@ func Encode(in interface{}) (NodeEdge, error) {
 
 	for i := 0; i < tIn.NumField(); i++ {
 		sf := tIn.Field(i)
-		pt := sf.Tag.Get("point")
-		if pt != "" {
+		if pt := sf.Tag.Get("point"); pt != "" {
 			p, err := valToPoint(pt, vIn.Field(i))
 			if err != nil {
 				return ret, err
 			}
 			ret.Points = append(ret.Points, p)
-		} else {
-			et := sf.Tag.Get("edgepoint")
-			if et != "" {
-				p, err := valToPoint(et, vIn.Field(i))
-				if err != nil {
-					return ret, err
+		} else if et := sf.Tag.Get("edgepoint"); et != "" {
+			p, err := valToPoint(et, vIn.Field(i))
+			if err != nil {
+				return ret, err
+			}
+			ret.EdgePoints = append(ret.EdgePoints, p)
+		} else if nt := sf.Tag.Get("node"); nt != "" {
+			if nt == "id" {
+				v := vIn.Field(i)
+				k := v.Type().Kind()
+				if k == reflect.String {
+					ret.ID = v.String()
 				}
-				ret.EdgePoints = append(ret.EdgePoints, p)
+			} else if nt == "parent" {
+				v := vIn.Field(i)
+				k := v.Type().Kind()
+				if k == reflect.String {
+					ret.Parent = v.String()
+				}
 			}
 		}
 	}
