@@ -11,7 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-Bug fix release (PR #369)
+## [[0.3.0] - 2022-07-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.3.0)
+
+This release has a few bug fixes and contains new client code that will make
+creating new functionality easier.
 
 - Fix invalid users causes panic in Go code #365
 - implement data.Decode/Encode for converting nodes to user structs #384
@@ -19,6 +22,9 @@ Bug fix release (PR #369)
 - implemented struct <-> type
   [encode/decode](https://github.com/simpleiot/simpleiot/blob/master/data/encode_decode_test.go)
   functions.
+- Go API Change: the `nats` package has been renamed to `client`.
+- defined a new Client interface and a client Manager that watches for node
+  changes and creates/updates clients and sends any points changes.
 
 ## [[0.2.0] - 2022-05-31](https://github.com/simpleiot/simpleiot/releases/tag/v0.2.0)
 

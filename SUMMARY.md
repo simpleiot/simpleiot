@@ -25,10 +25,11 @@
 
 - [Documentation](docs/ref/documentation.md)
 - [Vision](docs/ref/vision.md)
-- [Development](docs/ref/development.md)
 - [Architecture](docs/ref/architecture.md)
   - [System](docs/ref/architecture-system.md)
   - [Application](docs/ref/architecture-app.md)
+- [Development](docs/ref/development.md)
+  - [Client](docs/ref/client.md)
 - [Data](docs/ref/data.md)
   - [Store](store/store.md)
 - [Reliability](docs/ref/reliability.md)
