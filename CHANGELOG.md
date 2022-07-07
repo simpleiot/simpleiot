@@ -22,6 +22,11 @@ creating new functionality easier.
 - implemented struct <-> type
   [encode/decode](https://github.com/simpleiot/simpleiot/blob/master/data/encode_decode_test.go)
   functions.
+- improved the lifecycle management of the application so we can cleanly shut it
+  down. This allows us to test the application more easily (spin up version for
+  test, shutdown, repeat).
+- implemented a test.Server() function to create a test server to be used in
+  tests.
 - Go API Change: the `nats` package has been renamed to `client`.
 - defined a new Client interface and a client Manager that watches for node
   changes and creates/updates clients and sends any points changes.
