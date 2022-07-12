@@ -57,6 +57,22 @@ func TestDecode(t *testing.T) {
 	}
 }
 
+type testType2 struct {
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description int    `point:"description"`
+}
+
+func TestDecodeTypeMismatch(t *testing.T) {
+	var out testType2
+
+	err := Decode(nodeEdgeTest, &out)
+
+	if err != nil {
+		t.Fatal("Error decoding type mismatch test: ", err)
+	}
+}
+
 func TestEncode(t *testing.T) {
 	var out NodeEdge
 
