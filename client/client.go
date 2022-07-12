@@ -77,7 +77,6 @@ gotId:
 		case <-stopStop:
 			return nil
 		}
-		return nil
 	}, func(_ error) {
 		close(stopStop)
 	})
@@ -96,8 +95,6 @@ gotId:
 			return err
 		}
 	}
-
-	return nil
 }
 
 // Stop clients
