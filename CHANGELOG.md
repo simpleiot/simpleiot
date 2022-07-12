@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- serial MCU client support; #380
+
 ## [[0.3.0] - 2022-07-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.3.0)
 
 This release has a few bug fixes and contains new client code that will make
