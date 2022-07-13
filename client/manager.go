@@ -3,6 +3,7 @@ package client
 import (
 	"log"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -39,6 +40,7 @@ func NewManager[T any](nc *nats.Conn, root string,
 	construct func(nc *nats.Conn, config T) Client) *Manager[T] {
 	var x T
 	nodeType := reflect.TypeOf(x).Name()
+	nodeType = strings.ToLower(nodeType[0:1]) + nodeType[1:]
 
 	return &Manager[T]{
 		nc:        nc,

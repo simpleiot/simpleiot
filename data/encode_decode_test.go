@@ -129,3 +129,23 @@ func TestMergeEdgePoints(t *testing.T) {
 			out.Role)
 	}
 }
+
+type TestType struct {
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+}
+
+func TestEncodeCase(t *testing.T) {
+	test := TestType{"123", "456", "hi there"}
+
+	ne, err := Encode(test)
+
+	if err != nil {
+		t.Fatal("encode failed: ", err)
+	}
+
+	if ne.Type != "testType" {
+		t.Error("expected testType, got: ", ne.Type)
+	}
+}

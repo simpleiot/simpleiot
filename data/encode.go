@@ -3,6 +3,7 @@ package data
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // Encode is used to convert a user struct to
@@ -22,7 +23,10 @@ func Encode(in interface{}) (NodeEdge, error) {
 	vIn := reflect.ValueOf(in)
 	tIn := reflect.TypeOf(in)
 
-	ret := NodeEdge{Type: tIn.Name()}
+	nodeType := tIn.Name()
+	nodeType = strings.ToLower(nodeType[0:1]) + nodeType[1:]
+
+	ret := NodeEdge{Type: nodeType}
 
 	valToPoint := func(t string, v reflect.Value) (Point, error) {
 		k := v.Type().Kind()
