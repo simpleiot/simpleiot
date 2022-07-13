@@ -190,4 +190,6 @@ const (
 
 	// serial MCU clients
 	NodeTypeSerialDev = "serialDev"
+	PointTypeRx       = "rx"
+	PointTypeTx       = "tx"
 )

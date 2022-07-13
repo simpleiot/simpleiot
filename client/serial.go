@@ -21,6 +21,8 @@ type SerialDev struct {
 	Baud        string `point:"baud"`
 	Debug       int    `point:"debug"`
 	Disable     bool   `point:"disable"`
+	Rx          int    `point:"rx"`
+	Tx          int    `point:"tx"`
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
@@ -136,6 +138,12 @@ func (sd *SerialDevClient) Start() error {
 			closePort()
 			timerCheckPort.Reset(checkPortDur)
 		case rd := <-readData:
+			sd.config.Rx++
+			err := SendNodePoint(sd.nc, sd.config.ID,
+				data.Point{Type: data.PointTypeRx, Value: float64(sd.config.Rx)}, false)
+			if err != nil {
+				log.Println("Error sending rx stats: ", err)
+			}
 			log.Printf("Serial client %v debug: %v\n", sd.config.Description, string(rd))
 		case pts := <-sd.newPoints:
 			err := data.MergePoints(pts, &sd.config)
