@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/simpleiot/simpleiot/test"
 )
 
 // examples from MPE SC2000
@@ -57,8 +59,8 @@ func TestRtuSc2000Level(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(rtuSc2000LevelResp, respRtu) {
-		fmt.Println("Expected: ", HexDump(rtuSc2000LevelResp))
-		fmt.Println("Got:      ", HexDump(respRtu))
+		fmt.Println("Expected: ", test.HexDump(rtuSc2000LevelResp))
+		fmt.Println("Got:      ", test.HexDump(respRtu))
 		fmt.Println("resp packet is not right")
 	}
 
@@ -98,8 +100,8 @@ func TestRtuSc2000Coil(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(rtuSc2000CoilResp, respRtu) {
-		fmt.Println("Expected: ", HexDump(rtuSc2000CoilResp))
-		fmt.Println("Got:      ", HexDump(respRtu))
+		fmt.Println("Expected: ", test.HexDump(rtuSc2000CoilResp))
+		fmt.Println("Got:      ", test.HexDump(respRtu))
 		fmt.Println("resp packet is not right")
 	}
 }

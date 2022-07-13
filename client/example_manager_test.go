@@ -6,7 +6,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/test"
+	"github.com/simpleiot/simpleiot/server"
 )
 
 // exNode is decoded data from the client node
@@ -84,7 +84,7 @@ func (tnc *exNodeClient) EdgePoints(points []data.Point) {
 }
 
 func ExampleNewManager() {
-	nc, root, stop, err := test.Server()
+	nc, root, stop, err := server.TestServer()
 
 	if err != nil {
 		log.Println("Error starting test server: ", err)

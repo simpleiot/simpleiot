@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
+	"github.com/simpleiot/simpleiot/test"
 )
 
 // Client defines a Modbus client (master)
@@ -46,7 +48,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	}
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client ReadCoils tx: ", HexDump(packet))
+		fmt.Println("Modbus client ReadCoils tx: ", test.HexDump(packet))
 	}
 
 	_, err = c.transport.Write(packet)
@@ -64,7 +66,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 	buf = buf[:cnt]
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client ReadCoils rx: ", HexDump(buf))
+		fmt.Println("Modbus client ReadCoils rx: ", test.HexDump(buf))
 	}
 
 	_, resp, err := c.transport.Decode(buf)
@@ -91,7 +93,7 @@ func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 	}
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client WriteSingleCoil tx: ", HexDump(packet))
+		fmt.Println("Modbus client WriteSingleCoil tx: ", test.HexDump(packet))
 	}
 
 	_, err = c.transport.Write(packet)
@@ -109,7 +111,7 @@ func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 	buf = buf[:cnt]
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client WriteSingleCoil rx: ", HexDump(buf))
+		fmt.Println("Modbus client WriteSingleCoil rx: ", test.HexDump(buf))
 	}
 
 	_, resp, err := c.transport.Decode(buf)
@@ -145,7 +147,7 @@ func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error
 	}
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client ReadDiscreteInputs tx: ", HexDump(packet))
+		fmt.Println("Modbus client ReadDiscreteInputs tx: ", test.HexDump(packet))
 	}
 
 	_, err = c.transport.Write(packet)
@@ -163,7 +165,7 @@ func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error
 	buf = buf[:cnt]
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client ReadDiscreteInputs rx: ", HexDump(buf))
+		fmt.Println("Modbus client ReadDiscreteInputs rx: ", test.HexDump(buf))
 	}
 
 	_, resp, err := c.transport.Decode(buf)
@@ -195,7 +197,7 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 	}
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client ReadHoldingRegs tx: ", HexDump(packet))
+		fmt.Println("Modbus client ReadHoldingRegs tx: ", test.HexDump(packet))
 	}
 
 	_, err = c.transport.Write(packet)
@@ -213,7 +215,7 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 	buf = buf[:cnt]
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client ReadHoldingRegs rx: ", HexDump(buf))
+		fmt.Println("Modbus client ReadHoldingRegs rx: ", test.HexDump(buf))
 	}
 
 	_, resp, err := c.transport.Decode(buf)
@@ -245,7 +247,7 @@ func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 	}
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client ReadInputRegs tx: ", HexDump(packet))
+		fmt.Println("Modbus client ReadInputRegs tx: ", test.HexDump(packet))
 	}
 
 	_, err = c.transport.Write(packet)
@@ -263,7 +265,7 @@ func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 	buf = buf[:cnt]
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client ReadInputRegs rx: ", HexDump(buf))
+		fmt.Println("Modbus client ReadInputRegs rx: ", test.HexDump(buf))
 	}
 
 	_, resp, err := c.transport.Decode(buf)
@@ -294,7 +296,7 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 	}
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client WriteSingleReg tx: ", HexDump(packet))
+		fmt.Println("Modbus client WriteSingleReg tx: ", test.HexDump(packet))
 	}
 
 	_, err = c.transport.Write(packet)
@@ -312,7 +314,7 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 	buf = buf[:cnt]
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client WriteSingleReg rx: ", HexDump(buf))
+		fmt.Println("Modbus client WriteSingleReg rx: ", test.HexDump(buf))
 	}
 
 	_, resp, err := c.transport.Decode(buf)

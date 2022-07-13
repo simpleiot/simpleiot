@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/simpleiot/simpleiot/respreader"
+	"github.com/simpleiot/simpleiot/test"
 )
 
 func TestRtuEndToEnd(t *testing.T) {
@@ -14,7 +15,7 @@ func TestRtuEndToEnd(t *testing.T) {
 
 	// create virtual serial wire to simulate connection between
 	// server and client
-	wire := NewIoSim(false)
+	wire := test.NewIoSim(false)
 
 	// first set up the server (slave) to process data
 	portA := respreader.NewReadWriteCloser(wire.GetA(), time.Second*2,

@@ -9,7 +9,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/test"
+	"github.com/simpleiot/simpleiot/server"
 )
 
 type testNode struct {
@@ -83,7 +83,7 @@ func (tnc *testNodeClient) getConfig() testNode {
 }
 
 func TestManager(t *testing.T) {
-	nc, root, stop, err := test.Server()
+	nc, root, stop, err := server.TestServer()
 	_ = nc
 
 	if err != nil {
@@ -92,14 +92,12 @@ func TestManager(t *testing.T) {
 
 	defer stop()
 
-	testConfig := testNode{"", "", "fancy test node", 8080, "admin"}
+	testConfig := testNode{"", root.ID, "fancy test node", 8080, "admin"}
 
 	ne, err := data.Encode(testConfig)
 	if err != nil {
 		t.Fatal("Error encoding node: ", err)
 	}
-
-	ne.Parent = root.ID
 
 	// hydrate database with test data
 	err = client.SendNode(nc, ne)
@@ -209,7 +207,7 @@ func TestManager(t *testing.T) {
 }
 
 func TestManagerAddRemove(t *testing.T) {
-	nc, root, stop, err := test.Server()
+	nc, root, stop, err := server.TestServer()
 	_ = nc
 
 	if err != nil {
@@ -320,7 +318,7 @@ func TestManagerAddRemove(t *testing.T) {
 }
 
 func TestManager2(t *testing.T) {
-	nc, _, stop, err := test.Server()
+	nc, _, stop, err := server.TestServer()
 	_ = nc
 
 	if err != nil {

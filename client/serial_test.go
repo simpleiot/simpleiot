@@ -7,11 +7,11 @@ import (
 
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/test"
+	"github.com/simpleiot/simpleiot/server"
 )
 
 func TestSerial(t *testing.T) {
-	nc, root, stop, err := test.Server()
+	nc, root, stop, err := server.TestServer()
 	_ = nc
 
 	if err != nil {
