@@ -3,6 +3,9 @@ package client
 import (
 	"errors"
 	"fmt"
+	"log"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -71,6 +74,43 @@ func GetNodeChildren(nc *nats.Conn, id, typ string, includeDel bool, recursive b
 	}
 
 	return nodes, nil
+}
+
+// GetNodeChildrenType get immediate children of a custom type
+// deleted nodes are skipped
+func GetNodeChildrenType[T any](nc *nats.Conn, id string) ([]T, error) {
+	var x T
+	nodeType := reflect.TypeOf(x).Name()
+	nodeType = strings.ToLower(nodeType[0:1]) + nodeType[1:]
+
+	reqData, err := proto.Marshal(&pb.NatsRequest{IncludeDel: false,
+		Type: nodeType})
+
+	if err != nil {
+		return nil, err
+	}
+
+	nodeMsg, err := nc.Request("node."+id+".children", reqData, time.Second*20)
+	if err != nil {
+		return nil, err
+	}
+
+	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	// decode from NodeEdge to custom types
+	ret := make([]T, len(nodes))
+
+	for i, n := range nodes {
+		err := data.Decode(n, &ret[i])
+		if err != nil {
+			log.Println("Error decode node in GetNodeChildrenType: ", err)
+		}
+	}
+
+	return ret, nil
 }
 
 // GetNodesForUser gets all nodes for a user
