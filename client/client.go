@@ -63,7 +63,7 @@ gotId:
 		}
 	}
 
-	sc := NewManager(bic.nc, rootID, newSerialDevClient)
+	sc := NewManager(bic.nc, rootID, NewSerialDevClient)
 
 	g.Add(sc.Start, sc.Stop)
 

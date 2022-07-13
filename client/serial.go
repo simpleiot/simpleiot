@@ -12,7 +12,8 @@ import (
 	"go.bug.st/serial"
 )
 
-type serialDev struct {
+// SerialDev represents a serial (MCU) config
+type SerialDev struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
@@ -22,16 +23,18 @@ type serialDev struct {
 	Disable     bool   `point:"disable"`
 }
 
-type serialDevClient struct {
+// SerialDevClient is a SIOT client used to manage serial devices
+type SerialDevClient struct {
 	nc            *nats.Conn
-	config        serialDev
+	config        SerialDev
 	stop          chan struct{}
 	newPoints     chan []data.Point
 	newEdgePoints chan []data.Point
 }
 
-func newSerialDevClient(nc *nats.Conn, config serialDev) Client {
-	return &serialDevClient{
+// NewSerialDevClient ...
+func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
+	return &SerialDevClient{
 		nc:            nc,
 		config:        config,
 		stop:          make(chan struct{}),
@@ -41,7 +44,7 @@ func newSerialDevClient(nc *nats.Conn, config serialDev) Client {
 }
 
 // Start runs the main logic for this client and blocks until stopped
-func (sd *serialDevClient) Start() error {
+func (sd *SerialDevClient) Start() error {
 	log.Println("Starting serial client: ", sd.config.Description)
 
 	checkPortDur := time.Second * 10
@@ -157,18 +160,18 @@ func (sd *serialDevClient) Start() error {
 }
 
 // Stop sends a signal to the Start function to exit
-func (sd *serialDevClient) Stop(err error) {
+func (sd *SerialDevClient) Stop(err error) {
 	close(sd.stop)
 }
 
 // Points is called by the Manager when new points for this
 // node are received.
-func (sd *serialDevClient) Points(points []data.Point) {
+func (sd *SerialDevClient) Points(points []data.Point) {
 	sd.newPoints <- points
 }
 
 // EdgePoints is called by the Manager when new edge points for this
 // node are received.
-func (sd *serialDevClient) EdgePoints(points []data.Point) {
+func (sd *SerialDevClient) EdgePoints(points []data.Point) {
 	sd.newEdgePoints <- points
 }
