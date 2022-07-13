@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"strconv"
@@ -63,7 +62,6 @@ func (sd *serialDevClient) Start() error {
 		for {
 			buf := make([]byte, 1024)
 			c, err := port.Read(buf)
-			fmt.Println("CLIFF: port.Reader read count: ", c, err)
 			if err != nil {
 				if err != io.EOF {
 					log.Printf("Error reading port %v: %v\n", sd.config.Description, err)
@@ -135,7 +133,7 @@ func (sd *serialDevClient) Start() error {
 			closePort()
 			timerCheckPort.Reset(checkPortDur)
 		case rd := <-readData:
-			log.Println("Serial client read data: ", string(rd))
+			log.Printf("Serial client %v debug: %v\n", sd.config.Description, string(rd))
 		case pts := <-sd.newPoints:
 			err := data.MergePoints(pts, &sd.config)
 			if err != nil {
