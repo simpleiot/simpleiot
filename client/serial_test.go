@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -41,7 +42,7 @@ func TestSerial(t *testing.T) {
 
 	// wait for node to be populated
 	for {
-		nodes, err := client.GetNodeChildren(nc, root.ID, data.NodeTypeSerialDev, false, false)
+		nodes, err := client.GetNodeChildrenType[client.SerialDev](nc, root.ID)
 		if err != nil {
 			t.Fatal("Error getting node children: ", err)
 		}
@@ -52,7 +53,26 @@ func TestSerial(t *testing.T) {
 		if time.Since(start) > time.Second {
 			t.Fatal("Timeout waiting for serial node")
 		}
-		time.After(time.Second)
+		<-time.After(time.Millisecond * 10)
+	}
+
+	// wait for a packet to be received
+	start = time.Now()
+	for {
+		nodes, err := client.GetNodeChildrenType[client.SerialDev](nc, root.ID)
+		if err != nil {
+			t.Fatal("Error getting node children: ", err)
+		}
+		if len(nodes) > 0 {
+			fmt.Printf("CLIFF: serial nodes: %+v\n", nodes)
+			if nodes[0].Rx > 0 {
+				break
+			}
+		}
+		if time.Since(start) > time.Second {
+			t.Fatal("Timeout waiting for rx packet")
+		}
+		<-time.After(time.Millisecond * 100)
 	}
 
 }
