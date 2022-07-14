@@ -25,6 +25,8 @@ func TestSerial(t *testing.T) {
 		t.Fatal("Error starting fifo: ", err)
 	}
 
+	defer fifo.Close()
+
 	serialTest := client.SerialDev{
 		ID:          uuid.New().String(),
 		Parent:      root.ID,
