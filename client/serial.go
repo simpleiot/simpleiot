@@ -161,7 +161,7 @@ func (sd *SerialDevClient) Start() error {
 			if err != nil {
 				log.Println("Error sending rx stats: ", err)
 			}
-			log.Printf("Serial client %v: debug: %v\n", sd.config.Description, string(rd))
+			log.Printf("Serial client %v: log: %v\n", sd.config.Description, string(rd))
 		case pts := <-sd.newPoints:
 			err := data.MergePoints(pts, &sd.config)
 			if err != nil {

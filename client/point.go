@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -102,4 +103,40 @@ func sendPoints(nc *nats.Conn, subject string, points data.Points, ack bool) err
 	}
 
 	return err
+}
+
+// SubscribePoints subscripts to point updates for a node and executes a callback
+// when new points arrive. stop() can be called to clean up the subscription
+func SubscribePoints(nc *nats.Conn, id string, callback func(points []data.Point)) (stop func(), err error) {
+	psub, err := nc.Subscribe(SubjectNodePoints(id), func(msg *nats.Msg) {
+		points, err := data.PbDecodePoints(msg.Data)
+		if err != nil {
+			log.Println("Error decoding points: ", err)
+			return
+		}
+
+		callback(points)
+	})
+
+	return func() {
+		psub.Unsubscribe()
+	}, err
+}
+
+// SubscribeEdgePoints subscripts to edge point updates for a node and executes a callback
+// when new points arrive. stop() can be called to clean up the subscription
+func SubscribeEdgePoints(nc *nats.Conn, id, parent string, callback func(points []data.Point)) (stop func(), err error) {
+	psub, err := nc.Subscribe(SubjectEdgePoints(id, parent), func(msg *nats.Msg) {
+		points, err := data.PbDecodePoints(msg.Data)
+		if err != nil {
+			log.Println("Error decoding points: ", err)
+			return
+		}
+
+		callback(points)
+	})
+
+	return func() {
+		psub.Unsubscribe()
+	}, err
 }
