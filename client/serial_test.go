@@ -12,6 +12,7 @@ import (
 )
 
 func TestSerial(t *testing.T) {
+	// Start up a SIOT test server for this test
 	nc, root, stop, err := server.TestServer()
 	_ = nc
 
@@ -21,6 +22,10 @@ func TestSerial(t *testing.T) {
 
 	defer stop()
 
+	// the test.Fifo is used to emulate a serial port
+	// channel during this test. The A side is used by the
+	// this test, and the B side is used by the serial
+	// client.
 	fifo, err := test.NewFifoA("serialfifo")
 	if err != nil {
 		t.Fatal("Error starting fifo: ", err)
