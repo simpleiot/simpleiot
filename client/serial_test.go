@@ -32,7 +32,11 @@ func TestSerial(t *testing.T) {
 		ID:          uuid.New().String(),
 		Parent:      root.ID,
 		Description: "test serial",
-		Port:        "serialfifo",
+		// when Port is set to the magic value of "serialfifo", the serial
+		// client opens a unix fifo instead of a real serial port. This allows
+		// us to send/receive data to/from serial client during
+		// testing without needing real serial hardware.
+		Port: "serialfifo",
 	}
 
 	// hydrate database with test data
