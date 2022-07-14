@@ -38,6 +38,37 @@ func GetNode(nc *nats.Conn, id, parent string) ([]data.NodeEdge, error) {
 	return nodes, nil
 }
 
+// GetNodeType gets node of a custom type.
+// If parent is set to "none", the edge details are not included
+// returns data.ErrDocumentNotFound if node is not found.
+// If parent is set to "all", then all living instances of the node are returned.
+func GetNodeType[T any](nc *nats.Conn, id, parent string) ([]T, error) {
+	if parent == "" {
+		parent = "none"
+	}
+	nodeMsg, err := nc.Request("node."+id, []byte(parent), time.Second*20)
+	if err != nil {
+		return []T{}, err
+	}
+
+	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
+	if err != nil {
+		return []T{}, err
+	}
+
+	// decode from NodeEdge to custom types
+	ret := make([]T, len(nodes))
+
+	for i, n := range nodes {
+		err := data.Decode(n, &ret[i])
+		if err != nil {
+			log.Println("Error decode node in GetNodeType: ", err)
+		}
+	}
+
+	return ret, nil
+}
+
 // GetNodeChildren over NATS (immediate children only, not recursive)
 // deleted nodes are skipped unless includeDel is set to true. typ
 // can be used to limit nodes to a particular type, otherwise, all nodes
@@ -144,6 +175,8 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 
 // SendNode is used to send a node to a nats server. Can be
 // used to create nodes.
+// TODO: might be nice eventually to get ID back from this
+// function so we don't have to poll for it separately.
 func SendNode(nc *nats.Conn, node data.NodeEdge) error {
 	// we need to send the edge points first if we are creating
 	// a new node, otherwise the upstream will detect an ophraned node
@@ -180,6 +213,17 @@ func SendNode(nc *nats.Conn, node data.NodeEdge) error {
 	}
 
 	return nil
+}
+
+// SendNodeType is used to send a node to a nats server. Can be
+// used to create nodes.
+func SendNodeType[T any](nc *nats.Conn, node T) error {
+	ne, err := data.Encode(node)
+	if err != nil {
+		return err
+	}
+
+	return SendNode(nc, ne)
 }
 
 func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent string) error {
@@ -306,4 +350,74 @@ func UserCheck(nc *nats.Conn, email, pass string) ([]data.NodeEdge, error) {
 	}
 
 	return nodes, nil
+}
+
+// NodeWatcher creates a node watcher. update() is called any time there is an update.
+// Stop can be called to stop the watcher. get() can be called to get the current value.
+func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop func(), err error) {
+	stopCh := make(chan struct{})
+	var current T
+
+	pointUpdates := make(chan []data.Point)
+	edgeUpdates := make(chan []data.Point)
+
+	// create subscriptions first so that we get any updates that might happen between the
+	// time we fetch node and start subscriptions
+
+	stopPointSub, err := SubscribePoints(nc, id, func(points []data.Point) {
+		pointUpdates <- points
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("Point subscribe failed: %v", err)
+	}
+
+	stopEdgeSub, err := SubscribeEdgePoints(nc, id, parent, func(points []data.Point) {
+		edgeUpdates <- points
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("Edge point subscribe failed: %v", err)
+	}
+
+	nodes, err := GetNodeType[T](nc, id, parent)
+	if err != nil {
+		if err != data.ErrDocumentNotFound {
+			return nil, nil, fmt.Errorf("Error getting node: %v", err)
+		}
+		// if document is not found, that is OK, points will populate it once they come in
+	}
+
+	// FIXME: we may still have a race condition where older point updates will overwrite
+	// a new update when we fetch the node.
+	if len(nodes) > 0 {
+		current = nodes[0]
+	}
+
+	getCurrent := make(chan chan T)
+
+	// main loop for watcher. All data access must go through the main
+	// loop to avoid race conditions.
+	go func() {
+		for {
+			select {
+			case <-stopCh:
+				return
+			case r := <-getCurrent:
+				r <- current
+			case pts := <-pointUpdates:
+				data.MergePoints(pts, &current)
+			case pts := <-edgeUpdates:
+				data.MergeEdgePoints(pts, &current)
+			}
+		}
+	}()
+
+	return func() T {
+			ret := make(chan T)
+			getCurrent <- ret
+			return <-ret
+		}, func() {
+			stopPointSub()
+			stopEdgeSub()
+			close(stopCh)
+		}, nil
 }

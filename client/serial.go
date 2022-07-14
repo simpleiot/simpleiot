@@ -22,6 +22,7 @@ type SerialDev struct {
 	Baud        string `point:"baud"`
 	Debug       int    `point:"debug"`
 	Disable     bool   `point:"disable"`
+	Log         string `point:"log"`
 	Rx          int    `point:"rx"`
 	Tx          int    `point:"tx"`
 }
@@ -156,8 +157,11 @@ func (sd *SerialDevClient) Start() error {
 			timerCheckPort.Reset(checkPortDur)
 		case rd := <-readData:
 			sd.config.Rx++
-			err := SendNodePoint(sd.nc, sd.config.ID,
-				data.Point{Type: data.PointTypeRx, Value: float64(sd.config.Rx)}, false)
+			err := SendNodePoints(sd.nc, sd.config.ID,
+				[]data.Point{
+					{Type: data.PointTypeRx, Value: float64(sd.config.Rx)},
+					{Type: data.PointTypeLog, Text: string(rd)},
+				}, false)
 			if err != nil {
 				log.Println("Error sending rx stats: ", err)
 			}

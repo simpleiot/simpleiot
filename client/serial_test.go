@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/client"
-	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/server"
 	"github.com/simpleiot/simpleiot/test"
 )
@@ -26,33 +26,32 @@ func TestSerial(t *testing.T) {
 	}
 
 	serialTest := client.SerialDev{
+		ID:          uuid.New().String(),
 		Parent:      root.ID,
 		Description: "test serial",
 		Port:        "serialfifo",
 	}
 
-	ne, err := data.Encode(serialTest)
-	if err != nil {
-		t.Fatal("Error encoding node: ", err)
-	}
-
 	// hydrate database with test data
-	err = client.SendNode(nc, ne)
-
+	err = client.SendNodeType(nc, serialTest)
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
+
+	// set up watcher for node
+	getNode, stopWatcher, err := client.NodeWatcher[client.SerialDev](nc, serialTest.ID, serialTest.Parent)
+	if err != nil {
+		t.Fatal("Error setting up node watcher")
+	}
+
+	defer stopWatcher()
 
 	start := time.Now()
 
 	// wait for node to be populated
 	for {
-		nodes, err := client.GetNodeChildrenType[client.SerialDev](nc, root.ID)
-		if err != nil {
-			t.Fatal("Error getting node children: ", err)
-		}
-		if len(nodes) > 0 {
-			serialTest.ID = nodes[0].ID
+		cur := getNode()
+		if cur.ID == serialTest.ID {
 			break
 		}
 		if time.Since(start) > time.Second {
@@ -62,7 +61,8 @@ func TestSerial(t *testing.T) {
 	}
 
 	// send a packet to the serial client
-	_, err = fifo.Write([]byte("Hi there"))
+	testLog := "Hi there"
+	_, err = fifo.Write([]byte(testLog))
 
 	if err != nil {
 		t.Error("Error sending packet to fifo: ", err)
@@ -71,19 +71,13 @@ func TestSerial(t *testing.T) {
 	// wait for a packet to be received
 	start = time.Now()
 	for {
-		nodes, err := client.GetNodeChildrenType[client.SerialDev](nc, root.ID)
-		if err != nil {
-			t.Fatal("Error getting node children: ", err)
-		}
-		if len(nodes) > 0 {
-			if nodes[0].Rx > 0 {
-				break
-			}
+		cur := getNode()
+		if cur.Rx > 0 && cur.Log == testLog {
+			break
 		}
 		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for rx packet")
+			t.Fatal("Timeout waiting for log packet")
 		}
 		<-time.After(time.Millisecond * 100)
 	}
-
 }

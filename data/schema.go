@@ -192,4 +192,5 @@ const (
 	NodeTypeSerialDev = "serialDev"
 	PointTypeRx       = "rx"
 	PointTypeTx       = "tx"
+	PointTypeLog      = "log"
 )
