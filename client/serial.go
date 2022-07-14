@@ -9,6 +9,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/respreader"
+	"github.com/simpleiot/simpleiot/test"
 	"go.bug.st/serial"
 )
 
@@ -92,33 +93,49 @@ func (sd *SerialDevClient) Start() error {
 			return
 		}
 
-		if sd.config.Port == "" || sd.config.Baud == "" {
-			log.Printf("Serial port %v not configured\n", sd.config.Description)
-			timerCheckPort.Reset(checkPortDur)
-			return
+		var io io.ReadWriteCloser
+
+		if sd.config.Port == "serialfifo" {
+			// we are in test mode and using unix fifos instead of
+			// real serial ports. The fifo must already by started
+			// by the test harness
+			var err error
+			io, err = test.NewFifoB(sd.config.Port)
+			if err != nil {
+				log.Println("SerialDevClient: error opening fifo: ", err)
+				return
+			}
+		} else {
+			if sd.config.Port == "" || sd.config.Baud == "" {
+				log.Printf("Serial port %v not configured\n", sd.config.Description)
+				timerCheckPort.Reset(checkPortDur)
+				return
+			}
+
+			baud, err := strconv.Atoi(sd.config.Baud)
+
+			if err != nil {
+				log.Printf("Serial port %v invalid baud\n", sd.config.Description)
+				timerCheckPort.Reset(checkPortDur)
+				return
+			}
+
+			mode := &serial.Mode{
+				BaudRate: baud,
+			}
+
+			serialPort, err := serial.Open(sd.config.Port, mode)
+			if err != nil {
+				log.Printf("Error opening serial port %v: %v", sd.config.Description,
+					err)
+				timerCheckPort.Reset(checkPortDur)
+				return
+			}
+
+			io = serialPort
 		}
 
-		baud, err := strconv.Atoi(sd.config.Baud)
-
-		if err != nil {
-			log.Printf("Serial port %v invalid baud\n", sd.config.Description)
-			timerCheckPort.Reset(checkPortDur)
-			return
-		}
-
-		mode := &serial.Mode{
-			BaudRate: baud,
-		}
-
-		serialPort, err := serial.Open(sd.config.Port, mode)
-		if err != nil {
-			log.Printf("Error opening serial port %v: %v", sd.config.Description,
-				err)
-			timerCheckPort.Reset(checkPortDur)
-			return
-		}
-
-		port = respreader.NewReadWriteCloser(serialPort, time.Millisecond*100, time.Millisecond*20)
+		port = respreader.NewReadWriteCloser(io, time.Millisecond*100, time.Millisecond*20)
 		timerCheckPort.Stop()
 
 		go listener(port)
@@ -144,7 +161,7 @@ func (sd *SerialDevClient) Start() error {
 			if err != nil {
 				log.Println("Error sending rx stats: ", err)
 			}
-			log.Printf("Serial client %v debug: %v\n", sd.config.Description, string(rd))
+			log.Printf("Serial client %v: debug: %v\n", sd.config.Description, string(rd))
 		case pts := <-sd.newPoints:
 			err := data.MergePoints(pts, &sd.config)
 			if err != nil {

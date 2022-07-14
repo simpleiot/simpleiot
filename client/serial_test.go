@@ -1,13 +1,13 @@
 package client_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/server"
+	"github.com/simpleiot/simpleiot/test"
 )
 
 func TestSerial(t *testing.T) {
@@ -20,10 +20,15 @@ func TestSerial(t *testing.T) {
 
 	defer stop()
 
+	fifo, err := test.NewFifoA("serialfifo")
+	if err != nil {
+		t.Fatal("Error starting fifo: ", err)
+	}
+
 	serialTest := client.SerialDev{
 		Parent:      root.ID,
 		Description: "test serial",
-		Port:        "fifo",
+		Port:        "serialfifo",
 	}
 
 	ne, err := data.Encode(serialTest)
@@ -56,6 +61,13 @@ func TestSerial(t *testing.T) {
 		<-time.After(time.Millisecond * 10)
 	}
 
+	// send a packet to the serial client
+	_, err = fifo.Write([]byte("Hi there"))
+
+	if err != nil {
+		t.Error("Error sending packet to fifo: ", err)
+	}
+
 	// wait for a packet to be received
 	start = time.Now()
 	for {
@@ -64,7 +76,6 @@ func TestSerial(t *testing.T) {
 			t.Fatal("Error getting node children: ", err)
 		}
 		if len(nodes) > 0 {
-			fmt.Printf("CLIFF: serial nodes: %+v\n", nodes)
 			if nodes[0].Rx > 0 {
 				break
 			}
