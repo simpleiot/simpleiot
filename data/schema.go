@@ -193,4 +193,5 @@ const (
 	PointTypeRx       = "rx"
 	PointTypeTx       = "tx"
 	PointTypeLog      = "log"
+	PointTypeUptime   = "uptime"
 )

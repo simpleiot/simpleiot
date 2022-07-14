@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 	"time"
+	"unicode"
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -25,6 +26,8 @@ type SerialDev struct {
 	Log         string `point:"log"`
 	Rx          int    `point:"rx"`
 	Tx          int    `point:"tx"`
+	Uptime      int    `point:"uptime"`
+	ErrorCount  int    `point:"errorCount"`
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
@@ -157,15 +160,41 @@ func (sd *SerialDevClient) Start() error {
 			timerCheckPort.Reset(checkPortDur)
 		case rd := <-readData:
 			sd.config.Rx++
-			err := SendNodePoints(sd.nc, sd.config.ID,
-				[]data.Point{
-					{Type: data.PointTypeRx, Value: float64(sd.config.Rx)},
-					{Type: data.PointTypeLog, Text: string(rd)},
-				}, false)
+			rxPt := data.Point{Type: data.PointTypeRx, Value: float64(sd.config.Rx)}
+			// figure out if the data is ascii string or points
+			// try pb decode
+			points, err := data.PbDecodePoints(rd)
+			if err == nil && len(points) > 0 {
+				points = append(points, rxPt)
+			} else {
+				// check if ascii
+				isASCII := true
+				for i := 0; i < len(rd); i++ {
+					if rd[i] > unicode.MaxASCII {
+						isASCII = false
+						break
+					}
+				}
+				if isASCII {
+					points = data.Points{
+						rxPt,
+						{Type: data.PointTypeLog, Text: string(rd)},
+					}
+					log.Printf("Serial client %v: log: %v\n", sd.config.Description, string(rd))
+				} else {
+					log.Println("Error decoding serial packet")
+					sd.config.ErrorCount++
+					points = data.Points{
+						rxPt,
+						{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)},
+					}
+				}
+			}
+
+			err = SendNodePoints(sd.nc, sd.config.ID, points, false)
 			if err != nil {
 				log.Println("Error sending rx stats: ", err)
 			}
-			log.Printf("Serial client %v: log: %v\n", sd.config.Description, string(rd))
 		case pts := <-sd.newPoints:
 			err := data.MergePoints(pts, &sd.config)
 			if err != nil {

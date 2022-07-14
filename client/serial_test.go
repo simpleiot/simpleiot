@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/client"
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/server"
 	"github.com/simpleiot/simpleiot/test"
 )
@@ -62,10 +63,9 @@ func TestSerial(t *testing.T) {
 		<-time.After(time.Millisecond * 10)
 	}
 
-	// send a packet to the serial client
+	// send an ascii log message to the serial client
 	testLog := "Hi there"
 	_, err = fifo.Write([]byte(testLog))
-
 	if err != nil {
 		t.Error("Error sending packet to fifo: ", err)
 	}
@@ -74,11 +74,40 @@ func TestSerial(t *testing.T) {
 	start = time.Now()
 	for {
 		cur := getNode()
-		if cur.Rx > 0 && cur.Log == testLog {
+		if cur.Rx == 1 && cur.Log == testLog {
 			break
 		}
 		if time.Since(start) > time.Second {
 			t.Fatal("Timeout waiting for log packet")
+		}
+		<-time.After(time.Millisecond * 100)
+	}
+
+	// send a point to the serial client
+	uptimeTest := 5523
+	gpioPts := data.Points{
+		{Type: data.PointTypeUptime, Value: float64(uptimeTest)},
+	}
+
+	gpioPb, err := gpioPts.ToPb()
+	if err != nil {
+		t.Fatal("Error encoding points to PB: ", err)
+	}
+
+	_, err = fifo.Write(gpioPb)
+	if err != nil {
+		t.Fatal("Error writing pb data to fifo: ", err)
+	}
+
+	// wait for point to show up in node
+	start = time.Now()
+	for {
+		cur := getNode()
+		if cur.Rx == 2 && cur.Uptime == uptimeTest {
+			break
+		}
+		if time.Since(start) > time.Second {
+			t.Fatal("Timeout waiting for uptime to get set")
 		}
 		<-time.After(time.Millisecond * 100)
 	}
