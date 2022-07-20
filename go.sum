@@ -20,6 +20,8 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/deepmap/oapi-codegen v1.8.2 h1:SegyeYGcdi0jLLrpbCMoJxnUUn8GBXHsvr4rbzjuhfU=
 github.com/deepmap/oapi-codegen v1.8.2/go.mod h1:YLgSKSDv/bZQB7N4ws6luhozi3cEdRktEqrX88CvjIw=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
+github.com/dim13/cobs v1.0.0 h1:qozvGWgj3XhokzBlgct6V9FFvg7h6zO606RQG+0iD7k=
+github.com/dim13/cobs v1.0.0/go.mod h1:GpeOYCrmIfZs+sC2oZe4jYLbGmZ8JVoE4YTv8ZX/3DI=
 github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b h1:eR1P/A4QMYF2/LpHRhYAts9wyYEtF7qNk/tVNiYCWc8=
 github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b/go.mod h1:56wL82FO0bfMU5RvfXoIwSOP2ggqqxT+tAfNEIyxuHw=
 github.com/genjidb/genji v0.13.0 h1:WKjuoy4TRemCxVgcZ1/+POGKhjkDj3ZSTB/zlHmS7l0=
