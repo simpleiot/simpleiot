@@ -27,7 +27,7 @@ func (cw *cobsWrapper) Read(b []byte) (int, error) {
 }
 
 func (cw *cobsWrapper) Write(b []byte) (int, error) {
-	return 0, nil
+	return cw.dev.Write(cobs.Encode(b))
 }
 
 func (cw *cobsWrapper) Close() error {

@@ -64,4 +64,21 @@ func TestCobsWrapper(t *testing.T) {
 	if !reflect.DeepEqual(buf, d) {
 		t.Fatal("Read data does not match")
 	}
+
+	_, err = cw.Write(d)
+	if err != nil {
+		t.Fatal("Error write: ", err)
+	}
+
+	buf = make([]byte, 500)
+
+	c, err = a.Read(buf)
+	if err != nil {
+		t.Fatal("Error read: ", err)
+	}
+	buf = buf[0:c]
+
+	if !reflect.DeepEqual(cobs.Decode(buf), d) {
+		t.Fatal("cw.Write, buf is not same")
+	}
 }
