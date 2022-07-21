@@ -195,8 +195,7 @@ func TestCobsWriteTwoThenRead(t *testing.T) {
 	de := append([]byte{0}, cobs.Encode(d)...)
 
 	// write two packets
-	a.Write(de)
-	a.Write(de)
+	a.Write(append(de, de...))
 
 	for i := 2; i < 2; i++ {
 		buf := make([]byte, 500)
