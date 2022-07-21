@@ -134,13 +134,13 @@ func TestCobsWrapperPartialPacket(t *testing.T) {
 	}
 }
 
-func TestCobsTwoLeadingZeros(t *testing.T) {
+func TestCobsMultipleLeadingNull(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
 	a, b := test.NewIoSim()
 
 	cw := newCobsWrapper(b)
 
-	a.Write(append([]byte{0, 0}, cobs.Encode(d)...))
+	a.Write(append([]byte{0, 0, 0, 0}, cobs.Encode(d)...))
 
 	buf := make([]byte, 500)
 
