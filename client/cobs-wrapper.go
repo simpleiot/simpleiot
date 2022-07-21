@@ -62,7 +62,7 @@ func (cw *cobsWrapper) Read(b []byte) (int, error) {
 		}
 
 		for {
-			// FIXME the +50 below is probably not great
+			// FIXME the +50 below is probably overkill
 			buf := make([]byte, len(b)+50)
 			c, err := cw.dev.Read(buf)
 			if err != nil {
