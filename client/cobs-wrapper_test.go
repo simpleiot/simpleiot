@@ -51,7 +51,7 @@ func TestCobsWrapper(t *testing.T) {
 
 	cw := newCobsWrapper(b)
 
-	a.Write(cobs.Encode(d))
+	a.Write(append([]byte{0}, cobs.Encode(d)...))
 
 	buf := make([]byte, 500)
 
@@ -78,7 +78,11 @@ func TestCobsWrapper(t *testing.T) {
 	}
 	buf = buf[0:c]
 
-	if !reflect.DeepEqual(cobs.Decode(buf), d) {
+	if buf[0] != 0 {
+		t.Fatal("COBS encoded packet must start with 0")
+	}
+
+	if !reflect.DeepEqual(cobs.Decode(buf[1:]), d) {
 		t.Fatal("cw.Write, buf is not same")
 	}
 }
