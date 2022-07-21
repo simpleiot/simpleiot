@@ -16,7 +16,9 @@ type IoSim struct {
 }
 
 // NewIoSim creates a new IO sim and returns the A and B side of an IO simulator
-// that implements a ReadWriteCloser
+// that implements a io.ReadWriteCloser. Typically the A side would be used by your
+// test code to read/write simulated data, and the B side would be passed to your code
+// that uses an io.ReadWriter.
 func NewIoSim() (*IoSim, *IoSim) {
 	var a2b bytes.Buffer
 	var b2a bytes.Buffer
