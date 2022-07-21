@@ -31,6 +31,28 @@ func TestCobsRead(t *testing.T) {
 	}
 }
 
+func TestCobsReadNoLeadingNull(t *testing.T) {
+	d := []byte{1, 2, 3, 0, 4, 5, 6}
+
+	a, b := test.NewIoSim()
+
+	cw := newCobsWrapper(b)
+
+	a.Write(cobs.Encode(d))
+
+	buf := make([]byte, 500)
+
+	c, err := cw.Read(buf)
+	if err != nil {
+		t.Fatal("Error reading cw: ", err)
+	}
+	buf = buf[0:c]
+
+	if !reflect.DeepEqual(buf, d) {
+		t.Fatal("Read data does not match")
+	}
+}
+
 func TestCobsWrite(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
 
@@ -67,7 +89,7 @@ func TestCobsWrapperPartialPacket(t *testing.T) {
 
 	cw := newCobsWrapper(b)
 
-	de := append([]byte{0}, cobs.Encode(d)...)
+	de := cobs.Encode(d)
 
 	// write part of packet
 	a.Write(de[0:4])
@@ -125,6 +147,37 @@ func TestCobsTwoLeadingZeros(t *testing.T) {
 	c, err := cw.Read(buf)
 	if err != nil {
 		t.Fatal("Error reading cw: ", err)
+	}
+	buf = buf[0:c]
+
+	if !reflect.DeepEqual(buf, d) {
+		t.Fatal("Read data does not match")
+	}
+}
+
+func TestCobsPartialThenNew(t *testing.T) {
+	d := []byte{1, 2, 3, 0, 4, 5, 6}
+	a, b := test.NewIoSim()
+
+	cw := newCobsWrapper(b)
+
+	de := append([]byte{0}, cobs.Encode(d)...)
+
+	// write partial packet
+	a.Write(de[0:4])
+
+	// then start new packet
+	a.Write(de)
+
+	buf := make([]byte, 500)
+	c, err := cw.Read(buf)
+	if err == nil {
+		t.Fatal("should have gotten an error reading partial packet: ", err)
+	}
+
+	c, err = cw.Read(buf)
+	if err != nil {
+		t.Fatal("got error reading full packet: ", err)
 	}
 	buf = buf[0:c]
 

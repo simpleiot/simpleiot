@@ -9,7 +9,8 @@ import (
 )
 
 type cobsWrapper struct {
-	dev io.ReadWriteCloser
+	dev          io.ReadWriteCloser
+	readLeftover bytes.Buffer
 }
 
 func newCobsWrapper(dev io.ReadWriteCloser) *cobsWrapper {
@@ -24,9 +25,41 @@ func (cw *cobsWrapper) Read(b []byte) (int, error) {
 	packetCh := make(chan []byte)
 
 	go func() {
-		foundStart := false
+		var decodeBuf bytes.Buffer
 		foundNonZero := false
-		var readBuf bytes.Buffer
+		ret := false
+
+		// returns done if we hit error or decoded packet
+		processByte := func(b byte) bool {
+			if b == 0 {
+				// throw away leading zeros or if we have
+				// data, try to decode it
+				if foundNonZero {
+					decodeBuf.WriteByte(b)
+					dec := cobs.Decode(decodeBuf.Bytes())
+					if len(dec) > 0 {
+						packetCh <- dec
+						return true
+					}
+					// we did not decode a packet, return a decode error
+					errCh <- errors.New("COBS decode error")
+					return true
+				}
+			} else {
+				decodeBuf.WriteByte(b)
+				foundNonZero = true
+			}
+
+			return false
+		}
+
+		// First, process any leftover data
+		for cw.readLeftover.Len() > 0 {
+			b, _ := cw.readLeftover.ReadByte()
+			if processByte(b) {
+				return
+			}
+		}
 
 		for {
 			// FIXME the +50 below is probably not great
@@ -39,27 +72,10 @@ func (cw *cobsWrapper) Read(b []byte) (int, error) {
 			buf = buf[0:c]
 
 			for _, b := range buf {
-				if !foundStart {
-					if b == 0 {
-						foundStart = true
-					}
+				if !ret {
+					ret = processByte(b)
 				} else {
-					if b == 0 {
-						if foundNonZero {
-							readBuf.WriteByte(b)
-							dec := cobs.Decode(readBuf.Bytes())
-							if len(dec) > 0 {
-								packetCh <- dec
-								return
-							}
-							// we did not decode a packet, return a decode error
-							errCh <- errors.New("COBS decode error")
-							return
-						}
-					} else {
-						readBuf.WriteByte(b)
-						foundNonZero = true
-					}
+					cw.readLeftover.WriteByte(b)
 				}
 			}
 		}
