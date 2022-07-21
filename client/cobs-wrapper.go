@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"sync"
 
 	"github.com/dim13/cobs"
 )
@@ -11,6 +12,7 @@ import (
 type cobsWrapper struct {
 	dev          io.ReadWriteCloser
 	readLeftover bytes.Buffer
+	readLock     sync.Mutex
 }
 
 func newCobsWrapper(dev io.ReadWriteCloser) *cobsWrapper {
@@ -24,7 +26,11 @@ func (cw *cobsWrapper) Read(b []byte) (int, error) {
 	errCh := make(chan error)
 	packetCh := make(chan []byte)
 
+	// only let one Read read at a time
 	go func() {
+		cw.readLock.Lock()
+		defer cw.readLock.Unlock()
+
 		var decodeBuf bytes.Buffer
 		foundNonZero := false
 		ret := false
@@ -77,6 +83,10 @@ func (cw *cobsWrapper) Read(b []byte) (int, error) {
 				} else {
 					cw.readLeftover.WriteByte(b)
 				}
+			}
+
+			if ret {
+				return
 			}
 		}
 	}()
