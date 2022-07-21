@@ -15,10 +15,10 @@ func TestRtuEndToEnd(t *testing.T) {
 
 	// create virtual serial wire to simulate connection between
 	// server and client
-	wire := test.NewIoSim(false)
+	a, b := test.NewIoSim()
 
 	// first set up the server (slave) to process data
-	portA := respreader.NewReadWriteCloser(wire.GetA(), time.Second*2,
+	portA := respreader.NewReadWriteCloser(a, time.Second*2,
 		5*time.Millisecond)
 	transportA := NewRTU(portA)
 	regs := &Regs{}
@@ -45,7 +45,7 @@ func TestRtuEndToEnd(t *testing.T) {
 	})
 
 	// set up client (master)
-	portB := respreader.NewReadWriteCloser(wire.GetB(), time.Second*2,
+	portB := respreader.NewReadWriteCloser(b, time.Second*2,
 		5*time.Millisecond)
 	transportB := NewRTU(portB)
 	master := NewClient(transportB, 9)

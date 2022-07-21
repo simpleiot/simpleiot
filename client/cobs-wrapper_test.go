@@ -1,80 +1,18 @@
 package client
 
 import (
-	"bytes"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/dim13/cobs"
+	"github.com/simpleiot/simpleiot/test"
 )
-
-type ioSim struct {
-	out  *bytes.Buffer
-	in   *bytes.Buffer
-	m    *sync.Mutex
-	stop chan struct{}
-}
-
-// newIoSim creates a new IO sim and returns the A and B side of an IO simulator
-// that implements a ReadWriteCloser
-func newIoSim() (*ioSim, *ioSim) {
-	var a2b bytes.Buffer
-	var b2a bytes.Buffer
-	var m sync.Mutex
-
-	a := ioSim{&a2b, &b2a, &m, make(chan struct{})}
-	b := ioSim{&b2a, &a2b, &m, make(chan struct{})}
-
-	return &a, &b
-}
-
-func (ios *ioSim) Write(d []byte) (int, error) {
-	ios.m.Lock()
-	defer ios.m.Unlock()
-	return ios.in.Write(d)
-}
-
-// Read blocks until there is some data in the out buffer or the ioSim is closed.
-func (ios *ioSim) Read(d []byte) (int, error) {
-	ret := make(chan struct{})
-
-	go func() {
-		for {
-			ios.m.Lock()
-			if ios.out.Len() > 0 {
-				close(ret)
-				ios.m.Unlock()
-				return
-			}
-			ios.m.Unlock()
-			select {
-			case <-time.After(time.Millisecond):
-				// continue
-			case <-ios.stop:
-				close(ret)
-				return
-			}
-		}
-	}()
-
-	// block until we have data
-	<-ret
-	ios.m.Lock()
-	defer ios.m.Unlock()
-	return ios.out.Read(d)
-}
-
-func (ios *ioSim) Close() error {
-	close(ios.stop)
-	return nil
-}
 
 func TestCobsRead(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
 
-	a, b := newIoSim()
+	a, b := test.NewIoSim()
 
 	cw := newCobsWrapper(b)
 
@@ -96,7 +34,7 @@ func TestCobsRead(t *testing.T) {
 func TestCobsWrite(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
 
-	a, b := newIoSim()
+	a, b := test.NewIoSim()
 
 	cw := newCobsWrapper(b)
 
@@ -125,7 +63,7 @@ func TestCobsWrite(t *testing.T) {
 func TestCobsWrapperPartialPacket(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
 
-	a, b := newIoSim()
+	a, b := test.NewIoSim()
 
 	cw := newCobsWrapper(b)
 
@@ -176,7 +114,7 @@ func TestCobsWrapperPartialPacket(t *testing.T) {
 
 func TestCobsTwoLeadingZeros(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
-	a, b := newIoSim()
+	a, b := test.NewIoSim()
 
 	cw := newCobsWrapper(b)
 

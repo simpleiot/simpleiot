@@ -1,80 +1,71 @@
 package test
 
 import (
-	"fmt"
-	"io"
+	"bytes"
+	"sync"
+	"time"
 )
 
-// IoSimPort one end of a IoSim
-type IoSimPort struct {
-	name  string
-	tx    chan byte
-	rx    chan byte
-	debug bool
-}
-
-// NewIoSimPort returns a new port of an IoSim
-func NewIoSimPort(name string, tx chan byte, rx chan byte, debug bool) *IoSimPort {
-	return &IoSimPort{
-		name:  name,
-		tx:    tx,
-		rx:    rx,
-		debug: debug,
-	}
-}
-
-// Read reads data from IoSimPort
-func (isp *IoSimPort) Read(data []byte) (int, error) {
-	data[0] = <-isp.rx
-	if isp.debug {
-		packet := data[:1]
-		fmt.Printf("%v Read (%v): %v\n", isp.name, 1, HexDump(packet))
-	}
-	return 1, nil
-}
-
-// Write reads data from IoSimPort
-func (isp *IoSimPort) Write(data []byte) (int, error) {
-	for _, b := range data {
-		isp.tx <- b
-	}
-	c := len(data)
-	if isp.debug {
-		packet := data[:c]
-		fmt.Printf("%v Write: %v\n", isp.name, HexDump(packet))
-	}
-
-	return c, nil
-}
-
-// Close port
-func (isp *IoSimPort) Close() error {
-	return nil
-}
-
-// IoSim simulates a serial port and provides a io.ReadWriter
-// for both ends
+// IoSim is used to simulate an io channel -- provides both sides so you can easily
+// test code that uses an io.ReadWriter interface, etc
 type IoSim struct {
-	aToB  chan byte
-	bToA  chan byte
-	debug bool
+	out  *bytes.Buffer
+	in   *bytes.Buffer
+	m    *sync.Mutex
+	stop chan struct{}
 }
 
-// NewIoSim creates a new IO simulator
-func NewIoSim(debug bool) *IoSim {
-	return &IoSim{
-		aToB:  make(chan byte, 500),
-		bToA:  make(chan byte, 500),
-		debug: debug,
-	}
+// NewIoSim creates a new IO sim and returns the A and B side of an IO simulator
+// that implements a ReadWriteCloser
+func NewIoSim() (*IoSim, *IoSim) {
+	var a2b bytes.Buffer
+	var b2a bytes.Buffer
+	var m sync.Mutex
+
+	a := IoSim{&a2b, &b2a, &m, make(chan struct{})}
+	b := IoSim{&b2a, &a2b, &m, make(chan struct{})}
+
+	return &a, &b
 }
 
-// GetA returns the A port from a IoSim
-func (is *IoSim) GetA() io.ReadWriteCloser {
-	return NewIoSimPort("A", is.aToB, is.bToA, is.debug)
+func (ios *IoSim) Write(d []byte) (int, error) {
+	ios.m.Lock()
+	defer ios.m.Unlock()
+	return ios.in.Write(d)
 }
 
-// GetB returns the B port from a IoSim
-func (is *IoSim) GetB() io.ReadWriteCloser {
-	return NewIoSimPort("B", is.bToA, is.aToB, is.debug)
+// Read blocks until there is some data in the out buffer or the ioSim is closed.
+func (ios *IoSim) Read(d []byte) (int, error) {
+	ret := make(chan struct{})
+
+	go func() {
+		for {
+			ios.m.Lock()
+			if ios.out.Len() > 0 {
+				close(ret)
+				ios.m.Unlock()
+				return
+			}
+			ios.m.Unlock()
+			select {
+			case <-time.After(time.Millisecond):
+				// continue
+			case <-ios.stop:
+				close(ret)
+				return
+			}
+		}
+	}()
+
+	// block until we have data
+	<-ret
+	ios.m.Lock()
+	defer ios.m.Unlock()
+	return ios.out.Read(d)
+}
+
+// Close simulator
+func (ios *IoSim) Close() error {
+	close(ios.stop)
+	return nil
 }
