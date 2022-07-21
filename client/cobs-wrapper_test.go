@@ -192,7 +192,7 @@ func TestCobsWriteTwoThenRead(t *testing.T) {
 
 	cw := newCobsWrapper(b)
 
-	de := append([]byte{0}, cobs.Encode(d)...)
+	de := cobs.Encode(d)
 
 	// write two packets
 	a.Write(append(de, de...))
