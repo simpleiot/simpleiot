@@ -45,6 +45,8 @@ func (ios *ioSim) Read(d []byte) (int, error) {
 			ios.m.Lock()
 			if ios.out.Len() > 0 {
 				close(ret)
+				ios.m.Unlock()
+				return
 			}
 			ios.m.Unlock()
 			select {
@@ -52,6 +54,7 @@ func (ios *ioSim) Read(d []byte) (int, error) {
 				// continue
 			case <-ios.stop:
 				close(ret)
+				return
 			}
 		}
 	}()
@@ -68,7 +71,7 @@ func (ios *ioSim) Close() error {
 	return nil
 }
 
-func TestCobsWrapper(t *testing.T) {
+func TestCobsRead(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
 
 	a, b := newIoSim()
@@ -88,15 +91,23 @@ func TestCobsWrapper(t *testing.T) {
 	if !reflect.DeepEqual(buf, d) {
 		t.Fatal("Read data does not match")
 	}
+}
 
-	_, err = cw.Write(d)
+func TestCobsWrite(t *testing.T) {
+	d := []byte{1, 2, 3, 0, 4, 5, 6}
+
+	a, b := newIoSim()
+
+	cw := newCobsWrapper(b)
+
+	_, err := cw.Write(d)
 	if err != nil {
 		t.Fatal("Error write: ", err)
 	}
 
-	buf = make([]byte, 500)
+	buf := make([]byte, 500)
 
-	c, err = a.Read(buf)
+	c, err := a.Read(buf)
 	if err != nil {
 		t.Fatal("Error read: ", err)
 	}
@@ -160,5 +171,26 @@ func TestCobsWrapperPartialPacket(t *testing.T) {
 		t.Fatal("Read failed: ", err)
 	case <-time.After(time.Millisecond * 10):
 		t.Fatal("Timeout reading packet")
+	}
+}
+
+func TestCobsTwoLeadingZeros(t *testing.T) {
+	d := []byte{1, 2, 3, 0, 4, 5, 6}
+	a, b := newIoSim()
+
+	cw := newCobsWrapper(b)
+
+	a.Write(append([]byte{0, 0}, cobs.Encode(d)...))
+
+	buf := make([]byte, 500)
+
+	c, err := cw.Read(buf)
+	if err != nil {
+		t.Fatal("Error reading cw: ", err)
+	}
+	buf = buf[0:c]
+
+	if !reflect.DeepEqual(buf, d) {
+		t.Fatal("Read data does not match")
 	}
 }

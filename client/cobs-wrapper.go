@@ -25,6 +25,7 @@ func (cw *cobsWrapper) Read(b []byte) (int, error) {
 
 	go func() {
 		foundStart := false
+		foundNonZero := false
 		var readBuf bytes.Buffer
 
 		for {
@@ -43,16 +44,21 @@ func (cw *cobsWrapper) Read(b []byte) (int, error) {
 						foundStart = true
 					}
 				} else {
-					readBuf.WriteByte(b)
 					if b == 0 {
-						dec := cobs.Decode(readBuf.Bytes())
-						if len(dec) > 0 {
-							packetCh <- dec
+						if foundNonZero {
+							readBuf.WriteByte(b)
+							dec := cobs.Decode(readBuf.Bytes())
+							if len(dec) > 0 {
+								packetCh <- dec
+								return
+							}
+							// we did not decode a packet, return a decode error
+							errCh <- errors.New("COBS decode error")
 							return
 						}
-						// we did not decode a packet, return a decode error
-						errCh <- errors.New("COBS decode error")
-						return
+					} else {
+						readBuf.WriteByte(b)
+						foundNonZero = true
 					}
 				}
 			}
