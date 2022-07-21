@@ -185,3 +185,29 @@ func TestCobsPartialThenNew(t *testing.T) {
 		t.Fatal("Read data does not match")
 	}
 }
+
+func TestCobsWriteTwoThenRead(t *testing.T) {
+	d := []byte{1, 2, 3, 0, 4, 5, 6}
+	a, b := test.NewIoSim()
+
+	cw := newCobsWrapper(b)
+
+	de := append([]byte{0}, cobs.Encode(d)...)
+
+	// write two packets
+	a.Write(de)
+	a.Write(de)
+
+	for i := 2; i < 2; i++ {
+		buf := make([]byte, 500)
+		c, err := cw.Read(buf)
+		if err != nil {
+			t.Fatal("got error reading full packet: ", i, err)
+		}
+		buf = buf[0:c]
+
+		if !reflect.DeepEqual(buf, d) {
+			t.Fatal("Read data does not match, iter: ", i)
+		}
+	}
+}
