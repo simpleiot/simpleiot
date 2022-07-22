@@ -99,12 +99,14 @@ func TestSerial(t *testing.T) {
 		{Type: data.PointTypeUptime, Value: float64(uptimeTest)},
 	}
 
-	gpioPb, err := gpioPts.ToPb()
+	seq := byte(10)
+	subject := client.SubjectNodePoints(getNode().ID)
+	gpioPacket, err := client.SerialEncode(seq, subject, gpioPts)
 	if err != nil {
-		t.Fatal("Error encoding points to PB: ", err)
+		t.Fatal("Error encoding serial packet: ", err)
 	}
 
-	_, err = fifoW.Write(gpioPb)
+	_, err = fifoW.Write(gpioPacket)
 	if err != nil {
 		t.Fatal("Error writing pb data to fifo: ", err)
 	}
@@ -121,4 +123,30 @@ func TestSerial(t *testing.T) {
 		}
 		<-time.After(time.Millisecond * 100)
 	}
+
+	// check for ack response from serial client
+	buf := make([]byte, 200)
+	c, err := fifoW.Read(buf)
+	if err != nil {
+		t.Fatal("Error reading response from client: ", err)
+	}
+	buf = buf[:c]
+
+	seqR, subjectR, pointsR, err := client.SerialDecode(buf)
+	if err != nil {
+		t.Error("Error in response: ", err)
+	}
+
+	if seq != seqR {
+		t.Error("Sequence in response did not match")
+	}
+
+	if subjectR != "" {
+		t.Error("Subject in response should be blank")
+	}
+
+	if len(pointsR) != 0 {
+		t.Error("should be no points in response")
+	}
+
 }

@@ -162,10 +162,21 @@ func (sd *SerialDevClient) Start() error {
 			rxPt := data.Point{Type: data.PointTypeRx, Value: float64(sd.config.Rx)}
 			// figure out if the data is ascii string or points
 			// try pb decode
-			points, err := data.PbDecodePoints(rd)
+			seq, subject, points, err := SerialDecode(rd)
 			if err == nil && len(points) > 0 {
 				points = append(points, rxPt)
+				// send response
+				d, err := SerialEncode(seq, "", nil)
+				if err != nil {
+					log.Println("Error enoding serial response: ", err)
+				} else {
+					_, err := port.Write(d)
+					if err != nil {
+						log.Println("Error writing response to port: ", err)
+					}
+				}
 			} else {
+				subject = SubjectNodePoints(sd.config.ID)
 				// check if ascii
 				isASCII := true
 				for i := 0; i < len(rd); i++ {
@@ -181,7 +192,8 @@ func (sd *SerialDevClient) Start() error {
 					}
 					log.Printf("Serial client %v: log: %v\n", sd.config.Description, string(rd))
 				} else {
-					log.Println("Error decoding serial packet")
+					log.Println("Error decoding serial packet from device: ",
+						sd.config.Description)
 					sd.config.ErrorCount++
 					points = data.Points{
 						rxPt,
@@ -190,7 +202,7 @@ func (sd *SerialDevClient) Start() error {
 				}
 			}
 
-			err = SendNodePoints(sd.nc, sd.config.ID, points, false)
+			err = SendPoints(sd.nc, subject, points, false)
 			if err != nil {
 				log.Println("Error sending rx stats: ", err)
 			}

@@ -62,7 +62,7 @@ func SendEdgePoint(nc *nats.Conn, nodeID, parentID string, point data.Point, ack
 
 // SendNodePoints sends node points using the nats protocol
 func SendNodePoints(nc *nats.Conn, nodeID string, points data.Points, ack bool) error {
-	return sendPoints(nc, SubjectNodePoints(nodeID), points, ack)
+	return SendPoints(nc, SubjectNodePoints(nodeID), points, ack)
 }
 
 // SendEdgePoints sends points using the nats protocol
@@ -70,10 +70,11 @@ func SendEdgePoints(nc *nats.Conn, nodeID, parentID string, points data.Points, 
 	if parentID == "" {
 		parentID = "none"
 	}
-	return sendPoints(nc, SubjectEdgePoints(nodeID, parentID), points, ack)
+	return SendPoints(nc, SubjectEdgePoints(nodeID, parentID), points, ack)
 }
 
-func sendPoints(nc *nats.Conn, subject string, points data.Points, ack bool) error {
+// SendPoints sends points to specified subject
+func SendPoints(nc *nats.Conn, subject string, points data.Points, ack bool) error {
 	for i := range points {
 		if points[i].Time.IsZero() {
 			points[i].Time = time.Now()
