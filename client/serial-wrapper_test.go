@@ -46,3 +46,22 @@ func TestSerialEncodeDecode(t *testing.T) {
 		fmt.Printf("pointsD: %+v\n", pointsD[0])
 	}
 }
+
+func TestSerialEncodeDecodeNoContent(t *testing.T) {
+	seq := byte(68)
+
+	d, err := SerialEncode(seq, "", nil)
+	if err != nil {
+		t.Fatal("Error encoding: ", err)
+	}
+
+	seqD, _, _, err := SerialDecode(d)
+
+	if err != nil {
+		t.Error("Decode error: ", err)
+	}
+
+	if seq != seqD {
+		t.Error("sequence mismatch")
+	}
+}
