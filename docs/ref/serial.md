@@ -69,7 +69,6 @@ on connection.
 
 All packets between the SIOT and serial MCU systems are structured as follows:
 
-- length (2 bytes)
 - sequence (1 byte, rolls over)
 - `Serial` protobuf
 - crc (2 bytes)

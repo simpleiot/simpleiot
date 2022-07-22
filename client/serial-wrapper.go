@@ -12,6 +12,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// Packet format is:
+//   - sequence #: 1 byte
+//   - protobuf (serial) payload
+//   - crc: 2 bytes (CCITT)
+
 // SerialEncode can be used in a client to encode points sent over a serial link.
 func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) {
 	var ret bytes.Buffer
