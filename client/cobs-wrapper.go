@@ -9,20 +9,22 @@ import (
 	"github.com/dim13/cobs"
 )
 
-type cobsWrapper struct {
+// CobsWrapper can be used to wrap an io.ReadWriteCloser to COBS encode/decode data
+type CobsWrapper struct {
 	dev          io.ReadWriteCloser
 	readLeftover bytes.Buffer
 	readLock     sync.Mutex
 }
 
-func newCobsWrapper(dev io.ReadWriteCloser) *cobsWrapper {
-	return &cobsWrapper{dev: dev}
+// NewCobsWrapper creates a new cobs wrapper
+func NewCobsWrapper(dev io.ReadWriteCloser) *CobsWrapper {
+	return &CobsWrapper{dev: dev}
 }
 
-// Read a COBS encoded data stream. The stream must start and end with a NULL byte.
-// We don't attempt to decode until we see that pattern. This Read blocks until we
+// Read a COBS encoded data stream. The stream may optionall start with one or more NULL
+// bytes and must end with a NULL byte. This Read blocks until we
 // get an entire packet or an error.
-func (cw *cobsWrapper) Read(b []byte) (int, error) {
+func (cw *CobsWrapper) Read(b []byte) (int, error) {
 	errCh := make(chan error)
 	packetCh := make(chan []byte)
 
@@ -99,10 +101,11 @@ func (cw *cobsWrapper) Read(b []byte) (int, error) {
 	}
 }
 
-func (cw *cobsWrapper) Write(b []byte) (int, error) {
+func (cw *CobsWrapper) Write(b []byte) (int, error) {
 	return cw.dev.Write(append([]byte{0}, cobs.Encode(b)...))
 }
 
-func (cw *cobsWrapper) Close() error {
+// Close the wrapper. This releases any blocked reads.
+func (cw *CobsWrapper) Close() error {
 	return cw.dev.Close()
 }
