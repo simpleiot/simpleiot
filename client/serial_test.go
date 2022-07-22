@@ -31,7 +31,8 @@ func TestSerial(t *testing.T) {
 		t.Fatal("Error starting fifo: ", err)
 	}
 
-	defer fifo.Close()
+	fifoW := client.NewCobsWrapper(fifo)
+	defer fifoW.Close()
 
 	serialTest := client.SerialDev{
 		ID:          uuid.New().String(),
@@ -74,7 +75,7 @@ func TestSerial(t *testing.T) {
 
 	// send an ascii log message to the serial client
 	testLog := "Hi there"
-	_, err = fifo.Write([]byte(testLog))
+	_, err = fifoW.Write([]byte(testLog))
 	if err != nil {
 		t.Error("Error sending packet to fifo: ", err)
 	}
@@ -103,7 +104,7 @@ func TestSerial(t *testing.T) {
 		t.Fatal("Error encoding points to PB: ", err)
 	}
 
-	_, err = fifo.Write(gpioPb)
+	_, err = fifoW.Write(gpioPb)
 	if err != nil {
 		t.Fatal("Error writing pb data to fifo: ", err)
 	}

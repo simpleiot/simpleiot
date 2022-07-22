@@ -105,7 +105,7 @@ func (cw *CobsWrapper) Write(b []byte) (int, error) {
 	return cw.dev.Write(append([]byte{0}, cobs.Encode(b)...))
 }
 
-// Close the wrapper. This releases any blocked reads.
+// Close the device wrapped.
 func (cw *CobsWrapper) Close() error {
 	return cw.dev.Close()
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/respreader"
 	"github.com/simpleiot/simpleiot/test"
 	"go.bug.st/serial"
 )
@@ -139,7 +138,7 @@ func (sd *SerialDevClient) Start() error {
 			io = serialPort
 		}
 
-		port = respreader.NewReadWriteCloser(io, time.Millisecond*100, time.Millisecond*20)
+		port = NewCobsWrapper(io)
 		timerCheckPort.Stop()
 
 		go listener(port)
