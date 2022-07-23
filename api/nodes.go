@@ -143,7 +143,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case "samples", "points":
 		if req.Method == http.MethodPost {
 			fmt.Println("CLIFF: http headers: ", req.Header)
-			h.processPoints(res, req, id)
+			h.processPoints(res, req, id, userID)
 			return
 		}
 
@@ -263,13 +263,18 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
 	encode(res, data.StandardResponse{Success: true, ID: node.ID})
 }
 
-func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id string) {
+func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id, userID string) {
 	decoder := json.NewDecoder(req.Body)
 	var points data.Points
 	err := decoder.Decode(&points)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
+	}
+
+	// populate orgin for all points
+	for i := range points {
+		points[i].Origin = userID
 	}
 
 	err = client.SendNodePointsCreate(h.nc, id, points, true)
