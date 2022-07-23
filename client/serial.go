@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"strconv"
@@ -207,6 +208,7 @@ func (sd *SerialDevClient) Start() error {
 				log.Println("Error sending rx stats: ", err)
 			}
 		case pts := <-sd.newPoints:
+			fmt.Println("CLIFF: new points: ", pts)
 			err := data.MergePoints(pts, &sd.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
@@ -220,6 +222,7 @@ func (sd *SerialDevClient) Start() error {
 				}
 			}
 		case pts := <-sd.newEdgePoints:
+			fmt.Println("CLIFF: new edge points: ", pts)
 			err := data.MergeEdgePoints(pts, &sd.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)

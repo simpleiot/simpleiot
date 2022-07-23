@@ -141,6 +141,7 @@ func (s *Server) Start() error {
 		}
 
 		g.Add(func() error {
+			fmt.Println("CLIFF: s.natsServer: ", s.natsServer)
 			s.natsServer.Start()
 			s.natsServer.WaitForShutdown()
 			logLS("LS: Exited: nats server")

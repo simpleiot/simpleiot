@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -141,6 +142,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	case "samples", "points":
 		if req.Method == http.MethodPost {
+			fmt.Println("CLIFF: http headers: ", req.Header)
 			h.processPoints(res, req, id)
 			return
 		}
