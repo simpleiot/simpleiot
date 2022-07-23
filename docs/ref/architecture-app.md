@@ -54,6 +54,35 @@ etc.) of the system would be beneficial. If there are dependencies between
 processes, this can be managed inside the process instead of in the code that
 starts/stops the processes.
 
+## NATS Integration
+
+The [NATS API](api.md#nats) details the NATS subjects used by the system.
+
+### Echo concerns
+
+Any time you potentially have two sources modifying the same resource (a node),
+you need to be concerned with echo'd messages. This is a common occurance in
+Simple IoT. Because another resource may modify a node, typically a client needs
+to subscribe to the node messages as well. This means when it sends a message,
+it will typically be echo'd back. Echos can be suppressed in NATS using the
+[NoEcho](https://docs.nats.io/using-nats/developer/connecting/noecho) option,
+however this typically means then that each client would need to establish its
+own connection to the server.
+
+The
+[server.NewServer](https://pkg.go.dev/github.com/simpleiot/simpleiot/server#NewServer)
+function returns a nats connection. This connection is used throughout the
+application and does not have the NoEcho option set.
+
+Another way to handle Echo is to use the `Origin` field in the `Point` type.
+This field contains the ID of the node that generated the point -- typically a
+user, rule, or SIOT client. If the client managing the node generated the point
+(sensor reading, etc), then the `Origin` field may be blank, otherwise it should
+be filled in. This field can be used to decide if a point should be sent to a
+remote client device (ex MCU Serial) -- if the client generated the point, it
+does not need to be sent to the device. Likewise for users or downstream devices
+who may be monitoring points.
+
 ## User Interface
 
 Currently, the User Interface is implemented using a Single Page Architecture
