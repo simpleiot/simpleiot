@@ -9,13 +9,17 @@ nodes may be created by a user, a process that detects new plug and play
 hardware, or other clients.
 
 A client interacts with the system by listening for new points it is interested
-in and sending out points as it aquires new data.
+in and sending out points as it acquires new data.
 
-Simple IoT provides utilites that assist in creating new clients. See the
+## Creating new clients
+
+Simple IoT provides utilities that assist in creating new clients. See the
 [Go package documentation](https://pkg.go.dev/github.com/simpleiot/simpleiot/client)
 for more information. A client manager is created for each client type. This
 manager instantiates new client instances when new nodes are detected and then
 sends point updates to the client.
+
+## Message echo
 
 Clients need to be aware of the "echo" problem as they typically subscribe as
 well as publish to the `points` subject for the nodes they manage. When they
