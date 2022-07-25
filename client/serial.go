@@ -213,7 +213,7 @@ func (sd *SerialDevClient) Start() error {
 
 			err = SendPoints(sd.nc, subject, points, false)
 			if err != nil {
-				log.Println("Error sending rx stats: ", err)
+				log.Println("Error sending points received from MCU: ", err)
 			}
 		case pts := <-sd.newPoints:
 			// we only process points whose origin is set, IE did not originate
@@ -250,6 +250,8 @@ func (sd *SerialDevClient) Start() error {
 					continue
 				}
 
+				// strip off Origin as MCU does not need that
+				p.Origin = ""
 				toSend = append(toSend, p)
 			}
 
