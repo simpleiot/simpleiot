@@ -123,15 +123,30 @@ func TestSerial(t *testing.T) {
 		<-time.After(time.Millisecond * 100)
 	}
 
-	// check for ack response from serial client
-	buf := make([]byte, 200)
-	c, err := fifoW.Read(buf)
-	if err != nil {
-		t.Fatal("Error reading response from client: ", err)
-	}
-	buf = buf[:c]
+	readCh := make(chan []byte)
+	var readData []byte
 
-	seqR, subjectR, pointsR, err := client.SerialDecode(buf)
+	mcuReadSerial := func() {
+		buf := make([]byte, 200)
+		c, err := fifoW.Read(buf)
+		if err != nil {
+			t.Fatal("Error reading response from client: ", err)
+		}
+		buf = buf[:c]
+		readCh <- buf
+	}
+
+	// check for ack response from serial client
+	go mcuReadSerial()
+
+	select {
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for serial response")
+	case readData = <-readCh:
+		// all is well
+	}
+
+	seqR, subjectR, pointsR, err := client.SerialDecode(readData)
 	if err != nil {
 		t.Error("Error in response: ", err)
 	}
@@ -146,5 +161,28 @@ func TestSerial(t *testing.T) {
 
 	if len(pointsR) != 0 {
 		t.Error("should be no points in response")
+	}
+
+	// test sending points to MCU
+	pumpSetting := data.Point{Type: "pumpSetting", Value: 233.5, Origin: root.ID}
+	client.SendNodePoint(nc, serialTest.ID, pumpSetting, false)
+
+	// the above should trigger a serial packet to get sent to MCU, look for it now
+	go mcuReadSerial()
+
+	select {
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for pump setting at MCU")
+	case readData = <-readCh:
+		// all is well
+	}
+
+	seqR, subjectR, pointsR, err = client.SerialDecode(readData)
+	if err != nil {
+		t.Error("Error in response: ", err)
+	}
+
+	if pointsR[0].Value != pumpSetting.Value {
+		t.Error("Error in pump setting received by MCU")
 	}
 }

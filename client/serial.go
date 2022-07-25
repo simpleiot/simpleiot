@@ -31,24 +31,22 @@ type SerialDev struct {
 
 // SerialDevClient is a SIOT client used to manage serial devices
 type SerialDevClient struct {
-	nc                *nats.Conn
-	config            SerialDev
-	stop              chan struct{}
-	newPoints         chan []data.Point
-	newEdgePoints     chan []data.Point
-	writeSerialPoints chan []data.Point
-	wrSeq             byte
+	nc            *nats.Conn
+	config        SerialDev
+	stop          chan struct{}
+	newPoints     chan []data.Point
+	newEdgePoints chan []data.Point
+	wrSeq         byte
 }
 
 // NewSerialDevClient ...
 func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 	return &SerialDevClient{
-		nc:                nc,
-		config:            config,
-		stop:              make(chan struct{}),
-		newPoints:         make(chan []data.Point),
-		newEdgePoints:     make(chan []data.Point),
-		writeSerialPoints: make(chan []data.Point),
+		nc:            nc,
+		config:        config,
+		stop:          make(chan struct{}),
+		newPoints:     make(chan []data.Point),
+		newEdgePoints: make(chan []data.Point),
 	}
 }
 
@@ -242,6 +240,35 @@ func (sd *SerialDevClient) Start() error {
 				openPort()
 			}
 
+			// check if we have any points that need sent to MCU
+			toSend := data.Points{}
+			for _, p := range toMerge {
+				switch p.Type {
+				case data.PointTypePort,
+					data.PointTypeBaud,
+					data.PointTypeDescription:
+					continue
+				}
+
+				toSend = append(toSend, p)
+			}
+
+			if len(toSend) > 0 {
+				sd.wrSeq++
+				d, err := SerialEncode(sd.wrSeq, "", toSend)
+				if err != nil {
+					log.Println("error encoding points to send to MCU: ", err)
+				}
+
+				_, err = port.Write(d)
+				if err != nil {
+					log.Println("error writing data to port: ", err)
+				}
+
+				// TODO: we need to check for response and implement retries
+				// yet.
+			}
+
 		case pts := <-sd.newEdgePoints:
 			// we only process points whose origin is set, IE did not originate
 			// from the serial device and are simply echo'd back.
@@ -257,17 +284,7 @@ func (sd *SerialDevClient) Start() error {
 				log.Println("error merging new points: ", err)
 			}
 
-		case pts := <-sd.writeSerialPoints:
-			sd.wrSeq++
-			d, err := SerialEncode(sd.wrSeq, "", pts)
-			if err != nil {
-				log.Println("error encoding points to send to MCU: ", err)
-			}
-
-			_, err = port.Write(d)
-			if err != nil {
-				log.Println("error writing data to port: ", err)
-			}
+			// TODO need to send edge points to MCU, not implemented yet
 		}
 	}
 }
