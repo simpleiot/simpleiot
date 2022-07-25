@@ -93,20 +93,19 @@ func TestSerial(t *testing.T) {
 		<-time.After(time.Millisecond * 100)
 	}
 
-	// send a point to the serial client
+	// send a uptime point to the serial client over serial channel
 	uptimeTest := 5523
-	gpioPts := data.Points{
+	seq := byte(10)
+	uptimePts := data.Points{
 		{Type: data.PointTypeUptime, Value: float64(uptimeTest)},
 	}
 
-	seq := byte(10)
-	subject := client.SubjectNodePoints(getNode().ID)
-	gpioPacket, err := client.SerialEncode(seq, subject, gpioPts)
+	uptimePacket, err := client.SerialEncode(seq, "", uptimePts)
 	if err != nil {
 		t.Fatal("Error encoding serial packet: ", err)
 	}
 
-	_, err = fifoW.Write(gpioPacket)
+	_, err = fifoW.Write(uptimePacket)
 	if err != nil {
 		t.Fatal("Error writing pb data to fifo: ", err)
 	}
@@ -148,5 +147,4 @@ func TestSerial(t *testing.T) {
 	if len(pointsR) != 0 {
 		t.Error("should be no points in response")
 	}
-
 }

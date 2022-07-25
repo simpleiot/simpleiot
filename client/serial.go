@@ -31,21 +31,24 @@ type SerialDev struct {
 
 // SerialDevClient is a SIOT client used to manage serial devices
 type SerialDevClient struct {
-	nc            *nats.Conn
-	config        SerialDev
-	stop          chan struct{}
-	newPoints     chan []data.Point
-	newEdgePoints chan []data.Point
+	nc                *nats.Conn
+	config            SerialDev
+	stop              chan struct{}
+	newPoints         chan []data.Point
+	newEdgePoints     chan []data.Point
+	writeSerialPoints chan []data.Point
+	wrSeq             byte
 }
 
 // NewSerialDevClient ...
 func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 	return &SerialDevClient{
-		nc:            nc,
-		config:        config,
-		stop:          make(chan struct{}),
-		newPoints:     make(chan []data.Point),
-		newEdgePoints: make(chan []data.Point),
+		nc:                nc,
+		config:            config,
+		stop:              make(chan struct{}),
+		newPoints:         make(chan []data.Point),
+		newEdgePoints:     make(chan []data.Point),
+		writeSerialPoints: make(chan []data.Point),
 	}
 }
 
@@ -57,7 +60,7 @@ func (sd *SerialDevClient) Start() error {
 	timerCheckPort := time.NewTimer(checkPortDur)
 
 	var port io.ReadWriteCloser
-	readData := make(chan []byte)
+	serialReadData := make(chan []byte)
 	listenerClosed := make(chan struct{})
 
 	closePort := func() {
@@ -83,7 +86,7 @@ func (sd *SerialDevClient) Start() error {
 			}
 
 			buf = buf[0:c]
-			readData <- buf
+			serialReadData <- buf
 		}
 	}
 
@@ -157,13 +160,16 @@ func (sd *SerialDevClient) Start() error {
 		case <-listenerClosed:
 			closePort()
 			timerCheckPort.Reset(checkPortDur)
-		case rd := <-readData:
+		case rd := <-serialReadData:
 			sd.config.Rx++
 			rxPt := data.Point{Type: data.PointTypeRx, Value: float64(sd.config.Rx)}
 			// figure out if the data is ascii string or points
 			// try pb decode
 			seq, subject, points, err := SerialDecode(rd)
 			if err == nil && len(points) > 0 {
+				if subject == "" {
+					subject = SubjectNodePoints(sd.config.ID)
+				}
 				points = append(points, rxPt)
 				// send response
 				d, err := SerialEncode(seq, "", nil)
@@ -175,6 +181,11 @@ func (sd *SerialDevClient) Start() error {
 						log.Println("Error writing response to port: ", err)
 					}
 				}
+				err = data.MergePoints(points, &sd.config)
+				if err != nil {
+					log.Println("error merging new points: ", err)
+				}
+
 			} else {
 				subject = SubjectNodePoints(sd.config.ID)
 				// check if ascii
@@ -207,22 +218,55 @@ func (sd *SerialDevClient) Start() error {
 				log.Println("Error sending rx stats: ", err)
 			}
 		case pts := <-sd.newPoints:
-			err := data.MergePoints(pts, &sd.config)
-			if err != nil {
-				log.Println("error merging new points: ", err)
-			}
+			// we only process points whose origin is set, IE did not originate
+			// from the serial device and are simply echo'd back.
+			toMerge := data.Points{}
+			op := false
 			for _, p := range pts {
-				if p.Type == data.PointTypePort ||
-					p.Type == data.PointTypeBaud ||
-					p.Type == data.PointTypeDisable {
-					openPort()
-					break
+				if p.Origin != "" {
+					toMerge = append(toMerge, p)
+					if p.Type == data.PointTypePort ||
+						p.Type == data.PointTypeBaud ||
+						p.Type == data.PointTypeDisable {
+						op = true
+						break
+					}
 				}
 			}
-		case pts := <-sd.newEdgePoints:
-			err := data.MergeEdgePoints(pts, &sd.config)
+
+			err := data.MergePoints(toMerge, &sd.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
+			}
+			if op {
+				openPort()
+			}
+
+		case pts := <-sd.newEdgePoints:
+			// we only process points whose origin is set, IE did not originate
+			// from the serial device and are simply echo'd back.
+			toMerge := data.Points{}
+			for _, p := range pts {
+				if p.Origin != "" {
+					toMerge = append(toMerge, p)
+				}
+			}
+
+			err := data.MergeEdgePoints(toMerge, &sd.config)
+			if err != nil {
+				log.Println("error merging new points: ", err)
+			}
+
+		case pts := <-sd.writeSerialPoints:
+			sd.wrSeq++
+			d, err := SerialEncode(sd.wrSeq, "", pts)
+			if err != nil {
+				log.Println("error encoding points to send to MCU: ", err)
+			}
+
+			_, err = port.Write(d)
+			if err != nil {
+				log.Println("error writing data to port: ", err)
 			}
 		}
 	}
