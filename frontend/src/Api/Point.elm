@@ -46,6 +46,7 @@ module Api.Point exposing
     , typeID
     , typeIndex
     , typeLastName
+    , typeLog
     , typeMinActive
     , typeModbusIOType
     , typeNodeType
@@ -309,6 +310,11 @@ typeBaud =
 typeID : String
 typeID =
     "id"
+
+
+typeLog : String
+typeLog =
+    "log"
 
 
 typeAddress : String

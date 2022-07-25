@@ -3,6 +3,7 @@ package client
 import (
 	"log"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,8 +29,8 @@ type Manager[T any] struct {
 	lock          sync.Mutex
 	nodes         map[string]data.NodeEdge
 	clients       map[string]Client
-	pointSubs     map[string]*nats.Subscription
-	edgePointSubs map[string]*nats.Subscription
+	stopPointSubs map[string]func()
+	stopEdgeSubs  map[string]func()
 }
 
 // NewManager takes constructor for a node client and returns a Manager for that client
@@ -39,6 +40,7 @@ func NewManager[T any](nc *nats.Conn, root string,
 	construct func(nc *nats.Conn, config T) Client) *Manager[T] {
 	var x T
 	nodeType := reflect.TypeOf(x).Name()
+	nodeType = strings.ToLower(nodeType[0:1]) + nodeType[1:]
 
 	return &Manager[T]{
 		nc:        nc,
@@ -54,8 +56,8 @@ func NewManager[T any](nc *nats.Conn, root string,
 		// different
 		nodes:         make(map[string]data.NodeEdge),
 		clients:       make(map[string]Client),
-		pointSubs:     make(map[string]*nats.Subscription),
-		edgePointSubs: make(map[string]*nats.Subscription),
+		stopPointSubs: make(map[string]func()),
+		stopEdgeSubs:  make(map[string]func()),
 	}
 }
 
@@ -85,12 +87,12 @@ done:
 // Stop manager. This also stops all registered clients and causes Start to exit.
 func (m *Manager[T]) Stop(err error) {
 	m.lock.Lock()
-	for _, s := range m.pointSubs {
-		s.Unsubscribe()
+	for _, c := range m.stopPointSubs {
+		c()
 	}
 
-	for _, s := range m.edgePointSubs {
-		s.Unsubscribe()
+	for _, c := range m.stopEdgeSubs {
+		c()
 	}
 
 	for _, c := range m.clients {
@@ -153,37 +155,23 @@ func (m *Manager[T]) scan() error {
 		m.clients[mapKey] = client
 
 		func(client Client) {
-			psub, err := m.nc.Subscribe("node."+n.ID+".points", func(msg *nats.Msg) {
-				points, err := data.PbDecodePoints(msg.Data)
-				if err != nil {
-					// FIXME, send over channel
-					log.Println("Error decoding point data: ", err)
-					return
-				}
+			stopNodeSub, err := SubscribePoints(m.nc, n.ID, func(points []data.Point) {
 				client.Points(points)
-
 			})
 			if err != nil {
 				log.Println("client manager sub error: ", err)
 				return
 			}
-			m.pointSubs[mapKey] = psub
+			m.stopPointSubs[mapKey] = stopNodeSub
 
-			esub, err := m.nc.Subscribe("node."+n.ID+"."+n.Parent+".points", func(msg *nats.Msg) {
-				points, err := data.PbDecodePoints(msg.Data)
-				if err != nil {
-					// FIXME, send over channel
-					log.Println("Error decoding edge point data: ", err)
-					return
-				}
+			stopEdgeSub, err := SubscribeEdgePoints(m.nc, n.ID, n.Parent, func(points []data.Point) {
 				client.EdgePoints(points)
-
 			})
 			if err != nil {
-				log.Println("client manager sub error: ", err)
+				log.Println("client manager edge sub error: ", err)
 				return
 			}
-			m.edgePointSubs[mapKey] = esub
+			m.stopEdgeSubs[mapKey] = stopEdgeSub
 		}(client)
 
 		go func(client Client) {
@@ -204,13 +192,13 @@ func (m *Manager[T]) scan() error {
 
 		// bus was deleted so close and clear it
 		log.Println("removing node: ", m.nodes[key].ID)
-		m.pointSubs[key].Unsubscribe()
-		m.edgePointSubs[key].Unsubscribe()
+		m.stopPointSubs[key]()
+		m.stopEdgeSubs[key]()
 		client.Stop(nil)
 		delete(m.nodes, key)
 		delete(m.clients, key)
-		delete(m.pointSubs, key)
-		delete(m.edgePointSubs, key)
+		delete(m.stopPointSubs, key)
+		delete(m.stopEdgeSubs, key)
 	}
 
 	return nil

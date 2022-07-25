@@ -62,6 +62,9 @@ message Serial {
 }
 ```
 
+`subject` can be left blank when sending/receiving points for the MCU root node.
+This saves quite a bit of data in the serial messages.
+
 The point type `nodeType` is used to create new nodes and to send the node type
 on connection.
 
@@ -69,7 +72,6 @@ on connection.
 
 All packets between the SIOT and serial MCU systems are structured as follows:
 
-- length (2 bytes)
 - sequence (1 byte, rolls over)
 - `Serial` protobuf
 - crc (2 bytes)
@@ -171,6 +173,7 @@ type NodeEdge struct {
         Parent     string
         Points     Points
         EdgePoints Points
+	Origin     string
 }
 ```
 

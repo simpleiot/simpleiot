@@ -6,6 +6,7 @@ require (
 	github.com/benbjohnson/genesis v0.2.1
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cavaliercoder/grab v2.0.0+incompatible
+	github.com/dim13/cobs v1.0.0
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
 	github.com/genjidb/genji v0.13.0
 	github.com/go-audio/wav v1.0.0
@@ -14,6 +15,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
+	github.com/howeyc/crc16 v0.0.0-20171223171357-2b2a61e366a6
 	github.com/influxdata/influxdb-client-go/v2 v2.5.0
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/kevinburke/twilio-go v0.0.0-20200810163702-320748330fac

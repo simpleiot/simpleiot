@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 	"time"
+
+	"github.com/simpleiot/simpleiot/test"
 )
 
 // Server defines a server (slave)
@@ -88,7 +90,7 @@ func (s *Server) Listen(errorCallback func(error),
 		packet := buf[:cnt]
 
 		if s.debug >= 9 {
-			fmt.Println("Modbus server rx: ", HexDump(packet))
+			fmt.Println("Modbus server rx: ", test.HexDump(packet))
 		}
 
 		id, req, err := s.transport.Decode(packet)
@@ -133,7 +135,7 @@ func (s *Server) Listen(errorCallback func(error),
 		}
 
 		if s.debug >= 9 {
-			fmt.Println("Modbus server tx: ", HexDump(respRtu))
+			fmt.Println("Modbus server tx: ", test.HexDump(respRtu))
 		}
 
 		_, err = s.transport.Write(respRtu)

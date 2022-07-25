@@ -42,6 +42,9 @@ view o =
 
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
+
+        log =
+            Point.getText o.node.points Point.typeLog ""
     in
     column
         [ width fill
@@ -63,6 +66,7 @@ view o =
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , checkboxInput Point.typeDisable "Disable"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
+                    , text <| "  Last log: " ++ log
                     ]
 
                 else

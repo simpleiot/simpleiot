@@ -234,12 +234,26 @@ func (s *Server) Start() error {
 	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
 
 	g.Add(func() error {
-		err = nodeManager.Start()
+		err := nodeManager.Start()
 		logLS("LS: Exited: node manager")
 		return err
 	}, func(err error) {
 		nodeManager.Stop(err)
 		logLS("LS: Shutdown: node manager")
+	})
+
+	// ====================================
+	// Build in clients manager
+	// ====================================
+
+	clientsManager := client.NewBuiltInClients(s.nc)
+	g.Add(func() error {
+		err := clientsManager.Start()
+		logLS("LS: Exited: clients manager")
+		return err
+	}, func(err error) {
+		clientsManager.Stop(err)
+		logLS("LS: Shutdown: clients manager")
 	})
 
 	// ====================================

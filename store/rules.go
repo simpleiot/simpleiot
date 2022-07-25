@@ -140,10 +140,11 @@ func (st *Store) ruleRunActions(nc *nats.Conn, r *data.Rule, actions []data.Acti
 				log.Println("Error, node action nodeID must be set, action id: ", a.ID)
 			}
 			p := data.Point{
-				Time:  time.Now(),
-				Type:  a.PointType,
-				Value: a.PointValue,
-				Text:  a.PointTextValue,
+				Time:   time.Now(),
+				Type:   a.PointType,
+				Value:  a.PointValue,
+				Text:   a.PointTextValue,
+				Origin: a.ID,
 			}
 			err := client.SendNodePoint(nc, a.NodeID, p, false)
 			if err != nil {

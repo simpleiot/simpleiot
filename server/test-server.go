@@ -1,4 +1,4 @@
-package test
+package server
 
 import (
 	"context"
@@ -9,11 +9,10 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/server"
 	"github.com/simpleiot/simpleiot/store"
 )
 
-var testServerOptions = server.Options{
+var testServerOptions = Options{
 	StoreType:    store.StoreTypeMemory,
 	NatsPort:     4990,
 	HTTPPort:     "8990",
@@ -22,9 +21,9 @@ var testServerOptions = server.Options{
 	NatsServer:   "nats://localhost:4990",
 }
 
-// Server starts a test server and returns a function to stop it
-func Server() (*nats.Conn, data.NodeEdge, func(), error) {
-	s, nc, err := server.NewServer(testServerOptions)
+// TestServer starts a test server and returns a function to stop it
+func TestServer() (*nats.Conn, data.NodeEdge, func(), error) {
+	s, nc, err := NewServer(testServerOptions)
 
 	if err != nil {
 		return nil, data.NodeEdge{}, nil, fmt.Errorf("Error starting siot server: %v", err)

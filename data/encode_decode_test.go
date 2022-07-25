@@ -57,6 +57,22 @@ func TestDecode(t *testing.T) {
 	}
 }
 
+type testType2 struct {
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description int    `point:"description"`
+}
+
+func TestDecodeTypeMismatch(t *testing.T) {
+	var out testType2
+
+	err := Decode(nodeEdgeTest, &out)
+
+	if err != nil {
+		t.Fatal("Error decoding type mismatch test: ", err)
+	}
+}
+
 func TestEncode(t *testing.T) {
 	var out NodeEdge
 
@@ -111,5 +127,25 @@ func TestMergeEdgePoints(t *testing.T) {
 	if out.Role != modifiedRole {
 		t.Errorf("role not modified, exp: %v, got: %v", modifiedRole,
 			out.Role)
+	}
+}
+
+type TestType struct {
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+}
+
+func TestEncodeCase(t *testing.T) {
+	test := TestType{"123", "456", "hi there"}
+
+	ne, err := Encode(test)
+
+	if err != nil {
+		t.Fatal("encode failed: ", err)
+	}
+
+	if ne.Type != "testType" {
+		t.Error("expected testType, got: ", ne.Type)
 	}
 }

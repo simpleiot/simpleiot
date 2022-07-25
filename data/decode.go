@@ -40,17 +40,15 @@ func Decode(input NodeEdge, output interface{}) error {
 	}
 
 	setVal := func(p Point, v reflect.Value) {
-		if p.Text != "" {
+		switch v.Type().Kind() {
+		case reflect.String:
 			v.SetString(p.Text)
-		} else {
-			switch v.Type().Kind() {
-			case reflect.Int:
-				v.SetInt(int64(p.Value))
-			case reflect.Float64, reflect.Float32:
-				v.SetFloat(p.Value)
-			case reflect.Bool:
-				v.SetBool(FloatToBool(p.Value))
-			}
+		case reflect.Int:
+			v.SetInt(int64(p.Value))
+		case reflect.Float64, reflect.Float32:
+			v.SetFloat(p.Value)
+		case reflect.Bool:
+			v.SetBool(FloatToBool(p.Value))
 		}
 	}
 

@@ -52,6 +52,9 @@ type Point struct {
 	// Used to indicate a point has been deleted. This value is only
 	// ever incremented. Odd values mean point is deleted.
 	Tombstone int `json:"tombstone,omitempty"`
+
+	// Where did this point come from. If from the owning node, it may be blank.
+	Origin string `json:"origin"`
 }
 
 func (p Point) String() string {
@@ -69,6 +72,10 @@ func (p Point) String() string {
 
 	if p.Index != 0 {
 		t += fmt.Sprintf("I:%v ", p.Index)
+	}
+
+	if p.Origin != "" {
+		t += fmt.Sprintf("O:%v ", p.Origin)
 	}
 
 	t += p.Time.Format(time.RFC3339)
@@ -104,6 +111,7 @@ func (p Point) ToPb() (pb.Point, error) {
 		Text:      p.Text,
 		Time:      ts,
 		Tombstone: int32(p.Tombstone),
+		Origin:    p.Origin,
 	}, nil
 }
 
@@ -284,6 +292,7 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 		Value:     float64(sPb.Value),
 		Time:      ts,
 		Tombstone: int(sPb.Tombstone),
+		Origin:    sPb.Origin,
 	}
 
 	return ret, nil

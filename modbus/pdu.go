@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+
+	"github.com/simpleiot/simpleiot/test"
 )
 
 // PDU for Modbus packets
@@ -14,7 +16,7 @@ type PDU struct {
 
 func (p PDU) String() string {
 	return fmt.Sprintf("PDU: %v: %v", p.FunctionCode,
-		HexDump(p.Data))
+		test.HexDump(p.Data))
 }
 
 // handleError translates an error into a PDU, if possible.

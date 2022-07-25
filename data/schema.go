@@ -187,4 +187,11 @@ const (
 	PointTypeMetricNatsPendingNodeEdgePoint    = "metricNatsPendingNodeEdgePoint"
 	PointTypeMetricNatsThroughputNodePoint     = "metricNatsThroughputNodePoint"
 	PointTypeMetricNatsThroughputNodeEdgePoint = "metricNatsThroughputNodeEdgePoint"
+
+	// serial MCU clients
+	NodeTypeSerialDev = "serialDev"
+	PointTypeRx       = "rx"
+	PointTypeTx       = "tx"
+	PointTypeLog      = "log"
+	PointTypeUptime   = "uptime"
 )

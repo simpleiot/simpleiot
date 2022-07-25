@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -61,7 +62,7 @@ func SendEdgePoint(nc *nats.Conn, nodeID, parentID string, point data.Point, ack
 
 // SendNodePoints sends node points using the nats protocol
 func SendNodePoints(nc *nats.Conn, nodeID string, points data.Points, ack bool) error {
-	return sendPoints(nc, SubjectNodePoints(nodeID), points, ack)
+	return SendPoints(nc, SubjectNodePoints(nodeID), points, ack)
 }
 
 // SendEdgePoints sends points using the nats protocol
@@ -69,10 +70,11 @@ func SendEdgePoints(nc *nats.Conn, nodeID, parentID string, points data.Points, 
 	if parentID == "" {
 		parentID = "none"
 	}
-	return sendPoints(nc, SubjectEdgePoints(nodeID, parentID), points, ack)
+	return SendPoints(nc, SubjectEdgePoints(nodeID, parentID), points, ack)
 }
 
-func sendPoints(nc *nats.Conn, subject string, points data.Points, ack bool) error {
+// SendPoints sends points to specified subject
+func SendPoints(nc *nats.Conn, subject string, points data.Points, ack bool) error {
 	for i := range points {
 		if points[i].Time.IsZero() {
 			points[i].Time = time.Now()
@@ -102,4 +104,40 @@ func sendPoints(nc *nats.Conn, subject string, points data.Points, ack bool) err
 	}
 
 	return err
+}
+
+// SubscribePoints subscripts to point updates for a node and executes a callback
+// when new points arrive. stop() can be called to clean up the subscription
+func SubscribePoints(nc *nats.Conn, id string, callback func(points []data.Point)) (stop func(), err error) {
+	psub, err := nc.Subscribe(SubjectNodePoints(id), func(msg *nats.Msg) {
+		points, err := data.PbDecodePoints(msg.Data)
+		if err != nil {
+			log.Println("Error decoding points: ", err)
+			return
+		}
+
+		callback(points)
+	})
+
+	return func() {
+		psub.Unsubscribe()
+	}, err
+}
+
+// SubscribeEdgePoints subscripts to edge point updates for a node and executes a callback
+// when new points arrive. stop() can be called to clean up the subscription
+func SubscribeEdgePoints(nc *nats.Conn, id, parent string, callback func(points []data.Point)) (stop func(), err error) {
+	psub, err := nc.Subscribe(SubjectEdgePoints(id, parent), func(msg *nats.Msg) {
+		points, err := data.PbDecodePoints(msg.Data)
+		if err != nil {
+			log.Println("Error decoding points: ", err)
+			return
+		}
+
+		callback(points)
+	})
+
+	return func() {
+		psub.Unsubscribe()
+	}, err
 }

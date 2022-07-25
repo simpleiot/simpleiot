@@ -230,7 +230,7 @@ func (m *Manager) Stop(_ error) {
 	close(m.chStop)
 }
 
-// WaitStart waits for store to start
+// WaitStart waits for node init to start
 func (m *Manager) WaitStart(ctx context.Context) error {
 	m.startedLock.Lock()
 	if m.started {
