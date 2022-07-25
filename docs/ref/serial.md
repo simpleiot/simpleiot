@@ -62,6 +62,9 @@ message Serial {
 }
 ```
 
+`subject` can be left blank when sending/receiving points for the MCU root node.
+This saves quite a bit of data in the serial messages.
+
 The point type `nodeType` is used to create new nodes and to send the node type
 on connection.
 
@@ -170,6 +173,7 @@ type NodeEdge struct {
         Parent     string
         Points     Points
         EdgePoints Points
+	Origin     string
 }
 ```
 
