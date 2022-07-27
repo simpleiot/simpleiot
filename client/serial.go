@@ -63,7 +63,7 @@ func (sd *SerialDevClient) Start() error {
 
 	closePort := func() {
 		if port != nil {
-			log.Println("Closing port ", sd.config.Description)
+			log.Println("Closing serial port: ", sd.config.Description)
 			port.Close()
 		}
 		port = nil
@@ -153,6 +153,8 @@ func (sd *SerialDevClient) Start() error {
 
 		port = NewCobsWrapper(io)
 		timerCheckPort.Stop()
+
+		log.Println("Serial port opened: ", sd.config.Description)
 
 		go listener(port)
 	}
