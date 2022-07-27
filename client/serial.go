@@ -63,18 +63,30 @@ func (sd *SerialDevClient) Start() error {
 
 	closePort := func() {
 		if port != nil {
+			log.Println("Closing port ", sd.config.Description)
 			port.Close()
 		}
 		port = nil
 	}
 
 	listener := func(port io.ReadWriteCloser) {
+		errCount := 0
 		for {
 			buf := make([]byte, 1024)
 			c, err := port.Read(buf)
 			if err != nil {
 				if err != io.EOF {
 					log.Printf("Error reading port %v: %v\n", sd.config.Description, err)
+
+					// we don't want to reset the port on every COBS
+					// decode error, so accumulate a few before we do this
+					if err == ErrCobsDecodeError {
+						errCount++
+						if errCount < 50 {
+							continue
+						}
+					}
+
 					listenerClosed <- struct{}{}
 					return
 				}

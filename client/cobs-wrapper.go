@@ -21,7 +21,17 @@ func NewCobsWrapper(dev io.ReadWriteCloser) *CobsWrapper {
 	return &CobsWrapper{dev: dev}
 }
 
-// Read a COBS encoded data stream. The stream may optionall start with one or more NULL
+// ErrCobsDecodeError indicates we got an error decoding a COBS packet
+var ErrCobsDecodeError = errors.New("COBS decode error")
+
+// ErrCobsTooMuchData indicates we received too much data without a null in it
+// to delineate packets
+var ErrCobsTooMuchData = errors.New("COBS decode: too much data without null")
+
+// ErrCobsLeftoverBufferFull indicates our leftover buffer is too full to process
+var ErrCobsLeftoverBufferFull = errors.New("COBS leftover buffer too full")
+
+// Read a COBS encoded data stream. The stream may optionally start with one or more NULL
 // bytes and must end with a NULL byte. This Read blocks until we
 // get an entire packet or an error.
 func (cw *CobsWrapper) Read(b []byte) (int, error) {
@@ -50,7 +60,7 @@ func (cw *CobsWrapper) Read(b []byte) (int, error) {
 						return true
 					}
 					// we did not decode a packet, return a decode error
-					errCh <- errors.New("COBS decode error")
+					errCh <- ErrCobsDecodeError
 					return true
 				}
 			} else {
@@ -88,6 +98,16 @@ func (cw *CobsWrapper) Read(b []byte) (int, error) {
 			}
 
 			if ret {
+				return
+			}
+
+			if decodeBuf.Len() > 1024 {
+				errCh <- ErrCobsTooMuchData
+				return
+			}
+
+			if cw.readLeftover.Len() > 1024 {
+				errCh <- ErrCobsLeftoverBufferFull
 				return
 			}
 		}
