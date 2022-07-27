@@ -243,6 +243,14 @@ func (sd *SerialDevClient) Start() error {
 						op = true
 						break
 					}
+
+					if p.Type == data.PointTypeDisable {
+						if p.Value == 0 {
+							closePort()
+						} else {
+							op = true
+						}
+					}
 				}
 			}
 
@@ -252,6 +260,10 @@ func (sd *SerialDevClient) Start() error {
 			}
 			if op {
 				openPort()
+			}
+
+			if port == nil {
+				break
 			}
 
 			// check if we have any points that need sent to MCU
