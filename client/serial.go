@@ -63,18 +63,30 @@ func (sd *SerialDevClient) Start() error {
 
 	closePort := func() {
 		if port != nil {
+			log.Println("Closing serial port: ", sd.config.Description)
 			port.Close()
 		}
 		port = nil
 	}
 
 	listener := func(port io.ReadWriteCloser) {
+		errCount := 0
 		for {
 			buf := make([]byte, 1024)
 			c, err := port.Read(buf)
 			if err != nil {
 				if err != io.EOF {
 					log.Printf("Error reading port %v: %v\n", sd.config.Description, err)
+
+					// we don't want to reset the port on every COBS
+					// decode error, so accumulate a few before we do this
+					if err == ErrCobsDecodeError {
+						errCount++
+						if errCount < 50 {
+							continue
+						}
+					}
+
 					listenerClosed <- struct{}{}
 					return
 				}
@@ -141,6 +153,8 @@ func (sd *SerialDevClient) Start() error {
 
 		port = NewCobsWrapper(io)
 		timerCheckPort.Stop()
+
+		log.Println("Serial port opened: ", sd.config.Description)
 
 		go listener(port)
 	}
@@ -229,6 +243,14 @@ func (sd *SerialDevClient) Start() error {
 						op = true
 						break
 					}
+
+					if p.Type == data.PointTypeDisable {
+						if p.Value == 0 {
+							closePort()
+						} else {
+							op = true
+						}
+					}
 				}
 			}
 
@@ -238,6 +260,10 @@ func (sd *SerialDevClient) Start() error {
 			}
 			if op {
 				openPort()
+			}
+
+			if port == nil {
+				break
 			}
 
 			// check if we have any points that need sent to MCU
