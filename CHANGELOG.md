@@ -13,8 +13,11 @@ For more details or to discuss releases, please visit the
 
 ## [[0.4.0] - 2022-07-29](https://github.com/simpleiot/simpleiot/releases/tag/v0.4.0)
 
-- serial MCU client support; #380
-- add origin field to point type: #391
+- serial [MCU client](https://docs.simpleiot.org/docs/ref/serial.html) support
+  (#380)
+- add
+  [origin field](https://docs.simpleiot.org/docs/ref/data.html#tracking-who-made-changes)
+  to point type (#391).
 
 ## [[0.3.0] - 2022-07-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.3.0)
 
