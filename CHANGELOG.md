@@ -11,8 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-- docs: add Modbus
-  [user documentation](https://docs.simpleiot.org/docs/user/modbus.html).
+- docs: add
+  [Modbus user documentation](https://docs.simpleiot.org/docs/user/modbus.html).
+- docs: add
+  [Notification user documentation](https://docs.simpleiot.org/docs/user/notifications.html)
 
 ## [[0.4.0] - 2022-07-29](https://github.com/simpleiot/simpleiot/releases/tag/v0.4.0)
 
