@@ -1,5 +1,7 @@
 # Notifications
 
+(see notification [user documentation](../user/notifications.md)
+
 Notifications are messages that are sent to users. There several concerns when
 processing a notification:
 
