@@ -21,20 +21,10 @@ type DbSqlite struct {
 }
 
 // NewSqliteDb creates a new Sqlite data store
-func NewSqliteDb(dataDir string, storeType Type) (*DbSqlite, error) {
-	var f string
+func NewSqliteDb(dataDir string, dbFile string) (*DbSqlite, error) {
 	ret := &DbSqlite{}
 
-	switch storeType {
-	case TypeMemory:
-		f = ":memory:"
-	case TypeFile:
-		f = "data.sqlite"
-	default:
-		return nil, fmt.Errorf("Invalid store type: %v", storeType)
-	}
-
-	db, err := sql.Open("sqlite", f)
+	db, err := sql.Open("sqlite", dbFile)
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +138,6 @@ func (sdb *DbSqlite) initRoot() (string, error) {
 	}
 
 	points := admin.ToPoints()
-	points = append(points, data.Point{Type: data.PointTypeNodeType,
-		Text: data.NodeTypeUser})
 
 	err = sdb.nodePoints(admin.ID, points)
 	if err != nil {

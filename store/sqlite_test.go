@@ -1,12 +1,19 @@
 package store
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestDbSqlite(t *testing.T) {
-	db, err := NewSqliteDb("./", TypeFile)
+	testFile := "test.sqlite"
+	os.Remove(testFile)
+
+	db, err := NewSqliteDb("./", testFile)
 	if err != nil {
 		t.Fatal("Error opening db: ", err)
 	}
+	defer db.Close()
 
 	rootID := db.rootNodeID()
 
