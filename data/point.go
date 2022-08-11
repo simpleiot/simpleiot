@@ -126,6 +126,15 @@ func (p *Point) Bool() bool {
 // Points is an array of Point
 type Points []Point
 
+func (ps Points) String() string {
+	ret := ""
+	for _, p := range ps {
+		ret += p.String() + "\n"
+	}
+
+	return ret
+}
+
 // Desc returns a Description of a set of points
 func (ps Points) Desc() string {
 	firstName, _ := ps.Text(PointTypeFirstName, "")
