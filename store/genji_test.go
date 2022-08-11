@@ -5,7 +5,7 @@ import (
 )
 
 func TestNodeDelete(t *testing.T) {
-	db, err := NewDb(StoreTypeMemory, "")
+	db, err := NewDb(TypeMemory, "")
 	if err != nil {
 		t.Error(err)
 	}

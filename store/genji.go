@@ -24,9 +24,10 @@ type Type string
 
 // define valid store types
 const (
-	StoreTypeMemory Type = "memory"
-	StoreTypeBolt        = "bolt"
-	StoreTypeBadger      = "badger"
+	TypeMemory Type = "memory"
+	TypeBolt        = "bolt"
+	TypeBadger      = "badger"
+	TypeFile        = "file"
 )
 
 // Meta contains metadata about the database
@@ -60,20 +61,20 @@ func NewDb(storeType Type, dataDir string) (*Db, error) {
 	var err error
 
 	switch storeType {
-	case StoreTypeMemory:
+	case TypeMemory:
 		store, err = genji.Open(":memory:")
 		if err != nil {
 			log.Fatal("Error opening memory store: ", err)
 		}
 
-	case StoreTypeBolt:
+	case TypeBolt:
 		dbFile := path.Join(dataDir, "data.db")
 		store, err = genji.Open(dbFile)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-	case StoreTypeBadger:
+	case TypeBadger:
 		log.Fatal("Badger not currently supported")
 		/*
 			 // uncomment the following to enable badger support
