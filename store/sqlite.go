@@ -149,6 +149,11 @@ func (sdb *DbSqlite) initRoot() (string, error) {
 		return "", err
 	}
 
+	_, err = sdb.db.Exec("INSERT INTO meta(id, version, root_id) VALUES(?, ?, ?)", 0, 0, rootNode.ID)
+	if err != nil {
+		return "", fmt.Errorf("Error setting meta data: %v", err)
+	}
+
 	return rootNode.ID, nil
 }
 
