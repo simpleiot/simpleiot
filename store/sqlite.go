@@ -2,7 +2,6 @@ package store
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -171,7 +170,8 @@ func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
 		var p data.Point
 		var timeS, timeNS int64
 		var pID string
-		err := rowsPoints.Scan(&pID, nil, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+		var nodeID string
+		err := rowsPoints.Scan(&pID, nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
 			return err
@@ -248,6 +248,9 @@ NextPin:
 }
 
 func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) error {
+	if parentID == "" {
+		parentID = "none"
+	}
 
 	rowsEdge, err := sdb.db.Query("SELECT * FROM edges WHERE up=? AND down=?", parentID, nodeID)
 	if err != nil {
@@ -291,7 +294,8 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 		var p data.Point
 		var timeS, timeNS int64
 		var pID string
-		err := rowsPoints.Scan(&pID, nil, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+		var nodeID string
+		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
 			return err
@@ -377,5 +381,32 @@ func (sdb *DbSqlite) rootNodeID() string {
 }
 
 func (sdb *DbSqlite) node(id string) (*data.Node, error) {
-	return nil, errors.New("not implemented")
+	var ret data.Node
+	ret.ID = id
+
+	rowsPoints, err := sdb.db.Query("SELECT * FROM node_points WHERE node_id=?", id)
+	if err != nil {
+		return nil, err
+	}
+	defer rowsPoints.Close()
+
+	for rowsPoints.Next() {
+		var p data.Point
+		var timeS, timeNS int64
+		var pID string
+		var nodeID string
+		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+			&p.Data, &p.Tombstone, &p.Origin)
+		if err != nil {
+			return nil, err
+		}
+		p.Time = time.Unix(timeS, timeNS)
+		if p.Type == data.PointTypeNodeType {
+			ret.Type = p.Text
+		} else {
+			ret.Points = append(ret.Points, p)
+		}
+	}
+
+	return &ret, nil
 }
