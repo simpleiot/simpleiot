@@ -13,7 +13,7 @@ import (
 )
 
 var testServerOptions = Options{
-	StoreType:    store.StoreTypeMemory,
+	StoreType:    store.TypeMemory,
 	NatsPort:     4990,
 	HTTPPort:     "8990",
 	NatsHTTPPort: 8991,

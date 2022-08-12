@@ -153,7 +153,7 @@ func (sdb *DbSqlite) initRoot() (string, error) {
 }
 
 func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
-	rowsPoints, err := sdb.db.Query("SELECT * from node_points WHERE node_id=?", id)
+	rowsPoints, err := sdb.db.Query("SELECT * FROM node_points WHERE node_id=?", id)
 	if err != nil {
 		return err
 	}
@@ -181,6 +181,10 @@ func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
 
 NextPin:
 	for _, pIn := range points {
+		if pIn.Time.IsZero() {
+			pIn.Time = time.Now()
+		}
+
 		for j, pDb := range dbPoints {
 			if pIn.Type == pDb.Type && pIn.Key == pDb.Key {
 				// found a match
@@ -202,9 +206,9 @@ NextPin:
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare(`insert into node_points(id, node_id, type, key, time_s,
+	stmt, err := tx.Prepare(`INSERT INTO node_points(id, node_id, type, key, time_s,
                  time_ns, idx, value, text, data, tombstone, origin)
-		 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT(id) DO UPDATE SET
 		 type = ?2,
 		 key = ?3,
@@ -239,6 +243,122 @@ NextPin:
 }
 
 func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) error {
+
+	rowsEdge, err := sdb.db.Query("SELECT * FROM edges WHERE up=? AND down=?", parentID, nodeID)
+	if err != nil {
+		return err
+	}
+	defer rowsEdge.Close()
+
+	var edge data.Edge
+
+	for rowsEdge.Next() {
+		err := rowsEdge.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
+		if err != nil {
+			return err
+		}
+	}
+
+	if edge.ID == "" {
+		edge.ID = uuid.New().String()
+		edge.Up = parentID
+		edge.Down = nodeID
+
+		// did not find edge, need to add it
+		_, err := sdb.db.Exec(`INSERT INTO edges(id, up, down, hash) VALUES (?, ?, ?, ?)`,
+			edge.ID, edge.Up, edge.Down, "")
+
+		if err != nil {
+			return err
+		}
+	}
+
+	rowsPoints, err := sdb.db.Query("SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
+	if err != nil {
+		return err
+	}
+	defer rowsPoints.Close()
+
+	var dbPoints data.Points
+	var dbPointIDs []string
+
+	for rowsPoints.Next() {
+		var p data.Point
+		var timeS, timeNS int64
+		var pID string
+		err := rowsPoints.Scan(&pID, nil, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+			&p.Data, &p.Tombstone, &p.Origin)
+		if err != nil {
+			return err
+		}
+		p.Time = time.Unix(timeS, timeNS)
+		dbPoints = append(dbPoints, p)
+		dbPointIDs = append(dbPointIDs, pID)
+	}
+
+	var writePoints data.Points
+	var writePointIDs []string
+
+NextPin:
+	for _, pIn := range points {
+		if pIn.Time.IsZero() {
+			pIn.Time = time.Now()
+		}
+
+		for j, pDb := range dbPoints {
+			if pIn.Type == pDb.Type && pIn.Key == pDb.Key {
+				// found a match
+				if pIn.Time.After(pDb.Time) {
+					writePoints = append(writePoints, pIn)
+					writePointIDs = append(writePointIDs, dbPointIDs[j])
+				}
+				break NextPin
+			}
+		}
+
+		// point was not found so write it
+		writePoints = append(writePoints, pIn)
+		writePointIDs = append(writePointIDs, uuid.New().String())
+	}
+
+	// loop through write points and write them
+	tx, err := sdb.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare(`INSERT INTO edge_points(id, edge_id, type, key, time_s,
+                 time_ns, idx, value, text, data, tombstone, origin)
+		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 ON CONFLICT(id) DO UPDATE SET
+		 type = ?2,
+		 key = ?3,
+		 time_s = ?4,
+		 time_ns = ?5,
+		 idx = ?6,
+		 value = ?7,
+		 text = ?8,
+		 data = ?9,
+		 tombstone = ?10,
+		 origin = ?11
+		 `)
+	defer stmt.Close()
+
+	for i, p := range writePoints {
+		tS := p.Time.Unix()
+		tNs := p.Time.UnixNano() - 1e9*tS
+		pID := writePointIDs[i]
+		_, err = stmt.Exec(pID, edge.ID, p.Type, p.Key, tS, tNs, p.Index, p.Value, p.Text, p.Data, p.Tombstone,
+			p.Origin)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
