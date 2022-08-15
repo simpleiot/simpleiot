@@ -381,12 +381,60 @@ func (sdb *DbSqlite) rootNodeID() string {
 }
 
 func (sdb *DbSqlite) node(id string) (*data.Node, error) {
+	var err error
 	var ret data.Node
 	ret.ID = id
 
-	rowsPoints, err := sdb.db.Query("SELECT * FROM node_points WHERE node_id=?", id)
+	query := fmt.Sprintf("SELECT * FROM node_points WHERE node_id='%v'", id)
+	ret.Points, ret.Type, err = sdb.queryPoints(query)
+
+	return &ret, err
+}
+
+func (sdb *DbSqlite) children(id string) ([]data.NodeEdge, error) {
+	var ret []data.NodeEdge
+
+	rowsEdges, err := sdb.db.Query("SELECT * FROM edges WHERE up=?", id)
 	if err != nil {
-		return nil, err
+		return ret, fmt.Errorf("Error getting edges: %v", err)
+	}
+	defer rowsEdges.Close()
+
+	for rowsEdges.Next() {
+		var edge data.Edge
+		err = rowsEdges.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
+		if err != nil {
+			return nil, fmt.Errorf("Error scanning edges: %v", err)
+		}
+
+		var ne data.NodeEdge
+		ne.Parent = id
+		ne.Hash = edge.Hash
+
+		q := fmt.Sprintf("SELECT * FROM edge_points WHERE edge_id='%v'", edge.ID)
+		ne.EdgePoints, _, err = sdb.queryPoints(q)
+		if err != nil {
+			return nil, fmt.Errorf("children error getting edge points: %v", err)
+		}
+
+		q = fmt.Sprintf("SELECT * FROM node_points WHERE node_id='%v'", edge.Down)
+		ne.Points, ne.Type, err = sdb.queryPoints(q)
+		if err != nil {
+			return nil, fmt.Errorf("children error getting edge points: %v", err)
+		}
+
+		ret = append(ret, ne)
+	}
+
+	return ret, nil
+}
+
+func (sdb *DbSqlite) queryPoints(query string) (data.Points, string, error) {
+	var retPoints data.Points
+	var retType string
+	rowsPoints, err := sdb.db.Query(query)
+	if err != nil {
+		return nil, "", err
 	}
 	defer rowsPoints.Close()
 
@@ -398,15 +446,15 @@ func (sdb *DbSqlite) node(id string) (*data.Node, error) {
 		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		p.Time = time.Unix(timeS, timeNS)
 		if p.Type == data.PointTypeNodeType {
-			ret.Type = p.Text
+			retType = p.Text
 		} else {
-			ret.Points = append(ret.Points, p)
+			retPoints = append(retPoints, p)
 		}
 	}
 
-	return &ret, nil
+	return retPoints, retType, nil
 }

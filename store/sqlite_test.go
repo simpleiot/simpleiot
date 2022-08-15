@@ -63,4 +63,18 @@ func TestDbSqlite(t *testing.T) {
 	if rn.Desc() != "root" {
 		t.Fatal("Description should have stayed root, got: ", rn.Desc())
 	}
+
+	// verify default admin user got set
+	nodes, err := db.children(rootID)
+	if err != nil {
+		t.Fatal("children error: ", err)
+	}
+
+	if len(nodes) < 1 {
+		t.Fatal("did not return any children")
+	}
+
+	if nodes[0].Parent != rootID {
+		t.Fatal("Parent not correct: ", nodes[0].Parent)
+	}
 }
