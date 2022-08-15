@@ -3,6 +3,9 @@ package store
 import (
 	"os"
 	"testing"
+	"time"
+
+	"github.com/simpleiot/simpleiot/data"
 )
 
 func TestDbSqlite(t *testing.T) {
@@ -28,5 +31,36 @@ func TestDbSqlite(t *testing.T) {
 
 	if rn.ID == "" {
 		t.Fatal("Root node ID is blank")
+	}
+
+	// modify a point and see if it changes
+	err = db.nodePoints(rootID, data.Points{{Type: data.PointTypeDescription, Text: "root"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rn, err = db.node(rootID)
+	if err != nil {
+		t.Fatal("Error getting root node: ", err)
+	}
+
+	if rn.Desc() != "root" {
+		t.Fatal("Description should have been root, got: ", rn.Desc())
+	}
+
+	// send an old point and verify it does not change
+	err = db.nodePoints(rootID, data.Points{{Time: time.Now().Add(-time.Hour),
+		Type: data.PointTypeDescription, Text: "root with old time"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rn, err = db.node(rootID)
+	if err != nil {
+		t.Fatal("Error getting root node: ", err)
+	}
+
+	if rn.Desc() != "root" {
+		t.Fatal("Description should have stayed root, got: ", rn.Desc())
 	}
 }

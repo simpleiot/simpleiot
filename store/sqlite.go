@@ -171,7 +171,7 @@ func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
 		var timeS, timeNS int64
 		var pID string
 		var nodeID string
-		err := rowsPoints.Scan(&pID, nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
 			return err
