@@ -429,6 +429,73 @@ func (sdb *DbSqlite) children(id string) ([]data.NodeEdge, error) {
 	return ret, nil
 }
 
+// id must be a valid ID or "root"
+// parent can be:
+//   - id of node
+//   - none: parent details are skipped
+//   - all: instances of node are fetched
+func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
+	var ret []data.NodeEdge
+
+	if id == "root" {
+		id = sdb.meta.RootID
+	}
+
+	if parent == "" {
+		parent = "none"
+	}
+
+	var q string
+
+	switch parent {
+	case "none":
+		node, err := sdb.node(id)
+		if err != nil {
+			return ret, err
+		}
+		ne := node.ToNodeEdge(data.Edge{})
+		return []data.NodeEdge{ne}, nil
+	case "all":
+		q = fmt.Sprintf("SELECT * FROM edges WHERE up='%v' AND down = '%v'", parent, id)
+	default:
+		q = fmt.Sprintf("SELECT * FROM edges WHERE down = '%v'", id)
+	}
+
+	rowsEdges, err := sdb.db.Query(q)
+	if err != nil {
+		return ret, fmt.Errorf("Error getting edges: %v", err)
+	}
+	defer rowsEdges.Close()
+
+	for rowsEdges.Next() {
+		var edge data.Edge
+		err = rowsEdges.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
+		if err != nil {
+			return nil, fmt.Errorf("Error scanning edges: %v", err)
+		}
+
+		var ne data.NodeEdge
+		ne.Parent = id
+		ne.Hash = edge.Hash
+
+		q := fmt.Sprintf("SELECT * FROM edge_points WHERE edge_id='%v'", edge.ID)
+		ne.EdgePoints, _, err = sdb.queryPoints(q)
+		if err != nil {
+			return nil, fmt.Errorf("children error getting edge points: %v", err)
+		}
+
+		q = fmt.Sprintf("SELECT * FROM node_points WHERE node_id='%v'", edge.Down)
+		ne.Points, ne.Type, err = sdb.queryPoints(q)
+		if err != nil {
+			return nil, fmt.Errorf("children error getting edge points: %v", err)
+		}
+
+		ret = append(ret, ne)
+	}
+
+	return ret, nil
+}
+
 func (sdb *DbSqlite) queryPoints(query string) (data.Points, string, error) {
 	var retPoints data.Points
 	var retType string

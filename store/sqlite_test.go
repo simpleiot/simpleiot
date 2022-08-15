@@ -65,16 +65,51 @@ func TestDbSqlite(t *testing.T) {
 	}
 
 	// verify default admin user got set
-	nodes, err := db.children(rootID)
+	children, err := db.children(rootID)
 	if err != nil {
 		t.Fatal("children error: ", err)
 	}
 
-	if len(nodes) < 1 {
+	if len(children) < 1 {
 		t.Fatal("did not return any children")
 	}
 
-	if nodes[0].Parent != rootID {
-		t.Fatal("Parent not correct: ", nodes[0].Parent)
+	if children[0].Parent != rootID {
+		t.Fatal("Parent not correct: ", children[0].Parent)
 	}
+
+	// test nodeEdge API
+	adminID := children[0].ID
+
+	adminNodes, err := db.nodeEdge(rootID, adminID)
+	if err != nil {
+		t.Fatal("Error getting admin nodes", err)
+	}
+
+	if len(adminNodes) < 1 {
+		t.Fatal("did not return admin nodes")
+	}
+
+	adminNodes, err = db.nodeEdge(rootID, "none")
+	if err != nil {
+		t.Fatal("Error getting admin nodes", err)
+	}
+
+	if len(adminNodes) < 1 {
+		t.Fatal("did not return admin nodes")
+	}
+
+	rootNodes, err := db.nodeEdge("root", "")
+	if err != nil {
+		t.Fatal("Error getting admin nodes", err)
+	}
+
+	if len(rootNodes) < 1 {
+		t.Fatal("did not return root nodes")
+	}
+
+	if rootNodes[0].ID != rootID {
+		t.Fatal("root node ID is not correct")
+	}
+
 }
