@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 )
 
@@ -122,6 +123,29 @@ func TestDbSqlite(t *testing.T) {
 	adminNodes, err = db.nodeEdge(adminID, "none")
 	if err != nil {
 		t.Fatal("Error getting admin nodes", err)
+	}
+
+	// try two children
+	groupNodeID := uuid.New().String()
+
+	err = db.nodePoints(groupNodeID, data.Points{{Type: data.PointTypeNodeType, Text: data.NodeTypeGroup}})
+	if err != nil {
+		t.Fatal("Error creating group node", err)
+	}
+
+	err = db.edgePoints(groupNodeID, rootID, data.Points{{Type: data.PointTypeTombstone, Value: 0}})
+	if err != nil {
+		t.Fatal("Error creating group edge", err)
+	}
+
+	// verify default admin user got set
+	children, err = db.children(rootID)
+	if err != nil {
+		t.Fatal("children error: ", err)
+	}
+
+	if len(children) < 2 {
+		t.Fatal("did not return 2 children")
 	}
 
 }
