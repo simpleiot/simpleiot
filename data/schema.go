@@ -64,6 +64,11 @@ const (
 	PointTypeEmail     = "email"
 	PointTypePass      = "pass"
 
+	// user edge points
+	PointTypeRole       = "role"
+	PointValueRoleAdmin = "admin"
+	PointValueRoleUser  = "user"
+
 	// User Authentication
 	NodeTypeJWT    = "jwt"
 	PointTypeToken = "token"

@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -388,6 +389,10 @@ func (sdb *DbSqlite) node(id string) (*data.Node, error) {
 	query := fmt.Sprintf("SELECT * FROM node_points WHERE node_id='%v'", id)
 	ret.Points, ret.Type, err = sdb.queryPoints(query)
 
+	if ret.Type == "" {
+		return nil, errors.New("node not found")
+	}
+
 	return &ret, err
 }
 
@@ -408,6 +413,7 @@ func (sdb *DbSqlite) children(id string) ([]data.NodeEdge, error) {
 		}
 
 		var ne data.NodeEdge
+		ne.ID = edge.Down
 		ne.Parent = id
 		ne.Hash = edge.Hash
 
@@ -475,6 +481,7 @@ func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 		}
 
 		var ne data.NodeEdge
+		ne.ID = edge.Down
 		ne.Parent = id
 		ne.Hash = edge.Hash
 
@@ -491,6 +498,10 @@ func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 		}
 
 		ret = append(ret, ne)
+	}
+
+	if len(ret) < 1 {
+		return ret, fmt.Errorf("Node not found")
 	}
 
 	return ret, nil

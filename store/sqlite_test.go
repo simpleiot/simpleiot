@@ -81,7 +81,7 @@ func TestDbSqlite(t *testing.T) {
 	// test nodeEdge API
 	adminID := children[0].ID
 
-	adminNodes, err := db.nodeEdge(rootID, adminID)
+	adminNodes, err := db.nodeEdge(adminID, rootID)
 	if err != nil {
 		t.Fatal("Error getting admin nodes", err)
 	}
@@ -90,7 +90,11 @@ func TestDbSqlite(t *testing.T) {
 		t.Fatal("did not return admin nodes")
 	}
 
-	adminNodes, err = db.nodeEdge(rootID, "none")
+	if adminNodes[0].Type != data.NodeTypeUser {
+		t.Fatal("nodeEdge did not return right node type for user")
+	}
+
+	adminNodes, err = db.nodeEdge(adminID, "none")
 	if err != nil {
 		t.Fatal("Error getting admin nodes", err)
 	}
@@ -110,6 +114,14 @@ func TestDbSqlite(t *testing.T) {
 
 	if rootNodes[0].ID != rootID {
 		t.Fatal("root node ID is not correct")
+	}
+
+	// test edge points
+	err = db.edgePoints(adminID, rootID, data.Points{{Type: data.PointTypeRole, Text: data.PointValueRoleAdmin}})
+
+	adminNodes, err = db.nodeEdge(adminID, "none")
+	if err != nil {
+		t.Fatal("Error getting admin nodes", err)
 	}
 
 }
