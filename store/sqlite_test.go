@@ -9,14 +9,21 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-func TestDbSqlite(t *testing.T) {
-	testFile := "test.sqlite"
+var testFile = "test.sqlite"
+
+func newTestDb(t *testing.T) *DbSqlite {
 	os.Remove(testFile)
 
 	db, err := NewSqliteDb("./", testFile)
 	if err != nil {
 		t.Fatal("Error opening db: ", err)
 	}
+
+	return db
+}
+
+func TestDbSqlite(t *testing.T) {
+	db := newTestDb(t)
 	defer db.Close()
 
 	rootID := db.rootNodeID()
@@ -120,9 +127,17 @@ func TestDbSqlite(t *testing.T) {
 	// test edge points
 	err = db.edgePoints(adminID, rootID, data.Points{{Type: data.PointTypeRole, Text: data.PointValueRoleAdmin}})
 
-	adminNodes, err = db.nodeEdge(adminID, "none")
+	adminNodes, err = db.nodeEdge(adminID, rootID)
 	if err != nil {
 		t.Fatal("Error getting admin nodes", err)
+	}
+
+	p, ok := adminNodes[0].EdgePoints.Find(data.PointTypeRole, "")
+	if !ok {
+		t.Fatal("point not found")
+	}
+	if p.Text != data.PointValueRoleAdmin {
+		t.Fatal("point does not have right value")
 	}
 
 	// try two children
@@ -147,5 +162,21 @@ func TestDbSqlite(t *testing.T) {
 	if len(children) < 2 {
 		t.Fatal("did not return 2 children")
 	}
+}
 
+func TestDbSqliteReopen(t *testing.T) {
+	db := newTestDb(t)
+	rootID := db.rootNodeID()
+	db.Close()
+
+	var err error
+	db, err = NewSqliteDb("./", testFile)
+	if err != nil {
+		t.Fatal("Error opening db: ", err)
+	}
+	defer db.Close()
+
+	if rootID != db.rootNodeID() {
+		t.Fatal("Root node ID changed")
+	}
 }
