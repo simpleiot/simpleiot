@@ -69,7 +69,7 @@ func GetNodeType[T any](nc *nats.Conn, id, parent string) ([]T, error) {
 	return ret, nil
 }
 
-// GetNodeChildren over NATS (immediate children only, not recursive)
+// GetNodeChildren over NATS
 // deleted nodes are skipped unless includeDel is set to true. typ
 // can be used to limit nodes to a particular type, otherwise, all nodes
 // are returned.

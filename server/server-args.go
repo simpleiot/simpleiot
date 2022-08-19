@@ -43,7 +43,7 @@ func StartArgs(args []string) error {
 	flagSendPoint := flags.String("sendPoint", "", "Send point to 'portal': 'devId:sensId:value:type'")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagNatsDisableServer := flags.Bool("natsDisableServer", false, "Disable NATS server (if you want to run NATS separately)")
-	flagStore := flags.String("store", "bolt", "db store type: bolt, badger, memory")
+	flagStore := flags.String("store", "siot.sqlite", "store file, default siot.sqlite")
 	flagAuthToken := flags.String("token", "", "Auth token")
 	flagNatsAck := flags.Bool("natsAck", false, "request response")
 	flagID := flags.String("id", "1234", "ID of node")
@@ -327,7 +327,7 @@ func StartArgs(args []string) error {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := store.NewDb(store.Type(*flagStore), dataDir)
+		dbInst, err := store.NewDb(*flagStore, dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)

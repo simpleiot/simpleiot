@@ -73,7 +73,7 @@ func TestDbSqlite(t *testing.T) {
 	}
 
 	// verify default admin user got set
-	children, err := db.children(rootID)
+	children, err := db.children(rootID, "", false)
 	if err != nil {
 		t.Fatal("children error: ", err)
 	}
@@ -154,13 +154,23 @@ func TestDbSqlite(t *testing.T) {
 	}
 
 	// verify default admin user got set
-	children, err = db.children(rootID)
+	children, err = db.children(rootID, "", false)
 	if err != nil {
 		t.Fatal("children error: ", err)
 	}
 
 	if len(children) < 2 {
 		t.Fatal("did not return 2 children")
+	}
+
+	// verify nodeEdge with "all" works
+	adminNodes, err = db.nodeEdge(adminID, "all")
+	if err != nil {
+		t.Fatal("Error getting admin nodes with all specified: ", err)
+	}
+
+	if len(adminNodes) < 1 {
+		t.Fatal("did not return admin nodes")
 	}
 }
 
@@ -178,5 +188,19 @@ func TestDbSqliteReopen(t *testing.T) {
 
 	if rootID != db.rootNodeID() {
 		t.Fatal("Root node ID changed")
+	}
+}
+
+func TestDbSqliteUserCheck(t *testing.T) {
+	db := newTestDb(t)
+	defer db.Close()
+
+	nodes, err := db.userCheck("admin@admin.com", "admin")
+	if err != nil {
+		t.Fatal("userCheck returned error: ", err)
+	}
+
+	if len(nodes) < 1 {
+		t.Fatal("userCheck did not return nodes")
 	}
 }

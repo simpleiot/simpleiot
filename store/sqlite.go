@@ -396,7 +396,7 @@ func (sdb *DbSqlite) node(id string) (*data.Node, error) {
 	return &ret, err
 }
 
-func (sdb *DbSqlite) children(id string) ([]data.NodeEdge, error) {
+func (sdb *DbSqlite) children(id, typ string, includeDel bool) ([]data.NodeEdge, error) {
 	var ret []data.NodeEdge
 
 	rowsEdges, err := sdb.db.Query("SELECT * FROM edges WHERE up=?", id)
@@ -423,10 +423,25 @@ func (sdb *DbSqlite) children(id string) ([]data.NodeEdge, error) {
 			return nil, fmt.Errorf("children error getting edge points: %v", err)
 		}
 
+		if !includeDel {
+			tombstone, _ := ne.IsTombstone()
+			if tombstone {
+				// skip deleted nodes
+				continue
+			}
+		}
+
 		q = fmt.Sprintf("SELECT * FROM node_points WHERE node_id='%v'", edge.Down)
 		ne.Points, ne.Type, err = sdb.queryPoints(q)
 		if err != nil {
 			return nil, fmt.Errorf("children error getting edge points: %v", err)
+		}
+
+		if typ != "" {
+			if ne.Type != typ {
+				// skip node of incorrect type
+				continue
+			}
 		}
 
 		ret = append(ret, ne)
@@ -462,9 +477,9 @@ func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 		ne := node.ToNodeEdge(data.Edge{})
 		return []data.NodeEdge{ne}, nil
 	case "all":
-		q = fmt.Sprintf("SELECT * FROM edges WHERE up='%v' AND down = '%v'", parent, id)
-	default:
 		q = fmt.Sprintf("SELECT * FROM edges WHERE down = '%v'", id)
+	default:
+		q = fmt.Sprintf("SELECT * FROM edges WHERE up='%v' AND down = '%v'", parent, id)
 	}
 
 	rowsEdges, err := sdb.db.Query(q)
@@ -535,4 +550,42 @@ func (sdb *DbSqlite) queryPoints(query string) (data.Points, string, error) {
 	}
 
 	return retPoints, retType, nil
+}
+
+// userCheck checks user authentication
+// returns nil, nil if user is not found
+func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
+	var ret []data.NodeEdge
+
+	rows, err := sdb.db.Query("SELECT node_id FROM node_points WHERE type=? AND TEXT=?",
+		data.PointTypeNodeType, data.NodeTypeUser)
+	if err != nil {
+		return nil, fmt.Errorf("userCheck, error query error: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id string
+		err = rows.Scan(&id)
+		if err != nil {
+			log.Println("Error scanning user id: ", id)
+			continue
+		}
+		ne, err := sdb.nodeEdge(id, "all")
+		if err != nil {
+			log.Println("Error getting user node for id: ", id)
+			continue
+		}
+		if len(ne) < 1 {
+			continue
+		}
+
+		n := ne[0].ToNode()
+		u := n.ToUser()
+		if u.Email == email && u.Pass == password {
+			ret = append(ret, ne...)
+		}
+	}
+
+	return ret, nil
 }

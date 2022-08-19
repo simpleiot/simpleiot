@@ -36,7 +36,7 @@ type Store struct {
 	subNotifications *nats.Subscription
 	subMessages      *nats.Subscription
 	subAuth          *nats.Subscription
-	db               *Db
+	db               *DbSqlite
 	authToken        string
 	lock             sync.Mutex
 	nodeUpdateLock   sync.Mutex
@@ -66,7 +66,7 @@ type Store struct {
 
 // Params are used to configure a store
 type Params struct {
-	Type      Type
+	File      string
 	DataDir   string
 	AuthToken string
 	Server    string
@@ -76,7 +76,7 @@ type Params struct {
 
 // NewStore creates a new NATS client for handling SIOT requests
 func NewStore(p Params) (*Store, error) {
-	db, err := NewDb(p.Type, p.DataDir)
+	db, err := NewSqliteDb(p.File, p.DataDir)
 	if err != nil {
 		return nil, fmt.Errorf("Error opening db: %v", err)
 	}
@@ -154,6 +154,7 @@ func (st *Store) Start() error {
 			log.Println("Store stopped")
 			return errors.New("Store stopped")
 		case <-t.C:
+			/* FIXME -- this should be moved to rules client
 			childNodes, err := st.db.nodeDescendents(st.db.rootNodeID(), "", false, false)
 			if err != nil {
 				log.Println("Error getting child nodes to run schedule: ", err)
@@ -166,6 +167,7 @@ func (st *Store) Start() error {
 				}
 			}
 			t.Reset(time.Second * 5)
+			*/
 		}
 	}
 }
@@ -245,6 +247,7 @@ func (st *Store) StopMetrics(_ error) {
 	close(st.chStopMetrics)
 }
 
+/*
 func (st *Store) runSchedule(node data.NodeEdge) error {
 	switch node.Type {
 	case data.NodeTypeRule:
@@ -269,6 +272,7 @@ func (st *Store) runSchedule(node data.NodeEdge) error {
 
 	return nil
 }
+*/
 
 func (st *Store) setSwUpdateState(id string, state data.SwUpdateState) error {
 	p := state.Points()
@@ -578,7 +582,7 @@ func (st *Store) handleNodeChildren(msg *nats.Msg) {
 
 	nodeID = chunks[1]
 
-	nodes, err = st.db.nodeDescendents(nodeID, params.Type, false, params.IncludeDel)
+	nodes, err = st.db.children(nodeID, params.Type, params.IncludeDel)
 
 	if err != nil {
 		resp.Error = fmt.Sprintf("NATS: Error getting node %v from db: %v\n", nodeID, err)
@@ -624,7 +628,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 	var findUsers func(id string)
 
 	findUsers = func(id string) {
-		nodes, err := st.db.nodeDescendents(id, data.NodeTypeUser, false, false)
+		nodes, err := st.db.children(id, data.NodeTypeUser, false)
 		if err != nil {
 			log.Println("Error find user nodes: ", err)
 			return
@@ -633,6 +637,8 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 		for _, n := range nodes {
 			userNodes = append(userNodes, n)
 		}
+
+		/* FIXME this needs to be moved to client
 
 		// now process upstream nodes
 		upIDs := st.db.edgeUp(id, false)
@@ -644,6 +650,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 		for _, id := range upIDs {
 			findUsers(id.Up)
 		}
+		*/
 	}
 
 	node, err := st.db.node(nodeID)
@@ -721,7 +728,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	level := 0
 
 	findSvcNodes = func(id string) {
-		nodes, err := st.db.nodeDescendents(id, data.NodeTypeMsgService, false, false)
+		nodes, err := st.db.children(id, data.NodeTypeMsgService, false)
 		if err != nil {
 			log.Println("Error getting svc descendents: ", err)
 			return
@@ -736,6 +743,8 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 
 		var upIDs []*data.Edge
 
+		/* FIXME this needs to be moved to client
+
 		if level == 0 {
 			upIDs = []*data.Edge{&data.Edge{Up: message.ParentID}}
 		} else {
@@ -745,6 +754,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 				return
 			}
 		}
+		*/
 
 		level++
 
@@ -795,21 +805,18 @@ func (st *Store) reply(subject string, err error) {
 }
 
 func (st *Store) processRuleNode(ruleNode data.NodeEdge, sourceNodeID string, points []data.Point) error {
-	conditionNodes, err := st.db.nodeDescendents(ruleNode.ID, data.NodeTypeCondition,
-		false, false)
+	conditionNodes, err := st.db.children(ruleNode.ID, data.NodeTypeCondition, false)
 	if err != nil {
 		return err
 	}
 
-	actionNodes, err := st.db.nodeDescendents(ruleNode.ID, data.NodeTypeAction,
-		false, false)
+	actionNodes, err := st.db.children(ruleNode.ID, data.NodeTypeAction, false)
 	if err != nil {
 		return err
 	}
 
-	actionInactiveNodes, err := st.db.nodeDescendents(ruleNode.ID,
-		data.NodeTypeActionInactive,
-		false, false)
+	actionInactiveNodes, err := st.db.children(ruleNode.ID,
+		data.NodeTypeActionInactive, false)
 	if err != nil {
 		return err
 	}
@@ -858,7 +865,7 @@ func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, p
 
 	// FIXME we could optimize this a bit if the points are not valid for rule nodes ...
 	// get children and process any rules
-	ruleNodes, err := st.db.nodeDescendents(currentNodeID, data.NodeTypeRule, false, false)
+	ruleNodes, err := st.db.children(currentNodeID, data.NodeTypeRule, false)
 	if err != nil {
 		return err
 	}
@@ -871,7 +878,7 @@ func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, p
 	}
 
 	// get database nodes
-	dbNodes, err := st.db.nodeDescendents(currentNodeID, data.NodeTypeDb, false, false)
+	dbNodes, err := st.db.children(currentNodeID, data.NodeTypeDb, false)
 
 	for _, dbNode := range dbNodes {
 		// check if we need to configure influxdb connection
@@ -904,6 +911,7 @@ func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, p
 		}
 	}
 
+	/* FIXME needs to be move to client
 	edges := st.db.edgeUp(currentNodeID, true)
 
 	if currentNodeID == nodeID {
@@ -953,6 +961,7 @@ func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, p
 			log.Println("Rules -- error processing upstream node: ", err)
 		}
 	}
+	*/
 
 	return nil
 }
