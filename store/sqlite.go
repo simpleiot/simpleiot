@@ -364,6 +364,11 @@ NextPin:
 		_, err = stmt.Exec(pID, edge.ID, p.Type, p.Key, tS, tNs, p.Index, p.Value, p.Text, p.Data, p.Tombstone,
 			p.Origin)
 		if err != nil {
+			rbErr := tx.Rollback()
+			if rbErr != nil {
+				log.Println("Rollback error: ", rbErr)
+			}
+
 			return err
 		}
 	}
@@ -513,7 +518,7 @@ func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 		q = fmt.Sprintf("SELECT * FROM node_points WHERE node_id='%v'", edge.Down)
 		ne.Points, ne.Type, err = sdb.queryPoints(q)
 		if err != nil {
-			return nil, fmt.Errorf("children error getting edge points: %v", err)
+			return nil, fmt.Errorf("children error getting node points: %v", err)
 		}
 
 		ret = append(ret, ne)
