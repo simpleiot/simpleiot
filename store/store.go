@@ -366,6 +366,7 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 	node, err := st.db.node(nodeID)
 	if err != nil {
 		log.Println("handleNodePoints, error getting node for id: ", nodeID)
+		return
 	}
 
 	desc := node.Desc()
