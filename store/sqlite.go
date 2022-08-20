@@ -501,7 +501,7 @@ func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 
 		var ne data.NodeEdge
 		ne.ID = edge.Down
-		ne.Parent = id
+		ne.Parent = edge.Up
 		ne.Hash = edge.Hash
 
 		q := fmt.Sprintf("SELECT * FROM edge_points WHERE edge_id='%v'", edge.ID)

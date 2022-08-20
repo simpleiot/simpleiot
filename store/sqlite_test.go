@@ -172,6 +172,10 @@ func TestDbSqlite(t *testing.T) {
 		t.Fatal("Error getting admin nodes with all specified: ", err)
 	}
 
+	if adminNodes[0].Parent != rootID {
+		t.Fatal("Parent ID is not correct")
+	}
+
 	if len(adminNodes) < 1 {
 		t.Fatal("did not return admin nodes")
 	}
