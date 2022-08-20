@@ -23,7 +23,7 @@ import (
 
 // Options used for starting Simple IoT
 type Options struct {
-	StoreType         store.Type
+	StoreFile         string
 	DataDir           string
 	HTTPPort          string
 	DebugHTTP         bool
@@ -168,8 +168,7 @@ func (s *Server) Start() error {
 	// SIOT Store
 	// ====================================
 	storeParams := store.Params{
-		Type:      o.StoreType,
-		DataDir:   o.DataDir,
+		File:      o.StoreFile,
 		AuthToken: o.AuthToken,
 		Server:    o.NatsServer,
 		Key:       auth,
@@ -177,6 +176,10 @@ func (s *Server) Start() error {
 	}
 
 	siotStore, err := store.NewStore(storeParams)
+
+	if err != nil {
+		log.Fatal("Error creating store: ", err)
+	}
 
 	g.Add(func() error {
 		err := siotStore.Start()

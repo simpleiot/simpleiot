@@ -21,7 +21,7 @@ type DbSqlite struct {
 }
 
 // NewSqliteDb creates a new Sqlite data store
-func NewSqliteDb(dataDir string, dbFile string) (*DbSqlite, error) {
+func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 	ret := &DbSqlite{}
 
 	db, err := sql.Open("sqlite", dbFile)

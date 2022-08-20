@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -14,7 +15,7 @@ var testFile = "test.sqlite"
 func newTestDb(t *testing.T) *DbSqlite {
 	os.Remove(testFile)
 
-	db, err := NewSqliteDb("./", testFile)
+	db, err := NewSqliteDb(testFile)
 	if err != nil {
 		t.Fatal("Error opening db: ", err)
 	}
@@ -164,7 +165,9 @@ func TestDbSqlite(t *testing.T) {
 	}
 
 	// verify nodeEdge with "all" works
+	start := time.Now()
 	adminNodes, err = db.nodeEdge(adminID, "all")
+	fmt.Println("nodeEdge time: ", time.Since(start))
 	if err != nil {
 		t.Fatal("Error getting admin nodes with all specified: ", err)
 	}
@@ -180,7 +183,7 @@ func TestDbSqliteReopen(t *testing.T) {
 	db.Close()
 
 	var err error
-	db, err = NewSqliteDb("./", testFile)
+	db, err = NewSqliteDb(testFile)
 	if err != nil {
 		t.Fatal("Error opening db: ", err)
 	}

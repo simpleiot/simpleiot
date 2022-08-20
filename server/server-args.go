@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"syscall"
@@ -87,6 +88,8 @@ func StartArgs(args []string) error {
 		log.Println("Error updating files: ", err)
 		os.Exit(-1)
 	}
+
+	storeFilePath := path.Join(dataDir, *flagStore)
 
 	// =============================================
 	// NATS stuff
@@ -327,7 +330,10 @@ func StartArgs(args []string) error {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := store.NewDb(*flagStore, dataDir)
+		log.Fatal("not supported")
+
+		/* FIXME
+		dbInst, err := store.NewSqliteDb(*flagStore, dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -348,11 +354,14 @@ func StartArgs(args []string) error {
 
 		f.Close()
 		log.Println("Database written to data.json")
+		*/
 
 		os.Exit(0)
 	}
 
 	if *flagImportDb {
+		log.Fatal("not supported")
+		/* FIXME
 		dbInst, err := store.NewDb(store.Type(*flagStore), dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
@@ -374,6 +383,7 @@ func StartArgs(args []string) error {
 
 		f.Close()
 		log.Println("Database imported from data.json")
+		*/
 
 		os.Exit(0)
 	}
@@ -395,8 +405,7 @@ func StartArgs(args []string) error {
 
 	// TODO, convert this to builder pattern
 	o := Options{
-		StoreType:         store.Type(*flagStore),
-		DataDir:           dataDir,
+		StoreFile:         storeFilePath,
 		HTTPPort:          port,
 		DebugHTTP:         *flagDebugHTTP,
 		DebugLifecycle:    *flagDebugLifecycle,

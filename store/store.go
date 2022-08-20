@@ -67,7 +67,6 @@ type Store struct {
 // Params are used to configure a store
 type Params struct {
 	File      string
-	DataDir   string
 	AuthToken string
 	Server    string
 	Key       NewTokener
@@ -76,7 +75,7 @@ type Params struct {
 
 // NewStore creates a new NATS client for handling SIOT requests
 func NewStore(p Params) (*Store, error) {
-	db, err := NewSqliteDb(p.File, p.DataDir)
+	db, err := NewSqliteDb(p.File)
 	if err != nil {
 		return nil, fmt.Errorf("Error opening db: %v", err)
 	}

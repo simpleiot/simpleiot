@@ -9,11 +9,10 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/store"
 )
 
 var testServerOptions = Options{
-	StoreType:    store.TypeMemory,
+	StoreFile:    "test.sqlite",
 	NatsPort:     4990,
 	HTTPPort:     "8990",
 	NatsHTTPPort: 8991,
