@@ -236,6 +236,10 @@ NextPin:
 		_, err = stmt.Exec(pID, id, p.Type, p.Key, tS, tNs, p.Index, p.Value, p.Text, p.Data, p.Tombstone,
 			p.Origin)
 		if err != nil {
+			rbErr := tx.Rollback()
+			if rbErr != nil {
+				log.Println("Rollback error: ", rbErr)
+			}
 			return err
 		}
 	}
