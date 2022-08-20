@@ -446,6 +446,7 @@ func StartArgs(args []string) error {
 		if err != nil {
 			return errors.New("Timeout waiting for SIOT to start")
 		}
+		log.Println("SIOT started")
 		<-chStartCheck
 		return nil
 	}, func(err error) {

@@ -106,7 +106,7 @@ func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 }
 
 func (sdb *DbSqlite) initRoot() (string, error) {
-	log.Println("NODE: Initialize root node and admin user")
+	log.Println("STORE: Initialize root node and admin user")
 	var rootNode data.NodeEdge
 	rootNode.Points = data.Points{
 		{

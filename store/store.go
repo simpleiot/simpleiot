@@ -61,7 +61,8 @@ type Store struct {
 	// sync stuff
 	startedLock sync.Mutex
 	started     bool
-	wait        []chan struct{}
+	// wait is an array of waiters who are waiting on this to start
+	wait []chan struct{}
 }
 
 // Params are used to configure a store
