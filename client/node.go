@@ -148,23 +148,22 @@ func GetNodeChildrenType[T any](nc *nats.Conn, id string) ([]T, error) {
 func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 	var none []data.NodeEdge
 	var ret []data.NodeEdge
-	rootNodes, err := GetNode(nc, userID, "all")
+	userNodes, err := GetNode(nc, userID, "all")
 	if err != nil {
 		return none, err
 	}
 
 	// go through parents of root nodes and recursively get all children
-	for _, rn := range rootNodes {
-		n, err := GetNode(nc, rn.Parent, "none")
+	for _, un := range userNodes {
+		n, err := GetNode(nc, un.Parent, "none")
 		if err != nil {
 			return none, fmt.Errorf("Error getting root node: %v", err)
 		}
 		ret = append(ret, n...)
-		c, err := GetNodeChildren(nc, rn.Parent, "", false, true)
+		c, err := GetNodeChildren(nc, un.Parent, "", false, true)
 		if err != nil {
 			return none, fmt.Errorf("Error getting children: %v", err)
 		}
-
 		ret = append(ret, c...)
 	}
 
