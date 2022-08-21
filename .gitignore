@@ -5,8 +5,7 @@ elm-stuff
 /siot_arm
 /siot.exe
 *.db
-*.sqlite
-*.sqlite-journal
+*.sqlite*
 temp
 tags
 .idea
