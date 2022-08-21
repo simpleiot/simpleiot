@@ -24,7 +24,11 @@ type DbSqlite struct {
 func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 	ret := &DbSqlite{}
 
-	db, err := sql.Open("sqlite", dbFile)
+	pragmas := "_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(8000)&_pragma=journal_size_limit(100000000)"
+
+	dbFileOptions := fmt.Sprintf("%s?%s", dbFile, pragmas)
+
+	db, err := sql.Open("sqlite", dbFileOptions)
 	if err != nil {
 		return nil, err
 	}
