@@ -20,6 +20,13 @@ type DbSqlite struct {
 	meta Meta
 }
 
+// Meta contains metadata about the database
+type Meta struct {
+	ID      int    `json:"id"`
+	Version int    `json:"version"`
+	RootID  string `json:"rootID"`
+}
+
 // NewSqliteDb creates a new Sqlite data store
 func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 	ret := &DbSqlite{}

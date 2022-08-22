@@ -8,7 +8,6 @@ require (
 	github.com/cavaliercoder/grab v2.0.0+incompatible
 	github.com/dim13/cobs v1.0.0
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
-	github.com/genjidb/genji v0.13.0
 	github.com/go-audio/wav v1.0.0
 	github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea
 	github.com/golang-jwt/jwt/v4 v4.0.0
@@ -31,13 +30,11 @@ require (
 )
 
 require (
-	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/creack/goselect v0.1.2 // indirect
 	github.com/deepmap/oapi-codegen v1.8.2 // indirect
 	github.com/go-audio/audio v1.0.0 // indirect
 	github.com/go-audio/riff v1.0.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/google/btree v1.0.1 // indirect
 	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20210311194329-9aa0e372d097 // indirect
@@ -60,8 +57,6 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.1.0 // indirect
-	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
-	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
