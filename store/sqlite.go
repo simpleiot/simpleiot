@@ -106,6 +106,12 @@ func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 		}
 	}
 
+	// make sure we find root ID
+	_, err = ret.node(ret.meta.RootID)
+	if err != nil {
+		return nil, fmt.Errorf("db constructor can't fetch root node: %v", err)
+	}
+
 	return ret, nil
 }
 
@@ -220,16 +226,16 @@ NextPin:
                  time_ns, idx, value, text, data, tombstone, origin)
 		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT(id) DO UPDATE SET
-		 type = ?2,
-		 key = ?3,
-		 time_s = ?4,
-		 time_ns = ?5,
-		 idx = ?6,
-		 value = ?7,
-		 text = ?8,
-		 data = ?9,
-		 tombstone = ?10,
-		 origin = ?11
+		 type = ?3,
+		 key = ?4,
+		 time_s = ?5,
+		 time_ns = ?6,
+		 idx = ?7,
+		 value = ?8,
+		 text = ?9,
+		 data = ?10,
+		 tombstone = ?11,
+		 origin = ?12
 		 `)
 	defer stmt.Close()
 
@@ -348,16 +354,16 @@ NextPin:
                  time_ns, idx, value, text, data, tombstone, origin)
 		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT(id) DO UPDATE SET
-		 type = ?2,
-		 key = ?3,
-		 time_s = ?4,
-		 time_ns = ?5,
-		 idx = ?6,
-		 value = ?7,
-		 text = ?8,
-		 data = ?9,
-		 tombstone = ?10,
-		 origin = ?11
+		 type = ?3,
+		 key = ?4,
+		 time_s = ?5,
+		 time_ns = ?6,
+		 idx = ?7,
+		 value = ?8,
+		 text = ?9,
+		 data = ?10,
+		 tombstone = ?11,
+		 origin = ?12
 		 `)
 	defer stmt.Close()
 
@@ -401,6 +407,10 @@ func (sdb *DbSqlite) node(id string) (*data.Node, error) {
 
 	query := fmt.Sprintf("SELECT * FROM node_points WHERE node_id='%v'", id)
 	ret.Points, ret.Type, err = sdb.queryPoints(query)
+
+	if err != nil {
+		return nil, err
+	}
 
 	if ret.Type == "" {
 		return nil, errors.New("node not found")
