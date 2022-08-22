@@ -2,7 +2,7 @@ package store
 
 import (
 	"fmt"
-	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -13,7 +13,7 @@ import (
 var testFile = "test.sqlite"
 
 func newTestDb(t *testing.T) *DbSqlite {
-	os.Remove(testFile)
+	exec.Command("rm", testFile+"*")
 
 	db, err := NewSqliteDb(testFile)
 	if err != nil {

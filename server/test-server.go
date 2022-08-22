@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os/exec"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -22,6 +23,8 @@ var testServerOptions = Options{
 
 // TestServer starts a test server and returns a function to stop it
 func TestServer() (*nats.Conn, data.NodeEdge, func(), error) {
+	exec.Command("rm", "test.sqlite*")
+
 	s, nc, err := NewServer(testServerOptions)
 
 	if err != nil {
