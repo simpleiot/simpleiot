@@ -13,7 +13,7 @@ import (
 var testFile = "test.sqlite"
 
 func newTestDb(t *testing.T) *DbSqlite {
-	exec.Command("rm", testFile+"*")
+	exec.Command("sh", "-c", "rm "+testFile+"*").Run()
 
 	db, err := NewSqliteDb(testFile)
 	if err != nil {
