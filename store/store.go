@@ -864,56 +864,32 @@ func (st *Store) processRuleNode(ruleNode data.NodeEdge, sourceNodeID string, po
 func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
 
-	// FIXME we could optimize this a bit if the points are not valid for rule nodes ...
-	// get children and process any rules
-	ruleNodes, err := st.db.children(currentNodeID, data.NodeTypeRule, false)
+	sub := fmt.Sprintf("up.%v.%v.points", currentNodeID, nodeID)
+
+	err := client.SendPoints(st.nc, sub, points, false)
+
 	if err != nil {
 		return err
 	}
 
-	for _, ruleNode := range ruleNodes {
-		err := st.processRuleNode(ruleNode, nodeID, points)
-		if err != nil {
-			return err
-		}
+	if currentNodeID == "none" {
+		// we are at the top, stop
+		return nil
 	}
 
-	// get database nodes
-	dbNodes, err := st.db.children(currentNodeID, data.NodeTypeDb, false)
+	ups, err := st.db.up(currentNodeID, true)
+	if err != nil {
+		return err
+	}
 
-	for _, dbNode := range dbNodes {
-		// check if we need to configure influxdb connection
-		idb, ok := st.influxDbs[dbNode.ID]
-
-		if !ok {
-			influxConfig, err := NodeToInfluxConfig(dbNode)
-			if err != nil {
-				log.Println("Error with influxdb node: ", err)
-				continue
-			}
-			idb = NewInflux(influxConfig)
-			st.influxDbs[dbNode.ID] = idb
-			time.Sleep(time.Second)
-		} else {
-			if time.Since(idb.lastChecked) > time.Second*20 {
-				influxConfig, err := NodeToInfluxConfig(dbNode)
-				if err != nil {
-					log.Println("Error with influxdb node: ", err)
-					continue
-				}
-				idb.CheckConfig(influxConfig)
-			}
-		}
-
-		err = idb.WritePoints(nodeID, nodeDesc, points)
-
+	for _, up := range ups {
+		err := st.processPointsUpstream(up, nodeID, nodeDesc, points)
 		if err != nil {
-			log.Println("Error writing point to influx: ", err)
+			log.Println("Rules -- error processing upstream node: ", err)
 		}
 	}
 
 	/* FIXME needs to be move to client
-	edges := st.db.edgeUp(currentNodeID, true)
 
 	if currentNodeID == nodeID {
 		// check if device node that it has not been orphaned
@@ -953,13 +929,6 @@ func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, p
 					}
 				}
 			}
-		}
-	}
-
-	for _, edge := range edges {
-		err = st.processPointsUpstream(edge.Up, nodeID, nodeDesc, points)
-		if err != nil {
-			log.Println("Rules -- error processing upstream node: ", err)
 		}
 	}
 	*/
