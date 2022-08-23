@@ -211,3 +211,51 @@ func TestDbSqliteUserCheck(t *testing.T) {
 		t.Fatal("userCheck did not return nodes")
 	}
 }
+
+func TestDbSqliteUp(t *testing.T) {
+	db := newTestDb(t)
+	defer db.Close()
+
+	rootID := db.rootNodeID()
+
+	children, err := db.children(rootID, "", false)
+
+	if err != nil {
+		t.Fatal("Error getting children")
+	}
+
+	if len(children) < 1 {
+		t.Fatal("no children")
+	}
+
+	childID := children[0].ID
+
+	ups, err := db.up(childID, false)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(ups) < 1 {
+		t.Fatal("No ups for admin user")
+	}
+
+	if ups[0] != rootID {
+		t.Fatal("ups, wrong ID: ", ups[0])
+	}
+
+	// try to get ups of root node
+	ups, err = db.up(rootID, false)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(ups) < 1 {
+		t.Fatal("No ups for root user")
+	}
+
+	if ups[0] != "none" {
+		t.Fatal("ups, wrong ID for root: ", ups[0])
+	}
+}

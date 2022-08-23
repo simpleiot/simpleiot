@@ -552,6 +552,7 @@ func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 	return ret, nil
 }
 
+// returns points, type (if node), and error
 func (sdb *DbSqlite) queryPoints(query string) (data.Points, string, error) {
 	var retPoints data.Points
 	var retType string
@@ -618,4 +619,40 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 	}
 
 	return ret, nil
+}
+
+// up returns upstream ids for a node
+func (sdb *DbSqlite) up(id string, includeDeleted bool) ([]string, error) {
+	var ups []string
+
+	rowsEdge, err := sdb.db.Query("SELECT id, up FROM edges WHERE down=?", id)
+	if err != nil {
+		return nil, err
+	}
+	defer rowsEdge.Close()
+
+	for rowsEdge.Next() {
+		var edgeID, up string
+		err := rowsEdge.Scan(&edgeID, &up)
+		if err != nil {
+			return nil, err
+		}
+
+		if includeDeleted {
+			ups = append(ups, up)
+		} else {
+			q := fmt.Sprintf("SELECT * FROM edge_points WHERE edge_id='%v'", edgeID)
+			points, _, err := sdb.queryPoints(q)
+			if err != nil {
+				return nil, fmt.Errorf("up error getting edge points: %v", err)
+			}
+
+			p, _ := points.Find(data.PointTypeTombstone, "")
+			if p.Value == 0 {
+				ups = append(ups, up)
+			}
+		}
+	}
+
+	return ups, nil
 }
