@@ -39,19 +39,6 @@ func Decode(input NodeEdge, output interface{}) error {
 		}
 	}
 
-	setVal := func(p Point, v reflect.Value) {
-		switch v.Type().Kind() {
-		case reflect.String:
-			v.SetString(p.Text)
-		case reflect.Int:
-			v.SetInt(int64(p.Value))
-		case reflect.Float64, reflect.Float32:
-			v.SetFloat(p.Value)
-		case reflect.Bool:
-			v.SetBool(FloatToBool(p.Value))
-		}
-	}
-
 	for _, p := range input.Points {
 		v, ok := pointValues[p.Type]
 		if ok {
