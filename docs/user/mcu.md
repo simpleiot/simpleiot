@@ -15,3 +15,11 @@ MPU handling data/connectivity and a MCU doing real-time control.
 ![mcu](images/mcu.png)
 
 TODO: add instructions for setting up an Arduino system.
+
+## Debug Levels
+
+You can set the following debug levels to log information.
+
+- 0: no debug information
+- 1: log ASCII strings (must be COBS wrapped)
+- 2: log raw data (must be COBS wrapped)
