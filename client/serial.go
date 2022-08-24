@@ -15,18 +15,19 @@ import (
 
 // SerialDev represents a serial (MCU) config
 type SerialDev struct {
-	ID          string `node:"id"`
-	Parent      string `node:"parent"`
-	Description string `point:"description"`
-	Port        string `point:"port"`
-	Baud        string `point:"baud"`
-	Debug       int    `point:"debug"`
-	Disable     bool   `point:"disable"`
-	Log         string `point:"log"`
-	Rx          int    `point:"rx"`
-	Tx          int    `point:"tx"`
-	Uptime      int    `point:"uptime"`
-	ErrorCount  int    `point:"errorCount"`
+	ID              string `node:"id"`
+	Parent          string `node:"parent"`
+	Description     string `point:"description"`
+	Port            string `point:"port"`
+	Baud            string `point:"baud"`
+	Debug           int    `point:"debug"`
+	Disable         bool   `point:"disable"`
+	Log             string `point:"log"`
+	Rx              int    `point:"rx"`
+	Tx              int    `point:"tx"`
+	Uptime          int    `point:"uptime"`
+	ErrorCount      int    `point:"errorCount"`
+	ErrorCountReset bool   `point:"errorCountReset"`
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
@@ -161,6 +162,8 @@ func (sd *SerialDevClient) Start() error {
 
 	openPort()
 
+	natsSubject := SubjectNodePoints(sd.config.ID)
+
 	for {
 		select {
 		case <-sd.stop:
@@ -173,15 +176,20 @@ func (sd *SerialDevClient) Start() error {
 			closePort()
 			timerCheckPort.Reset(checkPortDur)
 		case rd := <-serialReadData:
+			if sd.config.Debug >= 2 {
+				log.Println("SER RX: ", test.HexDump(rd))
+			}
+
 			sd.config.Rx++
 			rxPt := data.Point{Type: data.PointTypeRx, Value: float64(sd.config.Rx)}
 			// figure out if the data is ascii string or points
 			// try pb decode
 			seq, subject, points, err := SerialDecode(rd)
+			if subject == "" {
+				subject = natsSubject
+			}
+
 			if err == nil && len(points) > 0 {
-				if subject == "" {
-					subject = SubjectNodePoints(sd.config.ID)
-				}
 				points = append(points, rxPt)
 				// send response
 				d, err := SerialEncode(seq, "", nil)
@@ -199,7 +207,7 @@ func (sd *SerialDevClient) Start() error {
 				}
 
 			} else {
-				subject = SubjectNodePoints(sd.config.ID)
+				subject = natsSubject
 				// check if ascii
 				isASCII := true
 				for i := 0; i < len(rd); i++ {
@@ -213,7 +221,9 @@ func (sd *SerialDevClient) Start() error {
 						rxPt,
 						{Type: data.PointTypeLog, Text: string(rd)},
 					}
-					log.Printf("Serial client %v: log: %v\n", sd.config.Description, string(rd))
+					if sd.config.Debug >= 1 {
+						log.Printf("Serial client %v: log: %v\n", sd.config.Description, string(rd))
+					}
 				} else {
 					log.Println("Error decoding serial packet from device: ",
 						sd.config.Description)
@@ -266,13 +276,29 @@ func (sd *SerialDevClient) Start() error {
 				break
 			}
 
+			if sd.config.ErrorCountReset {
+				points := data.Points{
+					{Type: data.PointTypeErrorCount, Value: 0},
+					{Type: data.PointTypeErrorCountReset, Value: 0},
+				}
+				err = SendPoints(sd.nc, natsSubject, points, false)
+				if err != nil {
+					log.Println("Error resetting MCU error count: ", err)
+				}
+
+				sd.config.ErrorCountReset = false
+				sd.config.ErrorCount = 0
+			}
+
 			// check if we have any points that need sent to MCU
 			toSend := data.Points{}
 			for _, p := range toMerge {
 				switch p.Type {
 				case data.PointTypePort,
 					data.PointTypeBaud,
-					data.PointTypeDescription:
+					data.PointTypeDescription,
+					data.PointTypeErrorCount,
+					data.PointTypeErrorCountReset:
 					continue
 				}
 
