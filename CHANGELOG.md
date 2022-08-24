@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.4.1] - 2022-08-24](https://github.com/simpleiot/simpleiot/releases/tag/v0.4.1)
+
 - docs: add
   [Modbus user documentation](https://docs.simpleiot.org/docs/user/modbus.html).
 - docs: add
