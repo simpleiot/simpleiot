@@ -2,11 +2,8 @@ package client
 
 import (
 	"bytes"
-	"encoding/binary"
-	"errors"
 	"fmt"
 
-	"github.com/howeyc/crc16"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/internal/pb"
 	"google.golang.org/protobuf/proto"
@@ -20,7 +17,7 @@ import (
 // SerialEncode can be used in a client to encode points sent over a serial link.
 func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) {
 	var ret bytes.Buffer
-	ret.WriteByte(seq)
+	//ret.WriteByte(seq)
 
 	pbPoints := make([]*pb.Point, len(points))
 	for i, p := range points {
@@ -43,39 +40,47 @@ func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) 
 
 	ret.Write(pbSerialBytes)
 
-	crc := crc16.ChecksumCCITT(ret.Bytes())
+	/*
+		crc := crc16.ChecksumCCITT(ret.Bytes())
 
-	err = binary.Write(&ret, binary.LittleEndian, crc)
+		err = binary.Write(&ret, binary.LittleEndian, crc)
+	*/
 
 	return ret.Bytes(), nil
 }
 
 // SerialDecode can be used to decode serial data in a client.
 func SerialDecode(d []byte) (byte, string, data.Points, error) {
-	l := len(d)
+	/*
+		l := len(d)
 
-	if l < 1 {
-		return 0, "", nil, errors.New("Not enough data")
-	}
+		if l < 1 {
+			return 0, "", nil, errors.New("Not enough data")
+		}
 
-	if l < 3 {
-		return d[0], "", nil, errors.New("Not enough data")
-	}
+		if l < 3 {
+			return d[0], "", nil, errors.New("Not enough data")
+		}
 
-	// check CRC
 
-	crc := binary.LittleEndian.Uint16(d[l-2:])
-	crcCalc := crc16.ChecksumCCITT(d[:l-2])
-	if crc != crcCalc {
-		return d[0], "", nil, errors.New("CRC check failed")
-	}
+			// check CRC
 
-	if l == 3 {
-		return d[0], "", data.Points{}, nil
-	}
+			crc := binary.LittleEndian.Uint16(d[l-2:])
+			crcCalc := crc16.ChecksumCCITT(d[:l-2])
+			if crc != crcCalc {
+				return d[0], "", nil, errors.New("CRC check failed")
+			}
 
-	// try to extract protobuf
-	pbData := d[1 : l-2]
+			if l == 3 {
+				return d[0], "", data.Points{}, nil
+			}
+
+
+			// try to extract protobuf
+			pbData := d[1 : l-2]
+	*/
+
+	pbData := d
 
 	pbSerial := &pb.Serial{}
 

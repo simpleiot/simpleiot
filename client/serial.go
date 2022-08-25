@@ -184,7 +184,7 @@ func (sd *SerialDevClient) Start() error {
 			rxPt := data.Point{Type: data.PointTypeRx, Value: float64(sd.config.Rx)}
 			// figure out if the data is ascii string or points
 			// try pb decode
-			seq, subject, points, err := SerialDecode(rd)
+			_, subject, points, err := SerialDecode(rd)
 			if subject == "" {
 				subject = natsSubject
 			}
@@ -192,15 +192,17 @@ func (sd *SerialDevClient) Start() error {
 			if err == nil && len(points) > 0 {
 				points = append(points, rxPt)
 				// send response
-				d, err := SerialEncode(seq, "", nil)
-				if err != nil {
-					log.Println("Error enoding serial response: ", err)
-				} else {
-					_, err := port.Write(d)
+				/*
+					d, err := SerialEncode(seq, "", nil)
 					if err != nil {
-						log.Println("Error writing response to port: ", err)
+						log.Println("Error enoding serial response: ", err)
+					} else {
+						_, err := port.Write(d)
+						if err != nil {
+							log.Println("Error writing response to port: ", err)
+						}
 					}
-				}
+				*/
 				err = data.MergePoints(points, &sd.config)
 				if err != nil {
 					log.Println("error merging new points: ", err)

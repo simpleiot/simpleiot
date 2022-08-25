@@ -137,32 +137,34 @@ func TestSerial(t *testing.T) {
 		readCh <- buf
 	}
 
-	// check for ack response from serial client
-	go mcuReadSerial()
+	/*
+		// check for ack response from serial client
+		go mcuReadSerial()
 
-	select {
-	case <-time.After(time.Second):
-		t.Fatal("Timeout waiting for serial response")
-	case readData = <-readCh:
-		// all is well
-	}
+		select {
+		case <-time.After(time.Second):
+			t.Fatal("Timeout waiting for serial response")
+		case readData = <-readCh:
+			// all is well
+		}
 
-	seqR, subjectR, pointsR, err := client.SerialDecode(readData)
-	if err != nil {
-		t.Error("Error in response: ", err)
-	}
+		seqR, subjectR, pointsR, err := client.SerialDecode(readData)
+		if err != nil {
+			t.Error("Error in response: ", err)
+		}
 
-	if seq != seqR {
-		t.Error("Sequence in response did not match")
-	}
+		if seq != seqR {
+			t.Error("Sequence in response did not match")
+		}
 
-	if subjectR != "" {
-		t.Error("Subject in response should be blank")
-	}
+		if subjectR != "" {
+			t.Error("Subject in response should be blank")
+		}
 
-	if len(pointsR) != 0 {
-		t.Error("should be no points in response")
-	}
+		if len(pointsR) != 0 {
+			t.Error("should be no points in response")
+		}
+	*/
 
 	// test sending points to MCU
 	pumpSetting := data.Point{Type: "pumpSetting", Value: 233.5, Origin: root.ID}
@@ -178,7 +180,7 @@ func TestSerial(t *testing.T) {
 		// all is well
 	}
 
-	seqR, subjectR, pointsR, err = client.SerialDecode(readData)
+	_, _, pointsR, err := client.SerialDecode(readData)
 	if err != nil {
 		t.Error("Error in response: ", err)
 	}
