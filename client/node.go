@@ -174,28 +174,14 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 
 // SendNode is used to send a node to a nats server. Can be
 // used to create nodes.
-// TODO: might be nice eventually to get ID back from this
-// function so we don't have to poll for it separately.
 func SendNode(nc *nats.Conn, node data.NodeEdge) error {
 	// we need to send the edge points first if we are creating
 	// a new node, otherwise the upstream will detect an ophraned node
 	// and create a new edge to the root node
-
 	points := node.Points
 
 	if node.ID == "" {
-		node.ID = uuid.New().String()
-	}
-
-	points = append(points, data.Point{
-		Type: data.PointTypeNodeType,
-		Text: node.Type,
-	})
-
-	err := SendNodePoints(nc, node.ID, points, true)
-
-	if err != nil {
-		return fmt.Errorf("Error sending node: %v", err)
+		return errors.New("ID must be set to a UUID")
 	}
 
 	if node.Parent != "" && node.Parent != "none" {
@@ -209,6 +195,17 @@ func SendNode(nc *nats.Conn, node data.NodeEdge) error {
 			return fmt.Errorf("Error sending edge points: %w", err)
 
 		}
+	}
+
+	points = append(points, data.Point{
+		Type: data.PointTypeNodeType,
+		Text: node.Type,
+	})
+
+	err := SendNodePoints(nc, node.ID, points, true)
+
+	if err != nil {
+		return fmt.Errorf("Error sending node: %v", err)
 	}
 
 	return nil
