@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -65,16 +66,38 @@ func NewManager[T any](nc *nats.Conn, root string,
 // When new nodes are found, the data is decoded into the client type config, and the
 // constructor for the node client is called. This call blocks until Stop is called.
 func (m *Manager[T]) Start() error {
+	chNewNode := make(chan data.Point)
+
+	m.nc.Subscribe("up.none.>", func(msg *nats.Msg) {
+		points, err := data.PbDecodePoints(msg.Data)
+		if err != nil {
+			fmt.Println("Error decoding points")
+			return
+		}
+
+		for _, p := range points {
+			if p.Type == data.PointTypeNodeType {
+				chNewNode <- p
+			}
+		}
+	})
+
 	err := m.scan()
 	if err != nil {
 		log.Println("Error scanning for new nodes: ", err)
 	}
+
 done:
 	for {
 		select {
 		case <-m.stop:
 			break done
 		case <-time.After(time.Second * 5):
+			err := m.scan()
+			if err != nil {
+				log.Println("Error scanning for new nodes: ", err)
+			}
+		case <-chNewNode:
 			err := m.scan()
 			if err != nil {
 				log.Println("Error scanning for new nodes: ", err)
