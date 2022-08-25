@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -92,7 +93,7 @@ func TestManager(t *testing.T) {
 
 	defer stop()
 
-	testConfig := testNode{"", root.ID, "fancy test node", 8080, "admin"}
+	testConfig := testNode{uuid.New().String(), root.ID, "fancy test node", 8080, "admin"}
 
 	ne, err := data.Encode(testConfig)
 	if err != nil {
@@ -243,7 +244,7 @@ func TestManagerAddRemove(t *testing.T) {
 	}()
 
 	// populate with new testNode
-	testConfig := testNode{"", "", "fancy test node", 8080, "admin"}
+	testConfig := testNode{uuid.New().String(), "", "fancy test node", 8080, "admin"}
 
 	ne, err := data.Encode(testConfig)
 	if err != nil {
