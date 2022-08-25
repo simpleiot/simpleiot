@@ -68,6 +68,9 @@ func NewManager[T any](nc *nats.Conn, root string,
 func (m *Manager[T]) Start() error {
 	chNewNode := make(chan data.Point)
 
+	// TODO: it may make sense at some point to have a special topic
+	// for new nodes so that all client managers don't have to listen
+	// to all points
 	m.nc.Subscribe("up.none.>", func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
