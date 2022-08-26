@@ -23,7 +23,7 @@ func TestStoreUp(t *testing.T) {
 
 	chUpPoints := make(chan data.Points)
 
-	nc.Subscribe("up.none.>", func(msg *nats.Msg) {
+	sub, err := nc.Subscribe("up.none.>", func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
 			fmt.Println("Error decoding points")
@@ -32,6 +32,12 @@ func TestStoreUp(t *testing.T) {
 
 		chUpPoints <- points
 	})
+
+	if err != nil {
+		t.Fatal("sub error: ", err)
+	}
+
+	defer sub.Unsubscribe()
 
 	err = client.SendNodePoint(nc, root.ID, data.Point{Type: data.PointTypeDescription,
 		Text: "rootly"}, false)
