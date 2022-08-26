@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/koding/websocketproxy"
 	"github.com/nats-io/nats.go"
@@ -141,6 +142,10 @@ func (s *Server) Start() error {
 
 // Stop HTTP API
 func (s *Server) Stop(_ error) {
+	// the following is required if Stop() is called very quickly after Start()
+	for s.ln == nil {
+		time.Sleep(10 * time.Millisecond)
+	}
 	s.lnLock.Lock()
 	defer s.lnLock.Unlock()
 	s.ln.Close()
