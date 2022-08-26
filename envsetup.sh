@@ -180,7 +180,7 @@ siot_test() {
   siot_build_dependencies --optimize || return 1
   siot_test_frontend || return 1
   #gofmt -l ./... || return 1
-  go test -race "$@" ./... || return 1
+  go test -p=1 -race "$@" ./... || return 1
   golint -set_exit_status ./... || return 1
   go vet ./... || return 1
   return 0
