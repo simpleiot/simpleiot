@@ -24,7 +24,6 @@ var testServerOptions = Options{
 // TestServer starts a test server and returns a function to stop it
 func TestServer() (*nats.Conn, data.NodeEdge, func(), error) {
 	exec.Command("sh", "-c", "rm test.sqlite*").Run()
-
 	s, nc, err := NewServer(testServerOptions)
 
 	if err != nil {
@@ -44,6 +43,7 @@ func TestServer() (*nats.Conn, data.NodeEdge, func(), error) {
 	stop := func() {
 		s.Stop(nil)
 		<-stopped
+		exec.Command("sh", "-c", "rm test.sqlite*").Run()
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
