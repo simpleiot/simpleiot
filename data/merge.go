@@ -2,6 +2,19 @@ package data
 
 import "reflect"
 
+func setVal(p Point, v reflect.Value) {
+	switch v.Type().Kind() {
+	case reflect.String:
+		v.SetString(p.Text)
+	case reflect.Int:
+		v.SetInt(int64(p.Value))
+	case reflect.Float64, reflect.Float32:
+		v.SetFloat(p.Value)
+	case reflect.Bool:
+		v.SetBool(FloatToBool(p.Value))
+	}
+}
+
 // MergePoints takes points and updates fields in a type
 // that have matching point tags. See [Decode] for an example type.
 func MergePoints(points []Point, output interface{}) error {
@@ -14,21 +27,6 @@ func MergePoints(points []Point, output interface{}) error {
 		sf := tOut.Field(i)
 		if pt := sf.Tag.Get("point"); pt != "" {
 			pointValues[pt] = vOut.Field(i)
-		}
-	}
-
-	setVal := func(p Point, v reflect.Value) {
-		if p.Text != "" {
-			v.SetString(p.Text)
-		} else {
-			switch v.Type().Kind() {
-			case reflect.Int:
-				v.SetInt(int64(p.Value))
-			case reflect.Float64, reflect.Float32:
-				v.SetFloat(p.Value)
-			case reflect.Bool:
-				v.SetBool(FloatToBool(p.Value))
-			}
 		}
 	}
 
@@ -58,21 +56,6 @@ func MergeEdgePoints(points []Point, output interface{}) error {
 		}
 	}
 
-	setVal := func(p Point, v reflect.Value) {
-		if p.Text != "" {
-			v.SetString(p.Text)
-		} else {
-			switch v.Type().Kind() {
-			case reflect.Int:
-				v.SetInt(int64(p.Value))
-			case reflect.Float64, reflect.Float32:
-				v.SetFloat(p.Value)
-			case reflect.Bool:
-				v.SetBool(FloatToBool(p.Value))
-			}
-		}
-	}
-
 	for _, p := range points {
 		v, ok := edgeValues[p.Type]
 		if ok {
@@ -81,5 +64,4 @@ func MergeEdgePoints(points []Point, output interface{}) error {
 	}
 
 	return nil
-
 }

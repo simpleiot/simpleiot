@@ -11,10 +11,16 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.4.1] - 2022-08-24](https://github.com/simpleiot/simpleiot/releases/tag/v0.4.1)
+
 - docs: add
   [Modbus user documentation](https://docs.simpleiot.org/docs/user/modbus.html).
 - docs: add
   [Notification user documentation](https://docs.simpleiot.org/docs/user/notifications.html)
+- data/merge.go: fix bug if text and value are both 0
+- support Debug levels in serial MCU client: 0=no messages, 1=ascii log, 2=dump
+  rx data
+- serial MCU client: fix issue where reset error count was not working
 
 ## [[0.4.0] - 2022-07-29](https://github.com/simpleiot/simpleiot/releases/tag/v0.4.0)
 
