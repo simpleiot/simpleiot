@@ -32,6 +32,9 @@ type Manager[T any] struct {
 	clients       map[string]Client
 	stopPointSubs map[string]func()
 	stopEdgeSubs  map[string]func()
+
+	// subscription to listen for new points
+	upSub *nats.Subscription
 }
 
 // NewManager takes constructor for a node client and returns a Manager for that client
@@ -71,7 +74,8 @@ func (m *Manager[T]) Start() error {
 	// TODO: it may make sense at some point to have a special topic
 	// for new nodes so that all client managers don't have to listen
 	// to all points
-	m.nc.Subscribe("up.none.>", func(msg *nats.Msg) {
+	var err error
+	m.upSub, err = m.nc.Subscribe("up.none.>", func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
 			fmt.Println("Error decoding points")
@@ -85,7 +89,11 @@ func (m *Manager[T]) Start() error {
 		}
 	})
 
-	err := m.scan()
+	if err != nil {
+		return err
+	}
+
+	err = m.scan()
 	if err != nil {
 		log.Println("Error scanning for new nodes: ", err)
 	}
@@ -112,6 +120,10 @@ done:
 
 // Stop manager. This also stops all registered clients and causes Start to exit.
 func (m *Manager[T]) Stop(err error) {
+	if m.upSub != nil {
+		m.upSub.Unsubscribe()
+	}
+
 	m.lock.Lock()
 	for _, c := range m.stopPointSubs {
 		c()
