@@ -11,7 +11,7 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-## [[0.4.2] - 2022-08-29](https://github.com/simpleiot/simpleiot/releases/tag/v0.4.2)
+## [[0.4.3] - 2022-08-29](https://github.com/simpleiot/simpleiot/releases/tag/v0.4.3)
 
 - serial MCU: display rx/tx stats and any extra points in UI
 
