@@ -1,6 +1,8 @@
 package client
 
 import (
+	"bytes"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -8,6 +10,39 @@ import (
 	"github.com/dim13/cobs"
 	"github.com/simpleiot/simpleiot/test"
 )
+
+func TestCobs(t *testing.T) {
+	// we expect COBS encoding to work as detailed here:
+	// https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing
+	testCases := []struct {
+		dec, enc []byte
+	}{
+		{[]byte{0x0}, []byte{0x1, 0x1, 0x0}},
+		{[]byte{0x0, 0x0}, []byte{0x1, 0x1, 0x1, 0x0}},
+		{[]byte{0x0, 0x11, 0x0}, []byte{0x1, 0x2, 0x11, 0x1, 0x0}},
+		{[]byte{0x11, 0x22, 0x00, 0x33}, []byte{0x3, 0x11, 0x22, 0x2, 0x33, 0x00}},
+		{[]byte{0x11, 0x22, 0x33, 0x44}, []byte{0x5, 0x11, 0x22, 0x33, 0x44, 0x00}},
+		{[]byte{0x11, 0x00, 0x00, 0x00}, []byte{0x2, 0x11, 0x1, 0x1, 0x1, 0x00}},
+	}
+
+	for _, tc := range testCases {
+		e := cobs.Encode(tc.dec)
+
+		fmt.Printf("Encoding %v -> %v\n", test.HexDump(tc.dec), test.HexDump(e))
+
+		if !bytes.Equal(tc.enc, e) {
+			t.Fatalf("enc failed for %v, got: %v, exp: %v",
+				test.HexDump(tc.dec), test.HexDump(e), test.HexDump(tc.enc))
+		}
+
+		ed := cobs.Decode(e)
+
+		if !bytes.Equal(tc.dec, ed) {
+			t.Fatalf("Encode/Decode failed: %v -> %v",
+				test.HexDump(tc.dec), test.HexDump(ed))
+		}
+	}
+}
 
 func TestCobsRead(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
@@ -20,11 +55,23 @@ func TestCobsRead(t *testing.T) {
 
 	buf := make([]byte, 500)
 
-	c, err := cw.Read(buf)
-	if err != nil {
-		t.Fatal("Error reading cw: ", err)
+	chBuf := make(chan struct{})
+
+	go func() {
+		c, err := cw.Read(buf)
+		if err != nil {
+			fmt.Println("Error reading cw: ", err)
+		}
+		buf = buf[0:c]
+		chBuf <- struct{}{}
+	}()
+
+	select {
+	case <-chBuf:
+		// all is well
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for data")
 	}
-	buf = buf[0:c]
 
 	if !reflect.DeepEqual(buf, d) {
 		t.Fatal("Read data does not match")
@@ -42,11 +89,23 @@ func TestCobsReadNoLeadingNull(t *testing.T) {
 
 	buf := make([]byte, 500)
 
-	c, err := cw.Read(buf)
-	if err != nil {
-		t.Fatal("Error reading cw: ", err)
+	chBuf := make(chan struct{})
+
+	go func() {
+		c, err := cw.Read(buf)
+		if err != nil {
+			fmt.Println("Error reading cw: ", err)
+		}
+		buf = buf[0:c]
+		chBuf <- struct{}{}
+	}()
+
+	select {
+	case <-chBuf:
+		// all is well
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for data")
 	}
-	buf = buf[0:c]
 
 	if !reflect.DeepEqual(buf, d) {
 		t.Fatal("Read data does not match")
@@ -67,11 +126,23 @@ func TestCobsWrite(t *testing.T) {
 
 	buf := make([]byte, 500)
 
-	c, err := a.Read(buf)
-	if err != nil {
-		t.Fatal("Error read: ", err)
+	chBuf := make(chan struct{})
+
+	go func() {
+		c, err := a.Read(buf)
+		if err != nil {
+			fmt.Println("Error reading cw: ", err)
+		}
+		buf = buf[0:c]
+		chBuf <- struct{}{}
+	}()
+
+	select {
+	case <-chBuf:
+		// all is well
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for data")
 	}
-	buf = buf[0:c]
 
 	if buf[0] != 0 {
 		t.Fatal("COBS encoded packet must start with 0")
@@ -144,11 +215,23 @@ func TestCobsMultipleLeadingNull(t *testing.T) {
 
 	buf := make([]byte, 500)
 
-	c, err := cw.Read(buf)
-	if err != nil {
-		t.Fatal("Error reading cw: ", err)
+	chBuf := make(chan struct{})
+
+	go func() {
+		c, err := cw.Read(buf)
+		if err != nil {
+			fmt.Println("Error reading cw: ", err)
+		}
+		buf = buf[0:c]
+		chBuf <- struct{}{}
+	}()
+
+	select {
+	case <-chBuf:
+		// all is well
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for data")
 	}
-	buf = buf[0:c]
 
 	if !reflect.DeepEqual(buf, d) {
 		t.Fatal("Read data does not match")
