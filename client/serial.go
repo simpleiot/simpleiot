@@ -24,7 +24,9 @@ type SerialDev struct {
 	Disable         bool   `point:"disable"`
 	Log             string `point:"log"`
 	Rx              int    `point:"rx"`
+	RxReset         bool   `point:"rxReset"`
 	Tx              int    `point:"tx"`
+	TxReset         bool   `point:"txReset"`
 	Uptime          int    `point:"uptime"`
 	ErrorCount      int    `point:"errorCount"`
 	ErrorCountReset bool   `point:"errorCountReset"`
@@ -290,6 +292,34 @@ func (sd *SerialDevClient) Start() error {
 				sd.config.ErrorCount = 0
 			}
 
+			if sd.config.RxReset {
+				points := data.Points{
+					{Type: data.PointTypeRx, Value: 0},
+					{Type: data.PointTypeRxReset, Value: 0},
+				}
+				err = SendPoints(sd.nc, natsSubject, points, false)
+				if err != nil {
+					log.Println("Error resetting MCU error count: ", err)
+				}
+
+				sd.config.RxReset = false
+				sd.config.Rx = 0
+			}
+
+			if sd.config.TxReset {
+				points := data.Points{
+					{Type: data.PointTypeTx, Value: 0},
+					{Type: data.PointTypeTxReset, Value: 0},
+				}
+				err = SendPoints(sd.nc, natsSubject, points, false)
+				if err != nil {
+					log.Println("Error resetting MCU error count: ", err)
+				}
+
+				sd.config.TxReset = false
+				sd.config.Tx = 0
+			}
+
 			// check if we have any points that need sent to MCU
 			toSend := data.Points{}
 			for _, p := range toMerge {
@@ -317,6 +347,16 @@ func (sd *SerialDevClient) Start() error {
 				_, err = port.Write(d)
 				if err != nil {
 					log.Println("error writing data to port: ", err)
+				} else {
+					sd.config.Tx++
+					subject := SubjectNodePoints(sd.config.ID)
+					err := SendPoints(sd.nc, subject,
+						data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
+						false)
+
+					if err != nil {
+						log.Println("Error sending Serial tx stats: ", err)
+					}
 				}
 
 				// TODO: we need to check for response and implement retries
