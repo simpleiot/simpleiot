@@ -63,6 +63,8 @@ module Api.Point exposing
     , typePort
     , typeProtocol
     , typeReadOnly
+    , typeRx
+    , typeRxReset
     , typeSID
     , typeScale
     , typeService
@@ -75,6 +77,8 @@ module Api.Point exposing
     , typeSwUpdateState
     , typeSysState
     , typeTombstone
+    , typeTx
+    , typeTxReset
     , typeURI
     , typeUnits
     , typeUpdateApp
@@ -300,6 +304,26 @@ typePass =
 typePort : String
 typePort =
     "port"
+
+
+typeRx : String
+typeRx =
+    "rx"
+
+
+typeTx : String
+typeTx =
+    "tx"
+
+
+typeRxReset : String
+typeRxReset =
+    "rxReset"
+
+
+typeTxReset : String
+typeTxReset =
+    "txReset"
 
 
 typeBaud : String
@@ -724,6 +748,17 @@ specialPoints =
     , typeVersionHW
     , typeVersionOS
     , typeVersionApp
+    , typeBaud
+    , typeDebug
+    , typeDisable
+    , typeErrorCount
+    , typeErrorCountReset
+    , typeLog
+    , typePort
+    , typeRx
+    , typeRxReset
+    , typeTx
+    , typeTxReset
     ]
 
 
@@ -770,7 +805,14 @@ renderPoint s =
                 ""
 
             else
-                s.key ++ ": "
+                s.key ++ ":"
+
+        index =
+            if s.index /= 0 then
+                Round.round 1 s.index ++ ":"
+
+            else
+                ""
 
         value =
             if s.text /= "" then
@@ -779,7 +821,7 @@ renderPoint s =
             else
                 Round.round 2 s.value
     in
-    key ++ value ++ " (" ++ s.typ ++ ")"
+    s.typ ++ key ++ index ++ ": " ++ value
 
 
 updatePoint : List Point -> Point -> List Point
