@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/howeyc/crc16"
+	"github.com/kjx98/crc16"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/internal/pb"
 	"google.golang.org/protobuf/proto"

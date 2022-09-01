@@ -15,10 +15,10 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
-	github.com/howeyc/crc16 v0.0.0-20171223171357-2b2a61e366a6
 	github.com/influxdata/influxdb-client-go/v2 v2.5.0
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/kevinburke/twilio-go v0.0.0-20200810163702-320748330fac
+	github.com/kjx98/crc16 v0.0.0-20190915014410-d407ba22e1b5
 	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
 	github.com/nats-io/nats-server/v2 v2.8.4
 	github.com/nats-io/nats.go v1.16.0
