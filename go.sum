@@ -57,8 +57,6 @@ github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+
 github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
 github.com/gorilla/websocket v1.4.1 h1:q7AeDBpnBk8AogcD4DSag/Ukw/KV+YhzLj2bP5HvKCM=
 github.com/gorilla/websocket v1.4.1/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
-github.com/howeyc/crc16 v0.0.0-20171223171357-2b2a61e366a6 h1:IIVxLyDUYErC950b8kecjoqDet8P5S4lcVRUOM6rdkU=
-github.com/howeyc/crc16 v0.0.0-20171223171357-2b2a61e366a6/go.mod h1:JslaLRrzGsOKJgFEPBP65Whn+rdwDQSk0I0MCRFe2Zw=
 github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 h1:KUDFlmBg2buRWNzIcwLlKvfcnujcHQRQ1As1LoaCLAM=
 github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1/go.mod h1:cOaXtrgN4ScfRrD9Bre7U1thNq5RtJ8ZoP4iXVGRj6o=
 github.com/influxdata/influxdb-client-go/v2 v2.5.0 h1:ugcI/KGMFM7N7LE49H0Y/Zbh8rBNLqtAA7+QZ2YoHck=
@@ -76,6 +74,8 @@ github.com/kevinburke/rest v0.0.0-20200429221318-0d2892b400f8 h1:KpuDJTaTPQAyWqE
 github.com/kevinburke/rest v0.0.0-20200429221318-0d2892b400f8/go.mod h1:pD+iEcdAGVXld5foVN4e24zb/6fnb60tgZPZ3P/3T/I=
 github.com/kevinburke/twilio-go v0.0.0-20200810163702-320748330fac h1:qQ7NAZEHpTyDfmZBH79KEiH3OK47Z+KvYVSR4sS3650=
 github.com/kevinburke/twilio-go v0.0.0-20200810163702-320748330fac/go.mod h1:Fm9alkN1/LPVY1eqD/psyMwPWE4VWl4P01/nTYZKzBk=
+github.com/kjx98/crc16 v0.0.0-20190915014410-d407ba22e1b5 h1:dL0R5jbp3CZqleXXtagj5WfAtPbprFMyfZr27bS2iCU=
+github.com/kjx98/crc16 v0.0.0-20190915014410-d407ba22e1b5/go.mod h1:/1kXpcuIFM29L0Id//AT55Vw1otSN5Yyke3bM6lBbCo=
 github.com/klauspost/compress v1.14.4 h1:eijASRJcobkVtSt81Olfh7JX43osYLwy5krOJo6YEu4=
 github.com/klauspost/compress v1.14.4/go.mod h1:/3/Vjq9QcHkK5uEr5lBEmyoZ1iFhe47etQ6QUkpK6sk=
 github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c h1:N7A4JCA2G+j5fuFxCsJqjFU/sZe0mj8H0sSoSwbaikw=
