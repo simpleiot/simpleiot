@@ -53,7 +53,6 @@ func (rc *RuleClient) Start() error {
 			}
 		}
 	}
-	return nil
 }
 
 // Stop sends a signal to the Start function to exit
