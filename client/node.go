@@ -60,7 +60,7 @@ func GetNodeType[T any](nc *nats.Conn, id, parent string) ([]T, error) {
 	ret := make([]T, len(nodes))
 
 	for i, n := range nodes {
-		err := data.Decode(n, &ret[i])
+		err := data.Decode(data.NodeEdgeChildren{NodeEdge: n, Children: nil}, &ret[i])
 		if err != nil {
 			log.Println("Error decode node in GetNodeType: ", err)
 		}
@@ -135,7 +135,7 @@ func GetNodeChildrenType[T any](nc *nats.Conn, id string) ([]T, error) {
 	ret := make([]T, len(nodes))
 
 	for i, n := range nodes {
-		err := data.Decode(n, &ret[i])
+		err := data.Decode(data.NodeEdgeChildren{NodeEdge: n, Children: nil}, &ret[i])
 		if err != nil {
 			log.Println("Error decode node in GetNodeChildrenType: ", err)
 		}

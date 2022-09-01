@@ -23,6 +23,7 @@ type Manager[T any] struct {
 
 	// synchronization fields
 	stop      chan struct{}
+	chScan    chan struct{}
 	clientsWG sync.WaitGroup
 
 	// The following state data is protected by the lock Mutex and must be locked
@@ -52,6 +53,7 @@ func NewManager[T any](nc *nats.Conn, root string,
 		nodeType:  nodeType,
 		construct: construct,
 		stop:      make(chan struct{}),
+		chScan:    make(chan struct{}),
 
 		// The keys in the below maps are the concatenation
 		// of the parent and node IDs, as we need to have a
@@ -69,8 +71,6 @@ func NewManager[T any](nc *nats.Conn, root string,
 // When new nodes are found, the data is decoded into the client type config, and the
 // constructor for the node client is called. This call blocks until Stop is called.
 func (m *Manager[T]) Start() error {
-	chNewNode := make(chan data.Point)
-
 	// TODO: it may make sense at some point to have a special topic
 	// for new nodes so that all client managers don't have to listen
 	// to all points
@@ -84,7 +84,7 @@ func (m *Manager[T]) Start() error {
 
 		for _, p := range points {
 			if p.Type == data.PointTypeNodeType {
-				chNewNode <- p
+				m.chScan <- struct{}{}
 			}
 		}
 	})
@@ -103,12 +103,12 @@ done:
 		select {
 		case <-m.stop:
 			break done
-		case <-time.After(time.Second * 5):
+		case <-time.After(time.Minute):
 			err := m.scan()
 			if err != nil {
 				log.Println("Error scanning for new nodes: ", err)
 			}
-		case <-chNewNode:
+		case <-m.chScan:
 			err := m.scan()
 			if err != nil {
 				log.Println("Error scanning for new nodes: ", err)
@@ -183,7 +183,7 @@ func (m *Manager[T]) scan() error {
 
 		var config T
 
-		err := data.Decode(n, &config)
+		err := data.Decode(data.NodeEdgeChildren{NodeEdge: n, Children: nil}, &config)
 		if err != nil {
 			log.Println("Error decoding node: ", err)
 			continue
@@ -204,6 +204,11 @@ func (m *Manager[T]) scan() error {
 
 			stopEdgeSub, err := SubscribeEdgePoints(m.nc, n.ID, n.Parent, func(points []data.Point) {
 				client.EdgePoints(points)
+				for _, p := range points {
+					if p.Type == data.PointTypeTombstone {
+						m.chScan <- struct{}{}
+					}
+				}
 			})
 			if err != nil {
 				log.Println("client manager edge sub error: ", err)
