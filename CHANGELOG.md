@@ -11,6 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.4.5] - 2022-09-02](https://github.com/simpleiot/simpleiot/releases/tag/v-1.4.5)
+
+- set time on points received from serial MCU if not set
+- display key in points if set
+
 ## [[0.4.4] - 2022-09-01](https://github.com/simpleiot/simpleiot/releases/tag/v0.4.4)
 
 - switch serial CRC algorithm to CRC-16/KERMIT

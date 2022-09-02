@@ -191,6 +191,14 @@ func (sd *SerialDevClient) Start() error {
 				subject = natsSubject
 			}
 
+			// make sure time is set on all points
+
+			for i, p := range points {
+				if p.Time.IsZero() {
+					points[i].Time = time.Now()
+				}
+			}
+
 			if err == nil && len(points) > 0 {
 				points = append(points, rxPt)
 				// send response
