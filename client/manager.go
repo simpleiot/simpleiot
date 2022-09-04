@@ -159,27 +159,30 @@ func (m *Manager[T]) scan() error {
 			continue
 		}
 
-		cs, err := newClientState(m.nc, m.construct, n, func(err error) {
-			// stopped function
+		cs := newClientState(m.nc, m.construct, n)
+
+		m.clientStates[key] = cs
+		m.clientsWG.Add(1)
+
+		go func() {
+			err := cs.start()
+
+			if err != nil {
+				fmt.Errorf("clientState error %v: %v", m.nodeType, err)
+			}
+
 			m.lock.Lock()
 			delete(m.clientStates, key)
 			m.lock.Unlock()
 
 			m.clientsWG.Done()
+
 			// always scan when client is stopped as there may have been child nodes added/removed
 			// and we simply want to start over
 			// FIXME, this may deadlock, and on shutdown, we don't want things rescanning
 			//m.chScan <- struct{}{}
-		})
+		}()
 
-		if err != nil {
-			fmt.Errorf("Error creating new client state: %v", err)
-			continue
-		}
-
-		m.clientStates[key] = cs
-
-		m.clientsWG.Add(1)
 	}
 
 	// remove nodes that have been deleted
@@ -189,7 +192,7 @@ func (m *Manager[T]) scan() error {
 		}
 
 		// bus was deleted so close and clear it
-		log.Println("removing node: ", m.clientStates[key].node.NodeEdge.ID)
+		log.Println("removing node: ", m.clientStates[key].node.ID)
 		client.stop(nil)
 		delete(m.clientStates, key)
 	}

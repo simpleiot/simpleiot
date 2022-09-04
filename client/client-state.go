@@ -2,7 +2,6 @@ package client
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -14,24 +13,30 @@ func mapKey(node data.NodeEdge) string {
 
 type clientState[T any] struct {
 	nc           *nats.Conn
-	node         data.NodeEdgeChildren
+	node         data.NodeEdge
+	nec          data.NodeEdgeChildren
+	construct    func(*nats.Conn, T) Client
 	client       Client
 	stopPointSub func()
 	stopEdgeSub  func()
-	chStop       chan struct{}
 }
 
 func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
-	n data.NodeEdge, stopped func(error)) (*clientState[T], error) {
+	n data.NodeEdge) *clientState[T] {
 
 	ret := &clientState[T]{
-		nc:     nc,
-		chStop: make(chan struct{}),
+		node:      n,
+		nc:        nc,
+		construct: construct,
 	}
 
-	c, err := GetNodeChildren(nc, n.ID, "", false, false)
+	return ret
+}
+
+func (cs *clientState[T]) start() error {
+	c, err := GetNodeChildren(cs.nc, cs.node.ID, "", false, false)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting children: %v", err)
+		return fmt.Errorf("Error getting children: %v", err)
 	}
 
 	ncc := make([]data.NodeEdgeChildren, len(c))
@@ -40,34 +45,23 @@ func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
 		ncc[i] = data.NodeEdgeChildren{NodeEdge: nci, Children: nil}
 	}
 
-	nec := data.NodeEdgeChildren{NodeEdge: n, Children: ncc}
+	cs.nec = data.NodeEdgeChildren{NodeEdge: cs.node, Children: ncc}
 
 	var config T
 
-	err = data.Decode(nec, &config)
+	err = data.Decode(cs.nec, &config)
 	if err != nil {
-		return nil, fmt.Errorf("Error decoding node: %v", err)
+		return fmt.Errorf("Error decoding node: %v", err)
 	}
 
-	client := construct(nc, config)
-	ret.client = client
+	cs.client = cs.construct(cs.nc, config)
 
-	err = ret.sub(client, n.ID, n.Parent, mapKey(n))
+	err = cs.sub(cs.client, cs.node.ID, cs.node.Parent, mapKey(cs.node))
 	if err != nil {
 
 	}
 
-	// start client for new node
-	go func(client Client) {
-		err := client.Start()
-		if err != nil {
-			log.Println("Node client returned error: ", err)
-		}
-
-		stopped(err)
-	}(client)
-
-	return ret, nil
+	return cs.client.Start()
 }
 
 func (cs *clientState[T]) sub(client Client, nodeID, parentID, key string) error {
