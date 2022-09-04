@@ -85,7 +85,6 @@ func (tnc *testNodeClient) getConfig() testNode {
 
 func TestManager(t *testing.T) {
 	nc, root, stop, err := server.TestServer()
-	_ = nc
 
 	if err != nil {
 		t.Fatal("Error starting test server: ", err)
@@ -143,9 +142,6 @@ func TestManager(t *testing.T) {
 
 	// verify config got passed in to the constructer
 	currentConfig := testClient.getConfig()
-	// ID was not populated when we originally created the node
-	testConfig.ID = currentConfig.ID
-	testConfig.Parent = currentConfig.Parent
 	if currentConfig != testConfig {
 		t.Errorf("Initial test config is not correct, exp %+v, got %+v", testConfig, currentConfig)
 	}
@@ -209,7 +205,6 @@ func TestManager(t *testing.T) {
 
 func TestManagerAddRemove(t *testing.T) {
 	nc, root, stop, err := server.TestServer()
-	_ = nc
 
 	if err != nil {
 		t.Fatal("Error starting test server: ", err)
@@ -278,6 +273,7 @@ func TestManagerAddRemove(t *testing.T) {
 		t.Errorf("Initial test config is not correct, exp %+v, got %+v", testConfig, currentConfig)
 	}
 
+	/* FIXME is there a better way to test this??
 	// wait to make sure we don't create duplicate clients on each scan
 	select {
 	case testClient = <-newClient:
@@ -285,6 +281,7 @@ func TestManagerAddRemove(t *testing.T) {
 	case <-time.After(time.Second * 10):
 		// all is well
 	}
+	*/
 
 	// test deleting client
 	err = client.SendEdgePoint(nc, currentConfig.ID, currentConfig.Parent,
@@ -318,12 +315,181 @@ func TestManagerAddRemove(t *testing.T) {
 	}
 }
 
-func TestManager2(t *testing.T) {
-	nc, _, stop, err := server.TestServer()
-	_ = nc
+type testX struct {
+	ID          string  `node:"id"`
+	Parent      string  `node:"parent"`
+	Description string  `point:"description"`
+	TestYs      []testY `child:"testY"`
+}
+
+type testY struct {
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+}
+
+type testXClient struct {
+	nc            *nats.Conn
+	config        testX
+	stop          chan struct{}
+	stopped       chan struct{}
+	newPoints     chan []data.Point
+	newEdgePoints chan []data.Point
+	chGetConfig   chan chan testX
+}
+
+func newTestXClient(nc *nats.Conn, config testX) *testXClient {
+	return &testXClient{
+		nc:            nc,
+		config:        config,
+		stop:          make(chan struct{}),
+		stopped:       make(chan struct{}),
+		newPoints:     make(chan []data.Point),
+		newEdgePoints: make(chan []data.Point),
+		chGetConfig:   make(chan chan testX),
+	}
+}
+
+func (tnc *testXClient) Start() error {
+	for {
+		select {
+		case <-tnc.stop:
+			close(tnc.stopped)
+			return nil
+		case pts := <-tnc.newPoints:
+			err := data.MergePoints(pts, &tnc.config)
+			if err != nil {
+				log.Println("error merging new points: ", err)
+			}
+		case pts := <-tnc.newEdgePoints:
+			err := data.MergeEdgePoints(pts, &tnc.config)
+			if err != nil {
+				log.Println("error merging new points: ", err)
+			}
+		case ch := <-tnc.chGetConfig:
+			ch <- tnc.config
+		}
+	}
+}
+
+func (tnc *testXClient) Stop(err error) {
+	close(tnc.stop)
+}
+
+func (tnc *testXClient) Points(points []data.Point) {
+	tnc.newPoints <- points
+}
+
+func (tnc *testXClient) EdgePoints(points []data.Point) {
+	tnc.newEdgePoints <- points
+}
+
+func (tnc *testXClient) getConfig() testX {
+	result := make(chan testX)
+	tnc.chGetConfig <- result
+	return <-result
+}
+
+func TestManagerChildren(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
 
 	if err != nil {
 		t.Fatal("Error starting test server: ", err)
+	}
+
+	// hydrate database with test data
+	testXConfig := testX{uuid.New().String(), root.ID, "testX node", nil}
+
+	ne, err := data.Encode(testXConfig)
+	if err != nil {
+		t.Fatal("Error encoding node: ", err)
+	}
+
+	err = client.SendNode(nc, ne)
+
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	// create child node
+	testYConfig := testY{uuid.New().String(), testXConfig.ID, "testY node"}
+	ne, err = data.Encode(testYConfig)
+	if err != nil {
+		t.Fatal("Error encoding node: ", err)
+	}
+
+	err = client.SendNode(nc, ne)
+
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	var testClient *testXClient
+	newClient := make(chan *testXClient)
+
+	// wrap newTestNodeClient so we can stash a link to testClient
+	var newTestXClientWrapper = func(nc *nats.Conn, config testX) client.Client {
+		testClient := newTestXClient(nc, config)
+		newClient <- testClient
+		return testClient
+	}
+
+	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
+	// root and if it finds any, it instantiates a new client, and sends point updates to it
+	m := client.NewManager(nc, root.ID, newTestXClientWrapper)
+
+	managerStopped := make(chan struct{})
+
+	startErr := make(chan error)
+
+	go func() {
+		err = m.Start()
+		if err != nil {
+			startErr <- fmt.Errorf("manager start returned error: %v", err)
+		}
+
+		close(managerStopped)
+	}()
+
+	// wait for client to be created
+	select {
+	case testClient = <-newClient:
+	case <-time.After(time.Second):
+		t.Fatal("Test client not created")
+	}
+
+	// verify config got passed in to the constructer
+	currentConfig := testClient.getConfig()
+
+	_ = currentConfig
+	_ = testClient
+
+	if currentConfig.ID != testXConfig.ID {
+		t.Fatal("X ID not correct: ", currentConfig.ID)
+	}
+
+	if len(currentConfig.TestYs) < 1 {
+		t.Fatal("No TestYs")
+	}
+
+	if currentConfig.TestYs[0].ID != testYConfig.ID {
+		t.Fatal("Y ID not correct")
+	}
+
+	// Test child point updates
+	modifiedDescription := "updated description"
+
+	err = client.SendNodePoint(nc, testYConfig.ID,
+		data.Point{Type: "description", Text: modifiedDescription}, true)
+
+	if err != nil {
+		t.Errorf("Error sending point: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	if testClient.getConfig().TestYs[0].Description != modifiedDescription {
+		t.Error("Child Description not modified")
 	}
 
 	defer stop()

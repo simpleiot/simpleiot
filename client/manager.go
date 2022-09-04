@@ -28,11 +28,8 @@ type Manager[T any] struct {
 
 	// The following state data is protected by the lock Mutex and must be locked
 	// before accessing
-	lock          sync.Mutex
-	nodes         map[string]data.NodeEdge
-	clients       map[string]Client
-	stopPointSubs map[string]func()
-	stopEdgeSubs  map[string]func()
+	clientStates map[string]*clientState[T]
+	lock         sync.Mutex
 
 	// subscription to listen for new points
 	upSub *nats.Subscription
@@ -48,22 +45,13 @@ func NewManager[T any](nc *nats.Conn, root string,
 	nodeType = strings.ToLower(nodeType[0:1]) + nodeType[1:]
 
 	return &Manager[T]{
-		nc:        nc,
-		root:      root,
-		nodeType:  nodeType,
-		construct: construct,
-		stop:      make(chan struct{}),
-		chScan:    make(chan struct{}),
-
-		// The keys in the below maps are the concatenation
-		// of the parent and node IDs, as we need to have a
-		// separate client for each parent/node instance as
-		// the edge points, and thus the config could be
-		// different
-		nodes:         make(map[string]data.NodeEdge),
-		clients:       make(map[string]Client),
-		stopPointSubs: make(map[string]func()),
-		stopEdgeSubs:  make(map[string]func()),
+		nc:           nc,
+		root:         root,
+		nodeType:     nodeType,
+		construct:    construct,
+		stop:         make(chan struct{}),
+		chScan:       make(chan struct{}),
+		clientStates: make(map[string]*clientState[T]),
 	}
 }
 
@@ -125,16 +113,8 @@ func (m *Manager[T]) Stop(err error) {
 	}
 
 	m.lock.Lock()
-	for _, c := range m.stopPointSubs {
-		c()
-	}
-
-	for _, c := range m.stopEdgeSubs {
-		c()
-	}
-
-	for _, c := range m.clients {
-		c.Stop(err)
+	for _, c := range m.clientStates {
+		c.stop(err)
 	}
 	m.lock.Unlock()
 
@@ -172,76 +152,46 @@ func (m *Manager[T]) scan() error {
 
 	// create new nodes
 	for _, n := range children {
-		mapKey := n.Parent + n.ID
-		found[mapKey] = true
+		key := mapKey(n)
+		found[key] = true
 
-		if _, ok := m.nodes[mapKey]; ok {
+		if _, ok := m.clientStates[key]; ok {
 			continue
 		}
 
-		m.nodes[mapKey] = n
+		cs, err := newClientState(m.nc, m.construct, n, func(err error) {
+			// stopped function
+			m.lock.Lock()
+			delete(m.clientStates, key)
+			m.lock.Unlock()
 
-		var config T
-
-		err := data.Decode(data.NodeEdgeChildren{NodeEdge: n, Children: nil}, &config)
-		if err != nil {
-			log.Println("Error decoding node: ", err)
-			continue
-		}
-
-		client := m.construct(m.nc, config)
-		m.clients[mapKey] = client
-
-		func(client Client) {
-			stopNodeSub, err := SubscribePoints(m.nc, n.ID, func(points []data.Point) {
-				client.Points(points)
-			})
-			if err != nil {
-				log.Println("client manager sub error: ", err)
-				return
-			}
-			m.stopPointSubs[mapKey] = stopNodeSub
-
-			stopEdgeSub, err := SubscribeEdgePoints(m.nc, n.ID, n.Parent, func(points []data.Point) {
-				client.EdgePoints(points)
-				for _, p := range points {
-					if p.Type == data.PointTypeTombstone {
-						m.chScan <- struct{}{}
-					}
-				}
-			})
-			if err != nil {
-				log.Println("client manager edge sub error: ", err)
-				return
-			}
-			m.stopEdgeSubs[mapKey] = stopEdgeSub
-		}(client)
-
-		go func(client Client) {
-			m.clientsWG.Add(1)
-			err := client.Start()
-			if err != nil {
-				log.Println("Node client returned error: ", err)
-			}
 			m.clientsWG.Done()
-		}(client)
+			// always scan when client is stopped as there may have been child nodes added/removed
+			// and we simply want to start over
+			// FIXME, this may deadlock, and on shutdown, we don't want things rescanning
+			//m.chScan <- struct{}{}
+		})
+
+		if err != nil {
+			fmt.Errorf("Error creating new client state: %v", err)
+			continue
+		}
+
+		m.clientStates[key] = cs
+
+		m.clientsWG.Add(1)
 	}
 
 	// remove nodes that have been deleted
-	for key, client := range m.clients {
+	for key, client := range m.clientStates {
 		if _, ok := found[key]; ok {
 			continue
 		}
 
 		// bus was deleted so close and clear it
-		log.Println("removing node: ", m.nodes[key].ID)
-		m.stopPointSubs[key]()
-		m.stopEdgeSubs[key]()
-		client.Stop(nil)
-		delete(m.nodes, key)
-		delete(m.clients, key)
-		delete(m.stopPointSubs, key)
-		delete(m.stopEdgeSubs, key)
+		log.Println("removing node: ", m.clientStates[key].node.NodeEdge.ID)
+		client.stop(nil)
+		delete(m.clientStates, key)
 	}
 
 	return nil
