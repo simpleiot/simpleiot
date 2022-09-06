@@ -17,7 +17,19 @@ Simple IoT provides utilities that assist in creating new clients. See the
 [Go package documentation](https://pkg.go.dev/github.com/simpleiot/simpleiot/client)
 for more information. A client manager is created for each client type. This
 manager instantiates new client instances when new nodes are detected and then
-sends point updates to the client.
+sends point updates to the client. Two levels of nodes are currently supported
+for client configuration. An example of this would be a Rule node that has
+Condtion and Action child nodes.
+
+## Client lifecycle
+
+It is important the clients cleanly implement the
+[Start()/Stop() pattern](architecture-app.md#application-lifecycle) and shut
+down cleanly when Stop() is called releasing all resources. If nodes are added
+or removed, clients are started/stopped. Additionally if a child node of a
+client config is added or removed, the entire client is stopped and then
+restarted. This relieves the burden on the client from managing the
+addition/removal of client functionality.
 
 ## Message echo
 
