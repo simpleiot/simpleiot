@@ -863,6 +863,13 @@ func (st *Store) processRuleNode(ruleNode data.NodeEdge, sourceNodeID string, po
 
 func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
+	sub := fmt.Sprintf("up.%v.%v.points", currentNodeID, nodeID)
+
+	err := client.SendPoints(st.nc, sub, points, false)
+
+	if err != nil {
+		return err
+	}
 
 	if currentNodeID == "none" {
 		// we are at the top, stop
@@ -875,14 +882,6 @@ func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, p
 	}
 
 	for _, up := range ups {
-		sub := fmt.Sprintf("up.%v.%v.points", up, nodeID)
-
-		err := client.SendPoints(st.nc, sub, points, false)
-
-		if err != nil {
-			return err
-		}
-
 		err = st.processPointsUpstream(up, nodeID, nodeDesc, points)
 		if err != nil {
 			log.Println("Rules -- error processing upstream node: ", err)

@@ -46,7 +46,7 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
       used to track if a node has been deleted or not.
   - `up.<upstreamId>.<nodeId>.points`
     - points are rebroadcast at every upstream ID so that we can listen for
-      point changes at any level.
+      point changes at any level. The sending node is also included in this.
 - Legacy APIs that are being deprecated
   - `node.<id>.not`
     - used when a node sends a [notification](notifications.md) (typically a
