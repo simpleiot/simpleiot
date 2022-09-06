@@ -1,6 +1,9 @@
 package data
 
-import "reflect"
+import (
+	"log"
+	"reflect"
+)
 
 func setVal(p Point, v reflect.Value) {
 	switch v.Type().Kind() {
@@ -12,6 +15,8 @@ func setVal(p Point, v reflect.Value) {
 		v.SetFloat(p.Value)
 	case reflect.Bool:
 		v.SetBool(FloatToBool(p.Value))
+	default:
+		log.Println("setVal failed, did not match any type: ", v.Type().Kind())
 	}
 }
 
