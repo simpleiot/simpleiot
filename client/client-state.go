@@ -84,14 +84,15 @@ func (cs *clientState[T]) start() error {
 			return
 		}
 
-		cs.client.Points(chunks[2], points)
-
 		for _, p := range points {
 			if p.Type == data.PointTypeNodeType {
-				// restart this client as there is a new node
 				cs.stop(nil)
+				return
 			}
 		}
+
+		// send points to client
+		cs.client.Points(chunks[2], points)
 	})
 
 	if err != nil {

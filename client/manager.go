@@ -102,6 +102,21 @@ done:
 			}
 		}
 	}
+
+	// wait for clients to shut down
+	clientsDone := make(chan struct{})
+	go func() {
+		m.clientsWG.Wait()
+		close(clientsDone)
+	}()
+
+	select {
+	case <-clientsDone:
+		// all is well
+	case <-time.After(time.Second * 5):
+		log.Println("BUG: Not all clients shutdown!")
+	}
+
 	return nil
 }
 
@@ -116,19 +131,6 @@ func (m *Manager[T]) Stop(err error) {
 		c.stop(err)
 	}
 	m.lock.Unlock()
-
-	clientsDone := make(chan struct{})
-	go func() {
-		m.clientsWG.Wait()
-		close(clientsDone)
-	}()
-
-	select {
-	case <-clientsDone:
-		// all is well
-	case <-time.After(time.Second * 5):
-		log.Println("BUG: Not all clients shutdown!")
-	}
 
 	close(m.stop)
 }
@@ -179,7 +181,7 @@ func (m *Manager[T]) scan() error {
 			// always scan when client is stopped as there may have been child nodes added/removed
 			// and we simply want to start over
 			// FIXME, this may deadlock, and on shutdown, we don't want things rescanning
-			//m.chScan <- struct{}{}
+			m.chScan <- struct{}{}
 		}()
 
 	}

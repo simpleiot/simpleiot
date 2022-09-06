@@ -561,24 +561,27 @@ func TestManagerChildren(t *testing.T) {
 		t.Error("Child Role not modified")
 	}
 
-	/*
-		// create 2nd child node
-		testYConfig2 := testY{"ID-Y2", testXConfig.ID, "testY node 2", ""}
-		ne, err = data.Encode(testYConfig2)
-		if err != nil {
-			t.Fatal("Error encoding node: ", err)
-		}
+	// create 2nd child node
+	testYConfig2 := testY{"ID-Y2", testXConfig.ID, "testY node 2", ""}
+	ne, err = data.Encode(testYConfig2)
+	if err != nil {
+		t.Fatal("Error encoding node: ", err)
+	}
 
-		err = client.SendNode(nc, ne)
+	err = client.SendNode(nc, ne)
 
-		if err != nil {
-			t.Fatal("Error sending node: ", err)
-		}
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
 
-		time.Sleep(10 * time.Millisecond)
+	// wait for client to be re-created
+	select {
+	case testClient = <-newClient:
+	case <-time.After(time.Second):
+		t.Fatal("Test client not created")
+	}
 
-		if len(testClient.getConfig().TestYs) < 2 {
-			t.Fatal("Not seeing new child")
-		}
-	*/
+	if len(testClient.getConfig().TestYs) < 2 {
+		t.Fatal("Not seeing new child")
+	}
 }
