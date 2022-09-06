@@ -81,8 +81,8 @@ func (cs *clientState[T]) start() error {
 	}
 
 	subEdge := func(nc *nats.Conn, node data.NodeEdge) (func(), error) {
-		return SubscribeEdgePoints(cs.nc, cs.node.ID, cs.node.Parent, func(points []data.Point) {
-			cs.client.EdgePoints(cs.node.ID, cs.node.Parent, points)
+		return SubscribeEdgePoints(cs.nc, node.ID, node.Parent, func(points []data.Point) {
+			cs.client.EdgePoints(node.ID, node.Parent, points)
 			for _, p := range points {
 				if p.Type == data.PointTypeTombstone && p.Value == 1 {
 					// a node was deleted, stop client and restart

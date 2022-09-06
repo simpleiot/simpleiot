@@ -92,7 +92,7 @@ func TestManager(t *testing.T) {
 
 	defer stop()
 
-	testConfig := testNode{uuid.New().String(), root.ID, "fancy test node", 8080, "admin"}
+	testConfig := testNode{uuid.New().String(), root.ID, "fancy test node", 8080, ""}
 
 	ne, err := data.Encode(testConfig)
 	if err != nil {
@@ -162,7 +162,7 @@ func TestManager(t *testing.T) {
 		t.Error("Description not modified")
 	}
 
-	// Test edge point updates
+	// Test edge point updates to node
 	modifiedRole := "user"
 
 	err = client.SendEdgePoint(nc, currentConfig.ID, currentConfig.Parent,
@@ -319,6 +319,7 @@ type testX struct {
 	ID          string  `node:"id"`
 	Parent      string  `node:"parent"`
 	Description string  `point:"description"`
+	Role        string  `edgepoint:"role"`
 	TestYs      []testY `child:"testY"`
 }
 
@@ -326,10 +327,12 @@ type testY struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
+	Role        string `edgepoint:"role"`
 }
 
 type newPoints struct {
 	id     string
+	parent string
 	points data.Points
 }
 
@@ -382,9 +385,21 @@ OUTER:
 			}
 			log.Println("Error, did not find data structure to merge points in test driver")
 		case pts := <-tnc.newEdgePoints:
-			err := data.MergeEdgePoints(pts.points, &tnc.config)
-			if err != nil {
-				log.Println("error merging new points: ", err)
+			if pts.id == tnc.config.ID && pts.parent == tnc.config.Parent {
+				err := data.MergeEdgePoints(pts.points, &tnc.config)
+				if err != nil {
+					log.Println("error merging new points: ", err)
+				}
+				continue
+			}
+			for i, y := range tnc.config.TestYs {
+				if pts.id == y.ID && pts.parent == y.Parent {
+					err := data.MergeEdgePoints(pts.points, &tnc.config.TestYs[i])
+					if err != nil {
+						log.Println("error merging new points: ", err)
+					}
+					continue OUTER
+				}
 			}
 		case ch := <-tnc.chGetConfig:
 			ch <- tnc.config
@@ -397,11 +412,11 @@ func (tnc *testXClient) Stop(err error) {
 }
 
 func (tnc *testXClient) Points(nodeID string, points []data.Point) {
-	tnc.newPoints <- newPoints{nodeID, points}
+	tnc.newPoints <- newPoints{nodeID, "", points}
 }
 
 func (tnc *testXClient) EdgePoints(nodeID, parentID string, points []data.Point) {
-	tnc.newEdgePoints <- newPoints{nodeID, points}
+	tnc.newEdgePoints <- newPoints{nodeID, parentID, points}
 }
 
 func (tnc *testXClient) getConfig() testX {
@@ -418,7 +433,7 @@ func TestManagerChildren(t *testing.T) {
 	}
 
 	// hydrate database with test data
-	testXConfig := testX{uuid.New().String(), root.ID, "testX node", nil}
+	testXConfig := testX{uuid.New().String(), root.ID, "testX node", "", nil}
 
 	ne, err := data.Encode(testXConfig)
 	if err != nil {
@@ -432,7 +447,7 @@ func TestManagerChildren(t *testing.T) {
 	}
 
 	// create child node
-	testYConfig := testY{uuid.New().String(), testXConfig.ID, "testY node"}
+	testYConfig := testY{uuid.New().String(), testXConfig.ID, "testY node", ""}
 	ne, err = data.Encode(testYConfig)
 	if err != nil {
 		t.Fatal("Error encoding node: ", err)
@@ -506,10 +521,42 @@ func TestManagerChildren(t *testing.T) {
 		t.Errorf("Error sending point: %v", err)
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	if testClient.getConfig().TestYs[0].Description != modifiedDescription {
 		t.Error("Child Description not modified")
+	}
+
+	// Test parent edge point updates
+	modifiedRole := "admin"
+
+	err = client.SendEdgePoint(nc, testXConfig.ID, testXConfig.Parent,
+		data.Point{Type: "role", Text: modifiedRole}, true)
+
+	if err != nil {
+		t.Errorf("Error sending edge point: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	if testClient.getConfig().Role != modifiedRole {
+		t.Error("Parent Role not modified")
+	}
+
+	// Test child edge point updates
+	modifiedRole = "user"
+
+	err = client.SendEdgePoint(nc, testYConfig.ID, testYConfig.Parent,
+		data.Point{Type: "role", Text: modifiedRole}, true)
+
+	if err != nil {
+		t.Errorf("Error sending edge point: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	if testClient.getConfig().TestYs[0].Role != modifiedRole {
+		t.Error("Child Role not modified")
 	}
 
 	defer stop()
