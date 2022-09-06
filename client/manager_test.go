@@ -92,7 +92,7 @@ func TestManager(t *testing.T) {
 
 	defer stop()
 
-	testConfig := testNode{uuid.New().String(), root.ID, "fancy test node", 8080, ""}
+	testConfig := testNode{"ID-testNode", root.ID, "fancy test node", 8080, ""}
 
 	ne, err := data.Encode(testConfig)
 	if err != nil {
@@ -432,8 +432,10 @@ func TestManagerChildren(t *testing.T) {
 		t.Fatal("Error starting test server: ", err)
 	}
 
+	defer stop()
+
 	// hydrate database with test data
-	testXConfig := testX{uuid.New().String(), root.ID, "testX node", "", nil}
+	testXConfig := testX{"ID-X", root.ID, "testX node", "", nil}
 
 	ne, err := data.Encode(testXConfig)
 	if err != nil {
@@ -447,7 +449,7 @@ func TestManagerChildren(t *testing.T) {
 	}
 
 	// create child node
-	testYConfig := testY{uuid.New().String(), testXConfig.ID, "testY node", ""}
+	testYConfig := testY{"ID-Y", testXConfig.ID, "testY node", ""}
 	ne, err = data.Encode(testYConfig)
 	if err != nil {
 		t.Fatal("Error encoding node: ", err)
@@ -559,5 +561,24 @@ func TestManagerChildren(t *testing.T) {
 		t.Error("Child Role not modified")
 	}
 
-	defer stop()
+	/*
+		// create 2nd child node
+		testYConfig2 := testY{"ID-Y2", testXConfig.ID, "testY node 2", ""}
+		ne, err = data.Encode(testYConfig2)
+		if err != nil {
+			t.Fatal("Error encoding node: ", err)
+		}
+
+		err = client.SendNode(nc, ne)
+
+		if err != nil {
+			t.Fatal("Error sending node: ", err)
+		}
+
+		time.Sleep(10 * time.Millisecond)
+
+		if len(testClient.getConfig().TestYs) < 2 {
+			t.Fatal("Not seeing new child")
+		}
+	*/
 }

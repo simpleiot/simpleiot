@@ -2,6 +2,8 @@ package client
 
 import (
 	"fmt"
+	"log"
+	"strings"
 	"sync"
 
 	"github.com/nats-io/nats.go"
@@ -20,20 +22,21 @@ type clientState[T any] struct {
 	client    Client
 
 	// the following maps must be locked before access
-	lock          sync.Mutex
-	stopPointSubs map[string]func()
-	stopEdgeSubs  map[string]func()
+	lock         sync.Mutex
+	stopEdgeSubs map[string]func()
+
+	// subscription to listen for new points
+	upSub *nats.Subscription
 }
 
 func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
 	n data.NodeEdge) *clientState[T] {
 
 	ret := &clientState[T]{
-		node:          n,
-		nc:            nc,
-		construct:     construct,
-		stopPointSubs: make(map[string]func()),
-		stopEdgeSubs:  make(map[string]func()),
+		node:         n,
+		nc:           nc,
+		construct:    construct,
+		stopEdgeSubs: make(map[string]func()),
 	}
 
 	return ret
@@ -64,20 +67,36 @@ func (cs *clientState[T]) start() error {
 
 	// Set up subscriptions
 	cs.lock.Lock()
-	cs.stopPointSubs[cs.node.ID] = nil
 
-	for _, c := range cs.nec.Children {
-		cs.stopPointSubs[c.NodeEdge.ID] = nil
-	}
+	subject := fmt.Sprintf("up.%v.>", cs.node.ID)
 
-	for k := range cs.stopPointSubs {
-		cs.stopPointSubs[k], err = SubscribePoints(cs.nc, k, func(points []data.Point) {
-			cs.client.Points(k, points)
-		})
+	cs.upSub, err = cs.nc.Subscribe(subject, func(msg *nats.Msg) {
+		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
-			cs.lock.Unlock()
-			return fmt.Errorf("client manager sub error: %v", err)
+			log.Println("Error decoding points")
+			return
 		}
+
+		// find node ID for points
+		chunks := strings.Split(msg.Subject, ".")
+		if len(chunks) < 4 {
+			log.Println("up subject malformed: ", msg.Subject)
+			return
+		}
+
+		cs.client.Points(chunks[2], points)
+
+		for _, p := range points {
+			if p.Type == data.PointTypeNodeType {
+				// restart this client as there is a new node
+				cs.stop(nil)
+			}
+		}
+	})
+
+	if err != nil {
+		cs.lock.Unlock()
+		return err
 	}
 
 	subEdge := func(nc *nats.Conn, node data.NodeEdge) (func(), error) {
@@ -115,12 +134,6 @@ func (cs *clientState[T]) start() error {
 
 func (cs *clientState[T]) stop(err error) {
 	cs.lock.Lock()
-	for _, f := range cs.stopPointSubs {
-		if f != nil {
-			f()
-		}
-	}
-
 	for _, f := range cs.stopEdgeSubs {
 		if f != nil {
 			f()
