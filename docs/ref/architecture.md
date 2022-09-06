@@ -9,6 +9,8 @@ There are two levels of architecture to consider:
   applications interact to form a system.
 - **[Application](architecture-app.md)**: how the SIOT application is
   structured.
+- **[Clients](client.md)**: all about SIOT clients where most functionality is
+  implemented.
 
 ## High Level Overview
 

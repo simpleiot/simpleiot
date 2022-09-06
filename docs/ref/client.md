@@ -1,4 +1,8 @@
-# Client Development
+# Simple IoT Clients
+
+**Contents**
+
+<!-- toc -->
 
 Most functionality in Simple IoT is implemented in Clients.
 

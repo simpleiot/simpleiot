@@ -1,5 +1,9 @@
 # Application Architecture
 
+**Contents**
+
+<!-- toc -->
+
 The Simple IoT Go application is a single binary with embedded assets. The
 database and NATS server are also embedded by default for easy deployment. There
 are five main parts to a Simple IoT application:
