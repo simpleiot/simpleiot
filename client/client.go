@@ -15,6 +15,6 @@ import (
 type Client interface {
 	Start() error
 	Stop(error)
-	Points([]data.Point)
-	EdgePoints([]data.Point)
+	Points(string, []data.Point)
+	EdgePoints(string, string, []data.Point)
 }

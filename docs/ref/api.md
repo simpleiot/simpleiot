@@ -44,6 +44,10 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
   - `node.<id>.<parent>.points`
     - used to publish/subscribe node edge points. The `tombstone` point type is
       used to track if a node has been deleted or not.
+  - `up.<upstreamId>.<nodeId>.points`
+    - points are rebroadcast at every upstream ID so that we can listen for
+      point changes at any level.
+- Legacy APIs that are being deprecated
   - `node.<id>.not`
     - used when a node sends a [notification](notifications.md) (typically a
       rule, or a message sent directly from a node)

@@ -23,6 +23,7 @@ nodes.
 - by the user in the UI -- Http API, `/v1/nodes` POST, accepts a NodeEdge struct
   and then sends out node points and then edge points via NATs to create the
   node.
+- node is sent first, then the edge
 
 The creation process for a node involves:
 
@@ -70,6 +71,10 @@ ways:
    populate new nodes. Again, it is not a big deal if a message gets lost as the
    discovery mechanism will continue to try to create the new device if it does
    not find it.
+
+Sneding edge before parents can be problematic for things like the client
+manager that might be listening for tombstone points to detect node
+creation/deletion.
 
 ## Decision
 

@@ -350,12 +350,12 @@ func (sd *SerialDevClient) Stop(err error) {
 
 // Points is called by the Manager when new points for this
 // node are received.
-func (sd *SerialDevClient) Points(points []data.Point) {
+func (sd *SerialDevClient) Points(nodeID string, points []data.Point) {
 	sd.newPoints <- points
 }
 
 // EdgePoints is called by the Manager when new edge points for this
 // node are received.
-func (sd *SerialDevClient) EdgePoints(points []data.Point) {
+func (sd *SerialDevClient) EdgePoints(nodeID, parentID string, points []data.Point) {
 	sd.newEdgePoints <- points
 }

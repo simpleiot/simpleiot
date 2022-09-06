@@ -39,13 +39,11 @@ func (bic *BuiltInClients) Start() error {
 	rootID = nodes[0].ID
 	_ = rootID
 
-	/*
-		sc := NewManager(bic.nc, rootID, NewSerialDevClient)
-		g.Add(sc.Start, sc.Stop)
+	sc := NewManager(bic.nc, rootID, NewSerialDevClient)
+	g.Add(sc.Start, sc.Stop)
 
-		rc := NewManager(bic.nc, rootID, NewRuleClient)
-		g.Add(rc.Start, rc.Stop)
-	*/
+	rc := NewManager(bic.nc, rootID, NewRuleClient)
+	g.Add(rc.Start, rc.Stop)
 
 	// provide actor to close run group
 	stopStop := make(chan struct{})

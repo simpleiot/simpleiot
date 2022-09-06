@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -12,22 +13,27 @@ func mapKey(node data.NodeEdge) string {
 }
 
 type clientState[T any] struct {
-	nc           *nats.Conn
-	node         data.NodeEdge
-	nec          data.NodeEdgeChildren
-	construct    func(*nats.Conn, T) Client
-	client       Client
-	stopPointSub func()
-	stopEdgeSub  func()
+	nc        *nats.Conn
+	node      data.NodeEdge
+	nec       data.NodeEdgeChildren
+	construct func(*nats.Conn, T) Client
+	client    Client
+
+	// the following maps must be locked before access
+	lock          sync.Mutex
+	stopPointSubs map[string]func()
+	stopEdgeSubs  map[string]func()
 }
 
 func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
 	n data.NodeEdge) *clientState[T] {
 
 	ret := &clientState[T]{
-		node:      n,
-		nc:        nc,
-		construct: construct,
+		node:          n,
+		nc:            nc,
+		construct:     construct,
+		stopPointSubs: make(map[string]func()),
+		stopEdgeSubs:  make(map[string]func()),
 	}
 
 	return ret
@@ -56,48 +62,71 @@ func (cs *clientState[T]) start() error {
 
 	cs.client = cs.construct(cs.nc, config)
 
-	err = cs.sub(cs.client, cs.node.ID, cs.node.Parent, mapKey(cs.node))
-	if err != nil {
+	// Set up subscriptions
+	cs.lock.Lock()
+	cs.stopPointSubs[cs.node.ID] = nil
 
+	for _, c := range cs.nec.Children {
+		cs.stopPointSubs[c.NodeEdge.ID] = nil
 	}
 
+	for k := range cs.stopPointSubs {
+		cs.stopPointSubs[k], err = SubscribePoints(cs.nc, k, func(points []data.Point) {
+			cs.client.Points(k, points)
+		})
+		if err != nil {
+			cs.lock.Unlock()
+			return fmt.Errorf("client manager sub error: %v", err)
+		}
+	}
+
+	subEdge := func(nc *nats.Conn, node data.NodeEdge) (func(), error) {
+		return SubscribeEdgePoints(cs.nc, cs.node.ID, cs.node.Parent, func(points []data.Point) {
+			cs.client.EdgePoints(cs.node.ID, cs.node.Parent, points)
+			for _, p := range points {
+				if p.Type == data.PointTypeTombstone && p.Value == 1 {
+					// a node was deleted, stop client and restart
+					cs.stop(nil)
+				}
+			}
+		})
+	}
+
+	cs.stopEdgeSubs[mapKey(cs.node)], err = subEdge(cs.nc, cs.node)
+	if err != nil {
+		cs.lock.Unlock()
+		return fmt.Errorf("edge sub error: %v", err)
+	}
+
+	for _, n := range cs.nec.Children {
+		ne := n.NodeEdge
+		cs.stopEdgeSubs[mapKey(ne)], err = subEdge(cs.nc, ne)
+		if err != nil {
+			cs.lock.Unlock()
+			return fmt.Errorf("edge sub error: %v", err)
+		}
+	}
+
+	cs.lock.Unlock()
+
+	// the following blocks until client exits
 	return cs.client.Start()
 }
 
-func (cs *clientState[T]) sub(client Client, nodeID, parentID, key string) error {
-	stopNodeSub, err := SubscribePoints(cs.nc, nodeID, func(points []data.Point) {
-		client.Points(points)
-	})
-	if err != nil {
-		return fmt.Errorf("client manager sub error: %v", err)
-	}
-
-	cs.stopPointSub = stopNodeSub
-
-	stopEdgeSub, err := SubscribeEdgePoints(cs.nc, nodeID, parentID, func(points []data.Point) {
-		client.EdgePoints(points)
-		for _, p := range points {
-			if p.Type == data.PointTypeTombstone {
-				cs.stop(nil)
-			}
-		}
-	})
-	if err != nil {
-		return fmt.Errorf("client manager edge sub error: %v", err)
-	}
-	cs.stopEdgeSub = stopEdgeSub
-
-	return nil
-}
-
 func (cs *clientState[T]) stop(err error) {
-	if cs.stopPointSub != nil {
-		cs.stopPointSub()
+	cs.lock.Lock()
+	for _, f := range cs.stopPointSubs {
+		if f != nil {
+			f()
+		}
 	}
 
-	if cs.stopEdgeSub != nil {
-		cs.stopEdgeSub()
+	for _, f := range cs.stopEdgeSubs {
+		if f != nil {
+			f()
+		}
 	}
+	cs.lock.Unlock()
 
 	cs.client.Stop(err)
 }

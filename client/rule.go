@@ -62,12 +62,12 @@ func (rc *RuleClient) Stop(err error) {
 
 // Points is called by the Manager when new points for this
 // node are received.
-func (rc *RuleClient) Points(points []data.Point) {
+func (rc *RuleClient) Points(nodeID string, points []data.Point) {
 	rc.newPoints <- points
 }
 
 // EdgePoints is called by the Manager when new edge points for this
 // node are received.
-func (rc *RuleClient) EdgePoints(points []data.Point) {
+func (rc *RuleClient) EdgePoints(nodeID, parentID string, points []data.Point) {
 	rc.newEdgePoints <- points
 }

@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -66,7 +65,7 @@ func (m *Manager[T]) Start() error {
 	m.upSub, err = m.nc.Subscribe("up.none.>", func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
-			fmt.Println("Error decoding points")
+			log.Println("Error decoding points")
 			return
 		}
 
@@ -168,7 +167,7 @@ func (m *Manager[T]) scan() error {
 			err := cs.start()
 
 			if err != nil {
-				fmt.Errorf("clientState error %v: %v", m.nodeType, err)
+				log.Printf("clientState error %v: %v\n", m.nodeType, err)
 			}
 
 			m.lock.Lock()
