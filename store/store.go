@@ -410,6 +410,13 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		st.reply(msg.Reply, err)
 	}
 
+	// process point in upstream nodes
+	err = st.processEdgePointsUpstream(nodeID, nodeID, parentID, points)
+	if err != nil {
+		// TODO track error stats
+		log.Println("Error processing point in upstream nodes: ", err)
+	}
+
 	st.reply(msg.Reply, nil)
 }
 
@@ -861,9 +868,9 @@ func (st *Store) processRuleNode(ruleNode data.NodeEdge, sourceNodeID string, po
 	return nil
 }
 
-func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
+func (st *Store) processPointsUpstream(upNodeID, nodeID, nodeDesc string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
-	sub := fmt.Sprintf("up.%v.%v.points", currentNodeID, nodeID)
+	sub := fmt.Sprintf("up.%v.%v.points", upNodeID, nodeID)
 
 	err := client.SendPoints(st.nc, sub, points, false)
 
@@ -871,12 +878,12 @@ func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, p
 		return err
 	}
 
-	if currentNodeID == "none" {
+	if upNodeID == "none" {
 		// we are at the top, stop
 		return nil
 	}
 
-	ups, err := st.db.up(currentNodeID, false)
+	ups, err := st.db.up(upNodeID, false)
 	if err != nil {
 		return err
 	}
@@ -931,6 +938,36 @@ func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, p
 		}
 	}
 	*/
+
+	return nil
+}
+
+func (st *Store) processEdgePointsUpstream(upNodeID, nodeID, parentID string, points data.Points) error {
+	// at this point, the point update has already been written to the DB
+	sub := fmt.Sprintf("up.%v.%v.%v.points", upNodeID, nodeID, parentID)
+
+	err := client.SendPoints(st.nc, sub, points, false)
+
+	if err != nil {
+		return err
+	}
+
+	if upNodeID == "none" {
+		// we are at the top, stop
+		return nil
+	}
+
+	ups, err := st.db.up(upNodeID, false)
+	if err != nil {
+		return err
+	}
+
+	for _, up := range ups {
+		err = st.processEdgePointsUpstream(up, nodeID, parentID, points)
+		if err != nil {
+			log.Println("Rules -- error processing upstream node: ", err)
+		}
+	}
 
 	return nil
 }
