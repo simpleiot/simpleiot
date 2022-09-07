@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"sync"
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -21,10 +20,6 @@ type clientState[T any] struct {
 	construct func(*nats.Conn, T) Client
 	client    Client
 
-	// the following maps must be locked before access
-	lock         sync.Mutex
-	stopEdgeSubs map[string]func()
-
 	// subscription to listen for new points
 	upSub *nats.Subscription
 }
@@ -33,10 +28,9 @@ func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
 	n data.NodeEdge) *clientState[T] {
 
 	ret := &clientState[T]{
-		node:         n,
-		nc:           nc,
-		construct:    construct,
-		stopEdgeSubs: make(map[string]func()),
+		node:      n,
+		nc:        nc,
+		construct: construct,
 	}
 
 	return ret
@@ -66,8 +60,6 @@ func (cs *clientState[T]) start() error {
 	cs.client = cs.construct(cs.nc, config)
 
 	// Set up subscriptions
-	cs.lock.Lock()
-
 	subject := fmt.Sprintf("up.%v.>", cs.node.ID)
 
 	cs.upSub, err = cs.nc.Subscribe(subject, func(msg *nats.Msg) {
@@ -79,68 +71,45 @@ func (cs *clientState[T]) start() error {
 
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
-		if len(chunks) < 4 {
-			log.Println("up subject malformed: ", msg.Subject)
-			return
-		}
-
-		for _, p := range points {
-			if p.Type == data.PointTypeNodeType {
-				cs.stop(nil)
-				return
+		if len(chunks) == 4 {
+			// node points
+			for _, p := range points {
+				if p.Type == data.PointTypeNodeType {
+					cs.stop(nil)
+					return
+				}
 			}
-		}
 
-		// send points to client
-		cs.client.Points(chunks[2], points)
-	})
+			// send node points to client
+			cs.client.Points(chunks[2], points)
 
-	if err != nil {
-		cs.lock.Unlock()
-		return err
-	}
-
-	subEdge := func(nc *nats.Conn, node data.NodeEdge) (func(), error) {
-		return SubscribeEdgePoints(cs.nc, node.ID, node.Parent, func(points []data.Point) {
-			cs.client.EdgePoints(node.ID, node.Parent, points)
+		} else if len(chunks) == 5 {
+			// edge points
 			for _, p := range points {
 				if p.Type == data.PointTypeTombstone && p.Value == 1 {
 					// a node was deleted, stop client and restart
 					cs.stop(nil)
+					return
 				}
 			}
-		})
-	}
 
-	cs.stopEdgeSubs[mapKey(cs.node)], err = subEdge(cs.nc, cs.node)
-	if err != nil {
-		cs.lock.Unlock()
-		return fmt.Errorf("edge sub error: %v", err)
-	}
-
-	for _, n := range cs.nec.Children {
-		ne := n.NodeEdge
-		cs.stopEdgeSubs[mapKey(ne)], err = subEdge(cs.nc, ne)
-		if err != nil {
-			cs.lock.Unlock()
-			return fmt.Errorf("edge sub error: %v", err)
+			// send edge points to client
+			cs.client.EdgePoints(chunks[2], chunks[3], points)
+		} else {
+			log.Println("up subject malformed: ", msg.Subject)
+			return
 		}
-	}
 
-	cs.lock.Unlock()
+	})
+
+	if err != nil {
+		return err
+	}
 
 	// the following blocks until client exits
 	return cs.client.Start()
 }
 
 func (cs *clientState[T]) stop(err error) {
-	cs.lock.Lock()
-	for _, f := range cs.stopEdgeSubs {
-		if f != nil {
-			f()
-		}
-	}
-	cs.lock.Unlock()
-
 	cs.client.Stop(err)
 }
