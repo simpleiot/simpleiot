@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 func mapKey(node data.NodeEdge) string {
-	return node.Parent + node.ID
+	return node.Parent + "-" + node.ID
 }
 
 type clientState[T any] struct {
@@ -18,10 +20,13 @@ type clientState[T any] struct {
 	node      data.NodeEdge
 	nec       data.NodeEdgeChildren
 	construct func(*nats.Conn, T) Client
-	client    Client
 
 	// subscription to listen for new points
-	upSub *nats.Subscription
+	upSub  *nats.Subscription
+	client Client
+
+	stopOnce sync.Once
+	chStop   chan struct{}
 }
 
 func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
@@ -31,15 +36,17 @@ func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
 		node:      n,
 		nc:        nc,
 		construct: construct,
+		chStop:    make(chan struct{}),
 	}
 
 	return ret
 }
 
-func (cs *clientState[T]) start() error {
+func (cs *clientState[T]) start() (err error) {
 	c, err := GetNodeChildren(cs.nc, cs.node.ID, "", false, false)
 	if err != nil {
-		return fmt.Errorf("Error getting children: %v", err)
+		err = fmt.Errorf("Error getting children: %v", err)
+		return
 	}
 
 	ncc := make([]data.NodeEdgeChildren, len(c))
@@ -54,7 +61,8 @@ func (cs *clientState[T]) start() error {
 
 	err = data.Decode(cs.nec, &config)
 	if err != nil {
-		return fmt.Errorf("Error decoding node: %v", err)
+		err = fmt.Errorf("Error decoding node: %v", err)
+		return
 	}
 
 	cs.client = cs.construct(cs.nc, config)
@@ -103,13 +111,35 @@ func (cs *clientState[T]) start() error {
 	})
 
 	if err != nil {
-		return err
+		return
 	}
 
-	// the following blocks until client exits
-	return cs.client.Start()
+	chClientStopped := make(chan struct{})
+
+	go func() {
+		// the following blocks until client exits
+		err := cs.client.Start()
+		if err != nil {
+			log.Printf("Client Start %v %v returned error: %v\n",
+				cs.node.Type, cs.node.ID, err)
+		}
+		close(chClientStopped)
+	}()
+
+	<-cs.chStop
+	cs.upSub.Unsubscribe()
+	cs.client.Stop(nil)
+
+	select {
+	case <-chClientStopped:
+		// everything is OK
+	case <-time.After(5 * time.Second):
+		log.Println("Timeout stopping client: ", cs.node.Type, cs.node.ID)
+	}
+
+	return nil
 }
 
 func (cs *clientState[T]) stop(err error) {
-	cs.client.Stop(err)
+	cs.stopOnce.Do(func() { close(cs.chStop) })
 }

@@ -39,7 +39,6 @@ type Store struct {
 	db               *DbSqlite
 	authToken        string
 	lock             sync.Mutex
-	nodeUpdateLock   sync.Mutex
 	updates          map[string]time.Time
 	key              NewTokener
 
@@ -342,8 +341,6 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 		t := time.Since(start).Milliseconds()
 		st.metricCycleNodePoint.AddSample(float64(t))
 	}()
-	st.nodeUpdateLock.Lock()
-	defer st.nodeUpdateLock.Unlock()
 
 	nodeID, points, err := client.DecodeNodePointsMsg(msg)
 
@@ -389,9 +386,6 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		st.metricCycleNodeEdgePoint.AddSample(float64(t))
 	}()
 
-	st.nodeUpdateLock.Lock()
-	defer st.nodeUpdateLock.Unlock()
-
 	nodeID, parentID, points, err := client.DecodeEdgePointsMsg(msg)
 
 	if err != nil {
@@ -400,7 +394,9 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		return
 	}
 
-	// write points to database
+	// write points to database. Its important that we write to the DB
+	// before sending points upstream, or clients may do a rescan and not
+	// see the node is deleted.
 	err = st.db.edgePoints(nodeID, parentID, points)
 
 	if err != nil {
@@ -410,7 +406,8 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		st.reply(msg.Reply, err)
 	}
 
-	// process point in upstream nodes
+	// process point in upstream nodes. We need to do this before writing
+	// to DB, otherwise the point will not be sent upstream
 	err = st.processEdgePointsUpstream(nodeID, nodeID, parentID, points)
 	if err != nil {
 		// TODO track error stats
@@ -943,7 +940,6 @@ func (st *Store) processPointsUpstream(upNodeID, nodeID, nodeDesc string, points
 }
 
 func (st *Store) processEdgePointsUpstream(upNodeID, nodeID, parentID string, points data.Points) error {
-	// at this point, the point update has already been written to the DB
 	sub := fmt.Sprintf("up.%v.%v.%v.points", upNodeID, nodeID, parentID)
 
 	err := client.SendPoints(st.nc, sub, points, false)
@@ -957,7 +953,7 @@ func (st *Store) processEdgePointsUpstream(upNodeID, nodeID, parentID string, po
 		return nil
 	}
 
-	ups, err := st.db.up(upNodeID, false)
+	ups, err := st.db.up(upNodeID, true)
 	if err != nil {
 		return err
 	}

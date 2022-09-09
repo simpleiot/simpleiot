@@ -4,7 +4,6 @@ import (
 	"log"
 	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -21,14 +20,12 @@ type Manager[T any] struct {
 	construct func(*nats.Conn, T) Client
 
 	// synchronization fields
-	stop      chan struct{}
-	chScan    chan struct{}
-	clientsWG sync.WaitGroup
+	stop       chan struct{}
+	chScan     chan struct{}
+	chAction   chan func()
+	chDeleteCS chan string
 
-	// The following state data is protected by the lock Mutex and must be locked
-	// before accessing
 	clientStates map[string]*clientState[T]
-	lock         sync.Mutex
 
 	// subscription to listen for new points
 	upSub *nats.Subscription
@@ -50,6 +47,8 @@ func NewManager[T any](nc *nats.Conn, root string,
 		construct:    construct,
 		stop:         make(chan struct{}),
 		chScan:       make(chan struct{}),
+		chAction:     make(chan func()),
+		chDeleteCS:   make(chan string),
 		clientStates: make(map[string]*clientState[T]),
 	}
 }
@@ -85,36 +84,61 @@ func (m *Manager[T]) Start() error {
 		log.Println("Error scanning for new nodes: ", err)
 	}
 
+	shutdownTimer := time.NewTimer(time.Hour)
+	shutdownTimer.Stop()
+
+	stopping := false
+
+	scan := func() {
+		if stopping {
+			return
+		}
+
+		err := m.scan()
+		if err != nil {
+			log.Println("Error scanning for new nodes: ", err)
+		}
+	}
+
 done:
 	for {
 		select {
 		case <-m.stop:
-			break done
+			stopping = true
+			m.upSub.Unsubscribe()
+			if len(m.clientStates) > 0 {
+				for _, c := range m.clientStates {
+					c.stop(err)
+				}
+				shutdownTimer.Reset(time.Second * 5)
+			} else {
+				break done
+			}
+		case f := <-m.chAction:
+			f()
 		case <-time.After(time.Minute):
-			err := m.scan()
-			if err != nil {
-				log.Println("Error scanning for new nodes: ", err)
-			}
+			scan()
 		case <-m.chScan:
-			err := m.scan()
-			if err != nil {
-				log.Println("Error scanning for new nodes: ", err)
+			scan()
+		case key := <-m.chDeleteCS:
+			delete(m.clientStates, key)
+			if stopping {
+				if len(m.clientStates) <= 0 {
+					break done
+				}
+			} else {
+				// client may have exitted itself due to child
+				// node changes so scan to re-initialize it again
+				scan()
 			}
+		case <-shutdownTimer.C:
+			// FIXME: should we return an error here?
+			log.Println("BUG: Client manager: not all clients shutdown for node type: ", m.nodeType)
+			for _, v := range m.clientStates {
+				log.Println("Client stuck for node: ", v.node.ID)
+			}
+			break done
 		}
-	}
-
-	// wait for clients to shut down
-	clientsDone := make(chan struct{})
-	go func() {
-		m.clientsWG.Wait()
-		close(clientsDone)
-	}()
-
-	select {
-	case <-clientsDone:
-		// all is well
-	case <-time.After(time.Second * 5):
-		log.Println("BUG: Not all clients shutdown!")
 	}
 
 	return nil
@@ -122,17 +146,7 @@ done:
 
 // Stop manager. This also stops all registered clients and causes Start to exit.
 func (m *Manager[T]) Stop(err error) {
-	if m.upSub != nil {
-		m.upSub.Unsubscribe()
-	}
-
-	m.lock.Lock()
-	for _, c := range m.clientStates {
-		c.stop(err)
-	}
-	m.lock.Unlock()
-
-	close(m.stop)
+	m.stop <- struct{}{}
 }
 
 func (m *Manager[T]) scan() error {
@@ -145,9 +159,6 @@ func (m *Manager[T]) scan() error {
 	if len(children) < 0 {
 		return nil
 	}
-
-	m.lock.Lock()
-	defer m.lock.Unlock()
 
 	found := make(map[string]bool)
 
@@ -163,7 +174,6 @@ func (m *Manager[T]) scan() error {
 		cs := newClientState(m.nc, m.construct, n)
 
 		m.clientStates[key] = cs
-		m.clientsWG.Add(1)
 
 		go func() {
 			err := cs.start()
@@ -172,18 +182,8 @@ func (m *Manager[T]) scan() error {
 				log.Printf("clientState error %v: %v\n", m.nodeType, err)
 			}
 
-			m.lock.Lock()
-			delete(m.clientStates, key)
-			m.lock.Unlock()
-
-			m.clientsWG.Done()
-
-			// always scan when client is stopped as there may have been child nodes added/removed
-			// and we simply want to start over
-			// FIXME, this may deadlock, and on shutdown, we don't want things rescanning
-			m.chScan <- struct{}{}
+			m.chDeleteCS <- key
 		}()
-
 	}
 
 	// remove nodes that have been deleted
@@ -193,9 +193,8 @@ func (m *Manager[T]) scan() error {
 		}
 
 		// bus was deleted so close and clear it
-		log.Println("removing node: ", m.clientStates[key].node.ID)
+		log.Println("removing client node: ", m.clientStates[key].node.ID)
 		client.stop(nil)
-		delete(m.clientStates, key)
 	}
 
 	return nil

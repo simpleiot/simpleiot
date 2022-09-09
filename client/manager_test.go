@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -125,7 +124,7 @@ func TestManager(t *testing.T) {
 	startErr := make(chan error)
 
 	go func() {
-		err = m.Start()
+		err := m.Start()
 		if err != nil {
 			startErr <- fmt.Errorf("manager start returned error: %v", err)
 		}
@@ -166,7 +165,7 @@ func TestManager(t *testing.T) {
 	modifiedRole := "user"
 
 	err = client.SendEdgePoint(nc, currentConfig.ID, currentConfig.Parent,
-		data.Point{Type: "role", Text: modifiedRole}, true)
+		data.Point{Type: data.PointTypeRole, Text: modifiedRole}, true)
 
 	if err != nil {
 		t.Errorf("Error sending edge point: %v", err)
@@ -230,7 +229,7 @@ func TestManagerAddRemove(t *testing.T) {
 	startErr := make(chan error)
 
 	go func() {
-		err = m.Start()
+		err := m.Start()
 		if err != nil {
 			startErr <- fmt.Errorf("manager start returned error: %v", err)
 		}
@@ -239,7 +238,7 @@ func TestManagerAddRemove(t *testing.T) {
 	}()
 
 	// populate with new testNode
-	testConfig := testNode{uuid.New().String(), "", "fancy test node", 8080, "admin"}
+	testConfig := testNode{"ID-testnode", "", "fancy test node", 8080, "admin"}
 
 	ne, err := data.Encode(testConfig)
 	if err != nil {
@@ -303,7 +302,7 @@ func TestManagerAddRemove(t *testing.T) {
 	select {
 	case <-managerStopped:
 		// all is well
-	case <-time.After(time.Second):
+	case <-time.After(time.Second * 10):
 		t.Fatal("manager did not stop")
 	}
 
@@ -480,7 +479,7 @@ func TestManagerChildren(t *testing.T) {
 	startErr := make(chan error)
 
 	go func() {
-		err = m.Start()
+		err := m.Start()
 		if err != nil {
 			startErr <- fmt.Errorf("manager start returned error: %v", err)
 		}
@@ -533,7 +532,7 @@ func TestManagerChildren(t *testing.T) {
 	modifiedRole := "admin"
 
 	err = client.SendEdgePoint(nc, testXConfig.ID, testXConfig.Parent,
-		data.Point{Type: "role", Text: modifiedRole}, true)
+		data.Point{Type: data.PointTypeRole, Text: modifiedRole}, true)
 
 	if err != nil {
 		t.Errorf("Error sending edge point: %v", err)
@@ -549,7 +548,7 @@ func TestManagerChildren(t *testing.T) {
 	modifiedRole = "user"
 
 	err = client.SendEdgePoint(nc, testYConfig.ID, testYConfig.Parent,
-		data.Point{Type: "role", Text: modifiedRole}, true)
+		data.Point{Type: data.PointTypeRole, Text: modifiedRole}, true)
 
 	if err != nil {
 		t.Errorf("Error sending edge point: %v", err)
@@ -578,10 +577,29 @@ func TestManagerChildren(t *testing.T) {
 	select {
 	case testClient = <-newClient:
 	case <-time.After(time.Second):
-		t.Fatal("Test client not created")
+		t.Fatal("Test client not re-created")
 	}
 
 	if len(testClient.getConfig().TestYs) < 2 {
 		t.Fatal("Not seeing new child")
+	}
+
+	// remove child node
+	err = client.SendEdgePoint(nc, testYConfig2.ID, testYConfig2.Parent,
+		data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
+
+	if err != nil {
+		t.Errorf("Error sending edge point: %v", err)
+	}
+
+	// wait for client to be re-created
+	select {
+	case testClient = <-newClient:
+	case <-time.After(time.Second):
+		t.Fatal("Test client not re-created")
+	}
+
+	if len(testClient.getConfig().TestYs) != 1 {
+		t.Fatal("failed to remove child node")
 	}
 }
