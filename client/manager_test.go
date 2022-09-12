@@ -486,6 +486,10 @@ func TestManagerChildren(t *testing.T) {
 		t.Fatal("Y ID not correct")
 	}
 
+	if currentConfig.TestYs[0].Description != testYConfig.Description {
+		t.Fatal("Y description not correct")
+	}
+
 	// Test child point updates
 	modifiedDescription := "updated description"
 
