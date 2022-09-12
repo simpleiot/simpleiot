@@ -9,6 +9,9 @@ import (
 	"github.com/simpleiot/simpleiot/server"
 )
 
+// TestRules populates a rule in the system that watches
+// a variable and when set, sets another variable. This
+// tests out the basic rule logic.
 func TestRules(t *testing.T) {
 	nc, root, stop, err := server.TestServer()
 
