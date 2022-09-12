@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/server"
@@ -36,7 +35,7 @@ func TestSerial(t *testing.T) {
 	defer fifoW.Close()
 
 	serialTest := client.SerialDev{
-		ID:          uuid.New().String(),
+		ID:          "ID-serial",
 		Parent:      root.ID,
 		Description: "test serial",
 		// when Port is set to the magic value of "serialfifo", the serial
