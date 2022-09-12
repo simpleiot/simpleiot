@@ -93,14 +93,8 @@ func TestManager(t *testing.T) {
 
 	testConfig := testNode{"ID-testNode", root.ID, "fancy test node", 8080, ""}
 
-	ne, err := data.Encode(testConfig)
-	if err != nil {
-		t.Fatal("Error encoding node: ", err)
-	}
-
 	// hydrate database with test data
-	err = client.SendNode(nc, ne)
-
+	err = client.SendNodeType(nc, testConfig)
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -238,18 +232,9 @@ func TestManagerAddRemove(t *testing.T) {
 	}()
 
 	// populate with new testNode
-	testConfig := testNode{"ID-testnode", "", "fancy test node", 8080, "admin"}
-
-	ne, err := data.Encode(testConfig)
-	if err != nil {
-		t.Fatal("Error encoding node: ", err)
-	}
-
-	ne.Parent = root.ID
-
+	testConfig := testNode{"ID-testnode", root.ID, "fancy test node", 8080, "admin"}
 	// populate database with test node
-	err = client.SendNode(nc, ne)
-
+	err = client.SendNodeType(nc, testConfig)
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -436,26 +421,15 @@ func TestManagerChildren(t *testing.T) {
 	// hydrate database with test data
 	testXConfig := testX{"ID-X", root.ID, "testX node", "", nil}
 
-	ne, err := data.Encode(testXConfig)
-	if err != nil {
-		t.Fatal("Error encoding node: ", err)
-	}
-
-	err = client.SendNode(nc, ne)
-
+	err = client.SendNodeType(nc, testXConfig)
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
 
 	// create child node
 	testYConfig := testY{"ID-Y", testXConfig.ID, "testY node", ""}
-	ne, err = data.Encode(testYConfig)
-	if err != nil {
-		t.Fatal("Error encoding node: ", err)
-	}
 
-	err = client.SendNode(nc, ne)
-
+	err = client.SendNodeType(nc, testYConfig)
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -562,13 +536,8 @@ func TestManagerChildren(t *testing.T) {
 
 	// create 2nd child node
 	testYConfig2 := testY{"ID-Y2", testXConfig.ID, "testY node 2", ""}
-	ne, err = data.Encode(testYConfig2)
-	if err != nil {
-		t.Fatal("Error encoding node: ", err)
-	}
 
-	err = client.SendNode(nc, ne)
-
+	err = client.SendNodeType(nc, testYConfig2)
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
