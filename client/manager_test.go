@@ -94,7 +94,7 @@ func TestManager(t *testing.T) {
 	testConfig := testNode{"ID-testNode", root.ID, "fancy test node", 8080, ""}
 
 	// hydrate database with test data
-	err = client.SendNodeType(nc, testConfig)
+	err = client.SendNodeType(nc, testConfig, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -143,7 +143,7 @@ func TestManager(t *testing.T) {
 	modifiedDescription := "updated description"
 
 	err = client.SendNodePoint(nc, currentConfig.ID,
-		data.Point{Type: "description", Text: modifiedDescription}, true)
+		data.Point{Type: "description", Text: modifiedDescription, Origin: "test"}, true)
 
 	if err != nil {
 		t.Errorf("Error sending point: %v", err)
@@ -159,7 +159,7 @@ func TestManager(t *testing.T) {
 	modifiedRole := "user"
 
 	err = client.SendEdgePoint(nc, currentConfig.ID, currentConfig.Parent,
-		data.Point{Type: data.PointTypeRole, Text: modifiedRole}, true)
+		data.Point{Type: data.PointTypeRole, Text: modifiedRole, Origin: "test"}, true)
 
 	if err != nil {
 		t.Errorf("Error sending edge point: %v", err)
@@ -234,7 +234,7 @@ func TestManagerAddRemove(t *testing.T) {
 	// populate with new testNode
 	testConfig := testNode{"ID-testnode", root.ID, "fancy test node", 8080, "admin"}
 	// populate database with test node
-	err = client.SendNodeType(nc, testConfig)
+	err = client.SendNodeType(nc, testConfig, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -269,7 +269,7 @@ func TestManagerAddRemove(t *testing.T) {
 
 	// test deleting client
 	err = client.SendEdgePoint(nc, currentConfig.ID, currentConfig.Parent,
-		data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
+		data.Point{Type: data.PointTypeTombstone, Value: 1, Origin: "test"}, true)
 
 	if err != nil {
 		t.Errorf("Error sending edge point: %v", err)
@@ -421,7 +421,7 @@ func TestManagerChildren(t *testing.T) {
 	// hydrate database with test data
 	testXConfig := testX{"ID-X", root.ID, "testX node", "", nil}
 
-	err = client.SendNodeType(nc, testXConfig)
+	err = client.SendNodeType(nc, testXConfig, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -429,7 +429,7 @@ func TestManagerChildren(t *testing.T) {
 	// create child node
 	testYConfig := testY{"ID-Y", testXConfig.ID, "testY node", ""}
 
-	err = client.SendNodeType(nc, testYConfig)
+	err = client.SendNodeType(nc, testYConfig, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -494,7 +494,7 @@ func TestManagerChildren(t *testing.T) {
 	modifiedDescription := "updated description"
 
 	err = client.SendNodePoint(nc, testYConfig.ID,
-		data.Point{Type: "description", Text: modifiedDescription}, true)
+		data.Point{Type: "description", Text: modifiedDescription, Origin: "test"}, true)
 
 	if err != nil {
 		t.Errorf("Error sending point: %v", err)
@@ -510,7 +510,7 @@ func TestManagerChildren(t *testing.T) {
 	modifiedRole := "admin"
 
 	err = client.SendEdgePoint(nc, testXConfig.ID, testXConfig.Parent,
-		data.Point{Type: data.PointTypeRole, Text: modifiedRole}, true)
+		data.Point{Type: data.PointTypeRole, Text: modifiedRole, Origin: "test"}, true)
 
 	if err != nil {
 		t.Errorf("Error sending edge point: %v", err)
@@ -526,7 +526,7 @@ func TestManagerChildren(t *testing.T) {
 	modifiedRole = "user"
 
 	err = client.SendEdgePoint(nc, testYConfig.ID, testYConfig.Parent,
-		data.Point{Type: data.PointTypeRole, Text: modifiedRole}, true)
+		data.Point{Type: data.PointTypeRole, Text: modifiedRole, Origin: "test"}, true)
 
 	if err != nil {
 		t.Errorf("Error sending edge point: %v", err)
@@ -541,7 +541,7 @@ func TestManagerChildren(t *testing.T) {
 	// create 2nd child node
 	testYConfig2 := testY{"ID-Y2", testXConfig.ID, "testY node 2", ""}
 
-	err = client.SendNodeType(nc, testYConfig2)
+	err = client.SendNodeType(nc, testYConfig2, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -559,7 +559,7 @@ func TestManagerChildren(t *testing.T) {
 
 	// remove child node
 	err = client.SendEdgePoint(nc, testYConfig2.ID, testYConfig2.Parent,
-		data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
+		data.Point{Type: data.PointTypeTombstone, Value: 1, Origin: "test"}, true)
 
 	if err != nil {
 		t.Errorf("Error sending edge point: %v", err)

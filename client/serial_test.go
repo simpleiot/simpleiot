@@ -46,7 +46,7 @@ func TestSerial(t *testing.T) {
 	}
 
 	// hydrate database with test data
-	err = client.SendNodeType(nc, serialTest)
+	err = client.SendNodeType(nc, serialTest, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}

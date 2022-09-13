@@ -245,21 +245,19 @@ func (sd *SerialDevClient) Start() error {
 			toMerge := data.Points{}
 			op := false
 			for _, p := range pts {
-				if p.Origin != "" {
-					toMerge = append(toMerge, p)
-					if p.Type == data.PointTypePort ||
-						p.Type == data.PointTypeBaud ||
-						p.Type == data.PointTypeDisable {
-						op = true
-						break
-					}
+				toMerge = append(toMerge, p)
+				if p.Type == data.PointTypePort ||
+					p.Type == data.PointTypeBaud ||
+					p.Type == data.PointTypeDisable {
+					op = true
+					break
+				}
 
-					if p.Type == data.PointTypeDisable {
-						if p.Value == 0 {
-							closePort()
-						} else {
-							op = true
-						}
+				if p.Type == data.PointTypeDisable {
+					if p.Value == 0 {
+						closePort()
+					} else {
+						op = true
 					}
 				}
 			}
@@ -328,9 +326,7 @@ func (sd *SerialDevClient) Start() error {
 			// from the serial device and are simply echo'd back.
 			toMerge := data.Points{}
 			for _, p := range pts {
-				if p.Origin != "" {
-					toMerge = append(toMerge, p)
-				}
+				toMerge = append(toMerge, p)
 			}
 
 			err := data.MergeEdgePoints(toMerge, &sd.config)

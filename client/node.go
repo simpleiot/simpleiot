@@ -180,6 +180,11 @@ func SendNode(nc *nats.Conn, node data.NodeEdge) error {
 	// and create a new edge to the root node
 	points := node.Points
 
+	origin := ""
+	if len(node.Points) > 0 {
+		origin = node.Points[0].Origin
+	}
+
 	if node.ID == "" {
 		return errors.New("ID must be set to a UUID")
 	}
@@ -187,7 +192,8 @@ func SendNode(nc *nats.Conn, node data.NodeEdge) error {
 	if node.Parent != "" && node.Parent != "none" {
 		if len(node.EdgePoints) < 0 {
 			// edge should always have a tombstone point, set to false for root node
-			node.EdgePoints = []data.Point{{Time: time.Now(), Type: data.PointTypeTombstone}}
+			node.EdgePoints = []data.Point{{Time: time.Now(),
+				Type: data.PointTypeTombstone, Origin: origin}}
 		}
 
 		err := SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
@@ -198,8 +204,9 @@ func SendNode(nc *nats.Conn, node data.NodeEdge) error {
 	}
 
 	points = append(points, data.Point{
-		Type: data.PointTypeNodeType,
-		Text: node.Type,
+		Type:   data.PointTypeNodeType,
+		Text:   node.Type,
+		Origin: origin,
 	})
 
 	err := SendNodePoints(nc, node.ID, points, true)
@@ -213,10 +220,20 @@ func SendNode(nc *nats.Conn, node data.NodeEdge) error {
 
 // SendNodeType is used to send a node to a nats server. Can be
 // used to create nodes.
-func SendNodeType[T any](nc *nats.Conn, node T) error {
+func SendNodeType[T any](nc *nats.Conn, node T, origin string) error {
 	ne, err := data.Encode(node)
 	if err != nil {
 		return err
+	}
+
+	if origin != "" {
+		for i := range ne.Points {
+			ne.Points[i].Origin = origin
+		}
+
+		for i := range ne.EdgePoints {
+			ne.EdgePoints[i].Origin = origin
+		}
 	}
 
 	return SendNode(nc, ne)

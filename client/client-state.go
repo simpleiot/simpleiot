@@ -77,6 +77,13 @@ func (cs *clientState[T]) start() (err error) {
 			return
 		}
 
+		for _, p := range points {
+			if p.Origin == "" {
+				// point came from the owning node, we already know about it
+				return
+			}
+		}
+
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
 		if len(chunks) == 4 {
