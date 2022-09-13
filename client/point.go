@@ -141,3 +141,16 @@ func SubscribeEdgePoints(nc *nats.Conn, id, parent string, callback func(points 
 		psub.Unsubscribe()
 	}, err
 }
+
+// newPoints is used to pass new points through channels in client drivers
+type newPoints struct {
+	id     string
+	parent string
+	points data.Points
+}
+
+func (np newPoints) String() string {
+	ret := fmt.Sprintf("New Points: ID: %v Parent: %v\n", np.id, np.parent)
+	ret += np.points.String()
+	return ret
+}

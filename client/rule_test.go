@@ -28,7 +28,7 @@ func TestRules(t *testing.T) {
 		Description: "var in",
 	}
 
-	err = client.SendNodeType(nc, vin)
+	err = client.SendNodeType(nc, vin, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -39,7 +39,7 @@ func TestRules(t *testing.T) {
 		Description: "var out",
 	}
 
-	err = client.SendNodeType(nc, vout)
+	err = client.SendNodeType(nc, vout, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -50,21 +50,24 @@ func TestRules(t *testing.T) {
 		Description: "test rule",
 	}
 
-	err = client.SendNodeType(nc, r)
+	err = client.SendNodeType(nc, r, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
 
 	c := client.Condition{
-		ID:            "ID-condition",
-		Parent:        r.ID,
-		ConditionType: data.PointTypeValueType,
-		PointType:     data.PointTypeValue,
-		NodeID:        vin.ID,
-		PointValue:    1,
+		ID:             "ID-condition",
+		Parent:         r.ID,
+		Description:    "cond vin high",
+		ConditionType:  data.PointValuePointValue,
+		PointType:      data.PointTypeValue,
+		PointValueType: data.PointValueOnOff,
+		NodeID:         vin.ID,
+		Operator:       data.PointValueEqual,
+		PointValue:     1,
 	}
 
-	err = client.SendNodeType(nc, c)
+	err = client.SendNodeType(nc, c, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -79,7 +82,7 @@ func TestRules(t *testing.T) {
 		PointValue:  1,
 	}
 
-	err = client.SendNodeType(nc, a)
+	err = client.SendNodeType(nc, a, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -94,7 +97,7 @@ func TestRules(t *testing.T) {
 		PointValue:  0,
 	}
 
-	err = client.SendNodeType(nc, a2)
+	err = client.SendNodeType(nc, a2, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -112,9 +115,12 @@ func TestRules(t *testing.T) {
 		t.Fatal("initial vout value is not correct")
 	}
 
+	// wait for rule to get set up
+	time.Sleep(100 * time.Millisecond)
+
 	// set vin and look for vout to change
 	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 1}, true)
+		Value: 1, Origin: "test"}, true)
 
 	if err != nil {
 		t.Errorf("Error sending point: %v", err)
@@ -131,4 +137,25 @@ func TestRules(t *testing.T) {
 		}
 		<-time.After(time.Millisecond * 10)
 	}
+
+	// clear vin and look for vout to change
+	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
+		Value: 0, Origin: "test"}, true)
+
+	if err != nil {
+		t.Errorf("Error sending point: %v", err)
+	}
+
+	start = time.Now()
+	for {
+		if voutGet().Value == 0 {
+			// all is well
+			break
+		}
+		if time.Since(start) > time.Second {
+			t.Fatal("Timeout waiting for vout to be cleared")
+		}
+		<-time.After(time.Millisecond * 10)
+	}
+
 }

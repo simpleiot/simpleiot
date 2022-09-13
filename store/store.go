@@ -246,33 +246,6 @@ func (st *Store) StopMetrics(_ error) {
 	close(st.chStopMetrics)
 }
 
-/*
-func (st *Store) runSchedule(node data.NodeEdge) error {
-	switch node.Type {
-	case data.NodeTypeRule:
-		p := data.Point{Time: time.Now(), Type: data.PointTypeTrigger}
-		err := st.processRuleNode(node, "", []data.Point{p})
-		if err != nil {
-			return err
-		}
-
-	case data.NodeTypeGroup:
-		childNodes, err := st.db.nodeDescendents(node.ID, "", false, false)
-		if err != nil {
-			return err
-		}
-		for _, c := range childNodes {
-			err := st.runSchedule(c)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-*/
-
 func (st *Store) setSwUpdateState(id string, state data.SwUpdateState) error {
 	p := state.Points()
 
@@ -807,62 +780,6 @@ func (st *Store) reply(subject string, err error) {
 	}
 
 	st.nc.Publish(subject, []byte(reply))
-}
-
-func (st *Store) processRuleNode(ruleNode data.NodeEdge, sourceNodeID string, points []data.Point) error {
-	conditionNodes, err := st.db.children(ruleNode.ID, data.NodeTypeCondition, false)
-	if err != nil {
-		return err
-	}
-
-	actionNodes, err := st.db.children(ruleNode.ID, data.NodeTypeAction, false)
-	if err != nil {
-		return err
-	}
-
-	actionInactiveNodes, err := st.db.children(ruleNode.ID,
-		data.NodeTypeActionInactive, false)
-	if err != nil {
-		return err
-	}
-
-	rule, err := data.NodeToRule(ruleNode, conditionNodes, actionNodes, actionInactiveNodes)
-
-	if err != nil {
-		return err
-	}
-
-	active, changed, err := ruleProcessPoints(st.nc, rule, sourceNodeID, points)
-
-	if err != nil {
-		log.Println("Error processing rule point: ", err)
-	}
-
-	if active && changed {
-		err := st.ruleRunActions(st.nc, rule, rule.Actions, sourceNodeID)
-		if err != nil {
-			log.Println("Error running rule actions: ", err)
-		}
-
-		err = st.ruleRunInactiveActions(st.nc, rule.ActionsInactive)
-		if err != nil {
-			log.Println("Error running rule inactive actions: ", err)
-		}
-	}
-
-	if !active && changed {
-		err := st.ruleRunActions(st.nc, rule, rule.ActionsInactive, sourceNodeID)
-		if err != nil {
-			log.Println("Error running rule actions: ", err)
-		}
-
-		err = st.ruleRunInactiveActions(st.nc, rule.Actions)
-		if err != nil {
-			log.Println("Error running rule inactive actions: ", err)
-		}
-	}
-
-	return nil
 }
 
 func (st *Store) processPointsUpstream(upNodeID, nodeID, nodeDesc string, points data.Points) error {
