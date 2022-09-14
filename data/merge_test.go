@@ -57,6 +57,13 @@ func TestMergeChildPoints(t *testing.T) {
 				Description: "test Y node",
 				Count:       3,
 				Role:        "",
+				TestZs: []testZ{
+					{
+						ID:          "ID-testZ",
+						Description: "test Z node",
+						Count:       23,
+					},
+				},
 			},
 		},
 	}
@@ -81,5 +88,26 @@ func TestMergeChildPoints(t *testing.T) {
 	// make sure other points did not get reset
 	if testData.TestYs[0].Count != 3 {
 		t.Errorf("Merge reset other data")
+	}
+
+	if testData.Description != "test X node" {
+		t.Errorf("Top level node description modified when it should not have")
+	}
+
+	// modify description of Z point
+	modifiedDescription = "test Z type modified"
+
+	mods = []Point{
+		{Type: "description", Text: modifiedDescription},
+	}
+
+	err = MergePoints("ID-testZ", mods, &testData)
+	if err != nil {
+		t.Fatal("Merge error: ", err)
+	}
+
+	if testData.TestYs[0].TestZs[0].Description != modifiedDescription {
+		t.Errorf("Description not modified, exp: %v, got: %v", modifiedDescription,
+			testData.TestYs[0].TestZs[0].Description)
 	}
 }

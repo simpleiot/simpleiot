@@ -129,6 +129,7 @@ type testZ struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
+	Count       int    `point:"count"`
 	Role        string `edgepoint:"role"`
 }
 
