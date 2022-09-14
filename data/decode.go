@@ -82,7 +82,9 @@ func Decode(input NodeEdgeChildren, output interface{}) error {
 
 	for _, c := range input.Children {
 		for k, v := range childValues {
+			// v is an array
 			if c.NodeEdge.Type == k {
+				// get an empty value of the type of the array
 				cOut := reflect.New(v.Type().Elem())
 
 				err := Decode(c, &cOut)
@@ -90,6 +92,7 @@ func Decode(input NodeEdgeChildren, output interface{}) error {
 					return fmt.Errorf("Error decoding child: %v", err)
 				}
 
+				// append the new value to the child array
 				childValues[k].Set(reflect.Append(v, cOut.Elem()))
 			}
 		}
