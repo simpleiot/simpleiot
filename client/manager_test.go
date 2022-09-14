@@ -49,7 +49,7 @@ func (tnc *testNodeClient) Start() error {
 			close(tnc.stopped)
 			return nil
 		case pts := <-tnc.newPoints:
-			err := data.MergePoints(pts, &tnc.config)
+			err := data.MergePoints(tnc.config.ID, pts, &tnc.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
 			}
@@ -314,19 +314,13 @@ type testY struct {
 	Role        string `edgepoint:"role"`
 }
 
-type newPoints struct {
-	id     string
-	parent string
-	points data.Points
-}
-
 type testXClient struct {
 	nc            *nats.Conn
 	config        testX
 	stop          chan struct{}
 	stopped       chan struct{}
-	newPoints     chan newPoints
-	newEdgePoints chan newPoints
+	newPoints     chan client.NewPoints
+	newEdgePoints chan client.NewPoints
 	chGetConfig   chan chan testX
 }
 
@@ -336,8 +330,8 @@ func newTestXClient(nc *nats.Conn, config testX) *testXClient {
 		config:        config,
 		stop:          make(chan struct{}),
 		stopped:       make(chan struct{}),
-		newPoints:     make(chan newPoints),
-		newEdgePoints: make(chan newPoints),
+		newPoints:     make(chan client.NewPoints),
+		newEdgePoints: make(chan client.NewPoints),
 		chGetConfig:   make(chan chan testX),
 	}
 }
@@ -350,35 +344,21 @@ OUTER:
 			close(tnc.stopped)
 			return nil
 		case pts := <-tnc.newPoints:
-			if pts.id == tnc.config.ID {
-				err := data.MergePoints(pts.points, &tnc.config)
-				if err != nil {
-					log.Println("error merging new points: ", err)
-				}
-				continue
+			err := data.MergePoints(pts.ID, pts.Points, &tnc.config)
+			if err != nil {
+				log.Println("error merging new points: ", err)
 			}
-
-			for i, y := range tnc.config.TestYs {
-				if pts.id == y.ID {
-					err := data.MergePoints(pts.points, &tnc.config.TestYs[i])
-					if err != nil {
-						log.Println("error merging new points: ", err)
-					}
-					continue OUTER
-				}
-			}
-			log.Println("Error, did not find data structure to merge points in test driver")
 		case pts := <-tnc.newEdgePoints:
-			if pts.id == tnc.config.ID && pts.parent == tnc.config.Parent {
-				err := data.MergeEdgePoints(pts.points, &tnc.config)
+			if pts.ID == tnc.config.ID && pts.Parent == tnc.config.Parent {
+				err := data.MergeEdgePoints(pts.Points, &tnc.config)
 				if err != nil {
 					log.Println("error merging new points: ", err)
 				}
 				continue
 			}
 			for i, y := range tnc.config.TestYs {
-				if pts.id == y.ID && pts.parent == y.Parent {
-					err := data.MergeEdgePoints(pts.points, &tnc.config.TestYs[i])
+				if pts.ID == y.ID && pts.Parent == y.Parent {
+					err := data.MergeEdgePoints(pts.Points, &tnc.config.TestYs[i])
 					if err != nil {
 						log.Println("error merging new points: ", err)
 					}
@@ -396,11 +376,11 @@ func (tnc *testXClient) Stop(err error) {
 }
 
 func (tnc *testXClient) Points(nodeID string, points []data.Point) {
-	tnc.newPoints <- newPoints{nodeID, "", points}
+	tnc.newPoints <- client.NewPoints{nodeID, "", points}
 }
 
 func (tnc *testXClient) EdgePoints(nodeID, parentID string, points []data.Point) {
-	tnc.newEdgePoints <- newPoints{nodeID, parentID, points}
+	tnc.newEdgePoints <- client.NewPoints{nodeID, parentID, points}
 }
 
 func (tnc *testXClient) getConfig() testX {

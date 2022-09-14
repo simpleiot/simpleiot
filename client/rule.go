@@ -128,9 +128,9 @@ type RuleClient struct {
 	nc            *nats.Conn
 	config        Rule
 	stop          chan struct{}
-	newPoints     chan newPoints
-	newEdgePoints chan newPoints
-	newRulePoints chan newPoints
+	newPoints     chan NewPoints
+	newEdgePoints chan NewPoints
+	newRulePoints chan NewPoints
 	upSub         *nats.Subscription
 }
 
@@ -140,9 +140,9 @@ func NewRuleClient(nc *nats.Conn, config Rule) Client {
 		nc:            nc,
 		config:        config,
 		stop:          make(chan struct{}),
-		newPoints:     make(chan newPoints),
-		newEdgePoints: make(chan newPoints),
-		newRulePoints: make(chan newPoints),
+		newPoints:     make(chan NewPoints),
+		newEdgePoints: make(chan NewPoints),
+		newRulePoints: make(chan NewPoints),
 	}
 }
 
@@ -168,7 +168,7 @@ func (rc *RuleClient) Start() error {
 			return
 		}
 
-		rc.newRulePoints <- newPoints{chunks[2], "", points}
+		rc.newRulePoints <- NewPoints{chunks[2], "", points}
 	})
 
 	if err != nil {
@@ -181,7 +181,7 @@ done:
 		case <-rc.stop:
 			break done
 		case pts := <-rc.newRulePoints:
-			active, changed, err := rc.ruleProcessPoints(pts.id, pts.points)
+			active, changed, err := rc.ruleProcessPoints(pts.ID, pts.Points)
 
 			if err != nil {
 				log.Println("Error processing rule point: ", err)
@@ -192,7 +192,7 @@ done:
 			}
 
 			if active {
-				err := rc.ruleRunActions(rc.config.Actions, pts.id)
+				err := rc.ruleRunActions(rc.config.Actions, pts.ID)
 				if err != nil {
 					log.Println("Error running rule actions: ", err)
 				}
@@ -202,7 +202,7 @@ done:
 					log.Println("Error running rule inactive actions: ", err)
 				}
 			} else {
-				err := rc.ruleRunActions(rc.config.ActionsInactive, pts.id)
+				err := rc.ruleRunActions(rc.config.ActionsInactive, pts.ID)
 				if err != nil {
 					log.Println("Error running rule actions: ", err)
 				}
@@ -215,12 +215,12 @@ done:
 
 		case pts := <-rc.newPoints:
 			// FIXME, need to match IDs and handle child nodes
-			err := data.MergePoints(pts.points, &rc.config)
+			err := data.MergePoints(rc.config.ID, pts.Points, &rc.config)
 			if err != nil {
 				log.Println("error merging rule points: ", err)
 			}
 		case pts := <-rc.newEdgePoints:
-			err := data.MergeEdgePoints(pts.points, &rc.config)
+			err := data.MergeEdgePoints(pts.Points, &rc.config)
 			if err != nil {
 				log.Println("error merging rule edge points: ", err)
 			}
@@ -240,13 +240,13 @@ func (rc *RuleClient) Stop(err error) {
 // Points is called by the Manager when new points for this
 // node are received.
 func (rc *RuleClient) Points(nodeID string, points []data.Point) {
-	rc.newPoints <- newPoints{nodeID, "", points}
+	rc.newPoints <- NewPoints{nodeID, "", points}
 }
 
 // EdgePoints is called by the Manager when new edge points for this
 // node are received.
 func (rc *RuleClient) EdgePoints(nodeID, parentID string, points []data.Point) {
-	rc.newEdgePoints <- newPoints{nodeID, parentID, points}
+	rc.newEdgePoints <- NewPoints{nodeID, parentID, points}
 }
 
 // sendPoint sets origin to the rule node

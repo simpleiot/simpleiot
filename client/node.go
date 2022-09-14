@@ -417,7 +417,7 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 			case r := <-getCurrent:
 				r <- current
 			case pts := <-pointUpdates:
-				data.MergePoints(pts, &current)
+				data.MergePoints(id, pts, &current)
 			case pts := <-edgeUpdates:
 				data.MergeEdgePoints(pts, &current)
 			}

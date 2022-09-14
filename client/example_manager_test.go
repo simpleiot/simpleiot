@@ -50,7 +50,7 @@ func (tnc *exNodeClient) Start() error {
 			close(tnc.stopped)
 			return nil
 		case pts := <-tnc.newPoints:
-			err := data.MergePoints(pts, &tnc.config)
+			err := data.MergePoints(tnc.config.ID, pts, &tnc.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
 			}

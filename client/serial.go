@@ -201,7 +201,7 @@ func (sd *SerialDevClient) Start() error {
 						log.Println("Error writing response to port: ", err)
 					}
 				}
-				err = data.MergePoints(points, &sd.config)
+				err = data.MergePoints(sd.config.ID, points, &sd.config)
 				if err != nil {
 					log.Println("error merging new points: ", err)
 				}
@@ -262,7 +262,7 @@ func (sd *SerialDevClient) Start() error {
 				}
 			}
 
-			err := data.MergePoints(toMerge, &sd.config)
+			err := data.MergePoints(sd.config.ID, toMerge, &sd.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
 			}
