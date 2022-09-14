@@ -46,6 +46,7 @@ func MergePoints(id string, points []Point, output interface{}) error {
 		vOut = &vOutX
 		tOut = reflect.TypeOf(output).Elem()
 	}
+
 	pointValues := make(map[string]reflect.Value)
 	childValues := make(map[string]reflect.Value)
 
@@ -90,23 +91,63 @@ func MergePoints(id string, points []Point, output interface{}) error {
 
 // MergeEdgePoints takes edge points and updates a type that
 // matching edgepoint tags. See [Decode] for an example type.
-func MergeEdgePoints(points []Point, output interface{}) error {
-	vOut := reflect.ValueOf(output).Elem()
-	tOut := reflect.TypeOf(output).Elem()
+func MergeEdgePoints(id, parent string, points []Point, output interface{}) error {
+	var vOut *reflect.Value
+	var tOut reflect.Type
+
+	if reflect.TypeOf(output).String() == "*reflect.Value" {
+		outputV, ok := output.(*reflect.Value)
+		if !ok {
+			return errors.New("Error converting interface")
+		}
+
+		vOut = outputV
+		tOut = outputV.Type()
+	} else {
+		vOutX := reflect.ValueOf(output).Elem()
+		vOut = &vOutX
+		tOut = reflect.TypeOf(output).Elem()
+	}
 
 	edgeValues := make(map[string]reflect.Value)
+	childValues := make(map[string]reflect.Value)
+
+	structID := ""
+	structParent := ""
 
 	for i := 0; i < tOut.NumField(); i++ {
 		sf := tOut.Field(i)
 		if et := sf.Tag.Get("edgepoint"); et != "" {
 			edgeValues[et] = vOut.Field(i)
+		} else if nt := sf.Tag.Get("node"); nt != "" {
+			if nt == "id" {
+				structID = vOut.Field(i).String()
+			} else if nt == "parent" {
+				structParent = vOut.Field(i).String()
+			}
+		} else if ct := sf.Tag.Get("child"); ct != "" {
+			childValues[ct] = vOut.Field(i)
 		}
 	}
 
-	for _, p := range points {
-		v, ok := edgeValues[p.Type]
-		if ok {
-			setVal(p, v)
+	if structID == id && structParent == parent {
+		for _, p := range points {
+			v, ok := edgeValues[p.Type]
+			if ok {
+				setVal(p, v)
+			}
+		}
+	} else if len(childValues) > 0 {
+		// try children
+		for _, children := range childValues {
+			// v is an array, iterate through child array
+			for i := 0; i < children.Len(); i++ {
+				v := children.Index(i)
+				err := MergeEdgePoints(id, parent, points, &v)
+				if err != nil {
+					return fmt.Errorf("Error merging child edge points: %v", err)
+				}
+			}
 		}
 	}
 

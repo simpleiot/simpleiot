@@ -34,7 +34,7 @@ func TestMergeEdgePoints(t *testing.T) {
 		{Type: "role", Text: modifiedRole},
 	}
 
-	err := MergeEdgePoints(mods, &out)
+	err := MergeEdgePoints(out.ID, out.Parent, mods, &out)
 
 	if err != nil {
 		t.Fatal("Merge error: ", err)
@@ -60,8 +60,10 @@ func TestMergeChildPoints(t *testing.T) {
 				TestZs: []testZ{
 					{
 						ID:          "ID-testZ",
+						Parent:      "ID-testY",
 						Description: "test Z node",
 						Count:       23,
+						Role:        "peon",
 					},
 				},
 			},
@@ -109,5 +111,22 @@ func TestMergeChildPoints(t *testing.T) {
 	if testData.TestYs[0].TestZs[0].Description != modifiedDescription {
 		t.Errorf("Description not modified, exp: %v, got: %v", modifiedDescription,
 			testData.TestYs[0].TestZs[0].Description)
+	}
+
+	// Test edge modifications
+	modifiedRole := "yrole"
+
+	mods = []Point{
+		{Type: "role", Text: modifiedRole},
+	}
+
+	err = MergeEdgePoints("ID-testZ", "ID-testY", mods, &testData)
+	if err != nil {
+		t.Fatal("Merge error: ", err)
+	}
+
+	if testData.TestYs[0].TestZs[0].Role != modifiedRole {
+		t.Errorf("Role not modified, exp: %v, got: %v", modifiedRole,
+			testData.TestYs[0].TestZs[0].Role)
 	}
 }

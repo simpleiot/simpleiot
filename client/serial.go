@@ -35,8 +35,8 @@ type SerialDevClient struct {
 	nc            *nats.Conn
 	config        SerialDev
 	stop          chan struct{}
-	newPoints     chan []data.Point
-	newEdgePoints chan []data.Point
+	newPoints     chan NewPoints
+	newEdgePoints chan NewPoints
 	wrSeq         byte
 }
 
@@ -46,8 +46,8 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 		nc:            nc,
 		config:        config,
 		stop:          make(chan struct{}),
-		newPoints:     make(chan []data.Point),
-		newEdgePoints: make(chan []data.Point),
+		newPoints:     make(chan NewPoints),
+		newEdgePoints: make(chan NewPoints),
 	}
 }
 
@@ -242,10 +242,8 @@ func (sd *SerialDevClient) Start() error {
 		case pts := <-sd.newPoints:
 			// we only process points whose origin is set, IE did not originate
 			// from the serial device and are simply echo'd back.
-			toMerge := data.Points{}
 			op := false
-			for _, p := range pts {
-				toMerge = append(toMerge, p)
+			for _, p := range pts.Points {
 				if p.Type == data.PointTypePort ||
 					p.Type == data.PointTypeBaud ||
 					p.Type == data.PointTypeDisable {
@@ -262,7 +260,7 @@ func (sd *SerialDevClient) Start() error {
 				}
 			}
 
-			err := data.MergePoints(sd.config.ID, toMerge, &sd.config)
+			err := data.MergePoints(pts.ID, pts.Points, &sd.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
 			}
@@ -290,7 +288,7 @@ func (sd *SerialDevClient) Start() error {
 
 			// check if we have any points that need sent to MCU
 			toSend := data.Points{}
-			for _, p := range toMerge {
+			for _, p := range pts.Points {
 				switch p.Type {
 				case data.PointTypePort,
 					data.PointTypeBaud,
@@ -322,14 +320,7 @@ func (sd *SerialDevClient) Start() error {
 			}
 
 		case pts := <-sd.newEdgePoints:
-			// we only process points whose origin is set, IE did not originate
-			// from the serial device and are simply echo'd back.
-			toMerge := data.Points{}
-			for _, p := range pts {
-				toMerge = append(toMerge, p)
-			}
-
-			err := data.MergeEdgePoints(toMerge, &sd.config)
+			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &sd.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
 			}
@@ -347,11 +338,11 @@ func (sd *SerialDevClient) Stop(err error) {
 // Points is called by the Manager when new points for this
 // node are received.
 func (sd *SerialDevClient) Points(nodeID string, points []data.Point) {
-	sd.newPoints <- points
+	sd.newPoints <- NewPoints{nodeID, "", points}
 }
 
 // EdgePoints is called by the Manager when new edge points for this
 // node are received.
 func (sd *SerialDevClient) EdgePoints(nodeID, parentID string, points []data.Point) {
-	sd.newEdgePoints <- points
+	sd.newEdgePoints <- NewPoints{nodeID, parentID, points}
 }

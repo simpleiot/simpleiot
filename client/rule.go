@@ -220,7 +220,7 @@ done:
 				log.Println("error merging rule points: ", err)
 			}
 		case pts := <-rc.newEdgePoints:
-			err := data.MergeEdgePoints(pts.Points, &rc.config)
+			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &rc.config)
 			if err != nil {
 				log.Println("error merging rule edge points: ", err)
 			}
