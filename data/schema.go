@@ -151,6 +151,8 @@ const (
 	PointValueOff         = "off"
 	PointValueContains    = "contains"
 
+	PointTypeValueText = "valueText"
+
 	PointTypeMinActive = "minActive"
 
 	NodeTypeAction         = "action"

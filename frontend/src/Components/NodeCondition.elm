@@ -211,7 +211,7 @@ pointValue o labelWidth =
                 onOffInput Point.typeValue Point.typeValue "Point Value"
 
             "text" ->
-                textInput Point.typeValue "Point Value" ""
+                textInput Point.typeValueText "Point Value" ""
 
             _ ->
                 Element.none

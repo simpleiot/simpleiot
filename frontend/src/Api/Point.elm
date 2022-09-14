@@ -81,6 +81,7 @@ module Api.Point exposing
     , typeUpdateOS
     , typeValue
     , typeValueSet
+    , typeValueText
     , typeValueType
     , typeVariableType
     , typeVersionApp
@@ -180,6 +181,11 @@ typeValue =
 typeValueSet : String
 typeValueSet =
     "valueSet"
+
+
+typeValueText : String
+typeValueText =
+    "valueText"
 
 
 typeReadOnly : String

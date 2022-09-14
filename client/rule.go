@@ -52,18 +52,18 @@ type Condition struct {
 	Parent        string  `node:"parent"`
 	Description   string  `point:"description"`
 	ConditionType string  `point:"conditionType"`
-	MinTimeActive float64 `point:"minTimeActive"`
+	MinActive     float64 `point:"minActive"`
 	Active        bool    `point:"active"`
 
 	// used with point value rules
-	NodeID         string  `point:"nodeID"`
-	PointType      string  `point:"pointType"`
-	PointKey       string  `point:"pointKey"`
-	PointIndex     int     `point:"pointIndex"`
-	ValueType      string  `point:"valueType"`
-	Operator       string  `point:"operator"`
-	Value          float64 `point:"value"`
-	PointTextValue string  `point:"pointTextValue"`
+	NodeID     string  `point:"nodeID"`
+	PointType  string  `point:"pointType"`
+	PointKey   string  `point:"pointKey"`
+	PointIndex int     `point:"pointIndex"`
+	ValueType  string  `point:"valueType"`
+	Operator   string  `point:"operator"`
+	Value      float64 `point:"value"`
+	ValueText  string  `point:"valueText"`
 
 	// used with shedule rules
 	StartTime string `point:"startTime"`
@@ -72,7 +72,15 @@ type Condition struct {
 }
 
 func (c Condition) String() string {
-	ret := fmt.Sprintf("  COND: %v  V:%v  A:%v\n", c.Description, c.Value, c.Active)
+	value := strconv.FormatFloat(c.Value, 'f', 2, 64)
+	if c.ValueText != "" {
+		value = c.ValueText
+	}
+	ret := fmt.Sprintf("  COND: %v  V:%v  A:%v", c.Description, value, c.Active)
+	if c.MinActive > 0 {
+		ret += fmt.Sprintf("  MINACT:%vms", c.MinActive)
+	}
+	ret += "\n"
 	return ret
 }
 
