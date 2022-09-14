@@ -141,6 +141,8 @@ func NewRuleClient(nc *nats.Conn, config Rule) Client {
 // Start runs the main logic for this client and blocks until stopped
 func (rc *RuleClient) Start() error {
 	// watch all points that flow through parent node
+	// FIXME: we should optimize this so we only watch the nodes
+	// that are in the conditions
 	subject := fmt.Sprintf("up.%v.*.points", rc.config.Parent)
 
 	var err error
