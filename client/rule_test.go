@@ -56,15 +56,15 @@ func TestRules(t *testing.T) {
 	}
 
 	c := client.Condition{
-		ID:             "ID-condition",
-		Parent:         r.ID,
-		Description:    "cond vin high",
-		ConditionType:  data.PointValuePointValue,
-		PointType:      data.PointTypeValue,
-		PointValueType: data.PointValueOnOff,
-		NodeID:         vin.ID,
-		Operator:       data.PointValueEqual,
-		PointValue:     1,
+		ID:            "ID-condition",
+		Parent:        r.ID,
+		Description:   "cond vin high",
+		ConditionType: data.PointValuePointValue,
+		PointType:     data.PointTypeValue,
+		ValueType:     data.PointValueOnOff,
+		NodeID:        vin.ID,
+		Operator:      data.PointValueEqual,
+		Value:         1,
 	}
 
 	err = client.SendNodeType(nc, c, "test")

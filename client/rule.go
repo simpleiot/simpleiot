@@ -60,9 +60,9 @@ type Condition struct {
 	PointType      string  `point:"pointType"`
 	PointKey       string  `point:"pointKey"`
 	PointIndex     int     `point:"pointIndex"`
-	PointValueType string  `point:"pointValueType"`
+	ValueType      string  `point:"valueType"`
 	Operator       string  `point:"operator"`
-	PointValue     float64 `point:"pointValue"`
+	Value          float64 `point:"value"`
 	PointTextValue string  `point:"pointTextValue"`
 
 	// used with shedule rules
@@ -72,7 +72,7 @@ type Condition struct {
 }
 
 func (c Condition) String() string {
-	ret := fmt.Sprintf("  COND: %v  V:%v  A:%v\n", c.Description, c.PointValue, c.Active)
+	ret := fmt.Sprintf("  COND: %v  V:%v  A:%v\n", c.Description, c.Value, c.Active)
 	return ret
 }
 
@@ -85,7 +85,7 @@ type Action struct {
 	Active         bool    `point:"active"`
 	NodeID         string  `point:"nodeID"`
 	PointType      string  `point:"pointType"`
-	PointValueType string  `point:"pointValueType"`
+	ValueType      string  `point:"valueType"`
 	PointValue     float64 `point:"pointValue"`
 	PointTextValue string  `point:"pointTextValue"`
 	PointChannel   int     `point:"pointChannel"`
@@ -107,7 +107,7 @@ type ActionInactive struct {
 	Action         string  `point:"action"`
 	NodeID         string  `point:"nodeID"`
 	PointType      string  `point:"pointType"`
-	PointValueType string  `point:"pointValueType"`
+	ValueType      string  `point:"valueType"`
 	PointValue     float64 `point:"pointValue"`
 	PointTextValue string  `point:"pointTextValue"`
 	PointChannel   int     `point:"pointChannel"`
@@ -270,18 +270,18 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				}
 
 				// conditions match, so check value
-				switch c.PointValueType {
+				switch c.ValueType {
 				case data.PointValueNumber:
 					pointsProcessed = true
 					switch c.Operator {
 					case data.PointValueGreaterThan:
-						active = p.Value > c.PointValue
+						active = p.Value > c.Value
 					case data.PointValueLessThan:
-						active = p.Value < c.PointValue
+						active = p.Value < c.Value
 					case data.PointValueEqual:
-						active = p.Value == c.PointValue
+						active = p.Value == c.Value
 					case data.PointValueNotEqual:
-						active = p.Value != c.PointValue
+						active = p.Value != c.Value
 					}
 				case data.PointValueText:
 					pointsProcessed = true
@@ -292,9 +292,12 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 					}
 				case data.PointValueOnOff:
 					pointsProcessed = true
-					condValue := c.PointValue != 0
+					condValue := c.Value != 0
 					pointValue := p.Value != 0
 					active = condValue == pointValue
+				default:
+					log.Printf("unknown point type for rule: %v: %v\n",
+						rc.config.Description, c.ValueType)
 				}
 			case data.PointValueSchedule:
 				if p.Type != data.PointTypeTrigger {
