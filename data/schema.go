@@ -199,6 +199,8 @@ const (
 	NodeTypeSerialDev = "serialDev"
 	PointTypeRx       = "rx"
 	PointTypeTx       = "tx"
+	PointTypeRxReset  = "rxReset"
+	PointTypeTxReset  = "txReset"
 	PointTypeLog      = "log"
 	PointTypeUptime   = "uptime"
 )

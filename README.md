@@ -87,6 +87,8 @@ For support or to discuss this project, use one of the following options:
   [gophers.slack.com](https://gophers.slack.com/messages/simpleiot/)
 - open a Github issue
 - [Simple IoT YouTube channel](https://www.youtube.com/channel/UCDAtjx0utMbJCexZ7Q5CbNg)
+- subscribe to our [email newsletter](https://tinyletter.com/tmpdir) for project
+  updates.
 
 ## License
 

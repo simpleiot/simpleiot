@@ -74,7 +74,7 @@ All packets between the SIOT and serial MCU systems are structured as follows:
 
 - sequence (1 byte, rolls over)
 - `Serial` protobuf
-- crc (2 bytes)
+- crc (2 bytes) (Currently using CRC-16/KERMIT)
 
 All packets are ack'd by an empty packet with the same sequenced number. If an
 ack is not received in X amount of time, the packet is retried up to 3 times,

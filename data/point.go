@@ -74,6 +74,10 @@ func (p Point) String() string {
 		t += fmt.Sprintf("I:%v ", p.Index)
 	}
 
+	if p.Key != "" {
+		t += fmt.Sprintf("K:%v ", p.Key)
+	}
+
 	if p.Origin != "" {
 		t += fmt.Sprintf("O:%v ", p.Origin)
 	}
