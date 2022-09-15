@@ -76,10 +76,10 @@ func TestRules(t *testing.T) {
 		ID:          "ID-action",
 		Parent:      r.ID,
 		Description: "action active",
-		Action:      data.PointValueActionSetValue,
+		Action:      data.PointValueSetValue,
 		PointType:   data.PointTypeValue,
 		NodeID:      vout.ID,
-		PointValue:  1,
+		Value:       1,
 	}
 
 	err = client.SendNodeType(nc, a, "test")
@@ -91,10 +91,10 @@ func TestRules(t *testing.T) {
 		ID:          "ID-action2",
 		Parent:      r.ID,
 		Description: "action inactive",
-		Action:      data.PointValueActionSetValue,
+		Action:      data.PointValueSetValue,
 		PointType:   data.PointTypeValue,
 		NodeID:      vout.ID,
-		PointValue:  0,
+		Value:       0,
 	}
 
 	err = client.SendNodeType(nc, a2, "test")

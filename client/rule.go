@@ -72,55 +72,96 @@ type Condition struct {
 }
 
 func (c Condition) String() string {
-	value := strconv.FormatFloat(c.Value, 'f', 2, 64)
-	if c.ValueText != "" {
+	value := ""
+	switch c.ValueType {
+	case data.PointValueOnOff:
+		if c.Value == 0 {
+			value = "off"
+		} else {
+			value = "on"
+		}
+	case data.PointValueNumber:
+		value = strconv.FormatFloat(c.Value, 'f', 2, 64)
+	case data.PointValueText:
 		value = c.ValueText
 	}
-	ret := fmt.Sprintf("  COND: %v  V:%v  A:%v", c.Description, value, c.Active)
-	if c.MinActive > 0 {
-		ret += fmt.Sprintf("  MINACT:%vms", c.MinActive)
+
+	ret := fmt.Sprintf("  COND: %v  CTYPE:%v  VTYPE:%v  V:%v",
+		c.Description, c.ConditionType, c.ValueType, value)
+	if c.NodeID != "" {
+		ret += fmt.Sprintf("  NODEID:%v", c.NodeID)
 	}
+	if c.MinActive > 0 {
+		ret += fmt.Sprintf("  MINACT:%v", c.MinActive)
+	}
+	ret += fmt.Sprintf("  A:%v", c.Active)
 	ret += "\n"
 	return ret
 }
 
 // Action defines actions that can be taken if a rule is active.
 type Action struct {
-	ID             string  `node:"id"`
-	Parent         string  `node:"parent"`
-	Description    string  `point:"description"`
-	Action         string  `point:"action"`
-	Active         bool    `point:"active"`
-	NodeID         string  `point:"nodeID"`
-	PointType      string  `point:"pointType"`
-	ValueType      string  `point:"valueType"`
-	PointValue     float64 `point:"pointValue"`
-	PointTextValue string  `point:"pointTextValue"`
-	PointChannel   int     `point:"pointChannel"`
-	PointDevice    string  `point:"pointDevice"`
-	PointFilePath  string  `point:"pointFilePath"`
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+	Active      bool   `point:"active"`
+	// Action: notify, setValue, playAudio
+	Action    string `point:"action"`
+	NodeID    string `point:"nodeID"`
+	PointType string `point:"pointType"`
+	// PointType: number, text, onOff
+	ValueType string  `point:"valueType"`
+	Value     float64 `point:"value"`
+	ValueText string  `point:"valueText"`
+	// the following are used for audio playback
+	PointChannel  int    `point:"pointChannel"`
+	PointDevice   string `point:"pointDevice"`
+	PointFilePath string `point:"pointFilePath"`
 }
 
 func (a Action) String() string {
-	ret := fmt.Sprintf("%v  V:%v  A:%v\n", a.Description, a.PointValue, a.Active)
+	value := ""
+	switch a.ValueType {
+	case data.PointValueOnOff:
+		if a.Value == 0 {
+			value = "off"
+		} else {
+			value = "on"
+		}
+	case data.PointValueNumber:
+		value = strconv.FormatFloat(a.Value, 'f', 2, 64)
+	case data.PointValueText:
+		value = a.ValueText
+	}
+	ret := fmt.Sprintf("%v  ACT:%v  VTYPE:%v  V:%v",
+		a.Description, a.Action, a.ValueType, value)
+	if a.NodeID != "" {
+		ret += fmt.Sprintf("  NODEID:%v", a.NodeID)
+	}
+	ret += fmt.Sprintf("  A:%v", a.Active)
+	ret += "\n"
 	return ret
 }
 
 // ActionInactive defines actions that can be taken if a rule is inactive.
 // this is defined for use with the client.SendNodeType API
 type ActionInactive struct {
-	ID             string  `node:"id"`
-	Parent         string  `node:"parent"`
-	Description    string  `point:"description"`
-	Action         string  `point:"action"`
-	NodeID         string  `point:"nodeID"`
-	PointType      string  `point:"pointType"`
-	ValueType      string  `point:"valueType"`
-	PointValue     float64 `point:"pointValue"`
-	PointTextValue string  `point:"pointTextValue"`
-	PointChannel   int     `point:"pointChannel"`
-	PointDevice    string  `point:"pointDevice"`
-	PointFilePath  string  `point:"pointFilePath"`
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+	Active      bool   `point:"active"`
+	// Action: notify, setValue, playAudio
+	Action    string `point:"action"`
+	NodeID    string `point:"nodeID"`
+	PointType string `point:"pointType"`
+	// PointType: number, text, onOff
+	ValueType string  `point:"valueType"`
+	Value     float64 `point:"value"`
+	ValueText string  `point:"valueText"`
+	// the following are used for audio playback
+	PointChannel  int    `point:"pointChannel"`
+	PointDevice   string `point:"pointDevice"`
+	PointFilePath string `point:"pointFilePath"`
 }
 
 // RuleClient is a SIOT client used to run rules
@@ -380,22 +421,23 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) error {
 	for i, a := range actions {
 		switch a.Action {
-		case data.PointValueActionSetValue:
+		case data.PointValueSetValue:
 			if a.NodeID == "" {
 				log.Println("Error, node action nodeID must be set, action id: ", a.ID)
+				break
 			}
 			p := data.Point{
 				Time:   time.Now(),
 				Type:   a.PointType,
-				Value:  a.PointValue,
-				Text:   a.PointTextValue,
+				Value:  a.Value,
+				Text:   a.ValueText,
 				Origin: a.ID,
 			}
 			err := rc.sendPoint(a.NodeID, p)
 			if err != nil {
 				log.Println("Error sending rule action point: ", err)
 			}
-		case data.PointValueActionNotify:
+		case data.PointValueNotify:
 			// get node that fired the rule
 			nodes, err := GetNode(rc.nc, triggerNodeID, "none")
 			if err != nil {
@@ -427,7 +469,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			if err != nil {
 				return err
 			}
-		case data.PointValueActionPlayAudio:
+		case data.PointValuePlayAudio:
 			f, err := os.Open(a.PointFilePath)
 			if err != nil {
 				log.Fatal(err)

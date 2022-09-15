@@ -158,11 +158,11 @@ const (
 	NodeTypeAction         = "action"
 	NodeTypeActionInactive = "actionInactive"
 
-	PointTypeActionType = "actionType"
+	PointTypeAction = "action"
 
-	PointValueActionNotify    = "notify"
-	PointValueActionSetValue  = "setValue"
-	PointValueActionPlayAudio = "playAudio"
+	PointValueNotify    = "notify"
+	PointValueSetValue  = "setValue"
+	PointValuePlayAudio = "playAudio"
 
 	// Transient points that are used for notifications, etc.
 	// These points are not stored in the state of any node,
