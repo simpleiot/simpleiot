@@ -211,7 +211,7 @@ NextPin:
 		for j, pDb := range dbPoints {
 			if pIn.Type == pDb.Type && pIn.Key == pDb.Key {
 				// found a match
-				if pIn.Time.After(pDb.Time) {
+				if pDb.Time.Before(pIn.Time) || pDb.Time.Equal(pIn.Time) {
 					writePoints = append(writePoints, pIn)
 					writePointIDs = append(writePointIDs, dbPointIDs[j])
 				}
