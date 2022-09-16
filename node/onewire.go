@@ -200,7 +200,7 @@ func (ow *oneWire) detect() {
 					},
 				}
 
-				err := client.SendNode(ow.nc, n)
+				err := client.SendNode(ow.nc, n, "")
 				if err != nil {
 					log.Println("Error sending new 1-wire IO: ", err)
 				}

@@ -217,7 +217,7 @@ func StartArgs(args []string) error {
 			os.Exit(-1)
 		}
 
-		err = client.SendNodePointCreate(nc, nodeID, point, *flagNatsAck)
+		err = client.SendNodePoint(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -231,7 +231,7 @@ func StartArgs(args []string) error {
 			os.Exit(-1)
 		}
 
-		err = client.SendNodePointCreate(nc, nodeID, point, *flagNatsAck)
+		err = client.SendNodePoint(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)

@@ -174,16 +174,11 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 
 // SendNode is used to send a node to a nats server. Can be
 // used to create nodes.
-func SendNode(nc *nats.Conn, node data.NodeEdge) error {
+func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 	// we need to send the edge points first if we are creating
 	// a new node, otherwise the upstream will detect an ophraned node
 	// and create a new edge to the root node
 	points := node.Points
-
-	origin := ""
-	if len(node.Points) > 0 {
-		origin = node.Points[0].Origin
-	}
 
 	if node.ID == "" {
 		return errors.New("ID must be set to a UUID")
@@ -236,10 +231,10 @@ func SendNodeType[T any](nc *nats.Conn, node T, origin string) error {
 		}
 	}
 
-	return SendNode(nc, ne)
+	return SendNode(nc, ne, origin)
 }
 
-func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent string) error {
+func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent, origin string) error {
 	children, err := GetNodeChildren(nc, node.ID, "", false, false)
 	if err != nil {
 		return fmt.Errorf("GetNodeChildren error: %v", err)
@@ -249,13 +244,13 @@ func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent string) er
 	node.ID = uuid.New().String()
 	node.Parent = newParent
 
-	err = SendNode(nc, node)
+	err = SendNode(nc, node, origin)
 	if err != nil {
 		return fmt.Errorf("SendNode error: %v", err)
 	}
 
 	for _, c := range children {
-		err := duplicateNodeHelper(nc, c, node.ID)
+		err := duplicateNodeHelper(nc, c, node.ID, origin)
 		if err != nil {
 			return err
 		}
@@ -265,7 +260,7 @@ func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent string) er
 }
 
 // DuplicateNode is used to Duplicate a node and all its children
-func DuplicateNode(nc *nats.Conn, id, newParent string) error {
+func DuplicateNode(nc *nats.Conn, id, newParent, origin string) error {
 	nodes, err := GetNode(nc, id, "none")
 	if err != nil {
 		return fmt.Errorf("GetNode error: %v", err)
@@ -287,28 +282,30 @@ func DuplicateNode(nc *nats.Conn, id, newParent string) error {
 		node.AddPoint(data.Point{Type: data.PointTypeDescription, Text: desc})
 	}
 
-	return duplicateNodeHelper(nc, node, newParent)
+	return duplicateNodeHelper(nc, node, newParent, origin)
 }
 
 // DeleteNode removes a node from the specified parent node
-func DeleteNode(nc *nats.Conn, id, parent string) error {
+func DeleteNode(nc *nats.Conn, id, parent string, origin string) error {
 	err := SendEdgePoint(nc, id, parent, data.Point{
-		Type:  data.PointTypeTombstone,
-		Value: 1,
+		Type:   data.PointTypeTombstone,
+		Value:  1,
+		Origin: origin,
 	}, true)
 
 	return err
 }
 
 // MoveNode moves a node from one parent to another
-func MoveNode(nc *nats.Conn, id, oldParent, newParent string) error {
+func MoveNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
 	if newParent == oldParent {
 		return errors.New("can't move node to itself")
 	}
 
 	err := SendEdgePoint(nc, id, newParent, data.Point{
-		Type:  data.PointTypeTombstone,
-		Value: 0,
+		Type:   data.PointTypeTombstone,
+		Value:  0,
+		Origin: origin,
 	}, true)
 
 	if err != nil {
@@ -329,10 +326,11 @@ func MoveNode(nc *nats.Conn, id, oldParent, newParent string) error {
 
 // MirrorNode adds a an existing node to a new parent. A node can have
 // multiple parents.
-func MirrorNode(nc *nats.Conn, id, newParent string) error {
+func MirrorNode(nc *nats.Conn, id, newParent, origin string) error {
 	err := SendEdgePoint(nc, id, newParent, data.Point{
-		Type:  data.PointTypeTombstone,
-		Value: 0,
+		Type:   data.PointTypeTombstone,
+		Value:  0,
+		Origin: origin,
 	}, true)
 
 	return err

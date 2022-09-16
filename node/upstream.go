@@ -283,7 +283,7 @@ func (up *Upstream) addUpstreamEdgeSub(nodeID, parentID string) error {
 // from one NATS server to another. Typically from the current instance
 // to an upstream.
 func (up *Upstream) sendNodesUp(node data.NodeEdge) error {
-	err := client.SendNode(up.ncUp, node)
+	err := client.SendNode(up.ncUp, node, up.node.ID)
 
 	if err != nil {
 		return err

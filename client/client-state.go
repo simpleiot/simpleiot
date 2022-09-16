@@ -76,7 +76,6 @@ func (cs *clientState[T]) start() (err error) {
 			log.Println("Error decoding points")
 			return
 		}
-
 		for _, p := range points {
 			if p.Origin == "" {
 				// point came from the owning node, we already know about it
@@ -101,7 +100,7 @@ func (cs *clientState[T]) start() (err error) {
 		} else if len(chunks) == 5 {
 			// edge points
 			for _, p := range points {
-				if p.Type == data.PointTypeTombstone && p.Value == 1 {
+				if p.Type == data.PointTypeTombstone {
 					// a node was deleted, stop client and restart
 					cs.stop(nil)
 					return

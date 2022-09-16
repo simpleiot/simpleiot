@@ -10,44 +10,6 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// SendNodePointCreate sends a node point using the nats protocol and
-// creates the node if it does not already exist
-func SendNodePointCreate(nc *nats.Conn, nodeID string, point data.Point, ack bool) error {
-	return SendNodePointsCreate(nc, nodeID, []data.Point{point}, ack)
-}
-
-// SendNodePointsCreate sends a node point using the nats protocol and
-// creates the node if it does not already exist
-func SendNodePointsCreate(nc *nats.Conn, nodeID string, points data.Points, ack bool) error {
-	_, err := GetNode(nc, nodeID, "none")
-	newNode := false
-	if err != nil {
-		if err != data.ErrDocumentNotFound {
-			return fmt.Errorf("GetNode error: %w", err)
-		}
-
-		newNode = true
-	}
-
-	err = SendNodePoints(nc, nodeID, points, ack)
-	if err != nil {
-		return fmt.Errorf("SendNodePoints error: %w", err)
-	}
-
-	if newNode {
-		err := SendEdgePoint(nc, nodeID, "", data.Point{
-			Type:  data.PointTypeTombstone,
-			Value: 0,
-		}, true)
-
-		if err != nil {
-			return fmt.Errorf("SendEdgePoint error: %w", err)
-		}
-	}
-
-	return nil
-}
-
 // SendNodePoint sends a node point using the nats protocol
 func SendNodePoint(nc *nats.Conn, nodeID string, point data.Point, ack bool) error {
 	points := data.Points{point}
