@@ -103,7 +103,7 @@ func ExampleNewManager() {
 	ne.Parent = root.ID
 
 	// hydrate database with test node
-	err = client.SendNode(nc, ne)
+	err = client.SendNode(nc, ne, "test")
 
 	if err != nil {
 		log.Println("Error sending node: ", err)
@@ -114,5 +114,5 @@ func ExampleNewManager() {
 	m := client.NewManager(nc, root.ID, newExNodeClient)
 	m.Start()
 
-	// Now any updates to the node will tigger Points/EdgePoints callbacks in the above client
+	// Now any updates to the node will trigger Points/EdgePoints callbacks in the above client
 }
