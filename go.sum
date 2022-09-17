@@ -56,9 +56,8 @@ github.com/gorilla/websocket v1.4.1 h1:q7AeDBpnBk8AogcD4DSag/Ukw/KV+YhzLj2bP5HvK
 github.com/gorilla/websocket v1.4.1/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 h1:KUDFlmBg2buRWNzIcwLlKvfcnujcHQRQ1As1LoaCLAM=
 github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1/go.mod h1:cOaXtrgN4ScfRrD9Bre7U1thNq5RtJ8ZoP4iXVGRj6o=
-github.com/influxdata/influxdb-client-go/v2 v2.5.0 h1:ugcI/KGMFM7N7LE49H0Y/Zbh8rBNLqtAA7+QZ2YoHck=
-github.com/influxdata/influxdb-client-go/v2 v2.5.0/go.mod h1:Y/0W1+TZir7ypoQZYd2IrnVOKB3Tq6oegAQeSVN/+EU=
-github.com/influxdata/line-protocol v0.0.0-20200327222509-2487e7298839/go.mod h1:xaLFMmpvUxqXtVkUJfg9QmT88cDaCJ3ZKgdZ78oO8Qo=
+github.com/influxdata/influxdb-client-go/v2 v2.10.0 h1:bWCwNsp0KxBioW9PTG7LPk7/uXj2auHezuUMpztbpZY=
+github.com/influxdata/influxdb-client-go/v2 v2.10.0/go.mod h1:x7Jo5UHHl+w8wu8UnGiNobDDHygojXwJX4mx7rXGKMk=
 github.com/influxdata/line-protocol v0.0.0-20210311194329-9aa0e372d097 h1:vilfsDSy7TDxedi9gyBkMvAirat/oRcL0lFdJBf6tdM=
 github.com/influxdata/line-protocol v0.0.0-20210311194329-9aa0e372d097/go.mod h1:xaLFMmpvUxqXtVkUJfg9QmT88cDaCJ3ZKgdZ78oO8Qo=
 github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4 h1:G2ztCwXov8mRvP0ZfjE6nAlaCX2XbykaeHdbT6KwDz0=
