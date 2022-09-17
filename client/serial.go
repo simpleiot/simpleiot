@@ -250,8 +250,6 @@ func (sd *SerialDevClient) Start() error {
 				log.Println("Error sending points received from MCU: ", err)
 			}
 		case pts := <-sd.newPoints:
-			// we only process points whose origin is set, IE did not originate
-			// from the serial device and are simply echo'd back.
 			op := false
 			for _, p := range pts.Points {
 				if p.Type == data.PointTypePort ||
