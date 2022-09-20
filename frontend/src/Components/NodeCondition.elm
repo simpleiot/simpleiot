@@ -117,7 +117,7 @@ pointValue o labelWidth =
             Point.getText o.node.points Point.typeValueType ""
 
         nodeId =
-            Point.getText o.node.points Point.typeID ""
+            Point.getText o.node.points Point.typeNodeID ""
 
         operators =
             case conditionValueType of
@@ -141,7 +141,7 @@ pointValue o labelWidth =
         [ width fill
         , spacing 6
         ]
-        [ textInput Point.typeID "Node ID" ""
+        [ textInput Point.typeNodeID "Node ID" ""
         , if nodeId /= "" then
             let
                 nodeDesc =
@@ -179,7 +179,7 @@ pointValue o labelWidth =
                                     text desc
                                 ]
                     in
-                    NodeInputs.nodePasteButton opts label Point.typeID id
+                    NodeInputs.nodePasteButton opts label Point.typeNodeID id
 
                 else
                     Element.none
@@ -211,7 +211,7 @@ pointValue o labelWidth =
                 onOffInput Point.typeValue Point.typeValue "Point Value"
 
             "text" ->
-                textInput Point.typeValue "Point Value" ""
+                textInput Point.typeValueText "Point Value" ""
 
             _ ->
                 Element.none

@@ -107,7 +107,7 @@ func (owm *oneWireManager) update() error {
 					},
 				}
 
-				err := client.SendNode(owm.nc, n)
+				err := client.SendNode(owm.nc, n, "")
 				if err != nil {
 					log.Println("Error sending new 1-wire node: ", err)
 				}

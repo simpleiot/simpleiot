@@ -46,7 +46,7 @@ var testTypeData = testType{
 func TestDecode(t *testing.T) {
 	var out testType
 
-	err := Decode(nodeEdgeTest, &out)
+	err := Decode(NodeEdgeChildren{nodeEdgeTest, nil}, &out)
 
 	if err != nil {
 		t.Fatal("Error decoding: ", err)
@@ -66,7 +66,7 @@ type testType2 struct {
 func TestDecodeTypeMismatch(t *testing.T) {
 	var out testType2
 
-	err := Decode(nodeEdgeTest, &out)
+	err := Decode(NodeEdgeChildren{nodeEdgeTest, nil}, &out)
 
 	if err != nil {
 		t.Fatal("Error decoding type mismatch test: ", err)
@@ -88,48 +88,6 @@ func TestEncode(t *testing.T) {
 
 }
 
-func TestMergePoints(t *testing.T) {
-	out := testTypeData
-
-	modifiedDescription := "test type modified"
-
-	mods := []Point{
-		{Type: "description", Text: modifiedDescription},
-	}
-
-	err := MergePoints(mods, &out)
-
-	if err != nil {
-		t.Fatal("Merge error: ", err)
-	}
-
-	if out.Description != modifiedDescription {
-		t.Errorf("Description not modified, exp: %v, got: %v", modifiedDescription,
-			out.Description)
-	}
-}
-
-func TestMergeEdgePoints(t *testing.T) {
-	out := testTypeData
-
-	modifiedRole := "user"
-
-	mods := []Point{
-		{Type: "role", Text: modifiedRole},
-	}
-
-	err := MergeEdgePoints(mods, &out)
-
-	if err != nil {
-		t.Fatal("Merge error: ", err)
-	}
-
-	if out.Role != modifiedRole {
-		t.Errorf("role not modified, exp: %v, got: %v", modifiedRole,
-			out.Role)
-	}
-}
-
 type TestType struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
@@ -148,4 +106,116 @@ func TestEncodeCase(t *testing.T) {
 	if ne.Type != "testType" {
 		t.Error("expected testType, got: ", ne.Type)
 	}
+}
+
+type testX struct {
+	ID          string  `node:"id"`
+	Parent      string  `node:"parent"`
+	Description string  `point:"description"`
+	TestYs      []testY `child:"testY"`
+}
+
+type testY struct {
+	ID          string  `node:"id"`
+	Parent      string  `node:"parent"`
+	Description string  `point:"description"`
+	Count       int     `point:"count"`
+	Role        string  `edgepoint:"role"`
+	TestZs      []testZ `child:"testZ"`
+	TestYs      []testY `child:"testY"`
+}
+
+type testZ struct {
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+	Count       int    `point:"count"`
+	Role        string `edgepoint:"role"`
+}
+
+func TestDecodeWithChildren(t *testing.T) {
+	nX := NodeEdgeChildren{
+		NodeEdge: NodeEdge{
+			ID:     "123",
+			Parent: "456",
+			Type:   "testX",
+			Points: []Point{
+				Point{Type: "description", Text: "test X type"},
+			},
+			EdgePoints: []Point{
+				Point{Type: "role", Text: "admin"},
+				Point{Type: "tombstone", Value: 1},
+			},
+		},
+		Children: []NodeEdgeChildren{
+			{NodeEdge{
+				ID:     "abc",
+				Parent: "123",
+				Type:   "testY",
+				Points: []Point{
+					Point{Type: "description", Text: "test Y1"},
+				},
+				EdgePoints: []Point{
+					Point{Type: "role", Text: "user"},
+					Point{Type: "tombstone", Value: 1},
+				},
+			},
+				[]NodeEdgeChildren{
+					{NodeEdge{
+						ID:     "jkl",
+						Parent: "abc",
+						Type:   "testY",
+						Points: []Point{
+							Point{Type: "description", Text: "test Y2"},
+						},
+						EdgePoints: []Point{
+							Point{Type: "role", Text: "user"},
+							Point{Type: "tombstone", Value: 1},
+						},
+					}, nil},
+					{NodeEdge{
+						ID:     "mno",
+						Parent: "abc",
+						Type:   "testZ",
+						Points: []Point{
+							Point{Type: "description", Text: "test Z1"},
+						},
+						EdgePoints: []Point{
+							Point{Type: "role", Text: "user"},
+							Point{Type: "tombstone", Value: 1},
+						},
+					}, nil},
+				},
+			},
+		},
+	}
+
+	var out testX
+
+	err := Decode(nX, &out)
+
+	if err != nil {
+		t.Fatal("Error decoding: ", err)
+	}
+
+	if out.ID != "123" {
+		t.Fatal("Decode failed, wrong ID")
+	}
+
+	if len(out.TestYs) < 1 {
+		t.Fatal("No TestYs")
+	}
+
+	if out.TestYs[0].ID != "abc" {
+		t.Fatal("Decode failed, wrong ID for TestYs[0]")
+	}
+
+	if len(out.TestYs[0].TestYs) < 1 {
+		t.Fatal("No TestYs.TestYs")
+	}
+
+	if len(out.TestYs[0].TestZs) < 1 {
+		t.Fatal("No TestYs.TestZs")
+	}
+
 }

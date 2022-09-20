@@ -17,7 +17,7 @@ module Api.Point exposing
     , newValue
     , renderPoint
     , sort
-    , typeActionType
+    , typeAction
     , typeActive
     , typeAddress
     , typeAuthToken
@@ -49,6 +49,7 @@ module Api.Point exposing
     , typeLog
     , typeMinActive
     , typeModbusIOType
+    , typeNodeID
     , typeNodeType
     , typeOffset
     , typeOperator
@@ -85,6 +86,7 @@ module Api.Point exposing
     , typeUpdateOS
     , typeValue
     , typeValueSet
+    , typeValueText
     , typeValueType
     , typeVariableType
     , typeVersionApp
@@ -93,11 +95,6 @@ module Api.Point exposing
     , typeWeekday
     , updatePoint
     , updatePoints
-    , valueActionNotify
-    , valueActionPlayAudio
-    , valueActionSetValue
-    , valueActionSetValueBool
-    , valueActionSetValueText
     , valueClient
     , valueContains
     , valueEqual
@@ -111,15 +108,20 @@ module Api.Point exposing
     , valueModbusHoldingRegister
     , valueModbusInputRegister
     , valueNotEqual
+    , valueNotify
     , valueNumber
     , valueOff
     , valueOn
     , valueOnOff
+    , valuePlayAudio
     , valuePointValue
     , valueRTU
     , valueSMTP
     , valueSchedule
     , valueServer
+    , valueSetValue
+    , valueSetValueBool
+    , valueSetValueText
     , valueSysStateOffline
     , valueSysStateOnline
     , valueSysStatePowerOff
@@ -184,6 +186,11 @@ typeValue =
 typeValueSet : String
 typeValueSet =
     "valueSet"
+
+
+typeValueText : String
+typeValueText =
+    "valueText"
 
 
 typeReadOnly : String
@@ -576,33 +583,33 @@ typeMinActive =
     "minActive"
 
 
-typeActionType : String
-typeActionType =
-    "actionType"
+typeAction : String
+typeAction =
+    "action"
 
 
-valueActionNotify : String
-valueActionNotify =
+valueNotify : String
+valueNotify =
     "notify"
 
 
-valueActionSetValue : String
-valueActionSetValue =
+valueSetValue : String
+valueSetValue =
     "setValue"
 
 
-valueActionPlayAudio : String
-valueActionPlayAudio =
+valuePlayAudio : String
+valuePlayAudio =
     "playAudio"
 
 
-valueActionSetValueBool : String
-valueActionSetValueBool =
+valueSetValueBool : String
+valueSetValueBool =
     "setValueBool"
 
 
-valueActionSetValueText : String
-valueActionSetValueText =
+valueSetValueText : String
+valueSetValueText =
     "setValueText"
 
 
@@ -644,6 +651,11 @@ typeVariableType =
 typeNodeType : String
 typeNodeType =
     "nodeType"
+
+
+typeNodeID : String
+typeNodeID =
+    "nodeID"
 
 
 typeTombstone : String

@@ -2,15 +2,12 @@ package node
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"log"
-	"sync"
 	"text/template"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 
 	"github.com/simpleiot/simpleiot/client"
@@ -28,11 +25,6 @@ type Manager struct {
 	rootNodeID      string
 	oneWireManager  *oneWireManager
 	chStop          chan struct{}
-
-	// sync stuff
-	startedLock sync.Mutex
-	started     bool
-	wait        []chan struct{}
 }
 
 // NewManger creates a new Manager
@@ -45,77 +37,23 @@ func NewManger(nc *nats.Conn, appVersion, osVersionField string) *Manager {
 	}
 }
 
-// Init initializes the tree root node and default admin if needed
+// Init initializes some node managers
 func (m *Manager) init() error {
-	rootNodes, err := client.GetNode(m.nc, "root", "")
-
 	var rootNode data.NodeEdge
 
-	if len(rootNodes) > 0 {
-		rootNode = rootNodes[0]
-	}
+	rootNodes, err := client.GetNode(m.nc, "root", "")
 
 	if err != nil {
-		log.Println("Error getting root node: ", err)
-	} else {
-		m.rootNodeID = rootNode.ID
+		return fmt.Errorf("Error getting root node: %v", err)
 	}
-
-	if rootNode.ID == "" {
-		// initialize root node and user
-		log.Println("NODE: Initialize root node and admin user")
-		rootNode.Points = data.Points{
-			{
-				Time: time.Now(),
-				Type: data.PointTypeNodeType,
-				Text: data.NodeTypeDevice,
-			},
-		}
-
-		rootNode.ID = uuid.New().String()
-
-		err := client.SendNodePoints(m.nc, rootNode.ID, rootNode.Points, true)
-		if err != nil {
-			return fmt.Errorf("Error setting root node points: %v", err)
-		}
-
-		err = client.SendEdgePoint(m.nc, rootNode.ID, "", data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
-		if err != nil {
-			return fmt.Errorf("Error sending root node edges: %w", err)
-		}
-
-		// create admin user off root node
-		admin := data.User{
-			ID:        uuid.New().String(),
-			FirstName: "admin",
-			LastName:  "user",
-			Email:     "admin@admin.com",
-			Pass:      "admin",
-		}
-
-		points := admin.ToPoints()
-		points = append(points, data.Point{Type: data.PointTypeNodeType,
-			Text: data.NodeTypeUser})
-
-		err = client.SendNodePoints(m.nc, admin.ID, points, true)
-		if err != nil {
-			return fmt.Errorf("Error setting default user: %v", err)
-		}
-
-		m.rootNodeID = rootNode.ID
-
-		err = client.SendEdgePoint(m.nc, admin.ID, rootNode.ID, data.Point{Type: data.PointTypeTombstone, Value: 0}, true)
-		if err != nil {
-			return err
-		}
-	}
-
-	// check if the SW version is current
-	rootNodes, err = client.GetNode(m.nc, "root", "")
 
 	if len(rootNodes) > 0 {
 		rootNode = rootNodes[0]
+	} else {
+		return fmt.Errorf("No nodes returned for root node")
 	}
+
+	m.rootNodeID = rootNode.ID
 
 	appVer, ok := rootNode.Points.Find(data.PointTypeVersionApp, "")
 	if !ok || appVer.Text != m.appVersion {
@@ -163,13 +101,6 @@ func (m *Manager) Start() error {
 	if err := m.init(); err != nil {
 		return fmt.Errorf("Error initializing nodes: %v", err)
 	}
-
-	m.startedLock.Lock()
-	m.started = true
-	for _, c := range m.wait {
-		close(c)
-	}
-	m.startedLock.Unlock()
 
 	t := time.NewTimer(time.Millisecond)
 
@@ -228,26 +159,6 @@ func (m *Manager) Start() error {
 // Stop manager
 func (m *Manager) Stop(_ error) {
 	close(m.chStop)
-}
-
-// WaitStart waits for node init to start
-func (m *Manager) WaitStart(ctx context.Context) error {
-	m.startedLock.Lock()
-	if m.started {
-		m.startedLock.Unlock()
-		return nil
-	}
-
-	wait := make(chan struct{})
-	m.wait = append(m.wait, wait)
-	m.startedLock.Unlock()
-
-	select {
-	case <-ctx.Done():
-		return errors.New("Store wait timeout or canceled")
-	case <-wait:
-		return nil
-	}
 }
 
 type nodeTemplateData struct {

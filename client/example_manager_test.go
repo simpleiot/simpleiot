@@ -24,8 +24,8 @@ type exNodeClient struct {
 	config        testNode
 	stop          chan struct{}
 	stopped       chan struct{}
-	newPoints     chan []data.Point
-	newEdgePoints chan []data.Point
+	newPoints     chan client.NewPoints
+	newEdgePoints chan client.NewPoints
 	chGetConfig   chan chan testNode
 }
 
@@ -33,12 +33,12 @@ type exNodeClient struct {
 // a new node is detected, the Manager will call this function to construct
 // a new client.
 func newExNodeClient(nc *nats.Conn, config testNode) client.Client {
-	return &testNodeClient{
+	return &exNodeClient{
 		nc:            nc,
 		config:        config,
 		stop:          make(chan struct{}),
-		newPoints:     make(chan []data.Point),
-		newEdgePoints: make(chan []data.Point),
+		newPoints:     make(chan client.NewPoints),
+		newEdgePoints: make(chan client.NewPoints),
 	}
 }
 
@@ -50,13 +50,13 @@ func (tnc *exNodeClient) Start() error {
 			close(tnc.stopped)
 			return nil
 		case pts := <-tnc.newPoints:
-			err := data.MergePoints(pts, &tnc.config)
+			err := data.MergePoints(pts.ID, pts.Points, &tnc.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
 			}
 			log.Printf("New config: %+v\n", tnc.config)
 		case pts := <-tnc.newEdgePoints:
-			err := data.MergeEdgePoints(pts, &tnc.config)
+			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &tnc.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
 			}
@@ -73,14 +73,14 @@ func (tnc *exNodeClient) Stop(err error) {
 
 // Points is called by the Manager when new points for this
 // node are received.
-func (tnc *exNodeClient) Points(points []data.Point) {
-	tnc.newPoints <- points
+func (tnc *exNodeClient) Points(id string, points []data.Point) {
+	tnc.newPoints <- client.NewPoints{id, "", points}
 }
 
 // EdgePoints is called by the Manager when new edge points for this
 // node are received.
-func (tnc *exNodeClient) EdgePoints(points []data.Point) {
-	tnc.newEdgePoints <- points
+func (tnc *exNodeClient) EdgePoints(id, parent string, points []data.Point) {
+	tnc.newEdgePoints <- client.NewPoints{id, parent, points}
 }
 
 func ExampleNewManager() {
@@ -103,7 +103,7 @@ func ExampleNewManager() {
 	ne.Parent = root.ID
 
 	// hydrate database with test node
-	err = client.SendNode(nc, ne)
+	err = client.SendNode(nc, ne, "test")
 
 	if err != nil {
 		log.Println("Error sending node: ", err)
@@ -114,5 +114,5 @@ func ExampleNewManager() {
 	m := client.NewManager(nc, root.ID, newExNodeClient)
 	m.Start()
 
-	// Now any updates to the node will tigger Points/EdgePoints callbacks in the above client
+	// Now any updates to the node will trigger Points/EdgePoints callbacks in the above client
 }

@@ -2,7 +2,7 @@ package client
 
 import (
 	"errors"
-	"time"
+	"fmt"
 
 	"github.com/nats-io/nats.go"
 	"github.com/oklog/run"
@@ -27,29 +27,26 @@ func (bic *BuiltInClients) Start() error {
 	var g run.Group
 	var rootID string
 
-	// get root ID
-gotId:
-	for {
-		select {
-		case <-time.After(time.Second):
-			nodes, err := GetNode(bic.nc, "root", "")
-			if err != nil {
-				continue
-			}
-			if len(nodes) < 1 {
-				continue
-			}
-			rootID = nodes[0].ID
-			break gotId
-
-		case <-bic.stop:
-			return nil
-		}
+	nodes, err := GetNode(bic.nc, "root", "")
+	if err != nil {
+		return fmt.Errorf("Error starting build in clients getting root node: %v", err)
 	}
 
-	sc := NewManager(bic.nc, rootID, NewSerialDevClient)
+	if len(nodes) < 1 {
+		return fmt.Errorf("Error starting build in clients no root node")
+	}
 
+	rootID = nodes[0].ID
+	_ = rootID
+
+	sc := NewManager(bic.nc, rootID, NewSerialDevClient)
 	g.Add(sc.Start, sc.Stop)
+
+	rc := NewManager(bic.nc, rootID, NewRuleClient)
+	g.Add(rc.Start, rc.Stop)
+
+	db := NewManager(bic.nc, rootID, NewDbClient)
+	g.Add(db.Start, db.Stop)
 
 	// provide actor to close run group
 	stopStop := make(chan struct{})

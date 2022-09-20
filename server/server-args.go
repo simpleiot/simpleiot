@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"syscall"
@@ -43,7 +44,7 @@ func StartArgs(args []string) error {
 	flagSendPoint := flags.String("sendPoint", "", "Send point to 'portal': 'devId:sensId:value:type'")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagNatsDisableServer := flags.Bool("natsDisableServer", false, "Disable NATS server (if you want to run NATS separately)")
-	flagStore := flags.String("store", "bolt", "db store type: bolt, badger, memory")
+	flagStore := flags.String("store", "siot.sqlite", "store file, default siot.sqlite")
 	flagAuthToken := flags.String("token", "", "Auth token")
 	flagNatsAck := flags.Bool("natsAck", false, "request response")
 	flagID := flags.String("id", "1234", "ID of node")
@@ -87,6 +88,8 @@ func StartArgs(args []string) error {
 		log.Println("Error updating files: ", err)
 		os.Exit(-1)
 	}
+
+	storeFilePath := path.Join(dataDir, *flagStore)
 
 	// =============================================
 	// NATS stuff
@@ -214,7 +217,7 @@ func StartArgs(args []string) error {
 			os.Exit(-1)
 		}
 
-		err = client.SendNodePointCreate(nc, nodeID, point, *flagNatsAck)
+		err = client.SendNodePoint(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -228,7 +231,7 @@ func StartArgs(args []string) error {
 			os.Exit(-1)
 		}
 
-		err = client.SendNodePointCreate(nc, nodeID, point, *flagNatsAck)
+		err = client.SendNodePoint(nc, nodeID, point, *flagNatsAck)
 		if err != nil {
 			log.Println(err)
 			os.Exit(-1)
@@ -327,7 +330,10 @@ func StartArgs(args []string) error {
 	// =============================================
 
 	if *flagDumpDb {
-		dbInst, err := store.NewDb(store.Type(*flagStore), dataDir)
+		log.Fatal("not supported")
+
+		/* FIXME
+		dbInst, err := store.NewSqliteDb(*flagStore, dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
 			os.Exit(-1)
@@ -348,11 +354,14 @@ func StartArgs(args []string) error {
 
 		f.Close()
 		log.Println("Database written to data.json")
+		*/
 
 		os.Exit(0)
 	}
 
 	if *flagImportDb {
+		log.Fatal("not supported")
+		/* FIXME
 		dbInst, err := store.NewDb(store.Type(*flagStore), dataDir)
 		if err != nil {
 			log.Println("Error opening db: ", err)
@@ -374,6 +383,7 @@ func StartArgs(args []string) error {
 
 		f.Close()
 		log.Println("Database imported from data.json")
+		*/
 
 		os.Exit(0)
 	}
@@ -395,8 +405,7 @@ func StartArgs(args []string) error {
 
 	// TODO, convert this to builder pattern
 	o := Options{
-		StoreType:         store.Type(*flagStore),
-		DataDir:           dataDir,
+		StoreFile:         storeFilePath,
 		HTTPPort:          port,
 		DebugHTTP:         *flagDebugHTTP,
 		DebugLifecycle:    *flagDebugLifecycle,
@@ -437,6 +446,7 @@ func StartArgs(args []string) error {
 		if err != nil {
 			return errors.New("Timeout waiting for SIOT to start")
 		}
+		log.Println("SIOT started")
 		<-chStartCheck
 		return nil
 	}, func(err error) {

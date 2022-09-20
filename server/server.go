@@ -23,7 +23,7 @@ import (
 
 // Options used for starting Simple IoT
 type Options struct {
-	StoreType         store.Type
+	StoreFile         string
 	DataDir           string
 	HTTPPort          string
 	DebugHTTP         bool
@@ -168,8 +168,7 @@ func (s *Server) Start() error {
 	// SIOT Store
 	// ====================================
 	storeParams := store.Params{
-		Type:      o.StoreType,
-		DataDir:   o.DataDir,
+		File:      o.StoreFile,
 		AuthToken: o.AuthToken,
 		Server:    o.NatsServer,
 		Key:       auth,
@@ -178,23 +177,28 @@ func (s *Server) Start() error {
 
 	siotStore, err := store.NewStore(storeParams)
 
+	if err != nil {
+		log.Fatal("Error creating store: ", err)
+	}
+
+	siotWaitCtx, siotWaitCancel := context.WithTimeout(context.Background(), time.Second*10)
+
 	g.Add(func() error {
 		err := siotStore.Start()
 		logLS("LS: Exited: store")
 		return err
 	}, func(err error) {
+		siotWaitCancel()
 		siotStore.Stop(err)
 		logLS("LS: Shutdown: store")
 	})
 
-	metricsCtx, metricsCancel := context.WithTimeout(context.Background(),
-		time.Second*10)
 	cancelTimer := make(chan struct{})
 
 	g.Add(func() error {
-		err := siotStore.WaitStart(metricsCtx)
+		err := siotStore.WaitStart(siotWaitCtx)
 		if err != nil {
-			logLS("LS: Exited: node manager")
+			logLS("LS: Exited: metrics timeout waiting for store")
 			return err
 		}
 
@@ -222,19 +226,24 @@ func (s *Server) Start() error {
 		logLS("LS: Exited: store metrics")
 		return err
 	}, func(err error) {
-		metricsCancel()
 		close(cancelTimer)
 		siotStore.StopMetrics(err)
 		logLS("LS: Shutdown: store metrics")
 	})
 
 	// ====================================
-	// Node client manager
+	// Node manager
 	// ====================================
 	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
 
 	g.Add(func() error {
-		err := nodeManager.Start()
+		err := siotStore.WaitStart(siotWaitCtx)
+		if err != nil {
+			logLS("LS: Exited: node manager timeout waiting for store")
+			return err
+		}
+
+		err = nodeManager.Start()
 		logLS("LS: Exited: node manager")
 		return err
 	}, func(err error) {
@@ -248,7 +257,13 @@ func (s *Server) Start() error {
 
 	clientsManager := client.NewBuiltInClients(s.nc)
 	g.Add(func() error {
-		err := clientsManager.Start()
+		err := siotStore.WaitStart(siotWaitCtx)
+		if err != nil {
+			logLS("LS: Exited: client manager timeout waiting for store")
+			return err
+		}
+
+		err = clientsManager.Start()
 		logLS("LS: Exited: clients manager")
 		return err
 	}, func(err error) {
@@ -301,14 +316,12 @@ func (s *Server) Start() error {
 	})
 
 	// Give us a way to stop the server
-	nodeManagerCtx, nodeManagerCancel := context.WithTimeout(context.Background(),
-		time.Second*10)
-
+	// and signal to waiters we have started
 	chShutdown := make(chan struct{})
 	g.Add(func() error {
-		err := nodeManager.WaitStart(nodeManagerCtx)
+		err := siotStore.WaitStart(siotWaitCtx)
 		if err != nil {
-			logLS("LS: Exited: node manager")
+			logLS("LS: Exited: server stopper, timeout waiting for store")
 			return err
 		}
 
@@ -329,7 +342,6 @@ func (s *Server) Start() error {
 			return nil
 		}
 	}, func(_ error) {
-		nodeManagerCancel()
 		close(chShutdown)
 		logLS("LS: Shutdown: stop handler")
 	})

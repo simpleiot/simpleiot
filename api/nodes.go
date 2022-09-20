@@ -92,7 +92,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 		case http.MethodPost:
 			// create node
-			h.insertNode(res, req)
+			h.insertNode(res, req, userID)
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 			return
@@ -125,7 +125,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			err := client.DeleteNode(h.nc, id, nodeDelete.Parent)
+			err := client.DeleteNode(h.nc, id, nodeDelete.Parent, userID)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
@@ -158,7 +158,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			err := client.MoveNode(h.nc, id, nodeMove.OldParent,
-				nodeMove.NewParent)
+				nodeMove.NewParent, userID)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
@@ -177,14 +177,14 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			if !nodeCopy.Duplicate {
-				err := client.MirrorNode(h.nc, id, nodeCopy.NewParent)
+				err := client.MirrorNode(h.nc, id, nodeCopy.NewParent, userID)
 
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusNotFound)
 					return
 				}
 			} else {
-				err := client.DuplicateNode(h.nc, id, nodeCopy.NewParent)
+				err := client.DuplicateNode(h.nc, id, nodeCopy.NewParent, userID)
 
 				if err != nil {
 					http.Error(res, err.Error(), http.StatusNotFound)
@@ -240,7 +240,7 @@ type RequestValidator interface {
 	Valid(req *http.Request) (bool, string)
 }
 
-func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
+func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request, userID string) {
 	var node data.NodeEdge
 	if err := decode(req.Body, &node); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
@@ -251,7 +251,12 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request) {
 		node.ID = uuid.New().String()
 	}
 
-	err := client.SendNode(h.nc, node)
+	// populate orgin for all points
+	for i := range node.Points {
+		node.Points[i].Origin = userID
+	}
+
+	err := client.SendNode(h.nc, node, userID)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusNotFound)
@@ -273,9 +278,10 @@ func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id, us
 	// populate orgin for all points
 	for i := range points {
 		points[i].Origin = userID
+		//points[i].Time = time.Now()
 	}
 
-	err = client.SendNodePointsCreate(h.nc, id, points, true)
+	err = client.SendNodePoints(h.nc, id, points, true)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)

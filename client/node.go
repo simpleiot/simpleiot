@@ -11,8 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/internal/pb"
-	"google.golang.org/protobuf/proto"
 )
 
 // GetNode over NATS. If id is "root", the root node is fetched.
@@ -60,7 +58,7 @@ func GetNodeType[T any](nc *nats.Conn, id, parent string) ([]T, error) {
 	ret := make([]T, len(nodes))
 
 	for i, n := range nodes {
-		err := data.Decode(n, &ret[i])
+		err := data.Decode(data.NodeEdgeChildren{NodeEdge: n, Children: nil}, &ret[i])
 		if err != nil {
 			log.Println("Error decode node in GetNodeType: ", err)
 		}
@@ -69,16 +67,26 @@ func GetNodeType[T any](nc *nats.Conn, id, parent string) ([]T, error) {
 	return ret, nil
 }
 
-// GetNodeChildren over NATS (immediate children only, not recursive)
+// GetNodeChildren over NATS
 // deleted nodes are skipped unless includeDel is set to true. typ
 // can be used to limit nodes to a particular type, otherwise, all nodes
 // are returned.
 func GetNodeChildren(nc *nats.Conn, id, typ string, includeDel bool, recursive bool) ([]data.NodeEdge, error) {
-	reqData, err := proto.Marshal(&pb.NatsRequest{IncludeDel: includeDel,
-		Type: typ})
+	var requestPoints data.Points
 
+	if includeDel {
+		requestPoints = append(requestPoints,
+			data.Point{Type: data.PointTypeTombstone, Value: data.BoolToFloat(includeDel)})
+	}
+
+	if typ != "" {
+		requestPoints = append(requestPoints,
+			data.Point{Type: data.PointTypeNodeType, Text: typ})
+	}
+
+	reqData, err := requestPoints.ToPb()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error encoding reqData: %v", err)
 	}
 
 	nodeMsg, err := nc.Request("node."+id+".children", reqData, time.Second*20)
@@ -114,11 +122,13 @@ func GetNodeChildrenType[T any](nc *nats.Conn, id string) ([]T, error) {
 	nodeType := reflect.TypeOf(x).Name()
 	nodeType = strings.ToLower(nodeType[0:1]) + nodeType[1:]
 
-	reqData, err := proto.Marshal(&pb.NatsRequest{IncludeDel: false,
-		Type: nodeType})
+	requestPoints := data.Points{
+		data.Point{Type: data.PointTypeNodeType, Text: nodeType},
+	}
 
+	reqData, err := requestPoints.ToPb()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error encoding reqData: %v", err)
 	}
 
 	nodeMsg, err := nc.Request("node."+id+".children", reqData, time.Second*20)
@@ -135,7 +145,7 @@ func GetNodeChildrenType[T any](nc *nats.Conn, id string) ([]T, error) {
 	ret := make([]T, len(nodes))
 
 	for i, n := range nodes {
-		err := data.Decode(n, &ret[i])
+		err := data.Decode(data.NodeEdgeChildren{NodeEdge: n, Children: nil}, &ret[i])
 		if err != nil {
 			log.Println("Error decode node in GetNodeChildrenType: ", err)
 		}
@@ -148,23 +158,22 @@ func GetNodeChildrenType[T any](nc *nats.Conn, id string) ([]T, error) {
 func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 	var none []data.NodeEdge
 	var ret []data.NodeEdge
-	rootNodes, err := GetNode(nc, userID, "all")
+	userNodes, err := GetNode(nc, userID, "all")
 	if err != nil {
 		return none, err
 	}
 
 	// go through parents of root nodes and recursively get all children
-	for _, rn := range rootNodes {
-		n, err := GetNode(nc, rn.Parent, "none")
+	for _, un := range userNodes {
+		n, err := GetNode(nc, un.Parent, "none")
 		if err != nil {
 			return none, fmt.Errorf("Error getting root node: %v", err)
 		}
 		ret = append(ret, n...)
-		c, err := GetNodeChildren(nc, rn.Parent, "", false, true)
+		c, err := GetNodeChildren(nc, un.Parent, "", false, true)
 		if err != nil {
 			return none, fmt.Errorf("Error getting children: %v", err)
 		}
-
 		ret = append(ret, c...)
 	}
 
@@ -175,34 +184,21 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 
 // SendNode is used to send a node to a nats server. Can be
 // used to create nodes.
-// TODO: might be nice eventually to get ID back from this
-// function so we don't have to poll for it separately.
-func SendNode(nc *nats.Conn, node data.NodeEdge) error {
+func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 	// we need to send the edge points first if we are creating
 	// a new node, otherwise the upstream will detect an ophraned node
 	// and create a new edge to the root node
-
 	points := node.Points
 
 	if node.ID == "" {
-		node.ID = uuid.New().String()
-	}
-
-	points = append(points, data.Point{
-		Type: data.PointTypeNodeType,
-		Text: node.Type,
-	})
-
-	err := SendNodePoints(nc, node.ID, points, true)
-
-	if err != nil {
-		return fmt.Errorf("Error sending node: %v", err)
+		return errors.New("ID must be set to a UUID")
 	}
 
 	if node.Parent != "" && node.Parent != "none" {
 		if len(node.EdgePoints) < 0 {
 			// edge should always have a tombstone point, set to false for root node
-			node.EdgePoints = []data.Point{{Time: time.Now(), Type: data.PointTypeTombstone}}
+			node.EdgePoints = []data.Point{{Time: time.Now(),
+				Type: data.PointTypeTombstone, Origin: origin}}
 		}
 
 		err := SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
@@ -212,21 +208,43 @@ func SendNode(nc *nats.Conn, node data.NodeEdge) error {
 		}
 	}
 
+	points = append(points, data.Point{
+		Type:   data.PointTypeNodeType,
+		Text:   node.Type,
+		Origin: origin,
+	})
+
+	err := SendNodePoints(nc, node.ID, points, true)
+
+	if err != nil {
+		return fmt.Errorf("Error sending node: %v", err)
+	}
+
 	return nil
 }
 
 // SendNodeType is used to send a node to a nats server. Can be
 // used to create nodes.
-func SendNodeType[T any](nc *nats.Conn, node T) error {
+func SendNodeType[T any](nc *nats.Conn, node T, origin string) error {
 	ne, err := data.Encode(node)
 	if err != nil {
 		return err
 	}
 
-	return SendNode(nc, ne)
+	if origin != "" {
+		for i := range ne.Points {
+			ne.Points[i].Origin = origin
+		}
+
+		for i := range ne.EdgePoints {
+			ne.EdgePoints[i].Origin = origin
+		}
+	}
+
+	return SendNode(nc, ne, origin)
 }
 
-func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent string) error {
+func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent, origin string) error {
 	children, err := GetNodeChildren(nc, node.ID, "", false, false)
 	if err != nil {
 		return fmt.Errorf("GetNodeChildren error: %v", err)
@@ -236,13 +254,13 @@ func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent string) er
 	node.ID = uuid.New().String()
 	node.Parent = newParent
 
-	err = SendNode(nc, node)
+	err = SendNode(nc, node, origin)
 	if err != nil {
 		return fmt.Errorf("SendNode error: %v", err)
 	}
 
 	for _, c := range children {
-		err := duplicateNodeHelper(nc, c, node.ID)
+		err := duplicateNodeHelper(nc, c, node.ID, origin)
 		if err != nil {
 			return err
 		}
@@ -252,7 +270,7 @@ func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent string) er
 }
 
 // DuplicateNode is used to Duplicate a node and all its children
-func DuplicateNode(nc *nats.Conn, id, newParent string) error {
+func DuplicateNode(nc *nats.Conn, id, newParent, origin string) error {
 	nodes, err := GetNode(nc, id, "none")
 	if err != nil {
 		return fmt.Errorf("GetNode error: %v", err)
@@ -274,28 +292,30 @@ func DuplicateNode(nc *nats.Conn, id, newParent string) error {
 		node.AddPoint(data.Point{Type: data.PointTypeDescription, Text: desc})
 	}
 
-	return duplicateNodeHelper(nc, node, newParent)
+	return duplicateNodeHelper(nc, node, newParent, origin)
 }
 
 // DeleteNode removes a node from the specified parent node
-func DeleteNode(nc *nats.Conn, id, parent string) error {
+func DeleteNode(nc *nats.Conn, id, parent string, origin string) error {
 	err := SendEdgePoint(nc, id, parent, data.Point{
-		Type:  data.PointTypeTombstone,
-		Value: 1,
+		Type:   data.PointTypeTombstone,
+		Value:  1,
+		Origin: origin,
 	}, true)
 
 	return err
 }
 
 // MoveNode moves a node from one parent to another
-func MoveNode(nc *nats.Conn, id, oldParent, newParent string) error {
+func MoveNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
 	if newParent == oldParent {
 		return errors.New("can't move node to itself")
 	}
 
 	err := SendEdgePoint(nc, id, newParent, data.Point{
-		Type:  data.PointTypeTombstone,
-		Value: 0,
+		Type:   data.PointTypeTombstone,
+		Value:  0,
+		Origin: origin,
 	}, true)
 
 	if err != nil {
@@ -316,10 +336,11 @@ func MoveNode(nc *nats.Conn, id, oldParent, newParent string) error {
 
 // MirrorNode adds a an existing node to a new parent. A node can have
 // multiple parents.
-func MirrorNode(nc *nats.Conn, id, newParent string) error {
+func MirrorNode(nc *nats.Conn, id, newParent, origin string) error {
 	err := SendEdgePoint(nc, id, newParent, data.Point{
-		Type:  data.PointTypeTombstone,
-		Value: 0,
+		Type:   data.PointTypeTombstone,
+		Value:  0,
+		Origin: origin,
 	}, true)
 
 	return err
@@ -404,9 +425,9 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 			case r := <-getCurrent:
 				r <- current
 			case pts := <-pointUpdates:
-				data.MergePoints(pts, &current)
+				data.MergePoints(id, pts, &current)
 			case pts := <-edgeUpdates:
-				data.MergeEdgePoints(pts, &current)
+				data.MergeEdgePoints(id, parent, pts, &current)
 			}
 		}
 	}()

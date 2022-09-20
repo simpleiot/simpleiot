@@ -42,19 +42,19 @@ view o =
             NodeInputs.nodeOnOffInput opts ""
 
         actionType =
-            Point.getText o.node.points Point.typeActionType ""
+            Point.getText o.node.points Point.typeAction ""
 
         actionSetValue =
-            actionType == Point.valueActionSetValue
+            actionType == Point.valueSetValue
 
         actionPlayAudio =
-            actionType == Point.valueActionPlayAudio
+            actionType == Point.valuePlayAudio
 
         valueType =
             Point.getText o.node.points Point.typeValueType ""
 
         nodeId =
-            Point.getText o.node.points Point.typeID ""
+            Point.getText o.node.points Point.typeNodeID ""
 
         active =
             Point.getBool o.node.points Point.typeActive ""
@@ -88,11 +88,11 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
-                    , optionInput Point.typeActionType
+                    , optionInput Point.typeAction
                         "Action"
-                        [ ( Point.valueActionNotify, "notify" )
-                        , ( Point.valueActionSetValue, "set node value" )
-                        , ( Point.valueActionPlayAudio, "play audio" )
+                        [ ( Point.valueNotify, "notify" )
+                        , ( Point.valueSetValue, "set node value" )
+                        , ( Point.valuePlayAudio, "play audio" )
                         ]
                     , viewIf actionSetValue <|
                         optionInput Point.typePointType
@@ -100,7 +100,7 @@ view o =
                             [ ( Point.typeValue, "value" )
                             , ( Point.typeValueSet, "set value (use for remote devices)" )
                             ]
-                    , viewIf actionSetValue <| textInput Point.typeID "Node ID" ""
+                    , viewIf actionSetValue <| textInput Point.typeNodeID "Node ID" ""
                     , if nodeId /= "" then
                         let
                             nodeDesc =
@@ -139,7 +139,7 @@ view o =
                                                 text desc
                                             ]
                                 in
-                                NodeInputs.nodePasteButton opts label Point.typeID id
+                                NodeInputs.nodePasteButton opts label Point.typeNodeID id
 
                             else
                                 Element.none
@@ -159,7 +159,7 @@ view o =
                                 onOffInput Point.typeValue Point.typeValue "Value"
 
                             "text" ->
-                                textInput Point.typeValue "Value" ""
+                                textInput Point.typeValueText "Value" ""
 
                             _ ->
                                 Element.none

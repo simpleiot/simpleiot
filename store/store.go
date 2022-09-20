@@ -36,10 +36,9 @@ type Store struct {
 	subNotifications *nats.Subscription
 	subMessages      *nats.Subscription
 	subAuth          *nats.Subscription
-	db               *Db
+	db               *DbSqlite
 	authToken        string
 	lock             sync.Mutex
-	nodeUpdateLock   sync.Mutex
 	updates          map[string]time.Time
 	key              NewTokener
 
@@ -53,21 +52,19 @@ type Store struct {
 	metricPendingNodePoint     *client.Metric
 	metricPendingNodeEdgePoint *client.Metric
 
-	// influx db stuff
-	influxDbs     map[string]*Influx
 	chStop        chan struct{}
 	chStopMetrics chan struct{}
 
 	// sync stuff
 	startedLock sync.Mutex
 	started     bool
-	wait        []chan struct{}
+	// wait is an array of waiters who are waiting on this to start
+	wait []chan struct{}
 }
 
 // Params are used to configure a store
 type Params struct {
-	Type      Type
-	DataDir   string
+	File      string
 	AuthToken string
 	Server    string
 	Key       NewTokener
@@ -76,7 +73,7 @@ type Params struct {
 
 // NewStore creates a new NATS client for handling SIOT requests
 func NewStore(p Params) (*Store, error) {
-	db, err := NewDb(p.Type, p.DataDir)
+	db, err := NewSqliteDb(p.File)
 	if err != nil {
 		return nil, fmt.Errorf("Error opening db: %v", err)
 	}
@@ -90,7 +87,6 @@ func NewStore(p Params) (*Store, error) {
 		authToken:     p.AuthToken,
 		updates:       make(map[string]time.Time),
 		server:        p.Server,
-		influxDbs:     make(map[string]*Influx),
 		key:           p.Key,
 		nc:            p.Nc,
 		chStop:        make(chan struct{}),
@@ -154,6 +150,7 @@ func (st *Store) Start() error {
 			log.Println("Store stopped")
 			return errors.New("Store stopped")
 		case <-t.C:
+			/* FIXME -- this should be moved to rules client
 			childNodes, err := st.db.nodeDescendents(st.db.rootNodeID(), "", false, false)
 			if err != nil {
 				log.Println("Error getting child nodes to run schedule: ", err)
@@ -166,6 +163,7 @@ func (st *Store) Start() error {
 				}
 			}
 			t.Reset(time.Second * 5)
+			*/
 		}
 	}
 }
@@ -245,31 +243,6 @@ func (st *Store) StopMetrics(_ error) {
 	close(st.chStopMetrics)
 }
 
-func (st *Store) runSchedule(node data.NodeEdge) error {
-	switch node.Type {
-	case data.NodeTypeRule:
-		p := data.Point{Time: time.Now(), Type: data.PointTypeTrigger}
-		err := st.processRuleNode(node, "", []data.Point{p})
-		if err != nil {
-			return err
-		}
-
-	case data.NodeTypeGroup:
-		childNodes, err := st.db.nodeDescendents(node.ID, "", false, false)
-		if err != nil {
-			return err
-		}
-		for _, c := range childNodes {
-			err := st.runSchedule(c)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
 func (st *Store) setSwUpdateState(id string, state data.SwUpdateState) error {
 	p := state.Points()
 
@@ -338,8 +311,6 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 		t := time.Since(start).Milliseconds()
 		st.metricCycleNodePoint.AddSample(float64(t))
 	}()
-	st.nodeUpdateLock.Lock()
-	defer st.nodeUpdateLock.Unlock()
 
 	nodeID, points, err := client.DecodeNodePointsMsg(msg)
 
@@ -363,6 +334,7 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 	node, err := st.db.node(nodeID)
 	if err != nil {
 		log.Println("handleNodePoints, error getting node for id: ", nodeID)
+		return
 	}
 
 	desc := node.Desc()
@@ -384,9 +356,6 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		st.metricCycleNodeEdgePoint.AddSample(float64(t))
 	}()
 
-	st.nodeUpdateLock.Lock()
-	defer st.nodeUpdateLock.Unlock()
-
 	nodeID, parentID, points, err := client.DecodeEdgePointsMsg(msg)
 
 	if err != nil {
@@ -395,7 +364,9 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		return
 	}
 
-	// write points to database
+	// write points to database. Its important that we write to the DB
+	// before sending points upstream, or clients may do a rescan and not
+	// see the node is deleted.
 	err = st.db.edgePoints(nodeID, parentID, points)
 
 	if err != nil {
@@ -403,6 +374,14 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		log.Printf("Error writing edge points (%v:%v) to Db: %v", nodeID, parentID, err)
 		log.Println("msg subject: ", msg.Subject)
 		st.reply(msg.Reply, err)
+	}
+
+	// process point in upstream nodes. We need to do this before writing
+	// to DB, otherwise the point will not be sent upstream
+	err = st.processEdgePointsUpstream(nodeID, nodeID, parentID, points)
+	if err != nil {
+		// TODO track error stats
+		log.Println("Error processing point in upstream nodes: ", err)
 	}
 
 	st.reply(msg.Reply, nil)
@@ -556,10 +535,12 @@ func (st *Store) handleNodeChildren(msg *nats.Msg) {
 	}()
 
 	resp := &pb.NodesRequest{}
-	params := pb.NatsRequest{}
 	var err error
 	var nodes data.Nodes
 	var nodeID string
+
+	includeDel := false
+	nodeType := ""
 
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {
@@ -567,18 +548,26 @@ func (st *Store) handleNodeChildren(msg *nats.Msg) {
 		goto handleNodeChildrenDone
 	}
 
-	// decode request params
 	if len(msg.Data) > 0 {
-		err := proto.Unmarshal(msg.Data, &params)
+		pts, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
-			resp.Error = fmt.Sprintf("Error decoding Node children request params: %v", err)
+			resp.Error = fmt.Sprintf("Error decoding points %v", err)
 			goto handleNodeChildrenDone
+		}
+
+		for _, p := range pts {
+			switch p.Type {
+			case data.PointTypeTombstone:
+				includeDel = data.FloatToBool(p.Value)
+			case data.PointTypeNodeType:
+				nodeType = p.Text
+			}
 		}
 	}
 
 	nodeID = chunks[1]
 
-	nodes, err = st.db.nodeDescendents(nodeID, params.Type, false, params.IncludeDel)
+	nodes, err = st.db.children(nodeID, nodeType, includeDel)
 
 	if err != nil {
 		resp.Error = fmt.Sprintf("NATS: Error getting node %v from db: %v\n", nodeID, err)
@@ -624,7 +613,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 	var findUsers func(id string)
 
 	findUsers = func(id string) {
-		nodes, err := st.db.nodeDescendents(id, data.NodeTypeUser, false, false)
+		nodes, err := st.db.children(id, data.NodeTypeUser, false)
 		if err != nil {
 			log.Println("Error find user nodes: ", err)
 			return
@@ -633,6 +622,8 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 		for _, n := range nodes {
 			userNodes = append(userNodes, n)
 		}
+
+		/* FIXME this needs to be moved to client
 
 		// now process upstream nodes
 		upIDs := st.db.edgeUp(id, false)
@@ -644,6 +635,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 		for _, id := range upIDs {
 			findUsers(id.Up)
 		}
+		*/
 	}
 
 	node, err := st.db.node(nodeID)
@@ -721,7 +713,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	level := 0
 
 	findSvcNodes = func(id string) {
-		nodes, err := st.db.nodeDescendents(id, data.NodeTypeMsgService, false, false)
+		nodes, err := st.db.children(id, data.NodeTypeMsgService, false)
 		if err != nil {
 			log.Println("Error getting svc descendents: ", err)
 			return
@@ -736,6 +728,8 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 
 		var upIDs []*data.Edge
 
+		/* FIXME this needs to be moved to client
+
 		if level == 0 {
 			upIDs = []*data.Edge{&data.Edge{Up: message.ParentID}}
 		} else {
@@ -745,6 +739,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 				return
 			}
 		}
+		*/
 
 		level++
 
@@ -794,117 +789,34 @@ func (st *Store) reply(subject string, err error) {
 	st.nc.Publish(subject, []byte(reply))
 }
 
-func (st *Store) processRuleNode(ruleNode data.NodeEdge, sourceNodeID string, points []data.Point) error {
-	conditionNodes, err := st.db.nodeDescendents(ruleNode.ID, data.NodeTypeCondition,
-		false, false)
-	if err != nil {
-		return err
-	}
-
-	actionNodes, err := st.db.nodeDescendents(ruleNode.ID, data.NodeTypeAction,
-		false, false)
-	if err != nil {
-		return err
-	}
-
-	actionInactiveNodes, err := st.db.nodeDescendents(ruleNode.ID,
-		data.NodeTypeActionInactive,
-		false, false)
-	if err != nil {
-		return err
-	}
-
-	rule, err := data.NodeToRule(ruleNode, conditionNodes, actionNodes, actionInactiveNodes)
-
-	if err != nil {
-		return err
-	}
-
-	active, changed, err := ruleProcessPoints(st.nc, rule, sourceNodeID, points)
-
-	if err != nil {
-		log.Println("Error processing rule point: ", err)
-	}
-
-	if active && changed {
-		err := st.ruleRunActions(st.nc, rule, rule.Actions, sourceNodeID)
-		if err != nil {
-			log.Println("Error running rule actions: ", err)
-		}
-
-		err = st.ruleRunInactiveActions(st.nc, rule.ActionsInactive)
-		if err != nil {
-			log.Println("Error running rule inactive actions: ", err)
-		}
-	}
-
-	if !active && changed {
-		err := st.ruleRunActions(st.nc, rule, rule.ActionsInactive, sourceNodeID)
-		if err != nil {
-			log.Println("Error running rule actions: ", err)
-		}
-
-		err = st.ruleRunInactiveActions(st.nc, rule.Actions)
-		if err != nil {
-			log.Println("Error running rule inactive actions: ", err)
-		}
-	}
-
-	return nil
-}
-
-func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, points data.Points) error {
+func (st *Store) processPointsUpstream(upNodeID, nodeID, nodeDesc string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
+	sub := fmt.Sprintf("up.%v.%v.points", upNodeID, nodeID)
 
-	// FIXME we could optimize this a bit if the points are not valid for rule nodes ...
-	// get children and process any rules
-	ruleNodes, err := st.db.nodeDescendents(currentNodeID, data.NodeTypeRule, false, false)
+	err := client.SendPoints(st.nc, sub, points, false)
+
 	if err != nil {
 		return err
 	}
 
-	for _, ruleNode := range ruleNodes {
-		err := st.processRuleNode(ruleNode, nodeID, points)
+	if upNodeID == "none" {
+		// we are at the top, stop
+		return nil
+	}
+
+	ups, err := st.db.up(upNodeID, false)
+	if err != nil {
+		return err
+	}
+
+	for _, up := range ups {
+		err = st.processPointsUpstream(up, nodeID, nodeDesc, points)
 		if err != nil {
-			return err
+			log.Println("Rules -- error processing upstream node: ", err)
 		}
 	}
 
-	// get database nodes
-	dbNodes, err := st.db.nodeDescendents(currentNodeID, data.NodeTypeDb, false, false)
-
-	for _, dbNode := range dbNodes {
-		// check if we need to configure influxdb connection
-		idb, ok := st.influxDbs[dbNode.ID]
-
-		if !ok {
-			influxConfig, err := NodeToInfluxConfig(dbNode)
-			if err != nil {
-				log.Println("Error with influxdb node: ", err)
-				continue
-			}
-			idb = NewInflux(influxConfig)
-			st.influxDbs[dbNode.ID] = idb
-			time.Sleep(time.Second)
-		} else {
-			if time.Since(idb.lastChecked) > time.Second*20 {
-				influxConfig, err := NodeToInfluxConfig(dbNode)
-				if err != nil {
-					log.Println("Error with influxdb node: ", err)
-					continue
-				}
-				idb.CheckConfig(influxConfig)
-			}
-		}
-
-		err = idb.WritePoints(nodeID, nodeDesc, points)
-
-		if err != nil {
-			log.Println("Error writing point to influx: ", err)
-		}
-	}
-
-	edges := st.db.edgeUp(currentNodeID, true)
+	/* FIXME needs to be move to client
 
 	if currentNodeID == nodeID {
 		// check if device node that it has not been orphaned
@@ -946,9 +858,32 @@ func (st *Store) processPointsUpstream(currentNodeID, nodeID, nodeDesc string, p
 			}
 		}
 	}
+	*/
 
-	for _, edge := range edges {
-		err = st.processPointsUpstream(edge.Up, nodeID, nodeDesc, points)
+	return nil
+}
+
+func (st *Store) processEdgePointsUpstream(upNodeID, nodeID, parentID string, points data.Points) error {
+	sub := fmt.Sprintf("up.%v.%v.%v.points", upNodeID, nodeID, parentID)
+
+	err := client.SendPoints(st.nc, sub, points, false)
+
+	if err != nil {
+		return err
+	}
+
+	if upNodeID == "none" {
+		// we are at the top, stop
+		return nil
+	}
+
+	ups, err := st.db.up(upNodeID, true)
+	if err != nil {
+		return err
+	}
+
+	for _, up := range ups {
+		err = st.processEdgePointsUpstream(up, nodeID, parentID, points)
 		if err != nil {
 			log.Println("Rules -- error processing upstream node: ", err)
 		}
