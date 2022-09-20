@@ -27,6 +27,7 @@ and db functionality out of the store and into clients.
   supports client configurations with two levels of nodes, such as is used in
   rules where you have a rule node and child condition/action nodes.
 - fix bug with fast changes in UI do not always stick (#414)
+- move rules engine from store to siot client (#409)
 - move influxdb code from store to client package (#410)
 - replace all NatsRequest payloads with array of points (#406)
 
