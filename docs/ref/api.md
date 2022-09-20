@@ -39,6 +39,10 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
         tombstoned nodes are not returned.
   - `node.<id>.children`
     - can be used to request the immediate children of a node
+    - parameters can be specified as points in payload
+      - `tombstone` with value field set to 1 will include deleted points
+      - `nodeType` with text field set to node type will limit returned nodes to
+        this type
   - `node.<id>.points`
     - used to listen for or publish node point changes.
   - `node.<id>.<parent>.points`
