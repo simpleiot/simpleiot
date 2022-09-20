@@ -29,6 +29,8 @@ builds:
     ignore:
       - goos: darwin
         goarch: 386
+      - goos: windows
+        goarch: arm
     hooks:
       pre:
         #- /bin/sh -c '. ./envsetup.sh && siot_setup && siot_build_dependencies'
