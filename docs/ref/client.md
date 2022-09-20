@@ -8,8 +8,8 @@ Most functionality in Simple IoT is implemented in Clients.
 
 ![app-arch](images/arch-app.png)
 
-Each client is configured by one or more nodes in the SIOT store graph. These
-nodes may be created by a user, a process that detects new plug and play
+Each client can be configured by one or more nodes in the SIOT store graph.
+These nodes may be created by a user, a process that detects new plug and play
 hardware, or other clients.
 
 A client interacts with the system by listening for new points it is interested
