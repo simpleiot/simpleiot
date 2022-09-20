@@ -11,12 +11,24 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-- fix bug with fast changes in UI do not always stick (#414)
+## [[0.5.0] - 2022-09-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.0)
+
+**NOTE, this is a testing release where we are still in the middle of reworking
+the store and various clients. Upstream functionality does not work in this
+release. If you need upstream support, use a 0.4.x release.**
+
+The big news for this release is switching the store to SQLite and moving rule
+and db functionality out of the store and into clients.
+
 - switch store to sqlite (#320)
 - rebroadcast messages at each upstream node (#390)
 - extensive work on client manager. It is now much easier to keep your local
-  client config synchronized with ongoing point changes.
+  client config synchronized with ongoing point changes. Client manager also now
+  supports client configurations with two levels of nodes, such as is used in
+  rules where you have a rule node and child condition/action nodes.
+- fix bug with fast changes in UI do not always stick (#414)
 - move influxdb code from store to client package (#410)
+- replace all NatsRequest payloads with array of points (#406)
 
 ## [[0.4.5] - 2022-09-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.4.5)
 
