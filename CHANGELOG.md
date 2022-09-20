@@ -16,6 +16,7 @@ For more details or to discuss releases, please visit the
 - rebroadcast messages at each upstream node (#390)
 - extensive work on client manager. It is now much easier to keep your local
   client config synchronized with ongoing point changes.
+- move influxdb code from store to client package (#410)
 
 ## [[0.4.5] - 2022-09-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.4.5)
 
