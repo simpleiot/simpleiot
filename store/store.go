@@ -535,10 +535,12 @@ func (st *Store) handleNodeChildren(msg *nats.Msg) {
 	}()
 
 	resp := &pb.NodesRequest{}
-	params := pb.NatsRequest{}
 	var err error
 	var nodes data.Nodes
 	var nodeID string
+
+	includeDel := false
+	nodeType := ""
 
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {
@@ -546,18 +548,26 @@ func (st *Store) handleNodeChildren(msg *nats.Msg) {
 		goto handleNodeChildrenDone
 	}
 
-	// decode request params
 	if len(msg.Data) > 0 {
-		err := proto.Unmarshal(msg.Data, &params)
+		pts, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
-			resp.Error = fmt.Sprintf("Error decoding Node children request params: %v", err)
+			resp.Error = fmt.Sprintf("Error decoding points %v", err)
 			goto handleNodeChildrenDone
+		}
+
+		for _, p := range pts {
+			switch p.Type {
+			case data.PointTypeTombstone:
+				includeDel = data.FloatToBool(p.Value)
+			case data.PointTypeNodeType:
+				nodeType = p.Text
+			}
 		}
 	}
 
 	nodeID = chunks[1]
 
-	nodes, err = st.db.children(nodeID, params.Type, params.IncludeDel)
+	nodes, err = st.db.children(nodeID, nodeType, includeDel)
 
 	if err != nil {
 		resp.Error = fmt.Sprintf("NATS: Error getting node %v from db: %v\n", nodeID, err)

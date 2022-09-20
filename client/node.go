@@ -11,8 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/internal/pb"
-	"google.golang.org/protobuf/proto"
 )
 
 // GetNode over NATS. If id is "root", the root node is fetched.
@@ -74,11 +72,21 @@ func GetNodeType[T any](nc *nats.Conn, id, parent string) ([]T, error) {
 // can be used to limit nodes to a particular type, otherwise, all nodes
 // are returned.
 func GetNodeChildren(nc *nats.Conn, id, typ string, includeDel bool, recursive bool) ([]data.NodeEdge, error) {
-	reqData, err := proto.Marshal(&pb.NatsRequest{IncludeDel: includeDel,
-		Type: typ})
+	var requestPoints data.Points
 
+	if includeDel {
+		requestPoints = append(requestPoints,
+			data.Point{Type: data.PointTypeTombstone, Value: data.BoolToFloat(includeDel)})
+	}
+
+	if typ != "" {
+		requestPoints = append(requestPoints,
+			data.Point{Type: data.PointTypeNodeType, Text: typ})
+	}
+
+	reqData, err := requestPoints.ToPb()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error encoding reqData: %v", err)
 	}
 
 	nodeMsg, err := nc.Request("node."+id+".children", reqData, time.Second*20)
@@ -114,11 +122,13 @@ func GetNodeChildrenType[T any](nc *nats.Conn, id string) ([]T, error) {
 	nodeType := reflect.TypeOf(x).Name()
 	nodeType = strings.ToLower(nodeType[0:1]) + nodeType[1:]
 
-	reqData, err := proto.Marshal(&pb.NatsRequest{IncludeDel: false,
-		Type: nodeType})
+	requestPoints := data.Points{
+		data.Point{Type: data.PointTypeNodeType, Text: nodeType},
+	}
 
+	reqData, err := requestPoints.ToPb()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error encoding reqData: %v", err)
 	}
 
 	nodeMsg, err := nc.Request("node."+id+".children", reqData, time.Second*20)
