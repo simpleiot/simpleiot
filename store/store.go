@@ -52,8 +52,6 @@ type Store struct {
 	metricPendingNodePoint     *client.Metric
 	metricPendingNodeEdgePoint *client.Metric
 
-	// influx db stuff
-	influxDbs     map[string]*Influx
 	chStop        chan struct{}
 	chStopMetrics chan struct{}
 
@@ -89,7 +87,6 @@ func NewStore(p Params) (*Store, error) {
 		authToken:     p.AuthToken,
 		updates:       make(map[string]time.Time),
 		server:        p.Server,
-		influxDbs:     make(map[string]*Influx),
 		key:           p.Key,
 		nc:            p.Nc,
 		chStop:        make(chan struct{}),

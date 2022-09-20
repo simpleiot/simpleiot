@@ -112,7 +112,11 @@ type NewPoints struct {
 }
 
 func (np NewPoints) String() string {
-	ret := fmt.Sprintf("New Points: ID: %v Parent: %v\n", np.ID, np.Parent)
+	ret := fmt.Sprintf("New Points: ID:%v", np.ID)
+	if np.Parent != "" {
+		ret += fmt.Sprintf("  Parent:%v", np.Parent)
+	}
+	ret += "\n"
 	ret += np.Points.String()
 	return ret
 }
