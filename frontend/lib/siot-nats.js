@@ -2,7 +2,6 @@ import { connect as natsConnect, StringCodec } from "nats.ws";
 import { Timestamp } from "google-protobuf/google/protobuf/timestamp_pb";
 import { Points, Point } from "./protobuf/point_pb";
 import { NodesRequest } from "./protobuf/node_pb";
-import { NatsRequest } from "./protobuf/nats-request_pb";
 import { Message } from "./protobuf/message_pb";
 import { Notification } from "./protobuf/notification_pb";
 
@@ -53,10 +52,14 @@ Object.assign(SIOTConnection.prototype, {
     parentID,
     { type, includeDel, recursive, opts, _cache = {} } = {}
   ) {
-    const req = new NatsRequest();
-    req.setType(type);
-    req.setIncludedel(includeDel);
-    const payload = req.serializeBinary();
+    const includeDelNum = includeDel ? 1 : 0;
+
+    const points = [
+      { type: "nodeType", text: type },
+      { type: "tombstone", value: includeDelNum },
+    ];
+
+    const payload = encodePoints(points);
     const m = await this.request(
       "node." + parentID + ".children",
       payload,
