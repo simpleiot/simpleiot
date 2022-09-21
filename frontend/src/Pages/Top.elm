@@ -20,6 +20,7 @@ import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
+import Components.NodeSignalGenerator as SignalGenerator
 import Components.NodeUpstream as NodeUpstream
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
@@ -879,6 +880,7 @@ nodeCustomSortRules =
         , ( Node.typeGroup, "C" )
         , ( Node.typeModbus, "D" )
         , ( Node.typeRule, "E" )
+        , ( Node.typeSignalGenerator, "F" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1119,6 +1121,9 @@ shouldDisplay typ =
         "variable" ->
             True
 
+        "signalGenerator" ->
+            True
+
         "upstream" ->
             True
 
@@ -1181,6 +1186,9 @@ viewNode model parent node depth =
 
                 "variable" ->
                     NodeVariable.view
+
+                "signalGenerator" ->
+                    SignalGenerator.view
 
                 "upstream" ->
                     NodeUpstream.view
@@ -1389,6 +1397,11 @@ nodeDescVariable =
     row [] [ Icon.variable, text "Variable" ]
 
 
+nodeDescSignalGenerator : Element Msg
+nodeDescSignalGenerator =
+    row [] [ Icon.activity, text "Signal Generator" ]
+
+
 nodeDescUpstream : Element Msg
 nodeDescUpstream =
     row [] [ Icon.uploadCloud, text "Upstream" ]
@@ -1427,6 +1440,7 @@ viewAddNode parent add =
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
+                            , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
                             , Input.option Node.typeUpstream nodeDescUpstream
                             ]
 
@@ -1442,6 +1456,7 @@ viewAddNode parent add =
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
+                            , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
                             ]
 
                         else

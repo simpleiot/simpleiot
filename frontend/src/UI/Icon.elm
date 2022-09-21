@@ -1,5 +1,6 @@
 module UI.Icon exposing
-    ( blank
+    ( activity
+    , blank
     , bus
     , check
     , clipboard
@@ -169,6 +170,11 @@ check =
 trendingUp : Element msg
 trendingUp =
     icon FeatherIcons.trendingUp
+
+
+activity : Element msg
+activity =
+    icon FeatherIcons.activity
 
 
 trendingDown : Element msg
