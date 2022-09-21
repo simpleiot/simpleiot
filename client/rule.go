@@ -528,3 +528,18 @@ func (rc *RuleClient) ruleRunInactiveActions(actions []Action) error {
 	}
 	return nil
 }
+
+/* FIXME -- this should be moved to rules client
+childNodes, err := st.db.nodeDescendents(st.db.rootNodeID(), "", false, false)
+if err != nil {
+	log.Println("Error getting child nodes to run schedule: ", err)
+} else {
+	for _, c := range childNodes {
+		err := st.runSchedule(c)
+		if err != nil {
+			log.Println("Error running schedule: ", err)
+		}
+	}
+}
+t.Reset(time.Second * 5)
+*/

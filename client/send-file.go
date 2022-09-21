@@ -1,4 +1,4 @@
-package store
+package client
 
 // FIXME could probably find a better place for this file ...
 
@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"github.com/simpleiot/simpleiot/client"
 )
 
 // Note, this file is still in the api package (vs nats) as http bloats a build, and not
@@ -41,7 +40,7 @@ func NatsSendFileFromHTTP(nc *nats.Conn, deviceID string, url string, callback f
 	}
 	name := urlS[len(urlS)-1]
 
-	return client.SendFile(nc, deviceID, resp.Body, name, func(bytesTx int) {
+	return SendFile(nc, deviceID, resp.Body, name, func(bytesTx int) {
 		callback(bytesTx)
 	})
 }

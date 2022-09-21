@@ -20,7 +20,6 @@ import (
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/sim"
-	"github.com/simpleiot/simpleiot/store"
 	"github.com/simpleiot/simpleiot/system"
 )
 
@@ -47,13 +46,11 @@ func StartArgs(args []string) error {
 	flagStore := flags.String("store", "siot.sqlite", "store file, default siot.sqlite")
 	flagAuthToken := flags.String("token", "", "Auth token")
 	flagNatsAck := flags.Bool("natsAck", false, "request response")
-	flagID := flags.String("id", "1234", "ID of node")
 	flagSyslog := flags.Bool("syslog", false, "log to syslog instead of stdout")
 
 	// commands to run, if no commands are given the main server starts up
 	flagSendPointNats := flags.String("sendPointNats", "", "Send point to 'portal' via NATS: 'devId:sensId:value:type'")
 	flagSendPointText := flags.String("sendPointText", "", "Send text point to 'portal' via NATS: 'devId:sensId:text:type'")
-	flagSendFile := flags.String("sendFile", "", "URL of file to send")
 	flagVersion := flags.Bool("version", false, "Show version number")
 	flagDumpDb := flags.Bool("dumpDb", false, "dump database to data.json file")
 	flagImportDb := flags.Bool("importDb", false, "import database from data.json")
@@ -170,7 +167,6 @@ func StartArgs(args []string) error {
 	var nc *nats.Conn
 
 	if *flagSendPointNats != "" ||
-		*flagSendFile != "" ||
 		*flagSendPointText != "" ||
 		*flagLogNats {
 
@@ -196,18 +192,6 @@ func StartArgs(args []string) error {
 			log.Println("Error connecting to NATS server: ", err)
 			os.Exit(-1)
 		}
-	}
-
-	if *flagSendFile != "" {
-		err = store.NatsSendFileFromHTTP(nc, *flagID, *flagSendFile, func(percDone int) {
-			log.Println("% done: ", percDone)
-		})
-
-		if err != nil {
-			log.Println("Error sending file: ", err)
-		}
-
-		log.Println("File sent!")
 	}
 
 	if *flagSendPointNats != "" {

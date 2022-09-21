@@ -39,7 +39,6 @@ type Store struct {
 	db               *DbSqlite
 	authToken        string
 	lock             sync.Mutex
-	updates          map[string]time.Time
 	key              NewTokener
 
 	// cycle metrics track how long it takes to handle a point
@@ -54,12 +53,7 @@ type Store struct {
 
 	chStop        chan struct{}
 	chStopMetrics chan struct{}
-
-	// sync stuff
-	startedLock sync.Mutex
-	started     bool
-	// wait is an array of waiters who are waiting on this to start
-	wait []chan struct{}
+	chWaitStart   chan struct{}
 }
 
 // Params are used to configure a store
@@ -85,12 +79,12 @@ func NewStore(p Params) (*Store, error) {
 	return &Store{
 		db:            db,
 		authToken:     p.AuthToken,
-		updates:       make(map[string]time.Time),
 		server:        p.Server,
 		key:           p.Key,
 		nc:            p.Nc,
 		chStop:        make(chan struct{}),
 		chStopMetrics: make(chan struct{}),
+		chWaitStart:   make(chan struct{}),
 		metricCycleNodePoint: client.NewMetric(p.Nc, "",
 			data.PointTypeMetricNatsCycleNodePoint, reportMetricsPeriod),
 		metricCycleNodeEdgePoint: client.NewMetric(p.Nc, "",
@@ -135,37 +129,20 @@ func (st *Store) Start() error {
 		return fmt.Errorf("Subscribe auth error: %w", err)
 	}
 
-	st.startedLock.Lock()
-	st.started = true
-	for _, c := range st.wait {
-		close(c)
-	}
-	st.startedLock.Unlock()
-
-	t := time.NewTimer(time.Millisecond)
-
+done:
 	for {
 		select {
+		case <-st.chWaitStart:
+			// don't need to do anything as simply reading this
+			// channel will unblock the caller
 		case <-st.chStop:
 			log.Println("Store stopped")
-			return errors.New("Store stopped")
-		case <-t.C:
-			/* FIXME -- this should be moved to rules client
-			childNodes, err := st.db.nodeDescendents(st.db.rootNodeID(), "", false, false)
-			if err != nil {
-				log.Println("Error getting child nodes to run schedule: ", err)
-			} else {
-				for _, c := range childNodes {
-					err := st.runSchedule(c)
-					if err != nil {
-						log.Println("Error running schedule: ", err)
-					}
-				}
-			}
-			t.Reset(time.Second * 5)
-			*/
+			break done
 		}
 	}
+
+	// clean up
+	return nil
 }
 
 // Stop the store
@@ -175,20 +152,20 @@ func (st *Store) Stop(err error) {
 
 // WaitStart waits for store to start
 func (st *Store) WaitStart(ctx context.Context) error {
-	st.startedLock.Lock()
-	if st.started {
-		st.startedLock.Unlock()
-		return nil
-	}
+	waitDone := make(chan struct{})
 
-	wait := make(chan struct{})
-	st.wait = append(st.wait, wait)
-	st.startedLock.Unlock()
+	go func() {
+		// the following will block until the main store select
+		// loop starts
+		st.chWaitStart <- struct{}{}
+		close(waitDone)
+	}()
 
 	select {
 	case <-ctx.Done():
 		return errors.New("Store wait timeout or canceled")
-	case <-wait:
+	case <-waitDone:
+		// all is well
 		return nil
 	}
 }
@@ -247,62 +224,6 @@ func (st *Store) setSwUpdateState(id string, state data.SwUpdateState) error {
 	p := state.Points()
 
 	return client.SendNodePoints(st.nc, id, p, false)
-}
-
-// StartUpdate starts an update
-func (st *Store) StartUpdate(id, url string) error {
-	st.lock.Lock()
-	defer st.lock.Unlock()
-
-	if _, ok := st.updates[id]; ok {
-		return fmt.Errorf("Update already in process for dev: %v", id)
-	}
-
-	st.updates[id] = time.Now()
-
-	err := st.setSwUpdateState(id, data.SwUpdateState{
-		Running: true,
-	})
-
-	if err != nil {
-		delete(st.updates, id)
-		return err
-	}
-
-	go func() {
-		err := NatsSendFileFromHTTP(st.nc, id, url, func(bytesTx int) {
-			err := st.setSwUpdateState(id, data.SwUpdateState{
-				Running:     true,
-				PercentDone: bytesTx,
-			})
-
-			if err != nil {
-				log.Println("Error setting update status in DB: ", err)
-			}
-		})
-
-		state := data.SwUpdateState{
-			Running: false,
-		}
-
-		if err != nil {
-			state.Error = "Error updating software"
-			state.PercentDone = 0
-		} else {
-			state.PercentDone = 100
-		}
-
-		st.lock.Lock()
-		delete(st.updates, id)
-		st.lock.Unlock()
-
-		err = st.setSwUpdateState(id, state)
-		if err != nil {
-			log.Println("Error setting sw update state: ", err)
-		}
-	}()
-
-	return nil
 }
 
 func (st *Store) handleNodePoints(msg *nats.Msg) {
