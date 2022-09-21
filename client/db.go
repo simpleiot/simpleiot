@@ -38,27 +38,6 @@ type DbClient struct {
 
 // NewDbClient ...
 func NewDbClient(nc *nats.Conn, config Db) Client {
-	// you can set things like retries, batching, precision, etc in client options.
-	client := influxdb2.NewClientWithOptions(config.URI, config.AuthToken, influxdb2.DefaultOptions())
-	writeAPI := client.WriteAPI(config.Org, config.Bucket)
-
-	influxErrors := writeAPI.Errors()
-
-	go func() {
-		for {
-			select {
-			case err, ok := <-influxErrors:
-				if err != nil {
-					log.Println("Influx write error: ", err)
-				}
-
-				if !ok {
-					log.Println("Influxdb write api closed")
-					return
-				}
-			}
-		}
-	}()
 
 	return &DbClient{
 		nc:            nc,
@@ -67,8 +46,6 @@ func NewDbClient(nc *nats.Conn, config Db) Client {
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		newDbPoints:   make(chan NewPoints),
-		client:        client,
-		writeAPI:      writeAPI,
 	}
 }
 
@@ -101,15 +78,56 @@ func (dbc *DbClient) Start() error {
 		return fmt.Errorf("Rule error subscribing to upsub: %v", err)
 	}
 
+	setupAPI := func() {
+		log.Println("Setting up Influx API")
+		// you can set things like retries, batching, precision, etc in client options.
+		dbc.client = influxdb2.NewClientWithOptions(dbc.config.URI,
+			dbc.config.AuthToken, influxdb2.DefaultOptions())
+		dbc.writeAPI = dbc.client.WriteAPI(dbc.config.Org, dbc.config.Bucket)
+
+		influxErrors := dbc.writeAPI.Errors()
+
+		go func() {
+			for {
+				select {
+				case err, ok := <-influxErrors:
+					if err != nil {
+						log.Println("Influx write error: ", err)
+					}
+
+					if !ok {
+						log.Println("Influxdb write api closed")
+						return
+					}
+				}
+			}
+		}()
+	}
+
+	setupAPI()
+
+done:
 	for {
 		select {
 		case <-dbc.stop:
 			log.Println("Stopping db client: ", dbc.config.Description)
-			return nil
+			break done
 		case pts := <-dbc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &dbc.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
+			}
+
+			for _, p := range pts.Points {
+				switch p.Type {
+				case data.PointTypeURI,
+					data.PointTypeOrg,
+					data.PointTypeBucket,
+					data.PointTypeAuthToken:
+					// we need to restart the influx write API
+					dbc.client.Close()
+					setupAPI()
+				}
 			}
 
 		case pts := <-dbc.newEdgePoints:
@@ -135,6 +153,10 @@ func (dbc *DbClient) Start() error {
 			}
 		}
 	}
+
+	// clean up
+	dbc.client.Close()
+	return nil
 }
 
 // Stop sends a signal to the Start function to exit

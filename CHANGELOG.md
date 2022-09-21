@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- handle config changes in influx db client
+
 ## [[0.5.0] - 2022-09-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.0)
 
 **NOTE, this is a testing release where we are still in the middle of reworking
