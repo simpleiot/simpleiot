@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/nats-io/nats-server/v2/server"
@@ -50,11 +49,7 @@ type Server struct {
 	natsServer         *server.Server
 	chNatsClientClosed chan struct{}
 	chStop             chan struct{}
-
-	// sync stuff
-	startedLock sync.Mutex
-	started     bool
-	wait        []chan struct{}
+	chWaitStart        chan struct{}
 }
 
 // NewServer creates a new server
@@ -92,6 +87,7 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		options:            o,
 		chNatsClientClosed: chNatsClientClosed,
 		chStop:             make(chan struct{}),
+		chWaitStart:        make(chan struct{}),
 	}, nc, err
 }
 
@@ -325,14 +321,6 @@ func (s *Server) Start() error {
 			return err
 		}
 
-		// signal that the server is started
-		s.startedLock.Lock()
-		s.started = true
-		for _, c := range s.wait {
-			close(c)
-		}
-		s.startedLock.Unlock()
-
 		select {
 		case <-s.chStop:
 			logLS("LS: Exited: stop handler")
@@ -346,8 +334,21 @@ func (s *Server) Start() error {
 		logLS("LS: Shutdown: stop handler")
 	})
 
-	// now, run all this stuff
-	return g.Run()
+	chRunError := make(chan error)
+
+	go func() {
+		chRunError <- g.Run()
+	}()
+
+	for {
+		select {
+		// unblock any waits
+		case <-s.chWaitStart:
+			// No-op, reading channel is enough to unblock wait
+		case err := <-chRunError:
+			return err
+		}
+	}
 }
 
 // Stop server
@@ -359,20 +360,21 @@ func (s *Server) Stop(err error) {
 // WaitStart waits for server to start. Clients should wait for this
 // to complete before trying to fetch nodes, etc.
 func (s *Server) WaitStart(ctx context.Context) error {
-	s.startedLock.Lock()
-	if s.started {
-		s.startedLock.Unlock()
-		return nil
-	}
+	waitDone := make(chan struct{})
 
-	wait := make(chan struct{})
-	s.wait = append(s.wait, wait)
-	s.startedLock.Unlock()
+	go func() {
+		// the following will block until the main store select
+		// loop starts
+		s.chWaitStart <- struct{}{}
+		close(waitDone)
+	}()
 
 	select {
 	case <-ctx.Done():
-		return errors.New("server wait timeout or canceled")
-	case <-wait:
+		return errors.New("Store wait timeout or canceled")
+	case <-waitDone:
+		// all is well
 		return nil
 	}
+
 }
