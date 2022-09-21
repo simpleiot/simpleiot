@@ -38,7 +38,6 @@ type DbClient struct {
 
 // NewDbClient ...
 func NewDbClient(nc *nats.Conn, config Db) Client {
-
 	return &DbClient{
 		nc:            nc,
 		config:        config,
