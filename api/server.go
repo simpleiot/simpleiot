@@ -8,8 +8,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"sync"
-	"time"
 
 	"github.com/koding/websocketproxy"
 	"github.com/nats-io/nats.go"
@@ -115,12 +113,15 @@ type ServerArgs struct {
 type Server struct {
 	args   ServerArgs
 	ln     net.Listener
-	lnLock sync.Mutex
+	chStop chan struct{}
 }
 
 // NewServer ..
 func NewServer(args ServerArgs) *Server {
-	return &Server{args: args}
+	return &Server{
+		args:   args,
+		chStop: make(chan struct{}),
+	}
 }
 
 // Start the api server
@@ -130,23 +131,28 @@ func (s *Server) Start() error {
 	address := fmt.Sprintf(":%s", s.args.Port)
 
 	var err error
-	s.lnLock.Lock()
 	s.ln, err = net.Listen("tcp", address)
-	s.lnLock.Unlock()
 	if err != nil {
 		return fmt.Errorf("Error starting api server: %v", err)
 	}
 
-	return http.Serve(s.ln, NewAppHandler(s.args))
+	chError := make(chan error)
+
+	go func() {
+		chError <- http.Serve(s.ln, NewAppHandler(s.args))
+	}()
+
+	select {
+	case <-s.chStop:
+		s.ln.Close()
+		err = <-chError
+	case err = <-chError:
+	}
+
+	return err
 }
 
 // Stop HTTP API
 func (s *Server) Stop(_ error) {
-	// the following is required if Stop() is called very quickly after Start()
-	for s.ln == nil {
-		time.Sleep(10 * time.Millisecond)
-	}
-	s.lnLock.Lock()
-	defer s.lnLock.Unlock()
-	s.ln.Close()
+	close(s.chStop)
 }

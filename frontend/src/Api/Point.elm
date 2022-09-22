@@ -20,6 +20,7 @@ module Api.Point exposing
     , typeAction
     , typeActive
     , typeAddress
+    , typeAmplitude
     , typeAuthToken
     , typeBaud
     , typeBucket
@@ -42,6 +43,7 @@ module Api.Point exposing
     , typeErrorCountReset
     , typeFilePath
     , typeFirstName
+    , typeFrequency
     , typeFrom
     , typeID
     , typeIndex
@@ -67,6 +69,7 @@ module Api.Point exposing
     , typeRx
     , typeRxReset
     , typeSID
+    , typeSampleRate
     , typeScale
     , typeService
     , typeStart
@@ -701,6 +704,21 @@ typeDisable =
 typeIndex : String
 typeIndex =
     "index"
+
+
+typeFrequency : String
+typeFrequency =
+    "frequency"
+
+
+typeAmplitude : String
+typeAmplitude =
+    "amplitude"
+
+
+typeSampleRate : String
+typeSampleRate =
+    "sampleRate"
 
 
 

@@ -203,4 +203,10 @@ const (
 	PointTypeTxReset  = "txReset"
 	PointTypeLog      = "log"
 	PointTypeUptime   = "uptime"
+
+	NodeTypeSignalGenerator = "signalGenerator"
+
+	PointTypeFrequency  = "frequency"
+	PointTypeAmplitude  = "amplitude"
+	PointTypeSampleRate = "sampleRate"
 )

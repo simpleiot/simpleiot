@@ -29,6 +29,7 @@ module Api.Node exposing
     , typeOneWireIO
     , typeRule
     , typeSerialDev
+    , typeSignalGenerator
     , typeUpstream
     , typeUser
     , typeVariable
@@ -137,6 +138,11 @@ typeVariable =
 typeUpstream : String
 typeUpstream =
     "upstream"
+
+
+typeSignalGenerator : String
+typeSignalGenerator =
+    "signalGenerator"
 
 
 
