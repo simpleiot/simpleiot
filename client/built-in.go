@@ -48,6 +48,9 @@ func (bic *BuiltInClients) Start() error {
 	db := NewManager(bic.nc, rootID, NewDbClient)
 	g.Add(db.Start, db.Stop)
 
+	sg := NewManager(bic.nc, rootID, NewSignalGeneratorClient)
+	g.Add(sg.Start, sg.Stop)
+
 	// provide actor to close run group
 	stopStop := make(chan struct{})
 
