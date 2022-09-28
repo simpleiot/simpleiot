@@ -12,7 +12,10 @@ For more details or to discuss releases, please visit the
 ## [Unreleased]
 
 - handle config changes in influx db client
-- fix race condition in http api shutdown
+- lifecycle improvements
+  - fix race condition in http api shutdown
+  - shutdown nats client after the rest of the apps
+  - store: close nats subscriptions on shutdown
 
 ## [[0.5.0] - 2022-09-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.0)
 
