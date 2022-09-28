@@ -148,19 +148,6 @@ func (s *Server) Start() error {
 	}
 
 	// ====================================
-	// Monitor Nats server client
-	// ====================================
-	g.Add(func() error {
-		// block until client exits
-		<-s.chNatsClientClosed
-		logLS("LS: Exited: nats client")
-		return errors.New("Nats server client closed")
-	}, func(error) {
-		s.nc.Close()
-		logLS("LS: Shutdown: nats client")
-	})
-
-	// ====================================
 	// SIOT Store
 	// ====================================
 	storeParams := store.Params{
@@ -340,20 +327,26 @@ func (s *Server) Start() error {
 		chRunError <- g.Run()
 	}()
 
+	var retErr error
+
+done:
 	for {
 		select {
 		// unblock any waits
 		case <-s.chWaitStart:
 			// No-op, reading channel is enough to unblock wait
-		case err := <-chRunError:
-			return err
+		case retErr = <-chRunError:
+			break done
 		}
 	}
+
+	s.nc.Close()
+
+	return retErr
 }
 
 // Stop server
 func (s *Server) Stop(err error) {
-	s.nc.Close()
 	close(s.chStop)
 }
 
