@@ -27,19 +27,13 @@ type NewTokener interface {
 
 // Store implements the SIOT NATS api
 type Store struct {
-	server           string
-	nc               *nats.Conn
-	subNodePoints    *nats.Subscription
-	subEdgePoints    *nats.Subscription
-	subNode          *nats.Subscription
-	subChildren      *nats.Subscription
-	subNotifications *nats.Subscription
-	subMessages      *nats.Subscription
-	subAuth          *nats.Subscription
-	db               *DbSqlite
-	authToken        string
-	lock             sync.Mutex
-	key              NewTokener
+	server        string
+	nc            *nats.Conn
+	subscriptions map[string]*nats.Subscription
+	db            *DbSqlite
+	authToken     string
+	lock          sync.Mutex
+	key           NewTokener
 
 	// cycle metrics track how long it takes to handle a point
 	metricCycleNodePoint     *client.Metric
@@ -82,6 +76,7 @@ func NewStore(p Params) (*Store, error) {
 		server:        p.Server,
 		key:           p.Key,
 		nc:            p.Nc,
+		subscriptions: make(map[string]*nats.Subscription),
 		chStop:        make(chan struct{}),
 		chStopMetrics: make(chan struct{}),
 		chWaitStart:   make(chan struct{}),
@@ -99,33 +94,33 @@ func NewStore(p Params) (*Store, error) {
 // Start connects to NATS server and set up handlers for things we are interested in
 func (st *Store) Start() error {
 	var err error
-	st.subNodePoints, err = st.nc.Subscribe("node.*.points", st.handleNodePoints)
+	st.subscriptions["nodePoints"], err = st.nc.Subscribe("node.*.points", st.handleNodePoints)
 	if err != nil {
 		return fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
-	st.subEdgePoints, err = st.nc.Subscribe("node.*.*.points", st.handleEdgePoints)
+	st.subscriptions["edgePoints"], err = st.nc.Subscribe("node.*.*.points", st.handleEdgePoints)
 	if err != nil {
 		return fmt.Errorf("Subscribe edge points error: %w", err)
 	}
 
-	if st.subNode, err = st.nc.Subscribe("node.*", st.handleNode); err != nil {
+	if st.subscriptions["node"], err = st.nc.Subscribe("node.*", st.handleNode); err != nil {
 		return fmt.Errorf("Subscribe node error: %w", err)
 	}
 
-	if st.subChildren, err = st.nc.Subscribe("node.*.children", st.handleNodeChildren); err != nil {
+	if st.subscriptions["children"], err = st.nc.Subscribe("node.*.children", st.handleNodeChildren); err != nil {
 		return fmt.Errorf("Subscribe node error: %w", err)
 	}
 
-	if st.subNotifications, err = st.nc.Subscribe("node.*.not", st.handleNotification); err != nil {
+	if st.subscriptions["notifications"], err = st.nc.Subscribe("node.*.not", st.handleNotification); err != nil {
 		return fmt.Errorf("Subscribe notification error: %w", err)
 	}
 
-	if st.subMessages, err = st.nc.Subscribe("node.*.msg", st.handleMessage); err != nil {
+	if st.subscriptions["messages"], err = st.nc.Subscribe("node.*.msg", st.handleMessage); err != nil {
 		return fmt.Errorf("Subscribe message error: %w", err)
 	}
 
-	if st.subAuth, err = st.nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
+	if st.subscriptions["auth"], err = st.nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
 		return fmt.Errorf("Subscribe auth error: %w", err)
 	}
 
@@ -142,6 +137,12 @@ done:
 	}
 
 	// clean up
+	for k := range st.subscriptions {
+		err := st.subscriptions[k].Unsubscribe()
+		if err != nil {
+			log.Printf("Error unsubscribing from %v: %v\n", k, err)
+		}
+	}
 	return nil
 }
 
@@ -191,7 +192,7 @@ func (st *Store) StartMetrics(nodeID string) error {
 			return errors.New("Store stopping metrics")
 
 		case <-t.C:
-			pendingNodePoints, _, err := st.subNodePoints.Pending()
+			pendingNodePoints, _, err := st.subscriptions["nodePoints"].Pending()
 			if err != nil {
 				log.Println("Error getting pendingNodePoints: ", err)
 			}
@@ -201,7 +202,7 @@ func (st *Store) StartMetrics(nodeID string) error {
 				log.Println("Error handling metric: ", err)
 			}
 
-			pendingEdgePoints, _, err := st.subEdgePoints.Pending()
+			pendingEdgePoints, _, err := st.subscriptions["edgePoints"].Pending()
 			if err != nil {
 				log.Println("Error getting pendingEdgePoints: ", err)
 			}
