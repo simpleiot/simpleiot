@@ -48,6 +48,10 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
   - `node.<id>.<parent>.points`
     - used to publish/subscribe node edge points. The `tombstone` point type is
       used to track if a node has been deleted or not.
+  - `phr.<nodeID>`
+    - high rate point data
+  - `phrup.<upstreamId>.<nodeId>`
+    - high rate point data re-broadcasted upstream
   - `up.<upstreamId>.<nodeId>.points`
     - node points are rebroadcast at every upstream ID so that we can listen for
       point changes at any level. The sending node is also included in this.

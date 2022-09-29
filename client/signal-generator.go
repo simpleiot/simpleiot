@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"time"
@@ -29,6 +30,7 @@ type SignalGeneratorClient struct {
 	stop          chan struct{}
 	newPoints     chan NewPoints
 	newEdgePoints chan NewPoints
+	natsSubject   string
 }
 
 // NewSignalGeneratorClient ...
@@ -39,6 +41,7 @@ func NewSignalGeneratorClient(nc *nats.Conn, config SignalGenerator) Client {
 		stop:          make(chan struct{}),
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
+		natsSubject:   fmt.Sprintf("phrup.%v.%v", config.Parent, config.ID),
 	}
 }
 
@@ -66,27 +69,32 @@ func (sgc *SignalGeneratorClient) Start() error {
 		}
 
 		t := time.NewTicker(time.Hour)
-		var start time.Time
 
-		// calc period in ns
-		periodCount := int(config.SampleRate) / int(config.Frequency)
-
-		increment := (2 * math.Pi / config.SampleRate) * config.Frequency
-
-		count := 0
-
+		// NOP for now
 		sendSample := func(sTime time.Time) {
-			value := math.Sin(increment*float64(count)) * config.Amplitude
-			count++
-			if count >= periodCount {
-				count = 0
-			}
-
-			SendNodePoint(sgc.nc, sgc.config.ID, data.Point{Time: sTime, Type: data.PointTypeValue,
-				Value: value}, false)
 		}
 
 		if configValid {
+			var start time.Time
+
+			// calc period in ns
+			periodCount := int(config.SampleRate) / int(config.Frequency)
+
+			increment := (2 * math.Pi / config.SampleRate) * config.Frequency
+
+			count := 0
+
+			sendSample = func(sTime time.Time) {
+				value := math.Sin(increment*float64(count)) * config.Amplitude
+				count++
+				if count >= periodCount {
+					count = 0
+				}
+
+				SendPoints(sgc.nc, sgc.natsSubject, data.Points{{Time: sTime, Type: data.PointTypeValue,
+					Value: value}}, false)
+			}
+
 			t.Reset(time.Duration(1/config.SampleRate*1e9) * time.Nanosecond)
 			// get start time
 			start = <-t.C

@@ -32,6 +32,7 @@ type DbClient struct {
 	newEdgePoints chan NewPoints
 	newDbPoints   chan NewPoints
 	upSub         *nats.Subscription
+	upSubHr       *nats.Subscription
 	client        influxdb2.Client
 	writeAPI      api.WriteAPI
 }
@@ -67,6 +68,25 @@ func (dbc *DbClient) Start() error {
 		chunks := strings.Split(msg.Subject, ".")
 		if len(chunks) != 4 {
 			log.Println("rule client up sub, malformed subject: ", msg.Subject)
+			return
+		}
+
+		dbc.newDbPoints <- NewPoints{chunks[2], "", points}
+	})
+
+	subjectHR := fmt.Sprintf("phrup.%v.*", dbc.config.Parent)
+
+	dbc.upSubHr, err = dbc.nc.Subscribe(subjectHR, func(msg *nats.Msg) {
+		points, err := data.PbDecodePoints(msg.Data)
+		if err != nil {
+			log.Println("Error decoding points in db upSubHr: ", err)
+			return
+		}
+
+		// find node ID for points
+		chunks := strings.Split(msg.Subject, ".")
+		if len(chunks) != 3 {
+			log.Println("rule client up hr sub, malformed subject: ", msg.Subject)
 			return
 		}
 
