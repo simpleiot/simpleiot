@@ -57,12 +57,12 @@ Two desirable properties of the hash algorithm include:
 - **incremental**: the ability to incrementally add values to the hash without
   recomputing the entire array of inputs.
 
-The hash of a node is calculated by computing the CRC-32 of all point
-timestamps, and then XOR'ing these CRC values. The hash of child nodes is also
-XOR'd. If a point or child hash changes, the hash can be updated by XOR'ing the
-old value and the new value with the current hash. This allows the hash to be
-updated incrementally without requiring a bunch of DB reads every time something
-changes.
+The hash of a node is calculated by computing the CRC-32 of each point's `Time`,
+`Text`, and `Value` fields, and then XOR'ing these CRC values. The hash of child
+nodes is also XOR'd. If a point or child hash changes, the hash can be updated
+by XOR'ing the old value (which backs out the old value) and the new value with
+the current hash. This allows the hash to be updated incrementally without
+requiring a bunch of DB reads every time something changes.
 
 See
 [hash_test.go](https://github.com/simpleiot/simpleiot/blob/master/store/hash_test.go)
