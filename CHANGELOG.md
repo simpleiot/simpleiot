@@ -12,7 +12,14 @@ For more details or to discuss releases, please visit the
 ## [Unreleased]
 
 - handle config changes in influx db client
-- fix race condition in http api shutdown
+- lifecycle improvements
+  - fix race condition in http api shutdown
+  - shutdown nats client after the rest of the apps
+  - store: close nats subscriptions on shutdown
+- Signal generator -- can be used to generate arbitrary signals (currently, high
+  rate Sine waves only)
+- add NATS subjects for high rate data (see [API](docs/ref/api.md))
+- add [test app](cmd/point-size/main.go) to determine point protobuf sizes
 
 ## [[0.5.0] - 2022-09-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.0)
 

@@ -23,3 +23,8 @@ func SubjectNodeAllPoints() string {
 func SubjectEdgeAllPoints() string {
 	return "node.*.*.points"
 }
+
+// SubjectNodeHRPoints constructs a NATS subject for high rate node points
+func SubjectNodeHRPoints(nodeID string) string {
+	return fmt.Sprintf("phr.%v", nodeID)
+}
