@@ -116,7 +116,7 @@ func TestRules(t *testing.T) {
 	}
 
 	// wait for rule to get set up
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// set vin and look for vout to change
 	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
