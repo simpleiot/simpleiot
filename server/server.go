@@ -191,8 +191,8 @@ func (s *Server) Start() error {
 
 	cancelTimer := make(chan struct{})
 
+	storeWg.Add(1)
 	g.Add(func() error {
-		storeWg.Add(1)
 		defer storeWg.Done()
 		err := siotStore.WaitStart(siotWaitCtx)
 		if err != nil {
@@ -234,8 +234,8 @@ func (s *Server) Start() error {
 	// ====================================
 	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
 
+	storeWg.Add(1)
 	g.Add(func() error {
-		storeWg.Add(1)
 		defer storeWg.Done()
 		err := siotStore.WaitStart(siotWaitCtx)
 		if err != nil {
@@ -256,8 +256,8 @@ func (s *Server) Start() error {
 	// ====================================
 
 	clientsManager := client.NewBuiltInClients(s.nc)
+	storeWg.Add(1)
 	g.Add(func() error {
-		storeWg.Add(1)
 		defer storeWg.Done()
 		err := siotStore.WaitStart(siotWaitCtx)
 		if err != nil {
