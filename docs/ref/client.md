@@ -25,6 +25,8 @@ sends point updates to the client. Two levels of nodes are currently supported
 for client configuration. An example of this would be a Rule node that has
 Condtion and Action child nodes.
 
+A disable option is useful and should be considered for every new client.
+
 ## Client lifecycle
 
 It is important the clients cleanly implement the
