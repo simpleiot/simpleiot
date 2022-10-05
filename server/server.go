@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/nats-io/nats-server/v2/server"
@@ -117,6 +118,10 @@ func (s *Server) Start() error {
 		}
 	}
 
+	// anything that needs to use the store or nats server should add to this wait group.
+	// The store will wait on this before shutting down
+	var storeWg sync.WaitGroup
+
 	// ====================================
 	// Nats server
 	// ====================================
@@ -142,14 +147,18 @@ func (s *Server) Start() error {
 			logLS("LS: Exited: nats server")
 			return fmt.Errorf("NATS server stopped")
 		}, func(err error) {
-			s.natsServer.Shutdown()
-			logLS("LS: Shutdown: nats server")
+			go func() {
+				storeWg.Wait()
+				s.natsServer.Shutdown()
+				logLS("LS: Shutdown: nats server")
+			}()
 		})
 	}
 
 	// ====================================
 	// SIOT Store
 	// ====================================
+
 	storeParams := store.Params{
 		File:      o.StoreFile,
 		AuthToken: o.AuthToken,
@@ -171,14 +180,20 @@ func (s *Server) Start() error {
 		logLS("LS: Exited: store")
 		return err
 	}, func(err error) {
-		siotWaitCancel()
-		siotStore.Stop(err)
-		logLS("LS: Shutdown: store")
+		// we just run in goroutine else this Stop blocking will block everything else
+		go func() {
+			storeWg.Wait()
+			siotWaitCancel()
+			siotStore.Stop(err)
+			logLS("LS: Shutdown: store")
+		}()
 	})
 
 	cancelTimer := make(chan struct{})
 
 	g.Add(func() error {
+		storeWg.Add(1)
+		defer storeWg.Done()
 		err := siotStore.WaitStart(siotWaitCtx)
 		if err != nil {
 			logLS("LS: Exited: metrics timeout waiting for store")
@@ -220,6 +235,8 @@ func (s *Server) Start() error {
 	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
 
 	g.Add(func() error {
+		storeWg.Add(1)
+		defer storeWg.Done()
 		err := siotStore.WaitStart(siotWaitCtx)
 		if err != nil {
 			logLS("LS: Exited: node manager timeout waiting for store")
@@ -240,6 +257,8 @@ func (s *Server) Start() error {
 
 	clientsManager := client.NewBuiltInClients(s.nc)
 	g.Add(func() error {
+		storeWg.Add(1)
+		defer storeWg.Done()
 		err := siotStore.WaitStart(siotWaitCtx)
 		if err != nil {
 			logLS("LS: Exited: client manager timeout waiting for store")
