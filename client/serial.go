@@ -334,7 +334,9 @@ func (sd *SerialDevClient) Start() error {
 					data.PointTypeBaud,
 					data.PointTypeDescription,
 					data.PointTypeErrorCount,
-					data.PointTypeErrorCountReset:
+					data.PointTypeErrorCountReset,
+					data.PointTypeRxReset,
+					data.PointTypeTxReset:
 					continue
 				}
 
