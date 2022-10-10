@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -58,4 +59,71 @@ stopFor:
 			break stopFor // all is well
 		}
 	}
+}
+
+func TestStoreMultiplePoints(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	_ = nc
+	_ = root
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	// add client node
+	u := client.User{
+		ID:        uuid.New().String(),
+		Parent:    root.ID,
+		FirstName: "cliff",
+		LastName:  "brake",
+	}
+
+	err = client.SendNodeType(nc, u, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	// set up watcher for node
+	getNode, stopWatcher, err := client.NodeWatcher[client.User](nc, u.ID, u.Parent)
+	if err != nil {
+		t.Fatal("Error setting up node watcher")
+	}
+
+	defer stopWatcher()
+
+	// wait for node to be populated
+	start := time.Now()
+	for {
+		cur := getNode()
+		if cur.ID == u.ID {
+			break
+		}
+		if time.Since(start) > time.Second {
+			t.Fatal("Timeout waiting for user node")
+		}
+		<-time.After(time.Millisecond * 10)
+	}
+
+	err = client.SendNodePoints(nc, u.ID, data.Points{
+		{Type: data.PointTypeFirstName, Text: "Cliff"},
+		{Type: data.PointTypeLastName, Text: "Brake"},
+	}, true)
+
+	if err != nil {
+		t.Fatal("send points failed: ", err)
+	}
+
+	time.Sleep(time.Millisecond * 10)
+	updated := getNode()
+
+	if updated.FirstName != "Cliff" {
+		t.Fatal("first name not updated: ", updated.FirstName)
+	}
+
+	if updated.LastName != "Brake" {
+		t.Fatal("last name not updated: ", updated.LastName)
+	}
+
 }
