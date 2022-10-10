@@ -31,7 +31,7 @@
   - [Client](docs/ref/client.md)
 - [Development](docs/ref/development.md)
 - [Data](docs/ref/data.md)
-  - [Store](store/store.md)
+  - [Store](docs/ref/store.md)
 - [Reliability](docs/ref/reliability.md)
 - [API](docs/ref/api.md)
 - [Frontend](docs/ref/frontend.md)
