@@ -16,13 +16,18 @@ For more details or to discuss releases, please visit the
   - fix race condition in http api shutdown
   - shutdown nats client after the rest of the apps
   - store: close nats subscriptions on shutdown
-- Signal generator -- can be used to generate arbitrary signals (currently, high
-  rate Sine waves only)
+- Addeed Signal generator -- can be used to generate arbitrary signals
+  (currently, high rate Sine waves only)
 - add NATS subjects for high rate data (see [API](docs/ref/api.md))
 - add [test app](cmd/point-size/main.go) to determine point protobuf sizes
 - fix syncronization problem on shutdown -- need to wait for clients to close
   before closing store, otherwise we can experience delays on node fetch
   timeouts.
+- fix issue when updating multiple points in one NATS message (only the first
+  got written) (introduced in v0.5.0)
+- Serial MCU Client:
+  - added debug level for logging points and
+    [updated what logging levels mean](https://docs.simpleiot.org/docs/user/mcu.html).
 
 ## [[0.5.0] - 2022-09-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.0)
 

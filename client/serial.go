@@ -40,6 +40,7 @@ type SerialDevClient struct {
 	newPoints     chan NewPoints
 	newEdgePoints chan NewPoints
 	wrSeq         byte
+	lastSendStats time.Time
 }
 
 // NewSerialDevClient ...
@@ -178,7 +179,7 @@ func (sd *SerialDevClient) Start() error {
 			closePort()
 			timerCheckPort.Reset(checkPortDur)
 		case rd := <-serialReadData:
-			if sd.config.Debug >= 2 {
+			if sd.config.Debug >= 8 {
 				log.Println("SER RX: ", test.HexDump(rd))
 			}
 
@@ -200,6 +201,9 @@ func (sd *SerialDevClient) Start() error {
 			}
 
 			if err == nil && len(points) > 0 {
+				if sd.config.Debug >= 4 {
+					log.Printf("SER RX (%v) seq:%v\n%v", sd.config.Description, seq, points)
+				}
 				points = append(points, rxPt)
 				// send response
 				d, err := SerialEncode(seq, "", nil)
@@ -344,6 +348,10 @@ func (sd *SerialDevClient) Start() error {
 				d, err := SerialEncode(sd.wrSeq, "", toSend)
 				if err != nil {
 					log.Println("error encoding points to send to MCU: ", err)
+				}
+
+				if sd.config.Debug >= 4 {
+					log.Printf("SER TX (%v) seq:%v :\n%v", sd.config.Description, sd.wrSeq, toSend)
 				}
 
 				_, err = port.Write(d)
