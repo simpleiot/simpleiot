@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.5.1] - 2022-10-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.1)
+
 - handle config changes in influx db client
 - lifecycle improvements
   - fix race condition in http api shutdown
@@ -29,6 +31,7 @@ For more details or to discuss releases, please visit the
   - added debug level for logging points and
     [updated what logging levels mean](https://docs.simpleiot.org/docs/user/mcu.html).
   - don't send rx/tx stats reset points to MCU
+  - support high-rate MCU data (set message subject to `phr`).
 
 ## [[0.5.0] - 2022-09-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.0)
 
