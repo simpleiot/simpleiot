@@ -62,21 +62,10 @@ upstream (or up the node hierarchy).
 ![message process](images/msg-process.png)
 
 In this example, the admin user does not receive notifications from the Twilio
-SMS messaging service. The reason is that the Twilio SMS node only listens for
-messages on its parent node. It does not have visibility into messages sent to
-the root node. With the node hierarchy, we can easily partition who gets
-notified. Additional group layers can be added if needed. No explicit binding is
-required between any of the nodes -- the location in the graph manages all that.
-The higher up you go, the more visibility and access a node has.
-
-## Twilio SMS Messaging
-
-Simple IoT supports sending SMS messages using Twilio's
-[SMS service](https://www.twilio.com/messaging/sms). Add a **Messaging Service**
-node and then configure.
-
-![twilio](images/twilio.png)
-
-## Email Messaging
-
-_will be added soon ..._
+SMS [messaging service](messaging.md). The reason is that the Twilio SMS node
+only listens for messages on its parent node. It does not have visibility into
+messages sent to the root node. With the node hierarchy, we can easily partition
+who gets notified. Additional group layers can be added if needed. No explicit
+binding is required between any of the nodes -- the location in the graph
+manages all that. The higher up you go, the more visibility and access a node
+has.

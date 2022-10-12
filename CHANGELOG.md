@@ -28,6 +28,7 @@ For more details or to discuss releases, please visit the
 - Serial MCU Client:
   - added debug level for logging points and
     [updated what logging levels mean](https://docs.simpleiot.org/docs/user/mcu.html).
+  - don't send rx/tx stats reset points to MCU
 
 ## [[0.5.0] - 2022-09-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.0)
 
