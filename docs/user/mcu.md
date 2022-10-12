@@ -21,5 +21,7 @@ TODO: add instructions for setting up an Arduino system.
 You can set the following debug levels to log information.
 
 - 0: no debug information
-- 1: log ASCII strings (must be COBS wrapped)
-- 2: log raw data (must be COBS wrapped)
+- 1: log ASCII strings (must be COBS wrapped) (typically used for debugging code
+  on the MCU)
+- 4: log points received or sent to the MCU
+- 8: log raw data (must be COBS wrapped)

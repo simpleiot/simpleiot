@@ -21,6 +21,7 @@ type SignalGenerator struct {
 	SampleRate  float64 `point:"sampleRate"`
 	Value       float64 `point:"value"`
 	Units       string  `point:"units"`
+	Disable     bool    `point:"disable"`
 }
 
 // SignalGeneratorClient for signal generator nodes
@@ -53,22 +54,28 @@ func (sgc *SignalGeneratorClient) Start() error {
 
 	generator := func(config SignalGenerator) {
 		configValid := true
+
+		if config.Disable {
+			log.Printf("Sig Gen %v: disabled\n", config.Description)
+			configValid = false
+		}
 		if config.Frequency <= 0 {
-			log.Println("Sig Gen: Frequency must be set")
+			log.Printf("Sig Gen %v: Frequency must be set\n", config.Description)
 			configValid = false
 		}
 
 		if config.Amplitude <= 0 {
-			log.Println("Sig Gen: Amplitude must be set")
+			log.Printf("Sig Gen %v: Amplitude must be set\n", config.Description)
 			configValid = false
 		}
 
 		if config.SampleRate <= 0 {
-			log.Println("Sig Gen: SampleRate must be set")
+			log.Printf("Sig Gen %v: SampleRate must be set\n", config.Description)
 			configValid = false
 		}
 
 		t := time.NewTicker(time.Hour)
+		t.Stop()
 
 		// NOP for now
 		sendSample := func(sTime time.Time) {
@@ -129,7 +136,8 @@ done:
 			for _, p := range pts.Points {
 				switch p.Type {
 				case data.PointTypeFrequency, data.PointTypeAmplitude,
-					data.PointTypeOffset, data.PointTypeSampleRate:
+					data.PointTypeOffset, data.PointTypeSampleRate,
+					data.PointTypeDisable:
 					// restart generator
 					chStopGen <- struct{}{}
 					go generator(sgc.config)

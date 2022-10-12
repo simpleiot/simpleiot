@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"strconv"
@@ -40,6 +41,10 @@ type SerialDevClient struct {
 	newPoints     chan NewPoints
 	newEdgePoints chan NewPoints
 	wrSeq         byte
+	lastSendStats time.Time
+	natsSub       string
+	natsSubHR     string
+	natsSubHRUp   string
 }
 
 // NewSerialDevClient ...
@@ -50,6 +55,9 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 		stop:          make(chan struct{}),
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
+		natsSub:       SubjectNodePoints(config.ID),
+		natsSubHR:     fmt.Sprintf("phr.%v", config.ID),
+		natsSubHRUp:   fmt.Sprintf("phrup.%v.%v", config.Parent, config.ID),
 	}
 }
 
@@ -164,8 +172,6 @@ func (sd *SerialDevClient) Start() error {
 
 	openPort()
 
-	natsSubject := SubjectNodePoints(sd.config.ID)
-
 	for {
 		select {
 		case <-sd.stop:
@@ -178,46 +184,57 @@ func (sd *SerialDevClient) Start() error {
 			closePort()
 			timerCheckPort.Reset(checkPortDur)
 		case rd := <-serialReadData:
-			if sd.config.Debug >= 2 {
+			if sd.config.Debug >= 8 {
 				log.Println("SER RX: ", test.HexDump(rd))
 			}
 
-			sd.config.Rx++
-			rxPt := data.Point{Type: data.PointTypeRx, Value: float64(sd.config.Rx)}
 			// figure out if the data is ascii string or points
 			// try pb decode
 			seq, subject, points, err := SerialDecode(rd)
-			if subject == "" {
-				subject = natsSubject
+			hrData := false
+			var lrpoints data.Points
+
+			// for now we only accept points to serial device node
+			switch subject {
+			case "phr":
+				hrData = true
+			default:
+				lrpoints = points
 			}
 
-			// make sure time is set on all points
+			sd.config.Rx++
 
+			// make sure time is set on all points
 			for i, p := range points {
-				if p.Time.IsZero() {
+				if p.Time.Year() == 1970 {
 					points[i].Time = time.Now()
 				}
 			}
 
 			if err == nil && len(points) > 0 {
-				points = append(points, rxPt)
-				// send response
-				d, err := SerialEncode(seq, "", nil)
-				if err != nil {
-					log.Println("Error enoding serial response: ", err)
-				} else {
-					_, err := port.Write(d)
-					if err != nil {
-						log.Println("Error writing response to port: ", err)
-					}
+				if sd.config.Debug >= 4 && !hrData {
+					log.Printf("SER RX (%v) seq:%v\n%v", sd.config.Description, seq, points)
 				}
-				err = data.MergePoints(sd.config.ID, points, &sd.config)
-				if err != nil {
-					log.Println("error merging new points: ", err)
+
+				if !hrData {
+					// send response
+					d, err := SerialEncode(seq, "", nil)
+					if err != nil {
+						log.Println("Error enoding serial response: ", err)
+					} else {
+						_, err := port.Write(d)
+						if err != nil {
+							log.Println("Error writing response to port: ", err)
+						}
+					}
+					err = data.MergePoints(sd.config.ID, points, &sd.config)
+					if err != nil {
+						log.Println("error merging new points: ", err)
+					}
 				}
 
 			} else {
-				subject = natsSubject
+				subject = sd.natsSub
 				// check if ascii
 				isASCII := true
 				for i := 0; i < len(rd); i++ {
@@ -227,10 +244,9 @@ func (sd *SerialDevClient) Start() error {
 					}
 				}
 				if isASCII {
-					points = data.Points{
-						rxPt,
-						{Type: data.PointTypeLog, Text: string(rd)},
-					}
+					lrpoints = append(lrpoints,
+						data.Point{Type: data.PointTypeLog, Text: string(rd)})
+
 					if sd.config.Debug >= 1 {
 						log.Printf("Serial client %v: log: %v\n", sd.config.Description, string(rd))
 					}
@@ -238,16 +254,34 @@ func (sd *SerialDevClient) Start() error {
 					log.Println("Error decoding serial packet from device: ",
 						sd.config.Description)
 					sd.config.ErrorCount++
-					points = data.Points{
-						rxPt,
-						{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)},
-					}
+					lrpoints = append(lrpoints,
+						data.Point{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)})
 				}
 			}
 
-			err = SendPoints(sd.nc, subject, points, false)
-			if err != nil {
-				log.Println("Error sending points received from MCU: ", err)
+			if time.Since(sd.lastSendStats) > time.Second*5 {
+				lrpoints = append(lrpoints,
+					data.Point{Time: time.Now(), Type: data.PointTypeRx, Value: float64(sd.config.Rx)})
+				sd.lastSendStats = time.Now()
+			}
+
+			if len(lrpoints) > 0 {
+				err = SendPoints(sd.nc, sd.natsSub, lrpoints, false)
+				if err != nil {
+					log.Println("Error sending points received from MCU: ", err)
+				}
+			}
+
+			if hrData {
+				err = SendPoints(sd.nc, sd.natsSubHR, points, false)
+				if err != nil {
+					log.Println("Error sending HR points received from MCU: ", err)
+				}
+
+				err = SendPoints(sd.nc, sd.natsSubHRUp, points, false)
+				if err != nil {
+					log.Println("Error sending HR Up points received from MCU: ", err)
+				}
 			}
 		case pts := <-sd.newPoints:
 			op := false
@@ -285,7 +319,7 @@ func (sd *SerialDevClient) Start() error {
 					{Type: data.PointTypeErrorCount, Value: 0},
 					{Type: data.PointTypeErrorCountReset, Value: 0},
 				}
-				err = SendPoints(sd.nc, natsSubject, points, false)
+				err = SendPoints(sd.nc, sd.natsSub, points, false)
 				if err != nil {
 					log.Println("Error resetting MCU error count: ", err)
 				}
@@ -299,7 +333,7 @@ func (sd *SerialDevClient) Start() error {
 					{Type: data.PointTypeRx, Value: 0},
 					{Type: data.PointTypeRxReset, Value: 0},
 				}
-				err = SendPoints(sd.nc, natsSubject, points, false)
+				err = SendPoints(sd.nc, sd.natsSub, points, false)
 				if err != nil {
 					log.Println("Error resetting MCU error count: ", err)
 				}
@@ -313,7 +347,7 @@ func (sd *SerialDevClient) Start() error {
 					{Type: data.PointTypeTx, Value: 0},
 					{Type: data.PointTypeTxReset, Value: 0},
 				}
-				err = SendPoints(sd.nc, natsSubject, points, false)
+				err = SendPoints(sd.nc, sd.natsSub, points, false)
 				if err != nil {
 					log.Println("Error resetting MCU error count: ", err)
 				}
@@ -330,7 +364,9 @@ func (sd *SerialDevClient) Start() error {
 					data.PointTypeBaud,
 					data.PointTypeDescription,
 					data.PointTypeErrorCount,
-					data.PointTypeErrorCountReset:
+					data.PointTypeErrorCountReset,
+					data.PointTypeRxReset,
+					data.PointTypeTxReset:
 					continue
 				}
 
@@ -346,13 +382,16 @@ func (sd *SerialDevClient) Start() error {
 					log.Println("error encoding points to send to MCU: ", err)
 				}
 
+				if sd.config.Debug >= 4 {
+					log.Printf("SER TX (%v) seq:%v :\n%v", sd.config.Description, sd.wrSeq, toSend)
+				}
+
 				_, err = port.Write(d)
 				if err != nil {
 					log.Println("error writing data to port: ", err)
 				} else {
 					sd.config.Tx++
-					subject := SubjectNodePoints(sd.config.ID)
-					err := SendPoints(sd.nc, subject,
+					err := SendPoints(sd.nc, sd.natsSub,
 						data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
 						false)
 

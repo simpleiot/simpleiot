@@ -214,8 +214,10 @@ NextPin:
 				if pDb.Time.Before(pIn.Time) || pDb.Time.Equal(pIn.Time) {
 					writePoints = append(writePoints, pIn)
 					writePointIDs = append(writePointIDs, dbPointIDs[j])
+				} else {
+					log.Println("Ignoring point due to timestamps: ", id, pIn)
 				}
-				break NextPin
+				continue NextPin
 			}
 		}
 
