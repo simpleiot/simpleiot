@@ -114,7 +114,7 @@ func TestSerial(t *testing.T) {
 	start = time.Now()
 	for {
 		cur := getNode()
-		if cur.Rx == 2 && cur.Uptime == uptimeTest {
+		if cur.Uptime == uptimeTest {
 			break
 		}
 		if time.Since(start) > time.Second {

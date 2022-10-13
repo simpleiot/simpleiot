@@ -28,11 +28,17 @@ view o =
         numberInput =
             NodeInputs.nodeNumberInput opts ""
 
+        checkboxInput =
+            NodeInputs.nodeCheckboxInput opts ""
+
         value =
             Point.getValue o.node.points Point.typeValue ""
 
         valueText =
             String.fromFloat (Round.roundNum 2 value)
+
+        disabled =
+            Point.getBool o.node.points Point.typeDisable ""
     in
     column
         [ width fill
@@ -50,6 +56,7 @@ view o =
                     valueText
                         ++ " "
                         ++ Point.getText o.node.points Point.typeUnits ""
+            , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
@@ -58,6 +65,7 @@ view o =
                     , numberInput Point.typeOffset "Offset"
                     , numberInput Point.typeSampleRate "SampleRate (Hz)"
                     , textInput Point.typeUnits "Units" ""
+                    , checkboxInput Point.typeDisable "Disable"
                     ]
 
                 else

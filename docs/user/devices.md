@@ -1,4 +1,4 @@
-# I/O Devices
+# Clients
 
-Simple IoT is a framework that allows for the management of various Input/Output
-(IO) devices. Each devices is represented by a node and optionally subnodes.
+Simple IoT is a framework that allows for clients to be added to manage IO, run
+rules, process data, etc.

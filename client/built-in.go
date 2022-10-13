@@ -1,8 +1,8 @@
 package client
 
 import (
-	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/nats-io/nats.go"
 	"github.com/oklog/run"
@@ -10,8 +10,9 @@ import (
 
 // BuiltInClients is used to manage the SIOT built in node clients
 type BuiltInClients struct {
-	nc   *nats.Conn
-	stop chan struct{}
+	nc       *nats.Conn
+	stop     chan struct{}
+	stopOnce sync.Once
 }
 
 // NewBuiltInClients creates a new built in client manager
@@ -48,37 +49,22 @@ func (bic *BuiltInClients) Start() error {
 	db := NewManager(bic.nc, rootID, NewDbClient)
 	g.Add(db.Start, db.Stop)
 
-	// provide actor to close run group
-	stopStop := make(chan struct{})
+	sg := NewManager(bic.nc, rootID, NewSignalGeneratorClient)
+	g.Add(sg.Start, sg.Stop)
 
 	g.Add(func() error {
-		select {
-		case <-bic.stop:
-			return errors.New("SIOT Built-in clients stopped")
-		case <-stopStop:
-			return nil
-		}
+		<-bic.stop
+		return nil
 	}, func(_ error) {
-		close(stopStop)
+		bic.Stop(nil)
 	})
 
-	stopped := make(chan error)
+	err = g.Run()
 
-	go func() {
-		stopped <- g.Run()
-	}()
-
-	for {
-		select {
-		case <-bic.stop:
-
-		case err := <-stopped:
-			return err
-		}
-	}
+	return err
 }
 
 // Stop clients
 func (bic *BuiltInClients) Stop(_ error) {
-	close(bic.stop)
+	bic.stopOnce.Do(func() { close(bic.stop) })
 }

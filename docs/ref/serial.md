@@ -63,7 +63,7 @@ message Serial {
 ```
 
 `subject` can be left blank when sending/receiving points for the MCU root node.
-This saves quite a bit of data in the serial messages.
+This saves some data in the serial messages.
 
 The point type `nodeType` is used to create new nodes and to send the node type
 on connection.
@@ -136,6 +136,14 @@ Protocols like RS232 and USB serial do not have any inherent framing; therefore,
 this needs to be done at the application level. SIOT uses
 [COBS (Consistent Overhead Byte Stuffing)](https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing)
 to encode data for these transports.
+
+## High-Rate Data
+
+At times, there is a need to send high rate data that uses SIOT's
+[`phr.*` NATS API](api.md). This data bypasses most processing in SIOT and is
+stored in InfluxDB and any other clients that subscribe to high-rate data. To
+specify high rate data, set the message subject to "phr". The MCU Serial client
+will then append node ID and publish the message.
 
 ## RS485
 
