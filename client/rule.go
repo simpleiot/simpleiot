@@ -255,7 +255,6 @@ done:
 			}
 
 		case pts := <-rc.newPoints:
-			// FIXME, need to match IDs and handle child nodes
 			err := data.MergePoints(pts.ID, pts.Points, &rc.config)
 			if err != nil {
 				log.Println("error merging rule points: ", err)
