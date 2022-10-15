@@ -32,20 +32,30 @@ We currently use Go timestamps in Go code, and protobuf timestamps on the wire.
 
 ### Reference/Research
 
+#### Browsers
+
 Browsers limit time resolution to MS for
 [security reasons](https://community.tmpdir.org/t/high-rate-data-example-of-go-concurrency/654/4?u=cbrake).
+
+#### 64-bit nanoseconds
 
 2 ^ 64 nanoseconds is roughly ~ 584.554531 years.
 
 https://github.com/jbenet/nanotime
 
+#### NTP
+
 For NTP time, the 64bits are broken in to seconds and fraction of seconds. The
 top 32 bits is the seconds. The bottom 32 bits is the fraction of seconds. You
 get the fraction by dividing the fraction part by 2^32.
 
+#### Windows
+
 [Windows uses](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime)
 a 64-bit value representing the number of 100-nanosecond intervals since January
 1, 1601 (UTC).
+
+#### Go
 
 The Go Time type is fairly intelligent as it uses Montonic time when possible
 and falls back to wall clock time when needed:
@@ -85,6 +95,44 @@ type Time struct {
 }
 ```
 
+Go provides a [UnixNano()](https://pkg.go.dev/time#Time.UnixNano) function that
+convers a Timestamp to nanoseconds elapsed since January 1, 1970 UTC.
+
+To go the other way, Go provides a
+[UnixMicro()](https://pkg.go.dev/time#UnixMicro) function to convert
+microseconds since 1970 to a timestamp. The
+[source code](https://cs.opensource.google/go/go/+/refs/tags/go1.19.2:src/time/time.go;l=1390)
+could probably be modified to create a `UnixNano()` function.
+
+```go
+// UnixMicro returns the local Time corresponding to the given Unix time,
+// usec microseconds since January 1, 1970 UTC.
+func UnixMicro(usec int64) Time {
+	return Unix(usec/1e6, (usec%1e6)*1e3)
+}
+
+// Unix returns the local Time corresponding to the given Unix time,
+// sec seconds and nsec nanoseconds since January 1, 1970 UTC.
+// It is valid to pass nsec outside the range [0, 999999999].
+// Not all sec values have a corresponding time value. One such
+// value is 1<<63-1 (the largest int64 value).
+func Unix(sec int64, nsec int64) Time {
+	if nsec < 0 || nsec >= 1e9 {
+		n := nsec / 1e9
+		sec += n
+		nsec -= n * 1e9
+		if nsec < 0 {
+			nsec += 1e9
+			sec--
+		}
+	}
+	return unixTime(sec, int32(nsec))
+}
+
+```
+
+#### Protobuf
+
 The Protbuf time format also has sec/ns sections:
 
 ```
@@ -101,6 +149,23 @@ message Timestamp {
   int32 nanos = 2;
 }
 ```
+
+#### MQTT
+
+Note sure yet if MQTT defines a timestamp format.
+
+Sparkplug does:
+
+> timestamp
+>
+> - This is the timestamp in the form of an unsigned 64-bit integer representing
+>   the number of milliseconds since epoch (Jan 1, 1970). It is highly
+>   recommended that this time is in UTC. This timestamp is meant to represent
+>   the time at which the message was published
+
+### Do we need nanosecond resolution?
+
+Many IoT systems only support MS resolution.
 
 ## Decision
 
