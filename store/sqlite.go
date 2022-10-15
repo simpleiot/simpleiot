@@ -345,7 +345,7 @@ NextPin:
 					writePoints = append(writePoints, pIn)
 					writePointIDs = append(writePointIDs, dbPointIDs[j])
 				}
-				break NextPin
+				continue NextPin
 			}
 		}
 
@@ -409,6 +409,7 @@ func (sdb *DbSqlite) rootNodeID() string {
 	return sdb.meta.RootID
 }
 
+// gets a node
 func (sdb *DbSqlite) node(id string) (*data.Node, error) {
 	var err error
 	var ret data.Node
