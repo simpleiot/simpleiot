@@ -135,14 +135,14 @@ func (sdb *DbSqlite) initRoot() (string, error) {
 
 	rootNode.ID = uuid.New().String()
 
-	err := sdb.nodePoints(rootNode.ID, rootNode.Points)
-	if err != nil {
-		return "", fmt.Errorf("Error setting root node points: %v", err)
-	}
-
-	err = sdb.edgePoints(rootNode.ID, "", data.Points{{Type: data.PointTypeTombstone, Value: 0}})
+	err := sdb.edgePoints(rootNode.ID, "", data.Points{{Type: data.PointTypeTombstone, Value: 0}})
 	if err != nil {
 		return "", fmt.Errorf("Error sending root node edges: %w", err)
+	}
+
+	err = sdb.nodePoints(rootNode.ID, rootNode.Points)
+	if err != nil {
+		return "", fmt.Errorf("Error setting root node points: %v", err)
 	}
 
 	// create admin user off root node
@@ -156,14 +156,14 @@ func (sdb *DbSqlite) initRoot() (string, error) {
 
 	points := admin.ToPoints()
 
-	err = sdb.nodePoints(admin.ID, points)
-	if err != nil {
-		return "", fmt.Errorf("Error setting default user: %v", err)
-	}
-
 	err = sdb.edgePoints(admin.ID, rootNode.ID, data.Points{{Type: data.PointTypeTombstone, Value: 0}})
 	if err != nil {
 		return "", err
+	}
+
+	err = sdb.nodePoints(admin.ID, points)
+	if err != nil {
+		return "", fmt.Errorf("Error setting default user: %v", err)
 	}
 
 	_, err = sdb.db.Exec("INSERT INTO meta(id, version, root_id) VALUES(?, ?, ?)", 0, 0, rootNode.ID)
