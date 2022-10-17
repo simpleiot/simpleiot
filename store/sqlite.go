@@ -175,8 +175,21 @@ func (sdb *DbSqlite) initRoot() (string, error) {
 }
 
 func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
-	rowsPoints, err := sdb.db.Query("SELECT * FROM node_points WHERE node_id=?", id)
+	tx, err := sdb.db.Begin()
 	if err != nil {
+		return err
+	}
+
+	rollback := func() {
+		rbErr := tx.Rollback()
+		if rbErr != nil {
+			log.Println("Rollback error: ", rbErr)
+		}
+	}
+
+	rowsPoints, err := tx.Query("SELECT * FROM node_points WHERE node_id=?", id)
+	if err != nil {
+		rollback()
 		return err
 	}
 	defer rowsPoints.Close()
@@ -192,6 +205,7 @@ func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
 		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
+			rollback()
 			return err
 		}
 		p.Time = time.Unix(timeS, timeNS)
@@ -226,11 +240,6 @@ NextPin:
 		writePointIDs = append(writePointIDs, uuid.New().String())
 	}
 
-	// loop through write points and write them
-	tx, err := sdb.db.Begin()
-	if err != nil {
-		return err
-	}
 	stmt, err := tx.Prepare(`INSERT INTO node_points(id, node_id, type, key, time_s,
                  time_ns, idx, value, text, data, tombstone, origin)
 		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -255,10 +264,7 @@ NextPin:
 		_, err = stmt.Exec(pID, id, p.Type, p.Key, tS, tNs, p.Index, p.Value, p.Text, p.Data, p.Tombstone,
 			p.Origin)
 		if err != nil {
-			rbErr := tx.Rollback()
-			if rbErr != nil {
-				log.Println("Rollback error: ", rbErr)
-			}
+			rollback()
 			return err
 		}
 	}
@@ -272,12 +278,26 @@ NextPin:
 }
 
 func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) error {
+	var err error
 	if parentID == "" {
 		parentID = "none"
 	}
 
-	rowsEdge, err := sdb.db.Query("SELECT * FROM edges WHERE up=? AND down=?", parentID, nodeID)
+	tx, err := sdb.db.Begin()
 	if err != nil {
+		return err
+	}
+
+	rollback := func() {
+		rbErr := tx.Rollback()
+		if rbErr != nil {
+			log.Println("Rollback error: ", rbErr)
+		}
+	}
+
+	rowsEdge, err := tx.Query("SELECT * FROM edges WHERE up=? AND down=?", parentID, nodeID)
+	if err != nil {
+		rollback()
 		return err
 	}
 	defer rowsEdge.Close()
@@ -287,26 +307,21 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 	for rowsEdge.Next() {
 		err := rowsEdge.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
 		if err != nil {
+			rollback()
 			return err
 		}
 	}
+
+	newEdge := false
 
 	if edge.ID == "" {
 		edge.ID = uuid.New().String()
-		edge.Up = parentID
-		edge.Down = nodeID
-
-		// did not find edge, need to add it
-		_, err := sdb.db.Exec(`INSERT INTO edges(id, up, down, hash) VALUES (?, ?, ?, ?)`,
-			edge.ID, edge.Up, edge.Down, 0)
-
-		if err != nil {
-			return err
-		}
+		newEdge = true
 	}
 
-	rowsPoints, err := sdb.db.Query("SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
+	rowsPoints, err := tx.Query("SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
 	if err != nil {
+		rollback()
 		return err
 	}
 	defer rowsPoints.Close()
@@ -322,6 +337,7 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
+			rollback()
 			return err
 		}
 		p.Time = time.Unix(timeS, timeNS)
@@ -355,10 +371,6 @@ NextPin:
 	}
 
 	// loop through write points and write them
-	tx, err := sdb.db.Begin()
-	if err != nil {
-		return err
-	}
 	stmt, err := tx.Prepare(`INSERT INTO edge_points(id, edge_id, type, key, time_s,
                  time_ns, idx, value, text, data, tombstone, origin)
 		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -374,7 +386,6 @@ NextPin:
 		 tombstone = ?11,
 		 origin = ?12
 		 `)
-	defer stmt.Close()
 
 	for i, p := range writePoints {
 		tS := p.Time.Unix()
@@ -383,12 +394,34 @@ NextPin:
 		_, err = stmt.Exec(pID, edge.ID, p.Type, p.Key, tS, tNs, p.Index, p.Value, p.Text, p.Data, p.Tombstone,
 			p.Origin)
 		if err != nil {
-			rbErr := tx.Rollback()
-			if rbErr != nil {
-				log.Println("Rollback error: ", rbErr)
-			}
-
+			stmt.Close()
+			rollback()
 			return err
+		}
+	}
+
+	stmt.Close()
+
+	// write edge
+	if newEdge {
+		// did not find edge, need to add it
+		edge.Up = parentID
+		edge.Down = nodeID
+
+		_, err := tx.Exec(`INSERT INTO edges(id, up, down, hash) VALUES (?, ?, ?, ?)`,
+			edge.ID, edge.Up, edge.Down, 0)
+
+		if err != nil {
+			log.Println("edge insert failed, trying again ...: ", err)
+			// FIXME, occasionaly the above INSERT will fail with "database is locked (5) (SQLITE_BUSY)"
+			// not sure why, but the below retry seems to work around this issue for now
+			_, err := tx.Exec(`INSERT INTO edges(id, up, down, hash) VALUES (?, ?, ?, ?)`,
+				edge.ID, edge.Up, edge.Down, 0)
+
+			if err != nil {
+				rollback()
+				return fmt.Errorf("Error when writing edge: %v", err)
+			}
 		}
 	}
 
