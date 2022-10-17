@@ -52,7 +52,7 @@ func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS edges (id TEXT NOT NULL PRIMARY KEY,
 				up TEXT,
 				down TEXT,
-				hash TEXT)`)
+				hash INT)`)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error creating edges table: %v", err)
@@ -345,7 +345,7 @@ NextPin:
 					writePoints = append(writePoints, pIn)
 					writePointIDs = append(writePointIDs, dbPointIDs[j])
 				}
-				break NextPin
+				continue NextPin
 			}
 		}
 
@@ -409,6 +409,7 @@ func (sdb *DbSqlite) rootNodeID() string {
 	return sdb.meta.RootID
 }
 
+// gets a node
 func (sdb *DbSqlite) node(id string) (*data.Node, error) {
 	var err error
 	var ret data.Node

@@ -23,25 +23,9 @@ the task is a fairly straightforward implementation, write documentation in the
 existing User and Reference Guide sections.
 
 When an ADR is accepted and implemented, a summary should typically be added to
-the Reference Guide documentation.
+the [Reference Guide](../ref) documentation.
 
-An ADR can have the following sections as needed. The highlighted sections
-should probably be in every ADR.
-
-- Header
-  - Author: AUTHOR_NAME Last updated: 2021-11-04
-  - Issue:
-  - PR/Discussion:
-  - Status: \[Discussion|Proposed|Accepted|Deprecated|Superseded\]
-- Problem -- what problem are we trying to solve?
-- **Context** -- background, facts surrounding this discussion.
-- Design -- discussion on implementation -- may present several different
-  options.
-- **Decision** -- what was decided.
-  - Objections/concerns
-- **Consequences** -- what is the impact, both negative and positive.
-- Additional Notes/Reference -- links to reference material that may be
-  relevant.
+See [template.md](template.md) for a template to get started.
 
 ## ADRs
 
@@ -50,3 +34,4 @@ should probably be in every ADR.
 | [ADR-1](1-consider-changing-point-data-type.md) | Consider changing/expanding point data type |
 | [ADR-2](2-authz.md)                             | Authorization considerations.               |
 | [ADR-3](3-node-lifecycle.md)                    | Node lifecycle                              |
+| [ADR-4](4-time.md)                              | Notes on storing and transfering time       |

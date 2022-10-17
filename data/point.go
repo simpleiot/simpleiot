@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
+	"hash/crc32"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -55,6 +56,21 @@ type Point struct {
 
 	// Where did this point come from. If from the owning node, it may be blank.
 	Origin string `json:"origin"`
+}
+
+// CRC returns a CRC for the point
+func (p Point) CRC() uint32 {
+	// we are using this in a XOR checksum, so simply hashing time is probably
+	// not good enough, because if we send a bunch of points with the same time,
+	// they will have the CRC and simply cancel each other out.
+	h := crc32.NewIEEE()
+	d := make([]byte, 8)
+	binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
+	h.Write(d)
+	h.Write([]byte(p.Type))
+	h.Write([]byte(p.Key))
+
+	return h.Sum32()
 }
 
 func (p Point) String() string {
