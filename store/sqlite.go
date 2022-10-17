@@ -298,7 +298,7 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 
 		// did not find edge, need to add it
 		_, err := sdb.db.Exec(`INSERT INTO edges(id, up, down, hash) VALUES (?, ?, ?, ?)`,
-			edge.ID, edge.Up, edge.Down, "")
+			edge.ID, edge.Up, edge.Down, 0)
 
 		if err != nil {
 			return err
