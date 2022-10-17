@@ -23,7 +23,7 @@ the task is a fairly straightforward implementation, write documentation in the
 existing User and Reference Guide sections.
 
 When an ADR is accepted and implemented, a summary should typically be added to
-the [Reference Guide](../ref) documentation.
+the [Reference Guide](../../README.md) documentation.
 
 See [template.md](template.md) for a template to get started.
 
