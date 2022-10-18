@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,8 +17,9 @@ import (
 
 // DbSqlite represents a SQLite data store
 type DbSqlite struct {
-	db   *sql.DB
-	meta Meta
+	db        *sql.DB
+	meta      Meta
+	writeLock sync.Mutex
 }
 
 // Meta contains metadata about the database
@@ -175,6 +177,8 @@ func (sdb *DbSqlite) initRoot() (string, error) {
 }
 
 func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
+	sdb.writeLock.Lock()
+	defer sdb.writeLock.Unlock()
 	tx, err := sdb.db.Begin()
 	if err != nil {
 		return err
@@ -278,6 +282,9 @@ NextPin:
 }
 
 func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) error {
+	sdb.writeLock.Lock()
+	defer sdb.writeLock.Unlock()
+
 	var err error
 	if parentID == "" {
 		parentID = "none"
