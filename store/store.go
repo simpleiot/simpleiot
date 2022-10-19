@@ -143,6 +143,9 @@ done:
 			log.Printf("Error unsubscribing from %v: %v\n", k, err)
 		}
 	}
+
+	st.db.Close()
+
 	return nil
 }
 
