@@ -12,6 +12,16 @@ import (
 	"github.com/simpleiot/simpleiot/server"
 )
 
+func TestStoreSimple(t *testing.T) {
+	_, _, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+}
+
 func TestStoreUp(t *testing.T) {
 	nc, root, stop, err := server.TestServer()
 	_ = root
