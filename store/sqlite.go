@@ -42,6 +42,9 @@ func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 		return nil, err
 	}
 
+	//db.SetMaxOpenConns(1)
+	//db.SetMaxIdleConns(1)
+
 	ret.db = db
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS meta (id INT NOT NULL PRIMARY KEY,
@@ -105,6 +108,9 @@ func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Error scanning meta row: %v", err)
 		}
+	}
+	if err := metaRows.Close(); err != nil {
+		return nil, err
 	}
 
 	if ret.meta.RootID == "" {
@@ -219,6 +225,11 @@ func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
 		dbPointIDs = append(dbPointIDs, pID)
 	}
 
+	if err := rowsPoints.Close(); err != nil {
+		rollback()
+		return fmt.Errorf("Error closing rowsPoints: %v", err)
+	}
+
 	var writePoints data.Points
 	var writePointIDs []string
 
@@ -275,6 +286,8 @@ NextPin:
 		}
 	}
 
+	stmt.Close()
+
 	err = tx.Commit()
 	if err != nil {
 		return err
@@ -321,6 +334,11 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 		}
 	}
 
+	if err := rowsEdge.Close(); err != nil {
+		rollback()
+		return fmt.Errorf("Error closing rowsEdge: %v", err)
+	}
+
 	newEdge := false
 
 	if edge.ID == "" {
@@ -352,6 +370,11 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 		p.Time = time.Unix(timeS, timeNS)
 		dbPoints = append(dbPoints, p)
 		dbPointIDs = append(dbPointIDs, pID)
+	}
+
+	if err := rowsPoints.Close(); err != nil {
+		rollback()
+		return fmt.Errorf("Error closing rowsPoints: %v", err)
 	}
 
 	var writePoints data.Points
@@ -444,6 +467,7 @@ NextPin:
 
 // Close the db
 func (sdb *DbSqlite) Close() error {
+	fmt.Printf("CLIFF: db stats before close: %+v\n: ", sdb.db.Stats())
 	return sdb.db.Close()
 }
 
@@ -472,11 +496,11 @@ func (sdb *DbSqlite) node(id string) (*data.Node, error) {
 }
 
 func (sdb *DbSqlite) children(id, typ string, includeDel bool) ([]data.NodeEdge, error) {
-	var ret []data.NodeEdge
+	var edges []data.Edge
 
 	rowsEdges, err := sdb.db.Query("SELECT * FROM edges WHERE up=?", id)
 	if err != nil {
-		return ret, fmt.Errorf("Error getting edges: %v", err)
+		return nil, fmt.Errorf("Error getting edges: %v", err)
 	}
 	defer rowsEdges.Close()
 
@@ -487,6 +511,16 @@ func (sdb *DbSqlite) children(id, typ string, includeDel bool) ([]data.NodeEdge,
 			return nil, fmt.Errorf("Error scanning edges: %v", err)
 		}
 
+		edges = append(edges, edge)
+	}
+
+	if err := rowsEdges.Close(); err != nil {
+		return nil, err
+	}
+
+	var ret []data.NodeEdge
+
+	for _, edge := range edges {
 		var ne data.NodeEdge
 		ne.ID = edge.Down
 		ne.Parent = id
@@ -640,6 +674,8 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 	}
 	defer rows.Close()
 
+	var ids []string
+
 	for rows.Next() {
 		var id string
 		err = rows.Scan(&id)
@@ -647,6 +683,15 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 			log.Println("Error scanning user id: ", id)
 			continue
 		}
+
+		ids = append(ids, id)
+	}
+
+	if err := rows.Close(); err != nil {
+		return ret, err
+	}
+
+	for _, id := range ids {
 		ne, err := sdb.nodeEdge(id, "all")
 		if err != nil {
 			log.Println("Error getting user node for id: ", id)
@@ -668,6 +713,7 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 
 // up returns upstream ids for a node
 func (sdb *DbSqlite) up(id string, includeDeleted bool) ([]string, error) {
+	var edgeIDs []string
 	var ups []string
 
 	rowsEdge, err := sdb.db.Query("SELECT id, up FROM edges WHERE down=?", id)
@@ -683,21 +729,33 @@ func (sdb *DbSqlite) up(id string, includeDeleted bool) ([]string, error) {
 			return nil, err
 		}
 
-		if includeDeleted {
-			ups = append(ups, up)
-		} else {
-			q := fmt.Sprintf("SELECT * FROM edge_points WHERE edge_id='%v'", edgeID)
-			points, _, err := sdb.queryPoints(q)
-			if err != nil {
-				return nil, fmt.Errorf("up error getting edge points: %v", err)
-			}
+		edgeIDs = append(edgeIDs, edgeID)
+		ups = append(ups, up)
 
-			p, _ := points.Find(data.PointTypeTombstone, "")
-			if p.Value == 0 {
-				ups = append(ups, up)
-			}
+	}
+
+	if err := rowsEdge.Close(); err != nil {
+		return nil, err
+	}
+
+	if includeDeleted {
+		return ups, nil
+	}
+
+	var ret []string
+
+	for i, edgeID := range edgeIDs {
+		q := fmt.Sprintf("SELECT * FROM edge_points WHERE edge_id='%v'", edgeID)
+		points, _, err := sdb.queryPoints(q)
+		if err != nil {
+			return nil, fmt.Errorf("up error getting edge points: %v", err)
+		}
+
+		p, _ := points.Find(data.PointTypeTombstone, "")
+		if p.Value == 0 {
+			ret = append(ret, ups[i])
 		}
 	}
 
-	return ups, nil
+	return ret, nil
 }
