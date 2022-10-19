@@ -42,8 +42,10 @@ func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 		return nil, err
 	}
 
-	//db.SetMaxOpenConns(1)
-	//db.SetMaxIdleConns(1)
+	// Note, code should run with the following set, which ensures we don't have any
+	// nested db operations. Ideally, all DB operations should exit before the next one
+	// starts. Cache rows in memory if necessary to make this happen.
+	// db.SetMaxOpenConns(1)
 
 	ret.db = db
 
@@ -467,7 +469,6 @@ NextPin:
 
 // Close the db
 func (sdb *DbSqlite) Close() error {
-	fmt.Printf("CLIFF: db stats before close: %+v\n: ", sdb.db.Stats())
 	return sdb.db.Close()
 }
 
@@ -597,6 +598,8 @@ func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 	}
 	defer rowsEdges.Close()
 
+	var edges []data.Edge
+
 	for rowsEdges.Next() {
 		var edge data.Edge
 		err = rowsEdges.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
@@ -604,6 +607,18 @@ func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 			return nil, fmt.Errorf("Error scanning edges: %v", err)
 		}
 
+		edges = append(edges, edge)
+	}
+
+	if err := rowsEdges.Close(); err != nil {
+		return nil, err
+	}
+
+	if len(edges) < 1 {
+		return ret, fmt.Errorf("Node not found")
+	}
+
+	for _, edge := range edges {
 		var ne data.NodeEdge
 		ne.ID = edge.Down
 		ne.Parent = edge.Up
@@ -622,10 +637,6 @@ func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 		}
 
 		ret = append(ret, ne)
-	}
-
-	if len(ret) < 1 {
-		return ret, fmt.Errorf("Node not found")
 	}
 
 	return ret, nil
