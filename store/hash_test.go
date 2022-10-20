@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 )
@@ -52,4 +53,23 @@ func TestXorChecksum(t *testing.T) {
 	if d3Sum != d3SumInc {
 		t.Fatal("Incremental checksum did not equal the complete checksum")
 	}
+}
+
+// Test if we can compute XOR checksums in groups, and then XOR the groups
+func TestXorChecksumGroup(t *testing.T) {
+	d1 := []int{2342000, 1928323, 29192, 41992, 29439}
+
+	d1Sum := XorSum(d1)
+
+	d1SumA := XorSum(d1[:2])
+	d1SumB := XorSum(d1[2:])
+
+	d1SumAB := XorSum([]int{d1SumA, d1SumB})
+
+	if d1Sum != d1SumAB {
+		t.Fatal("Grouped checksum did not work")
+		fmt.Printf("sums: %0x %0x %0x %0x\n", d1Sum, d1SumA, d1SumB, d1SumAB)
+	}
+
+	// it works, pretty neat!
 }
