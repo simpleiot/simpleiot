@@ -1,8 +1,6 @@
 package data
 
 import (
-	"bytes"
-	"encoding/base64"
 	"fmt"
 	"strings"
 )
@@ -16,14 +14,14 @@ type Edge struct {
 	Up     string `json:"up"`
 	Down   string `json:"down"`
 	Points Points `json:"points"`
-	Hash   []byte `json:"hash"`
+	Hash   uint32 `json:"hash"`
 }
 
 func (e Edge) String() string {
 	ret := fmt.Sprintf("EDGE: %v\n", e.ID)
 	ret += fmt.Sprintf("  - Up:   %v\n", e.Up)
 	ret += fmt.Sprintf("  - Down: %v\n", e.Down)
-	ret += fmt.Sprintf("  - Hash: %v\n", base64.StdEncoding.EncodeToString(e.Hash))
+	ret += fmt.Sprintf("  - Hash: 0x%x\n", e.Hash)
 
 	for _, p := range e.Points {
 		ret += fmt.Sprintf("  - Point: %v\n", p)
@@ -50,4 +48,4 @@ type ByHash []*Edge
 
 func (a ByHash) Len() int           { return len(a) }
 func (a ByHash) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByHash) Less(i, j int) bool { return bytes.Compare(a[i].Hash, a[j].Hash) < 0 }
+func (a ByHash) Less(i, j int) bool { return a[i].Hash < a[j].Hash }

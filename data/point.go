@@ -1,10 +1,10 @@
 package data
 
 import (
-	"crypto/md5"
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
+	"math"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -69,6 +69,9 @@ func (p Point) CRC() uint32 {
 	h.Write(d)
 	h.Write([]byte(p.Type))
 	h.Write([]byte(p.Key))
+	h.Write([]byte(p.Text))
+	binary.LittleEndian.PutUint64(d, math.Float64bits(p.Value))
+	h.Write(d)
 
 	return h.Sum32()
 }
@@ -245,16 +248,14 @@ func (ps *Points) ToPb() ([]byte, error) {
 // question -- should be using []*Point instead of []Point?
 
 // Hash returns the hash of points
-func (ps *Points) Hash() []byte {
-	h := md5.New()
+func (ps *Points) Hash() uint32 {
+	var ret uint32
 
 	for _, p := range *ps {
-		d := make([]byte, 8)
-		binary.LittleEndian.PutUint64(d, uint64(p.Time.UnixNano()))
-		h.Write(d)
+		ret = ret ^ p.CRC()
 	}
 
-	return h.Sum(nil)
+	return ret
 }
 
 // Add takes a point and updates an existing array of points. Existing points

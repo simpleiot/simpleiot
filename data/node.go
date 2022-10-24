@@ -2,7 +2,6 @@ package data
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -193,7 +192,7 @@ type NodeVersion struct {
 type NodeEdge struct {
 	ID         string `json:"id" boltholdKey:"ID"`
 	Type       string `json:"type"`
-	Hash       []byte `json:"hash"`
+	Hash       uint32 `json:"hash"`
 	Parent     string `json:"parent"`
 	Points     Points `json:"points"`
 	EdgePoints Points `json:"edgePoints"`
@@ -202,7 +201,7 @@ type NodeEdge struct {
 func (n NodeEdge) String() string {
 	ret := fmt.Sprintf("NODE: %v (%v)\n", n.ID, n.Type)
 	ret += fmt.Sprintf("  - Parent: %v\n", n.Parent)
-	ret += fmt.Sprintf("  - Hash: %v\n", base64.StdEncoding.EncodeToString(n.Hash))
+	ret += fmt.Sprintf("  - Hash: 0x%x\n", n.Hash)
 
 	for _, p := range n.Points {
 		ret += fmt.Sprintf("  - Point: %v\n", p)
@@ -280,7 +279,7 @@ func (n *NodeEdge) ToPbNode() (*pb.Node, error) {
 	pbNode := &pb.Node{
 		Id:         n.ID,
 		Type:       n.Type,
-		Hash:       n.Hash,
+		Hash:       int32(n.Hash),
 		Points:     points,
 		EdgePoints: edgePoints,
 		Parent:     n.Parent,
@@ -304,7 +303,7 @@ type ByNodeEdgeHash []NodeEdge
 
 func (a ByNodeEdgeHash) Len() int           { return len(a) }
 func (a ByNodeEdgeHash) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByNodeEdgeHash) Less(i, j int) bool { return bytesLess(a[i].Hash, a[j].Hash) }
+func (a ByNodeEdgeHash) Less(i, j int) bool { return a[i].Hash < a[j].Hash }
 
 // PbDecodeNode converts a protobuf to node data structure
 func PbDecodeNode(data []byte) (NodeEdge, error) {
@@ -366,7 +365,7 @@ func PbToNode(pbNode *pb.Node) (NodeEdge, error) {
 	ret := NodeEdge{
 		ID:         pbNode.Id,
 		Type:       pbNode.Type,
-		Hash:       pbNode.Hash,
+		Hash:       uint32(pbNode.Hash),
 		Points:     points,
 		EdgePoints: edgePoints,
 		Parent:     pbNode.Parent,
