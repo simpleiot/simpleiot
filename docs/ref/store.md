@@ -37,8 +37,8 @@ past and settled on SQLite for the following reasons:
 
 The edge `Hash` field is a hash of:
 
-- edge and node point timestamps except for repetitive or high rate sample
-  points.
+- edge point CRCs
+- node points CRCs (except for repetitive or high rate sample points)
 - child edge `Hash` fields
 
 We store the hash in the `edge` structures because nodes (such as users) can
@@ -77,17 +77,24 @@ We don't need cryptographic level hashes as we are not trying to protect against
 malicious actors, but rather provide a secondary check to ensure all data has
 been synchronized. Normally, all data will be sent via points as it is changes
 and if all points are received, the Hash is not needed. Therefore, we want to
-prioritize performance and efficiency over hash strength.
+prioritize performance and efficiency over hash strength. The XOR function has
+some interesting properties:
 
-Two desirable properties of the hash algorithm include:
+- **Commutative: A ⊕ B = B ⊕ A**: the ability to process elements in any order
+  and get the same answer.
+- **Associative: A ⊕ (B ⊕ C) = (A ⊕ B) ⊕ C**: we can group operations in any
+  order.
+- **Idenity: A ⊕ 0 = A**
+- **Self-Inverse: A ⊕ A = 0**: we can back out an input value by simply applying
+  it again.
 
-- **commutability**: the ability to process elements in any order and get the
-  same answer.
-- **incremental**: the ability to incrementally add values to the hash without
-  recomputing the entire array of inputs.
+See
+[hash_test.go](https://github.com/simpleiot/simpleiot/blob/master/store/hash_test.go)
+for a test of the XOR concept.
 
-The hash of a node is calculated by computing the CRC-32 of each of the
-following point fields and then XOR'ing these CRC values:
+### Point CRC
+
+Point CRCs are calculated using the crc-32 of the following fields:
 
 - `Time`
 - `Type`
@@ -101,34 +108,29 @@ the new value with the current hash. This allows the hash to be updated
 incrementally without requiring a bunch of DB reads every time something
 changes.
 
-See
-[hash_test.go](https://github.com/simpleiot/simpleiot/blob/master/store/hash_test.go)
-for a test of the XOR concept.
-
 ### Updating the Node Hash
 
-When a point is received by the store, the store:
-
-- starts a transaction
-  - loads the edge(s)
-  - loads the current point if it exists, and backs the CRC-32 out of the
-    current hash (XOR)
-  - computes the CRC of the new point and XOR's it with the edge hash
-  - updates the point
-  - updates the edge
-  - ends the transaction
-- starts a transaction
-  - finds upstream edges of the current edge
-  - XOR out old hash value
-  - XOR in new hash value
-  - end transaction
-- repeat for all edges up to root edge
+- edge or node points received
+  - for points updated
+    - back out previous point CRC
+    - add in new point CRC
+  - update upstream hash values (stops at device node)
+    - create cache of all upstream edges to root
+    - for each upstream edge, back out old hash, and xor in new hash
+    - write all updated edge hash fields
 
 It should again be emphasized that repetitive or high rate points should not be
 included in the hash because they will be sent again soon -- we do not need the
 hash to ensure they get synchronized. The hash should only include points that
 change at slow rates (user changes, etc). Anything machine generated should be
 repeated -- even if only every 10m.
+
+The hash is only useful in sychnronizing state between a device node tree, and a
+subset of the upstream node tree. For instances which do not have an upstream of
+peer instances, there is little value in calculating hash values back to the
+root node.
+
+###
 
 ## Store Synchronization
 
@@ -178,4 +180,4 @@ updating -- if it is too often, then perhaps the system needs tuned.
 
 There could also be some type of stop-the-world lock where both systems stop
 processing new nodes during the sync operation. However, if they are not in
-sync, this probably won't help.
+sync, this probably won't help and definitely hurts scalability.
