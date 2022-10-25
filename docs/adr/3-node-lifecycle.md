@@ -11,7 +11,7 @@ In the process of implementing a
 several problems have surfaced related to the lifecycle of creating and updating
 nodes.
 
-### Node creation (current)
+### Node creation (< 0.5.0)
 
 - if a point was sent and node did not exist, SIOT created a "device" node as a
   child of the root node with this point. This was based on this initial use of
@@ -30,9 +30,7 @@ The creation process for a node involves:
 1. sending all the points of a node including a meta point with the node type.
 1. sending the edge points of a node to describe the upstream connection
 
-### current problems
-
-There are currently two problems:
+There are two problems with this:
 
 1. When creating a node, we send all the node points, then the edge points.
    However this can create an issue in that an upstream edge for a device node
@@ -42,10 +40,19 @@ There are currently two problems:
 1. If a point is sent for a node that does not exist, a new device node will be
    created.
 
-### experiments
-
 An attempt was made to switch the sending edge points of new nodes before node
-points, however this created other issues (TODO: detail these).
+points, however this created other issues (this was some time ago, so don't
+recall exactly what they were).
+
+### Node creation (>= 0.5.0)
+
+With the swith to a SQLite store, a lot of code was rewritten, and in the
+process we changed the order of creating nodes to:
+
+1. send the edge points first
+1. then send node points
+
+(See the `SendNode()` function).
 
 ### discussion
 
@@ -72,9 +79,9 @@ ways:
    discovery mechanism will continue to try to create the new device if it does
    not find it.
 
-Sneding edge before parents can be problematic for things like the client
+Sending edge before parents can be problematic for things like the client
 manager that might be listening for tombstone points to detect node
-creation/deletion.
+creation/deletion. (Why is this???)
 
 ## Decision
 

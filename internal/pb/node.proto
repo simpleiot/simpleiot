@@ -9,7 +9,7 @@ import "point.proto";
 message Node {
     string id = 1;
     string type = 2;
-    bytes hash = 4;
+    int32 hash = 4;
     // bool tombstone = 5; // DEPRECATED: Tombstone is now an edge point
     string parent = 6;
     repeated Point points = 3;

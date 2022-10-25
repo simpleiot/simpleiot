@@ -1,8 +1,6 @@
 package node
 
 import (
-	"bytes"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -342,10 +340,10 @@ func (up *Upstream) syncNode(id, parent string) error {
 		nodeUp = nodeUps[0]
 	}
 
-	if bytes.Compare(nodeUp.Hash, nodeLocal.Hash) != 0 {
-		log.Printf("syncing node: %v, hash up: %v, down: %v ", nodeLocal.Desc(),
-			base64.StdEncoding.EncodeToString(nodeUp.Hash),
-			base64.StdEncoding.EncodeToString(nodeLocal.Hash))
+	if nodeUp.Hash == nodeLocal.Hash {
+		log.Printf("syncing node: %v, hash up: 0x%x, down: 0x%x ",
+			nodeLocal.Desc(),
+			nodeUp.Hash, nodeLocal.Hash)
 
 		// first compare node points
 		// key in below map is the index of the point in the upstream node
@@ -450,7 +448,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 				if child.ID == upChild.ID {
 					found = true
 					upChildProcessed[i] = true
-					if bytes.Compare(child.Hash, upChild.Hash) != 0 {
+					if child.Hash != upChild.Hash {
 						err := up.syncNode(child.ID, nodeLocal.ID)
 						if err != nil {
 							fmt.Println("Error syncing node: ", err)

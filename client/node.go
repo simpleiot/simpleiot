@@ -195,7 +195,7 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 	}
 
 	if node.Parent != "" && node.Parent != "none" {
-		if len(node.EdgePoints) < 0 {
+		if len(node.EdgePoints) <= 0 {
 			// edge should always have a tombstone point, set to false for root node
 			node.EdgePoints = []data.Point{{Time: time.Now(),
 				Type: data.PointTypeTombstone, Origin: origin}}

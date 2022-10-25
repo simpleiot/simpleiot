@@ -34,6 +34,7 @@
 - [Development](docs/ref/development.md)
 - [Data](docs/ref/data.md)
   - [Store](docs/ref/store.md)
+  - [Synchronization](docs/ref/sync.md)
 - [Reliability](docs/ref/reliability.md)
 - [API](docs/ref/api.md)
 - [Frontend](docs/ref/frontend.md)

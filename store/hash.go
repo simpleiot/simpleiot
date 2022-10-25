@@ -1,12 +1,6 @@
 package store
 
-import (
-	"crypto/md5"
-	"encoding/binary"
-	"sort"
-
-	"github.com/simpleiot/simpleiot/data"
-)
+/* old implementation
 
 // updateHash updates the hash in all the upstream edges
 func updateHash(node *data.Node, upEdges []*data.Edge, downEdges []*data.Edge) {
@@ -35,3 +29,5 @@ func updateHash(node *data.Node, upEdges []*data.Edge, downEdges []*data.Edge) {
 		up.Hash = h.Sum(nil)
 	}
 }
+
+*/
