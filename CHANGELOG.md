@@ -14,6 +14,12 @@ For more details or to discuss releases, please visit the
 - **Breaking change**: the node hash type has changed from a string to an int,
   which requires deleting the database and starting over.
 - switch from Genesis to go-embed for embedding frontend assets
+- add embedded assets FS wrapper to allow embedding compressed assets and we
+  decompress them on the fly if requested.
+- add `elm.js.gz` to repo. This will allow us to run SIOT without building the
+  frontend first. Should enable stuff like
+  `go run github.com/simpleiot/simpleiot/cmd/siot` and allow using SIOT server
+  as a Go package in other projects.
 
 ## [[0.5.1] - 2022-10-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.1)
 
