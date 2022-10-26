@@ -190,6 +190,6 @@ siot_goreleaser_build() {
 # enable repo and workflow sections
 siot_goreleaser_release() {
   #TODO add depend build to goreleaser config
-  siot_build_dependencies --optimize
+  #siot_build_dependencies --optimize
   goreleaser release --rm-dist
 }
