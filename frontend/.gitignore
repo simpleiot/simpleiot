@@ -3,6 +3,8 @@ elm-stuff
 node_modules
 public/dist
 src/Spa/Generated
+.elm-spa
+public/elm.js
 
 # MacOS weird stuff
 .DS_Store

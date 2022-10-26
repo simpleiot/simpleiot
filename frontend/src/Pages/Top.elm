@@ -335,7 +335,7 @@ update msg model =
                                 , node =
                                     { id = ""
                                     , typ = typ
-                                    , hash = ""
+                                    , hash = 0
                                     , parent = addNode.parent
                                     , points =
                                         [ Point.newText

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -15,22 +14,25 @@ import (
 
 // IndexHandler is used to serve the index page
 type IndexHandler struct {
-	getAsset func(string) []byte
+	fs http.FileSystem
 }
 
-func (h *IndexHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	f := h.getAsset("/index.html")
+func (h *IndexHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	f, err := h.fs.Open("index.html")
+	if err != nil {
+		http.Error(res, fmt.Sprintf("Not Found: %v", err), http.StatusNotFound)
+		return
+	}
 	if f == nil {
-		rw.WriteHeader(http.StatusNotFound)
+		res.WriteHeader(http.StatusNotFound)
 	} else {
-		var reader = bytes.NewBuffer(f)
-		io.Copy(rw, reader)
+		io.Copy(res, f)
 	}
 }
 
 // NewIndexHandler returns a new Index handler
-func NewIndexHandler(getAsset func(string) []byte) http.Handler {
-	return &IndexHandler{getAsset: getAsset}
+func NewIndexHandler(fs http.FileSystem) http.Handler {
+	return &IndexHandler{fs: fs}
 }
 
 // App is a struct that implements http.Handler interface
@@ -91,7 +93,7 @@ func NewAppHandler(args ServerArgs) http.Handler {
 
 	return &App{
 		PublicHandler:  http.FileServer(args.Filesystem),
-		IndexHandler:   NewIndexHandler(args.GetAsset),
+		IndexHandler:   NewIndexHandler(args.Filesystem),
 		V1ApiHandler:   v1,
 		WebsocketProxy: wsProxy,
 	}
@@ -100,7 +102,6 @@ func NewAppHandler(args ServerArgs) http.Handler {
 // ServerArgs can be used to pass arguments to the server subsystem
 type ServerArgs struct {
 	Port       string
-	GetAsset   func(string) []byte
 	Filesystem http.FileSystem
 	Debug      bool
 	JwtAuth    Authorizer

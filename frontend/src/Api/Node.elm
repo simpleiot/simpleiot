@@ -152,7 +152,7 @@ typeSignalGenerator =
 type alias Node =
     { id : String
     , typ : String
-    , hash : String
+    , hash : Int
     , parent : String
     , points : List Point
     , edgePoints : List Point
@@ -214,7 +214,7 @@ decode =
     Decode.succeed Node
         |> required "id" Decode.string
         |> required "type" Decode.string
-        |> optional "hash" Decode.string ""
+        |> optional "hash" Decode.int 0
         |> required "parent" Decode.string
         |> optional "points" (Decode.list Point.decode) []
         |> optional "edgePoints" (Decode.list Point.decode) []
@@ -232,7 +232,7 @@ encode node =
     Encode.object
         [ ( "id", Encode.string node.id )
         , ( "type", Encode.string node.typ )
-        , ( "hash", Encode.string node.hash )
+        , ( "hash", Encode.int node.hash )
         , ( "parent", Encode.string node.parent )
         , ( "points", Point.encodeList node.points )
         , ( "edgePoints", Point.encodeList node.edgePoints )

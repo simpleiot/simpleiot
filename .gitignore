@@ -1,6 +1,3 @@
-/frontend/output
-/frontend/src/Generated
-elm-stuff
 /siot
 /siot_arm
 /siot.exe
@@ -17,7 +14,6 @@ data.json
 GITHUB_TOKEN
 local.sh
 /badger
-/frontend/.elm-spa
 /book
 *.zip
 *.bkp

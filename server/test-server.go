@@ -30,6 +30,9 @@ func TestServer() (*nats.Conn, data.NodeEdge, func(), error) {
 		return nil, data.NodeEdge{}, nil, fmt.Errorf("Error starting siot server: %v", err)
 	}
 
+	clients, err := client.DefaultClients(nc)
+	s.AddClient(clients)
+
 	stopped := make(chan struct{})
 
 	go func() {

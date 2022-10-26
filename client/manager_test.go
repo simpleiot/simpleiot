@@ -111,7 +111,7 @@ func TestManager(t *testing.T) {
 
 	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
 	// root and if it finds any, it instantiates a new client, and sends point updates to it
-	m := client.NewManager(nc, root.ID, newTestNodeClientWrapper)
+	m := client.NewManager(nc, newTestNodeClientWrapper)
 
 	managerStopped := make(chan struct{})
 
@@ -216,7 +216,7 @@ func TestManagerAddRemove(t *testing.T) {
 
 	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
 	// root and if it finds any, it instantiates a new client, and sends point updates to it
-	m := client.NewManager(nc, root.ID, newTestNodeClientWrapper)
+	m := client.NewManager(nc, newTestNodeClientWrapper)
 
 	managerStopped := make(chan struct{})
 
@@ -413,7 +413,7 @@ func TestManagerChildren(t *testing.T) {
 
 	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
 	// root and if it finds any, it instantiates a new client, and sends point updates to it
-	m := client.NewManager(nc, root.ID, newTestXClientWrapper)
+	m := client.NewManager(nc, newTestXClientWrapper)
 
 	managerStopped := make(chan struct{})
 

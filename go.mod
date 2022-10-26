@@ -3,7 +3,6 @@ module github.com/simpleiot/simpleiot
 require (
 	github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa
 	github.com/beevik/ntp v0.3.0
-	github.com/benbjohnson/genesis v0.2.1
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cavaliercoder/grab v2.0.0+incompatible
 	github.com/dim13/cobs v0.1.0

@@ -11,6 +11,21 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.5.2] - 2022-10-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.2)
+
+- **Breaking change**: the node hash type has changed from a string to an int,
+  which requires deleting the database and starting over.
+- switch from Genesis to go-embed for embedding frontend assets
+- add embedded assets FS wrapper to allow embedding compressed assets and we
+  decompress them on the fly if requested.
+- add `elm.js.gz` to repo. This will allow us to run SIOT without building the
+  frontend first. Should enable stuff like
+  `go run github.com/simpleiot/simpleiot/cmd/siot` and allow using SIOT server
+  as a Go package in other projects.
+- add server API to add clients. This will allow customization of what clients
+  are used in the system, as well as easily adding custom ones.
+- fix version in SIOT app to be Git version (was always printing development)
+
 ## [[0.5.1] - 2022-10-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.1)
 
 - handle config changes in influx db client

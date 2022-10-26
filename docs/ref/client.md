@@ -17,15 +17,7 @@ in and sending out points as it acquires new data.
 
 ## Creating new clients
 
-Simple IoT provides utilities that assist in creating new clients. See the
-[Go package documentation](https://pkg.go.dev/github.com/simpleiot/simpleiot/client)
-for more information. A client manager is created for each client type. This
-manager instantiates new client instances when new nodes are detected and then
-sends point updates to the client. Two levels of nodes are currently supported
-for client configuration. An example of this would be a Rule node that has
-Condtion and Action child nodes.
-
-A disable option is useful and should be considered for every new client.
+See [Development](development.md)
 
 ## Client lifecycle
 
