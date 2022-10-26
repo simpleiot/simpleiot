@@ -9,6 +9,60 @@ Simple IoT is written in Go.
 [Go package documentation](https://pkg.go.dev/github.com/simpleiot/simpleiot) is
 available.
 
+## Building Simple IoT
+
+Requirements:
+
+- Go
+- Node/NPM
+
+Simple IoT build has currently been testing on Linux and MacOS systems. See
+[`envsetup.sh`](https://github.com/simpleiot/simpleiot/blob/master/envsetup.sh)
+for scripts used in building.
+
+To build:
+
+- `source envsetup.sh`
+- `siot_setup`
+- `siot_build`
+
+## Using Simple IoT as a library
+
+Simple IoT can be used a library for your custom application. The siot
+[main.go](https://github.com/simpleiot/simpleiot/blob/master/cmd/siot/main.go)
+illustrates how to start the SIOT server, and add clients. You can do this from
+any Go application. With a few lines of code, this gives you a lot of
+functionality including a NATS server.
+
+## Developing a new SIOT client
+
+Simple IoT provides utilities that assist in creating new clients. See the
+[Go package documentation](https://pkg.go.dev/github.com/simpleiot/simpleiot/client)
+for more information. A client manager is created for each client type. This
+manager instantiates new client instances when new nodes are detected and then
+sends point updates to the client. Two levels of nodes are currently supported
+for client configuration. An example of this would be a Rule node that has
+Condtion and Action child nodes.
+
+A disable option is useful and should be considered for every new client.
+
+The process for creating a new client:
+
+- look at
+  [existing clients](https://github.com/simpleiot/simpleiot/tree/master/client)
+  and use one of them for a model.
+- register your client with the server using the `AddClient` method.
+- create a frontend UI for the client. Again, model after
+  [existing client UIs](https://github.com/simpleiot/simpleiot/tree/master/frontend/src/Components).
+
+## Customizing the UI
+
+Currently, there is no simple way to customize the SIOT UI. Changing the SIOT
+Elm code is probably the simplest way if you want to make a small change now.
+
+In the future, we plan to provide an API for passing in a custom UI to the SIOT
+Server. You can also implement a custom http client that serves up a custom UI.
+
 ## Code Organization
 
 Currently, there are a lot of subdirectories. One reason for this is to limit
@@ -67,23 +121,6 @@ Once you link to C libs in your Go program, you forgo many of the benefits of
 Go. The Go authors made a brilliant choice when they chose to build Go from the
 ground up. Yes, you loose the ability to easily use some of the popular C
 libraries, but what you gain is many times more valuable.
-
-## Building Simple IoT
-
-Requirements:
-
-- Go
-- Node/NPM
-
-Simple IoT build has currently been testing on Linux and MacOS systems. See
-[`envsetup.sh`](https://github.com/simpleiot/simpleiot/blob/master/envsetup.sh)
-for scripts used in building.
-
-To build:
-
-- `source envsetup.sh`
-- `siot_setup`
-- `siot_build`
 
 ## Running unit tests
 
