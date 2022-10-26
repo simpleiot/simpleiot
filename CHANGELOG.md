@@ -20,6 +20,9 @@ For more details or to discuss releases, please visit the
   frontend first. Should enable stuff like
   `go run github.com/simpleiot/simpleiot/cmd/siot` and allow using SIOT server
   as a Go package in other projects.
+- add server API to add clients. This will allow customization of what clients
+  are used in the system, as well as easily adding custom ones.
+- fix version in SIOT app to be Git version (was always printing development)
 
 ## [[0.5.1] - 2022-10-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.1)
 

@@ -2,7 +2,6 @@ package server
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"path"
@@ -13,7 +12,7 @@ import (
 )
 
 // Args parses common SIOT command line options
-func Args(args []string) (Options, error) {
+func Args(args []string, version string) (Options, error) {
 	defaultNatsServer := "nats://localhost:4222"
 
 	// =============================================
@@ -32,7 +31,6 @@ func Args(args []string) (Options, error) {
 	flagSyslog := flags.Bool("syslog", false, "log to syslog instead of stdout")
 
 	// commands to run, if no commands are given the main server starts up
-	flagVersion := flags.Bool("version", false, "Show version number")
 	flagLogNats := flags.Bool("logNats", false, "attach to NATS server and dump messages")
 	if err := flags.Parse(args[1:]); err != nil {
 		return Options{}, err
@@ -41,15 +39,6 @@ func Args(args []string) (Options, error) {
 	// =============================================
 	// General Setup
 	// =============================================
-	if *flagVersion {
-		if version == "" {
-			version = "Development"
-		}
-		fmt.Printf("SimpleIOT %v\n", version)
-		os.Exit(0)
-	}
-
-	log.Printf("SimpleIOT %v\n", version)
 
 	// set up local database
 	dataDir := os.Getenv("SIOT_DATA")
