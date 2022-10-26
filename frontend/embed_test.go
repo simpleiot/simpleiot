@@ -6,7 +6,7 @@ import (
 )
 
 func TestEmbed(t *testing.T) {
-	d, err := Content.ReadDir("output")
+	d, err := Content.ReadDir("public")
 	if err != nil {
 		t.Fatal("ReadDir returned: ", err)
 	}
