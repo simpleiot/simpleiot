@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+
 	if err := server.StartArgs(os.Args); err != nil {
 		log.Println("Simple IoT stopped, reason: ", err)
 	}

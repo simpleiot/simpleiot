@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/nats-io/nats.go"
@@ -145,4 +146,90 @@ func String(nc *nats.Conn, msg *nats.Msg) (string, error) {
 	}
 
 	return ret, nil
+}
+
+// Log all nats messages. This function does not block and does not clean up
+// after itself.
+func Log(natsServer, authToken string) {
+	log.Println("Logging all NATS messages")
+
+	opts := EdgeOptions{
+		URI:       natsServer,
+		AuthToken: authToken,
+		NoEcho:    true,
+		Disconnected: func() {
+			log.Println("NATS Disconnected")
+		},
+		Reconnected: func() {
+			log.Println("NATS Reconnected")
+		},
+		Closed: func() {
+			log.Println("NATS Closed")
+			os.Exit(0)
+		},
+	}
+
+	nc, err := EdgeConnect(opts)
+
+	if err != nil {
+		log.Println("Error connecting to NATS server: ", err)
+		os.Exit(-1)
+	}
+
+	_, err = nc.Subscribe("node.*.points", func(msg *nats.Msg) {
+		err := Dump(nc, msg)
+		if err != nil {
+			log.Println("Error dumping nats msg: ", err)
+		}
+	})
+
+	_, err = nc.Subscribe("node.*.not", func(msg *nats.Msg) {
+		err := Dump(nc, msg)
+		if err != nil {
+			log.Println("Error dumping nats msg: ", err)
+		}
+	})
+
+	_, err = nc.Subscribe("node.*.msg", func(msg *nats.Msg) {
+		err := Dump(nc, msg)
+		if err != nil {
+			log.Println("Error dumping nats msg: ", err)
+		}
+	})
+
+	_, err = nc.Subscribe("node.*.*.points", func(msg *nats.Msg) {
+		err := Dump(nc, msg)
+		if err != nil {
+			log.Println("Error dumping nats msg: ", err)
+		}
+	})
+
+	if err != nil {
+		log.Println("Nats subscribe error: ", err)
+		os.Exit(-1)
+	}
+
+	_, err = nc.Subscribe("node.*", func(msg *nats.Msg) {
+		err := Dump(nc, msg)
+		if err != nil {
+			log.Println("Error dumping nats msg: ", err)
+		}
+	})
+
+	if err != nil {
+		log.Println("Nats subscribe error: ", err)
+		os.Exit(-1)
+	}
+
+	_, err = nc.Subscribe("edge.*.*", func(msg *nats.Msg) {
+		err := Dump(nc, msg)
+		if err != nil {
+			log.Println("Error dumping nats msg: ", err)
+		}
+	})
+
+	if err != nil {
+		log.Println("Nats subscribe error: ", err)
+		os.Exit(-1)
+	}
 }

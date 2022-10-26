@@ -43,6 +43,7 @@ type Options struct {
 	ParticleAPIKey    string
 	AppVersion        string
 	OSVersionField    string
+	LogNats           bool
 }
 
 // Server represents a SIOT server process
@@ -50,6 +51,7 @@ type Server struct {
 	nc                 *nats.Conn
 	options            Options
 	natsServer         *server.Server
+	clients            *client.Group
 	chNatsClientClosed chan struct{}
 	chStop             chan struct{}
 	chWaitStart        chan struct{}
@@ -91,7 +93,17 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		chNatsClientClosed: chNatsClientClosed,
 		chStop:             make(chan struct{}),
 		chWaitStart:        make(chan struct{}),
+		clients:            client.NewGroup(),
 	}, nc, err
+}
+
+// AddClient can be used to add clients to the server.
+// Clients must be added before start is called. The
+// Server makes sure all clients are shut down before
+// shutting down the server. This makes for a cleaner
+// shutdown.
+func (s *Server) AddClient(client client.StartStop) {
+	s.clients.Add(client)
 }
 
 // Start the server -- only returns if there is an error
@@ -257,7 +269,6 @@ func (s *Server) Start() error {
 	// Build in clients manager
 	// ====================================
 
-	clientsManager := client.NewBuiltInClients(s.nc)
 	storeWg.Add(1)
 	g.Add(func() error {
 		defer storeWg.Done()
@@ -267,11 +278,11 @@ func (s *Server) Start() error {
 			return err
 		}
 
-		err = clientsManager.Start()
-		logLS("LS: Exited: clients manager")
+		err = s.clients.Start()
+		logLS("LS: Exited: clients manager: ", err)
 		return err
 	}, func(err error) {
-		clientsManager.Stop(err)
+		s.clients.Stop(err)
 		logLS("LS: Shutdown: clients manager")
 	})
 

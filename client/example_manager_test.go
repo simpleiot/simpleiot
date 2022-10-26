@@ -111,7 +111,7 @@ func ExampleNewManager() {
 
 	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
 	// root and if it finds any, it instantiates a new client, and sends point updates to it
-	m := client.NewManager(nc, root.ID, newExNodeClient)
+	m := client.NewManager(nc, newExNodeClient)
 	m.Start()
 
 	// Now any updates to the node will trigger Points/EdgePoints callbacks in the above client

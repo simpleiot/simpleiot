@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -34,7 +35,7 @@ type Manager[T any] struct {
 // NewManager takes constructor for a node client and returns a Manager for that client
 // The Node Type is inferred from the Go type passed in, so you must name Go client
 // Types to manage the node type definitions.
-func NewManager[T any](nc *nats.Conn, root string,
+func NewManager[T any](nc *nats.Conn,
 	construct func(nc *nats.Conn, config T) Client) *Manager[T] {
 	var x T
 	nodeType := reflect.TypeOf(x).Name()
@@ -42,7 +43,6 @@ func NewManager[T any](nc *nats.Conn, root string,
 
 	return &Manager[T]{
 		nc:           nc,
-		root:         root,
 		nodeType:     nodeType,
 		construct:    construct,
 		stop:         make(chan struct{}),
@@ -57,10 +57,21 @@ func NewManager[T any](nc *nats.Conn, root string,
 // When new nodes are found, the data is decoded into the client type config, and the
 // constructor for the node client is called. This call blocks until Stop is called.
 func (m *Manager[T]) Start() error {
+
+	nodes, err := GetNode(m.nc, "root", "")
+	if err != nil {
+		return fmt.Errorf("Manager: Error getting root node: %v", err)
+	}
+
+	if len(nodes) < 1 {
+		return fmt.Errorf("Manager: Error no root node")
+	}
+
+	m.root = nodes[0].ID
+
 	// TODO: it may make sense at some point to have a special topic
 	// for new nodes so that all client managers don't have to listen
 	// to all points
-	var err error
 	m.upSub, err = m.nc.Subscribe("up.none.>", func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
