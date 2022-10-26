@@ -2,8 +2,6 @@ github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa h1:NcZTFUxaDlLR
 github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa/go.mod h1:HHPxPAm2kmev+61qmkZh7xgZF/7qHtSpsWppip2Ipv8=
 github.com/beevik/ntp v0.3.0 h1:xzVrPrE4ziasFXgBVBZJDP0Wg/KpMwk2KHJ4Ba8GrDw=
 github.com/beevik/ntp v0.3.0/go.mod h1:hIHWr+l3+/clUnF44zdK+CWW7fO8dR5cIylAQ76NRpg=
-github.com/benbjohnson/genesis v0.2.1 h1:a3Q3egZj+hD+OqIMXCrPP+3DQwFg2W/4WVJMsxT9jvM=
-github.com/benbjohnson/genesis v0.2.1/go.mod h1:8ATnWEh6jLjo/pORjjfvkkxauC+XaSIvVfEXMI0Cv9M=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/cavaliercoder/grab v2.0.0+incompatible h1:wZHbBQx56+Yxjx2TCGDcenhh3cJn7cCLMfkEPmySTSE=

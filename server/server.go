@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 
@@ -13,9 +15,9 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/oklog/run"
 	"github.com/simpleiot/simpleiot/api"
-	"github.com/simpleiot/simpleiot/assets/frontend"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/frontend"
 	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/store"
@@ -294,14 +296,19 @@ func (s *Server) Start() error {
 		}()
 	}
 
+	// remove output dir name from frontend assets filesystem
+	feFS, err := fs.Sub(frontend.Content, "output")
+	if err != nil {
+		log.Fatal("Error getting frontend subtree: ", err)
+	}
+
 	// ====================================
 	// HTTP API
 	// ====================================
 	httpAPI := api.NewServer(api.ServerArgs{
 		Port:       o.HTTPPort,
 		NatsWSPort: o.NatsWSPort,
-		GetAsset:   frontend.Asset,
-		Filesystem: frontend.FileSystem(),
+		Filesystem: http.FS(feFS),
 		Debug:      o.DebugHTTP,
 		JwtAuth:    auth,
 		AuthToken:  o.AuthToken,

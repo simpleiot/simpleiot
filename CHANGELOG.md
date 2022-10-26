@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- **Breaking change**: the node hash type has changed from a string to an int,
+  which requires deleting the database and starting over.
+- switch from Genesis to go-embed for embedding frontend assets
+
 ## [[0.5.1] - 2022-10-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.1)
 
 - handle config changes in influx db client

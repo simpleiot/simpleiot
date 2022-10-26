@@ -2,10 +2,6 @@ RECOMMENDED_ELM_VERSION=0.19.1
 
 # map tools from project go modules
 
-genesis() {
-  GOARCH='' go run github.com/benbjohnson/genesis/cmd/genesis "$@"
-}
-
 golint() {
   GOARCH='' go run golang.org/x/lint/golint "$@"
 }
@@ -60,24 +56,6 @@ siot_build_frontend() {
   return 0
 }
 
-siot_build_assets() {
-  mkdir -p assets/frontend || return 1
-  genesis -C "frontend/output" -pkg frontend \
-    index.html \
-    elm.js \
-    main.js \
-    ble.js \
-    simple-iot-app-logo.png \
-    ports.js \
-    styles.css \
-    >assets/frontend/assets.go || return 1
-
-  genesis -C "assets/files" -pkg files \
-    dummy \
-    >assets/files/assets.go || return 1
-  return 0
-}
-
 siot_uglify() {
   (cd frontend && mv output/elm.js output/x &&
     npx uglifyjs output/x --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | npx uglifyjs --mangle --output output/elm.js)
@@ -90,7 +68,6 @@ siot_build_dependencies() {
     echo "running uglify"
     siot_uglify
   fi
-  siot_build_assets || return 1
   return 0
 }
 
