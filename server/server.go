@@ -297,10 +297,14 @@ func (s *Server) Start() error {
 	}
 
 	// remove output dir name from frontend assets filesystem
-	feFS, err := fs.Sub(frontend.Content, "output")
+	feFS, err := fs.Sub(frontend.Content, "public")
 	if err != nil {
 		log.Fatal("Error getting frontend subtree: ", err)
 	}
+
+	// wrap with fs that will automatically look for and decompress gz
+	// versions of files.
+	feFSDecomp := newFsDecomp(feFS)
 
 	// ====================================
 	// HTTP API
@@ -308,7 +312,7 @@ func (s *Server) Start() error {
 	httpAPI := api.NewServer(api.ServerArgs{
 		Port:       o.HTTPPort,
 		NatsWSPort: o.NatsWSPort,
-		Filesystem: http.FS(feFS),
+		Filesystem: http.FS(feFSDecomp),
 		Debug:      o.DebugHTTP,
 		JwtAuth:    auth,
 		AuthToken:  o.AuthToken,

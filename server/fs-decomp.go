@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+// fsDecomp can be used to wrap a fs.FS. If a file is requested and not found,
+// we look for a .gz version. If the .gz version is found, we decompress it
+// and return the contents. This allows us to ship .gz compressed embedded files
+// but still serve uncompressed files.
 type fsDecomp struct {
 	fs fs.FS
 }

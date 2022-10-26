@@ -45,20 +45,18 @@ siot_setup() {
 }
 
 siot_build_frontend() {
+  echo "CLIFF: siot_build_frontend"
   ELMARGS=$1
   echo "Elm args: $ELMARGS"
-  rm -f "frontend/output"/*
   (cd "frontend" && npx elm-spa build) || return 1
-  (cd "frontend" && npx elm make "$ELMARGS" src/Main.elm --output=output/elm.js) || return 1
-  cp -r frontend/public/* "frontend/output/" || return 1
-  cp "frontend/public/index.html" "frontend/output/index.html" || return 1
-  cp docs/images/simple-iot-app-logo.png "frontend/output/" || return 1
+  (cd "frontend" && npx elm make "$ELMARGS" src/Main.elm --output=public/elm.js) || return 1
   return 0
 }
 
 siot_uglify() {
-  (cd frontend && mv output/elm.js output/x &&
-    npx uglifyjs output/x --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | npx uglifyjs --mangle --output output/elm.js)
+  echo "CLIFF: siot_uglify"
+  (cd frontend/public && mv elm.js x &&
+    npx uglifyjs x --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | npx uglifyjs --mangle --output elm.js && gzip elm.js && rm x)
 }
 
 siot_build_dependencies() {
