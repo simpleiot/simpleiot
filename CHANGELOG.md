@@ -26,6 +26,9 @@ For more details or to discuss releases, please visit the
   are used in the system, as well as easily adding custom ones.
 - fix version in SIOT app to be Git version (was always printing development)
 
+You can now do things like:
+`go run github.com/simpleiot/simpleiot/cmd/siot@latest`
+
 ## [[0.5.1] - 2022-10-12](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.1)
 
 - handle config changes in influx db client
