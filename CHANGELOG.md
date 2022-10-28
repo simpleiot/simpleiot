@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.5.3] - 2022-10-27](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.2)
+
+- add serial client debug level 9 to dump raw serial data before COBS processing
+
 ## [[0.5.2] - 2022-10-26](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.2)
 
 - **Breaking change**: the node hash type has changed from a string to an int,
