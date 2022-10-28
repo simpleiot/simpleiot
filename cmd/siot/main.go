@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -14,18 +15,53 @@ import (
 	"github.com/simpleiot/simpleiot/server"
 )
 
+// goreleaser will replace version with Git version. You can also pass version
+// into the version into the go build:
+//   go build -ldflags="-X main.version=1.2.3"
 var version = "Development"
 
 func main() {
+	// global options
+	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	flagVersion := flags.Bool("version", false, "Print app version")
+	flags.Usage = func() {
+		fmt.Println("usage: siot [OPTION]... COMMAND [OPTION]...")
+		fmt.Println("Global options:")
+		flags.PrintDefaults()
+		fmt.Println()
+		fmt.Println("Available commands:")
+		fmt.Println("  * serve")
+	}
+
+	flags.Parse(os.Args[1:])
+
+	if *flagVersion {
+		fmt.Println(version)
+		os.Exit(0)
+	}
+
 	log.Printf("SimpleIOT %v\n", version)
 
-	if err := runSiot(os.Args, version); err != nil {
-		log.Println("Simple IoT stopped, reason: ", err)
+	// extract sub command and its arguments
+	args := flags.Args()
+
+	if len(args) < 1 {
+		// run serve command by default
+		args = []string{"serve"}
+	}
+
+	switch args[0] {
+	case "serve":
+		if err := runServer(args[1:], version); err != nil {
+			log.Println("Simple IoT stopped, reason: ", err)
+		}
+	default:
+		log.Fatal("Unknown command, options: serve")
 	}
 }
 
-func runSiot(args []string, version string) error {
-	options, err := server.Args(args, version)
+func runServer(args []string, version string) error {
+	options, err := server.Args(args)
 	if err != nil {
 		return err
 	}
