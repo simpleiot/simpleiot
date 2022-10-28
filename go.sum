@@ -31,6 +31,8 @@ github.com/go-audio/riff v1.0.0/go.mod h1:l3cQwc85y79NQFCRB7TiPoNiaijp6q8Z0Uv38r
 github.com/go-audio/wav v1.0.0 h1:WdSGLhtyud6bof6XHL28xKeCQRzCV06pOFo3LZsFdyE=
 github.com/go-audio/wav v1.0.0/go.mod h1:3yoReyQOsiARkvPl3ERCi8JFjihzG6WhjYpZCf5zAWE=
 github.com/go-chi/chi/v5 v5.0.0/go.mod h1:BBug9lr0cqtdAhsu6R4AAdvufI0/XBzAQSsUqJpoZOs=
+github.com/go-daq/canbus v0.2.0 h1:KCxtmVSuf5rNo39WweOpye30zb2O6FbStRsWqB4KMrU=
+github.com/go-daq/canbus v0.2.0/go.mod h1:6AuWdXPOwL+87M1PDpt5+nhpzT+j+qkwz7rWW614ra0=
 github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea h1:7qHJXogmCMTunPnNZwaOqn+6bsaCCEz6dLFbrx/0vT8=
 github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea/go.mod h1:4M5psGWXKgBr5EEiHBE4goezyqfCSAqk9C1UaKi5t+Y=
 github.com/go-openapi/jsonpointer v0.19.5/go.mod h1:Pl9vOtqEWErmShwVjC8pYs9cog34VGT37dQOVbmoatg=

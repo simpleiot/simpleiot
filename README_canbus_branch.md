@@ -7,6 +7,9 @@ The goal is to create a SimpleIoT client that will pull specific data off of a C
 The `can` client works as follows:
 - One or many MCU's send CAN packages to an MPU running the `can` client
 - The `can` client is configured to accept certain PGN's and translate each SPN contained in them to a SimpleIoT Point that is sent out through NATS
+  - The `can` client will recieve multiple messages per processor cycle
+    - If they are read in by a go routine and then passed over a channel to the select loop, how do we read and pass multiple messages per processor cycle
+    - How large should the channel buffer be? We don't want to get behind and process old information in general.
 - The frontend looks for and displays the points recieved
 
 In the future the `can` client will expect incoming CAN data to be in protobuf format:

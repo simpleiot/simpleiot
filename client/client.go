@@ -30,6 +30,9 @@ func DefaultClients(nc *nats.Conn) (*Group, error) {
 	sc := NewManager(nc, NewSerialDevClient)
 	g.Add(sc)
 
+	cb := NewManager(nc, NewCanBusClient)
+	g.Add(cb)
+
 	rc := NewManager(nc, NewRuleClient)
 	g.Add(rc)
 
