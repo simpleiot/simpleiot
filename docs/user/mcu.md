@@ -24,4 +24,5 @@ You can set the following debug levels to log information.
 - 1: log ASCII strings (must be COBS wrapped) (typically used for debugging code
   on the MCU)
 - 4: log points received or sent to the MCU
-- 8: log raw data (must be COBS wrapped)
+- 8: log cobs decoded data (must be COBS wrapped)
+- 9: log raw serial data received (pre COBS)

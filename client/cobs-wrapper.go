@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/dim13/cobs"
+	"github.com/simpleiot/simpleiot/test"
 )
 
 // CobsWrapper can be used to wrap an io.ReadWriteCloser to COBS encode/decode data
@@ -14,6 +16,7 @@ type CobsWrapper struct {
 	dev          io.ReadWriteCloser
 	readLeftover bytes.Buffer
 	readLock     sync.Mutex
+	debug        int
 }
 
 // NewCobsWrapper creates a new cobs wrapper
@@ -30,6 +33,12 @@ var ErrCobsTooMuchData = errors.New("COBS decode: too much data without null")
 
 // ErrCobsLeftoverBufferFull indicates our leftover buffer is too full to process
 var ErrCobsLeftoverBufferFull = errors.New("COBS leftover buffer too full")
+
+// SetDebug sets the debug level. If >= 9, then it dumps the raw data
+// received.
+func (cw *CobsWrapper) SetDebug(debug int) {
+	cw.debug = debug
+}
 
 // Read a COBS encoded data stream. The stream may optionally start with one or more NULL
 // bytes and must end with a NULL byte. This Read blocks until we
@@ -89,6 +98,10 @@ func (cw *CobsWrapper) Read(b []byte) (int, error) {
 			}
 			buf = buf[0:c]
 
+			if cw.debug >= 9 {
+				log.Println("SER RX RAW: ", test.HexDump(buf))
+			}
+
 			for _, b := range buf {
 				if !ret {
 					ret = processByte(b)
@@ -122,6 +135,10 @@ func (cw *CobsWrapper) Read(b []byte) (int, error) {
 }
 
 func (cw *CobsWrapper) Write(b []byte) (int, error) {
+	if cw.debug >= 9 {
+		log.Println("SER TX RAW: ", test.HexDump(b))
+	}
+
 	return cw.dev.Write(append([]byte{0}, cobs.Encode(b)...))
 }
 
