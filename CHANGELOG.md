@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- fix population of AppVersion in server
+
 ## [[0.5.4] - 2022-10-28](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.3)
 
 - clean up SIOT main to allow callers to have their own set of flags at the top

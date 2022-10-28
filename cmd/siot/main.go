@@ -66,6 +66,8 @@ func runServer(args []string, version string) error {
 		return err
 	}
 
+	options.AppVersion = version
+
 	if options.LogNats {
 		client.Log(options.NatsServer, options.AuthToken)
 		select {}
