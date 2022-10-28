@@ -12,13 +12,13 @@ import (
 )
 
 // Args parses common SIOT command line options
-func Args(args []string, version string) (Options, error) {
+func Args(args []string) (Options, error) {
 	defaultNatsServer := "nats://localhost:4222"
 
 	// =============================================
 	// Command line options
 	// =============================================
-	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
+	flags := flag.NewFlagSet("server", flag.ExitOnError)
 
 	// configuration options
 	flagDebugHTTP := flags.Bool("debugHttp", false, "Dump http requests")
@@ -32,7 +32,8 @@ func Args(args []string, version string) (Options, error) {
 
 	// commands to run, if no commands are given the main server starts up
 	flagLogNats := flags.Bool("logNats", false, "attach to NATS server and dump messages")
-	if err := flags.Parse(args[1:]); err != nil {
+
+	if err := flags.Parse(args); err != nil {
 		return Options{}, err
 	}
 
@@ -164,7 +165,6 @@ func Args(args []string, version string) (Options, error) {
 		NatsTLSTimeout:    natsTLSTimeout,
 		AuthToken:         authToken,
 		ParticleAPIKey:    particleAPIKey,
-		AppVersion:        version,
 		OSVersionField:    osVersionField,
 		LogNats:           *flagLogNats,
 	}

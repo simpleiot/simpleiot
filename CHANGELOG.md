@@ -11,6 +11,17 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.5.4] - 2022-10-28](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.3)
+
+- clean up SIOT main to allow callers to have their own set of flags at the top
+  level before calling SIOT server.
+
+NOTE, to run siot with flags, you must do something like:
+
+`siot serve -debugHttp`
+
+The server flags are now part of the serve subcommand.
+
 ## [[0.5.3] - 2022-10-27](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.2)
 
 - add serial client debug level 9 to dump raw serial data before COBS processing
