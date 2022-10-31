@@ -29,6 +29,7 @@ module Api.Node exposing
     , typeOneWireIO
     , typeRule
     , typeSerialDev
+    , typeCanBus
     , typeSignalGenerator
     , typeUpstream
     , typeUser
@@ -129,6 +130,9 @@ typeSerialDev : String
 typeSerialDev =
     "serialDev"
 
+typeCanBus : String
+typeCanBus =
+    "canBus"
 
 typeVariable : String
 typeVariable =

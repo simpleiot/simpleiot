@@ -32,3 +32,11 @@ copy the Elm Serial Node and modify to display data in a simple way
 - [ ] allow configuration of bus name, baud rate, etc. instead of Serial parameters
 
 modify CAN client to recieve data in protobuf format through J1939 multi-packet messages (nanopb)
+
+## Steps to add a CAN bus node
+- Top.elm
+  - set shouldDisplay -> true
+- Node.elm
+- Point.elm
+- data/schema.go
+- client/can.go

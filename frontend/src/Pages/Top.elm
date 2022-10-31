@@ -20,6 +20,7 @@ import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
+import Components.NodeCanBus as NodeCanBus
 import Components.NodeSignalGenerator as SignalGenerator
 import Components.NodeUpstream as NodeUpstream
 import Components.NodeUser as NodeUser
@@ -1100,6 +1101,9 @@ shouldDisplay typ =
         "serialDev" ->
             True
 
+        "canBus" ->
+            True
+
         "rule" ->
             True
 
@@ -1165,6 +1169,9 @@ viewNode model parent node depth =
 
                 "serialDev" ->
                     NodeSerialDev.view
+
+                "canBus" ->
+                    NodeCanBus.view
 
                 "rule" ->
                     NodeRule.view
@@ -1376,6 +1383,9 @@ nodeDescSerialDev : Element Msg
 nodeDescSerialDev =
     row [] [ Icon.serialDev, text "Serial Device" ]
 
+nodeDescCanBus : Element Msg
+nodeDescCanBus =
+    row [] [ Icon.serialDev, text "CAN Bus" ]
 
 nodeDescRule : Element Msg
 nodeDescRule =
@@ -1437,6 +1447,7 @@ viewAddNode parent add =
                             , Input.option Node.typeRule nodeDescRule
                             , Input.option Node.typeModbus nodeDescModbus
                             , Input.option Node.typeSerialDev nodeDescSerialDev
+                            , Input.option Node.typeCanBus nodeDescCanBus
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
@@ -1453,6 +1464,7 @@ viewAddNode parent add =
                             , Input.option Node.typeRule nodeDescRule
                             , Input.option Node.typeModbus nodeDescModbus
                             , Input.option Node.typeSerialDev nodeDescSerialDev
+                            , Input.option Node.typeCanBus nodeDescCanBus
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable

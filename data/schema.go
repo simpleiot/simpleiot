@@ -204,6 +204,11 @@ const (
 	PointTypeLog      = "log"
 	PointTypeUptime   = "uptime"
 
+	// CAN bus clients
+	NodeTypeCanBus     = "canBus"
+	PointTypeInterface = "interface"
+	PointTypeBusSpeed  = "busSpeed"
+
 	NodeTypeSignalGenerator = "signalGenerator"
 
 	PointTypeFrequency  = "frequency"

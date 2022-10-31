@@ -24,6 +24,7 @@ module Api.Point exposing
     , typeAuthToken
     , typeBaud
     , typeBucket
+    , typeBusSpeed
     , typeChannel
     , typeClientServer
     , typeCmdPending
@@ -47,6 +48,7 @@ module Api.Point exposing
     , typeFrom
     , typeID
     , typeIndex
+    , typeInterface
     , typeLastName
     , typeLog
     , typeMinActive
@@ -340,6 +342,13 @@ typeBaud : String
 typeBaud =
     "baud"
 
+typeBusSpeed : String
+typeBusSpeed =
+    "busSpeed"
+
+typeInterface : String
+typeInterface =
+    "interface"
 
 typeID : String
 typeID =
