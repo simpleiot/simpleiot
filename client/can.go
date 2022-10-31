@@ -16,8 +16,9 @@ import (
 
 const CID_WBSD = 0xCFE4832
 
-// CanPort represents a CAN socket config
-type CanSocket struct {
+// CanBus represents a CAN socket config. The name matches the front-end node type "canBus" to link the two so
+// that when a canBus node is created on the frontend the client manager knows to start a CanBus client.
+type CanBus struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
@@ -29,7 +30,7 @@ type CanSocket struct {
 // CanBusClient is a SIOT client used to communicate on a CAN bus
 type CanBusClient struct {
 	nc            *nats.Conn
-	config        CanSocket
+	config        CanBus
 	stop          chan struct{}
 	newPoints     chan NewPoints
 	newEdgePoints chan NewPoints
@@ -39,7 +40,7 @@ type CanBusClient struct {
 }
 
 // NewCanBusClient ...
-func NewCanBusClient(nc *nats.Conn, config CanSocket) Client {
+func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 	return &CanBusClient{
 		nc:            nc,
 		config:        config,
@@ -53,6 +54,17 @@ func NewCanBusClient(nc *nats.Conn, config CanSocket) Client {
 }
 
 // Start runs the main logic for this client and blocks until stopped
+// There are several main aspects of the CAN bus client
+//
+//   - the listener function is a process that recieves CAN bus frames from the Linux SocketCAN socket
+//     and sends the frames out on the canMsgRx channel
+//
+//   - the openPort function brings up a Linux network interface (if the interface of that name is not already up),
+//     sets up CAN filters on the SocketCAN socket, and binds the socket to the interface. It also starts the listener
+//     function in a go routine.
+//
+//   - when a frame is recieved on the canMsgRx channel in the main loop, it is decoded and a point is sent out for each
+//     J1939 SPN in the frame. The key of each point contains the PGN, SPN, and description of the SPN
 func (cb *CanBusClient) Start() error {
 	log.Println("Starting CAN bus client: ", cb.config.Description)
 
@@ -71,7 +83,7 @@ func (cb *CanBusClient) Start() error {
 		for {
 			frame, err := socket.Recv()
 			if err != nil {
-				log.Println(errors.Wrap(err, "Error recieving CAN frame"))
+				//log.Println(errors.Wrap(err, "Error recieving CAN frame"))
 			}
 			canMsgRx <- frame
 		}
@@ -81,25 +93,29 @@ func (cb *CanBusClient) Start() error {
 		closePort()
 
 		iface, err := net.InterfaceByName(cb.config.Interface)
+		_ = iface
 		if err != nil {
 			log.Println(errors.Wrap(err, "Internal CAN bus not found"))
 		}
-		if iface.Flags&net.FlagUp == 0 {
-			// bring up CAN interface
-			err = exec.Command("ip", "link", "set", cb.config.Interface, "type",
-				"can", "bitrate", cb.config.BusSpeed).Run()
-			if err != nil {
-				log.Println(errors.Wrap(err, "Error configuring internal CAN interface"))
-			}
-
-			err = exec.Command("ip", "link", "set", cb.config.Interface, "up").Run()
-			if err != nil {
-				log.Println(errors.Wrap(err, "Error bringing up internal can interface"))
-			}
-		} else {
-			// Handle case where interface is already up and bus speed may be wrong
-			log.Println("Error bringing up internal CAN interface, already set up.")
+		//if iface.Flags&net.FlagUp == 0 {
+		// bring up CAN interface
+		err = exec.Command("ip", "link", "set", cb.config.Interface, "type",
+			"can", "bitrate", cb.config.BusSpeed).Run()
+		log.Println("Bringing up IP link with:", cb.config.Interface, cb.config.BusSpeed)
+		if err != nil {
+			log.Println(errors.Wrap(err, "Error configuring internal CAN interface"))
 		}
+
+		err = exec.Command("ip", "link", "set", cb.config.Interface, "up").Run()
+		if err != nil {
+			log.Println(errors.Wrap(err, "Error bringing up internal can interface"))
+		}
+		/*
+			} else {
+				// Handle case where interface is already up and bus speed may be wrong
+				log.Println("Error bringing up internal CAN interface, already set up.")
+			}
+		*/
 		filters := [1]unix.CanFilter{
 			{
 				Id:   CID_WBSD,
