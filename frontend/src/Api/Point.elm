@@ -49,6 +49,7 @@ module Api.Point exposing
     , typeIndex
     , typeLastName
     , typeLog
+    , typeMaxMessageLength
     , typeMinActive
     , typeModbusIOType
     , typeNodeID
@@ -339,6 +340,11 @@ typeTxReset =
 typeBaud : String
 typeBaud =
     "baud"
+
+
+typeMaxMessageLength : String
+typeMaxMessageLength =
+    "maxMessageLength"
 
 
 typeID : String
@@ -779,6 +785,7 @@ specialPoints =
     , typeVersionOS
     , typeVersionApp
     , typeBaud
+    , typeMaxMessageLength
     , typeDebug
     , typeDisable
     , typeErrorCount

@@ -16,21 +16,22 @@ import (
 
 // SerialDev represents a serial (MCU) config
 type SerialDev struct {
-	ID              string `node:"id"`
-	Parent          string `node:"parent"`
-	Description     string `point:"description"`
-	Port            string `point:"port"`
-	Baud            string `point:"baud"`
-	Debug           int    `point:"debug"`
-	Disable         bool   `point:"disable"`
-	Log             string `point:"log"`
-	Rx              int    `point:"rx"`
-	RxReset         bool   `point:"rxReset"`
-	Tx              int    `point:"tx"`
-	TxReset         bool   `point:"txReset"`
-	Uptime          int    `point:"uptime"`
-	ErrorCount      int    `point:"errorCount"`
-	ErrorCountReset bool   `point:"errorCountReset"`
+	ID               string `node:"id"`
+	Parent           string `node:"parent"`
+	Description      string `point:"description"`
+	Port             string `point:"port"`
+	Baud             string `point:"baud"`
+	MaxMessageLength int    `point:"maxMessageLength"`
+	Debug            int    `point:"debug"`
+	Disable          bool   `point:"disable"`
+	Log              string `point:"log"`
+	Rx               int    `point:"rx"`
+	RxReset          bool   `point:"rxReset"`
+	Tx               int    `point:"tx"`
+	TxReset          bool   `point:"txReset"`
+	Uptime           int    `point:"uptime"`
+	ErrorCount       int    `point:"errorCount"`
+	ErrorCountReset  bool   `point:"errorCountReset"`
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
@@ -80,18 +81,19 @@ func (sd *SerialDevClient) Start() error {
 		port = nil
 	}
 
-	listener := func(port io.ReadWriteCloser) {
+	listener := func(port io.ReadWriteCloser, maxMessageLen int) {
 		errCount := 0
 		for {
-			buf := make([]byte, 1024)
+			buf := make([]byte, maxMessageLen)
 			c, err := port.Read(buf)
 			if err != nil {
-				if err != io.EOF {
+				if err != io.EOF && err.Error() != "Port has been closed" {
 					log.Printf("Error reading port %v: %v\n", sd.config.Description, err)
 
 					// we don't want to reset the port on every COBS
 					// decode error, so accumulate a few before we do this
-					if err == ErrCobsDecodeError {
+					if err == ErrCobsDecodeError ||
+						err == ErrCobsTooMuchData {
 						errCount++
 						if errCount < 50 {
 							continue
@@ -112,6 +114,15 @@ func (sd *SerialDevClient) Start() error {
 	}
 
 	openPort := func() {
+		if sd.config.MaxMessageLength <= 0 {
+			sd.config.MaxMessageLength = 1024
+			err := SendPoints(sd.nc, sd.natsSub,
+				data.Points{{Type: data.PointTypeMaxMessageLength, Value: 1024}}, true)
+			if err != nil {
+				log.Println("Error sending max message len message: ", err)
+			}
+		}
+
 		closePort()
 
 		if sd.config.Disable {
@@ -162,13 +173,13 @@ func (sd *SerialDevClient) Start() error {
 			io = serialPort
 		}
 
-		port = NewCobsWrapper(io)
+		port = NewCobsWrapper(io, sd.config.MaxMessageLength)
 		port.SetDebug(sd.config.Debug)
 		timerCheckPort.Stop()
 
 		log.Println("Serial port opened: ", sd.config.Description)
 
-		go listener(port)
+		go listener(port, sd.config.MaxMessageLength)
 	}
 
 	openPort()
@@ -287,9 +298,11 @@ func (sd *SerialDevClient) Start() error {
 		case pts := <-sd.newPoints:
 			op := false
 			for _, p := range pts.Points {
+				// check if any of the config changes should cause us to re-open the port
 				if p.Type == data.PointTypePort ||
 					p.Type == data.PointTypeBaud ||
-					p.Type == data.PointTypeDisable {
+					p.Type == data.PointTypeDisable ||
+					p.Type == data.PointTypeMaxMessageLength {
 					op = true
 					break
 				}
