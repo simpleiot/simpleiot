@@ -68,7 +68,7 @@ func (sd *SerialDevClient) Start() error {
 	checkPortDur := time.Second * 10
 	timerCheckPort := time.NewTimer(checkPortDur)
 
-	var port io.ReadWriteCloser
+	var port *CobsWrapper
 	serialReadData := make(chan []byte)
 	listenerClosed := make(chan struct{})
 
@@ -163,6 +163,7 @@ func (sd *SerialDevClient) Start() error {
 		}
 
 		port = NewCobsWrapper(io)
+		port.SetDebug(sd.config.Debug)
 		timerCheckPort.Stop()
 
 		log.Println("Serial port opened: ", sd.config.Description)
@@ -368,6 +369,8 @@ func (sd *SerialDevClient) Start() error {
 					data.PointTypeRxReset,
 					data.PointTypeTxReset:
 					continue
+				case data.PointTypeDebug:
+					port.SetDebug(int(p.Value))
 				}
 
 				// strip off Origin as MCU does not need that
