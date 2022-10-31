@@ -31,7 +31,7 @@ func TestSerial(t *testing.T) {
 		t.Fatal("Error starting fifo: ", err)
 	}
 
-	fifoW := client.NewCobsWrapper(fifo)
+	fifoW := client.NewCobsWrapper(fifo, 500)
 	defer fifoW.Close()
 
 	serialTest := client.SerialDev{
@@ -207,7 +207,7 @@ func TestSerialLargeMessage(t *testing.T) {
 		t.Fatal("Error starting fifo: ", err)
 	}
 
-	fifoW := client.NewCobsWrapper(fifo)
+	fifoW := client.NewCobsWrapper(fifo, 500)
 	defer fifoW.Close()
 
 	serialTest := client.SerialDev{

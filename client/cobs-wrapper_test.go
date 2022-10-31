@@ -49,7 +49,7 @@ func TestCobsRead(t *testing.T) {
 
 	a, b := test.NewIoSim()
 
-	cw := NewCobsWrapper(b)
+	cw := NewCobsWrapper(b, 500)
 
 	a.Write(append([]byte{0}, cobs.Encode(d)...))
 
@@ -83,7 +83,7 @@ func TestCobsReadNoLeadingNull(t *testing.T) {
 
 	a, b := test.NewIoSim()
 
-	cw := NewCobsWrapper(b)
+	cw := NewCobsWrapper(b, 500)
 
 	a.Write(cobs.Encode(d))
 
@@ -117,7 +117,7 @@ func TestCobsWrite(t *testing.T) {
 
 	a, b := test.NewIoSim()
 
-	cw := NewCobsWrapper(b)
+	cw := NewCobsWrapper(b, 500)
 
 	_, err := cw.Write(d)
 	if err != nil {
@@ -158,7 +158,7 @@ func TestCobsWrapperPartialPacket(t *testing.T) {
 
 	a, b := test.NewIoSim()
 
-	cw := NewCobsWrapper(b)
+	cw := NewCobsWrapper(b, 500)
 
 	de := cobs.Encode(d)
 
@@ -209,7 +209,7 @@ func TestCobsMultipleLeadingNull(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
 	a, b := test.NewIoSim()
 
-	cw := NewCobsWrapper(b)
+	cw := NewCobsWrapper(b, 500)
 
 	a.Write(append([]byte{0, 0, 0, 0}, cobs.Encode(d)...))
 
@@ -242,7 +242,7 @@ func TestCobsPartialThenNew(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
 	a, b := test.NewIoSim()
 
-	cw := NewCobsWrapper(b)
+	cw := NewCobsWrapper(b, 500)
 
 	de := append([]byte{0}, cobs.Encode(d)...)
 
@@ -273,7 +273,7 @@ func TestCobsWriteTwoThenRead(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
 	a, b := test.NewIoSim()
 
-	cw := NewCobsWrapper(b)
+	cw := NewCobsWrapper(b, 500)
 
 	de := cobs.Encode(d)
 
