@@ -117,11 +117,13 @@ func (cw *CobsWrapper) Read(b []byte) (int, error) {
 
 			if decodeBuf.Len() > cw.maxMessageLength {
 				errCh <- ErrCobsTooMuchData
+				cw.readLeftover.Reset()
 				return
 			}
 
 			if cw.readLeftover.Len() > cw.maxMessageLength {
 				errCh <- ErrCobsLeftoverBufferFull
+				cw.readLeftover.Reset()
 				return
 			}
 		}
