@@ -235,6 +235,8 @@ func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
 	var writePoints data.Points
 	var writePointIDs []string
 
+	var hashUpdate uint32
+
 NextPin:
 	for _, pIn := range points {
 		if pIn.Time.IsZero() {
@@ -247,8 +249,11 @@ NextPin:
 				if pDb.Time.Before(pIn.Time) || pDb.Time.Equal(pIn.Time) {
 					writePoints = append(writePoints, pIn)
 					writePointIDs = append(writePointIDs, dbPointIDs[j])
+					// back out old CRC and add in new one
+					hashUpdate ^= pDb.CRC()
+					hashUpdate ^= pIn.CRC()
 				} else {
-					log.Println("Ignoring point due to timestamps: ", id, pIn)
+					log.Println("Ignoring node point due to timestamps: ", id, pIn)
 				}
 				continue NextPin
 			}
@@ -256,6 +261,7 @@ NextPin:
 
 		// point was not found so write it
 		writePoints = append(writePoints, pIn)
+		hashUpdate ^= pIn.CRC()
 		writePointIDs = append(writePointIDs, uuid.New().String())
 	}
 
@@ -289,6 +295,16 @@ NextPin:
 	}
 
 	stmt.Close()
+
+	// update hash in upstream edges
+	// SQLite does not have xor operator. a^b == (a & ~b) | (~a & b)
+	_, err = tx.Exec(`UPDATE edges SET hash = (hash & ~?) | (~hash & ?) WHERE down = ?`,
+		int64(hashUpdate), int64(hashUpdate), id)
+
+	if err != nil {
+		rollback()
+		return fmt.Errorf("Error updating edge hash: %v", err)
+	}
 
 	err = tx.Commit()
 	if err != nil {
@@ -382,6 +398,8 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 	var writePoints data.Points
 	var writePointIDs []string
 
+	oldHash := edge.Hash
+
 NextPin:
 	for _, pIn := range points {
 		if pIn.Time.IsZero() {
@@ -394,6 +412,11 @@ NextPin:
 				if pIn.Time.After(pDb.Time) {
 					writePoints = append(writePoints, pIn)
 					writePointIDs = append(writePointIDs, dbPointIDs[j])
+					// back out old CRC and add in new one
+					edge.Hash ^= pDb.CRC()
+					edge.Hash ^= pIn.CRC()
+				} else {
+					log.Println("Ignoring edge point due to timestamps: ", edge.ID, pIn)
 				}
 				continue NextPin
 			}
@@ -401,6 +424,7 @@ NextPin:
 
 		// point was not found so write it
 		writePoints = append(writePoints, pIn)
+		edge.Hash ^= pIn.CRC()
 		writePointIDs = append(writePointIDs, uuid.New().String())
 	}
 
@@ -443,21 +467,33 @@ NextPin:
 		edge.Down = nodeID
 
 		_, err := tx.Exec(`INSERT INTO edges(id, up, down, hash) VALUES (?, ?, ?, ?)`,
-			edge.ID, edge.Up, edge.Down, 0)
+			edge.ID, edge.Up, edge.Down, edge.Hash)
 
 		if err != nil {
 			log.Println("edge insert failed, trying again ...: ", err)
 			// FIXME, occasionaly the above INSERT will fail with "database is locked (5) (SQLITE_BUSY)"
 			// not sure why, but the below retry seems to work around this issue for now
 			_, err := tx.Exec(`INSERT INTO edges(id, up, down, hash) VALUES (?, ?, ?, ?)`,
-				edge.ID, edge.Up, edge.Down, 0)
+				edge.ID, edge.Up, edge.Down, edge.Hash)
+
+			// TODO check for downstream node and add in its hash
 
 			if err != nil {
 				rollback()
 				return fmt.Errorf("Error when writing edge: %v", err)
 			}
 		}
+	} else {
+		// update hash
+		_, err := tx.Exec(`UPDATE edges SET hash = ? WHERE id = ?`, edge.Hash, edge.ID)
+		if err != nil {
+			rollback()
+			return fmt.Errorf("Error updating edge hash")
+		}
 	}
+
+	// TODO: update upstream hash values
+	_ = oldHash
 
 	err = tx.Commit()
 	if err != nil {
