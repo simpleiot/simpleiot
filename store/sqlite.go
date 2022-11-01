@@ -306,12 +306,61 @@ NextPin:
 		return fmt.Errorf("Error updating edge hash: %v", err)
 	}
 
+	// TODO update hashes back to root
+	err = sdb.updateHash(tx, id, hashUpdate)
+
+	if err != nil {
+		rollback()
+		return fmt.Errorf("Error updating upstream hash: %v", err)
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (sdb *DbSqlite) updateHash(tx *sql.Tx, id string, hashUpdate uint32) error {
+	// key in edgeCache is up-down
+	edgeCache := make(map[string]data.Edge)
+	_ = edgeCache
+	return nil
+}
+
+func (sdb *DbSqlite) edges(tx *sql.Tx, query string, args ...any) ([]data.Edge, error) {
+	var rowsEdges *sql.Rows
+	var err error
+
+	if tx != nil {
+		rowsEdges, err = tx.Query(query, args...)
+	} else {
+		rowsEdges, err = sdb.db.Query(query, args...)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("Error getting edges: %v", err)
+	}
+	defer rowsEdges.Close()
+
+	var edges []data.Edge
+
+	for rowsEdges.Next() {
+		var edge data.Edge
+		err = rowsEdges.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
+		if err != nil {
+			return nil, fmt.Errorf("Error scanning edges: %v", err)
+		}
+
+		edges = append(edges, edge)
+	}
+
+	if err := rowsEdges.Close(); err != nil {
+		return nil, err
+	}
+
+	return edges, nil
 }
 
 func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) error {
@@ -335,33 +384,21 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 		}
 	}
 
-	rowsEdge, err := tx.Query("SELECT * FROM edges WHERE up=? AND down=?", parentID, nodeID)
+	edges, err := sdb.edges(tx, "SELECT * FROM edges WHERE up=? AND down=?", parentID, nodeID)
 	if err != nil {
 		rollback()
 		return err
 	}
-	defer rowsEdge.Close()
 
 	var edge data.Edge
 
-	for rowsEdge.Next() {
-		err := rowsEdge.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
-		if err != nil {
-			rollback()
-			return err
-		}
-	}
-
-	if err := rowsEdge.Close(); err != nil {
-		rollback()
-		return fmt.Errorf("Error closing rowsEdge: %v", err)
-	}
-
 	newEdge := false
 
-	if edge.ID == "" {
-		edge.ID = uuid.New().String()
+	if len(edges) <= 0 {
 		newEdge = true
+		edge.ID = uuid.New().String()
+	} else {
+		edge = edges[0]
 	}
 
 	rowsPoints, err := tx.Query("SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
@@ -518,8 +555,8 @@ func (sdb *DbSqlite) node(id string) (*data.Node, error) {
 	var ret data.Node
 	ret.ID = id
 
-	query := fmt.Sprintf("SELECT * FROM node_points WHERE node_id='%v'", id)
-	ret.Points, ret.Type, err = sdb.queryPoints(query)
+	ret.Points, ret.Type, err = sdb.queryPoints(nil,
+		"SELECT * FROM node_points WHERE node_id=?", id)
 
 	if err != nil {
 		return nil, err
@@ -563,8 +600,8 @@ func (sdb *DbSqlite) children(id, typ string, includeDel bool) ([]data.NodeEdge,
 		ne.Parent = id
 		ne.Hash = edge.Hash
 
-		q := fmt.Sprintf("SELECT * FROM edge_points WHERE edge_id='%v'", edge.ID)
-		ne.EdgePoints, _, err = sdb.queryPoints(q)
+		ne.EdgePoints, _, err = sdb.queryPoints(nil,
+			"SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
 		if err != nil {
 			return nil, fmt.Errorf("children error getting edge points: %v", err)
 		}
@@ -577,8 +614,8 @@ func (sdb *DbSqlite) children(id, typ string, includeDel bool) ([]data.NodeEdge,
 			}
 		}
 
-		q = fmt.Sprintf("SELECT * FROM node_points WHERE node_id='%v'", edge.Down)
-		ne.Points, ne.Type, err = sdb.queryPoints(q)
+		ne.Points, ne.Type, err = sdb.queryPoints(nil,
+			"SELECT * FROM node_points WHERE node_id=?", edge.Down)
 		if err != nil {
 			return nil, fmt.Errorf("children error getting edge points: %v", err)
 		}
@@ -660,14 +697,14 @@ func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 		ne.Parent = edge.Up
 		ne.Hash = edge.Hash
 
-		q := fmt.Sprintf("SELECT * FROM edge_points WHERE edge_id='%v'", edge.ID)
-		ne.EdgePoints, _, err = sdb.queryPoints(q)
+		ne.EdgePoints, _, err = sdb.queryPoints(nil,
+			"SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
 		if err != nil {
 			return nil, fmt.Errorf("children error getting edge points: %v", err)
 		}
 
-		q = fmt.Sprintf("SELECT * FROM node_points WHERE node_id='%v'", edge.Down)
-		ne.Points, ne.Type, err = sdb.queryPoints(q)
+		ne.Points, ne.Type, err = sdb.queryPoints(nil,
+			"SELECT * FROM node_points WHERE node_id=?", edge.Down)
 		if err != nil {
 			return nil, fmt.Errorf("children error getting node points: %v", err)
 		}
@@ -679,10 +716,10 @@ func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
 }
 
 // returns points, type (if node), and error
-func (sdb *DbSqlite) queryPoints(query string) (data.Points, string, error) {
+func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (data.Points, string, error) {
 	var retPoints data.Points
 	var retType string
-	rowsPoints, err := sdb.db.Query(query)
+	rowsPoints, err := sdb.db.Query(query, args...)
 	if err != nil {
 		return nil, "", err
 	}
@@ -763,26 +800,14 @@ func (sdb *DbSqlite) up(id string, includeDeleted bool) ([]string, error) {
 	var edgeIDs []string
 	var ups []string
 
-	rowsEdge, err := sdb.db.Query("SELECT id, up FROM edges WHERE down=?", id)
+	edges, err := sdb.edges(nil, "SELECT * FROM edges WHERE down=?", id)
 	if err != nil {
 		return nil, err
 	}
-	defer rowsEdge.Close()
 
-	for rowsEdge.Next() {
-		var edgeID, up string
-		err := rowsEdge.Scan(&edgeID, &up)
-		if err != nil {
-			return nil, err
-		}
-
-		edgeIDs = append(edgeIDs, edgeID)
-		ups = append(ups, up)
-
-	}
-
-	if err := rowsEdge.Close(); err != nil {
-		return nil, err
+	for _, e := range edges {
+		ups = append(ups, e.Up)
+		edgeIDs = append(edgeIDs, e.ID)
 	}
 
 	if includeDeleted {
@@ -792,8 +817,8 @@ func (sdb *DbSqlite) up(id string, includeDeleted bool) ([]string, error) {
 	var ret []string
 
 	for i, edgeID := range edgeIDs {
-		q := fmt.Sprintf("SELECT * FROM edge_points WHERE edge_id='%v'", edgeID)
-		points, _, err := sdb.queryPoints(q)
+		points, _, err := sdb.queryPoints(nil,
+			"SELECT * FROM edge_points WHERE edge_id=?", edgeID)
 		if err != nil {
 			return nil, fmt.Errorf("up error getting edge points: %v", err)
 		}
