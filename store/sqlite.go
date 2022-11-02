@@ -296,19 +296,7 @@ NextPin:
 
 	stmt.Close()
 
-	// update hash in upstream edges
-	// SQLite does not have xor operator. a^b == (a & ~b) | (~a & b)
-	_, err = tx.Exec(`UPDATE edges SET hash = (hash & ~?) | (~hash & ?) WHERE down = ?`,
-		int64(hashUpdate), int64(hashUpdate), id)
-
-	if err != nil {
-		rollback()
-		return fmt.Errorf("Error updating edge hash: %v", err)
-	}
-
-	// TODO update hashes back to root
 	err = sdb.updateHash(tx, id, hashUpdate)
-
 	if err != nil {
 		rollback()
 		return fmt.Errorf("Error updating upstream hash: %v", err)
@@ -320,47 +308,6 @@ NextPin:
 	}
 
 	return nil
-}
-
-func (sdb *DbSqlite) updateHash(tx *sql.Tx, id string, hashUpdate uint32) error {
-	// key in edgeCache is up-down
-	edgeCache := make(map[string]data.Edge)
-	_ = edgeCache
-	return nil
-}
-
-func (sdb *DbSqlite) edges(tx *sql.Tx, query string, args ...any) ([]data.Edge, error) {
-	var rowsEdges *sql.Rows
-	var err error
-
-	if tx != nil {
-		rowsEdges, err = tx.Query(query, args...)
-	} else {
-		rowsEdges, err = sdb.db.Query(query, args...)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("Error getting edges: %v", err)
-	}
-	defer rowsEdges.Close()
-
-	var edges []data.Edge
-
-	for rowsEdges.Next() {
-		var edge data.Edge
-		err = rowsEdges.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
-		if err != nil {
-			return nil, fmt.Errorf("Error scanning edges: %v", err)
-		}
-
-		edges = append(edges, edge)
-	}
-
-	if err := rowsEdges.Close(); err != nil {
-		return nil, err
-	}
-
-	return edges, nil
 }
 
 func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) error {
@@ -509,6 +456,8 @@ NextPin:
 		if err != nil {
 			log.Println("edge insert failed, trying again ...: ", err)
 			// FIXME, occasionaly the above INSERT will fail with "database is locked (5) (SQLITE_BUSY)"
+			// FIXME, not sure if retry is required any more since we removed the nested
+			// queries
 			// not sure why, but the below retry seems to work around this issue for now
 			_, err := tx.Exec(`INSERT INTO edges(id, up, down, hash) VALUES (?, ?, ?, ?)`,
 				edge.ID, edge.Up, edge.Down, edge.Hash)
@@ -530,7 +479,11 @@ NextPin:
 	}
 
 	// TODO: update upstream hash values
-	_ = oldHash
+	err = sdb.updateHash(tx, nodeID, oldHash^edge.Hash)
+	if err != nil {
+		rollback()
+		return fmt.Errorf("Error updating upstream hash")
+	}
 
 	err = tx.Commit()
 	if err != nil {
@@ -538,6 +491,84 @@ NextPin:
 	}
 
 	return nil
+}
+
+func (sdb *DbSqlite) updateHash(tx *sql.Tx, id string, hashUpdate uint32) error {
+	// key in edgeCache is up-down
+	cache := make(map[string]uint32)
+	err := sdb.updateHashHelper(tx, id, hashUpdate, cache)
+	if err != nil {
+		return err
+	}
+
+	// write update hash values back to edges
+	stmt, err := tx.Prepare(`UPDATE edges SET hash = ? WHERE id = ?`)
+
+	for id, hash := range cache {
+		_, err = stmt.Exec(hash, id)
+		if err != nil {
+			return fmt.Errorf("Error updating edge hash: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (sdb *DbSqlite) updateHashHelper(tx *sql.Tx, id string, hashUpdate uint32, cache map[string]uint32) error {
+	edges, err := sdb.edges(tx, "SELECT * FROM edges WHERE down=?", id)
+	if err != nil {
+		return err
+	}
+
+	for _, e := range edges {
+		if _, ok := cache[e.ID]; !ok {
+			cache[e.ID] = e.Hash
+		}
+
+		cache[e.ID] ^= hashUpdate
+
+		if e.Up != "none" {
+			err := sdb.updateHashHelper(tx, e.Up, hashUpdate, cache)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (sdb *DbSqlite) edges(tx *sql.Tx, query string, args ...any) ([]data.Edge, error) {
+	var rowsEdges *sql.Rows
+	var err error
+
+	if tx != nil {
+		rowsEdges, err = tx.Query(query, args...)
+	} else {
+		rowsEdges, err = sdb.db.Query(query, args...)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("Error getting edges: %v", err)
+	}
+	defer rowsEdges.Close()
+
+	var edges []data.Edge
+
+	for rowsEdges.Next() {
+		var edge data.Edge
+		err = rowsEdges.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
+		if err != nil {
+			return nil, fmt.Errorf("Error scanning edges: %v", err)
+		}
+
+		edges = append(edges, edge)
+	}
+
+	if err := rowsEdges.Close(); err != nil {
+		return nil, err
+	}
+
+	return edges, nil
 }
 
 // Close the db
