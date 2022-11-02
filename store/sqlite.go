@@ -507,9 +507,12 @@ func (sdb *DbSqlite) updateHash(tx *sql.Tx, id string, hashUpdate uint32) error 
 	for id, hash := range cache {
 		_, err = stmt.Exec(hash, id)
 		if err != nil {
+			stmt.Close()
 			return fmt.Errorf("Error updating edge hash: %v", err)
 		}
 	}
+
+	stmt.Close()
 
 	return nil
 }
