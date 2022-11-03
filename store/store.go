@@ -94,12 +94,12 @@ func NewStore(p Params) (*Store, error) {
 // Start connects to NATS server and set up handlers for things we are interested in
 func (st *Store) Start() error {
 	var err error
-	st.subscriptions["nodePoints"], err = st.nc.Subscribe("node.*.points", st.handleNodePoints)
+	st.subscriptions["nodePoints"], err = st.nc.Subscribe("p.*", st.handleNodePoints)
 	if err != nil {
 		return fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
-	st.subscriptions["edgePoints"], err = st.nc.Subscribe("node.*.*.points", st.handleEdgePoints)
+	st.subscriptions["edgePoints"], err = st.nc.Subscribe("p.*.*", st.handleEdgePoints)
 	if err != nil {
 		return fmt.Errorf("Subscribe edge points error: %w", err)
 	}

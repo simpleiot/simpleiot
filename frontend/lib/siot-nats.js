@@ -145,10 +145,10 @@ Object.assign(SIOTConnection.prototype, {
     return parentNodes;
   },
 
-  // subscribePoints subscribes to `node.<nodeID>.points` and returns an async
+  // subscribePoints subscribes to `p.<nodeID>` and returns an async
   // iterable for Point objects
   subscribePoints(nodeID) {
-    const sub = this.subscribe("node." + nodeID + ".points");
+    const sub = this.subscribe("p." + nodeID);
     // Return subscription wrapped by new async iterator
     return Object.assign(Object.create(sub), {
       async *[Symbol.asyncIterator]() {
@@ -171,10 +171,10 @@ Object.assign(SIOTConnection.prototype, {
   async sendNodePoints(nodeID, points, { ack, opts }) {
     const payload = encodePoints(points);
     if (!ack) {
-      await this.publish("node." + nodeID + ".points", payload, opts);
+      await this.publish("p." + nodeID, payload, opts);
     }
 
-    const m = await this.request("node." + nodeID + ".points", payload, opts);
+    const m = await this.request("p." + nodeID, payload, opts);
 
     // Assume message data is an error message
     if (m.data && m.data.length > 0) {

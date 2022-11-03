@@ -176,7 +176,7 @@ func Log(natsServer, authToken string) {
 		os.Exit(-1)
 	}
 
-	_, err = nc.Subscribe("node.*.points", func(msg *nats.Msg) {
+	_, err = nc.Subscribe("p.*", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
 			log.Println("Error dumping nats msg: ", err)
@@ -197,7 +197,7 @@ func Log(natsServer, authToken string) {
 		}
 	})
 
-	_, err = nc.Subscribe("node.*.*.points", func(msg *nats.Msg) {
+	_, err = nc.Subscribe("p.*.*", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
 			log.Println("Error dumping nats msg: ", err)

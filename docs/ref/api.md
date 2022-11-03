@@ -39,9 +39,9 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
       - `tombstone` with value field set to 1 will include deleted points
       - `nodeType` with text field set to node type will limit returned nodes to
         this type
-  - `node.<id>.points`
+  - `p.<id>`
     - used to listen for or publish node point changes.
-  - `node.<id>.<parent>.points`
+  - `p.<id>.<parent>`
     - used to publish/subscribe node edge points. The `tombstone` point type is
       used to track if a node has been deleted or not.
   - `phr.<nodeID>`

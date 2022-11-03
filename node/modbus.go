@@ -69,7 +69,7 @@ func NewModbus(nc *nats.Conn, node data.NodeEdge) (*Modbus, error) {
 
 	// closure is required so we don't get races accessing bus.busNode
 	func(id string) {
-		bus.sub, err = nc.Subscribe("node."+bus.busNode.nodeID+".points", func(msg *nats.Msg) {
+		bus.sub, err = nc.Subscribe("p."+bus.busNode.nodeID, func(msg *nats.Msg) {
 			points, err := data.PbDecodePoints(msg.Data)
 			if err != nil {
 				// FIXME, send over channel

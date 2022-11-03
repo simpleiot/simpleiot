@@ -13,7 +13,7 @@ import (
 // DecodeNodePointsMsg decodes NATS message into node ID and points
 func DecodeNodePointsMsg(msg *nats.Msg) (string, []data.Point, error) {
 	chunks := strings.Split(msg.Subject, ".")
-	if len(chunks) < 3 {
+	if len(chunks) < 2 {
 		return "", []data.Point{}, errors.New("Error decoding node points subject")
 	}
 	nodeID := chunks[1]
@@ -29,7 +29,7 @@ func DecodeNodePointsMsg(msg *nats.Msg) (string, []data.Point, error) {
 // DecodeEdgePointsMsg decodes NATS message into node ID and points
 func DecodeEdgePointsMsg(msg *nats.Msg) (string, string, []data.Point, error) {
 	chunks := strings.Split(msg.Subject, ".")
-	if len(chunks) < 4 {
+	if len(chunks) < 3 {
 		return "", "", []data.Point{}, errors.New("Error decoding edge points subject")
 	}
 	nodeID := chunks[1]
