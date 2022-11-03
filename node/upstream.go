@@ -116,7 +116,7 @@ func NewUpstream(nc *nats.Conn, node data.NodeEdge) (*Upstream, error) {
 		}
 	})
 
-	rootNodes, err := client.GetNode(nc, "root", "")
+	rootNodes, err := client.GetNodes(nc, "root", "all", "", false)
 
 	if err != nil {
 		return nil, err
@@ -136,7 +136,7 @@ func NewUpstream(nc *nats.Conn, node data.NodeEdge) (*Upstream, error) {
 			return fmt.Errorf("Failed to add upstream sub: %v", err)
 		}
 
-		childNodes, err := client.GetNodeChildren(nc, node.ID, "", true, false)
+		childNodes, err := client.GetNodes(nc, node.ID, "all", "", false)
 		if err != nil {
 			return err
 		}
@@ -288,7 +288,7 @@ func (up *Upstream) sendNodesUp(node data.NodeEdge) error {
 	}
 
 	// process child nodes
-	childNodes, err := client.GetNodeChildren(up.nc, node.ID, "", false, false)
+	childNodes, err := client.GetNodes(up.nc, node.ID, "all", "", false)
 	if err != nil {
 		return fmt.Errorf("Error getting node children: %v", err)
 	}
@@ -305,7 +305,7 @@ func (up *Upstream) sendNodesUp(node data.NodeEdge) error {
 }
 
 func (up *Upstream) syncNode(id, parent string) error {
-	nodeLocals, err := client.GetNode(up.nc, id, parent)
+	nodeLocals, err := client.GetNodes(up.nc, parent, id, "", true)
 	if err != nil {
 		return fmt.Errorf("Error getting local node: %v", err)
 	}
@@ -316,7 +316,7 @@ func (up *Upstream) syncNode(id, parent string) error {
 
 	nodeLocal := nodeLocals[0]
 
-	nodeUps, upErr := client.GetNode(up.ncUp, id, parent)
+	nodeUps, upErr := client.GetNodes(up.ncUp, parent, id, "", true)
 	if upErr != nil {
 		if upErr != data.ErrDocumentNotFound {
 			return fmt.Errorf("Error getting upstream root node: %v", upErr)
@@ -428,13 +428,13 @@ func (up *Upstream) syncNode(id, parent string) error {
 		}
 
 		// sync child nodes
-		children, err := client.GetNodeChildren(up.nc, nodeLocal.ID, "", true, false)
+		children, err := client.GetNodes(up.nc, nodeLocal.ID, "all", "", false)
 		if err != nil {
 			return fmt.Errorf("Error getting local node children: %v", err)
 		}
 
 		// FIXME optimization we get the edges here and not the full child node
-		upChildren, err := client.GetNodeChildren(up.ncUp, nodeUp.ID, "", true, false)
+		upChildren, err := client.GetNodes(up.ncUp, nodeUp.ID, "all", "", false)
 		if err != nil {
 			return fmt.Errorf("Error getting upstream node children: %v", err)
 		}

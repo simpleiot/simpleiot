@@ -104,11 +104,7 @@ func (st *Store) Start() error {
 		return fmt.Errorf("Subscribe edge points error: %w", err)
 	}
 
-	if st.subscriptions["node"], err = st.nc.Subscribe("node.*", st.handleNode); err != nil {
-		return fmt.Errorf("Subscribe node error: %w", err)
-	}
-
-	if st.subscriptions["children"], err = st.nc.Subscribe("node.*.children", st.handleNodeChildren); err != nil {
+	if st.subscriptions["node"], err = st.nc.Subscribe("nodes.*.*", st.handleNodesRequest); err != nil {
 		return fmt.Errorf("Subscribe node error: %w", err)
 	}
 
@@ -312,7 +308,7 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 	st.reply(msg.Reply, nil)
 }
 
-func (st *Store) handleNode(msg *nats.Msg) {
+func (st *Store) handleNodesRequest(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
@@ -320,35 +316,40 @@ func (st *Store) handleNode(msg *nats.Msg) {
 	}()
 
 	resp := &pb.NodesRequest{}
+	var err error
 	var parent string
 	var nodeID string
+	var includeDel bool
+	var nodeType string
 	var nodes data.Nodes
-	var err error
-	nodesRet := data.Nodes{}
 
 	chunks := strings.Split(msg.Subject, ".")
-	if len(chunks) < 2 {
+	if len(chunks) < 3 {
 		resp.Error = fmt.Sprintf("Error in message subject: %v", msg.Subject)
 		goto handleNodeDone
 	}
 
-	parent = string(msg.Data)
+	parent = chunks[1]
+	nodeID = chunks[2]
 
-	nodeID = chunks[1]
+	if len(msg.Data) > 0 {
+		pts, err := data.PbDecodePoints(msg.Data)
+		if err != nil {
+			resp.Error = fmt.Sprintf("Error decoding points %v", err)
+			goto handleNodeDone
+		}
 
-	nodes, err = st.db.nodeEdge(nodeID, parent)
-
-	// remove deleted nodes
-	if parent == "all" {
-		for _, n := range nodes {
-			ts, _ := n.IsTombstone()
-			if !ts {
-				nodesRet = append(nodesRet, n)
+		for _, p := range pts {
+			switch p.Type {
+			case data.PointTypeTombstone:
+				includeDel = data.FloatToBool(p.Value)
+			case data.PointTypeNodeType:
+				nodeType = p.Text
 			}
 		}
-	} else {
-		nodesRet = nodes
 	}
+
+	nodes, err = st.db.nodeEdge(parent, nodeID, nodeType, includeDel)
 
 	if err != nil {
 		if err != data.ErrDocumentNotFound {
@@ -359,7 +360,7 @@ func (st *Store) handleNode(msg *nats.Msg) {
 	}
 
 handleNodeDone:
-	resp.Nodes, err = nodesRet.ToPbNodes()
+	resp.Nodes, err = nodes.ToPbNodes()
 	if err != nil {
 		resp.Error = fmt.Sprintf("Error pb encoding node: %v\n", err)
 	}
@@ -452,71 +453,6 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 	}
 }
 
-func (st *Store) handleNodeChildren(msg *nats.Msg) {
-	start := time.Now()
-	defer func() {
-		t := time.Since(start).Milliseconds()
-		st.metricCycleNodeChildren.AddSample(float64(t))
-	}()
-
-	resp := &pb.NodesRequest{}
-	var err error
-	var nodes data.Nodes
-	var nodeID string
-
-	includeDel := false
-	nodeType := ""
-
-	chunks := strings.Split(msg.Subject, ".")
-	if len(chunks) < 3 {
-		resp.Error = fmt.Sprintf("Error in message subject: %v", msg.Subject)
-		goto handleNodeChildrenDone
-	}
-
-	if len(msg.Data) > 0 {
-		pts, err := data.PbDecodePoints(msg.Data)
-		if err != nil {
-			resp.Error = fmt.Sprintf("Error decoding points %v", err)
-			goto handleNodeChildrenDone
-		}
-
-		for _, p := range pts {
-			switch p.Type {
-			case data.PointTypeTombstone:
-				includeDel = data.FloatToBool(p.Value)
-			case data.PointTypeNodeType:
-				nodeType = p.Text
-			}
-		}
-	}
-
-	nodeID = chunks[1]
-
-	nodes, err = st.db.children(nodeID, nodeType, includeDel)
-
-	if err != nil {
-		resp.Error = fmt.Sprintf("NATS: Error getting node %v from db: %v\n", nodeID, err)
-		goto handleNodeChildrenDone
-	}
-
-handleNodeChildrenDone:
-	resp.Nodes, err = nodes.ToPbNodes()
-	if err != nil {
-		resp.Error = fmt.Sprintf("Error pb encoding nodes: %v", err)
-	}
-
-	data, err := proto.Marshal(resp)
-	if err != nil {
-		resp.Error = fmt.Sprintf("Error encoding data: %v", err)
-	}
-
-	err = st.nc.Publish(msg.Reply, data)
-
-	if err != nil {
-		log.Println("NATS: Error publishing response to node children request: ", err)
-	}
-}
-
 func (st *Store) handleNotification(msg *nats.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 2 {
@@ -538,7 +474,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 	var findUsers func(id string)
 
 	findUsers = func(id string) {
-		nodes, err := st.db.children(id, data.NodeTypeUser, false)
+		nodes, err := st.db.nodeEdge("all", id, data.NodeTypeUser, false)
 		if err != nil {
 			log.Println("Error find user nodes: ", err)
 			return
@@ -638,7 +574,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	level := 0
 
 	findSvcNodes = func(id string) {
-		nodes, err := st.db.children(id, data.NodeTypeMsgService, false)
+		nodes, err := st.db.nodeEdge("all", id, data.NodeTypeMsgService, false)
 		if err != nil {
 			log.Println("Error getting svc descendents: ", err)
 			return

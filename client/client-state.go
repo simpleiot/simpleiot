@@ -43,7 +43,7 @@ func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
 }
 
 func (cs *clientState[T]) start() (err error) {
-	c, err := GetNodeChildren(cs.nc, cs.node.ID, "", false, false)
+	c, err := GetNodes(cs.nc, cs.node.ID, "all", "", false)
 	if err != nil {
 		err = fmt.Errorf("Error getting children: %v", err)
 		return

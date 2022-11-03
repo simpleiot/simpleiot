@@ -82,7 +82,7 @@ func (ow *oneWire) stop() {
 
 // CheckIOs goes through ios on the bus and handles any config changes
 func (ow *oneWire) CheckIOs() error {
-	nodes, err := client.GetNodeChildren(ow.nc, ow.owNode.nodeID, data.NodeTypeModbusIO, false, false)
+	nodes, err := client.GetNodes(ow.nc, ow.owNode.nodeID, "all", data.NodeTypeModbusIO, false)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (ow *oneWire) CheckIOs() error {
 
 // checkIOs goes through ios on the bus and handles any config changes
 func (ow *oneWire) checkIOs() error {
-	nodes, err := client.GetNodeChildren(ow.nc, ow.owNode.nodeID, data.NodeTypeOneWireIO, false, false)
+	nodes, err := client.GetNodes(ow.nc, ow.owNode.nodeID, "all", data.NodeTypeOneWireIO, false)
 	if err != nil {
 		return err
 	}

@@ -316,7 +316,7 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 
 	var err error
 	if parentID == "" {
-		parentID = "none"
+		parentID = "root"
 	}
 
 	tx, err := sdb.db.Begin()
@@ -603,35 +603,54 @@ func (sdb *DbSqlite) node(id string) (*data.Node, error) {
 	return &ret, err
 }
 
-func (sdb *DbSqlite) children(id, typ string, includeDel bool) ([]data.NodeEdge, error) {
-	var edges []data.Edge
-
-	rowsEdges, err := sdb.db.Query("SELECT * FROM edges WHERE up=?", id)
-	if err != nil {
-		return nil, fmt.Errorf("Error getting edges: %v", err)
-	}
-	defer rowsEdges.Close()
-
-	for rowsEdges.Next() {
-		var edge data.Edge
-		err = rowsEdges.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
-		if err != nil {
-			return nil, fmt.Errorf("Error scanning edges: %v", err)
-		}
-
-		edges = append(edges, edge)
-	}
-
-	if err := rowsEdges.Close(); err != nil {
-		return nil, err
-	}
-
+// If parent is set to "none", the edge details are not included
+// and the hash is blank.
+// If parent is set to "all", then all instances of the node are returned.
+// If parent is set and id is "all", then all child nodes are returned.
+// Parent can be set to "root" and id to "all" to fetch the root node(s).
+func (sdb *DbSqlite) nodeEdge(parent, id, typ string, includeDel bool) ([]data.NodeEdge, error) {
 	var ret []data.NodeEdge
+
+	if parent == "" {
+		parent = "none"
+	}
+
+	if id == "" {
+		id = "all"
+	}
+
+	var q string
+
+	switch {
+	case parent == "none" && id == "all":
+	case parent == "all" && id == "all":
+		return nil, errors.New("invalid combination of parent and id")
+	case parent == "none":
+		node, err := sdb.node(id)
+		if err != nil {
+			return ret, err
+		}
+		ne := node.ToNodeEdge(data.Edge{})
+		return []data.NodeEdge{ne}, nil
+	case parent == "all":
+		q = fmt.Sprintf("SELECT * FROM edges WHERE down = '%v'", id)
+	case id == "all":
+		q = fmt.Sprintf("SELECT * FROM edges WHERE up = '%v'", parent)
+	default:
+		// both parent and id are specified
+		q = fmt.Sprintf("SELECT * FROM edges WHERE up='%v' AND down = '%v'", parent, id)
+	}
+
+	edges, err := sdb.edges(nil, q)
+
+	if len(edges) < 1 {
+		return ret, nil
+	}
 
 	for _, edge := range edges {
 		var ne data.NodeEdge
 		ne.ID = edge.Down
-		ne.Parent = id
+		ne.Parent = edge.Up
 		ne.Hash = edge.Hash
 
 		ne.EdgePoints, _, err = sdb.queryPoints(nil,
@@ -651,96 +670,14 @@ func (sdb *DbSqlite) children(id, typ string, includeDel bool) ([]data.NodeEdge,
 		ne.Points, ne.Type, err = sdb.queryPoints(nil,
 			"SELECT * FROM node_points WHERE node_id=?", edge.Down)
 		if err != nil {
-			return nil, fmt.Errorf("children error getting edge points: %v", err)
+			return nil, fmt.Errorf("children error getting node points: %v", err)
 		}
 
 		if typ != "" {
 			if ne.Type != typ {
-				// skip node of incorrect type
+				// skip node
 				continue
 			}
-		}
-
-		ret = append(ret, ne)
-	}
-
-	return ret, nil
-}
-
-// id must be a valid ID or "root"
-// parent can be:
-//   - id of node
-//   - none: parent details are skipped
-//   - all: instances of node are fetched
-func (sdb *DbSqlite) nodeEdge(id, parent string) ([]data.NodeEdge, error) {
-	var ret []data.NodeEdge
-
-	if id == "root" {
-		id = sdb.meta.RootID
-	}
-
-	if parent == "" {
-		parent = "none"
-	}
-
-	var q string
-
-	switch parent {
-	case "none":
-		node, err := sdb.node(id)
-		if err != nil {
-			return ret, err
-		}
-		ne := node.ToNodeEdge(data.Edge{})
-		return []data.NodeEdge{ne}, nil
-	case "all":
-		q = fmt.Sprintf("SELECT * FROM edges WHERE down = '%v'", id)
-	default:
-		q = fmt.Sprintf("SELECT * FROM edges WHERE up='%v' AND down = '%v'", parent, id)
-	}
-
-	rowsEdges, err := sdb.db.Query(q)
-	if err != nil {
-		return ret, fmt.Errorf("Error getting edges: %v", err)
-	}
-	defer rowsEdges.Close()
-
-	var edges []data.Edge
-
-	for rowsEdges.Next() {
-		var edge data.Edge
-		err = rowsEdges.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
-		if err != nil {
-			return nil, fmt.Errorf("Error scanning edges: %v", err)
-		}
-
-		edges = append(edges, edge)
-	}
-
-	if err := rowsEdges.Close(); err != nil {
-		return nil, err
-	}
-
-	if len(edges) < 1 {
-		return ret, fmt.Errorf("Node not found")
-	}
-
-	for _, edge := range edges {
-		var ne data.NodeEdge
-		ne.ID = edge.Down
-		ne.Parent = edge.Up
-		ne.Hash = edge.Hash
-
-		ne.EdgePoints, _, err = sdb.queryPoints(nil,
-			"SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
-		if err != nil {
-			return nil, fmt.Errorf("children error getting edge points: %v", err)
-		}
-
-		ne.Points, ne.Type, err = sdb.queryPoints(nil,
-			"SELECT * FROM node_points WHERE node_id=?", edge.Down)
-		if err != nil {
-			return nil, fmt.Errorf("children error getting node points: %v", err)
 		}
 
 		ret = append(ret, ne)
@@ -810,7 +747,7 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 	}
 
 	for _, id := range ids {
-		ne, err := sdb.nodeEdge(id, "all")
+		ne, err := sdb.nodeEdge("all", id, "", false)
 		if err != nil {
 			log.Println("Error getting user node for id: ", id)
 			continue

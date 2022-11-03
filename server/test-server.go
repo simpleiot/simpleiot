@@ -56,7 +56,7 @@ func TestServer() (*nats.Conn, data.NodeEdge, func(), error) {
 		return nil, data.NodeEdge{}, stop, fmt.Errorf("Error waiting for test server to start: %v", err)
 	}
 
-	nodes, err := client.GetNode(nc, "root", "")
+	nodes, err := client.GetNodes(nc, "root", "all", "", false)
 
 	if err != nil {
 		return nil, data.NodeEdge{}, stop, fmt.Errorf("Get root nodes error: %v", err)

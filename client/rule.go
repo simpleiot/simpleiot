@@ -438,7 +438,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			}
 		case data.PointValueNotify:
 			// get node that fired the rule
-			nodes, err := GetNode(rc.nc, triggerNodeID, "none")
+			nodes, err := GetNodes(rc.nc, "none", triggerNodeID, "", false)
 			if err != nil {
 				return err
 			}

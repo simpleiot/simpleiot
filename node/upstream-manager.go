@@ -27,7 +27,7 @@ func NewUpstreamManager(nc *nats.Conn, rootNodeID string) *UpstreamManager {
 // Update queries DB for modbus nodes and synchronizes
 // with internal structures and updates data
 func (upm *UpstreamManager) Update() error {
-	nodes, err := client.GetNodeChildren(upm.nc, upm.rootNodeID, data.NodeTypeUpstream, false, false)
+	nodes, err := client.GetNodes(upm.nc, upm.rootNodeID, "all", data.NodeTypeUpstream, false)
 	if err != nil {
 		return err
 	}

@@ -224,7 +224,7 @@ func (s *Server) Start() error {
 			return nil
 		}
 
-		rootNode, err := client.GetNode(s.nc, "root", "")
+		rootNode, err := client.GetNodes(s.nc, "root", "all", "", false)
 
 		if err != nil {
 			logLS("LS: Exited: store metrics")

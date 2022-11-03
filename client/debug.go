@@ -36,7 +36,7 @@ func String(nc *nats.Conn, msg *nats.Msg) (string, error) {
 	if len(chunks) == 2 {
 		nodeID := chunks[1]
 		// Fetch node so we can print description
-		node, err := GetNode(nc, nodeID, "")
+		node, err := GetNodes(nc, "", nodeID, "", false)
 
 		if err != nil {
 			return "", fmt.Errorf("Error getting node over nats: %w", err)
@@ -50,7 +50,7 @@ func String(nc *nats.Conn, msg *nats.Msg) (string, error) {
 			nodeID := chunks[1]
 
 			// Fetch node so we can print description
-			node, err := GetNode(nc, nodeID, "none")
+			node, err := GetNodes(nc, "none", nodeID, "", false)
 
 			if err != nil {
 				return "", fmt.Errorf("Error getting node over nats: %w", err)
@@ -121,12 +121,12 @@ func String(nc *nats.Conn, msg *nats.Msg) (string, error) {
 		nodeID := chunks[1]
 		parentID := chunks[2]
 
-		node, err := GetNode(nc, nodeID, parentID)
+		node, err := GetNodes(nc, parentID, nodeID, "", false)
 		if err != nil {
 			return "", fmt.Errorf("Error getting node over nats: %w", err)
 		}
 
-		parent, err := GetNode(nc, parentID, "none")
+		parent, err := GetNodes(nc, "none", parentID, "", false)
 		if err != nil {
 			return "", fmt.Errorf("Error getting parent over nats: %w", err)
 		}

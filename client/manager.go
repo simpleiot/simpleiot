@@ -57,8 +57,7 @@ func NewManager[T any](nc *nats.Conn,
 // When new nodes are found, the data is decoded into the client type config, and the
 // constructor for the node client is called. This call blocks until Stop is called.
 func (m *Manager[T]) Start() error {
-
-	nodes, err := GetNode(m.nc, "root", "")
+	nodes, err := GetNodes(m.nc, "root", "all", "", false)
 	if err != nil {
 		return fmt.Errorf("Manager: Error getting root node: %v", err)
 	}
@@ -72,7 +71,7 @@ func (m *Manager[T]) Start() error {
 	// TODO: it may make sense at some point to have a special topic
 	// for new nodes so that all client managers don't have to listen
 	// to all points
-	m.upSub, err = m.nc.Subscribe("up.none.>", func(msg *nats.Msg) {
+	m.upSub, err = m.nc.Subscribe("up.root.>", func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
 			log.Println("Error decoding points")
@@ -161,7 +160,7 @@ func (m *Manager[T]) Stop(err error) {
 }
 
 func (m *Manager[T]) scan() error {
-	children, err := GetNodeChildren(m.nc, m.root, m.nodeType, false, false)
+	children, err := GetNodes(m.nc, m.root, "all", m.nodeType, false)
 
 	if err != nil {
 		return err

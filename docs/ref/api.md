@@ -28,17 +28,13 @@ For the NATS transport, protobuf encoding is used for all transfers and are
 defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
 
 - Nodes
-  - `node.<id>`
-    - returns an array of `data.EdgeNode` structs that meets the specified `id`
-      and `parent`.
-    - If id = "root", then the root node is fetched.
-    - the `parent` can can optionally by specified by setting the message
-      payload to one of the following:
-      - the ID of the parent node
-      - "all" to find all instances of the node. If "all" is specified,
-        tombstoned nodes are not returned.
-  - `node.<id>.children`
-    - can be used to request the immediate children of a node
+  - `nodes.<parent>.<id>`
+    - Request/response -- returns an array of `data.EdgeNode` structs.
+    - If parent is set to "none", edge details are not included.
+    - If parent is set to "all", then all instances of the node are returned.
+    - If parent is set and id is "all", then all child nodes of the parent are
+      returned.
+    - Parent can be set to "root" and id to "all" to fetch the root node(s).
     - parameters can be specified as points in payload
       - `tombstone` with value field set to 1 will include deleted points
       - `nodeType` with text field set to node type will limit returned nodes to

@@ -41,7 +41,7 @@ func NewManger(nc *nats.Conn, appVersion, osVersionField string) *Manager {
 func (m *Manager) init() error {
 	var rootNode data.NodeEdge
 
-	rootNodes, err := client.GetNode(m.nc, "root", "")
+	rootNodes, err := client.GetNodes(m.nc, "root", "all", "", false)
 
 	if err != nil {
 		return fmt.Errorf("Error getting root node: %v", err)

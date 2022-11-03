@@ -74,7 +74,7 @@ func TestDbSqlite(t *testing.T) {
 	}
 
 	// verify default admin user got set
-	children, err := db.children(rootID, "", false)
+	children, err := db.nodeEdge(rootID, "all", "", false)
 	if err != nil {
 		t.Fatal("children error: ", err)
 	}
@@ -90,7 +90,7 @@ func TestDbSqlite(t *testing.T) {
 	// test nodeEdge API
 	adminID := children[0].ID
 
-	adminNodes, err := db.nodeEdge(adminID, rootID)
+	adminNodes, err := db.nodeEdge(rootID, adminID, "", false)
 	if err != nil {
 		t.Fatal("Error getting admin nodes", err)
 	}
@@ -103,7 +103,7 @@ func TestDbSqlite(t *testing.T) {
 		t.Fatal("nodeEdge did not return right node type for user")
 	}
 
-	adminNodes, err = db.nodeEdge(adminID, "none")
+	adminNodes, err = db.nodeEdge("none", adminID, "", false)
 	if err != nil {
 		t.Fatal("Error getting admin nodes", err)
 	}
@@ -112,9 +112,9 @@ func TestDbSqlite(t *testing.T) {
 		t.Fatal("did not return admin nodes")
 	}
 
-	rootNodes, err := db.nodeEdge("root", "")
+	rootNodes, err := db.nodeEdge("root", "all", "", false)
 	if err != nil {
-		t.Fatal("Error getting admin nodes", err)
+		t.Fatal("Error getting root nodes", err)
 	}
 
 	if len(rootNodes) < 1 {
@@ -128,7 +128,7 @@ func TestDbSqlite(t *testing.T) {
 	// test edge points
 	err = db.edgePoints(adminID, rootID, data.Points{{Type: data.PointTypeRole, Text: data.PointValueRoleAdmin}})
 
-	adminNodes, err = db.nodeEdge(adminID, rootID)
+	adminNodes, err = db.nodeEdge(rootID, adminID, "", false)
 	if err != nil {
 		t.Fatal("Error getting admin nodes", err)
 	}
@@ -155,7 +155,7 @@ func TestDbSqlite(t *testing.T) {
 	}
 
 	// verify default admin user got set
-	children, err = db.children(rootID, "", false)
+	children, err = db.nodeEdge(rootID, "all", "", false)
 	if err != nil {
 		t.Fatal("children error: ", err)
 	}
@@ -166,7 +166,7 @@ func TestDbSqlite(t *testing.T) {
 
 	// verify nodeEdge with "all" works
 	start := time.Now()
-	adminNodes, err = db.nodeEdge(adminID, "all")
+	adminNodes, err = db.nodeEdge("all", adminID, "", false)
 	fmt.Println("nodeEdge time: ", time.Since(start))
 	if err != nil {
 		t.Fatal("Error getting admin nodes with all specified: ", err)
@@ -218,7 +218,7 @@ func TestDbSqliteUp(t *testing.T) {
 
 	rootID := db.rootNodeID()
 
-	children, err := db.children(rootID, "", false)
+	children, err := db.nodeEdge(rootID, "all", "", false)
 
 	if err != nil {
 		t.Fatal("Error getting children")
@@ -255,7 +255,7 @@ func TestDbSqliteUp(t *testing.T) {
 		t.Fatal("No ups for root user")
 	}
 
-	if ups[0] != "none" {
+	if ups[0] != "root" {
 		t.Fatal("ups, wrong ID for root: ", ups[0])
 	}
 }
