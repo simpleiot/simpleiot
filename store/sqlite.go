@@ -145,7 +145,7 @@ func (sdb *DbSqlite) initRoot() (string, error) {
 
 	rootNode.ID = uuid.New().String()
 
-	err := sdb.edgePoints(rootNode.ID, "", data.Points{{Type: data.PointTypeTombstone, Value: 0}})
+	err := sdb.edgePoints(rootNode.ID, "root", data.Points{{Type: data.PointTypeTombstone, Value: 0}})
 	if err != nil {
 		return "", fmt.Errorf("Error sending root node edges: %w", err)
 	}
@@ -382,7 +382,7 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 	var writePoints data.Points
 	var writePointIDs []string
 
-	oldHash := edge.Hash
+	var hashUpdate uint32
 
 NextPin:
 	for _, pIn := range points {
@@ -397,8 +397,8 @@ NextPin:
 					writePoints = append(writePoints, pIn)
 					writePointIDs = append(writePointIDs, dbPointIDs[j])
 					// back out old CRC and add in new one
-					edge.Hash ^= pDb.CRC()
-					edge.Hash ^= pIn.CRC()
+					hashUpdate ^= pDb.CRC()
+					hashUpdate ^= pIn.CRC()
 				} else {
 					log.Println("Ignoring edge point due to timestamps: ", edge.ID, pIn)
 				}
@@ -408,7 +408,7 @@ NextPin:
 
 		// point was not found so write it
 		writePoints = append(writePoints, pIn)
-		edge.Hash ^= pIn.CRC()
+		hashUpdate ^= pIn.CRC()
 		writePointIDs = append(writePointIDs, uuid.New().String())
 	}
 
@@ -443,6 +443,10 @@ NextPin:
 	}
 
 	stmt.Close()
+
+	// we don't update the hash here as it gets updated later in updateHash()
+	// SQLite is amazing as it appears the below INSERT can be read later in the read before
+	// the transaction is finished.
 
 	// write edge
 	if newEdge {
@@ -479,7 +483,7 @@ NextPin:
 	}
 
 	// TODO: update upstream hash values
-	err = sdb.updateHash(tx, nodeID, oldHash^edge.Hash)
+	err = sdb.updateHash(tx, nodeID, hashUpdate)
 	if err != nil {
 		rollback()
 		return fmt.Errorf("Error updating upstream hash")

@@ -404,13 +404,50 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 
 // VerifyNodeHashes recursively verifies all the hash values for all nodes
 func VerifyNodeHashes(nc *nats.Conn) error {
-	nodes, err := GetNodes(nc, "root", "all", "", true)
+	// get root node to kick things off
+	rootNodes, err := GetNodes(nc, "root", "all", "", true)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("CLIFF: nodes: ", nodes)
+	if len(rootNodes) < 1 {
+		return errors.New("no root nodes")
+	}
+
+	root := rootNodes[0]
+
+	var verify func(node data.NodeEdge) error
+
+	verify = func(node data.NodeEdge) error {
+		children, err := GetNodes(nc, node.ID, "all", "", true)
+		if err != nil {
+			return err
+		}
+
+		hash := node.CalcHash(children)
+
+		if hash != node.Hash {
+			fmt.Println("CLIFF: hash failed")
+			return fmt.Errorf("Hash failed for %v, stored: %v, calc: %v",
+				node.ID, node.Hash, hash)
+		}
+
+		for _, c := range children {
+			err := verify(c)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	err = verify(root)
+
+	if err != nil {
+		return fmt.Errorf("Verify failed: %v", err)
+	}
 
 	return nil
 }
