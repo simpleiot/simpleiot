@@ -132,6 +132,80 @@ func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 	return ret, nil
 }
 
+// verifyNodeHashes recursively verifies all the hash values for all nodes
+func (sdb *DbSqlite) verifyNodeHashes() error {
+	// must run this in a transaction so we don't get any modifications
+	// while reading child nodes. This may be expensive for a large DB, so
+	// we may want to eventually break this down into transactions for each node
+	// and its children.
+	tx, err := sdb.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	rollback := func() {
+		rbErr := tx.Rollback()
+		if rbErr != nil {
+			log.Println("Rollback error: ", rbErr)
+		}
+	}
+
+	// get root node to kick things off
+	rootNodes, err := sdb.getNodes(nil, "root", "all", "", true)
+
+	if err != nil {
+		rollback()
+		return err
+	}
+
+	if len(rootNodes) < 1 {
+		rollback()
+		return errors.New("no root nodes")
+	}
+
+	root := rootNodes[0]
+
+	var verify func(node data.NodeEdge) error
+
+	verify = func(node data.NodeEdge) error {
+		children, err := sdb.getNodes(nil, node.ID, "all", "", true)
+		if err != nil {
+			return err
+		}
+
+		hash := node.CalcHash(children)
+
+		if hash != node.Hash {
+			fmt.Println("CLIFF: hash failed")
+			return fmt.Errorf("Hash failed for %v, stored: %v, calc: %v",
+				node.ID, node.Hash, hash)
+		}
+
+		for _, c := range children {
+			err := verify(c)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	err = verify(root)
+
+	if err != nil {
+		rollback()
+		return fmt.Errorf("Verify failed: %v", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (sdb *DbSqlite) initRoot() (string, error) {
 	log.Println("STORE: Initialize root node and admin user")
 	var rootNode data.NodeEdge
@@ -612,7 +686,7 @@ func (sdb *DbSqlite) node(id string) (*data.Node, error) {
 // If parent is set to "all", then all instances of the node are returned.
 // If parent is set and id is "all", then all child nodes are returned.
 // Parent can be set to "root" and id to "all" to fetch the root node(s).
-func (sdb *DbSqlite) nodeEdge(parent, id, typ string, includeDel bool) ([]data.NodeEdge, error) {
+func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel bool) ([]data.NodeEdge, error) {
 	var ret []data.NodeEdge
 
 	if parent == "" {
@@ -645,7 +719,7 @@ func (sdb *DbSqlite) nodeEdge(parent, id, typ string, includeDel bool) ([]data.N
 		q = fmt.Sprintf("SELECT * FROM edges WHERE up='%v' AND down = '%v'", parent, id)
 	}
 
-	edges, err := sdb.edges(nil, q)
+	edges, err := sdb.edges(tx, q)
 
 	if len(edges) < 1 {
 		return ret, nil
@@ -657,7 +731,7 @@ func (sdb *DbSqlite) nodeEdge(parent, id, typ string, includeDel bool) ([]data.N
 		ne.Parent = edge.Up
 		ne.Hash = edge.Hash
 
-		ne.EdgePoints, _, err = sdb.queryPoints(nil,
+		ne.EdgePoints, _, err = sdb.queryPoints(tx,
 			"SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
 		if err != nil {
 			return nil, fmt.Errorf("children error getting edge points: %v", err)
@@ -671,7 +745,7 @@ func (sdb *DbSqlite) nodeEdge(parent, id, typ string, includeDel bool) ([]data.N
 			}
 		}
 
-		ne.Points, ne.Type, err = sdb.queryPoints(nil,
+		ne.Points, ne.Type, err = sdb.queryPoints(tx,
 			"SELECT * FROM node_points WHERE node_id=?", edge.Down)
 		if err != nil {
 			return nil, fmt.Errorf("children error getting node points: %v", err)
@@ -751,7 +825,7 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 	}
 
 	for _, id := range ids {
-		ne, err := sdb.nodeEdge("all", id, "", false)
+		ne, err := sdb.getNodes(nil, "all", id, "", false)
 		if err != nil {
 			log.Println("Error getting user node for id: ", id)
 			continue

@@ -120,6 +120,10 @@ func (st *Store) Start() error {
 		return fmt.Errorf("Subscribe auth error: %w", err)
 	}
 
+	if st.subscriptions["admin.dbVerify"], err = st.nc.Subscribe("admin.dbVerify", st.handleDbVerify); err != nil {
+		return fmt.Errorf("Subscribe dbVerify error: %w", err)
+	}
+
 done:
 	for {
 		select {
@@ -349,7 +353,7 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 		}
 	}
 
-	nodes, err = st.db.nodeEdge(parent, nodeID, nodeType, includeDel)
+	nodes, err = st.db.getNodes(nil, parent, nodeID, nodeType, includeDel)
 
 	if err != nil {
 		if err != data.ErrDocumentNotFound {
@@ -474,7 +478,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 	var findUsers func(id string)
 
 	findUsers = func(id string) {
-		nodes, err := st.db.nodeEdge("all", id, data.NodeTypeUser, false)
+		nodes, err := st.db.getNodes(nil, "all", id, data.NodeTypeUser, false)
 		if err != nil {
 			log.Println("Error find user nodes: ", err)
 			return
@@ -574,7 +578,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	level := 0
 
 	findSvcNodes = func(id string) {
-		nodes, err := st.db.nodeEdge("all", id, data.NodeTypeMsgService, false)
+		nodes, err := st.db.getNodes(nil, "all", id, data.NodeTypeMsgService, false)
 		if err != nil {
 			log.Println("Error getting svc descendents: ", err)
 			return
@@ -631,6 +635,19 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 					message.Phone, err)
 			}
 		}
+	}
+}
+
+func (st *Store) handleDbVerify(msg *nats.Msg) {
+	var ret string
+	hashErr := st.db.verifyNodeHashes()
+	if hashErr != nil {
+		ret = hashErr.Error()
+	}
+
+	err := st.nc.Publish(msg.Reply, []byte(ret))
+	if err != nil {
+		log.Println("NATS: Error publishing response to node request: ", err)
 	}
 }
 

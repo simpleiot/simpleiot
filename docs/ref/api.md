@@ -72,9 +72,13 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
       node graph. A JWT node will also be returned with a token point. This JWT
       should be used to authenticate future requests. The frontend can then
       fetch the parent node for each user node.
-- System
-  - `error`
+- Admin
+  - `admin.error` (not implemented yet)
     - any errors that occur are sent to this subject
+  - `admin.dbVerify`
+    - used to initiate a database verification process. This currently verifies
+      hash values are correct and responds with an error string.
+  - `admin.dbMaint` (not implemented yet)
 
 ## HTTP
 

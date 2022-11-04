@@ -8,7 +8,7 @@ import (
 	"github.com/simpleiot/simpleiot/server"
 )
 
-func TestVerifyNodeHashes(t *testing.T) {
+func TestAdminDbVerify(t *testing.T) {
 	nc, _, stop, err := server.TestServer()
 
 	if err != nil {
@@ -20,7 +20,7 @@ func TestVerifyNodeHashes(t *testing.T) {
 	// give store time to init
 	time.Sleep(time.Millisecond * 100)
 
-	err = client.VerifyNodeHashes(nc)
+	err = client.AdminDbVerify(nc)
 	if err != nil {
 		t.Fatal("Verify failed: ", err)
 	}
