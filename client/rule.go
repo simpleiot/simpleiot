@@ -192,7 +192,7 @@ func (rc *RuleClient) Start() error {
 	// watch all points that flow through parent node
 	// FIXME: we should optimize this so we only watch the nodes
 	// that are in the conditions
-	subject := fmt.Sprintf("up.%v.*.points", rc.config.Parent)
+	subject := fmt.Sprintf("up.%v.*", rc.config.Parent)
 
 	var err error
 	rc.upSub, err = rc.nc.Subscribe(subject, func(msg *nats.Msg) {

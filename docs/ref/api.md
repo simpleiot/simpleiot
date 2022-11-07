@@ -28,7 +28,7 @@ For the NATS transport, protobuf encoding is used for all transfers and are
 defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
 
 - Nodes
-  - `nodes.<parent>.<id>`
+  - `nodes.<parentId>.<nodeId>`
     - Request/response -- returns an array of `data.EdgeNode` structs.
     - If parent is set to "none", edge details are not included.
     - If parent is set to "all", then all instances of the node are returned.
@@ -39,19 +39,19 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
       - `tombstone` with value field set to 1 will include deleted points
       - `nodeType` with text field set to node type will limit returned nodes to
         this type
-  - `p.<id>`
+  - `p.<nodeId>`
     - used to listen for or publish node point changes.
-  - `p.<id>.<parent>`
+  - `p.<nodeId>.<parentId>`
     - used to publish/subscribe node edge points. The `tombstone` point type is
       used to track if a node has been deleted or not.
-  - `phr.<nodeID>`
+  - `phr.<nodeId>`
     - high rate point data
   - `phrup.<upstreamId>.<nodeId>`
     - high rate point data re-broadcasted upstream
-  - `up.<upstreamId>.<nodeId>.points`
+  - `up.<upstreamId>.<nodeId>`
     - node points are rebroadcast at every upstream ID so that we can listen for
       point changes at any level. The sending node is also included in this.
-  - `up.<upstreamId>.<nodeId>.<parentId>.points`
+  - `up.<upstreamId>.<nodeId>.<parentId>`
     - edge points rebroadcast at every upstream node ID.
 - Legacy APIs that are being deprecated
   - `node.<id>.not`

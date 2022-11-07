@@ -669,7 +669,7 @@ func (st *Store) reply(subject string, err error) {
 
 func (st *Store) processPointsUpstream(upNodeID, nodeID, nodeDesc string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
-	sub := fmt.Sprintf("up.%v.%v.points", upNodeID, nodeID)
+	sub := fmt.Sprintf("up.%v.%v", upNodeID, nodeID)
 
 	err := client.SendPoints(st.nc, sub, points, false)
 
@@ -742,7 +742,7 @@ func (st *Store) processPointsUpstream(upNodeID, nodeID, nodeDesc string, points
 }
 
 func (st *Store) processEdgePointsUpstream(upNodeID, nodeID, parentID string, points data.Points) error {
-	sub := fmt.Sprintf("up.%v.%v.%v.points", upNodeID, nodeID, parentID)
+	sub := fmt.Sprintf("up.%v.%v.%v", upNodeID, nodeID, parentID)
 
 	err := client.SendPoints(st.nc, sub, points, false)
 
