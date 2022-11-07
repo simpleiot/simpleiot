@@ -14,6 +14,7 @@ type EdgeOptions struct {
 	URI          string
 	AuthToken    string
 	NoEcho       bool
+	Connected    func()
 	Disconnected func()
 	Reconnected  func()
 	Closed       func()
@@ -87,6 +88,21 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 	}
 
 	fmt.Println("NATS: TLS required: ", nc.TLSRequired())
+
+	go func() {
+		for {
+			status := nc.Status()
+			switch status {
+			case nats.CONNECTED:
+				eo.Connected()
+				return
+			case nats.CLOSED:
+				// return as the client was closed
+				return
+			}
+			time.Sleep(5 * time.Second)
+		}
+	}()
 
 	nc.SetErrorHandler(func(_ *nats.Conn, sub *nats.Subscription,
 		err error) {

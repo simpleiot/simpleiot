@@ -88,6 +88,21 @@ func GetNodesType[T any](nc *nats.Conn, parent, id string) ([]T, error) {
 	return ret, nil
 }
 
+// GetRootNode returns the root node of the instance
+func GetRootNode(nc *nats.Conn) (data.NodeEdge, error) {
+	rootNodes, err := GetNodes(nc, "root", "all", "", false)
+
+	if err != nil {
+		return data.NodeEdge{}, err
+	}
+
+	if len(rootNodes) == 0 {
+		return data.NodeEdge{}, data.ErrDocumentNotFound
+	}
+
+	return rootNodes[0], nil
+}
+
 // GetNodesForUser gets all nodes for a user
 func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 	var none []data.NodeEdge

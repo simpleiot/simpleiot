@@ -176,7 +176,6 @@ func (sdb *DbSqlite) verifyNodeHashes() error {
 		hash := node.CalcHash(children)
 
 		if hash != node.Hash {
-			fmt.Println("CLIFF: hash failed")
 			return fmt.Errorf("Hash failed for %v, stored: %v, calc: %v",
 				node.ID, node.Hash, hash)
 		}
@@ -663,6 +662,7 @@ func (sdb *DbSqlite) rootNodeID() string {
 
 // gets a node
 func (sdb *DbSqlite) node(id string) (*data.Node, error) {
+
 	var err error
 	var ret data.Node
 	ret.ID = id
@@ -675,7 +675,7 @@ func (sdb *DbSqlite) node(id string) (*data.Node, error) {
 	}
 
 	if ret.Type == "" {
-		return nil, errors.New("node not found")
+		return nil, data.ErrDocumentNotFound
 	}
 
 	return &ret, err
