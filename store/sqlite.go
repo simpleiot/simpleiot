@@ -701,6 +701,7 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 
 	switch {
 	case parent == "none" && id == "all":
+		return nil, errors.New("invalid combination of parent and id")
 	case parent == "all" && id == "all":
 		return nil, errors.New("invalid combination of parent and id")
 	case parent == "none":
