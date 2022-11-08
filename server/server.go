@@ -76,7 +76,11 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		nats.ReconnectWait(time.Millisecond*250),
 		nats.ErrorHandler(func(_ *nats.Conn,
 			sub *nats.Subscription, err error) {
-			log.Printf("NATS server client error, sub: %v, err: %s\n", sub.Subject, err)
+			var subject string
+			if sub != nil {
+				subject = sub.Subject
+			}
+			log.Printf("NATS server client error, sub: %v, err: %s\n", subject, err)
 		}),
 		nats.ReconnectHandler(func(_ *nats.Conn) {
 			log.Println("Nats server client reconnect")
