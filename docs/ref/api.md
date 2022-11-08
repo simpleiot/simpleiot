@@ -72,6 +72,10 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
       node graph. A JWT node will also be returned with a token point. This JWT
       should be used to authenticate future requests. The frontend can then
       fetch the parent node for each user node.
+  - `auth.getNatsURI`
+    - this returns the NATS URI and Auth Token as points. This is used in cases
+      where the client needs to set up a new connection to specify the no-echo
+      option, or other features.
 - Admin
   - `admin.error` (not implemented yet)
     - any errors that occur are sent to this subject

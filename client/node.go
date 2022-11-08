@@ -320,33 +320,6 @@ func MirrorNode(nc *nats.Conn, id, newParent, origin string) error {
 	return err
 }
 
-// UserCheck sends a nats message to check auth of user
-// This function returns user nodes and a JWT node which includes a token
-func UserCheck(nc *nats.Conn, email, pass string) ([]data.NodeEdge, error) {
-	points := data.Points{
-		{Type: data.PointTypeEmail, Text: email},
-		{Type: data.PointTypePass, Text: pass},
-	}
-
-	pointsData, err := points.ToPb()
-	if err != nil {
-		return []data.NodeEdge{}, err
-	}
-
-	nodeMsg, err := nc.Request("auth.user", pointsData, time.Second*20)
-	if err != nil {
-		return []data.NodeEdge{}, err
-	}
-
-	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
-
-	if err != nil {
-		return []data.NodeEdge{}, err
-	}
-
-	return nodes, nil
-}
-
 // NodeWatcher creates a node watcher. update() is called any time there is an update.
 // Stop can be called to stop the watcher. get() can be called to get the current value.
 func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop func(), err error) {
