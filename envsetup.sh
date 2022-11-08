@@ -193,3 +193,7 @@ siot_goreleaser_release() {
   #siot_build_dependencies --optimize
   goreleaser release --rm-dist
 }
+
+siot_dblab() {
+  go run github.com/danvergara/dblab@latest --db siot.sqlite --driver sqlite3
+}
