@@ -28,6 +28,8 @@ const (
 	PointTypeErrorCountEOFReset = "errorCountEOFReset"
 	PointTypeErrorCountCRC      = "errorCountCRC"
 	PointTypeErrorCountCRCReset = "errorCountCRCReset"
+	PointTypeSyncCount          = "syncCount"
+	PointTypeSyncCountReset     = "syncCountReset"
 	PointTypeReadOnly           = "readOnly"
 	PointTypeURI                = "uri"
 	PointTypeDisable            = "disable"
@@ -184,7 +186,7 @@ const (
 	NodeTypeVariable      = "variable"
 	PointTypeVariableType = "variableType"
 
-	NodeTypeUpstream = "upstream"
+	NodeTypeSync = "sync"
 
 	PointTypeMetricNatsCycleNodePoint          = "metricNatsCycleNodePoint"
 	PointTypeMetricNatsCycleNodeEdgePoint      = "metricNatsCycleNodeEdgePoint"

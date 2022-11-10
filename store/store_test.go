@@ -135,5 +135,26 @@ func TestStoreMultiplePoints(t *testing.T) {
 	if updated.LastName != "Brake" {
 		t.Fatal("last name not updated: ", updated.LastName)
 	}
+}
 
+func TestGetNatsURI(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	_ = nc
+	_ = root
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	uri, _, err := client.GetNatsURI(nc)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if uri != "nats://localhost:4990" {
+		t.Fatal("Did not get expected URI: ", uri)
+	}
 }

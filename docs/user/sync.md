@@ -1,11 +1,11 @@
-# Upstream connections
+# Synchronization
 
-Simple IoT provides for simple upstream connections via NATS or NATS over
+Simple IoT provides for synchronized upstream connections via NATS or NATS over
 Websocket.
 
 ![upstream](images/multiple-upstream.png)
 
-To create an upstream, add an upstream node to the root node on the downstream
+To create an upstream sync, add a sync node to the root node on the downstream
 instance. If your upstream server has a name of `myserver.com`, then you can use
 the following connections URIs:
 
@@ -29,9 +29,9 @@ Occasionally, you might also have edge devices on networks where nats outgoing
 connections on port 4222 are blocked. In this case, its handy to be able to use
 the `wss` connection, which just uses standard HTTP(S) ports.
 
-![upstream](images/upstream.png)
+![sync](images/upstream.png)
 
-There are also several videos that demostrate upstream connections:
+There are also several videos that demonstrate upstream connections:
 
 - [Simple IoT upstream synchronization support](https://youtu.be/6xB-gXUynQc)
 - [Simple IoT Integration with PLC Using Modbus](https://youtu.be/-1PuBoTAzPE)

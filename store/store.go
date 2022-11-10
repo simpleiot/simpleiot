@@ -104,7 +104,7 @@ func (st *Store) Start() error {
 		return fmt.Errorf("Subscribe edge points error: %w", err)
 	}
 
-	if st.subscriptions["node"], err = st.nc.Subscribe("nodes.*.*", st.handleNodesRequest); err != nil {
+	if st.subscriptions["nodes"], err = st.nc.Subscribe("nodes.*.*", st.handleNodesRequest); err != nil {
 		return fmt.Errorf("Subscribe node error: %w", err)
 	}
 
@@ -116,7 +116,11 @@ func (st *Store) Start() error {
 		return fmt.Errorf("Subscribe message error: %w", err)
 	}
 
-	if st.subscriptions["auth"], err = st.nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
+	if st.subscriptions["auth.user"], err = st.nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
+		return fmt.Errorf("Subscribe auth error: %w", err)
+	}
+
+	if st.subscriptions["auth.getNatsURI"], err = st.nc.Subscribe("auth.getNatsURI", st.handleAuthGetNatsURI); err != nil {
 		return fmt.Errorf("Subscribe auth error: %w", err)
 	}
 
@@ -454,6 +458,24 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 	err = st.nc.Publish(msg.Reply, data)
 	if err != nil {
 		log.Println("NATS: Error publishing response to node request: ", err)
+	}
+}
+
+func (st *Store) handleAuthGetNatsURI(msg *nats.Msg) {
+	points := data.Points{
+		{Type: data.PointTypeURI, Text: st.server},
+		{Type: data.PointTypeToken, Text: st.authToken},
+	}
+
+	data, err := points.ToPb()
+
+	if err != nil {
+		data = []byte(err.Error())
+	}
+
+	err = st.nc.Publish(msg.Reply, data)
+	if err != nil {
+		log.Println("NATS: Error publishing response to gets NATS URI request: ", err)
 	}
 }
 

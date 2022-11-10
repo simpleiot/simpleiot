@@ -30,7 +30,7 @@ module Api.Node exposing
     , typeRule
     , typeSerialDev
     , typeSignalGenerator
-    , typeUpstream
+    , typeSync
     , typeUser
     , typeVariable
     )
@@ -135,9 +135,9 @@ typeVariable =
     "variable"
 
 
-typeUpstream : String
-typeUpstream =
-    "upstream"
+typeSync : String
+typeSync =
+    "sync"
 
 
 typeSignalGenerator : String
