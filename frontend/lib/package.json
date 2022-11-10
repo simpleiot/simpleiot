@@ -5,6 +5,7 @@
   "main": "siot-nats.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+    "format": "prettier --ignore-path ../.gitignore --write \"./*.{mjs,js}\"",
   },
   "author": "",
   "license": "MIT",

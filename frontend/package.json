@@ -17,6 +17,7 @@
     "elm-spa": "5.0.4",
     "elm-test": "^0.19.1-revision7",
     "lodash": ">=4.17.21",
+    "prettier": "^2.7.1",
     "uglify-js": "^3.10.1",
     "ws": ">=5.2.3"
   }
