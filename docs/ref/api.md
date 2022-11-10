@@ -30,11 +30,14 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
 - Nodes
   - `nodes.<parentId>.<nodeId>`
     - Request/response -- returns an array of `data.EdgeNode` structs.
-    - If parent is set to "none", edge details are not included.
-    - If parent is set to "all", then all instances of the node are returned.
-    - If parent is set and id is "all", then all child nodes of the parent are
+    - `parent="none"`, edge details are not included.
+    - `parent="all"`, then all instances of the node are returned.
+    - `parent is set and id="all"`, then all child nodes of the parent are
       returned.
-    - Parent can be set to "root" and id to "all" to fetch the root node(s).
+    - `parent="root" and id="all"` to fetch the root node(s).
+    - The following combinations are invalid:
+      - `parent="none" && id="all"`
+      - `parent="all" && id="all"`
     - parameters can be specified as points in payload
       - `tombstone` with value field set to 1 will include deleted points
       - `nodeType` with text field set to node type will limit returned nodes to
