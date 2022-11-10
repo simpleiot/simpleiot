@@ -1,15 +1,22 @@
-import { connect as natsConnect, StringCodec } from "nats.ws";
-import { Timestamp } from "google-protobuf/google/protobuf/timestamp_pb";
-import { Points, Point } from "./protobuf/point_pb";
-import { NodesRequest } from "./protobuf/node_pb";
-import { Message } from "./protobuf/message_pb";
-import { Notification } from "./protobuf/notification_pb";
+import { connect as natsConnect } from "nats.ws";
 
-const sc = new StringCodec();
+// The syntax: `import { Timestamp } from ...` will not work properly
+// in Node.js because of how protobuf generates the CommonJS code, so we
+// have to do a little more work...
+import timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb.js";
+const { Timestamp } = timestamp_pb;
+import point_pb from "./protobuf/point_pb.js";
+const { Points, Point } = point_pb;
+import node_pb from "./protobuf/node_pb.js";
+const { NodesRequest } = node_pb;
+import message_pb from "./protobuf/message_pb.js";
+const { Message } = message_pb;
+import notification_pb from "./protobuf/notification_pb.js";
+const { Notification } = notification_pb;
 
 // connect opens and returns a connection to SIOT / NATS via WebSockets
 export async function connect(opts = {}) {
-  const { servers = ["ws://localhost:4223"] } = opts;
+  const { servers = ["ws://localhost:9222"] } = opts;
   const nc = await natsConnect({ ...opts, servers });
 
   // Force SIOTConnection to inherit from `nc` prototype
@@ -27,44 +34,67 @@ function SIOTConnection() {
 }
 
 Object.assign(SIOTConnection.prototype, {
-  // getNode sends a request to `node.<id>` to retrieve an array of NodeEdges for
-  // the specified Node id.
-  // - If `id` is "root", the root node is returned
+  // getNode sends a request to `nodes.<parent>.<id>` to retrieve an array of
+  // NodeEdges for the specified Node id.
   // - If `parent` is falsy or "none", the edge details are not included
-  // - If `parent` is "all", all instances of the node are returned
+  // - If `parent` is "all", all instances of the specified node are returned
+  // - If `parent` is "root", only root nodes are returned
+  // - Do not use `id === "all"`; use `getNodeChildren` instead
   // - `opts` are options passed to the NATS request
-  async getNode(id, { parent, opts } = {}) {
-    const payload = sc.encode(parent || "none");
-    const m = await this.request("node." + id, payload, opts);
+  async getNode(id, { parent, type, includeDel, opts } = {}) {
+    if (id === "all" || !id) {
+      throw new Error(
+        "node ID '" + id + "' not permitted; use `getNodeChildren` instead"
+      );
+    }
+    if (id === "root") {
+      // Undocumented alias to get root nodes
+      return this.getNodeChildren("root", { type, includeDel, opts });
+    }
+
+    const points = [
+      { type: "nodeType", text: type },
+      { type: "tombstone", value: includeDel ? 1 : 0 },
+    ];
+    const payload = encodePoints(points);
+    const m = await this.request(
+      "nodes." + (parent || "none") + "." + id,
+      payload,
+      opts
+    );
     return decodeNodesRequest(m.data);
   },
 
-  // getNodeChildren sends a request to `node.<parentID>.children` to retrieve
+  // getNodeChildren sends a request to `nodes.<parentID>.<id>` to retrieve
   // an array of child NodeEdges of the specified parent node.
+  // - If `parent` is "root", all root nodes are retrieved
   // - `type` - can be used to filter nodes of a specified type (defaults to "")
   // - `includeDel` - set to true to include deleted nodes (defaults to false)
   // - `recursive` - set to true to recursively retrieve all descendants matching
   //   the criteria. In this case, each returned NodeEdge will contain a
   //   `children` property, which is an array of that Node's descendant NodeEdges.
+  //
   //   Set to "flat" to return a single flattened array of NodeEdges.
+  //
+  //   Note: If `type` is also set when `recursive` is truthy, `type` still
+  //   restricts which nodes are recursively searched. Consider removing the
+  //   `type` filter and filter manually.
   // - `opts` are options passed to the NATS request
   async getNodeChildren(
     parentID,
     { type, includeDel, recursive, opts, _cache = {} } = {}
   ) {
-    const includeDelNum = includeDel ? 1 : 0;
+    if (parentID === "all" || parentID === "none" || !parentID) {
+      throw new Error("parent node ID must be specified");
+    }
 
     const points = [
       { type: "nodeType", text: type },
-      { type: "tombstone", value: includeDelNum },
+      { type: "tombstone", value: includeDel ? 1 : 0 },
     ];
 
     const payload = encodePoints(points);
-    const m = await this.request(
-      "node." + parentID + ".children",
-      payload,
-      opts
-    );
+    const m = await this.request("nodes." + parentID + ".all", payload, opts);
     const nodeEdges = decodeNodesRequest(m.data);
     if (recursive) {
       const flat = recursive === "flat";
@@ -107,7 +137,11 @@ Object.assign(SIOTConnection.prototype, {
   // - `opts` are options passed to the NATS request
   async getNodesForUser(userID, { type, includeDel, recursive, opts } = {}) {
     // Get root nodes of the user node
-    const rootNodes = await this.getNode(userID, { parent: "all", opts });
+    const rootNodes = await this.getNode(userID, {
+      parent: "all",
+      includeDel,
+      opts,
+    });
 
     // Create function to filter nodes based on `type` and `includeDel`
     const filterFunc = (n) => {
@@ -127,6 +161,8 @@ Object.assign(SIOTConnection.prototype, {
           return parentNode;
         }
         const children = await this.getNodeChildren(n.parent, {
+          // TODO: Not sure if `type` should be passed here since we need
+          // to do recursive search
           type,
           includeDel,
           recursive,
@@ -181,6 +217,9 @@ Object.assign(SIOTConnection.prototype, {
       throw new Error(`error sending points for node '${nodeID}': ` + m.data);
     }
   },
+
+  // TODO: subscribeEdgePoints
+  // TODO: sendEdgePoints
 
   // subscribeMessages subscribes to `node.<nodeID>.msg` and returns an async
   // iterable for Message objects
@@ -241,7 +280,7 @@ function encodePoints(points) {
     if (p instanceof Point) {
       return p;
     }
-    let { time } = p;
+    let { time = new Date() } = p;
     const { type, key, index, value, text, tombstone, data } = p;
     p = new Point();
     if (!(time instanceof Timestamp)) {
