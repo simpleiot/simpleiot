@@ -16,6 +16,8 @@
     "elm-json": "^0.2.12",
     "elm-spa": "5.0.4",
     "elm-test": "^0.19.1-revision7",
+    "eslint": "^8.27.0",
+    "eslint-config-prettier": "^8.5.0",
     "lodash": ">=4.17.21",
     "prettier": "^2.7.1",
     "uglify-js": "^3.10.1",
