@@ -21,10 +21,26 @@ var testServerOptions = Options{
 	NatsServer:   "nats://localhost:4990",
 }
 
+var testServerOptions2 = Options{
+	StoreFile:    "test2.sqlite",
+	NatsPort:     4980,
+	HTTPPort:     "8980",
+	NatsHTTPPort: 8981,
+	NatsWSPort:   8982,
+	NatsServer:   "nats://localhost:4980",
+}
+
 // TestServer starts a test server and returns a function to stop it
-func TestServer() (*nats.Conn, data.NodeEdge, func(), error) {
+func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 	exec.Command("sh", "-c", "rm test.sqlite*").Run()
-	s, nc, err := NewServer(testServerOptions)
+
+	opts := testServerOptions
+
+	if len(args) > 0 {
+		opts = testServerOptions2
+	}
+
+	s, nc, err := NewServer(opts)
 
 	if err != nil {
 		return nil, data.NodeEdge{}, nil, fmt.Errorf("Error starting siot server: %v", err)
