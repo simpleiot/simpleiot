@@ -13,7 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global = (function() { return this || window || global || self || Function('return this')(); }).call(null);
+var global =
+    (typeof globalThis !== 'undefined' && globalThis) ||
+    (typeof window !== 'undefined' && window) ||
+    (typeof global !== 'undefined' && global) ||
+    (typeof self !== 'undefined' && self) ||
+    (function () { return this; }).call(null) ||
+    Function('return this')();
 
 var point_pb = require('./point_pb.js');
 goog.object.extend(proto, point_pb);
@@ -146,7 +152,7 @@ proto.pb.Node.toObject = function(includeInstance, msg) {
   var f, obj = {
     id: jspb.Message.getFieldWithDefault(msg, 1, ""),
     type: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    hash: msg.getHash_asB64(),
+    hash: jspb.Message.getFieldWithDefault(msg, 4, 0),
     parent: jspb.Message.getFieldWithDefault(msg, 6, ""),
     pointsList: jspb.Message.toObjectList(msg.getPointsList(),
     point_pb.Point.toObject, includeInstance),
@@ -197,7 +203,7 @@ proto.pb.Node.deserializeBinaryFromReader = function(msg, reader) {
       msg.setType(value);
       break;
     case 4:
-      var value = /** @type {!Uint8Array} */ (reader.readBytes());
+      var value = /** @type {number} */ (reader.readInt32());
       msg.setHash(value);
       break;
     case 6:
@@ -257,9 +263,9 @@ proto.pb.Node.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getHash_asU8();
-  if (f.length > 0) {
-    writer.writeBytes(
+  f = message.getHash();
+  if (f !== 0) {
+    writer.writeInt32(
       4,
       f
     );
@@ -327,44 +333,20 @@ proto.pb.Node.prototype.setType = function(value) {
 
 
 /**
- * optional bytes hash = 4;
- * @return {!(string|Uint8Array)}
+ * optional int32 hash = 4;
+ * @return {number}
  */
 proto.pb.Node.prototype.getHash = function() {
-  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 4, 0));
 };
 
 
 /**
- * optional bytes hash = 4;
- * This is a type-conversion wrapper around `getHash()`
- * @return {string}
- */
-proto.pb.Node.prototype.getHash_asB64 = function() {
-  return /** @type {string} */ (jspb.Message.bytesAsB64(
-      this.getHash()));
-};
-
-
-/**
- * optional bytes hash = 4;
- * Note that Uint8Array is not supported on all browsers.
- * @see http://caniuse.com/Uint8Array
- * This is a type-conversion wrapper around `getHash()`
- * @return {!Uint8Array}
- */
-proto.pb.Node.prototype.getHash_asU8 = function() {
-  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
-      this.getHash()));
-};
-
-
-/**
- * @param {!(string|Uint8Array)} value
+ * @param {number} value
  * @return {!proto.pb.Node} returns this
  */
 proto.pb.Node.prototype.setHash = function(value) {
-  return jspb.Message.setProto3BytesField(this, 4, value);
+  return jspb.Message.setProto3IntField(this, 4, value);
 };
 
 
