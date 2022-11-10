@@ -80,6 +80,8 @@ module Api.Point exposing
     , typeSwUpdatePercComplete
     , typeSwUpdateRunning
     , typeSwUpdateState
+    , typeSyncCount
+    , typeSyncCountReset
     , typeSysState
     , typeTombstone
     , typeTx
@@ -390,6 +392,16 @@ typeErrorCountEOFReset =
 typeErrorCountCRCReset : String
 typeErrorCountCRCReset =
     "errorCountCRCReset"
+
+
+typeSyncCount : String
+typeSyncCount =
+    "syncCount"
+
+
+typeSyncCountReset : String
+typeSyncCountReset =
+    "syncCountReset"
 
 
 typeProtocol : String
@@ -790,6 +802,8 @@ specialPoints =
     , typeDisable
     , typeErrorCount
     , typeErrorCountReset
+    , typeSyncCount
+    , typeSyncCountReset
     , typeLog
     , typePort
     , typeRx

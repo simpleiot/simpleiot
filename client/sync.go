@@ -12,12 +12,14 @@ import (
 
 // Sync represents an sync node config
 type Sync struct {
-	ID          string `node:"id"`
-	Parent      string `node:"parent"`
-	Description string `point:"description"`
-	URI         string `point:"uri"`
-	AuthToken   string `point:"authToken"`
-	Disable     bool   `point:"disable"`
+	ID             string `node:"id"`
+	Parent         string `node:"parent"`
+	Description    string `point:"description"`
+	URI            string `point:"uri"`
+	AuthToken      string `point:"authToken"`
+	Disable        bool   `point:"disable"`
+	SyncCount      int    `point:"syncCount"`
+	SyncCountReset bool   `point:"syncCountReset"`
 }
 
 type newEdge struct {
@@ -247,6 +249,21 @@ done:
 					}
 					subRemoteUp = nil
 					connectTimer.Reset(10 * time.Millisecond)
+				}
+			}
+
+			if up.config.SyncCountReset {
+				up.config.SyncCount = 0
+				up.config.SyncCountReset = false
+
+				points := data.Points{
+					{Type: data.PointTypeSyncCount, Value: 0},
+					{Type: data.PointTypeSyncCountReset, Value: 0},
+				}
+
+				err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)
+				if err != nil {
+					log.Println("Error resetting sync sync count: ", err)
 				}
 			}
 
@@ -558,147 +575,161 @@ func (up *SyncClient) syncNode(parent, id string) error {
 
 	nodeUp = nodeUps[0]
 
-	if nodeUp.Hash != nodeLocal.Hash {
-		log.Printf("sync %v: syncing node: %v, hash up: 0x%x, down: 0x%x ",
-			up.config.Description,
-			nodeLocal.Desc(),
-			nodeUp.Hash, nodeLocal.Hash)
+	if nodeUp.Hash == nodeLocal.Hash {
+		// we're good!
+		return nil
+	}
 
-		// first compare node points
-		// key in below map is the index of the point in the upstream node
-		upstreamProcessed := make(map[int]bool)
+	up.config.SyncCount++
 
-		for _, p := range nodeLocal.Points {
-			found := false
-			for i, pUp := range nodeUp.Points {
-				if p.IsMatch(pUp.Type, pUp.Key) {
-					found = true
-					upstreamProcessed[i] = true
-					if p.Time.After(pUp.Time) {
-						// need to send point upstream
-						err := SendNodePoint(up.ncRemote, nodeUp.ID, p, true)
-						if err != nil {
-							log.Println("Error syncing point upstream: ", err)
-						}
-					} else if p.Time.Before(pUp.Time) {
-						// need to update point locally
-						err := SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
-						if err != nil {
-							log.Println("Error syncing point from upstream: ", err)
-						}
-					}
-				}
-			}
+	points := data.Points{
+		{Type: data.PointTypeSyncCount, Value: float64(up.config.SyncCount)},
+	}
 
-			if !found {
-				SendNodePoint(up.ncRemote, nodeUp.ID, p, true)
-			}
-		}
+	err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)
+	if err != nil {
+		log.Println("Error resetting sync sync count: ", err)
+	}
 
-		// check for any points that do not exist locally
+	log.Printf("sync %v: syncing node: %v, hash up: 0x%x, down: 0x%x ",
+		up.config.Description,
+		nodeLocal.Desc(),
+		nodeUp.Hash, nodeLocal.Hash)
+
+	// first compare node points
+	// key in below map is the index of the point in the upstream node
+	upstreamProcessed := make(map[int]bool)
+
+	for _, p := range nodeLocal.Points {
+		found := false
 		for i, pUp := range nodeUp.Points {
-			if _, ok := upstreamProcessed[i]; !ok {
-				err := SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
-				if err != nil {
-					log.Println("Error syncing point from upstream: ", err)
-				}
-			}
-		}
-
-		// now compare edge points
-		// key in below map is the index of the point in the upstream node
-		upstreamProcessed = make(map[int]bool)
-
-		for _, p := range nodeLocal.EdgePoints {
-			found := false
-			for i, pUp := range nodeUp.EdgePoints {
-				if p.IsMatch(pUp.Type, pUp.Key) {
-					found = true
-					upstreamProcessed[i] = true
-					if p.Time.After(pUp.Time) {
-						// need to send point upstream
-						err := SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
-						if err != nil {
-							log.Println("Error syncing point upstream: ", err)
-						}
-					} else if p.Time.Before(pUp.Time) {
-						// need to update point locally
-						err := SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
-						if err != nil {
-							log.Println("Error syncing point from upstream: ", err)
-						}
+			if p.IsMatch(pUp.Type, pUp.Key) {
+				found = true
+				upstreamProcessed[i] = true
+				if p.Time.After(pUp.Time) {
+					// need to send point upstream
+					err := SendNodePoint(up.ncRemote, nodeUp.ID, p, true)
+					if err != nil {
+						log.Println("Error syncing point upstream: ", err)
+					}
+				} else if p.Time.Before(pUp.Time) {
+					// need to update point locally
+					err := SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
+					if err != nil {
+						log.Println("Error syncing point from upstream: ", err)
 					}
 				}
 			}
-
-			if !found {
-				SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
-			}
 		}
 
-		// check for any points that do not exist locally
+		if !found {
+			SendNodePoint(up.ncRemote, nodeUp.ID, p, true)
+		}
+	}
+
+	// check for any points that do not exist locally
+	for i, pUp := range nodeUp.Points {
+		if _, ok := upstreamProcessed[i]; !ok {
+			err := SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
+			if err != nil {
+				log.Println("Error syncing point from upstream: ", err)
+			}
+		}
+	}
+
+	// now compare edge points
+	// key in below map is the index of the point in the upstream node
+	upstreamProcessed = make(map[int]bool)
+
+	for _, p := range nodeLocal.EdgePoints {
+		found := false
 		for i, pUp := range nodeUp.EdgePoints {
-			if _, ok := upstreamProcessed[i]; !ok {
-				err := SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
-				if err != nil {
-					log.Println("Error syncing edge point from upstream: ", err)
-				}
-			}
-		}
-
-		// sync child nodes
-		children, err := GetNodes(up.nc, nodeLocal.ID, "all", "", false)
-		if err != nil {
-			return fmt.Errorf("Error getting local node children: %v", err)
-		}
-
-		// FIXME optimization we get the edges here and not the full child node
-		upChildren, err := GetNodes(up.ncRemote, nodeUp.ID, "all", "", false)
-		if err != nil {
-			return fmt.Errorf("Error getting upstream node children: %v", err)
-		}
-
-		// map index is index of upChildren
-		upChildProcessed := make(map[int]bool)
-
-		for _, child := range children {
-			found := false
-			for i, upChild := range upChildren {
-				if child.ID == upChild.ID {
-					found = true
-					upChildProcessed[i] = true
-					if child.Hash != upChild.Hash {
-						err := up.syncNode(nodeLocal.ID, child.ID)
-						if err != nil {
-							fmt.Println("Error syncing node: ", err)
-						}
+			if p.IsMatch(pUp.Type, pUp.Key) {
+				found = true
+				upstreamProcessed[i] = true
+				if p.Time.After(pUp.Time) {
+					// need to send point upstream
+					err := SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
+					if err != nil {
+						log.Println("Error syncing point upstream: ", err)
+					}
+				} else if p.Time.Before(pUp.Time) {
+					// need to update point locally
+					err := SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
+					if err != nil {
+						log.Println("Error syncing point from upstream: ", err)
 					}
 				}
 			}
+		}
 
-			if !found {
-				// need to send node upstream
-				err := up.sendNodesRemote(child)
-				if err != nil {
-					log.Println("Error sending node upstream: ", err)
-				}
+		if !found {
+			SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
+		}
+	}
 
-				err = up.subscribeRemoteNode(child.Parent, child.ID)
-				if err != nil {
-					log.Println("Error subscribing to upstream: ", err)
+	// check for any points that do not exist locally
+	for i, pUp := range nodeUp.EdgePoints {
+		if _, ok := upstreamProcessed[i]; !ok {
+			err := SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
+			if err != nil {
+				log.Println("Error syncing edge point from upstream: ", err)
+			}
+		}
+	}
+
+	// sync child nodes
+	children, err := GetNodes(up.nc, nodeLocal.ID, "all", "", false)
+	if err != nil {
+		return fmt.Errorf("Error getting local node children: %v", err)
+	}
+
+	// FIXME optimization we get the edges here and not the full child node
+	upChildren, err := GetNodes(up.ncRemote, nodeUp.ID, "all", "", false)
+	if err != nil {
+		return fmt.Errorf("Error getting upstream node children: %v", err)
+	}
+
+	// map index is index of upChildren
+	upChildProcessed := make(map[int]bool)
+
+	for _, child := range children {
+		found := false
+		for i, upChild := range upChildren {
+			if child.ID == upChild.ID {
+				found = true
+				upChildProcessed[i] = true
+				if child.Hash != upChild.Hash {
+					err := up.syncNode(nodeLocal.ID, child.ID)
+					if err != nil {
+						fmt.Println("Error syncing node: ", err)
+					}
 				}
 			}
 		}
-		for i, upChild := range upChildren {
-			if _, ok := upChildProcessed[i]; !ok {
-				err := up.sendNodesLocal(upChild)
-				if err != nil {
-					log.Println("Error getting node from upstream: ", err)
-				}
-				err = up.subscribeRemoteNode(upChild.Parent, upChild.ID)
-				if err != nil {
-					log.Println("Error subscribing to upstream: ", err)
-				}
+
+		if !found {
+			// need to send node upstream
+			err := up.sendNodesRemote(child)
+			if err != nil {
+				log.Println("Error sending node upstream: ", err)
+			}
+
+			err = up.subscribeRemoteNode(child.Parent, child.ID)
+			if err != nil {
+				log.Println("Error subscribing to upstream: ", err)
+			}
+		}
+	}
+	for i, upChild := range upChildren {
+		if _, ok := upChildProcessed[i]; !ok {
+			err := up.sendNodesLocal(upChild)
+			if err != nil {
+				log.Println("Error getting node from upstream: ", err)
+			}
+			err = up.subscribeRemoteNode(upChild.Parent, upChild.ID)
+			if err != nil {
+				log.Println("Error subscribing to upstream: ", err)
 			}
 		}
 	}

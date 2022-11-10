@@ -28,6 +28,8 @@ const (
 	PointTypeErrorCountEOFReset = "errorCountEOFReset"
 	PointTypeErrorCountCRC      = "errorCountCRC"
 	PointTypeErrorCountCRCReset = "errorCountCRCReset"
+	PointTypeSyncCount          = "syncCount"
+	PointTypeSyncCountReset     = "syncCountReset"
 	PointTypeReadOnly           = "readOnly"
 	PointTypeURI                = "uri"
 	PointTypeDisable            = "disable"

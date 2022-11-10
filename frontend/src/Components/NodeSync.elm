@@ -22,6 +22,9 @@ view o =
         checkboxInput =
             NodeInputs.nodeCheckboxInput opts ""
 
+        counterWithReset =
+            NodeInputs.nodeCounterWithReset opts ""
+
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
     in
@@ -43,6 +46,7 @@ view o =
                     , textInput Point.typeURI "URI" "nats://myserver:4222, ws://myserver"
                     , textInput Point.typeAuthToken "Auth Token" ""
                     , checkboxInput Point.typeDisable "Disable"
+                    , counterWithReset Point.typeSyncCount Point.typeSyncCountReset "Sync Count"
                     ]
 
                 else
