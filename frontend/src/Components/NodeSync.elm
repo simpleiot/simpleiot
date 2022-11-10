@@ -1,4 +1,4 @@
-module Components.NodeUpstream exposing (view)
+module Components.NodeSync exposing (view)
 
 import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
@@ -33,7 +33,7 @@ view o =
         ]
     <|
         wrappedRow [ spacing 10 ]
-            [ Icon.uploadCloud
+            [ Icon.sync
             , text <|
                 Point.getText o.node.points Point.typeDescription ""
             , viewIf disabled <| text "(disabled)"

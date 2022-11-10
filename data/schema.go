@@ -184,7 +184,7 @@ const (
 	NodeTypeVariable      = "variable"
 	PointTypeVariableType = "variableType"
 
-	NodeTypeUpstream = "upstream"
+	NodeTypeSync = "sync"
 
 	PointTypeMetricNatsCycleNodePoint          = "metricNatsCycleNodePoint"
 	PointTypeMetricNatsCycleNodeEdgePoint      = "metricNatsCycleNodeEdgePoint"

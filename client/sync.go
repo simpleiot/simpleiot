@@ -10,8 +10,8 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// Upstream represents an upstream node config
-type Upstream struct {
+// Sync represents an sync node config
+type Sync struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
@@ -25,14 +25,14 @@ type newEdge struct {
 	id     string
 }
 
-// UpstreamClient is a SIOT client used to handle upstream connections
-type UpstreamClient struct {
+// SyncClient is a SIOT client used to handle upstream connections
+type SyncClient struct {
 	nc                  *nats.Conn
 	ncLocal             *nats.Conn
 	ncRemote            *nats.Conn
 	rootLocal           data.NodeEdge
 	rootRemote          data.NodeEdge
-	config              Upstream
+	config              Sync
 	stop                chan struct{}
 	newPoints           chan NewPoints
 	newEdgePoints       chan NewPoints
@@ -41,9 +41,9 @@ type UpstreamClient struct {
 	chConnected         chan bool
 }
 
-// NewUpstreamClient constructor
-func NewUpstreamClient(nc *nats.Conn, config Upstream) Client {
-	return &UpstreamClient{
+// NewSyncClient constructor
+func NewSyncClient(nc *nats.Conn, config Sync) Client {
+	return &SyncClient{
 		nc:                  nc,
 		config:              config,
 		stop:                make(chan struct{}),
@@ -59,7 +59,7 @@ func NewUpstreamClient(nc *nats.Conn, config Upstream) Client {
 var syncTimeout = 20 * time.Second
 
 // Start runs the main logic for this client and blocks until stopped
-func (up *UpstreamClient) Start() error {
+func (up *SyncClient) Start() error {
 	// create a new NATs connection to the local server as we need to
 	// turn echo off
 	uri, token, err := GetNatsURI(up.nc)
@@ -205,7 +205,7 @@ done:
 					// set up initial subscriptions to remote nodes
 					err = up.subscribeRemoteNode(up.rootLocal.Parent, up.rootLocal.ID)
 					if err != nil {
-						log.Println("Upstream: initial sub failed: ", err)
+						log.Println("Sync: initial sub failed: ", err)
 					} else {
 						initialSub = true
 					}
@@ -307,25 +307,25 @@ done:
 }
 
 // Stop sends a signal to the Start function to exit
-func (up *UpstreamClient) Stop(err error) {
+func (up *SyncClient) Stop(err error) {
 	close(up.stop)
 }
 
 // Points is called by the Manager when new points for this
 // node are received.
-func (up *UpstreamClient) Points(nodeID string, points []data.Point) {
+func (up *SyncClient) Points(nodeID string, points []data.Point) {
 	up.newPoints <- NewPoints{nodeID, "", points}
 }
 
 // EdgePoints is called by the Manager when new edge points for this
 // node are received.
-func (up *UpstreamClient) EdgePoints(nodeID, parentID string, points []data.Point) {
+func (up *SyncClient) EdgePoints(nodeID, parentID string, points []data.Point) {
 	up.newEdgePoints <- NewPoints{nodeID, parentID, points}
 }
 
-func (up *UpstreamClient) connect() error {
+func (up *SyncClient) connect() error {
 	if up.config.Disabled {
-		log.Printf("Upstream %v disabled", up.config.Description)
+		log.Printf("Sync %v disabled", up.config.Description)
 		return nil
 	}
 
@@ -335,18 +335,18 @@ func (up *UpstreamClient) connect() error {
 		NoEcho:    true,
 		Connected: func() {
 			up.chConnected <- true
-			log.Println("NATS Upstream Connected")
+			log.Println("NATS Sync Connected")
 		},
 		Disconnected: func() {
 			up.chConnected <- false
-			log.Println("NATS Upstream Disconnected")
+			log.Println("NATS Sync Disconnected")
 		},
 		Reconnected: func() {
 			up.chConnected <- true
-			log.Println("NATS Upstream Reconnected")
+			log.Println("NATS Sync Reconnected")
 		},
 		Closed: func() {
-			log.Println("NATS Upstream Closed")
+			log.Println("NATS Sync Closed")
 		},
 	}
 
@@ -360,7 +360,7 @@ func (up *UpstreamClient) connect() error {
 	return nil
 }
 
-func (up *UpstreamClient) subscribeRemoteNodePoints(id string) error {
+func (up *SyncClient) subscribeRemoteNodePoints(id string) error {
 	if _, ok := up.subRemoteNodePoints[id]; !ok {
 		var err error
 		up.subRemoteNodePoints[id], err = up.ncRemote.Subscribe(SubjectNodePoints(id), func(msg *nats.Msg) {
@@ -384,7 +384,7 @@ func (up *UpstreamClient) subscribeRemoteNodePoints(id string) error {
 	return nil
 }
 
-func (up *UpstreamClient) subscribeRemoteEdgePoints(parent, id string) error {
+func (up *SyncClient) subscribeRemoteEdgePoints(parent, id string) error {
 	if _, ok := up.subRemoteEdgePoints[id]; !ok {
 		var err error
 		key := id + ":" + parent
@@ -409,7 +409,7 @@ func (up *UpstreamClient) subscribeRemoteEdgePoints(parent, id string) error {
 	return nil
 }
 
-func (up *UpstreamClient) subscribeRemoteNode(parent, id string) error {
+func (up *SyncClient) subscribeRemoteNode(parent, id string) error {
 	err := up.subscribeRemoteNodePoints(id)
 	if err != nil {
 		return err
@@ -436,7 +436,7 @@ func (up *UpstreamClient) subscribeRemoteNode(parent, id string) error {
 	return nil
 }
 
-func (up *UpstreamClient) disconnect() {
+func (up *SyncClient) disconnect() {
 	for key, sub := range up.subRemoteNodePoints {
 		err := sub.Unsubscribe()
 		if err != nil {
@@ -462,7 +462,7 @@ func (up *UpstreamClient) disconnect() {
 // sendNodesRemote is used to send node and children over nats
 // from one NATS server to another. Typically from the current instance
 // to an upstream.
-func (up *UpstreamClient) sendNodesRemote(node data.NodeEdge) error {
+func (up *SyncClient) sendNodesRemote(node data.NodeEdge) error {
 
 	if node.Parent == "root" {
 		node.Parent = up.rootRemote.ID
@@ -493,7 +493,7 @@ func (up *UpstreamClient) sendNodesRemote(node data.NodeEdge) error {
 // sendNodesLocal is used to send node and children over nats
 // from one NATS server to another. Typically from the current instance
 // to an upstream.
-func (up *UpstreamClient) sendNodesLocal(node data.NodeEdge) error {
+func (up *SyncClient) sendNodesLocal(node data.NodeEdge) error {
 	err := SendNode(up.ncLocal, node, up.config.ID)
 	if err != nil {
 		return err
@@ -516,7 +516,7 @@ func (up *UpstreamClient) sendNodesLocal(node data.NodeEdge) error {
 	return nil
 }
 
-func (up *UpstreamClient) syncNode(parent, id string) error {
+func (up *SyncClient) syncNode(parent, id string) error {
 	if parent == "root" {
 		parent = "all"
 	}
@@ -542,7 +542,7 @@ func (up *UpstreamClient) syncNode(parent, id string) error {
 	var nodeUp data.NodeEdge
 
 	if len(nodeUps) == 0 || upErr == data.ErrDocumentNotFound {
-		log.Printf("Upstream node %v does not exist, sending\n", nodeLocal.Desc())
+		log.Printf("Sync node %v does not exist, sending\n", nodeLocal.Desc())
 		err := up.sendNodesRemote(nodeLocal)
 		if err != nil {
 			return fmt.Errorf("Error sending node upstream: %w", err)
