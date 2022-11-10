@@ -17,7 +17,7 @@ type Sync struct {
 	Description string `point:"description"`
 	URI         string `point:"uri"`
 	AuthToken   string `point:"authToken"`
-	Disabled    bool   `point:"disabled"`
+	Disable     bool   `point:"disable"`
 }
 
 type newEdge struct {
@@ -324,7 +324,7 @@ func (up *SyncClient) EdgePoints(nodeID, parentID string, points []data.Point) {
 }
 
 func (up *SyncClient) connect() error {
-	if up.config.Disabled {
+	if up.config.Disable {
 		log.Printf("Sync %v disabled", up.config.Description)
 		return nil
 	}
