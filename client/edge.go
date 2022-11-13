@@ -94,9 +94,11 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 			status := nc.Status()
 			switch status {
 			case nats.CONNECTED:
-				eo.Connected()
-				// we only get one connected, the rest are
-				// reconnected
+				if eo.Connected != nil {
+					eo.Connected()
+					// we only get one connected, the rest are
+					// reconnected
+				}
 				return
 			case nats.CLOSED:
 				// return as the client was closed
