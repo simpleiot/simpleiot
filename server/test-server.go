@@ -12,7 +12,8 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-var testServerOptions = Options{
+// TestServerOptions options used for test server
+var TestServerOptions = Options{
 	StoreFile:    "test.sqlite",
 	NatsPort:     4990,
 	HTTPPort:     "8990",
@@ -21,7 +22,8 @@ var testServerOptions = Options{
 	NatsServer:   "nats://localhost:4990",
 }
 
-var testServerOptions2 = Options{
+// TestServerOptions2 options used for 2nd test server
+var TestServerOptions2 = Options{
 	StoreFile:    "test2.sqlite",
 	NatsPort:     4980,
 	HTTPPort:     "8980",
@@ -34,10 +36,10 @@ var testServerOptions2 = Options{
 func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 	exec.Command("sh", "-c", "rm test.sqlite*").Run()
 
-	opts := testServerOptions
+	opts := TestServerOptions
 
 	if len(args) > 0 {
-		opts = testServerOptions2
+		opts = TestServerOptions2
 	}
 
 	s, nc, err := NewServer(opts)

@@ -30,9 +30,6 @@ func Args(args []string) (Options, error) {
 	flagAuthToken := flags.String("token", "", "Auth token")
 	flagSyslog := flags.Bool("syslog", false, "log to syslog instead of stdout")
 
-	// commands to run, if no commands are given the main server starts up
-	flagLogNats := flags.Bool("logNats", false, "attach to NATS server and dump messages")
-
 	if err := flags.Parse(args); err != nil {
 		return Options{}, err
 	}
@@ -166,7 +163,6 @@ func Args(args []string) (Options, error) {
 		AuthToken:         authToken,
 		ParticleAPIKey:    particleAPIKey,
 		OSVersionField:    osVersionField,
-		LogNats:           *flagLogNats,
 	}
 
 	return o, nil
