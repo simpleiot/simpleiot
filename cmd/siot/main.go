@@ -30,7 +30,8 @@ func main() {
 		flags.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Available commands:")
-		fmt.Println("  * serve")
+		fmt.Println("  - serve (start the SIOT server)")
+		fmt.Println("  - log (log SIOT messages)")
 	}
 
 	flags.Parse(os.Args[1:])
@@ -55,6 +56,8 @@ func main() {
 		if err := runServer(args[1:], version); err != nil {
 			log.Println("Simple IoT stopped, reason: ", err)
 		}
+	case "log":
+		runLog(args[1:])
 	default:
 		log.Fatal("Unknown command, options: serve")
 	}
@@ -110,4 +113,25 @@ func runServer(args []string, version string) error {
 	})
 
 	return g.Run()
+}
+
+func runLog(args []string) {
+	defaultNatsServer := "nats://localhost:4222"
+	flags := flag.NewFlagSet("log", flag.ExitOnError)
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+
+	// only consider env if command line option is something different
+	// that default
+	natsServer := *flagNatsServer
+	if natsServer == defaultNatsServer {
+		natsServerE := os.Getenv("SIOT_NATS_SERVER")
+		if natsServerE != "" {
+			natsServer = natsServerE
+		}
+	}
+
+	client.Log(natsServer, *flagAuthToken)
+
+	select {}
 }

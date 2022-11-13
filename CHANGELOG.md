@@ -15,6 +15,7 @@ For more details or to discuss releases, please visit the
 - rename upstream -> sync
 - re-implement node hash using CRC-32 and XOR hash
 - re-implement upstream sync using new hash mechanism
+- implement `siot log` subcommand -- this dumps SIOT messages
 
 ## [[0.5.5] - 2022-10-31](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.5)
 
