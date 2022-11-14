@@ -149,6 +149,10 @@ siot_test_frontend() {
 }
 
 siot_test_frontend_lib() {
+  echo "WARNING: This test will run SimpleIOT with the \`--resetStore\` flag and will"
+  echo "permanently wipe the default store. Press <Ctrl>+C to abort or <Enter> to"
+  echo "continue."
+  read
   echo "Starting SimpleIOT..."
   ./siot serve --resetStore 2> /dev/null &
   PID=$!
