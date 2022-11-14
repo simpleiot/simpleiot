@@ -148,13 +148,13 @@ func (sdb *DbSqlite) reset() error {
 	// we need to initialize root node and user
 	sdb.meta.RootID, err = sdb.initRoot()
 	if err != nil {
-		return fmt.Errorf("Error initializing root node: %v", err)
+		return fmt.Errorf("error initializing root node: %v", err)
 	}
 
 	// make sure we find root ID
 	_, err = sdb.node(sdb.meta.RootID)
 	if err != nil {
-		return fmt.Errorf("db constructor can't fetch root node: %v", err)
+		return fmt.Errorf("reset can't fetch root node: %v", err)
 	}
 
 	return nil

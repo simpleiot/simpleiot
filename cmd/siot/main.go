@@ -62,7 +62,7 @@ func main() {
 	case "store":
 		runStore(args[1:])
 	default:
-		log.Fatal("Unknown command, options: serve")
+		log.Fatal("Unknown command; options: serve, log")
 	}
 }
 

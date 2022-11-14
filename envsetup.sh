@@ -17,6 +17,7 @@ siot_install_proto_gen_go() {
 
 siot_install_frontend_deps() {
   (cd "frontend" && npm install)
+  (cd "frontend/lib" && npm ci)
 }
 
 siot_check_elm() {
@@ -145,6 +146,18 @@ check_go_format() {
 siot_test_frontend() {
   #(cd frontend && npx elm-analyse || return 1) || return 1
   (cd frontend && npx elm-test || return 1) || return 1
+}
+
+siot_test_frontend_lib() {
+  echo "Starting SimpleIOT..."
+  ./siot serve --resetStore 2> /dev/null &
+  PID=$!
+  sleep 1
+  (cd ./frontend/lib && npm run test || return 1)
+  echo "Stopping SimpleIOT..."
+  kill -s SIGINT $PID
+  wait $PID
+  echo "SimpleIOT Stopped"
 }
 
 # please run the following before pushing -- best if your editor can be set up
