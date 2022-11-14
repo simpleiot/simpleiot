@@ -25,6 +25,7 @@ type Sync struct {
 type newEdge struct {
 	parent string
 	id     string
+	local  bool
 }
 
 // SyncClient is a SIOT client used to handle upstream connections
@@ -94,6 +95,7 @@ func (up *SyncClient) Start() error {
 
 	chLocalNodePoints := make(chan NewPoints)
 	chLocalEdgePoints := make(chan NewPoints)
+	chNewEdge := make(chan newEdge)
 
 	subLocalNodePoints, err := up.ncLocal.Subscribe(SubjectNodeAllPoints(), func(msg *nats.Msg) {
 		nodeID, points, err := DecodeNodePointsMsg(msg)
@@ -120,10 +122,7 @@ func (up *SyncClient) Start() error {
 		for _, p := range points {
 			if p.Type == data.PointTypeTombstone && p.Value == 0 {
 				// a new node was likely created, make sure we watch it
-				err := up.subscribeRemoteNode(parentID, nodeID)
-				if err != nil {
-					log.Println("Error subscribing to remote node: ", err)
-				}
+				chNewEdge <- newEdge{parent: parentID, id: nodeID, local: true}
 			}
 		}
 	})
@@ -139,7 +138,6 @@ func (up *SyncClient) Start() error {
 		return fmt.Errorf("Error getting root node: %v", err)
 	}
 
-	chNewEdge := make(chan newEdge)
 	var subRemoteUp *nats.Subscription
 
 	connected := false
@@ -154,7 +152,7 @@ done:
 		case <-connectTimer.C:
 			err := up.connect()
 			if err != nil {
-				log.Printf("BUG, this should never happen: Error connecting upstream %v: %v\n",
+				log.Printf("Sync connect failure: %v: %v\n",
 					up.config.Description, err)
 				connectTimer.Reset(30 * time.Second)
 			}
@@ -170,6 +168,7 @@ done:
 				if up.rootRemote.ID == "" {
 					up.rootRemote, err = GetRootNode(up.ncRemote)
 					if err != nil {
+						log.Printf("Sync: %v, error getting upstream root: %v\n", up.config.Description, err)
 						return fmt.Errorf("Error getting upstream root: %v", err)
 					}
 				}
@@ -240,7 +239,7 @@ done:
 				case data.PointTypeURI,
 					data.PointTypeAuthToken,
 					data.PointTypeDisable:
-					// we need to restart the influx write API
+					// we need to restart the sync connection
 					up.disconnect()
 					initialSub = false
 					err := subRemoteUp.Unsubscribe()
@@ -273,22 +272,44 @@ done:
 				log.Println("error merging new points: ", err)
 			}
 		case edge := <-chNewEdge:
-		fetchAgain:
-			// edge points are sent first, so it may take a bit before we see
-			// the node points
-			time.Sleep(10 * time.Millisecond)
-			nodes, err := GetNodes(up.ncRemote, edge.parent, edge.id, "", true)
-			if err != nil {
-				log.Println("Error getting node: ", err)
-			}
-			for _, n := range nodes {
-				// if type is not populated yet, try again
-				if n.Type == "" {
-					goto fetchAgain
+			if !edge.local {
+				// a new remote node was created, if it does not exist here,
+				// create it
+
+				// if parent is upstream root, then we don't worry about it
+				if edge.parent == up.rootRemote.ID {
+					break
 				}
-				err := up.sendNodesLocal(n)
+
+				nodes, err := GetNodes(up.ncLocal, edge.parent, edge.id, "", true)
 				if err != nil {
-					log.Println("Error chNewEdge sendNodesLocal: ", err)
+					log.Println("Error getting local node: ", err)
+					break
+				}
+
+				if len(nodes) > 0 {
+					// local node already exists, so don't do anything
+					break
+				}
+				// local node does not exist, so get the remote and send it
+			fetchAgain:
+				// edge points are sent first, so it may take a bit before we see
+				// the node points
+				time.Sleep(10 * time.Millisecond)
+				nodes, err = GetNodes(up.ncRemote, edge.parent, edge.id, "", true)
+				if err != nil {
+					log.Println("Error getting node: ", err)
+					break
+				}
+				for _, n := range nodes {
+					// if type is not populated yet, try again
+					if n.Type == "" {
+						goto fetchAgain
+					}
+					err := up.sendNodesLocal(n)
+					if err != nil {
+						log.Println("Error chNewEdge sendNodesLocal: ", err)
+					}
 				}
 			}
 
@@ -473,6 +494,7 @@ func (up *SyncClient) disconnect() {
 	if up.ncRemote != nil {
 		up.ncRemote.Close()
 		up.ncRemote = nil
+		up.rootRemote = data.NodeEdge{}
 	}
 }
 
@@ -480,7 +502,6 @@ func (up *SyncClient) disconnect() {
 // from one NATS server to another. Typically from the current instance
 // to an upstream.
 func (up *SyncClient) sendNodesRemote(node data.NodeEdge) error {
-
 	if node.Parent == "root" {
 		node.Parent = up.rootRemote.ID
 	}
@@ -679,7 +700,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 	}
 
 	// sync child nodes
-	children, err := GetNodes(up.nc, nodeLocal.ID, "all", "", false)
+	children, err := GetNodes(up.ncLocal, nodeLocal.ID, "all", "", false)
 	if err != nil {
 		return fmt.Errorf("Error getting local node children: %v", err)
 	}
@@ -721,6 +742,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 			}
 		}
 	}
+
 	for i, upChild := range upChildren {
 		if _, ok := upChildProcessed[i]; !ok {
 			err := up.sendNodesLocal(upChild)
