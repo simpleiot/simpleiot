@@ -545,7 +545,7 @@ func TestManagerChildren(t *testing.T) {
 
 	// since this test does a lot of node modifications, let's use this as an opportunity
 	// to verify the database hashes
-	err = client.AdminDbVerify(nc)
+	err = client.AdminStoreVerify(nc)
 	if err != nil {
 		t.Fatal("Verify failed: ", err)
 	}

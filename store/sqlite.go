@@ -161,7 +161,8 @@ func (sdb *DbSqlite) reset() error {
 }
 
 // verifyNodeHashes recursively verifies all the hash values for all nodes
-func (sdb *DbSqlite) verifyNodeHashes() error {
+// this walks to the bottom of the tree, and then works its way back up
+func (sdb *DbSqlite) verifyNodeHashes(fix bool) error {
 	// must run this in a transaction so we don't get any modifications
 	// while reading child nodes. This may be expensive for a large DB, so
 	// we may want to eventually break this down into transactions for each node
@@ -201,17 +202,27 @@ func (sdb *DbSqlite) verifyNodeHashes() error {
 			return err
 		}
 
-		hash := node.CalcHash(children)
-
-		if hash != node.Hash {
-			return fmt.Errorf("Hash failed for %v, stored: %v, calc: %v",
-				node.ID, node.Hash, hash)
-		}
-
+		// it's important to go through children first as this can
+		// impact the current hash
 		for _, c := range children {
 			err := verify(c)
 			if err != nil {
 				return err
+			}
+		}
+
+		hash := node.CalcHash(children)
+
+		if hash != node.Hash {
+			log.Printf("Hash failed for %v, stored: %v, calc: %v",
+				node.ID, node.Hash, hash)
+			if fix {
+				log.Println("fixing ...")
+				_, err := tx.Exec(`UPDATE edges SET hash = ? WHERE up = ? AND down = ?`,
+					hash, node.Parent, node.ID)
+				if err != nil {
+					return err
+				}
 			}
 		}
 

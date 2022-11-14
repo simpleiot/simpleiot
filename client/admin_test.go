@@ -8,7 +8,7 @@ import (
 	"github.com/simpleiot/simpleiot/server"
 )
 
-func TestAdminDbVerify(t *testing.T) {
+func TestAdminStoreVerify(t *testing.T) {
 	nc, _, stop, err := server.TestServer()
 
 	if err != nil {
@@ -20,8 +20,26 @@ func TestAdminDbVerify(t *testing.T) {
 	// give store time to init
 	time.Sleep(time.Millisecond * 100)
 
-	err = client.AdminDbVerify(nc)
+	err = client.AdminStoreVerify(nc)
 	if err != nil {
 		t.Fatal("Verify failed: ", err)
+	}
+}
+
+func TestAdminStoreMaint(t *testing.T) {
+	nc, _, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	// give store time to init
+	time.Sleep(time.Millisecond * 100)
+
+	err = client.AdminStoreMaint(nc)
+	if err != nil {
+		t.Fatal("Maint failed: ", err)
 	}
 }

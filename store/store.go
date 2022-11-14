@@ -124,8 +124,12 @@ func (st *Store) Start() error {
 		return fmt.Errorf("Subscribe auth error: %w", err)
 	}
 
-	if st.subscriptions["admin.dbVerify"], err = st.nc.Subscribe("admin.dbVerify", st.handleDbVerify); err != nil {
+	if st.subscriptions["admin.storeVerify"], err = st.nc.Subscribe("admin.storeVerify", st.handleStoreVerify); err != nil {
 		return fmt.Errorf("Subscribe dbVerify error: %w", err)
+	}
+
+	if st.subscriptions["admin.storeMaint"], err = st.nc.Subscribe("admin.storeMaint", st.handleStoreMaint); err != nil {
+		return fmt.Errorf("Subscribe dbMaint error: %w", err)
 	}
 
 done:
@@ -665,9 +669,22 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	}
 }
 
-func (st *Store) handleDbVerify(msg *nats.Msg) {
+func (st *Store) handleStoreVerify(msg *nats.Msg) {
 	var ret string
-	hashErr := st.db.verifyNodeHashes()
+	hashErr := st.db.verifyNodeHashes(false)
+	if hashErr != nil {
+		ret = hashErr.Error()
+	}
+
+	err := st.nc.Publish(msg.Reply, []byte(ret))
+	if err != nil {
+		log.Println("NATS: Error publishing response to node request: ", err)
+	}
+}
+
+func (st *Store) handleStoreMaint(msg *nats.Msg) {
+	var ret string
+	hashErr := st.db.verifyNodeHashes(true)
 	if hashErr != nil {
 		ret = hashErr.Error()
 	}

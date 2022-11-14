@@ -82,10 +82,11 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
 - Admin
   - `admin.error` (not implemented yet)
     - any errors that occur are sent to this subject
-  - `admin.dbVerify`
+  - `admin.storeVerify`
     - used to initiate a database verification process. This currently verifies
       hash values are correct and responds with an error string.
-  - `admin.dbMaint` (not implemented yet)
+  - `admin.storeMaint`
+    - corrects errors in the store (current incorrect hash values)
 
 ## HTTP
 

@@ -145,7 +145,7 @@ func runLog(args []string) {
 
 func runStore(args []string) {
 	defaultNatsServer := "nats://localhost:4222"
-	flags := flag.NewFlagSet("log", flag.ExitOnError)
+	flags := flag.NewFlagSet("store", flag.ExitOnError)
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")
 	flagCheck := flags.Bool("check", false, "Check store")
@@ -190,7 +190,7 @@ func runStore(args []string) {
 
 	switch {
 	case *flagCheck:
-		err := client.AdminDbVerify(nc)
+		err := client.AdminStoreVerify(nc)
 		if err != nil {
 			log.Println("DB verify failed: ", err)
 		} else {
@@ -198,8 +198,13 @@ func runStore(args []string) {
 		}
 
 	case *flagFix:
-		// TODO
-		log.Println("TODO, implement fix ...")
+		err := client.AdminStoreMaint(nc)
+		if err != nil {
+			log.Println("DB maint failed: ", err)
+		} else {
+			log.Println("DB maint success :-)")
+		}
+
 	default:
 		fmt.Println("Error, no operation given.")
 		flags.Usage()
