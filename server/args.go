@@ -21,13 +21,14 @@ func Args(args []string) (Options, error) {
 	flags := flag.NewFlagSet("server", flag.ExitOnError)
 
 	// configuration options
-	flagDebugHTTP := flags.Bool("debugHttp", false, "Dump http requests")
-	flagDebugLifecycle := flags.Bool("debugLifecycle", false, "Debug program lifecycle")
-	flagDisableAuth := flags.Bool("disableAuth", false, "Disable user auth (used for development)")
+	flagDebugHTTP := flags.Bool("debugHttp", false, "dump http requests")
+	flagDebugLifecycle := flags.Bool("debugLifecycle", false, "debug program lifecycle")
+	flagDisableAuth := flags.Bool("disableAuth", false, "disable user auth (used for development)")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
-	flagNatsDisableServer := flags.Bool("natsDisableServer", false, "Disable NATS server (if you want to run NATS separately)")
+	flagNatsDisableServer := flags.Bool("natsDisableServer", false, "disable NATS server (if you want to run NATS separately)")
 	flagStore := flags.String("store", "siot.sqlite", "store file, default siot.sqlite")
-	flagAuthToken := flags.String("token", "", "Auth token")
+	flagResetStore := flags.Bool("resetStore", false, "permanently wipe data in store at start-up")
+	flagAuthToken := flags.String("token", "", "auth token")
 	flagSyslog := flags.Bool("syslog", false, "log to syslog instead of stdout")
 
 	if err := flags.Parse(args); err != nil {
@@ -148,6 +149,7 @@ func Args(args []string) (Options, error) {
 	// TODO, convert this to builder pattern
 	o := Options{
 		StoreFile:         storeFilePath,
+		ResetStore:        *flagResetStore,
 		HTTPPort:          port,
 		DebugHTTP:         *flagDebugHTTP,
 		DebugLifecycle:    *flagDebugLifecycle,
