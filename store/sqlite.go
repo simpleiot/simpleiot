@@ -423,6 +423,10 @@ NextPin:
 }
 
 func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) error {
+	if nodeID == parentID {
+		return fmt.Errorf("Error: edgePoints nodeID=parentID=%v", nodeID)
+	}
+
 	sdb.writeLock.Lock()
 	defer sdb.writeLock.Unlock()
 
@@ -598,7 +602,7 @@ NextPin:
 	err = sdb.updateHash(tx, nodeID, hashUpdate)
 	if err != nil {
 		rollback()
-		return fmt.Errorf("Error updating upstream hash")
+		return fmt.Errorf("Error updating upstream hash: %v", err)
 	}
 
 	err = tx.Commit()

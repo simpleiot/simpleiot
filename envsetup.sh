@@ -194,6 +194,10 @@ siot_goreleaser_release() {
   goreleaser release --rm-dist
 }
 
+# dblab keyboard shortcuts
+# - Ctrl+space execute query
+# - Ctrl+H,J,K,L move to panel left,below,above,right
+# see more keybindings here: https://github.com/danvergara/dblab#key-bindings
 siot_dblab() {
   go run github.com/danvergara/dblab@latest --db siot.sqlite --driver sqlite3
 }
