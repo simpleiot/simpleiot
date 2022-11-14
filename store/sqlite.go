@@ -132,6 +132,34 @@ func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 	return ret, nil
 }
 
+// reset the database by permanently wiping all data
+func (sdb *DbSqlite) reset() error {
+	var err error
+
+	// truncate several tables
+	tables := []string{"meta", "edges", "node_points", "edge_points"}
+	for _, v := range tables {
+		_, err = sdb.db.Exec(`DELETE FROM ` + v)
+		if err != nil {
+			return fmt.Errorf("Error truncating table: %v", err)
+		}
+	}
+
+	// we need to initialize root node and user
+	sdb.meta.RootID, err = sdb.initRoot()
+	if err != nil {
+		return fmt.Errorf("Error initializing root node: %v", err)
+	}
+
+	// make sure we find root ID
+	_, err = sdb.node(sdb.meta.RootID)
+	if err != nil {
+		return fmt.Errorf("db constructor can't fetch root node: %v", err)
+	}
+
+	return nil
+}
+
 // verifyNodeHashes recursively verifies all the hash values for all nodes
 func (sdb *DbSqlite) verifyNodeHashes() error {
 	// must run this in a transaction so we don't get any modifications

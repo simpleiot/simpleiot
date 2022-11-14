@@ -26,6 +26,7 @@ import (
 // Options used for starting Simple IoT
 type Options struct {
 	StoreFile         string
+	ResetStore        bool
 	DataDir           string
 	HTTPPort          string
 	DebugHTTP         bool
@@ -186,6 +187,12 @@ func (s *Server) Start() error {
 	}
 
 	siotStore, err := store.NewStore(storeParams)
+
+	if o.ResetStore {
+		if err := siotStore.Reset(); err != nil {
+			log.Fatal("Error resetting store:", err)
+		}
+	}
 
 	if err != nil {
 		log.Fatal("Error creating store: ", err)

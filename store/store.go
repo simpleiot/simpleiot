@@ -178,6 +178,11 @@ func (st *Store) WaitStart(ctx context.Context) error {
 	}
 }
 
+// Reset the store by permanently wiping all data
+func (st *Store) Reset() error {
+	return st.db.reset()
+}
+
 // StartMetrics for various handling operations. Metrics are sent to the node ID given
 // FIXME, this can probably move to the node package for device nodes
 func (st *Store) StartMetrics(nodeID string) error {
