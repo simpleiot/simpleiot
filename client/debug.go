@@ -39,12 +39,16 @@ func String(nc *nats.Conn, msg *nats.Msg) (string, error) {
 		// Fetch node so we can print description
 		node, err := GetNodes(nc, "none", nodeID, "", false)
 
-		if err != nil {
-			return "", fmt.Errorf("Error getting node over nats: %w", err)
-		}
+		var description, typ string
 
-		description := node[0].Desc()
-		ret += fmt.Sprintf("NODE: %v (%v) (%v)\n", description, node[0].Type, node[0].ID)
+		if err == nil {
+			description = node[0].Desc()
+			typ = node[0].Type
+		} else {
+			description = err.Error()
+			typ = "unknown"
+		}
+		ret += fmt.Sprintf("NODE: %v (%v) (%v)\n", description, typ, nodeID)
 		pointLabel := "POINT"
 		if len(chunks) == 3 {
 			parent := chunks[2]
