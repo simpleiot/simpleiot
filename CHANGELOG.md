@@ -11,7 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-- improve error handling in cobs decoder
+## [[0.6.0] - 2022-11-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.6.0)
+
+- improve error handling in serial client cobs decoder
 - rename upstream -> sync
   - re-implement node hash using CRC-32 and XOR hash
   - re-implement upstream sync using new hash mechanism
