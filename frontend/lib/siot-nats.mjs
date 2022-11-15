@@ -98,26 +98,28 @@ Object.assign(SIOTConnection.prototype, {
 		const nodeEdges = decodeNodesRequest(m.data)
 		if (recursive) {
 			const flat = recursive === "flat"
-			const nodeChildren = await Promise.all(
-				nodeEdges.map(async (n) => {
-					const children =
-						_cache[n.id] ||
-						(await this.getNodeChildren(n.id, {
-							type,
-							includeDel,
-							recursive,
-							opts,
-							_cache,
-						}))
-					// update cache
-					_cache[n.id] = children
-					if (!flat) {
-						// If not flattening, add `children` key to `n`
-						n.children = children
-					}
-					return children
-				})
-			)
+			const nodeChildren = []
+			// Note: recursive calls are done serially to fully utilize
+			// the temporary `_cache`
+			for (const n of nodeEdges) {
+				const children =
+					_cache[n.id] ||
+					(await this.getNodeChildren(n.id, {
+						type,
+						includeDel,
+						recursive,
+						opts,
+						_cache,
+					}))
+				// update cache
+				// eslint-disable-next-line require-atomic-updates
+				_cache[n.id] = children
+				if (!flat) {
+					// If not flattening, add `children` key to `n`
+					n.children = children
+				}
+				nodeChildren.push(children)
+			}
 			if (flat) {
 				// If flattening, simply return flat array of node edges
 				return nodeEdges.concat(nodeChildren.flat())
@@ -219,7 +221,27 @@ Object.assign(SIOTConnection.prototype, {
 	},
 
 	// TODO: subscribeEdgePoints
-	// TODO: sendEdgePoints
+
+	// sendEdgePoints sends an array of `edgePoints` for the edge between
+	// `nodeID` and `parentID`
+	// - `ack` - true if function should block waiting for send acknowledgement
+	// - `opts` are options passed to the NATS request
+	async sendEdgePoints(nodeID, parentID, edgePoints, { ack, opts }) {
+		const payload = encodePoints(edgePoints)
+		if (!ack) {
+			await this.publish("p." + nodeID + "." + parentID, payload, opts)
+		}
+
+		const m = await this.request("p." + nodeID + "." + parentID, payload, opts)
+
+		// Assume message data is an error message
+		if (m.data && m.data.length > 0) {
+			throw new Error(
+				`error sending edge points between nodes '${nodeID}' and '${parentID}': ` +
+					m.data
+			)
+		}
+	},
 
 	// subscribeMessages subscribes to `node.<nodeID>.msg` and returns an async
 	// iterable for Message objects
