@@ -11,6 +11,7 @@ import (
 )
 
 func TestSync(t *testing.T) {
+	// Start up a SIOT test servers for this test
 	ncU, _, stopU, err := server.TestServer("2")
 
 	if err != nil {
@@ -19,7 +20,6 @@ func TestSync(t *testing.T) {
 
 	defer stopU()
 
-	// Start up a SIOT test servers for this test
 	ncD, rootD, stopD, err := server.TestServer()
 
 	if err != nil {
@@ -27,8 +27,6 @@ func TestSync(t *testing.T) {
 	}
 
 	defer stopD()
-
-	time.Sleep(time.Millisecond * 100)
 
 	fmt.Println("**** create sync node")
 	sync := client.Sync{
