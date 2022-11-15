@@ -13,7 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global = (function() { return this || window || global || self || Function('return this')(); }).call(null);
+var global =
+    (typeof globalThis !== 'undefined' && globalThis) ||
+    (typeof window !== 'undefined' && window) ||
+    (typeof global !== 'undefined' && global) ||
+    (typeof self !== 'undefined' && self) ||
+    (function () { return this; }).call(null) ||
+    Function('return this')();
 
 var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
 goog.object.extend(proto, google_protobuf_timestamp_pb);
@@ -100,7 +106,8 @@ proto.pb.Point.toObject = function(includeInstance, msg) {
     text: jspb.Message.getFieldWithDefault(msg, 8, ""),
     key: jspb.Message.getFieldWithDefault(msg, 11, ""),
     tombstone: jspb.Message.getFieldWithDefault(msg, 12, 0),
-    data: msg.getData_asB64()
+    data: msg.getData_asB64(),
+    origin: jspb.Message.getFieldWithDefault(msg, 15, "")
   };
 
   if (includeInstance) {
@@ -169,6 +176,10 @@ proto.pb.Point.deserializeBinaryFromReader = function(msg, reader) {
     case 14:
       var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setData(value);
+      break;
+    case 15:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setOrigin(value);
       break;
     default:
       reader.skipField();
@@ -253,6 +264,13 @@ proto.pb.Point.serializeBinaryToWriter = function(message, writer) {
   if (f.length > 0) {
     writer.writeBytes(
       14,
+      f
+    );
+  }
+  f = message.getOrigin();
+  if (f.length > 0) {
+    writer.writeString(
+      15,
       f
     );
   }
@@ -443,6 +461,24 @@ proto.pb.Point.prototype.getData_asU8 = function() {
  */
 proto.pb.Point.prototype.setData = function(value) {
   return jspb.Message.setProto3BytesField(this, 14, value);
+};
+
+
+/**
+ * optional string origin = 15;
+ * @return {string}
+ */
+proto.pb.Point.prototype.getOrigin = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 15, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.pb.Point} returns this
+ */
+proto.pb.Point.prototype.setOrigin = function(value) {
+  return jspb.Message.setProto3StringField(this, 15, value);
 };
 
 

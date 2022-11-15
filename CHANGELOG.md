@@ -12,6 +12,16 @@ For more details or to discuss releases, please visit the
 ## [Unreleased]
 
 - improve error handling in cobs decoder
+- rename upstream -> sync
+  - re-implement node hash using CRC-32 and XOR hash
+  - re-implement upstream sync using new hash mechanism
+  - write tests for sync
+- implement `siot log` subcommand -- this dumps SIOT messages
+- implement `siot store` subcommand -- used to check and fix store
+- simpleiot-js frontend library changes
+  - re-worked to use updated NATS API
+  - added `sendEdgePoints` API function
+  - added unit tests, linting, etc.
 
 ## [[0.5.5] - 2022-10-31](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.5)
 

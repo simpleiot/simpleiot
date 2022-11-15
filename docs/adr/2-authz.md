@@ -126,7 +126,7 @@ single root node:
   - Blake (User ab12…ef22)
 
 To get points of the humidity sensor, one would send a request to this subject:
-`ab12...ef22.node.a89f...eda9.points`.
+`ab12...ef22.p.a89f...eda9`.
 
 #### Example #2
 
@@ -148,7 +148,7 @@ root nodes:
   - Blake (User ab12…ef22)
 
 To get points of the humidity sensor, one would send a request to this subject:
-`ab12...ef22.node.a89f...eda9.points`.
+`ab12...ef22.p.a89f...eda9`.
 
 ### Implementation Notes
 

@@ -16,9 +16,9 @@ module UI.Icon exposing
     , power
     , send
     , serialDev
+    , sync
     , trendingDown
     , trendingUp
-    , uploadCloud
     , user
     , users
     , variable
@@ -187,9 +187,9 @@ send =
     icon FeatherIcons.send
 
 
-uploadCloud : Element msg
-uploadCloud =
-    icon FeatherIcons.uploadCloud
+sync : Element msg
+sync =
+    icon FeatherIcons.refreshCw
 
 
 database : Element msg

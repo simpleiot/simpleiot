@@ -1,4 +1,4 @@
-module Components.NodeUpstream exposing (view)
+module Components.NodeSync exposing (view)
 
 import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
@@ -22,6 +22,9 @@ view o =
         checkboxInput =
             NodeInputs.nodeCheckboxInput opts ""
 
+        counterWithReset =
+            NodeInputs.nodeCounterWithReset opts ""
+
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
     in
@@ -33,7 +36,7 @@ view o =
         ]
     <|
         wrappedRow [ spacing 10 ]
-            [ Icon.uploadCloud
+            [ Icon.sync
             , text <|
                 Point.getText o.node.points Point.typeDescription ""
             , viewIf disabled <| text "(disabled)"
@@ -43,6 +46,7 @@ view o =
                     , textInput Point.typeURI "URI" "nats://myserver:4222, ws://myserver"
                     , textInput Point.typeAuthToken "Auth Token" ""
                     , checkboxInput Point.typeDisable "Disable"
+                    , counterWithReset Point.typeSyncCount Point.typeSyncCountReset "Sync Count"
                     ]
 
                 else

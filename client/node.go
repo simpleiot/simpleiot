@@ -13,65 +13,22 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// GetNode over NATS. If id is "root", the root node is fetched.
+// GetNodes over NATS. Maps to the `nodes.<parent>.<id>` NATS API.
+// Returns data.ErrDocumentNotFound if node is not found.
 // If parent is set to "none", the edge details are not included
-// and the hash is calculated without the edge points.
-// returns data.ErrDocumentNotFound if node is not found.
+// and the hash is blank.
 // If parent is set to "all", then all living instances of the node are returned.
-func GetNode(nc *nats.Conn, id, parent string) ([]data.NodeEdge, error) {
+// If parent is set and id is "all", then all child nodes are returned.
+// Parent can be set to "root" and id to "all" to fetch the root node(s).
+func GetNodes(nc *nats.Conn, parent, id, typ string, includeDel bool) ([]data.NodeEdge, error) {
 	if parent == "" {
 		parent = "none"
 	}
-	nodeMsg, err := nc.Request("node."+id, []byte(parent), time.Second*20)
-	if err != nil {
-		return []data.NodeEdge{}, err
+
+	if id == "" {
+		id = "all"
 	}
 
-	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
-
-	if err != nil {
-		return []data.NodeEdge{}, err
-	}
-
-	return nodes, nil
-}
-
-// GetNodeType gets node of a custom type.
-// If parent is set to "none", the edge details are not included
-// returns data.ErrDocumentNotFound if node is not found.
-// If parent is set to "all", then all living instances of the node are returned.
-func GetNodeType[T any](nc *nats.Conn, id, parent string) ([]T, error) {
-	if parent == "" {
-		parent = "none"
-	}
-	nodeMsg, err := nc.Request("node."+id, []byte(parent), time.Second*20)
-	if err != nil {
-		return []T{}, err
-	}
-
-	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
-	if err != nil {
-		return []T{}, err
-	}
-
-	// decode from NodeEdge to custom types
-	ret := make([]T, len(nodes))
-
-	for i, n := range nodes {
-		err := data.Decode(data.NodeEdgeChildren{NodeEdge: n, Children: nil}, &ret[i])
-		if err != nil {
-			log.Println("Error decode node in GetNodeType: ", err)
-		}
-	}
-
-	return ret, nil
-}
-
-// GetNodeChildren over NATS
-// deleted nodes are skipped unless includeDel is set to true. typ
-// can be used to limit nodes to a particular type, otherwise, all nodes
-// are returned.
-func GetNodeChildren(nc *nats.Conn, id, typ string, includeDel bool, recursive bool) ([]data.NodeEdge, error) {
 	var requestPoints data.Points
 
 	if includeDel {
@@ -89,56 +46,33 @@ func GetNodeChildren(nc *nats.Conn, id, typ string, includeDel bool, recursive b
 		return nil, fmt.Errorf("Error encoding reqData: %v", err)
 	}
 
-	nodeMsg, err := nc.Request("node."+id+".children", reqData, time.Second*20)
+	subject := fmt.Sprintf("nodes.%v.%v", parent, id)
+	nodeMsg, err := nc.Request(subject, reqData, time.Second*20)
 	if err != nil {
-		return nil, err
+		return []data.NodeEdge{}, err
 	}
 
 	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
+
 	if err != nil {
-		return nil, err
-	}
-
-	if recursive {
-		recNodes := []data.NodeEdge{}
-		for _, n := range nodes {
-			c, err := GetNodeChildren(nc, n.ID, typ, includeDel, true)
-			if err != nil {
-				return nil, fmt.Errorf("GetNodeChildren, error getting children: %v", err)
-			}
-			recNodes = append(recNodes, c...)
-		}
-
-		nodes = append(nodes, recNodes...)
+		return []data.NodeEdge{}, err
 	}
 
 	return nodes, nil
 }
 
-// GetNodeChildrenType get immediate children of a custom type
-// deleted nodes are skipped
-func GetNodeChildrenType[T any](nc *nats.Conn, id string) ([]T, error) {
+// GetNodesType gets node of a custom type.
+// id and parent work the same as [GetNodes]
+// Deleted nodes are not included.
+func GetNodesType[T any](nc *nats.Conn, parent, id string) ([]T, error) {
 	var x T
 	nodeType := reflect.TypeOf(x).Name()
 	nodeType = strings.ToLower(nodeType[0:1]) + nodeType[1:]
 
-	requestPoints := data.Points{
-		data.Point{Type: data.PointTypeNodeType, Text: nodeType},
-	}
+	nodes, err := GetNodes(nc, parent, id, nodeType, false)
 
-	reqData, err := requestPoints.ToPb()
 	if err != nil {
-		return nil, fmt.Errorf("Error encoding reqData: %v", err)
-	}
-
-	nodeMsg, err := nc.Request("node."+id+".children", reqData, time.Second*20)
-	if err != nil {
-		return nil, err
-	}
-
-	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
-	if err != nil {
-		return nil, err
+		return []T{}, err
 	}
 
 	// decode from NodeEdge to custom types
@@ -147,30 +81,70 @@ func GetNodeChildrenType[T any](nc *nats.Conn, id string) ([]T, error) {
 	for i, n := range nodes {
 		err := data.Decode(data.NodeEdgeChildren{NodeEdge: n, Children: nil}, &ret[i])
 		if err != nil {
-			log.Println("Error decode node in GetNodeChildrenType: ", err)
+			log.Println("Error decode node in GetNodeType: ", err)
 		}
 	}
 
 	return ret, nil
 }
 
+// GetRootNode returns the root node of the instance
+func GetRootNode(nc *nats.Conn) (data.NodeEdge, error) {
+	rootNodes, err := GetNodes(nc, "root", "all", "", false)
+
+	if err != nil {
+		return data.NodeEdge{}, err
+	}
+
+	if len(rootNodes) == 0 {
+		return data.NodeEdge{}, data.ErrDocumentNotFound
+	}
+
+	return rootNodes[0], nil
+}
+
 // GetNodesForUser gets all nodes for a user
 func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 	var none []data.NodeEdge
 	var ret []data.NodeEdge
-	userNodes, err := GetNode(nc, userID, "all")
+	userNodes, err := GetNodes(nc, "all", userID, "", false)
 	if err != nil {
 		return none, err
 	}
 
+	var getChildren func(id string) ([]data.NodeEdge, error)
+
+	// getNodesHelper recursively gets children of a node
+	getChildren = func(id string) ([]data.NodeEdge, error) {
+		var ret []data.NodeEdge
+
+		children, err := GetNodes(nc, id, "all", "", false)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, c := range children {
+			grands, err := getChildren(c.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			ret = append(ret, grands...)
+		}
+
+		ret = append(ret, children...)
+
+		return ret, nil
+	}
+
 	// go through parents of root nodes and recursively get all children
 	for _, un := range userNodes {
-		n, err := GetNode(nc, un.Parent, "none")
+		n, err := GetNodes(nc, "none", un.Parent, "", false)
 		if err != nil {
 			return none, fmt.Errorf("Error getting root node: %v", err)
 		}
 		ret = append(ret, n...)
-		c, err := GetNodeChildren(nc, un.Parent, "", false, true)
+		c, err := getChildren(un.Parent)
 		if err != nil {
 			return none, fmt.Errorf("Error getting children: %v", err)
 		}
@@ -245,9 +219,9 @@ func SendNodeType[T any](nc *nats.Conn, node T, origin string) error {
 }
 
 func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent, origin string) error {
-	children, err := GetNodeChildren(nc, node.ID, "", false, false)
+	children, err := GetNodes(nc, node.ID, "all", "", false)
 	if err != nil {
-		return fmt.Errorf("GetNodeChildren error: %v", err)
+		return fmt.Errorf("GetNodes error: %v", err)
 	}
 
 	// create new ID for duplicate node
@@ -271,7 +245,7 @@ func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent, origin st
 
 // DuplicateNode is used to Duplicate a node and all its children
 func DuplicateNode(nc *nats.Conn, id, newParent, origin string) error {
-	nodes, err := GetNode(nc, id, "none")
+	nodes, err := GetNodes(nc, "none", id, "", false)
 	if err != nil {
 		return fmt.Errorf("GetNode error: %v", err)
 	}
@@ -346,33 +320,6 @@ func MirrorNode(nc *nats.Conn, id, newParent, origin string) error {
 	return err
 }
 
-// UserCheck sends a nats message to check auth of user
-// This function returns user nodes and a JWT node which includes a token
-func UserCheck(nc *nats.Conn, email, pass string) ([]data.NodeEdge, error) {
-	points := data.Points{
-		{Type: data.PointTypeEmail, Text: email},
-		{Type: data.PointTypePass, Text: pass},
-	}
-
-	pointsData, err := points.ToPb()
-	if err != nil {
-		return []data.NodeEdge{}, err
-	}
-
-	nodeMsg, err := nc.Request("auth.user", pointsData, time.Second*20)
-	if err != nil {
-		return []data.NodeEdge{}, err
-	}
-
-	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
-
-	if err != nil {
-		return []data.NodeEdge{}, err
-	}
-
-	return nodes, nil
-}
-
 // NodeWatcher creates a node watcher. update() is called any time there is an update.
 // Stop can be called to stop the watcher. get() can be called to get the current value.
 func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop func(), err error) {
@@ -399,7 +346,7 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 		return nil, nil, fmt.Errorf("Edge point subscribe failed: %v", err)
 	}
 
-	nodes, err := GetNodeType[T](nc, id, parent)
+	nodes, err := GetNodesType[T](nc, parent, id)
 	if err != nil {
 		if err != data.ErrDocumentNotFound {
 			return nil, nil, fmt.Errorf("Error getting node: %v", err)

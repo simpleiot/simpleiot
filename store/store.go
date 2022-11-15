@@ -94,21 +94,17 @@ func NewStore(p Params) (*Store, error) {
 // Start connects to NATS server and set up handlers for things we are interested in
 func (st *Store) Start() error {
 	var err error
-	st.subscriptions["nodePoints"], err = st.nc.Subscribe("node.*.points", st.handleNodePoints)
+	st.subscriptions["nodePoints"], err = st.nc.Subscribe("p.*", st.handleNodePoints)
 	if err != nil {
 		return fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
-	st.subscriptions["edgePoints"], err = st.nc.Subscribe("node.*.*.points", st.handleEdgePoints)
+	st.subscriptions["edgePoints"], err = st.nc.Subscribe("p.*.*", st.handleEdgePoints)
 	if err != nil {
 		return fmt.Errorf("Subscribe edge points error: %w", err)
 	}
 
-	if st.subscriptions["node"], err = st.nc.Subscribe("node.*", st.handleNode); err != nil {
-		return fmt.Errorf("Subscribe node error: %w", err)
-	}
-
-	if st.subscriptions["children"], err = st.nc.Subscribe("node.*.children", st.handleNodeChildren); err != nil {
+	if st.subscriptions["nodes"], err = st.nc.Subscribe("nodes.*.*", st.handleNodesRequest); err != nil {
 		return fmt.Errorf("Subscribe node error: %w", err)
 	}
 
@@ -120,8 +116,20 @@ func (st *Store) Start() error {
 		return fmt.Errorf("Subscribe message error: %w", err)
 	}
 
-	if st.subscriptions["auth"], err = st.nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
+	if st.subscriptions["auth.user"], err = st.nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
 		return fmt.Errorf("Subscribe auth error: %w", err)
+	}
+
+	if st.subscriptions["auth.getNatsURI"], err = st.nc.Subscribe("auth.getNatsURI", st.handleAuthGetNatsURI); err != nil {
+		return fmt.Errorf("Subscribe auth error: %w", err)
+	}
+
+	if st.subscriptions["admin.storeVerify"], err = st.nc.Subscribe("admin.storeVerify", st.handleStoreVerify); err != nil {
+		return fmt.Errorf("Subscribe dbVerify error: %w", err)
+	}
+
+	if st.subscriptions["admin.storeMaint"], err = st.nc.Subscribe("admin.storeMaint", st.handleStoreMaint); err != nil {
+		return fmt.Errorf("Subscribe dbMaint error: %w", err)
 	}
 
 done:
@@ -172,6 +180,11 @@ func (st *Store) WaitStart(ctx context.Context) error {
 		// all is well
 		return nil
 	}
+}
+
+// Reset the store by permanently wiping all data
+func (st *Store) Reset() error {
+	return st.db.reset()
 }
 
 // StartMetrics for various handling operations. Metrics are sent to the node ID given
@@ -312,7 +325,7 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 	st.reply(msg.Reply, nil)
 }
 
-func (st *Store) handleNode(msg *nats.Msg) {
+func (st *Store) handleNodesRequest(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
@@ -320,35 +333,40 @@ func (st *Store) handleNode(msg *nats.Msg) {
 	}()
 
 	resp := &pb.NodesRequest{}
+	var err error
 	var parent string
 	var nodeID string
+	var includeDel bool
+	var nodeType string
 	var nodes data.Nodes
-	var err error
-	nodesRet := data.Nodes{}
 
 	chunks := strings.Split(msg.Subject, ".")
-	if len(chunks) < 2 {
+	if len(chunks) < 3 {
 		resp.Error = fmt.Sprintf("Error in message subject: %v", msg.Subject)
 		goto handleNodeDone
 	}
 
-	parent = string(msg.Data)
+	parent = chunks[1]
+	nodeID = chunks[2]
 
-	nodeID = chunks[1]
+	if len(msg.Data) > 0 {
+		pts, err := data.PbDecodePoints(msg.Data)
+		if err != nil {
+			resp.Error = fmt.Sprintf("Error decoding points %v", err)
+			goto handleNodeDone
+		}
 
-	nodes, err = st.db.nodeEdge(nodeID, parent)
-
-	// remove deleted nodes
-	if parent == "all" {
-		for _, n := range nodes {
-			ts, _ := n.IsTombstone()
-			if !ts {
-				nodesRet = append(nodesRet, n)
+		for _, p := range pts {
+			switch p.Type {
+			case data.PointTypeTombstone:
+				includeDel = data.FloatToBool(p.Value)
+			case data.PointTypeNodeType:
+				nodeType = p.Text
 			}
 		}
-	} else {
-		nodesRet = nodes
 	}
+
+	nodes, err = st.db.getNodes(nil, parent, nodeID, nodeType, includeDel)
 
 	if err != nil {
 		if err != data.ErrDocumentNotFound {
@@ -359,7 +377,7 @@ func (st *Store) handleNode(msg *nats.Msg) {
 	}
 
 handleNodeDone:
-	resp.Nodes, err = nodesRet.ToPbNodes()
+	resp.Nodes, err = nodes.ToPbNodes()
 	if err != nil {
 		resp.Error = fmt.Sprintf("Error pb encoding node: %v\n", err)
 	}
@@ -452,68 +470,21 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 	}
 }
 
-func (st *Store) handleNodeChildren(msg *nats.Msg) {
-	start := time.Now()
-	defer func() {
-		t := time.Since(start).Milliseconds()
-		st.metricCycleNodeChildren.AddSample(float64(t))
-	}()
-
-	resp := &pb.NodesRequest{}
-	var err error
-	var nodes data.Nodes
-	var nodeID string
-
-	includeDel := false
-	nodeType := ""
-
-	chunks := strings.Split(msg.Subject, ".")
-	if len(chunks) < 3 {
-		resp.Error = fmt.Sprintf("Error in message subject: %v", msg.Subject)
-		goto handleNodeChildrenDone
+func (st *Store) handleAuthGetNatsURI(msg *nats.Msg) {
+	points := data.Points{
+		{Type: data.PointTypeURI, Text: st.server},
+		{Type: data.PointTypeToken, Text: st.authToken},
 	}
 
-	if len(msg.Data) > 0 {
-		pts, err := data.PbDecodePoints(msg.Data)
-		if err != nil {
-			resp.Error = fmt.Sprintf("Error decoding points %v", err)
-			goto handleNodeChildrenDone
-		}
-
-		for _, p := range pts {
-			switch p.Type {
-			case data.PointTypeTombstone:
-				includeDel = data.FloatToBool(p.Value)
-			case data.PointTypeNodeType:
-				nodeType = p.Text
-			}
-		}
-	}
-
-	nodeID = chunks[1]
-
-	nodes, err = st.db.children(nodeID, nodeType, includeDel)
+	data, err := points.ToPb()
 
 	if err != nil {
-		resp.Error = fmt.Sprintf("NATS: Error getting node %v from db: %v\n", nodeID, err)
-		goto handleNodeChildrenDone
-	}
-
-handleNodeChildrenDone:
-	resp.Nodes, err = nodes.ToPbNodes()
-	if err != nil {
-		resp.Error = fmt.Sprintf("Error pb encoding nodes: %v", err)
-	}
-
-	data, err := proto.Marshal(resp)
-	if err != nil {
-		resp.Error = fmt.Sprintf("Error encoding data: %v", err)
+		data = []byte(err.Error())
 	}
 
 	err = st.nc.Publish(msg.Reply, data)
-
 	if err != nil {
-		log.Println("NATS: Error publishing response to node children request: ", err)
+		log.Println("NATS: Error publishing response to gets NATS URI request: ", err)
 	}
 }
 
@@ -538,7 +509,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 	var findUsers func(id string)
 
 	findUsers = func(id string) {
-		nodes, err := st.db.children(id, data.NodeTypeUser, false)
+		nodes, err := st.db.getNodes(nil, "all", id, data.NodeTypeUser, false)
 		if err != nil {
 			log.Println("Error find user nodes: ", err)
 			return
@@ -638,7 +609,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	level := 0
 
 	findSvcNodes = func(id string) {
-		nodes, err := st.db.children(id, data.NodeTypeMsgService, false)
+		nodes, err := st.db.getNodes(nil, "all", id, data.NodeTypeMsgService, false)
 		if err != nil {
 			log.Println("Error getting svc descendents: ", err)
 			return
@@ -698,6 +669,32 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	}
 }
 
+func (st *Store) handleStoreVerify(msg *nats.Msg) {
+	var ret string
+	hashErr := st.db.verifyNodeHashes(false)
+	if hashErr != nil {
+		ret = hashErr.Error()
+	}
+
+	err := st.nc.Publish(msg.Reply, []byte(ret))
+	if err != nil {
+		log.Println("NATS: Error publishing response to node request: ", err)
+	}
+}
+
+func (st *Store) handleStoreMaint(msg *nats.Msg) {
+	var ret string
+	hashErr := st.db.verifyNodeHashes(true)
+	if hashErr != nil {
+		ret = hashErr.Error()
+	}
+
+	err := st.nc.Publish(msg.Reply, []byte(ret))
+	if err != nil {
+		log.Println("NATS: Error publishing response to node request: ", err)
+	}
+}
+
 // used for messages that want an ACK
 func (st *Store) reply(subject string, err error) {
 	if subject == "" {
@@ -716,7 +713,7 @@ func (st *Store) reply(subject string, err error) {
 
 func (st *Store) processPointsUpstream(upNodeID, nodeID, nodeDesc string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
-	sub := fmt.Sprintf("up.%v.%v.points", upNodeID, nodeID)
+	sub := fmt.Sprintf("up.%v.%v", upNodeID, nodeID)
 
 	err := client.SendPoints(st.nc, sub, points, false)
 
@@ -789,7 +786,7 @@ func (st *Store) processPointsUpstream(upNodeID, nodeID, nodeDesc string, points
 }
 
 func (st *Store) processEdgePointsUpstream(upNodeID, nodeID, parentID string, points data.Points) error {
-	sub := fmt.Sprintf("up.%v.%v.%v.points", upNodeID, nodeID, parentID)
+	sub := fmt.Sprintf("up.%v.%v.%v", upNodeID, nodeID, parentID)
 
 	err := client.SendPoints(st.nc, sub, points, false)
 

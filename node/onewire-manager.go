@@ -31,7 +31,7 @@ func newOneWireManager(nc *nats.Conn, rootNodeID string) *oneWireManager {
 var reBusMaster = regexp.MustCompile(`w1_bus_master(\d+)`)
 
 func (owm *oneWireManager) update() error {
-	nodes, err := client.GetNodeChildren(owm.nc, owm.rootNodeID, data.NodeTypeOneWire, false, false)
+	nodes, err := client.GetNodes(owm.nc, owm.rootNodeID, "all", data.NodeTypeOneWire, false)
 	if err != nil {
 		return err
 	}

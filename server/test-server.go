@@ -12,19 +12,42 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-var testServerOptions = Options{
+// TestServerOptions options used for test server
+var TestServerOptions = Options{
 	StoreFile:    "test.sqlite",
-	NatsPort:     4990,
-	HTTPPort:     "8990",
-	NatsHTTPPort: 8991,
-	NatsWSPort:   8992,
-	NatsServer:   "nats://localhost:4990",
+	NatsPort:     8900,
+	HTTPPort:     "8901",
+	NatsHTTPPort: 8902,
+	NatsWSPort:   8903,
+	NatsServer:   "nats://localhost:8900",
+}
+
+// TestServerOptions2 options used for 2nd test server
+var TestServerOptions2 = Options{
+	StoreFile:    "test2.sqlite",
+	NatsPort:     8910,
+	HTTPPort:     "8911",
+	NatsHTTPPort: 8912,
+	NatsWSPort:   8913,
+	NatsServer:   "nats://localhost:8910",
 }
 
 // TestServer starts a test server and returns a function to stop it
-func TestServer() (*nats.Conn, data.NodeEdge, func(), error) {
-	exec.Command("sh", "-c", "rm test.sqlite*").Run()
-	s, nc, err := NewServer(testServerOptions)
+func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
+	opts := TestServerOptions
+
+	if len(args) > 0 {
+		opts = TestServerOptions2
+	}
+
+	cleanup := func() {
+		exec.Command("sh", "-c",
+			fmt.Sprintf("rm %v*", opts.StoreFile)).Run()
+	}
+
+	cleanup()
+
+	s, nc, err := NewServer(opts)
 
 	if err != nil {
 		return nil, data.NodeEdge{}, nil, fmt.Errorf("Error starting siot server: %v", err)
@@ -46,7 +69,7 @@ func TestServer() (*nats.Conn, data.NodeEdge, func(), error) {
 	stop := func() {
 		s.Stop(nil)
 		<-stopped
-		exec.Command("sh", "-c", "rm test.sqlite*").Run()
+		cleanup()
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -56,7 +79,7 @@ func TestServer() (*nats.Conn, data.NodeEdge, func(), error) {
 		return nil, data.NodeEdge{}, stop, fmt.Errorf("Error waiting for test server to start: %v", err)
 	}
 
-	nodes, err := client.GetNode(nc, "root", "")
+	nodes, err := client.GetNodes(nc, "root", "all", "", false)
 
 	if err != nil {
 		return nil, data.NodeEdge{}, stop, fmt.Errorf("Get root nodes error: %v", err)

@@ -17,14 +17,13 @@ import (
 
 // Manager is responsible for maintaining node state, running rules, etc
 type Manager struct {
-	nc              *nats.Conn
-	appVersion      string
-	osVersionField  string
-	modbusManager   *ModbusManager
-	upstreamManager *UpstreamManager
-	rootNodeID      string
-	oneWireManager  *oneWireManager
-	chStop          chan struct{}
+	nc             *nats.Conn
+	appVersion     string
+	osVersionField string
+	modbusManager  *ModbusManager
+	rootNodeID     string
+	oneWireManager *oneWireManager
+	chStop         chan struct{}
 }
 
 // NewManger creates a new Manager
@@ -41,7 +40,7 @@ func NewManger(nc *nats.Conn, appVersion, osVersionField string) *Manager {
 func (m *Manager) init() error {
 	var rootNode data.NodeEdge
 
-	rootNodes, err := client.GetNode(m.nc, "root", "")
+	rootNodes, err := client.GetNodes(m.nc, "root", "all", "", false)
 
 	if err != nil {
 		return fmt.Errorf("Error getting root node: %v", err)
@@ -90,7 +89,6 @@ func (m *Manager) init() error {
 	}
 
 	m.modbusManager = NewModbusManager(m.nc, m.rootNodeID)
-	m.upstreamManager = NewUpstreamManager(m.nc, m.rootNodeID)
 	m.oneWireManager = newOneWireManager(m.nc, m.rootNodeID)
 
 	return nil
@@ -113,9 +111,6 @@ func (m *Manager) Start() error {
 		case <-t.C:
 			if m.modbusManager != nil {
 				m.modbusManager.Update()
-			}
-			if m.upstreamManager != nil {
-				m.upstreamManager.Update()
 			}
 			if m.oneWireManager != nil {
 				m.oneWireManager.update()

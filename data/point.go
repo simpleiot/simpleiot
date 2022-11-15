@@ -60,6 +60,10 @@ type Point struct {
 
 // CRC returns a CRC for the point
 func (p Point) CRC() uint32 {
+	// Node type points are not returned so don't include that in hash
+	if p.Type == PointTypeNodeType {
+		return 0
+	}
 	// we are using this in a XOR checksum, so simply hashing time is probably
 	// not good enough, because if we send a bunch of points with the same time,
 	// they will have the CRC and simply cancel each other out.

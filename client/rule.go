@@ -192,7 +192,7 @@ func (rc *RuleClient) Start() error {
 	// watch all points that flow through parent node
 	// FIXME: we should optimize this so we only watch the nodes
 	// that are in the conditions
-	subject := fmt.Sprintf("up.%v.*.points", rc.config.Parent)
+	subject := fmt.Sprintf("up.%v.*", rc.config.Parent)
 
 	var err error
 	rc.upSub, err = rc.nc.Subscribe(subject, func(msg *nats.Msg) {
@@ -204,7 +204,7 @@ func (rc *RuleClient) Start() error {
 
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
-		if len(chunks) != 4 {
+		if len(chunks) != 3 {
 			log.Println("rule client up sub, malformed subject: ", msg.Subject)
 			return
 		}
@@ -438,7 +438,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			}
 		case data.PointValueNotify:
 			// get node that fired the rule
-			nodes, err := GetNode(rc.nc, triggerNodeID, "none")
+			nodes, err := GetNodes(rc.nc, "none", triggerNodeID, "", false)
 			if err != nil {
 				return err
 			}

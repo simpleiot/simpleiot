@@ -30,7 +30,9 @@ func main() {
 		flags.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Available commands:")
-		fmt.Println("  * serve")
+		fmt.Println("  - serve (start the SIOT server)")
+		fmt.Println("  - log (log SIOT messages)")
+		fmt.Println("  - store (store maint, requires server to be running)")
 	}
 
 	flags.Parse(os.Args[1:])
@@ -55,8 +57,12 @@ func main() {
 		if err := runServer(args[1:], version); err != nil {
 			log.Println("Simple IoT stopped, reason: ", err)
 		}
+	case "log":
+		runLog(args[1:])
+	case "store":
+		runStore(args[1:])
 	default:
-		log.Fatal("Unknown command, options: serve")
+		log.Fatal("Unknown command; options: serve, log, store")
 	}
 }
 
@@ -110,4 +116,97 @@ func runServer(args []string, version string) error {
 	})
 
 	return g.Run()
+}
+
+func runLog(args []string) {
+	defaultNatsServer := "nats://localhost:4222"
+	flags := flag.NewFlagSet("log", flag.ExitOnError)
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	// only consider env if command line option is something different
+	// that default
+	natsServer := *flagNatsServer
+	if natsServer == defaultNatsServer {
+		natsServerE := os.Getenv("SIOT_NATS_SERVER")
+		if natsServerE != "" {
+			natsServer = natsServerE
+		}
+	}
+
+	client.Log(natsServer, *flagAuthToken)
+
+	select {}
+}
+
+func runStore(args []string) {
+	defaultNatsServer := "nats://localhost:4222"
+	flags := flag.NewFlagSet("store", flag.ExitOnError)
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+	flagCheck := flags.Bool("check", false, "Check store")
+	flagFix := flags.Bool("fix", false, "Fix store")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	// only consider env if command line option is something different
+	// that default
+	natsServer := *flagNatsServer
+	if natsServer == defaultNatsServer {
+		natsServerE := os.Getenv("SIOT_NATS_SERVER")
+		if natsServerE != "" {
+			natsServer = natsServerE
+		}
+	}
+
+	opts := client.EdgeOptions{
+		URI:       *flagNatsServer,
+		AuthToken: *flagAuthToken,
+		NoEcho:    true,
+		Disconnected: func() {
+			log.Println("NATS Disconnected")
+		},
+		Reconnected: func() {
+			log.Println("NATS Reconnected")
+		},
+		Closed: func() {
+			log.Println("NATS Closed")
+			os.Exit(0)
+		},
+	}
+
+	nc, err := client.EdgeConnect(opts)
+
+	if err != nil {
+		log.Println("Error connecting to NATS server: ", err)
+		os.Exit(-1)
+	}
+
+	switch {
+	case *flagCheck:
+		err := client.AdminStoreVerify(nc)
+		if err != nil {
+			log.Println("DB verify failed: ", err)
+		} else {
+			log.Println("DB verified :-)")
+		}
+
+	case *flagFix:
+		err := client.AdminStoreMaint(nc)
+		if err != nil {
+			log.Println("DB maint failed: ", err)
+		} else {
+			log.Println("DB maint success :-)")
+		}
+
+	default:
+		fmt.Println("Error, no operation given.")
+		flags.Usage()
+	}
 }

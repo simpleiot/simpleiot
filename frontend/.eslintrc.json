@@ -1,0 +1,43 @@
+{
+	"extends": ["eslint:recommended", "prettier"],
+	"parserOptions": {
+		"sourceType": "module",
+		"ecmaVersion": 2022
+	},
+	"rules": {
+		"eqeqeq": ["error", "always", { "null": "never" }],
+		"no-unused-expressions": "error",
+		"new-cap": "error",
+		"no-nested-ternary": "error",
+		"no-unused-vars": ["error", { "args": "none" }],
+		"no-var": "error",
+		"no-template-curly-in-string": "error",
+		"no-alert": "error",
+		"linebreak-style": ["error", "unix"],
+		"spaced-comment": ["warn", "always"],
+		"arrow-body-style": ["error", "as-needed"],
+		"prefer-destructuring": [
+			"warn",
+			{
+				"AssignmentExpression": { "object": false, "array": true },
+				"VariableDeclarator": { "object": true, "array": true }
+			}
+		],
+		"prefer-const": [
+			"error",
+			{
+				"destructuring": "all",
+				"ignoreReadBeforeAssign": false
+			}
+		],
+		"object-shorthand": ["warn", "always"],
+		"require-atomic-updates": "warn"
+	},
+	"env": {
+		"browser": true,
+		"es6": true
+	},
+	"globals": {
+		"process": "readonly"
+	}
+}

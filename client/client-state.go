@@ -43,7 +43,7 @@ func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
 }
 
 func (cs *clientState[T]) start() (err error) {
-	c, err := GetNodeChildren(cs.nc, cs.node.ID, "", false, false)
+	c, err := GetNodes(cs.nc, cs.node.ID, "all", "", false)
 	if err != nil {
 		err = fmt.Errorf("Error getting children: %v", err)
 		return
@@ -85,7 +85,7 @@ func (cs *clientState[T]) start() (err error) {
 
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
-		if len(chunks) == 4 {
+		if len(chunks) == 3 {
 			// node points
 			for _, p := range points {
 				if p.Type == data.PointTypeNodeType {
@@ -97,7 +97,7 @@ func (cs *clientState[T]) start() (err error) {
 			// send node points to client
 			cs.client.Points(chunks[2], points)
 
-		} else if len(chunks) == 5 {
+		} else if len(chunks) == 4 {
 			// edge points
 			for _, p := range points {
 				if p.Type == data.PointTypeTombstone {
