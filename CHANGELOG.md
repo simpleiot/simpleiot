@@ -25,6 +25,14 @@ For more details or to discuss releases, please visit the
   - added `sendEdgePoints` API function
   - added unit tests, linting, etc.
 
+Note, there have been some database changes. To update, do the following:
+
+- `sqlite3 siot.sqlite`
+  - `update set up="root" from edges where up="none";`
+- start simpleiot
+  - in another terminal, run: `siot store -fix`. Do this several times until the
+    original siot process does not show any fixes.
+
 ## [[0.5.5] - 2022-10-31](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.5)
 
 - fix population of AppVersion in server
