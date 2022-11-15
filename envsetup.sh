@@ -149,12 +149,8 @@ siot_test_frontend() {
 }
 
 siot_test_frontend_lib() {
-  echo "WARNING: This test will run SimpleIOT with the \`--resetStore\` flag and will"
-  echo "permanently wipe the default store. Press <Ctrl>+C to abort or <Enter> to"
-  echo "continue."
-  read
   echo "Starting SimpleIOT..."
-  ./siot serve --resetStore 2> /dev/null &
+  ./siot serve --store siot_test_frontend_lib.sqlite --resetStore 2> /dev/null &
   PID=$!
   sleep 1
   (cd ./frontend/lib && npm run test || return 1)
@@ -162,6 +158,7 @@ siot_test_frontend_lib() {
   kill -s SIGINT $PID
   wait $PID
   echo "SimpleIOT Stopped"
+  rm siot_test_frontend_lib.sqlite
 }
 
 # please run the following before pushing -- best if your editor can be set up
