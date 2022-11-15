@@ -12,7 +12,7 @@ inspect.defaultOptions.depth = 10
 global.WebSocket = WebSocket
 let c, rootID, adminID
 
-it("connect", async () => {
+it("connects", async () => {
 	c = await connect()
 })
 describe("simpleiot-js", () => {
@@ -23,7 +23,7 @@ describe("simpleiot-js", () => {
 		}
 	})
 
-	it("get root node", async () => {
+	it("gets root node", async () => {
 		const roots = await c.getNodeChildren("root")
 		assert.strictEqual(roots.length, 1, "should have 1 root")
 
@@ -39,7 +39,7 @@ describe("simpleiot-js", () => {
 		rootID = root.id
 	})
 
-	it("get root node by ID", async function () {
+	it("gets root node by ID", async function () {
 		if (!rootID) {
 			return this.skip()
 		}
@@ -53,7 +53,7 @@ describe("simpleiot-js", () => {
 		assert.strictEqual(root.edgepointsList.length, 0, "no edges retrieved")
 	})
 
-	it("get nodes recursively", async () => {
+	it("gets nodes recursively", async () => {
 		const roots = await c.getNodeChildren("root", { recursive: true })
 		assert.strictEqual(roots.length, 1, "should have 1 root")
 
@@ -84,7 +84,7 @@ describe("simpleiot-js", () => {
 		adminID = user.id
 	})
 
-	it("change user first name", async function () {
+	it("publishes points for user name", async function () {
 		if (!adminID) {
 			return this.skip()
 		}
@@ -105,7 +105,74 @@ describe("simpleiot-js", () => {
 		assert.strictEqual(last.text, "Doe", "unchanged lastName " + last.text)
 	})
 
-	it("close", async () => {
+	const nodeID = "faux-sensor-1"
+	it("creates a device node", async function () {
+		if (!rootID) {
+			return this.skip()
+		}
+
+		// Create `nodeID`
+		await c.sendEdgePoints(nodeID, rootID, [{ type: "tombstone" }], {
+			ack: true,
+		})
+		await c.sendNodePoints(
+			nodeID,
+			[
+				{ type: "nodeType", text: "device" },
+				{ type: "description", text: nodeID + " (created by test suite)" },
+			],
+			{ ack: true }
+		)
+	})
+
+	it("subscribes / publishes node points", async function () {
+		const ITERATIONS = 10
+		let temperature = 30
+		let humidity = 55
+		let pointsRx = 0
+
+		// Subscribe and start reading points asynchronously
+		const sub = c.subscribePoints(nodeID)
+		const readPromise = (async function readPoints() {
+			for await (const p of sub) {
+				if (p.type === "temperature") {
+					assert.strictEqual(p.value, temperature)
+				} else if (p.type === "humidity") {
+					assert.strictEqual(p.value, humidity)
+				} else {
+					throw new Error("unknown point type: " + p.type)
+				}
+				pointsRx++
+			}
+		})()
+		// Note: Add no-op `catch` to avoid unhandled Promise rejection
+		readPromise.catch((err) => {})
+
+		// Send out node points
+		for (let i = 0; i < ITERATIONS; i++) {
+			await c.sendNodePoints(
+				nodeID,
+				[
+					{ type: "temperature", value: ++temperature },
+					{ type: "humidity", value: ++humidity },
+				],
+				{ ack: true }
+			)
+		}
+
+		// Close subscription and handle errors
+		await sub.close()
+		await readPromise
+
+		// Check to ensure we read all points
+		assert.strictEqual(
+			pointsRx,
+			ITERATIONS * 2,
+			"did not receive all published points"
+		)
+	})
+
+	it("closes", async () => {
 		await c.close()
 	})
 })
