@@ -11,6 +11,14 @@ import (
 )
 
 func TestSync(t *testing.T) {
+	ncU, _, stopU, err := server.TestServer("2")
+
+	if err != nil {
+		t.Fatal("Error starting upstream test server: ", err)
+	}
+
+	defer stopU()
+
 	// Start up a SIOT test servers for this test
 	ncD, rootD, stopD, err := server.TestServer()
 
@@ -20,18 +28,9 @@ func TestSync(t *testing.T) {
 
 	defer stopD()
 
-	ncU, _, stopU, err := server.TestServer("2")
-
-	if err != nil {
-		t.Fatal("Error starting upstream test server: ", err)
-	}
-
-	defer stopU()
-
 	time.Sleep(time.Millisecond * 100)
 
 	fmt.Println("**** create sync node")
-
 	sync := client.Sync{
 		ID:          "sync-id",
 		Parent:      rootD.ID,
@@ -61,21 +60,18 @@ func TestSync(t *testing.T) {
 		}
 
 		time.Sleep(time.Millisecond * 10)
-		fmt.Println("CLIFF: sleep 10ms")
 	}
 
 	fmt.Println("**** update description down")
-
 	err = client.SendNodePoint(ncD, rootD.ID, data.Point{Type: data.PointTypeDescription, Text: "set down"}, true)
 	if err != nil {
 		t.Fatal("error sending node point: ", err)
 	}
 
 	start = time.Now()
-
 	for {
 		if time.Since(start) > 500*time.Millisecond {
-			t.Fatal("description not progated upstream")
+			t.Fatal("description not propagated upstream")
 		}
 
 		nodes, err := client.GetNodesType[client.Device](ncU, "none", rootD.ID)
@@ -92,7 +88,6 @@ func TestSync(t *testing.T) {
 		time.Sleep(time.Millisecond * 10)
 	}
 
-	// make sure changes get sync'd downstream
 	fmt.Println("**** update description up")
 	err = client.SendNodePoint(ncU, rootD.ID, data.Point{Type: data.PointTypeDescription, Text: "set up"}, true)
 	if err != nil {
@@ -100,10 +95,9 @@ func TestSync(t *testing.T) {
 	}
 
 	start = time.Now()
-
 	for {
 		if time.Since(start) > 500*time.Millisecond {
-			t.Fatal("description not progated downstream")
+			t.Fatal("description not propagated downstream")
 		}
 
 		nodes, err := client.GetNodesType[client.Device](ncD, "none", rootD.ID)
@@ -120,17 +114,17 @@ func TestSync(t *testing.T) {
 		time.Sleep(time.Millisecond * 10)
 	}
 
-	// try create nodes down
 	fmt.Println("**** create node down")
-	varD := client.Variable{ID: "varDown", Parent: rootD.ID}
+	varD := client.Variable{ID: "varDown", Parent: rootD.ID, Description: "varDown"}
 	err = client.SendNodeType(ncD, varD, "test")
 	if err != nil {
 		t.Fatal("Error sending var1: ", err)
 	}
 
+	start = time.Now()
 	for {
 		if time.Since(start) > 500*time.Millisecond {
-			t.Fatal("var1 not progated upstream")
+			t.Fatal("var1 not propagated upstream")
 		}
 
 		nodes, err := client.GetNodesType[client.Variable](ncU, "none", "varDown")
@@ -145,56 +139,78 @@ func TestSync(t *testing.T) {
 		time.Sleep(time.Millisecond * 10)
 	}
 
-	/*
-		// try create nodes up
-		fmt.Println("**** create node up")
-		varU := client.Variable{ID: "varUp", Parent: rootD.ID}
-		err = client.SendNodeType(ncU, varU, "test")
+	fmt.Println("**** create node up")
+	varU := client.Variable{ID: "varUp", Parent: rootD.ID, Description: "varUp"}
+	err = client.SendNodeType(ncU, varU, "test")
+	if err != nil {
+		t.Fatal("Error sending varU: ", err)
+	}
+
+	start = time.Now()
+	for {
+		if time.Since(start) > 500*time.Millisecond {
+			t.Fatal("var2 not propagated downstream")
+		}
+
+		nodes, err := client.GetNodesType[client.Variable](ncU, "none", "varUp")
 		if err != nil {
-			t.Fatal("Error sending var2: ", err)
+			continue
 		}
 
-		for {
-			if time.Since(start) > 500*time.Millisecond {
-				t.Fatal("var2 not progated downstream")
-			}
-
-			nodes, err := client.GetNodesType[client.Variable](ncU, "none", "varUp")
-			if err != nil {
-				continue
-			}
-
-			if len(nodes) > 0 {
-				break
-			}
-
-			time.Sleep(time.Millisecond * 10)
+		if len(nodes) > 0 {
+			break
 		}
-	*/
-	/*
-		// delete node on down
-		err = client.SendEdgePoint(ncD, varD.ID, rootD.ID, data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
+
+		time.Sleep(time.Millisecond * 10)
+	}
+
+	fmt.Println("**** delete node down")
+	err = client.SendEdgePoint(ncD, varD.ID, rootD.ID, data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
+	if err != nil {
+		t.Fatal("error sending node point: ", err)
+	}
+
+	start = time.Now()
+	for {
+		if time.Since(start) > 500*time.Millisecond {
+			t.Fatal("varD delete not propagated upstream")
+		}
+
+		nodes, err := client.GetNodesType[client.Variable](ncU, rootD.ID, varD.ID)
 		if err != nil {
-			t.Fatal("error sending node point: ", err)
+			t.Fatal(err)
 		}
 
-		for {
-			if time.Since(start) > 500*time.Millisecond {
-				t.Fatal("var2 not progated downstream")
-			}
-
-			nodes, err := client.GetNodesType[client.Variable](ncU, "none", varD.ID)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if len(nodes) <= 0 {
-				break
-			}
-
-			time.Sleep(time.Millisecond * 10)
+		if len(nodes) <= 0 {
+			break
 		}
-	*/
 
-	fmt.Println("CLIFF: sync test finished")
+		time.Sleep(time.Millisecond * 10)
+	}
+
+	fmt.Println("**** delete node up")
+	err = client.SendEdgePoint(ncU, varU.ID, rootD.ID, data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
+	if err != nil {
+		t.Fatal("error sending node point: ", err)
+	}
+
+	start = time.Now()
+	for {
+		if time.Since(start) > 500*time.Millisecond {
+			t.Fatal("varU not propagated downstream")
+		}
+
+		nodes, err := client.GetNodesType[client.Variable](ncD, rootD.ID, varU.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(nodes) <= 0 {
+			break
+		}
+
+		time.Sleep(time.Millisecond * 10)
+	}
+
+	fmt.Println("sync test finished")
 }

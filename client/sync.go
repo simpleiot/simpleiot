@@ -67,8 +67,6 @@ var syncTimeout = 20 * time.Second
 
 // Start runs the main logic for this client and blocks until stopped
 func (up *SyncClient) Start() error {
-	fmt.Println("CLIFF: Start()")
-	defer fmt.Println("CLIFF: Start(), exitted")
 	// create a new NATs connection to the local server as we need to
 	// turn echo off
 	uri, token, err := GetNatsURI(up.nc)
