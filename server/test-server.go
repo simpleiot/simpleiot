@@ -34,13 +34,18 @@ var TestServerOptions2 = Options{
 
 // TestServer starts a test server and returns a function to stop it
 func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
-	exec.Command("sh", "-c", "rm test.sqlite*").Run()
-
 	opts := TestServerOptions
 
 	if len(args) > 0 {
 		opts = TestServerOptions2
 	}
+
+	cleanup := func() {
+		exec.Command("sh", "-c",
+			fmt.Sprintf("rm %v*", opts.StoreFile)).Run()
+	}
+
+	cleanup()
 
 	s, nc, err := NewServer(opts)
 
@@ -64,7 +69,7 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 	stop := func() {
 		s.Stop(nil)
 		<-stopped
-		exec.Command("sh", "-c", "rm test.sqlite*").Run()
+		cleanup()
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
