@@ -67,6 +67,8 @@ var syncTimeout = 20 * time.Second
 
 // Start runs the main logic for this client and blocks until stopped
 func (up *SyncClient) Start() error {
+	fmt.Println("CLIFF: Start()")
+	defer fmt.Println("CLIFF: Start(), exitted")
 	// create a new NATs connection to the local server as we need to
 	// turn echo off
 	uri, token, err := GetNatsURI(up.nc)
@@ -79,7 +81,7 @@ func (up *SyncClient) Start() error {
 		AuthToken: token,
 		NoEcho:    true,
 		Connected: func() {
-			log.Printf("Sync: %v: Local Connected\n", up.config.Description)
+			log.Printf("Sync: %v: Local Connected: %v\n", up.config.Description, uri)
 		},
 		Disconnected: func() {
 			log.Printf("Sync: %v: Local Disconnected\n", up.config.Description)
@@ -334,7 +336,8 @@ func (up *SyncClient) connect() error {
 		NoEcho:    true,
 		Connected: func() {
 			up.chConnected <- true
-			log.Printf("Sync: %v: Remote Connected\n", up.config.Description)
+			log.Printf("Sync: %v: Remote Connected: %v\n",
+				up.config.Description, up.config.URI)
 		},
 		Disconnected: func() {
 			up.chConnected <- false
