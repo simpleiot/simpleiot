@@ -41,7 +41,10 @@ type SyncClient struct {
 	newEdgePoints       chan NewPoints
 	subRemoteNodePoints map[string]*nats.Subscription
 	subRemoteEdgePoints map[string]*nats.Subscription
+	subRemoteUp         *nats.Subscription
 	chConnected         chan bool
+	initialSub          bool
+	chNewEdge           chan newEdge
 }
 
 // NewSyncClient constructor
@@ -55,6 +58,7 @@ func NewSyncClient(nc *nats.Conn, config Sync) Client {
 		chConnected:         make(chan bool),
 		subRemoteNodePoints: make(map[string]*nats.Subscription),
 		subRemoteEdgePoints: make(map[string]*nats.Subscription),
+		chNewEdge:           make(chan newEdge),
 	}
 }
 
@@ -75,16 +79,16 @@ func (up *SyncClient) Start() error {
 		AuthToken: token,
 		NoEcho:    true,
 		Connected: func() {
-			log.Println("NATS Local Connected")
+			log.Printf("Sync: %v: Local Connected\n", up.config.Description)
 		},
 		Disconnected: func() {
-			log.Println("NATS Local Disconnected")
+			log.Printf("Sync: %v: Local Disconnected\n", up.config.Description)
 		},
 		Reconnected: func() {
-			log.Println("NATS Local Reconnected")
+			log.Printf("Sync: %v: Local Reconnected\n", up.config.Description)
 		},
 		Closed: func() {
-			log.Println("NATS Local Closed")
+			log.Printf("Sync: %v: Local Closed\n", up.config.Description)
 		},
 	}
 
@@ -95,7 +99,6 @@ func (up *SyncClient) Start() error {
 
 	chLocalNodePoints := make(chan NewPoints)
 	chLocalEdgePoints := make(chan NewPoints)
-	chNewEdge := make(chan newEdge)
 
 	subLocalNodePoints, err := up.ncLocal.Subscribe(SubjectNodeAllPoints(), func(msg *nats.Msg) {
 		nodeID, points, err := DecodeNodePointsMsg(msg)
@@ -122,7 +125,7 @@ func (up *SyncClient) Start() error {
 		for _, p := range points {
 			if p.Type == data.PointTypeTombstone && p.Value == 0 {
 				// a new node was likely created, make sure we watch it
-				chNewEdge <- newEdge{parent: parentID, id: nodeID, local: true}
+				up.chNewEdge <- newEdge{parent: parentID, id: nodeID, local: true}
 			}
 		}
 	})
@@ -138,10 +141,8 @@ func (up *SyncClient) Start() error {
 		return fmt.Errorf("Error getting root node: %v", err)
 	}
 
-	var subRemoteUp *nats.Subscription
-
 	connected := false
-	initialSub := false
+	up.initialSub = false
 
 done:
 	for {
@@ -165,36 +166,6 @@ done:
 		case conn := <-up.chConnected:
 			connected = conn
 			if conn {
-				if up.rootRemote.ID == "" {
-					up.rootRemote, err = GetRootNode(up.ncRemote)
-					if err != nil {
-						log.Printf("Sync: %v, error getting upstream root: %v\n", up.config.Description, err)
-						return fmt.Errorf("Error getting upstream root: %v", err)
-					}
-				}
-
-				if subRemoteUp == nil {
-					subject := fmt.Sprintf("up.%v.*.*", up.rootLocal.ID)
-					subRemoteUp, err = up.ncRemote.Subscribe(subject, func(msg *nats.Msg) {
-						_, id, parent, points, err := DecodeUpEdgePointsMsg(msg)
-						if err != nil {
-							log.Println("Error decoding remote up points: ", err)
-						} else {
-							for _, p := range points {
-								if p.Type == data.PointTypeTombstone &&
-									p.Value == 0 {
-									// we have a new node
-									chNewEdge <- newEdge{
-										parent: parent, id: id}
-								}
-							}
-						}
-					})
-
-					if err != nil {
-						log.Println("Error subscribing to remote up...: ", err)
-					}
-				}
 
 				syncTicker.Reset(syncTimeout)
 				err := up.syncNode("root", up.rootLocal.ID)
@@ -202,17 +173,20 @@ done:
 					log.Println("Error syncing: ", err)
 				}
 
-				if !initialSub {
+				if !up.initialSub {
 					// set up initial subscriptions to remote nodes
 					err = up.subscribeRemoteNode(up.rootLocal.Parent, up.rootLocal.ID)
 					if err != nil {
 						log.Println("Sync: initial sub failed: ", err)
 					} else {
-						initialSub = true
+						up.initialSub = true
 					}
 				}
 			} else {
 				syncTicker.Stop()
+				// the following is required in case a new server
+				// is set up which may have a new root
+				up.rootRemote = data.NodeEdge{}
 			}
 		case pts := <-chLocalNodePoints:
 			if connected {
@@ -241,12 +215,6 @@ done:
 					data.PointTypeDisable:
 					// we need to restart the sync connection
 					up.disconnect()
-					initialSub = false
-					err := subRemoteUp.Unsubscribe()
-					if err != nil {
-						log.Println("subRemoteUp.Unsubscribe() error: ", err)
-					}
-					subRemoteUp = nil
 					connectTimer.Reset(10 * time.Millisecond)
 				}
 			}
@@ -271,7 +239,7 @@ done:
 			if err != nil {
 				log.Println("error merging new points: ", err)
 			}
-		case edge := <-chNewEdge:
+		case edge := <-up.chNewEdge:
 			if !edge.local {
 				// a new remote node was created, if it does not exist here,
 				// create it
@@ -331,13 +299,6 @@ done:
 		log.Println("Error unsubscribing edge points from local bus: ", err)
 	}
 
-	if subRemoteUp != nil {
-		err = subRemoteUp.Unsubscribe()
-		if err != nil {
-			log.Println("Error unsubscribingfrom subRemoteUp: ", err)
-		}
-	}
-
 	up.disconnect()
 	up.ncLocal.Close()
 
@@ -373,18 +334,18 @@ func (up *SyncClient) connect() error {
 		NoEcho:    true,
 		Connected: func() {
 			up.chConnected <- true
-			log.Println("NATS Sync Connected")
+			log.Printf("Sync: %v: Remote Connected\n", up.config.Description)
 		},
 		Disconnected: func() {
 			up.chConnected <- false
-			log.Println("NATS Sync Disconnected")
+			log.Printf("Sync: %v: Remote Disconnected\n", up.config.Description)
 		},
 		Reconnected: func() {
 			up.chConnected <- true
-			log.Println("NATS Sync Reconnected")
+			log.Printf("Sync: %v: Remote Reconnected\n", up.config.Description)
 		},
 		Closed: func() {
-			log.Println("NATS Sync Closed")
+			log.Printf("Sync: %v: Remote Closed\n", up.config.Description)
 		},
 	}
 
@@ -491,6 +452,15 @@ func (up *SyncClient) disconnect() {
 		delete(up.subRemoteEdgePoints, key)
 	}
 
+	up.initialSub = false
+	if up.subRemoteUp != nil {
+		err := up.subRemoteUp.Unsubscribe()
+		if err != nil {
+			log.Println("subRemoteUp.Unsubscribe() error: ", err)
+		}
+		up.subRemoteUp = nil
+	}
+
 	if up.ncRemote != nil {
 		up.ncRemote.Close()
 		up.ncRemote = nil
@@ -555,6 +525,38 @@ func (up *SyncClient) sendNodesLocal(node data.NodeEdge) error {
 }
 
 func (up *SyncClient) syncNode(parent, id string) error {
+	var err error
+	if up.rootRemote.ID == "" {
+		up.rootRemote, err = GetRootNode(up.ncRemote)
+		if err != nil {
+			log.Printf("Sync: %v, error getting upstream root: %v\n", up.config.Description, err)
+			return fmt.Errorf("Error getting upstream root: %v", err)
+		}
+	}
+
+	if up.subRemoteUp == nil {
+		subject := fmt.Sprintf("up.%v.*.*", up.rootLocal.ID)
+		up.subRemoteUp, err = up.ncRemote.Subscribe(subject, func(msg *nats.Msg) {
+			_, id, parent, points, err := DecodeUpEdgePointsMsg(msg)
+			if err != nil {
+				log.Println("Error decoding remote up points: ", err)
+			} else {
+				for _, p := range points {
+					if p.Type == data.PointTypeTombstone &&
+						p.Value == 0 {
+						// we have a new node
+						up.chNewEdge <- newEdge{
+							parent: parent, id: id}
+					}
+				}
+			}
+		})
+
+		if err != nil {
+			log.Println("Error subscribing to remote up...: ", err)
+		}
+	}
+
 	if parent == "root" {
 		parent = "all"
 	}
