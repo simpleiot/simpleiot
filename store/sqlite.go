@@ -37,6 +37,8 @@ func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 
 	dbFileOptions := fmt.Sprintf("%s?%s", dbFile, pragmas)
 
+	log.Println("Open store: ", dbFileOptions)
+
 	db, err := sql.Open("sqlite", dbFileOptions)
 	if err != nil {
 		return nil, err
