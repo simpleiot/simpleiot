@@ -154,7 +154,7 @@ func TestGetNatsURI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if uri != "nats://localhost:4990" {
+	if uri != server.TestServerOptions.NatsServer {
 		t.Fatal("Did not get expected URI: ", uri)
 	}
 }

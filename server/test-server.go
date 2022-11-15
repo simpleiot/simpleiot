@@ -15,21 +15,21 @@ import (
 // TestServerOptions options used for test server
 var TestServerOptions = Options{
 	StoreFile:    "test.sqlite",
-	NatsPort:     4990,
-	HTTPPort:     "8990",
-	NatsHTTPPort: 8991,
-	NatsWSPort:   8992,
-	NatsServer:   "nats://localhost:4990",
+	NatsPort:     8900,
+	HTTPPort:     "8901",
+	NatsHTTPPort: 8902,
+	NatsWSPort:   8903,
+	NatsServer:   "nats://localhost:8900",
 }
 
 // TestServerOptions2 options used for 2nd test server
 var TestServerOptions2 = Options{
 	StoreFile:    "test2.sqlite",
-	NatsPort:     4980,
-	HTTPPort:     "8980",
-	NatsHTTPPort: 8981,
-	NatsWSPort:   8982,
-	NatsServer:   "nats://localhost:4980",
+	NatsPort:     8910,
+	HTTPPort:     "8911",
+	NatsHTTPPort: 8912,
+	NatsWSPort:   8913,
+	NatsServer:   "nats://localhost:8910",
 }
 
 // TestServer starts a test server and returns a function to stop it
