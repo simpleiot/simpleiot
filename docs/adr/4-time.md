@@ -58,8 +58,8 @@ get the fraction by dividing the fraction part by 2^32.
 64-bit Linux systems are using 64bit timestamps (time_t) for seconds, and 32-bit
 systems are switching to 64-bit to avoid the 2038 bug.
 
-- https://musl.libc.org/time64.html
-- https://sourceware.org/pipermail/libc-alpha/2022-November/143386.html
+- [musl](https://musl.libc.org/time64.html)
+- [glibc discussion](https://sourceware.org/pipermail/libc-alpha/2022-November/143386.html)
 
 The Linux `clock_gettime()` function uses the following datatypes:
 
