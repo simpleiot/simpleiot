@@ -119,6 +119,14 @@ concurrently. Some information on this:
 - https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type
 - [Yjs](https://yjs.dev/#community)
   - https://blog.kevinjahns.de/are-crdts-suitable-for-shared-editing/
+- https://tantaman.com/2022-10-18-lamport-sufficient-for-lww.html
+
+### Databases
+
+- https://tantaman.com/2022-08-23-why-sqlite-why-now.html
+  - instead of doing:
+    `select comment.* from post join comment on comment.post_id = post.id where post.id = x and comment.date < cursor.date and comment.id < cursor.id order by date, id desc limit 101`
+  - we do: `post.comments().last(10).after(curosr);`
 
 ### Timestamps
 
