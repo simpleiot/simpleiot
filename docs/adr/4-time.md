@@ -4,6 +4,10 @@
 - PR/Discussion:
 - Status: discussion
 
+**Contents**
+
+<!-- toc -->
+
 ## Problem
 
 How can we store timestamps that are:
@@ -41,13 +45,37 @@ Browsers limit time resolution to MS for
 
 2 ^ 64 nanoseconds is roughly ~ 584.554531 years.
 
-https://github.com/jbenet/nanotime
+[https://github.com/jbenet/nanotime](https://github.com/jbenet/nanotime)
 
 #### NTP
 
 For NTP time, the 64bits are broken in to seconds and fraction of seconds. The
 top 32 bits is the seconds. The bottom 32 bits is the fraction of seconds. You
 get the fraction by dividing the fraction part by 2^32.
+
+#### Linux
+
+64-bit Linux systems are using 64bit timestamps (time_t) for seconds, and 32-bit
+systems are switching to 64-bit to avoid the 2038 bug.
+
+- https://musl.libc.org/time64.html
+- https://sourceware.org/pipermail/libc-alpha/2022-November/143386.html
+
+The Linux `clock_gettime()` function uses the following datatypes:
+
+```
+struct timeval {
+	time_t          tv_sec;
+	suseconds_t     tv_usec;
+};
+```
+
+```
+struct timespec {
+	time_t          tv_sec;
+	long            tv_nsec;
+};
+```
 
 #### Windows
 
@@ -163,9 +191,16 @@ Sparkplug does:
 >   recommended that this time is in UTC. This timestamp is meant to represent
 >   the time at which the message was published
 
+#### CRDTs
+
+LWW (last write wins) CRDTs often use a logical clock.
+[crsql](https://github.com/vlcn-io/cr-sqlite) uses a 64-bit logical clock.
+
 ### Do we need nanosecond resolution?
 
-Many IoT systems only support MS resolution.
+Many IoT systems only support MS resolution. However, this is sometimes cited as
+a deficiency in applications where higher resolution is needed (e.g. power
+grid).
 
 ## Decision
 
