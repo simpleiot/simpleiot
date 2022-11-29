@@ -17,6 +17,7 @@ type Sync struct {
 	Description    string `point:"description"`
 	URI            string `point:"uri"`
 	AuthToken      string `point:"authToken"`
+	Period         int    `point:"period"`
 	Disable        bool   `point:"disable"`
 	SyncCount      int    `point:"syncCount"`
 	SyncCountReset bool   `point:"syncCountReset"`
@@ -61,9 +62,6 @@ func NewSyncClient(nc *nats.Conn, config Sync) Client {
 		chNewEdge:           make(chan newEdge),
 	}
 }
-
-// GetNodes has a 20s timeout, so lets use that here
-var syncTimeout = 20 * time.Second
 
 // Start runs the main logic for this client and blocks until stopped
 func (up *SyncClient) Start() error {
@@ -130,7 +128,22 @@ func (up *SyncClient) Start() error {
 		}
 	})
 
-	// FIXME: determine what sync interval we want
+	checkPeriod := func() {
+		if up.config.Period < 1 {
+			up.config.Period = 20
+			points := data.Points{
+				{Type: data.PointTypePeriod, Value: float64(up.config.Period)},
+			}
+
+			err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)
+			if err != nil {
+				log.Println("Error resetting sync sync count: ", err)
+			}
+		}
+	}
+
+	checkPeriod()
+
 	syncTicker := time.NewTicker(time.Second * 10)
 	syncTicker.Stop()
 
@@ -166,8 +179,7 @@ done:
 		case conn := <-up.chConnected:
 			connected = conn
 			if conn {
-
-				syncTicker.Reset(syncTimeout)
+				syncTicker.Reset(time.Duration(up.config.Period) * time.Second)
 				err := up.syncNode("root", up.rootLocal.ID)
 				if err != nil {
 					log.Println("Error syncing: ", err)
@@ -216,6 +228,12 @@ done:
 					// we need to restart the sync connection
 					up.disconnect()
 					connectTimer.Reset(10 * time.Millisecond)
+				case data.PointTypePeriod:
+					checkPeriod()
+					if connected {
+						syncTicker.Reset(time.Duration(up.config.Period) *
+							time.Second)
+					}
 				}
 			}
 
