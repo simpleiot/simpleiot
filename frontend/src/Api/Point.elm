@@ -84,6 +84,7 @@ module Api.Point exposing
     , typeSysState
     , typeTombstone
     , typeTx
+    , typeTxQueueLen
     , typeTxReset
     , typeURI
     , typeUnits
@@ -349,6 +350,10 @@ typeBusSpeed =
 typeInterface : String
 typeInterface =
     "interface"
+
+typeTxQueueLen : String
+typeTxQueueLen =
+    "txQueueLen"
 
 typeID : String
 typeID =

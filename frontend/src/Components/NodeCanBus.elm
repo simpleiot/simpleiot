@@ -46,7 +46,8 @@ view o =
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeInterface "Interface" "can0"
-                    , textInput Point.typeBaud "Bus speed" "250K"
+                    , textInput Point.typeBusSpeed "Bus speed" "250000"
+                    , textInput Point.typeTxQueueLen "Tx queue len" "1000"
                     , checkboxInput Point.typeDisable "Disable"
                     , viewPoints <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]

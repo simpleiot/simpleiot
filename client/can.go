@@ -23,8 +23,8 @@ type CanBus struct {
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
 	Interface   string `point:"interface"`
-	BusSpeed    string `point:"busspeed"`
-	TxQueueLen  int    `point: txqueuelen`
+	BusSpeed    string `point:"busSpeed"`
+	TxQueueLen  int    `point: txQueueLen`
 }
 
 // CanBusClient is a SIOT client used to communicate on a CAN bus

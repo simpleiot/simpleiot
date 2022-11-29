@@ -205,9 +205,10 @@ const (
 	PointTypeUptime   = "uptime"
 
 	// CAN bus clients
-	NodeTypeCanBus     = "canBus"
-	PointTypeInterface = "interface"
-	PointTypeBusSpeed  = "busSpeed"
+	NodeTypeCanBus      = "canBus"
+	PointTypeInterface  = "interface"
+	PointTypeBusSpeed   = "busSpeed"
+	PointTypeTxQueueLen = "txQueueLen"
 
 	NodeTypeSignalGenerator = "signalGenerator"
 
