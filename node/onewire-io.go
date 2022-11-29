@@ -30,7 +30,7 @@ func newOneWireIO(nc *nats.Conn, node *oneWireIONode, chPoint chan<- pointWID) (
 	}
 
 	var err error
-	io.sub, err = nc.Subscribe("node."+io.ioNode.nodeID+".points", func(msg *nats.Msg) {
+	io.sub, err = nc.Subscribe("p."+io.ioNode.nodeID, func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
 			// FIXME, send over channel

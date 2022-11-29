@@ -73,3 +73,21 @@ func TestXorChecksumGroup(t *testing.T) {
 
 	// it works, pretty neat!
 }
+
+func TestUpstreamHash(t *testing.T) {
+	n := 12342342
+	update := 22992343
+
+	n1 := n ^ update
+
+	updateCalc := n ^ n1
+
+	if updateCalc != update {
+		t.Fatal("Hmm, something went wrong")
+	}
+
+	// this is pretty neat as we can simply pass the update value upstream
+	// and apply it to each node.
+	// there is one disadvantage -- if the update travels through two paths, then
+	// the update will cancel out once they merge again
+}

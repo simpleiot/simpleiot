@@ -69,7 +69,7 @@ func NewModbus(nc *nats.Conn, node data.NodeEdge) (*Modbus, error) {
 
 	// closure is required so we don't get races accessing bus.busNode
 	func(id string) {
-		bus.sub, err = nc.Subscribe("node."+bus.busNode.nodeID+".points", func(msg *nats.Msg) {
+		bus.sub, err = nc.Subscribe("p."+bus.busNode.nodeID, func(msg *nats.Msg) {
 			points, err := data.PbDecodePoints(msg.Data)
 			if err != nil {
 				// FIXME, send over channel
@@ -108,7 +108,7 @@ func (b *Modbus) Stop() {
 
 // CheckIOs goes through ios on the bus and handles any config changes
 func (b *Modbus) CheckIOs() error {
-	nodes, err := client.GetNodeChildren(b.nc, b.busNode.nodeID, data.NodeTypeModbusIO, false, false)
+	nodes, err := client.GetNodes(b.nc, b.busNode.nodeID, "all", data.NodeTypeModbusIO, false)
 	if err != nil {
 		return err
 	}

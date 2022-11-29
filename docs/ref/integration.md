@@ -56,8 +56,7 @@ efficient -- a single, statically linked Go binary with all assets embedded that
 is ~20MB in size and uses ~20MB of memory. There are no other dependencies
 required such as a runtime, other libraries, etc. This makes SIOT extremely easy
 to deploy and update. An Embedded Linux system deployed at the edge can be
-synchronized with a cloud instance using an [upstream](../user/upstream.md)
-connection.
+synchronized with a cloud instance using an [sync](../user/sync.md) connection.
 
 ## Integration with MCU (Microcontroller) systems
 

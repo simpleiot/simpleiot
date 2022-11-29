@@ -542,4 +542,11 @@ func TestManagerChildren(t *testing.T) {
 	if len(testClient.getConfig().TestYs) != 1 {
 		t.Fatal("failed to remove child node")
 	}
+
+	// since this test does a lot of node modifications, let's use this as an opportunity
+	// to verify the database hashes
+	err = client.AdminStoreVerify(nc)
+	if err != nil {
+		t.Fatal("Verify failed: ", err)
+	}
 }

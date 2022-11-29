@@ -28,6 +28,8 @@ const (
 	PointTypeErrorCountEOFReset = "errorCountEOFReset"
 	PointTypeErrorCountCRC      = "errorCountCRC"
 	PointTypeErrorCountCRCReset = "errorCountCRCReset"
+	PointTypeSyncCount          = "syncCount"
+	PointTypeSyncCountReset     = "syncCountReset"
 	PointTypeReadOnly           = "readOnly"
 	PointTypeURI                = "uri"
 	PointTypeDisable            = "disable"
@@ -184,7 +186,7 @@ const (
 	NodeTypeVariable      = "variable"
 	PointTypeVariableType = "variableType"
 
-	NodeTypeUpstream = "upstream"
+	NodeTypeSync = "sync"
 
 	PointTypeMetricNatsCycleNodePoint          = "metricNatsCycleNodePoint"
 	PointTypeMetricNatsCycleNodeEdgePoint      = "metricNatsCycleNodeEdgePoint"
@@ -196,13 +198,14 @@ const (
 	PointTypeMetricNatsThroughputNodeEdgePoint = "metricNatsThroughputNodeEdgePoint"
 
 	// serial MCU clients
-	NodeTypeSerialDev = "serialDev"
-	PointTypeRx       = "rx"
-	PointTypeTx       = "tx"
-	PointTypeRxReset  = "rxReset"
-	PointTypeTxReset  = "txReset"
-	PointTypeLog      = "log"
-	PointTypeUptime   = "uptime"
+	NodeTypeSerialDev         = "serialDev"
+	PointTypeRx               = "rx"
+	PointTypeTx               = "tx"
+	PointTypeRxReset          = "rxReset"
+	PointTypeTxReset          = "txReset"
+	PointTypeLog              = "log"
+	PointTypeUptime           = "uptime"
+	PointTypeMaxMessageLength = "maxMessageLength"
 
 	// CAN bus clients
 	NodeTypeCanBus      = "canBus"

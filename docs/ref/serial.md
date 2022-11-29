@@ -46,8 +46,8 @@ with a few assumptions:
 - the number of nodes and points in a MCU is relatively small
 - the payload is always an array of points
 - only the following [SIOT NATS APIs](api.md#nats) are supported:
-  - `node.<id>.points` (used to send node points)
-  - `node.<id>.<parent>.points` (used to send edge points)
+  - `p.<id>` (used to send node points)
+  - `p.<id>.<parent>` (used to send edge points)
 - we don't support NATS subscriptions or requests -- on startup, we send the
   entire dataset for the MCU device in both directions (see On connection
   section), merge the contents, and then assume any changes will get sent and

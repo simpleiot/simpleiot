@@ -54,7 +54,7 @@ func (dbc *DbClient) Start() error {
 	log.Println("Starting db client: ", dbc.config.Description)
 
 	// FIXME, we probably want to store edge points too ...
-	subject := fmt.Sprintf("up.%v.*.points", dbc.config.Parent)
+	subject := fmt.Sprintf("up.%v.*", dbc.config.Parent)
 
 	var err error
 	dbc.upSub, err = dbc.nc.Subscribe(subject, func(msg *nats.Msg) {

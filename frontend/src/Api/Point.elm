@@ -51,6 +51,7 @@ module Api.Point exposing
     , typeInterface
     , typeLastName
     , typeLog
+    , typeMaxMessageLength
     , typeMinActive
     , typeModbusIOType
     , typeNodeID
@@ -81,6 +82,8 @@ module Api.Point exposing
     , typeSwUpdatePercComplete
     , typeSwUpdateRunning
     , typeSwUpdateState
+    , typeSyncCount
+    , typeSyncCountReset
     , typeSysState
     , typeTombstone
     , typeTx
@@ -355,6 +358,11 @@ typeTxQueueLen : String
 typeTxQueueLen =
     "txQueueLen"
 
+typeMaxMessageLength : String
+typeMaxMessageLength =
+    "maxMessageLength"
+
+
 typeID : String
 typeID =
     "id"
@@ -398,6 +406,16 @@ typeErrorCountEOFReset =
 typeErrorCountCRCReset : String
 typeErrorCountCRCReset =
     "errorCountCRCReset"
+
+
+typeSyncCount : String
+typeSyncCount =
+    "syncCount"
+
+
+typeSyncCountReset : String
+typeSyncCountReset =
+    "syncCountReset"
 
 
 typeProtocol : String
@@ -793,10 +811,13 @@ specialPoints =
     , typeVersionOS
     , typeVersionApp
     , typeBaud
+    , typeMaxMessageLength
     , typeDebug
     , typeDisable
     , typeErrorCount
     , typeErrorCountReset
+    , typeSyncCount
+    , typeSyncCountReset
     , typeLog
     , typePort
     , typeRx

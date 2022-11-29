@@ -22,7 +22,7 @@ import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
 import Components.NodeCanBus as NodeCanBus
 import Components.NodeSignalGenerator as SignalGenerator
-import Components.NodeUpstream as NodeUpstream
+import Components.NodeSync as NodeSync
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
 import Dict
@@ -1128,7 +1128,7 @@ shouldDisplay typ =
         "signalGenerator" ->
             True
 
-        "upstream" ->
+        "sync" ->
             True
 
         "oneWire" ->
@@ -1197,8 +1197,8 @@ viewNode model parent node depth =
                 "signalGenerator" ->
                     SignalGenerator.view
 
-                "upstream" ->
-                    NodeUpstream.view
+                "sync" ->
+                    NodeSync.view
 
                 "db" ->
                     NodeDb.view
@@ -1412,9 +1412,9 @@ nodeDescSignalGenerator =
     row [] [ Icon.activity, text "Signal Generator" ]
 
 
-nodeDescUpstream : Element Msg
-nodeDescUpstream =
-    row [] [ Icon.uploadCloud, text "Upstream" ]
+nodeDescSync : Element Msg
+nodeDescSync =
+    row [] [ Icon.sync, text "sync" ]
 
 
 nodeDescCondition : Element Msg
@@ -1452,7 +1452,7 @@ viewAddNode parent add =
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
                             , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
-                            , Input.option Node.typeUpstream nodeDescUpstream
+                            , Input.option Node.typeSync nodeDescSync
                             ]
 
                         else

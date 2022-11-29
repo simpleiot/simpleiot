@@ -11,9 +11,36 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-- fix population of AppVersion in server
+## [[0.6.0] - 2022-11-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.6.0)
 
-## [[0.5.4] - 2022-10-28](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.3)
+- improve error handling in serial client cobs decoder
+- rename upstream -> sync
+  - re-implement node hash using CRC-32 and XOR hash
+  - re-implement upstream sync using new hash mechanism
+  - write tests for sync
+- implement `siot log` subcommand -- this dumps SIOT messages
+- implement `siot store` subcommand -- used to check and fix store
+- simpleiot-js frontend library changes
+  - re-worked to use updated NATS API
+  - added `sendEdgePoints` API function
+  - added unit tests, linting, etc.
+
+Note, there have been some database changes. To update, do the following:
+
+- `sqlite3 siot.sqlite`
+  - `update set up="root" from edges where up="none";`
+- start simpleiot
+  - in another terminal, run: `siot store -fix`. Do this several times until the
+    original siot process does not show any fixes.
+
+## [[0.5.5] - 2022-10-31](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.5)
+
+- fix population of AppVersion in server
+- serial client
+  - add configuration of max message length
+  - improve error handling and port resets
+
+## [[0.5.4] - 2022-10-28](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.4)
 
 - clean up SIOT main to allow callers to have their own set of flags at the top
   level before calling SIOT server.
@@ -24,7 +51,7 @@ NOTE, to run siot with flags, you must do something like:
 
 The server flags are now part of the serve subcommand.
 
-## [[0.5.3] - 2022-10-27](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.2)
+## [[0.5.3] - 2022-10-27](https://github.com/simpleiot/simpleiot/releases/tag/v0.5.3)
 
 - add serial client debug level 9 to dump raw serial data before COBS processing
 

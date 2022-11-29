@@ -18,3 +18,5 @@ local.sh
 *.zip
 *.bkp
 *.dtmp
+*.sublime-project
+*.sublime-workspace

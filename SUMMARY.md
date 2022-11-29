@@ -16,7 +16,7 @@
   - [Messaging services](docs/user/messaging.md)
   - [MCU Devices](docs/user/mcu.md)
   - [Rules](docs/user/rules.md)
-  - [Upstream connections](docs/user/upstream.md)
+  - [Synchronization](docs/user/sync.md)
   - [USB](docs/user/usb.md)
 - [Graphing](docs/user/graphing.md)
 - [Configuration](docs/user/configuration.md)

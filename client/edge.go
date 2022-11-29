@@ -14,6 +14,7 @@ type EdgeOptions struct {
 	URI          string
 	AuthToken    string
 	NoEcho       bool
+	Connected    func()
 	Disconnected func()
 	Reconnected  func()
 	Closed       func()
@@ -77,6 +78,7 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 	uri, err := sanitizeURI(eo.URI)
 	if err != nil {
 		log.Printf("Error sanitizing URI %v: %v", eo.URI, err)
+		return nil, err
 	}
 
 	log.Printf("NATS edge connect to: %v, auth enabled: %v", uri, authEnabled)
@@ -87,6 +89,25 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 	}
 
 	fmt.Println("NATS: TLS required: ", nc.TLSRequired())
+
+	go func() {
+		for {
+			status := nc.Status()
+			switch status {
+			case nats.CONNECTED:
+				if eo.Connected != nil {
+					eo.Connected()
+					// we only get one connected, the rest are
+					// reconnected
+				}
+				return
+			case nats.CLOSED:
+				// return as the client was closed
+				return
+			}
+			time.Sleep(5 * time.Second)
+		}
+	}()
 
 	nc.SetErrorHandler(func(_ *nats.Conn, sub *nats.Subscription,
 		err error) {

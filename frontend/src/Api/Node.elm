@@ -31,7 +31,7 @@ module Api.Node exposing
     , typeSerialDev
     , typeCanBus
     , typeSignalGenerator
-    , typeUpstream
+    , typeSync
     , typeUser
     , typeVariable
     )
@@ -139,9 +139,9 @@ typeVariable =
     "variable"
 
 
-typeUpstream : String
-typeUpstream =
-    "upstream"
+typeSync : String
+typeSync =
+    "sync"
 
 
 typeSignalGenerator : String

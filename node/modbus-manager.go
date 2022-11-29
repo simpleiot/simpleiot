@@ -27,7 +27,7 @@ func NewModbusManager(nc *nats.Conn, rootNodeID string) *ModbusManager {
 // Update queries DB for modbus nodes and synchronizes
 // with internal structures and updates data
 func (mm *ModbusManager) Update() error {
-	nodes, err := client.GetNodeChildren(mm.nc, mm.rootNodeID, data.NodeTypeModbus, false, false)
+	nodes, err := client.GetNodes(mm.nc, mm.rootNodeID, "all", data.NodeTypeModbus, false)
 	if err != nil {
 		return err
 	}

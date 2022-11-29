@@ -28,34 +28,33 @@ For the NATS transport, protobuf encoding is used for all transfers and are
 defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
 
 - Nodes
-  - `node.<id>`
-    - returns an array of `data.EdgeNode` structs that meets the specified `id`
-      and `parent`.
-    - If id = "root", then the root node is fetched.
-    - the `parent` can can optionally by specified by setting the message
-      payload to one of the following:
-      - the ID of the parent node
-      - "all" to find all instances of the node. If "all" is specified,
-        tombstoned nodes are not returned.
-  - `node.<id>.children`
-    - can be used to request the immediate children of a node
+  - `nodes.<parentId>.<nodeId>`
+    - Request/response -- returns an array of `data.EdgeNode` structs.
+    - `parent="none"`, edge details are not included.
+    - `parent="all"`, then all instances of the node are returned.
+    - `parent is set and id="all"`, then all child nodes of the parent are
+      returned.
+    - `parent="root" and id="all"` to fetch the root node(s).
+    - The following combinations are invalid:
+      - `parent="none" && id="all"`
+      - `parent="all" && id="all"`
     - parameters can be specified as points in payload
       - `tombstone` with value field set to 1 will include deleted points
       - `nodeType` with text field set to node type will limit returned nodes to
         this type
-  - `node.<id>.points`
+  - `p.<nodeId>`
     - used to listen for or publish node point changes.
-  - `node.<id>.<parent>.points`
+  - `p.<nodeId>.<parentId>`
     - used to publish/subscribe node edge points. The `tombstone` point type is
       used to track if a node has been deleted or not.
-  - `phr.<nodeID>`
+  - `phr.<nodeId>`
     - high rate point data
   - `phrup.<upstreamId>.<nodeId>`
     - high rate point data re-broadcasted upstream
-  - `up.<upstreamId>.<nodeId>.points`
+  - `up.<upstreamId>.<nodeId>`
     - node points are rebroadcast at every upstream ID so that we can listen for
       point changes at any level. The sending node is also included in this.
-  - `up.<upstreamId>.<nodeId>.<parentId>.points`
+  - `up.<upstreamId>.<nodeId>.<parentId>`
     - edge points rebroadcast at every upstream node ID.
 - Legacy APIs that are being deprecated
   - `node.<id>.not`
@@ -76,9 +75,18 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
       node graph. A JWT node will also be returned with a token point. This JWT
       should be used to authenticate future requests. The frontend can then
       fetch the parent node for each user node.
-- System
-  - `error`
+  - `auth.getNatsURI`
+    - this returns the NATS URI and Auth Token as points. This is used in cases
+      where the client needs to set up a new connection to specify the no-echo
+      option, or other features.
+- Admin
+  - `admin.error` (not implemented yet)
     - any errors that occur are sent to this subject
+  - `admin.storeVerify`
+    - used to initiate a database verification process. This currently verifies
+      hash values are correct and responds with an error string.
+  - `admin.storeMaint`
+    - corrects errors in the store (current incorrect hash values)
 
 ## HTTP
 

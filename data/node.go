@@ -1,7 +1,6 @@
 package data
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"time"
@@ -231,6 +230,24 @@ func (n NodeEdge) Desc() string {
 	return n.ID
 }
 
+// CalcHash calculates the hash for a node
+func (n NodeEdge) CalcHash(children []NodeEdge) uint32 {
+	var ret uint32
+	for _, p := range n.Points {
+		ret ^= p.CRC()
+	}
+
+	for _, p := range n.EdgePoints {
+		ret ^= p.CRC()
+	}
+
+	for _, c := range children {
+		ret ^= c.Hash
+	}
+
+	return ret
+}
+
 // FIXME -- should ToNode really be used as it is lossy?
 
 // ToNode converts to structure stored in db
@@ -292,18 +309,6 @@ func (n *NodeEdge) ToPbNode() (*pb.Node, error) {
 func (n *NodeEdge) AddPoint(pIn Point) {
 	n.Points.Add(pIn)
 }
-
-// bytesLess compares two slices of bytes and returns true if a is less than b
-func bytesLess(a, b []byte) bool {
-	return bytes.Compare(a, b) < 0
-}
-
-// ByNodeEdgeHash implements sort interface for NodeEdge by hash
-type ByNodeEdgeHash []NodeEdge
-
-func (a ByNodeEdgeHash) Len() int           { return len(a) }
-func (a ByNodeEdgeHash) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByNodeEdgeHash) Less(i, j int) bool { return a[i].Hash < a[j].Hash }
 
 // PbDecodeNode converts a protobuf to node data structure
 func PbDecodeNode(data []byte) (NodeEdge, error) {

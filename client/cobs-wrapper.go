@@ -13,15 +13,16 @@ import (
 
 // CobsWrapper can be used to wrap an io.ReadWriteCloser to COBS encode/decode data
 type CobsWrapper struct {
-	dev          io.ReadWriteCloser
-	readLeftover bytes.Buffer
-	readLock     sync.Mutex
-	debug        int
+	dev              io.ReadWriteCloser
+	readLeftover     bytes.Buffer
+	readLock         sync.Mutex
+	debug            int
+	maxMessageLength int
 }
 
 // NewCobsWrapper creates a new cobs wrapper
-func NewCobsWrapper(dev io.ReadWriteCloser) *CobsWrapper {
-	return &CobsWrapper{dev: dev}
+func NewCobsWrapper(dev io.ReadWriteCloser, maxMessageLength int) *CobsWrapper {
+	return &CobsWrapper{dev: dev, maxMessageLength: maxMessageLength}
 }
 
 // ErrCobsDecodeError indicates we got an error decoding a COBS packet
@@ -114,13 +115,15 @@ func (cw *CobsWrapper) Read(b []byte) (int, error) {
 				return
 			}
 
-			if decodeBuf.Len() > 1024 {
+			if decodeBuf.Len() > cw.maxMessageLength {
 				errCh <- ErrCobsTooMuchData
+				cw.readLeftover.Reset()
 				return
 			}
 
-			if cw.readLeftover.Len() > 1024 {
+			if cw.readLeftover.Len() > cw.maxMessageLength {
 				errCh <- ErrCobsLeftoverBufferFull
+				cw.readLeftover.Reset()
 				return
 			}
 		}

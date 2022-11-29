@@ -111,7 +111,9 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			node, err := client.GetNode(h.nc, id, string(body))
+			parent := string(body)
+
+			node, err := client.GetNodes(h.nc, parent, id, "", false)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {

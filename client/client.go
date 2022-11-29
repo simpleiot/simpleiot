@@ -42,5 +42,8 @@ func DefaultClients(nc *nats.Conn) (*Group, error) {
 	sg := NewManager(nc, NewSignalGeneratorClient)
 	g.Add(sg)
 
+	sync := NewManager(nc, NewSyncClient)
+	g.Add(sync)
+
 	return g, nil
 }

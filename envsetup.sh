@@ -17,6 +17,7 @@ siot_install_proto_gen_go() {
 
 siot_install_frontend_deps() {
   (cd "frontend" && npm install)
+  (cd "frontend/lib" && npm ci)
 }
 
 siot_check_elm() {
@@ -147,6 +148,23 @@ siot_test_frontend() {
   (cd frontend && npx elm-test || return 1) || return 1
 }
 
+siot_test_frontend_lib() {
+  (cd ./frontend/lib && npm run lint || return 1) || return 1
+  echo "Starting SimpleIOT..."
+  ./siot serve --store siot_test_frontend_lib.sqlite --resetStore 2> /dev/null &
+  PID=$!
+  sleep 1
+  (cd ./frontend/lib && npm run test || return 1)
+  CODE=$?
+  echo "Stopping SimpleIOT..."
+  kill -s SIGINT $PID
+  wait $PID
+  echo "SimpleIOT Stopped"
+  if [ "$CODE" = "0" ]; then
+    rm siot_test_frontend_lib.sqlite
+  fi
+}
+
 # please run the following before pushing -- best if your editor can be set up
 # to do this automatically.
 siot_test() {
@@ -192,4 +210,16 @@ siot_goreleaser_release() {
   #TODO add depend build to goreleaser config
   #siot_build_dependencies --optimize
   goreleaser release --rm-dist
+}
+
+# dblab keyboard shortcuts
+# - Ctrl+space execute query
+# - Ctrl+H,J,K,L move to panel left,below,above,right
+# see more keybindings here: https://github.com/danvergara/dblab#key-bindings
+siot_dblab() {
+  STORE=siot.sqlite
+  if [ "$1" != "" ]; then
+    STORE=$1
+  fi
+  go run github.com/danvergara/dblab@latest --db $STORE --driver sqlite3
 }

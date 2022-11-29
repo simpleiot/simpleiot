@@ -20,7 +20,7 @@ inherently distributed and building on simple concepts that scale.
 
 - a single application with no dependencies that can be run in both cloud and
   edge instances
-- efficient synchronization data in both directions
+- efficient synchronization of data in both directions
 - a powerful UI to view configuration and current values
 - a rules engine that runs on all instances that can trigger notifications or
   set data
