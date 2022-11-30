@@ -2,9 +2,8 @@ package client
 
 import (
 	"log"
-	"net"
-	"os/exec"
 	"time"
+	"net"
 
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
@@ -14,8 +13,6 @@ import (
 	"github.com/go-daq/canbus"
 )
 
-const CID_WBSD = 0xCFE4832
-
 // CanBus represents a CAN socket config. The name matches the front-end node type "canBus" to link the two so
 // that when a canBus node is created on the frontend the client manager knows to start a CanBus client.
 type CanBus struct {
@@ -23,8 +20,7 @@ type CanBus struct {
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
 	Interface   string `point:"interface"`
-	BusSpeed    string `point:"busSpeed"`
-	TxQueueLen  int    `point: txQueueLen`
+	CanIdsAccepted      []uint32
 }
 
 // CanBusClient is a SIOT client used to communicate on a CAN bus
@@ -90,13 +86,13 @@ func (cb *CanBusClient) Start() error {
 	}
 
 	openPort := func() {
-		closePort()
 
 		iface, err := net.InterfaceByName(cb.config.Interface)
 		_ = iface
 		if err != nil {
 			log.Println(errors.Wrap(err, "Internal CAN bus not found"))
 		}
+		/*
 		//if iface.Flags&net.FlagUp == 0 {
 		// bring up CAN interface
 		err = exec.Command("ip", "link", "set", cb.config.Interface, "type",
@@ -110,17 +106,16 @@ func (cb *CanBusClient) Start() error {
 		if err != nil {
 			log.Println(errors.Wrap(err, "Error bringing up internal can interface"))
 		}
+		*/
 		/*
 			} else {
 				// Handle case where interface is already up and bus speed may be wrong
 				log.Println("Error bringing up internal CAN interface, already set up.")
 			}
 		*/
-		filters := [1]unix.CanFilter{
-			{
-				Id:   CID_WBSD,
-				Mask: (unix.CAN_EFF_MASK),
-			},
+		var filters []unix.CanFilter
+		for _, id := range cb.config.CanIdsAccepted {
+			filters = append(filters, unix.CanFilter{Id: id, Mask: unix.CAN_EFF_MASK})
 		}
 		socket.SetFilters(filters[:])
 
@@ -141,19 +136,17 @@ func (cb *CanBusClient) Start() error {
 			return nil
 		case frame := <-canMsgRx:
 
-			// Only processing one CAN ID for initial test
-			if frame.ID != CID_WBSD {
-				break
-			}
+			log.Println("Got ", frame.ID, ", data length:", len(frame.Data))
 
 			points := make(data.Points, 2)
 
+			// FIXME decode data based on information in config
 			points[0].Time = time.Now()
 			points[1].Time = time.Now()
 			points[0].Key = "FE48-1862-WheelBasedSpeed"
 			points[1].Key = "FE48-1864-WheelBasedDirection"
 			points[0].Value = 0
-			points[1].Value = float64(int(frame.Data[7]))
+			points[1].Value = 0
 
 			// Send the points
 			if len(points) > 0 {
