@@ -429,6 +429,14 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 		return fmt.Errorf("Error: edgePoints nodeID=parentID=%v", nodeID)
 	}
 
+	if nodeID == sdb.meta.RootID {
+		for _, p := range points {
+			if p.Type == data.PointTypeTombstone {
+				return fmt.Errorf("Error, can't delete root node")
+			}
+		}
+	}
+
 	sdb.writeLock.Lock()
 	defer sdb.writeLock.Unlock()
 
