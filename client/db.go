@@ -66,7 +66,7 @@ func (dbc *DbClient) Start() error {
 
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
-		if len(chunks) != 4 {
+		if len(chunks) != 3 {
 			log.Println("rule client up sub, malformed subject: ", msg.Subject)
 			return
 		}
