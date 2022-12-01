@@ -30,7 +30,7 @@ type Meta struct {
 }
 
 // NewSqliteDb creates a new Sqlite data store
-func NewSqliteDb(dbFile string) (*DbSqlite, error) {
+func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 	ret := &DbSqlite{}
 
 	pragmas := "_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(8000)&_pragma=journal_size_limit(100000000)"
@@ -119,7 +119,7 @@ func NewSqliteDb(dbFile string) (*DbSqlite, error) {
 
 	if ret.meta.RootID == "" {
 		// we need to initialize root node and user
-		ret.meta.RootID, err = ret.initRoot()
+		ret.meta.RootID, err = ret.initRoot(rootID)
 		if err != nil {
 			return nil, fmt.Errorf("Error initializing root node: %v", err)
 		}
@@ -148,7 +148,8 @@ func (sdb *DbSqlite) reset() error {
 	}
 
 	// we need to initialize root node and user
-	sdb.meta.RootID, err = sdb.initRoot()
+	// preserve root ID
+	sdb.meta.RootID, err = sdb.initRoot(sdb.meta.RootID)
 	if err != nil {
 		return fmt.Errorf("error initializing root node: %v", err)
 	}
@@ -246,7 +247,7 @@ func (sdb *DbSqlite) verifyNodeHashes(fix bool) error {
 	return nil
 }
 
-func (sdb *DbSqlite) initRoot() (string, error) {
+func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 	log.Println("STORE: Initialize root node and admin user")
 	var rootNode data.NodeEdge
 	rootNode.Points = data.Points{
@@ -257,7 +258,11 @@ func (sdb *DbSqlite) initRoot() (string, error) {
 		},
 	}
 
-	rootNode.ID = uuid.New().String()
+	rootNode.ID = rootID
+
+	if rootNode.ID == "" {
+		rootNode.ID = uuid.New().String()
+	}
 
 	err := sdb.edgePoints(rootNode.ID, "root", data.Points{{Type: data.PointTypeTombstone, Value: 0}})
 	if err != nil {
@@ -527,6 +532,9 @@ NextPin:
 					hashUpdate ^= pIn.CRC()
 				} else {
 					log.Println("Ignoring edge point due to timestamps: ", edge.ID, pIn)
+					log.Println("root ID of this instance: ", sdb.meta.RootID)
+					log.Println("Db time: ", pDb.Time)
+					log.Println("pIn time: ", pIn.Time)
 				}
 				continue NextPin
 			}

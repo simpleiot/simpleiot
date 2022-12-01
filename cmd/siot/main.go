@@ -24,6 +24,7 @@ func main() {
 	// global options
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flagVersion := flags.Bool("version", false, "Print app version")
+	flagID := flags.String("id", "", "ID for the instance")
 	flags.Usage = func() {
 		fmt.Println("usage: siot [OPTION]... COMMAND [OPTION]...")
 		fmt.Println("Global options:")
@@ -54,7 +55,7 @@ func main() {
 
 	switch args[0] {
 	case "serve":
-		if err := runServer(args[1:], version); err != nil {
+		if err := runServer(args[1:], version, *flagID); err != nil {
 			log.Println("Simple IoT stopped, reason: ", err)
 		}
 	case "log":
@@ -66,13 +67,14 @@ func main() {
 	}
 }
 
-func runServer(args []string, version string) error {
+func runServer(args []string, version string, id string) error {
 	options, err := server.Args(args)
 	if err != nil {
 		return err
 	}
 
 	options.AppVersion = version
+	options.ID = id
 
 	if options.LogNats {
 		client.Log(options.NatsServer, options.AuthToken)

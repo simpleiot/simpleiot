@@ -11,6 +11,12 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- add option to configure sync period (defaults to 20s).
+- fix bug in influx db client due to recent API changes
+- fix bug in client manager where Stop() hangs if Start() has already exitted
+- don't allow deleting of root node
+- allow configuring of root node ID, otherwise UUID is used
+
 ## [[0.6.0] - 2022-11-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.6.0)
 
 - improve error handling in serial client cobs decoder

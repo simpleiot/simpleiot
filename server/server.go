@@ -45,6 +45,8 @@ type Options struct {
 	AppVersion        string
 	OSVersionField    string
 	LogNats           bool
+	// optional ID (must be unique) for this instance, otherwise, a UUID will be used
+	ID string
 }
 
 // Server represents a SIOT server process
@@ -184,6 +186,7 @@ func (s *Server) Start() error {
 		Server:    o.NatsServer,
 		Key:       auth,
 		Nc:        s.nc,
+		ID:        s.options.ID,
 	}
 
 	siotStore, err := store.NewStore(storeParams)

@@ -20,6 +20,7 @@ var TestServerOptions = Options{
 	NatsHTTPPort: 8902,
 	NatsWSPort:   8903,
 	NatsServer:   "nats://localhost:8900",
+	ID:           "inst1",
 }
 
 // TestServerOptions2 options used for 2nd test server
@@ -30,6 +31,7 @@ var TestServerOptions2 = Options{
 	NatsHTTPPort: 8912,
 	NatsWSPort:   8913,
 	NatsServer:   "nats://localhost:8910",
+	ID:           "inst2",
 }
 
 // TestServer starts a test server and returns a function to stop it
