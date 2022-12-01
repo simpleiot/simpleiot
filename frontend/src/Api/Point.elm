@@ -58,6 +58,7 @@ module Api.Point exposing
     , typeOperator
     , typeOrg
     , typePass
+    , typePeriod
     , typePhone
     , typePointID
     , typePointIndex
@@ -737,6 +738,11 @@ typeAmplitude =
 typeSampleRate : String
 typeSampleRate =
     "sampleRate"
+
+
+typePeriod : String
+typePeriod =
+    "period"
 
 
 

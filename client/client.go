@@ -25,7 +25,7 @@ type Client interface {
 
 // DefaultClients returns an actor for the default group of built in clients
 func DefaultClients(nc *nats.Conn) (*Group, error) {
-	g := NewGroup()
+	g := NewGroup("Default clients")
 
 	sc := NewManager(nc, NewSerialDevClient)
 	g.Add(sc)

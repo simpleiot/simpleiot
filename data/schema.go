@@ -34,6 +34,8 @@ const (
 	PointTypeURI                = "uri"
 	PointTypeDisable            = "disable"
 
+	PointTypePeriod = "period"
+
 	// An device node describes an phyical device -- it may be the
 	// cloud server, gateway, etc
 	NodeTypeDevice         = "device"

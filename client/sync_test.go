@@ -212,3 +212,85 @@ func TestSync(t *testing.T) {
 
 	fmt.Println("sync test finished")
 }
+
+func TestSyncDeleteUpstream(t *testing.T) {
+	// if we delete the upstream node, the downstream sync process should re-create it
+
+	// Start up a SIOT test servers for this test
+	ncU, rootU, stopU, err := server.TestServer("2")
+
+	if err != nil {
+		t.Fatal("Error starting upstream test server: ", err)
+	}
+
+	defer stopU()
+
+	ncD, rootD, stopD, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting upstream test server: ", err)
+	}
+
+	defer stopD()
+
+	fmt.Println("**** create sync node")
+	sync := client.Sync{
+		ID:          "sync-id",
+		Parent:      rootD.ID,
+		Description: "sync to up",
+		URI:         server.TestServerOptions2.NatsServer,
+		Period:      1,
+	}
+
+	err = client.SendNodeType(ncD, sync, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	// make sure device node gets sync'd upstream
+	start := time.Now()
+	for {
+		if time.Since(start) > 500*time.Millisecond {
+			t.Fatal("device node not synced")
+		}
+
+		nodes, err := client.GetNodes(ncU, "none", rootD.ID, "", false)
+		if err != nil {
+			continue
+		}
+
+		if len(nodes) > 0 {
+			break
+		}
+
+		time.Sleep(time.Millisecond * 10)
+	}
+
+	fmt.Println("**** Delete downstream node on upstream")
+	err = client.SendEdgePoint(ncU, rootD.ID, rootU.ID, data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
+
+	if err != nil {
+		t.Fatal("Error deleting upstream node: ", err)
+	}
+
+	time.Sleep(time.Millisecond * 200)
+
+	// make sure device node gets undeleted
+	start = time.Now()
+	for {
+		if time.Since(start) > 2*time.Second {
+			t.Fatal("device node not recreated")
+		}
+
+		nodes, err := client.GetNodes(ncU, "none", rootD.ID, "", false)
+		if err != nil {
+			continue
+		}
+
+		if len(nodes) > 0 {
+			break
+		}
+
+		time.Sleep(time.Millisecond * 10)
+	}
+}
