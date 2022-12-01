@@ -436,7 +436,7 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 
 	if nodeID == sdb.meta.RootID {
 		for _, p := range points {
-			if p.Type == data.PointTypeTombstone {
+			if p.Type == data.PointTypeTombstone && p.Value > 0 {
 				return fmt.Errorf("Error, can't delete root node")
 			}
 		}
@@ -532,9 +532,6 @@ NextPin:
 					hashUpdate ^= pIn.CRC()
 				} else {
 					log.Println("Ignoring edge point due to timestamps: ", edge.ID, pIn)
-					log.Println("root ID of this instance: ", sdb.meta.RootID)
-					log.Println("Db time: ", pDb.Time)
-					log.Println("pIn time: ", pIn.Time)
 				}
 				continue NextPin
 			}

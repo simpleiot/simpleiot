@@ -239,6 +239,7 @@ func TestSyncDeleteUpstream(t *testing.T) {
 		Parent:      rootD.ID,
 		Description: "sync to up",
 		URI:         server.TestServerOptions2.NatsServer,
+		Period:      1,
 	}
 
 	err = client.SendNodeType(ncD, sync, "test")
@@ -265,11 +266,31 @@ func TestSyncDeleteUpstream(t *testing.T) {
 		time.Sleep(time.Millisecond * 10)
 	}
 
+	fmt.Println("**** Delete downstream node on upstream")
 	err = client.SendEdgePoint(ncU, rootD.ID, rootU.ID, data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
 
 	if err != nil {
 		t.Fatal("Error deleting upstream node: ", err)
 	}
 
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Millisecond * 200)
+
+	// make sure device node gets undeleted
+	start = time.Now()
+	for {
+		if time.Since(start) > 2*time.Second {
+			t.Fatal("device node not recreated")
+		}
+
+		nodes, err := client.GetNodes(ncU, "none", rootD.ID, "", false)
+		if err != nil {
+			continue
+		}
+
+		if len(nodes) > 0 {
+			break
+		}
+
+		time.Sleep(time.Millisecond * 10)
+	}
 }
