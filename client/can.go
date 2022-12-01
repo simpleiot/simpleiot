@@ -8,7 +8,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 	"github.com/simpleiot/simpleiot/data"
-	"golang.org/x/sys/unix"
+	//"golang.org/x/sys/unix"
 
 	"github.com/go-daq/canbus"
 )
@@ -20,7 +20,6 @@ type CanBus struct {
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
 	Interface   string `point:"interface"`
-	CanIdsAccepted      []uint32
 }
 
 // CanBusClient is a SIOT client used to communicate on a CAN bus
@@ -62,11 +61,11 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 //   - when a frame is recieved on the canMsgRx channel in the main loop, it is decoded and a point is sent out for each
 //     J1939 SPN in the frame. The key of each point contains the PGN, SPN, and description of the SPN
 func (cb *CanBusClient) Start() error {
-	log.Println("Starting CAN bus client: ", cb.config.Description)
+	log.Println("CanBusClient: Starting CAN bus client: ", cb.config.Description)
 
 	socket, err := canbus.New()
 	if err != nil {
-		log.Println(errors.Wrap(err, "Error creating canbus Socket object"))
+		log.Println(errors.Wrap(err, "CanBusClient: Error creating Socket object"))
 	}
 
 	canMsgRx := make(chan canbus.Frame)
@@ -79,7 +78,7 @@ func (cb *CanBusClient) Start() error {
 		for {
 			frame, err := socket.Recv()
 			if err != nil {
-				//log.Println(errors.Wrap(err, "Error recieving CAN frame"))
+				log.Println(errors.Wrap(err, "CanBusClient: Error recieving CAN frame"))
 			}
 			canMsgRx <- frame
 		}
@@ -90,8 +89,10 @@ func (cb *CanBusClient) Start() error {
 		iface, err := net.InterfaceByName(cb.config.Interface)
 		_ = iface
 		if err != nil {
-			log.Println(errors.Wrap(err, "Internal CAN bus not found"))
+			log.Println(errors.Wrap(err, "CanBusClient: CAN interface not found"))
 		}
+
+		// TODO: figure out how to handle interface
 		/*
 		//if iface.Flags&net.FlagUp == 0 {
 		// bring up CAN interface
@@ -113,11 +114,15 @@ func (cb *CanBusClient) Start() error {
 				log.Println("Error bringing up internal CAN interface, already set up.")
 			}
 		*/
+		// TODO: figure out a way to set accepted CAN id's for filtering and decoding
+		/*
 		var filters []unix.CanFilter
 		for _, id := range cb.config.CanIdsAccepted {
 			filters = append(filters, unix.CanFilter{Id: id, Mask: unix.CAN_EFF_MASK})
+			log.Println("CanBusClient: set filter {Id: %X, Mask: %X}", id, unix.CAN_EFF_MASK)
 		}
 		socket.SetFilters(filters[:])
+		*/
 
 		err = socket.Bind(cb.config.Interface)
 		if err != nil {
@@ -131,12 +136,13 @@ func (cb *CanBusClient) Start() error {
 	for {
 		select {
 		case <-cb.stop:
-			log.Println("Stopping CAN bus client: ", cb.config.Description)
+			log.Println("CanBusClient: stopping CAN bus client: ", cb.config.Description)
 			closePort()
 			return nil
+
 		case frame := <-canMsgRx:
 
-			log.Println("Got ", frame.ID, ", data length:", len(frame.Data))
+			log.Printf("CanBusClient: got %X, data length: %v\n", frame.ID, len(frame.Data))
 
 			points := make(data.Points, 2)
 
@@ -152,9 +158,9 @@ func (cb *CanBusClient) Start() error {
 			if len(points) > 0 {
 				err = SendPoints(cb.nc, cb.natsSub, points, false)
 				if err != nil {
-					log.Println(errors.Wrap(err, "Error sending points received from CAN bus: "))
+					log.Println(errors.Wrap(err, "CanBusClient: error sending points received from CAN bus: "))
 				} else {
-					log.Println("CAN bus client successfully sent points")
+					log.Println("CanBusClient: successfully sent points")
 				}
 			}
 
@@ -175,13 +181,13 @@ func (cb *CanBusClient) Start() error {
 
 			err := data.MergePoints(pts.ID, pts.Points, &cb.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("CanBusClient: error merging new points: ", err)
 			}
 
 		case pts := <-cb.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &cb.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("CanBusClient: error merging new points: ", err)
 			}
 
 			// TODO need to send edge points to CAN bus, not implemented yet
