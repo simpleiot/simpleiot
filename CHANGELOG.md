@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.6.1] - 2022-12-01](https://github.com/simpleiot/simpleiot/releases/tag/v0.6.1)
+
 - fix bug in influx db client due to recent API changes
 - fix bug in client manager where Stop() hangs if Start() has already exitted
 - don't allow deleting of root node
