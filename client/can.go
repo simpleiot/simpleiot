@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/simpleiot/simpleiot/data"
 	//"golang.org/x/sys/unix"
+	"github.com/simpleiot/canparse"
 
 	"github.com/go-daq/canbus"
 )
@@ -62,6 +63,19 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 //     J1939 SPN in the frame. The key of each point contains the PGN, SPN, and description of the SPN
 func (cb *CanBusClient) Start() error {
 	log.Println("CanBusClient: Starting CAN bus client: ", cb.config.Description)
+
+	// Setup CAN Database
+	db := &canparse.Database{}
+	err := canparse.ReadKcd("test.kcd", db)
+	if err != nil {
+		log.Println(errors.Wrap(err, "CanBusClient: Error parsing KCD file:"))
+	} else {
+		log.Println("CanBusClient: read", len(db.Busses), "busses from KCD file.")
+		for i, b := range db.Busses {
+			log.Println("CanBusClient: read", len(b.Messages), "messages from bus", i)
+		}
+	}
+
 
 	socket, err := canbus.New()
 	if err != nil {
@@ -147,6 +161,9 @@ func (cb *CanBusClient) Start() error {
 			points := make(data.Points, 2)
 
 			// FIXME decode data based on information in config
+
+			var s canparse.Signal
+			_ = s
 			points[0].Time = time.Now()
 			points[1].Time = time.Now()
 			points[0].Key = "FE48-1862-WheelBasedSpeed"

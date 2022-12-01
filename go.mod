@@ -8,6 +8,7 @@ require (
 	github.com/dim13/cobs v0.1.0
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
 	github.com/go-audio/wav v1.0.0
+	github.com/go-daq/canbus v0.2.0
 	github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea
 	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/golang/protobuf v1.5.2
@@ -19,8 +20,10 @@ require (
 	github.com/kjx98/crc16 v0.0.0-20190915014410-d407ba22e1b5
 	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
 	github.com/nats-io/nats-server/v2 v2.9.6
-	github.com/nats-io/nats.go v1.19.0
+	github.com/nats-io/nats.go v1.20.0
 	github.com/oklog/run v1.1.0
+	github.com/pkg/errors v0.9.1
+	github.com/simpleiot/canparse v0.0.0-20221201201044-ab52c1484c52
 	go.bug.st/serial v1.3.5
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
@@ -33,7 +36,6 @@ require (
 	github.com/deepmap/oapi-codegen v1.8.2 // indirect
 	github.com/go-audio/audio v1.0.0 // indirect
 	github.com/go-audio/riff v1.0.0 // indirect
-	github.com/go-daq/canbus v0.2.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 // indirect
@@ -53,7 +55,6 @@ require (
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pion/dtls/v2 v2.0.0-rc.5 // indirect
 	github.com/pion/logging v0.2.2 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/stretchr/testify v1.7.1 // indirect
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
