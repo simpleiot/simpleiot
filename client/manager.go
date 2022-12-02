@@ -89,7 +89,7 @@ func (m *Manager[T]) Start() error {
 		return err
 	}
 
-	err = m.scan()
+	err = m.scan(m.root)
 	if err != nil {
 		log.Println("Error scanning for new nodes: ", err)
 	}
@@ -104,7 +104,7 @@ func (m *Manager[T]) Start() error {
 			return
 		}
 
-		err := m.scan()
+		err := m.scan(m.root)
 		if err != nil {
 			log.Println("Error scanning for new nodes: ", err)
 		}
@@ -159,21 +159,41 @@ func (m *Manager[T]) Stop(err error) {
 	close(m.stop)
 }
 
-func (m *Manager[T]) scan() error {
-	children, err := GetNodes(m.nc, m.root, "all", m.nodeType, false)
+func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEdge, error) {
+	children, err := GetNodes(m.nc, id, "all", m.nodeType, false)
+	if err != nil {
+		return nil, err
+	}
 
+	nodes = append(nodes, children...)
+
+	// recurse into any groups
+	groups, err := GetNodes(m.nc, id, "all", data.NodeTypeGroup, false)
+	for _, g := range groups {
+		c, err := m.scanHelper(g.ID, nodes)
+		if err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, c...)
+	}
+
+	return nodes, nil
+}
+
+func (m *Manager[T]) scan(id string) error {
+	nodes, err := m.scanHelper(id, []data.NodeEdge{})
 	if err != nil {
 		return err
 	}
 
-	if len(children) < 0 {
+	if len(nodes) < 0 {
 		return nil
 	}
 
 	found := make(map[string]bool)
 
 	// create new nodes
-	for _, n := range children {
+	for _, n := range nodes {
 		key := mapKey(n)
 		found[key] = true
 
