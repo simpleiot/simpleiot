@@ -131,7 +131,84 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 		return nil, fmt.Errorf("db constructor can't fetch root node: %v", err)
 	}
 
+	err = ret.runMigrations()
+	if err != nil {
+		return nil, fmt.Errorf("Error running migrations: %v", err)
+	}
+
 	return ret, nil
+}
+
+func (sdb *DbSqlite) runMigrations() error {
+	if sdb.meta.Version < 1 {
+		log.Println("DB: running migration 1")
+		_, err := sdb.db.Exec(`ALTER TABLE edges ADD COLUMN type TEXT`)
+		if err != nil {
+			return err
+		}
+
+		_, err = sdb.db.Exec(`CREATE INDEX IF NOT EXISTS edgeUp ON edges(up)`)
+		if err != nil {
+			return err
+		}
+
+		_, err = sdb.db.Exec(`CREATE INDEX IF NOT EXISTS edgeDown ON edges(down)`)
+		if err != nil {
+			return err
+		}
+
+		_, err = sdb.db.Exec(`CREATE INDEX IF NOT EXISTS edgeType ON edges(type)`)
+		if err != nil {
+			return err
+		}
+
+		// loop through existing edges and add fill in types
+		rowEdges, err := sdb.db.Query("SELECT id, down from edges")
+		if err != nil {
+			return err
+		}
+
+		for rowEdges.Next() {
+			var id string
+			var down string
+			err := rowEdges.Scan(&id, &down)
+			if err != nil {
+				return err
+			}
+
+			// we need to find the type from the node point
+			rowPoints, err := sdb.db.Query(`SELECT text FROM node_points WHERE
+ 						node_id = ? AND type = ?`, down, data.PointTypeNodeType)
+
+			if err != nil {
+				return err
+			}
+
+			var nodeType string
+			for rowPoints.Next() {
+				err := rowPoints.Scan(&nodeType)
+				if err != nil {
+					return err
+				}
+			}
+
+			if nodeType == "" {
+				return fmt.Errorf("Did not find node type in node points for: %v", down)
+			}
+
+			_, err = sdb.db.Exec(`UPDATE edges SET type = ? WHERE id = ?`, nodeType, id)
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = sdb.db.Exec(`UPDATE meta SET version = 1`)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // reset the database by permanently wiping all data
@@ -613,7 +690,6 @@ NextPin:
 		}
 	}
 
-	// TODO: update upstream hash values
 	err = sdb.updateHash(tx, nodeID, hashUpdate)
 	if err != nil {
 		rollback()
@@ -694,7 +770,7 @@ func (sdb *DbSqlite) edges(tx *sql.Tx, query string, args ...any) ([]data.Edge, 
 
 	for rowsEdges.Next() {
 		var edge data.Edge
-		err = rowsEdges.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash)
+		err = rowsEdges.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash, &edge.Type)
 		if err != nil {
 			return nil, fmt.Errorf("Error scanning edges: %v", err)
 		}
@@ -779,6 +855,10 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 	}
 
 	edges, err := sdb.edges(tx, q)
+
+	if err != nil {
+		return ret, err
+	}
 
 	if len(edges) < 1 {
 		return ret, nil
