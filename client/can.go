@@ -72,7 +72,10 @@ func (cb *CanBusClient) Start() error {
 	} else {
 		for i, b := range db.Busses {
 			for j, m := range b.Messages {
-				log.Println("CanBusClient: read", len(m.Signals), "signals from bus", i, "message", j)
+				for k, s := range m.Signals {
+					log.Printf("CanBusClient: read bus %v msg %v sig %v: nm=%v st=%v ln=%v sc=%v of=%v un=%v",
+						i, j, k, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
+				}
 			}
 		}
 	}
