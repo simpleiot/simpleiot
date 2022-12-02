@@ -70,9 +70,10 @@ func (cb *CanBusClient) Start() error {
 	if err != nil {
 		log.Println(errors.Wrap(err, "CanBusClient: Error parsing KCD file:"))
 	} else {
-		log.Println("CanBusClient: read", len(db.Busses), "busses from KCD file.")
 		for i, b := range db.Busses {
-			log.Println("CanBusClient: read", len(b.Messages), "messages from bus", i)
+			for j, m := range b.Messages {
+				log.Println("CanBusClient: read", len(m.Signals), "signals from bus", i, "message", j)
+			}
 		}
 	}
 
