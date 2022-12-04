@@ -105,15 +105,12 @@ func GetRootNode(nc *nats.Conn) (data.NodeEdge, error) {
 
 // GetNodesForUser gets all nodes for a user
 func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
-	fmt.Println("CLIFF: GetNodesForUser: ", userID)
 	var none []data.NodeEdge
 	var ret []data.NodeEdge
 	userNodes, err := GetNodes(nc, "all", userID, "", false)
 	if err != nil {
 		return none, err
 	}
-
-	fmt.Println("CLIFF: user nodes: ", userNodes)
 
 	var getChildren func(id string) ([]data.NodeEdge, error)
 
@@ -147,19 +144,15 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 			return none, fmt.Errorf("Error getting root node: %v", err)
 		}
 
-		fmt.Println("CLIFF: n: ", n)
 		ret = append(ret, n...)
 		c, err := getChildren(un.Parent)
 		if err != nil {
 			return none, fmt.Errorf("Error getting children: %v", err)
 		}
-		fmt.Println("CLIFF: children: ", c)
 		ret = append(ret, c...)
 	}
 
 	ret = data.RemoveDuplicateNodesIDParent(ret)
-
-	fmt.Println("CLIFF: ret: ", ret)
 
 	return ret, nil
 }
