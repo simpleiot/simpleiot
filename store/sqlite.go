@@ -103,7 +103,7 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 
 	err = ret.initMeta()
 	if err != nil {
-		return nil, fmt.Errorf("Error initializing db meta: ", err)
+		return nil, fmt.Errorf("Error initializing db meta: %v", err)
 	}
 
 	err = ret.runMigrations()
@@ -223,7 +223,6 @@ func (sdb *DbSqlite) runMigrations() error {
 			}
 		}
 
-		fmt.Println("CLIFF: set meta version to 1")
 		_, err = sdb.db.Exec(`UPDATE meta SET version = 1`)
 		if err != nil {
 			return err
