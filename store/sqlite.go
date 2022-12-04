@@ -101,20 +101,14 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 		return nil, fmt.Errorf("Error creating edge_points table: %v", err)
 	}
 
-	metaRows, err := db.Query("SELECT * from meta")
+	err = ret.initMeta()
 	if err != nil {
-		return nil, fmt.Errorf("Error quering meta: %v", err)
+		return nil, fmt.Errorf("Error initializing db meta: ", err)
 	}
-	defer metaRows.Close()
 
-	for metaRows.Next() {
-		err = metaRows.Scan(&ret.meta.ID, &ret.meta.Version, &ret.meta.RootID)
-		if err != nil {
-			return nil, fmt.Errorf("Error scanning meta row: %v", err)
-		}
-	}
-	if err := metaRows.Close(); err != nil {
-		return nil, err
+	err = ret.runMigrations()
+	if err != nil {
+		return nil, fmt.Errorf("Error running migrations: %v", err)
 	}
 
 	if ret.meta.RootID == "" {
@@ -126,17 +120,44 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 	}
 
 	// make sure we find root ID
-	_, err = ret.node(ret.meta.RootID)
+	nodes, err := ret.getNodes(nil, "all", ret.meta.RootID, "", false)
 	if err != nil {
-		return nil, fmt.Errorf("db constructor can't fetch root node: %v", err)
+		return nil, fmt.Errorf("error fetching root node: %v", err)
 	}
 
-	err = ret.runMigrations()
-	if err != nil {
-		return nil, fmt.Errorf("Error running migrations: %v", err)
+	if len(nodes) < 1 {
+		return nil, fmt.Errorf("root node not found")
 	}
 
 	return ret, nil
+}
+
+func (sdb *DbSqlite) initMeta() error {
+	// should be one row in the meta database
+	rows, err := sdb.db.Query("SELECT id, version, root_id FROM meta")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var count int
+
+	for rows.Next() {
+		count++
+		err = rows.Scan(&sdb.meta.ID, &sdb.meta.Version, &sdb.meta.RootID)
+		if err != nil {
+			return fmt.Errorf("Error scanning meta row: %v", err)
+		}
+	}
+
+	if count < 1 {
+		_, err := sdb.db.Exec("INSERT INTO meta(id, version, root_id) VALUES(?, ?, ?)", 0, 0, "")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (sdb *DbSqlite) runMigrations() error {
@@ -202,6 +223,7 @@ func (sdb *DbSqlite) runMigrations() error {
 			}
 		}
 
+		fmt.Println("CLIFF: set meta version to 1")
 		_, err = sdb.db.Exec(`UPDATE meta SET version = 1`)
 		if err != nil {
 			return err
@@ -232,9 +254,13 @@ func (sdb *DbSqlite) reset() error {
 	}
 
 	// make sure we find root ID
-	_, err = sdb.node(sdb.meta.RootID)
+	nodes, err := sdb.getNodes(nil, "all", sdb.meta.RootID, "", false)
 	if err != nil {
-		return fmt.Errorf("reset can't fetch root node: %v", err)
+		return fmt.Errorf("error fetching root node: %v", err)
+	}
+
+	if len(nodes) < 1 {
+		return fmt.Errorf("root node not found")
 	}
 
 	return nil
@@ -326,13 +352,9 @@ func (sdb *DbSqlite) verifyNodeHashes(fix bool) error {
 
 func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 	log.Println("STORE: Initialize root node and admin user")
-	var rootNode data.NodeEdge
-	rootNode.Points = data.Points{
-		{
-			Time: time.Now(),
-			Type: data.PointTypeNodeType,
-			Text: data.NodeTypeDevice,
-		},
+	rootNode := data.NodeEdge{
+		ID:   rootID,
+		Type: data.NodeTypeDevice,
 	}
 
 	rootNode.ID = rootID
@@ -341,7 +363,10 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 		rootNode.ID = uuid.New().String()
 	}
 
-	err := sdb.edgePoints(rootNode.ID, "root", data.Points{{Type: data.PointTypeTombstone, Value: 0}})
+	err := sdb.edgePoints(rootNode.ID, "root", data.Points{
+		{Type: data.PointTypeTombstone, Value: 0},
+		{Type: data.PointTypeNodeType, Text: rootNode.Type},
+	})
 	if err != nil {
 		return "", fmt.Errorf("Error sending root node edges: %w", err)
 	}
@@ -362,7 +387,11 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 
 	points := admin.ToPoints()
 
-	err = sdb.edgePoints(admin.ID, rootNode.ID, data.Points{{Type: data.PointTypeTombstone, Value: 0}})
+	err = sdb.edgePoints(admin.ID, rootNode.ID, data.Points{
+		{Type: data.PointTypeTombstone, Value: 0},
+		{Type: data.PointTypeNodeType, Text: data.NodeTypeUser},
+	})
+
 	if err != nil {
 		return "", err
 	}
@@ -374,9 +403,9 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 
 	sdb.writeLock.Lock()
 	defer sdb.writeLock.Unlock()
-	_, err = sdb.db.Exec("INSERT INTO meta(id, version, root_id) VALUES(?, ?, ?)", 0, 0, rootNode.ID)
+	_, err = sdb.db.Exec("UPDATE meta SET root_id = ?", rootNode.ID)
 	if err != nil {
-		return "", fmt.Errorf("Error setting meta data: %v", err)
+		return "", fmt.Errorf("Error setting meta rootID: %v", err)
 	}
 
 	return rootNode.ID, nil
@@ -592,8 +621,16 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 
 	var hashUpdate uint32
 
+	var nodeType string
+
 NextPin:
 	for _, pIn := range points {
+		// we don't store node type points
+		if pIn.Type == data.PointTypeNodeType {
+			nodeType = pIn.Text
+			continue NextPin
+		}
+
 		if pIn.Time.IsZero() {
 			pIn.Time = time.Now()
 		}
@@ -658,12 +695,17 @@ NextPin:
 
 	// write edge
 	if newEdge {
+		if nodeType == "" {
+			rollback()
+			return fmt.Errorf("Node type must be sent with new edges")
+		}
 		// did not find edge, need to add it
 		edge.Up = parentID
 		edge.Down = nodeID
+		edge.Type = nodeType
 
-		_, err := tx.Exec(`INSERT INTO edges(id, up, down, hash) VALUES (?, ?, ?, ?)`,
-			edge.ID, edge.Up, edge.Down, edge.Hash)
+		_, err := tx.Exec(`INSERT INTO edges(id, up, down, hash, type) VALUES (?, ?, ?, ?, ?)`,
+			edge.ID, edge.Up, edge.Down, edge.Hash, edge.Type)
 
 		if err != nil {
 			log.Println("edge insert failed, trying again ...: ", err)
@@ -671,11 +713,10 @@ NextPin:
 			// FIXME, not sure if retry is required any more since we removed the nested
 			// queries
 			// not sure why, but the below retry seems to work around this issue for now
-			_, err := tx.Exec(`INSERT INTO edges(id, up, down, hash) VALUES (?, ?, ?, ?)`,
-				edge.ID, edge.Up, edge.Down, edge.Hash)
+			_, err := tx.Exec(`INSERT INTO edges(id, up, down, hash, type) VALUES (?, ?, ?, ?)`,
+				edge.ID, edge.Up, edge.Down, edge.Hash, edge.Type)
 
 			// TODO check for downstream node and add in its hash
-
 			if err != nil {
 				rollback()
 				return fmt.Errorf("Error when writing edge: %v", err)
@@ -794,37 +835,14 @@ func (sdb *DbSqlite) rootNodeID() string {
 	return sdb.meta.RootID
 }
 
-// gets a node
-func (sdb *DbSqlite) node(id string) (*data.Node, error) {
-
-	var err error
-	var ret data.Node
-	ret.ID = id
-
-	ret.Points, ret.Type, err = sdb.queryPoints(nil,
-		"SELECT * FROM node_points WHERE node_id=?", id)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if ret.Type == "" {
-		return nil, data.ErrDocumentNotFound
-	}
-
-	return &ret, err
-}
-
-// If parent is set to "none", the edge details are not included
-// and the hash is blank.
 // If parent is set to "all", then all instances of the node are returned.
 // If parent is set and id is "all", then all child nodes are returned.
 // Parent can be set to "root" and id to "all" to fetch the root node(s).
 func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel bool) ([]data.NodeEdge, error) {
 	var ret []data.NodeEdge
 
-	if parent == "" {
-		parent = "none"
+	if parent == "" || parent == "none" {
+		return nil, errors.New("Parent must be set to valid ID, or all")
 	}
 
 	if id == "" {
@@ -834,17 +852,8 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 	var q string
 
 	switch {
-	case parent == "none" && id == "all":
-		return nil, errors.New("invalid combination of parent and id")
 	case parent == "all" && id == "all":
 		return nil, errors.New("invalid combination of parent and id")
-	case parent == "none":
-		node, err := sdb.node(id)
-		if err != nil {
-			return ret, err
-		}
-		ne := node.ToNodeEdge(data.Edge{})
-		return []data.NodeEdge{ne}, nil
 	case parent == "all":
 		q = fmt.Sprintf("SELECT * FROM edges WHERE down = '%v'", id)
 	case id == "all":
@@ -852,6 +861,10 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 	default:
 		// both parent and id are specified
 		q = fmt.Sprintf("SELECT * FROM edges WHERE up='%v' AND down = '%v'", parent, id)
+	}
+
+	if typ != "" {
+		q += fmt.Sprintf("AND type = '%v'", typ)
 	}
 
 	edges, err := sdb.edges(tx, q)
@@ -869,8 +882,9 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 		ne.ID = edge.Down
 		ne.Parent = edge.Up
 		ne.Hash = edge.Hash
+		ne.Type = edge.Type
 
-		ne.EdgePoints, _, err = sdb.queryPoints(tx,
+		ne.EdgePoints, err = sdb.queryPoints(tx,
 			"SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
 		if err != nil {
 			return nil, fmt.Errorf("children error getting edge points: %v", err)
@@ -884,17 +898,10 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 			}
 		}
 
-		ne.Points, ne.Type, err = sdb.queryPoints(tx,
+		ne.Points, err = sdb.queryPoints(tx,
 			"SELECT * FROM node_points WHERE node_id=?", edge.Down)
 		if err != nil {
 			return nil, fmt.Errorf("children error getting node points: %v", err)
-		}
-
-		if typ != "" {
-			if ne.Type != typ {
-				// skip node
-				continue
-			}
 		}
 
 		ret = append(ret, ne)
@@ -903,13 +910,12 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 	return ret, nil
 }
 
-// returns points, type (if node), and error
-func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (data.Points, string, error) {
+// returns points, and error
+func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (data.Points, error) {
 	var retPoints data.Points
-	var retType string
 	rowsPoints, err := sdb.db.Query(query, args...)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	defer rowsPoints.Close()
 
@@ -921,17 +927,13 @@ func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (data.Po
 		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		p.Time = time.Unix(timeS, timeNS)
-		if p.Type == data.PointTypeNodeType {
-			retType = p.Text
-		} else {
-			retPoints = append(retPoints, p)
-		}
+		retPoints = append(retPoints, p)
 	}
 
-	return retPoints, retType, nil
+	return retPoints, nil
 }
 
 // userCheck checks user authentication
@@ -939,8 +941,7 @@ func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (data.Po
 func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 	var ret []data.NodeEdge
 
-	rows, err := sdb.db.Query("SELECT node_id FROM node_points WHERE type=? AND TEXT=?",
-		data.PointTypeNodeType, data.NodeTypeUser)
+	rows, err := sdb.db.Query("SELECT down FROM edges WHERE type=?", data.NodeTypeUser)
 	if err != nil {
 		return nil, fmt.Errorf("userCheck, error query error: %v", err)
 	}
@@ -1005,7 +1006,7 @@ func (sdb *DbSqlite) up(id string, includeDeleted bool) ([]string, error) {
 	var ret []string
 
 	for i, edgeID := range edgeIDs {
-		points, _, err := sdb.queryPoints(nil,
+		points, err := sdb.queryPoints(nil,
 			"SELECT * FROM edge_points WHERE edge_id=?", edgeID)
 		if err != nil {
 			return nil, fmt.Errorf("up error getting edge points: %v", err)
