@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -20,8 +21,7 @@ type CanBus struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
-	Interface   string `point:"interface"`
-	DbFilePath  string `point:"dbFilePath"`
+	Device      string `point:"device"`
 }
 
 // CanBusClient is a SIOT client used to communicate on a CAN bus
@@ -36,7 +36,7 @@ type CanBusClient struct {
 	natsSub       string
 }
 
-// NewCanBusClient ...
+// NewCanBusClient returns a new CanBusClient with a NATS connection and a config
 func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 	return &CanBusClient{
 		nc:            nc,
@@ -65,7 +65,7 @@ func (cb *CanBusClient) Start() error {
 
 	// Setup CAN Database
 	db := &canparse.Database{}
-	err := db.ReadKcd(cb.config.DbFilePath)
+	err := db.ReadKcd("test.kcd")
 	if err != nil {
 		log.Println(errors.Wrap(err, "CanBusClient: Error parsing KCD file:"))
 	} else {
@@ -81,20 +81,30 @@ func (cb *CanBusClient) Start() error {
 
 	canMsgRx := make(chan can.Frame)
 
-	conn, err := socketcan.DialContext(context.Background(), "can", cb.config.Interface)
-	if err != nil {
-		log.Println(errors.Wrap(err, "CanBusClient: error dialing socketcan context"))
-	}
-	recv := socketcan.NewReceiver(conn)
+	var conn net.Conn
+	var recv *socketcan.Receiver
 
-	listener := func() {
-		for recv.Receive() {
-			frame := recv.Frame()
-			canMsgRx <- frame
+	closePort := func() {}
+
+	openPort := func() error {
+		closePort()
+		conn, err = socketcan.DialContext(context.Background(), "can", cb.config.Device)
+		if err != nil {
+			return errors.Wrap(err, "CanBusClient: error dialing socketcan context")
 		}
+		recv = socketcan.NewReceiver(conn)
+
+		listener := func() {
+			for recv.Receive() {
+				frame := recv.Frame()
+				canMsgRx <- frame
+			}
+		}
+		go listener()
+		return nil
 	}
 
-	go listener()
+	openPort()
 
 	for {
 		select {
@@ -131,14 +141,15 @@ func (cb *CanBusClient) Start() error {
 
 		case pts := <-cb.newPoints:
 			for _, p := range pts.Points {
-				if p.Type == data.PointTypePort ||
-					p.Type == data.PointTypeBaud ||
+				if p.Type == data.PointTypeDevice ||
 					p.Type == data.PointTypeDisable {
+					openPort()
 					break
 				}
 
 				if p.Type == data.PointTypeDisable {
 					if p.Value == 0 {
+						closePort()
 					}
 				}
 			}
