@@ -21,6 +21,7 @@ type CanBus struct {
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
 	Interface   string `point:"interface"`
+	DbFilePath  string `point:"dbFilePath"`
 }
 
 // CanBusClient is a SIOT client used to communicate on a CAN bus
@@ -52,26 +53,27 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 // Start runs the main logic for this client and blocks until stopped
 // There are several main aspects of the CAN bus client
 //
-//   - the listener function is a process that recieves CAN bus frames from the Linux SocketCAN socket
-//     and sends the frames out on the canMsgRx channel
+//   - the listener function is a process that recieves CAN bus frames from the Linux
+//	   SocketCAN socket and sends the frames out on the canMsgRx channel
 //
-//   - when a frame is recieved on the canMsgRx channel in the main loop, it is decoded and a point is sent out for each
-//     J1939 SPN in the frame. The key of each point contains the PGN, SPN, and description of the SPN
+//   - when a frame is recieved on the canMsgRx channel in the main loop, it is decoded
+//	   and a point is sent out for each canparse.Signal in the frame. The key of each point
+//     contains the message name, signal name, and signal units
 //
 func (cb *CanBusClient) Start() error {
 	log.Println("CanBusClient: Starting CAN bus client: ", cb.config.Description)
 
 	// Setup CAN Database
 	db := &canparse.Database{}
-	err := canparse.ReadKcd("test.kcd", db)
+	err := db.ReadKcd(cb.config.DbFilePath)
 	if err != nil {
 		log.Println(errors.Wrap(err, "CanBusClient: Error parsing KCD file:"))
 	} else {
 		for _, b := range db.Busses {
 			for _, m := range b.Messages {
 				for _, s := range m.Signals {
-					log.Printf("CanBusClient: read bus %v msg %v sig %v: st=%v ln=%v sc=%v of=%v un=%v",
-						b.Name, m.Id, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
+					log.Printf("CanBusClient: read msg %X sig %v: start=%v len=%v scale=%v offset=%v unit=%v",
+						m.Id, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
 				}
 			}
 		}
@@ -79,7 +81,7 @@ func (cb *CanBusClient) Start() error {
 
 	canMsgRx := make(chan can.Frame)
 
-	conn, err := socketcan.DialContext(context.Background(), "can", "vcan0")
+	conn, err := socketcan.DialContext(context.Background(), "can", cb.config.Interface)
 	if err != nil {
 		log.Println(errors.Wrap(err, "CanBusClient: error dialing socketcan context"))
 	}
@@ -108,8 +110,6 @@ func (cb *CanBusClient) Start() error {
 			if err != nil {
 				log.Println(errors.Wrap(err, "CanBusClient: error decoding CAN message"))
 			}
-
-			log.Println(len(msg.Signals))
 
 			points := make(data.Points, len(msg.Signals))
 			for i, sig := range msg.Signals {
