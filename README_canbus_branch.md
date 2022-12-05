@@ -199,7 +199,8 @@ You should see a log like this:
 2022/12/05 15:04:50 CanBusClient: successfully sent points
 ```
 
-
+Note that this SimpleIoT client is in very early stages and as is obvious from the
+values displayed in the above log, does not fully function.
 
 ## Documentation
 
