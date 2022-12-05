@@ -11,6 +11,18 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.6.1] - 2022-12-01](https://github.com/simpleiot/simpleiot/releases/tag/v0.6.1)
+
+- fix bug in influx db client due to recent API changes
+- fix bug in client manager where Stop() hangs if Start() has already exitted
+- don't allow deleting of root node
+- allow configuring of root node ID, otherwise UUID is used
+- sync:
+  - add option to configure sync period (defaults to 20s).
+  - if upstream node is deleted on the upstream, it is restored
+  - don't include edge points of root node in hash calculation. This allows node
+    to be moved around in the upstream instance and other changes.
+
 ## [[0.6.0] - 2022-11-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.6.0)
 
 - improve error handling in serial client cobs decoder

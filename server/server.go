@@ -45,6 +45,8 @@ type Options struct {
 	AppVersion        string
 	OSVersionField    string
 	LogNats           bool
+	// optional ID (must be unique) for this instance, otherwise, a UUID will be used
+	ID string
 }
 
 // Server represents a SIOT server process
@@ -98,7 +100,7 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		chNatsClientClosed: chNatsClientClosed,
 		chStop:             make(chan struct{}),
 		chWaitStart:        make(chan struct{}),
-		clients:            client.NewGroup(),
+		clients:            client.NewGroup("Server clients"),
 	}, nc, err
 }
 
@@ -184,6 +186,7 @@ func (s *Server) Start() error {
 		Server:    o.NatsServer,
 		Key:       auth,
 		Nc:        s.nc,
+		ID:        s.options.ID,
 	}
 
 	siotStore, err := store.NewStore(storeParams)
@@ -215,7 +218,6 @@ func (s *Server) Start() error {
 	})
 
 	cancelTimer := make(chan struct{})
-
 	storeWg.Add(1)
 	g.Add(func() error {
 		defer storeWg.Done()
@@ -253,7 +255,6 @@ func (s *Server) Start() error {
 		siotStore.StopMetrics(err)
 		logLS("LS: Shutdown: store metrics")
 	})
-
 	// ====================================
 	// Node manager
 	// ====================================

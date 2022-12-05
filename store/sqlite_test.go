@@ -15,7 +15,7 @@ var testFile = "test.sqlite"
 func newTestDb(t *testing.T) *DbSqlite {
 	exec.Command("sh", "-c", "rm "+testFile+"*").Run()
 
-	db, err := NewSqliteDb(testFile)
+	db, err := NewSqliteDb(testFile, "")
 	if err != nil {
 		t.Fatal("Error opening db: ", err)
 	}
@@ -187,7 +187,7 @@ func TestDbSqliteReopen(t *testing.T) {
 	db.Close()
 
 	var err error
-	db, err = NewSqliteDb(testFile)
+	db, err = NewSqliteDb(testFile, "")
 	if err != nil {
 		t.Fatal("Error opening db: ", err)
 	}

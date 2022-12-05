@@ -158,3 +158,31 @@ func TestGetNatsURI(t *testing.T) {
 		t.Fatal("Did not get expected URI: ", uri)
 	}
 }
+
+func TestDontAllowDeleteRootNode(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	_ = root
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	err = client.SendEdgePoint(nc, root.ID, "root", data.Point{Type: data.PointTypeTombstone,
+		Value: 1}, true)
+
+	if err == nil {
+		t.Fatal("sending edge point should have returned an error")
+	}
+
+	nodes, err := client.GetNodes(nc, "root", root.ID, "", false)
+
+	if err != nil {
+		t.Fatal("Error getting node: ", err)
+	}
+
+	if len(nodes) < 1 {
+		t.Fatal("Root node was deleted")
+	}
+}

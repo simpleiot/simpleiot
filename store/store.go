@@ -27,11 +27,10 @@ type NewTokener interface {
 
 // Store implements the SIOT NATS api
 type Store struct {
-	server        string
+	params        Params
 	nc            *nats.Conn
 	subscriptions map[string]*nats.Subscription
 	db            *DbSqlite
-	authToken     string
 	lock          sync.Mutex
 	key           NewTokener
 
@@ -57,11 +56,14 @@ type Params struct {
 	Server    string
 	Key       NewTokener
 	Nc        *nats.Conn
+	// ID for the instance -- it is only used when initializing the store.
+	// ID must be unique. If ID is not set, then a UUID is generated.
+	ID string
 }
 
 // NewStore creates a new NATS client for handling SIOT requests
 func NewStore(p Params) (*Store, error) {
-	db, err := NewSqliteDb(p.File)
+	db, err := NewSqliteDb(p.File, p.ID)
 	if err != nil {
 		return nil, fmt.Errorf("Error opening db: %v", err)
 	}
@@ -71,11 +73,10 @@ func NewStore(p Params) (*Store, error) {
 
 	log.Println("store connecting to nats server: ", p.Server)
 	return &Store{
-		db:            db,
-		authToken:     p.AuthToken,
-		server:        p.Server,
-		key:           p.Key,
+		params:        p,
 		nc:            p.Nc,
+		db:            db,
+		key:           p.Key,
 		subscriptions: make(map[string]*nats.Subscription),
 		chStop:        make(chan struct{}),
 		chStopMetrics: make(chan struct{}),
@@ -93,42 +94,43 @@ func NewStore(p Params) (*Store, error) {
 
 // Start connects to NATS server and set up handlers for things we are interested in
 func (st *Store) Start() error {
+	nc := st.params.Nc
 	var err error
-	st.subscriptions["nodePoints"], err = st.nc.Subscribe("p.*", st.handleNodePoints)
+	st.subscriptions["nodePoints"], err = nc.Subscribe("p.*", st.handleNodePoints)
 	if err != nil {
 		return fmt.Errorf("Subscribe node points error: %w", err)
 	}
 
-	st.subscriptions["edgePoints"], err = st.nc.Subscribe("p.*.*", st.handleEdgePoints)
+	st.subscriptions["edgePoints"], err = nc.Subscribe("p.*.*", st.handleEdgePoints)
 	if err != nil {
 		return fmt.Errorf("Subscribe edge points error: %w", err)
 	}
 
-	if st.subscriptions["nodes"], err = st.nc.Subscribe("nodes.*.*", st.handleNodesRequest); err != nil {
+	if st.subscriptions["nodes"], err = nc.Subscribe("nodes.*.*", st.handleNodesRequest); err != nil {
 		return fmt.Errorf("Subscribe node error: %w", err)
 	}
 
-	if st.subscriptions["notifications"], err = st.nc.Subscribe("node.*.not", st.handleNotification); err != nil {
+	if st.subscriptions["notifications"], err = nc.Subscribe("node.*.not", st.handleNotification); err != nil {
 		return fmt.Errorf("Subscribe notification error: %w", err)
 	}
 
-	if st.subscriptions["messages"], err = st.nc.Subscribe("node.*.msg", st.handleMessage); err != nil {
+	if st.subscriptions["messages"], err = nc.Subscribe("node.*.msg", st.handleMessage); err != nil {
 		return fmt.Errorf("Subscribe message error: %w", err)
 	}
 
-	if st.subscriptions["auth.user"], err = st.nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
+	if st.subscriptions["auth.user"], err = nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
 		return fmt.Errorf("Subscribe auth error: %w", err)
 	}
 
-	if st.subscriptions["auth.getNatsURI"], err = st.nc.Subscribe("auth.getNatsURI", st.handleAuthGetNatsURI); err != nil {
+	if st.subscriptions["auth.getNatsURI"], err = nc.Subscribe("auth.getNatsURI", st.handleAuthGetNatsURI); err != nil {
 		return fmt.Errorf("Subscribe auth error: %w", err)
 	}
 
-	if st.subscriptions["admin.storeVerify"], err = st.nc.Subscribe("admin.storeVerify", st.handleStoreVerify); err != nil {
+	if st.subscriptions["admin.storeVerify"], err = nc.Subscribe("admin.storeVerify", st.handleStoreVerify); err != nil {
 		return fmt.Errorf("Subscribe dbVerify error: %w", err)
 	}
 
-	if st.subscriptions["admin.storeMaint"], err = st.nc.Subscribe("admin.storeMaint", st.handleStoreMaint); err != nil {
+	if st.subscriptions["admin.storeMaint"], err = nc.Subscribe("admin.storeMaint", st.handleStoreMaint); err != nil {
 		return fmt.Errorf("Subscribe dbMaint error: %w", err)
 	}
 
@@ -310,7 +312,6 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 	if err != nil {
 		// TODO track error stats
 		log.Printf("Error writing edge points (%v:%v) to Db: %v", nodeID, parentID, err)
-		log.Println("msg subject: ", msg.Subject)
 		st.reply(msg.Reply, err)
 	}
 
@@ -472,8 +473,8 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 
 func (st *Store) handleAuthGetNatsURI(msg *nats.Msg) {
 	points := data.Points{
-		{Type: data.PointTypeURI, Text: st.server},
-		{Type: data.PointTypeToken, Text: st.authToken},
+		{Type: data.PointTypeURI, Text: st.params.Server},
+		{Type: data.PointTypeToken, Text: st.params.AuthToken},
 	}
 
 	data, err := points.ToPb()

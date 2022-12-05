@@ -7,16 +7,17 @@ import (
 )
 
 // Group is used to group a list of clients and start/stop them
-// currently a thin wrapper around run.Group
+// currently a thin wrapper around run.Group that adds a Stop() function
 type Group struct {
+	name     string
 	stop     chan struct{}
 	stopOnce sync.Once
 	group    run.Group
 }
 
 // NewGroup creates a new client group
-func NewGroup() *Group {
-	return &Group{stop: make(chan struct{})}
+func NewGroup(name string) *Group {
+	return &Group{name: name, stop: make(chan struct{})}
 }
 
 // Add client to group
@@ -30,7 +31,7 @@ func (g *Group) Start() error {
 	g.group.Add(func() error {
 		<-g.stop
 		return nil
-	}, func(_ error) {
+	}, func(err error) {
 		g.Stop(nil)
 	})
 

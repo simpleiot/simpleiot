@@ -156,7 +156,7 @@ done:
 
 // Stop manager. This also stops all registered clients and causes Start to exit.
 func (m *Manager[T]) Stop(err error) {
-	m.stop <- struct{}{}
+	close(m.stop)
 }
 
 func (m *Manager[T]) scan() error {

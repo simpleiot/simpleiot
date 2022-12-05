@@ -17,6 +17,7 @@ type Sync struct {
 	Description    string `point:"description"`
 	URI            string `point:"uri"`
 	AuthToken      string `point:"authToken"`
+	Period         int    `point:"period"`
 	Disable        bool   `point:"disable"`
 	SyncCount      int    `point:"syncCount"`
 	SyncCountReset bool   `point:"syncCountReset"`
@@ -61,9 +62,6 @@ func NewSyncClient(nc *nats.Conn, config Sync) Client {
 		chNewEdge:           make(chan newEdge),
 	}
 }
-
-// GetNodes has a 20s timeout, so lets use that here
-var syncTimeout = 20 * time.Second
 
 // Start runs the main logic for this client and blocks until stopped
 func (up *SyncClient) Start() error {
@@ -130,7 +128,22 @@ func (up *SyncClient) Start() error {
 		}
 	})
 
-	// FIXME: determine what sync interval we want
+	checkPeriod := func() {
+		if up.config.Period < 1 {
+			up.config.Period = 20
+			points := data.Points{
+				{Type: data.PointTypePeriod, Value: float64(up.config.Period)},
+			}
+
+			err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)
+			if err != nil {
+				log.Println("Error resetting sync sync count: ", err)
+			}
+		}
+	}
+
+	checkPeriod()
+
 	syncTicker := time.NewTicker(time.Second * 10)
 	syncTicker.Stop()
 
@@ -166,8 +179,7 @@ done:
 		case conn := <-up.chConnected:
 			connected = conn
 			if conn {
-
-				syncTicker.Reset(syncTimeout)
+				syncTicker.Reset(time.Duration(up.config.Period) * time.Second)
 				err := up.syncNode("root", up.rootLocal.ID)
 				if err != nil {
 					log.Println("Error syncing: ", err)
@@ -216,6 +228,12 @@ done:
 					// we need to restart the sync connection
 					up.disconnect()
 					connectTimer.Reset(10 * time.Millisecond)
+				case data.PointTypePeriod:
+					checkPeriod()
+					if connected {
+						syncTicker.Reset(time.Duration(up.config.Period) *
+							time.Second)
+					}
 				}
 			}
 
@@ -558,6 +576,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		}
 	}
 
+	// Why do we do this?
 	if parent == "root" {
 		parent = "all"
 	}
@@ -582,7 +601,36 @@ func (up *SyncClient) syncNode(parent, id string) error {
 
 	var nodeUp data.NodeEdge
 
-	if len(nodeUps) == 0 || upErr == data.ErrDocumentNotFound {
+	nodeDeleted := false
+	nodeFound := len(nodeUps) > 0
+
+	if nodeFound {
+		nodeDeleted = true
+		for _, n := range nodeUps {
+			ts, _ := n.IsTombstone()
+			if !ts {
+				nodeDeleted = false
+				break
+			}
+		}
+	}
+
+	if nodeDeleted {
+		nodeUp = nodeUps[0]
+		// restore a node on the upstream
+		// update the local tombstone timestamp so it is newer than the remote tombstone timestamp
+		log.Printf("Sync: undeleting remote node: %v:%v\n", nodeUp.Parent, nodeUp.ID)
+		pTS := data.Point{Time: time.Now(), Type: data.PointTypeTombstone, Value: 0}
+		err := SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, pTS, true)
+		if err != nil {
+			return fmt.Errorf("Error undeleting upstream node: %v", err)
+		}
+
+		// FIXME, remove this return
+		return nil
+	}
+
+	if !nodeFound {
 		log.Printf("Sync node %v does not exist, sending\n", nodeLocal.Desc())
 		err := up.sendNodesRemote(nodeLocal)
 		if err != nil {
@@ -598,6 +646,17 @@ func (up *SyncClient) syncNode(parent, id string) error {
 	}
 
 	nodeUp = nodeUps[0]
+
+	if nodeLocal.ID == up.rootLocal.ID {
+		// we need to back out the edge points from the hash as don't want to sync those
+		for _, p := range nodeUp.EdgePoints {
+			nodeUp.Hash ^= p.CRC()
+		}
+
+		for _, p := range nodeLocal.EdgePoints {
+			nodeLocal.Hash ^= p.CRC()
+		}
+	}
 
 	if nodeUp.Hash == nodeLocal.Hash {
 		// we're good!
@@ -665,39 +724,42 @@ func (up *SyncClient) syncNode(parent, id string) error {
 	// key in below map is the index of the point in the upstream node
 	upstreamProcessed = make(map[int]bool)
 
-	for _, p := range nodeLocal.EdgePoints {
-		found := false
-		for i, pUp := range nodeUp.EdgePoints {
-			if p.IsMatch(pUp.Type, pUp.Key) {
-				found = true
-				upstreamProcessed[i] = true
-				if p.Time.After(pUp.Time) {
-					// need to send point upstream
-					err := SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
-					if err != nil {
-						log.Println("Error syncing point upstream: ", err)
-					}
-				} else if p.Time.Before(pUp.Time) {
-					// need to update point locally
-					err := SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
-					if err != nil {
-						log.Println("Error syncing point from upstream: ", err)
+	// only check edge points if we are not the root node
+	if nodeLocal.ID != up.rootLocal.ID {
+		for _, p := range nodeLocal.EdgePoints {
+			found := false
+			for i, pUp := range nodeUp.EdgePoints {
+				if p.IsMatch(pUp.Type, pUp.Key) {
+					found = true
+					upstreamProcessed[i] = true
+					if p.Time.After(pUp.Time) {
+						// need to send point upstream
+						err := SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
+						if err != nil {
+							log.Println("Error syncing point upstream: ", err)
+						}
+					} else if p.Time.Before(pUp.Time) {
+						// need to update point locally
+						err := SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
+						if err != nil {
+							log.Println("Error syncing point from upstream: ", err)
+						}
 					}
 				}
 			}
+
+			if !found {
+				SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
+			}
 		}
 
-		if !found {
-			SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
-		}
-	}
-
-	// check for any points that do not exist locally
-	for i, pUp := range nodeUp.EdgePoints {
-		if _, ok := upstreamProcessed[i]; !ok {
-			err := SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
-			if err != nil {
-				log.Println("Error syncing edge point from upstream: ", err)
+		// check for any points that do not exist locally
+		for i, pUp := range nodeUp.EdgePoints {
+			if _, ok := upstreamProcessed[i]; !ok {
+				err := SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
+				if err != nil {
+					log.Println("Error syncing edge point from upstream: ", err)
+				}
 			}
 		}
 	}

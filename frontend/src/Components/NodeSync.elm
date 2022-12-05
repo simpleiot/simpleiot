@@ -19,6 +19,9 @@ view o =
         textInput =
             NodeInputs.nodeTextInput opts ""
 
+        textNumber =
+            NodeInputs.nodeNumberInput opts ""
+
         checkboxInput =
             NodeInputs.nodeCheckboxInput opts ""
 
@@ -45,6 +48,7 @@ view o =
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeURI "URI" "nats://myserver:4222, ws://myserver"
                     , textInput Point.typeAuthToken "Auth Token" ""
+                    , textNumber Point.typePeriod "Sync Period (s)"
                     , checkboxInput Point.typeDisable "Disable"
                     , counterWithReset Point.typeSyncCount Point.typeSyncCountReset "Sync Count"
                     ]
