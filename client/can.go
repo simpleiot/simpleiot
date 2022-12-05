@@ -1,17 +1,17 @@
 package client
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"time"
-	"net"
 
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
-	"github.com/simpleiot/simpleiot/data"
-	//"golang.org/x/sys/unix"
 	"github.com/simpleiot/canparse"
-
-	"github.com/go-daq/canbus"
+	"github.com/simpleiot/simpleiot/data"
+	"go.einride.tech/can"
+	"go.einride.tech/can/pkg/socketcan"
 )
 
 // CanBus represents a CAN socket config. The name matches the front-end node type "canBus" to link the two so
@@ -55,12 +55,9 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 //   - the listener function is a process that recieves CAN bus frames from the Linux SocketCAN socket
 //     and sends the frames out on the canMsgRx channel
 //
-//   - the openPort function brings up a Linux network interface (if the interface of that name is not already up),
-//     sets up CAN filters on the SocketCAN socket, and binds the socket to the interface. It also starts the listener
-//     function in a go routine.
-//
 //   - when a frame is recieved on the canMsgRx channel in the main loop, it is decoded and a point is sent out for each
 //     J1939 SPN in the frame. The key of each point contains the PGN, SPN, and description of the SPN
+//
 func (cb *CanBusClient) Start() error {
 	log.Println("CanBusClient: Starting CAN bus client: ", cb.config.Description)
 
@@ -70,110 +67,57 @@ func (cb *CanBusClient) Start() error {
 	if err != nil {
 		log.Println(errors.Wrap(err, "CanBusClient: Error parsing KCD file:"))
 	} else {
-		for i, b := range db.Busses {
-			for j, m := range b.Messages {
-				for k, s := range m.Signals {
-					log.Printf("CanBusClient: read bus %v msg %v sig %v: nm=%v st=%v ln=%v sc=%v of=%v un=%v",
-						i, j, k, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
+		for _, b := range db.Busses {
+			for _, m := range b.Messages {
+				for _, s := range m.Signals {
+					log.Printf("CanBusClient: read bus %v msg %v sig %v: st=%v ln=%v sc=%v of=%v un=%v",
+						b.Name, m.Id, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
 				}
 			}
 		}
 	}
 
+	canMsgRx := make(chan can.Frame)
 
-	socket, err := canbus.New()
+	conn, err := socketcan.DialContext(context.Background(), "can", "vcan0")
 	if err != nil {
-		log.Println(errors.Wrap(err, "CanBusClient: Error creating Socket object"))
+		log.Println(errors.Wrap(err, "CanBusClient: error dialing socketcan context"))
 	}
-
-	canMsgRx := make(chan canbus.Frame)
-
-	closePort := func() {
-		socket.Close()
-	}
+	recv := socketcan.NewReceiver(conn)
 
 	listener := func() {
-		for {
-			frame, err := socket.Recv()
-			if err != nil {
-				log.Println(errors.Wrap(err, "CanBusClient: Error recieving CAN frame"))
-			}
+		for recv.Receive() {
+			frame := recv.Frame()
 			canMsgRx <- frame
 		}
 	}
 
-	openPort := func() {
-
-		iface, err := net.InterfaceByName(cb.config.Interface)
-		_ = iface
-		if err != nil {
-			log.Println(errors.Wrap(err, "CanBusClient: CAN interface not found"))
-		}
-
-		// TODO: figure out how to handle interface
-		/*
-		//if iface.Flags&net.FlagUp == 0 {
-		// bring up CAN interface
-		err = exec.Command("ip", "link", "set", cb.config.Interface, "type",
-			"can", "bitrate", cb.config.BusSpeed).Run()
-		log.Println("Bringing up IP link with:", cb.config.Interface, cb.config.BusSpeed)
-		if err != nil {
-			log.Println(errors.Wrap(err, "Error configuring internal CAN interface"))
-		}
-
-		err = exec.Command("ip", "link", "set", cb.config.Interface, "up").Run()
-		if err != nil {
-			log.Println(errors.Wrap(err, "Error bringing up internal can interface"))
-		}
-		*/
-		/*
-			} else {
-				// Handle case where interface is already up and bus speed may be wrong
-				log.Println("Error bringing up internal CAN interface, already set up.")
-			}
-		*/
-		// TODO: figure out a way to set accepted CAN id's for filtering and decoding
-		/*
-		var filters []unix.CanFilter
-		for _, id := range cb.config.CanIdsAccepted {
-			filters = append(filters, unix.CanFilter{Id: id, Mask: unix.CAN_EFF_MASK})
-			log.Println("CanBusClient: set filter {Id: %X, Mask: %X}", id, unix.CAN_EFF_MASK)
-		}
-		socket.SetFilters(filters[:])
-		*/
-
-		err = socket.Bind(cb.config.Interface)
-		if err != nil {
-			log.Println(errors.Wrap(err, "Error binding to CAN interface"))
-		}
-		go listener()
-	}
-
-	openPort()
+	go listener()
 
 	for {
 		select {
 		case <-cb.stop:
 			log.Println("CanBusClient: stopping CAN bus client: ", cb.config.Description)
-			closePort()
 			return nil
 
 		case frame := <-canMsgRx:
 
-			log.Printf("CanBusClient: got %X, data length: %v\n", frame.ID, len(frame.Data))
+			log.Println("CanBusClient: got", frame.String())
 
-			points := make(data.Points, 2)
+			msg, err := canparse.DecodeMessage(frame, db)
+			if err != nil {
+				log.Println(errors.Wrap(err, "CanBusClient: error decoding CAN message"))
+			}
 
-			// FIXME decode data based on information in config
+			log.Println(len(msg.Signals))
 
-			var s canparse.Signal
-			_ = s
-			points[0].Time = time.Now()
-			points[1].Time = time.Now()
-			points[0].Key = "FE48-1862-WheelBasedSpeed"
-			points[1].Key = "FE48-1864-WheelBasedDirection"
-			points[0].Value = 0
-			points[1].Value = 0
+			points := make(data.Points, len(msg.Signals))
+			for i, sig := range msg.Signals {
+				points[i].Key = fmt.Sprintf("%v.%v(%v)", msg.Name, sig.Name, sig.Unit)
+				points[i].Time = time.Now()
+				points[i].Value = float64(sig.Value)
+				log.Println("CanBusClient: created point", points[i].Key, points[i].Value)
+			}
 
 			// Send the points
 			if len(points) > 0 {
@@ -195,7 +139,6 @@ func (cb *CanBusClient) Start() error {
 
 				if p.Type == data.PointTypeDisable {
 					if p.Value == 0 {
-						closePort()
 					}
 				}
 			}
