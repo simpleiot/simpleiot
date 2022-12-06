@@ -52,6 +52,7 @@ module Api.Point exposing
     , typeMaxMessageLength
     , typeMinActive
     , typeModbusIOType
+    , typeName
     , typeNodeID
     , typeNodeType
     , typeOffset
@@ -743,6 +744,11 @@ typeSampleRate =
 typePeriod : String
 typePeriod =
     "period"
+
+
+typeName : String
+typeName =
+    "name"
 
 
 

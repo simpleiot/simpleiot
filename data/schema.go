@@ -214,4 +214,7 @@ const (
 	PointTypeFrequency  = "frequency"
 	PointTypeAmplitude  = "amplitude"
 	PointTypeSampleRate = "sampleRate"
+
+	PointNodeTypeFile = "file"
+	PointTypeName     = "name"
 )

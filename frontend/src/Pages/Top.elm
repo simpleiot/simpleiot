@@ -11,6 +11,7 @@ import Components.NodeAction as NodeAction
 import Components.NodeCondition as NodeCondition
 import Components.NodeDb as NodeDb
 import Components.NodeDevice as NodeDevice
+import Components.NodeFile as File
 import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
 import Components.NodeModbus as NodeModbus
@@ -29,6 +30,8 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
+import File
+import File.Select
 import Http
 import List.Extra
 import Shared
@@ -164,6 +167,9 @@ type Msg
     = Tick Time.Posix
     | Zone Time.Zone
     | EditNodePoint Int (List Point)
+    | UploadFile Int
+    | UploadSelected File.File
+    | UploadContents String
     | ToggleExpChildren Int
     | ToggleExpDetail Int
     | DiscardNodeOp
@@ -215,6 +221,27 @@ update msg model =
               }
             , Cmd.none
             )
+
+        UploadFile id ->
+            let
+                _ =
+                    Debug.log "UploadFile" id
+            in
+            ( model, File.Select.file [ "" ] UploadSelected )
+
+        UploadSelected file ->
+            let
+                _ =
+                    Debug.log "UploadSelected" <| File.name file
+            in
+            ( model, Task.perform UploadContents (File.toString file) )
+
+        UploadContents contents ->
+            let
+                _ =
+                    Debug.log "UploadContents: " contents
+            in
+            ( model, Cmd.none )
 
         ApiPostPoints id ->
             case model.nodeEdit of
@@ -881,6 +908,7 @@ nodeCustomSortRules =
         , ( Node.typeModbus, "D" )
         , ( Node.typeRule, "E" )
         , ( Node.typeSignalGenerator, "F" )
+        , ( Node.typeFile, "G" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1124,6 +1152,9 @@ shouldDisplay typ =
         "signalGenerator" ->
             True
 
+        "file" ->
+            True
+
         "sync" ->
             True
 
@@ -1190,6 +1221,9 @@ viewNode model parent node depth =
                 "signalGenerator" ->
                     SignalGenerator.view
 
+                "file" ->
+                    File.view
+
                 "sync" ->
                     NodeSync.view
 
@@ -1254,6 +1288,7 @@ viewNode model parent node depth =
                     , nodes = model.nodes
                     , expDetail = node.expDetail
                     , onEditNodePoint = EditNodePoint node.feID
+                    , onUploadFile = UploadFile node.feID
                     , copy = model.copyMove
                     }
                 , viewIf node.mod <|
@@ -1402,6 +1437,11 @@ nodeDescSignalGenerator =
     row [] [ Icon.activity, text "Signal Generator" ]
 
 
+nodeDescFile : Element Msg
+nodeDescFile =
+    row [] [ Icon.file, text "File" ]
+
+
 nodeDescSync : Element Msg
 nodeDescSync =
     row [] [ Icon.sync, text "sync" ]
@@ -1441,6 +1481,7 @@ viewAddNode parent add =
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
                             , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
+                            , Input.option Node.typeFile nodeDescFile
                             , Input.option Node.typeSync nodeDescSync
                             ]
 
@@ -1457,6 +1498,7 @@ viewAddNode parent add =
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
                             , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
+                            , Input.option Node.typeFile nodeDescFile
                             ]
 
                         else
