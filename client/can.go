@@ -74,15 +74,14 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 func (cb *CanBusClient) Start() error {
 	log.Println("CanBusClient: Starting CAN bus client: ", cb.config.Description)
 
-	var db *canparse.Database
+	var db *canparse.Database = &canparse.Database{}
 
-	readDb := func() {
+	setupDev := func() {
 		cb.config.MsgsInDb = 0
 		cb.config.SignalsInDb = 0
-		db = &canparse.Database{}
-		err := db.ReadKcd("test.kcd")
+		err := db.Read("test.kcd")
 		if err != nil {
-			log.Println(errors.Wrap(err, "CanBusClient: Error parsing KCD file:"))
+			log.Println(errors.Wrap(err, "CanBusClient: Error parsing database file:"))
 			return
 		} else {
 			for _, b := range db.Busses {
@@ -114,7 +113,7 @@ func (cb *CanBusClient) Start() error {
 		}
 	}
 
-	readDb()
+	setupDev()
 
 	canMsgRx := make(chan can.Frame)
 
@@ -161,7 +160,7 @@ func (cb *CanBusClient) Start() error {
 			// Populate points representing the decoded CAN data
 			points := make(data.Points, len(msg.Signals))
 			for i, sig := range msg.Signals {
-				points[i].Key = fmt.Sprintf("%v.%v(%v)", msg.Name, sig.Name, sig.Unit)
+				points[i].Key = fmt.Sprintf("%v.%v[%v]", msg.Name, sig.Name, sig.Unit)
 				points[i].Time = time.Now()
 				points[i].Value = float64(sig.Value)
 				log.Println("CanBusClient: created point", points[i].Key, points[i].Value)
@@ -195,10 +194,11 @@ func (cb *CanBusClient) Start() error {
 				log.Println("CanBusClient: error merging new points: ", err)
 			}
 
+			// Update CAN devices and databases with new information
 			for _, p := range pts.Points {
 				switch p.Type {
 				case data.PointTypeDevice:
-					openPort()
+					setupDev()
 				case data.PointTypeFile:
 					readDb()
 				case data.PointTypeDisable:
@@ -206,6 +206,36 @@ func (cb *CanBusClient) Start() error {
 						closePort()
 					}
 				}
+			}
+
+			// Reset db msgs recieved counter
+			if cb.config.MsgsRecvdDbReset {
+				points := data.Points{
+					{Time: time.Now(), Type: data.PointTypeMsgsRecvdDb, Value: 0},
+					{Time: time.Now(), Type: data.PointTypeMsgsRecvdDbReset, Value: 0},
+				}
+				err = SendPoints(cb.nc, cb.natsSub, points, false)
+				if err != nil {
+					log.Println("Error resetting CAN message recieved count: ", err)
+				}
+
+				cb.config.MsgsRecvdDbReset = false
+				cb.config.MsgsRecvdDb = 0
+			}
+
+			// Reset other msgs recieved counter
+			if cb.config.MsgsRecvdOtherReset {
+				points := data.Points{
+					{Time: time.Now(), Type: data.PointTypeMsgsRecvdOther, Value: 0},
+					{Time: time.Now(), Type: data.PointTypeMsgsRecvdOtherReset, Value: 0},
+				}
+				err = SendPoints(cb.nc, cb.natsSub, points, false)
+				if err != nil {
+					log.Println("Error resetting CAN message recieved count: ", err)
+				}
+
+				cb.config.MsgsRecvdOtherReset = false
+				cb.config.MsgsRecvdOther = 0
 			}
 
 		case pts := <-cb.newEdgePoints:
