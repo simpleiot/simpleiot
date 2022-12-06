@@ -3,11 +3,15 @@ module Components.NodeCanBus exposing (view)
 import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
+import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
+import Element.Input as Input
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
+import Round
 
 
 view : NodeOptions msg -> Element msg
@@ -19,12 +23,22 @@ view o =
         opts =
             oToInputO o labelWidth
 
+        value =
+            Point.getValue o.node.points Point.typeValue ""
+        valueText =
+            String.fromFloat (Round.roundNum 2 value)
+        
+        numberInput =
+            NodeInputs.nodeNumberInput opts ""
+
         textInput =
             NodeInputs.nodeTextInput opts ""
-
         
         checkboxInput =
             NodeInputs.nodeCheckboxInput opts ""
+
+        counterWithReset =
+            NodeInputs.nodeCounterWithReset opts ""
 
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
@@ -45,11 +59,14 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
-                    , textInput Point.typeInterface "Interface" "can0"
-                    , textInput Point.typeBusSpeed "Bus speed" "250000"
-                    , textInput Point.typeTxQueueLen "Tx queue len" "1000"
+                    , textInput Point.typeDevice "Device" "can0"
+                    , el [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "Messages in db: "
+                        ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeMsgsInDb ""))
+                    , el [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "Signals in db: "
+                        ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeSignalsInDb ""))
+                    , counterWithReset Point.typeMsgsRecvdDb Point.typeMsgsRecvdDbReset "Db msgs recieved"
+                    , counterWithReset Point.typeMsgsRecvdOther Point.typeMsgsRecvdOtherReset "Other msgs recvd"
                     , checkboxInput Point.typeDisable "Disable"
-                    , viewPoints <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]
 
                 else

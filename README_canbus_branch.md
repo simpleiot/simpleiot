@@ -110,7 +110,6 @@ func main() {
 		Parent:      root.ID,
 		Description: "vcan0",
 		Interface:   "vcan0",
-		DbFilePath:  "test.kcd",
 	}
 
 	err = client.SendNodeType(nc, canBusTest, "test")
@@ -196,7 +195,6 @@ You should see a log like this:
 2022/12/05 15:04:50 CanBusClient: got 12345678#DEADBEEF
 2022/12/05 15:04:50 CanBusClient: created point Food.State() 4.022250974e+09
 2022/12/05 15:04:50 CanBusClient: created point Food.Type() 0
-2022/12/05 15:04:50 CanBusClient: successfully sent points
 ```
 
 Note that this SimpleIoT client is in very early stages and as is obvious from the

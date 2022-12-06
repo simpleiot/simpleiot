@@ -24,7 +24,6 @@ module Api.Point exposing
     , typeAuthToken
     , typeBaud
     , typeBucket
-    , typeBusSpeed
     , typeChannel
     , typeClientServer
     , typeCmdPending
@@ -48,12 +47,16 @@ module Api.Point exposing
     , typeFrom
     , typeID
     , typeIndex
-    , typeInterface
     , typeLastName
     , typeLog
     , typeMaxMessageLength
     , typeMinActive
     , typeModbusIOType
+    , typeMsgsInDb
+    , typeMsgsRecvdDb
+    , typeMsgsRecvdDbReset
+    , typeMsgsRecvdOther
+    , typeMsgsRecvdOtherReset
     , typeNodeID
     , typeNodeType
     , typeOffset
@@ -76,6 +79,7 @@ module Api.Point exposing
     , typeSampleRate
     , typeScale
     , typeService
+    , typeSignalsInDb
     , typeStart
     , typeStartApp
     , typeStartSystem
@@ -88,7 +92,6 @@ module Api.Point exposing
     , typeSysState
     , typeTombstone
     , typeTx
-    , typeTxQueueLen
     , typeTxReset
     , typeURI
     , typeUnits
@@ -347,18 +350,6 @@ typeBaud : String
 typeBaud =
     "baud"
 
-typeBusSpeed : String
-typeBusSpeed =
-    "busSpeed"
-
-typeInterface : String
-typeInterface =
-    "interface"
-
-typeTxQueueLen : String
-typeTxQueueLen =
-    "txQueueLen"
-
 typeMaxMessageLength : String
 typeMaxMessageLength =
     "maxMessageLength"
@@ -417,6 +408,30 @@ typeSyncCount =
 typeSyncCountReset : String
 typeSyncCountReset =
     "syncCountReset"
+
+typeMsgsInDb: String
+typeMsgsInDb =
+    "msgsInDb"
+
+typeSignalsInDb : String
+typeSignalsInDb =
+    "signalsInDb"
+
+typeMsgsRecvdDb : String
+typeMsgsRecvdDb = 
+    "msgsRecvdDb"
+    
+typeMsgsRecvdOther: String
+typeMsgsRecvdOther = 
+    "msgsRecvdOther"
+
+typeMsgsRecvdDbReset : String
+typeMsgsRecvdDbReset = 
+    "msgsRecvdDbReset"
+    
+typeMsgsRecvdOtherReset: String
+typeMsgsRecvdOtherReset = 
+    "msgsRecvdOtherReset"
 
 
 typeProtocol : String

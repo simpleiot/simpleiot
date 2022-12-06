@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -18,10 +17,16 @@ import (
 // CanBus represents a CAN socket config. The name matches the front-end node type "canBus" to link the two so
 // that when a canBus node is created on the frontend the client manager knows to start a CanBus client.
 type CanBus struct {
-	ID          string `node:"id"`
-	Parent      string `node:"parent"`
-	Description string `point:"description"`
-	Device      string `point:"device"`
+	ID                  string `node:"id"`
+	Parent              string `node:"parent"`
+	Description         string `point:"description"`
+	Device              string `point:"device"`
+	MsgsInDb            int    `point:"msgsInDb"`
+	SignalsInDb         int    `point:"signalsInDb"`
+	MsgsRecvdDb         int    `point:"msgsRecvdDb"`
+	MsgsRecvdDbReset    bool   `point:"msgsRecvdDbReset"`
+	MsgsRecvdOther      int    `point:"msgsRecvdOther"`
+	MsgsRecvdOtherReset bool   `point:"msgsRecvdOtherReset"`
 }
 
 // CanBusClient is a SIOT client used to communicate on a CAN bus
@@ -63,36 +68,60 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 func (cb *CanBusClient) Start() error {
 	log.Println("CanBusClient: Starting CAN bus client: ", cb.config.Description)
 
-	// Setup CAN Database
-	db := &canparse.Database{}
-	err := db.ReadKcd("test.kcd")
-	if err != nil {
-		log.Println(errors.Wrap(err, "CanBusClient: Error parsing KCD file:"))
-	} else {
-		for _, b := range db.Busses {
-			for _, m := range b.Messages {
-				for _, s := range m.Signals {
-					log.Printf("CanBusClient: read msg %X sig %v: start=%v len=%v scale=%v offset=%v unit=%v",
-						m.Id, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
+	var db *canparse.Database
+
+	readDb := func() {
+		cb.config.MsgsInDb = 0
+		cb.config.SignalsInDb = 0
+		db = &canparse.Database{}
+		err := db.ReadKcd("test.kcd")
+		if err != nil {
+			log.Println(errors.Wrap(err, "CanBusClient: Error parsing KCD file:"))
+			return
+		} else {
+			for _, b := range db.Busses {
+				cb.config.MsgsInDb += len(b.Messages)
+				for _, m := range b.Messages {
+					cb.config.SignalsInDb += len(m.Signals)
+					for _, s := range m.Signals {
+						log.Printf("CanBusClient: read msg %X sig %v: start=%v len=%v scale=%v offset=%v unit=%v",
+							m.Id, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
+					}
 				}
+			}
+			points := data.Points{
+				data.Point{
+					Time:  time.Now(),
+					Type:  data.PointTypeMsgsInDb,
+					Value: float64(cb.config.MsgsInDb),
+				},
+				data.Point{
+					Time:  time.Now(),
+					Type:  data.PointTypeSignalsInDb,
+					Value: float64(cb.config.SignalsInDb),
+				},
+			}
+			err = SendPoints(cb.nc, cb.natsSub, points, false)
+			if err != nil {
+				log.Println(errors.Wrap(err, "CanBusClient: error sending points received from CAN bus: "))
 			}
 		}
 	}
 
-	canMsgRx := make(chan can.Frame)
+	readDb()
 
-	var conn net.Conn
-	var recv *socketcan.Receiver
+	canMsgRx := make(chan can.Frame)
 
 	closePort := func() {}
 
-	openPort := func() error {
+	openPort := func() {
 		closePort()
-		conn, err = socketcan.DialContext(context.Background(), "can", cb.config.Device)
+		conn, err := socketcan.DialContext(context.Background(), "can", cb.config.Device)
 		if err != nil {
-			return errors.Wrap(err, "CanBusClient: error dialing socketcan context")
+			log.Println(errors.Wrap(err, "CanBusClient: error dialing socketcan context"))
+			return
 		}
-		recv = socketcan.NewReceiver(conn)
+		recv := socketcan.NewReceiver(conn)
 
 		listener := func() {
 			for recv.Receive() {
@@ -101,7 +130,6 @@ func (cb *CanBusClient) Start() error {
 			}
 		}
 		go listener()
-		return nil
 	}
 
 	openPort()
@@ -116,11 +144,15 @@ func (cb *CanBusClient) Start() error {
 
 			log.Println("CanBusClient: got", frame.String())
 
+			// Decode the can message based on database
 			msg, err := canparse.DecodeMessage(frame, db)
 			if err != nil {
-				log.Println(errors.Wrap(err, "CanBusClient: error decoding CAN message"))
+				cb.config.MsgsRecvdOther++
+			} else {
+				cb.config.MsgsRecvdDb++
 			}
 
+			// Populate points representing the decoded CAN data
 			points := make(data.Points, len(msg.Signals))
 			for i, sig := range msg.Signals {
 				points[i].Key = fmt.Sprintf("%v.%v(%v)", msg.Name, sig.Name, sig.Unit)
@@ -129,34 +161,43 @@ func (cb *CanBusClient) Start() error {
 				log.Println("CanBusClient: created point", points[i].Key, points[i].Value)
 			}
 
+			// Populate points to update CAN client stats
+			points = append(points,
+				data.Point{
+					Time:  time.Now(),
+					Type:  data.PointTypeMsgsRecvdDb,
+					Value: float64(cb.config.MsgsRecvdDb),
+				})
+			points = append(points,
+				data.Point{
+					Time:  time.Now(),
+					Type:  data.PointTypeMsgsRecvdOther,
+					Value: float64(cb.config.MsgsRecvdOther),
+				})
+
 			// Send the points
 			if len(points) > 0 {
 				err = SendPoints(cb.nc, cb.natsSub, points, false)
 				if err != nil {
 					log.Println(errors.Wrap(err, "CanBusClient: error sending points received from CAN bus: "))
-				} else {
-					log.Println("CanBusClient: successfully sent points")
 				}
 			}
 
 		case pts := <-cb.newPoints:
-			for _, p := range pts.Points {
-				if p.Type == data.PointTypeDevice ||
-					p.Type == data.PointTypeDisable {
-					openPort()
-					break
-				}
+			err := data.MergePoints(pts.ID, pts.Points, &cb.config)
+			if err != nil {
+				log.Println("CanBusClient: error merging new points: ", err)
+			}
 
-				if p.Type == data.PointTypeDisable {
+			for _, p := range pts.Points {
+				switch p.Type {
+				case data.PointTypeDevice:
+					openPort()
+				case data.PointTypeDisable:
 					if p.Value == 0 {
 						closePort()
 					}
 				}
-			}
-
-			err := data.MergePoints(pts.ID, pts.Points, &cb.config)
-			if err != nil {
-				log.Println("CanBusClient: error merging new points: ", err)
 			}
 
 		case pts := <-cb.newEdgePoints:

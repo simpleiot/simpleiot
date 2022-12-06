@@ -210,10 +210,13 @@ const (
 	PointTypeMaxMessageLength = "maxMessageLength"
 
 	// CAN bus clients
-	NodeTypeCanBus      = "canBus"
-	PointTypeInterface  = "interface"
-	PointTypeBusSpeed   = "busSpeed"
-	PointTypeTxQueueLen = "txQueueLen"
+	NodeTypeCanBus               = "canBus"
+	PointTypeMsgsInDb            = "msgsInDb"
+	PointTypeSignalsInDb         = "signalsInDb"
+	PointTypeMsgsRecvdDb         = "msgsRecvdDb"
+	PointTypeMsgsRecvdDbReset    = "msgsRecvdDbReset"
+	PointTypeMsgsRecvdOther      = "msgsRecvdOther"
+	PointTypeMsgsRecvdOtherReset = "msgsRecvdOtherReset"
 
 	NodeTypeSignalGenerator = "signalGenerator"
 
