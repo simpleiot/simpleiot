@@ -21,6 +21,7 @@ module Api.Node exposing
     , typeCondition
     , typeDb
     , typeDevice
+    , typeFile
     , typeGroup
     , typeModbus
     , typeModbusIO
@@ -152,6 +153,11 @@ typeSync =
 typeSignalGenerator : String
 typeSignalGenerator =
     "signalGenerator"
+
+
+typeFile : String
+typeFile =
+    "file"
 
 
 

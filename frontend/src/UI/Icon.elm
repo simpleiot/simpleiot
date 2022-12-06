@@ -9,6 +9,7 @@ module UI.Icon exposing
     , database
     , device
     , dot
+    , file
     , io
     , list
     , minus
@@ -200,3 +201,8 @@ database =
 clipboard : Element msg
 clipboard =
     icon FeatherIcons.clipboard
+
+
+file : Element msg
+file =
+    icon FeatherIcons.file

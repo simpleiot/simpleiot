@@ -53,11 +53,15 @@ module Api.Point exposing
     , typeMaxMessageLength
     , typeMinActive
     , typeModbusIOType
+<<<<<<< HEAD
     , typeMsgsInDb
     , typeMsgsRecvdDb
     , typeMsgsRecvdDbReset
     , typeMsgsRecvdOther
     , typeMsgsRecvdOtherReset
+=======
+    , typeName
+>>>>>>> 8688f6674d4b8c053556c6650ba26a1cefba5643
     , typeNodeID
     , typeNodeType
     , typeOffset
@@ -776,6 +780,11 @@ typeSampleRate =
 typePeriod : String
 typePeriod =
     "period"
+
+
+typeName : String
+typeName =
+    "name"
 
 
 
