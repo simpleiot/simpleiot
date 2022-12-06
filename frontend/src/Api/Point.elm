@@ -33,6 +33,7 @@ module Api.Point exposing
     , typeDescription
     , typeDevice
     , typeDisable
+    , typeData
     , typeEmail
     , typeEnd
     , typeErrorCount
@@ -53,13 +54,11 @@ module Api.Point exposing
     , typeMaxMessageLength
     , typeMinActive
     , typeModbusIOType
-<<<<<<< HEAD
     , typeMsgsInDb
     , typeMsgsRecvdDb
     , typeMsgsRecvdDbReset
     , typeMsgsRecvdOther
     , typeMsgsRecvdOtherReset
-=======
     , typeName
     , typeNodeID
     , typeNodeType
@@ -784,6 +783,10 @@ typePeriod =
 typeName : String
 typeName =
     "name"
+
+typeData : String
+typeData =
+    "data"
 
 
 

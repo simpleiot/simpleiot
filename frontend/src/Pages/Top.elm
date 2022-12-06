@@ -168,9 +168,9 @@ type Msg
     = Tick Time.Posix
     | Zone Time.Zone
     | EditNodePoint Int (List Point)
-    | UploadFile Int
-    | UploadSelected File.File
-    | UploadContents String
+    | UploadFile String
+    | UploadSelected String File.File
+    | UploadContents String String
     | ToggleExpChildren Int
     | ToggleExpDetail Int
     | DiscardNodeOp
@@ -228,21 +228,31 @@ update msg model =
                 _ =
                     Debug.log "UploadFile" id
             in
-            ( model, File.Select.file [ "" ] UploadSelected )
+            ( model, File.Select.file [ "" ] (UploadSelected id) )
 
-        UploadSelected file ->
+        UploadSelected id file ->
             let
                 _ =
                     Debug.log "UploadSelected" <| File.name file
             in
-            ( model, Task.perform UploadContents (File.toString file) )
+            ( model, Task.perform (UploadContents id) (File.toString file) )
 
-        UploadContents contents ->
+        UploadContents id contents ->
             let
                 _ =
                     Debug.log "UploadContents: " contents
+                
+                point =
+                    Point Point.typeData "" model.now 0 0 contents 0
             in
-            ( model, Cmd.none )
+            ( model,
+              Node.postPoints
+                        { token = model.auth.token
+                        , id = id
+                        , points = [ point ]
+                        , onResponse = ApiRespPostPoint
+                        }
+            )
 
         ApiPostPoints id ->
             case model.nodeEdit of
@@ -1295,7 +1305,7 @@ viewNode model parent node depth =
                     , nodes = model.nodes
                     , expDetail = node.expDetail
                     , onEditNodePoint = EditNodePoint node.feID
-                    , onUploadFile = UploadFile node.feID
+                    , onUploadFile = UploadFile node.node.id
                     , copy = model.copyMove
                     }
                 , viewIf node.mod <|
@@ -1538,7 +1548,7 @@ viewAddNode parent add =
                             []
                        )
                     ++ (if parent.node.typ == Node.typeCanBus then
-                            [ Input.option Node.typeCanDatabase nodeDescCanDatabase ]
+                            [ Input.option Node.typeFile nodeDescFile ]
 
                         else
                             []

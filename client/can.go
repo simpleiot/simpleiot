@@ -17,22 +17,22 @@ import (
 // CanBus represents a CAN socket config. The name matches the front-end node type "canBus" to link the two so
 // that when a canBus node is created on the frontend the client manager knows to start a CanBus client.
 type CanBus struct {
-	ID                  string        `node:"id"`
-	Parent              string        `node:"parent"`
-	Description         string        `point:"description"`
-	Device              string        `point:"device"`
-	MsgsInDb            int           `point:"msgsInDb"`
-	SignalsInDb         int           `point:"signalsInDb"`
-	MsgsRecvdDb         int           `point:"msgsRecvdDb"`
-	MsgsRecvdDbReset    bool          `point:"msgsRecvdDbReset"`
-	MsgsRecvdOther      int           `point:"msgsRecvdOther"`
-	MsgsRecvdOtherReset bool          `point:"msgsRecvdOtherReset"`
-	Databases           []CanDatabase `child:"canDatabase"`
+	ID                  string `node:"id"`
+	Parent              string `node:"parent"`
+	Description         string `point:"description"`
+	Device              string `point:"device"`
+	MsgsInDb            int    `point:"msgsInDb"`
+	SignalsInDb         int    `point:"signalsInDb"`
+	MsgsRecvdDb         int    `point:"msgsRecvdDb"`
+	MsgsRecvdDbReset    bool   `point:"msgsRecvdDbReset"`
+	MsgsRecvdOther      int    `point:"msgsRecvdOther"`
+	MsgsRecvdOtherReset bool   `point:"msgsRecvdOtherReset"`
+	Databases           []File `child:"file"`
 }
 
-// CanDatabase represents a CAN database file in common formats such as KCD and DBC.
-type CanDatabase struct {
-	File []byte `point:"file"`
+// File represents a CAN database file in common formats such as KCD and DBC.
+type File struct {
+	Data string `point:"data"`
 }
 
 // CanBusClient is a SIOT client used to communicate on a CAN bus
@@ -76,7 +76,7 @@ func (cb *CanBusClient) Start() error {
 
 	var db *canparse.Database = &canparse.Database{}
 
-	setupDev := func() {
+	readDb := func() {
 		cb.config.MsgsInDb = 0
 		cb.config.SignalsInDb = 0
 		err := db.Read("test.kcd")
@@ -113,14 +113,14 @@ func (cb *CanBusClient) Start() error {
 		}
 	}
 
-	setupDev()
+	readDb()
 
 	canMsgRx := make(chan can.Frame)
 
-	closePort := func() {}
+	bringDownDev := func() {}
 
-	openPort := func() {
-		closePort()
+	setupDev := func() {
+		bringDownDev()
 		conn, err := socketcan.DialContext(context.Background(), "can", cb.config.Device)
 		if err != nil {
 			log.Println(errors.Wrap(err, "CanBusClient: error dialing socketcan context"))
@@ -137,7 +137,7 @@ func (cb *CanBusClient) Start() error {
 		go listener()
 	}
 
-	openPort()
+	setupDev()
 
 	for {
 		select {
@@ -203,7 +203,7 @@ func (cb *CanBusClient) Start() error {
 					readDb()
 				case data.PointTypeDisable:
 					if p.Value == 0 {
-						closePort()
+						bringDownDev()
 					}
 				}
 			}
