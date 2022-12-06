@@ -224,23 +224,14 @@ update msg model =
             )
 
         UploadFile id ->
-            let
-                _ =
-                    Debug.log "UploadFile" id
-            in
             ( model, File.Select.file [ "" ] (UploadSelected id) )
 
         UploadSelected id file ->
-            let
-                _ =
-                    Debug.log "UploadSelected" <| File.name file
-            in
             ( model, Task.perform (UploadContents id) (File.toString file) )
 
         UploadContents id contents ->
             let
-                _ =
-                    Debug.log "UploadContents: " contents
+                --_ = Debug.log "UploadContents: " contents
                 
                 point =
                     Point Point.typeData "" model.now 0 0 contents 0

@@ -218,8 +218,6 @@ const (
 	PointTypeMsgsRecvdOther      = "msgsRecvdOther"
 	PointTypeMsgsRecvdOtherReset = "msgsRecvdOtherReset"
 	NodeTypeCanDatabase          = "canDatabase"
-	PointTypeFile                = "file"
-	PointTypeData                = "data"
 
 	NodeTypeSignalGenerator = "signalGenerator"
 
@@ -227,6 +225,7 @@ const (
 	PointTypeAmplitude  = "amplitude"
 	PointTypeSampleRate = "sampleRate"
 
-	PointNodeTypeFile = "file"
-	PointTypeName     = "name"
+	NodeTypeFile  = "file"
+	PointTypeName = "name"
+	PointTypeData = "data"
 )

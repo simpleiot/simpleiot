@@ -32,6 +32,7 @@ type CanBus struct {
 
 // File represents a CAN database file in common formats such as KCD and DBC.
 type File struct {
+	Name string `point:"name"`
 	Data string `point:"data"`
 }
 
@@ -79,37 +80,40 @@ func (cb *CanBusClient) Start() error {
 	readDb := func() {
 		cb.config.MsgsInDb = 0
 		cb.config.SignalsInDb = 0
-		err := db.Read("test.kcd")
-		if err != nil {
-			log.Println(errors.Wrap(err, "CanBusClient: Error parsing database file:"))
-			return
-		} else {
-			for _, b := range db.Busses {
-				cb.config.MsgsInDb += len(b.Messages)
-				for _, m := range b.Messages {
-					cb.config.SignalsInDb += len(m.Signals)
-					for _, s := range m.Signals {
-						log.Printf("CanBusClient: read msg %X sig %v: start=%v len=%v scale=%v offset=%v unit=%v",
-							m.Id, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
+		db.Clean()
+		for _, dbFile := range cb.config.Databases {
+			err := db.ReadBytes([]byte(dbFile.Data), dbFile.Name)
+			if err != nil {
+				log.Println(errors.Wrap(err, "CanBusClient: Error parsing database file"))
+				return
+			} else {
+				for _, b := range db.Busses {
+					cb.config.MsgsInDb += len(b.Messages)
+					for _, m := range b.Messages {
+						cb.config.SignalsInDb += len(m.Signals)
+						for _, s := range m.Signals {
+							log.Printf("CanBusClient: read msg %X sig %v: start=%v len=%v scale=%v offset=%v unit=%v",
+								m.Id, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
+						}
 					}
 				}
 			}
-			points := data.Points{
-				data.Point{
-					Time:  time.Now(),
-					Type:  data.PointTypeMsgsInDb,
-					Value: float64(cb.config.MsgsInDb),
-				},
-				data.Point{
-					Time:  time.Now(),
-					Type:  data.PointTypeSignalsInDb,
-					Value: float64(cb.config.SignalsInDb),
-				},
-			}
-			err = SendPoints(cb.nc, cb.natsSub, points, false)
-			if err != nil {
-				log.Println(errors.Wrap(err, "CanBusClient: error sending points received from CAN bus: "))
-			}
+		}
+		points := data.Points{
+			data.Point{
+				Time:  time.Now(),
+				Type:  data.PointTypeMsgsInDb,
+				Value: float64(cb.config.MsgsInDb),
+			},
+			data.Point{
+				Time:  time.Now(),
+				Type:  data.PointTypeSignalsInDb,
+				Value: float64(cb.config.SignalsInDb),
+			},
+		}
+		err := SendPoints(cb.nc, cb.natsSub, points, false)
+		if err != nil {
+			log.Println(errors.Wrap(err, "CanBusClient: error sending points received from CAN bus: "))
 		}
 	}
 
@@ -199,7 +203,7 @@ func (cb *CanBusClient) Start() error {
 				switch p.Type {
 				case data.PointTypeDevice:
 					setupDev()
-				case data.PointTypeFile:
+				case data.PointTypeData:
 					readDb()
 				case data.PointTypeDisable:
 					if p.Value == 0 {
