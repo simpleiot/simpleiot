@@ -1327,6 +1327,7 @@ nodeTypesThatHaveChildNodes =
     , Node.typeModbus
     , Node.typeOneWire
     , Node.typeSerialDev
+    , Node.typeCanBus
     , Node.typeRule
     ]
 
@@ -1386,6 +1387,11 @@ nodeDescSerialDev =
 nodeDescCanBus : Element Msg
 nodeDescCanBus =
     row [] [ Icon.serialDev, text "CAN Bus" ]
+
+nodeDescCanDatabase : Element Msg
+nodeDescCanDatabase =
+    row [] [ Icon.database, text "CAN Database" ]
+
 
 nodeDescRule : Element Msg
 nodeDescRule =
@@ -1485,6 +1491,12 @@ viewAddNode parent add =
                             , Input.option Node.typeAction nodeDescAction
                             , Input.option Node.typeActionInactive nodeDescActionInactive
                             ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.node.typ == Node.typeCanBus then
+                            [ Input.option Node.typeCanDatabase nodeDescCanDatabase ]
 
                         else
                             []

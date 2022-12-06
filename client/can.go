@@ -17,16 +17,22 @@ import (
 // CanBus represents a CAN socket config. The name matches the front-end node type "canBus" to link the two so
 // that when a canBus node is created on the frontend the client manager knows to start a CanBus client.
 type CanBus struct {
-	ID                  string `node:"id"`
-	Parent              string `node:"parent"`
-	Description         string `point:"description"`
-	Device              string `point:"device"`
-	MsgsInDb            int    `point:"msgsInDb"`
-	SignalsInDb         int    `point:"signalsInDb"`
-	MsgsRecvdDb         int    `point:"msgsRecvdDb"`
-	MsgsRecvdDbReset    bool   `point:"msgsRecvdDbReset"`
-	MsgsRecvdOther      int    `point:"msgsRecvdOther"`
-	MsgsRecvdOtherReset bool   `point:"msgsRecvdOtherReset"`
+	ID                  string        `node:"id"`
+	Parent              string        `node:"parent"`
+	Description         string        `point:"description"`
+	Device              string        `point:"device"`
+	MsgsInDb            int           `point:"msgsInDb"`
+	SignalsInDb         int           `point:"signalsInDb"`
+	MsgsRecvdDb         int           `point:"msgsRecvdDb"`
+	MsgsRecvdDbReset    bool          `point:"msgsRecvdDbReset"`
+	MsgsRecvdOther      int           `point:"msgsRecvdOther"`
+	MsgsRecvdOtherReset bool          `point:"msgsRecvdOtherReset"`
+	Databases           []CanDatabase `child:"canDatabase"`
+}
+
+// CanDatabase represents a CAN database file in common formats such as KCD and DBC.
+type CanDatabase struct {
+	File []byte `point:"file"`
 }
 
 // CanBusClient is a SIOT client used to communicate on a CAN bus
@@ -193,6 +199,8 @@ func (cb *CanBusClient) Start() error {
 				switch p.Type {
 				case data.PointTypeDevice:
 					openPort()
+				case data.PointTypeFile:
+					readDb()
 				case data.PointTypeDisable:
 					if p.Value == 0 {
 						closePort()

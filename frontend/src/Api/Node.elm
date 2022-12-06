@@ -30,6 +30,7 @@ module Api.Node exposing
     , typeRule
     , typeSerialDev
     , typeCanBus
+    , typeCanDatabase
     , typeSignalGenerator
     , typeSync
     , typeUser
@@ -133,6 +134,10 @@ typeSerialDev =
 typeCanBus : String
 typeCanBus =
     "canBus"
+
+typeCanDatabase : String
+typeCanDatabase =
+    "canDatabase"
 
 typeVariable : String
 typeVariable =

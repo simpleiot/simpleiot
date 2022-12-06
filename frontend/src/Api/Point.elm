@@ -41,6 +41,7 @@ module Api.Point exposing
     , typeErrorCountEOF
     , typeErrorCountEOFReset
     , typeErrorCountReset
+    , typeFile
     , typeFilePath
     , typeFirstName
     , typeFrequency
@@ -433,6 +434,9 @@ typeMsgsRecvdOtherReset: String
 typeMsgsRecvdOtherReset = 
     "msgsRecvdOtherReset"
 
+typeFile : String
+typeFile =
+    "file"
 
 typeProtocol : String
 typeProtocol =

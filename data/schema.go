@@ -217,6 +217,8 @@ const (
 	PointTypeMsgsRecvdDbReset    = "msgsRecvdDbReset"
 	PointTypeMsgsRecvdOther      = "msgsRecvdOther"
 	PointTypeMsgsRecvdOtherReset = "msgsRecvdOtherReset"
+	NodeTypeCanDatabase          = "canDatabase"
+	PointTypeFile                = "file"
 
 	NodeTypeSignalGenerator = "signalGenerator"
 
