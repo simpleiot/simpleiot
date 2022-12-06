@@ -61,7 +61,6 @@ module Api.Point exposing
     , typeMsgsRecvdOtherReset
 =======
     , typeName
->>>>>>> 8688f6674d4b8c053556c6650ba26a1cefba5643
     , typeNodeID
     , typeNodeType
     , typeOffset
