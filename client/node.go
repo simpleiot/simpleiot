@@ -159,6 +159,7 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 
 // SendNode is used to send a node to a nats server. Can be
 // used to create nodes.
+// TODO, should we always require a parent for this?
 func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 	// we need to send the edge points first if we are creating
 	// a new node, otherwise the upstream will detect an ophraned node

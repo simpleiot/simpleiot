@@ -80,6 +80,12 @@ func (m *Manager[T]) Start() error {
 
 		for _, p := range points {
 			if p.Type == data.PointTypeNodeType {
+				// FIXME: we have a race condition here where the edge points
+				// are sent first, which triggers this, but the node points
+				// are still coming in. For now delay a bit to give node
+				// points time to come in. Long term we need to sequence
+				// things so this always works
+				time.Sleep(time.Millisecond * 100)
 				m.chScan <- struct{}{}
 			}
 		}
