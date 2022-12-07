@@ -37,13 +37,13 @@ func String(nc *nats.Conn, msg *nats.Msg) (string, error) {
 		nodeID := chunks[1]
 
 		// Fetch node so we can print description
-		node, err := GetNodes(nc, "none", nodeID, "", false)
+		nodes, err := GetNodes(nc, "all", nodeID, "", false)
 
 		var description, typ string
 
-		if err == nil {
-			description = node[0].Desc()
-			typ = node[0].Type
+		if err == nil && len(nodes) > 0 {
+			description = nodes[0].Desc()
+			typ = nodes[0].Type
 		} else {
 			description = err.Error()
 			typ = "unknown"
