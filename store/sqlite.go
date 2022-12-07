@@ -362,17 +362,17 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 		rootNode.ID = uuid.New().String()
 	}
 
-	err := sdb.edgePoints(rootNode.ID, "root", data.Points{
+	err := sdb.nodePoints(rootNode.ID, rootNode.Points)
+	if err != nil {
+		return "", fmt.Errorf("Error setting root node points: %v", err)
+	}
+
+	err = sdb.edgePoints(rootNode.ID, "root", data.Points{
 		{Type: data.PointTypeTombstone, Value: 0},
 		{Type: data.PointTypeNodeType, Text: rootNode.Type},
 	})
 	if err != nil {
 		return "", fmt.Errorf("Error sending root node edges: %w", err)
-	}
-
-	err = sdb.nodePoints(rootNode.ID, rootNode.Points)
-	if err != nil {
-		return "", fmt.Errorf("Error setting root node points: %v", err)
 	}
 
 	// create admin user off root node
@@ -386,6 +386,11 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 
 	points := admin.ToPoints()
 
+	err = sdb.nodePoints(admin.ID, points)
+	if err != nil {
+		return "", fmt.Errorf("Error setting default user: %v", err)
+	}
+
 	err = sdb.edgePoints(admin.ID, rootNode.ID, data.Points{
 		{Type: data.PointTypeTombstone, Value: 0},
 		{Type: data.PointTypeNodeType, Text: data.NodeTypeUser},
@@ -393,11 +398,6 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 
 	if err != nil {
 		return "", err
-	}
-
-	err = sdb.nodePoints(admin.ID, points)
-	if err != nil {
-		return "", fmt.Errorf("Error setting default user: %v", err)
 	}
 
 	sdb.writeLock.Lock()
@@ -703,8 +703,38 @@ NextPin:
 		edge.Down = nodeID
 		edge.Type = nodeType
 
-		_, err := tx.Exec(`INSERT INTO edges(id, up, down, hash, type) VALUES (?, ?, ?, ?, ?)`,
-			edge.ID, edge.Up, edge.Down, edge.Hash, edge.Type)
+		// look for exising node points that must be added to the hash
+		rowsPoints, err := tx.Query("SELECT * FROM node_points WHERE node_id=?", nodeID)
+		if err != nil {
+			rollback()
+			return err
+		}
+		defer rowsPoints.Close()
+
+		for rowsPoints.Next() {
+			var p data.Point
+			var timeS, timeNS int64
+			var pID string
+			var nodeID string
+			err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+				&p.Data, &p.Tombstone, &p.Origin)
+			if err != nil {
+				rollback()
+				return err
+			}
+			p.Time = time.Unix(timeS, timeNS)
+			hashUpdate ^= p.CRC()
+		}
+
+		if err := rowsPoints.Close(); err != nil {
+			rollback()
+			return fmt.Errorf("Error closing rowsPoints: %v", err)
+		}
+
+		_, err = tx.Exec(`INSERT INTO edges(id, up, down, hash, type) VALUES (?, ?, ?, ?, ?)`,
+			edge.ID, edge.Up, edge.Down, 0, edge.Type)
+
+		// (hash will be populated later)
 
 		if err != nil {
 			log.Println("edge insert failed, trying again ...: ", err)
@@ -720,13 +750,6 @@ NextPin:
 				rollback()
 				return fmt.Errorf("Error when writing edge: %v", err)
 			}
-		}
-	} else {
-		// update hash
-		_, err := tx.Exec(`UPDATE edges SET hash = ? WHERE id = ?`, edge.Hash, edge.ID)
-		if err != nil {
-			rollback()
-			return fmt.Errorf("Error updating edge hash")
 		}
 	}
 
