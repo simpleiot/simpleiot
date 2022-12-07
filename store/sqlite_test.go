@@ -33,10 +33,12 @@ func TestDbSqlite(t *testing.T) {
 		t.Fatal("Root ID is blank: ", rootID)
 	}
 
-	rn, err := db.node(rootID)
+	rns, err := db.getNodes(nil, "all", rootID, "", false)
 	if err != nil {
 		t.Fatal("Error getting root node: ", err)
 	}
+
+	rn := rns[0]
 
 	if rn.ID == "" {
 		t.Fatal("Root node ID is blank")
@@ -48,10 +50,12 @@ func TestDbSqlite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rn, err = db.node(rootID)
+	rns, err = db.getNodes(nil, "all", rootID, "", false)
 	if err != nil {
 		t.Fatal("Error getting root node: ", err)
 	}
+
+	rn = rns[0]
 
 	if rn.Desc() != "root" {
 		t.Fatal("Description should have been root, got: ", rn.Desc())
@@ -64,10 +68,11 @@ func TestDbSqlite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rn, err = db.node(rootID)
+	rns, err = db.getNodes(nil, "all", rootID, "", false)
 	if err != nil {
 		t.Fatal("Error getting root node: ", err)
 	}
+	rn = rns[0]
 
 	if rn.Desc() != "root" {
 		t.Fatal("Description should have stayed root, got: ", rn.Desc())
@@ -103,7 +108,7 @@ func TestDbSqlite(t *testing.T) {
 		t.Fatal("getNodes did not return right node type for user")
 	}
 
-	adminNodes, err = db.getNodes(nil, "none", adminID, "", false)
+	adminNodes, err = db.getNodes(nil, "all", adminID, "", false)
 	if err != nil {
 		t.Fatal("Error getting admin nodes", err)
 	}
@@ -144,12 +149,10 @@ func TestDbSqlite(t *testing.T) {
 	// try two children
 	groupNodeID := uuid.New().String()
 
-	err = db.nodePoints(groupNodeID, data.Points{{Type: data.PointTypeNodeType, Text: data.NodeTypeGroup}})
-	if err != nil {
-		t.Fatal("Error creating group node", err)
-	}
-
-	err = db.edgePoints(groupNodeID, rootID, data.Points{{Type: data.PointTypeTombstone, Value: 0}})
+	err = db.edgePoints(groupNodeID, rootID, data.Points{
+		{Type: data.PointTypeTombstone, Value: 0},
+		{Type: data.PointTypeNodeType, Text: data.NodeTypeGroup},
+	})
 	if err != nil {
 		t.Fatal("Error creating group edge", err)
 	}

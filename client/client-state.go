@@ -86,22 +86,14 @@ func (cs *clientState[T]) start() (err error) {
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
 		if len(chunks) == 3 {
-			// node points
-			for _, p := range points {
-				if p.Type == data.PointTypeNodeType {
-					cs.stop(nil)
-					return
-				}
-			}
-
-			// send node points to client
 			cs.client.Points(chunks[2], points)
-
 		} else if len(chunks) == 4 {
 			// edge points
 			for _, p := range points {
-				if p.Type == data.PointTypeTombstone {
-					// a node was deleted, stop client and restart
+				if p.Type == data.PointTypeTombstone ||
+					p.Type == data.PointTypeNodeType {
+					// a node was deleted, moved, child added/removed,
+					// stop client and restart
 					cs.stop(nil)
 					return
 				}

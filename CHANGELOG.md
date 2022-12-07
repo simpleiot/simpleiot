@@ -11,6 +11,14 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.6.2] - 2022-12-07](https://github.com/simpleiot/simpleiot/releases/tag/v0.6.2)
+
+- moved the node type from node point to edge field. This allows us to index
+  this and make queries that search the node tree more efficient.
+- support for processing clients in groups. Previously, client nodes had to be a
+  child of the root device node.
+- fix issue with `siot log` due to previous NATS API change
+
 ## [[0.6.1] - 2022-12-01](https://github.com/simpleiot/simpleiot/releases/tag/v0.6.1)
 
 - fix bug in influx db client due to recent API changes

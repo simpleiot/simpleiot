@@ -663,15 +663,17 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		return nil
 	}
 
-	up.config.SyncCount++
+	// only increment count once during sync
+	if nodeLocal.ID == up.rootLocal.ID {
+		up.config.SyncCount++
+		points := data.Points{
+			{Type: data.PointTypeSyncCount, Value: float64(up.config.SyncCount)},
+		}
 
-	points := data.Points{
-		{Type: data.PointTypeSyncCount, Value: float64(up.config.SyncCount)},
-	}
-
-	err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)
-	if err != nil {
-		log.Println("Error resetting sync sync count: ", err)
+		err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)
+		if err != nil {
+			log.Println("Error resetting sync sync count: ", err)
+		}
 	}
 
 	log.Printf("sync %v: syncing node: %v, hash up: 0x%x, down: 0x%x ",
