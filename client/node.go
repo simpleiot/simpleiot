@@ -159,7 +159,6 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 
 // SendNode is used to send a node to a nats server. Can be
 // used to create nodes.
-// TODO, should we always require a parent for this?
 func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 	// we need to send the edge points first if we are creating
 	// a new node, otherwise the upstream will detect an ophraned node
@@ -170,38 +169,32 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 		return errors.New("ID must be set to a UUID")
 	}
 
-	if node.Parent != "" && node.Parent != "none" {
-		if len(node.EdgePoints) <= 0 {
-			// edge should always have a tombstone point, set to false for root node
-			node.EdgePoints = []data.Point{{Time: time.Now(),
-				Type: data.PointTypeTombstone, Origin: origin}}
-		}
-
-		node.EdgePoints = append(node.EdgePoints, data.Point{
-			Type:   data.PointTypeNodeType,
-			Text:   node.Type,
-			Origin: origin,
-		})
-
-		err := SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
-		if err != nil {
-			return fmt.Errorf("Error sending edge points: %w", err)
-
-		}
+	if node.Parent == "" || node.Parent == "none" {
+		return errors.New("Parent must be set when sending a node")
 	}
-
-	/*
-		points = append(points, data.Point{
-			Type:   data.PointTypeNodeType,
-			Text:   node.Type,
-			Origin: origin,
-		})
-	*/
 
 	err := SendNodePoints(nc, node.ID, points, true)
 
 	if err != nil {
 		return fmt.Errorf("Error sending node: %v", err)
+	}
+
+	if len(node.EdgePoints) <= 0 {
+		// edge should always have a tombstone point, set to false for root node
+		node.EdgePoints = []data.Point{{Time: time.Now(),
+			Type: data.PointTypeTombstone, Origin: origin}}
+	}
+
+	node.EdgePoints = append(node.EdgePoints, data.Point{
+		Type:   data.PointTypeNodeType,
+		Text:   node.Type,
+		Origin: origin,
+	})
+
+	err = SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
+	if err != nil {
+		return fmt.Errorf("Error sending edge points: %w", err)
+
 	}
 
 	return nil
