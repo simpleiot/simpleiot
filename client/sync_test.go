@@ -41,8 +41,6 @@ func TestSync(t *testing.T) {
 		t.Fatal("Error sending node: ", err)
 	}
 
-	time.Sleep(time.Second)
-
 	// make sure device node gets sync'd upstream
 	start := time.Now()
 	for {

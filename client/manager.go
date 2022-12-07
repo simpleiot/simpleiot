@@ -85,7 +85,6 @@ func (m *Manager[T]) Start() error {
 				// are still coming in. For now delay a bit to give node
 				// points time to come in. Long term we need to sequence
 				// things so this always works
-				time.Sleep(time.Millisecond * 100)
 				m.chScan <- struct{}{}
 			}
 		}
