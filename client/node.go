@@ -248,7 +248,7 @@ func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent, origin st
 
 // DuplicateNode is used to Duplicate a node and all its children
 func DuplicateNode(nc *nats.Conn, id, newParent, origin string) error {
-	nodes, err := GetNodes(nc, "none", id, "", false)
+	nodes, err := GetNodes(nc, "all", id, "", false)
 	if err != nil {
 		return fmt.Errorf("GetNode error: %v", err)
 	}
