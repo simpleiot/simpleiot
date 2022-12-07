@@ -50,7 +50,6 @@ view o =
             ]
             :: (if o.expDetail then
                     [ textInput Point.typeDescription "Description" ""
-                    , textInput Point.typeName "Name" ""
                     , Form.buttonRow
                         [ Form.button
                             { label = "upload"

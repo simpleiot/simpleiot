@@ -205,6 +205,15 @@ func (cb *CanBusClient) Start() error {
 					setupDev()
 				case data.PointTypeData:
 					readDb()
+				case data.PointTypeName:
+					log.Println("CanBusClient, point name text:", p.Text, "value:", p.Value)
+					log.Println("CanBusClient, config name:", cb.config.Databases[0].Name)
+					// FIXME shouldn't have to do this manually
+					if len(cb.config.Databases) > 0 {
+						cb.config.Databases[0].Name = p.Text
+					}
+					log.Println("CanBusClient, config name:", cb.config.Databases[0].Name)
+					readDb()
 				case data.PointTypeDisable:
 					if p.Value == 0 {
 						bringDownDev()

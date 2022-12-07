@@ -170,7 +170,7 @@ type Msg
     | EditNodePoint Int (List Point)
     | UploadFile String
     | UploadSelected String File.File
-    | UploadContents String String
+    | UploadContents String File.File String
     | ToggleExpChildren Int
     | ToggleExpDetail Int
     | DiscardNodeOp
@@ -227,20 +227,28 @@ update msg model =
             ( model, File.Select.file [ "" ] (UploadSelected id) )
 
         UploadSelected id file ->
-            ( model, Task.perform (UploadContents id) (File.toString file) )
-
-        UploadContents id contents ->
             let
-                --_ = Debug.log "UploadContents: " contents
+                uploadContents =
+                    UploadContents id file
+            in
+            
+            ( model, Task.perform uploadContents (File.toString file) )
+
+        UploadContents id file contents ->
+            let
+                --_ = Debug.log "UploadContents: " <| File.name file
+
+                pointName =
+                    Point Point.typeName "" model.now 0 0 (File.name file) 0
                 
-                point =
+                pointData =
                     Point Point.typeData "" model.now 0 0 contents 0
             in
             ( model,
               Node.postPoints
                         { token = model.auth.token
                         , id = id
-                        , points = [ point ]
+                        , points = [ pointName, pointData ]
                         , onResponse = ApiRespPostPoint
                         }
             )
