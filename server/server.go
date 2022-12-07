@@ -23,6 +23,9 @@ import (
 	"github.com/simpleiot/simpleiot/store"
 )
 
+// ErrServerStopped is returned when the server is stopped
+var ErrServerStopped = errors.New("Server stopped")
+
 // Options used for starting Simple IoT
 type Options struct {
 	StoreFile         string
@@ -364,7 +367,7 @@ func (s *Server) Start() error {
 		select {
 		case <-s.chStop:
 			logLS("LS: Exited: stop handler")
-			return errors.New("Server stopped")
+			return ErrServerStopped
 		case <-chShutdown:
 			logLS("LS: Exited: stop handler")
 			return nil

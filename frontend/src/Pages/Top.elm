@@ -800,7 +800,7 @@ nodeListToTrees : List Node -> List (Tree NodeView)
 nodeListToTrees nodes =
     List.foldr
         (\n ret ->
-            if n.parent == "" then
+            if n.parent == "root" then
                 populateChildren nodes n :: ret
 
             else

@@ -48,7 +48,7 @@ func TestSync(t *testing.T) {
 			t.Fatal("device node not synced")
 		}
 
-		nodes, err := client.GetNodes(ncU, "none", rootD.ID, "", false)
+		nodes, err := client.GetNodes(ncU, "all", rootD.ID, "", false)
 		if err != nil {
 			continue
 		}
@@ -72,7 +72,7 @@ func TestSync(t *testing.T) {
 			t.Fatal("description not propagated upstream")
 		}
 
-		nodes, err := client.GetNodesType[client.Device](ncU, "none", rootD.ID)
+		nodes, err := client.GetNodesType[client.Device](ncU, "all", rootD.ID)
 		if err != nil {
 			continue
 		}
@@ -98,7 +98,7 @@ func TestSync(t *testing.T) {
 			t.Fatal("description not propagated downstream")
 		}
 
-		nodes, err := client.GetNodesType[client.Device](ncD, "none", rootD.ID)
+		nodes, err := client.GetNodesType[client.Device](ncD, "all", rootD.ID)
 		if err != nil {
 			continue
 		}
@@ -125,7 +125,7 @@ func TestSync(t *testing.T) {
 			t.Fatal("var1 not propagated upstream")
 		}
 
-		nodes, err := client.GetNodesType[client.Variable](ncU, "none", "varDown")
+		nodes, err := client.GetNodesType[client.Variable](ncU, "all", "varDown")
 		if err != nil {
 			continue
 		}
@@ -150,7 +150,7 @@ func TestSync(t *testing.T) {
 			t.Fatal("var2 not propagated downstream")
 		}
 
-		nodes, err := client.GetNodesType[client.Variable](ncU, "none", "varUp")
+		nodes, err := client.GetNodesType[client.Variable](ncU, "all", "varUp")
 		if err != nil {
 			continue
 		}
@@ -254,7 +254,7 @@ func TestSyncDeleteUpstream(t *testing.T) {
 			t.Fatal("device node not synced")
 		}
 
-		nodes, err := client.GetNodes(ncU, "none", rootD.ID, "", false)
+		nodes, err := client.GetNodes(ncU, "all", rootD.ID, "", false)
 		if err != nil {
 			continue
 		}
@@ -282,7 +282,7 @@ func TestSyncDeleteUpstream(t *testing.T) {
 			t.Fatal("device node not recreated")
 		}
 
-		nodes, err := client.GetNodes(ncU, "none", rootD.ID, "", false)
+		nodes, err := client.GetNodes(ncU, "all", rootD.ID, "", false)
 		if err != nil {
 			continue
 		}

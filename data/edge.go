@@ -15,6 +15,7 @@ type Edge struct {
 	Down   string `json:"down"`
 	Points Points `json:"points"`
 	Hash   uint32 `json:"hash"`
+	Type   string `json:"type"`
 }
 
 func (e Edge) String() string {

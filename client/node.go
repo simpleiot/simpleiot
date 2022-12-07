@@ -139,10 +139,11 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 
 	// go through parents of root nodes and recursively get all children
 	for _, un := range userNodes {
-		n, err := GetNodes(nc, "none", un.Parent, "", false)
+		n, err := GetNodes(nc, "all", un.Parent, "", false)
 		if err != nil {
 			return none, fmt.Errorf("Error getting root node: %v", err)
 		}
+
 		ret = append(ret, n...)
 		c, err := getChildren(un.Parent)
 		if err != nil {
@@ -168,30 +169,32 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 		return errors.New("ID must be set to a UUID")
 	}
 
-	if node.Parent != "" && node.Parent != "none" {
-		if len(node.EdgePoints) <= 0 {
-			// edge should always have a tombstone point, set to false for root node
-			node.EdgePoints = []data.Point{{Time: time.Now(),
-				Type: data.PointTypeTombstone, Origin: origin}}
-		}
-
-		err := SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
-		if err != nil {
-			return fmt.Errorf("Error sending edge points: %w", err)
-
-		}
+	if node.Parent == "" || node.Parent == "none" {
+		return errors.New("Parent must be set when sending a node")
 	}
-
-	points = append(points, data.Point{
-		Type:   data.PointTypeNodeType,
-		Text:   node.Type,
-		Origin: origin,
-	})
 
 	err := SendNodePoints(nc, node.ID, points, true)
 
 	if err != nil {
 		return fmt.Errorf("Error sending node: %v", err)
+	}
+
+	if len(node.EdgePoints) <= 0 {
+		// edge should always have a tombstone point, set to false for root node
+		node.EdgePoints = []data.Point{{Time: time.Now(),
+			Type: data.PointTypeTombstone, Origin: origin}}
+	}
+
+	node.EdgePoints = append(node.EdgePoints, data.Point{
+		Type:   data.PointTypeNodeType,
+		Text:   node.Type,
+		Origin: origin,
+	})
+
+	err = SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
+	if err != nil {
+		return fmt.Errorf("Error sending edge points: %w", err)
+
 	}
 
 	return nil

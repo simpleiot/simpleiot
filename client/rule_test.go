@@ -157,5 +157,4 @@ func TestRules(t *testing.T) {
 		}
 		<-time.After(time.Millisecond * 10)
 	}
-
 }

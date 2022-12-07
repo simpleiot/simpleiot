@@ -438,9 +438,6 @@ func TestManagerChildren(t *testing.T) {
 	// verify config got passed in to the constructer
 	currentConfig := testClient.getConfig()
 
-	_ = currentConfig
-	_ = testClient
-
 	if currentConfig.ID != testXConfig.ID {
 		t.Fatal("X ID not correct: ", currentConfig.ID)
 	}

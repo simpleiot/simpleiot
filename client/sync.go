@@ -105,6 +105,7 @@ func (up *SyncClient) Start() error {
 			log.Println("Error decoding point: ", err)
 			return
 		}
+		fmt.Println("CLIFF: downstream node points changed: ", nodeID, points)
 
 		chLocalNodePoints <- NewPoints{ID: nodeID, Points: points}
 
@@ -387,6 +388,8 @@ func (up *SyncClient) subscribeRemoteNodePoints(id string) error {
 				log.Println("Error decoding point: ", err)
 				return
 			}
+
+			fmt.Println("CLIFF: upstream node points changed: ", nodeID, points)
 
 			err = SendNodePoints(up.ncLocal, nodeID, points, false)
 			if err != nil {
