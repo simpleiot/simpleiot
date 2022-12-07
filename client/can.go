@@ -151,7 +151,7 @@ func (cb *CanBusClient) Start() error {
 
 		case frame := <-canMsgRx:
 
-			log.Println("CanBusClient: got", frame.String())
+			log.Println("CanBusClient: got", frame.String(), "length:", len(frame.Data))
 
 			// Decode the can message based on database
 			msg, err := canparse.DecodeMessage(frame, db)
@@ -204,16 +204,16 @@ func (cb *CanBusClient) Start() error {
 				case data.PointTypeDevice:
 					setupDev()
 				case data.PointTypeData:
+					// FIXME shouldn't have to do this manually
+					if len(cb.config.Databases) > 0 {
+						cb.config.Databases[0].Data = p.Text
+					}
 					readDb()
 				case data.PointTypeName:
-					log.Println("CanBusClient, point name text:", p.Text, "value:", p.Value)
-					log.Println("CanBusClient, config name:", cb.config.Databases[0].Name)
 					// FIXME shouldn't have to do this manually
 					if len(cb.config.Databases) > 0 {
 						cb.config.Databases[0].Name = p.Text
 					}
-					log.Println("CanBusClient, config name:", cb.config.Databases[0].Name)
-					readDb()
 				case data.PointTypeDisable:
 					if p.Value == 0 {
 						bringDownDev()
