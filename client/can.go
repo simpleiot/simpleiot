@@ -149,7 +149,8 @@ func (cb *CanBusClient) Start() error {
 		select {
 		case <-cb.stop:
 			log.Println("CanBusClient: stopping CAN bus client: ", cb.config.Description)
-			return nil
+			bringDownDev()
+			break
 
 		case frame := <-canMsgRx:
 
