@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -126,7 +125,6 @@ func (cb *CanBusClient) Start() error {
 
 	var ctx context.Context
 	var cancelContext context.CancelFunc
-	var conn net.Conn
 
 	// setupDev bringDownDev must be called before every call of setupDev //
 	// except for the first call
@@ -153,7 +151,6 @@ func (cb *CanBusClient) Start() error {
 
 	bringDownDev := func() {
 		cancelContext()
-		conn.Close()
 	}
 
 	for {
