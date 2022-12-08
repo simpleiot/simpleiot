@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -123,11 +124,16 @@ func (cb *CanBusClient) Start() error {
 
 	canMsgRx := make(chan can.Frame)
 
-	bringDownDev := func() {}
+	var ctx context.Context
+	var cancelContext context.CancelFunc
+	var conn net.Conn
 
+	// setupDev bringDownDev must be called before every call of setupDev //
+	// except for the first call
 	setupDev := func() {
-		bringDownDev()
-		conn, err := socketcan.DialContext(context.Background(), "can", cb.config.Device)
+		ctx, cancelContext = context.WithCancel(context.Background())
+		_ = cancelContext
+		conn, err := socketcan.DialContext(ctx, "can", cb.config.Device)
 		if err != nil {
 			log.Println(errors.Wrap(err, "CanBusClient: error dialing socketcan context"))
 			return
@@ -144,6 +150,11 @@ func (cb *CanBusClient) Start() error {
 	}
 
 	setupDev()
+
+	bringDownDev := func() {
+		cancelContext()
+		conn.Close()
+	}
 
 	for {
 		select {
@@ -203,6 +214,7 @@ func (cb *CanBusClient) Start() error {
 			for _, p := range pts.Points {
 				switch p.Type {
 				case data.PointTypeDevice:
+					bringDownDev()
 					setupDev()
 				case data.PointTypeData:
 					// FIXME shouldn't have to do this manually
