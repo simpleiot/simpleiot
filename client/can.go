@@ -151,8 +151,6 @@ func (cb *CanBusClient) Start() error {
 
 		case frame := <-canMsgRx:
 
-			log.Println("CanBusClient: got", frame.String(), "length:", len(frame.Data))
-
 			// Decode the can message based on database
 			msg, err := canparse.DecodeMessage(frame, db)
 			if err != nil {
@@ -164,10 +162,10 @@ func (cb *CanBusClient) Start() error {
 			// Populate points representing the decoded CAN data
 			points := make(data.Points, len(msg.Signals))
 			for i, sig := range msg.Signals {
+				points[i].Type = data.PointTypeValue
 				points[i].Key = fmt.Sprintf("%v.%v[%v]", msg.Name, sig.Name, sig.Unit)
 				points[i].Time = time.Now()
 				points[i].Value = float64(sig.Value)
-				log.Println("CanBusClient: created point", points[i].Key, points[i].Value)
 			}
 
 			// Populate points to update CAN client stats
