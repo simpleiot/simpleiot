@@ -73,7 +73,7 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 //     contains the message name, signal name, and signal units
 //
 func (cb *CanBusClient) Start() error {
-	log.Println("CanBusClient: Starting CAN bus client: ", cb.config.Description)
+	log.Println("CanBusClient: Starting CAN bus client:", cb.config.Description)
 
 	var db *canparse.Database = &canparse.Database{}
 
@@ -150,7 +150,7 @@ func (cb *CanBusClient) Start() error {
 		case <-cb.stop:
 			log.Println("CanBusClient: stopping CAN bus client: ", cb.config.Description)
 			bringDownDev()
-			break
+			return nil
 
 		case frame := <-canMsgRx:
 
