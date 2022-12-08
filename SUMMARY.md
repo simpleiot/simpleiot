@@ -18,6 +18,7 @@
   - [Rules](docs/user/rules.md)
   - [Synchronization](docs/user/sync.md)
   - [USB](docs/user/usb.md)
+  - [CAN bus](docs/user/can.md)
 - [Graphing](docs/user/graphing.md)
 - [Configuration](docs/user/configuration.md)
 - [Status/Errata](docs/user/status.md)
