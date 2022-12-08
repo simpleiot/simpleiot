@@ -45,9 +45,13 @@ func String(nc *nats.Conn, msg *nats.Msg) (string, error) {
 			description = nodes[0].Desc()
 			typ = nodes[0].Type
 		} else {
-			description = err.Error()
 			typ = "unknown"
 		}
+
+		if err != nil {
+			description = err.Error()
+		}
+
 		ret += fmt.Sprintf("NODE: %v (%v) (%v)\n", description, typ, nodeID)
 		pointLabel := "POINT"
 		if len(chunks) == 3 {
