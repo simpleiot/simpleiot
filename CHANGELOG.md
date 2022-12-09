@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.7.0] - 2022-12-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.7.0)
+
+- add [CAN bus client](https://docs.simpleiot.org/docs/user/can.html)
+
 ## [[0.6.2] - 2022-12-07](https://github.com/simpleiot/simpleiot/releases/tag/v0.6.2)
 
 - moved the node type from node point to edge field. This allows us to index
