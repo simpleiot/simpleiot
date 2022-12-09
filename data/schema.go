@@ -209,9 +209,23 @@ const (
 	PointTypeUptime           = "uptime"
 	PointTypeMaxMessageLength = "maxMessageLength"
 
+	// CAN bus clients
+	NodeTypeCanBus               = "canBus"
+	PointTypeMsgsInDb            = "msgsInDb"
+	PointTypeSignalsInDb         = "signalsInDb"
+	PointTypeMsgsRecvdDb         = "msgsRecvdDb"
+	PointTypeMsgsRecvdDbReset    = "msgsRecvdDbReset"
+	PointTypeMsgsRecvdOther      = "msgsRecvdOther"
+	PointTypeMsgsRecvdOtherReset = "msgsRecvdOtherReset"
+	NodeTypeCanDatabase          = "canDatabase"
+
 	NodeTypeSignalGenerator = "signalGenerator"
 
 	PointTypeFrequency  = "frequency"
 	PointTypeAmplitude  = "amplitude"
 	PointTypeSampleRate = "sampleRate"
+
+	NodeTypeFile  = "file"
+	PointTypeName = "name"
+	PointTypeData = "data"
 )

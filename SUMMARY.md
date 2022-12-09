@@ -10,6 +10,7 @@
 - [Users/Groups](docs/user/users-groups.md)
 - [Notifications](docs/user/notifications.md)
 - [Clients](docs/user/devices.md)
+  - [CAN bus](docs/user/can.md)
   - [Database](docs/user/database.md)
   - [Modbus](docs/user/modbus.md)
   - [1-Wire](docs/user/onewire.md)

@@ -23,6 +23,7 @@ type alias NodeOptions msg =
     , node : Node
     , nodes : List (Tree NodeView)
     , onEditNodePoint : List Point -> msg
+    , onUploadFile : msg
     , copy : CopyMove
     }
 

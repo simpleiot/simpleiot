@@ -21,6 +21,7 @@ module Api.Node exposing
     , typeCondition
     , typeDb
     , typeDevice
+    , typeFile
     , typeGroup
     , typeModbus
     , typeModbusIO
@@ -29,6 +30,8 @@ module Api.Node exposing
     , typeOneWireIO
     , typeRule
     , typeSerialDev
+    , typeCanBus
+    , typeCanDatabase
     , typeSignalGenerator
     , typeSync
     , typeUser
@@ -129,6 +132,13 @@ typeSerialDev : String
 typeSerialDev =
     "serialDev"
 
+typeCanBus : String
+typeCanBus =
+    "canBus"
+
+typeCanDatabase : String
+typeCanDatabase =
+    "canDatabase"
 
 typeVariable : String
 typeVariable =
@@ -143,6 +153,11 @@ typeSync =
 typeSignalGenerator : String
 typeSignalGenerator =
     "signalGenerator"
+
+
+typeFile : String
+typeFile =
+    "file"
 
 
 

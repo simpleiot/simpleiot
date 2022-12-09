@@ -33,6 +33,7 @@ module Api.Point exposing
     , typeDescription
     , typeDevice
     , typeDisable
+    , typeData
     , typeEmail
     , typeEnd
     , typeErrorCount
@@ -52,6 +53,12 @@ module Api.Point exposing
     , typeMaxMessageLength
     , typeMinActive
     , typeModbusIOType
+    , typeMsgsInDb
+    , typeMsgsRecvdDb
+    , typeMsgsRecvdDbReset
+    , typeMsgsRecvdOther
+    , typeMsgsRecvdOtherReset
+    , typeName
     , typeNodeID
     , typeNodeType
     , typeOffset
@@ -74,6 +81,7 @@ module Api.Point exposing
     , typeSampleRate
     , typeScale
     , typeService
+    , typeSignalsInDb
     , typeStart
     , typeStartApp
     , typeStartSystem
@@ -344,7 +352,6 @@ typeBaud : String
 typeBaud =
     "baud"
 
-
 typeMaxMessageLength : String
 typeMaxMessageLength =
     "maxMessageLength"
@@ -404,6 +411,29 @@ typeSyncCountReset : String
 typeSyncCountReset =
     "syncCountReset"
 
+typeMsgsInDb: String
+typeMsgsInDb =
+    "msgsInDb"
+
+typeSignalsInDb : String
+typeSignalsInDb =
+    "signalsInDb"
+
+typeMsgsRecvdDb : String
+typeMsgsRecvdDb = 
+    "msgsRecvdDb"
+    
+typeMsgsRecvdOther: String
+typeMsgsRecvdOther = 
+    "msgsRecvdOther"
+
+typeMsgsRecvdDbReset : String
+typeMsgsRecvdDbReset = 
+    "msgsRecvdDbReset"
+    
+typeMsgsRecvdOtherReset: String
+typeMsgsRecvdOtherReset = 
+    "msgsRecvdOtherReset"
 
 typeProtocol : String
 typeProtocol =
@@ -743,6 +773,15 @@ typeSampleRate =
 typePeriod : String
 typePeriod =
     "period"
+
+
+typeName : String
+typeName =
+    "name"
+
+typeData : String
+typeData =
+    "data"
 
 
 

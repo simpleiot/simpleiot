@@ -11,6 +11,7 @@ import Components.NodeAction as NodeAction
 import Components.NodeCondition as NodeCondition
 import Components.NodeDb as NodeDb
 import Components.NodeDevice as NodeDevice
+import Components.NodeFile as File
 import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
 import Components.NodeModbus as NodeModbus
@@ -20,6 +21,7 @@ import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
+import Components.NodeCanBus as NodeCanBus
 import Components.NodeSignalGenerator as SignalGenerator
 import Components.NodeSync as NodeSync
 import Components.NodeUser as NodeUser
@@ -29,6 +31,8 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
+import File
+import File.Select
 import Http
 import List.Extra
 import Shared
@@ -164,6 +168,9 @@ type Msg
     = Tick Time.Posix
     | Zone Time.Zone
     | EditNodePoint Int (List Point)
+    | UploadFile String
+    | UploadSelected String File.File
+    | UploadContents String File.File String
     | ToggleExpChildren Int
     | ToggleExpDetail Int
     | DiscardNodeOp
@@ -214,6 +221,36 @@ update msg model =
                         }
               }
             , Cmd.none
+            )
+
+        UploadFile id ->
+            ( model, File.Select.file [ "" ] (UploadSelected id) )
+
+        UploadSelected id file ->
+            let
+                uploadContents =
+                    UploadContents id file
+            in
+            
+            ( model, Task.perform uploadContents (File.toString file) )
+
+        UploadContents id file contents ->
+            let
+                --_ = Debug.log "UploadContents: " <| File.name file
+
+                pointName =
+                    Point Point.typeName "" model.now 0 0 (File.name file) 0
+                
+                pointData =
+                    Point Point.typeData "" model.now 0 0 contents 0
+            in
+            ( model,
+              Node.postPoints
+                        { token = model.auth.token
+                        , id = id
+                        , points = [ pointName, pointData ]
+                        , onResponse = ApiRespPostPoint
+                        }
             )
 
         ApiPostPoints id ->
@@ -881,6 +918,7 @@ nodeCustomSortRules =
         , ( Node.typeModbus, "D" )
         , ( Node.typeRule, "E" )
         , ( Node.typeSignalGenerator, "F" )
+        , ( Node.typeFile, "G" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1100,6 +1138,9 @@ shouldDisplay typ =
         "serialDev" ->
             True
 
+        "canBus" ->
+            True
+
         "rule" ->
             True
 
@@ -1122,6 +1163,9 @@ shouldDisplay typ =
             True
 
         "signalGenerator" ->
+            True
+
+        "file" ->
             True
 
         "sync" ->
@@ -1166,6 +1210,9 @@ viewNode model parent node depth =
                 "serialDev" ->
                     NodeSerialDev.view
 
+                "canBus" ->
+                    NodeCanBus.view
+
                 "rule" ->
                     NodeRule.view
 
@@ -1189,6 +1236,9 @@ viewNode model parent node depth =
 
                 "signalGenerator" ->
                     SignalGenerator.view
+
+                "file" ->
+                    File.view
 
                 "sync" ->
                     NodeSync.view
@@ -1254,6 +1304,7 @@ viewNode model parent node depth =
                     , nodes = model.nodes
                     , expDetail = node.expDetail
                     , onEditNodePoint = EditNodePoint node.feID
+                    , onUploadFile = UploadFile node.node.id
                     , copy = model.copyMove
                     }
                 , viewIf node.mod <|
@@ -1320,6 +1371,7 @@ nodeTypesThatHaveChildNodes =
     , Node.typeModbus
     , Node.typeOneWire
     , Node.typeSerialDev
+    , Node.typeCanBus
     , Node.typeRule
     ]
 
@@ -1376,6 +1428,14 @@ nodeDescSerialDev : Element Msg
 nodeDescSerialDev =
     row [] [ Icon.serialDev, text "Serial Device" ]
 
+nodeDescCanBus : Element Msg
+nodeDescCanBus =
+    row [] [ Icon.serialDev, text "CAN Bus" ]
+
+nodeDescCanDatabase : Element Msg
+nodeDescCanDatabase =
+    row [] [ Icon.database, text "CAN Database" ]
+
 
 nodeDescRule : Element Msg
 nodeDescRule =
@@ -1400,6 +1460,11 @@ nodeDescVariable =
 nodeDescSignalGenerator : Element Msg
 nodeDescSignalGenerator =
     row [] [ Icon.activity, text "Signal Generator" ]
+
+
+nodeDescFile : Element Msg
+nodeDescFile =
+    row [] [ Icon.file, text "File" ]
 
 
 nodeDescSync : Element Msg
@@ -1437,10 +1502,12 @@ viewAddNode parent add =
                             , Input.option Node.typeRule nodeDescRule
                             , Input.option Node.typeModbus nodeDescModbus
                             , Input.option Node.typeSerialDev nodeDescSerialDev
+                            , Input.option Node.typeCanBus nodeDescCanBus
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
                             , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
+                            , Input.option Node.typeFile nodeDescFile
                             , Input.option Node.typeSync nodeDescSync
                             ]
 
@@ -1453,10 +1520,12 @@ viewAddNode parent add =
                             , Input.option Node.typeRule nodeDescRule
                             , Input.option Node.typeModbus nodeDescModbus
                             , Input.option Node.typeSerialDev nodeDescSerialDev
+                            , Input.option Node.typeCanBus nodeDescCanBus
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeVariable nodeDescVariable
                             , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
+                            , Input.option Node.typeFile nodeDescFile
                             ]
 
                         else
@@ -1473,6 +1542,12 @@ viewAddNode parent add =
                             , Input.option Node.typeAction nodeDescAction
                             , Input.option Node.typeActionInactive nodeDescActionInactive
                             ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.node.typ == Node.typeCanBus then
+                            [ Input.option Node.typeFile nodeDescFile ]
 
                         else
                             []
