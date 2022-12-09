@@ -86,18 +86,17 @@ func (cb *CanBusClient) Start() error {
 			if err != nil {
 				log.Println(errors.Wrap(err, "CanBusClient: Error parsing database file"))
 				return
-			} else {
-				for _, b := range db.Busses {
-					cb.config.MsgsInDb += len(b.Messages)
-					for _, m := range b.Messages {
-						cb.config.SignalsInDb += len(m.Signals)
-						/*
-							for _, s := range m.Signals {
-								log.Printf("CanBusClient: read msg %X sig %v: start=%v len=%v scale=%v offset=%v unit=%v",
-									m.Id, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
-							}
-						*/
-					}
+			}
+			for _, b := range db.Busses {
+				cb.config.MsgsInDb += len(b.Messages)
+				for _, m := range b.Messages {
+					cb.config.SignalsInDb += len(m.Signals)
+					/*
+						for _, s := range m.Signals {
+							log.Printf("CanBusClient: read msg %X sig %v: start=%v len=%v scale=%v offset=%v unit=%v",
+								m.Id, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
+						}
+					*/
 				}
 			}
 		}
