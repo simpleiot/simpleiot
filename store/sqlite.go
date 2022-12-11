@@ -703,7 +703,7 @@ NextPin:
 		edge.Down = nodeID
 		edge.Type = nodeType
 
-		// look for exising node points that must be added to the hash
+		// look for existing node points that must be added to the hash
 		rowsPoints, err := tx.Query("SELECT * FROM node_points WHERE node_id=?", nodeID)
 		if err != nil {
 			rollback()
@@ -738,7 +738,7 @@ NextPin:
 
 		if err != nil {
 			log.Println("edge insert failed, trying again ...: ", err)
-			// FIXME, occasionaly the above INSERT will fail with "database is locked (5) (SQLITE_BUSY)"
+			// FIXME, occasionally the above INSERT will fail with "database is locked (5) (SQLITE_BUSY)"
 			// FIXME, not sure if retry is required any more since we removed the nested
 			// queries
 			// not sure why, but the below retry seems to work around this issue for now

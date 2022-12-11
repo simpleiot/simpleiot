@@ -65,10 +65,10 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 // Start runs the main logic for this client and blocks until stopped
 // There are several main aspects of the CAN bus client
 //
-//   - the listener function is a process that recieves CAN bus frames from the Linux
+//   - the listener function is a process that receives CAN bus frames from the Linux
 //	   SocketCAN socket and sends the frames out on the canMsgRx channel
 //
-//   - when a frame is recieved on the canMsgRx channel in the main loop, it is decoded
+//   - when a frame is received on the canMsgRx channel in the main loop, it is decoded
 //	   and a point is sent out for each canparse.Signal in the frame. The key of each point
 //     contains the message name, signal name, and signal units
 //
@@ -230,7 +230,7 @@ func (cb *CanBusClient) Start() error {
 				}
 			}
 
-			// Reset db msgs recieved counter
+			// Reset db msgs received counter
 			if cb.config.MsgsRecvdDbReset {
 				points := data.Points{
 					{Time: time.Now(), Type: data.PointTypeMsgsRecvdDb, Value: 0},
@@ -238,14 +238,14 @@ func (cb *CanBusClient) Start() error {
 				}
 				err = SendPoints(cb.nc, cb.natsSub, points, false)
 				if err != nil {
-					log.Println("Error resetting CAN message recieved count: ", err)
+					log.Println("Error resetting CAN message received count: ", err)
 				}
 
 				cb.config.MsgsRecvdDbReset = false
 				cb.config.MsgsRecvdDb = 0
 			}
 
-			// Reset other msgs recieved counter
+			// Reset other msgs received counter
 			if cb.config.MsgsRecvdOtherReset {
 				points := data.Points{
 					{Time: time.Now(), Type: data.PointTypeMsgsRecvdOther, Value: 0},
@@ -253,7 +253,7 @@ func (cb *CanBusClient) Start() error {
 				}
 				err = SendPoints(cb.nc, cb.natsSub, points, false)
 				if err != nil {
-					log.Println("Error resetting CAN message recieved count: ", err)
+					log.Println("Error resetting CAN message received count: ", err)
 				}
 
 				cb.config.MsgsRecvdOtherReset = false

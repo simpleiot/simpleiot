@@ -256,7 +256,7 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request, userID st
 		node.ID = uuid.New().String()
 	}
 
-	// populate orgin for all points
+	// populate origin for all points
 	for i := range node.Points {
 		node.Points[i].Origin = userID
 	}
@@ -280,7 +280,7 @@ func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id, us
 		return
 	}
 
-	// populate orgin for all points
+	// populate origin for all points
 	for i := range points {
 		points[i].Origin = userID
 		//points[i].Time = time.Now()

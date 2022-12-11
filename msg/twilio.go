@@ -12,7 +12,7 @@ type Twilio struct {
 	smsFrom      string
 }
 
-// NewTwilio creates a new messanger object
+// NewTwilio creates a new messenger object
 func NewTwilio(twilioSid, twilioAuth, smsFrom string) *Twilio {
 	return &Twilio{
 		twilioClient: twilio.NewClient(twilioSid, twilioAuth, nil),
