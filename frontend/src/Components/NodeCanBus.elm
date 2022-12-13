@@ -49,6 +49,11 @@ view o =
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeDevice "Device" "can0"
+                    , textInput Point.typeBitRate "Bit rate" "250000"
+                    , el [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "Messages in db: "
+                        ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeMsgsInDb ""))
+                    , el [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "Signals in db: "
+                        ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeSignalsInDb ""))
                     , el [ width (px labelWidth) ] <|
                         el [ alignRight ] <|
                             text <|

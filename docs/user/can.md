@@ -40,7 +40,7 @@ Next, setup the virtual socketCan interface.
 Run this in the command line. [Reference](https://www.pragmaticlinux.com/2021/10/how-to-create-a-virtual-can-interface-on-linux/)
 
 ```bash
-sudo modprobe vcan0
+sudo modprobe vcan
 sudo ip link add dev vcan0 type vcan
 sudo ip link set up vcan0
 ```
@@ -181,7 +181,7 @@ func main() {
 		ID:          "ID-canBus",
 		Parent:      root.ID,
 		Description: "vcan0",
-		Interface:   "vcan0",
+		Device:      "vcan0",
 	}
 
 	err = client.SendNodeType(nc, canBusTest, "test")
@@ -212,6 +212,10 @@ func main() {
 Follow instructions from the "Test with Messages" section above.
 
 ## Future Work
+- Scale and translate messages based on scale and offset parameters in database
+- Auto connect to CAN bus in case it is brought up after SIOT client is started
+- Attempt to bring up CAN bus within client, handle case where it is already up
 - Support multiple CAN database files per node (be selective in which internal db is updated when a name or data point is recieved in the client)
 - Support sending messages (concept of nodes and send/recieve pulled from databases??)
 - Support .dbc file format in addition to .kcd
+- Add the concept of a device to the CAN message points

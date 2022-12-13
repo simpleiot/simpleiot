@@ -211,13 +211,13 @@ const (
 
 	// CAN bus clients
 	NodeTypeCanBus               = "canBus"
+	PointTypeBitRate             = "bitRate"
 	PointTypeMsgsInDb            = "msgsInDb"
 	PointTypeSignalsInDb         = "signalsInDb"
 	PointTypeMsgsRecvdDb         = "msgsRecvdDb"
 	PointTypeMsgsRecvdDbReset    = "msgsRecvdDbReset"
 	PointTypeMsgsRecvdOther      = "msgsRecvdOther"
 	PointTypeMsgsRecvdOtherReset = "msgsRecvdOtherReset"
-	NodeTypeCanDatabase          = "canDatabase"
 
 	NodeTypeSignalGenerator = "signalGenerator"
 

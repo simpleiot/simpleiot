@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
+	"os/exec"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -21,6 +23,7 @@ type CanBus struct {
 	Parent              string `node:"parent"`
 	Description         string `point:"description"`
 	Device              string `point:"device"`
+	BitRate             string `point:"bitRate"`
 	MsgsInDb            int    `point:"msgsInDb"`
 	SignalsInDb         int    `point:"signalsInDb"`
 	MsgsRecvdDb         int    `point:"msgsRecvdDb"`
@@ -65,13 +68,13 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 // Start runs the main logic for this client and blocks until stopped
 // There are several main aspects of the CAN bus client
 //
-//   - the listener function is a process that receives CAN bus frames from the Linux
-//	   SocketCAN socket and sends the frames out on the canMsgRx channel
+//   - the listener function is a process that recieves CAN bus frames from the
+//	   Linux SocketCAN socket and sends the frames out on the canMsgRx channel
 //
-//   - when a frame is received on the canMsgRx channel in the main loop, it is decoded
-//	   and a point is sent out for each canparse.Signal in the frame. The key of each point
-//     contains the message name, signal name, and signal units
-//
+//   - when a frame is recieved on the canMsgRx channel in the main loop, it is
+//	   decoded and a point is sent out for each canparse.Signal in the frame.
+//	   The key of each point contains the message name, signal name, and signal
+//	   units
 func (cb *CanBusClient) Start() error {
 	log.Println("CanBusClient: Starting CAN bus client:", cb.config.Description)
 
@@ -128,6 +131,30 @@ func (cb *CanBusClient) Start() error {
 	// setupDev bringDownDev must be called before every call of setupDev //
 	// except for the first call
 	setupDev := func() {
+
+		// Set up the socketCan interface
+		iface, err := net.InterfaceByName(cb.config.Device)
+		if err != nil {
+			log.Println(errors.Wrap(err,
+				"CanBusClient: socketCan interface not found"))
+		}
+		if iface.Flags&net.FlagUp == 0 {
+			err = exec.Command(
+				"ip", "link", "set", cb.config.Device, "up", "type",
+				"can", "bitrate", cb.config.BitRate).Run()
+			if err != nil {
+				log.Println(
+					errors.Wrap(err, fmt.Sprintf("CanBusClient: error bringing up socketCan interface with: device=%v, bitrate=%v",
+						cb.config.Device, cb.config.BitRate)))
+
+			} else {
+				log.Println(
+					"CanBusClient: bringing up socketCan interface with:",
+					cb.config.Device, cb.config.BitRate)
+			}
+		}
+
+		// Connect to the socketCan interface
 		ctx, cancelContext = context.WithCancel(context.Background())
 		_ = cancelContext
 		conn, err := socketcan.DialContext(ctx, "can", cb.config.Device)
@@ -137,6 +164,7 @@ func (cb *CanBusClient) Start() error {
 		}
 		recv := socketcan.NewReceiver(conn)
 
+		// Listen on the socketCan interface
 		listener := func() {
 			for recv.Receive() {
 				frame := recv.Frame()
@@ -173,9 +201,10 @@ func (cb *CanBusClient) Start() error {
 			points := make(data.Points, len(msg.Signals))
 			for i, sig := range msg.Signals {
 				points[i].Type = data.PointTypeValue
-				points[i].Key = fmt.Sprintf("%v.%v[%v]", msg.Name, sig.Name, sig.Unit)
+				points[i].Key = fmt.Sprintf("%v.%v[%v]",
+					msg.Name, sig.Name, sig.Unit)
 				points[i].Time = time.Now()
-				points[i].Value = float64(sig.Value)
+				points[i].Value = sig.Value
 			}
 
 			// Populate points to update CAN client stats
@@ -213,6 +242,7 @@ func (cb *CanBusClient) Start() error {
 					bringDownDev()
 					setupDev()
 				case data.PointTypeData:
+					log.Println("New Data Point:", p.Index, p.Key)
 					// FIXME shouldn't have to do this manually
 					if len(cb.config.Databases) > 0 {
 						cb.config.Databases[0].Data = p.Text
