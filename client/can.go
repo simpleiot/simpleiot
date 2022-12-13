@@ -204,7 +204,7 @@ func (cb *CanBusClient) Start() error {
 				points[i].Key = fmt.Sprintf("%v.%v[%v]",
 					msg.Name, sig.Name, sig.Unit)
 				points[i].Time = time.Now()
-				points[i].Value = sig.Value
+				points[i].Value = float64(sig.Value)
 			}
 
 			// Populate points to update CAN client stats
