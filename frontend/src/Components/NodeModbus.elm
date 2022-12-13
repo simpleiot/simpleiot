@@ -13,33 +13,6 @@ import UI.ViewIf exposing (viewIf)
 view : NodeOptions msg -> Element msg
 view o =
     let
-        labelWidth =
-            180
-
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
-        numberInput =
-            NodeInputs.nodeNumberInput opts ""
-
-        counterWithReset =
-            NodeInputs.nodeCounterWithReset opts ""
-
-        optionInput =
-            NodeInputs.nodeOptionInput opts ""
-
-        checkboxInput =
-            NodeInputs.nodeCheckboxInput opts ""
-
-        clientServer =
-            Point.getText o.node.points Point.typeClientServer ""
-
-        protocol =
-            Point.getText o.node.points Point.typeProtocol ""
-
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
     in
@@ -57,6 +30,34 @@ view o =
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
+                    let
+                        labelWidth =
+                            180
+
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+
+                        numberInput =
+                            NodeInputs.nodeNumberInput opts ""
+
+                        counterWithReset =
+                            NodeInputs.nodeCounterWithReset opts ""
+
+                        optionInput =
+                            NodeInputs.nodeOptionInput opts ""
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts ""
+
+                        clientServer =
+                            Point.getText o.node.points Point.typeClientServer ""
+
+                        protocol =
+                            Point.getText o.node.points Point.typeProtocol ""
+                    in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeClientServer
                         "Client/Server"

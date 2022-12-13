@@ -8,7 +8,6 @@ module UI.NodeInputs exposing
     , nodePasteButton
     , nodeTextInput
     , nodeTimeDateInput
-    , nodeTimeInput
     )
 
 import Api.Node exposing (Node)
@@ -24,7 +23,7 @@ import Time
 import Time.Extra
 import UI.Button
 import UI.Sanitize as Sanitize
-import Utils.Time exposing (scheduleToLocal, scheduleToUTC, toLocal, toUTC)
+import Utils.Time exposing (scheduleToLocal, scheduleToUTC)
 
 
 type alias NodeInputOptions msg =
@@ -51,51 +50,6 @@ nodeTextInput o key typ lbl placeholder =
                 o.onEditNodePoint [ Point typ key o.now 0 0 d 0 ]
         , text = Point.getText o.node.points typ key
         , placeholder = Just <| Input.placeholder [] <| text placeholder
-        , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
-        }
-
-
-nodeTimeInput :
-    NodeInputOptions msg
-    -> String
-    -> String
-    -> String
-    -> Element msg
-nodeTimeInput o key typ lbl =
-    let
-        zoneOffset =
-            Time.Extra.toOffset o.zone o.now
-
-        current =
-            Point.getText o.node.points typ key
-
-        display =
-            case Sanitize.parseHM current of
-                Just time ->
-                    toLocal zoneOffset time
-
-                Nothing ->
-                    current
-    in
-    Input.text
-        []
-        { onChange =
-            \d ->
-                let
-                    dClean =
-                        Sanitize.time d
-
-                    sendValue =
-                        case Sanitize.parseHM dClean of
-                            Just time ->
-                                toUTC zoneOffset time
-
-                            Nothing ->
-                                d
-                in
-                o.onEditNodePoint [ Point typ key o.now 0 0 sendValue 0 ]
-        , text = display
-        , placeholder = Nothing
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
 
@@ -464,16 +418,6 @@ nodeOnOffInput o key typ pointSetName lbl =
             else
                 Color.rgb255 50 100 150
 
-        fillFade =
-            if currentSetValue == 0 then
-                Color.rgb 0.9 0.9 0.9
-
-            else
-                Color.rgb255 150 200 255
-
-        fillFadeS =
-            Color.toCssString fillFade
-
         fillS =
             Color.toCssString fill
 
@@ -511,6 +455,17 @@ nodeOnOffInput o key typ pointSetName lbl =
                                 ]
                               <|
                                 if currentValue /= currentSetValue then
+                                    let
+                                        fillFade =
+                                            if currentSetValue == 0 then
+                                                Color.rgb 0.9 0.9 0.9
+
+                                            else
+                                                Color.rgb255 150 200 255
+
+                                        fillFadeS =
+                                            Color.toCssString fillFade
+                                    in
                                     [ S.animate
                                         [ Sa.attributeName "fill"
                                         , Sa.dur "2s"

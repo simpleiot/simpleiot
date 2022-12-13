@@ -1,7 +1,5 @@
 module Api.Auth exposing
     ( Auth
-    , Cred
-    , empty
     , login
     )
 
@@ -12,21 +10,10 @@ import Json.Decode.Pipeline exposing (required)
 import Url.Builder
 
 
-type alias Cred =
-    { email : String
-    , password : String
-    }
-
-
 type alias Auth =
     { token : String
     , email : String
     }
-
-
-empty : Auth
-empty =
-    Auth "" ""
 
 
 decodeResponse : Decode.Decoder Auth

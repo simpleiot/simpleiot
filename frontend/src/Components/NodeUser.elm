@@ -15,12 +15,6 @@ view o =
         labelWidth =
             100
 
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
         textInputLowerCase =
             NodeInputs.nodeTextInput
                 { onEditNodePoint =
@@ -48,6 +42,13 @@ view o =
                     ++ Point.getText o.node.points Point.typeLastName ""
             ]
             :: (if o.expDetail then
+                    let
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+                    in
                     [ textInput Point.typeFirstName "First Name" ""
                     , textInput Point.typeLastName "Last Name" ""
                     , textInputLowerCase Point.typeEmail "Email" ""

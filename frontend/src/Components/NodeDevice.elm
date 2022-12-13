@@ -37,12 +37,7 @@ view o =
                     Element.none
 
         background =
-            case sysState of
-                "online" ->
-                    Style.colors.white
-
-                _ ->
-                    Style.colors.white
+            Style.colors.white
 
         versionHW =
             case Point.get o.node.points Point.typeVersionHW "" of

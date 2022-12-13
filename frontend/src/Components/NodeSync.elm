@@ -13,21 +13,6 @@ import UI.ViewIf exposing (viewIf)
 view : NodeOptions msg -> Element msg
 view o =
     let
-        opts =
-            oToInputO o 100
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
-        textNumber =
-            NodeInputs.nodeNumberInput opts ""
-
-        checkboxInput =
-            NodeInputs.nodeCheckboxInput opts ""
-
-        counterWithReset =
-            NodeInputs.nodeCounterWithReset opts ""
-
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
     in
@@ -45,6 +30,22 @@ view o =
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
+                    let
+                        opts =
+                            oToInputO o 100
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+
+                        textNumber =
+                            NodeInputs.nodeNumberInput opts ""
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts ""
+
+                        counterWithReset =
+                            NodeInputs.nodeCounterWithReset opts ""
+                    in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeURI "URI" "nats://myserver:4222, ws://myserver"
                     , textInput Point.typeAuthToken "Auth Token" ""
