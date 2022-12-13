@@ -40,7 +40,7 @@ Next, setup the virtual socketCan interface.
 Run this in the command line. [Reference](https://www.pragmaticlinux.com/2021/10/how-to-create-a-virtual-can-interface-on-linux/)
 
 ```bash
-sudo modprobe vcan0
+sudo modprobe vcan
 sudo ip link add dev vcan0 type vcan
 sudo ip link set up vcan0
 ```
@@ -181,7 +181,7 @@ func main() {
 		ID:          "ID-canBus",
 		Parent:      root.ID,
 		Description: "vcan0",
-		Interface:   "vcan0",
+		Device:      "vcan0",
 	}
 
 	err = client.SendNodeType(nc, canBusTest, "test")
