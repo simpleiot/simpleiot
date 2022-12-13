@@ -68,7 +68,6 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 // Start runs the main logic for this client and blocks until stopped
 // There are several main aspects of the CAN bus client
 //
-<<<<<<< HEAD
 //   - the listener function is a process that recieves CAN bus frames from the
 //	   Linux SocketCAN socket and sends the frames out on the canMsgRx channel
 //
@@ -76,15 +75,6 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 //	   decoded and a point is sent out for each canparse.Signal in the frame.
 //	   The key of each point contains the message name, signal name, and signal
 //	   units
-=======
-//   - the listener function is a process that receives CAN bus frames from the Linux
-//	   SocketCAN socket and sends the frames out on the canMsgRx channel
-//
-//   - when a frame is received on the canMsgRx channel in the main loop, it is decoded
-//	   and a point is sent out for each canparse.Signal in the frame. The key of each point
-//     contains the message name, signal name, and signal units
->>>>>>> 91168ae532bd40061d21202cf2c4c7f1feb254ac
-//
 func (cb *CanBusClient) Start() error {
 	log.Println("CanBusClient: Starting CAN bus client:", cb.config.Description)
 
