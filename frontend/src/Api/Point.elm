@@ -23,6 +23,7 @@ module Api.Point exposing
     , typeAmplitude
     , typeAuthToken
     , typeBaud
+    , typeBitRate
     , typeBucket
     , typeChannel
     , typeClientServer
@@ -783,7 +784,9 @@ typeData : String
 typeData =
     "data"
 
-
+typeBitRate : String
+typeBitRate =
+    "bitRate"
 
 -- Point should match data/Point.go
 

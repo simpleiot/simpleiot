@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
+	"os/exec"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -21,6 +23,7 @@ type CanBus struct {
 	Parent              string `node:"parent"`
 	Description         string `point:"description"`
 	Device              string `point:"device"`
+	BitRate             string `point:"bitRate"`
 	MsgsInDb            int    `point:"msgsInDb"`
 	SignalsInDb         int    `point:"signalsInDb"`
 	MsgsRecvdDb         int    `point:"msgsRecvdDb"`
@@ -130,6 +133,30 @@ func (cb *CanBusClient) Start() error {
 	// setupDev bringDownDev must be called before every call of setupDev //
 	// except for the first call
 	setupDev := func() {
+
+		// Set up the socketCan interface
+		iface, err := net.InterfaceByName(cb.config.Device)
+		if err != nil {
+			log.Println(errors.Wrap(err,
+				"CanBusClient: socketCan interface not found"))
+		}
+		if iface.Flags&net.FlagUp == 0 {
+			err = exec.Command(
+				"ip", "link", "set", cb.config.Device, "up", "type",
+				"can", "bitrate", cb.config.BitRate).Run()
+			if err != nil {
+				log.Println(
+					errors.Wrap(err, fmt.Sprintf("CanBusClient: error bringing up socketCan interface with: device=%v, bitrate=%v",
+						cb.config.Device, cb.config.BitRate)))
+
+			} else {
+				log.Println(
+					"CanBusClient: bringing up socketCan interface with:",
+					cb.config.Device, cb.config.BitRate)
+			}
+		}
+
+		// Connect to the socketCan interface
 		ctx, cancelContext = context.WithCancel(context.Background())
 		_ = cancelContext
 		conn, err := socketcan.DialContext(ctx, "can", cb.config.Device)
@@ -139,6 +166,7 @@ func (cb *CanBusClient) Start() error {
 		}
 		recv := socketcan.NewReceiver(conn)
 
+		// Listen on the socketCan interface
 		listener := func() {
 			for recv.Receive() {
 				frame := recv.Frame()
@@ -216,6 +244,7 @@ func (cb *CanBusClient) Start() error {
 					bringDownDev()
 					setupDev()
 				case data.PointTypeData:
+					log.Println("New Data Point:", p.Index, p.Key)
 					// FIXME shouldn't have to do this manually
 					if len(cb.config.Databases) > 0 {
 						cb.config.Databases[0].Data = p.Text
