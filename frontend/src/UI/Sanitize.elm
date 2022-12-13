@@ -54,25 +54,26 @@ timeHelper state =
         sIn =
             Tuple.first state
 
-        sOut =
-            Tuple.second state
-
         sInList =
             String.toList sIn
-
-        sOutList =
-            String.toList sOut
-
-        checkDigit =
-            \c rest ->
-                if Char.isDigit c then
-                    timeHelper ( String.fromList rest, String.fromList <| sOutList ++ [ c ] )
-
-                else
-                    ( "", sOut )
     in
     case sInList of
         c :: rest ->
+            let
+                sOut =
+                    Tuple.second state
+
+                sOutList =
+                    String.toList sOut
+
+                checkDigit =
+                    \ch chRest ->
+                        if Char.isDigit ch then
+                            timeHelper ( String.fromList chRest, String.fromList <| sOutList ++ [ ch ] )
+
+                        else
+                            ( "", sOut )
+            in
             case List.length sOutList of
                 0 ->
                     checkDigit c rest

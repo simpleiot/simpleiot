@@ -1258,17 +1258,6 @@ viewNode model parent node depth =
 
         alignButton =
             el [ alignTop, paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ]
-
-        msg =
-            Maybe.andThen
-                (\m ->
-                    if m.feID == node.feID then
-                        Just m.text
-
-                    else
-                        Nothing
-                )
-                model.nodeMsg
     in
     el
         [ width fill
@@ -1321,6 +1310,17 @@ viewNode model parent node depth =
                     let
                         viewNodeOps =
                             viewNodeOperations node msg
+
+                        msg =
+                            Maybe.andThen
+                                (\m ->
+                                    if m.feID == node.feID then
+                                        Just m.text
+
+                                    else
+                                        Nothing
+                                )
+                                model.nodeMsg
                     in
                     case model.nodeOp of
                         OpNone ->
