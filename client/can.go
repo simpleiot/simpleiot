@@ -65,12 +65,13 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 // Start runs the main logic for this client and blocks until stopped
 // There are several main aspects of the CAN bus client
 //
-//   - the listener function is a process that recieves CAN bus frames from the Linux
-//	   SocketCAN socket and sends the frames out on the canMsgRx channel
+//   - the listener function is a process that recieves CAN bus frames from the
+//	   Linux SocketCAN socket and sends the frames out on the canMsgRx channel
 //
-//   - when a frame is recieved on the canMsgRx channel in the main loop, it is decoded
-//	   and a point is sent out for each canparse.Signal in the frame. The key of each point
-//     contains the message name, signal name, and signal units
+//   - when a frame is recieved on the canMsgRx channel in the main loop, it is
+//	   decoded and a point is sent out for each canparse.Signal in the frame.
+//	   The key of each point contains the message name, signal name, and signal
+//	   units
 //
 func (cb *CanBusClient) Start() error {
 	log.Println("CanBusClient: Starting CAN bus client:", cb.config.Description)
@@ -174,9 +175,10 @@ func (cb *CanBusClient) Start() error {
 			points := make(data.Points, len(msg.Signals))
 			for i, sig := range msg.Signals {
 				points[i].Type = data.PointTypeValue
-				points[i].Key = fmt.Sprintf("%v.%v[%v]", msg.Name, sig.Name, sig.Unit)
+				points[i].Key = fmt.Sprintf("%v.%v[%v]",
+					msg.Name, sig.Name, sig.Unit)
 				points[i].Time = time.Now()
-				points[i].Value = float64(sig.Value)
+				points[i].Value = sig.Value
 			}
 
 			// Populate points to update CAN client stats

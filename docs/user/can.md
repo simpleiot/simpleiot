@@ -212,6 +212,10 @@ func main() {
 Follow instructions from the "Test with Messages" section above.
 
 ## Future Work
+- Scale and translate messages based on scale and offset parameters in database
+- Auto connect to CAN bus in case it is brought up after SIOT client is started
+- Attempt to bring up CAN bus within client, handle case where it is already up
 - Support multiple CAN database files per node (be selective in which internal db is updated when a name or data point is recieved in the client)
 - Support sending messages (concept of nodes and send/recieve pulled from databases??)
 - Support .dbc file format in addition to .kcd
+- Add the concept of a device to the CAN message points
