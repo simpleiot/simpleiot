@@ -1,16 +1,11 @@
 module UI.Form exposing
     ( button
     , buttonRow
-    , label
     , onEnter
     , onEnterEsc
-    , onEsc
-    , viewTextProperty
     )
 
 import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Html.Events
@@ -53,57 +48,6 @@ onEnterEsc enterMsg escMsg =
                     )
             )
         )
-
-
-onEsc : msg -> Element.Attribute msg
-onEsc msg =
-    Element.htmlAttribute
-        (Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Escape" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the esc key"
-                    )
-            )
-        )
-
-
-type alias TextProperty msg =
-    { name : String
-    , value : String
-    , action : String -> msg
-    }
-
-
-viewTextProperty : TextProperty msg -> Element msg
-viewTextProperty { name, value, action } =
-    Input.text
-        [ padding 16
-        , width (fill |> minimum 150)
-        , Border.width 0
-        , Border.rounded 0
-        , Background.color Style.colors.pale
-        , spacing 0
-        ]
-        { onChange = action
-        , text = value
-        , placeholder = Nothing
-        , label = label Input.labelAbove name
-        }
-
-
-label : (List (Attribute msg) -> Element msg -> Input.Label msg) -> (String -> Input.Label msg)
-label kind =
-    kind
-        [ padding 16
-        , Font.italic
-        , Font.color Style.colors.gray
-        ]
-        << text
 
 
 buttonRow : List (Element msg) -> Element msg

@@ -36,7 +36,7 @@ func (gps *Gps) SetDebug(d bool) {
 	gps.debug = d
 }
 
-// Stop can be used to stop the GPS aquisition and close port
+// Stop can be used to stop the GPS acquisition and close port
 func (gps *Gps) Stop() {
 	gps.port.Close()
 	gps.stop = true

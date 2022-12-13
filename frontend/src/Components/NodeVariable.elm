@@ -16,24 +16,6 @@ import UI.ViewIf exposing (viewIf)
 view : NodeOptions msg -> Element msg
 view o =
     let
-        labelWidth =
-            150
-
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
-        optionInput =
-            NodeInputs.nodeOptionInput opts ""
-
-        numberInput =
-            NodeInputs.nodeNumberInput opts ""
-
-        onOffInput =
-            NodeInputs.nodeOnOffInput opts ""
-
         value =
             Point.getValue o.node.points Point.typeValue ""
 
@@ -86,6 +68,25 @@ view o =
                            )
             ]
             :: (if o.expDetail then
+                    let
+                        labelWidth =
+                            150
+
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+
+                        optionInput =
+                            NodeInputs.nodeOptionInput opts ""
+
+                        numberInput =
+                            NodeInputs.nodeNumberInput opts ""
+
+                        onOffInput =
+                            NodeInputs.nodeOnOffInput opts ""
+                    in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeVariableType
                         "Variable type"

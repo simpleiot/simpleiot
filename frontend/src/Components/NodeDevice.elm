@@ -37,44 +37,7 @@ view o =
                     Element.none
 
         background =
-            case sysState of
-                "online" ->
-                    Style.colors.white
-
-                _ ->
-                    Style.colors.white
-
-        versionHW =
-            case Point.get o.node.points Point.typeVersionHW "" of
-                Just point ->
-                    "HW: " ++ point.text
-
-                Nothing ->
-                    ""
-
-        versionOS =
-            case Point.get o.node.points Point.typeVersionOS "" of
-                Just point ->
-                    "OS: " ++ point.text
-
-                Nothing ->
-                    ""
-
-        versionApp =
-            case Point.get o.node.points Point.typeVersionApp "" of
-                Just point ->
-                    "App: " ++ point.text
-
-                Nothing ->
-                    ""
-
-        latestPointTime =
-            case Point.getLatest o.node.points of
-                Just point ->
-                    point.time
-
-                Nothing ->
-                    Time.millisToPosix 0
+            Style.colors.white
     in
     column
         [ width fill
@@ -100,6 +63,39 @@ view o =
                 }
             ]
             :: (if o.expDetail then
+                    let
+                        latestPointTime =
+                            case Point.getLatest o.node.points of
+                                Just point ->
+                                    point.time
+
+                                Nothing ->
+                                    Time.millisToPosix 0
+
+                        versionHW =
+                            case Point.get o.node.points Point.typeVersionHW "" of
+                                Just point ->
+                                    "HW: " ++ point.text
+
+                                Nothing ->
+                                    ""
+
+                        versionOS =
+                            case Point.get o.node.points Point.typeVersionOS "" of
+                                Just point ->
+                                    "OS: " ++ point.text
+
+                                Nothing ->
+                                    ""
+
+                        versionApp =
+                            case Point.get o.node.points Point.typeVersionApp "" of
+                                Just point ->
+                                    "App: " ++ point.text
+
+                                Nothing ->
+                                    ""
+                    in
                     [ viewPoints <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
                     , text

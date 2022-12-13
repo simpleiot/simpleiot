@@ -13,29 +13,8 @@ import UI.ViewIf exposing (viewIf)
 view : NodeOptions msg -> Element msg
 view o =
     let
-        labelWidth =
-            180
-
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
-        numberInput =
-            NodeInputs.nodeNumberInput opts ""
-
-        counterWithReset =
-            NodeInputs.nodeCounterWithReset opts ""
-
-        checkboxInput =
-            NodeInputs.nodeCheckboxInput opts ""
-
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
-
-        index =
-            Point.getValue o.node.points Point.typeIndex ""
     in
     column
         [ width fill
@@ -51,6 +30,28 @@ view o =
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
+                    let
+                        labelWidth =
+                            180
+
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+
+                        numberInput =
+                            NodeInputs.nodeNumberInput opts ""
+
+                        counterWithReset =
+                            NodeInputs.nodeCounterWithReset opts ""
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts ""
+
+                        index =
+                            Point.getValue o.node.points Point.typeIndex ""
+                    in
                     [ el [ paddingEach { top = 0, right = 0, bottom = 0, left = 70 } ] <|
                         text <|
                             "Bus #: "

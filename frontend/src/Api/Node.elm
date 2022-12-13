@@ -1,23 +1,19 @@
 module Api.Node exposing
     ( Node
     , NodeView
+    , Notification
     , copy
     , delete
     , description
-    , get
     , getBestDesc
-    , getCmd
     , insert
     , list
     , move
     , notify
-    , postCmd
     , postPoints
-    , sysStateOffline
-    , sysStateOnline
-    , sysStatePowerOff
     , typeAction
     , typeActionInactive
+    , typeCanBus
     , typeCondition
     , typeDb
     , typeDevice
@@ -27,11 +23,8 @@ module Api.Node exposing
     , typeModbusIO
     , typeMsgService
     , typeOneWire
-    , typeOneWireIO
     , typeRule
     , typeSerialDev
-    , typeCanBus
-    , typeCanDatabase
     , typeSignalGenerator
     , typeSync
     , typeUser
@@ -46,21 +39,6 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Url.Builder
-
-
-sysStatePowerOff : Int
-sysStatePowerOff =
-    1
-
-
-sysStateOffline : Int
-sysStateOffline =
-    2
-
-
-sysStateOnline : Int
-sysStateOnline =
-    3
 
 
 typeDevice : String
@@ -123,22 +101,15 @@ typeOneWire =
     "oneWire"
 
 
-typeOneWireIO : String
-typeOneWireIO =
-    "oneWireIO"
-
-
 typeSerialDev : String
 typeSerialDev =
     "serialDev"
+
 
 typeCanBus : String
 typeCanBus =
     "canBus"
 
-typeCanDatabase : String
-typeCanDatabase =
-    "canDatabase"
 
 typeVariable : String
 typeVariable =
@@ -182,12 +153,6 @@ type alias NodeView =
     , expDetail : Bool
     , expChildren : Bool
     , mod : Bool
-    }
-
-
-type alias NodeCmd =
-    { cmd : String
-    , detail : String
     }
 
 
@@ -235,13 +200,6 @@ decode =
         |> optional "edgePoints" (Decode.list Point.decode) []
 
 
-decodeCmd : Decode.Decoder NodeCmd
-decodeCmd =
-    Decode.succeed NodeCmd
-        |> required "cmd" Decode.string
-        |> optional "detail" Decode.string ""
-
-
 encode : Node -> Encode.Value
 encode node =
     Encode.object
@@ -251,14 +209,6 @@ encode node =
         , ( "parent", Encode.string node.parent )
         , ( "points", Point.encodeList node.points )
         , ( "edgePoints", Point.encodeList node.edgePoints )
-        ]
-
-
-encodeNodeCmd : NodeCmd -> Encode.Value
-encodeNodeCmd cmd =
-    Encode.object
-        [ ( "cmd", Encode.string cmd.cmd )
-        , ( "detail", Encode.string cmd.detail )
         ]
 
 
@@ -330,42 +280,6 @@ list options =
         }
 
 
-get :
-    { token : String
-    , id : String
-    , onResponse : Data Node -> msg
-    }
-    -> Cmd msg
-get options =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "nodes", options.id ] []
-        , expect = Api.Data.expectJson options.onResponse decode
-        , body = Http.emptyBody
-        , timeout = Just <| 5 * 1000
-        , tracker = Nothing
-        }
-
-
-getCmd :
-    { token : String
-    , id : String
-    , onResponse : Data NodeCmd -> msg
-    }
-    -> Cmd msg
-getCmd options =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "cmd" ] []
-        , expect = Api.Data.expectJson options.onResponse decodeCmd
-        , body = Http.emptyBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
 delete :
     { token : String
     , id : String
@@ -398,25 +312,6 @@ insert options =
         , url = Url.Builder.absolute [ "v1", "nodes", options.node.id ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body = options.node |> encode |> Http.jsonBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-postCmd :
-    { token : String
-    , id : String
-    , cmd : NodeCmd
-    , onResponse : Data Response -> msg
-    }
-    -> Cmd msg
-postCmd options =
-    Http.request
-        { method = "POST"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "cmd" ] []
-        , expect = Api.Data.expectJson options.onResponse Response.decoder
-        , body = options.cmd |> encodeNodeCmd |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }

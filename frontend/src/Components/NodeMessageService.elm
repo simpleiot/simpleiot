@@ -11,19 +11,6 @@ import UI.Style exposing (colors)
 
 view : NodeOptions msg -> Element msg
 view o =
-    let
-        labelWidth =
-            150
-
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
-        optionInput =
-            NodeInputs.nodeOptionInput opts ""
-    in
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
@@ -37,6 +24,19 @@ view o =
                 Point.getText o.node.points Point.typeDescription ""
             ]
             :: (if o.expDetail then
+                    let
+                        labelWidth =
+                            150
+
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+
+                        optionInput =
+                            NodeInputs.nodeOptionInput opts ""
+                    in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeService
                         "Service"

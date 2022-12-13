@@ -68,6 +68,7 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 // Start runs the main logic for this client and blocks until stopped
 // There are several main aspects of the CAN bus client
 //
+<<<<<<< HEAD
 //   - the listener function is a process that recieves CAN bus frames from the
 //	   Linux SocketCAN socket and sends the frames out on the canMsgRx channel
 //
@@ -75,6 +76,14 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 //	   decoded and a point is sent out for each canparse.Signal in the frame.
 //	   The key of each point contains the message name, signal name, and signal
 //	   units
+=======
+//   - the listener function is a process that receives CAN bus frames from the Linux
+//	   SocketCAN socket and sends the frames out on the canMsgRx channel
+//
+//   - when a frame is received on the canMsgRx channel in the main loop, it is decoded
+//	   and a point is sent out for each canparse.Signal in the frame. The key of each point
+//     contains the message name, signal name, and signal units
+>>>>>>> 91168ae532bd40061d21202cf2c4c7f1feb254ac
 //
 func (cb *CanBusClient) Start() error {
 	log.Println("CanBusClient: Starting CAN bus client:", cb.config.Description)
@@ -90,18 +99,17 @@ func (cb *CanBusClient) Start() error {
 			if err != nil {
 				log.Println(errors.Wrap(err, "CanBusClient: Error parsing database file"))
 				return
-			} else {
-				for _, b := range db.Busses {
-					cb.config.MsgsInDb += len(b.Messages)
-					for _, m := range b.Messages {
-						cb.config.SignalsInDb += len(m.Signals)
-						/*
-							for _, s := range m.Signals {
-								log.Printf("CanBusClient: read msg %X sig %v: start=%v len=%v scale=%v offset=%v unit=%v",
-									m.Id, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
-							}
-						*/
-					}
+			}
+			for _, b := range db.Busses {
+				cb.config.MsgsInDb += len(b.Messages)
+				for _, m := range b.Messages {
+					cb.config.SignalsInDb += len(m.Signals)
+					/*
+						for _, s := range m.Signals {
+							log.Printf("CanBusClient: read msg %X sig %v: start=%v len=%v scale=%v offset=%v unit=%v",
+								m.Id, s.Name, s.Start, s.Length, s.Scale, s.Offset, s.Unit)
+						}
+					*/
 				}
 			}
 		}
@@ -262,7 +270,7 @@ func (cb *CanBusClient) Start() error {
 				}
 			}
 
-			// Reset db msgs recieved counter
+			// Reset db msgs received counter
 			if cb.config.MsgsRecvdDbReset {
 				points := data.Points{
 					{Time: time.Now(), Type: data.PointTypeMsgsRecvdDb, Value: 0},
@@ -270,14 +278,14 @@ func (cb *CanBusClient) Start() error {
 				}
 				err = SendPoints(cb.nc, cb.natsSub, points, false)
 				if err != nil {
-					log.Println("Error resetting CAN message recieved count: ", err)
+					log.Println("Error resetting CAN message received count: ", err)
 				}
 
 				cb.config.MsgsRecvdDbReset = false
 				cb.config.MsgsRecvdDb = 0
 			}
 
-			// Reset other msgs recieved counter
+			// Reset other msgs received counter
 			if cb.config.MsgsRecvdOtherReset {
 				points := data.Points{
 					{Time: time.Now(), Type: data.PointTypeMsgsRecvdOther, Value: 0},
@@ -285,7 +293,7 @@ func (cb *CanBusClient) Start() error {
 				}
 				err = SendPoints(cb.nc, cb.natsSub, points, false)
 				if err != nil {
-					log.Println("Error resetting CAN message recieved count: ", err)
+					log.Println("Error resetting CAN message received count: ", err)
 				}
 
 				cb.config.MsgsRecvdOtherReset = false

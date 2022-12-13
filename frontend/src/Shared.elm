@@ -82,9 +82,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.batch
-        [ Time.every 1000 Tick
-        ]
+    Time.every 1000 Tick
 
 
 

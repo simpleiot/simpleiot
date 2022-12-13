@@ -11,13 +11,6 @@ import UI.Style exposing (colors)
 
 view : NodeOptions msg -> Element msg
 view o =
-    let
-        opts =
-            oToInputO o 100
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-    in
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
@@ -31,6 +24,13 @@ view o =
                 Point.getText o.node.points Point.typeDescription ""
             ]
             :: (if o.expDetail then
+                    let
+                        opts =
+                            oToInputO o 100
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+                    in
                     [ textInput Point.typeDescription "Description" ""
                     ]
 

@@ -1,12 +1,12 @@
 module Spa.Page exposing
     ( Page
-    , static, sandbox, element, application
+    , static, application
     )
 
 {-|
 
 @docs Page
-@docs static, sandbox, element, application
+@docs static, application
 @docs Upgraded, Bundle, upgrade
 
 -}
@@ -36,40 +36,7 @@ static page =
     , view = page.view
     , subscriptions = \_ -> Sub.none
     , save = always identity
-    , load = always (identity >> ignoreEffect)
-    }
-
-
-sandbox :
-    { init : Url params -> model
-    , update : msg -> model -> model
-    , view : model -> Document msg
-    }
-    -> Page params model msg
-sandbox page =
-    { init = \_ url -> ( page.init url, Cmd.none )
-    , update = \msg model -> ( page.update msg model, Cmd.none )
-    , view = page.view
-    , subscriptions = \_ -> Sub.none
-    , save = always identity
-    , load = always (identity >> ignoreEffect)
-    }
-
-
-element :
-    { init : Url params -> ( model, Cmd msg )
-    , update : msg -> model -> ( model, Cmd msg )
-    , view : model -> Document msg
-    , subscriptions : model -> Sub msg
-    }
-    -> Page params model msg
-element page =
-    { init = \_ params -> page.init params
-    , update = \msg model -> page.update msg model
-    , view = page.view
-    , subscriptions = page.subscriptions
-    , save = always identity
-    , load = always (identity >> ignoreEffect)
+    , load = always ignoreEffect
     }
 
 

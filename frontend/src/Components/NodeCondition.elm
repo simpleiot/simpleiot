@@ -15,21 +15,6 @@ import UI.Style as Style
 view : NodeOptions msg -> Element msg
 view o =
     let
-        labelWidth =
-            150
-
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
-        optionInput =
-            NodeInputs.nodeOptionInput opts ""
-
-        conditionType =
-            Point.getText o.node.points Point.typeConditionType ""
-
         active =
             Point.getBool o.node.points Point.typeActive ""
 
@@ -61,6 +46,22 @@ view o =
                     Point.getText o.node.points Point.typeDescription ""
             ]
             :: (if o.expDetail then
+                    let
+                        labelWidth =
+                            150
+
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+
+                        optionInput =
+                            NodeInputs.nodeOptionInput opts ""
+
+                        conditionType =
+                            Point.getText o.node.points Point.typeConditionType ""
+                    in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeConditionType
                         "Type"
@@ -88,11 +89,8 @@ schedule o labelWidth =
     let
         opts =
             oToInputO o labelWidth
-
-        timeDateInput =
-            NodeInputs.nodeTimeDateInput opts labelWidth
     in
-    timeDateInput
+    NodeInputs.nodeTimeDateInput opts labelWidth
 
 
 pointValue : NodeOptions msg -> Int -> Element msg
@@ -110,32 +108,11 @@ pointValue o labelWidth =
         optionInput =
             NodeInputs.nodeOptionInput opts ""
 
-        onOffInput =
-            NodeInputs.nodeOnOffInput opts ""
-
         conditionValueType =
             Point.getText o.node.points Point.typeValueType ""
 
         nodeId =
             Point.getText o.node.points Point.typeNodeID ""
-
-        operators =
-            case conditionValueType of
-                "number" ->
-                    [ ( Point.valueGreaterThan, ">" )
-                    , ( Point.valueLessThan, "<" )
-                    , ( Point.valueEqual, "=" )
-                    , ( Point.valueNotEqual, "!=" )
-                    ]
-
-                "text" ->
-                    [ ( Point.valueEqual, "=" )
-                    , ( Point.valueNotEqual, "!=" )
-                    , ( Point.valueContains, "contains" )
-                    ]
-
-                _ ->
-                    []
     in
     column
         [ width fill
@@ -199,6 +176,25 @@ pointValue o labelWidth =
             , ( Point.valueText, "text" )
             ]
         , if conditionValueType /= Point.valueOnOff then
+            let
+                operators =
+                    case conditionValueType of
+                        "number" ->
+                            [ ( Point.valueGreaterThan, ">" )
+                            , ( Point.valueLessThan, "<" )
+                            , ( Point.valueEqual, "=" )
+                            , ( Point.valueNotEqual, "!=" )
+                            ]
+
+                        "text" ->
+                            [ ( Point.valueEqual, "=" )
+                            , ( Point.valueNotEqual, "!=" )
+                            , ( Point.valueContains, "contains" )
+                            ]
+
+                        _ ->
+                            []
+            in
             optionInput Point.typeOperator "Operator" operators
 
           else
@@ -208,6 +204,10 @@ pointValue o labelWidth =
                 numberInput Point.typeValue "Point Value"
 
             "onOff" ->
+                let
+                    onOffInput =
+                        NodeInputs.nodeOnOffInput opts ""
+                in
                 onOffInput Point.typeValue Point.typeValue "Point Value"
 
             "text" ->

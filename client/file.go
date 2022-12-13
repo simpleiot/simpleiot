@@ -88,7 +88,7 @@ func ListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path strin
 	return err
 }
 
-// SendFile can be used to send a file to a device. Callback provides bytes transfered.
+// SendFile can be used to send a file to a device. Callback provides bytes transferred.
 func SendFile(nc *nats.Conn, deviceID string, reader io.Reader, name string, callback func(int)) error {
 	done := false
 	seq := int32(0)

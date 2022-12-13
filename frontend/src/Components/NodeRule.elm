@@ -14,12 +14,6 @@ import UI.Style as Style exposing (colors)
 view : NodeOptions msg -> Element msg
 view o =
     let
-        opts =
-            oToInputO o 100
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
         active =
             Point.getBool o.node.points Point.typeActive ""
 
@@ -51,6 +45,13 @@ view o =
                     Point.getText o.node.points Point.typeDescription ""
             ]
             :: (if o.expDetail then
+                    let
+                        opts =
+                            oToInputO o 100
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+                    in
                     [ textInput Point.typeDescription "Description" ""
                     ]
 

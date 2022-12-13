@@ -1,4 +1,4 @@
-module Components.Navbar exposing (link, navbar, viewButtonLink)
+module Components.Navbar exposing (navbar)
 
 import Element exposing (..)
 import Spa.Generated.Route as Route exposing (Route)
@@ -26,14 +26,6 @@ navbar options =
             else
                 Element.none
         ]
-
-
-viewButtonLink : ( String, Route ) -> Element msg
-viewButtonLink ( label, route ) =
-    Element.link (Style.button Style.colors.blue)
-        { label = text label
-        , url = Route.toString route
-        }
 
 
 link : ( String, Route ) -> Element msg

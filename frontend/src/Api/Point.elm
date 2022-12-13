@@ -3,8 +3,6 @@ module Api.Point exposing
     , blankMajicValue
     , clearText
     , decode
-    , empty
-    , encode
     , encodeList
     , filterSpecialPoints
     , get
@@ -14,7 +12,6 @@ module Api.Point exposing
     , getText
     , getValue
     , newText
-    , newValue
     , renderPoint
     , sort
     , typeAction
@@ -27,14 +24,13 @@ module Api.Point exposing
     , typeBucket
     , typeChannel
     , typeClientServer
-    , typeCmdPending
     , typeConditionType
+    , typeData
     , typeDataFormat
     , typeDebug
     , typeDescription
     , typeDevice
     , typeDisable
-    , typeData
     , typeEmail
     , typeEnd
     , typeErrorCount
@@ -61,15 +57,12 @@ module Api.Point exposing
     , typeMsgsRecvdOtherReset
     , typeName
     , typeNodeID
-    , typeNodeType
     , typeOffset
     , typeOperator
     , typeOrg
     , typePass
     , typePeriod
     , typePhone
-    , typePointID
-    , typePointIndex
     , typePointKey
     , typePointType
     , typePollPeriod
@@ -84,12 +77,6 @@ module Api.Point exposing
     , typeService
     , typeSignalsInDb
     , typeStart
-    , typeStartApp
-    , typeStartSystem
-    , typeSwUpdateError
-    , typeSwUpdatePercComplete
-    , typeSwUpdateRunning
-    , typeSwUpdateState
     , typeSyncCount
     , typeSyncCountReset
     , typeSysState
@@ -98,8 +85,6 @@ module Api.Point exposing
     , typeTxReset
     , typeURI
     , typeUnits
-    , typeUpdateApp
-    , typeUpdateOS
     , typeValue
     , typeValueSet
     , typeValueText
@@ -109,7 +94,6 @@ module Api.Point exposing
     , typeVersionHW
     , typeVersionOS
     , typeWeekday
-    , updatePoint
     , updatePoints
     , valueClient
     , valueContains
@@ -126,22 +110,13 @@ module Api.Point exposing
     , valueNotEqual
     , valueNotify
     , valueNumber
-    , valueOff
-    , valueOn
     , valueOnOff
     , valuePlayAudio
     , valuePointValue
     , valueRTU
-    , valueSMTP
     , valueSchedule
     , valueServer
     , valueSetValue
-    , valueSetValueBool
-    , valueSetValueText
-    , valueSysStateOffline
-    , valueSysStateOnline
-    , valueSysStatePowerOff
-    , valueSysStateUnknown
     , valueTCP
     , valueText
     , valueTwilio
@@ -214,74 +189,9 @@ typeReadOnly =
     "readOnly"
 
 
-typeCmdPending : String
-typeCmdPending =
-    "cmdPending"
-
-
-typeSwUpdateState : String
-typeSwUpdateState =
-    "swUpdateState"
-
-
-typeStartApp : String
-typeStartApp =
-    "startApp"
-
-
-typeStartSystem : String
-typeStartSystem =
-    "startSystem"
-
-
-typeUpdateOS : String
-typeUpdateOS =
-    "updateOS"
-
-
-typeUpdateApp : String
-typeUpdateApp =
-    "updateApp"
-
-
 typeSysState : String
 typeSysState =
     "sysState"
-
-
-valueSysStateUnknown : String
-valueSysStateUnknown =
-    "unknown"
-
-
-valueSysStatePowerOff : String
-valueSysStatePowerOff =
-    "powerOff"
-
-
-valueSysStateOffline : String
-valueSysStateOffline =
-    "offline"
-
-
-valueSysStateOnline : String
-valueSysStateOnline =
-    "online"
-
-
-typeSwUpdateRunning : String
-typeSwUpdateRunning =
-    "swUpdateRunning"
-
-
-typeSwUpdateError : String
-typeSwUpdateError =
-    "swUpdateError"
-
-
-typeSwUpdatePercComplete : String
-typeSwUpdatePercComplete =
-    "swUpdatePercComplete"
 
 
 typeVersionOS : String
@@ -353,6 +263,7 @@ typeBaud : String
 typeBaud =
     "baud"
 
+
 typeMaxMessageLength : String
 typeMaxMessageLength =
     "maxMessageLength"
@@ -412,29 +323,36 @@ typeSyncCountReset : String
 typeSyncCountReset =
     "syncCountReset"
 
-typeMsgsInDb: String
+
+typeMsgsInDb : String
 typeMsgsInDb =
     "msgsInDb"
+
 
 typeSignalsInDb : String
 typeSignalsInDb =
     "signalsInDb"
 
+
 typeMsgsRecvdDb : String
-typeMsgsRecvdDb = 
+typeMsgsRecvdDb =
     "msgsRecvdDb"
-    
-typeMsgsRecvdOther: String
-typeMsgsRecvdOther = 
+
+
+typeMsgsRecvdOther : String
+typeMsgsRecvdOther =
     "msgsRecvdOther"
 
+
 typeMsgsRecvdDbReset : String
-typeMsgsRecvdDbReset = 
+typeMsgsRecvdDbReset =
     "msgsRecvdDbReset"
-    
-typeMsgsRecvdOtherReset: String
-typeMsgsRecvdOtherReset = 
+
+
+typeMsgsRecvdOtherReset : String
+typeMsgsRecvdOtherReset =
     "msgsRecvdOtherReset"
+
 
 typeProtocol : String
 typeProtocol =
@@ -571,19 +489,9 @@ typeWeekday =
     "weekday"
 
 
-typePointID : String
-typePointID =
-    "pointID"
-
-
 typePointType : String
 typePointType =
     "pointType"
-
-
-typePointIndex : String
-typePointIndex =
-    "pointIndex"
 
 
 typePointKey : String
@@ -616,16 +524,6 @@ valueNotEqual =
     "!="
 
 
-valueOn : String
-valueOn =
-    "on"
-
-
-valueOff : String
-valueOff =
-    "off"
-
-
 valueContains : String
 valueContains =
     "contains"
@@ -656,16 +554,6 @@ valuePlayAudio =
     "playAudio"
 
 
-valueSetValueBool : String
-valueSetValueBool =
-    "setValueBool"
-
-
-valueSetValueText : String
-valueSetValueText =
-    "setValueText"
-
-
 typeService : String
 typeService =
     "service"
@@ -674,11 +562,6 @@ typeService =
 valueTwilio : String
 valueTwilio =
     "twilio"
-
-
-valueSMTP : String
-valueSMTP =
-    "smtp"
 
 
 typeSID : String
@@ -699,11 +582,6 @@ typeFrom =
 typeVariableType : String
 typeVariableType =
     "variableType"
-
-
-typeNodeType : String
-typeNodeType =
-    "nodeType"
 
 
 typeNodeID : String
@@ -780,6 +658,7 @@ typeName : String
 typeName =
     "name"
 
+
 typeData : String
 typeData =
     "data"
@@ -799,30 +678,6 @@ type alias Point =
     , value : Float
     , text : String
     , tombstone : Int
-    }
-
-
-empty : Point
-empty =
-    Point
-        ""
-        ""
-        (Time.millisToPosix 0)
-        0
-        0
-        ""
-        0
-
-
-newValue : String -> String -> Float -> Point
-newValue typ key value =
-    { typ = typ
-    , key = key
-    , time = Time.millisToPosix 0
-    , index = 0
-    , value = value
-    , text = ""
-    , tombstone = 0
     }
 
 
@@ -973,18 +828,20 @@ getBestDesc points =
     let
         firstName =
             getText points typeFirstName ""
-
-        desc =
-            getText points typeDescription ""
     in
     if firstName /= "" then
         firstName ++ " " ++ getText points typeLastName ""
 
-    else if desc /= "" then
-        desc
-
     else
-        "no description"
+        let
+            desc =
+                getText points typeDescription ""
+        in
+        if desc /= "" then
+            desc
+
+        else
+            "no description"
 
 
 getValue : List Point -> String -> String -> Float
