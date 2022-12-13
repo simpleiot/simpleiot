@@ -13,8 +13,8 @@ when inside the directory containing this file.
 
 --import NoMissingTypeAnnotationInLetIn
 -- import NoImportingEverything
+-- import Docs.ReviewAtDocs
 
-import Docs.ReviewAtDocs
 import NoConfusingPrefixOperator
 import NoDebug.Log
 import NoDebug.TodoOrToString
@@ -36,8 +36,8 @@ import Simplify
 
 config : List Rule
 config =
-    [ Docs.ReviewAtDocs.rule
-    , NoConfusingPrefixOperator.rule
+    [ -- Docs.ReviewAtDocs.rule
+      NoConfusingPrefixOperator.rule
     , NoDebug.Log.rule
     , NoDebug.TodoOrToString.rule
         |> Rule.ignoreErrorsForDirectories [ "tests/" ]
