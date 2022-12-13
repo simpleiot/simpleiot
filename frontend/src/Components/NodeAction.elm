@@ -16,45 +16,12 @@ import UI.ViewIf exposing (viewIf)
 view : NodeOptions msg -> Element msg
 view o =
     let
-        labelWidth =
-            150
-
         icon =
             if o.node.typ == Node.typeAction then
                 Icon.trendingUp
 
             else
                 Icon.trendingDown
-
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
-        optionInput =
-            NodeInputs.nodeOptionInput opts ""
-
-        numberInput =
-            NodeInputs.nodeNumberInput opts ""
-
-        onOffInput =
-            NodeInputs.nodeOnOffInput opts ""
-
-        actionType =
-            Point.getText o.node.points Point.typeAction ""
-
-        actionSetValue =
-            actionType == Point.valueSetValue
-
-        actionPlayAudio =
-            actionType == Point.valuePlayAudio
-
-        valueType =
-            Point.getText o.node.points Point.typeValueType ""
-
-        nodeId =
-            Point.getText o.node.points Point.typeNodeID ""
 
         active =
             Point.getBool o.node.points Point.typeActive ""
@@ -87,6 +54,37 @@ view o =
                     Point.getText o.node.points Point.typeDescription ""
             ]
             :: (if o.expDetail then
+                    let
+                        labelWidth =
+                            150
+
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+
+                        optionInput =
+                            NodeInputs.nodeOptionInput opts ""
+
+                        numberInput =
+                            NodeInputs.nodeNumberInput opts ""
+
+                        actionType =
+                            Point.getText o.node.points Point.typeAction ""
+
+                        actionSetValue =
+                            actionType == Point.valueSetValue
+
+                        actionPlayAudio =
+                            actionType == Point.valuePlayAudio
+
+                        valueType =
+                            Point.getText o.node.points Point.typeValueType ""
+
+                        nodeId =
+                            Point.getText o.node.points Point.typeNodeID ""
+                    in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeAction
                         "Action"
@@ -156,6 +154,10 @@ view o =
                                 numberInput Point.typeValue "Value"
 
                             "onOff" ->
+                                let
+                                    onOffInput =
+                                        NodeInputs.nodeOnOffInput opts ""
+                                in
                                 onOffInput Point.typeValue Point.typeValue "Value"
 
                             "text" ->

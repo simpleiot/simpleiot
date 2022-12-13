@@ -2,7 +2,6 @@ module Api.Data exposing
     ( Data(..)
     , errorToString
     , expectJson
-    , map
     , toMaybe
     )
 
@@ -12,25 +11,8 @@ import Json.Decode as Json
 
 type Data value
     = NotAsked
-    | Loading
     | Failure Http.Error
     | Success value
-
-
-map : (a -> b) -> Data a -> Data b
-map fn data =
-    case data of
-        NotAsked ->
-            NotAsked
-
-        Loading ->
-            Loading
-
-        Failure reason ->
-            Failure reason
-
-        Success value ->
-            Success (fn value)
 
 
 toMaybe : Data value -> Maybe value

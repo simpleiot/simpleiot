@@ -11,28 +11,6 @@ import UI.Style exposing (colors)
 
 view : NodeOptions msg -> Element msg
 view o =
-    let
-        labelWidth =
-            100
-
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
-        textInputLowerCase =
-            NodeInputs.nodeTextInput
-                { onEditNodePoint =
-                    \points ->
-                        o.onEditNodePoint <| List.map (\p -> { p | text = String.toLower p.text }) points
-                , node = o.node
-                , now = o.now
-                , zone = o.zone
-                , labelWidth = labelWidth
-                }
-                ""
-    in
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
@@ -48,6 +26,28 @@ view o =
                     ++ Point.getText o.node.points Point.typeLastName ""
             ]
             :: (if o.expDetail then
+                    let
+                        labelWidth =
+                            100
+
+                        textInputLowerCase =
+                            NodeInputs.nodeTextInput
+                                { onEditNodePoint =
+                                    \points ->
+                                        o.onEditNodePoint <| List.map (\p -> { p | text = String.toLower p.text }) points
+                                , node = o.node
+                                , now = o.now
+                                , zone = o.zone
+                                , labelWidth = labelWidth
+                                }
+                                ""
+
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+                    in
                     [ textInput Point.typeFirstName "First Name" ""
                     , textInput Point.typeLastName "Last Name" ""
                     , textInputLowerCase Point.typeEmail "Email" ""

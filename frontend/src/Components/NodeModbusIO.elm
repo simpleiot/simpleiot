@@ -16,30 +16,6 @@ import UI.ViewIf exposing (viewIf)
 view : NodeOptions msg -> Element msg
 view o =
     let
-        labelWidth =
-            150
-
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
-        numberInput =
-            NodeInputs.nodeNumberInput opts ""
-
-        onOffInput =
-            NodeInputs.nodeOnOffInput opts ""
-
-        optionInput =
-            NodeInputs.nodeOptionInput opts ""
-
-        checkboxInput =
-            NodeInputs.nodeCheckboxInput opts ""
-
-        counterWithReset =
-            NodeInputs.nodeCounterWithReset opts ""
-
         modbusIOType =
             Point.getText o.node.points Point.typeModbusIOType ""
 
@@ -129,6 +105,31 @@ view o =
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
+                    let
+                        labelWidth =
+                            150
+
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+
+                        numberInput =
+                            NodeInputs.nodeNumberInput opts ""
+
+                        onOffInput =
+                            NodeInputs.nodeOnOffInput opts ""
+
+                        optionInput =
+                            NodeInputs.nodeOptionInput opts ""
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts ""
+
+                        counterWithReset =
+                            NodeInputs.nodeCounterWithReset opts ""
+                    in
                     [ textInput Point.typeDescription "Description" ""
                     , viewIf isClient <| numberInput Point.typeID "ID"
                     , numberInput Point.typeAddress "Address"

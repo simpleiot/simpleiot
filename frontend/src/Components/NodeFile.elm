@@ -3,30 +3,16 @@ module Components.NodeFile exposing (view)
 import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
-import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font
-import File.Select as Select
-import Round
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style as Style exposing (colors)
-import UI.ViewIf exposing (viewIf)
 
 
 view : NodeOptions msg -> Element msg
 view o =
     let
-        labelWidth =
-            150
-
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
         desc =
             Point.getText o.node.points Point.typeDescription ""
 
@@ -49,6 +35,16 @@ view o =
                     ++ ")"
             ]
             :: (if o.expDetail then
+                    let
+                        labelWidth =
+                            150
+
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+                    in
                     [ textInput Point.typeDescription "Description" ""
                     , Form.buttonRow
                         [ Form.button

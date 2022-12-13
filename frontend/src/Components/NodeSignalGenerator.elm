@@ -3,9 +3,7 @@ module Components.NodeSignalGenerator exposing (view)
 import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
-import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font
 import Round
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
@@ -16,21 +14,6 @@ import UI.ViewIf exposing (viewIf)
 view : NodeOptions msg -> Element msg
 view o =
     let
-        labelWidth =
-            150
-
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
-        numberInput =
-            NodeInputs.nodeNumberInput opts ""
-
-        checkboxInput =
-            NodeInputs.nodeCheckboxInput opts ""
-
         value =
             Point.getValue o.node.points Point.typeValue ""
 
@@ -59,6 +42,22 @@ view o =
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
+                    let
+                        labelWidth =
+                            150
+
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+
+                        numberInput =
+                            NodeInputs.nodeNumberInput opts ""
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts ""
+                    in
                     [ textInput Point.typeDescription "Description" ""
                     , numberInput Point.typeFrequency "Frequency (Hz)"
                     , numberInput Point.typeAmplitude "Amplitude (peak)"

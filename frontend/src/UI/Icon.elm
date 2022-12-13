@@ -8,11 +8,9 @@ module UI.Icon exposing
     , cloudOff
     , database
     , device
-    , dot
     , file
     , io
     , list
-    , minus
     , oneWire
     , power
     , send
@@ -47,20 +45,6 @@ bus =
     , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "0", S.y "14", S.width "6", S.height "5" ] []
     , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "8", S.y "14", S.width "6", S.height "5" ] []
     , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "16", S.y "14", S.width "6", S.height "5" ] []
-    ]
-        |> FeatherIcons.customIcon
-        |> icon
-
-
-dot : Element msg
-dot =
-    [ Svg.circle
-        [ S.style "fill:#000000;fill-opacity:1;"
-        , S.cx "11.903377"
-        , S.cy "11.823219"
-        , S.r "3.1"
-        ]
-        []
     ]
         |> FeatherIcons.customIcon
         |> icon
@@ -146,11 +130,6 @@ users =
 device : Element msg
 device =
     icon FeatherIcons.hardDrive
-
-
-minus : Element msg
-minus =
-    icon FeatherIcons.minus
 
 
 blank : Element msg

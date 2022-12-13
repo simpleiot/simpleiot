@@ -1,4 +1,4 @@
-module Pages.Top exposing (Model, Msg, Params, page)
+module Pages.Top exposing (Model, Msg, NodeEdit, NodeMsg, NodeOperation, Params, page)
 
 import Api.Auth exposing (Auth)
 import Api.Data as Data exposing (Data)
@@ -8,6 +8,7 @@ import Api.Port as Port
 import Api.Response exposing (Response)
 import Browser.Navigation exposing (Key)
 import Components.NodeAction as NodeAction
+import Components.NodeCanBus as NodeCanBus
 import Components.NodeCondition as NodeCondition
 import Components.NodeDb as NodeDb
 import Components.NodeDevice as NodeDevice
@@ -21,7 +22,6 @@ import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
-import Components.NodeCanBus as NodeCanBus
 import Components.NodeSignalGenerator as SignalGenerator
 import Components.NodeSync as NodeSync
 import Components.NodeUser as NodeUser
@@ -231,26 +231,24 @@ update msg model =
                 uploadContents =
                     UploadContents id file
             in
-            
             ( model, Task.perform uploadContents (File.toString file) )
 
         UploadContents id file contents ->
             let
                 --_ = Debug.log "UploadContents: " <| File.name file
-
                 pointName =
                     Point Point.typeName "" model.now 0 0 (File.name file) 0
-                
+
                 pointData =
                     Point Point.typeData "" model.now 0 0 contents 0
             in
-            ( model,
-              Node.postPoints
-                        { token = model.auth.token
-                        , id = id
-                        , points = [ pointName, pointData ]
-                        , onResponse = ApiRespPostPoint
-                        }
+            ( model
+            , Node.postPoints
+                { token = model.auth.token
+                , id = id
+                , points = [ pointName, pointData ]
+                , onResponse = ApiRespPostPoint
+                }
             )
 
         ApiPostPoints id ->
@@ -576,12 +574,12 @@ update msg model =
                     )
 
         ApiRespPostMoveNode parent resp ->
-            let
-                nodes =
-                    List.map (expChildren parent) model.nodes
-            in
             case resp of
                 Data.Success _ ->
+                    let
+                        nodes =
+                            List.map (expChildren parent) model.nodes
+                    in
                     ( { model | nodeOp = OpNone, copyMove = CopyMoveNone, nodes = nodes }
                     , updateNodes model
                     )
@@ -597,12 +595,12 @@ update msg model =
                     )
 
         ApiRespPutMirrorNode parent resp ->
-            let
-                nodes =
-                    List.map (expChildren parent) model.nodes
-            in
             case resp of
                 Data.Success _ ->
+                    let
+                        nodes =
+                            List.map (expChildren parent) model.nodes
+                    in
                     ( { model | nodeOp = OpNone, copyMove = CopyMoveNone, nodes = nodes }
                     , updateNodes model
                     )
@@ -618,12 +616,12 @@ update msg model =
                     )
 
         ApiRespPutDuplicateNode parent resp ->
-            let
-                nodes =
-                    List.map (expChildren parent) model.nodes
-            in
             case resp of
                 Data.Success _ ->
+                    let
+                        nodes =
+                            List.map (expChildren parent) model.nodes
+                    in
                     ( { model | nodeOp = OpNone, copyMove = CopyMoveNone, nodes = nodes }
                     , updateNodes model
                     )
@@ -951,36 +949,41 @@ nodeSort a b =
 
         bType =
             nodeCustomSort bNode.node.typ
-
-        aDesc =
-            String.toLower <| Point.getBestDesc aNode.node.points
-
-        bDesc =
-            String.toLower <| Point.getBestDesc bNode.node.points
-
-        aIndex =
-            Point.getValue aNode.node.points Point.typeIndex ""
-
-        bIndex =
-            Point.getValue bNode.node.points Point.typeIndex ""
-
-        aID =
-            Point.getText aNode.node.points Point.typeID ""
-
-        bID =
-            Point.getText bNode.node.points Point.typeID ""
     in
     if aType /= bType then
         compare aType bType
 
-    else if aDesc /= bDesc then
-        compare aDesc bDesc
-
-    else if aIndex /= bIndex then
-        compare aIndex bIndex
-
     else
-        compare aID bID
+        let
+            aDesc =
+                String.toLower <| Point.getBestDesc aNode.node.points
+
+            bDesc =
+                String.toLower <| Point.getBestDesc bNode.node.points
+        in
+        if aDesc /= bDesc then
+            compare aDesc bDesc
+
+        else
+            let
+                aIndex =
+                    Point.getValue aNode.node.points Point.typeIndex ""
+
+                bIndex =
+                    Point.getValue bNode.node.points Point.typeIndex ""
+            in
+            if aIndex /= bIndex then
+                compare aIndex bIndex
+
+            else
+                let
+                    aID =
+                        Point.getText aNode.node.points Point.typeID ""
+
+                    bID =
+                        Point.getText bNode.node.points Point.typeID ""
+                in
+                compare aID bID
 
 
 popError : String -> Http.Error -> Model -> Model
@@ -1020,9 +1023,7 @@ load shared model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.batch
-        [ Time.every 5000 Tick
-        ]
+    Time.every 5000 Tick
 
 
 
@@ -1065,13 +1066,12 @@ viewNodes model =
             treeWithEdits =
                 mergeNodesEdit model.nodes model.nodeEdit
         in
-        List.concat <|
-            List.map
-                (\t ->
-                    viewNode model Nothing (Tree.label t) 0
-                        :: viewNodesHelp 1 model t
-                )
-                treeWithEdits
+        List.concatMap
+            (\t ->
+                viewNode model Nothing (Tree.label t) 0
+                    :: viewNodesHelp 1 model t
+            )
+            treeWithEdits
 
 
 viewNodesHelp :
@@ -1258,20 +1258,6 @@ viewNode model parent node depth =
 
         alignButton =
             el [ alignTop, paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ]
-
-        msg =
-            Maybe.andThen
-                (\m ->
-                    if m.feID == node.feID then
-                        Just m.text
-
-                    else
-                        Nothing
-                )
-                model.nodeMsg
-
-        viewNodeOps =
-            viewNodeOperations node msg
     in
     el
         [ width fill
@@ -1321,6 +1307,21 @@ viewNode model parent node depth =
                             }
                         ]
                 , if node.expDetail then
+                    let
+                        viewNodeOps =
+                            viewNodeOperations node msg
+
+                        msg =
+                            Maybe.andThen
+                                (\m ->
+                                    if m.feID == node.feID then
+                                        Just m.text
+
+                                    else
+                                        Nothing
+                                )
+                                model.nodeMsg
+                    in
                     case model.nodeOp of
                         OpNone ->
                             viewNodeOps
@@ -1428,13 +1429,10 @@ nodeDescSerialDev : Element Msg
 nodeDescSerialDev =
     row [] [ Icon.serialDev, text "Serial Device" ]
 
+
 nodeDescCanBus : Element Msg
 nodeDescCanBus =
     row [] [ Icon.serialDev, text "CAN Bus" ]
-
-nodeDescCanDatabase : Element Msg
-nodeDescCanDatabase =
-    row [] [ Icon.database, text "CAN Database" ]
 
 
 nodeDescRule : Element Msg
@@ -1495,25 +1493,24 @@ viewAddNode parent add =
             , selected = add.typ
             , label = Input.labelAbove [] (el [ padding 12 ] <| text "Select node type to add: ")
             , options =
-                []
-                    ++ (if parent.node.typ == Node.typeDevice then
-                            [ Input.option Node.typeUser nodeDescUser
-                            , Input.option Node.typeGroup nodeDescGroup
-                            , Input.option Node.typeRule nodeDescRule
-                            , Input.option Node.typeModbus nodeDescModbus
-                            , Input.option Node.typeSerialDev nodeDescSerialDev
-                            , Input.option Node.typeCanBus nodeDescCanBus
-                            , Input.option Node.typeMsgService nodeDescMsgService
-                            , Input.option Node.typeDb nodeDescDb
-                            , Input.option Node.typeVariable nodeDescVariable
-                            , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
-                            , Input.option Node.typeFile nodeDescFile
-                            , Input.option Node.typeSync nodeDescSync
-                            ]
+                (if parent.node.typ == Node.typeDevice then
+                    [ Input.option Node.typeUser nodeDescUser
+                    , Input.option Node.typeGroup nodeDescGroup
+                    , Input.option Node.typeRule nodeDescRule
+                    , Input.option Node.typeModbus nodeDescModbus
+                    , Input.option Node.typeSerialDev nodeDescSerialDev
+                    , Input.option Node.typeCanBus nodeDescCanBus
+                    , Input.option Node.typeMsgService nodeDescMsgService
+                    , Input.option Node.typeDb nodeDescDb
+                    , Input.option Node.typeVariable nodeDescVariable
+                    , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
+                    , Input.option Node.typeFile nodeDescFile
+                    , Input.option Node.typeSync nodeDescSync
+                    ]
 
-                        else
-                            []
-                       )
+                 else
+                    []
+                )
                     ++ (if parent.node.typ == Node.typeGroup then
                             [ Input.option Node.typeUser nodeDescUser
                             , Input.option Node.typeGroup nodeDescGroup
@@ -1652,11 +1649,6 @@ viewPasteNode feID dest copyMove =
                 , color = colors.red
                 , onPress = op
                 }
-
-        cantCopySelf =
-            [ text "Can't move/copy node to itself"
-            , cancelButton
-            ]
     in
     el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
         case copyMove of
@@ -1669,7 +1661,9 @@ viewPasteNode feID dest copyMove =
             Copy id src desc ->
                 row [] <|
                     if id == dest then
-                        cantCopySelf
+                        [ text "Can't move/copy node to itself"
+                        , cancelButton
+                        ]
 
                     else if src == dest then
                         [ text <| "Copy " ++ desc ++ " here?"

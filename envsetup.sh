@@ -146,12 +146,13 @@ check_go_format() {
 siot_test_frontend() {
   #(cd frontend && npx elm-analyse || return 1) || return 1
   (cd frontend && npx elm-test || return 1) || return 1
+  (cd frontend && npx elm-review || return 1) || return 1
 }
 
 siot_test_frontend_lib() {
   (cd ./frontend/lib && npm run lint || return 1) || return 1
   echo "Starting SimpleIOT..."
-  ./siot serve --store siot_test_frontend_lib.sqlite --resetStore 2> /dev/null &
+  ./siot serve --store siot_test_frontend_lib.sqlite --resetStore 2>/dev/null &
   PID=$!
   sleep 1
   (cd ./frontend/lib && npm run test || return 1)

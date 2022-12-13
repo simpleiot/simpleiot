@@ -15,24 +15,6 @@ import UI.ViewIf exposing (viewIf)
 view : NodeOptions msg -> Element msg
 view o =
     let
-        labelWidth =
-            150
-
-        opts =
-            oToInputO o labelWidth
-
-        textInput =
-            NodeInputs.nodeTextInput opts ""
-
-        counterWithReset =
-            NodeInputs.nodeCounterWithReset opts ""
-
-        checkboxInput =
-            NodeInputs.nodeCheckboxInput opts ""
-
-        fCheckboxInput =
-            fCheckbox opts "" Point.typeUnits "Fahrenheit?"
-
         value =
             Point.getValue o.node.points Point.typeValue ""
 
@@ -47,9 +29,6 @@ view o =
                     else
                         "°C"
                    )
-
-        id =
-            Point.getText o.node.points Point.typeID ""
 
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
@@ -71,6 +50,28 @@ view o =
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
+                    let
+                        labelWidth =
+                            150
+
+                        opts =
+                            oToInputO o labelWidth
+
+                        textInput =
+                            NodeInputs.nodeTextInput opts ""
+
+                        counterWithReset =
+                            NodeInputs.nodeCounterWithReset opts ""
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts ""
+
+                        fCheckboxInput =
+                            fCheckbox opts "" Point.typeUnits "Fahrenheit?"
+
+                        id =
+                            Point.getText o.node.points Point.typeID ""
+                    in
                     [ el [ paddingEach { top = 0, right = 0, bottom = 0, left = 70 } ] <|
                         text <|
                             "ID: "
