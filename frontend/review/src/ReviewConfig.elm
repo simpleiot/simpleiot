@@ -14,9 +14,6 @@ when inside the directory containing this file.
 --import NoMissingTypeAnnotationInLetIn
 -- import NoImportingEverything
 -- import Docs.ReviewAtDocs
--- the following, we may be able to turn back on once we upgrade elm-spa to v6
--- import NoUnused.Parameters
---import NoUnused.Variables
 
 import NoConfusingPrefixOperator
 import NoDebug.Log
@@ -30,7 +27,9 @@ import NoUnused.CustomTypeConstructorArgs
 import NoUnused.CustomTypeConstructors
 import NoUnused.Dependencies
 import NoUnused.Exports
+import NoUnused.Parameters
 import NoUnused.Patterns
+import NoUnused.Variables
 import Review.Rule as Rule exposing (Rule)
 import Simplify
 
@@ -55,10 +54,8 @@ config =
     , NoUnused.CustomTypeConstructorArgs.rule
     , NoUnused.Dependencies.rule
     , NoUnused.Exports.rule
-
-    --, NoUnused.Parameters.rule
+    , NoUnused.Parameters.rule |> Rule.ignoreErrorsForFiles [ "src/Pages/NotFound.elm" ]
     , NoUnused.Patterns.rule
-
-    --, NoUnused.Variables.rule
+    , NoUnused.Variables.rule |> Rule.ignoreErrorsForDirectories [ "src/Spa/Generated" ]
     , Simplify.rule Simplify.defaults
     ]
