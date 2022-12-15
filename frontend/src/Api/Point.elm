@@ -722,6 +722,7 @@ specialPoints =
     , typeRxReset
     , typeTx
     , typeTxReset
+    , typeRate
     ]
 
 
@@ -782,9 +783,12 @@ renderPoint s =
                 s.text
 
             else
-                Round.round 2 s.value
+                Round.round 2 s.value ++ ":"
+
+        typ =
+            s.typ ++ ":"
     in
-    s.typ ++ key ++ index ++ ": " ++ value
+    typ ++ key ++ index ++ " " ++ value
 
 
 updatePoint : List Point -> Point -> List Point
