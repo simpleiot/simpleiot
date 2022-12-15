@@ -68,6 +68,7 @@ module Api.Point exposing
     , typePollPeriod
     , typePort
     , typeProtocol
+    , typeRate
     , typeReadOnly
     , typeRx
     , typeRxReset
@@ -663,9 +664,17 @@ typeData : String
 typeData =
     "data"
 
+
 typeBitRate : String
 typeBitRate =
     "bitRate"
+
+
+typeRate : String
+typeRate =
+    "rate"
+
+
 
 -- Point should match data/Point.go
 

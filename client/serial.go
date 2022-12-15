@@ -32,20 +32,23 @@ type SerialDev struct {
 	Uptime           int    `point:"uptime"`
 	ErrorCount       int    `point:"errorCount"`
 	ErrorCountReset  bool   `point:"errorCountReset"`
+	Rate             bool   `point:"rate"`
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
 type SerialDevClient struct {
-	nc            *nats.Conn
-	config        SerialDev
-	stop          chan struct{}
-	newPoints     chan NewPoints
-	newEdgePoints chan NewPoints
-	wrSeq         byte
-	lastSendStats time.Time
-	natsSub       string
-	natsSubHR     string
-	natsSubHRUp   string
+	nc             *nats.Conn
+	config         SerialDev
+	stop           chan struct{}
+	newPoints      chan NewPoints
+	newEdgePoints  chan NewPoints
+	wrSeq          byte
+	lastSendStats  time.Time
+	natsSub        string
+	natsSubHR      string
+	natsSubHRUp    string
+	ratePointCount int
+	rateLastSend   time.Time
 }
 
 // NewSerialDevClient ...
@@ -223,6 +226,8 @@ func (sd *SerialDevClient) Run() error {
 				}
 			}
 
+			sd.ratePointCount += len(points)
+
 			if err == nil && len(points) > 0 {
 				if sd.config.Debug >= 4 && !hrData {
 					log.Printf("SER RX (%v) seq:%v\n%v", sd.config.Description, seq, points)
@@ -275,6 +280,16 @@ func (sd *SerialDevClient) Run() error {
 				lrpoints = append(lrpoints,
 					data.Point{Time: time.Now(), Type: data.PointTypeRx, Value: float64(sd.config.Rx)})
 				sd.lastSendStats = time.Now()
+			}
+
+			if time.Since(sd.rateLastSend) > time.Second {
+				now := time.Now()
+				rate := float64(sd.ratePointCount) / now.Sub(sd.rateLastSend).Seconds()
+				lrpoints = append(lrpoints,
+					data.Point{Time: now, Type: data.PointTypeRate,
+						Value: rate})
+				sd.rateLastSend = now
+				sd.ratePointCount = 0
 			}
 
 			if len(lrpoints) > 0 {

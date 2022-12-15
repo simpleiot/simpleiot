@@ -4,6 +4,7 @@ import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
+import Round
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
@@ -51,6 +52,12 @@ view o =
 
                         log =
                             Point.getText o.node.points Point.typeLog ""
+
+                        rate =
+                            Point.getValue o.node.points Point.typeRate ""
+
+                        rateS =
+                            String.fromFloat (Round.roundNum 0 rate)
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typePort "Port" "/dev/ttyUSB0"
@@ -62,6 +69,7 @@ view o =
                     , counterWithReset Point.typeRx Point.typeRxReset "Rx count"
                     , counterWithReset Point.typeTx Point.typeTxReset "Tx count"
                     , text <| "  Last log: " ++ log
+                    , text <| "  Rate (pts/sec): " ++ rateS
                     , viewPoints <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]
 

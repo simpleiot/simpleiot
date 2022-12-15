@@ -228,4 +228,6 @@ const (
 	NodeTypeFile  = "file"
 	PointTypeName = "name"
 	PointTypeData = "data"
+
+	PointTypeRate = "rate"
 )
