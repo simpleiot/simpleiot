@@ -68,8 +68,8 @@ view o =
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     , counterWithReset Point.typeRx Point.typeRxReset "Rx count"
                     , counterWithReset Point.typeTx Point.typeTxReset "Tx count"
-                    , text <| "  Last log: " ++ log
                     , text <| "  Rate (pts/sec): " ++ rateS
+                    , text <| "  Last log: " ++ log
                     , viewPoints <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]
 
