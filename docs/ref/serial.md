@@ -6,6 +6,8 @@ Status: Specification
 
 <!-- toc -->
 
+See also the serial [user documentation](../user/mcu.md).
+
 It is common in embedded systems architectures for a MPU (Linux based running
 SIOT) to be connected via a serial link (RS232, RS485, CAN, USB serial) to a
 MCU.
