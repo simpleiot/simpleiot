@@ -43,7 +43,3 @@ to be aware of:
 - we don't [handle loops](https://github.com/simpleiot/simpleiot/issues/294) in
   the graph tree yet. This will render the instance unusable and you'll have to
   clean the database and start over.
-- for now, create a different email for the admin user on each instance.
-  [See #366](https://github.com/simpleiot/simpleiot/issues/366).
-- there are still several corner cases with upstream connections that need
-  improved. (#367, #366, #339)
