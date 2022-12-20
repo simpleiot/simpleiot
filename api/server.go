@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
@@ -12,61 +11,35 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// IndexHandler is used to serve the index page
-type IndexHandler struct {
-	fs http.FileSystem
-}
-
-func (h *IndexHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	f, err := h.fs.Open("index.html")
-	if err != nil {
-		http.Error(res, fmt.Sprintf("Not Found: %v", err), http.StatusNotFound)
-		return
-	}
-	if f == nil {
-		res.WriteHeader(http.StatusNotFound)
-	} else {
-		io.Copy(res, f)
-	}
-}
-
-// NewIndexHandler returns a new Index handler
-func NewIndexHandler(fs http.FileSystem) http.Handler {
-	return &IndexHandler{fs: fs}
-}
-
 // App is a struct that implements http.Handler interface
 type App struct {
 	PublicHandler  http.Handler
-	IndexHandler   http.Handler
 	V1ApiHandler   http.Handler
 	WebsocketProxy http.Handler
 }
 
 // Top level handler for http requests in the coap-server process
 func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	var head string
-
 	switch req.URL.Path {
 	case "/":
 		headerUpgrade := req.Header["Upgrade"]
 		if h.WebsocketProxy != nil && len(headerUpgrade) > 0 && headerUpgrade[0] == "websocket" {
 			h.WebsocketProxy.ServeHTTP(res, req)
 		} else {
-			h.IndexHandler.ServeHTTP(res, req)
+			h.PublicHandler.ServeHTTP(res, req)
 		}
-	case "/orgs", "/users", "/devices", "/sign-in", "/groups", "/msg":
-		h.IndexHandler.ServeHTTP(res, req)
+	case "/sign-in":
+		req.URL.Path = "/"
+		h.PublicHandler.ServeHTTP(res, req)
 
 	default:
-		head, req.URL.Path = ShiftPath(req.URL.Path)
+		head, path := ShiftPath(req.URL.Path)
 		switch head {
-		case "public":
-			h.PublicHandler.ServeHTTP(res, req)
 		case "v1":
+			req.URL.Path = path
 			h.V1ApiHandler.ServeHTTP(res, req)
 		default:
-			http.Error(res, "Not Found", http.StatusNotFound)
+			h.PublicHandler.ServeHTTP(res, req)
 		}
 	}
 }
@@ -93,7 +66,6 @@ func NewAppHandler(args ServerArgs) http.Handler {
 
 	return &App{
 		PublicHandler:  http.FileServer(args.Filesystem),
-		IndexHandler:   NewIndexHandler(args.Filesystem),
 		V1ApiHandler:   v1,
 		WebsocketProxy: wsProxy,
 	}
