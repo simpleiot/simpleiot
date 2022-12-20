@@ -330,7 +330,7 @@ func (s *Server) Start() error {
 
 	// wrap with fs that will automatically look for and decompress gz
 	// versions of files.
-	feFSDecomp := newFsDecomp(feFS)
+	feFSDecomp := newFsDecomp(feFS, "index.html")
 
 	// ====================================
 	// HTTP API
