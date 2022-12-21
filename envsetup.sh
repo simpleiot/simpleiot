@@ -42,29 +42,13 @@ siot_setup() {
   # where the first time you run npx elm, you get an error:
   # elm: Text file busy
   (cd frontend && (npx elm || true))
+  # make sure elm-spa auto-generated stuff is set up
+  (cd frontend && npx elm-spa build)
   return 0
 }
 
 siot_build_frontend() {
-  ELMARGS=$1
-  echo "Elm args: $ELMARGS"
   (cd "frontend" && npx elm-spa build) || return 1
-  (cd "frontend" && npx elm make "$ELMARGS" src/Main.elm --output=public/elm.js) || return 1
-  return 0
-}
-
-siot_uglify() {
-  (cd frontend/public && mv elm.js x &&
-    npx uglifyjs x --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | npx uglifyjs --mangle --output elm.js && gzip -f elm.js && rm x)
-}
-
-siot_build_dependencies() {
-  ELMARGS=$1
-  siot_build_frontend "$ELMARGS" || return 1
-  if [ "$ELMARGS" = "--optimize" ]; then
-    echo "running uglify"
-    siot_uglify
-  fi
   return 0
 }
 
@@ -73,7 +57,7 @@ siot_version() {
 }
 
 siot_build() {
-  siot_build_dependencies --optimize || return 1
+  siot_build_frontend || return 1
   BINARY_NAME=siot
   if [ "${GOOS}" = "windows" ]; then
     BINARY_NAME=siot.exe
@@ -83,26 +67,25 @@ siot_build() {
 }
 
 siot_build_arm() {
-  siot_build_dependencies --optimize || return 1
+  siot_build_frontend || return 1
   GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
   return 0
 }
 
 siot_build_arm_debug() {
-  siot_build_dependencies --debug || return 1
+  siot_build_frontend || return 1
   GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
   return 0
 }
 
 siot_deploy() {
-  siot_build_dependencies || return 1
+  siot_build_frontend || return 1
   gcloud app deploy cmd/portal || return 1
   return 0
 }
 
 siot_run() {
   echo "run args: $*"
-  siot_build_dependencies --debug || return 1
   go build -ldflags="-X main.version=$(siot_version)" -o siot -race cmd/siot/main.go || return 1
   ./siot "$@"
   return 0
@@ -113,7 +96,7 @@ siot_run_tls() {
   echo "run args: $*"
   export SIOT_NATS_TLS_CERT=server-cert.pem
   export SIOT_NATS_TLS_KEY=server-key.pem
-  siot_build_dependencies --debug || return 1
+  siot_build_frontend || return 1
   go run cmd/siot/main.go "$@" || return 1
   return 0
 }
@@ -124,13 +107,21 @@ siot_mkcert() {
 }
 
 find_src_files() {
-  find . -not \( -path ./frontend/src/Spa/Generated -prune \) -not \( -path ./assets -prune \) -name "*.go" -o -name "*.elm"
+  find . -not \( -path ./frontend/src/Spa/Generated -prune \) -not \( -path ./assets -prune \) -name "*.go"
+}
+
+siot_watch_go() {
+  echo "watch args: $*"
+  cmd=". ./envsetup.sh; siot_run serve -dev $*"
+  find_src_files | entr -r /bin/sh -c "$cmd"
+}
+
+siot_watch_elm() {
+  (cd frontend && npx elm-watch hot) || false
 }
 
 siot_watch() {
-  echo "watch args: $*"
-  cmd=". ./envsetup.sh; siot_run $*"
-  find_src_files | entr -r /bin/sh -c "$cmd"
+  npx run-pty % /bin/sh -c ". ./envsetup.sh && siot_watch_elm" % /bin/sh -c ". ./envsetup.sh && siot_watch_go"
 }
 
 # TODO finish this and add to siot_test ...
@@ -169,7 +160,7 @@ siot_test_frontend_lib() {
 # please run the following before pushing -- best if your editor can be set up
 # to do this automatically.
 siot_test() {
-  siot_build_dependencies --optimize || return 1
+  siot_build_frontend || return 1
   siot_test_frontend || return 1
   #gofmt -l ./... || return 1
   go test -p=1 -race "$@" ./... || return 1
@@ -209,7 +200,7 @@ siot_goreleaser_build() {
 # enable repo and workflow sections
 siot_goreleaser_release() {
   #TODO add depend build to goreleaser config
-  #siot_build_dependencies --optimize
+  #siot_build_frontend
   goreleaser release --rm-dist
 }
 
@@ -222,5 +213,5 @@ siot_dblab() {
   if [ "$1" != "" ]; then
     STORE=$1
   fi
-  go run github.com/danvergara/dblab@latest --db $STORE --driver sqlite3
+  go run github.com/danvergara/dblab@latest --db "$STORE" --driver sqlite3
 }
