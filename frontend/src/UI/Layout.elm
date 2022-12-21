@@ -1,7 +1,7 @@
 module UI.Layout exposing (layout)
 
 import Element exposing (..)
-import Spa.Generated.Route as Route exposing (Route)
+import Gen.Route as Route exposing (Route)
 import UI.Form as Form
 import UI.Style as Style
 
@@ -17,7 +17,7 @@ layout options child =
     column [ spacing 32, padding 20, width (fill |> maximum 1280), height fill, centerX ]
         [ row
             [ width fill, spacing 20 ]
-            [ link ( "SIOT", Route.Top )
+            [ link ( "SIOT", Route.Home_ )
             , el [ alignRight ] <|
                 case options.email of
                     Just email_ ->
@@ -39,7 +39,7 @@ link : ( String, Route ) -> Element msg
 link ( label, route ) =
     Element.link Style.link
         { label = text label
-        , url = Route.toString route
+        , url = Route.toHref route
         }
 
 

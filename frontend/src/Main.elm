@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Main exposing (Model, Msg, main)
 
 import Browser
 import Browser.Navigation as Nav exposing (Key)

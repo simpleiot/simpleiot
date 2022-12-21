@@ -8,7 +8,7 @@ import View exposing (View)
 
 
 page : Shared.Model -> Request.With Params -> Page
-page shared req =
+page _ _ =
     Page.static
         { view = view
         }

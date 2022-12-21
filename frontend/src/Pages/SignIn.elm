@@ -1,6 +1,6 @@
 module Pages.SignIn exposing (Model, Msg, page)
 
-import Api.Auth exposing (User)
+import Api.Auth
 import Api.Data exposing (Data)
 import Effect exposing (Effect)
 import Element exposing (..)
@@ -8,7 +8,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Gen.Params.SignIn exposing (Params)
 import Page
-import Request exposing (Request)
+import Request
 import Shared
 import Storage exposing (Storage)
 import UI.Form as Form
@@ -17,7 +17,7 @@ import View exposing (View)
 
 
 page : Shared.Model -> Request.With Params -> Page.With Model Msg
-page shared req =
+page shared _ =
     Page.advanced
         { init = init shared
         , update = update shared.storage
@@ -31,7 +31,7 @@ page shared req =
 
 
 type alias Model =
-    { user : Data User
+    { user : Data Api.Auth.User
     , email : String
     , password : String
     , error : Maybe String
@@ -63,7 +63,7 @@ type Msg
     = EditEmail String
     | EditPass String
     | SignIn
-    | GotUser (Data User)
+    | GotUser (Data Api.Auth.User)
     | NoOp
 
 
@@ -127,7 +127,7 @@ update storage msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 

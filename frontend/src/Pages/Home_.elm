@@ -1,4 +1,4 @@
-module Pages.Home_ exposing (Model, Msg, page)
+module Pages.Home_ exposing (Model, Msg, NodeEdit, NodeMsg, NodeOperation, page)
 
 import Api.Data as Data exposing (Data)
 import Api.Node as Node exposing (Node, NodeView)
@@ -54,7 +54,7 @@ import View exposing (View)
 
 
 page : Shared.Model -> Request.With Params -> Page.With Model Msg
-page shared req =
+page shared _ =
     Page.protected.advanced <|
         \user ->
             { init = init shared
@@ -1013,7 +1013,7 @@ subscriptions _ =
 
 
 view : Auth.User -> Shared.Model -> Model -> View Msg
-view user shared model =
+view _ shared model =
     { title = "SIOT"
     , attributes = []
     , element =

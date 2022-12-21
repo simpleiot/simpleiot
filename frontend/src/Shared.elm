@@ -7,7 +7,6 @@ module Shared exposing
     , update
     )
 
-import Api.Auth exposing (User)
 import Gen.Route
 import Json.Decode as Json
 import Request exposing (Request)
