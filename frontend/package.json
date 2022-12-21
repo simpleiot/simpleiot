@@ -1,27 +1,21 @@
 {
-  "name": "my-elm-spa-project",
-  "version": "1.0.0",
-  "description": "learn more at https://elm-spa.dev",
-  "scripts": {
-    "build": "npm run elm:spa:build && npm run elm:compile",
-    "elm:compile": "elm make src/Main.elm --output=public/dist/elm.compiled.js --optimize",
-    "elm:spa:build": "elm-spa build ."
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "elm": "^0.19.1-5",
-    "elm-analyse": "^0.16.5",
-    "elm-json": "^0.2.12",
-    "elm-review": "^2.8.5",
-    "elm-spa": "^6.0.4",
-    "elm-test": "^0.19.1-revision7",
-    "eslint": "^8.27.0",
-    "eslint-config-prettier": "^8.5.0",
-    "lodash": ">=4.17.21",
-    "prettier": "^2.7.1",
-    "uglify-js": "^3.10.1",
-    "ws": ">=5.2.3"
-  }
+	"name": "my-elm-spa-project",
+	"version": "1.0.0",
+	"description": "learn more at https://elm-spa.dev",
+	"scripts": {},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"devDependencies": {
+		"elm": "^0.19.1-5",
+		"elm-json": "^0.2.13",
+		"elm-review": "^2.8.5",
+		"elm-spa": "^6.0.4",
+		"elm-test": "^0.19.1-revision10",
+		"elm-watch": "^1.1.1",
+		"eslint": "^8.27.0",
+		"eslint-config-prettier": "^8.5.0",
+		"prettier": "^2.7.1",
+		"run-pty": "^4.0.3"
+	}
 }
