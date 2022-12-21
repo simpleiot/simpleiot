@@ -49,6 +49,7 @@ siot_setup() {
 
 siot_build_frontend() {
   (cd "frontend" && npx elm-spa build) || return 1
+  gzip -f frontend/public/dist/elm.js
   return 0
 }
 
