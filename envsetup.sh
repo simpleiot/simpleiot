@@ -157,6 +157,10 @@ siot_test_frontend_lib() {
   fi
 }
 
+siot_frontend_fix() {
+  (cd frontend && npx elm-review --fix-all)
+}
+
 # please run the following before pushing -- best if your editor can be set up
 # to do this automatically.
 siot_test() {
