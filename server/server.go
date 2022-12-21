@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -48,6 +49,7 @@ type Options struct {
 	AppVersion        string
 	OSVersionField    string
 	LogNats           bool
+	Dev               bool
 	// optional ID (must be unique) for this instance, otherwise, a UUID will be used
 	ID string
 }
@@ -322,15 +324,22 @@ func (s *Server) Start() error {
 		}()
 	}
 
-	// remove output dir name from frontend assets filesystem
-	feFS, err := fs.Sub(frontend.Content, "public")
-	if err != nil {
-		log.Fatal("Error getting frontend subtree: ", err)
+	var feFS fs.FS
+
+	if o.Dev {
+		log.Println("SIOT HTTP Server -- using local instead of embedded files")
+		feFS = os.DirFS("./frontend/public")
+	} else {
+		// remove output dir name from frontend assets filesystem
+		feFS, err = fs.Sub(frontend.Content, "public")
+		if err != nil {
+			log.Fatal("Error getting frontend subtree: ", err)
+		}
 	}
 
 	// wrap with fs that will automatically look for and decompress gz
 	// versions of files.
-	feFSDecomp := newFsDecomp(feFS)
+	feFSDecomp := newFsDecomp(feFS, "index.html")
 
 	// ====================================
 	// HTTP API

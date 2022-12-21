@@ -28,7 +28,7 @@ func TestFsDecomp(t *testing.T) {
 
 	fs := os.DirFS(".")
 
-	fsGz := newFsDecomp(fs)
+	fsGz := newFsDecomp(fs, "")
 
 	fd, err := fsGz.Open("testfile")
 	if err != nil {
@@ -56,5 +56,35 @@ func TestFsDecomp(t *testing.T) {
 	if string(buf) != testString {
 		t.Fatal("Test string is not correct")
 	}
+}
 
+func TestFsRoot(t *testing.T) {
+	contents := "index.html contents test"
+	err := os.WriteFile("index.html", []byte(contents), 0644)
+	if err != nil {
+		t.Fatal("Error writing test file: ", err)
+	}
+	defer os.Remove("index.html")
+
+	fs := os.DirFS(".")
+
+	fsGz := newFsDecomp(fs, "index.html")
+
+	rootPaths := []string{"/", ""}
+
+	for _, rp := range rootPaths {
+		fd, err := fsGz.Open(rp)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		buf := make([]byte, 50)
+		c, err := fd.Read(buf)
+
+		buf = buf[0:c]
+
+		if string(buf) != contents {
+			t.Fatal("Test contents are not correct for ", rp)
+		}
+	}
 }

@@ -11,16 +11,23 @@ import (
 // fsDecomp can be used to wrap a fs.FS. If a file is requested and not found,
 // we look for a .gz version. If the .gz version is found, we decompress it
 // and return the contents. This allows us to ship .gz compressed embedded files
-// but still serve uncompressed files.
+// but still serve uncompressed files. fsDecomp will also translate root paths
+// ("/" and "") to index.html, so we don't need to do that translation in the
+// http handler
 type fsDecomp struct {
-	fs fs.FS
+	fs       fs.FS
+	rootFile string
 }
 
-func newFsDecomp(fs fs.FS) *fsDecomp {
-	return &fsDecomp{fs: fs}
+func newFsDecomp(fs fs.FS, rootFile string) *fsDecomp {
+	return &fsDecomp{fs: fs, rootFile: rootFile}
 }
 
 func (fsd *fsDecomp) Open(name string) (fs.File, error) {
+	if name == "" || name == "/" {
+		name = fsd.rootFile
+	}
+
 	// look for file, if it does not exist, look for gz version
 	f, err := fsd.fs.Open(name)
 	if err != nil {

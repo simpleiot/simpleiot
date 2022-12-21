@@ -54,8 +54,9 @@ config =
     , NoUnused.CustomTypeConstructorArgs.rule
     , NoUnused.Dependencies.rule
     , NoUnused.Exports.rule
-    , NoUnused.Parameters.rule |> Rule.ignoreErrorsForFiles [ "src/Pages/NotFound.elm" ]
+    , NoUnused.Parameters.rule
     , NoUnused.Patterns.rule
-    , NoUnused.Variables.rule |> Rule.ignoreErrorsForDirectories [ "src/Spa/Generated" ]
+    , NoUnused.Variables.rule
     , Simplify.rule Simplify.defaults
     ]
+        |> List.map (Rule.ignoreErrorsForDirectories [ ".elm-spa" ])

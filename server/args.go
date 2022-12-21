@@ -30,6 +30,7 @@ func Args(args []string) (Options, error) {
 	flagResetStore := flags.Bool("resetStore", false, "permanently wipe data in store at start-up")
 	flagAuthToken := flags.String("token", "", "auth token")
 	flagSyslog := flags.Bool("syslog", false, "log to syslog instead of stdout")
+	flagDev := flags.Bool("dev", false, "run server in development mode")
 
 	if err := flags.Parse(args); err != nil {
 		return Options{}, err
@@ -165,6 +166,7 @@ func Args(args []string) (Options, error) {
 		AuthToken:         authToken,
 		ParticleAPIKey:    particleAPIKey,
 		OSVersionField:    osVersionField,
+		Dev:               *flagDev,
 	}
 
 	return o, nil

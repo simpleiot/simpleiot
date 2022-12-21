@@ -1,12 +1,11 @@
-module Pages.Top exposing (Model, Msg, NodeEdit, NodeMsg, NodeOperation, Params, page)
+module Pages.Home_ exposing (Model, Msg, NodeEdit, NodeMsg, NodeOperation, page)
 
-import Api.Auth exposing (Auth)
 import Api.Data as Data exposing (Data)
 import Api.Node as Node exposing (Node, NodeView)
 import Api.Point as Point exposing (Point)
 import Api.Port as Port
 import Api.Response exposing (Response)
-import Browser.Navigation exposing (Key)
+import Auth
 import Components.NodeAction as NodeAction
 import Components.NodeCanBus as NodeCanBus
 import Components.NodeCondition as NodeCondition
@@ -27,19 +26,20 @@ import Components.NodeSync as NodeSync
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
 import Dict
+import Effect exposing (Effect)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import File
 import File.Select
+import Gen.Params.Home_ exposing (Params)
 import Http
 import List.Extra
+import Page
+import Request
 import Shared
-import Spa.Document exposing (Document)
-import Spa.Generated.Route as Route
-import Spa.Page as Page exposing (Page)
-import Spa.Url exposing (Url)
+import Storage
 import Task
 import Time
 import Tree exposing (Tree)
@@ -47,42 +47,37 @@ import Tree.Zipper as Zipper
 import UI.Button as Button
 import UI.Form as Form
 import UI.Icon as Icon
+import UI.Layout
 import UI.Style as Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
-import Utils.Route
+import View exposing (View)
 
 
-page : Page Params Model Msg
-page =
-    Page.application
-        { init = init
-        , update = update
-        , subscriptions = subscriptions
-        , view = view
-        , save = save
-        , load = load
-        }
+page : Shared.Model -> Request.With Params -> Page.With Model Msg
+page shared _ =
+    Page.protected.advanced <|
+        \user ->
+            { init = init shared
+            , update = update shared
+            , view = view user shared
+            , subscriptions = subscriptions
+            }
 
 
 
 -- INIT
 
 
-type alias Params =
-    ()
-
-
 type alias Model =
-    { key : Key
-    , nodeEdit : Maybe NodeEdit
+    { nodeEdit : Maybe NodeEdit
     , zone : Time.Zone
     , now : Time.Posix
     , nodes : List (Tree NodeView)
-    , auth : Auth
     , error : Maybe String
     , nodeOp : NodeOperation
     , copyMove : CopyMove
     , nodeMsg : Maybe NodeMsg
+    , token : String
     }
 
 
@@ -122,42 +117,42 @@ type alias NodeMessage =
     }
 
 
-defaultModel : Key -> Model
-defaultModel key =
+defaultModel : Model
+defaultModel =
     Model
-        key
         Nothing
         Time.utc
         (Time.millisToPosix 0)
         []
-        { email = "", token = "" }
         Nothing
         OpNone
         CopyMoveNone
         Nothing
+        ""
 
 
-init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
-init shared { key } =
+init : Shared.Model -> ( Model, Effect Msg )
+init shared =
     let
-        model =
-            defaultModel key
-    in
-    case shared.auth of
-        Just auth ->
-            ( { model | auth = auth }
-            , Cmd.batch
-                [ Task.perform Zone Time.here
-                , Task.perform Tick Time.now
-                , Node.list { onResponse = ApiRespList, token = auth.token }
-                ]
-            )
+        token =
+            case shared.storage.user of
+                Just user ->
+                    user.token
 
-        Nothing ->
-            -- this is not ever used as site is redirected at high levels to sign-in
-            ( model
-            , Utils.Route.navigate shared.key Route.SignIn
-            )
+                Nothing ->
+                    ""
+
+        model =
+            { defaultModel | token = token }
+    in
+    ( model
+    , Effect.fromCmd <|
+        Cmd.batch
+            [ Task.perform Zone Time.here
+            , Task.perform Tick Time.now
+            , Node.list { onResponse = ApiRespList, token = token }
+            ]
+    )
 
 
 
@@ -165,7 +160,8 @@ init shared { key } =
 
 
 type Msg
-    = Tick Time.Posix
+    = SignOut
+    | Tick Time.Posix
     | Zone Time.Zone
     | EditNodePoint Int (List Point)
     | UploadFile String
@@ -200,9 +196,12 @@ type Msg
     | ClearClipboard
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Shared.Model -> Msg -> Model -> ( Model, Effect Msg )
+update shared msg model =
     case msg of
+        SignOut ->
+            ( model, Effect.fromCmd <| Storage.signOut shared.storage )
+
         EditNodePoint feID points ->
             let
                 editPoints =
@@ -220,18 +219,18 @@ update msg model =
                         , points = Point.updatePoints editPoints points
                         }
               }
-            , Cmd.none
+            , Effect.none
             )
 
         UploadFile id ->
-            ( model, File.Select.file [ "" ] (UploadSelected id) )
+            ( model, Effect.fromCmd <| File.Select.file [ "" ] (UploadSelected id) )
 
         UploadSelected id file ->
             let
                 uploadContents =
                     UploadContents id file
             in
-            ( model, Task.perform uploadContents (File.toString file) )
+            ( model, Effect.fromCmd <| Task.perform uploadContents (File.toString file) )
 
         UploadContents id file contents ->
             let
@@ -243,12 +242,13 @@ update msg model =
                     Point Point.typeData "" model.now 0 0 contents 0
             in
             ( model
-            , Node.postPoints
-                { token = model.auth.token
-                , id = id
-                , points = [ pointName, pointData ]
-                , onResponse = ApiRespPostPoint
-                }
+            , Effect.fromCmd <|
+                Node.postPoints
+                    { token = model.token
+                    , id = id
+                    , points = [ pointName, pointData ]
+                    , onResponse = ApiRespPostPoint
+                    }
             )
 
         ApiPostPoints id ->
@@ -282,23 +282,24 @@ update msg model =
                                 model.nodes
                     in
                     ( { model | nodeEdit = Nothing, nodes = updatedNodes }
-                    , Node.postPoints
-                        { token = model.auth.token
-                        , id = id
-                        , points = points
-                        , onResponse = ApiRespPostPoint
-                        }
+                    , Effect.fromCmd <|
+                        Node.postPoints
+                            { token = model.token
+                            , id = id
+                            , points = points
+                            , onResponse = ApiRespPostPoint
+                            }
                     )
 
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( model, Effect.none )
 
         DiscardNodeOp ->
-            ( { model | nodeOp = OpNone }, Cmd.none )
+            ( { model | nodeOp = OpNone }, Effect.none )
 
         DiscardEdits ->
             ( { model | nodeEdit = Nothing }
-            , Cmd.none
+            , Effect.none
             )
 
         ToggleExpChildren feID ->
@@ -306,20 +307,20 @@ update msg model =
                 nodes =
                     toggleExpChildren model.nodes feID
             in
-            ( { model | nodes = nodes }, Cmd.none )
+            ( { model | nodes = nodes }, Effect.none )
 
         ToggleExpDetail feID ->
             let
                 nodes =
                     toggleExpDetail model.nodes feID
             in
-            ( { model | nodes = nodes }, Cmd.none )
+            ( { model | nodes = nodes }, Effect.none )
 
         AddNode feID id ->
             ( { model
                 | nodeOp = OpNodeToAdd { typ = Nothing, feID = feID, parent = id }
               }
-            , Cmd.none
+            , Effect.none
             )
 
         MsgNode feID id parent ->
@@ -332,30 +333,30 @@ update msg model =
                         , message = ""
                         }
               }
-            , Cmd.none
+            , Effect.none
             )
 
         PasteNode feID id ->
-            ( { model | nodeOp = OpNodePaste feID id }, Cmd.none )
+            ( { model | nodeOp = OpNodePaste feID id }, Effect.none )
 
         DeleteNode feID id parent ->
-            ( { model | nodeOp = OpNodeDelete feID id parent }, Cmd.none )
+            ( { model | nodeOp = OpNodeDelete feID id parent }, Effect.none )
 
         UpdateMsg message ->
             case model.nodeOp of
                 OpNodeMessage op ->
-                    ( { model | nodeOp = OpNodeMessage { op | message = message } }, Cmd.none )
+                    ( { model | nodeOp = OpNodeMessage { op | message = message } }, Effect.none )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, Effect.none )
 
         SelectAddNodeType typ ->
             case model.nodeOp of
                 OpNodeToAdd add ->
-                    ( { model | nodeOp = OpNodeToAdd { add | typ = Just typ } }, Cmd.none )
+                    ( { model | nodeOp = OpNodeToAdd { add | typ = Just typ } }, Effect.none )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, Effect.none )
 
         ApiPostAddNode parent ->
             -- FIXME optimistically update nodes
@@ -364,82 +365,87 @@ update msg model =
                     case addNode.typ of
                         Just typ ->
                             ( { model | nodeOp = OpNone }
-                            , Node.insert
-                                { token = model.auth.token
-                                , onResponse = ApiRespPostAddNode parent
-                                , node =
-                                    { id = ""
-                                    , typ = typ
-                                    , hash = 0
-                                    , parent = addNode.parent
-                                    , points =
-                                        [ Point.newText
-                                            Point.typeDescription
-                                            ""
-                                            "New, please edit"
-                                        ]
-                                    , edgePoints = []
+                            , Effect.fromCmd <|
+                                Node.insert
+                                    { token = model.token
+                                    , onResponse = ApiRespPostAddNode parent
+                                    , node =
+                                        { id = ""
+                                        , typ = typ
+                                        , hash = 0
+                                        , parent = addNode.parent
+                                        , points =
+                                            [ Point.newText
+                                                Point.typeDescription
+                                                ""
+                                                "New, please edit"
+                                            ]
+                                        , edgePoints = []
+                                        }
                                     }
-                                }
                             )
 
                         Nothing ->
-                            ( { model | nodeOp = OpNone }, Cmd.none )
+                            ( { model | nodeOp = OpNone }, Effect.none )
 
                 _ ->
-                    ( { model | nodeOp = OpNone }, Cmd.none )
+                    ( { model | nodeOp = OpNone }, Effect.none )
 
         ApiPostMoveNode parent id src dest ->
             ( model
-            , Node.move
-                { token = model.auth.token
-                , id = id
-                , oldParent = src
-                , newParent = dest
-                , onResponse = ApiRespPostMoveNode parent
-                }
+            , Effect.fromCmd <|
+                Node.move
+                    { token = model.token
+                    , id = id
+                    , oldParent = src
+                    , newParent = dest
+                    , onResponse = ApiRespPostMoveNode parent
+                    }
             )
 
         ApiPutMirrorNode parent id dest ->
             ( model
-            , Node.copy
-                { token = model.auth.token
-                , id = id
-                , newParent = dest
-                , duplicate = False
-                , onResponse = ApiRespPutMirrorNode parent
-                }
+            , Effect.fromCmd <|
+                Node.copy
+                    { token = model.token
+                    , id = id
+                    , newParent = dest
+                    , duplicate = False
+                    , onResponse = ApiRespPutMirrorNode parent
+                    }
             )
 
         ApiPutDuplicateNode parent id dest ->
             ( model
-            , Node.copy
-                { token = model.auth.token
-                , id = id
-                , newParent = dest
-                , duplicate = True
-                , onResponse = ApiRespPutDuplicateNode parent
-                }
+            , Effect.fromCmd <|
+                Node.copy
+                    { token = model.token
+                    , id = id
+                    , newParent = dest
+                    , duplicate = True
+                    , onResponse = ApiRespPutDuplicateNode parent
+                    }
             )
 
         ApiPostNotificationNode ->
             ( model
             , case model.nodeOp of
                 OpNodeMessage msgNode ->
-                    Node.notify
-                        { token = model.auth.token
-                        , not =
-                            { id = ""
-                            , parent = msgNode.parent
-                            , sourceNode = msgNode.id
-                            , subject = ""
-                            , message = msgNode.message
+                    Effect.fromCmd <|
+                        Node.notify
+                            { token = model.token
+                            , not =
+                                { id = ""
+                                , parent = msgNode.parent
+                                , sourceNode = msgNode.id
+                                , subject = ""
+                                , message = msgNode.message
+                                }
+                            , onResponse = ApiRespPostNotificationNode
                             }
-                        , onResponse = ApiRespPostNotificationNode
-                        }
 
                 _ ->
-                    Cmd.none
+                    Effect.none
             )
 
         ApiDelete id parent ->
@@ -450,16 +456,17 @@ update msg model =
                     model.nodes
             in
             ( { model | nodes = nodes, nodeOp = OpNone }
-            , Node.delete
-                { token = model.auth.token
-                , id = id
-                , parent = parent
-                , onResponse = ApiRespDelete
-                }
+            , Effect.fromCmd <|
+                Node.delete
+                    { token = model.token
+                    , id = id
+                    , parent = parent
+                    , onResponse = ApiRespDelete
+                    }
             )
 
         Zone zone ->
-            ( { model | zone = zone }, Cmd.none )
+            ( { model | zone = zone }, Effect.none )
 
         Tick now ->
             let
@@ -497,7 +504,7 @@ update msg model =
                                 |> populateFeID
                                 |> mergeNodeTrees model.nodes
                     in
-                    ( { model | nodes = new }, Cmd.none )
+                    ( { model | nodes = new }, Effect.none )
 
                 Data.Failure err ->
                     let
@@ -511,16 +518,16 @@ update msg model =
                     in
                     if signOut then
                         ( { model | error = Just "Signed Out" }
-                        , Utils.Route.navigate model.key Route.SignIn
+                        , Effect.fromCmd <| Storage.signOut shared.storage
                         )
 
                     else
                         ( popError "Error getting nodes" err model
-                        , Cmd.none
+                        , Effect.none
                         )
 
                 _ ->
-                    ( model, Cmd.none )
+                    ( model, Effect.none )
 
         ApiRespDelete resp ->
             case resp of
@@ -553,7 +560,7 @@ update msg model =
 
                 _ ->
                     ( model
-                    , Cmd.none
+                    , Effect.none
                     )
 
         ApiRespPostAddNode parentFeID resp ->
@@ -663,11 +670,11 @@ update msg model =
                         , time = model.now
                         }
               }
-            , Port.out <| Port.encodeClipboard id
+            , Effect.fromCmd <| Port.out <| Port.encodeClipboard id
             )
 
         ClearClipboard ->
-            ( { model | copyMove = CopyMoveNone }, Cmd.none )
+            ( { model | copyMove = CopyMoveNone }, Effect.none )
 
 
 mergeNodeTrees : List (Tree NodeView) -> List (Tree NodeView) -> List (Tree NodeView)
@@ -991,34 +998,9 @@ popError desc err model =
     { model | error = Just (desc ++ ": " ++ Data.errorToString err) }
 
 
-updateNodes : Model -> Cmd Msg
+updateNodes : Model -> Effect Msg
 updateNodes model =
-    Node.list { onResponse = ApiRespList, token = model.auth.token }
-
-
-save : Model -> Shared.Model -> Shared.Model
-save model shared =
-    { shared
-        | error =
-            case model.error of
-                Nothing ->
-                    shared.error
-
-                Just _ ->
-                    model.error
-        , lastError =
-            case model.error of
-                Nothing ->
-                    shared.lastError
-
-                Just _ ->
-                    shared.now
-    }
-
-
-load : Shared.Model -> Model -> ( Model, Cmd Msg )
-load shared model =
-    ( { model | key = shared.key, error = Nothing }, Cmd.none )
+    Effect.fromCmd <| Node.list { onResponse = ApiRespList, token = model.token }
 
 
 subscriptions : Model -> Sub Msg
@@ -1030,29 +1012,45 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> Document Msg
-view model =
-    { title = "SIOT Nodes"
-    , body =
-        [ column
-            [ width fill, spacing 32 ]
-            [ wrappedRow [ spacing 10 ] <|
-                (el Style.h2 <| text "Nodes")
-                    :: (case model.copyMove of
-                            CopyMoveNone ->
-                                []
+view : Auth.User -> Shared.Model -> Model -> View Msg
+view _ shared model =
+    { title = "SIOT"
+    , attributes = []
+    , element =
+        UI.Layout.layout
+            { onSignOut = SignOut
+            , email =
+                case shared.storage.user of
+                    Just user_ ->
+                        Just user_.email
 
-                            Copy id _ desc ->
-                                [ Icon.clipboard
-                                , el [ Font.italic ] <| text desc
-                                , el [ Font.size 12 ] <| text <| "(" ++ id ++ ")"
-                                , Button.x ClearClipboard
-                                ]
-                       )
-            , viewNodes model
-            ]
-        ]
+                    Nothing ->
+                        Nothing
+            , error = shared.error
+            }
+            (viewBody model)
     }
+
+
+viewBody : Model -> Element Msg
+viewBody model =
+    column
+        [ width fill, spacing 32 ]
+        [ wrappedRow [ spacing 10 ] <|
+            (el Style.h2 <| text "Nodes")
+                :: (case model.copyMove of
+                        CopyMoveNone ->
+                            []
+
+                        Copy id _ desc ->
+                            [ Icon.clipboard
+                            , el [ Font.italic ] <| text desc
+                            , el [ Font.size 12 ] <| text <| "(" ++ id ++ ")"
+                            , Button.x ClearClipboard
+                            ]
+                   )
+        , viewNodes model
+        ]
 
 
 viewNodes : Model -> Element Msg
