@@ -1,30 +1,30 @@
-module Pages.SignIn exposing (Model, Msg, Params, page)
+module Pages.SignIn exposing (Model, Msg, page)
 
-import Api.Auth exposing (Auth)
+import Api.Auth exposing (User)
 import Api.Data exposing (Data)
-import Browser.Navigation exposing (Key)
+import Effect exposing (Effect)
 import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input
+import Gen.Params.SignIn exposing (Params)
+import Gen.Route as Route
+import Page
+import Request exposing (Request)
 import Shared
-import Spa.Document exposing (Document)
-import Spa.Generated.Route as Route
-import Spa.Page as Page exposing (Page)
-import Spa.Url exposing (Url)
+import Storage exposing (Storage)
 import UI.Form as Form
 import UI.Style as Style
 import Utils.Route
+import View exposing (View)
 
 
-page : Page Params Model Msg
-page =
-    Page.application
-        { init = init
-        , update = update
-        , subscriptions = subscriptions
+page : Shared.Model -> Request.With Params -> Page.With Model Msg
+page shared req =
+    Page.advanced
+        { init = init shared
+        , update = update shared.storage
         , view = view
-        , save = save
-        , load = load
+        , subscriptions = subscriptions
         }
 
 
@@ -32,34 +32,28 @@ page =
 -- INIT
 
 
-type alias Params =
-    ()
-
-
 type alias Model =
-    { auth : Data Auth
-    , key : Key
+    { user : Data User
     , email : String
     , password : String
     , error : Maybe String
     }
 
 
-init : Shared.Model -> Url Params -> ( Model, Cmd Msg )
-init shared { key } =
+init : Shared.Model -> ( Model, Effect Msg )
+init shared =
     ( Model
-        (case shared.auth of
+        (case shared.storage.user of
             Just auth ->
                 Api.Data.Success auth
 
             Nothing ->
                 Api.Data.NotAsked
         )
-        key
         ""
         ""
         Nothing
-    , Cmd.none
+    , Effect.none
     )
 
 
@@ -71,37 +65,38 @@ type Msg
     = EditEmail String
     | EditPass String
     | SignIn
-    | GotUser (Data Auth)
+    | GotUser (Data User)
     | NoOp
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Storage -> Msg -> Model -> ( Model, Effect Msg )
+update storage msg model =
     case msg of
         EditEmail email ->
-            ( { model | email = String.toLower email }, Cmd.none )
+            ( { model | email = String.toLower email }, Effect.none )
 
         EditPass password ->
-            ( { model | password = password }, Cmd.none )
+            ( { model | password = password }, Effect.none )
 
         SignIn ->
             ( model
-            , Api.Auth.login
-                { user =
-                    { email = model.email
-                    , password = model.password
+            , Effect.fromCmd <|
+                Api.Auth.login
+                    { user =
+                        { email = model.email
+                        , password = model.password
+                        }
+                    , onResponse = GotUser
                     }
-                , onResponse = GotUser
-                }
             )
 
         NoOp ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
-        GotUser auth ->
+        GotUser user ->
             let
                 error =
-                    case auth of
+                    case user of
                         Api.Data.Success _ ->
                             Nothing
 
@@ -111,50 +106,22 @@ update msg model =
                         _ ->
                             Just "Login unknown state"
             in
-            ( { model | auth = auth, error = error }
-            , case Api.Data.toMaybe auth of
-                Just _ ->
-                    Utils.Route.navigate model.key Route.Top
+            ( { model | user = user, error = error }
+            , case Api.Data.toMaybe user of
+                Just user_ ->
+                    Effect.fromCmd <| Storage.signIn user_ storage
 
                 Nothing ->
-                    Cmd.none
+                    Effect.none
             )
 
 
-save : Model -> Shared.Model -> Shared.Model
-save model shared =
-    { shared
-        | auth =
-            case Api.Data.toMaybe model.auth of
-                Just auth ->
-                    Just { email = model.email, token = auth.token }
 
-                Nothing ->
-                    shared.auth
-        , error =
-            case model.error of
-                Nothing ->
-                    shared.error
-
-                Just _ ->
-                    model.error
-        , lastError =
-            case model.error of
-                Nothing ->
-                    shared.lastError
-
-                Just _ ->
-                    shared.now
-    }
-
-
-load : Shared.Model -> Model -> ( Model, Cmd Msg )
-load _ model =
-    ( { model | error = Nothing }, Cmd.none )
+-- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
+subscriptions model =
     Sub.none
 
 
@@ -162,11 +129,12 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> Document Msg
+view : Model -> View Msg
 view model =
     { title = "SIOT SignIn"
-    , body =
-        [ el [ centerX, centerY, Form.onEnter SignIn ] <|
+    , attributes = []
+    , element =
+        el [ centerX, centerY, Form.onEnter SignIn ] <|
             column
                 [ spacing 32 ]
                 [ el [ Font.size 24, Font.semiBold ]
@@ -203,5 +171,4 @@ view model =
                                 }
                     ]
                 ]
-        ]
     }

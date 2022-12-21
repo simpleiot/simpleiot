@@ -1,32 +1,43 @@
-import { BLE } from "./ble.js"
+// import { BLE } from "./ble.js"
 
+const app = Elm.Main.init({
+	flags: JSON.parse(localStorage.getItem("storage")),
+})
+
+app.ports.save_.subscribe((storage) => {
+	localStorage.setItem("storage", JSON.stringify(storage))
+	app.ports.load_.send(storage)
+})
+
+/*
 export const main = (app) => {
 	const ble = new BLE(async () => {
 		const state = await ble.getState()
 		app.ports.portIn.send(state)
 	})
-
-	/*
-	 * Websocket code needs cleaned up
-	 *
-	 * Var loc = window.location,
-	 * new_uri;
-	 * if (loc.protocol === "https:") {
-	 * ws_uri = "wss:";
-	 * } else {
-	 * ws_uri = "ws:";
-	 * }
-	 * ws_uri += "//" + loc.host;
-	 * ws_uri += "/ws";
-	 * var conn = new WebSocket(ws_uri);
-	 * conn.onclose = function(evt) {
-	 * console.log("WS connection closed");
-	 * };
-	 * conn.onmessage = function(evt) {
-	 * var obj = JSON.parse(evt.data);
-	 * app.ports.portIn.send(obj);
-	 * };
-	 */
+  */
+/*
+ * Websocket code needs cleaned up
+ *
+ * Var loc = window.location,
+ * new_uri;
+ * if (loc.protocol === "https:") {
+ * ws_uri = "wss:";
+ * } else {
+ * ws_uri = "ws:";
+ * }
+ * ws_uri += "//" + loc.host;
+ * ws_uri += "/ws";
+ * var conn = new WebSocket(ws_uri);
+ * conn.onclose = function(evt) {
+ * console.log("WS connection closed");
+ * };
+ * conn.onmessage = function(evt) {
+ * var obj = JSON.parse(evt.data);
+ * app.ports.portIn.send(obj);
+ * };
+ */
+/*
 
 	app.ports.portOut.subscribe(async function (data) {
 		let state
@@ -83,3 +94,4 @@ export const main = (app) => {
 		}
 	})
 }
+  */

@@ -1,9 +1,18 @@
-module Utils.Route exposing (navigate)
+module Utils.Route exposing
+    ( fromUrl
+    , navigate
+    )
 
 import Browser.Navigation as Nav
-import Spa.Generated.Route as Route exposing (Route)
+import Gen.Route as Route exposing (Route)
+import Url exposing (Url)
 
 
 navigate : Nav.Key -> Route -> Cmd msg
 navigate key route =
-    Nav.pushUrl key (Route.toString route)
+    Nav.pushUrl key (Route.toHref route)
+
+
+fromUrl : Url -> Route
+fromUrl =
+    Route.fromUrl
