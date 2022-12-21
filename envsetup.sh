@@ -122,7 +122,7 @@ siot_watch_elm() {
 }
 
 siot_watch() {
-  npx run-pty % /bin/sh -c ". ./envsetup.sh && siot_watch_elm" % /bin/sh -c ". ./envsetup.sh && siot_watch_go"
+  npx run-pty % /bin/sh -c ". ./envsetup.sh && siot_watch_elm" % /bin/sh -c ". ./envsetup.sh && siot_watch_go $*"
 }
 
 # TODO finish this and add to siot_test ...
