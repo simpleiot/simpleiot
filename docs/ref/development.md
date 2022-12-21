@@ -26,6 +26,22 @@ To build:
 - `siot_setup`
 - `siot_build`
 
+## Developing Simple IoT
+
+The `siot_watch` command can be used when developing Simple IoT. This does the
+following:
+
+- starts [`elm-watch`](https://github.com/lydell/elm-watch) on the Elm code.
+  `elm-watch` will automatically update the UI without losing state any time an
+  Elm file changes.
+- runs the Go backend and rebuilds it anytime a Go module changes (only works on
+  Linux)
+
+Both of the above are run in a [run-pty](https://github.com/lydell/run-pty)
+wrapper, which allows you to see the output of either process. The output of the
+Elm compile is displayed in the browser, so it is rarely necessary to view the
+elm-watch side.
+
 ## Using Simple IoT as a library
 
 Simple IoT can be used a library for your custom application. The siot
@@ -57,8 +73,9 @@ The process for creating a new client:
 
 ## Customizing the UI
 
-Currently, there is no simple way to customize the SIOT UI. Changing the SIOT
-Elm code is probably the simplest way if you want to make a small change now.
+Currently, there is no simple way to customize the SIOT UI when using SIOT as a
+library package. Forking and changing the SIOT Elm code is probably the simplest
+way if you want to make a small change now.
 
 In the future, we plan to provide an API for passing in a custom UI to the SIOT
 Server. You can also implement a custom http client that serves up a custom UI.
