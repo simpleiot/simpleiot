@@ -7,14 +7,12 @@ import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import Gen.Params.SignIn exposing (Params)
-import Gen.Route as Route
 import Page
 import Request exposing (Request)
 import Shared
 import Storage exposing (Storage)
 import UI.Form as Form
 import UI.Style as Style
-import Utils.Route
 import View exposing (View)
 
 
@@ -97,8 +95,12 @@ update storage msg model =
             let
                 error =
                     case user of
-                        Api.Data.Success _ ->
-                            Nothing
+                        Api.Data.Success user_ ->
+                            if user_.token /= "" then
+                                Nothing
+
+                            else
+                                Just "Invalid login"
 
                         Api.Data.Failure _ ->
                             Just "Login Failure"
@@ -106,14 +108,18 @@ update storage msg model =
                         _ ->
                             Just "Login unknown state"
             in
-            ( { model | user = user, error = error }
-            , case Api.Data.toMaybe user of
+            case Api.Data.toMaybe user of
                 Just user_ ->
-                    Effect.fromCmd <| Storage.signIn user_ storage
+                    if user_.token /= "" then
+                        ( { model | user = user, error = error }
+                        , Effect.fromCmd <| Storage.signIn user_ storage
+                        )
+
+                    else
+                        ( { model | user = user, error = error }, Effect.none )
 
                 Nothing ->
-                    Effect.none
-            )
+                    ( { model | user = user, error = error }, Effect.none )
 
 
 
@@ -137,7 +143,8 @@ view model =
         el [ centerX, centerY, Form.onEnter SignIn ] <|
             column
                 [ spacing 32 ]
-                [ el [ Font.size 24, Font.semiBold ]
+                [ viewError model.error
+                , el [ Font.size 24, Font.semiBold ]
                     (text "Sign in")
                 , column [ spacing 16 ]
                     [ Input.email
@@ -172,3 +179,13 @@ view model =
                     ]
                 ]
     }
+
+
+viewError : Maybe String -> Element msg
+viewError error =
+    case error of
+        Just err ->
+            el Style.error (el [ centerX ] (text err))
+
+        Nothing ->
+            none
