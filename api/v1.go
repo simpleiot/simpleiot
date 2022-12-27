@@ -20,8 +20,6 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	switch head {
 	case "nodes":
 		h.NodesHandler.ServeHTTP(res, req)
-	case "devices":
-		h.NodesHandler.ServeHTTP(res, req)
 	case "auth":
 		h.AuthHandler.ServeHTTP(res, req)
 	default:
