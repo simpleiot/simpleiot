@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -27,6 +28,7 @@ type Meta struct {
 	ID      int    `json:"id"`
 	Version int    `json:"version"`
 	RootID  string `json:"rootID"`
+	JWTKey  []byte `json:"jwtKey"`
 }
 
 // NewSqliteDb creates a new Sqlite data store
@@ -119,6 +121,13 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 		}
 	}
 
+	if len(ret.meta.JWTKey) <= 0 {
+		err := ret.initJwtKey()
+		if err != nil {
+			return nil, fmt.Errorf("Error initializing JWT Key: %v", err)
+		}
+	}
+
 	// make sure we find root ID
 	nodes, err := ret.getNodes(nil, "all", ret.meta.RootID, "", false)
 	if err != nil {
@@ -134,7 +143,7 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 
 func (sdb *DbSqlite) initMeta() error {
 	// should be one row in the meta database
-	rows, err := sdb.db.Query("SELECT id, version, root_id FROM meta")
+	rows, err := sdb.db.Query("SELECT id, version, root_id, jwt_key FROM meta")
 	if err != nil {
 		return err
 	}
@@ -144,7 +153,7 @@ func (sdb *DbSqlite) initMeta() error {
 
 	for rows.Next() {
 		count++
-		err = rows.Scan(&sdb.meta.ID, &sdb.meta.Version, &sdb.meta.RootID)
+		err = rows.Scan(&sdb.meta.ID, &sdb.meta.Version, &sdb.meta.RootID, &sdb.meta.JWTKey)
 		if err != nil {
 			return fmt.Errorf("Error scanning meta row: %v", err)
 		}
@@ -227,6 +236,21 @@ func (sdb *DbSqlite) runMigrations() error {
 		if err != nil {
 			return err
 		}
+		sdb.meta.Version = 1
+	}
+
+	if sdb.meta.Version < 2 {
+		log.Println("DB: running migration 2")
+		_, err := sdb.db.Exec(`ALTER TABLE meta ADD COLUMN jwt_key BLOB`)
+		if err != nil {
+			return err
+		}
+
+		_, err = sdb.db.Exec(`UPDATE meta SET version = 2`)
+		if err != nil {
+			return err
+		}
+		sdb.meta.Version = 2
 	}
 
 	return nil
@@ -408,6 +432,30 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 	}
 
 	return rootNode.ID, nil
+}
+
+func (sdb *DbSqlite) initJwtKey() error {
+	var f *os.File
+	f, err := os.Open("/dev/urandom")
+	if err != nil {
+		return fmt.Errorf("Error opening /dev/urandom: %v", err)
+	}
+	defer f.Close()
+	sdb.meta.JWTKey = make([]byte, 20)
+	_, err = f.Read(sdb.meta.JWTKey)
+
+	if err != nil {
+		return fmt.Errorf("Error reading urandom to make key: %v", err)
+	}
+
+	sdb.writeLock.Lock()
+	defer sdb.writeLock.Unlock()
+	_, err = sdb.db.Exec("UPDATE meta SET jwt_key = ?", sdb.meta.JWTKey)
+	if err != nil {
+		return fmt.Errorf("Error setting meta jwt key: %v", err)
+	}
+
+	return nil
 }
 
 func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {

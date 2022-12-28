@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/internal/pb"
@@ -18,11 +19,6 @@ import (
 
 var reportMetricsPeriod = time.Minute
 
-// NewTokener provides a new authentication token.
-type NewTokener interface {
-	NewToken(userID string) (string, error)
-}
-
 // Store implements the SIOT NATS api
 type Store struct {
 	params        Params
@@ -30,7 +26,7 @@ type Store struct {
 	subscriptions map[string]*nats.Subscription
 	db            *DbSqlite
 	lock          sync.Mutex
-	key           NewTokener
+	authorizer    api.Authorizer
 
 	// cycle metrics track how long it takes to handle a point
 	metricCycleNodePoint     *client.Metric
@@ -52,7 +48,6 @@ type Params struct {
 	File      string
 	AuthToken string
 	Server    string
-	Key       NewTokener
 	Nc        *nats.Conn
 	// ID for the instance -- it is only used when initializing the store.
 	// ID must be unique. If ID is not set, then a UUID is generated.
@@ -69,12 +64,17 @@ func NewStore(p Params) (*Store, error) {
 	// we don't have node ID yet, but need to init here so we can start
 	// collecting data
 
+	authorizer, err := api.NewKey(db.meta.JWTKey)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating authorizer: %v", err)
+	}
+
 	log.Println("store connecting to nats server: ", p.Server)
 	return &Store{
 		params:        p,
 		nc:            p.Nc,
 		db:            db,
-		key:           p.Key,
+		authorizer:    authorizer,
 		subscriptions: make(map[string]*nats.Subscription),
 		chStop:        make(chan struct{}),
 		chStopMetrics: make(chan struct{}),
@@ -88,6 +88,11 @@ func NewStore(p Params) (*Store, error) {
 		metricCycleNodeChildren: client.NewMetric(p.Nc, "",
 			data.PointTypeMetricNatsCycleNodeChildren, reportMetricsPeriod),
 	}, nil
+}
+
+// GetAuthorizer returns a type that can be used in JWT Auth mechanisms
+func (st *Store) GetAuthorizer() api.Authorizer {
+	return st.authorizer
 }
 
 // Start connects to NATS server and set up handlers for things we are interested in
@@ -433,7 +438,7 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 
 	user, err := data.NodeToUser(nodes[0].ToNode())
 
-	token, err := st.key.NewToken(user.ID)
+	token, err := st.authorizer.NewToken(user.ID)
 	if err != nil {
 		log.Println("Error creating token")
 		returnNothing()
