@@ -1,11 +1,11 @@
 package client
 
-// StartStop is an interface that implements the Start() and Stop() methods.
+// RunStop is an interface that implements the Run() and Stop() methods.
 // This pattern is used wherever long running processes are required.
-// Warning!!! Stop() may get called after Start() has exitted when using
+// Warning!!! Stop() may get called after Run() has exitted when using
 // mechanisms like run.Group, so be sure that Stop() never blocks -- it must
 // return for things to work properly.
-type StartStop interface {
-	Start() error
+type RunStop interface {
+	Run() error
 	Stop(error)
 }

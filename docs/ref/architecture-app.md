@@ -36,7 +36,7 @@ upstream instances.
 ## Application Lifecycle
 
 Simple IoT uses the
-[`Start()/Stop()`](https://community.tmpdir.org/t/structuring-go-apps-for-testing-and-lifecycle-management-the-start-stop-pattern/550)
+[`Run()/Stop()`](https://community.tmpdir.org/t/structuring-go-apps-for-testing-and-lifecycle-management-the-start-stop-pattern/550)
 pattern for any long running processes. With any long running process, it is
 important to not only Start it, but also to be able to cleanly Stop it. This is
 important for testing, but is also good practice. Nothing runs forever so we

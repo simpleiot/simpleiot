@@ -113,12 +113,12 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 // Server makes sure all clients are shut down before
 // shutting down the server. This makes for a cleaner
 // shutdown.
-func (s *Server) AddClient(client client.StartStop) {
+func (s *Server) AddClient(client client.RunStop) {
 	s.clients.Add(client)
 }
 
-// Start the server -- only returns if there is an error
-func (s *Server) Start() error {
+// Run the server -- only returns if there is an error
+func (s *Server) Run() error {
 	var g run.Group
 
 	logLS := func(m ...any) {}
@@ -197,7 +197,7 @@ func (s *Server) Start() error {
 	siotWaitCtx, siotWaitCancel := context.WithTimeout(context.Background(), time.Second*10)
 
 	g.Add(func() error {
-		err := siotStore.Start()
+		err := siotStore.Run()
 		logLS("LS: Exited: store")
 		return err
 	}, func(err error) {
@@ -283,7 +283,7 @@ func (s *Server) Start() error {
 			return err
 		}
 
-		err = s.clients.Start()
+		err = s.clients.Run()
 		logLS("LS: Exited: clients manager: ", err)
 		return err
 	}, func(err error) {

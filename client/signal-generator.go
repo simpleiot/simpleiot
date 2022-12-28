@@ -46,8 +46,8 @@ func NewSignalGeneratorClient(nc *nats.Conn, config SignalGenerator) Client {
 	}
 }
 
-// Start runs the main logic for this client and blocks until stopped
-func (sgc *SignalGeneratorClient) Start() error {
+// Run the main logic for this client and blocks until stopped
+func (sgc *SignalGeneratorClient) Run() error {
 	log.Println("Starting sig gen client: ", sgc.config.Description)
 
 	chStopGen := make(chan struct{})

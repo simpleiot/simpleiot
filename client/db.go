@@ -49,8 +49,8 @@ func NewDbClient(nc *nats.Conn, config Db) Client {
 	}
 }
 
-// Start runs the main logic for this client and blocks until stopped
-func (dbc *DbClient) Start() error {
+// Run runs the main logic for this client and blocks until stopped
+func (dbc *DbClient) Run() error {
 	log.Println("Starting db client: ", dbc.config.Description)
 
 	// FIXME, we probably want to store edge points too ...

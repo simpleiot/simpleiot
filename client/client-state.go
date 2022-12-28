@@ -116,9 +116,9 @@ func (cs *clientState[T]) start() (err error) {
 
 	go func() {
 		// the following blocks until client exits
-		err := cs.client.Start()
+		err := cs.client.Run()
 		if err != nil {
-			log.Printf("Client Start %v %v returned error: %v\n",
+			log.Printf("Client Run %v %v returned error: %v\n",
 				cs.node.Type, cs.node.ID, err)
 		}
 		close(chClientStopped)

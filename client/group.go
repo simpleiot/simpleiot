@@ -21,13 +21,13 @@ func NewGroup(name string) *Group {
 }
 
 // Add client to group
-func (g *Group) Add(client StartStop) {
-	g.group.Add(client.Start, client.Stop)
+func (g *Group) Add(client RunStop) {
+	g.group.Add(client.Run, client.Stop)
 }
 
-// Start clients. This function blocks until error or stopped.
+// Run clients. This function blocks until error or stopped.
 // all clients must be added before runner is started
-func (g *Group) Start() error {
+func (g *Group) Run() error {
 	g.group.Add(func() error {
 		<-g.stop
 		return nil
