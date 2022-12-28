@@ -61,6 +61,21 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 		return nil, fmt.Errorf("Error creating meta table: %v", err)
 	}
 
+	// check if jwt_key column exists
+	row := db.QueryRow(`SELECT COUNT(*) AS CNTREC FROM pragma_table_info('meta') WHERE name='jwt_key'`)
+	var count int
+	err = row.Scan(&count)
+	if err != nil {
+		return nil, err
+	}
+
+	if count <= 0 {
+		_, err := db.Exec(`ALTER TABLE meta ADD COLUMN jwt_key BLOB`)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS edges (id TEXT NOT NULL PRIMARY KEY,
 				up TEXT,
 				down TEXT,
@@ -243,22 +258,7 @@ func (sdb *DbSqlite) runMigrations() error {
 	if sdb.meta.Version < 2 {
 		log.Println("DB: running migration 2")
 
-		// check if jwt_key column exists
-		row := sdb.db.QueryRow(`SELECT COUNT(*) AS CNTREC FROM pragma_table_info('meta') WHERE name='jwt_key'`)
-		var count int
-		err := row.Scan(&count)
-		if err != nil {
-			return err
-		}
-
-		if count <= 0 {
-			_, err := sdb.db.Exec(`ALTER TABLE meta ADD COLUMN jwt_key BLOB`)
-			if err != nil {
-				return err
-			}
-		}
-
-		_, err = sdb.db.Exec(`UPDATE meta SET version = 2`)
+		_, err := sdb.db.Exec(`UPDATE meta SET version = 2`)
 		if err != nil {
 			return err
 		}
