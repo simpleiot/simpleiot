@@ -187,8 +187,8 @@ func NewRuleClient(nc *nats.Conn, config Rule) Client {
 	}
 }
 
-// Start runs the main logic for this client and blocks until stopped
-func (rc *RuleClient) Start() error {
+// Run runs the main logic for this client and blocks until stopped
+func (rc *RuleClient) Run() error {
 	// watch all points that flow through parent node
 	// FIXME: we should optimize this so we only watch the nodes
 	// that are in the conditions
@@ -272,7 +272,7 @@ done:
 	return nil
 }
 
-// Stop sends a signal to the Start function to exit
+// Stop sends a signal to the Run function to exit
 func (rc *RuleClient) Stop(err error) {
 	close(rc.stop)
 }

@@ -62,8 +62,8 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 	}
 }
 
-// Start runs the main logic for this client and blocks until stopped
-func (sd *SerialDevClient) Start() error {
+// Run the main logic for this client and blocks until stopped
+func (sd *SerialDevClient) Run() error {
 	log.Println("Starting serial client: ", sd.config.Description)
 
 	checkPortDur := time.Second * 10
@@ -431,7 +431,7 @@ func (sd *SerialDevClient) Start() error {
 	}
 }
 
-// Stop sends a signal to the Start function to exit
+// Stop sends a signal to the Run function to exit
 func (sd *SerialDevClient) Stop(err error) {
 	close(sd.stop)
 }

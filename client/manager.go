@@ -53,10 +53,10 @@ func NewManager[T any](nc *nats.Conn,
 	}
 }
 
-// Start node manager. This function looks for children of a certain node type.
+// Run node manager. This function looks for children of a certain node type.
 // When new nodes are found, the data is decoded into the client type config, and the
 // constructor for the node client is called. This call blocks until Stop is called.
-func (m *Manager[T]) Start() error {
+func (m *Manager[T]) Run() error {
 	nodes, err := GetNodes(m.nc, "root", "all", "", false)
 	if err != nil {
 		return fmt.Errorf("Manager: Error getting root node: %v", err)

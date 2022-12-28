@@ -61,7 +61,7 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 	stopped := make(chan struct{})
 
 	go func() {
-		err := s.Start()
+		err := s.Run()
 		if err != nil {
 			log.Println("Test Server start returned: ", err)
 		}

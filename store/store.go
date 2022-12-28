@@ -95,8 +95,8 @@ func (st *Store) GetAuthorizer() api.Authorizer {
 	return st.authorizer
 }
 
-// Start connects to NATS server and set up handlers for things we are interested in
-func (st *Store) Start() error {
+// Run connects to NATS server and set up handlers for things we are interested in
+func (st *Store) Run() error {
 	nc := st.params.Nc
 	var err error
 	st.subscriptions["nodePoints"], err = nc.Subscribe("p.*", st.handleNodePoints)

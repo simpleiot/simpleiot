@@ -63,8 +63,8 @@ func NewSyncClient(nc *nats.Conn, config Sync) Client {
 	}
 }
 
-// Start runs the main logic for this client and blocks until stopped
-func (up *SyncClient) Start() error {
+// Run the main logic for this client and blocks until stopped
+func (up *SyncClient) Run() error {
 	// create a new NATs connection to the local server as we need to
 	// turn echo off
 	uri, token, err := GetNatsURI(up.nc)
@@ -323,7 +323,7 @@ done:
 	return nil
 }
 
-// Stop sends a signal to the Start function to exit
+// Stop sends a signal to the Run function to exit
 func (up *SyncClient) Stop(err error) {
 	close(up.stop)
 }

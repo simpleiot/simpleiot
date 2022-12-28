@@ -1,16 +1,18 @@
 # CAN Bus Client
 
-The CAN client allows loading a standard CAN database file, recieving CAN data, 
+The CAN client allows loading a standard CAN database file, recieving CAN data,
 and translating the CAN data into points via the database.
 
 ## Usage
 
-The CAN client can be used as part of the SimpleIoT library or through the web 
+The CAN client can be used as part of the SimpleIoT library or through the web
 UI. The first step in either case is to create a CAN database in .kbc format.
 
 ### Create the CAN Database
 
-Create a file in the folder with the Go code named "test.kcd" containing the following:
+Create a file in the folder with the Go code named "test.kcd" containing the
+following:
+
 ```xml
 <NetworkDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://kayak.2codeornot2code.org/1.0" xsi:schemaLocation="Definition.xsd">
   <Document name="Some Document Name">some text</Document>
@@ -29,15 +31,16 @@ Create a file in the folder with the Go code named "test.kcd" containing the fol
 </NetworkDefinition>
 ```
 
-You can create any CAN database you want by crafting it in Kvaser's free DBC editor and
-then using the `canmatrix` tool to convert it to KCD format. Note that `canmatrix` does
-not support all features of the DBC and KCD formats.
+You can create any CAN database you want by crafting it in Kvaser's free DBC
+editor and then using the `canmatrix` tool to convert it to KCD format. Note
+that `canmatrix` does not support all features of the DBC and KCD formats.
 
 Next, setup the virtual socketCan interface.
 
 ### Setup Virtual CAN Interface
 
-Run this in the command line. [Reference](https://www.pragmaticlinux.com/2021/10/how-to-create-a-virtual-can-interface-on-linux/)
+Run this in the command line.
+[Reference](https://www.pragmaticlinux.com/2021/10/how-to-create-a-virtual-can-interface-on-linux/)
 
 ```bash
 sudo modprobe vcan
@@ -47,7 +50,7 @@ sudo ip link set up vcan0
 
 ### Option #1 - Use In Web UI
 
-Follow the [instructions](installation.md) to install SimpleIoT, run it, and 
+Follow the [instructions](installation.md) to install SimpleIoT, run it, and
 navigate to the web UI.
 
 Expand the root node and click the + symbol to add a sub node. Select "CAN Bus"
@@ -60,15 +63,15 @@ created.
 
 ![Configure the CAN Bus node with the .kcd file](../images/configure-canbus-node.png)
 
-Once the file has been uploaded, you should see the following stats in the
-CAN bus node:
+Once the file has been uploaded, you should see the following stats in the CAN
+bus node:
 
-Messages in db: 2
-Signals in db: 4
+Messages in db: 2 Signals in db: 4
 
 ### Test with Messages
 
 In a separate terminal:
+
 ```
 cansend vcan0 123#R{8}
 cansend vcan0 12345678#DEADBEEF
@@ -128,7 +131,7 @@ func newExNodeClient(nc *nats.Conn, config client.SerialDev) client.Client {
 }
 
 // Start runs the main logic for this client and blocks until stopped
-func (tnc *exNodeClient) Start() error {
+func (tnc *exNodeClient) Run() error {
 	for {
 		select {
 		case <-tnc.stop:
@@ -151,7 +154,7 @@ func (tnc *exNodeClient) Start() error {
 	}
 }
 
-// Stop sends a signal to the Start function to exit
+// Stop sends a signal to the Run function to exit
 func (tnc *exNodeClient) Stop(err error) {
 	close(tnc.stop)
 }
@@ -199,6 +202,7 @@ func main() {
 ```
 
 **Run the following commands**:
+
 - `go mod init example.com/m`
 - `go run <file>.go`
 - Run the `go get` commands suggested by `go run`
@@ -212,10 +216,13 @@ func main() {
 Follow instructions from the "Test with Messages" section above.
 
 ## Future Work
+
 - Scale and translate messages based on scale and offset parameters in database
 - Auto connect to CAN bus in case it is brought up after SIOT client is started
 - Attempt to bring up CAN bus within client, handle case where it is already up
-- Support multiple CAN database files per node (be selective in which internal db is updated when a name or data point is recieved in the client)
-- Support sending messages (concept of nodes and send/recieve pulled from databases??)
+- Support multiple CAN database files per node (be selective in which internal
+  db is updated when a name or data point is recieved in the client)
+- Support sending messages (concept of nodes and send/recieve pulled from
+  databases??)
 - Support .dbc file format in addition to .kcd
 - Add the concept of a device to the CAN message points

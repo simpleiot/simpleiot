@@ -16,7 +16,7 @@ func newTestClient() *testClient {
 	return &testClient{stop: make(chan struct{})}
 }
 
-func (tc *testClient) Start() error {
+func (tc *testClient) Run() error {
 	<-tc.stop
 	return errors.New("client stopped")
 }
@@ -34,7 +34,7 @@ func TestGroup(t *testing.T) {
 
 	// first try to stop everything by stopping client
 	go func() {
-		groupErr <- g.Start()
+		groupErr <- g.Run()
 	}()
 
 	testC.Stop(nil)
@@ -42,7 +42,7 @@ func TestGroup(t *testing.T) {
 
 	// now try stopping everything by stopping group
 	go func() {
-		groupErr <- g.Start()
+		groupErr <- g.Run()
 	}()
 
 	g.Stop(nil)

@@ -22,13 +22,13 @@ See [Development](development.md)
 ## Client lifecycle
 
 It is important the clients cleanly implement the
-[Start()/Stop() pattern](architecture-app.md#application-lifecycle) and shut
-down cleanly when Stop() is called releasing all resources. If nodes are added
-or removed, clients are started/stopped. Additionally if a child node of a
-client config is added or removed, the entire client is stopped and then
-restarted. This relieves the burden on the client from managing the
-addition/removal of client functionality. Thus it is very important that clients
-stop cleanly and release resources in case they are restarted.
+[Run()/Stop() pattern](architecture-app.md#application-lifecycle) and shut down
+cleanly when Stop() is called releasing all resources. If nodes are added or
+removed, clients are started/stopped. Additionally if a child node of a client
+config is added or removed, the entire client is stopped and then restarted.
+This relieves the burden on the client from managing the addition/removal of
+client functionality. Thus it is very important that clients stop cleanly and
+release resources in case they are restarted.
 
 ## Message echo
 

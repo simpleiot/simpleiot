@@ -90,7 +90,7 @@ func runServer(args []string, version string, id string) error {
 		return fmt.Errorf("Error starting server: %v", err)
 	}
 
-	g.Add(siot.Start, siot.Stop)
+	g.Add(siot.Run, siot.Stop)
 
 	g.Add(run.SignalHandler(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM))
