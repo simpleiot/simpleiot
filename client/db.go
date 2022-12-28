@@ -178,7 +178,7 @@ done:
 	return nil
 }
 
-// Stop sends a signal to the Start function to exit
+// Stop sends a signal to the Run function to exit
 func (dbc *DbClient) Stop(err error) {
 	close(dbc.stop)
 }

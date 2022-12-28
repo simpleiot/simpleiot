@@ -42,8 +42,8 @@ func newExNodeClient(nc *nats.Conn, config testNode) client.Client {
 	}
 }
 
-// Start runs the main logic for this client and blocks until stopped
-func (tnc *exNodeClient) Start() error {
+// Run the main logic for this client and blocks until stopped
+func (tnc *exNodeClient) Run() error {
 	for {
 		select {
 		case <-tnc.stop:
@@ -66,7 +66,7 @@ func (tnc *exNodeClient) Start() error {
 	}
 }
 
-// Stop sends a signal to the Start function to exit
+// Stop sends a signal to the Run function to exit
 func (tnc *exNodeClient) Stop(err error) {
 	close(tnc.stop)
 }
@@ -112,7 +112,7 @@ func ExampleNewManager() {
 	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
 	// root and if it finds any, it instantiates a new client, and sends point updates to it
 	m := client.NewManager(nc, newExNodeClient)
-	m.Start()
+	m.Run()
 
 	// Now any updates to the node will trigger Points/EdgePoints callbacks in the above client
 }

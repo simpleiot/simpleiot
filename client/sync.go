@@ -323,7 +323,7 @@ done:
 	return nil
 }
 
-// Stop sends a signal to the Start function to exit
+// Stop sends a signal to the Run function to exit
 func (up *SyncClient) Stop(err error) {
 	close(up.stop)
 }

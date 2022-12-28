@@ -301,7 +301,7 @@ func (cb *CanBusClient) Run() error {
 	}
 }
 
-// Stop sends a signal to the Start function to exit
+// Stop sends a signal to the Run function to exit
 func (cb *CanBusClient) Stop(err error) {
 	close(cb.stop)
 }

@@ -42,7 +42,7 @@ func newTestNodeClient(nc *nats.Conn, config testNode) *testNodeClient {
 	}
 }
 
-func (tnc *testNodeClient) Start() error {
+func (tnc *testNodeClient) Run() error {
 	for {
 		select {
 		case <-tnc.stop:
@@ -118,7 +118,7 @@ func TestManager(t *testing.T) {
 	startErr := make(chan error)
 
 	go func() {
-		err := m.Start()
+		err := m.Run()
 		if err != nil {
 			startErr <- fmt.Errorf("manager start returned error: %v", err)
 		}
@@ -223,7 +223,7 @@ func TestManagerAddRemove(t *testing.T) {
 	startErr := make(chan error)
 
 	go func() {
-		err := m.Start()
+		err := m.Run()
 		if err != nil {
 			startErr <- fmt.Errorf("manager start returned error: %v", err)
 		}
@@ -336,7 +336,7 @@ func newTestXClient(nc *nats.Conn, config testX) *testXClient {
 	}
 }
 
-func (tnc *testXClient) Start() error {
+func (tnc *testXClient) Run() error {
 	for {
 		select {
 		case <-tnc.stop:
@@ -420,7 +420,7 @@ func TestManagerChildren(t *testing.T) {
 	startErr := make(chan error)
 
 	go func() {
-		err := m.Start()
+		err := m.Run()
 		if err != nil {
 			startErr <- fmt.Errorf("manager start returned error: %v", err)
 		}

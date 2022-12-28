@@ -272,7 +272,7 @@ done:
 	return nil
 }
 
-// Stop sends a signal to the Start function to exit
+// Stop sends a signal to the Run function to exit
 func (rc *RuleClient) Stop(err error) {
 	close(rc.stop)
 }
