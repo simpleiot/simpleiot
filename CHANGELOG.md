@@ -11,6 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- upgrade frontend to elm-spa 6 (#197)
+- apply elm-review rules to frontend code and integrate with CI (#222)
+- changes so user does not have to log in if backend or browser is restarted
+  (#474)
+  - frontend: store JWT Auth token in browser storage
+  - frontend: store JWT key in db
+
 ## [[0.7.0] - 2022-12-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.7.0)
 
 - add [CAN bus client](https://docs.simpleiot.org/docs/user/can.html)

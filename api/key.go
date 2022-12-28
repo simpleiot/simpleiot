@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -32,15 +31,8 @@ type Key struct {
 }
 
 // NewKey returns a new Key of the given size.
-func NewKey(size int) (key Key, err error) {
-	var f *os.File
-	f, err = os.Open("/dev/urandom")
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	key.bytes = make([]byte, size)
-	_, err = f.Read(key.bytes)
+func NewKey(bytes []byte) (key Key, err error) {
+	key.bytes = bytes
 	return
 }
 
@@ -49,7 +41,7 @@ func (k Key) NewToken(userID string) (string, error) {
 	// FIXME Id is probably not the proper place to put the userid
 	// but works for now
 	claims := jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
+		ExpiresAt: time.Now().Add(168 * time.Hour).Unix(),
 		Issuer:    "simpleiot",
 		Id:        userID,
 	}

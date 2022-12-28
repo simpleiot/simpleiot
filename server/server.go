@@ -35,7 +35,6 @@ type Options struct {
 	HTTPPort          string
 	DebugHTTP         bool
 	DebugLifecycle    bool
-	DisableAuth       bool
 	NatsServer        string
 	NatsDisableServer bool
 	NatsPort          int
@@ -132,17 +131,7 @@ func (s *Server) Start() error {
 
 	o := s.options
 
-	var auth api.Authorizer
 	var err error
-
-	if o.DisableAuth {
-		auth = api.AlwaysValid{}
-	} else {
-		auth, err = api.NewKey(20)
-		if err != nil {
-			log.Println("Error generating key: ", err)
-		}
-	}
 
 	// anything that needs to use the store or nats server should add to this wait group.
 	// The store will wait on this before shutting down
@@ -189,7 +178,6 @@ func (s *Server) Start() error {
 		File:      o.StoreFile,
 		AuthToken: o.AuthToken,
 		Server:    o.NatsServer,
-		Key:       auth,
 		Nc:        s.nc,
 		ID:        s.options.ID,
 	}
@@ -349,7 +337,7 @@ func (s *Server) Start() error {
 		NatsWSPort: o.NatsWSPort,
 		Filesystem: http.FS(feFSDecomp),
 		Debug:      o.DebugHTTP,
-		JwtAuth:    auth,
+		JwtAuth:    siotStore.GetAuthorizer(),
 		AuthToken:  o.AuthToken,
 		Nc:         s.nc,
 	})

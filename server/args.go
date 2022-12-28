@@ -23,7 +23,6 @@ func Args(args []string) (Options, error) {
 	// configuration options
 	flagDebugHTTP := flags.Bool("debugHttp", false, "dump http requests")
 	flagDebugLifecycle := flags.Bool("debugLifecycle", false, "debug program lifecycle")
-	flagDisableAuth := flags.Bool("disableAuth", false, "disable user auth (used for development)")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagNatsDisableServer := flags.Bool("natsDisableServer", false, "disable NATS server (if you want to run NATS separately)")
 	flagStore := flags.String("store", "siot.sqlite", "store file, default siot.sqlite")
@@ -154,7 +153,6 @@ func Args(args []string) (Options, error) {
 		HTTPPort:          port,
 		DebugHTTP:         *flagDebugHTTP,
 		DebugLifecycle:    *flagDebugLifecycle,
-		DisableAuth:       *flagDisableAuth,
 		NatsServer:        natsServer,
 		NatsDisableServer: *flagNatsDisableServer,
 		NatsPort:          natsPort,

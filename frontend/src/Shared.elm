@@ -19,7 +19,6 @@ type alias Flags =
 
 type alias Model =
     { storage : Storage
-    , error : Maybe String
     }
 
 
@@ -27,7 +26,7 @@ init : Request -> Flags -> ( Model, Cmd Msg )
 init req flags =
     let
         model =
-            { storage = Storage.fromJson flags, error = Nothing }
+            { storage = Storage.fromJson flags }
     in
     ( model
     , if model.storage.user /= Nothing && req.route == Gen.Route.SignIn then
