@@ -74,6 +74,7 @@ type alias Model =
     , now : Time.Posix
     , nodes : List (Tree NodeView)
     , error : Maybe String
+    , lastError : Time.Posix
     , nodeOp : NodeOperation
     , copyMove : CopyMove
     , nodeMsg : Maybe NodeMsg
@@ -125,6 +126,7 @@ defaultModel =
         (Time.millisToPosix 0)
         []
         Nothing
+        (Time.millisToPosix 0)
         OpNone
         CopyMoveNone
         Nothing
@@ -487,8 +489,15 @@ update shared msg model =
                                 Nothing
                         )
                         model.nodeMsg
+
+                error =
+                    if Time.posixToMillis now - Time.posixToMillis model.lastError > 5 * 1000 then
+                        Nothing
+
+                    else
+                        model.error
             in
-            ( { model | now = now, nodeMsg = nodeMsg }
+            ( { model | now = now, nodeMsg = nodeMsg, error = error }
             , updateNodes model
             )
 
@@ -995,7 +1004,7 @@ nodeSort a b =
 
 popError : String -> Http.Error -> Model -> Model
 popError desc err model =
-    { model | error = Just (desc ++ ": " ++ Data.errorToString err) }
+    { model | error = Just (desc ++ ": " ++ Data.errorToString err), lastError = model.now }
 
 
 updateNodes : Model -> Effect Msg
@@ -1026,7 +1035,7 @@ view _ shared model =
 
                     Nothing ->
                         Nothing
-            , error = shared.error
+            , error = model.error
             }
             (viewBody model)
     }
