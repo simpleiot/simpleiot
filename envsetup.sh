@@ -10,6 +10,11 @@ bbolt() {
   go run go.etcd.io/bbolt/cmd/bbolt "$@"
 }
 
+
+air() {
+  go run github.com/cosmtrek/air "$@"
+}
+
 siot_install_proto_gen_go() {
   cd ~ && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
   cd - || exit
@@ -113,8 +118,7 @@ find_src_files() {
 
 siot_watch_go() {
   echo "watch args: $*"
-  cmd=". ./envsetup.sh; siot_run serve -dev $*"
-  find_src_files | entr -r /bin/sh -c "$cmd"
+  air serve -dev "$*"
 }
 
 siot_watch_elm() {
