@@ -1,6 +1,7 @@
 /siot
 /siot_arm
 /siot.exe
+/tmp
 *.db
 *.sqlite*
 temp

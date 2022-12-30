@@ -17,6 +17,8 @@ For more details or to discuss releases, please visit the
   (#474)
   - frontend: store JWT Auth token in browser storage
   - frontend: store JWT key in db
+- use air instead of entr for watching Go files during development. This allows
+  `siot_watch` to work on MacOS.
 
 ## [[0.7.0] - 2022-12-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.7.0)
 
