@@ -11,14 +11,20 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.7.1] - 2023-01-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.7.1)
+
 - upgrade frontend to elm-spa 6 (#197)
 - apply elm-review rules to frontend code and integrate with CI (#222)
 - changes so user does not have to log in if backend or browser is restarted
   (#474)
   - frontend: store JWT Auth token in browser storage
   - frontend: store JWT key in db
-- use air instead of entr for watching Go files during development. This allows
-  `siot_watch` to work on MacOS.
+- use [air](github.com/cosmtrek/air) instead of entr for watching Go files
+  during development. This allows `siot_watch` to work on MacOS, and should also
+  be userful in a Windows dev setup.
+
+See the [Hot reloading the Simple IoT UI](https://youtu.be/_Nrs2_l62_Q) for a
+demo of these changes.
 
 ## [[0.7.0] - 2022-12-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.7.0)
 
