@@ -228,4 +228,10 @@ const (
 	NodeTypeFile  = "file"
 	PointTypeName = "name"
 	PointTypeData = "data"
+
+	NodeTypeMetrics = "metrics"
+
+	PointTypeType    = "type"
+	PointValueApp    = "app"
+	PointValueSystem = "system"
 )

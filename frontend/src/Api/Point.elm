@@ -83,6 +83,7 @@ module Api.Point exposing
     , typeTombstone
     , typeTx
     , typeTxReset
+    , typeType
     , typeURI
     , typeUnits
     , typeValue
@@ -95,6 +96,7 @@ module Api.Point exposing
     , typeVersionOS
     , typeWeekday
     , updatePoints
+    , valueApp
     , valueClient
     , valueContains
     , valueEqual
@@ -117,6 +119,7 @@ module Api.Point exposing
     , valueSchedule
     , valueServer
     , valueSetValue
+    , valueSystem
     , valueTCP
     , valueText
     , valueTwilio
@@ -663,9 +666,27 @@ typeData : String
 typeData =
     "data"
 
+
 typeBitRate : String
 typeBitRate =
     "bitRate"
+
+
+typeType : String
+typeType =
+    "type"
+
+
+valueApp : String
+valueApp =
+    "app"
+
+
+valueSystem : String
+valueSystem =
+    "system"
+
+
 
 -- Point should match data/Point.go
 

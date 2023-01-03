@@ -1,5 +1,6 @@
 module UI.Icon exposing
     ( activity
+    , barChart
     , blank
     , bus
     , check
@@ -180,6 +181,11 @@ database =
 clipboard : Element msg
 clipboard =
     icon FeatherIcons.clipboard
+
+
+barChart : Element msg
+barChart =
+    icon FeatherIcons.barChart2
 
 
 file : Element msg

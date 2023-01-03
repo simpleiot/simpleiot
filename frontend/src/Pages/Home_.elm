@@ -14,6 +14,7 @@ import Components.NodeDevice as NodeDevice
 import Components.NodeFile as File
 import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
+import Components.NodeMetrics as NodeMetrics
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeOneWire as NodeOneWire
@@ -933,6 +934,7 @@ nodeCustomSortRules =
         , ( Node.typeRule, "E" )
         , ( Node.typeSignalGenerator, "F" )
         , ( Node.typeFile, "G" )
+        , ( Node.typeMetrics, "H" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1187,6 +1189,9 @@ shouldDisplay typ =
         "db" ->
             True
 
+        "metrics" ->
+            True
+
         _ ->
             False
 
@@ -1252,6 +1257,9 @@ viewNode model parent node depth =
 
                 "db" ->
                     NodeDb.view
+
+                "metrics" ->
+                    NodeMetrics.view
 
                 _ ->
                     viewUnknown
@@ -1492,6 +1500,11 @@ nodeDescActionInactive =
     row [] [ Icon.trendingDown, text "Action (rule inactive)" ]
 
 
+nodeDescMetrics : Element Msg
+nodeDescMetrics =
+    row [] [ Icon.barChart, text "Metrics" ]
+
+
 viewAddNode : NodeView -> NodeToAdd -> Element Msg
 viewAddNode parent add =
     column [ spacing 10 ]
@@ -1513,6 +1526,7 @@ viewAddNode parent add =
                     , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
                     , Input.option Node.typeFile nodeDescFile
                     , Input.option Node.typeSync nodeDescSync
+                    , Input.option Node.typeMetrics nodeDescMetrics
                     ]
 
                  else
