@@ -5,5 +5,5 @@ type Metrics struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
-	Type        string `point:type"`
+	Type        string `point:"type"`
 }
