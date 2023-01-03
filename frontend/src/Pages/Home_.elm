@@ -934,7 +934,8 @@ nodeCustomSortRules =
         , ( Node.typeRule, "E" )
         , ( Node.typeSignalGenerator, "F" )
         , ( Node.typeFile, "G" )
-        , ( Node.typeMetrics, "H" )
+        , ( Node.typeVariable, "H" )
+        , ( Node.typeMetrics, "I" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
