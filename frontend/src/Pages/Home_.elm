@@ -933,9 +933,14 @@ nodeCustomSortRules =
         , ( Node.typeModbus, "D" )
         , ( Node.typeRule, "E" )
         , ( Node.typeSignalGenerator, "F" )
-        , ( Node.typeFile, "G" )
-        , ( Node.typeVariable, "H" )
-        , ( Node.typeMetrics, "I" )
+        , ( Node.typeOneWire, "G" )
+        , ( Node.typeCanBus, "H" )
+        , ( Node.typeSerialDev, "I" )
+        , ( Node.typeMsgService, "J" )
+        , ( Node.typeFile, "K" )
+        , ( Node.typeVariable, "L" )
+        , ( Node.typeDb, "M" )
+        , ( Node.typeMetrics, "N" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
