@@ -88,14 +88,61 @@ func (cs *clientState[T]) start() (err error) {
 		if len(chunks) == 3 {
 			cs.client.Points(chunks[2], points)
 		} else if len(chunks) == 4 {
+			nodeID := chunks[2]
+			parentID := chunks[3]
 			// edge points
 			for _, p := range points {
-				if p.Type == data.PointTypeTombstone ||
-					p.Type == data.PointTypeNodeType {
-					// a node was deleted, moved, child added/removed,
-					// stop client and restart
-					cs.stop(nil)
-					return
+				switch {
+				case p.Type == data.PointTypeTombstone && p.Value == 1:
+					// node was deleted, make sure we don't see it in DB
+					// before restarting client
+					start := time.Now()
+					for {
+						if time.Since(start) > time.Second*5 {
+							log.Println("Client state timeout getting nodes")
+							cs.stop(nil)
+							return
+						}
+						nodes, err := GetNodes(cs.nc, parentID, nodeID, "", false)
+						if err != nil {
+							log.Println("Client state error getting nodes: ", err)
+							cs.stop(nil)
+							return
+						}
+						if len(nodes) == 0 {
+							// confirmed the node was deleted
+							cs.stop(nil)
+							return
+						}
+						time.Sleep(time.Millisecond * 10)
+					}
+
+				case (p.Type == data.PointTypeTombstone && p.Value == 0) ||
+					p.Type == data.PointTypeNodeType:
+					// node was created or undeleted, make sure we see it in DB
+					// before restarting client
+					start := time.Now()
+					for {
+						if time.Since(start) > time.Second*5 {
+							log.Println("Client state timeout getting nodes")
+							cs.stop(nil)
+							return
+						}
+						nodes, err := GetNodes(cs.nc, parentID, nodeID, "", false)
+						if err != nil {
+							log.Println("Client state error getting nodes: ", err)
+							cs.stop(nil)
+							return
+						}
+						if len(nodes) > 0 {
+							// confirmed the node was added
+							fmt.Println("CLIFF: node was created: ", nodes)
+							cs.stop(nil)
+							return
+						}
+						fmt.Println("CLIFF: created loop")
+						time.Sleep(time.Millisecond * 10)
+					}
 				}
 			}
 
