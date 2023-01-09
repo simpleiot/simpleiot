@@ -26,7 +26,9 @@ type Manager[T any] struct {
 	chAction   chan func()
 	chDeleteCS chan string
 
+	// keep track of clients
 	clientStates map[string]*clientState[T]
+	clientUpSub  map[string]*nats.Subscription
 
 	// subscription to listen for new points
 	upSub *nats.Subscription
@@ -50,6 +52,7 @@ func NewManager[T any](nc *nats.Conn,
 		chAction:     make(chan func()),
 		chDeleteCS:   make(chan string),
 		clientStates: make(map[string]*clientState[T]),
+		clientUpSub:  make(map[string]*nats.Subscription),
 	}
 }
 
@@ -137,6 +140,8 @@ done:
 			scan()
 		case key := <-m.chDeleteCS:
 			delete(m.clientStates, key)
+			m.clientUpSub[key].Unsubscribe()
+			delete(m.clientUpSub, key)
 			if stopping {
 				if len(m.clientStates) <= 0 {
 					break done
@@ -209,6 +214,96 @@ func (m *Manager[T]) scan(id string) error {
 		cs := newClientState(m.nc, m.construct, n)
 
 		m.clientStates[key] = cs
+
+		// Set up subscriptions
+		subject := fmt.Sprintf("up.%v.>", cs.node.ID)
+
+		m.clientUpSub[key], err = cs.nc.Subscribe(subject, func(msg *nats.Msg) {
+			points, err := data.PbDecodePoints(msg.Data)
+			if err != nil {
+				log.Println("Error decoding points")
+				return
+			}
+			for _, p := range points {
+				if p.Origin == "" {
+					// point came from the owning node, we already know about it
+					return
+				}
+			}
+
+			// find node ID for points
+			chunks := strings.Split(msg.Subject, ".")
+			if len(chunks) == 3 {
+				cs.client.Points(chunks[2], points)
+			} else if len(chunks) == 4 {
+				nodeID := chunks[2]
+				parentID := chunks[3]
+				// edge points
+				for _, p := range points {
+					switch {
+					case p.Type == data.PointTypeTombstone && p.Value == 1:
+						// node was deleted, make sure we don't see it in DB
+						// before restarting client
+						start := time.Now()
+						for {
+							if time.Since(start) > time.Second*5 {
+								log.Println("Client state timeout getting nodes")
+								cs.stop(nil)
+								return
+							}
+							nodes, err := GetNodes(cs.nc, parentID, nodeID, "", false)
+							if err != nil {
+								log.Println("Client state error getting nodes: ", err)
+								cs.stop(nil)
+								return
+							}
+							if len(nodes) == 0 {
+								// confirmed the node was deleted
+								cs.stop(nil)
+								return
+							}
+							time.Sleep(time.Millisecond * 10)
+						}
+
+					case (p.Type == data.PointTypeTombstone && p.Value == 0) ||
+						p.Type == data.PointTypeNodeType:
+						// node was created or undeleted, make sure we see it in DB
+						// before restarting client
+						start := time.Now()
+						for {
+							if time.Since(start) > time.Second*5 {
+								log.Println("Client state timeout getting nodes")
+								cs.stop(nil)
+								return
+							}
+							nodes, err := GetNodes(cs.nc, parentID, nodeID, "", false)
+							if err != nil {
+								log.Println("Client state error getting nodes: ", err)
+								cs.stop(nil)
+								return
+							}
+							if len(nodes) > 0 {
+								// confirmed the node was added
+								cs.stop(nil)
+								return
+							}
+							time.Sleep(time.Millisecond * 10)
+						}
+					}
+				}
+
+				// send edge points to client
+				cs.client.EdgePoints(chunks[2], chunks[3], points)
+			} else {
+				log.Println("up subject malformed: ", msg.Subject)
+				return
+			}
+
+		})
+
+		if err != nil {
+			return err
+		}
 
 		go func() {
 			err := cs.start()

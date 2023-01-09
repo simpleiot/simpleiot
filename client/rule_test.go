@@ -73,7 +73,7 @@ func TestRules(t *testing.T) {
 	}
 
 	a := client.Action{
-		ID:          "ID-action",
+		ID:          "ID-action-active",
 		Parent:      r.ID,
 		Description: "action active",
 		Action:      data.PointValueSetValue,
@@ -88,7 +88,7 @@ func TestRules(t *testing.T) {
 	}
 
 	a2 := client.ActionInactive{
-		ID:          "ID-action2",
+		ID:          "ID-action-inactive",
 		Parent:      r.ID,
 		Description: "action inactive",
 		Action:      data.PointValueSetValue,

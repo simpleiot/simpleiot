@@ -3,7 +3,6 @@ package client
 import (
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 	"time"
 
@@ -21,8 +20,6 @@ type clientState[T any] struct {
 	nec       data.NodeEdgeChildren
 	construct func(*nats.Conn, T) Client
 
-	// subscription to listen for new points
-	upSub  *nats.Subscription
 	client Client
 
 	stopOnce sync.Once
@@ -67,51 +64,6 @@ func (cs *clientState[T]) start() (err error) {
 
 	cs.client = cs.construct(cs.nc, config)
 
-	// Set up subscriptions
-	subject := fmt.Sprintf("up.%v.>", cs.node.ID)
-
-	cs.upSub, err = cs.nc.Subscribe(subject, func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
-		if err != nil {
-			log.Println("Error decoding points")
-			return
-		}
-		for _, p := range points {
-			if p.Origin == "" {
-				// point came from the owning node, we already know about it
-				return
-			}
-		}
-
-		// find node ID for points
-		chunks := strings.Split(msg.Subject, ".")
-		if len(chunks) == 3 {
-			cs.client.Points(chunks[2], points)
-		} else if len(chunks) == 4 {
-			// edge points
-			for _, p := range points {
-				if p.Type == data.PointTypeTombstone ||
-					p.Type == data.PointTypeNodeType {
-					// a node was deleted, moved, child added/removed,
-					// stop client and restart
-					cs.stop(nil)
-					return
-				}
-			}
-
-			// send edge points to client
-			cs.client.EdgePoints(chunks[2], chunks[3], points)
-		} else {
-			log.Println("up subject malformed: ", msg.Subject)
-			return
-		}
-
-	})
-
-	if err != nil {
-		return
-	}
-
 	chClientStopped := make(chan struct{})
 
 	go func() {
@@ -125,7 +77,6 @@ func (cs *clientState[T]) start() (err error) {
 	}()
 
 	<-cs.chStop
-	cs.upSub.Unsubscribe()
 	cs.client.Stop(nil)
 
 	select {
