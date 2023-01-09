@@ -11,10 +11,14 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.7.1] - 2023-01-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.7.1)
+
 - fix race condition with clients that have multi-level nodes (ex Rule client)
   #487
 
 ## [[0.7.1] - 2023-01-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.7.1)
+
+(DO NOT USE, THIS VERSION HAS PROBLEMS WITH FRONTEND ASSETS)
 
 - upgrade frontend to elm-spa 6 (#197)
 - apply elm-review rules to frontend code and integrate with CI (#222)
