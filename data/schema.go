@@ -234,4 +234,7 @@ const (
 	PointTypeType    = "type"
 	PointValueApp    = "app"
 	PointValueSystem = "system"
+
+	// Metrics
+	PointTypeMetricSysLoad = "metricSysLoad"
 )

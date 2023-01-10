@@ -33,6 +33,9 @@ view o =
 
                         optionInput =
                             NodeInputs.nodeOptionInput opts ""
+
+                        numberInput =
+                            NodeInputs.nodeNumberInput opts ""
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeType
@@ -40,6 +43,7 @@ view o =
                         [ ( Point.valueSystem, "system" )
                         , ( Point.valueApp, "app" )
                         ]
+                    , numberInput Point.typePeriod "Period (s)"
                     ]
 
                 else
