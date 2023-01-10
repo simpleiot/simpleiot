@@ -175,7 +175,7 @@ type RuleClient struct {
 	upSub         *nats.Subscription
 }
 
-// NewRuleClient ...
+// NewRuleClient constructor ...
 func NewRuleClient(nc *nats.Conn, config Rule) Client {
 	return &RuleClient{
 		nc:            nc,

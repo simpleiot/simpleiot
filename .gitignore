@@ -9,7 +9,7 @@ tags
 .idea
 assets.go
 node_modules
-dist
+/dist
 data.json
 /*.pem
 GITHUB_TOKEN
