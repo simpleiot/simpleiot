@@ -11,7 +11,7 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-## [[0.7.1] - 2023-01-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.7.1)
+## [[0.7.2] - 2023-01-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.7.2)
 
 - fix race condition with clients that have multi-level nodes (ex Rule client)
   #487
