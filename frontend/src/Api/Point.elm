@@ -734,6 +734,8 @@ specialPoints =
     , typeRxReset
     , typeTx
     , typeTxReset
+    , typeType
+    , typePeriod
     ]
 
 
@@ -796,7 +798,7 @@ renderPoint s =
             else
                 Round.round 2 s.value
     in
-    s.typ ++ key ++ index ++ ": " ++ value
+    s.typ ++ ":" ++ key ++ index ++ " " ++ value
 
 
 updatePoint : List Point -> Point -> List Point
