@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	load "github.com/shirou/gopsutil/v3/load"
 	"github.com/simpleiot/simpleiot/data"
 )
 
@@ -57,11 +58,43 @@ func (m *MetricsClient) Run() error {
 
 	checkPeriod()
 
+	sampleTicker := time.NewTicker(time.Duration(m.config.Period) * time.Second)
+
 done:
 	for {
 		select {
 		case <-m.stop:
 			break done
+
+		case <-sampleTicker.C:
+			avg, err := load.Avg()
+			if err != nil {
+				log.Println("Metrics error: ", err)
+			}
+
+			now := time.Now()
+			pts := data.Points{
+				{Type: data.PointTypeMetricSysLoad,
+					Time:  now,
+					Key:   "1",
+					Value: avg.Load1,
+				},
+				{Type: data.PointTypeMetricSysLoad,
+					Time:  now,
+					Key:   "5",
+					Value: avg.Load5,
+				},
+				{Type: data.PointTypeMetricSysLoad,
+					Time:  now,
+					Key:   "15",
+					Value: avg.Load15,
+				},
+			}
+
+			err = SendNodePoints(m.nc, m.config.ID, pts, false)
+			if err != nil {
+				log.Println("Metrics: error sending points: ", err)
+			}
 
 		case pts := <-m.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &m.config)
@@ -73,6 +106,9 @@ done:
 				switch p.Type {
 				case data.PointTypePeriod:
 					checkPeriod()
+					sampleTicker.Reset(time.Duration(m.config.Period) *
+						time.Second)
+
 				}
 			}
 

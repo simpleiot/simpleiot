@@ -44,8 +44,19 @@ view o =
                         , ( Point.valueApp, "app" )
                         ]
                     , numberInput Point.typePeriod "Period (s)"
+                    , viewPoints <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]
 
                 else
                     []
                )
+
+
+viewPoints : List Point.Point -> Element msg
+viewPoints ios =
+    column
+        [ padding 16
+        , spacing 6
+        ]
+    <|
+        List.map (Point.renderPoint >> text) ios
