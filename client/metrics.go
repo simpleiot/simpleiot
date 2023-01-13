@@ -6,6 +6,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/simpleiot/simpleiot/data"
@@ -69,62 +70,88 @@ done:
 			break done
 
 		case <-sampleTicker.C:
+			now := time.Now()
+			var pts data.Points
+
 			avg, err := load.Avg()
 			if err != nil {
 				log.Println("Metrics error: ", err)
+			} else {
+				pts = append(pts, data.Points{
+					{Type: data.PointTypeMetricSysLoad,
+						Time:  now,
+						Key:   "1",
+						Value: avg.Load1,
+					},
+					{Type: data.PointTypeMetricSysLoad,
+						Time:  now,
+						Key:   "5",
+						Value: avg.Load5,
+					},
+					{Type: data.PointTypeMetricSysLoad,
+						Time:  now,
+						Key:   "15",
+						Value: avg.Load15,
+					},
+				}...)
+
 			}
 
 			perc, err := cpu.Percent(time.Duration(m.config.Period)*time.Second, false)
 			if err != nil {
 				log.Println("Metrics error: ", err)
+			} else {
+				pts = append(pts, data.Point{Type: data.PointTypeMetricSysCPUPercent,
+					Time:  now,
+					Value: perc[0],
+				})
 			}
 
 			vm, err := mem.VirtualMemory()
 			if err != nil {
 				log.Println("Metrics error: ", err)
-			}
-
-			now := time.Now()
-			pts := data.Points{
-				{Type: data.PointTypeMetricSysLoad,
-					Time:  now,
-					Key:   "1",
-					Value: avg.Load1,
-				},
-				{Type: data.PointTypeMetricSysLoad,
-					Time:  now,
-					Key:   "5",
-					Value: avg.Load5,
-				},
-				{Type: data.PointTypeMetricSysLoad,
-					Time:  now,
-					Key:   "15",
-					Value: avg.Load15,
-				},
-				{Type: data.PointTypeMetricSysCPUPercent,
-					Time:  now,
-					Value: perc[0],
-				},
-				{Type: data.PointTypeMetricSysMem,
+			} else {
+				pts = append(pts, data.Points{{Type: data.PointTypeMetricSysMem,
 					Time:  now,
 					Key:   data.PointKeyUsedPercent,
 					Value: vm.UsedPercent,
 				},
-				{Type: data.PointTypeMetricSysMem,
-					Time:  now,
-					Key:   data.PointKeyAvailable,
-					Value: float64(vm.Available),
-				},
-				{Type: data.PointTypeMetricSysMem,
-					Time:  now,
-					Key:   data.PointKeyUsed,
-					Value: float64(vm.Used),
-				},
-				{Type: data.PointTypeMetricSysMem,
-					Time:  now,
-					Key:   data.PointKeyFree,
-					Value: float64(vm.Free),
-				},
+					{Type: data.PointTypeMetricSysMem,
+						Time:  now,
+						Key:   data.PointKeyAvailable,
+						Value: float64(vm.Available),
+					},
+					{Type: data.PointTypeMetricSysMem,
+						Time:  now,
+						Key:   data.PointKeyUsed,
+						Value: float64(vm.Used),
+					},
+					{Type: data.PointTypeMetricSysMem,
+						Time:  now,
+						Key:   data.PointKeyFree,
+						Value: float64(vm.Free),
+					},
+				}...)
+			}
+
+			parts, err := disk.Partitions(false)
+			if err != nil {
+				log.Println("Metrics error: ", err)
+			} else {
+				for _, p := range parts {
+					u, err := disk.Usage(p.Mountpoint)
+					if err != nil {
+						log.Println("Error getting disk usage: ", err)
+						continue
+					}
+					pts = append(pts, data.Points{
+						{Time: now,
+							Type:  data.PointTypeMetricSysDiskUsedPercent,
+							Key:   u.Path,
+							Value: u.UsedPercent,
+						},
+					}...)
+				}
 			}
 
 			err = SendNodePoints(m.nc, m.config.ID, pts, false)
