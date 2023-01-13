@@ -236,5 +236,13 @@ const (
 	PointValueSystem = "system"
 
 	// Metrics
-	PointTypeMetricSysLoad = "metricSysLoad"
+	PointTypeMetricSysLoad       = "metricSysLoad"
+	PointTypeMetricSysCPUPercent = "metricSysCPUPercent"
+	PointTypeMetricSysMem        = "metricSysMem"
+
+	PointKeyUsedPercent = "usedPercent"
+	PointKeyTotal       = "total"
+	PointKeyAvailable   = "available"
+	PointKeyUsed        = "used"
+	PointKeyFree        = "free"
 )

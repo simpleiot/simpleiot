@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	load "github.com/shirou/gopsutil/v3/load"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/load"
+	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/simpleiot/simpleiot/data"
 )
 
@@ -72,6 +74,16 @@ done:
 				log.Println("Metrics error: ", err)
 			}
 
+			perc, err := cpu.Percent(time.Duration(m.config.Period)*time.Second, false)
+			if err != nil {
+				log.Println("Metrics error: ", err)
+			}
+
+			vm, err := mem.VirtualMemory()
+			if err != nil {
+				log.Println("Metrics error: ", err)
+			}
+
 			now := time.Now()
 			pts := data.Points{
 				{Type: data.PointTypeMetricSysLoad,
@@ -88,6 +100,30 @@ done:
 					Time:  now,
 					Key:   "15",
 					Value: avg.Load15,
+				},
+				{Type: data.PointTypeMetricSysCPUPercent,
+					Time:  now,
+					Value: perc[0],
+				},
+				{Type: data.PointTypeMetricSysMem,
+					Time:  now,
+					Key:   data.PointKeyUsedPercent,
+					Value: vm.UsedPercent,
+				},
+				{Type: data.PointTypeMetricSysMem,
+					Time:  now,
+					Key:   data.PointKeyAvailable,
+					Value: float64(vm.Available),
+				},
+				{Type: data.PointTypeMetricSysMem,
+					Time:  now,
+					Key:   data.PointKeyUsed,
+					Value: float64(vm.Used),
+				},
+				{Type: data.PointTypeMetricSysMem,
+					Time:  now,
+					Key:   data.PointKeyFree,
+					Value: float64(vm.Free),
 				},
 			}
 
