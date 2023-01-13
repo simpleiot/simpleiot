@@ -7,6 +7,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
@@ -45,6 +46,72 @@ func NewMetricsClient(nc *nats.Conn, config Metrics) Client {
 
 // Run the main logic for this client and blocks until stopped
 func (m *MetricsClient) Run() error {
+
+	// collect static host stats on startup
+	hostStat, err := host.Info()
+	if err != nil {
+		log.Println("Metrics error: ", err)
+	} else {
+		// TODO, only send points if they have changed
+		now := time.Now()
+		pts := data.Points{
+			{Type: data.PointTypeHost,
+				Time: now,
+				Key:  data.PointKeyHostname,
+				Text: hostStat.Hostname,
+			},
+			{Type: data.PointTypeHost,
+				Time:  now,
+				Key:   data.PointKeyBootTime,
+				Value: float64(hostStat.BootTime),
+			},
+			{Type: data.PointTypeHost,
+				Time: now,
+				Key:  data.PointKeyOS,
+				Text: hostStat.OS,
+			},
+			{Type: data.PointTypeHost,
+				Time: now,
+				Key:  data.PointKeyPlatform,
+				Text: hostStat.Platform,
+			},
+			{Type: data.PointTypeHost,
+				Time: now,
+				Key:  data.PointKeyPlatformFamily,
+				Text: hostStat.PlatformFamily,
+			},
+			{Type: data.PointTypeHost,
+				Time: now,
+				Key:  data.PointKeyPlatformVersion,
+				Text: hostStat.PlatformVersion,
+			},
+			{Type: data.PointTypeHost,
+				Time: now,
+				Key:  data.PointKeyKernelVersion,
+				Text: hostStat.KernelVersion,
+			},
+			{Type: data.PointTypeHost,
+				Time: now,
+				Key:  data.PointKeyKernelArch,
+				Text: hostStat.KernelArch,
+			},
+			{Type: data.PointTypeHost,
+				Time: now,
+				Key:  data.PointKeyVirtualizationSystem,
+				Text: hostStat.VirtualizationSystem,
+			},
+			{Type: data.PointTypeHost,
+				Time: now,
+				Key:  data.PointKeyVirtualizationRole,
+				Text: hostStat.VirtualizationRole,
+			},
+		}
+		err = SendNodePoints(m.nc, m.config.ID, pts, false)
+		if err != nil {
+			log.Println("Metrics: error sending points: ", err)
+		}
+
+	}
 
 	checkPeriod := func() {
 		if m.config.Period < 1 {
@@ -174,6 +241,17 @@ done:
 					}...)
 				}
 
+			}
+
+			uptime, err := host.Uptime()
+			if err != nil {
+				log.Println("Metrics error: ", err)
+			} else {
+				pts = append(pts, data.Point{
+					Time:  now,
+					Type:  data.PointTypeMetricSysUptime,
+					Value: float64(uptime),
+				})
 			}
 
 			err = SendNodePoints(m.nc, m.config.ID, pts, false)
