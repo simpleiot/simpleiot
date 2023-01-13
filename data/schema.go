@@ -240,6 +240,8 @@ const (
 	PointTypeMetricSysCPUPercent      = "metricSysCPUPercent"
 	PointTypeMetricSysMem             = "metricSysMem"
 	PointTypeMetricSysDiskUsedPercent = "metricSysDiskUsedPercent"
+	PointTypeMetricSysNetBytesRecv    = "metricSysNetBytesRecv"
+	PointTypeMetricSysNetBytesSent    = "metricSysNetBytesSent"
 
 	PointKeyUsedPercent = "usedPercent"
 	PointKeyTotal       = "total"

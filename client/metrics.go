@@ -9,6 +9,7 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/shirou/gopsutil/v3/net"
 	"github.com/simpleiot/simpleiot/data"
 )
 
@@ -152,6 +153,27 @@ done:
 						},
 					}...)
 				}
+			}
+
+			netio, err := net.IOCounters(true)
+			if err != nil {
+				log.Println("Metrics error: ", err)
+			} else {
+				for _, io := range netio {
+					pts = append(pts, data.Points{
+						{Time: now,
+							Type:  data.PointTypeMetricSysNetBytesRecv,
+							Key:   io.Name,
+							Value: float64(io.BytesRecv),
+						},
+						{Time: now,
+							Type:  data.PointTypeMetricSysNetBytesSent,
+							Key:   io.Name,
+							Value: float64(io.BytesSent),
+						},
+					}...)
+				}
+
 			}
 
 			err = SendNodePoints(m.nc, m.config.ID, pts, false)
