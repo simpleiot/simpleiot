@@ -2,6 +2,7 @@ package client
 
 import (
 	"log"
+	"runtime"
 	"strings"
 	"time"
 
@@ -47,7 +48,90 @@ func NewMetricsClient(nc *nats.Conn, config Metrics) Client {
 
 // Run the main logic for this client and blocks until stopped
 func (m *MetricsClient) Run() error {
+	if m.config.Type == data.PointValueSystem {
+		m.sysStart()
+	}
 
+	checkPeriod := func() {
+		if m.config.Period < 1 {
+			m.config.Period = 120
+			points := data.Points{
+				{Type: data.PointTypePeriod, Value: float64(m.config.Period)},
+			}
+
+			err := SendPoints(m.nc, SubjectNodePoints(m.config.ID), points, false)
+			if err != nil {
+				log.Println("Error sending metrics period: ", err)
+			}
+		}
+	}
+
+	checkPeriod()
+
+	sampleTicker := time.NewTicker(time.Duration(m.config.Period) * time.Second)
+
+done:
+	for {
+		select {
+		case <-m.stop:
+			break done
+
+		case <-sampleTicker.C:
+			switch m.config.Type {
+			case data.PointValueSystem:
+				m.sysPeriodic()
+			case data.PointValueApp:
+				m.appPeriodic()
+			default:
+				log.Println("Metrics: Must select metric type")
+			}
+
+		case pts := <-m.newPoints:
+			err := data.MergePoints(pts.ID, pts.Points, &m.config)
+			if err != nil {
+				log.Println("error merging new points: ", err)
+			}
+
+			for _, p := range pts.Points {
+				switch p.Type {
+				case data.PointTypePeriod:
+					checkPeriod()
+					sampleTicker.Reset(time.Duration(m.config.Period) *
+						time.Second)
+
+				}
+			}
+
+		case pts := <-m.newEdgePoints:
+			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &m.config)
+			if err != nil {
+				log.Println("error merging new points: ", err)
+			}
+
+		}
+	}
+
+	return nil
+}
+
+// Stop sends a signal to the Run function to exit
+func (m *MetricsClient) Stop(err error) {
+	close(m.stop)
+}
+
+// Points is called by the Manager when new points for this
+// node are received.
+func (m *MetricsClient) Points(nodeID string, points []data.Point) {
+	m.newPoints <- NewPoints{nodeID, "", points}
+}
+
+// EdgePoints is called by the Manager when new edge points for this
+// node are received.
+func (m *MetricsClient) EdgePoints(nodeID, parentID string, points []data.Point) {
+	m.newEdgePoints <- NewPoints{nodeID, parentID, points}
+}
+
+func (m *MetricsClient) sysStart() {
 	now := time.Now()
 	// collect static host stats on startup
 	hostStat, err := host.Info()
@@ -130,199 +214,158 @@ func (m *MetricsClient) Run() error {
 		}
 	}
 
-	checkPeriod := func() {
-		if m.config.Period < 1 {
-			m.config.Period = 120
-			points := data.Points{
-				{Type: data.PointTypePeriod, Value: float64(m.config.Period)},
+}
+
+func (m *MetricsClient) sysPeriodic() {
+	now := time.Now()
+	var pts data.Points
+
+	avg, err := load.Avg()
+	if err != nil {
+		log.Println("Metrics error: ", err)
+	} else {
+		pts = append(pts, data.Points{
+			{Type: data.PointTypeMetricSysLoad,
+				Time:  now,
+				Key:   "1",
+				Value: avg.Load1,
+			},
+			{Type: data.PointTypeMetricSysLoad,
+				Time:  now,
+				Key:   "5",
+				Value: avg.Load5,
+			},
+			{Type: data.PointTypeMetricSysLoad,
+				Time:  now,
+				Key:   "15",
+				Value: avg.Load15,
+			},
+		}...)
+
+	}
+
+	perc, err := cpu.Percent(time.Duration(m.config.Period)*time.Second, false)
+	if err != nil {
+		log.Println("Metrics error: ", err)
+	} else {
+		pts = append(pts, data.Point{Type: data.PointTypeMetricSysCPUPercent,
+			Time:  now,
+			Value: perc[0],
+		})
+	}
+
+	vm, err := mem.VirtualMemory()
+	if err != nil {
+		log.Println("Metrics error: ", err)
+	} else {
+		pts = append(pts, data.Points{
+			{Type: data.PointTypeMetricSysMem,
+				Time:  now,
+				Key:   data.PointKeyUsedPercent,
+				Value: vm.UsedPercent,
+			},
+			{Type: data.PointTypeMetricSysMem,
+				Time:  now,
+				Key:   data.PointKeyAvailable,
+				Value: float64(vm.Available),
+			},
+			{Type: data.PointTypeMetricSysMem,
+				Time:  now,
+				Key:   data.PointKeyUsed,
+				Value: float64(vm.Used),
+			},
+			{Type: data.PointTypeMetricSysMem,
+				Time:  now,
+				Key:   data.PointKeyFree,
+				Value: float64(vm.Free),
+			},
+		}...)
+	}
+
+	parts, err := disk.Partitions(false)
+	if err != nil {
+		log.Println("Metrics error: ", err)
+	} else {
+		for _, p := range parts {
+			if strings.HasPrefix(p.Mountpoint, "/run/media") {
+				// don't track stats for removable media
+				continue
 			}
 
-			err := SendPoints(m.nc, SubjectNodePoints(m.config.ID), points, false)
+			u, err := disk.Usage(p.Mountpoint)
 			if err != nil {
-				log.Println("Error sending metrics period: ", err)
+				log.Println("Error getting disk usage: ", err)
+				continue
 			}
+			pts = append(pts, data.Points{
+				{Time: now,
+					Type:  data.PointTypeMetricSysDiskUsedPercent,
+					Key:   u.Path,
+					Value: u.UsedPercent,
+				},
+			}...)
 		}
 	}
 
-	checkPeriod()
-
-	sampleTicker := time.NewTicker(time.Duration(m.config.Period) * time.Second)
-
-done:
-	for {
-		select {
-		case <-m.stop:
-			break done
-
-		case <-sampleTicker.C:
-			now := time.Now()
-			var pts data.Points
-
-			avg, err := load.Avg()
-			if err != nil {
-				log.Println("Metrics error: ", err)
-			} else {
-				pts = append(pts, data.Points{
-					{Type: data.PointTypeMetricSysLoad,
-						Time:  now,
-						Key:   "1",
-						Value: avg.Load1,
-					},
-					{Type: data.PointTypeMetricSysLoad,
-						Time:  now,
-						Key:   "5",
-						Value: avg.Load5,
-					},
-					{Type: data.PointTypeMetricSysLoad,
-						Time:  now,
-						Key:   "15",
-						Value: avg.Load15,
-					},
-				}...)
-
-			}
-
-			perc, err := cpu.Percent(time.Duration(m.config.Period)*time.Second, false)
-			if err != nil {
-				log.Println("Metrics error: ", err)
-			} else {
-				pts = append(pts, data.Point{Type: data.PointTypeMetricSysCPUPercent,
-					Time:  now,
-					Value: perc[0],
-				})
-			}
-
-			vm, err := mem.VirtualMemory()
-			if err != nil {
-				log.Println("Metrics error: ", err)
-			} else {
-				pts = append(pts, data.Points{
-					{Type: data.PointTypeMetricSysMem,
-						Time:  now,
-						Key:   data.PointKeyUsedPercent,
-						Value: vm.UsedPercent,
-					},
-					{Type: data.PointTypeMetricSysMem,
-						Time:  now,
-						Key:   data.PointKeyAvailable,
-						Value: float64(vm.Available),
-					},
-					{Type: data.PointTypeMetricSysMem,
-						Time:  now,
-						Key:   data.PointKeyUsed,
-						Value: float64(vm.Used),
-					},
-					{Type: data.PointTypeMetricSysMem,
-						Time:  now,
-						Key:   data.PointKeyFree,
-						Value: float64(vm.Free),
-					},
-				}...)
-			}
-
-			parts, err := disk.Partitions(false)
-			if err != nil {
-				log.Println("Metrics error: ", err)
-			} else {
-				for _, p := range parts {
-					if strings.HasPrefix(p.Mountpoint, "/run/media") {
-						// don't track stats for removable media
-						continue
-					}
-
-					u, err := disk.Usage(p.Mountpoint)
-					if err != nil {
-						log.Println("Error getting disk usage: ", err)
-						continue
-					}
-					pts = append(pts, data.Points{
-						{Time: now,
-							Type:  data.PointTypeMetricSysDiskUsedPercent,
-							Key:   u.Path,
-							Value: u.UsedPercent,
-						},
-					}...)
-				}
-			}
-
-			netio, err := net.IOCounters(true)
-			if err != nil {
-				log.Println("Metrics error: ", err)
-			} else {
-				for _, io := range netio {
-					pts = append(pts, data.Points{
-						{Time: now,
-							Type:  data.PointTypeMetricSysNetBytesRecv,
-							Key:   io.Name,
-							Value: float64(io.BytesRecv),
-						},
-						{Time: now,
-							Type:  data.PointTypeMetricSysNetBytesSent,
-							Key:   io.Name,
-							Value: float64(io.BytesSent),
-						},
-					}...)
-				}
-
-			}
-
-			uptime, err := host.Uptime()
-			if err != nil {
-				log.Println("Metrics error: ", err)
-			} else {
-				pts = append(pts, data.Point{
-					Time:  now,
-					Type:  data.PointTypeMetricSysUptime,
-					Value: float64(uptime),
-				})
-			}
-
-			err = SendNodePoints(m.nc, m.config.ID, pts, false)
-			if err != nil {
-				log.Println("Metrics: error sending points: ", err)
-			}
-
-		case pts := <-m.newPoints:
-			err := data.MergePoints(pts.ID, pts.Points, &m.config)
-			if err != nil {
-				log.Println("error merging new points: ", err)
-			}
-
-			for _, p := range pts.Points {
-				switch p.Type {
-				case data.PointTypePeriod:
-					checkPeriod()
-					sampleTicker.Reset(time.Duration(m.config.Period) *
-						time.Second)
-
-				}
-			}
-
-		case pts := <-m.newEdgePoints:
-			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &m.config)
-			if err != nil {
-				log.Println("error merging new points: ", err)
-			}
-
+	netio, err := net.IOCounters(true)
+	if err != nil {
+		log.Println("Metrics error: ", err)
+	} else {
+		for _, io := range netio {
+			pts = append(pts, data.Points{
+				{Time: now,
+					Type:  data.PointTypeMetricSysNetBytesRecv,
+					Key:   io.Name,
+					Value: float64(io.BytesRecv),
+				},
+				{Time: now,
+					Type:  data.PointTypeMetricSysNetBytesSent,
+					Key:   io.Name,
+					Value: float64(io.BytesSent),
+				},
+			}...)
 		}
+
 	}
 
-	return nil
+	uptime, err := host.Uptime()
+	if err != nil {
+		log.Println("Metrics error: ", err)
+	} else {
+		pts = append(pts, data.Point{
+			Time:  now,
+			Type:  data.PointTypeMetricSysUptime,
+			Value: float64(uptime),
+		})
+	}
+
+	err = SendNodePoints(m.nc, m.config.ID, pts, false)
+	if err != nil {
+		log.Println("Metrics: error sending points: ", err)
+	}
 }
 
-// Stop sends a signal to the Run function to exit
-func (m *MetricsClient) Stop(err error) {
-	close(m.stop)
-}
+func (m *MetricsClient) appPeriodic() {
+	now := time.Now()
+	var memStats runtime.MemStats
 
-// Points is called by the Manager when new points for this
-// node are received.
-func (m *MetricsClient) Points(nodeID string, points []data.Point) {
-	m.newPoints <- NewPoints{nodeID, "", points}
-}
+	runtime.ReadMemStats(&memStats)
 
-// EdgePoints is called by the Manager when new edge points for this
-// node are received.
-func (m *MetricsClient) EdgePoints(nodeID, parentID string, points []data.Point) {
-	m.newEdgePoints <- NewPoints{nodeID, parentID, points}
+	numGoRoutine := runtime.NumGoroutine()
+
+	pts := data.Points{
+		{Time: now,
+			Type:  data.PointTypeMetricAppAlloc,
+			Value: float64(memStats.Alloc),
+		},
+		{Time: now,
+			Type:  data.PointTypeMetricAppNumGoroutine,
+			Value: float64(numGoRoutine),
+		},
+	}
+
+	err := SendNodePoints(m.nc, m.config.ID, pts, false)
+	if err != nil {
+		log.Println("Metrics: error sending points: ", err)
+	}
 }

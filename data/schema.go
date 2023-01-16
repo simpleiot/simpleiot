@@ -235,7 +235,7 @@ const (
 	PointValueApp    = "app"
 	PointValueSystem = "system"
 
-	// Metrics
+	// Sys Metrics
 	PointTypeMetricSysLoad            = "metricSysLoad"
 	PointTypeMetricSysCPUPercent      = "metricSysCPUPercent"
 	PointTypeMetricSysMem             = "metricSysMem"
@@ -243,6 +243,10 @@ const (
 	PointTypeMetricSysNetBytesRecv    = "metricSysNetBytesRecv"
 	PointTypeMetricSysNetBytesSent    = "metricSysNetBytesSent"
 	PointTypeMetricSysUptime          = "metricSysUptime"
+
+	// App Metrics
+	PointTypeMetricAppAlloc        = "metricAppAlloc"
+	PointTypeMetricAppNumGoroutine = "metricAppNumGoroutine"
 
 	PointTypeHost                = "host"
 	PointKeyHostname             = "hostname"
