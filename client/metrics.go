@@ -2,6 +2,7 @@ package client
 
 import (
 	"log"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v3/process"
 	"github.com/simpleiot/simpleiot/data"
 )
 
@@ -140,52 +142,62 @@ func (m *MetricsClient) sysStart() {
 	} else {
 		// TODO, only send points if they have changed
 		pts := data.Points{
-			{Type: data.PointTypeHost,
+			{
+				Type: data.PointTypeHost,
 				Time: now,
 				Key:  data.PointKeyHostname,
 				Text: hostStat.Hostname,
 			},
-			{Type: data.PointTypeHost,
+			{
+				Type:  data.PointTypeHost,
 				Time:  now,
 				Key:   data.PointKeyBootTime,
 				Value: float64(hostStat.BootTime),
 			},
-			{Type: data.PointTypeHost,
+			{
+				Type: data.PointTypeHost,
 				Time: now,
 				Key:  data.PointKeyOS,
 				Text: hostStat.OS,
 			},
-			{Type: data.PointTypeHost,
+			{
+				Type: data.PointTypeHost,
 				Time: now,
 				Key:  data.PointKeyPlatform,
 				Text: hostStat.Platform,
 			},
-			{Type: data.PointTypeHost,
+			{
+				Type: data.PointTypeHost,
 				Time: now,
 				Key:  data.PointKeyPlatformFamily,
 				Text: hostStat.PlatformFamily,
 			},
-			{Type: data.PointTypeHost,
+			{
+				Type: data.PointTypeHost,
 				Time: now,
 				Key:  data.PointKeyPlatformVersion,
 				Text: hostStat.PlatformVersion,
 			},
-			{Type: data.PointTypeHost,
+			{
+				Type: data.PointTypeHost,
 				Time: now,
 				Key:  data.PointKeyKernelVersion,
 				Text: hostStat.KernelVersion,
 			},
-			{Type: data.PointTypeHost,
+			{
+				Type: data.PointTypeHost,
 				Time: now,
 				Key:  data.PointKeyKernelArch,
 				Text: hostStat.KernelArch,
 			},
-			{Type: data.PointTypeHost,
+			{
+				Type: data.PointTypeHost,
 				Time: now,
 				Key:  data.PointKeyVirtualizationSystem,
 				Text: hostStat.VirtualizationSystem,
 			},
-			{Type: data.PointTypeHost,
+			{
+				Type: data.PointTypeHost,
 				Time: now,
 				Key:  data.PointKeyVirtualizationRole,
 				Text: hostStat.VirtualizationRole,
@@ -225,17 +237,20 @@ func (m *MetricsClient) sysPeriodic() {
 		log.Println("Metrics error: ", err)
 	} else {
 		pts = append(pts, data.Points{
-			{Type: data.PointTypeMetricSysLoad,
+			{
+				Type:  data.PointTypeMetricSysLoad,
 				Time:  now,
 				Key:   "1",
 				Value: avg.Load1,
 			},
-			{Type: data.PointTypeMetricSysLoad,
+			{
+				Type:  data.PointTypeMetricSysLoad,
 				Time:  now,
 				Key:   "5",
 				Value: avg.Load5,
 			},
-			{Type: data.PointTypeMetricSysLoad,
+			{
+				Type:  data.PointTypeMetricSysLoad,
 				Time:  now,
 				Key:   "15",
 				Value: avg.Load15,
@@ -259,22 +274,26 @@ func (m *MetricsClient) sysPeriodic() {
 		log.Println("Metrics error: ", err)
 	} else {
 		pts = append(pts, data.Points{
-			{Type: data.PointTypeMetricSysMem,
+			{
+				Type:  data.PointTypeMetricSysMem,
 				Time:  now,
 				Key:   data.PointKeyUsedPercent,
 				Value: vm.UsedPercent,
 			},
-			{Type: data.PointTypeMetricSysMem,
+			{
+				Type:  data.PointTypeMetricSysMem,
 				Time:  now,
 				Key:   data.PointKeyAvailable,
 				Value: float64(vm.Available),
 			},
-			{Type: data.PointTypeMetricSysMem,
+			{
+				Type:  data.PointTypeMetricSysMem,
 				Time:  now,
 				Key:   data.PointKeyUsed,
 				Value: float64(vm.Used),
 			},
-			{Type: data.PointTypeMetricSysMem,
+			{
+				Type:  data.PointTypeMetricSysMem,
 				Time:  now,
 				Key:   data.PointKeyFree,
 				Value: float64(vm.Free),
@@ -298,7 +317,8 @@ func (m *MetricsClient) sysPeriodic() {
 				continue
 			}
 			pts = append(pts, data.Points{
-				{Time: now,
+				{
+					Time:  now,
 					Type:  data.PointTypeMetricSysDiskUsedPercent,
 					Key:   u.Path,
 					Value: u.UsedPercent,
@@ -313,12 +333,14 @@ func (m *MetricsClient) sysPeriodic() {
 	} else {
 		for _, io := range netio {
 			pts = append(pts, data.Points{
-				{Time: now,
+				{
+					Time:  now,
 					Type:  data.PointTypeMetricSysNetBytesRecv,
 					Key:   io.Name,
 					Value: float64(io.BytesRecv),
 				},
-				{Time: now,
+				{
+					Time:  now,
 					Type:  data.PointTypeMetricSysNetBytesSent,
 					Key:   io.Name,
 					Value: float64(io.BytesSent),
@@ -354,11 +376,13 @@ func (m *MetricsClient) appPeriodic() {
 	numGoRoutine := runtime.NumGoroutine()
 
 	pts := data.Points{
-		{Time: now,
+		{
+			Time:  now,
 			Type:  data.PointTypeMetricAppAlloc,
 			Value: float64(memStats.Alloc),
 		},
-		{Time: now,
+		{
+			Time:  now,
 			Type:  data.PointTypeMetricAppNumGoroutine,
 			Value: float64(numGoRoutine),
 		},
@@ -367,5 +391,61 @@ func (m *MetricsClient) appPeriodic() {
 	err := SendNodePoints(m.nc, m.config.ID, pts, false)
 	if err != nil {
 		log.Println("Metrics: error sending points: ", err)
+	}
+
+	pid := os.Getpid()
+
+	procs, err := process.Processes()
+	if err != nil {
+		log.Println("Metrics error: ", err)
+	} else {
+		for _, p := range procs {
+			if p.Pid != int32(pid) {
+				continue
+			}
+
+			cpuPerc, err := p.CPUPercent()
+			if err != nil {
+				log.Println("Error getting CPU percent for proc: ", err)
+				break
+			}
+
+			memPerc, err := p.MemoryPercent()
+			if err != nil {
+				log.Println("Error getting mem percent for proc: ", err)
+				break
+			}
+
+			memInfo, err := p.MemoryInfo()
+			if err != nil {
+				log.Println("Error getting mem info: ", err)
+				break
+			}
+
+			pts := data.Points{
+				{
+					Time:  now,
+					Type:  data.PointTypeMetricProcCPUPercent,
+					Value: float64(cpuPerc),
+				},
+				{
+					Time:  now,
+					Type:  data.PointTypeMetricProcMemPercent,
+					Value: float64(memPerc),
+				},
+				{
+					Time:  now,
+					Type:  data.PointTypeMetricProcMemRSS,
+					Value: float64(memInfo.RSS),
+				},
+			}
+
+			err = SendNodePoints(m.nc, m.config.ID, pts, false)
+			if err != nil {
+				log.Println("Metrics: error sending points: ", err)
+			}
+
+			break
+		}
 	}
 }

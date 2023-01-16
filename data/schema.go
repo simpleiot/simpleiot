@@ -248,6 +248,11 @@ const (
 	PointTypeMetricAppAlloc        = "metricAppAlloc"
 	PointTypeMetricAppNumGoroutine = "metricAppNumGoroutine"
 
+	// process metrics
+	PointTypeMetricProcCPUPercent = "metricProcCPUPercent"
+	PointTypeMetricProcMemPercent = "metricProcMemPercent"
+	PointTypeMetricProcMemRSS     = "metricProcMemRSS"
+
 	PointTypeHost                = "host"
 	PointKeyHostname             = "hostname"
 	PointKeyBootTime             = "bootTime"
