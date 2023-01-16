@@ -2,6 +2,7 @@ package client
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -47,13 +48,13 @@ func NewMetricsClient(nc *nats.Conn, config Metrics) Client {
 // Run the main logic for this client and blocks until stopped
 func (m *MetricsClient) Run() error {
 
+	now := time.Now()
 	// collect static host stats on startup
 	hostStat, err := host.Info()
 	if err != nil {
 		log.Println("Metrics error: ", err)
 	} else {
 		// TODO, only send points if they have changed
-		now := time.Now()
 		pts := data.Points{
 			{Type: data.PointTypeHost,
 				Time: now,
@@ -110,7 +111,23 @@ func (m *MetricsClient) Run() error {
 		if err != nil {
 			log.Println("Metrics: error sending points: ", err)
 		}
+	}
 
+	vm, err := mem.VirtualMemory()
+	if err != nil {
+		log.Println("Metrics error: ", err)
+	} else {
+		pt := data.Point{
+			Type:  data.PointTypeMetricSysMem,
+			Time:  now,
+			Key:   data.PointKeyTotal,
+			Value: float64(vm.Total),
+		}
+
+		err = SendNodePoint(m.nc, m.config.ID, pt, false)
+		if err != nil {
+			log.Println("Metrics: error sending points: ", err)
+		}
 	}
 
 	checkPeriod := func() {
@@ -179,11 +196,12 @@ done:
 			if err != nil {
 				log.Println("Metrics error: ", err)
 			} else {
-				pts = append(pts, data.Points{{Type: data.PointTypeMetricSysMem,
-					Time:  now,
-					Key:   data.PointKeyUsedPercent,
-					Value: vm.UsedPercent,
-				},
+				pts = append(pts, data.Points{
+					{Type: data.PointTypeMetricSysMem,
+						Time:  now,
+						Key:   data.PointKeyUsedPercent,
+						Value: vm.UsedPercent,
+					},
 					{Type: data.PointTypeMetricSysMem,
 						Time:  now,
 						Key:   data.PointKeyAvailable,
@@ -207,6 +225,11 @@ done:
 				log.Println("Metrics error: ", err)
 			} else {
 				for _, p := range parts {
+					if strings.HasPrefix(p.Mountpoint, "/run/media") {
+						// don't track stats for removable media
+						continue
+					}
+
 					u, err := disk.Usage(p.Mountpoint)
 					if err != nil {
 						log.Println("Error getting disk usage: ", err)
