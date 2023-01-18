@@ -239,6 +239,7 @@ const (
 	PointTypeMetricSysLoad            = "metricSysLoad"
 	PointTypeMetricSysCPUPercent      = "metricSysCPUPercent"
 	PointTypeMetricSysMem             = "metricSysMem"
+	PointTypeMetricSysMemUsedPercent  = "metricSysMemUsedPercent"
 	PointTypeMetricSysDiskUsedPercent = "metricSysDiskUsedPercent"
 	PointTypeMetricSysNetBytesRecv    = "metricSysNetBytesRecv"
 	PointTypeMetricSysNetBytesSent    = "metricSysNetBytesSent"
@@ -254,8 +255,8 @@ const (
 	PointTypeMetricProcMemRSS     = "metricProcMemRSS"
 
 	PointTypeHost                = "host"
+	PointTypeHostBootTime        = "hostBootTime"
 	PointKeyHostname             = "hostname"
-	PointKeyBootTime             = "bootTime"
 	PointKeyOS                   = "os"
 	PointKeyPlatform             = "platform"
 	PointKeyPlatformFamily       = "platformFamily"

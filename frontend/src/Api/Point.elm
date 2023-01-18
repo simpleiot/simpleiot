@@ -13,6 +13,7 @@ module Api.Point exposing
     , getValue
     , newText
     , renderPoint
+    , renderPoint2
     , sort
     , typeAction
     , typeActive
@@ -799,6 +800,33 @@ renderPoint s =
                 Round.round 2 s.value
     in
     s.typ ++ ":" ++ key ++ index ++ " " ++ value
+
+
+renderPoint2 : Point -> { desc : String, value : String }
+renderPoint2 s =
+    let
+        key =
+            if s.key == "" then
+                ""
+
+            else
+                s.key ++ ":"
+
+        index =
+            if s.index /= 0 then
+                Round.round 1 s.index ++ ":"
+
+            else
+                ""
+
+        value =
+            if s.text /= "" then
+                s.text
+
+            else
+                Round.round 2 s.value
+    in
+    { desc = s.typ ++ ":" ++ key ++ index, value = value }
 
 
 updatePoint : List Point -> Point -> List Point

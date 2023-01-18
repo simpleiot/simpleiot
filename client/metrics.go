@@ -100,7 +100,10 @@ done:
 					checkPeriod()
 					sampleTicker.Reset(time.Duration(m.config.Period) *
 						time.Second)
-
+				case data.PointTypeType:
+					if m.config.Type == data.PointValueSystem {
+						m.sysStart()
+					}
 				}
 			}
 
@@ -149,9 +152,8 @@ func (m *MetricsClient) sysStart() {
 				Text: hostStat.Hostname,
 			},
 			{
-				Type:  data.PointTypeHost,
+				Type:  data.PointTypeHostBootTime,
 				Time:  now,
-				Key:   data.PointKeyBootTime,
 				Value: float64(hostStat.BootTime),
 			},
 			{
@@ -275,9 +277,8 @@ func (m *MetricsClient) sysPeriodic() {
 	} else {
 		pts = append(pts, data.Points{
 			{
-				Type:  data.PointTypeMetricSysMem,
+				Type:  data.PointTypeMetricSysMemUsedPercent,
 				Time:  now,
-				Key:   data.PointKeyUsedPercent,
 				Value: vm.UsedPercent,
 			},
 			{
