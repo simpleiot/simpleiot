@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- update elm-watch to v1.1.2
+
 ## [[0.7.2] - 2023-01-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.7.2)
 
 - fix race condition with clients that have multi-level nodes (ex Rule client)
