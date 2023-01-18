@@ -7,7 +7,7 @@ import Element exposing (..)
 import Element.Border as Border
 import Element.Font as Font
 import FormatNumber exposing (format)
-import FormatNumber.Locales exposing (Decimals(..), Locale, System(..), usLocale)
+import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Round
 import Time
 import UI.Icon as Icon
@@ -159,46 +159,6 @@ toTime z p =
             Time.millisToPosix (round p.value * 1000)
     in
     toDateTimeString z t
-
-
-monthToString : Time.Month -> String
-monthToString month =
-    case month of
-        Time.Jan ->
-            "01"
-
-        Time.Feb ->
-            "02"
-
-        Time.Mar ->
-            "03"
-
-        Time.Apr ->
-            "04"
-
-        Time.May ->
-            "05"
-
-        Time.Jun ->
-            "06"
-
-        Time.Jul ->
-            "07"
-
-        Time.Aug ->
-            "08"
-
-        Time.Sep ->
-            "09"
-
-        Time.Oct ->
-            "10"
-
-        Time.Nov ->
-            "11"
-
-        Time.Dec ->
-            "12"
 
 
 descS : String -> Point.Point -> String
