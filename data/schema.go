@@ -229,5 +229,47 @@ const (
 	PointTypeName = "name"
 	PointTypeData = "data"
 
-	PointTypeRate = "rate"
+	PointTypeRate   = "rate"
+	NodeTypeMetrics = "metrics"
+
+	PointTypeType    = "type"
+	PointValueApp    = "app"
+	PointValueSystem = "system"
+
+	// Sys Metrics
+	PointTypeMetricSysLoad            = "metricSysLoad"
+	PointTypeMetricSysCPUPercent      = "metricSysCPUPercent"
+	PointTypeMetricSysMem             = "metricSysMem"
+	PointTypeMetricSysMemUsedPercent  = "metricSysMemUsedPercent"
+	PointTypeMetricSysDiskUsedPercent = "metricSysDiskUsedPercent"
+	PointTypeMetricSysNetBytesRecv    = "metricSysNetBytesRecv"
+	PointTypeMetricSysNetBytesSent    = "metricSysNetBytesSent"
+	PointTypeMetricSysUptime          = "metricSysUptime"
+
+	// App Metrics
+	PointTypeMetricAppAlloc        = "metricAppAlloc"
+	PointTypeMetricAppNumGoroutine = "metricAppNumGoroutine"
+
+	// process metrics
+	PointTypeMetricProcCPUPercent = "metricProcCPUPercent"
+	PointTypeMetricProcMemPercent = "metricProcMemPercent"
+	PointTypeMetricProcMemRSS     = "metricProcMemRSS"
+
+	PointTypeHost                = "host"
+	PointTypeHostBootTime        = "hostBootTime"
+	PointKeyHostname             = "hostname"
+	PointKeyOS                   = "os"
+	PointKeyPlatform             = "platform"
+	PointKeyPlatformFamily       = "platformFamily"
+	PointKeyPlatformVersion      = "platformVersion"
+	PointKeyKernelVersion        = "kernelVersion"
+	PointKeyKernelArch           = "kernelArch"
+	PointKeyVirtualizationSystem = "virtualizationSystem"
+	PointKeyVirtualizationRole   = "virtualizationRole"
+
+	PointKeyUsedPercent = "usedPercent"
+	PointKeyTotal       = "total"
+	PointKeyAvailable   = "available"
+	PointKeyUsed        = "used"
+	PointKeyFree        = "free"
 )

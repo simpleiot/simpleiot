@@ -13,6 +13,7 @@ module Api.Point exposing
     , getValue
     , newText
     , renderPoint
+    , renderPoint2
     , sort
     , typeAction
     , typeActive
@@ -84,6 +85,7 @@ module Api.Point exposing
     , typeTombstone
     , typeTx
     , typeTxReset
+    , typeType
     , typeURI
     , typeUnits
     , typeValue
@@ -96,6 +98,7 @@ module Api.Point exposing
     , typeVersionOS
     , typeWeekday
     , updatePoints
+    , valueApp
     , valueClient
     , valueContains
     , valueEqual
@@ -118,6 +121,7 @@ module Api.Point exposing
     , valueSchedule
     , valueServer
     , valueSetValue
+    , valueSystem
     , valueTCP
     , valueText
     , valueTwilio
@@ -675,6 +679,21 @@ typeRate =
     "rate"
 
 
+typeType : String
+typeType =
+    "type"
+
+
+valueApp : String
+valueApp =
+    "app"
+
+
+valueSystem : String
+valueSystem =
+    "system"
+
+
 
 -- Point should match data/Point.go
 
@@ -723,6 +742,8 @@ specialPoints =
     , typeTx
     , typeTxReset
     , typeRate
+    , typeType
+    , typePeriod
     ]
 
 
@@ -789,6 +810,33 @@ renderPoint s =
             s.typ ++ ":"
     in
     typ ++ key ++ index ++ " " ++ value
+
+
+renderPoint2 : Point -> { desc : String, value : String }
+renderPoint2 s =
+    let
+        key =
+            if s.key == "" then
+                ""
+
+            else
+                s.key ++ ":"
+
+        index =
+            if s.index /= 0 then
+                Round.round 1 s.index ++ ":"
+
+            else
+                ""
+
+        value =
+            if s.text /= "" then
+                s.text
+
+            else
+                Round.round 2 s.value
+    in
+    { desc = s.typ ++ ":" ++ key ++ index, value = value }
 
 
 updatePoint : List Point -> Point -> List Point
