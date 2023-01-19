@@ -20,3 +20,28 @@ message Point {
 message Points {
   repeated Point points = 1;
 }
+
+message Point2 {
+  string type = 2;
+  float value = 4;
+  int64 time = 16;
+  float index = 13;
+  string text = 8;
+  string key = 11;
+  int32 tombstone = 12;
+  bytes data = 14;
+  string origin = 15;
+}
+
+message Point2s {
+  repeated Point2 points = 1;
+}
+
+
+message PointArray {
+  uint64 starttime = 1;
+  string type = 2;
+  string key = 3;
+  float samplerate = 4;
+  repeated float values = 5;
+}

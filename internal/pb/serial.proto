@@ -7,5 +7,5 @@ import "point.proto";
 
 message Serial {
  string subject = 1;
- repeated Point points = 2;
+ repeated Point2 points = 2;
 }
