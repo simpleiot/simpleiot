@@ -142,6 +142,20 @@ func (p Point) ToPb() (pb.Point, error) {
 	}, nil
 }
 
+// ToPb2 encodes point in protobuf format
+func (p Point) ToPb2() (pb.Point2, error) {
+	return pb.Point2{
+		Type:      p.Type,
+		Index:     float32(p.Index),
+		Key:       p.Key,
+		Value:     float32(p.Value),
+		Text:      p.Text,
+		Time:      p.Time.UnixNano(),
+		Tombstone: int32(p.Tombstone),
+		Origin:    p.Origin,
+	}, nil
+}
+
 // Bool returns a bool representation of value
 func (p *Point) Bool() bool {
 	if p.Value == 0 {
@@ -325,6 +339,22 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 		Index:     float64(sPb.Index),
 		Value:     float64(sPb.Value),
 		Time:      ts,
+		Tombstone: int(sPb.Tombstone),
+		Origin:    sPb.Origin,
+	}
+
+	return ret, nil
+}
+
+//Pb2ToPoint converts pb point to point
+func Pb2ToPoint(sPb *pb.Point2) (Point, error) {
+	ret := Point{
+		Type:      sPb.Type,
+		Text:      sPb.Text,
+		Key:       sPb.Key,
+		Index:     float64(sPb.Index),
+		Value:     float64(sPb.Value),
+		Time:      time.Unix(0, sPb.Time),
 		Tombstone: int(sPb.Tombstone),
 		Origin:    sPb.Origin,
 	}
