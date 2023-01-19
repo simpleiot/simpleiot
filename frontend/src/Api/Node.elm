@@ -19,6 +19,7 @@ module Api.Node exposing
     , typeDevice
     , typeFile
     , typeGroup
+    , typeMetrics
     , typeModbus
     , typeModbusIO
     , typeMsgService
@@ -129,6 +130,11 @@ typeSignalGenerator =
 typeFile : String
 typeFile =
     "file"
+
+
+typeMetrics : String
+typeMetrics =
+    "metrics"
 
 
 

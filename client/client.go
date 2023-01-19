@@ -45,5 +45,8 @@ func DefaultClients(nc *nats.Conn) (*Group, error) {
 	sync := NewManager(nc, NewSyncClient)
 	g.Add(sync)
 
+	metrics := NewManager(nc, NewMetricsClient)
+	g.Add(metrics)
+
 	return g, nil
 }
