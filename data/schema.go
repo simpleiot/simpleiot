@@ -231,9 +231,12 @@ const (
 
 	NodeTypeMetrics = "metrics"
 
-	PointTypeType    = "type"
-	PointValueApp    = "app"
-	PointValueSystem = "system"
+	PointTypeType      = "type"
+	PointValueApp      = "app"
+	PointValueAppNamed = "appNamed"
+	PointValueSystem   = "system"
+
+	PointTypeCount = "count"
 
 	// Sys Metrics
 	PointTypeMetricSysLoad            = "metricSysLoad"
