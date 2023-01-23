@@ -98,7 +98,6 @@ module Api.Point exposing
     , typeWeekday
     , updatePoints
     , valueApp
-    , valueAppNamed
     , valueClient
     , valueContains
     , valueEqual
@@ -117,6 +116,7 @@ module Api.Point exposing
     , valueOnOff
     , valuePlayAudio
     , valuePointValue
+    , valueProcess
     , valueRTU
     , valueSchedule
     , valueServer
@@ -684,9 +684,9 @@ valueApp =
     "app"
 
 
-valueAppNamed : String
-valueAppNamed =
-    "appNamed"
+valueProcess : String
+valueProcess =
+    "process"
 
 
 valueSystem : String

@@ -85,7 +85,7 @@ done:
 				m.sysPeriodic()
 			case data.PointValueApp:
 				m.appPeriodic("")
-			case data.PointValueAppNamed:
+			case data.PointValueProcess:
 				m.appPeriodic(m.config.Name)
 			default:
 				log.Println("Metrics: Must select metric type")

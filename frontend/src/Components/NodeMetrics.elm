@@ -53,9 +53,9 @@ view o =
                         "Type"
                         [ ( Point.valueSystem, "system" )
                         , ( Point.valueApp, "this application" )
-                        , ( Point.valueAppNamed, "named process" )
+                        , ( Point.valueProcess, "named process" )
                         ]
-                    , viewIf (metricsType == Point.valueAppNamed) <|
+                    , viewIf (metricsType == Point.valueProcess) <|
                         textInput Point.typeName "proc name" ""
                     , numberInput Point.typePeriod "Period (s)"
                     , viewMetrics o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
