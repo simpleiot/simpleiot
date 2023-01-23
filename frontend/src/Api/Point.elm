@@ -98,6 +98,7 @@ module Api.Point exposing
     , typeWeekday
     , updatePoints
     , valueApp
+    , valueAppNamed
     , valueClient
     , valueContains
     , valueEqual
@@ -683,6 +684,11 @@ valueApp =
     "app"
 
 
+valueAppNamed : String
+valueAppNamed =
+    "appNamed"
+
+
 valueSystem : String
 valueSystem =
     "system"
@@ -737,6 +743,7 @@ specialPoints =
     , typeTxReset
     , typeType
     , typePeriod
+    , typeName
     ]
 
 
