@@ -20,7 +20,6 @@ app.ports.out.subscribe(({ action, data }) =>
 const actions = {
 	LOG: (message) => console.log(`From Elm:`, message),
 	CLIPBOARD: (message) => {
-		console.log("CLIFF: CLIPBOARD")
 		if (navigator.clipboard) {
 			writeClipboard(message)
 		} else {

@@ -116,6 +116,7 @@ module Api.Point exposing
     , valueOnOff
     , valuePlayAudio
     , valuePointValue
+    , valueProcess
     , valueRTU
     , valueSchedule
     , valueServer
@@ -683,6 +684,11 @@ valueApp =
     "app"
 
 
+valueProcess : String
+valueProcess =
+    "process"
+
+
 valueSystem : String
 valueSystem =
     "system"
@@ -737,6 +743,7 @@ specialPoints =
     , typeTxReset
     , typeType
     , typePeriod
+    , typeName
     ]
 
 
