@@ -13,6 +13,7 @@ import Time
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
+import UI.ViewIf exposing (viewIf)
 import Utils.Iso8601 exposing (toDateTimeString)
 
 
@@ -43,13 +44,19 @@ view o =
 
                         numberInput =
                             NodeInputs.nodeNumberInput opts ""
+
+                        metricsType =
+                            Point.getText o.node.points Point.typeType ""
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeType
                         "Type"
                         [ ( Point.valueSystem, "system" )
-                        , ( Point.valueApp, "app" )
+                        , ( Point.valueApp, "this application" )
+                        , ( Point.valueProcess, "named process" )
                         ]
+                    , viewIf (metricsType == Point.valueProcess) <|
+                        textInput Point.typeName "proc name" ""
                     , numberInput Point.typePeriod "Period (s)"
                     , viewMetrics o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]
@@ -125,6 +132,7 @@ metricFormaters z =
         , ( "metricSysNetBytesRecv", { desc = descKey "Net RX", vf = toWhole } )
         , ( "metricSysNetBytesSent", { desc = descKey "Net TX", vf = toWhole } )
         , ( "metricSysUptime", { desc = descKey "Uptime", vf = toWhole } )
+        , ( "count", { desc = descS "Proc Count", vf = toWhole } )
         ]
 
 

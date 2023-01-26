@@ -24,6 +24,7 @@ type Metrics struct {
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
 	Type        string `point:"type"`
+	Name        string `point:"name"`
 	Period      int    `point:"period"`
 }
 
@@ -83,7 +84,9 @@ done:
 			case data.PointValueSystem:
 				m.sysPeriodic()
 			case data.PointValueApp:
-				m.appPeriodic()
+				m.appPeriodic("")
+			case data.PointValueProcess:
+				m.appPeriodic(m.config.Name)
 			default:
 				log.Println("Metrics: Must select metric type")
 			}
@@ -368,30 +371,34 @@ func (m *MetricsClient) sysPeriodic() {
 	}
 }
 
-func (m *MetricsClient) appPeriodic() {
+// if procName is "", then collect stats for this app
+func (m *MetricsClient) appPeriodic(procName string) {
 	now := time.Now()
-	var memStats runtime.MemStats
 
-	runtime.ReadMemStats(&memStats)
+	if procName == "" {
+		var memStats runtime.MemStats
 
-	numGoRoutine := runtime.NumGoroutine()
+		runtime.ReadMemStats(&memStats)
 
-	pts := data.Points{
-		{
-			Time:  now,
-			Type:  data.PointTypeMetricAppAlloc,
-			Value: float64(memStats.Alloc),
-		},
-		{
-			Time:  now,
-			Type:  data.PointTypeMetricAppNumGoroutine,
-			Value: float64(numGoRoutine),
-		},
-	}
+		numGoRoutine := runtime.NumGoroutine()
 
-	err := SendNodePoints(m.nc, m.config.ID, pts, false)
-	if err != nil {
-		log.Println("Metrics: error sending points: ", err)
+		pts := data.Points{
+			{
+				Time:  now,
+				Type:  data.PointTypeMetricAppAlloc,
+				Value: float64(memStats.Alloc),
+			},
+			{
+				Time:  now,
+				Type:  data.PointTypeMetricAppNumGoroutine,
+				Value: float64(numGoRoutine),
+			},
+		}
+
+		err := SendNodePoints(m.nc, m.config.ID, pts, false)
+		if err != nil {
+			log.Println("Metrics: error sending points: ", err)
+		}
 	}
 
 	pid := os.Getpid()
@@ -400,10 +407,25 @@ func (m *MetricsClient) appPeriodic() {
 	if err != nil {
 		log.Println("Metrics error: ", err)
 	} else {
+		var accumCPUPerc, accumMemPerc, accumMemRSS float64
+		var procCount int
 		for _, p := range procs {
-			if p.Pid != int32(pid) {
-				continue
+			if procName != "" {
+				name, err := p.Name()
+				if err != nil {
+					log.Println("Error getting process name: ", err)
+					continue
+				}
+				if name != procName {
+					continue
+				}
+			} else {
+				if p.Pid != int32(pid) {
+					continue
+				}
 			}
+
+			procCount++
 
 			cpuPerc, err := p.CPUPercent()
 			if err != nil {
@@ -411,11 +433,15 @@ func (m *MetricsClient) appPeriodic() {
 				break
 			}
 
+			accumCPUPerc += cpuPerc
+
 			memPerc, err := p.MemoryPercent()
 			if err != nil {
 				log.Println("Error getting mem percent for proc: ", err)
 				break
 			}
+
+			accumMemPerc += float64(memPerc)
 
 			memInfo, err := p.MemoryInfo()
 			if err != nil {
@@ -423,30 +449,39 @@ func (m *MetricsClient) appPeriodic() {
 				break
 			}
 
-			pts := data.Points{
-				{
-					Time:  now,
-					Type:  data.PointTypeMetricProcCPUPercent,
-					Value: float64(cpuPerc),
-				},
-				{
-					Time:  now,
-					Type:  data.PointTypeMetricProcMemPercent,
-					Value: float64(memPerc),
-				},
-				{
-					Time:  now,
-					Type:  data.PointTypeMetricProcMemRSS,
-					Value: float64(memInfo.RSS),
-				},
-			}
-
-			err = SendNodePoints(m.nc, m.config.ID, pts, false)
-			if err != nil {
-				log.Println("Metrics: error sending points: ", err)
-			}
-
-			break
+			accumMemRSS += float64(memInfo.RSS)
 		}
+
+		pts := data.Points{
+			{
+				Time:  now,
+				Type:  data.PointTypeMetricProcCPUPercent,
+				Value: float64(accumCPUPerc),
+			},
+			{
+				Time:  now,
+				Type:  data.PointTypeMetricProcMemPercent,
+				Value: float64(accumMemPerc),
+			},
+			{
+				Time:  now,
+				Type:  data.PointTypeMetricProcMemRSS,
+				Value: float64(accumMemRSS),
+			},
+		}
+
+		if procName != "" {
+			pts = append(pts, data.Point{
+				Time:  now,
+				Type:  data.PointTypeCount,
+				Value: float64(procCount),
+			})
+		}
+
+		err = SendNodePoints(m.nc, m.config.ID, pts, false)
+		if err != nil {
+			log.Println("Metrics: error sending points: ", err)
+		}
+
 	}
 }
