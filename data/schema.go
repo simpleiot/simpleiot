@@ -231,10 +231,11 @@ const (
 
 	NodeTypeMetrics = "metrics"
 
-	PointTypeType     = "type"
-	PointValueApp     = "app"
-	PointValueProcess = "process"
-	PointValueSystem  = "system"
+	PointTypeType          = "type"
+	PointValueApp          = "app"
+	PointValueProcess      = "process"
+	PointValueAllProcesses = "allProcesses"
+	PointValueSystem       = "system"
 
 	PointTypeCount = "count"
 
