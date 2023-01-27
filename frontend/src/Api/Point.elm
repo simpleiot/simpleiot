@@ -97,7 +97,6 @@ module Api.Point exposing
     , typeVersionOS
     , typeWeekday
     , updatePoints
-    , valueAllProcesses
     , valueApp
     , valueClient
     , valueContains
@@ -688,11 +687,6 @@ valueApp =
 valueProcess : String
 valueProcess =
     "process"
-
-
-valueAllProcesses : String
-valueAllProcesses =
-    "allProcesses"
 
 
 valueSystem : String
