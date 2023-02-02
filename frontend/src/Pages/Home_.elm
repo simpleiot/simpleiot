@@ -237,7 +237,6 @@ update shared msg model =
 
         UploadContents id file contents ->
             let
-                --_ = Debug.log "UploadContents: " <| File.name file
                 pointName =
                     Point Point.typeName "" model.now 0 0 (File.name file) 0
 
