@@ -161,7 +161,7 @@ done:
 						"nodeID": pts.ID,
 						"key":    point.Key,
 						"type":   point.Type,
-						"index":  strconv.FormatFloat(point.Index, 'f', -1, 64),
+						"index":  strconv.FormatFloat(float64(point.Index), 'f', -1, 64),
 					},
 					map[string]interface{}{
 						"value": point.Value,

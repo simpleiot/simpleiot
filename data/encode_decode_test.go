@@ -21,14 +21,14 @@ var nodeEdgeTest = NodeEdge{
 	Parent: "456",
 	Type:   "testType",
 	Points: []Point{
-		Point{Type: "description", Text: "test type"},
-		Point{Type: "count", Value: 120},
-		Point{Type: "value", Value: 15.43},
-		Point{Type: "value2", Value: 10},
+		{Type: "description", Text: "test type"},
+		{Type: "count", Value: 120},
+		{Type: "value", Value: 15.43},
+		{Type: "value2", Value: 10},
 	},
 	EdgePoints: []Point{
-		Point{Type: "role", Text: "admin"},
-		Point{Type: "tombstone", Value: 1},
+		{Type: "role", Text: "admin"},
+		{Type: "tombstone", Value: 1},
 	},
 }
 

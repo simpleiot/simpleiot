@@ -33,7 +33,7 @@ type Point struct {
 
 	// Index is used to specify a position in an array such as
 	// which pump, temp sensor, etc.
-	Index float64 `json:"index,omitempty"`
+	Index float32 `json:"index,omitempty"`
 
 	// Instantaneous analog or digital value of the point.
 	// 0 and 1 are used to represent digital values
@@ -134,7 +134,7 @@ func (p Point) ToPb() (pb.Point, error) {
 		Type:      p.Type,
 		Index:     float32(p.Index),
 		Key:       p.Key,
-		Value:     float32(p.Value),
+		Value:     p.Value,
 		Text:      p.Text,
 		Time:      ts,
 		Tombstone: int32(p.Tombstone),
@@ -322,8 +322,8 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 		Type:      sPb.Type,
 		Text:      sPb.Text,
 		Key:       sPb.Key,
-		Index:     float64(sPb.Index),
-		Value:     float64(sPb.Value),
+		Index:     sPb.Index,
+		Value:     sPb.Value,
 		Time:      ts,
 		Tombstone: int(sPb.Tombstone),
 		Origin:    sPb.Origin,
