@@ -13,7 +13,7 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// GetNodes over NATS. Maps to the `nodes.<parent>.<id>` NATS API.
+// GetNodes over NATS. Maps to the `p.<id>.<parent>` NATS API.
 // Returns data.ErrDocumentNotFound if node is not found.
 // If parent is set to "none", the edge details are not included
 // and the hash is blank.
@@ -139,12 +139,18 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 
 	// go through parents of root nodes and recursively get all children
 	for _, un := range userNodes {
-		n, err := GetNodes(nc, "all", un.Parent, "", false)
+		parents, err := GetNodes(nc, "all", un.Parent, "", false)
 		if err != nil {
 			return none, fmt.Errorf("Error getting root node: %v", err)
 		}
 
-		ret = append(ret, n...)
+		// The frontend expects the top level nodes to have Parent set
+		// to root
+		for i := range parents {
+			parents[i].Parent = "root"
+		}
+
+		ret = append(ret, parents...)
 		c, err := getChildren(un.Parent)
 		if err != nil {
 			return none, fmt.Errorf("Error getting children: %v", err)
