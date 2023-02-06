@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- change default HTTP port from 8080 to 8118. This should reduce conflicts
+  with other apps and require us to configure the HTTP port less often. (#495)
+
 ## [[0.8.0] - 2023-01-23](https://github.com/simpleiot/simpleiot/releases/tag/v0.8.0)
 
 - update elm-watch to v1.1.2

@@ -6,8 +6,8 @@
 
 ## Basic Navigation
 
-After Simple IoT is started, a web application is available on port `:8080`
-(typically [http://localhost:8080](http://localhost:8080)). After logging in
+After Simple IoT is started, a web application is available on port `:8118`
+(typically [http://localhost:8118](http://localhost:8118)). After logging in
 (default user/pass is `admin@admin.com`/`admin`), you will be presented with a
 tree of nodes.
 

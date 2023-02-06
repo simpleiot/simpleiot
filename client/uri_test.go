@@ -69,7 +69,7 @@ type sanitizeTests struct {
 func TestSanitizeURI(t *testing.T) {
 	tests := []sanitizeTests{
 		{"nats://myserver.com", "nats://myserver.com:4222"},
-		{"ws://myserver.com:8080", "ws://myserver.com:8080"},
+		{"ws://myserver.com:8118", "ws://myserver.com:8118"},
 		{"ws://myserver.com", "ws://myserver.com:80"},
 		{"wss://myserver.com", "wss://myserver.com:443"},
 		{"wsss://myserver.com", "wsss://myserver.com:4222"},
