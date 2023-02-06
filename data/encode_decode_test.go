@@ -140,11 +140,11 @@ func TestDecodeWithChildren(t *testing.T) {
 			Parent: "456",
 			Type:   "testX",
 			Points: []Point{
-				Point{Type: "description", Text: "test X type"},
+				{Type: "description", Text: "test X type"},
 			},
 			EdgePoints: []Point{
-				Point{Type: "role", Text: "admin"},
-				Point{Type: "tombstone", Value: 1},
+				{Type: "role", Text: "admin"},
+				{Type: "tombstone", Value: 1},
 			},
 		},
 		Children: []NodeEdgeChildren{
@@ -153,11 +153,11 @@ func TestDecodeWithChildren(t *testing.T) {
 				Parent: "123",
 				Type:   "testY",
 				Points: []Point{
-					Point{Type: "description", Text: "test Y1"},
+					{Type: "description", Text: "test Y1"},
 				},
 				EdgePoints: []Point{
-					Point{Type: "role", Text: "user"},
-					Point{Type: "tombstone", Value: 1},
+					{Type: "role", Text: "user"},
+					{Type: "tombstone", Value: 1},
 				},
 			},
 				[]NodeEdgeChildren{
@@ -166,11 +166,11 @@ func TestDecodeWithChildren(t *testing.T) {
 						Parent: "abc",
 						Type:   "testY",
 						Points: []Point{
-							Point{Type: "description", Text: "test Y2"},
+							{Type: "description", Text: "test Y2"},
 						},
 						EdgePoints: []Point{
-							Point{Type: "role", Text: "user"},
-							Point{Type: "tombstone", Value: 1},
+							{Type: "role", Text: "user"},
+							{Type: "tombstone", Value: 1},
 						},
 					}, nil},
 					{NodeEdge{
@@ -178,11 +178,11 @@ func TestDecodeWithChildren(t *testing.T) {
 						Parent: "abc",
 						Type:   "testZ",
 						Points: []Point{
-							Point{Type: "description", Text: "test Z1"},
+							{Type: "description", Text: "test Z1"},
 						},
 						EdgePoints: []Point{
-							Point{Type: "role", Text: "user"},
-							Point{Type: "tombstone", Value: 1},
+							{Type: "role", Text: "user"},
+							{Type: "tombstone", Value: 1},
 						},
 					}, nil},
 				},
