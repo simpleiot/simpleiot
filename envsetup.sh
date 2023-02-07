@@ -1,3 +1,4 @@
+#!/bin/sh
 RECOMMENDED_ELM_VERSION=0.19.1
 
 # map tools from project go modules
