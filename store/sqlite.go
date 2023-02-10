@@ -79,7 +79,8 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS edges (id TEXT NOT NULL PRIMARY KEY,
 				up TEXT,
 				down TEXT,
-				hash INT)`)
+				hash INT,
+				type TEXT)`)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error creating edges table: %v", err)
@@ -89,8 +90,7 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 				node_id TEXT,
 				type TEXT,
 				key TEXT,
-				time_s INT,
-				time_ns INT,
+				time INT,
 				idx REAL,
 				value REAL,
 				text TEXT,
@@ -106,8 +106,7 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 				edge_id TEXT,
 				type TEXT,
 				key TEXT,
-				time_s INT,
-				time_ns INT,
+				time INT,
 				idx REAL,
 				value REAL,
 				text TEXT,
@@ -117,6 +116,21 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("Error creating edge_points table: %v", err)
+	}
+
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS edgeUp ON edges(up)`)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS edgeDown ON edges(down)`)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS edgeType ON edges(type)`)
+	if err != nil {
+		return nil, err
 	}
 
 	err = ret.initMeta()
@@ -186,83 +200,14 @@ func (sdb *DbSqlite) initMeta() error {
 }
 
 func (sdb *DbSqlite) runMigrations() error {
-	if sdb.meta.Version < 1 {
-		log.Println("DB: running migration 1")
-		_, err := sdb.db.Exec(`ALTER TABLE edges ADD COLUMN type TEXT`)
+	if sdb.meta.Version < 3 {
+		log.Println("DB: running migration 3")
+
+		_, err := sdb.db.Exec(`UPDATE meta SET version = 3`)
 		if err != nil {
 			return err
 		}
-
-		_, err = sdb.db.Exec(`CREATE INDEX IF NOT EXISTS edgeUp ON edges(up)`)
-		if err != nil {
-			return err
-		}
-
-		_, err = sdb.db.Exec(`CREATE INDEX IF NOT EXISTS edgeDown ON edges(down)`)
-		if err != nil {
-			return err
-		}
-
-		_, err = sdb.db.Exec(`CREATE INDEX IF NOT EXISTS edgeType ON edges(type)`)
-		if err != nil {
-			return err
-		}
-
-		// loop through existing edges and add fill in types
-		rowEdges, err := sdb.db.Query("SELECT id, down from edges")
-		if err != nil {
-			return err
-		}
-
-		for rowEdges.Next() {
-			var id string
-			var down string
-			err := rowEdges.Scan(&id, &down)
-			if err != nil {
-				return err
-			}
-
-			// we need to find the type from the node point
-			rowPoints, err := sdb.db.Query(`SELECT text FROM node_points WHERE
- 						node_id = ? AND type = ?`, down, data.PointTypeNodeType)
-
-			if err != nil {
-				return err
-			}
-
-			var nodeType string
-			for rowPoints.Next() {
-				err := rowPoints.Scan(&nodeType)
-				if err != nil {
-					return err
-				}
-			}
-
-			if nodeType == "" {
-				return fmt.Errorf("Did not find node type in node points for: %v", down)
-			}
-
-			_, err = sdb.db.Exec(`UPDATE edges SET type = ? WHERE id = ?`, nodeType, id)
-			if err != nil {
-				return err
-			}
-		}
-
-		_, err = sdb.db.Exec(`UPDATE meta SET version = 1`)
-		if err != nil {
-			return err
-		}
-		sdb.meta.Version = 1
-	}
-
-	if sdb.meta.Version < 2 {
-		log.Println("DB: running migration 2")
-
-		_, err := sdb.db.Exec(`UPDATE meta SET version = 2`)
-		if err != nil {
-			return err
-		}
-		sdb.meta.Version = 2
+		sdb.meta.Version = 3
 	}
 
 	return nil
@@ -497,16 +442,16 @@ func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
 
 	for rowsPoints.Next() {
 		var p data.Point
-		var timeS, timeNS int64
+		var timeNS int64
 		var pID string
 		var nodeID string
-		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &p.Index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
 			rollback()
 			return err
 		}
-		p.Time = time.Unix(timeS, timeNS)
+		p.Time = time.Unix(0, timeNS)
 		dbPoints = append(dbPoints, p)
 		dbPointIDs = append(dbPointIDs, pID)
 	}
@@ -549,28 +494,26 @@ NextPin:
 		writePointIDs = append(writePointIDs, uuid.New().String())
 	}
 
-	stmt, err := tx.Prepare(`INSERT INTO node_points(id, node_id, type, key, time_s,
-                 time_ns, idx, value, text, data, tombstone, origin)
-		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	stmt, err := tx.Prepare(`INSERT INTO node_points(id, node_id, type, key, time,
+                 idx, value, text, data, tombstone, origin)
+		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT(id) DO UPDATE SET
 		 type = ?3,
 		 key = ?4,
-		 time_s = ?5,
-		 time_ns = ?6,
-		 idx = ?7,
-		 value = ?8,
-		 text = ?9,
-		 data = ?10,
-		 tombstone = ?11,
-		 origin = ?12
+		 time = ?5,
+		 idx = ?6,
+		 value = ?7,
+		 text = ?8,
+		 data = ?9,
+		 tombstone = ?10,
+		 origin = ?11
 		 `)
 	defer stmt.Close()
 
 	for i, p := range writePoints {
-		tS := p.Time.Unix()
-		tNs := p.Time.UnixNano() - 1e9*tS
+		tNs := p.Time.UnixNano()
 		pID := writePointIDs[i]
-		_, err = stmt.Exec(pID, id, p.Type, p.Key, tS, tNs, p.Index, p.Value, p.Text, p.Data, p.Tombstone,
+		_, err = stmt.Exec(pID, id, p.Type, p.Key, tNs, p.Index, p.Value, p.Text, p.Data, p.Tombstone,
 			p.Origin)
 		if err != nil {
 			rollback()
@@ -656,16 +599,16 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 
 	for rowsPoints.Next() {
 		var p data.Point
-		var timeS, timeNS int64
+		var timeNS int64
 		var pID string
 		var nodeID string
-		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &p.Index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
 			rollback()
 			return err
 		}
-		p.Time = time.Unix(timeS, timeNS)
+		p.Time = time.Unix(0, timeNS)
 		dbPoints = append(dbPoints, p)
 		dbPointIDs = append(dbPointIDs, pID)
 	}
@@ -717,27 +660,25 @@ NextPin:
 	}
 
 	// loop through write points and write them
-	stmt, err := tx.Prepare(`INSERT INTO edge_points(id, edge_id, type, key, time_s,
-                 time_ns, idx, value, text, data, tombstone, origin)
-		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	stmt, err := tx.Prepare(`INSERT INTO edge_points(id, edge_id, type, key, time,
+                 idx, value, text, data, tombstone, origin)
+		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT(id) DO UPDATE SET
 		 type = ?3,
 		 key = ?4,
-		 time_s = ?5,
-		 time_ns = ?6,
-		 idx = ?7,
-		 value = ?8,
-		 text = ?9,
-		 data = ?10,
-		 tombstone = ?11,
-		 origin = ?12
+		 time = ?5,
+		 idx = ?6,
+		 value = ?7,
+		 text = ?8,
+		 data = ?9,
+		 tombstone = ?10,
+		 origin = ?11
 		 `)
 
 	for i, p := range writePoints {
-		tS := p.Time.Unix()
-		tNs := p.Time.UnixNano() - 1e9*tS
+		tNs := p.Time.UnixNano()
 		pID := writePointIDs[i]
-		_, err = stmt.Exec(pID, edge.ID, p.Type, p.Key, tS, tNs, p.Index, p.Value, p.Text, p.Data, p.Tombstone,
+		_, err = stmt.Exec(pID, edge.ID, p.Type, p.Key, tNs, p.Index, p.Value, p.Text, p.Data, p.Tombstone,
 			p.Origin)
 		if err != nil {
 			stmt.Close()
@@ -773,16 +714,16 @@ NextPin:
 
 		for rowsPoints.Next() {
 			var p data.Point
-			var timeS, timeNS int64
+			var timeNS int64
 			var pID string
 			var nodeID string
-			err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+			err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &p.Index, &p.Value, &p.Text,
 				&p.Data, &p.Tombstone, &p.Origin)
 			if err != nil {
 				rollback()
 				return err
 			}
-			p.Time = time.Unix(timeS, timeNS)
+			p.Time = time.Unix(0, timeNS)
 			hashUpdate ^= p.CRC()
 		}
 
@@ -1003,15 +944,15 @@ func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (data.Po
 
 	for rowsPoints.Next() {
 		var p data.Point
-		var timeS, timeNS int64
+		var timeNS int64
 		var pID string
 		var nodeID string
-		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &p.Index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
 			return nil, err
 		}
-		p.Time = time.Unix(timeS, timeNS)
+		p.Time = time.Unix(0, timeNS)
 		retPoints = append(retPoints, p)
 	}
 
