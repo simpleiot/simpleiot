@@ -199,11 +199,139 @@ func (sdb *DbSqlite) initMeta() error {
 	return nil
 }
 
+type point struct {
+	data.Point
+	id     string
+	nodeId string
+}
+
 func (sdb *DbSqlite) runMigrations() error {
 	if sdb.meta.Version < 3 {
 		log.Println("DB: running migration 3")
 
-		_, err := sdb.db.Exec(`UPDATE meta SET version = 3`)
+		_, err := sdb.db.Exec(`ALTER TABLE node_points RENAME TO node_points_old`)
+		if err != nil {
+			return fmt.Errorf("Error moving table node_points: %v", err)
+		}
+
+		_, err = sdb.db.Exec(`ALTER TABLE edge_points RENAME TO edge_points_old`)
+		if err != nil {
+			return fmt.Errorf("Error moving table edge_points: %v", err)
+		}
+
+		_, err = sdb.db.Exec(`CREATE TABLE node_points (id TEXT NOT NULL PRIMARY KEY,
+				node_id TEXT,
+				type TEXT,
+				key TEXT,
+				time INT,
+				idx REAL,
+				value REAL,
+				text TEXT,
+				data BLOB,
+				tombstone INT,
+				origin TEXT)`)
+
+		if err != nil {
+			return fmt.Errorf("Error creating node_points table: %v", err)
+		}
+
+		_, err = sdb.db.Exec(`CREATE TABLE edge_points (id TEXT NOT NULL PRIMARY KEY,
+				edge_id TEXT,
+				type TEXT,
+				key TEXT,
+				time INT,
+				idx REAL,
+				value REAL,
+				text TEXT,
+				data BLOB,
+				tombstone INT,
+				origin TEXT)`)
+
+		if err != nil {
+			return fmt.Errorf("Error creating node_points table: %v", err)
+		}
+
+		// copy old node_points data to new table
+		rows, err := sdb.db.Query("SELECT * FROM node_points_old")
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		var dbPoints []point
+
+		for rows.Next() {
+			var p point
+			var timeS, timeNS int64
+			err := rows.Scan(&p.id, &p.nodeId, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+				&p.Data, &p.Tombstone, &p.Origin)
+			if err != nil {
+				return err
+			}
+			p.Time = time.Unix(timeS, timeNS)
+			dbPoints = append(dbPoints, p)
+		}
+
+		for _, p := range dbPoints {
+			_, err := sdb.db.Exec(`INSERT INTO node_points(id, node_id, type, key, time,
+				idx, value, text, data, tombstone, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				p.id, p.nodeId, p.Type, p.Key, p.Time.UnixNano(), p.Index, p.Value, p.Text, p.Data, p.Tombstone,
+				p.Origin)
+			if err != nil {
+				return fmt.Errorf("Error writing to new node_points table: %v", err)
+			}
+		}
+
+		if err := rows.Close(); err != nil {
+			return fmt.Errorf("Error closing rows: %v", err)
+		}
+
+		// copy old edge_points data to new table
+		rows, err = sdb.db.Query("SELECT * FROM edge_points_old")
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		dbPoints = []point{}
+
+		for rows.Next() {
+			var p point
+			var timeS, timeNS int64
+			err := rows.Scan(&p.id, &p.nodeId, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+				&p.Data, &p.Tombstone, &p.Origin)
+			if err != nil {
+				return err
+			}
+			p.Time = time.Unix(timeS, timeNS)
+			dbPoints = append(dbPoints, p)
+		}
+
+		for _, p := range dbPoints {
+			_, err := sdb.db.Exec(`INSERT INTO edge_points(id, edge_id, type, key, time,
+				idx, value, text, data, tombstone, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				p.id, p.nodeId, p.Type, p.Key, p.Time.UnixNano(), p.Index, p.Value, p.Text, p.Data, p.Tombstone,
+				p.Origin)
+			if err != nil {
+				return fmt.Errorf("Error writing to new node_points table: %v", err)
+			}
+		}
+
+		if err := rows.Close(); err != nil {
+			return fmt.Errorf("Error closing rows: %v", err)
+		}
+
+		_, err = sdb.db.Exec("DROP TABLE node_points_old")
+		if err != nil {
+			return fmt.Errorf("Error dropping table: %v", err)
+		}
+
+		_, err = sdb.db.Exec("DROP TABLE edge_points_old")
+		if err != nil {
+			return fmt.Errorf("Error dropping table: %v", err)
+		}
+
+		_, err = sdb.db.Exec(`UPDATE meta SET version = 3`)
 		if err != nil {
 			return err
 		}
