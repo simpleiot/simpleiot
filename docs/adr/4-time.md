@@ -1,8 +1,8 @@
 # Time storage/format considerations
 
-- Author: Cliff Brake, last updated: 2022-10-15
+- Author: Cliff Brake, last updated: 2023-02-11
 - PR/Discussion:
-- Status: discussion
+- Status: accepted
 
 **Contents**
 
@@ -204,10 +204,15 @@ grid).
 
 ## Decision
 
-what was decided.
+- **NATS messages**
+  - stick with standard protobuf Time definition in NATS packets
+  - this is most compatible with all the protobuf language support out there
+- **Database**
+  - switch to single time field that contains NS since Unix epoch
+  - this is simpler and allows us to easily do comparisons on the field
 
 objections/concerns
 
 ## Consequences
 
-what is the impact, both negative and positive.
+Migration is required for database, but should be transparent to the user.
