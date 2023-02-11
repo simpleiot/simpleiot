@@ -5,7 +5,7 @@ The following are currently defined:
 
 - **General**
   - `SIOT_HTTP_PORT`: http network port the SIOT server attaches to (default
-    is 8080)
+    is 8118)
   - `SIOT_DATA`: directory where any data is stored
   - `SIOT_AUTH_TOKEN`: auth token used for NATS and HTTP device API, default is
     blank (no auth)

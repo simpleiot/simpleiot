@@ -91,7 +91,7 @@ func TestManager(t *testing.T) {
 
 	defer stop()
 
-	testConfig := testNode{"ID-testNode", root.ID, "fancy test node", 8080, ""}
+	testConfig := testNode{"ID-testNode", root.ID, "fancy test node", 8118, ""}
 
 	// hydrate database with test data
 	err = client.SendNodeType(nc, testConfig, "test")
@@ -232,7 +232,7 @@ func TestManagerAddRemove(t *testing.T) {
 	}()
 
 	// populate with new testNode
-	testConfig := testNode{"ID-testnode", root.ID, "fancy test node", 8080, "admin"}
+	testConfig := testNode{"ID-testnode", root.ID, "fancy test node", 8118, "admin"}
 	// populate database with test node
 	err = client.SendNodeType(nc, testConfig, "test")
 	if err != nil {
