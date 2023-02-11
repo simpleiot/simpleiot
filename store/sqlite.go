@@ -202,7 +202,7 @@ func (sdb *DbSqlite) initMeta() error {
 type point struct {
 	data.Point
 	id     string
-	nodeId string
+	nodeID string
 }
 
 func (sdb *DbSqlite) runMigrations() error {
@@ -263,7 +263,7 @@ func (sdb *DbSqlite) runMigrations() error {
 		for rows.Next() {
 			var p point
 			var timeS, timeNS int64
-			err := rows.Scan(&p.id, &p.nodeId, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+			err := rows.Scan(&p.id, &p.nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
 				&p.Data, &p.Tombstone, &p.Origin)
 			if err != nil {
 				return err
@@ -275,7 +275,7 @@ func (sdb *DbSqlite) runMigrations() error {
 		for _, p := range dbPoints {
 			_, err := sdb.db.Exec(`INSERT INTO node_points(id, node_id, type, key, time,
 				idx, value, text, data, tombstone, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				p.id, p.nodeId, p.Type, p.Key, p.Time.UnixNano(), p.Index, p.Value, p.Text, p.Data, p.Tombstone,
+				p.id, p.nodeID, p.Type, p.Key, p.Time.UnixNano(), p.Index, p.Value, p.Text, p.Data, p.Tombstone,
 				p.Origin)
 			if err != nil {
 				return fmt.Errorf("Error writing to new node_points table: %v", err)
@@ -298,7 +298,7 @@ func (sdb *DbSqlite) runMigrations() error {
 		for rows.Next() {
 			var p point
 			var timeS, timeNS int64
-			err := rows.Scan(&p.id, &p.nodeId, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+			err := rows.Scan(&p.id, &p.nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
 				&p.Data, &p.Tombstone, &p.Origin)
 			if err != nil {
 				return err
@@ -310,7 +310,7 @@ func (sdb *DbSqlite) runMigrations() error {
 		for _, p := range dbPoints {
 			_, err := sdb.db.Exec(`INSERT INTO edge_points(id, edge_id, type, key, time,
 				idx, value, text, data, tombstone, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				p.id, p.nodeId, p.Type, p.Key, p.Time.UnixNano(), p.Index, p.Value, p.Text, p.Data, p.Tombstone,
+				p.id, p.nodeID, p.Type, p.Key, p.Time.UnixNano(), p.Index, p.Value, p.Text, p.Data, p.Tombstone,
 				p.Origin)
 			if err != nil {
 				return fmt.Errorf("Error writing to new node_points table: %v", err)
