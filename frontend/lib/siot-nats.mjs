@@ -15,6 +15,7 @@ import notification_pb from "./protobuf/notification_pb.js"
 const { Notification } = notification_pb
 
 // connect opens and returns a connection to SIOT / NATS via WebSockets
+export * from "nats.ws"
 export async function connect(opts = {}) {
 	const { servers = ["ws://localhost:9222"] } = opts
 	const nc = await natsConnect({ ...opts, servers })
