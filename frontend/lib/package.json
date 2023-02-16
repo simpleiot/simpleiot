@@ -1,12 +1,12 @@
 {
   "name": "simpleiot-js",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SimpleIOT JavaScript API using NATS / WebSockets",
   "main": "siot-nats.mjs",
   "scripts": {
     "test": "mocha",
     "format": "prettier --ignore-path ../.gitignore --write \"./*.{mjs,js}\"",
-    "lint": "eslint ./*.{mjs,js}"
+    "lint": "eslint ./*.mjs ./*.js"
   },
   "author": "",
   "license": "MIT",
