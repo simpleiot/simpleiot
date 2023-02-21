@@ -34,6 +34,10 @@ Grafana that work on most Linux servers.
 - [Simple IoT](https://github.com/simpleiot/ansible-role-simpleiot-bin)
 - [Caddy, Influxdb, Grafana, etc](https://github.com/cbrake?tab=repositories&q=ansible)
 
+Videos:
+
+- [Setting up a Simple IoT System in the cloud](https://youtu.be/pH8GPbjt-SI)
+
 ## Yocto Linux
 
 Yocto Linux is a popular edge Linux solution. There is a
