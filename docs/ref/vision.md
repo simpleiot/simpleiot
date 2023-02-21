@@ -68,10 +68,10 @@ but just as important, in the deployment and tooling.
     - a fun, yet powerful way to lay out a user interface and allows you to
       efficiently make changes and get the layout you want.
 - **Database**
+  - SQLite
+    - see [Store](store.md)
   - Eventually support multiple databased backends depending on scaling/admin
     needs
-  - Embedded db using [Genji](https://genji.dev/)
-    - no external services to configure/admin
 - **Cloud Hosting**
   - Any machine that provides ability run long-lived Go applications
   - Any MAC/Linux/Windows/rPI/Beaglebone/Odroid/etc computer on your local
