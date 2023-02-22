@@ -23,7 +23,7 @@ message Points {
 
 message Point2 {
   string type = 2;
-  float value = 4;
+  double value = 4;
   int64 time = 16;
   float index = 13;
   string text = 8;

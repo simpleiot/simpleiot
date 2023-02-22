@@ -132,7 +132,7 @@ func (p Point) ToPb() (pb.Point, error) {
 
 	return pb.Point{
 		Type:      p.Type,
-		Index:     float32(p.Index),
+		Index:     p.Index,
 		Key:       p.Key,
 		Value:     p.Value,
 		Text:      p.Text,
@@ -146,9 +146,9 @@ func (p Point) ToPb() (pb.Point, error) {
 func (p Point) ToPb2() (pb.Point2, error) {
 	return pb.Point2{
 		Type:      p.Type,
-		Index:     float32(p.Index),
+		Index:     p.Index,
 		Key:       p.Key,
-		Value:     float32(p.Value),
+		Value:     p.Value,
 		Text:      p.Text,
 		Time:      p.Time.UnixNano(),
 		Tombstone: int32(p.Tombstone),
