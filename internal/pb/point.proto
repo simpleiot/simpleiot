@@ -7,7 +7,7 @@ import "google/protobuf/timestamp.proto";
 
 message Point {
   string type = 2;
-  float value = 4;
+  double value = 4;
   google.protobuf.Timestamp time = 5;
   float index = 13;
   string text = 8;

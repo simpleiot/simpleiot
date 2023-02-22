@@ -26,3 +26,9 @@ IO nodes to the Modbus node.
 Modbus IOs can be configured to support most common IO types and data formats:
 
 ![modbus io config](images/modbus-io-config.png)
+
+Videos:
+
+- [Simple IoT Integration with PLC Using Modbus](https://youtu.be/-1PuBoTAzPE)
+- [Simple IoT upstream synchronization support](https://youtu.be/6xB-gXUynQc)
+- [Simple IoT Modbus Demo](https://youtu.be/iIZWxr482mI)

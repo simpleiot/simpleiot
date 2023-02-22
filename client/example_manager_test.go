@@ -92,7 +92,7 @@ func ExampleNewManager() {
 
 	defer stop()
 
-	testConfig := testNode{"", "", "fancy test node", 8080, "admin"}
+	testConfig := testNode{"", "", "fancy test node", 8118, "admin"}
 
 	// Convert our custom struct to a data.NodeEdge struct
 	ne, err := data.Encode(testConfig)

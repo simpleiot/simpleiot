@@ -127,9 +127,9 @@ Most APIs that do not return specific data (update/delete) return a
 
 You can post a point using the HTTP API without authorization using curl:
 
-`curl -i -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d '[{"type":"value", "value":100}]' http://localhost:8080/v1/nodes/be183c80-6bac-41bc-845b-45fa0b1c7766/points`
+`curl -i -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d '[{"type":"value", "value":100}]' http://localhost:8118/v1/nodes/be183c80-6bac-41bc-845b-45fa0b1c7766/points`
 
 If you want HTTP authorization, set the `SIOT_AUTH_TOKEN` environment variable
 before starting Simple IoT and then pass the token in the authorization header:
 
-`curl -i -H "Authorization: f3084462-3fd3-4587-a82b-f73b859c03f9" -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d '[{"type":"value", "value":100}]' http://localhost:8080/v1/nodes/be183c80-6bac-41bc-845b-45fa0b1c7766/points`
+`curl -i -H "Authorization: f3084462-3fd3-4587-a82b-f73b859c03f9" -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d '[{"type":"value", "value":100}]' http://localhost:8118/v1/nodes/be183c80-6bac-41bc-845b-45fa0b1c7766/points`

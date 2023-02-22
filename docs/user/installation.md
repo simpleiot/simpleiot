@@ -15,7 +15,7 @@ like the [TS-7553-V2](https://www.embeddedts.com/products/TS-7553-V2).
 The Simple IoT application is a self contained binary with no dependencies.
 Download the [latest release](https://github.com/simpleiot/simpleiot/releases)
 for your platform and run the executable. Once running, you can log into the
-user interface by opening [http://localhost:8080](http://localhost:8080) in a
+user interface by opening [http://localhost:8118](http://localhost:8118) in a
 browser. The default login is:
 
 - user: `admin@admin.com`
@@ -33,6 +33,10 @@ Grafana that work on most Linux servers.
 
 - [Simple IoT](https://github.com/simpleiot/ansible-role-simpleiot-bin)
 - [Caddy, Influxdb, Grafana, etc](https://github.com/cbrake?tab=repositories&q=ansible)
+
+Videos:
+
+- [Setting up a Simple IoT System in the cloud](https://youtu.be/pH8GPbjt-SI)
 
 ## Yocto Linux
 

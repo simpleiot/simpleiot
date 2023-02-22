@@ -11,10 +11,21 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- change default HTTP port from 8080 to 8118. This should reduce conflicts with
+  other apps and require us to configure the HTTP port less often. (#495)
+- BREAKING CHANGE: change protobuf point.value encoding from float to double
+  (#291) This change introduces a protocol change so all instances in a system
+  will need to be updated. If this is a problem, let us know and we can work out
+  a migration.
+- sqlite schema: change time storage from two fields (time_s, time_ns) to single
+  time that contains NS since Unix epoch.
+- documentation cleanup (#509)
+
 ## [[0.8.0] - 2023-01-23](https://github.com/simpleiot/simpleiot/releases/tag/v0.8.0)
 
 - update elm-watch to v1.1.2
-- add system, application, and process metrics (#256, #255)
+- add system, application, and process
+  [metrics](https://docs.simpleiot.org/docs/user/metrics.html) (#256, #255)
 
 ## [[0.7.2] - 2023-01-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.7.2)
 

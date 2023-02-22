@@ -21,6 +21,10 @@ Several
 [Arduino examples](https://github.com/simpleiot/firmware/tree/master/Arduino)
 are available that can be used to demonstrate this functionality.
 
+See [reference documentation](../ref/serial.md) for more information.
+
+TODO: add instructions for setting up an Arduino system.
+
 ## Debug Levels
 
 You can set the following debug levels to log information.
@@ -30,4 +34,4 @@ You can set the following debug levels to log information.
   on the MCU)
 - 4: log points received or sent to the MCU
 - 8: log cobs decoded data (must be COBS wrapped)
-- 9: log raw serial data received (pre COBS)
+- 9: log raw serial data received (pre-COBS)

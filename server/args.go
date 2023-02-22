@@ -134,7 +134,7 @@ func Args(args []string) (Options, error) {
 	// finally, start web server
 	port := os.Getenv("SIOT_HTTP_PORT")
 	if port == "" {
-		port = "8080"
+		port = "8118"
 	}
 
 	osVersionField := os.Getenv("OS_VERSION_FIELD")

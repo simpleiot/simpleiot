@@ -87,6 +87,8 @@ done:
 				m.appPeriodic("")
 			case data.PointValueProcess:
 				m.appPeriodic(m.config.Name)
+			case data.PointValueAllProcesses:
+				m.allProcPeriodic()
 			default:
 				log.Println("Metrics: Must select metric type")
 			}
@@ -483,5 +485,94 @@ func (m *MetricsClient) appPeriodic(procName string) {
 			log.Println("Metrics: error sending points: ", err)
 		}
 
+	}
+}
+
+type procMetrics struct {
+	count float64
+	cpu   float64
+	mem   float64
+	rss   float64
+}
+
+func (m *MetricsClient) allProcPeriodic() {
+	now := time.Now()
+
+	metrics := make(map[string]procMetrics)
+
+	procs, err := process.Processes()
+	if err != nil {
+		log.Println("Metrics error: ", err)
+	} else {
+		for _, p := range procs {
+			name, err := p.Name()
+			if err != nil {
+				log.Println("Error getting process name: ", err)
+				continue
+			}
+
+			m := metrics[name]
+
+			m.count++
+
+			cpuPerc, err := p.CPUPercent()
+			if err != nil {
+				log.Println("Error getting CPU percent for proc: ", err)
+				break
+			}
+
+			m.cpu += cpuPerc
+
+			memPerc, err := p.MemoryPercent()
+			if err != nil {
+				log.Println("Error getting mem percent for proc: ", err)
+				break
+			}
+
+			m.mem += float64(memPerc)
+
+			memInfo, err := p.MemoryInfo()
+			if err != nil {
+				log.Println("Error getting mem info: ", err)
+				break
+			}
+
+			m.rss += float64(memInfo.RSS)
+
+			metrics[name] = m
+		}
+
+		pts := make(data.Points, len(metrics)*4)
+		var i int
+		for k, v := range metrics {
+			pts[i].Time = now
+			pts[i].Key = k
+			pts[i].Type = data.PointTypeMetricProcCPUPercent
+			pts[i].Value = v.cpu
+			i++
+
+			pts[i].Time = now
+			pts[i].Key = k
+			pts[i].Type = data.PointTypeMetricProcMemPercent
+			pts[i].Value = v.mem
+			i++
+
+			pts[i].Time = now
+			pts[i].Key = k
+			pts[i].Type = data.PointTypeMetricProcMemRSS
+			pts[i].Value = v.rss
+			i++
+
+			pts[i].Time = now
+			pts[i].Key = k
+			pts[i].Type = data.PointTypeCount
+			pts[i].Value = v.count
+			i++
+		}
+
+		err = SendNodePoints(m.nc, m.config.ID, pts, false)
+		if err != nil {
+			log.Println("Metrics: error sending points: ", err)
+		}
 	}
 }

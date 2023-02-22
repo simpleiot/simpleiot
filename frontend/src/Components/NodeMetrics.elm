@@ -54,6 +54,11 @@ view o =
                         [ ( Point.valueSystem, "system" )
                         , ( Point.valueApp, "this application" )
                         , ( Point.valueProcess, "named process" )
+
+                        -- modern systems have so many processes (1000's)
+                        -- and we need to better be able to handle this point
+                        -- load for repeated points, so disable this for now
+                        -- , ( Point.valueAllProcesses, "all processes" )
                         ]
                     , viewIf (metricsType == Point.valueProcess) <|
                         textInput Point.typeName "proc name" ""
@@ -119,9 +124,10 @@ metricFormaters z =
     Dict.fromList
         [ ( "metricAppAlloc", { desc = descS "App Memory Alloc", vf = toMiB } )
         , ( "metricAppNumGoroutine", { desc = descS "App Goroutine Count", vf = toWhole } )
-        , ( "metricProcCPUPercent", { desc = descS "Proc CPU %", vf = toPercent } )
-        , ( "metricProcMemPercent", { desc = descS "Proc Mem %", vf = toPercent } )
-        , ( "metricProcMemRSS", { desc = descS "Proc Mem RSS", vf = toMiB } )
+        , ( "metricProcCPUPercent", { desc = descKey "Proc CPU %", vf = toPercent } )
+        , ( "metricProcMemPercent", { desc = descKey "Proc Mem %", vf = toPercent } )
+        , ( "metricProcMemRSS", { desc = descKey "Proc Mem RSS", vf = toMiB } )
+        , ( "count", { desc = descKey "Proc Count", vf = toWhole } )
         , ( "host", { desc = descKey "Host", vf = toText } )
         , ( "hostBootTime", { desc = descS "Host Boot Time", vf = toTimeWithZone } )
         , ( "metricSysCPUPercent", { desc = descS "Sys CPU %", vf = toPercent } )
@@ -132,7 +138,6 @@ metricFormaters z =
         , ( "metricSysNetBytesRecv", { desc = descKey "Net RX", vf = toWhole } )
         , ( "metricSysNetBytesSent", { desc = descKey "Net TX", vf = toWhole } )
         , ( "metricSysUptime", { desc = descKey "Uptime", vf = toWhole } )
-        , ( "count", { desc = descS "Proc Count", vf = toWhole } )
         ]
 
 
