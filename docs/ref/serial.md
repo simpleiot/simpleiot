@@ -1,10 +1,11 @@
 # Serial Devices
 
-Status: Specification
-
 **Contents**
 
 <!-- toc -->
+
+(see also [user documentation](../user/mcu.md) and
+[SIOT Firmware](https://github.com/simpleiot/firmware/tree/master/Arduino))
 
 It is common in embedded systems architectures for a MPU (Linux based running
 SIOT) to be connected via a serial link (RS232, RS485, CAN, USB serial) to a

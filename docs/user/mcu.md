@@ -1,7 +1,5 @@
 # MCU Devices
 
-Status: Specification
-
 Microcontroller (MCU) devices can be connected to Simple IoT systems via various
 serial transports (RS232, RS485, CAN, and USB Serial). The
 [Arduino](https://www.arduino.cc/) platform is one example of a MCU platform
@@ -13,6 +11,8 @@ Grafana. This concept can be scaled into products where you might have a Linux
 MPU handling data/connectivity and a MCU doing real-time control.
 
 ![mcu](images/mcu.png)
+
+See [reference documentation](../ref/serial.md) for more information.
 
 TODO: add instructions for setting up an Arduino system.
 
