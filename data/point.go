@@ -324,7 +324,7 @@ func (ps Points) Swap(i, j int) {
 	ps[i], ps[j] = ps[j], ps[i]
 }
 
-//PbToPoint converts pb point to point
+// PbToPoint converts pb point to point
 func PbToPoint(sPb *pb.Point) (Point, error) {
 
 	ts, err := ptypes.Timestamp(sPb.Time)
@@ -346,13 +346,13 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 	return ret, nil
 }
 
-//Pb2ToPoint converts pb point to point
+// Pb2ToPoint converts pb point to point
 func Pb2ToPoint(sPb *pb.Point2) (Point, error) {
 	ret := Point{
 		Type:      sPb.Type,
 		Text:      sPb.Text,
 		Key:       sPb.Key,
-		Index:     float64(sPb.Index),
+		Index:     sPb.Index,
 		Value:     float64(sPb.Value),
 		Time:      time.Unix(0, sPb.Time),
 		Tombstone: int(sPb.Tombstone),
