@@ -142,13 +142,13 @@ func (p Point) ToPb() (pb.Point, error) {
 	}, nil
 }
 
-// ToPb2 encodes point in protobuf format
-func (p Point) ToPb2() (pb.Point2, error) {
-	return pb.Point2{
+// ToSerial encodes point in serial protobuf format
+func (p Point) ToSerial() (pb.SerialPoint, error) {
+	return pb.SerialPoint{
 		Type:      p.Type,
 		Index:     p.Index,
 		Key:       p.Key,
-		Value:     p.Value,
+		Value:     float32(p.Value),
 		Text:      p.Text,
 		Time:      p.Time.UnixNano(),
 		Tombstone: int32(p.Tombstone),
@@ -346,8 +346,8 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 	return ret, nil
 }
 
-// Pb2ToPoint converts pb point to point
-func Pb2ToPoint(sPb *pb.Point2) (Point, error) {
+// SerialToPoint converts serial pb point to point
+func SerialToPoint(sPb *pb.SerialPoint) (Point, error) {
 	ret := Point{
 		Type:      sPb.Type,
 		Text:      sPb.Text,

@@ -21,9 +21,9 @@ message Points {
   repeated Point points = 1;
 }
 
-message Point2 {
+message SerialPoint {
   string type = 2;
-  double value = 4;
+  float value = 4;
   int64 time = 16;
   float index = 13;
   string text = 8;
@@ -33,8 +33,8 @@ message Point2 {
   string origin = 15;
 }
 
-message Point2s {
-  repeated Point2 points = 1;
+message SerialPoints {
+  repeated SerialPoint points = 1;
 }
 
 
