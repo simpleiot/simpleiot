@@ -123,6 +123,7 @@ func (sd *SerialDevClient) Run() error {
 			}
 		}
 
+		// make sure port is closed before we try to (re)open it
 		closePort()
 
 		if sd.config.Disable {
