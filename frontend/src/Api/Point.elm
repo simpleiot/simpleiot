@@ -744,6 +744,7 @@ specialPoints =
     , typeType
     , typePeriod
     , typeName
+    , typeAuthToken
     ]
 
 

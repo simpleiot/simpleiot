@@ -20,6 +20,7 @@ import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
+import Components.NodeParticle as NodeParticle
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
 import Components.NodeSignalGenerator as SignalGenerator
@@ -940,6 +941,7 @@ nodeCustomSortRules =
         , ( Node.typeVariable, "L" )
         , ( Node.typeDb, "M" )
         , ( Node.typeMetrics, "N" )
+        , ( Node.typeParticle, "O" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1194,6 +1196,9 @@ shouldDisplay typ =
         "db" ->
             True
 
+        "particle" ->
+            True
+
         "metrics" ->
             True
 
@@ -1262,6 +1267,9 @@ viewNode model parent node depth =
 
                 "db" ->
                     NodeDb.view
+
+                "particle" ->
+                    NodeParticle.view
 
                 "metrics" ->
                     NodeMetrics.view
@@ -1470,6 +1478,11 @@ nodeDescDb =
     row [] [ Icon.database, text "Database" ]
 
 
+nodeDescParticle : Element Msg
+nodeDescParticle =
+    row [] [ Icon.particle, text "Particle" ]
+
+
 nodeDescVariable : Element Msg
 nodeDescVariable =
     row [] [ Icon.variable, text "Variable" ]
@@ -1527,6 +1540,7 @@ viewAddNode parent add =
                     , Input.option Node.typeCanBus nodeDescCanBus
                     , Input.option Node.typeMsgService nodeDescMsgService
                     , Input.option Node.typeDb nodeDescDb
+                    , Input.option Node.typeParticle nodeDescParticle
                     , Input.option Node.typeVariable nodeDescVariable
                     , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
                     , Input.option Node.typeFile nodeDescFile
@@ -1546,6 +1560,7 @@ viewAddNode parent add =
                             , Input.option Node.typeCanBus nodeDescCanBus
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
+                            , Input.option Node.typeParticle nodeDescParticle
                             , Input.option Node.typeVariable nodeDescVariable
                             , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
                             , Input.option Node.typeFile nodeDescFile
