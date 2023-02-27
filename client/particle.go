@@ -14,9 +14,9 @@ import (
 // Get Particle.io data using their event API. See:
 // https://docs.particle.io/reference/cloud-apis/api/#get-a-stream-of-events
 
-const particleEventUrl string = "https://api.particle.io/v1/devices/events/"
+const particleEventURL string = "https://api.particle.io/v1/devices/events/"
 
-// Event from particle
+// ParticleEvent from particle
 type ParticleEvent struct {
 	Data      string    `json:"data"`
 	TTL       uint32    `json:"ttl"`
@@ -43,13 +43,13 @@ type ParticleClient struct {
 	newParticlePoints chan NewPoints
 }
 
-type ParticlePoint struct {
+type particlePoint struct {
 	ID    string  `json:"id"`
 	Type  string  `json:"type"`
 	Value float64 `json:"value"`
 }
 
-func (pp *ParticlePoint) toPoint() data.Point {
+func (pp *particlePoint) toPoint() data.Point {
 	return data.Point{
 		Key:   pp.ID,
 		Type:  pp.Type,
@@ -84,7 +84,7 @@ func (pc *ParticleClient) Run() error {
 			readerClosed <- struct{}{}
 		}()
 
-		urlAuth := particleEventUrl + "sample" + "?access_token=" + pc.config.AuthToken
+		urlAuth := particleEventURL + "sample" + "?access_token=" + pc.config.AuthToken
 
 		stream, err := eventsource.Subscribe(urlAuth, "")
 
@@ -103,7 +103,7 @@ func (pc *ParticleClient) Run() error {
 					continue
 				}
 
-				var pPoints []ParticlePoint
+				var pPoints []particlePoint
 				err = json.Unmarshal([]byte(pEvent.Data), &pPoints)
 				if err != nil {
 					log.Println("error decoding Particle samples: ", err)
