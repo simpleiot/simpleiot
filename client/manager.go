@@ -306,7 +306,7 @@ func (m *Manager[T]) scan(id string) error {
 		}
 
 		go func() {
-			err := cs.start()
+			err := cs.run()
 
 			if err != nil {
 				log.Printf("clientState error %v: %v\n", m.nodeType, err)
