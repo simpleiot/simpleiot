@@ -17,10 +17,8 @@ import (
 	"github.com/oklog/run"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/client"
-	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/frontend"
 	"github.com/simpleiot/simpleiot/node"
-	"github.com/simpleiot/simpleiot/particle"
 	"github.com/simpleiot/simpleiot/store"
 )
 
@@ -290,27 +288,6 @@ func (s *Server) Run() error {
 		s.clients.Stop(err)
 		logLS("LS: Shutdown: clients manager")
 	})
-
-	// ====================================
-	// Particle client
-	// FIXME move this to a node, or get rid of it
-	// ====================================
-
-	if o.ParticleAPIKey != "" {
-		go func() {
-			err := particle.PointReader("sample", o.ParticleAPIKey,
-				func(id string, points data.Points) {
-					err := client.SendNodePoints(s.nc, id, points, false)
-					if err != nil {
-						log.Println("Error getting particle sample: ", err)
-					}
-				})
-
-			if err != nil {
-				log.Println("Get returned error: ", err)
-			}
-		}()
-	}
 
 	var feFS fs.FS
 
