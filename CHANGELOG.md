@@ -22,7 +22,8 @@ For more details or to discuss releases, please visit the
 - sqlite schema: change time storage from two fields (time_s, time_ns) to single
   time that contains NS since Unix epoch.
 - documentation cleanup (#509)
-- move particle code to client and add UI (#503)
+- move particle code to client and add UI (#503). See
+  [Particle client docs](https://docs.simpleiot.org/docs/user/particle.html).
 - simplify serial MCU encoding (#517)
 - improve serial MCU UI point display
 - use Go crypto/rand API instead of /dev/random. May fix windows issues (#517)
