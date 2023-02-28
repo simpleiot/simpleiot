@@ -1,11 +1,12 @@
 package store
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 	"time"
 
@@ -520,18 +521,13 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 }
 
 func (sdb *DbSqlite) initJwtKey() error {
-	var f *os.File
-	f, err := os.Open("/dev/urandom")
-	if err != nil {
-		return fmt.Errorf("Error opening /dev/urandom: %v", err)
-	}
-	defer f.Close()
 	sdb.meta.JWTKey = make([]byte, 20)
-	_, err = f.Read(sdb.meta.JWTKey)
-
+	_, err := rand.Read(sdb.meta.JWTKey)
 	if err != nil {
-		return fmt.Errorf("Error reading urandom to make key: %v", err)
+		return fmt.Errorf("Error reading making JWT key: %v", err)
 	}
+
+	fmt.Println("CLIFF: JWT key: ", hex.Dump(sdb.meta.JWTKey))
 
 	sdb.writeLock.Lock()
 	defer sdb.writeLock.Unlock()
