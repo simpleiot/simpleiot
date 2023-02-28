@@ -20,6 +20,9 @@ For more details or to discuss releases, please visit the
 - sqlite schema: change time storage from two fields (time_s, time_ns) to single
   time that contains NS since Unix epoch.
 - documentation cleanup (#509)
+- move particle code to client and add UI (#503)
+- simplify serial MCU encoding (#517)
+- improve serial MCU UI point display
 
 ## [[0.8.0] - 2023-01-23](https://github.com/simpleiot/simpleiot/releases/tag/v0.8.0)
 

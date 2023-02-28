@@ -24,6 +24,7 @@ module Api.Node exposing
     , typeModbusIO
     , typeMsgService
     , typeOneWire
+    , typeParticle
     , typeRule
     , typeSerialDev
     , typeSignalGenerator
@@ -85,6 +86,11 @@ typeMsgService =
 typeDb : String
 typeDb =
     "db"
+
+
+typeParticle : String
+typeParticle =
+    "particle"
 
 
 typeModbus : String

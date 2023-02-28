@@ -48,5 +48,8 @@ func DefaultClients(nc *nats.Conn) (*Group, error) {
 	metrics := NewManager(nc, NewMetricsClient)
 	g.Add(metrics)
 
+	particle := NewManager(nc, NewParticleClient)
+	g.Add(particle)
+
 	return g, nil
 }
