@@ -17,6 +17,7 @@
   - [Messaging services](docs/user/messaging.md)
   - [MCU Devices](docs/user/mcu.md)
   - [Metrics](docs/user/metrics.md)
+  - [Particle.io](docs/user/particle.md)
   - [Rules](docs/user/rules.md)
   - [Synchronization](docs/user/sync.md)
   - [USB](docs/user/usb.md)
