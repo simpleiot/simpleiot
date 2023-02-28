@@ -3,7 +3,6 @@ package store
 import (
 	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -526,8 +525,6 @@ func (sdb *DbSqlite) initJwtKey() error {
 	if err != nil {
 		return fmt.Errorf("Error reading making JWT key: %v", err)
 	}
-
-	fmt.Println("CLIFF: JWT key: ", hex.Dump(sdb.meta.JWTKey))
 
 	sdb.writeLock.Lock()
 	defer sdb.writeLock.Unlock()
