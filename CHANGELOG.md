@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.9.0] - 2023-02-28](https://github.com/simpleiot/simpleiot/releases/tag/v0.9.0)
+
 - change default HTTP port from 8080 to 8118. This should reduce conflicts with
   other apps and require us to configure the HTTP port less often. (#495)
 - BREAKING CHANGE: change protobuf point.value encoding from float to double
@@ -23,6 +25,7 @@ For more details or to discuss releases, please visit the
 - move particle code to client and add UI (#503)
 - simplify serial MCU encoding (#517)
 - improve serial MCU UI point display
+- use Go crypto/rand API instead of /dev/random. May fix windows issues (#517)
 
 ## [[0.8.0] - 2023-01-23](https://github.com/simpleiot/simpleiot/releases/tag/v0.8.0)
 

@@ -2,7 +2,6 @@ package client
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
@@ -78,9 +77,7 @@ func (pc *ParticleClient) Run() error {
 	var readerRunning bool              // indicates reader is running
 
 	particleReader := func() {
-		log.Println("CLIFF: particle reader started")
 		defer func() {
-			log.Println("CLIFF: particle reader exitted")
 			readerClosed <- struct{}{}
 		}()
 
@@ -116,8 +113,6 @@ func (pc *ParticleClient) Run() error {
 					points[i] = p.toPoint()
 					points[i].Time = pEvent.Timestamp
 				}
-
-				fmt.Println("CLIFF: particle points: ", points)
 
 				err = SendNodePoints(pc.nc, pc.config.ID, points, false)
 				if err != nil {
