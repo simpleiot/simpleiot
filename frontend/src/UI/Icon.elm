@@ -13,6 +13,7 @@ module UI.Icon exposing
     , io
     , list
     , oneWire
+    , particle
     , power
     , send
     , serialDev
@@ -46,6 +47,17 @@ bus =
     , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "0", S.y "14", S.width "6", S.height "5" ] []
     , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "8", S.y "14", S.width "6", S.height "5" ] []
     , Svg.rect [ S.fill "rgb(0,0,0)", S.stroke "none", S.x "16", S.y "14", S.width "6", S.height "5" ] []
+    ]
+        |> FeatherIcons.customIcon
+        |> icon
+
+
+particle : Element msg
+particle =
+    [ Svg.g [ S.style "stroke-width:0;fill:#000000" ]
+        [ Svg.polyline [ S.points "3 11 11 11 11 7  13 7  13 11 21 11 12 2  3 11" ] []
+        , Svg.polyline [ S.points "3 13 11 13 11 17 13 17 13 13 21 13 12 22 3 13" ] []
+        ]
     ]
         |> FeatherIcons.customIcon
         |> icon

@@ -1,6 +1,7 @@
 module Utils.Iso8601 exposing
     ( toDateTimeString
     , Mode(..)
+    , toString
     )
 
 {-| Format a posix time to a ISO8601 String.
