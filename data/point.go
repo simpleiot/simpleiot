@@ -132,11 +132,25 @@ func (p Point) ToPb() (pb.Point, error) {
 
 	return pb.Point{
 		Type:      p.Type,
-		Index:     float32(p.Index),
+		Index:     p.Index,
 		Key:       p.Key,
 		Value:     p.Value,
 		Text:      p.Text,
 		Time:      ts,
+		Tombstone: int32(p.Tombstone),
+		Origin:    p.Origin,
+	}, nil
+}
+
+// ToSerial encodes point in serial protobuf format
+func (p Point) ToSerial() (pb.SerialPoint, error) {
+	return pb.SerialPoint{
+		Type:      p.Type,
+		Index:     p.Index,
+		Key:       p.Key,
+		Value:     float32(p.Value),
+		Text:      p.Text,
+		Time:      p.Time.UnixNano(),
 		Tombstone: int32(p.Tombstone),
 		Origin:    p.Origin,
 	}, nil
@@ -310,7 +324,7 @@ func (ps Points) Swap(i, j int) {
 	ps[i], ps[j] = ps[j], ps[i]
 }
 
-//PbToPoint converts pb point to point
+// PbToPoint converts pb point to point
 func PbToPoint(sPb *pb.Point) (Point, error) {
 
 	ts, err := ptypes.Timestamp(sPb.Time)
@@ -325,6 +339,22 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 		Index:     sPb.Index,
 		Value:     sPb.Value,
 		Time:      ts,
+		Tombstone: int(sPb.Tombstone),
+		Origin:    sPb.Origin,
+	}
+
+	return ret, nil
+}
+
+// SerialToPoint converts serial pb point to point
+func SerialToPoint(sPb *pb.SerialPoint) (Point, error) {
+	ret := Point{
+		Type:      sPb.Type,
+		Text:      sPb.Text,
+		Key:       sPb.Key,
+		Index:     sPb.Index,
+		Value:     float64(sPb.Value),
+		Time:      time.Unix(0, sPb.Time),
 		Tombstone: int(sPb.Tombstone),
 		Origin:    sPb.Origin,
 	}

@@ -187,10 +187,18 @@ siot_setup_influx() {
 	export SIOT_INFLUX_DB=siot
 }
 
+siot_protobuf_go() {
+	protoc --proto_path=internal/pb internal/pb/*.proto --go_out=./ || return 1
+}
+
+siot_protobuf_js() {
+	protoc --proto_path=internal/pb internal/pb/*.proto --js_out=import_style=commonjs,binary:./frontend/lib/protobuf/ || return 1
+}
+
 siot_protobuf() {
 	echo "generating protobufs"
-	protoc --proto_path=internal/pb internal/pb/*.proto --go_out=./ || return 1
-	protoc --proto_path=internal/pb internal/pb/*.proto --js_out=import_style=commonjs,binary:./frontend/lib/protobuf/ || return 1
+	siot_protobuf_go
+	siot_protobuf_js
 }
 
 siot_edge_run() {

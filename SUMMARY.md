@@ -9,7 +9,7 @@
 - [User Interface](docs/user/ui.md)
 - [Users/Groups](docs/user/users-groups.md)
 - [Notifications](docs/user/notifications.md)
-- [Clients](docs/user/devices.md)
+- [Clients](docs/user/clients.md)
   - [CAN bus](docs/user/can.md)
   - [Database](docs/user/database.md)
   - [Modbus](docs/user/modbus.md)

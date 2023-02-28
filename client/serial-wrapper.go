@@ -22,9 +22,9 @@ func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) 
 	var ret bytes.Buffer
 	ret.WriteByte(seq)
 
-	pbPoints := make([]*pb.Point, len(points))
+	pbPoints := make([]*pb.SerialPoint, len(points))
 	for i, p := range points {
-		pPb, err := p.ToPb()
+		pPb, err := p.ToSerial()
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +87,7 @@ func SerialDecode(d []byte) (byte, string, data.Points, error) {
 	points := make([]data.Point, len(pbSerial.Points))
 
 	for i, sPb := range pbSerial.Points {
-		s, err := data.PbToPoint(sPb)
+		s, err := data.SerialToPoint(sPb)
 		if err != nil {
 			return d[0], "", nil, fmt.Errorf("Point decode error: %v", err)
 		}

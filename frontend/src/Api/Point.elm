@@ -69,6 +69,7 @@ module Api.Point exposing
     , typePollPeriod
     , typePort
     , typeProtocol
+    , typeRate
     , typeReadOnly
     , typeRx
     , typeRxReset
@@ -674,6 +675,11 @@ typeBitRate =
     "bitRate"
 
 
+typeRate : String
+typeRate =
+    "rate"
+
+
 typeType : String
 typeType =
     "type"
@@ -741,6 +747,7 @@ specialPoints =
     , typeRxReset
     , typeTx
     , typeTxReset
+    , typeRate
     , typeType
     , typePeriod
     , typeName
@@ -805,9 +812,12 @@ renderPoint s =
                 s.text
 
             else
-                Round.round 2 s.value
+                Round.round 2 s.value ++ ":"
+
+        typ =
+            s.typ ++ ":"
     in
-    s.typ ++ ":" ++ key ++ index ++ " " ++ value
+    typ ++ key ++ index ++ " " ++ value
 
 
 renderPoint2 : Point -> { desc : String, value : String }

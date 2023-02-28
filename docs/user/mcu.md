@@ -10,7 +10,16 @@ signals. Data can be logged to InfluxDB and viewed in the InfluxDB Web UI or
 Grafana. This concept can be scaled into products where you might have a Linux
 MPU handling data/connectivity and a MCU doing real-time control.
 
+See the [Serial reference documentation](../ref/serial.md) for more technical
+details on this client.
+
 ![mcu](images/mcu.png)
+
+## Arduino Examples
+
+Several
+[Arduino examples](https://github.com/simpleiot/firmware/tree/master/Arduino)
+are available that can be used to demonstrate this functionality.
 
 See [reference documentation](../ref/serial.md) for more information.
 
@@ -25,4 +34,4 @@ You can set the following debug levels to log information.
   on the MCU)
 - 4: log points received or sent to the MCU
 - 8: log cobs decoded data (must be COBS wrapped)
-- 9: log raw serial data received (pre COBS)
+- 9: log raw serial data received (pre-COBS)

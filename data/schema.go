@@ -229,6 +229,7 @@ const (
 	PointTypeName = "name"
 	PointTypeData = "data"
 
+	PointTypeRate   = "rate"
 	NodeTypeMetrics = "metrics"
 
 	PointTypeType          = "type"

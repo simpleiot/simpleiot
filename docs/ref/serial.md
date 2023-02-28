@@ -7,30 +7,30 @@
 (see also [user documentation](../user/mcu.md) and
 [SIOT Firmware](https://github.com/simpleiot/firmware/tree/master/Arduino))
 
-It is common in embedded systems architectures for a MPU (Linux based running
-SIOT) to be connected via a serial link (RS232, RS485, CAN, USB serial) to a
+It is common in embedded systems architectures for a MPU (Linux-based running
+SIOT) to be connected via a serial link (RS232, RS485, CAN, USB serial) to an
 MCU.
 
 ![mcu connection](../user/images/mcu.png)
 
 See
 [this article](http://bec-systems.com/site/1540/microcontroller-mcu-or-microprocessor-mpu)
-for a discuss on the differences between a MPU and MCU. These devices are not
+for a discussion on the differences between a MPU and MCU. These devices are not
 connected via a network interface, so can't use the [SIOT NATS API](api.md#nats)
 directly, thus we need to define a proxy between the serial interface and NATS
 for the MCU to interact with the SIOT system.
 
-State/config data in both the MCU and MPU systems is represented as nodes and
-points. An example of nodes and points are shown below. These can be arranged in
+State/config data in both the MCU and MPU systems are represented as nodes and
+points. An example of nodes and points is shown below. These can be arranged in
 any structure that makes sense and is convenient. Simple devices may only have a
 single node with a handful of points.
 
 ![nodes/points](images/mcu-nodes.png)
 
 SIOT does not differentiate between state (ex: sensor values) and config (ex:
-pump turn on delay) -- it is all points. This simplifies the transport and
+pump turn-on delay) -- it is all points. This simplifies the transport and
 allows changes to be made in multiple places. It also allows for the granular
-transmit and synchronization of data -- we don't need to send the entire
+transmission and synchronization of data -- we don't need to send the entire
 state/config anytime something changes.
 
 SIOT has the ability to log points to InfluxDB, so this mechanism can also be
@@ -83,7 +83,7 @@ and then the other device is considered "offline".
 
 Protobuf is used to encode the data on the wire. Find protobuf files
 [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
-[nanopb](https://github.com/nanopb/nanopb) can be used to generate C based
+[nanopb](https://github.com/nanopb/nanopb) can be used to generate C-based
 protobuf bindings that are suitable for use in most MCU environments.
 
 ### On connection

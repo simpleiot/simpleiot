@@ -32,20 +32,23 @@ type SerialDev struct {
 	Uptime           int    `point:"uptime"`
 	ErrorCount       int    `point:"errorCount"`
 	ErrorCountReset  bool   `point:"errorCountReset"`
+	Rate             bool   `point:"rate"`
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
 type SerialDevClient struct {
-	nc            *nats.Conn
-	config        SerialDev
-	stop          chan struct{}
-	newPoints     chan NewPoints
-	newEdgePoints chan NewPoints
-	wrSeq         byte
-	lastSendStats time.Time
-	natsSub       string
-	natsSubHR     string
-	natsSubHRUp   string
+	nc             *nats.Conn
+	config         SerialDev
+	stop           chan struct{}
+	newPoints      chan NewPoints
+	newEdgePoints  chan NewPoints
+	wrSeq          byte
+	lastSendStats  time.Time
+	natsSub        string
+	natsSubHR      string
+	natsSubHRUp    string
+	ratePointCount int
+	rateLastSend   time.Time
 }
 
 // NewSerialDevClient ...
@@ -203,7 +206,7 @@ func (sd *SerialDevClient) Run() error {
 
 			// figure out if the data is ascii string or points
 			// try pb decode
-			seq, subject, points, err := SerialDecode(rd)
+			seq, subject, points, errDecode := SerialDecode(rd)
 			hrData := false
 			var lrpoints data.Points
 
@@ -219,12 +222,14 @@ func (sd *SerialDevClient) Run() error {
 
 			// make sure time is set on all points
 			for i, p := range points {
-				if p.Time.Year() == 1970 {
+				if p.Time.Year() <= 1980 {
 					points[i].Time = time.Now()
 				}
 			}
 
-			if err == nil && len(points) > 0 {
+			sd.ratePointCount += len(points)
+
+			if errDecode == nil && len(points) > 0 {
 				if sd.config.Debug >= 4 && !hrData {
 					log.Printf("SER RX (%v) seq:%v\n%v", sd.config.Description, seq, points)
 				}
@@ -265,7 +270,7 @@ func (sd *SerialDevClient) Run() error {
 					}
 				} else {
 					log.Println("Error decoding serial packet from device: ",
-						sd.config.Description)
+						sd.config.Description, errDecode)
 					sd.config.ErrorCount++
 					lrpoints = append(lrpoints,
 						data.Point{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)})
@@ -278,15 +283,25 @@ func (sd *SerialDevClient) Run() error {
 				sd.lastSendStats = time.Now()
 			}
 
+			if time.Since(sd.rateLastSend) > time.Second {
+				now := time.Now()
+				rate := float64(sd.ratePointCount) / now.Sub(sd.rateLastSend).Seconds()
+				lrpoints = append(lrpoints,
+					data.Point{Time: now, Type: data.PointTypeRate,
+						Value: rate})
+				sd.rateLastSend = now
+				sd.ratePointCount = 0
+			}
+
 			if len(lrpoints) > 0 {
-				err = SendPoints(sd.nc, sd.natsSub, lrpoints, false)
+				err := SendPoints(sd.nc, sd.natsSub, lrpoints, false)
 				if err != nil {
 					log.Println("Error sending points received from MCU: ", err)
 				}
 			}
 
 			if hrData {
-				err = SendPoints(sd.nc, sd.natsSubHR, points, false)
+				err := SendPoints(sd.nc, sd.natsSubHR, points, false)
 				if err != nil {
 					log.Println("Error sending HR points received from MCU: ", err)
 				}
