@@ -83,7 +83,7 @@ Protocols like RS232 and USB serial do not have any inherent framing; therefore,
 this needs to be done at the application level. SIOT encodes each packet using
 [COBS (Consistent Overhead Byte Stuffing)](https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing).
 
-#### Protobuf Payload
+#### Protobuf payload
 
 The `serial` protobuf type is used to transfer these messages:
 
@@ -106,7 +106,7 @@ Protobuf is used to encode the data on the wire. Find protobuf files
 [nanopb](https://github.com/nanopb/nanopb) can be used to generate C-based
 protobuf bindings that are suitable for use in most MCU environments.
 
-#### High-rate data payload
+#### High-rate payload
 
 A simple payload encoding for high-rate data can be used to avoid the overhead
 of protobuf encoding and is specified with `phr` in the packet frame subject.
