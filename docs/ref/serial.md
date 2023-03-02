@@ -120,6 +120,10 @@ count (uint16) number of samples
 data, packed 32-bit floating point samples
 ```
 
+This data bypasses most of the processing in SIOT and is sent to a special
+[`phr` NATS subject](api.md). Clients that are interested in high-rate data
+(like the InfluxDB client) can listen to these subjects.
+
 ### On connection
 
 On initial connection between a serial device and SIOT, the following steps are
@@ -164,14 +168,6 @@ all points to SIOT.
 When the MCU syncs time with SIOT, if the MCU time is ahead of the SIOT system,
 then it set its time, and look for any points with a time after present, and
 reset these timestamps to the present.
-
-## High-Rate Data
-
-At times, there is a need to send high rate data that uses SIOT's
-[`phr.*` NATS API](api.md). This data bypasses most processing in SIOT and is
-stored in InfluxDB and any other clients that subscribe to high-rate data. To
-specify high rate data, set the message subject to "phr". The MCU Serial client
-will then append node ID and publish the message.
 
 ## RS485
 
