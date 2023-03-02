@@ -74,7 +74,7 @@ All packets between the SIOT and serial MCU systems are framed as follows:
 
 ```
 sequence (1 byte, rolls over)
-subject (16bytes)
+subject (16 bytes)
 payload (Protobuf Point array or HR repeated point payload)
 crc (2 bytes) (Currently using CRC-16/KERMIT)
 ```
