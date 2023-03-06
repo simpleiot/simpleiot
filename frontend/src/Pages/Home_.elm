@@ -23,6 +23,7 @@ import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
 import Components.NodeParticle as NodeParticle
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
+import Components.NodeShelly as NodeShelly
 import Components.NodeSignalGenerator as SignalGenerator
 import Components.NodeSync as NodeSync
 import Components.NodeUser as NodeUser
@@ -942,6 +943,7 @@ nodeCustomSortRules =
         , ( Node.typeDb, "M" )
         , ( Node.typeMetrics, "N" )
         , ( Node.typeParticle, "O" )
+        , ( Node.typeShelly, "P" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1199,6 +1201,9 @@ shouldDisplay typ =
         "particle" ->
             True
 
+        "shelly" ->
+            True
+
         "metrics" ->
             True
 
@@ -1270,6 +1275,9 @@ viewNode model parent node depth =
 
                 "particle" ->
                     NodeParticle.view
+
+                "shelly" ->
+                    NodeShelly.view
 
                 "metrics" ->
                     NodeMetrics.view
@@ -1483,6 +1491,11 @@ nodeDescParticle =
     row [] [ Icon.particle, text "Particle" ]
 
 
+nodeDescShelly : Element Msg
+nodeDescShelly =
+    row [] [ Icon.shelly, text "Shelly" ]
+
+
 nodeDescVariable : Element Msg
 nodeDescVariable =
     row [] [ Icon.variable, text "Variable" ]
@@ -1541,6 +1554,7 @@ viewAddNode parent add =
                     , Input.option Node.typeMsgService nodeDescMsgService
                     , Input.option Node.typeDb nodeDescDb
                     , Input.option Node.typeParticle nodeDescParticle
+                    , Input.option Node.typeShelly nodeDescShelly
                     , Input.option Node.typeVariable nodeDescVariable
                     , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
                     , Input.option Node.typeFile nodeDescFile
@@ -1561,6 +1575,7 @@ viewAddNode parent add =
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeParticle nodeDescParticle
+                            , Input.option Node.typeShelly nodeDescShelly
                             , Input.option Node.typeVariable nodeDescVariable
                             , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
                             , Input.option Node.typeFile nodeDescFile
