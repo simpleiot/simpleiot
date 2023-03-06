@@ -1,11 +1,11 @@
 {
 	"name": "my-elm-spa-project",
 	"version": "1.0.0",
-	"description": "learn more at https://elm-spa.dev",
+	"description": "Simple IoT Frontend",
 	"scripts": {},
 	"keywords": [],
-	"author": "",
-	"license": "ISC",
+	"author": "Cliff Brake <cbrake@bec-systems.com>",
+	"license": "Apache2",
 	"devDependencies": {
 		"elm": "^0.19.1-5",
 		"elm-json": "^0.2.13",
@@ -15,7 +15,6 @@
 		"elm-watch": "^1.1.2",
 		"eslint": "^8.27.0",
 		"eslint-config-prettier": "^8.5.0",
-		"prettier": "^2.7.1",
-		"run-pty": "^4.0.3"
+		"prettier": "^2.7.1"
 	}
 }
