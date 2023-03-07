@@ -11,6 +11,7 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
+// Shelly describes the shelly client config
 type Shelly struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
@@ -18,6 +19,7 @@ type Shelly struct {
 	Disable     bool   `point:"disable"`
 }
 
+// ShellyIo describes the config/state for a shelly io
 type ShellyIo struct {
 	ID       string `node:"id"`
 	Parent   string `node:"parent"`
