@@ -31,7 +31,14 @@ func TestSerialEncodeDecode(t *testing.T) {
 	}
 
 	if subject != subjectD {
+		fmt.Printf("exp: %v, got: %v\n", subject, subjectD)
+		fmt.Println("len exp: ", len(subject))
+		fmt.Println("len got: ", len(subjectD))
 		t.Error("subject mismatch")
+	}
+
+	if len(pointsD) <= 0 {
+		t.Fatal("did not get any points")
 	}
 
 	if len(points) != len(pointsD) {

@@ -14,6 +14,7 @@ import (
 
 // Packet format is:
 //   - sequence #: 1 byte
+//   - subject (16 bytes)
 //   - protobuf (serial) payload
 //   - crc: 2 bytes (CCITT)
 
@@ -21,6 +22,20 @@ import (
 func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) {
 	var ret bytes.Buffer
 	ret.WriteByte(seq)
+
+	sub := make([]byte, 16)
+
+	if len(subject) > 16 {
+		return []byte{},
+			fmt.Errorf("SerialEncode Error: length of subject %v is longer than 20 bytes", subject)
+	}
+
+	copy(sub, []byte(subject))
+
+	_, err := ret.Write(sub)
+	if err != nil {
+		return []byte{}, fmt.Errorf("SerialEncode: error writing to buffer: %v", err)
+	}
 
 	pbPoints := make([]*pb.SerialPoint, len(points))
 	for i, p := range points {
@@ -31,9 +46,8 @@ func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) 
 		pbPoints[i] = &pPb
 	}
 
-	pbSerial := &pb.Serial{
-		Subject: subject,
-		Points:  pbPoints,
+	pbSerial := &pb.SerialPoints{
+		Points: pbPoints,
 	}
 
 	pbSerialBytes, err := proto.Marshal(pbSerial)
@@ -74,14 +88,21 @@ func SerialDecode(d []byte) (byte, string, data.Points, error) {
 		return d[0], "", data.Points{}, nil
 	}
 
-	// try to extract protobuf
-	pbData := d[1 : l-2]
+	if len(d) < 19 {
+		return d[0], "", nil, errors.New("Not enough data")
+	}
 
-	pbSerial := &pb.Serial{}
+	// try to extract subject
+	subject := string(bytes.Trim(d[1:17], "\x00"))
+
+	// try to extract protobuf
+	pbData := d[17 : l-2]
+
+	pbSerial := &pb.SerialPoints{}
 
 	err := proto.Unmarshal(pbData, pbSerial)
 	if err != nil {
-		return d[0], "", nil, fmt.Errorf("PB decode error: %v", err)
+		return d[0], subject, nil, fmt.Errorf("PB decode error: %v", err)
 	}
 
 	points := make([]data.Point, len(pbSerial.Points))
@@ -94,5 +115,5 @@ func SerialDecode(d []byte) (byte, string, data.Points, error) {
 		points[i] = s
 	}
 
-	return d[0], pbSerial.Subject, points, nil
+	return d[0], subject, points, nil
 }
