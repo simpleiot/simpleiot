@@ -276,4 +276,7 @@ const (
 	PointKeyAvailable   = "available"
 	PointKeyUsed        = "used"
 	PointKeyFree        = "free"
+
+	NodeTypeShelly   = "shelly"
+	NodeTypeShellyIo = "shellyIo"
 )
