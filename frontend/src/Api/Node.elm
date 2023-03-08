@@ -28,6 +28,7 @@ module Api.Node exposing
     , typeRule
     , typeSerialDev
     , typeShelly
+    , typeShellyIO
     , typeSignalGenerator
     , typeSync
     , typeUser
@@ -97,6 +98,11 @@ typeParticle =
 typeShelly : String
 typeShelly =
     "shelly"
+
+
+typeShellyIO : String
+typeShellyIO =
+    "shellyIo"
 
 
 typeModbus : String

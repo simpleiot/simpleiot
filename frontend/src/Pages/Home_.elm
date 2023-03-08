@@ -24,6 +24,7 @@ import Components.NodeParticle as NodeParticle
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
 import Components.NodeShelly as NodeShelly
+import Components.NodeShellyIO as NodeShellyIO
 import Components.NodeSignalGenerator as SignalGenerator
 import Components.NodeSync as NodeSync
 import Components.NodeUser as NodeUser
@@ -944,6 +945,7 @@ nodeCustomSortRules =
         , ( Node.typeMetrics, "N" )
         , ( Node.typeParticle, "O" )
         , ( Node.typeShelly, "P" )
+        , ( Node.typeShellyIO, "Q" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1204,6 +1206,9 @@ shouldDisplay typ =
         "shelly" ->
             True
 
+        "shellyIo" ->
+            True
+
         "metrics" ->
             True
 
@@ -1278,6 +1283,9 @@ viewNode model parent node depth =
 
                 "shelly" ->
                     NodeShelly.view
+
+                "shellyIo" ->
+                    NodeShellyIO.view
 
                 "metrics" ->
                     NodeMetrics.view
@@ -1494,6 +1502,11 @@ nodeDescParticle =
 nodeDescShelly : Element Msg
 nodeDescShelly =
     row [] [ Icon.shelly, text "Shelly" ]
+
+
+nodeDescShellyIO : Element Msg
+nodeDescShellyIO =
+    row [] [ Icon.io, text "Shelly IO" ]
 
 
 nodeDescVariable : Element Msg
