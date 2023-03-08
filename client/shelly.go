@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"log"
 	"regexp"
 	"time"
@@ -13,18 +12,18 @@ import (
 
 // Shelly describes the shelly client config
 type Shelly struct {
-	ID          string `node:"id"`
-	Parent      string `node:"parent"`
-	Description string `point:"description"`
-	Disable     bool   `point:"disable"`
+	ID          string     `node:"id"`
+	Parent      string     `node:"parent"`
+	Description string     `point:"description"`
+	Disable     bool       `point:"disable"`
+	IOs         []ShellyIo `child:"shellyIo"`
 }
 
 // ShellyIo describes the config/state for a shelly io
 type ShellyIo struct {
-	ID       string `node:"id"`
-	Parent   string `node:"parent"`
-	Type     string
-	DeviceID string
+	ID     string `node:"id"`
+	Parent string `node:"parent"`
+	Type   string `point:"type"`
 }
 
 // ShellyClient is a SIOT particle client
@@ -94,8 +93,31 @@ done:
 			go scan()
 
 		case e := <-entriesCh:
-			_ = e
-			fmt.Println("CLIFF: found entry: ", e.Host)
+			typ, id := shellyScanHost(e.Host)
+			if len(typ) > 0 {
+				found := false
+				for _, io := range sc.config.IOs {
+					if io.ID == id {
+						// already have this one
+						found = true
+						break
+					}
+				}
+				if found {
+					break
+				}
+
+				newIO := ShellyIo{
+					ID:     id,
+					Parent: sc.config.ID,
+					Type:   typ,
+				}
+
+				err := SendNodeType(sc.nc, newIO, sc.config.ID)
+				if err != nil {
+					log.Println("Error sending shelly IO: ", err)
+				}
+			}
 		}
 	}
 
