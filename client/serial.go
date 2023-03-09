@@ -206,7 +206,14 @@ func (sd *SerialDevClient) Run() error {
 
 			// figure out if the data is ascii string or points
 			// try pb decode
-			seq, subject, points, errDecode := SerialDecode(rd)
+			seq, subject, payload, err := SerialDecode(rd)
+			if err != nil {
+				log.Println("Serial framing error: ", err)
+				break
+			}
+
+			points, errDecode := data.PbDecodeSerialPoints(payload)
+
 			hrData := false
 			var lrpoints data.Points
 

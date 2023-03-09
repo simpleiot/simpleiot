@@ -20,7 +20,7 @@ func TestSerialEncodeDecode(t *testing.T) {
 		t.Fatal("Error encoding data: ", err)
 	}
 
-	seqD, subjectD, pointsD, err := SerialDecode(d)
+	seqD, subjectD, payload, err := SerialDecode(d)
 
 	if err != nil {
 		t.Error("Decode error: ", err)
@@ -35,6 +35,11 @@ func TestSerialEncodeDecode(t *testing.T) {
 		fmt.Println("len exp: ", len(subject))
 		fmt.Println("len got: ", len(subjectD))
 		t.Error("subject mismatch")
+	}
+
+	pointsD, err := data.PbDecodeSerialPoints(payload)
+	if err != nil {
+		t.Fatalf("Error decoding payload: %v", err)
 	}
 
 	if len(pointsD) <= 0 {

@@ -146,9 +146,14 @@ func TestSerial(t *testing.T) {
 		// all is well
 	}
 
-	seqR, subjectR, pointsR, err := client.SerialDecode(readData)
+	seqR, subjectR, payload, err := client.SerialDecode(readData)
 	if err != nil {
 		t.Error("Error in response: ", err)
+	}
+
+	pointsR, err := data.PbDecodeSerialPoints(payload)
+	if err != nil {
+		t.Errorf("Error decoding serial payload: %v", err)
 	}
 
 	if seq != seqR {
@@ -177,9 +182,14 @@ func TestSerial(t *testing.T) {
 		// all is well
 	}
 
-	seqR, subjectR, pointsR, err = client.SerialDecode(readData)
+	seqR, subjectR, payload, err = client.SerialDecode(readData)
 	if err != nil {
 		t.Error("Error in response: ", err)
+	}
+
+	pointsR, err = data.PbDecodeSerialPoints(payload)
+	if err != nil {
+		t.Errorf("Error decoding serial payload: %v", err)
 	}
 
 	if pointsR[0].Value != pumpSetting.Value {

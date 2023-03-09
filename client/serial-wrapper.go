@@ -65,7 +65,8 @@ func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) 
 }
 
 // SerialDecode can be used to decode serial data in a client.
-func SerialDecode(d []byte) (byte, string, data.Points, error) {
+// returns seq, subject, payload
+func SerialDecode(d []byte) (byte, string, []byte, error) {
 	l := len(d)
 
 	if l < 1 {
@@ -85,7 +86,7 @@ func SerialDecode(d []byte) (byte, string, data.Points, error) {
 	}
 
 	if l == 3 {
-		return d[0], "", data.Points{}, nil
+		return d[0], "", []byte{}, nil
 	}
 
 	if len(d) < 19 {
@@ -96,24 +97,7 @@ func SerialDecode(d []byte) (byte, string, data.Points, error) {
 	subject := string(bytes.Trim(d[1:17], "\x00"))
 
 	// try to extract protobuf
-	pbData := d[17 : l-2]
+	payload := d[17 : l-2]
 
-	pbSerial := &pb.SerialPoints{}
-
-	err := proto.Unmarshal(pbData, pbSerial)
-	if err != nil {
-		return d[0], subject, nil, fmt.Errorf("PB decode error: %v", err)
-	}
-
-	points := make([]data.Point, len(pbSerial.Points))
-
-	for i, sPb := range pbSerial.Points {
-		s, err := data.SerialToPoint(sPb)
-		if err != nil {
-			return d[0], "", nil, fmt.Errorf("Point decode error: %v", err)
-		}
-		points[i] = s
-	}
-
-	return d[0], subject, points, nil
+	return d[0], subject, payload, nil
 }

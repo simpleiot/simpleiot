@@ -116,7 +116,6 @@ type (16 bytes) point type
 key (16 bytes) point key
 starttime (uint64) starting time of samples in ns since Unix Epoch
 sampleperiod (uint32) time between samples in ns
-count (uint16) number of samples
 data, packed 32-bit floating point samples
 ```
 
