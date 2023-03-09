@@ -1,6 +1,7 @@
 package data
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
@@ -381,6 +382,58 @@ func PbDecodePoints(data []byte) (Points, error) {
 	}
 
 	return ret, nil
+}
+
+// DecodeSerialHrPayload decodes a serial high-rate payload. Payload format.
+//   - type         (off:0, 16 bytes) point type
+//   - key          (off:16, 16 bytes) point key
+//   - starttime    (off:32, uint64) starting time of samples in ns since Unix Epoch
+//   - sampleperiod (off:40, uint32) time between samples in ns
+//   - data         (off:44) packed 32-bit floating point samples
+func DecodeSerialHrPayload(payload []byte, callback func(Point)) error {
+	if len(payload) < 16+16+8+4+4 {
+		return fmt.Errorf("Payload is not long enough")
+	}
+
+	typ := string(bytes.Trim(payload[0:16], "\x00"))
+	key := string(bytes.Trim(payload[16:32], "\x00"))
+	startNs := int64(binary.LittleEndian.Uint64(payload[32:40]))
+	sampNs := int64(binary.LittleEndian.Uint32(payload[40:44]))
+
+	sampCount := (len(payload) - (16 + 16 + 8 + 4)) / 4
+	for i := 0; i < sampCount; i++ {
+		callback(Point{
+			Time: time.Unix(0, startNs+int64(i)*sampNs),
+			Type: typ,
+			Key:  key,
+			Value: float64(math.Float32frombits(
+				binary.LittleEndian.Uint32(payload[44+i*4 : 44+4+i*4]))),
+		})
+	}
+
+	return nil
+}
+
+// PbDecodeSerialPoints can be used to decode serial points
+func PbDecodeSerialPoints(d []byte) (Points, error) {
+	pbSerial := &pb.SerialPoints{}
+
+	err := proto.Unmarshal(d, pbSerial)
+	if err != nil {
+		return nil, fmt.Errorf("PB decode error: %v", err)
+	}
+
+	points := make([]Point, len(pbSerial.Points))
+
+	for i, sPb := range pbSerial.Points {
+		s, err := SerialToPoint(sPb)
+		if err != nil {
+			return nil, fmt.Errorf("Point decode error: %v", err)
+		}
+		points[i] = s
+	}
+
+	return points, nil
 }
 
 // PointFilter is used to send points upstream. It only sends

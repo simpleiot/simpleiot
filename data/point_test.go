@@ -1,7 +1,10 @@
 package data
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"math"
 	"reflect"
 	"sort"
 	"testing"
@@ -49,5 +52,67 @@ func TestPointCRC(t *testing.T) {
 
 	if p1.CRC() == p2.CRC() {
 		t.Error("CRC is weak")
+	}
+}
+
+func TestDecodeSerialHrPayload(t *testing.T) {
+	var buf bytes.Buffer
+
+	b := make([]byte, 16)
+	copy(b, []byte("voltage"))
+	buf.Write(b)
+
+	b = make([]byte, 16)
+	copy(b, []byte("AX"))
+	buf.Write(b)
+
+	start := time.Now()
+	startNs := start.UnixNano()
+	b = make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, uint64(startNs))
+	buf.Write(b)
+
+	samp := (time.Millisecond * 50).Nanoseconds()
+	b = make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, uint32(samp))
+	buf.Write(b)
+
+	binary.LittleEndian.PutUint32(b, math.Float32bits(10.5))
+	buf.Write(b)
+
+	binary.LittleEndian.PutUint32(b, math.Float32bits(1000.23))
+	buf.Write(b)
+
+	var pts Points
+
+	err := DecodeSerialHrPayload(buf.Bytes(), func(p Point) {
+		pts = append(pts, p)
+	})
+
+	if err != nil {
+		t.Fatal("Error decoding: ", err)
+	}
+
+	exp := Points{
+		{Time: start, Type: "voltage", Key: "AX", Value: 10.5},
+		{Time: start.Add(time.Millisecond * 50), Type: "voltage", Key: "AX", Value: 1000.23},
+	}
+
+	if len(exp) != len(pts) {
+		t.Fatal("Did not get the exp # points")
+	}
+
+	for i, e := range exp {
+		p := pts[i]
+
+		if p.Time.Sub(e.Time).Abs() > time.Nanosecond {
+			t.Error("Time not equal")
+		}
+		if p.Type != e.Type {
+			t.Error("Type not equal")
+		}
+		if p.Key != e.Key {
+			t.Error("Key not equal")
+		}
 	}
 }
