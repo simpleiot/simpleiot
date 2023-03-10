@@ -1504,11 +1504,6 @@ nodeDescShelly =
     row [] [ Icon.shelly, text "Shelly" ]
 
 
-nodeDescShellyIO : Element Msg
-nodeDescShellyIO =
-    row [] [ Icon.io, text "Shelly IO" ]
-
-
 nodeDescVariable : Element Msg
 nodeDescVariable =
     row [] [ Icon.variable, text "Variable" ]
