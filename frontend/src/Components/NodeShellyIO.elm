@@ -1,10 +1,10 @@
 module Components.NodeShellyIO exposing (view)
 
-import Api.Point as Point exposing (Point)
+import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
-import Element.Input as Input
+import Element.Font as Font
 import Round
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
@@ -23,6 +23,15 @@ view o =
 
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
+
+        typ =
+            Point.getText o.node.points Point.typeType ""
+
+        desc =
+            Point.getText o.node.points Point.typeDescription ""
+
+        summary =
+            "(" ++ typ ++ ")  " ++ desc ++ "    " ++ valueText
     in
     column
         [ width fill
@@ -33,11 +42,7 @@ view o =
     <|
         wrappedRow [ spacing 10 ]
             [ Icon.io
-            , text <|
-                Point.getText o.node.points Point.typeDescription ""
-            , el [ paddingXY 7 0 ] <|
-                text <|
-                    valueText
+            , text summary
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
@@ -54,11 +59,14 @@ view o =
                         checkboxInput =
                             NodeInputs.nodeCheckboxInput opts ""
 
-                        typ =
-                            Point.getText o.node.points Point.typeType ""
+                        deviceID =
+                            Point.getText o.node.points Point.typeDeviceID ""
+
+                        ip =
+                            Point.getText o.node.points Point.typeIP ""
                     in
-                    [ textDisplay "ID" o.node.id
-                    , textDisplay "Type" typ
+                    [ textDisplay "ID" deviceID
+                    , textLinkDisplay "IP" ip ("http://" ++ ip)
                     , textInput Point.typeDescription "Description" ""
                     , checkboxInput Point.typeDisable "Disable"
                     ]
@@ -77,38 +85,12 @@ textDisplay label value =
                 ++ value
 
 
-fCheckbox :
-    NodeInputs.NodeInputOptions msg
-    -> String
-    -> String
-    -> String
-    -> Element msg
-fCheckbox o key typ lbl =
-    Input.checkbox
-        []
-        { onChange =
-            \d ->
-                let
-                    t =
-                        if d then
-                            "F"
-
-                        else
-                            "C"
-                in
-                o.onEditNodePoint
-                    [ Point typ key o.now 0 0 t 0 ]
-        , checked =
-            Point.getText o.node.points typ key == "F"
-        , icon = Input.defaultCheckbox
-        , label =
-            if lbl /= "" then
-                Input.labelLeft [ width (px o.labelWidth) ] <|
-                    el [ alignRight ] <|
-                        text <|
-                            lbl
-                                ++ ":"
-
-            else
-                Input.labelHidden ""
-        }
+textLinkDisplay : String -> String -> String -> Element msg
+textLinkDisplay label value uri =
+    el [ paddingEach { top = 0, right = 0, bottom = 0, left = 70 } ] <|
+        row []
+            [ text <|
+                label
+                    ++ ": "
+            , newTabLink [ Font.underline ] { url = uri, label = text value }
+            ]
