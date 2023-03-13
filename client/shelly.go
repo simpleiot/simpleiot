@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/mdns"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -17,13 +18,6 @@ type Shelly struct {
 	Description string     `point:"description"`
 	Disable     bool       `point:"disable"`
 	IOs         []ShellyIo `child:"shellyIo"`
-}
-
-// ShellyIo describes the config/state for a shelly io
-type ShellyIo struct {
-	ID     string `node:"id"`
-	Parent string `node:"parent"`
-	Type   string `point:"type"`
 }
 
 // ShellyClient is a SIOT particle client
@@ -96,10 +90,28 @@ done:
 			typ, id := shellyScanHost(e.Host)
 			if len(typ) > 0 {
 				found := false
+
+				var ip string
+				if e.AddrV4 != nil {
+					ip = e.AddrV4.String()
+				} else if e.AddrV6 != nil {
+					ip = e.AddrV6.String()
+				}
+
 				for _, io := range sc.config.IOs {
-					if io.ID == id {
+					if io.DeviceID == id {
 						// already have this one
 						found = true
+						if io.IP != ip {
+							err := SendNodePoint(sc.nc, io.ID, data.Point{
+								Type: data.PointTypeIP,
+								Text: ip,
+							}, false)
+
+							if err != nil {
+								log.Println("Error setting io ip: ", err)
+							}
+						}
 						break
 					}
 				}
@@ -108,9 +120,10 @@ done:
 				}
 
 				newIO := ShellyIo{
-					ID:     id,
-					Parent: sc.config.ID,
-					Type:   typ,
+					ID:       uuid.New().String(),
+					DeviceID: id,
+					Parent:   sc.config.ID,
+					Type:     typ,
 				}
 
 				err := SendNodeType(sc.nc, newIO, sc.config.ID)

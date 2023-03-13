@@ -187,6 +187,18 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 		nodes = append(nodes, c...)
 	}
 
+	// FIXME: we need a better way of identifying nodes than
+	// can function as "groups" that may have children that require
+	// clients.
+	shelly, err := GetNodes(m.nc, id, "all", data.NodeTypeShelly, false)
+	for _, g := range shelly {
+		c, err := m.scanHelper(g.ID, nodes)
+		if err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, c...)
+	}
+
 	return nodes, nil
 }
 

@@ -54,5 +54,8 @@ func DefaultClients(nc *nats.Conn) (*Group, error) {
 	shelly := NewManager(nc, NewShellyClient)
 	g.Add(shelly)
 
+	shellyIO := NewManager(nc, NewShellyIOClient)
+	g.Add(shellyIO)
+
 	return g, nil
 }

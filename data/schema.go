@@ -279,4 +279,7 @@ const (
 
 	NodeTypeShelly   = "shelly"
 	NodeTypeShellyIo = "shellyIo"
+
+	PointTypeDeviceID = "deviceID"
+	PointTypeIP       = "ip"
 )
