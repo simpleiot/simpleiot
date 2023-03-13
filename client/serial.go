@@ -212,18 +212,17 @@ func (sd *SerialDevClient) Run() error {
 				break
 			}
 
-			points, errDecode := data.PbDecodeSerialPoints(payload)
-
-			hrData := false
-			var lrpoints data.Points
-
-			// for now we only accept points to serial device node
-			switch subject {
-			case "phr":
-				hrData = true
-			default:
-				lrpoints = points
+			if subject == "phr" {
+				// we have high rate points
+				err := sd.nc.Publish(sd.natsSubHRUp, payload)
+				if err != nil {
+					log.Println("Error publishing HR data: ", err)
+				}
+				// we're done
+				break
 			}
+
+			points, errDecode := data.PbDecodeSerialPoints(payload)
 
 			sd.config.Rx++
 
@@ -237,27 +236,24 @@ func (sd *SerialDevClient) Run() error {
 			sd.ratePointCount += len(points)
 
 			if errDecode == nil && len(points) > 0 {
-				if sd.config.Debug >= 4 && !hrData {
+				if sd.config.Debug >= 4 {
 					log.Printf("SER RX (%v) seq:%v\n%v", sd.config.Description, seq, points)
 				}
 
-				if !hrData {
-					// send response
-					d, err := SerialEncode(seq, "", nil)
+				// send response
+				d, err := SerialEncode(seq, "", nil)
+				if err != nil {
+					log.Println("Error enoding serial response: ", err)
+				} else {
+					_, err := port.Write(d)
 					if err != nil {
-						log.Println("Error enoding serial response: ", err)
-					} else {
-						_, err := port.Write(d)
-						if err != nil {
-							log.Println("Error writing response to port: ", err)
-						}
-					}
-					err = data.MergePoints(sd.config.ID, points, &sd.config)
-					if err != nil {
-						log.Println("error merging new points: ", err)
+						log.Println("Error writing response to port: ", err)
 					}
 				}
-
+				err = data.MergePoints(sd.config.ID, points, &sd.config)
+				if err != nil {
+					log.Println("error merging new points: ", err)
+				}
 			} else {
 				subject = sd.natsSub
 				// check if ascii
@@ -269,7 +265,7 @@ func (sd *SerialDevClient) Run() error {
 					}
 				}
 				if isASCII {
-					lrpoints = append(lrpoints,
+					points = append(points,
 						data.Point{Type: data.PointTypeLog, Text: string(rd)})
 
 					if sd.config.Debug >= 1 {
@@ -279,13 +275,13 @@ func (sd *SerialDevClient) Run() error {
 					log.Println("Error decoding serial packet from device: ",
 						sd.config.Description, errDecode)
 					sd.config.ErrorCount++
-					lrpoints = append(lrpoints,
+					points = append(points,
 						data.Point{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)})
 				}
 			}
 
 			if time.Since(sd.lastSendStats) > time.Second*5 {
-				lrpoints = append(lrpoints,
+				points = append(points,
 					data.Point{Time: time.Now(), Type: data.PointTypeRx, Value: float64(sd.config.Rx)})
 				sd.lastSendStats = time.Now()
 			}
@@ -293,31 +289,20 @@ func (sd *SerialDevClient) Run() error {
 			if time.Since(sd.rateLastSend) > time.Second {
 				now := time.Now()
 				rate := float64(sd.ratePointCount) / now.Sub(sd.rateLastSend).Seconds()
-				lrpoints = append(lrpoints,
+				points = append(points,
 					data.Point{Time: now, Type: data.PointTypeRate,
 						Value: rate})
 				sd.rateLastSend = now
 				sd.ratePointCount = 0
 			}
 
-			if len(lrpoints) > 0 {
-				err := SendPoints(sd.nc, sd.natsSub, lrpoints, false)
+			if len(points) > 0 {
+				err := SendPoints(sd.nc, sd.natsSub, points, false)
 				if err != nil {
 					log.Println("Error sending points received from MCU: ", err)
 				}
 			}
 
-			if hrData {
-				err := SendPoints(sd.nc, sd.natsSubHR, points, false)
-				if err != nil {
-					log.Println("Error sending HR points received from MCU: ", err)
-				}
-
-				err = SendPoints(sd.nc, sd.natsSubHRUp, points, false)
-				if err != nil {
-					log.Println("Error sending HR Up points received from MCU: ", err)
-				}
-			}
 		case pts := <-sd.newPoints:
 			op := false
 			for _, p := range pts.Points {

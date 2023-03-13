@@ -398,6 +398,10 @@ func DecodeSerialHrPayload(payload []byte, callback func(Point)) error {
 	typ := string(bytes.Trim(payload[0:16], "\x00"))
 	key := string(bytes.Trim(payload[16:32], "\x00"))
 	startNs := int64(binary.LittleEndian.Uint64(payload[32:40]))
+	if startNs == 0 {
+		// if MCU does not send a time, fill in current time
+		startNs = time.Now().UnixNano()
+	}
 	sampNs := int64(binary.LittleEndian.Uint32(payload[40:44]))
 
 	sampCount := (len(payload) - (16 + 16 + 8 + 4)) / 4
