@@ -11,7 +11,8 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-type shellyIOConfig struct {
+// ShellyIOConfig describes the configuration of a Shelly device
+type ShellyIOConfig struct {
 	Name string `json:"name"`
 }
 
@@ -21,8 +22,8 @@ type shellyGen2SysConfig struct {
 	} `json:"device"`
 }
 
-func (sg2c shellyGen2SysConfig) toSettings() shellyIOConfig {
-	return shellyIOConfig{
+func (sg2c shellyGen2SysConfig) toSettings() ShellyIOConfig {
+	return ShellyIOConfig{
 		Name: sg2c.Device.Name,
 	}
 }
@@ -37,6 +38,7 @@ type ShellyIo struct {
 	IP          string `point:"ip"`
 }
 
+// Desc gets the description of a Shelly IO
 func (sio *ShellyIo) Desc() string {
 	ret := sio.Type
 	if len(sio.Description) > 0 {
@@ -50,6 +52,7 @@ var httpClient = &http.Client{Timeout: 10 * time.Second}
 // ShellyGen describes the generation of device (Gen1/Gen2)
 type ShellyGen int
 
+// Shelly Generations
 const (
 	ShellyGenUnknown ShellyGen = iota
 	ShellyGen1
@@ -73,10 +76,11 @@ func (sio *ShellyIo) Gen() ShellyGen {
 	return gen
 }
 
-func (sio *ShellyIo) GetConfig() (shellyIOConfig, error) {
+// GetConfig returns the configuration of Shelly Device
+func (sio *ShellyIo) GetConfig() (ShellyIOConfig, error) {
 	switch sio.Gen() {
 	case ShellyGen1:
-		var ret shellyIOConfig
+		var ret ShellyIOConfig
 		res, err := httpClient.Get("http://" + sio.IP + "/settings")
 		if err != nil {
 			return ret, err
@@ -104,7 +108,7 @@ func (sio *ShellyIo) GetConfig() (shellyIOConfig, error) {
 		return config.toSettings(), nil
 
 	default:
-		return shellyIOConfig{}, fmt.Errorf("Unsupported device: %v", sio.Type)
+		return ShellyIOConfig{}, fmt.Errorf("Unsupported device: %v", sio.Type)
 	}
 }
 
@@ -114,6 +118,7 @@ type shellyGen2Response struct {
 	Message         string `json:"message"`
 }
 
+// SetName is use to set the name in a device
 func (sio *ShellyIo) SetName(name string) error {
 	switch sio.Gen() {
 	case ShellyGen1:
