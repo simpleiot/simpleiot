@@ -76,7 +76,6 @@ Example using a serial port:
 	// This sets a flag that causes the reader goroutine to exit.
 	port.Close()
 
-
 Three types are provided for convenience that wrap io.Reader, io.ReadWriter, and io.ReadWriteCloser.
 */
 package respreader

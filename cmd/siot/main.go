@@ -17,7 +17,8 @@ import (
 
 // goreleaser will replace version with Git version. You can also pass version
 // into the version into the go build:
-//   go build -ldflags="-X main.version=1.2.3"
+//
+//	go build -ldflags="-X main.version=1.2.3"
 var version = "Development"
 
 func main() {

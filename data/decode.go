@@ -18,6 +18,7 @@ type NodeEdgeChildren struct {
 // node, point, and edgepoint tags as shown below.
 // It is recommended that id and parent node tags
 // always be included.
+//
 //	   type exType struct {
 //		ID          string      `node:"id"`
 //		Parent      string      `node:"parent"`
@@ -27,6 +28,7 @@ type NodeEdgeChildren struct {
 //		Tombstone   bool        `edgepoint:"tombstone"`
 //		Conditions  []Condition `child:"condition"`
 //	   }
+//
 // output can also be a *reflect.Value
 func Decode(input NodeEdgeChildren, output interface{}) error {
 	var vOut reflect.Value
