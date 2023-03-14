@@ -1,3 +1,4 @@
+// example modbus server application
 package main
 
 import (

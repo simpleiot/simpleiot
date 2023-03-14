@@ -1,3 +1,4 @@
+// Example SIOT client application
 package main
 
 import (

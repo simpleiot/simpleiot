@@ -1,3 +1,4 @@
+// TOF10120 test application
 package main
 
 import (

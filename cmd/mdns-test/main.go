@@ -1,3 +1,4 @@
+// mdns test
 package main
 
 import (

@@ -1,3 +1,4 @@
+// serial encode test
 package main
 
 import (
