@@ -98,8 +98,11 @@ func (sgc *SignalGeneratorClient) Run() error {
 					count = 0
 				}
 
-				SendPoints(sgc.nc, sgc.natsSubject, data.Points{{Time: sTime, Type: data.PointTypeValue,
+				err := SendPoints(sgc.nc, sgc.natsSubject, data.Points{{Time: sTime, Type: data.PointTypeValue,
 					Value: value}}, false)
+				if err != nil {
+					log.Println("Error sending points: ", err)
+				}
 			}
 
 			t.Reset(time.Duration(1/config.SampleRate*1e9) * time.Nanosecond)

@@ -49,7 +49,10 @@ func (sc *ShellyClient) Run() error {
 	entriesCh := make(chan *mdns.ServiceEntry, 4)
 
 	scan := func() {
-		mdns.Lookup("_http._tcp", entriesCh)
+		err := mdns.Lookup("_http._tcp", entriesCh)
+		if err != nil {
+			log.Println("mdns error: ", err)
+		}
 	}
 
 	go scan()
@@ -71,9 +74,6 @@ done:
 			for _, p := range pts.Points {
 				switch p.Type {
 				case data.PointTypeDisable:
-					if p.Value == 1 {
-					} else {
-					}
 				}
 			}
 

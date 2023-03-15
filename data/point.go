@@ -158,10 +158,7 @@ func (p Point) ToSerial() (pb.SerialPoint, error) {
 
 // Bool returns a bool representation of value
 func (p *Point) Bool() bool {
-	if p.Value == 0 {
-		return false
-	}
-	return true
+	return p.Value == 0
 }
 
 // Points is an array of Point
@@ -463,11 +460,7 @@ func (sf *PointFilter) Add(points []Point) []Point {
 
 // FloatToBool converts a float to bool
 func FloatToBool(v float64) bool {
-	if v == 0 {
-		return false
-	}
-
-	return true
+	return v == 0
 }
 
 // BoolToFloat converts bool to float

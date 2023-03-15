@@ -1,17 +1,8 @@
 package store
 
-import (
-	"log"
-	"strings"
-
-	"github.com/google/uuid"
-	"github.com/nats-io/nats.go"
-	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/msg"
-)
-
 // TODO this code is currently not used and needs to be moved to a client
 
+/*
 func (st *Store) handleNotification(msg *nats.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 2 {
@@ -30,7 +21,6 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 
 	userNodes := []data.NodeEdge{}
 
-	/*
 		var findUsers func(id string)
 
 		findUsers = func(id string) {
@@ -71,7 +61,6 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 			} else {
 				findUsers(nodeID)
 			}
-	*/
 
 	for _, userNode := range userNodes {
 		user, err := data.NodeToUser(userNode.ToNode())
@@ -148,7 +137,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 
 		var upIDs []*data.Edge
 
-		/* FIXME this needs to be moved to client
+		// FIXME this needs to be moved to client
 
 		if level == 0 {
 			upIDs = []*data.Edge{&data.Edge{Up: message.ParentID}}
@@ -159,7 +148,6 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 				return
 			}
 		}
-		*/
 
 		level++
 
@@ -192,3 +180,4 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 		}
 	}
 }
+*/

@@ -52,7 +52,7 @@ func main() {
 	client := modbus.NewClient(transport, 1)
 
 	// Read discrete inputs.
-	coils, err := client.ReadCoils(1, 128, 1)
+	coils, _ := client.ReadCoils(1, 128, 1)
 	if len(coils) != 1 {
 		log.Println("Error: Expected one coil result")
 		os.Exit(-1)
@@ -61,7 +61,7 @@ func main() {
 	log.Println("Coil results: ", coils)
 
 	// read holding reg
-	regs, err := client.ReadHoldingRegs(1, 2, 1)
+	regs, _ := client.ReadHoldingRegs(1, 2, 1)
 	if len(regs) != 1 {
 		log.Println("Error: Expected one reg result")
 		os.Exit(-1)

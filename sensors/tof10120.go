@@ -55,7 +55,7 @@ func (tof *TOF10120) SetSendInterval(interval int) error {
 
 	wr := fmt.Sprintf("s2-%v#", interval)
 
-	c, err = tof.port.Write([]byte(wr))
+	_, err = tof.port.Write([]byte(wr))
 
 	if err != nil {
 		return err

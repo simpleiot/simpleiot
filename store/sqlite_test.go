@@ -13,7 +13,7 @@ import (
 var testFile = "test.sqlite"
 
 func newTestDb(t *testing.T) *DbSqlite {
-	exec.Command("sh", "-c", "rm "+testFile+"*").Run()
+	_ = exec.Command("sh", "-c", "rm "+testFile+"*").Run()
 
 	db, err := NewSqliteDb(testFile, "")
 	if err != nil {
@@ -132,6 +132,9 @@ func TestDbSqlite(t *testing.T) {
 
 	// test edge points
 	err = db.edgePoints(adminID, rootID, data.Points{{Type: data.PointTypeRole, Text: data.PointValueRoleAdmin}})
+	if err != nil {
+		t.Fatal("Error sending edge points: ", err)
+	}
 
 	adminNodes, err = db.getNodes(nil, rootID, adminID, "", false)
 	if err != nil {

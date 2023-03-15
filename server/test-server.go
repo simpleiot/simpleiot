@@ -43,7 +43,7 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 	}
 
 	cleanup := func() {
-		exec.Command("sh", "-c",
+		_ = exec.Command("sh", "-c",
 			fmt.Sprintf("rm %v*", opts.StoreFile)).Run()
 	}
 
@@ -55,7 +55,7 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 		return nil, data.NodeEdge{}, nil, fmt.Errorf("Error starting siot server: %v", err)
 	}
 
-	clients, err := client.DefaultClients(nc)
+	clients, _ := client.DefaultClients(nc)
 	s.AddClient(clients)
 
 	stopped := make(chan struct{})

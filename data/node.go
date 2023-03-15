@@ -163,9 +163,9 @@ func (nodes *Nodes) ToPbNodes() ([]*pb.Node, error) {
 
 // define valid commands
 const (
-	CmdUpdateApp string = "updateApp"
-	CmdPoll             = "poll"
-	CmdFieldMode        = "fieldMode"
+	CmdUpdateApp = "updateApp"
+	CmdPoll      = "poll"
+	CmdFieldMode = "fieldMode"
 )
 
 // NodeCmd represents a command to be sent to a device

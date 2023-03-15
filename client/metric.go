@@ -19,7 +19,6 @@ type Metric struct {
 
 	// internal state
 	lastReport time.Time
-	value      float64
 	lock       sync.Mutex
 	avg        *data.PointAverager
 }

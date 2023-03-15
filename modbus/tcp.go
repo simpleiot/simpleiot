@@ -33,12 +33,18 @@ func NewTCP(sock net.Conn, timeout time.Duration, clientServer TransportClientSe
 }
 
 func (t *TCP) Read(p []byte) (int, error) {
-	t.sock.SetDeadline(time.Now().Add(t.timeout))
+	err := t.sock.SetDeadline(time.Now().Add(t.timeout))
+	if err != nil {
+		return 0, err
+	}
 	return t.sock.Read(p)
 }
 
 func (t *TCP) Write(p []byte) (int, error) {
-	t.sock.SetDeadline(time.Now().Add(t.timeout))
+	err := t.sock.SetDeadline(time.Now().Add(t.timeout))
+	if err != nil {
+		return 0, err
+	}
 	return t.sock.Write(p)
 }
 

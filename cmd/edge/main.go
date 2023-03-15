@@ -40,7 +40,7 @@ func main() {
 		os.Exit(-1)
 	}
 
-	client.ListenForFile(nc, "./", *flagID, func(name string) {
+	_ = client.ListenForFile(nc, "./", *flagID, func(name string) {
 		log.Println("File downloaded: ", name)
 	})
 

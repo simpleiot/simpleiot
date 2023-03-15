@@ -267,9 +267,7 @@ done:
 		}
 	}
 
-	rc.upSub.Unsubscribe()
-
-	return nil
+	return rc.upSub.Unsubscribe()
 }
 
 // Stop sends a signal to the Run function to exit

@@ -17,6 +17,6 @@ func main() {
 	}()
 
 	// Start the lookup
-	mdns.Lookup("_http._tcp", entriesCh)
+	_ = mdns.Lookup("_http._tcp", entriesCh)
 	close(entriesCh)
 }

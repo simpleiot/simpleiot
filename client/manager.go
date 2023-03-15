@@ -123,7 +123,7 @@ done:
 		select {
 		case <-m.stop:
 			stopping = true
-			m.upSub.Unsubscribe()
+			_ = m.upSub.Unsubscribe()
 			if len(m.clientStates) > 0 {
 				for _, c := range m.clientStates {
 					c.stop(err)
@@ -140,7 +140,7 @@ done:
 			scan()
 		case key := <-m.chDeleteCS:
 			delete(m.clientStates, key)
-			m.clientUpSub[key].Unsubscribe()
+			_ = m.clientUpSub[key].Unsubscribe()
 			delete(m.clientUpSub, key)
 			if stopping {
 				if len(m.clientStates) <= 0 {
@@ -179,6 +179,9 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 
 	// recurse into any groups
 	groups, err := GetNodes(m.nc, id, "all", data.NodeTypeGroup, false)
+	if err != nil {
+		return []data.NodeEdge{}, err
+	}
 	for _, g := range groups {
 		c, err := m.scanHelper(g.ID, nodes)
 		if err != nil {
@@ -191,6 +194,9 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 	// can function as "groups" that may have children that require
 	// clients.
 	shelly, err := GetNodes(m.nc, id, "all", data.NodeTypeShelly, false)
+	if err != nil {
+		return []data.NodeEdge{}, err
+	}
 	for _, g := range shelly {
 		c, err := m.scanHelper(g.ID, nodes)
 		if err != nil {
@@ -208,7 +214,7 @@ func (m *Manager[T]) scan(id string) error {
 		return err
 	}
 
-	if len(nodes) < 0 {
+	if len(nodes) == 0 {
 		return nil
 	}
 

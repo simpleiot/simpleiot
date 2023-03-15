@@ -252,7 +252,6 @@ func (sd *SerialDevClient) Run() error {
 				}
 
 			} else {
-				subject = sd.natsSub
 				// check if ascii
 				isASCII := true
 				for i := 0; i < len(rd); i++ {

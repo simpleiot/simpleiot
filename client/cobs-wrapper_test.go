@@ -51,7 +51,7 @@ func TestCobsRead(t *testing.T) {
 
 	cw := NewCobsWrapper(b, 500)
 
-	a.Write(append([]byte{0}, cobs.Encode(d)...))
+	_, _ = a.Write(append([]byte{0}, cobs.Encode(d)...))
 
 	buf := make([]byte, 500)
 
@@ -85,7 +85,7 @@ func TestCobsReadNoLeadingNull(t *testing.T) {
 
 	cw := NewCobsWrapper(b, 500)
 
-	a.Write(cobs.Encode(d))
+	_, _ = a.Write(cobs.Encode(d))
 
 	buf := make([]byte, 500)
 
@@ -163,7 +163,7 @@ func TestCobsWrapperPartialPacket(t *testing.T) {
 	de := cobs.Encode(d)
 
 	// write part of packet
-	a.Write(de[0:4])
+	_, _ = a.Write(de[0:4])
 
 	// start reader
 	readData := make(chan []byte)
@@ -190,7 +190,7 @@ func TestCobsWrapperPartialPacket(t *testing.T) {
 	}
 
 	// write the rest of the packet
-	a.Write(de[4:])
+	_, _ = a.Write(de[4:])
 
 	// now look for packet
 	select {
@@ -211,7 +211,7 @@ func TestCobsMultipleLeadingNull(t *testing.T) {
 
 	cw := NewCobsWrapper(b, 500)
 
-	a.Write(append([]byte{0, 0, 0, 0}, cobs.Encode(d)...))
+	_, _ = a.Write(append([]byte{0, 0, 0, 0}, cobs.Encode(d)...))
 
 	buf := make([]byte, 500)
 
@@ -247,18 +247,18 @@ func TestCobsPartialThenNew(t *testing.T) {
 	de := append([]byte{0}, cobs.Encode(d)...)
 
 	// write partial packet
-	a.Write(de[0:4])
+	_, _ = a.Write(de[0:4])
 
 	// then start new packet
-	a.Write(de)
+	_, _ = a.Write(de)
 
 	buf := make([]byte, 500)
-	c, err := cw.Read(buf)
+	_, err := cw.Read(buf)
 	if err == nil {
 		t.Fatal("should have gotten an error reading partial packet: ", err)
 	}
 
-	c, err = cw.Read(buf)
+	c, err := cw.Read(buf)
 	if err != nil {
 		t.Fatal("got error reading full packet: ", err)
 	}
@@ -278,7 +278,7 @@ func TestCobsWriteTwoThenRead(t *testing.T) {
 	de := cobs.Encode(d)
 
 	// write two packets
-	a.Write(append(de, de...))
+	_, _ = a.Write(append(de, de...))
 
 	for i := 2; i < 2; i++ {
 		buf := make([]byte, 500)

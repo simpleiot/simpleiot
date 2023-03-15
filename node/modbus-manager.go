@@ -36,10 +36,10 @@ func (mm *ModbusManager) Update() error {
 
 	for _, node := range nodes {
 		found[node.ID] = true
-		bus, ok := mm.busses[node.ID]
+		_, ok := mm.busses[node.ID]
 		if !ok {
 			var err error
-			bus, err = NewModbus(mm.nc, node)
+			bus, err := NewModbus(mm.nc, node)
 			if err != nil {
 				log.Println("Error creating new modbus: ", err)
 				continue

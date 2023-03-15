@@ -63,7 +63,7 @@ func TestRtuEndToEnd(t *testing.T) {
 		t.Fatal("wrong coil value")
 	}
 
-	regs.WriteCoil(128, false)
+	_ = regs.WriteCoil(128, false)
 	coils, _ = master.ReadCoils(id, 128, 1)
 
 	if coils[0] != false {

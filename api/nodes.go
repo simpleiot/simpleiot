@@ -86,10 +86,13 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 			if len(nodes) > 0 {
 				en := json.NewEncoder(res)
-				en.Encode(nodes)
-			} else {
-				res.Write([]byte("[]"))
+				err := en.Encode(nodes)
+				if err != nil {
+					http.Error(res, "encoding error", http.StatusMethodNotAllowed)
+				}
+				return
 			}
+			_, _ = res.Write([]byte("[]"))
 		case http.MethodPost:
 			// create node
 			h.insertNode(res, req, userID)
@@ -118,7 +121,11 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				http.Error(res, err.Error(), http.StatusNotFound)
 			} else {
 				en := json.NewEncoder(res)
-				en.Encode(node)
+				err := en.Encode(node)
+				if err != nil {
+					http.Error(res, "encoding error", http.StatusMethodNotAllowed)
+					return
+				}
 			}
 		case http.MethodDelete:
 			var nodeDelete NodeDelete
@@ -135,7 +142,11 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			en := json.NewEncoder(res)
-			en.Encode(data.StandardResponse{Success: true, ID: id})
+			err = en.Encode(data.StandardResponse{Success: true, ID: id})
+			if err != nil {
+				http.Error(res, "encoding error", http.StatusMethodNotAllowed)
+
+			}
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 			return
@@ -169,8 +180,10 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			en := json.NewEncoder(res)
-			en.Encode(data.StandardResponse{Success: true, ID: id})
-			return
+			err = en.Encode(data.StandardResponse{Success: true, ID: id})
+			if err != nil {
+				http.Error(res, "encoding error", http.StatusMethodNotAllowed)
+			}
 
 		case http.MethodPut:
 			var nodeCopy NodeCopy
@@ -198,7 +211,10 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			en := json.NewEncoder(res)
-			en.Encode(data.StandardResponse{Success: true, ID: id})
+			err := en.Encode(data.StandardResponse{Success: true, ID: id})
+			if err != nil {
+				http.Error(res, "encoding error", http.StatusMethodNotAllowed)
+			}
 
 			return
 
@@ -232,8 +248,10 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			en := json.NewEncoder(res)
-			en.Encode(data.StandardResponse{Success: true, ID: id})
-
+			err = en.Encode(data.StandardResponse{Success: true, ID: id})
+			if err != nil {
+				http.Error(res, "encoding error", http.StatusMethodNotAllowed)
+			}
 		default:
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 		}
@@ -268,7 +286,11 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request, userID st
 		return
 	}
 
-	encode(res, data.StandardResponse{Success: true, ID: node.ID})
+	err = encode(res, data.StandardResponse{Success: true, ID: node.ID})
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusNotFound)
+		return
+	}
 }
 
 func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id, userID string) {
@@ -294,5 +316,9 @@ func (h *Nodes) processPoints(res http.ResponseWriter, req *http.Request, id, us
 	}
 
 	en := json.NewEncoder(res)
-	en.Encode(data.StandardResponse{Success: true, ID: id})
+	err = en.Encode(data.StandardResponse{Success: true, ID: id})
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
 }

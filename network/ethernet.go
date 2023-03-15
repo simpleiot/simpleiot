@@ -64,11 +64,7 @@ func (e *Ethernet) connected() bool {
 	}
 
 	_, err := GetIP(e.iface)
-	if err == nil {
-		return true
-	}
-
-	return false
+	return err == nil
 }
 
 // GetStatus returns ethernet interface status

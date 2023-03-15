@@ -107,11 +107,7 @@ func (m *Modem) pppActive() bool {
 	}
 
 	_, err := GetIP(m.iface)
-	if err == nil {
-		return true
-	}
-
-	return false
+	return err == nil
 }
 
 // Configure modem interface
@@ -251,17 +247,19 @@ func (m *Modem) Connect() error {
 		}
 	}
 
-	service, _, _, _, err := CmdQcsq(m.atCmdPort)
-	if err != nil {
-		return err
-	}
+	/*
+		service, _, _, _, err := CmdQcsq(m.atCmdPort)
+		if err != nil {
+			return err
+		}
 
-	// TODO need to set APN, etc before we do this
-	// but eventually want to make sure we have service
-	// before running PPP
-	if !service {
+		// TODO need to set APN, etc before we do this
+		// but eventually want to make sure we have service
+		// before running PPP
+		if !service {
 
-	}
+		}
+	*/
 
 	if time.Since(m.lastPPPRun) < 30*time.Second {
 		return errors.New("only run PPP once every 30s")
@@ -318,7 +316,10 @@ func (m *Modem) Reset() error {
 		m.atCmdPort = nil
 	}
 
-	exec.Command("poff").Run()
+	err := exec.Command("poff").Run()
+	if err != nil {
+		log.Println("poff exec error: ", err)
+	}
 	if m.enabled {
 		err := m.config.Reset()
 		if err != nil {
@@ -340,8 +341,14 @@ func (m *Modem) Enable(en bool) error {
 
 	if en {
 		err = CmdFunFull(m.atCmdPort)
+		if err != nil {
+			return err
+		}
 	} else {
 		err = CmdFunMin(m.atCmdPort)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

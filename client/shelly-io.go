@@ -105,7 +105,7 @@ func (sio *ShellyIo) GetConfig() (ShellyIOConfig, error) {
 		}
 
 		err = json.NewDecoder(res.Body).Decode(&config)
-		return config.toSettings(), nil
+		return config.toSettings(), err
 
 	default:
 		return ShellyIOConfig{}, fmt.Errorf("Unsupported device: %v", sio.Type)
@@ -144,6 +144,9 @@ func (sio *ShellyIo) SetName(name string) error {
 		}
 		var ret shellyGen2Response
 		err = json.NewDecoder(res.Body).Decode(&ret)
+		if err != nil {
+			return err
+		}
 		if ret.Code != 0 || ret.Message != "" {
 			return fmt.Errorf("Error setting Shelly device %v name: %v", sio.Type, ret.Message)
 		}
@@ -221,9 +224,6 @@ done:
 				case data.PointTypeDescription:
 					syncConfig()
 				case data.PointTypeDisable:
-					if p.Value == 1 {
-					} else {
-					}
 				}
 			}
 

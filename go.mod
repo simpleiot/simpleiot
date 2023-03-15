@@ -28,7 +28,6 @@ require (
 	github.com/simpleiot/canparse v0.0.0-20221208203709-740f6c246768
 	go.bug.st/serial v1.3.5
 	go.einride.tech/can v0.5.1
-	go.etcd.io/bbolt v1.3.6
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	google.golang.org/protobuf v1.27.1
 	modernc.org/sqlite v1.18.0

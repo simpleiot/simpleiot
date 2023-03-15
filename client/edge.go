@@ -48,29 +48,29 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 	}
 
 	siotOptions := func(o *nats.Options) error {
-		nats.Timeout(30 * time.Second)(o)
-		nats.DrainTimeout(30 * time.Second)(o)
-		nats.PingInterval(2 * time.Minute)(o)
-		nats.MaxPingsOutstanding(3)(o)
-		nats.RetryOnFailedConnect(true)(o)
-		nats.ReconnectBufSize(128 * 1024)(o)
-		nats.ReconnectWait(10 * time.Second)(o)
-		nats.MaxReconnects(-1)(o)
-		nats.SetCustomDialer(&net.Dialer{
+		_ = nats.Timeout(30 * time.Second)(o)
+		_ = nats.DrainTimeout(30 * time.Second)(o)
+		_ = nats.PingInterval(2 * time.Minute)(o)
+		_ = nats.MaxPingsOutstanding(3)(o)
+		_ = nats.RetryOnFailedConnect(true)(o)
+		_ = nats.ReconnectBufSize(128 * 1024)(o)
+		_ = nats.ReconnectWait(10 * time.Second)(o)
+		_ = nats.MaxReconnects(-1)(o)
+		_ = nats.SetCustomDialer(&net.Dialer{
 			KeepAlive: -1,
 		})(o)
-		nats.CustomReconnectDelay(func(attempts int) time.Duration {
+		_ = nats.CustomReconnectDelay(func(attempts int) time.Duration {
 			delay := ExpBackoff(attempts, 6*time.Minute)
 			log.Printf("NATS reconnect attempts: %v, delay: %v", attempts, delay)
 			return delay
 		})(o)
-		nats.Token(eo.AuthToken)(o)
+		_ = nats.Token(eo.AuthToken)(o)
 
 		if eo.NoEcho {
 			o.NoEcho = true
 		}
 
-		nats.ErrorHandler(natsErrHandler)(o)
+		_ = nats.ErrorHandler(natsErrHandler)(o)
 
 		return nil
 	}

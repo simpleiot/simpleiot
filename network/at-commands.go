@@ -436,9 +436,9 @@ type BG96ScanMode int
 // valid scan modes
 const (
 	BG96ScanModeUnknown BG96ScanMode = -1
-	BG96ScanModeAuto                 = 0
-	BG96ScanModeGSM                  = 1
-	BG96ScanModeLTE                  = 3
+	BG96ScanModeAuto    BG96ScanMode = 0
+	BG96ScanModeGSM     BG96ScanMode = 1
+	BG96ScanModeLTE     BG96ScanMode = 3
 )
 
 // +QCFG: "nwscanmode",3
