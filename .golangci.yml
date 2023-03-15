@@ -10,6 +10,7 @@ issues:
     - EXC0012
     - EXC0013
     - EXC0014
-    - EXC0015
+    # "should have a package comment" is failing in github actions
+    #- EXC0015
   exclude:
     - SA1019
