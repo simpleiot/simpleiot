@@ -45,7 +45,6 @@ type Modbus struct {
 
 	chDone      chan bool
 	chPoint     chan pointWID
-	chError     <-chan error
 	chRegChange chan bool
 }
 
@@ -117,7 +116,7 @@ func (b *Modbus) CheckIOs() error {
 
 	for _, node := range nodes {
 		found[node.ID] = true
-		io, ok := b.ios[node.ID]
+		_, ok := b.ios[node.ID]
 		if !ok {
 			// add ios
 			var err error
@@ -126,7 +125,7 @@ func (b *Modbus) CheckIOs() error {
 				log.Println("Error with IO node: ", err)
 				continue
 			}
-			io, err = NewModbusIO(b.nc, ioNode, b.chPoint)
+			io, err := NewModbusIO(b.nc, ioNode, b.chPoint)
 			if err != nil {
 				log.Println("Error creating new modbus IO: ", err)
 				continue
@@ -413,7 +412,10 @@ func (b *Modbus) ServerIO(io *ModbusIONode) error {
 	// update regs with db value
 	switch io.modbusIOType {
 	case data.PointValueModbusDiscreteInput:
-		b.regs.WriteCoil(io.address, data.FloatToBool(io.value))
+		err := b.regs.WriteCoil(io.address, data.FloatToBool(io.value))
+		if err != nil {
+			return err
+		}
 	case data.PointValueModbusCoil:
 		regValue, err := b.regs.ReadCoil(io.address)
 		if err != nil {
@@ -430,7 +432,10 @@ func (b *Modbus) ServerIO(io *ModbusIONode) error {
 		}
 
 	case data.PointValueModbusInputRegister:
-		b.WriteReg(io)
+		err := b.WriteReg(io)
+		if err != nil {
+			return err
+		}
 
 	case data.PointValueModbusHoldingRegister:
 		v, err := b.ReadReg(io)
@@ -477,16 +482,28 @@ func (b *Modbus) InitRegs(io *ModbusIONode) {
 	switch io.modbusIOType {
 	case data.PointValueModbusDiscreteInput:
 		b.regs.AddCoil(io.address)
-		b.regs.WriteCoil(io.address, data.FloatToBool(io.value))
+		err := b.regs.WriteCoil(io.address, data.FloatToBool(io.value))
+		if err != nil {
+			log.Println("Error writing coil: ", err)
+		}
 	case data.PointValueModbusCoil:
 		b.regs.AddCoil(io.address)
-		b.regs.WriteCoil(io.address, data.FloatToBool(io.value))
+		err := b.regs.WriteCoil(io.address, data.FloatToBool(io.value))
+		if err != nil {
+			log.Println("Error writing coil: ", err)
+		}
 	case data.PointValueModbusInputRegister:
 		b.regs.AddReg(io.address, regCount(io.modbusDataType))
-		b.WriteReg(io)
+		err := b.WriteReg(io)
+		if err != nil {
+			log.Println("Error writing reg: ", err)
+		}
 	case data.PointValueModbusHoldingRegister:
 		b.regs.AddReg(io.address, regCount(io.modbusDataType))
-		b.WriteReg(io)
+		err := b.WriteReg(io)
+		if err != nil {
+			log.Println("Error writing reg: ", err)
+		}
 	}
 }
 
@@ -532,16 +549,28 @@ func (b *Modbus) WriteReg(io *ModbusIONode) error {
 	unscaledValue := (io.value - io.offset) / io.scale
 	switch io.modbusDataType {
 	case data.PointValueUINT16, data.PointValueINT16:
-		b.regs.WriteReg(io.address, uint16(unscaledValue))
+		err := b.regs.WriteReg(io.address, uint16(unscaledValue))
+		if err != nil {
+			return err
+		}
 	case data.PointValueUINT32:
-		b.regs.WriteRegUint32(io.address,
+		err := b.regs.WriteRegUint32(io.address,
 			uint32(unscaledValue))
+		if err != nil {
+			return err
+		}
 	case data.PointValueINT32:
-		b.regs.WriteRegInt32(io.address,
+		err := b.regs.WriteRegInt32(io.address,
 			int32(unscaledValue))
+		if err != nil {
+			return err
+		}
 	case data.PointValueFLOAT32:
-		b.regs.WriteRegFloat32(io.address,
+		err := b.regs.WriteRegFloat32(io.address,
 			float32(unscaledValue))
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unhandled data type: %v",
 			io.modbusDataType)
@@ -904,7 +933,10 @@ func (b *Modbus) Run() {
 				if valueModified && b.busNode.busType == data.PointValueServer {
 					err := b.ServerIO(io.ioNode)
 					if err != nil {
-						b.LogError(io.ioNode, err)
+						err := b.LogError(io.ioNode, err)
+						if err != nil {
+							log.Println("Error logging error: ", err)
+						}
 					}
 				}
 
@@ -914,7 +946,10 @@ func (b *Modbus) Run() {
 					(io.ioNode.value != io.ioNode.valueSet) {
 					err := b.ClientIO(io)
 					if err != nil {
-						b.LogError(io.ioNode, err)
+						err := b.LogError(io.ioNode, err)
+						if err != nil {
+							log.Println("Error logging error: ", err)
+						}
 					}
 				}
 			}

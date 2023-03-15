@@ -49,7 +49,7 @@ func TestFsDecomp(t *testing.T) {
 	}
 
 	buf := make([]byte, 50)
-	c, err := fd.Read(buf)
+	c, _ := fd.Read(buf)
 
 	buf = buf[0:c]
 
@@ -79,7 +79,7 @@ func TestFsRoot(t *testing.T) {
 		}
 
 		buf := make([]byte, 50)
-		c, err := fd.Read(buf)
+		c, _ := fd.Read(buf)
 
 		buf = buf[0:c]
 

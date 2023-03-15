@@ -47,7 +47,7 @@ func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) 
 
 	err = binary.Write(&ret, binary.LittleEndian, crc)
 
-	return ret.Bytes(), nil
+	return ret.Bytes(), err
 }
 
 // SerialDecode can be used to decode serial data in a client.

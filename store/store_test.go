@@ -48,7 +48,9 @@ func TestStoreUp(t *testing.T) {
 		t.Fatal("sub error: ", err)
 	}
 
-	defer sub.Unsubscribe()
+	defer func() {
+		_ = sub.Unsubscribe()
+	}()
 
 	err = client.SendNodePoint(nc, root.ID, data.Point{Type: data.PointTypeDescription,
 		Text: "rootly"}, false)

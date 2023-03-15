@@ -82,7 +82,10 @@ func SubscribePoints(nc *nats.Conn, id string, callback func(points []data.Point
 	})
 
 	return func() {
-		psub.Unsubscribe()
+		err := psub.Unsubscribe()
+		if err != nil {
+			log.Println("Unsubscribe points error: ", err)
+		}
 	}, err
 }
 
@@ -100,7 +103,10 @@ func SubscribeEdgePoints(nc *nats.Conn, id, parent string, callback func(points 
 	})
 
 	return func() {
-		psub.Unsubscribe()
+		err := psub.Unsubscribe()
+		if err != nil {
+			log.Println("Unsubscribe points error: ", err)
+		}
 	}, err
 }
 

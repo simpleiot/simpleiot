@@ -1,3 +1,4 @@
+// test size of point encoding
 package main
 
 import (

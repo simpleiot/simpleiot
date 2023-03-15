@@ -1,3 +1,4 @@
+// example modbus client application
 package main
 
 // eventually, this should become a full fledged client or server test app

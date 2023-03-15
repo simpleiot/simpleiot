@@ -1,3 +1,4 @@
+// example modbus server application
 package main
 
 import (
@@ -89,7 +90,7 @@ func main() {
 		time.Sleep(time.Second * 10)
 
 		value = !value
-		regs.WriteCoil(128, value)
+		_ = regs.WriteCoil(128, value)
 
 		if up {
 			regValue = regValue + 1
@@ -102,6 +103,6 @@ func main() {
 				up = true
 			}
 		}
-		regs.WriteReg(2, uint16(regValue))
+		_ = regs.WriteReg(2, uint16(regValue))
 	}
 }

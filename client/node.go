@@ -399,9 +399,15 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 			case r := <-getCurrent:
 				r <- current
 			case pts := <-pointUpdates:
-				data.MergePoints(id, pts, &current)
+				err := data.MergePoints(id, pts, &current)
+				if err != nil {
+					log.Println("NodeWatcher, error merging points: ", err)
+				}
 			case pts := <-edgeUpdates:
-				data.MergeEdgePoints(id, parent, pts, &current)
+				err := data.MergeEdgePoints(id, parent, pts, &current)
+				if err != nil {
+					log.Println("NodeWatcher, error merging edge points: ", err)
+				}
 			}
 		}
 	}()

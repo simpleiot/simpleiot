@@ -11,6 +11,7 @@ import (
 // node, point, and edgepoint tags as shown below.
 // It is recommended that id and parent node tags
 // always be included.
+//
 //	   type exType struct {
 //		ID          string  `node:"id"`
 //		Parent      string  `node:"parent"`

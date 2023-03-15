@@ -59,7 +59,7 @@ func TestFifo(t *testing.T) {
 	// verfy fifo reads with no data block
 	readReturned := make(chan struct{})
 	go func() {
-		a.Read(buf)
+		_, _ = a.Read(buf)
 		close(readReturned)
 	}()
 

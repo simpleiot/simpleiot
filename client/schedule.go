@@ -88,7 +88,8 @@ func (s *schedule) activeForTime(t time.Time) (bool, error) {
 }
 
 var reHourMin = regexp.MustCompile(`(\d{1,2}):(\d\d)`)
-var reDate = regexp.MustCompile(`(\d{4})-(\d{1,2})-(\d{1,2})`)
+
+//var reDate = regexp.MustCompile(`(\d{4})-(\d{1,2})-(\d{1,2})`)
 
 type timeRange struct {
 	start time.Time

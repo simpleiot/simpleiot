@@ -629,7 +629,18 @@ NextPin:
 		 tombstone = ?10,
 		 origin = ?11
 		 `)
-	defer stmt.Close()
+
+	if err != nil {
+		rollback()
+		return err
+	}
+
+	defer func() {
+		err := stmt.Close()
+		if err != nil {
+			log.Println("Error closing sqlite statement: ", err)
+		}
+	}()
 
 	for i, p := range writePoints {
 		tNs := p.Time.UnixNano()
@@ -796,6 +807,11 @@ NextPin:
 		 origin = ?11
 		 `)
 
+	if err != nil {
+		rollback()
+		return err
+	}
+
 	for i, p := range writePoints {
 		tNs := p.Time.UnixNano()
 		pID := writePointIDs[i]
@@ -899,6 +915,10 @@ func (sdb *DbSqlite) updateHash(tx *sql.Tx, id string, hashUpdate uint32) error 
 
 	// write update hash values back to edges
 	stmt, err := tx.Prepare(`UPDATE edges SET hash = ? WHERE id = ?`)
+
+	if err != nil {
+		return err
+	}
 
 	for id, hash := range cache {
 		_, err = stmt.Exec(hash, id)

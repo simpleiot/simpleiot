@@ -165,7 +165,7 @@ func TestSerial(t *testing.T) {
 
 	// test sending points to MCU
 	pumpSetting := data.Point{Type: "pumpSetting", Value: 233.5, Origin: root.ID}
-	client.SendNodePoint(nc, serialTest.ID, pumpSetting, false)
+	_ = client.SendNodePoint(nc, serialTest.ID, pumpSetting, false)
 
 	// the above should trigger a serial packet to get sent to MCU, look for it now
 	go mcuReadSerial()
@@ -177,7 +177,7 @@ func TestSerial(t *testing.T) {
 		// all is well
 	}
 
-	seqR, subjectR, pointsR, err = client.SerialDecode(readData)
+	_, _, pointsR, err = client.SerialDecode(readData)
 	if err != nil {
 		t.Error("Error in response: ", err)
 	}

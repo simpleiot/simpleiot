@@ -51,5 +51,11 @@ func DefaultClients(nc *nats.Conn) (*Group, error) {
 	particle := NewManager(nc, NewParticleClient)
 	g.Add(particle)
 
+	shelly := NewManager(nc, NewShellyClient)
+	g.Add(shelly)
+
+	shellyIO := NewManager(nc, NewShellyIOClient)
+	g.Add(shellyIO)
+
 	return g, nil
 }

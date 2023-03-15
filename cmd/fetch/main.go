@@ -1,3 +1,4 @@
+// test download program
 package main
 
 import (
@@ -62,7 +63,7 @@ func grabDownload(url, fn string) {
 	defer file.Close()
 
 	client := grab.NewClient()
-	req, err := grab.NewRequest(fn, url)
+	req, _ := grab.NewRequest(fn, url)
 	// ...
 	resp := client.Do(req)
 

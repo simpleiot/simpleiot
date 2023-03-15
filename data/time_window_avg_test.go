@@ -24,13 +24,11 @@ func TestNewPoint(t *testing.T) {
 	startTime := time.Now()
 
 	for time.Since(startTime) < time.Second*6 {
-		select {
-		case <-pointTicker.C:
-			pointAverager.NewPoint(point)
+		<-pointTicker.C
+		pointAverager.NewPoint(point)
 
-			if avgPoint.Value != point.Value {
-				t.Error("point avg is not correct")
-			}
+		if avgPoint.Value != point.Value {
+			t.Error("point avg is not correct")
 		}
 	}
 }

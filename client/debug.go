@@ -16,7 +16,7 @@ func Dump(nc *nats.Conn, msg *nats.Msg) error {
 		return err
 	}
 	if s != "" {
-		log.Printf(s)
+		log.Print(s)
 	}
 
 	return nil
@@ -100,28 +100,28 @@ func Log(natsServer, authToken string) {
 		os.Exit(-1)
 	}
 
-	_, err = nc.Subscribe("p.*", func(msg *nats.Msg) {
+	_, _ = nc.Subscribe("p.*", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
 			log.Println("Error dumping nats msg: ", err)
 		}
 	})
 
-	_, err = nc.Subscribe("node.*.not", func(msg *nats.Msg) {
+	_, _ = nc.Subscribe("node.*.not", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
 			log.Println("Error dumping nats msg: ", err)
 		}
 	})
 
-	_, err = nc.Subscribe("node.*.msg", func(msg *nats.Msg) {
+	_, _ = nc.Subscribe("node.*.msg", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
 			log.Println("Error dumping nats msg: ", err)
 		}
 	})
 
-	_, err = nc.Subscribe("p.*.*", func(msg *nats.Msg) {
+	_, _ = nc.Subscribe("p.*.*", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
 			log.Println("Error dumping nats msg: ", err)

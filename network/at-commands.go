@@ -268,7 +268,7 @@ func CmdGetFwVersionBG96(port io.ReadWriter) (string, error) {
 	return "", fmt.Errorf("Error parsing AT+CGMR response: %v", resp)
 }
 
-//REVISION 4.3.1.0c
+// REVISION 4.3.1.0c
 var reATI = regexp.MustCompile(`REVISION (\S+)`)
 
 // CmdATI gets version # from modem
@@ -326,8 +326,8 @@ func CmdGetSignal(port io.ReadWriter) (int, int, error) {
 	return 0, 0, fmt.Errorf("Error parsing AT+CSQ response: %v", resp)
 }
 
-//+CNUM: "Line 1","+15717759540",145
-//+CNUM: "","18167882915",129
+// +CNUM: "Line 1","+15717759540",145
+// +CNUM: "","18167882915",129
 var reCmdPhoneNum = regexp.MustCompile(`(\d{11,})`)
 
 // CmdGetPhoneNum gets phone number from modem
@@ -436,9 +436,9 @@ type BG96ScanMode int
 // valid scan modes
 const (
 	BG96ScanModeUnknown BG96ScanMode = -1
-	BG96ScanModeAuto                 = 0
-	BG96ScanModeGSM                  = 1
-	BG96ScanModeLTE                  = 3
+	BG96ScanModeAuto    BG96ScanMode = 0
+	BG96ScanModeGSM     BG96ScanMode = 1
+	BG96ScanModeLTE     BG96ScanMode = 3
 )
 
 // +QCFG: "nwscanmode",3

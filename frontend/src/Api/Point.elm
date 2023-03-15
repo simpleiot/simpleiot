@@ -31,6 +31,7 @@ module Api.Point exposing
     , typeDebug
     , typeDescription
     , typeDevice
+    , typeDeviceID
     , typeDisable
     , typeEmail
     , typeEnd
@@ -45,6 +46,7 @@ module Api.Point exposing
     , typeFrequency
     , typeFrom
     , typeID
+    , typeIP
     , typeIndex
     , typeLastName
     , typeLog
@@ -685,6 +687,16 @@ typeType =
     "type"
 
 
+typeIP : String
+typeIP =
+    "ip"
+
+
+typeDeviceID : String
+typeDeviceID =
+    "deviceID"
+
+
 valueApp : String
 valueApp =
     "app"
@@ -749,6 +761,7 @@ specialPoints =
     , typeTxReset
     , typeRate
     , typeType
+    , typeIP
     , typePeriod
     , typeName
     , typeAuthToken

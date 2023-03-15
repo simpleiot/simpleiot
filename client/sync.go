@@ -109,6 +109,9 @@ func (up *SyncClient) Run() error {
 		chLocalNodePoints <- NewPoints{ID: nodeID, Points: points}
 
 	})
+	if err != nil {
+		log.Println("SyncClient: error subscribing: ", err)
+	}
 
 	subLocalEdgePoints, err := up.ncLocal.Subscribe(SubjectEdgeAllPoints(), func(msg *nats.Msg) {
 		nodeID, parentID, points, err := DecodeEdgePointsMsg(msg)
@@ -127,6 +130,9 @@ func (up *SyncClient) Run() error {
 			}
 		}
 	})
+	if err != nil {
+		log.Println("SyncClient: error subscribing: ", err)
+	}
 
 	checkPeriod := func() {
 		if up.config.Period < 1 {
@@ -708,7 +714,10 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		}
 
 		if !found {
-			SendNodePoint(up.ncRemote, nodeUp.ID, p, true)
+			err := SendNodePoint(up.ncRemote, nodeUp.ID, p, true)
+			if err != nil {
+				log.Println("Error sending point: ", err)
+			}
 		}
 	}
 
@@ -751,7 +760,10 @@ func (up *SyncClient) syncNode(parent, id string) error {
 			}
 
 			if !found {
-				SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
+				err := SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
+				if err != nil {
+					log.Println("Error sending point: ", err)
+				}
 			}
 		}
 
