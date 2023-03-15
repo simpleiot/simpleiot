@@ -172,10 +172,8 @@ siot_frontend_fix() {
 siot_test() {
 	siot_build_frontend || return 1
 	siot_test_frontend || return 1
-	#gofmt -l ./... || return 1
 	go test -p=1 -race "$@" ./... || return 1
-	golint -set_exit_status ./... || return 1
-	go vet ./... || return 1
+	golangci-lint run || return 1
 	return 0
 }
 
