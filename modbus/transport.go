@@ -10,7 +10,7 @@ type TransportType string
 // define valid transport types
 const (
 	TransportTypeTCP TransportType = "tcp"
-	TransportTypeRTU               = "rtu"
+	TransportTypeRTU TransportType = "rtu"
 )
 
 // TransportClientServer defines if transport is being used for a client or server
@@ -19,7 +19,7 @@ type TransportClientServer string
 // define valid client server types
 const (
 	TransportClient TransportClientServer = "client"
-	TransportServer                       = "server"
+	TransportServer TransportClientServer = "server"
 )
 
 // Transport defines an interface that various

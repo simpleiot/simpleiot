@@ -99,7 +99,6 @@ func (m *Manager) nextInterface() {
 	m.setState(StateNotDetected)
 
 	log.Println("Network: trying next interface: ", m.Desc())
-	return
 }
 
 func (m *Manager) connect() error {

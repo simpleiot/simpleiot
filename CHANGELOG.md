@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- support for Shelly Home Automation devices (#189)
+- switch Linting/CI to use golangci-lint and fix issues in codebase
+
 ## [[0.9.0] - 2023-02-28](https://github.com/simpleiot/simpleiot/releases/tag/v0.9.0)
 
 - change default HTTP port from 8080 to 8118. This should reduce conflicts with

@@ -110,10 +110,10 @@ func (m *Manager) Start() error {
 			return errors.New("node manager stopping")
 		case <-t.C:
 			if m.modbusManager != nil {
-				m.modbusManager.Update()
+				_ = m.modbusManager.Update()
 			}
 			if m.oneWireManager != nil {
-				m.oneWireManager.update()
+				_ = m.oneWireManager.update()
 			}
 			t.Reset(time.Second * 20)
 		}

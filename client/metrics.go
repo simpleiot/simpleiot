@@ -35,7 +35,6 @@ type MetricsClient struct {
 	stop          chan struct{}
 	newPoints     chan NewPoints
 	newEdgePoints chan NewPoints
-	lastSend      time.Time
 }
 
 // NewMetricsClient ...

@@ -1,3 +1,4 @@
+// example of sending SMS message
 package main
 
 import (

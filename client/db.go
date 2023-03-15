@@ -74,6 +74,10 @@ func (dbc *DbClient) Run() error {
 		dbc.newDbPoints <- NewPoints{chunks[2], "", points}
 	})
 
+	if err != nil {
+		return err
+	}
+
 	subjectHR := fmt.Sprintf("phrup.%v.*", dbc.config.Parent)
 
 	dbc.upSubHr, err = dbc.nc.Subscribe(subjectHR, func(msg *nats.Msg) {
@@ -119,19 +123,13 @@ func (dbc *DbClient) Run() error {
 		influxErrors := dbc.writeAPI.Errors()
 
 		go func() {
-			for {
-				select {
-				case err, ok := <-influxErrors:
-					if err != nil {
-						log.Println("Influx write error: ", err)
-					}
-
-					if !ok {
-						log.Println("Influxdb write api closed")
-						return
-					}
+			for err := range influxErrors {
+				if err != nil {
+					log.Println("Influx write error: ", err)
 				}
+
 			}
+			log.Println("Influxdb write api closed")
 		}()
 	}
 

@@ -47,9 +47,9 @@ func (l *HTTPLogger) Handler(next http.Handler) http.Handler {
 		addr := r.RemoteAddr
 		if err == nil {
 			rBuf := bytes.Buffer{}
-			rBuf.ReadFrom(rdr)
+			_, _ = rBuf.ReadFrom(rdr)
 			l.Printf("(%s) \"%s %s\" %d -> %v -> %v", addr, r.Method, r.RequestURI,
-				crw.status, string(rBuf.Bytes()), string(crw.buf.Bytes()))
+				crw.status, rBuf.String(), crw.buf.String())
 		} else {
 			l.Printf("(%s) \"%s %s\" %d", addr, r.Method, r.RequestURI, crw.status)
 		}

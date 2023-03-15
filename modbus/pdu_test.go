@@ -9,7 +9,7 @@ import (
 func TestPduReadCoils(t *testing.T) {
 	regs := Regs{}
 	regs.AddCoil(128) // add register 8 for coil 128
-	regs.WriteCoil(128, true)
+	_ = regs.WriteCoil(128, true)
 
 	pdu := ReadCoils(128, 1)
 
@@ -37,7 +37,7 @@ func TestPduReadCoils(t *testing.T) {
 func TestPduWriteSingleCoil(t *testing.T) {
 	regs := Regs{}
 	regs.AddCoil(128) // add register 8 for coil 128
-	regs.WriteCoil(128, true)
+	_ = regs.WriteCoil(128, true)
 
 	pdu := WriteSingleCoil(128, false)
 
@@ -63,7 +63,7 @@ func TestPduWriteSingleCoil(t *testing.T) {
 func TestPduWriteSingleCoilError(t *testing.T) {
 	regs := Regs{}
 	regs.AddCoil(128) // add register 8 for coil 128
-	regs.WriteCoil(128, true)
+	_ = regs.WriteCoil(128, true)
 
 	pdu := WriteSingleCoil(64, false)
 
@@ -84,7 +84,7 @@ func TestPduWriteSingleCoilError(t *testing.T) {
 func TestPduReadHoldingRegs(t *testing.T) {
 	regs := Regs{}
 	regs.AddReg(8, 1)
-	regs.WriteReg(8, 0x1234)
+	_ = regs.WriteReg(8, 0x1234)
 
 	pdu := ReadHoldingRegs(8, 1)
 
@@ -111,9 +111,9 @@ func TestPduReadHoldingRegs(t *testing.T) {
 func TestProcessRequest(t *testing.T) {
 	regs := Regs{}
 	regs.AddCoil(128) // add register 8 for coil 128
-	regs.WriteCoil(128, true)
-	regs.WriteCoil(130, true)
-	regs.WriteCoil(132, true)
+	_ = regs.WriteCoil(128, true)
+	_ = regs.WriteCoil(130, true)
+	_ = regs.WriteCoil(132, true)
 	regs.AddCoil(144) // add register 9 for coil 144
 
 	for _, test := range []struct {

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/nats-io/nats.go"
@@ -34,7 +35,7 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if len(nodes) < 0 {
+	if len(nodes) == 0 {
 		http.Error(res, "invalid login", http.StatusForbidden)
 		return
 	}
@@ -50,8 +51,12 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	encode(res, data.Auth{
+	err = encode(res, data.Auth{
 		Token: token,
 		Email: email,
 	})
+
+	if err != nil {
+		log.Println("Error encoding: ", err)
+	}
 }

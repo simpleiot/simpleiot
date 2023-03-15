@@ -40,10 +40,10 @@ func (owm *oneWireManager) update() error {
 
 	for _, node := range nodes {
 		found[node.ID] = true
-		bus, ok := owm.busses[node.ID]
+		_, ok := owm.busses[node.ID]
 		if !ok {
 			var err error
-			bus, err = newOneWire(owm.nc, node)
+			bus, err := newOneWire(owm.nc, node)
 			if err != nil {
 				log.Println("Error creating new modbus: ", err)
 				continue

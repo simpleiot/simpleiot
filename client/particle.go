@@ -154,7 +154,7 @@ done:
 	for {
 		select {
 		case <-pc.stop:
-			log.Println("Stopping db client: ", pc.config.Description)
+			log.Println("Stopping particle client: ", pc.config.Description)
 			break done
 		case pts := <-pc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &pc.config)

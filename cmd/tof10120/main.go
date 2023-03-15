@@ -1,3 +1,4 @@
+// TOF10120 test application
 package main
 
 import (
@@ -43,6 +44,10 @@ func main() {
 	tof := sensors.NewTOF10120(portRR)
 
 	err = tof.SetSendInterval(*flagSend)
+
+	if err != nil {
+		log.Println("Error setting send interval: ", err)
+	}
 
 	err = tof.Read(func(v int) {
 		log.Printf("TOF data: %vmm\n", v)

@@ -91,7 +91,7 @@ func (ow *oneWire) CheckIOs() error {
 
 	for _, node := range nodes {
 		found[node.ID] = true
-		io, ok := ow.ios[node.ID]
+		_, ok := ow.ios[node.ID]
 		if !ok {
 			// add ios
 			var err error
@@ -100,7 +100,7 @@ func (ow *oneWire) CheckIOs() error {
 				log.Println("Error with IO node: ", err)
 				continue
 			}
-			io, err = newOneWireIO(ow.nc, ioNode, ow.chPoint)
+			io, err := newOneWireIO(ow.nc, ioNode, ow.chPoint)
 			if err != nil {
 				log.Println("Error creating new modbus IO: ", err)
 				continue
@@ -134,7 +134,7 @@ func (ow *oneWire) checkIOs() error {
 
 	for _, node := range nodes {
 		found[node.ID] = true
-		io, ok := ow.ios[node.ID]
+		_, ok := ow.ios[node.ID]
 		if !ok {
 			// add ios
 			var err error
@@ -143,7 +143,7 @@ func (ow *oneWire) checkIOs() error {
 				log.Println("Error with IO node: ", err)
 				continue
 			}
-			io, err = newOneWireIO(ow.nc, ioNode, ow.chPoint)
+			io, err := newOneWireIO(ow.nc, ioNode, ow.chPoint)
 			if err != nil {
 				log.Println("Error creating new modbus IO: ", err)
 				continue
@@ -274,7 +274,10 @@ func (ow *oneWire) run() {
 				continue
 			}
 
-			ow.checkIOs()
+			err := ow.checkIOs()
+			if err != nil {
+				log.Println("Error checking 1-wire ios: ", err)
+			}
 			ow.detect()
 			for _, io := range ow.ios {
 				err := io.read()
@@ -290,11 +293,17 @@ func (ow *oneWire) run() {
 						Type:  data.PointTypeErrorCount,
 						Value: float64(busCount),
 					}, false)
+					if err != nil {
+						log.Println("Error sending point: ", err)
+					}
 
 					err = client.SendNodePoint(ow.nc, io.ioNode.nodeID, data.Point{
 						Type:  data.PointTypeErrorCount,
 						Value: float64(ioCount),
 					}, false)
+					if err != nil {
+						log.Println("Error sending point: ", err)
+					}
 				}
 			}
 		}

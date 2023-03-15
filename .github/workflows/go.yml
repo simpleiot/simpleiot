@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.19
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19
         id: go
@@ -18,15 +18,24 @@ jobs:
         id: node
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Get dependencies
         run: |
           . envsetup.sh
-          siot_install_frontend_deps 2
+          siot_install_frontend_deps
 
-      - name: Test
+      - name: Test/lint frontend
+        run: |
+          . envsetup.sh
+          siot_build_frontend
+          siot_test_frontend
+
+      - name: Test Backend
         run: |
           node --version
           . envsetup.sh
-          siot_test
+          go test -p=1 -race "$@" ./...
+
+      - name: Lint backend
+        uses: golangci/golangci-lint-action@v3.4.0

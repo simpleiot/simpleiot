@@ -17,7 +17,6 @@ import (
 // Companion file in api/send-file.go
 
 type fileDownload struct {
-	id   string
 	name string
 	data []byte
 	seq  int32

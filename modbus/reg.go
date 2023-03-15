@@ -148,7 +148,7 @@ func (r *Regs) ReadRegUint32(address int) (uint32, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	regs := make([]uint16, 2, 2)
+	regs := make([]uint16, 2)
 
 	var err error
 	regs[0], err = r.readReg(address)
@@ -185,7 +185,7 @@ func (r *Regs) ReadRegInt32(address int) (int32, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	regs := make([]uint16, 2, 2)
+	regs := make([]uint16, 2)
 
 	var err error
 	regs[0], err = r.readReg(address)
@@ -222,7 +222,7 @@ func (r *Regs) ReadRegFloat32(address int) (float32, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	regs := make([]uint16, 2, 2)
+	regs := make([]uint16, 2)
 
 	var err error
 	regs[0], err = r.readReg(address)

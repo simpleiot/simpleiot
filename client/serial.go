@@ -255,7 +255,6 @@ func (sd *SerialDevClient) Run() error {
 					log.Println("error merging new points: ", err)
 				}
 			} else {
-				subject = sd.natsSub
 				// check if ascii
 				isASCII := true
 				for i := 0; i < len(rd); i++ {

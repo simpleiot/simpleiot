@@ -14,6 +14,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
+	github.com/hashicorp/mdns v1.0.5
 	github.com/influxdata/influxdb-client-go/v2 v2.10.0
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/kevinburke/twilio-go v0.0.0-20200810163702-320748330fac
@@ -27,7 +28,6 @@ require (
 	github.com/simpleiot/canparse v0.0.0-20221208203709-740f6c246768
 	go.bug.st/serial v1.3.5
 	go.einride.tech/can v0.5.1
-	go.etcd.io/bbolt v1.3.6
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	google.golang.org/protobuf v1.27.1
 	modernc.org/sqlite v1.18.0
@@ -57,6 +57,7 @@ require (
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-colorable v0.1.9 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/miekg/dns v1.1.41 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/nats-io/jwt/v2 v2.3.0 // indirect
 	github.com/nats-io/nkeys v0.3.0 // indirect

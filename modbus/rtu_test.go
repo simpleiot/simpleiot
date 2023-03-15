@@ -46,7 +46,7 @@ func TestRtuSc2000Level(t *testing.T) {
 
 	regs := Regs{}
 	regs.AddReg(10, 1)
-	regs.WriteReg(10, 98)
+	_ = regs.WriteReg(10, 98)
 
 	_, resp, err := prompt.ProcessRequest(&regs)
 	if err != nil {
@@ -87,7 +87,7 @@ func TestRtuSc2000Coil(t *testing.T) {
 
 	regs := Regs{}
 	regs.AddCoil(128)
-	regs.WriteCoil(128, true)
+	_ = regs.WriteCoil(128, true)
 
 	_, resp, err := prompt.ProcessRequest(&regs)
 	if err != nil {

@@ -4,18 +4,18 @@ package data
 // the system.
 const (
 	// general point types
-	PointTypeChannel     string = "channel"
-	PointTypeDevice             = "device"
-	PointTypeDescription        = "description"
-	PointTypeFilePath           = "filePath"
-	PointTypeNodeType           = "nodeType"
-	PointTypeTombstone          = "tombstone"
-	PointTypeScale              = "scale"
-	PointTypeOffset             = "offset"
-	PointTypeUnits              = "units"
-	PointTypeValue              = "value"
-	PointTypeValueSet           = "valueSet"
-	PointTypeIndex              = "index"
+	PointTypeChannel     = "channel"
+	PointTypeDevice      = "device"
+	PointTypeDescription = "description"
+	PointTypeFilePath    = "filePath"
+	PointTypeNodeType    = "nodeType"
+	PointTypeTombstone   = "tombstone"
+	PointTypeScale       = "scale"
+	PointTypeOffset      = "offset"
+	PointTypeUnits       = "units"
+	PointTypeValue       = "value"
+	PointTypeValueSet    = "valueSet"
+	PointTypeIndex       = "index"
 	// PointTypeID typically refers to Node ID
 	PointTypeID                 = "id"
 	PointTypeAddress            = "address"
@@ -276,4 +276,10 @@ const (
 	PointKeyAvailable   = "available"
 	PointKeyUsed        = "used"
 	PointKeyFree        = "free"
+
+	NodeTypeShelly   = "shelly"
+	NodeTypeShellyIo = "shellyIo"
+
+	PointTypeDeviceID = "deviceID"
+	PointTypeIP       = "ip"
 )

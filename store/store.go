@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -25,7 +24,6 @@ type Store struct {
 	nc            *nats.Conn
 	subscriptions map[string]*nats.Subscription
 	db            *DbSqlite
-	lock          sync.Mutex
 	authorizer    api.Authorizer
 
 	// cycle metrics track how long it takes to handle a point
@@ -244,17 +242,14 @@ func (st *Store) StopMetrics(_ error) {
 	close(st.chStopMetrics)
 }
 
-func (st *Store) setSwUpdateState(id string, state data.SwUpdateState) error {
-	p := state.Points()
-
-	return client.SendNodePoints(st.nc, id, p, false)
-}
-
 func (st *Store) handleNodePoints(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
-		st.metricCycleNodePoint.AddSample(float64(t))
+		err := st.metricCycleNodePoint.AddSample(float64(t))
+		if err != nil {
+			log.Println("Error stopping metrics: ", err)
+		}
 	}()
 
 	nodeID, points, err := client.DecodeNodePointsMsg(msg)
@@ -290,7 +285,10 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
-		st.metricCycleNodeEdgePoint.AddSample(float64(t))
+		err := st.metricCycleNodeEdgePoint.AddSample(float64(t))
+		if err != nil {
+			log.Println("handle edge point error: ", err)
+		}
 	}()
 
 	nodeID, parentID, points, err := client.DecodeEdgePointsMsg(msg)
@@ -327,7 +325,10 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
-		st.metricCycleNode.AddSample(float64(t))
+		err := st.metricCycleNode.AddSample(float64(t))
+		if err != nil {
+			log.Println("handleNodesRequest error: ", err)
+		}
 	}()
 
 	resp := &pb.NodesRequest{}
@@ -381,6 +382,10 @@ handleNodeDone:
 	}
 
 	data, err := proto.Marshal(resp)
+	if err != nil {
+		log.Println("marshal error: ", err)
+		return
+	}
 
 	err = st.nc.Publish(msg.Reply, data)
 	if err != nil {
@@ -525,7 +530,10 @@ func (st *Store) reply(subject string, err error) {
 		reply = err.Error()
 	}
 
-	st.nc.Publish(subject, []byte(reply))
+	e := st.nc.Publish(subject, []byte(reply))
+	if e != nil {
+		log.Println("Error ack reply: ", e)
+	}
 }
 
 func (st *Store) processPointsUpstream(upNodeID, nodeID string, points data.Points) error {

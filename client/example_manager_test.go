@@ -21,18 +21,18 @@ type exNode struct {
 // exNodeClient contains the logic for this client
 type exNodeClient struct {
 	nc            *nats.Conn
-	config        testNode
+	config        exNode
 	stop          chan struct{}
 	stopped       chan struct{}
 	newPoints     chan client.NewPoints
 	newEdgePoints chan client.NewPoints
-	chGetConfig   chan chan testNode
+	chGetConfig   chan chan exNode
 }
 
 // newExNodeClient is passed to the NewManager() function call -- when
 // a new node is detected, the Manager will call this function to construct
 // a new client.
-func newExNodeClient(nc *nats.Conn, config testNode) client.Client {
+func newExNodeClient(nc *nats.Conn, config exNode) client.Client {
 	return &exNodeClient{
 		nc:            nc,
 		config:        config,
@@ -112,7 +112,11 @@ func ExampleNewManager() {
 	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
 	// root and if it finds any, it instantiates a new client, and sends point updates to it
 	m := client.NewManager(nc, newExNodeClient)
-	m.Run()
+	err = m.Run()
+
+	if err != nil {
+		log.Println("Error running: ", err)
+	}
 
 	// Now any updates to the node will trigger Points/EdgePoints callbacks in the above client
 }

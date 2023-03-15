@@ -22,8 +22,6 @@ func setVal(p Point, v reflect.Value) {
 	}
 }
 
-var count = 0
-
 // MergePoints takes points and updates fields in a type
 // that have matching point tags. See [Decode] for an example type.
 func MergePoints(id string, points []Point, output interface{}) error {

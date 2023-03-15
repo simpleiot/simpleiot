@@ -1,3 +1,4 @@
+// This is the main Simple IoT Program
 package main
 
 import (
@@ -17,7 +18,8 @@ import (
 
 // goreleaser will replace version with Git version. You can also pass version
 // into the version into the go build:
-//   go build -ldflags="-X main.version=1.2.3"
+//
+//	go build -ldflags="-X main.version=1.2.3"
 var version = "Development"
 
 func main() {
@@ -36,7 +38,7 @@ func main() {
 		fmt.Println("  - store (store maint, requires server to be running)")
 	}
 
-	flags.Parse(os.Args[1:])
+	_ = flags.Parse(os.Args[1:])
 
 	if *flagVersion {
 		fmt.Println(version)
@@ -98,6 +100,9 @@ func runServer(args []string, version string, id string) error {
 	// Load the default SIOT clients -- you can replace this with a customized
 	// list
 	clients, err := client.DefaultClients(nc)
+	if err != nil {
+		return err
+	}
 	siot.AddClient(clients)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*9)
@@ -168,7 +173,7 @@ func runStore(args []string) {
 	}
 
 	opts := client.EdgeOptions{
-		URI:       *flagNatsServer,
+		URI:       natsServer,
 		AuthToken: *flagAuthToken,
 		NoEcho:    true,
 		Disconnected: func() {
