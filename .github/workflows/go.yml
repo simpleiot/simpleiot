@@ -35,7 +35,7 @@ jobs:
         run: |
           node --version
           . envsetup.sh
-	  go test -p=1 -race "$@" ./...
+          go test -p=1 -race "$@" ./...
 
       - name: Lint backend
         uses: golangci/golangci-lint-action@v3.4.0
