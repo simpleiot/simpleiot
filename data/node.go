@@ -216,7 +216,7 @@ func (n NodeEdge) String() string {
 // IsTombstone returns Tombstone value and timestamp
 func (n NodeEdge) IsTombstone() (bool, time.Time) {
 	p, _ := n.EdgePoints.Find(PointTypeTombstone, "")
-	return FloatToBool(p.Value), p.Time
+	return p.Bool(), p.Time
 }
 
 // Desc returns Description if set, otherwise ID
