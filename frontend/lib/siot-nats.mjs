@@ -1,4 +1,4 @@
-import { connect as natsConnect } from "nats.ws"
+import { connect as natsConnect, StringCodec } from "nats.ws"
 
 // The syntax: `import { Timestamp } from ...` will not work properly
 // in Node.js because of how protobuf generates the CommonJS code, so we
@@ -13,6 +13,9 @@ import message_pb from "./protobuf/message_pb.js"
 const { Message } = message_pb
 import notification_pb from "./protobuf/notification_pb.js"
 const { Notification } = notification_pb
+
+// eslint-disable-next-line new-cap
+const strCodec = StringCodec()
 
 // connect opens and returns a connection to SIOT / NATS via WebSockets
 export * from "nats.ws"
@@ -37,20 +40,15 @@ function SIOTConnection() {
 Object.assign(SIOTConnection.prototype, {
 	// getNode sends a request to `nodes.<parent>.<id>` to retrieve an array of
 	// NodeEdges for the specified Node id.
-	// - If `parent` is falsy or "none", the edge details are not included
-	// - If `parent` is "all", all instances of the specified node are returned
+	// - If `id` is "all" or falsy, this calls `getNodeChildren` instead;
+	// however we strongly recommend using `getNodeChildren` directly
+	// - If `parent` is "all" or falsy, all instances of the specified node are
+	// returned
 	// - If `parent` is "root", only root nodes are returned
-	// - Do not use `id === "all"`; use `getNodeChildren` instead
 	// - `opts` are options passed to the NATS request
 	async getNode(id, { parent, type, includeDel, opts } = {}) {
 		if (id === "all" || !id) {
-			throw new Error(
-				"node ID '" + id + "' not permitted; use `getNodeChildren` instead"
-			)
-		}
-		if (id === "root") {
-			// Undocumented alias to get root nodes
-			return this.getNodeChildren("root", { type, includeDel, opts })
+			return this.getNodeChildren(parent, { type, includeDel, opts })
 		}
 
 		const points = [
@@ -59,7 +57,7 @@ Object.assign(SIOTConnection.prototype, {
 		]
 		const payload = encodePoints(points)
 		const m = await this.request(
-			"nodes." + (parent || "none") + "." + id,
+			"nodes." + (parent || "all") + "." + id,
 			payload,
 			opts
 		)
@@ -217,7 +215,9 @@ Object.assign(SIOTConnection.prototype, {
 
 		// Assume message data is an error message
 		if (m.data && m.data.length > 0) {
-			throw new Error(`error sending points for node '${nodeID}': ` + m.data)
+			throw new Error(
+				`error sending points for node '${nodeID}': ` + strCodec.decode(m.data)
+			)
 		}
 	},
 
@@ -239,7 +239,7 @@ Object.assign(SIOTConnection.prototype, {
 		if (m.data && m.data.length > 0) {
 			throw new Error(
 				`error sending edge points between nodes '${nodeID}' and '${parentID}': ` +
-					m.data
+					strCodec.decode(m.data)
 			)
 		}
 	},
