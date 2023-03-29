@@ -434,7 +434,7 @@ func (sd *SerialDevClient) Run() error {
 }
 
 // Stop sends a signal to the Run function to exit
-func (sd *SerialDevClient) Stop(err error) {
+func (sd *SerialDevClient) Stop(_ error) {
 	close(sd.stop)
 }
 

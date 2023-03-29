@@ -302,7 +302,7 @@ func (cb *CanBusClient) Run() error {
 }
 
 // Stop sends a signal to the Run function to exit
-func (cb *CanBusClient) Stop(err error) {
+func (cb *CanBusClient) Stop(_ error) {
 	close(cb.stop)
 }
 

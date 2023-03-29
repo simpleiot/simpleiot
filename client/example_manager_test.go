@@ -67,7 +67,7 @@ func (tnc *exNodeClient) Run() error {
 }
 
 // Stop sends a signal to the Run function to exit
-func (tnc *exNodeClient) Stop(err error) {
+func (tnc *exNodeClient) Stop(_ error) {
 	close(tnc.stop)
 }
 

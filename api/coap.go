@@ -9,7 +9,7 @@ import (
 	"github.com/go-ocf/go-coap/codes"
 )
 
-func sendResponse(w coap.ResponseWriter, req *coap.Request, subded time.Time) error {
+func sendResponse(w coap.ResponseWriter, _ *coap.Request, subded time.Time) error {
 	resp := w.NewResponse(codes.Content)
 	resp.SetOption(coap.ContentFormat, coap.TextPlain)
 	resp.SetPayload([]byte(fmt.Sprintf("Been running for %v", time.Since(subded))))

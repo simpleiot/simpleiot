@@ -165,7 +165,7 @@ done:
 }
 
 // Stop manager. This also stops all registered clients and causes Start to exit.
-func (m *Manager[T]) Stop(err error) {
+func (m *Manager[T]) Stop(_ error) {
 	close(m.stop)
 }
 

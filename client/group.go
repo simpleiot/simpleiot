@@ -41,6 +41,6 @@ func (g *Group) Run() error {
 }
 
 // Stop clients
-func (g *Group) Stop(err error) {
+func (g *Group) Stop(_ error) {
 	g.stopOnce.Do(func() { close(g.stop) })
 }

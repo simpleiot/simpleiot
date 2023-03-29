@@ -139,7 +139,7 @@ done:
 }
 
 // Stop sends a signal to the Run function to exit
-func (sc *ShellyClient) Stop(err error) {
+func (sc *ShellyClient) Stop(_ error) {
 	close(sc.stop)
 }
 

@@ -12,7 +12,7 @@ type FileUpdate struct {
 }
 
 // UpdateFiles updates various files in the system
-func UpdateFiles(dataDir string) error {
+func UpdateFiles(_ string) error {
 	return nil
 
 	// FIXME, this needs ported to go-embed

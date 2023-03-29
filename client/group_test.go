@@ -21,11 +21,11 @@ func (tc *testClient) Run() error {
 	return errors.New("client stopped")
 }
 
-func (tc *testClient) Stop(err error) {
+func (tc *testClient) Stop(_ error) {
 	tc.stopOnce.Do(func() { close(tc.stop) })
 }
 
-func TestGroup(t *testing.T) {
+func TestGroup(_ *testing.T) {
 	g := NewGroup("testGroup")
 	testC := newTestClient()
 	g.Add(testC)

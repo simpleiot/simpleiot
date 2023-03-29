@@ -180,7 +180,7 @@ done:
 }
 
 // Stop sends a signal to the Run function to exit
-func (sgc *SignalGeneratorClient) Stop(err error) {
+func (sgc *SignalGeneratorClient) Stop(_ error) {
 	close(sgc.stop)
 }
 

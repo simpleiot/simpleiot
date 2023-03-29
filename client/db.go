@@ -189,7 +189,7 @@ done:
 }
 
 // Stop sends a signal to the Run function to exit
-func (dbc *DbClient) Stop(err error) {
+func (dbc *DbClient) Stop(_ error) {
 	close(dbc.stop)
 }
 

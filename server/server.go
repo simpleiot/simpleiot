@@ -376,7 +376,7 @@ done:
 }
 
 // Stop server
-func (s *Server) Stop(err error) {
+func (s *Server) Stop(_ error) {
 	close(s.chStop)
 }
 

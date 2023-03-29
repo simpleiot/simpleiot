@@ -267,7 +267,7 @@ func TestReader(t *testing.T) {
 type dataSourceTimeout struct {
 }
 
-func (ds *dataSourceTimeout) Read(data []byte) (int, error) {
+func (ds *dataSourceTimeout) Read(_ []byte) (int, error) {
 	time.Sleep(1000 * time.Hour)
 
 	return 0, nil

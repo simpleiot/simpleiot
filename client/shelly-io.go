@@ -244,7 +244,7 @@ done:
 }
 
 // Stop sends a signal to the Run function to exit
-func (sioc *ShellyIOClient) Stop(err error) {
+func (sioc *ShellyIOClient) Stop(_ error) {
 	close(sioc.stop)
 }
 

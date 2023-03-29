@@ -330,7 +330,7 @@ done:
 }
 
 // Stop sends a signal to the Run function to exit
-func (up *SyncClient) Stop(err error) {
+func (up *SyncClient) Stop(_ error) {
 	close(up.stop)
 }
 

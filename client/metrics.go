@@ -124,7 +124,7 @@ done:
 }
 
 // Stop sends a signal to the Run function to exit
-func (m *MetricsClient) Stop(err error) {
+func (m *MetricsClient) Stop(_ error) {
 	close(m.stop)
 }
 
