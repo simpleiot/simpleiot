@@ -89,6 +89,6 @@ func (cs *clientState[T]) run() (err error) {
 	return nil
 }
 
-func (cs *clientState[T]) stop(err error) {
+func (cs *clientState[T]) stop(_ error) {
 	cs.stopOnce.Do(func() { close(cs.chStop) })
 }

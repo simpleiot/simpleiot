@@ -271,7 +271,7 @@ done:
 }
 
 // Stop sends a signal to the Run function to exit
-func (rc *RuleClient) Stop(err error) {
+func (rc *RuleClient) Stop(_ error) {
 	close(rc.stop)
 }
 

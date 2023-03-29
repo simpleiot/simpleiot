@@ -67,8 +67,8 @@ func TestXorChecksumGroup(t *testing.T) {
 	d1SumAB := XorSum([]int{d1SumA, d1SumB})
 
 	if d1Sum != d1SumAB {
-		t.Fatal("Grouped checksum did not work")
 		fmt.Printf("sums: %0x %0x %0x %0x\n", d1Sum, d1SumA, d1SumB, d1SumAB)
+		t.Fatal("Grouped checksum did not work")
 	}
 
 	// it works, pretty neat!

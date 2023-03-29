@@ -163,7 +163,7 @@ done:
 }
 
 // Stop the store
-func (st *Store) Stop(err error) {
+func (st *Store) Stop(_ error) {
 	close(st.chStop)
 }
 

@@ -197,7 +197,7 @@ done:
 }
 
 // Stop sends a signal to the Run function to exit
-func (pc *ParticleClient) Stop(err error) {
+func (pc *ParticleClient) Stop(_ error) {
 	close(pc.stop)
 }
 

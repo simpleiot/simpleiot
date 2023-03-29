@@ -221,9 +221,11 @@ const (
 
 	NodeTypeSignalGenerator = "signalGenerator"
 
-	PointTypeFrequency  = "frequency"
-	PointTypeAmplitude  = "amplitude"
-	PointTypeSampleRate = "sampleRate"
+	PointTypeFrequency   = "frequency"
+	PointTypeAmplitude   = "amplitude"
+	PointTypeSampleRate  = "sampleRate"
+	PointTypeHighRate    = "highRate"
+	PointTypeBatchPeriod = "batchPeriod"
 
 	NodeTypeFile  = "file"
 	PointTypeName = "name"

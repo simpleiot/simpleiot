@@ -18,7 +18,7 @@ type Authorizer interface {
 type AlwaysValid struct{}
 
 // NewToken stub
-func (AlwaysValid) NewToken(id string) (string, error) { return "valid", nil }
+func (AlwaysValid) NewToken(_ string) (string, error) { return "valid", nil }
 
 // Valid stub
 func (AlwaysValid) Valid(*http.Request) (bool, string) {

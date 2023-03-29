@@ -1077,7 +1077,16 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 // returns points, and error
 func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (data.Points, error) {
 	var retPoints data.Points
-	rowsPoints, err := sdb.db.Query(query, args...)
+
+	var rowsPoints *sql.Rows
+	var err error
+
+	if tx != nil {
+		rowsPoints, err = tx.Query(query, args...)
+	} else {
+		rowsPoints, err = sdb.db.Query(query, args...)
+	}
+
 	if err != nil {
 		return nil, err
 	}

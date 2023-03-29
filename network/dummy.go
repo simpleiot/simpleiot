@@ -38,6 +38,6 @@ func (d *DummyInterface) Reset() error {
 }
 
 // Enable or disable interface
-func (d *DummyInterface) Enable(en bool) error {
+func (d *DummyInterface) Enable(_ bool) error {
 	return nil
 }

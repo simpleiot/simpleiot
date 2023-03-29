@@ -21,6 +21,8 @@ type SignalGenerator struct {
 	SampleRate  float64 `point:"sampleRate"`
 	Value       float64 `point:"value"`
 	Units       string  `point:"units"`
+	HighRate    bool    `point:"highRate"`
+	BatchPeriod int     `point:"batchPeriod"`
 	Disable     bool    `point:"disable"`
 }
 
@@ -74,6 +76,16 @@ func (sgc *SignalGeneratorClient) Run() error {
 			configValid = false
 		}
 
+		if config.HighRate && config.BatchPeriod <= 0 {
+			log.Printf("Sig Gen %v: batch must be set for HR data\n", config.Description)
+			configValid = false
+		}
+
+		if config.HighRate {
+			log.Printf("Sig Gen %v: HR data not currently supported\n", config.Description)
+			configValid = false
+		}
+
 		t := time.NewTicker(time.Hour)
 		t.Stop()
 
@@ -83,6 +95,12 @@ func (sgc *SignalGeneratorClient) Run() error {
 
 		if configValid {
 			var start time.Time
+
+			natsSubject := SubjectNodePoints(config.ID)
+
+			if config.HighRate {
+				natsSubject = fmt.Sprintf("phrup.%v.%v", config.Parent, config.ID)
+			}
 
 			// calc period in ns
 			periodCount := int(config.SampleRate) / int(config.Frequency)
@@ -98,8 +116,10 @@ func (sgc *SignalGeneratorClient) Run() error {
 					count = 0
 				}
 
-				err := SendPoints(sgc.nc, sgc.natsSubject, data.Points{{Time: sTime, Type: data.PointTypeValue,
-					Value: value}}, false)
+				p := data.Points{{Time: sTime, Type: data.PointTypeValue,
+					Value: value}}
+
+				err := SendPoints(sgc.nc, natsSubject, p, false)
 				if err != nil {
 					log.Println("Error sending points: ", err)
 				}
@@ -140,7 +160,7 @@ done:
 				switch p.Type {
 				case data.PointTypeFrequency, data.PointTypeAmplitude,
 					data.PointTypeOffset, data.PointTypeSampleRate,
-					data.PointTypeDisable:
+					data.PointTypeDisable, data.PointTypeHighRate:
 					// restart generator
 					chStopGen <- struct{}{}
 					go generator(sgc.config)
@@ -160,7 +180,7 @@ done:
 }
 
 // Stop sends a signal to the Run function to exit
-func (sgc *SignalGeneratorClient) Stop(err error) {
+func (sgc *SignalGeneratorClient) Stop(_ error) {
 	close(sgc.stop)
 }
 

@@ -81,12 +81,6 @@ func (dbc *DbClient) Run() error {
 	subjectHR := fmt.Sprintf("phrup.%v.*", dbc.config.Parent)
 
 	dbc.upSubHr, err = dbc.nc.Subscribe(subjectHR, func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
-		if err != nil {
-			log.Println("Error decoding points in db upSubHr: ", err)
-			return
-		}
-
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
 		if len(chunks) != 3 {
@@ -94,7 +88,25 @@ func (dbc *DbClient) Run() error {
 			return
 		}
 
-		dbc.newDbPoints <- NewPoints{chunks[2], "", points}
+		nodeID := chunks[2]
+
+		err := data.DecodeSerialHrPayload(msg.Data, func(pt data.Point) {
+			p := influxdb2.NewPoint("points",
+				map[string]string{
+					"nodeID": nodeID,
+					"key":    pt.Key,
+					"type":   pt.Type,
+				},
+				map[string]interface{}{
+					"value": pt.Value,
+				},
+				pt.Time)
+			dbc.writeAPI.WritePoint(p)
+		})
+
+		if err != nil {
+			log.Println("DB: error decoding HR data: ", err)
+		}
 	})
 
 	if err != nil {
@@ -177,7 +189,7 @@ done:
 }
 
 // Stop sends a signal to the Run function to exit
-func (dbc *DbClient) Stop(err error) {
+func (dbc *DbClient) Stop(_ error) {
 	close(dbc.stop)
 }
 

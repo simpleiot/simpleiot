@@ -46,22 +46,15 @@ with a few assumptions:
 - we don't have mirrored nodes inside the MCU device
 - the number of nodes and points in a MCU is relatively small
 - the payload is always an array of points
-- only the following [SIOT NATS APIs](api.md#nats) are supported:
+- only the following [SIOT NATS API](api.md#nats) subjects are supported:
+  - blank (assumes ID of Serial MCU client node
   - `p.<id>` (used to send node points)
   - `p.<id>.<parent>` (used to send edge points)
+  - `phr` (specifies high-rate payload)
 - we don't support NATS subscriptions or requests -- on startup, we send the
   entire dataset for the MCU device in both directions (see On connection
   section), merge the contents, and then assume any changes will get sent and
   received after that.
-
-The `serial` protobuf type is used to transfer these messages:
-
-```
-message Serial {
- string subject = 1;
- repeated Point points = 2;
-}
-```
 
 `subject` can be left blank when sending/receiving points for the MCU root node.
 This saves some data in the serial messages.
@@ -69,22 +62,71 @@ This saves some data in the serial messages.
 The point type `nodeType` is used to create new nodes and to send the node type
 on connection.
 
-### Encoding
-
-All packets between the SIOT and serial MCU systems are structured as follows:
-
-- sequence (1 byte, rolls over)
-- `Serial` protobuf
-- crc (2 bytes) (Currently using CRC-16/KERMIT)
-
 All packets are ack'd by an empty packet with the same sequenced number. If an
 ack is not received in X amount of time, the packet is retried up to 3 times,
 and then the other device is considered "offline".
+
+### Encoding
+
+#### Packet Frame
+
+All packets between the SIOT and serial MCU systems are framed as follows:
+
+```
+sequence (1 byte, rolls over)
+subject (16 bytes)
+payload (Protobuf Point array or HR repeated point payload)
+crc (2 bytes) (Currently using CRC-16/KERMIT) (not included on log messages)
+```
+
+Protocols like RS232 and USB serial do not have any inherent framing; therefore,
+this needs to be done at the application level. SIOT encodes each packet using
+[COBS (Consistent Overhead Byte Stuffing)](https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing).
+
+#### Log payload
+
+The log message is specified with `log` in the packet frame subject. The payload
+is ASCII characters and CRC not included.
+
+#### Protobuf payload
+
+The `serial` protobuf type is used to transfer these messages:
+
+```
+message SerialPoint {
+  string type = 2;
+  float value = 4;
+  int64 time = 16;
+  float index = 13;
+  string text = 8;
+  string key = 11;
+  int32 tombstone = 12;
+}
+```
+
+Protobuf can be used for low-rate samples, config, state, etc.
 
 Protobuf is used to encode the data on the wire. Find protobuf files
 [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
 [nanopb](https://github.com/nanopb/nanopb) can be used to generate C-based
 protobuf bindings that are suitable for use in most MCU environments.
+
+#### High-rate payload
+
+A simple payload encoding for high-rate data can be used to avoid the overhead
+of protobuf encoding and is specified with `phr` in the packet frame subject.
+
+```
+type (16 bytes) point type
+key (16 bytes) point key
+starttime (uint64) starting time of samples in ns since Unix Epoch
+sampleperiod (uint32) time between samples in ns
+data, packed 32-bit floating point samples
+```
+
+This data bypasses most of the processing in SIOT and is sent to a special
+[`phr` NATS subject](api.md). Clients that are interested in high-rate data
+(like the InfluxDB client) can listen to these subjects.
 
 ### On connection
 
@@ -103,14 +145,7 @@ done:
 
 ### Timestamps
 
-Simple IoT currently uses the default
-[protobuf timestamp format](https://developers.google.com/protocol-buffers/docs/reference/google.protobuf#google.protobuf.Timestamp),
-which includes the following fields:
-
-| Field name | Type    | Description                                                                                                                                                                                                       |
-| ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `seconds`  | `int64` | Represents seconds of UTC time since Unix epoch 1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59Z inclusive.                                                                        |
-| `nanos`    | `int32` | Non-negative fractions of a second at nanosecond resolution. Negative second values with fractions must still have non-negative nanos values that count forward in time. Must be from 0 to 999,999,999 inclusive. |
+The Simple IoT uses a 64-bit ns since Unit epoch value for all timestamps.
 
 ### Fault handling
 
@@ -130,21 +165,6 @@ all points to SIOT.
 When the MCU syncs time with SIOT, if the MCU time is ahead of the SIOT system,
 then it set its time, and look for any points with a time after present, and
 reset these timestamps to the present.
-
-## Packet Framing
-
-Protocols like RS232 and USB serial do not have any inherent framing; therefore,
-this needs to be done at the application level. SIOT uses
-[COBS (Consistent Overhead Byte Stuffing)](https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing)
-to encode data for these transports.
-
-## High-Rate Data
-
-At times, there is a need to send high rate data that uses SIOT's
-[`phr.*` NATS API](api.md). This data bypasses most processing in SIOT and is
-stored in InfluxDB and any other clients that subscribe to high-rate data. To
-specify high rate data, set the message subject to "phr". The MCU Serial client
-will then append node ID and publish the message.
 
 ## RS485
 

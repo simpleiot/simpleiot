@@ -64,6 +64,8 @@ view o =
                     , numberInput Point.typeOffset "Offset"
                     , numberInput Point.typeSampleRate "SampleRate (Hz)"
                     , textInput Point.typeUnits "Units" ""
+                    , checkboxInput Point.typeHighRate "High rate data"
+                    , numberInput Point.typeBatchPeriod "Batch (ms)"
                     , checkboxInput Point.typeDisable "Disable"
                     ]
 

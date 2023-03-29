@@ -64,7 +64,7 @@ func (tnc *testNodeClient) Run() error {
 	}
 }
 
-func (tnc *testNodeClient) Stop(err error) {
+func (tnc *testNodeClient) Stop(_ error) {
 	close(tnc.stop)
 }
 
@@ -358,7 +358,7 @@ func (tnc *testXClient) Run() error {
 	}
 }
 
-func (tnc *testXClient) Stop(err error) {
+func (tnc *testXClient) Stop(_ error) {
 	close(tnc.stop)
 }
 

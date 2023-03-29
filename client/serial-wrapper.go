@@ -14,6 +14,7 @@ import (
 
 // Packet format is:
 //   - sequence #: 1 byte
+//   - subject (16 bytes)
 //   - protobuf (serial) payload
 //   - crc: 2 bytes (CCITT)
 
@@ -21,6 +22,20 @@ import (
 func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) {
 	var ret bytes.Buffer
 	ret.WriteByte(seq)
+
+	sub := make([]byte, 16)
+
+	if len(subject) > 16 {
+		return []byte{},
+			fmt.Errorf("SerialEncode Error: length of subject %v is longer than 20 bytes", subject)
+	}
+
+	copy(sub, []byte(subject))
+
+	_, err := ret.Write(sub)
+	if err != nil {
+		return []byte{}, fmt.Errorf("SerialEncode: error writing to buffer: %v", err)
+	}
 
 	pbPoints := make([]*pb.SerialPoint, len(points))
 	for i, p := range points {
@@ -31,9 +46,8 @@ func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) 
 		pbPoints[i] = &pPb
 	}
 
-	pbSerial := &pb.Serial{
-		Subject: subject,
-		Points:  pbPoints,
+	pbSerial := &pb.SerialPoints{
+		Points: pbPoints,
 	}
 
 	pbSerialBytes, err := proto.Marshal(pbSerial)
@@ -51,48 +65,38 @@ func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) 
 }
 
 // SerialDecode can be used to decode serial data in a client.
-func SerialDecode(d []byte) (byte, string, data.Points, error) {
+// returns seq, subject, payload
+func SerialDecode(d []byte) (byte, string, []byte, error) {
 	l := len(d)
 
 	if l < 1 {
 		return 0, "", nil, errors.New("Not enough data")
 	}
 
-	if l < 3 {
+	if l < (1 + 16) {
 		return d[0], "", nil, errors.New("Not enough data")
 	}
 
-	// check CRC
+	// try to extract subject
+	subject := string(bytes.Trim(d[1:17], "\x00"))
+	end := l
 
-	crc := binary.LittleEndian.Uint16(d[l-2:])
-	crcCalc := crc16.ChecksumCCITT(d[:l-2])
-	if crc != crcCalc {
-		return d[0], "", nil, errors.New("CRC check failed")
-	}
+	if subject != "log" {
+		// check CRC
+		end -= 2
+		if len(d) < (1 + 2 + 16) {
+			return d[0], "", nil, errors.New("Not enough data")
+		}
 
-	if l == 3 {
-		return d[0], "", data.Points{}, nil
+		crc := binary.LittleEndian.Uint16(d[l-2:])
+		crcCalc := crc16.ChecksumCCITT(d[:l-2])
+		if crc != crcCalc {
+			return d[0], "", nil, errors.New("CRC check failed")
+		}
 	}
 
 	// try to extract protobuf
-	pbData := d[1 : l-2]
+	payload := d[17:end]
 
-	pbSerial := &pb.Serial{}
-
-	err := proto.Unmarshal(pbData, pbSerial)
-	if err != nil {
-		return d[0], "", nil, fmt.Errorf("PB decode error: %v", err)
-	}
-
-	points := make([]data.Point, len(pbSerial.Points))
-
-	for i, sPb := range pbSerial.Points {
-		s, err := data.SerialToPoint(sPb)
-		if err != nil {
-			return d[0], "", nil, fmt.Errorf("Point decode error: %v", err)
-		}
-		points[i] = s
-	}
-
-	return d[0], pbSerial.Subject, points, nil
+	return d[0], subject, payload, nil
 }
