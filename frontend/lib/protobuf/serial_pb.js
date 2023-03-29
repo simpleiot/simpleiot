@@ -86,7 +86,7 @@ proto.pb.Serial.toObject = function(includeInstance, msg) {
   var f, obj = {
     subject: jspb.Message.getFieldWithDefault(msg, 1, ""),
     pointsList: jspb.Message.toObjectList(msg.getPointsList(),
-    point_pb.Point.toObject, includeInstance)
+    point_pb.SerialPoint.toObject, includeInstance)
   };
 
   if (includeInstance) {
@@ -128,8 +128,8 @@ proto.pb.Serial.deserializeBinaryFromReader = function(msg, reader) {
       msg.setSubject(value);
       break;
     case 2:
-      var value = new point_pb.Point;
-      reader.readMessage(value,point_pb.Point.deserializeBinaryFromReader);
+      var value = new point_pb.SerialPoint;
+      reader.readMessage(value,point_pb.SerialPoint.deserializeBinaryFromReader);
       msg.addPoints(value);
       break;
     default:
@@ -173,7 +173,7 @@ proto.pb.Serial.serializeBinaryToWriter = function(message, writer) {
     writer.writeRepeatedMessage(
       2,
       f,
-      point_pb.Point.serializeBinaryToWriter
+      point_pb.SerialPoint.serializeBinaryToWriter
     );
   }
 };
@@ -198,17 +198,17 @@ proto.pb.Serial.prototype.setSubject = function(value) {
 
 
 /**
- * repeated Point points = 2;
- * @return {!Array<!proto.pb.Point>}
+ * repeated SerialPoint points = 2;
+ * @return {!Array<!proto.pb.SerialPoint>}
  */
 proto.pb.Serial.prototype.getPointsList = function() {
-  return /** @type{!Array<!proto.pb.Point>} */ (
-    jspb.Message.getRepeatedWrapperField(this, point_pb.Point, 2));
+  return /** @type{!Array<!proto.pb.SerialPoint>} */ (
+    jspb.Message.getRepeatedWrapperField(this, point_pb.SerialPoint, 2));
 };
 
 
 /**
- * @param {!Array<!proto.pb.Point>} value
+ * @param {!Array<!proto.pb.SerialPoint>} value
  * @return {!proto.pb.Serial} returns this
 */
 proto.pb.Serial.prototype.setPointsList = function(value) {
@@ -217,12 +217,12 @@ proto.pb.Serial.prototype.setPointsList = function(value) {
 
 
 /**
- * @param {!proto.pb.Point=} opt_value
+ * @param {!proto.pb.SerialPoint=} opt_value
  * @param {number=} opt_index
- * @return {!proto.pb.Point}
+ * @return {!proto.pb.SerialPoint}
  */
 proto.pb.Serial.prototype.addPoints = function(opt_value, opt_index) {
-  return jspb.Message.addToRepeatedWrapperField(this, 2, opt_value, proto.pb.Point, opt_index);
+  return jspb.Message.addToRepeatedWrapperField(this, 2, opt_value, proto.pb.SerialPoint, opt_index);
 };
 
 
