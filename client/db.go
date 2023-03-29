@@ -88,12 +88,12 @@ func (dbc *DbClient) Run() error {
 			return
 		}
 
-		nodeId := chunks[2]
+		nodeID := chunks[2]
 
 		err := data.DecodeSerialHrPayload(msg.Data, func(pt data.Point) {
 			p := influxdb2.NewPoint("points",
 				map[string]string{
-					"nodeID": nodeId,
+					"nodeID": nodeID,
 					"key":    pt.Key,
 					"type":   pt.Type,
 				},
