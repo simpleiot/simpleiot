@@ -20,6 +20,7 @@ module Api.Point exposing
     , typeAddress
     , typeAmplitude
     , typeAuthToken
+    , typeBatchPeriod
     , typeBaud
     , typeBitRate
     , typeBucket
@@ -45,6 +46,7 @@ module Api.Point exposing
     , typeFirstName
     , typeFrequency
     , typeFrom
+    , typeHighRate
     , typeID
     , typeIP
     , typeIndex
@@ -637,6 +639,16 @@ typeDisable =
     "disable"
 
 
+typeHighRate : String
+typeHighRate =
+    "highRate"
+
+
+typeBatchPeriod : String
+typeBatchPeriod =
+    "batchPeriod"
+
+
 typeIndex : String
 typeIndex =
     "index"
@@ -749,6 +761,7 @@ specialPoints =
     , typeMaxMessageLength
     , typeDebug
     , typeDisable
+    , typeHighRate
     , typeErrorCount
     , typeErrorCountReset
     , typeSyncCount
