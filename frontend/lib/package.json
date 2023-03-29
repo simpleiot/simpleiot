@@ -6,7 +6,7 @@
   "scripts": {
     "test": "mocha",
     "format": "prettier --ignore-path ../.gitignore --write \"./*.{mjs,js}\"",
-    "lint": "eslint ./*.mjs ./*.js"
+    "lint": "eslint ./*.{mjs,js}"
   },
   "author": "Blake Miner <miner.blake@gmail.com> (http://blakeminer.com)",
   "license": "MIT",

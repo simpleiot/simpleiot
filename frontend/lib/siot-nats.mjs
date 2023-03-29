@@ -14,6 +14,7 @@ const { Message } = message_pb
 import notification_pb from "./protobuf/notification_pb.js"
 const { Notification } = notification_pb
 
+// eslint-disable-next-line new-cap
 const strCodec = StringCodec()
 
 // connect opens and returns a connection to SIOT / NATS via WebSockets
