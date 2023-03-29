@@ -73,31 +73,30 @@ func SerialDecode(d []byte) (byte, string, []byte, error) {
 		return 0, "", nil, errors.New("Not enough data")
 	}
 
-	if l < 3 {
-		return d[0], "", nil, errors.New("Not enough data")
-	}
-
-	// check CRC
-
-	crc := binary.LittleEndian.Uint16(d[l-2:])
-	crcCalc := crc16.ChecksumCCITT(d[:l-2])
-	if crc != crcCalc {
-		return d[0], "", nil, errors.New("CRC check failed")
-	}
-
-	if l == 3 {
-		return d[0], "", []byte{}, nil
-	}
-
-	if len(d) < 19 {
+	if l < (1 + 16) {
 		return d[0], "", nil, errors.New("Not enough data")
 	}
 
 	// try to extract subject
 	subject := string(bytes.Trim(d[1:17], "\x00"))
+	end := l
+
+	if subject != "log" {
+		// check CRC
+		end -= 2
+		if len(d) < (1 + 2 + 16) {
+			return d[0], "", nil, errors.New("Not enough data")
+		}
+
+		crc := binary.LittleEndian.Uint16(d[l-2:])
+		crcCalc := crc16.ChecksumCCITT(d[:l-2])
+		if crc != crcCalc {
+			return d[0], "", nil, errors.New("CRC check failed")
+		}
+	}
 
 	// try to extract protobuf
-	payload := d[17 : l-2]
+	payload := d[17:end]
 
 	return d[0], subject, payload, nil
 }

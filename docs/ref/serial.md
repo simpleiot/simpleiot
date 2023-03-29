@@ -76,12 +76,17 @@ All packets between the SIOT and serial MCU systems are framed as follows:
 sequence (1 byte, rolls over)
 subject (16 bytes)
 payload (Protobuf Point array or HR repeated point payload)
-crc (2 bytes) (Currently using CRC-16/KERMIT)
+crc (2 bytes) (Currently using CRC-16/KERMIT) (not included on log messages)
 ```
 
 Protocols like RS232 and USB serial do not have any inherent framing; therefore,
 this needs to be done at the application level. SIOT encodes each packet using
 [COBS (Consistent Overhead Byte Stuffing)](https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing).
+
+#### Log payload
+
+The log message is specified with `log` in the packet frame subject. The payload
+is ASCII characters and CRC not included.
 
 #### Protobuf payload
 

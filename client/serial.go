@@ -6,7 +6,6 @@ import (
 	"log"
 	"strconv"
 	"time"
-	"unicode"
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -204,8 +203,7 @@ func (sd *SerialDevClient) Run() error {
 				log.Println("SER RX: ", test.HexDump(rd))
 			}
 
-			// figure out if the data is ascii string or points
-			// try pb decode
+			// decode serial packet
 			seq, subject, payload, err := SerialDecode(rd)
 			if err != nil {
 				log.Println("Serial framing error: ", err)
@@ -222,6 +220,20 @@ func (sd *SerialDevClient) Run() error {
 				break
 			}
 
+			if subject == "log" {
+				points := data.Points{{Type: data.PointTypeLog, Text: string(payload)}}
+
+				if sd.config.Debug >= 1 {
+					log.Printf("Serial client %v: log: %v\n",
+						sd.config.Description, string(payload))
+				}
+				err := SendPoints(sd.nc, sd.natsSub, points, false)
+				if err != nil {
+					log.Println("Error sending log point from MCU: ", err)
+				}
+			}
+
+			// we must have a protobuf payload
 			points, errDecode := data.PbDecodeSerialPoints(payload)
 
 			sd.config.Rx++
@@ -255,28 +267,11 @@ func (sd *SerialDevClient) Run() error {
 					log.Println("error merging new points: ", err)
 				}
 			} else {
-				// check if ascii
-				isASCII := true
-				for i := 0; i < len(rd); i++ {
-					if rd[i] > unicode.MaxASCII {
-						isASCII = false
-						break
-					}
-				}
-				if isASCII {
-					points = append(points,
-						data.Point{Type: data.PointTypeLog, Text: string(rd)})
-
-					if sd.config.Debug >= 1 {
-						log.Printf("Serial client %v: log: %v\n", sd.config.Description, string(rd))
-					}
-				} else {
-					log.Println("Error decoding serial packet from device: ",
-						sd.config.Description, errDecode)
-					sd.config.ErrorCount++
-					points = append(points,
-						data.Point{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)})
-				}
+				log.Println("Error decoding serial packet from device: ",
+					sd.config.Description, errDecode)
+				sd.config.ErrorCount++
+				points = append(points,
+					data.Point{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)})
 			}
 
 			if time.Since(sd.lastSendStats) > time.Second*5 {

@@ -1,7 +1,9 @@
 package client_test
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 	"testing"
 	"time"
 
@@ -74,8 +76,16 @@ func TestSerial(t *testing.T) {
 	}
 
 	// send an ascii log message to the serial client
+	log.Println("Sending log test message")
+	buf := bytes.NewBuffer([]byte{})
+	_, _ = buf.Write([]byte{1})
+	sub := make([]byte, 16)
+	copy(sub, []byte("log"))
+	_, _ = buf.Write(sub)
 	testLog := "Hi there"
-	_, err = fifoW.Write([]byte(testLog))
+	_, _ = buf.Write([]byte(testLog))
+
+	_, err = fifoW.Write(buf.Bytes())
 	if err != nil {
 		t.Error("Error sending packet to fifo: ", err)
 	}
