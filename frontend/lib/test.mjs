@@ -48,9 +48,20 @@ describe("simpleiot-js", () => {
 		assert.strictEqual(roots.length, 1, "should have 1 root")
 
 		const [root] = roots
+		assert.strictEqual(root.id, rootID, "root id should match")
 		assert.strictEqual(root.type, "device", "root type should be 'device'")
-		assert.strictEqual(root.parent, "", "parent should be blank")
-		assert.strictEqual(root.edgepointsList.length, 0, "no edges retrieved")
+		assert.strictEqual(root.parent, "root", "parent should be root")
+		assert.strictEqual(
+			root.edgepointsList.length,
+			1,
+			"only tombstone edge point"
+		)
+		assert.strictEqual(
+			root.edgepointsList[0].type,
+			"tombstone",
+			"edge point should be tombstone"
+		)
+		assert.strictEqual(root.edgepointsList[0].value, 0, "tombstone should be 0")
 	})
 
 	it("gets nodes recursively", async () => {
@@ -112,16 +123,18 @@ describe("simpleiot-js", () => {
 		}
 
 		// Create `nodeID`
-		await c.sendEdgePoints(nodeID, rootID, [{ type: "tombstone" }], {
-			ack: true,
-		})
 		await c.sendNodePoints(
 			nodeID,
-			[
-				{ type: "nodeType", text: "device" },
-				{ type: "description", text: nodeID + " (created by test suite)" },
-			],
+			[{ type: "description", text: nodeID + " (created by test suite)" }],
 			{ ack: true }
+		)
+		await c.sendEdgePoints(
+			nodeID,
+			rootID,
+			[{ type: "tombstone" }, { type: "nodeType", text: "device" }],
+			{
+				ack: true,
+			}
 		)
 	})
 
