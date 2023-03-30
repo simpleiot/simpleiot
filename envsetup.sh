@@ -49,6 +49,7 @@ siot_setup() {
 	(cd frontend && (npx elm || true))
 	# make sure elm-spa auto-generated stuff is set up
 	(cd frontend && npx elm-spa build)
+	npm install -g run-pty@latest
 	return 0
 }
 
