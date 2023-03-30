@@ -28,6 +28,10 @@ To build:
 
 ## Developing Simple IoT
 
+- `npm install -g run-pty`
+- `. envsetup.sh`
+- `siot_watch`
+
 The `siot_watch` command can be used when developing Simple IoT. This does the
 following:
 
