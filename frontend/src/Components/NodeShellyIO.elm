@@ -3,12 +3,12 @@ module Components.NodeShellyIO exposing (view)
 import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Round
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
-import UI.Style exposing (colors)
+import UI.Style as Style
 import UI.ViewIf exposing (viewIf)
 
 
@@ -17,9 +17,6 @@ view o =
     let
         value =
             Point.getValue o.node.points Point.typeValue ""
-
-        valueText =
-            String.fromFloat (Round.roundNum 2 value)
 
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
@@ -31,18 +28,42 @@ view o =
             Point.getText o.node.points Point.typeDescription ""
 
         summary =
-            "(" ++ typ ++ ")  " ++ desc ++ "    " ++ valueText
+            "(" ++ typ ++ ")  " ++ desc
+
+        valueText =
+            if value == 0 then
+                "off"
+
+            else
+                "on"
+
+        valueBackgroundColor =
+            if valueText == "on" then
+                Style.colors.blue
+
+            else
+                Style.colors.none
+
+        valueTextColor =
+            if valueText == "on" then
+                Style.colors.white
+
+            else
+                Style.colors.black
     in
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
-        , Border.color colors.black
+        , Border.color Style.colors.black
         , spacing 6
         ]
     <|
         wrappedRow [ spacing 10 ]
             [ Icon.io
             , text summary
+            , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
+                text <|
+                    valueText
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
