@@ -282,6 +282,19 @@ const (
 	NodeTypeShelly   = "shelly"
 	NodeTypeShellyIo = "shellyIo"
 
-	PointTypeDeviceID = "deviceID"
-	PointTypeIP       = "ip"
+	PointTypeDeviceID    = "deviceID"
+	PointTypeIP          = "ip"
+	PointTypeVoltage     = "voltage"
+	PointTypeCurrent     = "current"
+	PointTypePower       = "power"
+	PointTypeTemperature = "temp"
+	PointTypeBrightness  = "brightness"
+	PointTypeWhite       = "white"
+	PointTypeLightTemp   = "lightTemp"
+	PointTypeTransition  = "transition"
+
+	PointValueShellyTypeBulbDuo = "BulbDuo"
+	PointValueShellyTypeRGBW2   = "rgbw2"
+	PointValueShellyType1PM     = "1pm"
+	PointValueShellyTypePlugUS  = "PlugUS"
 )

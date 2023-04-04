@@ -778,6 +778,8 @@ specialPoints =
     , typePeriod
     , typeName
     , typeAuthToken
+    , typeValue
+    , typeDeviceID
     ]
 
 

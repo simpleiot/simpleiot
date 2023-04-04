@@ -22,6 +22,56 @@ type shellyGen2SysConfig struct {
 	} `json:"device"`
 }
 
+// Example response
+// {"id":0, "source":"WS_in", "output":false, "apower":0.0, "voltage":123.3, "current":0.000, "aenergy":{"total":0.000,"by_minute":[0.000,0.000,0.000],"minute_ts":1680536525},"temperature":{"tC":44.4, "tF":112.0}}
+type shellyGen2SwitchStatus struct {
+	ID      int     `json:"id"`
+	Source  string  `json:"source"`
+	Output  bool    `json:"output"`
+	Apower  float32 `json:"apower"`
+	Voltage float32 `json:"voltage"`
+	Current float32 `json:"current"`
+	Aenergy struct {
+		Total    float32   `json:"total"`
+		ByMinute []float32 `json:"by_minute"`
+		MinuteTS int64     `json:"minute_ts"`
+	} `json:"aenergy"`
+	Temperature struct {
+		TC float32 `json:"tC"`
+		TF float32 `json:"tF"`
+	} `json:"temperature"`
+}
+
+func (swi *shellyGen2SwitchStatus) toPoints() data.Points {
+	now := time.Now()
+	return data.Points{
+		{Time: now, Type: data.PointTypeValue, Value: data.BoolToFloat(swi.Output)},
+		{Time: now, Type: data.PointTypePower, Value: float64(swi.Apower)},
+		{Time: now, Type: data.PointTypeVoltage, Value: float64(swi.Voltage)},
+		{Time: now, Type: data.PointTypeCurrent, Value: float64(swi.Current)},
+		{Time: now, Type: data.PointTypeTemperature, Value: float64(swi.Temperature.TC)},
+	}
+}
+
+type shellyGen1LightStatus struct {
+	Ison       bool `json:"ison"`
+	Brightness int  `json:"brightness"`
+	White      int  `json:"white"`
+	Temp       int  `json:"temp"`
+	Transition int  `json:"transition"`
+}
+
+func (sls *shellyGen1LightStatus) toPoints() data.Points {
+	now := time.Now()
+	return data.Points{
+		{Time: now, Type: data.PointTypeValue, Value: data.BoolToFloat(sls.Ison)},
+		{Time: now, Type: data.PointTypeBrightness, Value: float64(sls.Brightness)},
+		{Time: now, Type: data.PointTypeWhite, Value: float64(sls.White)},
+		{Time: now, Type: data.PointTypeLightTemp, Value: float64(sls.Temp)},
+		{Time: now, Type: data.PointTypeTransition, Value: float64(sls.Transition)},
+	}
+}
+
 func (sg2c shellyGen2SysConfig) toSettings() ShellyIOConfig {
 	return ShellyIOConfig{
 		Name: sg2c.Device.Name,
@@ -60,10 +110,10 @@ const (
 )
 
 var shellyGenMap = map[string]ShellyGen{
-	"BulbDuo": ShellyGen1,
-	"rgbw2":   ShellyGen1,
-	"1pm":     ShellyGen1,
-	"PlugUS":  ShellyGen2,
+	data.PointValueShellyTypeBulbDuo: ShellyGen1,
+	data.PointValueShellyTypeRGBW2:   ShellyGen1,
+	data.PointValueShellyType1PM:     ShellyGen1,
+	data.PointValueShellyTypePlugUS:  ShellyGen2,
 }
 
 // Gen returns generation of Shelly device
@@ -109,6 +159,48 @@ func (sio *ShellyIo) GetConfig() (ShellyIOConfig, error) {
 
 	default:
 		return ShellyIOConfig{}, fmt.Errorf("Unsupported device: %v", sio.Type)
+	}
+}
+
+// GetStatus gets the current status of the device
+func (sio *ShellyIo) GetStatus() (data.Points, error) {
+	switch sio.Type {
+	case data.PointValueShellyTypePlugUS:
+		res, err := httpClient.Get("http://" + sio.IP + "/rpc/Switch.GetStatus?id=0")
+		if err != nil {
+			return data.Points{}, err
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			return data.Points{}, fmt.Errorf("Shelly GetConfig returned an error code: %v", res.StatusCode)
+		}
+
+		var status shellyGen2SwitchStatus
+
+		err = json.NewDecoder(res.Body).Decode(&status)
+		if err != nil {
+			return data.Points{}, err
+		}
+		return status.toPoints(), nil
+	case data.PointValueShellyTypeBulbDuo:
+		res, err := httpClient.Get("http://" + sio.IP + "/light/0")
+		if err != nil {
+			return data.Points{}, err
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			return data.Points{}, fmt.Errorf("Shelly GetConfig returned an error code: %v", res.StatusCode)
+		}
+
+		var status shellyGen1LightStatus
+
+		err = json.NewDecoder(res.Body).Decode(&status)
+		if err != nil {
+			return data.Points{}, err
+		}
+		return status.toPoints(), nil
+	default:
+		return data.Points{}, nil
 	}
 }
 
@@ -160,6 +252,7 @@ func (sio *ShellyIo) SetName(name string) error {
 type ShellyIOClient struct {
 	nc              *nats.Conn
 	config          ShellyIo
+	points          data.Points
 	stop            chan struct{}
 	newPoints       chan NewPoints
 	newEdgePoints   chan NewPoints
@@ -168,9 +261,14 @@ type ShellyIOClient struct {
 
 // NewShellyIOClient ...
 func NewShellyIOClient(nc *nats.Conn, config ShellyIo) Client {
+	ne, err := data.Encode(config)
+	if err != nil {
+		log.Println("Error encoding shelly config: ", err)
+	}
 	return &ShellyIOClient{
 		nc:              nc,
 		config:          config,
+		points:          ne.Points,
 		stop:            make(chan struct{}),
 		newPoints:       make(chan NewPoints),
 		newEdgePoints:   make(chan NewPoints),
@@ -206,6 +304,7 @@ func (sioc *ShellyIOClient) Run() error {
 	syncConfig()
 
 	syncConfigTicker := time.NewTicker(time.Minute * 5)
+	sampleTicker := time.NewTicker(time.Second * 2)
 
 done:
 	for {
@@ -236,6 +335,23 @@ done:
 		case <-syncConfigTicker.C:
 			syncConfig()
 
+		case <-sampleTicker.C:
+			points, err := sioc.config.GetStatus()
+			if err != nil {
+				log.Printf("Error getting status for %v: %v\n", sioc.config.Description, err)
+			}
+
+			newPoints := sioc.points.Merge(points, time.Minute*15)
+			if len(newPoints) > 0 {
+				err := data.MergePoints(sioc.config.ID, newPoints, &sioc.config)
+				if err != nil {
+					log.Println("shelly io: error merging newPoints: ", err)
+				}
+				err = SendNodePoints(sioc.nc, sioc.config.ID, newPoints, false)
+				if err != nil {
+					log.Println("shelly io: error sending newPoints: ", err)
+				}
+			}
 		}
 	}
 

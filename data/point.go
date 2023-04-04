@@ -297,12 +297,74 @@ func (ps *Points) Add(pIn Point) {
 				(*ps)[i] = pIn
 			}
 			(*ps)[i].Tombstone = tombstone
+			break
 		}
 	}
 
 	if !pFound {
 		*ps = append(*ps, pIn)
 	}
+}
+
+// Merge is used to update points. Any points that are changed
+// are returned. maxDuration can be used to return points
+// if they have not been updated in maxDuration -- this can
+// be used to send out points every X duration even if they
+// are not changing which is useful for making graphs look
+// nice. Set maxTime to zero to disable.
+func (ps *Points) Merge(in Points, maxTime time.Duration) Points {
+	var ret Points
+
+	for _, pIn := range in {
+		pFound := false
+		modified := false
+		if pIn.Time.IsZero() {
+			pIn.Time = time.Now()
+		}
+
+		for i, p := range *ps {
+			if p.Key == pIn.Key && p.Type == pIn.Type {
+				pFound = true
+				// largest tombstone value always wins
+				if pIn.Tombstone > p.Tombstone {
+					(*ps)[i].Tombstone = pIn.Tombstone
+					modified = true
+				}
+
+				if !pIn.Time.After(p.Time) {
+					break
+				}
+
+				if pIn.Value != p.Value {
+					(*ps)[i] = p
+					modified = true
+				}
+
+				if maxTime > 0 && pIn.Time.Sub(p.Time) > maxTime {
+					(*ps)[i] = p
+					modified = true
+				}
+
+				if pIn.Text != p.Text {
+					(*ps)[i] = p
+					modified = true
+				}
+
+				(*ps)[i] = pIn
+			}
+		}
+
+		if !pFound {
+			*ps = append(*ps, pIn)
+			modified = true
+		}
+
+		if modified {
+			ret = append(ret, pIn)
+		}
+	}
+
+	return ret
 }
 
 // Implement methods needed by sort.Interface
