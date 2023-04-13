@@ -1,6 +1,6 @@
 module Components.NodeShellyIO exposing (view)
 
-import Api.Point as Point
+import Api.Point as Point exposing (Point)
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Dict exposing (Dict)
 import Element exposing (..)
@@ -15,14 +15,12 @@ import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style as Style
 import UI.ViewIf exposing (viewIf)
+import Utils.Iso8601 as Iso8601
 
 
 view : NodeOptions msg -> Element msg
 view o =
     let
-        value =
-            Point.getValue o.node.points Point.typeValue ""
-
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
 
@@ -35,26 +33,15 @@ view o =
         summary =
             "(" ++ typ ++ ")  " ++ desc
 
-        valueText =
-            if value == 0 then
-                "off"
+        valueElement =
+            case
+                typ
+            of
+                "PlusI4" ->
+                    i4ValueSummary o.node.points
 
-            else
-                "on"
-
-        valueBackgroundColor =
-            if valueText == "on" then
-                Style.colors.blue
-
-            else
-                Style.colors.none
-
-        valueTextColor =
-            if valueText == "on" then
-                Style.colors.white
-
-            else
-                Style.colors.black
+                _ ->
+                    defaultSummary o.node.points
     in
     column
         [ width fill
@@ -66,9 +53,7 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.io
             , text summary
-            , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
-                text <|
-                    valueText
+            , valueElement
             , viewIf disabled <| text "(disabled)"
             ]
             :: (if o.expDetail then
@@ -90,17 +75,82 @@ view o =
 
                         ip =
                             Point.getText o.node.points Point.typeIP ""
+
+                        latestPointTime =
+                            case Point.getLatest o.node.points of
+                                Just point ->
+                                    point.time
+
+                                Nothing ->
+                                    Time.millisToPosix 0
                     in
                     [ textDisplay "ID" deviceID
                     , textLinkDisplay "IP" ip ("http://" ++ ip)
                     , textInput Point.typeDescription "Description" ""
                     , checkboxInput Point.typeDisable "Disable"
+                    , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
                     , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]
 
                 else
                     []
                )
+
+
+defaultSummary : List Point -> Element msg
+defaultSummary points =
+    case Point.get points Point.typeValue "" of
+        Just p ->
+            displayOnOff p
+
+        Nothing ->
+            el [] <| text "off"
+
+
+i4ValueSummary : List Point -> Element msg
+i4ValueSummary points =
+    let
+        valuePoints =
+            List.filter (\p -> p.typ == Point.typeValue) points |> List.sortBy .key
+
+        valueElements =
+            List.foldl
+                (\p ret ->
+                    List.append ret [ displayOnOff p ]
+                )
+                []
+                valuePoints
+    in
+    row [ spacing 8 ] valueElements
+
+
+displayOnOff : Point -> Element msg
+displayOnOff p =
+    let
+        v =
+            if p.value == 0 then
+                "off"
+
+            else
+                "on"
+
+        vBackgroundColor =
+            if v == "on" then
+                Style.colors.blue
+
+            else
+                Style.colors.none
+
+        vTextColor =
+            if v == "on" then
+                Style.colors.white
+
+            else
+                Style.colors.black
+    in
+    el [ paddingXY 7 0, Background.color vBackgroundColor, Font.color vTextColor ] <|
+        text <|
+            v
 
 
 textDisplay : String -> String -> Element msg

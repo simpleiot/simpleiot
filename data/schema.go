@@ -292,9 +292,11 @@ const (
 	PointTypeWhite       = "white"
 	PointTypeLightTemp   = "lightTemp"
 	PointTypeTransition  = "transition"
+	PointTypeOffline     = "offline"
 
 	PointValueShellyTypeBulbDuo = "BulbDuo"
 	PointValueShellyTypeRGBW2   = "rgbw2"
 	PointValueShellyType1PM     = "1pm"
 	PointValueShellyTypePlugUS  = "PlugUS"
+	PointValueShellyTypeI4      = "PlusI4"
 )

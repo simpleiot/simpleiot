@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -53,6 +55,22 @@ func (swi *shellyGen2SwitchStatus) toPoints() data.Points {
 	}
 }
 
+// Example response
+// {"id":2,"state":true}
+type shellyGen2InputStatus struct {
+	ID    int  `json:"id"`
+	State bool `json:"state"`
+}
+
+func (in *shellyGen2InputStatus) toPoints() data.Points {
+	now := time.Now()
+	return data.Points{
+		{Time: now, Type: data.PointTypeValue,
+			Key:   strconv.Itoa(in.ID),
+			Value: data.BoolToFloat(in.State)},
+	}
+}
+
 type shellyGen1LightStatus struct {
 	Ison       bool `json:"ison"`
 	Brightness int  `json:"brightness"`
@@ -86,6 +104,7 @@ type ShellyIo struct {
 	DeviceID    string `point:"deviceID"`
 	Type        string `point:"type"`
 	IP          string `point:"ip"`
+	Offline     bool   `point:"offline"`
 }
 
 // Desc gets the description of a Shelly IO
@@ -114,6 +133,7 @@ var shellyGenMap = map[string]ShellyGen{
 	data.PointValueShellyTypeRGBW2:   ShellyGen1,
 	data.PointValueShellyType1PM:     ShellyGen1,
 	data.PointValueShellyTypePlugUS:  ShellyGen2,
+	data.PointValueShellyTypeI4:      ShellyGen2,
 }
 
 // Gen returns generation of Shelly device
@@ -182,6 +202,31 @@ func (sio *ShellyIo) GetStatus() (data.Points, error) {
 			return data.Points{}, err
 		}
 		return status.toPoints(), nil
+
+	case data.PointValueShellyTypeI4:
+		var points data.Points
+		for channel := 0; channel < 4; channel++ {
+			res, err := httpClient.Get("http://" + sio.IP + "/rpc/Input.GetStatus?id=" + strconv.Itoa(channel))
+			if err != nil {
+				return data.Points{}, err
+			}
+			defer res.Body.Close()
+			if res.StatusCode != http.StatusOK {
+				return data.Points{}, fmt.Errorf("Shelly GetConfig returned an error code: %v", res.StatusCode)
+			}
+
+			var status shellyGen2InputStatus
+
+			err = json.NewDecoder(res.Body).Decode(&status)
+			if err != nil {
+				return data.Points{}, err
+			}
+
+			points = append(points, status.toPoints()...)
+		}
+
+		return points, nil
+
 	case data.PointValueShellyTypeBulbDuo:
 		res, err := httpClient.Get("http://" + sio.IP + "/light/0")
 		if err != nil {
@@ -215,6 +260,7 @@ func (sio *ShellyIo) SetName(name string) error {
 	switch sio.Gen() {
 	case ShellyGen1:
 		uri := fmt.Sprintf("http://%v/settings?name=%v", sio.IP, name)
+		uri = strings.Replace(uri, " ", "%20", -1)
 		res, err := httpClient.Get(uri)
 		if err != nil {
 			return err
@@ -226,6 +272,7 @@ func (sio *ShellyIo) SetName(name string) error {
 		// TODO: not sure how to test if it worked ...
 	case ShellyGen2:
 		uri := fmt.Sprintf("http://%v/rpc/Sys.Setconfig?config={\"device\":{\"name\":\"%v\"}}", sio.IP, name)
+		uri = strings.Replace(uri, " ", "%20", -1)
 		res, err := httpClient.Get(uri)
 		if err != nil {
 			return err
@@ -243,7 +290,7 @@ func (sio *ShellyIo) SetName(name string) error {
 			return fmt.Errorf("Error setting Shelly device %v name: %v", sio.Type, ret.Message)
 		}
 	default:
-		return fmt.Errorf("Unsupported device: %v", sio.Type)
+		return fmt.Errorf("Error setting name: Unsupported device: %v", sio.Type)
 	}
 	return nil
 }
@@ -257,6 +304,7 @@ type ShellyIOClient struct {
 	newPoints       chan NewPoints
 	newEdgePoints   chan NewPoints
 	newShellyPoints chan NewPoints
+	errorCount      int
 }
 
 // NewShellyIOClient ...
@@ -280,11 +328,55 @@ func NewShellyIOClient(nc *nats.Conn, config ShellyIo) Client {
 func (sioc *ShellyIOClient) Run() error {
 	log.Println("Starting shelly IO client: ", sioc.config.Description)
 
+	sampleRate := time.Second * 2
+	sampleRateOffline := time.Minute * 10
+
+	syncConfigTicker := time.NewTicker(sampleRateOffline)
+	sampleTicker := time.NewTicker(sampleRate)
+
+	if sioc.config.Offline {
+		sampleTicker = time.NewTicker(sampleRateOffline)
+	}
+
+	shellyError := func() {
+		sioc.errorCount++
+		if !sioc.config.Offline && sioc.errorCount > 5 {
+			log.Printf("Shelly device %v is offline", sioc.config.Description)
+			sioc.config.Offline = true
+			err := SendNodePoint(sioc.nc, sioc.config.ID, data.Point{
+				Type: data.PointTypeOffline, Value: 1}, false)
+
+			if err != nil {
+				log.Println("ShellyIO: error sending node point: ", err)
+			}
+			sampleTicker = time.NewTicker(sampleRateOffline)
+		}
+	}
+
+	shellyCommOK := func() {
+		sioc.errorCount = 0
+		if sioc.config.Offline {
+			log.Printf("Shelly device %v is online", sioc.config.Description)
+			sioc.config.Offline = false
+			err := SendNodePoint(sioc.nc, sioc.config.ID, data.Point{
+				Type: data.PointTypeOffline, Value: 0}, false)
+
+			if err != nil {
+				log.Println("ShellyIO: error sending node point: ", err)
+			}
+			sampleTicker = time.NewTicker(sampleRate)
+		}
+	}
+
 	syncConfig := func() {
 		config, err := sioc.config.GetConfig()
 		if err != nil {
+			shellyError()
 			log.Println("Error getting shelly IO settings: ", sioc.config.Desc(), err)
+			return
 		}
+
+		shellyCommOK()
 
 		if sioc.config.Description == "" && config.Name != "" {
 			sioc.config.Description = config.Name
@@ -302,9 +394,6 @@ func (sioc *ShellyIOClient) Run() error {
 	}
 
 	syncConfig()
-
-	syncConfigTicker := time.NewTicker(time.Minute * 5)
-	sampleTicker := time.NewTicker(time.Second * 2)
 
 done:
 	for {
@@ -339,7 +428,11 @@ done:
 			points, err := sioc.config.GetStatus()
 			if err != nil {
 				log.Printf("Error getting status for %v: %v\n", sioc.config.Description, err)
+				shellyError()
+				break
 			}
+
+			shellyCommOK()
 
 			newPoints := sioc.points.Merge(points, time.Minute*15)
 			if len(newPoints) > 0 {
