@@ -779,6 +779,7 @@ specialPoints =
     , typeName
     , typeAuthToken
     , typeValue
+    , typeValueSet
     , typeDeviceID
     ]
 

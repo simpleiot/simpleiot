@@ -18,6 +18,16 @@ import UI.ViewIf exposing (viewIf)
 import Utils.Iso8601 as Iso8601
 
 
+onOffDevices : List String
+onOffDevices =
+    [ "BulbDuo", "1pm", "rgbw2" ]
+
+
+isSettableOnOff : String -> Bool
+isSettableOnOff typ =
+    List.any (\a -> a == typ) onOffDevices
+
+
 view : NodeOptions msg -> Element msg
 view o =
     let
@@ -70,6 +80,9 @@ view o =
                         checkboxInput =
                             NodeInputs.nodeCheckboxInput opts ""
 
+                        onOffInput =
+                            NodeInputs.nodeOnOffInput opts ""
+
                         deviceID =
                             Point.getText o.node.points Point.typeDeviceID ""
 
@@ -87,6 +100,7 @@ view o =
                     [ textDisplay "ID" deviceID
                     , textLinkDisplay "IP" ip ("http://" ++ ip)
                     , textInput Point.typeDescription "Description" ""
+                    , viewIf (isSettableOnOff typ) <| onOffInput Point.typeValue Point.typeValueSet "Value"
                     , checkboxInput Point.typeDisable "Disable"
                     , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
                     , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
@@ -182,23 +196,27 @@ viewPoints z pts =
         fm =
             formatMetric formaters
     in
-    table [ padding 7 ]
-        { data = List.map fm pts
-        , columns =
-            let
-                cell =
-                    el [ paddingXY 15 5, Border.width 1 ]
-            in
-            [ { header = cell <| el [ Font.bold, centerX ] <| text "Point"
-              , width = fill
-              , view = \m -> cell <| text m.desc
-              }
-            , { header = cell <| el [ Font.bold, centerX ] <| text "Value"
-              , width = fill
-              , view = \m -> cell <| el [ alignRight ] <| text m.value
-              }
-            ]
-        }
+    if List.length pts <= 0 then
+        Element.none
+
+    else
+        table [ padding 7 ]
+            { data = List.map fm pts
+            , columns =
+                let
+                    cell =
+                        el [ paddingXY 15 5, Border.width 1 ]
+                in
+                [ { header = cell <| el [ Font.bold, centerX ] <| text "Point"
+                  , width = fill
+                  , view = \m -> cell <| text m.desc
+                  }
+                , { header = cell <| el [ Font.bold, centerX ] <| text "Value"
+                  , width = fill
+                  , view = \m -> cell <| el [ alignRight ] <| text m.value
+                  }
+                ]
+            }
 
 
 formatMetric : Dict String MetricFormat -> Point.Point -> { desc : String, value : String }
