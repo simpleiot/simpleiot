@@ -98,13 +98,15 @@ func (sg2c shellyGen2SysConfig) toSettings() ShellyIOConfig {
 
 // ShellyIo describes the config/state for a shelly io
 type ShellyIo struct {
-	ID          string `node:"id"`
-	Parent      string `node:"parent"`
-	Description string `point:"description"`
-	DeviceID    string `point:"deviceID"`
-	Type        string `point:"type"`
-	IP          string `point:"ip"`
-	Offline     bool   `point:"offline"`
+	ID          string  `node:"id"`
+	Parent      string  `node:"parent"`
+	Description string  `point:"description"`
+	DeviceID    string  `point:"deviceID"`
+	Type        string  `point:"type"`
+	IP          string  `point:"ip"`
+	Value       float64 `point:"value"`
+	ValueSet    float64 `point:"valueSet"`
+	Offline     bool    `point:"offline"`
 }
 
 // Desc gets the description of a Shelly IO
@@ -136,6 +138,13 @@ var shellyGenMap = map[string]ShellyGen{
 	data.PointValueShellyTypeI4:      ShellyGen2,
 }
 
+var shellySettableOnOff = map[string]bool{
+	data.PointValueShellyTypeBulbDuo: true,
+	data.PointValueShellyTypeRGBW2:   true,
+	data.PointValueShellyType1PM:     true,
+	data.PointValueShellyTypePlugUS:  true,
+}
+
 // Gen returns generation of Shelly device
 func (sio *ShellyIo) Gen() ShellyGen {
 	gen, ok := shellyGenMap[sio.Type]
@@ -144,6 +153,11 @@ func (sio *ShellyIo) Gen() ShellyGen {
 	}
 
 	return gen
+}
+
+func (sio *ShellyIo) IsSettableOnOff() bool {
+	settable := shellySettableOnOff[sio.Type]
+	return settable
 }
 
 // GetConfig returns the configuration of Shelly Device
@@ -179,6 +193,37 @@ func (sio *ShellyIo) GetConfig() (ShellyIOConfig, error) {
 
 	default:
 		return ShellyIOConfig{}, fmt.Errorf("Unsupported device: %v", sio.Type)
+	}
+}
+
+// SetOnOff sets on/off state of device
+// BulbDuo: http://10.0.0.130/light/0?turn=on
+
+func (sio *ShellyIo) SetOnOff(on bool) (data.Points, error) {
+	switch sio.Type {
+	case data.PointValueShellyTypeBulbDuo:
+		onoff := "off"
+		if on {
+			onoff = "on"
+		}
+		res, err := httpClient.Get("http://" + sio.IP + "/light/0?turn=" + onoff)
+		if err != nil {
+			return data.Points{}, err
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			return data.Points{}, fmt.Errorf("Shelly GetConfig returned an error code: %v", res.StatusCode)
+		}
+
+		var status shellyGen1LightStatus
+
+		err = json.NewDecoder(res.Body).Decode(&status)
+		if err != nil {
+			return data.Points{}, err
+		}
+		return status.toPoints(), nil
+	default:
+		return data.Points{}, nil
 	}
 }
 
@@ -430,6 +475,17 @@ done:
 				log.Printf("Error getting status for %v: %v\n", sioc.config.Description, err)
 				shellyError()
 				break
+			}
+
+			if sioc.config.IsSettableOnOff() {
+				if sioc.config.Value != sioc.config.ValueSet {
+					pts, err := sioc.config.SetOnOff(data.FloatToBool(sioc.config.ValueSet))
+					if err != nil {
+						log.Printf("Error setting %v: %v\n", sioc.config.Description, err)
+					}
+
+					points = append(points, pts...)
+				}
 			}
 
 			shellyCommOK()
