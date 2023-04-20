@@ -44,6 +44,10 @@ type shellyGen2SwitchStatus struct {
 	} `json:"temperature"`
 }
 
+type shellyGen2SwitchSetResp struct {
+	WasOn bool `json:"wasOn"`
+}
+
 func (swi *shellyGen2SwitchStatus) toPoints() data.Points {
 	now := time.Now()
 	return data.Points{
@@ -198,7 +202,7 @@ func (sio *ShellyIo) GetConfig() (ShellyIOConfig, error) {
 
 // SetOnOff sets on/off state of device
 // BulbDuo: http://10.0.0.130/light/0?turn=on
-
+// PlugUS: http://192.168.33.1/rpc/Switch.Set?id=0&on=true
 func (sio *ShellyIo) SetOnOff(on bool) (data.Points, error) {
 	switch sio.Type {
 	case data.PointValueShellyTypeBulbDuo:
@@ -222,6 +226,29 @@ func (sio *ShellyIo) SetOnOff(on bool) (data.Points, error) {
 			return data.Points{}, err
 		}
 		return status.toPoints(), nil
+	case data.PointValueShellyTypePlugUS:
+		onValue := "false"
+		if on {
+			onValue = "true"
+		}
+
+		res, err := httpClient.Get("http://" + sio.IP + "/rpc/Switch.Set?id=0&on=" + onValue)
+		if err != nil {
+			return data.Points{}, err
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			return data.Points{}, fmt.Errorf("Shelly Switch.Set returned an error code: %v", res.StatusCode)
+		}
+
+		var status shellyGen2SwitchSetResp
+
+		err = json.NewDecoder(res.Body).Decode(&status)
+		if err != nil {
+			return data.Points{}, err
+		}
+		return data.Points{}, nil
+
 	default:
 		return data.Points{}, nil
 	}
@@ -484,7 +511,17 @@ done:
 						log.Printf("Error setting %v: %v\n", sioc.config.Description, err)
 					}
 
-					points = append(points, pts...)
+					if len(pts) > 0 {
+						points = append(points, pts...)
+					} else {
+						// get current status as the set did not return status
+						points, err = sioc.config.GetStatus()
+						if err != nil {
+							log.Printf("Error getting status for %v: %v\n", sioc.config.Description, err)
+							shellyError()
+							break
+						}
+					}
 				}
 			}
 
