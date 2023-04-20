@@ -159,6 +159,7 @@ func (sio *ShellyIo) Gen() ShellyGen {
 	return gen
 }
 
+// IsSettableOnOff returns true if the device can be turned on/off
 func (sio *ShellyIo) IsSettableOnOff() bool {
 	settable := shellySettableOnOff[sio.Type]
 	return settable

@@ -189,17 +189,17 @@ textLinkDisplay label value uri =
 
 viewPoints : Time.Zone -> List Point.Point -> Element msg
 viewPoints z pts =
-    let
-        formaters =
-            metricFormaters z
-
-        fm =
-            formatMetric formaters
-    in
     if List.length pts <= 0 then
         Element.none
 
     else
+        let
+            formaters =
+                metricFormaters z
+
+            fm =
+                formatMetric formaters
+        in
         table [ padding 7 ]
             { data = List.map fm pts
             , columns =
