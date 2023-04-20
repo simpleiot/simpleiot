@@ -205,7 +205,7 @@ Object.assign(SIOTConnection.prototype, {
 	// sendNodePoints sends an array of `points` for a given `nodeID`
 	// - `ack` - true if function should block waiting for send acknowledgement
 	// - `opts` are options passed to the NATS request
-	async sendNodePoints(nodeID, points, { ack, opts }) {
+	async sendNodePoints(nodeID, points, { ack, opts } = {}) {
 		const payload = encodePoints(points)
 		if (!ack) {
 			await this.publish("p." + nodeID, payload, opts)
@@ -227,7 +227,7 @@ Object.assign(SIOTConnection.prototype, {
 	// `nodeID` and `parentID`
 	// - `ack` - true if function should block waiting for send acknowledgement
 	// - `opts` are options passed to the NATS request
-	async sendEdgePoints(nodeID, parentID, edgePoints, { ack, opts }) {
+	async sendEdgePoints(nodeID, parentID, edgePoints, { ack, opts } = {}) {
 		const payload = encodePoints(edgePoints)
 		if (!ack) {
 			await this.publish("p." + nodeID + "." + parentID, payload, opts)
