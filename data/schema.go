@@ -299,4 +299,5 @@ const (
 	PointValueShellyType1PM     = "1pm"
 	PointValueShellyTypePlugUS  = "PlugUS"
 	PointValueShellyTypeI4      = "PlusI4"
+	PointValueShellyTypePlus1   = "Plus1"
 )

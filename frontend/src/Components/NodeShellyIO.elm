@@ -20,7 +20,7 @@ import Utils.Iso8601 as Iso8601
 
 onOffDevices : List String
 onOffDevices =
-    [ "BulbDuo", "1pm", "rgbw2", "PlugUS" ]
+    [ "BulbDuo", "1pm", "rgbw2", "PlugUS", "Plus1" ]
 
 
 isSettableOnOff : String -> Bool
