@@ -8,17 +8,43 @@ import (
 )
 
 func setVal(p Point, v reflect.Value) {
-	switch v.Type().Kind() {
-	case reflect.String:
-		v.SetString(p.Text)
-	case reflect.Int:
-		v.SetInt(int64(p.Value))
-	case reflect.Float64, reflect.Float32:
-		v.SetFloat(p.Value)
+	t := v.Type()
+	k := t.Kind()
+	if !v.CanSet() {
+		log.Println("setVal failed, cannot set value")
+		return
+	}
+	switch k {
 	case reflect.Bool:
 		v.SetBool(FloatToBool(p.Value))
+	case reflect.Int,
+		reflect.Int8,
+		reflect.Int16,
+		reflect.Int32,
+		reflect.Int64:
+
+		if v.OverflowInt(int64(p.Value)) {
+			log.Println("setVal failed, int overflow: ", p.Value)
+			return
+		}
+		v.SetInt(int64(p.Value))
+	case reflect.Uint,
+		reflect.Uint8,
+		reflect.Uint16,
+		reflect.Uint32,
+		reflect.Uint64:
+
+		if p.Value < 0 || v.OverflowUint(uint64(p.Value)) {
+			log.Println("setVal failed, int overflow: ", p.Value)
+			return
+		}
+		v.SetUint(uint64(p.Value))
+	case reflect.Float32, reflect.Float64:
+		v.SetFloat(p.Value)
+	case reflect.String:
+		v.SetString(p.Text)
 	default:
-		log.Println("setVal failed, did not match any type: ", v.Type().Kind())
+		log.Println("setVal failed, did not match any type: ", k)
 	}
 }
 
@@ -78,7 +104,7 @@ func MergePoints(id string, points []Point, output interface{}) error {
 				v := children.Index(i)
 				err := MergePoints(id, points, &v)
 				if err != nil {
-					return fmt.Errorf("Error merging child points: %v", err)
+					return fmt.Errorf("Error merging child points: %w", err)
 				}
 			}
 		}
@@ -143,7 +169,7 @@ func MergeEdgePoints(id, parent string, points []Point, output interface{}) erro
 				v := children.Index(i)
 				err := MergeEdgePoints(id, parent, points, &v)
 				if err != nil {
-					return fmt.Errorf("Error merging child edge points: %v", err)
+					return fmt.Errorf("Error merging child edge points: %w", err)
 				}
 			}
 		}
