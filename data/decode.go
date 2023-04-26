@@ -1,8 +1,8 @@
 package data
 
 import (
-	"errors"
 	"fmt"
+	"log"
 	"reflect"
 )
 
@@ -11,6 +11,128 @@ import (
 type NodeEdgeChildren struct {
 	NodeEdge NodeEdge
 	Children []NodeEdgeChildren
+}
+
+// reflectValueT is the `reflect.Type` for a `reflect.Value`
+var reflectValueT = reflect.TypeOf(reflect.Value{})
+
+// GroupedPoints are Points grouped by the `Point.Type`. While scanning
+// through the list of points, we also keep track of whether or not the
+// points have an Index or Key
+type GroupedPoints struct {
+	// Keyed if and only if a Point's `Key` field is populated
+	Keyed bool
+	// IndexMax is the largest `Point.Index` value in Points
+	IndexMax int
+	// Points is the list of Points for this group
+	Points []Point
+}
+
+// SetValue populates v with the Points in the group
+func (g GroupedPoints) SetValue(v reflect.Value) error {
+	t := v.Type()
+	switch k := t.Kind(); k {
+	case reflect.Array, reflect.Slice:
+		// Check array bounds
+		if g.IndexMax > maxStructureSize {
+			return fmt.Errorf(
+				"Point.Index %v exceeds %v",
+				g.IndexMax, maxStructureSize,
+			)
+		}
+		if k == reflect.Array && g.IndexMax > t.Len()-1 {
+			return fmt.Errorf(
+				"Point.Index %v exceeds array size %v",
+				g.IndexMax, t.Len(),
+			)
+		}
+		// Expand slice if needed
+		if k == reflect.Slice && g.IndexMax > v.Len()-1 {
+			if !v.CanSet() {
+				return fmt.Errorf("cannot set value %v", v)
+			}
+			newV := reflect.MakeSlice(t, g.IndexMax+1, g.IndexMax+1)
+			reflect.Copy(newV, v)
+			v.Set(newV)
+		}
+		// Set array / slice values
+		for _, p := range g.Points {
+			// Note: array / slice values are set directly on the indexed Value
+			err := setVal(p, v.Index(int(p.Index)))
+			if err != nil {
+				return err
+			}
+		}
+	case reflect.Map:
+		// Ensure map is keyed by string
+		if keyK := t.Key().Kind(); keyK != reflect.String {
+			return fmt.Errorf("cannot set map keyed by %v", keyK)
+		}
+		if len(g.Points) > maxStructureSize {
+			return fmt.Errorf(
+				"size of %v exceeds maximum of %v",
+				len(g.Points), maxStructureSize,
+			)
+		}
+		// Ensure points are keyed
+		if !g.Keyed {
+			return fmt.Errorf("points missing Key")
+		}
+		// Ensure map is initialized
+		if v.IsNil() {
+			if !v.CanSet() {
+				return fmt.Errorf("cannot set value %v", v)
+			}
+			v.Set(reflect.MakeMapWithSize(t, len(g.Points)))
+		}
+		// Set map values
+		for _, p := range g.Points {
+			// Create and set a new map value
+			// Note: map values must be set on newly created Values
+			vPtr := reflect.New(t.Elem())
+			err := setVal(p, vPtr.Elem())
+			if err != nil {
+				return err
+			}
+			v.SetMapIndex(reflect.ValueOf(p.Key), vPtr.Elem())
+		}
+	case reflect.Struct:
+		// Ensure points are keyed
+		if !g.Keyed {
+			return fmt.Errorf("points missing Key")
+		}
+		// Create map of Points
+		values := make(map[string]Point, len(g.Points))
+		for _, p := range g.Points {
+			values[p.Key] = p
+		}
+		// Write points to struct
+		for numField, i := v.NumField(), 0; i < numField; i++ {
+			sf := t.Field(i)
+			key := sf.Tag.Get("point")
+			if key == "" {
+				key = sf.Tag.Get("edgepoint")
+			}
+			if key == "" {
+				key = ToCamelCase(sf.Name)
+			}
+			err := setVal(values[key], v.Field(i))
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		if len(g.Points) > 1 {
+			log.Println("Decode warning, decoded multiple points to scalar")
+		}
+		for _, p := range g.Points {
+			err := setVal(p, v)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // Decode converts a Node to custom struct.
@@ -31,71 +153,146 @@ type NodeEdgeChildren struct {
 //
 // output can also be a *reflect.Value
 func Decode(input NodeEdgeChildren, output interface{}) error {
-	var vOut reflect.Value
-	var tOut reflect.Type
+	var firstErr error
+	vOut := reflect.Indirect(reflect.ValueOf(output))
+	tOut := vOut.Type()
 
-	if reflect.TypeOf(output).String() == "*reflect.Value" {
-		outputV, ok := output.(*reflect.Value)
-		if !ok {
-			return errors.New("Error converting interface")
-		}
-
-		vOut = outputV.Elem()
-		tOut = outputV.Type().Elem()
-	} else {
-		vOut = reflect.ValueOf(output).Elem()
-		tOut = reflect.TypeOf(output).Elem()
+	if tOut == reflectValueT {
+		// `output` was a reflect.Value or *reflect.Value
+		vOut = vOut.Interface().(reflect.Value)
+		tOut = vOut.Type()
 	}
 
-	pointValues := make(map[string]reflect.Value)
-	edgeValues := make(map[string]reflect.Value)
-	childValues := make(map[string]reflect.Value)
+	if k := tOut.Kind(); k != reflect.Struct {
+		return fmt.Errorf("Error decoding to %v; must be a struct", k)
+	}
+
+	// Group points and children by type
+	pointGroups := make(map[string]GroupedPoints)
+	edgePointGroups := make(map[string]GroupedPoints)
+	childGroups := make(map[string][]NodeEdgeChildren)
+
+	for _, p := range input.NodeEdge.Points {
+		g, ok := pointGroups[p.Type]
+		if !ok {
+			g = GroupedPoints{}
+		}
+		if p.Key != "" {
+			g.Keyed = true
+		}
+		if index := int(p.Index); index > g.IndexMax {
+			g.IndexMax = index
+		}
+		g.Points = append(g.Points, p)
+		pointGroups[p.Type] = g
+	}
+	for _, p := range input.NodeEdge.EdgePoints {
+		g, ok := edgePointGroups[p.Type]
+		if !ok {
+			g = GroupedPoints{}
+		}
+		if p.Key != "" {
+			g.Keyed = true
+		}
+
+		if index := int(p.Index); index > g.IndexMax {
+			g.IndexMax = index
+		}
+		g.Points = append(g.Points, p)
+		edgePointGroups[p.Type] = g
+	}
+	for _, c := range input.Children {
+		childGroups[c.NodeEdge.Type] = append(childGroups[c.NodeEdge.Type], c)
+	}
 
 	for i := 0; i < tOut.NumField(); i++ {
 		sf := tOut.Field(i)
 		if pt := sf.Tag.Get("point"); pt != "" {
-			pointValues[pt] = vOut.Field(i)
+			g := pointGroups[pt]
+			// Write points into struct field
+			err := g.SetValue(vOut.Field(i))
+			if err != nil && firstErr == nil {
+				firstErr = fmt.Errorf("decode error for type %v: %w", pt, err)
+			}
 		} else if et := sf.Tag.Get("edgepoint"); et != "" {
-			edgeValues[et] = vOut.Field(i)
+			g := edgePointGroups[et]
+			// Write points into struct field
+			err := g.SetValue(vOut.Field(i))
+			if err != nil {
+				firstErr = fmt.Errorf("decode error for type %v: %w", et, err)
+			}
 		} else if nt := sf.Tag.Get("node"); nt != "" {
+			// Ensure field is a settable string
 			if nt == "id" {
-				vOut.Field(i).SetString(input.NodeEdge.ID)
+				v := vOut.Field(i)
+				if !v.CanSet() {
+					if firstErr == nil {
+						firstErr = fmt.Errorf(
+							"decode error for id: cannot set",
+						)
+					}
+					continue
+				}
+				if v.Kind() != reflect.String {
+					if firstErr == nil {
+						firstErr = fmt.Errorf(
+							"decode error for id: not a string",
+						)
+					}
+					continue
+				}
+				v.SetString(input.NodeEdge.ID)
 			} else if nt == "parent" {
-				vOut.Field(i).SetString(input.NodeEdge.Parent)
+				v := vOut.Field(i)
+				if !v.CanSet() {
+					if firstErr == nil {
+						firstErr = fmt.Errorf(
+							"decode error for parent: cannot set",
+						)
+					}
+					continue
+				}
+				if v.Kind() != reflect.String {
+					if firstErr == nil {
+						firstErr = fmt.Errorf(
+							"decode error for parent: not a string",
+						)
+					}
+					continue
+				}
+				v.SetString(input.NodeEdge.Parent)
 			}
 		} else if ct := sf.Tag.Get("child"); ct != "" {
-			childValues[ct] = vOut.Field(i)
-		}
-	}
-
-	for _, p := range input.NodeEdge.Points {
-		v, ok := pointValues[p.Type]
-		if ok {
-			setVal(p, v)
-		}
-	}
-
-	for _, p := range input.NodeEdge.EdgePoints {
-		v, ok := edgeValues[p.Type]
-		if ok {
-			setVal(p, v)
-		}
-	}
-
-	for _, c := range input.Children {
-		for k, v := range childValues {
-			// v is an array
-			if c.NodeEdge.Type == k {
-				// get an empty value of the type of the array
-				cOut := reflect.New(v.Type().Elem())
-
-				err := Decode(c, &cOut)
-				if err != nil {
-					return fmt.Errorf("Error decoding child: %v", err)
+			g := childGroups[ct]
+			// Ensure field is a settable slice
+			v := vOut.Field(i)
+			t := v.Type()
+			if t.Kind() != reflect.Slice {
+				if firstErr == nil {
+					firstErr = fmt.Errorf(
+						"decode error for child %v: not a slice", ct,
+					)
 				}
+			}
+			if !v.CanSet() {
+				if firstErr == nil {
+					firstErr = fmt.Errorf(
+						"decode error for child %v: cannot set", ct,
+					)
+				}
+			}
 
-				// append the new value to the child array
-				childValues[k].Set(reflect.Append(v, cOut.Elem()))
+			// Initialize slice
+			v.Set(reflect.MakeSlice(t, len(g), len(g)))
+			for i, child := range childGroups[ct] {
+				err := Decode(child, v.Index(i))
+				if err != nil {
+					if firstErr == nil {
+						firstErr = fmt.Errorf(
+							"decode error for child %v: %v", ct, err,
+						)
+					}
+				}
 			}
 		}
 	}

@@ -2,6 +2,7 @@ package data
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -105,6 +106,83 @@ func TestEncodeCase(t *testing.T) {
 
 	if ne.Type != "testType" {
 		t.Error("expected testType, got: ", ne.Type)
+	}
+}
+
+type testTypeComplex struct {
+	ID          string            `node:"id"`
+	Parent      string            `node:"parent"`
+	Description string            `point:"description"`
+	IPAddresses []string          `point:"ipAddress"`
+	Location    map[string]string `point:"location"`
+	Sensors     map[string]int    `point:"sensor"`
+	Nested      TestType          `point:"nested"`
+	TestValues  []int32           `edgepoint:"testValue"`
+	Tombstone   bool              `edgepoint:"tombstone"`
+}
+
+var testTypeComplexData = testTypeComplex{"123", "456", "hi there",
+	[]string{"192.168.1.1", "127.0.0.1"},
+	map[string]string{
+		"hello":   "world",
+		"goodbye": "cruel world",
+	},
+	map[string]int{
+		"temp1": 23,
+		"temp2": 40,
+	},
+	TestType{"789", "456", "nested test type"},
+	[]int32{314, 1024},
+	true,
+}
+
+var nodeEdgeTestComplex = NodeEdge{
+	ID:     "123",
+	Parent: "456",
+	Type:   "testTypeComplex",
+	Points: []Point{
+		{Type: "description", Text: "hi there"},
+		{Type: "ipAddress", Index: 0, Text: "192.168.1.1"},
+		{Type: "ipAddress", Index: 1, Text: "127.0.0.1"},
+		{Type: "location", Key: "goodbye", Text: "cruel world"},
+		{Type: "location", Key: "hello", Text: "world"},
+		{Type: "nested", Key: "description", Text: "nested test type"},
+		{Type: "nested", Key: "id", Text: "789"},
+		{Type: "nested", Key: "parent", Text: "456"},
+		{Type: "sensor", Key: "temp1", Value: 23},
+		{Type: "sensor", Key: "temp2", Value: 40},
+	},
+	EdgePoints: []Point{
+		{Type: "testValue", Index: 0, Value: 314},
+		{Type: "testValue", Index: 1, Value: 1024},
+		{Type: "tombstone", Value: 1},
+	},
+}
+
+func TestEncodeComplex(t *testing.T) {
+	ne, err := Encode(testTypeComplexData)
+
+	if err != nil {
+		t.Fatal("encode failed:", err)
+	}
+	sortPoints(ne.Points, ne.EdgePoints)
+
+	if !reflect.DeepEqual(ne, nodeEdgeTestComplex) {
+		t.Errorf("Decode failed, exp: %v, got %v", nodeEdgeTestComplex, ne)
+	}
+}
+
+func TestDecodeComplex(t *testing.T) {
+	var out testTypeComplex
+
+	err := Decode(NodeEdgeChildren{nodeEdgeTestComplex, nil}, &out)
+
+	if err != nil {
+		t.Fatal("Error decoding: ", err)
+	}
+
+	if !reflect.DeepEqual(out, testTypeComplexData) {
+		t.Errorf("Decode failed, exp: %v, got %v", testTypeComplexData, out)
 	}
 }
 
@@ -218,4 +296,46 @@ func TestDecodeWithChildren(t *testing.T) {
 		t.Fatal("No TestYs.TestZs")
 	}
 
+}
+
+type SortablePoints []Point
+
+func (sp SortablePoints) Len() int {
+	return len(sp)
+}
+
+// Sort by type, key, index, and then time
+func (sp SortablePoints) Less(i, j int) bool {
+	if sp[i].Type < sp[j].Type {
+		return true
+	}
+	if sp[i].Type > sp[j].Type {
+		return false
+	}
+
+	if sp[i].Key < sp[j].Key {
+		return true
+	}
+	if sp[i].Key > sp[j].Key {
+		return false
+	}
+
+	if sp[i].Index < sp[j].Index {
+		return true
+	}
+	if sp[i].Index > sp[j].Index {
+		return false
+	}
+
+	return sp[i].Time.Before(sp[j].Time)
+}
+
+func (sp SortablePoints) Swap(i, j int) {
+	sp[i], sp[j] = sp[j], sp[i]
+}
+
+func sortPoints(slices ...[]Point) {
+	for _, pts := range slices {
+		sort.Sort(SortablePoints(pts))
+	}
 }
