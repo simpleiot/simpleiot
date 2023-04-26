@@ -74,6 +74,10 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 				len(g.Points), maxStructureSize,
 			)
 		}
+		// Ensure points are keyed
+		if !g.Keyed {
+			return fmt.Errorf("points missing Key")
+		}
 		// Ensure map is initialized
 		if v.IsNil() {
 			if !v.CanSet() {
@@ -93,6 +97,10 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 			v.SetMapIndex(reflect.ValueOf(p.Key), vPtr.Elem())
 		}
 	case reflect.Struct:
+		// Ensure points are keyed
+		if !g.Keyed {
+			return fmt.Errorf("points missing Key")
+		}
 		// Create map of Points
 		values := make(map[string]Point, len(g.Points))
 		for _, p := range g.Points {
