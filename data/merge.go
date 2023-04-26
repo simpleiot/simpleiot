@@ -3,18 +3,15 @@ package data
 import (
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 )
 
-func setVal(p Point, v reflect.Value) {
-	t := v.Type()
-	k := t.Kind()
+// setVal writes a scalar Point value / text to a reflect.Value
+func setVal(p Point, v reflect.Value) error {
 	if !v.CanSet() {
-		log.Println("setVal failed, cannot set value")
-		return
+		return fmt.Errorf("cannot set value")
 	}
-	switch k {
+	switch k := v.Kind(); k {
 	case reflect.Bool:
 		v.SetBool(FloatToBool(p.Value))
 	case reflect.Int,
@@ -24,8 +21,7 @@ func setVal(p Point, v reflect.Value) {
 		reflect.Int64:
 
 		if v.OverflowInt(int64(p.Value)) {
-			log.Println("setVal failed, int overflow: ", p.Value)
-			return
+			return fmt.Errorf("int overflow: %v", p.Value)
 		}
 		v.SetInt(int64(p.Value))
 	case reflect.Uint,
@@ -35,8 +31,7 @@ func setVal(p Point, v reflect.Value) {
 		reflect.Uint64:
 
 		if p.Value < 0 || v.OverflowUint(uint64(p.Value)) {
-			log.Println("setVal failed, int overflow: ", p.Value)
-			return
+			return fmt.Errorf("int overflow: %v", p.Value)
 		}
 		v.SetUint(uint64(p.Value))
 	case reflect.Float32, reflect.Float64:
@@ -44,8 +39,9 @@ func setVal(p Point, v reflect.Value) {
 	case reflect.String:
 		v.SetString(p.Text)
 	default:
-		log.Println("setVal failed, did not match any type: ", k)
+		return fmt.Errorf("unsupported type: %v", k)
 	}
+	return nil
 }
 
 // MergePoints takes points and updates fields in a type
@@ -93,7 +89,12 @@ func MergePoints(id string, points []Point, output interface{}) error {
 		for _, p := range points {
 			v, ok := pointValues[p.Type]
 			if ok {
-				setVal(p, v)
+				if err := setVal(p, v); err != nil {
+					return fmt.Errorf(
+						"merge error for point type %v: %w",
+						p.Type, err,
+					)
+				}
 			}
 		}
 	} else if len(childValues) > 0 {
@@ -116,21 +117,13 @@ func MergePoints(id string, points []Point, output interface{}) error {
 // MergeEdgePoints takes edge points and updates a type that
 // matching edgepoint tags. See [Decode] for an example type.
 func MergeEdgePoints(id, parent string, points []Point, output interface{}) error {
-	var vOut *reflect.Value
-	var tOut reflect.Type
+	vOut := reflect.Indirect(reflect.ValueOf(output))
+	tOut := vOut.Type()
 
-	if reflect.TypeOf(output).String() == "*reflect.Value" {
-		outputV, ok := output.(*reflect.Value)
-		if !ok {
-			return errors.New("Error converting interface")
-		}
-
-		vOut = outputV
-		tOut = outputV.Type()
-	} else {
-		vOutX := reflect.ValueOf(output).Elem()
-		vOut = &vOutX
-		tOut = reflect.TypeOf(output).Elem()
+	if tOut == reflectValueT {
+		// `output` was a reflect.Value or *reflect.Value
+		vOut = vOut.Interface().(reflect.Value)
+		tOut = vOut.Type()
 	}
 
 	edgeValues := make(map[string]reflect.Value)
@@ -158,7 +151,12 @@ func MergeEdgePoints(id, parent string, points []Point, output interface{}) erro
 		for _, p := range points {
 			v, ok := edgeValues[p.Type]
 			if ok {
-				setVal(p, v)
+				if err := setVal(p, v); err != nil {
+					return fmt.Errorf(
+						"merge error for edge type %v: %w",
+						p.Type, err,
+					)
+				}
 			}
 		}
 	} else if len(childValues) > 0 {
@@ -169,7 +167,7 @@ func MergeEdgePoints(id, parent string, points []Point, output interface{}) erro
 				v := children.Index(i)
 				err := MergeEdgePoints(id, parent, points, &v)
 				if err != nil {
-					return fmt.Errorf("Error merging child edge points: %w", err)
+					return fmt.Errorf("merge error for child edge points: %w", err)
 				}
 			}
 		}

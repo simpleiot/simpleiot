@@ -77,9 +77,8 @@ func appendPointsFromValue(
 		}
 	case reflect.Map:
 		// Points support maps with string keys
-		kKey := t.Key().Kind()
-		if kKey != reflect.String {
-			return points, fmt.Errorf("unsupported type: map keyed by %v", kKey)
+		if keyK := t.Key().Kind(); keyK != reflect.String {
+			return points, fmt.Errorf("unsupported type: map keyed by %v", keyK)
 		}
 		if v.Len() > maxStructureSize {
 			return points, fmt.Errorf(
