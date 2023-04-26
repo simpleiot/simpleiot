@@ -66,8 +66,7 @@ func GetNodes(nc *nats.Conn, parent, id, typ string, includeDel bool) ([]data.No
 // Deleted nodes are not included.
 func GetNodesType[T any](nc *nats.Conn, parent, id string) ([]T, error) {
 	var x T
-	nodeType := reflect.TypeOf(x).Name()
-	nodeType = strings.ToLower(nodeType[0:1]) + nodeType[1:]
+	nodeType := data.ToCamelCase(reflect.TypeOf(x).Name())
 
 	nodes, err := GetNodes(nc, parent, id, nodeType, false)
 

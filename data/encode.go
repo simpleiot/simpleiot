@@ -51,9 +51,11 @@ func pointFromPrimitive(pointType string, v reflect.Value) (Point, error) {
 	}
 	return p, nil
 }
-func appendPointsFromValue(points []Point, pointType string, v reflect.Value)
-	([]Point, error)
-{
+func appendPointsFromValue(
+	points []Point,
+	pointType string,
+	v reflect.Value,
+) ([]Point, error) {
 	t := v.Type()
 	k := t.Kind()
 	switch k {
@@ -106,11 +108,13 @@ func appendPointsFromValue(points []Point, pointType string, v reflect.Value)
 			)
 		}
 		for i := 0; i < numField; i++ {
-			fieldT := t.Field(i)
-			key := fieldT.Tag.Get("point")
+			sf := t.Field(i)
+			key := sf.Tag.Get("point")
 			if key == "" {
-				key = fieldT.Name()
-				key = strings.ToLower(key[0:1]) + key[1:]
+				key = sf.Tag.Get("edgepoint")
+			}
+			if key == "" {
+				key = ToCamelCase(sf.Name)
 			}
 			p, err := pointFromPrimitive(pointType, v.Field(i))
 			if err != nil {
@@ -127,6 +131,26 @@ func appendPointsFromValue(points []Point, pointType string, v reflect.Value)
 		points = append(points, p)
 	}
 	return points, nil
+}
+
+// ToCamelCase naively converts a string to camelCase. This function does
+// not consider common initialisms.
+func ToCamelCase(s string) string {
+	// Find first lowercase letter
+	lowerIndex := strings.IndexFunc(s, func(c rune) bool {
+		return 'a' <= c && c <= 'z'
+	})
+	if lowerIndex < 0 {
+		// ALLUPPERCASE
+		s = strings.ToLower(s)
+	} else if lowerIndex == 1 {
+		// FirstLetterUppercase
+		s = strings.ToLower(s[0:lowerIndex]) + s[lowerIndex:]
+	} else if lowerIndex > 1 {
+		// MANYLettersUppercase
+		s = strings.ToLower(s[0:lowerIndex-1]) + s[lowerIndex-1:]
+	}
+	return s
 }
 
 // Encode is used to convert a user struct to
@@ -147,27 +171,29 @@ func Encode(in interface{}) (NodeEdge, error) {
 	vIn := reflect.ValueOf(in)
 	tIn := reflect.TypeOf(in)
 
-	nodeType := tIn.Name()
-	nodeType = strings.ToLower(nodeType[0:1]) + nodeType[1:]
+	nodeType := ToCamelCase(tIn.Name())
 
 	ret := NodeEdge{Type: nodeType}
+	var err error
 
 	for i := 0; i < tIn.NumField(); i++ {
-		fieldT := tIn.Field(i)
-		if pt := fieldT.Tag.Get("point"); pt != "" {
-			p, err := valToPoint(pt, vIn.Field(i))
+		sf := tIn.Field(i)
+		if pt := sf.Tag.Get("point"); pt != "" {
+			ret.Points, err = appendPointsFromValue(
+				ret.Points, pt, vIn.Field(i),
+			)
 			if err != nil {
 				return ret, err
 			}
-			ret.Points = append(ret.Points, p)
-		} else if et := fieldT.Tag.Get("edgepoint"); et != "" {
-			p, err := valToPoint(et, vIn.Field(i))
+		} else if et := sf.Tag.Get("edgepoint"); et != "" {
+			ret.EdgePoints, err = appendPointsFromValue(
+				ret.EdgePoints, et, vIn.Field(i),
+			)
 			if err != nil {
 				return ret, err
 			}
-			ret.EdgePoints = append(ret.EdgePoints, p)
-		} else if nt := fieldT.Tag.Get("node"); nt != "" &&
-			fieldT.Kind() == reflect.String {
+		} else if nt := sf.Tag.Get("node"); nt != "" &&
+			sf.Type.Kind() == reflect.String {
 
 			if nt == "id" {
 				ret.ID = vIn.Field(i).String()
