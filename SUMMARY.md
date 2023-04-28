@@ -19,6 +19,7 @@
   - [Metrics](docs/user/metrics.md)
   - [Particle.io](docs/user/particle.md)
   - [Rules](docs/user/rules.md)
+  - [Shelly IoT](docs/user/shelly.md)
   - [Synchronization](docs/user/sync.md)
   - [USB](docs/user/usb.md)
 - [Graphing](docs/user/graphing.md)
