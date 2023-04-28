@@ -231,3 +231,11 @@ siot_dblab() {
 	fi
 	go run github.com/danvergara/dblab@latest --db "$STORE" --driver sqlite3
 }
+
+siot_mdbook() {
+	mdbook serve -p 3333
+}
+
+siot_mdbook_cleanup() {
+	rm -rf book
+}
