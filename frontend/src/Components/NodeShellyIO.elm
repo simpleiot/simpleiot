@@ -34,6 +34,16 @@ view o =
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
 
+        offline =
+            Point.getBool o.node.points Point.typeOffline ""
+
+        summaryBackground =
+            if disabled || offline then
+                Style.colors.ltgray
+
+            else
+                Style.colors.none
+
         typ =
             Point.getText o.node.points Point.typeType ""
 
@@ -60,11 +70,12 @@ view o =
         , spacing 6
         ]
     <|
-        wrappedRow [ spacing 10 ]
+        wrappedRow [ spacing 10, Background.color summaryBackground ]
             [ Icon.io
             , text summary
             , valueElement
             , viewIf disabled <| text "(disabled)"
+            , viewIf offline <| text "(offline)"
             ]
             :: (if o.expDetail then
                     let

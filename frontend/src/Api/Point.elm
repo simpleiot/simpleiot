@@ -62,6 +62,7 @@ module Api.Point exposing
     , typeMsgsRecvdOtherReset
     , typeName
     , typeNodeID
+    , typeOffline
     , typeOffset
     , typeOperator
     , typeOrg
@@ -639,6 +640,11 @@ typeDisable =
     "disable"
 
 
+typeOffline : String
+typeOffline =
+    "offline"
+
+
 typeHighRate : String
 typeHighRate =
     "highRate"
@@ -761,6 +767,7 @@ specialPoints =
     , typeMaxMessageLength
     , typeDebug
     , typeDisable
+    , typeOffline
     , typeHighRate
     , typeErrorCount
     , typeErrorCountReset
