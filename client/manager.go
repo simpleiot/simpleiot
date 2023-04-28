@@ -40,8 +40,7 @@ type Manager[T any] struct {
 func NewManager[T any](nc *nats.Conn,
 	construct func(nc *nats.Conn, config T) Client) *Manager[T] {
 	var x T
-	nodeType := reflect.TypeOf(x).Name()
-	nodeType = strings.ToLower(nodeType[0:1]) + nodeType[1:]
+	nodeType := data.ToCamelCase(reflect.TypeOf(x).Name())
 
 	return &Manager[T]{
 		nc:           nc,
