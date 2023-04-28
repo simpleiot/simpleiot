@@ -39,3 +39,5 @@ jobs:
 
       - name: Lint backend
         uses: golangci/golangci-lint-action@v3.4.0
+        with:
+          args: --timeout=5m
