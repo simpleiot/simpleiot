@@ -139,6 +139,9 @@ var shellyGenMap = map[string]ShellyGen{
 	data.PointValueShellyTypeRGBW2:   ShellyGen1,
 	data.PointValueShellyType1PM:     ShellyGen1,
 	data.PointValueShellyTypePlugUS:  ShellyGen2,
+	data.PointValueShellyTypePlugUK:  ShellyGen2,
+	data.PointValueShellyTypePlugIT:  ShellyGen2,
+	data.PointValueShellyTypePlugS:   ShellyGen2,
 	data.PointValueShellyTypeI4:      ShellyGen2,
 	data.PointValueShellyTypePlus1:   ShellyGen2,
 }
@@ -148,6 +151,9 @@ var shellySettableOnOff = map[string]bool{
 	data.PointValueShellyTypeRGBW2:   true,
 	data.PointValueShellyType1PM:     true,
 	data.PointValueShellyTypePlugUS:  true,
+	data.PointValueShellyTypePlugUK:  true,
+	data.PointValueShellyTypePlugIT:  true,
+	data.PointValueShellyTypePlugS:   true,
 	data.PointValueShellyTypePlus1:   true,
 }
 
@@ -229,7 +235,11 @@ func (sio *ShellyIo) SetOnOff(on bool) (data.Points, error) {
 			return data.Points{}, err
 		}
 		return status.toPoints(), nil
-	case data.PointValueShellyTypePlugUS, data.PointValueShellyTypePlus1:
+	case data.PointValueShellyTypePlugUS,
+		data.PointValueShellyTypePlugUK,
+		data.PointValueShellyTypePlugIT,
+		data.PointValueShellyTypePlugS,
+		data.PointValueShellyTypePlus1:
 		onValue := "false"
 		if on {
 			onValue = "true"
@@ -260,7 +270,11 @@ func (sio *ShellyIo) SetOnOff(on bool) (data.Points, error) {
 // GetStatus gets the current status of the device
 func (sio *ShellyIo) GetStatus() (data.Points, error) {
 	switch sio.Type {
-	case data.PointValueShellyTypePlugUS, data.PointValueShellyTypePlus1:
+	case data.PointValueShellyTypePlugUS,
+		data.PointValueShellyTypePlugUK,
+		data.PointValueShellyTypePlugIT,
+		data.PointValueShellyTypePlugS,
+		data.PointValueShellyTypePlus1:
 		res, err := httpClient.Get("http://" + sio.IP + "/rpc/Switch.GetStatus?id=0")
 		if err != nil {
 			return data.Points{}, err

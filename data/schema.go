@@ -298,6 +298,9 @@ const (
 	PointValueShellyTypeRGBW2   = "rgbw2"
 	PointValueShellyType1PM     = "1pm"
 	PointValueShellyTypePlugUS  = "PlugUS"
+	PointValueShellyTypePlugUK  = "PlugUK"
+	PointValueShellyTypePlugIT  = "PlugIT"
+	PointValueShellyTypePlugS   = "PlugS"
 	PointValueShellyTypeI4      = "PlusI4"
 	PointValueShellyTypePlus1   = "Plus1"
 )
