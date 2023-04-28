@@ -13,7 +13,8 @@ For more details or to discuss releases, please visit the
 
 ## [[0.10.0] - 2023-04-28](https://github.com/simpleiot/simpleiot/releases/tag/v0.10.0)
 
-- support for Shelly Home Automation devices (#189)
+- support for Shelly Home Automation devices (#189) (see
+  [docs](https://docs.simpleiot.org/docs/user/shelly.html))
 - switch Linting/CI to use golangci-lint and fix issues in codebase
 - point encode/decode functions now support arrays and maps. Thanks @bminer!
 
