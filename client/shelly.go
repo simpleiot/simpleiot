@@ -48,8 +48,12 @@ func (sc *ShellyClient) Run() error {
 
 	entriesCh := make(chan *mdns.ServiceEntry, 4)
 
+	params := mdns.DefaultParams("_http._tcp")
+	params.DisableIPv6 = true
+	params.Entries = entriesCh
+
 	scan := func() {
-		err := mdns.Lookup("_http._tcp", entriesCh)
+		err := mdns.Query(params)
 		if err != nil {
 			log.Println("mdns error: ", err)
 		}
