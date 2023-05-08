@@ -124,6 +124,7 @@ done:
 					DeviceID: id,
 					Parent:   sc.config.ID,
 					Type:     typ,
+					IP:       ip,
 				}
 
 				err := SendNodeType(sc.nc, newIO, sc.config.ID)
