@@ -111,6 +111,7 @@ type ShellyIo struct {
 	Value       float64 `point:"value"`
 	ValueSet    float64 `point:"valueSet"`
 	Offline     bool    `point:"offline"`
+	Control     bool    `point:"control"`
 }
 
 // Desc gets the description of a Shelly IO
@@ -522,7 +523,7 @@ done:
 			}
 
 			if sioc.config.IsSettableOnOff() {
-				if sioc.config.Value != sioc.config.ValueSet {
+				if sioc.config.Value != sioc.config.ValueSet && sioc.config.Control {
 					pts, err := sioc.config.SetOnOff(data.FloatToBool(sioc.config.ValueSet))
 					if err != nil {
 						log.Printf("Error setting %v: %v\n", sioc.config.Description, err)
