@@ -100,6 +100,9 @@ view o =
                         ip =
                             Point.getText o.node.points Point.typeIP ""
 
+                        control =
+                            Point.getBool o.node.points Point.typeControl ""
+
                         latestPointTime =
                             case Point.getLatest o.node.points of
                                 Just point ->
@@ -111,7 +114,8 @@ view o =
                     [ textDisplay "ID" deviceID
                     , textLinkDisplay "IP" ip ("http://" ++ ip)
                     , textInput Point.typeDescription "Description" ""
-                    , viewIf (isSettableOnOff typ) <| onOffInput Point.typeValue Point.typeValueSet "Value"
+                    , viewIf (isSettableOnOff typ && control) <| onOffInput Point.typeValue Point.typeValueSet "Value"
+                    , viewIf (isSettableOnOff typ) <| checkboxInput Point.typeControl "Enable Control"
                     , checkboxInput Point.typeDisable "Disable"
                     , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
                     , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points

@@ -27,6 +27,7 @@ module Api.Point exposing
     , typeChannel
     , typeClientServer
     , typeConditionType
+    , typeControl
     , typeData
     , typeDataFormat
     , typeDebug
@@ -640,6 +641,11 @@ typeDisable =
     "disable"
 
 
+typeControl : String
+typeControl =
+    "control"
+
+
 typeOffline : String
 typeOffline =
     "offline"
@@ -767,6 +773,7 @@ specialPoints =
     , typeMaxMessageLength
     , typeDebug
     , typeDisable
+    , typeControl
     , typeOffline
     , typeHighRate
     , typeErrorCount

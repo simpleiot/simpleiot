@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.10.2] - 2023-05-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.10.2)
+
+- default to control being disabled for shelly devices and add UI to enable control (#544)
+
 ## [[0.10.1] - 2023-05-13](https://github.com/simpleiot/simpleiot/releases/tag/v0.10.1)
 
 - fix issues with Shelly devices appearing offline when first discovered 
