@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.10.3] - 2023-05-16](https://github.com/simpleiot/simpleiot/releases/tag/v0.10.3)
+
 - use mDNS responses to set shelly IO back online
 - Client Manager: improve filtering of points -- see
   [Message echo](https://docs.simpleiot.org/docs/ref/client.html#message-echo)
