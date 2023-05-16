@@ -241,21 +241,35 @@ func (m *Manager[T]) scan(id string) error {
 				log.Println("Error decoding points")
 				return
 			}
+
+			// find node ID for points
+			chunks := strings.Split(msg.Subject, ".")
+
+			if len(chunks) != 3 && len(chunks) != 4 {
+				log.Println("up subject malformed: ", msg.Subject)
+				return
+			}
+
+			nodeID := chunks[2]
+
 			for _, p := range points {
-				if p.Origin == "" {
-					// point came from the owning node, we already know about it
+				if p.Origin == "" && nodeID == cs.node.ID {
+					// if this point came from the owning client, it already knows about it
+					return
+				}
+
+				if p.Origin == cs.node.ID {
+					// if this client sent this point, it already knows about it
 					return
 				}
 			}
 
-			// find node ID for points
-			chunks := strings.Split(msg.Subject, ".")
 			if len(chunks) == 3 {
-				cs.client.Points(chunks[2], points)
+				// node points
+				cs.client.Points(nodeID, points)
 			} else if len(chunks) == 4 {
-				nodeID := chunks[2]
-				parentID := chunks[3]
 				// edge points
+				parentID := chunks[3]
 				for _, p := range points {
 					switch {
 					case p.Type == data.PointTypeTombstone && p.Value == 1:
@@ -311,11 +325,7 @@ func (m *Manager[T]) scan(id string) error {
 
 				// send edge points to client
 				cs.client.EdgePoints(chunks[2], chunks[3], points)
-			} else {
-				log.Println("up subject malformed: ", msg.Subject)
-				return
 			}
-
 		})
 
 		if err != nil {

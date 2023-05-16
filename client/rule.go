@@ -289,6 +289,14 @@ func (rc *RuleClient) EdgePoints(nodeID, parentID string, points []data.Point) {
 
 // sendPoint sets origin to the rule node
 func (rc *RuleClient) sendPoint(id string, point data.Point) error {
+	if id != rc.config.ID {
+		// we must set origin as we are sending a point to something
+		// other than the client root node
+		// FIXME: it might be good to somehow move this into the
+		// client manager, so that clients don't need to worry about
+		// setting Origin
+		point.Origin = rc.config.ID
+	}
 	return SendNodePoint(rc.nc, id, point, false)
 }
 
