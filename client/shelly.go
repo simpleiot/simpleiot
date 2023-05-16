@@ -102,18 +102,36 @@ done:
 					ip = e.AddrV6.String()
 				}
 
-				for _, io := range sc.config.IOs {
+				for i, io := range sc.config.IOs {
 					if io.DeviceID == id {
 						// already have this one
+						// must set Origin because we are sending a point to another node
+						// if we don't set origin, then the client manager will filter out
+						// points to the client that owns the node
 						found = true
 						if io.IP != ip {
 							err := SendNodePoint(sc.nc, io.ID, data.Point{
-								Type: data.PointTypeIP,
-								Text: ip,
+								Type:   data.PointTypeIP,
+								Text:   ip,
+								Origin: sc.config.ID,
 							}, false)
 
 							if err != nil {
 								log.Println("Error setting io ip: ", err)
+							}
+						}
+
+						if io.Offline {
+							err := SendNodePoint(sc.nc, io.ID, data.Point{
+								Type:   data.PointTypeOffline,
+								Value:  0,
+								Origin: sc.config.ID,
+							}, false)
+
+							if err != nil {
+								log.Println("Error setting io offline: ", err)
+							} else {
+								sc.config.IOs[i].Offline = false
 							}
 						}
 						break

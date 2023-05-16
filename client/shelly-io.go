@@ -502,6 +502,19 @@ done:
 				case data.PointTypeDescription:
 					syncConfig()
 				case data.PointTypeDisable:
+					if p.Value == 0 {
+						sampleTicker = time.NewTicker(sampleRate)
+					} else {
+						sampleTicker.Stop()
+					}
+				case data.PointTypeOffline:
+					if p.Value == 0 {
+						// defice is online
+						// the discovery mechanism may have set the IO back online
+						sampleTicker = time.NewTicker(sampleRate)
+					} else {
+						sampleTicker = time.NewTicker(sampleRateOffline)
+					}
 				}
 			}
 

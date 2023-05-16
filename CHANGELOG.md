@@ -11,13 +11,18 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- use mDNS responses to set shelly IO back online
+- Client Manager: improve filtering of points -- see
+  [Message echo](https://docs.simpleiot.org/docs/ref/client.html#message-echo)
+
 ## [[0.10.2] - 2023-05-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.10.2)
 
-- default to control being disabled for shelly devices and add UI to enable control (#544)
+- default to control being disabled for shelly devices and add UI to enable
+  control (#544)
 
 ## [[0.10.1] - 2023-05-13](https://github.com/simpleiot/simpleiot/releases/tag/v0.10.1)
 
-- fix issues with Shelly devices appearing offline when first discovered 
+- fix issues with Shelly devices appearing offline when first discovered
 - disable IPv6 in Shelly mDNS (does not seem to fix all issues on some machines)
 
 ## [[0.10.0] - 2023-04-28](https://github.com/simpleiot/simpleiot/releases/tag/v0.10.0)
