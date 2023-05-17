@@ -185,6 +185,37 @@ func (sd *SerialDevClient) Run() error {
 		go listener(port, sd.config.MaxMessageLength)
 	}
 
+	sendPointsToDevice := func(sub string, pts data.Points) error {
+		sd.wrSeq++
+		d, err := SerialEncode(sd.wrSeq, sub, pts)
+		if err != nil {
+			return fmt.Errorf("error encoding points to send to MCU: %w", err)
+		}
+
+		if sd.config.Debug >= 4 {
+			log.Printf("SER TX (%v) seq:%v :\n%v", sd.config.Description, sd.wrSeq, sub)
+		}
+
+		_, err = port.Write(d)
+		if err != nil {
+			return fmt.Errorf("error writing data to port: %w", err)
+		}
+
+		sd.config.Tx++
+		err = SendPoints(sd.nc, sd.natsSub,
+			data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
+			false)
+
+		if err != nil {
+			return fmt.Errorf("Error sending Serial tx stats: %w", err)
+		}
+
+		// TODO: we need to check for response and implement retries
+		// yet.
+
+		return nil
+	}
+
 	openPort()
 
 	for {
@@ -253,15 +284,11 @@ func (sd *SerialDevClient) Run() error {
 				}
 
 				// send response
-				d, err := SerialEncode(seq, "", nil)
+				err := sendPointsToDevice("ack", nil)
 				if err != nil {
-					log.Println("Error enoding serial response: ", err)
-				} else {
-					_, err := port.Write(d)
-					if err != nil {
-						log.Println("Error writing response to port: ", err)
-					}
+					log.Println("Error sending ack to device: ", err)
 				}
+
 				err = data.MergePoints(sd.config.ID, points, &sd.config)
 				if err != nil {
 					log.Println("error merging new points: ", err)
@@ -394,32 +421,10 @@ func (sd *SerialDevClient) Run() error {
 			}
 
 			if len(toSend) > 0 {
-				sd.wrSeq++
-				d, err := SerialEncode(sd.wrSeq, "", toSend)
+				err := sendPointsToDevice("", toSend)
 				if err != nil {
-					log.Println("error encoding points to send to MCU: ", err)
+					log.Println("Error sending points to serial device: ", err)
 				}
-
-				if sd.config.Debug >= 4 {
-					log.Printf("SER TX (%v) seq:%v :\n%v", sd.config.Description, sd.wrSeq, toSend)
-				}
-
-				_, err = port.Write(d)
-				if err != nil {
-					log.Println("error writing data to port: ", err)
-				} else {
-					sd.config.Tx++
-					err := SendPoints(sd.nc, sd.natsSub,
-						data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
-						false)
-
-					if err != nil {
-						log.Println("Error sending Serial tx stats: ", err)
-					}
-				}
-
-				// TODO: we need to check for response and implement retries
-				// yet.
 			}
 
 		case pts := <-sd.newEdgePoints:
