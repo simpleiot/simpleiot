@@ -32,6 +32,7 @@ type SerialDev struct {
 	ErrorCount       int    `point:"errorCount"`
 	ErrorCountReset  bool   `point:"errorCountReset"`
 	Rate             bool   `point:"rate"`
+	Connected        bool   `point:"connected"`
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
@@ -68,6 +69,14 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 func (sd *SerialDevClient) Run() error {
 	log.Println("Starting serial client: ", sd.config.Description)
 
+	if sd.config.Connected {
+		sd.config.Connected = false
+		err := SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeConnected, Value: 0}, false)
+		if err != nil {
+			log.Println("Error sending connected point")
+		}
+	}
+
 	checkPortDur := time.Second * 10
 	timerCheckPort := time.NewTimer(checkPortDur)
 
@@ -81,6 +90,12 @@ func (sd *SerialDevClient) Run() error {
 			port.Close()
 		}
 		port = nil
+
+		sd.config.Connected = false
+		err := SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeConnected, Value: 0}, false)
+		if err != nil {
+			log.Println("Error sending connected point")
+		}
 	}
 
 	listener := func(port io.ReadWriteCloser, maxMessageLen int) {
@@ -113,6 +128,37 @@ func (sd *SerialDevClient) Run() error {
 			buf = buf[0:c]
 			serialReadData <- buf
 		}
+	}
+
+	sendPointsToDevice := func(sub string, pts data.Points) error {
+		sd.wrSeq++
+		d, err := SerialEncode(sd.wrSeq, sub, pts)
+		if err != nil {
+			return fmt.Errorf("error encoding points to send to MCU: %w", err)
+		}
+
+		if sd.config.Debug >= 4 {
+			log.Printf("SER TX (%v) seq:%v :\n%v", sd.config.Description, sd.wrSeq, sub)
+		}
+
+		_, err = port.Write(d)
+		if err != nil {
+			return fmt.Errorf("error writing data to port: %w", err)
+		}
+
+		sd.config.Tx++
+		err = SendPoints(sd.nc, sd.natsSub,
+			data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
+			false)
+
+		if err != nil {
+			return fmt.Errorf("Error sending Serial tx stats: %w", err)
+		}
+
+		// TODO: we need to check for response and implement retries
+		// yet.
+
+		return nil
 	}
 
 	openPort := func() {
@@ -183,37 +229,23 @@ func (sd *SerialDevClient) Run() error {
 		log.Println("Serial port opened: ", sd.config.Description)
 
 		go listener(port, sd.config.MaxMessageLength)
-	}
 
-	sendPointsToDevice := func(sub string, pts data.Points) error {
-		sd.wrSeq++
-		d, err := SerialEncode(sd.wrSeq, sub, pts)
+		p := data.Points{{
+			Time: time.Now(),
+			Type: data.PointTypeTimeSync,
+		}}
+
+		sd.config.Connected = true
+		err := SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeConnected, Value: 1}, false)
 		if err != nil {
-			return fmt.Errorf("error encoding points to send to MCU: %w", err)
+			log.Println("Error sending connected point")
 		}
 
-		if sd.config.Debug >= 4 {
-			log.Printf("SER TX (%v) seq:%v :\n%v", sd.config.Description, sd.wrSeq, sub)
-		}
-
-		_, err = port.Write(d)
+		fmt.Println("CLIFF: Sending time sync point to device")
+		err = sendPointsToDevice("", p)
 		if err != nil {
-			return fmt.Errorf("error writing data to port: %w", err)
+			log.Println("Error sending time sync point to device: %w", err)
 		}
-
-		sd.config.Tx++
-		err = SendPoints(sd.nc, sd.natsSub,
-			data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
-			false)
-
-		if err != nil {
-			return fmt.Errorf("Error sending Serial tx stats: %w", err)
-		}
-
-		// TODO: we need to check for response and implement retries
-		// yet.
-
-		return nil
 	}
 
 	openPort()
