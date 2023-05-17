@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"path/filepath"
 	"strconv"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/file"
 	"github.com/simpleiot/simpleiot/test"
 	"go.bug.st/serial"
 )
@@ -74,6 +77,20 @@ func (sd *SerialDevClient) Run() error {
 		err := SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeConnected, Value: 0}, false)
 		if err != nil {
 			log.Println("Error sending connected point")
+		}
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("Error creating a new fsnotify watcher: %w", err)
+
+	}
+	defer watcher.Close()
+
+	if sd.config.Port != "" {
+		err := watcher.Add(filepath.Dir(sd.config.Port))
+		if err != nil {
+			log.Println("Error adding watcher for: ", sd.config.Port)
 		}
 	}
 
@@ -241,14 +258,15 @@ func (sd *SerialDevClient) Run() error {
 			log.Println("Error sending connected point")
 		}
 
-		fmt.Println("CLIFF: Sending time sync point to device")
 		err = sendPointsToDevice("", p)
 		if err != nil {
 			log.Println("Error sending time sync point to device: %w", err)
 		}
 	}
 
-	openPort()
+	if file.Exists(sd.config.Port) {
+		openPort()
+	}
 
 	for {
 		select {
@@ -261,6 +279,16 @@ func (sd *SerialDevClient) Run() error {
 		case <-listenerClosed:
 			closePort()
 			timerCheckPort.Reset(checkPortDur)
+		case e, ok := <-watcher.Events:
+			if ok {
+				if e.Name == sd.config.Port {
+					if e.Op == fsnotify.Remove {
+						closePort()
+					} else if e.Op == fsnotify.Create {
+						openPort()
+					}
+				}
+			}
 		case rd := <-serialReadData:
 			if sd.config.Debug >= 8 {
 				log.Println("SER RX: ", test.HexDump(rd))
@@ -365,7 +393,13 @@ func (sd *SerialDevClient) Run() error {
 					p.Type == data.PointTypeDisable ||
 					p.Type == data.PointTypeMaxMessageLength {
 					op = true
-					break
+				}
+
+				if p.Type == data.PointTypePort {
+					err := watcher.Add(filepath.Dir(p.Text))
+					if err != nil {
+						log.Println("Error adding watcher on serial port name change: ", p.Text)
+					}
 				}
 
 				if p.Type == data.PointTypeDisable {
