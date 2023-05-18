@@ -291,7 +291,7 @@ func (sd *SerialDevClient) Run() error {
 			}
 		case rd := <-serialReadData:
 			if sd.config.Debug >= 8 {
-				log.Println("SER RX: ", test.HexDump(rd))
+				log.Println("SER RX RAW: ", test.HexDump(rd))
 			}
 
 			// decode serial packet
