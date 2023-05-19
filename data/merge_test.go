@@ -1,6 +1,8 @@
 package data
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestMergePoints(t *testing.T) {
 	out := testTypeData
@@ -128,5 +130,49 @@ func TestMergeChildPoints(t *testing.T) {
 	if testData.TestYs[0].TestZs[0].Role != modifiedRole {
 		t.Errorf("Role not modified, exp: %v, got: %v", modifiedRole,
 			testData.TestYs[0].TestZs[0].Role)
+	}
+}
+
+func TestMergeComplex(t *testing.T) {
+	td := testTypeComplex{
+		ID:          "ID-TC",
+		Parent:      "456",
+		Description: "hi there",
+		IPAddresses: []string{"192.168.1.1", "127.0.0.1"},
+		Location: map[string]string{
+			"hello":   "world",
+			"goodbye": "cruel world",
+		},
+		Sensors: map[string]int{
+			"temp1": 23,
+			"temp2": 40,
+		},
+		Nested:     TestType{"789", "456", "nested test type"},
+		TestValues: []int32{314, 1024},
+		Tombstone:  false,
+	}
+
+	p := Points{{Type: "location", Key: "hello", Text: "Siot"}}
+
+	err := MergePoints("ID-TC", p, &td)
+
+	if err != nil {
+		t.Fatal("Error merging points to complex struct: ", err)
+	}
+
+	if td.Location["hello"] != "Siot" {
+		t.Fatal("Map not modified to Siot")
+	}
+
+	ep := Points{{Type: "testValue", Index: 0, Value: 123}}
+
+	err = MergeEdgePoints("ID-TC", "456", ep, &td)
+
+	if err != nil {
+		t.Fatal("Error merging points to complex struct: ", err)
+	}
+
+	if td.TestValues[0] != 123 {
+		t.Fatal("edge point array not modified")
 	}
 }

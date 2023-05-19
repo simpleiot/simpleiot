@@ -47,24 +47,38 @@ func setVal(p Point, v reflect.Value) error {
 // MergePoints takes points and updates fields in a type
 // that have matching point tags. See [Decode] for an example type.
 func MergePoints(id string, points []Point, output interface{}) error {
-	// FIXME: this is not the most efficient algorithm as it recurses into
-	// all child arrays, maybe optimize later
+	// TODO: this is not the most efficient algorithm as it recurses into
+	// all child arrays looking for a struct id
 
-	var vOut *reflect.Value
-	var tOut reflect.Type
+	var retErr error
+	vOut := reflect.Indirect(reflect.ValueOf(output))
+	tOut := vOut.Type()
 
-	if reflect.TypeOf(output).String() == "*reflect.Value" {
-		outputV, ok := output.(*reflect.Value)
+	if tOut == reflectValueT {
+		// `output` was a reflect.Value or *reflect.Value
+		vOut = vOut.Interface().(reflect.Value)
+		tOut = vOut.Type()
+	}
+
+	if k := tOut.Kind(); k != reflect.Struct {
+		return fmt.Errorf("Error decoding to %v; must be a struct", k)
+	}
+
+	pointGroups := make(map[string]GroupedPoints)
+
+	for _, p := range points {
+		g, ok := pointGroups[p.Type]
 		if !ok {
-			return errors.New("Error converting interface")
+			g = GroupedPoints{}
 		}
-
-		vOut = outputV
-		tOut = outputV.Type()
-	} else {
-		vOutX := reflect.ValueOf(output).Elem()
-		vOut = &vOutX
-		tOut = reflect.TypeOf(output).Elem()
+		if p.Key != "" {
+			g.Keyed = true
+		}
+		if index := int(p.Index); index > g.IndexMax {
+			g.IndexMax = index
+		}
+		g.Points = append(g.Points, p)
+		pointGroups[p.Type] = g
 	}
 
 	pointValues := make(map[string]reflect.Value)
@@ -86,15 +100,16 @@ func MergePoints(id string, points []Point, output interface{}) error {
 	}
 
 	if structID == id {
-		for _, p := range points {
-			v, ok := pointValues[p.Type]
-			if ok {
-				if err := setVal(p, v); err != nil {
-					return fmt.Errorf(
-						"merge error for point type %v: %w",
-						p.Type, err,
-					)
-				}
+		for k, v := range pointValues {
+			g, ok := pointGroups[k]
+			if !ok {
+				continue
+			}
+
+			// Write points into struct field
+			err := g.SetValue(v)
+			if err != nil {
+				retErr = errors.Join(retErr, fmt.Errorf("decode error for type %v: %w", k, err))
 			}
 		}
 	} else if len(childValues) > 0 {
@@ -105,18 +120,20 @@ func MergePoints(id string, points []Point, output interface{}) error {
 				v := children.Index(i)
 				err := MergePoints(id, points, &v)
 				if err != nil {
-					return fmt.Errorf("Error merging child points: %w", err)
+					retErr = errors.Join(retErr, fmt.Errorf("Error merging child points: %w", err))
 				}
 			}
 		}
 	}
 
-	return nil
+	return retErr
 }
 
 // MergeEdgePoints takes edge points and updates a type that
 // matching edgepoint tags. See [Decode] for an example type.
 func MergeEdgePoints(id, parent string, points []Point, output interface{}) error {
+
+	var retErr error
 	vOut := reflect.Indirect(reflect.ValueOf(output))
 	tOut := vOut.Type()
 
@@ -124,6 +141,27 @@ func MergeEdgePoints(id, parent string, points []Point, output interface{}) erro
 		// `output` was a reflect.Value or *reflect.Value
 		vOut = vOut.Interface().(reflect.Value)
 		tOut = vOut.Type()
+	}
+
+	if k := tOut.Kind(); k != reflect.Struct {
+		return fmt.Errorf("Error decoding to %v; must be a struct", k)
+	}
+
+	edgeGroups := make(map[string]GroupedPoints)
+
+	for _, p := range points {
+		g, ok := edgeGroups[p.Type]
+		if !ok {
+			g = GroupedPoints{}
+		}
+		if p.Key != "" {
+			g.Keyed = true
+		}
+		if index := int(p.Index); index > g.IndexMax {
+			g.IndexMax = index
+		}
+		g.Points = append(g.Points, p)
+		edgeGroups[p.Type] = g
 	}
 
 	edgeValues := make(map[string]reflect.Value)
@@ -148,15 +186,18 @@ func MergeEdgePoints(id, parent string, points []Point, output interface{}) erro
 	}
 
 	if structID == id && structParent == parent {
-		for _, p := range points {
-			v, ok := edgeValues[p.Type]
-			if ok {
-				if err := setVal(p, v); err != nil {
-					return fmt.Errorf(
-						"merge error for edge type %v: %w",
-						p.Type, err,
-					)
-				}
+		for k, v := range edgeValues {
+			g, ok := edgeGroups[k]
+			// TODO: may be an optimization to check ok and not call SetValue if value
+			// in map does not exist, rather than processing the zero value
+			if !ok {
+				continue
+			}
+
+			// Write points into struct field
+			err := g.SetValue(v)
+			if err != nil {
+				retErr = errors.Join(retErr, fmt.Errorf("decode error for type %v: %w", k, err))
 			}
 		}
 	} else if len(childValues) > 0 {
@@ -167,11 +208,11 @@ func MergeEdgePoints(id, parent string, points []Point, output interface{}) erro
 				v := children.Index(i)
 				err := MergeEdgePoints(id, parent, points, &v)
 				if err != nil {
-					return fmt.Errorf("merge error for child edge points: %w", err)
+					retErr = errors.Join(retErr, fmt.Errorf("merge error for child edge points: %w", err))
 				}
 			}
 		}
 	}
 
-	return nil
+	return retErr
 }
