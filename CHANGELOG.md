@@ -12,6 +12,7 @@ For more details or to discuss releases, please visit the
 ## [Unreleased]
 
 - fix rule condition schedule processing (#547)
+- update point merge code to handle complex types 
 
 ## [[0.10.3] - 2023-05-16](https://github.com/simpleiot/simpleiot/releases/tag/v0.10.3)
 
