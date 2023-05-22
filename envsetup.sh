@@ -239,3 +239,8 @@ siot_mdbook() {
 siot_mdbook_cleanup() {
 	rm -rf book
 }
+
+siot_deploy_docs() {
+	(cd /scratch/bec/ops/ &&
+		ansible-playbook -i production tmpdir.yml --tags docs.simpleiot.org)
+}

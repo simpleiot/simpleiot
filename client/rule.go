@@ -66,9 +66,9 @@ type Condition struct {
 	ValueText  string  `point:"valueText"`
 
 	// used with shedule rules
-	StartTime string `point:"startTime"`
-	EndTime   string `point:"endTime"`
-	Weekdays  []time.Weekday
+	Start    string `point:"start"`
+	End      string `point:"end"`
+	Weekdays []bool `point:"weekday"`
 }
 
 func (c Condition) String() string {
@@ -190,7 +190,7 @@ func NewRuleClient(nc *nats.Conn, config Rule) Client {
 // Run runs the main logic for this client and blocks until stopped
 func (rc *RuleClient) Run() error {
 	// watch all points that flow through parent node
-	// FIXME: we should optimize this so we only watch the nodes
+	// TODO: we should optimize this so we only watch the nodes
 	// that are in the conditions
 	subject := fmt.Sprintf("up.%v.*", rc.config.Parent)
 
@@ -216,48 +216,72 @@ func (rc *RuleClient) Run() error {
 		return fmt.Errorf("Rule error subscribing to upsub: %v", err)
 	}
 
+	// TODO schedule ticker is a brute force way to do this
+	// we could optimize at some point by creating a timer to expire
+	// on the next schedule change
+	scheduleTickTime := time.Second * 5
+	scheduleTicker := time.NewTicker(scheduleTickTime)
+	if !rc.hasSchedule() {
+		scheduleTicker.Stop()
+	}
+
+	run := func(id string, pts data.Points) {
+		active, changed, err := rc.ruleProcessPoints(id, pts)
+
+		if err != nil {
+			log.Println("Error processing rule point: ", err)
+		}
+
+		if !changed {
+			return
+		}
+
+		if active {
+			err := rc.ruleRunActions(rc.config.Actions, id)
+			if err != nil {
+				log.Println("Error running rule actions: ", err)
+			}
+
+			err = rc.ruleRunInactiveActions(rc.config.ActionsInactive)
+			if err != nil {
+				log.Println("Error running rule inactive actions: ", err)
+			}
+		} else {
+			err := rc.ruleRunActions(rc.config.ActionsInactive, id)
+			if err != nil {
+				log.Println("Error running rule actions: ", err)
+			}
+
+			err = rc.ruleRunInactiveActions(rc.config.Actions)
+			if err != nil {
+				log.Println("Error running rule inactive actions: ", err)
+			}
+		}
+	}
+
 done:
 	for {
 		select {
 		case <-rc.stop:
 			break done
 		case pts := <-rc.newRulePoints:
-			active, changed, err := rc.ruleProcessPoints(pts.ID, pts.Points)
+			run(pts.ID, pts.Points)
 
-			if err != nil {
-				log.Println("Error processing rule point: ", err)
-			}
-
-			if !changed {
-				continue
-			}
-
-			if active {
-				err := rc.ruleRunActions(rc.config.Actions, pts.ID)
-				if err != nil {
-					log.Println("Error running rule actions: ", err)
-				}
-
-				err = rc.ruleRunInactiveActions(rc.config.ActionsInactive)
-				if err != nil {
-					log.Println("Error running rule inactive actions: ", err)
-				}
-			} else {
-				err := rc.ruleRunActions(rc.config.ActionsInactive, pts.ID)
-				if err != nil {
-					log.Println("Error running rule actions: ", err)
-				}
-
-				err = rc.ruleRunInactiveActions(rc.config.Actions)
-				if err != nil {
-					log.Println("Error running rule inactive actions: ", err)
-				}
-			}
+		case <-scheduleTicker.C:
+			run(rc.config.ID, data.Points{{
+				Time: time.Now(),
+				Type: data.PointTypeTrigger,
+			}})
 
 		case pts := <-rc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &rc.config)
 			if err != nil {
 				log.Println("error merging rule points: ", err)
+			}
+			if rc.hasSchedule() {
+				scheduleTicker = time.NewTicker(scheduleTickTime)
+			} else {
+				scheduleTicker.Stop()
 			}
 		case pts := <-rc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &rc.config)
@@ -292,12 +316,21 @@ func (rc *RuleClient) sendPoint(id string, point data.Point) error {
 	if id != rc.config.ID {
 		// we must set origin as we are sending a point to something
 		// other than the client root node
-		// FIXME: it might be good to somehow move this into the
+		// TODO: it might be good to somehow move this into the
 		// client manager, so that clients don't need to worry about
 		// setting Origin
 		point.Origin = rc.config.ID
 	}
 	return SendNodePoint(rc.nc, id, point, false)
+}
+
+func (rc *RuleClient) hasSchedule() bool {
+	for _, c := range rc.config.Conditions {
+		if c.ConditionType == data.PointValueSchedule {
+			return true
+		}
+	}
+	return false
 }
 
 // ruleProcessPoints runs points through a rules conditions and and updates condition
@@ -360,7 +393,14 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 					continue
 				}
 				pointsProcessed = true
-				sched := newSchedule(c.StartTime, c.EndTime, c.Weekdays)
+
+				weekdays := []time.Weekday{}
+				for i, v := range c.Weekdays {
+					if v {
+						weekdays = append(weekdays, time.Weekday(i))
+					}
+				}
+				sched := newSchedule(c.Start, c.End, weekdays)
 
 				var err error
 				active, err = sched.activeForTime(p.Time)
