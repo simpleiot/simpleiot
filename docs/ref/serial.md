@@ -62,9 +62,9 @@ This saves some data in the serial messages.
 The point type `nodeType` is used to create new nodes and to send the node type
 on connection.
 
-All packets are ack'd by an empty packet with the same sequenced number. If an
-ack is not received in X amount of time, the packet is retried up to 3 times,
-and then the other device is considered "offline".
+All packets are ack'd by an empty packet with the same sequenced number and
+subject set to 'ack'. If an ack is not received in X amount of time, the packet
+is retried up to 3 times, and then the other device is considered "offline".
 
 ### Encoding
 

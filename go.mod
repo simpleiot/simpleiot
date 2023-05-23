@@ -8,6 +8,7 @@ require (
 	github.com/cosmtrek/air v1.40.4
 	github.com/dim13/cobs v0.1.0
 	github.com/donovanhide/eventsource v0.0.0-20171031113327-3ed64d21fb0b
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-audio/wav v1.0.0
 	github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea
 	github.com/golang-jwt/jwt/v4 v4.0.0
@@ -38,7 +39,6 @@ require (
 	github.com/creack/pty v1.1.11 // indirect
 	github.com/deepmap/oapi-codegen v1.8.2 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-audio/audio v1.0.0 // indirect
 	github.com/go-audio/riff v1.0.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
