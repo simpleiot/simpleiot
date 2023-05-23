@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- fix rule condition schedule processing (#547)
+
 ## [[0.10.3] - 2023-05-16](https://github.com/simpleiot/simpleiot/releases/tag/v0.10.3)
 
 - use mDNS responses to set shelly IO back online
@@ -635,7 +637,7 @@ old version of SIOT and them import with the new version.
 - documentation improvements
   - moved API documentation to simple Markdown
   - better organization
-  - add list of guiding principles to the [README](README.md)
+  - add list of guiding principles to the [README](./README.md)
 
 ## [[0.0.8] - 2020-08-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.8)
 

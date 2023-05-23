@@ -1,6 +1,7 @@
 package data
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -153,7 +154,7 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 //
 // output can also be a *reflect.Value
 func Decode(input NodeEdgeChildren, output interface{}) error {
-	var firstErr error
+	var retErr error
 	vOut := reflect.Indirect(reflect.ValueOf(output))
 	tOut := vOut.Type()
 
@@ -172,6 +173,8 @@ func Decode(input NodeEdgeChildren, output interface{}) error {
 	edgePointGroups := make(map[string]GroupedPoints)
 	childGroups := make(map[string][]NodeEdgeChildren)
 
+	// we first collect all points into groups by type
+	// this is required in case we are decoding into a map or array
 	for _, p := range input.NodeEdge.Points {
 		g, ok := pointGroups[p.Type]
 		if !ok {
@@ -205,97 +208,78 @@ func Decode(input NodeEdgeChildren, output interface{}) error {
 		childGroups[c.NodeEdge.Type] = append(childGroups[c.NodeEdge.Type], c)
 	}
 
+	// now process the fields in the output struct
 	for i := 0; i < tOut.NumField(); i++ {
 		sf := tOut.Field(i)
+		// look at tags to determine if we have a point, edgepoint, node attribute, or child node
 		if pt := sf.Tag.Get("point"); pt != "" {
-			g := pointGroups[pt]
-			// Write points into struct field
-			err := g.SetValue(vOut.Field(i))
-			if err != nil && firstErr == nil {
-				firstErr = fmt.Errorf("decode error for type %v: %w", pt, err)
+			// see if we have any points for this field point type
+			g, ok := pointGroups[pt]
+			if ok {
+				// Write points into struct field
+				err := g.SetValue(vOut.Field(i))
+				if err != nil {
+					retErr = errors.Join(retErr, fmt.Errorf("decode error for type %v: %w", pt, err))
+				}
 			}
 		} else if et := sf.Tag.Get("edgepoint"); et != "" {
-			g := edgePointGroups[et]
-			// Write points into struct field
-			err := g.SetValue(vOut.Field(i))
-			if err != nil {
-				firstErr = fmt.Errorf("decode error for type %v: %w", et, err)
+			g, ok := edgePointGroups[et]
+			if ok {
+				// Write points into struct field
+				err := g.SetValue(vOut.Field(i))
+				if err != nil {
+					retErr = errors.Join(err, fmt.Errorf("decode error for type %v: %w", et, err))
+				}
 			}
 		} else if nt := sf.Tag.Get("node"); nt != "" {
 			// Ensure field is a settable string
 			if nt == "id" {
 				v := vOut.Field(i)
 				if !v.CanSet() {
-					if firstErr == nil {
-						firstErr = fmt.Errorf(
-							"decode error for id: cannot set",
-						)
-					}
+					retErr = errors.Join(retErr, fmt.Errorf("decode error for id: cannot set"))
 					continue
 				}
 				if v.Kind() != reflect.String {
-					if firstErr == nil {
-						firstErr = fmt.Errorf(
-							"decode error for id: not a string",
-						)
-					}
+					retErr = errors.Join(retErr, fmt.Errorf("decode error for id: not a string"))
 					continue
 				}
 				v.SetString(input.NodeEdge.ID)
 			} else if nt == "parent" {
 				v := vOut.Field(i)
 				if !v.CanSet() {
-					if firstErr == nil {
-						firstErr = fmt.Errorf(
-							"decode error for parent: cannot set",
-						)
-					}
+					retErr = errors.Join(retErr, fmt.Errorf("decode error for parent: cannot set"))
 					continue
 				}
 				if v.Kind() != reflect.String {
-					if firstErr == nil {
-						firstErr = fmt.Errorf(
-							"decode error for parent: not a string",
-						)
-					}
+					retErr = errors.Join(retErr, fmt.Errorf("decode error for parent: not a string"))
 					continue
 				}
 				v.SetString(input.NodeEdge.Parent)
 			}
 		} else if ct := sf.Tag.Get("child"); ct != "" {
-			g := childGroups[ct]
-			// Ensure field is a settable slice
-			v := vOut.Field(i)
-			t := v.Type()
-			if t.Kind() != reflect.Slice {
-				if firstErr == nil {
-					firstErr = fmt.Errorf(
-						"decode error for child %v: not a slice", ct,
-					)
+			g, ok := childGroups[ct]
+			if ok {
+				// Ensure field is a settable slice
+				v := vOut.Field(i)
+				t := v.Type()
+				if t.Kind() != reflect.Slice {
+					retErr = errors.Join(retErr, fmt.Errorf("decode error for child %v: not a slice", ct))
 				}
-			}
-			if !v.CanSet() {
-				if firstErr == nil {
-					firstErr = fmt.Errorf(
-						"decode error for child %v: cannot set", ct,
-					)
+				if !v.CanSet() {
+					retErr = errors.Join(retErr, fmt.Errorf("decode error for child %v: cannot set", ct))
 				}
-			}
 
-			// Initialize slice
-			v.Set(reflect.MakeSlice(t, len(g), len(g)))
-			for i, child := range childGroups[ct] {
-				err := Decode(child, v.Index(i))
-				if err != nil {
-					if firstErr == nil {
-						firstErr = fmt.Errorf(
-							"decode error for child %v: %v", ct, err,
-						)
+				// Initialize slice
+				v.Set(reflect.MakeSlice(t, len(g), len(g)))
+				for i, child := range childGroups[ct] {
+					err := Decode(child, v.Index(i))
+					if err != nil {
+						retErr = errors.Join(retErr, fmt.Errorf("decode error for child %v: %v", ct, err))
 					}
 				}
 			}
 		}
 	}
 
-	return nil
+	return retErr
 }
