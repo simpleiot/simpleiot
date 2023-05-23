@@ -25,8 +25,8 @@ func TestSerial(t *testing.T) {
 	defer stop()
 
 	// the test.Fifo is used to emulate a serial port
-	// channel during this test. The A side is used by the
-	// this test, and the B side is used by the serial
+	// channel during this test. The A side is written by the
+	// this test and simulates MCU writes. The B side is written by the serial
 	// client.
 	fifo, err := test.NewFifoA("serialfifo")
 	if err != nil {
@@ -45,6 +45,8 @@ func TestSerial(t *testing.T) {
 		// us to send/receive data to/from serial client during
 		// testing without needing real serial hardware.
 		Port: "serialfifo",
+		// You can set debug to increase debugging level
+		Debug: 4,
 	}
 
 	// hydrate database with test data
@@ -73,6 +75,29 @@ func TestSerial(t *testing.T) {
 			t.Fatal("Timeout waiting for serial node")
 		}
 		<-time.After(time.Millisecond * 10)
+	}
+
+	readCh := make(chan []byte)
+	var readData []byte
+
+	mcuReadSerial := func() {
+		buf := make([]byte, 200)
+		c, err := fifoW.Read(buf)
+		if err != nil {
+			fmt.Println("Error reading response from client: ", err)
+		}
+		buf = buf[:c]
+		readCh <- buf
+	}
+
+	// dump timeSync package from client
+	go mcuReadSerial()
+
+	select {
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for timeSync packet")
+	case <-readCh:
+		// all is well
 	}
 
 	// send an ascii log message to the serial client
@@ -133,19 +158,6 @@ func TestSerial(t *testing.T) {
 		<-time.After(time.Millisecond * 100)
 	}
 
-	readCh := make(chan []byte)
-	var readData []byte
-
-	mcuReadSerial := func() {
-		buf := make([]byte, 200)
-		c, err := fifoW.Read(buf)
-		if err != nil {
-			fmt.Println("Error reading response from client: ", err)
-		}
-		buf = buf[:c]
-		readCh <- buf
-	}
-
 	// check for ack response from serial client
 	go mcuReadSerial()
 
@@ -167,11 +179,11 @@ func TestSerial(t *testing.T) {
 	}
 
 	if seq != seqR {
-		t.Error("Sequence in response did not match")
+		t.Error("Sequence in response did not match: ", seq, seqR)
 	}
 
-	if subjectR != "" {
-		t.Error("Subject in response should be blank")
+	if subjectR != "ack" {
+		t.Error("Subject in response is not ack, is: ", subjectR)
 	}
 
 	if len(pointsR) != 0 {
@@ -180,7 +192,10 @@ func TestSerial(t *testing.T) {
 
 	// test sending points to MCU
 	pumpSetting := data.Point{Type: "pumpSetting", Value: 233.5, Origin: root.ID}
-	_ = client.SendNodePoint(nc, serialTest.ID, pumpSetting, false)
+	err = client.SendNodePoint(nc, serialTest.ID, pumpSetting, true)
+	if err != nil {
+		t.Fatal("Error sending pumpSetting point: ", err)
+	}
 
 	// the above should trigger a serial packet to get sent to MCU, look for it now
 	go mcuReadSerial()
@@ -202,8 +217,12 @@ func TestSerial(t *testing.T) {
 		t.Errorf("Error decoding serial payload: %v", err)
 	}
 
-	if pointsR[0].Value != pumpSetting.Value {
-		t.Error("Error in pump setting received by MCU")
+	if len(pointsR) < 1 {
+		t.Error("Did not receive pointsR point")
+	} else {
+		if pointsR[0].Value != pumpSetting.Value {
+			t.Error("Error in pump setting received by MCU")
+		}
 	}
 }
 

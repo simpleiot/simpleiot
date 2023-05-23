@@ -11,7 +11,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/file"
 	"github.com/simpleiot/simpleiot/test"
 	"go.bug.st/serial"
 )
@@ -147,15 +146,14 @@ func (sd *SerialDevClient) Run() error {
 		}
 	}
 
-	sendPointsToDevice := func(sub string, pts data.Points) error {
-		sd.wrSeq++
-		d, err := SerialEncode(sd.wrSeq, sub, pts)
+	sendPointsToDevice := func(seq byte, ack bool, sub string, pts data.Points) error {
+		d, err := SerialEncode(seq, sub, pts)
 		if err != nil {
 			return fmt.Errorf("error encoding points to send to MCU: %w", err)
 		}
 
 		if sd.config.Debug >= 4 {
-			log.Printf("SER TX (%v) seq:%v :\n%v", sd.config.Description, sd.wrSeq, sub)
+			log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, sd.wrSeq, sub, pts)
 		}
 
 		_, err = port.Write(d)
@@ -172,8 +170,11 @@ func (sd *SerialDevClient) Run() error {
 			return fmt.Errorf("Error sending Serial tx stats: %w", err)
 		}
 
-		// TODO: we need to check for response and implement retries
-		// yet.
+		if !ack {
+			_ = ack
+			// TODO: we need to check for response and implement retries
+			// yet.
+		}
 
 		return nil
 	}
@@ -258,15 +259,14 @@ func (sd *SerialDevClient) Run() error {
 			log.Println("Error sending connected point")
 		}
 
-		err = sendPointsToDevice("", p)
+		sd.wrSeq++
+		err = sendPointsToDevice(sd.wrSeq, false, "", p)
 		if err != nil {
 			log.Println("Error sending time sync point to device: %w", err)
 		}
 	}
 
-	if file.Exists(sd.config.Port) {
-		openPort()
-	}
+	openPort()
 
 	for {
 		select {
@@ -344,7 +344,7 @@ func (sd *SerialDevClient) Run() error {
 				}
 
 				// send response
-				err := sendPointsToDevice("ack", nil)
+				err := sendPointsToDevice(seq, true, "ack", nil)
 				if err != nil {
 					log.Println("Error sending ack to device: ", err)
 				}
@@ -487,7 +487,8 @@ func (sd *SerialDevClient) Run() error {
 			}
 
 			if len(toSend) > 0 {
-				err := sendPointsToDevice("", toSend)
+				sd.wrSeq++
+				err := sendPointsToDevice(sd.wrSeq, false, "", toSend)
 				if err != nil {
 					log.Println("Error sending points to serial device: ", err)
 				}
