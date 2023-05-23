@@ -22,7 +22,9 @@ import Svg.Attributes as Sa
 import Time
 import Time.Extra
 import UI.Button
+import UI.Form as Form
 import UI.Sanitize as Sanitize
+import UI.Style as Style
 import Utils.Time exposing (scheduleToLocal, scheduleToUTC)
 
 
@@ -88,6 +90,12 @@ nodeTimeDateInput o labelWidth =
                 , icon = Input.defaultCheckbox
                 , label = Input.labelAbove [] <| text label
                 }
+
+        dates =
+            Debug.log "date points" <|
+                List.filter
+                    (\p -> p.typ == Point.typeDate && p.tombstone == 0)
+                    o.node.points
     in
     column [ spacing 5 ]
         [ wrappedRow
@@ -96,7 +104,8 @@ nodeTimeDateInput o labelWidth =
             ]
             -- here, number matches Go Weekday definitions
             -- https://pkg.go.dev/time#Weekday
-            [ el [ width <| px labelWidth ] none
+            [ el [ width <| px (o.labelWidth - 120) ] none
+            , text "Weekdays:"
             , weekdayCheckboxInput 0 "S"
             , weekdayCheckboxInput 1 "M"
             , weekdayCheckboxInput 2 "T"
@@ -107,18 +116,35 @@ nodeTimeDateInput o labelWidth =
             ]
         , Input.text
             []
-            { label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| "Start time:"
+            { label = Input.labelLeft [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "Start time:"
             , onChange = send (\sched d -> { sched | startTime = d })
             , text = sDisp.startTime
             , placeholder = Nothing
             }
         , Input.text
             []
-            { label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| "End time:"
+            { label = Input.labelLeft [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "End time:"
             , onChange = send (\sched d -> { sched | endTime = d })
             , text = sDisp.endTime
             , placeholder = Nothing
             }
+        , el [ Element.paddingEach { top = 0, bottom = 0, right = 0, left = labelWidth - 59 } ] <| text "Dates:"
+        , el [ Element.paddingEach { top = 0, bottom = 0, right = 0, left = labelWidth - 59 } ] <|
+            Form.button
+                { label = "Add Date"
+                , color = Style.colors.blue
+                , onPress =
+                    o.onEditNodePoint
+                        [ { typ = Point.typeDate
+                          , index = 0
+                          , key = ""
+                          , text = ""
+                          , time = o.now
+                          , tombstone = 0
+                          , value = 0
+                          }
+                        ]
+                }
         ]
 
 
