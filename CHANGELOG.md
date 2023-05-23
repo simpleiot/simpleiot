@@ -11,7 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.11.0] - 2023-05-23](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.0)
+
 - fix rule condition schedule processing (#547)
+- support high rate serial MCU date (#517)
 
 ## [[0.10.3] - 2023-05-16](https://github.com/simpleiot/simpleiot/releases/tag/v0.10.3)
 
