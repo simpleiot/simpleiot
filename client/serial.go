@@ -153,7 +153,7 @@ func (sd *SerialDevClient) Run() error {
 		}
 
 		if sd.config.Debug >= 4 {
-			log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, sd.wrSeq, sub, pts)
+			log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, seq, sub, pts)
 		}
 
 		_, err = port.Write(d)
