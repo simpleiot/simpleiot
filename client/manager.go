@@ -138,9 +138,11 @@ done:
 		case <-m.chScan:
 			scan()
 		case key := <-m.chDeleteCS:
-			delete(m.clientStates, key)
 			_ = m.clientUpSub[key].Unsubscribe()
 			delete(m.clientUpSub, key)
+			// client state must be deleted after the subscription is stopped
+			// as the subscription uses it
+			delete(m.clientStates, key)
 			if stopping {
 				if len(m.clientStates) <= 0 {
 					break done
