@@ -252,23 +252,29 @@ func (m *Manager[T]) scan(id string) error {
 
 			nodeID := chunks[2]
 
-			for _, p := range points {
-				if p.Origin == "" && nodeID == cs.node.ID {
-					// if this point came from the owning client, it already knows about it
-					return
-				}
-
-				if p.Origin == cs.node.ID {
-					// if this client sent this point, it already knows about it
-					return
-				}
-			}
-
 			if len(chunks) == 3 {
-				// node points
+				// process node points
+
+				// only filter node points for now. The Shelly client broke badly
+				// when we applied the below filtering to edge points as well,
+				// probably because the tombstone edge points were filtered.
+				// We may optimize this later if we make extensive use of edge
+				// points.
+				for _, p := range points {
+					if p.Origin == "" && nodeID == cs.node.ID {
+						// if this point came from the owning client, it already knows about it
+						return
+					}
+
+					if p.Origin == cs.node.ID {
+						// if this client sent this point, it already knows about it
+						return
+					}
+				}
+
 				cs.client.Points(nodeID, points)
 			} else if len(chunks) == 4 {
-				// edge points
+				// process edge points
 				parentID := chunks[3]
 				for _, p := range points {
 					switch {
