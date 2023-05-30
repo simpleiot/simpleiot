@@ -11,8 +11,16 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-- fix rule condition schedule processing (#547)
+## [[0.11.1] - 2023-05-30](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.1)
+
 - update point merge code to handle complex types 
+- more fixes for rule condition schedule processing (#547)
+- fix issue with Shelly device discovery duplicating devices (#552)
+
+## [[0.11.0] - 2023-05-23](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.0)
+
+- fix rule condition schedule processing (#547)
+- support high rate serial MCU data (#517)
 
 ## [[0.10.3] - 2023-05-16](https://github.com/simpleiot/simpleiot/releases/tag/v0.10.3)
 

@@ -304,4 +304,7 @@ const (
 	PointValueShellyTypePlugS   = "PlugS"
 	PointValueShellyTypeI4      = "PlusI4"
 	PointValueShellyTypePlus1   = "Plus1"
+
+	PointTypeTimeSync  = "timeSync"
+	PointTypeConnected = "connected"
 )

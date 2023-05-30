@@ -151,7 +151,7 @@ done:
 				scan()
 			}
 		case <-shutdownTimer.C:
-			// FIXME: should we return an error here?
+			// TODO: should we return an error here?
 			log.Println("BUG: Client manager: not all clients shutdown for node type: ", m.nodeType)
 			for _, v := range m.clientStates {
 				log.Println("Client stuck for node: ", v.node.ID)
@@ -189,7 +189,7 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 		nodes = append(nodes, c...)
 	}
 
-	// FIXME: we need a better way of identifying nodes than
+	// TODO: we need a better way of identifying nodes than
 	// can function as "groups" that may have children that require
 	// clients.
 	shelly, err := GetNodes(m.nc, id, "all", data.NodeTypeShelly, false)

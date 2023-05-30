@@ -3,6 +3,7 @@ module Components.NodeSignalGenerator exposing (view)
 import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
+import Element.Background as Background
 import Element.Border as Border
 import Round
 import UI.Icon as Icon
@@ -22,6 +23,13 @@ view o =
 
         disabled =
             Point.getBool o.node.points Point.typeDisable ""
+
+        summaryBackground =
+            if disabled then
+                Style.colors.ltgray
+
+            else
+                Style.colors.none
     in
     column
         [ width fill
@@ -30,7 +38,7 @@ view o =
         , spacing 6
         ]
     <|
-        wrappedRow [ spacing 10 ]
+        wrappedRow [ spacing 10, Background.color summaryBackground ]
             [ Icon.activity
             , text <|
                 Point.getText o.node.points Point.typeDescription ""

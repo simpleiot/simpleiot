@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"path/filepath"
 	"strconv"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/test"
@@ -32,6 +34,7 @@ type SerialDev struct {
 	ErrorCount       int    `point:"errorCount"`
 	ErrorCountReset  bool   `point:"errorCountReset"`
 	Rate             bool   `point:"rate"`
+	Connected        bool   `point:"connected"`
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
@@ -68,6 +71,28 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 func (sd *SerialDevClient) Run() error {
 	log.Println("Starting serial client: ", sd.config.Description)
 
+	if sd.config.Connected {
+		sd.config.Connected = false
+		err := SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeConnected, Value: 0}, false)
+		if err != nil {
+			log.Println("Error sending connected point")
+		}
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("Error creating a new fsnotify watcher: %w", err)
+
+	}
+	defer watcher.Close()
+
+	if sd.config.Port != "" {
+		err := watcher.Add(filepath.Dir(sd.config.Port))
+		if err != nil {
+			log.Println("Error adding watcher for: ", sd.config.Port)
+		}
+	}
+
 	checkPortDur := time.Second * 10
 	timerCheckPort := time.NewTimer(checkPortDur)
 
@@ -81,6 +106,12 @@ func (sd *SerialDevClient) Run() error {
 			port.Close()
 		}
 		port = nil
+
+		sd.config.Connected = false
+		err := SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeConnected, Value: 0}, false)
+		if err != nil {
+			log.Println("Error sending connected point")
+		}
 	}
 
 	listener := func(port io.ReadWriteCloser, maxMessageLen int) {
@@ -113,6 +144,39 @@ func (sd *SerialDevClient) Run() error {
 			buf = buf[0:c]
 			serialReadData <- buf
 		}
+	}
+
+	sendPointsToDevice := func(seq byte, ack bool, sub string, pts data.Points) error {
+		d, err := SerialEncode(seq, sub, pts)
+		if err != nil {
+			return fmt.Errorf("error encoding points to send to MCU: %w", err)
+		}
+
+		if sd.config.Debug >= 4 {
+			log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, seq, sub, pts)
+		}
+
+		_, err = port.Write(d)
+		if err != nil {
+			return fmt.Errorf("error writing data to port: %w", err)
+		}
+
+		sd.config.Tx++
+		err = SendPoints(sd.nc, sd.natsSub,
+			data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
+			false)
+
+		if err != nil {
+			return fmt.Errorf("Error sending Serial tx stats: %w", err)
+		}
+
+		if !ack {
+			_ = ack
+			// TODO: we need to check for response and implement retries
+			// yet.
+		}
+
+		return nil
 	}
 
 	openPort := func() {
@@ -183,6 +247,23 @@ func (sd *SerialDevClient) Run() error {
 		log.Println("Serial port opened: ", sd.config.Description)
 
 		go listener(port, sd.config.MaxMessageLength)
+
+		p := data.Points{{
+			Time: time.Now(),
+			Type: data.PointTypeTimeSync,
+		}}
+
+		sd.config.Connected = true
+		err := SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeConnected, Value: 1}, false)
+		if err != nil {
+			log.Println("Error sending connected point")
+		}
+
+		sd.wrSeq++
+		err = sendPointsToDevice(sd.wrSeq, false, "", p)
+		if err != nil {
+			log.Println("Error sending time sync point to device: %w", err)
+		}
 	}
 
 	openPort()
@@ -198,9 +279,19 @@ func (sd *SerialDevClient) Run() error {
 		case <-listenerClosed:
 			closePort()
 			timerCheckPort.Reset(checkPortDur)
+		case e, ok := <-watcher.Events:
+			if ok {
+				if e.Name == sd.config.Port {
+					if e.Op == fsnotify.Remove {
+						closePort()
+					} else if e.Op == fsnotify.Create {
+						openPort()
+					}
+				}
+			}
 		case rd := <-serialReadData:
 			if sd.config.Debug >= 8 {
-				log.Println("SER RX: ", test.HexDump(rd))
+				log.Println("SER RX RAW: ", test.HexDump(rd))
 			}
 
 			// decode serial packet
@@ -253,15 +344,11 @@ func (sd *SerialDevClient) Run() error {
 				}
 
 				// send response
-				d, err := SerialEncode(seq, "", nil)
+				err := sendPointsToDevice(seq, true, "ack", nil)
 				if err != nil {
-					log.Println("Error enoding serial response: ", err)
-				} else {
-					_, err := port.Write(d)
-					if err != nil {
-						log.Println("Error writing response to port: ", err)
-					}
+					log.Println("Error sending ack to device: ", err)
 				}
+
 				err = data.MergePoints(sd.config.ID, points, &sd.config)
 				if err != nil {
 					log.Println("error merging new points: ", err)
@@ -306,7 +393,13 @@ func (sd *SerialDevClient) Run() error {
 					p.Type == data.PointTypeDisable ||
 					p.Type == data.PointTypeMaxMessageLength {
 					op = true
-					break
+				}
+
+				if p.Type == data.PointTypePort {
+					err := watcher.Add(filepath.Dir(p.Text))
+					if err != nil {
+						log.Println("Error adding watcher on serial port name change: ", p.Text)
+					}
 				}
 
 				if p.Type == data.PointTypeDisable {
@@ -395,31 +488,10 @@ func (sd *SerialDevClient) Run() error {
 
 			if len(toSend) > 0 {
 				sd.wrSeq++
-				d, err := SerialEncode(sd.wrSeq, "", toSend)
+				err := sendPointsToDevice(sd.wrSeq, false, "", toSend)
 				if err != nil {
-					log.Println("error encoding points to send to MCU: ", err)
+					log.Println("Error sending points to serial device: ", err)
 				}
-
-				if sd.config.Debug >= 4 {
-					log.Printf("SER TX (%v) seq:%v :\n%v", sd.config.Description, sd.wrSeq, toSend)
-				}
-
-				_, err = port.Write(d)
-				if err != nil {
-					log.Println("error writing data to port: ", err)
-				} else {
-					sd.config.Tx++
-					err := SendPoints(sd.nc, sd.natsSub,
-						data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
-						false)
-
-					if err != nil {
-						log.Println("Error sending Serial tx stats: ", err)
-					}
-				}
-
-				// TODO: we need to check for response and implement retries
-				// yet.
 			}
 
 		case pts := <-sd.newEdgePoints:

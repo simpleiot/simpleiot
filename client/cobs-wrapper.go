@@ -100,7 +100,7 @@ func (cw *CobsWrapper) Read(b []byte) (int, error) {
 			buf = buf[0:c]
 
 			if cw.debug >= 9 {
-				log.Println("SER RX RAW: ", test.HexDump(buf))
+				log.Println("SER RX COBS: ", test.HexDump(buf))
 			}
 
 			for _, b := range buf {
@@ -138,11 +138,17 @@ func (cw *CobsWrapper) Read(b []byte) (int, error) {
 }
 
 func (cw *CobsWrapper) Write(b []byte) (int, error) {
-	if cw.debug >= 9 {
+	if cw.debug >= 8 {
 		log.Println("SER TX RAW: ", test.HexDump(b))
 	}
 
-	return cw.dev.Write(append([]byte{0}, cobs.Encode(b)...))
+	w := append([]byte{0}, cobs.Encode(b)...)
+
+	if cw.debug >= 9 {
+		log.Println("SER TX COBS: ", test.HexDump(w))
+	}
+
+	return cw.dev.Write(w)
 }
 
 // Close the device wrapped.
