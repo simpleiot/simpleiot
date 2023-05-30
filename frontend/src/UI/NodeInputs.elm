@@ -92,10 +92,12 @@ nodeTimeDateInput o labelWidth =
                 }
 
         dates =
-            Debug.log "date points" <|
-                List.filter
-                    (\p -> p.typ == Point.typeDate && p.tombstone == 0)
-                    o.node.points
+            List.filter
+                (\p -> p.typ == Point.typeDate && p.tombstone == 0)
+                o.node.points
+
+        _ =
+            dates
     in
     column [ spacing 5 ]
         [ wrappedRow
