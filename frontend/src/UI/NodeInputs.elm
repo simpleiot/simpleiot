@@ -90,14 +90,6 @@ nodeTimeDateInput o labelWidth =
                 , icon = Input.defaultCheckbox
                 , label = Input.labelAbove [] <| text label
                 }
-
-        dates =
-            List.filter
-                (\p -> p.typ == Point.typeDate && p.tombstone == 0)
-                o.node.points
-
-        _ =
-            dates
     in
     column [ spacing 5 ]
         [ wrappedRow
