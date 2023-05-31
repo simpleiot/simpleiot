@@ -11,6 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.11.1] - 2023-05-30](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.1)
+
+- update point merge code to handle complex types 
+- more fixes for rule condition schedule processing (#547)
+- fix issue with Shelly device discovery duplicating devices (#552)
+- client manager: fix race condition with subscriptions and deleting client states
+
 ## [[0.11.0] - 2023-05-23](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.0)
 
 - fix rule condition schedule processing (#547)

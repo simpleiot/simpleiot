@@ -31,6 +31,7 @@ module Api.Point exposing
     , typeControl
     , typeData
     , typeDataFormat
+    , typeDate
     , typeDebug
     , typeDescription
     , typeDevice
@@ -500,6 +501,11 @@ typeEnd =
 typeWeekday : String
 typeWeekday =
     "weekday"
+
+
+typeDate : String
+typeDate =
+    "data"
 
 
 typePointType : String

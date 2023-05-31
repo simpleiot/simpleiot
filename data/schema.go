@@ -136,6 +136,7 @@ const (
 	PointTypeStart   = "start"
 	PointTypeEnd     = "end"
 	PointTypeWeekday = "weekday"
+	PointTypeDate    = "date"
 
 	PointTypePointID    = "pointID"
 	PointTypePointKey   = "pointKey"
