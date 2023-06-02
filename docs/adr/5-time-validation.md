@@ -73,6 +73,10 @@ concern which we will address later.
 
 It may make sense to write the latest point timestamp to the store meta table.
 
+### Syncing time from Modem or GPS
+
+Will consider in future. Assume a valid network connection to NTP server for now.
+
 ## Reference/Research
 
 ### NTP
