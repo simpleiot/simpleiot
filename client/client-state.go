@@ -10,10 +10,7 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-func mapKey(node data.NodeEdge) string {
-	return node.Parent + "-" + node.ID
-}
-
+// clientState wraps the client, passes in initial state, and then runs the client
 type clientState[T any] struct {
 	nc        *nats.Conn
 	node      data.NodeEdge

@@ -21,10 +21,11 @@ type Manager[T any] struct {
 	construct func(*nats.Conn, T) Client
 
 	// synchronization fields
-	stop       chan struct{}
-	chScan     chan struct{}
-	chAction   chan func()
-	chDeleteCS chan string
+	stop        chan struct{}
+	chScan      chan struct{}
+	chAction    chan func()
+	chCSStopped chan string
+	chDeleteCS  chan string
 
 	// keep track of clients
 	clientStates map[string]*clientState[T]
@@ -49,6 +50,7 @@ func NewManager[T any](nc *nats.Conn,
 		stop:         make(chan struct{}),
 		chScan:       make(chan struct{}),
 		chAction:     make(chan func()),
+		chCSStopped:  make(chan string),
 		chDeleteCS:   make(chan string),
 		clientStates: make(map[string]*clientState[T]),
 		clientUpSub:  make(map[string]*nats.Subscription),
@@ -82,11 +84,6 @@ func (m *Manager[T]) Run() error {
 
 		for _, p := range points {
 			if p.Type == data.PointTypeNodeType {
-				// FIXME: we have a race condition here where the edge points
-				// are sent first, which triggers this, but the node points
-				// are still coming in. For now delay a bit to give node
-				// points time to come in. Long term we need to sequence
-				// things so this always works
 				m.chScan <- struct{}{}
 			}
 		}
@@ -103,6 +100,9 @@ func (m *Manager[T]) Run() error {
 
 	shutdownTimer := time.NewTimer(time.Hour)
 	shutdownTimer.Stop()
+
+	restartTimer := time.NewTimer(time.Hour)
+	restartTimer.Stop()
 
 	stopping := false
 
@@ -137,12 +137,36 @@ done:
 			scan()
 		case <-m.chScan:
 			scan()
+		case key := <-m.chCSStopped:
+			fmt.Println("CLIFF: chCSStopped: ", key)
+			go func() {
+				err = m.clientUpSub[key].Drain()
+				if err != nil {
+					log.Println("Error draining subscription: %w", err)
+				}
+				start := time.Now()
+				for {
+					if !m.clientUpSub[key].IsValid() {
+						fmt.Println("CLIFF: sub closed")
+						break
+					}
+					if time.Since(start) > time.Second*1 {
+						log.Println("Error: timeout waiting for subscription to drain: ", key)
+						break
+					}
+					// FIXME: change this to something faster once it is working
+					time.Sleep(10 * time.Millisecond)
+				}
+
+				m.chDeleteCS <- key
+			}()
 		case key := <-m.chDeleteCS:
-			_ = m.clientUpSub[key].Unsubscribe()
+			fmt.Println("CLIFF: chDeleteCS: ", key)
 			delete(m.clientUpSub, key)
 			// client state must be deleted after the subscription is stopped
 			// as the subscription uses it
 			delete(m.clientStates, key)
+
 			if stopping {
 				if len(m.clientStates) <= 0 {
 					break done
@@ -167,6 +191,7 @@ done:
 
 // Stop manager. This also stops all registered clients and causes Start to exit.
 func (m *Manager[T]) Stop(_ error) {
+	fmt.Println("CLIFF: stop manager: ", m.nodeType)
 	close(m.stop)
 }
 
@@ -194,12 +219,12 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 	// TODO: we need a better way of identifying nodes than
 	// can function as "groups" that may have children that require
 	// clients.
-	shelly, err := GetNodes(m.nc, id, "all", data.NodeTypeShelly, false)
+	shellyNodes, err := GetNodes(m.nc, id, "all", data.NodeTypeShelly, false)
 	if err != nil {
 		return []data.NodeEdge{}, err
 	}
-	for _, g := range shelly {
-		c, err := m.scanHelper(g.ID, nodes)
+	for _, s := range shellyNodes {
+		c, err := m.scanHelper(s.ID, nodes)
 		if err != nil {
 			return nil, err
 		}
@@ -347,7 +372,7 @@ func (m *Manager[T]) scan(id string) error {
 				log.Printf("clientState error %v: %v\n", m.nodeType, err)
 			}
 
-			m.chDeleteCS <- key
+			m.chCSStopped <- key
 		}()
 	}
 
@@ -363,4 +388,8 @@ func (m *Manager[T]) scan(id string) error {
 	}
 
 	return nil
+}
+
+func mapKey(node data.NodeEdge) string {
+	return node.Parent + "-" + node.ID
 }
