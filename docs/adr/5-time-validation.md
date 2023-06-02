@@ -10,6 +10,11 @@
 
 ## Problem
 
+To date, SIOT has been deployed to systems with RTCs and solid network connections,
+so time is fairly stable, thus this has not been a big concern. However, we are looking
+to deploy to edge systems, some with cellular modem connections and some without a 
+battery backed RTC, so they may boot without a valid time.
+
 SIOT is very dependent on data having valid timestamps. If timestamps are not correct,
 the following probems may occur:
 
@@ -20,7 +25,7 @@ Additionally, there are edge systems that don't have a real-time clock and
 power up with an invalid time until a NTP process gets the current time.
 
 We may need some systems to operate (run rules, etc) without a valid network connection
-and time.
+(offline) and valid time.
 
 ## Context/Discussion
 
@@ -30,7 +35,7 @@ and time.
 - sync (sends data upstream)
 - store (not sure ???)
 
-The db and sync clients should not process points (or buffer them until) until we 
+The db and sync clients should not process points (or perhaps buffer them until) until we 
 are sure the system has a valid time. How does it get this information? Possibilities
 include:
 
@@ -56,15 +61,21 @@ must be newer than what is currently stored. There are two possible scenarios:
     later than the newest point timestamp in the store.
 - Problem: NTP sets the time "back" and there are newer points in the DB.
   - Solution: when we get a NTP time sync, verify it is not significantly earlier
-    than the latest point timestamp in the system.
+    than the latest point timestamp in the system. If it is, update the point
+    timestamps in the DB with the current time - 1yr. This ensures that settings
+    upstream (which are likely newer than the edge device) will update the points 
+    in the edge device.
+
+We currently don't queue data when an edge device is offline. This is a different
+concern which we will address later.
 
 ### Tracking the latest point timestamp
 
 It may make sense to write the latest point timestamp to the store meta table.
 
-### Reference/Research
+## Reference/Research
 
-#### NTP
+### NTP
 
 - https://wiki.archlinux.org/title/systemd-timesyncd
 - `timedatectl status` produces following output:
@@ -78,6 +89,8 @@ System clock synchronized: yes
               NTP service: active
           RTC in local TZ: no
 ```
+
+There is a [systemd-timedated](https://www.freedesktop.org/software/systemd/man/org.freedesktop.timedate1.html) D-Bus API.
 
 ## Decision
 
