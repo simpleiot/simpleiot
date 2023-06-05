@@ -138,30 +138,31 @@ done:
 		case <-m.chScan:
 			scan()
 		case key := <-m.chCSStopped:
-			fmt.Println("CLIFF: chCSStopped: ", key)
-			go func() {
-				err = m.clientUpSub[key].Drain()
-				if err != nil {
-					log.Println("Error draining subscription: %w", err)
+			// TODO: the following can be used to wait until all messages
+			// have been drained, but have not been able to get this to
+			// work reliably without deadlocking
+			err = m.clientUpSub[key].Drain()
+			if err != nil {
+				log.Println("Error unsubscribing subscription: %w", err)
+			}
+			start := time.Now()
+			for {
+				if !m.clientUpSub[key].IsValid() {
+					break
 				}
-				start := time.Now()
-				for {
-					if !m.clientUpSub[key].IsValid() {
-						fmt.Println("CLIFF: sub closed")
-						break
-					}
-					if time.Since(start) > time.Second*1 {
-						log.Println("Error: timeout waiting for subscription to drain: ", key)
-						break
-					}
-					// FIXME: change this to something faster once it is working
-					time.Sleep(10 * time.Millisecond)
+				if time.Since(start) > time.Second*1 {
+					log.Println("Error: timeout waiting for subscription to drain: ", key)
+					break
 				}
+				time.Sleep(10 * time.Millisecond)
+			}
 
-				m.chDeleteCS <- key
-			}()
+			m.chDeleteCS <- key
 		case key := <-m.chDeleteCS:
-			fmt.Println("CLIFF: chDeleteCS: ", key)
+			err = m.clientUpSub[key].Unsubscribe()
+			if err != nil {
+				log.Println("Error unsubscribing subscription: %w", err)
+			}
 			delete(m.clientUpSub, key)
 			// client state must be deleted after the subscription is stopped
 			// as the subscription uses it
@@ -191,7 +192,6 @@ done:
 
 // Stop manager. This also stops all registered clients and causes Start to exit.
 func (m *Manager[T]) Stop(_ error) {
-	fmt.Println("CLIFF: stop manager: ", m.nodeType)
 	close(m.stop)
 }
 
@@ -255,7 +255,22 @@ func (m *Manager[T]) scan(id string) error {
 			continue
 		}
 
-		cs := newClientState(m.nc, m.construct, n)
+		// Need to create a new client
+		cs, err := newClientState(m.nc, m.construct, n)
+
+		if err != nil {
+			log.Printf("Error starting client %v: %v", n, err)
+		}
+
+		go func() {
+			err := cs.run()
+
+			if err != nil {
+				log.Printf("clientState error %v: %v\n", m.nodeType, err)
+			}
+
+			m.chDeleteCS <- key
+		}()
 
 		m.clientStates[key] = cs
 
@@ -357,6 +372,9 @@ func (m *Manager[T]) scan(id string) error {
 				}
 
 				// send edge points to client
+				if cs.client == nil {
+					log.Fatal("Client is nil: ", cs.node.ID)
+				}
 				cs.client.EdgePoints(chunks[2], chunks[3], points)
 			}
 		})
@@ -365,15 +383,6 @@ func (m *Manager[T]) scan(id string) error {
 			return err
 		}
 
-		go func() {
-			err := cs.run()
-
-			if err != nil {
-				log.Printf("clientState error %v: %v\n", m.nodeType, err)
-			}
-
-			m.chCSStopped <- key
-		}()
 	}
 
 	// remove nodes that have been deleted
