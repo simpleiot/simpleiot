@@ -61,8 +61,7 @@ func (sc *ShellyClient) Run() error {
 
 	go scan()
 
-	// FIXME: scanTicker := time.NewTicker(time.Minute * 1)
-	scanTicker := time.NewTicker(time.Second * 5)
+	scanTicker := time.NewTicker(time.Minute * 1)
 
 done:
 	for {
