@@ -215,6 +215,7 @@ func (sio *ShellyIo) GetConfig() (ShellyIOConfig, error) {
 // BulbDuo: http://10.0.0.130/light/0?turn=on
 // PlugUS: http://192.168.33.1/rpc/Switch.Set?id=0&on=true
 func (sio *ShellyIo) SetOnOff(index int, on bool) (data.Points, error) {
+	_ = index
 	switch sio.Type {
 	case data.PointValueShellyTypeBulbDuo:
 		onoff := "off"
