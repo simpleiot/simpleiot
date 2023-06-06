@@ -124,7 +124,7 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 		}
 	default:
 		if len(g.Points) > 1 {
-			log.Println("Decode warning, decoded multiple points to scalar")
+			log.Printf("Decode warning, decoded multiple points to %v:\n%v", t, Points(g.Points))
 		}
 		for _, p := range g.Points {
 			err := setVal(p, v)
