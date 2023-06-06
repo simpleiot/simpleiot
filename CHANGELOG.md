@@ -11,7 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-- fix race condition in Client Manager client startup (#552)
+## [[0.11.2] - 2023-06-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.2)
+
+- fix race condition in Client Manager client startup (#552). This fixes a crash
+  when detecting Shelly devices.
 
 ## [[0.11.1] - 2023-05-30](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.1)
 
