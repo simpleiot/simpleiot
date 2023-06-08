@@ -50,6 +50,8 @@ module Api.Point exposing
     , typeFrequency
     , typeFrom
     , typeHighRate
+    , typeHrRx
+    , typeHrRxReset
     , typeID
     , typeIP
     , typeIndex
@@ -258,6 +260,11 @@ typeRx =
     "rx"
 
 
+typeHrRx : String
+typeHrRx =
+    "hrRx"
+
+
 typeTx : String
 typeTx =
     "tx"
@@ -271,6 +278,11 @@ typeRxReset =
 typeTxReset : String
 typeTxReset =
     "txReset"
+
+
+typeHrRxReset : String
+typeHrRxReset =
+    "hrRxReset"
 
 
 typeBaud : String
@@ -796,6 +808,8 @@ specialPoints =
     , typeLog
     , typePort
     , typeRx
+    , typeHrRx
+    , typeHrRxReset
     , typeRxReset
     , typeTx
     , typeTxReset

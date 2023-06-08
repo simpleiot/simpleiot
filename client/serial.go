@@ -30,6 +30,8 @@ type SerialDev struct {
 	RxReset          bool   `point:"rxReset"`
 	Tx               int    `point:"tx"`
 	TxReset          bool   `point:"txReset"`
+	HrRx             int64  `point:"hrRx"`
+	HrRxReset        bool   `point:"hrRxReset"`
 	Uptime           int    `point:"uptime"`
 	ErrorCount       int    `point:"errorCount"`
 	ErrorCountReset  bool   `point:"errorCountReset"`
@@ -303,6 +305,7 @@ func (sd *SerialDevClient) Run() error {
 
 			if subject == "phr" {
 				// we have high rate points
+				sd.config.HrRx++
 				err := sd.nc.Publish(sd.natsSubHRUp, payload)
 				if err != nil {
 					log.Println("Error publishing HR data: ", err)
@@ -363,7 +366,10 @@ func (sd *SerialDevClient) Run() error {
 
 			if time.Since(sd.lastSendStats) > time.Second*5 {
 				points = append(points,
-					data.Point{Time: time.Now(), Type: data.PointTypeRx, Value: float64(sd.config.Rx)})
+					data.Points{
+						{Time: time.Now(), Type: data.PointTypeRx, Value: float64(sd.config.Rx)},
+						{Time: time.Now(), Type: data.PointTypeHrRx, Value: float64(sd.config.HrRx)},
+					}...)
 				sd.lastSendStats = time.Now()
 			}
 
@@ -449,6 +455,20 @@ func (sd *SerialDevClient) Run() error {
 
 				sd.config.RxReset = false
 				sd.config.Rx = 0
+			}
+
+			if sd.config.HrRxReset {
+				points := data.Points{
+					{Type: data.PointTypeHrRx, Value: 0},
+					{Type: data.PointTypeHrRxReset, Value: 0},
+				}
+				err = SendPoints(sd.nc, sd.natsSub, points, false)
+				if err != nil {
+					log.Println("Error resetting MCU error count: ", err)
+				}
+
+				sd.config.HrRxReset = false
+				sd.config.HrRx = 0
 			}
 
 			if sd.config.TxReset {
