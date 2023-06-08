@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.11.3] - 2023-06-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.3)
+
+- serial client: add high rate rx count for debugging
+
 ## [[0.11.2] - 2023-06-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.2)
 
 - fix race condition in Client Manager client startup (#552). This fixes a crash
@@ -18,10 +22,11 @@ For more details or to discuss releases, please visit the
 
 ## [[0.11.1] - 2023-05-30](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.1)
 
-- update point merge code to handle complex types 
+- update point merge code to handle complex types
 - more fixes for rule condition schedule processing (#547)
 - fix issue with Shelly device discovery duplicating devices (#552)
-- client manager: fix race condition with subscriptions and deleting client states
+- client manager: fix race condition with subscriptions and deleting client
+  states
 
 ## [[0.11.0] - 2023-05-23](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.0)
 
