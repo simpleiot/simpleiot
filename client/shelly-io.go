@@ -51,7 +51,7 @@ func (swi *shellyGen2SwitchStatus) toPoints(index int) data.Points {
 	key := strconv.Itoa(index)
 	i := float32(index)
 	return data.Points{
-		{Time: now, Type: data.PointTypeValue, Key: key, Index: i, Value: data.BoolToFloat(swi.Output)},
+		{Time: now, Type: data.PointTypeSwitch, Key: key, Index: i, Value: data.BoolToFloat(swi.Output)},
 		{Time: now, Type: data.PointTypePower, Key: key, Index: i, Value: float64(swi.Apower)},
 		{Time: now, Type: data.PointTypeVoltage, Key: key, Index: i, Value: float64(swi.Voltage)},
 		{Time: now, Type: data.PointTypeCurrent, Key: key, Index: i, Value: float64(swi.Current)},
@@ -69,7 +69,7 @@ type shellyGen2InputStatus struct {
 func (in *shellyGen2InputStatus) toPoints() data.Points {
 	now := time.Now()
 	return data.Points{
-		{Time: now, Type: data.PointTypeValue,
+		{Time: now, Type: data.PointTypeInput,
 			Key:   strconv.Itoa(in.ID),
 			Value: data.BoolToFloat(in.State)},
 	}
@@ -86,7 +86,7 @@ type shellyGen1LightStatus struct {
 func (sls *shellyGen1LightStatus) toPoints() data.Points {
 	now := time.Now()
 	return data.Points{
-		{Time: now, Type: data.PointTypeValue, Value: data.BoolToFloat(sls.Ison)},
+		{Time: now, Type: data.PointTypeLight, Value: data.BoolToFloat(sls.Ison)},
 		{Time: now, Type: data.PointTypeBrightness, Value: float64(sls.Brightness)},
 		{Time: now, Type: data.PointTypeWhite, Value: float64(sls.White)},
 		{Time: now, Type: data.PointTypeLightTemp, Value: float64(sls.Temp)},

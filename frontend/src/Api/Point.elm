@@ -6,15 +6,21 @@ module Api.Point exposing
     , encodeList
     , filterSpecialPoints
     , get
+    , getAll
     , getBestDesc
     , getBool
     , getLatest
     , getText
     , getValue
+    , input
+    , light
+    , lightSet
     , newText
     , renderPoint
     , renderPoint2
     , sort
+    , switch
+    , switchSet
     , typeAction
     , typeActive
     , typeAddress
@@ -748,6 +754,31 @@ valueSystem =
     "system"
 
 
+switch : String
+switch =
+    "switch"
+
+
+switchSet : String
+switchSet =
+    "switchSet"
+
+
+input : String
+input =
+    "input"
+
+
+light : String
+light =
+    "light"
+
+
+lightSet : String
+lightSet =
+    "lightSet"
+
+
 
 -- Point should match data/Point.go
 
@@ -808,6 +839,11 @@ specialPoints =
     , typeValue
     , typeValueSet
     , typeDeviceID
+    , switch
+    , switchSet
+    , input
+    , light
+    , lightSet
     ]
 
 
@@ -934,6 +970,11 @@ get points typ key =
             typ == p.typ && key == p.key
         )
         points
+
+
+getAll : List Point -> String -> List Point
+getAll points typ =
+    List.filter (\p -> typ == p.typ) points
 
 
 getText : List Point -> String -> String -> String

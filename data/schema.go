@@ -283,6 +283,11 @@ const (
 	NodeTypeShelly   = "shelly"
 	NodeTypeShellyIo = "shellyIo"
 
+	PointTypeSwitch      = "switch"
+	PointTypeSwitchSet   = "switchSet"
+	PointTypeInput       = "input"
+	PointTypeLight       = "light"
+	PointTypeLightSet    = "lightSet"
 	PointTypeDeviceID    = "deviceID"
 	PointTypeIP          = "ip"
 	PointTypeVoltage     = "voltage"

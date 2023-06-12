@@ -128,12 +128,21 @@ view o =
 
 defaultSummary : List Point -> Element msg
 defaultSummary points =
-    case Point.get points Point.typeValue "" of
-        Just p ->
-            displayOnOff p
+    let
+        switches =
+            Point.getAll points Point.switch |> List.sortBy .key
 
-        Nothing ->
-            el [] <| text "off"
+        lights =
+            Point.getAll points Point.light
+
+        inputs =
+            Point.getAll points Point.input
+    in
+    row []
+        [ displayOnOffArray "S:" switches
+        , displayOnOffArray "L:" lights
+        , displayOnOffArray "I:" inputs
+        ]
 
 
 i4ValueSummary : List Point -> Element msg
@@ -151,6 +160,15 @@ i4ValueSummary points =
                 valuePoints
     in
     row [ spacing 8 ] valueElements
+
+
+displayOnOffArray : String -> List Point -> Element msg
+displayOnOffArray label pts =
+    if List.length pts > 0 then
+        row [] <| text label :: List.map displayOnOff pts
+
+    else
+        none
 
 
 displayOnOff : Point -> Element msg
