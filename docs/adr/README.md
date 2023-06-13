@@ -35,3 +35,4 @@ See [template.md](template.md) for a template to get started.
 | [ADR-2](2-authz.md)                             | Authorization considerations.               |
 | [ADR-3](3-node-lifecycle.md)                    | Node lifecycle                              |
 | [ADR-4](4-time.md)                              | Notes on storing and transfering time       |
+| [ADR-5](5-time-validation.md)                   | How do we ensure we have valid time         |
