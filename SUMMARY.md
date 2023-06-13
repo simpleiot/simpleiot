@@ -57,4 +57,5 @@
 - [ADR-2: Authz](docs/adr/2-authz.md)
 - [ADR-3: Node life cycle](docs/adr/3-node-lifecycle.md)
 - [ADR-4: Time storage/format considerations](docs/adr/4-time.md)
+- [ADR-5: Time validation](docs/adr/5-time-validation.md)
 - [ADR Template](docs/adr/template.md)
