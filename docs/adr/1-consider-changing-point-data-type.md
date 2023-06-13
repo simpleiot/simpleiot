@@ -356,11 +356,11 @@ Consider the following sequence of point changes:
 The below table shows the point values over time with the current point merge
 algorithm:
 
-| Time | Key   | Value | Tombstone |
-| ---- | ----- | ----- | --------- |
-| t1   | UUID1 | 10    | 0         |
-| t2   | UUID1 | 10    | 1         |
-| t3   | UUID1 | 20    | 0         |
+| Time | Value | Tombstone |
+| ---- | ----- | --------- |
+| t1   | 10    | 0         |
+| t2   | 10    | 1         |
+| t3   | 20    | 0         |
 
 In this case, the point becomes undeleted because the last write wins (LWW). Is
 this a problem? What is the desired behavior? A likely scenario is that a device
@@ -379,11 +379,11 @@ always preserved, even if there concurrent modifications.
 
 The following table shows the values with the modified point merge algorithm.
 
-| Time | Key   | Value | Tombstone |
-| ---- | ----- | ----- | --------- |
-| t1   | UUID1 | 10    | 0         |
-| t2   | UUID1 | 10    | 1         |
-| t3   | UUID1 | 20    | 1         |
+| Time | Value | Tombstone |
+| ---- | ----- | --------- |
+| t1   | 10    | 0         |
+| t2   | 10    | 1         |
+| t3   | 20    | 1         |
 
 ### Duration, Min, Max
 
