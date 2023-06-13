@@ -4,7 +4,8 @@
 - Issue at: https://github.com/simpleiot/simpleiot/issues/254
 - PR/Discussion:
   - https://github.com/simpleiot/simpleiot/pull/279
-- Status: Accepted
+  - https://github.com/simpleiot/simpleiot/pull/565
+- Status: Review
 
 **Contents**
 
