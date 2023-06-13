@@ -86,11 +86,11 @@ type shellyGen1LightStatus struct {
 func (sls *shellyGen1LightStatus) toPoints() data.Points {
 	now := time.Now()
 	return data.Points{
-		{Time: now, Type: data.PointTypeLight, Value: data.BoolToFloat(sls.Ison)},
-		{Time: now, Type: data.PointTypeBrightness, Value: float64(sls.Brightness)},
-		{Time: now, Type: data.PointTypeWhite, Value: float64(sls.White)},
-		{Time: now, Type: data.PointTypeLightTemp, Value: float64(sls.Temp)},
-		{Time: now, Type: data.PointTypeTransition, Value: float64(sls.Transition)},
+		{Time: now, Type: data.PointTypeLight, Key: "0", Value: data.BoolToFloat(sls.Ison)},
+		{Time: now, Type: data.PointTypeBrightness, Key: "0", Value: float64(sls.Brightness)},
+		{Time: now, Type: data.PointTypeWhite, Key: "0", Value: float64(sls.White)},
+		{Time: now, Type: data.PointTypeLightTemp, Key: "0", Value: float64(sls.Temp)},
+		{Time: now, Type: data.PointTypeTransition, Key: "0", Value: float64(sls.Transition)},
 	}
 }
 
