@@ -21,10 +21,11 @@ type Manager[T any] struct {
 	construct func(*nats.Conn, T) Client
 
 	// synchronization fields
-	stop       chan struct{}
-	chScan     chan struct{}
-	chAction   chan func()
-	chDeleteCS chan string
+	stop        chan struct{}
+	chScan      chan struct{}
+	chAction    chan func()
+	chCSStopped chan string
+	chDeleteCS  chan string
 
 	// keep track of clients
 	clientStates map[string]*clientState[T]
@@ -49,6 +50,7 @@ func NewManager[T any](nc *nats.Conn,
 		stop:         make(chan struct{}),
 		chScan:       make(chan struct{}),
 		chAction:     make(chan func()),
+		chCSStopped:  make(chan string),
 		chDeleteCS:   make(chan string),
 		clientStates: make(map[string]*clientState[T]),
 		clientUpSub:  make(map[string]*nats.Subscription),
@@ -82,11 +84,6 @@ func (m *Manager[T]) Run() error {
 
 		for _, p := range points {
 			if p.Type == data.PointTypeNodeType {
-				// FIXME: we have a race condition here where the edge points
-				// are sent first, which triggers this, but the node points
-				// are still coming in. For now delay a bit to give node
-				// points time to come in. Long term we need to sequence
-				// things so this always works
 				m.chScan <- struct{}{}
 			}
 		}
@@ -103,6 +100,9 @@ func (m *Manager[T]) Run() error {
 
 	shutdownTimer := time.NewTimer(time.Hour)
 	shutdownTimer.Stop()
+
+	restartTimer := time.NewTimer(time.Hour)
+	restartTimer.Stop()
 
 	stopping := false
 
@@ -137,12 +137,37 @@ done:
 			scan()
 		case <-m.chScan:
 			scan()
+		case key := <-m.chCSStopped:
+			// TODO: the following can be used to wait until all messages
+			// have been drained, but have not been able to get this to
+			// work reliably without deadlocking
+			err = m.clientUpSub[key].Drain()
+			if err != nil {
+				log.Println("Error unsubscribing subscription: %w", err)
+			}
+			start := time.Now()
+			for {
+				if !m.clientUpSub[key].IsValid() {
+					break
+				}
+				if time.Since(start) > time.Second*1 {
+					log.Println("Error: timeout waiting for subscription to drain: ", key)
+					break
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+
+			m.chDeleteCS <- key
 		case key := <-m.chDeleteCS:
-			_ = m.clientUpSub[key].Unsubscribe()
+			err = m.clientUpSub[key].Unsubscribe()
+			if err != nil {
+				log.Println("Error unsubscribing subscription: %w", err)
+			}
 			delete(m.clientUpSub, key)
 			// client state must be deleted after the subscription is stopped
 			// as the subscription uses it
 			delete(m.clientStates, key)
+
 			if stopping {
 				if len(m.clientStates) <= 0 {
 					break done
@@ -194,12 +219,12 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 	// TODO: we need a better way of identifying nodes than
 	// can function as "groups" that may have children that require
 	// clients.
-	shelly, err := GetNodes(m.nc, id, "all", data.NodeTypeShelly, false)
+	shellyNodes, err := GetNodes(m.nc, id, "all", data.NodeTypeShelly, false)
 	if err != nil {
 		return []data.NodeEdge{}, err
 	}
-	for _, g := range shelly {
-		c, err := m.scanHelper(g.ID, nodes)
+	for _, s := range shellyNodes {
+		c, err := m.scanHelper(s.ID, nodes)
 		if err != nil {
 			return nil, err
 		}
@@ -230,7 +255,22 @@ func (m *Manager[T]) scan(id string) error {
 			continue
 		}
 
-		cs := newClientState(m.nc, m.construct, n)
+		// Need to create a new client
+		cs, err := newClientState(m.nc, m.construct, n)
+
+		if err != nil {
+			log.Printf("Error starting client %v: %v", n, err)
+		}
+
+		go func() {
+			err := cs.run()
+
+			if err != nil {
+				log.Printf("clientState error %v: %v\n", m.nodeType, err)
+			}
+
+			m.chDeleteCS <- key
+		}()
 
 		m.clientStates[key] = cs
 
@@ -332,6 +372,9 @@ func (m *Manager[T]) scan(id string) error {
 				}
 
 				// send edge points to client
+				if cs.client == nil {
+					log.Fatal("Client is nil: ", cs.node.ID)
+				}
 				cs.client.EdgePoints(chunks[2], chunks[3], points)
 			}
 		})
@@ -340,15 +383,6 @@ func (m *Manager[T]) scan(id string) error {
 			return err
 		}
 
-		go func() {
-			err := cs.run()
-
-			if err != nil {
-				log.Printf("clientState error %v: %v\n", m.nodeType, err)
-			}
-
-			m.chDeleteCS <- key
-		}()
 	}
 
 	// remove nodes that have been deleted
@@ -363,4 +397,8 @@ func (m *Manager[T]) scan(id string) error {
 	}
 
 	return nil
+}
+
+func mapKey(node data.NodeEdge) string {
+	return node.Parent + "-" + node.ID
 }

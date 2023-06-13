@@ -11,6 +11,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
+	"golang.org/x/exp/constraints"
 )
 
 // ShellyIOConfig describes the configuration of a Shelly device
@@ -102,16 +103,16 @@ func (sg2c shellyGen2SysConfig) toSettings() ShellyIOConfig {
 
 // ShellyIo describes the config/state for a shelly io
 type ShellyIo struct {
-	ID          string  `node:"id"`
-	Parent      string  `node:"parent"`
-	Description string  `point:"description"`
-	DeviceID    string  `point:"deviceID"`
-	Type        string  `point:"type"`
-	IP          string  `point:"ip"`
-	Value       float64 `point:"value"`
-	ValueSet    float64 `point:"valueSet"`
-	Offline     bool    `point:"offline"`
-	Control     bool    `point:"control"`
+	ID          string    `node:"id"`
+	Parent      string    `node:"parent"`
+	Description string    `point:"description"`
+	DeviceID    string    `point:"deviceID"`
+	Type        string    `point:"type"`
+	IP          string    `point:"ip"`
+	Value       []float64 `point:"value"`
+	ValueSet    []float64 `point:"valueSet"`
+	Offline     bool      `point:"offline"`
+	Control     bool      `point:"control"`
 }
 
 // Desc gets the description of a Shelly IO
@@ -213,7 +214,8 @@ func (sio *ShellyIo) GetConfig() (ShellyIOConfig, error) {
 // SetOnOff sets on/off state of device
 // BulbDuo: http://10.0.0.130/light/0?turn=on
 // PlugUS: http://192.168.33.1/rpc/Switch.Set?id=0&on=true
-func (sio *ShellyIo) SetOnOff(on bool) (data.Points, error) {
+func (sio *ShellyIo) SetOnOff(index int, on bool) (data.Points, error) {
+	_ = index
 	switch sio.Type {
 	case data.PointValueShellyTypeBulbDuo:
 		onoff := "off"
@@ -536,21 +538,24 @@ done:
 			}
 
 			if sioc.config.IsSettableOnOff() {
-				if sioc.config.Value != sioc.config.ValueSet && sioc.config.Control {
-					pts, err := sioc.config.SetOnOff(data.FloatToBool(sioc.config.ValueSet))
-					if err != nil {
-						log.Printf("Error setting %v: %v\n", sioc.config.Description, err)
-					}
-
-					if len(pts) > 0 {
-						points = append(points, pts...)
-					} else {
-						// get current status as the set did not return status
-						points, err = sioc.config.GetStatus()
+				min := min(len(sioc.config.Value), len(sioc.config.ValueSet))
+				for i := 0; i < min; i++ {
+					if sioc.config.Value[i] != sioc.config.ValueSet[i] && sioc.config.Control {
+						pts, err := sioc.config.SetOnOff(i, data.FloatToBool(sioc.config.ValueSet[i]))
 						if err != nil {
-							log.Printf("Error getting status for %v: %v\n", sioc.config.Description, err)
-							shellyError()
-							break
+							log.Printf("Error setting %v: %v\n", sioc.config.Description, err)
+						}
+
+						if len(pts) > 0 {
+							points = append(points, pts...)
+						} else {
+							// get current status as the set did not return status
+							points, err = sioc.config.GetStatus()
+							if err != nil {
+								log.Printf("Error getting status for %v: %v\n", sioc.config.Description, err)
+								shellyError()
+								break
+							}
 						}
 					}
 				}
@@ -591,4 +596,11 @@ func (sioc *ShellyIOClient) Points(nodeID string, points []data.Point) {
 // node are received.
 func (sioc *ShellyIOClient) EdgePoints(nodeID, parentID string, points []data.Point) {
 	sioc.newEdgePoints <- NewPoints{nodeID, parentID, points}
+}
+
+func min[T constraints.Ordered](a, b T) T {
+	if a < b {
+		return a
+	}
+	return b
 }
