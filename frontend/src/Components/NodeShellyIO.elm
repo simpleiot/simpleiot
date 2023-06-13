@@ -9,6 +9,7 @@ import Element.Border as Border
 import Element.Font as Font
 import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
+import List
 import Round
 import Time
 import UI.Icon as Icon
@@ -18,14 +19,9 @@ import UI.ViewIf exposing (viewIf)
 import Utils.Iso8601 as Iso8601
 
 
-onOffDevices : List String
-onOffDevices =
-    [ "BulbDuo", "1pm", "rgbw2", "PlugUS", "PlugUK", "PlugIT", "PlugS", "Plus1" ]
-
-
-isSettableOnOff : String -> Bool
-isSettableOnOff typ =
-    List.any (\a -> a == typ) onOffDevices
+isSettable : List Point -> Bool
+isSettable pts =
+    List.any (\a -> String.contains "Set" a.typ) pts
 
 
 view : NodeOptions msg -> Element msg
@@ -92,7 +88,7 @@ view o =
                             NodeInputs.nodeCheckboxInput opts ""
 
                         onOffInput =
-                            NodeInputs.nodeOnOffInput opts ""
+                            NodeInputs.nodeOnOffInput opts
 
                         deviceID =
                             Point.getText o.node.points Point.typeDeviceID ""
@@ -114,8 +110,8 @@ view o =
                     [ textDisplay "ID" deviceID
                     , textLinkDisplay "IP" ip ("http://" ++ ip)
                     , textInput Point.typeDescription "Description" ""
-                    , viewIf (isSettableOnOff typ && control) <| onOffInput Point.typeValue Point.typeValueSet "Value"
-                    , viewIf (isSettableOnOff typ) <| checkboxInput Point.typeControl "Enable Control"
+                    , viewIf control <| displayControls onOffInput o.node.points
+                    , viewIf (isSettable o.node.points) <| checkboxInput Point.typeControl "Enable Control"
                     , checkboxInput Point.typeDisable "Disable"
                     , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
                     , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
@@ -198,6 +194,42 @@ displayOnOff p =
     el [ paddingXY 7 0, Background.color vBackgroundColor, Font.color vTextColor ] <|
         text <|
             v
+
+
+displayControls : (String -> String -> String -> String -> Element msg) -> List Point -> Element msg
+displayControls onOffInput pts =
+    let
+        controlTypes =
+            [ Point.light, Point.switch ]
+    in
+    column [] <|
+        List.map
+            (\t ->
+                let
+                    tSet =
+                        t ++ "Set"
+
+                    ptsFiltered =
+                        List.filter (\p -> p.typ == tSet) pts |> List.sortBy .key
+                in
+                column
+                    [ spacing 6
+                    ]
+                <|
+                    List.indexedMap
+                        (\i _ ->
+                            let
+                                key =
+                                    String.fromInt i
+
+                                label =
+                                    t ++ " " ++ String.fromInt (i + 1)
+                            in
+                            onOffInput key t tSet label
+                        )
+                        ptsFiltered
+            )
+            controlTypes
 
 
 textDisplay : String -> String -> Element msg
