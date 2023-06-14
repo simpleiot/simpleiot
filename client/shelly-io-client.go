@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -54,6 +55,10 @@ func (sioc *ShellyIOClient) Run() error {
 
 	if sioc.config.Offline {
 		sampleTicker = time.NewTicker(sampleRateOffline)
+	}
+
+	if sioc.config.Disable {
+		sampleTicker.Stop()
 	}
 
 	shellyError := func() {
@@ -156,6 +161,10 @@ done:
 			syncConfig()
 
 		case <-sampleTicker.C:
+			if sioc.config.Disable {
+				fmt.Println("Shelly IO is disabled, why am I ticking?")
+				continue
+			}
 			points, err := sioc.config.GetStatus()
 			if err != nil {
 				log.Printf("Error getting status for %v: %v\n", sioc.config.Description, err)
