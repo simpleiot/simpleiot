@@ -159,7 +159,7 @@ done:
 				addCompPoints := func(pType string, count int) {
 					for i := 0; i < count; i++ {
 						iString := strconv.Itoa(i)
-						ne.Points = append(ne.Points, data.Point{Type: pType, Index: float32(i), Key: iString})
+						ne.Points = append(ne.Points, data.Point{Type: pType, Key: iString})
 					}
 				}
 

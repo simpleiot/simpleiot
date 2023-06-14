@@ -3,6 +3,7 @@ package data
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -72,7 +73,7 @@ func appendPointsFromValue(
 			if err != nil {
 				return points, fmt.Errorf("unsupported type: %v of %w", k, err)
 			}
-			p.Index = float32(i)
+			p.Key = strconv.Itoa(i)
 			points = append(points, p)
 		}
 	case reflect.Map:

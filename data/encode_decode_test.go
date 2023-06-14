@@ -3,6 +3,7 @@ package data
 import (
 	"reflect"
 	"sort"
+	"strconv"
 	"testing"
 )
 
@@ -142,8 +143,8 @@ var nodeEdgeTestComplex = NodeEdge{
 	Type:   "testTypeComplex",
 	Points: []Point{
 		{Type: "description", Text: "hi there"},
-		{Type: "ipAddress", Index: 0, Text: "192.168.1.1"},
-		{Type: "ipAddress", Index: 1, Text: "127.0.0.1"},
+		{Type: "ipAddress", Key: "0", Text: "192.168.1.1"},
+		{Type: "ipAddress", Key: "1", Text: "127.0.0.1"},
 		{Type: "location", Key: "goodbye", Text: "cruel world"},
 		{Type: "location", Key: "hello", Text: "world"},
 		{Type: "nested", Key: "description", Text: "nested test type"},
@@ -153,8 +154,8 @@ var nodeEdgeTestComplex = NodeEdge{
 		{Type: "sensor", Key: "temp2", Value: 40},
 	},
 	EdgePoints: []Point{
-		{Type: "testValue", Index: 0, Value: 314},
-		{Type: "testValue", Index: 1, Value: 1024},
+		{Type: "testValue", Key: "0", Value: 314},
+		{Type: "testValue", Key: "1", Value: 1024},
 		{Type: "tombstone", Value: 1},
 	},
 }
@@ -313,18 +314,27 @@ func (sp SortablePoints) Less(i, j int) bool {
 		return false
 	}
 
-	if sp[i].Key < sp[j].Key {
-		return true
-	}
-	if sp[i].Key > sp[j].Key {
-		return false
-	}
+	// try to sort Key as int first (array), then as text
 
-	if sp[i].Index < sp[j].Index {
-		return true
-	}
-	if sp[i].Index > sp[j].Index {
-		return false
+	iInt, iErr := strconv.Atoi(sp[i].Key)
+	jInt, jErr := strconv.Atoi(sp[j].Key)
+
+	if iErr == nil && jErr == nil {
+		// we have ints, so do int sort
+		if iInt < jInt {
+			return true
+		}
+
+		if iInt > jInt {
+			return false
+		}
+	} else {
+		if sp[i].Key < sp[j].Key {
+			return true
+		}
+		if sp[i].Key > sp[j].Key {
+			return false
+		}
 	}
 
 	return sp[i].Time.Before(sp[j].Time)

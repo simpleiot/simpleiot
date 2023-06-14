@@ -3,7 +3,6 @@ package client
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -171,7 +170,6 @@ done:
 						"nodeID": pts.ID,
 						"key":    point.Key,
 						"type":   point.Type,
-						"index":  strconv.FormatFloat(float64(point.Index), 'f', -1, 64),
 					},
 					map[string]interface{}{
 						"value": point.Value,
