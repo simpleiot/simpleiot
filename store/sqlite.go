@@ -263,7 +263,8 @@ func (sdb *DbSqlite) runMigrations() error {
 		for rows.Next() {
 			var p point
 			var timeS, timeNS int64
-			err := rows.Scan(&p.id, &p.nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+			var index float32
+			err := rows.Scan(&p.id, &p.nodeID, &p.Type, &p.Key, &timeS, &timeNS, &index, &p.Value, &p.Text,
 				&p.Data, &p.Tombstone, &p.Origin)
 			if err != nil {
 				return err
@@ -275,7 +276,7 @@ func (sdb *DbSqlite) runMigrations() error {
 		for _, p := range dbPoints {
 			_, err := sdb.db.Exec(`INSERT INTO node_points(id, node_id, type, key, time,
 				idx, value, text, data, tombstone, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				p.id, p.nodeID, p.Type, p.Key, p.Time.UnixNano(), p.Index, p.Value, p.Text, p.Data, p.Tombstone,
+				p.id, p.nodeID, p.Type, p.Key, p.Time.UnixNano(), 0, p.Value, p.Text, p.Data, p.Tombstone,
 				p.Origin)
 			if err != nil {
 				return fmt.Errorf("Error writing to new node_points table: %v", err)
@@ -298,7 +299,8 @@ func (sdb *DbSqlite) runMigrations() error {
 		for rows.Next() {
 			var p point
 			var timeS, timeNS int64
-			err := rows.Scan(&p.id, &p.nodeID, &p.Type, &p.Key, &timeS, &timeNS, &p.Index, &p.Value, &p.Text,
+			var index float32
+			err := rows.Scan(&p.id, &p.nodeID, &p.Type, &p.Key, &timeS, &timeNS, &index, &p.Value, &p.Text,
 				&p.Data, &p.Tombstone, &p.Origin)
 			if err != nil {
 				return err
@@ -310,7 +312,7 @@ func (sdb *DbSqlite) runMigrations() error {
 		for _, p := range dbPoints {
 			_, err := sdb.db.Exec(`INSERT INTO edge_points(id, edge_id, type, key, time,
 				idx, value, text, data, tombstone, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				p.id, p.nodeID, p.Type, p.Key, p.Time.UnixNano(), p.Index, p.Value, p.Text, p.Data, p.Tombstone,
+				p.id, p.nodeID, p.Type, p.Key, p.Time.UnixNano(), 0, p.Value, p.Text, p.Data, p.Tombstone,
 				p.Origin)
 			if err != nil {
 				return fmt.Errorf("Error writing to new node_points table: %v", err)
@@ -566,7 +568,8 @@ func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
 		var timeNS int64
 		var pID string
 		var nodeID string
-		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &p.Index, &p.Value, &p.Text,
+		var index float32
+		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
 			rollback()
@@ -645,7 +648,7 @@ NextPin:
 	for i, p := range writePoints {
 		tNs := p.Time.UnixNano()
 		pID := writePointIDs[i]
-		_, err = stmt.Exec(pID, id, p.Type, p.Key, tNs, p.Index, p.Value, p.Text, p.Data, p.Tombstone,
+		_, err = stmt.Exec(pID, id, p.Type, p.Key, tNs, 0, p.Value, p.Text, p.Data, p.Tombstone,
 			p.Origin)
 		if err != nil {
 			rollback()
@@ -734,7 +737,8 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 		var timeNS int64
 		var pID string
 		var nodeID string
-		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &p.Index, &p.Value, &p.Text,
+		var index float32
+		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
 			rollback()
@@ -815,7 +819,7 @@ NextPin:
 	for i, p := range writePoints {
 		tNs := p.Time.UnixNano()
 		pID := writePointIDs[i]
-		_, err = stmt.Exec(pID, edge.ID, p.Type, p.Key, tNs, p.Index, p.Value, p.Text, p.Data, p.Tombstone,
+		_, err = stmt.Exec(pID, edge.ID, p.Type, p.Key, tNs, 0, p.Value, p.Text, p.Data, p.Tombstone,
 			p.Origin)
 		if err != nil {
 			stmt.Close()
@@ -854,7 +858,8 @@ NextPin:
 			var timeNS int64
 			var pID string
 			var nodeID string
-			err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &p.Index, &p.Value, &p.Text,
+			var index float32
+			err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &index, &p.Value, &p.Text,
 				&p.Data, &p.Tombstone, &p.Origin)
 			if err != nil {
 				rollback()
@@ -1097,7 +1102,8 @@ func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (data.Po
 		var timeNS int64
 		var pID string
 		var nodeID string
-		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &p.Index, &p.Value, &p.Text,
+		var index float32
+		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &index, &p.Value, &p.Text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
 			return nil, err

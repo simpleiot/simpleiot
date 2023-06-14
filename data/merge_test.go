@@ -164,7 +164,7 @@ func TestMergeComplex(t *testing.T) {
 		t.Fatal("Map not modified to Siot")
 	}
 
-	ep := Points{{Type: "testValue", Index: 0, Value: 123}}
+	ep := Points{{Type: "testValue", Value: 123}}
 
 	err = MergeEdgePoints("ID-TC", "456", ep, &td)
 

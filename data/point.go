@@ -23,7 +23,7 @@ type Point struct {
 	// Type of point (voltage, current, key, etc)
 	Type string `json:"type,omitempty"`
 
-	// Key is used to allow a group of points to represent a "map"
+	// Key is used to allow a group of points to represent a map or array
 	Key string `json:"key,omitempty"`
 
 	//-------------------------------------------------------
@@ -31,10 +31,6 @@ type Point struct {
 
 	// Time the point was taken
 	Time time.Time `json:"time,omitempty"`
-
-	// Index is used to specify a position in an array such as
-	// which pump, temp sensor, etc.
-	Index float32 `json:"index,omitempty"`
 
 	// Instantaneous analog or digital value of the point.
 	// 0 and 1 are used to represent digital values
@@ -94,10 +90,6 @@ func (p Point) String() string {
 		t += fmt.Sprintf("V:%.3f ", p.Value)
 	}
 
-	if p.Index != 0 {
-		t += fmt.Sprintf("I:%v ", p.Index)
-	}
-
 	if p.Key != "" {
 		t += fmt.Sprintf("K:%v ", p.Key)
 	}
@@ -133,7 +125,6 @@ func (p Point) ToPb() (pb.Point, error) {
 
 	return pb.Point{
 		Type:      p.Type,
-		Index:     p.Index,
 		Key:       p.Key,
 		Value:     p.Value,
 		Text:      p.Text,
@@ -147,7 +138,6 @@ func (p Point) ToPb() (pb.Point, error) {
 func (p Point) ToSerial() (pb.SerialPoint, error) {
 	return pb.SerialPoint{
 		Type:      p.Type,
-		Index:     p.Index,
 		Key:       p.Key,
 		Value:     float32(p.Value),
 		Text:      p.Text,
@@ -396,7 +386,6 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 		Type:      sPb.Type,
 		Text:      sPb.Text,
 		Key:       sPb.Key,
-		Index:     sPb.Index,
 		Value:     sPb.Value,
 		Time:      ts,
 		Tombstone: int(sPb.Tombstone),
@@ -412,7 +401,6 @@ func SerialToPoint(sPb *pb.SerialPoint) (Point, error) {
 		Type:      sPb.Type,
 		Text:      sPb.Text,
 		Key:       sPb.Key,
-		Index:     sPb.Index,
 		Value:     float64(sPb.Value),
 		Time:      time.Unix(0, sPb.Time),
 		Tombstone: int(sPb.Tombstone),
@@ -527,8 +515,7 @@ func NewPointFilter(minSend, periodicSend time.Duration) *PointFilter {
 func (sf *PointFilter) add(point Point) bool {
 	for i, p := range sf.points {
 		if point.Key == p.Key &&
-			point.Type == p.Type &&
-			point.Index == p.Index {
+			point.Type == p.Type {
 			if point.Value == p.Value {
 				return false
 			}

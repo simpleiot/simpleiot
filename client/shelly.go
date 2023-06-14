@@ -3,6 +3,7 @@ package client
 import (
 	"log"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -149,7 +150,33 @@ done:
 					IP:       ip,
 				}
 
-				err := SendNodeType(sc.nc, newIO, sc.config.ID)
+				ne, err := data.Encode(newIO)
+				if err != nil {
+					log.Println("Error encoding new shelly IO: ", err)
+					continue
+				}
+
+				addCompPoints := func(pType string, count int) {
+					for i := 0; i < count; i++ {
+						iString := strconv.Itoa(i)
+						ne.Points = append(ne.Points, data.Point{Type: pType, Key: iString})
+					}
+				}
+
+				for _, comp := range shellyCompMap[typ] {
+					switch comp.name {
+					case "input":
+						addCompPoints(data.PointTypeInput, comp.count)
+					case "switch":
+						addCompPoints(data.PointTypeSwitch, comp.count)
+						addCompPoints(data.PointTypeSwitchSet, comp.count)
+					case "light":
+						addCompPoints(data.PointTypeLight, comp.count)
+						addCompPoints(data.PointTypeLightSet, comp.count)
+					}
+				}
+
+				err = SendNode(sc.nc, ne, sc.config.ID)
 				if err != nil {
 					log.Println("Error sending shelly IO: ", err)
 				}

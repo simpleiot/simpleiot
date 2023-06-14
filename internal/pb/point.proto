@@ -9,7 +9,6 @@ message Point {
   string type = 2;
   double value = 4;
   google.protobuf.Timestamp time = 5;
-  float index = 13;
   string text = 8;
   string key = 11;
   int32 tombstone = 12;
@@ -17,15 +16,12 @@ message Point {
   string origin = 15;
 }
 
-message Points {
-  repeated Point points = 1;
-}
+message Points { repeated Point points = 1; }
 
 message SerialPoint {
   string type = 2;
   float value = 4;
   int64 time = 16;
-  float index = 13;
   string text = 8;
   string key = 11;
   int32 tombstone = 12;
@@ -33,10 +29,7 @@ message SerialPoint {
   string origin = 15;
 }
 
-message SerialPoints {
-  repeated SerialPoint points = 1;
-}
-
+message SerialPoints { repeated SerialPoint points = 1; }
 
 message PointArray {
   uint64 starttime = 1;

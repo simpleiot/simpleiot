@@ -107,7 +107,7 @@ fCheckbox o key typ lbl =
                             "C"
                 in
                 o.onEditNodePoint
-                    [ Point typ key o.now 0 0 t 0 ]
+                    [ Point typ key o.now 0 t 0 ]
         , checked =
             Point.getText o.node.points typ key == "F"
         , icon = Input.defaultCheckbox

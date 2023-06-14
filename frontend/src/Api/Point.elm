@@ -6,15 +6,19 @@ module Api.Point exposing
     , encodeList
     , filterSpecialPoints
     , get
+    , getAll
     , getBestDesc
     , getBool
     , getLatest
     , getText
     , getValue
+    , input
+    , light
     , newText
     , renderPoint
     , renderPoint2
     , sort
+    , switch
     , typeAction
     , typeActive
     , typeAddress
@@ -760,6 +764,21 @@ valueSystem =
     "system"
 
 
+switch : String
+switch =
+    "switch"
+
+
+input : String
+input =
+    "input"
+
+
+light : String
+light =
+    "light"
+
+
 
 -- Point should match data/Point.go
 
@@ -768,7 +787,6 @@ type alias Point =
     { typ : String
     , key : String
     , time : Time.Posix
-    , index : Float
     , value : Float
     , text : String
     , tombstone : Int
@@ -780,7 +798,6 @@ newText typ key text =
     { typ = typ
     , key = key
     , time = Time.millisToPosix 0
-    , index = 0
     , value = 0
     , text = text
     , tombstone = 0
@@ -822,6 +839,9 @@ specialPoints =
     , typeValue
     , typeValueSet
     , typeDeviceID
+    , switch
+    , input
+    , light
     ]
 
 
@@ -836,7 +856,6 @@ encode p =
         [ ( "type", Json.Encode.string <| p.typ )
         , ( "key", Json.Encode.string <| p.key )
         , ( "time", Iso8601.encode <| p.time )
-        , ( "index", Json.Encode.float <| p.index )
         , ( "value", Json.Encode.float <| p.value )
         , ( "text", Json.Encode.string <| p.text )
         , ( "tombstone", Json.Encode.int <| p.tombstone )
@@ -854,7 +873,6 @@ decode =
         |> optional "type" Decode.string ""
         |> optional "key" Decode.string ""
         |> optional "time" Json.Decode.Extra.datetime (Time.millisToPosix 0)
-        |> optional "index" Decode.float 0
         |> optional "value" Decode.float 0
         |> optional "text" Decode.string ""
         |> optional "tombstone" Decode.int 0
@@ -870,13 +888,6 @@ renderPoint s =
             else
                 s.key ++ ":"
 
-        index =
-            if s.index /= 0 then
-                Round.round 1 s.index ++ ":"
-
-            else
-                ""
-
         value =
             if s.text /= "" then
                 s.text
@@ -887,7 +898,7 @@ renderPoint s =
         typ =
             s.typ ++ ":"
     in
-    typ ++ key ++ index ++ " " ++ value
+    typ ++ key ++ " " ++ value
 
 
 renderPoint2 : Point -> { desc : String, value : String }
@@ -900,13 +911,6 @@ renderPoint2 s =
             else
                 s.key ++ ":"
 
-        index =
-            if s.index /= 0 then
-                Round.round 1 s.index ++ ":"
-
-            else
-                ""
-
         value =
             if s.text /= "" then
                 s.text
@@ -914,7 +918,7 @@ renderPoint2 s =
             else
                 Round.round 2 s.value
     in
-    { desc = s.typ ++ ":" ++ key ++ index, value = value }
+    { desc = s.typ ++ ":" ++ key, value = value }
 
 
 updatePoint : List Point -> Point -> List Point
@@ -948,6 +952,11 @@ get points typ key =
             typ == p.typ && key == p.key
         )
         points
+
+
+getAll : List Point -> String -> List Point
+getAll points typ =
+    List.filter (\p -> typ == p.typ) points
 
 
 getText : List Point -> String -> String -> String
@@ -1047,8 +1056,8 @@ sort a b =
     if a.typ /= b.typ then
         compare a.typ b.typ
 
-    else if a.index /= b.index then
-        compare a.index b.index
+    else if a.key /= b.key then
+        compare a.key b.key
 
     else
         compare a.value b.value

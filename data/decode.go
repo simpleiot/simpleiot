@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strconv"
 )
 
 // NodeEdgeChildren is used to pass a tree node structure into the
@@ -59,7 +60,8 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 		// Set array / slice values
 		for _, p := range g.Points {
 			// Note: array / slice values are set directly on the indexed Value
-			err := setVal(p, v.Index(int(p.Index)))
+			index, _ := strconv.Atoi(p.Key)
+			err := setVal(p, v.Index(index))
 			if err != nil {
 				return err
 			}
@@ -183,7 +185,8 @@ func Decode(input NodeEdgeChildren, output interface{}) error {
 		if p.Key != "" {
 			g.Keyed = true
 		}
-		if index := int(p.Index); index > g.IndexMax {
+		index, _ := strconv.Atoi(p.Key)
+		if index > g.IndexMax {
 			g.IndexMax = index
 		}
 		g.Points = append(g.Points, p)
@@ -198,7 +201,8 @@ func Decode(input NodeEdgeChildren, output interface{}) error {
 			g.Keyed = true
 		}
 
-		if index := int(p.Index); index > g.IndexMax {
+		index, _ := strconv.Atoi(p.Key)
+		if index > g.IndexMax {
 			g.IndexMax = index
 		}
 		g.Points = append(g.Points, p)
