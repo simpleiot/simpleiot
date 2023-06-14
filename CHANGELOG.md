@@ -11,6 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.11.4] - 2023-06-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.4)
+
+- remove index field from Point data structure. See #565
+- add support for Shelly Plus2PM
+
 ## [[0.11.3] - 2023-06-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.3)
 
 - serial client: add high rate rx count for debugging
