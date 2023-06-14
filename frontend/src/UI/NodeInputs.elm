@@ -49,7 +49,7 @@ nodeTextInput o key typ lbl placeholder =
         []
         { onChange =
             \d ->
-                o.onEditNodePoint [ Point typ key o.now 0 0 d 0 ]
+                o.onEditNodePoint [ Point typ key o.now 0 d 0 ]
         , text = Point.getText o.node.points typ key
         , placeholder = Just <| Input.placeholder [] <| text placeholder
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
@@ -130,7 +130,6 @@ nodeTimeDateInput o labelWidth =
                 , onPress =
                     o.onEditNodePoint
                         [ { typ = Point.typeDate
-                          , index = 0
                           , key = ""
                           , text = ""
                           , time = o.now
@@ -173,16 +172,16 @@ pointsToSchedule points =
 
 scheduleToPoints : Time.Posix -> Utils.Time.Schedule -> List Point
 scheduleToPoints now sched =
-    [ Point Point.typeStart "" now 0 0 sched.startTime 0
-    , Point Point.typeEnd "" now 0 0 sched.endTime 0
+    [ Point Point.typeStart "" now 0 sched.startTime 0
+    , Point Point.typeEnd "" now 0 sched.endTime 0
     ]
         ++ List.map
             (\wday ->
                 if List.member wday sched.weekdays then
-                    Point Point.typeWeekday (String.fromInt wday) now (toFloat wday) 1 "" 0
+                    Point Point.typeWeekday (String.fromInt wday) now 1 "" 0
 
                 else
-                    Point Point.typeWeekday (String.fromInt wday) now (toFloat wday) 0 "" 0
+                    Point Point.typeWeekday (String.fromInt wday) now 0 "" 0
             )
             [ 0, 1, 2, 3, 4, 5, 6 ]
 
@@ -260,7 +259,7 @@ nodeCheckboxInput o key typ lbl =
                             0.0
                 in
                 o.onEditNodePoint
-                    [ Point typ key o.now 0 v "" 0 ]
+                    [ Point typ key o.now v "" 0 ]
         , checked =
             Point.getValue o.node.points typ key == 1
         , icon = Input.defaultCheckbox
@@ -337,7 +336,7 @@ nodeNumberInput o key typ lbl =
                             Maybe.withDefault currentValueF <| String.toFloat dCheck
                 in
                 o.onEditNodePoint
-                    [ Point typ key o.now 0 v dCheck 0 ]
+                    [ Point typ key o.now v dCheck 0 ]
         , text = currentValue
         , placeholder = Nothing
         , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
@@ -357,7 +356,7 @@ nodeOptionInput o key typ lbl options =
         { onChange =
             \sel ->
                 o.onEditNodePoint
-                    [ Point typ key o.now 0 0 sel 0 ]
+                    [ Point typ key o.now 0 sel 0 ]
         , label =
             Input.labelLeft [ padding 12, width (px o.labelWidth) ] <|
                 el [ alignRight ] <|
@@ -407,7 +406,7 @@ nodeCounterWithReset o key typ pointResetName lbl =
                             else
                                 0
                     in
-                    o.onEditNodePoint [ Point pointResetName key o.now 0 vFloat "" 0 ]
+                    o.onEditNodePoint [ Point pointResetName key o.now vFloat "" 0 ]
             , icon = Input.defaultCheckbox
             , checked = currentResetValue
             , label =
@@ -459,7 +458,7 @@ nodeOnOffInput o key typ pointSetName lbl =
         [ el [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         , Input.button
             []
-            { onPress = Just <| o.onEditNodePoint [ Point pointSetName key o.now 0 newValue "" 0 ]
+            { onPress = Just <| o.onEditNodePoint [ Point pointSetName key o.now newValue "" 0 ]
             , label =
                 el [ width (px 100) ] <|
                     html <|
@@ -525,6 +524,6 @@ nodePasteButton :
     -> Element msg
 nodePasteButton o label typ value =
     row [ spacing 10, paddingEach { top = 0, bottom = 0, right = 0, left = 75 } ]
-        [ UI.Button.clipboard <| o.onEditNodePoint [ Point typ "" o.now 0 0 value 0 ]
+        [ UI.Button.clipboard <| o.onEditNodePoint [ Point typ "" o.now 0 value 0 ]
         , label
         ]
