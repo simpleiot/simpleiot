@@ -285,6 +285,11 @@ const (
 	NodeTypeShelly   = "shelly"
 	NodeTypeShellyIo = "shellyIo"
 
+	PointTypeSwitch      = "switch"
+	PointTypeSwitchSet   = "switchSet"
+	PointTypeInput       = "input"
+	PointTypeLight       = "light"
+	PointTypeLightSet    = "lightSet"
 	PointTypeDeviceID    = "deviceID"
 	PointTypeIP          = "ip"
 	PointTypeVoltage     = "voltage"
@@ -306,6 +311,7 @@ const (
 	PointValueShellyTypePlugS   = "PlugS"
 	PointValueShellyTypeI4      = "PlusI4"
 	PointValueShellyTypePlus1   = "Plus1"
+	PointValueShellyTypePlus2PM = "Plus2PM"
 
 	PointTypeTimeSync  = "timeSync"
 	PointTypeConnected = "connected"

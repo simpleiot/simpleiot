@@ -164,6 +164,21 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 // SendNode is used to send a node to a nats server. Can be
 // used to create nodes.
 func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
+
+	if origin != "" {
+		for i := range node.Points {
+			if node.Points[i].Origin == "" {
+				node.Points[i].Origin = origin
+			}
+		}
+
+		for i := range node.EdgePoints {
+			if node.EdgePoints[i].Origin == "" {
+				node.EdgePoints[i].Origin = origin
+			}
+		}
+	}
+
 	// we need to send the edge points first if we are creating
 	// a new node, otherwise the upstream will detect an ophraned node
 	// and create a new edge to the root node
@@ -210,16 +225,6 @@ func SendNodeType[T any](nc *nats.Conn, node T, origin string) error {
 	ne, err := data.Encode(node)
 	if err != nil {
 		return err
-	}
-
-	if origin != "" {
-		for i := range ne.Points {
-			ne.Points[i].Origin = origin
-		}
-
-		for i := range ne.EdgePoints {
-			ne.EdgePoints[i].Origin = origin
-		}
 	}
 
 	return SendNode(nc, ne, origin)
