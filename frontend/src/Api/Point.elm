@@ -14,13 +14,11 @@ module Api.Point exposing
     , getValue
     , input
     , light
-    , lightSet
     , newText
     , renderPoint
     , renderPoint2
     , sort
     , switch
-    , switchSet
     , typeAction
     , typeActive
     , typeAddress
@@ -759,11 +757,6 @@ switch =
     "switch"
 
 
-switchSet : String
-switchSet =
-    "switchSet"
-
-
 input : String
 input =
     "input"
@@ -772,11 +765,6 @@ input =
 light : String
 light =
     "light"
-
-
-lightSet : String
-lightSet =
-    "lightSet"
 
 
 
@@ -840,10 +828,8 @@ specialPoints =
     , typeValueSet
     , typeDeviceID
     , switch
-    , switchSet
     , input
     , light
-    , lightSet
     ]
 
 
