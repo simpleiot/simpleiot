@@ -49,13 +49,12 @@ type shellyGen2SwitchSetResp struct {
 func (swi *shellyGen2SwitchStatus) toPoints(index int) data.Points {
 	now := time.Now()
 	key := strconv.Itoa(index)
-	i := float32(index)
 	return data.Points{
-		{Time: now, Type: data.PointTypeSwitch, Key: key, Index: i, Value: data.BoolToFloat(swi.Output)},
-		{Time: now, Type: data.PointTypePower, Key: key, Index: i, Value: float64(swi.Apower)},
-		{Time: now, Type: data.PointTypeVoltage, Key: key, Index: i, Value: float64(swi.Voltage)},
-		{Time: now, Type: data.PointTypeCurrent, Key: key, Index: i, Value: float64(swi.Current)},
-		{Time: now, Type: data.PointTypeTemperature, Key: key, Index: i, Value: float64(swi.Temperature.TC)},
+		{Time: now, Type: data.PointTypeSwitch, Key: key, Value: data.BoolToFloat(swi.Output)},
+		{Time: now, Type: data.PointTypePower, Key: key, Value: float64(swi.Apower)},
+		{Time: now, Type: data.PointTypeVoltage, Key: key, Value: float64(swi.Voltage)},
+		{Time: now, Type: data.PointTypeCurrent, Key: key, Value: float64(swi.Current)},
+		{Time: now, Type: data.PointTypeTemperature, Key: key, Value: float64(swi.Temperature.TC)},
 	}
 }
 
@@ -71,7 +70,6 @@ func (in *shellyGen2InputStatus) toPoints() data.Points {
 	return data.Points{
 		{Time: now, Type: data.PointTypeInput,
 			Key:   strconv.Itoa(in.ID),
-			Index: float32(in.ID),
 			Value: data.BoolToFloat(in.State)},
 	}
 }

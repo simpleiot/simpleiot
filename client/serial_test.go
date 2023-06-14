@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strconv"
 	"testing"
 	"time"
 
@@ -291,7 +292,8 @@ func TestSerialLargeMessage(t *testing.T) {
 	var points data.Points
 
 	for i := 0; i < 10; i++ {
-		points = append(points, data.Point{Type: "testPoint", Index: float32(i), Value: float64(i * 2)})
+		points = append(points, data.Point{Type: "testPoint",
+			Key: strconv.Itoa(i), Value: float64(i * 2)})
 	}
 
 	packet, err := client.SerialEncode(1, "", points)

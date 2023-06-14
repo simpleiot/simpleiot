@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 )
 
 // setVal writes a scalar Point value / text to a reflect.Value
@@ -74,7 +75,9 @@ func MergePoints(id string, points []Point, output interface{}) error {
 		if p.Key != "" {
 			g.Keyed = true
 		}
-		if index := int(p.Index); index > g.IndexMax {
+
+		index, _ := strconv.Atoi(p.Key)
+		if index > g.IndexMax {
 			g.IndexMax = index
 		}
 		g.Points = append(g.Points, p)
@@ -157,7 +160,8 @@ func MergeEdgePoints(id, parent string, points []Point, output interface{}) erro
 		if p.Key != "" {
 			g.Keyed = true
 		}
-		if index := int(p.Index); index > g.IndexMax {
+		index, _ := strconv.Atoi(p.Key)
+		if index > g.IndexMax {
 			g.IndexMax = index
 		}
 		g.Points = append(g.Points, p)

@@ -242,7 +242,7 @@ func (cb *CanBusClient) Run() error {
 					bringDownDev()
 					setupDev()
 				case data.PointTypeData:
-					log.Println("New Data Point:", p.Index, p.Key)
+					log.Println("New Data Point:", p.Key)
 					// FIXME shouldn't have to do this manually
 					if len(cb.config.Databases) > 0 {
 						cb.config.Databases[0].Data = p.Text
