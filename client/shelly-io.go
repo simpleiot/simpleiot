@@ -116,6 +116,7 @@ type ShellyIo struct {
 	Input       []bool    `point:"input"`
 	Offline     bool      `point:"offline"`
 	Control     bool      `point:"control"`
+	Disable     bool      `point:"disable"`
 }
 
 // Desc gets the description of a Shelly IO
@@ -330,7 +331,9 @@ func (sio *ShellyIo) gen2GetSwitch(count int) (data.Points, error) {
 
 	for i := 0; i < count; i++ {
 
-		res, err := httpClient.Get("http://" + sio.IP + "/rpc/Switch.GetStatus?id=0")
+		url := fmt.Sprintf("http://%v/rpc/Switch.GetStatus?id=%v", sio.IP, i)
+
+		res, err := httpClient.Get(url)
 		if err != nil {
 			return data.Points{}, err
 		}
