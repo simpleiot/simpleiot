@@ -5,6 +5,7 @@
 - PR/Discussion:
   - https://github.com/simpleiot/simpleiot/pull/279
   - https://github.com/simpleiot/simpleiot/pull/565
+  - https://github.com/simpleiot/simpleiot/pull/566
 - Status: Review
 
 **Contents**
