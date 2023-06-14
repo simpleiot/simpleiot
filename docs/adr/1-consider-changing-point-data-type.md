@@ -1,9 +1,12 @@
 # Point Data Type Changes
 
-- Author: Cliff Brake Last updated: 2021-11-04
+- Author: Cliff Brake Last updated: 2023-06-13
 - Issue at: https://github.com/simpleiot/simpleiot/issues/254
-- PR/Discussion: https://github.com/simpleiot/simpleiot/pull/279
-- Status: Accepted
+- PR/Discussion:
+  - https://github.com/simpleiot/simpleiot/pull/279
+  - https://github.com/simpleiot/simpleiot/pull/565
+  - https://github.com/simpleiot/simpleiot/pull/566
+- Status: Review
 
 **Contents**
 
@@ -290,138 +293,56 @@ together. Then the question is how to represent the filesystem? With the added
 
 ### Representing arrays
 
-With the `index` field, we can already represent arrays as a group of points,
-where index defines the position in the array. One example where we do this is
-for selecting days of the week in schedule rule conditions. The index field is
-used to select the weekday. So we can have a series of points to represent
-Weekdays. In the below, Sunday is the 1st point set to 0, and Monday is the 2nd
-point, set to 1.
-https://community.tmpdir.org/t/the-tstorage-time-series-package-for-go/331
+With the `key` field, we can represent arrays as a group of points, where key
+defines the position in the array. For node points to be automatically decoded
+into an array struct fields by the SIOT client manager, the key must be an
+integer represented in string form.
+
+One example where we do this is for selecting days of the week in schedule rule
+conditions. The key field is used to select the weekday. So we can have a series
+of points to represent Weekdays. In the below, Sunday is the 1st point set to 0,
+and Monday is the 2nd point, set to 1.
 
 ```go
 []data.Point{
   {
     Type: "weekday",
-    Index: 0,
+    Key: "0",
     Value: 0,
   },
   {
     Type: "weekday",
-    Index: 1,
+    key: "1",
     Value: 0,
   },
 }
 ```
 
-In this case, the condition node has a series of weekday points with indexes 0-6
-to represent the days of the week.
+In this case, the condition node has a series of weekday points with keys 0-6 to
+represent the days of the week.
 
-If we change value to map (propsal #1) of key/values, then weekday values could
-be represented in the field map:
+The SIOT
+[data.Decode](https://pkg.go.dev/github.com/simpleiot/simpleiot/data#Decode) is
+used by the client manager to initialize array fields in a client struct. The
+following assumptions are made:
 
-- "0":0
-- "1":1
-- "2":0
-- "3":0
+- the value in the `key` field is converted to an int and used as the index into
+  the field array.
+- if there are missing array entries, they are filled with zero values.
+- the
+  [data.MergePoints](https://pkg.go.dev/github.com/simpleiot/simpleiot/data#MergePoints)
+  uses the same algorithm.
+- if a point is inserted into the array or moved, all array points affected must
+  be sent. For example, if you have an array of length 20, and you insert a new
+  value at the beginning, then all 21 points must to be sent. This can have
+  implications for rules or any other logic that use the Point `key` field.
 
-or
+This does not have pefect CRDT properties, but typically these arrays are
+generally small and are only modifed in one place.
 
-- "Sun":0
-- "Mon":1
-- "Tues:0
-- "Wed":0
-
-A single point could then represent weekdays instead of requiring multiple
-points.
-
-In practice, I've found presenting weekdays by numbers is easier to deal with in
-programs.
-
-However, an embedded map does not have strong CRDT properties, so lets return to
-proposal #2, where an array is represented as a set of points.
-
-### Concurrent modifications to node arrays
-
-With SIOT, concurrent modifications to a point typically work out pretty well,
-as most settings can be described in a single point. However, with arrays
-represented as a group of points, there is more likelihood of conflict, because
-order in an array is sometimes important.
-
-Much of the research with ordered set (sequence) CRDTs deals with a text editor
-scenario where interleaving letters and words is a problem. In our use case,
-interleaving is not an concern. We simply need to deal with add, remove, and
-index changes (moves) reliably.
-
-### Example: weekdays in rule condition stored as a point array
-
-In this example, we will have a list of 7, where a value of 1 indicates that
-weekday is enabled. In this case, the size and order of the array is fixed, so
-the current mechanism will work just fine.
-
-### Example: various array add/move operations.
-
-The following are all points in a node with a common Type value.
-
-t1: A creates initial array:
-
-| Index | Key   | Time | Text | Tombstone |
-| ----- | ----- | ---- | ---- | --------- |
-| 0     | UUID1 | 1    | a    | 0         |
-| 1     | UUID2 | 1    | b    | 0         |
-
-t2: C adds item to array:
-
-| Index | Key   | Time | Text | Tombstone |
-| ----- | ----- | ---- | ---- | --------- |
-| 0     | UUID1 | 1    | a    | 0         |
-| 1     | UUID2 | 1    | b    | 0         |
-| 2     | UUID3 | 2    | c    | 0         |
-
-t3: B adds a' between a and b.
-
-| Index | Key   | Time | Text | Tombstone |
-| ----- | ----- | ---- | ---- | --------- |
-| 0     | UUID1 | 1    | a    | 0         |
-| 0.5   | UUID4 | 3    | a'   | 0         |
-| 1     | UUID2 | 1    | b    | 0         |
-| 2     | UUID3 | 2    | c    | 0         |
-
-t4: move a' between b and c:
-
-| Index | Key   | Time | Text | Tombstone |
-| ----- | ----- | ---- | ---- | --------- |
-| 0     | UUID1 | 1    | a    | 0         |
-| 1     | UUID2 | 1    | b    | 0         |
-| 1.5   | UUID4 | 4    | a'   | 0         |
-| 2     | UUID3 | 2    | c    | 0         |
-
-t5: instance A adds a'' between a' and b, and instance B adds b' between a' and
-b.
-
-| Index | Key   | Time | Text | Tombstone |
-| ----- | ----- | ---- | ---- | --------- |
-| 0     | UUID1 | 1    | a    | 0         |
-| 0.5   | UUID5 | 5    | a''  | 0         |
-| 0.5   | UUID6 | 5    | b'   | 0         |
-| 1     | UUID2 | 1    | b    | 0         |
-| 1.5   | UUID4 | 4    | a'   | 0         |
-| 2     | UUID3 | 2    | c    | 0         |
-
-t6: move a' back to between a and a'':
-
-| Index | Key   | Time | Text | Tombstone |
-| ----- | ----- | ---- | ---- | --------- |
-| 0     | UUID1 | 1    | a    | 0         |
-| 0.25  | UUID4 | 6    | a'   | 0         |
-| 0.5   | UUID5 | 5    | a''  | 0         |
-| 0.5   | UUID6 | 5    | b'   | 0         |
-| 1     | UUID2 | 1    | b    | 0         |
-| 2     | UUID3 | 2    | c    | 0         |
-
-Note, for this to all work, points are matched only by Type and Key, not Index,
-as the index may change for a point. Any time an Index is used, the Key must be
-populated with a globally unique value such that this point can always be
-identified later.
+If you need more advanced functionality, you can bypass the data Decode/Merge
+functions and process the points manually and then use any algorithm you want to
+process them.
 
 ### Point deletions
 
@@ -436,11 +357,11 @@ Consider the following sequence of point changes:
 The below table shows the point values over time with the current point merge
 algorithm:
 
-| Time | Index | Key   | Value | Tombstone |
-| ---- | ----- | ----- | ----- | --------- |
-| t1   | 0     | UUID1 | 10    | 0         |
-| t2   | 0     | UUID1 | 10    | 1         |
-| t3   | 0     | UUID1 | 20    | 0         |
+| Time | Value | Tombstone |
+| ---- | ----- | --------- |
+| t1   | 10    | 0         |
+| t2   | 10    | 1         |
+| t3   | 20    | 0         |
 
 In this case, the point becomes undeleted because the last write wins (LWW). Is
 this a problem? What is the desired behavior? A likely scenario is that a device
@@ -459,11 +380,11 @@ always preserved, even if there concurrent modifications.
 
 The following table shows the values with the modified point merge algorithm.
 
-| Time | Index | Key   | Value | Tombstone |
-| ---- | ----- | ----- | ----- | --------- |
-| t1   | 0     | UUID1 | 10    | 0         |
-| t2   | 0     | UUID1 | 10    | 1         |
-| t3   | 0     | UUID1 | 20    | 1         |
+| Time | Value | Tombstone |
+| ---- | ----- | --------- |
+| t1   | 10    | 0         |
+| t2   | 10    | 1         |
+| t3   | 20    | 1         |
 
 ### Duration, Min, Max
 
@@ -664,7 +585,7 @@ type Point struct {
 
 	// The following fields are the values for a point
 	Time time.Time
-	Index float64
+	(removed) Index float64
 	Value float64
 	Text string
 	Data []byte
@@ -674,7 +595,10 @@ type Point struct {
 }
 ```
 
-Notable changes from the existing implementation:
+_Updated 2023-06-13: removed the `Index` field. We will use the `Key` field for
+array indices._
+
+Notable changes from the first implementation:
 
 - removal of the `ID` field, as any ID information should be contained in the
   parent node. The `ID` field is a legacy from 1-wire setups where we
@@ -684,10 +608,6 @@ Notable changes from the existing implementation:
   well as add extra identifying information for a point.
 - the `Point` is now identified in the merge algorithm using the `Type` and
   `Key`. Before, the `ID`, `Type`, and `Index` were used.
-- any `Point` that uses `Index`, should also set the `Key` to some globally
-  unique value. This `Key` is used on subsequent updates to identify the point.
-- Index is changed from int to float64 so that we can move points in arrays
-  between existing points. See example above.
 - the `Data` field is added to give us the flexibility to store/transmit data
   that does not fit in a Value or Text field. This should be used sparingly, but
   gives us some flexibility in the future for special cases. This came out of
