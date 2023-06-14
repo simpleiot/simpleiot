@@ -18,6 +18,7 @@ Simple IoT provides the following support:
   - Bulb Duo (on/off only)
   - Plus 1
   - Plus 1PM (not tested)
+  - Plus 2PM
   - Plus Plug (only US variant tested)
     - measurements such as Current, Power, Temp, Voltage are collected.
   - Plus i4
