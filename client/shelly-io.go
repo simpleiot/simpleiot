@@ -71,6 +71,7 @@ func (in *shellyGen2InputStatus) toPoints() data.Points {
 	return data.Points{
 		{Time: now, Type: data.PointTypeInput,
 			Key:   strconv.Itoa(in.ID),
+			Index: float32(in.ID),
 			Value: data.BoolToFloat(in.State)},
 	}
 }
@@ -110,6 +111,11 @@ type ShellyIo struct {
 	IP          string    `point:"ip"`
 	Value       []float64 `point:"value"`
 	ValueSet    []float64 `point:"valueSet"`
+	Switch      []bool    `point:"switch"`
+	SwitchSet   []bool    `point:"switchSet"`
+	Light       []bool    `point:"light"`
+	LightSet    []bool    `point:"lightSet"`
+	Input       []bool    `point:"input"`
 	Offline     bool      `point:"offline"`
 	Control     bool      `point:"control"`
 }
@@ -235,15 +241,20 @@ func (sio *ShellyIo) getConfig() (shellyIOConfig, error) {
 // SetOnOff sets on/off state of device
 // BulbDuo: http://10.0.0.130/light/0?turn=on
 // PlugUS: http://192.168.33.1/rpc/Switch.Set?id=0&on=true
-func (sio *ShellyIo) SetOnOff(index int, on bool) (data.Points, error) {
+func (sio *ShellyIo) SetOnOff(comp string, index int, on bool) (data.Points, error) {
+	if len(comp) < 2 {
+		return nil, fmt.Errorf("Component must be specified")
+	}
 	_ = index
-	switch sio.Type {
-	case data.PointValueShellyTypeBulbDuo:
+	gen := sio.Gen()
+	switch gen {
+	case ShellyGen1:
 		onoff := "off"
 		if on {
 			onoff = "on"
 		}
-		res, err := httpClient.Get("http://" + sio.IP + "/light/0?turn=" + onoff)
+		url := fmt.Sprintf("http://%v/%v/%v?turn=%v", sio.IP, comp, index, onoff)
+		res, err := httpClient.Get(url)
 		if err != nil {
 			return data.Points{}, err
 		}
@@ -259,17 +270,15 @@ func (sio *ShellyIo) SetOnOff(index int, on bool) (data.Points, error) {
 			return data.Points{}, err
 		}
 		return status.toPoints(), nil
-	case data.PointValueShellyTypePlugUS,
-		data.PointValueShellyTypePlugUK,
-		data.PointValueShellyTypePlugIT,
-		data.PointValueShellyTypePlugS,
-		data.PointValueShellyTypePlus1:
+	case ShellyGen2:
 		onValue := "false"
 		if on {
 			onValue = "true"
 		}
 
-		url := fmt.Sprintf("http://%v/rpc/Switch.Set?id=%v&on=%v", sio.IP, index, onValue)
+		compCap := strings.ToUpper(string(comp[0])) + comp[1:]
+
+		url := fmt.Sprintf("http://%v/rpc/%v.Set?id=%v&on=%v", sio.IP, compCap, index, onValue)
 		res, err := httpClient.Get(url)
 		if err != nil {
 			return data.Points{}, err

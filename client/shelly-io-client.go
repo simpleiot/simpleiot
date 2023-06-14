@@ -163,11 +163,11 @@ done:
 				break
 			}
 
-			if sioc.config.IsSettableOnOff() {
-				min := min(len(sioc.config.Value), len(sioc.config.ValueSet))
+			if sioc.config.Control {
+				min := min(len(sioc.config.Switch), len(sioc.config.SwitchSet))
 				for i := 0; i < min; i++ {
-					if sioc.config.Value[i] != sioc.config.ValueSet[i] && sioc.config.Control {
-						pts, err := sioc.config.SetOnOff(i, data.FloatToBool(sioc.config.ValueSet[i]))
+					if sioc.config.Switch[i] != sioc.config.SwitchSet[i] {
+						pts, err := sioc.config.SetOnOff("switch", i, sioc.config.SwitchSet[i])
 						if err != nil {
 							log.Printf("Error setting %v: %v\n", sioc.config.Description, err)
 						}
