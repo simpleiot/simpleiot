@@ -15,6 +15,8 @@ For more details or to discuss releases, please visit the
 
 - remove index field from Point data structure. See #565
 - add support for Shelly Plus2PM
+- change Shelly client to use Shelly API
+  [Component model](https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/Introduction)
 
 ## [[0.11.3] - 2023-06-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.3)
 
