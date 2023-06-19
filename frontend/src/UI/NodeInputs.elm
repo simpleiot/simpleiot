@@ -152,7 +152,7 @@ nodeTimeDateInput o labelWidth =
             List.indexedMap
                 (\i date ->
                     Input.text []
-                        { label = Input.labelLeft [] <| text ""
+                        { label = Input.labelLeft [ width (px labelWidth) ] <| text ""
                         , onChange = updateDate i
                         , text = date
                         , placeholder = Nothing
