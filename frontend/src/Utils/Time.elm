@@ -72,6 +72,7 @@ type alias Schedule =
     { startTime : String
     , endTime : String
     , weekdays : List Int
+    , dates : List String
     }
 
 
@@ -83,10 +84,15 @@ scheduleToLocal offset s =
 
         weekdays =
             List.map (applyWkdayOffset wkoff) s.weekdays |> List.sort
+
+        -- TODO: translate dates
+        dates =
+            s.dates
     in
     { startTime = startTime
     , endTime = toLocal offset s.endTime
     , weekdays = weekdays
+    , dates = dates
     }
 
 
@@ -98,10 +104,15 @@ scheduleToUTC offset s =
 
         weekdays =
             List.map (applyWkdayOffset wkoff) s.weekdays |> List.sort
+
+        -- TODO: translate dates
+        dates =
+            s.dates
     in
     { startTime = startTime
     , endTime = toUTC offset s.endTime
     , weekdays = weekdays
+    , dates = dates
     }
 
 

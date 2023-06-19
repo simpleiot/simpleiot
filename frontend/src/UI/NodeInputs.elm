@@ -63,17 +63,36 @@ nodeTimeDateInput o labelWidth =
             Time.Extra.toOffset o.zone o.now
 
         sModel =
-            pointsToSchedule o.node.points
+            Debug.log "sModel" <| pointsToSchedule o.node.points
 
-        sDisp =
+        sLocal =
             checkScheduleToLocal zoneOffset sModel
 
-        send updateSchedule d =
+        sendTime updateSchedule tm =
             let
-                dClean =
-                    Sanitize.time d
+                tmClean =
+                    Sanitize.time tm
             in
-            updateSchedule sDisp dClean
+            updateSchedule sLocal tmClean
+                |> checkScheduleToUTC zoneOffset
+                |> scheduleToPoints o.now
+                |> o.onEditNodePoint
+
+        updateDate index dUpdate =
+            let
+                _ =
+                    Debug.log "updateDate:index: " index
+
+                _ =
+                    Debug.log "updateDate:dUpdate: " dUpdate
+
+                updatedDates =
+                    List.Extra.setAt index dUpdate sLocal.dates
+
+                sUpdate =
+                    Debug.log "sUpdate" <| { sLocal | dates = updatedDates }
+            in
+            sUpdate
                 |> checkScheduleToUTC zoneOffset
                 |> scheduleToPoints o.now
                 |> o.onEditNodePoint
@@ -82,14 +101,20 @@ nodeTimeDateInput o labelWidth =
             Input.checkbox []
                 { onChange =
                     \d ->
-                        updateScheduleWkday sDisp index d
+                        updateScheduleWkday sLocal index d
                             |> checkScheduleToUTC zoneOffset
                             |> scheduleToPoints o.now
                             |> o.onEditNodePoint
-                , checked = List.member index sDisp.weekdays
+                , checked = List.member index sLocal.weekdays
                 , icon = Input.defaultCheckbox
                 , label = Input.labelAbove [] <| text label
                 }
+
+        dateCount =
+            List.length sLocal.dates
+
+        dateCountS =
+            String.fromInt dateCount
     in
     column [ spacing 5 ]
         [ wrappedRow
@@ -111,18 +136,29 @@ nodeTimeDateInput o labelWidth =
         , Input.text
             []
             { label = Input.labelLeft [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "Start time:"
-            , onChange = send (\sched d -> { sched | startTime = d })
-            , text = sDisp.startTime
+            , onChange = sendTime (\sched tm -> { sched | startTime = tm })
+            , text = sLocal.startTime
             , placeholder = Nothing
             }
         , Input.text
             []
             { label = Input.labelLeft [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "End time:"
-            , onChange = send (\sched d -> { sched | endTime = d })
-            , text = sDisp.endTime
+            , onChange = sendTime (\sched tm -> { sched | endTime = tm })
+            , text = sLocal.endTime
             , placeholder = Nothing
             }
         , el [ Element.paddingEach { top = 0, bottom = 0, right = 0, left = labelWidth - 59 } ] <| text "Dates:"
+        , column [ spacing 5 ] <|
+            List.indexedMap
+                (\i date ->
+                    Input.text []
+                        { label = Input.labelLeft [] <| text ""
+                        , onChange = updateDate i
+                        , text = date
+                        , placeholder = Nothing
+                        }
+                )
+                sLocal.dates
         , el [ Element.paddingEach { top = 0, bottom = 0, right = 0, left = labelWidth - 59 } ] <|
             Form.button
                 { label = "Add Date"
@@ -130,7 +166,7 @@ nodeTimeDateInput o labelWidth =
                 , onPress =
                     o.onEditNodePoint
                         [ { typ = Point.typeDate
-                          , key = ""
+                          , key = dateCountS
                           , text = ""
                           , time = o.now
                           , tombstone = 0
@@ -163,10 +199,17 @@ pointsToSchedule points =
                     p == 1
                 )
                 [ 0, 1, 2, 3, 4, 5, 6 ]
+
+        datePoints =
+            Point.getAll points Point.typeDate |> List.sortWith Point.sort
+
+        dates =
+            List.map (\p -> p.text) datePoints
     in
     { startTime = start
     , endTime = end
     , weekdays = weekdays
+    , dates = dates
     }
 
 
@@ -184,6 +227,9 @@ scheduleToPoints now sched =
                     Point Point.typeWeekday (String.fromInt wday) now 0 "" 0
             )
             [ 0, 1, 2, 3, 4, 5, 6 ]
+        ++ List.indexedMap
+            (\i d -> Point Point.typeDate (String.fromInt i) now 0 d 0)
+            sched.dates
 
 
 
