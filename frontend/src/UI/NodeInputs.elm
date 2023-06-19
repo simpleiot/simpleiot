@@ -63,7 +63,7 @@ nodeTimeDateInput o labelWidth =
             Time.Extra.toOffset o.zone o.now
 
         sModel =
-            Debug.log "sModel" <| pointsToSchedule o.node.points
+            pointsToSchedule o.node.points
 
         sLocal =
             checkScheduleToLocal zoneOffset sModel
@@ -80,17 +80,11 @@ nodeTimeDateInput o labelWidth =
 
         updateDate index dUpdate =
             let
-                _ =
-                    Debug.log "updateDate:index: " index
-
-                _ =
-                    Debug.log "updateDate:dUpdate: " dUpdate
-
                 updatedDates =
                     List.Extra.setAt index dUpdate sLocal.dates
 
                 sUpdate =
-                    Debug.log "sUpdate" <| { sLocal | dates = updatedDates }
+                    { sLocal | dates = updatedDates }
             in
             sUpdate
                 |> checkScheduleToUTC zoneOffset
