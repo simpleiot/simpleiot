@@ -1053,24 +1053,25 @@ clearText points =
 
 sort : Point -> Point -> Order
 sort a b =
-    let
-        keysAreInt =
-            String.toInt a.key /= Nothing && String.toInt b.key /= Nothing
-
-        aKeyInt =
-            Maybe.withDefault 0 (String.toInt a.key)
-
-        bKeyInt =
-            Maybe.withDefault 0 (String.toInt b.key)
-    in
     if a.typ /= b.typ then
         compare a.typ b.typ
 
-    else if keysAreInt && aKeyInt /= bKeyInt then
-        compare aKeyInt bKeyInt
-
-    else if a.key /= b.key then
-        compare a.key b.key
-
     else
-        compare a.value b.value
+        let
+            keysAreInt =
+                String.toInt a.key /= Nothing && String.toInt b.key /= Nothing
+
+            aKeyInt =
+                Maybe.withDefault 0 (String.toInt a.key)
+
+            bKeyInt =
+                Maybe.withDefault 0 (String.toInt b.key)
+        in
+        if keysAreInt && aKeyInt /= bKeyInt then
+            compare aKeyInt bKeyInt
+
+        else if a.key /= b.key then
+            compare a.key b.key
+
+        else
+            compare a.value b.value
