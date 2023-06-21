@@ -35,12 +35,38 @@ func TestCobs(t *testing.T) {
 				test.HexDump(tc.dec), test.HexDump(e), test.HexDump(tc.enc))
 		}
 
-		ed := cobs.Decode(e)
+		c, err := cobsDecodeInplace(e)
 
-		if !bytes.Equal(tc.dec, ed) {
-			t.Fatalf("Encode/Decode failed: %v -> %v",
-				test.HexDump(tc.dec), test.HexDump(ed))
+		if err != nil {
+			t.Fatal("Error decoding: ", err)
 		}
+
+		e = e[:c]
+
+		if !bytes.Equal(tc.dec, e) {
+			t.Fatalf("Decode failed: %v -> %v",
+				test.HexDump(tc.dec), test.HexDump(e))
+		}
+	}
+}
+
+func TestCobsLong(t *testing.T) {
+	b := make([]byte, 300)
+	for i := range b {
+		b[i] = 5
+	}
+
+	e := cobs.Encode(b)
+
+	c, err := cobsDecodeInplace(e)
+	if err != nil {
+		t.Fatal("Error decoding: ", err)
+	}
+
+	e = e[:c]
+
+	if !bytes.Equal(b, e) {
+		t.Fatalf("Decode failed: %v", test.HexDump(e))
 	}
 }
 
@@ -253,19 +279,20 @@ func TestCobsPartialThenNew(t *testing.T) {
 	_, _ = a.Write(de)
 
 	buf := make([]byte, 500)
-	_, err := cw.Read(buf)
+	c, err := cw.Read(buf)
 	if err == nil {
-		t.Fatal("should have gotten an error reading partial packet: ", err)
+		dump := buf[:c]
+		t.Fatal("should have gotten an error reading partial packet, data: ", test.HexDump(dump))
 	}
 
-	c, err := cw.Read(buf)
+	c, err = cw.Read(buf)
 	if err != nil {
 		t.Fatal("got error reading full packet: ", err)
 	}
 	buf = buf[0:c]
 
 	if !reflect.DeepEqual(buf, d) {
-		t.Fatal("Read data does not match")
+		t.Fatalf("Read data does not match, exp: %v, got: %v", test.HexDump(d), test.HexDump(buf))
 	}
 }
 

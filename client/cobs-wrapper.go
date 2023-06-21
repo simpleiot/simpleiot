@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"log"
-	"sync"
 
 	"github.com/dim13/cobs"
 	"github.com/simpleiot/simpleiot/test"
@@ -15,14 +14,16 @@ import (
 type CobsWrapper struct {
 	dev              io.ReadWriteCloser
 	readLeftover     bytes.Buffer
-	readLock         sync.Mutex
 	debug            int
 	maxMessageLength int
 }
 
 // NewCobsWrapper creates a new cobs wrapper
 func NewCobsWrapper(dev io.ReadWriteCloser, maxMessageLength int) *CobsWrapper {
-	return &CobsWrapper{dev: dev, maxMessageLength: maxMessageLength}
+	ret := CobsWrapper{dev: dev, maxMessageLength: maxMessageLength}
+	// grow buffer to minimize allocations
+	ret.readLeftover.Grow(maxMessageLength)
+	return &ret
 }
 
 // ErrCobsDecodeError indicates we got an error decoding a COBS packet
@@ -41,99 +42,126 @@ func (cw *CobsWrapper) SetDebug(debug int) {
 	cw.debug = debug
 }
 
+// Decode a null-terminated cobs frame to a slice of bytes
+// data is shifted down to start at beginning of buffer
+func cobsDecodeInplace(b []byte) (int, error) {
+	if b == nil || len(b) <= 2 {
+		return 0, errors.New("Not enough data for cobs decode")
+	}
+
+	// used to skip leading zeros
+	foundStart := false
+
+	// define input and output indicies
+	var iIn, iOut int
+	var off, iOff uint8
+
+	for iIn = 0; iIn < len(b); iIn++ {
+		bCur := b[iIn]
+
+		if !foundStart {
+			if bCur == 0 {
+				continue
+			}
+
+			foundStart = true
+			off = bCur
+			iOff = 0
+			continue
+		}
+
+		iOff++
+
+		if iOff == off {
+			if bCur == 0 {
+				// we've reached the end folks
+				return iOut, nil
+			}
+
+			if off != 0xff {
+				b[iOut] = 0
+				iOut++
+			}
+			off = bCur
+			iOff = 0
+		} else {
+			if bCur == 0 {
+				return 0, ErrCobsDecodeError
+			}
+			b[iOut] = bCur
+			iOut++
+		}
+	}
+
+	return iOut, nil
+}
+
 // Read a COBS encoded data stream. The stream may optionally start with one or more NULL
 // bytes and must end with a NULL byte. This Read blocks until we
-// get an entire packet or an error.
+// get an entire packet or an error. b must be large enough to hold the entire packet.
 func (cw *CobsWrapper) Read(b []byte) (int, error) {
-	errCh := make(chan error)
-	packetCh := make(chan []byte)
+	// we read data until we see a zero or hit the size of the b buffer
+	// current location in read buffer
+	var cur int
 
-	// only let one Read read at a time
-	go func() {
-		cw.readLock.Lock()
-		defer cw.readLock.Unlock()
+	// first, process any leftover bytes looking for packets
+	if cw.readLeftover.Len() > 0 {
+		foundStart := false
 
-		var decodeBuf bytes.Buffer
-		foundNonZero := false
-		ret := false
+		lb := cw.readLeftover.Bytes()
+		for i := 0; i < len(lb); i++ {
+			if !foundStart {
+				if lb[i] == 0 {
+					continue
+				}
+				foundStart = true
+			}
+			if lb[i] == 0 {
+				// found end of packet, copy to read buffer and process
+				_, _ = cw.readLeftover.Read(b[0:i])
+				return cobsDecodeInplace(b[0:i])
+			}
+		}
 
-		// returns done if we hit error or decoded packet
-		processByte := func(b byte) bool {
-			if b == 0 {
-				// throw away leading zeros or if we have
-				// data, try to decode it
-				if foundNonZero {
-					decodeBuf.WriteByte(b)
-					dec := cobs.Decode(decodeBuf.Bytes())
-					if len(dec) > 0 {
-						packetCh <- dec
-						return true
+		// write leftover bytes to beginning of buffer
+		bBuf := bytes.NewBuffer(b)
+		c, _ := bBuf.Write(cw.readLeftover.Bytes())
+
+		cur += c
+	}
+
+	foundStart := false
+
+	for {
+		c, err := cw.dev.Read(b[cur:])
+		if err != nil {
+			return 0, err
+		}
+
+		if c > 0 {
+			// look for zero in buffer
+			for i := 0; i < c; i++ {
+				if !foundStart {
+					if b[cur+i] == 0 {
+						continue
 					}
-					// we did not decode a packet, return a decode error
-					errCh <- ErrCobsDecodeError
-					return true
+					foundStart = true
 				}
-			} else {
-				decodeBuf.WriteByte(b)
-				foundNonZero = true
-			}
+				if b[cur+i] == 0 {
+					// found end of packet, decode in place
+					// first save off extra bytes
+					cw.readLeftover.Write(b[cur+i+1 : cur+c])
 
-			return false
-		}
-
-		// First, process any leftover data
-		for cw.readLeftover.Len() > 0 {
-			b, _ := cw.readLeftover.ReadByte()
-			if processByte(b) {
-				return
-			}
-		}
-
-		for {
-			// FIXME the +50 below is probably overkill
-			buf := make([]byte, len(b)+50)
-			c, err := cw.dev.Read(buf)
-			if err != nil {
-				errCh <- err
-				return
-			}
-			buf = buf[0:c]
-
-			if cw.debug >= 9 {
-				log.Println("SER RX COBS: ", test.HexDump(buf))
-			}
-
-			for _, b := range buf {
-				if !ret {
-					ret = processByte(b)
-				} else {
-					cw.readLeftover.WriteByte(b)
+					return cobsDecodeInplace(b[0 : cur+i+1])
 				}
 			}
-
-			if ret {
-				return
-			}
-
-			if decodeBuf.Len() > cw.maxMessageLength {
-				errCh <- ErrCobsTooMuchData
-				cw.readLeftover.Reset()
-				return
-			}
-
-			if cw.readLeftover.Len() > cw.maxMessageLength {
-				errCh <- ErrCobsLeftoverBufferFull
-				cw.readLeftover.Reset()
-				return
-			}
 		}
-	}()
 
-	select {
-	case err := <-errCh:
-		return 0, err
-	case d := <-packetCh:
-		return copy(b, d), nil
+		cur += c
+
+		if cur >= len(b) || cur > cw.maxMessageLength {
+			return 0, ErrCobsTooMuchData
+		}
 	}
 }
 
