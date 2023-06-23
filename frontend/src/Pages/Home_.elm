@@ -1041,13 +1041,7 @@ view _ shared model =
     , element =
         UI.Layout.layout
             { onSignOut = SignOut
-            , email =
-                case shared.storage.user of
-                    Just user_ ->
-                        Just user_.email
-
-                    Nothing ->
-                        Nothing
+            , email = Maybe.map .email shared.storage.user
             , error = model.error
             }
             (viewBody model)
