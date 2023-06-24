@@ -91,6 +91,19 @@ nodeTimeDateInput o labelWidth =
                 |> scheduleToPoints o.now
                 |> o.onEditNodePoint
 
+        deleteDate index =
+            let
+                updatedDates =
+                    List.Extra.removeAt index sLocal.dates
+
+                sUpdate =
+                    { sLocal | dates = updatedDates }
+            in
+            sUpdate
+                |> checkScheduleToUTC zoneOffset
+                |> scheduleToPoints o.now
+                |> o.onEditNodePoint
+
         weekdayCheckboxInput index label =
             Input.checkbox []
                 { onChange =
@@ -145,12 +158,15 @@ nodeTimeDateInput o labelWidth =
         , column [ spacing 5 ] <|
             List.indexedMap
                 (\i date ->
-                    Input.text []
-                        { label = Input.labelLeft [ width (px labelWidth) ] <| text ""
-                        , onChange = updateDate i
-                        , text = date
-                        , placeholder = Nothing
-                        }
+                    row [ spacing 10 ]
+                        [ Input.text []
+                            { label = Input.labelLeft [ width (px labelWidth) ] <| text ""
+                            , onChange = updateDate i
+                            , text = date
+                            , placeholder = Nothing
+                            }
+                        , UI.Button.x <| deleteDate i
+                        ]
                 )
                 sLocal.dates
         , el [ Element.paddingEach { top = 0, bottom = 0, right = 0, left = labelWidth - 59 } ] <|
@@ -195,7 +211,12 @@ pointsToSchedule points =
                 [ 0, 1, 2, 3, 4, 5, 6 ]
 
         datePoints =
-            Point.getAll points Point.typeDate |> List.sortWith Point.sort
+            List.filter
+                (\p ->
+                    p.typ == Point.typeDate && p.tombstone == 0
+                )
+                points
+                |> List.sortWith Point.sort
 
         dates =
             List.map (\p -> p.text) datePoints
@@ -204,6 +225,7 @@ pointsToSchedule points =
     , endTime = end
     , weekdays = weekdays
     , dates = dates
+    , dateCount = List.length datePoints
     }
 
 
@@ -224,6 +246,17 @@ scheduleToPoints now sched =
         ++ List.indexedMap
             (\i d -> Point Point.typeDate (String.fromInt i) now 0 d 0)
             sched.dates
+        ++ (if List.length sched.dates < sched.dateCount then
+                -- some dates have been deleted, so send some tombstone points to fill out array length
+                List.map
+                    (\i ->
+                        Point Point.typeDate (String.fromInt i) now 0 "" 1
+                    )
+                    (List.range (List.length sched.dates) (sched.dateCount - 1))
+
+            else
+                []
+           )
 
 
 

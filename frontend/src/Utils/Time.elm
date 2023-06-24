@@ -73,6 +73,7 @@ type alias Schedule =
     , endTime : String
     , weekdays : List Int
     , dates : List String
+    , dateCount : Int
     }
 
 
@@ -93,6 +94,7 @@ scheduleToLocal offset s =
     , endTime = toLocal offset s.endTime
     , weekdays = weekdays
     , dates = dates
+    , dateCount = s.dateCount
     }
 
 
@@ -113,6 +115,7 @@ scheduleToUTC offset s =
     , endTime = toUTC offset s.endTime
     , weekdays = weekdays
     , dates = dates
+    , dateCount = s.dateCount
     }
 
 
