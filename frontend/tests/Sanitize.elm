@@ -1,9 +1,21 @@
-module Sanitize exposing (parseHM)
+module Sanitize exposing (date, parseHM)
 
 import Expect
 import Parser exposing (run)
 import Test exposing (..)
 import UI.Sanitize as Sanitize
+
+
+date : Test
+date =
+    describe "Test date sanitizer"
+        [ test "2023-06-01" <|
+            \_ -> Expect.equal (Sanitize.date "2023-06-01") "2023-06-01"
+        , test "2023-066" <|
+            \_ -> Expect.equal (Sanitize.date "2023-066") "2023-06"
+        , test "2023-6-1" <|
+            \_ -> Expect.equal (Sanitize.date "2023-6-01") "2023-06-01"
+        ]
 
 
 parseHM : Test

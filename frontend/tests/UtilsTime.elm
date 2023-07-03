@@ -52,6 +52,7 @@ schedule =
                         , endTime = "08:00"
                         , weekdays = [ 2, 3 ]
                         , dates = []
+                        , dateCount = 0
                         }
 
                     sExp =
@@ -59,6 +60,7 @@ schedule =
                         , endTime = "04:00"
                         , weekdays = [ 2, 3 ]
                         , dates = []
+                        , dateCount = 0
                         }
                 in
                 Expect.equal sExp <| scheduleToLocal -240 sUTC
@@ -70,6 +72,7 @@ schedule =
                         , endTime = "08:00"
                         , weekdays = [ 0, 2, 3 ]
                         , dates = []
+                        , dateCount = 0
                         }
 
                     sExp =
@@ -77,6 +80,7 @@ schedule =
                         , endTime = "04:00"
                         , weekdays = [ 1, 2, 6 ]
                         , dates = []
+                        , dateCount = 0
                         }
                 in
                 Expect.equal sExp <| scheduleToLocal -240 sUTC
@@ -88,6 +92,7 @@ schedule =
                         , endTime = "02:00"
                         , weekdays = [ 2, 3, 6 ]
                         , dates = []
+                        , dateCount = 0
                         }
 
                     sExp =
@@ -95,6 +100,7 @@ schedule =
                         , endTime = "06:00"
                         , weekdays = [ 0, 3, 4 ]
                         , dates = []
+                        , dateCount = 0
                         }
                 in
                 Expect.equal sExp <| scheduleToLocal 240 sUTC
@@ -106,6 +112,7 @@ schedule =
                         , endTime = "02:00"
                         , weekdays = [ 1, 2, 6 ]
                         , dates = []
+                        , dateCount = 0
                         }
 
                     sExp =
@@ -113,6 +120,7 @@ schedule =
                         , endTime = "06:00"
                         , weekdays = [ 0, 2, 3 ]
                         , dates = []
+                        , dateCount = 0
                         }
                 in
                 Expect.equal sExp <| scheduleToUTC -240 sLocal
@@ -124,6 +132,7 @@ schedule =
                         , endTime = "06:00"
                         , weekdays = [ 0, 3, 4 ]
                         , dates = []
+                        , dateCount = 0
                         }
 
                     sExp =
@@ -131,6 +140,7 @@ schedule =
                         , endTime = "02:00"
                         , weekdays = [ 2, 3, 6 ]
                         , dates = []
+                        , dateCount = 0
                         }
                 in
                 Expect.equal sExp <| scheduleToUTC 240 sLocal

@@ -1,4 +1,4 @@
-module UI.Sanitize exposing (float, hmParser, parseHM, time)
+module UI.Sanitize exposing (date, float, hmParser, parseHM, time)
 
 import Parser exposing ((|.), Parser)
 
@@ -37,17 +37,18 @@ floatHelper state =
             state
 
 
-
--- sanitizeTime looks for a valid time input in the form of hh:mm
--- this function simply stops when it hits an invalid
--- portion and returns the valid portion
-
-
+{-| sanitizeTime looks for a valid time input in the form of hh:mm
+this function simply stops when it hits an invalid
+portion and returns the valid portion
+-}
 time : String -> String
 time t =
     Tuple.second <| timeHelper ( t, "" )
 
 
+{-| -- the first value in tuple is incoming string, and 2nd is output
+we chomp characters from the input and then process them to the output
+-}
 timeHelper : ( String, String ) -> ( String, String )
 timeHelper state =
     let
@@ -186,3 +187,101 @@ hmParser =
 altIntParser : Parser Int
 altIntParser =
     Parser.symbol "0" |> Parser.andThen (\_ -> Parser.int)
+
+
+{-| date looks for a valid date input in the form of YYYY-MM-DD
+this function simply stops when it hits an invalid
+portion and returns the valid portion
+-}
+date : String -> String
+date d =
+    Tuple.second <| dateHelper ( d, "" )
+
+
+{-| -- the first value in tuple is incoming string, and 2nd is output
+we chomp characters from the input and then process them to the output
+0123456789
+YYYY-MM-DD
+-}
+dateHelper : ( String, String ) -> ( String, String )
+dateHelper state =
+    let
+        sIn =
+            Tuple.first state
+
+        sInList =
+            String.toList sIn
+    in
+    case sInList of
+        c :: rest ->
+            let
+                sOut =
+                    Tuple.second state
+
+                sOutList =
+                    String.toList sOut
+
+                checkDigit =
+                    \ch chRest ->
+                        if Char.isDigit ch then
+                            dateHelper ( String.fromList chRest, String.fromList <| sOutList ++ [ ch ] )
+
+                        else
+                            ( "", sOut )
+            in
+            case List.length sOutList of
+                0 ->
+                    checkDigit c rest
+
+                1 ->
+                    checkDigit c rest
+
+                2 ->
+                    checkDigit c rest
+
+                3 ->
+                    checkDigit c rest
+
+                4 ->
+                    if c == '-' then
+                        dateHelper ( String.fromList rest, String.fromList <| sOutList ++ [ c ] )
+
+                    else
+                        ( "", sOut )
+
+                5 ->
+                    checkDigit c rest
+
+                6 ->
+                    if c == '-' then
+                        dateHelper
+                            ( sIn
+                            , String.fromList <|
+                                List.take 5 sOutList
+                                    ++ [ '0' ]
+                                    ++ List.drop 5 sOutList
+                            )
+                        --checkDigit c rest
+
+                    else
+                        checkDigit c rest
+
+                7 ->
+                    if c == '-' then
+                        dateHelper ( String.fromList rest, String.fromList <| sOutList ++ [ c ] )
+
+                    else
+                        ( "", sOut )
+
+                8 ->
+                    checkDigit c rest
+
+                9 ->
+                    checkDigit c rest
+
+                _ ->
+                    ( "", sOut )
+
+        _ ->
+            -- we are done
+            state
