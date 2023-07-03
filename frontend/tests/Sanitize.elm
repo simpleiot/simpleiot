@@ -15,6 +15,18 @@ date =
             \_ -> Expect.equal (Sanitize.date "2023-066") "2023-06"
         , test "2023-6-1" <|
             \_ -> Expect.equal (Sanitize.date "2023-6-01") "2023-06-01"
+        , test "3000" <|
+            \_ -> Expect.equal (Sanitize.date "3000") ""
+        , test "2300" <|
+            \_ -> Expect.equal (Sanitize.date "2300") "2"
+        , test "2023-61" <|
+            \_ -> Expect.equal (Sanitize.date "2023-61") "2023-6"
+        , test "2023-12-31" <|
+            \_ -> Expect.equal (Sanitize.date "2023-12-31") "2023-12-31"
+        , test "2023-13-31" <|
+            \_ -> Expect.equal (Sanitize.date "2023-13-31") "2023-1"
+        , test "2099-12-32" <|
+            \_ -> Expect.equal (Sanitize.date "2099-12-32") "2099-12-3"
         ]
 
 

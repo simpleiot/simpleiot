@@ -231,10 +231,18 @@ dateHelper state =
             in
             case List.length sOutList of
                 0 ->
-                    checkDigit c rest
+                    if c /= '2' then
+                        ( "", sOut )
+
+                    else
+                        checkDigit c rest
 
                 1 ->
-                    checkDigit c rest
+                    if c /= '0' then
+                        ( "", sOut )
+
+                    else
+                        checkDigit c rest
 
                 2 ->
                     checkDigit c rest
@@ -261,10 +269,25 @@ dateHelper state =
                                     ++ '0'
                                     :: List.drop 5 sOutList
                             )
-                        --checkDigit c rest
+
+                    else if Char.isDigit c then
+                        let
+                            sOutNew =
+                                String.fromList <| sOutList ++ [ c ]
+                        in
+                        case String.toInt (String.slice 5 7 sOutNew) of
+                            Just mo ->
+                                if mo > 12 then
+                                    ( "", sOut )
+
+                                else
+                                    dateHelper ( String.fromList rest, sOutNew )
+
+                            Nothing ->
+                                ( "", sOut )
 
                     else
-                        checkDigit c rest
+                        ( "", sOut )
 
                 7 ->
                     if c == '-' then
@@ -277,7 +300,24 @@ dateHelper state =
                     checkDigit c rest
 
                 9 ->
-                    checkDigit c rest
+                    if Char.isDigit c then
+                        let
+                            sOutNew =
+                                String.fromList <| sOutList ++ [ c ]
+                        in
+                        case String.toInt (String.slice 8 10 sOutNew) of
+                            Just day ->
+                                if day > 31 then
+                                    ( "", sOut )
+
+                                else
+                                    dateHelper ( String.fromList rest, sOutNew )
+
+                            Nothing ->
+                                ( "", sOut )
+
+                    else
+                        ( "", sOut )
 
                 _ ->
                     ( "", sOut )
