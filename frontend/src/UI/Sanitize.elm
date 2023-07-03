@@ -258,8 +258,8 @@ dateHelper state =
                             ( sIn
                             , String.fromList <|
                                 List.take 5 sOutList
-                                    ++ [ '0' ]
-                                    ++ List.drop 5 sOutList
+                                    ++ '0'
+                                    :: List.drop 5 sOutList
                             )
                         --checkDigit c rest
 

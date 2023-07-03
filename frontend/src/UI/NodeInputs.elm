@@ -80,8 +80,11 @@ nodeTimeDateInput o labelWidth =
 
         updateDate index dUpdate =
             let
+                dClean =
+                    Sanitize.date dUpdate
+
                 updatedDates =
-                    List.Extra.setAt index dUpdate sLocal.dates
+                    List.Extra.setAt index dClean sLocal.dates
 
                 sUpdate =
                     { sLocal | dates = updatedDates }
