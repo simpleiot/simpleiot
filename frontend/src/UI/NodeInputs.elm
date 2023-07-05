@@ -130,9 +130,6 @@ nodeTimeDateInput o labelWidth =
 
         dateCount =
             List.length sLocal.dates
-
-        dateCountS =
-            String.fromInt dateCount
     in
     column [ spacing 5 ]
         [ if dateCount <= 0 then
@@ -171,6 +168,10 @@ nodeTimeDateInput o labelWidth =
             }
         , el [ Element.paddingEach { top = 0, bottom = 0, right = 0, left = labelWidth - 59 } ] <| text "Dates:"
         , if not weekdaysChecked then
+            let
+                dateCountS =
+                    String.fromInt dateCount
+            in
             column []
                 [ column [ spacing 5 ] <|
                     List.indexedMap
