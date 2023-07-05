@@ -107,9 +107,8 @@ scheduleToUTC offset s =
         weekdays =
             List.map (applyWkdayOffset wkoff) s.weekdays |> List.sort
 
-        -- TODO: translate dates
         dates =
-            s.dates
+            List.map (applyDateOffset wkoff) s.dates
     in
     { startTime = startTime
     , endTime = toUTC offset s.endTime
@@ -117,6 +116,11 @@ scheduleToUTC offset s =
     , dates = dates
     , dateCount = s.dateCount
     }
+
+
+applyDateOffset : Int -> String -> String
+applyDateOffset _ date =
+    date
 
 
 applyWkdayOffset : Int -> Int -> Int
