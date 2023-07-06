@@ -1,4 +1,4 @@
-module Sanitize exposing (date, parseHM)
+module Sanitize exposing (date, parseDate, parseHM)
 
 import Expect
 import Parser exposing (run)
@@ -27,6 +27,24 @@ date =
             \_ -> Expect.equal (Sanitize.date "2023-13-31") "2023-1"
         , test "2099-12-32" <|
             \_ -> Expect.equal (Sanitize.date "2099-12-32") "2099-12-3"
+        ]
+
+
+parseDate : Test
+parseDate =
+    describe "Test date parsing"
+        [ test "valid date" <|
+            \_ ->
+                Expect.equal (Sanitize.parseDate "2023-01-23") (Just "2023-01-23")
+        , test "invalid year" <|
+            \_ ->
+                Expect.equal (Sanitize.parseDate "202-01-23") Nothing
+        , test "single digit month" <|
+            \_ ->
+                Expect.equal (Sanitize.parseDate "2023-1-23") Nothing
+        , test "single digit day" <|
+            \_ ->
+                Expect.equal (Sanitize.parseDate "2023-11-8") Nothing
         ]
 
 

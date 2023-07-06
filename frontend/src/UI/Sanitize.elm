@@ -1,4 +1,4 @@
-module UI.Sanitize exposing (date, float, hmParser, parseHM, time)
+module UI.Sanitize exposing (date, float, hmParser, parseDate, parseHM, time)
 
 import Parser exposing ((|.), Parser)
 
@@ -177,6 +177,70 @@ hmParser =
                         (\s ->
                             if String.length s /= 2 then
                                 Parser.problem "minute must be 2 digits"
+
+                            else
+                                Parser.succeed s
+                        )
+               )
+
+
+parseDate : String -> Maybe String
+parseDate d =
+    Parser.run dateParser d
+        |> Result.toMaybe
+
+
+dateParser : Parser String
+dateParser =
+    Parser.getChompedString <|
+        Parser.succeed identity
+            |. (Parser.oneOf [ Parser.backtrackable altIntParser, Parser.int ]
+                    |> Parser.andThen
+                        (\v ->
+                            if v < 2023 || v > 2099 then
+                                Parser.problem "year is out of range"
+
+                            else
+                                Parser.succeed v
+                        )
+               )
+            |. Parser.symbol "-"
+            |. ((Parser.oneOf [ altIntParser, Parser.int ]
+                    |> Parser.andThen
+                        (\v ->
+                            if v < 1 || v > 12 then
+                                Parser.problem "month is not in range"
+
+                            else
+                                Parser.succeed v
+                        )
+                )
+                    |> Parser.getChompedString
+                    |> Parser.andThen
+                        (\s ->
+                            if String.length s /= 2 then
+                                Parser.problem "month must be 2 digits"
+
+                            else
+                                Parser.succeed s
+                        )
+               )
+            |. Parser.symbol "-"
+            |. ((Parser.oneOf [ altIntParser, Parser.int ]
+                    |> Parser.andThen
+                        (\v ->
+                            if v < 1 || v > 31 then
+                                Parser.problem "day is not in range"
+
+                            else
+                                Parser.succeed v
+                        )
+                )
+                    |> Parser.getChompedString
+                    |> Parser.andThen
+                        (\s ->
+                            if String.length s /= 2 then
+                                Parser.problem "day must be 2 digits"
 
                             else
                                 Parser.succeed s
