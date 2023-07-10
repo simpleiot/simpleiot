@@ -1,5 +1,6 @@
 module Utils.Time exposing (Schedule, scheduleToLocal, scheduleToUTC, toLocal, toUTC)
 
+import Date
 import TypedTime exposing (TypedTime)
 
 
@@ -86,9 +87,17 @@ scheduleToLocal offset s =
         weekdays =
             List.map (applyWkdayOffset wkoff) s.weekdays |> List.sort
 
-        -- TODO: translate dates
         dates =
-            s.dates
+            List.map
+                (\d ->
+                    case Date.fromIsoString d of
+                        Ok date ->
+                            Date.add Date.Days wkoff date |> Date.toIsoString
+
+                        Err _ ->
+                            d
+                )
+                s.dates
     in
     { startTime = startTime
     , endTime = toLocal offset s.endTime
@@ -104,11 +113,23 @@ scheduleToUTC offset s =
         ( startTime, wkoff ) =
             toLocalWkdayOffset (negate offset) s.startTime
 
+        _ =
+            Debug.log "wkoff" wkoff
+
         weekdays =
             List.map (applyWkdayOffset wkoff) s.weekdays |> List.sort
 
         dates =
-            List.map (applyDateOffset wkoff) s.dates
+            List.map
+                (\d ->
+                    case Date.fromIsoString d of
+                        Ok date ->
+                            Date.add Date.Days wkoff date |> Date.toIsoString
+
+                        Err _ ->
+                            d
+                )
+                s.dates
     in
     { startTime = startTime
     , endTime = toUTC offset s.endTime
@@ -116,11 +137,6 @@ scheduleToUTC offset s =
     , dates = dates
     , dateCount = s.dateCount
     }
-
-
-applyDateOffset : Int -> String -> String
-applyDateOffset _ date =
-    date
 
 
 applyWkdayOffset : Int -> Int -> Int
