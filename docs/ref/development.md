@@ -38,13 +38,13 @@ following:
 - starts [`elm-watch`](https://github.com/lydell/elm-watch) on the Elm code.
   `elm-watch` will automatically update the UI without losing state any time an
   Elm file changes.
-- runs the Go backend and rebuilds it anytime a Go module changes (only works on
-  Linux)
+- runs the Go backend and rebuilds it anytime a Go module changes (only tested
+  on Linux and MacOS, but should be easy to set up Windows as well)
 
 Both of the above are run in a [run-pty](https://github.com/lydell/run-pty)
 wrapper, which allows you to see the output of either process. The output of the
 Elm compile is displayed in the browser, so it is rarely necessary to view the
-elm-watch side.
+`elm-watch` side.
 
 ## Using Simple IoT as a library
 
