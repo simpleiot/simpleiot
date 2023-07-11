@@ -113,9 +113,6 @@ scheduleToUTC offset s =
         ( startTime, wkoff ) =
             toLocalWkdayOffset (negate offset) s.startTime
 
-        _ =
-            Debug.log "wkoff" wkoff
-
         weekdays =
             List.map (applyWkdayOffset wkoff) s.weekdays |> List.sort
 

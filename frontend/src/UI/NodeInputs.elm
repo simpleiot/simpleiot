@@ -351,6 +351,9 @@ validDates dates =
             if not ret then
                 ret
 
+            else if d == "" then
+                True
+
             else
                 validDate d
         )
