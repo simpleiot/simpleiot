@@ -287,7 +287,7 @@ scheduleToPoints now sched =
 
 checkScheduleToUTC : Int -> Utils.Time.Schedule -> Utils.Time.Schedule
 checkScheduleToUTC offset sched =
-    if validHM sched.startTime && validHM sched.endTime then
+    if validHM sched.startTime && validHM sched.endTime && validDates sched.dates then
         scheduleToUTC offset sched
 
     else
@@ -317,7 +317,7 @@ updateScheduleWkday sched index checked =
 
 checkScheduleToLocal : Int -> Utils.Time.Schedule -> Utils.Time.Schedule
 checkScheduleToLocal offset sched =
-    if validHM sched.startTime && validHM sched.endTime then
+    if validHM sched.startTime && validHM sched.endTime && validDates sched.dates then
         scheduleToLocal offset sched
 
     else
@@ -332,6 +332,30 @@ validHM t =
 
         Nothing ->
             False
+
+
+validDate : String -> Bool
+validDate d =
+    case Sanitize.parseDate d of
+        Just _ ->
+            True
+
+        Nothing ->
+            False
+
+
+validDates : List String -> Bool
+validDates dates =
+    List.foldl
+        (\d ret ->
+            if not ret then
+                ret
+
+            else
+                validDate d
+        )
+        True
+        dates
 
 
 nodeCheckboxInput :
