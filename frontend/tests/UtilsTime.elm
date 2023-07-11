@@ -208,16 +208,16 @@ schedule =
             \_ ->
                 let
                     sLocal =
-                        { startTime = "02:00"
-                        , endTime = "22:00"
+                        { startTime = "22:00"
+                        , endTime = "23:00"
                         , weekdays = []
                         , dates = [ "2022-12-31" ]
                         , dateCount = 1
                         }
 
                     sExp =
-                        { startTime = "06:00"
-                        , endTime = "02:00"
+                        { startTime = "02:00"
+                        , endTime = "03:00"
                         , weekdays = []
                         , dates = [ "2023-01-01" ]
                         , dateCount = 1
