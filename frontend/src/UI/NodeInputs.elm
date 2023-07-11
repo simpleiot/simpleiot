@@ -187,7 +187,7 @@ nodeTimeDateInput o labelWidth =
                                 ]
                         )
                         sLocal.dates
-                , el [ Element.paddingEach { top = 0, bottom = 0, right = 0, left = labelWidth - 59 } ] <|
+                , el [ Element.paddingEach { top = 6, bottom = 0, right = 0, left = labelWidth - 59 } ] <|
                     Form.button
                         { label = "Add Date"
                         , color = Style.colors.blue
