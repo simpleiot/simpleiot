@@ -126,7 +126,7 @@ scheduleToUTC offset s =
                         Err _ ->
                             d
                 )
-                s.dates
+                (List.sort s.dates)
     in
     { startTime = startTime
     , endTime = toUTC offset s.endTime
