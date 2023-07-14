@@ -54,6 +54,7 @@ type Condition struct {
 	ConditionType string  `point:"conditionType"`
 	MinActive     float64 `point:"minActive"`
 	Active        bool    `point:"active"`
+	Error         string  `point:"error"`
 
 	// used with point value rules
 	NodeID     string  `point:"nodeID"`
@@ -219,7 +220,8 @@ func (rc *RuleClient) Run() error {
 	// TODO schedule ticker is a brute force way to do this
 	// we could optimize at some point by creating a timer to expire
 	// on the next schedule change
-	scheduleTickTime := time.Second * 5
+	// FIXME: change back to 5s
+	scheduleTickTime := time.Second * 1
 	scheduleTicker := time.NewTicker(scheduleTickTime)
 	if !rc.hasSchedule() {
 		scheduleTicker.Stop()
@@ -343,6 +345,27 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 	for _, p := range points {
 		for i, c := range rc.config.Conditions {
 			var active bool
+			var errorActive bool
+
+			processError := func(err error) {
+				errorActive = true
+				errS := err.Error()
+				if c.Error != errS {
+					p := data.Point{
+						Type: data.PointTypeError,
+						Time: time.Now(),
+						Text: errS,
+					}
+
+					err := rc.sendPoint(c.ID, p)
+					if err != nil {
+						log.Println("Rule error sending point: ", err)
+					} else {
+						rc.config.Conditions[i].Error = errS
+					}
+				}
+				log.Printf("Rule error %v:%v:%v\n", rc.config.Description, c.Description, err)
+			}
 
 			switch c.ConditionType {
 			case data.PointValuePointValue:
@@ -385,8 +408,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 					pointValue := p.Value != 0
 					active = condValue == pointValue
 				default:
-					log.Printf("unknown point type for rule: %v: %v\n",
-						rc.config.Description, c.ValueType)
+					processError(fmt.Errorf("unknown value type: %v", c.ValueType))
 				}
 			case data.PointValueSchedule:
 				if p.Type != data.PointTypeTrigger {
@@ -405,7 +427,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				var err error
 				active, err = sched.activeForTime(p.Time)
 				if err != nil {
-					log.Println("Error parsing schedule time: ", err)
+					processError(fmt.Errorf("Error parsing schedule time: %w", err))
 					continue
 				}
 			}
@@ -424,6 +446,21 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				}
 
 				rc.config.Conditions[i].Active = active
+			}
+
+			if !errorActive && c.Error != "" {
+				p := data.Point{
+					Type: data.PointTypeError,
+					Time: time.Now(),
+					Text: "",
+				}
+
+				err := rc.sendPoint(c.ID, p)
+				if err != nil {
+					log.Println("Rule error sending point: ", err)
+				} else {
+					rc.config.Conditions[i].Error = ""
+				}
 			}
 		}
 	}
@@ -573,18 +610,3 @@ func (rc *RuleClient) ruleRunInactiveActions(actions []Action) error {
 	}
 	return nil
 }
-
-/* FIXME -- this should be moved to rules client
-childNodes, err := st.db.nodeDescendents(st.db.rootNodeID(), "", false, false)
-if err != nil {
-	log.Println("Error getting child nodes to run schedule: ", err)
-} else {
-	for _, c := range childNodes {
-		err := st.runSchedule(c)
-		if err != nil {
-			log.Println("Error running schedule: ", err)
-		}
-	}
-}
-t.Reset(time.Second * 5)
-*/

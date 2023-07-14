@@ -11,7 +11,8 @@ import (
 type schedule struct {
 	startTime string
 	endTime   string
-	weekdays  []time.Weekday
+	// A Weekday specifies a day of the week (Sunday = 0, ...).
+	weekdays []time.Weekday
 }
 
 func newSchedule(start, end string, weekdays []time.Weekday) *schedule {
@@ -69,6 +70,7 @@ func (s *schedule) activeForTime(t time.Time) (bool, error) {
 		{start, end},
 	}
 
+	// adjust time ranges if end time is before start
 	if !timeRanges[0].end.After(timeRanges[0].start) {
 		timeRanges[0].end = timeRanges[0].end.AddDate(0, 0, 1)
 

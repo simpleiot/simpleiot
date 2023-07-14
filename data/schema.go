@@ -22,6 +22,7 @@ const (
 	PointTypeDebug              = "debug"
 	PointTypeInitialized        = "initialized"
 	PointTypePollPeriod         = "pollPeriod"
+	PointTypeError              = "error"
 	PointTypeErrorCount         = "errorCount"
 	PointTypeErrorCountReset    = "errorCountReset"
 	PointTypeErrorCountEOF      = "errorCountEOF"

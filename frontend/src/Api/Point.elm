@@ -43,6 +43,7 @@ module Api.Point exposing
     , typeDisable
     , typeEmail
     , typeEnd
+    , typeError
     , typeErrorCount
     , typeErrorCountCRC
     , typeErrorCountCRCReset
@@ -312,6 +313,11 @@ typeLog =
 typeAddress : String
 typeAddress =
     "address"
+
+
+typeError : String
+typeError =
+    "error"
 
 
 typeErrorCount : String
@@ -818,6 +824,7 @@ specialPoints =
     , typeControl
     , typeOffline
     , typeHighRate
+    , typeError
     , typeErrorCount
     , typeErrorCountReset
     , typeSyncCount
