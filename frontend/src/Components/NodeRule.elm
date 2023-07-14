@@ -30,6 +30,16 @@ view o =
 
             else
                 Style.colors.black
+
+        error =
+            Point.getText o.node.points Point.typeError ""
+
+        titleBackground =
+            if error /= "" then
+                Style.colors.red
+
+            else
+                Style.colors.none
     in
     column
         [ width fill
@@ -38,7 +48,7 @@ view o =
         , spacing 6
         ]
     <|
-        wrappedRow [ spacing 10 ]
+        wrappedRow [ spacing 10, Background.color titleBackground ]
             [ Icon.list
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
@@ -53,6 +63,7 @@ view o =
                             NodeInputs.nodeTextInput opts ""
                     in
                     [ textInput Point.typeDescription "Description" ""
+                    , el [ Font.color Style.colors.red ] <| text error
                     ]
 
                 else

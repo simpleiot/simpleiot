@@ -23,6 +23,7 @@ type Rule struct {
 	Description     string      `point:"description"`
 	Disable         bool        `point:"disable"`
 	Active          bool        `point:"active"`
+	Error           string      `point:"error"`
 	Conditions      []Condition `child:"condition"`
 	Actions         []Action    `child:"action"`
 	ActionsInactive []Action    `child:"actionInactive"`
@@ -335,6 +336,49 @@ func (rc *RuleClient) hasSchedule() bool {
 	return false
 }
 
+func (rc *RuleClient) processError(errS string) {
+	if errS != "" {
+		// always set rule error to the last error we encounter
+		p := data.Point{
+			Type: data.PointTypeError,
+			Time: time.Now(),
+			Text: errS,
+		}
+
+		err := rc.sendPoint(rc.config.ID, p)
+		if err != nil {
+			log.Println("Rule error sending point: ", err)
+		} else {
+			rc.config.Error = errS
+		}
+	} else {
+		// check if any other errors still exist
+		found := ""
+
+		for _, c := range rc.config.Conditions {
+			if c.Error != "" {
+				found = c.Error
+				break
+			}
+		}
+
+		if found != rc.config.Error {
+			p := data.Point{
+				Type: data.PointTypeError,
+				Time: time.Now(),
+				Text: found,
+			}
+
+			err := rc.sendPoint(rc.config.ID, p)
+			if err != nil {
+				log.Println("Rule error sending point: ", err)
+			} else {
+				rc.config.Error = found
+			}
+		}
+	}
+}
+
 // ruleProcessPoints runs points through a rules conditions and and updates condition
 // and rule active status. Returns true if point was processed and active is true.
 // Currently, this function only processes the first point that matches -- this should
@@ -364,6 +408,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 						rc.config.Conditions[i].Error = errS
 					}
 				}
+				rc.processError(errS)
 				log.Printf("Rule error %v:%v:%v\n", rc.config.Description, c.Description, err)
 			}
 
@@ -461,6 +506,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				} else {
 					rc.config.Conditions[i].Error = ""
 				}
+				rc.processError("")
 			}
 		}
 	}
