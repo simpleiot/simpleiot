@@ -48,7 +48,7 @@ view o =
         , spacing 6
         ]
     <|
-        wrappedRow [ spacing 10, Background.color titleBackground ]
+        wrappedRow [ spacing 10, Background.color titleBackground, width fill ]
             [ Icon.list
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
