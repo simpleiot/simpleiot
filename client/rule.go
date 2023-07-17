@@ -258,7 +258,7 @@ func (rc *RuleClient) Run() error {
 				log.Println("Error running rule actions: ", err)
 			}
 
-			err = rc.ruleRunInactiveActions(rc.config.ActionsInactive)
+			err = rc.ruleInactiveActions(rc.config.ActionsInactive)
 			if err != nil {
 				log.Println("Error running rule inactive actions: ", err)
 			}
@@ -268,7 +268,7 @@ func (rc *RuleClient) Run() error {
 				log.Println("Error running rule actions: ", err)
 			}
 
-			err = rc.ruleRunInactiveActions(rc.config.Actions)
+			err = rc.ruleInactiveActions(rc.config.Actions)
 			if err != nil {
 				log.Println("Error running rule inactive actions: ", err)
 			}
@@ -704,7 +704,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 	return nil
 }
 
-func (rc *RuleClient) ruleRunInactiveActions(actions []Action) error {
+func (rc *RuleClient) ruleInactiveActions(actions []Action) error {
 	for i, a := range actions {
 		p := data.Point{
 			Type:  data.PointTypeActive,
