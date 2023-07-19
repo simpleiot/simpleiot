@@ -136,7 +136,7 @@ func (trs *timeRanges) filterWeekdays(weekdays []time.Weekday) {
 		return
 	}
 
-	trsNew := (*trs)[:0]
+	var trsNew timeRanges
 	for _, tr := range *trs {
 		wdFound := false
 		for _, wd := range weekdays {
