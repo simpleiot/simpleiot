@@ -178,6 +178,9 @@ func Decode(input NodeEdgeChildren, output interface{}) error {
 	// we first collect all points into groups by type
 	// this is required in case we are decoding into a map or array
 	for _, p := range input.NodeEdge.Points {
+		if p.Tombstone == 1 {
+			continue
+		}
 		g, ok := pointGroups[p.Type]
 		if !ok {
 			g = GroupedPoints{}
@@ -193,6 +196,9 @@ func Decode(input NodeEdgeChildren, output interface{}) error {
 		pointGroups[p.Type] = g
 	}
 	for _, p := range input.NodeEdge.EdgePoints {
+		if p.Tombstone == 1 {
+			continue
+		}
 		g, ok := edgePointGroups[p.Type]
 		if !ok {
 			g = GroupedPoints{}
