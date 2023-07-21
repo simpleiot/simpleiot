@@ -31,6 +31,16 @@ view o =
 
             else
                 Style.colors.black
+
+        error =
+            Point.getText o.node.points Point.typeError ""
+
+        titleBackground =
+            if error /= "" then
+                Style.colors.red
+
+            else
+                Style.colors.none
     in
     column
         [ width fill
@@ -39,7 +49,12 @@ view o =
         , spacing 6
         ]
     <|
-        wrappedRow [ spacing 10 ]
+        wrappedRow
+            [ spacing 10
+            , paddingEach { top = 0, right = 10, bottom = 0, left = 0 }
+            , Background.color titleBackground
+            , width fill
+            ]
             [ Icon.check
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
@@ -76,7 +91,8 @@ view o =
                             schedule o labelWidth
 
                         _ ->
-                            text "Please select condition type"
+                            el [ Font.color Style.colors.red ] <| text "Please select condition type"
+                    , el [ Font.color Style.colors.red ] <| text error
                     ]
 
                 else

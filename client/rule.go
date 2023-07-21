@@ -1,7 +1,6 @@
 package client
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -23,6 +22,7 @@ type Rule struct {
 	Description     string      `point:"description"`
 	Disable         bool        `point:"disable"`
 	Active          bool        `point:"active"`
+	Error           string      `point:"error"`
 	Conditions      []Condition `child:"condition"`
 	Actions         []Action    `child:"action"`
 	ActionsInactive []Action    `child:"actionInactive"`
@@ -54,6 +54,7 @@ type Condition struct {
 	ConditionType string  `point:"conditionType"`
 	MinActive     float64 `point:"minActive"`
 	Active        bool    `point:"active"`
+	Error         string  `point:"error"`
 
 	// used with point value rules
 	NodeID     string  `point:"nodeID"`
@@ -66,9 +67,10 @@ type Condition struct {
 	ValueText  string  `point:"valueText"`
 
 	// used with shedule rules
-	Start    string `point:"start"`
-	End      string `point:"end"`
-	Weekdays []bool `point:"weekday"`
+	Start    string   `point:"start"`
+	End      string   `point:"end"`
+	Weekdays []bool   `point:"weekday"`
+	Dates    []string `point:"date"`
 }
 
 func (c Condition) String() string {
@@ -86,16 +88,30 @@ func (c Condition) String() string {
 		value = c.ValueText
 	}
 
-	ret := fmt.Sprintf("  COND: %v  CTYPE:%v  VTYPE:%v  V:%v",
-		c.Description, c.ConditionType, c.ValueType, value)
-	if c.NodeID != "" {
-		ret += fmt.Sprintf("  NODEID:%v", c.NodeID)
+	var ret string
+
+	switch c.ConditionType {
+	case data.PointValuePointValue:
+		ret = fmt.Sprintf("  COND: %v  CTYPE:%v  VTYPE:%v  V:%v",
+			c.Description, c.ConditionType, c.ValueType, value)
+		if c.NodeID != "" {
+			ret += fmt.Sprintf("  NODEID:%v", c.NodeID)
+		}
+		if c.MinActive > 0 {
+			ret += fmt.Sprintf("  MINACT:%v", c.MinActive)
+		}
+		ret += fmt.Sprintf("  A:%v", c.Active)
+		ret += "\n"
+	case data.PointValueSchedule:
+		ret = fmt.Sprintf("  COND: %v  CTYPE:%v",
+			c.Description, c.ConditionType)
+		ret += fmt.Sprintf("  W:%v", c.Weekdays)
+		ret += fmt.Sprintf("  D:%v", c.Dates)
+		ret += "\n"
+
+	default:
+		ret = "Missing String case for condition"
 	}
-	if c.MinActive > 0 {
-		ret += fmt.Sprintf("  MINACT:%v", c.MinActive)
-	}
-	ret += fmt.Sprintf("  A:%v", c.Active)
-	ret += "\n"
 	return ret
 }
 
@@ -105,6 +121,7 @@ type Action struct {
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
 	Active      bool   `point:"active"`
+	Error       string `point:"error"`
 	// Action: notify, setValue, playAudio
 	Action    string `point:"action"`
 	NodeID    string `point:"nodeID"`
@@ -219,21 +236,35 @@ func (rc *RuleClient) Run() error {
 	// TODO schedule ticker is a brute force way to do this
 	// we could optimize at some point by creating a timer to expire
 	// on the next schedule change
-	scheduleTickTime := time.Second * 5
+	scheduleTickTime := time.Second * 10
 	scheduleTicker := time.NewTicker(scheduleTickTime)
 	if !rc.hasSchedule() {
 		scheduleTicker.Stop()
 	}
 
 	run := func(id string, pts data.Points) {
-		active, changed, err := rc.ruleProcessPoints(id, pts)
+		var active, changed bool
+		var err error
 
-		if err != nil {
-			log.Println("Error processing rule point: ", err)
-		}
+		if len(pts) > 0 {
+			active, changed, err = rc.ruleProcessPoints(id, pts)
+			if err != nil {
+				log.Println("Error processing rule point: ", err)
+			}
 
-		if !changed {
-			return
+			if !changed {
+				return
+			}
+		} else {
+			// send a schedule trigger through just in case someone changed a
+			// schedule condition
+			active, _, err = rc.ruleProcessPoints(rc.config.ID, data.Points{{
+				Time: time.Now(),
+				Type: data.PointTypeTrigger,
+			}})
+			if err != nil {
+				log.Println("Error processing rule point: ", err)
+			}
 		}
 
 		if active {
@@ -242,7 +273,7 @@ func (rc *RuleClient) Run() error {
 				log.Println("Error running rule actions: ", err)
 			}
 
-			err = rc.ruleRunInactiveActions(rc.config.ActionsInactive)
+			err = rc.ruleInactiveActions(rc.config.ActionsInactive)
 			if err != nil {
 				log.Println("Error running rule inactive actions: ", err)
 			}
@@ -252,7 +283,7 @@ func (rc *RuleClient) Run() error {
 				log.Println("Error running rule actions: ", err)
 			}
 
-			err = rc.ruleRunInactiveActions(rc.config.Actions)
+			err = rc.ruleInactiveActions(rc.config.Actions)
 			if err != nil {
 				log.Println("Error running rule inactive actions: ", err)
 			}
@@ -283,11 +314,14 @@ done:
 			} else {
 				scheduleTicker.Stop()
 			}
+
+			run("", nil)
 		case pts := <-rc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &rc.config)
 			if err != nil {
 				log.Println("error merging rule edge points: ", err)
 			}
+			run("", nil)
 		}
 	}
 
@@ -333,16 +367,88 @@ func (rc *RuleClient) hasSchedule() bool {
 	return false
 }
 
+func (rc *RuleClient) processError(errS string) {
+	if errS != "" {
+		// always set rule error to the last error we encounter
+		if errS != rc.config.Error {
+			p := data.Point{
+				Type: data.PointTypeError,
+				Time: time.Now(),
+				Text: errS,
+			}
+
+			err := rc.sendPoint(rc.config.ID, p)
+			if err != nil {
+				log.Println("Rule error sending point: ", err)
+			} else {
+				rc.config.Error = errS
+			}
+		}
+	} else {
+		// check if any other errors still exist
+		found := ""
+
+		for _, c := range rc.config.Conditions {
+			if c.Error != "" {
+				found = c.Error
+				break
+			}
+		}
+
+		for _, a := range rc.config.Actions {
+			if a.Error != "" {
+				found = a.Error
+				break
+			}
+		}
+
+		if found != rc.config.Error {
+			p := data.Point{
+				Type: data.PointTypeError,
+				Time: time.Now(),
+				Text: found,
+			}
+
+			err := rc.sendPoint(rc.config.ID, p)
+			if err != nil {
+				log.Println("Rule error sending point: ", err)
+			} else {
+				rc.config.Error = found
+			}
+		}
+	}
+}
+
 // ruleProcessPoints runs points through a rules conditions and and updates condition
 // and rule active status. Returns true if point was processed and active is true.
 // Currently, this function only processes the first point that matches -- this should
 // handle all current uses.
 func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool, bool, error) {
-	pointsProcessed := false
-
 	for _, p := range points {
 		for i, c := range rc.config.Conditions {
 			var active bool
+			var errorActive bool
+
+			processError := func(err error) {
+				errorActive = true
+				errS := err.Error()
+				if c.Error != errS {
+					p := data.Point{
+						Type: data.PointTypeError,
+						Time: time.Now(),
+						Text: errS,
+					}
+
+					log.Printf("Rule cond error %v:%v:%v\n", rc.config.Description, c.Description, err)
+					err := rc.sendPoint(c.ID, p)
+					if err != nil {
+						log.Println("Rule error sending point: ", err)
+					} else {
+						rc.config.Conditions[i].Error = errS
+					}
+				}
+				rc.processError(errS)
+			}
 
 			switch c.ConditionType {
 			case data.PointValuePointValue:
@@ -361,7 +467,6 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				// conditions match, so check value
 				switch c.ValueType {
 				case data.PointValueNumber:
-					pointsProcessed = true
 					switch c.Operator {
 					case data.PointValueGreaterThan:
 						active = p.Value > c.Value
@@ -373,26 +478,22 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 						active = p.Value != c.Value
 					}
 				case data.PointValueText:
-					pointsProcessed = true
 					switch c.Operator {
 					case data.PointValueEqual:
 					case data.PointValueNotEqual:
 					case data.PointValueContains:
 					}
 				case data.PointValueOnOff:
-					pointsProcessed = true
 					condValue := c.Value != 0
 					pointValue := p.Value != 0
 					active = condValue == pointValue
 				default:
-					log.Printf("unknown point type for rule: %v: %v\n",
-						rc.config.Description, c.ValueType)
+					processError(fmt.Errorf("unknown value type: %v", c.ValueType))
 				}
 			case data.PointValueSchedule:
 				if p.Type != data.PointTypeTrigger {
 					continue
 				}
-				pointsProcessed = true
 
 				weekdays := []time.Weekday{}
 				for i, v := range c.Weekdays {
@@ -400,12 +501,12 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 						weekdays = append(weekdays, time.Weekday(i))
 					}
 				}
-				sched := newSchedule(c.Start, c.End, weekdays)
+				sched := newSchedule(c.Start, c.End, weekdays, c.Dates)
 
 				var err error
 				active, err = sched.activeForTime(p.Time)
 				if err != nil {
-					log.Println("Error parsing schedule time: ", err)
+					processError(fmt.Errorf("Error parsing schedule: %w", err))
 					continue
 				}
 			}
@@ -425,52 +526,93 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 
 				rc.config.Conditions[i].Active = active
 			}
+
+			if !errorActive && c.Error != "" {
+				p := data.Point{
+					Type: data.PointTypeError,
+					Time: time.Now(),
+					Text: "",
+				}
+
+				err := rc.sendPoint(c.ID, p)
+				if err != nil {
+					log.Println("Rule error sending point: ", err)
+				} else {
+					rc.config.Conditions[i].Error = ""
+				}
+				rc.processError("")
+			}
 		}
 	}
 
-	if pointsProcessed {
-		allActive := true
+	allActive := true
 
-		for _, c := range rc.config.Conditions {
-			if !c.Active {
-				allActive = false
-				break
-			}
+	for _, c := range rc.config.Conditions {
+		if !c.Active {
+			allActive = false
+			break
 		}
-
-		changed := false
-
-		if allActive != rc.config.Active {
-			p := data.Point{
-				Type:  data.PointTypeActive,
-				Time:  time.Now(),
-				Value: data.BoolToFloat(allActive),
-			}
-
-			err := rc.sendPoint(rc.config.ID, p)
-			if err != nil {
-				log.Println("Rule error sending point: ", err)
-			}
-			changed = true
-
-			rc.config.Active = allActive
-		}
-
-		return allActive, changed, nil
 	}
 
-	return false, false, nil
+	changed := false
+
+	if allActive != rc.config.Active {
+		p := data.Point{
+			Type:  data.PointTypeActive,
+			Time:  time.Now(),
+			Value: data.BoolToFloat(allActive),
+		}
+
+		err := rc.sendPoint(rc.config.ID, p)
+		if err != nil {
+			log.Println("Rule error sending point: ", err)
+		}
+		changed = true
+
+		rc.config.Active = allActive
+	}
+
+	return allActive, changed, nil
 }
 
 // ruleRunActions runs rule actions
 func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) error {
 	for i, a := range actions {
+		errorActive := false
+
+		processError := func(err error) {
+			errorActive = true
+			errS := err.Error()
+			if a.Error != errS {
+				p := data.Point{
+					Type: data.PointTypeError,
+					Time: time.Now(),
+					Text: errS,
+				}
+
+				log.Printf("Rule action error %v:%v:%v\n", rc.config.Description, a.Description, err)
+				err := rc.sendPoint(a.ID, p)
+				if err != nil {
+					log.Println("Rule error sending point: ", err)
+				} else {
+					rc.config.Actions[i].Error = errS
+				}
+			}
+			rc.processError(errS)
+		}
+
 		switch a.Action {
 		case data.PointValueSetValue:
 			if a.NodeID == "" {
-				log.Println("Error, node action nodeID must be set, action id: ", a.ID)
+				processError(fmt.Errorf("Error, node action nodeID must be set"))
 				break
 			}
+
+			if a.PointType == "" {
+				processError(fmt.Errorf("Error, node action point type must be set"))
+				break
+			}
+
 			p := data.Point{
 				Time:   time.Now(),
 				Type:   a.PointType,
@@ -486,11 +628,13 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			// get node that fired the rule
 			nodes, err := GetNodes(rc.nc, "none", triggerNodeID, "", false)
 			if err != nil {
-				return err
+				processError(err)
+				break
 			}
 
 			if len(nodes) < 1 {
-				return errors.New("trigger node not found")
+				processError(fmt.Errorf("trigger node not found"))
+				break
 			}
 
 			triggerNode := nodes[0]
@@ -503,6 +647,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				Message:    rc.config.Description + " fired at " + triggerNodeDesc,
 			}
 
+			// TODO this notify code needs to be reworked
 			d, err := n.ToPb()
 
 			if err != nil {
@@ -542,7 +687,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				}
 			}()
 		default:
-			log.Println("Uknown rule action: ", a.Action)
+			processError(fmt.Errorf("Uknown rule action: %v", a.Action))
 		}
 
 		p := data.Point{
@@ -555,11 +700,28 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 		}
 
 		actions[i].Active = true
+
+		if !errorActive && a.Error != "" {
+			p := data.Point{
+				Type: data.PointTypeError,
+				Time: time.Now(),
+				Text: "",
+			}
+
+			err := rc.sendPoint(a.ID, p)
+			if err != nil {
+				log.Println("Rule error sending point: ", err)
+			} else {
+				rc.config.Actions[i].Error = ""
+			}
+			rc.processError("")
+		}
+
 	}
 	return nil
 }
 
-func (rc *RuleClient) ruleRunInactiveActions(actions []Action) error {
+func (rc *RuleClient) ruleInactiveActions(actions []Action) error {
 	for i, a := range actions {
 		p := data.Point{
 			Type:  data.PointTypeActive,
@@ -573,18 +735,3 @@ func (rc *RuleClient) ruleRunInactiveActions(actions []Action) error {
 	}
 	return nil
 }
-
-/* FIXME -- this should be moved to rules client
-childNodes, err := st.db.nodeDescendents(st.db.rootNodeID(), "", false, false)
-if err != nil {
-	log.Println("Error getting child nodes to run schedule: ", err)
-} else {
-	for _, c := range childNodes {
-		err := st.runSchedule(c)
-		if err != nil {
-			log.Println("Error running schedule: ", err)
-		}
-	}
-}
-t.Reset(time.Second * 5)
-*/

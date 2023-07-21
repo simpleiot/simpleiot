@@ -27,7 +27,7 @@ func (tt *testTable) run(t *testing.T, sched *schedule) {
 }
 
 func TestScheduleAllDays(t *testing.T) {
-	sched := newSchedule("2:00", "5:00", []time.Weekday{})
+	sched := newSchedule("2:00", "5:00", []time.Weekday{}, nil)
 
 	tests := testTable{
 		{time.Date(2021, time.February, 10, 4, 0, 0, 0, time.UTC), true},
@@ -38,7 +38,7 @@ func TestScheduleAllDays(t *testing.T) {
 }
 
 func TestScheduleWeekdays(t *testing.T) {
-	sched := newSchedule("2:00", "5:00", []time.Weekday{0, 6})
+	sched := newSchedule("2:00", "5:00", []time.Weekday{0, 6}, nil)
 
 	// 2021-08-09 is a Monday
 	tests := testTable{
@@ -50,7 +50,7 @@ func TestScheduleWeekdays(t *testing.T) {
 }
 
 func TestScheduleWrapDay(t *testing.T) {
-	sched := newSchedule("20:00", "2:00", []time.Weekday{})
+	sched := newSchedule("20:00", "2:00", []time.Weekday{}, nil)
 
 	// 2021-08-09 is a Monday
 	tests := testTable{
@@ -62,7 +62,7 @@ func TestScheduleWrapDay(t *testing.T) {
 }
 
 func TestScheduleWrapDayWeekday(t *testing.T) {
-	sched := newSchedule("20:00", "2:00", []time.Weekday{1})
+	sched := newSchedule("20:00", "2:00", []time.Weekday{1}, nil)
 
 	// 2021-08-09 is a Monday
 	tests := testTable{
@@ -71,6 +71,37 @@ func TestScheduleWrapDayWeekday(t *testing.T) {
 		// weekday
 		{time.Date(2021, time.August, 9, 1, 0, 0, 0, time.UTC), false},
 		{time.Date(2021, time.August, 10, 1, 0, 0, 0, time.UTC), true},
+	}
+
+	tests.run(t, sched)
+}
+
+func TestScheduleDates(t *testing.T) {
+	sched := newSchedule("2:00", "5:00", nil, []string{"2021-08-01", "2021-08-09", "2021-08-15"})
+
+	// 2021-08-09 is a Monday
+	tests := testTable{
+		{time.Date(2021, time.August, 1, 4, 0, 0, 0, time.UTC), true},
+		{time.Date(2021, time.August, 9, 4, 0, 0, 0, time.UTC), true},
+		{time.Date(2021, time.August, 10, 4, 0, 0, 0, time.UTC), false},
+		{time.Date(2021, time.August, 15, 4, 0, 0, 0, time.UTC), true},
+		{time.Date(2023, time.August, 15, 4, 0, 0, 0, time.UTC), false},
+	}
+
+	tests.run(t, sched)
+}
+
+func TestScheduleWrapDates(t *testing.T) {
+	sched := newSchedule("20:00", "6:00", nil, []string{"2021-08-01", "2021-08-09", "2021-08-15"})
+
+	// 2021-08-09 is a Monday
+	tests := testTable{
+		{time.Date(2021, time.August, 1, 21, 0, 0, 0, time.UTC), true},
+		{time.Date(2021, time.August, 2, 4, 0, 0, 0, time.UTC), true},
+		{time.Date(2021, time.August, 10, 4, 0, 0, 0, time.UTC), true},
+		{time.Date(2021, time.August, 9, 4, 0, 0, 0, time.UTC), false},
+		{time.Date(2021, time.August, 16, 4, 0, 0, 0, time.UTC), true},
+		{time.Date(2023, time.August, 15, 4, 0, 0, 0, time.UTC), false},
 	}
 
 	tests.run(t, sched)

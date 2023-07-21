@@ -65,79 +65,147 @@ nodeTimeDateInput o labelWidth =
         sModel =
             pointsToSchedule o.node.points
 
-        sDisp =
+        sLocal =
             checkScheduleToLocal zoneOffset sModel
 
-        send updateSchedule d =
+        sendTime updateSchedule tm =
             let
-                dClean =
-                    Sanitize.time d
+                tmClean =
+                    Sanitize.time tm
             in
-            updateSchedule sDisp dClean
+            updateSchedule sLocal tmClean
                 |> checkScheduleToUTC zoneOffset
                 |> scheduleToPoints o.now
                 |> o.onEditNodePoint
+
+        updateDate index dUpdate =
+            let
+                dClean =
+                    Sanitize.date dUpdate
+
+                updatedDates =
+                    List.Extra.setAt index dClean sLocal.dates
+
+                sUpdate =
+                    { sLocal | dates = updatedDates }
+            in
+            sUpdate
+                |> checkScheduleToUTC zoneOffset
+                |> scheduleToPoints o.now
+                |> o.onEditNodePoint
+
+        deleteDate index =
+            let
+                updatedDates =
+                    List.Extra.removeAt index sLocal.dates
+
+                sUpdate =
+                    { sLocal | dates = updatedDates }
+            in
+            sUpdate
+                |> checkScheduleToUTC zoneOffset
+                |> scheduleToPoints o.now
+                |> o.onEditNodePoint
+
+        weekdaysChecked =
+            List.foldl
+                (\w ret ->
+                    (w /= 0) || ret
+                )
+                False
+                sLocal.weekdays
 
         weekdayCheckboxInput index label =
             Input.checkbox []
                 { onChange =
                     \d ->
-                        updateScheduleWkday sDisp index d
+                        updateScheduleWkday sLocal index d
                             |> checkScheduleToUTC zoneOffset
                             |> scheduleToPoints o.now
                             |> o.onEditNodePoint
-                , checked = List.member index sDisp.weekdays
+                , checked = List.member index sLocal.weekdays
                 , icon = Input.defaultCheckbox
                 , label = Input.labelAbove [] <| text label
                 }
+
+        dateCount =
+            List.length sLocal.dates
     in
     column [ spacing 5 ]
-        [ wrappedRow
-            [ spacing 20
-            , paddingEach { top = 0, right = 0, bottom = 5, left = 0 }
-            ]
-            -- here, number matches Go Weekday definitions
-            -- https://pkg.go.dev/time#Weekday
-            [ el [ width <| px (o.labelWidth - 120) ] none
-            , text "Weekdays:"
-            , weekdayCheckboxInput 0 "S"
-            , weekdayCheckboxInput 1 "M"
-            , weekdayCheckboxInput 2 "T"
-            , weekdayCheckboxInput 3 "W"
-            , weekdayCheckboxInput 4 "T"
-            , weekdayCheckboxInput 5 "F"
-            , weekdayCheckboxInput 6 "S"
-            ]
+        [ if dateCount <= 0 then
+            wrappedRow
+                [ spacing 20
+                , paddingEach { top = 0, right = 0, bottom = 5, left = 0 }
+                ]
+                -- here, number matches Go Weekday definitions
+                -- https://pkg.go.dev/time#Weekday
+                [ el [ width <| px (o.labelWidth - 120) ] none
+                , text "Weekdays:"
+                , weekdayCheckboxInput 0 "S"
+                , weekdayCheckboxInput 1 "M"
+                , weekdayCheckboxInput 2 "T"
+                , weekdayCheckboxInput 3 "W"
+                , weekdayCheckboxInput 4 "T"
+                , weekdayCheckboxInput 5 "F"
+                , weekdayCheckboxInput 6 "S"
+                ]
+
+          else
+            none
         , Input.text
             []
             { label = Input.labelLeft [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "Start time:"
-            , onChange = send (\sched d -> { sched | startTime = d })
-            , text = sDisp.startTime
+            , onChange = sendTime (\sched tm -> { sched | startTime = tm })
+            , text = sLocal.startTime
             , placeholder = Nothing
             }
         , Input.text
             []
             { label = Input.labelLeft [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "End time:"
-            , onChange = send (\sched d -> { sched | endTime = d })
-            , text = sDisp.endTime
+            , onChange = sendTime (\sched tm -> { sched | endTime = tm })
+            , text = sLocal.endTime
             , placeholder = Nothing
             }
-        , el [ Element.paddingEach { top = 0, bottom = 0, right = 0, left = labelWidth - 59 } ] <| text "Dates:"
-        , el [ Element.paddingEach { top = 0, bottom = 0, right = 0, left = labelWidth - 59 } ] <|
-            Form.button
-                { label = "Add Date"
-                , color = Style.colors.blue
-                , onPress =
-                    o.onEditNodePoint
-                        [ { typ = Point.typeDate
-                          , key = ""
-                          , text = ""
-                          , time = o.now
-                          , tombstone = 0
-                          , value = 0
-                          }
-                        ]
-                }
+        , if not weekdaysChecked then
+            let
+                dateCountS =
+                    String.fromInt dateCount
+            in
+            column []
+                [ el [ Element.paddingEach { top = 0, bottom = 0, right = 0, left = labelWidth - 59 } ] <| text "Dates:"
+                , column [ spacing 5 ] <|
+                    List.indexedMap
+                        (\i date ->
+                            row [ spacing 10 ]
+                                [ Input.text []
+                                    { label = Input.labelLeft [ width (px labelWidth) ] <| text ""
+                                    , onChange = updateDate i
+                                    , text = date
+                                    , placeholder = Nothing
+                                    }
+                                , UI.Button.x <| deleteDate i
+                                ]
+                        )
+                        sLocal.dates
+                , el [ Element.paddingEach { top = 6, bottom = 0, right = 0, left = labelWidth - 59 } ] <|
+                    Form.button
+                        { label = "Add Date"
+                        , color = Style.colors.blue
+                        , onPress =
+                            o.onEditNodePoint
+                                [ { typ = Point.typeDate
+                                  , key = dateCountS
+                                  , text = ""
+                                  , time = o.now
+                                  , tombstone = 0
+                                  , value = 0
+                                  }
+                                ]
+                        }
+                ]
+
+          else
+            none
         ]
 
 
@@ -163,10 +231,23 @@ pointsToSchedule points =
                     p == 1
                 )
                 [ 0, 1, 2, 3, 4, 5, 6 ]
+
+        datePoints =
+            List.filter
+                (\p ->
+                    p.typ == Point.typeDate && p.tombstone == 0
+                )
+                points
+                |> List.sortWith Point.sort
+
+        dates =
+            List.map (\p -> p.text) datePoints
     in
     { startTime = start
     , endTime = end
     , weekdays = weekdays
+    , dates = dates
+    , dateCount = List.length datePoints
     }
 
 
@@ -184,15 +265,29 @@ scheduleToPoints now sched =
                     Point Point.typeWeekday (String.fromInt wday) now 0 "" 0
             )
             [ 0, 1, 2, 3, 4, 5, 6 ]
+        ++ List.indexedMap
+            (\i d -> Point Point.typeDate (String.fromInt i) now 0 d 0)
+            sched.dates
+        ++ (if List.length sched.dates < sched.dateCount then
+                -- some dates have been deleted, so send some tombstone points to fill out array length
+                List.map
+                    (\i ->
+                        Point Point.typeDate (String.fromInt i) now 0 "" 1
+                    )
+                    (List.range (List.length sched.dates) (sched.dateCount - 1))
+
+            else
+                []
+           )
 
 
 
--- only convert to utc if both times are valid
+-- only convert to utc if both times and all dates are valid
 
 
 checkScheduleToUTC : Int -> Utils.Time.Schedule -> Utils.Time.Schedule
 checkScheduleToUTC offset sched =
-    if validHM sched.startTime && validHM sched.endTime then
+    if validHM sched.startTime && validHM sched.endTime && validDates sched.dates then
         scheduleToUTC offset sched
 
     else
@@ -222,7 +317,7 @@ updateScheduleWkday sched index checked =
 
 checkScheduleToLocal : Int -> Utils.Time.Schedule -> Utils.Time.Schedule
 checkScheduleToLocal offset sched =
-    if validHM sched.startTime && validHM sched.endTime then
+    if validHM sched.startTime && validHM sched.endTime && validDates sched.dates then
         scheduleToLocal offset sched
 
     else
@@ -237,6 +332,33 @@ validHM t =
 
         Nothing ->
             False
+
+
+validDate : String -> Bool
+validDate d =
+    case Sanitize.parseDate d of
+        Just _ ->
+            True
+
+        Nothing ->
+            False
+
+
+validDates : List String -> Bool
+validDates dates =
+    List.foldl
+        (\d ret ->
+            if not ret then
+                ret
+
+            else if d == "" then
+                True
+
+            else
+                validDate d
+        )
+        True
+        dates
 
 
 nodeCheckboxInput :

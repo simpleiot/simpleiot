@@ -43,6 +43,7 @@ module Api.Point exposing
     , typeDisable
     , typeEmail
     , typeEnd
+    , typeError
     , typeErrorCount
     , typeErrorCountCRC
     , typeErrorCountCRCReset
@@ -314,6 +315,11 @@ typeAddress =
     "address"
 
 
+typeError : String
+typeError =
+    "error"
+
+
 typeErrorCount : String
 typeErrorCount =
     "errorCount"
@@ -521,7 +527,7 @@ typeWeekday =
 
 typeDate : String
 typeDate =
-    "data"
+    "date"
 
 
 typePointType : String
@@ -818,6 +824,7 @@ specialPoints =
     , typeControl
     , typeOffline
     , typeHighRate
+    , typeError
     , typeErrorCount
     , typeErrorCountReset
     , typeSyncCount
@@ -1056,8 +1063,22 @@ sort a b =
     if a.typ /= b.typ then
         compare a.typ b.typ
 
-    else if a.key /= b.key then
-        compare a.key b.key
-
     else
-        compare a.value b.value
+        let
+            keysAreInt =
+                String.toInt a.key /= Nothing && String.toInt b.key /= Nothing
+
+            aKeyInt =
+                Maybe.withDefault 0 (String.toInt a.key)
+
+            bKeyInt =
+                Maybe.withDefault 0 (String.toInt b.key)
+        in
+        if keysAreInt && aKeyInt /= bKeyInt then
+            compare aKeyInt bKeyInt
+
+        else if a.key /= b.key then
+            compare a.key b.key
+
+        else
+            compare a.value b.value

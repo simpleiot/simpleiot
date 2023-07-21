@@ -11,14 +11,17 @@ import (
 type schedule struct {
 	startTime string
 	endTime   string
-	weekdays  []time.Weekday
+	// A Weekday specifies a day of the week (Sunday = 0, ...).
+	weekdays []time.Weekday
+	dates    []string
 }
 
-func newSchedule(start, end string, weekdays []time.Weekday) *schedule {
+func newSchedule(start, end string, weekdays []time.Weekday, dates []string) *schedule {
 	return &schedule{
 		startTime: start,
 		endTime:   end,
 		weekdays:  weekdays,
+		dates:     dates,
 	}
 }
 
@@ -69,16 +72,20 @@ func (s *schedule) activeForTime(t time.Time) (bool, error) {
 		{start, end},
 	}
 
-	if !timeRanges[0].end.After(timeRanges[0].start) {
+	// adjust time ranges if end time is before start
+	if !end.After(start) {
 		timeRanges[0].end = timeRanges[0].end.AddDate(0, 0, 1)
 
 		timeRanges = append(timeRanges,
-			timeRange{timeRanges[0].start.AddDate(0, 0, -1),
-				timeRanges[0].end.AddDate(0, 0, -1),
-			})
+			timeRange{start.AddDate(0, 0, -1), end},
+		)
 	}
 
 	timeRanges.filterWeekdays(s.weekdays)
+	err = timeRanges.filterDates(s.dates)
+	if err != nil {
+		return false, err
+	}
 
 	if timeRanges.in(t) {
 		return true, nil
@@ -88,8 +95,7 @@ func (s *schedule) activeForTime(t time.Time) (bool, error) {
 }
 
 var reHourMin = regexp.MustCompile(`(\d{1,2}):(\d\d)`)
-
-//var reDate = regexp.MustCompile(`(\d{4})-(\d{1,2})-(\d{1,2})`)
+var reDate = regexp.MustCompile(`(\d{4})-(\d{2})-(\d{2})`)
 
 type timeRange struct {
 	start time.Time
@@ -128,13 +134,62 @@ func (trs *timeRanges) in(t time.Time) bool {
 	return false
 }
 
+func (trs *timeRanges) filterDates(dates []string) error {
+	if len(dates) <= 0 {
+		return nil
+	}
+
+	var trsNew timeRanges
+	for _, tr := range *trs {
+		for _, d := range dates {
+			matches := reDate.FindStringSubmatch(d)
+			if len(matches) < 4 {
+				return fmt.Errorf("Invalid date: %v", d)
+			}
+
+			year, err := strconv.Atoi(matches[1])
+			if err != nil {
+				return fmt.Errorf("Invalid year: %v", d)
+			}
+
+			month, err := strconv.Atoi(matches[2])
+			if err != nil {
+				return fmt.Errorf("Invalid month: %v", d)
+			}
+
+			day, err := strconv.Atoi(matches[3])
+			if err != nil {
+				return fmt.Errorf("Invalid day: %v", d)
+			}
+
+			if year != tr.start.UTC().Year() {
+				continue
+			}
+
+			if month != int(tr.start.UTC().Month()) {
+				continue
+			}
+
+			if day != tr.start.UTC().Day() {
+				continue
+			}
+
+			trsNew = append(trsNew, tr)
+		}
+	}
+
+	*trs = trsNew
+
+	return nil
+}
+
 // filterWeekdays removes time ranges that do not have a Start time in the provided list of weekdays
 func (trs *timeRanges) filterWeekdays(weekdays []time.Weekday) {
 	if len(weekdays) <= 0 {
 		return
 	}
 
-	trsNew := (*trs)[:0]
+	var trsNew timeRanges
 	for _, tr := range *trs {
 		wdFound := false
 		for _, wd := range weekdays {
@@ -144,31 +199,6 @@ func (trs *timeRanges) filterWeekdays(weekdays []time.Weekday) {
 			}
 		}
 		if wdFound {
-			trsNew = append(trsNew, tr)
-		}
-	}
-
-	*trs = trsNew
-}
-
-// FilterDates removes time ranges that do not have the same date as the provided list of times
-func (trs *timeRanges) FilterDates(dates []time.Time) {
-	if len(dates) <= 0 {
-		return
-	}
-
-	trsNew := (*trs)[:0]
-	for _, tr := range *trs {
-		dateFound := false
-		for _, date := range dates {
-			if date.Year() == tr.start.Year() &&
-				date.Month() == tr.start.Month() &&
-				date.Day() == tr.start.Day() {
-				dateFound = true
-				break
-			}
-		}
-		if dateFound {
 			trsNew = append(trsNew, tr)
 		}
 	}

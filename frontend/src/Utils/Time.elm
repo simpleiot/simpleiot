@@ -1,5 +1,6 @@
 module Utils.Time exposing (Schedule, scheduleToLocal, scheduleToUTC, toLocal, toUTC)
 
+import Date
 import TypedTime exposing (TypedTime)
 
 
@@ -72,6 +73,8 @@ type alias Schedule =
     { startTime : String
     , endTime : String
     , weekdays : List Int
+    , dates : List String
+    , dateCount : Int
     }
 
 
@@ -83,10 +86,24 @@ scheduleToLocal offset s =
 
         weekdays =
             List.map (applyWkdayOffset wkoff) s.weekdays |> List.sort
+
+        dates =
+            List.map
+                (\d ->
+                    case Date.fromIsoString d of
+                        Ok date ->
+                            Date.add Date.Days wkoff date |> Date.toIsoString
+
+                        Err _ ->
+                            d
+                )
+                s.dates
     in
     { startTime = startTime
     , endTime = toLocal offset s.endTime
     , weekdays = weekdays
+    , dates = dates
+    , dateCount = s.dateCount
     }
 
 
@@ -98,10 +115,24 @@ scheduleToUTC offset s =
 
         weekdays =
             List.map (applyWkdayOffset wkoff) s.weekdays |> List.sort
+
+        dates =
+            List.map
+                (\d ->
+                    case Date.fromIsoString d of
+                        Ok date ->
+                            Date.add Date.Days wkoff date |> Date.toIsoString
+
+                        Err _ ->
+                            d
+                )
+                (List.sort s.dates)
     in
     { startTime = startTime
     , endTime = toUTC offset s.endTime
     , weekdays = weekdays
+    , dates = dates
+    , dateCount = s.dateCount
     }
 
 

@@ -47,6 +47,10 @@ func setVal(p Point, v reflect.Value) error {
 
 // MergePoints takes points and updates fields in a type
 // that have matching point tags. See [Decode] for an example type.
+// When deleting points from arrays, the point key (index) is ignored
+// and the last entry from the array is removed. Normally, it is recommended
+// to send all points for an array when doing complex modifications to
+// an array.
 func MergePoints(id string, points []Point, output interface{}) error {
 	// TODO: this is not the most efficient algorithm as it recurses into
 	// all child arrays looking for a struct id
