@@ -11,6 +11,15 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.12.0] - 2023-07-21](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.0)
+
+- support Dates in Rule schedule conditions
+- Rules are re-run if any rule configuration changes
+- Display error conditions in Rule nodes
+- hide schedule weekday entry when dates are active
+- hide schedule date entry when weekdays are active
+- support deleting (tombstone points) in NodeDecode and NodeMerge functions
+
 ## [[0.11.4] - 2023-06-08](https://github.com/simpleiot/simpleiot/releases/tag/v0.11.4)
 
 - remove index field from Point data structure. See #565
