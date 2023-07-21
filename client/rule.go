@@ -67,9 +67,10 @@ type Condition struct {
 	ValueText  string  `point:"valueText"`
 
 	// used with shedule rules
-	Start    string `point:"start"`
-	End      string `point:"end"`
-	Weekdays []bool `point:"weekday"`
+	Start    string   `point:"start"`
+	End      string   `point:"end"`
+	Weekdays []bool   `point:"weekday"`
+	Dates    []string `point:"date"`
 }
 
 func (c Condition) String() string {
@@ -87,16 +88,30 @@ func (c Condition) String() string {
 		value = c.ValueText
 	}
 
-	ret := fmt.Sprintf("  COND: %v  CTYPE:%v  VTYPE:%v  V:%v",
-		c.Description, c.ConditionType, c.ValueType, value)
-	if c.NodeID != "" {
-		ret += fmt.Sprintf("  NODEID:%v", c.NodeID)
+	var ret string
+
+	switch c.ConditionType {
+	case data.PointValuePointValue:
+		ret = fmt.Sprintf("  COND: %v  CTYPE:%v  VTYPE:%v  V:%v",
+			c.Description, c.ConditionType, c.ValueType, value)
+		if c.NodeID != "" {
+			ret += fmt.Sprintf("  NODEID:%v", c.NodeID)
+		}
+		if c.MinActive > 0 {
+			ret += fmt.Sprintf("  MINACT:%v", c.MinActive)
+		}
+		ret += fmt.Sprintf("  A:%v", c.Active)
+		ret += "\n"
+	case data.PointValueSchedule:
+		ret = fmt.Sprintf("  COND: %v  CTYPE:%v",
+			c.Description, c.ConditionType)
+		ret += fmt.Sprintf("  W:%v", c.Weekdays)
+		ret += fmt.Sprintf("  D:%v", c.Dates)
+		ret += "\n"
+
+	default:
+		ret = "Missing String case for condition"
 	}
-	if c.MinActive > 0 {
-		ret += fmt.Sprintf("  MINACT:%v", c.MinActive)
-	}
-	ret += fmt.Sprintf("  A:%v", c.Active)
-	ret += "\n"
 	return ret
 }
 
@@ -355,17 +370,19 @@ func (rc *RuleClient) hasSchedule() bool {
 func (rc *RuleClient) processError(errS string) {
 	if errS != "" {
 		// always set rule error to the last error we encounter
-		p := data.Point{
-			Type: data.PointTypeError,
-			Time: time.Now(),
-			Text: errS,
-		}
+		if errS != rc.config.Error {
+			p := data.Point{
+				Type: data.PointTypeError,
+				Time: time.Now(),
+				Text: errS,
+			}
 
-		err := rc.sendPoint(rc.config.ID, p)
-		if err != nil {
-			log.Println("Rule error sending point: ", err)
-		} else {
-			rc.config.Error = errS
+			err := rc.sendPoint(rc.config.ID, p)
+			if err != nil {
+				log.Println("Rule error sending point: ", err)
+			} else {
+				rc.config.Error = errS
+			}
 		}
 	} else {
 		// check if any other errors still exist
@@ -422,6 +439,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 						Text: errS,
 					}
 
+					log.Printf("Rule cond error %v:%v:%v\n", rc.config.Description, c.Description, err)
 					err := rc.sendPoint(c.ID, p)
 					if err != nil {
 						log.Println("Rule error sending point: ", err)
@@ -430,7 +448,6 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 					}
 				}
 				rc.processError(errS)
-				log.Printf("Rule error %v:%v:%v\n", rc.config.Description, c.Description, err)
 			}
 
 			switch c.ConditionType {
@@ -484,12 +501,12 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 						weekdays = append(weekdays, time.Weekday(i))
 					}
 				}
-				sched := newSchedule(c.Start, c.End, weekdays)
+				sched := newSchedule(c.Start, c.End, weekdays, c.Dates)
 
 				var err error
 				active, err = sched.activeForTime(p.Time)
 				if err != nil {
-					processError(fmt.Errorf("Error parsing schedule time: %w", err))
+					processError(fmt.Errorf("Error parsing schedule: %w", err))
 					continue
 				}
 			}
@@ -573,6 +590,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 					Text: errS,
 				}
 
+				log.Printf("Rule action error %v:%v:%v\n", rc.config.Description, a.Description, err)
 				err := rc.sendPoint(a.ID, p)
 				if err != nil {
 					log.Println("Rule error sending point: ", err)
@@ -581,7 +599,6 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				}
 			}
 			rc.processError(errS)
-			log.Printf("Rule error %v:%v:%v\n", rc.config.Description, a.Description, err)
 		}
 
 		switch a.Action {
