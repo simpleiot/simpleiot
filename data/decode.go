@@ -61,9 +61,22 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 		for _, p := range g.Points {
 			// Note: array / slice values are set directly on the indexed Value
 			index, _ := strconv.Atoi(p.Key)
-			err := setVal(p, v.Index(index))
-			if err != nil {
-				return err
+			if p.Tombstone == 1 {
+				// assume the entire array is written, so if there are
+				// tombstone points sent, simply remove the last entry
+				// in the array as a point to remove previous entries
+				// may be sent first.
+				newLen := v.Len() - 1
+				newSlice := reflect.MakeSlice(v.Type(), newLen, newLen)
+				for i := 0; i < newLen; i++ {
+					newSlice.Index(i).Set(v.Index(i))
+				}
+				v.Set(newSlice)
+			} else {
+				err := setVal(p, v.Index(index))
+				if err != nil {
+					return err
+				}
 			}
 		}
 	case reflect.Map:
