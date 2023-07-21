@@ -103,14 +103,25 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 		}
 		// Set map values
 		for _, p := range g.Points {
-			// Create and set a new map value
-			// Note: map values must be set on newly created Values
-			vPtr := reflect.New(t.Elem())
-			err := setVal(p, vPtr.Elem())
-			if err != nil {
-				return err
+			if p.Tombstone == 1 {
+				newMap := reflect.MakeMap(v.Type())
+				iter := v.MapRange()
+				for iter.Next() {
+					if !reflect.DeepEqual(iter.Key().Interface(), p.Key) {
+						newMap.SetMapIndex(iter.Key(), iter.Value())
+					}
+				}
+				v.Set(newMap)
+			} else {
+				// Create and set a new map value
+				// Note: map values must be set on newly created Values
+				vPtr := reflect.New(t.Elem())
+				err := setVal(p, vPtr.Elem())
+				if err != nil {
+					return err
+				}
+				v.SetMapIndex(reflect.ValueOf(p.Key), vPtr.Elem())
 			}
-			v.SetMapIndex(reflect.ValueOf(p.Key), vPtr.Elem())
 		}
 	case reflect.Struct:
 		// Ensure points are keyed
