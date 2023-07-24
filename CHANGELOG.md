@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- fix control of Shelly lights
+
 ## [[0.12.0] - 2023-07-21](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.0)
 
 - support Dates in Rule schedule conditions
