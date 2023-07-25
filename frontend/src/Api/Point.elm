@@ -61,6 +61,7 @@ module Api.Point exposing
     , typeIP
     , typeIndex
     , typeLastName
+    , typeLightSet
     , typeLog
     , typeMaxMessageLength
     , typeMinActive
@@ -94,6 +95,7 @@ module Api.Point exposing
     , typeService
     , typeSignalsInDb
     , typeStart
+    , typeSwitchSet
     , typeSyncCount
     , typeSyncCountReset
     , typeSysState
@@ -198,6 +200,16 @@ typeValue =
 typeValueSet : String
 typeValueSet =
     "valueSet"
+
+
+typeLightSet : String
+typeLightSet =
+    "lightSet"
+
+
+typeSwitchSet : String
+typeSwitchSet =
+    "switchSet"
 
 
 typeValueText : String
@@ -845,6 +857,8 @@ specialPoints =
     , typeAuthToken
     , typeValue
     , typeValueSet
+    , typeLightSet
+    , typeSwitchSet
     , typeDeviceID
     , switch
     , input

@@ -112,6 +112,8 @@ view o =
                             "Point Type"
                             [ ( Point.typeValue, "value" )
                             , ( Point.typeValueSet, "set value (use for remote devices)" )
+                            , ( Point.typeLightSet, "set light state" )
+                            , ( Point.typeSwitchSet, "set switch state" )
                             ]
                     , viewIf actionSetValue <| textInput Point.typeNodeID "Node ID" ""
                     , if nodeId /= "" then
