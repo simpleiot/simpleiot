@@ -187,6 +187,45 @@ func TestDbSqlite(t *testing.T) {
 	}
 }
 
+func TestDbSqliteKeyZero(t *testing.T) {
+	// what to do when we have points with key set to "0" and ""
+	// technically these should map to the same point so that
+	// we can easily upgrade from scalars to arrays with no
+	// data changes
+	db := newTestDb(t)
+	defer db.Close()
+
+	rootID := db.rootNodeID()
+
+	err := db.nodePoints(rootID, data.Points{{Type: data.PointTypeValue, Value: 1}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nodes, err := db.getNodes(nil, "all", rootID, "", false)
+	if err != nil {
+		t.Fatal("Error getting root node: ", err)
+	}
+
+	n := nodes[0]
+
+	err = db.nodePoints(rootID, data.Points{{Type: data.PointTypeValue, Key: "0", Value: 2}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nodes, err = db.getNodes(nil, "all", rootID, "", false)
+	if err != nil {
+		t.Fatal("Error getting root node: ", err)
+	}
+
+	n = nodes[0]
+
+	if len(n.Points) != 1 {
+		t.Fatal("Error, point did not get merged")
+	}
+}
+
 func TestDbSqliteReopen(t *testing.T) {
 	db := newTestDb(t)
 	rootID := db.rootNodeID()

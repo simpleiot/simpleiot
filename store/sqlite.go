@@ -200,6 +200,24 @@ func (sdb *DbSqlite) initMeta() error {
 }
 
 func (sdb *DbSqlite) runMigrations() error {
+	if sdb.meta.Version < 4 {
+		_, err := sdb.db.Exec(`UPDATE node_points SET key = '0' WHERE key = ''`)
+		if err != nil {
+			return err
+		}
+
+		_, err = sdb.db.Exec(`UPDATE edge_points SET key = '0' WHERE key = ''`)
+		if err != nil {
+			return err
+		}
+
+		_, err = sdb.db.Exec(`UPDATE meta SET version = 4`)
+		if err != nil {
+			return err
+		}
+		sdb.meta.Version = 4
+	}
+
 	return nil
 }
 
@@ -456,6 +474,10 @@ NextPin:
 			pIn.Time = time.Now()
 		}
 
+		if pIn.Key == "" {
+			pIn.Key = "0"
+		}
+
 		for j, pDb := range dbPoints {
 			if pIn.Type == pDb.Type && pIn.Key == pDb.Key {
 				// found a match
@@ -631,6 +653,10 @@ NextPin:
 
 		if pIn.Time.IsZero() {
 			pIn.Time = time.Now()
+		}
+
+		if pIn.Key == "" {
+			pIn.Key = "0"
 		}
 
 		for j, pDb := range dbPoints {
