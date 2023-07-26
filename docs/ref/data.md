@@ -69,28 +69,81 @@ logic that operate off data from child nodes. In this case, the virtual parent
 nodes might be a town or city, service provider, etc., and the child nodes are
 physical edge nodes collecting data, users, etc.
 
-### Node Topology changes
+### The Point `Key` field constraint
+
+The Point data structure has a `Key` field that can be used to construct Array
+and Map data structures in a node. This is a flexible idea in that it is easy to
+transition from a scaler value to an array or map. However, it can also cause
+problems if one client is writing key values of `""` and another client (say a
+rule action) is writing value of `"0"`. One solution is to have fancy logic that
+equates `""` to `"0"` on point updates, compares, etc. Another approach is to
+consider `""` and invalid key value and set key to `"0"` for scaler values. This
+incurs a slight amount of overhead, but leads to more predictable operation and
+eliminates the possibility of having two points in a node that mean the same
+things.
+
+**The Simple IoT Store always sets the Key field to `"0"` on incoming points if
+the Key field is blank.**
+
+Clients should be written with this in mind.
+
+### Arrays and Maps
+
+Points can be used to represent arrays and maps. For an array, the `key` field
+contains the index `"0"`, `"1"`, `"2"`, etc. For maps, the `key` field contains
+the key of the map. An example:
+
+| Type            | Key   | Text             | Value |
+| --------------- | ----- | ---------------- | ----- |
+| description     | 0     | Node Description |       |
+| ipAddress       | 0     | 192.168.1.10     |       |
+| ipAddress       | 1     | 10.0.0.3         |       |
+| diskPercentUsed | /     |                  | 43    |
+| diskPercentUsed | /home |                  | 75    |
+| switch          | 0     |                  | 1     |
+| switch          | 1     |                  | 0     |
+
+The above would map to the following Go type:
+
+```go
+type myNode struct {
+    ID              string      `node:"id"`
+    Parent          string      `node:"parent"`
+    Description     string      `node:"description"`
+    IpAddresses     []string    `point:"ipAddress"`
+    Switches        []bool      `point:"switch"`
+    DiscPercentUsed []float64   `point:"diskPercentUsed"`
+}
+```
+
+The
+[`data.Decode()`](https://pkg.go.dev/github.com/simpleiot/simpleiot/data#Decode)
+function can be used to decode an array of points into the above type. The
+[`data.Merge()`](https://pkg.go.dev/github.com/simpleiot/simpleiot/data#MergePoints)
+function can be used to update an existing struct from a new point.
+
+## Node Topology changes
 
 Nodes can exist in multiple locations in the tree. This allows us to do things
 like include a user in multiple groups.
 
-#### Add
+### Add
 
 Node additions are detected in real-time by sending the points for the new node
 as well as points for the edge node that adds the node to the tree.
 
-#### Copy
+### Copy
 
 Node copies are are similar to add, but only the edge points are sent.
 
-#### Delete
+### Delete
 
 Node deletions are recorded by setting a tombstone point in the edge above the
 node to true. If a node is deleted, this information needs to be recorded,
 otherwise the synchronization process will simply re-create the deleted node if
 it exists on another instance.
 
-#### Move
+### Move
 
 Move is just a combination of Copy and Delete.
 
