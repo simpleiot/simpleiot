@@ -35,16 +35,16 @@ view o =
                             oToInputO o 100
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
 
                         textNumber =
-                            NodeInputs.nodeNumberInput opts ""
+                            NodeInputs.nodeNumberInput opts "0"
 
                         checkboxInput =
-                            NodeInputs.nodeCheckboxInput opts ""
+                            NodeInputs.nodeCheckboxInput opts "0"
 
                         counterWithReset =
-                            NodeInputs.nodeCounterWithReset opts ""
+                            NodeInputs.nodeCounterWithReset opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeURI "URI" "nats://myserver:4222, ws://myserver"

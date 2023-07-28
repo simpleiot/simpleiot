@@ -38,19 +38,19 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
 
                         numberInput =
-                            NodeInputs.nodeNumberInput opts ""
+                            NodeInputs.nodeNumberInput opts "0"
 
                         counterWithReset =
-                            NodeInputs.nodeCounterWithReset opts ""
+                            NodeInputs.nodeCounterWithReset opts "0"
 
                         optionInput =
-                            NodeInputs.nodeOptionInput opts ""
+                            NodeInputs.nodeOptionInput opts "0"
 
                         checkboxInput =
-                            NodeInputs.nodeCheckboxInput opts ""
+                            NodeInputs.nodeCheckboxInput opts "0"
 
                         clientServer =
                             Point.getText o.node.points Point.typeClientServer ""

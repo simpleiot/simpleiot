@@ -32,10 +32,10 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
 
                         optionInput =
-                            NodeInputs.nodeOptionInput opts ""
+                            NodeInputs.nodeOptionInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeService

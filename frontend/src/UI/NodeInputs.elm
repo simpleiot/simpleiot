@@ -253,8 +253,8 @@ pointsToSchedule points =
 
 scheduleToPoints : Time.Posix -> Utils.Time.Schedule -> List Point
 scheduleToPoints now sched =
-    [ Point Point.typeStart "" now 0 sched.startTime 0
-    , Point Point.typeEnd "" now 0 sched.endTime 0
+    [ Point Point.typeStart "0" now 0 sched.startTime 0
+    , Point Point.typeEnd "0" now 0 sched.endTime 0
     ]
         ++ List.map
             (\wday ->

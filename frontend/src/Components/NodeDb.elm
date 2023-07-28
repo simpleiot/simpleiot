@@ -32,7 +32,7 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
                     in
                     [ text "InfluxDb 2.0 Database"
                     , textInput Point.typeDescription "Description" ""

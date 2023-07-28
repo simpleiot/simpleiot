@@ -24,7 +24,7 @@ view o =
                 Icon.trendingDown
 
         active =
-            Point.getBool o.node.points Point.typeActive ""
+            Point.getBool o.node.points Point.typeActive "0"
 
         descBackgroundColor =
             if active then
@@ -41,7 +41,7 @@ view o =
                 Style.colors.black
 
         error =
-            Point.getText o.node.points Point.typeError ""
+            Point.getText o.node.points Point.typeError "0"
 
         titleBackground =
             if error /= "" then
@@ -77,16 +77,16 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
 
                         optionInput =
-                            NodeInputs.nodeOptionInput opts ""
+                            NodeInputs.nodeOptionInput opts "0"
 
                         numberInput =
-                            NodeInputs.nodeNumberInput opts ""
+                            NodeInputs.nodeNumberInput opts "0"
 
                         actionType =
-                            Point.getText o.node.points Point.typeAction ""
+                            Point.getText o.node.points Point.typeAction "0"
 
                         actionSetValue =
                             actionType == Point.valueSetValue
@@ -95,10 +95,10 @@ view o =
                             actionType == Point.valuePlayAudio
 
                         valueType =
-                            Point.getText o.node.points Point.typeValueType ""
+                            Point.getText o.node.points Point.typeValueType "0"
 
                         nodeId =
-                            Point.getText o.node.points Point.typeNodeID ""
+                            Point.getText o.node.points Point.typeNodeID "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeAction
@@ -173,7 +173,7 @@ view o =
                             "onOff" ->
                                 let
                                     onOffInput =
-                                        NodeInputs.nodeOnOffInput opts ""
+                                        NodeInputs.nodeOnOffInput opts "0"
                                 in
                                 onOffInput Point.typeValue Point.typeValue "Value"
 
