@@ -82,10 +82,10 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
 
                         checkboxInput =
-                            NodeInputs.nodeCheckboxInput opts ""
+                            NodeInputs.nodeCheckboxInput opts "0"
 
                         onOffInput =
                             NodeInputs.nodeOnOffInput opts

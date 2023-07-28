@@ -65,7 +65,7 @@ view o =
                             oToInputO o 100
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , el [ Font.color Style.colors.red ] <| text error

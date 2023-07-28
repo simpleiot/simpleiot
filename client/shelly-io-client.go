@@ -173,8 +173,8 @@ done:
 			}
 
 			if sioc.config.Control {
-				min := min(len(sioc.config.Switch), len(sioc.config.SwitchSet))
-				for i := 0; i < min; i++ {
+				switchCount := min(len(sioc.config.Switch), len(sioc.config.SwitchSet))
+				for i := 0; i < switchCount; i++ {
 					if sioc.config.Switch[i] != sioc.config.SwitchSet[i] {
 						pts, err := sioc.config.SetOnOff("switch", i, sioc.config.SwitchSet[i])
 						if err != nil {
@@ -194,6 +194,29 @@ done:
 						}
 					}
 				}
+
+				lightCount := min(len(sioc.config.Light), len(sioc.config.LightSet))
+				for i := 0; i < lightCount; i++ {
+					if sioc.config.Light[i] != sioc.config.LightSet[i] {
+						pts, err := sioc.config.SetOnOff("light", i, sioc.config.LightSet[i])
+						if err != nil {
+							log.Printf("Error setting %v: %v\n", sioc.config.Description, err)
+						}
+
+						if len(pts) > 0 {
+							points = append(points, pts...)
+						} else {
+							// get current status as the set did not return status
+							points, err = sioc.config.GetStatus()
+							if err != nil {
+								log.Printf("Error getting status for %v: %v\n", sioc.config.Description, err)
+								shellyError()
+								break
+							}
+						}
+					}
+				}
+
 			}
 
 			shellyCommOK()

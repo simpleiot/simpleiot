@@ -69,10 +69,10 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
 
                         optionInput =
-                            NodeInputs.nodeOptionInput opts ""
+                            NodeInputs.nodeOptionInput opts "0"
 
                         conditionType =
                             Point.getText o.node.points Point.typeConditionType ""
@@ -116,19 +116,19 @@ pointValue o labelWidth =
             oToInputO o labelWidth
 
         textInput =
-            NodeInputs.nodeTextInput opts ""
+            NodeInputs.nodeTextInput opts "0"
 
         numberInput =
-            NodeInputs.nodeNumberInput opts ""
+            NodeInputs.nodeNumberInput opts "0"
 
         optionInput =
-            NodeInputs.nodeOptionInput opts ""
+            NodeInputs.nodeOptionInput opts "0"
 
         conditionValueType =
-            Point.getText o.node.points Point.typeValueType ""
+            Point.getText o.node.points Point.typeValueType "0"
 
         nodeId =
-            Point.getText o.node.points Point.typeNodeID ""
+            Point.getText o.node.points Point.typeNodeID "0"
     in
     column
         [ width fill

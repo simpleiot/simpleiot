@@ -11,6 +11,12 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.12.1] - 2023-07-27](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.1)
+
+- fix control of Shelly lights
+- required that `Point:Key` field always be set (#580)
+- improvements in point decode and merge with arrays (not finished)
+
 ## [[0.12.0] - 2023-07-21](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.0)
 
 - support Dates in Rule schedule conditions

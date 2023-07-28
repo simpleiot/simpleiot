@@ -57,22 +57,22 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
 
                         numberInput =
-                            NodeInputs.nodeNumberInput opts ""
+                            NodeInputs.nodeNumberInput opts "0"
 
                         counterWithReset =
-                            NodeInputs.nodeCounterWithReset opts ""
+                            NodeInputs.nodeCounterWithReset opts "0"
 
                         checkboxInput =
-                            NodeInputs.nodeCheckboxInput opts ""
+                            NodeInputs.nodeCheckboxInput opts "0"
 
                         log =
-                            Point.getText o.node.points Point.typeLog ""
+                            Point.getText o.node.points Point.typeLog "0"
 
                         rate =
-                            Point.getValue o.node.points Point.typeRate ""
+                            Point.getValue o.node.points Point.typeRate "0"
 
                         rateS =
                             String.fromFloat (Round.roundNum 0 rate)

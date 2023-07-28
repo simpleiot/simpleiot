@@ -43,7 +43,7 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , Form.buttonRow
