@@ -182,10 +182,10 @@ Object.assign(SIOTConnection.prototype, {
 		return parentNodes
 	},
 
-	// subscribePoints subscribes to `p.<nodeID>` and returns an async
+	// _subscribePointsSubject subscribes to a NATS subject and returns an async
 	// iterable for Point objects
-	subscribePoints(nodeID) {
-		const sub = this.subscribe("p." + nodeID)
+	_subscribePointsSubject(subject) {
+		const sub = this.subscribe(subject)
 		// Return subscription wrapped by new async iterator
 		return Object.assign(Object.create(sub), {
 			async *[Symbol.asyncIterator]() {
@@ -200,6 +200,41 @@ Object.assign(SIOTConnection.prototype, {
 				}
 			},
 		})
+	},
+
+	// Subscribes to `p.<nodeID>` and returns an async iterable for Point
+	// objects
+	subscribePoints(nodeID) {
+		return this._subscribePointsSubject("p." + nodeID)
+	},
+	// Subscribes to `p.<nodeID>.<parentID>` and returns an async iterable for
+	// Point objects. `parentID` can be `*` or `all`.
+	subscribePointEdges(nodeID, parentID) {
+		if (parentID === "all") {
+			parentID = "*"
+		}
+		return this._subscribePointsSubject("p." + nodeID + "." + parentID)
+	},
+	// Subscribes to `up.<upstreamID>.<nodeID>` and returns an async iterable for
+	// Point objects. `nodeID` can be `*` or `all`.
+	subscribeUpstreamPoints(upstreamID, nodeID) {
+		if (nodeID === "all") {
+			nodeID = "*"
+		}
+		return this._subscribePointsSubject("up." + upstreamID + "." + nodeID)
+	},
+	// Subscribes to `up.<upstreamID>.<nodeID>` and returns an async iterable for
+	// Point objects. `nodeID` and `parentID` can be `*` or `all`.
+	subscribeUpstreamPointEdges(upstreamID, nodeID, parentID) {
+		if (nodeID === "all") {
+			nodeID = "*"
+		}
+		if (parentID === "all") {
+			parentID = "*"
+		}
+		return this._subscribePointsSubject(
+			"up." + upstreamID + "." + nodeID + "." + parentID
+		)
 	},
 
 	// sendNodePoints sends an array of `points` for a given `nodeID`
