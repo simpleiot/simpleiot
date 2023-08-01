@@ -456,6 +456,7 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 			{
 				Type: data.PointTypeToken,
 				Text: token,
+				Key:  "0",
 			},
 		},
 	})
