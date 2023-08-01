@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.12.2] - 2023-08-01](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.2)
+
+- fix login
+
 ## [[0.12.1] - 2023-07-27](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.1)
 
 - fix control of Shelly lights
