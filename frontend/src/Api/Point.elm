@@ -43,6 +43,7 @@ module Api.Point exposing
     , typeDisable
     , typeEmail
     , typeEnd
+    , typeError
     , typeErrorCount
     , typeErrorCountCRC
     , typeErrorCountCRCReset
@@ -60,6 +61,7 @@ module Api.Point exposing
     , typeIP
     , typeIndex
     , typeLastName
+    , typeLightSet
     , typeLog
     , typeMaxMessageLength
     , typeMinActive
@@ -93,6 +95,7 @@ module Api.Point exposing
     , typeService
     , typeSignalsInDb
     , typeStart
+    , typeSwitchSet
     , typeSyncCount
     , typeSyncCountReset
     , typeSysState
@@ -197,6 +200,16 @@ typeValue =
 typeValueSet : String
 typeValueSet =
     "valueSet"
+
+
+typeLightSet : String
+typeLightSet =
+    "lightSet"
+
+
+typeSwitchSet : String
+typeSwitchSet =
+    "switchSet"
 
 
 typeValueText : String
@@ -312,6 +325,11 @@ typeLog =
 typeAddress : String
 typeAddress =
     "address"
+
+
+typeError : String
+typeError =
+    "error"
 
 
 typeErrorCount : String
@@ -521,7 +539,7 @@ typeWeekday =
 
 typeDate : String
 typeDate =
-    "data"
+    "date"
 
 
 typePointType : String
@@ -818,6 +836,7 @@ specialPoints =
     , typeControl
     , typeOffline
     , typeHighRate
+    , typeError
     , typeErrorCount
     , typeErrorCountReset
     , typeSyncCount
@@ -838,6 +857,8 @@ specialPoints =
     , typeAuthToken
     , typeValue
     , typeValueSet
+    , typeLightSet
+    , typeSwitchSet
     , typeDeviceID
     , switch
     , input
@@ -947,9 +968,17 @@ updatePoints points newPoints =
 
 get : List Point -> String -> String -> Maybe Point
 get points typ key =
+    let
+        keyS =
+            if key == "" then
+                "0"
+
+            else
+                key
+    in
     List.Extra.find
         (\p ->
-            typ == p.typ && key == p.key
+            typ == p.typ && keyS == p.key
         )
         points
 
@@ -1056,8 +1085,22 @@ sort a b =
     if a.typ /= b.typ then
         compare a.typ b.typ
 
-    else if a.key /= b.key then
-        compare a.key b.key
-
     else
-        compare a.value b.value
+        let
+            keysAreInt =
+                String.toInt a.key /= Nothing && String.toInt b.key /= Nothing
+
+            aKeyInt =
+                Maybe.withDefault 0 (String.toInt a.key)
+
+            bKeyInt =
+                Maybe.withDefault 0 (String.toInt b.key)
+        in
+        if keysAreInt && aKeyInt /= bKeyInt then
+            compare aKeyInt bKeyInt
+
+        else if a.key /= b.key then
+            compare a.key b.key
+
+        else
+            compare a.value b.value

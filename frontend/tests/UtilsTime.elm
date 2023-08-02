@@ -51,12 +51,16 @@ schedule =
                         { startTime = "05:00"
                         , endTime = "08:00"
                         , weekdays = [ 2, 3 ]
+                        , dates = []
+                        , dateCount = 0
                         }
 
                     sExp =
                         { startTime = "01:00"
                         , endTime = "04:00"
                         , weekdays = [ 2, 3 ]
+                        , dates = []
+                        , dateCount = 0
                         }
                 in
                 Expect.equal sExp <| scheduleToLocal -240 sUTC
@@ -67,12 +71,16 @@ schedule =
                         { startTime = "02:00"
                         , endTime = "08:00"
                         , weekdays = [ 0, 2, 3 ]
+                        , dates = []
+                        , dateCount = 0
                         }
 
                     sExp =
                         { startTime = "22:00"
                         , endTime = "04:00"
                         , weekdays = [ 1, 2, 6 ]
+                        , dates = []
+                        , dateCount = 0
                         }
                 in
                 Expect.equal sExp <| scheduleToLocal -240 sUTC
@@ -83,15 +91,59 @@ schedule =
                         { startTime = "22:00"
                         , endTime = "02:00"
                         , weekdays = [ 2, 3, 6 ]
+                        , dates = []
+                        , dateCount = 0
                         }
 
                     sExp =
                         { startTime = "02:00"
                         , endTime = "06:00"
                         , weekdays = [ 0, 3, 4 ]
+                        , dates = []
+                        , dateCount = 0
                         }
                 in
                 Expect.equal sExp <| scheduleToLocal 240 sUTC
+        , test "toLocal with no date change" <|
+            \_ ->
+                let
+                    sUTC =
+                        { startTime = "10:00"
+                        , endTime = "12:00"
+                        , weekdays = []
+                        , dates = [ "2023-01-01" ]
+                        , dateCount = 1
+                        }
+
+                    sExp =
+                        { startTime = "06:00"
+                        , endTime = "08:00"
+                        , weekdays = []
+                        , dates = [ "2023-01-01" ]
+                        , dateCount = 1
+                        }
+                in
+                Expect.equal sExp <| scheduleToLocal -240 sUTC
+        , test "toLocal with date change" <|
+            \_ ->
+                let
+                    sUTC =
+                        { startTime = "2:00"
+                        , endTime = "12:00"
+                        , weekdays = []
+                        , dates = [ "2023-01-01" ]
+                        , dateCount = 1
+                        }
+
+                    sExp =
+                        { startTime = "22:00"
+                        , endTime = "08:00"
+                        , weekdays = []
+                        , dates = [ "2022-12-31" ]
+                        , dateCount = 1
+                        }
+                in
+                Expect.equal sExp <| scheduleToLocal -240 sUTC
         , test "toUTC with weekday change" <|
             \_ ->
                 let
@@ -99,12 +151,16 @@ schedule =
                         { startTime = "22:00"
                         , endTime = "02:00"
                         , weekdays = [ 1, 2, 6 ]
+                        , dates = []
+                        , dateCount = 0
                         }
 
                     sExp =
                         { startTime = "02:00"
                         , endTime = "06:00"
                         , weekdays = [ 0, 2, 3 ]
+                        , dates = []
+                        , dateCount = 0
                         }
                 in
                 Expect.equal sExp <| scheduleToUTC -240 sLocal
@@ -115,13 +171,57 @@ schedule =
                         { startTime = "02:00"
                         , endTime = "06:00"
                         , weekdays = [ 0, 3, 4 ]
+                        , dates = []
+                        , dateCount = 0
                         }
 
                     sExp =
                         { startTime = "22:00"
                         , endTime = "02:00"
                         , weekdays = [ 2, 3, 6 ]
+                        , dates = []
+                        , dateCount = 0
                         }
                 in
                 Expect.equal sExp <| scheduleToUTC 240 sLocal
+        , test "toUTC with no date change" <|
+            \_ ->
+                let
+                    sLocal =
+                        { startTime = "02:00"
+                        , endTime = "06:00"
+                        , weekdays = []
+                        , dates = [ "2022-12-31" ]
+                        , dateCount = 1
+                        }
+
+                    sExp =
+                        { startTime = "06:00"
+                        , endTime = "10:00"
+                        , weekdays = []
+                        , dates = [ "2022-12-31" ]
+                        , dateCount = 1
+                        }
+                in
+                Expect.equal sExp <| scheduleToUTC -240 sLocal
+        , test "toUTC with with date change" <|
+            \_ ->
+                let
+                    sLocal =
+                        { startTime = "22:00"
+                        , endTime = "23:00"
+                        , weekdays = []
+                        , dates = [ "2022-12-31" ]
+                        , dateCount = 1
+                        }
+
+                    sExp =
+                        { startTime = "02:00"
+                        , endTime = "03:00"
+                        , weekdays = []
+                        , dates = [ "2023-01-01" ]
+                        , dateCount = 1
+                        }
+                in
+                Expect.equal sExp <| scheduleToUTC -240 sLocal
         ]

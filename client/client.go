@@ -9,7 +9,7 @@ import (
 // This is to be kept as simple as possible, and the ClientManager does all
 // the heavy lifting of interacting with the rest of the SIOT system.
 // Run should block until Stop is called.
-// Start MUST return when Stop is called.
+// Run MUST return when Stop is called.
 // Stop does not block -- wait until Run returns if you need to know the client
 // is stopped.
 // Points and EdgePoints are called when there are updates to the client node.

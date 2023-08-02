@@ -187,6 +187,9 @@ func (ps Points) Desc() string {
 // Find fetches a point given ID, Type, and Index
 // and true of found, or false if not found
 func (ps *Points) Find(typ, key string) (Point, bool) {
+	if key == "" {
+		key = "0"
+	}
 	for _, p := range *ps {
 		if !p.IsMatch(typ, key) {
 			continue
@@ -217,7 +220,7 @@ func (ps *Points) ValueBool(typ, key string) (bool, bool) {
 	return FloatToBool(f), ok
 }
 
-// Text fetches a text value from an array of points given ID, Type, and Index.
+// Text fetches a text value from an array of points given Type and Key.
 // If ID or Type are set to "", they are ignored.
 func (ps *Points) Text(typ, key string) (string, bool) {
 	p, ok := ps.Find(typ, key)

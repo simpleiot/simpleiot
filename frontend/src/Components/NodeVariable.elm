@@ -76,16 +76,16 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
 
                         optionInput =
-                            NodeInputs.nodeOptionInput opts ""
+                            NodeInputs.nodeOptionInput opts "0"
 
                         numberInput =
-                            NodeInputs.nodeNumberInput opts ""
+                            NodeInputs.nodeNumberInput opts "0"
 
                         onOffInput =
-                            NodeInputs.nodeOnOffInput opts ""
+                            NodeInputs.nodeOnOffInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeVariableType

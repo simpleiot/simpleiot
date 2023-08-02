@@ -296,7 +296,38 @@ func TestDecodeWithChildren(t *testing.T) {
 	if len(out.TestYs[0].TestZs) < 1 {
 		t.Fatal("No TestYs.TestZs")
 	}
+}
 
+func TestDecodeTombstonePoint(t *testing.T) {
+	var ne = NodeEdge{
+		Points: []Point{
+			{Type: "ipAddress", Key: "0", Text: "192.168.1.1"},
+			{Type: "ipAddress", Key: "1", Text: "127.0.0.1"},
+			{Type: "ipAddress", Key: "2", Text: "127.0.0.2", Tombstone: 1},
+			{Type: "location", Key: "goodbye", Text: "cruel world"},
+			{Type: "location", Key: "hello", Text: "world"},
+			{Type: "location", Key: "del", Text: "deleted entry", Tombstone: 1},
+		},
+	}
+
+	var out testTypeComplex
+	err := Decode(NodeEdgeChildren{ne, nil}, &out)
+
+	exp := testTypeComplex{
+		IPAddresses: []string{"192.168.1.1", "127.0.0.1"},
+		Location: map[string]string{
+			"hello":   "world",
+			"goodbye": "cruel world",
+		},
+	}
+
+	if err != nil {
+		t.Fatal("Error decoding: ", err)
+	}
+
+	if !reflect.DeepEqual(out, exp) {
+		t.Errorf("Decode failed, exp: %v, got %v", exp, out)
+	}
 }
 
 type SortablePoints []Point

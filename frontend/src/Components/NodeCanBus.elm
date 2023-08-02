@@ -39,21 +39,27 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
 
                         checkboxInput =
-                            NodeInputs.nodeCheckboxInput opts ""
+                            NodeInputs.nodeCheckboxInput opts "0"
 
                         counterWithReset =
-                            NodeInputs.nodeCounterWithReset opts ""
+                            NodeInputs.nodeCounterWithReset opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeDevice "Device" "can0"
                     , textInput Point.typeBitRate "Bit rate" "250000"
-                    , el [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "Messages in db: "
-                        ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeMsgsInDb ""))
-                    , el [ width (px labelWidth) ] <| el [ alignRight ] <| text <| "Signals in db: "
-                        ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeSignalsInDb ""))
+                    , el [ width (px labelWidth) ] <|
+                        el [ alignRight ] <|
+                            text <|
+                                "Messages in db: "
+                                    ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeMsgsInDb ""))
+                    , el [ width (px labelWidth) ] <|
+                        el [ alignRight ] <|
+                            text <|
+                                "Signals in db: "
+                                    ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeSignalsInDb ""))
                     , el [ width (px labelWidth) ] <|
                         el [ alignRight ] <|
                             text <|

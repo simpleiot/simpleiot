@@ -21,9 +21,9 @@ view o =
         wrappedRow [ spacing 10 ]
             [ Icon.user
             , text <|
-                Point.getText o.node.points Point.typeFirstName ""
+                Point.getText o.node.points Point.typeFirstName "0"
                     ++ " "
-                    ++ Point.getText o.node.points Point.typeLastName ""
+                    ++ Point.getText o.node.points Point.typeLastName "0"
             ]
             :: (if o.expDetail then
                     let
@@ -46,7 +46,7 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
                     in
                     [ textInput Point.typeFirstName "First Name" ""
                     , textInput Point.typeLastName "Last Name" ""

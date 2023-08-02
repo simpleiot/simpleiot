@@ -14,10 +14,11 @@ func TestNotifyTemplate(t *testing.T) {
 			{
 				Type: data.PointTypeDescription,
 				Text: "My Node",
+				Key:  "0",
 			},
 			{
 				Type:  "tankLevel",
-				Key:   "",
+				Key:   "0",
 				Value: 12.523423423,
 			},
 			{
@@ -35,7 +36,7 @@ func TestNotifyTemplate(t *testing.T) {
 	}
 
 	if res != "Alarm from My Node, tank level is 12.52." {
-		t.Error("rendered text is not correct")
+		t.Error("rendered text is not correct: ", res)
 	}
 
 	fmt.Println("render result: ", res)

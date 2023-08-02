@@ -175,4 +175,33 @@ func TestMergeComplex(t *testing.T) {
 	if td.TestValues[0] != 123 {
 		t.Fatal("edge point array not modified")
 	}
+
+	// delete points in array
+	p = Points{
+		{Type: "ipAddress", Key: "0", Tombstone: 1},
+		{Type: "ipAddress", Key: "1", Tombstone: 1},
+	}
+
+	err = MergePoints("ID-TC", p, &td)
+	if err != nil {
+		t.Fatal("Error deleting array entries: ", err)
+	}
+
+	if len(td.IPAddresses) > 0 {
+		t.Fatal("Expected 0 IP addresses, got: ", len(td.IPAddresses))
+	}
+
+	// delete a map entry
+	p = Points{{Type: "sensor", Key: "temp1", Tombstone: 1}}
+
+	err = MergePoints("ID-TC", p, &td)
+	if err != nil {
+		t.Fatal("Error deleting key entry: ", err)
+	}
+
+	_, ok := td.Sensors["temp1"]
+
+	if ok {
+		t.Fatal("Expected temp key to be deleted, got: ", td.Sensors)
+	}
 }

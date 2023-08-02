@@ -49,7 +49,22 @@ value/text fields for a number of conditions including:
 
 ### Schedule
 
-TODO:
+Rule conditions can be driven by a schedule that is composed of:
+
+- start/stop time
+- weekdays
+- dates
+
+If no weekdays are selected, then all weekdays are included.
+
+When the dates are used, then weekdays are disabled.
+
+Conversely, when a weekday is enabled, dates are disabled.
+
+As a time range can span two days, the start time is used to qualify weekdays
+and dates.
+
+<img src="./images/rule-schedule.png" alt="image-20230721173842815" style="zoom:67%;" />
 
 ## Actions
 

@@ -61,9 +61,22 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 		for _, p := range g.Points {
 			// Note: array / slice values are set directly on the indexed Value
 			index, _ := strconv.Atoi(p.Key)
-			err := setVal(p, v.Index(index))
-			if err != nil {
-				return err
+			if p.Tombstone == 1 {
+				// assume the entire array is written, so if there are
+				// tombstone points sent, simply remove the last entry
+				// in the array as a point to remove previous entries
+				// may be sent first.
+				newLen := v.Len() - 1
+				newSlice := reflect.MakeSlice(v.Type(), newLen, newLen)
+				for i := 0; i < newLen; i++ {
+					newSlice.Index(i).Set(v.Index(i))
+				}
+				v.Set(newSlice)
+			} else {
+				err := setVal(p, v.Index(index))
+				if err != nil {
+					return err
+				}
 			}
 		}
 	case reflect.Map:
@@ -90,14 +103,25 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 		}
 		// Set map values
 		for _, p := range g.Points {
-			// Create and set a new map value
-			// Note: map values must be set on newly created Values
-			vPtr := reflect.New(t.Elem())
-			err := setVal(p, vPtr.Elem())
-			if err != nil {
-				return err
+			if p.Tombstone == 1 {
+				newMap := reflect.MakeMap(v.Type())
+				iter := v.MapRange()
+				for iter.Next() {
+					if !reflect.DeepEqual(iter.Key().Interface(), p.Key) {
+						newMap.SetMapIndex(iter.Key(), iter.Value())
+					}
+				}
+				v.Set(newMap)
+			} else {
+				// Create and set a new map value
+				// Note: map values must be set on newly created Values
+				vPtr := reflect.New(t.Elem())
+				err := setVal(p, vPtr.Elem())
+				if err != nil {
+					return err
+				}
+				v.SetMapIndex(reflect.ValueOf(p.Key), vPtr.Elem())
 			}
-			v.SetMapIndex(reflect.ValueOf(p.Key), vPtr.Elem())
 		}
 	case reflect.Struct:
 		// Ensure points are keyed
@@ -178,6 +202,9 @@ func Decode(input NodeEdgeChildren, output interface{}) error {
 	// we first collect all points into groups by type
 	// this is required in case we are decoding into a map or array
 	for _, p := range input.NodeEdge.Points {
+		if p.Tombstone == 1 {
+			continue
+		}
 		g, ok := pointGroups[p.Type]
 		if !ok {
 			g = GroupedPoints{}
@@ -193,6 +220,9 @@ func Decode(input NodeEdgeChildren, output interface{}) error {
 		pointGroups[p.Type] = g
 	}
 	for _, p := range input.NodeEdge.EdgePoints {
+		if p.Tombstone == 1 {
+			continue
+		}
 		g, ok := edgePointGroups[p.Type]
 		if !ok {
 			g = GroupedPoints{}

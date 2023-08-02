@@ -58,13 +58,13 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
 
                         counterWithReset =
-                            NodeInputs.nodeCounterWithReset opts ""
+                            NodeInputs.nodeCounterWithReset opts "0"
 
                         checkboxInput =
-                            NodeInputs.nodeCheckboxInput opts ""
+                            NodeInputs.nodeCheckboxInput opts "0"
 
                         fCheckboxInput =
                             fCheckbox opts "" Point.typeUnits "Fahrenheit?"

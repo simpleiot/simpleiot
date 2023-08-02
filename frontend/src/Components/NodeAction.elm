@@ -24,7 +24,7 @@ view o =
                 Icon.trendingDown
 
         active =
-            Point.getBool o.node.points Point.typeActive ""
+            Point.getBool o.node.points Point.typeActive "0"
 
         descBackgroundColor =
             if active then
@@ -39,6 +39,16 @@ view o =
 
             else
                 Style.colors.black
+
+        error =
+            Point.getText o.node.points Point.typeError "0"
+
+        titleBackground =
+            if error /= "" then
+                Style.colors.red
+
+            else
+                Style.colors.none
     in
     column
         [ width fill
@@ -47,7 +57,12 @@ view o =
         , spacing 6
         ]
     <|
-        wrappedRow [ spacing 10 ]
+        wrappedRow
+            [ spacing 10
+            , paddingEach { top = 0, right = 10, bottom = 0, left = 0 }
+            , Background.color titleBackground
+            , width fill
+            ]
             [ icon
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
@@ -62,16 +77,16 @@ view o =
                             oToInputO o labelWidth
 
                         textInput =
-                            NodeInputs.nodeTextInput opts ""
+                            NodeInputs.nodeTextInput opts "0"
 
                         optionInput =
-                            NodeInputs.nodeOptionInput opts ""
+                            NodeInputs.nodeOptionInput opts "0"
 
                         numberInput =
-                            NodeInputs.nodeNumberInput opts ""
+                            NodeInputs.nodeNumberInput opts "0"
 
                         actionType =
-                            Point.getText o.node.points Point.typeAction ""
+                            Point.getText o.node.points Point.typeAction "0"
 
                         actionSetValue =
                             actionType == Point.valueSetValue
@@ -80,10 +95,10 @@ view o =
                             actionType == Point.valuePlayAudio
 
                         valueType =
-                            Point.getText o.node.points Point.typeValueType ""
+                            Point.getText o.node.points Point.typeValueType "0"
 
                         nodeId =
-                            Point.getText o.node.points Point.typeNodeID ""
+                            Point.getText o.node.points Point.typeNodeID "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeAction
@@ -97,6 +112,8 @@ view o =
                             "Point Type"
                             [ ( Point.typeValue, "value" )
                             , ( Point.typeValueSet, "set value (use for remote devices)" )
+                            , ( Point.typeLightSet, "set light state" )
+                            , ( Point.typeSwitchSet, "set switch state" )
                             ]
                     , viewIf actionSetValue <| textInput Point.typeNodeID "Node ID" ""
                     , if nodeId /= "" then
@@ -156,7 +173,7 @@ view o =
                             "onOff" ->
                                 let
                                     onOffInput =
-                                        NodeInputs.nodeOnOffInput opts ""
+                                        NodeInputs.nodeOnOffInput opts "0"
                                 in
                                 onOffInput Point.typeValue Point.typeValue "Value"
 
@@ -171,6 +188,7 @@ view o =
                         numberInput Point.typeChannel "Channel"
                     , viewIf actionPlayAudio <|
                         textInput Point.typeFilePath "Wav file path" "/absolute/path/to/sound.wav"
+                    , el [ Font.color Style.colors.red ] <| text error
                     ]
 
                 else
