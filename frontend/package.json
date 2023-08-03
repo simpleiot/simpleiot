@@ -7,11 +7,10 @@
 	"author": "Cliff Brake <cbrake@bec-systems.com>",
 	"license": "Apache2",
 	"devDependencies": {
-		"elm": "^0.19.1-5",
-		"elm-json": "^0.2.13",
 		"elm-review": "^2.8.5",
 		"elm-spa": "^6.0.4",
 		"elm-test": "^0.19.1-revision10",
+		"elm-tooling": "^1.14.0",
 		"elm-watch": "^1.1.2",
 		"eslint": "^8.27.0",
 		"eslint-config-prettier": "^8.5.0",
