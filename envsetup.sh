@@ -22,6 +22,7 @@ siot_install_proto_gen_go() {
 
 siot_install_frontend_deps() {
 	(cd "frontend" && npm install)
+	(cd "frontend" && npx elm-tooling install)
 	(cd "frontend/lib" && npm ci)
 }
 
