@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- switch to elm-tooling to enable building on Linux and MacOS ARM machines
+
 ## [[0.12.2] - 2023-08-01](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.2)
 
 - fix login
