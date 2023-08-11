@@ -70,9 +70,14 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 			if !v.CanSet() {
 				return fmt.Errorf("cannot set value %v", v)
 			}
-			newV := reflect.MakeSlice(t, g.KeyMaxInt+1, g.KeyMaxInt+1)
-			reflect.Copy(newV, v)
-			v.Set(newV)
+			if g.KeyMaxInt+1 <= v.Cap() {
+				// Optimization: use excess capacity of `v`
+				v.Set(v.Slice(0, g.KeyMaxInt+1))
+			} else {
+				newV := reflect.MakeSlice(t, g.KeyMaxInt+1, g.KeyMaxInt+1)
+				reflect.Copy(newV, v)
+				v.Set(newV)
+			}
 		}
 		// Set array / slice values
 		deletedIndexes := []int{}
@@ -96,8 +101,8 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 		}
 		// We can now trim the underlying slice to remove trailing values that
 		// were deleted in this decode. Note: this does not guarantee that
-		// slices are always trimmed properly because values can be deleted
-		// across multiple decode cycles.
+		// slices are always trimmed completely (for example, values can be
+		// deleted across multiple calls of Decode)
 		slices.Sort(deletedIndexes)
 		lastIndex := v.Len() - 1
 		for i := len(deletedIndexes) - 1; i >= 0; i-- {
