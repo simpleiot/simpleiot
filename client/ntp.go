@@ -5,11 +5,11 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"slices"
 	"strings"
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
+	"golang.org/x/exp/slices"
 )
 
 // NTPConfigPath points to the systemd-timesyncd configuration file
