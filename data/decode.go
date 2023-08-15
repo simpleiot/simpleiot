@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"slices"
 	"strconv"
+
+	"golang.org/x/exp/slices"
 )
 
 // NodeEdgeChildren is used to pass a tree node structure into the
