@@ -180,6 +180,24 @@ and
 can be used to convert Node data structures to your own custom `struct`, much
 like the Go `json` package.
 
+### Decoding points into slices
+
+Some consideration is needed when using `Decode` and `MergePoints` to decode
+points into Go slices. Slices are never allocated / copied unless they are being
+expanded. Instead, deleted points are written to the slice as the zero value.
+However, for a given `Decode` call, if points are deleted from the _end_ of the
+slice, `Decode` will re-slice it to remove those values from the slice. Thus,
+there is an important consideration for clients: if they wish to rely on slices
+being truncated when points are deleted, points must be batched in order such
+that `Decode` sees the trailing deleted points first. Put another way, `Decode`
+does not care about points deleted from prior calls to `Decode`, so "holes" of
+zero values may still appear at the end of a slice under certain circumstances.
+Consider points with integer values [0, 1, 2, 3, 4]. If tombstone is set on
+point with `Key` 3 followed by a point tombstone set on point with `Key` 4, the
+resulting slice will be [0, 1, 2] if these points are batched together, but if
+they are sent separately (thus resulting in multiple `Decode` calls), the
+resulting slice will be [0, 1, 2, 0].
+
 ## Evolvability
 
 One important consideration in data design is the can the system be easily
