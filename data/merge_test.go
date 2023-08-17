@@ -1,6 +1,7 @@
 package data
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -189,6 +190,70 @@ func TestMergeComplex(t *testing.T) {
 
 	if len(td.IPAddresses) > 0 {
 		t.Fatal("Expected 0 IP addresses, got: ", len(td.IPAddresses))
+	}
+
+	// add IP addresses back
+	p = Points{
+		{Type: "ipAddress", Key: "0", Text: "192.168.1.1"},
+		{Type: "ipAddress", Key: "1", Text: "127.0.0.1"},
+		{Type: "ipAddress", Key: "3", Text: "127.0.0.3"},
+		{Type: "ipAddress", Key: "4", Text: "127.0.0.4"},
+	}
+
+	err = MergePoints("ID-TC", p, &td)
+	if err != nil {
+		t.Fatal("Error merging array entries: ", err)
+	}
+
+	if len(td.IPAddresses) != 5 {
+		t.Fatal("Expected 5 IP addresses, got: ", len(td.IPAddresses))
+	}
+
+	// delete point in array over several merges
+	p = Points{
+		{Type: "ipAddress", Key: "4", Tombstone: 1},
+	}
+
+	err = MergePoints("ID-TC", p, &td)
+	if err != nil {
+		t.Fatal("Error merging array entries: ", err)
+	}
+
+	// slice should be trimmed
+	if len(td.IPAddresses) != 4 {
+		t.Fatal("Expected 4 IP addresses, got: ", len(td.IPAddresses))
+	}
+
+	p = Points{
+		{Type: "ipAddress", Key: "1", Tombstone: 1},
+	}
+
+	err = MergePoints("ID-TC", p, &td)
+	if err != nil {
+		t.Fatal("Error merging array entries: ", err)
+	}
+
+	// index 1 is set to zero value
+	exp := []string{"192.168.1.1", "", "", "127.0.0.3"}
+	if !reflect.DeepEqual(exp, td.IPAddresses) {
+		t.Fatalf("Expected %v, got: %v", exp, td.IPAddresses)
+	}
+
+	p = Points{
+		{Type: "ipAddress", Key: "3", Tombstone: 1},
+	}
+
+	err = MergePoints("ID-TC", p, &td)
+	if err != nil {
+		t.Fatal("Error merging array entries: ", err)
+	}
+
+	// slice is trimmed but only index 3 is removed!
+	// MergePoints is unaware that index 1 was removed previously and that
+	// index 2 was never set.
+	exp = []string{"192.168.1.1", "", ""}
+	if !reflect.DeepEqual(exp, td.IPAddresses) {
+		t.Fatalf("Expected %v, got: %v", exp, td.IPAddresses)
 	}
 
 	// delete a map entry
