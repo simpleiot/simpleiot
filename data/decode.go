@@ -256,7 +256,10 @@ func Decode(input NodeEdgeChildren, outputStruct interface{}) error {
 	// Note: Even points with tombstones set are processed here; later we set
 	// the destination to the zero value if a tombstone is present.
 	for _, p := range input.NodeEdge.Points {
-		g := pointGroups[p.Type] // uses zero value if not found
+		g, ok := pointGroups[p.Type] // uses zero value if not found
+		if !ok {
+			g.KeyMaxInt = -1
+		}
 		if p.Key != "" {
 			index, err := strconv.Atoi(p.Key)
 			if err != nil || index < 0 {
@@ -272,7 +275,10 @@ func Decode(input NodeEdgeChildren, outputStruct interface{}) error {
 		pointGroups[p.Type] = g
 	}
 	for _, p := range input.NodeEdge.EdgePoints {
-		g := edgePointGroups[p.Type]
+		g, ok := edgePointGroups[p.Type]
+		if !ok {
+			g.KeyMaxInt = -1
+		}
 		if p.Key != "" {
 			index, err := strconv.Atoi(p.Key)
 			if err != nil || index < 0 {
