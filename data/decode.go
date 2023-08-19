@@ -107,10 +107,12 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 		slices.Sort(deletedIndexes)
 		lastIndex := v.Len() - 1
 		for i := len(deletedIndexes) - 1; i >= 0; i-- {
-			if deletedIndexes[i] != lastIndex {
+			if deletedIndexes[i] < lastIndex {
 				break
+			} else if deletedIndexes[i] == lastIndex {
+				lastIndex--
 			}
-			lastIndex--
+			// else only decrement i
 		}
 		v.Set(v.Slice(0, lastIndex+1))
 	case reflect.Map:
