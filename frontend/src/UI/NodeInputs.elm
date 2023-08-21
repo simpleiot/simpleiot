@@ -646,6 +646,6 @@ nodePasteButton :
     -> Element msg
 nodePasteButton o label typ value =
     row [ spacing 10, paddingEach { top = 0, bottom = 0, right = 0, left = 75 } ]
-        [ UI.Button.clipboard <| o.onEditNodePoint [ Point typ "" o.now 0 value 0 ]
+        [ UI.Button.clipboard <| o.onEditNodePoint [ Point typ "0" o.now 0 value 0 ]
         , label
         ]
