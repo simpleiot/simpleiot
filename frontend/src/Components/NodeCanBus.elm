@@ -54,22 +54,12 @@ view o =
                         el [ alignRight ] <|
                             text <|
                                 "Messages in db: "
-                                    ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeMsgsInDb ""))
+                                    ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeMsgsInDb "0"))
                     , el [ width (px labelWidth) ] <|
                         el [ alignRight ] <|
                             text <|
                                 "Signals in db: "
-                                    ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeSignalsInDb ""))
-                    , el [ width (px labelWidth) ] <|
-                        el [ alignRight ] <|
-                            text <|
-                                "Messages in db: "
-                                    ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeMsgsInDb ""))
-                    , el [ width (px labelWidth) ] <|
-                        el [ alignRight ] <|
-                            text <|
-                                "Signals in db: "
-                                    ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeSignalsInDb ""))
+                                    ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeSignalsInDb "0"))
                     , counterWithReset Point.typeMsgsRecvdDb Point.typeMsgsRecvdDbReset "Db msgs recieved"
                     , counterWithReset Point.typeMsgsRecvdOther Point.typeMsgsRecvdOtherReset "Other msgs recvd"
                     , checkboxInput Point.typeDisable "Disable"

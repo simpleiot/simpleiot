@@ -33,12 +33,6 @@ type CanBus struct {
 	Databases           []File `child:"file"`
 }
 
-// File represents a CAN database file in common formats such as KCD and DBC.
-type File struct {
-	Name string `point:"name"`
-	Data string `point:"data"`
-}
-
 // CanBusClient is a SIOT client used to communicate on a CAN bus
 type CanBusClient struct {
 	nc            *nats.Conn
@@ -80,6 +74,26 @@ func (cb *CanBusClient) Run() error {
 
 	var db *canparse.Database = &canparse.Database{}
 
+	sendDbStats := func(msgs, signals int) {
+		points := data.Points{
+			data.Point{
+				Time:  time.Now(),
+				Type:  data.PointTypeMsgsInDb,
+				Value: float64(msgs),
+			},
+			data.Point{
+				Time:  time.Now(),
+				Type:  data.PointTypeSignalsInDb,
+				Value: float64(signals),
+			},
+		}
+
+		err := SendPoints(cb.nc, cb.natsSub, points, false)
+		if err != nil {
+			log.Println(errors.Wrap(err, "CanBusClient: error CAN db stats: "))
+		}
+	}
+
 	readDb := func() {
 		cb.config.MsgsInDb = 0
 		cb.config.SignalsInDb = 0
@@ -88,6 +102,7 @@ func (cb *CanBusClient) Run() error {
 			err := db.ReadBytes([]byte(dbFile.Data), dbFile.Name)
 			if err != nil {
 				log.Println(errors.Wrap(err, "CanBusClient: Error parsing database file"))
+				sendDbStats(0, 0)
 				return
 			}
 			for _, b := range db.Busses {
@@ -103,22 +118,7 @@ func (cb *CanBusClient) Run() error {
 				}
 			}
 		}
-		points := data.Points{
-			data.Point{
-				Time:  time.Now(),
-				Type:  data.PointTypeMsgsInDb,
-				Value: float64(cb.config.MsgsInDb),
-			},
-			data.Point{
-				Time:  time.Now(),
-				Type:  data.PointTypeSignalsInDb,
-				Value: float64(cb.config.SignalsInDb),
-			},
-		}
-		err := SendPoints(cb.nc, cb.natsSub, points, false)
-		if err != nil {
-			log.Println(errors.Wrap(err, "CanBusClient: error sending points received from CAN bus: "))
-		}
+		sendDbStats(cb.config.MsgsInDb, cb.config.SignalsInDb)
 	}
 
 	readDb()
@@ -137,6 +137,8 @@ func (cb *CanBusClient) Run() error {
 		if err != nil {
 			log.Println(errors.Wrap(err,
 				"CanBusClient: socketCan interface not found"))
+
+			return
 		}
 		if iface.Flags&net.FlagUp == 0 {
 			err = exec.Command(
@@ -177,7 +179,9 @@ func (cb *CanBusClient) Run() error {
 	setupDev()
 
 	bringDownDev := func() {
-		cancelContext()
+		if cancelContext != nil {
+			cancelContext()
+		}
 	}
 
 	for {
@@ -242,17 +246,7 @@ func (cb *CanBusClient) Run() error {
 					bringDownDev()
 					setupDev()
 				case data.PointTypeData:
-					log.Println("New Data Point:", p.Key)
-					// FIXME shouldn't have to do this manually
-					if len(cb.config.Databases) > 0 {
-						cb.config.Databases[0].Data = p.Text
-					}
 					readDb()
-				case data.PointTypeName:
-					// FIXME shouldn't have to do this manually
-					if len(cb.config.Databases) > 0 {
-						cb.config.Databases[0].Name = p.Text
-					}
 				case data.PointTypeDisable:
 					if p.Value == 0 {
 						bringDownDev()
