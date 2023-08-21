@@ -330,6 +330,27 @@ func TestDecodeTombstonePoint(t *testing.T) {
 	}
 }
 
+func TestDecodeAllTombstonePointArray(t *testing.T) {
+	var ne = NodeEdge{
+		Points: []Point{
+			{Type: "ipAddress", Key: "0", Text: "192.168.1.1", Tombstone: 1},
+			{Type: "ipAddress", Key: "1", Text: "127.0.0.1", Tombstone: 1},
+			{Type: "ipAddress", Key: "2", Text: "127.0.0.2", Tombstone: 1},
+		},
+	}
+
+	var out testTypeComplex
+	err := Decode(NodeEdgeChildren{ne, nil}, &out)
+
+	if err != nil {
+		t.Fatal("Error decoding: ", err)
+	}
+
+	if len(out.IPAddresses) > 0 {
+		t.Error("Expected 0 IP address, got: ", len(out.IPAddresses))
+	}
+}
+
 type SortablePoints []Point
 
 func (sp SortablePoints) Len() int {
