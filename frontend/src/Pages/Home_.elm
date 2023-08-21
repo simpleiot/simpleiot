@@ -241,10 +241,10 @@ update shared msg model =
         UploadContents id file contents ->
             let
                 pointName =
-                    Point Point.typeName "" model.now 0 (File.name file) 0
+                    Point Point.typeName "0" model.now 0 (File.name file) 0
 
                 pointData =
-                    Point Point.typeData "" model.now 0 contents 0
+                    Point Point.typeData "0" model.now 0 contents 0
             in
             ( model
             , Effect.fromCmd <|
