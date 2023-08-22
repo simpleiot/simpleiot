@@ -16,6 +16,7 @@ For more details or to discuss releases, please visit the
 - UI: fixed issue with with paste node rule condition/actions (#600)
 - Can client: fixed various issues (#498)
 - Rule client: fix issue with error reporting (#599)
+- switch to forked mdns package to get rid of closing messages (#558)
 
 ## [[0.12.3] - 2023-08-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.3)
 
