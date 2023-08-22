@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/mdns"
 	"github.com/nats-io/nats.go"
+	"github.com/simpleiot/mdns"
 	"github.com/simpleiot/simpleiot/data"
 )
 

@@ -4,7 +4,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/hashicorp/mdns"
+	"github.com/simpleiot/mdns"
 )
 
 func main() {
