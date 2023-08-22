@@ -135,7 +135,7 @@ view o =
 
                       else
                         Element.none
-                    , case o.copy of
+                    , viewIf actionSetValue <| case o.copy of
                         CopyMoveNone ->
                             Element.none
 
