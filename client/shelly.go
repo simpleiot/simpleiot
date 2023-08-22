@@ -185,6 +185,7 @@ done:
 	}
 
 	// clean up
+	scanTicker.Stop()
 	return nil
 }
 
