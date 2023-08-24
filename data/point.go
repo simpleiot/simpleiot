@@ -98,6 +98,10 @@ func (p Point) String() string {
 		t += fmt.Sprintf("O:%v ", p.Origin)
 	}
 
+	if p.Tombstone != 0 {
+		t += "Tomb "
+	}
+
 	t += p.Time.Format(time.RFC3339)
 
 	return t

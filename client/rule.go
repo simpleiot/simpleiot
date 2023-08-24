@@ -402,6 +402,13 @@ func (rc *RuleClient) processError(errS string) {
 			}
 		}
 
+		for _, a := range rc.config.ActionsInactive {
+			if a.Error != "" {
+				found = a.Error
+				break
+			}
+		}
+
 		if found != rc.config.Error {
 			p := data.Point{
 				Type: data.PointTypeError,
@@ -595,7 +602,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				if err != nil {
 					log.Println("Rule error sending point: ", err)
 				} else {
-					rc.config.Actions[i].Error = errS
+					actions[i].Error = errS
 				}
 			}
 			rc.processError(errS)
@@ -712,7 +719,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			if err != nil {
 				log.Println("Rule error sending point: ", err)
 			} else {
-				rc.config.Actions[i].Error = ""
+				actions[i].Error = ""
 			}
 			rc.processError("")
 		}
