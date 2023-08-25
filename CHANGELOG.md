@@ -17,6 +17,9 @@ For more details or to discuss releases, please visit the
 - Can client: fixed various issues (#498)
 - Rule client: fix issue with error reporting (#599)
 - switch to forked mdns package to get rid of closing messages (#558)
+- update nats.go package from v1.20.0 => v1.28.0
+- update nats-server package from v2.9.6 => v2.9.21
+- default NATS server to 127.0.0.1 instead of localhost
 
 ## [[0.12.3] - 2023-08-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.3)
 
