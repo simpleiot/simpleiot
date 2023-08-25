@@ -13,7 +13,7 @@ import (
 
 // Args parses common SIOT command line options
 func Args(args []string) (Options, error) {
-	defaultNatsServer := "nats://localhost:4222"
+	defaultNatsServer := "nats://127.0.0.1:4222"
 
 	// =============================================
 	// Command line options
