@@ -59,11 +59,13 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		_ = nats.SetCustomDialer(&net.Dialer{
 			KeepAlive: -1,
 		})(o)
+
 		_ = nats.CustomReconnectDelay(func(attempts int) time.Duration {
 			delay := ExpBackoff(attempts, 6*time.Minute)
 			log.Printf("NATS reconnect attempts: %v, delay: %v", attempts, delay)
 			return delay
 		})(o)
+
 		_ = nats.Token(eo.AuthToken)(o)
 
 		if eo.NoEcho {
@@ -71,6 +73,27 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		}
 
 		_ = nats.ErrorHandler(natsErrHandler)(o)
+
+		_ = nats.ConnectHandler(func(_ *nats.Conn) {
+			eo.Connected()
+		})(o)
+
+		_ = nats.ErrorHandler(func(_ *nats.Conn, sub *nats.Subscription,
+			err error) {
+			log.Printf("NATS Error, sub: %v, err: %s\n", sub.Subject, err)
+		})(o)
+
+		_ = nats.ReconnectHandler(func(_ *nats.Conn) {
+			eo.Reconnected()
+		})(o)
+
+		_ = nats.DisconnectHandler(func(_ *nats.Conn) {
+			eo.Disconnected()
+		})(o)
+
+		_ = nats.ClosedHandler(func(_ *nats.Conn) {
+			eo.Closed()
+		})(o)
 
 		return nil
 	}
@@ -89,42 +112,6 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 	}
 
 	fmt.Println("NATS: TLS required: ", nc.TLSRequired())
-
-	go func() {
-		for {
-			status := nc.Status()
-			switch status {
-			case nats.CONNECTED:
-				if eo.Connected != nil {
-					eo.Connected()
-					// we only get one connected, the rest are
-					// reconnected
-				}
-				return
-			case nats.CLOSED:
-				// return as the client was closed
-				return
-			}
-			time.Sleep(5 * time.Second)
-		}
-	}()
-
-	nc.SetErrorHandler(func(_ *nats.Conn, sub *nats.Subscription,
-		err error) {
-		log.Printf("NATS Error, sub: %v, err: %s\n", sub.Subject, err)
-	})
-
-	nc.SetReconnectHandler(func(_ *nats.Conn) {
-		eo.Reconnected()
-	})
-
-	nc.SetDisconnectHandler(func(_ *nats.Conn) {
-		eo.Disconnected()
-	})
-
-	nc.SetClosedHandler(func(_ *nats.Conn) {
-		eo.Closed()
-	})
 
 	return nc, nil
 }
