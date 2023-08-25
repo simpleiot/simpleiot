@@ -43,3 +43,8 @@ Videos:
 Yocto Linux is a popular edge Linux solution. There is a
 [Bitbake recipe](https://github.com/YoeDistro/yoe-distro/blob/master/sources/meta-yoe/recipes-siot/simpleiot/simpleiot_git.bb)
 for including Simple IoT in Yocto builds.
+
+## Networking
+
+By default, Simple IoT runs an embedded NATS server and the SIOT NATS client is
+configured to connect to `nats://127.0.0.1:4222`.

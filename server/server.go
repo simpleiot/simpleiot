@@ -78,21 +78,27 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		nats.Token(o.AuthToken),
 		nats.RetryOnFailedConnect(true),
 		nats.MaxReconnects(60),
-		nats.ReconnectWait(time.Millisecond*250),
 		nats.ErrorHandler(func(_ *nats.Conn,
 			sub *nats.Subscription, err error) {
 			var subject string
 			if sub != nil {
 				subject = sub.Subject
 			}
-			log.Printf("NATS server client error, sub: %v, err: %s\n", subject, err)
+			log.Printf("Server NATS client error, sub: %v, err: %s\n", subject, err)
+		}),
+		nats.CustomReconnectDelay(func(attempts int) time.Duration {
+			log.Println("Server NATS client reconnect attempt #", attempts)
+			return time.Millisecond * 250
 		}),
 		nats.ReconnectHandler(func(_ *nats.Conn) {
-			log.Println("Nats server client reconnect")
+			log.Println("Server NATS client: reconnected")
 		}),
 		nats.ClosedHandler(func(_ *nats.Conn) {
-			log.Println("Nats server client closed")
+			log.Println("Server NATS client: closed")
 			close(chNatsClientClosed)
+		}),
+		nats.ConnectHandler(func(_ *nats.Conn) {
+			log.Println("Server NATS client: connected")
 		}),
 	)
 
@@ -246,9 +252,11 @@ func (s *Server) Run() error {
 		siotStore.StopMetrics(err)
 		logLS("LS: Shutdown: store metrics")
 	})
+
 	// ====================================
 	// Node manager
 	// ====================================
+
 	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
 
 	storeWg.Add(1)
@@ -288,6 +296,10 @@ func (s *Server) Run() error {
 		s.clients.Stop(err)
 		logLS("LS: Shutdown: clients manager")
 	})
+
+	// ====================================
+	// Embedded files
+	// ====================================
 
 	var feFS fs.FS
 

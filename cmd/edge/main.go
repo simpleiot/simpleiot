@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	flagNatsServer := flag.String("natsServer", "nats://localhost:4222", "NATS Server")
+	flagNatsServer := flag.String("natsServer", "nats://127.0.0.1:4222", "NATS Server")
 	flagID := flag.String("id", "1234", "ID of edge device")
 	flagNatsAuth := flag.String("natsAuth", "", "NATS auth token")
 
