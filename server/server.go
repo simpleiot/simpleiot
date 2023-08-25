@@ -246,9 +246,11 @@ func (s *Server) Run() error {
 		siotStore.StopMetrics(err)
 		logLS("LS: Shutdown: store metrics")
 	})
+
 	// ====================================
 	// Node manager
 	// ====================================
+
 	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
 
 	storeWg.Add(1)
