@@ -289,6 +289,10 @@ func (s *Server) Run() error {
 		logLS("LS: Shutdown: clients manager")
 	})
 
+	// ====================================
+	// Embedded files
+	// ====================================
+
 	var feFS fs.FS
 
 	if o.Dev {
