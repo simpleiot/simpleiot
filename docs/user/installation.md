@@ -47,10 +47,4 @@ for including Simple IoT in Yocto builds.
 ## Networking
 
 By default, Simple IoT runs an embedded NATS server and the SIOT NATS client is
-configured to connect to `nats://localhost:4222`. We have seen cases where the
-client does not connect if `/etc/hosts` is missing `localhost` entries:
-
-```
-127.0.0.1     localhost
-::1           localhost
-```
+configured to connect to `nats://127.0.0.1:4222`.
