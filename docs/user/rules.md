@@ -66,6 +66,10 @@ and dates.
 
 <img src="./images/rule-schedule.png" alt="image-20230721173842815" style="zoom:67%;" />
 
+See also a video demo:
+
+<iframe width="791" height="445" src="https://www.youtube.com/embed/WllM0acCOss" title="Creating an Alarm Clock with Simple IoT schedules" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
 ## Actions
 
 Every action has an optional repeat interval. This allows rate limiting of
