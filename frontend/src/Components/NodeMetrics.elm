@@ -138,6 +138,7 @@ metricFormaters z =
         , ( "metricSysNetBytesRecv", { desc = descKey "Net RX", vf = toWhole } )
         , ( "metricSysNetBytesSent", { desc = descKey "Net TX", vf = toWhole } )
         , ( "metricSysUptime", { desc = descKey "Uptime", vf = toWhole } )
+        , ( "temp", { desc = descKey "Temp", vf = \p -> Round.round 1 p.value } )
         ]
 
 

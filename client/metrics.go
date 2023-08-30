@@ -366,6 +366,22 @@ func (m *MetricsClient) sysPeriodic() {
 		})
 	}
 
+	temps, err := host.SensorsTemperatures()
+	if err != nil {
+		log.Println("Error reading sensors: ", err)
+	} else {
+		for _, t := range temps {
+			pts = append(pts, data.Points{
+				{
+					Time:  now,
+					Type:  data.PointTypeTemperature,
+					Key:   t.SensorKey,
+					Value: t.Temperature,
+				},
+			}...)
+		}
+	}
+
 	err = SendNodePoints(m.nc, m.config.ID, pts, false)
 	if err != nil {
 		log.Println("Metrics: error sending points: ", err)
