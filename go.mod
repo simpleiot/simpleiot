@@ -24,7 +24,7 @@ require (
 	github.com/nats-io/nats.go v1.28.0
 	github.com/oklog/run v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/shirou/gopsutil/v3 v3.22.12
+	github.com/shirou/gopsutil/v3 v3.23.7
 	github.com/simpleiot/canparse v0.0.0-20221208203709-740f6c246768
 	github.com/simpleiot/mdns v0.0.1
 	go.bug.st/serial v1.3.5
@@ -69,11 +69,12 @@ require (
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
+	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.1.0 // indirect
-	github.com/yusufpapurcu/wmi v1.2.2 // indirect
+	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/net v0.12.0 // indirect
