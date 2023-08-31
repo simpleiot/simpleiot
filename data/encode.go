@@ -205,3 +205,184 @@ func Encode(in interface{}) (NodeEdge, error) {
 
 	return ret, nil
 }
+
+// DiffPoints compares a before and after struct and generates the set of Points
+// that represent their differences.
+func DiffPoints[T any](before, after T) (Points, error) {
+	bV, t, k := reflectValue(before)
+	aV, _, _ := reflectValue(after)
+
+	// Check to ensure this is a struct
+	if k != reflect.Struct {
+		return nil, fmt.Errorf("error decoding to %v; must be a struct", k)
+	}
+
+	points := Points{}
+	for i, numFields := 0, t.NumField(); i < numFields; i++ {
+		// Determine point type from struct tag
+		structTag := t.Field(i).Tag
+		pointType := structTag.Get("point")
+		if pointType == "" {
+			continue
+		}
+
+		bFieldV := bV.Field(i)
+		aFieldV := aV.Field(i)
+
+		// Handle special case of pointer to a struct
+		if bFieldV.Kind() == reflect.Pointer &&
+			bFieldV.Type().Elem().Kind() == reflect.Struct {
+			// If new pointer is nil, set all fields to tombstone, else
+			// proceed
+			if bFieldV.IsNil() && aFieldV.IsNil() {
+				// do nothing
+				continue
+			} else if aFieldV.IsNil() {
+				// Generate a tombstone point for all struct fields
+				t := bFieldV.Type().Elem()
+				numField := t.NumField()
+				if numField > maxStructureSize {
+					return points, fmt.Errorf(
+						"%v size of %v exceeds maximum of %v",
+						k, numField, maxStructureSize,
+					)
+				}
+				for i := 0; i < numField; i++ {
+					sf := t.Field(i)
+					key := sf.Tag.Get("point")
+					if key == "" {
+						key = ToCamelCase(sf.Name)
+					}
+					p := Point{
+						Type:      pointType,
+						Key:       key,
+						Tombstone: 1,
+					}
+					points.Add(p)
+				}
+				continue
+			} else if bFieldV.IsNil() {
+				var err error
+				points, err = appendPointsFromValue(
+					points,
+					pointType,
+					aFieldV.Elem(),
+				)
+				if err != nil {
+					return points, err
+				}
+				continue
+			} else {
+				bFieldV = bFieldV.Elem()
+				aFieldV = aFieldV.Elem()
+			}
+		}
+
+		switch bFieldV.Kind() {
+		case reflect.Array, reflect.Slice:
+			if aFieldV.Len() > maxStructureSize {
+				return points, fmt.Errorf(
+					"%v length of %v exceeds maximum of %v",
+					k, aFieldV.Len(), maxStructureSize,
+				)
+			}
+			i, aFieldLen, bFieldLen := 0, aFieldV.Len(), bFieldV.Len()
+			for ; i < aFieldLen; i++ {
+				if i >= bFieldLen || !aFieldV.Index(i).Equal(bFieldV.Index(i)) {
+					// Add / update point
+					p, err := pointFromPrimitive(pointType, aFieldV.Index(i))
+					if err != nil {
+						return points, fmt.Errorf("%v of %w", k, err)
+					}
+					p.Key = strconv.Itoa(i)
+					points.Add(p)
+				}
+			}
+			for ; i < bFieldLen; i++ {
+				// Create tombstone point
+				points.Add(Point{
+					Type:      pointType,
+					Key:       strconv.Itoa(i),
+					Tombstone: 1,
+				})
+			}
+		case reflect.Map:
+			// Points support maps with string keys
+			if keyK := bFieldV.Type().Key().Kind(); keyK != reflect.String {
+				return points, fmt.Errorf("unsupported type: map keyed by %v", keyK)
+			}
+			if aFieldV.Len() > maxStructureSize {
+				return points, fmt.Errorf(
+					"%v length of %v exceeds maximum of %v",
+					k, aFieldV.Len(), maxStructureSize,
+				)
+			}
+			// Populate keysToDelete with all keys from `before` map
+			keysToDelete := make(map[string]bool)
+			iter := bFieldV.MapRange()
+			for iter.Next() {
+				keysToDelete[iter.Key().String()] = true
+			}
+			// Now iterate over `after` map
+			iter = aFieldV.MapRange()
+			for iter.Next() {
+				mKey, mVal := iter.Key(), iter.Value()
+				if !mVal.Equal(bFieldV.MapIndex(mKey)) {
+					// Add / update key
+					p, err := pointFromPrimitive(pointType, mVal)
+					if err != nil {
+						return points, fmt.Errorf("map contains %w", err)
+					}
+					p.Key = mKey.String()
+					points.Add(p)
+				}
+				delete(keysToDelete, mKey.String())
+			}
+			for key := range keysToDelete {
+				// Create tombstone point
+				points.Add(Point{
+					Type:      pointType,
+					Key:       key,
+					Tombstone: 1,
+				})
+			}
+		case reflect.Struct:
+			// Points support "flat" structs, and they are treated like maps
+			// Key name is taken from struct "point" tag or from the field name
+			t := bFieldV.Type()
+			numField := t.NumField()
+			if numField > maxStructureSize {
+				return points, fmt.Errorf(
+					"%v size of %v exceeds maximum of %v",
+					k, numField, maxStructureSize,
+				)
+			}
+			for i := 0; i < numField; i++ {
+				sf := t.Field(i)
+				key := sf.Tag.Get("point")
+				if key == "" {
+					key = ToCamelCase(sf.Name)
+				}
+				if !bFieldV.Field(i).Equal(aFieldV.Field(i)) {
+					// Update key
+					p, err := pointFromPrimitive(pointType, aFieldV.Field(i))
+					if err != nil {
+						return points, fmt.Errorf("struct contains %w", err)
+					}
+					p.Key = key
+					points.Add(p)
+				}
+			}
+		default:
+			if !bFieldV.Equal(aFieldV) {
+				// Update point
+				p, err := pointFromPrimitive(pointType, aFieldV)
+				if err != nil {
+					return points, err
+				}
+				points.Add(p)
+			}
+		}
+	}
+	return points, nil
+}

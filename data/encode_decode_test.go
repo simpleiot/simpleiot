@@ -351,6 +351,149 @@ func TestDecodeAllTombstonePointArray(t *testing.T) {
 	}
 }
 
+func TestDiffPoints(t *testing.T) {
+	before := testType{
+		ID:          "123",
+		Parent:      "456",
+		Description: "test type",
+		Count:       120,
+		Value:       15.43,
+		Value2:      10,
+		Role:        "admin",
+		Tombstone:   true,
+	}
+	after := testType{
+		ID:          "0123",
+		Parent:      "0456",
+		Description: "description changed",
+		Count:       110,
+		Value:       15.43, // unchanged
+		Value2:      10000000,
+		Role:        "user",
+		Tombstone:   false,
+	}
+	p, err := DiffPoints(before, after)
+	if err != nil {
+		t.Fatal("diff error:", err)
+	}
+	if len(p) != 3 {
+		t.Fatalf("expected 3 points; got %v", len(p))
+	}
+	if p[0].Value != 0 ||
+		p[0].Text != "description changed" ||
+		p[0].Type != "description" ||
+		p[0].Tombstone != 0 {
+		t.Errorf("generated point invalid; got %v", p[0])
+	}
+	if p[1].Value != 110 ||
+		p[1].Text != "" ||
+		p[1].Type != "count" ||
+		p[1].Tombstone != 0 {
+		t.Errorf("generated point invalid; got %v", p[1])
+	}
+	if p[2].Value != 10000000 ||
+		p[2].Text != "" ||
+		p[2].Type != "value2" ||
+		p[2].Tombstone != 0 {
+		t.Errorf("generated point invalid; got %v", p[2])
+	}
+}
+
+func TestDiffPointsComplex(t *testing.T) {
+	// type testTypeComplex struct {
+	// 	ID          string            `node:"id"`
+	// 	Parent      string            `node:"parent"`
+	// 	Description string            `point:"description"`
+	// 	IPAddresses []string          `point:"ipAddress"`
+	// 	Location    map[string]string `point:"location"`
+	// 	Sensors     map[string]int    `point:"sensor"`
+	// 	Nested      TestType          `point:"nested"`
+	// 	TestValues  []int32           `edgepoint:"testValue"`
+	// 	Tombstone   bool              `edgepoint:"tombstone"`
+	// }
+	before := testTypeComplex{"123", "456",
+		"hi there",
+		[]string{"192.168.1.1", "127.0.0.1"},
+		map[string]string{
+			"hello":   "world",
+			"goodbye": "cruel world",
+		},
+		map[string]int{
+			"temp1": 23,
+			"temp2": 40,
+		},
+		TestType{"789", "456", "nested test type"},
+		[]int32{314, 1024},
+		true,
+	}
+	after := testTypeComplex{"0123", "0456",
+		"hi there",                // unchanged
+		[]string{"192.168.1.100"}, // index 0 updated; 1 deleted
+		map[string]string{
+			"hello": "world!!!", // hello updated; goodbye deleted
+			"foo":   "bar",      // foo added
+		},
+		map[string]int{
+			"temp1": 23,
+			"temp2": 40, // unchanged
+		},
+		TestType{"789", "456", "nested test type desc changed"},
+		// ignore edgepoints
+		[]int32{314, 1000, 2048, 4096},
+		false,
+	}
+	p, err := DiffPoints(before, after)
+	if err != nil {
+		t.Fatal("diff error:", err)
+	}
+	// log.Println(p)
+	if len(p) != 6 {
+		t.Fatalf("expected 6 points; got %v", len(p))
+	}
+	if p[0].Value != 0 ||
+		p[0].Text != "192.168.1.100" ||
+		p[0].Key != "0" ||
+		p[0].Type != "ipAddress" ||
+		p[0].Tombstone != 0 {
+		t.Errorf("generated point invalid; got %v", p[0])
+	}
+	if p[1].Value != 0 ||
+		p[1].Text != "" ||
+		p[1].Key != "1" ||
+		p[1].Type != "ipAddress" ||
+		p[1].Tombstone != 1 {
+		t.Errorf("generated point invalid; got %v", p[1])
+	}
+	if p[2].Value != 0 ||
+		p[2].Text != "world!!!" ||
+		p[2].Key != "hello" ||
+		p[2].Type != "location" ||
+		p[2].Tombstone != 0 {
+		t.Errorf("generated point invalid; got %v", p[2])
+	}
+	if p[3].Value != 0 ||
+		p[3].Text != "bar" ||
+		p[3].Key != "foo" ||
+		p[3].Type != "location" ||
+		p[3].Tombstone != 0 {
+		t.Errorf("generated point invalid; got %v", p[3])
+	}
+	if p[4].Value != 0 ||
+		p[4].Text != "" ||
+		p[4].Key != "goodbye" ||
+		p[4].Type != "location" ||
+		p[4].Tombstone != 1 {
+		t.Errorf("generated point invalid; got %v", p[4])
+	}
+	if p[5].Value != 0 ||
+		p[5].Text != "nested test type desc changed" ||
+		p[5].Key != "description" ||
+		p[5].Type != "nested" ||
+		p[5].Tombstone != 0 {
+		t.Errorf("generated point invalid; got %v", p[5])
+	}
+}
+
 type SortablePoints []Point
 
 func (sp SortablePoints) Len() int {
