@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.12.5] - 2023-08-25](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.5)
+
+- add supported for Linux temp sensors (#607)
+
 ## [[0.12.4] - 2023-08-25](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.4)
 
 - Reworked and simplified decode and merge routines (#589). See
