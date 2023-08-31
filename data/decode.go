@@ -447,9 +447,11 @@ func setVal(p Point, v reflect.Value) error {
 		v.Set(reflect.Zero(v.Type()))
 		return nil
 	}
-	if v.Kind() == reflect.Pointer && v.IsNil() {
-		// Initialize pointer
-		v.Set(reflect.New(v.Type().Elem()))
+	if v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			// Initialize pointer
+			v.Set(reflect.New(v.Type().Elem()))
+		}
 		v = v.Elem()
 	}
 	switch k := v.Kind(); k {
