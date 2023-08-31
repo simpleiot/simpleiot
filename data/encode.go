@@ -17,7 +17,16 @@ const maxStructureSize = 1000
 
 func pointFromPrimitive(pointType string, v reflect.Value) (Point, error) {
 	p := Point{Type: pointType}
-	k := v.Type().Kind()
+	k := v.Kind()
+
+	if k == reflect.Pointer {
+		if v.IsNil() {
+			p.Tombstone = 1
+			return p, nil
+		}
+		v = v.Elem()
+		k = v.Kind()
+	}
 	switch k {
 	case reflect.Bool:
 		p.Value = BoolToFloat(v.Bool())
@@ -71,7 +80,7 @@ func appendPointsFromValue(
 		for i := 0; i < v.Len(); i++ {
 			p, err := pointFromPrimitive(pointType, v.Index(i))
 			if err != nil {
-				return points, fmt.Errorf("unsupported type: %v of %w", k, err)
+				return points, fmt.Errorf("%v of %w", k, err)
 			}
 			p.Key = strconv.Itoa(i)
 			points = append(points, p)
@@ -123,6 +132,56 @@ func appendPointsFromValue(
 			p.Key = key
 			points = append(points, p)
 		}
+	case reflect.Pointer:
+		// We support pointers to primitives and structs
+		// If the pointer is nil, all generated points will have a tombstone set
+		if !v.IsNil() {
+			return appendPointsFromValue(points, pointType, v.Elem())
+		}
+		switch k := t.Elem().Kind(); k {
+		case reflect.Struct:
+			// Generate a tombstone point for all struct fields
+			numField := t.Elem().NumField()
+			if numField > maxStructureSize {
+				return points, fmt.Errorf(
+					"%v size of %v exceeds maximum of %v",
+					k, numField, maxStructureSize,
+				)
+			}
+			for i := 0; i < numField; i++ {
+				sf := t.Elem().Field(i)
+				key := sf.Tag.Get("point")
+				if key == "" {
+					key = sf.Tag.Get("edgepoint")
+				}
+				if key == "" {
+					key = ToCamelCase(sf.Name)
+				}
+				p := Point{
+					Type:      pointType,
+					Key:       key,
+					Tombstone: 1,
+				}
+				points = append(points, p)
+			}
+		case reflect.Bool,
+			reflect.Int,
+			reflect.Int8,
+			reflect.Int16,
+			reflect.Int32,
+			reflect.Int64,
+			reflect.Uint,
+			reflect.Uint8,
+			reflect.Uint16,
+			reflect.Uint32,
+			reflect.Uint64,
+			reflect.Float32,
+			reflect.Float64,
+			reflect.String:
+			points = append(points, Point{Type: pointType, Tombstone: 1})
+		default:
+			return points, fmt.Errorf("unsupported pointer type: %v", k)
+		}
 	default:
 		p, err := pointFromPrimitive(pointType, v)
 		if err != nil {
@@ -167,27 +226,28 @@ func ToCamelCase(s string) string {
 //		Role        string  `edgepoint:"role"`
 //		Tombstone   bool    `edgepoint:"tombstone"`
 //	   }
-func Encode(in interface{}) (NodeEdge, error) {
-	vIn := reflect.ValueOf(in)
-	tIn := reflect.TypeOf(in)
-
-	nodeType := ToCamelCase(tIn.Name())
-
+func Encode(in any) (NodeEdge, error) {
+	inV, inT, inK := reflectValue(in)
+	nodeType := ToCamelCase(inT.Name())
 	ret := NodeEdge{Type: nodeType}
-	var err error
 
-	for i := 0; i < tIn.NumField(); i++ {
-		sf := tIn.Field(i)
+	if inK != reflect.Struct {
+		return ret, fmt.Errorf("error decoding to %v; must be a struct", inK)
+	}
+
+	var err error
+	for i := 0; i < inT.NumField(); i++ {
+		sf := inT.Field(i)
 		if pt := sf.Tag.Get("point"); pt != "" {
 			ret.Points, err = appendPointsFromValue(
-				ret.Points, pt, vIn.Field(i),
+				ret.Points, pt, inV.Field(i),
 			)
 			if err != nil {
 				return ret, err
 			}
 		} else if et := sf.Tag.Get("edgepoint"); et != "" {
 			ret.EdgePoints, err = appendPointsFromValue(
-				ret.EdgePoints, et, vIn.Field(i),
+				ret.EdgePoints, et, inV.Field(i),
 			)
 			if err != nil {
 				return ret, err
@@ -196,9 +256,9 @@ func Encode(in interface{}) (NodeEdge, error) {
 			sf.Type.Kind() == reflect.String {
 
 			if nt == "id" {
-				ret.ID = vIn.Field(i).String()
+				ret.ID = inV.Field(i).String()
 			} else if nt == "parent" {
-				ret.Parent = vIn.Field(i).String()
+				ret.Parent = inV.Field(i).String()
 			}
 		}
 	}
