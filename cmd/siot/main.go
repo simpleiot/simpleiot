@@ -125,8 +125,9 @@ func runServer(args []string, version string, id string) error {
 	return g.Run()
 }
 
+var defaultNatsServer = "nats://127.0.0.1:4222"
+
 func runLog(args []string) {
-	defaultNatsServer := "nats://localhost:4222"
 	flags := flag.NewFlagSet("log", flag.ExitOnError)
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")
@@ -151,7 +152,6 @@ func runLog(args []string) {
 }
 
 func runStore(args []string) {
-	defaultNatsServer := "nats://localhost:4222"
 	flags := flag.NewFlagSet("store", flag.ExitOnError)
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")

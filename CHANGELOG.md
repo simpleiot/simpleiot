@@ -11,12 +11,21 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.12.5] - 2023-08-25](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.5)
+
+- add supported for Linux temp sensors (#607)
+
+## [[0.12.4] - 2023-08-25](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.4)
+
 - Reworked and simplified decode and merge routines (#589). See
   [documentation](https://docs.simpleiot.org/docs/ref/data.html?#converting-nodes-to-other-data-structures)
 - UI: fixed issue with with paste node rule condition/actions (#600)
 - Can client: fixed various issues (#498)
 - Rule client: fix issue with error reporting (#599)
 - switch to forked mdns package to get rid of closing messages (#558)
+- update nats.go package from v1.20.0 => v1.28.0
+- update nats-server package from v2.9.6 => v2.9.21
+- default NATS server to 127.0.0.1 instead of localhost
 
 ## [[0.12.3] - 2023-08-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.3)
 

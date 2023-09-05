@@ -31,7 +31,14 @@ the `wss` connection, which just uses standard HTTP(S) ports.
 
 ![sync](images/upstream.png)
 
+## Vidoes
+
 There are also several videos that demonstrate upstream connections:
 
-- [Simple IoT upstream synchronization support](https://youtu.be/6xB-gXUynQc)
-- [Simple IoT Integration with PLC Using Modbus](https://youtu.be/-1PuBoTAzPE)
+### [Simple IoT upstream synchronization support](https://youtu.be/6xB-gXUynQc)
+
+<iframe width="791" height="445" src="https://www.youtube.com/embed/6xB-gXUynQc" title="Simple IoT upstream synchronization support" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
+### [Simple IoT Integration with PLC Using Modbus](https://youtu.be/-1PuBoTAzPE)
+
+<iframe width="791" height="445" src="https://www.youtube.com/embed/-1PuBoTAzPE" title="Simple IoT Integration with PLC Using Modbus" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>

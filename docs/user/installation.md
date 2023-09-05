@@ -34,12 +34,17 @@ Grafana that work on most Linux servers.
 - [Simple IoT](https://github.com/simpleiot/ansible-role-simpleiot-bin)
 - [Caddy, Influxdb, Grafana, etc](https://github.com/cbrake?tab=repositories&q=ansible)
 
-Videos:
+### [Video: Setting up a Simple IoT System in the cloud](https://youtu.be/pH8GPbjt-SI)
 
-- [Setting up a Simple IoT System in the cloud](https://youtu.be/pH8GPbjt-SI)
+<iframe width="791" height="445" src="https://www.youtube.com/embed/pH8GPbjt-SI" title="Setting up a Simple IoT System in the cloud" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Yocto Linux
 
 Yocto Linux is a popular edge Linux solution. There is a
 [Bitbake recipe](https://github.com/YoeDistro/yoe-distro/blob/master/sources/meta-yoe/recipes-siot/simpleiot/simpleiot_git.bb)
 for including Simple IoT in Yocto builds.
+
+## Networking
+
+By default, Simple IoT runs an embedded NATS server and the SIOT NATS client is
+configured to connect to `nats://127.0.0.1:4222`.

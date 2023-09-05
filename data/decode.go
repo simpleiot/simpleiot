@@ -44,7 +44,46 @@ type GroupedPoints struct {
 // SetValue populates v with the Points in the group
 func (g GroupedPoints) SetValue(v reflect.Value) error {
 	t := v.Type()
-	switch k := t.Kind(); k {
+	k := t.Kind()
+	// Special case to handle pointers to structs
+	if k == reflect.Pointer && t.Elem().Kind() == reflect.Struct {
+		// Populate validFields with all fields in struct
+		validFields := make(map[string]bool)
+		i, numField := 0, t.Elem().NumField()
+		for ; i < numField; i++ {
+			sf := t.Elem().Field(i)
+			key := sf.Tag.Get("point")
+			if key == "" {
+				key = sf.Tag.Get("edgepoint")
+			}
+			if key == "" {
+				key = ToCamelCase(sf.Name)
+			}
+			validFields[key] = true
+		}
+		// Remove validFields as tombstone points are found
+		for _, p := range g.Points {
+			if p.Tombstone%2 == 1 {
+				delete(validFields, p.Key)
+			} else {
+				validFields[p.Key] = true
+			}
+		}
+		// If all points have tombstones, we just set the pointer to nil
+		if len(validFields) == 0 {
+			v.Set(reflect.Zero(t))
+			return nil
+		}
+		// If a valid point exists in the group, then initialize the pointer
+		// if needed
+		if v.IsNil() {
+			v.Set(reflect.New(t.Elem()))
+		}
+		v = v.Elem()
+		t = v.Type()
+		k = t.Kind()
+	}
+	switch k {
 	case reflect.Array, reflect.Slice:
 		// Ensure all keys are array indexes
 		if g.KeyNotIndex != "" {
@@ -104,17 +143,19 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 		// were deleted in this decode. Note: this does not guarantee that
 		// slices are always trimmed completely (for example, values can be
 		// deleted across multiple calls of Decode)
-		slices.Sort(deletedIndexes)
-		lastIndex := v.Len() - 1
-		for i := len(deletedIndexes) - 1; i >= 0; i-- {
-			if deletedIndexes[i] < lastIndex {
-				break
-			} else if deletedIndexes[i] == lastIndex {
-				lastIndex--
+		if k == reflect.Slice {
+			slices.Sort(deletedIndexes)
+			lastIndex := v.Len() - 1
+			for i := len(deletedIndexes) - 1; i >= 0; i-- {
+				if deletedIndexes[i] < lastIndex {
+					break
+				} else if deletedIndexes[i] == lastIndex {
+					lastIndex--
+				}
+				// else only decrement i
 			}
-			// else only decrement i
+			v.Set(v.Slice(0, lastIndex+1))
 		}
-		v.Set(v.Slice(0, lastIndex+1))
 	case reflect.Map:
 		// Ensure map is keyed by string
 		if keyK := t.Key().Kind(); keyK != reflect.String {
@@ -182,9 +223,11 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 			if key == "" {
 				return fmt.Errorf("point missing Key")
 			}
-			err := setVal(values[key], v.Field(i))
-			if err != nil {
-				return err
+			if val, ok := values[key]; ok {
+				err := setVal(val, v.Field(i))
+				if err != nil {
+					return err
+				}
 			}
 		}
 	default:
@@ -241,7 +284,7 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 // slice will be [0, 1, 2] if these points are batched together, but
 // if they are sent separately (thus resulting in multiple Decode calls),
 // the resulting slice will be [0, 1, 2, 0].
-func Decode(input NodeEdgeChildren, outputStruct interface{}) error {
+func Decode(input NodeEdgeChildren, outputStruct any) error {
 	outV, outT, outK := reflectValue(outputStruct)
 	if outK != reflect.Struct {
 		return fmt.Errorf("error decoding to %v; must be a struct", outK)
@@ -404,6 +447,13 @@ func setVal(p Point, v reflect.Value) error {
 		v.Set(reflect.Zero(v.Type()))
 		return nil
 	}
+	if v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			// Initialize pointer
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		v = v.Elem()
+	}
 	switch k := v.Kind(); k {
 	case reflect.Bool:
 		v.SetBool(FloatToBool(p.Value))
@@ -439,7 +489,7 @@ func setVal(p Point, v reflect.Value) error {
 
 // reflectValue returns a reflect.Value from an interface
 // This function dereferences `output` if it's a pointer or a reflect.Value
-func reflectValue(output interface{}) (
+func reflectValue(output any) (
 	outV reflect.Value, outT reflect.Type, outK reflect.Kind,
 ) {
 	outV = reflect.Indirect(reflect.ValueOf(output))

@@ -143,7 +143,7 @@ done:
 			// work reliably without deadlocking
 			err = m.clientUpSub[key].Drain()
 			if err != nil {
-				log.Println("Error unsubscribing subscription: %w", err)
+				log.Println("Error unsubscribing subscription: ", err)
 			}
 			start := time.Now()
 			for {
@@ -161,7 +161,7 @@ done:
 		case key := <-m.chDeleteCS:
 			err = m.clientUpSub[key].Unsubscribe()
 			if err != nil {
-				log.Println("Error unsubscribing subscription: %w", err)
+				log.Println("Error unsubscribing subscription: ", err)
 			}
 			delete(m.clientUpSub, key)
 			// client state must be deleted after the subscription is stopped
