@@ -184,7 +184,7 @@ Object.assign(SIOTConnection.prototype, {
 
 	// _subscribePointsSubject subscribes to a NATS subject and returns an async
 	// iterable for Point objects
-	_subscribePointsSubject(subject) {
+	_subscribePointsSubject(subject, recursive) {
 		const sub = this.subscribe(subject)
 		// Return subscription wrapped by new async iterator
 		return Object.assign(Object.create(sub), {
@@ -195,7 +195,17 @@ Object.assign(SIOTConnection.prototype, {
 					// Convert `time` to JavaScript date and return each point
 					for (const p of pointsList) {
 						p.time = new Date(p.time.seconds * 1e3 + p.time.nanos / 1e6)
-						yield p
+						if (recursive) {
+							const [, upstreamID, nodeID] = m.subject.split(".")
+							yield {
+								nodeID,
+								point: p,
+								upstreamID,
+								subject: m.subject,
+							}
+						} else {
+							yield p
+						}
 					}
 				}
 			},
@@ -221,7 +231,7 @@ Object.assign(SIOTConnection.prototype, {
 		if (nodeID === "all") {
 			nodeID = "*"
 		}
-		return this._subscribePointsSubject("up." + upstreamID + "." + nodeID)
+		return this._subscribePointsSubject("up." + upstreamID + "." + nodeID, true)
 	},
 	// Subscribes to `up.<upstreamID>.<nodeID>` and returns an async iterable for
 	// Point objects. `nodeID` and `parentID` can be `*` or `all`.
@@ -233,7 +243,8 @@ Object.assign(SIOTConnection.prototype, {
 			parentID = "*"
 		}
 		return this._subscribePointsSubject(
-			"up." + upstreamID + "." + nodeID + "." + parentID
+			"up." + upstreamID + "." + nodeID + "." + parentID,
+			true
 		)
 	},
 
@@ -244,6 +255,7 @@ Object.assign(SIOTConnection.prototype, {
 		const payload = encodePoints(points)
 		if (!ack) {
 			await this.publish("p." + nodeID, payload, opts)
+			return
 		}
 
 		const m = await this.request("p." + nodeID, payload, opts)
@@ -266,6 +278,7 @@ Object.assign(SIOTConnection.prototype, {
 		const payload = encodePoints(edgePoints)
 		if (!ack) {
 			await this.publish("p." + nodeID + "." + parentID, payload, opts)
+			return
 		}
 
 		const m = await this.request("p." + nodeID + "." + parentID, payload, opts)
@@ -339,7 +352,7 @@ function encodePoints(points) {
 			return p
 		}
 		let { time = new Date() } = p
-		const { type, key, index, value, text, tombstone, data } = p
+		const { type, value, text, key, tombstone, data, origin } = p
 		p = new Point()
 		if (!(time instanceof Timestamp)) {
 			let { seconds, nanos } = time
@@ -352,25 +365,23 @@ function encodePoints(points) {
 			time.setSeconds(seconds)
 			time.setNanos(nanos)
 		}
-		p.setTime(time)
 		p.setType(type)
-		if (key) {
-			p.setKey(key)
-		}
-		if (index) {
-			p.setIndex(index)
-		}
 		if (value || value === 0) {
 			p.setValue(value)
 		}
+		p.setTime(time)
 		if (text) {
 			p.setText(text)
 		}
+		p.setKey(key || "0")
 		if (tombstone) {
 			p.setTombstone(tombstone)
 		}
 		if (data) {
 			p.setData(data)
+		}
+		if (origin) {
+			p.setOrigin(origin)
 		}
 		return p
 	})
