@@ -195,6 +195,9 @@ Object.assign(SIOTConnection.prototype, {
 					// Convert `time` to JavaScript date and return each point
 					for (const p of pointsList) {
 						p.time = new Date(p.time.seconds * 1e3 + p.time.nanos / 1e6)
+						if (!p.key) {
+							p.key = "0"
+						}
 						if (recursive) {
 							const [, upstreamID, nodeID] = m.subject.split(".")
 							yield {
