@@ -55,7 +55,7 @@ Object.assign(SIOTConnection.prototype, {
 			{ type: "nodeType", text: type },
 			{ type: "tombstone", value: includeDel ? 1 : 0 },
 		]
-		const payload = encodePoints(points)
+		const payload = encodePoints(points, this.userID)
 		const m = await this.request(
 			"nodes." + (parent || "all") + "." + id,
 			payload,
@@ -92,7 +92,7 @@ Object.assign(SIOTConnection.prototype, {
 			{ type: "tombstone", value: includeDel ? 1 : 0 },
 		]
 
-		const payload = encodePoints(points)
+		const payload = encodePoints(points, this.userID)
 		const m = await this.request("nodes." + parentID + ".all", payload, opts)
 		const nodeEdges = decodeNodesRequest(m.data)
 		if (recursive) {
@@ -248,11 +248,18 @@ Object.assign(SIOTConnection.prototype, {
 		)
 	},
 
+	// setUserID sets the user ID for this connection; any points / edge points
+	// sent from this connection will have their origin set to the specified
+	// userID
+	setUserID(userID) {
+		this.userID = userID
+	},
+
 	// sendNodePoints sends an array of `points` for a given `nodeID`
 	// - `ack` - true if function should block waiting for send acknowledgement
 	// - `opts` are options passed to the NATS request
 	async sendNodePoints(nodeID, points, { ack, opts } = {}) {
-		const payload = encodePoints(points)
+		const payload = encodePoints(points, this.userID)
 		if (!ack) {
 			await this.publish("p." + nodeID, payload, opts)
 			return
@@ -275,7 +282,7 @@ Object.assign(SIOTConnection.prototype, {
 	// - `ack` - true if function should block waiting for send acknowledgement
 	// - `opts` are options passed to the NATS request
 	async sendEdgePoints(nodeID, parentID, edgePoints, { ack, opts } = {}) {
-		const payload = encodePoints(edgePoints)
+		const payload = encodePoints(edgePoints, this.userID)
 		if (!ack) {
 			await this.publish("p." + nodeID + "." + parentID, payload, opts)
 			return
@@ -344,7 +351,7 @@ function decodeNodesRequest(data) {
 }
 
 // encodePoints returns protobuf encoded Points
-function encodePoints(points) {
+function encodePoints(points, userID) {
 	const payload = new Points()
 	// Convert `time` from JavaScript date if needed
 	points = points.map((p) => {
@@ -380,8 +387,9 @@ function encodePoints(points) {
 		if (data) {
 			p.setData(data)
 		}
-		if (origin) {
-			p.setOrigin(origin)
+		if (userID || origin) {
+			// Note: Prefer `userID` over point `origin`
+			p.setOrigin(userID || origin)
 		}
 		return p
 	})
