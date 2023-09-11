@@ -144,9 +144,9 @@ tombstone points to the end so that the deleted points get removed.
 
 Generally it is simplest to send the entire array as a single message any time
 any value in it has changed -- especially if values are going to be added or
-removed.
+removed. The `data.Decode` will then correctly handle the array resizing.
 
-#### Decoding points into slices
+#### Technical details of how `data.Decode` works with slices
 
 Some consideration is needed when using `Decode` and `MergePoints` to decode
 points into Go slices. Slices are never allocated / copied unless they are being
