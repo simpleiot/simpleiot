@@ -128,6 +128,14 @@ type myNode struct {
 }
 ```
 
+The
+[`data.Decode()`](https://pkg.go.dev/github.com/simpleiot/simpleiot/data#Decode)
+function can be used to decode an array of points into the above type. The
+[`data.Merge()`](https://pkg.go.dev/github.com/simpleiot/simpleiot/data#MergePoints)
+function can be used to update an existing struct from a new point.
+
+#### Best practices for working with arrays
+
 If you are going to make changes to an array in UI/Client code, and you are
 storing the array in a native structure, then you also need to store a length
 field as well so you know how long the original array was. After modifying the
@@ -137,12 +145,6 @@ tombstone points to the end so that the deleted points get removed.
 Generally it is simplest to send the entire array as a single message any time
 any value in it has changed -- especially if values are going to be added or
 removed.
-
-The
-[`data.Decode()`](https://pkg.go.dev/github.com/simpleiot/simpleiot/data#Decode)
-function can be used to decode an array of points into the above type. The
-[`data.Merge()`](https://pkg.go.dev/github.com/simpleiot/simpleiot/data#MergePoints)
-function can be used to update an existing struct from a new point.
 
 #### Decoding points into slices
 
