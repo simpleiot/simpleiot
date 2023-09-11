@@ -119,7 +119,7 @@ func (c *NTPClient) Points(nodeID string, points []data.Point) {
 
 // EdgePoints is called when the client's node edge points are updated
 func (c *NTPClient) EdgePoints(
-	nodeID string, parentID string, points []data.Point,
+	_ string, _ string, _ []data.Point,
 ) {
 	// Do nothing
 }
