@@ -184,7 +184,8 @@ Object.assign(SIOTConnection.prototype, {
 
 	// _subscribePointsSubject subscribes to a NATS subject and returns an async
 	// iterable for Point objects
-	_subscribePointsSubject(subject, recursive) {
+	_subscribePointsSubject(subject) {
+		const [subjectType] = subject.split(".")
 		const sub = this.subscribe(subject)
 		// Return subscription wrapped by new async iterator
 		return Object.assign(Object.create(sub), {
@@ -200,16 +201,23 @@ Object.assign(SIOTConnection.prototype, {
 						}
 					}
 					// Send points as a array of points
-					if (recursive) {
-						const [, upstreamID, nodeID] = m.subject.split(".")
+					if (subjectType === "up") {
+						const [, upstreamID, nodeID, parentID] = m.subject.split(".")
 						yield {
-							nodeID,
 							upstreamID,
+							nodeID,
+							parentID, // populated for edge points
 							subject: m.subject,
 							points: pointsList,
 						}
 					} else {
-						yield pointsList
+						const [, nodeID, parentID] = m.subject.split(".")
+						yield {
+							nodeID,
+							parentID, // populated for edge points
+							subject: m.subject,
+							points: pointsList,
+						}
 					}
 				}
 			},
@@ -235,7 +243,7 @@ Object.assign(SIOTConnection.prototype, {
 		if (nodeID === "all") {
 			nodeID = "*"
 		}
-		return this._subscribePointsSubject("up." + upstreamID + "." + nodeID, true)
+		return this._subscribePointsSubject("up." + upstreamID + "." + nodeID)
 	},
 	// Subscribes to `up.<upstreamID>.<nodeID>.<parentID>` and returns an async
 	// iterable for an array of Point objects. `nodeID` and `parentID` can be
@@ -248,8 +256,7 @@ Object.assign(SIOTConnection.prototype, {
 			parentID = "*"
 		}
 		return this._subscribePointsSubject(
-			"up." + upstreamID + "." + nodeID + "." + parentID,
-			true
+			"up." + upstreamID + "." + nodeID + "." + parentID
 		)
 	},
 
