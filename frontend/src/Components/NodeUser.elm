@@ -40,7 +40,7 @@ view o =
                                 , zone = o.zone
                                 , labelWidth = labelWidth
                                 }
-                                ""
+                                "0"
 
                         opts =
                             oToInputO o labelWidth
