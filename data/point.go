@@ -453,7 +453,6 @@ func DecodeSerialHrPayload(payload []byte, callback func(Point)) error {
 	key := string(bytes.Trim(payload[16:32], "\x00"))
 	startNs := int64(binary.LittleEndian.Uint64(payload[32:40]))
 	if startNs == 0 {
-		fmt.Println("CLIFF: Warning, HR payload does not have timestamp")
 		// if MCU does not send a time, fill in current time
 		startNs = time.Now().UnixNano()
 	}

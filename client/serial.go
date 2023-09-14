@@ -242,7 +242,6 @@ func (sd *SerialDevClient) Run() error {
 			}
 
 			time.Sleep(time.Millisecond)
-			log.Println("CLIFF: toggle DTR")
 			err = serialPort.SetDTR(false)
 			if err != nil {
 				log.Printf("Error clearing serial port DTR: %v\n", err)
