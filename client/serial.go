@@ -130,7 +130,7 @@ func (sd *SerialDevClient) Run() error {
 					if err == ErrCobsDecodeError ||
 						err == ErrCobsTooMuchData {
 						errCount++
-						if errCount < 50 {
+						if errCount < 10000000 {
 							continue
 						}
 					}
@@ -142,6 +142,8 @@ func (sd *SerialDevClient) Run() error {
 			if c <= 0 {
 				continue
 			}
+
+			errCount = 0
 
 			buf = buf[0:c]
 			serialReadData <- buf
@@ -237,6 +239,18 @@ func (sd *SerialDevClient) Run() error {
 					err)
 				timerCheckPort.Reset(checkPortDur)
 				return
+			}
+
+			time.Sleep(time.Millisecond)
+			err = serialPort.SetDTR(false)
+			if err != nil {
+				log.Printf("Error clearing serial port DTR: %v\n", err)
+			}
+
+			time.Sleep(time.Millisecond * 100)
+			err = serialPort.SetDTR(true)
+			if err != nil {
+				log.Printf("Error setting serial port DTR: %v\n", err)
 			}
 
 			io = serialPort

@@ -11,7 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-## [[0.12.6] - 2023-08-25](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.6)
+## [[0.12.7] - 2023-09-14](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.7)
+
+- serial client decoding improvements
+
+## [[0.12.6] - 2023-09-13](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.6)
 
 - fix issue with email in user node UI (#609)
 

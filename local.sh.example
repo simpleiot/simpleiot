@@ -1,0 +1,6 @@
+# the below settings are useful if you want to run more than two SIOT examples at once
+export SIOT_HTTP_PORT=8228
+export SIOT_NATS_PORT=4223
+export SIOT_NATS_HTTP_PORT=8223
+export SIOT_NATS_SERVER=nats://127.0.0.1:4223
+export SIOT_NATS_WS_PORT=9223
