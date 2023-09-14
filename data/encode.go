@@ -358,7 +358,7 @@ func DiffPoints[T any](before, after T) (Points, error) {
 					points.Add(p)
 				}
 			}
-			for ; i < bFieldLen; i++ {
+			for i = bFieldLen - 1; i >= aFieldLen; i-- {
 				// Create tombstone point
 				points.Add(Point{
 					Type:      pointType,

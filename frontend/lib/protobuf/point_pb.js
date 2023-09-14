@@ -168,7 +168,6 @@ proto.pb.Point.toObject = function(includeInstance, msg) {
     type: jspb.Message.getFieldWithDefault(msg, 2, ""),
     value: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
     time: (f = msg.getTime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-    index: jspb.Message.getFloatingPointFieldWithDefault(msg, 13, 0.0),
     text: jspb.Message.getFieldWithDefault(msg, 8, ""),
     key: jspb.Message.getFieldWithDefault(msg, 11, ""),
     tombstone: jspb.Message.getFieldWithDefault(msg, 12, 0),
@@ -222,10 +221,6 @@ proto.pb.Point.deserializeBinaryFromReader = function(msg, reader) {
       var value = new google_protobuf_timestamp_pb.Timestamp;
       reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
       msg.setTime(value);
-      break;
-    case 13:
-      var value = /** @type {number} */ (reader.readFloat());
-      msg.setIndex(value);
       break;
     case 8:
       var value = /** @type {string} */ (reader.readString());
@@ -296,13 +291,6 @@ proto.pb.Point.serializeBinaryToWriter = function(message, writer) {
       5,
       f,
       google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
-    );
-  }
-  f = message.getIndex();
-  if (f !== 0.0) {
-    writer.writeFloat(
-      13,
-      f
     );
   }
   f = message.getText();
@@ -413,24 +401,6 @@ proto.pb.Point.prototype.clearTime = function() {
  */
 proto.pb.Point.prototype.hasTime = function() {
   return jspb.Message.getField(this, 5) != null;
-};
-
-
-/**
- * optional float index = 13;
- * @return {number}
- */
-proto.pb.Point.prototype.getIndex = function() {
-  return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 13, 0.0));
-};
-
-
-/**
- * @param {number} value
- * @return {!proto.pb.Point} returns this
- */
-proto.pb.Point.prototype.setIndex = function(value) {
-  return jspb.Message.setProto3FloatField(this, 13, value);
 };
 
 
@@ -743,7 +713,6 @@ proto.pb.SerialPoint.toObject = function(includeInstance, msg) {
     type: jspb.Message.getFieldWithDefault(msg, 2, ""),
     value: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
     time: jspb.Message.getFieldWithDefault(msg, 16, 0),
-    index: jspb.Message.getFloatingPointFieldWithDefault(msg, 13, 0.0),
     text: jspb.Message.getFieldWithDefault(msg, 8, ""),
     key: jspb.Message.getFieldWithDefault(msg, 11, ""),
     tombstone: jspb.Message.getFieldWithDefault(msg, 12, 0),
@@ -796,10 +765,6 @@ proto.pb.SerialPoint.deserializeBinaryFromReader = function(msg, reader) {
     case 16:
       var value = /** @type {number} */ (reader.readInt64());
       msg.setTime(value);
-      break;
-    case 13:
-      var value = /** @type {number} */ (reader.readFloat());
-      msg.setIndex(value);
       break;
     case 8:
       var value = /** @type {string} */ (reader.readString());
@@ -868,13 +833,6 @@ proto.pb.SerialPoint.serializeBinaryToWriter = function(message, writer) {
   if (f !== 0) {
     writer.writeInt64(
       16,
-      f
-    );
-  }
-  f = message.getIndex();
-  if (f !== 0.0) {
-    writer.writeFloat(
-      13,
       f
     );
   }
@@ -967,24 +925,6 @@ proto.pb.SerialPoint.prototype.getTime = function() {
  */
 proto.pb.SerialPoint.prototype.setTime = function(value) {
   return jspb.Message.setProto3IntField(this, 16, value);
-};
-
-
-/**
- * optional float index = 13;
- * @return {number}
- */
-proto.pb.SerialPoint.prototype.getIndex = function() {
-  return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 13, 0.0));
-};
-
-
-/**
- * @param {number} value
- * @return {!proto.pb.SerialPoint} returns this
- */
-proto.pb.SerialPoint.prototype.setIndex = function(value) {
-  return jspb.Message.setProto3FloatField(this, 13, value);
 };
 
 

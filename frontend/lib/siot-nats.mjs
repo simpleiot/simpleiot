@@ -55,7 +55,7 @@ Object.assign(SIOTConnection.prototype, {
 			{ type: "nodeType", text: type },
 			{ type: "tombstone", value: includeDel ? 1 : 0 },
 		]
-		const payload = encodePoints(points)
+		const payload = encodePoints(points, this.userID)
 		const m = await this.request(
 			"nodes." + (parent || "all") + "." + id,
 			payload,
@@ -92,7 +92,7 @@ Object.assign(SIOTConnection.prototype, {
 			{ type: "tombstone", value: includeDel ? 1 : 0 },
 		]
 
-		const payload = encodePoints(points)
+		const payload = encodePoints(points, this.userID)
 		const m = await this.request("nodes." + parentID + ".all", payload, opts)
 		const nodeEdges = decodeNodesRequest(m.data)
 		if (recursive) {
@@ -182,33 +182,99 @@ Object.assign(SIOTConnection.prototype, {
 		return parentNodes
 	},
 
-	// subscribePoints subscribes to `p.<nodeID>` and returns an async
+	// _subscribePointsSubject subscribes to a NATS subject and returns an async
 	// iterable for Point objects
-	subscribePoints(nodeID) {
-		const sub = this.subscribe("p." + nodeID)
+	_subscribePointsSubject(subject) {
+		const [subjectType] = subject.split(".")
+		const sub = this.subscribe(subject)
 		// Return subscription wrapped by new async iterator
 		return Object.assign(Object.create(sub), {
 			async *[Symbol.asyncIterator]() {
-				// Iterator reads and decodes Points from subscription
+				// Iterator reads and decodes array of Points from subscription
 				for await (const m of sub) {
 					const { pointsList } = Points.deserializeBinary(m.data).toObject()
 					// Convert `time` to JavaScript date and return each point
 					for (const p of pointsList) {
 						p.time = new Date(p.time.seconds * 1e3 + p.time.nanos / 1e6)
-						yield p
+						if (!p.key) {
+							p.key = "0"
+						}
+					}
+					// Send points as a array of points
+					if (subjectType === "up") {
+						const [, upstreamID, nodeID, parentID] = m.subject.split(".")
+						yield {
+							upstreamID,
+							nodeID,
+							parentID, // populated for edge points
+							subject: m.subject,
+							points: pointsList,
+						}
+					} else {
+						const [, nodeID, parentID] = m.subject.split(".")
+						yield {
+							nodeID,
+							parentID, // populated for edge points
+							subject: m.subject,
+							points: pointsList,
+						}
 					}
 				}
 			},
 		})
 	},
 
+	// Subscribes to `p.<nodeID>` and returns an async iterable for an array of
+	// Point objects.
+	subscribePoints(nodeID) {
+		return this._subscribePointsSubject("p." + nodeID)
+	},
+	// Subscribes to `p.<nodeID>.<parentID>` and returns an async iterable for
+	// an array of Point objects. `parentID` can be `*` or `all`.
+	subscribeEdgePoints(nodeID, parentID) {
+		if (parentID === "all") {
+			parentID = "*"
+		}
+		return this._subscribePointsSubject("p." + nodeID + "." + parentID)
+	},
+	// Subscribes to `up.<upstreamID>.<nodeID>` and returns an async iterable
+	// for an array of Point objects. `nodeID` can be `*` or `all`.
+	subscribeUpstreamPoints(upstreamID, nodeID) {
+		if (nodeID === "all") {
+			nodeID = "*"
+		}
+		return this._subscribePointsSubject("up." + upstreamID + "." + nodeID)
+	},
+	// Subscribes to `up.<upstreamID>.<nodeID>.<parentID>` and returns an async
+	// iterable for an array of Point objects. `nodeID` and `parentID` can be
+	// `*` or `all`.
+	subscribeUpstreamEdgePoints(upstreamID, nodeID, parentID) {
+		if (nodeID === "all") {
+			nodeID = "*"
+		}
+		if (parentID === "all") {
+			parentID = "*"
+		}
+		return this._subscribePointsSubject(
+			"up." + upstreamID + "." + nodeID + "." + parentID
+		)
+	},
+
+	// setUserID sets the user ID for this connection; any points / edge points
+	// sent from this connection will have their origin set to the specified
+	// userID
+	setUserID(userID) {
+		this.userID = userID
+	},
+
 	// sendNodePoints sends an array of `points` for a given `nodeID`
 	// - `ack` - true if function should block waiting for send acknowledgement
 	// - `opts` are options passed to the NATS request
 	async sendNodePoints(nodeID, points, { ack, opts } = {}) {
-		const payload = encodePoints(points)
+		const payload = encodePoints(points, this.userID)
 		if (!ack) {
 			await this.publish("p." + nodeID, payload, opts)
+			return
 		}
 
 		const m = await this.request("p." + nodeID, payload, opts)
@@ -221,16 +287,15 @@ Object.assign(SIOTConnection.prototype, {
 		}
 	},
 
-	// TODO: subscribeEdgePoints
-
 	// sendEdgePoints sends an array of `edgePoints` for the edge between
 	// `nodeID` and `parentID`
 	// - `ack` - true if function should block waiting for send acknowledgement
 	// - `opts` are options passed to the NATS request
 	async sendEdgePoints(nodeID, parentID, edgePoints, { ack, opts } = {}) {
-		const payload = encodePoints(edgePoints)
+		const payload = encodePoints(edgePoints, this.userID)
 		if (!ack) {
 			await this.publish("p." + nodeID + "." + parentID, payload, opts)
+			return
 		}
 
 		const m = await this.request("p." + nodeID + "." + parentID, payload, opts)
@@ -296,7 +361,7 @@ function decodeNodesRequest(data) {
 }
 
 // encodePoints returns protobuf encoded Points
-function encodePoints(points) {
+function encodePoints(points, userID) {
 	const payload = new Points()
 	// Convert `time` from JavaScript date if needed
 	points = points.map((p) => {
@@ -304,7 +369,7 @@ function encodePoints(points) {
 			return p
 		}
 		let { time = new Date() } = p
-		const { type, key, index, value, text, tombstone, data } = p
+		const { type, value, text, key, tombstone, data, origin } = p
 		p = new Point()
 		if (!(time instanceof Timestamp)) {
 			let { seconds, nanos } = time
@@ -317,25 +382,24 @@ function encodePoints(points) {
 			time.setSeconds(seconds)
 			time.setNanos(nanos)
 		}
-		p.setTime(time)
 		p.setType(type)
-		if (key) {
-			p.setKey(key)
-		}
-		if (index) {
-			p.setIndex(index)
-		}
 		if (value || value === 0) {
 			p.setValue(value)
 		}
+		p.setTime(time)
 		if (text) {
 			p.setText(text)
 		}
+		p.setKey(key || "0")
 		if (tombstone) {
 			p.setTombstone(tombstone)
 		}
 		if (data) {
 			p.setData(data)
+		}
+		if (userID || origin) {
+			// Note: Prefer `userID` over point `origin`
+			p.setOrigin(userID || origin)
 		}
 		return p
 	})
