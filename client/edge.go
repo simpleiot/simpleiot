@@ -75,7 +75,9 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		_ = nats.ErrorHandler(natsErrHandler)(o)
 
 		_ = nats.ConnectHandler(func(_ *nats.Conn) {
-			eo.Connected()
+			if eo.Connected != nil {
+				eo.Connected()
+			}
 		})(o)
 
 		_ = nats.ErrorHandler(func(_ *nats.Conn, sub *nats.Subscription,
@@ -84,15 +86,21 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		})(o)
 
 		_ = nats.ReconnectHandler(func(_ *nats.Conn) {
-			eo.Reconnected()
+			if eo.Reconnected != nil {
+				eo.Reconnected()
+			}
 		})(o)
 
 		_ = nats.DisconnectHandler(func(_ *nats.Conn) {
-			eo.Disconnected()
+			if eo.Disconnected != nil {
+				eo.Disconnected()
+			}
 		})(o)
 
 		_ = nats.ClosedHandler(func(_ *nats.Conn) {
-			eo.Closed()
+			if eo.Closed != nil {
+				eo.Closed()
+			}
 		})(o)
 
 		return nil
