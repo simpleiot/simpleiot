@@ -1027,7 +1027,7 @@ updateNodes model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Time.every 3000 Tick
+    Time.every 4000 Tick
 
 
 
