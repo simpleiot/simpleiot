@@ -186,6 +186,9 @@ func runStore(args []string) {
 			log.Println("NATS Closed")
 			os.Exit(0)
 		},
+		Connected: func() {
+			log.Println("NATS Connected")
+		},
 	}
 
 	nc, err := client.EdgeConnect(opts)
