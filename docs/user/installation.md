@@ -21,6 +21,25 @@ browser. The default login is:
 - user: `admin@admin.com`
 - pass: `admin`
 
+### Simple IoT self-install (Linux only)
+
+Simple IoT self-installation does the following:
+
+- creates a systemd service file
+- creates a data directory
+- starts and enables the service
+
+To install as user, run:
+
+`siot install`
+
+To install as root:
+
+`sudo siot install`
+
+The default ports are used, so if you want something different, modify the
+generated `siot.service` file.
+
 ## Cloud/Server deployments
 
 When on the public Internet, Simple IoT should be proxied by a web server like
