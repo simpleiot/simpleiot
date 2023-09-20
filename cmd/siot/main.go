@@ -8,11 +8,18 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+	"os/user"
+	"path"
+	"runtime"
+	"strings"
 	"syscall"
+	"text/template"
 	"time"
 
 	"github.com/oklog/run"
 	"github.com/simpleiot/simpleiot/client"
+	"github.com/simpleiot/simpleiot/install"
 	"github.com/simpleiot/simpleiot/server"
 )
 
@@ -36,6 +43,7 @@ func main() {
 		fmt.Println("  - serve (start the SIOT server)")
 		fmt.Println("  - log (log SIOT messages)")
 		fmt.Println("  - store (store maint, requires server to be running)")
+		fmt.Println("  - install (install SIOT and register service)")
 	}
 
 	_ = flags.Parse(os.Args[1:])
@@ -64,6 +72,8 @@ func main() {
 		runLog(args[1:])
 	case "store":
 		runStore(args[1:])
+	case "install":
+		runInstall(args[1:])
 	default:
 		log.Fatal("Unknown command; options: serve, log, store")
 	}
@@ -219,4 +229,139 @@ func runStore(args []string) {
 		fmt.Println("Error, no operation given.")
 		flags.Usage()
 	}
+}
+
+func runCommand(cmd string) (string, error) {
+	c := exec.Command("sh", "-c", cmd)
+	ret, err := c.CombinedOutput()
+	return string(ret), err
+}
+
+type serviceData struct {
+	SiotData      string
+	SiotPath      string
+	SystemdTarget string
+}
+
+func runInstall(args []string) {
+	flags := flag.NewFlagSet("install", flag.ExitOnError)
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	if runtime.GOOS != "linux" {
+		log.Fatal("Install is only supported on Linux systems")
+	}
+
+	currentUser, err := user.Current()
+	if err != nil {
+		log.Fatal("Error getting user: ", err)
+	}
+
+	isRoot := false
+	if currentUser.Username == "root" {
+		isRoot = true
+	}
+
+	serviceDir := path.Join(currentUser.HomeDir, ".config/systemd/user")
+	dataDir := path.Join(currentUser.HomeDir, ".local/share/siot")
+
+	if isRoot {
+		serviceDir = path.Join("/etc/systemd/system")
+		dataDir = "/var/lib/siot"
+	}
+
+	mkdirs := []string{serviceDir, dataDir}
+
+	for _, d := range mkdirs {
+		err := os.MkdirAll(d, 0755)
+		if err != nil {
+			log.Fatalf("Error creating dir %v: %v\n", d, err)
+		}
+	}
+
+	servicePath := path.Join(serviceDir, "siot.service")
+
+	siotPath, err := os.Executable()
+	if err != nil {
+		log.Fatal("Error getting SIOT path: ", err)
+	}
+
+	log.Println("Installing service file: ", servicePath)
+	log.Println("SIOT executable location: ", siotPath)
+	log.Println("SIOT data location: ", dataDir)
+
+	_, err = os.Stat(servicePath)
+
+	if err == nil {
+		log.Println("Service file exists, do you want to replace it? (yes/no)")
+
+		var input string
+
+		_, err := fmt.Scan(&input)
+		if err != nil {
+			log.Fatal("Error getting input: ", err)
+		}
+
+		input = strings.ToLower(input)
+
+		if input != "yes" {
+			log.Fatal("Exitting install")
+		}
+	}
+
+	siotService, err := install.Content.ReadFile("siot.service")
+	if err != nil {
+		log.Fatal("Error reading embedded service file: ", err)
+	}
+
+	t, err := template.New("service").Parse(string(siotService))
+	if err != nil {
+		log.Fatal("Error parsing service template", err)
+	}
+
+	serviceOut, err := os.Create(servicePath)
+	if err != nil {
+		log.Fatal("Error creating service file: ", err)
+	}
+
+	sd := serviceData{
+		SiotPath:      siotPath,
+		SiotData:      dataDir,
+		SystemdTarget: "default.target",
+	}
+
+	if isRoot {
+		sd.SystemdTarget = "multi-user.target"
+	}
+
+	err = t.Execute(serviceOut, sd)
+
+	if err != nil {
+		log.Fatal("Error installing service file: ", err)
+	}
+
+	// start and enable service
+	startCmd := "systemctl start siot"
+	enableCmd := "systemctl enable siot"
+	reloadCmd := "systemctl daemon-reload"
+
+	if !isRoot {
+		startCmd += " --user"
+		enableCmd += " --user"
+		reloadCmd += " --user"
+	}
+
+	cmds := []string{startCmd, enableCmd, reloadCmd}
+
+	for _, c := range cmds {
+		_, err := runCommand(c)
+		if err != nil {
+			log.Fatalf("Error running command: %v: %v\n", c, err)
+		}
+	}
+
+	log.Println("Install success!")
+	log.Println("Please update ports in service file if you want someting other than defaults")
 }
