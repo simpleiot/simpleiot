@@ -1,0 +1,18 @@
+[Unit]
+Description=Simple IoT cloud/edge application/framework portal
+After=network.target
+
+[Service]
+PIDFile={{ .SiotData }}/%i.pid
+Environment=SIOT_HTTP_PORT=8118
+Environment=SIOT_DATA={{ .SiotData }}
+Environment=SIOT_AUTH_TOKEN=""
+Environment=SIOT_NATS_PORT=4222
+Environment=SIOT_NATS_HTTP_PORT=8222
+Environment=SIOT_NATS_SERVER=nats://127.0.0.1:4222
+Environment=SIOT_NATS_WS_PORT=9222
+
+ExecStart={{ .SiotPath }}
+
+[Install]
+WantedBy={{ .SystemdTarget }}

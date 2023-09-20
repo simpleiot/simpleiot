@@ -14,6 +14,8 @@ For more details or to discuss releases, please visit the
 ## [[0.13.0] - 2023-09-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.13.0)
 
 - implement `siot install` command (#527)
+- update frontend poll rate from 3s to 4s
+- fix `siot store` (was crashing due to Opened not being defined)
 
 ## [[0.12.7] - 2023-09-14](https://github.com/simpleiot/simpleiot/releases/tag/v0.12.7)
 
