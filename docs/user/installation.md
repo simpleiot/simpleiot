@@ -29,7 +29,8 @@ Simple IoT self-installation does the following:
 - creates a data directory
 - starts and enables the service
 
-To install as user, run:
+To install as user, copy the `siot` binary to some location like
+`/usr/local/bin` and then run:
 
 `siot install`
 
