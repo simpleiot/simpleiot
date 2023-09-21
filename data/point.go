@@ -458,6 +458,9 @@ func DecodeSerialHrPayload(payload []byte, callback func(Point)) error {
 	}
 	sampNs := int64(binary.LittleEndian.Uint32(payload[40:44]))
 
+	// FIXME, this API should not use a callback for each
+	// point, that is probably why it is so slow
+
 	sampCount := (len(payload) - (16 + 16 + 8 + 4)) / 4
 	for i := 0; i < sampCount; i++ {
 		callback(Point{
