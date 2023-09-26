@@ -1,12 +1,18 @@
 package client
 
 import (
+	"fmt"
+	"log"
+
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 // ZMini represents a Zonit mini client
 type ZMini struct {
+	ID         string      `node:"id"`
+	Parent     string      `node:"parent"`
 	SerialPort []SerialDev `child:"serialDev"`
 }
 
@@ -32,6 +38,23 @@ func NewZMiniClient(nc *nats.Conn, config ZMini) Client {
 
 // Run the z-mini client
 func (zm *ZMiniClient) Run() error {
+	if len(zm.config.SerialPort) < 1 {
+		// add a serial node
+		sn := SerialDev{
+			ID:          uuid.New().String(),
+			Parent:      zm.config.ID,
+			Description: "Serial port",
+		}
+
+		err := SendNodeType(zm.nc, sn, zm.config.ID)
+
+		if err != nil {
+			log.Println("Error creating serial child node: ", err)
+			return fmt.Errorf("Error creating z-mini client, creating serial node: %v", err)
+		}
+
+		// client will restart here as we added a new node
+	}
 
 	return nil
 }
