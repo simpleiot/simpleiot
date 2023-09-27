@@ -15,10 +15,11 @@ import (
 // added/deleted
 type Manager[T any] struct {
 	// initial state
-	nc        *nats.Conn
-	root      string
-	nodeType  string
-	construct func(*nats.Conn, T) Client
+	nc          *nats.Conn
+	root        string
+	nodeType    string
+	parentTypes []string
+	construct   func(*nats.Conn, T) Client
 
 	// synchronization fields
 	stop        chan struct{}
@@ -37,15 +38,17 @@ type Manager[T any] struct {
 
 // NewManager takes constructor for a node client and returns a Manager for that client
 // The Node Type is inferred from the Go type passed in, so you must name Go client
-// Types to manage the node type definitions.
+// Types to manage the node type definitions. The manager recursively finds nodes
+// that are children of group nodes and the node types found in parentTypes.
 func NewManager[T any](nc *nats.Conn,
-	construct func(nc *nats.Conn, config T) Client) *Manager[T] {
+	construct func(nc *nats.Conn, config T) Client, parentTypes []string) *Manager[T] {
 	var x T
 	nodeType := data.ToCamelCase(reflect.TypeOf(x).Name())
 
 	return &Manager[T]{
 		nc:           nc,
 		nodeType:     nodeType,
+		parentTypes:  append(parentTypes, data.NodeTypeGroup),
 		construct:    construct,
 		stop:         make(chan struct{}),
 		chScan:       make(chan struct{}),
@@ -203,32 +206,19 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 
 	nodes = append(nodes, children...)
 
-	// recurse into any groups
-	groups, err := GetNodes(m.nc, id, "all", data.NodeTypeGroup, false)
-	if err != nil {
-		return []data.NodeEdge{}, err
-	}
-	for _, g := range groups {
-		c, err := m.scanHelper(g.ID, nodes)
+	// recurse into any nodes that may have children
+	for _, parentType := range m.parentTypes {
+		groups, err := GetNodes(m.nc, id, "all", parentType, false)
 		if err != nil {
-			return nil, err
+			return []data.NodeEdge{}, err
 		}
-		nodes = append(nodes, c...)
-	}
-
-	// TODO: we need a better way of identifying nodes than
-	// can function as "groups" that may have children that require
-	// clients.
-	shellyNodes, err := GetNodes(m.nc, id, "all", data.NodeTypeShelly, false)
-	if err != nil {
-		return []data.NodeEdge{}, err
-	}
-	for _, s := range shellyNodes {
-		c, err := m.scanHelper(s.ID, nodes)
-		if err != nil {
-			return nil, err
+		for _, g := range groups {
+			c, err := m.scanHelper(g.ID, nodes)
+			if err != nil {
+				return nil, err
+			}
+			nodes = append(nodes, c...)
 		}
-		nodes = append(nodes, c...)
 	}
 
 	return nodes, nil
