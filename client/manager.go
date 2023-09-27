@@ -208,12 +208,12 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 
 	// recurse into any nodes that may have children
 	for _, parentType := range m.parentTypes {
-		groups, err := GetNodes(m.nc, id, "all", parentType, false)
+		parentNodes, err := GetNodes(m.nc, id, "all", parentType, false)
 		if err != nil {
 			return []data.NodeEdge{}, err
 		}
-		for _, g := range groups {
-			c, err := m.scanHelper(g.ID, nodes)
+		for _, p := range parentNodes {
+			c, err := m.scanHelper(p.ID, nodes)
 			if err != nil {
 				return nil, err
 			}
