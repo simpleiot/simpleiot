@@ -9,6 +9,8 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
+var NodeTypeZMini = "zMini"
+
 // ZMini represents a Zonit mini client
 type ZMini struct {
 	ID         string      `node:"id"`

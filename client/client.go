@@ -27,7 +27,7 @@ type Client interface {
 func DefaultClients(nc *nats.Conn) (*Group, error) {
 	g := NewGroup("Default clients")
 
-	sc := NewManager(nc, NewSerialDevClient, nil)
+	sc := NewManager(nc, NewSerialDevClient, []string{NodeTypeZMini})
 	g.Add(sc)
 
 	cb := NewManager(nc, NewCanBusClient, nil)
@@ -60,7 +60,7 @@ func DefaultClients(nc *nats.Conn) (*Group, error) {
 	ntp := NewManager(nc, NewNTPClient, nil)
 	g.Add(ntp)
 
-	zm := NewManager(nc, NewZMiniClient)
+	zm := NewManager(nc, NewZMiniClient, nil)
 	g.Add(zm)
 
 	return g, nil
