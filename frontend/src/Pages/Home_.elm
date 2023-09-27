@@ -29,6 +29,7 @@ import Components.NodeSignalGenerator as SignalGenerator
 import Components.NodeSync as NodeSync
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
+import Components.NodeZMini as NodeZMini
 import Dict
 import Effect exposing (Effect)
 import Element exposing (..)
@@ -946,6 +947,7 @@ nodeCustomSortRules =
         , ( Node.typeParticle, "O" )
         , ( Node.typeShelly, "P" )
         , ( Node.typeShellyIO, "Q" )
+        , ( Node.typeZMini, "AA" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1152,6 +1154,9 @@ shouldDisplay typ =
         "serialDev" ->
             True
 
+        "zMini" ->
+            True
+
         "canBus" ->
             True
 
@@ -1235,6 +1240,9 @@ viewNode model parent node depth =
 
                 "serialDev" ->
                     NodeSerialDev.view
+
+                "zMini" ->
+                    NodeZMini.view
 
                 "canBus" ->
                     NodeCanBus.view
@@ -1468,6 +1476,11 @@ nodeDescSerialDev =
     row [] [ Icon.serialDev, text "Serial Device" ]
 
 
+nodeDescZMini : Element Msg
+nodeDescZMini =
+    row [] [ Icon.serialDev, text "z-mini" ]
+
+
 nodeDescCanBus : Element Msg
 nodeDescCanBus =
     row [] [ Icon.serialDev, text "CAN Bus" ]
@@ -1552,6 +1565,7 @@ viewAddNode parent add =
                     , Input.option Node.typeRule nodeDescRule
                     , Input.option Node.typeModbus nodeDescModbus
                     , Input.option Node.typeSerialDev nodeDescSerialDev
+                    , Input.option Node.typeZMini nodeDescZMini
                     , Input.option Node.typeCanBus nodeDescCanBus
                     , Input.option Node.typeMsgService nodeDescMsgService
                     , Input.option Node.typeDb nodeDescDb
