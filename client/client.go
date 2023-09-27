@@ -27,37 +27,37 @@ type Client interface {
 func DefaultClients(nc *nats.Conn) (*Group, error) {
 	g := NewGroup("Default clients")
 
-	sc := NewManager(nc, NewSerialDevClient)
+	sc := NewManager(nc, NewSerialDevClient, nil)
 	g.Add(sc)
 
-	cb := NewManager(nc, NewCanBusClient)
+	cb := NewManager(nc, NewCanBusClient, nil)
 	g.Add(cb)
 
-	rc := NewManager(nc, NewRuleClient)
+	rc := NewManager(nc, NewRuleClient, nil)
 	g.Add(rc)
 
-	db := NewManager(nc, NewDbClient)
+	db := NewManager(nc, NewDbClient, nil)
 	g.Add(db)
 
-	sg := NewManager(nc, NewSignalGeneratorClient)
+	sg := NewManager(nc, NewSignalGeneratorClient, nil)
 	g.Add(sg)
 
-	sync := NewManager(nc, NewSyncClient)
+	sync := NewManager(nc, NewSyncClient, nil)
 	g.Add(sync)
 
-	metrics := NewManager(nc, NewMetricsClient)
+	metrics := NewManager(nc, NewMetricsClient, nil)
 	g.Add(metrics)
 
-	particle := NewManager(nc, NewParticleClient)
+	particle := NewManager(nc, NewParticleClient, nil)
 	g.Add(particle)
 
-	shelly := NewManager(nc, NewShellyClient)
+	shelly := NewManager(nc, NewShellyClient, nil)
 	g.Add(shelly)
 
-	shellyIO := NewManager(nc, NewShellyIOClient)
+	shellyIO := NewManager(nc, NewShellyIOClient, []string{data.NodeTypeShelly})
 	g.Add(shellyIO)
 
-	ntp := NewManager(nc, NewNTPClient)
+	ntp := NewManager(nc, NewNTPClient, nil)
 	g.Add(ntp)
 
 	zm := NewManager(nc, NewZMiniClient)
