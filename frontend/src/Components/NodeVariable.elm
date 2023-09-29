@@ -92,6 +92,7 @@ view o =
                         "Variable type"
                         [ ( Point.valueOnOff, "On/Off" )
                         , ( Point.valueNumber, "Number" )
+                        , ( Point.valueText, "Text" )
                         ]
                     , viewIf (variableType == Point.valueOnOff) <|
                         onOffInput
@@ -102,6 +103,8 @@ view o =
                         numberInput Point.typeValue "Value"
                     , viewIf (variableType == Point.valueNumber) <|
                         textInput Point.typeUnits "Units" ""
+                    , viewIf (variableType == Point.valueText) <|
+                        textInput Point.typeValue "Text" ""
                     ]
 
                 else
