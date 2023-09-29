@@ -1,4 +1,10 @@
 #!/bin/sh
+
+if [ -f local.sh ]; then
+	echo "reading local settings"
+	. ./local.sh
+fi
+
 RECOMMENDED_ELM_VERSION=0.19.1
 
 # map tools from project go modules
