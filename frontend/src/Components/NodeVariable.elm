@@ -17,14 +17,17 @@ view : NodeOptions msg -> Element msg
 view o =
     let
         value =
-            Point.getValue o.node.points Point.typeValue ""
+            Point.getValue o.node.points Point.typeValue "0"
 
         variableType =
-            Point.getText o.node.points Point.typeVariableType ""
+            Point.getText o.node.points Point.typeVariableType "0"
 
         valueText =
             if variableType == Point.valueNumber then
                 String.fromFloat (Round.roundNum 2 value)
+
+            else if variableType == Point.valueText then
+                Point.getText o.node.points Point.typeValue "0"
 
             else if value == 0 then
                 "off"
