@@ -12,6 +12,7 @@ For more details or to discuss releases, please visit the
 ## [Unreleased]
 
 - update client manager API to include list of parent node types
+- fix crash with flaky network (#625)
 
 ## [[0.13.0] - 2023-09-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.13.0)
 
