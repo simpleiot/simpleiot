@@ -105,6 +105,7 @@ func (sd *SerialDevClient) Run() error {
 	var port *CobsWrapper
 	serialReadData := make(chan []byte)
 	listenerClosed := make(chan struct{})
+	listenerSerialErr := make(chan struct{})
 
 	closePort := func() {
 		if port != nil {
@@ -129,12 +130,7 @@ func (sd *SerialDevClient) Run() error {
 				if err != io.EOF && err.Error() != "Port has been closed" {
 					log.Printf("Error reading port %v: %v\n", sd.config.Description, err)
 
-					sd.config.ErrorCount++
-					points := []data.Point{{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)}}
-					sendErr := SendPoints(sd.nc, sd.natsSub, points, false)
-					if sendErr != nil {
-						log.Println("Error sending error points: ", sendErr)
-					}
+					listenerSerialErr <- struct{}{}
 
 					// we don't want to reset the port on every COBS
 					// decode error, so accumulate a few before we do this
@@ -306,6 +302,13 @@ func (sd *SerialDevClient) Run() error {
 		case <-listenerClosed:
 			closePort()
 			timerCheckPort.Reset(checkPortDur)
+		case <-listenerSerialErr:
+			sd.config.ErrorCount++
+			points := []data.Point{{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)}}
+			err := SendPoints(sd.nc, sd.natsSub, points, false)
+			if err != nil {
+				log.Println("Error sending error points: ", err)
+			}
 		case e, ok := <-watcher.Events:
 			if ok {
 				if e.Name == sd.config.Port {
