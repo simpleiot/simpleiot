@@ -38,23 +38,25 @@ type SerialDev struct {
 	ErrorCountHR      int    `point:"errorCountHR"`
 	ErrorCountResetHR bool   `point:"errorCountResetHR"`
 	Rate              bool   `point:"rate"`
+	RateHR            bool   `point:"rate"`
 	Connected         bool   `point:"connected"`
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
 type SerialDevClient struct {
-	nc             *nats.Conn
-	config         SerialDev
-	stop           chan struct{}
-	newPoints      chan NewPoints
-	newEdgePoints  chan NewPoints
-	wrSeq          byte
-	lastSendStats  time.Time
-	natsSub        string
-	natsSubHR      string
-	natsSubHRUp    string
-	ratePointCount int
-	rateLastSend   time.Time
+	nc               *nats.Conn
+	config           SerialDev
+	stop             chan struct{}
+	newPoints        chan NewPoints
+	newEdgePoints    chan NewPoints
+	wrSeq            byte
+	lastSendStats    time.Time
+	natsSub          string
+	natsSubHR        string
+	natsSubHRUp      string
+	ratePointCount   int
+	ratePointCountHR int
+	rateLastSend     time.Time
 }
 
 // NewSerialDevClient ...
@@ -352,6 +354,7 @@ func (sd *SerialDevClient) Run() error {
 				if err != nil {
 					log.Println("Error publishing HR data: ", err)
 				}
+				sd.ratePointCountHR++
 				// we're done
 				break
 			}
@@ -417,12 +420,18 @@ func (sd *SerialDevClient) Run() error {
 
 			if time.Since(sd.rateLastSend) > time.Second {
 				now := time.Now()
-				rate := float64(sd.ratePointCount) / now.Sub(sd.rateLastSend).Seconds()
+				elapsedSec := now.Sub(sd.rateLastSend).Seconds()
+				rate := float64(sd.ratePointCount) / elapsedSec
+				rateHR := float64(sd.ratePointCountHR) / elapsedSec
 				points = append(points,
 					data.Point{Time: now, Type: data.PointTypeRate,
-						Value: rate})
+						Value: rate},
+					data.Point{Time: now, Type: data.PointTypeRateHR,
+						Value: rateHR},
+				)
 				sd.rateLastSend = now
 				sd.ratePointCount = 0
+				sd.ratePointCountHR = 0
 			}
 
 			if len(points) > 0 {
