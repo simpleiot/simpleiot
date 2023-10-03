@@ -86,6 +86,7 @@ view o =
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     , counterWithReset Point.typeRx Point.typeRxReset "Rx count"
                     , counterWithReset Point.typeTx Point.typeTxReset "Tx count"
+                    , counterWithReset Point.typeErrorCountHR Point.typeErrorCountResetHR "HR err count"
                     , counterWithReset Point.typeHrRx Point.typeHrRxReset "HR Rx count"
                     , text <| "  Rate (pts/sec): " ++ rateS
                     , text <| "  Last log: " ++ log

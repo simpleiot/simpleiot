@@ -17,26 +17,28 @@ import (
 
 // SerialDev represents a serial (MCU) config
 type SerialDev struct {
-	ID               string `node:"id"`
-	Parent           string `node:"parent"`
-	Description      string `point:"description"`
-	Port             string `point:"port"`
-	Baud             string `point:"baud"`
-	MaxMessageLength int    `point:"maxMessageLength"`
-	Debug            int    `point:"debug"`
-	Disable          bool   `point:"disable"`
-	Log              string `point:"log"`
-	Rx               int    `point:"rx"`
-	RxReset          bool   `point:"rxReset"`
-	Tx               int    `point:"tx"`
-	TxReset          bool   `point:"txReset"`
-	HrRx             int64  `point:"hrRx"`
-	HrRxReset        bool   `point:"hrRxReset"`
-	Uptime           int    `point:"uptime"`
-	ErrorCount       int    `point:"errorCount"`
-	ErrorCountReset  bool   `point:"errorCountReset"`
-	Rate             bool   `point:"rate"`
-	Connected        bool   `point:"connected"`
+	ID                string `node:"id"`
+	Parent            string `node:"parent"`
+	Description       string `point:"description"`
+	Port              string `point:"port"`
+	Baud              string `point:"baud"`
+	MaxMessageLength  int    `point:"maxMessageLength"`
+	Debug             int    `point:"debug"`
+	Disable           bool   `point:"disable"`
+	Log               string `point:"log"`
+	Rx                int    `point:"rx"`
+	RxReset           bool   `point:"rxReset"`
+	Tx                int    `point:"tx"`
+	TxReset           bool   `point:"txReset"`
+	HrRx              int64  `point:"hrRx"`
+	HrRxReset         bool   `point:"hrRxReset"`
+	Uptime            int    `point:"uptime"`
+	ErrorCount        int    `point:"errorCount"`
+	ErrorCountReset   bool   `point:"errorCountReset"`
+	ErrorCountHR      int    `point:"errorCountHR"`
+	ErrorCountResetHR bool   `point:"errorCountResetHR"`
+	Rate              bool   `point:"rate"`
+	Connected         bool   `point:"connected"`
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
@@ -124,6 +126,13 @@ func (sd *SerialDevClient) Run() error {
 			if err != nil {
 				if err != io.EOF && err.Error() != "Port has been closed" {
 					log.Printf("Error reading port %v: %v\n", sd.config.Description, err)
+
+					sd.config.ErrorCount++
+					points := []data.Point{{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)}}
+					sendErr := SendPoints(sd.nc, sd.natsSub, points, false)
+					if sendErr != nil {
+						log.Println("Error sending error points: ", sendErr)
+					}
 
 					// we don't want to reset the port on every COBS
 					// decode error, so accumulate a few before we do this
@@ -313,7 +322,26 @@ func (sd *SerialDevClient) Run() error {
 			// decode serial packet
 			seq, subject, payload, err := SerialDecode(rd)
 			if err != nil {
-				log.Println("Serial framing error: ", err)
+				log.Printf("Serial framing error (sub:%v): %v", subject, err)
+
+				var t string
+				var cnt int
+
+				if subject == "phr" {
+					t = data.PointTypeErrorCountHR
+					sd.config.ErrorCountHR++
+					cnt = sd.config.ErrorCountHR
+				} else {
+					t = data.PointTypeErrorCount
+					sd.config.ErrorCount++
+					cnt = sd.config.ErrorCount
+				}
+
+				err := SendPoints(sd.nc, sd.natsSub, []data.Point{{Type: t, Value: float64(cnt)}}, false)
+				if err != nil {
+					log.Println("Error sending error points: ", err)
+				}
+
 				break
 			}
 
@@ -455,6 +483,20 @@ func (sd *SerialDevClient) Run() error {
 
 				sd.config.ErrorCountReset = false
 				sd.config.ErrorCount = 0
+			}
+
+			if sd.config.ErrorCountResetHR {
+				points := data.Points{
+					{Type: data.PointTypeErrorCountHR, Value: 0},
+					{Type: data.PointTypeErrorCountResetHR, Value: 0},
+				}
+				err = SendPoints(sd.nc, sd.natsSub, points, false)
+				if err != nil {
+					log.Println("Error resetting MCU error count: ", err)
+				}
+
+				sd.config.ErrorCountResetHR = false
+				sd.config.ErrorCountHR = 0
 			}
 
 			if sd.config.RxReset {
