@@ -82,7 +82,11 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 
 		_ = nats.ErrorHandler(func(_ *nats.Conn, sub *nats.Subscription,
 			err error) {
-			log.Printf("NATS Error, sub: %v, err: %s\n", sub.Subject, err)
+			if sub != nil {
+				log.Printf("NATS Error, sub: %v, err: %v\n", sub.Subject, err)
+			} else {
+				log.Printf("NATS Error, err: %v\n", err)
+			}
 		})(o)
 
 		_ = nats.ReconnectHandler(func(_ *nats.Conn) {
