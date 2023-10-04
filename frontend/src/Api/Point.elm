@@ -49,7 +49,9 @@ module Api.Point exposing
     , typeErrorCountCRCReset
     , typeErrorCountEOF
     , typeErrorCountEOFReset
+    , typeErrorCountHR
     , typeErrorCountReset
+    , typeErrorCountResetHR
     , typeFilePath
     , typeFirstName
     , typeFrequency
@@ -86,6 +88,7 @@ module Api.Point exposing
     , typePort
     , typeProtocol
     , typeRate
+    , typeRateHR
     , typeReadOnly
     , typeRx
     , typeRxReset
@@ -370,6 +373,16 @@ typeSyncCount =
 typeSyncCountReset : String
 typeSyncCountReset =
     "syncCountReset"
+
+
+typeErrorCountHR : String
+typeErrorCountHR =
+    "errorCountHR"
+
+
+typeErrorCountResetHR : String
+typeErrorCountResetHR =
+    "errorCountResetHR"
 
 
 typeMsgsInDb : String
@@ -752,6 +765,11 @@ typeRate =
     "rate"
 
 
+typeRateHR : String
+typeRateHR =
+    "rateHR"
+
+
 typeType : String
 typeType =
     "type"
@@ -841,6 +859,8 @@ specialPoints =
     , typeErrorCountReset
     , typeSyncCount
     , typeSyncCountReset
+    , typeErrorCountHR
+    , typeErrorCountResetHR
     , typeLog
     , typePort
     , typeRx
@@ -850,6 +870,7 @@ specialPoints =
     , typeTx
     , typeTxReset
     , typeRate
+    , typeRateHR
     , typeType
     , typeIP
     , typePeriod
