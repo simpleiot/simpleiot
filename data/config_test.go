@@ -26,7 +26,7 @@ var configTestNode = NodeEdgeChildren{
 	},
 }
 
-var configTestYAML = `
+var configTestNodeYAML = `
 nodes:
   - type: testType
     parent: 456
@@ -48,7 +48,7 @@ type configImport struct {
 func TestConfigImport(t *testing.T) {
 	var res configImport
 
-	err := yaml.Unmarshal([]byte(configTestYAML), &res)
+	err := yaml.Unmarshal([]byte(configTestNodeYAML), &res)
 	if err != nil {
 		t.Fatal("unmarshal failed: ", err)
 	}
@@ -59,34 +59,22 @@ func TestConfigImport(t *testing.T) {
 	}
 }
 
-/*
 var configTestNodeChildren = NodeEdgeChildren{
-	NodeEdge: NodeEdge{
+	NodeEdge{
 		ID:     "123",
 		Parent: "456",
 		Type:   "testType",
-		Points: []Point{
-			{Type: "description", Text: "test type"},
-			{Type: "count", Value: 120},
-			{Type: "value", Value: 15.43},
-			{Type: "value2", Value: 10},
-		},
-		EdgePoints: []Point{
-			{Type: "role", Text: "admin"},
-			{Type: "tombstone", Value: 1},
-		},
 	},
-	Children: []NodeEdgeChildren{
+	[]NodeEdgeChildren{
 		{NodeEdge{
 			ID:     "abc",
 			Parent: "123",
 			Type:   "testY",
 			Points: []Point{
-				{Type: "description", Text: "test Y1"},
+				{Type: "description", Text: "test Y1", Key: "2"},
 			},
 			EdgePoints: []Point{
 				{Type: "role", Text: "user"},
-				{Type: "tombstone", Value: 1},
 			},
 		},
 			[]NodeEdgeChildren{
@@ -97,25 +85,43 @@ var configTestNodeChildren = NodeEdgeChildren{
 					Points: []Point{
 						{Type: "description", Text: "test Y2"},
 					},
-					EdgePoints: []Point{
-						{Type: "role", Text: "user"},
-						{Type: "tombstone", Value: 1},
-					},
-				}, nil},
-				{NodeEdge{
-					ID:     "mno",
-					Parent: "abc",
-					Type:   "testZ",
-					Points: []Point{
-						{Type: "description", Text: "test Z1"},
-					},
-					EdgePoints: []Point{
-						{Type: "role", Text: "user"},
-						{Type: "tombstone", Value: 1},
-					},
 				}, nil},
 			},
 		},
 	},
 }
-*/
+
+var configTestNodeChildrenYAML = `
+nodes:
+  - type: testType
+    id: 123
+    parent: 456
+    children:
+      - id: "abc"
+        parent: "123"
+        type: "testY"
+        points:
+          - {type: description, text: "test Y1", key: "2"}
+        edgePoints:
+          - {type: role, text: user}
+        children:
+          - id: "jkl"
+            parent: "abc"
+            type: "testY"
+            points:
+              - {type: description, text: "test Y2"}
+`
+
+func TestConfigChildrenImport(t *testing.T) {
+	var res configImport
+
+	err := yaml.Unmarshal([]byte(configTestNodeChildrenYAML), &res)
+	if err != nil {
+		t.Fatal("unmarshal failed: ", err)
+	}
+
+	if !reflect.DeepEqual(res.Nodes[0], configTestNodeChildren) {
+		fmt.Printf("res: %+v\n", res)
+		t.Fatal("Did not get expected result")
+	}
+}
