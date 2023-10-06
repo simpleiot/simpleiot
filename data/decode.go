@@ -17,6 +17,20 @@ type NodeEdgeChildren struct {
 	Children []NodeEdgeChildren
 }
 
+func (ne NodeEdgeChildren) String() string {
+	var childHelper func(NodeEdgeChildren, string) string
+
+	childHelper = func(ne NodeEdgeChildren, indent string) string {
+		ret := indent + ne.NodeEdge.String()
+		for _, c := range ne.Children {
+			ret += childHelper(c, indent+"  ")
+		}
+		return ret
+	}
+
+	return childHelper(ne, "")
+}
+
 // reflectValueT is the `reflect.Type` for a `reflect.Value`
 var reflectValueT = reflect.TypeOf(reflect.Value{})
 
