@@ -191,10 +191,10 @@ type NodeVersion struct {
 type NodeEdge struct {
 	ID         string `json:"id"`
 	Type       string `json:"type"`
-	Hash       uint32 `json:"hash"`
+	Hash       uint32 `json:"hash" yaml:"-"`
 	Parent     string `json:"parent"`
-	Points     Points `json:"points"`
-	EdgePoints Points `json:"edgePoints"`
+	Points     Points `json:"points,omitempty"`
+	EdgePoints Points `json:"edgePoints,omitempty"`
 }
 
 func (n NodeEdge) String() string {

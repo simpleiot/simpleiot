@@ -14,7 +14,7 @@ import (
 // decoder
 type NodeEdgeChildren struct {
 	NodeEdge `yaml:",inline"`
-	Children []NodeEdgeChildren
+	Children []NodeEdgeChildren `yaml:",omitempty"`
 }
 
 func (ne NodeEdgeChildren) String() string {
