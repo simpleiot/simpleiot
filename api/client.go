@@ -27,7 +27,7 @@ type Point struct {
 	Value float64 `json:"value,omitempty" influx:"value"`
 
 	// Time the point was taken
-	Time *time.Time `json:"time,omitempty" boltholdKey:"Time" gob:"-" influx:"time"`
+	Time *time.Time `json:"time,omitempty" gob:"-" influx:"time"`
 
 	// Duration over which the point was taken
 	Duration time.Duration `json:"duration,omitempty" influx:"duration"`
