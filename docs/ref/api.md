@@ -51,8 +51,9 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
     - high rate point data re-broadcasted upstream
   - `up.<upstreamId>.<nodeId>`
     - node points are rebroadcast at every upstream ID so that we can listen for
-      point changes at any level. The sending node is also included in this. The store
-      is responsible for posting to up subjects. Individual clients should not do this.
+      point changes at any level. The sending node is also included in this. The
+      store is responsible for posting to `up` subjects. Individual clients
+      should not do this.
   - `up.<upstreamId>.<nodeId>.<parentId>`
     - edge points rebroadcast at every upstream node ID.
 - Legacy APIs that are being deprecated
