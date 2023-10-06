@@ -13,7 +13,7 @@ import (
 // NodeEdgeChildren is used to pass a tree node structure into the
 // decoder
 type NodeEdgeChildren struct {
-	NodeEdge NodeEdge
+	NodeEdge `yaml:",inline"`
 	Children []NodeEdgeChildren
 }
 
