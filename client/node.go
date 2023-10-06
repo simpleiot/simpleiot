@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/goccy/go-yaml"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -424,4 +425,83 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 			stopEdgeSub()
 			close(stopCh)
 		}, nil
+}
+
+type nodesImportExport struct {
+	Nodes []data.NodeEdgeChildren
+}
+
+// ExportNodes is used to export nodes at a particular location to YAML
+func ExportNodes(nc *nats.Conn, parent, id string) ([]byte, error) {
+	rootNodes, err := GetNodes(nc, parent, id, "", false)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting root node: %w", err)
+	}
+
+	if len(rootNodes) < 1 {
+		return nil, fmt.Errorf("no root nodes returned")
+	}
+
+	var necNodes []data.NodeEdgeChildren
+
+	for _, n := range rootNodes {
+		nec := data.NodeEdgeChildren{NodeEdge: n, Children: nil}
+		err := exportNodesHelper(nc, &nec)
+		if err != nil {
+			return nil, err
+		}
+
+		necNodes = append(necNodes, nec)
+	}
+
+	ne := nodesImportExport{Nodes: necNodes}
+
+	return yaml.Marshal(ne)
+}
+
+func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
+	// reduce a little noise ...
+	// remove tombstone "0" edge points as that does not convey much information
+	// also remove and key="0" fields in points
+
+	for i, p := range node.Points {
+		if p.Key == "0" {
+			node.Points[i].Key = ""
+		}
+	}
+
+	for i, p := range node.EdgePoints {
+		if p.Key == "0" {
+			node.EdgePoints[i].Key = ""
+		}
+	}
+
+	// remove tombstone 0 edge points
+	i := 0
+	for _, p := range node.EdgePoints {
+		if p.Type == data.PointTypeTombstone && p.Value == 0 {
+			continue
+		}
+		node.EdgePoints[i] = p
+		i++
+	}
+
+	node.EdgePoints = node.EdgePoints[:i]
+
+	children, err := GetNodes(nc, node.ID, "all", "", false)
+	if err != nil {
+		return fmt.Errorf("Error getting children: %w", err)
+	}
+
+	for _, c := range children {
+		nec := data.NodeEdgeChildren{NodeEdge: c, Children: nil}
+		err := exportNodesHelper(nc, &nec)
+		if err != nil {
+			return err
+		}
+
+		node.Children = append(node.Children, nec)
+	}
+
+	return nil
 }
