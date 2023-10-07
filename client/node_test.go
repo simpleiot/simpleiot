@@ -1,10 +1,11 @@
 package client_test
 
 import (
-	"fmt"
 	"testing"
 
+	"github.com/goccy/go-yaml"
 	"github.com/simpleiot/simpleiot/client"
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/server"
 )
 
@@ -25,5 +26,27 @@ func TestExportNodes(t *testing.T) {
 		t.Fatal("Error exporting nodes: ", err)
 	}
 
-	fmt.Println("CLIFF: yaml: ", string(y))
+	// convert back to nodes and check a few
+	var exp client.SiotExport
+
+	err = yaml.Unmarshal(y, &exp)
+	if err != nil {
+		t.Fatal("Unmarshal error: ", err)
+	}
+
+	if len(exp.Nodes) < 1 {
+		t.Fatal("no top level node")
+	}
+
+	if len(exp.Nodes[0].Children) < 1 {
+		t.Fatal("no child nodes")
+	}
+
+	if exp.Nodes[0].Type != data.NodeTypeDevice {
+		t.Fatal("top level node should be device")
+	}
+
+	if exp.Nodes[0].Children[0].Type != data.NodeTypeUser {
+		t.Fatal("child node is not user type")
+	}
 }

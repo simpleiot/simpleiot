@@ -427,7 +427,8 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 		}, nil
 }
 
-type nodesImportExport struct {
+// SiotExport is the format used for exporting and importing data (currently YAML)
+type SiotExport struct {
 	Nodes []data.NodeEdgeChildren
 }
 
@@ -454,7 +455,7 @@ func ExportNodes(nc *nats.Conn, parent, id string) ([]byte, error) {
 		necNodes = append(necNodes, nec)
 	}
 
-	ne := nodesImportExport{Nodes: necNodes}
+	ne := SiotExport{Nodes: necNodes}
 
 	return yaml.Marshal(ne)
 }
