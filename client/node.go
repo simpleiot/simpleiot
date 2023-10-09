@@ -433,6 +433,31 @@ type SiotExport struct {
 }
 
 // ExportNodes is used to export nodes at a particular location to YAML
+// The YAML format looks like:
+//
+//	nodes:
+//	- id: inst1
+//	  type: device
+//	  parent: root
+//	  points:
+//	  - type: versionApp
+//	  children:
+//	  - id: d7f5bbe9-a300-4197-93fa-b8e5e07f683a
+//	    type: user
+//	    parent: inst1
+//	    points:
+//	    - type: firstName
+//	      text: admin
+//	    - type: lastName
+//	      text: user
+//	    - type: phone
+//	    - type: email
+//	      text: admin@admin.com
+//	    - type: pass
+//	      text: admin
+//
+// Key="0" and Tombstone points with value set to 0 are removed from the export to make
+// it easier to read.
 func ExportNodes(nc *nats.Conn, parent, id string) ([]byte, error) {
 	rootNodes, err := GetNodes(nc, parent, id, "", false)
 	if err != nil {
