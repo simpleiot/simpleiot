@@ -1111,10 +1111,6 @@ viewNodesHelp depth model tree =
                 childNode =
                     Tree.label child
 
-                viewChildren =
-                    List.map Tree.label
-                        (Tree.children child)
-
                 tombstone =
                     isTombstone childNode.node
 
@@ -1122,6 +1118,11 @@ viewNodesHelp depth model tree =
                     shouldDisplay childNode.node.typ
             in
             if display && not tombstone then
+                let
+                    viewChildren =
+                        List.map Tree.label
+                            (Tree.children child)
+                in
                 ret
                     ++ viewNode model (Just node) childNode viewChildren depth
                     :: viewNodesHelp (depth + 1) model child
