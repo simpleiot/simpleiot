@@ -21,6 +21,7 @@ type alias NodeOptions msg =
     , expDetail : Bool
     , parent : Maybe Node
     , node : Node
+    , children : List NodeView
     , nodes : List (Tree NodeView)
     , onEditNodePoint : List Point -> msg
     , onUploadFile : msg
