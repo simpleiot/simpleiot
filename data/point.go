@@ -277,6 +277,10 @@ func (ps *Points) Hash() uint32 {
 func (ps *Points) Add(pIn Point) {
 	pFound := false
 
+	if pIn.Key == "" {
+		pIn.Key = "0"
+	}
+
 	if pIn.Time.IsZero() {
 		pIn.Time = time.Now()
 	}

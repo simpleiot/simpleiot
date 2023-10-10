@@ -76,6 +76,12 @@ view o =
 
                         rateS =
                             String.fromFloat (Round.roundNum 0 rate)
+
+                        rateHR =
+                            Point.getValue o.node.points Point.typeRateHR "0"
+
+                        rateHRS =
+                            String.fromFloat (Round.roundNum 0 rateHR)
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typePort "Port" "/dev/ttyUSB0"
@@ -86,8 +92,10 @@ view o =
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     , counterWithReset Point.typeRx Point.typeRxReset "Rx count"
                     , counterWithReset Point.typeTx Point.typeTxReset "Tx count"
+                    , counterWithReset Point.typeErrorCountHR Point.typeErrorCountResetHR "HR err count"
                     , counterWithReset Point.typeHrRx Point.typeHrRxReset "HR Rx count"
                     , text <| "  Rate (pts/sec): " ++ rateS
+                    , text <| "  Rate HR (pkts/sec): " ++ rateHRS
                     , text <| "  Last log: " ++ log
                     , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]

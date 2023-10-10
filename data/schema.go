@@ -29,6 +29,8 @@ const (
 	PointTypeErrorCountEOFReset = "errorCountEOFReset"
 	PointTypeErrorCountCRC      = "errorCountCRC"
 	PointTypeErrorCountCRCReset = "errorCountCRCReset"
+	PointTypeErrorCountHR       = "errorCountHR"
+	PointTypeErrorCountResetHR  = "errorCountResetHR"
 	PointTypeSyncCount          = "syncCount"
 	PointTypeSyncCountReset     = "syncCountReset"
 	PointTypeReadOnly           = "readOnly"
@@ -236,6 +238,7 @@ const (
 	PointTypeData = "data"
 
 	PointTypeRate   = "rate"
+	PointTypeRateHR = "rateHR"
 	NodeTypeMetrics = "metrics"
 
 	PointTypeType          = "type"
