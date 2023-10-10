@@ -270,12 +270,12 @@ func DuplicateNode(nc *nats.Conn, id, newParent, origin string) error {
 
 	switch node.Type {
 	case data.NodeTypeUser:
-		lastName, _ := node.Points.Text(data.PointTypeLastName, "")
+		lastName, _ := node.Points.Text(data.PointTypeLastName, "0")
 		lastName = lastName + " (Duplicate)"
-		node.AddPoint(data.Point{Type: data.PointTypeLastName, Text: lastName})
+		node.AddPoint(data.Point{Type: data.PointTypeLastName, Key: "0", Text: lastName})
 	default:
 		desc := node.Desc() + " (Duplicate)"
-		node.AddPoint(data.Point{Type: data.PointTypeDescription, Text: desc})
+		node.AddPoint(data.Point{Type: data.PointTypeDescription, Key: "0", Text: desc})
 	}
 
 	return duplicateNodeHelper(nc, node, newParent, origin)
