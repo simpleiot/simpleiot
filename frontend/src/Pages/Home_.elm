@@ -1084,7 +1084,7 @@ viewNodes model =
         in
         List.concatMap
             (\t ->
-                viewNode model Nothing (Tree.label t) 0
+                viewNode model Nothing (Tree.label t) [] 0
                     :: viewNodesHelp 1 model t
             )
             treeWithEdits
@@ -1113,6 +1113,10 @@ viewNodesHelp depth model tree =
                 childNode =
                     Tree.label child
 
+                viewChildren =
+                    List.map Tree.label
+                        (Tree.children child)
+
                 tombstone =
                     isTombstone childNode.node
 
@@ -1121,7 +1125,7 @@ viewNodesHelp depth model tree =
             in
             if display && not tombstone then
                 ret
-                    ++ viewNode model (Just node) childNode depth
+                    ++ viewNode model (Just node) childNode viewChildren depth
                     :: viewNodesHelp (depth + 1) model child
 
             else
@@ -1215,8 +1219,8 @@ shouldDisplay typ =
             False
 
 
-viewNode : Model -> Maybe NodeView -> NodeView -> Int -> Element Msg
-viewNode model parent node depth =
+viewNode : Model -> Maybe NodeView -> NodeView -> List NodeView -> Int -> Element Msg
+viewNode model parent node children depth =
     let
         nodeView =
             case node.node.typ of
@@ -1325,14 +1329,13 @@ viewNode model parent node depth =
                 Button.dot (ToggleExpDetail node.feID)
             , column
                 [ spacing 6, padding 6, width fill, Background.color background ]
-                [ -- text <| "ID: " ++ node.node.id
-                  -- , text <| "Hash: " ++ node.node.hash
-                  nodeView
+                [ nodeView
                     { now = model.now
                     , zone = model.zone
                     , modified = node.mod
                     , parent = Maybe.map .node parent
                     , node = node.node
+                    , children = children
                     , nodes = model.nodes
                     , expDetail = node.expDetail
                     , onEditNodePoint = EditNodePoint node.feID
