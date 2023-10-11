@@ -60,5 +60,8 @@ func DefaultClients(nc *nats.Conn) (*Group, error) {
 	ntp := NewManager(nc, NewNTPClient, nil)
 	g.Add(ntp)
 
+	nm := NewManager(nc, NewNetworkManagerClient, nil)
+	g.Add(nm)
+
 	return g, nil
 }
