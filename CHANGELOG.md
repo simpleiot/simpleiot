@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- update to nats-server to v2.10.2
+- update to nats client package to v1.30.2
+
 ## [[0.13.1] - 2023-10-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.13.1)
 
 - update client manager API to include list of parent node types
