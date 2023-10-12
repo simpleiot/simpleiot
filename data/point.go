@@ -90,7 +90,7 @@ func (p Point) String() string {
 		t += fmt.Sprintf("V:%.3f ", p.Value)
 	}
 
-	if p.Key != "" {
+	if p.Key != "" && p.Key != "0" {
 		t += fmt.Sprintf("K:%v ", p.Key)
 	}
 
@@ -102,7 +102,9 @@ func (p Point) String() string {
 		t += "Tomb "
 	}
 
-	t += p.Time.Format(time.RFC3339)
+	if !p.Time.IsZero() {
+		t += p.Time.Format(time.RFC3339)
+	}
 
 	return t
 }

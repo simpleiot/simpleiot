@@ -200,7 +200,9 @@ type NodeEdge struct {
 func (n NodeEdge) String() string {
 	ret := fmt.Sprintf("NODE: %v (%v)\n", n.ID, n.Type)
 	ret += fmt.Sprintf("  - Parent: %v\n", n.Parent)
-	ret += fmt.Sprintf("  - Hash: 0x%x\n", n.Hash)
+	if n.Hash != 0 {
+		ret += fmt.Sprintf("  - Hash: 0x%x\n", n.Hash)
+	}
 
 	for _, p := range n.Points {
 		ret += fmt.Sprintf("  - Point: %v\n", p)
