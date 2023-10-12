@@ -533,10 +533,11 @@ func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
 }
 
 // ImportNodes is used to import nodes at a location in YAML format. New IDs
-// are generated for all nodes. If there multiple references to the same ID,
+// are generated for all nodes unless preserve IDs is set to true.
+// If there multiple references to the same ID,
 // then an attempt is made to replace all of these with the new ID.  This also
 // allows you to use "friendly" ID names in hand generated YAML files.
-func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string) error {
+func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, preserveIDs bool) error {
 	// first make sure the parent node exists
 	n, err := GetNodes(nc, "all", parent, "", false)
 	if err != nil {
@@ -576,11 +577,41 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string) e
 	// set parent of first node
 	imp.Nodes[0].Parent = parent
 
-	ReplaceIDs(&imp.Nodes[0], parent)
+	if preserveIDs {
+		err := checkIDs(imp.Nodes[0], parent)
+		if err != nil {
+			return err
+		}
+	} else {
+		ReplaceIDs(&imp.Nodes[0], parent)
+	}
 
 	err = importHelper(imp.Nodes[0])
 
 	return err
+}
+
+func checkIDs(node data.NodeEdgeChildren, parent string) error {
+	if parent == "" {
+		return fmt.Errorf("parent must be specified")
+	}
+
+	if node.Parent != parent {
+		return fmt.Errorf("node parent %v does not match parent %v", node.Parent, parent)
+	}
+
+	if node.ID == "" {
+		return fmt.Errorf("ID cannot be blank")
+	}
+
+	for _, c := range node.Children {
+		err := checkIDs(c, node.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ReplaceIDs is used to replace IDs tree of nodes.

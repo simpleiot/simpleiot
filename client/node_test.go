@@ -76,12 +76,12 @@ func TestImportNodes(t *testing.T) {
 	defer stop()
 
 	// make sure we can't import at a bogus place
-	err = client.ImportNodes(nc, "bogusrootid", []byte(testImportNodesYaml), "test")
+	err = client.ImportNodes(nc, "bogusrootid", []byte(testImportNodesYaml), "test", false)
 	if err == nil {
 		t.Fatal("Should have gotten an error importing at bogus location")
 	}
 
-	err = client.ImportNodes(nc, root.ID, []byte(testImportNodesYaml), "test")
+	err = client.ImportNodes(nc, root.ID, []byte(testImportNodesYaml), "test", false)
 	if err != nil {
 		t.Fatal("Error importing: ", err)
 	}
@@ -115,6 +115,104 @@ func TestImportNodes(t *testing.T) {
 
 	if len(children) < 1 {
 		t.Fatal("Group should have at least 1 child")
+	}
+}
+
+var testImportNodesYamlWithIDs = `
+nodes:
+- type: group
+  id: 111
+  points:
+  - type: description
+    text: "group 1"
+  children:
+  - type: variable
+    id: 222
+    parent: 111
+    points:
+    - type: description
+      text: var 1
+    - type: value
+      value: 10
+`
+
+func TestImportNodesPreserveIDs(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	err = client.ImportNodes(nc, root.ID, []byte(testImportNodesYamlWithIDs), "test", true)
+	if err != nil {
+		t.Fatal("Error importing: ", err)
+	}
+
+	children, err := client.GetNodes(nc, root.ID, "all", "", false)
+	if err != nil {
+		t.Fatal("Error getting children: ", err)
+	}
+
+	var g data.NodeEdge
+
+	for _, c := range children {
+		if c.Type == data.NodeTypeGroup {
+			g = c
+			break
+		}
+	}
+
+	if g.Type != data.NodeTypeGroup {
+		t.Fatal("group node not found")
+	}
+
+	if g.ID != "111" {
+		t.Fatal("did not get expected group ID")
+	}
+
+	children, err = client.GetNodes(nc, g.ID, "all", "", false)
+	if err != nil {
+		t.Fatal("error getting group children")
+	}
+
+	if len(children) < 1 {
+		t.Fatal("Group should have at least 1 child")
+	}
+
+}
+
+var testImportNodesYamlBadParent = `
+nodes:
+- type: group
+  id: 111
+  points:
+  - type: description
+    text: "group 1"
+  children:
+  - type: variable
+    id: 222
+    parent: 123
+    points:
+    - type: description
+      text: var 1
+    - type: value
+      value: 10
+`
+
+func TestImportNodesBadParent(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	err = client.ImportNodes(nc, root.ID, []byte(testImportNodesYamlBadParent), "test", true)
+	if err == nil {
+		t.Fatal("should have caught bad parent")
 	}
 }
 
