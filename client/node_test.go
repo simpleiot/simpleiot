@@ -50,6 +50,74 @@ func TestExportNodes(t *testing.T) {
 		t.Fatal("child node is not user type")
 	}
 }
+
+var testImportNodesYaml = `
+nodes:
+- type: group
+  points:
+  - type: description
+    text: "group 1"
+  children:
+  - type: variable
+    points:
+    - type: description
+      text: var 1
+    - type: value
+      value: 10
+`
+
+func TestImportNodes(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	// make sure we can't import at a bogus place
+	err = client.ImportNodes(nc, "bogusrootid", []byte(testImportNodesYaml), "test")
+	if err == nil {
+		t.Fatal("Should have gotten an error importing at bogus location")
+	}
+
+	err = client.ImportNodes(nc, root.ID, []byte(testImportNodesYaml), "test")
+	if err != nil {
+		t.Fatal("Error importing: ", err)
+	}
+
+	children, err := client.GetNodes(nc, root.ID, "all", "", false)
+	if err != nil {
+		t.Fatal("Error getting children: ", err)
+	}
+
+	if len(children) < 2 {
+		t.Fatal("Should be at least 2 children")
+	}
+
+	var g data.NodeEdge
+
+	for _, c := range children {
+		if c.Type == data.NodeTypeGroup {
+			g = c
+			break
+		}
+	}
+
+	if g.Type != data.NodeTypeGroup {
+		t.Fatal("group node not found")
+	}
+
+	children, err = client.GetNodes(nc, g.ID, "all", "", false)
+	if err != nil {
+		t.Fatal("error getting group children")
+	}
+
+	if len(children) < 1 {
+		t.Fatal("Group should have at least 1 child")
+	}
+}
+
 func TestReplaceIDs(t *testing.T) {
 	testNodes := data.NodeEdgeChildren{
 		NodeEdge: data.NodeEdge{
