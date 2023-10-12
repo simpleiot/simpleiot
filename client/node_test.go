@@ -97,7 +97,7 @@ func TestReplaceIDs(t *testing.T) {
 		},
 	}
 
-	client.ReplaceIDs(&testNodes, "parent122")
+	client.ReplaceIDs(&testNodes, "parent123")
 
 	if testNodes.ID == "123" {
 		t.Fatal("ID not replaced")
