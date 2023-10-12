@@ -4,7 +4,7 @@ import "time"
 
 // User represents a user of the system
 type User struct {
-	ID        string `json:"id" boltholdKey:"ID"`
+	ID        string `json:"id"`
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
 	Phone     string `json:"phone"`

@@ -30,7 +30,7 @@ type Point struct {
 	// The following fields are the values for a point
 
 	// Time the point was taken
-	Time time.Time `json:"time,omitempty"`
+	Time time.Time `json:"time,omitempty" yaml:"-"`
 
 	// Instantaneous analog or digital value of the point.
 	// 0 and 1 are used to represent digital values
@@ -52,7 +52,7 @@ type Point struct {
 	Tombstone int `json:"tombstone,omitempty"`
 
 	// Where did this point come from. If from the owning node, it may be blank.
-	Origin string `json:"origin"`
+	Origin string `json:"origin,omitempty"`
 }
 
 // CRC returns a CRC for the point
@@ -90,7 +90,7 @@ func (p Point) String() string {
 		t += fmt.Sprintf("V:%.3f ", p.Value)
 	}
 
-	if p.Key != "" {
+	if p.Key != "" && p.Key != "0" {
 		t += fmt.Sprintf("K:%v ", p.Key)
 	}
 
@@ -102,7 +102,9 @@ func (p Point) String() string {
 		t += "Tomb "
 	}
 
-	t += p.Time.Format(time.RFC3339)
+	if !p.Time.IsZero() {
+		t += p.Time.Format(time.RFC3339)
+	}
 
 	return t
 }

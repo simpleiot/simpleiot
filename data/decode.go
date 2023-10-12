@@ -13,8 +13,22 @@ import (
 // NodeEdgeChildren is used to pass a tree node structure into the
 // decoder
 type NodeEdgeChildren struct {
-	NodeEdge NodeEdge
-	Children []NodeEdgeChildren
+	NodeEdge `yaml:",inline"`
+	Children []NodeEdgeChildren `yaml:",omitempty"`
+}
+
+func (ne NodeEdgeChildren) String() string {
+	var childHelper func(NodeEdgeChildren, string) string
+
+	childHelper = func(ne NodeEdgeChildren, indent string) string {
+		ret := indent + ne.NodeEdge.String()
+		for _, c := range ne.Children {
+			ret += childHelper(c, indent+"  ")
+		}
+		return ret
+	}
+
+	return childHelper(ne, "")
 }
 
 // reflectValueT is the `reflect.Type` for a `reflect.Value`
