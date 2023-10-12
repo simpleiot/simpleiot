@@ -536,12 +536,14 @@ func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
 // If there multiple references to the same ID,
 // then an attempt is made to replace all of these with the new ID.
 // This function modifies the tree that is passed in.
-func ReplaceIDs(nodes *data.NodeEdgeChildren) {
+// Replace IDs also updates the partent fields.
+func ReplaceIDs(nodes *data.NodeEdgeChildren, parent string) {
 	// idMap is used to translate old IDs to new
 	idMap := make(map[string]string)
 
-	var replaceHelper func(*data.NodeEdgeChildren)
-	replaceHelper = func(n *data.NodeEdgeChildren) {
+	var replaceHelper func(*data.NodeEdgeChildren, string)
+	replaceHelper = func(n *data.NodeEdgeChildren, parent string) {
+		n.Parent = parent
 		// update node ID
 		var newID string
 		if n.ID == "" {
@@ -573,9 +575,9 @@ func ReplaceIDs(nodes *data.NodeEdgeChildren) {
 		}
 
 		for i := range n.Children {
-			replaceHelper(&n.Children[i])
+			replaceHelper(&n.Children[i], n.ID)
 		}
 	}
 
-	replaceHelper(nodes)
+	replaceHelper(nodes, parent)
 }

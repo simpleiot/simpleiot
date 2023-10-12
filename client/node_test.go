@@ -97,7 +97,7 @@ var testReplaceNodes = data.NodeEdgeChildren{
 }
 
 func TestReplaceIDs(t *testing.T) {
-	client.ReplaceIDs(&testReplaceNodes)
+	client.ReplaceIDs(&testReplaceNodes, "parent123")
 
 	if testReplaceNodes.ID == "123" {
 		t.Fatal("ID not replaced")
@@ -126,4 +126,14 @@ func TestReplaceIDs(t *testing.T) {
 	if testReplaceNodes.Points[0].Text != "" {
 		t.Fatal("Blank nodeID point not ignored")
 	}
+
+	if testReplaceNodes.Parent != "parent123" {
+		t.Fatal("top level parent not correct")
+	}
+
+	if testReplaceNodes.ID != testReplaceNodes.Children[0].Parent {
+		t.Fatal("child parent not correct")
+	}
+
+	fmt.Printf("CLIFF: testReplaceNodes: %+v\n", testReplaceNodes)
 }
