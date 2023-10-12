@@ -531,3 +531,51 @@ func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
 
 	return nil
 }
+
+// ReplaceIDs is used to replace IDs tree of nodes.
+// If there multiple references to the same ID,
+// then an attempt is made to replace all of these with the new ID.
+// This function modifies the tree that is passed in.
+func ReplaceIDs(nodes *data.NodeEdgeChildren) {
+	// idMap is used to translate old IDs to new
+	idMap := make(map[string]string)
+
+	var replaceHelper func(*data.NodeEdgeChildren)
+	replaceHelper = func(n *data.NodeEdgeChildren) {
+		// update node ID
+		var newID string
+		if n.ID == "" {
+			// always assign a new ID if blank
+			newID = uuid.New().String()
+		} else {
+			var ok bool
+			newID, ok = idMap[n.ID]
+			if !ok {
+				newID = uuid.New().String()
+				idMap[n.ID] = newID
+			}
+		}
+		n.ID = newID
+
+		// check for any points that might have node hashes
+		for i, p := range n.Points {
+			if p.Type == data.PointTypeNodeID {
+				if p.Text == "" {
+					continue
+				}
+				newID, ok := idMap[p.Text]
+				if !ok {
+					newID = uuid.New().String()
+					idMap[p.Text] = newID
+				}
+				n.Points[i].Text = newID
+			}
+		}
+
+		for i := range n.Children {
+			replaceHelper(&n.Children[i])
+		}
+	}
+
+	replaceHelper(nodes)
+}

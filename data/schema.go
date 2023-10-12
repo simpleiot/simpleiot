@@ -134,6 +134,8 @@ const (
 	PointValuePointValue   = "pointValue"
 	PointValueSchedule     = "schedule"
 
+	PointTypeNodeID = "nodeID"
+
 	PointTypeTrigger = "trigger"
 
 	PointTypeStart   = "start"
