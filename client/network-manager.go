@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -51,16 +53,20 @@ type NetworkManagerClient struct {
 
 // NetworkManager client configuration
 type NetworkManager struct {
-	ID              string                 `node:"id"`
-	Parent          string                 `node:"parent"`
-	Disable         bool                   `point:"disable"`
-	Hostname        string                 `point:"hostname"`
-	RequestWiFiScan bool                   `point:"requestWiFiScan"`
-	Devices         []NetworkManagerDevice `child:"networkManagerDevice"`
-	Connections     []NetworkManagerConn   `child:"networkManagerConn"`
+	ID                      string                 `node:"id"`
+	Parent                  string                 `node:"parent"`
+	Disable                 bool                   `point:"disable"`
+	Hostname                string                 `point:"hostname"`
+	RequestWiFiScan         bool                   `point:"requestWiFiScan"`
+	NetworkingEnabled       *bool                  `point:"networkingEnabled"`
+	WirelessEnabled         *bool                  `point:"wirelessEnabled"`
+	WirelessHardwareEnabled *bool                  `point:"wirelessHardwareEnabled"`
+	Devices                 []NetworkManagerDevice `child:"networkManagerDevice"`
+	Connections             []NetworkManagerConn   `child:"networkManagerConn"`
 }
 
-const dbusSyncInterval = time.Duration(10) * time.Second
+const dbusSyncInterval = time.Duration(60) * time.Second
+const dBusPropertiesChanged = "org.freedesktop.DBus.Properties.PropertiesChanged"
 
 // Print first error to logger
 func logFirstError(log *log.Logger, errors []error) {
@@ -109,7 +115,16 @@ func (c *NetworkManagerClient) Run() error {
 			NetworkManagerDevices in the SIOT tree. Start polling NetworkManager
 			to continue syncing.
 	*/
+
+	// Note: Writes to `doSync` channel causes a sync operation to occur as soon
+	// as possible. Generally, calling `queueSync` is preferred to leverage the
+	// syncDelayTimer and rate limit sync operations.
+	var syncDelayTimer *time.Timer
+	syncDelayTimerLock := new(sync.Mutex)
+	doSync := make(chan struct{}, 1)
 	var syncTick time.Ticker
+	var dbusSub <-chan *dbus.Signal
+
 	init := func() error {
 		var err error
 		// Initialize NetworkManager settings object
@@ -123,43 +138,15 @@ func (c *NetworkManagerClient) Run() error {
 		if err != nil {
 			return fmt.Errorf("error getting NetworkManager: %w", err)
 		}
-
-		// Synchronize hostname
-		hostname, err := c.nmSettings.GetPropertyHostname()
-		if err != nil {
-			// Log error only
-			c.log.Printf("Error getting hostname: %v", err)
-		}
-		if hostname != c.config.Hostname {
-			err := SendNodePoint(c.nc, c.config.ID, data.Point{
-				Type:   "hostname",
-				Text:   hostname,
-				Origin: c.config.ID,
-			}, true)
-			// Log error only
-			if err != nil {
-				c.log.Printf("Error setting hostname: %v", err)
-			}
-		}
-
-		// Synchronize connection settings with NetworkManager
-		errs, fatalErr := c.SyncConnections()
-		// Abort on fatal error
-		if fatalErr != nil {
-			return fmt.Errorf("connection sync error: %w", fatalErr)
-		}
-		logFirstError(c.log, errs)
-
-		// Synchronize devices with NetworkManager
-		errs, fatalErr = c.SyncDevices()
-		// Abort on fatal error
-		if fatalErr != nil {
-			return fmt.Errorf("device sync error: %w", fatalErr)
-		}
-		logFirstError(c.log, errs)
+		dbusSub = c.nmObj.Subscribe()
 
 		// Initialize NetworkManager sync ticker
 		syncTick = *time.NewTicker(dbusSyncInterval)
+
+		// Queue immediate sync operation
+		if len(doSync) == 0 {
+			doSync <- struct{}{}
+		}
 
 		return nil
 	}
@@ -171,8 +158,27 @@ func (c *NetworkManagerClient) Run() error {
 
 		// It's now safe to finish cleanup
 		c.nmSettings = nil
+		c.nmObj.Unsubscribe()
 		c.nmObj = nil
+		dbusSub = nil
 		c.log.Println("Cleaned up")
+	}
+
+	queueSync := func() {
+		syncDelayTimerLock.Lock()
+		defer syncDelayTimerLock.Unlock()
+		if syncDelayTimer == nil {
+			syncDelayTimer = time.AfterFunc(5*time.Second, func() {
+				syncDelayTimerLock.Lock()
+				defer syncDelayTimerLock.Unlock()
+				// Queue immediate sync operation
+				if len(doSync) == 0 {
+					doSync <- struct{}{}
+				}
+				syncDelayTimer = nil
+			})
+		}
+		// else timer already running and will trigger sync soon
 	}
 
 	if !c.config.Disable {
@@ -209,20 +215,51 @@ loop:
 			}
 			// Update config
 			data.MergePoints(nodePoints.ID, nodePoints.Points, &c.config)
-		case <-syncTick.C:
-			// Perform connection sync
+
+			// Queue sync operation
+			queueSync()
+		case <-doSync:
+			// Perform sync operations; abort on fatal error
+			c.log.Println("Syncing with NetworkManager over D-Bus")
 			errs, fatalErr := c.SyncConnections()
 			// Abort on fatal error
 			if fatalErr != nil {
-				return fmt.Errorf("sync error: %w", fatalErr)
+				return fmt.Errorf("connection sync error: %w", fatalErr)
 			}
 			logFirstError(c.log, errs)
+
+			// Synchronize devices with NetworkManager
 			errs, fatalErr = c.SyncDevices()
 			// Abort on fatal error
 			if fatalErr != nil {
-				return fmt.Errorf("sync error: %w", fatalErr)
+				return fmt.Errorf("device sync error: %w", fatalErr)
 			}
 			logFirstError(c.log, errs)
+
+			// Synchronize hostname
+			errs, fatalErr = c.SyncHostname()
+			// Abort on fatal error
+			if fatalErr != nil {
+				return fmt.Errorf("connection sync error: %w", fatalErr)
+			}
+			logFirstError(c.log, errs)
+		case <-syncTick.C:
+			// Queue sync operation
+			if len(doSync) == 0 {
+				doSync <- struct{}{}
+			}
+		case sig, ok := <-dbusSub:
+			if !ok {
+				// D-Bus subscription closed
+				dbusSub = nil
+				break // select
+			}
+			if len(doSync) == 0 && (sig.Name == dBusPropertiesChanged ||
+				strings.HasPrefix(sig.Name, "org.freedesktop.NetworkManager.Device")) {
+				queueSync()
+			} else {
+				c.log.Printf("not triggering sync %v for %+v", sig.Name, sig)
+			}
 		}
 
 		// Scan Wi-Fi networks if needed
@@ -249,8 +286,6 @@ loop:
 			}
 			c.config.RequestWiFiScan = false
 		}
-
-		// TODO: Implement updating hostname
 	}
 	cleanup()
 	return nil
@@ -372,15 +407,96 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 
 // SyncDevices performs a one-way synchronization of the devices in
 // NetworkManager with the NetworkManagerDevices nodes in the SIOT tree via
-// D-Bus. Returns a list of errors in the order in which they are encountered.
+// D-Bus. Additionally, the NetworkingEnabled and WirelessHardwareEnabled flags
+// are copied to the SIOT tree; the WirelessEnabled flag is copied to
+// NetworkManager if it is non-nil and copied to the SIOT tree if it is nil.
+// Returns a list of errors in the order in which they are encountered.
 // If a fatal error occurs that aborts the sync operation, that will be included
 // in `errs` and returned as `fatal`.
 func (c *NetworkManagerClient) SyncDevices() (errs []error, fatal error) {
+	networkingEnabled, err := c.nmObj.GetPropertyNetworkingEnabled()
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting network property: %w", err))
+	}
+	wirelessEnabled, err := c.nmObj.GetPropertyWirelessEnabled()
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting network property: %w", err))
+	}
+	wirelessHwEnabled, err := c.nmObj.GetPropertyWirelessHardwareEnabled()
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error getting network property: %w", err))
+	}
 	nmDevices, err := c.nmObj.GetAllDevices()
 	if err != nil {
-		fatal = fmt.Errorf("error getting devices: %w", err)
-		errs = append(errs, fatal)
+		errs = append(errs, fmt.Errorf("error getting devices: %w", err))
+	}
+	// Abort on any error received above
+	if len(errs) > 0 {
+		fatal = errs[0]
 		return
+	}
+
+	// Sync Networking / Wireless enabled flags
+	pts := data.Points{}
+	if c.config.NetworkingEnabled == nil ||
+		*c.config.NetworkingEnabled != networkingEnabled {
+		c.config.NetworkingEnabled = &networkingEnabled
+		p := data.Point{
+			Type:   "networkingEnabled",
+			Value:  0,
+			Origin: c.config.ID,
+		}
+		if networkingEnabled {
+			p.Value = 1
+		}
+		pts.Add(p)
+	}
+	if c.config.WirelessHardwareEnabled == nil ||
+		*c.config.WirelessHardwareEnabled != wirelessHwEnabled {
+		c.config.WirelessHardwareEnabled = &wirelessHwEnabled
+		p := data.Point{
+			Type:   "wirelessHardwareEnabled",
+			Value:  0,
+			Origin: c.config.ID,
+		}
+		if wirelessHwEnabled {
+			p.Value = 1
+		}
+		pts.Add(p)
+	}
+	if c.config.WirelessEnabled == nil {
+		// Copy to SIOT tree
+		c.config.WirelessEnabled = &wirelessEnabled
+		p := data.Point{
+			Type:   "wirelessEnabled",
+			Value:  0,
+			Origin: c.config.ID,
+		}
+		if wirelessEnabled {
+			p.Value = 1
+		}
+		pts.Add(p)
+	} else if wirelessEnabled != *c.config.WirelessEnabled {
+		// Copy to NetworkManager
+		err = c.nmObj.SetPropertyWirelessEnabled(*c.config.WirelessEnabled)
+		if err != nil {
+			errs = append(errs,
+				fmt.Errorf("error setting WirelessEnabled: %w", err),
+			)
+		}
+	}
+
+	// Send points
+	if pts.Len() > 0 {
+		err = SendNodePoints(
+			c.nc,
+			c.config.ID,
+			pts,
+			false,
+		)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error updating enabled flags: %w", err))
+		}
 	}
 
 	// Populate NetworkManager device info; keyed by their UUID
@@ -476,12 +592,37 @@ func (c *NetworkManagerClient) SyncDevices() (errs []error, fatal error) {
 	return
 }
 
+// SyncHostname writes the hostname from the SimpleIoT tree to NetworkManager;
+// however, if SimpleIoT does not have a hostname set, the current hostname
+// will be stored in the tree instead.
+func (c *NetworkManagerClient) SyncHostname() (errs []error, fatal error) {
+	hostname, err := c.nmSettings.GetPropertyHostname()
+	if err != nil {
+		fatal = fmt.Errorf("error getting hostname: %w", err)
+		errs = append(errs, fatal)
+	}
+	if c.config.Hostname == "" {
+		// Write hostname to tree
+		c.config.Hostname = hostname
+		err = SendNodePoint(c.nc, c.config.ID, data.Point{
+			Type:   "hostname",
+			Text:   hostname,
+			Origin: c.config.ID,
+		}, true)
+		errs = append(errs, err)
+	} else if hostname != c.config.Hostname {
+		// Write hostname to NetworkManager
+		err = c.nmSettings.SaveHostname(c.config.Hostname)
+		errs = append(errs, err)
+	}
+	return
+}
+
 // WifiScan scans for Wi-Fi access points using available Wi-Fi devices.
 // When scanning is complete, the access points are saved as points on the
 // NetworkManagerDevice node.
 func (c *NetworkManagerClient) WifiScan() error {
 	c.log.Println("Scanning for wireless APs...")
-	const dBusPropertiesChanged = "org.freedesktop.DBus.Properties.PropertiesChanged"
 
 	nmDevices, err := c.nmObj.GetAllDevices()
 	if err != nil {
