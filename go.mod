@@ -1,6 +1,7 @@
 module github.com/simpleiot/simpleiot
 
 require (
+	github.com/Wifx/gonetworkmanager v0.5.0
 	github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa
 	github.com/beevik/ntp v0.3.0
 	github.com/blang/semver/v4 v4.0.0
@@ -12,6 +13,7 @@ require (
 	github.com/go-audio/wav v1.0.0
 	github.com/go-ocf/go-coap v0.0.0-20200224085725-3e22e8f506ea
 	github.com/goccy/go-yaml v1.11.2
+	github.com/godbus/dbus/v5 v5.1.0
 	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.9
