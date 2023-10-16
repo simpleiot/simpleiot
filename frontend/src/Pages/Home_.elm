@@ -17,6 +17,7 @@ import Components.NodeMessageService as NodeMessageService
 import Components.NodeMetrics as NodeMetrics
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
+import Components.NodeNetworkManager as NodeNetworkManager
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
@@ -1211,6 +1212,9 @@ shouldDisplay typ =
         "metrics" ->
             True
 
+        "networkManager" ->
+            True
+
         _ ->
             False
 
@@ -1288,6 +1292,9 @@ viewNode model parent node children depth =
 
                 "metrics" ->
                     NodeMetrics.view
+
+                "networkManager" ->
+                    NodeNetworkManager.view
 
                 _ ->
                     viewUnknown
@@ -1542,6 +1549,11 @@ nodeDescMetrics =
     row [] [ Icon.barChart, text "Metrics" ]
 
 
+nodeDescNetworkManager : Element Msg
+nodeDescNetworkManager =
+    row [] [ Icon.network, text "Network Manager" ]
+
+
 viewAddNode : NodeView -> NodeToAdd -> Element Msg
 viewAddNode parent add =
     column [ spacing 10 ]
@@ -1554,6 +1566,7 @@ viewAddNode parent add =
                     [ Input.option Node.typeUser nodeDescUser
                     , Input.option Node.typeGroup nodeDescGroup
                     , Input.option Node.typeRule nodeDescRule
+                    , Input.option Node.typeNetworkManager nodeDescNetworkManager
                     , Input.option Node.typeModbus nodeDescModbus
                     , Input.option Node.typeSerialDev nodeDescSerialDev
                     , Input.option Node.typeCanBus nodeDescCanBus
