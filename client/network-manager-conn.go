@@ -176,12 +176,12 @@ func (str IPv4Netmask) Valid() bool {
 
 // IPv4Config defines data for IPv4 config
 type IPv4Config struct {
-	StaticIP   bool        `json:"staticIP",point:"staticIP"`
-	Address    IPv4Address `json:"address",point:"address"`
-	Netmask    IPv4Netmask `json:"netmask",point:"netmask"`
-	Gateway    IPv4Address `json:"gateway",point:"gateway"`
-	DNSServer1 IPv4Address `json:"dnsServer1",point:"dnsServer1"`
-	DNSServer2 IPv4Address `json:"dnsServer2",point:"dnsServer2"`
+	StaticIP   bool        `json:"staticIP" point:"staticIP"`
+	Address    IPv4Address `json:"address" point:"address"`
+	Netmask    IPv4Netmask `json:"netmask" point:"netmask"`
+	Gateway    IPv4Address `json:"gateway" point:"gateway"`
+	DNSServer1 IPv4Address `json:"dnsServer1" point:"dnsServer1"`
+	DNSServer2 IPv4Address `json:"dnsServer2" point:"dnsServer2"`
 }
 
 // ResolveIPv4Config creates a new IPv4Config from a map of D-Bus settings
