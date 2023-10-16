@@ -46,7 +46,7 @@ type WiFiConfig struct {
 
 // ResolveNetworkManagerConn returns a NetworkManagerConn from D-Bus settings
 func ResolveNetworkManagerConn(settings nm.ConnectionSettings) NetworkManagerConn {
-	sc, _ := settings["connection"]
+	sc := settings["connection"]
 	conn := NetworkManagerConn{
 		ID:          sc["id"].(string),
 		UUID:        sc["uuid"].(string),

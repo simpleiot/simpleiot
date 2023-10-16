@@ -229,6 +229,7 @@ func ResolveAccessPoint(ap nm.AccessPoint) (apOut AccessPoint, err error) {
 	return apOut, err
 }
 
+// MarshallJSON returns a JSON representation of the AP
 func (ap AccessPoint) MarshallJSON() ([]byte, error) {
 	return json.Marshal(ap)
 }

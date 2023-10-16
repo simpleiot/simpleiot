@@ -214,7 +214,8 @@ loop:
 				}
 			}
 			// Update config
-			data.MergePoints(nodePoints.ID, nodePoints.Points, &c.config)
+			err := data.MergePoints(nodePoints.ID, nodePoints.Points, &c.config)
+			log.Println("Error merging points: ", err)
 
 			// Queue sync operation
 			queueSync()
@@ -545,13 +546,18 @@ func (c *NetworkManagerClient) SyncDevices() (errs []error, fatal error) {
 						"error updating device %v: %w", device.ID, err,
 					))
 				}
-				data.Decode(data.NodeEdgeChildren{
+
+				err = data.Decode(data.NodeEdgeChildren{
 					NodeEdge: data.NodeEdge{
 						ID:     device.ID,
 						Parent: device.Parent,
 						Points: pts,
 					},
 				}, &device)
+
+				if err != nil {
+					errs = append(errs, fmt.Errorf("error decoding data %v: %w", device.ID, err))
+				}
 			}
 			// Remove from deviceInfo to avoid duplicating it later
 			delete(deviceInfo, device.ID)
@@ -771,13 +777,18 @@ func (c *NetworkManagerClient) WifiScan() error {
 					"error updating device %v: %w", device.ID, err,
 				)
 			}
-			data.Decode(data.NodeEdgeChildren{
+
+			err = data.Decode(data.NodeEdgeChildren{
 				NodeEdge: data.NodeEdge{
 					ID:     device.ID,
 					Parent: device.Parent,
 					Points: pts,
 				},
 			}, &device)
+			if err != nil {
+				return fmt.Errorf("error decoding data: %w", err)
+			}
+
 			c.config.Devices[devIndex] = device
 			break getPropertyAccessPoints
 		}
@@ -806,7 +817,7 @@ func (c *NetworkManagerClient) Points(nodeID string, points []data.Point) {
 
 // EdgePoints is called when the client's node edge points are updated
 func (c *NetworkManagerClient) EdgePoints(
-	nodeID string, parentID string, points []data.Point,
+	_ string, _ string, _ []data.Point,
 ) {
 	// Do nothing
 
