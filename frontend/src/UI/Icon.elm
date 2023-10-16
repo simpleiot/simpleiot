@@ -12,6 +12,7 @@ module UI.Icon exposing
     , file
     , io
     , list
+    , network
     , oneWire
     , particle
     , power
@@ -39,6 +40,18 @@ icon iconIn =
 
 
 -- non-clickable icons
+
+
+network : Element msg
+network =
+    [ Svg.rect [ S.x "16", S.y "16", S.width "6", S.height "6", S.rx "1" ] []
+    , Svg.rect [ S.x "2", S.y "16", S.width "6", S.height "6", S.rx "1" ] []
+    , Svg.rect [ S.x "9", S.y "2", S.width "6", S.height "6", S.rx "1" ] []
+    , Svg.path [ S.d "M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" ] []
+    , Svg.path [ S.d "M12 12V8" ] []
+    ]
+        |> FeatherIcons.customIcon
+        |> icon
 
 
 bus : Element msg
