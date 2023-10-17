@@ -24,6 +24,8 @@ module Api.Node exposing
     , typeModbusIO
     , typeMsgService
     , typeNetworkManager
+    , typeNetworkManagerConn
+    , typeNetworkManagerDevice
     , typeOneWire
     , typeParticle
     , typeRule
@@ -159,6 +161,16 @@ typeMetrics =
 typeNetworkManager : String
 typeNetworkManager =
     "networkManager"
+
+
+typeNetworkManagerDevice : String
+typeNetworkManagerDevice =
+    "networkManagerDevice"
+
+
+typeNetworkManagerConn : String
+typeNetworkManagerConn =
+    "networkManagerConn"
 
 
 

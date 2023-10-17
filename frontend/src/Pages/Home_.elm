@@ -954,6 +954,8 @@ nodeCustomSortRules =
         , ( Node.typeCondition, "A" )
         , ( Node.typeAction, "B" )
         , ( Node.typeActionInactive, "C" )
+        , ( Node.typeNetworkManagerDevice, "D" )
+        , ( Node.typeNetworkManagerConn, "E" )
         ]
 
 
@@ -1437,6 +1439,7 @@ nodeTypesThatHaveChildNodes =
     , Node.typeSerialDev
     , Node.typeCanBus
     , Node.typeRule
+    , Node.typeNetworkManager
     ]
 
 
@@ -1568,6 +1571,11 @@ nodeDescNetworkManager =
     row [] [ Icon.network, text "Network Manager" ]
 
 
+nodeDescNetworkManagerConn : Element Msg
+nodeDescNetworkManagerConn =
+    row [] [ Icon.cable, text "Connection" ]
+
+
 viewAddNode : NodeView -> NodeToAdd -> Element Msg
 viewAddNode parent add =
     column [ spacing 10 ]
@@ -1634,6 +1642,12 @@ viewAddNode parent add =
                        )
                     ++ (if parent.node.typ == Node.typeCanBus then
                             [ Input.option Node.typeFile nodeDescFile ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.node.typ == Node.typeNetworkManager then
+                            [ Input.option Node.typeNetworkManagerConn nodeDescNetworkManagerConn ]
 
                         else
                             []
