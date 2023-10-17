@@ -18,6 +18,8 @@ import Components.NodeMetrics as NodeMetrics
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
 import Components.NodeNetworkManager as NodeNetworkManager
+import Components.NodeNetworkManagerConn as NodeNetworkManagerConn
+import Components.NodeNetworkManagerDevice as NodeNetworkManagerDevice
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
@@ -1215,6 +1217,12 @@ shouldDisplay typ =
         "networkManager" ->
             True
 
+        "networkManagerDevice" ->
+            True
+
+        "networkManagerConn" ->
+            True
+
         _ ->
             False
 
@@ -1295,6 +1303,12 @@ viewNode model parent node children depth =
 
                 "networkManager" ->
                     NodeNetworkManager.view
+
+                "networkManagerDevice" ->
+                    NodeNetworkManagerDevice.view
+
+                "networkManagerConn" ->
+                    NodeNetworkManagerConn.view
 
                 _ ->
                     viewUnknown
