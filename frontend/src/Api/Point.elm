@@ -11,6 +11,7 @@ module Api.Point exposing
     , getBool
     , getLatest
     , getText
+    , getTextArray
     , getValue
     , input
     , light
@@ -1019,6 +1020,33 @@ getText points typ key =
 
         Nothing ->
             ""
+
+
+getTextArray : List Point -> String -> List String
+getTextArray points typ =
+    List.map .text <|
+        List.sortWith
+            (\a b ->
+                let
+                    aInt =
+                        Maybe.withDefault 0 (String.toInt a.key)
+
+                    bInt =
+                        Maybe.withDefault 0 (String.toInt b.key)
+                in
+                compare aInt bInt
+            )
+        <|
+            List.foldl
+                (\p acc ->
+                    if p.typ == typ then
+                        p :: acc
+
+                    else
+                        acc
+                )
+                []
+                points
 
 
 getBestDesc : List Point -> String
