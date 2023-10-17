@@ -1039,7 +1039,7 @@ getTextArray points typ =
         <|
             List.foldl
                 (\p acc ->
-                    if p.typ == typ then
+                    if p.typ == typ && p.tombstone == 0 then
                         p :: acc
 
                     else
