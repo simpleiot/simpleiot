@@ -17,6 +17,9 @@ import Components.NodeMessageService as NodeMessageService
 import Components.NodeMetrics as NodeMetrics
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
+import Components.NodeNetworkManager as NodeNetworkManager
+import Components.NodeNetworkManagerConn as NodeNetworkManagerConn
+import Components.NodeNetworkManagerDevice as NodeNetworkManagerDevice
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
@@ -951,6 +954,8 @@ nodeCustomSortRules =
         , ( Node.typeCondition, "A" )
         , ( Node.typeAction, "B" )
         , ( Node.typeActionInactive, "C" )
+        , ( Node.typeNetworkManagerDevice, "D" )
+        , ( Node.typeNetworkManagerConn, "E" )
         ]
 
 
@@ -1211,6 +1216,15 @@ shouldDisplay typ =
         "metrics" ->
             True
 
+        "networkManager" ->
+            True
+
+        "networkManagerDevice" ->
+            True
+
+        "networkManagerConn" ->
+            True
+
         _ ->
             False
 
@@ -1288,6 +1302,15 @@ viewNode model parent node children depth =
 
                 "metrics" ->
                     NodeMetrics.view
+
+                "networkManager" ->
+                    NodeNetworkManager.view
+
+                "networkManagerDevice" ->
+                    NodeNetworkManagerDevice.view
+
+                "networkManagerConn" ->
+                    NodeNetworkManagerConn.view
 
                 _ ->
                     viewUnknown
@@ -1416,6 +1439,7 @@ nodeTypesThatHaveChildNodes =
     , Node.typeSerialDev
     , Node.typeCanBus
     , Node.typeRule
+    , Node.typeNetworkManager
     ]
 
 
@@ -1542,6 +1566,16 @@ nodeDescMetrics =
     row [] [ Icon.barChart, text "Metrics" ]
 
 
+nodeDescNetworkManager : Element Msg
+nodeDescNetworkManager =
+    row [] [ Icon.network, text "Network Manager" ]
+
+
+nodeDescNetworkManagerConn : Element Msg
+nodeDescNetworkManagerConn =
+    row [] [ Icon.cable, text "Connection" ]
+
+
 viewAddNode : NodeView -> NodeToAdd -> Element Msg
 viewAddNode parent add =
     column [ spacing 10 ]
@@ -1554,6 +1588,7 @@ viewAddNode parent add =
                     [ Input.option Node.typeUser nodeDescUser
                     , Input.option Node.typeGroup nodeDescGroup
                     , Input.option Node.typeRule nodeDescRule
+                    , Input.option Node.typeNetworkManager nodeDescNetworkManager
                     , Input.option Node.typeModbus nodeDescModbus
                     , Input.option Node.typeSerialDev nodeDescSerialDev
                     , Input.option Node.typeCanBus nodeDescCanBus
@@ -1607,6 +1642,12 @@ viewAddNode parent add =
                        )
                     ++ (if parent.node.typ == Node.typeCanBus then
                             [ Input.option Node.typeFile nodeDescFile ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.node.typ == Node.typeNetworkManager then
+                            [ Input.option Node.typeNetworkManagerConn nodeDescNetworkManagerConn ]
 
                         else
                             []

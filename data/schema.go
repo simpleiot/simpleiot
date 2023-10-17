@@ -321,4 +321,8 @@ const (
 
 	PointTypeTimeSync  = "timeSync"
 	PointTypeConnected = "connected"
+
+	NodeTypeNetworkManager       = "networkManager"
+	NodeTypeNetworkManagerDevice = "networkManagerDevice"
+	NodeTypeNetworkManagerConn   = "networkManagerConn"
 )
