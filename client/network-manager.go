@@ -215,7 +215,9 @@ loop:
 			}
 			// Update config
 			err := data.MergePoints(nodePoints.ID, nodePoints.Points, &c.config)
-			log.Println("Error merging points: ", err)
+			if err != nil {
+				log.Println("Error merging points: ", err)
+			}
 
 			// Queue sync operation
 			queueSync()
