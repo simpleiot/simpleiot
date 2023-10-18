@@ -387,6 +387,19 @@ func (ps Points) Swap(i, j int) {
 	ps[i], ps[j] = ps[j], ps[i]
 }
 
+// ByTypeKey can be used to sort points by type then key
+type ByTypeKey []Point
+
+func (b ByTypeKey) Len() int      { return len(b) }
+func (b ByTypeKey) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b ByTypeKey) Less(i, j int) bool {
+	if b[i].Type != b[j].Type {
+		return b[i].Type < b[j].Type
+	}
+
+	return b[i].Key < b[j].Key
+}
+
 // PbToPoint converts pb point to point
 func PbToPoint(sPb *pb.Point) (Point, error) {
 
