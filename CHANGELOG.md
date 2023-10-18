@@ -14,6 +14,11 @@ For more details or to discuss releases, please visit the
 - update to nats-server to v2.10.2
 - update to nats client package to v1.30.2
 - development: `envsetup.sh` sources `local.sh` if it exists
+- Go client API for export/import nodes to/from YAML
+- `siot` CLI export and import commands
+- simpleiot-js improvements
+- Network Manager Client (WIP)
+- NTP Client (WIP)
 
 ## [[0.13.1] - 2023-10-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.13.1)
 
