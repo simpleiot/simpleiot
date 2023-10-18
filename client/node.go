@@ -579,6 +579,13 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 	// set parent of first node
 	imp.Nodes[0].Parent = parent
 
+	// append (import) to top level node description
+	for i, p := range imp.Nodes[0].Points {
+		if p.Type == data.PointTypeDescription {
+			imp.Nodes[0].Points[i].Text += " (import)"
+		}
+	}
+
 	if preserveIDs {
 		err := checkIDs(imp.Nodes[0], parent)
 		if err != nil {
