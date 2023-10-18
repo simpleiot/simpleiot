@@ -17,6 +17,7 @@ import Components.NodeMessageService as NodeMessageService
 import Components.NodeMetrics as NodeMetrics
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
+import Components.NodeNTP as NodeNTP
 import Components.NodeNetworkManager as NodeNetworkManager
 import Components.NodeNetworkManagerConn as NodeNetworkManagerConn
 import Components.NodeNetworkManagerDevice as NodeNetworkManagerDevice
@@ -949,6 +950,8 @@ nodeCustomSortRules =
         , ( Node.typeParticle, "O" )
         , ( Node.typeShelly, "P" )
         , ( Node.typeShellyIO, "Q" )
+        , ( Node.typeNetworkManager, "R" )
+        , ( Node.typeNTP, "S" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1225,6 +1228,9 @@ shouldDisplay typ =
         "networkManagerConn" ->
             True
 
+        "ntp" ->
+            True
+
         _ ->
             False
 
@@ -1305,6 +1311,9 @@ viewNode model parent node children depth =
 
                 "networkManager" ->
                     NodeNetworkManager.view
+
+                "ntp" ->
+                    NodeNTP.view
 
                 "networkManagerDevice" ->
                     NodeNetworkManagerDevice.view
@@ -1576,6 +1585,11 @@ nodeDescNetworkManagerConn =
     row [] [ Icon.cable, text "Connection" ]
 
 
+nodeDescNTP : Element Msg
+nodeDescNTP =
+    row [] [ Icon.clock, text "NTP" ]
+
+
 viewAddNode : NodeView -> NodeToAdd -> Element Msg
 viewAddNode parent add =
     column [ spacing 10 ]
@@ -1589,6 +1603,7 @@ viewAddNode parent add =
                     , Input.option Node.typeGroup nodeDescGroup
                     , Input.option Node.typeRule nodeDescRule
                     , Input.option Node.typeNetworkManager nodeDescNetworkManager
+                    , Input.option Node.typeNTP nodeDescNTP
                     , Input.option Node.typeModbus nodeDescModbus
                     , Input.option Node.typeSerialDev nodeDescSerialDev
                     , Input.option Node.typeCanBus nodeDescCanBus
