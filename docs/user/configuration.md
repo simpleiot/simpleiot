@@ -79,3 +79,20 @@ nodes:
           - type: value
             value: 10
 ```
+
+## Configuration export
+
+Nodes can be exported to a YAML file. This is a useful to:
+
+- backup the current configuration
+- dump node data for debugging
+- transfer a configuration or part of a configuration from one instance to
+  another
+
+To export the entire tree:
+
+`siot export > export.yaml`
+
+A subset of the tree can be exported by specifying the node ID:
+
+`siot export -nodeID 9d7c1c03-0908-4f8b-86d7-8e79184d441d > export.yaml`

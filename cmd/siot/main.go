@@ -62,7 +62,7 @@ func main() {
 	args := flags.Args()
 
 	if len(args) < 1 {
-		// run serve command by default
+		// gun serve command by default
 		args = []string{"serve"}
 	}
 
@@ -479,7 +479,6 @@ func runImport(args []string) {
 func runExport(args []string) {
 	flags := flag.NewFlagSet("import", flag.ExitOnError)
 
-	flagParentID := flags.String("parentID", "", "Parent ID for node to export. Default is root")
 	flagNodeID := flags.String("nodeID", "", "node ID to export. Default is root device")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")
@@ -535,10 +534,9 @@ func runExport(args []string) {
 			log.Fatal("Error getting root node: ", err)
 		}
 		*flagNodeID = root.ID
-		*flagParentID = "root"
 	}
 
-	yaml, err := client.ExportNodes(nc, *flagParentID, *flagNodeID)
+	yaml, err := client.ExportNodes(nc, *flagNodeID)
 	if err != nil {
 		log.Fatal("Error export nodes: ", err)
 	}
