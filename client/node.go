@@ -471,15 +471,14 @@ func ExportNodes(nc *nats.Conn, id string) ([]byte, error) {
 
 	var necNodes []data.NodeEdgeChildren
 
-	for _, n := range rootNodes {
-		nec := data.NodeEdgeChildren{NodeEdge: n, Children: nil}
-		err := exportNodesHelper(nc, &nec)
-		if err != nil {
-			return nil, err
-		}
-
-		necNodes = append(necNodes, nec)
+	// we only export one node as there may be multiple mirrors of the node in the tree
+	nec := data.NodeEdgeChildren{NodeEdge: rootNodes[0], Children: nil}
+	err = exportNodesHelper(nc, &nec)
+	if err != nil {
+		return nil, err
 	}
+
+	necNodes = append(necNodes, nec)
 
 	ne := SiotExport{Nodes: necNodes}
 
