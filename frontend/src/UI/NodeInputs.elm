@@ -2,6 +2,7 @@ module UI.NodeInputs exposing
     ( NodeInputOptions
     , nodeCheckboxInput
     , nodeCounterWithReset
+    , nodeListInput
     , nodeNumberInput
     , nodeOnOffInput
     , nodeOptionInput
@@ -14,6 +15,7 @@ import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Color
 import Element exposing (..)
+import Element.Font as Font
 import Element.Input as Input
 import List.Extra
 import Round
@@ -649,3 +651,72 @@ nodePasteButton o label typ value =
         [ UI.Button.clipboard <| o.onEditNodePoint [ Point typ "0" o.now 0 value 0 ]
         , label
         ]
+
+
+nodeListInput : NodeInputOptions msg -> String -> String -> String -> Element msg
+nodeListInput o typ label buttonLabel =
+    let
+        entries =
+            Point.getTextArray o.node.points typ
+
+        entriesArrayCount =
+            List.Extra.count
+                (\p ->
+                    p.typ == typ
+                )
+                o.node.points
+
+        entriesArrayCountS =
+            String.fromInt entriesArrayCount
+
+        entriesToPoints es =
+            List.indexedMap
+                (\i s ->
+                    Point typ (String.fromInt i) o.now 0 s 0
+                )
+                es
+                ++ List.map
+                    (\i ->
+                        Point typ (String.fromInt i) o.now 0 "" 1
+                    )
+                    (List.range (List.length es) (entriesArrayCount - 1))
+
+        updateEntry i update =
+            List.Extra.setAt i update entries |> entriesToPoints |> o.onEditNodePoint
+
+        deleteEntry i =
+            List.Extra.removeAt i entries |> entriesToPoints |> o.onEditNodePoint
+    in
+    column [ centerX, spacing 5 ] <|
+        (el [ Font.bold, centerX, Element.paddingXY 0 6 ] <|
+            Element.text label
+        )
+            :: List.indexedMap
+                (\i s ->
+                    row [ spacing 10 ]
+                        [ Input.text []
+                            { label = Input.labelHidden "entry name"
+                            , onChange = updateEntry i
+                            , text = s
+                            , placeholder = Nothing
+                            }
+                        , UI.Button.x <| deleteEntry i
+                        ]
+                )
+                entries
+            ++ [ el [ Element.paddingXY 0 6, centerX ] <|
+                    Form.button
+                        { label = buttonLabel
+                        , color = Style.colors.blue
+                        , onPress =
+                            o.onEditNodePoint
+                                [ { typ = typ
+                                  , key = entriesArrayCountS
+                                  , text = ""
+                                  , time = o.now
+                                  , tombstone = 0
+                                  , value = 0
+                                  }
+                                ]
+                        }
+               ]
