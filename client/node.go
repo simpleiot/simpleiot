@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/goccy/go-yaml"
@@ -486,10 +487,12 @@ func ExportNodes(nc *nats.Conn, id string) ([]byte, error) {
 }
 
 func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
+	// sort edge and node points
+	sort.Sort(data.ByTypeKey(node.Points))
+	sort.Sort(data.ByTypeKey(node.EdgePoints))
 	// reduce a little noise ...
 	// remove tombstone "0" edge points as that does not convey much information
 	// also remove and key="0" fields in points
-
 	for i, p := range node.Points {
 		if p.Key == "0" {
 			node.Points[i].Key = ""
