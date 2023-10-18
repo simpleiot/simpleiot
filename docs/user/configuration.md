@@ -1,5 +1,7 @@
 # Configuration
 
+## Environment variables
+
 Environment variables are used to control various aspects of the application.
 The following are currently defined:
 
@@ -33,3 +35,47 @@ The following are currently defined:
 - **Particle.io**
   - `SIOT_PARTICLE_API_KEY`: key used to fetch data from Particle.io devices
     running [Simple IoT firmware](https://github.com/simpleiot/firmware)
+
+## Configuration import
+
+Nodes defined in a YAML file can be imported into a running SIOT instance using
+the CLI, or the Go API. When using the CLI, the import file must be specified on
+STDIN. The following imports a new node tree under the root device node. This is
+useful for adding new functionality to an instance. If there are any node IDs in
+the import they are mapped to new IDs to eliminate any possibility of ID
+conflicts if the config is imported into multiple systems with a common upstream
+sync, etc.
+
+`siot import < import.yaml`
+
+If you want to import nodes at a specific location (typically a group), then you
+can specify the parent node ID. This ID can be obtained by expanding the node
+and clicking the copy button. This will put the ID into your system copy buffer.
+
+`siot import --parentID 9d7c1c03-0908-4f8b-86d7-8e79184d441d < import.yaml`
+
+If authentication or a different server is required, this can be specified
+through command line arguments or the following environment variables (see
+descriptions above):
+
+- `SIOT_NATS_SERVER`
+- `SIOT_AUTH_TOKEN`
+
+`siot import --help` for more details.
+
+Example YAML file:
+
+```yaml
+nodes:
+  - type: group
+    points:
+      - type: description
+        text: "group 1"
+    children:
+      - type: variable
+        points:
+          - type: description
+            text: var 1
+          - type: value
+            value: 10
+```
