@@ -325,4 +325,8 @@ const (
 	NodeTypeNetworkManager       = "networkManager"
 	NodeTypeNetworkManagerDevice = "networkManagerDevice"
 	NodeTypeNetworkManagerConn   = "networkManagerConn"
+
+	NodeTypeNTP             = "ntp"
+	PointTypeServer         = "server"
+	PointTypeFallbackServer = "fallbackServer"
 )

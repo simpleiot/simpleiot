@@ -35,8 +35,8 @@ view o =
                             NodeInputs.nodeTextInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
-                    , NodeInputs.nodeListInput opts "server" "Servers" "Add Server"
-                    , NodeInputs.nodeListInput opts "fallbackServer" "Fallback Servers" "Add Fallback Server"
+                    , NodeInputs.nodeListInput opts Point.typeServer "Servers" "Add Server"
+                    , NodeInputs.nodeListInput opts Point.typeFallbackServer "Fallback Servers" "Add Fallback Server"
                     ]
 
                 else

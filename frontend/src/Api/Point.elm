@@ -53,6 +53,7 @@ module Api.Point exposing
     , typeErrorCountHR
     , typeErrorCountReset
     , typeErrorCountResetHR
+    , typeFallbackServer
     , typeFilePath
     , typeFirstName
     , typeFrequency
@@ -96,6 +97,7 @@ module Api.Point exposing
     , typeSID
     , typeSampleRate
     , typeScale
+    , typeServer
     , typeService
     , typeSignalsInDb
     , typeStart
@@ -814,6 +816,16 @@ input =
 light : String
 light =
     "light"
+
+
+typeServer : String
+typeServer =
+    "server"
+
+
+typeFallbackServer : String
+typeFallbackServer =
+    "fallbackServer"
 
 
 
