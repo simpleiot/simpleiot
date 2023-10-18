@@ -458,8 +458,8 @@ type SiotExport struct {
 //
 // Key="0" and Tombstone points with value set to 0 are removed from the export to make
 // it easier to read.
-func ExportNodes(nc *nats.Conn, parent, id string) ([]byte, error) {
-	rootNodes, err := GetNodes(nc, parent, id, "", false)
+func ExportNodes(nc *nats.Conn, id string) ([]byte, error) {
+	rootNodes, err := GetNodes(nc, "all", id, "", false)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting root node: %w", err)
 	}
