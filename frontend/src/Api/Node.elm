@@ -23,6 +23,7 @@ module Api.Node exposing
     , typeModbus
     , typeModbusIO
     , typeMsgService
+    , typeNTP
     , typeNetworkManager
     , typeNetworkManagerConn
     , typeNetworkManagerDevice
@@ -171,6 +172,11 @@ typeNetworkManagerDevice =
 typeNetworkManagerConn : String
 typeNetworkManagerConn =
     "networkManagerConn"
+
+
+typeNTP : String
+typeNTP =
+    "ntp"
 
 
 
