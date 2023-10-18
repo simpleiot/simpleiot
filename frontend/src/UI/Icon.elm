@@ -6,6 +6,7 @@ module UI.Icon exposing
     , cable
     , check
     , clipboard
+    , clock
     , cloud
     , cloudOff
     , database
@@ -254,3 +255,8 @@ barChart =
 file : Element msg
 file =
     icon FeatherIcons.file
+
+
+clock : Element msg
+clock =
+    icon FeatherIcons.clock
