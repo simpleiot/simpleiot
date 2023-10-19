@@ -29,8 +29,8 @@ type NTPClient struct {
 type NTP struct {
 	ID              string   `node:"id"`
 	Parent          string   `node:"parent"`
-	Servers         []string `point:"servers"`
-	FallbackServers []string `point:"fallbackServers"`
+	Servers         []string `point:"server"`
+	FallbackServers []string `point:"fallbackServer"`
 }
 
 // NewNTPClient returns a new NTPClient using its

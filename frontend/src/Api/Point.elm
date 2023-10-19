@@ -53,6 +53,7 @@ module Api.Point exposing
     , typeErrorCountHR
     , typeErrorCountReset
     , typeErrorCountResetHR
+    , typeFallbackServer
     , typeFilePath
     , typeFirstName
     , typeFrequency
@@ -96,6 +97,7 @@ module Api.Point exposing
     , typeSID
     , typeSampleRate
     , typeScale
+    , typeServer
     , typeService
     , typeSignalsInDb
     , typeStart
@@ -816,6 +818,16 @@ light =
     "light"
 
 
+typeServer : String
+typeServer =
+    "server"
+
+
+typeFallbackServer : String
+typeFallbackServer =
+    "fallbackServer"
+
+
 
 -- Point should match data/Point.go
 
@@ -1039,7 +1051,7 @@ getTextArray points typ =
         <|
             List.foldl
                 (\p acc ->
-                    if p.typ == typ then
+                    if p.typ == typ && p.tombstone == 0 then
                         p :: acc
 
                     else
