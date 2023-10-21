@@ -541,17 +541,26 @@ func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
 // allows you to use "friendly" ID names in hand generated YAML files.
 func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, preserveIDs bool) error {
 	// first make sure the parent node exists
-	n, err := GetNodes(nc, "all", parent, "", false)
-	if err != nil {
-		return err
-	}
-	if len(n) < 1 {
-		return fmt.Errorf("Parent node \"%v\" not found", parent)
+	var rootNode data.NodeEdge
+	if parent != "root" {
+		n, err := GetNodes(nc, "all", parent, "", false)
+		if err != nil {
+			return err
+		}
+		if len(n) < 1 {
+			return fmt.Errorf("Parent node \"%v\" not found", parent)
+		}
+	} else {
+		var err error
+		rootNode, err = GetRootNode(nc)
+		if err != nil {
+			return err
+		}
 	}
 
 	var imp SiotExport
 
-	err = yaml.Unmarshal(yamlData, &imp)
+	err := yaml.Unmarshal(yamlData, &imp)
 	if err != nil {
 		return fmt.Errorf("Error parsing YAML data: %w", err)
 	}
@@ -596,6 +605,14 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 	}
 
 	err = importHelper(imp.Nodes[0])
+
+	// if we imported the root node, then we have to tombstone the old root node
+	if parent == "root" {
+		err := DeleteNode(nc, rootNode.ID, parent, "import")
+		if err != nil {
+			return fmt.Errorf("Error deleting old root node: %w", err)
+		}
+	}
 
 	return err
 }
