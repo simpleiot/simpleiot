@@ -132,6 +132,7 @@ func runServer(args []string, version string, id string) error {
 			return errors.New("Timeout waiting for SIOT to start")
 		}
 		log.Println("SIOT started")
+
 		<-chStartCheck
 		return nil
 	}, func(err error) {
@@ -395,6 +396,7 @@ func runImport(args []string) {
 	flagParentID := flags.String("parentID", "", "Parent ID for import under. Default is root device")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")
+	flagPreserveIDs := flags.Bool("preserveIDs", false, "Preserve node IDs (use with caution)")
 
 	if err := flags.Parse(args); err != nil {
 		log.Fatal("error: ", err)
@@ -468,7 +470,7 @@ func runImport(args []string) {
 		*flagParentID = root.ID
 	}
 
-	err = client.ImportNodes(nc, *flagParentID, yaml, "import", false)
+	err = client.ImportNodes(nc, *flagParentID, yaml, "import", *flagPreserveIDs)
 	if err != nil {
 		log.Fatal("Error importing nodes: ", err)
 	}
