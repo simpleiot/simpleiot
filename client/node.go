@@ -607,7 +607,7 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 	err = importHelper(imp.Nodes[0])
 
 	// if we imported the root node, then we have to tombstone the old root node
-	if parent == "root" {
+	if parent == "root" && rootNode.ID != imp.Nodes[0].ID {
 		err := DeleteNode(nc, rootNode.ID, parent, "import")
 		if err != nil {
 			return fmt.Errorf("Error deleting old root node: %w", err)
