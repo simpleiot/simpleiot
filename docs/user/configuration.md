@@ -96,6 +96,9 @@ descriptions above):
 - `SIOT_NATS_SERVER`
 - `SIOT_AUTH_TOKEN`
 
+**It is easy to make a mess with the import command, so think through what you
+are doing first. SIOT does not prevent you from making a mess!**
+
 `siot import --help` for more details.
 
 Example YAML file:
