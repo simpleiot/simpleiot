@@ -37,6 +37,7 @@ module Api.Node exposing
     , typeSync
     , typeUser
     , typeVariable
+    , typeZMini
     )
 
 import Api.Data exposing (Data)
@@ -127,6 +128,11 @@ typeOneWire =
 typeSerialDev : String
 typeSerialDev =
     "serialDev"
+
+
+typeZMini : String
+typeZMini =
+    "zMini"
 
 
 typeCanBus : String
