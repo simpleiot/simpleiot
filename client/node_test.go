@@ -20,7 +20,7 @@ func TestExportNodes(t *testing.T) {
 
 	defer stop()
 
-	y, err := client.ExportNodes(nc, root.Parent, root.ID)
+	y, err := client.ExportNodes(nc, root.ID)
 
 	if err != nil {
 		t.Fatal("Error exporting nodes: ", err)

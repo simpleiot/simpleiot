@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/goccy/go-yaml"
@@ -458,8 +459,8 @@ type SiotExport struct {
 //
 // Key="0" and Tombstone points with value set to 0 are removed from the export to make
 // it easier to read.
-func ExportNodes(nc *nats.Conn, parent, id string) ([]byte, error) {
-	rootNodes, err := GetNodes(nc, parent, id, "", false)
+func ExportNodes(nc *nats.Conn, id string) ([]byte, error) {
+	rootNodes, err := GetNodes(nc, "all", id, "", false)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting root node: %w", err)
 	}
@@ -470,15 +471,14 @@ func ExportNodes(nc *nats.Conn, parent, id string) ([]byte, error) {
 
 	var necNodes []data.NodeEdgeChildren
 
-	for _, n := range rootNodes {
-		nec := data.NodeEdgeChildren{NodeEdge: n, Children: nil}
-		err := exportNodesHelper(nc, &nec)
-		if err != nil {
-			return nil, err
-		}
-
-		necNodes = append(necNodes, nec)
+	// we only export one node as there may be multiple mirrors of the node in the tree
+	nec := data.NodeEdgeChildren{NodeEdge: rootNodes[0], Children: nil}
+	err = exportNodesHelper(nc, &nec)
+	if err != nil {
+		return nil, err
 	}
+
+	necNodes = append(necNodes, nec)
 
 	ne := SiotExport{Nodes: necNodes}
 
@@ -486,10 +486,12 @@ func ExportNodes(nc *nats.Conn, parent, id string) ([]byte, error) {
 }
 
 func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
+	// sort edge and node points
+	sort.Sort(data.ByTypeKey(node.Points))
+	sort.Sort(data.ByTypeKey(node.EdgePoints))
 	// reduce a little noise ...
 	// remove tombstone "0" edge points as that does not convey much information
 	// also remove and key="0" fields in points
-
 	for i, p := range node.Points {
 		if p.Key == "0" {
 			node.Points[i].Key = ""
@@ -539,17 +541,26 @@ func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
 // allows you to use "friendly" ID names in hand generated YAML files.
 func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, preserveIDs bool) error {
 	// first make sure the parent node exists
-	n, err := GetNodes(nc, "all", parent, "", false)
-	if err != nil {
-		return err
-	}
-	if len(n) < 1 {
-		return fmt.Errorf("Parent node \"%v\" not found", parent)
+	var rootNode data.NodeEdge
+	if parent != "root" {
+		n, err := GetNodes(nc, "all", parent, "", false)
+		if err != nil {
+			return err
+		}
+		if len(n) < 1 {
+			return fmt.Errorf("Parent node \"%v\" not found", parent)
+		}
+	} else {
+		var err error
+		rootNode, err = GetRootNode(nc)
+		if err != nil {
+			return err
+		}
 	}
 
 	var imp SiotExport
 
-	err = yaml.Unmarshal(yamlData, &imp)
+	err := yaml.Unmarshal(yamlData, &imp)
 	if err != nil {
 		return fmt.Errorf("Error parsing YAML data: %w", err)
 	}
@@ -577,6 +588,13 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 	// set parent of first node
 	imp.Nodes[0].Parent = parent
 
+	// append (import) to top level node description
+	for i, p := range imp.Nodes[0].Points {
+		if p.Type == data.PointTypeDescription {
+			imp.Nodes[0].Points[i].Text += " (import)"
+		}
+	}
+
 	if preserveIDs {
 		err := checkIDs(imp.Nodes[0], parent)
 		if err != nil {
@@ -587,6 +605,14 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 	}
 
 	err = importHelper(imp.Nodes[0])
+
+	// if we imported the root node, then we have to tombstone the old root node
+	if parent == "root" && rootNode.ID != imp.Nodes[0].ID {
+		err := DeleteNode(nc, rootNode.ID, parent, "import")
+		if err != nil {
+			return fmt.Errorf("Error deleting old root node: %w", err)
+		}
+	}
 
 	return err
 }

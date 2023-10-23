@@ -780,6 +780,16 @@ NextPin:
 				return fmt.Errorf("Error when writing edge: %v", err)
 			}
 		}
+
+		if parentID == "root" {
+			log.Println("inserting new root node, update root in meta")
+			_, err = tx.Exec("UPDATE meta SET root_id = ?", nodeID)
+			if err != nil {
+				rollback()
+				return fmt.Errorf("Error update root id in meta: %w", err)
+			}
+			sdb.meta.RootID = nodeID
+		}
 	}
 
 	err = sdb.updateHash(tx, nodeID, hashUpdate)
@@ -871,6 +881,12 @@ func (sdb *DbSqlite) edges(tx *sql.Tx, query string, args ...any) ([]data.Edge, 
 			return nil, fmt.Errorf("Error scanning edges: %v", err)
 		}
 
+		edge.Points, err = sdb.queryPoints(tx,
+			"SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
+		if err != nil {
+			return nil, fmt.Errorf("error getting edge points: %w", err)
+		}
+
 		edges = append(edges, edge)
 	}
 
@@ -907,6 +923,9 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 	var q string
 
 	switch {
+	case parent == "root":
+		// return a single root node
+		q = fmt.Sprintf("SELECT * FROM edges WHERE down = '%v'", sdb.meta.RootID)
 	case parent == "all" && id == "all":
 		return nil, errors.New("invalid combination of parent and id")
 	case parent == "all":
@@ -1004,7 +1023,7 @@ func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (data.Po
 // userCheck checks user authentication
 // returns nil, nil if user is not found
 func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
-	var ret []data.NodeEdge
+	var users []data.NodeEdge
 
 	rows, err := sdb.db.Query("SELECT down FROM edges WHERE type=?", data.NodeTypeUser)
 	if err != nil {
@@ -1026,7 +1045,7 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 	}
 
 	if err := rows.Close(); err != nil {
-		return ret, err
+		return nil, err
 	}
 
 	for _, id := range ids {
@@ -1042,7 +1061,58 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 		n := ne[0].ToNode()
 		u := n.ToUser()
 		if u.Email == email && u.Pass == password {
-			ret = append(ret, ne...)
+			users = append(users, ne...)
+		}
+	}
+
+	// make sure all these user nodes are still alive and have path to root
+	var ret []data.NodeEdge
+
+	var checkUserPathRoot func(string) (bool, error)
+
+	checkUserPathRoot = func(id string) (bool, error) {
+		edges, err := sdb.edges(nil, "SELECT * FROM edges WHERE down=?", id)
+		if err != nil {
+			return false, err
+		}
+
+		for _, e := range edges {
+			// make sure edge is not tombstone
+			for _, p := range e.Points {
+				if p.Type == data.PointTypeTombstone && p.Value != 0 {
+					return false, nil
+				}
+			}
+
+			if e.Up == "root" {
+				return true, nil
+			}
+
+			// continue walking upstream
+			ok, err := checkUserPathRoot(e.Up)
+			if err != nil {
+				return false, err
+			}
+
+			if ok {
+				// found a path, return
+				return ok, nil
+			}
+
+			// look at the next edge
+		}
+
+		return false, nil
+	}
+
+	for _, u := range users {
+		ok, err := checkUserPathRoot(u.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if ok {
+			ret = append(ret, u)
 		}
 	}
 

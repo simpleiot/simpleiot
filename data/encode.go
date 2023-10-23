@@ -332,10 +332,10 @@ func DiffPoints[T any](before, after T) (Points, error) {
 					return points, err
 				}
 				continue
-			} else {
-				bFieldV = bFieldV.Elem()
-				aFieldV = aFieldV.Elem()
 			}
+
+			bFieldV = bFieldV.Elem()
+			aFieldV = aFieldV.Elem()
 		}
 
 		switch bFieldV.Kind() {

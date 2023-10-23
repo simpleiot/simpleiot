@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"time"
@@ -30,15 +29,15 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 	}
 
 	natsErrHandler := func(nc *nats.Conn, sub *nats.Subscription, natsErr error) {
-		fmt.Printf("error: %v\n", natsErr)
+		log.Printf("error: %v\n", natsErr)
 		switch natsErr {
 		case nats.ErrSlowConsumer:
 			pendingMsgs, _, err := sub.Pending()
 			if err != nil {
-				fmt.Printf("couldn't get pending messages: %v", err)
+				log.Printf("couldn't get pending messages: %v", err)
 				return
 			}
-			fmt.Printf("Falling behind with %d pending messages on subject %q.\n",
+			log.Printf("Falling behind with %d pending messages on subject %q.\n",
 				pendingMsgs, sub.Subject)
 			// Log error, notify operations...
 		default:
@@ -123,7 +122,7 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		return nil, err
 	}
 
-	fmt.Println("NATS: TLS required: ", nc.TLSRequired())
+	log.Println("NATS: TLS required: ", nc.TLSRequired())
 
 	return nc, nil
 }
