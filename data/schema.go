@@ -89,8 +89,9 @@ const (
 	PointValueClient      = "client"
 	PointValueServer      = "server"
 
-	PointTypePort = "port"
-	PointTypeBaud = "baud"
+	PointTypePort   = "port"
+	PointTypeBaud   = "baud"
+	PointTypeHRDest = "hrDest"
 
 	PointTypeProtocol = "protocol"
 	PointValueRTU     = "RTU"

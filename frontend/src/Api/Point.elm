@@ -58,6 +58,7 @@ module Api.Point exposing
     , typeFirstName
     , typeFrequency
     , typeFrom
+    , typeHRDest
     , typeHighRate
     , typeHrRx
     , typeHrRxReset
@@ -311,6 +312,11 @@ typeHrRxReset =
 typeBaud : String
 typeBaud =
     "baud"
+
+
+typeHRDest : String
+typeHRDest =
+    "hrDest"
 
 
 typeMaxMessageLength : String
@@ -860,6 +866,7 @@ specialPoints =
     , typeVersionOS
     , typeVersionApp
     , typeBaud
+    , typeHRDest
     , typeMaxMessageLength
     , typeDebug
     , typeDisable
