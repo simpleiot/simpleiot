@@ -23,6 +23,7 @@ type SerialDev struct {
 	Port              string `point:"port"`
 	Baud              string `point:"baud"`
 	MaxMessageLength  int    `point:"maxMessageLength"`
+	HRDestNode        string `point:"hrDest"`
 	Debug             int    `point:"debug"`
 	Disable           bool   `point:"disable"`
 	Log               string `point:"log"`
@@ -52,7 +53,6 @@ type SerialDevClient struct {
 	wrSeq            byte
 	lastSendStats    time.Time
 	natsSub          string
-	natsSubHR        string
 	natsSubHRUp      string
 	ratePointCount   int
 	ratePointCountHR int
@@ -61,6 +61,11 @@ type SerialDevClient struct {
 
 // NewSerialDevClient ...
 func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
+	phrup := fmt.Sprintf("phrup.%v.%v", config.Parent, config.ID)
+	if config.HRDestNode != "" {
+		phrup = fmt.Sprintf("phrup.%v.x", config.HRDestNode)
+	}
+
 	return &SerialDevClient{
 		nc:            nc,
 		config:        config,
@@ -68,8 +73,7 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		natsSub:       SubjectNodePoints(config.ID),
-		natsSubHR:     fmt.Sprintf("phr.%v", config.ID),
-		natsSubHRUp:   fmt.Sprintf("phrup.%v.%v", config.Parent, config.ID),
+		natsSubHRUp:   phrup,
 	}
 }
 
@@ -446,6 +450,7 @@ func (sd *SerialDevClient) Run() error {
 
 		case pts := <-sd.newPoints:
 			op := false
+			updateHRUp := false
 			for _, p := range pts.Points {
 				// check if any of the config changes should cause us to re-open the port
 				if p.Type == data.PointTypePort ||
@@ -469,12 +474,24 @@ func (sd *SerialDevClient) Run() error {
 						op = true
 					}
 				}
+				if p.Type == data.PointTypeHRDest {
+					updateHRUp = true
+				}
+
 			}
 
 			err := data.MergePoints(pts.ID, pts.Points, &sd.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
 			}
+
+			if updateHRUp {
+				sd.natsSubHRUp = fmt.Sprintf("phrup.%v.%v", sd.config.Parent, sd.config.ID)
+				if sd.config.HRDestNode != "" {
+					sd.natsSubHRUp = fmt.Sprintf("phrup.%v.x", sd.config.HRDestNode)
+				}
+			}
+
 			if op {
 				openPort()
 			}
