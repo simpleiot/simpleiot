@@ -87,6 +87,7 @@ view o =
                     , textInput Point.typePort "Port" "/dev/ttyUSB0"
                     , textInput Point.typeBaud "Baud" "9600"
                     , numberInput Point.typeMaxMessageLength "Max Msg Len"
+                    , textInput Point.typeHRDest "HR Dest Node" ""
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , checkboxInput Point.typeDisable "Disable"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
