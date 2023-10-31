@@ -68,31 +68,27 @@ view o =
                             NodeInputs.nodeTextInput opts "0"
 
                         data =
-                            case serialNode of
-                                Just sn ->
-                                    let
-                                        vrmsAX =
-                                            Point.getValue sn.node.points "vRMS" "AX"
+                            let
+                                vrmsAX =
+                                    Point.getValue o.node.points "vRMS" "AX"
 
-                                        vrmsBX =
-                                            Point.getValue sn.node.points "vRMS" "BX"
+                                vrmsBX =
+                                    Point.getValue o.node.points "vRMS" "BX"
 
-                                        vrmsOX =
-                                            Point.getValue sn.node.points "vRMS" "OX"
+                                vrmsOX =
+                                    Point.getValue o.node.points "vRMS" "OX"
 
-                                        irmsOX =
-                                            Point.getValue sn.node.points "iRMS" "OX"
-                                    in
-                                    [ { typ = "vRMS", key = "AX", value = Round.round 2 vrmsAX }
-                                    , { typ = "vRMS", key = "BX", value = Round.round 2 vrmsBX }
-                                    , { typ = "vRMS", key = "OX", value = Round.round 2 vrmsOX }
-                                    , { typ = "iRMS", key = "OX", value = Round.round 2 irmsOX }
-                                    ]
-
-                                Nothing ->
-                                    []
+                                irmsOX =
+                                    Point.getValue o.node.points "iRMS" "OX"
+                            in
+                            [ { typ = "vRMS", key = "AX", value = Round.round 5 vrmsAX }
+                            , { typ = "vRMS", key = "BX", value = Round.round 5 vrmsBX }
+                            , { typ = "vRMS", key = "OX", value = Round.round 5 vrmsOX }
+                            , { typ = "iRMS", key = "OX", value = Round.round 5 irmsOX }
+                            ]
                     in
                     [ textInput Point.typeDescription "Description" ""
+                    , textInput "preferred" "Preferred side" "'a' or 'b'"
                     , table
                         [ padding 7 ]
                         { data = data
