@@ -37,6 +37,15 @@ SIOT has the ability to log points to InfluxDB, so this mechanism can also be
 used to log messages, events, state changes, whatever -- simply use an existing
 point type or define a new one, and send it upstream.
 
+## Data Synchronization
+
+By default, the serial client synchronizes any extra points written to the
+serial node. The serial UI displays the extra points as shown below:
+
+<img src="./assets/image-20231031115204490.png" alt="image-20231031115204490" style="zoom:50%;" />
+
+Alternatively, there is an option for the serial client to sync its parent's points to the serial device. When this is selected, any points received from the serial device are posted to the parent node, and any points posted to the parent node that were not sent by the serial device are forwarded to the serial client.
+
 ## Protocol
 
 The SIOT serial protocol mirrors the NATS

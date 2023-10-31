@@ -9,6 +9,7 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
+// NodeTypeZMini indentifies a Zonit Mini node
 var NodeTypeZMini = "zMini"
 
 // ZMini represents a Zonit mini client
