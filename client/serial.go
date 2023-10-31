@@ -65,7 +65,6 @@ type SerialDevClient struct {
 
 // NewSerialDevClient ...
 func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
-	fmt.Printf("CLIFF: %+v\n", config)
 	ret := &SerialDevClient{
 		nc:            nc,
 		config:        config,
@@ -116,7 +115,6 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 			}
 
 			if len(pointsToSend) > 0 {
-				fmt.Println("CLIFF: parent points to send: ", pointsToSend)
 				sd.wrSeq++
 				err := sd.sendPointsToDevice(sd.wrSeq, false, "", pointsToSend)
 				if err != nil {
