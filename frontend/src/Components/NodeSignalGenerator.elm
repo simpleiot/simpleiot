@@ -18,6 +18,9 @@ view o =
         value =
             Point.getValue o.node.points Point.typeValue ""
 
+        signalType =
+            Point.getText o.node.points Point.typeSignalType ""
+
         valueText =
             String.fromFloat (Round.roundNum 2 value)
 
@@ -63,18 +66,37 @@ view o =
                         numberInput =
                             NodeInputs.nodeNumberInput opts "0"
 
+                        optionInput =
+                            NodeInputs.nodeOptionInput opts "0"
+
                         checkboxInput =
                             NodeInputs.nodeCheckboxInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
-                    , numberInput Point.typeFrequency "Frequency (Hz)"
-                    , numberInput Point.typeAmplitude "Amplitude (peak)"
-                    , numberInput Point.typeOffset "Offset"
-                    , numberInput Point.typeSampleRate "SampleRate (Hz)"
-                    , textInput Point.typeUnits "Units" ""
-                    , checkboxInput Point.typeHighRate "High rate data"
-                    , numberInput Point.typeBatchPeriod "Batch (ms)"
                     , checkboxInput Point.typeDisable "Disable"
+                    , textInput Point.typeUnits "Units" ""
+                    , optionInput Point.typeSignalType
+                        "Signal type"
+                        [ ( Point.valueSine, "Sine" )
+                        , ( Point.valueSquare, "Square" )
+                        , ( Point.valueTriangle, "Triangle" )
+                        , ( Point.valueRandomWalk, "Random Walk" )
+                        ]
+                    , numberInput Point.typeMinValue "Min. Value"
+                    , numberInput Point.typeMaxValue "Max. Value"
+                    , numberInput Point.typeInitialValue "Initial Value"
+                    , numberInput Point.typeRoundTo "Round To"
+                    , numberInput Point.typeSampleRate "Sample Rate (Hz)"
+                    , checkboxInput Point.typeHighRate "High rate data"
+                    , numberInput Point.typeBatchPeriod "Batch Period (ms)"
+                    , viewIf (signalType == Point.valueSine ||
+                        signalType == Point.valueSquare ||
+                        signalType == Point.valueTriangle) <|
+                        numberInput Point.typeFrequency "Frequency (Hz)"
+                    , viewIf (signalType == Point.valueRandomWalk) <|
+                        numberInput Point.typeMinIncrement "Min. Increment"
+                    , viewIf (signalType == Point.valueRandomWalk) <|
+                        numberInput Point.typeMaxIncrement "Max. Increment"
                     ]
 
                 else
