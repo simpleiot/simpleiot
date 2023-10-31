@@ -105,6 +105,7 @@ module Api.Point exposing
     , typeSwitchSet
     , typeSyncCount
     , typeSyncCountReset
+    , typeSyncParent
     , typeSysState
     , typeTombstone
     , typeTx
@@ -832,6 +833,11 @@ typeServer =
 typeFallbackServer : String
 typeFallbackServer =
     "fallbackServer"
+
+
+typeSyncParent : String
+typeSyncParent =
+    "syncParent"
 
 
 
