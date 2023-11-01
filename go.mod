@@ -23,8 +23,8 @@ require (
 	github.com/kevinburke/twilio-go v0.0.0-20200810163702-320748330fac
 	github.com/kjx98/crc16 v0.0.0-20190915014410-d407ba22e1b5
 	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
-	github.com/nats-io/nats-server/v2 v2.10.2
-	github.com/nats-io/nats.go v1.30.2
+	github.com/nats-io/nats-server/v2 v2.10.4
+	github.com/nats-io/nats.go v1.31.0
 	github.com/oklog/run v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil/v3 v3.23.7
@@ -56,7 +56,7 @@ require (
 	github.com/kevinburke/go-types v0.0.0-20200309064045-f2d4aea18a7a // indirect
 	github.com/kevinburke/go.uuid v1.2.0 // indirect
 	github.com/kevinburke/rest v0.0.0-20200429221318-0d2892b400f8 // indirect
-	github.com/klauspost/compress v1.17.0 // indirect
+	github.com/klauspost/compress v1.17.2 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
