@@ -18,9 +18,6 @@ view o =
         value =
             Point.getValue o.node.points Point.typeValue ""
 
-        signalType =
-            Point.getText o.node.points Point.typeSignalType ""
-
         valueText =
             String.fromFloat (Round.roundNum 2 value)
 
@@ -71,6 +68,9 @@ view o =
 
                         checkboxInput =
                             NodeInputs.nodeCheckboxInput opts "0"
+
+                        signalType =
+                            Point.getText o.node.points Point.typeSignalType ""
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , checkboxInput Point.typeDisable "Disable"
