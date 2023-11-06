@@ -20,6 +20,7 @@ For more details or to discuss releases, please visit the
 - Network Manager Client (WIP)
 - NTP Client
 - serial client: allow configuration of HR point destination
+- serial client: add "Sync Parent" option
 
 ## [[0.13.1] - 2023-10-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.13.1)
 

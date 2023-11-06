@@ -217,6 +217,7 @@ const (
 	PointTypeLog              = "log"
 	PointTypeUptime           = "uptime"
 	PointTypeMaxMessageLength = "maxMessageLength"
+	PointTypeSyncParent       = "syncParent"
 
 	// CAN bus clients
 	NodeTypeCanBus               = "canBus"
