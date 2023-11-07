@@ -231,11 +231,17 @@ const (
 
 	NodeTypeSignalGenerator = "signalGenerator"
 
-	PointTypeFrequency   = "frequency"
-	PointTypeAmplitude   = "amplitude"
-	PointTypeSampleRate  = "sampleRate"
-	PointTypeHighRate    = "highRate"
-	PointTypeBatchPeriod = "batchPeriod"
+	PointTypeSignalType   = "signalType"
+	PointTypeMinValue     = "minValue"
+	PointTypeMaxValue     = "maxValue"
+	PointTypeInitialValue = "initialValue"
+	PointTypeRoundTo      = "roundTo"
+	PointTypeSampleRate   = "sampleRate"
+	PointTypeHighRate     = "highRate"
+	PointTypeBatchPeriod  = "batchPeriod"
+	PointTypeFrequency    = "frequency"
+	PointTypeMinIncrement = "minIncrement"
+	PointTypeMaxIncrement = "maxIncrement"
 
 	NodeTypeFile  = "file"
 	PointTypeName = "name"

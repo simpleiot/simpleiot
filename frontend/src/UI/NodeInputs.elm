@@ -418,6 +418,9 @@ nodeNumberInput o key typ lbl =
                         if p.text == Point.blankMajicValue || p.text == "blank" then
                             ""
 
+                        else if p.text == "-" then
+                            "-"
+
                         else
                             Sanitize.float p.text
 
@@ -444,6 +447,9 @@ nodeNumberInput o key typ lbl =
                         if d == "" then
                             Point.blankMajicValue
 
+                        else if d == "-" then
+                            "-"
+
                         else
                             case String.toFloat d of
                                 Just _ ->
@@ -453,7 +459,7 @@ nodeNumberInput o key typ lbl =
                                     currentValue
 
                     v =
-                        if dCheck == Point.blankMajicValue then
+                        if dCheck == Point.blankMajicValue || dCheck == "-" then
                             0
 
                         else
