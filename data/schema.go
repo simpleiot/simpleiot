@@ -89,8 +89,9 @@ const (
 	PointValueClient      = "client"
 	PointValueServer      = "server"
 
-	PointTypePort = "port"
-	PointTypeBaud = "baud"
+	PointTypePort   = "port"
+	PointTypeBaud   = "baud"
+	PointTypeHRDest = "hrDest"
 
 	PointTypeProtocol = "protocol"
 	PointValueRTU     = "RTU"
@@ -216,6 +217,7 @@ const (
 	PointTypeLog              = "log"
 	PointTypeUptime           = "uptime"
 	PointTypeMaxMessageLength = "maxMessageLength"
+	PointTypeSyncParent       = "syncParent"
 
 	// CAN bus clients
 	NodeTypeCanBus               = "canBus"
@@ -229,11 +231,17 @@ const (
 
 	NodeTypeSignalGenerator = "signalGenerator"
 
-	PointTypeFrequency   = "frequency"
-	PointTypeAmplitude   = "amplitude"
-	PointTypeSampleRate  = "sampleRate"
-	PointTypeHighRate    = "highRate"
-	PointTypeBatchPeriod = "batchPeriod"
+	PointTypeSignalType   = "signalType"
+	PointTypeMinValue     = "minValue"
+	PointTypeMaxValue     = "maxValue"
+	PointTypeInitialValue = "initialValue"
+	PointTypeRoundTo      = "roundTo"
+	PointTypeSampleRate   = "sampleRate"
+	PointTypeHighRate     = "highRate"
+	PointTypeBatchPeriod  = "batchPeriod"
+	PointTypeFrequency    = "frequency"
+	PointTypeMinIncrement = "minIncrement"
+	PointTypeMaxIncrement = "maxIncrement"
 
 	NodeTypeFile  = "file"
 	PointTypeName = "name"

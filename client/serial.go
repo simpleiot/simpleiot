@@ -23,6 +23,8 @@ type SerialDev struct {
 	Port              string `point:"port"`
 	Baud              string `point:"baud"`
 	MaxMessageLength  int    `point:"maxMessageLength"`
+	HRDestNode        string `point:"hrDest"`
+	SyncParent        bool   `point:"syncParent"`
 	Debug             int    `point:"debug"`
 	Disable           bool   `point:"disable"`
 	Log               string `point:"log"`
@@ -44,33 +46,121 @@ type SerialDev struct {
 
 // SerialDevClient is a SIOT client used to manage serial devices
 type SerialDevClient struct {
-	nc               *nats.Conn
-	config           SerialDev
-	stop             chan struct{}
-	newPoints        chan NewPoints
-	newEdgePoints    chan NewPoints
-	wrSeq            byte
-	lastSendStats    time.Time
-	natsSub          string
-	natsSubHR        string
-	natsSubHRUp      string
-	ratePointCount   int
-	ratePointCountHR int
-	rateLastSend     time.Time
+	nc                  *nats.Conn
+	config              SerialDev
+	stop                chan struct{}
+	newPoints           chan NewPoints
+	newEdgePoints       chan NewPoints
+	wrSeq               byte
+	lastSendStats       time.Time
+	natsSub             string
+	natsSubSerialPoints string
+	natsSubHRUp         string
+	parentSubscription  *nats.Subscription
+	ratePointCount      int
+	ratePointCountHR    int
+	rateLastSend        time.Time
+	portCobsWrapper     *CobsWrapper
 }
 
 // NewSerialDevClient ...
 func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
-	return &SerialDevClient{
+	ret := &SerialDevClient{
 		nc:            nc,
 		config:        config,
 		stop:          make(chan struct{}),
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		natsSub:       SubjectNodePoints(config.ID),
-		natsSubHR:     fmt.Sprintf("phr.%v", config.ID),
-		natsSubHRUp:   fmt.Sprintf("phrup.%v.%v", config.Parent, config.ID),
 	}
+
+	ret.populateNatsSubjects()
+
+	return ret
+}
+
+func (sd *SerialDevClient) populateNatsSubjects() {
+	phrup := fmt.Sprintf("phrup.%v.%v", sd.config.Parent, sd.config.ID)
+	if sd.config.HRDestNode != "" {
+		phrup = fmt.Sprintf("phrup.%v.x", sd.config.HRDestNode)
+	}
+	sd.natsSubHRUp = phrup
+
+	if sd.parentSubscription != nil {
+		err := sd.parentSubscription.Unsubscribe()
+		if err != nil {
+			log.Println("Serial: error unsubscribing from parent sub: ", err)
+		}
+		sd.parentSubscription = nil
+	}
+
+	if sd.config.SyncParent {
+		sd.natsSubSerialPoints = SubjectNodePoints(sd.config.Parent)
+		var err error
+		sd.parentSubscription, err = sd.nc.Subscribe(sd.natsSubSerialPoints, func(msg *nats.Msg) {
+			points, err := data.PbDecodePoints(msg.Data)
+			if err != nil {
+				log.Println("Error decoding points in serial parent: ", err)
+				return
+			}
+
+			// only send points whose orgin is not the serial node ID as those are just
+			// getting echo'd back
+			var pointsToSend data.Points
+
+			for _, p := range points {
+				if p.Origin != sd.config.ID {
+					pointsToSend = append(pointsToSend, p)
+				}
+			}
+
+			if len(pointsToSend) > 0 {
+				sd.wrSeq++
+				err := sd.sendPointsToDevice(sd.wrSeq, false, "", pointsToSend)
+				if err != nil {
+					log.Println("Error sending points to serial device: ", err)
+				}
+			}
+		})
+		if err != nil {
+			log.Println("Error subscribing to serial parent: ", err)
+		}
+	} else {
+		sd.natsSubSerialPoints = SubjectNodePoints(sd.config.ID)
+	}
+}
+
+func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pts data.Points) error {
+	d, err := SerialEncode(seq, sub, pts)
+	if err != nil {
+		return fmt.Errorf("error encoding points to send to MCU: %w", err)
+	}
+
+	if sd.config.Debug >= 4 {
+		log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, seq, sub, pts)
+	}
+
+	_, err = sd.portCobsWrapper.Write(d)
+	if err != nil {
+		return fmt.Errorf("error writing data to port: %w", err)
+	}
+
+	sd.config.Tx++
+	err = SendPoints(sd.nc, sd.natsSub,
+		data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
+		false)
+
+	if err != nil {
+		return fmt.Errorf("Error sending Serial tx stats: %w", err)
+	}
+
+	if !ack {
+		_ = ack
+		// TODO: we need to check for response and implement retries
+		// yet.
+	}
+
+	return nil
 }
 
 // Run the main logic for this client and blocks until stopped
@@ -102,17 +192,16 @@ func (sd *SerialDevClient) Run() error {
 	checkPortDur := time.Second * 10
 	timerCheckPort := time.NewTimer(checkPortDur)
 
-	var port *CobsWrapper
 	serialReadData := make(chan []byte)
 	listenerClosed := make(chan struct{})
 	listenerSerialErr := make(chan struct{})
 
 	closePort := func() {
-		if port != nil {
+		if sd.portCobsWrapper != nil {
 			log.Println("Closing serial port: ", sd.config.Description)
-			port.Close()
+			sd.portCobsWrapper.Close()
 		}
-		port = nil
+		sd.portCobsWrapper = nil
 
 		sd.config.Connected = false
 		err := SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeConnected, Value: 0}, false)
@@ -155,39 +244,6 @@ func (sd *SerialDevClient) Run() error {
 			buf = buf[0:c]
 			serialReadData <- buf
 		}
-	}
-
-	sendPointsToDevice := func(seq byte, ack bool, sub string, pts data.Points) error {
-		d, err := SerialEncode(seq, sub, pts)
-		if err != nil {
-			return fmt.Errorf("error encoding points to send to MCU: %w", err)
-		}
-
-		if sd.config.Debug >= 4 {
-			log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, seq, sub, pts)
-		}
-
-		_, err = port.Write(d)
-		if err != nil {
-			return fmt.Errorf("error writing data to port: %w", err)
-		}
-
-		sd.config.Tx++
-		err = SendPoints(sd.nc, sd.natsSub,
-			data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
-			false)
-
-		if err != nil {
-			return fmt.Errorf("Error sending Serial tx stats: %w", err)
-		}
-
-		if !ack {
-			_ = ack
-			// TODO: we need to check for response and implement retries
-			// yet.
-		}
-
-		return nil
 	}
 
 	openPort := func() {
@@ -263,13 +319,13 @@ func (sd *SerialDevClient) Run() error {
 			io = serialPort
 		}
 
-		port = NewCobsWrapper(io, sd.config.MaxMessageLength)
-		port.SetDebug(sd.config.Debug)
+		sd.portCobsWrapper = NewCobsWrapper(io, sd.config.MaxMessageLength)
+		sd.portCobsWrapper.SetDebug(sd.config.Debug)
 		timerCheckPort.Stop()
 
 		log.Println("Serial port opened: ", sd.config.Description)
 
-		go listener(port, sd.config.MaxMessageLength)
+		go listener(sd.portCobsWrapper, sd.config.MaxMessageLength)
 
 		p := data.Points{{
 			Time: time.Now(),
@@ -283,7 +339,7 @@ func (sd *SerialDevClient) Run() error {
 		}
 
 		sd.wrSeq++
-		err = sendPointsToDevice(sd.wrSeq, false, "", p)
+		err = sd.sendPointsToDevice(sd.wrSeq, false, "", p)
 		if err != nil {
 			log.Println("Error sending time sync point to device: %w", err)
 		}
@@ -291,12 +347,12 @@ func (sd *SerialDevClient) Run() error {
 
 	openPort()
 
+exitSerialClient:
+
 	for {
 		select {
 		case <-sd.stop:
-			log.Println("Stopping serial client: ", sd.config.Description)
-			closePort()
-			return nil
+			break exitSerialClient
 		case <-timerCheckPort.C:
 			openPort()
 		case <-listenerClosed:
@@ -369,7 +425,7 @@ func (sd *SerialDevClient) Run() error {
 					log.Printf("Serial client %v: log: %v\n",
 						sd.config.Description, string(payload))
 				}
-				err := SendPoints(sd.nc, sd.natsSub, points, false)
+				err := SendPoints(sd.nc, sd.natsSubSerialPoints, points, false)
 				if err != nil {
 					log.Println("Error sending log point from MCU: ", err)
 				}
@@ -377,6 +433,7 @@ func (sd *SerialDevClient) Run() error {
 
 			// we must have a protobuf payload
 			points, errDecode := data.PbDecodeSerialPoints(payload)
+			var adminPoints data.Points
 
 			sd.config.Rx++
 
@@ -395,25 +452,27 @@ func (sd *SerialDevClient) Run() error {
 				}
 
 				// send response
-				err := sendPointsToDevice(seq, true, "ack", nil)
+				err := sd.sendPointsToDevice(seq, true, "ack", nil)
 				if err != nil {
 					log.Println("Error sending ack to device: ", err)
 				}
 
-				err = data.MergePoints(sd.config.ID, points, &sd.config)
-				if err != nil {
-					log.Println("error merging new points: ", err)
+				if !sd.config.SyncParent {
+					err = data.MergePoints(sd.config.ID, points, &sd.config)
+					if err != nil {
+						log.Println("error merging new points: ", err)
+					}
 				}
 			} else {
 				log.Println("Error decoding serial packet from device: ",
 					sd.config.Description, errDecode)
 				sd.config.ErrorCount++
-				points = append(points,
+				adminPoints = append(adminPoints,
 					data.Point{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)})
 			}
 
 			if time.Since(sd.lastSendStats) > time.Second*5 {
-				points = append(points,
+				adminPoints = append(adminPoints,
 					data.Points{
 						{Time: time.Now(), Type: data.PointTypeRx, Value: float64(sd.config.Rx)},
 						{Time: time.Now(), Type: data.PointTypeHrRx, Value: float64(sd.config.HrRx)},
@@ -426,7 +485,7 @@ func (sd *SerialDevClient) Run() error {
 				elapsedSec := now.Sub(sd.rateLastSend).Seconds()
 				rate := float64(sd.ratePointCount) / elapsedSec
 				rateHR := float64(sd.ratePointCountHR) / elapsedSec
-				points = append(points,
+				adminPoints = append(adminPoints,
 					data.Point{Time: now, Type: data.PointTypeRate,
 						Value: rate},
 					data.Point{Time: now, Type: data.PointTypeRateHR,
@@ -437,15 +496,30 @@ func (sd *SerialDevClient) Run() error {
 				sd.ratePointCountHR = 0
 			}
 
+			if sd.config.SyncParent {
+				// add serial ID to origin for all points we send to the parent
+				for i := range points {
+					points[i].Origin = sd.config.ID
+				}
+			}
+
 			if len(points) > 0 {
-				err := SendPoints(sd.nc, sd.natsSub, points, false)
+				err := SendPoints(sd.nc, sd.natsSubSerialPoints, points, false)
 				if err != nil {
 					log.Println("Error sending points received from MCU: ", err)
 				}
 			}
 
+			if len(adminPoints) > 0 {
+				err := SendPoints(sd.nc, sd.natsSub, adminPoints, false)
+				if err != nil {
+					log.Println("Error sending admin points: ", err)
+				}
+			}
+
 		case pts := <-sd.newPoints:
 			op := false
+			updateNatsSubjects := false
 			for _, p := range pts.Points {
 				// check if any of the config changes should cause us to re-open the port
 				if p.Type == data.PointTypePort ||
@@ -469,17 +543,28 @@ func (sd *SerialDevClient) Run() error {
 						op = true
 					}
 				}
+				if p.Type == data.PointTypeHRDest {
+					updateNatsSubjects = true
+				}
+				if p.Type == data.PointTypeSyncParent {
+					updateNatsSubjects = true
+				}
 			}
 
 			err := data.MergePoints(pts.ID, pts.Points, &sd.config)
 			if err != nil {
 				log.Println("error merging new points: ", err)
 			}
+
+			if updateNatsSubjects {
+				sd.populateNatsSubjects()
+			}
+
 			if op {
 				openPort()
 			}
 
-			if port == nil {
+			if sd.portCobsWrapper == nil {
 				break
 			}
 
@@ -554,31 +639,33 @@ func (sd *SerialDevClient) Run() error {
 			}
 
 			// check if we have any points that need sent to MCU
-			toSend := data.Points{}
-			for _, p := range pts.Points {
-				switch p.Type {
-				case data.PointTypePort,
-					data.PointTypeBaud,
-					data.PointTypeDescription,
-					data.PointTypeErrorCount,
-					data.PointTypeErrorCountReset,
-					data.PointTypeRxReset,
-					data.PointTypeTxReset:
-					continue
-				case data.PointTypeDebug:
-					port.SetDebug(int(p.Value))
+			if !sd.config.SyncParent {
+				toSend := data.Points{}
+				for _, p := range pts.Points {
+					switch p.Type {
+					case data.PointTypePort,
+						data.PointTypeBaud,
+						data.PointTypeDescription,
+						data.PointTypeErrorCount,
+						data.PointTypeErrorCountReset,
+						data.PointTypeRxReset,
+						data.PointTypeTxReset:
+						continue
+					case data.PointTypeDebug:
+						sd.portCobsWrapper.SetDebug(int(p.Value))
+					}
+
+					// strip off Origin as MCU does not need that
+					p.Origin = ""
+					toSend = append(toSend, p)
 				}
 
-				// strip off Origin as MCU does not need that
-				p.Origin = ""
-				toSend = append(toSend, p)
-			}
-
-			if len(toSend) > 0 {
-				sd.wrSeq++
-				err := sendPointsToDevice(sd.wrSeq, false, "", toSend)
-				if err != nil {
-					log.Println("Error sending points to serial device: ", err)
+				if len(toSend) > 0 {
+					sd.wrSeq++
+					err := sd.sendPointsToDevice(sd.wrSeq, false, "", toSend)
+					if err != nil {
+						log.Println("Error sending points to serial device: ", err)
+					}
 				}
 			}
 
@@ -591,6 +678,18 @@ func (sd *SerialDevClient) Run() error {
 			// TODO need to send edge points to MCU, not implemented yet
 		}
 	}
+
+	log.Println("Stopping serial client: ", sd.config.Description)
+	closePort()
+	if sd.parentSubscription != nil {
+		err := sd.parentSubscription.Unsubscribe()
+		if err != nil {
+			log.Println("Error unsubscribing: ", err)
+		}
+	}
+
+	return nil
+
 }
 
 // Stop sends a signal to the Run function to exit

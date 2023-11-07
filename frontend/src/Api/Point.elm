@@ -23,7 +23,13 @@ module Api.Point exposing
     , typeAction
     , typeActive
     , typeAddress
-    , typeAmplitude
+    , typeMinValue
+    , typeMaxValue
+    , typeInitialValue
+    , typeMinIncrement
+    , typeMaxIncrement
+    , typeSignalType
+    , typeRoundTo
     , typeAuthToken
     , typeBatchPeriod
     , typeBaud
@@ -58,6 +64,7 @@ module Api.Point exposing
     , typeFirstName
     , typeFrequency
     , typeFrom
+    , typeHRDest
     , typeHighRate
     , typeHrRx
     , typeHrRxReset
@@ -104,6 +111,7 @@ module Api.Point exposing
     , typeSwitchSet
     , typeSyncCount
     , typeSyncCountReset
+    , typeSyncParent
     , typeSysState
     , typeTombstone
     , typeTx
@@ -151,6 +159,10 @@ module Api.Point exposing
     , valueTwilio
     , valueUINT16
     , valueUINT32
+    , valueSine
+    , valueSquare
+    , valueTriangle
+    , valueRandomWalk
     )
 
 import Iso8601
@@ -311,6 +323,11 @@ typeHrRxReset =
 typeBaud : String
 typeBaud =
     "baud"
+
+
+typeHRDest : String
+typeHRDest =
+    "hrDest"
 
 
 typeMaxMessageLength : String
@@ -713,6 +730,10 @@ typeOffline =
     "offline"
 
 
+typeSignalType : String
+typeSignalType =
+    "signalType"
+
 typeHighRate : String
 typeHighRate =
     "highRate"
@@ -733,9 +754,34 @@ typeFrequency =
     "frequency"
 
 
-typeAmplitude : String
-typeAmplitude =
-    "amplitude"
+typeMinValue : String
+typeMinValue =
+    "minValue"
+
+
+typeMaxValue : String
+typeMaxValue =
+    "maxValue"
+
+
+typeInitialValue : String
+typeInitialValue =
+    "initialValue"
+
+
+typeMinIncrement : String
+typeMinIncrement =
+    "minIncrement"
+
+
+typeMaxIncrement : String
+typeMaxIncrement =
+    "maxIncrement"
+
+
+typeRoundTo : String
+typeRoundTo =
+    "roundTo"
 
 
 typeSampleRate : String
@@ -771,6 +817,26 @@ typeRate =
 typeRateHR : String
 typeRateHR =
     "rateHR"
+
+
+valueSine : String
+valueSine =
+    "sine"
+
+
+valueSquare : String
+valueSquare =
+    "square"
+
+
+valueTriangle : String
+valueTriangle =
+    "triangle"
+
+
+valueRandomWalk : String
+valueRandomWalk =
+    "random walk"
 
 
 typeType : String
@@ -828,6 +894,11 @@ typeFallbackServer =
     "fallbackServer"
 
 
+typeSyncParent : String
+typeSyncParent =
+    "syncParent"
+
+
 
 -- Point should match data/Point.go
 
@@ -860,6 +931,7 @@ specialPoints =
     , typeVersionOS
     , typeVersionApp
     , typeBaud
+    , typeHRDest
     , typeMaxMessageLength
     , typeDebug
     , typeDisable

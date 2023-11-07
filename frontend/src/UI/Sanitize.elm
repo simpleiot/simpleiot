@@ -23,7 +23,7 @@ floatHelper state =
                 sOut =
                     Tuple.second state
             in
-            if Char.isDigit c || (c == '.' && not (String.contains "." sOut)) then
+            if (String.length sOut == 0 && c == '-') || Char.isDigit c || (c == '.' && not (String.contains "." sOut)) then
                 let
                     sOutList =
                         String.toList sOut
