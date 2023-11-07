@@ -18,6 +18,7 @@ type SignalGenerator struct {
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
 	Disable     bool   `point:"disable"`
+	SyncParent  bool   `point:"syncParent"`
 	Units       string `point:"units"`
 	// SignalType must be one of: "sine", "square", "triangle", or "random walk"
 	SignalType string  `point:"signalType"`
@@ -161,9 +162,14 @@ func (sgc *SignalGeneratorClient) Run() error {
 			configValid = false
 		}
 
-		natsSubject := SubjectNodePoints(config.ID)
+		// Determine NATS subject for points based on config settings
+		var natsSubject string
 		if config.HighRate {
 			natsSubject = fmt.Sprintf("phrup.%v.%v", config.Parent, config.ID)
+		} else if config.SyncParent {
+			natsSubject = SubjectNodePoints(config.Parent)
+		} else {
+			natsSubject = SubjectNodePoints(config.ID)
 		}
 
 		lastBatchTime := time.Now()
