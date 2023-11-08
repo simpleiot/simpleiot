@@ -417,6 +417,8 @@ func (sdb *DbSqlite) initJwtKey() error {
 }
 
 func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
+	points.Collapse()
+
 	sdb.writeLock.Lock()
 	defer sdb.writeLock.Unlock()
 	tx, err := sdb.db.Begin()
@@ -555,6 +557,8 @@ NextPin:
 }
 
 func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) error {
+	points.Collapse()
+
 	if nodeID == parentID {
 		return fmt.Errorf("Error: edgePoints nodeID=parentID=%v", nodeID)
 	}
