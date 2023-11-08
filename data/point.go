@@ -370,6 +370,33 @@ func (ps *Points) Merge(in Points, maxTime time.Duration) Points {
 	return ret
 }
 
+// Collapse is used to merge any common points and keep the latest
+func (ps *Points) Collapse() {
+	if len(*ps) <= 1 {
+		return
+	}
+
+	pts := make(map[string]Point)
+
+	for _, p := range *ps {
+		pA, OK := pts[p.Type+p.Key]
+		if OK {
+			if pA.Time.Before(p.Time) || pA.Time.Equal(p.Time) {
+				pts[p.Type+p.Key] = p
+			}
+		} else {
+			pts[p.Type+p.Key] = p
+		}
+	}
+
+	*ps = make(Points, len(pts))
+	i := 0
+	for _, p := range pts {
+		(*ps)[i] = p
+		i++
+	}
+}
+
 // Implement methods needed by sort.Interface
 
 // Len returns the number of points
