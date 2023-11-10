@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.14.0] - 2023-11-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.0)
+
 - update to nats-server to v2.10.4
 - update to nats client package to v1.31.0
 - development: `envsetup.sh` sources `local.sh` if it exists
