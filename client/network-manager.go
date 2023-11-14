@@ -617,11 +617,15 @@ func (c *NetworkManagerClient) SyncHostname() (errs []error, fatal error) {
 			Text:   hostname,
 			Origin: c.config.ID,
 		}, true)
-		errs = append(errs, err)
+		if err != nil {
+			errs = append(errs, err)
+		}
 	} else if hostname != c.config.Hostname {
 		// Write hostname to NetworkManager
 		err = c.nmSettings.SaveHostname(c.config.Hostname)
-		errs = append(errs, err)
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
 	return
 }
