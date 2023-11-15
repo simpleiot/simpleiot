@@ -193,6 +193,11 @@ Object.assign(SIOTConnection.prototype, {
 				// Iterator reads and decodes array of Points from subscription
 				for await (const m of sub) {
 					const { pointsList } = Points.deserializeBinary(m.data).toObject()
+					if (pointsList.length === 0) {
+						// Just abort in the rare case that no points are
+						// emitted, but a NATS message was published anyway
+						continue
+					}
 					// Convert `time` to JavaScript date and return each point
 					for (const p of pointsList) {
 						p.time = new Date(p.time.seconds * 1e3 + p.time.nanos / 1e6)
