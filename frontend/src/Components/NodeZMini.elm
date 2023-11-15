@@ -67,6 +67,9 @@ view o =
                         textInput =
                             NodeInputs.nodeTextInput opts "0"
 
+                        optionInput =
+                            NodeInputs.nodeOptionInput opts "0"
+
                         data =
                             let
                                 vrmsAX =
@@ -88,7 +91,11 @@ view o =
                             ]
                     in
                     [ textInput Point.typeDescription "Description" ""
-                    , textInput "preferred" "Preferred side" "'a' or 'b'"
+                    , optionInput "preferredInput"
+                        "Preferred input"
+                        [ ( "A", "A" )
+                        , ( "B", "B" )
+                        ]
                     , table
                         [ padding 7 ]
                         { data = data
