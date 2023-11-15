@@ -87,7 +87,14 @@ view o =
                     , numberInput Point.typeInitialValue "Initial Value"
                     , numberInput Point.typeRoundTo "Round To"
                     , numberInput Point.typeSampleRate "Sample Rate (Hz)"
-                    , checkboxInput Point.typeHighRate "High rate data"
+                    , NodeInputs.nodeCheckboxInput opts Point.keyParent
+                        Point.typeSyncDestination "Sync parent node"
+                    , NodeInputs.nodeCheckboxInput opts Point.keyHighRate
+                        Point.typeSyncDestination "High rate data"
+                    , NodeInputs.nodeTextInput opts Point.keyPointType
+                        Point.typeSyncDestination "Point type" ""
+                    , NodeInputs.nodeTextInput opts Point.keyPointKey
+                        Point.typeSyncDestination "Point key" ""
                     , numberInput Point.typeBatchPeriod "Batch Period (ms)"
                     , viewIf (signalType == Point.valueSine ||
                         signalType == Point.valueSquare ||

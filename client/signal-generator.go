@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"math/rand"
@@ -14,12 +13,12 @@ import (
 
 // SignalGenerator config
 type SignalGenerator struct {
-	ID          string `node:"id"`
-	Parent      string `node:"parent"`
-	Description string `point:"description"`
-	Disable     bool   `point:"disable"`
-	SyncParent  bool   `point:"syncParent"`
-	Units       string `point:"units"`
+	ID              string          `node:"id"`
+	Parent          string          `node:"parent"`
+	Description     string          `point:"description"`
+	Disable         bool            `point:"disable"`
+	SyncDestination SyncDestination `point:"syncDestination"`
+	Units           string          `point:"units"`
 	// SignalType must be one of: "sine", "square", "triangle", or "random walk"
 	SignalType string  `point:"signalType"`
 	MinValue   float64 `point:"minValue"`
@@ -31,9 +30,6 @@ type SignalGenerator struct {
 	RoundTo      float64 `point:"roundTo"`
 	// SampleRate in Hz.
 	SampleRate float64 `point:"sampleRate"`
-	// HighRate flag indicates that the points should be emitted on the NATS
-	// subject for high-rate points
-	HighRate bool `point:"highRate"`
 	// BatchPeriod is the batch timer interval in ms. When the timer fires, it
 	// generates a batch of points at the specified SampleRate. If not set,
 	// timer will fire for each sample at SampleRate.
@@ -157,21 +153,20 @@ func (sgc *SignalGeneratorClient) Run() error {
 			configValid = false
 		}
 
-		if config.HighRate && config.BatchPeriod <= 0 {
+		if config.SyncDestination.HighRate && config.BatchPeriod <= 0 {
 			sgc.log.Printf("%v: BatchPeriod must be set for high-rate data\n", config.Description)
 			configValid = false
 		}
 
-		// Determine NATS subject for points based on config settings
-		var natsSubject string
-		if config.HighRate {
-			natsSubject = fmt.Sprintf("phrup.%v.%v", config.Parent, config.ID)
-		} else if config.SyncParent {
-			natsSubject = SubjectNodePoints(config.Parent)
-		} else {
-			natsSubject = SubjectNodePoints(config.ID)
+		natsSubject := config.SyncDestination.Subject(config.ID, config.Parent)
+		pointType := data.PointTypeValue
+		if config.SyncDestination.PointType != "" {
+			pointType = config.SyncDestination.PointType
 		}
-
+		pointKey := "0"
+		if config.SyncDestination.PointKey != "" {
+			pointKey = config.SyncDestination.PointKey
+		}
 		lastBatchTime := time.Now()
 		t := time.NewTicker(time.Hour)
 		t.Stop()
@@ -198,8 +193,9 @@ func (sgc *SignalGeneratorClient) Run() error {
 						val := lastValue + config.MinIncrement + rand.Float64()*
 							(config.MaxIncrement-config.MinIncrement)
 						pts[i] = data.Point{
-							Type: data.PointTypeValue,
+							Type: pointType,
 							Time: start.Add(time.Duration(i) * sampleInterval),
+							Key:  pointKey,
 							Value: clamp(
 								round(val, config.RoundTo),
 								config.MinValue,
@@ -265,8 +261,9 @@ func (sgc *SignalGeneratorClient) Run() error {
 							config.MaxValue,
 						)
 						pts[i] = data.Point{
-							Type:   data.PointTypeValue,
+							Type:   pointType,
 							Time:   start.Add(time.Duration(i) * sampleInterval),
+							Key:    pointKey,
 							Value:  y,
 							Origin: config.ID,
 						}
@@ -327,7 +324,7 @@ done:
 					data.PointTypeInitialValue,
 					data.PointTypeRoundTo,
 					data.PointTypeSampleRate,
-					data.PointTypeHighRate,
+					data.PointTypeSyncDestination,
 					data.PointTypeBatchPeriod,
 					data.PointTypeFrequency,
 					data.PointTypeMinIncrement,

@@ -28,3 +28,44 @@ func SubjectEdgeAllPoints() string {
 func SubjectNodeHRPoints(nodeID string) string {
 	return fmt.Sprintf("phr.%v", nodeID)
 }
+
+// SyncDestination indicates the destination for generated points, including
+// the point type and key
+type SyncDestination struct {
+	// NodeID indicating the destination for points; if not specified, the point
+	// destination is determined by the Parent field
+	NodeID string `point:"nodeID"`
+	// Parent is set if points should be sent to the parent node; otherwise,
+	// points are send to the origin node.
+	Parent bool `point:"parent"`
+	// HighRate indicates that points should be sent over the phrup NATS
+	// subject. If set, points are never sent to the origin node; rather, it is
+	// implied that points will be sent to the NodeID (if set) or the parent
+	// node.
+	HighRate bool `point:"highRate"`
+	// PointType indicates the point type for generated points
+	PointType string `point:"pointType"`
+	// PointKey indicates the point key for generated points
+	PointKey string `point:"pointKey"`
+}
+
+// Subject returns the NATS subject on which points for this SyncDestination
+// shall be published
+func (sd SyncDestination) Subject(originID string, parentID string) string {
+	if sd.HighRate {
+		// HighRate implies Parent
+		destID := parentID
+		if sd.NodeID != "" {
+			destID = sd.NodeID
+		}
+		return fmt.Sprintf("phrup.%v.%v", destID, originID)
+	} else {
+		destID := originID
+		if sd.NodeID != "" {
+			destID = sd.NodeID
+		} else if sd.Parent {
+			destID = parentID
+		}
+		return SubjectNodePoints(destID)
+	}
+}

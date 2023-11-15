@@ -65,7 +65,6 @@ module Api.Point exposing
     , typeFrequency
     , typeFrom
     , typeHRDest
-    , typeHighRate
     , typeHrRx
     , typeHrRxReset
     , typeID
@@ -112,6 +111,7 @@ module Api.Point exposing
     , typeSyncCount
     , typeSyncCountReset
     , typeSyncParent
+    , typeSyncDestination
     , typeSysState
     , typeTombstone
     , typeTx
@@ -128,6 +128,11 @@ module Api.Point exposing
     , typeVersionHW
     , typeVersionOS
     , typeWeekday
+--  , keyNodeID
+    , keyParent
+    , keyHighRate
+    , keyPointType
+    , keyPointKey
     , updatePoints
     , valueApp
     , valueClient
@@ -734,10 +739,6 @@ typeSignalType : String
 typeSignalType =
     "signalType"
 
-typeHighRate : String
-typeHighRate =
-    "highRate"
-
 
 typeBatchPeriod : String
 typeBatchPeriod =
@@ -899,6 +900,36 @@ typeSyncParent =
     "syncParent"
 
 
+typeSyncDestination : String
+typeSyncDestination =
+    "syncDestination"
+
+
+--keyNodeID : String
+--keyNodeID =
+--    "nodeID"
+
+
+keyParent : String
+keyParent =
+    "parent"
+
+
+keyHighRate : String
+keyHighRate =
+    "highRate"
+
+
+keyPointType : String
+keyPointType =
+    "pointType"
+
+
+keyPointKey : String
+keyPointKey =
+    "pointKey"
+
+
 
 -- Point should match data/Point.go
 
@@ -938,7 +969,6 @@ specialPoints =
     , typeConnected
     , typeControl
     , typeOffline
-    , typeHighRate
     , typeError
     , typeErrorCount
     , typeErrorCountReset
