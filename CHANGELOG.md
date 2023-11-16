@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- Signal generator client: replaced "Sync Parent" option with "Destination" to
+  indicate the destination node and point type for generated points
 - update gonetworkmanager to v2.1.0 and fix sync bugs
 - network-manager client: Now supports better connection sync via connection
   `Managed` flag; fixed a few bugs; WiFiConfig sync now works
