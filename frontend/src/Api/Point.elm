@@ -111,7 +111,7 @@ module Api.Point exposing
     , typeSyncCount
     , typeSyncCountReset
     , typeSyncParent
-    , typeSyncDestination
+    , typeDestination
     , typeSysState
     , typeTombstone
     , typeTx
@@ -900,9 +900,9 @@ typeSyncParent =
     "syncParent"
 
 
-typeSyncDestination : String
-typeSyncDestination =
-    "syncDestination"
+typeDestination : String
+typeDestination =
+    "destination"
 
 
 --keyNodeID : String

@@ -13,12 +13,12 @@ import (
 
 // SignalGenerator config
 type SignalGenerator struct {
-	ID              string          `node:"id"`
-	Parent          string          `node:"parent"`
-	Description     string          `point:"description"`
-	Disable         bool            `point:"disable"`
-	SyncDestination SyncDestination `point:"syncDestination"`
-	Units           string          `point:"units"`
+	ID          string      `node:"id"`
+	Parent      string      `node:"parent"`
+	Description string      `point:"description"`
+	Disable     bool        `point:"disable"`
+	Destination Destination `point:"destination"`
+	Units       string      `point:"units"`
 	// SignalType must be one of: "sine", "square", "triangle", or "random walk"
 	SignalType string  `point:"signalType"`
 	MinValue   float64 `point:"minValue"`
@@ -153,19 +153,19 @@ func (sgc *SignalGeneratorClient) Run() error {
 			configValid = false
 		}
 
-		if config.SyncDestination.HighRate && config.BatchPeriod <= 0 {
+		if config.Destination.HighRate && config.BatchPeriod <= 0 {
 			sgc.log.Printf("%v: BatchPeriod must be set for high-rate data\n", config.Description)
 			configValid = false
 		}
 
-		natsSubject := config.SyncDestination.Subject(config.ID, config.Parent)
+		natsSubject := config.Destination.Subject(config.ID, config.Parent)
 		pointType := data.PointTypeValue
-		if config.SyncDestination.PointType != "" {
-			pointType = config.SyncDestination.PointType
+		if config.Destination.PointType != "" {
+			pointType = config.Destination.PointType
 		}
 		pointKey := "0"
-		if config.SyncDestination.PointKey != "" {
-			pointKey = config.SyncDestination.PointKey
+		if config.Destination.PointKey != "" {
+			pointKey = config.Destination.PointKey
 		}
 		lastBatchTime := time.Now()
 		t := time.NewTicker(time.Hour)
@@ -324,7 +324,7 @@ done:
 					data.PointTypeInitialValue,
 					data.PointTypeRoundTo,
 					data.PointTypeSampleRate,
-					data.PointTypeSyncDestination,
+					data.PointTypeDestination,
 					data.PointTypeBatchPeriod,
 					data.PointTypeFrequency,
 					data.PointTypeMinIncrement,

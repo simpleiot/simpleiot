@@ -29,9 +29,9 @@ func SubjectNodeHRPoints(nodeID string) string {
 	return fmt.Sprintf("phr.%v", nodeID)
 }
 
-// SyncDestination indicates the destination for generated points, including
-// the point type and key
-type SyncDestination struct {
+// Destination indicates the destination for generated points, including the
+// point type and key
+type Destination struct {
 	// NodeID indicating the destination for points; if not specified, the point
 	// destination is determined by the Parent field
 	NodeID string `point:"nodeID"`
@@ -49,9 +49,9 @@ type SyncDestination struct {
 	PointKey string `point:"pointKey"`
 }
 
-// Subject returns the NATS subject on which points for this SyncDestination
-// shall be published
-func (sd SyncDestination) Subject(originID string, parentID string) string {
+// Subject returns the NATS subject on which points for this Destination shall
+// be published
+func (sd Destination) Subject(originID string, parentID string) string {
 	if sd.HighRate {
 		// HighRate implies Parent
 		destID := parentID
