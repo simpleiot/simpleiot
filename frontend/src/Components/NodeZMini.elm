@@ -67,6 +67,18 @@ view o =
                         textInput =
                             NodeInputs.nodeTextInput opts "0"
 
+                        optionInput =
+                            NodeInputs.nodeOptionInput opts "0"
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts "0"
+
+                        numberInput =
+                            NodeInputs.nodeNumberInput opts
+
+                        simEnabled =
+                            Point.getValue o.node.points "sim" ""
+
                         data =
                             let
                                 vrmsAX =
@@ -88,7 +100,56 @@ view o =
                             ]
                     in
                     [ textInput Point.typeDescription "Description" ""
-                    , textInput "preferred" "Preferred side" "'a' or 'b'"
+                    , optionInput "preferredInput"
+                        "Preferred input"
+                        [ ( "A", "A" )
+                        , ( "B", "B" )
+                        ]
+                    , NodeInputs.nodeOptionInput opts
+                        "comm"
+                        "logLevel"
+                        "Log (comm)"
+                        logLevels
+                    , NodeInputs.nodeOptionInput opts
+                        "dsp"
+                        "logLevel"
+                        "Log (dsp)"
+                        logLevels
+                    , checkboxInput "locate" "Location mode"
+                    , checkboxInput "sim"
+                        "Enable simulation"
+                    , viewIf (simEnabled == 1) <|
+                        column [ spacing 6 ]
+                            [ numberInput "X" "simVoltageA" "Sim A input voltage"
+                            , numberInput "X" "simVoltageB" "Sim B input voltage"
+                            , numberInput "X" "simLoadCurrent" "Sim load current"
+                            , NodeInputs.nodeOptionInput opts
+                                "X"
+                                "simLoadProfile"
+                                "Sim load profile"
+                                [ ( "const", "Constant" )
+                                , ( "ramp", "Ramp" )
+                                , ( "random", "Random" )
+                                ]
+                            , NodeInputs.nodeOptionInput opts
+                                "type"
+                                "simEvent"
+                                "Sim event type"
+                                [ ( "surge", "Surge" )
+                                , ( "sag", "Sag" )
+                                , ( "outage", "Outage" )
+                                , ( "transient", "Transient" )
+                                ]
+                            , NodeInputs.nodeNumberInput opts "dur" "simEvent" "Sim event dur"
+                            , NodeInputs.nodeTextInput opts "per" "simEvent" "Sim event period" "0=dis, -1=oneshot, >0 = ms"
+                            , NodeInputs.nodeOptionInput opts
+                                "side"
+                                "simEvent"
+                                "Sim event side"
+                                [ ( "A", "A" )
+                                , ( "B", "B" )
+                                ]
+                            ]
                     , table
                         [ padding 7 ]
                         { data = data
@@ -116,3 +177,13 @@ view o =
                 else
                     []
                )
+
+
+logLevels : List ( String, String )
+logLevels =
+    [ ( "", "None" )
+    , ( "ERR", "Error" )
+    , ( "WRN", "Warning" )
+    , ( "INF", "Info" )
+    , ( "DBG", "Debug" )
+    ]
