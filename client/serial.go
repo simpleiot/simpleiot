@@ -140,18 +140,20 @@ func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pt
 		log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, seq, sub, pts)
 	}
 
-	_, err = sd.portCobsWrapper.Write(d)
-	if err != nil {
-		return fmt.Errorf("error writing data to port: %w", err)
-	}
+	if sd.portCobsWrapper != nil {
+		_, err = sd.portCobsWrapper.Write(d)
+		if err != nil {
+			return fmt.Errorf("error writing data to port: %w", err)
+		}
 
-	sd.config.Tx++
-	err = SendPoints(sd.nc, sd.natsSub,
-		data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
-		false)
+		sd.config.Tx++
+		err = SendPoints(sd.nc, sd.natsSub,
+			data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
+			false)
 
-	if err != nil {
-		return fmt.Errorf("Error sending Serial tx stats: %w", err)
+		if err != nil {
+			return fmt.Errorf("Error sending Serial tx stats: %w", err)
+		}
 	}
 
 	if !ack {
