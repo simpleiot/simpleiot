@@ -10,8 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	nm "github.com/Wifx/gonetworkmanager"
-	"github.com/godbus/dbus/v5"
+	nm "github.com/Wifx/gonetworkmanager/v2"
 )
 
 // NetworkManagerConn defines a NetworkManager connection
@@ -195,16 +194,15 @@ func ResolveIPv4Config(settings map[string]any) IPv4Config {
 		StaticIP: settings["method"] == "manual",
 	}
 
-	// Note: 'address-data' is []map[string]dbus.Variant where each map has
-	// "address" (string) and "prefix" (uint32) keys
-	addressData, ok := settings["address-data"].([]map[string]dbus.Variant)
-	if ok && len(addressData) > 0 {
-		// Note: dbus.Variant is a struct, and its zero value is valid
-		str, _ := addressData[0]["address"].Value().(string)
+	// Note: 'address-data' is []any where elements are a map[string]any and
+	// where each map has "address" (string) and "prefix" (uint32) keys
+	addressData, _ := settings["address-data"].([]any)
+	if len(addressData) > 0 {
+		addr1, _ := addressData[0].(map[string]any)
+		str, _ := addr1["address"].(string)
 		c.Address = IPv4Address(str)
 		// Convert integer prefix to string subnet mask format
-		if prefix, ok := addressData[0]["prefix"].Value().(uint32); ok &&
-			prefix <= 32 {
+		if prefix, ok := addr1["prefix"].(uint32); ok && prefix <= 32 {
 			c.Netmask = IPv4NetmaskPrefix(uint8(prefix))
 		}
 	}
@@ -303,12 +301,12 @@ func ResolveIPv6Config(settings map[string]any) IPv6Config {
 		StaticIP: settings["method"] == "manual",
 	}
 
-	addressData, ok := settings["address-data"].([]map[string]dbus.Variant)
-	if ok && len(addressData) > 0 {
-		str, _ := addressData[0]["address"].Value().(string)
+	addressData, _ := settings["address-data"].([]any)
+	if len(addressData) > 0 {
+		addr1, _ := addressData[0].(map[string]any)
+		str, _ := addr1["address"].(string)
 		c.Address = IPv6Address(str)
-		prefix, ok := addressData[0]["prefix"].Value().(uint32)
-		if ok && prefix <= 128 {
+		if prefix, ok := addr1["prefix"].(uint32); ok && prefix <= 128 {
 			c.Prefix = uint8(prefix)
 		}
 	}

@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	nm "github.com/Wifx/gonetworkmanager"
+	nm "github.com/Wifx/gonetworkmanager/v2"
 	"github.com/godbus/dbus/v5"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -365,9 +365,26 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 			continue
 		}
 		conn, found := nmConns[treeConn.ID]
-		var nmConnectionUUID string
+		var pts data.Points // points to send
 		if found {
-			nmConnectionUUID = conn.Resolved.UUID
+			// Update a few points in SIOT
+			if treeConn.UUID != conn.Resolved.UUID {
+				treeConn.UUID = conn.Resolved.UUID
+				pts.Add(data.Point{
+					Type:   "uuid",
+					Text:   treeConn.UUID,
+					Origin: c.config.ID,
+				})
+			}
+			if treeConn.LastActivated != conn.Resolved.LastActivated {
+				treeConn.LastActivated = conn.Resolved.LastActivated
+				pts.Add(data.Point{
+					Type:   "lastActivated",
+					Value:  float64(treeConn.LastActivated),
+					Origin: c.config.ID,
+				})
+			}
+
 			// Update existing connection
 			if !treeConn.Equal(conn.Resolved) {
 				c.log.Printf("Updating connection %v", treeConn.ID)
@@ -390,17 +407,18 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 				c.log.Printf("Error getting new connection UUID: %v", err)
 				continue
 			}
-			nmConnectionUUID = settings["connection"]["uuid"].(string)
+			// Set UUID in SIOT tree
+			treeConn.UUID = settings["connection"]["uuid"].(string)
+			pts.Add(data.Point{
+				Type:   "uuid",
+				Text:   treeConn.UUID,
+				Origin: c.config.ID,
+			})
 		}
 
-		// Update UUID in SIOT tree, if needed
-		if treeConn.UUID != nmConnectionUUID {
-			treeConn.UUID = nmConnectionUUID
-			err = SendNodePoint(c.nc, treeConn.ID, data.Point{
-				Type:   "uuid",
-				Text:   nmConnectionUUID,
-				Origin: c.config.ID,
-			}, true)
+		// Update points in SIOT tree, if needed
+		if pts.Len() > 0 {
+			err = SendNodePoints(c.nc, treeConn.ID, pts, true)
 			// Log error only
 			if err != nil {
 				c.log.Printf("Error setting new connection UUID: %v", err)

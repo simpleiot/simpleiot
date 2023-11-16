@@ -6,7 +6,7 @@ package client
 import (
 	"encoding/json"
 
-	nm "github.com/Wifx/gonetworkmanager"
+	nm "github.com/Wifx/gonetworkmanager/v2"
 )
 
 // NetworkManagerDevice is a device managed by NetworkManager

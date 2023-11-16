@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- update gonetworkmanager to v2.1.0 and fix sync bugs
+
 ## [[0.14.1] - 2023-11-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.1)
 
 - update frontend assets (missed that in v0.14.0)
