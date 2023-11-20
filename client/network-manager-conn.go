@@ -15,14 +15,17 @@ import (
 
 // NetworkManagerConn defines a NetworkManager connection
 type NetworkManagerConn struct {
-	ID     string `node:"id"`
-	Parent string `node:"parent"`
-	UUID   string `point:"uuid"`
+	ID          string `node:"id"` // matches UUID in NetworkManager
+	Parent      string `node:"parent"`
+	Description string `point:"description"` // matches ID in NetworkManager
 	// Type is one of the NetworkManager connection types (i.e. 802-3-ethernet)
 	// See https://developer-old.gnome.org/NetworkManager/stable/
 	Type string `point:"type"`
-	// Disabled flag removes the connection from NetworkManager entirely
-	Disabled            bool   `point:"disabled"`
+	// Managed flag indicates that SimpleIoT is managing this connection.
+	// All connections in NetworkManager are added to the SIOT tree, but if a
+	// connection is flagged "managed", the SIOT tree is used as the source of
+	// truth, and settings are synchronized one-way from SIOT to NetworkManager.
+	Managed             bool   `point:"managed"`
 	AutoConnect         bool   `point:"autoConnect"`
 	AutoConnectPriority int32  `point:"autoConnectPriority"`
 	InterfaceName       string `point:"interfaceName"`
@@ -50,8 +53,8 @@ type WiFiConfig struct {
 func ResolveNetworkManagerConn(settings nm.ConnectionSettings) NetworkManagerConn {
 	sc := settings["connection"]
 	conn := NetworkManagerConn{
-		ID:          sc["id"].(string),
-		UUID:        sc["uuid"].(string),
+		ID:          sc["uuid"].(string),
+		Description: sc["id"].(string),
 		Type:        sc["type"].(string),
 		AutoConnect: true,
 	}
@@ -79,27 +82,16 @@ func ResolveNetworkManagerConn(settings nm.ConnectionSettings) NetworkManagerCon
 	return conn
 }
 
-// Managed returns true if the connection is managed by the SimpleIoT client
-// Returns true if and only if the connection ID is prefixed with `SimpleIoT:`
-func (c NetworkManagerConn) Managed() bool {
-	return strings.HasPrefix(c.ID, "SimpleIoT:")
-}
-
 // DBus returns an object that can be passed over D-Bus
 // Returns nil if the connection ID does not include the prefix `SimpleIoT:`
 // See https://developer-old.gnome.org/NetworkManager/stable/ch01.html
 func (c NetworkManagerConn) DBus() nm.ConnectionSettings {
-	if !c.Managed() {
-		return nil
-	}
 	sc := map[string]any{
-		"id":                   c.ID,
+		"uuid":                 c.ID,
+		"id":                   c.Description,
 		"type":                 c.Type,
 		"autoconnect":          c.AutoConnect,
 		"autoconnect-priority": c.AutoConnectPriority,
-	}
-	if c.UUID != "" {
-		sc["uuid"] = c.UUID
 	}
 	if c.InterfaceName != "" {
 		sc["interface-name"] = c.InterfaceName

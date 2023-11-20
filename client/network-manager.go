@@ -15,35 +15,29 @@ import (
 
 	nm "github.com/Wifx/gonetworkmanager/v2"
 	"github.com/godbus/dbus/v5"
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
 
 /*
-	# NetworkManagerClient
+NetworkManagerClient is a SimpleIoT client that manages network interfaces
+and their connections using NetworkManager via D-Bus.
+Network connections and device states are synchronized between
+NetworkManager and the SimpleIoT node tree.
 
-	The NetworkManagerClient is responsible for synchronizing data between
-	NetworkManager and the SimpleIoT node tree.
+	==========================      ======================== ---    device state     --> ==================
+	| NetworkManager (D-Bus) | <--> | NetworkManagerClient |                             | SimpleIoT Tree |
+	==========================      ======================== <-- connection settings --> ==================
 
-	```
-	=========================       ======================== ---    device state     --> ==================
-	| NetworkManager (DBus) | <---> | NetworkManagerClient |                             | SimpleIoT Tree |
-	=========================       ======================== <-- connection settings --- ==================
-	```
+The NetworkManagerClient only controls SimpleIoT "managed" connections within
+NetworkManager. Although all connections will be added to the SIOT tree,
+unmanaged NetworkManager connections will not be updated or deleted by
+SimpleIoT.
 
-	The NetworkManagerClient only controls "SimpleIoT managed" connections
-	within NetworkManager. In this way, other NetworkManager connections can be
-	created and will not be updated or deleted by SimpleIoT. We designate a
-	NetworkManager connection as "managed" by simply adding the "SimpleIoT:"
-	prefix to the connection's ID. Managed connections will have a connection
-	priority of 10.
-
-	References:
-	- https://developer-old.gnome.org/NetworkManager/stable/spec.html
+[NetworkManager Reference Manual]: https://networkmanager.dev/docs/api/latest/
+[gonetworkmanager Go Reference]: https://pkg.go.dev/github.com/Wifx/gonetworkmanager/v2
 */
-
-// NetworkManagerClient is a SimpleIoT client that manages network interfaces
-// and their connections using NetworkManager via DBus
 type NetworkManagerClient struct {
 	log        *log.Logger
 	nc         *nats.Conn
@@ -52,6 +46,10 @@ type NetworkManagerClient struct {
 	pointsCh   chan NewPoints
 	nmSettings nm.Settings       // initialized on Run()
 	nmObj      nm.NetworkManager // initialized on Run()
+	// deletedConns are managed connections previously deleted from the SIOT
+	// tree; map is keyed by NetworkManager's connection UUID and initialized
+	// on Run()
+	deletedConns map[string]NetworkManagerConn
 }
 
 // NetworkManager client configuration
@@ -90,7 +88,11 @@ func logFirstError(log *log.Logger, errors []error) {
 func NewNetworkManagerClient(nc *nats.Conn, config NetworkManager) Client {
 	// TODO: Ensure only one NetworkManager client exists
 	return &NetworkManagerClient{
-		log:      log.New(os.Stderr, "networkManager: ", log.LstdFlags|log.Lmsgprefix),
+		log: log.New(
+			os.Stderr,
+			"networkManager: ",
+			log.LstdFlags|log.Lmsgprefix,
+		),
 		nc:       nc,
 		config:   config,
 		stopCh:   make(chan struct{}),
@@ -98,7 +100,8 @@ func NewNetworkManagerClient(nc *nats.Conn, config NetworkManager) Client {
 	}
 }
 
-// Run starts the NetworkManager Client
+// Run starts the NetworkManager Client. Restarts if `networkManager` nodes or
+// their descendants are added / removed.
 func (c *NetworkManagerClient) Run() error {
 	str := "Starting NetworkManager client"
 	if c.config.Disable {
@@ -110,20 +113,23 @@ func (c *NetworkManagerClient) Run() error {
 	/*
 		When starting this client, a few things will happen:
 
-		1. We compare the list of SIOT "managed" connections to the SIOT tree
+		1. We load all previously deleted connections from the SIOT tree for
+			future sync operations.
+		2. We compare the list of SIOT "managed" connections to the SIOT tree
 			(the tree has already been loaded into `c.config.Connections`)
 			and perform a one-way synchronization to NetworkManager by
-			creating, updating, and deleting connections.
-		2. Perform a one-way synchronization **from** NetworkManager for
-			NetworkManagerDevices in the SIOT tree. Start polling NetworkManager
-			to continue syncing.
+			creating, updating, and deleting connections. Unmanaged connections
+			are copied to the SIOT tree.
+		3. Perform a one-way synchronization **from** NetworkManager for
+			NetworkManagerDevices in the SIOT tree.
+		4. Start polling NetworkManager and continue syncing.
 	*/
 
 	// Note: Writes to `doSync` channel causes a sync operation to occur as soon
 	// as possible. Generally, calling `queueSync` is preferred to leverage the
 	// syncDelayTimer and rate limit sync operations.
 	var syncDelayTimer *time.Timer
-	syncDelayTimerLock := new(sync.Mutex)
+	syncDelayTimerLock := &sync.Mutex{}
 	doSync := make(chan struct{}, 1)
 	var syncTick time.Ticker
 	var dbusSub <-chan *dbus.Signal
@@ -142,6 +148,41 @@ func (c *NetworkManagerClient) Run() error {
 			return fmt.Errorf("error getting NetworkManager: %w", err)
 		}
 		dbusSub = c.nmObj.Subscribe()
+
+		// Get removed previously managed connections in SIOT tree
+		var allConnNodes []data.NodeEdge
+		allConnNodes, err = GetNodes(
+			c.nc, c.config.ID, "all", "networkManagerConn", true,
+		)
+		if err != nil {
+			return fmt.Errorf("error getting removed connection nodes: %w", err)
+		}
+		for _, ne := range allConnNodes {
+			// Check tombstone to see if this node was deleted
+			deleted := false
+			for _, p := range ne.EdgePoints {
+				if p.Type == data.PointTypeTombstone {
+					deleted = int(p.Value)%2 == 1
+					break
+				}
+			}
+			if deleted {
+				// Decode ne to NetworkManagerConn and add to deletedConns map
+				var deletedConn NetworkManagerConn
+				err = data.Decode(
+					data.NodeEdgeChildren{NodeEdge: ne, Children: nil},
+					&deletedConn,
+				)
+				if err != nil {
+					return fmt.Errorf(
+						"error decoding removed connection node: %w", err,
+					)
+				}
+				if deletedConn.Managed {
+					c.deletedConns[deletedConn.ID] = deletedConn
+				}
+			}
+		}
 
 		// Initialize NetworkManager sync ticker
 		syncTick = *time.NewTicker(dbusSyncInterval)
@@ -168,6 +209,9 @@ func (c *NetworkManagerClient) Run() error {
 	}
 
 	queueSync := func() {
+		if len(doSync) > 0 {
+			return // sync already queued to run immediately
+		}
 		syncDelayTimerLock.Lock()
 		defer syncDelayTimerLock.Unlock()
 		if syncDelayTimer == nil {
@@ -197,14 +241,16 @@ loop:
 		case <-c.stopCh:
 			break loop
 		case nodePoints := <-c.pointsCh:
-			// log.Print(nodePoints)
+			// c.log.Print(nodePoints)
 
 			// Handle PointTypeDisable
+			disabled := false
 			if nodePoints.ID == c.config.ID {
 				for _, p := range nodePoints.Points {
-					if p.Type == data.PointTypeDisable {
+					if p.Type != data.PointTypeDisable {
 						if p.Value != 0 && !c.config.Disable {
 							// Disable
+							disabled = true
 							cleanup()
 						} else if p.Value == 0 && c.config.Disable {
 							// Re-initialize
@@ -223,7 +269,9 @@ loop:
 			}
 
 			// Queue sync operation
-			queueSync()
+			if !disabled {
+				queueSync()
+			}
 		case <-doSync:
 			// Perform sync operations; abort on fatal error
 			c.log.Println("Syncing with NetworkManager over D-Bus")
@@ -246,22 +294,21 @@ loop:
 			errs, fatalErr = c.SyncHostname()
 			// Abort on fatal error
 			if fatalErr != nil {
-				return fmt.Errorf("connection sync error: %w", fatalErr)
+				return fmt.Errorf("hostname sync error: %w", fatalErr)
 			}
 			logFirstError(c.log, errs)
 		case <-syncTick.C:
 			// Queue sync operation
-			if len(doSync) == 0 {
-				doSync <- struct{}{}
-			}
+			queueSync()
 		case sig, ok := <-dbusSub:
 			if !ok {
 				// D-Bus subscription closed
 				dbusSub = nil
 				break // select
 			}
-			if len(doSync) == 0 && (sig.Name == dBusPropertiesChanged ||
-				strings.HasPrefix(sig.Name, "org.freedesktop.NetworkManager.Device")) {
+			if sig.Name == dBusPropertiesChanged ||
+				strings.HasPrefix(sig.Name, "org.freedesktop.NetworkManager.Device") ||
+				strings.HasPrefix(sig.Name, "org.freedesktop.NetworkManager.Connection") {
 				queueSync()
 			} else {
 				c.log.Printf("not triggering sync %v for %+v", sig.Name, sig)
@@ -285,12 +332,12 @@ loop:
 			}
 
 			// Clear RequestWiFiScan
+			c.config.RequestWiFiScan = false
 			err = SendNodePoint(c.nc, c.config.ID, p, true)
 			// Log error only
 			if err != nil {
 				c.log.Printf("Error clearing requestWiFiScan: %v", err)
 			}
-			c.config.RequestWiFiScan = false
 		}
 	}
 	cleanup()
@@ -298,22 +345,18 @@ loop:
 }
 
 // SyncConnections performs a one-way synchronization of the NetworkManagerConn
-// nodes in the SIOT tree with connections in NetworkManager via D-Bus.
+// nodes in the SIOT tree with connections in NetworkManager via D-Bus. The
+// sync direction is determined by the connection's Managed flag. If set, the
+// connection in NetworkManager is updated with the data in the SIOT tree;
+// otherwise, the SIOT tree is updated with the data in NetworkManager.
 // Returns a list of errors in the order in which they are encountered. If a
 // fatal error occurs that aborts the sync operation, that will be included
 // in `errs` and returned as `fatal`.
 func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
-	// Build map of connection IDs from SIOT tree; value is Disabled flag
-	connIDs := make(map[string]bool, len(c.config.Connections))
-	for _, nmc := range c.config.Connections {
-		if !nmc.Managed() {
-			// TODO: Delete this node from the tree?
-			errs = append(errs,
-				fmt.Errorf("connection has invalid ID: %v", nmc.ID),
-			)
-		} else {
-			connIDs[nmc.ID] = nmc.Disabled // add to the map
-		}
+	// Build set of connection IDs from SIOT tree
+	treeConnIDs := make(map[string]struct{}, len(c.config.Connections))
+	for _, treeConn := range c.config.Connections {
+		treeConnIDs[treeConn.ID] = struct{}{} // add to set
 	}
 
 	// Get NetworkManagerConn from NetworkManager via D-Bus
@@ -324,7 +367,8 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 		return
 	}
 
-	// Build map of NetworkManager connections by ID
+	// Build map of NetworkManager connections by ID and handle connections not
+	// found in the SIOT tree.
 	type ConnectionResolved struct {
 		Connection nm.Connection
 		Resolved   NetworkManagerConn
@@ -340,84 +384,121 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 		nmc := ResolveNetworkManagerConn(settings)
 		nmc.Parent = c.config.ID
 
-		// Ignore unmanaged connections
-		if !nmc.Managed() {
-			continue
-		}
-
-		// Delete if connection is missing from SIOT tree or disabled
-		if disabled, ok := connIDs[nmc.ID]; !ok || disabled {
-			c.log.Printf("Deleting connection %v", nmc.ID)
-			if err := conn.Delete(); err != nil {
-				errs = append(errs, fmt.Errorf(
-					"error deleting connection %v: %w", nmc.ID, err,
-				))
+		// Handle connections not found in the SIOT tree. If a connection is not
+		// in the SIOT tree, we check to see if a previously deleted, managed
+		// connection with the same UUID existed in the SIOT tree. If so, we
+		// delete it from NetworkManager; otherwise, it must be a new connection
+		// to be added to the SIOT tree.
+		if _, ok := treeConnIDs[nmc.ID]; !ok {
+			// Note: deletedConns is keyed by UUID, not ID
+			if _, ok := c.deletedConns[nmc.ID]; ok {
+				// Delete connection from NetworkManager
+				c.log.Printf("Deleting connection %v", nmc.ID)
+				if err := conn.Delete(); err != nil {
+					errs = append(errs, fmt.Errorf(
+						"error deleting connection %v: %w", nmc.ID, err,
+					))
+				}
+			} else {
+				// Add connection to SIOT tree
+				c.log.Printf("Detected connection %v", nmc.ID)
+				err := SendNodeType(c.nc, nmc, c.config.ID)
+				if err != nil {
+					errs = append(errs, fmt.Errorf(
+						"error adding connection node %v: %w", nmc.ID, err,
+					))
+				}
 			}
 		} else {
+			// Add NetworkManager connection to the map and handle it in the
+			// next loop
 			nmConns[nmc.ID] = ConnectionResolved{conn, nmc}
 		}
 	}
 
-	// Update NetworkManager from SIOT tree
+	// Now handle each connection already in the SIOT tree
 	for _, treeConn := range c.config.Connections {
-		if treeConn.Disabled {
-			// this connection was already deleted above
-			continue
-		}
-		conn, found := nmConns[treeConn.ID]
-		var pts data.Points // points to send
+		var pts data.Points // points to update this connection in SIOT tree
+		nmc, found := nmConns[treeConn.ID]
 		if found {
-			// Update a few points in SIOT
-			if treeConn.UUID != conn.Resolved.UUID {
-				treeConn.UUID = conn.Resolved.UUID
-				pts.Add(data.Point{
-					Type:   "uuid",
-					Text:   treeConn.UUID,
-					Origin: c.config.ID,
-				})
-			}
-			if treeConn.LastActivated != conn.Resolved.LastActivated {
-				treeConn.LastActivated = conn.Resolved.LastActivated
-				pts.Add(data.Point{
-					Type:   "lastActivated",
-					Value:  float64(treeConn.LastActivated),
-					Origin: c.config.ID,
-				})
-			}
+			// Connection also exists in NetworkManager
+			if treeConn.Managed {
+				// Update connection in NetworkManager, except LastActivated
+				if treeConn.LastActivated != nmc.Resolved.LastActivated {
+					treeConn.LastActivated = nmc.Resolved.LastActivated
+					pts.Add(data.Point{
+						Type:   "lastActivated",
+						Value:  float64(treeConn.LastActivated),
+						Origin: c.config.ID,
+					})
+				}
 
-			// Update existing connection
-			if !treeConn.Equal(conn.Resolved) {
-				c.log.Printf("Updating connection %v", treeConn.ID)
-				err = conn.Connection.Update(treeConn.DBus())
+				// Update existing connection
+				if !treeConn.Equal(nmc.Resolved) {
+					c.log.Printf("Updating connection %v", treeConn.ID)
+					err = nmc.Connection.Update(treeConn.DBus())
+					if err != nil {
+						errs = append(errs, fmt.Errorf(
+							"error updating connection %v: %w", treeConn.ID, err,
+						))
+						continue
+					}
+				}
+			} else {
+				// Update connection in SIOT tree
+				diffPts, err := data.DiffPoints(treeConn, nmc.Resolved)
 				if err != nil {
-					errs = append(errs, err)
+					errs = append(errs, fmt.Errorf(
+						"error updating connection node %v: %w", treeConn.ID, err,
+					))
+					continue
+				}
+				pts = append(pts, diffPts...)
+			}
+		} else {
+			// Connection does not exist in NetworkManager
+			if treeConn.Managed {
+				// Handle case where node ID is not a valid UUID
+				_, err = uuid.Parse(treeConn.ID)
+				if err != nil {
+					errs = append(errs, fmt.Errorf(
+						"error adding connection %v: invalid UUID: %w",
+						treeConn.ID, err,
+					))
+					continue
+				}
+				// Add connection to NetworkManager
+				c.log.Printf("Adding connection %v", treeConn.ID)
+				// Create new connection profile in NetworkManager
+				newConn, err := c.nmSettings.AddConnection(treeConn.DBus())
+				_ = newConn // not used
+				if err != nil {
+					errs = append(errs, fmt.Errorf(
+						"error adding connection %v: %w", treeConn.ID, err,
+					))
+					continue
+				}
+			} else {
+				// Remove connection from SIOT tree
+				err = SendEdgePoint(c.nc, treeConn.ID, treeConn.Parent, data.Point{
+					Type:  data.PointTypeTombstone,
+					Value: 1,
+				}, true)
+				if err != nil {
+					errs = append(errs, fmt.Errorf(
+						"error removing connection node %v: %w", treeConn.ID, err,
+					))
 					continue
 				}
 			}
-		} else {
-			c.log.Printf("Adding connection %v", treeConn.ID)
-			// Create new connection profile in NetworkManager
-			newConn, err := c.nmSettings.AddConnection(treeConn.DBus())
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			settings, err := newConn.GetSettings()
-			if err != nil {
-				c.log.Printf("Error getting new connection UUID: %v", err)
-				continue
-			}
-			// Set UUID in SIOT tree
-			treeConn.UUID = settings["connection"]["uuid"].(string)
-			pts.Add(data.Point{
-				Type:   "uuid",
-				Text:   treeConn.UUID,
-				Origin: c.config.ID,
-			})
 		}
 
 		// Update points in SIOT tree, if needed
 		if pts.Len() > 0 {
+			// Set origin on all points
+			for _, p := range pts {
+				p.Origin = c.config.ID
+			}
 			err = SendNodePoints(c.nc, treeConn.ID, pts, true)
 			// Log error only
 			if err != nil {
@@ -570,17 +651,17 @@ func (c *NetworkManagerClient) SyncDevices() (errs []error, fatal error) {
 					))
 				}
 
-				err = data.Decode(data.NodeEdgeChildren{
-					NodeEdge: data.NodeEdge{
-						ID:     device.ID,
-						Parent: device.Parent,
-						Points: pts,
-					},
-				}, &device)
+				// err = data.Decode(data.NodeEdgeChildren{
+				// 	NodeEdge: data.NodeEdge{
+				// 		ID:     device.ID,
+				// 		Parent: device.Parent,
+				// 		Points: pts,
+				// 	},
+				// }, &device)
 
-				if err != nil {
-					errs = append(errs, fmt.Errorf("error decoding data %v: %w", device.ID, err))
-				}
+				// if err != nil {
+				// 	errs = append(errs, fmt.Errorf("error decoding data %v: %w", device.ID, err))
+				// }
 			}
 			// Remove from deviceInfo to avoid duplicating it later
 			delete(deviceInfo, device.ID)
@@ -607,7 +688,7 @@ func (c *NetworkManagerClient) SyncDevices() (errs []error, fatal error) {
 	}
 
 	// Add devices not in SIOT tree
-	// Note: updated devices are removed from deviceInfo above
+	// Note: updated devices are deleted from deviceInfo above
 	for _, nmDevice := range deviceInfo {
 		c.log.Printf("Adding device %v", nmDevice.ID)
 		err := SendNodeType(c.nc, nmDevice, c.config.ID)
@@ -846,8 +927,6 @@ func (c *NetworkManagerClient) Points(nodeID string, points []data.Point) {
 func (c *NetworkManagerClient) EdgePoints(
 	_ string, _ string, _ []data.Point,
 ) {
-	// Do nothing
-
 	// c.edgePointsCh <- NewPoints{
 	// 	ID:     nodeID,
 	// 	Parent: parentID,
