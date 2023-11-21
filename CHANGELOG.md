@@ -12,6 +12,8 @@ For more details or to discuss releases, please visit the
 ## [Unreleased]
 
 - update gonetworkmanager to v2.1.0 and fix sync bugs
+- network-manager client: Now supports better connection sync via connection
+  `Managed` flag; fixed a few bugs; WiFiConfig sync now works
 
 ## [[0.14.1] - 2023-11-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.1)
 
