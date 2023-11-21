@@ -244,33 +244,27 @@ loop:
 		case nodePoints := <-c.pointsCh:
 			// c.log.Print(nodePoints)
 
-			// Handle PointTypeDisable
-			disabled := false
-			if nodePoints.ID == c.config.ID {
-				for _, p := range nodePoints.Points {
-					if p.Type != data.PointTypeDisable {
-						if p.Value != 0 && !c.config.Disable {
-							// Disable
-							disabled = true
-							cleanup()
-						} else if p.Value == 0 && c.config.Disable {
-							// Re-initialize
-							err := init()
-							if err != nil {
-								return err
-							}
-						}
-					}
-				}
-			}
+			disabled := c.config.Disable
+
 			// Update config
 			err := data.MergePoints(nodePoints.ID, nodePoints.Points, &c.config)
 			if err != nil {
 				log.Println("Error merging points: ", err)
 			}
 
-			// Queue sync operation
-			if !disabled {
+			// Handle Disable flag
+			if c.config.Disable {
+				if !disabled {
+					cleanup()
+				}
+			} else if disabled {
+				// Re-initialize
+				err := init()
+				if err != nil {
+					return err
+				}
+			} else {
+				// Queue sync operation
 				queueSync()
 			}
 		case <-doSync:
@@ -319,7 +313,7 @@ loop:
 		}
 
 		// Scan Wi-Fi networks if needed
-		if c.config.RequestWiFiScan {
+		if !c.config.Disable && c.config.RequestWiFiScan {
 			// Create point to clear flag
 			p := data.Point{
 				Type:   "requestWiFiScan",
