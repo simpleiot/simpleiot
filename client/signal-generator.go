@@ -108,7 +108,7 @@ func round(val, to float64) float64 {
 
 // Run the main logic for this client and blocks until stopped
 func (sgc *SignalGeneratorClient) Run() error {
-	sgc.log.Println("Starting client:", sgc.config.Description)
+	sgc.log.Printf("Starting client: %v", sgc.config.Description)
 
 	chStopGen := make(chan struct{})
 
@@ -288,7 +288,7 @@ func (sgc *SignalGeneratorClient) Run() error {
 					lastBatchTime = endTime
 					err := SendPoints(sgc.nc, natsSubject, pts, false)
 					if err != nil {
-						sgc.log.Println("Error sending points:", err)
+						sgc.log.Printf("Error sending points: %v", err)
 					}
 				}
 			case <-chStopGen:
@@ -304,12 +304,12 @@ done:
 		select {
 		case <-sgc.stop:
 			chStopGen <- struct{}{}
-			sgc.log.Println("Stopped client: ", sgc.config.Description)
+			sgc.log.Printf("Stopped client: %v", sgc.config.Description)
 			break done
 		case pts := <-sgc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &sgc.config)
 			if err != nil {
-				sgc.log.Println("Error merging new points: ", err)
+				sgc.log.Printf("Error merging new points: %v", err)
 			}
 
 			for _, p := range pts.Points {
@@ -335,7 +335,7 @@ done:
 		case pts := <-sgc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &sgc.config)
 			if err != nil {
-				sgc.log.Println("Error merging new points: ", err)
+				sgc.log.Printf("Error merging new points: %v", err)
 			}
 		}
 	}
