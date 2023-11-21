@@ -130,7 +130,7 @@ func ResolveDevice(parent string, device nm.Device) (
 		}
 		for _, addr := range nameservers {
 			dev.IPv6Nameservers = append(dev.IPv6Nameservers,
-				IPv6Address(string(addr)),
+				NewIPv6Address(addr),
 			)
 		}
 	}

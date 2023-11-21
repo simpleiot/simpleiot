@@ -15,14 +15,17 @@ import (
 
 // NetworkManagerConn defines a NetworkManager connection
 type NetworkManagerConn struct {
-	ID     string `node:"id"`
-	Parent string `node:"parent"`
-	UUID   string `point:"uuid"`
+	ID          string `node:"id"` // matches UUID in NetworkManager
+	Parent      string `node:"parent"`
+	Description string `point:"description"` // matches ID in NetworkManager
 	// Type is one of the NetworkManager connection types (i.e. 802-3-ethernet)
 	// See https://developer-old.gnome.org/NetworkManager/stable/
 	Type string `point:"type"`
-	// Disabled flag removes the connection from NetworkManager entirely
-	Disabled            bool   `point:"disabled"`
+	// Managed flag indicates that SimpleIoT is managing this connection.
+	// All connections in NetworkManager are added to the SIOT tree, but if a
+	// connection is flagged "managed", the SIOT tree is used as the source of
+	// truth, and settings are synchronized one-way from SIOT to NetworkManager.
+	Managed             bool   `point:"managed"`
 	AutoConnect         bool   `point:"autoConnect"`
 	AutoConnectPriority int32  `point:"autoConnectPriority"`
 	InterfaceName       string `point:"interfaceName"`
@@ -47,11 +50,12 @@ type WiFiConfig struct {
 }
 
 // ResolveNetworkManagerConn returns a NetworkManagerConn from D-Bus settings
+// Note: Secrets must be added to the connection manually
 func ResolveNetworkManagerConn(settings nm.ConnectionSettings) NetworkManagerConn {
 	sc := settings["connection"]
 	conn := NetworkManagerConn{
-		ID:          sc["id"].(string),
-		UUID:        sc["uuid"].(string),
+		ID:          sc["uuid"].(string),
+		Description: sc["id"].(string),
 		Type:        sc["type"].(string),
 		AutoConnect: true,
 	}
@@ -76,30 +80,31 @@ func ResolveNetworkManagerConn(settings nm.ConnectionSettings) NetworkManagerCon
 		conn.IPv6Config = ResolveIPv6Config(val)
 	}
 
-	return conn
-}
+	// Parse WiFiConfig
+	if conn.Type == "802-11-wireless" {
+		sWiFi := settings["802-11-wireless"]
+		if val, ok := sWiFi["ssid"].([]byte); ok {
+			conn.WiFiConfig.SSID = string(val)
+		}
+		sWiFiSecurity := settings["802-11-wireless-security"]
+		if val, ok := sWiFiSecurity["key-mgmt"].(string); ok {
+			conn.WiFiConfig.KeyManagement = val
+		}
+	}
 
-// Managed returns true if the connection is managed by the SimpleIoT client
-// Returns true if and only if the connection ID is prefixed with `SimpleIoT:`
-func (c NetworkManagerConn) Managed() bool {
-	return strings.HasPrefix(c.ID, "SimpleIoT:")
+	return conn
 }
 
 // DBus returns an object that can be passed over D-Bus
 // Returns nil if the connection ID does not include the prefix `SimpleIoT:`
 // See https://developer-old.gnome.org/NetworkManager/stable/ch01.html
 func (c NetworkManagerConn) DBus() nm.ConnectionSettings {
-	if !c.Managed() {
-		return nil
-	}
 	sc := map[string]any{
-		"id":                   c.ID,
+		"uuid":                 c.ID,
+		"id":                   c.Description,
 		"type":                 c.Type,
 		"autoconnect":          c.AutoConnect,
 		"autoconnect-priority": c.AutoConnectPriority,
-	}
-	if c.UUID != "" {
-		sc["uuid"] = c.UUID
 	}
 	if c.InterfaceName != "" {
 		sc["interface-name"] = c.InterfaceName
@@ -112,6 +117,16 @@ func (c NetworkManagerConn) DBus() nm.ConnectionSettings {
 	if c.Type == "802-11-wireless" && c.WiFiConfig.SSID != "" {
 		settings["802-11-wireless"] = map[string]any{
 			"ssid": []byte(c.WiFiConfig.SSID),
+		}
+		if c.WiFiConfig.KeyManagement != "" {
+			wiFiSecurity := map[string]any{
+				"key-mgmt": c.WiFiConfig.KeyManagement,
+			}
+			settings["802-11-wireless-security"] = wiFiSecurity
+			// Only add PSK for Managed connections
+			if c.Managed {
+				wiFiSecurity["psk"] = c.WiFiConfig.PSK
+			}
 		}
 	}
 	return settings
