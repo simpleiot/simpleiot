@@ -70,15 +70,15 @@ const dbusSyncInterval = time.Duration(60) * time.Second
 const dBusPropertiesChanged = "org.freedesktop.DBus.Properties.PropertiesChanged"
 
 // Print first error to logger
-func logFirstError(log *log.Logger, errors []error) {
+func logFirstError(method string, log *log.Logger, errors []error) {
 	if len(errors) > 0 {
 		plural := ""
 		if len(errors) != 1 {
 			plural = "s; the first is"
 		}
 		log.Printf(
-			"SyncConnections had %v error%v: %v",
-			len(errors), plural, errors[0],
+			"%v had %v error%v: %v",
+			method, len(errors), plural, errors[0],
 		)
 	}
 }
@@ -157,6 +157,7 @@ func (c *NetworkManagerClient) Run() error {
 		if err != nil {
 			return fmt.Errorf("error getting removed connection nodes: %w", err)
 		}
+		c.deletedConns = make(map[string]NetworkManagerConn)
 		for _, ne := range allConnNodes {
 			// Check tombstone to see if this node was deleted
 			deleted := false
@@ -280,7 +281,7 @@ loop:
 			if fatalErr != nil {
 				return fmt.Errorf("connection sync error: %w", fatalErr)
 			}
-			logFirstError(c.log, errs)
+			logFirstError("SyncConnections", c.log, errs)
 
 			// Synchronize devices with NetworkManager
 			errs, fatalErr = c.SyncDevices()
@@ -288,7 +289,7 @@ loop:
 			if fatalErr != nil {
 				return fmt.Errorf("device sync error: %w", fatalErr)
 			}
-			logFirstError(c.log, errs)
+			logFirstError("SyncDevices", c.log, errs)
 
 			// Synchronize hostname
 			errs, fatalErr = c.SyncHostname()
@@ -296,7 +297,7 @@ loop:
 			if fatalErr != nil {
 				return fmt.Errorf("hostname sync error: %w", fatalErr)
 			}
-			logFirstError(c.log, errs)
+			logFirstError("SyncHostname", c.log, errs)
 		case <-syncTick.C:
 			// Queue sync operation
 			queueSync()
@@ -307,8 +308,10 @@ loop:
 				break // select
 			}
 			if sig.Name == dBusPropertiesChanged ||
+				// TODO: Confirm these strings are sufficient
 				strings.HasPrefix(sig.Name, "org.freedesktop.NetworkManager.Device") ||
-				strings.HasPrefix(sig.Name, "org.freedesktop.NetworkManager.Connection") {
+				strings.HasPrefix(sig.Name, "org.freedesktop.NetworkManager.Connection") ||
+				strings.HasPrefix(sig.Name, "org.freedesktop.NetworkManager.Settings.Connection") {
 				queueSync()
 			} else {
 				c.log.Printf("not triggering sync %v for %+v", sig.Name, sig)
@@ -393,7 +396,9 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 			// Note: deletedConns is keyed by UUID, not ID
 			if _, ok := c.deletedConns[nmc.ID]; ok {
 				// Delete connection from NetworkManager
-				c.log.Printf("Deleting connection %v", nmc.ID)
+				c.log.Printf("Deleting connection %v (%v)",
+					nmc.ID, nmc.Description,
+				)
 				if err := conn.Delete(); err != nil {
 					errs = append(errs, fmt.Errorf(
 						"error deleting connection %v: %w", nmc.ID, err,
@@ -401,7 +406,9 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 				}
 			} else {
 				// Add connection to SIOT tree
-				c.log.Printf("Detected connection %v", nmc.ID)
+				c.log.Printf("Detected connection %v (%v)",
+					nmc.ID, nmc.Description,
+				)
 				err := SendNodeType(c.nc, nmc, c.config.ID)
 				if err != nil {
 					errs = append(errs, fmt.Errorf(
@@ -433,9 +440,19 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 					})
 				}
 
+				// Sync properties not populated by ResolveNetworkManagerConn
+				nmc.Resolved.Managed = true
+				nmc.Resolved.WiFiConfig.PSK = treeConn.WiFiConfig.PSK
 				// Update existing connection
 				if !treeConn.Equal(nmc.Resolved) {
-					c.log.Printf("Updating connection %v", treeConn.ID)
+					c.log.Printf("Updating connection %v (%v)",
+						treeConn.ID, treeConn.Description,
+					)
+					// diff, err := data.DiffPoints(nmc.Resolved, treeConn)
+					// if err == nil {
+					// 	c.log.Printf("DEBUG: %v", diff)
+					// 	c.log.Printf("TREE: %v; NMC: %v", treeConn.WiFiConfig.SSID, nmc.Resolved.WiFiConfig.SSID)
+					// }
 					err = nmc.Connection.Update(treeConn.DBus())
 					if err != nil {
 						errs = append(errs, fmt.Errorf(
@@ -453,7 +470,13 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 					))
 					continue
 				}
-				pts = append(pts, diffPts...)
+				if diffPts.Len() > 0 {
+					c.log.Printf("Updating connection node %v (%v)",
+						treeConn.ID, treeConn.Description,
+					)
+					// c.log.Println("DEBUG", diffPts)
+					pts = append(pts, diffPts...)
+				}
 			}
 		} else {
 			// Connection does not exist in NetworkManager
@@ -468,7 +491,9 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 					continue
 				}
 				// Add connection to NetworkManager
-				c.log.Printf("Adding connection %v", treeConn.ID)
+				c.log.Printf("Adding connection %v (%v)",
+					treeConn.ID, treeConn.Description,
+				)
 				// Create new connection profile in NetworkManager
 				newConn, err := c.nmSettings.AddConnection(treeConn.DBus())
 				_ = newConn // not used
@@ -480,6 +505,9 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 				}
 			} else {
 				// Remove connection from SIOT tree
+				c.log.Printf("Removing connection node %v (%v)",
+					treeConn.ID, treeConn.Description,
+				)
 				err = SendEdgePoint(c.nc, treeConn.ID, treeConn.Parent, data.Point{
 					Type:  data.PointTypeTombstone,
 					Value: 1,

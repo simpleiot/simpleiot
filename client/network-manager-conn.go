@@ -50,6 +50,7 @@ type WiFiConfig struct {
 }
 
 // ResolveNetworkManagerConn returns a NetworkManagerConn from D-Bus settings
+// Note: Secrets must be added to the connection manually
 func ResolveNetworkManagerConn(settings nm.ConnectionSettings) NetworkManagerConn {
 	sc := settings["connection"]
 	conn := NetworkManagerConn{
@@ -79,6 +80,18 @@ func ResolveNetworkManagerConn(settings nm.ConnectionSettings) NetworkManagerCon
 		conn.IPv6Config = ResolveIPv6Config(val)
 	}
 
+	// Parse WiFiConfig
+	if conn.Type == "802-11-wireless" {
+		sWiFi := settings["802-11-wireless"]
+		if val, ok := sWiFi["ssid"].([]byte); ok {
+			conn.WiFiConfig.SSID = string(val)
+		}
+		sWiFiSecurity := settings["802-11-wireless-security"]
+		if val, ok := sWiFiSecurity["key-mgmt"].(string); ok {
+			conn.WiFiConfig.KeyManagement = val
+		}
+	}
+
 	return conn
 }
 
@@ -104,6 +117,16 @@ func (c NetworkManagerConn) DBus() nm.ConnectionSettings {
 	if c.Type == "802-11-wireless" && c.WiFiConfig.SSID != "" {
 		settings["802-11-wireless"] = map[string]any{
 			"ssid": []byte(c.WiFiConfig.SSID),
+		}
+		if c.WiFiConfig.KeyManagement != "" {
+			wiFiSecurity := map[string]any{
+				"key-mgmt": c.WiFiConfig.KeyManagement,
+			}
+			settings["802-11-wireless-security"] = wiFiSecurity
+			// Only add PSK for Managed connections
+			if c.Managed {
+				wiFiSecurity["psk"] = c.WiFiConfig.PSK
+			}
 		}
 	}
 	return settings
