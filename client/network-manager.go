@@ -236,6 +236,10 @@ func (c *NetworkManagerClient) Run() error {
 		}
 	}
 
+	// Flag to mute logging SyncConnections() errors when no connection nodes
+	// have been updated
+	muteSyncConnectionsError := false
+
 loop:
 	for {
 		select {
@@ -266,6 +270,14 @@ loop:
 			} else {
 				// Queue sync operation
 				queueSync()
+				// If this is a connection node point, unmute SyncConnections()
+				// errors.
+				for _, conn := range c.config.Connections {
+					if conn.ID == nodePoints.ID {
+						muteSyncConnectionsError = false
+						break
+					}
+				}
 			}
 		case <-doSync:
 			// Perform sync operations; abort on fatal error
@@ -275,7 +287,10 @@ loop:
 			if fatalErr != nil {
 				return fmt.Errorf("connection sync error: %w", fatalErr)
 			}
-			logFirstError("SyncConnections", c.log, errs)
+			if !muteSyncConnectionsError {
+				logFirstError("SyncConnections", c.log, errs)
+				muteSyncConnectionsError = true
+			}
 
 			// Synchronize devices with NetworkManager
 			errs, fatalErr = c.SyncDevices()
@@ -293,6 +308,7 @@ loop:
 			}
 			logFirstError("SyncHostname", c.log, errs)
 		case <-syncTick.C:
+			muteSyncConnectionsError = false
 			// Queue sync operation
 			queueSync()
 		case sig, ok := <-dbusSub:
@@ -338,6 +354,29 @@ loop:
 		}
 	}
 	cleanup()
+	return nil
+}
+
+// Helper function to emit point for connection error and update
+// the NetworkManagerConn.Error field
+func (c *NetworkManagerClient) emitConnectionError(
+	conn *NetworkManagerConn, err error,
+) error {
+	if err == nil {
+		conn.Error = ""
+	} else {
+		conn.Error = err.Error()
+	}
+	emitErr := SendNodePoint(c.nc, conn.ID, data.Point{
+		Type:   "error",
+		Text:   conn.Error,
+		Origin: c.config.ID,
+	}, true)
+	if emitErr != nil {
+		return fmt.Errorf(
+			"error emitting error for connection %v: %w", conn.ID, err,
+		)
+	}
 	return nil
 }
 
@@ -436,23 +475,125 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 
 				// Sync properties not populated by ResolveNetworkManagerConn
 				nmc.Resolved.Managed = true
-				nmc.Resolved.WiFiConfig.PSK = treeConn.WiFiConfig.PSK
+				if nmc.Resolved.Type == "802-11-wireless" &&
+					nmc.Resolved.WiFiConfig.KeyManagement == "wpa-psk" {
+					secrets, err := nmc.Connection.GetSecrets(
+						"802-11-wireless-security",
+					)
+					if err != nil {
+						// Wrap error, append to errs, and emit on connection
+						err = fmt.Errorf(
+							"error getting secrets for connection %v: %w",
+							nmc.Resolved.ID, err,
+						)
+						errs = append(errs, err)
+						err = emitConnectionError(treeConn, err)
+						if err != nil {
+							errs = append(errs, err)
+						}
+						continue
+					}
+					if psk, ok := secrets["802-11-wireless-security"]["psk"].(string); ok {
+						nmc.Resolved.WiFiConfig.PSK = psk
+					}
+				}
 				// Update existing connection
 				if !treeConn.Equal(nmc.Resolved) {
 					c.log.Printf("Updating connection %v (%v)",
 						treeConn.ID, treeConn.Description,
 					)
 					// diff, err := data.DiffPoints(nmc.Resolved, treeConn)
-					// if err == nil {
-					// 	c.log.Printf("DEBUG: %v", diff)
-					// 	c.log.Printf("TREE: %v; NMC: %v", treeConn.WiFiConfig.SSID, nmc.Resolved.WiFiConfig.SSID)
-					// }
+					// c.log.Printf("DEBUG: %v %v", err, diff)
+
 					err = nmc.Connection.Update(treeConn.DBus())
 					if err != nil {
-						errs = append(errs, fmt.Errorf(
+						err = fmt.Errorf(
 							"error updating connection %v: %w", treeConn.ID, err,
+						)
+						errs = append(errs, err)
+						err = emitConnectionError(treeConn, err)
+						if err != nil {
+							errs = append(errs, err)
+						}
+						// Delete connection because update failed
+						err = nmc.Connection.Delete()
+						if err != nil {
+							errs = append(errs, fmt.Errorf(
+								"error deleting connection %v: %w",
+								treeConn.ID, err,
+							))
+						}
+						continue
+					}
+					// If this connection is currently active, reactivate it
+					acs, err := c.nmObj.GetPropertyActiveConnections()
+					if err != nil {
+						errs = append(errs, fmt.Errorf(
+							"error getting active connections: %w", err,
 						))
 						continue
+					}
+					for _, ac := range acs {
+						acID, err := ac.GetPropertyUUID()
+						if err != nil {
+							errs = append(errs, fmt.Errorf(
+								"error getting active connection UUID: %w", err,
+							))
+							break
+						}
+						if acID == treeConn.ID {
+							// Reactivate connection
+							err = c.nmObj.DeactivateConnection(ac)
+							if err != nil {
+								err = fmt.Errorf(
+									"error deactivating connection %v: %w",
+									treeConn.ID, err,
+								)
+								errs = append(errs, err)
+								err = emitConnectionError(treeConn, err)
+								if err != nil {
+									errs = append(errs, err)
+								}
+							}
+							// Note: Device not specified
+							_, err = c.nmObj.ActivateConnection(
+								nmc.Connection, nil, nil,
+							)
+							if err != nil {
+								err = fmt.Errorf(
+									"error activating connection %v: %w",
+									treeConn.ID, err,
+								)
+								errs = append(errs, err)
+								err = emitConnectionError(treeConn, err)
+								if err != nil {
+									errs = append(errs, err)
+								}
+							}
+
+							// Reapply connection settings to all devices
+							// devs, err := ac.GetPropertyDevices()
+							// if err != nil {
+							// 	errs = append(errs, fmt.Errorf(
+							// 		"error reactivating %v: %w",
+							// 		treeConn.ID, err,
+							// 	))
+							// 	break
+							// }
+							// for _, dev := range devs {
+							// 	err = dev.Reapply(treeConn.DBus(), 0, 0)
+							// 	if err != nil {
+							// 		c.log.Printf("warning: could not reapply connection %v for device %v: %v",
+							// 			treeConn.ID, dev.GetPath(), err,
+							// 		)
+							// 	} else {
+							// 		c.log.Printf("Reapplied connection %v to device %v",
+							// 			treeConn.ID, dev.GetPath(),
+							// 		)
+							// 	}
+							// }
+							// break
+						}
 					}
 				}
 			} else {
@@ -478,23 +619,24 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 				// Handle case where node ID is not a valid UUID
 				_, err = uuid.Parse(treeConn.ID)
 				if err != nil {
-					errs = append(errs, fmt.Errorf(
-						"error adding connection %v: invalid UUID: %w",
-						treeConn.ID, err,
-					))
-					continue
+					err = fmt.Errorf("invalid UUID: %w", err)
+				} else {
+					// Add connection to NetworkManager
+					c.log.Printf("Adding connection %v (%v)",
+						treeConn.ID, treeConn.Description,
+					)
+					// Create new connection profile in NetworkManager
+					_, err = c.nmSettings.AddConnection(treeConn.DBus())
 				}
-				// Add connection to NetworkManager
-				c.log.Printf("Adding connection %v (%v)",
-					treeConn.ID, treeConn.Description,
-				)
-				// Create new connection profile in NetworkManager
-				newConn, err := c.nmSettings.AddConnection(treeConn.DBus())
-				_ = newConn // not used
 				if err != nil {
-					errs = append(errs, fmt.Errorf(
+					err = fmt.Errorf(
 						"error adding connection %v: %w", treeConn.ID, err,
-					))
+					)
+					errs = append(errs, err)
+					err = emitConnectionError(treeConn, err)
+					if err != nil {
+						errs = append(errs, err)
+					}
 					continue
 				}
 			} else {

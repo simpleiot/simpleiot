@@ -35,6 +35,9 @@ type NetworkManagerConn struct {
 	IPv4Config    IPv4Config `point:"ipv4Config"`
 	IPv6Config    IPv6Config `point:"ipv6Config"`
 	WiFiConfig    WiFiConfig `point:"wiFiConfig"`
+	// Error contains an error message from the last NetworkManager sync or an
+	// empty string if sync was successful
+	Error string `point:"error"`
 }
 
 // WiFiConfig defines 802.11 wireless configuration
@@ -114,7 +117,7 @@ func (c NetworkManagerConn) DBus() nm.ConnectionSettings {
 		"ipv4":       c.IPv4Config.DBus(),
 		"ipv6":       c.IPv6Config.DBus(),
 	}
-	if c.Type == "802-11-wireless" && c.WiFiConfig.SSID != "" {
+	if c.Type == "802-11-wireless" {
 		settings["802-11-wireless"] = map[string]any{
 			"ssid": []byte(c.WiFiConfig.SSID),
 		}
@@ -132,9 +135,36 @@ func (c NetworkManagerConn) DBus() nm.ConnectionSettings {
 	return settings
 }
 
-// Equal returns true if and only if the two connections are equal
+// Equal returns true if and only if the two connections will produce the same
+// DBus settings
 func (c NetworkManagerConn) Equal(c2 NetworkManagerConn) bool {
-	return reflect.DeepEqual(c, c2)
+	v := reflect.ValueOf(c)
+	v2 := reflect.ValueOf(c2)
+	numFields := v.NumField()
+	t := v.Type()
+	for i := 0; i < numFields; i++ {
+		sf := t.Field(i)
+		// Skip certain fields
+		switch sf.Name {
+		case "Parent":
+			continue
+		case "Managed":
+			continue
+		case "LastActivated":
+			continue
+		case "IPv4Config":
+			continue
+		case "IPv6Config":
+			continue
+		case "Error":
+			continue
+		}
+		if !v.Field(i).Equal(v2.Field(i)) {
+			return false
+		}
+	}
+	return c.IPv4Config.Equal(c2.IPv4Config) &&
+		c.IPv6Config.Equal(c2.IPv6Config)
 }
 
 // IPv4Address is a string representation of an IPv4 address
@@ -237,32 +267,43 @@ func ResolveIPv4Config(settings map[string]any) IPv4Config {
 	return c
 }
 
+// Equal returns true if and only if the two IPv4Config structs are equivalent
+func (c IPv4Config) Equal(c2 IPv4Config) bool {
+	if c.Method() == "auto" && c2.Method() == "auto" {
+		// Ignore other fields; these two IP Configs are automatic / DHCP
+		return true
+	}
+	return reflect.DeepEqual(c, c2)
+}
+
+func (c IPv4Config) Method() string {
+	if c.StaticIP &&
+		c.Address.Valid() &&
+		c.Netmask.Valid() &&
+		c.Gateway.Valid() {
+		// Manual (Static IP)
+		return "manual"
+	}
+	// Automatic (DHCP)
+	return "auto"
+}
+
 // DBus returns the IPv4 settings in a generic map to be sent over D-Bus
 // See https://developer-old.gnome.org/NetworkManager/stable/settings-ipv4.html
 func (c IPv4Config) DBus() map[string]any {
-	if !c.StaticIP ||
-		!c.Address.Valid() ||
-		!c.Netmask.Valid() ||
-		!c.Gateway.Valid() {
-
-		// Automatic (DHCP)
-		return map[string]any{
-			"method": "auto",
-		}
+	settings := map[string]any{
+		"method": c.Method(),
+	}
+	if settings["method"] == "auto" {
+		return settings
 	}
 
 	// Manual (Static IP)
-	settings := map[string]any{
-		"method": "manual",
-	}
-
-	if c.Address != "" && c.Netmask != "" && c.Gateway != "" {
-		settings["address-data"] = []map[string]any{{
-			"address": c.Address.String(),
-			"prefix":  c.Netmask.Prefix(),
-		}}
-		settings["gateway"] = c.Gateway.String()
-	}
+	settings["address-data"] = []map[string]any{{
+		"address": c.Address.String(),
+		"prefix":  c.Netmask.Prefix(),
+	}}
+	settings["gateway"] = c.Gateway.String()
 
 	dns := make([]uint32, 0, 2)
 	if c.DNSServer1.Valid() {
@@ -341,31 +382,42 @@ func ResolveIPv6Config(settings map[string]any) IPv6Config {
 	return c
 }
 
+// Equal returns true if and only if the two IPv6Config structs are equivalent
+func (c IPv6Config) Equal(c2 IPv6Config) bool {
+	if c.Method() == "auto" && c2.Method() == "auto" {
+		// Ignore other fields; these two IP Configs are automatic / DHCP
+		return true
+	}
+	return reflect.DeepEqual(c, c2)
+}
+
+func (c IPv6Config) Method() string {
+	if c.StaticIP &&
+		c.Address.Valid() &&
+		c.Gateway.Valid() {
+		// Manual (Static IP)
+		return "manual"
+	}
+	// Automatic (DHCP)
+	return "auto"
+}
+
 // DBus returns the IPv6 settings in a generic map to be sent over D-Bus
 // See https://developer-old.gnome.org/NetworkManager/stable/settings-ipv6.html
 func (c IPv6Config) DBus() map[string]any {
-
-	if !c.StaticIP ||
-		!c.Address.Valid() ||
-		!c.Gateway.Valid() {
-
-		// Automatic (DHCP)
-		return map[string]any{
-			"method": "auto",
-		}
-	}
-
 	settings := map[string]any{
-		"method": "manual",
+		"method": c.Method(),
+	}
+	if settings["method"] == "auto" {
+		return settings
 	}
 
-	if c.Address.Valid() && c.Gateway.Valid() {
-		settings["address-data"] = []map[string]any{{
-			"address": c.Address.String(),
-			"prefix":  c.Prefix,
-		}}
-		settings["gateway"] = c.Gateway.String()
-	}
+	// Manual (Static IP)
+	settings["address-data"] = []map[string]any{{
+		"address": c.Address.String(),
+		"prefix":  c.Prefix,
+	}}
+	settings["gateway"] = c.Gateway.String()
 
 	dns := make([][]byte, 0, 2)
 	if c.DNSServer1.Valid() {
