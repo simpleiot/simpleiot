@@ -44,7 +44,7 @@ func Cmd(port io.ReadWriter, cmd string) (string, error) {
 			log.Println("Modem Tx: ", cmd)
 		}
 
-		readString := make([]byte, 100)
+		readString := make([]byte, 512)
 
 		_, err = port.Write([]byte(cmd + "\r"))
 		if err != nil {
@@ -286,6 +286,26 @@ func CmdATI(port io.ReadWriter) (string, error) {
 	}
 
 	return "", fmt.Errorf("Error parsing ATI response: %v", resp)
+}
+
+var reApn = regexp.MustCompile(`CGDCONT: 3,"IPV4V6","(.*?)"`)
+
+// CmdGetApn gets the APN
+func CmdGetApn(port io.ReadWriter) (string, error) {
+	resp, err := Cmd(port, "AT+CGDCONT?")
+	if err != nil {
+		return "", err
+	}
+
+	for _, line := range strings.Split(resp, "\n") {
+		matches := reApn.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			apn := matches[1]
+			return apn, nil
+		}
+	}
+
+	return "", fmt.Errorf("Error parsing AT+CGDCONT?: %v", resp)
 }
 
 // looking for: +CSQ: 9,99
