@@ -149,13 +149,13 @@ func (c *NetworkManagerClient) Run() error {
 		}
 		dbusSub = c.nmObj.Subscribe()
 
-		// Get removed previously managed connections in SIOT tree
+		// Get deleted previously managed connections in SIOT tree
 		var allConnNodes []data.NodeEdge
 		allConnNodes, err = GetNodes(
 			c.nc, c.config.ID, "all", "networkManagerConn", true,
 		)
 		if err != nil {
-			return fmt.Errorf("error getting removed connection nodes: %w", err)
+			return fmt.Errorf("error getting deleted connection nodes: %w", err)
 		}
 		c.deletedConns = make(map[string]NetworkManagerConn)
 		for _, ne := range allConnNodes {
@@ -176,7 +176,7 @@ func (c *NetworkManagerClient) Run() error {
 				)
 				if err != nil {
 					return fmt.Errorf(
-						"error decoding removed connection node: %w", err,
+						"error decoding deleted connection node: %w", err,
 					)
 				}
 				if deletedConn.Managed {
@@ -268,8 +268,6 @@ loop:
 					return err
 				}
 			} else {
-				// Queue sync operation
-				queueSync()
 				// If this is a connection node point, unmute SyncConnections()
 				// errors.
 				for _, conn := range c.config.Connections {
@@ -278,6 +276,8 @@ loop:
 						break
 					}
 				}
+				// Queue sync operation
+				queueSync()
 			}
 		case <-doSync:
 			// Perform sync operations; abort on fatal error
@@ -429,14 +429,14 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 			// Note: deletedConns is keyed by UUID, not ID
 			if _, ok := c.deletedConns[nmc.ID]; ok {
 				// Delete connection from NetworkManager
-				c.log.Printf("Deleting connection %v (%v)",
-					nmc.ID, nmc.Description,
-				)
 				if err := conn.Delete(); err != nil {
 					errs = append(errs, fmt.Errorf(
 						"error deleting connection %v: %w", nmc.ID, err,
 					))
 				}
+				c.log.Printf("Deleted connection %v (%v)",
+					nmc.ID, nmc.Description,
+				)
 			} else {
 				// Add connection to SIOT tree
 				c.log.Printf("Detected connection %v (%v)",
@@ -457,7 +457,8 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 	}
 
 	// Now handle each connection already in the SIOT tree
-	for _, treeConn := range c.config.Connections {
+	for i := range c.config.Connections {
+		treeConn := &c.config.Connections[i]
 		var pts data.Points // points to update this connection in SIOT tree
 		nmc, found := nmConns[treeConn.ID]
 		if found {
@@ -487,7 +488,7 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 							nmc.Resolved.ID, err,
 						)
 						errs = append(errs, err)
-						err = emitConnectionError(treeConn, err)
+						err = c.emitConnectionError(treeConn, err)
 						if err != nil {
 							errs = append(errs, err)
 						}
@@ -499,9 +500,6 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 				}
 				// Update existing connection
 				if !treeConn.Equal(nmc.Resolved) {
-					c.log.Printf("Updating connection %v (%v)",
-						treeConn.ID, treeConn.Description,
-					)
 					// diff, err := data.DiffPoints(nmc.Resolved, treeConn)
 					// c.log.Printf("DEBUG: %v %v", err, diff)
 
@@ -511,7 +509,7 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 							"error updating connection %v: %w", treeConn.ID, err,
 						)
 						errs = append(errs, err)
-						err = emitConnectionError(treeConn, err)
+						err = c.emitConnectionError(treeConn, err)
 						if err != nil {
 							errs = append(errs, err)
 						}
@@ -525,6 +523,9 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 						}
 						continue
 					}
+					c.log.Printf("Updated connection %v (%v)",
+						treeConn.ID, treeConn.Description,
+					)
 					// If this connection is currently active, reactivate it
 					acs, err := c.nmObj.GetPropertyActiveConnections()
 					if err != nil {
@@ -550,7 +551,7 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 									treeConn.ID, err,
 								)
 								errs = append(errs, err)
-								err = emitConnectionError(treeConn, err)
+								err = c.emitConnectionError(treeConn, err)
 								if err != nil {
 									errs = append(errs, err)
 								}
@@ -565,7 +566,7 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 									treeConn.ID, err,
 								)
 								errs = append(errs, err)
-								err = emitConnectionError(treeConn, err)
+								err = c.emitConnectionError(treeConn, err)
 								if err != nil {
 									errs = append(errs, err)
 								}
@@ -598,7 +599,7 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 				}
 			} else {
 				// Update connection in SIOT tree
-				diffPts, err := data.DiffPoints(treeConn, nmc.Resolved)
+				diffPts, err := data.DiffPoints(treeConn, &nmc.Resolved)
 				if err != nil {
 					errs = append(errs, fmt.Errorf(
 						"error updating connection node %v: %w", treeConn.ID, err,
@@ -622,10 +623,6 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 					err = fmt.Errorf("invalid UUID: %w", err)
 				} else {
 					// Add connection to NetworkManager
-					c.log.Printf("Adding connection %v (%v)",
-						treeConn.ID, treeConn.Description,
-					)
-					// Create new connection profile in NetworkManager
 					_, err = c.nmSettings.AddConnection(treeConn.DBus())
 				}
 				if err != nil {
@@ -633,17 +630,17 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 						"error adding connection %v: %w", treeConn.ID, err,
 					)
 					errs = append(errs, err)
-					err = emitConnectionError(treeConn, err)
+					err = c.emitConnectionError(treeConn, err)
 					if err != nil {
 						errs = append(errs, err)
 					}
 					continue
 				}
-			} else {
-				// Remove connection from SIOT tree
-				c.log.Printf("Removing connection node %v (%v)",
+				c.log.Printf("Added connection %v (%v)",
 					treeConn.ID, treeConn.Description,
 				)
+			} else {
+				// Delete connection from SIOT tree
 				err = SendEdgePoint(c.nc, treeConn.ID, treeConn.Parent, data.Point{
 					Type:  data.PointTypeTombstone,
 					Value: 1,
@@ -654,6 +651,9 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 					))
 					continue
 				}
+				c.log.Printf("Deleted connection node %v (%v)",
+					treeConn.ID, treeConn.Description,
+				)
 			}
 		}
 
@@ -785,13 +785,14 @@ func (c *NetworkManagerClient) SyncDevices() (errs []error, fatal error) {
 	}
 
 	// Update devices already in SIOT tree
-	for _, device := range c.config.Devices {
+	for i := range c.config.Devices {
+		device := &c.config.Devices[i]
 		nmDevice, ok := deviceInfo[device.ID]
 		if ok {
 			// Preserve AccessPoints
 			nmDevice.AccessPoints = device.AccessPoints
 			// Update device
-			pts, err := data.DiffPoints(device, nmDevice)
+			pts, err := data.DiffPoints(device, &nmDevice)
 			// Set origin on all points
 			for _, p := range pts {
 				p.Origin = c.config.ID
@@ -815,22 +816,24 @@ func (c *NetworkManagerClient) SyncDevices() (errs []error, fatal error) {
 					))
 				}
 
-				// err = data.Decode(data.NodeEdgeChildren{
-				// 	NodeEdge: data.NodeEdge{
-				// 		ID:     device.ID,
-				// 		Parent: device.Parent,
-				// 		Points: pts,
-				// 	},
-				// }, &device)
+				err = data.Decode(data.NodeEdgeChildren{
+					NodeEdge: data.NodeEdge{
+						ID:     device.ID,
+						Parent: device.Parent,
+						Points: pts,
+					},
+				}, device)
 
-				// if err != nil {
-				// 	errs = append(errs, fmt.Errorf("error decoding data %v: %w", device.ID, err))
-				// }
+				if err != nil {
+					errs = append(errs, fmt.Errorf(
+						"error decoding data %v: %w", device.ID, err,
+					))
+				}
 			}
-			// Remove from deviceInfo to avoid duplicating it later
+			// Delete from deviceInfo to avoid duplicating it later
 			delete(deviceInfo, device.ID)
 		} else {
-			// Remove device
+			// Delete device
 			c.log.Printf("Deleting device %v", device.ID)
 			err := SendEdgePoint(
 				c.nc,
@@ -924,7 +927,8 @@ func (c *NetworkManagerClient) WifiScan() error {
 
 	// For each Wi-Fi device in SIOT tree
 	found := false
-	for devIndex, device := range c.config.Devices {
+	for devIndex := range c.config.Devices {
+		device := &c.config.Devices[devIndex]
 		if device.DeviceType != nm.NmDeviceTypeWifi.String() ||
 			device.State == nm.NmDeviceStateUnmanaged.String() ||
 			device.State == nm.NmDeviceStateUnavailable.String() {
@@ -1056,12 +1060,11 @@ func (c *NetworkManagerClient) WifiScan() error {
 					Parent: device.Parent,
 					Points: pts,
 				},
-			}, &device)
+			}, device)
 			if err != nil {
 				return fmt.Errorf("error decoding data: %w", err)
 			}
 
-			c.config.Devices[devIndex] = device
 			break getPropertyAccessPoints
 		}
 		if err != nil {
