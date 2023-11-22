@@ -288,6 +288,34 @@ func CmdATI(port io.ReadWriter) (string, error) {
 	return "", fmt.Errorf("Error parsing ATI response: %v", resp)
 }
 
+var reUsbCfg = regexp.MustCompile(`USBCFG:\s*(\d+)`)
+
+// CmdGetUsbCfg gets the USB config. For Telit modems, 0 is ppp, 3 is USB network
+func CmdGetUsbCfg(port io.ReadWriter) (int, error) {
+	resp, err := Cmd(port, "AT#USBCFG?")
+	if err != nil {
+		return -1, err
+	}
+
+	for _, line := range strings.Split(string(resp), "\n") {
+		matches := reUsbCfg.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			cfg, _ := strconv.Atoi(matches[1])
+
+			return cfg, nil
+		}
+	}
+
+	return -1, fmt.Errorf("Error parsing response of USBCFG")
+}
+
+// CmdSetUsbConfig is configures the USB mode of Telit modems
+// 0 = ppp
+// 3 = usb network
+func CmdSetUsbConfig(port io.ReadWriter, cfg int) error {
+	return CmdOK(port, fmt.Sprintf("AT#USBCFG=%v", cfg))
+}
+
 var reApn = regexp.MustCompile(`CGDCONT: 3,"IPV4V6","(.*?)"`)
 
 // CmdGetApn gets the APN

@@ -48,3 +48,16 @@ OK
 	}
 
 }
+
+func TestGetUsbCfg(t *testing.T) {
+	buf := bytes.NewBufferString("#USBCFG: 3")
+
+	cfg, err := CmdGetUsbCfg(buf)
+	if err != nil {
+		t.Fatal("Error: ", err)
+	}
+
+	if cfg != 3 {
+		t.Fatal("Cfg is: ", cfg)
+	}
+}
