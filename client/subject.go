@@ -59,13 +59,12 @@ func (sd Destination) Subject(originID string, parentID string) string {
 			destID = sd.NodeID
 		}
 		return fmt.Sprintf("phrup.%v.%v", destID, originID)
-	} else {
-		destID := originID
-		if sd.NodeID != "" {
-			destID = sd.NodeID
-		} else if sd.Parent {
-			destID = parentID
-		}
-		return SubjectNodePoints(destID)
 	}
+	destID := originID
+	if sd.NodeID != "" {
+		destID = sd.NodeID
+	} else if sd.Parent {
+		destID = parentID
+	}
+	return SubjectNodePoints(destID)
 }

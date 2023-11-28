@@ -276,6 +276,7 @@ func (c IPv4Config) Equal(c2 IPv4Config) bool {
 	return reflect.DeepEqual(c, c2)
 }
 
+// Method returns the IP configuration method (i.e. "auto" or "manual")
 func (c IPv4Config) Method() string {
 	if c.StaticIP &&
 		c.Address.Valid() &&
@@ -391,6 +392,7 @@ func (c IPv6Config) Equal(c2 IPv6Config) bool {
 	return reflect.DeepEqual(c, c2)
 }
 
+// Method returns the IP configuration method (i.e. "auto" or "manual")
 func (c IPv6Config) Method() string {
 	if c.StaticIP &&
 		c.Address.Valid() &&
