@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.14.2] - 2023-11-29](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.2)
+
 - Signal generator client: replaced "Sync Parent" option with "Destination" to
   indicate the destination node and point type for generated points
 - update gonetworkmanager to v2.1.0 and fix sync bugs
