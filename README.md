@@ -2,7 +2,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/simpleiot/simpleiot.svg)](https://pkg.go.dev/github.com/simpleiot/simpleiot)
 ![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=master)
-![code stats](https://tokei.rs/b1/github/simpleiot/simpleiot?category=code)
+[![Scc Count Badge](https://sloc.xyz/github/simpleiot/simpleiot/?category=code)](https://github.com/simpleiot/simpleiot/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/simpleiot/simpleiot)](https://goreportcard.com/report/github.com/simpleiot/simpleiot)
 [![Slack Widget](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=red)](http://gophers.slack.com/messages/simpleiot)
 
