@@ -31,6 +31,7 @@ import Components.NodeShelly as NodeShelly
 import Components.NodeShellyIO as NodeShellyIO
 import Components.NodeSignalGenerator as SignalGenerator
 import Components.NodeSync as NodeSync
+import Components.NodeUnknown as NodeUnknown
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
 import Dict
@@ -1121,11 +1122,8 @@ viewNodesHelp depth model tree =
 
                 tombstone =
                     isTombstone childNode.node
-
-                display =
-                    shouldDisplay childNode.node.typ
             in
-            if display && not tombstone then
+            if not tombstone then
                 let
                     viewChildren =
                         List.map Tree.label
@@ -1145,94 +1143,6 @@ viewNodesHelp depth model tree =
 isTombstone : Node -> Bool
 isTombstone node =
     Point.getBool node.edgePoints Point.typeTombstone ""
-
-
-shouldDisplay : String -> Bool
-shouldDisplay typ =
-    case typ of
-        "user" ->
-            True
-
-        "group" ->
-            True
-
-        "modbus" ->
-            True
-
-        "modbusIo" ->
-            True
-
-        "serialDev" ->
-            True
-
-        "canBus" ->
-            True
-
-        "rule" ->
-            True
-
-        "condition" ->
-            True
-
-        "action" ->
-            True
-
-        "actionInactive" ->
-            True
-
-        "device" ->
-            True
-
-        "msgService" ->
-            True
-
-        "variable" ->
-            True
-
-        "signalGenerator" ->
-            True
-
-        "file" ->
-            True
-
-        "sync" ->
-            True
-
-        "oneWire" ->
-            True
-
-        "oneWireIO" ->
-            True
-
-        "db" ->
-            True
-
-        "particle" ->
-            True
-
-        "shelly" ->
-            True
-
-        "shellyIo" ->
-            True
-
-        "metrics" ->
-            True
-
-        "networkManager" ->
-            True
-
-        "networkManagerDevice" ->
-            True
-
-        "networkManagerConn" ->
-            True
-
-        "ntp" ->
-            True
-
-        _ ->
-            False
 
 
 viewNode : Model -> Maybe NodeView -> NodeView -> List NodeView -> Int -> Element Msg
@@ -1322,7 +1232,7 @@ viewNode model parent node children depth =
                     NodeNetworkManagerConn.view
 
                 _ ->
-                    viewUnknown
+                    NodeUnknown.view
 
         background =
             if node.expDetail then
@@ -1432,11 +1342,6 @@ viewNode model parent node children depth =
                     Element.none
                 ]
             ]
-
-
-viewUnknown : NodeOptions msg -> Element msg
-viewUnknown o =
-    Element.text <| "unknown node type: " ++ o.node.typ
 
 
 nodeTypesThatHaveChildNodes : List String
