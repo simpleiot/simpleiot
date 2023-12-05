@@ -59,6 +59,16 @@ presented with the following options:
   configuration (perhaps a complex Modbus setup) that you want to duplicate at a
   new site.
 
+## Raw Node View
+
+If a node is expanded, a raw node button is available that allows you to view the raw type and points for any node in the tree.
+
+<img src="assets/image-20231205121809598.png" alt="image-20231205121809598" style="zoom:80%;" />
+
+After the raw button is pressed, the type and points are displayed:
+
+<img src="assets/image-20231205121824575.png" alt="image-20231205121824575" style="zoom:80%;" />
+
 ## Graphing and advanced dashboards
 
 If you need graphs and more advanced dashboards, consider coupling Simple IoT
