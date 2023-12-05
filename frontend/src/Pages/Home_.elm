@@ -25,13 +25,13 @@ import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..))
 import Components.NodeParticle as NodeParticle
+import Components.NodeRaw as NodeRaw
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
 import Components.NodeShelly as NodeShelly
 import Components.NodeShellyIO as NodeShellyIO
 import Components.NodeSignalGenerator as SignalGenerator
 import Components.NodeSync as NodeSync
-import Components.NodeUnknown as NodeUnknown
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
 import Dict
@@ -1190,7 +1190,7 @@ viewNode model parent node children depth =
 
         nodeView =
             if viewRaw then
-                NodeUnknown.view
+                NodeRaw.view
 
             else
                 case node.node.typ of
@@ -1276,7 +1276,7 @@ viewNode model parent node children depth =
                         NodeNetworkManagerConn.view
 
                     _ ->
-                        NodeUnknown.view
+                        NodeRaw.view
 
         background =
             if node.expDetail then

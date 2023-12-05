@@ -1,4 +1,4 @@
-module Components.NodeUnknown exposing (view)
+module Components.NodeRaw exposing (view)
 
 import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions)
