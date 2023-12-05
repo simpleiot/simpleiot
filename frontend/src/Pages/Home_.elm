@@ -109,6 +109,7 @@ type NodeOperation
 type alias NodeEdit =
     { feID : Int
     , points : List Point
+    , viewRaw : Bool
     }
 
 
@@ -205,6 +206,7 @@ type Msg
     | ApiRespPostNotificationNode (Data Response)
     | CopyNode Int String String String
     | ClearClipboard
+    | ToggleRaw Int
 
 
 update : Shared.Model -> Msg -> Model -> ( Model, Effect Msg )
@@ -228,6 +230,7 @@ update shared msg model =
                     Just
                         { feID = feID
                         , points = Point.updatePoints editPoints points
+                        , viewRaw = False
                         }
               }
             , Effect.none
@@ -693,6 +696,35 @@ update shared msg model =
         ClearClipboard ->
             ( { model | copyMove = CopyMoveNone }, Effect.none )
 
+        ToggleRaw id ->
+            let
+                viewRaw =
+                    case model.nodeEdit of
+                        Just ne ->
+                            if id == ne.feID then
+                                not ne.viewRaw
+
+                            else
+                                True
+
+                        Nothing ->
+                            True
+            in
+            ( { model
+                | nodeEdit =
+                    if viewRaw then
+                        Just
+                            { feID = id
+                            , points = []
+                            , viewRaw = True
+                            }
+
+                    else
+                        Nothing
+              }
+            , Effect.none
+            )
+
 
 mergeNodeTrees : List (Tree NodeView) -> List (Tree NodeView) -> List (Tree NodeView)
 mergeNodeTrees current new =
@@ -1148,7 +1180,15 @@ isTombstone node =
 viewNode : Model -> Maybe NodeView -> NodeView -> List NodeView -> Int -> Element Msg
 viewNode model parent node children depth =
     let
-        nodeView =
+        viewRaw =
+            case model.nodeEdit of
+                Just ne ->
+                    ne.feID == node.feID && ne.viewRaw
+
+                Nothing ->
+                    False
+
+        nodeViewType =
             case node.node.typ of
                 "user" ->
                     NodeUser.view
@@ -1233,6 +1273,13 @@ viewNode model parent node children depth =
 
                 _ ->
                     NodeUnknown.view
+
+        nodeView =
+            if viewRaw then
+                NodeUnknown.view
+
+            else
+                nodeViewType
 
         background =
             if node.expDetail then
@@ -1375,6 +1422,7 @@ viewNodeOperations node msg =
             , Button.x (DeleteNode node.feID node.node.id node.node.parent)
             , Button.copy (CopyNode node.feID node.node.id node.node.parent desc)
             , Button.clipboard (PasteNode node.feID node.node.id)
+            , Button.list (ToggleRaw node.feID)
             ]
         , case msg of
             Just m ->
