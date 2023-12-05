@@ -1188,98 +1188,95 @@ viewNode model parent node children depth =
                 Nothing ->
                     False
 
-        nodeViewType =
-            case node.node.typ of
-                "user" ->
-                    NodeUser.view
-
-                "group" ->
-                    NodeGroup.view
-
-                "modbus" ->
-                    NodeModbus.view
-
-                "modbusIo" ->
-                    NodeModbusIO.view
-
-                "oneWire" ->
-                    NodeOneWire.view
-
-                "oneWireIO" ->
-                    NodeOneWireIO.view
-
-                "serialDev" ->
-                    NodeSerialDev.view
-
-                "canBus" ->
-                    NodeCanBus.view
-
-                "rule" ->
-                    NodeRule.view
-
-                "condition" ->
-                    NodeCondition.view
-
-                "action" ->
-                    NodeAction.view
-
-                "actionInactive" ->
-                    NodeAction.view
-
-                "device" ->
-                    NodeDevice.view
-
-                "msgService" ->
-                    NodeMessageService.view
-
-                "variable" ->
-                    NodeVariable.view
-
-                "signalGenerator" ->
-                    SignalGenerator.view
-
-                "file" ->
-                    File.view
-
-                "sync" ->
-                    NodeSync.view
-
-                "db" ->
-                    NodeDb.view
-
-                "particle" ->
-                    NodeParticle.view
-
-                "shelly" ->
-                    NodeShelly.view
-
-                "shellyIo" ->
-                    NodeShellyIO.view
-
-                "metrics" ->
-                    NodeMetrics.view
-
-                "networkManager" ->
-                    NodeNetworkManager.view
-
-                "ntp" ->
-                    NodeNTP.view
-
-                "networkManagerDevice" ->
-                    NodeNetworkManagerDevice.view
-
-                "networkManagerConn" ->
-                    NodeNetworkManagerConn.view
-
-                _ ->
-                    NodeUnknown.view
-
         nodeView =
             if viewRaw then
                 NodeUnknown.view
 
             else
-                nodeViewType
+                case node.node.typ of
+                    "user" ->
+                        NodeUser.view
+
+                    "group" ->
+                        NodeGroup.view
+
+                    "modbus" ->
+                        NodeModbus.view
+
+                    "modbusIo" ->
+                        NodeModbusIO.view
+
+                    "oneWire" ->
+                        NodeOneWire.view
+
+                    "oneWireIO" ->
+                        NodeOneWireIO.view
+
+                    "serialDev" ->
+                        NodeSerialDev.view
+
+                    "canBus" ->
+                        NodeCanBus.view
+
+                    "rule" ->
+                        NodeRule.view
+
+                    "condition" ->
+                        NodeCondition.view
+
+                    "action" ->
+                        NodeAction.view
+
+                    "actionInactive" ->
+                        NodeAction.view
+
+                    "device" ->
+                        NodeDevice.view
+
+                    "msgService" ->
+                        NodeMessageService.view
+
+                    "variable" ->
+                        NodeVariable.view
+
+                    "signalGenerator" ->
+                        SignalGenerator.view
+
+                    "file" ->
+                        File.view
+
+                    "sync" ->
+                        NodeSync.view
+
+                    "db" ->
+                        NodeDb.view
+
+                    "particle" ->
+                        NodeParticle.view
+
+                    "shelly" ->
+                        NodeShelly.view
+
+                    "shellyIo" ->
+                        NodeShellyIO.view
+
+                    "metrics" ->
+                        NodeMetrics.view
+
+                    "networkManager" ->
+                        NodeNetworkManager.view
+
+                    "ntp" ->
+                        NodeNTP.view
+
+                    "networkManagerDevice" ->
+                        NodeNetworkManagerDevice.view
+
+                    "networkManagerConn" ->
+                        NodeNetworkManagerConn.view
+
+                    _ ->
+                        NodeUnknown.view
 
         background =
             if node.expDetail then
