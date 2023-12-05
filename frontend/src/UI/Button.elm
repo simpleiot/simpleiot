@@ -4,6 +4,7 @@ module UI.Button exposing
     , clipboard
     , copy
     , dot
+    , list
     , message
     , plusCircle
     , x
@@ -76,6 +77,11 @@ copy msg =
 clipboard : msg -> Element msg
 clipboard msg =
     button FeatherIcons.clipboard msg
+
+
+list : msg -> Element msg
+list msg =
+    button FeatherIcons.list msg
 
 
 dot : msg -> Element msg
