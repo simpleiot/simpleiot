@@ -23,7 +23,7 @@ import Components.NodeNetworkManagerConn as NodeNetworkManagerConn
 import Components.NodeNetworkManagerDevice as NodeNetworkManagerDevice
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
-import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
+import Components.NodeOptions exposing (CopyMove(..))
 import Components.NodeParticle as NodeParticle
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
