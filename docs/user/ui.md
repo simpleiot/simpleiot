@@ -61,13 +61,17 @@ presented with the following options:
 
 ## Raw Node View
 
-If a node is expanded, a raw node button is available that allows you to view the raw type and points for any node in the tree.
+If a node is expanded, a raw node button is available that allows you to view
+the raw type and points for any node in the tree. It is useful at times during
+development and debugging to be able to view the raw points for a node.
 
 <img src="assets/image-20231205121809598.png" alt="image-20231205121809598" style="zoom:80%;" />
 
 After the raw button is pressed, the type and points are displayed:
 
 <img src="assets/image-20231205121824575.png" alt="image-20231205121824575" style="zoom:80%;" />
+
+Unknown nodes will also be displayed as raw nodes.
 
 ## Graphing and advanced dashboards
 
