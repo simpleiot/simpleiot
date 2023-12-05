@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- UI: display unknown nodes as raw type and points
+- UI: add raw view button to node expanded view. This allows us to view the raw
+  points in any node which is useful for debugging and development.
+
 ## [[0.14.2] - 2023-11-29](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.2)
 
 - Signal generator client: replaced "Sync Parent" option with "Destination" to
