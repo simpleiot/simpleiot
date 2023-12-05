@@ -1,7 +1,7 @@
 module github.com/simpleiot/simpleiot
 
 require (
-	github.com/Wifx/gonetworkmanager v0.5.0
+	github.com/Wifx/gonetworkmanager/v2 v2.1.0
 	github.com/adrianmo/go-nmea v1.1.1-0.20190321164421-7572fbeb90aa
 	github.com/beevik/ntp v0.3.0
 	github.com/blang/semver/v4 v4.0.0

@@ -6,16 +6,17 @@ package client
 import (
 	"encoding/json"
 
-	nm "github.com/Wifx/gonetworkmanager"
+	nm "github.com/Wifx/gonetworkmanager/v2"
 )
 
 // NetworkManagerDevice is a device managed by NetworkManager
 type NetworkManagerDevice struct {
-	ID        string `node:"id"`
-	Parent    string `node:"parent"`
-	Path      string `point:"path"`
-	Interface string `point:"interface"`
-	State     string `point:"state"`
+	ID         string `node:"id"`
+	Parent     string `node:"parent"`
+	Path       string `point:"path"`
+	Interface  string `point:"interface"`
+	State      string `point:"state"`
+	DeviceType string `point:"deviceType"`
 	// ActiveConnectionID
 	IPv4Addresses   []IPv4Address `point:"ipv4Addresses"`
 	IPv4Netmasks    []IPv4Netmask `point:"ipv4Netmasks"`
@@ -27,7 +28,6 @@ type NetworkManagerDevice struct {
 	IPv6Nameservers []IPv6Address `point:"ipv6Nameservers"`
 	HardwareAddress string        `point:"hardwareAddress"`
 	Managed         bool
-	DeviceType      string `point:"deviceType"`
 	// Wi-Fi specific properties
 	ActiveAccessPoint *AccessPoint `point:"activeAccessPoint"`
 	AccessPoints      []string     `point:"accessPoints"` // JSON-encoded strings
@@ -130,7 +130,7 @@ func ResolveDevice(parent string, device nm.Device) (
 		}
 		for _, addr := range nameservers {
 			dev.IPv6Nameservers = append(dev.IPv6Nameservers,
-				IPv6Address(string(addr)),
+				NewIPv6Address(addr),
 			)
 		}
 	}

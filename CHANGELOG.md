@@ -11,6 +11,22 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.14.3] - 2023-12-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.3)
+
+- UI: display unknown nodes as raw type and points
+- UI: add raw view button to node expanded view. This allows us to view the raw
+  points in any node which is useful for debugging and development. (see
+  [docs](https://docs.simpleiot.org/docs/user/ui.html#raw-node-view) for more
+  information)
+
+## [[0.14.2] - 2023-11-29](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.2)
+
+- Signal generator client: replaced "Sync Parent" option with "Destination" to
+  indicate the destination node and point type for generated points
+- update gonetworkmanager to v2.1.0 and fix sync bugs
+- network-manager client: Now supports better connection sync via connection
+  `Managed` flag; fixed a few bugs; WiFiConfig sync now works
+
 ## [[0.14.1] - 2023-11-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.1)
 
 - update frontend assets (missed that in v0.14.0)

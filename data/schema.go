@@ -237,7 +237,7 @@ const (
 	PointTypeInitialValue = "initialValue"
 	PointTypeRoundTo      = "roundTo"
 	PointTypeSampleRate   = "sampleRate"
-	PointTypeHighRate     = "highRate"
+	PointTypeDestination  = "destination"
 	PointTypeBatchPeriod  = "batchPeriod"
 	PointTypeFrequency    = "frequency"
 	PointTypeMinIncrement = "minIncrement"

@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"math/rand"
@@ -14,11 +13,12 @@ import (
 
 // SignalGenerator config
 type SignalGenerator struct {
-	ID          string `node:"id"`
-	Parent      string `node:"parent"`
-	Description string `point:"description"`
-	Disable     bool   `point:"disable"`
-	Units       string `point:"units"`
+	ID          string      `node:"id"`
+	Parent      string      `node:"parent"`
+	Description string      `point:"description"`
+	Disable     bool        `point:"disable"`
+	Destination Destination `point:"destination"`
+	Units       string      `point:"units"`
 	// SignalType must be one of: "sine", "square", "triangle", or "random walk"
 	SignalType string  `point:"signalType"`
 	MinValue   float64 `point:"minValue"`
@@ -30,9 +30,6 @@ type SignalGenerator struct {
 	RoundTo      float64 `point:"roundTo"`
 	// SampleRate in Hz.
 	SampleRate float64 `point:"sampleRate"`
-	// HighRate flag indicates that the points should be emitted on the NATS
-	// subject for high-rate points
-	HighRate bool `point:"highRate"`
 	// BatchPeriod is the batch timer interval in ms. When the timer fires, it
 	// generates a batch of points at the specified SampleRate. If not set,
 	// timer will fire for each sample at SampleRate.
@@ -108,7 +105,7 @@ func round(val, to float64) float64 {
 
 // Run the main logic for this client and blocks until stopped
 func (sgc *SignalGeneratorClient) Run() error {
-	sgc.log.Println("Starting client:", sgc.config.Description)
+	sgc.log.Printf("Starting client: %v", sgc.config.Description)
 
 	chStopGen := make(chan struct{})
 
@@ -156,16 +153,20 @@ func (sgc *SignalGeneratorClient) Run() error {
 			configValid = false
 		}
 
-		if config.HighRate && config.BatchPeriod <= 0 {
+		if config.Destination.HighRate && config.BatchPeriod <= 0 {
 			sgc.log.Printf("%v: BatchPeriod must be set for high-rate data\n", config.Description)
 			configValid = false
 		}
 
-		natsSubject := SubjectNodePoints(config.ID)
-		if config.HighRate {
-			natsSubject = fmt.Sprintf("phrup.%v.%v", config.Parent, config.ID)
+		natsSubject := config.Destination.Subject(config.ID, config.Parent)
+		pointType := data.PointTypeValue
+		if config.Destination.PointType != "" {
+			pointType = config.Destination.PointType
 		}
-
+		pointKey := "0"
+		if config.Destination.PointKey != "" {
+			pointKey = config.Destination.PointKey
+		}
 		lastBatchTime := time.Now()
 		t := time.NewTicker(time.Hour)
 		t.Stop()
@@ -192,8 +193,9 @@ func (sgc *SignalGeneratorClient) Run() error {
 						val := lastValue + config.MinIncrement + rand.Float64()*
 							(config.MaxIncrement-config.MinIncrement)
 						pts[i] = data.Point{
-							Type: data.PointTypeValue,
+							Type: pointType,
 							Time: start.Add(time.Duration(i) * sampleInterval),
+							Key:  pointKey,
 							Value: clamp(
 								round(val, config.RoundTo),
 								config.MinValue,
@@ -259,8 +261,9 @@ func (sgc *SignalGeneratorClient) Run() error {
 							config.MaxValue,
 						)
 						pts[i] = data.Point{
-							Type:   data.PointTypeValue,
+							Type:   pointType,
 							Time:   start.Add(time.Duration(i) * sampleInterval),
+							Key:    pointKey,
 							Value:  y,
 							Origin: config.ID,
 						}
@@ -288,7 +291,7 @@ func (sgc *SignalGeneratorClient) Run() error {
 					lastBatchTime = endTime
 					err := SendPoints(sgc.nc, natsSubject, pts, false)
 					if err != nil {
-						sgc.log.Println("Error sending points:", err)
+						sgc.log.Printf("Error sending points: %v", err)
 					}
 				}
 			case <-chStopGen:
@@ -304,12 +307,12 @@ done:
 		select {
 		case <-sgc.stop:
 			chStopGen <- struct{}{}
-			sgc.log.Println("Stopped client: ", sgc.config.Description)
+			sgc.log.Printf("Stopped client: %v", sgc.config.Description)
 			break done
 		case pts := <-sgc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &sgc.config)
 			if err != nil {
-				sgc.log.Println("Error merging new points: ", err)
+				sgc.log.Printf("Error merging new points: %v", err)
 			}
 
 			for _, p := range pts.Points {
@@ -321,7 +324,7 @@ done:
 					data.PointTypeInitialValue,
 					data.PointTypeRoundTo,
 					data.PointTypeSampleRate,
-					data.PointTypeHighRate,
+					data.PointTypeDestination,
 					data.PointTypeBatchPeriod,
 					data.PointTypeFrequency,
 					data.PointTypeMinIncrement,
@@ -335,7 +338,7 @@ done:
 		case pts := <-sgc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &sgc.config)
 			if err != nil {
-				sgc.log.Println("Error merging new points: ", err)
+				sgc.log.Printf("Error merging new points: %v", err)
 			}
 		}
 	}

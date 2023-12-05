@@ -10,20 +10,22 @@ import (
 	"reflect"
 	"strings"
 
-	nm "github.com/Wifx/gonetworkmanager"
-	"github.com/godbus/dbus/v5"
+	nm "github.com/Wifx/gonetworkmanager/v2"
 )
 
 // NetworkManagerConn defines a NetworkManager connection
 type NetworkManagerConn struct {
-	ID     string `node:"id"`
-	Parent string `node:"parent"`
-	UUID   string `point:"uuid"`
+	ID          string `node:"id"` // matches UUID in NetworkManager
+	Parent      string `node:"parent"`
+	Description string `point:"description"` // matches ID in NetworkManager
 	// Type is one of the NetworkManager connection types (i.e. 802-3-ethernet)
 	// See https://developer-old.gnome.org/NetworkManager/stable/
 	Type string `point:"type"`
-	// Disabled flag removes the connection from NetworkManager entirely
-	Disabled            bool   `point:"disabled"`
+	// Managed flag indicates that SimpleIoT is managing this connection.
+	// All connections in NetworkManager are added to the SIOT tree, but if a
+	// connection is flagged "managed", the SIOT tree is used as the source of
+	// truth, and settings are synchronized one-way from SIOT to NetworkManager.
+	Managed             bool   `point:"managed"`
 	AutoConnect         bool   `point:"autoConnect"`
 	AutoConnectPriority int32  `point:"autoConnectPriority"`
 	InterfaceName       string `point:"interfaceName"`
@@ -33,6 +35,9 @@ type NetworkManagerConn struct {
 	IPv4Config    IPv4Config `point:"ipv4Config"`
 	IPv6Config    IPv6Config `point:"ipv6Config"`
 	WiFiConfig    WiFiConfig `point:"wiFiConfig"`
+	// Error contains an error message from the last NetworkManager sync or an
+	// empty string if sync was successful
+	Error string `point:"error"`
 }
 
 // WiFiConfig defines 802.11 wireless configuration
@@ -48,11 +53,12 @@ type WiFiConfig struct {
 }
 
 // ResolveNetworkManagerConn returns a NetworkManagerConn from D-Bus settings
+// Note: Secrets must be added to the connection manually
 func ResolveNetworkManagerConn(settings nm.ConnectionSettings) NetworkManagerConn {
 	sc := settings["connection"]
 	conn := NetworkManagerConn{
-		ID:          sc["id"].(string),
-		UUID:        sc["uuid"].(string),
+		ID:          sc["uuid"].(string),
+		Description: sc["id"].(string),
 		Type:        sc["type"].(string),
 		AutoConnect: true,
 	}
@@ -77,30 +83,31 @@ func ResolveNetworkManagerConn(settings nm.ConnectionSettings) NetworkManagerCon
 		conn.IPv6Config = ResolveIPv6Config(val)
 	}
 
-	return conn
-}
+	// Parse WiFiConfig
+	if conn.Type == "802-11-wireless" {
+		sWiFi := settings["802-11-wireless"]
+		if val, ok := sWiFi["ssid"].([]byte); ok {
+			conn.WiFiConfig.SSID = string(val)
+		}
+		sWiFiSecurity := settings["802-11-wireless-security"]
+		if val, ok := sWiFiSecurity["key-mgmt"].(string); ok {
+			conn.WiFiConfig.KeyManagement = val
+		}
+	}
 
-// Managed returns true if the connection is managed by the SimpleIoT client
-// Returns true if and only if the connection ID is prefixed with `SimpleIoT:`
-func (c NetworkManagerConn) Managed() bool {
-	return strings.HasPrefix(c.ID, "SimpleIoT:")
+	return conn
 }
 
 // DBus returns an object that can be passed over D-Bus
 // Returns nil if the connection ID does not include the prefix `SimpleIoT:`
 // See https://developer-old.gnome.org/NetworkManager/stable/ch01.html
 func (c NetworkManagerConn) DBus() nm.ConnectionSettings {
-	if !c.Managed() {
-		return nil
-	}
 	sc := map[string]any{
-		"id":                   c.ID,
+		"uuid":                 c.ID,
+		"id":                   c.Description,
 		"type":                 c.Type,
 		"autoconnect":          c.AutoConnect,
 		"autoconnect-priority": c.AutoConnectPriority,
-	}
-	if c.UUID != "" {
-		sc["uuid"] = c.UUID
 	}
 	if c.InterfaceName != "" {
 		sc["interface-name"] = c.InterfaceName
@@ -110,17 +117,54 @@ func (c NetworkManagerConn) DBus() nm.ConnectionSettings {
 		"ipv4":       c.IPv4Config.DBus(),
 		"ipv6":       c.IPv6Config.DBus(),
 	}
-	if c.Type == "802-11-wireless" && c.WiFiConfig.SSID != "" {
+	if c.Type == "802-11-wireless" {
 		settings["802-11-wireless"] = map[string]any{
 			"ssid": []byte(c.WiFiConfig.SSID),
+		}
+		if c.WiFiConfig.KeyManagement != "" {
+			wiFiSecurity := map[string]any{
+				"key-mgmt": c.WiFiConfig.KeyManagement,
+			}
+			settings["802-11-wireless-security"] = wiFiSecurity
+			// Only add PSK for Managed connections
+			if c.Managed {
+				wiFiSecurity["psk"] = c.WiFiConfig.PSK
+			}
 		}
 	}
 	return settings
 }
 
-// Equal returns true if and only if the two connections are equal
+// Equal returns true if and only if the two connections will produce the same
+// DBus settings
 func (c NetworkManagerConn) Equal(c2 NetworkManagerConn) bool {
-	return reflect.DeepEqual(c, c2)
+	v := reflect.ValueOf(c)
+	v2 := reflect.ValueOf(c2)
+	numFields := v.NumField()
+	t := v.Type()
+	for i := 0; i < numFields; i++ {
+		sf := t.Field(i)
+		// Skip certain fields
+		switch sf.Name {
+		case "Parent":
+			continue
+		case "Managed":
+			continue
+		case "LastActivated":
+			continue
+		case "IPv4Config":
+			continue
+		case "IPv6Config":
+			continue
+		case "Error":
+			continue
+		}
+		if !v.Field(i).Equal(v2.Field(i)) {
+			return false
+		}
+	}
+	return c.IPv4Config.Equal(c2.IPv4Config) &&
+		c.IPv6Config.Equal(c2.IPv6Config)
 }
 
 // IPv4Address is a string representation of an IPv4 address
@@ -195,16 +239,15 @@ func ResolveIPv4Config(settings map[string]any) IPv4Config {
 		StaticIP: settings["method"] == "manual",
 	}
 
-	// Note: 'address-data' is []map[string]dbus.Variant where each map has
-	// "address" (string) and "prefix" (uint32) keys
-	addressData, ok := settings["address-data"].([]map[string]dbus.Variant)
-	if ok && len(addressData) > 0 {
-		// Note: dbus.Variant is a struct, and its zero value is valid
-		str, _ := addressData[0]["address"].Value().(string)
+	// Note: 'address-data' is []any where elements are a map[string]any and
+	// where each map has "address" (string) and "prefix" (uint32) keys
+	addressData, _ := settings["address-data"].([]any)
+	if len(addressData) > 0 {
+		addr1, _ := addressData[0].(map[string]any)
+		str, _ := addr1["address"].(string)
 		c.Address = IPv4Address(str)
 		// Convert integer prefix to string subnet mask format
-		if prefix, ok := addressData[0]["prefix"].Value().(uint32); ok &&
-			prefix <= 32 {
+		if prefix, ok := addr1["prefix"].(uint32); ok && prefix <= 32 {
 			c.Netmask = IPv4NetmaskPrefix(uint8(prefix))
 		}
 	}
@@ -224,32 +267,44 @@ func ResolveIPv4Config(settings map[string]any) IPv4Config {
 	return c
 }
 
+// Equal returns true if and only if the two IPv4Config structs are equivalent
+func (c IPv4Config) Equal(c2 IPv4Config) bool {
+	if c.Method() == "auto" && c2.Method() == "auto" {
+		// Ignore other fields; these two IP Configs are automatic / DHCP
+		return true
+	}
+	return reflect.DeepEqual(c, c2)
+}
+
+// Method returns the IP configuration method (i.e. "auto" or "manual")
+func (c IPv4Config) Method() string {
+	if c.StaticIP &&
+		c.Address.Valid() &&
+		c.Netmask.Valid() &&
+		c.Gateway.Valid() {
+		// Manual (Static IP)
+		return "manual"
+	}
+	// Automatic (DHCP)
+	return "auto"
+}
+
 // DBus returns the IPv4 settings in a generic map to be sent over D-Bus
 // See https://developer-old.gnome.org/NetworkManager/stable/settings-ipv4.html
 func (c IPv4Config) DBus() map[string]any {
-	if !c.StaticIP ||
-		!c.Address.Valid() ||
-		!c.Netmask.Valid() ||
-		!c.Gateway.Valid() {
-
-		// Automatic (DHCP)
-		return map[string]any{
-			"method": "auto",
-		}
+	settings := map[string]any{
+		"method": c.Method(),
+	}
+	if settings["method"] == "auto" {
+		return settings
 	}
 
 	// Manual (Static IP)
-	settings := map[string]any{
-		"method": "manual",
-	}
-
-	if c.Address != "" && c.Netmask != "" && c.Gateway != "" {
-		settings["address-data"] = []map[string]any{{
-			"address": c.Address.String(),
-			"prefix":  c.Netmask.Prefix(),
-		}}
-		settings["gateway"] = c.Gateway.String()
-	}
+	settings["address-data"] = []map[string]any{{
+		"address": c.Address.String(),
+		"prefix":  c.Netmask.Prefix(),
+	}}
+	settings["gateway"] = c.Gateway.String()
 
 	dns := make([]uint32, 0, 2)
 	if c.DNSServer1.Valid() {
@@ -303,12 +358,12 @@ func ResolveIPv6Config(settings map[string]any) IPv6Config {
 		StaticIP: settings["method"] == "manual",
 	}
 
-	addressData, ok := settings["address-data"].([]map[string]dbus.Variant)
-	if ok && len(addressData) > 0 {
-		str, _ := addressData[0]["address"].Value().(string)
+	addressData, _ := settings["address-data"].([]any)
+	if len(addressData) > 0 {
+		addr1, _ := addressData[0].(map[string]any)
+		str, _ := addr1["address"].(string)
 		c.Address = IPv6Address(str)
-		prefix, ok := addressData[0]["prefix"].Value().(uint32)
-		if ok && prefix <= 128 {
+		if prefix, ok := addr1["prefix"].(uint32); ok && prefix <= 128 {
 			c.Prefix = uint8(prefix)
 		}
 	}
@@ -328,31 +383,43 @@ func ResolveIPv6Config(settings map[string]any) IPv6Config {
 	return c
 }
 
+// Equal returns true if and only if the two IPv6Config structs are equivalent
+func (c IPv6Config) Equal(c2 IPv6Config) bool {
+	if c.Method() == "auto" && c2.Method() == "auto" {
+		// Ignore other fields; these two IP Configs are automatic / DHCP
+		return true
+	}
+	return reflect.DeepEqual(c, c2)
+}
+
+// Method returns the IP configuration method (i.e. "auto" or "manual")
+func (c IPv6Config) Method() string {
+	if c.StaticIP &&
+		c.Address.Valid() &&
+		c.Gateway.Valid() {
+		// Manual (Static IP)
+		return "manual"
+	}
+	// Automatic (DHCP)
+	return "auto"
+}
+
 // DBus returns the IPv6 settings in a generic map to be sent over D-Bus
 // See https://developer-old.gnome.org/NetworkManager/stable/settings-ipv6.html
 func (c IPv6Config) DBus() map[string]any {
-
-	if !c.StaticIP ||
-		!c.Address.Valid() ||
-		!c.Gateway.Valid() {
-
-		// Automatic (DHCP)
-		return map[string]any{
-			"method": "auto",
-		}
-	}
-
 	settings := map[string]any{
-		"method": "manual",
+		"method": c.Method(),
+	}
+	if settings["method"] == "auto" {
+		return settings
 	}
 
-	if c.Address.Valid() && c.Gateway.Valid() {
-		settings["address-data"] = []map[string]any{{
-			"address": c.Address.String(),
-			"prefix":  c.Prefix,
-		}}
-		settings["gateway"] = c.Gateway.String()
-	}
+	// Manual (Static IP)
+	settings["address-data"] = []map[string]any{{
+		"address": c.Address.String(),
+		"prefix":  c.Prefix,
+	}}
+	settings["gateway"] = c.Gateway.String()
 
 	dns := make([][]byte, 0, 2)
 	if c.DNSServer1.Valid() {
