@@ -336,6 +336,85 @@ func CmdGetApn(port io.ReadWriter) (string, error) {
 	return "", fmt.Errorf("Error parsing AT+CGDCONT?: %v", resp)
 }
 
+var reFwSwitch = regexp.MustCompile(`FWSWITCH:\s*(\d)`)
+
+// CmdGetFwSwitch returns the firmware used in Telit modems
+// 0 - AT&T
+// 1 - Verizon
+func CmdGetFwSwitch(port io.ReadWriter) (int, error) {
+	resp, err := Cmd(port, "AT#FWSWITCH?")
+	if err != nil {
+		return -1, err
+	}
+
+	for _, line := range strings.Split(resp, "\n") {
+		matches := reFwSwitch.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			fw, _ := strconv.Atoi(matches[1])
+			return fw, nil
+		}
+	}
+
+	return -1, fmt.Errorf("Error parsing AT#FWSWITCH?: %v", resp)
+}
+
+// GpioDir specifies Gpio Direction
+type GpioDir int
+
+// Gpio dir values
+const (
+	GpioDirUnknown GpioDir = -1
+	GpioIn         GpioDir = 0
+	GpioOut        GpioDir = 1
+)
+
+// GpioLevel describes GPIO level
+type GpioLevel int
+
+// Gpio Level values
+const (
+	GpioLevelUnknown GpioLevel = -1
+	GpioLow          GpioLevel = 0
+	GpioHigh         GpioLevel = 1
+)
+
+// #GPIO: 0,0,4
+var reGpio = regexp.MustCompile(`GPIO:\s*(\d+),(\d+)`)
+
+// CmdGetGpio is used to get GPIO state on Telit modems
+func CmdGetGpio(port io.ReadWriter, gpio int) (GpioDir, GpioLevel, error) {
+	cmd := fmt.Sprintf("AT#GPIO=%v,2", gpio)
+	resp, err := Cmd(port, cmd)
+	if err != nil {
+		return GpioDirUnknown, GpioLevelUnknown, err
+	}
+
+	for _, line := range strings.Split(resp, "\n") {
+		matches := reGpio.FindStringSubmatch(line)
+		if len(matches) >= 3 {
+			dir, _ := strconv.Atoi(matches[1])
+			level, _ := strconv.Atoi(matches[2])
+			return GpioDir(dir), GpioLevel(level), nil
+		}
+	}
+
+	return GpioDirUnknown, GpioLevelUnknown, fmt.Errorf("Error parsing AT#GPIO: %v", resp)
+}
+
+// CmdSetGpio is used to set GPIO state in Telit modems
+func CmdSetGpio(port io.ReadWriter, gpio int, level GpioLevel) error {
+	err := CmdOK(port, "AT+CFUN=4")
+	if err != nil {
+		return err
+	}
+	cmd := fmt.Sprintf("AT#GPIO=%v,%v,1,1", gpio, level)
+	err = CmdOK(port, cmd)
+	if err != nil {
+		return err
+	}
+	return CmdOK(port, "AT+CFUN=1")
+}
+
 // looking for: +CSQ: 9,99
 var reSig = regexp.MustCompile(`\+CSQ:\s*(\d+),(\d+)`)
 

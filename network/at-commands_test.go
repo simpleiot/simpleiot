@@ -61,3 +61,33 @@ func TestGetUsbCfg(t *testing.T) {
 		t.Fatal("Cfg is: ", cfg)
 	}
 }
+
+func TestGetFwSwitch(t *testing.T) {
+	buf := bytes.NewBufferString("#FWSWITCH: 1")
+
+	fw, err := CmdGetFwSwitch(buf)
+	if err != nil {
+		t.Fatal("Error: ", err)
+	}
+
+	if fw != 1 {
+		t.Fatal("fw is: ", fw)
+	}
+}
+
+func TestGetGpio(t *testing.T) {
+	buf := bytes.NewBufferString("#GPIO: 1,1,4")
+
+	dir, level, err := CmdGetGpio(buf, 10)
+	if err != nil {
+		t.Fatal("Error: ", err)
+	}
+
+	if dir != GpioOut {
+		t.Fatal("dir is: ", dir)
+	}
+
+	if level != GpioHigh {
+		t.Fatal("level is ", level)
+	}
+}
