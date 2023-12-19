@@ -5,6 +5,7 @@ module Api.Point exposing
     , decode
     , encodeList
     , filterSpecialPoints
+    , filterTombstone
     , get
     , getAll
     , getBestDesc
@@ -14,6 +15,10 @@ module Api.Point exposing
     , getTextArray
     , getValue
     , input
+    , keyHighRate
+    , keyParent
+    , keyPointKey
+    , keyPointType
     , light
     , newText
     , renderPoint
@@ -23,13 +28,6 @@ module Api.Point exposing
     , typeAction
     , typeActive
     , typeAddress
-    , typeMinValue
-    , typeMaxValue
-    , typeInitialValue
-    , typeMinIncrement
-    , typeMaxIncrement
-    , typeSignalType
-    , typeRoundTo
     , typeAuthToken
     , typeBatchPeriod
     , typeBaud
@@ -45,6 +43,7 @@ module Api.Point exposing
     , typeDate
     , typeDebug
     , typeDescription
+    , typeDestination
     , typeDevice
     , typeDeviceID
     , typeDisable
@@ -70,11 +69,16 @@ module Api.Point exposing
     , typeID
     , typeIP
     , typeIndex
+    , typeInitialValue
     , typeLastName
     , typeLightSet
     , typeLog
+    , typeMaxIncrement
     , typeMaxMessageLength
+    , typeMaxValue
     , typeMinActive
+    , typeMinIncrement
+    , typeMinValue
     , typeModbusIOType
     , typeMsgsInDb
     , typeMsgsRecvdDb
@@ -98,6 +102,7 @@ module Api.Point exposing
     , typeRate
     , typeRateHR
     , typeReadOnly
+    , typeRoundTo
     , typeRx
     , typeRxReset
     , typeSID
@@ -105,13 +110,13 @@ module Api.Point exposing
     , typeScale
     , typeServer
     , typeService
+    , typeSignalType
     , typeSignalsInDb
     , typeStart
     , typeSwitchSet
     , typeSyncCount
     , typeSyncCountReset
     , typeSyncParent
-    , typeDestination
     , typeSysState
     , typeTombstone
     , typeTx
@@ -127,12 +132,9 @@ module Api.Point exposing
     , typeVersionApp
     , typeVersionHW
     , typeVersionOS
-    , typeWeekday
---  , keyNodeID
-    , keyParent
-    , keyHighRate
-    , keyPointType
-    , keyPointKey
+    ,  typeWeekday
+       --  , keyNodeID
+
     , updatePoints
     , valueApp
     , valueClient
@@ -155,19 +157,19 @@ module Api.Point exposing
     , valuePointValue
     , valueProcess
     , valueRTU
+    , valueRandomWalk
     , valueSchedule
     , valueServer
     , valueSetValue
+    , valueSine
+    , valueSquare
     , valueSystem
     , valueTCP
     , valueText
+    , valueTriangle
     , valueTwilio
     , valueUINT16
     , valueUINT32
-    , valueSine
-    , valueSquare
-    , valueTriangle
-    , valueRandomWalk
     )
 
 import Iso8601
@@ -905,6 +907,7 @@ typeDestination =
     "destination"
 
 
+
 --keyNodeID : String
 --keyNodeID =
 --    "nodeID"
@@ -1005,6 +1008,11 @@ specialPoints =
 filterSpecialPoints : List Point -> List Point
 filterSpecialPoints points =
     List.filter (\p -> not <| List.member p.typ specialPoints) points
+
+
+filterTombstone : List Point -> List Point
+filterTombstone points =
+    List.filter (\p -> p.tombstone == 0) points
 
 
 encode : Point -> Json.Encode.Value
