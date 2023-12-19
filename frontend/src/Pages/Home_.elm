@@ -80,6 +80,7 @@ page shared _ =
 type alias Model =
     { nodeEdit : Maybe NodeEdit
     , addPoint : { typ : String, key : String }
+    , customNodeType : String
     , zone : Time.Zone
     , now : Time.Posix
     , nodes : List (Tree NodeView)
@@ -134,6 +135,7 @@ defaultModel =
     Model
         Nothing
         { typ = "", key = "" }
+        ""
         Time.utc
         (Time.millisToPosix 0)
         []
@@ -211,6 +213,7 @@ type Msg
     | ToggleRaw Int
     | UpdateNewPointType String
     | UpdateNewPointKey String
+    | UpdateCustomNodeType String
 
 
 update : Shared.Model -> Msg -> Model -> ( Model, Effect Msg )
@@ -396,7 +399,12 @@ update shared msg model =
                                     , onResponse = ApiRespPostAddNode parent
                                     , node =
                                         { id = ""
-                                        , typ = typ
+                                        , typ =
+                                            if typ == "custom" then
+                                                model.customNodeType
+
+                                            else
+                                                typ
                                         , hash = 0
                                         , parent = addNode.parent
                                         , points =
@@ -727,6 +735,9 @@ update shared msg model =
                     { addPoint | key = key }
             in
             ( { model | addPoint = addPointNew }, Effect.none )
+
+        UpdateCustomNodeType typ ->
+            ( { model | customNodeType = typ }, Effect.none )
 
         ToggleRaw id ->
             let
@@ -1430,7 +1441,7 @@ viewNode model parent node children depth =
 
                         OpNodeToAdd add ->
                             if add.feID == node.feID then
-                                viewAddNode node add
+                                viewAddNode model.customNodeType node add
 
                             else
                                 viewNodeOps
@@ -1614,8 +1625,8 @@ nodeDescNTP =
     row [] [ Icon.clock, text "NTP" ]
 
 
-viewAddNode : NodeView -> NodeToAdd -> Element Msg
-viewAddNode parent add =
+viewAddNode : String -> NodeView -> NodeToAdd -> Element Msg
+viewAddNode customNodeType parent add =
     column [ spacing 10 ]
         [ Input.radio [ spacing 6 ]
             { onChange = SelectAddNodeType
@@ -1691,6 +1702,15 @@ viewAddNode parent add =
                         else
                             []
                        )
+                    ++ [ Input.option "custom" <|
+                            Input.text
+                                []
+                                { onChange = UpdateCustomNodeType
+                                , text = customNodeType
+                                , placeholder = Nothing
+                                , label = Input.labelLeft [] <| text "Custom:"
+                                }
+                       ]
             }
         , Form.buttonRow
             [ case add.typ of
