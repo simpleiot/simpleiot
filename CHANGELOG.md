@@ -11,7 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.14.4] - 2023-12-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.4)
+
 - UI: in node raw view, you can now edit/add/delete points (#676)
+- UI: add custom node types
 
 ## [[0.14.3] - 2023-12-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.3)
 
