@@ -50,9 +50,6 @@ nodeTextInput o key typ lbl placeholder =
     let
         textRaw =
             Point.getText o.node.points typ key
-
-        v =
-            Point.getValue o.node.points typ key
     in
     Input.text
         []
@@ -63,11 +60,16 @@ nodeTextInput o key typ lbl placeholder =
             if textRaw == "123BLANK123" then
                 ""
 
-            else if v /= 0 then
-                ""
-
             else
-                textRaw
+                let
+                    v =
+                        Point.getValue o.node.points typ key
+                in
+                if v /= 0 then
+                    ""
+
+                else
+                    textRaw
         , placeholder = Just <| Input.placeholder [] <| text placeholder
         , label =
             if lbl == "" then
