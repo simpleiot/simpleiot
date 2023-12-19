@@ -47,14 +47,36 @@ nodeTextInput :
     -> String
     -> Element msg
 nodeTextInput o key typ lbl placeholder =
+    let
+        textRaw =
+            Point.getText o.node.points typ key
+    in
     Input.text
         []
         { onChange =
             \d ->
                 o.onEditNodePoint [ Point typ key o.now 0 d 0 ]
-        , text = Point.getText o.node.points typ key
+        , text =
+            if textRaw == "123BLANK123" then
+                ""
+
+            else
+                let
+                    v =
+                        Point.getValue o.node.points typ key
+                in
+                if v /= 0 then
+                    ""
+
+                else
+                    textRaw
         , placeholder = Just <| Input.placeholder [] <| text placeholder
-        , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        , label =
+            if lbl == "" then
+                Input.labelHidden ""
+
+            else
+                Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
 
 
@@ -469,7 +491,12 @@ nodeNumberInput o key typ lbl =
                     [ Point typ key o.now v dCheck 0 ]
         , text = currentValue
         , placeholder = Nothing
-        , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        , label =
+            if lbl == "" then
+                Input.labelHidden ""
+
+            else
+                Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
 
 

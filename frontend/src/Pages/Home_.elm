@@ -80,6 +80,8 @@ page shared _ =
 
 type alias Model =
     { nodeEdit : Maybe NodeEdit
+    , addPoint : { typ : String, key : String }
+    , customNodeType : String
     , zone : Time.Zone
     , now : Time.Posix
     , nodes : List (Tree NodeView)
@@ -133,6 +135,8 @@ defaultModel : Model
 defaultModel =
     Model
         Nothing
+        { typ = "", key = "" }
+        ""
         Time.utc
         (Time.millisToPosix 0)
         []
@@ -208,6 +212,9 @@ type Msg
     | CopyNode Int String String String
     | ClearClipboard
     | ToggleRaw Int
+    | UpdateNewPointType String
+    | UpdateNewPointKey String
+    | UpdateCustomNodeType String
 
 
 update : Shared.Model -> Msg -> Model -> ( Model, Effect Msg )
@@ -225,13 +232,21 @@ update shared msg model =
 
                         Nothing ->
                             []
+
+                viewRaw =
+                    case model.nodeEdit of
+                        Just ne ->
+                            ne.viewRaw
+
+                        Nothing ->
+                            False
             in
             ( { model
                 | nodeEdit =
                     Just
                         { feID = feID
                         , points = Point.updatePoints editPoints points
-                        , viewRaw = False
+                        , viewRaw = viewRaw
                         }
               }
             , Effect.none
@@ -385,7 +400,12 @@ update shared msg model =
                                     , onResponse = ApiRespPostAddNode parent
                                     , node =
                                         { id = ""
-                                        , typ = typ
+                                        , typ =
+                                            if typ == "custom" then
+                                                model.customNodeType
+
+                                            else
+                                                typ
                                         , hash = 0
                                         , parent = addNode.parent
                                         , points =
@@ -696,6 +716,29 @@ update shared msg model =
 
         ClearClipboard ->
             ( { model | copyMove = CopyMoveNone }, Effect.none )
+
+        UpdateNewPointType typ ->
+            let
+                addPoint =
+                    model.addPoint
+
+                addPointNew =
+                    { addPoint | typ = typ }
+            in
+            ( { model | addPoint = addPointNew }, Effect.none )
+
+        UpdateNewPointKey key ->
+            let
+                addPoint =
+                    model.addPoint
+
+                addPointNew =
+                    { addPoint | key = key }
+            in
+            ( { model | addPoint = addPointNew }, Effect.none )
+
+        UpdateCustomNodeType typ ->
+            ( { model | customNodeType = typ }, Effect.none )
 
         ToggleRaw id ->
             let
@@ -1326,8 +1369,23 @@ viewNode model parent node children depth =
                     , onUploadFile = UploadFile node.node.id
                     , copy = model.copyMove
                     }
+                , viewIf viewRaw <|
+                    column [ spacing 10 ]
+                        [ Input.text []
+                            { onChange = UpdateNewPointType
+                            , text = model.addPoint.typ
+                            , placeholder = Nothing
+                            , label = Input.labelLeft [] <| text "New point type:"
+                            }
+                        , Input.text []
+                            { onChange = UpdateNewPointKey
+                            , text = model.addPoint.key
+                            , placeholder = Nothing
+                            , label = Input.labelLeft [] <| text "New point key:"
+                            }
+                        ]
                 , viewIf node.mod <|
-                    Form.buttonRow
+                    Form.buttonRow <|
                         [ Form.button
                             { label = "save"
                             , color = colors.blue
@@ -1339,6 +1397,33 @@ viewNode model parent node children depth =
                             , onPress = DiscardEdits
                             }
                         ]
+                            ++ (if viewRaw then
+                                    [ Form.button
+                                        { label = "add point"
+                                        , color = colors.darkgreen
+                                        , onPress =
+                                            let
+                                                key =
+                                                    if model.addPoint.key == "" then
+                                                        "0"
+
+                                                    else
+                                                        model.addPoint.key
+                                            in
+                                            EditNodePoint node.feID
+                                                [ Point model.addPoint.typ
+                                                    key
+                                                    model.now
+                                                    0
+                                                    ""
+                                                    0
+                                                ]
+                                        }
+                                    ]
+
+                                else
+                                    []
+                               )
                 , if node.expDetail then
                     let
                         viewNodeOps =
@@ -1361,7 +1446,7 @@ viewNode model parent node children depth =
 
                         OpNodeToAdd add ->
                             if add.feID == node.feID then
-                                viewAddNode node add
+                                viewAddNode model.customNodeType node add
 
                             else
                                 viewNodeOps
@@ -1550,8 +1635,8 @@ nodeDescNTP =
     row [] [ Icon.clock, text "NTP" ]
 
 
-viewAddNode : NodeView -> NodeToAdd -> Element Msg
-viewAddNode parent add =
+viewAddNode : String -> NodeView -> NodeToAdd -> Element Msg
+viewAddNode customNodeType parent add =
     column [ spacing 10 ]
         [ Input.radio [ spacing 6 ]
             { onChange = SelectAddNodeType
@@ -1628,6 +1713,15 @@ viewAddNode parent add =
                         else
                             []
                        )
+                    ++ [ Input.option "custom" <|
+                            Input.text
+                                []
+                                { onChange = UpdateCustomNodeType
+                                , text = customNodeType
+                                , placeholder = Nothing
+                                , label = Input.labelLeft [] <| text "Custom:"
+                                }
+                       ]
             }
         , Form.buttonRow
             [ case add.typ of

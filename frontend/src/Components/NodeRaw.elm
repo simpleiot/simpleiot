@@ -1,11 +1,13 @@
 module Components.NodeRaw exposing (view)
 
-import Api.Point as Point
-import Components.NodeOptions exposing (NodeOptions)
+import Api.Point as Point exposing (Point)
+import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import UI.Button as Button
+import UI.NodeInputs as NodeInputs
 import UI.Style as Style
 
 
@@ -18,11 +20,20 @@ view o =
         , spacing 6
         ]
     <|
-        wrappedRow [ spacing 10, Background.color Style.colors.yellow ]
-            [ Element.text <| "Node type: " ++ o.node.typ
+        let
+            description =
+                Point.getText o.node.points Point.typeDescription ""
+        in
+        wrappedRow [ spacing 10 ]
+            [ Element.el [ Background.color Style.colors.yellow ] <| Element.text <| "Node type: " ++ o.node.typ
+            , text description
             ]
             :: (if o.expDetail then
-                    [ viewPoints o.node.points
+                    let
+                        opts =
+                            oToInputO o 0
+                    in
+                    [ viewPoints opts
                     ]
 
                 else
@@ -30,14 +41,14 @@ view o =
                )
 
 
-viewPoints : List Point.Point -> Element msg
-viewPoints pts =
+viewPoints : NodeInputs.NodeInputOptions msg -> Element msg
+viewPoints o =
     table [ padding 7 ]
-        { data = List.map Point.renderPoint2 pts
+        { data = o.node.points |> Point.filterTombstone |> List.sortWith Point.sort |> List.map renderPoint
         , columns =
             let
                 cell =
-                    el [ paddingXY 15 5, Border.width 1 ]
+                    el [ paddingXY 15 5, Border.width 0 ]
             in
             [ { header = cell <| el [ Font.bold, centerX ] <| text "Point"
               , width = fill
@@ -45,7 +56,37 @@ viewPoints pts =
               }
             , { header = cell <| el [ Font.bold, centerX ] <| text "Value"
               , width = fill
-              , view = \m -> cell <| el [ alignRight ] <| text m.value
+              , view = \m -> cell <| el [ alignRight ] <| NodeInputs.nodeNumberInput o m.p.key m.p.typ ""
+              }
+            , { header = cell <| el [ Font.bold, centerX ] <| text "Text"
+              , width = fill
+              , view =
+                    \m ->
+                        cell <|
+                            el [ alignRight ] <|
+                                NodeInputs.nodeTextInput o m.p.key m.p.typ "" ""
+              }
+            , { header = cell <| el [ Font.bold, centerX ] <| text ""
+              , width = fill
+              , view =
+                    \m ->
+                        Button.x <|
+                            o.onEditNodePoint [ Point m.p.typ m.p.key o.now 0 "" 1 ]
               }
             ]
         }
+
+
+renderPoint : Point -> { desc : String, value : Float, text : String, p : Point }
+renderPoint p =
+    let
+        key =
+            p.key
+
+        value =
+            p.value
+
+        text =
+            p.text
+    in
+    { desc = p.typ ++ ":" ++ key, value = value, text = text, p = p }
