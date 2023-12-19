@@ -20,8 +20,13 @@ view o =
         , spacing 6
         ]
     <|
-        wrappedRow [ spacing 10, Background.color Style.colors.yellow ]
-            [ Element.text <| "Node type: " ++ o.node.typ
+        let
+            description =
+                Point.getText o.node.points Point.typeDescription ""
+        in
+        wrappedRow [ spacing 10 ]
+            [ Element.el [ Background.color Style.colors.yellow ] <| Element.text <| "Node type: " ++ o.node.typ
+            , text description
             ]
             :: (if o.expDetail then
                     let
