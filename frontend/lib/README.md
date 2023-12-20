@@ -54,12 +54,34 @@ to SimpleIoT.
   getNode sends a request to `nodes.<parent>.<id>` to retrieve an array of
   NodeEdges for the specified Node ID.
 
-  - If `id` is "all" or falsy, this calls `getNodeChildren` instead; however we
-    strongly recommend using `getNodeChildren` directly
+  - If `id` is "all" or falsy, this calls `getNodeChildren` instead (see below);
+    however, we strongly recommend using `getNodeChildren` directly
   - If `parent` is "all" or falsy, all instances of the specified node are
     returned
   - If `parent` is "root", only root nodes are returned
   - `opts` are options passed to the NATS request
+
+  The returned node contains the following properties:
+
+  - `id` - the node ID
+  - `type` - the node type
+  - `hash`
+  - `parent` - the parent ID for this node edge
+  - `pointsList` - the list of points for this node
+  - `edgepointsList` - the list of edge points for the edge between this node
+    and the specified parent
+
+  Each point contains the following properties:
+
+  - `time` - timestamp of the point converted to a JavaScript Date object
+  - `type`
+  - `key`
+  - `value` - numeric value of the point
+  - `text` - text value of the point
+  - `data` - data contained within the point (encoded as base64 string)
+  - `tombstone` - if tombstone value is even, the point is active; otherwise, if
+    it is odd, the point is considered deleted
+  - `origin` - the node ID of the user or other node that created this point.
 
 - `getNodeChildren(parentID, { type, includeDel, recursive, opts } = {} )`
 
@@ -98,13 +120,13 @@ to SimpleIoT.
 
   Subscribes to `p.<nodeID>` and returns an
   [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols)
-  for an array of Point objects.
+  for an array of Point objects. `nodeID` can be `*` or `all`.
 
 - `subscribeEdgePoints(nodeID)`
 
   Subscribes to `p.<nodeID>.<parentID>` and returns an
   [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols)
-  for an array of Point objects. `parentID` can be "\*" or "all".
+  for an array of Point objects. `nodeID` or `parentID` can be `*` or `all`.
 
 - `subscribeUpstreamPoints(upstreamID, nodeID)`
 
@@ -116,7 +138,7 @@ to SimpleIoT.
 
   Subscribes to `up.<upstreamID>.<nodeID>.<parentID>` and returns an
   [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols)
-  for an array of Point objects. `nodeID` and `parentID` can be "\*" or "all".
+  for an array of Point objects. `nodeID` or `parentID` can be `*` or `all`.
 
 - `setUserID(userID)`
 
@@ -139,6 +161,8 @@ to SimpleIoT.
   - `ack` - true if function should block waiting for send acknowledgement
     (defaults to true)
   - `opts` are options passed to the NATS request
+
+## Deprecated API functions
 
 - `subscribeMessages(nodeID)`
 

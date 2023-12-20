@@ -147,15 +147,17 @@ describe("simpleiot-js", () => {
 		// Subscribe and start reading points asynchronously
 		const sub = c.subscribePoints(nodeID)
 		const readPromise = (async function readPoints() {
-			for await (const p of sub) {
-				if (p.type === "temperature") {
-					assert.strictEqual(p.value, temperature)
-				} else if (p.type === "humidity") {
-					assert.strictEqual(p.value, humidity)
-				} else {
-					throw new Error("unknown point type: " + p.type)
-				}
-				pointsRx++
+			for await (const { points } of sub) {
+				points.forEach((p) => {
+					if (p.type === "temperature") {
+						assert.strictEqual(p.value, temperature)
+					} else if (p.type === "humidity") {
+						assert.strictEqual(p.value, humidity)
+					} else {
+						throw new Error("unknown point type: " + p.type)
+					}
+					pointsRx++
+				})
 			}
 		})()
 		// Note: Add no-op `catch` to avoid unhandled Promise rejection
