@@ -2,7 +2,7 @@ package system
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/blang/semver/v4"
 )
@@ -12,7 +12,7 @@ const releaseFilePath = "/etc/os-release"
 // ReadOSVersion reads `releaseFilePath` and parses VERSION_ID into a `Version` struct
 func ReadOSVersion(field string) (imgRelease semver.Version, err error) {
 	// Read `releaseFilePath` into []byte
-	data, err := ioutil.ReadFile(releaseFilePath)
+	data, err := os.ReadFile(releaseFilePath)
 	if err != nil {
 		return
 	}
