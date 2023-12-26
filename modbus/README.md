@@ -1,8 +1,7 @@
 # Simple IoT Modbus
 
-This Simple IoT modbus packet is a package that implements both Modbus client
-and server functionality. This is a work in progress and currently only supports
-Modbus RTU, but can easily be extended for TCP and ASCII.
+This Simple IoT modbus packet is a package that implements both Modbus (RTU &
+TCP) client and server functionality.
 
 See [this test](./rtu-end-to-end_test.go) for an example of how to use this
 library. Substitute the wire simulator with real serial ports. There are also
