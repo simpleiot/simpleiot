@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -34,10 +33,10 @@ func (l *HTTPLogger) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		var rdr io.ReadCloser
-		buf, err := ioutil.ReadAll(r.Body)
+		buf, err := io.ReadAll(r.Body)
 		if err == nil {
-			rdr = ioutil.NopCloser(bytes.NewBuffer(buf))
-			rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
+			rdr = io.NopCloser(bytes.NewBuffer(buf))
+			rdr2 := io.NopCloser(bytes.NewBuffer(buf))
 			r.Body = rdr2
 		}
 

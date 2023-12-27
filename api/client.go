@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -97,7 +97,7 @@ func NewSendPoints(portalURL, deviceID, authToken string, timeout time.Duration,
 
 		if resp.StatusCode != http.StatusOK {
 			errstring := "Server error: " + resp.Status + " " + pointURL
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 			errstring += " " + string(body)
 			return errors.New(errstring)
 		}

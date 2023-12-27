@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
+	"os"
 	"path"
 	"time"
 
@@ -65,7 +65,7 @@ func ListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path strin
 			dl = fileDownload{}
 		case pb.FileChunk_DONE:
 			filePath := path.Join(dir, dl.name)
-			err := ioutil.WriteFile(filePath, dl.data, 0644)
+			err := os.WriteFile(filePath, dl.data, 0644)
 			if err != nil {
 				log.Println("Error writing dl file: ", err)
 				err := nc.Publish(m.Reply, []byte("error writing"))
