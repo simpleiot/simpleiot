@@ -11,8 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.14.5] - 2024-01-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.5)
+
 - simpleiot-js: Fixed bugs and improved README
 - Replace deprecated `io/ioutil` functions (#680)
+- fixed frontend bug where only custom node types could be added
 
 ## [[0.14.4] - 2023-12-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.4)
 
