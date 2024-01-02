@@ -2,7 +2,7 @@ package network
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -36,7 +36,7 @@ func (e *Ethernet) Connect() error {
 }
 
 func (e *Ethernet) detected() bool {
-	cnt, err := ioutil.ReadFile("/sys/class/net/" + e.iface + "/carrier")
+	cnt, err := os.ReadFile("/sys/class/net/" + e.iface + "/carrier")
 	if err != nil {
 		return false
 	}
@@ -45,7 +45,7 @@ func (e *Ethernet) detected() bool {
 		return false
 	}
 
-	cnt, err = ioutil.ReadFile("/sys/class/net/" + e.iface + "/operstate")
+	cnt, err = os.ReadFile("/sys/class/net/" + e.iface + "/operstate")
 	if err != nil {
 		return false
 	}
