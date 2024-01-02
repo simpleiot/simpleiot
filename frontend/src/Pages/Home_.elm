@@ -1713,16 +1713,16 @@ viewAddNode customNodeType parent add =
                         else
                             []
                        )
-                    ++ [ Input.option "custom" <|
-                            Input.text
-                                []
-                                { onChange = UpdateCustomNodeType
-                                , text = customNodeType
-                                , placeholder = Nothing
-                                , label = Input.labelLeft [] <| text "Custom:"
-                                }
-                       ]
+                    ++ [ Input.option "custom" <| text "Custom" ]
             }
+        , viewIf (add.typ == Just "custom") <|
+            Input.text
+                []
+                { onChange = UpdateCustomNodeType
+                , text = customNodeType
+                , placeholder = Nothing
+                , label = Input.labelLeft [] <| text "Custom node type:"
+                }
         , Form.buttonRow
             [ case add.typ of
                 Just _ ->

@@ -3,8 +3,8 @@ package node
 import (
 	"fmt"
 	goio "io"
-	"io/ioutil"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -101,7 +101,7 @@ func (io *oneWireIO) read() error {
 		return nil
 	}
 
-	d, err := ioutil.ReadFile(io.path)
+	d, err := os.ReadFile(io.path)
 	if err != nil {
 		return err
 	}
