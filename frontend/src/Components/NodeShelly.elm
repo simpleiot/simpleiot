@@ -14,7 +14,7 @@ view : NodeOptions msg -> Element msg
 view o =
     let
         disabled =
-            Point.getBool o.node.points Point.typeDisable ""
+            Point.getBool o.node.points Point.typeDisabled ""
     in
     column
         [ width fill
@@ -44,7 +44,7 @@ view o =
                             NodeInputs.nodeCheckboxInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
-                    , checkboxInput Point.typeDisable "Disable"
+                    , checkboxInput Point.typeDisabled "Disabled"
                     ]
 
                 else

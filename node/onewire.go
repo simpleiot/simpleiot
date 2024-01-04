@@ -270,7 +270,7 @@ func (ow *oneWire) run() {
 		case <-ow.chDone:
 			return
 		case <-scanTimer.C:
-			if ow.owNode.disable {
+			if ow.owNode.disabled {
 				continue
 			}
 

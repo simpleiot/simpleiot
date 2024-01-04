@@ -524,7 +524,7 @@ exitSerialClient:
 				// check if any of the config changes should cause us to re-open the port
 				if p.Type == data.PointTypePort ||
 					p.Type == data.PointTypeBaud ||
-					p.Type == data.PointTypeDisable ||
+					p.Type == data.PointTypeDisabled ||
 					p.Type == data.PointTypeMaxMessageLength {
 					op = true
 				}
@@ -536,7 +536,7 @@ exitSerialClient:
 					}
 				}
 
-				if p.Type == data.PointTypeDisable {
+				if p.Type == data.PointTypeDisabled {
 					if p.Value == 0 {
 						closePort()
 					} else {

@@ -230,7 +230,7 @@ done:
 				switch p.Type {
 				case data.PointTypeURI,
 					data.PointTypeAuthToken,
-					data.PointTypeDisable:
+					data.PointTypeDisabled:
 					// we need to restart the sync connection
 					up.disconnect()
 					connectTimer.Reset(10 * time.Millisecond)

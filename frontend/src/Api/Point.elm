@@ -46,7 +46,7 @@ module Api.Point exposing
     , typeDestination
     , typeDevice
     , typeDeviceID
-    , typeDisable
+    , typeDisabled
     , typeEmail
     , typeEnd
     , typeError
@@ -132,9 +132,8 @@ module Api.Point exposing
     , typeVersionApp
     , typeVersionHW
     , typeVersionOS
-    ,  typeWeekday
-       --  , keyNodeID
-
+    , typeWeekday
+      --  , keyNodeID
     , updatePoints
     , valueApp
     , valueClient
@@ -717,9 +716,9 @@ typeOrg =
     "org"
 
 
-typeDisable : String
-typeDisable =
-    "disable"
+typeDisabled : String
+typeDisabled =
+    "disabled"
 
 
 typeConnected : String
@@ -968,7 +967,7 @@ specialPoints =
     , typeHRDest
     , typeMaxMessageLength
     , typeDebug
-    , typeDisable
+    , typeDisabled
     , typeConnected
     , typeControl
     , typeOffline

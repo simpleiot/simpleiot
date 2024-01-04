@@ -78,7 +78,7 @@ done:
 
 			for _, p := range pts.Points {
 				switch p.Type {
-				case data.PointTypeDisable:
+				case data.PointTypeDisabled:
 				}
 			}
 

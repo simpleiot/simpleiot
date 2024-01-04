@@ -167,7 +167,7 @@ done:
 				case data.PointTypeAuthToken:
 					stopReader()
 					startReader()
-				case data.PointTypeDisable:
+				case data.PointTypeDisabled:
 					if p.Value == 1 {
 						stopReader()
 					} else {

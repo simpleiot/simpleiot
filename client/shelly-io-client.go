@@ -134,7 +134,7 @@ done:
 				switch p.Type {
 				case data.PointTypeDescription:
 					syncConfig()
-				case data.PointTypeDisable:
+				case data.PointTypeDisabled:
 					if p.Value == 0 {
 						sampleTicker = time.NewTicker(sampleRate)
 					} else {

@@ -31,7 +31,7 @@ view o =
                    )
 
         disabled =
-            Point.getBool o.node.points Point.typeDisable ""
+            Point.getBool o.node.points Point.typeDisabled ""
     in
     column
         [ width fill
@@ -78,7 +78,7 @@ view o =
                                 ++ id
                     , textInput Point.typeDescription "Description" ""
                     , fCheckboxInput
-                    , checkboxInput Point.typeDisable "Disable"
+                    , checkboxInput Point.typeDisabled "Disabled"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     ]
 
