@@ -56,7 +56,7 @@ type NetworkManagerClient struct {
 type NetworkManager struct {
 	ID                      string                 `node:"id"`
 	Parent                  string                 `node:"parent"`
-	Disable                 bool                   `point:"disable"`
+	Disabled                bool                   `point:"disabled"`
 	Hostname                string                 `point:"hostname"`
 	RequestWiFiScan         bool                   `point:"requestWiFiScan"`
 	NetworkingEnabled       *bool                  `point:"networkingEnabled"`
@@ -104,7 +104,7 @@ func NewNetworkManagerClient(nc *nats.Conn, config NetworkManager) Client {
 // their descendants are added / removed.
 func (c *NetworkManagerClient) Run() error {
 	str := "Starting NetworkManager client"
-	if c.config.Disable {
+	if c.config.Disabled {
 		str += " (currently disabled)"
 	}
 	c.log.Println(str)
@@ -229,7 +229,7 @@ func (c *NetworkManagerClient) Run() error {
 		// else timer already running and will trigger sync soon
 	}
 
-	if !c.config.Disable {
+	if !c.config.Disabled {
 		err := init()
 		if err != nil {
 			return err
@@ -248,7 +248,7 @@ loop:
 		case nodePoints := <-c.pointsCh:
 			// c.log.Print(nodePoints)
 
-			disabled := c.config.Disable
+			disabled := c.config.Disabled
 
 			// Update config
 			err := data.MergePoints(nodePoints.ID, nodePoints.Points, &c.config)
@@ -257,7 +257,7 @@ loop:
 			}
 
 			// Handle Disable flag
-			if c.config.Disable {
+			if c.config.Disabled {
 				if !disabled {
 					cleanup()
 				}
@@ -329,7 +329,7 @@ loop:
 		}
 
 		// Scan Wi-Fi networks if needed
-		if !c.config.Disable && c.config.RequestWiFiScan {
+		if !c.config.Disabled && c.config.RequestWiFiScan {
 			// Create point to clear flag
 			p := data.Point{
 				Type:   "requestWiFiScan",

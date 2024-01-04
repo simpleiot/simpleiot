@@ -28,7 +28,7 @@ type Particle struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
-	Disable     bool   `point:"disable"`
+	Disabled    bool   `point:"disabled"`
 	AuthToken   string `point:"authToken"`
 }
 
@@ -167,7 +167,7 @@ done:
 				case data.PointTypeAuthToken:
 					stopReader()
 					startReader()
-				case data.PointTypeDisable:
+				case data.PointTypeDisabled:
 					if p.Value == 1 {
 						stopReader()
 					} else {

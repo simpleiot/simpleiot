@@ -53,7 +53,7 @@ children:
         value: 1000.0
       - type: description
         text: Variable pulse width
-      - type: disable
+      - type: disabled
       - type: frequency
         value: 1.0
       - type: initialValue
@@ -83,7 +83,7 @@ children:
         value: 1000.0
       - type: description
         text: Triangle
-      - type: disable
+      - type: disabled
       - type: frequency
         value: 1.0
       - type: initialValue
@@ -109,7 +109,7 @@ children:
         value: 1000.0
       - type: description
         text: Square
-      - type: disable
+      - type: disabled
       - type: frequency
         value: 1.0
       - type: initialValue
@@ -131,7 +131,7 @@ children:
         value: 1000.0
       - type: description
         text: Sine
-      - type: disable
+      - type: disabled
       - type: frequency
         value: 1.0
       - type: initialValue
@@ -153,7 +153,7 @@ children:
         value: 1000.0
       - type: description
         text: Random Walk
-      - type: disable
+      - type: disabled
       - type: frequency
         value: 1.0
       - type: initialValue

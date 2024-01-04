@@ -12,7 +12,7 @@ type oneWireIONode struct {
 	id              string
 	units           string
 	value           float64
-	disable         bool
+	disabled        bool
 	errorCount      int
 	errorCountReset bool
 }
@@ -33,7 +33,7 @@ func newOneWireIONode(node *data.NodeEdge) (*oneWireIONode, error) {
 	ret.units, _ = node.Points.Text(data.PointTypeUnits, "")
 
 	ret.value, _ = node.Points.Value(data.PointTypeValue, "")
-	ret.disable, _ = node.Points.ValueBool(data.PointTypeDisable, "")
+	ret.disabled, _ = node.Points.ValueBool(data.PointTypeDisabled, "")
 	ret.errorCount, _ = node.Points.ValueInt(data.PointTypeErrorCount, "")
 	ret.errorCountReset, _ = node.Points.ValueBool(data.PointTypeErrorCountReset, "")
 

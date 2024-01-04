@@ -22,7 +22,7 @@ view : NodeOptions msg -> Element msg
 view o =
     let
         disabled =
-            Point.getBool o.node.points Point.typeDisable ""
+            Point.getBool o.node.points Point.typeDisabled ""
 
         connected =
             Point.getBool o.node.points Point.typeConnected ""
@@ -90,7 +90,7 @@ view o =
                     , textInput Point.typeHRDest "HR Dest Node" ""
                     , checkboxInput Point.typeSyncParent "Sync parent node"
                     , numberInput Point.typeDebug "Debug level (0-9)"
-                    , checkboxInput Point.typeDisable "Disable"
+                    , checkboxInput Point.typeDisabled "Disabled"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     , counterWithReset Point.typeRx Point.typeRxReset "Rx count"
                     , counterWithReset Point.typeTx Point.typeTxReset "Tx count"
