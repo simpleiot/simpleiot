@@ -26,7 +26,7 @@ type SerialDev struct {
 	HRDestNode        string `point:"hrDest"`
 	SyncParent        bool   `point:"syncParent"`
 	Debug             int    `point:"debug"`
-	Disable           bool   `point:"disable"`
+	Disabled          bool   `point:"disabled"`
 	Log               string `point:"log"`
 	Rx                int    `point:"rx"`
 	RxReset           bool   `point:"rxReset"`
@@ -259,7 +259,7 @@ func (sd *SerialDevClient) Run() error {
 		// make sure port is closed before we try to (re)open it
 		closePort()
 
-		if sd.config.Disable {
+		if sd.config.Disabled {
 			closePort()
 			timerCheckPort.Stop()
 			return

@@ -57,7 +57,7 @@ func (sioc *ShellyIOClient) Run() error {
 		sampleTicker = time.NewTicker(sampleRateOffline)
 	}
 
-	if sioc.config.Disable {
+	if sioc.config.Disabled {
 		sampleTicker.Stop()
 	}
 
@@ -161,7 +161,7 @@ done:
 			syncConfig()
 
 		case <-sampleTicker.C:
-			if sioc.config.Disable {
+			if sioc.config.Disabled {
 				fmt.Println("Shelly IO is disabled, why am I ticking?")
 				continue
 			}

@@ -16,7 +16,7 @@ type SignalGenerator struct {
 	ID          string      `node:"id"`
 	Parent      string      `node:"parent"`
 	Description string      `point:"description"`
-	Disable     bool        `point:"disable"`
+	Disabled    bool        `point:"disabled"`
 	Destination Destination `point:"destination"`
 	Units       string      `point:"units"`
 	// SignalType must be one of: "sine", "square", "triangle", or "random walk"
@@ -114,7 +114,7 @@ func (sgc *SignalGeneratorClient) Run() error {
 		amplitude := config.MaxValue - config.MinValue
 		lastValue := config.InitialValue
 
-		if config.Disable {
+		if config.Disabled {
 			sgc.log.Printf("%v: disabled\n", config.Description)
 			configValid = false
 		}

@@ -116,7 +116,7 @@ type ShellyIo struct {
 	Input       []bool    `point:"input"`
 	Offline     bool      `point:"offline"`
 	Control     bool      `point:"control"`
-	Disable     bool      `point:"disable"`
+	Disabled    bool      `point:"disabled"`
 }
 
 // Desc gets the description of a Shelly IO

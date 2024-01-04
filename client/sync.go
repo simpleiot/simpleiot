@@ -18,7 +18,7 @@ type Sync struct {
 	URI            string `point:"uri"`
 	AuthToken      string `point:"authToken"`
 	Period         int    `point:"period"`
-	Disable        bool   `point:"disable"`
+	Disabled       bool   `point:"disabled"`
 	SyncCount      int    `point:"syncCount"`
 	SyncCountReset bool   `point:"syncCountReset"`
 }
@@ -347,7 +347,7 @@ func (up *SyncClient) EdgePoints(nodeID, parentID string, points []data.Point) {
 }
 
 func (up *SyncClient) connect() error {
-	if up.config.Disable {
+	if up.config.Disabled {
 		log.Printf("Sync %v disabled", up.config.Description)
 		return nil
 	}
