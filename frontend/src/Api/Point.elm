@@ -37,7 +37,7 @@ module Api.Point exposing
     , typeClientServer
     , typeConditionType
     , typeConnected
-    , typeControl
+    , typeControlled
     , typeData
     , typeDataFormat
     , typeDate
@@ -726,9 +726,9 @@ typeConnected =
     "connected"
 
 
-typeControl : String
-typeControl =
-    "control"
+typeControlled : String
+typeControlled =
+    "controlled"
 
 
 typeOffline : String
@@ -969,7 +969,7 @@ specialPoints =
     , typeDebug
     , typeDisabled
     , typeConnected
-    , typeControl
+    , typeControlled
     , typeOffline
     , typeError
     , typeErrorCount

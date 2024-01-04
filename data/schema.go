@@ -36,6 +36,7 @@ const (
 	PointTypeReadOnly           = "readOnly"
 	PointTypeURI                = "uri"
 	PointTypeDisabled           = "disabled"
+	PointTypeControlled         = "controlled"
 
 	PointTypePeriod = "period"
 
