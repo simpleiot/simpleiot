@@ -247,7 +247,7 @@ func (cb *CanBusClient) Run() error {
 					setupDev()
 				case data.PointTypeData:
 					readDb()
-				case data.PointTypeDisable:
+				case data.PointTypeDisabled:
 					if p.Value == 0 {
 						bringDownDev()
 					}

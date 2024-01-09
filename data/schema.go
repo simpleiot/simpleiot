@@ -35,7 +35,8 @@ const (
 	PointTypeSyncCountReset     = "syncCountReset"
 	PointTypeReadOnly           = "readOnly"
 	PointTypeURI                = "uri"
-	PointTypeDisable            = "disable"
+	PointTypeDisabled           = "disabled"
+	PointTypeControlled         = "controlled"
 
 	PointTypePeriod = "period"
 

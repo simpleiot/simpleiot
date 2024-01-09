@@ -26,7 +26,7 @@ type SerialDev struct {
 	HRDestNode        string `point:"hrDest"`
 	SyncParent        bool   `point:"syncParent"`
 	Debug             int    `point:"debug"`
-	Disable           bool   `point:"disable"`
+	Disabled          bool   `point:"disabled"`
 	Log               string `point:"log"`
 	Rx                int    `point:"rx"`
 	RxReset           bool   `point:"rxReset"`
@@ -261,7 +261,7 @@ func (sd *SerialDevClient) Run() error {
 		// make sure port is closed before we try to (re)open it
 		closePort()
 
-		if sd.config.Disable {
+		if sd.config.Disabled {
 			closePort()
 			timerCheckPort.Stop()
 			return
@@ -526,7 +526,7 @@ exitSerialClient:
 				// check if any of the config changes should cause us to re-open the port
 				if p.Type == data.PointTypePort ||
 					p.Type == data.PointTypeBaud ||
-					p.Type == data.PointTypeDisable ||
+					p.Type == data.PointTypeDisabled ||
 					p.Type == data.PointTypeMaxMessageLength {
 					op = true
 				}
@@ -538,7 +538,7 @@ exitSerialClient:
 					}
 				}
 
-				if p.Type == data.PointTypeDisable {
+				if p.Type == data.PointTypeDisabled {
 					if p.Value == 0 {
 						closePort()
 					} else {

@@ -19,7 +19,7 @@ view : NodeOptions msg -> Element msg
 view o =
     let
         disabled =
-            Point.getBool o.node.points Point.typeDisable ""
+            Point.getBool o.node.points Point.typeDisabled ""
     in
     column
         [ width fill
@@ -51,7 +51,7 @@ view o =
                     [ text "Particle.io connection"
                     , textInput Point.typeDescription "Description" ""
                     , textInput Point.typeAuthToken "API Key" ""
-                    , checkboxInput Point.typeDisable "Disable"
+                    , checkboxInput Point.typeDisabled "Disabled"
                     , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]
 

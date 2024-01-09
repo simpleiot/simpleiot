@@ -20,7 +20,7 @@ type Rule struct {
 	ID              string      `node:"id"`
 	Parent          string      `node:"parent"`
 	Description     string      `point:"description"`
-	Disable         bool        `point:"disable"`
+	Disabled        bool        `point:"disabled"`
 	Active          bool        `point:"active"`
 	Error           string      `point:"error"`
 	Conditions      []Condition `child:"condition"`
