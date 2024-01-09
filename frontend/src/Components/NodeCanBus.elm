@@ -15,7 +15,7 @@ view : NodeOptions msg -> Element msg
 view o =
     let
         disabled =
-            Point.getBool o.node.points Point.typeDisable ""
+            Point.getBool o.node.points Point.typeDisabled ""
     in
     column
         [ width fill
@@ -62,7 +62,7 @@ view o =
                                     ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeSignalsInDb "0"))
                     , counterWithReset Point.typeMsgsRecvdDb Point.typeMsgsRecvdDbReset "Db msgs recieved"
                     , counterWithReset Point.typeMsgsRecvdOther Point.typeMsgsRecvdOtherReset "Other msgs recvd"
-                    , checkboxInput Point.typeDisable "Disable"
+                    , checkboxInput Point.typeDisabled "Disabled"
                     ]
 
                 else

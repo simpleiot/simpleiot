@@ -28,7 +28,7 @@ view : NodeOptions msg -> Element msg
 view o =
     let
         disabled =
-            Point.getBool o.node.points Point.typeDisable ""
+            Point.getBool o.node.points Point.typeDisabled ""
 
         offline =
             Point.getBool o.node.points Point.typeOffline ""
@@ -96,8 +96,8 @@ view o =
                         ip =
                             Point.getText o.node.points Point.typeIP ""
 
-                        control =
-                            Point.getBool o.node.points Point.typeControl ""
+                        controlled =
+                            Point.getBool o.node.points Point.typeControlled ""
 
                         latestPointTime =
                             case Point.getLatest o.node.points of
@@ -110,9 +110,9 @@ view o =
                     [ textDisplay "ID" deviceID
                     , textLinkDisplay "IP" ip ("http://" ++ ip)
                     , textInput Point.typeDescription "Description" ""
-                    , viewIf control <| displayControls onOffInput o.node.points
-                    , viewIf (isSettable o.node.points) <| checkboxInput Point.typeControl "Enable Control"
-                    , checkboxInput Point.typeDisable "Disable"
+                    , viewIf controlled <| displayControls onOffInput o.node.points
+                    , viewIf (isSettable o.node.points) <| checkboxInput Point.typeControlled "Enable Control"
+                    , checkboxInput Point.typeDisabled "Disabled"
                     , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
                     , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]

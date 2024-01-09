@@ -17,7 +17,7 @@ type Shelly struct {
 	ID          string     `node:"id"`
 	Parent      string     `node:"parent"`
 	Description string     `point:"description"`
-	Disable     bool       `point:"disable"`
+	Disabled    bool       `point:"disabled"`
 	IOs         []ShellyIo `child:"shellyIo"`
 }
 
@@ -78,7 +78,7 @@ done:
 
 			for _, p := range pts.Points {
 				switch p.Type {
-				case data.PointTypeDisable:
+				case data.PointTypeDisabled:
 				}
 			}
 

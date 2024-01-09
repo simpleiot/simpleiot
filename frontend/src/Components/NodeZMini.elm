@@ -30,7 +30,7 @@ view o =
                     []
 
         disabled =
-            Point.getBool serialNodePoints Point.typeDisable ""
+            Point.getBool serialNodePoints Point.typeDisabled ""
 
         connected =
             Point.getBool serialNodePoints Point.typeConnected ""
