@@ -156,3 +156,16 @@ func Float32ToRegs(in []float32) []uint16 {
 
 	return ret
 }
+
+// Float32ToRegsSwapWords converts float32 values to modbus regs and swaps the words
+func Float32ToRegsSwapWords(in []float32) []uint16 {
+	ret := make([]uint16, len(in)*2)
+	for i, v := range in {
+		buf := make([]byte, 4)
+		binary.BigEndian.PutUint32(buf, math.Float32bits(v))
+		ret[i*2] = binary.BigEndian.Uint16(buf[2:])
+		ret[i*2+1] = binary.BigEndian.Uint16(buf[0:])
+	}
+
+	return ret
+}

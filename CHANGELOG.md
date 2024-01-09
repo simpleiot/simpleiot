@@ -11,12 +11,15 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.14.6] - 2024-01-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.6)
+
 - verb -> adjective changes in several types. This is more consistent and
   accurate with how things are done in this industry (HTML, etc). This is a
   breaking change in that nodes with disable or control flag set will need to be
   reconfigured.
   - disable -> disabled
   - control -> controlled
+- add modbus Float32ToRegsSwapWords()
 
 ## [[0.14.5] - 2024-01-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.5)
 
