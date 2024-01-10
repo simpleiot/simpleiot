@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- store: Improved performance when loading many nodes and edges
+
 ## [[0.14.7] - 2024-01-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.7)
 
 - add modbus swap words for Int32/Uint32 writes
