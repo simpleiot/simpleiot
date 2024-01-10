@@ -974,21 +974,6 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 		return ret, nil
 	}
 
-	// Get all edge points for each edge
-	edgeIDs := make([]any, len(edges))
-	for i, edge := range edges {
-		edgeIDs[i] = edge.ID
-	}
-	edgePoints, err := sdb.queryPoints(
-		tx,
-		"SELECT * FROM edge_points WHERE edge_id IN(?"+
-			strings.Repeat(",?", len(edgeIDs)-1)+")",
-		edgeIDs...,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("children error getting edge points: %v", err)
-	}
-
 	// Populate `ret` with NodeEdges with edge points
 	for _, edge := range edges {
 		var ne data.NodeEdge
@@ -996,7 +981,7 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 		ne.Parent = edge.Up
 		ne.Hash = edge.Hash
 		ne.Type = edge.Type
-		ne.EdgePoints = edgePoints[edge.ID]
+		ne.EdgePoints = edge.Points
 
 		if !includeDel {
 			tombstone, _ := ne.IsTombstone()
@@ -1174,7 +1159,6 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 
 // up returns upstream ids for a node
 func (sdb *DbSqlite) up(id string, includeDeleted bool) ([]string, error) {
-	var edgeIDs []string
 	var ups []string
 
 	edges, err := sdb.edges(nil, "SELECT * FROM edges WHERE down=?", id)
@@ -1183,29 +1167,15 @@ func (sdb *DbSqlite) up(id string, includeDeleted bool) ([]string, error) {
 	}
 
 	for _, e := range edges {
-		ups = append(ups, e.Up)
-		edgeIDs = append(edgeIDs, e.ID)
-	}
-
-	if includeDeleted {
-		return ups, nil
-	}
-
-	var ret []string
-
-	// TODO: Consolidate to single query
-	for i, edgeID := range edgeIDs {
-		points, err := sdb.queryPoints(nil,
-			"SELECT * FROM edge_points WHERE edge_id=?", edgeID)
-		if err != nil {
-			return nil, fmt.Errorf("up error getting edge points: %v", err)
-		}
-
-		p, _ := points[edgeID].Find(data.PointTypeTombstone, "")
-		if math.Mod(p.Value, 2) == 0 {
-			ret = append(ret, ups[i])
+		if includeDeleted {
+			ups = append(ups, e.Up)
+		} else {
+			p, _ := e.Points.Find(data.PointTypeTombstone, "")
+			if math.Mod(p.Value, 2) == 0 {
+				ups = append(ups, e.Up)
+			}
 		}
 	}
 
-	return ret, nil
+	return ups, nil
 }
