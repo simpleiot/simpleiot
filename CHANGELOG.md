@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.14.8] - 2024-01-16](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.8)
+
 - support passing in a custom UI (fs.FS or directory name) to the SIOT server.
   This allows you to replace the SIOT UI with a custom version.
 
