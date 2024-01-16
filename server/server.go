@@ -47,6 +47,8 @@ type Options struct {
 	OSVersionField    string
 	LogNats           bool
 	Dev               bool
+	CustomUIDir       string
+	CustomUIFS        fs.FS
 	// optional ID (must be unique) for this instance, otherwise, a UUID will be used
 	ID string
 }
@@ -303,14 +305,24 @@ func (s *Server) Run() error {
 
 	var feFS fs.FS
 
-	if o.Dev {
-		log.Println("SIOT HTTP Server -- using local instead of embedded files")
-		feFS = os.DirFS("./frontend/public")
-	} else {
-		// remove output dir name from frontend assets filesystem
-		feFS, err = fs.Sub(frontend.Content, "public")
+	if o.CustomUIDir != "" {
+		log.Println("Using custom frontend directory: ", o.CustomUIDir)
+		feFS = os.DirFS(o.CustomUIDir)
+	} else if o.CustomUIFS != nil {
+		feFS, err = fs.Sub(o.CustomUIFS, "public")
 		if err != nil {
 			log.Fatal("Error getting frontend subtree: ", err)
+		}
+	} else {
+		if o.Dev {
+			log.Println("SIOT HTTP Server -- using local instead of embedded files")
+			feFS = os.DirFS("./frontend/public")
+		} else {
+			// remove output dir name from frontend assets filesystem
+			feFS, err = fs.Sub(frontend.Content, "public")
+			if err != nil {
+				log.Fatal("Error getting frontend subtree: ", err)
+			}
 		}
 	}
 
