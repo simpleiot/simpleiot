@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"sync"
 	"time"
 
@@ -49,6 +50,7 @@ type Options struct {
 	Dev               bool
 	CustomUIDir       string
 	CustomUIFS        fs.FS
+	UIAssetsDebug     bool
 	// optional ID (must be unique) for this instance, otherwise, a UUID will be used
 	ID string
 }
@@ -309,7 +311,7 @@ func (s *Server) Run() error {
 		log.Println("Using custom frontend directory: ", o.CustomUIDir)
 		feFS = os.DirFS(o.CustomUIDir)
 	} else if o.CustomUIFS != nil {
-		feFS, err = fs.Sub(o.CustomUIFS, "public")
+		feFS = o.CustomUIFS
 		if err != nil {
 			log.Fatal("Error getting frontend subtree: ", err)
 		}
@@ -323,6 +325,41 @@ func (s *Server) Run() error {
 			if err != nil {
 				log.Fatal("Error getting frontend subtree: ", err)
 			}
+		}
+	}
+
+	var listFiles func(fs.FS, string, int) error
+
+	listFiles = func(fsys fs.FS, dir string, level int) error {
+		entries, err := fs.ReadDir(feFS, dir)
+		if err != nil {
+			return err
+		}
+
+		prefix := "  - "
+		for i := 0; i < level; i++ {
+			prefix = "  " + prefix
+		}
+
+		for _, e := range entries {
+			log.Printf("%v%v\n", prefix, e.Name())
+			if e.IsDir() {
+				subdir := path.Join(dir, e.Name())
+				err := listFiles(fsys, subdir, level+1)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	}
+
+	if o.UIAssetsDebug {
+		log.Println("List frontend assets: ")
+		err := listFiles(feFS, ".", 0)
+		if err != nil {
+			log.Println("Error listing frontend assets: ", err)
 		}
 	}
 
