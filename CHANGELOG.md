@@ -11,6 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- require custom UI assets to be rooted and not be public directory
+- add `-UIAssetsDebug` cmdline flag. This will dump all the UI assets file and
+  is useful in debugging to make sure your assets files are correct -- it can
+  get a little tricky with embedding, etc.
+
 ## [[0.14.8] - 2024-01-16](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.8)
 
 - support passing in a custom UI (fs.FS or directory name) to the SIOT server.
