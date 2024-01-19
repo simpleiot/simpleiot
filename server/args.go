@@ -30,6 +30,8 @@ func Args(args []string) (Options, error) {
 	flagAuthToken := flags.String("token", "", "auth token")
 	flagSyslog := flags.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDev := flags.Bool("dev", false, "run server in development mode")
+	flagCustomUIDir := flags.String("customUIDir", "", "pass custom UI directory")
+	flagUIAssetsDebug := flags.Bool("UIAssetsDebug", false, "Dump asset files for debugging")
 
 	if err := flags.Parse(args); err != nil {
 		return Options{}, err
@@ -165,6 +167,8 @@ func Args(args []string) (Options, error) {
 		ParticleAPIKey:    particleAPIKey,
 		OSVersionField:    osVersionField,
 		Dev:               *flagDev,
+		CustomUIDir:       *flagCustomUIDir,
+		UIAssetsDebug:     *flagUIAssetsDebug,
 	}
 
 	return o, nil
