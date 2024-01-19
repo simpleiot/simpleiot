@@ -184,23 +184,23 @@ The components that use the points have to know the data-type anyway to know if
 they should use the `Value` or `Text`field. In the past, protobuf encoding was
 used as we started with quite a few fields and provided some flexibility and
 convenience. But as we have reduced the number of fields and two of them are now
-encoded in the message, it may be simpler to have a simple encoding for `Time`,
-`Data`, `Tombstone`, and `Origin` in the message payload. The code using the
-message would be responsible for convert `Data` into whatever data type is
+encoded in the message subject, it may be simpler to have a simple encoding for
+`Time`, `Data`, `Tombstone`, and `Origin` in the message payload. The code using
+the message would be responsible for convert `Data` into whatever data type is
 needed. This would open up the opportunity to encode any type of payload in the
 future in the `Data` field and be more flexible for the future.
 
-Message format:
+Message payload:
 
-- time (uint64)
-- tombstone (byte)
-- origin_len (byte)
-- origin (string)
-- data (length determined by the message length)
+- Time (uint64)
+- Tombstone (byte)
+- OriginLen (byte)
+- Origin (string)
+- Data (length determined by the message length)
 
-TODO: one limitation of putting origin in the message subject is that it will be
-inefficient to query as you will need to scan and decode all messages. Are there
-any cases where we will need to do this? (this is an example where a SQL
+TODO: one limitation of putting `Origin` in the message subject is that it will
+be inefficient to query as you will need to scan and decode all messages. Are
+there any cases where we will need to do this? (this is an example where a SQL
 database is more flexible).
 
 ### UI Implications
@@ -241,9 +241,9 @@ data is used.
 
 NATS can merge streams into an additional 3rd stream. This might be useful in
 that you don't have to read two streams and merge the points to get the current
-state. However, there are several questions with doing this:
+state. However, there are several disadvantages:
 
-- storing the data twice does not seem very efficient
+- data would be store twice
 - data is not guaranteed to be in chronological order -- the data would be
   inserted into the 3rd stream when it is received. So you would still have to
   walk back in history to know for sure if you had the latest point. It seems
@@ -253,9 +253,9 @@ state. However, there are several questions with doing this:
 
 NATS JetStream messages store a timestamp, but the timestamp is when the message
 is inserted into the stream, not necessarily when the sample was taken.
-Therefore, it seems wise to store an additional high-resolution
-[64-bit timestamp](https://docs.simpleiot.org/docs/adr/4-time.html) at the
-beginning of each message.
+Therefore, an additional high-resolution
+[64-bit timestamp](https://docs.simpleiot.org/docs/adr/4-time.html) is added to
+the beginning of each message.
 
 ### TODO Edge Points
 
@@ -269,6 +269,8 @@ beginning of each message.
   have 30 nodes, so this is 60 streams to synchronize.
 - Would it make sense to create streams at the device/instance boundaries rather
   than node boundaries?
+  - this may limit our AuthZ capabilities where we want to give some users
+    access to only part of a cloud instance.
 - How robust is the JetStream store compared to SQLite in events like
   [power loss](https://www.sqlite.org/transactional.html)?
 
