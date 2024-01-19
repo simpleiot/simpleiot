@@ -12,6 +12,7 @@ For more details or to discuss releases, please visit the
 ## [Unreleased]
 
 - store: Improved performance when loading many nodes and edges
+- serial: Fixed bug: do not write points over closed serial port
 
 ## [[0.14.9] - 2024-01-18](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.9)
 
