@@ -11,7 +11,20 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- store: Improved performance when loading many nodes and edges
 - serial: Fixed bug: do not write points over closed serial port
+
+## [[0.14.9] - 2024-01-18](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.9)
+
+- require custom UI assets to be rooted and not be public directory
+- add `-UIAssetsDebug` cmdline flag. This will dump all the UI assets file and
+  is useful in debugging to make sure your assets files are correct -- it can
+  get a little tricky with embedding, etc.
+
+## [[0.14.8] - 2024-01-16](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.8)
+
+- support passing in a custom UI (fs.FS or directory name) to the SIOT server.
+  This allows you to replace the SIOT UI with a custom version.
 
 ## [[0.14.7] - 2024-01-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.7)
 

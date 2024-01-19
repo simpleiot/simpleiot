@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
+	"strings"
 	"sync"
 	"time"
 
@@ -885,17 +887,34 @@ func (sdb *DbSqlite) edges(tx *sql.Tx, query string, args ...any) ([]data.Edge, 
 			return nil, fmt.Errorf("Error scanning edges: %v", err)
 		}
 
-		edge.Points, err = sdb.queryPoints(tx,
-			"SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getting edge points: %w", err)
-		}
-
 		edges = append(edges, edge)
 	}
 
 	if err := rowsEdges.Close(); err != nil {
 		return nil, err
+	}
+
+	if len(edges) < 1 {
+		return edges, nil
+	}
+
+	// Load edge points
+	edgeIDs := make([]any, len(edges))
+	for i, edge := range edges {
+		edgeIDs[i] = edge.ID
+	}
+	edgePoints, err := sdb.queryPoints(
+		tx,
+		"SELECT * FROM edge_points WHERE edge_id IN(?"+
+			strings.Repeat(",?", len(edgeIDs)-1)+")",
+		edgeIDs...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error getting edge points: %w", err)
+	}
+
+	for i := range edges {
+		edges[i].Points = edgePoints[edges[i].ID]
 	}
 
 	return edges, nil
@@ -955,18 +974,14 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 		return ret, nil
 	}
 
+	// Populate `ret` with NodeEdges with edge points
 	for _, edge := range edges {
 		var ne data.NodeEdge
 		ne.ID = edge.Down
 		ne.Parent = edge.Up
 		ne.Hash = edge.Hash
 		ne.Type = edge.Type
-
-		ne.EdgePoints, err = sdb.queryPoints(tx,
-			"SELECT * FROM edge_points WHERE edge_id=?", edge.ID)
-		if err != nil {
-			return nil, fmt.Errorf("children error getting edge points: %v", err)
-		}
+		ne.EdgePoints = edge.Points
 
 		if !includeDel {
 			tombstone, _ := ne.IsTombstone()
@@ -976,21 +991,38 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 			}
 		}
 
-		ne.Points, err = sdb.queryPoints(tx,
-			"SELECT * FROM node_points WHERE node_id=?", edge.Down)
-		if err != nil {
-			return nil, fmt.Errorf("children error getting node points: %v", err)
-		}
-
 		ret = append(ret, ne)
+	}
+
+	if len(ret) < 1 {
+		return ret, nil
+	}
+
+	// Load node points for each NodeEdge
+	nodeIDs := make([]any, len(ret))
+	for i, ne := range ret {
+		nodeIDs[i] = ne.ID
+	}
+	nodePoints, err := sdb.queryPoints(
+		tx,
+		"SELECT * FROM node_points WHERE node_id IN(?"+
+			strings.Repeat(",?", len(nodeIDs)-1)+")",
+		nodeIDs...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("children error getting node points: %v", err)
+	}
+
+	for i, ne := range ret {
+		ret[i].Points = nodePoints[ne.ID]
 	}
 
 	return ret, nil
 }
 
 // returns points, and error
-func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (data.Points, error) {
-	var retPoints data.Points
+func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (map[string]data.Points, error) {
+	retPoints := make(map[string]data.Points)
 
 	var rowsPoints *sql.Rows
 	var err error
@@ -1010,15 +1042,17 @@ func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (data.Po
 		var p data.Point
 		var timeNS int64
 		var pID string
-		var nodeID string
+		var nodeOrEdgeID string
 		var index float32
-		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &index, &p.Value, &p.Text,
-			&p.Data, &p.Tombstone, &p.Origin)
+		err := rowsPoints.Scan(
+			&pID, &nodeOrEdgeID, &p.Type, &p.Key, &timeNS, &index, &p.Value,
+			&p.Text, &p.Data, &p.Tombstone, &p.Origin,
+		)
 		if err != nil {
 			return nil, err
 		}
 		p.Time = time.Unix(0, timeNS)
-		retPoints = append(retPoints, p)
+		retPoints[nodeOrEdgeID] = append(retPoints[nodeOrEdgeID], p)
 	}
 
 	return retPoints, nil
@@ -1125,7 +1159,6 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 
 // up returns upstream ids for a node
 func (sdb *DbSqlite) up(id string, includeDeleted bool) ([]string, error) {
-	var edgeIDs []string
 	var ups []string
 
 	edges, err := sdb.edges(nil, "SELECT * FROM edges WHERE down=?", id)
@@ -1134,28 +1167,15 @@ func (sdb *DbSqlite) up(id string, includeDeleted bool) ([]string, error) {
 	}
 
 	for _, e := range edges {
-		ups = append(ups, e.Up)
-		edgeIDs = append(edgeIDs, e.ID)
-	}
-
-	if includeDeleted {
-		return ups, nil
-	}
-
-	var ret []string
-
-	for i, edgeID := range edgeIDs {
-		points, err := sdb.queryPoints(nil,
-			"SELECT * FROM edge_points WHERE edge_id=?", edgeID)
-		if err != nil {
-			return nil, fmt.Errorf("up error getting edge points: %v", err)
-		}
-
-		p, _ := points.Find(data.PointTypeTombstone, "")
-		if p.Value == 0 {
-			ret = append(ret, ups[i])
+		if includeDeleted {
+			ups = append(ups, e.Up)
+		} else {
+			p, _ := e.Points.Find(data.PointTypeTombstone, "")
+			if math.Mod(p.Value, 2) == 0 {
+				ups = append(ups, e.Up)
+			}
 		}
 	}
 
-	return ret, nil
+	return ups, nil
 }
