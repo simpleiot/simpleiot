@@ -21,10 +21,10 @@ SQLite has worked well as a SIOT store but the current store has a few problems:
 ## Context/Discussion
 
 The purpose of this document is to explore storing SIOT state in a NATS
-JetStream store. SIOT data is stored in a tree of nodes. Note, the term
-**"node"** in this document represents a data structure in a tree, not a
-physical computer or SIOT instance. The term **"instance"** will be used to
-represent devices or SIOT instances.
+JetStream store. SIOT data is stored in a tree of nodes and each node contains
+an array of points. Note, the term **"node"** in this document represents a data
+structure in a tree, not a physical computer or SIOT instance. The term
+**"instance"** will be used to represent devices or SIOT instances.
 
 A subset of this tree is synchronized between various instances as shown in the
 below example:
@@ -170,6 +170,10 @@ type Point struct {
 The `Type`and `Key` can be encoded in the message subject:
 
 `p.<node id>.<type>.<key>`
+
+It is my understanding that the message subjects are indexed, so NATS can
+quickly find messages for any subject in a stream without scanning the entire
+stream. (Can someone confirm this?)
 
 As time has gone on, this structure has been simplified. For instance, it used
 to also have an `Index` field, but we have learned we can use a single `Key`
