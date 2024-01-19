@@ -195,7 +195,7 @@ Message format:
 - time (uint64)
 - tombstone (byte)
 - origin_len (byte)
-- origin
+- origin (string)
 - data (length determined by the message length)
 
 TODO: one limitation of putting origin in the message subject is that it will be
