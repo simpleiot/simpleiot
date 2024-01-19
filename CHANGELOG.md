@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- store: Improved performance when loading many nodes and edges
+
 ## [[0.14.9] - 2024-01-18](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.9)
 
 - require custom UI assets to be rooted and not be public directory
