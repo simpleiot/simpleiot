@@ -171,9 +171,10 @@ The `Type`and `Key` can be encoded in the message subject:
 
 `p.<node id>.<type>.<key>`
 
-It is my understanding that the message subjects are indexed, so NATS can
-quickly find messages for any subject in a stream without scanning the entire
-stream. (Can someone confirm this?)
+Message subjects are indexed in a stream, so NATS can quickly find messages for
+any subject in a stream without scanning the entire stream (see
+[discussion 1](https://github.com/nats-io/nats-server/discussions/3772) and
+[discussion 2](https://github.com/nats-io/nats-server/discussions/4170)).
 
 As time has gone on, this structure has been simplified. For instance, it used
 to also have an `Index` field, but we have learned we can use a single `Key`
@@ -196,6 +197,11 @@ Message format:
 - origin_len (byte)
 - origin
 - data (length determined by the message length)
+
+TODO: one limitation of putting origin in the message subject is that it will be
+inefficient to query as you will need to scan and decode all messages. Are there
+any cases where we will need to do this? (this is an example where a SQL
+database is more flexible).
 
 ### UI Implications
 
