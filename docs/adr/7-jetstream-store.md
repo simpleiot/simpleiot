@@ -259,6 +259,8 @@ beginning of each message.
   have 30 nodes, so this is 60 streams to synchronize.
 - Would it make sense to create streams at the device/instance boundaries rather
   than node boundaries?
+- How robust is the JetStream store compared to SQLite in events like
+  [power loss](https://www.sqlite.org/transactional.html)?
 
 ## Decision
 
