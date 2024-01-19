@@ -1,4 +1,4 @@
-module Sanitize exposing (date, parseDate, parseHM)
+module Sanitize exposing (date, parseDate, parseHM, parseNumber)
 
 import Expect
 import Parser exposing (run)
@@ -78,4 +78,25 @@ parseHM =
         , test "hour/min is 00:00" <|
             \_ ->
                 Expect.equal (run Sanitize.hmParser "00:00") (Ok "00:00")
+        ]
+
+
+parseNumber : Test
+parseNumber =
+    describe "Test number parsing"
+        [ test "test simple number" <|
+            \_ ->
+                Expect.equal (Sanitize.float "1.2") "1.2"
+        , test "test leading dec" <|
+            \_ ->
+                Expect.equal (Sanitize.float ".2") ".2"
+        , test "test non digit" <|
+            \_ ->
+                Expect.equal (Sanitize.float "1.2a") "1.2"
+        , test "test negative number" <|
+            \_ ->
+                Expect.equal (Sanitize.float "-1.2") "-1.2"
+        , test "test misplaced dash" <|
+            \_ ->
+                Expect.equal (Sanitize.float "1-2") "1"
         ]

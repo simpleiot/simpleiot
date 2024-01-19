@@ -1,5 +1,7 @@
 # Configuration
 
+## Environment variables
+
 Environment variables are used to control various aspects of the application.
 The following are currently defined:
 
@@ -33,3 +35,85 @@ The following are currently defined:
 - **Particle.io**
   - `SIOT_PARTICLE_API_KEY`: key used to fetch data from Particle.io devices
     running [Simple IoT firmware](https://github.com/simpleiot/firmware)
+
+## Configuration export
+
+Nodes can be exported to a YAML file. This is a useful to:
+
+- backup the current configuration
+- dump node data for debugging
+- transfer a configuration or part of a configuration from one instance to
+  another
+
+To export the entire tree:
+
+`siot export > backup.yaml`
+
+A subset of the tree can be exported by specifying the node ID:
+
+`siot export -nodeID 9d7c1c03-0908-4f8b-86d7-8e79184d441d > export.yaml`
+
+## Configuration import
+
+Nodes defined in a YAML file can be imported into a running SIOT instance using
+the CLI, or the Go API. When using the CLI, the import file must be specified on
+STDIN. The following imports a new node tree under the root device node. This is
+useful for adding new functionality to an instance. If there are any node IDs in
+the import they are mapped to new IDs to eliminate any possibility of ID
+conflicts if the config is imported into multiple systems with a common upstream
+sync, etc.
+
+`siot import < import.yaml`
+
+If nodes reference each other (for instance a rule condition and a Modbus node),
+then friendly IDs can be used to make it easy to edit and reference. These
+friendly IDs will be replaced by a common UUID during import.
+
+If you want to import nodes at a specific location (typically a group), then you
+can specify the parent node ID. This ID can be obtained by expanding the node
+and clicking the copy button. This will put the ID into your system copy buffer.
+
+`siot import -parentID 9d7c1c03-0908-4f8b-86d7-8e79184d441d < import.yaml`
+
+If you want to wipe out any existing state and restore a SIOT to a known state,
+you can run an import with the `-parentID` set to `root`. It is highly
+recommended you restart SIOT after this is done to minimize the chance of any
+code still running that caches the root ID which has now changed.
+
+`siot import -parentID root < backup.yaml`
+
+Again, by default, the import command will create new IDs to minimize the chance
+of any ID conflicts. If you want to preserve the IDs in the YAML file, you can
+specify the `-preserveIDs` option -- **WARNING**, use this option with caution.
+Importing a backup to `root` with `-preserveIDs` is a handy way to restore a
+system to a known previous state. However, new nodes that don't exist in the
+backup will not be deleted -- the import only adds nodes/points.
+
+If authentication or a different server is required, this can be specified
+through command line arguments or the following environment variables (see
+descriptions above):
+
+- `SIOT_NATS_SERVER`
+- `SIOT_AUTH_TOKEN`
+
+**It is easy to make a mess with the import command, so think through what you
+are doing first. SIOT does not prevent you from making a mess!**
+
+`siot import --help` for more details.
+
+Example YAML file:
+
+```yaml
+nodes:
+  - type: group
+    points:
+      - type: description
+        text: "group 1"
+    children:
+      - type: variable
+        points:
+          - type: description
+            text: var 1
+          - type: value
+            value: 10
+```

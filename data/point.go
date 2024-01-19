@@ -30,7 +30,7 @@ type Point struct {
 	// The following fields are the values for a point
 
 	// Time the point was taken
-	Time time.Time `json:"time,omitempty"`
+	Time time.Time `json:"time,omitempty" yaml:"-"`
 
 	// Instantaneous analog or digital value of the point.
 	// 0 and 1 are used to represent digital values
@@ -52,7 +52,7 @@ type Point struct {
 	Tombstone int `json:"tombstone,omitempty"`
 
 	// Where did this point come from. If from the owning node, it may be blank.
-	Origin string `json:"origin"`
+	Origin string `json:"origin,omitempty"`
 }
 
 // CRC returns a CRC for the point
@@ -90,7 +90,7 @@ func (p Point) String() string {
 		t += fmt.Sprintf("V:%.3f ", p.Value)
 	}
 
-	if p.Key != "" {
+	if p.Key != "" && p.Key != "0" {
 		t += fmt.Sprintf("K:%v ", p.Key)
 	}
 
@@ -102,7 +102,9 @@ func (p Point) String() string {
 		t += "Tomb "
 	}
 
-	t += p.Time.Format(time.RFC3339)
+	if !p.Time.IsZero() {
+		t += p.Time.Format(time.RFC3339)
+	}
 
 	return t
 }
@@ -190,11 +192,11 @@ func (ps Points) Desc() string {
 
 // Find fetches a point given ID, Type, and Index
 // and true of found, or false if not found
-func (ps *Points) Find(typ, key string) (Point, bool) {
+func (ps Points) Find(typ, key string) (Point, bool) {
 	if key == "" {
 		key = "0"
 	}
-	for _, p := range *ps {
+	for _, p := range ps {
 		if !p.IsMatch(typ, key) {
 			continue
 		}
@@ -276,6 +278,10 @@ func (ps *Points) Hash() uint32 {
 // the pIn timestamp is zero, the current time is used.
 func (ps *Points) Add(pIn Point) {
 	pFound := false
+
+	if pIn.Key == "" {
+		pIn.Key = "0"
+	}
 
 	if pIn.Time.IsZero() {
 		pIn.Time = time.Now()
@@ -364,6 +370,33 @@ func (ps *Points) Merge(in Points, maxTime time.Duration) Points {
 	return ret
 }
 
+// Collapse is used to merge any common points and keep the latest
+func (ps *Points) Collapse() {
+	if len(*ps) <= 1 {
+		return
+	}
+
+	pts := make(map[string]Point)
+
+	for _, p := range *ps {
+		pA, OK := pts[p.Type+p.Key]
+		if OK {
+			if pA.Time.Before(p.Time) || pA.Time.Equal(p.Time) {
+				pts[p.Type+p.Key] = p
+			}
+		} else {
+			pts[p.Type+p.Key] = p
+		}
+	}
+
+	*ps = make(Points, len(pts))
+	i := 0
+	for _, p := range pts {
+		(*ps)[i] = p
+		i++
+	}
+}
+
 // Implement methods needed by sort.Interface
 
 // Len returns the number of points
@@ -379,6 +412,19 @@ func (ps Points) Less(i, j int) bool {
 // Swap is required by sort.Interface
 func (ps Points) Swap(i, j int) {
 	ps[i], ps[j] = ps[j], ps[i]
+}
+
+// ByTypeKey can be used to sort points by type then key
+type ByTypeKey []Point
+
+func (b ByTypeKey) Len() int      { return len(b) }
+func (b ByTypeKey) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b ByTypeKey) Less(i, j int) bool {
+	if b[i].Type != b[j].Type {
+		return b[i].Type < b[j].Type
+	}
+
+	return b[i].Key < b[j].Key
 }
 
 // PbToPoint converts pb point to point

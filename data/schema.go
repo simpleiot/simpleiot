@@ -29,11 +29,14 @@ const (
 	PointTypeErrorCountEOFReset = "errorCountEOFReset"
 	PointTypeErrorCountCRC      = "errorCountCRC"
 	PointTypeErrorCountCRCReset = "errorCountCRCReset"
+	PointTypeErrorCountHR       = "errorCountHR"
+	PointTypeErrorCountResetHR  = "errorCountResetHR"
 	PointTypeSyncCount          = "syncCount"
 	PointTypeSyncCountReset     = "syncCountReset"
 	PointTypeReadOnly           = "readOnly"
 	PointTypeURI                = "uri"
-	PointTypeDisable            = "disable"
+	PointTypeDisabled           = "disabled"
+	PointTypeControlled         = "controlled"
 
 	PointTypePeriod = "period"
 
@@ -87,8 +90,9 @@ const (
 	PointValueClient      = "client"
 	PointValueServer      = "server"
 
-	PointTypePort = "port"
-	PointTypeBaud = "baud"
+	PointTypePort   = "port"
+	PointTypeBaud   = "baud"
+	PointTypeHRDest = "hrDest"
 
 	PointTypeProtocol = "protocol"
 	PointValueRTU     = "RTU"
@@ -131,6 +135,8 @@ const (
 	PointTypeConditionType = "conditionType"
 	PointValuePointValue   = "pointValue"
 	PointValueSchedule     = "schedule"
+
+	PointTypeNodeID = "nodeID"
 
 	PointTypeTrigger = "trigger"
 
@@ -212,6 +218,7 @@ const (
 	PointTypeLog              = "log"
 	PointTypeUptime           = "uptime"
 	PointTypeMaxMessageLength = "maxMessageLength"
+	PointTypeSyncParent       = "syncParent"
 
 	// CAN bus clients
 	NodeTypeCanBus               = "canBus"
@@ -225,17 +232,24 @@ const (
 
 	NodeTypeSignalGenerator = "signalGenerator"
 
-	PointTypeFrequency   = "frequency"
-	PointTypeAmplitude   = "amplitude"
-	PointTypeSampleRate  = "sampleRate"
-	PointTypeHighRate    = "highRate"
-	PointTypeBatchPeriod = "batchPeriod"
+	PointTypeSignalType   = "signalType"
+	PointTypeMinValue     = "minValue"
+	PointTypeMaxValue     = "maxValue"
+	PointTypeInitialValue = "initialValue"
+	PointTypeRoundTo      = "roundTo"
+	PointTypeSampleRate   = "sampleRate"
+	PointTypeDestination  = "destination"
+	PointTypeBatchPeriod  = "batchPeriod"
+	PointTypeFrequency    = "frequency"
+	PointTypeMinIncrement = "minIncrement"
+	PointTypeMaxIncrement = "maxIncrement"
 
 	NodeTypeFile  = "file"
 	PointTypeName = "name"
 	PointTypeData = "data"
 
 	PointTypeRate   = "rate"
+	PointTypeRateHR = "rateHR"
 	NodeTypeMetrics = "metrics"
 
 	PointTypeType          = "type"
@@ -316,4 +330,12 @@ const (
 
 	PointTypeTimeSync  = "timeSync"
 	PointTypeConnected = "connected"
+
+	NodeTypeNetworkManager       = "networkManager"
+	NodeTypeNetworkManagerDevice = "networkManagerDevice"
+	NodeTypeNetworkManagerConn   = "networkManagerConn"
+
+	NodeTypeNTP             = "ntp"
+	PointTypeServer         = "server"
+	PointTypeFallbackServer = "fallbackServer"
 )

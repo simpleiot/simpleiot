@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -29,8 +30,8 @@ type NTPClient struct {
 type NTP struct {
 	ID              string   `node:"id"`
 	Parent          string   `node:"parent"`
-	Servers         []string `point:"servers"`
-	FallbackServers []string `point:"fallbackServers"`
+	Servers         []string `point:"server"`
+	FallbackServers []string `point:"fallbackServer"`
 }
 
 // NewNTPClient returns a new NTPClient using its
@@ -49,6 +50,10 @@ func NewNTPClient(nc *nats.Conn, config NTP) Client {
 // Run starts the NTP Client
 func (c *NTPClient) Run() error {
 	c.log.Println("Starting NTP client")
+	err := c.UpdateConfig()
+	if err != nil {
+		c.log.Println("error updating systemd-timesyncd config:", err)
+	}
 loop:
 	for {
 		select {
@@ -58,13 +63,12 @@ loop:
 			// Update local configuration
 			err := data.MergePoints(points.ID, points.Points, &c.config)
 			if err != nil {
-				c.log.Println("error merging points:", err)
-				break
+				return fmt.Errorf("merging points: %w", err)
 			}
 			err = c.UpdateConfig()
 			if err != nil {
 				c.log.Println("error updating systemd-timesyncd config:", err)
-				break
+				break // select
 			}
 		}
 	}

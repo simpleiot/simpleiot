@@ -10,7 +10,7 @@ type oneWireNode struct {
 	index           int
 	debugLevel      int
 	pollPeriod      int
-	disable         bool
+	disabled        bool
 	errorCount      int
 	errorCountReset bool
 }
@@ -23,7 +23,7 @@ func newOneWireNode(node data.NodeEdge) (*oneWireNode, error) {
 	ret.description, _ = node.Points.Text(data.PointTypeDescription, "")
 	ret.index, _ = node.Points.ValueInt(data.PointTypeIndex, "")
 	ret.debugLevel, _ = node.Points.ValueInt(data.PointTypeDebug, "")
-	ret.disable, _ = node.Points.ValueBool(data.PointTypeDisable, "")
+	ret.disabled, _ = node.Points.ValueBool(data.PointTypeDisabled, "")
 	ret.pollPeriod, _ = node.Points.ValueInt(data.PointTypePollPeriod, "")
 	ret.errorCount, _ = node.Points.ValueInt(data.PointTypeErrorCount, "")
 	ret.errorCountReset, _ = node.Points.ValueBool(data.PointTypeErrorCountReset, "")

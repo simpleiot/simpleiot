@@ -40,15 +40,18 @@ function SIOTConnection() {
 Object.assign(SIOTConnection.prototype, {
 	// getNode sends a request to `nodes.<parent>.<id>` to retrieve an array of
 	// NodeEdges for the specified Node id.
-	// - If `id` is "all" or falsy, this calls `getNodeChildren` instead;
-	// however we strongly recommend using `getNodeChildren` directly
+	// - If `id` is "all" or falsy, this calls `getNodeChildren` instead (see
+	// below); however, we strongly recommend using `getNodeChildren` directly
 	// - If `parent` is "all" or falsy, all instances of the specified node are
 	// returned
 	// - If `parent` is "root", only root nodes are returned
 	// - `opts` are options passed to the NATS request
 	async getNode(id, { parent, type, includeDel, opts } = {}) {
-		if (id === "all" || !id) {
+		if (id === "all" || id === "*" || !id) {
 			return this.getNodeChildren(parent, { type, includeDel, opts })
+		}
+		if (parent === "*") {
+			parent = "all"
 		}
 
 		const points = [
@@ -83,7 +86,12 @@ Object.assign(SIOTConnection.prototype, {
 		parentID,
 		{ type, includeDel, recursive, opts, _cache = {} } = {}
 	) {
-		if (parentID === "all" || parentID === "none" || !parentID) {
+		if (
+			parentID === "all" ||
+			parentID === "*" ||
+			parentID === "none" ||
+			!parentID
+		) {
 			throw new Error("parent node ID must be specified")
 		}
 
@@ -95,34 +103,37 @@ Object.assign(SIOTConnection.prototype, {
 		const payload = encodePoints(points, this.userID)
 		const m = await this.request("nodes." + parentID + ".all", payload, opts)
 		const nodeEdges = decodeNodesRequest(m.data)
-		if (recursive) {
-			const flat = recursive === "flat"
-			const nodeChildren = []
-			// Note: recursive calls are done serially to fully utilize
-			// the temporary `_cache`
-			for (const n of nodeEdges) {
-				const children =
-					_cache[n.id] ||
-					(await this.getNodeChildren(n.id, {
-						type,
-						includeDel,
-						recursive,
-						opts,
-						_cache,
-					}))
-				// update cache
-				// eslint-disable-next-line require-atomic-updates
-				_cache[n.id] = children
-				if (!flat) {
-					// If not flattening, add `children` key to `n`
-					n.children = children
-				}
-				nodeChildren.push(children)
-			}
+		if (!recursive) {
+			return nodeEdges
+		}
+
+		const flat = recursive === "flat"
+		const nodeChildren = [] // used if flattening
+		// Note: recursive calls are done serially to fully utilize
+		// the temporary `_cache`
+		for (const n of nodeEdges) {
+			const children =
+				_cache[n.id] ||
+				(await this.getNodeChildren(n.id, {
+					type,
+					includeDel,
+					recursive,
+					opts,
+					_cache,
+				}))
+			// update cache
+			// eslint-disable-next-line require-atomic-updates
+			_cache[n.id] = children
 			if (flat) {
-				// If flattening, simply return flat array of node edges
-				return nodeEdges.concat(nodeChildren.flat())
+				nodeChildren.push(...children)
+			} else {
+				// If not flattening, add `children` key to `n`
+				n.children = children
 			}
+		}
+		if (flat) {
+			// If flattening, simply return flat array of node edges
+			return nodeEdges.concat(nodeChildren)
 		}
 		return nodeEdges
 	},
@@ -149,7 +160,7 @@ Object.assign(SIOTConnection.prototype, {
 			const tombstone = n.edgepointsList.find((e) => e.type === "tombstone")
 			return (
 				(!type || n.type === type) &&
-				(includeDel || !tombstone || tombstone.value % 2 === 0)
+				(includeDel || (tombstone && tombstone.value % 2 === 0))
 			)
 		}
 
@@ -193,6 +204,11 @@ Object.assign(SIOTConnection.prototype, {
 				// Iterator reads and decodes array of Points from subscription
 				for await (const m of sub) {
 					const { pointsList } = Points.deserializeBinary(m.data).toObject()
+					if (pointsList.length === 0) {
+						// Just abort in the rare case that no points are
+						// emitted, but a NATS message was published anyway
+						continue
+					}
 					// Convert `time` to JavaScript date and return each point
 					for (const p of pointsList) {
 						p.time = new Date(p.time.seconds * 1e3 + p.time.nanos / 1e6)
@@ -225,13 +241,19 @@ Object.assign(SIOTConnection.prototype, {
 	},
 
 	// Subscribes to `p.<nodeID>` and returns an async iterable for an array of
-	// Point objects.
+	// Point objects. `nodeID` can be `*` or `all`.
 	subscribePoints(nodeID) {
+		if (nodeID === "all") {
+			nodeID = "*"
+		}
 		return this._subscribePointsSubject("p." + nodeID)
 	},
 	// Subscribes to `p.<nodeID>.<parentID>` and returns an async iterable for
-	// an array of Point objects. `parentID` can be `*` or `all`.
+	// an array of Point objects. `nodeID` or `parentID` can be `*` or `all`.
 	subscribeEdgePoints(nodeID, parentID) {
+		if (nodeID === "all") {
+			nodeID = "*"
+		}
 		if (parentID === "all") {
 			parentID = "*"
 		}
@@ -246,7 +268,7 @@ Object.assign(SIOTConnection.prototype, {
 		return this._subscribePointsSubject("up." + upstreamID + "." + nodeID)
 	},
 	// Subscribes to `up.<upstreamID>.<nodeID>.<parentID>` and returns an async
-	// iterable for an array of Point objects. `nodeID` and `parentID` can be
+	// iterable for an array of Point objects. `nodeID` or `parentID` can be
 	// `*` or `all`.
 	subscribeUpstreamEdgePoints(upstreamID, nodeID, parentID) {
 		if (nodeID === "all") {
@@ -269,8 +291,9 @@ Object.assign(SIOTConnection.prototype, {
 
 	// sendNodePoints sends an array of `points` for a given `nodeID`
 	// - `ack` - true if function should block waiting for send acknowledgement
+	// (defaults to true)
 	// - `opts` are options passed to the NATS request
-	async sendNodePoints(nodeID, points, { ack, opts } = {}) {
+	async sendNodePoints(nodeID, points, { ack = true, opts } = {}) {
 		const payload = encodePoints(points, this.userID)
 		if (!ack) {
 			await this.publish("p." + nodeID, payload, opts)
@@ -290,8 +313,14 @@ Object.assign(SIOTConnection.prototype, {
 	// sendEdgePoints sends an array of `edgePoints` for the edge between
 	// `nodeID` and `parentID`
 	// - `ack` - true if function should block waiting for send acknowledgement
+	// (defaults to true)
 	// - `opts` are options passed to the NATS request
-	async sendEdgePoints(nodeID, parentID, edgePoints, { ack, opts } = {}) {
+	async sendEdgePoints(
+		nodeID,
+		parentID,
+		edgePoints,
+		{ ack = true, opts } = {}
+	) {
 		const payload = encodePoints(edgePoints, this.userID)
 		if (!ack) {
 			await this.publish("p." + nodeID + "." + parentID, payload, opts)

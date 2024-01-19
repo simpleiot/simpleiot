@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -108,7 +108,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	case "":
 		switch req.Method {
 		case http.MethodGet:
-			body, err := ioutil.ReadAll(req.Body)
+			body, err := io.ReadAll(req.Body)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return

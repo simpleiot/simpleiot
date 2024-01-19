@@ -871,8 +871,8 @@ func (b *Modbus) Run() {
 				case data.PointTypeValueSet:
 					valueSetModified = true
 					io.ioNode.valueSet = p.Value
-				case data.PointTypeDisable:
-					io.ioNode.disable = data.FloatToBool(p.Value)
+				case data.PointTypeDisabled:
+					io.ioNode.disabled = data.FloatToBool(p.Value)
 				case data.PointTypeErrorCount:
 					io.ioNode.errorCount = int(p.Value)
 				case data.PointTypeErrorCountEOF:
@@ -973,7 +973,7 @@ func (b *Modbus) Run() {
 				_, portError = b.serialPort.GetModemStatusBits()
 			}
 
-			if b.busNode.disable {
+			if b.busNode.disabled {
 				b.ClosePort()
 			} else {
 				if (b.client == nil && b.server == nil) ||
@@ -993,9 +993,9 @@ func (b *Modbus) Run() {
 			}
 
 		case <-scanTimer.C:
-			if b.busNode.busType == data.PointValueClient && !b.busNode.disable {
+			if b.busNode.busType == data.PointValueClient && !b.busNode.disabled {
 				for _, io := range b.ios {
-					if io.ioNode.disable {
+					if io.ioNode.disabled {
 						continue
 					}
 					// for scanning, we only need to process client ios

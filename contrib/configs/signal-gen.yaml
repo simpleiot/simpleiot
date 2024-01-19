@@ -1,0 +1,229 @@
+nodes:
+  - id: e37ee9b9-4add-43f1-9581-c0ef8894c6e2
+    type: device
+    parent: root
+    points:
+      - type: description
+        text: siot dev
+        origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+      - type: metricNatsCycleNode
+        value: 2.4516129032258065
+      - type: metricNatsCycleNodeEdgePoint
+        value: 22.11111111111111
+      - type: metricNatsCycleNodePoint
+        value: 18.38486842105263
+      - type: metricNatsPendingNodeEdgePoint
+      - type: metricNatsPendingNodePoint
+      - type: versionApp
+        text: v0.14.3
+      - type: versionOS
+        text: 0.0.1
+    children:
+      - id: cea55fce-1cbd-4985-b45b-d476c103aecb
+        type: user
+        parent: e37ee9b9-4add-43f1-9581-c0ef8894c6e2
+        points:
+          - type: email
+            text: admin@admin.com
+          - type: firstName
+            text: admin
+          - type: lastName
+            text: user
+          - type: pass
+            text: admin
+          - type: phone
+      - id: 2556a696-a7af-4138-a899-1df6a895aab0
+        type: signalGenerator
+        parent: e37ee9b9-4add-43f1-9581-c0ef8894c6e2
+        points:
+          - type: batchPeriod
+            value: 1000.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: description
+            text: Variable pulse width
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: disable
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: frequency
+            value: 1.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: initialValue
+            text: "0"
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: maxIncrement
+            value: 3.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: maxValue
+            value: 1.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: minIncrement
+            value: -7.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: minValue
+            text: "0"
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: roundTo
+            value: 1.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: sampleRate
+            value: 5.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: signalType
+            text: random walk
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: units
+            text: Amps
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: value
+            value: 1.0
+            origin: 2556a696-a7af-4138-a899-1df6a895aab0
+      - id: b67f8ef6-4607-42c9-ab59-9b5ad91af213
+        type: signalGenerator
+        parent: e37ee9b9-4add-43f1-9581-c0ef8894c6e2
+        points:
+          - type: batchPeriod
+            value: 1000.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: description
+            text: Triangle
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: disable
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: frequency
+            value: 1.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: initialValue
+            text: "0"
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: maxIncrement
+            value: 0.5
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: maxValue
+            value: 10.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: minIncrement
+            value: 0.1
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: minValue
+            text: "0"
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: sampleRate
+            value: 100.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: signalType
+            text: triangle
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: value
+            value: 3.703579229081962e-13
+            origin: b67f8ef6-4607-42c9-ab59-9b5ad91af213
+      - id: e2e6b79a-1d72-475e-a7f4-dfc30b427c91
+        type: signalGenerator
+        parent: e37ee9b9-4add-43f1-9581-c0ef8894c6e2
+        points:
+          - type: batchPeriod
+            value: 1000.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: description
+            text: Square
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: disable
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: frequency
+            value: 1.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: initialValue
+            text: "0"
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: maxValue
+            value: 10.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: minValue
+            text: "0"
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: sampleRate
+            value: 100.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: signalType
+            text: square
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: value
+            value: 10.0
+            origin: e2e6b79a-1d72-475e-a7f4-dfc30b427c91
+      - id: fffe6e4e-3887-4eba-9192-e34562940292
+        type: signalGenerator
+        parent: e37ee9b9-4add-43f1-9581-c0ef8894c6e2
+        points:
+          - type: batchPeriod
+            value: 1000.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: description
+            text: Sine
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: disable
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: frequency
+            value: 1.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: initialValue
+            text: "0"
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: maxValue
+            value: 10.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: minValue
+            text: "0"
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: sampleRate
+            value: 100.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: signalType
+            text: sine
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: value
+            value: 4.999999999999417
+            origin: fffe6e4e-3887-4eba-9192-e34562940292
+      - id: a8e1648c-8d07-448b-b16c-44353ab0fd93
+        type: signalGenerator
+        parent: e37ee9b9-4add-43f1-9581-c0ef8894c6e2
+        points:
+          - type: batchPeriod
+            value: 1000.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: description
+            text: Random Walk
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: disable
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: frequency
+            value: 1.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: initialValue
+            text: "0"
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: maxIncrement
+            value: 0.5
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: maxValue
+            value: 10.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: minIncrement
+            value: -0.5
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: minValue
+            text: "0"
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: roundTo
+            value: 0.1
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: sampleRate
+            value: 10.0
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: signalType
+            text: random walk
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: units
+            text: Amps
+            origin: cea55fce-1cbd-4985-b45b-d476c103aecb
+          - type: value
+            value: 0.5
+            origin: a8e1648c-8d07-448b-b16c-44353ab0fd93

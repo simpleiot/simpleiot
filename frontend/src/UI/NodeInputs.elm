@@ -2,6 +2,7 @@ module UI.NodeInputs exposing
     ( NodeInputOptions
     , nodeCheckboxInput
     , nodeCounterWithReset
+    , nodeListInput
     , nodeNumberInput
     , nodeOnOffInput
     , nodeOptionInput
@@ -14,6 +15,7 @@ import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Color
 import Element exposing (..)
+import Element.Font as Font
 import Element.Input as Input
 import List.Extra
 import Round
@@ -45,14 +47,36 @@ nodeTextInput :
     -> String
     -> Element msg
 nodeTextInput o key typ lbl placeholder =
+    let
+        textRaw =
+            Point.getText o.node.points typ key
+    in
     Input.text
         []
         { onChange =
             \d ->
                 o.onEditNodePoint [ Point typ key o.now 0 d 0 ]
-        , text = Point.getText o.node.points typ key
+        , text =
+            if textRaw == "123BLANK123" then
+                ""
+
+            else
+                let
+                    v =
+                        Point.getValue o.node.points typ key
+                in
+                if v /= 0 then
+                    ""
+
+                else
+                    textRaw
         , placeholder = Just <| Input.placeholder [] <| text placeholder
-        , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        , label =
+            if lbl == "" then
+                Input.labelHidden ""
+
+            else
+                Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
 
 
@@ -416,6 +440,9 @@ nodeNumberInput o key typ lbl =
                         if p.text == Point.blankMajicValue || p.text == "blank" then
                             ""
 
+                        else if p.text == "-" then
+                            "-"
+
                         else
                             Sanitize.float p.text
 
@@ -442,6 +469,9 @@ nodeNumberInput o key typ lbl =
                         if d == "" then
                             Point.blankMajicValue
 
+                        else if d == "-" then
+                            "-"
+
                         else
                             case String.toFloat d of
                                 Just _ ->
@@ -451,7 +481,7 @@ nodeNumberInput o key typ lbl =
                                     currentValue
 
                     v =
-                        if dCheck == Point.blankMajicValue then
+                        if dCheck == Point.blankMajicValue || dCheck == "-" then
                             0
 
                         else
@@ -461,7 +491,12 @@ nodeNumberInput o key typ lbl =
                     [ Point typ key o.now v dCheck 0 ]
         , text = currentValue
         , placeholder = Nothing
-        , label = Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
+        , label =
+            if lbl == "" then
+                Input.labelHidden ""
+
+            else
+                Input.labelLeft [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         }
 
 
@@ -649,3 +684,72 @@ nodePasteButton o label typ value =
         [ UI.Button.clipboard <| o.onEditNodePoint [ Point typ "0" o.now 0 value 0 ]
         , label
         ]
+
+
+nodeListInput : NodeInputOptions msg -> String -> String -> String -> Element msg
+nodeListInput o typ label buttonLabel =
+    let
+        entries =
+            Point.getTextArray o.node.points typ
+
+        entriesArrayCount =
+            List.Extra.count
+                (\p ->
+                    p.typ == typ
+                )
+                o.node.points
+
+        entriesArrayCountS =
+            String.fromInt entriesArrayCount
+
+        entriesToPoints es =
+            List.indexedMap
+                (\i s ->
+                    Point typ (String.fromInt i) o.now 0 s 0
+                )
+                es
+                ++ List.map
+                    (\i ->
+                        Point typ (String.fromInt i) o.now 0 "" 1
+                    )
+                    (List.range (List.length es) (entriesArrayCount - 1))
+
+        updateEntry i update =
+            List.Extra.setAt i update entries |> entriesToPoints |> o.onEditNodePoint
+
+        deleteEntry i =
+            List.Extra.removeAt i entries |> entriesToPoints |> o.onEditNodePoint
+    in
+    column [ centerX, spacing 5 ] <|
+        (el [ Font.bold, centerX, Element.paddingXY 0 6 ] <|
+            Element.text label
+        )
+            :: List.indexedMap
+                (\i s ->
+                    row [ spacing 10 ]
+                        [ Input.text []
+                            { label = Input.labelHidden "entry name"
+                            , onChange = updateEntry i
+                            , text = s
+                            , placeholder = Nothing
+                            }
+                        , UI.Button.x <| deleteEntry i
+                        ]
+                )
+                entries
+            ++ [ el [ Element.paddingXY 0 6, centerX ] <|
+                    Form.button
+                        { label = buttonLabel
+                        , color = Style.colors.blue
+                        , onPress =
+                            o.onEditNodePoint
+                                [ { typ = typ
+                                  , key = entriesArrayCountS
+                                  , text = ""
+                                  , time = o.now
+                                  , tombstone = 0
+                                  , value = 0
+                                  }
+                                ]
+                        }
+               ]

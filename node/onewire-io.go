@@ -3,8 +3,8 @@ package node
 import (
 	"fmt"
 	goio "io"
-	"io/ioutil"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -71,8 +71,8 @@ func (io *oneWireIO) point(p data.Point) error {
 		io.ioNode.units = p.Text
 	case data.PointTypeValue:
 		io.ioNode.value = p.Value
-	case data.PointTypeDisable:
-		io.ioNode.disable = data.FloatToBool(p.Value)
+	case data.PointTypeDisabled:
+		io.ioNode.disabled = data.FloatToBool(p.Value)
 	case data.PointTypeErrorCount:
 		io.ioNode.errorCount = int(p.Value)
 	case data.PointTypeErrorCountReset:
@@ -97,11 +97,11 @@ func (io *oneWireIO) point(p data.Point) error {
 }
 
 func (io *oneWireIO) read() error {
-	if io.ioNode.disable {
+	if io.ioNode.disabled {
 		return nil
 	}
 
-	d, err := ioutil.ReadFile(io.path)
+	d, err := os.ReadFile(io.path)
 	if err != nil {
 		return err
 	}

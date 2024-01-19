@@ -5,14 +5,20 @@ module Api.Point exposing
     , decode
     , encodeList
     , filterSpecialPoints
+    , filterTombstone
     , get
     , getAll
     , getBestDesc
     , getBool
     , getLatest
     , getText
+    , getTextArray
     , getValue
     , input
+    , keyHighRate
+    , keyParent
+    , keyPointKey
+    , keyPointType
     , light
     , newText
     , renderPoint
@@ -22,7 +28,6 @@ module Api.Point exposing
     , typeAction
     , typeActive
     , typeAddress
-    , typeAmplitude
     , typeAuthToken
     , typeBatchPeriod
     , typeBaud
@@ -32,15 +37,16 @@ module Api.Point exposing
     , typeClientServer
     , typeConditionType
     , typeConnected
-    , typeControl
+    , typeControlled
     , typeData
     , typeDataFormat
     , typeDate
     , typeDebug
     , typeDescription
+    , typeDestination
     , typeDevice
     , typeDeviceID
-    , typeDisable
+    , typeDisabled
     , typeEmail
     , typeEnd
     , typeError
@@ -49,22 +55,30 @@ module Api.Point exposing
     , typeErrorCountCRCReset
     , typeErrorCountEOF
     , typeErrorCountEOFReset
+    , typeErrorCountHR
     , typeErrorCountReset
+    , typeErrorCountResetHR
+    , typeFallbackServer
     , typeFilePath
     , typeFirstName
     , typeFrequency
     , typeFrom
-    , typeHighRate
+    , typeHRDest
     , typeHrRx
     , typeHrRxReset
     , typeID
     , typeIP
     , typeIndex
+    , typeInitialValue
     , typeLastName
     , typeLightSet
     , typeLog
+    , typeMaxIncrement
     , typeMaxMessageLength
+    , typeMaxValue
     , typeMinActive
+    , typeMinIncrement
+    , typeMinValue
     , typeModbusIOType
     , typeMsgsInDb
     , typeMsgsRecvdDb
@@ -86,18 +100,23 @@ module Api.Point exposing
     , typePort
     , typeProtocol
     , typeRate
+    , typeRateHR
     , typeReadOnly
+    , typeRoundTo
     , typeRx
     , typeRxReset
     , typeSID
     , typeSampleRate
     , typeScale
+    , typeServer
     , typeService
+    , typeSignalType
     , typeSignalsInDb
     , typeStart
     , typeSwitchSet
     , typeSyncCount
     , typeSyncCountReset
+    , typeSyncParent
     , typeSysState
     , typeTombstone
     , typeTx
@@ -114,6 +133,7 @@ module Api.Point exposing
     , typeVersionHW
     , typeVersionOS
     , typeWeekday
+      --  , keyNodeID
     , updatePoints
     , valueApp
     , valueClient
@@ -136,12 +156,16 @@ module Api.Point exposing
     , valuePointValue
     , valueProcess
     , valueRTU
+    , valueRandomWalk
     , valueSchedule
     , valueServer
     , valueSetValue
+    , valueSine
+    , valueSquare
     , valueSystem
     , valueTCP
     , valueText
+    , valueTriangle
     , valueTwilio
     , valueUINT16
     , valueUINT32
@@ -307,6 +331,11 @@ typeBaud =
     "baud"
 
 
+typeHRDest : String
+typeHRDest =
+    "hrDest"
+
+
 typeMaxMessageLength : String
 typeMaxMessageLength =
     "maxMessageLength"
@@ -370,6 +399,16 @@ typeSyncCount =
 typeSyncCountReset : String
 typeSyncCountReset =
     "syncCountReset"
+
+
+typeErrorCountHR : String
+typeErrorCountHR =
+    "errorCountHR"
+
+
+typeErrorCountResetHR : String
+typeErrorCountResetHR =
+    "errorCountResetHR"
 
 
 typeMsgsInDb : String
@@ -677,9 +716,9 @@ typeOrg =
     "org"
 
 
-typeDisable : String
-typeDisable =
-    "disable"
+typeDisabled : String
+typeDisabled =
+    "disabled"
 
 
 typeConnected : String
@@ -687,9 +726,9 @@ typeConnected =
     "connected"
 
 
-typeControl : String
-typeControl =
-    "control"
+typeControlled : String
+typeControlled =
+    "controlled"
 
 
 typeOffline : String
@@ -697,9 +736,9 @@ typeOffline =
     "offline"
 
 
-typeHighRate : String
-typeHighRate =
-    "highRate"
+typeSignalType : String
+typeSignalType =
+    "signalType"
 
 
 typeBatchPeriod : String
@@ -717,9 +756,34 @@ typeFrequency =
     "frequency"
 
 
-typeAmplitude : String
-typeAmplitude =
-    "amplitude"
+typeMinValue : String
+typeMinValue =
+    "minValue"
+
+
+typeMaxValue : String
+typeMaxValue =
+    "maxValue"
+
+
+typeInitialValue : String
+typeInitialValue =
+    "initialValue"
+
+
+typeMinIncrement : String
+typeMinIncrement =
+    "minIncrement"
+
+
+typeMaxIncrement : String
+typeMaxIncrement =
+    "maxIncrement"
+
+
+typeRoundTo : String
+typeRoundTo =
+    "roundTo"
 
 
 typeSampleRate : String
@@ -750,6 +814,31 @@ typeBitRate =
 typeRate : String
 typeRate =
     "rate"
+
+
+typeRateHR : String
+typeRateHR =
+    "rateHR"
+
+
+valueSine : String
+valueSine =
+    "sine"
+
+
+valueSquare : String
+valueSquare =
+    "square"
+
+
+valueTriangle : String
+valueTriangle =
+    "triangle"
+
+
+valueRandomWalk : String
+valueRandomWalk =
+    "random walk"
 
 
 typeType : String
@@ -797,6 +886,52 @@ light =
     "light"
 
 
+typeServer : String
+typeServer =
+    "server"
+
+
+typeFallbackServer : String
+typeFallbackServer =
+    "fallbackServer"
+
+
+typeSyncParent : String
+typeSyncParent =
+    "syncParent"
+
+
+typeDestination : String
+typeDestination =
+    "destination"
+
+
+
+--keyNodeID : String
+--keyNodeID =
+--    "nodeID"
+
+
+keyParent : String
+keyParent =
+    "parent"
+
+
+keyHighRate : String
+keyHighRate =
+    "highRate"
+
+
+keyPointType : String
+keyPointType =
+    "pointType"
+
+
+keyPointKey : String
+keyPointKey =
+    "pointKey"
+
+
 
 -- Point should match data/Point.go
 
@@ -829,18 +964,20 @@ specialPoints =
     , typeVersionOS
     , typeVersionApp
     , typeBaud
+    , typeHRDest
     , typeMaxMessageLength
     , typeDebug
-    , typeDisable
+    , typeDisabled
     , typeConnected
-    , typeControl
+    , typeControlled
     , typeOffline
-    , typeHighRate
     , typeError
     , typeErrorCount
     , typeErrorCountReset
     , typeSyncCount
     , typeSyncCountReset
+    , typeErrorCountHR
+    , typeErrorCountResetHR
     , typeLog
     , typePort
     , typeRx
@@ -850,6 +987,7 @@ specialPoints =
     , typeTx
     , typeTxReset
     , typeRate
+    , typeRateHR
     , typeType
     , typeIP
     , typePeriod
@@ -869,6 +1007,11 @@ specialPoints =
 filterSpecialPoints : List Point -> List Point
 filterSpecialPoints points =
     List.filter (\p -> not <| List.member p.typ specialPoints) points
+
+
+filterTombstone : List Point -> List Point
+filterTombstone points =
+    List.filter (\p -> p.tombstone == 0) points
 
 
 encode : Point -> Json.Encode.Value
@@ -998,6 +1141,33 @@ getText points typ key =
 
         Nothing ->
             ""
+
+
+getTextArray : List Point -> String -> List String
+getTextArray points typ =
+    List.map .text <|
+        List.sortWith
+            (\a b ->
+                let
+                    aInt =
+                        Maybe.withDefault 0 (String.toInt a.key)
+
+                    bInt =
+                        Maybe.withDefault 0 (String.toInt b.key)
+                in
+                compare aInt bInt
+            )
+        <|
+            List.foldl
+                (\p acc ->
+                    if p.typ == typ && p.tombstone == 0 then
+                        p :: acc
+
+                    else
+                        acc
+                )
+                []
+                points
 
 
 getBestDesc : List Point -> String

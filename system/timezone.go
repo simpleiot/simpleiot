@@ -15,12 +15,7 @@ import (
 //	"posix/America"
 func ReadTimezones(zoneInfoDir string) (listZones []string, err error) {
 
-	file, err := os.Open(path.Join(zoneInfoPath, zoneInfoDir))
-	if err != nil {
-		return nil, err
-	}
-
-	fileInfo, err := file.Readdir(-1)
+	fileInfo, err := os.ReadDir(path.Join(zoneInfoPath, zoneInfoDir))
 	if err != nil {
 		return nil, err
 	}

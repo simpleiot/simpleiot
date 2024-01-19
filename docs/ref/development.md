@@ -64,7 +64,7 @@ sends point updates to the client. Two levels of nodes are currently supported
 for client configuration. An example of this would be a Rule node that has
 Condtion and Action child nodes.
 
-A disable option is useful and should be considered for every new client.
+A "disabled" option is useful and should be considered for every new client.
 
 The process for creating a new client:
 

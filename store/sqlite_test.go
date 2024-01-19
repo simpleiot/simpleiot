@@ -304,3 +304,39 @@ func TestDbSqliteUp(t *testing.T) {
 		t.Fatal("ups, wrong ID for root: ", ups[0])
 	}
 }
+
+func TestDbSqliteBatchPoints(t *testing.T) {
+	db := newTestDb(t)
+	defer db.Close()
+
+	rootID := db.rootNodeID()
+
+	now := time.Now()
+
+	pts := data.Points{
+		{Time: now, Type: data.PointTypeValue},
+		{Time: now.Add(-time.Second), Type: data.PointTypeValue},
+		{Time: now.Add(-time.Second * 2), Type: data.PointTypeValue},
+	}
+
+	err := db.nodePoints(rootID, pts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nodes, err := db.getNodes(nil, "all", rootID, "", false)
+	if err != nil {
+		t.Fatal("Error getting root node: ", err)
+	}
+
+	n := nodes[0]
+
+	if len(n.Points) != 1 {
+		t.Fatal("Error, point did not get merged")
+	}
+
+	if !n.Points[0].Time.Equal(now) {
+		t.Fatal("Point collapsing did not pick latest")
+	}
+
+}

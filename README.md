@@ -2,12 +2,12 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/simpleiot/simpleiot.svg)](https://pkg.go.dev/github.com/simpleiot/simpleiot)
 ![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=master)
-![code stats](https://tokei.rs/b1/github/simpleiot/simpleiot?category=code)
+[![Scc Count Badge](https://sloc.xyz/github/simpleiot/simpleiot/?category=code)](https://github.com/simpleiot/simpleiot/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/simpleiot/simpleiot)](https://goreportcard.com/report/github.com/simpleiot/simpleiot)
 [![Slack Widget](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=red)](http://gophers.slack.com/messages/simpleiot)
 
-**Simple Iot is a platform that enables you to add remote sensor data,
-telemetry, configuration, and device management to your project or product.**
+**Simple Iot enables you to add remote sensor data, telemetry, configuration,
+and device management to your project or product.**
 
 Implementing IoT systems is hard. Most projects take way longer and cost more
 than they should. The fundamental problem is getting data from remote locations
@@ -21,7 +21,7 @@ inherently distributed and building on simple concepts that scale.
 - a single application with no dependencies that can be run in both cloud and
   edge instances
 - efficient synchronization of data in both directions
-- a powerful UI to view configuration and current values
+- a flexible UI to view configuration and current values
 - a rules engine that runs on all instances that can trigger notifications or
   set data
 - extensive support for Modbus -- both server and client

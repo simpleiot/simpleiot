@@ -14,7 +14,7 @@ view : NodeOptions msg -> Element msg
 view o =
     let
         disabled =
-            Point.getBool o.node.points Point.typeDisable ""
+            Point.getBool o.node.points Point.typeDisabled ""
     in
     column
         [ width fill
@@ -59,7 +59,7 @@ view o =
                     , textInput Point.typeDescription "Description" ""
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , numberInput Point.typePollPeriod "Poll period (ms)"
-                    , checkboxInput Point.typeDisable "Disable"
+                    , checkboxInput Point.typeDisabled "Disabled"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     ]
 

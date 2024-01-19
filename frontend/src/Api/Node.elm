@@ -23,6 +23,10 @@ module Api.Node exposing
     , typeModbus
     , typeModbusIO
     , typeMsgService
+    , typeNTP
+    , typeNetworkManager
+    , typeNetworkManagerConn
+    , typeNetworkManagerDevice
     , typeOneWire
     , typeParticle
     , typeRule
@@ -153,6 +157,26 @@ typeFile =
 typeMetrics : String
 typeMetrics =
     "metrics"
+
+
+typeNetworkManager : String
+typeNetworkManager =
+    "networkManager"
+
+
+typeNetworkManagerDevice : String
+typeNetworkManagerDevice =
+    "networkManagerDevice"
+
+
+typeNetworkManagerConn : String
+typeNetworkManagerConn =
+    "networkManagerConn"
+
+
+typeNTP : String
+typeNTP =
+    "ntp"
 
 
 

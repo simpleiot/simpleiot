@@ -73,7 +73,7 @@ view o =
                 Style.colors.black
 
         disabled =
-            Point.getBool o.node.points Point.typeDisable ""
+            Point.getBool o.node.points Point.typeDisabled ""
     in
     column
         [ width fill
@@ -187,7 +187,7 @@ view o =
                         numberInput Point.typeValue "Value"
                     , viewIf (not isClient && modbusIOType == Point.valueModbusDiscreteInput) <|
                         onOffInput Point.typeValue Point.typeValue "Value"
-                    , viewIf isClient <| checkboxInput Point.typeDisable "Disable"
+                    , viewIf isClient <| checkboxInput Point.typeDisabled "Disabled"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     , counterWithReset Point.typeErrorCountEOF Point.typeErrorCountEOFReset "EOF Error Count"
                     , counterWithReset Point.typeErrorCountCRC Point.typeErrorCountCRCReset "CRC Error Count"

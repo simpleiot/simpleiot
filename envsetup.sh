@@ -98,7 +98,6 @@ siot_deploy() {
 }
 
 siot_run() {
-	echo "run args: $*"
 	go build -ldflags="-X main.version=$(siot_version)" -o siot -race cmd/siot/main.go || return 1
 	./siot "$@"
 	return 0
@@ -106,7 +105,6 @@ siot_run() {
 
 # run siot_mkcert first
 siot_run_tls() {
-	echo "run args: $*"
 	export SIOT_NATS_TLS_CERT=server-cert.pem
 	export SIOT_NATS_TLS_KEY=server-key.pem
 	siot_build_frontend || return 1

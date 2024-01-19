@@ -3,8 +3,10 @@ module UI.Icon exposing
     , barChart
     , blank
     , bus
+    , cable
     , check
     , clipboard
+    , clock
     , cloud
     , cloudOff
     , database
@@ -12,9 +14,11 @@ module UI.Icon exposing
     , file
     , io
     , list
+    , network
     , oneWire
     , particle
     , power
+    , radioReceiver
     , send
     , serialDev
     , shelly
@@ -38,7 +42,44 @@ icon iconIn =
 
 
 
--- non-clickable icons
+-- non-clickable FeatherIcons
+
+
+radioReceiver : Element msg
+radioReceiver =
+    [ Svg.path [ S.d "M5 16v2" ] []
+    , Svg.path [ S.d "M19 16v2" ] []
+    , Svg.rect [ S.width "20", S.height "8", S.x "2", S.y "8", S.rx "2" ] []
+    , Svg.path [ S.d "M18 12h0" ] []
+    ]
+        |> FeatherIcons.customIcon
+        |> icon
+
+
+network : Element msg
+network =
+    [ Svg.rect [ S.x "16", S.y "16", S.width "6", S.height "6", S.rx "1" ] []
+    , Svg.rect [ S.x "2", S.y "16", S.width "6", S.height "6", S.rx "1" ] []
+    , Svg.rect [ S.x "9", S.y "2", S.width "6", S.height "6", S.rx "1" ] []
+    , Svg.path [ S.d "M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" ] []
+    , Svg.path [ S.d "M12 12V8" ] []
+    ]
+        |> FeatherIcons.customIcon
+        |> icon
+
+
+cable : Element msg
+cable =
+    [ Svg.path [ S.d "M4 9a2 2 0 0 1-2-2V5h6v2a2 2 0 0 1-2 2Z" ] []
+    , Svg.path [ S.d "M3 5V3" ] []
+    , Svg.path [ S.d "M7 5V3" ] []
+    , Svg.path [ S.d "M19 15V6.5a3.5 3.5 0 0 0-7 0v11a3.5 3.5 0 0 1-7 0V9" ] []
+    , Svg.path [ S.d "M17 21v-2" ] []
+    , Svg.path [ S.d "M21 21v-2" ] []
+    , Svg.path [ S.d "M22 19h-6v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" ] []
+    ]
+        |> FeatherIcons.customIcon
+        |> icon
 
 
 bus : Element msg
@@ -214,3 +255,8 @@ barChart =
 file : Element msg
 file =
     icon FeatherIcons.file
+
+
+clock : Element msg
+clock =
+    icon FeatherIcons.clock

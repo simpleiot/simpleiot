@@ -17,10 +17,15 @@ import Components.NodeMessageService as NodeMessageService
 import Components.NodeMetrics as NodeMetrics
 import Components.NodeModbus as NodeModbus
 import Components.NodeModbusIO as NodeModbusIO
+import Components.NodeNTP as NodeNTP
+import Components.NodeNetworkManager as NodeNetworkManager
+import Components.NodeNetworkManagerConn as NodeNetworkManagerConn
+import Components.NodeNetworkManagerDevice as NodeNetworkManagerDevice
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
-import Components.NodeOptions exposing (CopyMove(..), NodeOptions)
+import Components.NodeOptions exposing (CopyMove(..))
 import Components.NodeParticle as NodeParticle
+import Components.NodeRaw as NodeRaw
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
 import Components.NodeShelly as NodeShelly
@@ -74,6 +79,8 @@ page shared _ =
 
 type alias Model =
     { nodeEdit : Maybe NodeEdit
+    , addPoint : { typ : String, key : String }
+    , customNodeType : String
     , zone : Time.Zone
     , now : Time.Posix
     , nodes : List (Tree NodeView)
@@ -104,6 +111,7 @@ type NodeOperation
 type alias NodeEdit =
     { feID : Int
     , points : List Point
+    , viewRaw : Bool
     }
 
 
@@ -126,6 +134,8 @@ defaultModel : Model
 defaultModel =
     Model
         Nothing
+        { typ = "", key = "" }
+        ""
         Time.utc
         (Time.millisToPosix 0)
         []
@@ -200,6 +210,10 @@ type Msg
     | ApiRespPostNotificationNode (Data Response)
     | CopyNode Int String String String
     | ClearClipboard
+    | ToggleRaw Int
+    | UpdateNewPointType String
+    | UpdateNewPointKey String
+    | UpdateCustomNodeType String
 
 
 update : Shared.Model -> Msg -> Model -> ( Model, Effect Msg )
@@ -217,12 +231,21 @@ update shared msg model =
 
                         Nothing ->
                             []
+
+                viewRaw =
+                    case model.nodeEdit of
+                        Just ne ->
+                            ne.viewRaw
+
+                        Nothing ->
+                            False
             in
             ( { model
                 | nodeEdit =
                     Just
                         { feID = feID
                         , points = Point.updatePoints editPoints points
+                        , viewRaw = viewRaw
                         }
               }
             , Effect.none
@@ -376,7 +399,12 @@ update shared msg model =
                                     , onResponse = ApiRespPostAddNode parent
                                     , node =
                                         { id = ""
-                                        , typ = typ
+                                        , typ =
+                                            if typ == "custom" then
+                                                model.customNodeType
+
+                                            else
+                                                typ
                                         , hash = 0
                                         , parent = addNode.parent
                                         , points =
@@ -688,6 +716,58 @@ update shared msg model =
         ClearClipboard ->
             ( { model | copyMove = CopyMoveNone }, Effect.none )
 
+        UpdateNewPointType typ ->
+            let
+                addPoint =
+                    model.addPoint
+
+                addPointNew =
+                    { addPoint | typ = typ }
+            in
+            ( { model | addPoint = addPointNew }, Effect.none )
+
+        UpdateNewPointKey key ->
+            let
+                addPoint =
+                    model.addPoint
+
+                addPointNew =
+                    { addPoint | key = key }
+            in
+            ( { model | addPoint = addPointNew }, Effect.none )
+
+        UpdateCustomNodeType typ ->
+            ( { model | customNodeType = typ }, Effect.none )
+
+        ToggleRaw id ->
+            let
+                viewRaw =
+                    case model.nodeEdit of
+                        Just ne ->
+                            if id == ne.feID then
+                                not ne.viewRaw
+
+                            else
+                                True
+
+                        Nothing ->
+                            True
+            in
+            ( { model
+                | nodeEdit =
+                    if viewRaw then
+                        Just
+                            { feID = id
+                            , points = []
+                            , viewRaw = True
+                            }
+
+                    else
+                        Nothing
+              }
+            , Effect.none
+            )
+
 
 mergeNodeTrees : List (Tree NodeView) -> List (Tree NodeView) -> List (Tree NodeView)
 mergeNodeTrees current new =
@@ -946,11 +1026,15 @@ nodeCustomSortRules =
         , ( Node.typeParticle, "O" )
         , ( Node.typeShelly, "P" )
         , ( Node.typeShellyIO, "Q" )
+        , ( Node.typeNetworkManager, "R" )
+        , ( Node.typeNTP, "S" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
         , ( Node.typeAction, "B" )
         , ( Node.typeActionInactive, "C" )
+        , ( Node.typeNetworkManagerDevice, "D" )
+        , ( Node.typeNetworkManagerConn, "E" )
         ]
 
 
@@ -1082,7 +1166,7 @@ viewNodes model =
         in
         List.concatMap
             (\t ->
-                viewNode model Nothing (Tree.label t) 0
+                viewNode model Nothing (Tree.label t) [] 0
                     :: viewNodesHelp 1 model t
             )
             treeWithEdits
@@ -1113,13 +1197,15 @@ viewNodesHelp depth model tree =
 
                 tombstone =
                     isTombstone childNode.node
-
-                display =
-                    shouldDisplay childNode.node.typ
             in
-            if display && not tombstone then
+            if not tombstone then
+                let
+                    viewChildren =
+                        List.map Tree.label
+                            (Tree.children child)
+                in
                 ret
-                    ++ viewNode model (Just node) childNode depth
+                    ++ viewNode model (Just node) childNode viewChildren depth
                     :: viewNodesHelp (depth + 1) model child
 
             else
@@ -1134,158 +1220,106 @@ isTombstone node =
     Point.getBool node.edgePoints Point.typeTombstone ""
 
 
-shouldDisplay : String -> Bool
-shouldDisplay typ =
-    case typ of
-        "user" ->
-            True
-
-        "group" ->
-            True
-
-        "modbus" ->
-            True
-
-        "modbusIo" ->
-            True
-
-        "serialDev" ->
-            True
-
-        "canBus" ->
-            True
-
-        "rule" ->
-            True
-
-        "condition" ->
-            True
-
-        "action" ->
-            True
-
-        "actionInactive" ->
-            True
-
-        "device" ->
-            True
-
-        "msgService" ->
-            True
-
-        "variable" ->
-            True
-
-        "signalGenerator" ->
-            True
-
-        "file" ->
-            True
-
-        "sync" ->
-            True
-
-        "oneWire" ->
-            True
-
-        "oneWireIO" ->
-            True
-
-        "db" ->
-            True
-
-        "particle" ->
-            True
-
-        "shelly" ->
-            True
-
-        "shellyIo" ->
-            True
-
-        "metrics" ->
-            True
-
-        _ ->
-            False
-
-
-viewNode : Model -> Maybe NodeView -> NodeView -> Int -> Element Msg
-viewNode model parent node depth =
+viewNode : Model -> Maybe NodeView -> NodeView -> List NodeView -> Int -> Element Msg
+viewNode model parent node children depth =
     let
+        viewRaw =
+            case model.nodeEdit of
+                Just ne ->
+                    ne.feID == node.feID && ne.viewRaw
+
+                Nothing ->
+                    False
+
         nodeView =
-            case node.node.typ of
-                "user" ->
-                    NodeUser.view
+            if viewRaw then
+                NodeRaw.view
 
-                "group" ->
-                    NodeGroup.view
+            else
+                case node.node.typ of
+                    "user" ->
+                        NodeUser.view
 
-                "modbus" ->
-                    NodeModbus.view
+                    "group" ->
+                        NodeGroup.view
 
-                "modbusIo" ->
-                    NodeModbusIO.view
+                    "modbus" ->
+                        NodeModbus.view
 
-                "oneWire" ->
-                    NodeOneWire.view
+                    "modbusIo" ->
+                        NodeModbusIO.view
 
-                "oneWireIO" ->
-                    NodeOneWireIO.view
+                    "oneWire" ->
+                        NodeOneWire.view
 
-                "serialDev" ->
-                    NodeSerialDev.view
+                    "oneWireIO" ->
+                        NodeOneWireIO.view
 
-                "canBus" ->
-                    NodeCanBus.view
+                    "serialDev" ->
+                        NodeSerialDev.view
 
-                "rule" ->
-                    NodeRule.view
+                    "canBus" ->
+                        NodeCanBus.view
 
-                "condition" ->
-                    NodeCondition.view
+                    "rule" ->
+                        NodeRule.view
 
-                "action" ->
-                    NodeAction.view
+                    "condition" ->
+                        NodeCondition.view
 
-                "actionInactive" ->
-                    NodeAction.view
+                    "action" ->
+                        NodeAction.view
 
-                "device" ->
-                    NodeDevice.view
+                    "actionInactive" ->
+                        NodeAction.view
 
-                "msgService" ->
-                    NodeMessageService.view
+                    "device" ->
+                        NodeDevice.view
 
-                "variable" ->
-                    NodeVariable.view
+                    "msgService" ->
+                        NodeMessageService.view
 
-                "signalGenerator" ->
-                    SignalGenerator.view
+                    "variable" ->
+                        NodeVariable.view
 
-                "file" ->
-                    File.view
+                    "signalGenerator" ->
+                        SignalGenerator.view
 
-                "sync" ->
-                    NodeSync.view
+                    "file" ->
+                        File.view
 
-                "db" ->
-                    NodeDb.view
+                    "sync" ->
+                        NodeSync.view
 
-                "particle" ->
-                    NodeParticle.view
+                    "db" ->
+                        NodeDb.view
 
-                "shelly" ->
-                    NodeShelly.view
+                    "particle" ->
+                        NodeParticle.view
 
-                "shellyIo" ->
-                    NodeShellyIO.view
+                    "shelly" ->
+                        NodeShelly.view
 
-                "metrics" ->
-                    NodeMetrics.view
+                    "shellyIo" ->
+                        NodeShellyIO.view
 
-                _ ->
-                    viewUnknown
+                    "metrics" ->
+                        NodeMetrics.view
+
+                    "networkManager" ->
+                        NodeNetworkManager.view
+
+                    "ntp" ->
+                        NodeNTP.view
+
+                    "networkManagerDevice" ->
+                        NodeNetworkManagerDevice.view
+
+                    "networkManagerConn" ->
+                        NodeNetworkManagerConn.view
+
+                    _ ->
+                        NodeRaw.view
 
         background =
             if node.expDetail then
@@ -1317,22 +1351,36 @@ viewNode model parent node depth =
                 Button.dot (ToggleExpDetail node.feID)
             , column
                 [ spacing 6, padding 6, width fill, Background.color background ]
-                [ -- text <| "ID: " ++ node.node.id
-                  -- , text <| "Hash: " ++ node.node.hash
-                  nodeView
+                [ nodeView
                     { now = model.now
                     , zone = model.zone
                     , modified = node.mod
                     , parent = Maybe.map .node parent
                     , node = node.node
+                    , children = children
                     , nodes = model.nodes
                     , expDetail = node.expDetail
                     , onEditNodePoint = EditNodePoint node.feID
                     , onUploadFile = UploadFile node.node.id
                     , copy = model.copyMove
                     }
+                , viewIf viewRaw <|
+                    column [ spacing 10 ]
+                        [ Input.text []
+                            { onChange = UpdateNewPointType
+                            , text = model.addPoint.typ
+                            , placeholder = Nothing
+                            , label = Input.labelLeft [] <| text "New point type:"
+                            }
+                        , Input.text []
+                            { onChange = UpdateNewPointKey
+                            , text = model.addPoint.key
+                            , placeholder = Nothing
+                            , label = Input.labelLeft [] <| text "New point key:"
+                            }
+                        ]
                 , viewIf node.mod <|
-                    Form.buttonRow
+                    Form.buttonRow <|
                         [ Form.button
                             { label = "save"
                             , color = colors.blue
@@ -1344,6 +1392,33 @@ viewNode model parent node depth =
                             , onPress = DiscardEdits
                             }
                         ]
+                            ++ (if viewRaw then
+                                    [ Form.button
+                                        { label = "add point"
+                                        , color = colors.darkgreen
+                                        , onPress =
+                                            let
+                                                key =
+                                                    if model.addPoint.key == "" then
+                                                        "0"
+
+                                                    else
+                                                        model.addPoint.key
+                                            in
+                                            EditNodePoint node.feID
+                                                [ Point model.addPoint.typ
+                                                    key
+                                                    model.now
+                                                    0
+                                                    ""
+                                                    0
+                                                ]
+                                        }
+                                    ]
+
+                                else
+                                    []
+                               )
                 , if node.expDetail then
                     let
                         viewNodeOps =
@@ -1366,7 +1441,7 @@ viewNode model parent node depth =
 
                         OpNodeToAdd add ->
                             if add.feID == node.feID then
-                                viewAddNode node add
+                                viewAddNode model.customNodeType node add
 
                             else
                                 viewNodeOps
@@ -1398,11 +1473,6 @@ viewNode model parent node depth =
             ]
 
 
-viewUnknown : NodeOptions msg -> Element msg
-viewUnknown o =
-    Element.text <| "unknown node type: " ++ o.node.typ
-
-
 nodeTypesThatHaveChildNodes : List String
 nodeTypesThatHaveChildNodes =
     [ Node.typeDevice
@@ -1412,6 +1482,7 @@ nodeTypesThatHaveChildNodes =
     , Node.typeSerialDev
     , Node.typeCanBus
     , Node.typeRule
+    , Node.typeNetworkManager
     ]
 
 
@@ -1433,6 +1504,7 @@ viewNodeOperations node msg =
             , Button.x (DeleteNode node.feID node.node.id node.node.parent)
             , Button.copy (CopyNode node.feID node.node.id node.node.parent desc)
             , Button.clipboard (PasteNode node.feID node.node.id)
+            , Button.list (ToggleRaw node.feID)
             ]
         , case msg of
             Just m ->
@@ -1538,8 +1610,23 @@ nodeDescMetrics =
     row [] [ Icon.barChart, text "Metrics" ]
 
 
-viewAddNode : NodeView -> NodeToAdd -> Element Msg
-viewAddNode parent add =
+nodeDescNetworkManager : Element Msg
+nodeDescNetworkManager =
+    row [] [ Icon.network, text "Network Manager" ]
+
+
+nodeDescNetworkManagerConn : Element Msg
+nodeDescNetworkManagerConn =
+    row [] [ Icon.cable, text "Connection" ]
+
+
+nodeDescNTP : Element Msg
+nodeDescNTP =
+    row [] [ Icon.clock, text "NTP" ]
+
+
+viewAddNode : String -> NodeView -> NodeToAdd -> Element Msg
+viewAddNode customNodeType parent add =
     column [ spacing 10 ]
         [ Input.radio [ spacing 6 ]
             { onChange = SelectAddNodeType
@@ -1550,6 +1637,8 @@ viewAddNode parent add =
                     [ Input.option Node.typeUser nodeDescUser
                     , Input.option Node.typeGroup nodeDescGroup
                     , Input.option Node.typeRule nodeDescRule
+                    , Input.option Node.typeNetworkManager nodeDescNetworkManager
+                    , Input.option Node.typeNTP nodeDescNTP
                     , Input.option Node.typeModbus nodeDescModbus
                     , Input.option Node.typeSerialDev nodeDescSerialDev
                     , Input.option Node.typeCanBus nodeDescCanBus
@@ -1607,7 +1696,22 @@ viewAddNode parent add =
                         else
                             []
                        )
+                    ++ (if parent.node.typ == Node.typeNetworkManager then
+                            [ Input.option Node.typeNetworkManagerConn nodeDescNetworkManagerConn ]
+
+                        else
+                            []
+                       )
+                    ++ [ Input.option "custom" <| text "Custom" ]
             }
+        , viewIf (add.typ == Just "custom") <|
+            Input.text
+                []
+                { onChange = UpdateCustomNodeType
+                , text = customNodeType
+                , placeholder = Nothing
+                , label = Input.labelLeft [] <| text "Custom node type:"
+                }
         , Form.buttonRow
             [ case add.typ of
                 Just _ ->

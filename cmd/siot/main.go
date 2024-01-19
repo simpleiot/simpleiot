@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -44,6 +45,8 @@ func main() {
 		fmt.Println("  - log (log SIOT messages)")
 		fmt.Println("  - store (store maint, requires server to be running)")
 		fmt.Println("  - install (install SIOT and register service)")
+		fmt.Println("  - import (import nodes from YAML file)")
+		fmt.Println("  - export (export nodes to YAML file)")
 	}
 
 	_ = flags.Parse(os.Args[1:])
@@ -59,7 +62,7 @@ func main() {
 	args := flags.Args()
 
 	if len(args) < 1 {
-		// run serve command by default
+		// gun serve command by default
 		args = []string{"serve"}
 	}
 
@@ -74,6 +77,10 @@ func main() {
 		runStore(args[1:])
 	case "install":
 		runInstall(args[1:])
+	case "import":
+		runImport(args[1:])
+	case "export":
+		runExport(args[1:])
 	default:
 		log.Fatal("Unknown command; options: serve, log, store")
 	}
@@ -125,6 +132,7 @@ func runServer(args []string, version string, id string) error {
 			return errors.New("Timeout waiting for SIOT to start")
 		}
 		log.Println("SIOT started")
+
 		<-chStartCheck
 		return nil
 	}, func(err error) {
@@ -156,7 +164,15 @@ func runLog(args []string) {
 		}
 	}
 
-	client.Log(natsServer, *flagAuthToken)
+	authToken := *flagAuthToken
+	if authToken == "" {
+		authTokenE := os.Getenv("SIOT_AUTH_TOKEN")
+		if authTokenE != "" {
+			authToken = authTokenE
+		}
+	}
+
+	client.Log(natsServer, authToken)
 
 	select {}
 }
@@ -182,9 +198,17 @@ func runStore(args []string) {
 		}
 	}
 
+	authToken := *flagAuthToken
+	if authToken == "" {
+		authTokenE := os.Getenv("SIOT_AUTH_TOKEN")
+		if authTokenE != "" {
+			authToken = authTokenE
+		}
+	}
+
 	opts := client.EdgeOptions{
 		URI:       natsServer,
-		AuthToken: *flagAuthToken,
+		AuthToken: authToken,
 		NoEcho:    true,
 		Disconnected: func() {
 			log.Println("NATS Disconnected")
@@ -364,4 +388,165 @@ func runInstall(args []string) {
 
 	log.Println("Install success!")
 	log.Println("Please update ports in service file if you want someting other than defaults")
+}
+
+func runImport(args []string) {
+	flags := flag.NewFlagSet("import", flag.ExitOnError)
+
+	flagParentID := flags.String("parentID", "", "Parent ID for import under. Default is root device")
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+	flagPreserveIDs := flags.Bool("preserveIDs", false, "Preserve node IDs (use with caution)")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	// only consider env if command line option is something different
+	// that default
+	natsServer := *flagNatsServer
+	if natsServer == defaultNatsServer {
+		natsServerE := os.Getenv("SIOT_NATS_SERVER")
+		if natsServerE != "" {
+			natsServer = natsServerE
+		}
+	}
+
+	authToken := *flagAuthToken
+	if authToken == "" {
+		authTokenE := os.Getenv("SIOT_AUTH_TOKEN")
+		if authTokenE != "" {
+			authToken = authTokenE
+		}
+	}
+
+	opts := client.EdgeOptions{
+		URI:       natsServer,
+		AuthToken: authToken,
+		NoEcho:    true,
+		Disconnected: func() {
+			log.Println("NATS Disconnected")
+		},
+		Reconnected: func() {
+			log.Println("NATS Reconnected")
+		},
+		Closed: func() {
+			log.Fatal("NATS Closed")
+		},
+		Connected: func() {
+			log.Println("NATS Connected")
+		},
+	}
+
+	nc, err := client.EdgeConnect(opts)
+	if err != nil {
+		log.Fatal("Error connecting to NATS server: ", err)
+	}
+
+	yamlChan := make(chan []byte)
+
+	go func() {
+		// read YAML file from STDIN
+		yaml, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			log.Fatal("Error reading YAML from stdin: ", err)
+		}
+		yamlChan <- yaml
+	}()
+
+	var yaml []byte
+
+	select {
+	case yaml = <-yamlChan:
+	case <-time.After(time.Second * 2):
+		log.Fatal("Error: timeout reading YAML from STDIN")
+	}
+
+	if *flagParentID == "" {
+		root, err := client.GetRootNode(nc)
+		if err != nil {
+			log.Fatal("Error getting root node: ", err)
+		}
+		*flagParentID = root.ID
+	}
+
+	err = client.ImportNodes(nc, *flagParentID, yaml, "import", *flagPreserveIDs)
+	if err != nil {
+		log.Fatal("Error importing nodes: ", err)
+	}
+
+	log.Println("Import success!")
+}
+
+func runExport(args []string) {
+	flags := flag.NewFlagSet("import", flag.ExitOnError)
+
+	flagNodeID := flags.String("nodeID", "", "node ID to export. Default is root device")
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	// only consider env if command line option is something different
+	// that default
+	natsServer := *flagNatsServer
+	if natsServer == defaultNatsServer {
+		natsServerE := os.Getenv("SIOT_NATS_SERVER")
+		if natsServerE != "" {
+			natsServer = natsServerE
+		}
+	}
+
+	authToken := *flagAuthToken
+	if authToken == "" {
+		authTokenE := os.Getenv("SIOT_AUTH_TOKEN")
+		if authTokenE != "" {
+			authToken = authTokenE
+		}
+	}
+
+	opts := client.EdgeOptions{
+		URI:       natsServer,
+		AuthToken: authToken,
+		NoEcho:    true,
+		Disconnected: func() {
+			log.Println("NATS Disconnected")
+		},
+		Reconnected: func() {
+			log.Println("NATS Reconnected")
+		},
+		Closed: func() {
+			log.Fatal("NATS Closed")
+		},
+		Connected: func() {
+			log.Println("NATS Connected")
+		},
+	}
+
+	nc, err := client.EdgeConnect(opts)
+	if err != nil {
+		log.Fatal("Error connecting to NATS server: ", err)
+	}
+
+	if *flagNodeID == "" {
+		root, err := client.GetRootNode(nc)
+		if err != nil {
+			log.Fatal("Error getting root node: ", err)
+		}
+		*flagNodeID = root.ID
+	}
+
+	yaml, err := client.ExportNodes(nc, *flagNodeID)
+	if err != nil {
+		log.Fatal("Error export nodes: ", err)
+	}
+
+	_, err = os.Stdout.Write(yaml)
+
+	if err != nil {
+		log.Fatal("Error writing YAML to STDOUT: ", err)
+	}
+
 }

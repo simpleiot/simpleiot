@@ -11,8 +11,89 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- store: Improved performance when loading many nodes and edges
+- serial: Fixed bug: do not write points over closed serial port
+
+## [[0.14.9] - 2024-01-18](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.9)
+
+- require custom UI assets to be rooted and not be public directory
+- add `-UIAssetsDebug` cmdline flag. This will dump all the UI assets file and
+  is useful in debugging to make sure your assets files are correct -- it can
+  get a little tricky with embedding, etc.
+
+## [[0.14.8] - 2024-01-16](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.8)
+
+- support passing in a custom UI (fs.FS or directory name) to the SIOT server.
+  This allows you to replace the SIOT UI with a custom version.
+
+## [[0.14.7] - 2024-01-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.7)
+
+- add modbus swap words for Int32/Uint32 writes
+
+## [[0.14.6] - 2024-01-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.6)
+
+- verb -> adjective changes in several types. This is more consistent and
+  accurate with how things are done in this industry (HTML, etc). This is a
+  breaking change in that nodes with disable or control flag set will need to be
+  reconfigured.
+  - disable -> disabled
+  - control -> controlled
+- add modbus Float32ToRegsSwapWords()
+
+## [[0.14.5] - 2024-01-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.5)
+
+- simpleiot-js: Fixed bugs and improved README
+- Replace deprecated `io/ioutil` functions (#680)
+- fixed frontend bug where only custom node types could be added
+
+## [[0.14.4] - 2023-12-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.4)
+
+- UI: in node raw view, you can now edit/add/delete points (#676)
+- UI: add custom node types
+
+## [[0.14.3] - 2023-12-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.3)
+
+- UI: display unknown nodes as raw type and points
+- UI: add raw view button to node expanded view. This allows us to view the raw
+  points in any node which is useful for debugging and development. (see
+  [docs](https://docs.simpleiot.org/docs/user/ui.html#raw-node-view) for more
+  information)
+
+## [[0.14.2] - 2023-11-29](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.2)
+
+- Signal generator client: replaced "Sync Parent" option with "Destination" to
+  indicate the destination node and point type for generated points
+- update gonetworkmanager to v2.1.0 and fix sync bugs
+- network-manager client: Now supports better connection sync via connection
+  `Managed` flag; fixed a few bugs; WiFiConfig sync now works
+
+## [[0.14.1] - 2023-11-15](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.1)
+
+- update frontend assets (missed that in v0.14.0)
+
+## [[0.14.0] - 2023-11-14](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.0)
+
+- update to nats-server to v2.10.4
+- update to nats client package to v1.31.0
+- development: `envsetup.sh` sources `local.sh` if it exists
+- Go client API for export/import nodes to/from YAML
+- `siot` CLI export and import commands
+- simpleiot-js improvements
+- Network Manager Client (WIP)
+- NTP Client
+- serial client: allow configuration of HR point destination
+- serial client: add "Sync Parent" option
+- Signal generator client: add support for square, triangle, and random walk
+  patterns
+- fix issue with batched points of the same type/key (#658)
+
+## [[0.13.1] - 2023-10-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.13.1)
+
 - update client manager API to include list of parent node types
-- fix crash with flaky network (#625)
+- fix issue with duplicating nodes where there were two copies of Description
+  points
+- display decode error count for high-rate serial packets
+- display rate for high-rate serial packets
 
 ## [[0.13.0] - 2023-09-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.13.0)
 

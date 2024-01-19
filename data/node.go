@@ -43,7 +43,7 @@ func (sws *SwUpdateState) Points() Points {
 // Node represents the state of a device. UUID is recommended
 // for ID to prevent collisions is distributed instances.
 type Node struct {
-	ID     string `json:"id" boltholdKey:"ID"`
+	ID     string `json:"id"`
 	Type   string `json:"type"`
 	Points Points `json:"points"`
 }
@@ -170,7 +170,7 @@ const (
 
 // NodeCmd represents a command to be sent to a device
 type NodeCmd struct {
-	ID     string `json:"id,omitempty" boltholdKey:"ID"`
+	ID     string `json:"id,omitempty"`
 	Cmd    string `json:"cmd"`
 	Detail string `json:"detail,omitempty"`
 }
@@ -189,18 +189,20 @@ type NodeVersion struct {
 
 // NodeEdge combines node and edge data, used for APIs
 type NodeEdge struct {
-	ID         string `json:"id" boltholdKey:"ID"`
+	ID         string `json:"id"`
 	Type       string `json:"type"`
-	Hash       uint32 `json:"hash"`
+	Hash       uint32 `json:"hash" yaml:"-"`
 	Parent     string `json:"parent"`
-	Points     Points `json:"points"`
-	EdgePoints Points `json:"edgePoints"`
+	Points     Points `json:"points,omitempty"`
+	EdgePoints Points `json:"edgePoints,omitempty"`
 }
 
 func (n NodeEdge) String() string {
 	ret := fmt.Sprintf("NODE: %v (%v)\n", n.ID, n.Type)
 	ret += fmt.Sprintf("  - Parent: %v\n", n.Parent)
-	ret += fmt.Sprintf("  - Hash: 0x%x\n", n.Hash)
+	if n.Hash != 0 {
+		ret += fmt.Sprintf("  - Hash: 0x%x\n", n.Hash)
+	}
 
 	for _, p := range n.Points {
 		ret += fmt.Sprintf("  - Point: %v\n", p)
