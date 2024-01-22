@@ -281,7 +281,7 @@ In SIOT, we partition the system using the tree structure and nodes that listen 
 1) it is equal or higher in the structure
 2) shares an ancestor. 
 
-![image-20240122111316407](./assets/image-20240122111316407.png)
+![image-20240122112538955](./assets/image-20240122112538955.png)
 
 ### TODO AuthN/AuthZ
 
