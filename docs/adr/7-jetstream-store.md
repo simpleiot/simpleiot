@@ -198,10 +198,10 @@ Message payload:
 - Origin (string)
 - Data (length determined by the message length)
 
-TODO: one limitation of putting `Origin` in the message subject is that it will
-be inefficient to query as you will need to scan and decode all messages. Are
-there any cases where we will need to do this? (this is an example where a SQL
-database is more flexible).
+Putting `Origin` in the message subject will make it inefficient to query as you
+will need to scan and decode all messages. Are there any cases where we will
+need to do this? (this is an example where a SQL database is more flexible). One
+solution would be to create another stream where the origin is in the subject.
 
 ### UI Implications
 
@@ -216,7 +216,7 @@ much as is done today. A few things would need to change:
   the message subject.
 - TODO: edge points
 
-### TODO Bi-Directional Synchronization
+### Bi-Directional Synchronization
 
 Bi-directional synchronization may be accomplished by having two streams for
 every node. The head of both incoming and outgoing streams is looked at to
@@ -235,7 +235,7 @@ nodes are collecting data which needs to flow back upstream. So it seems a very
 common need for every node to have data flowing in both directions. Since this
 is a basic requirement, it does not seem like much of stretch to allow any data
 to flow in either stream, and then merge the streams at the endpoints where the
-data is used.
+data is used .
 
 ### Does it make sense to use NATS to create merged streams?
 
@@ -247,7 +247,7 @@ state. However, there are several disadvantages:
 - data is not guaranteed to be in chronological order -- the data would be
   inserted into the 3rd stream when it is received. So you would still have to
   walk back in history to know for sure if you had the latest point. It seems
-  simpler to just read the head of two streams.
+  simpler to just read the head of two streams and compare them.
 
 ### Timestamps
 
@@ -258,6 +258,30 @@ Therefore, an additional high-resolution
 the beginning of each message.
 
 ### TODO Edge Points
+
+SIOT stores data in a tree of nodes:
+
+![nodes](./assets/nodes.png)
+
+Edges are used to describe the relationships between nodes as a [directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
+
+![dag](./assets/dag.svg+xml)
+
+Nodes can exist in multiple locations in the tree. 
+
+Edges contain an array of points and a node type. Putting the type in the edge made it efficient to traverse the tree by only loading edges. With the SQLite store, edges were stored in a table. With JetStream it is less obvious how to store the edge information. SIOT regularly traverses up and down the tree.
+
+* down: to discover nodes
+* up: to propagate points to up subjects
+
+### NATS `up.*` subjects
+
+In SIOT, we partition the system using the tree structure and nodes that listen for messages subscribe to the `up.*`stream of their parent node. In the below example, the Twilio node (Twilio is a service used to send out SMS messages) node listens for messages published by any of Company XYZ's children. When a node publishes a point, it is re-published on all of the ancestor's `up.*` subjects.  This provides an opportunity for any node at any level in the tree to listen to messages of another node, as long as:
+
+1) it is equal or higher in the structure
+2) shares an ancestor. 
+
+![image-20240122111316407](./assets/image-20240122111316407.png)
 
 ### TODO AuthN/AuthZ
 
