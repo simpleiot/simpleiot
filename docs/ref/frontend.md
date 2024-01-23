@@ -55,13 +55,13 @@ directory that can be used to interface a frontend with the SIOT backend.
 Usage:
 
 ```js
-import { connect } from "./lib/nats";
+import { connect } from "./lib/nats"
 
 async function connectAndGetNodes() {
-  const conn = await connect();
-  const [root] = await conn.getNode("root");
-  const children = await conn.getNodeChildren(root.id, { recursive: "flat" });
-  return [root].concat(children);
+	const conn = await connect()
+	const [root] = await conn.getNode("root")
+	const children = await conn.getNodeChildren(root.id, { recursive: "flat" })
+	return [root].concat(children)
 }
 ```
 
@@ -82,3 +82,17 @@ custom web UI optimized for your products, there are several options:
 1. modify the existing SIOT frontend.
 1. write a new frontend, mobile app, desktop app, etc. The SIOT backend and
    frontend are decoupled so that this is possible.
+
+### Passing a custom UI to SIOT
+
+There are ways to use a custom UI with SIOT at the app and package level:
+
+1. **Application:** pass a directory containing your public web assets to the
+   app using: `siot serve -customUIDir <your web assets>`
+1. **Package:** populate CustomUIFS with a [fs.FS](https://pkg.go.dev/io/fs#FS)
+   in the SIOT
+   [Server options](https://pkg.go.dev/github.com/simpleiot/simpleiot/server#Options).
+
+In both cases, the filesystem should contain a `index.html` in the root
+directory. If it does not, you can use the
+[fs.Sub](https://pkg.go.dev/io/fs#Sub) function to return a subtree of a fs.FS.

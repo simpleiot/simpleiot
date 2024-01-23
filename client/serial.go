@@ -115,6 +115,12 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 			}
 
 			if len(pointsToSend) > 0 {
+				if sd.portCobsWrapper == nil {
+					if sd.config.Debug >= 4 {
+						log.Printf("Serial port closed; points not sent: %v", pointsToSend)
+					}
+					return
+				}
 				sd.wrSeq++
 				err := sd.sendPointsToDevice(sd.wrSeq, false, "", pointsToSend)
 				if err != nil {
