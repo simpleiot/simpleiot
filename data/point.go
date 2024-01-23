@@ -192,11 +192,11 @@ func (ps Points) Desc() string {
 
 // Find fetches a point given ID, Type, and Index
 // and true of found, or false if not found
-func (ps *Points) Find(typ, key string) (Point, bool) {
+func (ps Points) Find(typ, key string) (Point, bool) {
 	if key == "" {
 		key = "0"
 	}
-	for _, p := range *ps {
+	for _, p := range ps {
 		if !p.IsMatch(typ, key) {
 			continue
 		}

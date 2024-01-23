@@ -11,12 +11,34 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- store: Improved performance when loading many nodes and edges
+- serial: Fixed bug: do not write points over closed serial port
+
+## [[0.14.9] - 2024-01-18](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.9)
+
+- require custom UI assets to be rooted and not be public directory
+- add `-UIAssetsDebug` cmdline flag. This will dump all the UI assets file and
+  is useful in debugging to make sure your assets files are correct -- it can
+  get a little tricky with embedding, etc.
+
+## [[0.14.8] - 2024-01-16](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.8)
+
+- support passing in a custom UI (fs.FS or directory name) to the SIOT server.
+  This allows you to replace the SIOT UI with a custom version.
+
+## [[0.14.7] - 2024-01-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.7)
+
+- add modbus swap words for Int32/Uint32 writes
+
+## [[0.14.6] - 2024-01-09](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.6)
+
 - verb -> adjective changes in several types. This is more consistent and
   accurate with how things are done in this industry (HTML, etc). This is a
   breaking change in that nodes with disable or control flag set will need to be
   reconfigured.
   - disable -> disabled
   - control -> controlled
+- add modbus Float32ToRegsSwapWords()
 
 ## [[0.14.5] - 2024-01-02](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.5)
 
