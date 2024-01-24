@@ -6,17 +6,18 @@
 
 ## Problem
 
-SQLite has worked well as a SIOT store but the current store has a few problems:
+SQLite has worked well as a SIOT store. There are a few things we would like to
+improve:
 
 - history is not synchronized
   - if a devices or server is offline, only the latest state is transferred when
     connected
 - we have to re-compute hashes all the way to the root node anytime something
   changes
-  - this does not scale to larger systems
+  - this may not scale to larger systems
   - is difficult to get right if things are changing while we re-compute hashes
-  - a more robust solution would probably require more locks making it scale
-    even worse
+    -- it requires some type of coordination of locking between two systems,
+    which we currently don't have.
 
 ## Context/Discussion
 
@@ -26,17 +27,27 @@ an array of points. Note, the term **"node"** in this document represents a data
 structure in a tree, not a physical computer or SIOT instance. The term
 **"instance"** will be used to represent devices or SIOT instances.
 
+SIOT stores data in a tree of nodes:
+
+![nodes](./assets/nodes.png)
+
+Nodes are arranged in a
+[directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
+
+<img src="./assets/image-20240124105741250.png" alt="image-20240124105741250" style="zoom: 33%;" />
+
 A subset of this tree is synchronized between various instances as shown in the
 below example:
 
 ![SIOT example tree](./assets/cloud-device-node-tree.png)
 
 The tree topology can be as deep as required to describe the system. To date,
-only the current state is synchronized and history is stored external in a
-time-series database like InfluxDB and is not currently synchronized. Overall
-this has worked very well and has proven to be an excellent data model.
+only the current state of a node is synchronized and history (if needed) is
+stored external in a time-series database like InfluxDB and is not currently
+synchronized. Overall this has worked very well and node tree has proven to be
+an excellent data model.
 
-The basic idea is to store points in a stream and the head of the stream
+With JetStream, we could store points in a stream where the head of the stream
 represents the current state of a Node or collection of nodes.
 
 ![image-20240119093623132](./assets/image-20240119093623132.png)
@@ -65,6 +76,8 @@ functionality in [this repo](https://github.com/simpleiot/nats-exp).
 - JetStream has various retention models so old data can automatically be
   dropped.
 - Leverage the NATS AuthN/AuthZ features.
+- JetStream is a natural extension of core NATS, so many of the core SIOT
+  concepts are still valid and do not need to change.
 
 ### Challenges
 
@@ -78,6 +91,8 @@ functionality in [this repo](https://github.com/simpleiot/nats-exp).
 - we are constrained by a simple message subject to label and easily query data.
   This is less flexible than a SQL database, but this constraint can also be an
   advantage in that it forces us into a simple and consistent data model.
+- SQLite has an excellent caching model. We would likely need to create our own
+  with JetStream.
 
 ### JetStream consistency model
 
@@ -167,7 +182,7 @@ type Point struct {
 }
 ```
 
-The `Type`and `Key` can be encoded in the message subject:
+With JetStream, the `Type`and `Key` can be encoded in the message subject:
 
 `p.<node id>.<type>.<key>`
 
@@ -176,13 +191,13 @@ any subject in a stream without scanning the entire stream (see
 [discussion 1](https://github.com/nats-io/nats-server/discussions/3772) and
 [discussion 2](https://github.com/nats-io/nats-server/discussions/4170)).
 
-As time has gone on, this structure has been simplified. For instance, it used
-to also have an `Index` field, but we have learned we can use a single `Key`
-field instead. At this point it may make sense to simplify the payload. One idea
-is to do away with the `Value` and `Text` fields and simply have a `Data` field.
-The components that use the points have to know the data-type anyway to know if
-they should use the `Value` or `Text`field. In the past, protobuf encoding was
-used as we started with quite a few fields and provided some flexibility and
+Over time, the Point structure has been simplified. For instance, it used to
+also have an `Index` field, but we have learned we can use a single `Key` field
+instead. At this point it may make sense to simplify the payload. One idea is to
+do away with the `Value` and `Text` fields and simply have a `Data` field. The
+components that use the points have to know the data-type anyway to know if they
+should use the `Value` or `Text`field. In the past, protobuf encoding was used
+as we started with quite a few fields and provided some flexibility and
 convenience. But as we have reduced the number of fields and two of them are now
 encoded in the message subject, it may be simpler to have a simple encoding for
 `Time`, `Data`, `Tombstone`, and `Origin` in the message payload. The code using
@@ -192,11 +207,11 @@ future in the `Data` field and be more flexible for the future.
 
 Message payload:
 
-- Time (uint64)
-- Tombstone (byte)
-- OriginLen (byte)
-- Origin (string)
-- Data (length determined by the message length)
+- `Time` (uint64)
+- `Tombstone` (byte)
+- `OriginLen` (byte)
+- `Origin` (string)
+- `Data` (length determined by the message length)
 
 Putting `Origin` in the message subject will make it inefficient to query as you
 will need to scan and decode all messages. Are there any cases where we will
@@ -214,17 +229,16 @@ much as is done today. A few things would need to change:
   `Value` and `Text` fields might be merged into `Data`.
 - In the `p.<node id>` subscription, the `Type` and `Key` now would come from
   the message subject.
-- TODO: edge points
 
 ### Bi-Directional Synchronization
 
-Bi-directional synchronization may be accomplished by having two streams for
-every node. The head of both incoming and outgoing streams is looked at to
-determine the current state. If points of the same type exist in both streams,
-the point with the latest timestamp wins. In reality, 99% of the time, one set
-of data will be set by the Leaf instance (ex: sensor readings) and another set
-of data will be set by the upstream Hub instance (ex: configuration settings)
-and there will be very little overlap.
+Bi-directional synchronization between two instances may be accomplished by
+having two streams for every node. The head of both incoming and outgoing
+streams is looked at to determine the current state. If points of the same type
+exist in both streams, the point with the latest timestamp wins. In reality, 99%
+of the time, one set of data will be set by the Leaf instance (ex: sensor
+readings) and another set of data will be set by the upstream Hub instance (ex:
+configuration settings) and there will be very little overlap.
 
 ![image-20240119094329917](./assets/image-20240119094329917.png)
 
@@ -243,7 +257,7 @@ NATS can merge streams into an additional 3rd stream. This might be useful in
 that you don't have to read two streams and merge the points to get the current
 state. However, there are several disadvantages:
 
-- data would be store twice
+- data would be stored twice
 - data is not guaranteed to be in chronological order -- the data would be
   inserted into the 3rd stream when it is received. So you would still have to
   walk back in history to know for sure if you had the latest point. It seems
@@ -257,40 +271,110 @@ Therefore, an additional high-resolution
 [64-bit timestamp](https://docs.simpleiot.org/docs/adr/4-time.html) is added to
 the beginning of each message.
 
-### TODO Edge Points
+### Edges
 
-SIOT stores data in a tree of nodes:
+Edges are used to describe the connections between nodes. Nodes can exist in
+multiple places in the tree. In the below example, N2 is a child of N1 and N3.
 
-![nodes](./assets/nodes.png)
+<img src="./assets/image-20240124112003398.png" alt="image-20240124112003398" style="zoom:67%;" />
 
-Edges are used to describe the relationships between nodes as a [directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
+Edges currently contain the up and downstream node IDs, an array of points, and
+a node type. Putting the type in the edge made it efficient to traverse the tree
+by only loading edges from a SQLite table and indexing the IDs and type. With
+JetStream it is less obvious how to store the edge information. SIOT regularly
+traverses up and down the tree.
 
-![dag](./assets/dag.svg+xml)
+- down: to discover nodes
+- up: to propagate points to up subjects
 
-Nodes can exist in multiple locations in the tree. 
+Because edges contain points that can change over time, edge points need to be
+stored in a stream, much like we do the node points. If each node has its own
+stream, then the child edges for the node could be stored in the same stream.
+This would allow us to traverse the node tree on startup and perhaps cache all
+the edges. The following subject can be used for edge points:
 
-Edges contain an array of points and a node type. Putting the type in the edge made it efficient to traverse the tree by only loading edges. With the SQLite store, edges were stored in a table. With JetStream it is less obvious how to store the edge information. SIOT regularly traverses up and down the tree.
+`p.<up node ID>.<down node ID>.<type>.<key>`
 
-* down: to discover nodes
-* up: to propagate points to up subjects
+Again, this is very similar to the existing
+[NATS API](https://docs.simpleiot.org/docs/ref/api.html#nats).
+
+Two special points are present in every edge:
+
+- `nodeType`: defines the type of the downstream node
+- `tombstone`: set to true if the downstream node is deleted
 
 ### NATS `up.*` subjects
 
-In SIOT, we partition the system using the tree structure and nodes that listen for messages subscribe to the `up.*`stream of their parent node. In the below example, the Twilio node (Twilio is a service used to send out SMS messages) node listens for messages published by any of Company XYZ's children. When a node publishes a point, it is re-published on all of the ancestor's `up.*` subjects.  This provides an opportunity for any node at any level in the tree to listen to messages of another node, as long as:
+In SIOT, we partition the system using the tree structure and nodes that listen
+for messages subscribe to the `up.*`stream of their parent node. In the below
+example, each group has it's own database configuration and the Db node only
+receives points generated in the group it belongs to. This provides an
+opportunity for any node at any level in the tree to listen to messages of
+another node, as long as:
 
-1) it is equal or higher in the structure
-2) shares an ancestor. 
+1. it is equal or higher in the structure
+2. shares an ancestor.
 
-![image-20240122112538955](./assets/image-20240122112538955.png)
+<img src="./assets/image-20240124104619281.png" alt="image-20240124104619281" style="zoom:67%;" />
 
-### TODO AuthN/AuthZ
+The use of "up" subjects would not have to change other than the logic that
+re-broadcasts points to "up" subjects would need to use the edge cache instead
+of querying the SQLite database for edges.
+
+### AuthN/AuthZ
+
+Authorization typically needs to happen at device or group boundaries. Devices
+or users will need to be authorized. Users
+[have access](https://docs.simpleiot.org/docs/user/users-groups.html) to all
+nodes in their parent group or device. If each node has its own stream, that
+will simplify AuthZ. Each device or user are explicitly granted permission to
+all of the Nodes they have access to. If a new node is created that is a child
+of a node a user has permission to view, this new node (and the subsequent
+streams) are added to the list.
+
+### Are we optimizing the right thing?
+
+Any time you move away from a SQL database, you should
+[think long and hard](http://www.sarahmei.com/blog/2013/11/11/why-you-should-never-use-mongodb/)
+about this. With system design, one approach is to order the problems you are
+solving by difficulty with the top of the list being most important/difficult,
+and then optimize the system to solve the hard problems first.
+
+1. Synchronizing data between systems (including history)
+2. Real-time response
+3. Efficient searching through history
+4. Flexible data storage/schema
+5. Querying nodes and state
+6. Arbitrary relationships between data
+7. Data encode/decode performance
+
+The number of devices and nodes in systems SIOT is targeting is relatively
+small, thus #4 is relatively easy as the dataset can be cached in memory. The
+history is a much bigger dataset so using a stream to synchronize and query
+makes a lot of sense.
+
+On #6, will we ever need arbitrary relationships between data? With the node
+graph, we can do this fairly well. Edges contain points that can be used to
+further characterize the relationship between nodes. With IoT systems your
+relationships between nodes is mostly determined by physical proximity. A Modbus
+sensor is connected to a Modbus, which is connected to a Gateway, which is
+located at a site, which belows to a customer.
+
+On #7, the network is relatively slow compared to anything else, so if it takes
+a little more time to encode/decode data this is typically not a big deal as the
+network is the bottleneck.
+
+With an IoT system, our data is primarily 1) sequential in time, and 2)
+hierarchical in structure. This the streaming/tree approach still appears to
+make a lot of sense.
 
 ### Questions
 
 - How chatty is the NATS Leaf-node protocol? Is it efficient enough to use over
   low-bandwidth Cat-M cellular connections (~20-100Kbps)?
 - Is it practical to have 2 streams for every node? A typical edge device may
-  have 30 nodes, so this is 60 streams to synchronize.
+  have 30 nodes, so this is 60 streams to synchronize. Is the overhead to source
+  this many nodes over a leaf connection prohibitive?
 - Would it make sense to create streams at the device/instance boundaries rather
   than node boundaries?
   - this may limit our AuthZ capabilities where we want to give some users
