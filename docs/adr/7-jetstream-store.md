@@ -46,8 +46,10 @@ The tree topology can be as deep as required to describe the system. To date,
 only the current state of a node is synchronized and history (if needed) is
 stored external in a time-series database like InfluxDB and is not synchronized. The node tree is an excellent data model for IoT systems.
 
+Each node contains an array of points that represents the state of the node. The points contain a type and a key. They key can be used to describe maps and arrays. We keep points separate so they can all be updated independently and easily merged. 
+
 With JetStream, we could store points in a stream where the head of the stream
-represents the current state of a Node or collection of nodes. Each point is stored in a separate NATS subject.
+represents the current state of a Node or collection of nodes. Each point is stored in a separate NATS subject. 
 
 ![image-20240119093623132](./assets/image-20240119093623132.png)
 
