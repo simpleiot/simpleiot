@@ -12,6 +12,9 @@ improve:
 - history is not synchronized
   - if a devices or server is offline, only the latest state is transferred when
     connected
+- we want history at edge as well as cloud
+  - this allows us to use history at the edge to run more advanced algorithms like AI
+
 - we have to re-compute hashes all the way to the root node anytime something
   changes
   - this may not scale to larger systems
