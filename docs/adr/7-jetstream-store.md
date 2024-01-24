@@ -304,6 +304,8 @@ Two special points are present in every edge:
 - `nodeType`: defines the type of the downstream node
 - `tombstone`: set to true if the downstream node is deleted
 
+One challenge with this model is much of the code in the SIOT uses a `NodeEdge` datastructure which includes a node and its parent edge. This collection of data describes this instance of a node and is more useful from a client perspective. However, `NodeEdge`'s are duplicated for every mirrored node in the tree, so don't really make sense from a storage and synchronization perspective. This will likely become more clear after some implementation work.
+
 ### NATS `up.*` subjects
 
 In SIOT, we partition the system using the tree structure and nodes that listen
