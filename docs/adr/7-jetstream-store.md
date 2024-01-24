@@ -55,7 +55,7 @@ represents the current state of a Node or collection of nodes. Each point is sto
 
 NATS Jetstream is a stream based store where every message in a stream is given
 a sequence number. Synchronization is simple in that if a sequence number does
-not exist on a remote system, the missing samples are sent.
+not exist on a remote system, the missing messages are sent.
 
 NATS also supports leaf nodes (instances) and streams can be synchronized
 between hub and leaf instances. If they are disconnected, then streams are
