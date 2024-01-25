@@ -10,16 +10,15 @@ SQLite has worked well as a SIOT store. There are a few things we would like to
 improve:
 
 - history is not synchronized
-  - if a devices or server is offline, only the latest state is transferred when
-    connected
+  - currently, if a devices or server is offline, only the latest state is transferred when
+    connected. We would like all history that has accumulated when offline to be transferred.
 - we want history at edge as well as cloud
   - this allows us to use history at the edge to run more advanced algorithms like AI
-
-- we have to re-compute hashes all the way to the root node anytime something
+- we currently have to re-compute hashes all the way to the root node anytime something
   changes
   - this may not scale to larger systems
   - is difficult to get right if things are changing while we re-compute hashes
-    -- it requires some type of coordination of locking between two systems,
+    -- it requires some type of coordination of between the distributed systems,
     which we currently don't have.
 
 ## Context/Discussion
