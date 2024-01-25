@@ -18,7 +18,7 @@ improve:
   changes
   - this may not scale to larger systems
   - is difficult to get right if things are changing while we re-compute hashes
-    -- it requires some type of coordination of between the distributed systems,
+    -- it requires some type of coordination between the distributed systems,
     which we currently don't have.
 
 ## Context/Discussion
@@ -43,34 +43,34 @@ below example:
 
 The tree topology can be as deep as required to describe the system. To date,
 only the current state of a node is synchronized and history (if needed) is
-stored external in a time-series database like InfluxDB and is not synchronized. The node tree is an excellent data model for IoT systems.
+stored externally in a time-series database like InfluxDB and is not synchronized. The node tree is an excellent data model for IoT systems.
 
-Each node contains an array of points that represents the state of the node. The points contain a type and a key. They key can be used to describe maps and arrays. We keep points separate so they can all be updated independently and easily merged. 
+Each node contains an array of points that represent the state of the node. The points contain a type and a key. The key can be used to describe maps and arrays. We keep points separate so they can all be updated independently and easily merged. 
 
 With JetStream, we could store points in a stream where the head of the stream
 represents the current state of a Node or collection of nodes. Each point is stored in a separate NATS subject. 
 
 ![image-20240119093623132](./assets/image-20240119093623132.png)
 
-NATS Jetstream is a stream based store where every message in a stream is given
+NATS Jetstream is a stream-based store where every message in a stream is given
 a sequence number. Synchronization is simple in that if a sequence number does
 not exist on a remote system, the missing messages are sent.
 
 NATS also supports leaf nodes (instances) and streams can be synchronized
 between hub and leaf instances. If they are disconnected, then streams are
-"caught up" after connection is made again.
+"caught up" after the connection is made again.
 
 Several experiments have been run to understand the basic JetStream
 functionality in [this repo](https://github.com/simpleiot/nats-exp).
 
 1. storing and extracting points in a stream
 1. using streams to store time-series data and measure performance
-1. syncing streams between hub and leaf instances
+1. syncing streams between the hub and leaf instances
 
 ### Advantages of JetStream
 
 - JetStream is built into NATS, which we already embed and use.
-- History can be stored in a NATS stream instead of externally. Currently we use
+- History can be stored in a NATS stream instead of externally. Currently, we use
   an external store like InfluxDB to store history.
 - JetStream streams can be synchronized between instances.
 - JetStream has various retention models so old data can automatically be
@@ -81,7 +81,7 @@ functionality in [this repo](https://github.com/simpleiot/nats-exp).
 
 ### Challenges with moving to JetStream
 
-- streams are typically synchronized in one direction. This is challenge for
+- streams are typically synchronized in one direction. This is a challenge for
   SIOT as the basic premise is data can be modified in any location where a
   user/device has proper permissions. A user may change a configuration in a
   cloud portal or on a local touch-screen.
@@ -104,7 +104,7 @@ From this [discussion](https://github.com/nats-io/nats-server/discussions/4577):
 >
 > JetStream is an immediately consistent distributed storage system in that
 > every new message stored in the stream is done so in a unique order (when
-> those messages reach the stream leader) and that the acknowledgement that the
+> those messages reach the stream leader) and that the acknowledgment that the
 > storing of the message has been successful only happens as the result of a
 > RAFT vote between the NATS JetStream servers (e.g. 3 of them if replicas=3)
 > handling the stream.
@@ -362,7 +362,7 @@ graph, we can do this fairly well. Edges contain points that can be used to
 further characterize the relationship between nodes. With IoT systems your
 relationships between nodes is mostly determined by physical proximity. A Modbus
 sensor is connected to a Modbus, which is connected to a Gateway, which is
-located at a site, which belows to a customer.
+located at a site, which belongs to a customer.
 
 On #8, the network is relatively slow compared to anything else, so if it takes
 a little more time to encode/decode data this is typically not a big deal as the
