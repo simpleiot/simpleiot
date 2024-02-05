@@ -69,14 +69,18 @@ siot_version() {
 	git describe --tags HEAD
 }
 
-siot_build() {
-	siot_build_frontend || return 1
+siot_build_backend() {
 	BINARY_NAME=siot
 	if [ "${GOOS}" = "windows" ]; then
 		BINARY_NAME=siot.exe
 	fi
 	CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$(siot_version)" -o $BINARY_NAME cmd/siot/main.go || return 1
 	return 0
+}
+
+siot_build() {
+	siot_build_frontend || return 1
+	siot_build_backend || return 1
 }
 
 siot_build_arm() {
