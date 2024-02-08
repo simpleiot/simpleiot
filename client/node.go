@@ -460,9 +460,17 @@ type SiotExport struct {
 // Key="0" and Tombstone points with value set to 0 are removed from the export to make
 // it easier to read.
 func ExportNodes(nc *nats.Conn, id string) ([]byte, error) {
+	if id == "root" || id == "" {
+		root, err := GetRootNode(nc)
+		if err != nil {
+			return nil, fmt.Errorf("Error getting root node: %w", err)
+		}
+		id = root.ID
+	}
+
 	rootNodes, err := GetNodes(nc, "all", id, "", false)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting root node: %w", err)
+		return nil, fmt.Errorf("Error getting root nodes: %w", err)
 	}
 
 	if len(rootNodes) < 1 {
@@ -542,19 +550,19 @@ func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
 func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, preserveIDs bool) error {
 	// first make sure the parent node exists
 	var rootNode data.NodeEdge
-	if parent != "root" {
+	if parent == "root" || parent == "" {
+		var err error
+		rootNode, err = GetRootNode(nc)
+		if err != nil {
+			return err
+		}
+	} else {
 		n, err := GetNodes(nc, "all", parent, "", false)
 		if err != nil {
 			return err
 		}
 		if len(n) < 1 {
 			return fmt.Errorf("Parent node \"%v\" not found", parent)
-		}
-	} else {
-		var err error
-		rootNode, err = GetRootNode(nc)
-		if err != nil {
-			return err
 		}
 	}
 
