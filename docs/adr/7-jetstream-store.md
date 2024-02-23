@@ -388,7 +388,11 @@ hierarchical in structure. Thus the streaming/tree approach still appears to be 
 
 ## Decision
 
-what was decided.
+Implementation could be broken down into 3 steps:
+
+1. message/subject encoding changes
+1. switch store from SQLite to Jetstream
+1. Use Jetsream to sync between systems
 
 objections/concerns
 
