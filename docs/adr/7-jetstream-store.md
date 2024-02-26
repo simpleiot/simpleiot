@@ -205,13 +205,24 @@ the message would be responsible for convert `Data` into whatever data type is
 needed. This would open up the opportunity to encode any type of payload in the
 future in the `Data` field and be more flexible for the future.
 
-Message payload:
+#### Message payload:
 
 - `Time` (uint64)
 - `Tombstone` (byte)
 - `OriginLen` (byte)
 - `Origin` (string)
-- `Data` (length determined by the message length)
+- `Data Type` (byte)
+- `Data` (length determined by the message length subtracted by the length of the above fields)
+
+Examples of types:
+
+- 0 - unknown or custom
+- 1 - float (32, or 64 bit)
+- 2 - int (8, 16, 32, or 64 bit)
+- 3 - unit (8, 16, 32, or 65 bit)
+- 4 - string
+- 5 - JSON
+- 6 - Protobuf
 
 Putting `Origin` in the message subject will make it inefficient to query as you
 will need to scan and decode all messages. Are there any cases where we will
