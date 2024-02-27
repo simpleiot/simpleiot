@@ -12,13 +12,15 @@ import (
 )
 
 // Args parses common SIOT command line options
-func Args(args []string) (Options, error) {
+func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	defaultNatsServer := "nats://127.0.0.1:4222"
 
 	// =============================================
 	// Command line options
 	// =============================================
-	flags := flag.NewFlagSet("server", flag.ExitOnError)
+	if flags == nil {
+		flags = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	}
 
 	// configuration options
 	flagDebugHTTP := flags.Bool("debugHttp", false, "dump http requests")
