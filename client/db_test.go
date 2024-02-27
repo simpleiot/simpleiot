@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -32,7 +33,12 @@ func TestDb(t *testing.T) {
 	err := checkPort("localhost", "8086")
 	if err != nil {
 		fmt.Println("Error opening influx port, skipping TestDb: ", err)
-		return
+		t.Skip("Error opening Influx port")
+	}
+
+	authToken := os.Getenv("INFLUX_AUTH_TOKEN")
+	if authToken == "" {
+		t.Skip("Environment variable INFLUX_AUTH_TOKEN is not set")
 	}
 
 	// Start up a SIOT test server for this test
@@ -52,7 +58,7 @@ func TestDb(t *testing.T) {
 		URI:         "http://localhost:8086",
 		Org:         "siot-test",
 		Bucket:      "test",
-		AuthToken:   "wVZR5slBSmz2bT2EBUis_Orjl9I0vgNn8RDAAXjgyBkzB9QH_hMDkOslFC8kOsDrA-2e9zHYqy2ztRju8XHI6w==",
+		AuthToken:   authToken,
 	}
 
 	// set up Db client
