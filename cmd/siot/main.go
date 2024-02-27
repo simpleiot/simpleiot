@@ -87,7 +87,8 @@ func main() {
 }
 
 func runServer(args []string, version string, id string) error {
-	options, err := server.Args(args)
+	flags := flag.NewFlagSet("serve", flag.ExitOnError)
+	options, err := server.Args(args, flags)
 	if err != nil {
 		return err
 	}

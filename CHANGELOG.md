@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- server: Args now accepts a `*FlagSet` to allow flags to be extended
+
 ## [[0.14.10] - 2024-02-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.10)
 
 - store: Improved performance when loading many nodes and edges
