@@ -56,7 +56,7 @@ func (m *Manager) init() error {
 
 	appVer, ok := rootNode.Points.Find(data.PointTypeVersionApp, "")
 	if !ok || appVer.Text != m.appVersion {
-		log.Println("Setting app version: ", m.appVersion)
+		log.Println("Setting app version:", m.appVersion)
 		err := client.SendNodePoint(m.nc, rootNode.ID, data.Point{
 			Type: data.PointTypeVersionApp,
 			Text: m.appVersion,
@@ -70,12 +70,12 @@ func (m *Manager) init() error {
 	// check if OS version is current
 	osVer, err := system.ReadOSVersion(m.osVersionField)
 	if err != nil {
-		log.Println("Error reading OS version: ", err)
+		log.Println("Error reading OS version:", err)
 	} else {
-		log.Println("OS version: ", osVer)
+		log.Println("OS version:", osVer)
 		osVerStored, ok := rootNode.Points.Find(data.PointTypeVersionOS, "")
 		if !ok || osVer.String() != osVerStored.Text {
-			log.Println("Setting os version: ", osVer)
+			log.Println("Setting os version:", osVer)
 			err := client.SendNodePoint(m.nc, rootNode.ID, data.Point{
 				Type: data.PointTypeVersionOS,
 				Text: osVer.String(),
@@ -124,7 +124,7 @@ func (m *Manager) Start() error {
 		// TODO: this will not scale and needs to be made event driven
 		nodes, err := m.db.Nodes()
 		if err != nil {
-			log.Println("Error getting nodes: ", err)
+			log.Println("Error getting nodes:", err)
 			time.Sleep(10 * time.Second)
 			continue
 		}
@@ -141,7 +141,7 @@ func (m *Manager) Start() error {
 
 				err := client.SendNodePoint(m.nc, node.ID, p, false)
 				if err != nil {
-					log.Println("Error updating node state: ", err)
+					log.Println("Error updating node state:", err)
 				}
 			}
 		}

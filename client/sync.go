@@ -102,7 +102,7 @@ func (up *SyncClient) Run() error {
 		nodeID, points, err := DecodeNodePointsMsg(msg)
 
 		if err != nil {
-			log.Println("Error decoding point: ", err)
+			log.Println("Error decoding point:", err)
 			return
 		}
 
@@ -110,14 +110,14 @@ func (up *SyncClient) Run() error {
 
 	})
 	if err != nil {
-		log.Println("SyncClient: error subscribing: ", err)
+		log.Println("SyncClient: error subscribing:", err)
 	}
 
 	subLocalEdgePoints, err := up.ncLocal.Subscribe(SubjectEdgeAllPoints(), func(msg *nats.Msg) {
 		nodeID, parentID, points, err := DecodeEdgePointsMsg(msg)
 
 		if err != nil {
-			log.Println("Error decoding point: ", err)
+			log.Println("Error decoding point:", err)
 			return
 		}
 
@@ -131,7 +131,7 @@ func (up *SyncClient) Run() error {
 		}
 	})
 	if err != nil {
-		log.Println("SyncClient: error subscribing: ", err)
+		log.Println("SyncClient: error subscribing:", err)
 	}
 
 	checkPeriod := func() {
@@ -143,7 +143,7 @@ func (up *SyncClient) Run() error {
 
 			err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)
 			if err != nil {
-				log.Println("Error resetting sync sync count: ", err)
+				log.Println("Error resetting sync sync count:", err)
 			}
 		}
 	}
@@ -167,7 +167,7 @@ done:
 	for {
 		select {
 		case <-up.stop:
-			log.Println("Stopping upstream client: ", up.config.Description)
+			log.Println("Stopping upstream client:", up.config.Description)
 			break done
 		case <-connectTimer.C:
 			err := up.connect()
@@ -179,7 +179,7 @@ done:
 		case <-syncTicker.C:
 			err := up.syncNode("root", up.rootLocal.ID)
 			if err != nil {
-				log.Println("Error syncing: ", err)
+				log.Println("Error syncing:", err)
 			}
 
 		case conn := <-up.chConnected:
@@ -188,14 +188,14 @@ done:
 				syncTicker.Reset(time.Duration(up.config.Period) * time.Second)
 				err := up.syncNode("root", up.rootLocal.ID)
 				if err != nil {
-					log.Println("Error syncing: ", err)
+					log.Println("Error syncing:", err)
 				}
 
 				if !up.initialSub {
 					// set up initial subscriptions to remote nodes
 					err = up.subscribeRemoteNode(up.rootLocal.Parent, up.rootLocal.ID)
 					if err != nil {
-						log.Println("Sync: initial sub failed: ", err)
+						log.Println("Sync: initial sub failed:", err)
 					} else {
 						up.initialSub = true
 					}
@@ -210,20 +210,20 @@ done:
 			if connected {
 				err = SendNodePoints(up.ncRemote, pts.ID, pts.Points, false)
 				if err != nil {
-					log.Println("Error sending node points to remote system: ", err)
+					log.Println("Error sending node points to remote system:", err)
 				}
 			}
 		case pts := <-chLocalEdgePoints:
 			if connected {
 				err = SendEdgePoints(up.ncRemote, pts.ID, pts.Parent, pts.Points, false)
 				if err != nil {
-					log.Println("Error sending edge points to remote system: ", err)
+					log.Println("Error sending edge points to remote system:", err)
 				}
 			}
 		case pts := <-up.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &up.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 
 			for _, p := range pts.Points {
@@ -254,14 +254,14 @@ done:
 
 				err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)
 				if err != nil {
-					log.Println("Error resetting sync sync count: ", err)
+					log.Println("Error resetting sync sync count:", err)
 				}
 			}
 
 		case pts := <-up.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &up.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 		case edge := <-up.chNewEdge:
 			if !edge.local {
@@ -275,7 +275,7 @@ done:
 
 				nodes, err := GetNodes(up.ncLocal, edge.parent, edge.id, "", true)
 				if err != nil {
-					log.Println("Error getting local node: ", err)
+					log.Println("Error getting local node:", err)
 					break
 				}
 
@@ -290,7 +290,7 @@ done:
 				time.Sleep(10 * time.Millisecond)
 				nodes, err = GetNodes(up.ncRemote, edge.parent, edge.id, "", true)
 				if err != nil {
-					log.Println("Error getting node: ", err)
+					log.Println("Error getting node:", err)
 					break
 				}
 				for _, n := range nodes {
@@ -300,14 +300,14 @@ done:
 					}
 					err := up.sendNodesLocal(n)
 					if err != nil {
-						log.Println("Error chNewEdge sendNodesLocal: ", err)
+						log.Println("Error chNewEdge sendNodesLocal:", err)
 					}
 				}
 			}
 
 			err = up.subscribeRemoteNode(edge.parent, edge.id)
 			if err != nil {
-				log.Println("Error subscribing to new edge: ", err)
+				log.Println("Error subscribing to new edge:", err)
 			}
 		}
 	}
@@ -315,12 +315,12 @@ done:
 	// clean up
 	err = subLocalNodePoints.Unsubscribe()
 	if err != nil {
-		log.Println("Error unsubscribing node points from local bus: ", err)
+		log.Println("Error unsubscribing node points from local bus:", err)
 	}
 
 	err = subLocalEdgePoints.Unsubscribe()
 	if err != nil {
-		log.Println("Error unsubscribing edge points from local bus: ", err)
+		log.Println("Error unsubscribing edge points from local bus:", err)
 	}
 
 	up.disconnect()
@@ -390,13 +390,13 @@ func (up *SyncClient) subscribeRemoteNodePoints(id string) error {
 		up.subRemoteNodePoints[id], err = up.ncRemote.Subscribe(SubjectNodePoints(id), func(msg *nats.Msg) {
 			nodeID, points, err := DecodeNodePointsMsg(msg)
 			if err != nil {
-				log.Println("Error decoding point: ", err)
+				log.Println("Error decoding point:", err)
 				return
 			}
 
 			err = SendNodePoints(up.ncLocal, nodeID, points, false)
 			if err != nil {
-				log.Println("Error sending node points to remote system: ", err)
+				log.Println("Error sending node points to remote system:", err)
 			}
 		})
 
@@ -416,13 +416,13 @@ func (up *SyncClient) subscribeRemoteEdgePoints(parent, id string) error {
 			func(msg *nats.Msg) {
 				nodeID, parentID, points, err := DecodeEdgePointsMsg(msg)
 				if err != nil {
-					log.Println("Error decoding point: ", err)
+					log.Println("Error decoding point:", err)
 					return
 				}
 
 				err = SendEdgePoints(up.ncLocal, nodeID, parentID, points, false)
 				if err != nil {
-					log.Println("Error sending edge points to remote system: ", err)
+					log.Println("Error sending edge points to remote system:", err)
 				}
 			})
 
@@ -464,7 +464,7 @@ func (up *SyncClient) disconnect() {
 	for key, sub := range up.subRemoteNodePoints {
 		err := sub.Unsubscribe()
 		if err != nil {
-			log.Println("Error unsubscribing from remote: ", err)
+			log.Println("Error unsubscribing from remote:", err)
 		}
 		delete(up.subRemoteNodePoints, key)
 	}
@@ -472,7 +472,7 @@ func (up *SyncClient) disconnect() {
 	for key, sub := range up.subRemoteEdgePoints {
 		err := sub.Unsubscribe()
 		if err != nil {
-			log.Println("Error unsubscribing from remote: ", err)
+			log.Println("Error unsubscribing from remote:", err)
 		}
 		delete(up.subRemoteEdgePoints, key)
 	}
@@ -481,7 +481,7 @@ func (up *SyncClient) disconnect() {
 	if up.subRemoteUp != nil {
 		err := up.subRemoteUp.Unsubscribe()
 		if err != nil {
-			log.Println("subRemoteUp.Unsubscribe() error: ", err)
+			log.Println("subRemoteUp.Unsubscribe() error:", err)
 		}
 		up.subRemoteUp = nil
 	}
@@ -564,7 +564,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		up.subRemoteUp, err = up.ncRemote.Subscribe(subject, func(msg *nats.Msg) {
 			_, id, parent, points, err := DecodeUpEdgePointsMsg(msg)
 			if err != nil {
-				log.Println("Error decoding remote up points: ", err)
+				log.Println("Error decoding remote up points:", err)
 			} else {
 				for _, p := range points {
 					if p.Type == data.PointTypeTombstone &&
@@ -578,7 +578,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		})
 
 		if err != nil {
-			log.Println("Error subscribing to remote up...: ", err)
+			log.Println("Error subscribing to remote up...:", err)
 		}
 	}
 
@@ -678,7 +678,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 
 		err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)
 		if err != nil {
-			log.Println("Error resetting sync sync count: ", err)
+			log.Println("Error resetting sync sync count:", err)
 		}
 	}
 
@@ -701,13 +701,13 @@ func (up *SyncClient) syncNode(parent, id string) error {
 					// need to send point upstream
 					err := SendNodePoint(up.ncRemote, nodeUp.ID, p, true)
 					if err != nil {
-						log.Println("Error syncing point upstream: ", err)
+						log.Println("Error syncing point upstream:", err)
 					}
 				} else if p.Time.Before(pUp.Time) {
 					// need to update point locally
 					err := SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
 					if err != nil {
-						log.Println("Error syncing point from upstream: ", err)
+						log.Println("Error syncing point from upstream:", err)
 					}
 				}
 			}
@@ -716,7 +716,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		if !found {
 			err := SendNodePoint(up.ncRemote, nodeUp.ID, p, true)
 			if err != nil {
-				log.Println("Error sending point: ", err)
+				log.Println("Error sending point:", err)
 			}
 		}
 	}
@@ -726,7 +726,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		if _, ok := upstreamProcessed[i]; !ok {
 			err := SendNodePoint(up.nc, nodeLocal.ID, pUp, true)
 			if err != nil {
-				log.Println("Error syncing point from upstream: ", err)
+				log.Println("Error syncing point from upstream:", err)
 			}
 		}
 	}
@@ -747,13 +747,13 @@ func (up *SyncClient) syncNode(parent, id string) error {
 						// need to send point upstream
 						err := SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
 						if err != nil {
-							log.Println("Error syncing point upstream: ", err)
+							log.Println("Error syncing point upstream:", err)
 						}
 					} else if p.Time.Before(pUp.Time) {
 						// need to update point locally
 						err := SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
 						if err != nil {
-							log.Println("Error syncing point from upstream: ", err)
+							log.Println("Error syncing point from upstream:", err)
 						}
 					}
 				}
@@ -762,7 +762,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 			if !found {
 				err := SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, p, true)
 				if err != nil {
-					log.Println("Error sending point: ", err)
+					log.Println("Error sending point:", err)
 				}
 			}
 		}
@@ -772,7 +772,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 			if _, ok := upstreamProcessed[i]; !ok {
 				err := SendEdgePoint(up.nc, nodeLocal.ID, nodeLocal.Parent, pUp, true)
 				if err != nil {
-					log.Println("Error syncing edge point from upstream: ", err)
+					log.Println("Error syncing edge point from upstream:", err)
 				}
 			}
 		}
@@ -812,12 +812,12 @@ func (up *SyncClient) syncNode(parent, id string) error {
 			// need to send node upstream
 			err := up.sendNodesRemote(child)
 			if err != nil {
-				log.Println("Error sending node upstream: ", err)
+				log.Println("Error sending node upstream:", err)
 			}
 
 			err = up.subscribeRemoteNode(child.Parent, child.ID)
 			if err != nil {
-				log.Println("Error subscribing to upstream: ", err)
+				log.Println("Error subscribing to upstream:", err)
 			}
 		}
 	}
@@ -826,11 +826,11 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		if _, ok := upChildProcessed[i]; !ok {
 			err := up.sendNodesLocal(upChild)
 			if err != nil {
-				log.Println("Error getting node from upstream: ", err)
+				log.Println("Error getting node from upstream:", err)
 			}
 			err = up.subscribeRemoteNode(upChild.Parent, upChild.ID)
 			if err != nil {
-				log.Println("Error subscribing to upstream: ", err)
+				log.Println("Error subscribing to upstream:", err)
 			}
 		}
 	}

@@ -253,7 +253,7 @@ loop:
 			// Update config
 			err := data.MergePoints(nodePoints.ID, nodePoints.Points, &c.config)
 			if err != nil {
-				log.Println("Error merging points: ", err)
+				log.Println("Error merging points:", err)
 			}
 
 			// Handle Disable flag

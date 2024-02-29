@@ -64,7 +64,7 @@ func (s *Server) Listen(errorCallback func(error),
 			if err != io.EOF && s.transport.Type() == TransportTypeRTU {
 				// only print errors for RTU for now as we get timeout
 				// errors with TCP
-				log.Println("Error reading modbus port: ", err)
+				log.Println("Error reading modbus port:", err)
 			}
 
 			if err == io.EOF && s.transport.Type() == TransportTypeTCP {

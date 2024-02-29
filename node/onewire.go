@@ -47,7 +47,7 @@ func newOneWire(nc *nats.Conn, node data.NodeEdge) (*oneWire, error) {
 			points, err := data.PbDecodePoints(msg.Data)
 			if err != nil {
 				// FIXME, send over channel
-				log.Println("Error decoding node data: ", err)
+				log.Println("Error decoding node data:", err)
 				return
 			}
 
@@ -71,7 +71,7 @@ func (ow *oneWire) stop() {
 	if ow.sub != nil {
 		err := ow.sub.Unsubscribe()
 		if err != nil {
-			log.Println("Error unsubscribing from bus: ", err)
+			log.Println("Error unsubscribing from bus:", err)
 		}
 	}
 	for _, io := range ow.ios {
@@ -97,12 +97,12 @@ func (ow *oneWire) CheckIOs() error {
 			var err error
 			ioNode, err := newOneWireIONode(&node)
 			if err != nil {
-				log.Println("Error with IO node: ", err)
+				log.Println("Error with IO node:", err)
 				continue
 			}
 			io, err := newOneWireIO(ow.nc, ioNode, ow.chPoint)
 			if err != nil {
-				log.Println("Error creating new modbus IO: ", err)
+				log.Println("Error creating new modbus IO:", err)
 				continue
 			}
 			ow.ios[node.ID] = io
@@ -114,7 +114,7 @@ func (ow *oneWire) CheckIOs() error {
 		_, ok := found[id]
 		if !ok {
 			// io was deleted so close and clear it
-			log.Println("modbus io removed: ", io.ioNode.description)
+			log.Println("modbus io removed:", io.ioNode.description)
 			io.stop()
 			delete(ow.ios, id)
 		}
@@ -140,12 +140,12 @@ func (ow *oneWire) checkIOs() error {
 			var err error
 			ioNode, err := newOneWireIONode(&node)
 			if err != nil {
-				log.Println("Error with IO node: ", err)
+				log.Println("Error with IO node:", err)
 				continue
 			}
 			io, err := newOneWireIO(ow.nc, ioNode, ow.chPoint)
 			if err != nil {
-				log.Println("Error creating new modbus IO: ", err)
+				log.Println("Error creating new modbus IO:", err)
 				continue
 			}
 			ow.ios[node.ID] = io
@@ -157,7 +157,7 @@ func (ow *oneWire) checkIOs() error {
 		_, ok := found[id]
 		if !ok {
 			// io was deleted so close and clear it
-			log.Println("modbus io removed: ", io.ioNode.description)
+			log.Println("modbus io removed:", io.ioNode.description)
 			io.stop()
 			delete(ow.ios, id)
 		}
@@ -183,7 +183,7 @@ func (ow *oneWire) detect() {
 			}
 
 			if !found {
-				log.Println("adding 1-wire IO: ", id)
+				log.Println("adding 1-wire IO:", id)
 
 				n := data.NodeEdge{
 					Type:   data.NodeTypeOneWireIO,
@@ -202,7 +202,7 @@ func (ow *oneWire) detect() {
 
 				err := client.SendNode(ow.nc, n, "")
 				if err != nil {
-					log.Println("Error sending new 1-wire IO: ", err)
+					log.Println("Error sending new 1-wire IO:", err)
 				}
 			}
 		}
@@ -232,7 +232,7 @@ func (ow *oneWire) run() {
 				var err error
 				ow.owNode, err = newOneWireNode(ow.node)
 				if err != nil {
-					log.Println("Error updating OW node: ", err)
+					log.Println("Error updating OW node:", err)
 				}
 
 				switch point.point.Type {
@@ -243,13 +243,13 @@ func (ow *oneWire) run() {
 						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
 						err := client.SendNodePoint(ow.nc, ow.owNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
 						err = client.SendNodePoint(ow.nc, ow.owNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 					}
 				}
@@ -258,7 +258,7 @@ func (ow *oneWire) run() {
 
 			io, ok := ow.ios[point.id]
 			if !ok {
-				log.Println("1-wire received point for unknown node: ", point.id)
+				log.Println("1-wire received point for unknown node:", point.id)
 				continue
 			}
 
@@ -276,7 +276,7 @@ func (ow *oneWire) run() {
 
 			err := ow.checkIOs()
 			if err != nil {
-				log.Println("Error checking 1-wire ios: ", err)
+				log.Println("Error checking 1-wire ios:", err)
 			}
 			ow.detect()
 			for _, io := range ow.ios {
@@ -294,7 +294,7 @@ func (ow *oneWire) run() {
 						Value: float64(busCount),
 					}, false)
 					if err != nil {
-						log.Println("Error sending point: ", err)
+						log.Println("Error sending point:", err)
 					}
 
 					err = client.SendNodePoint(ow.nc, io.ioNode.nodeID, data.Point{
@@ -302,7 +302,7 @@ func (ow *oneWire) run() {
 						Value: float64(ioCount),
 					}, false)
 					if err != nil {
-						log.Println("Error sending point: ", err)
+						log.Println("Error sending point:", err)
 					}
 				}
 			}

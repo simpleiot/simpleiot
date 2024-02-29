@@ -57,6 +57,6 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	})
 
 	if err != nil {
-		log.Println("Error encoding: ", err)
+		log.Println("Error encoding:", err)
 	}
 }

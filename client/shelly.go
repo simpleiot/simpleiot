@@ -45,7 +45,7 @@ func NewShellyClient(nc *nats.Conn, config Shelly) Client {
 
 // Run runs the main logic for this client and blocks until stopped
 func (sc *ShellyClient) Run() error {
-	log.Println("Starting shelly client: ", sc.config.Description)
+	log.Println("Starting shelly client:", sc.config.Description)
 
 	entriesCh := make(chan *mdns.ServiceEntry, 4)
 
@@ -56,7 +56,7 @@ func (sc *ShellyClient) Run() error {
 	scan := func() {
 		err := mdns.Query(params)
 		if err != nil {
-			log.Println("mdns error: ", err)
+			log.Println("mdns error:", err)
 		}
 	}
 
@@ -68,12 +68,12 @@ done:
 	for {
 		select {
 		case <-sc.stop:
-			log.Println("Stopping shelly client: ", sc.config.Description)
+			log.Println("Stopping shelly client:", sc.config.Description)
 			break done
 		case pts := <-sc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &sc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 
 			for _, p := range pts.Points {
@@ -85,7 +85,7 @@ done:
 		case pts := <-sc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &sc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 
 		case <-scanTicker.C:
@@ -118,7 +118,7 @@ done:
 							}, false)
 
 							if err != nil {
-								log.Println("Error setting io ip: ", err)
+								log.Println("Error setting io ip:", err)
 							}
 						}
 
@@ -130,7 +130,7 @@ done:
 							}, false)
 
 							if err != nil {
-								log.Println("Error setting io offline: ", err)
+								log.Println("Error setting io offline:", err)
 							} else {
 								sc.config.IOs[i].Offline = false
 							}
@@ -152,7 +152,7 @@ done:
 
 				ne, err := data.Encode(newIO)
 				if err != nil {
-					log.Println("Error encoding new shelly IO: ", err)
+					log.Println("Error encoding new shelly IO:", err)
 					continue
 				}
 
@@ -178,7 +178,7 @@ done:
 
 				err = SendNode(sc.nc, ne, sc.config.ID)
 				if err != nil {
-					log.Println("Error sending shelly IO: ", err)
+					log.Println("Error sending shelly IO:", err)
 				}
 			}
 		}

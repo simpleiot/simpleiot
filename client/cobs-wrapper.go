@@ -167,13 +167,13 @@ func (cw *CobsWrapper) Read(b []byte) (int, error) {
 
 func (cw *CobsWrapper) Write(b []byte) (int, error) {
 	if cw.debug >= 8 {
-		log.Println("SER TX RAW: ", test.HexDump(b))
+		log.Println("SER TX RAW:", test.HexDump(b))
 	}
 
 	w := append([]byte{0}, cobs.Encode(b)...)
 
 	if cw.debug >= 9 {
-		log.Println("SER TX COBS: ", test.HexDump(w))
+		log.Println("SER TX COBS:", test.HexDump(w))
 	}
 
 	return cw.dev.Write(w)

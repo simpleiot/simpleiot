@@ -63,7 +63,7 @@ func (m *MetricsClient) Run() error {
 
 			err := SendPoints(m.nc, SubjectNodePoints(m.config.ID), points, false)
 			if err != nil {
-				log.Println("Error sending metrics period: ", err)
+				log.Println("Error sending metrics period:", err)
 			}
 		}
 	}
@@ -95,7 +95,7 @@ done:
 		case pts := <-m.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &m.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 
 			for _, p := range pts.Points {
@@ -114,7 +114,7 @@ done:
 		case pts := <-m.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &m.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 
 		}
@@ -145,7 +145,7 @@ func (m *MetricsClient) sysStart() {
 	// collect static host stats on startup
 	hostStat, err := host.Info()
 	if err != nil {
-		log.Println("Metrics error: ", err)
+		log.Println("Metrics error:", err)
 	} else {
 		// TODO, only send points if they have changed
 		pts := data.Points{
@@ -211,13 +211,13 @@ func (m *MetricsClient) sysStart() {
 		}
 		err = SendNodePoints(m.nc, m.config.ID, pts, false)
 		if err != nil {
-			log.Println("Metrics: error sending points: ", err)
+			log.Println("Metrics: error sending points:", err)
 		}
 	}
 
 	vm, err := mem.VirtualMemory()
 	if err != nil {
-		log.Println("Metrics error: ", err)
+		log.Println("Metrics error:", err)
 	} else {
 		pt := data.Point{
 			Type:  data.PointTypeMetricSysMem,
@@ -228,7 +228,7 @@ func (m *MetricsClient) sysStart() {
 
 		err = SendNodePoint(m.nc, m.config.ID, pt, false)
 		if err != nil {
-			log.Println("Metrics: error sending points: ", err)
+			log.Println("Metrics: error sending points:", err)
 		}
 	}
 
@@ -240,7 +240,7 @@ func (m *MetricsClient) sysPeriodic() {
 
 	avg, err := load.Avg()
 	if err != nil {
-		log.Println("Metrics error: ", err)
+		log.Println("Metrics error:", err)
 	} else {
 		pts = append(pts, data.Points{
 			{
@@ -267,7 +267,7 @@ func (m *MetricsClient) sysPeriodic() {
 
 	perc, err := cpu.Percent(time.Duration(m.config.Period)*time.Second, false)
 	if err != nil {
-		log.Println("Metrics error: ", err)
+		log.Println("Metrics error:", err)
 	} else {
 		pts = append(pts, data.Point{Type: data.PointTypeMetricSysCPUPercent,
 			Time:  now,
@@ -277,7 +277,7 @@ func (m *MetricsClient) sysPeriodic() {
 
 	vm, err := mem.VirtualMemory()
 	if err != nil {
-		log.Println("Metrics error: ", err)
+		log.Println("Metrics error:", err)
 	} else {
 		pts = append(pts, data.Points{
 			{
@@ -308,7 +308,7 @@ func (m *MetricsClient) sysPeriodic() {
 
 	parts, err := disk.Partitions(false)
 	if err != nil {
-		log.Println("Metrics error: ", err)
+		log.Println("Metrics error:", err)
 	} else {
 		for _, p := range parts {
 			if strings.HasPrefix(p.Mountpoint, "/run/media") {
@@ -318,7 +318,7 @@ func (m *MetricsClient) sysPeriodic() {
 
 			u, err := disk.Usage(p.Mountpoint)
 			if err != nil {
-				log.Println("Error getting disk usage: ", err)
+				log.Println("Error getting disk usage:", err)
 				continue
 			}
 			pts = append(pts, data.Points{
@@ -334,7 +334,7 @@ func (m *MetricsClient) sysPeriodic() {
 
 	netio, err := net.IOCounters(true)
 	if err != nil {
-		log.Println("Metrics error: ", err)
+		log.Println("Metrics error:", err)
 	} else {
 		for _, io := range netio {
 			pts = append(pts, data.Points{
@@ -357,7 +357,7 @@ func (m *MetricsClient) sysPeriodic() {
 
 	uptime, err := host.Uptime()
 	if err != nil {
-		log.Println("Metrics error: ", err)
+		log.Println("Metrics error:", err)
 	} else {
 		pts = append(pts, data.Point{
 			Time:  now,
@@ -368,7 +368,7 @@ func (m *MetricsClient) sysPeriodic() {
 
 	temps, err := host.SensorsTemperatures()
 	if err != nil {
-		log.Println("Error reading sensors: ", err)
+		log.Println("Error reading sensors:", err)
 	} else {
 		for _, t := range temps {
 			pts = append(pts, data.Points{
@@ -384,7 +384,7 @@ func (m *MetricsClient) sysPeriodic() {
 
 	err = SendNodePoints(m.nc, m.config.ID, pts, false)
 	if err != nil {
-		log.Println("Metrics: error sending points: ", err)
+		log.Println("Metrics: error sending points:", err)
 	}
 }
 
@@ -414,7 +414,7 @@ func (m *MetricsClient) appPeriodic(procName string) {
 
 		err := SendNodePoints(m.nc, m.config.ID, pts, false)
 		if err != nil {
-			log.Println("Metrics: error sending points: ", err)
+			log.Println("Metrics: error sending points:", err)
 		}
 	}
 
@@ -422,7 +422,7 @@ func (m *MetricsClient) appPeriodic(procName string) {
 
 	procs, err := process.Processes()
 	if err != nil {
-		log.Println("Metrics error: ", err)
+		log.Println("Metrics error:", err)
 	} else {
 		var accumCPUPerc, accumMemPerc, accumMemRSS float64
 		var procCount int
@@ -430,7 +430,7 @@ func (m *MetricsClient) appPeriodic(procName string) {
 			if procName != "" {
 				name, err := p.Name()
 				if err != nil {
-					log.Println("Error getting process name: ", err)
+					log.Println("Error getting process name:", err)
 					continue
 				}
 				if name != procName {
@@ -446,7 +446,7 @@ func (m *MetricsClient) appPeriodic(procName string) {
 
 			cpuPerc, err := p.CPUPercent()
 			if err != nil {
-				log.Println("Error getting CPU percent for proc: ", err)
+				log.Println("Error getting CPU percent for proc:", err)
 				break
 			}
 
@@ -454,7 +454,7 @@ func (m *MetricsClient) appPeriodic(procName string) {
 
 			memPerc, err := p.MemoryPercent()
 			if err != nil {
-				log.Println("Error getting mem percent for proc: ", err)
+				log.Println("Error getting mem percent for proc:", err)
 				break
 			}
 
@@ -462,7 +462,7 @@ func (m *MetricsClient) appPeriodic(procName string) {
 
 			memInfo, err := p.MemoryInfo()
 			if err != nil {
-				log.Println("Error getting mem info: ", err)
+				log.Println("Error getting mem info:", err)
 				break
 			}
 
@@ -497,7 +497,7 @@ func (m *MetricsClient) appPeriodic(procName string) {
 
 		err = SendNodePoints(m.nc, m.config.ID, pts, false)
 		if err != nil {
-			log.Println("Metrics: error sending points: ", err)
+			log.Println("Metrics: error sending points:", err)
 		}
 
 	}
@@ -517,12 +517,12 @@ func (m *MetricsClient) allProcPeriodic() {
 
 	procs, err := process.Processes()
 	if err != nil {
-		log.Println("Metrics error: ", err)
+		log.Println("Metrics error:", err)
 	} else {
 		for _, p := range procs {
 			name, err := p.Name()
 			if err != nil {
-				log.Println("Error getting process name: ", err)
+				log.Println("Error getting process name:", err)
 				continue
 			}
 
@@ -532,7 +532,7 @@ func (m *MetricsClient) allProcPeriodic() {
 
 			cpuPerc, err := p.CPUPercent()
 			if err != nil {
-				log.Println("Error getting CPU percent for proc: ", err)
+				log.Println("Error getting CPU percent for proc:", err)
 				break
 			}
 
@@ -540,7 +540,7 @@ func (m *MetricsClient) allProcPeriodic() {
 
 			memPerc, err := p.MemoryPercent()
 			if err != nil {
-				log.Println("Error getting mem percent for proc: ", err)
+				log.Println("Error getting mem percent for proc:", err)
 				break
 			}
 
@@ -548,7 +548,7 @@ func (m *MetricsClient) allProcPeriodic() {
 
 			memInfo, err := p.MemoryInfo()
 			if err != nil {
-				log.Println("Error getting mem info: ", err)
+				log.Println("Error getting mem info:", err)
 				break
 			}
 
@@ -587,7 +587,7 @@ func (m *MetricsClient) allProcPeriodic() {
 
 		err = SendNodePoints(m.nc, m.config.ID, pts, false)
 		if err != nil {
-			log.Println("Metrics: error sending points: ", err)
+			log.Println("Metrics: error sending points:", err)
 		}
 	}
 }

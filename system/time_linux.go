@@ -15,7 +15,7 @@ func SetTime(t time.Time) (err error) {
 	tv := syscall.NsecToTimeval(t.UnixNano())
 	err = syscall.Settimeofday(&tv)
 	if err != nil {
-		log.Println("Error synchronizing system clock: ", err)
+		log.Println("Error synchronizing system clock:", err)
 		return err
 	}
 

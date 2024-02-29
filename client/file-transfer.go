@@ -32,10 +32,10 @@ func ListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path strin
 		err := proto.Unmarshal(m.Data, chunk)
 
 		if err != nil {
-			log.Println("Error decoding file chunk: ", err)
+			log.Println("Error decoding file chunk:", err)
 			err := nc.Publish(m.Reply, []byte("error decoding"))
 			if err != nil {
-				log.Println("Error replying to file download: ", err)
+				log.Println("Error replying to file download:", err)
 				return
 			}
 		}
@@ -46,10 +46,10 @@ func ListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path strin
 			dl.data = []byte{}
 			dl.seq = 0
 		} else if chunk.Seq != dl.seq+1 {
-			log.Println("Seq # error in file download: ", dl.seq, chunk.Seq)
+			log.Println("Seq # error in file download:", dl.seq, chunk.Seq)
 			err := nc.Publish(m.Reply, []byte("seq error"))
 			if err != nil {
-				log.Println("Error replying to file download: ", err)
+				log.Println("Error replying to file download:", err)
 				return
 			}
 		}
@@ -67,10 +67,10 @@ func ListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path strin
 			filePath := path.Join(dir, dl.name)
 			err := os.WriteFile(filePath, dl.data, 0644)
 			if err != nil {
-				log.Println("Error writing dl file: ", err)
+				log.Println("Error writing dl file:", err)
 				err := nc.Publish(m.Reply, []byte("error writing"))
 				if err != nil {
-					log.Println("Error replying to file download: ", err)
+					log.Println("Error replying to file download:", err)
 					return
 				}
 			}
@@ -80,7 +80,7 @@ func ListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path strin
 
 		err = nc.Publish(m.Reply, []byte("OK"))
 		if err != nil {
-			log.Println("Error replying to file download: ", err)
+			log.Println("Error replying to file download:", err)
 		}
 	})
 
@@ -129,14 +129,14 @@ func SendFile(nc *nats.Conn, deviceID string, reader io.Reader, name string, cal
 			msg, err := nc.Request(subject, out, time.Minute)
 
 			if err != nil {
-				log.Println("Error sending file, retrying: ", retry, err)
+				log.Println("Error sending file, retrying:", retry, err)
 				continue
 			}
 
 			msgS := string(msg.Data)
 
 			if msgS != "OK" {
-				log.Println("Error from device when sending file: ", retry, msgS)
+				log.Println("Error from device when sending file:", retry, msgS)
 				continue
 			}
 

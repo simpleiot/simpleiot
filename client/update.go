@@ -29,7 +29,7 @@ func StartUpdate(id, url string) error {
 			})
 
 			if err != nil {
-				log.Println("Error setting update status in DB: ", err)
+				log.Println("Error setting update status in DB:", err)
 			}
 		})
 
@@ -50,7 +50,7 @@ func StartUpdate(id, url string) error {
 
 		err = st.setSwUpdateState(id, state)
 		if err != nil {
-			log.Println("Error setting sw update state: ", err)
+			log.Println("Error setting sw update state:", err)
 		}
 	}()
 

@@ -46,16 +46,16 @@ func main() {
 	err = tof.SetSendInterval(*flagSend)
 
 	if err != nil {
-		log.Println("Error setting send interval: ", err)
+		log.Println("Error setting send interval:", err)
 	}
 
 	err = tof.Read(func(v int) {
 		log.Printf("TOF data: %vmm\n", v)
 	}, func(err error) {
-		log.Println("Error reading TOF: ", err)
+		log.Println("Error reading TOF:", err)
 	})
 
 	if err != nil {
-		log.Println("Error reading TOF: ", err)
+		log.Println("Error reading TOF:", err)
 	}
 }

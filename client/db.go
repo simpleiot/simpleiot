@@ -50,7 +50,7 @@ func NewDbClient(nc *nats.Conn, config Db) Client {
 
 // Run runs the main logic for this client and blocks until stopped
 func (dbc *DbClient) Run() error {
-	log.Println("Starting db client: ", dbc.config.Description)
+	log.Println("Starting db client:", dbc.config.Description)
 
 	// FIXME, we probably want to store edge points too ...
 	subject := fmt.Sprintf("up.%v.*", dbc.config.Parent)
@@ -59,14 +59,14 @@ func (dbc *DbClient) Run() error {
 	dbc.upSub, err = dbc.nc.Subscribe(subject, func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
-			log.Println("Error decoding points in db upSub: ", err)
+			log.Println("Error decoding points in db upSub:", err)
 			return
 		}
 
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
 		if len(chunks) != 3 {
-			log.Println("rule client up sub, malformed subject: ", msg.Subject)
+			log.Println("rule client up sub, malformed subject:", msg.Subject)
 			return
 		}
 
@@ -83,7 +83,7 @@ func (dbc *DbClient) Run() error {
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
 		if len(chunks) != 3 {
-			log.Println("rule client up hr sub, malformed subject: ", msg.Subject)
+			log.Println("rule client up hr sub, malformed subject:", msg.Subject)
 			return
 		}
 
@@ -104,7 +104,7 @@ func (dbc *DbClient) Run() error {
 		})
 
 		if err != nil {
-			log.Println("DB: error decoding HR data: ", err)
+			log.Println("DB: error decoding HR data:", err)
 		}
 	})
 
@@ -124,7 +124,7 @@ func (dbc *DbClient) Run() error {
 		go func() {
 			for err := range influxErrors {
 				if err != nil {
-					log.Println("Influx write error: ", err)
+					log.Println("Influx write error:", err)
 				}
 
 			}
@@ -138,12 +138,12 @@ done:
 	for {
 		select {
 		case <-dbc.stop:
-			log.Println("Stopping db client: ", dbc.config.Description)
+			log.Println("Stopping db client:", dbc.config.Description)
 			break done
 		case pts := <-dbc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &dbc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 
 			for _, p := range pts.Points {
@@ -161,7 +161,7 @@ done:
 		case pts := <-dbc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &dbc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 		case pts := <-dbc.newDbPoints:
 			for _, point := range pts.Points {

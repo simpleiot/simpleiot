@@ -23,7 +23,7 @@ func httpDownload(url, fn string) {
 
 	file, err := os.Create(fn)
 	if err != nil {
-		log.Println("App update: error creating file: ", err)
+		log.Println("App update: error creating file:", err)
 		return
 	}
 
@@ -36,7 +36,7 @@ func httpDownload(url, fn string) {
 	// Get the data
 	resp, err := netClient.Get(url)
 	if err != nil {
-		log.Println("App update: error getting update file: ", err)
+		log.Println("App update: error getting update file:", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -45,7 +45,7 @@ func httpDownload(url, fn string) {
 	_, err = io.Copy(file, resp.Body)
 
 	if err != nil {
-		log.Println("App update: error downloading update file: ", err)
+		log.Println("App update: error downloading update file:", err)
 		return
 	}
 
@@ -56,7 +56,7 @@ func httpDownload(url, fn string) {
 func grabDownload(url, fn string) {
 	file, err := os.Create(fn)
 	if err != nil {
-		log.Println("App update: error creating file: ", err)
+		log.Println("App update: error creating file:", err)
 		return
 	}
 
@@ -79,7 +79,7 @@ func grabDownload(url, fn string) {
 
 		case <-resp.Done:
 			if err := resp.Err(); err != nil {
-				log.Println("Error downloading: ", err)
+				log.Println("Error downloading:", err)
 			}
 			return
 		}
@@ -112,7 +112,7 @@ func main() {
 	url, err := url.Parse(*flagURL)
 
 	if err != nil {
-		log.Println("Error parsing url: ", err)
+		log.Println("Error parsing url:", err)
 		os.Exit(-1)
 	}
 
