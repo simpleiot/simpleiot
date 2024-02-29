@@ -12,6 +12,19 @@ For more details or to discuss releases, please visit the
 ## [Unreleased]
 
 - server: Args now accepts a `*FlagSet` to allow flags to be extended
+- Influx client when writing points from a given node also adds additional tags
+  based on the node that emitted the point. Previously, `nodeID` tag was added,
+  but this has been renamed to `node.id`. Also added is `node.type` and
+  `node.description` (populated with the value of a point of type
+  "description").
+- For each Influx DB client, the user can specify an array of tag point types
+  (via point type "tagPointType"). These point types are also copied as tags
+  for each point emitted by the node.  For example, if node A has two points
+  tag:city (i.e. Point.Type is "tag" and Point.Key is "city") and tag:state,
+  then these point values are appended to every single point emitted by node A.
+  In Influx, each point would have a tag `node.tag.city` and `node.tag.state`
+  with their respective Point.Text values.
+- BREAKING CHANGE: Influx DB tag `nodeID` is now `node.id`
 
 ## [[0.14.10] - 2024-02-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.10)
 
