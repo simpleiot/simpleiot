@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- NTP client: Do not set configuration if servers are not specified. This allows
+  timesyncd to use the default configuration if no servers are specified.
 - server: Args now accepts a `*FlagSet` to allow flags to be extended
 - Influx client when writing points from a given node also adds additional tags
   based on the node that emitted the point. Previously, `nodeID` tag was added,
