@@ -87,7 +87,8 @@ func main() {
 }
 
 func runServer(args []string, version string, id string) error {
-	options, err := server.Args(args)
+	flags := flag.NewFlagSet("serve", flag.ExitOnError)
+	options, err := server.Args(args, flags)
 	if err != nil {
 		return err
 	}
@@ -462,14 +463,6 @@ func runImport(args []string) {
 		log.Fatal("Error: timeout reading YAML from STDIN")
 	}
 
-	if *flagParentID == "" {
-		root, err := client.GetRootNode(nc)
-		if err != nil {
-			log.Fatal("Error getting root node: ", err)
-		}
-		*flagParentID = root.ID
-	}
-
 	err = client.ImportNodes(nc, *flagParentID, yaml, "import", *flagPreserveIDs)
 	if err != nil {
 		log.Fatal("Error importing nodes: ", err)
@@ -528,14 +521,6 @@ func runExport(args []string) {
 	nc, err := client.EdgeConnect(opts)
 	if err != nil {
 		log.Fatal("Error connecting to NATS server: ", err)
-	}
-
-	if *flagNodeID == "" {
-		root, err := client.GetRootNode(nc)
-		if err != nil {
-			log.Fatal("Error getting root node: ", err)
-		}
-		*flagNodeID = root.ID
 	}
 
 	yaml, err := client.ExportNodes(nc, *flagNodeID)
