@@ -71,7 +71,7 @@ view o =
                             NodeInputs.nodeOptionInput opts "0"
 
                         checkboxInput =
-                            NodeInputs.nodeCheckboxInput opts "0"
+                            NodeInputs.nodeCheckboxInput opts
 
                         numberInput =
                             NodeInputs.nodeNumberInput opts
@@ -115,8 +115,13 @@ view o =
                         "logLevel"
                         "Log (dsp)"
                         logLevels
-                    , checkboxInput "locate" "Location mode"
-                    , checkboxInput "sim"
+                    , checkboxInput "0" "locate" "Locate mode"
+                    , checkboxInput "AX_V" "hrEnable" "HR data A_V en"
+                    , checkboxInput "BX_V" "hrEnable" "HR data B_V en"
+                    , checkboxInput "OX_V" "hrEnable" "HR data O_V en"
+                    , checkboxInput "OX_I" "hrEnable" "HR data O_I en"
+                    , checkboxInput "0"
+                        "sim"
                         "Enable simulation"
                     , viewIf (simEnabled == 1) <|
                         column [ spacing 6 ]
