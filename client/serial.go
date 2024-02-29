@@ -122,7 +122,7 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 					return
 				}
 				sd.wrSeq++
-				err := sd.sendPointsToDevice(sd.wrSeq, false, "", pointsToSend)
+				err := sd.sendPointsToDevice(serialPacket{seq: sd.wrSeq, pts: pointsToSend})
 				if err != nil {
 					log.Println("Error sending points to serial device: ", err)
 				}
@@ -136,14 +136,21 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 	}
 }
 
-func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pts data.Points) error {
-	d, err := SerialEncode(seq, sub, pts)
+type serialPacket struct {
+	seq byte
+	ack bool
+	sub string
+	pts data.Points
+}
+
+func (sd *SerialDevClient) sendPointsToDevice(p serialPacket) error {
+	d, err := SerialEncode(p.seq, p.sub, p.pts)
 	if err != nil {
 		return fmt.Errorf("error encoding points to send to MCU: %w", err)
 	}
 
 	if sd.config.Debug >= 4 {
-		log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, seq, sub, pts)
+		log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, p.seq, p.sub, p.pts)
 	}
 
 	if sd.portCobsWrapper != nil {
@@ -162,8 +169,7 @@ func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pt
 		}
 	}
 
-	if !ack {
-		_ = ack
+	if !p.ack {
 		// TODO: we need to check for response and implement retries
 		// yet.
 	}
@@ -347,7 +353,7 @@ func (sd *SerialDevClient) Run() error {
 		}
 
 		sd.wrSeq++
-		err = sd.sendPointsToDevice(sd.wrSeq, false, "", p)
+		err = sd.sendPointsToDevice(serialPacket{seq: sd.wrSeq, pts: p})
 		if err != nil {
 			log.Println("Error sending time sync point to device: %w", err)
 		}
@@ -460,7 +466,7 @@ exitSerialClient:
 				}
 
 				// send response
-				err := sd.sendPointsToDevice(seq, true, "ack", nil)
+				err := sd.sendPointsToDevice(serialPacket{seq: seq, sub: "ack"})
 				if err != nil {
 					log.Println("Error sending ack to device: ", err)
 				}
@@ -670,7 +676,7 @@ exitSerialClient:
 
 				if len(toSend) > 0 {
 					sd.wrSeq++
-					err := sd.sendPointsToDevice(sd.wrSeq, false, "", toSend)
+					err := sd.sendPointsToDevice(serialPacket{seq: sd.wrSeq, pts: toSend})
 					if err != nil {
 						log.Println("Error sending points to serial device: ", err)
 					}
