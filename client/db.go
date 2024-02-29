@@ -13,13 +13,14 @@ import (
 
 // Db represents the configuration for a SIOT DB client
 type Db struct {
-	ID          string `node:"id"`
-	Parent      string `node:"parent"`
-	Description string `point:"description"`
-	URI         string `point:"uri"`
-	Org         string `point:"org"`
-	Bucket      string `point:"bucket"`
-	AuthToken   string `point:"authToken"`
+	ID            string   `node:"id"`
+	Parent        string   `node:"parent"`
+	Description   string   `point:"description"`
+	URI           string   `point:"uri"`
+	Org           string   `point:"org"`
+	Bucket        string   `point:"bucket"`
+	AuthToken     string   `point:"authToken"`
+	TagPointTypes []string `point:"tagPointType"`
 }
 
 // DbClient is a SIOT database client
@@ -32,6 +33,7 @@ type DbClient struct {
 	newDbPoints   chan NewPoints
 	upSub         *nats.Subscription
 	upSubHr       *nats.Subscription
+	nodeCache     nodeCache
 	client        influxdb2.Client
 	writeAPI      api.WriteAPI
 }
@@ -45,6 +47,7 @@ func NewDbClient(nc *nats.Conn, config Db) Client {
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		newDbPoints:   make(chan NewPoints),
+		nodeCache:     newNodeCache(config.TagPointTypes),
 	}
 }
 
@@ -89,13 +92,22 @@ func (dbc *DbClient) Run() error {
 
 		nodeID := chunks[2]
 
-		err := data.DecodeSerialHrPayload(msg.Data, func(pt data.Point) {
+		// Update nodeCache with no points
+		err := dbc.nodeCache.Update(dbc.nc, NewPoints{
+			ID: nodeID,
+		})
+		if err != nil {
+			log.Printf("error updating cache: %v", err)
+		}
+
+		err = data.DecodeSerialHrPayload(msg.Data, func(pt data.Point) {
+			tags := map[string]string{
+				"key":  pt.Key,
+				"type": pt.Type,
+			}
+			dbc.nodeCache.CopyTags(nodeID, tags)
 			p := influxdb2.NewPoint("points",
-				map[string]string{
-					"nodeID": nodeID,
-					"key":    pt.Key,
-					"type":   pt.Type,
-				},
+				tags,
 				map[string]interface{}{
 					"value": pt.Value,
 				},
@@ -155,6 +167,8 @@ done:
 					// we need to restart the influx write API
 					dbc.client.Close()
 					setupAPI()
+				case data.PointTypeTagPointType:
+					dbc.nodeCache = newNodeCache(dbc.config.TagPointTypes)
 				}
 			}
 
@@ -164,13 +178,20 @@ done:
 				log.Println("error merging new points: ", err)
 			}
 		case pts := <-dbc.newDbPoints:
+			// Update nodeCache if needed
+			err := dbc.nodeCache.Update(dbc.nc, pts)
+			if err != nil {
+				log.Printf("error updating cache: %v", err)
+			}
+			// Add points to InfluxDB
 			for _, point := range pts.Points {
+				tags := map[string]string{
+					"key":  point.Key,
+					"type": point.Type,
+				}
+				dbc.nodeCache.CopyTags(pts.ID, tags)
 				p := influxdb2.NewPoint("points",
-					map[string]string{
-						"nodeID": pts.ID,
-						"key":    point.Key,
-						"type":   point.Type,
-					},
+					tags,
 					map[string]interface{}{
 						"value": point.Value,
 						"text":  point.Text,
@@ -182,6 +203,8 @@ done:
 	}
 
 	// clean up
+	dbc.upSub.Unsubscribe()
+	dbc.upSubHr.Unsubscribe()
 	dbc.client.Close()
 	return nil
 }
