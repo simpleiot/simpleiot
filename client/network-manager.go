@@ -56,6 +56,7 @@ type NetworkManagerClient struct {
 type NetworkManager struct {
 	ID                      string                 `node:"id"`
 	Parent                  string                 `node:"parent"`
+	Description             string                 `point:"description"`
 	Disabled                bool                   `point:"disabled"`
 	Hostname                string                 `point:"hostname"`
 	RequestWiFiScan         bool                   `point:"requestWiFiScan"`
