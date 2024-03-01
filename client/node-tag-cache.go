@@ -121,7 +121,7 @@ func (c nodeCache) Update(nc *nats.Conn, pts NewPoints) error {
 }
 
 // Clear deletes all cache entries
-func (c nodeCache) Clear() {
+func (c *nodeCache) Clear() {
 	c.Lock.Lock()
 	defer c.Lock.Unlock()
 
