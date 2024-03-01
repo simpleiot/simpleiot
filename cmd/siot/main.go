@@ -136,7 +136,7 @@ func runServer(args []string, version string, id string) error {
 
 		<-chStartCheck
 		return nil
-	}, func(err error) {
+	}, func(_ error) {
 		cancel()
 		close(chStartCheck)
 	})

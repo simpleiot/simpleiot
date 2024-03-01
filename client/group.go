@@ -31,7 +31,7 @@ func (g *Group) Run() error {
 	g.group.Add(func() error {
 		<-g.stop
 		return nil
-	}, func(err error) {
+	}, func(_ error) {
 		g.Stop(nil)
 	})
 
