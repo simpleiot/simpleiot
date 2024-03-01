@@ -203,8 +203,8 @@ done:
 	}
 
 	// clean up
-	dbc.upSub.Unsubscribe()
-	dbc.upSubHr.Unsubscribe()
+	_ = dbc.upSub.Unsubscribe()
+	_ = dbc.upSubHr.Unsubscribe()
 	dbc.client.Close()
 	return nil
 }
