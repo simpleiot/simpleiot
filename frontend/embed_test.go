@@ -31,7 +31,7 @@ func TestEmbed(t *testing.T) {
 		t.Fatal("Error subtree: ", err)
 	}
 
-	err = fs.WalkDir(st, ".", func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(st, ".", func(path string, _ fs.DirEntry, _ error) error {
 		fmt.Println("embed: ", path)
 		return nil
 	})

@@ -129,7 +129,7 @@ func (s *Server) AddClient(client client.RunStop) {
 func (s *Server) Run() error {
 	var g run.Group
 
-	logLS := func(m ...any) {}
+	logLS := func(_ ...any) {}
 
 	if s.options.DebugLifecycle {
 		logLS = func(m ...any) {
@@ -169,7 +169,7 @@ func (s *Server) Run() error {
 			s.natsServer.WaitForShutdown()
 			logLS("LS: Exited: nats server")
 			return fmt.Errorf("NATS server stopped")
-		}, func(err error) {
+		}, func(_ error) {
 			go func() {
 				storeWg.Wait()
 				s.natsServer.Shutdown()

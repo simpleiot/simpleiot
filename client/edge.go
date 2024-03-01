@@ -28,7 +28,7 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		authEnabled = "yes"
 	}
 
-	natsErrHandler := func(nc *nats.Conn, sub *nats.Subscription, natsErr error) {
+	natsErrHandler := func(_ *nats.Conn, sub *nats.Subscription, natsErr error) {
 		log.Printf("error: %v\n", natsErr)
 		switch natsErr {
 		case nats.ErrSlowConsumer:
