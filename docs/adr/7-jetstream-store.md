@@ -397,6 +397,12 @@ hierarchical in structure. Thus the streaming/tree approach still appears to be 
   [power loss](https://www.sqlite.org/transactional.html)?
 - Are there any other features of NATS/JetStream that we should be considering?
 
+## Experiments
+
+Several POC experiments have been run to prove the feasibility of this:
+
+https://github.com/simpleiot/nats-exp
+
 ## Decision
 
 Implementation could be broken down into 3 steps:
