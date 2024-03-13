@@ -34,7 +34,7 @@ require (
 	go.einride.tech/can v0.5.1
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/protobuf v1.33.0
 	modernc.org/sqlite v1.18.0
 )
 
