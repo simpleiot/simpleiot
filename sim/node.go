@@ -42,7 +42,7 @@ func NodeSim(portal, nodeID string) {
 
 		err := sendPoints(points)
 		if err != nil {
-			log.Println("Error sending points: ", err)
+			log.Println("Error sending points:", err)
 		}
 		packetDelay()
 	}

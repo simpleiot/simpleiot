@@ -70,7 +70,7 @@ func NewParticleClient(nc *nats.Conn, config Particle) Client {
 
 // Run runs the main logic for this client and blocks until stopped
 func (pc *ParticleClient) Run() error {
-	log.Println("Starting particle client: ", pc.config.Description)
+	log.Println("Starting particle client:", pc.config.Description)
 
 	closeReader := make(chan struct{})  // is closed to close reader
 	readerClosed := make(chan struct{}) // struct{} is sent when reader exits
@@ -86,7 +86,7 @@ func (pc *ParticleClient) Run() error {
 		stream, err := eventsource.Subscribe(urlAuth, "")
 
 		if err != nil {
-			log.Println("Particle subscription error: ", err)
+			log.Println("Particle subscription error:", err)
 			return
 		}
 
@@ -96,14 +96,14 @@ func (pc *ParticleClient) Run() error {
 				var pEvent ParticleEvent
 				err := json.Unmarshal([]byte(event.Data()), &pEvent)
 				if err != nil {
-					log.Println("Got error decoding particle event: ", err)
+					log.Println("Got error decoding particle event:", err)
 					continue
 				}
 
 				var pPoints []particlePoint
 				err = json.Unmarshal([]byte(pEvent.Data), &pPoints)
 				if err != nil {
-					log.Println("error decoding Particle samples: ", err)
+					log.Println("error decoding Particle samples:", err)
 					continue
 				}
 
@@ -116,11 +116,11 @@ func (pc *ParticleClient) Run() error {
 
 				err = SendNodePoints(pc.nc, pc.config.ID, points, false)
 				if err != nil {
-					log.Println("Particle error sending points: ", err)
+					log.Println("Particle error sending points:", err)
 				}
 
 			case err := <-stream.Errors:
-				log.Println("Particle error: ", err)
+				log.Println("Particle error:", err)
 
 			case <-closeReader:
 				log.Println("Exiting particle reader")
@@ -154,12 +154,12 @@ done:
 	for {
 		select {
 		case <-pc.stop:
-			log.Println("Stopping particle client: ", pc.config.Description)
+			log.Println("Stopping particle client:", pc.config.Description)
 			break done
 		case pts := <-pc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &pc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 
 			for _, p := range pts.Points {
@@ -179,7 +179,7 @@ done:
 		case pts := <-pc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &pc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 
 		case <-readerClosed:

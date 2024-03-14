@@ -26,7 +26,7 @@ func NewModbusIO(nc *nats.Conn, node *ModbusIONode, chPoint chan<- pointWID) (*M
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
 			// FIXME, send over channel
-			log.Println("Error decoding node data: ", err)
+			log.Println("Error decoding node data:", err)
 			return
 		}
 
@@ -47,7 +47,7 @@ func (io *ModbusIO) Stop() {
 	if io.sub != nil {
 		err := io.sub.Unsubscribe()
 		if err != nil {
-			log.Println("Error unsubscribing from IO: ", err)
+			log.Println("Error unsubscribing from IO:", err)
 		}
 	}
 }

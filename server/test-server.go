@@ -63,7 +63,7 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 	go func() {
 		err := s.Run()
 		if err != nil {
-			log.Println("Test Server start returned: ", err)
+			log.Println("Test Server start returned:", err)
 		}
 		close(stopped)
 	}()

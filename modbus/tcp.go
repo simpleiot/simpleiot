@@ -164,7 +164,7 @@ func (ts *TCPServer) Listen(errorCallback func(error),
 				done()
 				return
 			}
-			log.Println("Modbus TCP server: failed to accept connection: ", err)
+			log.Println("Modbus TCP server: failed to accept connection:", err)
 		}
 
 		if ts.debug > 0 {

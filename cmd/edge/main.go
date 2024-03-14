@@ -36,12 +36,12 @@ func main() {
 	nc, err := client.EdgeConnect(opts)
 
 	if err != nil {
-		log.Println("Error connecting to NATS server: ", err)
+		log.Println("Error connecting to NATS server:", err)
 		os.Exit(-1)
 	}
 
 	_ = client.ListenForFile(nc, "./", *flagID, func(name string) {
-		log.Println("File downloaded: ", name)
+		log.Println("File downloaded:", name)
 	})
 
 	select {}

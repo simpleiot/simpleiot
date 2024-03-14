@@ -81,7 +81,7 @@ func GetNodesType[T any](nc *nats.Conn, parent, id string) ([]T, error) {
 	for i, n := range nodes {
 		err := data.Decode(data.NodeEdgeChildren{NodeEdge: n, Children: nil}, &ret[i])
 		if err != nil {
-			log.Println("Error decode node in GetNodeType: ", err)
+			log.Println("Error decode node in GetNodeType:", err)
 		}
 	}
 
@@ -406,12 +406,12 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 			case pts := <-pointUpdates:
 				err := data.MergePoints(id, pts, &current)
 				if err != nil {
-					log.Println("NodeWatcher, error merging points: ", err)
+					log.Println("NodeWatcher, error merging points:", err)
 				}
 			case pts := <-edgeUpdates:
 				err := data.MergeEdgePoints(id, parent, pts, &current)
 				if err != nil {
-					log.Println("NodeWatcher, error merging edge points: ", err)
+					log.Println("NodeWatcher, error merging edge points:", err)
 				}
 			}
 		}

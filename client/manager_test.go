@@ -51,12 +51,12 @@ func (tnc *testNodeClient) Run() error {
 		case pts := <-tnc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &tnc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 		case pts := <-tnc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &tnc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 		case ch := <-tnc.chGetConfig:
 			ch <- tnc.config
@@ -345,12 +345,12 @@ func (tnc *testXClient) Run() error {
 		case pts := <-tnc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &tnc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 		case pts := <-tnc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &tnc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 		case ch := <-tnc.chGetConfig:
 			ch <- tnc.config

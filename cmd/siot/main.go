@@ -69,7 +69,7 @@ func main() {
 	switch args[0] {
 	case "serve":
 		if err := runServer(args[1:], version, *flagID); err != nil {
-			log.Println("Simple IoT stopped, reason: ", err)
+			log.Println("Simple IoT stopped, reason:", err)
 		}
 	case "log":
 		runLog(args[1:])
@@ -229,7 +229,7 @@ func runStore(args []string) {
 	nc, err := client.EdgeConnect(opts)
 
 	if err != nil {
-		log.Println("Error connecting to NATS server: ", err)
+		log.Println("Error connecting to NATS server:", err)
 		os.Exit(-1)
 	}
 
@@ -237,7 +237,7 @@ func runStore(args []string) {
 	case *flagCheck:
 		err := client.AdminStoreVerify(nc)
 		if err != nil {
-			log.Println("DB verify failed: ", err)
+			log.Println("DB verify failed:", err)
 		} else {
 			log.Println("DB verified :-)")
 		}
@@ -245,7 +245,7 @@ func runStore(args []string) {
 	case *flagFix:
 		err := client.AdminStoreMaint(nc)
 		if err != nil {
-			log.Println("DB maint failed: ", err)
+			log.Println("DB maint failed:", err)
 		} else {
 			log.Println("DB maint success :-)")
 		}
@@ -313,9 +313,9 @@ func runInstall(args []string) {
 		log.Fatal("Error getting SIOT path: ", err)
 	}
 
-	log.Println("Installing service file: ", servicePath)
-	log.Println("SIOT executable location: ", siotPath)
-	log.Println("SIOT data location: ", dataDir)
+	log.Println("Installing service file:", servicePath)
+	log.Println("SIOT executable location:", siotPath)
+	log.Println("SIOT data location:", dataDir)
 
 	_, err = os.Stat(servicePath)
 

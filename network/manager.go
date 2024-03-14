@@ -98,7 +98,7 @@ func (m *Manager) nextInterface() {
 
 	m.setState(StateNotDetected)
 
-	log.Println("Network: trying next interface: ", m.Desc())
+	log.Println("Network: trying next interface:", m.Desc())
 }
 
 func (m *Manager) connect() error {
@@ -122,7 +122,7 @@ func (m *Manager) Reset() {
 	for _, i := range m.interfaces {
 		err := i.Reset()
 		if err != nil {
-			log.Println("Error resetting interface: ", err)
+			log.Println("Error resetting interface:", err)
 		}
 	}
 }
@@ -141,7 +141,7 @@ func (m *Manager) Run() (State, InterfaceConfig, InterfaceStatus) {
 		if count > 10 {
 			log.Println("network state machine ran too many times")
 			if time.Since(m.stateStart) > time.Second*15 {
-				log.Println("Network: timeout: ", m.Desc())
+				log.Println("Network: timeout:", m.Desc())
 				m.nextInterface()
 			}
 
@@ -152,7 +152,7 @@ func (m *Manager) Run() (State, InterfaceConfig, InterfaceStatus) {
 			var err error
 			status, err = m.getStatus()
 			if err != nil {
-				log.Println("Error getting interface status: ", err)
+				log.Println("Error getting interface status:", err)
 				continue
 			}
 		}
@@ -166,7 +166,7 @@ func (m *Manager) Run() (State, InterfaceConfig, InterfaceStatus) {
 				m.setState(StateConfigure)
 				continue
 			} else if time.Since(m.stateStart) > time.Second*15 {
-				log.Println("Network: timeout detecting: ", m.Desc())
+				log.Println("Network: timeout detecting:", m.Desc())
 				m.nextInterface()
 				continue
 			}
@@ -192,7 +192,7 @@ func (m *Manager) Run() (State, InterfaceConfig, InterfaceStatus) {
 			if try < 3 {
 				m.setState(StateConnecting)
 			} else {
-				log.Println("giving up configuring device: ", m.Desc())
+				log.Println("giving up configuring device:", m.Desc())
 				m.nextInterface()
 			}
 
@@ -202,7 +202,7 @@ func (m *Manager) Run() (State, InterfaceConfig, InterfaceStatus) {
 				m.setState(StateConnected)
 			} else {
 				if time.Since(m.stateStart) > time.Minute {
-					log.Println("Network: timeout connecting: ", m.Desc())
+					log.Println("Network: timeout connecting:", m.Desc())
 					m.nextInterface()
 					continue
 				}
@@ -210,7 +210,7 @@ func (m *Manager) Run() (State, InterfaceConfig, InterfaceStatus) {
 				// try again to connect
 				err := m.connect()
 				if err != nil {
-					log.Println("Error connecting: ", err)
+					log.Println("Error connecting:", err)
 				}
 			}
 

@@ -140,13 +140,13 @@ func (tnc *exNodeClient) Run() error {
 		case pts := <-tnc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &tnc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 			log.Printf("New config: %+v\n", tnc.config)
 		case pts := <-tnc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &tnc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 		case ch := <-tnc.chGetConfig:
 			ch <- tnc.config
@@ -175,7 +175,7 @@ func main() {
 	nc, root, stop, err := server.TestServer()
 
 	if err != nil {
-		log.Println("Error starting test server: ", err)
+		log.Println("Error starting test server:", err)
 	}
 
 	defer stop()
@@ -189,7 +189,7 @@ func main() {
 
 	err = client.SendNodeType(nc, canBusTest, "test")
 	if err != nil {
-		log.Println("Error sending CAN node: ", err)
+		log.Println("Error sending CAN node:", err)
 	}
 
 	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
