@@ -906,6 +906,10 @@ typeDestination =
     "destination"
 
 
+typeTagPointType : String
+typeTagPointType = 
+    "tagPointType"
+
 
 --keyNodeID : String
 --keyNodeID =

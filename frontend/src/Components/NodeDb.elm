@@ -40,6 +40,7 @@ view o =
                     , textInput Point.typeOrg "Organization" "org name"
                     , textInput Point.typeBucket "Bucket" "bucket name"
                     , textInput Point.typeAuthToken "Auth Token" ""
+                    , NodeInputs.nodeListInput opts Point.typeServer "Tag Point Types" "Add Point Type"
                     ]
 
                 else
