@@ -4,6 +4,7 @@ module Api.Point exposing
     , clearText
     , decode
     , encodeList
+    , filterDeleted
     , filterSpecialPoints
     , filterTombstone
     , get
@@ -118,6 +119,8 @@ module Api.Point exposing
     , typeSyncCountReset
     , typeSyncParent
     , typeSysState
+    , typeTag
+    , typeTagPointType
     , typeTombstone
     , typeTx
     , typeTxReset
@@ -907,8 +910,14 @@ typeDestination =
 
 
 typeTagPointType : String
-typeTagPointType = 
+typeTagPointType =
     "tagPointType"
+
+
+typeTag : String
+typeTag =
+    "tag"
+
 
 
 --keyNodeID : String
@@ -1133,6 +1142,11 @@ get points typ key =
 getAll : List Point -> String -> List Point
 getAll points typ =
     List.filter (\p -> typ == p.typ) points
+
+
+filterDeleted : List Point -> List Point
+filterDeleted points =
+    List.filter (\p -> p.tombstone == 0) points
 
 
 getText : List Point -> String -> String -> String

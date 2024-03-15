@@ -39,6 +39,8 @@ view o =
                                 , now = o.now
                                 , zone = o.zone
                                 , labelWidth = labelWidth
+                                , scratch = o.scratch
+                                , onEditScratch = o.onEditScratch
                                 }
                                 "0"
 
