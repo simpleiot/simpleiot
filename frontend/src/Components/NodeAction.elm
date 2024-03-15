@@ -135,29 +135,30 @@ view o =
 
                       else
                         Element.none
-                    , viewIf actionSetValue <| case o.copy of
-                        CopyMoveNone ->
-                            Element.none
-
-                        Copy id _ desc ->
-                            if nodeId /= id then
-                                let
-                                    label =
-                                        row
-                                            [ spacing 10 ]
-                                            [ text <| "paste ID for node: "
-                                            , el
-                                                [ Font.italic
-                                                , Background.color Style.colors.ltblue
-                                                ]
-                                              <|
-                                                text desc
-                                            ]
-                                in
-                                NodeInputs.nodePasteButton opts label Point.typeNodeID id
-
-                            else
+                    , viewIf actionSetValue <|
+                        case o.copy of
+                            CopyMoveNone ->
                                 Element.none
+
+                            Copy id _ desc ->
+                                if nodeId /= id then
+                                    let
+                                        label =
+                                            row
+                                                [ spacing 10 ]
+                                                [ text <| "paste ID for node: "
+                                                , el
+                                                    [ Font.italic
+                                                    , Background.color Style.colors.ltblue
+                                                    ]
+                                                  <|
+                                                    text desc
+                                                ]
+                                    in
+                                    NodeInputs.nodePasteButton opts label Point.typeNodeID id
+
+                                else
+                                    Element.none
                     , viewIf actionSetValue <|
                         optionInput Point.typeValueType
                             "Point Value Type"
@@ -189,6 +190,7 @@ view o =
                     , viewIf actionPlayAudio <|
                         textInput Point.typeFilePath "Wav file path" "/absolute/path/to/sound.wav"
                     , el [ Font.color Style.colors.red ] <| text error
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

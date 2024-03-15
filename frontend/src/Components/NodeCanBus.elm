@@ -63,6 +63,7 @@ view o =
                     , counterWithReset Point.typeMsgsRecvdDb Point.typeMsgsRecvdDbReset "Db msgs recieved"
                     , counterWithReset Point.typeMsgsRecvdOther Point.typeMsgsRecvdOtherReset "Other msgs recvd"
                     , checkboxInput Point.typeDisabled "Disabled"
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

@@ -69,6 +69,7 @@ view o =
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , el [ Font.color Style.colors.red ] <| text error
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

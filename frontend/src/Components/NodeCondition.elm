@@ -93,6 +93,7 @@ view o =
                         _ ->
                             el [ Font.color Style.colors.red ] <| text "Please select condition type"
                     , el [ Font.color Style.colors.red ] <| text error
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

@@ -55,6 +55,7 @@ view o =
                     , textInputLowerCase Point.typeEmail "Email" ""
                     , textInput Point.typePhone "Phone" ""
                     , textInput Point.typePass "Pass" ""
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else
