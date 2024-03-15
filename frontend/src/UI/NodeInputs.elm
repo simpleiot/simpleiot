@@ -773,13 +773,24 @@ nodeKeyValueInput o typ label buttonLabel =
     let
         points =
             Point.getAll o.node.points typ |> Point.filterDeleted |> List.sortWith Point.sort
+
+        newKV =
+            o.onEditNodePoint
+                [ { typ = typ
+                  , key = o.scratch
+                  , text = ""
+                  , time = o.now
+                  , tombstone = 0
+                  , value = 0
+                  }
+                ]
     in
     column [ centerX, spacing 5 ]
         [ viewIf (List.length points > 0) <| keyValues o typ label points
         , row [ spacing 10 ]
             [ el [ Element.paddingEach { edges | left = 40 }, centerX ] <|
                 text "Add: "
-            , Input.text []
+            , Input.text [ Form.onEnter newKV ]
                 { label = Input.labelHidden "key"
                 , onChange = o.onEditScratch
                 , text = o.scratch
@@ -788,16 +799,7 @@ nodeKeyValueInput o typ label buttonLabel =
             , Form.button
                 { label = buttonLabel
                 , color = Style.colors.blue
-                , onPress =
-                    o.onEditNodePoint
-                        [ { typ = typ
-                          , key = o.scratch
-                          , text = ""
-                          , time = o.now
-                          , tombstone = 0
-                          , value = 0
-                          }
-                        ]
+                , onPress = newKV
                 }
             ]
         ]
