@@ -760,6 +760,15 @@ nodeListInput o typ label buttonLabel =
                ]
 
 
+type alias Edges =
+    { top : Int
+    , right : Int
+    , bottom : Int
+    , left : Int
+    }
+
+
+edges : Edges
 edges =
     { top = 0
     , right = 0
