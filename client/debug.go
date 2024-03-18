@@ -96,64 +96,64 @@ func Log(natsServer, authToken string) {
 	nc, err := EdgeConnect(opts)
 
 	if err != nil {
-		log.Println("Error connecting to NATS server: ", err)
+		log.Println("Error connecting to NATS server:", err)
 		os.Exit(-1)
 	}
 
 	_, _ = nc.Subscribe("p.*", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
-			log.Println("Error dumping nats msg: ", err)
+			log.Println("Error dumping nats msg:", err)
 		}
 	})
 
 	_, _ = nc.Subscribe("node.*.not", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
-			log.Println("Error dumping nats msg: ", err)
+			log.Println("Error dumping nats msg:", err)
 		}
 	})
 
 	_, _ = nc.Subscribe("node.*.msg", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
-			log.Println("Error dumping nats msg: ", err)
+			log.Println("Error dumping nats msg:", err)
 		}
 	})
 
 	_, _ = nc.Subscribe("p.*.*", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
-			log.Println("Error dumping nats msg: ", err)
+			log.Println("Error dumping nats msg:", err)
 		}
 	})
 
 	if err != nil {
-		log.Println("Nats subscribe error: ", err)
+		log.Println("Nats subscribe error:", err)
 		os.Exit(-1)
 	}
 
 	_, err = nc.Subscribe("node.*", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
-			log.Println("Error dumping nats msg: ", err)
+			log.Println("Error dumping nats msg:", err)
 		}
 	})
 
 	if err != nil {
-		log.Println("Nats subscribe error: ", err)
+		log.Println("Nats subscribe error:", err)
 		os.Exit(-1)
 	}
 
 	_, err = nc.Subscribe("edge.*.*", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
-			log.Println("Error dumping nats msg: ", err)
+			log.Println("Error dumping nats msg:", err)
 		}
 	})
 
 	if err != nil {
-		log.Println("Nats subscribe error: ", err)
+		log.Println("Nats subscribe error:", err)
 		os.Exit(-1)
 	}
 }

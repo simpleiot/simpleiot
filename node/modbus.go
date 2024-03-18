@@ -72,7 +72,7 @@ func NewModbus(nc *nats.Conn, node data.NodeEdge) (*Modbus, error) {
 			points, err := data.PbDecodePoints(msg.Data)
 			if err != nil {
 				// FIXME, send over channel
-				log.Println("Error decoding node data: ", err)
+				log.Println("Error decoding node data:", err)
 				return
 			}
 
@@ -96,7 +96,7 @@ func (b *Modbus) Stop() {
 	if b.sub != nil {
 		err := b.sub.Unsubscribe()
 		if err != nil {
-			log.Println("Error unsubscribing from bus: ", err)
+			log.Println("Error unsubscribing from bus:", err)
 		}
 	}
 	for _, io := range b.ios {
@@ -122,12 +122,12 @@ func (b *Modbus) CheckIOs() error {
 			var err error
 			ioNode, err := NewModbusIONode(b.busNode.busType, &node)
 			if err != nil {
-				log.Println("Error with IO node: ", err)
+				log.Println("Error with IO node:", err)
 				continue
 			}
 			io, err := NewModbusIO(b.nc, ioNode, b.chPoint)
 			if err != nil {
-				log.Println("Error creating new modbus IO: ", err)
+				log.Println("Error creating new modbus IO:", err)
 				continue
 			}
 			b.ios[node.ID] = io
@@ -140,7 +140,7 @@ func (b *Modbus) CheckIOs() error {
 		_, ok := found[id]
 		if !ok {
 			// io was deleted so close and clear it
-			log.Println("modbus io removed: ", io.ioNode.description)
+			log.Println("modbus io removed:", io.ioNode.description)
 			io.Stop()
 			delete(b.ios, id)
 		}
@@ -465,7 +465,7 @@ func regCount(regType string) int {
 		data.PointValueFLOAT32:
 		return 2
 	default:
-		log.Println("regCount, unknown data type: ", regType)
+		log.Println("regCount, unknown data type:", regType)
 		// be conservative
 		return 2
 	}
@@ -484,25 +484,25 @@ func (b *Modbus) InitRegs(io *ModbusIONode) {
 		b.regs.AddCoil(io.address)
 		err := b.regs.WriteCoil(io.address, data.FloatToBool(io.value))
 		if err != nil {
-			log.Println("Error writing coil: ", err)
+			log.Println("Error writing coil:", err)
 		}
 	case data.PointValueModbusCoil:
 		b.regs.AddCoil(io.address)
 		err := b.regs.WriteCoil(io.address, data.FloatToBool(io.value))
 		if err != nil {
-			log.Println("Error writing coil: ", err)
+			log.Println("Error writing coil:", err)
 		}
 	case data.PointValueModbusInputRegister:
 		b.regs.AddReg(io.address, regCount(io.modbusDataType))
 		err := b.WriteReg(io)
 		if err != nil {
-			log.Println("Error writing reg: ", err)
+			log.Println("Error writing reg:", err)
 		}
 	case data.PointValueModbusHoldingRegister:
 		b.regs.AddReg(io.address, regCount(io.modbusDataType))
 		err := b.WriteReg(io)
 		if err != nil {
-			log.Println("Error writing reg: ", err)
+			log.Println("Error writing reg:", err)
 		}
 	}
 }
@@ -640,7 +640,7 @@ func (b *Modbus) ClosePort() {
 	if b.server != nil {
 		err := b.server.Close()
 		if err != nil {
-			log.Println("Error closing server: ", err)
+			log.Println("Error closing server:", err)
 		}
 		b.server = nil
 	}
@@ -648,7 +648,7 @@ func (b *Modbus) ClosePort() {
 	if b.client != nil {
 		err := b.client.Close()
 		if err != nil {
-			log.Println("Error closing client: ", err)
+			log.Println("Error closing client:", err)
 		}
 		b.client = nil
 	}
@@ -657,7 +657,7 @@ func (b *Modbus) ClosePort() {
 // SetupPort sets up io for the bus
 func (b *Modbus) SetupPort() error {
 	if b.busNode.debugLevel >= 1 {
-		log.Println("modbus: setting up modbus transport: ", b.busNode.portName)
+		log.Println("modbus: setting up modbus transport:", b.busNode.portName)
 	}
 
 	b.ClosePort()
@@ -692,7 +692,7 @@ func (b *Modbus) SetupPort() error {
 		case data.PointValueServer:
 			// TCPServer does all the setup
 		default:
-			log.Println("setting up modbus TCP, invalid bus type: ", b.busNode.busType)
+			log.Println("setting up modbus TCP, invalid bus type:", b.busNode.busType)
 		}
 
 	default:
@@ -717,7 +717,7 @@ func (b *Modbus) SetupPort() error {
 		}
 
 		go b.server.Listen(func(err error) {
-			log.Println("Modbus server error: ", err)
+			log.Println("Modbus server error:", err)
 		}, func() {
 			if b.busNode.debugLevel > 0 {
 				log.Println("Modbus reg change")
@@ -762,7 +762,7 @@ func (b *Modbus) Run() {
 
 	checkIoTimer := time.NewTicker(time.Second * 10)
 
-	log.Println("initializing modbus port: ", b.busNode.portName)
+	log.Println("initializing modbus port:", b.busNode.portName)
 
 	for {
 		select {
@@ -773,7 +773,7 @@ func (b *Modbus) Run() {
 				var err error
 				b.busNode, err = NewModbusNode(b.node)
 				if err != nil {
-					log.Println("Error updating bus node: ", err)
+					log.Println("Error updating bus node:", err)
 				}
 
 				switch point.point.Type {
@@ -785,7 +785,7 @@ func (b *Modbus) Run() {
 					data.PointTypeURI:
 					err := b.SetupPort()
 					if err != nil {
-						log.Println("Error setting up serial port: ", err)
+						log.Println("Error setting up serial port:", err)
 					}
 				case data.PointTypePollPeriod:
 					setScanTimer()
@@ -795,13 +795,13 @@ func (b *Modbus) Run() {
 						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
 						err := client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
 						err = client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 					}
 
@@ -810,13 +810,13 @@ func (b *Modbus) Run() {
 						p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
 						err := client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
 						err = client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 					}
 
@@ -825,20 +825,20 @@ func (b *Modbus) Run() {
 						p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
 						err := client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
 						err = client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 					}
 				}
 			} else {
 				io, ok := b.ios[point.id]
 				if !ok {
-					log.Println("modbus received point for unknown node: ", point.id)
+					log.Println("modbus received point for unknown node:", point.id)
 					// FIXME, we could create a new IO here
 					continue
 				}
@@ -885,13 +885,13 @@ func (b *Modbus) Run() {
 						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
 						err := client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
 						err = client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 					}
 
@@ -901,13 +901,13 @@ func (b *Modbus) Run() {
 						p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
 						err := client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
 						err = client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 					}
 
@@ -917,17 +917,17 @@ func (b *Modbus) Run() {
 						p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
 						err := client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 
 						p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
 						err = client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
-							log.Println("Send point error: ", err)
+							log.Println("Send point error:", err)
 						}
 					}
 				default:
-					log.Println("modbus: unhandled io point: ", p)
+					log.Println("modbus: unhandled io point:", p)
 				}
 
 				if valueModified && b.busNode.busType == data.PointValueServer {
@@ -935,7 +935,7 @@ func (b *Modbus) Run() {
 					if err != nil {
 						err := b.LogError(io.ioNode, err)
 						if err != nil {
-							log.Println("Error logging error: ", err)
+							log.Println("Error logging error:", err)
 						}
 					}
 				}
@@ -948,7 +948,7 @@ func (b *Modbus) Run() {
 					if err != nil {
 						err := b.LogError(io.ioNode, err)
 						if err != nil {
-							log.Println("Error logging error: ", err)
+							log.Println("Error logging error:", err)
 						}
 					}
 				}
@@ -960,7 +960,7 @@ func (b *Modbus) Run() {
 				if err != nil {
 					err := b.LogError(io.ioNode, err)
 					if err != nil {
-						log.Println("Error logging modbus error: ", err)
+						log.Println("Error logging modbus error:", err)
 					}
 				}
 			}
@@ -984,11 +984,11 @@ func (b *Modbus) Run() {
 					b.ioErrorCount = 0
 					// try to set up port
 					if err := b.SetupPort(); err != nil {
-						log.Println("SetupPort error: ", err)
+						log.Println("SetupPort error:", err)
 					}
 				}
 				if err := b.CheckIOs(); err != nil {
-					log.Println("CheckIOs error: ", err)
+					log.Println("CheckIOs error:", err)
 				}
 			}
 
@@ -1003,13 +1003,13 @@ func (b *Modbus) Run() {
 					if err != nil {
 						err := b.LogError(io.ioNode, err)
 						if err != nil {
-							log.Println("Error logging modbus error: ", err)
+							log.Println("Error logging modbus error:", err)
 						}
 					}
 				}
 			}
 		case <-b.chDone:
-			log.Println("Stopping client IO for: ", b.busNode.portName)
+			log.Println("Stopping client IO for:", b.busNode.portName)
 			b.ClosePort()
 			return
 		}

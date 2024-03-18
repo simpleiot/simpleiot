@@ -98,7 +98,7 @@ func (m *Manager[T]) Run() error {
 
 	err = m.scan(m.root)
 	if err != nil {
-		log.Println("Error scanning for new nodes: ", err)
+		log.Println("Error scanning for new nodes:", err)
 	}
 
 	shutdownTimer := time.NewTimer(time.Hour)
@@ -116,7 +116,7 @@ func (m *Manager[T]) Run() error {
 
 		err := m.scan(m.root)
 		if err != nil {
-			log.Println("Error scanning for new nodes: ", err)
+			log.Println("Error scanning for new nodes:", err)
 		}
 	}
 
@@ -146,7 +146,7 @@ done:
 			// work reliably without deadlocking
 			err = m.clientUpSub[key].Drain()
 			if err != nil {
-				log.Println("Error unsubscribing subscription: ", err)
+				log.Println("Error unsubscribing subscription:", err)
 			}
 			start := time.Now()
 			for {
@@ -154,7 +154,7 @@ done:
 					break
 				}
 				if time.Since(start) > time.Second*1 {
-					log.Println("Error: timeout waiting for subscription to drain: ", key)
+					log.Println("Error: timeout waiting for subscription to drain:", key)
 					break
 				}
 				time.Sleep(10 * time.Millisecond)
@@ -164,7 +164,7 @@ done:
 		case key := <-m.chDeleteCS:
 			err = m.clientUpSub[key].Unsubscribe()
 			if err != nil {
-				log.Println("Error unsubscribing subscription: ", err)
+				log.Println("Error unsubscribing subscription:", err)
 			}
 			delete(m.clientUpSub, key)
 			// client state must be deleted after the subscription is stopped
@@ -182,9 +182,9 @@ done:
 			}
 		case <-shutdownTimer.C:
 			// TODO: should we return an error here?
-			log.Println("BUG: Client manager: not all clients shutdown for node type: ", m.nodeType)
+			log.Println("BUG: Client manager: not all clients shutdown for node type:", m.nodeType)
 			for _, v := range m.clientStates {
-				log.Println("Client stuck for node: ", v.node.ID)
+				log.Println("Client stuck for node:", v.node.ID)
 			}
 			break done
 		}
@@ -278,7 +278,7 @@ func (m *Manager[T]) scan(id string) error {
 			chunks := strings.Split(msg.Subject, ".")
 
 			if len(chunks) != 3 && len(chunks) != 4 {
-				log.Println("up subject malformed: ", msg.Subject)
+				log.Println("up subject malformed:", msg.Subject)
 				return
 			}
 
@@ -322,7 +322,7 @@ func (m *Manager[T]) scan(id string) error {
 							}
 							nodes, err := GetNodes(cs.nc, parentID, nodeID, "", false)
 							if err != nil {
-								log.Println("Client state error getting nodes: ", err)
+								log.Println("Client state error getting nodes:", err)
 								cs.stop(nil)
 								return
 							}
@@ -347,7 +347,7 @@ func (m *Manager[T]) scan(id string) error {
 							}
 							nodes, err := GetNodes(cs.nc, parentID, nodeID, "", false)
 							if err != nil {
-								log.Println("Client state error getting nodes: ", err)
+								log.Println("Client state error getting nodes:", err)
 								cs.stop(nil)
 								return
 							}
@@ -382,7 +382,7 @@ func (m *Manager[T]) scan(id string) error {
 		}
 
 		// bus was deleted so close and clear it
-		log.Println("removing client node: ", m.clientStates[key].node.ID)
+		log.Println("removing client node:", m.clientStates[key].node.ID)
 		client.stop(nil)
 	}
 

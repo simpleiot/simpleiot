@@ -58,7 +58,7 @@ func NewAppHandler(args ServerArgs) http.Handler {
 		uS := fmt.Sprintf("ws://localhost:%v", args.NatsWSPort)
 		u, err := url.Parse(uS)
 		if err != nil {
-			log.Println("Error with WS url: ", err)
+			log.Println("Error with WebSocket URL:", err)
 		} else {
 			wsProxy = websocketproxy.NewProxy(u)
 		}
@@ -99,8 +99,8 @@ func NewServer(args ServerArgs) *Server {
 
 // Start the api server
 func (s *Server) Start() error {
-	log.Println("Starting http server, debug: ", s.args.Debug)
-	log.Println("Starting portal on port: ", s.args.Port)
+	log.Println("Starting http server, debug:", s.args.Debug)
+	log.Println("Starting portal on port:", s.args.Port)
 	address := fmt.Sprintf(":%s", s.args.Port)
 
 	var err error

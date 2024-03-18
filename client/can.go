@@ -187,7 +187,7 @@ func (cb *CanBusClient) Run() error {
 	for {
 		select {
 		case <-cb.stop:
-			log.Println("CanBusClient: stopping CAN bus client: ", cb.config.Description)
+			log.Println("CanBusClient: stopping CAN bus client:", cb.config.Description)
 			bringDownDev()
 			return nil
 
@@ -236,7 +236,7 @@ func (cb *CanBusClient) Run() error {
 		case pts := <-cb.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &cb.config)
 			if err != nil {
-				log.Println("CanBusClient: error merging new points: ", err)
+				log.Println("CanBusClient: error merging new points:", err)
 			}
 
 			// Update CAN devices and databases with new information
@@ -262,7 +262,7 @@ func (cb *CanBusClient) Run() error {
 				}
 				err = SendPoints(cb.nc, cb.natsSub, points, false)
 				if err != nil {
-					log.Println("Error resetting CAN message received count: ", err)
+					log.Println("Error resetting CAN message received count:", err)
 				}
 
 				cb.config.MsgsRecvdDbReset = false
@@ -277,7 +277,7 @@ func (cb *CanBusClient) Run() error {
 				}
 				err = SendPoints(cb.nc, cb.natsSub, points, false)
 				if err != nil {
-					log.Println("Error resetting CAN message received count: ", err)
+					log.Println("Error resetting CAN message received count:", err)
 				}
 
 				cb.config.MsgsRecvdOtherReset = false
@@ -287,7 +287,7 @@ func (cb *CanBusClient) Run() error {
 		case pts := <-cb.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &cb.config)
 			if err != nil {
-				log.Println("CanBusClient: error merging new points: ", err)
+				log.Println("CanBusClient: error merging new points:", err)
 			}
 
 			// TODO need to send edge points to CAN bus, not implemented yet

@@ -79,7 +79,7 @@ func (cs *clientState[T]) run() (err error) {
 	case <-chClientStopped:
 		// everything is OK
 	case <-time.After(5 * time.Second):
-		log.Println("Timeout stopping client: ", cs.node.Type, cs.node.ID)
+		log.Println("Timeout stopping client:", cs.node.Type, cs.node.ID)
 	}
 
 	return nil

@@ -41,7 +41,7 @@ func (mm *ModbusManager) Update() error {
 			var err error
 			bus, err := NewModbus(mm.nc, node)
 			if err != nil {
-				log.Println("Error creating new modbus: ", err)
+				log.Println("Error creating new modbus:", err)
 				continue
 			}
 			mm.busses[node.ID] = bus
@@ -53,7 +53,7 @@ func (mm *ModbusManager) Update() error {
 		_, ok := found[id]
 		if !ok {
 			// bus was deleted so close and clear it
-			log.Println("removing modbus on port: ", bus.busNode.portName)
+			log.Println("removing modbus on port:", bus.busNode.portName)
 			bus.Stop()
 			delete(mm.busses, id)
 		}

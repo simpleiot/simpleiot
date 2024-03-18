@@ -35,7 +35,7 @@ func main() {
 	baud, err := strconv.Atoi(*flagBaud)
 
 	if err != nil {
-		log.Println("Baud rate error: ", err)
+		log.Println("Baud rate error:", err)
 		os.Exit(-1)
 	}
 
@@ -58,20 +58,20 @@ func main() {
 	regs.AddCoil(128)
 	err = regs.WriteCoil(128, true)
 	if err != nil {
-		log.Println("Error writing coil: ", err)
+		log.Println("Error writing coil:", err)
 		os.Exit(-1)
 	}
 
 	regs.AddReg(2, 1)
 	err = regs.WriteReg(2, 5)
 	if err != nil {
-		log.Println("Error writing reg: ", err)
+		log.Println("Error writing reg:", err)
 		os.Exit(-1)
 	}
 
 	// start slave so it can respond to requests
 	go serv.Listen(func(err error) {
-		log.Println("modbus server listen error: ", err)
+		log.Println("modbus server listen error:", err)
 	}, func() {
 		log.Printf("modbus reg changes")
 	}, func() {
@@ -79,7 +79,7 @@ func main() {
 	})
 
 	if err != nil {
-		log.Println("Error opening modbus port: ", err)
+		log.Println("Error opening modbus port:", err)
 	}
 
 	value := true

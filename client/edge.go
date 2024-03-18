@@ -41,7 +41,7 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 				pendingMsgs, sub.Subject)
 			// Log error, notify operations...
 		default:
-			log.Println("Nats client error: ", natsErr)
+			log.Println("Nats client error:", natsErr)
 		}
 		// check for other errors
 	}
@@ -122,7 +122,7 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		return nil, err
 	}
 
-	log.Println("NATS: TLS required: ", nc.TLSRequired())
+	log.Println("NATS: TLS required:", nc.TLSRequired())
 
 	return nc, nil
 }

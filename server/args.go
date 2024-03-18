@@ -53,7 +53,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	err := files.UpdateFiles(dataDir)
 
 	if err != nil {
-		log.Println("Error updating files: ", err)
+		log.Println("Error updating files:", err)
 		os.Exit(-1)
 	}
 
@@ -70,7 +70,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	if natsPortE != "" {
 		n, err := strconv.Atoi(natsPortE)
 		if err != nil {
-			log.Println("Error parsing SIOT_NATS_PORT: ", err)
+			log.Println("Error parsing SIOT_NATS_PORT:", err)
 			os.Exit(-1)
 		}
 		natsPort = n
@@ -82,7 +82,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	if natsHTTPPortE != "" {
 		n, err := strconv.Atoi(natsHTTPPortE)
 		if err != nil {
-			log.Println("Error parsing SIOT_NATS_HTTP_PORT: ", err)
+			log.Println("Error parsing SIOT_NATS_HTTP_PORT:", err)
 			os.Exit(-1)
 		}
 		natsHTTPPort = n
@@ -93,7 +93,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	if natsWSPortE != "" {
 		n, err := strconv.Atoi(natsWSPortE)
 		if err != nil {
-			log.Println("Error parsing SIOT_NATS_WS_PORT: ", err)
+			log.Println("Error parsing SIOT_NATS_WS_PORT:", err)
 			os.Exit(-1)
 		}
 		natsWSPort = n
@@ -118,7 +118,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	if natsTLSTimeoutS != "" {
 		natsTLSTimeout, err = strconv.ParseFloat(natsTLSTimeoutS, 64)
 		if err != nil {
-			log.Println("Error parsing nats TLS timeout: ", err)
+			log.Println("Error parsing nats TLS timeout:", err)
 			os.Exit(-1)
 		}
 	}
@@ -131,7 +131,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	if *flagSyslog {
 		err := system.EnableSyslog()
 		if err != nil {
-			log.Println("Error enabling syslog: ", err)
+			log.Println("Error enabling syslog:", err)
 		}
 	}
 

@@ -56,6 +56,7 @@ type NetworkManagerClient struct {
 type NetworkManager struct {
 	ID                      string                 `node:"id"`
 	Parent                  string                 `node:"parent"`
+	Description             string                 `point:"description"`
 	Disabled                bool                   `point:"disabled"`
 	Hostname                string                 `point:"hostname"`
 	RequestWiFiScan         bool                   `point:"requestWiFiScan"`
@@ -253,7 +254,7 @@ loop:
 			// Update config
 			err := data.MergePoints(nodePoints.ID, nodePoints.Points, &c.config)
 			if err != nil {
-				log.Println("Error merging points: ", err)
+				log.Println("Error merging points:", err)
 			}
 
 			// Handle Disable flag

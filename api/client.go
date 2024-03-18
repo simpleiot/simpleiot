@@ -77,7 +77,7 @@ func NewSendPoints(portalURL, deviceID, authToken string, timeout time.Duration,
 		}
 
 		if debug {
-			log.Println("Sending points: ", string(tempJSON))
+			log.Println("Sending points:", string(tempJSON))
 		}
 
 		req, err := http.NewRequest("POST", pointURL, bytes.NewBuffer(tempJSON))

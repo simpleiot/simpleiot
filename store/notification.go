@@ -6,7 +6,7 @@ package store
 func (st *Store) handleNotification(msg *nats.Msg) {
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 2 {
-		log.Println("Error in message subject: ", msg.Subject)
+		log.Println("Error in message subject:", msg.Subject)
 		return
 	}
 
@@ -15,7 +15,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 	not, err := data.PbDecodeNotification(msg.Data)
 
 	if err != nil {
-		log.Println("Error decoding Pb notification: ", err)
+		log.Println("Error decoding Pb notification:", err)
 		return
 	}
 
@@ -26,7 +26,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 		findUsers = func(id string) {
 			nodes, err := st.db.getNodes(nil, "all", id, data.NodeTypeUser, false)
 			if err != nil {
-				log.Println("Error find user nodes: ", err)
+				log.Println("Error find user nodes:", err)
 				return
 			}
 
@@ -38,7 +38,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 			// now process upstream nodes
 			upIDs := st.db.edgeUp(id, false)
 			if err != nil {
-				log.Println("Error getting upstream nodes: ", err)
+				log.Println("Error getting upstream nodes:", err)
 				return
 			}
 
@@ -50,7 +50,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 			node, err := st.db.node(nodeID)
 
 			if err != nil {
-				log.Println("Error getting node: ", nodeID)
+				log.Println("Error getting node:", nodeID)
 				return
 			}
 
@@ -66,7 +66,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 		user, err := data.NodeToUser(userNode.ToNode())
 
 		if err != nil {
-			log.Println("Error converting node to user: ", err)
+			log.Println("Error converting node to user:", err)
 			continue
 		}
 
@@ -85,14 +85,14 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 			data, err := msg.ToPb()
 
 			if err != nil {
-				log.Println("Error serializing msg to protobuf: ", err)
+				log.Println("Error serializing msg to protobuf:", err)
 				continue
 			}
 
 			err = st.nc.Publish("node."+user.ID+".msg", data)
 
 			if err != nil {
-				log.Println("Error publishing message: ", err)
+				log.Println("Error publishing message:", err)
 				continue
 			}
 		}
@@ -102,7 +102,7 @@ func (st *Store) handleNotification(msg *nats.Msg) {
 func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	chunks := strings.Split(natsMsg.Subject, ".")
 	if len(chunks) < 2 {
-		log.Println("Error in message subject: ", natsMsg.Subject)
+		log.Println("Error in message subject:", natsMsg.Subject)
 		return
 	}
 
@@ -111,7 +111,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	message, err := data.PbDecodeMessage(natsMsg.Data)
 
 	if err != nil {
-		log.Println("Error decoding Pb message: ", err)
+		log.Println("Error decoding Pb message:", err)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	findSvcNodes = func(id string) {
 		nodes, err := st.db.getNodes(nil, "all", id, data.NodeTypeMsgService, false)
 		if err != nil {
-			log.Println("Error getting svc descendents: ", err)
+			log.Println("Error getting svc descendents:", err)
 			return
 		}
 
@@ -144,7 +144,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 		} else {
 			upIDs = st.db.edgeUp(id, false)
 			if err != nil {
-				log.Println("Error getting upstream nodes: ", err)
+				log.Println("Error getting upstream nodes:", err)
 				return
 			}
 		}
@@ -163,7 +163,7 @@ func (st *Store) handleMessage(natsMsg *nats.Msg) {
 	for _, svcNode := range svcNodes {
 		svc, err := data.NodeToMsgService(svcNode.ToNode())
 		if err != nil {
-			log.Println("Error converting node to msg service: ", err)
+			log.Println("Error converting node to msg service:", err)
 			continue
 		}
 
