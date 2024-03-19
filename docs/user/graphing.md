@@ -46,7 +46,7 @@ from(bucket: "siot")
   |> map(fn: (r) => ({_value:r._value, _time:r._time, _field:r["node.tag.machine"] + ":" + r["node.description"]}))
 ```
 
-In this case we are displaying a node tag and description. The result is very
-nice:
+In this case we are displaying the node machine tag and description. The result
+is very nice:
 
 ![image-20240319112206573](assets/image-20240319112206573.png)
