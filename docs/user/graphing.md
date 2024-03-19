@@ -32,8 +32,10 @@ change the label is with a Override:
 
 This can be tedious to set up and maintain.
 
-Often a better way is to add tags to the nodes generating the data and then
-display the node tags in the display name by using the Influx `map` function.
+Often a better way is to
+[add tags](https://docs.simpleiot.org/docs/user/database.html#custom-influxdb-tags)
+to the nodes generating the data and then display the node tags in the display
+name by using the Influx `map` function.
 
 ```flux
 from(bucket: "siot")
