@@ -15,6 +15,8 @@ The following InfluxDB tags are added to every point:
 - `node.type` (extracted from the type field in the edge data structure)
 - `node.description` (generated from the `description` point from the node)
 
+### Custom InfluxDB Tags
+
 Additional tag tag points can be specified. The DB client will query and cache
 node points of these types for any point flowing through the system and then
 InfluxDB tags in the format: `node.<point type>.<point key>`. In the below
