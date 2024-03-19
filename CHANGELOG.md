@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.15.0] - 2024-03-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.15.0)
+
 - NTP client: Do not set configuration if servers are not specified. This allows
   timesyncd to use the default configuration if no servers are specified.
 - server: Args now accepts a `*FlagSet` to allow flags to be extended
@@ -28,6 +30,7 @@ For more details or to discuss releases, please visit the
   respective Point.Text values.
 - BREAKING CHANGE: Influx DB tag `nodeID` is now `node.id`
 - update frontend dependencies and fix various build issues
+- UI: add tag UI most clients so that custom tags can be added to each node.
 
 ## [[0.14.10] - 2024-02-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.10)
 
