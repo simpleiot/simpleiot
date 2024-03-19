@@ -102,6 +102,7 @@ const (
 
 	NodeTypeModbusIO = "modbusIo"
 
+	// FIXME, should we change modbusIoType to ioType?
 	PointTypeModbusIOType           = "modbusIoType"
 	PointValueModbusDiscreteInput   = "modbusDiscreteInput"
 	PointValueModbusCoil            = "modbusCoil"
