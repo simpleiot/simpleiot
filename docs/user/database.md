@@ -18,7 +18,13 @@ The following InfluxDB tags are added to every point:
 Additional tag tag points can be specified. The DB client will query and cache
 node points of these types for any point flowing through the system and then
 InfluxDB tags in the format: `node.<point type>.<point key>`. In the below
-example:
+example, we added a machine tag to the signal generator node generating the
+data.
+
+<img src="assets/image-20240319112828216.png" alt="image-20240319112828216" style="zoom:50%;" />
+
+When the `tag` field is specified in the database node, this `machine` tag is
+now added to the Influx tags for every sample.
 
 - `value` and `type` and fields from the point
 - `node.description` and `node.type` are automatically added
@@ -27,8 +33,11 @@ example:
 
 ![image-20240319110846431](assets/image-20240319110846431.png)
 
-See the [Graphing documentation](graphing.md) for information on how to
+See the [Graphing documentation](graphing.md) for information on how to
 automatically map tags to graph labels.
+
+InfluxDB indexes tags, so generally there is not a huge cost to adding tags to
+samples as the long string is only stored once.
 
 ## Victoria Metrics
 
