@@ -53,6 +53,7 @@ view o =
                             , onPress = o.onUploadFile
                             }
                         ]
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

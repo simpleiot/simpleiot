@@ -120,6 +120,7 @@ view o =
                         numberInput Point.typeMinIncrement "Min. Increment"
                     , viewIf (signalType == Point.valueRandomWalk) <|
                         numberInput Point.typeMaxIncrement "Max. Increment"
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

@@ -88,6 +88,7 @@ type alias Model =
     , lastError : Time.Posix
     , nodeOp : NodeOperation
     , copyMove : CopyMove
+    , scratch : String
     , nodeMsg : Maybe NodeMsg
     , token : String
     }
@@ -143,6 +144,7 @@ defaultModel =
         (Time.millisToPosix 0)
         OpNone
         CopyMoveNone
+        ""
         Nothing
         ""
 
@@ -180,6 +182,7 @@ type Msg
     | Tick Time.Posix
     | Zone Time.Zone
     | EditNodePoint Int (List Point)
+    | EditScratch String
     | UploadFile String
     | UploadSelected String File.File
     | UploadContents String File.File String
@@ -247,9 +250,13 @@ update shared msg model =
                         , points = Point.updatePoints editPoints points
                         , viewRaw = viewRaw
                         }
+                , scratch = ""
               }
             , Effect.none
             )
+
+        EditScratch s ->
+            ( { model | scratch = s }, Effect.none )
 
         UploadFile id ->
             ( model, Effect.fromCmd <| File.Select.file [ "" ] (UploadSelected id) )
@@ -1363,6 +1370,8 @@ viewNode model parent node children depth =
                     , onEditNodePoint = EditNodePoint node.feID
                     , onUploadFile = UploadFile node.node.id
                     , copy = model.copyMove
+                    , scratch = model.scratch
+                    , onEditScratch = EditScratch
                     }
                 , viewIf viewRaw <|
                     column [ spacing 10 ]

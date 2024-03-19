@@ -99,6 +99,7 @@ view o =
                     , text <| "  Rate (pts/sec): " ++ rateS
                     , text <| "  Rate HR (pkts/sec): " ++ rateHRS
                     , text <| "  Last log: " ++ log
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]
 

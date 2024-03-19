@@ -17,6 +17,7 @@ const (
 	PointTypeValueSet     = "valueSet"
 	PointTypeIndex        = "index"
 	PointTypeTagPointType = "tagPointType"
+	PointTypeTag          = "tag"
 	// PointTypeID typically refers to Node ID
 	PointTypeID                 = "id"
 	PointTypeAddress            = "address"
@@ -101,6 +102,7 @@ const (
 
 	NodeTypeModbusIO = "modbusIo"
 
+	// FIXME, should we change modbusIoType to ioType?
 	PointTypeModbusIOType           = "modbusIoType"
 	PointValueModbusDiscreteInput   = "modbusDiscreteInput"
 	PointValueModbusCoil            = "modbusCoil"

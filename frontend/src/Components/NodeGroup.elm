@@ -32,6 +32,7 @@ view o =
                             NodeInputs.nodeTextInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

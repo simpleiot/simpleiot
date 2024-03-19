@@ -39,6 +39,8 @@ view o =
                                 , now = o.now
                                 , zone = o.zone
                                 , labelWidth = labelWidth
+                                , scratch = o.scratch
+                                , onEditScratch = o.onEditScratch
                                 }
                                 "0"
 
@@ -53,6 +55,7 @@ view o =
                     , textInputLowerCase Point.typeEmail "Email" ""
                     , textInput Point.typePhone "Phone" ""
                     , textInput Point.typePass "Pass" ""
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

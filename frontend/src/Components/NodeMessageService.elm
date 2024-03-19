@@ -45,6 +45,7 @@ view o =
                     , textInput Point.typeSID "SID" ""
                     , textInput Point.typeAuthToken "Auth Token" ""
                     , textInput Point.typeFrom "From" ""
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else
