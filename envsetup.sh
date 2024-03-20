@@ -226,7 +226,13 @@ siot_goreleaser_build() {
 siot_goreleaser_release() {
 	#TODO add depend build to goreleaser config
 	#siot_build_frontend
-	goreleaser release --clean
+	echo "Did you update the frontend assets? (y/n)"
+	read -r response
+	if [ "$response" = "y" ]; then
+		goreleaser release --clean
+	else
+		echo "please update FE assets first"
+	fi
 }
 
 # dblab keyboard shortcuts
