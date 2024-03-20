@@ -63,6 +63,7 @@ view o =
                     , viewIf (metricsType == Point.valueProcess) <|
                         textInput Point.typeName "proc name" ""
                     , numberInput Point.typePeriod "Period (s)"
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     , viewMetrics o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]
 
