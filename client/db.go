@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -33,6 +34,7 @@ type DbClient struct {
 	newDbPoints   chan NewPoints
 	upSub         *nats.Subscription
 	upSubHr       *nats.Subscription
+	historySub    *nats.Subscription
 	nodeCache     nodeCache
 	client        influxdb2.Client
 	writeAPI      api.WriteAPI
@@ -54,11 +56,11 @@ func NewDbClient(nc *nats.Conn, config Db) Client {
 // Run runs the main logic for this client and blocks until stopped
 func (dbc *DbClient) Run() error {
 	log.Println("Starting db client:", dbc.config.Description)
+	var err error
 
 	// FIXME, we probably want to store edge points too ...
-	subject := fmt.Sprintf("up.%v.*", dbc.config.Parent)
 
-	var err error
+	subject := fmt.Sprintf("up.%v.*", dbc.config.Parent)
 	dbc.upSub, err = dbc.nc.Subscribe(subject, func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
@@ -77,11 +79,10 @@ func (dbc *DbClient) Run() error {
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("subscribing to %v: %w", subject, err)
 	}
 
 	subjectHR := fmt.Sprintf("phrup.%v.*", dbc.config.Parent)
-
 	dbc.upSubHr, err = dbc.nc.Subscribe(subjectHR, func(msg *nats.Msg) {
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
@@ -121,7 +122,33 @@ func (dbc *DbClient) Run() error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("Rule error subscribing to upsub: %v", err)
+		return fmt.Errorf("subscribing to %v: %w", subjectHR, err)
+	}
+
+	subjectHistory := fmt.Sprintf("history.%v", dbc.config.ID)
+	dbc.historySub, err = dbc.nc.Subscribe(subjectHistory, func(msg *nats.Msg) {
+		var query data.HistoryQuery
+		var results data.HistoryResults
+
+		// Parse query
+		err = json.Unmarshal(msg.Data, query)
+		if err != nil {
+			results.ErrorMessage = "parsing query: " + err.Error()
+		}
+
+		log.Printf("Received history query: %+v", query)
+
+		// Encode and send response
+		res, err := json.Marshal(results)
+		if err != nil {
+			msg.Respond(`{"error":"error encoding response"}`)
+		} else {
+			msg.Respond(res)
+		}
+	})
+
+	if err != nil {
+		return fmt.Errorf("subscribing to %v: %w", subjectHistory, err)
 	}
 
 	setupAPI := func() {
@@ -205,6 +232,7 @@ done:
 	// clean up
 	_ = dbc.upSub.Unsubscribe()
 	_ = dbc.upSubHr.Unsubscribe()
+	_ = dbc.historySub.Unsubscribe()
 	dbc.client.Close()
 	return nil
 }
