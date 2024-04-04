@@ -341,4 +341,8 @@ const (
 	NodeTypeNTP             = "ntp"
 	PointTypeServer         = "server"
 	PointTypeFallbackServer = "fallbackServer"
+
+	NodeTypeUpdate    = "update"
+	PointTypePrefix   = "prefix"
+	PointTypeOSUpdate = "osUpdate"
 )
