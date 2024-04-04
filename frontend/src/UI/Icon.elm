@@ -25,6 +25,7 @@ module UI.Icon exposing
     , sync
     , trendingDown
     , trendingUp
+    , update
     , user
     , users
     , variable
@@ -260,3 +261,8 @@ file =
 clock : Element msg
 clock =
     icon FeatherIcons.clock
+
+
+update : Element msg
+update =
+    icon FeatherIcons.refreshCw

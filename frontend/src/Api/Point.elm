@@ -99,6 +99,7 @@ module Api.Point exposing
     , typePointType
     , typePollPeriod
     , typePort
+    , typePrefix
     , typeProtocol
     , typeRate
     , typeRateHR
@@ -135,8 +136,9 @@ module Api.Point exposing
     , typeVersionApp
     , typeVersionHW
     , typeVersionOS
-    , typeWeekday
-      --  , keyNodeID
+    ,  typeWeekday
+       --  , keyNodeID
+
     , updatePoints
     , valueApp
     , valueClient
@@ -542,6 +544,11 @@ valueServer =
 typeURI : String
 typeURI =
     "uri"
+
+
+typePrefix : String
+typePrefix =
+    "prefix"
 
 
 typeConditionType : String
