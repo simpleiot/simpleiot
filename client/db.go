@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,6 +12,9 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
+
+// InfluxMeasurement is the Influx measurement to which all points are written
+const InfluxMeasurement = "points"
 
 // Db represents the configuration for a SIOT DB client
 type Db struct {
@@ -103,11 +107,11 @@ func (dbc *DbClient) Run() error {
 
 		err = data.DecodeSerialHrPayload(msg.Data, func(pt data.Point) {
 			tags := map[string]string{
-				"key":  pt.Key,
 				"type": pt.Type,
+				"key":  pt.Key,
 			}
 			dbc.nodeCache.CopyTags(nodeID, tags)
-			p := influxdb2.NewPoint("points",
+			p := influxdb2.NewPoint(InfluxMeasurement,
 				tags,
 				map[string]interface{}{
 					"value": pt.Value,
@@ -127,24 +131,42 @@ func (dbc *DbClient) Run() error {
 
 	subjectHistory := fmt.Sprintf("history.%v", dbc.config.ID)
 	dbc.historySub, err = dbc.nc.Subscribe(subjectHistory, func(msg *nats.Msg) {
-		var query data.HistoryQuery
-		var results data.HistoryResults
+		query := new(data.HistoryQuery)
+		results := new(data.HistoryResults)
+		ctx := context.Background()
+
+		// Defer encoding and sending response
+		defer func() {
+			res, err := json.Marshal(results)
+			if err != nil {
+				err = msg.Respond([]byte(`{"error":"error encoding response"}`))
+				if err != nil {
+					log.Printf("error responding to history query: %v", err)
+				}
+			} else {
+				err = msg.Respond(res)
+				if err != nil {
+					log.Printf("error responding to history query: %v", err)
+				}
+			}
+		}()
 
 		// Parse query
 		err = json.Unmarshal(msg.Data, query)
 		if err != nil {
 			results.ErrorMessage = "parsing query: " + err.Error()
+			return
 		}
+		log.Printf("received history query: %+v", query)
 
-		log.Printf("Received history query: %+v", query)
-
-		// Encode and send response
-		res, err := json.Marshal(results)
-		if err != nil {
-			msg.Respond(`{"error":"error encoding response"}`)
-		} else {
-			msg.Respond(res)
-		}
+		// Execute query
+		query.Execute(
+			ctx,
+			dbc.client.QueryAPI(dbc.config.Org),
+			dbc.config.Bucket,
+			InfluxMeasurement,
+			results,
+		)
 	})
 
 	if err != nil {
@@ -213,11 +235,11 @@ done:
 			// Add points to InfluxDB
 			for _, point := range pts.Points {
 				tags := map[string]string{
-					"key":  point.Key,
 					"type": point.Type,
+					"key":  point.Key,
 				}
 				dbc.nodeCache.CopyTags(pts.ID, tags)
-				p := influxdb2.NewPoint("points",
+				p := influxdb2.NewPoint(InfluxMeasurement,
 					tags,
 					map[string]interface{}{
 						"value": point.Value,
