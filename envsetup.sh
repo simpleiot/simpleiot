@@ -9,14 +9,6 @@ RECOMMENDED_ELM_VERSION=0.19.1
 
 # map tools from project go modules
 
-golint() {
-	GOARCH='' go run golang.org/x/lint/golint "$@"
-}
-
-bbolt() {
-	go run go.etcd.io/bbolt/cmd/bbolt "$@"
-}
-
 air() {
 	go run github.com/cosmtrek/air "$@"
 }
