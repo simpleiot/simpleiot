@@ -8,15 +8,10 @@ import UI.Form as Form
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style as Style exposing (colors)
-import UI.ViewIf exposing (viewIf)
 
 
 view : NodeOptions msg -> Element msg
 view o =
-    let
-        osUpdates =
-            Point.getAll o.node.points Point.typeVersionOS |> Point.filterDeleted |> List.sortWith Point.sort
-    in
     column
         [ width fill
         , Border.widthEach { top = 2, bottom = 0, left = 0, right = 0 }
@@ -43,12 +38,6 @@ view o =
                         checkboxInput =
                             NodeInputs.nodeCheckboxInput opts "0"
 
-                        downloadOS =
-                            Point.getText o.node.points Point.typeDownloadOS "0"
-
-                        downloading =
-                            downloadOS /= ""
-
                         osDownloaded =
                             Point.getText o.node.points Point.typeOSDownloaded "0"
                     in
@@ -74,18 +63,30 @@ view o =
                                 ]
                             ]
 
-                      else if downloading then
-                        column [ spacing 10 ]
-                            [ text <|
-                                "Downloading OS version: "
-                                    ++ downloadOS
-                            ]
-
                       else
-                        column [] <|
-                            [ el [ paddingXY 20 0 ] <| text "OS Updates:"
-                            , osUpdatesView opts osUpdates
-                            ]
+                        let
+                            downloadOS =
+                                Point.getText o.node.points Point.typeDownloadOS "0"
+
+                            downloading =
+                                downloadOS /= ""
+                        in
+                        if downloading then
+                            column [ spacing 10 ]
+                                [ text <|
+                                    "Downloading OS version: "
+                                        ++ downloadOS
+                                ]
+
+                        else
+                            let
+                                osUpdates =
+                                    Point.getAll o.node.points Point.typeVersionOS |> Point.filterDeleted |> List.sortWith Point.sort
+                            in
+                            column [] <|
+                                [ el [ paddingXY 20 0 ] <| text "OS Updates:"
+                                , osUpdatesView opts osUpdates
+                                ]
                     ]
 
                 else
