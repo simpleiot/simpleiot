@@ -1,11 +1,14 @@
 package client
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"sort"
@@ -20,13 +23,18 @@ import (
 
 // Update represents the config of a metrics node type
 type Update struct {
-	ID          string   `node:"id"`
-	Parent      string   `node:"parent"`
-	Description string   `point:"description"`
-	URI         string   `point:"uri"`
-	OSUpdates   []string `point:"osUpdate"`
-	Prefix      string   `point:"prefix"`
-	Refresh     bool     `point:"refresh"`
+	ID              string   `node:"id"`
+	Parent          string   `node:"parent"`
+	Description     string   `point:"description"`
+	URI             string   `point:"uri"`
+	OSUpdates       []string `point:"versionOS"`
+	DownloadOS      string   `point:"downloadOS"`
+	OSDownloaded    string   `point:"osDownloaded"`
+	DiscardDownload string   `point:"discardDownload"`
+	Prefix          string   `point:"prefix"`
+	Refresh         bool     `point:"refresh"`
+	AutoReboot      bool     `point:"autoReboot"`
+	OSDownload      string   `point:"osDownload"`
 }
 
 // UpdateClient is a SIOT client used to collect system or app metrics
@@ -51,8 +59,48 @@ func NewUpdateClient(nc *nats.Conn, config Update) Client {
 	}
 }
 
+var reUpd = regexp.MustCompile(`_(\d+\.\d+\.\d+)\.upd`)
+
 // Run the main logic for this client and blocks until stopped
 func (m *UpdateClient) Run() error {
+
+	cDownloadComplete := make(chan struct{})
+
+	download := func(v string) error {
+		u, err := url.JoinPath(m.config.URI, m.config.Prefix+"_"+v+".upd")
+		if err != nil {
+			_ = SendNodePoint(m.nc, m.config.ID,
+				data.Point{Time: time.Now(), Type: data.PointTypeDownloadOS, Text: ""},
+				false,
+			)
+			return fmt.Errorf("URI error: %w", err)
+		}
+
+		m.log.Println("Downloading update: ", u)
+
+		fileName := filepath.Base(u)
+		destPath := filepath.Join("/data/", fileName)
+
+		out, err := os.Create(destPath)
+		if err != nil {
+			return fmt.Errorf("Error creating OS update file: %w", err)
+		}
+		defer out.Close()
+
+		resp, err := http.Get(u)
+		if err != nil {
+			return fmt.Errorf("Error http get fetching OS update: %w", err)
+		}
+		defer resp.Body.Close()
+
+		_, err = io.Copy(out, resp.Body)
+		if err != nil {
+			return fmt.Errorf("Error downloading update: %w", err)
+		}
+
+		cDownloadComplete <- struct{}{}
+		return nil
+	}
 
 	// fill in default prefix
 	if m.config.Prefix == "" {
@@ -101,10 +149,8 @@ func (m *UpdateClient) Run() error {
 
 		versions := semver.Versions{}
 
-		re := regexp.MustCompile(`_(\d+\.\d+\.\d+)\.upd`)
-
 		for _, u := range updates {
-			matches := re.FindStringSubmatch(u)
+			matches := reUpd.FindStringSubmatch(u)
 			if len(matches) > 1 {
 				version := matches[1]
 				sv, err := semver.Parse(version)
@@ -126,7 +172,7 @@ func (m *UpdateClient) Run() error {
 		now := time.Now()
 		for i, v := range versions {
 			pts = append(pts, data.Point{
-				Time: now, Type: data.PointTypeOSUpdate, Text: v.String(), Key: strconv.Itoa(i),
+				Time: now, Type: data.PointTypeVersionOS, Text: v.String(), Key: strconv.Itoa(i),
 			})
 		}
 
@@ -140,7 +186,7 @@ func (m *UpdateClient) Run() error {
 			pts = data.Points{}
 			for i := len(versions); i < len(versions)+underflowCount; i++ {
 				pts = append(pts, data.Point{
-					Time: now, Type: data.PointTypeOSUpdate, Key: strconv.Itoa(i), Tombstone: 1,
+					Time: now, Type: data.PointTypeVersionOS, Key: strconv.Itoa(i), Tombstone: 1,
 				})
 			}
 		}
@@ -152,8 +198,104 @@ func (m *UpdateClient) Run() error {
 		}
 	}
 
-	getUpdates()
+	cleanDownloads := func() {
+		files, err := os.ReadDir("/data/")
+		if err != nil {
+			m.log.Println("Error getting files in /data: ", err)
+			return
+		}
 
+		for _, file := range files {
+			if !file.IsDir() && filepath.Ext(file.Name()) == ".upd" {
+				p := filepath.Join("/data", file.Name())
+				err = os.Remove(p)
+				if err != nil {
+					m.log.Printf("Error removing %v: %v", file.Name(), err)
+				}
+			}
+		}
+
+		m.config.OSDownloaded = ""
+		err = SendNodePoint(m.nc, m.config.ID, data.Point{
+			Time: time.Now(),
+			Type: data.PointTypeOSDownloaded,
+			Text: "",
+			Key:  "0",
+		}, true)
+		if err != nil {
+			m.log.Println("Error clearing downloaded point: ", err)
+		}
+
+	}
+
+	checkDownloads := func() {
+		files, err := os.ReadDir("/data/")
+		if err != nil {
+			m.log.Println("Error getting files in /data: ", err)
+			return
+		}
+
+		updFiles := []string{}
+		for _, file := range files {
+			if !file.IsDir() && filepath.Ext(file.Name()) == ".upd" {
+				updFiles = append(updFiles, file.Name())
+			}
+		}
+
+		versions := semver.Versions{}
+		for _, u := range updFiles {
+
+			matches := reUpd.FindStringSubmatch(u)
+			if len(matches) > 1 {
+				version := matches[1]
+				sv, err := semver.Parse(version)
+				if err != nil {
+					m.log.Printf("Error parsing version %v: %v", version, err)
+				}
+				versions = append(versions, sv)
+			} else {
+				m.log.Println("Version not found in filename: ", u)
+			}
+		}
+
+		sort.Sort(versions)
+
+		if len(versions) > 0 {
+			m.config.OSDownloaded = versions[len(versions)-1].String()
+			err := SendNodePoint(m.nc, m.config.ID, data.Point{
+				Time: time.Now(),
+				Type: data.PointTypeOSDownloaded,
+				Key:  "0",
+				Text: m.config.OSDownloaded}, true)
+
+			if err != nil {
+				m.log.Println("Error sending point: ", err)
+			}
+		} else {
+			m.config.OSDownloaded = ""
+			err = SendNodePoint(m.nc, m.config.ID, data.Point{
+				Time: time.Now(),
+				Type: data.PointTypeOSDownloaded,
+				Text: "",
+				Key:  "0",
+			}, true)
+			if err != nil {
+				m.log.Println("Error clearing downloaded point: ", err)
+			}
+		}
+	}
+
+	getUpdates()
+	checkDownloads()
+
+	if m.config.DownloadOS != "" {
+		go func() {
+			err := download(m.config.DownloadOS)
+			if err != nil {
+				m.log.Println("Error downloading file: %w", err)
+			}
+		}()
+	}
 done:
 	for {
 		select {
@@ -168,6 +310,40 @@ done:
 
 			for _, p := range pts.Points {
 				switch p.Type {
+				case data.PointTypeDownloadOS:
+					if p.Text != "" {
+						go func(f string) {
+							err := download(f)
+							if err != nil {
+								m.log.Println("Error downloading update: %w", err)
+							}
+						}(p.Text)
+					}
+				case data.PointTypeDiscardDownload:
+					if p.Value != 0 {
+						now := time.Now()
+						cleanDownloads()
+						checkDownloads()
+						err := SendNodePoints(m.nc, m.config.ID, data.Points{
+							{Time: now, Type: data.PointTypeDiscardDownload, Value: 0},
+						}, true)
+						if err != nil {
+							m.log.Println("Error discarding download: ", err)
+						}
+					}
+				case data.PointTypeReboot:
+					err := SendNodePoints(m.nc, m.config.ID, data.Points{
+						{Time: time.Now(), Type: data.PointTypeReboot, Value: 0},
+					}, true)
+					if err != nil {
+						m.log.Println("Error clearing reboot point: ", err)
+					}
+					err = exec.Command("reboot").Run()
+					if err != nil {
+						m.log.Println("Error rebooting: ", err)
+					} else {
+						m.log.Println("Rebooting ...")
+					}
 				}
 			}
 
@@ -176,6 +352,20 @@ done:
 			if err != nil {
 				log.Println("error merging new points:", err)
 			}
+
+		case <-cDownloadComplete:
+			now := time.Now()
+			checkDownloads()
+
+			pts := data.Points{
+				{Time: now, Type: data.PointTypeDownloadOS, Text: ""},
+				{Time: now, Type: data.PointTypeOSDownloaded, Text: m.config.OSDownloaded},
+			}
+			err := SendNodePoints(m.nc, m.config.ID, pts, true)
+			if err != nil {
+				m.log.Println("Error sending node points: ", err)
+			}
+			m.log.Println("Download complete")
 
 		}
 	}

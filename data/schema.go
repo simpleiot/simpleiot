@@ -342,7 +342,12 @@ const (
 	PointTypeServer         = "server"
 	PointTypeFallbackServer = "fallbackServer"
 
-	NodeTypeUpdate    = "update"
-	PointTypePrefix   = "prefix"
-	PointTypeOSUpdate = "osUpdate"
+	NodeTypeUpdate           = "update"
+	PointTypePrefix          = "prefix"
+	PointTypeDownloadOS      = "downloadOS"
+	PointTypeOSDownloaded    = "osDownloaded"
+	PointTypeDiscardDownload = "discardDownload"
+	PointTypeReboot          = "reboot"
+	PointTypeAutoReboot      = "autoReboot"
+	PointTypeAutoDownload    = "autoDownload"
 )

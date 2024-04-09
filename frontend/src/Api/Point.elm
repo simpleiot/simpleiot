@@ -30,6 +30,8 @@ module Api.Point exposing
     , typeActive
     , typeAddress
     , typeAuthToken
+    , typeAutoDownload
+    , typeAutoReboot
     , typeBatchPeriod
     , typeBaud
     , typeBitRate
@@ -48,6 +50,8 @@ module Api.Point exposing
     , typeDevice
     , typeDeviceID
     , typeDisabled
+    , typeDiscardDownload
+    , typeDownloadOS
     , typeEmail
     , typeEnd
     , typeError
@@ -88,6 +92,7 @@ module Api.Point exposing
     , typeMsgsRecvdOtherReset
     , typeName
     , typeNodeID
+    , typeOSDownloaded
     , typeOffline
     , typeOffset
     , typeOperator
@@ -104,6 +109,7 @@ module Api.Point exposing
     , typeRate
     , typeRateHR
     , typeReadOnly
+    , typeReboot
     , typeRoundTo
     , typeRx
     , typeRxReset
@@ -950,6 +956,36 @@ keyPointType =
 keyPointKey : String
 keyPointKey =
     "pointKey"
+
+
+typeDownloadOS : String
+typeDownloadOS =
+    "downloadOS"
+
+
+typeReboot : String
+typeReboot =
+    "reboot"
+
+
+typeAutoReboot : String
+typeAutoReboot =
+    "autoReboot"
+
+
+typeAutoDownload : String
+typeAutoDownload =
+    "autoDownload"
+
+
+typeOSDownloaded : String
+typeOSDownloaded =
+    "osDownloaded"
+
+
+typeDiscardDownload : String
+typeDiscardDownload =
+    "discardDownload"
 
 
 

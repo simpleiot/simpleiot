@@ -1,53 +1,21 @@
 module Components.NodeUpdate exposing (view)
 
-import Api.Point as Point
+import Api.Point as Point exposing (Point)
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
-import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font
-import Round
+import UI.Form as Form
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
-import UI.Style as Style
+import UI.Style as Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
 
 
 view : NodeOptions msg -> Element msg
 view o =
     let
-        value =
-            Point.getValue o.node.points Point.typeValue "0"
-
-        variableType =
-            Point.getText o.node.points Point.typeVariableType "0"
-
-        valueText =
-            if variableType == Point.valueNumber then
-                String.fromFloat (Round.roundNum 2 value)
-
-            else if variableType == Point.valueText then
-                Point.getText o.node.points Point.typeValue "0"
-
-            else if value == 0 then
-                "off"
-
-            else
-                "on"
-
-        valueBackgroundColor =
-            if valueText == "on" then
-                Style.colors.blue
-
-            else
-                Style.colors.none
-
-        valueTextColor =
-            if valueText == "on" then
-                Style.colors.white
-
-            else
-                Style.colors.black
+        osUpdates =
+            Point.getAll o.node.points Point.typeVersionOS |> Point.filterDeleted |> List.sortWith Point.sort
     in
     column
         [ width fill
@@ -60,20 +28,11 @@ view o =
             [ Icon.update
             , text <|
                 Point.getText o.node.points Point.typeDescription ""
-            , el [ paddingXY 7 0, Background.color valueBackgroundColor, Font.color valueTextColor ] <|
-                text <|
-                    valueText
-                        ++ (if variableType == Point.valueNumber then
-                                " " ++ Point.getText o.node.points Point.typeUnits ""
-
-                            else
-                                ""
-                           )
             ]
             :: (if o.expDetail then
                     let
                         labelWidth =
-                            150
+                            165
 
                         opts =
                             oToInputO o labelWidth
@@ -81,38 +40,78 @@ view o =
                         textInput =
                             NodeInputs.nodeTextInput opts "0"
 
-                        optionInput =
-                            NodeInputs.nodeOptionInput opts "0"
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts "0"
 
-                        numberInput =
-                            NodeInputs.nodeNumberInput opts "0"
+                        downloadOS =
+                            Point.getText o.node.points Point.typeDownloadOS "0"
 
-                        onOffInput =
-                            NodeInputs.nodeOnOffInput opts "0"
+                        downloading =
+                            downloadOS /= ""
+
+                        osDownloaded =
+                            Point.getText o.node.points Point.typeOSDownloaded "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeURI "Update Server" "http://..."
                     , textInput Point.typePrefix "Prefix" ""
-                    , optionInput Point.typeVariableType
-                        "Variable type"
-                        [ ( Point.valueOnOff, "On/Off" )
-                        , ( Point.valueNumber, "Number" )
-                        , ( Point.valueText, "Text" )
-                        ]
-                    , viewIf (variableType == Point.valueOnOff) <|
-                        onOffInput
-                            Point.typeValue
-                            Point.typeValue
-                            "Value"
-                    , viewIf (variableType == Point.valueNumber) <|
-                        numberInput Point.typeValue "Value"
-                    , viewIf (variableType == Point.valueNumber) <|
-                        textInput Point.typeUnits "Units" ""
-                    , viewIf (variableType == Point.valueText) <|
-                        textInput Point.typeValue "Text" ""
-                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
+                    , checkboxInput Point.typeAutoDownload "Auto download"
+                    , checkboxInput Point.typeAutoReboot "Auto reboot/install"
+                    , if osDownloaded /= "" then
+                        column [ spacing 10 ]
+                            [ text <| "OS downloaded, reboot to install: " ++ osDownloaded
+                            , Form.buttonRow <|
+                                [ Form.button
+                                    { label = "Discard"
+                                    , color = colors.orange
+                                    , onPress = opts.onEditNodePoint [ Point Point.typeDiscardDownload "0" opts.now 1 "" 0 ]
+                                    }
+                                , Form.button
+                                    { label = "Reboot"
+                                    , color = colors.red
+                                    , onPress = opts.onEditNodePoint [ Point Point.typeReboot "0" opts.now 1 "" 0 ]
+                                    }
+                                ]
+                            ]
+
+                      else if downloading then
+                        column [ spacing 10 ]
+                            [ text <|
+                                "Downloading OS version: "
+                                    ++ downloadOS
+                            ]
+
+                      else
+                        column [] <|
+                            [ el [ paddingXY 20 0 ] <| text "OS Updates:"
+                            , osUpdatesView opts osUpdates
+                            ]
                     ]
 
                 else
                     []
                )
+
+
+osUpdatesView : NodeInputs.NodeInputOptions msg -> List Point -> Element msg
+osUpdatesView opt pts =
+    table [ paddingEach { top = 0, bottom = 0, right = 0, left = 70 } ]
+        { data = pts
+        , columns =
+            [ { header = text ""
+              , width = fill
+              , view = \p -> el [ centerY ] <| text p.text
+              }
+            , { header = text ""
+              , width = fill
+              , view =
+                    \p ->
+                        el [ padding 2 ] <|
+                            Form.button
+                                { label = "install"
+                                , color = colors.blue
+                                , onPress = opt.onEditNodePoint [ Point Point.typeDownloadOS "0" opt.now 0 p.text 0 ]
+                                }
+              }
+            ]
+        }
