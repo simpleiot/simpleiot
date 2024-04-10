@@ -263,25 +263,19 @@ func (rc *RuleClient) Run() error {
 		var active, changed bool
 		var err error
 
-		if len(pts) > 0 {
-			active, changed, err = rc.ruleProcessPoints(id, pts)
-			if err != nil {
-				log.Println("Error processing rule point:", err)
-			}
-
-			if !changed {
-				return
-			}
-		} else {
-			// send a schedule trigger through just in case someone changed a
-			// schedule condition
-			active, _, err = rc.ruleProcessPoints(rc.config.ID, data.Points{{
+		if len(pts) == 0 {
+			pts = data.Points{{
 				Time: time.Now(),
 				Type: data.PointTypeTrigger,
-			}})
-			if err != nil {
-				log.Println("Error processing rule point:", err)
-			}
+			}}
+		}
+		active, changed, err = rc.ruleProcessPoints(id, pts)
+		if err != nil {
+			log.Println("Error processing rule point:", err)
+		}
+
+		if !changed {
+			return
 		}
 
 		if active {
@@ -316,10 +310,7 @@ done:
 			run(pts.ID, pts.Points)
 
 		case <-scheduleTicker.C:
-			run(rc.config.ID, data.Points{{
-				Time: time.Now(),
-				Type: data.PointTypeTrigger,
-			}})
+			run(rc.config.ID, nil)
 
 		case pts := <-rc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &rc.config)
@@ -331,14 +322,15 @@ done:
 			} else {
 				scheduleTicker.Stop()
 			}
-
-			run("", nil)
+			// Run in case schedule condition has changed
+			run(rc.config.ID, nil)
 		case pts := <-rc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &rc.config)
 			if err != nil {
 				log.Println("error merging rule edge points:", err)
 			}
-			run("", nil)
+			// Run in case schedule condition has changed
+			run(rc.config.ID, nil)
 		}
 	}
 
