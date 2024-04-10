@@ -66,7 +66,7 @@ type Condition struct {
 	Value      float64 `point:"value"`
 	ValueText  string  `point:"valueText"`
 
-	// used with shedule rules
+	// used with schedule rules
 	Start    string   `point:"start"`
 	End      string   `point:"end"`
 	Weekdays []bool   `point:"weekday"`
@@ -487,8 +487,11 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				case data.PointValueText:
 					switch c.Operator {
 					case data.PointValueEqual:
+						active = p.Text == c.ValueText
 					case data.PointValueNotEqual:
+						active = p.Text != c.ValueText
 					case data.PointValueContains:
+						active = strings.Contains(p.Text, c.ValueText)
 					}
 				case data.PointValueOnOff:
 					condValue := c.Value != 0
@@ -694,7 +697,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				}
 			}()
 		default:
-			processError(fmt.Errorf("Uknown rule action: %v", a.Action))
+			processError(fmt.Errorf("Unknown rule action: %v", a.Action))
 		}
 
 		p := data.Point{
