@@ -47,28 +47,45 @@ func (r Rule) String() string {
 
 // Condition defines parameters to look for in a point or a schedule.
 type Condition struct {
-	// general parameters
-	ID            string  `node:"id"`
-	Parent        string  `node:"parent"`
-	Description   string  `point:"description"`
-	ConditionType string  `point:"conditionType"`
-	MinActive     float64 `point:"minActive"`
-	Active        bool    `point:"active"`
-	Error         string  `point:"error"`
+	/*** General condition information */
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+	// ConditionType is "pointValue" or "schedule"
+	ConditionType string `point:"conditionType"`
+	// MinActive is currently unused
+	MinActive float64 `point:"minActive"`
+	// Active indicates whether or not the condition is active
+	Active bool `point:"active"`
+	// Error contains an error message describing the condition's error state
+	Error string `point:"error"`
 
-	// used with point value rules
-	NodeID     string  `point:"nodeID"`
-	PointType  string  `point:"pointType"`
-	PointKey   string  `point:"pointKey"`
-	PointIndex int     `point:"pointIndex"`
-	ValueType  string  `point:"valueType"`
-	Operator   string  `point:"operator"`
-	Value      float64 `point:"value"`
-	ValueText  string  `point:"valueText"`
-
-	// used with schedule rules
-	Start    string   `point:"start"`
-	End      string   `point:"end"`
+	/*** Options for pointValue conditions */
+	// NodeID, PointType, and PointKey filter the points that are relevant for
+	// this condition.
+	NodeID    string `point:"nodeID"`
+	PointType string `point:"pointType"`
+	PointKey  string `point:"pointKey"`
+	// ValueType is one of: "onOff", "number", or "text"
+	ValueType string `point:"valueType"`
+	// Value contains the boolean or numeric value to compare with the incoming
+	// point values
+	Value float64 `point:"value"`
+	// ValueText contains the string to compare with the incoming point values
+	ValueText string `point:"valueText"`
+	// Operator is used to compare Value and ValueText against incoming point
+	// values to determine if the condition is active or not.
+	//
+	// - For ValueType of "onOff", operator is ignored
+	// - For ValueType of "number", operator can be ">", "<", "=", or "!="
+	// - For ValueType of "text", operator can be "=", "!+", or "contains"
+	Operator string `point:"operator"`
+	/*** Options for schedule conditions */
+	// Start and End indicate the time of day to activate the condition
+	Start string `point:"start"`
+	End   string `point:"end"`
+	// Weekdays and dates controls which weekdays or custom dates the condition
+	// should activate
 	Weekdays []bool   `point:"weekday"`
 	Dates    []string `point:"date"`
 }
