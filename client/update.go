@@ -33,8 +33,8 @@ type Update struct {
 	DiscardDownload string   `point:"discardDownload"`
 	Prefix          string   `point:"prefix"`
 	Refresh         bool     `point:"refresh"`
+	AutoDownload    bool     `point:"autoDownload"`
 	AutoReboot      bool     `point:"autoReboot"`
-	OSDownload      string   `point:"osDownload"`
 }
 
 // UpdateClient is a SIOT client used to collect system or app metrics
@@ -59,14 +59,37 @@ func NewUpdateClient(nc *nats.Conn, config Update) Client {
 	}
 }
 
+func (m *UpdateClient) setError(err error) {
+	errS := ""
+	if err != nil {
+		errS = err.Error()
+	}
+	p := data.Point{
+		Type: data.PointTypeError,
+		Time: time.Now(),
+		Text: errS,
+	}
+
+	e := SendNodePoint(m.nc, m.config.ID, p, true)
+	if e != nil {
+		log.Println("Rule error sending point:", e)
+	}
+}
+
 var reUpd = regexp.MustCompile(`_(\d+\.\d+\.\d+)\.upd`)
+var dataDir = "/data"
 
 // Run the main logic for this client and blocks until stopped
 func (m *UpdateClient) Run() error {
 
-	cDownloadComplete := make(chan struct{})
+	cDownloadFinished := make(chan struct{})
 
 	download := func(v string) error {
+		m.setError(nil)
+		defer func() {
+			cDownloadFinished <- struct{}{}
+		}()
+
 		u, err := url.JoinPath(m.config.URI, m.config.Prefix+"_"+v+".upd")
 		if err != nil {
 			_ = SendNodePoint(m.nc, m.config.ID,
@@ -79,7 +102,7 @@ func (m *UpdateClient) Run() error {
 		m.log.Println("Downloading update: ", u)
 
 		fileName := filepath.Base(u)
-		destPath := filepath.Join("/data/", fileName)
+		destPath := filepath.Join(dataDir, fileName)
 
 		out, err := os.Create(destPath)
 		if err != nil {
@@ -93,12 +116,16 @@ func (m *UpdateClient) Run() error {
 		}
 		defer resp.Body.Close()
 
-		_, err = io.Copy(out, resp.Body)
+		c, err := io.Copy(out, resp.Body)
 		if err != nil {
 			return fmt.Errorf("Error downloading update: %w", err)
 		}
 
-		cDownloadComplete <- struct{}{}
+		if c <= 0 {
+			os.Remove(destPath)
+			return fmt.Errorf("Failed to download: %v", u)
+		}
+
 		return nil
 	}
 
@@ -198,19 +225,21 @@ func (m *UpdateClient) Run() error {
 		}
 	}
 
-	cleanDownloads := func() {
-		files, err := os.ReadDir("/data/")
+	cleanDownloads := func() error {
+		m.setError(nil)
+		files, err := os.ReadDir(dataDir)
+		var errRet error
 		if err != nil {
-			m.log.Println("Error getting files in /data: ", err)
-			return
+			return fmt.Errorf("Error getting files in data dir: %w", err)
 		}
 
 		for _, file := range files {
 			if !file.IsDir() && filepath.Ext(file.Name()) == ".upd" {
-				p := filepath.Join("/data", file.Name())
+				p := filepath.Join(dataDir, file.Name())
 				err = os.Remove(p)
 				if err != nil {
 					m.log.Printf("Error removing %v: %v", file.Name(), err)
+					errRet = err
 				}
 			}
 		}
@@ -226,12 +255,13 @@ func (m *UpdateClient) Run() error {
 			m.log.Println("Error clearing downloaded point: ", err)
 		}
 
+		return errRet
 	}
 
 	checkDownloads := func() {
-		files, err := os.ReadDir("/data/")
+		files, err := os.ReadDir(dataDir)
 		if err != nil {
-			m.log.Println("Error getting files in /data: ", err)
+			m.log.Println("Error getting files in data dir: ", err)
 			return
 		}
 
@@ -285,6 +315,7 @@ func (m *UpdateClient) Run() error {
 		}
 	}
 
+	m.setError(nil)
 	getUpdates()
 	checkDownloads()
 
@@ -293,8 +324,14 @@ func (m *UpdateClient) Run() error {
 			err := download(m.config.DownloadOS)
 			if err != nil {
 				m.log.Println("Error downloading file: %w", err)
+				m.setError(err)
 			}
 		}()
+	}
+
+	autoDownloadTicker := time.NewTicker(time.Minute * 10)
+	if !m.config.AutoDownload {
+		autoDownloadTicker.Stop()
 	}
 done:
 	for {
@@ -316,15 +353,20 @@ done:
 							err := download(f)
 							if err != nil {
 								m.log.Println("Error downloading update: %w", err)
+								m.setError(err)
 							}
 						}(p.Text)
 					}
 				case data.PointTypeDiscardDownload:
 					if p.Value != 0 {
 						now := time.Now()
-						cleanDownloads()
+						err := cleanDownloads()
+						if err != nil {
+							m.log.Println("Error cleaning downloads: ", err)
+							m.setError(err)
+						}
 						checkDownloads()
-						err := SendNodePoints(m.nc, m.config.ID, data.Points{
+						err = SendNodePoints(m.nc, m.config.ID, data.Points{
 							{Time: now, Type: data.PointTypeDiscardDownload, Value: 0},
 						}, true)
 						if err != nil {
@@ -353,7 +395,7 @@ done:
 				log.Println("error merging new points:", err)
 			}
 
-		case <-cDownloadComplete:
+		case <-cDownloadFinished:
 			now := time.Now()
 			checkDownloads()
 

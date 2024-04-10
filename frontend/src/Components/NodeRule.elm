@@ -32,7 +32,7 @@ view o =
                 Style.colors.black
 
         error =
-            Point.getText o.node.points Point.typeError ""
+            Point.getText o.node.points Point.typeError "0"
 
         titleBackground =
             if error /= "" then

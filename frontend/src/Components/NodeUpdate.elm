@@ -4,6 +4,7 @@ import Api.Point as Point exposing (Point)
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
+import Element.Font as Font
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
@@ -40,6 +41,9 @@ view o =
 
                         osDownloaded =
                             Point.getText o.node.points Point.typeOSDownloaded "0"
+
+                        error =
+                            Point.getText o.node.points Point.typeError "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeURI "Update Server" "http://..."
@@ -87,6 +91,7 @@ view o =
                                 [ el [ paddingXY 20 0 ] <| text "OS Updates:"
                                 , osUpdatesView opts osUpdates
                                 ]
+                    , el [ Font.color Style.colors.red ] <| text error
                     ]
 
                 else
