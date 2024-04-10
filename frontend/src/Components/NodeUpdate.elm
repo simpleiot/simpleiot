@@ -52,7 +52,10 @@ view o =
                     , checkboxInput Point.typeAutoReboot "Auto reboot/install"
                     , if osDownloaded /= "" then
                         column [ spacing 10 ]
-                            [ text <| "OS downloaded, reboot to install: " ++ osDownloaded
+                            [ el [ Font.color Style.colors.blue ] <|
+                                text <|
+                                    "OS downloaded, reboot to install: "
+                                        ++ osDownloaded
                             , Form.buttonRow <|
                                 [ Form.button
                                     { label = "Discard"
@@ -77,15 +80,16 @@ view o =
                         in
                         if downloading then
                             column [ spacing 10 ]
-                                [ text <|
-                                    "Downloading OS version: "
-                                        ++ downloadOS
+                                [ el [ Font.color Style.colors.blue ] <|
+                                    text <|
+                                        "Downloading OS version: "
+                                            ++ downloadOS
                                 ]
 
                         else
                             let
                                 osUpdates =
-                                    Point.getAll o.node.points Point.typeVersionOS |> Point.filterDeleted |> List.sortWith Point.sort
+                                    Point.getAll o.node.points Point.typeOSUpdate |> Point.filterDeleted |> List.sortWith Point.sort
                             in
                             column [] <|
                                 [ el [ paddingXY 20 0 ] <| text "OS Updates:"

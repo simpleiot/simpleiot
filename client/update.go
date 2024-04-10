@@ -27,7 +27,7 @@ type Update struct {
 	Parent          string   `node:"parent"`
 	Description     string   `point:"description"`
 	URI             string   `point:"uri"`
-	OSUpdates       []string `point:"versionOS"`
+	OSUpdates       []string `point:"osUpdate"`
 	DownloadOS      string   `point:"downloadOS"`
 	OSDownloaded    string   `point:"osDownloaded"`
 	DiscardDownload string   `point:"discardDownload"`
@@ -199,7 +199,7 @@ func (m *UpdateClient) Run() error {
 		now := time.Now()
 		for i, v := range versions {
 			pts = append(pts, data.Point{
-				Time: now, Type: data.PointTypeVersionOS, Text: v.String(), Key: strconv.Itoa(i),
+				Time: now, Type: data.PointTypeOSUpdate, Text: v.String(), Key: strconv.Itoa(i),
 			})
 		}
 
@@ -409,6 +409,20 @@ done:
 			}
 			m.log.Println("Download complete")
 
+		case <-autoDownloadTicker.C:
+			getUpdates()
+			newestUpdate := ""
+			if len(m.config.OSUpdates) > 0 {
+				newestUpdate = m.config.OSUpdates[len(m.config.OSUpdates)-1]
+			}
+			if newestUpdate != "" {
+				err := download(m.config.DownloadOS)
+				if err != nil {
+					m.log.Println("Error downloading file: %w", err)
+					m.setError(err)
+				}
+				checkDownloads()
+			}
 		}
 	}
 

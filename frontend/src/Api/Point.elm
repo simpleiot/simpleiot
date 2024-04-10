@@ -29,6 +29,7 @@ module Api.Point exposing
     , typeAction
     , typeActive
     , typeAddress
+    , typeAppUpdate
     , typeAuthToken
     , typeAutoDownload
     , typeAutoReboot
@@ -93,6 +94,7 @@ module Api.Point exposing
     , typeName
     , typeNodeID
     , typeOSDownloaded
+    , typeOSUpdate
     , typeOffline
     , typeOffset
     , typeOperator
@@ -142,9 +144,8 @@ module Api.Point exposing
     , typeVersionApp
     , typeVersionHW
     , typeVersionOS
-    ,  typeWeekday
-       --  , keyNodeID
-
+    , typeWeekday
+      --  , keyNodeID
     , updatePoints
     , valueApp
     , valueClient
@@ -986,6 +987,16 @@ typeOSDownloaded =
 typeDiscardDownload : String
 typeDiscardDownload =
     "discardDownload"
+
+
+typeOSUpdate : String
+typeOSUpdate =
+    "osUpdate"
+
+
+typeAppUpdate : String
+typeAppUpdate =
+    "appUpdate"
 
 
 

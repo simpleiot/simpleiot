@@ -343,6 +343,8 @@ const (
 	PointTypeFallbackServer = "fallbackServer"
 
 	NodeTypeUpdate           = "update"
+	PointTypeOSUpdate        = "osUpdate"
+	PointTypeAppUpdate       = "appUpdate"
 	PointTypePrefix          = "prefix"
 	PointTypeDownloadOS      = "downloadOS"
 	PointTypeOSDownloaded    = "osDownloaded"
