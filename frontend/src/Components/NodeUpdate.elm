@@ -9,6 +9,7 @@ import UI.Form as Form
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style as Style exposing (colors)
+import UI.ViewIf exposing (viewIf)
 
 
 view : NodeOptions msg -> Element msg
@@ -44,12 +45,45 @@ view o =
 
                         error =
                             Point.getText o.node.points Point.typeError "0"
+
+                        versionHW =
+                            case Point.get o.node.points Point.typeVersionHW "" of
+                                Just point ->
+                                    "HW: " ++ point.text
+
+                                Nothing ->
+                                    ""
+
+                        versionOS =
+                            case Point.get o.node.points Point.typeVersionOS "" of
+                                Just point ->
+                                    "OS: " ++ point.text
+
+                                Nothing ->
+                                    ""
+
+                        versionApp =
+                            case Point.get o.node.points Point.typeVersionApp "" of
+                                Just point ->
+                                    "App: " ++ point.text
+
+                                Nothing ->
+                                    ""
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeURI "Update Server" "http://..."
                     , textInput Point.typePrefix "Prefix" ""
                     , checkboxInput Point.typeAutoDownload "Auto download"
                     , checkboxInput Point.typeAutoReboot "Auto reboot/install"
+                    , viewIf (versionHW /= "" || versionOS /= "" || versionApp /= "") <|
+                        text
+                            ("Current version: "
+                                ++ versionHW
+                                ++ " "
+                                ++ versionOS
+                                ++ " "
+                                ++ versionApp
+                            )
                     , if osDownloaded /= "" then
                         column [ spacing 10 ]
                             [ el [ Font.color Style.colors.blue ] <|

@@ -19,6 +19,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
+	"github.com/simpleiot/simpleiot/system"
 )
 
 // Update represents the config of a metrics node type
@@ -26,6 +27,7 @@ type Update struct {
 	ID              string   `node:"id"`
 	Parent          string   `node:"parent"`
 	Description     string   `point:"description"`
+	VersionOS       string   `point:"versionOS"`
 	URI             string   `point:"uri"`
 	OSUpdates       []string `point:"osUpdate"`
 	DownloadOS      string   `point:"downloadOS"`
@@ -318,6 +320,22 @@ func (m *UpdateClient) Run() error {
 	m.setError(nil)
 	getUpdates()
 	checkDownloads()
+
+	osVersion, err := system.ReadOSVersion("VERSION_ID")
+	if err != nil {
+		m.log.Println("Error reading OS version: ", err)
+	} else {
+		err := SendNodePoint(m.nc, m.config.ID, data.Point{
+			Time: time.Now(),
+			Type: data.PointTypeVersionOS,
+			Key:  "0",
+			Text: osVersion.String(),
+		}, true)
+
+		if err != nil {
+			m.log.Println("Error sending OS version point: ", err)
+		}
+	}
 
 	if m.config.DownloadOS != "" {
 		go func() {
