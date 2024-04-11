@@ -29,7 +29,6 @@ module Api.Point exposing
     , typeAction
     , typeActive
     , typeAddress
-    , typeAppUpdate
     , typeAuthToken
     , typeAutoDownload
     , typeAutoReboot
@@ -992,11 +991,6 @@ typeDiscardDownload =
 typeOSUpdate : String
 typeOSUpdate =
     "osUpdate"
-
-
-typeAppUpdate : String
-typeAppUpdate =
-    "appUpdate"
 
 
 
