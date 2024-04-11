@@ -317,6 +317,61 @@ func (m *UpdateClient) Run() error {
 		}
 	}
 
+	reboot := func() {
+		err := exec.Command("reboot").Run()
+		if err != nil {
+			m.log.Println("Error rebooting: ", err)
+		} else {
+			m.log.Println("Rebooting ...")
+		}
+	}
+
+	autoDownload := func() {
+		getUpdates()
+		newestUpdate := ""
+		if len(m.config.OSUpdates) > 0 {
+			newestUpdate = m.config.OSUpdates[len(m.config.OSUpdates)-1]
+		} else {
+			return
+		}
+
+		currentOSV, err := semver.Parse(m.config.VersionOS)
+		if err != nil {
+			m.log.Println("Error parsing current OS version: ", err)
+			return
+		}
+
+		newestUpdateV, err := semver.Parse(newestUpdate)
+		if err != nil {
+			m.log.Println("Error parsing newest OS update version: ", err)
+			return
+		}
+
+		if newestUpdateV.GT(currentOSV) &&
+			newestUpdate != m.config.OSDownloaded &&
+			newestUpdate != m.config.DownloadOS {
+			// download a newer update
+			err := SendNodePoint(m.nc, m.config.ID, data.Point{
+				Time: time.Now(),
+				Type: data.PointTypeDownloadOS,
+				Text: newestUpdate,
+			}, true)
+			if err != nil {
+				m.log.Println("Error sending point: ", err)
+				return
+			}
+			m.config.DownloadOS = newestUpdate
+
+			go func(f string) {
+				err := download(f)
+				if err != nil {
+					m.log.Println("Error downloading update: %w", err)
+					m.setError(err)
+				}
+			}(newestUpdate)
+		}
+	}
+
 	m.setError(nil)
 	getUpdates()
 	checkDownloads()
@@ -335,6 +390,8 @@ func (m *UpdateClient) Run() error {
 		if err != nil {
 			m.log.Println("Error sending OS version point: ", err)
 		}
+
+		m.config.VersionOS = osVersion.String()
 	}
 
 	if m.config.DownloadOS != "" {
@@ -347,10 +404,15 @@ func (m *UpdateClient) Run() error {
 		}()
 	}
 
-	autoDownloadTicker := time.NewTicker(time.Minute * 10)
+	autoDownloadTickerTime := time.Minute * 30
+	autoDownloadTicker := time.NewTicker(autoDownloadTickerTime)
 	if !m.config.AutoDownload {
 		autoDownloadTicker.Stop()
+	} else {
+		// fire a tick now on startup
+		autoDownload()
 	}
+
 done:
 	for {
 		select {
@@ -398,11 +460,14 @@ done:
 					if err != nil {
 						m.log.Println("Error clearing reboot point: ", err)
 					}
-					err = exec.Command("reboot").Run()
-					if err != nil {
-						m.log.Println("Error rebooting: ", err)
+
+					reboot()
+
+				case data.PointTypeAutoDownload:
+					if p.Value == 1 {
+						autoDownloadTicker.Reset(autoDownloadTickerTime)
 					} else {
-						m.log.Println("Rebooting ...")
+						autoDownloadTicker.Stop()
 					}
 				}
 			}
@@ -427,20 +492,12 @@ done:
 			}
 			m.log.Println("Download complete")
 
+			if m.config.AutoReboot {
+				reboot()
+			}
+
 		case <-autoDownloadTicker.C:
-			getUpdates()
-			newestUpdate := ""
-			if len(m.config.OSUpdates) > 0 {
-				newestUpdate = m.config.OSUpdates[len(m.config.OSUpdates)-1]
-			}
-			if newestUpdate != "" {
-				err := download(m.config.DownloadOS)
-				if err != nil {
-					m.log.Println("Error downloading file: %w", err)
-					m.setError(err)
-				}
-				checkDownloads()
-			}
+			autoDownload()
 		}
 	}
 
