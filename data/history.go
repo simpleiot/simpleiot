@@ -15,7 +15,7 @@ import (
 var (
 	validField = regexp.MustCompile(`^[a-zA-Z\d.]+$`)
 	validValue = regexp.MustCompile(`^[^\\"']*$`)
-	// validOp    = regexp.MustCompile(`^(>|>=|<|<=|between|=)$`)
+	// validOp    = regexp.MustCompile(`^(>|>=|<|<=|==|!=|between)$`)
 )
 
 // HistoryQuery is a query that is sent to an Influx DB client to request
