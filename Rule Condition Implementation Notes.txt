@@ -1,0 +1,19 @@
+Rule Condition Implementation Notes
+
+- Sampling limited to 10 seconds (same as scheduler)
+- Each condition queries samples from the sliding sample window
+	- Window - window duration in seconds
+		- Maybe error if window length is shorter than 1 minute?
+	- WindowPercent - % of points in the window that must match condition
+		criteria to activate the condition
+	- WindowEvaluate - duration between Influx queries
+		- Maybe error if lower than 10 seconds?
+- Query
+	- Start: Minimum(last sample time, now - Window duration)
+	- Stop: now
+	- TagFilters: node.id, point type, point key from condition
+	- AggregateWindow: nil
+- Set last sample time to now
+- Count number of points that meet Condition criteria
+- If count / total >= WindowPercent, set active flag; otherwise, clear it
+- Write point containing query / processing time for condition
