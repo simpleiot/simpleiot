@@ -71,7 +71,7 @@ view o =
                                     ""
                     in
                     [ textInput Point.typeDescription "Description" ""
-                    , textInput Point.typeURI "Update Server" "http://..."
+                    , textInput Point.typeURI "Update server" "http://..."
                     , textInput Point.typePrefix "Prefix" ""
                     , checkboxInput Point.typeAutoDownload "Auto download"
                     , checkboxInput Point.typeAutoReboot "Auto reboot/install"
