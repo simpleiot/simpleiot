@@ -3,6 +3,7 @@ package client_test
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"testing"
 	"time"
 
@@ -546,4 +547,87 @@ func TestManagerChildren(t *testing.T) {
 	if err != nil {
 		t.Fatal("Verify failed: ", err)
 	}
+}
+
+// Some clients, like rules, rely on child nodes and we want to make sure if
+// we add a lot of child nodes the client gets restarted after the last
+// node is added. At one point we had a bug where there was not happening.
+func TestManagerLotsChildren(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	yCount := 1000
+	newClient := make(chan *testXClient, yCount*2)
+
+	// wrap newTestNodeClient so we can get access to test client
+	var newTestXClientWrapper = func(nc *nats.Conn, config testX) client.Client {
+		testClient := newTestXClient(nc, config)
+		newClient <- testClient
+		return testClient
+	}
+
+	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
+	// root and if it finds any, it instantiates a new client, and sends point updates to it
+	m := client.NewManager(nc, newTestXClientWrapper, nil)
+
+	managerStopped := make(chan struct{})
+
+	startErr := make(chan error)
+
+	go func() {
+		err := m.Run()
+		if err != nil {
+			startErr <- fmt.Errorf("manager start returned error: %v", err)
+		}
+
+		close(managerStopped)
+	}()
+
+	// hydrate database with test data
+	testXConfig := testX{"ID-X", root.ID, "testX node", "", nil}
+
+	err = client.SendNodeType(nc, testXConfig, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	go func() {
+		for i := 0; i < yCount; i++ {
+			// create child node
+			testYConfig := testY{"ID-Y-" + strconv.Itoa(i), testXConfig.ID, "testY node " + strconv.Itoa(i), ""}
+
+			err = client.SendNodeType(nc, testYConfig, "test")
+			if err != nil {
+				fmt.Println("Error sending node: ", err)
+			}
+		}
+	}()
+
+	count := 0
+
+	fmt.Println("Start for loop")
+	timeout := time.NewTimer(time.Second * 15)
+	for {
+		select {
+		case <-timeout.C:
+			t.Fatalf("Timeout waiting, exp %v Ys, got %v", yCount, count)
+		case c := <-newClient:
+			count = len(c.config.TestYs)
+			// fmt.Println("Len of Ys: ", count)
+			if count == yCount {
+				fmt.Println("Yay, got right nuber of y's")
+				return
+			}
+		case err := <-startErr:
+			t.Fatal("Error starting client manager: ", err)
+		case <-managerStopped:
+			fmt.Println("Manager stopped")
+		}
+	}
+
 }
