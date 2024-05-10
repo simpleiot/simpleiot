@@ -11,6 +11,12 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.16.0] - 2024-03-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.0)
+
+- add Update client -- currently supports system updates
+  [docs](https://docs.simpleiot.org/docs/user/update.html).
+- update elm-tooling
+
 ## [[0.15.3] - 2024-03-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.15.3)
 
 - UI: add tag UI to metrics client UI
