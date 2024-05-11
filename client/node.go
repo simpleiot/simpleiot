@@ -365,6 +365,7 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 	// time we fetch node and start subscriptions
 
 	stopPointSub, err := SubscribePoints(nc, id, func(points []data.Point) {
+		// fmt.Println("CLIFF: watcher points: ", points)
 		pointUpdates <- points
 	})
 	if err != nil {

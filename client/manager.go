@@ -32,6 +32,10 @@ type Manager[T any] struct {
 	clientStates map[string]*clientState[T]
 	clientUpSub  map[string]*nats.Subscription
 
+	// channels that route points to clients
+	clientNodePointsCh map[string]chan data.Points
+	clientEdgePointsCh map[string]chan data.Points
+
 	// subscription to listen for new points
 	upSub *nats.Subscription
 }
@@ -141,6 +145,10 @@ done:
 		case <-m.chScan:
 			scan()
 		case key := <-m.chCSStopped:
+			// FIXME: this is bogus, the subscription for a node must never
+			// be stopped just because the client is restarting -- it should
+			// buffer data.
+
 			// TODO: the following can be used to wait until all messages
 			// have been drained, but have not been able to get this to
 			// work reliably without deadlocking
@@ -198,6 +206,8 @@ func (m *Manager[T]) Stop(_ error) {
 	close(m.stop)
 }
 
+// scanHelper is used to recursively look for nodes. It only recurses into nodes that
+// may have children, which helps limit how much of the tree we search
 func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEdge, error) {
 	children, err := GetNodes(m.nc, id, "all", m.nodeType, false)
 	if err != nil {
@@ -225,6 +235,7 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 }
 
 func (m *Manager[T]) scan(id string) error {
+	// fmt.Println("CLIFF: scan: ", m.nodeType, id)
 	nodes, err := m.scanHelper(id, []data.NodeEdge{})
 	if err != nil {
 		return err
@@ -264,9 +275,17 @@ func (m *Manager[T]) scan(id string) error {
 
 		m.clientStates[key] = cs
 
+		if _, ok := m.clientUpSub[key]; ok {
+			continue
+		}
+
+		m.clientNodePointsCh[n.ID] = make(chan data.Points)
+		m.clientEdgePointsCh[key] = make(chan data.Points)
+
 		// Set up subscriptions
 		subject := fmt.Sprintf("up.%v.>", cs.node.ID)
 
+		fmt.Println("CLIFF: set up sub: ", subject)
 		m.clientUpSub[key], err = cs.nc.Subscribe(subject, func(msg *nats.Msg) {
 			points, err := data.PbDecodePoints(msg.Data)
 			if err != nil {
@@ -304,6 +323,9 @@ func (m *Manager[T]) scan(id string) error {
 					}
 				}
 
+				// FIXME: this needs to check if the client exists and then send them,
+				// otherwise wait. Perhaps each client should have a channel for node points?
+				// this is a mess
 				cs.client.Points(nodeID, points)
 			} else if len(chunks) == 4 {
 				// process edge points
@@ -313,6 +335,8 @@ func (m *Manager[T]) scan(id string) error {
 					case p.Type == data.PointTypeTombstone && p.Value == 1:
 						// node was deleted, make sure we don't see it in DB
 						// before restarting client
+						// FIXME: all the cs references below need to be
+						// arbitrated through a channel
 						start := time.Now()
 						for {
 							if time.Since(start) > time.Second*5 {

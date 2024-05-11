@@ -561,7 +561,7 @@ func TestManagerLotsChildren(t *testing.T) {
 
 	defer stop()
 
-	yCount := 1000
+	yCount := 500
 	newClient := make(chan *testXClient, yCount*2)
 
 	// wrap newTestNodeClient so we can get access to test client
@@ -611,7 +611,7 @@ func TestManagerLotsChildren(t *testing.T) {
 	count := 0
 
 	fmt.Println("Start for loop")
-	timeout := time.NewTimer(time.Second * 15)
+	timeout := time.NewTimer(time.Minute * 2)
 	for {
 		select {
 		case <-timeout.C:

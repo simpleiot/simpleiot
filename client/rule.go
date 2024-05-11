@@ -194,6 +194,7 @@ type RuleClient struct {
 
 // NewRuleClient constructor ...
 func NewRuleClient(nc *nats.Conn, config Rule) Client {
+	fmt.Println("CLIFF ******************* NewRuleClient")
 	return &RuleClient{
 		nc:            nc,
 		config:        config,
@@ -248,6 +249,7 @@ func (rc *RuleClient) Run() error {
 
 		if len(pts) > 0 {
 			active, changed, err = rc.ruleProcessPoints(id, pts)
+			// fmt.Println("CLIFF: active, changed: ", active, changed)
 			if err != nil {
 				log.Println("Error processing rule point:", err)
 			}
@@ -268,6 +270,9 @@ func (rc *RuleClient) Run() error {
 		}
 
 		if active {
+			// fmt.Println("CLIFF: running active")
+			// fmt.Println("CLIFF: ActionsInactive: ", rc.config.ActionsInactive)
+			// fmt.Println("CLIFF: Actions: ", rc.config.Actions)
 			err := rc.ruleRunActions(rc.config.Actions, id)
 			if err != nil {
 				log.Println("Error running rule actions:", err)
@@ -278,6 +283,9 @@ func (rc *RuleClient) Run() error {
 				log.Println("Error running rule inactive actions:", err)
 			}
 		} else {
+			// fmt.Println("CLIFF: running !active")
+			// fmt.Println("CLIFF: ActionsInactive: ", rc.config.ActionsInactive)
+			// fmt.Println("CLIFF: Actions: ", rc.config.Actions)
 			err := rc.ruleRunActions(rc.config.ActionsInactive, id)
 			if err != nil {
 				log.Println("Error running rule actions:", err)
@@ -296,6 +304,7 @@ done:
 		case <-rc.stop:
 			break done
 		case pts := <-rc.newRulePoints:
+			// fmt.Println("CLIFF: newRulePoints: ", pts)
 			run(pts.ID, pts.Points)
 
 		case <-scheduleTicker.C:
@@ -608,6 +617,8 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			rc.processError(errS)
 		}
 
+		// fmt.Println("CLIFF: ruleRunActions: ", actions)
+
 		switch a.Action {
 		case data.PointValueSetValue:
 			if a.NodeID == "" {
@@ -627,6 +638,8 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				Text:   a.ValueText,
 				Origin: a.ID,
 			}
+
+			// fmt.Println("CLIFF: action sending point: ", a.NodeID, p)
 			err := rc.sendPoint(a.NodeID, p)
 			if err != nil {
 				log.Println("Error sending rule action point:", err)

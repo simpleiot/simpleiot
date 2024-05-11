@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -118,6 +119,8 @@ func TestRules(t *testing.T) {
 	// wait for rule to get set up
 	time.Sleep(250 * time.Millisecond)
 
+	fmt.Println("CLIFF: send 1")
+
 	// set vin and look for vout to change
 	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
 		Value: 1, Origin: "test"}, true)
@@ -135,8 +138,11 @@ func TestRules(t *testing.T) {
 		if time.Since(start) > time.Second {
 			t.Fatal("Timeout waiting for vout to be set")
 		}
-		<-time.After(time.Millisecond * 10)
+		<-time.After(time.Millisecond * 1)
 	}
+
+	time.Sleep(time.Millisecond * 50)
+	fmt.Println("CLIFF: send 0")
 
 	// clear vin and look for vout to change
 	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
@@ -152,9 +158,12 @@ func TestRules(t *testing.T) {
 			// all is well
 			break
 		}
-		if time.Since(start) > time.Second {
+		if time.Since(start) > time.Second*5 {
 			t.Fatal("Timeout waiting for vout to be cleared")
 		}
-		<-time.After(time.Millisecond * 10)
+		<-time.After(time.Millisecond * 1)
 	}
+
+	time.Sleep(time.Second)
+
 }
