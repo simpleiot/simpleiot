@@ -34,6 +34,8 @@ type Update struct {
 	OSDownloaded    string   `point:"osDownloaded"`
 	DiscardDownload string   `point:"discardDownload"`
 	Prefix          string   `point:"prefix"`
+	Directory       string   `point:"directory"`
+	PollPeriod      int      `point:"pollPeriod"`
 	Refresh         bool     `point:"refresh"`
 	AutoDownload    bool     `point:"autoDownload"`
 	AutoReboot      bool     `point:"autoReboot"`
@@ -78,33 +80,32 @@ func (m *UpdateClient) setError(err error) {
 	}
 }
 
-var reUpd = regexp.MustCompile(`_(\d+\.\d+\.\d+)\.upd`)
-var dataDir = "/data"
+var reUpd = regexp.MustCompile(`(.*)_(\d+\.\d+\.\d+)\.upd`)
 
 // Run the main logic for this client and blocks until stopped
 func (m *UpdateClient) Run() error {
-
 	cDownloadFinished := make(chan struct{})
 
 	download := func(v string) error {
 		m.setError(nil)
 		defer func() {
 			cDownloadFinished <- struct{}{}
-		}()
-
-		u, err := url.JoinPath(m.config.URI, m.config.Prefix+"_"+v+".upd")
-		if err != nil {
 			_ = SendNodePoint(m.nc, m.config.ID,
 				data.Point{Time: time.Now(), Type: data.PointTypeDownloadOS, Text: ""},
 				false,
 			)
+			m.config.DownloadOS = ""
+		}()
+
+		u, err := url.JoinPath(m.config.URI, m.config.Prefix+"_"+v+".upd")
+		if err != nil {
 			return fmt.Errorf("URI error: %w", err)
 		}
 
 		m.log.Println("Downloading update: ", u)
 
 		fileName := filepath.Base(u)
-		destPath := filepath.Join(dataDir, fileName)
+		destPath := filepath.Join(m.config.Directory, fileName)
 
 		out, err := os.Create(destPath)
 		if err != nil {
@@ -120,7 +121,7 @@ func (m *UpdateClient) Run() error {
 
 		c, err := io.Copy(out, resp.Body)
 		if err != nil {
-			return fmt.Errorf("Error downloading update: %w", err)
+			return fmt.Errorf("io.Copy error: %w", err)
 		}
 
 		if c <= 0 {
@@ -151,7 +152,38 @@ func (m *UpdateClient) Run() error {
 		}
 	}
 
+	if m.config.Directory == "" {
+		d := "/data"
+		m.log.Println("Setting directory to: ", d)
+		err := SendNodePoint(m.nc, m.config.ID, data.Point{
+			Time: time.Now(),
+			Type: data.PointTypeDirectory,
+			Key:  "0",
+			Text: d}, false)
+		if err != nil {
+			m.log.Println("Error sending point: ", err)
+		} else {
+			m.config.Directory = d
+		}
+	}
+
+	if m.config.PollPeriod <= 0 {
+		p := 30
+		m.log.Println("Setting poll period to: ", p)
+		err := SendNodePoint(m.nc, m.config.ID, data.Point{
+			Time:  time.Now(),
+			Type:  data.PointTypePollPeriod,
+			Key:   "0",
+			Value: float64(p)}, false)
+		if err != nil {
+			m.log.Println("Error sending point: ", err)
+		} else {
+			m.config.PollPeriod = p
+		}
+	}
+
 	getUpdates := func() {
+		fmt.Println("getUpdates")
 		p, err := url.JoinPath(m.config.URI, "files.txt")
 		if err != nil {
 			m.log.Println("URI error: ", err)
@@ -181,12 +213,15 @@ func (m *UpdateClient) Run() error {
 		for _, u := range updates {
 			matches := reUpd.FindStringSubmatch(u)
 			if len(matches) > 1 {
-				version := matches[1]
+				prefix := matches[1]
+				version := matches[2]
 				sv, err := semver.Parse(version)
 				if err != nil {
-					m.log.Printf("Error parsing version %v: %v", version, err)
+					m.log.Printf("Error parsing version %v: %v\n", version, err)
 				}
-				versions = append(versions, sv)
+				if prefix == m.config.Prefix {
+					versions = append(versions, sv)
+				}
 			} else {
 				m.log.Println("Version not found in filename: ", u)
 			}
@@ -215,7 +250,7 @@ func (m *UpdateClient) Run() error {
 			pts = data.Points{}
 			for i := len(versions); i < len(versions)+underflowCount; i++ {
 				pts = append(pts, data.Point{
-					Time: now, Type: data.PointTypeVersionOS, Key: strconv.Itoa(i), Tombstone: 1,
+					Time: now, Type: data.PointTypeOSUpdate, Key: strconv.Itoa(i), Tombstone: 1,
 				})
 			}
 		}
@@ -229,7 +264,7 @@ func (m *UpdateClient) Run() error {
 
 	cleanDownloads := func() error {
 		m.setError(nil)
-		files, err := os.ReadDir(dataDir)
+		files, err := os.ReadDir(m.config.Directory)
 		var errRet error
 		if err != nil {
 			return fmt.Errorf("Error getting files in data dir: %w", err)
@@ -237,10 +272,10 @@ func (m *UpdateClient) Run() error {
 
 		for _, file := range files {
 			if !file.IsDir() && filepath.Ext(file.Name()) == ".upd" {
-				p := filepath.Join(dataDir, file.Name())
+				p := filepath.Join(m.config.Directory, file.Name())
 				err = os.Remove(p)
 				if err != nil {
-					m.log.Printf("Error removing %v: %v", file.Name(), err)
+					m.log.Printf("Error removing %v: %v\n", file.Name(), err)
 					errRet = err
 				}
 			}
@@ -257,11 +292,18 @@ func (m *UpdateClient) Run() error {
 			m.log.Println("Error clearing downloaded point: ", err)
 		}
 
+		err = SendNodePoints(m.nc, m.config.ID, data.Points{
+			{Time: time.Now(), Type: data.PointTypeDiscardDownload, Value: 0},
+		}, true)
+		if err != nil {
+			m.log.Println("Error discarding download: ", err)
+		}
+
 		return errRet
 	}
 
 	checkDownloads := func() {
-		files, err := os.ReadDir(dataDir)
+		files, err := os.ReadDir(m.config.Directory)
 		if err != nil {
 			m.log.Println("Error getting files in data dir: ", err)
 			return
@@ -279,12 +321,15 @@ func (m *UpdateClient) Run() error {
 
 			matches := reUpd.FindStringSubmatch(u)
 			if len(matches) > 1 {
-				version := matches[1]
+				prefix := matches[1]
+				version := matches[2]
 				sv, err := semver.Parse(version)
 				if err != nil {
-					m.log.Printf("Error parsing version %v: %v", version, err)
+					m.log.Printf("Error parsing version %v: %v\n", version, err)
 				}
-				versions = append(versions, sv)
+				if prefix == m.config.Prefix {
+					versions = append(versions, sv)
+				}
 			} else {
 				m.log.Println("Version not found in filename: ", u)
 			}
@@ -365,7 +410,7 @@ func (m *UpdateClient) Run() error {
 			go func(f string) {
 				err := download(f)
 				if err != nil {
-					m.log.Println("Error downloading update: %w", err)
+					m.log.Printf("Error downloading update: %v\n", err)
 					m.setError(err)
 				}
 			}(newestUpdate)
@@ -404,12 +449,9 @@ func (m *UpdateClient) Run() error {
 		}()
 	}
 
-	autoDownloadTickerTime := time.Minute * 30
-	autoDownloadTicker := time.NewTicker(autoDownloadTickerTime)
-	if !m.config.AutoDownload {
-		autoDownloadTicker.Stop()
-	} else {
-		// fire a tick now on startup
+	checkTickerTime := time.Minute * time.Duration(m.config.PollPeriod)
+	checkTicker := time.NewTicker(checkTickerTime)
+	if m.config.AutoDownload {
 		autoDownload()
 	}
 
@@ -432,26 +474,18 @@ done:
 						go func(f string) {
 							err := download(f)
 							if err != nil {
-								m.log.Println("Error downloading update: %w", err)
+								m.log.Printf("Error downloading update: %v\n", err)
 								m.setError(err)
 							}
 						}(p.Text)
 					}
 				case data.PointTypeDiscardDownload:
 					if p.Value != 0 {
-						now := time.Now()
 						err := cleanDownloads()
 						if err != nil {
-							m.log.Println("Error cleaning downloads: ", err)
-							m.setError(err)
+							m.log.Printf("Error cleaning downloads: %v\n", err)
 						}
 						checkDownloads()
-						err = SendNodePoints(m.nc, m.config.ID, data.Points{
-							{Time: now, Type: data.PointTypeDiscardDownload, Value: 0},
-						}, true)
-						if err != nil {
-							m.log.Println("Error discarding download: ", err)
-						}
 					}
 				case data.PointTypeReboot:
 					err := SendNodePoints(m.nc, m.config.ID, data.Points{
@@ -463,12 +497,30 @@ done:
 
 					reboot()
 
-				case data.PointTypeAutoDownload:
-					if p.Value == 1 {
-						autoDownloadTicker.Reset(autoDownloadTickerTime)
-					} else {
-						autoDownloadTicker.Stop()
+				case data.PointTypeRefresh:
+					err := SendNodePoints(m.nc, m.config.ID, data.Points{
+						{Time: time.Now(), Type: data.PointTypeRefresh, Value: 0},
+					}, true)
+					if err != nil {
+						m.log.Println("Error clearing reboot reboot point: ", err)
 					}
+
+					getUpdates()
+
+				case data.PointTypePollPeriod:
+					checkTickerTime := time.Minute * time.Duration(p.Value)
+					checkTicker.Reset(checkTickerTime)
+
+				case data.PointTypeAutoDownload:
+					autoDownload()
+
+				case data.PointTypePrefix:
+					err := cleanDownloads()
+					if err != nil {
+						m.log.Printf("Error cleaning downloads: %v", err)
+					}
+					checkDownloads()
+					getUpdates()
 				}
 			}
 
@@ -490,14 +542,19 @@ done:
 			if err != nil {
 				m.log.Println("Error sending node points: ", err)
 			}
-			m.log.Println("Download complete")
+			m.log.Println("Download process finished")
 
 			if m.config.AutoReboot {
 				reboot()
 			}
 
-		case <-autoDownloadTicker.C:
-			autoDownload()
+		case <-checkTicker.C:
+			if m.config.AutoDownload {
+				autoDownload()
+			} else {
+				getUpdates()
+			}
+			checkDownloads()
 		}
 	}
 

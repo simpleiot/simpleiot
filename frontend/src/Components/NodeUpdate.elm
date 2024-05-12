@@ -37,6 +37,9 @@ view o =
                         textInput =
                             NodeInputs.nodeTextInput opts "0"
 
+                        numberInput =
+                            NodeInputs.nodeNumberInput opts "0"
+
                         checkboxInput =
                             NodeInputs.nodeCheckboxInput opts "0"
 
@@ -69,10 +72,34 @@ view o =
 
                                 Nothing ->
                                     ""
+
+                        discardButton =
+                            if osDownloaded /= "" then
+                                Form.button
+                                    { label = "Discard"
+                                    , color = colors.orange
+                                    , onPress = opts.onEditNodePoint [ Point Point.typeDiscardDownload "0" opts.now 1 "" 0 ]
+                                    }
+
+                            else
+                                none
+
+                        rebootButton =
+                            if osDownloaded /= "" then
+                                Form.button
+                                    { label = "Reboot"
+                                    , color = colors.red
+                                    , onPress = opts.onEditNodePoint [ Point Point.typeReboot "0" opts.now 1 "" 0 ]
+                                    }
+
+                            else
+                                none
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeURI "Update server" "http://..."
                     , textInput Point.typePrefix "Prefix" ""
+                    , textInput Point.typeDirectory "Dest dir" ""
+                    , numberInput Point.typePollPeriod "Chk interval (min)"
                     , checkboxInput Point.typeAutoDownload "Auto download"
                     , checkboxInput Point.typeAutoReboot "Auto reboot/install"
                     , viewIf (versionHW /= "" || versionOS /= "" || versionApp /= "") <|
@@ -90,18 +117,6 @@ view o =
                                 text <|
                                     "OS downloaded, reboot to install: "
                                         ++ osDownloaded
-                            , Form.buttonRow <|
-                                [ Form.button
-                                    { label = "Discard"
-                                    , color = colors.orange
-                                    , onPress = opts.onEditNodePoint [ Point Point.typeDiscardDownload "0" opts.now 1 "" 0 ]
-                                    }
-                                , Form.button
-                                    { label = "Reboot"
-                                    , color = colors.red
-                                    , onPress = opts.onEditNodePoint [ Point Point.typeReboot "0" opts.now 1 "" 0 ]
-                                    }
-                                ]
                             ]
 
                       else
@@ -130,6 +145,15 @@ view o =
                                 , osUpdatesView opts osUpdates
                                 ]
                     , el [ Font.color Style.colors.red ] <| text error
+                    , Form.buttonRow <|
+                        [ Form.button
+                            { label = "Refresh"
+                            , color = colors.blue
+                            , onPress = opts.onEditNodePoint [ Point Point.typeRefresh "0" opts.now 1 "" 0 ]
+                            }
+                        , discardButton
+                        , rebootButton
+                        ]
                     ]
 
                 else
