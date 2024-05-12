@@ -20,8 +20,7 @@ There are several options:
 - **Prefix**: described above -- typically host/machine name. This is
   autodetected on first startup, but can be changed if necessary.
 - **Dest dir**: Destination directory for downloaded updates. Defaults to
-  `/data`. _(TODO: is this a security issue? Perhaps this should be specified at
-  command line or something.)_
+  `/data`.
 - **Chk interval**: time interval at which the client checks for new updates.
 - **Auto download**: option to periodically check the server for new updates and
   download the latest version.
