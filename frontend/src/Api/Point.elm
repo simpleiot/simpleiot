@@ -30,6 +30,8 @@ module Api.Point exposing
     , typeActive
     , typeAddress
     , typeAuthToken
+    , typeAutoDownload
+    , typeAutoReboot
     , typeBatchPeriod
     , typeBaud
     , typeBitRate
@@ -47,7 +49,10 @@ module Api.Point exposing
     , typeDestination
     , typeDevice
     , typeDeviceID
+    , typeDirectory
     , typeDisabled
+    , typeDiscardDownload
+    , typeDownloadOS
     , typeEmail
     , typeEnd
     , typeError
@@ -88,6 +93,8 @@ module Api.Point exposing
     , typeMsgsRecvdOtherReset
     , typeName
     , typeNodeID
+    , typeOSDownloaded
+    , typeOSUpdate
     , typeOffline
     , typeOffset
     , typeOperator
@@ -99,10 +106,13 @@ module Api.Point exposing
     , typePointType
     , typePollPeriod
     , typePort
+    , typePrefix
     , typeProtocol
     , typeRate
     , typeRateHR
     , typeReadOnly
+    , typeReboot
+    , typeRefresh
     , typeRoundTo
     , typeRx
     , typeRxReset
@@ -544,6 +554,11 @@ typeURI =
     "uri"
 
 
+typePrefix : String
+typePrefix =
+    "prefix"
+
+
 typeConditionType : String
 typeConditionType =
     "conditionType"
@@ -945,6 +960,51 @@ keyPointKey =
     "pointKey"
 
 
+typeDownloadOS : String
+typeDownloadOS =
+    "downloadOS"
+
+
+typeReboot : String
+typeReboot =
+    "reboot"
+
+
+typeAutoReboot : String
+typeAutoReboot =
+    "autoReboot"
+
+
+typeAutoDownload : String
+typeAutoDownload =
+    "autoDownload"
+
+
+typeOSDownloaded : String
+typeOSDownloaded =
+    "osDownloaded"
+
+
+typeDiscardDownload : String
+typeDiscardDownload =
+    "discardDownload"
+
+
+typeOSUpdate : String
+typeOSUpdate =
+    "osUpdate"
+
+
+typeDirectory : String
+typeDirectory =
+    "directory"
+
+
+typeRefresh : String
+typeRefresh =
+    "refresh"
+
+
 
 -- Point should match data/Point.go
 
@@ -1014,6 +1074,8 @@ specialPoints =
     , switch
     , input
     , light
+    , typeDirectory
+    , typeRefresh
     ]
 
 

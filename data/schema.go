@@ -341,4 +341,17 @@ const (
 	NodeTypeNTP             = "ntp"
 	PointTypeServer         = "server"
 	PointTypeFallbackServer = "fallbackServer"
+
+	NodeTypeUpdate           = "update"
+	PointTypeOSUpdate        = "osUpdate"
+	PointTypeAppUpdate       = "appUpdate"
+	PointTypePrefix          = "prefix"
+	PointTypeDownloadOS      = "downloadOS"
+	PointTypeOSDownloaded    = "osDownloaded"
+	PointTypeDiscardDownload = "discardDownload"
+	PointTypeReboot          = "reboot"
+	PointTypeAutoReboot      = "autoReboot"
+	PointTypeAutoDownload    = "autoDownload"
+	PointTypeDirectory       = "directory"
+	PointTypeRefresh         = "refresh"
 )
