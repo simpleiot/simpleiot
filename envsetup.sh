@@ -249,5 +249,5 @@ siot_mdbook_cleanup() {
 
 siot_deploy_docs() {
 	(cd /scratch/bec/ops/ &&
-		ansible-playbook -i production tmpdir.yml --tags docs.simpleiot.org)
+		ansible-playbook -i production all.yml --limit tmpdir --tags docs.simpleiot.org)
 }
