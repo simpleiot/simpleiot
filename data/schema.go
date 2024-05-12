@@ -352,4 +352,6 @@ const (
 	PointTypeReboot          = "reboot"
 	PointTypeAutoReboot      = "autoReboot"
 	PointTypeAutoDownload    = "autoDownload"
+	PointTypeDirectory       = "directory"
+	PointTypeRefresh         = "refresh"
 )

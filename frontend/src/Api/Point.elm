@@ -49,6 +49,7 @@ module Api.Point exposing
     , typeDestination
     , typeDevice
     , typeDeviceID
+    , typeDirectory
     , typeDisabled
     , typeDiscardDownload
     , typeDownloadOS
@@ -111,6 +112,7 @@ module Api.Point exposing
     , typeRateHR
     , typeReadOnly
     , typeReboot
+    , typeRefresh
     , typeRoundTo
     , typeRx
     , typeRxReset
@@ -993,6 +995,16 @@ typeOSUpdate =
     "osUpdate"
 
 
+typeDirectory : String
+typeDirectory =
+    "directory"
+
+
+typeRefresh : String
+typeRefresh =
+    "refresh"
+
+
 
 -- Point should match data/Point.go
 
@@ -1062,6 +1074,8 @@ specialPoints =
     , switch
     , input
     , light
+    , typeDirectory
+    , typeRefresh
     ]
 
 
