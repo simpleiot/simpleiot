@@ -1,6 +1,8 @@
 package client
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -10,6 +12,9 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
+
+// InfluxMeasurement is the Influx measurement to which all points are written
+const InfluxMeasurement = "points"
 
 // Db represents the configuration for a SIOT DB client
 type Db struct {
@@ -33,6 +38,7 @@ type DbClient struct {
 	newDbPoints   chan NewPoints
 	upSub         *nats.Subscription
 	upSubHr       *nats.Subscription
+	historySub    *nats.Subscription
 	nodeCache     nodeCache
 	client        influxdb2.Client
 	writeAPI      api.WriteAPI
@@ -54,11 +60,11 @@ func NewDbClient(nc *nats.Conn, config Db) Client {
 // Run runs the main logic for this client and blocks until stopped
 func (dbc *DbClient) Run() error {
 	log.Println("Starting db client:", dbc.config.Description)
+	var err error
 
 	// FIXME, we probably want to store edge points too ...
-	subject := fmt.Sprintf("up.%v.*", dbc.config.Parent)
 
-	var err error
+	subject := fmt.Sprintf("up.%v.*", dbc.config.Parent)
 	dbc.upSub, err = dbc.nc.Subscribe(subject, func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
@@ -77,11 +83,10 @@ func (dbc *DbClient) Run() error {
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("subscribing to %v: %w", subject, err)
 	}
 
 	subjectHR := fmt.Sprintf("phrup.%v.*", dbc.config.Parent)
-
 	dbc.upSubHr, err = dbc.nc.Subscribe(subjectHR, func(msg *nats.Msg) {
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
@@ -102,11 +107,11 @@ func (dbc *DbClient) Run() error {
 
 		err = data.DecodeSerialHrPayload(msg.Data, func(pt data.Point) {
 			tags := map[string]string{
-				"key":  pt.Key,
 				"type": pt.Type,
+				"key":  pt.Key,
 			}
 			dbc.nodeCache.CopyTags(nodeID, tags)
-			p := influxdb2.NewPoint("points",
+			p := influxdb2.NewPoint(InfluxMeasurement,
 				tags,
 				map[string]interface{}{
 					"value": pt.Value,
@@ -121,7 +126,51 @@ func (dbc *DbClient) Run() error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("Rule error subscribing to upsub: %v", err)
+		return fmt.Errorf("subscribing to %v: %w", subjectHR, err)
+	}
+
+	subjectHistory := fmt.Sprintf("history.%v", dbc.config.ID)
+	dbc.historySub, err = dbc.nc.Subscribe(subjectHistory, func(msg *nats.Msg) {
+		query := new(data.HistoryQuery)
+		results := new(data.HistoryResults)
+		ctx := context.Background()
+
+		// Defer encoding and sending response
+		defer func() {
+			res, err := json.Marshal(results)
+			if err != nil {
+				err = msg.Respond([]byte(`{"error":"error encoding response"}`))
+				if err != nil {
+					log.Printf("error responding to history query: %v", err)
+				}
+			} else {
+				err = msg.Respond(res)
+				if err != nil {
+					log.Printf("error responding to history query: %v", err)
+				}
+			}
+		}()
+
+		// Parse query
+		err = json.Unmarshal(msg.Data, query)
+		if err != nil {
+			results.ErrorMessage = "parsing query: " + err.Error()
+			return
+		}
+		log.Printf("received history query: %+v", query)
+
+		// Execute query
+		query.Execute(
+			ctx,
+			dbc.client.QueryAPI(dbc.config.Org),
+			dbc.config.Bucket,
+			InfluxMeasurement,
+			results,
+		)
+	})
+
+	if err != nil {
+		return fmt.Errorf("subscribing to %v: %w", subjectHistory, err)
 	}
 
 	setupAPI := func() {
@@ -186,11 +235,11 @@ done:
 			// Add points to InfluxDB
 			for _, point := range pts.Points {
 				tags := map[string]string{
-					"key":  point.Key,
 					"type": point.Type,
+					"key":  point.Key,
 				}
 				dbc.nodeCache.CopyTags(pts.ID, tags)
-				p := influxdb2.NewPoint("points",
+				p := influxdb2.NewPoint(InfluxMeasurement,
 					tags,
 					map[string]interface{}{
 						"value": point.Value,
@@ -205,6 +254,7 @@ done:
 	// clean up
 	_ = dbc.upSub.Unsubscribe()
 	_ = dbc.upSubHr.Unsubscribe()
+	_ = dbc.historySub.Unsubscribe()
 	dbc.client.Close()
 	return nil
 }

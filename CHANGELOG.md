@@ -16,6 +16,8 @@ For more details or to discuss releases, please visit the
 - add Update client -- currently supports system updates
   [docs](https://docs.simpleiot.org/docs/user/update.html).
 - update elm-tooling
+- api: Added `history.<nodeId>` NATS endpoint to send Influx history queries to
+  an Influx DB client node.
 
 ## [[0.15.3] - 2024-03-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.15.3)
 
