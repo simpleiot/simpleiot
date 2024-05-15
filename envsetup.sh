@@ -25,6 +25,7 @@ siot_install_frontend_deps() {
 }
 
 siot_check_elm() {
+	# this no longer works with the way we are installing elm
 	if ! npx elm --version >/dev/null 2>&1; then
 		echo "Please install elm >= 0.19"
 		echo "https://guide.elm-lang.org/install.html"
@@ -40,7 +41,27 @@ siot_check_elm() {
 	return 0
 }
 
+siot_check_go() {
+	# Get the installed Go version
+	go_version=$(go version | awk '{print $3}' | sed 's/go//g')
+
+	# Split the version into major, minor, and patch components
+	major=$(echo "$go_version" | awk -F'.' '{print $1}')
+	minor=$(echo "$go_version" | awk -F'.' '{print $2}')
+	patch=$(echo "$go_version" | awk -F'.' '{print $3}')
+
+	# Check if the version is greater than 1.22
+	if [ "$major" -gt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -gt 22 ]; } || { [ "$major" -eq 1 ] && [ "$minor" -eq 22 ] && [ "$patch" -gt 0 ]; }; then
+		echo "Go version $go_version is greater than 1.22"
+		return 0
+	else
+		echo "Go version $go_version is not greater than 1.22"
+		return 1
+	fi
+}
+
 siot_setup() {
+	siot_check_go || return 1
 	siot_install_frontend_deps
 	# the following is to work around a race condition
 	# where the first time you run npx elm, you get an error:
