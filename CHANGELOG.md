@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- Modbus: add an option to validate the input when a client writes to a
+  register.
+
 ## [[0.16.0] - 2024-03-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.0)
 
 - add Update client -- currently supports system updates
