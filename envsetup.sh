@@ -243,15 +243,17 @@ siot_goreleaser_build() {
 # generate tokens: https://github.com/settings/tokens/new
 # enable repo and workflow sections
 siot_goreleaser_release() {
-	#TODO add depend build to goreleaser config
-	#siot_build_frontend
-	echo "Did you update the frontend assets? (y/n)"
-	read -r response
-	if [ "$response" = "y" ]; then
-		goreleaser release --clean
-	else
-		echo "please update FE assets first"
+	VERSION=$1
+	if [ -z "$VERSION" ]; then
+		echo "must provide version in format vX.Y.Z"
+		return 1
 	fi
+
+	# update elm.js.gz
+	siot_build_frontend || return 1
+	git commit -m "update FE assets" frontend/pubic/dist/elm.js.gz || return 1
+	git push || return 1
+	goreleaser release --clean
 }
 
 # dblab keyboard shortcuts
