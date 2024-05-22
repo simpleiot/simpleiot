@@ -26,7 +26,7 @@ for more information. A client manager is created for each client type. This
 manager instantiates new client instances when new nodes are detected and then
 sends point updates to the client. Two levels of nodes are currently supported
 for client configuration. An example of this would be a Rule node that has
-Condtion and Action child nodes.
+Condition and Action child nodes.
 
 A "disabled" option is useful and should be considered for every new client.
 
@@ -41,16 +41,16 @@ Creating a new client typically requires the following steps:
 1. create a new client in
    [`client/`](https://github.com/simpleiot/simpleiot/tree/master/client)
    directory. A client is defined by a type that satisfies the
-   [Client interface](https://pkg.go.dev/github.com/simpleiot/simpleiot/client#Client).
+   [`Client interface`](https://pkg.go.dev/github.com/simpleiot/simpleiot/client#Client).
    A constructor must also be defined that is passed to
-   [NewManager](https://pkg.go.dev/github.com/simpleiot/simpleiot/client#NewManager)
+   [`NewManager`](https://pkg.go.dev/github.com/simpleiot/simpleiot/client#NewManager)
    and a struct that represents the client data. The name of the struct must
    match the node type -- for instance a node of type `canBus` needs to be
    defined by a struct named `CanBus`. Additionally, each field of the client
    struct must have point tags. This allows us to automatically create and
    modify client structs from arrays of node points.
 1. create a new manager for the client in
-   [client/client.go](https://github.com/simpleiot/simpleiot/blob/master/client/client.go)
+   [`client/client.go`](https://github.com/simpleiot/simpleiot/blob/master/client/client.go)
 1. Create an Elm UI for the clent in
    [`frontend/src/Components/`](https://github.com/simpleiot/simpleiot/tree/master/frontend/src/Components)
 1. Create plumbing for new NodeXYZ in
