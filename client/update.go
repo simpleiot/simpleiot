@@ -183,7 +183,6 @@ func (m *UpdateClient) Run() error {
 	}
 
 	getUpdates := func() {
-		fmt.Println("getUpdates")
 		p, err := url.JoinPath(m.config.URI, "files.txt")
 		if err != nil {
 			m.log.Println("URI error: ", err)
@@ -372,7 +371,6 @@ func (m *UpdateClient) Run() error {
 	}
 
 	autoDownload := func() {
-		getUpdates()
 		newestUpdate := ""
 		if len(m.config.OSUpdates) > 0 {
 			newestUpdate = m.config.OSUpdates[len(m.config.OSUpdates)-1]
@@ -452,6 +450,7 @@ func (m *UpdateClient) Run() error {
 	checkTickerTime := time.Minute * time.Duration(m.config.PollPeriod)
 	checkTicker := time.NewTicker(checkTickerTime)
 	if m.config.AutoDownload {
+		getUpdates()
 		autoDownload()
 	}
 
@@ -512,7 +511,10 @@ done:
 					checkTicker.Reset(checkTickerTime)
 
 				case data.PointTypeAutoDownload:
-					autoDownload()
+					if p.Value == 1 {
+						getUpdates()
+						autoDownload()
+					}
 
 				case data.PointTypePrefix:
 					err := cleanDownloads()
@@ -549,10 +551,9 @@ done:
 			}
 
 		case <-checkTicker.C:
+			getUpdates()
 			if m.config.AutoDownload {
 				autoDownload()
-			} else {
-				getUpdates()
 			}
 			checkDownloads()
 		}
