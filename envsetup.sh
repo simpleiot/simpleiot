@@ -251,7 +251,7 @@ siot_goreleaser_release() {
 
 	# update elm.js.gz
 	siot_build_frontend || return 1
-	git commit -m "update FE assets" frontend/pubic/dist/elm.js.gz || return 1
+	git commit -m "update FE assets" frontend/public/dist/elm.js.gz || return 1
 	git push || return 1
 	goreleaser release --clean
 }
