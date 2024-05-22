@@ -67,7 +67,9 @@ func (m *UpdateClient) setError(err error) {
 	errS := ""
 	if err != nil {
 		errS = err.Error()
+		m.log.Println(err)
 	}
+
 	p := data.Point{
 		Type: data.PointTypeError,
 		Time: time.Now(),
@@ -76,7 +78,7 @@ func (m *UpdateClient) setError(err error) {
 
 	e := SendNodePoint(m.nc, m.config.ID, p, true)
 	if e != nil {
-		log.Println("Rule error sending point:", e)
+		m.log.Println("error sending point:", e)
 	}
 }
 
@@ -85,9 +87,10 @@ var reUpd = regexp.MustCompile(`(.*)_(\d+\.\d+\.\d+)\.upd`)
 // Run the main logic for this client and blocks until stopped
 func (m *UpdateClient) Run() error {
 	cDownloadFinished := make(chan struct{})
+	// cSetError is used in any goroutines
+	cSetError := make(chan error)
 
 	download := func(v string) error {
-		m.setError(nil)
 		defer func() {
 			cDownloadFinished <- struct{}{}
 			_ = SendNodePoint(m.nc, m.config.ID,
@@ -182,23 +185,25 @@ func (m *UpdateClient) Run() error {
 		}
 	}
 
-	getUpdates := func() {
+	getUpdates := func() error {
 		p, err := url.JoinPath(m.config.URI, "files.txt")
 		if err != nil {
-			m.log.Println("URI error: ", err)
+			return fmt.Errorf("URI error: %w", err)
 		}
 		resp, err := http.Get(p)
 		if err != nil {
-			m.log.Println("Error getting updates: ", err)
-			return
+			return fmt.Errorf("Error getting updates: %w", err)
+		}
+
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("Error getting updates: %v", resp.Status)
 		}
 
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			m.log.Println("Error reading http response: ", err)
-			return
+			return fmt.Errorf("Error reading http response: %w", err)
 		}
 
 		updates := strings.Split(string(body), "\n")
@@ -227,6 +232,8 @@ func (m *UpdateClient) Run() error {
 		}
 
 		sort.Sort(versions)
+
+		fmt.Println("CLIFF: versions: ", versions)
 
 		underflowCount := len(m.config.OSUpdates) - len(versions)
 
@@ -259,10 +266,10 @@ func (m *UpdateClient) Run() error {
 			m.log.Println("Error sending version points: ", err)
 
 		}
+		return nil
 	}
 
 	cleanDownloads := func() error {
-		m.setError(nil)
 		files, err := os.ReadDir(m.config.Directory)
 		var errRet error
 		if err != nil {
@@ -301,11 +308,10 @@ func (m *UpdateClient) Run() error {
 		return errRet
 	}
 
-	checkDownloads := func() {
+	checkDownloads := func() error {
 		files, err := os.ReadDir(m.config.Directory)
 		if err != nil {
-			m.log.Println("Error getting files in data dir: ", err)
-			return
+			return fmt.Errorf("Error getting files in data dir: %w", err)
 		}
 
 		updFiles := []string{}
@@ -359,6 +365,7 @@ func (m *UpdateClient) Run() error {
 				m.log.Println("Error clearing downloaded point: ", err)
 			}
 		}
+		return nil
 	}
 
 	reboot := func() {
@@ -370,24 +377,22 @@ func (m *UpdateClient) Run() error {
 		}
 	}
 
-	autoDownload := func() {
+	autoDownload := func() error {
 		newestUpdate := ""
 		if len(m.config.OSUpdates) > 0 {
 			newestUpdate = m.config.OSUpdates[len(m.config.OSUpdates)-1]
 		} else {
-			return
+			return nil
 		}
 
 		currentOSV, err := semver.Parse(m.config.VersionOS)
 		if err != nil {
-			m.log.Println("Error parsing current OS version: ", err)
-			return
+			return fmt.Errorf("Autodownload, Error parsing current OS version: %w", err)
 		}
 
 		newestUpdateV, err := semver.Parse(newestUpdate)
 		if err != nil {
-			m.log.Println("Error parsing newest OS update version: ", err)
-			return
+			return fmt.Errorf("autodownload: Error parsing newest OS update version: %w", err)
 		}
 
 		if newestUpdateV.GT(currentOSV) &&
@@ -400,24 +405,29 @@ func (m *UpdateClient) Run() error {
 				Text: newestUpdate,
 			}, true)
 			if err != nil {
-				m.log.Println("Error sending point: ", err)
-				return
+				return fmt.Errorf("Error sending point: %w", err)
 			}
 			m.config.DownloadOS = newestUpdate
 
 			go func(f string) {
 				err := download(f)
 				if err != nil {
-					m.log.Printf("Error downloading update: %v\n", err)
-					m.setError(err)
+					cSetError <- fmt.Errorf("error downloading update: %w", err)
 				}
 			}(newestUpdate)
 		}
+		return nil
 	}
 
 	m.setError(nil)
-	getUpdates()
-	checkDownloads()
+	err := getUpdates()
+	if err != nil {
+		m.setError(err)
+	}
+	err = checkDownloads()
+	if err != nil {
+		m.setError(err)
+	}
 
 	osVersion, err := system.ReadOSVersion("VERSION_ID")
 	if err != nil {
@@ -441,8 +451,7 @@ func (m *UpdateClient) Run() error {
 		go func() {
 			err := download(m.config.DownloadOS)
 			if err != nil {
-				m.log.Println("Error downloading file: %w", err)
-				m.setError(err)
+				cSetError <- fmt.Errorf("Error downloading file: %w", err)
 			}
 		}()
 	}
@@ -450,8 +459,16 @@ func (m *UpdateClient) Run() error {
 	checkTickerTime := time.Minute * time.Duration(m.config.PollPeriod)
 	checkTicker := time.NewTicker(checkTickerTime)
 	if m.config.AutoDownload {
-		getUpdates()
-		autoDownload()
+		m.setError(nil)
+		err := getUpdates()
+		if err != nil {
+			m.setError(err)
+		} else {
+			err := autoDownload()
+			if err != nil {
+				m.setError(err)
+			}
+		}
 	}
 
 done:
@@ -473,18 +490,21 @@ done:
 						go func(f string) {
 							err := download(f)
 							if err != nil {
-								m.log.Printf("Error downloading update: %v\n", err)
-								m.setError(err)
+								cSetError <- fmt.Errorf("Error downloading update: %w", err)
 							}
 						}(p.Text)
 					}
 				case data.PointTypeDiscardDownload:
 					if p.Value != 0 {
+						m.setError(nil)
 						err := cleanDownloads()
 						if err != nil {
-							m.log.Printf("Error cleaning downloads: %v\n", err)
+							m.setError(fmt.Errorf("Error cleaning downloads: %w", err))
 						}
-						checkDownloads()
+						err = checkDownloads()
+						if err != nil {
+							m.setError(err)
+						}
 					}
 				case data.PointTypeReboot:
 					err := SendNodePoints(m.nc, m.config.ID, data.Points{
@@ -504,7 +524,11 @@ done:
 						m.log.Println("Error clearing reboot reboot point: ", err)
 					}
 
-					getUpdates()
+					m.setError(nil)
+					err = getUpdates()
+					if err != nil {
+						m.setError(err)
+					}
 
 				case data.PointTypePollPeriod:
 					checkTickerTime := time.Minute * time.Duration(p.Value)
@@ -512,17 +536,39 @@ done:
 
 				case data.PointTypeAutoDownload:
 					if p.Value == 1 {
-						getUpdates()
-						autoDownload()
+						m.setError(nil)
+						err := getUpdates()
+						if err != nil {
+							m.setError(err)
+						} else {
+							err :=
+								autoDownload()
+							if err != nil {
+								m.setError(err)
+							}
+						}
 					}
 
 				case data.PointTypePrefix:
+					m.setError(nil)
 					err := cleanDownloads()
 					if err != nil {
-						m.log.Printf("Error cleaning downloads: %v", err)
+						m.setError(fmt.Errorf("Error cleaning downloads: %w", err))
 					}
-					checkDownloads()
-					getUpdates()
+					err = checkDownloads()
+					if err != nil {
+						m.setError(err)
+					}
+					err = getUpdates()
+					if err != nil {
+						m.setError(err)
+					}
+				case data.PointTypeURI:
+					m.setError(nil)
+					err := getUpdates()
+					if err != nil {
+						m.setError(err)
+					}
 				}
 			}
 
@@ -534,30 +580,52 @@ done:
 
 		case <-cDownloadFinished:
 			now := time.Now()
-			checkDownloads()
+			err := checkDownloads()
+			if err != nil {
+				m.setError(err)
+			}
 
 			pts := data.Points{
 				{Time: now, Type: data.PointTypeDownloadOS, Text: ""},
 				{Time: now, Type: data.PointTypeOSDownloaded, Text: m.config.OSDownloaded},
 			}
-			err := SendNodePoints(m.nc, m.config.ID, pts, true)
+			err = SendNodePoints(m.nc, m.config.ID, pts, true)
 			if err != nil {
 				m.log.Println("Error sending node points: ", err)
 			}
 			m.log.Println("Download process finished")
 
 			if m.config.AutoReboot {
+				// make sure points have time to stick
+				time.Sleep(2 * time.Second)
 				reboot()
 			}
 
 		case <-checkTicker.C:
-			getUpdates()
-			if m.config.AutoDownload {
-				autoDownload()
+			m.setError(nil)
+			err := getUpdates()
+			if err != nil {
+				m.setError(err)
+				break
 			}
-			checkDownloads()
+			if m.config.AutoDownload {
+				err := autoDownload()
+				if err != nil {
+					m.setError(err)
+				}
+			}
+			err = checkDownloads()
+			if err != nil {
+				m.setError(err)
+			}
+
+		case err := <-cSetError:
+			m.setError(err)
 		}
 	}
+
+	close(cDownloadFinished)
+	close(cSetError)
 
 	return nil
 }
