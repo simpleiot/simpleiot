@@ -1,5 +1,6 @@
 /siot
 /siot_arm
+/siot_arm64
 /siot.exe
 /tmp
 *.db

@@ -11,10 +11,19 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-- Modbus: add an option to validate the input when a client writes to a
-  register.
+## [[0.16.1] - 2024-05-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.1)
 
-## [[0.16.0] - 2024-03-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.0)
+- Modbus API: add an option to validate the input when a client writes to a
+  register.
+- Update client:
+  - improve autodownload logic
+  - check for updates when URI is changed
+  - improve error handling and reporting
+  - fix bug when reducing update list
+- expand documentation on
+  [creating a client](https://docs.simpleiot.org/docs/ref/client.html#creating-new-clients).
+
+## [[0.16.0] - 2024-05-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.0)
 
 - add Update client -- currently supports system updates
   [docs](https://docs.simpleiot.org/docs/user/update.html).

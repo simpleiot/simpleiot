@@ -102,6 +102,12 @@ siot_build_arm() {
 	return 0
 }
 
+siot_build_arm64() {
+	siot_build_frontend || return 1
+	GOARCH=arm64 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm64 cmd/siot/main.go || return 1
+	return 0
+}
+
 siot_build_arm_debug() {
 	siot_build_frontend || return 1
 	GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
