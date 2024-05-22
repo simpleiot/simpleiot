@@ -186,16 +186,37 @@ func (m *UpdateClient) Run() error {
 	}
 
 	getUpdates := func() error {
+		clearUpdateList := func() {
+			cnt := len(m.config.OSUpdates)
+
+			if cnt > 0 {
+				pts := data.Points{}
+				for i := 0; i < cnt; i++ {
+					pts = append(pts, data.Point{
+						Time: time.Now(), Type: data.PointTypeOSUpdate, Key: strconv.Itoa(i), Tombstone: 1,
+					})
+				}
+
+				err := SendNodePoints(m.nc, m.config.ID, pts, false)
+				if err != nil {
+					m.log.Println("Error sending version points: ", err)
+				}
+			}
+		}
+
 		p, err := url.JoinPath(m.config.URI, "files.txt")
 		if err != nil {
+			clearUpdateList()
 			return fmt.Errorf("URI error: %w", err)
 		}
 		resp, err := http.Get(p)
 		if err != nil {
+			clearUpdateList()
 			return fmt.Errorf("Error getting updates: %w", err)
 		}
 
 		if resp.StatusCode != 200 {
+			clearUpdateList()
 			return fmt.Errorf("Error getting updates: %v", resp.Status)
 		}
 
@@ -233,10 +254,6 @@ func (m *UpdateClient) Run() error {
 
 		sort.Sort(versions)
 
-		fmt.Println("CLIFF: versions: ", versions)
-
-		underflowCount := len(m.config.OSUpdates) - len(versions)
-
 		// need to update versions available
 		pts := data.Points{}
 		now := time.Now()
@@ -252,19 +269,25 @@ func (m *UpdateClient) Run() error {
 
 		}
 
+		err = data.MergePoints(m.config.ID, pts, &m.config)
+		if err != nil {
+			log.Println("error merging new points:", err)
+		}
+
+		underflowCount := len(m.config.OSUpdates) - len(versions)
+
 		if underflowCount > 0 {
-			pts = data.Points{}
+			pts := data.Points{}
 			for i := len(versions); i < len(versions)+underflowCount; i++ {
 				pts = append(pts, data.Point{
 					Time: now, Type: data.PointTypeOSUpdate, Key: strconv.Itoa(i), Tombstone: 1,
 				})
 			}
-		}
 
-		err = SendNodePoints(m.nc, m.config.ID, pts, false)
-		if err != nil {
-			m.log.Println("Error sending version points: ", err)
-
+			err = SendNodePoints(m.nc, m.config.ID, pts, false)
+			if err != nil {
+				m.log.Println("Error sending version points: ", err)
+			}
 		}
 		return nil
 	}
