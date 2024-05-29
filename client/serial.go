@@ -97,6 +97,9 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 	if sd.config.SyncParent {
 		sd.natsSubSerialPoints = SubjectNodePoints(sd.config.Parent)
 		var err error
+		// Copy some config to avoid race conditions
+		serialID := sd.config.ID
+		debug := sd.config.Debug
 		sd.parentSubscription, err = sd.nc.Subscribe(sd.natsSubSerialPoints, func(msg *nats.Msg) {
 			points, err := data.PbDecodePoints(msg.Data)
 			if err != nil {
@@ -109,14 +112,14 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 			var pointsToSend data.Points
 
 			for _, p := range points {
-				if p.Origin != sd.config.ID {
+				if p.Origin != serialID {
 					pointsToSend = append(pointsToSend, p)
 				}
 			}
 
 			if len(pointsToSend) > 0 {
 				if sd.portCobsWrapper == nil {
-					if sd.config.Debug >= 4 {
+					if debug >= 4 {
 						log.Printf("Serial port closed; points not sent: %v", pointsToSend)
 					}
 					return
