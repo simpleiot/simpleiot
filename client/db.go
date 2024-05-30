@@ -146,6 +146,20 @@ func (dbc *DbClient) Run() error {
 			} else {
 				err = msg.Respond(res)
 				if err != nil {
+					// Try responding via NATS with the error
+					results = &data.HistoryResults{
+						ErrorMessage: err.Error(),
+					}
+					res, parseErr := json.Marshal(results)
+					if parseErr == nil {
+						retryError := msg.Respond(res)
+						if retryError == nil {
+							// clear original error
+							err = nil
+						}
+					}
+				}
+				if err != nil {
 					log.Printf("error responding to history query: %v", err)
 				}
 			}
