@@ -10,7 +10,6 @@ import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style as Style exposing (colors)
 
-
 view : NodeOptions msg -> Element msg
 view o =
     let
@@ -20,26 +19,32 @@ view o =
         descBackgroundColor =
             if active then
                 Style.colors.blue
-
             else
                 Style.colors.none
 
         descTextColor =
             if active then
                 Style.colors.white
-
             else
                 Style.colors.black
 
         error =
             Point.getText o.node.points Point.typeError "0"
 
-        titleBackground =
-            if error /= "" then
-                Style.colors.red
+        disabled =
+            Point.getBool o.node.points Point.typeDisabled ""
 
+        titleBackground =
+            if disabled then
+                if error /= "" then
+                    Style.colors.red
+                else
+                    Style.colors.gray
             else
-                Style.colors.none
+                if error /= "" then
+                    Style.colors.red
+                else
+                    Style.colors.none
     in
     column
         [ width fill
@@ -66,12 +71,15 @@ view o =
 
                         textInput =
                             NodeInputs.nodeTextInput opts "0"
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , el [ Font.color Style.colors.red ] <| text error
+                    , checkboxInput Point.typeDisabled "Disabled"
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
-
                 else
                     []
                )
