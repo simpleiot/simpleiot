@@ -253,8 +253,12 @@ siot_goreleaser_release() {
 	siot_build_frontend || return 1
 	git commit -m "update FE assets" frontend/public/dist/elm.js.gz || return 1
 	git push || return 1
-	git tag -f "$VERSION"
-	goreleaser release --clean
+	git tag -f "$VERSION" || return 1
+	goreleaser release --clean || return 1
+	siot_deploy_docs || return 1
+	# refresh godocs site
+	wget "https://proxy.golang.org/github.com/simpleiot/simpleiot/@v/${VERSION}.info" || return 1
+	rm "${VERSION}.info"
 }
 
 # dblab keyboard shortcuts
