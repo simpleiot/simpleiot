@@ -11,6 +11,12 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.16.2] - 2024-06-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.2)
+
+- db client: Improve Influx history query functionality
+  - If history query response fails, try responding again with ErrorMessage
+  - TagFilters values can now be empty string or a slice of strings
+
 ## [[0.16.1] - 2024-05-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.1)
 
 - Modbus API: add an option to validate the input when a client writes to a
