@@ -87,6 +87,14 @@ func TestRules(t *testing.T) {
 		t.Fatal("Error sending node: ", err)
 	}
 
+	// FIXME:
+	// this delay is required to work around a bug in the manager
+	// where it is resetting and does not see the ActionInactive points
+	// See https://github.com/simpleiot/simpleiot/issues/630
+	// the tools/test-rules.sh script can be used to test a fix for this
+	// problem
+	time.Sleep(100 * time.Millisecond)
+
 	a2 := client.ActionInactive{
 		ID:          "ID-action-inactive",
 		Parent:      r.ID,
@@ -139,9 +147,6 @@ func TestRules(t *testing.T) {
 	}
 
 	// clear vin and look for vout to change
-	// FIXME: the following fails due to bug in the client manager, disabling for
-	// now until we get that fixed.
-	t.Skip("Skipping test for setting vout")
 	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
 		Value: 0, Origin: "test"}, true)
 
