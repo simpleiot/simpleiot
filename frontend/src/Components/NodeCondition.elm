@@ -35,8 +35,14 @@ view o =
         error =
             Point.getText o.node.points Point.typeError ""
 
+        disabled =
+            Point.getBool o.node.points Point.typeDisabled ""
+
         titleBackground =
-            if error /= "" then
+            if disabled then
+                Style.colors.gray
+
+            else if error /= "" then
                 Style.colors.red
 
             else
@@ -76,8 +82,12 @@ view o =
 
                         conditionType =
                             Point.getText o.node.points Point.typeConditionType ""
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
+                    , checkboxInput Point.typeDisabled "Disabled"
                     , optionInput Point.typeConditionType
                         "Type"
                         [ ( Point.valuePointValue, "point value" )

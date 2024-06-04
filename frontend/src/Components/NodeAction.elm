@@ -43,8 +43,14 @@ view o =
         error =
             Point.getText o.node.points Point.typeError "0"
 
+        disabled =
+            Point.getBool o.node.points Point.typeDisabled ""
+
         titleBackground =
-            if error /= "" then
+            if disabled then
+                Style.colors.gray
+
+            else if error /= "" then
                 Style.colors.red
 
             else
@@ -99,8 +105,12 @@ view o =
 
                         nodeId =
                             Point.getText o.node.points Point.typeNodeID "0"
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
+                    , checkboxInput Point.typeDisabled "Disabled"
                     , optionInput Point.typeAction
                         "Action"
                         [ ( Point.valueNotify, "notify" )
