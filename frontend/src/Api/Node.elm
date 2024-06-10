@@ -35,6 +35,7 @@ module Api.Node exposing
     , typeShellyIO
     , typeSignalGenerator
     , typeSync
+    , typeUpdate
     , typeUser
     , typeVariable
     )
@@ -177,6 +178,11 @@ typeNetworkManagerConn =
 typeNTP : String
 typeNTP =
     "ntp"
+
+
+typeUpdate : String
+typeUpdate =
+    "update"
 
 
 

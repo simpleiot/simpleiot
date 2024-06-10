@@ -30,6 +30,7 @@ To build:
 
 - `npm install -g run-pty`
 - `. envsetup.sh`
+- `siot_setup`
 - `siot_watch`
 
 The `siot_watch` command can be used when developing Simple IoT. This does the
@@ -56,24 +57,8 @@ functionality including a NATS server.
 
 ## Developing a new SIOT client
 
-Simple IoT provides utilities that assist in creating new clients. See the
-[Go package documentation](https://pkg.go.dev/github.com/simpleiot/simpleiot/client)
-for more information. A client manager is created for each client type. This
-manager instantiates new client instances when new nodes are detected and then
-sends point updates to the client. Two levels of nodes are currently supported
-for client configuration. An example of this would be a Rule node that has
-Condtion and Action child nodes.
-
-A "disabled" option is useful and should be considered for every new client.
-
-The process for creating a new client:
-
-- look at
-  [existing clients](https://github.com/simpleiot/simpleiot/tree/master/client)
-  and use one of them for a model.
-- register your client with the server using the `AddClient` method.
-- create a frontend UI for the client. Again, model after
-  [existing client UIs](https://github.com/simpleiot/simpleiot/tree/master/frontend/src/Components).
+Most SIOT functionality is implemented in clients. See the [client](client.md)
+documentation for more information.
 
 ## Customizing the UI
 

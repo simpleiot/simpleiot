@@ -32,6 +32,7 @@ import Components.NodeShelly as NodeShelly
 import Components.NodeShellyIO as NodeShellyIO
 import Components.NodeSignalGenerator as SignalGenerator
 import Components.NodeSync as NodeSync
+import Components.NodeUpdate as NodeUpdate
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
 import Dict
@@ -1035,6 +1036,7 @@ nodeCustomSortRules =
         , ( Node.typeShellyIO, "Q" )
         , ( Node.typeNetworkManager, "R" )
         , ( Node.typeNTP, "S" )
+        , ( Node.typeUpdate, "T" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1324,6 +1326,9 @@ viewNode model parent node children depth =
 
                     "networkManagerConn" ->
                         NodeNetworkManagerConn.view
+
+                    "update" ->
+                        NodeUpdate.view
 
                     _ ->
                         NodeRaw.view
@@ -1619,6 +1624,11 @@ nodeDescMetrics =
     row [] [ Icon.barChart, text "Metrics" ]
 
 
+nodeDescUpdate : Element Msg
+nodeDescUpdate =
+    row [] [ Icon.update, text "Update" ]
+
+
 nodeDescNetworkManager : Element Msg
 nodeDescNetworkManager =
     row [] [ Icon.network, text "Network Manager" ]
@@ -1660,6 +1670,7 @@ viewAddNode customNodeType parent add =
                     , Input.option Node.typeFile nodeDescFile
                     , Input.option Node.typeSync nodeDescSync
                     , Input.option Node.typeMetrics nodeDescMetrics
+                    , Input.option Node.typeUpdate nodeDescUpdate
                     ]
 
                  else

@@ -22,6 +22,7 @@
   - [Shelly IoT](docs/user/shelly.md)
   - [Signal Generator](docs/user/signal-generator.md)
   - [Synchronization](docs/user/sync.md)
+  - [Update](docs/user/update.md)
   - [USB](docs/user/usb.md)
 - [Graphing](docs/user/graphing.md)
 - [Configuration](docs/user/configuration.md)

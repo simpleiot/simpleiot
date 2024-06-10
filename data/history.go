@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -208,7 +209,8 @@ func (qry HistoryQuery) Execute(
 }
 
 // TagFilters further reduces Influx query results by tag
-type TagFilters map[string]string
+// Map values may be strings or a slice of strings
+type TagFilters map[string]any
 
 // Flux writes a clause for a Flux query (to be added to the filter function
 // body) to the specified string.Builder. Returns an error if a tag filter
@@ -217,12 +219,72 @@ func (t TagFilters) Flux(sb *strings.Builder) error {
 	for k, v := range t {
 		// Sanitize input
 		if !validField.MatchString(k) {
-			return errors.New("invalid tag filter " + k)
+			return errors.New("invalid tag filter '" + k + "'")
 		}
-		if !validValue.MatchString(v) {
-			return errors.New("invalid tag filter value for " + k)
+		switch typedV := v.(type) {
+		case string:
+			if !validValue.MatchString(typedV) {
+				return errors.New("invalid tag filter value for '" + k + "'")
+			}
+			if typedV == "" {
+				fmt.Fprintf(sb, ` and not exists r["%s"]`, k)
+			} else {
+				fmt.Fprintf(sb, ` and r["%s"] == "%s"`, k, typedV)
+			}
+		case []any:
+			if len(typedV) == 0 {
+				continue // no values specified, so skip this filter
+			}
+			for i, elemV := range typedV {
+				strV, ok := elemV.(string)
+				if !ok || !validValue.MatchString(strV) {
+					return errors.New(
+						"invalid tag filter value for " + k + "[" + strconv.Itoa(i) + "]",
+					)
+				}
+				if i == 0 {
+					if strV == "" {
+						fmt.Fprintf(sb, ` and (not exists r["%s"]`, k)
+					} else {
+						fmt.Fprintf(sb, ` and (r["%s"] == "%s"`, k, strV)
+					}
+				} else {
+					if strV == "" {
+						fmt.Fprintf(sb, ` or not exists r["%s"]`, k)
+					} else {
+						fmt.Fprintf(sb, ` or r["%s"] == "%s"`, k, strV)
+					}
+				}
+			}
+			fmt.Fprintf(sb, `)`)
+		case []string:
+			if len(typedV) == 0 {
+				continue // no values specified, so skip this filter
+			}
+			for i, strV := range typedV {
+				if !validValue.MatchString(strV) {
+					return errors.New(
+						"invalid tag filter value for " + k + "[" + strconv.Itoa(i) + "]",
+					)
+				}
+				if i == 0 {
+					if strV == "" {
+						fmt.Fprintf(sb, ` and (not exists r["%s"]`, k)
+					} else {
+						fmt.Fprintf(sb, ` and (r["%s"] == "%s"`, k, strV)
+					}
+				} else {
+					if strV == "" {
+						fmt.Fprintf(sb, ` or not exists r["%s"]`, k)
+					} else {
+						fmt.Fprintf(sb, ` or r["%s"] == "%s"`, k, strV)
+					}
+				}
+			}
+			fmt.Fprintf(sb, `)`)
+		default:
+			return errors.New("invalid tag filter value for '" + k + "': invalid type")
 		}
-		fmt.Fprintf(sb, ` and r["%s"] == "%s"`, k, v)
 	}
 	return nil
 }

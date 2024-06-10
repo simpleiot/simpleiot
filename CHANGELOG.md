@@ -11,6 +11,29 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.16.2] - 2024-06-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.2)
+
+- db client: Improve Influx history query functionality
+  - If history query response fails, try responding again with ErrorMessage
+  - TagFilters values can now be empty string or a slice of strings
+
+## [[0.16.1] - 2024-05-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.1)
+
+- Modbus API: add an option to validate the input when a client writes to a
+  register.
+- Update client:
+  - improve autodownload logic
+  - check for updates when URI is changed
+  - improve error handling and reporting
+  - fix bug when reducing update list
+- expand documentation on
+  [creating a client](https://docs.simpleiot.org/docs/ref/client.html#creating-new-clients).
+
+## [[0.16.0] - 2024-05-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.0)
+
+- add Update client -- currently supports system updates
+  [docs](https://docs.simpleiot.org/docs/user/update.html).
+- update elm-tooling
 - api: Added `history.<nodeId>` NATS endpoint to send Influx history queries to
   an Influx DB client node.
 
