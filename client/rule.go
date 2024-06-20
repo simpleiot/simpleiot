@@ -15,6 +15,10 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
+// RuleTickerMinDuration is the minimum duration for the rule ticker. The ticker
+// is used to evaluate conditions with sample windows or schedules.
+const RuleTickerMinDuration = 10 * time.Second
+
 // Rule represent a rule node config
 type Rule struct {
 	ID              string      `node:"id"`
@@ -23,6 +27,7 @@ type Rule struct {
 	Disabled        bool        `point:"disabled"`
 	Active          bool        `point:"active"`
 	Error           string      `point:"error"`
+	ActionCooldown  float64     `point:"actionCooldown"` // in seconds
 	Conditions      []Condition `child:"condition"`
 	Actions         []Action    `child:"action"`
 	ActionsInactive []Action    `child:"actionInactive"`
@@ -47,28 +52,62 @@ func (r Rule) String() string {
 
 // Condition defines parameters to look for in a point or a schedule.
 type Condition struct {
-	// general parameters
-	ID            string  `node:"id"`
-	Parent        string  `node:"parent"`
-	Description   string  `point:"description"`
-	ConditionType string  `point:"conditionType"`
-	MinActive     float64 `point:"minActive"`
-	Active        bool    `point:"active"`
-	Error         string  `point:"error"`
+	/*** General condition information */
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+	// ConditionType is "pointValue" or "schedule"
+	ConditionType string `point:"conditionType"`
 
-	// used with point value rules
-	NodeID     string  `point:"nodeID"`
-	PointType  string  `point:"pointType"`
-	PointKey   string  `point:"pointKey"`
-	PointIndex int     `point:"pointIndex"`
-	ValueType  string  `point:"valueType"`
-	Operator   string  `point:"operator"`
-	Value      float64 `point:"value"`
-	ValueText  string  `point:"valueText"`
+	// MinActive is currently unused
+	// MinActive float64 `point:"minActive"`
 
-	// used with shedule rules
-	Start    string   `point:"start"`
-	End      string   `point:"end"`
+	// Active indicates whether or not the condition is active
+	Active bool `point:"active"`
+	// Error contains an error message describing the condition's error state
+	Error string `point:"error"`
+
+	/*** Options for pointValue conditions */
+	// NodeID, PointType, and PointKey filter the points that are relevant for
+	// this condition.
+	NodeID    string `point:"nodeID"`
+	PointType string `point:"pointType"`
+	PointKey  string `point:"pointKey"`
+	// ValueType is one of: "onOff", "number", or "text"
+	ValueType string `point:"valueType"`
+	// Value contains the boolean or numeric value to compare with the incoming
+	// point values
+	Value float64 `point:"value"`
+	// ValueText contains the string to compare with the incoming point values
+	ValueText string `point:"valueText"`
+	// Operator is used to compare Value and ValueText against incoming point
+	// values to determine if the condition is active or not.
+	//
+	// - For ValueType of "onOff", operator is ignored
+	// - For ValueType of "number", operator can be ">", "<", "=", or "!="
+	// - For ValueType of "text", operator can be "=", "!+", or "contains"
+	Operator string `point:"operator"`
+	// Window specifies a duration (in seconds) where a WindowPercent percentage
+	// of samples within the window must pass the condition in order for the
+	// entire condition to be active. Only works when ValueType is "onOff" or
+	// "number".
+	//
+	// For this to work correctly, an Influx DB node must be a child of any
+	// ancestor of this condition node. The condition will query Influx
+	// approximately at the end of each window to determine if the condition
+	// should be active or not.
+	Window        float64 `point:"window"`
+	WindowPercent float64 `point:"windowPercent"`
+	// The window is evaluated every WindowEvaluate seconds. This value may not
+	// be less than RuleTickerMinDuration.
+	WindowEvaluate float64 `point:"windowEvaluate"`
+
+	/*** Options for schedule conditions */
+	// Start and End indicate the time of day to activate the condition
+	Start string `point:"start"`
+	End   string `point:"end"`
+	// Weekdays and Dates controls which weekdays or custom dates the condition
+	// should activate
 	Weekdays []bool   `point:"weekday"`
 	Dates    []string `point:"date"`
 }
@@ -92,13 +131,26 @@ func (c Condition) String() string {
 
 	switch c.ConditionType {
 	case data.PointValuePointValue:
-		ret = fmt.Sprintf("  COND: %v  CTYPE:%v  VTYPE:%v  V:%v",
-			c.Description, c.ConditionType, c.ValueType, value)
+		ret = fmt.Sprintf("  COND: %v  CTYPE:%v  VTYPE:%v  OP:%v  V:%v",
+			c.Description, c.ConditionType, c.ValueType, c.Operator, value)
 		if c.NodeID != "" {
 			ret += fmt.Sprintf("  NODEID:%v", c.NodeID)
 		}
-		if c.MinActive > 0 {
-			ret += fmt.Sprintf("  MINACT:%v", c.MinActive)
+		if c.PointType != "" {
+			ret += fmt.Sprintf("  PTYPE:%v", c.PointType)
+		}
+		if c.PointKey != "" {
+			ret += fmt.Sprintf("  PKEY:%v", c.PointKey)
+		}
+		// if c.MinActive > 0 {
+		// 	ret += fmt.Sprintf("  MINACT:%v", c.MinActive)
+		// }
+		if c.HasWindow() {
+			ret += fmt.Sprintf(
+				"  WINDOW:%v, %v%% every %v",
+				time.Duration(c.Window)*time.Second, c.WindowPercent,
+				time.Duration(c.WindowEvaluate)*time.Second,
+			)
 		}
 		ret += fmt.Sprintf("  A:%v", c.Active)
 		ret += "\n"
@@ -114,6 +166,20 @@ func (c Condition) String() string {
 	}
 	return ret
 }
+
+// HasWindow returns true if and only if the condition uses sample windowing
+func (c Condition) HasWindow() bool {
+	return c.ConditionType == data.PointValuePointValue &&
+		c.Window > 0
+}
+
+// Evaluate returns true if and only if the specified slice of Points should
+// activate the condition
+// func (c *Condition) Evaluate(nodeID string, points data.Points) bool {
+// 	for _, p := range points {
+
+// 	}
+// }
 
 // Action defines actions that can be taken if a rule is active.
 type Action struct {
@@ -190,6 +256,7 @@ type RuleClient struct {
 	newEdgePoints chan NewPoints
 	newRulePoints chan NewPoints
 	upSub         *nats.Subscription
+	dbNodeID      string
 }
 
 // NewRuleClient constructor ...
@@ -233,38 +300,75 @@ func (rc *RuleClient) Run() error {
 		return fmt.Errorf("Rule error subscribing to upsub: %v", err)
 	}
 
-	// TODO schedule ticker is a brute force way to do this
-	// we could optimize at some point by creating a timer to expire
-	// on the next schedule change
-	scheduleTickTime := time.Second * 10
-	scheduleTicker := time.NewTicker(scheduleTickTime)
-	if !rc.hasSchedule() {
-		scheduleTicker.Stop()
+	ticker := time.NewTicker(RuleTickerMinDuration)
+	updateClient := func() {
+		// TODO: ticker is a brute force way to do this; we could optimize at
+		// some point by creating a timer to expire on the next schedule change
+		// or when the sample window ends
+		var tickerDuration time.Duration
+		var hasWindowCond bool
+		for _, c := range rc.config.Conditions {
+			if c.ConditionType == data.PointValueSchedule {
+				tickerDuration = RuleTickerMinDuration
+				break // already set to minimum tickerDuration
+			}
+			if c.HasWindow() {
+				windowDur := time.Duration(c.Window) * time.Second
+				// Use condition window as tick interval as long as it's larger
+				// than RuleTickerMinDuration
+				if windowDur < RuleTickerMinDuration {
+					tickerDuration = RuleTickerMinDuration
+					break // already set to minimum tickerDuration
+				} else if tickerDuration == 0 || windowDur < tickerDuration {
+					// set ticker duration to condition window
+					tickerDuration = windowDur
+				}
+			}
+		}
+
+		// Update ticker
+		if tickerDuration > 0 {
+			ticker.Reset(tickerDuration)
+		} else {
+			ticker.Stop()
+		}
+
+		// Update dbNodeID
+		if !hasWindowCond {
+			rc.dbNodeID = "" // We don't need to keep track of this
+		} else {
+			// If we have a condition that uses a sample window, we need to
+			// locate the closest Influx DB node
+			dbNode, err := rc.findDbNodes(rc.config.Parent)
+			if err != nil {
+				rc.processError(fmt.Sprintf(
+					"Condition uses Window: Error finding Db node: %s",
+					err,
+				))
+			} else {
+				log.Printf("rule %s: Located Db node: %s", rc.config.ID, dbNode.ID)
+				rc.dbNodeID = dbNode.ID
+			}
+		}
 	}
 
 	run := func(id string, pts data.Points) {
 		var active, changed bool
 		var err error
 
-		if len(pts) > 0 {
-			active, changed, err = rc.ruleProcessPoints(id, pts)
-			if err != nil {
-				log.Println("Error processing rule point:", err)
-			}
-
-			if !changed {
-				return
-			}
-		} else {
-			// send a schedule trigger through just in case someone changed a
-			// schedule condition
-			active, _, err = rc.ruleProcessPoints(rc.config.ID, data.Points{{
+		if len(pts) == 0 {
+			pts = data.Points{{
 				Time: time.Now(),
 				Type: data.PointTypeTrigger,
-			}})
-			if err != nil {
-				log.Println("Error processing rule point:", err)
-			}
+			}}
+		}
+		active, changed, err = rc.ruleProcessPoints(id, pts)
+		if err != nil {
+			log.Println("Error processing rule point:", err)
+		}
+
+		if !changed {
+			return
 		}
 
 		if active {
@@ -290,6 +394,7 @@ func (rc *RuleClient) Run() error {
 		}
 	}
 
+	updateClient()
 done:
 	for {
 		select {
@@ -298,33 +403,30 @@ done:
 		case pts := <-rc.newRulePoints:
 			run(pts.ID, pts.Points)
 
-		case <-scheduleTicker.C:
-			run(rc.config.ID, data.Points{{
-				Time: time.Now(),
-				Type: data.PointTypeTrigger,
-			}})
+		case <-ticker.C:
+			run(rc.config.ID, nil)
 
 		case pts := <-rc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &rc.config)
 			if err != nil {
 				log.Println("error merging rule points:", err)
 			}
-			if rc.hasSchedule() {
-				scheduleTicker = time.NewTicker(scheduleTickTime)
-			} else {
-				scheduleTicker.Stop()
-			}
-
-			run("", nil)
+			updateClient()
+			// Run in case schedule condition has changed
+			run(rc.config.ID, nil)
 		case pts := <-rc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &rc.config)
 			if err != nil {
 				log.Println("error merging rule edge points:", err)
 			}
-			run("", nil)
+			updateClient()
+			// Run in case schedule condition has changed
+			run(rc.config.ID, nil)
 		}
 	}
 
+	// Clean up
+	ticker.Stop()
 	return rc.upSub.Unsubscribe()
 }
 
@@ -358,13 +460,37 @@ func (rc *RuleClient) sendPoint(id string, point data.Point) error {
 	return SendNodePoint(rc.nc, id, point, false)
 }
 
-func (rc *RuleClient) hasSchedule() bool {
-	for _, c := range rc.config.Conditions {
-		if c.ConditionType == data.PointValueSchedule {
-			return true
+// find the closest Db node by searching the children of nodeID and its
+// ancestors
+func (rc *RuleClient) findDbNodes(nodeID string) (*Db, error) {
+	// Fetch children for nodeID to find a Db node
+	dbNodes, err := GetNodesType[Db](rc.nc, nodeID, "all")
+	if err != nil {
+		return nil, err
+	}
+
+	// Return first found Db node
+	if len(dbNodes) > 0 {
+		return &dbNodes[0], nil
+	}
+
+	// Recursively search ancestor nodes
+	ne, err := GetNodes(rc.nc, "all", nodeID, "", false)
+	if err != nil {
+		return nil, err
+	}
+	for _, nodeEdge := range ne {
+		dbNodeEdge, err := rc.findDbNodes(nodeEdge.ID)
+		if err != nil {
+			return nil, err
+		}
+		if dbNodeEdge != nil {
+			return dbNodeEdge, nil
 		}
 	}
-	return false
+
+	// None found
+	return nil, nil
 }
 
 func (rc *RuleClient) processError(errS string) {
@@ -426,6 +552,37 @@ func (rc *RuleClient) processError(errS string) {
 	}
 }
 
+// processConditionError updates the Error point on the condition at the
+// specified index if it differs from err; then updates the rule Error by
+// calling processError
+func (rc *RuleClient) processConditionError(condIndex int, err error) {
+	c := &rc.config.Conditions[condIndex]
+	errS := err.Error()
+	if c.Error == errS {
+		return
+	}
+
+	p := data.Point{
+		Type: data.PointTypeError,
+		Time: time.Now(),
+		Text: errS,
+	}
+
+	log.Printf(
+		"Rule condition error %v:%v:%v\n",
+		rc.config.Description, c.Description, err,
+	)
+	err = rc.sendPoint(c.ID, p)
+	if err != nil {
+		log.Println("Rule error sending point:", err)
+	} else {
+		c.Error = errS
+	}
+	// set error on rule itself
+	// Note: no need to do this unless error has changed
+	rc.processError(errS)
+}
+
 // ruleProcessPoints runs points through a rules conditions and and updates condition
 // and rule active status. Returns true if point was processed and active is true.
 // Currently, this function only processes the first point that matches -- this should
@@ -446,7 +603,10 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 						Text: errS,
 					}
 
-					log.Printf("Rule cond error %v:%v:%v\n", rc.config.Description, c.Description, err)
+					log.Printf(
+						"Rule cond error %v:%v:%v\n",
+						rc.config.Description, c.Description, err,
+					)
 					err := rc.sendPoint(c.ID, p)
 					if err != nil {
 						log.Println("Rule error sending point:", err)
@@ -471,6 +631,31 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 					continue
 				}
 
+				// if c.HasWindow() {
+				// 	if p.Type != data.PointTypeTrigger {
+				// 		// Conditions that require a sample window should not respond
+				// 		// to inbound points, only triggers from the ticker
+				// 		continue
+				// 	}
+				// 	// Query Influx DB node
+				// 	query := data.HistoryQuery{
+				// 		Start:           startTime,
+				// 		Stop:            stopTime,
+				// 		TagFilters:      nil,
+				// 		AggregateWindow: data.Window,
+				// 	}
+				// 	data, err := json.Marshal(query)
+				// 	if err != nil {
+				// 		processError(fmt.Errorf(
+				// 			"query db: encode query: %w", err,
+				// 		))
+				// 		break condTypeSwitch
+
+				// 	}
+				// 	rc.nc.Request("history." + rc.dbNodeID, data, ...)
+				// 	break condTypeSwitch
+				// }
+
 				// conditions match, so check value
 				switch c.ValueType {
 				case data.PointValueNumber:
@@ -487,8 +672,11 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				case data.PointValueText:
 					switch c.Operator {
 					case data.PointValueEqual:
+						active = p.Text == c.ValueText
 					case data.PointValueNotEqual:
+						active = p.Text != c.ValueText
 					case data.PointValueContains:
+						active = strings.Contains(p.Text, c.ValueText)
 					}
 				case data.PointValueOnOff:
 					condValue := c.Value != 0
@@ -496,6 +684,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 					active = condValue == pointValue
 				default:
 					processError(fmt.Errorf("unknown value type: %v", c.ValueType))
+					continue
 				}
 			case data.PointValueSchedule:
 				if p.Type != data.PointTypeTrigger {
@@ -694,7 +883,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				}
 			}()
 		default:
-			processError(fmt.Errorf("Uknown rule action: %v", a.Action))
+			processError(fmt.Errorf("Unknown rule action: %v", a.Action))
 		}
 
 		p := data.Point{
