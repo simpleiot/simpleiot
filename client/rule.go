@@ -212,9 +212,6 @@ func (rc *RuleClient) Run() error {
 	// watch all points that flow through parent node
 	// TODO: we should optimize this so we only watch the nodes
 	// that are in the conditions
-	if rc.config.Disabled {
-		return nil
-	}
 	subject := fmt.Sprintf("up.%v.*", rc.config.Parent)
 
 	var err error
@@ -249,6 +246,9 @@ func (rc *RuleClient) Run() error {
 	}
 
 	run := func(id string, pts data.Points) {
+		if rc.config.Disabled {
+			return
+		}
 		var active, changed bool
 		var err error
 
