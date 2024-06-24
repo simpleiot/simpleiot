@@ -40,7 +40,7 @@ view o =
 
         titleBackground =
             if disabled then
-                Style.colors.gray
+                Style.colors.ltgray
 
             else if error /= "" then
                 Style.colors.red

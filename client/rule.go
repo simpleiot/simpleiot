@@ -31,6 +31,7 @@ type Rule struct {
 func (r Rule) String() string {
 	ret := fmt.Sprintf("Rule: %v\n", r.Description)
 	ret += fmt.Sprintf("  active: %v\n", r.Active)
+	ret += fmt.Sprintf("  Disabled: %v\n", r.Disabled)
 	for _, c := range r.Conditions {
 		ret += fmt.Sprintf("%v", c)
 	}
@@ -51,6 +52,7 @@ type Condition struct {
 	ID            string  `node:"id"`
 	Parent        string  `node:"parent"`
 	Description   string  `point:"description"`
+	Disabled      bool    `point:"disabled"`
 	ConditionType string  `point:"conditionType"`
 	MinActive     float64 `point:"minActive"`
 	Active        bool    `point:"active"`
@@ -92,8 +94,8 @@ func (c Condition) String() string {
 
 	switch c.ConditionType {
 	case data.PointValuePointValue:
-		ret = fmt.Sprintf("  COND: %v  CTYPE:%v  VTYPE:%v  V:%v",
-			c.Description, c.ConditionType, c.ValueType, value)
+		ret = fmt.Sprintf("  COND: %v  Disabled: %v CTYPE:%v  VTYPE:%v  V:%v",
+			c.Description, c.ConditionType, c.Disabled, c.ValueType, value)
 		if c.NodeID != "" {
 			ret += fmt.Sprintf("  NODEID:%v", c.NodeID)
 		}
@@ -120,6 +122,7 @@ type Action struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
+	Disabled    bool   `point:"disabled"`
 	Active      bool   `point:"active"`
 	Error       string `point:"error"`
 	// Action: notify, setValue, playAudio
@@ -150,8 +153,8 @@ func (a Action) String() string {
 	case data.PointValueText:
 		value = a.ValueText
 	}
-	ret := fmt.Sprintf("%v  ACT:%v  VTYPE:%v  V:%v",
-		a.Description, a.Action, a.ValueType, value)
+	ret := fmt.Sprintf("%v  Disabled:%v ACT:%v  VTYPE:%v  V:%v",
+		a.Description, a.Disabled, a.Action, a.ValueType, value)
 	if a.NodeID != "" {
 		ret += fmt.Sprintf("  NODEID:%v", a.NodeID)
 	}
@@ -209,6 +212,9 @@ func (rc *RuleClient) Run() error {
 	// watch all points that flow through parent node
 	// TODO: we should optimize this so we only watch the nodes
 	// that are in the conditions
+	if rc.config.Disabled {
+		return nil
+	}
 	subject := fmt.Sprintf("up.%v.*", rc.config.Parent)
 
 	var err error
@@ -431,6 +437,7 @@ func (rc *RuleClient) processError(errS string) {
 // Currently, this function only processes the first point that matches -- this should
 // handle all current uses.
 func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool, bool, error) {
+
 	for _, p := range points {
 		for i, c := range rc.config.Conditions {
 			var active bool
@@ -555,7 +562,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 	allActive := true
 
 	for _, c := range rc.config.Conditions {
-		if !c.Active {
+		if !c.Active && !c.Disabled {
 			allActive = false
 			break
 		}
@@ -585,6 +592,10 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 // ruleRunActions runs rule actions
 func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) error {
 	for i, a := range actions {
+		if a.Disabled {
+			continue
+		}
+
 		errorActive := false
 
 		processError := func(err error) {
@@ -730,6 +741,10 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 
 func (rc *RuleClient) ruleInactiveActions(actions []Action) error {
 	for i, a := range actions {
+		if a.Disabled {
+			continue
+		}
+
 		p := data.Point{
 			Type:  data.PointTypeActive,
 			Value: 0,

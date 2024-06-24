@@ -142,6 +142,7 @@ func TestRules(t *testing.T) {
 	// FIXME: the following fails due to bug in the client manager, disabling for
 	// now until we get that fixed.
 	t.Skip("Skipping test for setting vout")
+
 	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
 		Value: 0, Origin: "test"}, true)
 
