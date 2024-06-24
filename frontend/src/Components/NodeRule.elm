@@ -76,7 +76,7 @@ view o =
                         checkboxInput =
                             NodeInputs.nodeCheckboxInput opts "0"
                     in
-                    [ textInput Point.typeDescription "sdfsdf" ""
+                    [ textInput Point.typeDescription "Description" ""
                     , el [ Font.color Style.colors.red ] <| text error
                     , checkboxInput Point.typeDisabled "Disabled"
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
