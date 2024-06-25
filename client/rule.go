@@ -246,29 +246,11 @@ func (rc *RuleClient) Run() error {
 	}
 
 	run := func(id string, pts data.Points) {
-		if rc.config.Disabled {
-			return
-		}
 		var active, changed bool
 		var err error
 
 		if len(pts) > 0 {
 			active, changed, err = rc.ruleProcessPoints(id, pts)
-			if rc.config.Disabled {
-				if active {
-					rc.config.Active = false
-					err := rc.ruleRunActions(rc.config.ActionsInactive, id)
-					if err != nil {
-						log.Println("Error running rule actions:", err)
-					}
-
-					err = rc.ruleInactiveActions(rc.config.Actions)
-					if err != nil {
-						log.Println("Error running rule inactive actions:", err)
-					}
-				}
-				return
-			}
 			if err != nil {
 				log.Println("Error processing rule point:", err)
 			}
@@ -283,9 +265,26 @@ func (rc *RuleClient) Run() error {
 				Time: time.Now(),
 				Type: data.PointTypeTrigger,
 			}})
+
 			if err != nil {
 				log.Println("Error processing rule point:", err)
 			}
+		}
+
+		if rc.config.Disabled {
+			if active {
+				rc.config.Active = false
+				err := rc.ruleRunActions(rc.config.ActionsInactive, id)
+				if err != nil {
+					log.Println("Error running rule actions:", err)
+				}
+
+				err = rc.ruleInactiveActions(rc.config.Actions)
+				if err != nil {
+					log.Println("Error running rule inactive actions:", err)
+				}
+			}
+			return
 		}
 
 		if active {
