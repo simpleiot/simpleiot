@@ -48,6 +48,7 @@ func TestRules(t *testing.T) {
 		ID:          "ID-rule",
 		Parent:      root.ID,
 		Description: "test rule",
+		Disabled:    false,
 	}
 
 	err = client.SendNodeType(nc, r, "test")
@@ -86,6 +87,14 @@ func TestRules(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
+
+	// FIXME:
+	// this delay is required to work around a bug in the manager
+	// where it is resetting and does not see the ActionInactive points
+	// See https://github.com/simpleiot/simpleiot/issues/630
+	// the tools/test-rules.sh script can be used to test a fix for this
+	// problem
+	time.Sleep(100 * time.Millisecond)
 
 	a2 := client.ActionInactive{
 		ID:          "ID-action-inactive",
@@ -139,10 +148,6 @@ func TestRules(t *testing.T) {
 	}
 
 	// clear vin and look for vout to change
-	// FIXME: the following fails due to bug in the client manager, disabling for
-	// now until we get that fixed.
-	t.Skip("Skipping test for setting vout")
-
 	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
 		Value: 0, Origin: "test"}, true)
 
@@ -158,6 +163,171 @@ func TestRules(t *testing.T) {
 		}
 		if time.Since(start) > time.Second {
 			t.Fatal("Timeout waiting for vout to be cleared")
+		}
+		<-time.After(time.Millisecond * 10)
+	}
+
+	//test for Disabled function
+	//Condition Disabled Test
+	c = client.Condition{
+		ID:            "ID-condition",
+		Parent:        r.ID,
+		Description:   "cond vin high",
+		ConditionType: data.PointValuePointValue,
+		PointType:     data.PointTypeValue,
+		ValueType:     data.PointValueOnOff,
+		NodeID:        vin.ID,
+		Operator:      data.PointValueEqual,
+		Value:         0,
+		Disabled:      true,
+	}
+
+	err = client.SendNodeType(nc, c, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	// wait for rule to get set up
+	time.Sleep(250 * time.Millisecond)
+
+	// set vin and look for vout to change
+	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
+		Value: 1, Origin: "test"}, true)
+	if err != nil {
+		t.Errorf("Error sending point: %v", err)
+	}
+
+	start = time.Now()
+	for {
+		if voutGet().Value == 1 {
+			// all is well
+			break
+		}
+		if time.Since(start) > time.Second {
+			t.Fatal("Timeout waiting for vout to be set")
+		}
+		<-time.After(time.Millisecond * 10)
+	}
+
+	//Action Disabled Test
+	c = client.Condition{
+		ID:            "ID-condition",
+		Parent:        r.ID,
+		Description:   "cond vin high",
+		ConditionType: data.PointValuePointValue,
+		PointType:     data.PointTypeValue,
+		ValueType:     data.PointValueOnOff,
+		NodeID:        vin.ID,
+		Operator:      data.PointValueEqual,
+		Value:         0,
+	}
+
+	err = client.SendNodeType(nc, c, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	a = client.Action{
+		ID:          "ID-action-active",
+		Parent:      r.ID,
+		Description: "action active",
+		Action:      data.PointValueSetValue,
+		PointType:   data.PointTypeValue,
+		NodeID:      vout.ID,
+		Value:       1,
+		Disabled:    true,
+	}
+
+	err = client.SendNodeType(nc, a, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+	// wait for rule to get set up
+	time.Sleep(250 * time.Millisecond)
+
+	// set vin and look for vout to change
+	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
+		Value: 0, Origin: "test"}, true)
+	if err != nil {
+		t.Errorf("Error sending point: %v", err)
+	}
+
+	start = time.Now()
+	for {
+		if voutGet().Value == 0 {
+			// all is well
+			break
+		}
+		if time.Since(start) > time.Second {
+			t.Fatal("Timeout waiting for vout to be set")
+		}
+		<-time.After(time.Millisecond * 10)
+	}
+
+	//Rule Disabled Test
+	r = client.Rule{
+		ID:          "ID-rule",
+		Parent:      root.ID,
+		Description: "test rule",
+		Disabled:    true,
+	}
+
+	err = client.SendNodeType(nc, r, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	c = client.Condition{
+		ID:            "ID-condition",
+		Parent:        r.ID,
+		Description:   "cond vin high",
+		ConditionType: data.PointValuePointValue,
+		PointType:     data.PointTypeValue,
+		ValueType:     data.PointValueOnOff,
+		NodeID:        vin.ID,
+		Operator:      data.PointValueEqual,
+		Value:         1,
+	}
+
+	err = client.SendNodeType(nc, c, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	a = client.Action{
+		ID:          "ID-action-active",
+		Parent:      r.ID,
+		Description: "action active",
+		Action:      data.PointValueSetValue,
+		PointType:   data.PointTypeValue,
+		NodeID:      vout.ID,
+		Value:       1,
+	}
+
+	err = client.SendNodeType(nc, a, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	// wait for rule to get set up
+	time.Sleep(250 * time.Millisecond)
+
+	// set vin and look for vout to change
+	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
+		Value: 1, Origin: "test"}, true)
+
+	if err != nil {
+		t.Errorf("Error sending point: %v", err)
+	}
+
+	start = time.Now()
+	for {
+		if voutGet().Value == 0 {
+			// all is well
+			break
+		}
+		if time.Since(start) > time.Second {
+			t.Fatal("Timeout waiting for vout to be set")
 		}
 		<-time.After(time.Millisecond * 10)
 	}
