@@ -106,4 +106,6 @@ Typically a rule action is only used to set one value. In the case of on/off
 actions, one rule is used to turn a value on, and another rule is used to turn
 the same value off. This allows for hysteresis and more complex logic than in
 one rule handled both the on and off states. This also allows the rules logic to
-be stateful.
+be stateful. If you don't need hystersis or complex state, the rule "inactive
+action" can be used, which allows the rule to take action when it goes both
+active and inactive.
