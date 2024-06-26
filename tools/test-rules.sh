@@ -9,6 +9,10 @@ while true; do
 		echo "test failed at count: $count"
 		break
 	fi
+	if ! go test -p=1 -race ./client -v -run TestDisabled; then
+		echo "test failed at count: $count"
+		break
+	fi
 	count=$((count + 1))
 	echo "count: $count"
 done

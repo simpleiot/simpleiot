@@ -249,6 +249,10 @@ func (rc *RuleClient) Run() error {
 		var active, changed bool
 		var err error
 
+		if rc.config.Disabled {
+			return
+		}
+
 		if len(pts) > 0 {
 			active, changed, err = rc.ruleProcessPoints(id, pts)
 			if err != nil {
@@ -269,22 +273,6 @@ func (rc *RuleClient) Run() error {
 			if err != nil {
 				log.Println("Error processing rule point:", err)
 			}
-		}
-
-		if rc.config.Disabled {
-			if active {
-				rc.config.Active = false
-				err := rc.ruleRunActions(rc.config.ActionsInactive, id)
-				if err != nil {
-					log.Println("Error running rule actions:", err)
-				}
-
-				err = rc.ruleInactiveActions(rc.config.Actions)
-				if err != nil {
-					log.Println("Error running rule inactive actions:", err)
-				}
-			}
-			return
 		}
 
 		if active {
@@ -334,8 +322,27 @@ done:
 			} else {
 				scheduleTicker.Stop()
 			}
+			if pts.ID == rc.config.ID {
+				if pts.Points[0].Type == "disabled" {
+					if pts.Points[0].Value == 1 {
+						run("", nil)
+					} else {
+						err := rc.ruleRunActions(rc.config.ActionsInactive, pts.ID)
+						if err != nil {
+							log.Println("Error running rule actions:", err)
+						}
 
-			run("", nil)
+						err = rc.ruleInactiveActions(rc.config.Actions)
+						if err != nil {
+							log.Println("Error running rule inactive actions:", err)
+						}
+					}
+				} else {
+					run("", nil)
+				}
+			} else {
+				run("", nil)
+			}
 		case pts := <-rc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &rc.config)
 			if err != nil {
