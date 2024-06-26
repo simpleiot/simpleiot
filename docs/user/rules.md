@@ -4,9 +4,13 @@
 
 <!-- toc -->
 
-The Simple IoT application has the ability to run rules. That are composed of
-one or more conditions and actions. All conditions must be true for the rule to
-be active.
+The Simple IoT application has the ability to run rules -- see the video below
+for a demo:
+
+<iframe width="640" height="360" src="https://www.youtube.com/embed/pb_a6oEdFJI" title="Simple IoT Rules Demo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+Rules are composed of one or more conditions and actions. All conditions must be
+true for the rule to be active.
 
 Node point changes cause rules of any parent node in the tree to be run. This
 allows general rules to be written higher in the tree that are common for all
