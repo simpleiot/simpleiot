@@ -324,7 +324,7 @@ done:
 			}
 			if pts.ID == rc.config.ID {
 				if pts.Points[0].Type == "disabled" {
-					if pts.Points[0].Value == 1 {
+					if pts.Points[0].Value == 0 {
 						run("", nil)
 					} else {
 						err := rc.ruleRunActions(rc.config.ActionsInactive, pts.ID)
@@ -581,12 +581,20 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 	}
 
 	allActive := true
+	activeConditionCount := 0
 
 	for _, c := range rc.config.Conditions {
 		if !c.Active && !c.Disabled {
 			allActive = false
 			break
 		}
+		if c.Active && !c.Disabled {
+			activeConditionCount++
+		}
+	}
+
+	if activeConditionCount == 0 && allActive {
+		allActive = false
 	}
 
 	changed := false
