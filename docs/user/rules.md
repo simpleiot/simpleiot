@@ -103,3 +103,22 @@ actions, one rule is used to turn a value on, and another rule is used to turn
 the same value off. This allows for hysteresis and more complex logic than in
 one rule handled both the on and off states. This also allows the rules logic to
 be stateful.
+
+## Disable Rule/Condition/Action
+
+![rule-disable](images/rule-disable.png)
+
+### Disable Rule
+
+At the rule level, if it's disabled, it doesn't do anything.
+If there is a transition to disabled, it runs its inactive actions and it doesn't do anything.
+If a rule is active when it is disabled, the rule transitions to the inactive state and all rule inactive actions are run. This ensures we don't leave the rule in an active state.
+
+### Disable Condition
+
+If there are no conditions, or all conditions are disabled, the rule is inactive.
+Otherwise, disabled conditions are simply ignored. For example if there is a disabled condition and an non-disabled active condition, the rule is active.
+
+### Disable Action
+
+A disabled action is not run.
