@@ -353,6 +353,10 @@ func TestDisabled(t *testing.T) {
 		t.Errorf("Error sending point: %v", err)
 	}
 
+	// delay here as it will take some time for VOUT to be set
+	// if the rule client is broken.
+	time.Sleep(time.Millisecond * 50)
+
 	// verify vout does not get set
 	start = time.Now()
 	for {
@@ -396,6 +400,10 @@ func TestDisabled(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error sending point: %v", err)
 	}
+
+	// delay here as it will take some time for VOUT to be set
+	// if the rule client is broken.
+	time.Sleep(time.Millisecond * 50)
 
 	// verify vout does not get set
 	start = time.Now()
@@ -442,6 +450,10 @@ func TestDisabled(t *testing.T) {
 		t.Errorf("Error sending point: %v", err)
 	}
 
+	// delay here as it will take some time for VOUT to be set
+	// if the rule client is broken.
+	time.Sleep(time.Millisecond * 50)
+
 	// verify vout does not get set
 	start = time.Now()
 	for {
@@ -478,6 +490,19 @@ func TestDisabled(t *testing.T) {
 		Value: 1, Origin: "test"}, true)
 	if err != nil {
 		t.Errorf("Error sending point: %v", err)
+	}
+
+	// verify vout gets set
+	start = time.Now()
+	for {
+		if voutGet().Value == 1 {
+			// all is well
+			break
+		}
+		if time.Since(start) > time.Second {
+			t.Fatal("Timeout waiting for vout to be set")
+		}
+		<-time.After(time.Millisecond * 10)
 	}
 
 	//disable rule
@@ -577,7 +602,7 @@ func TestDisabled(t *testing.T) {
 if one condition is active and the 2nd condition is disabled, the rule fires
 if both conditions are disabled, the rule is inactive.
 */
-func TestDisabledCondition(t *testing.T) {
+func TestMultipleConditions(t *testing.T) {
 	nc, root, stop, err := server.TestServer()
 
 	if err != nil {
@@ -594,6 +619,18 @@ func TestDisabledCondition(t *testing.T) {
 	}
 
 	err = client.SendNodeType(nc, vin, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	// send test nodes to Db
+	vin2 := client.Variable{
+		ID:          "ID-varin2",
+		Parent:      root.ID,
+		Description: "var in2",
+	}
+
+	err = client.SendNodeType(nc, vin2, "test")
 	if err != nil {
 		t.Fatal("Error sending node: ", err)
 	}
@@ -640,14 +677,16 @@ func TestDisabledCondition(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
+	// we don't want c2 to ever go active, so set the NodeID to some
+	// bogus value
 	c2 := client.Condition{
-		ID:            "ID-disabled-condition",
+		ID:            "ID-condition2",
 		Parent:        r.ID,
 		Description:   "cond vin high",
 		ConditionType: data.PointValuePointValue,
 		PointType:     data.PointTypeValue,
 		ValueType:     data.PointValueOnOff,
-		NodeID:        vin.ID,
+		NodeID:        vin2.ID,
 		Operator:      data.PointValueEqual,
 		Value:         0,
 		Disabled:      true,
@@ -712,63 +751,55 @@ func TestDisabledCondition(t *testing.T) {
 	// wait for rule to get set up
 	time.Sleep(250 * time.Millisecond)
 
-	/*
-		if one condition is active and the 2nd condition is disabled, the rule fires
-	*/
+	lastvout := float64(0)
 
-	// set vin and look for vout to change
-
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 1, Origin: "test"}, true)
-
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
-
-	start := time.Now()
-	for {
-		if voutGet().Value == 1 {
-			// all is well
-			break
+	// set change to true if you are execting vout to change from the current state.
+	// otherwise we will add a delay
+	checkvout := func(expected float64, msg string) {
+		if lastvout == expected {
+			// vout is not changing, so delay here to make sure the rule
+			// has time to run before we check the result
+			time.Sleep(time.Millisecond * 75)
 		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be set")
+
+		start := time.Now()
+		for {
+			if voutGet().Value == expected {
+				lastvout = expected
+				// all is well
+				break
+			}
+			if time.Since(start) > time.Second {
+				t.Fatalf("vout failed, expected: %v, test: %v", expected, msg)
+			}
+			<-time.After(time.Millisecond * 10)
 		}
-		<-time.After(time.Millisecond * 10)
 	}
 
-	// clear vin
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 0, Origin: "test"}, true)
+	sendPoint := func(id string, point data.Point) {
+		point.Origin = "test"
+		err = client.SendNodePoint(nc, id, point, true)
 
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
-
-	/*
-		if both conditions are disabled, the rule is inactive.
-	*/
-	err = client.SendNodePoint(nc, c.ID, data.Point{Type: data.PointTypeDisabled,
-		Value: 1, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
-
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 1, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
-
-	start = time.Now()
-	for {
-		if voutGet().Value == 0 {
-			// all is well
-			break
+		if err != nil {
+			t.Errorf("Error sending point: %v", err)
 		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be cleared")
-		}
-		<-time.After(time.Millisecond * 10)
 	}
+
+	//	if one condition is active and the 2nd condition is inactive, the rule should not fire
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+
+	checkvout(0, "1st active, 2nd inactive")
+
+	// if both conditions are active the rule should fire
+
+	sendPoint(vin2.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+
+	checkvout(1, "both active")
+
+	// if both conditions are active but disabled, the rule is inactive.
+
+	sendPoint(c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	sendPoint(c2.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+
+	checkvout(0, "both active and disabled")
 }
