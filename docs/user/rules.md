@@ -4,9 +4,13 @@
 
 <!-- toc -->
 
-The Simple IoT application has the ability to run rules. That are composed of
-one or more conditions and actions. All conditions must be true for the rule to
-be active.
+The Simple IoT application has the ability to run rules -- see the video below
+for a demo:
+
+<iframe width="640" height="360" src="https://www.youtube.com/embed/pb_a6oEdFJI" title="Simple IoT Rules Demo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+Rules are composed of one or more conditions and actions. All conditions must be
+true for the rule to be active.
 
 Node point changes cause rules of any parent node in the tree to be run. This
 allows general rules to be written higher in the tree that are common for all
@@ -102,7 +106,9 @@ Typically a rule action is only used to set one value. In the case of on/off
 actions, one rule is used to turn a value on, and another rule is used to turn
 the same value off. This allows for hysteresis and more complex logic than in
 one rule handled both the on and off states. This also allows the rules logic to
-be stateful.
+be stateful. If you don't need hystersis or complex state, the rule "inactive
+action" can be used, which allows the rule to take action when it goes both
+active and inactive.
 
 ## Disable Rule/Condition/Action
 
