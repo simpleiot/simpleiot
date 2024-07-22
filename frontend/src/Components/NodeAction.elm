@@ -125,6 +125,7 @@ view o =
                             , ( Point.typeLightSet, "set light state" )
                             , ( Point.typeSwitchSet, "set switch state" )
                             ]
+                        , textInput Point.typePointKey "Point Key" ""
                     , viewIf actionSetValue <| textInput Point.typeNodeID "Node ID" ""
                     , if nodeId /= "" then
                         let

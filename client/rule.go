@@ -129,6 +129,7 @@ type Action struct {
 	Action    string `point:"action"`
 	NodeID    string `point:"nodeID"`
 	PointType string `point:"pointType"`
+	PointKey  string `point:"pointKey"`
 	// PointType: number, text, onOff
 	ValueType string  `point:"valueType"`
 	Value     float64 `point:"value"`
@@ -174,6 +175,7 @@ type ActionInactive struct {
 	Action    string `point:"action"`
 	NodeID    string `point:"nodeID"`
 	PointType string `point:"pointType"`
+	PointKey  string `point:"pointKey"`
 	// PointType: number, text, onOff
 	ValueType string  `point:"valueType"`
 	Value     float64 `point:"value"`
@@ -498,7 +500,6 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				if c.PointType != "" && c.PointType != p.Type {
 					continue
 				}
-
 				// conditions match, so check value
 				switch c.ValueType {
 				case data.PointValueNumber:
@@ -663,6 +664,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			p := data.Point{
 				Time:   time.Now(),
 				Type:   a.PointType,
+				Key:    a.PointKey,
 				Value:  a.Value,
 				Text:   a.ValueText,
 				Origin: a.ID,
