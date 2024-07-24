@@ -120,7 +120,7 @@ func TestRules(t *testing.T) {
 
 	defer voutStop()
 
-	if voutGet().Value != 0 {
+	if voutGet().Value["0"] != 0 {
 		t.Fatal("initial vout value is not correct")
 	}
 
@@ -137,7 +137,7 @@ func TestRules(t *testing.T) {
 
 	start := time.Now()
 	for {
-		if voutGet().Value == 1 {
+		if voutGet().Value["0"] == 1 {
 			// all is well
 			break
 		}
@@ -157,7 +157,7 @@ func TestRules(t *testing.T) {
 
 	start = time.Now()
 	for {
-		if voutGet().Value == 0 {
+		if voutGet().Value["0"] == 0 {
 			// all is well
 			break
 		}
@@ -286,7 +286,7 @@ func TestDisabled(t *testing.T) {
 
 	defer voutStop()
 
-	if voutGet().Value != 0 {
+	if voutGet().Value["0"] != 0 {
 		t.Fatal("initial vout value is not correct")
 	}
 
@@ -307,7 +307,7 @@ func TestDisabled(t *testing.T) {
 
 	start := time.Now()
 	for {
-		if voutGet().Value == 1 {
+		if voutGet().Value["0"] == 1 {
 			// all is well
 			break
 		}
@@ -327,7 +327,7 @@ func TestDisabled(t *testing.T) {
 
 	start = time.Now()
 	for {
-		if voutGet().Value == 0 {
+		if voutGet().Value["0"] == 0 {
 			// all is well
 			break
 		}
@@ -360,7 +360,7 @@ func TestDisabled(t *testing.T) {
 	// verify vout does not get set
 	start = time.Now()
 	for {
-		if voutGet().Value == 0 {
+		if voutGet().Value["0"] == 0 {
 			// all is well
 			break
 		}
@@ -408,7 +408,7 @@ func TestDisabled(t *testing.T) {
 	// verify vout does not get set
 	start = time.Now()
 	for {
-		if voutGet().Value == 0 {
+		if voutGet().Value["0"] == 0 {
 			// all is well
 			break
 		}
@@ -457,7 +457,7 @@ func TestDisabled(t *testing.T) {
 	// verify vout does not get set
 	start = time.Now()
 	for {
-		if voutGet().Value == 0 {
+		if voutGet().Value["0"] == 0 {
 			// all is well
 			break
 		}
@@ -495,7 +495,7 @@ func TestDisabled(t *testing.T) {
 	// verify vout gets set
 	start = time.Now()
 	for {
-		if voutGet().Value == 1 {
+		if voutGet().Value["0"] == 1 {
 			// all is well
 			break
 		}
@@ -515,7 +515,7 @@ func TestDisabled(t *testing.T) {
 	// verify vout gets cleared.
 	start = time.Now()
 	for {
-		if voutGet().Value == 0 {
+		if voutGet().Value["0"] == 0 {
 			// all is well
 			break
 		}
@@ -539,7 +539,7 @@ func TestDisabled(t *testing.T) {
 	// verify vout gets set
 	start = time.Now()
 	for {
-		if voutGet().Value == 1 {
+		if voutGet().Value["0"] == 1 {
 			// all is well
 			break
 		}
@@ -563,7 +563,7 @@ func TestDisabled(t *testing.T) {
 	// verify vout gets cleared.
 	start = time.Now()
 	for {
-		if voutGet().Value == 0 {
+		if voutGet().Value["0"] == 0 {
 			// all is well
 			break
 		}
@@ -587,7 +587,7 @@ func TestDisabled(t *testing.T) {
 	// verify vout gets set.
 	start = time.Now()
 	for {
-		if voutGet().Value == 1 {
+		if voutGet().Value["0"] == 1 {
 			// all is well
 			break
 		}
@@ -688,8 +688,7 @@ func TestMultipleConditions(t *testing.T) {
 		ValueType:     data.PointValueOnOff,
 		NodeID:        vin2.ID,
 		Operator:      data.PointValueEqual,
-		Value:         0,
-		Disabled:      true,
+		Value:         1,
 	}
 
 	err = client.SendNodeType(nc, c2, "test")
@@ -744,7 +743,7 @@ func TestMultipleConditions(t *testing.T) {
 
 	defer voutStop()
 
-	if voutGet().Value != 0 {
+	if voutGet().Value["0"] != 0 {
 		t.Fatal("initial vout value is not correct")
 	}
 
@@ -764,7 +763,7 @@ func TestMultipleConditions(t *testing.T) {
 
 		start := time.Now()
 		for {
-			if voutGet().Value == expected {
+			if voutGet().Value["0"] == expected {
 				lastvout = expected
 				// all is well
 				break
@@ -802,4 +801,169 @@ func TestMultipleConditions(t *testing.T) {
 	sendPoint(c2.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
 	checkvout(0, "both active and disabled")
+}
+
+/*
+Test PointKey of Action Node.
+*/
+func TestActionPointKey(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	// send test nodes to Db
+	vin := client.Variable{
+		ID:          "ID-varin",
+		Parent:      root.ID,
+		Description: "var in",
+	}
+
+	err = client.SendNodeType(nc, vin, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	vout := client.Variable{
+		ID:          "ID-varout",
+		Parent:      root.ID,
+		Description: "var out",
+	}
+
+	err = client.SendNodeType(nc, vout, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	r := client.Rule{
+		ID:          "ID-rule",
+		Parent:      root.ID,
+		Description: "test rule",
+		Disabled:    false,
+	}
+
+	err = client.SendNodeType(nc, r, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	c := client.Condition{
+		ID:            "ID-condition",
+		Parent:        r.ID,
+		Description:   "cond vin high",
+		ConditionType: data.PointValuePointValue,
+		PointType:     data.PointTypeValue,
+		ValueType:     data.PointValueOnOff,
+		NodeID:        vin.ID,
+		Operator:      data.PointValueEqual,
+		Value:         1,
+	}
+
+	err = client.SendNodeType(nc, c, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	a := client.Action{
+		ID:          "ID-action-active",
+		Parent:      r.ID,
+		Description: "action active",
+		Action:      data.PointValueSetValue,
+		PointType:   data.PointTypeValue,
+		PointKey:    "1",
+		NodeID:      vout.ID,
+		Value:       1,
+	}
+
+	err = client.SendNodeType(nc, a, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	// FIXME:
+	// this delay is required to work around a bug in the manager
+	// where it is resetting and does not see the ActionInactive points
+	// See https://github.com/simpleiot/simpleiot/issues/630
+	// the tools/test-rules.sh script can be used to test a fix for this
+	// problem
+	time.Sleep(100 * time.Millisecond)
+
+	a2 := client.ActionInactive{
+		ID:          "ID-action-inactive",
+		Parent:      r.ID,
+		Description: "action inactive",
+		Action:      data.PointValueSetValue,
+		PointType:   data.PointTypeValue,
+		PointKey:    "1",
+		NodeID:      vout.ID,
+		Value:       0,
+	}
+
+	err = client.SendNodeType(nc, a2, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	// set up a node watcher to watch the output variable
+	voutGet, voutStop, err := client.NodeWatcher[client.Variable](nc, vout.ID, vout.Parent)
+
+	if err != nil {
+		t.Fatal("Error setting up watcher")
+	}
+
+	defer voutStop()
+
+	if voutGet().Value["1"] != 0 {
+		t.Fatal("initial vout value is not correct")
+	}
+
+	// wait for rule to get set up
+	time.Sleep(250 * time.Millisecond)
+
+	lastvout := float64(0)
+
+	// set change to true if you are execting vout to change from the current state.
+	// otherwise we will add a delay
+	checkvout := func(expected float64, msg string, pointKey string) {
+		if lastvout == expected {
+			// vout is not changing, so delay here to make sure the rule
+			// has time to run before we check the result
+			time.Sleep(time.Millisecond * 75)
+		}
+
+		start := time.Now()
+		for {
+			if voutGet().Value[pointKey] == expected {
+				lastvout = expected
+				// all is well
+				break
+			}
+			if time.Since(start) > time.Second {
+				t.Fatalf("vout failed, expected: %v, test: %v", expected, msg)
+			}
+			<-time.After(time.Millisecond * 10)
+		}
+	}
+
+	sendPoint := func(id string, point data.Point) {
+		point.Origin = "test"
+		err = client.SendNodePoint(nc, id, point, true)
+
+		if err != nil {
+			t.Errorf("Error sending point: %v", err)
+		}
+	}
+
+	// check if point is set correctly.
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+
+	checkvout(1, "1st active, 2nd inactive", "1")
+
+	// check if point is cleared correctly
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+
+	checkvout(0, "1st active, 2nd inactive", "1")
 }
