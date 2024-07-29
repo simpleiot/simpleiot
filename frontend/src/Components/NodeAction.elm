@@ -11,6 +11,7 @@ import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style as Style
 import UI.ViewIf exposing (viewIf)
+import Html.Attributes exposing (disabled)
 
 
 view : NodeOptions msg -> Element msg
@@ -73,6 +74,10 @@ view o =
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
                     Point.getText o.node.points Point.typeDescription ""
+            , if Point.getBool o.node.points Point.typeDisabled "" then
+                text "(disabled)"
+              else
+                text ""
             ]
             :: (if o.expDetail then
                     let
@@ -125,7 +130,7 @@ view o =
                             , ( Point.typeLightSet, "set light state" )
                             , ( Point.typeSwitchSet, "set switch state" )
                             ]
-                        , textInput Point.typePointKey "Point Key" ""
+                    , viewIf actionSetValue <| textInput Point.typePointKey "Point Key" ""
                     , viewIf actionSetValue <| textInput Point.typeNodeID "Node ID" ""
                     , if nodeId /= "" then
                         let

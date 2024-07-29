@@ -64,6 +64,10 @@ view o =
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
                     Point.getText o.node.points Point.typeDescription ""
+            , if Point.getBool o.node.points Point.typeDisabled "" then
+                text "(disabled)"
+              else
+                text ""
             ]
             :: (if o.expDetail then
                     let
