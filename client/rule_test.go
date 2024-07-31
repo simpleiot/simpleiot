@@ -171,12 +171,12 @@ func TestRules(t *testing.T) {
 /*
 leave everything enabled and toggle vin and watch vout toggle -- same as the TestRules() function. This ensures that your test is setup correctly.
 disable rule, set vin and verify vout does not get set. Then clear vin.
-enable rule, and disable condition. set vin and verify vout does not get set. Clear vin.
-enable condition, and disable action. set vin and verify vout does not get set. Clear vin.
-enable action, set vin, then disable rule. verify vout gets cleared.
-enable rule, and verify vout gets set.
-disable condition, and verify vout gets cleared.
-enable condition, and verify vout gets set.
+- enable rule, and disable condition. set vin and verify vout does not get set. Clear vin.
+- enable condition, and disable action. set vin and verify vout does not get set. Clear vin.
+- enable action, set vin, then disable rule. verify vout gets cleared.
+- enable rule, and verify vout gets set.
+- disable condition, and verify vout gets cleared.
+- enable condition, and verify vout gets set.
 */
 func TestDisabled(t *testing.T) {
 	nc, root, stop, err := server.TestServer()
