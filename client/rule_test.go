@@ -293,309 +293,152 @@ func TestDisabled(t *testing.T) {
 	// wait for rule to get set up
 	time.Sleep(250 * time.Millisecond)
 
+	lastvout := float64(0)
+
+	// set change to true if you are execting vout to change from the current state.
+	// otherwise we will add a delay
+	checkvout := func(expected float64, msg string, pointKey string) {
+		if lastvout == expected {
+			// vout is not changing, so delay here to make sure the rule
+			// has time to run before we check the result
+			time.Sleep(time.Millisecond * 75)
+		}
+
+		start := time.Now()
+		for {
+			if voutGet().Value[pointKey] == expected {
+				lastvout = expected
+				// all is well
+				break
+			}
+			if time.Since(start) > time.Second {
+				t.Fatalf("vout failed, expected: %v, test: %v", expected, msg)
+			}
+			<-time.After(time.Millisecond * 10)
+		}
+	}
+
+	sendPoint := func(id string, point data.Point) {
+		point.Origin = "test"
+		err = client.SendNodePoint(nc, id, point, true)
+
+		if err != nil {
+			t.Errorf("Error sending point: %v", err)
+		}
+	}
+
 	/*
 		leave everything enabled and toggle vin and watch vout toggle -- same as the TestRules() function.
 		This ensures that your test is setup correctly.
 	*/
 	// set vin and look for vout to change
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 1, Origin: "test"}, true)
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
-
-	start := time.Now()
-	for {
-		if voutGet().Value["0"] == 1 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be set")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	checkvout(1, "set vin and look for vout to change", "0")
 
 	// clear vin and look for vout to change
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 0, Origin: "test"}, true)
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
-
-	start = time.Now()
-	for {
-		if voutGet().Value["0"] == 0 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be cleared")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	checkvout(0, "clear vin and look for vout to change", "0")
 
 	/*
 		disable rule, set vin and verify vout does not get set. Then clear vin.
 	*/
 	// disable rule
-	err = client.SendNodePoint(nc, r.ID, data.Point{Type: data.PointTypeDisabled,
-		Value: 1, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
-	//set vin
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 1, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(r.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
-	// delay here as it will take some time for VOUT to be set
-	// if the rule client is broken.
-	time.Sleep(time.Millisecond * 50)
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
 	// verify vout does not get set
-	start = time.Now()
-	for {
-		if voutGet().Value["0"] == 0 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be cleared")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	checkvout(0, "disable rule, set vin and verify vout does not get set", "0")
 
 	//clear vin
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 0, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
 	/*
 		enable rule, and disable condition. set vin and verify vout does not get set. Clear vin.
 	*/
 	// enable rule
-	err = client.SendNodePoint(nc, r.ID, data.Point{Type: data.PointTypeDisabled,
-		Value: 0, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(r.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 
 	// disable condition
-	err = client.SendNodePoint(nc, c.ID, data.Point{Type: data.PointTypeDisabled,
-		Value: 1, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
 	//set vin
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 1, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
-	// delay here as it will take some time for VOUT to be set
 	// if the rule client is broken.
-	time.Sleep(time.Millisecond * 50)
-
-	// verify vout does not get set
-	start = time.Now()
-	for {
-		if voutGet().Value["0"] == 0 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be cleared")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	checkvout(0, "enable rule, and disable condition. set vin and verify vout does not get set", "0")
 
 	//clear vin
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 0, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
 	/*
 		enable condition, and disable action. set vin and verify vout does not get set. Clear vin.
 	*/
 
 	// enable condition
-	err = client.SendNodePoint(nc, c.ID, data.Point{Type: data.PointTypeDisabled,
-		Value: 0, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(c.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 
 	//disable action
-	err = client.SendNodePoint(nc, a.ID, data.Point{Type: data.PointTypeDisabled,
-		Value: 1, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(a.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
 	//set vin
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 1, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
-	// delay here as it will take some time for VOUT to be set
-	// if the rule client is broken.
-	time.Sleep(time.Millisecond * 50)
-
-	// verify vout does not get set
-	start = time.Now()
-	for {
-		if voutGet().Value["0"] == 0 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be cleared")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	checkvout(0, "enable condition, and disable action. set vin and verify vout does not get set.", "0")
 
 	//clear vin
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 0, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
 	/*
 		enable action, set vin, then disable rule. verify vout gets cleared.
 	*/
 
 	//enable action
-	err = client.SendNodePoint(nc, a.ID, data.Point{Type: data.PointTypeDisabled,
-		Value: 0, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(a.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 
 	//set vin
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 1, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
 	// verify vout gets set
-	start = time.Now()
-	for {
-		if voutGet().Value["0"] == 1 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be set")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	checkvout(1, "enable action, set vin, then disable rule. verify vout gets set.", "0")
 
 	//disable rule
-	err = client.SendNodePoint(nc, r.ID, data.Point{Type: data.PointTypeDisabled,
-		Value: 1, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(r.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
-	// verify vout gets cleared.
-	start = time.Now()
-	for {
-		if voutGet().Value["0"] == 0 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be cleared")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	checkvout(0, "enable action, set vin, then disable rule. verify vout gets cleared.", "0")
 
 	/*
 		enable rule, and verify vout gets set.
 	*/
 
 	//enable rule
-	err = client.SendNodePoint(nc, r.ID, data.Point{Type: data.PointTypeDisabled,
-		Value: 0, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(r.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 
 	// verify vout gets set
-	start = time.Now()
-	for {
-		if voutGet().Value["0"] == 1 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be cleared")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	checkvout(1, "enable rule, and verify vout gets set.", "0")
 
 	/*
 		disable condition, and verify vout gets cleared.
 	*/
 
 	//disable condition
-	err = client.SendNodePoint(nc, c.ID, data.Point{Type: data.PointTypeDisabled,
-		Value: 1, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
 	// verify vout gets cleared.
-	start = time.Now()
-	for {
-		if voutGet().Value["0"] == 0 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be cleared")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	checkvout(0, "disable condition, and verify vout gets cleared.", "0")
 
 	/*
 		enable condition, and verify vout gets set.
 	*/
 
 	//enable condition
-	err = client.SendNodePoint(nc, c.ID, data.Point{Type: data.PointTypeDisabled,
-		Value: 0, Origin: "test"}, true)
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
+	sendPoint(c.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 
 	// verify vout gets set.
-	start = time.Now()
-	for {
-		if voutGet().Value["0"] == 1 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be cleared")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	checkvout(1, "enable condition, and verify vout gets set.", "0")
+
 }
 
 /*
