@@ -11,7 +11,6 @@ import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style as Style
 import UI.ViewIf exposing (viewIf)
-import Html.Attributes exposing (disabled)
 
 
 view : NodeOptions msg -> Element msg
@@ -76,6 +75,7 @@ view o =
                     Point.getText o.node.points Point.typeDescription ""
             , if Point.getBool o.node.points Point.typeDisabled "" then
                 text "(disabled)"
+
               else
                 text ""
             ]
