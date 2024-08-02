@@ -264,26 +264,29 @@ func TestRuleDisabled(t *testing.T) {
 	r.checkVout(0, "disable rule, set vin and verify vout does not get set", "0")
 	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
-	// enable rule, and disable condition. set vin and verify vout does not get set. Clear vin.
+	// enable rule, and disable condition. set vin and verify vout does not get set.
 	r.sendPoint(r.r.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
-	r.checkVout(0, "enable rule, and disable condition. set vin and verify vout does not get set", "0")
+	r.checkVout(0, "disable condition and verify vout does not get set", "0")
+
+	// enable condition and verify vout gets set again. Clear vin.
+	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
+	r.checkVout(1, "re-enable condition and verify vout is set.", "0")
 	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
 	// enable condition, and disable action. set vin and verify vout does not get set. Clear vin.
-	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 	r.sendPoint(r.a.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
-	r.checkVout(0, "enable condition, and disable action. set vin and verify vout does not get set.", "0")
+	r.checkVout(0, "disable action and verify vout does not get set.", "0")
 	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
 	// 	enable action, set vin, then disable rule. verify vout gets cleared.
 	r.sendPoint(r.a.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
-	r.checkVout(1, "enable action, set vin, then disable rule. verify vout gets set.", "0")
+	r.checkVout(1, "disable rule, initial state", "0")
 	r.sendPoint(r.r.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
-	r.checkVout(0, "enable action, set vin, then disable rule. verify vout gets cleared.", "0")
+	r.checkVout(0, "disable rule, vout cleared.", "0")
 
 	// enable rule, and verify vout gets set.
 	r.sendPoint(r.r.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
@@ -323,7 +326,6 @@ func TestRuleMultipleConditions(t *testing.T) {
 	r.checkVout(1, "both active", "0")
 
 	// if both conditions are active but disabled, the rule is inactive.
-
 	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 	r.sendPoint(r.c2.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 	r.checkVout(0, "both active and disabled", "0")
