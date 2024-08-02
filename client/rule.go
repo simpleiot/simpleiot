@@ -338,11 +338,13 @@ done:
 			if err != nil {
 				log.Println("error merging rule points:", err)
 			}
+
 			if rc.hasSchedule() {
 				scheduleTicker = time.NewTicker(scheduleTickTime)
 			} else {
 				scheduleTicker.Stop()
 			}
+
 			run("", nil)
 
 		case pts := <-rc.newEdgePoints:
@@ -350,6 +352,7 @@ done:
 			if err != nil {
 				log.Println("error merging rule edge points:", err)
 			}
+
 			run("", nil)
 		}
 	}
@@ -460,7 +463,6 @@ func (rc *RuleClient) processError(errS string) {
 // Currently, this function only processes the first point that matches -- this should
 // handle all current uses.
 func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool, bool, error) {
-
 	for _, p := range points {
 		for i, c := range rc.config.Conditions {
 			var active bool
