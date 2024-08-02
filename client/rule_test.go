@@ -317,13 +317,19 @@ func TestRuleMultipleConditions(t *testing.T) {
 
 	r.checkVout(0, "initial condition", "0")
 
-	//	if one condition is active and the 2nd condition is inactive, the rule should not fire
+	// both conditions enabled
+	// if one condition is active and the 2nd condition is inactive, the rule should not fire
 	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 	r.checkVout(0, "1st active, 2nd inactive", "0")
 
 	// if both conditions are active the rule should fire
 	r.sendPoint(r.vin2.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 	r.checkVout(1, "both active", "0")
+
+	// if one condition is disabled, the rule should still fire because
+	// the enabled condition is still active
+	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.checkVout(1, "one condition enabled and action", "0")
 
 	// if both conditions are active but disabled, the rule is inactive.
 	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
