@@ -381,20 +381,16 @@ func TestRuleMultipleConditions(t *testing.T) {
 
 	//	if one condition is active and the 2nd condition is inactive, the rule should not fire
 	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
-
 	r.checkVout(0, "1st active, 2nd inactive", "0")
 
 	// if both conditions are active the rule should fire
-
 	r.sendPoint(r.vin2.ID, data.Point{Type: data.PointTypeValue, Value: 1})
-
 	r.checkVout(1, "both active", "0")
 
 	// if both conditions are active but disabled, the rule is inactive.
 
 	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 	r.sendPoint(r.c2.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
-
 	r.checkVout(0, "both active and disabled", "0")
 }
 
@@ -402,14 +398,14 @@ func TestRuleMultipleConditions(t *testing.T) {
 Test PointKey of Action Node.
 */
 func TestRuleActionPointKey(t *testing.T) {
-	r, err := setupRuleTest(t, 2)
+	r, err := setupRuleTest(t, 1)
 	if err != nil {
 		t.Fatal("Rule test setup failed: ", err)
 	}
 
 	// we are setting the an action with key set to "1", so modify the rule
-	r.a.PointKey = "1"
-	r.a2.PointKey = "1"
+	r.sendPoint(r.a.ID, data.Point{Type: data.PointTypePointKey, Text: "1"})
+	r.sendPoint(r.a2.ID, data.Point{Type: data.PointTypePointKey, Text: "1"})
 
 	defer r.stop()
 	defer r.voutStop()
@@ -418,11 +414,10 @@ func TestRuleActionPointKey(t *testing.T) {
 
 	// check if point is set correctly.
 	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
-
-	r.checkVout(1, "1st active, 2nd inactive", "1")
+	r.checkVout(1, "should be high", "1")
 
 	// check if point is cleared correctly
 	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
-	r.checkVout(0, "1st active, 2nd inactive", "1")
+	r.checkVout(0, "should be low", "1")
 }

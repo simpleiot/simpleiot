@@ -159,6 +159,9 @@ func (a Action) String() string {
 	if a.NodeID != "" {
 		ret += fmt.Sprintf("  NODEID:%v", a.NodeID)
 	}
+	if a.PointKey != "" && a.PointKey != "0" {
+		ret += fmt.Sprintf(" K:%v", a.PointKey)
+	}
 	ret += fmt.Sprintf("  A:%v", a.Active)
 	ret += "\n"
 	return ret
@@ -669,6 +672,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				Text:   a.ValueText,
 				Origin: a.ID,
 			}
+
 			err := rc.sendPoint(a.NodeID, p)
 			if err != nil {
 				log.Println("Error sending rule action point:", err)
