@@ -255,28 +255,28 @@ func (rc *RuleClient) Run() error {
 		var err error
 
 		if rc.config.Disabled {
-			return
-		}
-
-		if len(pts) > 0 {
-			active, changed, err = rc.ruleProcessPoints(id, pts)
-			if err != nil {
-				log.Println("Error processing rule point:", err)
-			}
-
-			if !changed {
-				return
-			}
+			active = false
 		} else {
-			// send a schedule trigger through just in case someone changed a
-			// schedule condition
-			active, _, err = rc.ruleProcessPoints(rc.config.ID, data.Points{{
-				Time: time.Now(),
-				Type: data.PointTypeTrigger,
-			}})
+			if len(pts) > 0 {
+				active, changed, err = rc.ruleProcessPoints(id, pts)
+				if err != nil {
+					log.Println("Error processing rule point:", err)
+				}
 
-			if err != nil {
-				log.Println("Error processing rule point:", err)
+				if !changed {
+					return
+				}
+			} else {
+				// send a schedule trigger through just in case someone changed a
+				// schedule condition
+				active, _, err = rc.ruleProcessPoints(rc.config.ID, data.Points{{
+					Time: time.Now(),
+					Type: data.PointTypeTrigger,
+				}})
+
+				if err != nil {
+					log.Println("Error processing rule point:", err)
+				}
 			}
 		}
 
@@ -309,7 +309,23 @@ done:
 		case <-rc.stop:
 			break done
 		case pts := <-rc.newRulePoints:
-			run(pts.ID, pts.Points)
+			// make sure the point is in a condition before we run the rule
+			// otherwise, we can get into a loop
+			found := false
+			for _, c := range rc.config.Conditions {
+				if c.ConditionType != data.PointValuePointValue {
+					continue
+				}
+				if c.NodeID == pts.ID {
+					found = true
+					break
+				}
+			}
+
+			if found {
+				// found a condition that matches the point coming in, run the rule
+				run(pts.ID, pts.Points)
+			}
 
 		case <-scheduleTicker.C:
 			run(rc.config.ID, data.Points{{
@@ -327,27 +343,8 @@ done:
 			} else {
 				scheduleTicker.Stop()
 			}
-			if pts.ID == rc.config.ID {
-				if pts.Points[0].Type == "disabled" {
-					if pts.Points[0].Value == 0 {
-						run("", nil)
-					} else {
-						err := rc.ruleRunActions(rc.config.ActionsInactive, pts.ID)
-						if err != nil {
-							log.Println("Error running rule actions:", err)
-						}
+			run("", nil)
 
-						err = rc.ruleInactiveActions(rc.config.Actions)
-						if err != nil {
-							log.Println("Error running rule inactive actions:", err)
-						}
-					}
-				} else {
-					run("", nil)
-				}
-			} else {
-				run("", nil)
-			}
 		case pts := <-rc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &rc.config)
 			if err != nil {

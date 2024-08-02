@@ -12,25 +12,26 @@ import (
 )
 
 type ruleTestServer struct {
-	t        *testing.T
-	root     data.NodeEdge
-	nc       *nats.Conn
-	stop     func()
-	vin      client.Variable
-	vin2     client.Variable
-	vout     client.Variable
-	r        client.Rule
-	c        client.Condition
-	c2       client.Condition
-	a        client.Action
-	a2       client.ActionInactive
-	voutGet  func() client.Variable
-	voutStop func()
-	lastvout float64
+	t         *testing.T
+	root      data.NodeEdge
+	nc        *nats.Conn
+	stop      func()
+	vin       client.Variable
+	vin2      client.Variable
+	vout      client.Variable
+	r         client.Rule
+	c         client.Condition
+	c2        client.Condition
+	a         client.Action
+	a2        client.ActionInactive
+	voutGet   func() client.Variable
+	voutStop  func()
+	lastvout  float64
+	lastCheck string
 }
 
 func (rts *ruleTestServer) checkVout(expected float64, msg string, pointKey string) {
-
+	rts.lastCheck = msg
 	if rts.lastvout == expected {
 		// vout is not changing, so delay here to make sure the rule
 		// has time to run before we check the result
@@ -56,7 +57,7 @@ func (rts *ruleTestServer) sendPoint(id string, point data.Point) {
 	err := client.SendNodePoint(rts.nc, id, point, true)
 
 	if err != nil {
-		rts.t.Errorf("Error sending point: %v", err)
+		rts.t.Errorf("Error sending point: %v, last check: %v", err, rts.lastCheck)
 	}
 }
 
@@ -306,7 +307,6 @@ if one condition is active and the 2nd condition is disabled, the rule fires
 if both conditions are disabled, the rule is inactive.
 */
 func TestRuleMultipleConditions(t *testing.T) {
-
 	r, err := setupRuleTest(t, 2)
 	if err != nil {
 		t.Fatal("Rule test setup failed: ", err)
