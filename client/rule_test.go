@@ -1,91 +1,173 @@
 package client_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/server"
 )
 
-// TestRules populates a rule in the system that watches
-// a variable and when set, sets another variable. This
-// tests out the basic rule logic.
-func TestRules(t *testing.T) {
-	nc, root, stop, err := server.TestServer()
+type ruleTestServer struct {
+	t        *testing.T
+	root     data.NodeEdge
+	nc       *nats.Conn
+	stop     func()
+	vin      client.Variable
+	vin2     client.Variable
+	vout     client.Variable
+	r        client.Rule
+	c        client.Condition
+	c2       client.Condition
+	a        client.Action
+	a2       client.ActionInactive
+	voutGet  func() client.Variable
+	voutStop func()
+	lastvout float64
+}
 
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
+func (rts *ruleTestServer) checkVout(expected float64, msg string, pointKey string) {
+
+	if rts.lastvout == expected {
+		// vout is not changing, so delay here to make sure the rule
+		// has time to run before we check the result
+		time.Sleep(time.Millisecond * 75)
 	}
 
-	defer stop()
+	start := time.Now()
+	for {
+		if rts.voutGet().Value[pointKey] == expected {
+			rts.lastvout = expected
+			// all is well
+			break
+		}
+		if time.Since(start) > time.Second {
+			rts.t.Fatalf("vout failed, expected: %v, test: %v", expected, msg)
+		}
+		<-time.After(time.Millisecond * 10)
+	}
+}
 
+func (rts *ruleTestServer) sendPoint(id string, point data.Point) {
+	point.Origin = "test"
+	err := client.SendNodePoint(rts.nc, id, point, true)
+
+	if err != nil {
+		rts.t.Errorf("Error sending point: %v", err)
+	}
+}
+
+func setupRuleTest(t *testing.T, numConditions int) (ruleTestServer, error) {
+
+	var r ruleTestServer
+	var err error
+
+	r.t = t
+
+	r.nc, r.root, r.stop, err = server.TestServer()
+
+	if err != nil {
+		return r, fmt.Errorf("Error starting test server: %w", err)
+	}
 	// send test nodes to Db
-	vin := client.Variable{
+	r.vin = client.Variable{
 		ID:          "ID-varin",
-		Parent:      root.ID,
+		Parent:      r.root.ID,
 		Description: "var in",
 	}
 
-	err = client.SendNodeType(nc, vin, "test")
+	err = client.SendNodeType(r.nc, r.vin, "test")
 	if err != nil {
-		t.Fatal("Error sending node: ", err)
+		return r, fmt.Errorf("Error sending vin node: %w", err)
 	}
 
-	vout := client.Variable{
+	r.vout = client.Variable{
 		ID:          "ID-varout",
-		Parent:      root.ID,
+		Parent:      r.root.ID,
 		Description: "var out",
 	}
 
-	err = client.SendNodeType(nc, vout, "test")
+	err = client.SendNodeType(r.nc, r.vout, "test")
 	if err != nil {
-		t.Fatal("Error sending node: ", err)
+		return r, fmt.Errorf("Error sending vout node: %w", err)
 	}
 
-	r := client.Rule{
+	r.r = client.Rule{
 		ID:          "ID-rule",
-		Parent:      root.ID,
+		Parent:      r.root.ID,
 		Description: "test rule",
 		Disabled:    false,
 	}
 
-	err = client.SendNodeType(nc, r, "test")
+	err = client.SendNodeType(r.nc, r.r, "test")
 	if err != nil {
-		t.Fatal("Error sending node: ", err)
+		return r, fmt.Errorf("Error sending r node: %w", err)
 	}
 
-	c := client.Condition{
+	r.c = client.Condition{
 		ID:            "ID-condition",
-		Parent:        r.ID,
+		Parent:        r.r.ID,
 		Description:   "cond vin high",
 		ConditionType: data.PointValuePointValue,
 		PointType:     data.PointTypeValue,
 		ValueType:     data.PointValueOnOff,
-		NodeID:        vin.ID,
+		NodeID:        r.vin.ID,
 		Operator:      data.PointValueEqual,
 		Value:         1,
 	}
 
-	err = client.SendNodeType(nc, c, "test")
+	err = client.SendNodeType(r.nc, r.c, "test")
 	if err != nil {
-		t.Fatal("Error sending node: ", err)
+		return r, fmt.Errorf("Error sending c node: %w", err)
 	}
 
-	a := client.Action{
+	if numConditions > 1 {
+		// send test nodes to Db
+		r.vin2 = client.Variable{
+			ID:          "ID-varin2",
+			Parent:      r.root.ID,
+			Description: "var in2",
+		}
+
+		err = client.SendNodeType(r.nc, r.vin2, "test")
+		if err != nil {
+			return r, fmt.Errorf("Error sending vin2 node: %w", err)
+		}
+
+		r.c2 = client.Condition{
+			ID:            "ID-condition2",
+			Parent:        r.r.ID,
+			Description:   "cond vin2 high",
+			ConditionType: data.PointValuePointValue,
+			PointType:     data.PointTypeValue,
+			ValueType:     data.PointValueOnOff,
+			NodeID:        r.vin2.ID,
+			Operator:      data.PointValueEqual,
+			Value:         1,
+		}
+
+		err = client.SendNodeType(r.nc, r.c2, "test")
+		if err != nil {
+			return r, fmt.Errorf("Error sending c node: %w", err)
+		}
+	}
+
+	r.a = client.Action{
 		ID:          "ID-action-active",
-		Parent:      r.ID,
+		Parent:      r.r.ID,
 		Description: "action active",
 		Action:      data.PointValueSetValue,
 		PointType:   data.PointTypeValue,
-		NodeID:      vout.ID,
+		NodeID:      r.vout.ID,
 		Value:       1,
 	}
 
-	err = client.SendNodeType(nc, a, "test")
+	err = client.SendNodeType(r.nc, r.a, "test")
 	if err != nil {
-		t.Fatal("Error sending node: ", err)
+		return r, fmt.Errorf("Error sending a node: %w", err)
 	}
 
 	// FIXME:
@@ -96,76 +178,55 @@ func TestRules(t *testing.T) {
 	// problem
 	time.Sleep(100 * time.Millisecond)
 
-	a2 := client.ActionInactive{
+	r.a2 = client.ActionInactive{
 		ID:          "ID-action-inactive",
-		Parent:      r.ID,
+		Parent:      r.r.ID,
 		Description: "action inactive",
 		Action:      data.PointValueSetValue,
 		PointType:   data.PointTypeValue,
-		NodeID:      vout.ID,
+		NodeID:      r.vout.ID,
 		Value:       0,
 	}
 
-	err = client.SendNodeType(nc, a2, "test")
+	err = client.SendNodeType(r.nc, r.a2, "test")
 	if err != nil {
-		t.Fatal("Error sending node: ", err)
+		return r, fmt.Errorf("Error sending a2 node: %w", err)
 	}
 
 	// set up a node watcher to watch the output variable
-	voutGet, voutStop, err := client.NodeWatcher[client.Variable](nc, vout.ID, vout.Parent)
+	r.voutGet, r.voutStop, err = client.NodeWatcher[client.Variable](r.nc, r.vout.ID, r.vout.Parent)
 
 	if err != nil {
-		t.Fatal("Error setting up watcher")
-	}
-
-	defer voutStop()
-
-	if voutGet().Value["0"] != 0 {
-		t.Fatal("initial vout value is not correct")
+		return r, fmt.Errorf("Error setting up watcher: %w", err)
 	}
 
 	// wait for rule to get set up
 	time.Sleep(250 * time.Millisecond)
 
-	// set vin and look for vout to change
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 1, Origin: "test"}, true)
+	return r, nil
+}
 
+// TestRules populates a rule in the system that watches
+// a variable and when set, sets another variable. This
+// tests out the basic rule logic.
+func TestRule(t *testing.T) {
+	r, err := setupRuleTest(t, 1)
 	if err != nil {
-		t.Errorf("Error sending point: %v", err)
+		t.Fatal("Rule test setup failed: ", err)
 	}
 
-	start := time.Now()
-	for {
-		if voutGet().Value["0"] == 1 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be set")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	defer r.stop()
+	defer r.voutStop()
+
+	r.checkVout(0, "initial value", "0")
+
+	// set vin and look for vout to change
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.checkVout(1, "look for vout to change after set vin", "0")
 
 	// clear vin and look for vout to change
-	err = client.SendNodePoint(nc, vin.ID, data.Point{Type: data.PointTypeValue,
-		Value: 0, Origin: "test"}, true)
-
-	if err != nil {
-		t.Errorf("Error sending point: %v", err)
-	}
-
-	start = time.Now()
-	for {
-		if voutGet().Value["0"] == 0 {
-			// all is well
-			break
-		}
-		if time.Since(start) > time.Second {
-			t.Fatal("Timeout waiting for vout to be cleared")
-		}
-		<-time.After(time.Millisecond * 10)
-	}
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.checkVout(0, "look for vout to clear", "0")
 }
 
 /*
@@ -178,635 +239,190 @@ disable rule, set vin and verify vout does not get set. Then clear vin.
 - disable condition, and verify vout gets cleared.
 - enable condition, and verify vout gets set.
 */
-func TestDisabled(t *testing.T) {
-	nc, root, stop, err := server.TestServer()
-
+func TestRuleDisabled(t *testing.T) {
+	r, err := setupRuleTest(t, 1)
 	if err != nil {
-		t.Fatal("Error starting test server: ", err)
+		t.Fatal("Rule test setup failed: ", err)
 	}
 
-	defer stop()
+	defer r.stop()
+	defer r.voutStop()
 
-	// send test nodes to Db
-	vin := client.Variable{
-		ID:          "ID-varin",
-		Parent:      root.ID,
-		Description: "var in",
-	}
-
-	err = client.SendNodeType(nc, vin, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	vout := client.Variable{
-		ID:          "ID-varout",
-		Parent:      root.ID,
-		Description: "var out",
-	}
-
-	err = client.SendNodeType(nc, vout, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	r := client.Rule{
-		ID:          "ID-rule",
-		Parent:      root.ID,
-		Description: "test rule",
-		Disabled:    false,
-	}
-
-	err = client.SendNodeType(nc, r, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	c := client.Condition{
-		ID:            "ID-condition",
-		Parent:        r.ID,
-		Description:   "cond vin high",
-		ConditionType: data.PointValuePointValue,
-		PointType:     data.PointTypeValue,
-		ValueType:     data.PointValueOnOff,
-		NodeID:        vin.ID,
-		Operator:      data.PointValueEqual,
-		Value:         1,
-	}
-
-	err = client.SendNodeType(nc, c, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	a := client.Action{
-		ID:          "ID-action-active",
-		Parent:      r.ID,
-		Description: "action active",
-		Action:      data.PointValueSetValue,
-		PointType:   data.PointTypeValue,
-		NodeID:      vout.ID,
-		Value:       1,
-	}
-
-	err = client.SendNodeType(nc, a, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	// FIXME:
-	// this delay is required to work around a bug in the manager
-	// where it is resetting and does not see the ActionInactive points
-	// See https://github.com/simpleiot/simpleiot/issues/630
-	// the tools/test-rules.sh script can be used to test a fix for this
-	// problem
-	time.Sleep(100 * time.Millisecond)
-
-	a2 := client.ActionInactive{
-		ID:          "ID-action-inactive",
-		Parent:      r.ID,
-		Description: "action inactive",
-		Action:      data.PointValueSetValue,
-		PointType:   data.PointTypeValue,
-		NodeID:      vout.ID,
-		Value:       0,
-	}
-
-	err = client.SendNodeType(nc, a2, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	// set up a node watcher to watch the output variable
-	voutGet, voutStop, err := client.NodeWatcher[client.Variable](nc, vout.ID, vout.Parent)
-
-	if err != nil {
-		t.Fatal("Error setting up watcher")
-	}
-
-	defer voutStop()
-
-	if voutGet().Value["0"] != 0 {
-		t.Fatal("initial vout value is not correct")
-	}
-
-	// wait for rule to get set up
-	time.Sleep(250 * time.Millisecond)
-
-	lastvout := float64(0)
-
-	// set change to true if you are execting vout to change from the current state.
-	// otherwise we will add a delay
-	checkvout := func(expected float64, msg string, pointKey string) {
-		if lastvout == expected {
-			// vout is not changing, so delay here to make sure the rule
-			// has time to run before we check the result
-			time.Sleep(time.Millisecond * 75)
-		}
-
-		start := time.Now()
-		for {
-			if voutGet().Value[pointKey] == expected {
-				lastvout = expected
-				// all is well
-				break
-			}
-			if time.Since(start) > time.Second {
-				t.Fatalf("vout failed, expected: %v, test: %v", expected, msg)
-			}
-			<-time.After(time.Millisecond * 10)
-		}
-	}
-
-	sendPoint := func(id string, point data.Point) {
-		point.Origin = "test"
-		err = client.SendNodePoint(nc, id, point, true)
-
-		if err != nil {
-			t.Errorf("Error sending point: %v", err)
-		}
-	}
+	r.checkVout(1, "check initial state", "0")
 
 	/*
 		leave everything enabled and toggle vin and watch vout toggle -- same as the TestRules() function.
 		This ensures that your test is setup correctly.
 	*/
 	// set vin and look for vout to change
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
-	checkvout(1, "set vin and look for vout to change", "0")
+	r.checkVout(1, "set vin and look for vout to change", "0")
 
 	// clear vin and look for vout to change
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
-	checkvout(0, "clear vin and look for vout to change", "0")
+	r.checkVout(0, "clear vin and look for vout to change", "0")
 
 	/*
 		disable rule, set vin and verify vout does not get set. Then clear vin.
 	*/
 	// disable rule
-	sendPoint(r.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.sendPoint(r.r.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
 	// verify vout does not get set
-	checkvout(0, "disable rule, set vin and verify vout does not get set", "0")
+	r.checkVout(0, "disable rule, set vin and verify vout does not get set", "0")
 
 	//clear vin
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
 	/*
 		enable rule, and disable condition. set vin and verify vout does not get set. Clear vin.
 	*/
 	// enable rule
-	sendPoint(r.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
+	r.sendPoint(r.r.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 
 	// disable condition
-	sendPoint(c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
 	//set vin
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
 	// if the rule client is broken.
-	checkvout(0, "enable rule, and disable condition. set vin and verify vout does not get set", "0")
+	r.checkVout(0, "enable rule, and disable condition. set vin and verify vout does not get set", "0")
 
 	//clear vin
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
 	/*
 		enable condition, and disable action. set vin and verify vout does not get set. Clear vin.
 	*/
 
 	// enable condition
-	sendPoint(c.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
+	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 
 	//disable action
-	sendPoint(a.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.sendPoint(r.a.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
 	//set vin
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
-	checkvout(0, "enable condition, and disable action. set vin and verify vout does not get set.", "0")
+	r.checkVout(0, "enable condition, and disable action. set vin and verify vout does not get set.", "0")
 
 	//clear vin
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
 	/*
 		enable action, set vin, then disable rule. verify vout gets cleared.
 	*/
 
 	//enable action
-	sendPoint(a.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
+	r.sendPoint(r.a.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 
 	//set vin
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
 	// verify vout gets set
-	checkvout(1, "enable action, set vin, then disable rule. verify vout gets set.", "0")
+	r.checkVout(1, "enable action, set vin, then disable rule. verify vout gets set.", "0")
 
 	//disable rule
-	sendPoint(r.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.sendPoint(r.r.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
-	checkvout(0, "enable action, set vin, then disable rule. verify vout gets cleared.", "0")
+	r.checkVout(0, "enable action, set vin, then disable rule. verify vout gets cleared.", "0")
 
 	/*
 		enable rule, and verify vout gets set.
 	*/
 
 	//enable rule
-	sendPoint(r.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
+	r.sendPoint(r.r.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 
 	// verify vout gets set
-	checkvout(1, "enable rule, and verify vout gets set.", "0")
+	r.checkVout(1, "enable rule, and verify vout gets set.", "0")
 
 	/*
 		disable condition, and verify vout gets cleared.
 	*/
 
 	//disable condition
-	sendPoint(c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
 	// verify vout gets cleared.
-	checkvout(0, "disable condition, and verify vout gets cleared.", "0")
+	r.checkVout(0, "disable condition, and verify vout gets cleared.", "0")
 
 	/*
 		enable condition, and verify vout gets set.
 	*/
 
 	//enable condition
-	sendPoint(c.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
+	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
 
 	// verify vout gets set.
-	checkvout(1, "enable condition, and verify vout gets set.", "0")
-
+	r.checkVout(1, "enable condition, and verify vout gets set.", "0")
 }
 
 /*
 if one condition is active and the 2nd condition is disabled, the rule fires
 if both conditions are disabled, the rule is inactive.
 */
-func TestMultipleConditions(t *testing.T) {
-	nc, root, stop, err := server.TestServer()
+func TestRuleMultipleConditions(t *testing.T) {
 
+	r, err := setupRuleTest(t, 2)
 	if err != nil {
-		t.Fatal("Error starting test server: ", err)
+		t.Fatal("Rule test setup failed: ", err)
 	}
 
-	defer stop()
+	defer r.stop()
+	defer r.voutStop()
 
-	// send test nodes to Db
-	vin := client.Variable{
-		ID:          "ID-varin",
-		Parent:      root.ID,
-		Description: "var in",
-	}
-
-	err = client.SendNodeType(nc, vin, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	// send test nodes to Db
-	vin2 := client.Variable{
-		ID:          "ID-varin2",
-		Parent:      root.ID,
-		Description: "var in2",
-	}
-
-	err = client.SendNodeType(nc, vin2, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	vout := client.Variable{
-		ID:          "ID-varout",
-		Parent:      root.ID,
-		Description: "var out",
-	}
-
-	err = client.SendNodeType(nc, vout, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	r := client.Rule{
-		ID:          "ID-rule",
-		Parent:      root.ID,
-		Description: "test rule",
-		Disabled:    false,
-	}
-
-	err = client.SendNodeType(nc, r, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	c := client.Condition{
-		ID:            "ID-condition",
-		Parent:        r.ID,
-		Description:   "cond vin high",
-		ConditionType: data.PointValuePointValue,
-		PointType:     data.PointTypeValue,
-		ValueType:     data.PointValueOnOff,
-		NodeID:        vin.ID,
-		Operator:      data.PointValueEqual,
-		Value:         1,
-	}
-
-	err = client.SendNodeType(nc, c, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	time.Sleep(100 * time.Millisecond)
-
-	// we don't want c2 to ever go active, so set the NodeID to some
-	// bogus value
-	c2 := client.Condition{
-		ID:            "ID-condition2",
-		Parent:        r.ID,
-		Description:   "cond vin high",
-		ConditionType: data.PointValuePointValue,
-		PointType:     data.PointTypeValue,
-		ValueType:     data.PointValueOnOff,
-		NodeID:        vin2.ID,
-		Operator:      data.PointValueEqual,
-		Value:         1,
-	}
-
-	err = client.SendNodeType(nc, c2, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	a := client.Action{
-		ID:          "ID-action-active",
-		Parent:      r.ID,
-		Description: "action active",
-		Action:      data.PointValueSetValue,
-		PointType:   data.PointTypeValue,
-		NodeID:      vout.ID,
-		Value:       1,
-	}
-
-	err = client.SendNodeType(nc, a, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	// FIXME:
-	// this delay is required to work around a bug in the manager
-	// where it is resetting and does not see the ActionInactive points
-	// See https://github.com/simpleiot/simpleiot/issues/630
-	// the tools/test-rules.sh script can be used to test a fix for this
-	// problem
-	time.Sleep(100 * time.Millisecond)
-
-	a2 := client.ActionInactive{
-		ID:          "ID-action-inactive",
-		Parent:      r.ID,
-		Description: "action inactive",
-		Action:      data.PointValueSetValue,
-		PointType:   data.PointTypeValue,
-		NodeID:      vout.ID,
-		Value:       0,
-	}
-
-	err = client.SendNodeType(nc, a2, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	// set up a node watcher to watch the output variable
-	voutGet, voutStop, err := client.NodeWatcher[client.Variable](nc, vout.ID, vout.Parent)
-
-	if err != nil {
-		t.Fatal("Error setting up watcher")
-	}
-
-	defer voutStop()
-
-	if voutGet().Value["0"] != 0 {
-		t.Fatal("initial vout value is not correct")
-	}
-
-	// wait for rule to get set up
-	time.Sleep(250 * time.Millisecond)
-
-	lastvout := float64(0)
-
-	// set change to true if you are execting vout to change from the current state.
-	// otherwise we will add a delay
-	checkvout := func(expected float64, msg string) {
-		if lastvout == expected {
-			// vout is not changing, so delay here to make sure the rule
-			// has time to run before we check the result
-			time.Sleep(time.Millisecond * 75)
-		}
-
-		start := time.Now()
-		for {
-			if voutGet().Value["0"] == expected {
-				lastvout = expected
-				// all is well
-				break
-			}
-			if time.Since(start) > time.Second {
-				t.Fatalf("vout failed, expected: %v, test: %v", expected, msg)
-			}
-			<-time.After(time.Millisecond * 10)
-		}
-	}
-
-	sendPoint := func(id string, point data.Point) {
-		point.Origin = "test"
-		err = client.SendNodePoint(nc, id, point, true)
-
-		if err != nil {
-			t.Errorf("Error sending point: %v", err)
-		}
-	}
+	r.checkVout(0, "initial condition", "0")
 
 	//	if one condition is active and the 2nd condition is inactive, the rule should not fire
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
-	checkvout(0, "1st active, 2nd inactive")
+	r.checkVout(0, "1st active, 2nd inactive", "0")
 
 	// if both conditions are active the rule should fire
 
-	sendPoint(vin2.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin2.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
-	checkvout(1, "both active")
+	r.checkVout(1, "both active", "0")
 
 	// if both conditions are active but disabled, the rule is inactive.
 
-	sendPoint(c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
-	sendPoint(c2.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.sendPoint(r.c2.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
 
-	checkvout(0, "both active and disabled")
+	r.checkVout(0, "both active and disabled", "0")
 }
 
 /*
 Test PointKey of Action Node.
 */
-func TestActionPointKey(t *testing.T) {
-	nc, root, stop, err := server.TestServer()
-
+func TestRuleActionPointKey(t *testing.T) {
+	r, err := setupRuleTest(t, 2)
 	if err != nil {
-		t.Fatal("Error starting test server: ", err)
+		t.Fatal("Rule test setup failed: ", err)
 	}
 
-	defer stop()
+	// we are setting the an action with key set to "1", so modify the rule
+	r.a.PointKey = "1"
+	r.a2.PointKey = "1"
 
-	// send test nodes to Db
-	vin := client.Variable{
-		ID:          "ID-varin",
-		Parent:      root.ID,
-		Description: "var in",
-	}
+	defer r.stop()
+	defer r.voutStop()
 
-	err = client.SendNodeType(nc, vin, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	vout := client.Variable{
-		ID:          "ID-varout",
-		Parent:      root.ID,
-		Description: "var out",
-	}
-
-	err = client.SendNodeType(nc, vout, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	r := client.Rule{
-		ID:          "ID-rule",
-		Parent:      root.ID,
-		Description: "test rule",
-		Disabled:    false,
-	}
-
-	err = client.SendNodeType(nc, r, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	c := client.Condition{
-		ID:            "ID-condition",
-		Parent:        r.ID,
-		Description:   "cond vin high",
-		ConditionType: data.PointValuePointValue,
-		PointType:     data.PointTypeValue,
-		ValueType:     data.PointValueOnOff,
-		NodeID:        vin.ID,
-		Operator:      data.PointValueEqual,
-		Value:         1,
-	}
-
-	err = client.SendNodeType(nc, c, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	a := client.Action{
-		ID:          "ID-action-active",
-		Parent:      r.ID,
-		Description: "action active",
-		Action:      data.PointValueSetValue,
-		PointType:   data.PointTypeValue,
-		PointKey:    "1",
-		NodeID:      vout.ID,
-		Value:       1,
-	}
-
-	err = client.SendNodeType(nc, a, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	// FIXME:
-	// this delay is required to work around a bug in the manager
-	// where it is resetting and does not see the ActionInactive points
-	// See https://github.com/simpleiot/simpleiot/issues/630
-	// the tools/test-rules.sh script can be used to test a fix for this
-	// problem
-	time.Sleep(100 * time.Millisecond)
-
-	a2 := client.ActionInactive{
-		ID:          "ID-action-inactive",
-		Parent:      r.ID,
-		Description: "action inactive",
-		Action:      data.PointValueSetValue,
-		PointType:   data.PointTypeValue,
-		PointKey:    "1",
-		NodeID:      vout.ID,
-		Value:       0,
-	}
-
-	err = client.SendNodeType(nc, a2, "test")
-	if err != nil {
-		t.Fatal("Error sending node: ", err)
-	}
-
-	// set up a node watcher to watch the output variable
-	voutGet, voutStop, err := client.NodeWatcher[client.Variable](nc, vout.ID, vout.Parent)
-
-	if err != nil {
-		t.Fatal("Error setting up watcher")
-	}
-
-	defer voutStop()
-
-	if voutGet().Value["1"] != 0 {
-		t.Fatal("initial vout value is not correct")
-	}
-
-	// wait for rule to get set up
-	time.Sleep(250 * time.Millisecond)
-
-	lastvout := float64(0)
-
-	// set change to true if you are execting vout to change from the current state.
-	// otherwise we will add a delay
-	checkvout := func(expected float64, msg string, pointKey string) {
-		if lastvout == expected {
-			// vout is not changing, so delay here to make sure the rule
-			// has time to run before we check the result
-			time.Sleep(time.Millisecond * 75)
-		}
-
-		start := time.Now()
-		for {
-			if voutGet().Value[pointKey] == expected {
-				lastvout = expected
-				// all is well
-				break
-			}
-			if time.Since(start) > time.Second {
-				t.Fatalf("vout failed, expected: %v, test: %v", expected, msg)
-			}
-			<-time.After(time.Millisecond * 10)
-		}
-	}
-
-	sendPoint := func(id string, point data.Point) {
-		point.Origin = "test"
-		err = client.SendNodePoint(nc, id, point, true)
-
-		if err != nil {
-			t.Errorf("Error sending point: %v", err)
-		}
-	}
+	r.checkVout(0, "inital value", "1")
 
 	// check if point is set correctly.
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
 
-	checkvout(1, "1st active, 2nd inactive", "1")
+	r.checkVout(1, "1st active, 2nd inactive", "1")
 
 	// check if point is cleared correctly
-	sendPoint(vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
 
-	checkvout(0, "1st active, 2nd inactive", "1")
+	r.checkVout(0, "1st active, 2nd inactive", "1")
 }

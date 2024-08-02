@@ -187,7 +187,7 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 	points := node.Points
 
 	if node.ID == "" {
-		return errors.New("ID must be set to a UUID")
+		return errors.New("ID must be set")
 	}
 
 	if node.Parent == "" || node.Parent == "none" {
