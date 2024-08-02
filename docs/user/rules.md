@@ -116,14 +116,16 @@ active and inactive.
 
 ### Disable Rule
 
-At the rule level, if it's disabled, it doesn't do anything.
-If there is a transition to disabled, it runs its inactive actions and it doesn't do anything.
-If a rule is active when it is disabled, the rule transitions to the inactive state and all rule inactive actions are run. This ensures we don't leave the rule in an active state.
+A rule can be disabled. If the rule disabled while active, then the rule
+inactive actions are run so that things get cleaned up if necessary and the
+actions are not left active.
 
 ### Disable Condition
 
-If there are no conditions, or all conditions are disabled, the rule is inactive.
-Otherwise, disabled conditions are simply ignored. For example if there is a disabled condition and an non-disabled active condition, the rule is active.
+If there are no conditions, or all conditions are disabled, the rule is
+inactive. Otherwise, disabled conditions are simply ignored. For example if
+there is a disabled condition and an non-disabled active condition, the rule is
+active.
 
 ### Disable Action
 
