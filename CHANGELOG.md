@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- change default login to `admin`/`admin` (used to be `admin@admin.com`, but
+  there was no reason to have a bogus email address). (#730)
+
 ## [[0.17.0] - 2024-08-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.17.0)
 
 - add rule/condition/action disable flag (#352)

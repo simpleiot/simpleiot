@@ -76,13 +76,13 @@ reply.
 External NATS clients (including web browsers over WebSockets) must first log
 into the NATS server anonymously (using the auth token if needed) and send a
 request to the `auth` subject with the username and password of a valid user
-node. The default username is `admin@admin.com`, and the default password is
-`admin`. The internal NATS client will subscribe to requests on the `auth`
-subject, and if the username / password is correct, it will respond with a user
-NKey and user JWT Token, which are needed to login. The user JWT token will be
-issued and signed by the account NKey, and the account NKey will be issued and
-signed by the operator NKey. The NATS connection will then be re-established
-using the user JWT and signing a server nonce with the user's NKey.
+node. The default username is `admin`, and the default password is `admin`. The
+internal NATS client will subscribe to requests on the `auth` subject, and if
+the username / password is correct, it will respond with a user NKey and user
+JWT Token, which are needed to login. The user JWT token will be issued and
+signed by the account NKey, and the account NKey will be issued and signed by
+the operator NKey. The NATS connection will then be re-established using the
+user JWT and signing a server nonce with the user's NKey.
 
 JWT expiration should be a configurable SIOT option and default to 1 hour.
 Optionally, when the user JWT token is approaching its expiration, the NATS

@@ -453,7 +453,7 @@ type SiotExport struct {
 //	      text: user
 //	    - type: phone
 //	    - type: email
-//	      text: admin@admin.com
+//	      text: admin
 //	    - type: pass
 //	      text: admin
 //

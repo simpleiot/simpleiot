@@ -8,8 +8,8 @@
 
 After Simple IoT is started, a web application is available on port `:8118`
 (typically [http://localhost:8118](http://localhost:8118)). After logging in
-(default user/pass is `admin@admin.com`/`admin`), you will be presented with a
-tree of nodes.
+(default user/pass is `admin`/`admin`), you will be presented with a tree of
+nodes.
 
 ![nodes](images/nodes.png)
 
@@ -75,7 +75,9 @@ Unknown nodes will also be displayed as raw nodes.
 
 Points can also be edited, added, or removed in raw mode.
 
-A custom node type can also be added by specifying the node type when adding a node. This can be useful when developing new clients or external clients that run outside of the SImple IoT application.
+A custom node type can also be added by specifying the node type when adding a
+node. This can be useful when developing new clients or external clients that
+run outside of the SImple IoT application.
 
 <img src="./assets/image-20231219103622737.png" alt="image-20231219103622737" style="zoom: 50%;" />
 

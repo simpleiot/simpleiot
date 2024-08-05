@@ -88,7 +88,7 @@ describe("simpleiot-js", () => {
 		const { text: email } = user.pointsList.find((p) => p.type === "email")
 		assert.strictEqual(
 			email,
-			"admin@admin.com",
+			"admin",
 			"email of admin user is not default value"
 		)
 
