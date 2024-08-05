@@ -116,7 +116,7 @@ active and inactive.
 
 ### Disable Rule
 
-A rule can be disabled. If the rule disabled while active, then the rule
+A rule can be disabled. If the rule is disabled while active, then the rule
 inactive actions are run so that things get cleaned up if necessary and the
 actions are not left active.
 
