@@ -11,6 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.17.0] - 2024-08-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.17.0)
+
+- add rule/condition/action disable flag (#352)
+- rule action: add point key field (#714)
+
 ## [[0.16.2] - 2024-06-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.2)
 
 - db client: Improve Influx history query functionality
