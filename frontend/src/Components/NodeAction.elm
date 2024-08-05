@@ -115,7 +115,6 @@ view o =
                             NodeInputs.nodeCheckboxInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
-                    , checkboxInput Point.typeDisabled "Disabled"
                     , optionInput Point.typeAction
                         "Action"
                         [ ( Point.valueNotify, "notify" )
@@ -205,8 +204,9 @@ view o =
                         numberInput Point.typeChannel "Channel"
                     , viewIf actionPlayAudio <|
                         textInput Point.typeFilePath "Wav file path" "/absolute/path/to/sound.wav"
-                    , el [ Font.color Style.colors.red ] <| text error
+                    , checkboxInput Point.typeDisabled "Disabled"
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
+                    , el [ Font.color Style.colors.red ] <| text error
                     ]
 
                 else

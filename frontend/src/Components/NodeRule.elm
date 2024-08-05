@@ -66,6 +66,7 @@ view o =
                     Point.getText o.node.points Point.typeDescription ""
             , if Point.getBool o.node.points Point.typeDisabled "" then
                 text "(disabled)"
+
               else
                 text ""
             ]
@@ -81,9 +82,9 @@ view o =
                             NodeInputs.nodeCheckboxInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
-                    , el [ Font.color Style.colors.red ] <| text error
                     , checkboxInput Point.typeDisabled "Disabled"
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
+                    , el [ Font.color Style.colors.red ] <| text error
                     ]
 
                 else
