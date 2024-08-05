@@ -242,7 +242,7 @@ siot_goreleaser_build() {
 # you need to provide GITHUB_TOKEN in env or ~/.config/goreleaser/github_token
 # generate tokens: https://github.com/settings/tokens/new
 # enable repo and workflow sections
-siot_goreleaser_release() {
+siot_release() {
 	VERSION=$1
 	if [ -z "$VERSION" ]; then
 		echo "must provide version in format vX.Y.Z"
