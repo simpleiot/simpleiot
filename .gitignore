@@ -22,3 +22,4 @@ local.sh
 *.dtmp
 *.sublime-project
 *.sublime-workspace
+.aider*
