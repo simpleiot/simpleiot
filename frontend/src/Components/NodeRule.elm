@@ -34,8 +34,14 @@ view o =
         error =
             Point.getText o.node.points Point.typeError "0"
 
+        disabled =
+            Point.getBool o.node.points Point.typeDisabled ""
+
         titleBackground =
-            if error /= "" then
+            if disabled then
+                Style.colors.ltgray
+
+            else if error /= "" then
                 Style.colors.red
 
             else
@@ -58,6 +64,11 @@ view o =
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
                     Point.getText o.node.points Point.typeDescription ""
+            , if Point.getBool o.node.points Point.typeDisabled "" then
+                text "(disabled)"
+
+              else
+                text ""
             ]
             :: (if o.expDetail then
                     let
@@ -66,10 +77,14 @@ view o =
 
                         textInput =
                             NodeInputs.nodeTextInput opts "0"
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
-                    , el [ Font.color Style.colors.red ] <| text error
+                    , checkboxInput Point.typeDisabled "Disabled"
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
+                    , el [ Font.color Style.colors.red ] <| text error
                     ]
 
                 else

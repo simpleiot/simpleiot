@@ -109,3 +109,24 @@ one rule handled both the on and off states. This also allows the rules logic to
 be stateful. If you don't need hystersis or complex state, the rule "inactive
 action" can be used, which allows the rule to take action when it goes both
 active and inactive.
+
+## Disable Rule/Condition/Action
+
+![rule-disable](images/rule-disable.png)
+
+### Disable Rule
+
+A rule can be disabled. If the rule disabled while active, then the rule
+inactive actions are run so that things get cleaned up if necessary and the
+actions are not left active.
+
+### Disable Condition
+
+If there are no conditions, or all conditions are disabled, the rule is
+inactive. Otherwise, disabled conditions are simply ignored. For example if
+there is a disabled condition and an non-disabled active condition, the rule is
+active.
+
+### Disable Action
+
+A disabled action is not run.
