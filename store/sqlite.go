@@ -371,7 +371,7 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 		ID:        uuid.New().String(),
 		FirstName: "admin",
 		LastName:  "user",
-		Email:     "admin@admin.com",
+		Email:     "admin",
 		Pass:      "admin",
 	}
 

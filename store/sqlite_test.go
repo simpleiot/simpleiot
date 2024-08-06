@@ -247,7 +247,7 @@ func TestDbSqliteUserCheck(t *testing.T) {
 	db := newTestDb(t)
 	defer db.Close()
 
-	nodes, err := db.userCheck("admin@admin.com", "admin")
+	nodes, err := db.userCheck("admin", "admin")
 	if err != nil {
 		t.Fatal("userCheck returned error: ", err)
 	}
