@@ -61,6 +61,7 @@ type SerialDevClient struct {
 	ratePointCountHR    int
 	rateLastSend        time.Time
 	portCobsWrapper     *CobsWrapper
+	sendPackets         map[byte]*serialPacket
 }
 
 // NewSerialDevClient ...
@@ -72,6 +73,7 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		natsSub:       SubjectNodePoints(config.ID),
+		sendPackets:   make(map[byte]*serialPacket),
 	}
 
 	ret.populateNatsSubjects()
@@ -137,10 +139,12 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 }
 
 type serialPacket struct {
-	seq byte
-	ack bool
-	sub string
-	pts data.Points
+	seq     byte
+	ack     bool
+	sub     string
+	pts     data.Points
+	retries int
+	last    time.Time
 }
 
 func (sd *SerialDevClient) sendPointsToDevice(p serialPacket) error {
@@ -169,9 +173,15 @@ func (sd *SerialDevClient) sendPointsToDevice(p serialPacket) error {
 		}
 	}
 
-	if !p.ack {
-		// TODO: we need to check for response and implement retries
-		// yet.
+	if p.ack {
+		pc, ok := sd.sendPackets[p.seq]
+		if !ok {
+			sd.sendPackets[p.seq] = &p
+			pc = &p
+		}
+
+		pc.retries++
+		pc.last = time.Now()
 	}
 
 	return nil
