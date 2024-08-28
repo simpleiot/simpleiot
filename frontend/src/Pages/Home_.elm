@@ -6,6 +6,7 @@ import Api.Point as Point exposing (Point)
 import Api.Port as Port
 import Api.Response exposing (Response)
 import Auth
+import Base64.Encode
 import Components.NodeAction as NodeAction
 import Components.NodeCanBus as NodeCanBus
 import Components.NodeCondition as NodeCondition
@@ -184,8 +185,8 @@ type Msg
     | Zone Time.Zone
     | EditNodePoint Int (List Point)
     | EditScratch String
-    | UploadFile String
-    | UploadSelected String File.File
+    | UploadFile String Bool
+    | UploadSelected String Bool File.File
     | UploadContents String File.File String
     | ToggleExpChildren Int
     | ToggleExpDetail Int
@@ -259,15 +260,26 @@ update shared msg model =
         EditScratch s ->
             ( { model | scratch = s }, Effect.none )
 
-        UploadFile id ->
-            ( model, Effect.fromCmd <| File.Select.file [ "" ] (UploadSelected id) )
+        UploadFile id binary ->
+            ( model, Effect.fromCmd <| File.Select.file [ "" ] (UploadSelected id binary) )
 
-        UploadSelected id file ->
+        UploadSelected id binary file ->
             let
                 uploadContents =
                     UploadContents id file
+
+                encode d =
+                    Base64.Encode.encode (Base64.Encode.bytes d)
+
+                task =
+                    if binary then
+                        Task.map encode (File.toBytes file)
+
+                    else
+                        File.toString file
             in
-            ( model, Effect.fromCmd <| Task.perform uploadContents (File.toString file) )
+            -- File.toString results in Task x String, thus the complexity of one more step
+            ( model, Effect.fromCmd <| Task.perform uploadContents task )
 
         UploadContents id file contents ->
             let
@@ -276,13 +288,16 @@ update shared msg model =
 
                 pointData =
                     Point Point.typeData "0" model.now 0 contents 0
+
+                pointSize =
+                    Point Point.typeSize "0" model.now (toFloat (File.size file)) "" 0
             in
             ( model
             , Effect.fromCmd <|
                 Node.postPoints
                     { token = model.token
                     , id = id
-                    , points = [ pointName, pointData ]
+                    , points = [ pointName, pointData, pointSize ]
                     , onResponse = ApiRespPostPoint
                     }
             )

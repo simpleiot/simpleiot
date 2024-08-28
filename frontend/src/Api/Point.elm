@@ -34,6 +34,7 @@ module Api.Point exposing
     , typeAutoReboot
     , typeBatchPeriod
     , typeBaud
+    , typeBinary
     , typeBitRate
     , typeBucket
     , typeChannel
@@ -123,6 +124,7 @@ module Api.Point exposing
     , typeService
     , typeSignalType
     , typeSignalsInDb
+    , typeSize
     , typeStart
     , typeSwitchSet
     , typeSyncCount
@@ -145,8 +147,9 @@ module Api.Point exposing
     , typeVersionApp
     , typeVersionHW
     , typeVersionOS
-    , typeWeekday
-      --  , keyNodeID
+    ,  typeWeekday
+       --  , keyNodeID
+
     , updatePoints
     , valueApp
     , valueClient
@@ -824,6 +827,11 @@ typeData =
     "data"
 
 
+typeSize : String
+typeSize =
+    "size"
+
+
 typeBitRate : String
 typeBitRate =
     "bitRate"
@@ -1005,6 +1013,11 @@ typeRefresh =
     "refresh"
 
 
+typeBinary : String
+typeBinary =
+    "binary"
+
+
 
 -- Point should match data/Point.go
 
@@ -1076,6 +1089,7 @@ specialPoints =
     , light
     , typeDirectory
     , typeRefresh
+    , typeBinary
     ]
 
 

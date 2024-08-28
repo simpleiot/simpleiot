@@ -121,6 +121,7 @@ siot_deploy() {
 }
 
 siot_run() {
+	siot_build_frontend || return 1
 	go build -ldflags="-X main.version=$(siot_version)" -o siot -race cmd/siot/main.go || return 1
 	./siot "$@"
 	return 0

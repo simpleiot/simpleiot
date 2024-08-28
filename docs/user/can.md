@@ -58,8 +58,8 @@ and click "add".
 
 ![Creating a CAN Bus node in SimpleIoT](../images/create-canbus-node.png)
 
-Configure the CAN Bus node with a File subnode and upload the `.kcd` file you
-created.
+Configure the CAN Bus node with a [File subnode](file.md) and upload the `.kcd`
+file you created.
 
 ![Configure the CAN Bus node with the .kcd file](../images/configure-canbus-node.png)
 

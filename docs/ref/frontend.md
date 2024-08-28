@@ -46,6 +46,34 @@ them is to:
 useful, so I usually end up just copying the path strings into an elm template
 and hand edit the rest)
 
+### File upload
+
+The [File node UI](../user/file.md) has the capability to upload files in the
+browser and then store them in a node point. The default max payload of NATS is
+1MB, so that is currently the file size limit, but NATS
+[can be configured](https://docs.nats.io/reference/faq#is-there-a-message-size-limitation-in-nats)
+for a payload size up to 64MB. 8MB is recommended.
+
+Currently the payload is stored in the Point `String` field for simplicity. If
+the binary option is selected, the data is base64 encoded. Long term it may make
+sense to support Jetstream Object store, local file store, etc.
+
+The [elm/file](https://package.elm-lang.org/packages/elm/file/latest/) package
+is used upload a file into the browser. Once the data is in the browser, it is
+sent to the backup as a standard point payload. Because we are currently using a
+JSON api, binary data is base64 encoded.
+
+The process by which a file is uploaded is:
+
+- The NodeOptions struct, which is passed to all nodes has a onUploadFile field,
+  which is used to triggers the `UploadFile` message which runs a browser file
+  select. The result of this select is a `UploadSelected` message.
+- This message calls `UploadFile node.node.id` in `Home_.elm`.
+- `File.Select.file` is called to select the file, which triggers the
+  `UploadContents` message.
+- `UploadContents` is called with the node id, file name, and file contents,
+  which then sends the data via points to the backend.
+
 ## SIOT JavaScript library using NATS over WebSockets
 
 This is a JavaScript library avaiable in the

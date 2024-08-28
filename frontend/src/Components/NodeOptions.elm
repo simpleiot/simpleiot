@@ -25,7 +25,7 @@ type alias NodeOptions msg =
     , nodes : List (Tree NodeView)
     , onEditNodePoint : List Point -> msg
     , onEditScratch : String -> msg
-    , onUploadFile : msg
+    , onUploadFile : Bool -> msg
     , copy : CopyMove
     , scratch : String
     }
