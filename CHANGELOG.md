@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- file node
+  - option to store binary files
+  - display filename, file size, and stored size
+
 ## [[0.17.0] - 2024-08-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.17.0)
 
 - add rule/condition/action disable flag (#352)

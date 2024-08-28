@@ -11,6 +11,7 @@
 - [Notifications](docs/user/notifications.md)
 - [Clients](docs/user/clients.md)
   - [CAN bus](docs/user/can.md)
+  - [File](docs/user/file.md)
   - [Database](docs/user/database.md)
   - [Modbus](docs/user/modbus.md)
   - [1-Wire](docs/user/onewire.md)

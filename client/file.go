@@ -7,4 +7,5 @@ type File struct {
 	Description string `point:"description"`
 	Name        string `point:"name"`
 	Data        string `point:"data"`
+	Binary      bool   `point:"binary"`
 }
