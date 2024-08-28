@@ -1061,6 +1061,7 @@ func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (map[str
 // userCheck checks user authentication
 // returns nil, nil if user is not found
 func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
+	fmt.Println("CLIFF: userCheck: ", email, password)
 	var users []data.NodeEdge
 
 	rows, err := sdb.db.Query("SELECT down FROM edges WHERE type=?", data.NodeTypeUser)
@@ -1086,6 +1087,8 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 		return nil, err
 	}
 
+	fmt.Println("CLIFF: ids: ", ids)
+
 	for _, id := range ids {
 		ne, err := sdb.getNodes(nil, "all", id, "", false)
 		if err != nil {
@@ -1098,10 +1101,14 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 
 		n := ne[0].ToNode()
 		u := n.ToUser()
+		fmt.Printf("CLIFF: u: %+v\n", u)
 		if u.Email == email && u.Pass == password {
 			users = append(users, ne...)
 		}
 	}
+
+	fmt.Printf("CLIFF: users: %+v\n", users)
+	fmt.Printf("Len users: %v\n", len(users))
 
 	// make sure all these user nodes are still alive and have path to root
 	var ret []data.NodeEdge
