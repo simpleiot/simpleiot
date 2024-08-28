@@ -52,7 +52,7 @@ view o =
                     in
                     [ textInput Point.typeFirstName "First Name" ""
                     , textInput Point.typeLastName "Last Name" ""
-                    , textInputLowerCase Point.typeEmail "Email" ""
+                    , textInputLowerCase Point.typeEmail "Email/User" ""
                     , textInput Point.typePhone "Phone" ""
                     , textInput Point.typePass "Pass" ""
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
