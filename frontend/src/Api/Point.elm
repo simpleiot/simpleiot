@@ -71,6 +71,7 @@ module Api.Point exposing
     , typeFrequency
     , typeFrom
     , typeHRDest
+    , typeHash
     , typeHrRx
     , typeHrRxReset
     , typeID
@@ -830,6 +831,11 @@ typeData =
 typeSize : String
 typeSize =
     "size"
+
+
+typeHash : String
+typeHash =
+    "hash"
 
 
 typeBitRate : String

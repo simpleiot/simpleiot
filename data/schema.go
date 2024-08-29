@@ -252,6 +252,7 @@ const (
 	PointTypeData   = "data"
 	PointTypeBinary = "binary"
 	PointTypeSize   = "size"
+	PointTypeHash   = "hash"
 
 	PointTypeRate   = "rate"
 	PointTypeRateHR = "rateHR"
