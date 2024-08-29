@@ -56,12 +56,16 @@ view o =
 
                         data =
                             Point.getText o.node.points Point.typeData "0"
+
+                        hash =
+                            Point.getText o.node.points Point.typeHash "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , checkbox "binary" "Binary"
                     , text <| " "
                     , text <| "     File name: " ++ name
                     , text <| "     File size: " ++ String.fromFloat size ++ " bytes"
+                    , text <| "     File md5: " ++ hash
                     , text <| "     Stored data len: " ++ String.fromInt (String.length data) ++ " bytes"
                     , Form.buttonRow
                         [ Form.button
