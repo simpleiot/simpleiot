@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -42,6 +43,16 @@ type SerialDev struct {
 	Rate              bool   `point:"rate"`
 	RateHR            bool   `point:"rate"`
 	Connected         bool   `point:"connected"`
+	Download          string `point:"download"`
+	Progress          int    `point:"progress"`
+	Files             []File `child:"file"`
+}
+
+type sendData struct {
+	seq     byte
+	ack     bool
+	subject string
+	points  data.Points
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
@@ -61,6 +72,7 @@ type SerialDevClient struct {
 	ratePointCountHR    int
 	rateLastSend        time.Time
 	portCobsWrapper     *CobsWrapper
+	sendPointsCh        chan sendData
 }
 
 // NewSerialDevClient ...
@@ -72,6 +84,7 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		natsSub:       SubjectNodePoints(config.ID),
+		sendPointsCh:  make(chan sendData),
 	}
 
 	ret.populateNatsSubjects()
@@ -125,10 +138,7 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 					return
 				}
 				sd.wrSeq++
-				err := sd.sendPointsToDevice(sd.wrSeq, false, "", pointsToSend)
-				if err != nil {
-					log.Println("Error sending points to serial device:", err)
-				}
+				sd.sendPointsCh <- sendData{points: pointsToSend}
 			}
 		})
 		if err != nil {
@@ -139,14 +149,27 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 	}
 }
 
+// if seq == 0, then sd.wrSeq is used
 func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pts data.Points) error {
+	if seq == 0 {
+		seq = sd.wrSeq
+	}
+
+	if sub == "" {
+		sub = "proto"
+	}
+
 	d, err := SerialEncode(seq, sub, pts)
 	if err != nil {
 		return fmt.Errorf("error encoding points to send to MCU: %w", err)
 	}
 
 	if sd.config.Debug >= 4 {
-		log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, seq, sub, pts)
+		if len(pts) > 0 {
+			log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, seq, sub, pts)
+		} else {
+			log.Printf("SER TX (%v) seq:%v sub:%v\n", sd.config.Description, seq, sub)
+		}
 	}
 
 	_, err = sd.portCobsWrapper.Write(d)
@@ -170,6 +193,12 @@ func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pt
 	}
 
 	return nil
+}
+
+type downloadState struct {
+	buf          bytes.Buffer
+	seq          byte
+	currentBlock int
 }
 
 // Run the main logic for this client and blocks until stopped
@@ -415,6 +444,14 @@ exitSerialClient:
 				break
 			}
 
+			if subject == "ack" {
+				if sd.config.Debug >= 4 {
+					log.Printf("SER RX (%v) seq:%v sub:%v", sd.config.Description, seq, subject)
+				}
+				// TODO we need to handle acks, retries, etc
+				break
+			}
+
 			if subject == "phr" {
 				// we have high rate points
 				sd.config.HrRx++
@@ -457,11 +494,11 @@ exitSerialClient:
 
 			if errDecode == nil && len(points) > 0 {
 				if sd.config.Debug >= 4 {
-					log.Printf("SER RX (%v) seq:%v\n%v", sd.config.Description, seq, points)
+					log.Printf("SER RX (%v) seq:%v sub:%v\n%v", sd.config.Description, seq, subject, points)
 				}
 
 				// send response
-				err := sd.sendPointsToDevice(seq, true, "ack", nil)
+				err := sd.sendPointsToDevice(seq, false, "ack", nil)
 				if err != nil {
 					log.Println("Error sending ack to device:", err)
 				}
@@ -552,11 +589,20 @@ exitSerialClient:
 						op = true
 					}
 				}
+
 				if p.Type == data.PointTypeHRDest {
 					updateNatsSubjects = true
 				}
+
 				if p.Type == data.PointTypeSyncParent {
 					updateNatsSubjects = true
+				}
+
+				if p.Type == data.PointTypeDebug {
+					sd.portCobsWrapper.SetDebug(int(p.Value))
+				}
+
+				if p.Type == data.PointTypeDownload {
 				}
 			}
 
@@ -660,8 +706,6 @@ exitSerialClient:
 						data.PointTypeRxReset,
 						data.PointTypeTxReset:
 						continue
-					case data.PointTypeDebug:
-						sd.portCobsWrapper.SetDebug(int(p.Value))
 					}
 
 					// strip off Origin as MCU does not need that
@@ -682,6 +726,12 @@ exitSerialClient:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &sd.config)
 			if err != nil {
 				log.Println("error merging new points:", err)
+			}
+
+		case sData := <-sd.sendPointsCh:
+			err := sd.sendPointsToDevice(sData.seq, sData.ack, sData.subject, sData.points)
+			if err != nil {
+				log.Println("Error sending data to device: ", err)
 			}
 
 			// TODO need to send edge points to MCU, not implemented yet

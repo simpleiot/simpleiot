@@ -44,7 +44,10 @@ serial node. The serial UI displays the extra points as shown below:
 
 <img src="./assets/image-20231031115204490.png" alt="image-20231031115204490" style="zoom:50%;" />
 
-Alternatively, there is an option for the serial client to sync its parent's points to the serial device. When this is selected, any points received from the serial device are posted to the parent node, and any points posted to the parent node that were not sent by the serial device are forwarded to the serial client.
+Alternatively, there is an option for the serial client to sync its parent's
+points to the serial device. When this is selected, any points received from the
+serial device are posted to the parent node, and any points posted to the parent
+node that were not sent by the serial device are forwarded to the serial client.
 
 ## Protocol
 
@@ -71,9 +74,10 @@ This saves some data in the serial messages.
 The point type `nodeType` is used to create new nodes and to send the node type
 on connection.
 
-All packets are ack'd by an empty packet with the same sequenced number and
-subject set to 'ack'. If an ack is not received in X amount of time, the packet
-is retried up to 3 times, and then the other device is considered "offline".
+All packets are ack'd (in both directions) by an empty packet with the same
+sequence number and subject set to 'ack'. If an ack is not received in X amount
+of time, the packet is retried up to 3 times, and then the other device is
+considered "offline".
 
 ### Encoding
 
@@ -130,12 +134,27 @@ type (16 bytes) point type
 key (16 bytes) point key
 starttime (uint64) starting time of samples in ns since Unix Epoch
 sampleperiod (uint32) time between samples in ns
-data, packed 32-bit floating point samples
+data (variable, remainder of packet), packed 32-bit floating point samples
 ```
 
 This data bypasses most of the processing in SIOT and is sent to a special
 [`phr` NATS subject](api.md). Clients that are interested in high-rate data
 (like the InfluxDB client) can listen to these subjects.
+
+#### File payload
+
+This payload type is for transferring files in blocks. These files may be used
+for firmware updates or other transfers where large amounts of data need to be
+transferred. An empty block with index set to -1 is sent at the end of the
+transfer.
+
+```
+type (16 bytes) point type, always "file"
+key (16 bytes) point key (filename)
+starttime (uint64) placeholder -- not currently used
+index (4 bytes) file block index
+data (variable, remainder of packet)
+```
 
 ### On connection
 
