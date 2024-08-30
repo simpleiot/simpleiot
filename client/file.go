@@ -18,6 +18,7 @@ type File struct {
 	Description string `point:"description"`
 	Name        string `point:"name"`
 	Data        string `point:"data"`
+	Size        string `point:"size"`
 	Binary      bool   `point:"binary"`
 	Hash        string `point:"hash"`
 }
@@ -73,11 +74,13 @@ exitFileClient:
 
 					hash := md5.Sum(fileData)
 					hashS := fmt.Sprintf("%x", hash)
-					e := SendNodePoint(f.nc, f.config.ID, data.Point{
-						Type: data.PointTypeHash,
-						Text: hashS,
-					}, true)
 
+					pts := data.Points{
+						{Type: data.PointTypeHash, Text: hashS},
+						{Type: data.PointTypeSize, Value: float64(len(fileData))},
+					}
+
+					e := SendNodePoints(f.nc, f.config.ID, pts, true)
 					if e != nil {
 						log.Println("File: error sending hash point: ", err)
 					}

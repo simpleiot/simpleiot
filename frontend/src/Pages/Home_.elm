@@ -288,16 +288,13 @@ update shared msg model =
 
                 pointData =
                     Point Point.typeData "0" model.now 0 contents 0
-
-                pointSize =
-                    Point Point.typeSize "0" model.now (toFloat (File.size file)) "" 0
             in
             ( model
             , Effect.fromCmd <|
                 Node.postPoints
                     { token = model.token
                     , id = id
-                    , points = [ pointName, pointData, pointSize ]
+                    , points = [ pointName, pointData ]
                     , onResponse = ApiRespPostPoint
                     }
             )
