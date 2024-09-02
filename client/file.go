@@ -23,6 +23,20 @@ type File struct {
 	Hash        string `point:"hash"`
 }
 
+// GetContents reads the file contents and does any decoding necessary if it is a binary file
+func (f *File) GetContents() ([]byte, error) {
+	var ret []byte
+	var err error
+
+	if f.Binary {
+		ret, err = base64.StdEncoding.DecodeString(f.Data)
+	} else {
+		ret = []byte(f.Data)
+	}
+
+	return ret, err
+}
+
 // FileClient is used to manage files
 type FileClient struct {
 	nc            *nats.Conn
@@ -65,11 +79,10 @@ exitFileClient:
 					// update md5 hash
 					var fileData []byte
 
-					if f.config.Binary {
-						// need to base64 decode the string into binary data
-						fileData, err = base64.StdEncoding.DecodeString(p.Text)
-					} else {
-						fileData = []byte(p.Text)
+					fileData, err := f.config.GetContents()
+					if err != nil {
+						log.Println("Error decoding file contents: ", err)
+						break
 					}
 
 					hash := md5.Sum(fileData)

@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/kjx98/crc16"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/test"
@@ -62,7 +64,7 @@ type SerialDevClient struct {
 	stop                chan struct{}
 	newPoints           chan NewPoints
 	newEdgePoints       chan NewPoints
-	wrSeq               byte
+	wrSeq               byte // convention is we increment this right before sending a packet
 	lastSendStats       time.Time
 	natsSub             string
 	natsSubSerialPoints string
@@ -137,7 +139,6 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 					}
 					return
 				}
-				sd.wrSeq++
 				sd.sendPointsCh <- sendData{points: pointsToSend}
 			}
 		})
@@ -196,14 +197,21 @@ func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pt
 }
 
 type downloadState struct {
-	buf          bytes.Buffer
+	name         string
+	fileBuf      *bytes.Buffer
+	packet       *bytes.Buffer
 	seq          byte
 	currentBlock int
+	retry        int
 }
 
 // Run the main logic for this client and blocks until stopped
 func (sd *SerialDevClient) Run() error {
 	log.Println("Starting serial client:", sd.config.Description)
+
+	// -1 indicates nothing is downloading right now
+	dlTimeout := time.NewTicker(10 * time.Second)
+	dlTimeout.Stop()
 
 	if sd.config.Connected {
 		sd.config.Connected = false
@@ -234,6 +242,135 @@ func (sd *SerialDevClient) Run() error {
 	listenerClosed := make(chan struct{})
 	listenerSerialErr := make(chan struct{})
 
+	dlState := downloadState{}
+
+	dlFileStop := func() {
+		dlState.name = ""
+		_ = SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeDownload}, true)
+	}
+
+	dlFileSend := func() {
+		if dlState.name == "" {
+			log.Println("File download error, no file queued")
+			return
+		}
+
+		// packet format
+		// sequence (1 byte)
+		// subject (16 bytes, always file)
+		// filename (16 bytes)
+		// block index (4 bytes)
+		// data
+		// crc (2 bytes)
+
+		// we save off packet in struct so we can resend on retries
+		dlState.packet = &bytes.Buffer{}
+
+		sd.wrSeq++
+		dlState.seq = sd.wrSeq
+		err := dlState.packet.WriteByte(sd.wrSeq)
+		if err != nil {
+			log.Println("Error writing seq to file packet: ", err)
+			dlFileStop()
+			return
+		}
+
+		// subject is always file
+		f := make([]byte, 16)
+		copy(f, []byte("file"))
+		_, err = dlState.packet.Write(f)
+		if err != nil {
+			log.Println("Error writing file to file packet: ", err)
+			dlFileStop()
+			return
+		}
+
+		n := make([]byte, 16)
+		copy(n, []byte(dlState.name))
+		_, err = dlState.packet.Write(n)
+		if err != nil {
+			log.Println("Error writing filename to file packet: ", err)
+			dlFileStop()
+			return
+		}
+
+		if dlState.fileBuf.Len() <= 0 {
+			dlState.currentBlock = -1
+		}
+
+		// copy block number
+		b := make([]byte, 4)
+		binary.LittleEndian.PutUint32(b, uint32(dlState.currentBlock))
+		_, err = dlState.packet.Write(b)
+		if err != nil {
+			log.Println("Error writing block numbr to packet: ", err)
+			dlFileStop()
+			return
+		}
+
+		// copy payload
+		_, err = io.CopyN(dlState.packet, dlState.fileBuf, 400)
+		if err != nil {
+			if err != io.EOF {
+				log.Println("Error copying file packet content: ", err)
+				dlFileStop()
+				return
+			}
+		}
+
+		crc := crc16.ChecksumCCITT(dlState.packet.Bytes())
+		err = binary.Write(dlState.packet, binary.LittleEndian, crc)
+
+		if sd.config.Debug >= 4 {
+			log.Printf("SER TX file seq:%v name:%v block:%v len:%v", sd.wrSeq, dlState.name, dlState.currentBlock, dlState.packet.Len())
+		}
+
+		if sd.portCobsWrapper != nil {
+			// _, err = io.Copy(sd.portCobsWrapper, dlState.packet)
+			_, err = sd.portCobsWrapper.Write(dlState.packet.Bytes())
+
+			if err != nil {
+				log.Println("Error writing file to cobs wrapper: ", err)
+				return
+			}
+		}
+	}
+
+	// dlRetry := func() {
+
+	// }
+
+	dlFileStart := func(name string) {
+		if dlState.name != "" {
+			log.Println("Error, file download already in progress")
+			return
+		}
+
+		if len(name) > 16 {
+			log.Println("file name is too long: ", name)
+			return
+		}
+
+		// see if we can find the file
+		for _, f := range sd.config.Files {
+			if f.Name == name {
+				d, err := f.GetContents()
+				if err != nil {
+					log.Println("Error decoding file: ", err)
+					continue
+				}
+				dlState.fileBuf = bytes.NewBuffer(d)
+				dlState.name = name
+				dlState.currentBlock = 0
+
+				dlFileSend()
+				return
+			}
+		}
+
+		log.Println("Error could not find file: ", name)
+	}
+
 	closePort := func() {
 		if sd.portCobsWrapper != nil {
 			log.Println("Closing serial port:", sd.config.Description)
@@ -246,6 +383,10 @@ func (sd *SerialDevClient) Run() error {
 		if err != nil {
 			log.Println("Error sending connected point")
 		}
+	}
+
+	if sd.config.Download != "" {
+		_ = SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeDownload}, true)
 	}
 
 	listener := func(port io.ReadWriteCloser, maxMessageLen int) {
@@ -449,6 +590,17 @@ exitSerialClient:
 					log.Printf("SER RX (%v) seq:%v sub:%v", sd.config.Description, seq, subject)
 				}
 				// TODO we need to handle acks, retries, etc
+				if dlState.name != "" {
+					if seq == dlState.seq {
+						if dlState.currentBlock == -1 {
+							log.Println("File download finished: ", dlState.name)
+							dlFileStop()
+						} else {
+							dlState.currentBlock++
+							dlFileSend()
+						}
+					}
+				}
 				break
 			}
 
@@ -603,6 +755,13 @@ exitSerialClient:
 				}
 
 				if p.Type == data.PointTypeDownload {
+					if p.Text == "" {
+						log.Println("Stopping download: ", dlState.name)
+						dlFileStop()
+					} else {
+						dlFileStart(p.Text)
+						log.Println("Starting download: ", p.Text)
+					}
 				}
 			}
 

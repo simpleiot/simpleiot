@@ -149,9 +149,7 @@ transferred. An empty block with index set to -1 is sent at the end of the
 transfer.
 
 ```
-type (16 bytes) point type, always "file"
-key (16 bytes) point key (filename)
-starttime (uint64) placeholder -- not currently used
+name (16 bytes) filename
 index (4 bytes) file block index
 data (variable, remainder of packet)
 ```
