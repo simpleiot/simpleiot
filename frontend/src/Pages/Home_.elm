@@ -1734,6 +1734,12 @@ viewAddNode customNodeType parent add =
                         else
                             []
                        )
+                    ++ (if parent.node.typ == Node.typeSerialDev then
+                            [ Input.option Node.typeFile nodeDescFile ]
+
+                        else
+                            []
+                       )
                     ++ [ Input.option "custom" <| text "Custom" ]
             }
         , viewIf (add.typ == Just "custom") <|
