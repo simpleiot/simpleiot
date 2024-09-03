@@ -158,11 +158,11 @@ being truncated when points are deleted, points must be batched in order such
 that `Decode` sees the trailing deleted points first. Put another way, `Decode`
 does not care about points deleted from prior calls to `Decode`, so "holes" of
 zero values may still appear at the end of a slice under certain circumstances.
-Consider points with integer values [0, 1, 2, 3, 4]. If tombstone is set on
-point with `Key` 3 followed by a point tombstone set on point with `Key` 4, the
-resulting slice will be [0, 1, 2] if these points are batched together, but if
-they are sent separately (thus resulting in multiple `Decode` calls), the
-resulting slice will be [0, 1, 2, 0].
+Consider points with integer values `[0, 1, 2, 3, 4]`. If tombstone is set on
+point with `Key` 3 followed by a point tombstone set on point with `Key` `4`,
+the resulting slice will be `[0, 1, 2]` if these points are batched together,
+but if they are sent separately (thus resulting in multiple `Decode` calls), the
+resulting slice will be `[0, 1, 2, 0]`.
 
 ## Node Topology changes
 

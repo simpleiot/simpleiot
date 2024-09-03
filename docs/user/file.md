@@ -1,7 +1,7 @@
 # File
 
 The file node can be used to store files that are then used by other
-nodes/clients. Some examples include the [CAN](can.md) and [Serial](serial.md)
+nodes/clients. Some examples include the [CAN](can.md) and [Serial](mcu.md)
 clients.
 
 The default max payload of NATS is 1MB, so that is currently the file size
