@@ -11,12 +11,14 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-- file node
+- file client/node
   - option to store binary files
   - display filename, file size, and stored size
   - create file client backend code that runs for file nodes
   - calculate and populate md5sum when file contents change
   - display md5sum in file node UI
+- serial client/node
+  - add serial file download -- can be used for MCU updates
 
 ## [[0.17.0] - 2024-08-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.17.0)
 

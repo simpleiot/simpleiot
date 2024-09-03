@@ -1,5 +1,6 @@
 module Components.NodeSerialDev exposing (view)
 
+import Api.Node as Node
 import Api.Point as Point
 import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Dict exposing (Dict)
@@ -16,6 +17,17 @@ import UI.NodeInputs as NodeInputs
 import UI.Style as Style
 import UI.ViewIf exposing (viewIf)
 import Utils.Iso8601 exposing (toDateTimeString)
+
+
+horizontalRule : Element msg
+horizontalRule =
+    el
+        [ width fill
+        , height (px 1)
+        , Border.color (Element.rgb 0.5 0.5 0.5)
+        , Border.widthEach { bottom = 2, top = 0, left = 0, right = 0 }
+        ]
+        Element.none
 
 
 view : NodeOptions msg -> Element msg
@@ -68,6 +80,12 @@ view o =
                         checkboxInput =
                             NodeInputs.nodeCheckboxInput opts "0"
 
+                        optionInput =
+                            NodeInputs.nodeOptionInput opts "0"
+
+                        button =
+                            NodeInputs.nodeButtonActionText opts "0"
+
                         log =
                             Point.getText o.node.points Point.typeLog "0"
 
@@ -82,6 +100,22 @@ view o =
 
                         rateHRS =
                             String.fromFloat (Round.roundNum 0 rateHR)
+
+                        download =
+                            Point.getText o.node.points Point.typeDownload "0"
+
+                        downloading =
+                            String.length download > 0
+
+                        progress =
+                            round <| Point.getValue o.node.points Point.typeProgress "0"
+
+                        files =
+                            List.filter
+                                (\n ->
+                                    n.node.typ == Node.typeFile
+                                )
+                                o.children
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typePort "Port" "/dev/ttyUSB0"
@@ -91,6 +125,7 @@ view o =
                     , checkboxInput Point.typeSyncParent "Sync parent node"
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , checkboxInput Point.typeDisabled "Disabled"
+                    , horizontalRule
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     , counterWithReset Point.typeRx Point.typeRxReset "Rx count"
                     , counterWithReset Point.typeTx Point.typeTxReset "Tx count"
@@ -99,8 +134,37 @@ view o =
                     , text <| "  Rate (pts/sec): " ++ rateS
                     , text <| "  Rate HR (pkts/sec): " ++ rateHRS
                     , text <| "  Last log: " ++ log
-                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
+                    , viewIf (List.length files > 0) <| horizontalRule
+                    , viewIf (List.length files > 0 && not downloading) <|
+                        optionInput Point.typeDownload
+                            "Download file"
+                            (List.map
+                                (\n ->
+                                    let
+                                        description =
+                                            Point.getText n.node.points Point.typeDescription "0"
+
+                                        filename =
+                                            Point.getText n.node.points Point.typeName "0"
+                                    in
+                                    ( filename, description ++ ": " ++ filename )
+                                )
+                                files
+                            )
+                    , viewIf downloading <|
+                        text <|
+                            "Downloading: "
+                                ++ download
+                    , viewIf downloading <|
+                        text <|
+                            "Progress: "
+                                ++ String.fromInt progress
+                                ++ " %"
+                    , viewIf downloading <|
+                        button Point.typeDownload "" "Cancel download" Style.colors.red
+                    , horizontalRule
                     , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

@@ -18,8 +18,23 @@ type File struct {
 	Description string `point:"description"`
 	Name        string `point:"name"`
 	Data        string `point:"data"`
+	Size        string `point:"size"`
 	Binary      bool   `point:"binary"`
 	Hash        string `point:"hash"`
+}
+
+// GetContents reads the file contents and does any decoding necessary if it is a binary file
+func (f *File) GetContents() ([]byte, error) {
+	var ret []byte
+	var err error
+
+	if f.Binary {
+		ret, err = base64.StdEncoding.DecodeString(f.Data)
+	} else {
+		ret = []byte(f.Data)
+	}
+
+	return ret, err
 }
 
 // FileClient is used to manage files
@@ -64,20 +79,21 @@ exitFileClient:
 					// update md5 hash
 					var fileData []byte
 
-					if f.config.Binary {
-						// need to base64 decode the string into binary data
-						fileData, err = base64.StdEncoding.DecodeString(p.Text)
-					} else {
-						fileData = []byte(p.Text)
+					fileData, err := f.config.GetContents()
+					if err != nil {
+						log.Println("Error decoding file contents: ", err)
+						break
 					}
 
 					hash := md5.Sum(fileData)
 					hashS := fmt.Sprintf("%x", hash)
-					e := SendNodePoint(f.nc, f.config.ID, data.Point{
-						Type: data.PointTypeHash,
-						Text: hashS,
-					}, true)
 
+					pts := data.Points{
+						{Type: data.PointTypeHash, Text: hashS},
+						{Type: data.PointTypeSize, Value: float64(len(fileData))},
+					}
+
+					e := SendNodePoints(f.nc, f.config.ID, pts, true)
 					if e != nil {
 						log.Println("File: error sending hash point: ", err)
 					}

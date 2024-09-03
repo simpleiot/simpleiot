@@ -199,10 +199,15 @@ siot_frontend_fix() {
 # please run the following before pushing -- best if your editor can be set up
 # to do this automatically.
 siot_test() {
+	echo "Build frontend ..."
 	siot_build_frontend || return 1
+	echo "Test frontend ..."
 	siot_test_frontend || return 1
+	echo "Test backend ..."
 	go test -p=1 -race "$@" ./... || return 1
+	echo "Lint backend ..."
 	golangci-lint run || return 1
+	echo "Testing passed :-)"
 	return 0
 }
 

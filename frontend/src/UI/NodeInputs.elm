@@ -1,5 +1,6 @@
 module UI.NodeInputs exposing
     ( NodeInputOptions
+    , nodeButtonActionText
     , nodeCheckboxInput
     , nodeCounterWithReset
     , nodeKeyValueInput
@@ -388,6 +389,34 @@ validDates dates =
         )
         True
         dates
+
+
+nodeButtonActionText :
+    NodeInputOptions msg
+    -> String
+    -> String
+    -> String
+    -> String
+    -> Color
+    -> Element msg
+nodeButtonActionText o key typ value lbl color =
+    let
+        sendText =
+            o.onEditNodePoint
+                [ { typ = typ
+                  , key = key
+                  , text = value
+                  , time = o.now
+                  , tombstone = 0
+                  , value = 0
+                  }
+                ]
+    in
+    Form.button
+        { label = lbl
+        , color = color
+        , onPress = sendText
+        }
 
 
 nodeCheckboxInput :

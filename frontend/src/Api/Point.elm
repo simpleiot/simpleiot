@@ -53,6 +53,7 @@ module Api.Point exposing
     , typeDirectory
     , typeDisabled
     , typeDiscardDownload
+    , typeDownload
     , typeDownloadOS
     , typeEmail
     , typeEnd
@@ -109,6 +110,7 @@ module Api.Point exposing
     , typePollPeriod
     , typePort
     , typePrefix
+    , typeProgress
     , typeProtocol
     , typeRate
     , typeRateHR
@@ -216,6 +218,16 @@ typeDescription =
 typeFilePath : String
 typeFilePath =
     "filePath"
+
+
+typeDownload : String
+typeDownload =
+    "download"
+
+
+typeProgress : String
+typeProgress =
+    "progress"
 
 
 typeScale : String
