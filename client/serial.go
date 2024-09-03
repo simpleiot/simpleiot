@@ -204,7 +204,6 @@ type downloadState struct {
 	packet       *bytes.Buffer
 	seq          byte
 	currentBlock int
-	retry        int
 }
 
 // Run the main logic for this client and blocks until stopped
@@ -321,7 +320,7 @@ func (sd *SerialDevClient) Run() error {
 		}
 
 		crc := crc16.ChecksumCCITT(dlState.packet.Bytes())
-		err = binary.Write(dlState.packet, binary.LittleEndian, crc)
+		_ = binary.Write(dlState.packet, binary.LittleEndian, crc)
 
 		if sd.config.Debug >= 4 {
 			log.Printf("SER TX file seq:%v name:%v block:%v len:%v", sd.wrSeq, dlState.name, dlState.currentBlock, dlState.packet.Len())
