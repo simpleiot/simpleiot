@@ -97,7 +97,7 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 func (sd *SerialDevClient) populateNatsSubjects() {
 	phrup := fmt.Sprintf("phrup.%v.%v", sd.config.Parent, sd.config.ID)
 	if sd.config.HRDestNode != "" {
-		phrup = fmt.Sprintf("phrup.%v.x", sd.config.HRDestNode)
+		phrup = fmt.Sprintf("phrup.%v.%v", sd.config.HRDestNode, sd.config.ID)
 	}
 	sd.natsSubHRUp = phrup
 

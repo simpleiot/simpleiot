@@ -19,6 +19,9 @@ For more details or to discuss releases, please visit the
   - display md5sum in file node UI
 - serial client/node
   - add serial file download -- can be used for MCU updates
+  - fix issues with populate node ID for high rate data
+- db client
+  - fix crash if node ID is not populated correctly in data
 
 ## [[0.17.0] - 2024-08-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.17.0)
 
