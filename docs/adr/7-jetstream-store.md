@@ -1,7 +1,6 @@
 # JetStream SIOT Store
 
 - Author: Cliff Brake, last updated: 2024-01-24
-- PR/Discussion:
 - Status: discussion
 
 ## Problem
@@ -10,12 +9,14 @@ SQLite has worked well as a SIOT store. There are a few things we would like to
 improve:
 
 - synchronization of history
-  - currently, if a device or server is offline, only the latest state is transferred when
-    connected. We would like all history that has accumulated when offline to be transferred once reconnected.
+  - currently, if a device or server is offline, only the latest state is
+    transferred when connected. We would like all history that has accumulated
+    when offline to be transferred once reconnected.
 - we want history at the edge as well as cloud
-  - this allows us to use history at the edge to run more advanced algorithms like AI
-- we currently have to re-compute hashes all the way to the root node anytime something
-  changes
+  - this allows us to use history at the edge to run more advanced algorithms
+    like AI
+- we currently have to re-compute hashes all the way to the root node anytime
+  something changes
   - this may not scale to larger systems
   - is difficult to get right if things are changing while we re-compute hashes
     -- it requires some type of coordination between the distributed systems,
@@ -43,12 +44,17 @@ below example:
 
 The tree topology can be as deep as required to describe the system. To date,
 only the current state of a node is synchronized and history (if needed) is
-stored externally in a time-series database like InfluxDB and is not synchronized. The node tree is an excellent data model for IoT systems.
+stored externally in a time-series database like InfluxDB and is not
+synchronized. The node tree is an excellent data model for IoT systems.
 
-Each node contains an array of points that represent the state of the node. The points contain a type and a key. The key can be used to describe maps and arrays. We keep points separate so they can all be updated independently and easily merged. 
+Each node contains an array of points that represent the state of the node. The
+points contain a type and a key. The key can be used to describe maps and
+arrays. We keep points separate so they can all be updated independently and
+easily merged.
 
 With JetStream, we could store points in a stream where the head of the stream
-represents the current state of a Node or collection of nodes. Each point is stored in a separate NATS subject. 
+represents the current state of a Node or collection of nodes. Each point is
+stored in a separate NATS subject.
 
 ![image-20240119093623132](./assets/image-20240119093623132.png)
 
@@ -70,8 +76,8 @@ functionality in [this repo](https://github.com/simpleiot/nats-exp).
 ### Advantages of JetStream
 
 - JetStream is built into NATS, which we already embed and use.
-- History can be stored in a NATS stream instead of externally. Currently, we use
-  an external store like InfluxDB to store history.
+- History can be stored in a NATS stream instead of externally. Currently, we
+  use an external store like InfluxDB to store history.
 - JetStream streams can be synchronized between instances.
 - JetStream has various retention models so old data can automatically be
   dropped.
@@ -91,8 +97,8 @@ functionality in [this repo](https://github.com/simpleiot/nats-exp).
 - we are constrained by a simple message subject to label and easily query data.
   This is less flexible than a SQL database, but this constraint can also be an
   advantage in that it forces us into a simple and consistent data model.
-- SQLite has a built-in cache. We would likely need to create our own
-  with JetStream.
+- SQLite has a built-in cache. We would likely need to create our own with
+  JetStream.
 
 ### JetStream consistency model
 
@@ -212,7 +218,8 @@ future in the `Data` field and be more flexible for the future.
 - `OriginLen` (byte)
 - `Origin` (string)
 - `Data Type` (byte)
-- `Data` (length determined by the message length subtracted by the length of the above fields)
+- `Data` (length determined by the message length subtracted by the length of
+  the above fields)
 
 Examples of types:
 
@@ -277,15 +284,17 @@ state. However, there are several disadvantages:
 ### Timestamps
 
 NATS JetStream messages store a timestamp, but the timestamp is when the message
-is inserted into the stream, not necessarily when the sample was taken.
-There can be some delay between the NATS client sending the message and the server processing it. Therefore, an additional high-resolution
+is inserted into the stream, not necessarily when the sample was taken. There
+can be some delay between the NATS client sending the message and the server
+processing it. Therefore, an additional high-resolution
 [64-bit timestamp](https://docs.simpleiot.org/docs/adr/4-time.html) is added to
 the beginning of each message.
 
 ### Edges
 
 Edges are used to describe the connections between nodes. Nodes can exist in
-multiple places in the tree. In the below example, `N2` is a child of both `N1` and `N3`.
+multiple places in the tree. In the below example, `N2` is a child of both `N1`
+and `N3`.
 
 <img src="./assets/image-20240124112003398.png" alt="image-20240124112003398" style="zoom:67%;" />
 
@@ -300,9 +309,10 @@ traverses up and down the tree.
 
 Because edges contain points that can change over time, edge points need to be
 stored in a stream, much like we do the node points. If each node has its own
-stream, then the child edges for the node could be stored in the same stream as the node as shown above.
-This would allow us to traverse the node tree on startup and perhaps cache all
-the edges. The following subject can be used for edge points:
+stream, then the child edges for the node could be stored in the same stream as
+the node as shown above. This would allow us to traverse the node tree on
+startup and perhaps cache all the edges. The following subject can be used for
+edge points:
 
 `p.<up node ID>.<down node ID>.<type>.<key>`
 
@@ -314,16 +324,21 @@ Two special points are present in every edge:
 - `nodeType`: defines the type of the downstream node
 - `tombstone`: set to true if the downstream node is deleted
 
-One challenge with this model is much of the code in the SIOT uses a `NodeEdge` datastructure which includes a node and its parent edge. This collection of data describes this instance of a node and is more useful from a client perspective. However, `NodeEdge`'s are duplicated for every mirrored node in the tree, so don't really make sense from a storage and synchronization perspective. This will likely become more clear after some implementation work.
+One challenge with this model is much of the code in the SIOT uses a
+`NodeEdge` datastructure which includes a node and its parent edge. This
+collection of data describes this instance of a node and is more useful from a
+client perspective. However, `NodeEdge`'s are duplicated for every mirrored node
+in the tree, so don't really make sense from a storage and synchronization
+perspective. This will likely become more clear after some implementation work.
 
 ### NATS `up.*` subjects
 
 In SIOT, we partition the system using the tree structure and nodes that listen
-for messages (databases, messaging services, rules, etc.) subscribe to the `up.*`stream of their parent node. In the below
-example, each group has it's own database configuration and the Db node only
-receives points generated in the group it belongs to. This provides an
-opportunity for any node at any level in the tree to listen to messages of
-another node, as long as:
+for messages (databases, messaging services, rules, etc.) subscribe to the
+`up.*`stream of their parent node. In the below example, each group has it's own
+database configuration and the Db node only receives points generated in the
+group it belongs to. This provides an opportunity for any node at any level in
+the tree to listen to messages of another node, as long as:
 
 1. it is equal or higher in the structure
 2. shares an ancestor.
@@ -349,11 +364,14 @@ streams) are added to the list.
 
 Any time you move away from a SQL database, you should
 [think long and hard](http://www.sarahmei.com/blog/2013/11/11/why-you-should-never-use-mongodb/)
-about this. Additionally, there are very nice time-series database solutions out there. So we should have good reasons for inventing yet-another-database. However, mainstream SQL and Time-series databases all have one big drawback: they don't support synchronizing subsets of data between distributed systems.
+about this. Additionally, there are very nice time-series database solutions out
+there. So we should have good reasons for inventing yet-another-database.
+However, mainstream SQL and Time-series databases all have one big drawback:
+they don't support synchronizing subsets of data between distributed systems.
 
-With system design, one approach is to order the problems you are
-solving by difficulty with the top of the list being most important/difficult,
-and then optimize the system to solve the hard problems first.
+With system design, one approach is to order the problems you are solving by
+difficulty with the top of the list being most important/difficult, and then
+optimize the system to solve the hard problems first.
 
 1. Synchronizing subsets of data between distributed systems (including history)
 2. Be small and efficient enough to deploy at the edge
@@ -365,8 +383,9 @@ and then optimize the system to solve the hard problems first.
 8. Data encode/decode performance
 
 The number of devices and nodes in systems SIOT is targeting is relatively
-small, thus the current node topology can be cached in memory. The
-history is a much bigger dataset so using a stream to synchronize, store, and retrieve time-series data makes a lot of sense.
+small, thus the current node topology can be cached in memory. The history is a
+much bigger dataset so using a stream to synchronize, store, and retrieve
+time-series data makes a lot of sense.
 
 On #7, will we ever need arbitrary relationships between data? With the node
 graph, we can do this fairly well. Edges contain points that can be used to
@@ -380,7 +399,8 @@ a little more time to encode/decode data this is typically not a big deal as the
 network is the bottleneck.
 
 With an IoT system, the data is primarily 1) sequential in time, and 2)
-hierarchical in structure. Thus the streaming/tree approach still appears to be the best approach.
+hierarchical in structure. Thus the streaming/tree approach still appears to be
+the best approach.
 
 ### Questions
 
