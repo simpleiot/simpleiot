@@ -52,6 +52,7 @@ view o =
                     , textInput Point.typeDescription "Description" ""
                     , textInput Point.typeAuthToken "API Key" ""
                     , checkboxInput Point.typeDisabled "Disabled"
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]
 

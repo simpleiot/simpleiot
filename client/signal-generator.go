@@ -40,7 +40,8 @@ type SignalGenerator struct {
 	MinIncrement float64 `point:"minIncrement"`
 	MaxIncrement float64 `point:"maxIncrement"`
 	// Current value
-	Value float64 `point:"value"`
+	Value float64           `point:"value"`
+	Tags  map[string]string `point:"tag"`
 }
 
 /* TODO: Optimization

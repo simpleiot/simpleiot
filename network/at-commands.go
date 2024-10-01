@@ -41,7 +41,7 @@ func Cmd(port io.ReadWriter, cmd string) (string, error) {
 
 	for try := 0; try < 3; try++ {
 		if DebugAtCommands {
-			log.Println("Modem Tx: ", cmd)
+			log.Println("Modem Tx:", cmd)
 		}
 
 		readString := make([]byte, 512)
@@ -49,7 +49,7 @@ func Cmd(port io.ReadWriter, cmd string) (string, error) {
 		_, err = port.Write([]byte(cmd + "\r"))
 		if err != nil {
 			if DebugAtCommands {
-				log.Println("Modem cmd write error: ", err)
+				log.Println("Modem cmd write error:", err)
 			}
 			continue
 		}
@@ -59,7 +59,7 @@ func Cmd(port io.ReadWriter, cmd string) (string, error) {
 
 		if err != nil {
 			if DebugAtCommands {
-				log.Println("Modem cmd read error: ", err)
+				log.Println("Modem cmd read error:", err)
 			}
 			continue
 		}
@@ -69,7 +69,7 @@ func Cmd(port io.ReadWriter, cmd string) (string, error) {
 		readStringS := strings.TrimSpace(string(readString))
 
 		if DebugAtCommands {
-			log.Println("Modem Rx: ", readStringS)
+			log.Println("Modem Rx:", readStringS)
 		}
 
 		return readStringS, nil

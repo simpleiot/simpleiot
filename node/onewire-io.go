@@ -34,7 +34,7 @@ func newOneWireIO(nc *nats.Conn, node *oneWireIONode, chPoint chan<- pointWID) (
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
 			// FIXME, send over channel
-			log.Println("Error decoding node data: ", err)
+			log.Println("Error decoding node data:", err)
 			return
 		}
 
@@ -55,7 +55,7 @@ func (io *oneWireIO) stop() {
 	if io.sub != nil {
 		err := io.sub.Unsubscribe()
 		if err != nil {
-			log.Println("Error unsubscribing from IO: ", err)
+			log.Println("Error unsubscribing from IO:", err)
 		}
 	}
 }
@@ -85,12 +85,12 @@ func (io *oneWireIO) point(p data.Point) error {
 
 			err := client.SendNodePoints(io.nc, io.ioNode.nodeID, p, true)
 			if err != nil {
-				log.Println("Send point error: ", err)
+				log.Println("Send point error:", err)
 			}
 		}
 
 	default:
-		log.Println("1-wire: unhandled io point: ", p)
+		log.Println("1-wire: unhandled io point:", p)
 	}
 
 	return nil

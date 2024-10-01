@@ -1,13 +1,15 @@
 package modbus
 
 import (
+	"errors"
 	"sync"
 )
 
 // Reg defines a Modbus register
 type Reg struct {
-	Address uint16
-	Value   uint16
+	Address  uint16
+	Value    uint16
+	Validate func(value uint16) bool
 }
 
 // RegProvider is the interface for a register provider.
@@ -49,9 +51,29 @@ func (r *Regs) AddReg(address int, count int) {
 			}
 		}
 		if !found {
-			r.regs = append(r.regs, Reg{uint16(adr), 0})
+			r.regs = append(r.regs, Reg{uint16(adr), 0, nil})
 		}
 	}
+}
+
+// ErrUnknownRegister is returned if a validator is added on a register that has
+// not been added.
+var ErrUnknownRegister = errors.New("unknown register")
+
+// AddRegValueValidator is used to add a validator function to a modbus register.
+// The validator function is called when a modbus client tries to write a value.
+// If the value is invalid, ExcIllegalValue (modbus exception 3) is returned to
+// the client.
+func (r *Regs) AddRegValueValidator(address int, validate func(uint16) bool) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	for ix := range r.regs {
+		if r.regs[ix].Address == uint16(address) {
+			r.regs[ix].Validate = validate
+			return nil
+		}
+	}
+	return ErrUnknownRegister
 }
 
 func (r *Regs) readReg(address int) (uint16, error) {
@@ -80,6 +102,10 @@ func (r *Regs) ReadInputReg(address int) (uint16, error) {
 func (r *Regs) writeReg(address int, value uint16) error {
 	for i, reg := range r.regs {
 		if reg.Address == uint16(address) {
+			// if a validator is present, check if the value is allowed
+			if reg.Validate != nil && !reg.Validate(value) {
+				return ExcIllegalValue
+			}
 			(r.regs)[i].Value = value
 			return nil
 		}

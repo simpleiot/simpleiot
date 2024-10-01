@@ -80,6 +80,7 @@ view o =
                     , fCheckboxInput
                     , checkboxInput Point.typeDisabled "Disabled"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

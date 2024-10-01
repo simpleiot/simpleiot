@@ -45,7 +45,7 @@ func (owm *oneWireManager) update() error {
 			var err error
 			bus, err := newOneWire(owm.nc, node)
 			if err != nil {
-				log.Println("Error creating new modbus: ", err)
+				log.Println("Error creating new modbus:", err)
 				continue
 			}
 			owm.busses[node.ID] = bus
@@ -57,7 +57,7 @@ func (owm *oneWireManager) update() error {
 		_, ok := found[id]
 		if !ok {
 			// bus was deleted so close and clear it
-			log.Println("removing onewire bus: ", bus.owNode.description)
+			log.Println("removing onewire bus:", bus.owNode.description)
 			bus.stop()
 			delete(owm.busses, id)
 		}
@@ -77,7 +77,7 @@ func (owm *oneWireManager) update() error {
 			index, err := strconv.Atoi(ms[1])
 
 			if err != nil {
-				log.Println("Error extracting 1-wire bus number: ", err)
+				log.Println("Error extracting 1-wire bus number:", err)
 			}
 
 			// loop through busses and make sure it exists
@@ -109,7 +109,7 @@ func (owm *oneWireManager) update() error {
 
 				err := client.SendNode(owm.nc, n, "")
 				if err != nil {
-					log.Println("Error sending new 1-wire node: ", err)
+					log.Println("Error sending new 1-wire node:", err)
 				}
 			}
 		}

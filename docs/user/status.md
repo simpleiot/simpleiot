@@ -32,7 +32,7 @@ larger systems, we need per-device authn/authz. See
 [PR #283](https://github.com/simpleiot/simpleiot/pull/283), and our
 [security document](../ref/security.md) for more information.
 
-# Errata
+## Errata
 
 Any issues we find during testing we log in
 [Github issues](https://github.com/simpleiot/simpleiot/issues), so if you

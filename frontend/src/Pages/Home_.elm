@@ -6,6 +6,7 @@ import Api.Point as Point exposing (Point)
 import Api.Port as Port
 import Api.Response exposing (Response)
 import Auth
+import Base64.Encode
 import Components.NodeAction as NodeAction
 import Components.NodeCanBus as NodeCanBus
 import Components.NodeCondition as NodeCondition
@@ -32,6 +33,7 @@ import Components.NodeShelly as NodeShelly
 import Components.NodeShellyIO as NodeShellyIO
 import Components.NodeSignalGenerator as SignalGenerator
 import Components.NodeSync as NodeSync
+import Components.NodeUpdate as NodeUpdate
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
 import Dict
@@ -88,6 +90,7 @@ type alias Model =
     , lastError : Time.Posix
     , nodeOp : NodeOperation
     , copyMove : CopyMove
+    , scratch : String
     , nodeMsg : Maybe NodeMsg
     , token : String
     }
@@ -143,6 +146,7 @@ defaultModel =
         (Time.millisToPosix 0)
         OpNone
         CopyMoveNone
+        ""
         Nothing
         ""
 
@@ -180,8 +184,9 @@ type Msg
     | Tick Time.Posix
     | Zone Time.Zone
     | EditNodePoint Int (List Point)
-    | UploadFile String
-    | UploadSelected String File.File
+    | EditScratch String
+    | UploadFile String Bool
+    | UploadSelected String Bool File.File
     | UploadContents String File.File String
     | ToggleExpChildren Int
     | ToggleExpDetail Int
@@ -247,19 +252,34 @@ update shared msg model =
                         , points = Point.updatePoints editPoints points
                         , viewRaw = viewRaw
                         }
+                , scratch = ""
               }
             , Effect.none
             )
 
-        UploadFile id ->
-            ( model, Effect.fromCmd <| File.Select.file [ "" ] (UploadSelected id) )
+        EditScratch s ->
+            ( { model | scratch = s }, Effect.none )
 
-        UploadSelected id file ->
+        UploadFile id binary ->
+            ( model, Effect.fromCmd <| File.Select.file [ "" ] (UploadSelected id binary) )
+
+        UploadSelected id binary file ->
             let
                 uploadContents =
                     UploadContents id file
+
+                encode d =
+                    Base64.Encode.encode (Base64.Encode.bytes d)
+
+                task =
+                    if binary then
+                        Task.map encode (File.toBytes file)
+
+                    else
+                        File.toString file
             in
-            ( model, Effect.fromCmd <| Task.perform uploadContents (File.toString file) )
+            -- File.toString results in Task x String, thus the complexity of one more step
+            ( model, Effect.fromCmd <| Task.perform uploadContents task )
 
         UploadContents id file contents ->
             let
@@ -1028,6 +1048,7 @@ nodeCustomSortRules =
         , ( Node.typeShellyIO, "Q" )
         , ( Node.typeNetworkManager, "R" )
         , ( Node.typeNTP, "S" )
+        , ( Node.typeUpdate, "T" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1318,6 +1339,9 @@ viewNode model parent node children depth =
                     "networkManagerConn" ->
                         NodeNetworkManagerConn.view
 
+                    "update" ->
+                        NodeUpdate.view
+
                     _ ->
                         NodeRaw.view
 
@@ -1363,6 +1387,8 @@ viewNode model parent node children depth =
                     , onEditNodePoint = EditNodePoint node.feID
                     , onUploadFile = UploadFile node.node.id
                     , copy = model.copyMove
+                    , scratch = model.scratch
+                    , onEditScratch = EditScratch
                     }
                 , viewIf viewRaw <|
                     column [ spacing 10 ]
@@ -1610,6 +1636,11 @@ nodeDescMetrics =
     row [] [ Icon.barChart, text "Metrics" ]
 
 
+nodeDescUpdate : Element Msg
+nodeDescUpdate =
+    row [] [ Icon.update, text "Update" ]
+
+
 nodeDescNetworkManager : Element Msg
 nodeDescNetworkManager =
     row [] [ Icon.network, text "Network Manager" ]
@@ -1651,6 +1682,7 @@ viewAddNode customNodeType parent add =
                     , Input.option Node.typeFile nodeDescFile
                     , Input.option Node.typeSync nodeDescSync
                     , Input.option Node.typeMetrics nodeDescMetrics
+                    , Input.option Node.typeUpdate nodeDescUpdate
                     ]
 
                  else
@@ -1698,6 +1730,12 @@ viewAddNode customNodeType parent add =
                        )
                     ++ (if parent.node.typ == Node.typeNetworkManager then
                             [ Input.option Node.typeNetworkManagerConn nodeDescNetworkManagerConn ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.node.typ == Node.typeSerialDev then
+                            [ Input.option Node.typeFile nodeDescFile ]
 
                         else
                             []

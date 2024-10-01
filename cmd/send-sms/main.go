@@ -32,7 +32,7 @@ func main() {
 	err := twilio.SendSMS(*flagTo, *flagMsg)
 
 	if err != nil {
-		log.Println("Error sending message: ", err)
+		log.Println("Error sending message:", err)
 		os.Exit(-1)
 	}
 

@@ -4,18 +4,20 @@ package data
 // the system.
 const (
 	// general point types
-	PointTypeChannel     = "channel"
-	PointTypeDevice      = "device"
-	PointTypeDescription = "description"
-	PointTypeFilePath    = "filePath"
-	PointTypeNodeType    = "nodeType"
-	PointTypeTombstone   = "tombstone"
-	PointTypeScale       = "scale"
-	PointTypeOffset      = "offset"
-	PointTypeUnits       = "units"
-	PointTypeValue       = "value"
-	PointTypeValueSet    = "valueSet"
-	PointTypeIndex       = "index"
+	PointTypeChannel      = "channel"
+	PointTypeDevice       = "device"
+	PointTypeDescription  = "description"
+	PointTypeFilePath     = "filePath"
+	PointTypeNodeType     = "nodeType"
+	PointTypeTombstone    = "tombstone"
+	PointTypeScale        = "scale"
+	PointTypeOffset       = "offset"
+	PointTypeUnits        = "units"
+	PointTypeValue        = "value"
+	PointTypeValueSet     = "valueSet"
+	PointTypeIndex        = "index"
+	PointTypeTagPointType = "tagPointType"
+	PointTypeTag          = "tag"
 	// PointTypeID typically refers to Node ID
 	PointTypeID                 = "id"
 	PointTypeAddress            = "address"
@@ -100,6 +102,7 @@ const (
 
 	NodeTypeModbusIO = "modbusIo"
 
+	// FIXME, should we change modbusIoType to ioType?
 	PointTypeModbusIOType           = "modbusIoType"
 	PointValueModbusDiscreteInput   = "modbusDiscreteInput"
 	PointValueModbusCoil            = "modbusCoil"
@@ -244,9 +247,14 @@ const (
 	PointTypeMinIncrement = "minIncrement"
 	PointTypeMaxIncrement = "maxIncrement"
 
-	NodeTypeFile  = "file"
-	PointTypeName = "name"
-	PointTypeData = "data"
+	NodeTypeFile      = "file"
+	PointTypeName     = "name"
+	PointTypeData     = "data"
+	PointTypeBinary   = "binary"
+	PointTypeSize     = "size"
+	PointTypeHash     = "hash"
+	PointTypeDownload = "download"
+	PointTypeProgress = "progress"
 
 	PointTypeRate   = "rate"
 	PointTypeRateHR = "rateHR"
@@ -338,4 +346,17 @@ const (
 	NodeTypeNTP             = "ntp"
 	PointTypeServer         = "server"
 	PointTypeFallbackServer = "fallbackServer"
+
+	NodeTypeUpdate           = "update"
+	PointTypeOSUpdate        = "osUpdate"
+	PointTypeAppUpdate       = "appUpdate"
+	PointTypePrefix          = "prefix"
+	PointTypeDownloadOS      = "downloadOS"
+	PointTypeOSDownloaded    = "osDownloaded"
+	PointTypeDiscardDownload = "discardDownload"
+	PointTypeReboot          = "reboot"
+	PointTypeAutoReboot      = "autoReboot"
+	PointTypeAutoDownload    = "autoDownload"
+	PointTypeDirectory       = "directory"
+	PointTypeRefresh         = "refresh"
 )

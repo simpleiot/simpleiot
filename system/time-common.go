@@ -11,7 +11,7 @@ func UpdateTimeFromNetwork() (err error) {
 
 	current, err := ntp.Time("0.pool.ntp.org")
 	if err != nil {
-		log.Println("Error fetching time from ntp.org: ", err)
+		log.Println("Error fetching time from ntp.org:", err)
 		return err
 	}
 

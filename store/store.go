@@ -67,7 +67,7 @@ func NewStore(p Params) (*Store, error) {
 		return nil, fmt.Errorf("Error creating authorizer: %v", err)
 	}
 
-	log.Println("store connecting to nats server: ", p.Server)
+	log.Println("store connecting to nats server:", p.Server)
 	return &Store{
 		params:        p,
 		nc:            p.Nc,
@@ -215,22 +215,22 @@ func (st *Store) StartMetrics(nodeID string) error {
 		case <-t.C:
 			pendingNodePoints, _, err := st.subscriptions["nodePoints"].Pending()
 			if err != nil {
-				log.Println("Error getting pendingNodePoints: ", err)
+				log.Println("Error getting pendingNodePoints:", err)
 			}
 
 			err = st.metricPendingNodePoint.AddSample(float64(pendingNodePoints))
 			if err != nil {
-				log.Println("Error handling metric: ", err)
+				log.Println("Error handling metric:", err)
 			}
 
 			pendingEdgePoints, _, err := st.subscriptions["edgePoints"].Pending()
 			if err != nil {
-				log.Println("Error getting pendingEdgePoints: ", err)
+				log.Println("Error getting pendingEdgePoints:", err)
 			}
 
 			err = st.metricPendingNodeEdgePoint.AddSample(float64(pendingEdgePoints))
 			if err != nil {
-				log.Println("Error handling metric: ", err)
+				log.Println("Error handling metric:", err)
 			}
 			t.Reset(time.Second * 10)
 		}
@@ -248,7 +248,7 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 		t := time.Since(start).Milliseconds()
 		err := st.metricCycleNodePoint.AddSample(float64(t))
 		if err != nil {
-			log.Println("Error stopping metrics: ", err)
+			log.Println("Error stopping metrics:", err)
 		}
 	}()
 
@@ -266,7 +266,7 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 	if err != nil {
 		// TODO track error stats
 		log.Printf("Error writing nodeID (%v) to Db: %v", nodeID, err)
-		log.Println("msg subject: ", msg.Subject)
+		log.Println("msg subject:", msg.Subject)
 		st.reply(msg.Reply, err)
 		return
 	}
@@ -275,7 +275,7 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 	err = st.processPointsUpstream(nodeID, nodeID, points)
 	if err != nil {
 		// TODO track error stats
-		log.Println("Error processing point in upstream nodes: ", err)
+		log.Println("Error processing point in upstream nodes:", err)
 	}
 
 	st.reply(msg.Reply, nil)
@@ -287,7 +287,7 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		t := time.Since(start).Milliseconds()
 		err := st.metricCycleNodeEdgePoint.AddSample(float64(t))
 		if err != nil {
-			log.Println("handle edge point error: ", err)
+			log.Println("handle edge point error:", err)
 		}
 	}()
 
@@ -315,7 +315,7 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 	err = st.processEdgePointsUpstream(nodeID, nodeID, parentID, points)
 	if err != nil {
 		// TODO track error stats
-		log.Println("Error processing point in upstream nodes: ", err)
+		log.Println("Error processing point in upstream nodes:", err)
 	}
 
 	st.reply(msg.Reply, nil)
@@ -327,7 +327,7 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 		t := time.Since(start).Milliseconds()
 		err := st.metricCycleNode.AddSample(float64(t))
 		if err != nil {
-			log.Println("handleNodesRequest error: ", err)
+			log.Println("handleNodesRequest error:", err)
 		}
 	}()
 
@@ -383,13 +383,13 @@ handleNodeDone:
 
 	data, err := proto.Marshal(resp)
 	if err != nil {
-		log.Println("marshal error: ", err)
+		log.Println("marshal error:", err)
 		return
 	}
 
 	err = st.nc.Publish(msg.Reply, data)
 	if err != nil {
-		log.Println("NATS: Error publishing response to node request: ", err)
+		log.Println("NATS: Error publishing response to node request:", err)
 	}
 }
 
@@ -414,7 +414,7 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 
 	points, err = data.PbDecodePoints(msg.Data)
 	if err != nil {
-		log.Println("Error decoding auth.user params: ", err)
+		log.Println("Error decoding auth.user params:", err)
 		returnNothing()
 		return
 	}
@@ -470,7 +470,7 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 
 	err = st.nc.Publish(msg.Reply, data)
 	if err != nil {
-		log.Println("NATS: Error publishing response to node request: ", err)
+		log.Println("NATS: Error publishing response to node request:", err)
 	}
 }
 
@@ -488,7 +488,7 @@ func (st *Store) handleAuthGetNatsURI(msg *nats.Msg) {
 
 	err = st.nc.Publish(msg.Reply, data)
 	if err != nil {
-		log.Println("NATS: Error publishing response to gets NATS URI request: ", err)
+		log.Println("NATS: Error publishing response to gets NATS URI request:", err)
 	}
 }
 
@@ -501,7 +501,7 @@ func (st *Store) handleStoreVerify(msg *nats.Msg) {
 
 	err := st.nc.Publish(msg.Reply, []byte(ret))
 	if err != nil {
-		log.Println("NATS: Error publishing response to node request: ", err)
+		log.Println("NATS: Error publishing response to node request:", err)
 	}
 }
 
@@ -514,7 +514,7 @@ func (st *Store) handleStoreMaint(msg *nats.Msg) {
 
 	err := st.nc.Publish(msg.Reply, []byte(ret))
 	if err != nil {
-		log.Println("NATS: Error publishing response to node request: ", err)
+		log.Println("NATS: Error publishing response to node request:", err)
 	}
 }
 
@@ -533,7 +533,7 @@ func (st *Store) reply(subject string, err error) {
 
 	e := st.nc.Publish(subject, []byte(reply))
 	if e != nil {
-		log.Println("Error ack reply: ", e)
+		log.Println("Error ack reply:", e)
 	}
 }
 
@@ -560,7 +560,7 @@ func (st *Store) processPointsUpstream(upNodeID, nodeID string, points data.Poin
 	for _, up := range ups {
 		err = st.processPointsUpstream(up, nodeID, points)
 		if err != nil {
-			log.Println("Rules -- error processing upstream node: ", err)
+			log.Println("Rules -- error processing upstream node:", err)
 		}
 	}
 
@@ -570,7 +570,7 @@ func (st *Store) processPointsUpstream(upNodeID, nodeID string, points data.Poin
 		// check if device node that it has not been orphaned
 		node, err := st.db.node(nodeID)
 		if err != nil {
-			log.Println("Error getting node: ", err)
+			log.Println("Error getting node:", err)
 		}
 
 		if node.Type == data.NodeTypeDevice {
@@ -590,7 +590,7 @@ func (st *Store) processPointsUpstream(upNodeID, nodeID string, points data.Poin
 						Value: 0,
 					}, false)
 					if err != nil {
-						log.Println("Error sending edge point: ", err)
+						log.Println("Error sending edge point:", err)
 					}
 				} else {
 					// undelete existing edge
@@ -600,7 +600,7 @@ func (st *Store) processPointsUpstream(upNodeID, nodeID string, points data.Poin
 						Value: 0,
 					}, false)
 					if err != nil {
-						log.Println("Error sending edge point: ", err)
+						log.Println("Error sending edge point:", err)
 					}
 				}
 			}
@@ -633,7 +633,7 @@ func (st *Store) processEdgePointsUpstream(upNodeID, nodeID, parentID string, po
 	for _, up := range ups {
 		err = st.processEdgePointsUpstream(up, nodeID, parentID, points)
 		if err != nil {
-			log.Println("Rules -- error processing upstream node: ", err)
+			log.Println("Rules -- error processing upstream node:", err)
 		}
 	}
 

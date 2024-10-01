@@ -24,18 +24,22 @@ type alias NodeOptions msg =
     , children : List NodeView
     , nodes : List (Tree NodeView)
     , onEditNodePoint : List Point -> msg
-    , onUploadFile : msg
+    , onEditScratch : String -> msg
+    , onUploadFile : Bool -> msg
     , copy : CopyMove
+    , scratch : String
     }
 
 
 oToInputO : NodeOptions msg -> Int -> NodeInputOptions msg
 oToInputO o labelWidth =
     { onEditNodePoint = o.onEditNodePoint
+    , onEditScratch = o.onEditScratch
     , node = o.node
     , now = o.now
     , zone = o.zone
     , labelWidth = labelWidth
+    , scratch = o.scratch
     }
 
 

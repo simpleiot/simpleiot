@@ -4,6 +4,7 @@ module Api.Point exposing
     , clearText
     , decode
     , encodeList
+    , filterDeleted
     , filterSpecialPoints
     , filterTombstone
     , get
@@ -29,8 +30,11 @@ module Api.Point exposing
     , typeActive
     , typeAddress
     , typeAuthToken
+    , typeAutoDownload
+    , typeAutoReboot
     , typeBatchPeriod
     , typeBaud
+    , typeBinary
     , typeBitRate
     , typeBucket
     , typeChannel
@@ -46,7 +50,11 @@ module Api.Point exposing
     , typeDestination
     , typeDevice
     , typeDeviceID
+    , typeDirectory
     , typeDisabled
+    , typeDiscardDownload
+    , typeDownload
+    , typeDownloadOS
     , typeEmail
     , typeEnd
     , typeError
@@ -64,6 +72,7 @@ module Api.Point exposing
     , typeFrequency
     , typeFrom
     , typeHRDest
+    , typeHash
     , typeHrRx
     , typeHrRxReset
     , typeID
@@ -87,6 +96,8 @@ module Api.Point exposing
     , typeMsgsRecvdOtherReset
     , typeName
     , typeNodeID
+    , typeOSDownloaded
+    , typeOSUpdate
     , typeOffline
     , typeOffset
     , typeOperator
@@ -98,10 +109,14 @@ module Api.Point exposing
     , typePointType
     , typePollPeriod
     , typePort
+    , typePrefix
+    , typeProgress
     , typeProtocol
     , typeRate
     , typeRateHR
     , typeReadOnly
+    , typeReboot
+    , typeRefresh
     , typeRoundTo
     , typeRx
     , typeRxReset
@@ -112,12 +127,15 @@ module Api.Point exposing
     , typeService
     , typeSignalType
     , typeSignalsInDb
+    , typeSize
     , typeStart
     , typeSwitchSet
     , typeSyncCount
     , typeSyncCountReset
     , typeSyncParent
     , typeSysState
+    , typeTag
+    , typeTagPointType
     , typeTombstone
     , typeTx
     , typeTxReset
@@ -132,8 +150,9 @@ module Api.Point exposing
     , typeVersionApp
     , typeVersionHW
     , typeVersionOS
-    , typeWeekday
-      --  , keyNodeID
+    ,  typeWeekday
+       --  , keyNodeID
+
     , updatePoints
     , valueApp
     , valueClient
@@ -199,6 +218,16 @@ typeDescription =
 typeFilePath : String
 typeFilePath =
     "filePath"
+
+
+typeDownload : String
+typeDownload =
+    "download"
+
+
+typeProgress : String
+typeProgress =
+    "progress"
 
 
 typeScale : String
@@ -541,6 +570,11 @@ typeURI =
     "uri"
 
 
+typePrefix : String
+typePrefix =
+    "prefix"
+
+
 typeConditionType : String
 typeConditionType =
     "conditionType"
@@ -806,6 +840,16 @@ typeData =
     "data"
 
 
+typeSize : String
+typeSize =
+    "size"
+
+
+typeHash : String
+typeHash =
+    "hash"
+
+
 typeBitRate : String
 typeBitRate =
     "bitRate"
@@ -906,6 +950,16 @@ typeDestination =
     "destination"
 
 
+typeTagPointType : String
+typeTagPointType =
+    "tagPointType"
+
+
+typeTag : String
+typeTag =
+    "tag"
+
+
 
 --keyNodeID : String
 --keyNodeID =
@@ -930,6 +984,56 @@ keyPointType =
 keyPointKey : String
 keyPointKey =
     "pointKey"
+
+
+typeDownloadOS : String
+typeDownloadOS =
+    "downloadOS"
+
+
+typeReboot : String
+typeReboot =
+    "reboot"
+
+
+typeAutoReboot : String
+typeAutoReboot =
+    "autoReboot"
+
+
+typeAutoDownload : String
+typeAutoDownload =
+    "autoDownload"
+
+
+typeOSDownloaded : String
+typeOSDownloaded =
+    "osDownloaded"
+
+
+typeDiscardDownload : String
+typeDiscardDownload =
+    "discardDownload"
+
+
+typeOSUpdate : String
+typeOSUpdate =
+    "osUpdate"
+
+
+typeDirectory : String
+typeDirectory =
+    "directory"
+
+
+typeRefresh : String
+typeRefresh =
+    "refresh"
+
+
+typeBinary : String
+typeBinary =
+    "binary"
 
 
 
@@ -1001,6 +1105,9 @@ specialPoints =
     , switch
     , input
     , light
+    , typeDirectory
+    , typeRefresh
+    , typeBinary
     ]
 
 
@@ -1129,6 +1236,11 @@ get points typ key =
 getAll : List Point -> String -> List Point
 getAll points typ =
     List.filter (\p -> typ == p.typ) points
+
+
+filterDeleted : List Point -> List Point
+filterDeleted points =
+    List.filter (\p -> p.tombstone == 0) points
 
 
 getText : List Point -> String -> String -> String

@@ -31,6 +31,7 @@ type Rule struct {
 func (r Rule) String() string {
 	ret := fmt.Sprintf("Rule: %v\n", r.Description)
 	ret += fmt.Sprintf("  active: %v\n", r.Active)
+	ret += fmt.Sprintf("  Disabled: %v\n", r.Disabled)
 	for _, c := range r.Conditions {
 		ret += fmt.Sprintf("%v", c)
 	}
@@ -51,6 +52,7 @@ type Condition struct {
 	ID            string  `node:"id"`
 	Parent        string  `node:"parent"`
 	Description   string  `point:"description"`
+	Disabled      bool    `point:"disabled"`
 	ConditionType string  `point:"conditionType"`
 	MinActive     float64 `point:"minActive"`
 	Active        bool    `point:"active"`
@@ -92,8 +94,8 @@ func (c Condition) String() string {
 
 	switch c.ConditionType {
 	case data.PointValuePointValue:
-		ret = fmt.Sprintf("  COND: %v  CTYPE:%v  VTYPE:%v  V:%v",
-			c.Description, c.ConditionType, c.ValueType, value)
+		ret = fmt.Sprintf("  COND: %v  Disabled: %v CTYPE:%v  VTYPE:%v  V:%v",
+			c.Description, c.ConditionType, c.Disabled, c.ValueType, value)
 		if c.NodeID != "" {
 			ret += fmt.Sprintf("  NODEID:%v", c.NodeID)
 		}
@@ -120,12 +122,14 @@ type Action struct {
 	ID          string `node:"id"`
 	Parent      string `node:"parent"`
 	Description string `point:"description"`
+	Disabled    bool   `point:"disabled"`
 	Active      bool   `point:"active"`
 	Error       string `point:"error"`
 	// Action: notify, setValue, playAudio
 	Action    string `point:"action"`
 	NodeID    string `point:"nodeID"`
 	PointType string `point:"pointType"`
+	PointKey  string `point:"pointKey"`
 	// PointType: number, text, onOff
 	ValueType string  `point:"valueType"`
 	Value     float64 `point:"value"`
@@ -150,10 +154,13 @@ func (a Action) String() string {
 	case data.PointValueText:
 		value = a.ValueText
 	}
-	ret := fmt.Sprintf("%v  ACT:%v  VTYPE:%v  V:%v",
-		a.Description, a.Action, a.ValueType, value)
+	ret := fmt.Sprintf("%v  Disabled:%v ACT:%v  VTYPE:%v  V:%v",
+		a.Description, a.Disabled, a.Action, a.ValueType, value)
 	if a.NodeID != "" {
 		ret += fmt.Sprintf("  NODEID:%v", a.NodeID)
+	}
+	if a.PointKey != "" && a.PointKey != "0" {
+		ret += fmt.Sprintf(" K:%v", a.PointKey)
 	}
 	ret += fmt.Sprintf("  A:%v", a.Active)
 	ret += "\n"
@@ -171,6 +178,7 @@ type ActionInactive struct {
 	Action    string `point:"action"`
 	NodeID    string `point:"nodeID"`
 	PointType string `point:"pointType"`
+	PointKey  string `point:"pointKey"`
 	// PointType: number, text, onOff
 	ValueType string  `point:"valueType"`
 	Value     float64 `point:"value"`
@@ -215,14 +223,14 @@ func (rc *RuleClient) Run() error {
 	rc.upSub, err = rc.nc.Subscribe(subject, func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
-			log.Println("Error decoding points in rule upSub: ", err)
+			log.Println("Error decoding points in rule upSub:", err)
 			return
 		}
 
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
 		if len(chunks) != 3 {
-			log.Println("rule client up sub, malformed subject: ", msg.Subject)
+			log.Println("rule client up sub, malformed subject:", msg.Subject)
 			return
 		}
 
@@ -246,46 +254,51 @@ func (rc *RuleClient) Run() error {
 		var active, changed bool
 		var err error
 
-		if len(pts) > 0 {
-			active, changed, err = rc.ruleProcessPoints(id, pts)
-			if err != nil {
-				log.Println("Error processing rule point: ", err)
-			}
-
-			if !changed {
-				return
-			}
+		if rc.config.Disabled {
+			active = false
 		} else {
-			// send a schedule trigger through just in case someone changed a
-			// schedule condition
-			active, _, err = rc.ruleProcessPoints(rc.config.ID, data.Points{{
-				Time: time.Now(),
-				Type: data.PointTypeTrigger,
-			}})
-			if err != nil {
-				log.Println("Error processing rule point: ", err)
+			if len(pts) > 0 {
+				active, changed, err = rc.ruleProcessPoints(id, pts)
+				if err != nil {
+					log.Println("Error processing rule point:", err)
+				}
+
+				if !changed {
+					return
+				}
+			} else {
+				// send a schedule trigger through just in case someone changed a
+				// schedule condition
+				active, _, err = rc.ruleProcessPoints(rc.config.ID, data.Points{{
+					Time: time.Now(),
+					Type: data.PointTypeTrigger,
+				}})
+
+				if err != nil {
+					log.Println("Error processing rule point:", err)
+				}
 			}
 		}
 
 		if active {
 			err := rc.ruleRunActions(rc.config.Actions, id)
 			if err != nil {
-				log.Println("Error running rule actions: ", err)
+				log.Println("Error running rule actions:", err)
 			}
 
 			err = rc.ruleInactiveActions(rc.config.ActionsInactive)
 			if err != nil {
-				log.Println("Error running rule inactive actions: ", err)
+				log.Println("Error running rule inactive actions:", err)
 			}
 		} else {
 			err := rc.ruleRunActions(rc.config.ActionsInactive, id)
 			if err != nil {
-				log.Println("Error running rule actions: ", err)
+				log.Println("Error running rule actions:", err)
 			}
 
 			err = rc.ruleInactiveActions(rc.config.Actions)
 			if err != nil {
-				log.Println("Error running rule inactive actions: ", err)
+				log.Println("Error running rule inactive actions:", err)
 			}
 		}
 	}
@@ -296,7 +309,23 @@ done:
 		case <-rc.stop:
 			break done
 		case pts := <-rc.newRulePoints:
-			run(pts.ID, pts.Points)
+			// make sure the point is in a condition before we run the rule
+			// otherwise, we can get into a loop
+			found := false
+			for _, c := range rc.config.Conditions {
+				if c.ConditionType != data.PointValuePointValue {
+					continue
+				}
+				if c.NodeID == pts.ID {
+					found = true
+					break
+				}
+			}
+
+			if found {
+				// found a condition that matches the point coming in, run the rule
+				run(pts.ID, pts.Points)
+			}
 
 		case <-scheduleTicker.C:
 			run(rc.config.ID, data.Points{{
@@ -307,8 +336,9 @@ done:
 		case pts := <-rc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &rc.config)
 			if err != nil {
-				log.Println("error merging rule points: ", err)
+				log.Println("error merging rule points:", err)
 			}
+
 			if rc.hasSchedule() {
 				scheduleTicker = time.NewTicker(scheduleTickTime)
 			} else {
@@ -316,11 +346,13 @@ done:
 			}
 
 			run("", nil)
+
 		case pts := <-rc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &rc.config)
 			if err != nil {
-				log.Println("error merging rule edge points: ", err)
+				log.Println("error merging rule edge points:", err)
 			}
+
 			run("", nil)
 		}
 	}
@@ -379,7 +411,7 @@ func (rc *RuleClient) processError(errS string) {
 
 			err := rc.sendPoint(rc.config.ID, p)
 			if err != nil {
-				log.Println("Rule error sending point: ", err)
+				log.Println("Rule error sending point:", err)
 			} else {
 				rc.config.Error = errS
 			}
@@ -418,7 +450,7 @@ func (rc *RuleClient) processError(errS string) {
 
 			err := rc.sendPoint(rc.config.ID, p)
 			if err != nil {
-				log.Println("Rule error sending point: ", err)
+				log.Println("Rule error sending point:", err)
 			} else {
 				rc.config.Error = found
 			}
@@ -449,7 +481,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 					log.Printf("Rule cond error %v:%v:%v\n", rc.config.Description, c.Description, err)
 					err := rc.sendPoint(c.ID, p)
 					if err != nil {
-						log.Println("Rule error sending point: ", err)
+						log.Println("Rule error sending point:", err)
 					} else {
 						rc.config.Conditions[i].Error = errS
 					}
@@ -470,7 +502,6 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				if c.PointType != "" && c.PointType != p.Type {
 					continue
 				}
-
 				// conditions match, so check value
 				switch c.ValueType {
 				case data.PointValueNumber:
@@ -528,7 +559,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 
 				err := rc.sendPoint(c.ID, p)
 				if err != nil {
-					log.Println("Rule error sending point: ", err)
+					log.Println("Rule error sending point:", err)
 				}
 
 				rc.config.Conditions[i].Active = active
@@ -543,7 +574,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 
 				err := rc.sendPoint(c.ID, p)
 				if err != nil {
-					log.Println("Rule error sending point: ", err)
+					log.Println("Rule error sending point:", err)
 				} else {
 					rc.config.Conditions[i].Error = ""
 				}
@@ -553,12 +584,20 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 	}
 
 	allActive := true
+	activeConditionCount := 0
 
 	for _, c := range rc.config.Conditions {
-		if !c.Active {
+		if !c.Active && !c.Disabled {
 			allActive = false
 			break
 		}
+		if c.Active && !c.Disabled {
+			activeConditionCount++
+		}
+	}
+
+	if activeConditionCount == 0 && allActive {
+		allActive = false
 	}
 
 	changed := false
@@ -572,7 +611,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 
 		err := rc.sendPoint(rc.config.ID, p)
 		if err != nil {
-			log.Println("Rule error sending point: ", err)
+			log.Println("Rule error sending point:", err)
 		}
 		changed = true
 
@@ -585,6 +624,10 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 // ruleRunActions runs rule actions
 func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) error {
 	for i, a := range actions {
+		if a.Disabled {
+			continue
+		}
+
 		errorActive := false
 
 		processError := func(err error) {
@@ -600,7 +643,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				log.Printf("Rule action error %v:%v:%v\n", rc.config.Description, a.Description, err)
 				err := rc.sendPoint(a.ID, p)
 				if err != nil {
-					log.Println("Rule error sending point: ", err)
+					log.Println("Rule error sending point:", err)
 				} else {
 					actions[i].Error = errS
 				}
@@ -623,13 +666,15 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			p := data.Point{
 				Time:   time.Now(),
 				Type:   a.PointType,
+				Key:    a.PointKey,
 				Value:  a.Value,
 				Text:   a.ValueText,
 				Origin: a.ID,
 			}
+
 			err := rc.sendPoint(a.NodeID, p)
 			if err != nil {
-				log.Println("Error sending rule action point: ", err)
+				log.Println("Error sending rule action point:", err)
 			}
 		case data.PointValueNotify:
 			// get node that fired the rule
@@ -679,7 +724,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			format := d.Format()
 
 			if format.SampleRate < 8000 {
-				log.Println("Rule action: invalid wave file sample rate: ", format.SampleRate)
+				log.Println("Rule action: invalid wave file sample rate:", format.SampleRate)
 				continue
 			}
 
@@ -689,7 +734,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			go func() {
 				stderr, err := exec.Command("speaker-test", "-D"+a.PointDevice, "-twav", "-w"+a.PointFilePath, "-c5", "-s"+channelNum, "-r"+sampleRate).CombinedOutput()
 				if err != nil {
-					log.Println("Play audio error: ", err)
+					log.Println("Play audio error:", err)
 					log.Printf("Audio stderr: %s\n", stderr)
 				}
 			}()
@@ -703,7 +748,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 		}
 		err := rc.sendPoint(a.ID, p)
 		if err != nil {
-			log.Println("Error sending rule action point: ", err)
+			log.Println("Error sending rule action point:", err)
 		}
 
 		actions[i].Active = true
@@ -717,7 +762,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 
 			err := rc.sendPoint(a.ID, p)
 			if err != nil {
-				log.Println("Rule error sending point: ", err)
+				log.Println("Rule error sending point:", err)
 			} else {
 				actions[i].Error = ""
 			}
@@ -730,13 +775,17 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 
 func (rc *RuleClient) ruleInactiveActions(actions []Action) error {
 	for i, a := range actions {
+		if a.Disabled {
+			continue
+		}
+
 		p := data.Point{
 			Type:  data.PointTypeActive,
 			Value: 0,
 		}
 		err := rc.sendPoint(a.ID, p)
 		if err != nil {
-			log.Println("Error sending rule action point: ", err)
+			log.Println("Error sending rule action point:", err)
 		}
 		actions[i].Active = false
 	}

@@ -11,6 +11,73 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- file client/node
+  - option to store binary files
+  - display filename, file size, and stored size
+  - create file client backend code that runs for file nodes
+  - calculate and populate md5sum when file contents change
+  - display md5sum in file node UI
+- serial client/node
+  - add serial file download -- can be used for MCU updates
+
+## [[0.17.0] - 2024-08-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.17.0)
+
+- add rule/condition/action disable flag (#352)
+- rule action: add point key field (#714)
+
+## [[0.16.2] - 2024-06-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.2)
+
+- db client: Improve Influx history query functionality
+  - If history query response fails, try responding again with ErrorMessage
+  - TagFilters values can now be empty string or a slice of strings
+
+## [[0.16.1] - 2024-05-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.1)
+
+- Modbus API: add an option to validate the input when a client writes to a
+  register.
+- Update client:
+  - improve autodownload logic
+  - check for updates when URI is changed
+  - improve error handling and reporting
+  - fix bug when reducing update list
+- expand documentation on
+  [creating a client](https://docs.simpleiot.org/docs/ref/client.html#creating-new-clients).
+
+## [[0.16.0] - 2024-05-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.16.0)
+
+- add Update client -- currently supports system updates
+  [docs](https://docs.simpleiot.org/docs/user/update.html).
+- update elm-tooling
+- api: Added `history.<nodeId>` NATS endpoint to send Influx history queries to
+  an Influx DB client node.
+
+## [[0.15.3] - 2024-03-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.15.3)
+
+- UI: add tag UI to metrics client UI
+
+## [[0.15.0] - 2024-03-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.15.0)
+
+- NTP client: Do not set configuration if servers are not specified. This allows
+  timesyncd to use the default configuration if no servers are specified.
+- server: Args now accepts a `*FlagSet` to allow flags to be extended
+- Influx client when writing points from a given node also adds additional tags
+  based on the node that emitted the point. Previously, `nodeID` tag was added,
+  but this has been renamed to `node.id`. Also added is `node.type` and
+  `node.description` (populated with the value of a point of type
+  "description").
+- For each Influx DB client, the user can specify an array of tag point types
+  (via point type "tagPointType"). These point types are also copied as tags for
+  each point emitted by the node. For example, if node A has two points tag:city
+  (i.e. Point.Type is "tag" and Point.Key is "city") and tag:state, then these
+  point values are appended to every single point emitted by node A. In Influx,
+  each point would have a tag `node.tag.city` and `node.tag.state` with their
+  respective Point.Text values.
+- BREAKING CHANGE: Influx DB tag `nodeID` is now `node.id`
+- update frontend dependencies and fix various build issues
+- UI: add tag UI most clients so that custom tags can be added to each node.
+
+## [[0.14.10] - 2024-02-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.14.10)
+
 - store: Improved performance when loading many nodes and edges
 - serial: Fixed bug: do not write points over closed serial port
 

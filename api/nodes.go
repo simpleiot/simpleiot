@@ -77,7 +77,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 			nodes, err := client.GetNodesForUser(h.nc, userID)
 			if err != nil {
-				log.Println("Error getting nodes for user: ", err)
+				log.Println("Error getting nodes for user:", err)
 			}
 
 			if err != nil {
@@ -174,7 +174,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				nodeMove.NewParent, userID)
 
 			if err != nil {
-				log.Println("Error moving node: ", err)
+				log.Println("Error moving node:", err)
 				http.Error(res, err.Error(), http.StatusNotFound)
 				return
 			}
@@ -196,7 +196,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				err := client.MirrorNode(h.nc, id, nodeCopy.NewParent, userID)
 
 				if err != nil {
-					log.Println("Error mirroring node: ", err)
+					log.Println("Error mirroring node:", err)
 					http.Error(res, err.Error(), http.StatusNotFound)
 					return
 				}
@@ -204,7 +204,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				err := client.DuplicateNode(h.nc, id, nodeCopy.NewParent, userID)
 
 				if err != nil {
-					log.Println("Error duplicating node: ", err)
+					log.Println("Error duplicating node:", err)
 					http.Error(res, err.Error(), http.StatusNotFound)
 					return
 				}

@@ -2,13 +2,14 @@ module Components.NodeDevice exposing (view)
 
 import Api.Node as Node
 import Api.Point as Point exposing (Point)
-import Components.NodeOptions exposing (NodeOptions)
+import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
 import Time
 import UI.Icon as Icon
+import UI.NodeInputs as NodeInputs
 import UI.Style as Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
 import Utils.Duration as Duration
@@ -64,6 +65,12 @@ view o =
             ]
             :: (if o.expDetail then
                     let
+                        labelWidth =
+                            150
+
+                        opts =
+                            oToInputO o labelWidth
+
                         latestPointTime =
                             case Point.getLatest o.node.points of
                                 Just point ->
@@ -114,6 +121,7 @@ view o =
                                 ++ " "
                                 ++ versionApp
                             )
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

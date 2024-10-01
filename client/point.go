@@ -74,7 +74,7 @@ func SubscribePoints(nc *nats.Conn, id string, callback func(points []data.Point
 	psub, err := nc.Subscribe(SubjectNodePoints(id), func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
-			log.Println("Error decoding points: ", err)
+			log.Println("Error decoding points:", err)
 			return
 		}
 
@@ -84,7 +84,7 @@ func SubscribePoints(nc *nats.Conn, id string, callback func(points []data.Point
 	return func() {
 		err := psub.Unsubscribe()
 		if err != nil {
-			log.Println("Unsubscribe points error: ", err)
+			log.Println("Unsubscribe points error:", err)
 		}
 	}, err
 }
@@ -95,7 +95,7 @@ func SubscribeEdgePoints(nc *nats.Conn, id, parent string, callback func(points 
 	psub, err := nc.Subscribe(SubjectEdgePoints(id, parent), func(msg *nats.Msg) {
 		points, err := data.PbDecodePoints(msg.Data)
 		if err != nil {
-			log.Println("Error decoding points: ", err)
+			log.Println("Error decoding points:", err)
 			return
 		}
 
@@ -105,7 +105,7 @@ func SubscribeEdgePoints(nc *nats.Conn, id, parent string, callback func(points 
 	return func() {
 		err := psub.Unsubscribe()
 		if err != nil {
-			log.Println("Unsubscribe points error: ", err)
+			log.Println("Unsubscribe points error:", err)
 		}
 	}, err
 }

@@ -1,7 +1,9 @@
 module UI.NodeInputs exposing
     ( NodeInputOptions
+    , nodeButtonActionText
     , nodeCheckboxInput
     , nodeCounterWithReset
+    , nodeKeyValueInput
     , nodeListInput
     , nodeNumberInput
     , nodeOnOffInput
@@ -15,6 +17,7 @@ import Api.Node exposing (Node)
 import Api.Point as Point exposing (Point)
 import Color
 import Element exposing (..)
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import List.Extra
@@ -27,15 +30,18 @@ import UI.Button
 import UI.Form as Form
 import UI.Sanitize as Sanitize
 import UI.Style as Style
+import UI.ViewIf exposing (viewIf)
 import Utils.Time exposing (scheduleToLocal, scheduleToUTC)
 
 
 type alias NodeInputOptions msg =
     { onEditNodePoint : List Point -> msg
+    , onEditScratch : String -> msg
     , node : Node
     , now : Time.Posix
     , zone : Time.Zone
     , labelWidth : Int
+    , scratch : String
     }
 
 
@@ -383,6 +389,34 @@ validDates dates =
         )
         True
         dates
+
+
+nodeButtonActionText :
+    NodeInputOptions msg
+    -> String
+    -> String
+    -> String
+    -> String
+    -> Color
+    -> Element msg
+nodeButtonActionText o key typ value lbl color =
+    let
+        sendText =
+            o.onEditNodePoint
+                [ { typ = typ
+                  , key = key
+                  , text = value
+                  , time = o.now
+                  , tombstone = 0
+                  , value = 0
+                  }
+                ]
+    in
+    Form.button
+        { label = lbl
+        , color = color
+        , onPress = sendText
+        }
 
 
 nodeCheckboxInput :
@@ -753,3 +787,98 @@ nodeListInput o typ label buttonLabel =
                                 ]
                         }
                ]
+
+
+type alias Edges =
+    { top : Int
+    , right : Int
+    , bottom : Int
+    , left : Int
+    }
+
+
+edges : Edges
+edges =
+    { top = 0
+    , right = 0
+    , bottom = 0
+    , left = 0
+    }
+
+
+nodeKeyValueInput : NodeInputOptions msg -> String -> String -> String -> Element msg
+nodeKeyValueInput o typ label buttonLabel =
+    let
+        points =
+            Point.getAll o.node.points typ |> Point.filterDeleted |> List.sortWith Point.sort
+
+        newKV =
+            o.onEditNodePoint
+                [ { typ = typ
+                  , key = o.scratch
+                  , text = ""
+                  , time = o.now
+                  , tombstone = 0
+                  , value = 0
+                  }
+                ]
+    in
+    column [ centerX, spacing 5 ]
+        [ viewIf (List.length points > 0) <| keyValues o typ label points
+        , row [ spacing 10 ]
+            [ el [ Element.paddingEach { edges | left = 40 }, centerX ] <|
+                text "Add: "
+            , Input.text [ Form.onEnter newKV ]
+                { label = Input.labelHidden "key"
+                , onChange = o.onEditScratch
+                , text = o.scratch
+                , placeholder = Just <| Input.placeholder [] <| text "new key"
+                }
+            , Form.button
+                { label = buttonLabel
+                , color = Style.colors.blue
+                , onPress = newKV
+                }
+            ]
+        ]
+
+
+keyValues : NodeInputOptions msg -> String -> String -> List Point -> Element msg
+keyValues o typ label points =
+    let
+        deleteEntry key =
+            o.onEditNodePoint
+                [ { typ = typ
+                  , key = key
+                  , text = ""
+                  , time = o.now
+                  , tombstone = 1
+                  , value = 0
+                  }
+                ]
+    in
+    column [ centerX, spacing 5 ]
+        [ el [ Font.bold, centerX, Element.paddingXY 0 6 ] <|
+            Element.text label
+        , table [ padding 7 ]
+            { data = points
+            , columns =
+                let
+                    cell =
+                        el [ paddingXY 15 5, Border.width 0, centerY ]
+                in
+                [ { header = cell <| el [ Font.bold, centerX ] <| text "Key"
+                  , width = shrink
+                  , view = \p -> cell <| text <| p.key ++ ":"
+                  }
+                , { header = cell <| el [ Font.bold, centerX ] <| text "Value"
+                  , width = fill
+                  , view = \p -> cell <| nodeTextInput o p.key typ "" "value"
+                  }
+                , { header = cell <| el [ Font.bold, centerX ] <| text "Delete"
+                  , width = shrink
+                  , view = \p -> cell <| el [ centerX ] <| UI.Button.x <| deleteEntry p.key
+                  }
+                ]
+            }
+        ]

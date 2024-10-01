@@ -237,7 +237,7 @@ func (m *Modem) Connect() error {
 		return err
 	}
 
-	log.Println("BG96 scan mode: ", mode)
+	log.Println("BG96 scan mode:", mode)
 
 	if mode != BG96ScanModeLTE {
 		log.Println("Setting BG96 scan mode")
@@ -318,7 +318,7 @@ func (m *Modem) Reset() error {
 
 	err := exec.Command("poff").Run()
 	if err != nil {
-		log.Println("poff exec error: ", err)
+		log.Println("poff exec error:", err)
 	}
 	if m.enabled {
 		err := m.config.Reset()
@@ -332,7 +332,7 @@ func (m *Modem) Reset() error {
 
 // Enable or disable interface
 func (m *Modem) Enable(en bool) error {
-	log.Println("Modem enable: ", en)
+	log.Println("Modem enable:", en)
 	var err error
 	m.enabled = en
 	if err = m.openCmdPort(); err != nil {

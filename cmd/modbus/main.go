@@ -47,7 +47,7 @@ func main() {
 	baud, err := strconv.Atoi(*flagBaud)
 
 	if err != nil {
-		log.Println("Baud rate error: ", err)
+		log.Println("Baud rate error:", err)
 		os.Exit(-1)
 	}
 
@@ -77,7 +77,7 @@ func main() {
 			uint16(*flagCount))
 
 		if err != nil {
-			log.Println("Error reading holding regs: ", err)
+			log.Println("Error reading holding regs:", err)
 			os.Exit(-1)
 		}
 

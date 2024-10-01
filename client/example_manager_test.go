@@ -52,13 +52,13 @@ func (tnc *exNodeClient) Run() error {
 		case pts := <-tnc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &tnc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 			log.Printf("New config: %+v\n", tnc.config)
 		case pts := <-tnc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &tnc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 		case ch := <-tnc.chGetConfig:
 			ch <- tnc.config
@@ -87,7 +87,7 @@ func ExampleNewManager() {
 	nc, root, stop, err := server.TestServer()
 
 	if err != nil {
-		log.Println("Error starting test server: ", err)
+		log.Println("Error starting test server:", err)
 	}
 
 	defer stop()
@@ -97,7 +97,7 @@ func ExampleNewManager() {
 	// Convert our custom struct to a data.NodeEdge struct
 	ne, err := data.Encode(testConfig)
 	if err != nil {
-		log.Println("Error encoding node: ", err)
+		log.Println("Error encoding node:", err)
 	}
 
 	ne.Parent = root.ID
@@ -106,7 +106,7 @@ func ExampleNewManager() {
 	err = client.SendNode(nc, ne, "test")
 
 	if err != nil {
-		log.Println("Error sending node: ", err)
+		log.Println("Error sending node:", err)
 	}
 
 	// Create a new manager for nodes of type "testNode". The manager looks for new nodes under the
@@ -115,7 +115,7 @@ func ExampleNewManager() {
 	err = m.Run()
 
 	if err != nil {
-		log.Println("Error running: ", err)
+		log.Println("Error running:", err)
 	}
 
 	// Now any updates to the node will trigger Points/EdgePoints callbacks in the above client

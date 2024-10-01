@@ -28,7 +28,7 @@ func NewShellyIOClient(nc *nats.Conn, config ShellyIo) Client {
 	// we need a copy of points with timestamps so we know when to send up new data
 	ne, err := data.Encode(config)
 	if err != nil {
-		log.Println("Error encoding shelly config: ", err)
+		log.Println("Error encoding shelly config:", err)
 	}
 
 	return &ShellyIOClient{
@@ -45,7 +45,7 @@ func NewShellyIOClient(nc *nats.Conn, config ShellyIo) Client {
 
 // Run runs the main logic for this client and blocks until stopped
 func (sioc *ShellyIOClient) Run() error {
-	log.Println("Starting shelly IO client: ", sioc.config.Description)
+	log.Println("Starting shelly IO client:", sioc.config.Description)
 
 	sampleRate := time.Second * 2
 	sampleRateOffline := time.Minute * 10
@@ -70,7 +70,7 @@ func (sioc *ShellyIOClient) Run() error {
 				Type: data.PointTypeOffline, Value: 1}, false)
 
 			if err != nil {
-				log.Println("ShellyIO: error sending node point: ", err)
+				log.Println("ShellyIO: error sending node point:", err)
 			}
 			sampleTicker = time.NewTicker(sampleRateOffline)
 		}
@@ -85,7 +85,7 @@ func (sioc *ShellyIOClient) Run() error {
 				Type: data.PointTypeOffline, Value: 0}, false)
 
 			if err != nil {
-				log.Println("ShellyIO: error sending node point: ", err)
+				log.Println("ShellyIO: error sending node point:", err)
 			}
 			sampleTicker = time.NewTicker(sampleRate)
 		}
@@ -95,7 +95,7 @@ func (sioc *ShellyIOClient) Run() error {
 		config, err := sioc.config.getConfig()
 		if err != nil {
 			shellyError()
-			log.Println("Error getting shelly IO settings: ", sioc.config.Desc(), err)
+			log.Println("Error getting shelly IO settings:", sioc.config.Desc(), err)
 			return
 		}
 
@@ -106,12 +106,12 @@ func (sioc *ShellyIOClient) Run() error {
 			err := SendNodePoint(sioc.nc, sioc.config.ID, data.Point{
 				Type: data.PointTypeDescription, Text: config.Name}, false)
 			if err != nil {
-				log.Println("Error sending shelly io description: ", err)
+				log.Println("Error sending shelly io description:", err)
 			}
 		} else if sioc.config.Description != config.Name {
 			err := sioc.config.SetName(sioc.config.Description)
 			if err != nil {
-				log.Println("Error setting name on Shelly device: ", err)
+				log.Println("Error setting name on Shelly device:", err)
 			}
 		}
 	}
@@ -122,12 +122,12 @@ done:
 	for {
 		select {
 		case <-sioc.stop:
-			log.Println("Stopping shelly IO client: ", sioc.config.Description)
+			log.Println("Stopping shelly IO client:", sioc.config.Description)
 			break done
 		case pts := <-sioc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &sioc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 
 			for _, p := range pts.Points {
@@ -154,7 +154,7 @@ done:
 		case pts := <-sioc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &sioc.config)
 			if err != nil {
-				log.Println("error merging new points: ", err)
+				log.Println("error merging new points:", err)
 			}
 
 		case <-syncConfigTicker.C:
@@ -225,11 +225,11 @@ done:
 			if len(newPoints) > 0 {
 				err := data.MergePoints(sioc.config.ID, newPoints, &sioc.config)
 				if err != nil {
-					log.Println("shelly io: error merging newPoints: ", err)
+					log.Println("shelly io: error merging newPoints:", err)
 				}
 				err = SendNodePoints(sioc.nc, sioc.config.ID, newPoints, false)
 				if err != nil {
-					log.Println("shelly io: error sending newPoints: ", err)
+					log.Println("shelly io: error sending newPoints:", err)
 				}
 			}
 		}

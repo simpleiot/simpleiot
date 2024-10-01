@@ -63,5 +63,11 @@ func DefaultClients(nc *nats.Conn) (*Group, error) {
 	nm := NewManager(nc, NewNetworkManagerClient, nil)
 	g.Add(nm)
 
+	up := NewManager(nc, NewUpdateClient, nil)
+	g.Add(up)
+
+	fc := NewManager(nc, NewFileClient, []string{data.NodeTypeCanBus, data.NodeTypeSerialDev})
+	g.Add(fc)
+
 	return g, nil
 }

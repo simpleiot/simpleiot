@@ -129,7 +129,7 @@ func (s *Server) AddClient(client client.RunStop) {
 func (s *Server) Run() error {
 	var g run.Group
 
-	logLS := func(m ...any) {}
+	logLS := func(_ ...any) {}
 
 	if s.options.DebugLifecycle {
 		logLS = func(m ...any) {
@@ -169,7 +169,7 @@ func (s *Server) Run() error {
 			s.natsServer.WaitForShutdown()
 			logLS("LS: Exited: nats server")
 			return fmt.Errorf("NATS server stopped")
-		}, func(err error) {
+		}, func(_ error) {
 			go func() {
 				storeWg.Wait()
 				s.natsServer.Shutdown()
@@ -308,7 +308,7 @@ func (s *Server) Run() error {
 	var feFS fs.FS
 
 	if o.CustomUIDir != "" {
-		log.Println("Using custom frontend directory: ", o.CustomUIDir)
+		log.Println("Using custom frontend directory:", o.CustomUIDir)
 		feFS = os.DirFS(o.CustomUIDir)
 	} else if o.CustomUIFS != nil {
 		feFS = o.CustomUIFS
@@ -359,7 +359,7 @@ func (s *Server) Run() error {
 		log.Println("List frontend assets: ")
 		err := listFiles(feFS, ".", 0)
 		if err != nil {
-			log.Println("Error listing frontend assets: ", err)
+			log.Println("Error listing frontend assets:", err)
 		}
 	}
 

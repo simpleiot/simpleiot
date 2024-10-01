@@ -34,7 +34,7 @@ func main() {
 	baud, err := strconv.Atoi(*flagBaud)
 
 	if err != nil {
-		log.Println("Baud rate error: ", err)
+		log.Println("Baud rate error:", err)
 		os.Exit(-1)
 	}
 
@@ -58,7 +58,7 @@ func main() {
 		os.Exit(-1)
 	}
 
-	log.Println("Coil results: ", coils)
+	log.Println("Coil results:", coils)
 
 	// read holding reg
 	regs, _ := client.ReadHoldingRegs(1, 2, 1)

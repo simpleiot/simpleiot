@@ -108,6 +108,7 @@ view o =
                         textInput Point.typeUnits "Units" ""
                     , viewIf (variableType == Point.valueText) <|
                         textInput Point.typeValue "Text" ""
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 
                 else

@@ -9,14 +9,6 @@ RECOMMENDED_ELM_VERSION=0.19.1
 
 # map tools from project go modules
 
-golint() {
-	GOARCH='' go run golang.org/x/lint/golint "$@"
-}
-
-bbolt() {
-	go run go.etcd.io/bbolt/cmd/bbolt "$@"
-}
-
 air() {
 	go run github.com/cosmtrek/air "$@"
 }
@@ -33,6 +25,7 @@ siot_install_frontend_deps() {
 }
 
 siot_check_elm() {
+	# this no longer works with the way we are installing elm
 	if ! npx elm --version >/dev/null 2>&1; then
 		echo "Please install elm >= 0.19"
 		echo "https://guide.elm-lang.org/install.html"
@@ -48,7 +41,27 @@ siot_check_elm() {
 	return 0
 }
 
+siot_check_go() {
+	# Get the installed Go version
+	go_version=$(go version | awk '{print $3}' | sed 's/go//g')
+
+	# Split the version into major, minor, and patch components
+	major=$(echo "$go_version" | awk -F'.' '{print $1}')
+	minor=$(echo "$go_version" | awk -F'.' '{print $2}')
+	patch=$(echo "$go_version" | awk -F'.' '{print $3}')
+
+	# Check if the version is greater than 1.22
+	if [ "$major" -gt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -gt 22 ]; } || { [ "$major" -eq 1 ] && [ "$minor" -eq 22 ] && [ "$patch" -gt 0 ]; }; then
+		echo "Go version $go_version is greater than 1.22"
+		return 0
+	else
+		echo "Go version $go_version is not greater than 1.22"
+		return 1
+	fi
+}
+
 siot_setup() {
+	siot_check_go || return 1
 	siot_install_frontend_deps
 	# the following is to work around a race condition
 	# where the first time you run npx elm, you get an error:
@@ -69,8 +82,7 @@ siot_version() {
 	git describe --tags HEAD
 }
 
-siot_build() {
-	siot_build_frontend || return 1
+siot_build_backend() {
 	BINARY_NAME=siot
 	if [ "${GOOS}" = "windows" ]; then
 		BINARY_NAME=siot.exe
@@ -79,9 +91,20 @@ siot_build() {
 	return 0
 }
 
+siot_build() {
+	siot_build_frontend || return 1
+	siot_build_backend || return 1
+}
+
 siot_build_arm() {
 	siot_build_frontend || return 1
 	GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
+	return 0
+}
+
+siot_build_arm64() {
+	siot_build_frontend || return 1
+	GOARCH=arm64 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm64 cmd/siot/main.go || return 1
 	return 0
 }
 
@@ -98,6 +121,7 @@ siot_deploy() {
 }
 
 siot_run() {
+	siot_build_frontend || return 1
 	go build -ldflags="-X main.version=$(siot_version)" -o siot -race cmd/siot/main.go || return 1
 	./siot "$@"
 	return 0
@@ -175,10 +199,15 @@ siot_frontend_fix() {
 # please run the following before pushing -- best if your editor can be set up
 # to do this automatically.
 siot_test() {
+	echo "Build frontend ..."
 	siot_build_frontend || return 1
+	echo "Test frontend ..."
 	siot_test_frontend || return 1
+	echo "Test backend ..."
 	go test -p=1 -race "$@" ./... || return 1
+	echo "Lint backend ..."
 	golangci-lint run || return 1
+	echo "Testing passed :-)"
 	return 0
 }
 
@@ -219,10 +248,23 @@ siot_goreleaser_build() {
 # you need to provide GITHUB_TOKEN in env or ~/.config/goreleaser/github_token
 # generate tokens: https://github.com/settings/tokens/new
 # enable repo and workflow sections
-siot_goreleaser_release() {
-	#TODO add depend build to goreleaser config
-	#siot_build_frontend
-	goreleaser release --rm-dist
+siot_release() {
+	VERSION=$1
+	if [ -z "$VERSION" ]; then
+		echo "must provide version in format vX.Y.Z"
+		return 1
+	fi
+
+	# update elm.js.gz
+	siot_build_frontend || return 1
+	git commit -m "update FE assets" frontend/public/dist/elm.js.gz || return 1
+	git push || return 1
+	git tag -f "$VERSION" || return 1
+	goreleaser release --clean || return 1
+	siot_deploy_docs || return 1
+	# refresh godocs site
+	wget "https://proxy.golang.org/github.com/simpleiot/simpleiot/@v/${VERSION}.info" || return 1
+	rm "${VERSION}.info"
 }
 
 # dblab keyboard shortcuts
@@ -247,5 +289,5 @@ siot_mdbook_cleanup() {
 
 siot_deploy_docs() {
 	(cd /scratch/bec/ops/ &&
-		ansible-playbook -i production tmpdir.yml --tags docs.simpleiot.org)
+		ansible-playbook -i production all.yml --limit tmpdir --tags docs.simpleiot.org)
 }

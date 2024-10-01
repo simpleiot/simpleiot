@@ -40,8 +40,15 @@ builds:
       pre:
         #- /bin/sh -c '. ./envsetup.sh && siot_setup && siot_build_dependencies'
 archives:
-  - name_template:
-      "{{.ProjectName}}-{{.Tag}}-{{.Os}}-{{.Arch}}{{if .Arm}}{{.Arm}}{{end}}"
+  - name_template: >-
+      {{- .ProjectName }}-
+      {{- .Tag }}-
+      {{- if eq .Os "darwin" }}macos
+      {{- else }}{{ .Os }}{{ end }}-
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}{{ .Arm }}{{ end }}
     wrap_in_directory: true
     format: tar.gz
     format_overrides:
@@ -51,10 +58,7 @@ archives:
       - README.md
       - LICENSE
       - CHANGELOG.md
-    replacements:
-      386: i386
-      amd64: x86_64
-      darwin: macos
+
 
 checksum:
   name_template: "checksums.txt"

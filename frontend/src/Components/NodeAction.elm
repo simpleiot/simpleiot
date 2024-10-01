@@ -43,8 +43,14 @@ view o =
         error =
             Point.getText o.node.points Point.typeError "0"
 
+        disabled =
+            Point.getBool o.node.points Point.typeDisabled ""
+
         titleBackground =
-            if error /= "" then
+            if disabled then
+                Style.colors.ltgray
+
+            else if error /= "" then
                 Style.colors.red
 
             else
@@ -67,6 +73,11 @@ view o =
             , el [ Background.color descBackgroundColor, Font.color descTextColor ] <|
                 text <|
                     Point.getText o.node.points Point.typeDescription ""
+            , if Point.getBool o.node.points Point.typeDisabled "" then
+                text "(disabled)"
+
+              else
+                text ""
             ]
             :: (if o.expDetail then
                     let
@@ -99,6 +110,9 @@ view o =
 
                         nodeId =
                             Point.getText o.node.points Point.typeNodeID "0"
+
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts "0"
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeAction
@@ -115,6 +129,7 @@ view o =
                             , ( Point.typeLightSet, "set light state" )
                             , ( Point.typeSwitchSet, "set switch state" )
                             ]
+                    , viewIf actionSetValue <| textInput Point.typePointKey "Point Key" ""
                     , viewIf actionSetValue <| textInput Point.typeNodeID "Node ID" ""
                     , if nodeId /= "" then
                         let
@@ -135,29 +150,30 @@ view o =
 
                       else
                         Element.none
-                    , viewIf actionSetValue <| case o.copy of
-                        CopyMoveNone ->
-                            Element.none
-
-                        Copy id _ desc ->
-                            if nodeId /= id then
-                                let
-                                    label =
-                                        row
-                                            [ spacing 10 ]
-                                            [ text <| "paste ID for node: "
-                                            , el
-                                                [ Font.italic
-                                                , Background.color Style.colors.ltblue
-                                                ]
-                                              <|
-                                                text desc
-                                            ]
-                                in
-                                NodeInputs.nodePasteButton opts label Point.typeNodeID id
-
-                            else
+                    , viewIf actionSetValue <|
+                        case o.copy of
+                            CopyMoveNone ->
                                 Element.none
+
+                            Copy id _ desc ->
+                                if nodeId /= id then
+                                    let
+                                        label =
+                                            row
+                                                [ spacing 10 ]
+                                                [ text <| "paste ID for node: "
+                                                , el
+                                                    [ Font.italic
+                                                    , Background.color Style.colors.ltblue
+                                                    ]
+                                                  <|
+                                                    text desc
+                                                ]
+                                    in
+                                    NodeInputs.nodePasteButton opts label Point.typeNodeID id
+
+                                else
+                                    Element.none
                     , viewIf actionSetValue <|
                         optionInput Point.typeValueType
                             "Point Value Type"
@@ -188,6 +204,8 @@ view o =
                         numberInput Point.typeChannel "Channel"
                     , viewIf actionPlayAudio <|
                         textInput Point.typeFilePath "Wav file path" "/absolute/path/to/sound.wav"
+                    , checkboxInput Point.typeDisabled "Disabled"
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     , el [ Font.color Style.colors.red ] <| text error
                     ]
 

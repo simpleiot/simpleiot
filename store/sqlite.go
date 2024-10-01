@@ -41,7 +41,7 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 
 	dbFileOptions := fmt.Sprintf("%s?%s", dbFile, pragmas)
 
-	log.Println("Open store: ", dbFileOptions)
+	log.Println("Open store:", dbFileOptions)
 
 	db, err := sql.Open("sqlite", dbFileOptions)
 	if err != nil {
@@ -271,7 +271,7 @@ func (sdb *DbSqlite) verifyNodeHashes(fix bool) error {
 	rollback := func() {
 		rbErr := tx.Rollback()
 		if rbErr != nil {
-			log.Println("Rollback error: ", rbErr)
+			log.Println("Rollback error:", rbErr)
 		}
 	}
 
@@ -431,7 +431,7 @@ func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
 	rollback := func() {
 		rbErr := tx.Rollback()
 		if rbErr != nil {
-			log.Println("Rollback error: ", rbErr)
+			log.Println("Rollback error:", rbErr)
 		}
 	}
 
@@ -492,7 +492,7 @@ NextPin:
 					hashUpdate ^= pDb.CRC()
 					hashUpdate ^= pIn.CRC()
 				} else {
-					log.Println("Ignoring node point due to timestamps: ", id, pIn)
+					log.Println("Ignoring node point due to timestamps:", id, pIn)
 				}
 				continue NextPin
 			}
@@ -527,7 +527,7 @@ NextPin:
 	defer func() {
 		err := stmt.Close()
 		if err != nil {
-			log.Println("Error closing sqlite statement: ", err)
+			log.Println("Error closing sqlite statement:", err)
 		}
 	}()
 
@@ -589,7 +589,7 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 	rollback := func() {
 		rbErr := tx.Rollback()
 		if rbErr != nil {
-			log.Println("Rollback error: ", rbErr)
+			log.Println("Rollback error:", rbErr)
 		}
 	}
 
@@ -675,7 +675,7 @@ NextPin:
 					hashUpdate ^= pDb.CRC()
 					hashUpdate ^= pIn.CRC()
 				} else {
-					log.Println("Ignoring edge point due to timestamps: ", edge.ID, pIn)
+					log.Println("Ignoring edge point due to timestamps:", edge.ID, pIn)
 				}
 				continue NextPin
 			}
@@ -772,7 +772,7 @@ NextPin:
 		// (hash will be populated later)
 
 		if err != nil {
-			log.Println("edge insert failed, trying again ...: ", err)
+			log.Println("edge insert failed, trying again ...:", err)
 			// FIXME, occasionally the above INSERT will fail with "database is locked (5) (SQLITE_BUSY)"
 			// FIXME, not sure if retry is required any more since we removed the nested
 			// queries
@@ -1075,7 +1075,7 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 		var id string
 		err = rows.Scan(&id)
 		if err != nil {
-			log.Println("Error scanning user id: ", id)
+			log.Println("Error scanning user id:", id)
 			continue
 		}
 
@@ -1089,7 +1089,7 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 	for _, id := range ids {
 		ne, err := sdb.getNodes(nil, "all", id, "", false)
 		if err != nil {
-			log.Println("Error getting user node for id: ", id)
+			log.Println("Error getting user node for id:", id)
 			continue
 		}
 		if len(ne) < 1 {

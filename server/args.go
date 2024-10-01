@@ -12,13 +12,15 @@ import (
 )
 
 // Args parses common SIOT command line options
-func Args(args []string) (Options, error) {
+func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	defaultNatsServer := "nats://127.0.0.1:4222"
 
 	// =============================================
 	// Command line options
 	// =============================================
-	flags := flag.NewFlagSet("server", flag.ExitOnError)
+	if flags == nil {
+		flags = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	}
 
 	// configuration options
 	flagDebugHTTP := flags.Bool("debugHttp", false, "dump http requests")
@@ -51,7 +53,7 @@ func Args(args []string) (Options, error) {
 	err := files.UpdateFiles(dataDir)
 
 	if err != nil {
-		log.Println("Error updating files: ", err)
+		log.Println("Error updating files:", err)
 		os.Exit(-1)
 	}
 
@@ -68,7 +70,7 @@ func Args(args []string) (Options, error) {
 	if natsPortE != "" {
 		n, err := strconv.Atoi(natsPortE)
 		if err != nil {
-			log.Println("Error parsing SIOT_NATS_PORT: ", err)
+			log.Println("Error parsing SIOT_NATS_PORT:", err)
 			os.Exit(-1)
 		}
 		natsPort = n
@@ -80,7 +82,7 @@ func Args(args []string) (Options, error) {
 	if natsHTTPPortE != "" {
 		n, err := strconv.Atoi(natsHTTPPortE)
 		if err != nil {
-			log.Println("Error parsing SIOT_NATS_HTTP_PORT: ", err)
+			log.Println("Error parsing SIOT_NATS_HTTP_PORT:", err)
 			os.Exit(-1)
 		}
 		natsHTTPPort = n
@@ -91,7 +93,7 @@ func Args(args []string) (Options, error) {
 	if natsWSPortE != "" {
 		n, err := strconv.Atoi(natsWSPortE)
 		if err != nil {
-			log.Println("Error parsing SIOT_NATS_WS_PORT: ", err)
+			log.Println("Error parsing SIOT_NATS_WS_PORT:", err)
 			os.Exit(-1)
 		}
 		natsWSPort = n
@@ -116,7 +118,7 @@ func Args(args []string) (Options, error) {
 	if natsTLSTimeoutS != "" {
 		natsTLSTimeout, err = strconv.ParseFloat(natsTLSTimeoutS, 64)
 		if err != nil {
-			log.Println("Error parsing nats TLS timeout: ", err)
+			log.Println("Error parsing nats TLS timeout:", err)
 			os.Exit(-1)
 		}
 	}
@@ -129,7 +131,7 @@ func Args(args []string) (Options, error) {
 	if *flagSyslog {
 		err := system.EnableSyslog()
 		if err != nil {
-			log.Println("Error enabling syslog: ", err)
+			log.Println("Error enabling syslog:", err)
 		}
 	}
 

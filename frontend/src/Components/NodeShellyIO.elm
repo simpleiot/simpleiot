@@ -113,6 +113,7 @@ view o =
                     , viewIf controlled <| displayControls onOffInput o.node.points
                     , viewIf (isSettable o.node.points) <| checkboxInput Point.typeControlled "Enable Control"
                     , checkboxInput Point.typeDisabled "Disabled"
+                    , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
                     , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
                     ]
