@@ -236,6 +236,26 @@ will need to scan and decode all messages. Are there any cases where we will
 need to do this? (this is an example where a SQL database is more flexible). One
 solution would be to create another stream where the origin is in the subject.
 
+There are times when the current point model does not fit very well -- for
+instance when sending a notification -- this is difficult to encode in an array
+of points. I think in these cases encoding the notification data as JSON
+probably makes more sense and this encoding should work much better.
+
+#### Can't send multiple points in a message
+
+In the past, it was common to send multiple points in a message for a node --
+for instance when creating a node, or updating an array. However, with the
+`type` and `key` encoded in the subject this will no longer work. What is the
+implication for having separate messages?
+
+- will be more complex to create nodes
+- when updating an array/map in a node, it will not be updated all at once, but
+  over the time it takes all the points to come into the client.
+- there is still value in arrays being encoded as points -- for instance a relay
+  devices that contains two relays. However, for configuration are we better
+  served by encoding the struct in a the data field as JSON and updating it as
+  an atomic unit?
+
 ### UI Implications
 
 Because NATS and JetStream subjects overlap, the UI could

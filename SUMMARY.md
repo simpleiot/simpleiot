@@ -61,4 +61,6 @@
 - [ADR-3: Node life cycle](docs/adr/3-node-lifecycle.md)
 - [ADR-4: Time storage/format considerations](docs/adr/4-time.md)
 - [ADR-5: Time validation](docs/adr/5-time-validation.md)
+- [ADR-6: Time storage in rule schedule](docs/adr/6-time-storage-in-rule-schedule.md)
+- [ADR-7: Jetstream store](docs/adr/7-jetstream-store.md)
 - [ADR Template](docs/adr/template.md)
