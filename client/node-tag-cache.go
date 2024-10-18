@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"slices"
 	"sync"
 
@@ -80,6 +81,9 @@ func (c nodeCache) Update(nc *nats.Conn, pts NewPoints) error {
 		ne, err := GetNodes(nc, "all", pts.ID, "", false)
 		if err != nil {
 			return err
+		}
+		if len(ne) <= 0 {
+			return fmt.Errorf("Tag Cache, node of ID %v not found in DB", pts.ID)
 		}
 		entry.Type = ne[0].Type
 		entry.Tags = make(map[tagEntry]string)

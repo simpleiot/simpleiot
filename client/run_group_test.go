@@ -26,7 +26,7 @@ func (tc *testClient) Stop(_ error) {
 }
 
 func TestGroup(_ *testing.T) {
-	g := NewGroup("testGroup")
+	g := NewRunGroup("testGroup")
 	testC := newTestClient()
 	g.Add(testC)
 

@@ -15,7 +15,10 @@ import (
 
 // Point is a flexible data structure that can be used to represent
 // a sensor value or a configuration parameter.
-// ID, Type, and Index uniquely identify a point in a device
+// Type, and Key uniquely identify a point in a node.
+// Using the Key field, maps and arrays can be represented.
+// Array would have key values like: "0", "1", "2", "3", ...
+// A map might have key values like "min", "max", "average", etc.
 type Point struct {
 	//-------------------------------------------------------
 	//1st three fields uniquely identify a point when receiving updates

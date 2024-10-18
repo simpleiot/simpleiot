@@ -247,9 +247,14 @@ const (
 	PointTypeMinIncrement = "minIncrement"
 	PointTypeMaxIncrement = "maxIncrement"
 
-	NodeTypeFile  = "file"
-	PointTypeName = "name"
-	PointTypeData = "data"
+	NodeTypeFile      = "file"
+	PointTypeName     = "name"
+	PointTypeData     = "data"
+	PointTypeBinary   = "binary"
+	PointTypeSize     = "size"
+	PointTypeHash     = "hash"
+	PointTypeDownload = "download"
+	PointTypeProgress = "progress"
 
 	PointTypeRate   = "rate"
 	PointTypeRateHR = "rateHR"

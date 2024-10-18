@@ -45,10 +45,14 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
   - `p.<nodeId>.<parentId>`
     - used to publish/subscribe node edge points. The `tombstone` point type is
       used to track if a node has been deleted or not.
-  - `phr.<nodeId>`
+  - `phr.<nodeId>` (not currently used)
     - high rate point data
   - `phrup.<upstreamId>.<nodeId>`
-    - high rate point data re-broadcasted upstream
+    - high rate point data re-broadcasted upstream. `upstreamId` is the parent
+      of the node that is interested in HR data (currently the db node).
+      `nodeId` is the node that is providing the HR data. In the case of a
+      custom HR Dest Node (serial client), the serial client may not be a child
+      of the upstream node.
   - `up.<upstreamId>.<nodeId>`
     - node points are rebroadcast at every upstream ID so that we can listen for
       point changes at any level. The sending node is also included in this. The

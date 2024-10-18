@@ -34,6 +34,7 @@ module Api.Point exposing
     , typeAutoReboot
     , typeBatchPeriod
     , typeBaud
+    , typeBinary
     , typeBitRate
     , typeBucket
     , typeChannel
@@ -52,6 +53,7 @@ module Api.Point exposing
     , typeDirectory
     , typeDisabled
     , typeDiscardDownload
+    , typeDownload
     , typeDownloadOS
     , typeEmail
     , typeEnd
@@ -70,6 +72,7 @@ module Api.Point exposing
     , typeFrequency
     , typeFrom
     , typeHRDest
+    , typeHash
     , typeHrRx
     , typeHrRxReset
     , typeID
@@ -107,6 +110,7 @@ module Api.Point exposing
     , typePollPeriod
     , typePort
     , typePrefix
+    , typeProgress
     , typeProtocol
     , typeRate
     , typeRateHR
@@ -123,6 +127,7 @@ module Api.Point exposing
     , typeService
     , typeSignalType
     , typeSignalsInDb
+    , typeSize
     , typeStart
     , typeSwitchSet
     , typeSyncCount
@@ -145,8 +150,9 @@ module Api.Point exposing
     , typeVersionApp
     , typeVersionHW
     , typeVersionOS
-    , typeWeekday
-      --  , keyNodeID
+    ,  typeWeekday
+       --  , keyNodeID
+
     , updatePoints
     , valueApp
     , valueClient
@@ -212,6 +218,16 @@ typeDescription =
 typeFilePath : String
 typeFilePath =
     "filePath"
+
+
+typeDownload : String
+typeDownload =
+    "download"
+
+
+typeProgress : String
+typeProgress =
+    "progress"
 
 
 typeScale : String
@@ -824,6 +840,16 @@ typeData =
     "data"
 
 
+typeSize : String
+typeSize =
+    "size"
+
+
+typeHash : String
+typeHash =
+    "hash"
+
+
 typeBitRate : String
 typeBitRate =
     "bitRate"
@@ -1005,6 +1031,11 @@ typeRefresh =
     "refresh"
 
 
+typeBinary : String
+typeBinary =
+    "binary"
+
+
 
 -- Point should match data/Point.go
 
@@ -1076,6 +1107,7 @@ specialPoints =
     , light
     , typeDirectory
     , typeRefresh
+    , typeBinary
     ]
 
 

@@ -1,6 +1,8 @@
 package client
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/kjx98/crc16"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/test"
@@ -42,6 +45,16 @@ type SerialDev struct {
 	Rate              bool   `point:"rate"`
 	RateHR            bool   `point:"rate"`
 	Connected         bool   `point:"connected"`
+	Download          string `point:"download"`
+	Progress          int    `point:"progress"`
+	Files             []File `child:"file"`
+}
+
+type sendData struct {
+	seq     byte
+	ack     bool
+	subject string
+	points  data.Points
 }
 
 // SerialDevClient is a SIOT client used to manage serial devices
@@ -51,7 +64,7 @@ type SerialDevClient struct {
 	stop                chan struct{}
 	newPoints           chan NewPoints
 	newEdgePoints       chan NewPoints
-	wrSeq               byte
+	wrSeq               byte // convention is we increment this right before sending a packet
 	lastSendStats       time.Time
 	natsSub             string
 	natsSubSerialPoints string
@@ -61,6 +74,7 @@ type SerialDevClient struct {
 	ratePointCountHR    int
 	rateLastSend        time.Time
 	portCobsWrapper     *CobsWrapper
+	sendPointsCh        chan sendData
 }
 
 // NewSerialDevClient ...
@@ -72,6 +86,7 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		natsSub:       SubjectNodePoints(config.ID),
+		sendPointsCh:  make(chan sendData),
 	}
 
 	ret.populateNatsSubjects()
@@ -82,7 +97,7 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 func (sd *SerialDevClient) populateNatsSubjects() {
 	phrup := fmt.Sprintf("phrup.%v.%v", sd.config.Parent, sd.config.ID)
 	if sd.config.HRDestNode != "" {
-		phrup = fmt.Sprintf("phrup.%v.x", sd.config.HRDestNode)
+		phrup = fmt.Sprintf("phrup.%v.%v", sd.config.HRDestNode, sd.config.ID)
 	}
 	sd.natsSubHRUp = phrup
 
@@ -124,11 +139,7 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 					}
 					return
 				}
-				sd.wrSeq++
-				err := sd.sendPointsToDevice(sd.wrSeq, false, "", pointsToSend)
-				if err != nil {
-					log.Println("Error sending points to serial device:", err)
-				}
+				sd.sendPointsCh <- sendData{points: pointsToSend}
 			}
 		})
 		if err != nil {
@@ -139,28 +150,43 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 	}
 }
 
+// if seq == 0, then sd.wrSeq is used
 func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pts data.Points) error {
+	if seq == 0 {
+		seq = sd.wrSeq
+	}
+
+	if sub == "" {
+		sub = "proto"
+	}
+
 	d, err := SerialEncode(seq, sub, pts)
 	if err != nil {
 		return fmt.Errorf("error encoding points to send to MCU: %w", err)
 	}
 
 	if sd.config.Debug >= 4 {
-		log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, seq, sub, pts)
+		if len(pts) > 0 {
+			log.Printf("SER TX (%v) seq:%v sub:%v :\n%v", sd.config.Description, seq, sub, pts)
+		} else {
+			log.Printf("SER TX (%v) seq:%v sub:%v\n", sd.config.Description, seq, sub)
+		}
 	}
 
-	_, err = sd.portCobsWrapper.Write(d)
-	if err != nil {
-		return fmt.Errorf("error writing data to port: %w", err)
-	}
+	if sd.portCobsWrapper != nil {
+		_, err = sd.portCobsWrapper.Write(d)
+		if err != nil {
+			return fmt.Errorf("error writing data to port: %w", err)
+		}
 
-	sd.config.Tx++
-	err = SendPoints(sd.nc, sd.natsSub,
-		data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
-		false)
+		sd.config.Tx++
+		err = SendPoints(sd.nc, sd.natsSub,
+			data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
+			false)
 
-	if err != nil {
-		return fmt.Errorf("Error sending Serial tx stats: %w", err)
+		if err != nil {
+			return fmt.Errorf("Error sending Serial tx stats: %w", err)
+		}
 	}
 
 	if !ack {
@@ -172,9 +198,21 @@ func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pt
 	return nil
 }
 
+type downloadState struct {
+	name         string
+	fileBuf      *bytes.Buffer
+	packet       *bytes.Buffer
+	seq          byte
+	currentBlock int
+}
+
 // Run the main logic for this client and blocks until stopped
 func (sd *SerialDevClient) Run() error {
 	log.Println("Starting serial client:", sd.config.Description)
+
+	// -1 indicates nothing is downloading right now
+	dlTimeout := time.NewTicker(10 * time.Second)
+	dlTimeout.Stop()
 
 	if sd.config.Connected {
 		sd.config.Connected = false
@@ -205,6 +243,135 @@ func (sd *SerialDevClient) Run() error {
 	listenerClosed := make(chan struct{})
 	listenerSerialErr := make(chan struct{})
 
+	dlState := downloadState{}
+
+	dlFileStop := func() {
+		dlState.name = ""
+		_ = SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeDownload}, true)
+	}
+
+	dlFileSend := func() {
+		if dlState.name == "" {
+			log.Println("File download error, no file queued")
+			return
+		}
+
+		// packet format
+		// sequence (1 byte)
+		// subject (16 bytes, always file)
+		// filename (16 bytes)
+		// block index (4 bytes)
+		// data
+		// crc (2 bytes)
+
+		// we save off packet in struct so we can resend on retries
+		dlState.packet = &bytes.Buffer{}
+
+		sd.wrSeq++
+		dlState.seq = sd.wrSeq
+		err := dlState.packet.WriteByte(sd.wrSeq)
+		if err != nil {
+			log.Println("Error writing seq to file packet: ", err)
+			dlFileStop()
+			return
+		}
+
+		// subject is always file
+		f := make([]byte, 16)
+		copy(f, []byte("file"))
+		_, err = dlState.packet.Write(f)
+		if err != nil {
+			log.Println("Error writing file to file packet: ", err)
+			dlFileStop()
+			return
+		}
+
+		n := make([]byte, 16)
+		copy(n, []byte(dlState.name))
+		_, err = dlState.packet.Write(n)
+		if err != nil {
+			log.Println("Error writing filename to file packet: ", err)
+			dlFileStop()
+			return
+		}
+
+		if dlState.fileBuf.Len() <= 0 {
+			dlState.currentBlock = -1
+		}
+
+		// copy block number
+		b := make([]byte, 4)
+		binary.LittleEndian.PutUint32(b, uint32(dlState.currentBlock))
+		_, err = dlState.packet.Write(b)
+		if err != nil {
+			log.Println("Error writing block numbr to packet: ", err)
+			dlFileStop()
+			return
+		}
+
+		// copy payload
+		_, err = io.CopyN(dlState.packet, dlState.fileBuf, 400)
+		if err != nil {
+			if err != io.EOF {
+				log.Println("Error copying file packet content: ", err)
+				dlFileStop()
+				return
+			}
+		}
+
+		crc := crc16.ChecksumCCITT(dlState.packet.Bytes())
+		_ = binary.Write(dlState.packet, binary.LittleEndian, crc)
+
+		if sd.config.Debug >= 4 {
+			log.Printf("SER TX file seq:%v name:%v block:%v len:%v", sd.wrSeq, dlState.name, dlState.currentBlock, dlState.packet.Len())
+		}
+
+		if sd.portCobsWrapper != nil {
+			// _, err = io.Copy(sd.portCobsWrapper, dlState.packet)
+			_, err = sd.portCobsWrapper.Write(dlState.packet.Bytes())
+
+			if err != nil {
+				log.Println("Error writing file to cobs wrapper: ", err)
+				return
+			}
+		}
+	}
+
+	// dlRetry := func() {
+
+	// }
+
+	dlFileStart := func(name string) {
+		if dlState.name != "" {
+			log.Println("Error, file download already in progress")
+			return
+		}
+
+		if len(name) > 16 {
+			log.Println("file name is too long: ", name)
+			return
+		}
+
+		// see if we can find the file
+		for _, f := range sd.config.Files {
+			if f.Name == name {
+				d, err := f.GetContents()
+				if err != nil {
+					log.Println("Error decoding file: ", err)
+					continue
+				}
+				dlState.fileBuf = bytes.NewBuffer(d)
+				dlState.name = name
+				dlState.currentBlock = 0
+
+				dlFileSend()
+				return
+			}
+		}
+
+		log.Println("Error could not find file: ", name)
+	}
+
 	closePort := func() {
 		if sd.portCobsWrapper != nil {
 			log.Println("Closing serial port:", sd.config.Description)
@@ -217,6 +384,10 @@ func (sd *SerialDevClient) Run() error {
 		if err != nil {
 			log.Println("Error sending connected point")
 		}
+	}
+
+	if sd.config.Download != "" {
+		_ = SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeDownload}, true)
 	}
 
 	listener := func(port io.ReadWriteCloser, maxMessageLen int) {
@@ -415,6 +586,25 @@ exitSerialClient:
 				break
 			}
 
+			if subject == "ack" {
+				if sd.config.Debug >= 4 {
+					log.Printf("SER RX (%v) seq:%v sub:%v", sd.config.Description, seq, subject)
+				}
+				// TODO we need to handle acks, retries, etc
+				if dlState.name != "" {
+					if seq == dlState.seq {
+						if dlState.currentBlock == -1 {
+							log.Println("File download finished: ", dlState.name)
+							dlFileStop()
+						} else {
+							dlState.currentBlock++
+							dlFileSend()
+						}
+					}
+				}
+				break
+			}
+
 			if subject == "phr" {
 				// we have high rate points
 				sd.config.HrRx++
@@ -457,11 +647,11 @@ exitSerialClient:
 
 			if errDecode == nil && len(points) > 0 {
 				if sd.config.Debug >= 4 {
-					log.Printf("SER RX (%v) seq:%v\n%v", sd.config.Description, seq, points)
+					log.Printf("SER RX (%v) seq:%v sub:%v\n%v", sd.config.Description, seq, subject, points)
 				}
 
 				// send response
-				err := sd.sendPointsToDevice(seq, true, "ack", nil)
+				err := sd.sendPointsToDevice(seq, false, "ack", nil)
 				if err != nil {
 					log.Println("Error sending ack to device:", err)
 				}
@@ -552,11 +742,27 @@ exitSerialClient:
 						op = true
 					}
 				}
+
 				if p.Type == data.PointTypeHRDest {
 					updateNatsSubjects = true
 				}
+
 				if p.Type == data.PointTypeSyncParent {
 					updateNatsSubjects = true
+				}
+
+				if p.Type == data.PointTypeDebug {
+					sd.portCobsWrapper.SetDebug(int(p.Value))
+				}
+
+				if p.Type == data.PointTypeDownload {
+					if p.Text == "" {
+						log.Println("Stopping download: ", dlState.name)
+						dlFileStop()
+					} else {
+						dlFileStart(p.Text)
+						log.Println("Starting download: ", p.Text)
+					}
 				}
 			}
 
@@ -660,8 +866,6 @@ exitSerialClient:
 						data.PointTypeRxReset,
 						data.PointTypeTxReset:
 						continue
-					case data.PointTypeDebug:
-						sd.portCobsWrapper.SetDebug(int(p.Value))
 					}
 
 					// strip off Origin as MCU does not need that
@@ -682,6 +886,12 @@ exitSerialClient:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &sd.config)
 			if err != nil {
 				log.Println("error merging new points:", err)
+			}
+
+		case sData := <-sd.sendPointsCh:
+			err := sd.sendPointsToDevice(sData.seq, sData.ack, sData.subject, sData.points)
+			if err != nil {
+				log.Println("Error sending data to device: ", err)
 			}
 
 			// TODO need to send edge points to MCU, not implemented yet

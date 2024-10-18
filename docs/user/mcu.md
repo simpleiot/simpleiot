@@ -15,15 +15,11 @@ details on this client.
 
 ![mcu](images/mcu.png)
 
-## Arduino Examples
+## File Download
 
-Several
-[Arduino examples](https://github.com/simpleiot/firmware/tree/master/Arduino)
-are available that can be used to demonstrate this functionality.
+Files (or larger chunks of data) can be downloaded to the MCU by adding a [File](file.md) node to the serial node. Any child File node will then show up as a download option.
 
-See [reference documentation](../ref/serial.md) for more information.
-
-TODO: add instructions for setting up an Arduino system.
+​		<img src="assets/image-20240903123623959.png" alt="image-20240903123623959" style="zoom:50%;" />
 
 ## Debug Levels
 
@@ -35,3 +31,13 @@ You can set the following debug levels to log information.
 - 4: log points received or sent to the MCU
 - 8: log cobs decoded data (must be COBS wrapped)
 - 9: log raw serial data received (pre-COBS)
+
+## Zephyr Examples
+
+The [zephyr-siot](https://github.com/simpleiot/zephyr-siot) repository contains examples of MCU firmware that can interface with Simple IoT over serial, USB, and Network connections. This is a work in progress and is not complete.
+
+## Arduino Examples (no longer maintained)
+
+Several
+[Arduino examples](https://github.com/simpleiot/firmware/tree/master/Arduino)
+are available that can be used to demonstrate this functionality.

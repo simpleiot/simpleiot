@@ -24,8 +24,8 @@ type Client interface {
 }
 
 // DefaultClients returns an actor for the default group of built in clients
-func DefaultClients(nc *nats.Conn) (*Group, error) {
-	g := NewGroup("Default clients")
+func DefaultClients(nc *nats.Conn) (*RunGroup, error) {
+	g := NewRunGroup("Default clients")
 
 	sc := NewManager(nc, NewSerialDevClient, nil)
 	g.Add(sc)
@@ -65,6 +65,9 @@ func DefaultClients(nc *nats.Conn) (*Group, error) {
 
 	up := NewManager(nc, NewUpdateClient, nil)
 	g.Add(up)
+
+	fc := NewManager(nc, NewFileClient, []string{data.NodeTypeCanBus, data.NodeTypeSerialDev})
+	g.Add(fc)
 
 	return g, nil
 }
