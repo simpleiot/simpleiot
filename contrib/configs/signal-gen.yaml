@@ -24,7 +24,7 @@ nodes:
         parent: e37ee9b9-4add-43f1-9581-c0ef8894c6e2
         points:
           - type: email
-            text: admin@admin.com
+            text: admin
           - type: firstName
             text: admin
           - type: lastName
