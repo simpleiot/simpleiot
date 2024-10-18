@@ -22,6 +22,9 @@ For more details or to discuss releases, please visit the
   - fix issues with populate node ID for high rate data
 - db client
   - fix crash if node ID is not populated correctly in data
+- client (BREAKING API CHANGE)
+  - renamed client.Group -> client.RunGroup. This is so we don't conflict with
+    the client that manages group nodes
 
 ## [[0.17.0] - 2024-08-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.17.0)
 
