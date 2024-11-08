@@ -9,6 +9,16 @@ as they are created and modified.
 
 See [Client] and [NewManager] for ideas on how to get started with your own client.
 
+When debugging client test code, it can be very useful to dump the node tree for inspection.
+This can be done with the following code:
+
+	nodes, err := client.ExportNodes(nc, "root")
+	if err != nil {
+		t.Fatal("Error exporting nodes: ", err)
+	}
+
+	fmt.Println(string(nodes))
+
 This package also contains a number of utility functions for interacting with the
 Simple IoT [NATS API].
 
