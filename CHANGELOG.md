@@ -11,8 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.18.0] - 2024-11-07](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.0)
+
 - change default login to `admin`/`admin` (used to be `admin@admin.com`, but
-  there was no reason to have a bogus email address). (#730)
+  there was is reason to have a bogus email address). (#730)
 - file client/node
   - option to store binary files
   - display filename, file size, and stored size
@@ -27,6 +29,7 @@ For more details or to discuss releases, please visit the
 - client (BREAKING API CHANGE)
   - renamed client.Group -> client.RunGroup. This is so we don't conflict with
     the client that manages group nodes
+- fix issue with user login when moving users to different groups (#713)
 
 ## [[0.17.0] - 2024-08-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.17.0)
 
