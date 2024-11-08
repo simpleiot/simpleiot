@@ -16,7 +16,7 @@ func TestAuthDefault(t *testing.T) {
 
 	defer stop()
 
-	ne, err := client.UserCheck(nc, "admin@admin.com", "admin")
+	ne, err := client.UserCheck(nc, "admin", "admin")
 	if err != nil {
 		t.Fatal("User check error: ", err)
 	}
