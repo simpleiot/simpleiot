@@ -71,6 +71,6 @@ func TestAuthMovedUser(t *testing.T) {
 	}
 
 	if len(ne) < 2 {
-		t.Fatal("after move, expected at least two nodes from auth request")
+		t.Fatal("after move, expected at least two nodes from auth request: ", len(ne))
 	}
 }
