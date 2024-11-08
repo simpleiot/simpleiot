@@ -371,7 +371,7 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 		ID:        uuid.New().String(),
 		FirstName: "admin",
 		LastName:  "user",
-		Email:     "admin@admin.com",
+		Email:     "admin",
 		Pass:      "admin",
 	}
 
@@ -1118,7 +1118,7 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 			// make sure edge is not tombstone
 			for _, p := range e.Points {
 				if p.Type == data.PointTypeTombstone && p.Value != 0 {
-					return false, nil
+					continue
 				}
 			}
 

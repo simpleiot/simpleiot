@@ -60,7 +60,7 @@ type Server struct {
 	nc                 *nats.Conn
 	options            Options
 	natsServer         *server.Server
-	clients            *client.Group
+	clients            *client.RunGroup
 	chNatsClientClosed chan struct{}
 	chStop             chan struct{}
 	chWaitStart        chan struct{}
@@ -112,7 +112,7 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		chNatsClientClosed: chNatsClientClosed,
 		chStop:             make(chan struct{}),
 		chWaitStart:        make(chan struct{}),
-		clients:            client.NewGroup("Server clients"),
+		clients:            client.NewRunGroup("Server clients"),
 	}, nc, err
 }
 

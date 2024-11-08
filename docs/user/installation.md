@@ -18,7 +18,7 @@ for your platform and run the executable. Once running, you can log into the
 user interface by opening [http://localhost:8118](http://localhost:8118) in a
 browser. The default login is:
 
-- user: `admin@admin.com`
+- user: `admin`
 - pass: `admin`
 
 ### Simple IoT self-install (Linux only)
