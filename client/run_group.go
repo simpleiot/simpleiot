@@ -6,7 +6,7 @@ import (
 	"github.com/oklog/run"
 )
 
-// Group is used to group a list of clients and start/stop them
+// RunGroup is used to group a list of clients and start/stop them
 // currently a thin wrapper around run.Group that adds a Stop() function
 type RunGroup struct {
 	name     string
@@ -15,7 +15,7 @@ type RunGroup struct {
 	group    run.Group
 }
 
-// NewGroup creates a new client group
+// NewRunGroup creates a new client group
 func NewRunGroup(name string) *RunGroup {
 	return &RunGroup{name: name, stop: make(chan struct{})}
 }
