@@ -419,8 +419,6 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 		return
 	}
 
-	fmt.Printf("CLIFF: handleAuthUser: %+v\n", points)
-
 	emailP, ok := points.Find(data.PointTypeEmail, "")
 	if !ok {
 		log.Println("Error, auth.user no email point")
