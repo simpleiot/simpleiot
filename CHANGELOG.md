@@ -11,6 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## Next
+
+- don't return power information for shelly devices that don't have power
+  measurement (like Plus 1)
+
 ## [[0.18.1] - 2024-11-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.1)
 
 - fix bug where Shelly IO Enable Control option was not working (#739)
