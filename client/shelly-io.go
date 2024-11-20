@@ -115,7 +115,7 @@ type ShellyIo struct {
 	LightSet    []bool    `point:"lightSet"`
 	Input       []bool    `point:"input"`
 	Offline     bool      `point:"offline"`
-	Control     bool      `point:"control"`
+	Controlled  bool      `point:"controlled"`
 	Disabled    bool      `point:"disabled"`
 }
 

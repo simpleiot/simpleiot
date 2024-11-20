@@ -172,7 +172,7 @@ done:
 				break
 			}
 
-			if sioc.config.Control {
+			if sioc.config.Controlled {
 				switchCount := min(len(sioc.config.Switch), len(sioc.config.SwitchSet))
 				for i := 0; i < switchCount; i++ {
 					if sioc.config.Switch[i] != sioc.config.SwitchSet[i] {
