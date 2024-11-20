@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.18.1] - 2024-11-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.1)
+
+- fix bug where Shelly IO Enable Control option was not working (#739)
+
 ## [[0.18.0] - 2024-11-07](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.0)
 
 - change default login to `admin`/`admin` (used to be `admin@admin.com`, but
