@@ -90,6 +90,9 @@ For support or to discuss this project, use one of the following options:
 - subscribe to our [email newsletter](https://tmpdir.ck.page/196d1fb480) for
   project updates.
 
+If you use this project, please let us know! It is really helpful to hear from
+users.
+
 ## License
 
 Apache Version 2.0
