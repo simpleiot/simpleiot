@@ -98,7 +98,7 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
 ## HTTP
 
 For details on data payloads, it is simplest to just refer to the Go types which
-have JSON tags.
+have JSON tags. HTTP APIs currently return JSON payloads.
 
 Most APIs that do not return specific data (update/delete) return a
 [StandardResponse](https://github.com/simpleiot/simpleiot/blob/master/data/api.go)

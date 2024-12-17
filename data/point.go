@@ -60,9 +60,8 @@ const (
 	PointDataTypeUnknown PointDataType = 0
 	PointDataTypeFloat   PointDataType = 1
 	PointDataTypeInt     PointDataType = 2
-	PointDataTypeUint    PointDataType = 3
-	PointDataTypeString  PointDataType = 4
-	PointDataTypeJSON    PointDataType = 5
+	PointDataTypeString  PointDataType = 3
+	PointDataTypeJSON    PointDataType = 4
 )
 
 // Point is a flexible data structure that can be used to represent
@@ -120,26 +119,6 @@ func (p *Point) ValueInt() (int64, error) {
 		return int64(binary.LittleEndian.Uint32(p.Data)), nil
 	case 8:
 		return int64(binary.LittleEndian.Uint64(p.Data)), nil
-	default:
-		return 0, fmt.Errorf("invalid length for int %i", len(p.Data))
-	}
-}
-
-// ValueUint decodes an uint value from the point
-func (p *Point) ValueUint() (uint64, error) {
-	if p.DataType != PointDataTypeInt {
-		return 0, fmt.Errorf("point is not an int")
-	}
-
-	switch len(p.Data) {
-	case 1:
-		return uint64(p.Data[0]), nil
-	case 2:
-		return uint64(binary.LittleEndian.Uint16(p.Data)), nil
-	case 4:
-		return uint64(binary.LittleEndian.Uint32(p.Data)), nil
-	case 8:
-		return binary.LittleEndian.Uint64(p.Data), nil
 	default:
 		return 0, fmt.Errorf("invalid length for int %i", len(p.Data))
 	}
