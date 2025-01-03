@@ -155,6 +155,7 @@ func (p *Point) PutString(v string) {
 }
 
 func (p *Point) PutInt(v int64) {
+	p.DataType = PointDataTypeInt
 	absValue := v
 	if v < 0 {
 		absValue = -v
@@ -177,6 +178,7 @@ func (p *Point) PutInt(v int64) {
 }
 
 func (p *Point) PutFloat(v float64) {
+	p.DataType = PointDataTypeFloat
 	p.Data = make([]byte, 8)
 
 	bits := math.Float64bits(v)
