@@ -20,7 +20,6 @@ const (
 	PointTypeTag          = "tag"
 	// PointTypeID typically refers to Node ID
 	PointTypeID                 = "id"
-	PointTypeAddress            = "address"
 	PointTypeDebug              = "debug"
 	PointTypeInitialized        = "initialized"
 	PointTypePollPeriod         = "pollPeriod"
@@ -360,4 +359,10 @@ const (
 	PointTypeAutoDownload    = "autoDownload"
 	PointTypeDirectory       = "directory"
 	PointTypeRefresh         = "refresh"
+
+	// points for networking config
+	PointTypeStaticIP = "staticIP"
+	PointTypeAddress  = "address"
+	PointTypeNetmask  = "netmask"
+	PointTypeGateway  = "gateway"
 )

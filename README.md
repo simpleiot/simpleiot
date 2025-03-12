@@ -1,4 +1,4 @@
-<img src="docs/images/simple-iot-logo.png?raw=true" width="150">
+<img src="docs/images/siot-logo.png?raw=true" width="150">
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/simpleiot/simpleiot.svg)](https://pkg.go.dev/github.com/simpleiot/simpleiot)
 ![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=master)
@@ -89,6 +89,9 @@ For support or to discuss this project, use one of the following options:
 - [Simple IoT YouTube channel](https://www.youtube.com/@simple-iot)
 - subscribe to our [email newsletter](https://tmpdir.ck.page/196d1fb480) for
   project updates.
+
+If you use this project, please let us know! It is really helpful to hear from
+users.
 
 ## License
 
