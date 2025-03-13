@@ -1,6 +1,8 @@
 package client_test
 
 import (
+	"fmt"
+	"log"
 	"testing"
 
 	"github.com/goccy/go-yaml"
@@ -10,7 +12,6 @@ import (
 )
 
 // FIXME, need tests for duplicate, move, and mirror node
-
 func TestExportNodes(t *testing.T) {
 	nc, root, stop, err := server.TestServer()
 
@@ -48,6 +49,99 @@ func TestExportNodes(t *testing.T) {
 
 	if exp.Nodes[0].Children[0].Type != data.NodeTypeUser {
 		t.Fatal("child node is not user type")
+	}
+}
+
+func TestExportImportNodes(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	ne, err := client.UserCheck(nc, "admin", "admin")
+	if err != nil {
+		t.Fatal("User check error: ", err)
+	}
+
+	if len(ne) != 2 {
+		t.Fatal("Expected exactly nodes from auth request")
+	}
+
+	y, err := client.ExportNodes(nc, root.ID)
+
+	if err != nil {
+		t.Fatal("Error exporting nodes: ", err)
+	}
+
+	fmt.Println("export: ", string(y))
+
+	err = client.ImportNodes(nc, "root", y, "test", false)
+
+	if err != nil {
+		t.Fatal("Error importing nodes: ", err)
+	}
+
+	// check to make sure original device node has been tombstoned
+	ne, err = client.GetNodes(nc, "inst1", "all", "", true)
+	if err != nil {
+		t.Fatal("Error getting original device node: ", err)
+	}
+
+	if len(ne) > 0 {
+		t.Fatal("Original devices node was not deleted")
+	}
+
+	// check user auth check
+	ne, err = client.UserCheck(nc, "admin", "admin")
+	if err != nil {
+		t.Fatal("User check error: ", err)
+	}
+
+	// should return exactly 2 nodes, a user and jwt node
+	if len(ne) != 2 {
+		fmt.Println("ne: ", ne)
+		t.Fatal("Expected at exactly two nodes from auth request, got: ", len(ne))
+	}
+
+	userNodeFound := false
+
+	for _, n := range ne {
+		if n.Type == data.NodeTypeUser {
+			userNodeFound = true
+
+			nodes, err := client.GetNodesForUser(nc, n.ID)
+			if err != nil {
+				log.Println("Error getting nodes for user:", err)
+			}
+
+			fmt.Println("nodes for user: ", nodes)
+
+			// there should be two nodes in the new system -- a device and user node
+			if len(nodes) != 2 {
+				t.Fatal("Should be exactly 2 nodes for user after import, got: ", len(nodes))
+			}
+		}
+	}
+
+	if !userNodeFound {
+		t.Fatal("User node not found")
+	}
+
+	ne, err = client.GetNodes(nc, "root", "all", "", false)
+	if err != nil {
+		t.Fatal("error getting nodes: ", err)
+	}
+
+	if len(ne) != 1 {
+		t.Fatal("Expected only one device node")
+	}
+
+	// make sure the device node is new, and not the original
+	if ne[0].ID == "inst1" {
+		t.Fatal("ID is not the new ID, but rather the test ID of the original node")
 	}
 }
 
