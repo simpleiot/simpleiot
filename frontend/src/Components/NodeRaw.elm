@@ -44,7 +44,7 @@ view o =
 viewPoints : NodeInputs.NodeInputOptions msg -> Element msg
 viewPoints o =
     table [ padding 7 ]
-        { data = o.node.points |> Point.filterTombstone |> List.sortWith Point.sort |> List.map renderPoint
+        { data = o.node.points |> Point.filterDeleted |> List.sortWith Point.sort |> List.map renderPoint
         , columns =
             let
                 cell =

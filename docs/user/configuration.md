@@ -57,21 +57,17 @@ A subset of the tree can be exported by specifying the node ID:
 
 Nodes defined in a YAML file can be imported into a running SIOT instance using
 the CLI, or the Go API. When using the CLI, the import file must be specified on
-STDIN. The following imports a new node tree under the root device node. This is
-useful for adding new functionality to an instance. If there are any node IDs in
-the import they are mapped to new IDs to eliminate any possibility of ID
-conflicts if the config is imported into multiple systems with a common upstream
-sync, etc.
-
-`siot import < import.yaml`
+STDIN. If there are any node IDs in the import they are mapped to new IDs to
+eliminate any possibility of ID conflicts if the config is imported into
+multiple systems with a common upstream sync, etc.
 
 If nodes reference each other (for instance a rule condition and a Modbus node),
 then friendly IDs can be used to make it easy to edit and reference. These
 friendly IDs will be replaced by a common UUID during import.
 
-If you want to import nodes at a specific location (typically a group), then you
-can specify the parent node ID. This ID can be obtained by expanding the node
-and clicking the copy button. This will put the ID into your system copy buffer.
+To import nodes at a specific location (typically a group), then you can specify
+the parent node ID. This ID can be obtained by expanding the node and clicking
+the copy button. This will put the ID into your system copy buffer.
 
 `siot import -parentID 9d7c1c03-0908-4f8b-86d7-8e79184d441d < import.yaml`
 

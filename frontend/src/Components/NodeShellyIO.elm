@@ -115,7 +115,7 @@ view o =
                     , checkboxInput Point.typeDisabled "Disabled"
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
-                    , viewPoints o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
+                    , viewPoints o.zone <| Point.filterSpecialPoints <| Point.filterDeleted <| List.sortWith Point.sort o.node.points
                     ]
 
                 else

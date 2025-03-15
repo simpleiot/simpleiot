@@ -13,12 +13,14 @@ import (
 
 // shellyIOConfig describes the configuration of a Shelly device
 type shellyIOConfig struct {
-	Name string `json:"name"`
+	Name      string `json:"name"`
+	AddonType string `json:"addon_type"`
 }
 
 type shellyGen2SysConfig struct {
 	Device struct {
-		Name string `json:"name"`
+		Name      string `json:"name"`
+		AddonType string `json:"addon_type"`
 	} `json:"device"`
 }
 
@@ -46,16 +48,24 @@ type shellyGen2SwitchSetResp struct {
 	WasOn bool `json:"wasOn"`
 }
 
-func (swi *shellyGen2SwitchStatus) toPoints(index int) data.Points {
+func (swi *shellyGen2SwitchStatus) toPoints(index int, pm bool) data.Points {
 	now := time.Now()
 	key := strconv.Itoa(index)
-	return data.Points{
+	pts := data.Points{
 		{Time: now, Type: data.PointTypeSwitch, Key: key, Value: data.BoolToFloat(swi.Output)},
-		{Time: now, Type: data.PointTypePower, Key: key, Value: float64(swi.Apower)},
-		{Time: now, Type: data.PointTypeVoltage, Key: key, Value: float64(swi.Voltage)},
-		{Time: now, Type: data.PointTypeCurrent, Key: key, Value: float64(swi.Current)},
 		{Time: now, Type: data.PointTypeTemperature, Key: key, Value: float64(swi.Temperature.TC)},
 	}
+
+	if pm {
+		pts = append(pts,
+			data.Points{{Time: now, Type: data.PointTypePower, Key: key, Value: float64(swi.Apower)},
+				{Time: now, Type: data.PointTypeVoltage, Key: key, Value: float64(swi.Voltage)},
+				{Time: now, Type: data.PointTypeCurrent, Key: key, Value: float64(swi.Current)},
+			}...,
+		)
+	}
+
+	return pts
 }
 
 // Example response
@@ -95,7 +105,8 @@ func (sls *shellyGen1LightStatus) toPoints() data.Points {
 
 func (sg2c shellyGen2SysConfig) toSettings() shellyIOConfig {
 	return shellyIOConfig{
-		Name: sg2c.Device.Name,
+		Name:      sg2c.Device.Name,
+		AddonType: sg2c.Device.AddonType,
 	}
 }
 
@@ -157,20 +168,21 @@ var shellyGenMap = map[string]ShellyGen{
 
 // shellComp is used to describe shelly "components" a device may support
 type shellyComp struct {
-	name  string
-	count int
+	name string
+	id   int
 }
 
 var shellyCompMap = map[string][]shellyComp{
-	data.PointValueShellyTypeBulbDuo: {{"light", 1}},
-	data.PointValueShellyType1PM:     {{"switch", 1}},
-	data.PointValueShellyTypeI4:      {{"input", 4}},
-	data.PointValueShellyTypePlugUS:  {{"switch", 1}},
-	data.PointValueShellyTypePlugUK:  {{"switch", 1}},
-	data.PointValueShellyTypePlugIT:  {{"switch", 1}},
-	data.PointValueShellyTypePlugS:   {{"switch", 1}},
-	data.PointValueShellyTypePlus1:   {{"switch", 1}, {"input", 1}},
-	data.PointValueShellyTypePlus2PM: {{"switch", 2}, {"input", 2}},
+	data.PointValueShellyTypeBulbDuo: {{"light", 0}},
+	data.PointValueShellyType1PM:     {{"switch", 0}},
+	data.PointValueShellyTypeI4:      {{"input", 0}, {"input", 0}, {"input", 0}, {"input", 0}},
+	data.PointValueShellyTypePlugUS:  {{"switch", 0}},
+	data.PointValueShellyTypePlugUK:  {{"switch", 0}},
+	data.PointValueShellyTypePlugIT:  {{"switch", 0}},
+	data.PointValueShellyTypePlugS:   {{"switch", 0}},
+	data.PointValueShellyTypePlus1:   {{"switch", 0}, {"input", 0}},
+	data.PointValueShellyTypePlus1PM: {{"switch", 0}, {"input", 0}},
+	data.PointValueShellyTypePlus2PM: {{"switch", 0}, {"switch", 1}, {"input", 0}, {"input", 1}},
 }
 
 var shellySettableOnOff = map[string]bool{
@@ -182,6 +194,14 @@ var shellySettableOnOff = map[string]bool{
 	data.PointValueShellyTypePlugIT:  true,
 	data.PointValueShellyTypePlugS:   true,
 	data.PointValueShellyTypePlus1:   true,
+	data.PointValueShellyTypePlus1PM: true,
+	data.PointValueShellyTypePlus2PM: true,
+}
+
+var shellyHasPM = map[string]bool{
+	data.PointValueShellyTypePlugUS:  true,
+	data.PointValueShellyTypePlugUK:  true,
+	data.PointValueShellyTypePlus1PM: true,
 	data.PointValueShellyTypePlus2PM: true,
 }
 
@@ -199,6 +219,12 @@ func (sio *ShellyIo) Gen() ShellyGen {
 func (sio *ShellyIo) IsSettableOnOff() bool {
 	settable := shellySettableOnOff[sio.Type]
 	return settable
+}
+
+// HasPM returns true if the device has power monitoring
+func (sio *ShellyIo) HasPM() bool {
+	pm := shellyHasPM[sio.Type]
+	return pm
 }
 
 // GetConfig returns the configuration of Shelly Device
@@ -300,128 +326,110 @@ func (sio *ShellyIo) SetOnOff(comp string, index int, on bool) (data.Points, err
 	}
 }
 
-func (sio *ShellyIo) gen1GetLight(count int) (data.Points, error) {
-	ret := data.Points{}
+func (sio *ShellyIo) gen1GetLight() (data.Points, error) {
 
-	for i := 0; i < count; i++ {
-		res, err := httpClient.Get("http://" + sio.IP + "/light/0")
-		if err != nil {
-			return data.Points{}, err
-		}
-		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
-			return data.Points{}, fmt.Errorf("Shelly GetConfig returned an error code: %v", res.StatusCode)
-		}
-
-		var status shellyGen1LightStatus
-
-		err = json.NewDecoder(res.Body).Decode(&status)
-		if err != nil {
-			return data.Points{}, err
-		}
-
-		ret = append(ret, status.toPoints()...)
+	res, err := httpClient.Get("http://" + sio.IP + "/light/0")
+	if err != nil {
+		return data.Points{}, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return data.Points{}, fmt.Errorf("Shelly GetConfig returned an error code: %v", res.StatusCode)
 	}
 
-	return ret, nil
+	var status shellyGen1LightStatus
+
+	err = json.NewDecoder(res.Body).Decode(&status)
+	if err != nil {
+		return data.Points{}, err
+	}
+
+	return status.toPoints(), nil
 }
 
-func (sio *ShellyIo) gen2GetSwitch(count int) (data.Points, error) {
-	ret := data.Points{}
+func (sio *ShellyIo) gen2GetSwitch(id int) (data.Points, error) {
+	url := fmt.Sprintf("http://%v/rpc/Switch.GetStatus?id=%v", sio.IP, id)
 
-	for i := 0; i < count; i++ {
-
-		url := fmt.Sprintf("http://%v/rpc/Switch.GetStatus?id=%v", sio.IP, i)
-
-		res, err := httpClient.Get(url)
-		if err != nil {
-			return data.Points{}, err
-		}
-		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
-			return data.Points{}, fmt.Errorf("Shelly GetConfig returned an error code: %v", res.StatusCode)
-		}
-
-		var status shellyGen2SwitchStatus
-
-		err = json.NewDecoder(res.Body).Decode(&status)
-		if err != nil {
-			return data.Points{}, err
-		}
-		pts := status.toPoints(i)
-		ret = append(ret, pts...)
+	res, err := httpClient.Get(url)
+	if err != nil {
+		return data.Points{}, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return data.Points{}, fmt.Errorf("Shelly GetConfig returned an error code: %v", res.StatusCode)
 	}
 
-	return ret, nil
+	var status shellyGen2SwitchStatus
+
+	err = json.NewDecoder(res.Body).Decode(&status)
+	if err != nil {
+		return data.Points{}, err
+	}
+	pts := status.toPoints(id, sio.HasPM())
+
+	return pts, nil
 }
 
-func (sio *ShellyIo) gen2GetInput(count int) (data.Points, error) {
-	var points data.Points
-	for channel := 0; channel < count; channel++ {
-		res, err := httpClient.Get("http://" + sio.IP + "/rpc/Input.GetStatus?id=" + strconv.Itoa(channel))
-		if err != nil {
-			return data.Points{}, err
-		}
-		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
-			return data.Points{}, fmt.Errorf("Shelly GetConfig returned an error code: %v", res.StatusCode)
-		}
-
-		var status shellyGen2InputStatus
-
-		err = json.NewDecoder(res.Body).Decode(&status)
-		if err != nil {
-			return data.Points{}, err
-		}
-
-		points = append(points, status.toPoints()...)
+func (sio *ShellyIo) gen2GetInput(id int) (data.Points, error) {
+	res, err := httpClient.Get("http://" + sio.IP + "/rpc/Input.GetStatus?id=" + strconv.Itoa(id))
+	if err != nil {
+		return data.Points{}, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return data.Points{}, fmt.Errorf("Shelly GetConfig returned an error code: %v", res.StatusCode)
 	}
 
-	return points, nil
+	var status shellyGen2InputStatus
+
+	err = json.NewDecoder(res.Body).Decode(&status)
+	if err != nil {
+		return data.Points{}, err
+	}
+
+	return status.toPoints(), nil
 }
 
 // GetStatus gets the current status of the device
 func (sio *ShellyIo) GetStatus() (data.Points, error) {
 	ret := data.Points{}
 
-	// TODO: this needs clean up some to be data driven instead of all the if statements
 	gen := sio.Gen()
 
-	if cnt := sio.getCompCount("switch"); cnt > 0 {
-		if gen == ShellyGen1 {
-			_ = gen
-			// TODO: need to add gen 1 support for switch status
-		}
-		if gen == ShellyGen2 {
-			pts, err := sio.gen2GetSwitch(cnt)
-			if err != nil {
-				return nil, err
+	for _, comp := range shellyCompMap[sio.Type] {
+		switch comp.name {
+		case "switch":
+			if gen == ShellyGen1 {
+				_ = gen
+				// TODO: need to add gen 1 support for switch status
 			}
-			ret = append(ret, pts...)
-		}
-	}
-
-	if cnt := sio.getCompCount("input"); cnt > 0 {
-		if gen == ShellyGen1 {
-			_ = gen
-			// TODO: need to add gen 1 support for input status
-		}
-		if gen == ShellyGen2 {
-			pts, err := sio.gen2GetInput(cnt)
-			if err != nil {
-				return nil, err
+			if gen == ShellyGen2 {
+				pts, err := sio.gen2GetSwitch(comp.id)
+				if err != nil {
+					return nil, err
+				}
+				ret = append(ret, pts...)
 			}
-			ret = append(ret, pts...)
-		}
-	}
-
-	if cnt := sio.getCompCount("light"); cnt > 0 {
-		if gen == ShellyGen1 {
-			pts, err := sio.gen1GetLight(cnt)
-			if err != nil {
-				return nil, err
+		case "input":
+			if gen == ShellyGen1 {
+				_ = gen
+				// TODO: need to add gen 1 support for input status
 			}
-			ret = append(ret, pts...)
+			if gen == ShellyGen2 {
+				pts, err := sio.gen2GetInput(comp.id)
+				if err != nil {
+					return nil, err
+				}
+				ret = append(ret, pts...)
+			}
+		case "light":
+			if gen == ShellyGen1 {
+				pts, err := sio.gen1GetLight()
+				if err != nil {
+					return nil, err
+				}
+				ret = append(ret, pts...)
+			}
 		}
 	}
 
@@ -472,20 +480,4 @@ func (sio *ShellyIo) SetName(name string) error {
 		return fmt.Errorf("Error setting name: Unsupported device: %v", sio.Type)
 	}
 	return nil
-}
-
-// GetCompCount returns the number of components found in the device
-func (sio *ShellyIo) getCompCount(comp string) int {
-	comps, ok := shellyCompMap[sio.Type]
-	if !ok {
-		return 0
-	}
-
-	for _, c := range comps {
-		if c.name == comp {
-			return c.count
-		}
-	}
-
-	return 0
 }
