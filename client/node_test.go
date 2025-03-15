@@ -12,6 +12,7 @@ import (
 )
 
 // FIXME, need tests for duplicate, move, and mirror node
+
 func TestExportNodes(t *testing.T) {
 	nc, root, stop, err := server.TestServer()
 
@@ -85,7 +86,7 @@ func TestExportImportNodes(t *testing.T) {
 	}
 
 	// check to make sure original device node has been tombstoned
-	ne, err = client.GetNodes(nc, "inst1", "all", "", true)
+	ne, err = client.GetNodes(nc, "all", "inst1", "", false)
 	if err != nil {
 		t.Fatal("Error getting original device node: ", err)
 	}
