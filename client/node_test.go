@@ -77,7 +77,7 @@ func TestExportImportNodes(t *testing.T) {
 		t.Fatal("Error exporting nodes: ", err)
 	}
 
-	fmt.Println("export: ", string(y))
+	// fmt.Println("export: ", string(y))
 
 	err = client.ImportNodes(nc, "root", y, "test", false)
 
@@ -118,10 +118,9 @@ func TestExportImportNodes(t *testing.T) {
 				log.Println("Error getting nodes for user:", err)
 			}
 
-			fmt.Println("nodes for user: ", nodes)
-
 			// there should be two nodes in the new system -- a device and user node
 			if len(nodes) != 2 {
+				fmt.Println("nodes for user: ", nodes)
 				t.Fatal("Should be exactly 2 nodes for user after import, got: ", len(nodes))
 			}
 		}
