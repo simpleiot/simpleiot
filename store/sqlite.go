@@ -1114,11 +1114,13 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 			return false, err
 		}
 
+	NextEdge:
 		for _, e := range edges {
 			// make sure edge is not tombstone
 			for _, p := range e.Points {
 				if p.Type == data.PointTypeTombstone && p.Value != 0 {
-					continue
+					// this edge does not have a path to root, try next edge
+					continue NextEdge
 				}
 			}
 
