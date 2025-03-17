@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- fix bug where export/import displayed no nodes (#749). Fixed in (#753)
+
 ## [[0.18.1] - 2024-11-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.1)
 
 - fix bug where Shelly IO Enable Control option was not working (#739)
