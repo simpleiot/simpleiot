@@ -11,6 +11,12 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [[0.18.3] - 2025-03-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.3)
+
+- add favicon to frontend so icon displays in browser tabs (#756)
+
+## [[0.18.2] - 2025-03-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.2)
+
 - fix bug where export/import displayed no nodes (#749). Fixed in (#753)
 
 ## [[0.18.1] - 2024-11-19](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.1)
