@@ -259,8 +259,8 @@ func WriteSingleReg(address, value uint16) PDU {
 	}
 }
 
-// WriteMultipleReg creates PDU to write multiple holding regs
-func WriteMultipleReg(address uint16, quantity uint16, values []uint16) PDU {
+// WriteMultipleRegs creates PDU to write multiple holding regs
+func WriteMultipleRegs(address uint16, quantity uint16, values []uint16) PDU {
 	return PDU{
 		FunctionCode: FuncCodeWriteMultipleRegisters,
 		Data:         putUint16ArrayWithByteCount(address, quantity, values),

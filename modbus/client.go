@@ -338,12 +338,12 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 	return nil
 }
 
-// WriteMultipleReg writes to multiple holding registers
-func (c *Client) WriteMultipleReg(id byte, reg, quantity uint16, values []uint16) error {
-	req := WriteMultipleReg(reg, quantity, values)
+// WriteMultipleRegs writes to multiple holding registers
+func (c *Client) WriteMultipleRegs(id byte, reg, quantity uint16, values []uint16) error {
+	req := WriteMultipleRegs(reg, quantity, values)
 
 	if c.debug >= 1 {
-		fmt.Printf("Modbus client WriteMultipleReg ID:0x%x req:%v\n", id, req)
+		fmt.Printf("Modbus client WriteMultipleRegs ID:0x%x req:%v\n", id, req)
 	}
 
 	packet, err := c.transport.Encode(id, req)
@@ -352,7 +352,7 @@ func (c *Client) WriteMultipleReg(id byte, reg, quantity uint16, values []uint16
 	}
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client WriteMultipleReg tx: ", test.HexDump(packet))
+		fmt.Println("Modbus client WriteMultipleRegs tx: ", test.HexDump(packet))
 	}
 
 	_, err = c.transport.Write(packet)
@@ -370,7 +370,7 @@ func (c *Client) WriteMultipleReg(id byte, reg, quantity uint16, values []uint16
 	buf = buf[:cnt]
 
 	if c.debug >= 9 {
-		fmt.Println("Modbus client WriteMultipleReg rx: ", test.HexDump(buf))
+		fmt.Println("Modbus client WriteMultipleRegs rx: ", test.HexDump(buf))
 	}
 
 	_, resp, err := c.transport.Decode(buf)
@@ -379,7 +379,7 @@ func (c *Client) WriteMultipleReg(id byte, reg, quantity uint16, values []uint16
 	}
 
 	if c.debug >= 1 {
-		fmt.Printf("Modbus client WriteMultipleReg ID:0x%x resp:%v\n", id, resp)
+		fmt.Printf("Modbus client WriteMultipleRegs ID:0x%x resp:%v\n", id, resp)
 	}
 	
 	if resp.FunctionCode != req.FunctionCode {
