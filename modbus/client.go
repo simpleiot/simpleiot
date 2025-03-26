@@ -2,6 +2,7 @@ package modbus
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -184,7 +185,7 @@ func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error
 	return resp.RespReadBits()
 }
 
-// ReadHoldingRegs is used to read modbus coils
+// ReadHoldingRegs is used to read modbus holding regs
 func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 	ret := []uint16{}
 	req := ReadHoldingRegs(reg, count)
@@ -234,7 +235,7 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 	return resp.RespReadRegs()
 }
 
-// ReadInputRegs is used to read modbus coils
+// ReadInputRegs is used to read modbus input regs
 func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 	ret := []uint16{}
 	req := ReadInputRegs(reg, count)
@@ -331,6 +332,66 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 	}
 
 	if !bytes.Equal(req.Data, resp.Data) {
+		return errors.New("Did not get the correct response data")
+	}
+
+	return nil
+}
+
+// WriteMultipleReg writes to multiple holding registers
+func (c *Client) WriteMultipleReg(id byte, reg, quantity uint16, values []uint16) error {
+	req := WriteMultipleReg(reg, quantity, values)
+
+	if c.debug >= 1 {
+		fmt.Printf("Modbus client WriteMultipleReg ID:0x%x req:%v\n", id, req)
+	}
+
+	packet, err := c.transport.Encode(id, req)
+	if err != nil {
+		return err
+	}
+
+	if c.debug >= 9 {
+		fmt.Println("Modbus client WriteMultipleReg tx: ", test.HexDump(packet))
+	}
+
+	_, err = c.transport.Write(packet)
+	if err != nil {
+		return err
+	}
+
+	// FIXME, what is max modbus packet size?
+	buf := make([]byte, 200)
+	cnt, err := c.transport.Read(buf)
+	if err != nil {
+		return err
+	}
+
+	buf = buf[:cnt]
+
+	if c.debug >= 9 {
+		fmt.Println("Modbus client WriteMultipleReg rx: ", test.HexDump(buf))
+	}
+
+	_, resp, err := c.transport.Decode(buf)
+	if err != nil {
+		return err
+	}
+
+	if c.debug >= 1 {
+		fmt.Printf("Modbus client WriteMultipleReg ID:0x%x resp:%v\n", id, resp)
+	}
+	
+	if resp.FunctionCode != req.FunctionCode {
+		return errors.New("resp contains wrong function code")
+	}
+
+	// Build the expected response: starting address (2 bytes) + quantity (2 bytes)
+	expectedResp := make([]byte, 4)
+	binary.BigEndian.PutUint16(expectedResp[0:2], reg)
+	binary.BigEndian.PutUint16(expectedResp[2:4], quantity)
+
+	if !bytes.Equal(expectedResp, resp.Data) {
 		return errors.New("Did not get the correct response data")
 	}
 
