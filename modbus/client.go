@@ -381,7 +381,7 @@ func (c *Client) WriteMultipleRegs(id byte, reg, quantity uint16, values []uint1
 	if c.debug >= 1 {
 		fmt.Printf("Modbus client WriteMultipleRegs ID:0x%x resp:%v\n", id, resp)
 	}
-	
+
 	if resp.FunctionCode != req.FunctionCode {
 		return errors.New("resp contains wrong function code")
 	}
