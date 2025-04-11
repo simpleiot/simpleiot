@@ -3,7 +3,6 @@
 [book]
 authors = ["Cliff Brake"]
 language = "en"
-multilingual = false
 src = "."
 title = "Simple IoT"
 
