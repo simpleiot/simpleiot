@@ -17,6 +17,33 @@ type shellyIOConfig struct {
 	AddonType string `json:"addon_type"`
 }
 
+type shellyGen1SwitchStatus struct {
+	Relays []struct {
+		IsOn bool `json:"ison"`
+	} `json:"relays"`
+	Meters []struct {
+		Power float32 `json:"power"`
+	} `json:"meters"`
+	Temperature float32 `json:"temperature"`
+}
+
+func (swi *shellyGen1SwitchStatus) toPoints(index int, pm bool) data.Points {
+	now := time.Now()
+	key := strconv.Itoa(index)
+	pts := data.Points{
+		{Time: now, Type: data.PointTypeSwitch, Key: key, Value: data.BoolToFloat(swi.Relays[index].IsOn)},
+		{Time: now, Type: data.PointTypeTemperature, Key: key, Value: float64(swi.Temperature)},
+	}
+
+	if pm {
+		pts = append(pts,
+			data.Points{{Time: now, Type: data.PointTypePower, Key: key, Value: float64(swi.Meters[index].Power)}}...,
+		)
+	}
+
+	return pts
+}
+
 type shellyGen2SysConfig struct {
 	Device struct {
 		Name      string `json:"name"`
@@ -199,6 +226,7 @@ var shellySettableOnOff = map[string]bool{
 }
 
 var shellyHasPM = map[string]bool{
+	data.PointValueShellyType1PM:     true,
 	data.PointValueShellyTypePlugUS:  true,
 	data.PointValueShellyTypePlugUK:  true,
 	data.PointValueShellyTypePlus1PM: true,
@@ -347,6 +375,28 @@ func (sio *ShellyIo) gen1GetLight() (data.Points, error) {
 	return status.toPoints(), nil
 }
 
+func (sio *ShellyIo) gen1GetSwitch(id int) (data.Points, error) {
+	res, err := httpClient.Get("http://" + sio.IP + "/status")
+	if err != nil {
+		return data.Points{}, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return data.Points{}, fmt.Errorf("Shelly GetConfig returned an error code: %v", res.StatusCode)
+	}
+
+	var status shellyGen1SwitchStatus
+
+	err = json.NewDecoder(res.Body).Decode(&status)
+	if err != nil {
+		return data.Points{}, err
+	}
+
+	pts := status.toPoints(id, sio.HasPM())
+
+	return pts, nil
+}
+
 func (sio *ShellyIo) gen2GetSwitch(id int) (data.Points, error) {
 	url := fmt.Sprintf("http://%v/rpc/Switch.GetStatus?id=%v", sio.IP, id)
 
@@ -400,8 +450,11 @@ func (sio *ShellyIo) GetStatus() (data.Points, error) {
 		switch comp.name {
 		case "switch":
 			if gen == ShellyGen1 {
-				_ = gen
-				// TODO: need to add gen 1 support for switch status
+				pts, err := sio.gen1GetSwitch(comp.id)
+				if err != nil {
+					return nil, err
+				}
+				ret = append(ret, pts...)
 			}
 			if gen == ShellyGen2 {
 				pts, err := sio.gen2GetSwitch(comp.id)
