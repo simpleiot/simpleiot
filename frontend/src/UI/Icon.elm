@@ -12,6 +12,7 @@ module UI.Icon exposing
     , database
     , device
     , file
+    , globe
     , io
     , list
     , network
@@ -266,3 +267,7 @@ clock =
 update : Element msg
 update =
     icon FeatherIcons.refreshCw
+
+globe : Element msg
+globe =
+    icon FeatherIcons.globe
