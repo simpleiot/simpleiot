@@ -13,6 +13,10 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [[0.18.5] - 2025-07-21](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.5)
+
+- fix bug with importing a list of nodes
+
 ## [[0.18.4] - 2025-04-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.4)
 
 - don't return power information for Shelly devices that don't have power

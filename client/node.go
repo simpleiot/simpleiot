@@ -593,36 +593,42 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 		return fmt.Errorf("Error: imported data did not have any nodes")
 	}
 
-	// set parent of first node
-	imp.Nodes[0].Parent = parent
+	// Process all nodes, not just the first one
+	for i := range imp.Nodes {
+		// set parent of node
+		imp.Nodes[i].Parent = parent
 
-	// append (import) to top level node description
-	for i, p := range imp.Nodes[0].Points {
-		if p.Type == data.PointTypeDescription {
-			imp.Nodes[0].Points[i].Text += " (import)"
+		// append (import) to top level node description
+		for j, p := range imp.Nodes[i].Points {
+			if p.Type == data.PointTypeDescription {
+				imp.Nodes[i].Points[j].Text += " (import)"
+			}
 		}
-	}
 
-	if preserveIDs {
-		err := checkIDs(imp.Nodes[0], parent)
+		if preserveIDs {
+			err := checkIDs(imp.Nodes[i], parent)
+			if err != nil {
+				return err
+			}
+		} else {
+			ReplaceIDs(&imp.Nodes[i], parent)
+		}
+
+		err = importHelper(imp.Nodes[i])
 		if err != nil {
 			return err
 		}
-	} else {
-		ReplaceIDs(&imp.Nodes[0], parent)
-	}
 
-	err = importHelper(imp.Nodes[0])
-
-	// if we imported the root node, then we have to tombstone the old root node
-	if parent == "root" && rootNode.ID != imp.Nodes[0].ID {
-		err := DeleteNode(nc, rootNode.ID, parent, "import")
-		if err != nil {
-			return fmt.Errorf("Error deleting old root node: %w", err)
+		// if we imported the root node, then we have to tombstone the old root node
+		if parent == "root" && rootNode.ID != imp.Nodes[i].ID {
+			err := DeleteNode(nc, rootNode.ID, parent, "import")
+			if err != nil {
+				return fmt.Errorf("Error deleting old root node: %w", err)
+			}
 		}
 	}
 
-	return err
+	return nil
 }
 
 func checkIDs(node data.NodeEdgeChildren, parent string) error {
