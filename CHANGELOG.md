@@ -13,10 +13,6 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
-## [[0.18.5] - 2025-07-21](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.5)
-
-- fix bug with importing a list of nodes
-
 ## [[0.18.4] - 2025-04-17](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.4)
 
 - don't return power information for Shelly devices that don't have power
@@ -24,6 +20,7 @@ For more details or to discuss releases, please visit the
 - support status for Shelly gen1 relays
 - update Go packages to
   [latest versions](https://github.com/simpleiot/simpleiot/pull/752/commits/6f6a00ed4b27d0809ef28e96216631a2e8da9559)
+- fix bug with importing a list of nodes
 
 ## [[0.18.3] - 2025-03-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.3)
 
