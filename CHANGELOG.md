@@ -11,8 +11,6 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-## [[0.18.4] - 2025-07-22](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.4)
-
 - add browser client allowing control and configuration of Yoe Kiosk Browser
 
 ## [[0.18.3] - 2025-03-20](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.3)
