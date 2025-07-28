@@ -46,13 +46,18 @@ module Api.Point exposing
     , typeDataFormat
     , typeDate
     , typeDebug
+    , typeDebugPort
+    , typeDefaultDialogs
     , typeDescription
     , typeDestination
     , typeDevice
     , typeDeviceID
+    , typeDialogColor
     , typeDirectory
+    , typeDisableSandbox
     , typeDisabled
     , typeDiscardDownload
+    , typeDisplayCard
     , typeDownload
     , typeDownloadOS
     , typeEmail
@@ -66,19 +71,23 @@ module Api.Point exposing
     , typeErrorCountHR
     , typeErrorCountReset
     , typeErrorCountResetHR
+    , typeExceptionURL
     , typeFallbackServer
     , typeFilePath
     , typeFirstName
     , typeFrequency
     , typeFrom
+    , typeFullscreen
     , typeHRDest
     , typeHash
     , typeHrRx
     , typeHrRxReset
     , typeID
     , typeIP
+    , typeIgnoreCertErr
     , typeIndex
     , typeInitialValue
+    , typeKeyboardScale
     , typeLastName
     , typeLightSet
     , typeLog
@@ -117,12 +126,15 @@ module Api.Point exposing
     , typeReadOnly
     , typeReboot
     , typeRefresh
+    , typeRetryInterval
+    , typeRotate
     , typeRoundTo
     , typeRx
     , typeRxReset
     , typeSID
     , typeSampleRate
     , typeScale
+    , typeScreenResolution
     , typeServer
     , typeService
     , typeSignalType
@@ -137,10 +149,12 @@ module Api.Point exposing
     , typeTag
     , typeTagPointType
     , typeTombstone
+    , typeTouchQuirk
     , typeTx
     , typeTxReset
     , typeType
     , typeURI
+    , typeURL
     , typeUnits
     , typeValue
     , typeValueSet
@@ -678,6 +692,76 @@ valueSetValue =
 valuePlayAudio : String
 valuePlayAudio =
     "playAudio"
+
+
+typeURL : String
+typeURL =
+    "url"
+
+
+typeRotate : String
+typeRotate =
+    "rotate"
+
+
+typeKeyboardScale : String
+typeKeyboardScale =
+    "keyboardscale"
+
+
+typeFullscreen : String
+typeFullscreen =
+    "fullscreen"
+
+
+typeDefaultDialogs : String
+typeDefaultDialogs =
+    "defaultdialogs"
+
+
+typeDialogColor : String
+typeDialogColor =
+    "dialogcolor"
+
+
+typeTouchQuirk : String
+typeTouchQuirk =
+    "touchquirk"
+
+
+typeRetryInterval : String
+typeRetryInterval =
+    "retryinterval"
+
+
+typeExceptionURL : String
+typeExceptionURL =
+    "exceptionurl"
+
+
+typeIgnoreCertErr : String
+typeIgnoreCertErr =
+    "ignorecerterr"
+
+
+typeDisableSandbox : String
+typeDisableSandbox =
+    "disablesandbox"
+
+
+typeDebugPort : String
+typeDebugPort =
+    "debugport"
+
+
+typeScreenResolution : String
+typeScreenResolution =
+    "screenresolution"
+
+
+typeDisplayCard : String
+typeDisplayCard =
+    "displaycard"
 
 
 typeService : String

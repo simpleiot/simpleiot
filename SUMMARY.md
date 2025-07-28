@@ -25,6 +25,7 @@
   - [Synchronization](docs/user/sync.md)
   - [Update](docs/user/update.md)
   - [USB](docs/user/usb.md)
+  - [Browser](docs/user/browser.md)
 - [Graphing](docs/user/graphing.md)
 - [Configuration](docs/user/configuration.md)
 - [Status/Errata](docs/user/status.md)
