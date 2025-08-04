@@ -182,7 +182,7 @@ viewPoints z pts =
             formatMetric formaters
     in
     table [ padding 7 ]
-        { data = Point.filterTombstone pts |> List.map fm
+        { data = Point.filterDeleted pts |> List.map fm
         , columns =
             let
                 cell =

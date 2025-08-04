@@ -6,7 +6,6 @@ module Api.Point exposing
     , encodeList
     , filterDeleted
     , filterSpecialPoints
-    , filterTombstone
     , get
     , getAll
     , getBestDesc
@@ -164,9 +163,8 @@ module Api.Point exposing
     , typeVersionApp
     , typeVersionHW
     , typeVersionOS
-    ,  typeWeekday
-       --  , keyNodeID
-
+    , typeWeekday
+      --  , keyNodeID
     , updatePoints
     , valueApp
     , valueClient
@@ -1200,8 +1198,8 @@ filterSpecialPoints points =
     List.filter (\p -> not <| List.member p.typ specialPoints) points
 
 
-filterTombstone : List Point -> List Point
-filterTombstone points =
+filterDeleted : List Point -> List Point
+filterDeleted points =
     List.filter (\p -> p.tombstone == 0) points
 
 
@@ -1320,11 +1318,6 @@ get points typ key =
 getAll : List Point -> String -> List Point
 getAll points typ =
     List.filter (\p -> typ == p.typ) points
-
-
-filterDeleted : List Point -> List Point
-filterDeleted points =
-    List.filter (\p -> p.tombstone == 0) points
 
 
 getText : List Point -> String -> String -> String

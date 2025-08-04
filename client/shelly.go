@@ -156,23 +156,21 @@ done:
 					continue
 				}
 
-				addCompPoints := func(pType string, count int) {
-					for i := 0; i < count; i++ {
-						iString := strconv.Itoa(i)
-						ne.Points = append(ne.Points, data.Point{Type: pType, Key: iString})
-					}
+				addCompPoints := func(pType string, id int) {
+					iString := strconv.Itoa(id)
+					ne.Points = append(ne.Points, data.Point{Type: pType, Key: iString})
 				}
 
 				for _, comp := range shellyCompMap[typ] {
 					switch comp.name {
 					case "input":
-						addCompPoints(data.PointTypeInput, comp.count)
+						addCompPoints(data.PointTypeInput, comp.id)
 					case "switch":
-						addCompPoints(data.PointTypeSwitch, comp.count)
-						addCompPoints(data.PointTypeSwitchSet, comp.count)
+						addCompPoints(data.PointTypeSwitch, comp.id)
+						addCompPoints(data.PointTypeSwitchSet, comp.id)
 					case "light":
-						addCompPoints(data.PointTypeLight, comp.count)
-						addCompPoints(data.PointTypeLightSet, comp.count)
+						addCompPoints(data.PointTypeLight, comp.id)
+						addCompPoints(data.PointTypeLightSet, comp.id)
 					}
 				}
 
