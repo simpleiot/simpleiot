@@ -13,6 +13,7 @@ module Api.Node exposing
     , postPoints
     , typeAction
     , typeActionInactive
+    , typeBrowser
     , typeCanBus
     , typeCondition
     , typeDb
@@ -178,6 +179,11 @@ typeNetworkManagerConn =
 typeNTP : String
 typeNTP =
     "ntp"
+
+
+typeBrowser : String
+typeBrowser =
+    "browser"
 
 
 typeUpdate : String

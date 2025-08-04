@@ -8,6 +8,7 @@ import Api.Response exposing (Response)
 import Auth
 import Base64.Encode
 import Components.NodeAction as NodeAction
+import Components.NodeBrowser as NodeBrowser
 import Components.NodeCanBus as NodeCanBus
 import Components.NodeCondition as NodeCondition
 import Components.NodeDb as NodeDb
@@ -1049,6 +1050,7 @@ nodeCustomSortRules =
         , ( Node.typeNetworkManager, "R" )
         , ( Node.typeNTP, "S" )
         , ( Node.typeUpdate, "T" )
+        , ( Node.typeBrowser, "U" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1332,6 +1334,9 @@ viewNode model parent node children depth =
 
                     "ntp" ->
                         NodeNTP.view
+
+                    "browser" ->
+                        NodeBrowser.view
 
                     "networkManagerDevice" ->
                         NodeNetworkManagerDevice.view
@@ -1656,6 +1661,11 @@ nodeDescNTP =
     row [] [ Icon.clock, text "NTP" ]
 
 
+nodeDescBrowser : Element Msg
+nodeDescBrowser =
+    row [] [ Icon.globe, text "Browser" ]
+
+
 viewAddNode : String -> NodeView -> NodeToAdd -> Element Msg
 viewAddNode customNodeType parent add =
     column [ spacing 10 ]
@@ -1670,6 +1680,7 @@ viewAddNode customNodeType parent add =
                     , Input.option Node.typeRule nodeDescRule
                     , Input.option Node.typeNetworkManager nodeDescNetworkManager
                     , Input.option Node.typeNTP nodeDescNTP
+                    , Input.option Node.typeBrowser nodeDescBrowser
                     , Input.option Node.typeModbus nodeDescModbus
                     , Input.option Node.typeSerialDev nodeDescSerialDev
                     , Input.option Node.typeCanBus nodeDescCanBus
