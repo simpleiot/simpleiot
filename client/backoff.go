@@ -7,8 +7,8 @@ import (
 )
 
 // ExpBackoff calculates an exponential time backup to max duration + a random fraction of 1s
-func ExpBackoff(attempts int, max time.Duration) time.Duration {
-	delay := max
+func ExpBackoff(attempts int, maxDuration time.Duration) time.Duration {
+	delay := maxDuration
 
 	// if attempts is too large, then things soon start to overflow
 	// so only calculate when # of attempts is relatively small
@@ -17,7 +17,7 @@ func ExpBackoff(attempts int, max time.Duration) time.Duration {
 		// if math.Exp2(..) is +Inf, then converting that to duration
 		// ends up being zero. If attempts is large, then duration may
 		// be negative -- should be covered by attempts > 50 above.
-		if calc > 0 && calc < max {
+		if calc > 0 && calc < maxDuration {
 			delay = calc
 		}
 	}

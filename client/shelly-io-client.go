@@ -173,7 +173,7 @@ done:
 			}
 
 			if sioc.config.Controlled {
-				switchCount := min(len(sioc.config.Switch), len(sioc.config.SwitchSet))
+				switchCount := minVal(len(sioc.config.Switch), len(sioc.config.SwitchSet))
 				for i := 0; i < switchCount; i++ {
 					if sioc.config.Switch[i] != sioc.config.SwitchSet[i] {
 						pts, err := sioc.config.SetOnOff("switch", i, sioc.config.SwitchSet[i])
@@ -195,7 +195,7 @@ done:
 					}
 				}
 
-				lightCount := min(len(sioc.config.Light), len(sioc.config.LightSet))
+				lightCount := minVal(len(sioc.config.Light), len(sioc.config.LightSet))
 				for i := 0; i < lightCount; i++ {
 					if sioc.config.Light[i] != sioc.config.LightSet[i] {
 						pts, err := sioc.config.SetOnOff("light", i, sioc.config.LightSet[i])
@@ -256,7 +256,7 @@ func (sioc *ShellyIOClient) EdgePoints(nodeID, parentID string, points []data.Po
 	sioc.newEdgePoints <- NewPoints{nodeID, parentID, points}
 }
 
-func min[T constraints.Ordered](a, b T) T {
+func minVal[T constraints.Ordered](a, b T) T {
 	if a < b {
 		return a
 	}

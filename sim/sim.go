@@ -10,12 +10,12 @@ type Sim struct {
 }
 
 // NewSim creates a new simulation
-func NewSim(start, step, min, max float64) Sim {
+func NewSim(start, step, minVal, maxVal float64) Sim {
 	return Sim{
 		currentValue: start,
 		step:         step,
-		min:          min,
-		max:          max,
+		min:          minVal,
+		max:          maxVal,
 	}
 }
 
