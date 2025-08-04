@@ -61,8 +61,8 @@ github.com/creack/pty v1.1.24/go.mod h1:08sCNb52WyoAwi2QDyzUCTgcvVFhUzewun7wtTfv
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/dim13/cobs v1.0.3 h1:cqYgDfEdJEzE+9xu9EklovBIxfz2My7D7sqGOVdo2DQ=
-github.com/dim13/cobs v1.0.3/go.mod h1:qpPMjornFjB3s+c7R7O4On93KAsJbX5EeFoZOCnnx+g=
+github.com/dim13/cobs v0.1.0 h1:ijAo81vFi16hfY6wYBYSG5AW/+7pK/apJndM9HfPIXw=
+github.com/dim13/cobs v0.1.0/go.mod h1:GpeOYCrmIfZs+sC2oZe4jYLbGmZ8JVoE4YTv8ZX/3DI=
 github.com/disintegration/gift v1.2.1 h1:Y005a1X4Z7Uc+0gLpSAsKhWi4qLtsdEcMIbbdvdZ6pc=
 github.com/disintegration/gift v1.2.1/go.mod h1:Jh2i7f7Q2BM7Ezno3PhfezbR1xpUg9dUg3/RlKGr4HI=
 github.com/dlclark/regexp2 v1.11.5 h1:Q/sSnsKerHeCkc/jSTNq1oCm7KiVgUMZRDUoRu0JQZQ=

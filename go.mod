@@ -7,7 +7,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cavaliercoder/grab v2.0.0+incompatible
 	github.com/cosmtrek/air v1.61.2
-	github.com/dim13/cobs v1.0.3
+	github.com/dim13/cobs v0.1.0
 	github.com/donovanhide/eventsource v0.0.0-20210830082556-c59027999da0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/go-audio/wav v1.1.0
