@@ -394,7 +394,7 @@ func runInstall(args []string) {
 func runImport(args []string) {
 	flags := flag.NewFlagSet("import", flag.ExitOnError)
 
-	flagParentID := flags.String("parentID", "", "Parent ID for import under. Default is root device")
+	flagParentID := flags.String("parentID", "", "Parent ID for import under. Use \"root\" for complete restore")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")
 	flagPreserveIDs := flags.Bool("preserveIDs", false, "Preserve node IDs (use with caution)")

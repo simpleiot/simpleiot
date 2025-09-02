@@ -1,6 +1,9 @@
 package client_test
 
 import (
+	"fmt"
+	"log"
+	"slices"
 	"testing"
 
 	"github.com/goccy/go-yaml"
@@ -48,6 +51,98 @@ func TestExportNodes(t *testing.T) {
 
 	if exp.Nodes[0].Children[0].Type != data.NodeTypeUser {
 		t.Fatal("child node is not user type")
+	}
+}
+
+func TestExportImportNodes(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	ne, err := client.UserCheck(nc, "admin", "admin")
+	if err != nil {
+		t.Fatal("User check error: ", err)
+	}
+
+	if len(ne) != 2 {
+		t.Fatal("Expected exactly nodes from auth request")
+	}
+
+	y, err := client.ExportNodes(nc, root.ID)
+
+	if err != nil {
+		t.Fatal("Error exporting nodes: ", err)
+	}
+
+	// fmt.Println("export: ", string(y))
+
+	err = client.ImportNodes(nc, "root", y, "test", false)
+
+	if err != nil {
+		t.Fatal("Error importing nodes: ", err)
+	}
+
+	// check to make sure original device node has been tombstoned
+	ne, err = client.GetNodes(nc, "all", "inst1", "", false)
+	if err != nil {
+		t.Fatal("Error getting original device node: ", err)
+	}
+
+	if len(ne) > 0 {
+		t.Fatal("Original devices node was not deleted")
+	}
+
+	// check user auth check
+	ne, err = client.UserCheck(nc, "admin", "admin")
+	if err != nil {
+		t.Fatal("User check error: ", err)
+	}
+
+	// should return exactly 2 nodes, a user and jwt node
+	if len(ne) != 2 {
+		fmt.Println("ne: ", ne)
+		t.Fatal("Expected at exactly two nodes from auth request, got: ", len(ne))
+	}
+
+	userNodeFound := false
+
+	for _, n := range ne {
+		if n.Type == data.NodeTypeUser {
+			userNodeFound = true
+
+			nodes, err := client.GetNodesForUser(nc, n.ID)
+			if err != nil {
+				log.Println("Error getting nodes for user:", err)
+			}
+
+			// there should be two nodes in the new system -- a device and user node
+			if len(nodes) != 2 {
+				fmt.Println("nodes for user: ", nodes)
+				t.Fatal("Should be exactly 2 nodes for user after import, got: ", len(nodes))
+			}
+		}
+	}
+
+	if !userNodeFound {
+		t.Fatal("User node not found")
+	}
+
+	ne, err = client.GetNodes(nc, "root", "all", "", false)
+	if err != nil {
+		t.Fatal("error getting nodes: ", err)
+	}
+
+	if len(ne) != 1 {
+		t.Fatal("Expected only one device node")
+	}
+
+	// make sure the device node is new, and not the original
+	if ne[0].ID == "inst1" {
+		t.Fatal("ID is not the new ID, but rather the test ID of the original node")
 	}
 }
 
@@ -213,6 +308,95 @@ func TestImportNodesBadParent(t *testing.T) {
 	err = client.ImportNodes(nc, root.ID, []byte(testImportNodesYamlBadParent), "test", true)
 	if err == nil {
 		t.Fatal("should have caught bad parent")
+	}
+}
+
+var testImportListOfNodesYaml = `
+nodes:
+- type: variable
+  points:
+  - type: description
+    text: "temperature sensor"
+  - type: value
+    value: 23.5
+- type: variable
+  points:
+  - type: description
+    text: "humidity sensor"  
+  - type: value
+    value: 65.0
+- type: variable
+  points:
+  - type: description
+    text: "pressure sensor"
+  - type: value
+    value: 1013.25
+`
+
+func TestImportListOfNodes(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	// First create a group node
+	groupNode := data.NodeEdge{
+		ID:     "test-group-123",
+		Type:   data.NodeTypeGroup,
+		Parent: root.ID,
+		Points: []data.Point{
+			{Type: data.PointTypeDescription, Text: "Test sensor group"},
+		},
+	}
+
+	err = client.SendNode(nc, groupNode, "test")
+	if err != nil {
+		t.Fatal("Error creating group node: ", err)
+	}
+
+	// Now import 3 variable nodes under this group
+	err = client.ImportNodes(nc, groupNode.ID, []byte(testImportListOfNodesYaml), "test", false)
+	if err != nil {
+		t.Fatal("Error importing variable nodes: ", err)
+	}
+
+	// Verify the variables were imported
+	variables, err := client.GetNodes(nc, groupNode.ID, "all", "", false)
+	if err != nil {
+		t.Fatal("Error getting variable nodes: ", err)
+	}
+
+	if len(variables) != 3 {
+		t.Fatalf("Expected 3 variable nodes, got %d", len(variables))
+	}
+
+	// Verify all are variable type and check their points
+	descriptions := make([]string, 0)
+	for _, v := range variables {
+		if v.Type != data.NodeTypeVariable {
+			t.Fatalf("Expected variable node, got %s", v.Type)
+		}
+
+		// Check the points embedded in the node
+		for _, point := range v.Points {
+			if point.Type == data.PointTypeDescription {
+				descriptions = append(descriptions, point.Text)
+			}
+		}
+	}
+
+	expectedDescriptions := []string{"temperature sensor (import)", "humidity sensor (import)", "pressure sensor (import)"}
+	if len(descriptions) != 3 {
+		t.Fatalf("Expected 3 descriptions, got %d", len(descriptions))
+	}
+
+	for _, expected := range expectedDescriptions {
+		if !slices.Contains(descriptions, expected) {
+			t.Fatalf("Expected description '%s' not found", expected)
+		}
 	}
 }
 

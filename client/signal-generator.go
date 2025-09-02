@@ -84,12 +84,12 @@ func NewSignalGeneratorClient(nc *nats.Conn, config SignalGenerator) Client {
 }
 
 // clamp clamps val to fall in the range [min, max].
-func clamp(val, min, max float64) float64 {
-	// Ensure range of val is [min, max]
-	if val < min {
-		return min
-	} else if val > max {
-		return max
+func clamp(val, minVal, maxVal float64) float64 {
+	// Ensure range of val is [minVal, maxVal]
+	if val < minVal {
+		return minVal
+	} else if val > maxVal {
+		return maxVal
 	}
 	return val
 }

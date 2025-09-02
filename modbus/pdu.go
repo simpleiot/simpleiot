@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/simpleiot/simpleiot/test"
 )
@@ -250,12 +251,27 @@ func WriteSingleCoil(address uint16, v bool) PDU {
 	}
 }
 
-// WriteSingleReg creates PDU to read coils
+// WriteSingleReg creates PDU to write a single holding reg
 func WriteSingleReg(address, value uint16) PDU {
 	return PDU{
 		FunctionCode: FuncCodeWriteSingleRegister,
 		Data:         PutUint16Array(address, value),
 	}
+}
+
+// WriteMultipleRegs creates PDU to write multiple holding regs
+func WriteMultipleRegs(address uint16, quantity uint16, values []uint16) PDU {
+	return PDU{
+		FunctionCode: FuncCodeWriteMultipleRegisters,
+		Data:         putUint16ArrayWithByteCount(address, quantity, values),
+	}
+}
+
+func putUint16ArrayWithByteCount(address uint16, quantity uint16, values []uint16) []byte {
+	addressAndQuantity := PutUint16Array(address, quantity)
+	byteCount := []byte{byte(uint8(quantity * 2))}
+	data := PutUint16Array(values...)
+	return slices.Concat(addressAndQuantity, byteCount, data)
 }
 
 // ReadHoldingRegs creates a PDU to read a holding regs

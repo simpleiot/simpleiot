@@ -6,7 +6,6 @@ module Api.Point exposing
     , encodeList
     , filterDeleted
     , filterSpecialPoints
-    , filterTombstone
     , get
     , getAll
     , getBestDesc
@@ -46,13 +45,18 @@ module Api.Point exposing
     , typeDataFormat
     , typeDate
     , typeDebug
+    , typeDebugPort
+    , typeDefaultDialogs
     , typeDescription
     , typeDestination
     , typeDevice
     , typeDeviceID
+    , typeDialogColor
     , typeDirectory
+    , typeDisableSandbox
     , typeDisabled
     , typeDiscardDownload
+    , typeDisplayCard
     , typeDownload
     , typeDownloadOS
     , typeEmail
@@ -66,19 +70,23 @@ module Api.Point exposing
     , typeErrorCountHR
     , typeErrorCountReset
     , typeErrorCountResetHR
+    , typeExceptionURL
     , typeFallbackServer
     , typeFilePath
     , typeFirstName
     , typeFrequency
     , typeFrom
+    , typeFullscreen
     , typeHRDest
     , typeHash
     , typeHrRx
     , typeHrRxReset
     , typeID
     , typeIP
+    , typeIgnoreCertErr
     , typeIndex
     , typeInitialValue
+    , typeKeyboardScale
     , typeLastName
     , typeLightSet
     , typeLog
@@ -117,12 +125,15 @@ module Api.Point exposing
     , typeReadOnly
     , typeReboot
     , typeRefresh
+    , typeRetryInterval
+    , typeRotate
     , typeRoundTo
     , typeRx
     , typeRxReset
     , typeSID
     , typeSampleRate
     , typeScale
+    , typeScreenResolution
     , typeServer
     , typeService
     , typeSignalType
@@ -137,10 +148,12 @@ module Api.Point exposing
     , typeTag
     , typeTagPointType
     , typeTombstone
+    , typeTouchQuirk
     , typeTx
     , typeTxReset
     , typeType
     , typeURI
+    , typeURL
     , typeUnits
     , typeValue
     , typeValueSet
@@ -150,9 +163,8 @@ module Api.Point exposing
     , typeVersionApp
     , typeVersionHW
     , typeVersionOS
-    ,  typeWeekday
-       --  , keyNodeID
-
+    , typeWeekday
+      --  , keyNodeID
     , updatePoints
     , valueApp
     , valueClient
@@ -680,6 +692,76 @@ valuePlayAudio =
     "playAudio"
 
 
+typeURL : String
+typeURL =
+    "url"
+
+
+typeRotate : String
+typeRotate =
+    "rotate"
+
+
+typeKeyboardScale : String
+typeKeyboardScale =
+    "keyboardscale"
+
+
+typeFullscreen : String
+typeFullscreen =
+    "fullscreen"
+
+
+typeDefaultDialogs : String
+typeDefaultDialogs =
+    "defaultdialogs"
+
+
+typeDialogColor : String
+typeDialogColor =
+    "dialogcolor"
+
+
+typeTouchQuirk : String
+typeTouchQuirk =
+    "touchquirk"
+
+
+typeRetryInterval : String
+typeRetryInterval =
+    "retryinterval"
+
+
+typeExceptionURL : String
+typeExceptionURL =
+    "exceptionurl"
+
+
+typeIgnoreCertErr : String
+typeIgnoreCertErr =
+    "ignorecerterr"
+
+
+typeDisableSandbox : String
+typeDisableSandbox =
+    "disablesandbox"
+
+
+typeDebugPort : String
+typeDebugPort =
+    "debugport"
+
+
+typeScreenResolution : String
+typeScreenResolution =
+    "screenresolution"
+
+
+typeDisplayCard : String
+typeDisplayCard =
+    "displaycard"
+
+
 typeService : String
 typeService =
     "service"
@@ -1116,8 +1198,8 @@ filterSpecialPoints points =
     List.filter (\p -> not <| List.member p.typ specialPoints) points
 
 
-filterTombstone : List Point -> List Point
-filterTombstone points =
+filterDeleted : List Point -> List Point
+filterDeleted points =
     List.filter (\p -> p.tombstone == 0) points
 
 
@@ -1236,11 +1318,6 @@ get points typ key =
 getAll : List Point -> String -> List Point
 getAll points typ =
     List.filter (\p -> typ == p.typ) points
-
-
-filterDeleted : List Point -> List Point
-filterDeleted points =
-    List.filter (\p -> p.tombstone == 0) points
 
 
 getText : List Point -> String -> String -> String

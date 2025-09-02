@@ -232,6 +232,22 @@ const (
 	PointTypeMsgsRecvdOther      = "msgsRecvdOther"
 	PointTypeMsgsRecvdOtherReset = "msgsRecvdOtherReset"
 
+	// Browser
+	PointTypeURL              = "url"
+	PointTypeRotate           = "rotate"
+	PointTypeKeyboardScale    = "keyboardscale"
+	PointTypeFullscreen       = "fullscreen"
+	PointTypeDefaultDialogs   = "defaultdialogs"
+	PointTypeDialogColor      = "dialogcolor"
+	PointTypeTouchQuirk       = "touchquirk"
+	PointTypeRetryInterval    = "retryinterval"
+	PointTypeExceptionURL     = "exceptionurl"
+	PointTypeIgnoreCertErr    = "ignorecerterr"
+	PointTypeDisableSandbox   = "disablesandbox"
+	PointTypeDebugPort        = "debugport"
+	PointTypeScreenResolution = "screenresolution"
+	PointTypeDisplayCard      = "displaycard"
+
 	NodeTypeSignalGenerator = "signalGenerator"
 
 	PointTypeSignalType   = "signalType"
@@ -333,6 +349,7 @@ const (
 	PointValueShellyTypePlugS   = "PlugS"
 	PointValueShellyTypeI4      = "PlusI4"
 	PointValueShellyTypePlus1   = "Plus1"
+	PointValueShellyTypePlus1PM = "Plus1PM"
 	PointValueShellyTypePlus2PM = "Plus2PM"
 
 	PointTypeTimeSync  = "timeSync"
