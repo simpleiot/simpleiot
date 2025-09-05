@@ -69,7 +69,7 @@ func (up *SyncClient) Run() error {
 	// turn echo off
 	uri, token, err := GetNatsURI(up.nc)
 	if err != nil {
-		return fmt.Errorf("Error getting NATS URI: %v", err)
+		return fmt.Errorf("error getting NATS URI: %v", err)
 	}
 
 	opts := EdgeOptions{
@@ -92,7 +92,7 @@ func (up *SyncClient) Run() error {
 
 	up.ncLocal, err = EdgeConnect(opts)
 	if err != nil {
-		return fmt.Errorf("Error connection to local NATS: %v", err)
+		return fmt.Errorf("error connection to local NATS: %v", err)
 	}
 
 	chLocalNodePoints := make(chan NewPoints)
@@ -157,7 +157,7 @@ func (up *SyncClient) Run() error {
 
 	up.rootLocal, err = GetRootNode(up.nc)
 	if err != nil {
-		return fmt.Errorf("Error getting root node: %v", err)
+		return fmt.Errorf("error getting root node: %v", err)
 	}
 
 	connected := false
@@ -378,7 +378,7 @@ func (up *SyncClient) connect() error {
 	up.ncRemote, err = EdgeConnect(opts)
 
 	if err != nil {
-		return fmt.Errorf("Error connection to upstream NATS: %v", err)
+		return fmt.Errorf("error connection to upstream NATS: %v", err)
 	}
 
 	return nil
@@ -509,14 +509,14 @@ func (up *SyncClient) sendNodesRemote(node data.NodeEdge) error {
 	// process child nodes
 	childNodes, err := GetNodes(up.nc, node.ID, "all", "", false)
 	if err != nil {
-		return fmt.Errorf("Error getting node children: %v", err)
+		return fmt.Errorf("error getting node children: %v", err)
 	}
 
 	for _, childNode := range childNodes {
 		err := up.sendNodesRemote(childNode)
 
 		if err != nil {
-			return fmt.Errorf("Error sending child node: %v", err)
+			return fmt.Errorf("error sending child node: %v", err)
 		}
 	}
 
@@ -535,14 +535,14 @@ func (up *SyncClient) sendNodesLocal(node data.NodeEdge) error {
 	// process child nodes
 	childNodes, err := GetNodes(up.nc, node.ID, "all", "", false)
 	if err != nil {
-		return fmt.Errorf("Error getting node children: %v", err)
+		return fmt.Errorf("error getting node children: %v", err)
 	}
 
 	for _, childNode := range childNodes {
 		err := up.sendNodesLocal(childNode)
 
 		if err != nil {
-			return fmt.Errorf("Error sending child node: %v", err)
+			return fmt.Errorf("error sending child node: %v", err)
 		}
 	}
 
@@ -555,7 +555,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		up.rootRemote, err = GetRootNode(up.ncRemote)
 		if err != nil {
 			log.Printf("Sync: %v, error getting upstream root: %v\n", up.config.Description, err)
-			return fmt.Errorf("Error getting upstream root: %v", err)
+			return fmt.Errorf("error getting upstream root: %v", err)
 		}
 	}
 
@@ -589,7 +589,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 
 	nodeLocals, err := GetNodes(up.nc, parent, id, "", true)
 	if err != nil {
-		return fmt.Errorf("Error getting local node: %v", err)
+		return fmt.Errorf("error getting local node: %v", err)
 	}
 
 	if len(nodeLocals) == 0 {
@@ -601,7 +601,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 	nodeUps, upErr := GetNodes(up.ncRemote, parent, id, "", true)
 	if upErr != nil {
 		if upErr != data.ErrDocumentNotFound {
-			return fmt.Errorf("Error getting upstream root node: %v", upErr)
+			return fmt.Errorf("error getting upstream root node: %v", upErr)
 		}
 	}
 
@@ -629,7 +629,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		pTS := data.Point{Time: time.Now(), Type: data.PointTypeTombstone, Value: 0}
 		err := SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, pTS, true)
 		if err != nil {
-			return fmt.Errorf("Error undeleting upstream node: %v", err)
+			return fmt.Errorf("error undeleting upstream node: %v", err)
 		}
 
 		// FIXME, remove this return
@@ -640,12 +640,12 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		log.Printf("Sync node %v does not exist, sending\n", nodeLocal.Desc())
 		err := up.sendNodesRemote(nodeLocal)
 		if err != nil {
-			return fmt.Errorf("Error sending node upstream: %w", err)
+			return fmt.Errorf("error sending node upstream: %w", err)
 		}
 
 		err = up.subscribeRemoteNode(nodeLocal.ID, nodeLocal.Parent)
 		if err != nil {
-			return fmt.Errorf("Error subscribing to node changes: %w", err)
+			return fmt.Errorf("error subscribing to node changes: %w", err)
 		}
 
 		return nil
@@ -781,13 +781,13 @@ func (up *SyncClient) syncNode(parent, id string) error {
 	// sync child nodes
 	children, err := GetNodes(up.ncLocal, nodeLocal.ID, "all", "", false)
 	if err != nil {
-		return fmt.Errorf("Error getting local node children: %v", err)
+		return fmt.Errorf("error getting local node children: %v", err)
 	}
 
 	// FIXME optimization we get the edges here and not the full child node
 	upChildren, err := GetNodes(up.ncRemote, nodeUp.ID, "all", "", false)
 	if err != nil {
-		return fmt.Errorf("Error getting upstream node children: %v", err)
+		return fmt.Errorf("error getting upstream node children: %v", err)
 	}
 
 	// map index is index of upChildren

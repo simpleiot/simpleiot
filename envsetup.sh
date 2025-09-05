@@ -196,6 +196,13 @@ siot_frontend_fix() {
 	(cd frontend && npx elm-review --fix-all)
 }
 
+siot_format() {
+	echo "Formatting Go code..."
+	gofmt -w .
+	echo "Formatting Elm code..."
+	(cd frontend && npx elm-format --yes src/)
+}
+
 # please run the following before pushing -- best if your editor can be set up
 # to do this automatically.
 siot_test() {

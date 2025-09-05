@@ -116,7 +116,6 @@ module Api.Point exposing
     , typePointKey
     , typePointType
     , typePollPeriod
-    , typeTimeout
     , typePort
     , typePrefix
     , typeProgress
@@ -148,6 +147,7 @@ module Api.Point exposing
     , typeSysState
     , typeTag
     , typeTagPointType
+    , typeTimeout
     , typeTombstone
     , typeTouchQuirk
     , typeTx

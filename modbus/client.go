@@ -129,7 +129,7 @@ func (c *Client) WriteSingleCoil(id byte, coil uint16, v bool) error {
 	}
 
 	if !bytes.Equal(req.Data, resp.Data) {
-		return errors.New("Did not get the correct response data")
+		return errors.New("did not get the correct response data")
 	}
 
 	return nil
@@ -332,7 +332,7 @@ func (c *Client) WriteSingleReg(id byte, reg, value uint16) error {
 	}
 
 	if !bytes.Equal(req.Data, resp.Data) {
-		return errors.New("Did not get the correct response data")
+		return errors.New("did not get the correct response data")
 	}
 
 	return nil
@@ -392,7 +392,7 @@ func (c *Client) WriteMultipleRegs(id byte, reg, quantity uint16, values []uint1
 	binary.BigEndian.PutUint16(expectedResp[2:4], quantity)
 
 	if !bytes.Equal(expectedResp, resp.Data) {
-		return errors.New("Did not get the correct response data")
+		return errors.New("did not get the correct response data")
 	}
 
 	return nil

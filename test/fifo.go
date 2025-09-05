@@ -32,21 +32,21 @@ func NewFifoA(name string) (*Fifo, error) {
 
 	err := syscall.Mknod(ret.a2b, syscall.S_IFIFO|0666, 0)
 	if err != nil {
-		return nil, fmt.Errorf("Mknod a2b failed: %v", err)
+		return nil, fmt.Errorf("mknod a2b failed: %v", err)
 	}
 	err = syscall.Mknod(ret.b2a, syscall.S_IFIFO|0666, 0)
 	if err != nil {
-		return nil, fmt.Errorf("Mknod b2a failed: %v", err)
+		return nil, fmt.Errorf("mknod b2a failed: %v", err)
 	}
 
 	ret.fread, err = os.OpenFile(ret.b2a, os.O_RDWR, 0600)
 	if err != nil {
-		return nil, fmt.Errorf("Error opening read file: %v", err)
+		return nil, fmt.Errorf("error opening read file: %v", err)
 	}
 
 	ret.fwrite, err = os.OpenFile(ret.a2b, os.O_RDWR, 0600)
 	if err != nil {
-		return nil, fmt.Errorf("Error opening write file: %v", err)
+		return nil, fmt.Errorf("error opening write file: %v", err)
 	}
 
 	return ret, nil
@@ -63,12 +63,12 @@ func NewFifoB(name string) (*Fifo, error) {
 
 	ret.fread, err = os.OpenFile(a2b, os.O_RDWR, 0600)
 	if err != nil {
-		return nil, fmt.Errorf("Error opening read file: %v", err)
+		return nil, fmt.Errorf("error opening read file: %v", err)
 	}
 
 	ret.fwrite, err = os.OpenFile(b2a, os.O_RDWR, 0600)
 	if err != nil {
-		return nil, fmt.Errorf("Error opening write file: %v", err)
+		return nil, fmt.Errorf("error opening write file: %v", err)
 	}
 
 	return ret, nil

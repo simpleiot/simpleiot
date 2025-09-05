@@ -31,7 +31,7 @@ type ModbusNode struct {
 
 // ModbusNodeResult contains the result of creating a ModbusNode and any corrections made
 type ModbusNodeResult struct {
-	Node           *ModbusNode
+	Node             *ModbusNode
 	TimeoutCorrected bool
 }
 
@@ -54,30 +54,30 @@ func NewModbusNodeWithCorrections(node data.NodeEdge) (*ModbusNodeResult, error)
 
 	ret.busType, ok = node.Points.Text(data.PointTypeClientServer, "")
 	if !ok {
-		return nil, errors.New("Must define modbus client/server")
+		return nil, errors.New("must define modbus client/server")
 	}
 
 	ret.protocol, ok = node.Points.Text(data.PointTypeProtocol, "")
 	if !ok {
-		return nil, errors.New("Must define modbus protocol")
+		return nil, errors.New("must define modbus protocol")
 	}
 
 	if ret.protocol == data.PointValueRTU {
 		ret.portName, ok = node.Points.Text(data.PointTypePort, "")
 		if !ok {
-			return nil, errors.New("Must define modbus port name")
+			return nil, errors.New("must define modbus port name")
 		}
 
 		baud, ok := node.Points.Text(data.PointTypeBaud, "")
 		if !ok {
-			return nil, errors.New("Must define modbus baud")
+			return nil, errors.New("must define modbus baud")
 		}
 
 		var err error
 		ret.baud, err = strconv.Atoi(baud)
 
 		if err != nil {
-			return nil, fmt.Errorf("Invalid baud: %v", baud)
+			return nil, fmt.Errorf("invalid baud: %v", baud)
 		}
 	}
 
@@ -86,29 +86,29 @@ func NewModbusNodeWithCorrections(node data.NodeEdge) (*ModbusNodeResult, error)
 		case data.PointValueClient:
 			ret.uri, ok = node.Points.Text(data.PointTypeURI, "")
 			if !ok {
-				return nil, errors.New("Must define modbus URI")
+				return nil, errors.New("must define modbus URI")
 			}
 		case data.PointValueServer:
 			ret.portName, ok = node.Points.Text(data.PointTypePort, "")
 			if !ok {
-				return nil, errors.New("Must define modbus port name")
+				return nil, errors.New("must define modbus port name")
 			}
 		default:
-			return nil, fmt.Errorf("Invalid bus type: %v", ret.busType)
+			return nil, fmt.Errorf("invalid bus type: %v", ret.busType)
 		}
 	}
 
 	ret.pollPeriod, ok = node.Points.ValueInt(data.PointTypePollPeriod, "")
 	if ret.busType == data.PointValueClient && !ok {
-		return nil, errors.New("Must define modbus polling period for client devices")
+		return nil, errors.New("must define modbus polling period for client devices")
 	}
 
 	ret.debugLevel, _ = node.Points.ValueInt(data.PointTypeDebug, "")
-	
+
 	var timeoutCorrected bool
 	ret.timeout, ok = node.Points.ValueInt(data.PointTypeTimeout, "")
 	if !ok || ret.timeout <= 0 {
-		ret.timeout = 100 // default timeout is 100ms
+		ret.timeout = 100     // default timeout is 100ms
 		timeoutCorrected = ok // only mark as corrected if timeout was explicitly set to invalid value
 	}
 	ret.disabled, _ = node.Points.ValueBool(data.PointTypeDisabled, "")
@@ -123,7 +123,7 @@ func NewModbusNodeWithCorrections(node data.NodeEdge) (*ModbusNodeResult, error)
 		var ok bool
 		ret.id, ok = node.Points.ValueInt(data.PointTypeID, "")
 		if !ok {
-			return nil, errors.New("Must define modbus ID for server bus")
+			return nil, errors.New("must define modbus ID for server bus")
 		}
 	}
 

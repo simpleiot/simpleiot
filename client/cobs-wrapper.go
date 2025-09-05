@@ -46,7 +46,7 @@ func (cw *CobsWrapper) SetDebug(debug int) {
 // data is shifted down to start at beginning of buffer
 func cobsDecodeInplace(b []byte) (int, error) {
 	if len(b) <= 2 {
-		return 0, errors.New("Not enough data for cobs decode")
+		return 0, errors.New("not enough data for cobs decode")
 	}
 
 	// used to skip leading zeros

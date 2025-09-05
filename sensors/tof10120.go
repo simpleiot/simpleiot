@@ -50,7 +50,7 @@ func (tof *TOF10120) SetSendInterval(interval int) error {
 	}
 
 	if c <= 0 {
-		return errors.New("Sensor does not seem to be active")
+		return errors.New("sensor does not seem to be active")
 	}
 
 	wr := fmt.Sprintf("s2-%v#", interval)
@@ -67,13 +67,13 @@ func (tof *TOF10120) SetSendInterval(interval int) error {
 	}
 
 	if c <= 0 {
-		return errors.New("Sensor did not return any data after write")
+		return errors.New("sensor did not return any data after write")
 	}
 
 	buf = buf[:c]
 
 	if !strings.Contains(string(buf), "ok") {
-		return errors.New("Sensor did not return ok")
+		return errors.New("sensor did not return ok")
 	}
 
 	return nil

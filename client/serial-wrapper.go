@@ -70,11 +70,11 @@ func SerialDecode(d []byte) (byte, string, []byte, error) {
 	l := len(d)
 
 	if l < 1 {
-		return 0, "", nil, errors.New("Not enough data")
+		return 0, "", nil, errors.New("not enough data")
 	}
 
 	if l < (1 + 16) {
-		return d[0], "", nil, errors.New("Not enough data")
+		return d[0], "", nil, errors.New("not enough data")
 	}
 
 	// try to extract subject
@@ -85,7 +85,7 @@ func SerialDecode(d []byte) (byte, string, []byte, error) {
 		// check CRC
 		end -= 2
 		if len(d) < (1 + 2 + 16) {
-			return d[0], "", nil, errors.New("Not enough data")
+			return d[0], "", nil, errors.New("not enough data")
 		}
 
 		crc := binary.LittleEndian.Uint16(d[l-2:])

@@ -145,7 +145,7 @@ func SendFile(nc *nats.Conn, deviceID string, reader io.Reader, name string, cal
 		}
 
 		if retry >= 3 {
-			return errors.New("Error sending file to device")
+			return errors.New("error sending file to device")
 		}
 
 		bytesTx += count

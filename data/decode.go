@@ -314,7 +314,7 @@ func Decode(input NodeEdgeChildren, outputStruct any) error {
 	// this is required in case we are decoding into a map or array
 	// Note: Even points with tombstones set are processed here; later we set
 	// the destination to the zero value if a tombstone is present.
-	for _, p := range input.NodeEdge.Points {
+	for _, p := range input.Points {
 		g, ok := pointGroups[p.Type] // uses zero value if not found
 		if !ok {
 			g.KeyMaxInt = -1
@@ -333,7 +333,7 @@ func Decode(input NodeEdgeChildren, outputStruct any) error {
 		g.Points = append(g.Points, p)
 		pointGroups[p.Type] = g
 	}
-	for _, p := range input.NodeEdge.EdgePoints {
+	for _, p := range input.EdgePoints {
 		g, ok := edgePointGroups[p.Type]
 		if !ok {
 			g.KeyMaxInt = -1
@@ -350,7 +350,7 @@ func Decode(input NodeEdgeChildren, outputStruct any) error {
 		edgePointGroups[p.Type] = g
 	}
 	for _, c := range input.Children {
-		childGroups[c.NodeEdge.Type] = append(childGroups[c.NodeEdge.Type], c)
+		childGroups[c.Type] = append(childGroups[c.Type], c)
 	}
 
 	// now process the fields in the output struct
@@ -382,7 +382,7 @@ func Decode(input NodeEdgeChildren, outputStruct any) error {
 			}
 		} else if nt := sf.Tag.Get("node"); nt != "" {
 			// Set ID or Parent field where appropriate
-			if nt == "id" && input.NodeEdge.ID != "" {
+			if nt == "id" && input.ID != "" {
 				v := outV.Field(i)
 				if !v.CanSet() {
 					retErr = errors.Join(retErr, fmt.Errorf(
@@ -396,8 +396,8 @@ func Decode(input NodeEdgeChildren, outputStruct any) error {
 					))
 					continue
 				}
-				v.SetString(input.NodeEdge.ID)
-			} else if nt == "parent" && input.NodeEdge.Parent != "" {
+				v.SetString(input.ID)
+			} else if nt == "parent" && input.Parent != "" {
 				v := outV.Field(i)
 				if !v.CanSet() {
 					retErr = errors.Join(retErr, fmt.Errorf(
@@ -411,7 +411,7 @@ func Decode(input NodeEdgeChildren, outputStruct any) error {
 					))
 					continue
 				}
-				v.SetString(input.NodeEdge.Parent)
+				v.SetString(input.Parent)
 			}
 		} else if ct := sf.Tag.Get("child"); ct != "" {
 			g, ok := childGroups[ct]

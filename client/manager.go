@@ -149,10 +149,7 @@ done:
 				log.Println("Error unsubscribing subscription:", err)
 			}
 			start := time.Now()
-			for {
-				if !m.clientUpSub[key].IsValid() {
-					break
-				}
+			for !m.clientUpSub[key].IsValid() && time.Since(start) <= time.Second*1 {
 				if time.Since(start) > time.Second*1 {
 					log.Println("Error: timeout waiting for subscription to drain:", key)
 					break

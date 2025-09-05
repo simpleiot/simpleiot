@@ -27,7 +27,7 @@ func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
 
 	c, err := GetNodes(nc, n.ID, "all", "", false)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting children: %v", err)
+		return nil, fmt.Errorf("error getting children: %v", err)
 	}
 
 	ncc := make([]data.NodeEdgeChildren, len(c))
@@ -42,7 +42,7 @@ func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
 
 	err = data.Decode(nec, &config)
 	if err != nil {
-		return nil, fmt.Errorf("Error decoding node: %w", err)
+		return nil, fmt.Errorf("error decoding node: %w", err)
 	}
 
 	client := construct(nc, config)

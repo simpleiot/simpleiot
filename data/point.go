@@ -495,7 +495,7 @@ func PbDecodePoints(data []byte) (Points, error) {
 //   - data         (off:44) packed 32-bit floating point samples
 func DecodeSerialHrPayload(payload []byte, callback func(Point)) error {
 	if len(payload) < 16+16+8+4+4 {
-		return fmt.Errorf("Payload is not long enough")
+		return fmt.Errorf("payload is not long enough")
 	}
 
 	typ := string(bytes.Trim(payload[0:16], "\x00"))

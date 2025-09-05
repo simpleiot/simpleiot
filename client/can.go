@@ -72,7 +72,7 @@ func NewCanBusClient(nc *nats.Conn, config CanBus) Client {
 func (cb *CanBusClient) Run() error {
 	log.Println("CanBusClient: Starting CAN bus client:", cb.config.Description)
 
-	var db *canparse.Database = &canparse.Database{}
+	db := &canparse.Database{}
 
 	sendDbStats := func(msgs, signals int) {
 		points := data.Points{

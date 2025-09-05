@@ -185,7 +185,7 @@ func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pt
 			false)
 
 		if err != nil {
-			return fmt.Errorf("Error sending Serial tx stats: %w", err)
+			return fmt.Errorf("error sending Serial tx stats: %w", err)
 		}
 	}
 
@@ -224,7 +224,7 @@ func (sd *SerialDevClient) Run() error {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return fmt.Errorf("Error creating a new fsnotify watcher: %w", err)
+		return fmt.Errorf("error creating a new fsnotify watcher: %w", err)
 
 	}
 	defer watcher.Close()
@@ -548,9 +548,10 @@ exitSerialClient:
 		case e, ok := <-watcher.Events:
 			if ok {
 				if e.Name == sd.config.Port {
-					if e.Op == fsnotify.Remove {
+					switch e.Op {
+					case fsnotify.Remove:
 						closePort()
-					} else if e.Op == fsnotify.Create {
+					case fsnotify.Create:
 						openPort()
 					}
 				}

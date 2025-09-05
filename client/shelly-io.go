@@ -287,7 +287,7 @@ func (sio *ShellyIo) getConfig() (shellyIOConfig, error) {
 		return config.toSettings(), err
 
 	default:
-		return shellyIOConfig{}, fmt.Errorf("Unsupported device: %v", sio.Type)
+		return shellyIOConfig{}, fmt.Errorf("unsupported device: %v", sio.Type)
 	}
 }
 
@@ -296,7 +296,7 @@ func (sio *ShellyIo) getConfig() (shellyIOConfig, error) {
 // PlugUS: http://192.168.33.1/rpc/Switch.Set?id=0&on=true
 func (sio *ShellyIo) SetOnOff(comp string, index int, on bool) (data.Points, error) {
 	if len(comp) < 2 {
-		return nil, fmt.Errorf("Component must be specified")
+		return nil, fmt.Errorf("component must be specified")
 	}
 	_ = index
 	gen := sio.Gen()
@@ -500,7 +500,7 @@ func (sio *ShellyIo) SetName(name string) error {
 	switch sio.Gen() {
 	case ShellyGen1:
 		uri := fmt.Sprintf("http://%v/settings?name=%v", sio.IP, name)
-		uri = strings.Replace(uri, " ", "%20", -1)
+		uri = strings.ReplaceAll(uri, " ", "%20")
 		res, err := httpClient.Get(uri)
 		if err != nil {
 			return err
@@ -512,7 +512,7 @@ func (sio *ShellyIo) SetName(name string) error {
 		// TODO: not sure how to test if it worked ...
 	case ShellyGen2:
 		uri := fmt.Sprintf("http://%v/rpc/Sys.Setconfig?config={\"device\":{\"name\":\"%v\"}}", sio.IP, name)
-		uri = strings.Replace(uri, " ", "%20", -1)
+		uri = strings.ReplaceAll(uri, " ", "%20")
 		res, err := httpClient.Get(uri)
 		if err != nil {
 			return err
@@ -527,10 +527,10 @@ func (sio *ShellyIo) SetName(name string) error {
 			return err
 		}
 		if ret.Code != 0 || ret.Message != "" {
-			return fmt.Errorf("Error setting Shelly device %v name: %v", sio.Type, ret.Message)
+			return fmt.Errorf("error setting Shelly device %v name: %v", sio.Type, ret.Message)
 		}
 	default:
-		return fmt.Errorf("Error setting name: Unsupported device: %v", sio.Type)
+		return fmt.Errorf("error setting name: unsupported device: %v", sio.Type)
 	}
 	return nil
 }
