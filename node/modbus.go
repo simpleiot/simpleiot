@@ -771,9 +771,23 @@ func (b *Modbus) Run() {
 			if point.id == b.busNode.nodeID {
 				b.node.AddPoint(p)
 				var err error
-				b.busNode, err = NewModbusNode(b.node)
+				result, err := NewModbusNodeWithCorrections(b.node)
 				if err != nil {
 					log.Println("Error updating bus node:", err)
+				} else {
+					b.busNode = result.Node
+					
+					// Send corrected timeout value if it was corrected
+					if result.TimeoutCorrected {
+						correctedPoint := data.Point{
+							Type:  data.PointTypeTimeout,
+							Value: float64(b.busNode.timeout),
+						}
+						err := client.SendNodePoint(b.nc, b.busNode.nodeID, correctedPoint, true)
+						if err != nil {
+							log.Println("Error sending corrected timeout from NewModbusNode:", err)
+						}
+					}
 				}
 
 				switch point.point.Type {
@@ -782,8 +796,25 @@ func (b *Modbus) Run() {
 					data.PointTypeDebug,
 					data.PointTypePort,
 					data.PointTypeBaud,
-					data.PointTypeURI,
-					data.PointTypeTimeout:
+					data.PointTypeURI:
+					err := b.SetupPort()
+					if err != nil {
+						log.Println("Error setting up serial port:", err)
+					}
+				case data.PointTypeTimeout:
+					// Validate timeout value and send corrected value if needed
+					originalTimeout := int(p.Value)
+					if originalTimeout <= 0 {
+						// Send corrected timeout value back to frontend
+						correctedPoint := data.Point{
+							Type:  data.PointTypeTimeout,
+							Value: 100,
+						}
+						err := client.SendNodePoint(b.nc, b.busNode.nodeID, correctedPoint, true)
+						if err != nil {
+							log.Println("Error sending corrected timeout:", err)
+						}
+					}
 					err := b.SetupPort()
 					if err != nil {
 						log.Println("Error setting up serial port:", err)

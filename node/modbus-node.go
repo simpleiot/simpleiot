@@ -29,8 +29,23 @@ type ModbusNode struct {
 	errorCountEOFReset bool
 }
 
+// ModbusNodeResult contains the result of creating a ModbusNode and any corrections made
+type ModbusNodeResult struct {
+	Node           *ModbusNode
+	TimeoutCorrected bool
+}
+
 // NewModbusNode converts a node to ModbusNode data structure
 func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
+	result, err := NewModbusNodeWithCorrections(node)
+	if err != nil {
+		return nil, err
+	}
+	return result.Node, nil
+}
+
+// NewModbusNodeWithCorrections converts a node to ModbusNode data structure and reports corrections
+func NewModbusNodeWithCorrections(node data.NodeEdge) (*ModbusNodeResult, error) {
 	ret := ModbusNode{
 		nodeID: node.ID,
 	}
@@ -89,9 +104,12 @@ func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 	}
 
 	ret.debugLevel, _ = node.Points.ValueInt(data.PointTypeDebug, "")
+	
+	var timeoutCorrected bool
 	ret.timeout, ok = node.Points.ValueInt(data.PointTypeTimeout, "")
-	if !ok {
+	if !ok || ret.timeout <= 0 {
 		ret.timeout = 100 // default timeout is 100ms
+		timeoutCorrected = ok // only mark as corrected if timeout was explicitly set to invalid value
 	}
 	ret.disabled, _ = node.Points.ValueBool(data.PointTypeDisabled, "")
 	ret.errorCount, _ = node.Points.ValueInt(data.PointTypeErrorCount, "")
@@ -109,5 +127,8 @@ func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 		}
 	}
 
-	return &ret, nil
+	return &ModbusNodeResult{
+		Node:             &ret,
+		TimeoutCorrected: timeoutCorrected,
+	}, nil
 }
