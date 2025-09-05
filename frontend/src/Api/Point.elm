@@ -116,6 +116,7 @@ module Api.Point exposing
     , typePointKey
     , typePointType
     , typePollPeriod
+    , typeTimeout
     , typePort
     , typePrefix
     , typeProgress
@@ -535,6 +536,11 @@ typeDebug =
 typePollPeriod : String
 typePollPeriod =
     "pollPeriod"
+
+
+typeTimeout : String
+typeTimeout =
+    "timeout"
 
 
 valueUINT16 : String

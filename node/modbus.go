@@ -677,7 +677,7 @@ func (b *Modbus) SetupPort() error {
 			return fmt.Errorf("Error opening serial port: %w", err)
 		}
 
-		port := respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*100, time.Millisecond*20)
+		port := respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*time.Duration(b.busNode.timeout), time.Millisecond*20)
 
 		transport = modbus.NewRTU(port)
 	case data.PointValueTCP:
@@ -782,7 +782,8 @@ func (b *Modbus) Run() {
 					data.PointTypeDebug,
 					data.PointTypePort,
 					data.PointTypeBaud,
-					data.PointTypeURI:
+					data.PointTypeURI,
+					data.PointTypeTimeout:
 					err := b.SetupPort()
 					if err != nil {
 						log.Println("Error setting up serial port:", err)

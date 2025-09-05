@@ -19,6 +19,7 @@ type ModbusNode struct {
 	debugLevel         int
 	baud               int
 	pollPeriod         int
+	timeout            int // response timeout in milliseconds
 	disabled           bool
 	errorCount         int
 	errorCountCRC      int
@@ -88,6 +89,10 @@ func NewModbusNode(node data.NodeEdge) (*ModbusNode, error) {
 	}
 
 	ret.debugLevel, _ = node.Points.ValueInt(data.PointTypeDebug, "")
+	ret.timeout, ok = node.Points.ValueInt(data.PointTypeTimeout, "")
+	if !ok {
+		ret.timeout = 100 // default timeout is 100ms
+	}
 	ret.disabled, _ = node.Points.ValueBool(data.PointTypeDisabled, "")
 	ret.errorCount, _ = node.Points.ValueInt(data.PointTypeErrorCount, "")
 	ret.errorCountCRC, _ = node.Points.ValueInt(data.PointTypeErrorCountCRC, "")

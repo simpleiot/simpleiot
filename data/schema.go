@@ -98,6 +98,7 @@ const (
 	PointTypeProtocol = "protocol"
 	PointValueRTU     = "RTU"
 	PointValueTCP     = "TCP"
+	PointTypeTimeout  = "timeout"
 
 	NodeTypeModbusIO = "modbusIo"
 

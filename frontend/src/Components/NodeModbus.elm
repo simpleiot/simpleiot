@@ -94,6 +94,7 @@ view o =
                         numberInput Point.typeID "Device ID"
                     , viewIf (clientServer == Point.valueClient) <|
                         numberInput Point.typePollPeriod "Poll period (ms)"
+                    , numberInput Point.typeTimeout "Response timeout (ms)"
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , checkboxInput Point.typeDisabled "Disabled"
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"

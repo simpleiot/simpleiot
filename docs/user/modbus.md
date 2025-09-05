@@ -2,7 +2,8 @@
 
 Modbus is popular data communications protocol used for connecting industrial
 devices. The specification is open and available at the
-[Modbus website](https://modbus.org/).
+[Modbus website](https://modbus.org/). See also this
+[Modbus Overview](https://community.tmpdir.org/t/modbus-overview/1424).
 
 Simple IoT can function as both a Modbus client or server and supports both RTU
 and TCP transports. Modbus client/server is used as follows:
@@ -22,6 +23,10 @@ Modbus is configured by adding a Modbus node to the root node, and then adding
 IO nodes to the Modbus node.
 
 ![modbus](images/modbus.png)
+
+The `Response timeout` parameter determines how long the modbus client will wait
+for a response from a device. The default is 100ms, which is adequate for most
+devices, but it can be increased if you are communicating with a slow device.
 
 Modbus IOs can be configured to support most common IO types and data formats:
 
