@@ -1,3 +1,4 @@
+// Package files provides utilities for file updates and management.
 package files
 
 import (

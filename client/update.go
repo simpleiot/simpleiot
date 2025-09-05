@@ -112,13 +112,13 @@ func (m *UpdateClient) Run() error {
 
 		out, err := os.Create(destPath)
 		if err != nil {
-			return fmt.Errorf("Error creating OS update file: %w", err)
+			return fmt.Errorf("error creating OS update file: %w", err)
 		}
 		defer out.Close()
 
 		resp, err := http.Get(u)
 		if err != nil {
-			return fmt.Errorf("Error http get fetching OS update: %w", err)
+			return fmt.Errorf("error http get fetching OS update: %w", err)
 		}
 		defer resp.Body.Close()
 
@@ -129,7 +129,7 @@ func (m *UpdateClient) Run() error {
 
 		if c <= 0 {
 			os.Remove(destPath)
-			return fmt.Errorf("Failed to download: %v", u)
+			return fmt.Errorf("failed to download: %v", u)
 		}
 
 		return nil
@@ -212,19 +212,19 @@ func (m *UpdateClient) Run() error {
 		resp, err := http.Get(p)
 		if err != nil {
 			clearUpdateList()
-			return fmt.Errorf("Error getting updates: %w", err)
+			return fmt.Errorf("error getting updates: %w", err)
 		}
 
 		if resp.StatusCode != 200 {
 			clearUpdateList()
-			return fmt.Errorf("Error getting updates: %v", resp.Status)
+			return fmt.Errorf("error getting updates: %v", resp.Status)
 		}
 
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return fmt.Errorf("Error reading http response: %w", err)
+			return fmt.Errorf("error reading http response: %w", err)
 		}
 
 		updates := strings.Split(string(body), "\n")
@@ -296,7 +296,7 @@ func (m *UpdateClient) Run() error {
 		files, err := os.ReadDir(m.config.Directory)
 		var errRet error
 		if err != nil {
-			return fmt.Errorf("Error getting files in data dir: %w", err)
+			return fmt.Errorf("error getting files in data dir: %w", err)
 		}
 
 		for _, file := range files {
@@ -334,7 +334,7 @@ func (m *UpdateClient) Run() error {
 	checkDownloads := func() error {
 		files, err := os.ReadDir(m.config.Directory)
 		if err != nil {
-			return fmt.Errorf("Error getting files in data dir: %w", err)
+			return fmt.Errorf("error getting files in data dir: %w", err)
 		}
 
 		updFiles := []string{}
@@ -410,7 +410,7 @@ func (m *UpdateClient) Run() error {
 
 		currentOSV, err := semver.Parse(m.config.VersionOS)
 		if err != nil {
-			return fmt.Errorf("Autodownload, Error parsing current OS version: %w", err)
+			return fmt.Errorf("autodownload, error parsing current OS version: %w", err)
 		}
 
 		newestUpdateV, err := semver.Parse(newestUpdate)
@@ -428,7 +428,7 @@ func (m *UpdateClient) Run() error {
 				Text: newestUpdate,
 			}, true)
 			if err != nil {
-				return fmt.Errorf("Error sending point: %w", err)
+				return fmt.Errorf("error sending point: %w", err)
 			}
 			m.config.DownloadOS = newestUpdate
 
@@ -474,7 +474,7 @@ func (m *UpdateClient) Run() error {
 		go func() {
 			err := download(m.config.DownloadOS)
 			if err != nil {
-				cSetError <- fmt.Errorf("Error downloading file: %w", err)
+				cSetError <- fmt.Errorf("error downloading file: %w", err)
 			}
 		}()
 	}
@@ -513,7 +513,7 @@ done:
 						go func(f string) {
 							err := download(f)
 							if err != nil {
-								cSetError <- fmt.Errorf("Error downloading update: %w", err)
+								cSetError <- fmt.Errorf("error downloading update: %w", err)
 							}
 						}(p.Text)
 					}
@@ -522,7 +522,7 @@ done:
 						m.setError(nil)
 						err := cleanDownloads()
 						if err != nil {
-							m.setError(fmt.Errorf("Error cleaning downloads: %w", err))
+							m.setError(fmt.Errorf("error cleaning downloads: %w", err))
 						}
 						err = checkDownloads()
 						if err != nil {
@@ -576,7 +576,7 @@ done:
 					m.setError(nil)
 					err := cleanDownloads()
 					if err != nil {
-						m.setError(fmt.Errorf("Error cleaning downloads: %w", err))
+						m.setError(fmt.Errorf("error cleaning downloads: %w", err))
 					}
 					err = checkDownloads()
 					if err != nil {

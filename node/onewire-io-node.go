@@ -26,7 +26,7 @@ func newOneWireIONode(node *data.NodeEdge) (*oneWireIONode, error) {
 
 	ret.id, ok = node.Points.Text(data.PointTypeID, "")
 	if !ok {
-		return nil, errors.New("Must define onewire ID")
+		return nil, errors.New("must define onewire ID")
 	}
 
 	ret.description, _ = node.Points.Text(data.PointTypeDescription, "")

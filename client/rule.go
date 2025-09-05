@@ -544,7 +544,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				var err error
 				active, err = sched.activeForTime(p.Time)
 				if err != nil {
-					processError(fmt.Errorf("Error parsing schedule: %w", err))
+					processError(fmt.Errorf("error parsing schedule: %w", err))
 					continue
 				}
 			}
@@ -654,12 +654,12 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 		switch a.Action {
 		case data.PointValueSetValue:
 			if a.NodeID == "" {
-				processError(fmt.Errorf("Error, node action nodeID must be set"))
+				processError(fmt.Errorf("error, node action nodeID must be set"))
 				break
 			}
 
 			if a.PointType == "" {
-				processError(fmt.Errorf("Error, node action point type must be set"))
+				processError(fmt.Errorf("error, node action point type must be set"))
 				break
 			}
 
@@ -739,7 +739,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				}
 			}()
 		default:
-			processError(fmt.Errorf("Uknown rule action: %v", a.Action))
+			processError(fmt.Errorf("uknown rule action: %v", a.Action))
 		}
 
 		p := data.Point{

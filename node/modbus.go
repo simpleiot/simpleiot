@@ -243,7 +243,7 @@ func (b *Modbus) ReadBusReg(io *ModbusIO) error {
 			return err
 		}
 		if len(regs) < 1 {
-			return errors.New("Did not receive enough data")
+			return errors.New("did not receive enough data")
 		}
 		valueUnscaled = float64(regs[0])
 
@@ -253,7 +253,7 @@ func (b *Modbus) ReadBusReg(io *ModbusIO) error {
 			return err
 		}
 		if len(regs) < 2 {
-			return errors.New("Did not receive enough data")
+			return errors.New("did not receive enough data")
 		}
 		v := modbus.RegsToUint32(regs)
 
@@ -265,7 +265,7 @@ func (b *Modbus) ReadBusReg(io *ModbusIO) error {
 			return err
 		}
 		if len(regs) < 2 {
-			return errors.New("Did not receive enough data")
+			return errors.New("did not receive enough data")
 		}
 		v := modbus.RegsToInt32(regs)
 
@@ -277,7 +277,7 @@ func (b *Modbus) ReadBusReg(io *ModbusIO) error {
 			return err
 		}
 		if len(regs) < 2 {
-			return errors.New("Did not receive enough data")
+			return errors.New("did not receive enough data")
 		}
 		valueUnscaled = float64(modbus.RegsToFloat32(regs)[0])
 
@@ -317,7 +317,7 @@ func (b *Modbus) ReadBusBit(io *ModbusIO) error {
 		return err
 	}
 	if len(bits) < 1 {
-		return errors.New("Did not receive enough data")
+		return errors.New("did not receive enough data")
 	}
 
 	value := data.BoolToFloat(bits[0])
@@ -674,10 +674,10 @@ func (b *Modbus) SetupPort() error {
 		b.serialPort, err = serial.Open(b.busNode.portName, mode)
 		if err != nil {
 			b.serialPort = nil
-			return fmt.Errorf("Error opening serial port: %w", err)
+			return fmt.Errorf("error opening serial port: %w", err)
 		}
 
-		port := respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*100, time.Millisecond*20)
+		port := respreader.NewReadWriteCloser(b.serialPort, time.Millisecond*time.Duration(b.busNode.timeout), time.Millisecond*20)
 
 		transport = modbus.NewRTU(port)
 	case data.PointValueTCP:
@@ -696,15 +696,17 @@ func (b *Modbus) SetupPort() error {
 		}
 
 	default:
-		return fmt.Errorf("Unsupported modbus protocol: %v", b.busNode.protocol)
+		return fmt.Errorf("unsupported modbus protocol: %v", b.busNode.protocol)
 	}
 
-	if b.busNode.busType == data.PointValueServer {
+	switch b.busNode.busType {
+	case data.PointValueServer:
 		b.regs = &modbus.Regs{}
-		if b.busNode.protocol == data.PointValueRTU {
+		switch b.busNode.protocol {
+		case data.PointValueRTU:
 			b.server = modbus.NewServer(byte(b.busNode.id), transport,
 				b.regs, b.busNode.debugLevel)
-		} else if b.busNode.protocol == data.PointValueTCP {
+		case data.PointValueTCP:
 			var err error
 			b.server, err = modbus.NewTCPServer(b.busNode.id, 5,
 				b.busNode.portName, b.regs, b.busNode.debugLevel)
@@ -712,7 +714,7 @@ func (b *Modbus) SetupPort() error {
 				b.server = nil
 				return err
 			}
-		} else {
+		default:
 			return errors.New("Modbus protocol not set")
 		}
 
@@ -732,7 +734,7 @@ func (b *Modbus) SetupPort() error {
 		for _, io := range b.ios {
 			b.InitRegs(io.ioNode)
 		}
-	} else if b.busNode.busType == data.PointValueClient {
+	case data.PointValueClient:
 		b.client = modbus.NewClient(transport, b.busNode.debugLevel)
 	}
 
@@ -771,9 +773,23 @@ func (b *Modbus) Run() {
 			if point.id == b.busNode.nodeID {
 				b.node.AddPoint(p)
 				var err error
-				b.busNode, err = NewModbusNode(b.node)
+				result, err := NewModbusNodeWithCorrections(b.node)
 				if err != nil {
 					log.Println("Error updating bus node:", err)
+				} else {
+					b.busNode = result.Node
+
+					// Send corrected timeout value if it was corrected
+					if result.TimeoutCorrected {
+						correctedPoint := data.Point{
+							Type:  data.PointTypeTimeout,
+							Value: float64(b.busNode.timeout),
+						}
+						err := client.SendNodePoint(b.nc, b.busNode.nodeID, correctedPoint, true)
+						if err != nil {
+							log.Println("Error sending corrected timeout from NewModbusNode:", err)
+						}
+					}
 				}
 
 				switch point.point.Type {
@@ -783,6 +799,24 @@ func (b *Modbus) Run() {
 					data.PointTypePort,
 					data.PointTypeBaud,
 					data.PointTypeURI:
+					err := b.SetupPort()
+					if err != nil {
+						log.Println("Error setting up serial port:", err)
+					}
+				case data.PointTypeTimeout:
+					// Validate timeout value and send corrected value if needed
+					originalTimeout := int(p.Value)
+					if originalTimeout <= 0 {
+						// Send corrected timeout value back to frontend
+						correctedPoint := data.Point{
+							Type:  data.PointTypeTimeout,
+							Value: 100,
+						}
+						err := client.SendNodePoint(b.nc, b.busNode.nodeID, correctedPoint, true)
+						if err != nil {
+							log.Println("Error sending corrected timeout:", err)
+						}
+					}
 					err := b.SetupPort()
 					if err != nil {
 						log.Println("Error setting up serial port:", err)

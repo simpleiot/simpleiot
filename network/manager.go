@@ -103,7 +103,7 @@ func (m *Manager) nextInterface() {
 
 func (m *Manager) connect() error {
 	if len(m.interfaces) <= 0 {
-		return errors.New("No interfaces to connect to")
+		return errors.New("no interfaces to connect to")
 	}
 
 	return m.interfaces[m.interfaceIndex].Connect()
@@ -111,7 +111,7 @@ func (m *Manager) connect() error {
 
 func (m *Manager) configure() (InterfaceConfig, error) {
 	if len(m.interfaces) <= 0 {
-		return InterfaceConfig{}, errors.New("No interfaces to configure")
+		return InterfaceConfig{}, errors.New("no interfaces to configure")
 	}
 
 	return m.interfaces[m.interfaceIndex].Configure()

@@ -38,6 +38,6 @@ jobs:
           go test -p=1 -race "$@" ./...
 
       - name: Lint backend
-        uses: golangci/golangci-lint-action@v3.4.0
+        uses: golangci/golangci-lint-action@v8.0.0
         with:
           args: --timeout=5m

@@ -106,7 +106,7 @@ func (s *Server) Start() error {
 	var err error
 	s.ln, err = net.Listen("tcp", address)
 	if err != nil {
-		return fmt.Errorf("Error starting api server: %v", err)
+		return fmt.Errorf("error starting api server: %v", err)
 	}
 
 	chError := make(chan error)

@@ -107,7 +107,7 @@ func runServer(args []string, version string, id string) error {
 
 	if err != nil {
 		siot.Stop(nil)
-		return fmt.Errorf("Error starting server: %v", err)
+		return fmt.Errorf("error starting server: %v", err)
 	}
 
 	g.Add(siot.Run, siot.Stop)
@@ -130,7 +130,7 @@ func runServer(args []string, version string, id string) error {
 	g.Add(func() error {
 		err := siot.WaitStart(ctx)
 		if err != nil {
-			return errors.New("Timeout waiting for SIOT to start")
+			return errors.New("timeout waiting for SIOT to start")
 		}
 		log.Println("SIOT started")
 
@@ -284,10 +284,7 @@ func runInstall(args []string) {
 		log.Fatal("Error getting user: ", err)
 	}
 
-	isRoot := false
-	if currentUser.Username == "root" {
-		isRoot = true
-	}
+	isRoot := currentUser.Username == "root"
 
 	serviceDir := path.Join(currentUser.HomeDir, ".config/systemd/user")
 	dataDir := path.Join(currentUser.HomeDir, ".local/share/siot")

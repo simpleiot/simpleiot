@@ -83,7 +83,7 @@ func (t *TCP) Encode(id byte, pdu PDU) ([]byte, error) {
 // Decode decodes a TCP packet
 func (t *TCP) Decode(packet []byte) (byte, PDU, error) {
 	if len(packet) < 9 {
-		return 0, PDU{}, fmt.Errorf("Not enough data for TCP packet: %v", len(packet))
+		return 0, PDU{}, fmt.Errorf("not enough data for TCP packet: %v", len(packet))
 	}
 
 	txID := binary.BigEndian.Uint16(packet[:2])
@@ -92,7 +92,7 @@ func (t *TCP) Decode(packet []byte) (byte, PDU, error) {
 	case TransportClient:
 		// need to check that echo'd tx is correct
 		if txID != t.txID {
-			return 0, PDU{}, fmt.Errorf("Transaction id not correct, expected: 0x%x, got 0x%x", t.txID, txID)
+			return 0, PDU{}, fmt.Errorf("transaction id not correct, expected: 0x%x, got 0x%x", t.txID, txID)
 		}
 	case TransportServer:
 		// need to store tx to echo back to client on Encode

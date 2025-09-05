@@ -60,7 +60,7 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 				root_id TEXT,
 			  jwt_key BLOB)`)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating meta table: %v", err)
+		return nil, fmt.Errorf("error creating meta table: %v", err)
 	}
 
 	// check if jwt_key column exists
@@ -85,7 +85,7 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 				type TEXT)`)
 
 	if err != nil {
-		return nil, fmt.Errorf("Error creating edges table: %v", err)
+		return nil, fmt.Errorf("error creating edges table: %v", err)
 	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS node_points (id TEXT NOT NULL PRIMARY KEY,
@@ -101,7 +101,7 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 				origin TEXT)`)
 
 	if err != nil {
-		return nil, fmt.Errorf("Error creating node_points table: %v", err)
+		return nil, fmt.Errorf("error creating node_points table: %v", err)
 	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS edge_points (id TEXT NOT NULL PRIMARY KEY,
@@ -117,7 +117,7 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 				origin TEXT)`)
 
 	if err != nil {
-		return nil, fmt.Errorf("Error creating edge_points table: %v", err)
+		return nil, fmt.Errorf("error creating edge_points table: %v", err)
 	}
 
 	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS edgeUp ON edges(up)`)
@@ -137,26 +137,26 @@ func NewSqliteDb(dbFile string, rootID string) (*DbSqlite, error) {
 
 	err = ret.initMeta()
 	if err != nil {
-		return nil, fmt.Errorf("Error initializing db meta: %v", err)
+		return nil, fmt.Errorf("error initializing db meta: %v", err)
 	}
 
 	err = ret.runMigrations()
 	if err != nil {
-		return nil, fmt.Errorf("Error running migrations: %v", err)
+		return nil, fmt.Errorf("error running migrations: %v", err)
 	}
 
 	if ret.meta.RootID == "" {
 		// we need to initialize root node and user
 		ret.meta.RootID, err = ret.initRoot(rootID)
 		if err != nil {
-			return nil, fmt.Errorf("Error initializing root node: %v", err)
+			return nil, fmt.Errorf("error initializing root node: %v", err)
 		}
 	}
 
 	if len(ret.meta.JWTKey) <= 0 {
 		err := ret.initJwtKey()
 		if err != nil {
-			return nil, fmt.Errorf("Error initializing JWT Key: %v", err)
+			return nil, fmt.Errorf("error initializing JWT Key: %v", err)
 		}
 	}
 
@@ -187,7 +187,7 @@ func (sdb *DbSqlite) initMeta() error {
 		count++
 		err = rows.Scan(&sdb.meta.ID, &sdb.meta.Version, &sdb.meta.RootID, &sdb.meta.JWTKey)
 		if err != nil {
-			return fmt.Errorf("Error scanning meta row: %v", err)
+			return fmt.Errorf("error scanning meta row: %v", err)
 		}
 	}
 
@@ -232,7 +232,7 @@ func (sdb *DbSqlite) reset() error {
 	for _, v := range tables {
 		_, err = sdb.db.Exec(`DELETE FROM ` + v)
 		if err != nil {
-			return fmt.Errorf("Error truncating table: %v", err)
+			return fmt.Errorf("error truncating table: %v", err)
 		}
 	}
 
@@ -329,7 +329,7 @@ func (sdb *DbSqlite) verifyNodeHashes(fix bool) error {
 
 	if err != nil {
 		rollback()
-		return fmt.Errorf("Verify failed: %v", err)
+		return fmt.Errorf("verify failed: %v", err)
 	}
 
 	err = tx.Commit()
@@ -355,7 +355,7 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 
 	err := sdb.nodePoints(rootNode.ID, rootNode.Points)
 	if err != nil {
-		return "", fmt.Errorf("Error setting root node points: %v", err)
+		return "", fmt.Errorf("error setting root node points: %v", err)
 	}
 
 	err = sdb.edgePoints(rootNode.ID, "root", data.Points{
@@ -363,7 +363,7 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 		{Type: data.PointTypeNodeType, Text: rootNode.Type},
 	})
 	if err != nil {
-		return "", fmt.Errorf("Error sending root node edges: %w", err)
+		return "", fmt.Errorf("error sending root node edges: %w", err)
 	}
 
 	// create admin user off root node
@@ -379,7 +379,7 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 
 	err = sdb.nodePoints(admin.ID, points)
 	if err != nil {
-		return "", fmt.Errorf("Error setting default user: %v", err)
+		return "", fmt.Errorf("error setting default user: %v", err)
 	}
 
 	err = sdb.edgePoints(admin.ID, rootNode.ID, data.Points{
@@ -395,7 +395,7 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 	defer sdb.writeLock.Unlock()
 	_, err = sdb.db.Exec("UPDATE meta SET root_id = ?", rootNode.ID)
 	if err != nil {
-		return "", fmt.Errorf("Error setting meta rootID: %v", err)
+		return "", fmt.Errorf("error setting meta rootID: %v", err)
 	}
 
 	return rootNode.ID, nil
@@ -405,14 +405,14 @@ func (sdb *DbSqlite) initJwtKey() error {
 	sdb.meta.JWTKey = make([]byte, 20)
 	_, err := rand.Read(sdb.meta.JWTKey)
 	if err != nil {
-		return fmt.Errorf("Error reading making JWT key: %v", err)
+		return fmt.Errorf("error reading making JWT key: %v", err)
 	}
 
 	sdb.writeLock.Lock()
 	defer sdb.writeLock.Unlock()
 	_, err = sdb.db.Exec("UPDATE meta SET jwt_key = ?", sdb.meta.JWTKey)
 	if err != nil {
-		return fmt.Errorf("Error setting meta jwt key: %v", err)
+		return fmt.Errorf("error setting meta jwt key: %v", err)
 	}
 
 	return nil
@@ -464,7 +464,7 @@ func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
 
 	if err := rowsPoints.Close(); err != nil {
 		rollback()
-		return fmt.Errorf("Error closing rowsPoints: %v", err)
+		return fmt.Errorf("error closing rowsPoints: %v", err)
 	}
 
 	var writePoints data.Points
@@ -547,7 +547,7 @@ NextPin:
 	err = sdb.updateHash(tx, id, hashUpdate)
 	if err != nil {
 		rollback()
-		return fmt.Errorf("Error updating upstream hash: %v", err)
+		return fmt.Errorf("error updating upstream hash: %v", err)
 	}
 
 	err = tx.Commit()
@@ -562,13 +562,13 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 	points.Collapse()
 
 	if nodeID == parentID {
-		return fmt.Errorf("Error: edgePoints nodeID=parentID=%v", nodeID)
+		return fmt.Errorf("error: edgePoints nodeID=parentID=%v", nodeID)
 	}
 
 	if nodeID == sdb.meta.RootID {
 		for _, p := range points {
 			if p.Type == data.PointTypeTombstone && p.Value > 0 {
-				return fmt.Errorf("Error, can't delete root node")
+				return fmt.Errorf("error, can't delete root node")
 			}
 		}
 	}
@@ -639,7 +639,7 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 
 	if err := rowsPoints.Close(); err != nil {
 		rollback()
-		return fmt.Errorf("Error closing rowsPoints: %v", err)
+		return fmt.Errorf("error closing rowsPoints: %v", err)
 	}
 
 	var writePoints data.Points
@@ -730,7 +730,7 @@ NextPin:
 	if newEdge {
 		if nodeType == "" {
 			rollback()
-			return fmt.Errorf("Node type must be sent with new edges")
+			return fmt.Errorf("node type must be sent with new edges")
 		}
 		// did not find edge, need to add it
 		edge.Up = parentID
@@ -763,7 +763,7 @@ NextPin:
 
 		if err := rowsPoints.Close(); err != nil {
 			rollback()
-			return fmt.Errorf("Error closing rowsPoints: %v", err)
+			return fmt.Errorf("error closing rowsPoints: %v", err)
 		}
 
 		_, err = tx.Exec(`INSERT INTO edges(id, up, down, hash, type) VALUES (?, ?, ?, ?, ?)`,
@@ -783,7 +783,7 @@ NextPin:
 			// TODO check for downstream node and add in its hash
 			if err != nil {
 				rollback()
-				return fmt.Errorf("Error when writing edge: %v", err)
+				return fmt.Errorf("error when writing edge: %v", err)
 			}
 		}
 
@@ -792,7 +792,7 @@ NextPin:
 			_, err = tx.Exec("UPDATE meta SET root_id = ?", nodeID)
 			if err != nil {
 				rollback()
-				return fmt.Errorf("Error update root id in meta: %w", err)
+				return fmt.Errorf("error update root id in meta: %w", err)
 			}
 			sdb.meta.RootID = nodeID
 		}
@@ -801,7 +801,7 @@ NextPin:
 	err = sdb.updateHash(tx, nodeID, hashUpdate)
 	if err != nil {
 		rollback()
-		return fmt.Errorf("Error updating upstream hash: %v", err)
+		return fmt.Errorf("error updating upstream hash: %v", err)
 	}
 
 	err = tx.Commit()
@@ -831,7 +831,7 @@ func (sdb *DbSqlite) updateHash(tx *sql.Tx, id string, hashUpdate uint32) error 
 		_, err = stmt.Exec(hash, id)
 		if err != nil {
 			stmt.Close()
-			return fmt.Errorf("Error updating edge hash: %v", err)
+			return fmt.Errorf("error updating edge hash: %v", err)
 		}
 	}
 
@@ -874,7 +874,7 @@ func (sdb *DbSqlite) edges(tx *sql.Tx, query string, args ...any) ([]data.Edge, 
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("Error getting edges: %v", err)
+		return nil, fmt.Errorf("error getting edges: %v", err)
 	}
 	defer rowsEdges.Close()
 
@@ -884,7 +884,7 @@ func (sdb *DbSqlite) edges(tx *sql.Tx, query string, args ...any) ([]data.Edge, 
 		var edge data.Edge
 		err = rowsEdges.Scan(&edge.ID, &edge.Up, &edge.Down, &edge.Hash, &edge.Type)
 		if err != nil {
-			return nil, fmt.Errorf("Error scanning edges: %v", err)
+			return nil, fmt.Errorf("error scanning edges: %v", err)
 		}
 
 		edges = append(edges, edge)
@@ -936,7 +936,7 @@ func (sdb *DbSqlite) getNodes(tx *sql.Tx, parent, id, typ string, includeDel boo
 	var ret []data.NodeEdge
 
 	if parent == "" || parent == "none" {
-		return nil, errors.New("Parent must be set to valid ID, or all")
+		return nil, errors.New("parent must be set to valid ID, or all")
 	}
 
 	if id == "" {

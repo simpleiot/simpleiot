@@ -71,7 +71,7 @@ func (adu *ASCIIADU) DecodeFunctionData() (ret interface{}, err error) {
 		r.RegCount = uint16(adu.Data[2])<<8 | uint16(adu.Data[3])
 		r.ByteCount = adu.Data[4]
 		if r.RegCount*2 != uint16(r.ByteCount) {
-			err = errors.New("Byte count does not match reg count")
+			err = errors.New("byte count does not match reg count")
 			return
 		}
 		regData := adu.Data[5:]
@@ -85,7 +85,7 @@ func (adu *ASCIIADU) DecodeFunctionData() (ret interface{}, err error) {
 		}
 		ret = r
 	default:
-		err = fmt.Errorf("Unhandled function code %v", adu.FunctionCode)
+		err = fmt.Errorf("unhandled function code %v", adu.FunctionCode)
 	}
 
 	return
@@ -118,7 +118,7 @@ type FuncWriteMultipleRegisterRequest struct {
 // byte
 func DecodeASCIIByte(data []byte) (byte, []byte, error) {
 	if len(data) < 2 {
-		return 0, []byte{}, errors.New("Not enough data to decode")
+		return 0, []byte{}, errors.New("not enough data to decode")
 	}
 
 	ret := make([]byte, 1)
@@ -134,7 +134,7 @@ func DecodeASCIIByte(data []byte) (byte, []byte, error) {
 // byte. This function takes from the end of the slice
 func DecodeASCIIByteEnd(data []byte) (byte, []byte, error) {
 	if len(data) < 2 {
-		return 0, []byte{}, errors.New("Not enough data to decode")
+		return 0, []byte{}, errors.New("not enough data to decode")
 	}
 
 	ret := make([]byte, 1)

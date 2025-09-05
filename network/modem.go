@@ -356,7 +356,7 @@ func (m *Modem) Enable(en bool) error {
 
 // ErrorModemNotDetected is returned if we try an operation and the modem
 // is not detected
-var ErrorModemNotDetected = errors.New("No modem detected")
+var ErrorModemNotDetected = errors.New("no modem detected")
 
 // GetLocation returns current GPS location
 func (m *Modem) GetLocation() (data.GpsPos, error) {

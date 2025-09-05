@@ -1,3 +1,4 @@
+// Package main tests response reader close functionality.
 package main
 
 import (
