@@ -13,6 +13,9 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- add configurable response timeout parameter for Modbus clients with 100ms
+  default
+
 ## [[0.18.4] - 2025-08-04](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.4)
 
 - don't return power information for Shelly devices that don't have power
