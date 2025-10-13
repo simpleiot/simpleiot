@@ -6,7 +6,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/simpleiot/simpleiot)](https://goreportcard.com/report/github.com/simpleiot/simpleiot)
 [![Slack Widget](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=red)](http://gophers.slack.com/messages/simpleiot)
 
-**Simple Iot enables you to add remote sensor data, telemetry, configuration,
+**Simple IoT enables you to add remote sensor data, telemetry, configuration,
 and device management to your project or product.**
 
 Implementing IoT systems is hard. Most projects take way longer and cost more
@@ -18,19 +18,19 @@ inherently distributed and building on simple concepts that scale.
 
 **Simple IoT** provides:
 
-- a single application with no dependencies that can be run in both cloud and
+- A single application with no dependencies that can be run in both cloud and
   edge instances
 - efficient synchronization of data in both directions
-- a flexible UI to view configuration and current values
-- a rules engine that runs on all instances that can trigger notifications or
+- A flexible UI to view configuration and current values
+- A rules engine that runs on all instances that can trigger notifications or
   set data
-- extensive support for Modbus -- both server and client
-- support for the Linux 1-wire subsystem.
-- flexible graph organization of instances, users, groups, rules, and
-  configuration
-- integration with other services like InfluxDB and Twilio
-- a system that is easy to extend in any language using NATS
-- a number of useful Go packages to use in your custom application
+- Extensive support for Modbus - both server and client
+- Support for the Linux 1-wire subsystem.
+- Flexible graph organization of instances, users, groups, rules, and
+  configuration.
+- Integration with other services like InfluxDB and Twilio
+- A system that is easy to extend in any language using NATS.
+- A number of useful Go packages to use in your custom application
 
 See [vision](docs/ref/vision.md), [architecture](docs/ref/architecture.md), and
 [integration](docs/ref/integration.md) for addition discussion on these points.
@@ -49,7 +49,7 @@ been driven by the following requirements:
   local display where users can modify the configuration locally as well as in
   the cloud. Rules can also run in the cloud or on edge devices and modify data.
 - Data bandwidth is limited in some IoT systems — especially those connected
-  with Cat-M modems (< 100kb/s). Additionally, connectivity is not always
+  with Cat-M modems (< 100Kb/sec). Additionally, connectivity is not always
   reliable, and systems need to continue operating if not connected.
 
 ## Core ideas
@@ -58,16 +58,17 @@ The process of developing Simple IoT has been a path of reducing what started as
 a fairly complex IoT system to simpler ideas. This is what we discovered along
 the way:
 
-1. treat configuration and state data the same for purposes of storage and
+1. Treat configuration and state data the same for purposes of storage and
    synchronization.
-2. represent this data using simple types (Nodes and Points).
-3. organize this data in a graph.
-4. all data flows through a message bus.
-5. run the same application in the cloud and at the edge.
-6. automatically sync common data between instances.
+2. Represent this data using simple types (Nodes and Points).
+3. Organize this data in a graph.
+4. All data flows through a message bus.
+5. Run the same application in the cloud and at the edge.
+6. Automatically sync common data between instances.
 
 > [Design is the beauty of turning constraints into advantages.](https://www.webstock.org.nz/talks/design-is-the-beauty-of-turning-constraints-into-advantages/)
-> -- Ava Raskin
+>
+> - Ava Raskin
 
 These constraints have resulted in Simple IoT becoming a flexible distributed
 graph database optimized for IoT datasets. We'll explore these ideas more in the
@@ -75,8 +76,8 @@ graph database optimized for IoT datasets. We'll explore these ideas more in the
 
 ## Support, Community, Contributing, etc.
 
-Pull requests are welcome -- see [development](docs/ref/development.md) for more
-thoughts on architecture, tooling, etc. Issues are labelled with "help wanted"
+Pull requests are welcome - see [development](docs/ref/development.md) for more
+thoughts on architecture, tooling, etc. Issues are labeled with "help wanted"
 and "good first issue" if you would like to contribute to this project.
 
 For support or to discuss this project, use one of the following options:
@@ -85,9 +86,9 @@ For support or to discuss this project, use one of the following options:
 - [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
 - #simpleiot Slack channel is available on
   [gophers.slack.com](https://gophers.slack.com/messages/simpleiot/)
-- open a Github issue
+- open a GitHub issue
 - [Simple IoT YouTube channel](https://www.youtube.com/@simple-iot)
-- subscribe to our [email newsletter](https://tmpdir.ck.page/196d1fb480) for
+- Subscribe to our [email newsletter](https://tmpdir.ck.page/196d1fb480) for
   project updates.
 
 If you use this project, please let us know! It is really helpful to hear from
