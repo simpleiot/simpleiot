@@ -13,13 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// Point is a flexible data structure that can be used to represent
-// a sensor value or a configuration parameter.
-// Type, and Key uniquely identify a point in a node.
-// Using the Key field, maps and arrays can be represented.
-// Array would have key values like: "0", "1", "2", "3", ...
-// A map might have key values like "min", "max", "average", etc.
-type Point struct {
+type PointOld struct {
 	//-------------------------------------------------------
 	//1st three fields uniquely identify a point when receiving updates
 
@@ -58,6 +52,141 @@ type Point struct {
 	Origin string `json:"origin,omitempty"`
 }
 
+// PointDataType is the data sent over the wire
+type PointDataType byte
+
+// PointDataType defines
+const (
+	PointDataTypeUnknown PointDataType = 0
+	PointDataTypeFloat   PointDataType = 1
+	PointDataTypeInt     PointDataType = 2
+	PointDataTypeString  PointDataType = 3
+	PointDataTypeJSON    PointDataType = 4
+)
+
+// Point is a flexible data structure that can be used to represent
+// a sensor value or a configuration parameter.
+// Type, and Key uniquely identify a point in a node.
+// Using the Key field, maps and arrays can be represented.
+// Array would have key values like: "0", "1", "2", "3", ...
+// A map might have key values like "min", "max", "average", etc.
+type Point struct {
+	//-------------------------------------------------------
+	//1st three fields uniquely identify a point when receiving updates
+
+	// Type of point (voltage, current, key, etc)
+	Type string `json:"type,omitempty"`
+
+	// Key is used to allow a group of points to represent a map or array
+	Key string `json:"key,omitempty"`
+
+	//-------------------------------------------------------
+	// The following fields are the values for a point
+
+	// Time the point was taken
+	Time time.Time `json:"time,omitempty" yaml:"-"`
+
+	// DataType describes what type of data we have
+	DataType PointDataType `json:"dataType,omitempty"`
+
+	// catchall field for data that does not fit into float or string --
+	// should be used sparingly
+	Data []byte `json:"data,omitempty"`
+
+	//-------------------------------------------------------
+	// Metadata
+
+	// Used to indicate a point has been deleted. This value is only
+	// ever incremented. Odd values mean point is deleted.
+	Tombstone int `json:"tombstone,omitempty"`
+
+	// Where did this point come from. If from the owning node, it may be blank.
+	Origin string `json:"origin,omitempty"`
+}
+
+// ValueInt decodes an int value from the point
+func (p *Point) ValueInt() (int64, error) {
+	if p.DataType != PointDataTypeInt {
+		return 0, fmt.Errorf("point is not an int")
+	}
+
+	switch len(p.Data) {
+	case 1:
+		return int64(p.Data[0]), nil
+	case 2:
+		return int64(binary.LittleEndian.Uint16(p.Data)), nil
+	case 4:
+		return int64(binary.LittleEndian.Uint32(p.Data)), nil
+	case 8:
+		return int64(binary.LittleEndian.Uint64(p.Data)), nil
+	default:
+		return 0, fmt.Errorf("invalid length for int %i", len(p.Data))
+	}
+}
+
+// ValueFloat decodes a float value from the point
+func (p *Point) ValueFloat() (float64, error) {
+	if p.DataType != PointDataTypeFloat {
+		return 0, fmt.Errorf("point is not a float")
+	}
+
+	switch len(p.Data) {
+	case 4:
+		return float64(math.Float32frombits(binary.LittleEndian.Uint32(p.Data))), nil
+	case 8:
+		return math.Float64frombits(binary.LittleEndian.Uint64(p.Data)), nil
+	default:
+		return 0, fmt.Errorf("invalid length for float %i", len(p.Data))
+	}
+}
+
+// ValueString returns a string value from the point
+func (p *Point) ValueString() (string, error) {
+	if p.DataType != PointDataTypeString {
+		return "", fmt.Errorf("point is not an string")
+	}
+
+	return string(p.Data), nil
+}
+
+func (p *Point) PutString(v string) {
+	p.DataType = PointDataTypeString
+	p.Data = []byte(v)
+}
+
+func (p *Point) PutInt(v int64) {
+	p.DataType = PointDataTypeInt
+	absValue := v
+	if v < 0 {
+		absValue = -v
+	}
+
+	switch {
+	case absValue < 128: // Use 1 byte
+		p.Data = make([]byte, 1)
+		p.Data[0] = byte(v) // Directly cast to byte
+	case absValue < 32768: // Use 2 bytes
+		p.Data = make([]byte, 2)
+		binary.LittleEndian.PutUint16(p.Data, uint16(v))
+	case absValue < 2147483648: // Use 4 bytes
+		p.Data = make([]byte, 4)
+		binary.LittleEndian.PutUint32(p.Data, uint32(v))
+	default: // Use 8 bytes
+		p.Data = make([]byte, 8)
+		binary.LittleEndian.PutUint64(p.Data, uint64(v))
+	}
+}
+
+func (p *Point) PutFloat(v float64) {
+	p.DataType = PointDataTypeFloat
+	p.Data = make([]byte, 8)
+
+	bits := math.Float64bits(v)
+
+	// Convert uint64 to bytes (little-endian)
+	binary.LittleEndian.PutUint64(p.Data, bits)
+}
+
 // CRC returns a CRC for the point
 func (p Point) CRC() uint32 {
 	// Node type points are not returned so don't include that in hash
@@ -73,8 +202,7 @@ func (p Point) CRC() uint32 {
 	h.Write(d)
 	h.Write([]byte(p.Type))
 	h.Write([]byte(p.Key))
-	h.Write([]byte(p.Text))
-	binary.LittleEndian.PutUint64(d, math.Float64bits(p.Value))
+	h.Write([]byte(p.Data))
 	h.Write(d)
 
 	return h.Sum32()
