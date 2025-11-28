@@ -1,7 +1,7 @@
 # Synchronization
 
 Simple IoT provides for synchronized upstream connections via NATS or NATS over
-Websocket.
+WebSocket.
 
 ![upstream](images/multiple-upstream.png)
 
@@ -9,9 +9,9 @@ To create an upstream sync, add a sync node to the root node on the downstream
 instance. If your upstream server has a name of `myserver.com`, then you can use
 the following connections URIs:
 
-- `nats://myserver.com:4222` (4222 is the default nats port)
-- `ws://myserver.com` (websocket unencrypted connection)
-- `wss://myserver.com` (websocket encrypted connection)
+- `nats://myserver.com:4222` (4222 is the default NATS port)
+- `ws://myserver.com` (WebSocket unencrypted connection)
+- `wss://myserver.com` (WebSocket encrypted connection)
 
 IP addresses can also be used for the server name.
 
@@ -25,13 +25,13 @@ Typically, `wss` are simplest for servers that are fronted by a web server like
 Caddy that has TLS certs. For internal connections, `nats` or `ws` connections
 are typically used.
 
-Occasionally, you might also have edge devices on networks where nats outgoing
-connections on port 4222 are blocked. In this case, its handy to be able to use
+Occasionally, you might also have edge devices on networks where NATS outgoing
+connections on port 4222 are blocked. In this case, it's handy to be able to use
 the `wss` connection, which just uses standard HTTP(S) ports.
 
 ![sync](images/upstream.png)
 
-## Vidoes
+## Videos
 
 There are also several videos that demonstrate upstream connections:
 

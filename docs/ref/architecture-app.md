@@ -41,16 +41,16 @@ pattern for any long running processes. With any long running process, it is
 important to not only Start it, but also to be able to cleanly Stop it. This is
 important for testing, but is also good practice. Nothing runs forever so we
 should never operate under this illusion. The
-[oklog/run](https://github.com/oklog/run) packaged is used to start and shutdown
-these processes concurrently. Dependencies between processes should be minimized
-where possible through retries. If there are hard dependencies, these can be
-managed with `WaitStart()/WaitStop()` functions. See
+[`oklog/run`](https://github.com/oklog/run) packaged is used to start and
+shutdown these processes concurrently. Dependencies between processes should be
+minimized where possible through retries. If there are hard dependencies, these
+can be managed with `WaitStart()/WaitStop()` functions. See
 [`server.go`](https://github.com/simpleiot/simpleiot/blob/master/server/server.go)
 for an example.
 
 NATS lends itself very well to a decoupled application architecture because the
 NATS clients will buffer messages for some time until the server is available.
-Thus we can start all the processes that use a NATS client without waiting for
+Thus, we can start all the processes that use a NATS client without waiting for
 the server to be available first.
 
 Long term, a NATS API that indicates the status of various parts (rules engine,
@@ -65,17 +65,17 @@ The [NATS API](api.md#nats) details the NATS subjects used by the system.
 ### Echo concerns
 
 Any time you potentially have two sources modifying the same resource (a node),
-you need to be concerned with echo'd messages. This is a common occurance in
+you need to be concerned with echoed messages. This is a common occurrence in
 Simple IoT. Because another resource may modify a node, typically a client needs
 to subscribe to the node messages as well. This means when it sends a message,
-it will typically be echo'd back. See the
+it will typically be echoed back. See the
 [client documentation](client.md#message-echo) for ideas on how to handle the
 echo problem.
 
 The
 [server.NewServer](https://pkg.go.dev/github.com/simpleiot/simpleiot/server#NewServer)
-function returns a nats connection. This connection is used throughout the
-application and does not have the NoEcho option set.
+function returns a NATS connection. This connection is used throughout the
+application and does not have the `NoEcho` option set.
 
 ## User Interface
 
@@ -88,13 +88,13 @@ There are many web architectures to chose from and web technology is advancing
 at a rapid pace. SPAs are not in vogue right now and more complex architectures
 are promoted such as Next.js, SveltKit, Deno Fresh, etc. Concerns with SPAs
 include large initial load and stability (if frontend code crashes, everything
-quits working). These concerns are valid if using Javascript, but with Elm these
+quits working). These concerns are valid if using JavaScript, but with Elm these
 concerns are minimal as Elm compiles to very small bundles, and run time
 exceptions are extremely rare. This allows us to use a simple web architecture
 with minimal coupling to the backend and minimal build complexity. And it will
 be a long time until we write enough Elm code that bundle size matters.
 
-A decoupled SPA UI architecture is also very natural in Simple IoT as IoT
+A decoupled SPA UI architecture is also very natural in Simple IoT, as IoT
 systems are inherently distributed. The frontend is just another client, much
 the same as a separate machine learning process, a downstream instance, a
 scripting process, etc.

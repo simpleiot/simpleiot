@@ -8,19 +8,19 @@
 SQLite has worked well as a SIOT store. There are a few things we would like to
 improve:
 
-- synchronization of history
-  - currently, if a device or server is offline, only the latest state is
+- Synchronization of history
+  - Currently, if a device or server is offline, only the latest state is
     transferred when connected. We would like all history that has accumulated
     when offline to be transferred once reconnected.
-- we want history at the edge as well as cloud
-  - this allows us to use history at the edge to run more advanced algorithms
+- We want history at the edge as well as cloud
+  - This allows us to use history at the edge to run more advanced algorithms
     like AI
-- we currently have to re-compute hashes all the way to the root node anytime
+- We currently have to re-compute hashes all the way to the root node anytime
   something changes
-  - this may not scale to larger systems
-  - is difficult to get right if things are changing while we re-compute hashes
-    -- it requires some type of coordination between the distributed systems,
-    which we currently don't have.
+  - This may not scale to larger systems
+  - Is difficult to get right if things are changing while we re-compute hashes
+    - it requires some type of coordination between the distributed systems,
+      which we currently don't have.
 
 ## Context/Discussion
 
@@ -58,7 +58,7 @@ stored in a separate NATS subject.
 
 ![image-20240119093623132](./assets/image-20240119093623132.png)
 
-NATS Jetstream is a stream-based store where every message in a stream is given
+NATS JetStream is a stream-based store where every message in a stream is given
 a sequence number. Synchronization is simple in that if a sequence number does
 not exist on a remote system, the missing messages are sent.
 
@@ -69,9 +69,9 @@ between hub and leaf instances. If they are disconnected, then streams are
 Several experiments have been run to understand the basic JetStream
 functionality in [this repo](https://github.com/simpleiot/nats-exp).
 
-1. storing and extracting points in a stream
-1. using streams to store time-series data and measure performance
-1. syncing streams between the hub and leaf instances
+1. Storing and extracting points in a stream
+1. Using streams to store time-series data and measure performance
+1. Syncing streams between the hub and leaf instances
 
 ### Advantages of JetStream
 
@@ -87,15 +87,15 @@ functionality in [this repo](https://github.com/simpleiot/nats-exp).
 
 ### Challenges with moving to JetStream
 
-- streams are typically synchronized in one direction. This is a challenge for
+- Streams are typically synchronized in one direction. This is a challenge for
   SIOT as the basic premise is data can be modified in any location where a
   user/device has proper permissions. A user may change a configuration in a
   cloud portal or on a local touch-screen.
-- sequence numbers must be set by one instance, so you can't have both a leaf
+- Sequence numbers must be set by one instance, so you can't have both a leaf
   and hub nodes inserting data into a single stream. This has benefits in that
   it is a very simple and reliable model.
-- we are constrained by a simple message subject to label and easily query data.
-  This is less flexible than a SQL database, but this constraint can also be an
+- We are constrained by a simple message subject to label and easily query data.
+  This is less flexible than an SQL database, but this constraint can also be an
   advantage in that it forces us into a simple and consistent data model.
 - SQLite has a built-in cache. We would likely need to create our own with
   JetStream.
@@ -129,7 +129,7 @@ From this [discussion](https://github.com/nats-io/nats-server/discussions/4577):
 > [Linearizable](https://jepsen.io/consistency/models/linearizable).
 
 Currently SIOT uses a more "eventually" consistent model where we used data
-structures with some light-weight CRDT proprieties. However this has the
+structures with some light-weight CRDT proprieties. However, this has the
 disadvantage that we have to do things like hash the entire node tree to know if
 anything has changed. In a more static system where not much is changing, this
 works pretty well, but in a dynamic IoT system where data is changing all the
@@ -138,7 +138,7 @@ time, it is hard to scale this model.
 ### Message/Subject encoding
 
 In the past, we've used the
-[Point datastructure](https://docs.simpleiot.org/docs/adr/1-consider-changing-point-data-type.html#proposal-2).
+[Point data structure](https://docs.simpleiot.org/docs/adr/1-consider-changing-point-data-type.html#proposal-2).
 This has worked extremely well at representing reasonably complex data
 structures (including maps and arrays) for a node. Yet it has limitations and
 constraints that have proven useful it making data easy to store, transmit, and
@@ -202,12 +202,12 @@ also have an `Index` field, but we have learned we can use a single `Key` field
 instead. At this point it may make sense to simplify the payload. One idea is to
 do away with the `Value` and `Text` fields and simply have a `Data` field. The
 components that use the points have to know the data-type anyway to know if they
-should use the `Value` or `Text`field. In the past, protobuf encoding was used
+should use the `Value` or `Text`field. In the past, Protobuf encoding was used
 as we started with quite a few fields and provided some flexibility and
 convenience. But as we have reduced the number of fields and two of them are now
 encoded in the message subject, it may be simpler to have a simple encoding for
 `Time`, `Data`, `Tombstone`, and `Origin` in the message payload. The code using
-the message would be responsible for convert `Data` into whatever data type is
+the message would be responsible for convert `Data` into whatever datatype is
 needed. This would open up the opportunity to encode any type of payload in the
 future in the `Data` field and be more flexible for the future.
 
@@ -233,25 +233,26 @@ Examples of types:
 
 Putting `Origin` in the message subject will make it inefficient to query as you
 will need to scan and decode all messages. Are there any cases where we will
-need to do this? (this is an example where a SQL database is more flexible). One
-solution would be to create another stream where the origin is in the subject.
+need to do this? (this is an example where an SQL database is more flexible).
+One solution would be to create another stream where the origin is in the
+subject.
 
-There are times when the current point model does not fit very well -- for
-instance when sending a notification -- this is difficult to encode in an array
+There are times when the current point model does not fit very well - for
+instance when sending a notification - this is difficult to encode in an array
 of points. I think in these cases encoding the notification data as JSON
 probably makes more sense and this encoding should work much better.
 
 #### Can't send multiple points in a message
 
-In the past, it was common to send multiple points in a message for a node --
-for instance when creating a node, or updating an array. However, with the
-`type` and `key` encoded in the subject this will no longer work. What is the
+In the past, it was common to send multiple points in a message for a node - for
+instance when creating a node, or updating an array. However, with the `type`
+and `key` encoded in the subject this will no longer work. What is the
 implication for having separate messages?
 
-- will be more complex to create nodes
-- when updating an array/map in a node, it will not be updated all at once, but
+- Will be more complex to create nodes
+- When updating an array/map in a node, it will not be updated all at once, but
   over the time it takes all the points to come into the client.
-- there is still value in arrays being encoded as points -- for instance a relay
+- There is still value in arrays being encoded as points - for instance a relay
   devices that contains two relays. However, for configuration are we better
   served by encoding the struct in a the data field as JSON and updating it as
   an atomic unit?
@@ -280,14 +281,14 @@ configuration settings) and there will be very little overlap.
 
 ![image-20240119094329917](./assets/image-20240119094329917.png)
 
-The question arises -- do we really need bi-directional synchronization and the
+The question arises - do we really need bi-directional synchronization and the
 complexity of having two streams for every node? Every node includes some amount
 of configuration which can flow down from upstream instances. Additionally, many
 nodes are collecting data which needs to flow back upstream. So it seems a very
 common need for every node to have data flowing in both directions. Since this
 is a basic requirement, it does not seem like much of stretch to allow any data
 to flow in either stream, and then merge the streams at the endpoints where the
-data is used .
+data is used.
 
 ### Does it make sense to use NATS to create merged streams?
 
@@ -295,8 +296,8 @@ NATS can source streams into an additional 3rd stream. This might be useful in
 that you don't have to read two streams and merge the points to get the current
 state. However, there are several disadvantages:
 
-- data would be stored twice
-- data is not guaranteed to be in chronological order -- the data would be
+- Data would be stored twice
+- Data is not guaranteed to be in chronological order - the data would be
   inserted into the 3rd stream when it is received. So you would still have to
   walk back in history to know for sure if you had the latest point. It seems
   simpler to just read the head of two streams and compare them.
@@ -324,8 +325,8 @@ by loading edges from a SQLite table and indexing the IDs and type. With
 JetStream it is less obvious how to store the edge information. SIOT regularly
 traverses up and down the tree.
 
-- down: to discover nodes
-- up: to propagate points to up subjects
+- Down: to discover nodes
+- Up: to propagate points to up subjects
 
 Because edges contain points that can change over time, edge points need to be
 stored in a stream, much like we do the node points. If each node has its own
@@ -345,7 +346,7 @@ Two special points are present in every edge:
 - `tombstone`: set to true if the downstream node is deleted
 
 One challenge with this model is much of the code in the SIOT uses a
-`NodeEdge` datastructure which includes a node and its parent edge. This
+`NodeEdge` data structure which includes a node and its parent edge. This
 collection of data describes this instance of a node and is more useful from a
 client perspective. However, `NodeEdge`'s are duplicated for every mirrored node
 in the tree, so don't really make sense from a storage and synchronization
@@ -360,8 +361,8 @@ database configuration and the Db node only receives points generated in the
 group it belongs to. This provides an opportunity for any node at any level in
 the tree to listen to messages of another node, as long as:
 
-1. it is equal or higher in the structure
-2. shares an ancestor.
+1. It is equal or higher in the structure
+2. Shares an ancestor.
 
 <img src="./assets/image-20240124104619281.png" alt="image-20240124104619281" style="zoom:67%;" />
 
@@ -376,13 +377,13 @@ or users will need to be authorized. Users
 [have access](https://docs.simpleiot.org/docs/user/users-groups.html) to all
 nodes in their parent group or device. If each node has its own stream, that
 will simplify AuthZ. Each device or user are explicitly granted permission to
-all of the Nodes they have access to. If a new node is created that is a child
-of a node a user has permission to view, this new node (and the subsequent
-streams) are added to the list.
+all the Nodes they have access to. If a new node is created that is a child of a
+node a user has permission to view, this new node (and the subsequent streams)
+are added to the list.
 
 ### Are we optimizing the right thing?
 
-Any time you move away from a SQL database, you should
+Any time you move away from an SQL database, you should
 [think long and hard](http://www.sarahmei.com/blog/2013/11/11/why-you-should-never-use-mongodb/)
 about this. Additionally, there are very nice time-series database solutions out
 there. So we should have good reasons for inventing yet-another-database.
@@ -419,7 +420,7 @@ a little more time to encode/decode data this is typically not a big deal as the
 network is the bottleneck.
 
 With an IoT system, the data is primarily 1) sequential in time, and 2)
-hierarchical in structure. Thus the streaming/tree approach still appears to be
+hierarchical in structure. Thus, the streaming/tree approach still appears to be
 the best approach.
 
 ### Questions
@@ -431,7 +432,7 @@ the best approach.
   this many nodes over a leaf connection prohibitive?
 - Would it make sense to create streams at the device/instance boundaries rather
   than node boundaries?
-  - this may limit our AuthZ capabilities where we want to give some users
+  - This may limit our AuthZ capabilities where we want to give some users
     access to only part of a cloud instance.
 - How robust is the JetStream store compared to SQLite in events like
   [power loss](https://www.sqlite.org/transactional.html)?
@@ -439,7 +440,8 @@ the best approach.
 
 ## Experiments
 
-Several POC experiments have been run to prove the feasibility of this:
+Several proof-of-concept experiments have been run to prove the feasibility of
+this:
 
 https://github.com/simpleiot/nats-exp
 
@@ -447,14 +449,14 @@ https://github.com/simpleiot/nats-exp
 
 Implementation could be broken down into 3 steps:
 
-1. message/subject encoding changes
-1. switch store from SQLite to Jetstream
-1. Use Jetsream to sync between systems
+1. Message/subject encoding changes
+1. Switch store from SQLite to JetStream
+1. Use JetStream to sync between systems
 
 objections/concerns
 
 ## Consequences
 
-what is the impact, both negative and positive.
+What is the impact, both negative, and positive.
 
 ## Additional Notes/Reference

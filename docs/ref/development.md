@@ -3,7 +3,7 @@
 ## Go Package Documentation
 
 The Simple IoT source code is
-[available](https://github.com/simpleiot/simpleiot) on Github.
+[available](https://github.com/simpleiot/simpleiot) on GitHub.
 
 Simple IoT is written in Go.
 [Go package documentation](https://pkg.go.dev/github.com/simpleiot/simpleiot) is
@@ -36,20 +36,20 @@ To build:
 The `siot_watch` command can be used when developing Simple IoT. This does the
 following:
 
-- starts [`elm-watch`](https://github.com/lydell/elm-watch) on the Elm code.
+- Starts [`elm-watch`](https://github.com/lydell/elm-watch) on the Elm code.
   `elm-watch` will automatically update the UI without losing state any time an
   Elm file changes.
-- runs the Go backend and rebuilds it anytime a Go module changes (only tested
+- Runs the Go backend and rebuilds it anytime a Go module changes (only tested
   on Linux and MacOS, but should be easy to set up Windows as well)
 
-Both of the above are run in a [run-pty](https://github.com/lydell/run-pty)
+Both of the above are run in a [`run-pty`](https://github.com/lydell/run-pty)
 wrapper, which allows you to see the output of either process. The output of the
 Elm compile is displayed in the browser, so it is rarely necessary to view the
 `elm-watch` side.
 
 ## Using Simple IoT as a library
 
-Simple IoT can be used a library for your custom application. The siot
+Simple IoT can be used a library for your custom application. The SIOT
 [main.go](https://github.com/simpleiot/simpleiot/blob/master/cmd/siot/main.go)
 illustrates how to start the SIOT server, and add clients. You can do this from
 any Go application. With a few lines of code, this gives you a lot of
@@ -67,7 +67,7 @@ library package. Forking and changing the SIOT Elm code is probably the simplest
 way if you want to make a small change now.
 
 In the future, we plan to provide an API for passing in a custom UI to the SIOT
-Server. You can also implement a custom http client that serves up a custom UI.
+Server. You can also implement a custom HTTP client that serves up a custom UI.
 
 ## Code Organization
 
@@ -81,8 +81,8 @@ code elimination, but at this point, it seems referencing a package increases
 the binary size, even if you don't use anything in it. (Clarification welcome!)
 
 For edge applications on Embedded Linux, we'd eventually like to get rid of
-net/http, since we can do all network communications over NATS. We're not there
-yet, but be careful about pulling in dependencies that require net/http into the
+net/HTTP, since we can do all network communications over NATS. We're not there
+yet, but be careful about pulling in dependencies that require net/HTTP into the
 NATS package, and other low level packages intended for use on devices.
 
 ### Directories
@@ -103,29 +103,28 @@ Please configure your editor to run code formatters:
   configures prettier to wrap markdown to 80 characters. Whether to wrap
   markdown or not is debatable, as wrapping can make diffs harder to read, but
   Markdown is much more pleasant to read in an editor if it is wrapped. Since
-  more people will be reading documentation than reviewing, lets optimize for
-  the reading in all scenarios -- editor, Github, and generated docs)
+  more people will be reading documentation than reviewing, let's optimize for
+  the reading in all scenarios - editor, GitHub, and generated docs)
 
 ## Pure Go
 
 We plan to keep the main Simple IoT application a pure Go binary if possible.
 Statically linked pure Go has huge advantages:
 
-1. you can easily cross compile to any target from any build machine.
-2. blazing fast compile times
-3. deployment is dead simple – zero dependencies. Docker is not needed.
-4. you are not vulnerable to security issues in the host systems SSL/TLS libs.
-   What you deploy is pretty much what you get.
-5. although there is high quality code written in C/C++, it is much easier to
-   write safe, reliable programs in Go, so I think long term there is much less
-   risk using a Go implementation of about anything – especially if it is widely
-   used.
+1. You can easily cross compile to any target from any build machine.
+2. Blazing fast compile times
+3. Deployment is dead simple – zero dependencies. Docker is not needed.
+4. You are not vulnerable to security issues in the host systems SSL/TLS
+   libraries. What you deploy is pretty much what you get.
+5. Although there is high quality code written in C/C++, it is much easier to
+   write safe, reliable programs in Go. Long term there is much less risk using
+   a Go implementation of about anything – especially if it is widely used.
 6. Go’s network programming model is much simpler than about anything else.
    Simplicity == less bugs.
 
-Once you link to C libs in your Go program, you forgo many of the benefits of
-Go. The Go authors made a brilliant choice when they chose to build Go from the
-ground up. Yes, you loose the ability to easily use some of the popular C
+Once you link to C libraries in your Go program, you forgo many of the benefits
+of Go. The Go authors made a brilliant choice when they chose to build Go from
+the ground up. Yes, you loose the ability to easily use some of the popular C
 libraries, but what you gain is many times more valuable.
 
 ## Running unit tests
@@ -135,12 +134,13 @@ examples of running tests:
 
 - test everything: `go test -race ./...`
 - test only client directory: `go test -race ./client`
-- run only a specific: `go test -race ./client -run BackoffTest (run takes a
+- Run only a specific: `go test -race ./client -run BackoffTest` (run takes a
   RegEx)
 - `siot_test` runs tests as well as vet/lint, frontend tests, etc.
 
 The leading `./` is important, otherwise Go things you are giving it a package
-name, not a directory. The `...` tells Go to recursively test all subdirs.
+name, not a directory. The `...` tells Go to recursively test all sub
+directories.
 
 ## Document and test during development
 

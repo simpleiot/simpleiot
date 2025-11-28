@@ -2,15 +2,15 @@
 
 Simple IoT will run on the following systems:
 
-- ARM/x86/RiscV Linux
+- ARM/x86/RISC-V Linux
 - MacOS
 - Windows
 
 The computer you are currently using is a good platform to start with as well as
-any common embedded Linux platform like the Raspberry PI or Beaglebone Black.
+any common embedded Linux platform like the Raspberry PI.
 
 If you needed an industrial class device, consider something from embeddedTS
-like the [TS-7553-V2](https://www.embeddedts.com/products/TS-7553-V2).
+like the [`TS-7553-V2`](https://www.embeddedts.com/products/TS-7553-V2).
 
 The Simple IoT application is a self contained binary with no dependencies.
 Download the [latest release](https://github.com/simpleiot/simpleiot/releases)
@@ -25,7 +25,7 @@ browser. The default login is:
 
 Simple IoT self-installation does the following:
 
-- creates a systemd service file
+- creates a Systemd service file
 - creates a data directory
 - starts and enables the service
 
@@ -48,11 +48,11 @@ Caddy to provide TLS/HTTPS security. Caddy by default obtains free TLS
 certificates from Let's Encrypt and ZeroSSL with automatic fallback if one
 provider fails.
 
-There are Ansible recipes available to deploy Simple IoT, Caddy, Influxdb, and
+There are Ansible recipes available to deploy Simple IoT, Caddy, InfluxDB, and
 Grafana that work on most Linux servers.
 
 - [Simple IoT](https://github.com/simpleiot/ansible-role-simpleiot-bin)
-- [Caddy, Influxdb, Grafana, etc](https://github.com/cbrake?tab=repositories&q=ansible)
+- [Caddy, InfluxDB, Grafana, etc.](https://github.com/cbrake?tab=repositories&q=ansible)
 
 ### [Video: Setting up a Simple IoT System in the cloud](https://youtu.be/pH8GPbjt-SI)
 
@@ -61,7 +61,7 @@ Grafana that work on most Linux servers.
 ## Yocto Linux
 
 Yocto Linux is a popular edge Linux solution. There is a
-[Bitbake recipe](https://github.com/YoeDistro/yoe-distro/blob/master/sources/meta-yoe/recipes-siot/simpleiot/simpleiot_git.bb)
+[BitBake recipe](https://github.com/YoeDistro/yoe-distro/blob/master/sources/meta-yoe/recipes-siot/simpleiot/simpleiot_git.bb)
 for including Simple IoT in Yocto builds.
 
 ## Networking
