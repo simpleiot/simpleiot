@@ -8,10 +8,10 @@ devices. The specification is open and available at the
 Simple IoT can function as both a Modbus client or server and supports both RTU
 and TCP transports. Modbus client/server is used as follows:
 
-- **client**: typically a PLC or Gateway -- the device reading sensors and
+- **Client**: typically a PLC or Gateway - the device reading sensors and
   initiating Modbus transactions. This is the mode to use if you want to read
   sensor data and then process it or send to an upstream instance.
-- **server**: typically a sensor, actuator, or other device responding to Modbus
+- **Server**: typically a sensor, actuator, or other device responding to Modbus
   requests. Functioning as a server allows SIOT to simulate Modbus devices or to
   provide data to another client device like a PLC.
 
@@ -24,7 +24,7 @@ IO nodes to the Modbus node.
 
 ![modbus](images/modbus.png)
 
-The `Response timeout` parameter determines how long the modbus client will wait
+The `Response timeout` parameter determines how long the Modbus client will wait
 for a response from a device. The default is 100ms, which is adequate for most
 devices, but it can be increased if you are communicating with a slow device.
 

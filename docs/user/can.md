@@ -1,6 +1,6 @@
 # CAN Bus Client
 
-The CAN client allows loading a standard CAN database file, recieving CAN data,
+The CAN client allows loading a standard CAN database file, receiving CAN data,
 and translating the CAN data into points via the database.
 
 ## Usage
@@ -35,7 +35,7 @@ You can create any CAN database you want by crafting it in Kvaser's free DBC
 editor and then using the `canmatrix` tool to convert it to KCD format. Note
 that `canmatrix` does not support all features of the DBC and KCD formats.
 
-Next, setup the virtual socketCan interface.
+Next, setup the virtual SocketCan interface.
 
 ### Setup Virtual CAN Interface
 
@@ -79,7 +79,7 @@ cansend vcan0 12345678#DEADBEEF
 
 Ensure that there are no errors logged in the terminal by the application.
 
-In the Web ui you should see the "Db msgs recieved" field increase to 2.
+In the Web UI you should see the `"Db msgs recieved"` field increase to 2.
 
 ### Option #2 - Use As Library
 
@@ -221,8 +221,8 @@ Follow instructions from the "Test with Messages" section above.
 - Auto connect to CAN bus in case it is brought up after SIOT client is started
 - Attempt to bring up CAN bus within client, handle case where it is already up
 - Support multiple CAN database files per node (be selective in which internal
-  db is updated when a name or data point is recieved in the client)
-- Support sending messages (concept of nodes and send/recieve pulled from
+  db is updated when a name or data point is received in the client)
+- Support sending messages (concept of nodes and send/receive pulled from
   databases??)
-- Support .dbc file format in addition to .kcd
+- Support `.dbc` file format in addition to `.kcd`
 - Add the concept of a device to the CAN message points

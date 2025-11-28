@@ -17,10 +17,10 @@ devices and higher rate data.
 ## User Interface
 
 The web UI is currently polling the SIOT backend every 4 seconds via HTTP. This
-works OK for small data sets, but uses more data than necessary and has a
-latency of up to 4s. Long term we will run a
+works OK for small datasets, but uses more data than necessary and has a latency
+of up to 4 seconds. Long term we will run a
 [NATS client](https://github.com/simpleiot/simpleiot/tree/master/frontend/lib)
-in the frontend over a websocket so the UI response is real-time and new data
+in the frontend over a WebSocket so the UI response is real-time and new data
 gets pushed to the browser.
 
 ## Security
@@ -35,11 +35,11 @@ larger systems, we need per-device authn/authz. See
 ## Errata
 
 Any issues we find during testing we log in
-[Github issues](https://github.com/simpleiot/simpleiot/issues), so if you
+[GitHub issues](https://github.com/simpleiot/simpleiot/issues), so if you
 encounter something unexpected, please search issues first. Feel free to add
 your observations and let us know if an issues is impacting you. Several issues
 to be aware of:
 
-- we don't [handle loops](https://github.com/simpleiot/simpleiot/issues/294) in
+- We don't [handle loops](https://github.com/simpleiot/simpleiot/issues/294) in
   the graph tree yet. This will render the instance unusable and you'll have to
   clean the database and start over.

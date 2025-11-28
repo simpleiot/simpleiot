@@ -7,7 +7,7 @@
 (see also [user documentation](../user/mcu.md) and
 [SIOT Firmware](https://github.com/simpleiot/firmware/tree/master/Arduino))
 
-It is common in embedded systems architectures for a MPU (Linux-based running
+It is common in embedded systems architectures for an MPU (Linux-based running
 SIOT) to be connected via a serial link (RS232, RS485, CAN, USB serial) to an
 MCU.
 
@@ -15,10 +15,10 @@ MCU.
 
 See
 [this article](http://bec-systems.com/site/1540/microcontroller-mcu-or-microprocessor-mpu)
-for a discussion on the differences between a MPU and MCU. These devices are not
-connected via a network interface, so can't use the [SIOT NATS API](api.md#nats)
-directly, thus we need to define a proxy between the serial interface and NATS
-for the MCU to interact with the SIOT system.
+for a discussion on the differences between an MPU and MCU. These devices are
+not connected via a network interface, so can't use the
+[SIOT NATS API](api.md#nats) directly, thus we need to define a proxy between
+the serial interface and NATS for the MCU to interact with the SIOT system.
 
 State/config data in both the MCU and MPU systems are represented as nodes and
 points. An example of nodes and points is shown below. These can be arranged in
@@ -28,13 +28,13 @@ single node with a handful of points.
 ![nodes/points](images/mcu-nodes.png)
 
 SIOT does not differentiate between state (ex: sensor values) and config (ex:
-pump turn-on delay) -- it is all points. This simplifies the transport and
-allows changes to be made in multiple places. It also allows for the granular
-transmission and synchronization of data -- we don't need to send the entire
+pump turn-on delay) - it is all points. This simplifies the transport and allows
+changes to be made in multiple places. It also allows for the granular
+transmission and synchronization of data - we don't need to send the entire
 state/config anytime something changes.
 
 SIOT has the ability to log points to InfluxDB, so this mechanism can also be
-used to log messages, events, state changes, whatever -- simply use an existing
+used to log messages, events, state changes, whatever - simply use an existing
 point type or define a new one, and send it upstream.
 
 ## Data Synchronization
@@ -55,15 +55,15 @@ The SIOT serial protocol mirrors the NATS
 [PUB message](https://docs.nats.io/reference/reference-protocols/nats-protocol#pub)
 with a few assumptions:
 
-- we don't have mirrored nodes inside the MCU device
-- the number of nodes and points in a MCU is relatively small
-- the payload is always an array of points
-- only the following [SIOT NATS API](api.md#nats) subjects are supported:
-  - blank (assumes ID of Serial MCU client node
+- We don't have mirrored nodes inside the MCU device
+- The number of nodes and points in an MCU is relatively small
+- The payload is always an array of points
+- Only the following [SIOT NATS API](api.md#nats) subjects are supported:
+  - Blank (assumes ID of Serial MCU client node
   - `p.<id>` (used to send node points)
   - `p.<id>.<parent>` (used to send edge points)
   - `phr` (specifies high-rate payload)
-- we don't support NATS subscriptions or requests -- on startup, we send the
+- We don't support NATS subscriptions or requests - on startup, we send the
   entire dataset for the MCU device in both directions (see On connection
   section), merge the contents, and then assume any changes will get sent and
   received after that.
@@ -103,7 +103,7 @@ is ASCII characters and CRC not included.
 
 #### Protobuf payload
 
-The `serial` protobuf type is used to transfer these messages:
+The `serial` Protobuf type is used to transfer these messages:
 
 ```
 message SerialPoint {
@@ -119,15 +119,15 @@ message SerialPoint {
 
 Protobuf can be used for low-rate samples, config, state, etc.
 
-Protobuf is used to encode the data on the wire. Find protobuf files
+Protobuf is used to encode the data on the wire. Find Protobuf files
 [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
-[nanopb](https://github.com/nanopb/nanopb) can be used to generate C-based
-protobuf bindings that are suitable for use in most MCU environments.
+[Nanopb](https://github.com/nanopb/nanopb) can be used to generate C-based
+Protobuf bindings that are suitable for use in most MCU environments.
 
 #### High-rate payload
 
 A simple payload encoding for high-rate data can be used to avoid the overhead
-of protobuf encoding and is specified with `phr` in the packet frame subject.
+of Protobuf encoding and is specified with `phr` in the packet frame subject.
 
 ```
 type (16 bytes) point type
@@ -159,34 +159,35 @@ data (variable, remainder of packet)
 On initial connection between a serial device and SIOT, the following steps are
 done:
 
-- the MCU sends the SIOT system an empty packet with its root node ID
-- the SIOT systems sends the current time to the MCU (point type `currentTime`)
-- the MCU updates any "offline" points with the current time (see offline
+- The MCU sends the SIOT system an empty packet with its root node ID
+- The SIOT systems sends the current time to the MCU (point type `currentTime`)
+- The MCU updates any "offline" points with the current time (see offline
   section).
-- the SIOT acks the current time packet.
-- all of the node and edge points are sent from the SIOT system to the MCU, and
+- The SIOT acks the current time packet.
+- All the node and edge points are sent from the SIOT system to the MCU, and
   from the MCU to the SIOT system. Each system compares point time stamps and
   updates any points that are newer. Relationships between nodes are defined by
   edge points (point type `tombstone`).
 
 ### Timestamps
 
-The Simple IoT uses a 64-bit ns since Unit epoch value for all timestamps.
+The Simple IoT uses a 64-bit nanosecond since Unit epoch value for all
+timestamps.
 
 ### Fault handling
 
 Any communication medium has the potential to be disrupted (unplugged/damaged
-wires, one side off, etc). Devices should continue to operate and when
+wires, one side off, etc.). Devices should continue to operate and when
 re-connected, do the right thing.
 
-If a MCU has a valid time (RTC, sync from SIOT, etc), it will continue
+If an MCU has a valid time (RTC, sync from SIOT, etc.), it will continue
 operating, and when reconnected, it will send all its points to re-sync.
 
-If a MCU powers up and has no time, it will set the time to 1970 and start
+If an MCU powers up and has no time, it will set the time to 1970 and start
 operating. When it receives a valid time from the SIOT system, it will compute
-the time offset from the SIOT time and its own 1970 based time, index through
-all points, add the offset to any points with time less than 2020, and then send
-all points to SIOT.
+the time offset from the SIOT time and its own 1970 based time. It then indexes
+through all points and adds the offset to any points with time less than 2020,
+and then send all points to SIOT.
 
 When the MCU syncs time with SIOT, if the MCU time is ahead of the SIOT system,
 then it set its time, and look for any points with a time after present, and
@@ -201,7 +202,7 @@ devices for new data at some configurable rate. Data is still COBS encoded so
 that is simple to tell where packets start/stop without needing to rely on dead
 space on the line.
 
-Simple IoT also supports modbus, but the native SIOT protocol is more capable --
+Simple IoT also supports Modbus, but the native SIOT protocol is more capable -
 especially for structured data.
 
 Addressing: TODO
@@ -219,7 +220,7 @@ bytes.
 Both the SIOT and MCU side need to store the common set of nodes and points
 between the systems. This is critical as the point merge algorithm only uses an
 incoming point if the incoming point is newer than the one currently stored on
-the device. For SIOT NATS clients, we use the NodeEdge data structure:
+the device. For SIOT NATS clients, we use the `NodeEdge` data structure:
 
 ```go
 type NodeEdge struct {
@@ -234,7 +235,7 @@ type NodeEdge struct {
 
 Something similar could be done on the MCU.
 
-If new nodes are created on the MCU, the ID must be a UUID, so that it does not
+If new nodes are created on the MCU, the ID must be an UUID, so that it does not
 conflict with any of the node IDs in the upstream SIOT system(s).
 
 On the SIOT side, we keep a list of Nodes on the MCU and periodically check if
