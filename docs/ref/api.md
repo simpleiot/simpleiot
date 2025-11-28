@@ -28,7 +28,7 @@ For the NATS transport, protobuf encoding is used for all transfers and are
 defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
 
 - Nodes
-  - `nodes.<parentId>.<nodeId>`
+  - `nodes.<parentId>.<nodeId>.<type>.<key>`
     - Request/response -- returns an array of `data.EdgeNode` structs.
     - `parent="all"`, then all instances of the node are returned.
     - `parent is set and id="all"`, then all child nodes of the parent are
@@ -42,7 +42,7 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
         this type
   - `p.<nodeId>.<type>.<key>`
     - used to listen for or publish node point changes.
-  - `p.<nodeId>.<parentId>.<type>.<key>`
+  - `ep.<nodeId>.<parentId>.<type>.<key>`
     - used to publish/subscribe node edge points. The `tombstone` point type is
       used to track if a node has been deleted or not.
   - `phr.<nodeId>` (not currently used)
