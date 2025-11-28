@@ -147,6 +147,7 @@ module Api.Point exposing
     , typeSysState
     , typeTag
     , typeTagPointType
+    , typeTimeout
     , typeTombstone
     , typeTouchQuirk
     , typeTx
@@ -535,6 +536,11 @@ typeDebug =
 typePollPeriod : String
 typePollPeriod =
     "pollPeriod"
+
+
+typeTimeout : String
+typeTimeout =
+    "timeout"
 
 
 valueUINT16 : String

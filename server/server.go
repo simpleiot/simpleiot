@@ -161,7 +161,7 @@ func (s *Server) Run() error {
 	if !o.NatsDisableServer {
 		s.natsServer, err = newNatsServer(natsOptions)
 		if err != nil {
-			return fmt.Errorf("Error setting up nats server: %v", err)
+			return fmt.Errorf("error setting up nats server: %v", err)
 		}
 
 		g.Add(func() error {
@@ -242,10 +242,10 @@ func (s *Server) Run() error {
 
 		if err != nil {
 			logLS("LS: Exited: store metrics")
-			return fmt.Errorf("Error getting root id for metrics: %v", err)
+			return fmt.Errorf("error getting root id for metrics: %v", err)
 		} else if len(rootNode) == 0 {
 			logLS("LS: Exited: store metrics")
-			return fmt.Errorf("Error getting root node, no data")
+			return fmt.Errorf("error getting root node, no data")
 		}
 
 		err = siotStore.StartMetrics(rootNode[0].ID)
@@ -455,7 +455,7 @@ func (s *Server) WaitStart(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		return errors.New("Store wait timeout or canceled")
+		return errors.New("store wait timeout or canceled")
 	case <-waitDone:
 		// all is well
 		return nil

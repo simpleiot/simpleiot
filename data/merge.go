@@ -30,9 +30,10 @@ func FindNodeInStruct(outputStruct interface{}, nodeID string, parentID string) 
 	for i := 0; i < outT.NumField(); i++ {
 		sf := outT.Field(i)
 		if nt := sf.Tag.Get("node"); nt != "" {
-			if nt == "id" {
+			switch nt {
+			case "id":
 				outID = outV.Field(i).String()
-			} else if nt == "parent" {
+			case "parent":
 				outParentID = outV.Field(i).String()
 			}
 		} else if ct := sf.Tag.Get("child"); ct != "" &&

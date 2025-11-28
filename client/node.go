@@ -44,7 +44,7 @@ func GetNodes(nc *nats.Conn, parent, id, typ string, includeDel bool) ([]data.No
 
 	reqData, err := requestPoints.ToPb()
 	if err != nil {
-		return nil, fmt.Errorf("Error encoding reqData: %v", err)
+		return nil, fmt.Errorf("error encoding reqData: %v", err)
 	}
 
 	subject := fmt.Sprintf("nodes.%v.%v", parent, id)
@@ -141,7 +141,7 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 	for _, un := range userNodes {
 		parents, err := GetNodes(nc, "all", un.Parent, "", false)
 		if err != nil {
-			return none, fmt.Errorf("Error getting root node: %v", err)
+			return none, fmt.Errorf("error getting root node: %v", err)
 		}
 
 		// The frontend expects the top level nodes to have Parent set
@@ -153,7 +153,7 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 		ret = append(ret, parents...)
 		c, err := getChildren(un.Parent)
 		if err != nil {
-			return none, fmt.Errorf("Error getting children: %v", err)
+			return none, fmt.Errorf("error getting children: %v", err)
 		}
 		ret = append(ret, c...)
 	}
@@ -191,13 +191,13 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 	}
 
 	if node.Parent == "" || node.Parent == "none" {
-		return errors.New("Parent must be set when sending a node")
+		return errors.New("parent must be set when sending a node")
 	}
 
 	err := SendNodePoints(nc, node.ID, points, true)
 
 	if err != nil {
-		return fmt.Errorf("Error sending node: %v", err)
+		return fmt.Errorf("error sending node: %v", err)
 	}
 
 	if len(node.EdgePoints) <= 0 {
@@ -214,7 +214,7 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 
 	err = SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
 	if err != nil {
-		return fmt.Errorf("Error sending edge points: %w", err)
+		return fmt.Errorf("error sending edge points: %w", err)
 
 	}
 
@@ -265,7 +265,7 @@ func DuplicateNode(nc *nats.Conn, id, newParent, origin string) error {
 	}
 
 	if len(nodes) < 1 {
-		return fmt.Errorf("No nodes returned")
+		return fmt.Errorf("no nodes returned")
 	}
 
 	node := nodes[0]
@@ -307,7 +307,7 @@ func MoveNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
 	}
 
 	if len(nodes) < 1 {
-		return errors.New("Error fetching node to get type")
+		return errors.New("error fetching node to get type")
 	}
 
 	err = SendEdgePoints(nc, id, newParent, data.Points{
@@ -341,7 +341,7 @@ func MirrorNode(nc *nats.Conn, id, newParent, origin string) error {
 	}
 
 	if len(nodes) < 1 {
-		return errors.New("Error fetching node to get type")
+		return errors.New("error fetching node to get type")
 	}
 
 	err = SendEdgePoints(nc, id, newParent, data.Points{
@@ -368,20 +368,20 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 		pointUpdates <- points
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("Point subscribe failed: %v", err)
+		return nil, nil, fmt.Errorf("point subscribe failed: %v", err)
 	}
 
 	stopEdgeSub, err := SubscribeEdgePoints(nc, id, parent, func(points []data.Point) {
 		edgeUpdates <- points
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("Edge point subscribe failed: %v", err)
+		return nil, nil, fmt.Errorf("edge point subscribe failed: %v", err)
 	}
 
 	nodes, err := GetNodesType[T](nc, parent, id)
 	if err != nil {
 		if err != data.ErrDocumentNotFound {
-			return nil, nil, fmt.Errorf("Error getting node: %v", err)
+			return nil, nil, fmt.Errorf("error getting node: %v", err)
 		}
 		// if document is not found, that is OK, points will populate it once they come in
 	}
@@ -463,14 +463,14 @@ func ExportNodes(nc *nats.Conn, id string) ([]byte, error) {
 	if id == "root" || id == "" {
 		root, err := GetRootNode(nc)
 		if err != nil {
-			return nil, fmt.Errorf("Error getting root node: %w", err)
+			return nil, fmt.Errorf("error getting root node: %w", err)
 		}
 		id = root.ID
 	}
 
 	rootNodes, err := GetNodes(nc, "all", id, "", false)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting root nodes: %w", err)
+		return nil, fmt.Errorf("error getting root nodes: %w", err)
 	}
 
 	if len(rootNodes) < 1 {
@@ -526,7 +526,7 @@ func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
 
 	children, err := GetNodes(nc, node.ID, "all", "", false)
 	if err != nil {
-		return fmt.Errorf("Error getting children: %w", err)
+		return fmt.Errorf("error getting children: %w", err)
 	}
 
 	for _, c := range children {
@@ -562,7 +562,7 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 			return err
 		}
 		if len(n) < 1 {
-			return fmt.Errorf("Parent node \"%v\" not found", parent)
+			return fmt.Errorf("parent node \"%v\" not found", parent)
 		}
 	}
 
@@ -570,14 +570,14 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 
 	err := yaml.Unmarshal(yamlData, &imp)
 	if err != nil {
-		return fmt.Errorf("Error parsing YAML data: %w", err)
+		return fmt.Errorf("error parsing YAML data: %w", err)
 	}
 
 	var importHelper func(data.NodeEdgeChildren) error
 	importHelper = func(node data.NodeEdgeChildren) error {
 		err := SendNode(nc, node.NodeEdge, origin)
 		if err != nil {
-			return fmt.Errorf("Error sending node: %w", err)
+			return fmt.Errorf("error sending node: %w", err)
 		}
 
 		for _, c := range node.Children {
@@ -590,7 +590,7 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 	}
 
 	if len(imp.Nodes) < 1 {
-		return fmt.Errorf("Error: imported data did not have any nodes")
+		return fmt.Errorf("error: imported data did not have any nodes")
 	}
 
 	// Process all nodes, not just the first one
@@ -623,7 +623,7 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 		if parent == "root" && rootNode.ID != imp.Nodes[i].ID {
 			err := DeleteNode(nc, rootNode.ID, parent, "import")
 			if err != nil {
-				return fmt.Errorf("Error deleting old root node: %w", err)
+				return fmt.Errorf("error deleting old root node: %w", err)
 			}
 		}
 	}

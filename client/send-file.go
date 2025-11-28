@@ -36,7 +36,7 @@ func NatsSendFileFromHTTP(nc *nats.Conn, deviceID string, url string, callback f
 
 	urlS := strings.Split(url, "/")
 	if len(urlS) < 2 {
-		return errors.New("Error parsing URL")
+		return errors.New("error parsing URL")
 	}
 	name := urlS[len(urlS)-1]
 

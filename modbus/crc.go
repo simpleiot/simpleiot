@@ -29,7 +29,7 @@ func RtuCrc(buf []byte) uint16 {
 var ErrCRC = errors.New("CRC error")
 
 // ErrNotEnoughData is returned if not enough data
-var ErrNotEnoughData = errors.New("Not enough data to calculate CRC")
+var ErrNotEnoughData = errors.New("not enough data to calculate CRC")
 
 // CheckRtuCrc returns error if CRC fails
 func CheckRtuCrc(packet []byte) error {

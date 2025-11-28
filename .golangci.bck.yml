@@ -1,0 +1,16 @@
+linters:
+  # the following can be used to run just one linter to debug problems
+  #disable-all: true
+  enable:
+    - revive
+    - goimports
+issues:
+  include:
+    # The following are for revive package and exported function comments
+    - EXC0012
+    - EXC0013
+    - EXC0014
+    # "should have a package comment" is failing in github actions
+    #- EXC0015
+  exclude:
+    - SA1019

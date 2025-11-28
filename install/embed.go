@@ -1,3 +1,4 @@
+// Package install provides embedded installation files for Simple IoT.
 package install
 
 import "embed"

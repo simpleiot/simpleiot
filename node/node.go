@@ -43,13 +43,13 @@ func (m *Manager) init() error {
 	rootNodes, err := client.GetNodes(m.nc, "root", "all", "", false)
 
 	if err != nil {
-		return fmt.Errorf("Error getting root node: %v", err)
+		return fmt.Errorf("error getting root node: %v", err)
 	}
 
 	if len(rootNodes) > 0 {
 		rootNode = rootNodes[0]
 	} else {
-		return fmt.Errorf("No nodes returned for root node")
+		return fmt.Errorf("no nodes returned for root node")
 	}
 
 	m.rootNodeID = rootNode.ID
@@ -97,7 +97,7 @@ func (m *Manager) init() error {
 // Start manager
 func (m *Manager) Start() error {
 	if err := m.init(); err != nil {
-		return fmt.Errorf("Error initializing nodes: %v", err)
+		return fmt.Errorf("error initializing nodes: %v", err)
 	}
 
 	t := time.NewTimer(time.Millisecond)

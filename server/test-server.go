@@ -52,7 +52,7 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 	s, nc, err := NewServer(opts)
 
 	if err != nil {
-		return nil, data.NodeEdge{}, nil, fmt.Errorf("Error starting siot server: %v", err)
+		return nil, data.NodeEdge{}, nil, fmt.Errorf("error starting siot server: %v", err)
 	}
 
 	clients, _ := client.DefaultClients(nc)
@@ -78,17 +78,17 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 	err = s.WaitStart(ctx)
 	cancel()
 	if err != nil {
-		return nil, data.NodeEdge{}, stop, fmt.Errorf("Error waiting for test server to start: %v", err)
+		return nil, data.NodeEdge{}, stop, fmt.Errorf("error waiting for test server to start: %v", err)
 	}
 
 	nodes, err := client.GetNodes(nc, "root", "all", "", false)
 
 	if err != nil {
-		return nil, data.NodeEdge{}, stop, fmt.Errorf("Get root nodes error: %v", err)
+		return nil, data.NodeEdge{}, stop, fmt.Errorf("get root nodes error: %v", err)
 	}
 
 	if len(nodes) < 1 {
-		return nil, data.NodeEdge{}, stop, fmt.Errorf("Did not get a root node")
+		return nil, data.NodeEdge{}, stop, fmt.Errorf("did not get a root node")
 	}
 
 	return nc, nodes[0], stop, nil

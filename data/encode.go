@@ -255,9 +255,10 @@ func Encode(in any) (NodeEdge, error) {
 		} else if nt := sf.Tag.Get("node"); nt != "" &&
 			sf.Type.Kind() == reflect.String {
 
-			if nt == "id" {
+			switch nt {
+			case "id":
 				ret.ID = inV.Field(i).String()
-			} else if nt == "parent" {
+			case "parent":
 				ret.Parent = inV.Field(i).String()
 			}
 		}

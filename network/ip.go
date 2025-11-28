@@ -26,5 +26,5 @@ func GetIP(ifaceName string) (string, error) {
 		}
 	}
 
-	return "", errors.New("No IP address")
+	return "", errors.New("no IP address")
 }

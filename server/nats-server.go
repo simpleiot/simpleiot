@@ -43,7 +43,7 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 		opts.TLSConfig, err = server.GenTLSConfig(&tc)
 
 		if err != nil {
-			return nil, fmt.Errorf("Error setting up TLS: %v", err)
+			return nil, fmt.Errorf("error setting up TLS: %v", err)
 		}
 	}
 
@@ -58,7 +58,7 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 	natsServer, err := server.NewServer(&opts)
 
 	if err != nil {
-		return nil, fmt.Errorf("Error create new Nats server: %v", err)
+		return nil, fmt.Errorf("error create new Nats server: %v", err)
 	}
 
 	authEnabled := "no"

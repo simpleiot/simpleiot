@@ -56,7 +56,7 @@ type Params struct {
 func NewStore(p Params) (*Store, error) {
 	db, err := NewSqliteDb(p.File, p.ID)
 	if err != nil {
-		return nil, fmt.Errorf("Error opening db: %v", err)
+		return nil, fmt.Errorf("error opening db: %v", err)
 	}
 
 	// we don't have node ID yet, but need to init here so we can start
@@ -64,7 +64,7 @@ func NewStore(p Params) (*Store, error) {
 
 	authorizer, err := api.NewKey(db.meta.JWTKey)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating authorizer: %v", err)
+		return nil, fmt.Errorf("error creating authorizer: %v", err)
 	}
 
 	log.Println("store connecting to nats server:", p.Server)
@@ -99,16 +99,16 @@ func (st *Store) Run() error {
 	var err error
 	st.subscriptions["nodePoints"], err = nc.Subscribe("p.*", st.handleNodePoints)
 	if err != nil {
-		return fmt.Errorf("Subscribe node points error: %w", err)
+		return fmt.Errorf("subscribe node points error: %w", err)
 	}
 
 	st.subscriptions["edgePoints"], err = nc.Subscribe("p.*.*", st.handleEdgePoints)
 	if err != nil {
-		return fmt.Errorf("Subscribe edge points error: %w", err)
+		return fmt.Errorf("subscribe edge points error: %w", err)
 	}
 
 	if st.subscriptions["nodes"], err = nc.Subscribe("nodes.*.*", st.handleNodesRequest); err != nil {
-		return fmt.Errorf("Subscribe node error: %w", err)
+		return fmt.Errorf("subscribe node error: %w", err)
 	}
 
 	/*
@@ -122,19 +122,19 @@ func (st *Store) Run() error {
 	*/
 
 	if st.subscriptions["auth.user"], err = nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
-		return fmt.Errorf("Subscribe auth error: %w", err)
+		return fmt.Errorf("subscribe auth error: %w", err)
 	}
 
 	if st.subscriptions["auth.getNatsURI"], err = nc.Subscribe("auth.getNatsURI", st.handleAuthGetNatsURI); err != nil {
-		return fmt.Errorf("Subscribe auth error: %w", err)
+		return fmt.Errorf("subscribe auth error: %w", err)
 	}
 
 	if st.subscriptions["admin.storeVerify"], err = nc.Subscribe("admin.storeVerify", st.handleStoreVerify); err != nil {
-		return fmt.Errorf("Subscribe dbVerify error: %w", err)
+		return fmt.Errorf("subscribe dbVerify error: %w", err)
 	}
 
 	if st.subscriptions["admin.storeMaint"], err = nc.Subscribe("admin.storeMaint", st.handleStoreMaint); err != nil {
-		return fmt.Errorf("Subscribe dbMaint error: %w", err)
+		return fmt.Errorf("subscribe dbMaint error: %w", err)
 	}
 
 done:

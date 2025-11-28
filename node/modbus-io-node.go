@@ -39,7 +39,7 @@ func NewModbusIONode(busType string, node *data.NodeEdge) (*ModbusIONode, error)
 	ret.id, ok = node.Points.ValueInt(data.PointTypeID, "")
 	if busType == data.PointValueClient && !ok {
 		if busType == data.PointValueServer {
-			return nil, errors.New("Must define modbus ID")
+			return nil, errors.New("must define modbus ID")
 		}
 	}
 
@@ -47,12 +47,12 @@ func NewModbusIONode(busType string, node *data.NodeEdge) (*ModbusIONode, error)
 
 	ret.address, ok = node.Points.ValueInt(data.PointTypeAddress, "")
 	if !ok {
-		return nil, errors.New("Must define modbus address")
+		return nil, errors.New("must define modbus address")
 	}
 
 	ret.modbusIOType, ok = node.Points.Text(data.PointTypeModbusIOType, "")
 	if !ok {
-		return nil, errors.New("Must define modbus IO type")
+		return nil, errors.New("must define modbus IO type")
 	}
 
 	ret.readOnly, _ = node.Points.ValueBool(data.PointTypeReadOnly, "")
@@ -61,15 +61,15 @@ func NewModbusIONode(busType string, node *data.NodeEdge) (*ModbusIONode, error)
 		ret.modbusIOType == data.PointValueModbusHoldingRegister {
 		ret.modbusDataType, ok = node.Points.Text(data.PointTypeDataFormat, "")
 		if !ok {
-			return nil, errors.New("Data format must be specified")
+			return nil, errors.New("data format must be specified")
 		}
 		ret.scale, ok = node.Points.Value(data.PointTypeScale, "")
 		if !ok {
-			return nil, errors.New("Must define modbus scale")
+			return nil, errors.New("must define modbus scale")
 		}
 		ret.offset, ok = node.Points.Value(data.PointTypeOffset, "")
 		if !ok {
-			return nil, errors.New("Must define modbus offset")
+			return nil, errors.New("must define modbus offset")
 		}
 	}
 

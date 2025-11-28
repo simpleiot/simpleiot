@@ -144,22 +144,22 @@ func (trs *timeRanges) filterDates(dates []string) error {
 		for _, d := range dates {
 			matches := reDate.FindStringSubmatch(d)
 			if len(matches) < 4 {
-				return fmt.Errorf("Invalid date: %v", d)
+				return fmt.Errorf("invalid date: %v", d)
 			}
 
 			year, err := strconv.Atoi(matches[1])
 			if err != nil {
-				return fmt.Errorf("Invalid year: %v", d)
+				return fmt.Errorf("invalid year: %v", d)
 			}
 
 			month, err := strconv.Atoi(matches[2])
 			if err != nil {
-				return fmt.Errorf("Invalid month: %v", d)
+				return fmt.Errorf("invalid month: %v", d)
 			}
 
 			day, err := strconv.Atoi(matches[3])
 			if err != nil {
-				return fmt.Errorf("Invalid day: %v", d)
+				return fmt.Errorf("invalid day: %v", d)
 			}
 
 			if year != tr.start.UTC().Year() {
