@@ -139,7 +139,7 @@ concurrently. Some information on this:
 - https://www.thingrex.com/aws_iot_thing_attributes_intro/
   - Thing properties include the following, which are analogous to SIOT node
     fields.
-    - Name (Desription)
+    - Name (Description)
     - Type (Type)
     - Attributes (Points)
     - Groups (Described by tree structure)

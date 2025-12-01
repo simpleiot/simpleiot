@@ -46,7 +46,7 @@ recall exactly what they were).
 
 ### Node creation (>= 0.5.0)
 
-With the swith to a SQLite store, a lot of code was rewritten, and in the
+With the switch to a SQLite store, a lot of code was rewritten, and in the
 process we changed the order of creating nodes to:
 
 1. send the edge points first

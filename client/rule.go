@@ -68,7 +68,7 @@ type Condition struct {
 	Value      float64 `point:"value"`
 	ValueText  string  `point:"valueText"`
 
-	// used with shedule rules
+	// used with schedule rules
 	Start    string   `point:"start"`
 	End      string   `point:"end"`
 	Weekdays []bool   `point:"weekday"`
@@ -739,7 +739,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				}
 			}()
 		default:
-			processError(fmt.Errorf("uknown rule action: %v", a.Action))
+			processError(fmt.Errorf("unknown rule action: %v", a.Action))
 		}
 
 		p := data.Point{

@@ -28,7 +28,7 @@ and the loss or gain of an hour when the time changes is very inconvenient.
 
 ### Reference/Research
 
-- [TMPDIR Forum discusion](https://community.tmpdir.org/t/daylight-savings-time-dst-in-iot-applications/1092)
+- [TMPDIR Forum discussion](https://community.tmpdir.org/t/daylight-savings-time-dst-in-iot-applications/1092)
 
 ## Decision
 

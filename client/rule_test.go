@@ -353,7 +353,7 @@ func TestRuleActionPointKey(t *testing.T) {
 	defer r.stop()
 	defer r.voutStop()
 
-	r.checkVout(0, "inital value", "1")
+	r.checkVout(0, "initial value", "1")
 
 	// check if point is set correctly.
 	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
