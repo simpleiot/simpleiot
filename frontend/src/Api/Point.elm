@@ -1424,7 +1424,7 @@ getLatest points =
 
 
 -- clearText is used to sanitize points that have number values before saving.
--- the text value is used by the form when editting things like decimal points
+-- the text value is used by the form when editing things like decimal points
 
 
 blankMajicValue : String

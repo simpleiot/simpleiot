@@ -124,7 +124,7 @@ type Time struct {
 ```
 
 Go provides a [UnixNano()](https://pkg.go.dev/time#Time.UnixNano) function that
-convers a Timestamp to nanoseconds elapsed since January 1, 1970 UTC.
+converts a Timestamp to nanoseconds elapsed since January 1, 1970 UTC.
 
 To go the other way, Go provides a
 [UnixMicro()](https://pkg.go.dev/time#UnixMicro) function to convert

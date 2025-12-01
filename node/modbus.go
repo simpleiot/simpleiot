@@ -471,7 +471,7 @@ func regCount(regType string) int {
 	}
 }
 
-// InitRegs is used in server mode to initilize the internal modbus regs when a IO changes
+// InitRegs is used in server mode to initialize the internal modbus regs when a IO changes
 func (b *Modbus) InitRegs(io *ModbusIONode) {
 	if b.server == nil {
 		return

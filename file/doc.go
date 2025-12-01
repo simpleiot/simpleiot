@@ -1,2 +1,2 @@
-// Package file contains file utilties.
+// Package file contains file utilities.
 package file

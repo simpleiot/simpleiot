@@ -142,7 +142,7 @@ done:
 					}
 				case data.PointTypeOffline:
 					if p.Value == 0 {
-						// defice is online
+						// device is online
 						// the discovery mechanism may have set the IO back online
 						sampleTicker = time.NewTicker(sampleRate)
 					} else {

@@ -337,8 +337,8 @@ following assumptions are made:
   value at the beginning, then all 21 points must to be sent. This can have
   implications for rules or any other logic that use the Point `key` field.
 
-This does not have pefect CRDT properties, but typically these arrays are
-generally small and are only modifed in one place.
+This does not have perfect CRDT properties, but typically these arrays are
+generally small and are only modified in one place.
 
 If you need more advanced functionality, you can bypass the data Decode/Merge
 functions and process the points manually and then use any algorithm you want to
@@ -629,7 +629,7 @@ minimal impact on the existing code base.
 
 - Q: _with the point datatype, we lose types_
   - A: in a single application, this concern would perhaps be a high priority,
-    but in a distributed system, data syncronization and schema migrations must
+    but in a distributed system, data synchronization and schema migrations must
     be given priority. Typically these collections of points are translated to a
     type by the application code using the data, so any concerns can be handled
     there. At least we won't get JS undefined crashes as Go will fill in zero
@@ -642,7 +642,7 @@ minimal impact on the existing code base.
     has a finite # of devices that can easily fit into memory of modern
     servers/machines.
 - Q: _this seems crude not to have full featured protobuf types with all the
-  fields explicitely defined in protobuf. Additionally, can't protobuf handle
+  fields explicitly defined in protobuf. Additionally, can't protobuf handle
   type changes elegantly?_
   - A: protobuf can handle field additions and removal but we still have the
     edge cases where a point is sent from an old version of software that does
@@ -658,12 +658,12 @@ minimal impact on the existing code base.
     have array and map fields in a node. However, the point is taken that a node
     with its points cannot represent a deeply nested data structure. However,
     nodes can be nested to represent any data structure you like. This
-    limitation is by design because otherwise syncronization would be very
-    difficult. By limitting the complexity of the core data structures, we are
-    making synchronziation and storage very simple. The tradeoff is a little
+    limitation is by design because otherwise synchronization would be very
+    difficult. By limiting the complexity of the core data structures, we are
+    making synchronization and storage very simple. The tradeoff is a little
     more work to marshall/unmarshall node/point data structures into useful
     types in your application. However, marshalling code is easy compared to
-    distributed systems, so we need to optmize the system for the hard parts. A
+    distributed systems, so we need to optimize the system for the hard parts. A
     little extra typing will not hurt anyone, and tooling could be developed if
     needed to assist in this.
 

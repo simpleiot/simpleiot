@@ -173,7 +173,7 @@ done:
 					break done
 				}
 			} else {
-				// client may have exitted itself due to child
+				// client may have exited itself due to child
 				// node changes so scan to re-initialize it again
 				scan()
 			}

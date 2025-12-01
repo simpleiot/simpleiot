@@ -3,7 +3,6 @@ BitBake
 BoltDB
 CoAP
 DFU
-Desription
 Domoticz
 EGLFS
 Evolvability
