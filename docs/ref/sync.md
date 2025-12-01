@@ -105,11 +105,11 @@ for synchronizing of all state using the following algorithm:
 
 1. Occasionally the edge device fetches the edge device root node hash from the
    cloud.
-1. Ff the hash does not match, the edge device fetches the entire node and
+1. If the hash does not match, the edge device fetches the entire node and
    compares/updates points. If local points need updated, this process can
    happen all on the edge device. If upstream points need updated, these are
    simply transmitted over NATS.
-1. Ff node hash still does not match, a recursive operation is started to fetch
+1. If the node hash still does not match, a recursive operation is started to fetch
    child node hashes and the same process is repeated.
 
 ### Hash Algorithm
