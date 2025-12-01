@@ -34,7 +34,7 @@ See [template.md](template.md) for a template to get started.
 | [ADR-1](1-consider-changing-point-data-type.md) | Consider changing/expanding point data type |
 | [ADR-2](2-authz.md)                             | Authorization considerations.               |
 | [ADR-3](3-node-lifecycle.md)                    | Node lifecycle                              |
-| [ADR-4](4-time.md)                              | Notes on storing and transfering time       |
+| [ADR-4](4-time.md)                              | Notes on storing and transferring time       |
 | [ADR-5](5-time-validation.md)                   | How do we ensure we have valid time         |
 | [ADR-6](6-time-storage-in-rule-schedule.md)     | How to handle time in rule schedules        |
 | [ADR-7](7-jetstream-store.md)                   | Use NATS Jetstream for the SIOT store       |

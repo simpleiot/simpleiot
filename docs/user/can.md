@@ -79,7 +79,7 @@ cansend vcan0 12345678#DEADBEEF
 
 Ensure that there are no errors logged in the terminal by the application.
 
-In the Web UI you should see the `"Db msgs recieved"` field increase to 2.
+In the Web UI you should see the `"Db msgs received"` field increase to 2.
 
 ### Option #2 - Use As Library
 
