@@ -384,7 +384,7 @@ are added to the list.
 ### Are we optimizing the right thing?
 
 Any time you move away from an SQL database, you should
-[think long and hard](http://www.sarahmei.com/blog/2013/11/11/why-you-should-never-use-mongodb/)
+[think long and hard](https://web.archive.org/web/20250211174018/http://www.sarahmei.com/blog/2013/11/11/why-you-should-never-use-mongodb/)
 about this. Additionally, there are very nice time-series database solutions out
 there. So we should have good reasons for inventing yet-another-database.
 However, mainstream SQL and Time-series databases all have one big drawback:
