@@ -33,9 +33,9 @@ Some systems use a concept called Merkle clocks, where events are stored in a
 Merle DAG and existing nodes in the DAG are immutable and new events are always
 added as parents to existing events. An immutable DAG has an advantage in that
 you can always work back in history, which never changes. The SIOT Node tree is
-mutable by definition. Actual budget uses a similar concept in that it
-[uses a Merkle Trie](https://github.com/actualbudget/actual/discussions/257) to
-represent events in time and then prunes the tree as time goes on.
+mutable by definition. Actual budget uses a similar concept in that it uses a
+Merkle Trie to represent events in time and then prunes the tree as time goes
+on.
 
 We could create a separate structure to sync all events (points), but that would
 require a separate structure on the server for every downstream device and seems
@@ -79,7 +79,6 @@ Has some interesting ideas.
 
 ### Merkle Trees
 
-- [Synchronizing your hierarchical data](https://medium.com/@rkkautsar/synchronizing-your-hierarchical-data-with-merkle-tree-dbfe37db3ab7)
 - https://en.wikipedia.org/wiki/Merkle_tree
 - https://jack-vanlightly.com/blog/2016/10/24/exploring-the-use-of-hash-trees-for-data-synchronization-part-1
 - https://www.codementor.io/blog/merkle-trees-5h9arzd3n8

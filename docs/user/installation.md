@@ -61,7 +61,7 @@ Grafana that work on most Linux servers.
 ## Yocto Linux
 
 Yocto Linux is a popular edge Linux solution. There is a
-[BitBake recipe](https://github.com/YoeDistro/yoe-distro/blob/master/sources/meta-yoe/recipes-siot/simpleiot/simpleiot_git.bb)
+[BitBake recipe](https://github.com/openembedded/meta-openembedded/tree/master/meta-oe/recipes-extended/simpleiot)
 for including Simple IoT in Yocto builds.
 
 ## Networking
