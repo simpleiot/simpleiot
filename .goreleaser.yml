@@ -23,13 +23,10 @@ builds:
       - arm
       - arm64
       - riscv64
-      - 386
     goarm:
       - "6"
       - "7"
     ignore:
-      - goos: darwin
-        goarch: 386
       - goos: darwin
         goarch: riscv64
       - goos: windows
@@ -43,14 +40,16 @@ archives:
       {{- if eq .Os "darwin" }}macos
       {{- else }}{{ .Os }}{{ end }}-
       {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}{{ .Arm }}{{ end }}
     wrap_in_directory: true
-    format: tar.gz
     format_overrides:
       - goos: windows
         format: zip
+      - goos: linux
+        format: tar.gz
+      - goos: darwin
+        format: tar.gz
     files:
       - README.md
       - LICENSE
@@ -60,6 +59,6 @@ archives:
 checksum:
   name_template: "checksums.txt"
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 #env_files:
 #github_token: GITHUB_TOKEN
