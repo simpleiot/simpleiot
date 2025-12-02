@@ -289,7 +289,7 @@ siot_dblab() {
 MDBOOK_IMAGE=ghcr.io/simpleiot/mdbook:0.5.1
 
 siot_mdbook() {
-	docker run --rm -v "$(pwd)":/book -p 3333:3000 $MDBOOK_IMAGE serve -n 0.0.0.0
+	docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)":/book -p 3333:3000 $MDBOOK_IMAGE serve -n 0.0.0.0
 }
 
 siot_mdbook_build() {
