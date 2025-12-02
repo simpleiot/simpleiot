@@ -286,8 +286,14 @@ siot_dblab() {
 	go run github.com/danvergara/dblab@latest --db "$STORE" --driver sqlite3
 }
 
+MDBOOK_IMAGE=ghcr.io/simpleiot/mdbook:0.5.1
+
 siot_mdbook() {
-	mdbook serve -p 3333
+	docker run --rm -v "$(pwd)":/book -p 3333:3000 $MDBOOK_IMAGE serve -n 0.0.0.0
+}
+
+siot_mdbook_build() {
+	docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)":/book $MDBOOK_IMAGE build
 }
 
 siot_mdbook_cleanup() {
@@ -295,6 +301,12 @@ siot_mdbook_cleanup() {
 }
 
 siot_deploy_docs() {
-	(cd /scratch/bec/ops/ &&
-		ansible-playbook -i production all.yml --limit tmpdir --tags docs.simpleiot.org)
+	siot_mdbook_cleanup
+	siot_mdbook_build || return 1
+	rsync -av --delete \
+		--exclude='.git' \
+		--exclude='dist' \
+		--exclude='frontend' \
+		book/* bec-systems.com:/srv/http/siot/docs/ || return 1
+	return 0
 }
