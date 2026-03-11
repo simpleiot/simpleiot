@@ -38,3 +38,4 @@ See [template.md](template.md) for a template to get started.
 | [ADR-5](5-time-validation.md)                   | How do we ensure we have valid time         |
 | [ADR-6](6-time-storage-in-rule-schedule.md)     | How to handle time in rule schedules        |
 | [ADR-7](7-jetstream-store.md)                   | Use NATS Jetstream for the SIOT store       |
+| [ADR-8](8-iot-data-models.md)                   | IoT data models: points vs structured data  |
