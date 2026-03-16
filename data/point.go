@@ -378,9 +378,8 @@ func (p Point) ToPb() (pb.Point, error) {
 	return pb.Point{
 		Type:      p.Type,
 		Key:       p.Key,
-		Value:     p.Val(),
-		Text:      p.Txt(),
 		Time:      ts,
+		DataType:  int32(p.DataType),
 		Data:      p.Data,
 		Tombstone: int32(p.Tombstone),
 		Origin:    p.Origin,
@@ -392,9 +391,8 @@ func (p Point) ToSerial() (pb.SerialPoint, error) {
 	return pb.SerialPoint{
 		Type:      p.Type,
 		Key:       p.Key,
-		Value:     float32(p.Val()),
-		Text:      p.Txt(),
 		Time:      p.Time.UnixNano(),
+		DataType:  int32(p.DataType),
 		Data:      p.Data,
 		Tombstone: int32(p.Tombstone),
 		Origin:    p.Origin,
@@ -714,17 +712,10 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 		Type:      sPb.Type,
 		Key:       sPb.Key,
 		Time:      ts,
+		DataType:  PointDataType(sPb.DataType),
+		Data:      sPb.Data,
 		Tombstone: int(sPb.Tombstone),
 		Origin:    sPb.Origin,
-	}
-
-	// Convert pb Value/Text to Data/DataType for backward compat
-	if sPb.Text != "" {
-		ret.PutString(sPb.Text)
-	} else if sPb.Value != 0 {
-		ret.PutFloat(sPb.Value)
-	} else if len(sPb.Data) > 0 {
-		ret.Data = sPb.Data
 	}
 
 	return ret, nil
@@ -736,17 +727,10 @@ func SerialToPoint(sPb *pb.SerialPoint) (Point, error) {
 		Type:      sPb.Type,
 		Key:       sPb.Key,
 		Time:      time.Unix(0, sPb.Time),
+		DataType:  PointDataType(sPb.DataType),
+		Data:      sPb.Data,
 		Tombstone: int(sPb.Tombstone),
 		Origin:    sPb.Origin,
-	}
-
-	// Convert serial pb Value/Text to Data/DataType for backward compat
-	if sPb.Text != "" {
-		ret.PutString(sPb.Text)
-	} else if sPb.Value != 0 {
-		ret.PutFloat(float64(sPb.Value))
-	} else if len(sPb.Data) > 0 {
-		ret.Data = sPb.Data
 	}
 
 	return ret, nil
