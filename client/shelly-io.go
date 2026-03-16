@@ -28,16 +28,15 @@ type shellyGen1SwitchStatus struct {
 }
 
 func (swi *shellyGen1SwitchStatus) toPoints(index int, pm bool) data.Points {
-	now := time.Now()
 	key := strconv.Itoa(index)
 	pts := data.Points{
-		{Time: now, Type: data.PointTypeSwitch, Key: key, Value: data.BoolToFloat(swi.Relays[index].IsOn)},
-		{Time: now, Type: data.PointTypeTemperature, Key: key, Value: float64(swi.Temperature)},
+		data.NewPointFloat(data.PointTypeSwitch, key, data.BoolToFloat(swi.Relays[index].IsOn)),
+		data.NewPointFloat(data.PointTypeTemperature, key, float64(swi.Temperature)),
 	}
 
 	if pm {
 		pts = append(pts,
-			data.Points{{Time: now, Type: data.PointTypePower, Key: key, Value: float64(swi.Meters[index].Power)}}...,
+			data.Points{data.NewPointFloat(data.PointTypePower, key, float64(swi.Meters[index].Power))}...,
 		)
 	}
 
@@ -76,18 +75,17 @@ type shellyGen2SwitchSetResp struct {
 }
 
 func (swi *shellyGen2SwitchStatus) toPoints(index int, pm bool) data.Points {
-	now := time.Now()
 	key := strconv.Itoa(index)
 	pts := data.Points{
-		{Time: now, Type: data.PointTypeSwitch, Key: key, Value: data.BoolToFloat(swi.Output)},
-		{Time: now, Type: data.PointTypeTemperature, Key: key, Value: float64(swi.Temperature.TC)},
+		data.NewPointFloat(data.PointTypeSwitch, key, data.BoolToFloat(swi.Output)),
+		data.NewPointFloat(data.PointTypeTemperature, key, float64(swi.Temperature.TC)),
 	}
 
 	if pm {
 		pts = append(pts,
-			data.Points{{Time: now, Type: data.PointTypePower, Key: key, Value: float64(swi.Apower)},
-				{Time: now, Type: data.PointTypeVoltage, Key: key, Value: float64(swi.Voltage)},
-				{Time: now, Type: data.PointTypeCurrent, Key: key, Value: float64(swi.Current)},
+			data.Points{data.NewPointFloat(data.PointTypePower, key, float64(swi.Apower)),
+				data.NewPointFloat(data.PointTypeVoltage, key, float64(swi.Voltage)),
+				data.NewPointFloat(data.PointTypeCurrent, key, float64(swi.Current)),
 			}...,
 		)
 	}
@@ -103,11 +101,8 @@ type shellyGen2InputStatus struct {
 }
 
 func (in *shellyGen2InputStatus) toPoints() data.Points {
-	now := time.Now()
 	return data.Points{
-		{Time: now, Type: data.PointTypeInput,
-			Key:   strconv.Itoa(in.ID),
-			Value: data.BoolToFloat(in.State)},
+		data.NewPointFloat(data.PointTypeInput, strconv.Itoa(in.ID), data.BoolToFloat(in.State)),
 	}
 }
 
@@ -120,13 +115,12 @@ type shellyGen1LightStatus struct {
 }
 
 func (sls *shellyGen1LightStatus) toPoints() data.Points {
-	now := time.Now()
 	return data.Points{
-		{Time: now, Type: data.PointTypeLight, Key: "0", Value: data.BoolToFloat(sls.Ison)},
-		{Time: now, Type: data.PointTypeBrightness, Key: "0", Value: float64(sls.Brightness)},
-		{Time: now, Type: data.PointTypeWhite, Key: "0", Value: float64(sls.White)},
-		{Time: now, Type: data.PointTypeLightTemp, Key: "0", Value: float64(sls.Temp)},
-		{Time: now, Type: data.PointTypeTransition, Key: "0", Value: float64(sls.Transition)},
+		data.NewPointFloat(data.PointTypeLight, "0", data.BoolToFloat(sls.Ison)),
+		data.NewPointFloat(data.PointTypeBrightness, "0", float64(sls.Brightness)),
+		data.NewPointFloat(data.PointTypeWhite, "0", float64(sls.White)),
+		data.NewPointFloat(data.PointTypeLightTemp, "0", float64(sls.Temp)),
+		data.NewPointFloat(data.PointTypeTransition, "0", float64(sls.Transition)),
 	}
 }
 

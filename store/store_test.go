@@ -52,8 +52,7 @@ func TestStoreUp(t *testing.T) {
 		_ = sub.Unsubscribe()
 	}()
 
-	err = client.SendNodePoint(nc, root.ID, data.Point{Type: data.PointTypeDescription,
-		Text: "rootly"}, false)
+	err = client.SendNodePoint(nc, root.ID, data.NewPointString(data.PointTypeDescription, "", "rootly"), false)
 
 	if err != nil {
 		t.Fatal("Error sending point: ", err)
@@ -119,8 +118,8 @@ func TestStoreMultiplePoints(t *testing.T) {
 	}
 
 	err = client.SendNodePoints(nc, u.ID, data.Points{
-		{Type: data.PointTypeFirstName, Text: "Cliff"},
-		{Type: data.PointTypeLastName, Text: "Brake"},
+		data.NewPointString(data.PointTypeFirstName, "", "Cliff"),
+		data.NewPointString(data.PointTypeLastName, "", "Brake"),
 	}, true)
 
 	if err != nil {
@@ -171,8 +170,7 @@ func TestDontAllowDeleteRootNode(t *testing.T) {
 
 	defer stop()
 
-	err = client.SendEdgePoint(nc, root.ID, "root", data.Point{Type: data.PointTypeTombstone,
-		Value: 1}, true)
+	err = client.SendEdgePoint(nc, root.ID, "root", data.NewPointFloat(data.PointTypeTombstone, "", 1), true)
 
 	if err == nil {
 		t.Fatal("sending edge point should have returned an error")

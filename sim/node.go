@@ -23,22 +23,11 @@ func NodeSim(portal, nodeID string) {
 
 	for {
 		points := make([]data.Point, 3)
-		points[0] = data.Point{
-			Type:  "temp",
-			Value: tempSim.Sim(),
-		}
+		points[0] = data.NewPointFloat("temp", "", tempSim.Sim())
 
-		points[1] = data.Point{
-			Key:   "V0",
-			Type:  "volt",
-			Value: voltSim.Sim(),
-		}
+		points[1] = data.NewPointFloat("volt", "V0", voltSim.Sim())
 
-		points[2] = data.Point{
-			Key:   "V1",
-			Type:  "volt",
-			Value: voltSim2.Sim(),
-		}
+		points[2] = data.NewPointFloat("volt", "V1", voltSim2.Sim())
 
 		err := sendPoints(points)
 		if err != nil {

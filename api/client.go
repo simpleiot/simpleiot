@@ -45,7 +45,7 @@ func NewPoint(s data.Point) Point {
 	return Point{
 		Type:  s.Type,
 		Key:   s.Key,
-		Value: s.Value,
+		Value: s.Val(),
 		Time:  time,
 	}
 }

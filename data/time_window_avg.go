@@ -35,16 +35,16 @@ func (twa *TimeWindowAverager) NewPoint(s Point) {
 	}
 
 	// update statistical values.
-	twa.total += s.Value
+	twa.total += s.Val()
 	twa.count++
 
 	// if time has expired, callback() with avg point
 	if time.Since(twa.start) >= twa.windowLen {
 		avgPoint := Point{
-			Type:  twa.pointType,
-			Time:  twa.pointTime,
-			Value: twa.total / float64(twa.count),
+			Type: twa.pointType,
+			Time: twa.pointTime,
 		}
+		avgPoint.PutFloat(twa.total / float64(twa.count))
 
 		twa.callBack(avgPoint)
 

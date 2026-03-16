@@ -114,7 +114,7 @@ func (dbc *DbClient) Run() error {
 			p := influxdb2.NewPoint(InfluxMeasurement,
 				tags,
 				map[string]interface{}{
-					"value": pt.Value,
+					"value": pt.Val(),
 				},
 				pt.Time)
 			dbc.writeAPI.WritePoint(p)
@@ -256,8 +256,8 @@ done:
 				p := influxdb2.NewPoint(InfluxMeasurement,
 					tags,
 					map[string]interface{}{
-						"value": point.Value,
-						"text":  point.Text,
+						"value": point.Val(),
+						"text":  point.Txt(),
 					},
 					point.Time)
 				dbc.writeAPI.WritePoint(p)

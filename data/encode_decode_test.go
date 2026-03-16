@@ -23,14 +23,14 @@ var nodeEdgeTest = NodeEdge{
 	Parent: "456",
 	Type:   "testType",
 	Points: []Point{
-		{Type: "description", Text: "test type"},
-		{Type: "count", Value: 120},
-		{Type: "value", Value: 15.43},
-		{Type: "value2", Value: 10},
+		NewPointString("description", "", "test type"),
+		NewPointFloat("count", "", 120),
+		NewPointFloat("value", "", 15.43),
+		NewPointFloat("value2", "", 10),
 	},
 	EdgePoints: []Point{
-		{Type: "role", Text: "admin"},
-		{Type: "tombstone", Value: 1},
+		NewPointString("role", "", "admin"),
+		NewPointFloat("tombstone", "", 1),
 	},
 }
 
@@ -144,28 +144,28 @@ var nodeEdgeTestComplex = NodeEdge{
 	Parent: "456",
 	Type:   "testTypeComplex",
 	Points: []Point{
-		{Type: "description", Text: "hi there"},
-		{Type: "ipAddress", Key: "0", Text: "192.168.1.1"},
-		{Type: "ipAddress", Key: "1", Text: "127.0.0.1"},
-		{Type: "location", Key: "goodbye", Text: "cruel world"},
-		{Type: "location", Key: "hello", Text: "world"},
-		{Type: "nested", Key: "description", Text: "nested test type"},
-		{Type: "nested", Key: "id", Text: "789"},
-		{Type: "nested", Key: "parent", Text: "456"},
-		{Type: "scheduledDays", Key: "0", Value: 0},
-		{Type: "scheduledDays", Key: "1", Value: 1},
-		{Type: "scheduledDays", Key: "2", Value: 1},
-		{Type: "scheduledDays", Key: "3", Value: 1},
-		{Type: "scheduledDays", Key: "4", Value: 1},
-		{Type: "scheduledDays", Key: "5", Value: 1},
-		{Type: "scheduledDays", Key: "6", Value: 0},
-		{Type: "sensor", Key: "temp1", Value: 23},
-		{Type: "sensor", Key: "temp2", Value: 40},
+		NewPointString("description", "", "hi there"),
+		NewPointString("ipAddress", "0", "192.168.1.1"),
+		NewPointString("ipAddress", "1", "127.0.0.1"),
+		NewPointString("location", "goodbye", "cruel world"),
+		NewPointString("location", "hello", "world"),
+		NewPointString("nested", "description", "nested test type"),
+		NewPointString("nested", "id", "789"),
+		NewPointString("nested", "parent", "456"),
+		NewPointFloat("scheduledDays", "0", 0),
+		NewPointFloat("scheduledDays", "1", 1),
+		NewPointFloat("scheduledDays", "2", 1),
+		NewPointFloat("scheduledDays", "3", 1),
+		NewPointFloat("scheduledDays", "4", 1),
+		NewPointFloat("scheduledDays", "5", 1),
+		NewPointFloat("scheduledDays", "6", 0),
+		NewPointFloat("sensor", "temp1", 23),
+		NewPointFloat("sensor", "temp2", 40),
 	},
 	EdgePoints: []Point{
-		{Type: "testValue", Key: "0", Value: 314},
-		{Type: "testValue", Key: "1", Value: 1024},
-		{Type: "tombstone", Value: 1},
+		NewPointFloat("testValue", "0", 314),
+		NewPointFloat("testValue", "1", 1024),
+		NewPointFloat("tombstone", "", 1),
 	},
 }
 
@@ -183,7 +183,7 @@ var testTypePointersNodeEdge = NodeEdge{
 	ID:   "nodeID",
 	Type: "testTypePointers",
 	Points: []Point{
-		{Type: "description", Text: "testing 1, 2, 3"},
+		NewPointString("description", "", "testing 1, 2, 3"),
 		{Type: "nullStruct", Key: "description", Tombstone: 1},
 		{Type: "nullStruct", Key: "id", Tombstone: 1},
 		{Type: "nullStruct", Key: "parent", Tombstone: 1},
@@ -191,7 +191,7 @@ var testTypePointersNodeEdge = NodeEdge{
 	},
 	EdgePoints: []Point{
 		{Type: "nullEdge", Tombstone: 1},
-		{Type: "value", Value: 42},
+		NewPointFloat("value", "", 42),
 	},
 }
 
@@ -254,11 +254,11 @@ func TestDecodeWithChildren(t *testing.T) {
 			Parent: "456",
 			Type:   "testX",
 			Points: []Point{
-				{Type: "description", Text: "test X type"},
+				NewPointString("description", "", "test X type"),
 			},
 			EdgePoints: []Point{
-				{Type: "role", Text: "admin"},
-				{Type: "tombstone", Value: 1},
+				NewPointString("role", "", "admin"),
+				NewPointFloat("tombstone", "", 1),
 			},
 		},
 		Children: []NodeEdgeChildren{
@@ -267,11 +267,11 @@ func TestDecodeWithChildren(t *testing.T) {
 				Parent: "123",
 				Type:   "testY",
 				Points: []Point{
-					{Type: "description", Text: "test Y1"},
+					NewPointString("description", "", "test Y1"),
 				},
 				EdgePoints: []Point{
-					{Type: "role", Text: "user"},
-					{Type: "tombstone", Value: 1},
+					NewPointString("role", "", "user"),
+					NewPointFloat("tombstone", "", 1),
 				},
 			},
 				[]NodeEdgeChildren{
@@ -280,11 +280,11 @@ func TestDecodeWithChildren(t *testing.T) {
 						Parent: "abc",
 						Type:   "testY",
 						Points: []Point{
-							{Type: "description", Text: "test Y2"},
+							NewPointString("description", "", "test Y2"),
 						},
 						EdgePoints: []Point{
-							{Type: "role", Text: "user"},
-							{Type: "tombstone", Value: 1},
+							NewPointString("role", "", "user"),
+							NewPointFloat("tombstone", "", 1),
 						},
 					}, nil},
 					{NodeEdge{
@@ -292,11 +292,11 @@ func TestDecodeWithChildren(t *testing.T) {
 						Parent: "abc",
 						Type:   "testZ",
 						Points: []Point{
-							{Type: "description", Text: "test Z1"},
+							NewPointString("description", "", "test Z1"),
 						},
 						EdgePoints: []Point{
-							{Type: "role", Text: "user"},
-							{Type: "tombstone", Value: 1},
+							NewPointString("role", "", "user"),
+							NewPointFloat("tombstone", "", 1),
 						},
 					}, nil},
 				},
@@ -336,13 +336,13 @@ func TestDecodeWithChildren(t *testing.T) {
 func TestDecodeTombstonePoint(t *testing.T) {
 	var ne = NodeEdge{
 		Points: []Point{
-			{Type: "ipAddress", Key: "0", Text: "192.168.1.1"},
-			{Type: "ipAddress", Key: "1", Text: "127.0.0.1"},
-			{Type: "ipAddress", Key: "2", Text: "127.0.0.2", Tombstone: 1},
-			{Type: "location", Key: "goodbye", Text: "cruel world"},
-			{Type: "location", Key: "hello", Text: "world"},
-			{Type: "location", Key: "del", Text: "deleted entry", Tombstone: 1},
-			{Type: "nested", Key: "fake", Text: "not a real field", Tombstone: 1},
+			NewPointString("ipAddress", "0", "192.168.1.1"),
+			NewPointString("ipAddress", "1", "127.0.0.1"),
+			func() Point { p := NewPointString("ipAddress", "2", "127.0.0.2"); p.Tombstone = 1; return p }(),
+			NewPointString("location", "goodbye", "cruel world"),
+			NewPointString("location", "hello", "world"),
+			func() Point { p := NewPointString("location", "del", "deleted entry"); p.Tombstone = 1; return p }(),
+			func() Point { p := NewPointString("nested", "fake", "not a real field"); p.Tombstone = 1; return p }(),
 		},
 	}
 
@@ -373,9 +373,9 @@ func TestDecodeTombstonePoint(t *testing.T) {
 func TestDecodeAllTombstonePointArray(t *testing.T) {
 	var ne = NodeEdge{
 		Points: []Point{
-			{Type: "ipAddress", Key: "0", Text: "192.168.1.1", Tombstone: 1},
-			{Type: "ipAddress", Key: "1", Text: "127.0.0.1", Tombstone: 1},
-			{Type: "ipAddress", Key: "2", Text: "127.0.0.2", Tombstone: 1},
+			func() Point { p := NewPointString("ipAddress", "0", "192.168.1.1"); p.Tombstone = 1; return p }(),
+			func() Point { p := NewPointString("ipAddress", "1", "127.0.0.1"); p.Tombstone = 1; return p }(),
+			func() Point { p := NewPointString("ipAddress", "2", "127.0.0.2"); p.Tombstone = 1; return p }(),
 		},
 	}
 
@@ -473,20 +473,20 @@ func TestDiffPoints(t *testing.T) {
 	if len(p) != 3 {
 		t.Fatalf("expected 3 points; got %v", len(p))
 	}
-	if p[0].Value != 0 ||
-		p[0].Text != "description changed" ||
+	if p[0].Val() != 0 ||
+		p[0].Txt() != "description changed" ||
 		p[0].Type != "description" ||
 		p[0].Tombstone != 0 {
 		t.Errorf("generated point invalid; got %v", p[0])
 	}
-	if p[1].Value != 110 ||
-		p[1].Text != "" ||
+	if p[1].Val() != 110 ||
+		p[1].Txt() != "" ||
 		p[1].Type != "count" ||
 		p[1].Tombstone != 0 {
 		t.Errorf("generated point invalid; got %v", p[1])
 	}
-	if p[2].Value != 10000000 ||
-		p[2].Text != "" ||
+	if p[2].Val() != 10000000 ||
+		p[2].Txt() != "" ||
 		p[2].Type != "value2" ||
 		p[2].Tombstone != 0 {
 		t.Errorf("generated point invalid; got %v", p[2])
@@ -547,50 +547,50 @@ func TestDiffPointsComplex(t *testing.T) {
 	if len(p) != 7 {
 		t.Fatalf("expected 7 points; got %v", len(p))
 	}
-	if p[0].Value != 0 ||
-		p[0].Text != "192.168.1.100" ||
+	if p[0].Val() != 0 ||
+		p[0].Txt() != "192.168.1.100" ||
 		p[0].Key != "0" ||
 		p[0].Type != "ipAddress" ||
 		p[0].Tombstone != 0 {
 		t.Errorf("generated point invalid; got %v", p[0])
 	}
-	if p[1].Value != 0 ||
-		p[1].Text != "" ||
+	if p[1].Val() != 0 ||
+		p[1].Txt() != "" ||
 		p[1].Key != "1" ||
 		p[1].Type != "ipAddress" ||
 		p[1].Tombstone != 1 {
 		t.Errorf("generated point invalid; got %v", p[1])
 	}
-	if p[2].Value != 0 ||
-		p[2].Text != "bar" ||
+	if p[2].Val() != 0 ||
+		p[2].Txt() != "bar" ||
 		p[2].Key != "foo" ||
 		p[2].Type != "location" ||
 		p[2].Tombstone != 0 {
 		t.Errorf("generated point invalid; got %v", p[3])
 	}
-	if p[3].Value != 0 ||
-		p[3].Text != "" ||
+	if p[3].Val() != 0 ||
+		p[3].Txt() != "" ||
 		p[3].Key != "goodbye" ||
 		p[3].Type != "location" ||
 		p[3].Tombstone != 1 {
 		t.Errorf("generated point invalid; got %v", p[4])
 	}
-	if p[4].Value != 0 ||
-		p[4].Text != "world!!!" ||
+	if p[4].Val() != 0 ||
+		p[4].Txt() != "world!!!" ||
 		p[4].Key != "hello" ||
 		p[4].Type != "location" ||
 		p[4].Tombstone != 0 {
 		t.Errorf("generated point invalid; got %v", p[2])
 	}
-	if p[5].Value != 0 ||
-		p[5].Text != "nested test type desc changed" ||
+	if p[5].Val() != 0 ||
+		p[5].Txt() != "nested test type desc changed" ||
 		p[5].Key != "description" ||
 		p[5].Type != "nested" ||
 		p[5].Tombstone != 0 {
 		t.Errorf("generated point invalid; got %v", p[5])
 	}
-	if p[6].Value != 0 ||
-		p[6].Text != "" ||
+	if p[6].Val() != 0 ||
+		p[6].Txt() != "" ||
 		p[6].Key != "3" ||
 		p[6].Type != "scheduledDays" ||
 		p[6].Tombstone != 0 {

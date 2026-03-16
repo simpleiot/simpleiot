@@ -181,7 +181,7 @@ func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pt
 
 		sd.config.Tx++
 		err = SendPoints(sd.nc, sd.natsSub,
-			data.Points{{Type: data.PointTypeTx, Value: float64(sd.config.Tx)}},
+			data.Points{data.NewPointFloat(data.PointTypeTx, "", float64(sd.config.Tx))},
 			false)
 
 		if err != nil {
@@ -216,7 +216,7 @@ func (sd *SerialDevClient) Run() error {
 
 	if sd.config.Connected {
 		sd.config.Connected = false
-		err := SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeConnected, Value: 0}, false)
+		err := SendNodePoint(sd.nc, sd.config.ID, data.NewPointFloat(data.PointTypeConnected, "", 0), false)
 		if err != nil {
 			log.Println("Error sending connected point")
 		}
@@ -380,7 +380,7 @@ func (sd *SerialDevClient) Run() error {
 		sd.portCobsWrapper = nil
 
 		sd.config.Connected = false
-		err := SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeConnected, Value: 0}, false)
+		err := SendNodePoint(sd.nc, sd.config.ID, data.NewPointFloat(data.PointTypeConnected, "", 0), false)
 		if err != nil {
 			log.Println("Error sending connected point")
 		}
@@ -430,7 +430,7 @@ func (sd *SerialDevClient) Run() error {
 		if sd.config.MaxMessageLength <= 0 {
 			sd.config.MaxMessageLength = 1024
 			err := SendPoints(sd.nc, sd.natsSub,
-				data.Points{{Type: data.PointTypeMaxMessageLength, Value: 1024}}, true)
+				data.Points{data.NewPointFloat(data.PointTypeMaxMessageLength, "", 1024)}, true)
 			if err != nil {
 				log.Println("Error sending max message len message:", err)
 			}
@@ -513,7 +513,7 @@ func (sd *SerialDevClient) Run() error {
 		}}
 
 		sd.config.Connected = true
-		err := SendNodePoint(sd.nc, sd.config.ID, data.Point{Type: data.PointTypeConnected, Value: 1}, false)
+		err := SendNodePoint(sd.nc, sd.config.ID, data.NewPointFloat(data.PointTypeConnected, "", 1), false)
 		if err != nil {
 			log.Println("Error sending connected point")
 		}
@@ -540,7 +540,7 @@ exitSerialClient:
 			timerCheckPort.Reset(checkPortDur)
 		case <-listenerSerialErr:
 			sd.config.ErrorCount++
-			points := []data.Point{{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)}}
+			points := []data.Point{data.NewPointFloat(data.PointTypeErrorCount, "", float64(sd.config.ErrorCount))}
 			err := SendPoints(sd.nc, sd.natsSub, points, false)
 			if err != nil {
 				log.Println("Error sending error points:", err)
@@ -579,7 +579,7 @@ exitSerialClient:
 					cnt = sd.config.ErrorCount
 				}
 
-				err := SendPoints(sd.nc, sd.natsSub, []data.Point{{Type: t, Value: float64(cnt)}}, false)
+				err := SendPoints(sd.nc, sd.natsSub, []data.Point{data.NewPointFloat(t, "", float64(cnt))}, false)
 				if err != nil {
 					log.Println("Error sending error points:", err)
 				}
@@ -619,7 +619,7 @@ exitSerialClient:
 			}
 
 			if subject == "log" {
-				points := data.Points{{Type: data.PointTypeLog, Text: string(payload)}}
+				points := data.Points{data.NewPointString(data.PointTypeLog, "", string(payload))}
 
 				if sd.config.Debug >= 1 {
 					log.Printf("Serial client %v: log: %v\n",
@@ -668,14 +668,14 @@ exitSerialClient:
 					sd.config.Description, errDecode)
 				sd.config.ErrorCount++
 				adminPoints = append(adminPoints,
-					data.Point{Type: data.PointTypeErrorCount, Value: float64(sd.config.ErrorCount)})
+					data.NewPointFloat(data.PointTypeErrorCount, "", float64(sd.config.ErrorCount)))
 			}
 
 			if time.Since(sd.lastSendStats) > time.Second*5 {
 				adminPoints = append(adminPoints,
 					data.Points{
-						{Time: time.Now(), Type: data.PointTypeRx, Value: float64(sd.config.Rx)},
-						{Time: time.Now(), Type: data.PointTypeHrRx, Value: float64(sd.config.HrRx)},
+						data.NewPointFloat(data.PointTypeRx, "", float64(sd.config.Rx)),
+						data.NewPointFloat(data.PointTypeHrRx, "", float64(sd.config.HrRx)),
 					}...)
 				sd.lastSendStats = time.Now()
 			}
@@ -686,10 +686,8 @@ exitSerialClient:
 				rate := float64(sd.ratePointCount) / elapsedSec
 				rateHR := float64(sd.ratePointCountHR) / elapsedSec
 				adminPoints = append(adminPoints,
-					data.Point{Time: now, Type: data.PointTypeRate,
-						Value: rate},
-					data.Point{Time: now, Type: data.PointTypeRateHR,
-						Value: rateHR},
+					data.NewPointFloat(data.PointTypeRate, "", rate),
+					data.NewPointFloat(data.PointTypeRateHR, "", rateHR),
 				)
 				sd.rateLastSend = now
 				sd.ratePointCount = 0
@@ -730,14 +728,14 @@ exitSerialClient:
 				}
 
 				if p.Type == data.PointTypePort {
-					err := watcher.Add(filepath.Dir(p.Text))
+					err := watcher.Add(filepath.Dir(p.Txt()))
 					if err != nil {
-						log.Println("Error adding watcher on serial port name change:", p.Text)
+						log.Println("Error adding watcher on serial port name change:", p.Txt())
 					}
 				}
 
 				if p.Type == data.PointTypeDisabled {
-					if p.Value == 0 {
+					if p.Val() == 0 {
 						closePort()
 					} else {
 						op = true
@@ -753,16 +751,16 @@ exitSerialClient:
 				}
 
 				if p.Type == data.PointTypeDebug {
-					sd.portCobsWrapper.SetDebug(int(p.Value))
+					sd.portCobsWrapper.SetDebug(int(p.Val()))
 				}
 
 				if p.Type == data.PointTypeDownload {
-					if p.Text == "" {
+					if p.Txt() == "" {
 						log.Println("Stopping download: ", dlState.name)
 						dlFileStop()
 					} else {
-						dlFileStart(p.Text)
-						log.Println("Starting download: ", p.Text)
+						dlFileStart(p.Txt())
+						log.Println("Starting download: ", p.Txt())
 					}
 				}
 			}
@@ -786,8 +784,8 @@ exitSerialClient:
 
 			if sd.config.ErrorCountReset {
 				points := data.Points{
-					{Type: data.PointTypeErrorCount, Value: 0},
-					{Type: data.PointTypeErrorCountReset, Value: 0},
+					data.NewPointFloat(data.PointTypeErrorCount, "", 0),
+					data.NewPointFloat(data.PointTypeErrorCountReset, "", 0),
 				}
 				err = SendPoints(sd.nc, sd.natsSub, points, false)
 				if err != nil {
@@ -800,8 +798,8 @@ exitSerialClient:
 
 			if sd.config.ErrorCountResetHR {
 				points := data.Points{
-					{Type: data.PointTypeErrorCountHR, Value: 0},
-					{Type: data.PointTypeErrorCountResetHR, Value: 0},
+					data.NewPointFloat(data.PointTypeErrorCountHR, "", 0),
+					data.NewPointFloat(data.PointTypeErrorCountResetHR, "", 0),
 				}
 				err = SendPoints(sd.nc, sd.natsSub, points, false)
 				if err != nil {
@@ -814,8 +812,8 @@ exitSerialClient:
 
 			if sd.config.RxReset {
 				points := data.Points{
-					{Type: data.PointTypeRx, Value: 0},
-					{Type: data.PointTypeRxReset, Value: 0},
+					data.NewPointFloat(data.PointTypeRx, "", 0),
+					data.NewPointFloat(data.PointTypeRxReset, "", 0),
 				}
 				err = SendPoints(sd.nc, sd.natsSub, points, false)
 				if err != nil {
@@ -828,8 +826,8 @@ exitSerialClient:
 
 			if sd.config.HrRxReset {
 				points := data.Points{
-					{Type: data.PointTypeHrRx, Value: 0},
-					{Type: data.PointTypeHrRxReset, Value: 0},
+					data.NewPointFloat(data.PointTypeHrRx, "", 0),
+					data.NewPointFloat(data.PointTypeHrRxReset, "", 0),
 				}
 				err = SendPoints(sd.nc, sd.natsSub, points, false)
 				if err != nil {
@@ -842,8 +840,8 @@ exitSerialClient:
 
 			if sd.config.TxReset {
 				points := data.Points{
-					{Type: data.PointTypeTx, Value: 0},
-					{Type: data.PointTypeTxReset, Value: 0},
+					data.NewPointFloat(data.PointTypeTx, "", 0),
+					data.NewPointFloat(data.PointTypeTxReset, "", 0),
 				}
 				err = SendPoints(sd.nc, sd.natsSub, points, false)
 				if err != nil {

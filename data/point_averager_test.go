@@ -11,15 +11,15 @@ func TestPointAverager(t *testing.T) {
 
 	pointAverager := NewPointAverager("testPoint")
 	avgPoint := pointAverager.GetAverage()
-	if avgPoint.Value != 0 {
-		t.Error("point avg with 0 points is not correct: ", avgPoint.Value)
+	if avgPoint.Val() != 0 {
+		t.Error("point avg with 0 points is not correct: ", avgPoint.Val())
 	}
 
 	// Round 1.5
 	feedPoints(pointAverager, avg)
 
 	avgPoint = pointAverager.GetAverage()
-	if avgPoint.Value != avg {
+	if avgPoint.Val() != avg {
 		t.Error("point avg is not correct")
 	}
 
@@ -32,7 +32,7 @@ func TestPointAverager(t *testing.T) {
 	feedPoints(pointAverager, avg)
 
 	avgPoint = pointAverager.GetAverage()
-	if avgPoint.Value != avg {
+	if avgPoint.Val() != avg {
 		t.Error("point avg is not correct")
 	}
 
@@ -45,30 +45,24 @@ func TestPointAverager(t *testing.T) {
 	feedPoints(pointAverager, avg)
 
 	avgPoint = pointAverager.GetAverage()
-	if avgPoint.Value != avg {
+	if avgPoint.Val() != avg {
 		t.Error("point avg is not correct")
 	}
 }
 
 func feedPoints(pointAverager *PointAverager, avg float64) {
-	point := Point{
-		Time:  time.Now(),
-		Value: avg - 100,
-	}
+	point := NewPointFloat("", "", avg-100)
+	point.Time = time.Now()
 	pointAverager.AddPoint(point)
 	pointAverager.AddPoint(point)
 
-	point = Point{
-		Time:  time.Now(),
-		Value: avg,
-	}
+	point = NewPointFloat("", "", avg)
+	point.Time = time.Now()
 	pointAverager.AddPoint(point)
 	pointAverager.AddPoint(point)
 
-	point = Point{
-		Time:  time.Now(),
-		Value: avg + 100,
-	}
+	point = NewPointFloat("", "", avg+100)
+	point.Time = time.Now()
 	pointAverager.AddPoint(point)
 	pointAverager.AddPoint(point)
 }

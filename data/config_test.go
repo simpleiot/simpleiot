@@ -14,14 +14,14 @@ var configTestNode = NodeEdgeChildren{
 		Parent: "456",
 		Type:   "testType",
 		Points: []Point{
-			{Type: "description", Text: "test type"},
-			{Type: "count", Value: 120},
-			{Type: "value", Value: 15.43},
-			{Type: "value2", Value: 10},
+			NewPointString("description", "", "test type"),
+			NewPointFloat("count", "", 120),
+			NewPointFloat("value", "", 15.43),
+			NewPointFloat("value2", "", 10),
 		},
 		EdgePoints: []Point{
-			{Type: "role", Text: "admin"},
-			{Type: "tombstone", Value: 1},
+			NewPointString("role", "", "admin"),
+			NewPointFloat("tombstone", "", 1),
 		},
 	},
 }
@@ -71,10 +71,10 @@ var configTestNodeChildren = NodeEdgeChildren{
 			Parent: "123",
 			Type:   "testY",
 			Points: []Point{
-				{Type: "description", Text: "test Y1", Key: "2"},
+				NewPointString("description", "2", "test Y1"),
 			},
 			EdgePoints: []Point{
-				{Type: "role", Text: "user"},
+				NewPointString("role", "", "user"),
 			},
 		},
 			[]NodeEdgeChildren{
@@ -83,7 +83,7 @@ var configTestNodeChildren = NodeEdgeChildren{
 					Parent: "abc",
 					Type:   "testY",
 					Points: []Point{
-						{Type: "description", Text: "test Y2"},
+						NewPointString("description", "", "test Y2"),
 					},
 				}, nil},
 			},

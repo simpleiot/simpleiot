@@ -348,7 +348,7 @@ func TestImportListOfNodes(t *testing.T) {
 		Type:   data.NodeTypeGroup,
 		Parent: root.ID,
 		Points: []data.Point{
-			{Type: data.PointTypeDescription, Text: "Test sensor group"},
+			data.NewPointString(data.PointTypeDescription, "", "Test sensor group"),
 		},
 	}
 
@@ -383,7 +383,7 @@ func TestImportListOfNodes(t *testing.T) {
 		// Check the points embedded in the node
 		for _, point := range v.Points {
 			if point.Type == data.PointTypeDescription {
-				descriptions = append(descriptions, point.Text)
+				descriptions = append(descriptions, point.Txt())
 			}
 		}
 	}
@@ -406,7 +406,7 @@ func TestReplaceIDs(t *testing.T) {
 			ID:   "123",
 			Type: "testType",
 			Points: []data.Point{
-				{Type: "nodeID", Text: "", Key: "0"},
+				data.NewPointString("nodeID", "0", ""),
 			},
 		},
 		Children: []data.NodeEdgeChildren{
@@ -414,11 +414,11 @@ func TestReplaceIDs(t *testing.T) {
 				ID:   "",
 				Type: "testY",
 				Points: []data.Point{
-					{Type: "description", Text: "test Y1", Key: "2"},
-					{Type: "nodeID", Text: "123", Key: "0"},
+					data.NewPointString("description", "2", "test Y1"),
+					data.NewPointString("nodeID", "0", "123"),
 				},
 				EdgePoints: []data.Point{
-					{Type: "role", Text: "user"},
+					data.NewPointString("role", "", "user"),
 				},
 			},
 				Children: []data.NodeEdgeChildren{
@@ -426,7 +426,7 @@ func TestReplaceIDs(t *testing.T) {
 						ID:   "123",
 						Type: "testY",
 						Points: []data.Point{
-							{Type: "description", Text: "test Y2"},
+							data.NewPointString("description", "", "test Y2"),
 						},
 					}, Children: nil},
 				},
@@ -435,11 +435,11 @@ func TestReplaceIDs(t *testing.T) {
 				ID:   "",
 				Type: "testY",
 				Points: []data.Point{
-					{Type: "description", Text: "test Y1", Key: "2"},
-					{Type: "nodeID", Text: "123", Key: "0"},
+					data.NewPointString("description", "2", "test Y1"),
+					data.NewPointString("nodeID", "0", "123"),
 				},
 				EdgePoints: []data.Point{
-					{Type: "role", Text: "user"},
+					data.NewPointString("role", "", "user"),
 				},
 			},
 				Children: nil,
@@ -463,7 +463,7 @@ func TestReplaceIDs(t *testing.T) {
 	}
 
 	// mode sure any points of type nodeID get updated
-	if testNodes.Children[0].Points[1].Text == "123" {
+	if testNodes.Children[0].Points[1].Txt() == "123" {
 		t.Fatal("Points of type nodeID are not getting updated")
 	}
 
@@ -473,7 +473,7 @@ func TestReplaceIDs(t *testing.T) {
 	}
 
 	// mode sure blank nodeID points are ignored
-	if testNodes.Points[0].Text != "" {
+	if testNodes.Points[0].Txt() != "" {
 		t.Fatal("Blank nodeID point not ignored")
 	}
 

@@ -76,16 +76,8 @@ func (cb *CanBusClient) Run() error {
 
 	sendDbStats := func(msgs, signals int) {
 		points := data.Points{
-			data.Point{
-				Time:  time.Now(),
-				Type:  data.PointTypeMsgsInDb,
-				Value: float64(msgs),
-			},
-			data.Point{
-				Time:  time.Now(),
-				Type:  data.PointTypeSignalsInDb,
-				Value: float64(signals),
-			},
+			data.NewPointFloat(data.PointTypeMsgsInDb, "", float64(msgs)),
+			data.NewPointFloat(data.PointTypeSignalsInDb, "", float64(signals)),
 		}
 
 		err := SendPoints(cb.nc, cb.natsSub, points, false)
@@ -208,22 +200,14 @@ func (cb *CanBusClient) Run() error {
 				points[i].Key = fmt.Sprintf("%v.%v[%v]",
 					msg.Name, sig.Name, sig.Unit)
 				points[i].Time = time.Now()
-				points[i].Value = float64(sig.Value)
+				points[i].PutFloat(float64(sig.Value))
 			}
 
 			// Populate points to update CAN client stats
 			points = append(points,
-				data.Point{
-					Time:  time.Now(),
-					Type:  data.PointTypeMsgsRecvdDb,
-					Value: float64(cb.config.MsgsRecvdDb),
-				})
+				data.NewPointFloat(data.PointTypeMsgsRecvdDb, "", float64(cb.config.MsgsRecvdDb)))
 			points = append(points,
-				data.Point{
-					Time:  time.Now(),
-					Type:  data.PointTypeMsgsRecvdOther,
-					Value: float64(cb.config.MsgsRecvdOther),
-				})
+				data.NewPointFloat(data.PointTypeMsgsRecvdOther, "", float64(cb.config.MsgsRecvdOther)))
 
 			// Send the points
 			if len(points) > 0 {
@@ -248,7 +232,7 @@ func (cb *CanBusClient) Run() error {
 				case data.PointTypeData:
 					readDb()
 				case data.PointTypeDisabled:
-					if p.Value == 0 {
+					if p.Val() == 0 {
 						bringDownDev()
 					}
 				}
@@ -257,8 +241,8 @@ func (cb *CanBusClient) Run() error {
 			// Reset db msgs received counter
 			if cb.config.MsgsRecvdDbReset {
 				points := data.Points{
-					{Time: time.Now(), Type: data.PointTypeMsgsRecvdDb, Value: 0},
-					{Time: time.Now(), Type: data.PointTypeMsgsRecvdDbReset, Value: 0},
+					data.NewPointFloat(data.PointTypeMsgsRecvdDb, "", 0),
+					data.NewPointFloat(data.PointTypeMsgsRecvdDbReset, "", 0),
 				}
 				err = SendPoints(cb.nc, cb.natsSub, points, false)
 				if err != nil {
@@ -272,8 +256,8 @@ func (cb *CanBusClient) Run() error {
 			// Reset other msgs received counter
 			if cb.config.MsgsRecvdOtherReset {
 				points := data.Points{
-					{Time: time.Now(), Type: data.PointTypeMsgsRecvdOther, Value: 0},
-					{Time: time.Now(), Type: data.PointTypeMsgsRecvdOtherReset, Value: 0},
+					data.NewPointFloat(data.PointTypeMsgsRecvdOther, "", 0),
+					data.NewPointFloat(data.PointTypeMsgsRecvdOtherReset, "", 0),
 				}
 				err = SendPoints(cb.nc, cb.natsSub, points, false)
 				if err != nil {

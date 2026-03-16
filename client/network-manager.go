@@ -164,7 +164,7 @@ func (c *NetworkManagerClient) Run() error {
 			deleted := false
 			for _, p := range ne.EdgePoints {
 				if p.Type == data.PointTypeTombstone {
-					deleted = int(p.Value)%2 == 1
+					deleted = int(p.Val())%2 == 1
 					break
 				}
 			}
@@ -334,15 +334,15 @@ loop:
 			// Create point to clear flag
 			p := data.Point{
 				Type:   "requestWiFiScan",
-				Value:  0,
 				Origin: c.config.ID,
 			}
+			p.PutFloat(0)
 
 			// Trigger scan (error stored in Point)
 			err := c.WifiScan()
 			if err != nil {
 				c.log.Printf("Error scanning for wireless APs: %v", err)
-				p.Text = err.Error()
+				p.PutString(err.Error())
 			}
 
 			// Clear RequestWiFiScan
@@ -368,11 +368,9 @@ func (c *NetworkManagerClient) emitConnectionError(
 	} else {
 		conn.Error = err.Error()
 	}
-	emitErr := SendNodePoint(c.nc, conn.ID, data.Point{
-		Type:   "error",
-		Text:   conn.Error,
-		Origin: c.config.ID,
-	}, true)
+	ep := data.NewPointString("error", "", conn.Error)
+	ep.Origin = c.config.ID
+	emitErr := SendNodePoint(c.nc, conn.ID, ep, true)
 	if emitErr != nil {
 		return fmt.Errorf(
 			"error emitting error for connection %v: %w", conn.ID, err,
@@ -468,11 +466,9 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 				// Update connection in NetworkManager, except LastActivated
 				if treeConn.LastActivated != nmc.Resolved.LastActivated {
 					treeConn.LastActivated = nmc.Resolved.LastActivated
-					pts.Add(data.Point{
-						Type:   "lastActivated",
-						Value:  float64(treeConn.LastActivated),
-						Origin: c.config.ID,
-					})
+					laPt := data.NewPointFloat("lastActivated", "", float64(treeConn.LastActivated))
+					laPt.Origin = c.config.ID
+					pts.Add(laPt)
 				}
 
 				// Sync properties not populated by ResolveNetworkManagerConn
@@ -642,10 +638,7 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 				)
 			} else {
 				// Delete connection from SIOT tree
-				err = SendEdgePoint(c.nc, treeConn.ID, treeConn.Parent, data.Point{
-					Type:  data.PointTypeTombstone,
-					Value: 1,
-				}, true)
+				err = SendEdgePoint(c.nc, treeConn.ID, treeConn.Parent, data.NewPointFloat(data.PointTypeTombstone, "", 1), true)
 				if err != nil {
 					errs = append(errs, fmt.Errorf(
 						"error removing connection node %v: %w", treeConn.ID, err,
@@ -713,12 +706,9 @@ func (c *NetworkManagerClient) SyncDevices() (errs []error, fatal error) {
 		c.config.NetworkingEnabled = &networkingEnabled
 		p := data.Point{
 			Type:   "networkingEnabled",
-			Value:  0,
 			Origin: c.config.ID,
 		}
-		if networkingEnabled {
-			p.Value = 1
-		}
+		p.PutFloat(data.BoolToFloat(networkingEnabled))
 		pts.Add(p)
 	}
 	if c.config.WirelessHardwareEnabled == nil ||
@@ -726,12 +716,9 @@ func (c *NetworkManagerClient) SyncDevices() (errs []error, fatal error) {
 		c.config.WirelessHardwareEnabled = &wirelessHwEnabled
 		p := data.Point{
 			Type:   "wirelessHardwareEnabled",
-			Value:  0,
 			Origin: c.config.ID,
 		}
-		if wirelessHwEnabled {
-			p.Value = 1
-		}
+		p.PutFloat(data.BoolToFloat(wirelessHwEnabled))
 		pts.Add(p)
 	}
 	if c.config.WirelessEnabled == nil {
@@ -739,12 +726,9 @@ func (c *NetworkManagerClient) SyncDevices() (errs []error, fatal error) {
 		c.config.WirelessEnabled = &wirelessEnabled
 		p := data.Point{
 			Type:   "wirelessEnabled",
-			Value:  0,
 			Origin: c.config.ID,
 		}
-		if wirelessEnabled {
-			p.Value = 1
-		}
+		p.PutFloat(data.BoolToFloat(wirelessEnabled))
 		pts.Add(p)
 	} else if wirelessEnabled != *c.config.WirelessEnabled {
 		// Copy to NetworkManager
@@ -840,11 +824,11 @@ func (c *NetworkManagerClient) SyncDevices() (errs []error, fatal error) {
 				c.nc,
 				device.ID,
 				device.Parent,
-				data.Point{
-					Type:   "tombstone",
-					Value:  1,
-					Origin: c.config.ID,
-				},
+				func() data.Point {
+					p := data.NewPointFloat("tombstone", "", 1)
+					p.Origin = c.config.ID
+					return p
+				}(),
 				true,
 			)
 			if err != nil {
@@ -882,11 +866,11 @@ func (c *NetworkManagerClient) SyncHostname() (errs []error, fatal error) {
 	if c.config.Hostname == "" {
 		// Write hostname to tree
 		c.config.Hostname = hostname
-		err = SendNodePoint(c.nc, c.config.ID, data.Point{
-			Type:   "hostname",
-			Text:   hostname,
-			Origin: c.config.ID,
-		}, true)
+		err = SendNodePoint(c.nc, c.config.ID, func() data.Point {
+			p := data.NewPointString("hostname", "", hostname)
+			p.Origin = c.config.ID
+			return p
+		}(), true)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -1022,12 +1006,9 @@ func (c *NetworkManagerClient) WifiScan() error {
 				if err != nil {
 					return fmt.Errorf("error encoding: %v", err)
 				}
-				pts.Add(data.Point{
-					Type:   "accessPoints",
-					Key:    strconv.Itoa(i),
-					Text:   string(apJSON),
-					Origin: c.config.ID,
-				})
+				apPt := data.NewPointString("accessPoints", strconv.Itoa(i), string(apJSON))
+				apPt.Origin = c.config.ID
+				pts.Add(apPt)
 			}
 			c.log.Printf("Discovered %v access points", len(pts))
 

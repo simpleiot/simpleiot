@@ -11,21 +11,9 @@ func TestNotifyTemplate(t *testing.T) {
 	device := data.Node{
 		ID: "1234",
 		Points: []data.Point{
-			{
-				Type: data.PointTypeDescription,
-				Text: "My Node",
-				Key:  "0",
-			},
-			{
-				Type:  "tankLevel",
-				Key:   "0",
-				Value: 12.523423423,
-			},
-			{
-				Type:  "current",
-				Key:   "c0",
-				Value: 1.52323,
-			},
+			data.NewPointString(data.PointTypeDescription, "0", "My Node"),
+			data.NewPointFloat("tankLevel", "0", 12.523423423),
+			data.NewPointFloat("current", "c0", 1.52323),
 		},
 	}
 

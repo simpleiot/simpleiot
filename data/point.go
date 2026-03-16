@@ -3,6 +3,7 @@ package data
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"hash/crc32"
 	"math"
@@ -104,6 +105,120 @@ type Point struct {
 	Origin string `json:"origin,omitempty"`
 }
 
+// pointJSON is used for JSON/YAML marshal/unmarshal to maintain backward
+// compatibility with the old value/text fields.
+type pointJSON struct {
+	Type      string        `json:"type,omitempty" yaml:"type,omitempty"`
+	Key       string        `json:"key,omitempty" yaml:"key,omitempty"`
+	Time      time.Time     `json:"time,omitempty" yaml:"-"`
+	DataType  PointDataType `json:"dataType,omitempty" yaml:"dataType,omitempty"`
+	Data      []byte        `json:"data,omitempty" yaml:"data,omitempty"`
+	Tombstone int           `json:"tombstone,omitempty" yaml:"tombstone,omitempty"`
+	Origin    string        `json:"origin,omitempty" yaml:"origin,omitempty"`
+	// Legacy fields for backward compat
+	Value float64 `json:"value,omitempty" yaml:"value,omitempty"`
+	Text  string  `json:"text,omitempty" yaml:"text,omitempty"`
+}
+
+// MarshalJSON encodes Point to JSON, including legacy value/text fields
+// for backward compatibility.
+func (p Point) MarshalJSON() ([]byte, error) {
+	return json.Marshal(pointJSON{
+		Type:      p.Type,
+		Key:       p.Key,
+		Time:      p.Time,
+		DataType:  p.DataType,
+		Data:      p.Data,
+		Tombstone: p.Tombstone,
+		Origin:    p.Origin,
+		Value:     p.Val(),
+		Text:      p.Txt(),
+	})
+}
+
+// UnmarshalJSON decodes Point from JSON, supporting both new (dataType/data)
+// and legacy (value/text) fields.
+func (p *Point) UnmarshalJSON(b []byte) error {
+	var pj pointJSON
+	if err := json.Unmarshal(b, &pj); err != nil {
+		return err
+	}
+	p.Type = pj.Type
+	p.Key = pj.Key
+	p.Time = pj.Time
+	p.Tombstone = pj.Tombstone
+	p.Origin = pj.Origin
+
+	// If new-style data is present, use it directly
+	if pj.DataType != PointDataTypeUnknown {
+		p.DataType = pj.DataType
+		p.Data = pj.Data
+		return nil
+	}
+
+	// Fall back to legacy fields
+	if pj.Text != "" {
+		p.PutString(pj.Text)
+	} else if pj.Value != 0 {
+		p.PutFloat(pj.Value)
+	} else if len(pj.Data) > 0 {
+		p.Data = pj.Data
+	}
+
+	return nil
+}
+
+// UnmarshalYAML decodes Point from YAML, supporting both new (dataType/data)
+// and legacy (value/text) fields. Implements goccy/go-yaml InterfaceUnmarshaler.
+func (p *Point) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var pj pointJSON
+	if err := unmarshal(&pj); err != nil {
+		return err
+	}
+	p.Type = pj.Type
+	p.Key = pj.Key
+	p.Time = pj.Time
+	p.Tombstone = pj.Tombstone
+	p.Origin = pj.Origin
+
+	if pj.DataType != PointDataTypeUnknown {
+		p.DataType = pj.DataType
+		p.Data = pj.Data
+		return nil
+	}
+
+	if pj.Text != "" {
+		p.PutString(pj.Text)
+	} else if pj.Value != 0 {
+		p.PutFloat(pj.Value)
+	} else if len(pj.Data) > 0 {
+		p.Data = pj.Data
+	}
+
+	return nil
+}
+
+// NewPointFloat creates a new Point with a float64 value
+func NewPointFloat(typ, key string, value float64) Point {
+	p := Point{Type: typ, Key: key}
+	p.PutFloat(value)
+	return p
+}
+
+// NewPointString creates a new Point with a string value
+func NewPointString(typ, key string, value string) Point {
+	p := Point{Type: typ, Key: key}
+	p.PutString(value)
+	return p
+}
+
+// NewPointInt creates a new Point with an int value
+func NewPointInt(typ, key string, value int64) Point {
+	p := Point{Type: typ, Key: key}
+	p.PutInt(value)
+	return p
+}
+
 // ValueInt decodes an int value from the point
 func (p *Point) ValueInt() (int64, error) {
 	if p.DataType != PointDataTypeInt {
@@ -120,7 +235,7 @@ func (p *Point) ValueInt() (int64, error) {
 	case 8:
 		return int64(binary.LittleEndian.Uint64(p.Data)), nil
 	default:
-		return 0, fmt.Errorf("invalid length for int %i", len(p.Data))
+		return 0, fmt.Errorf("invalid length for int %d", len(p.Data))
 	}
 }
 
@@ -136,7 +251,7 @@ func (p *Point) ValueFloat() (float64, error) {
 	case 8:
 		return math.Float64frombits(binary.LittleEndian.Uint64(p.Data)), nil
 	default:
-		return 0, fmt.Errorf("invalid length for float %i", len(p.Data))
+		return 0, fmt.Errorf("invalid length for float %d", len(p.Data))
 	}
 }
 
@@ -215,10 +330,10 @@ func (p Point) String() string {
 		t += "T:" + p.Type + " "
 	}
 
-	if p.Text != "" {
-		t += fmt.Sprintf("V:%v ", p.Text)
+	if txt := p.Txt(); txt != "" {
+		t += fmt.Sprintf("V:%v ", txt)
 	} else {
-		t += fmt.Sprintf("V:%.3f ", p.Value)
+		t += fmt.Sprintf("V:%.3f ", p.Val())
 	}
 
 	if p.Key != "" && p.Key != "0" {
@@ -263,9 +378,10 @@ func (p Point) ToPb() (pb.Point, error) {
 	return pb.Point{
 		Type:      p.Type,
 		Key:       p.Key,
-		Value:     p.Value,
-		Text:      p.Text,
+		Value:     p.Val(),
+		Text:      p.Txt(),
 		Time:      ts,
+		Data:      p.Data,
 		Tombstone: int32(p.Tombstone),
 		Origin:    p.Origin,
 	}, nil
@@ -276,17 +392,50 @@ func (p Point) ToSerial() (pb.SerialPoint, error) {
 	return pb.SerialPoint{
 		Type:      p.Type,
 		Key:       p.Key,
-		Value:     float32(p.Value),
-		Text:      p.Text,
+		Value:     float32(p.Val()),
+		Text:      p.Txt(),
 		Time:      p.Time.UnixNano(),
+		Data:      p.Data,
 		Tombstone: int32(p.Tombstone),
 		Origin:    p.Origin,
 	}, nil
 }
 
+// Val returns the float64 value of the point, converting from int if needed.
+// Returns 0 for non-numeric types. This is a convenience method that mirrors
+// the old Point.Value field access semantics.
+func (p Point) Val() float64 {
+	switch p.DataType {
+	case PointDataTypeFloat:
+		v, err := p.ValueFloat()
+		if err != nil {
+			return 0
+		}
+		return v
+	case PointDataTypeInt:
+		v, err := p.ValueInt()
+		if err != nil {
+			return 0
+		}
+		return float64(v)
+	default:
+		return 0
+	}
+}
+
+// Txt returns the string value of the point.
+// Returns "" for non-string types. This is a convenience method that mirrors
+// the old Point.Text field access semantics.
+func (p Point) Txt() string {
+	if p.DataType == PointDataTypeString || p.DataType == PointDataTypeJSON {
+		return string(p.Data)
+	}
+	return ""
+}
+
 // Bool returns a bool representation of value
 func (p *Point) Bool() bool {
-	return p.Value == 1
+	return p.Val() == 1
 }
 
 // Points is an array of Point
@@ -342,7 +491,7 @@ func (ps Points) Find(typ, key string) (Point, bool) {
 // If ID or Type are set to "", they are ignored.
 func (ps *Points) Value(typ, key string) (float64, bool) {
 	p, ok := ps.Find(typ, key)
-	return p.Value, ok
+	return p.Val(), ok
 }
 
 // ValueInt returns value as integer
@@ -361,7 +510,7 @@ func (ps *Points) ValueBool(typ, key string) (bool, bool) {
 // If ID or Type are set to "", they are ignored.
 func (ps *Points) Text(typ, key string) (string, bool) {
 	p, ok := ps.Find(typ, key)
-	return p.Text, ok
+	return p.Txt(), ok
 }
 
 // LatestTime returns the latest timestamp of a devices points
@@ -469,17 +618,12 @@ func (ps *Points) Merge(in Points, maxTime time.Duration) Points {
 					break
 				}
 
-				if pIn.Value != p.Value {
+				if !bytes.Equal(pIn.Data, p.Data) || pIn.DataType != p.DataType {
 					(*ps)[i] = p
 					modified = true
 				}
 
 				if maxTime > 0 && pIn.Time.Sub(p.Time) > maxTime {
-					(*ps)[i] = p
-					modified = true
-				}
-
-				if pIn.Text != p.Text {
 					(*ps)[i] = p
 					modified = true
 				}
@@ -568,12 +712,19 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 
 	ret := Point{
 		Type:      sPb.Type,
-		Text:      sPb.Text,
 		Key:       sPb.Key,
-		Value:     sPb.Value,
 		Time:      ts,
 		Tombstone: int(sPb.Tombstone),
 		Origin:    sPb.Origin,
+	}
+
+	// Convert pb Value/Text to Data/DataType for backward compat
+	if sPb.Text != "" {
+		ret.PutString(sPb.Text)
+	} else if sPb.Value != 0 {
+		ret.PutFloat(sPb.Value)
+	} else if len(sPb.Data) > 0 {
+		ret.Data = sPb.Data
 	}
 
 	return ret, nil
@@ -583,12 +734,19 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 func SerialToPoint(sPb *pb.SerialPoint) (Point, error) {
 	ret := Point{
 		Type:      sPb.Type,
-		Text:      sPb.Text,
 		Key:       sPb.Key,
-		Value:     float64(sPb.Value),
 		Time:      time.Unix(0, sPb.Time),
 		Tombstone: int(sPb.Tombstone),
 		Origin:    sPb.Origin,
+	}
+
+	// Convert serial pb Value/Text to Data/DataType for backward compat
+	if sPb.Text != "" {
+		ret.PutString(sPb.Text)
+	} else if sPb.Value != 0 {
+		ret.PutFloat(float64(sPb.Value))
+	} else if len(sPb.Data) > 0 {
+		ret.Data = sPb.Data
 	}
 
 	return ret, nil
@@ -640,13 +798,14 @@ func DecodeSerialHrPayload(payload []byte, callback func(Point)) error {
 
 	sampCount := (len(payload) - (16 + 16 + 8 + 4)) / 4
 	for i := 0; i < sampCount; i++ {
-		callback(Point{
+		p := Point{
 			Time: time.Unix(0, startNs+int64(i)*sampNs),
 			Type: typ,
 			Key:  key,
-			Value: float64(math.Float32frombits(
-				binary.LittleEndian.Uint32(payload[44+i*4 : 44+4+i*4]))),
-		})
+		}
+		p.PutFloat(float64(math.Float32frombits(
+			binary.LittleEndian.Uint32(payload[44+i*4 : 44+4+i*4]))))
+		callback(p)
 	}
 
 	return nil
@@ -702,11 +861,12 @@ func (sf *PointFilter) add(point Point) bool {
 	for i, p := range sf.points {
 		if point.Key == p.Key &&
 			point.Type == p.Type {
-			if point.Value == p.Value {
+			if bytes.Equal(point.Data, p.Data) && point.DataType == p.DataType {
 				return false
 			}
 
-			sf.points[i].Value = point.Value
+			sf.points[i].Data = point.Data
+			sf.points[i].DataType = point.DataType
 			return true
 		}
 	}

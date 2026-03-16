@@ -93,10 +93,11 @@ func TestDecodeSerialHrPayload(t *testing.T) {
 		t.Fatal("Error decoding: ", err)
 	}
 
-	exp := Points{
-		{Time: start, Type: "voltage", Key: "AX", Value: 10.5},
-		{Time: start.Add(time.Millisecond * 50), Type: "voltage", Key: "AX", Value: 1000.23},
-	}
+	e0 := NewPointFloat("voltage", "AX", 10.5)
+	e0.Time = start
+	e1 := NewPointFloat("voltage", "AX", 1000.23)
+	e1.Time = start.Add(time.Millisecond * 50)
+	exp := Points{e0, e1}
 
 	if len(exp) != len(pts) {
 		t.Fatal("Did not get the exp # points")

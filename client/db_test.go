@@ -77,7 +77,7 @@ func TestDb(t *testing.T) {
 
 	// write a point and then see if it shows up in influxdb
 	err = client.SendNodePoint(nc, dbConfig.ID,
-		data.Point{Type: data.PointTypeDescription, Text: "updated description", Origin: "test"}, true)
+		func() data.Point { p := data.NewPointString(data.PointTypeDescription, "", "updated description"); p.Origin = "test"; return p }(), true)
 
 	if err != nil {
 		t.Fatal("Error sending points")

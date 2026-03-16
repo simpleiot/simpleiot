@@ -194,16 +194,16 @@ func (sgc *SignalGeneratorClient) Run() error {
 						val := lastValue + config.MinIncrement + rand.Float64()*
 							(config.MaxIncrement-config.MinIncrement)
 						pts[i] = data.Point{
-							Type: pointType,
-							Time: start.Add(time.Duration(i) * sampleInterval),
-							Key:  pointKey,
-							Value: clamp(
-								round(val, config.RoundTo),
-								config.MinValue,
-								config.MaxValue,
-							),
+							Type:   pointType,
+							Time:   start.Add(time.Duration(i) * sampleInterval),
+							Key:    pointKey,
 							Origin: config.ID,
 						}
+						pts[i].PutFloat(clamp(
+							round(val, config.RoundTo),
+							config.MinValue,
+							config.MaxValue,
+						))
 						lastValue = clamp(val, config.MinValue, config.MaxValue)
 					}
 					return pts, endTime
@@ -265,9 +265,9 @@ func (sgc *SignalGeneratorClient) Run() error {
 							Type:   pointType,
 							Time:   start.Add(time.Duration(i) * sampleInterval),
 							Key:    pointKey,
-							Value:  y,
 							Origin: config.ID,
 						}
+						pts[i].PutFloat(y)
 					}
 					return pts, endTime
 				}

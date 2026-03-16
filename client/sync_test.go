@@ -61,7 +61,7 @@ func TestSync(t *testing.T) {
 	}
 
 	fmt.Println("**** update description down")
-	err = client.SendNodePoint(ncD, rootD.ID, data.Point{Type: data.PointTypeDescription, Text: "set down"}, true)
+	err = client.SendNodePoint(ncD, rootD.ID, data.NewPointString(data.PointTypeDescription, "", "set down"), true)
 	if err != nil {
 		t.Fatal("error sending node point: ", err)
 	}
@@ -87,7 +87,7 @@ func TestSync(t *testing.T) {
 	}
 
 	fmt.Println("**** update description up")
-	err = client.SendNodePoint(ncU, rootD.ID, data.Point{Type: data.PointTypeDescription, Text: "set up"}, true)
+	err = client.SendNodePoint(ncU, rootD.ID, data.NewPointString(data.PointTypeDescription, "", "set up"), true)
 	if err != nil {
 		t.Fatal("error sending node point: ", err)
 	}
@@ -163,7 +163,7 @@ func TestSync(t *testing.T) {
 	}
 
 	fmt.Println("**** delete node down")
-	err = client.SendEdgePoint(ncD, varD.ID, rootD.ID, data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
+	err = client.SendEdgePoint(ncD, varD.ID, rootD.ID, data.NewPointFloat(data.PointTypeTombstone, "", 1), true)
 	if err != nil {
 		t.Fatal("error sending node point: ", err)
 	}
@@ -187,7 +187,7 @@ func TestSync(t *testing.T) {
 	}
 
 	fmt.Println("**** delete node up")
-	err = client.SendEdgePoint(ncU, varU.ID, rootD.ID, data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
+	err = client.SendEdgePoint(ncU, varU.ID, rootD.ID, data.NewPointFloat(data.PointTypeTombstone, "", 1), true)
 	if err != nil {
 		t.Fatal("error sending node point: ", err)
 	}
@@ -267,7 +267,7 @@ func TestSyncDeleteUpstream(t *testing.T) {
 	}
 
 	fmt.Println("**** Delete downstream node on upstream")
-	err = client.SendEdgePoint(ncU, rootD.ID, rootU.ID, data.Point{Type: data.PointTypeTombstone, Value: 1}, true)
+	err = client.SendEdgePoint(ncU, rootD.ID, rootU.ID, data.NewPointFloat(data.PointTypeTombstone, "", 1), true)
 
 	if err != nil {
 		t.Fatal("Error deleting upstream node: ", err)

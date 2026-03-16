@@ -46,10 +46,9 @@ func (m *Metric) AddSample(s float64) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	now := time.Now()
-	m.avg.AddPoint(data.Point{
-		Time:  now,
-		Value: s,
-	})
+	p := data.Point{Time: now}
+	p.PutFloat(s)
+	m.avg.AddPoint(p)
 
 	if now.Sub(m.lastReport) > m.reportPeriod {
 		err := SendNodePoint(m.nc, m.nodeID, m.avg.GetAverage(), false)

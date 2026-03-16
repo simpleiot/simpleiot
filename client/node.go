@@ -34,12 +34,12 @@ func GetNodes(nc *nats.Conn, parent, id, typ string, includeDel bool) ([]data.No
 
 	if includeDel {
 		requestPoints = append(requestPoints,
-			data.Point{Type: data.PointTypeTombstone, Value: data.BoolToFloat(includeDel)})
+			data.NewPointFloat(data.PointTypeTombstone, "", data.BoolToFloat(includeDel)))
 	}
 
 	if typ != "" {
 		requestPoints = append(requestPoints,
-			data.Point{Type: data.PointTypeNodeType, Text: typ})
+			data.NewPointString(data.PointTypeNodeType, "", typ))
 	}
 
 	reqData, err := requestPoints.ToPb()
@@ -206,11 +206,9 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 			Type: data.PointTypeTombstone, Origin: origin}}
 	}
 
-	node.EdgePoints = append(node.EdgePoints, data.Point{
-		Type:   data.PointTypeNodeType,
-		Text:   node.Type,
-		Origin: origin,
-	})
+	ntPt := data.NewPointString(data.PointTypeNodeType, "", node.Type)
+	ntPt.Origin = origin
+	node.EdgePoints = append(node.EdgePoints, ntPt)
 
 	err = SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
 	if err != nil {
@@ -274,10 +272,10 @@ func DuplicateNode(nc *nats.Conn, id, newParent, origin string) error {
 	case data.NodeTypeUser:
 		lastName, _ := node.Points.Text(data.PointTypeLastName, "0")
 		lastName = lastName + " (Duplicate)"
-		node.AddPoint(data.Point{Type: data.PointTypeLastName, Key: "0", Text: lastName})
+		node.AddPoint(data.NewPointString(data.PointTypeLastName, "0", lastName))
 	default:
 		desc := node.Desc() + " (Duplicate)"
-		node.AddPoint(data.Point{Type: data.PointTypeDescription, Key: "0", Text: desc})
+		node.AddPoint(data.NewPointString(data.PointTypeDescription, "0", desc))
 	}
 
 	return duplicateNodeHelper(nc, node, newParent, origin)
@@ -285,11 +283,11 @@ func DuplicateNode(nc *nats.Conn, id, newParent, origin string) error {
 
 // DeleteNode removes a node from the specified parent node
 func DeleteNode(nc *nats.Conn, id, parent string, origin string) error {
-	err := SendEdgePoint(nc, id, parent, data.Point{
-		Type:   data.PointTypeTombstone,
-		Value:  1,
-		Origin: origin,
-	}, true)
+	err := SendEdgePoint(nc, id, parent, func() data.Point {
+		p := data.NewPointFloat(data.PointTypeTombstone, "", 1)
+		p.Origin = origin
+		return p
+	}(), true)
 
 	return err
 }
@@ -311,18 +309,15 @@ func MoveNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
 	}
 
 	err = SendEdgePoints(nc, id, newParent, data.Points{
-		{Type: data.PointTypeTombstone, Value: 0, Origin: origin},
-		{Type: data.PointTypeNodeType, Text: nodes[0].Type, Origin: origin},
+		func() data.Point { p := data.NewPointFloat(data.PointTypeTombstone, "", 0); p.Origin = origin; return p }(),
+		func() data.Point { p := data.NewPointString(data.PointTypeNodeType, "", nodes[0].Type); p.Origin = origin; return p }(),
 	}, true)
 
 	if err != nil {
 		return err
 	}
 
-	err = SendEdgePoint(nc, id, oldParent, data.Point{
-		Type:  data.PointTypeTombstone,
-		Value: 1,
-	}, true)
+	err = SendEdgePoint(nc, id, oldParent, data.NewPointFloat(data.PointTypeTombstone, "", 1), true)
 
 	if err != nil {
 		return err
@@ -345,8 +340,8 @@ func MirrorNode(nc *nats.Conn, id, newParent, origin string) error {
 	}
 
 	err = SendEdgePoints(nc, id, newParent, data.Points{
-		{Type: data.PointTypeTombstone, Value: 0, Origin: origin},
-		{Type: data.PointTypeNodeType, Text: nodes[0].Type, Origin: origin},
+		func() data.Point { p := data.NewPointFloat(data.PointTypeTombstone, "", 0); p.Origin = origin; return p }(),
+		func() data.Point { p := data.NewPointString(data.PointTypeNodeType, "", nodes[0].Type); p.Origin = origin; return p }(),
 	}, true)
 
 	return err
@@ -515,7 +510,7 @@ func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
 	// remove tombstone 0 edge points
 	i := 0
 	for _, p := range node.EdgePoints {
-		if p.Type == data.PointTypeTombstone && p.Value == 0 {
+		if p.Type == data.PointTypeTombstone && p.Val() == 0 {
 			continue
 		}
 		node.EdgePoints[i] = p
@@ -601,7 +596,7 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 		// append (import) to top level node description
 		for j, p := range imp.Nodes[i].Points {
 			if p.Type == data.PointTypeDescription {
-				imp.Nodes[i].Points[j].Text += " (import)"
+				imp.Nodes[i].Points[j].PutString(p.Txt() + " (import)")
 			}
 		}
 
@@ -684,15 +679,16 @@ func ReplaceIDs(nodes *data.NodeEdgeChildren, parent string) {
 		// check for any points that might have node hashes
 		for i, p := range n.Points {
 			if p.Type == data.PointTypeNodeID {
-				if p.Text == "" {
+				txt := p.Txt()
+				if txt == "" {
 					continue
 				}
-				newID, ok := idMap[p.Text]
+				newID, ok := idMap[txt]
 				if !ok {
 					newID = uuid.New().String()
-					idMap[p.Text] = newID
+					idMap[txt] = newID
 				}
-				n.Points[i].Text = newID
+				n.Points[i].PutString(newID)
 			}
 		}
 

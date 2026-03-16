@@ -66,8 +66,7 @@ func (sioc *ShellyIOClient) Run() error {
 		if !sioc.config.Offline && sioc.errorCount > 5 {
 			log.Printf("Shelly device %v is offline", sioc.config.Description)
 			sioc.config.Offline = true
-			err := SendNodePoint(sioc.nc, sioc.config.ID, data.Point{
-				Type: data.PointTypeOffline, Value: 1}, false)
+			err := SendNodePoint(sioc.nc, sioc.config.ID, data.NewPointFloat(data.PointTypeOffline, "", 1), false)
 
 			if err != nil {
 				log.Println("ShellyIO: error sending node point:", err)
@@ -81,8 +80,7 @@ func (sioc *ShellyIOClient) Run() error {
 		if sioc.config.Offline {
 			log.Printf("Shelly device %v is online", sioc.config.Description)
 			sioc.config.Offline = false
-			err := SendNodePoint(sioc.nc, sioc.config.ID, data.Point{
-				Type: data.PointTypeOffline, Value: 0}, false)
+			err := SendNodePoint(sioc.nc, sioc.config.ID, data.NewPointFloat(data.PointTypeOffline, "", 0), false)
 
 			if err != nil {
 				log.Println("ShellyIO: error sending node point:", err)
@@ -103,8 +101,7 @@ func (sioc *ShellyIOClient) Run() error {
 
 		if sioc.config.Description == "" && config.Name != "" {
 			sioc.config.Description = config.Name
-			err := SendNodePoint(sioc.nc, sioc.config.ID, data.Point{
-				Type: data.PointTypeDescription, Text: config.Name}, false)
+			err := SendNodePoint(sioc.nc, sioc.config.ID, data.NewPointString(data.PointTypeDescription, "", config.Name), false)
 			if err != nil {
 				log.Println("Error sending shelly io description:", err)
 			}
@@ -135,13 +132,13 @@ done:
 				case data.PointTypeDescription:
 					syncConfig()
 				case data.PointTypeDisabled:
-					if p.Value == 0 {
+					if p.Val() == 0 {
 						sampleTicker = time.NewTicker(sampleRate)
 					} else {
 						sampleTicker.Stop()
 					}
 				case data.PointTypeOffline:
-					if p.Value == 0 {
+					if p.Val() == 0 {
 						// defice is online
 						// the discovery mechanism may have set the IO back online
 						sampleTicker = time.NewTicker(sampleRate)

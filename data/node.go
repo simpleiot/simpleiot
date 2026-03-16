@@ -23,19 +23,13 @@ func (sws *SwUpdateState) Points() Points {
 		running = 1
 	}
 
-	return Points{
-		Point{
-			Type:  PointTypeSwUpdateRunning,
-			Value: running,
-		},
-		Point{
-			Type: PointTypeSwUpdateError,
-			Text: sws.Error,
-		},
-		Point{
-			Type:  PointTypeSwUpdatePercComplete,
-			Value: float64(sws.PercentDone),
-		}}
+	pRunning := Point{Type: PointTypeSwUpdateRunning}
+	pRunning.PutFloat(running)
+	pError := Point{Type: PointTypeSwUpdateError}
+	pError.PutString(sws.Error)
+	pPercent := Point{Type: PointTypeSwUpdatePercComplete}
+	pPercent.PutFloat(float64(sws.PercentDone))
+	return Points{pRunning, pError, pPercent}
 }
 
 // TODO move Node to db/store package and make it internal to that package

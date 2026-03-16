@@ -29,7 +29,7 @@ func pointFromPrimitive(pointType string, v reflect.Value) (Point, error) {
 	}
 	switch k {
 	case reflect.Bool:
-		p.Value = BoolToFloat(v.Bool())
+		p.PutFloat(BoolToFloat(v.Bool()))
 	case reflect.Int,
 		reflect.Int8,
 		reflect.Int16,
@@ -40,7 +40,7 @@ func pointFromPrimitive(pointType string, v reflect.Value) (Point, error) {
 		if val > maxSafeInteger || val < -maxSafeInteger {
 			return p, fmt.Errorf("float64 overflow for value: %v", val)
 		}
-		p.Value = float64(val)
+		p.PutFloat(float64(val))
 	case reflect.Uint,
 		reflect.Uint8,
 		reflect.Uint16,
@@ -51,11 +51,11 @@ func pointFromPrimitive(pointType string, v reflect.Value) (Point, error) {
 		if val > maxSafeInteger {
 			return p, fmt.Errorf("float64 overflow for value: %v", val)
 		}
-		p.Value = float64(val)
+		p.PutFloat(float64(val))
 	case reflect.Float32, reflect.Float64:
-		p.Value = v.Float()
+		p.PutFloat(v.Float())
 	case reflect.String:
-		p.Text = v.String()
+		p.PutString(v.String())
 	default:
 		return p, fmt.Errorf("unsupported type: %v", k)
 	}

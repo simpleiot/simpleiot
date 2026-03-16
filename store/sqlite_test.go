@@ -45,7 +45,7 @@ func TestDbSqlite(t *testing.T) {
 	}
 
 	// modify a point and see if it changes
-	err = db.nodePoints(rootID, data.Points{{Type: data.PointTypeDescription, Text: "root"}})
+	err = db.nodePoints(rootID, data.Points{data.NewPointString(data.PointTypeDescription, "", "root")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,8 +62,7 @@ func TestDbSqlite(t *testing.T) {
 	}
 
 	// send an old point and verify it does not change
-	err = db.nodePoints(rootID, data.Points{{Time: time.Now().Add(-time.Hour),
-		Type: data.PointTypeDescription, Text: "root with old time"}})
+	err = db.nodePoints(rootID, data.Points{func() data.Point { p := data.NewPointString(data.PointTypeDescription, "", "root with old time"); p.Time = time.Now().Add(-time.Hour); return p }()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +130,7 @@ func TestDbSqlite(t *testing.T) {
 	}
 
 	// test edge points
-	err = db.edgePoints(adminID, rootID, data.Points{{Type: data.PointTypeRole, Text: data.PointValueRoleAdmin}})
+	err = db.edgePoints(adminID, rootID, data.Points{data.NewPointString(data.PointTypeRole, "", data.PointValueRoleAdmin)})
 	if err != nil {
 		t.Fatal("Error sending edge points: ", err)
 	}
@@ -145,7 +144,7 @@ func TestDbSqlite(t *testing.T) {
 	if !ok {
 		t.Fatal("point not found")
 	}
-	if p.Text != data.PointValueRoleAdmin {
+	if p.Txt() != data.PointValueRoleAdmin {
 		t.Fatal("point does not have right value")
 	}
 
@@ -153,8 +152,8 @@ func TestDbSqlite(t *testing.T) {
 	groupNodeID := uuid.New().String()
 
 	err = db.edgePoints(groupNodeID, rootID, data.Points{
-		{Type: data.PointTypeTombstone, Value: 0},
-		{Type: data.PointTypeNodeType, Text: data.NodeTypeGroup},
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+		data.NewPointString(data.PointTypeNodeType, "", data.NodeTypeGroup),
 	})
 	if err != nil {
 		t.Fatal("Error creating group edge", err)
@@ -197,7 +196,7 @@ func TestDbSqliteKeyZero(t *testing.T) {
 
 	rootID := db.rootNodeID()
 
-	err := db.nodePoints(rootID, data.Points{{Type: data.PointTypeValue, Value: 1}})
+	err := db.nodePoints(rootID, data.Points{data.NewPointFloat(data.PointTypeValue, "", 1)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +208,7 @@ func TestDbSqliteKeyZero(t *testing.T) {
 
 	n := nodes[0]
 
-	err = db.nodePoints(rootID, data.Points{{Type: data.PointTypeValue, Key: "0", Value: 2}})
+	err = db.nodePoints(rootID, data.Points{data.NewPointFloat(data.PointTypeValue, "0", 2)})
 	if err != nil {
 		t.Fatal(err)
 	}

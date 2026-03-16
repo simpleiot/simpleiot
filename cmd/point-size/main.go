@@ -35,7 +35,8 @@ func main() {
 
 	fmt.Printf("Add array: %+v -> %v bytes\n", p, len(buf))
 
-	p = data.Point{Time: time.Now(), Type: "value", Value: 232.32}
+	p = data.NewPointFloat("value", "", 232.32)
+	p.Time = time.Now()
 	fmt.Printf("Typical point: %+v -> %v bytes\n", p, sizeEncodedPoint(p))
 
 	// 10 typical points in an array

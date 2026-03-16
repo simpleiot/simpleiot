@@ -307,7 +307,7 @@ func (m *Manager[T]) scan(id string) error {
 				parentID := chunks[3]
 				for _, p := range points {
 					switch {
-					case p.Type == data.PointTypeTombstone && p.Value == 1:
+					case p.Type == data.PointTypeTombstone && p.Val() == 1:
 						// node was deleted, make sure we don't see it in DB
 						// before restarting client
 						start := time.Now()
@@ -331,7 +331,7 @@ func (m *Manager[T]) scan(id string) error {
 							time.Sleep(time.Millisecond * 10)
 						}
 
-					case (p.Type == data.PointTypeTombstone && p.Value == 0) ||
+					case (p.Type == data.PointTypeTombstone && p.Val() == 0) ||
 						p.Type == data.PointTypeNodeType:
 						// node was created or undeleted, make sure we see it in DB
 						// before restarting client

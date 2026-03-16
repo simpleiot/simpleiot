@@ -96,14 +96,8 @@ func (owm *oneWireManager) update() error {
 					Type:   data.NodeTypeOneWire,
 					Parent: owm.rootNodeID,
 					Points: data.Points{
-						data.Point{
-							Type:  data.PointTypeIndex,
-							Value: float64(index),
-						},
-						data.Point{
-							Type: data.PointTypeDescription,
-							Text: "New bus, please edit",
-						},
+						data.NewPointFloat(data.PointTypeIndex, "", float64(index)),
+						data.NewPointString(data.PointTypeDescription, "", "New bus, please edit"),
 					},
 				}
 

@@ -152,11 +152,8 @@ func (b *Modbus) CheckIOs() error {
 // SendPoint sends a point over nats
 func (b *Modbus) SendPoint(nodeID, pointType string, value float64) error {
 	// send the point
-	p := data.Point{
-		Time:  time.Now(),
-		Type:  pointType,
-		Value: value,
-	}
+	p := data.NewPointFloat(pointType, "", value)
+	p.Time = time.Now()
 
 	return client.SendNodePoint(b.nc, nodeID, p, true)
 }
@@ -621,17 +618,14 @@ func (b *Modbus) LogError(io *ModbusIONode, err error) error {
 	busCount++
 	ioCount++
 
-	p := data.Point{
-		Type:  errType,
-		Value: float64(busCount),
-	}
+	p := data.NewPointFloat(errType, "", float64(busCount))
 
 	err = client.SendNodePoint(b.nc, b.busNode.nodeID, p, false)
 	if err != nil {
 		return err
 	}
 
-	p.Value = float64(ioCount)
+	p.PutFloat(float64(ioCount))
 	return client.SendNodePoint(b.nc, io.nodeID, p, false)
 }
 
@@ -781,10 +775,7 @@ func (b *Modbus) Run() {
 
 					// Send corrected timeout value if it was corrected
 					if result.TimeoutCorrected {
-						correctedPoint := data.Point{
-							Type:  data.PointTypeTimeout,
-							Value: float64(b.busNode.timeout),
-						}
+						correctedPoint := data.NewPointFloat(data.PointTypeTimeout, "", float64(b.busNode.timeout))
 						err := client.SendNodePoint(b.nc, b.busNode.nodeID, correctedPoint, true)
 						if err != nil {
 							log.Println("Error sending corrected timeout from NewModbusNode:", err)
@@ -805,13 +796,10 @@ func (b *Modbus) Run() {
 					}
 				case data.PointTypeTimeout:
 					// Validate timeout value and send corrected value if needed
-					originalTimeout := int(p.Value)
+					originalTimeout := int(p.Val())
 					if originalTimeout <= 0 {
 						// Send corrected timeout value back to frontend
-						correctedPoint := data.Point{
-							Type:  data.PointTypeTimeout,
-							Value: 100,
-						}
+						correctedPoint := data.NewPointFloat(data.PointTypeTimeout, "", 100)
 						err := client.SendNodePoint(b.nc, b.busNode.nodeID, correctedPoint, true)
 						if err != nil {
 							log.Println("Error sending corrected timeout:", err)
@@ -826,13 +814,13 @@ func (b *Modbus) Run() {
 
 				case data.PointTypeErrorCountReset:
 					if b.busNode.errorCountReset {
-						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
+						p := data.NewPointFloat(data.PointTypeErrorCount, "", 0)
 						err := client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
 						}
 
-						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
+						p = data.NewPointFloat(data.PointTypeErrorCountReset, "", 0)
 						err = client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
@@ -841,13 +829,13 @@ func (b *Modbus) Run() {
 
 				case data.PointTypeErrorCountCRCReset:
 					if b.busNode.errorCountCRCReset {
-						p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
+						p := data.NewPointFloat(data.PointTypeErrorCountCRC, "", 0)
 						err := client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
 						}
 
-						p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
+						p = data.NewPointFloat(data.PointTypeErrorCountCRCReset, "", 0)
 						err = client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
@@ -856,13 +844,13 @@ func (b *Modbus) Run() {
 
 				case data.PointTypeErrorCountEOFReset:
 					if b.busNode.errorCountEOFReset {
-						p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
+						p := data.NewPointFloat(data.PointTypeErrorCountEOF, "", 0)
 						err := client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
 						}
 
-						p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
+						p = data.NewPointFloat(data.PointTypeErrorCountEOFReset, "", 0)
 						err = client.SendNodePoint(b.nc, b.busNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
@@ -883,46 +871,46 @@ func (b *Modbus) Run() {
 				// handle IO changes
 				switch p.Type {
 				case data.PointTypeID:
-					io.ioNode.id = int(p.Value)
+					io.ioNode.id = int(p.Val())
 				case data.PointTypeDescription:
-					io.ioNode.description = p.Text
+					io.ioNode.description = p.Txt()
 				case data.PointTypeAddress:
-					io.ioNode.address = int(p.Value)
+					io.ioNode.address = int(p.Val())
 					b.InitRegs(io.ioNode)
 				case data.PointTypeModbusIOType:
-					io.ioNode.modbusIOType = p.Text
+					io.ioNode.modbusIOType = p.Txt()
 				case data.PointTypeDataFormat:
-					io.ioNode.modbusDataType = p.Text
+					io.ioNode.modbusDataType = p.Txt()
 				case data.PointTypeReadOnly:
-					io.ioNode.readOnly = data.FloatToBool(p.Value)
+					io.ioNode.readOnly = data.FloatToBool(p.Val())
 				case data.PointTypeScale:
-					io.ioNode.scale = p.Value
+					io.ioNode.scale = p.Val()
 				case data.PointTypeOffset:
-					io.ioNode.offset = p.Value
+					io.ioNode.offset = p.Val()
 				case data.PointTypeValue:
 					valueModified = true
-					io.ioNode.value = p.Value
+					io.ioNode.value = p.Val()
 				case data.PointTypeValueSet:
 					valueSetModified = true
-					io.ioNode.valueSet = p.Value
+					io.ioNode.valueSet = p.Val()
 				case data.PointTypeDisabled:
-					io.ioNode.disabled = data.FloatToBool(p.Value)
+					io.ioNode.disabled = data.FloatToBool(p.Val())
 				case data.PointTypeErrorCount:
-					io.ioNode.errorCount = int(p.Value)
+					io.ioNode.errorCount = int(p.Val())
 				case data.PointTypeErrorCountEOF:
-					io.ioNode.errorCountEOF = int(p.Value)
+					io.ioNode.errorCountEOF = int(p.Val())
 				case data.PointTypeErrorCountCRC:
-					io.ioNode.errorCountCRC = int(p.Value)
+					io.ioNode.errorCountCRC = int(p.Val())
 				case data.PointTypeErrorCountReset:
-					io.ioNode.errorCountReset = data.FloatToBool(p.Value)
+					io.ioNode.errorCountReset = data.FloatToBool(p.Val())
 					if io.ioNode.errorCountReset {
-						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
+						p := data.NewPointFloat(data.PointTypeErrorCount, "", 0)
 						err := client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
 						}
 
-						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
+						p = data.NewPointFloat(data.PointTypeErrorCountReset, "", 0)
 						err = client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
@@ -930,15 +918,15 @@ func (b *Modbus) Run() {
 					}
 
 				case data.PointTypeErrorCountEOFReset:
-					io.ioNode.errorCountEOFReset = data.FloatToBool(p.Value)
+					io.ioNode.errorCountEOFReset = data.FloatToBool(p.Val())
 					if io.ioNode.errorCountEOFReset {
-						p := data.Point{Type: data.PointTypeErrorCountEOF, Value: 0}
+						p := data.NewPointFloat(data.PointTypeErrorCountEOF, "", 0)
 						err := client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
 						}
 
-						p = data.Point{Type: data.PointTypeErrorCountEOFReset, Value: 0}
+						p = data.NewPointFloat(data.PointTypeErrorCountEOFReset, "", 0)
 						err = client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
@@ -946,15 +934,15 @@ func (b *Modbus) Run() {
 					}
 
 				case data.PointTypeErrorCountCRCReset:
-					io.ioNode.errorCountCRCReset = data.FloatToBool(p.Value)
+					io.ioNode.errorCountCRCReset = data.FloatToBool(p.Val())
 					if io.ioNode.errorCountCRCReset {
-						p := data.Point{Type: data.PointTypeErrorCountCRC, Value: 0}
+						p := data.NewPointFloat(data.PointTypeErrorCountCRC, "", 0)
 						err := client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
 						}
 
-						p = data.Point{Type: data.PointTypeErrorCountCRCReset, Value: 0}
+						p = data.NewPointFloat(data.PointTypeErrorCountCRCReset, "", 0)
 						err = client.SendNodePoint(b.nc, io.ioNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)

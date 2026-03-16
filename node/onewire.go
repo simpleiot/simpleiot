@@ -189,14 +189,8 @@ func (ow *oneWire) detect() {
 					Type:   data.NodeTypeOneWireIO,
 					Parent: ow.owNode.nodeID,
 					Points: data.Points{
-						data.Point{
-							Type: data.PointTypeID,
-							Text: id,
-						},
-						data.Point{
-							Type: data.PointTypeDescription,
-							Text: "New IO, please edit",
-						},
+						data.NewPointString(data.PointTypeID, "", id),
+						data.NewPointString(data.PointTypeDescription, "", "New IO, please edit"),
 					},
 				}
 
@@ -240,13 +234,13 @@ func (ow *oneWire) run() {
 					setScanTimer()
 				case data.PointTypeErrorCountReset:
 					if ow.owNode.errorCountReset {
-						p := data.Point{Type: data.PointTypeErrorCount, Value: 0}
+						p := data.NewPointFloat(data.PointTypeErrorCount, "", 0)
 						err := client.SendNodePoint(ow.nc, ow.owNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
 						}
 
-						p = data.Point{Type: data.PointTypeErrorCountReset, Value: 0}
+						p = data.NewPointFloat(data.PointTypeErrorCountReset, "", 0)
 						err = client.SendNodePoint(ow.nc, ow.owNode.nodeID, p, true)
 						if err != nil {
 							log.Println("Send point error:", err)
@@ -289,18 +283,14 @@ func (ow *oneWire) run() {
 					busCount := ow.owNode.errorCount + 1
 					ioCount := io.ioNode.errorCount + 1
 
-					err = client.SendNodePoint(ow.nc, ow.owNode.nodeID, data.Point{
-						Type:  data.PointTypeErrorCount,
-						Value: float64(busCount),
-					}, false)
+					err = client.SendNodePoint(ow.nc, ow.owNode.nodeID,
+						data.NewPointFloat(data.PointTypeErrorCount, "", float64(busCount)), false)
 					if err != nil {
 						log.Println("Error sending point:", err)
 					}
 
-					err = client.SendNodePoint(ow.nc, io.ioNode.nodeID, data.Point{
-						Type:  data.PointTypeErrorCount,
-						Value: float64(ioCount),
-					}, false)
+					err = client.SendNodePoint(ow.nc, io.ioNode.nodeID,
+						data.NewPointFloat(data.PointTypeErrorCount, "", float64(ioCount)), false)
 					if err != nil {
 						log.Println("Error sending point:", err)
 					}

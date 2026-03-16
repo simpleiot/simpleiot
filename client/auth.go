@@ -12,8 +12,8 @@ import (
 // This function returns user nodes and a JWT node which includes a token
 func UserCheck(nc *nats.Conn, email, pass string) ([]data.NodeEdge, error) {
 	points := data.Points{
-		{Type: data.PointTypeEmail, Text: email, Key: "0"},
-		{Type: data.PointTypePass, Text: pass, Key: "0"},
+		data.NewPointString(data.PointTypeEmail, "0", email),
+		data.NewPointString(data.PointTypePass, "0", pass),
 	}
 
 	pointsData, err := points.ToPb()
@@ -56,9 +56,9 @@ func GetNatsURI(nc *nats.Conn) (string, string, error) {
 	for _, p := range points {
 		switch p.Type {
 		case data.PointTypeURI:
-			uri = p.Text
+			uri = p.Txt()
 		case data.PointTypeToken:
-			token = p.Text
+			token = p.Txt()
 		}
 	}
 

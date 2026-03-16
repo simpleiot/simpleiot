@@ -16,8 +16,8 @@ func main() {
 	subject := ""
 
 	points := data.Points{
-		{Type: "temp", Value: 23},
-		{Type: "description", Text: "temp sensor"},
+		data.NewPointFloat("temp", "", 23),
+		data.NewPointString("description", "", "temp sensor"),
 	}
 
 	data, err := client.SerialEncode(seq, subject, points)

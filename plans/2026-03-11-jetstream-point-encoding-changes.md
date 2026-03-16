@@ -1,21 +1,20 @@
 # Plan: JetStream Store Point Encoding Changes
 
-**Branch:** `feat/js-subject-point-changes`
-**PR:** simpleiot/simpleiot#742
+**Branch:** `feat/js-subject-point-changes` **PR:** simpleiot/simpleiot#742
 **ADR:** docs/adr/7-jetstream-store.md
 
 ## Context
 
 This is Step 1 of the JetStream migration: message/subject encoding changes. The
 goal is to replace the `Value float64` and `Text string` fields in the Point
-struct with a unified `Data []byte` + `DataType` field, and encode point Type/Key
-in NATS subjects. This simplifies the wire format, eliminates the need for
-protobuf in point encoding, and prepares for JetStream storage.
+struct with a unified `Data []byte` + `DataType` field, and encode point
+Type/Key in NATS subjects. This simplifies the wire format, eliminates the need
+for protobuf in point encoding, and prepares for JetStream storage.
 
-The PR TODO list from #742 drives the work. Several items are already done
-(new Point struct, DataType constants, get/put helper methods, API doc updates).
-The remaining work is substantial — the old `Value`/`Text` fields are referenced
-in ~30 files across the codebase.
+The PR TODO list from #742 drives the work. Several items are already done (new
+Point struct, DataType constants, get/put helper methods, API doc updates). The
+remaining work is substantial — the old `Value`/`Text` fields are referenced in
+~30 files across the codebase.
 
 ## What's Already Done
 
@@ -25,8 +24,8 @@ in ~30 files across the codebase.
 - Value get/put methods: `ValueInt()`, `ValueFloat()`, `ValueString()`,
   `PutInt()`, `PutFloat()`, `PutString()`
 - Updated CRC function to use `Data` instead of `Value`/`Text`
-- API documentation updated with new subject formats
-  (`p.<nodeId>.<type>.<key>`, `ep.<nodeId>.<parentId>.<type>.<key>`)
+- API documentation updated with new subject formats (`p.<nodeId>.<type>.<key>`,
+  `ep.<nodeId>.<parentId>.<type>.<key>`)
 
 ## Implementation Plan
 
@@ -43,20 +42,21 @@ in ~30 files across the codebase.
    - `Point.String()` → update to use DataType/Data
 
 2. **Update protobuf conversion functions** (`data/point.go`)
-   - `ToPb()` — encode Data/DataType into pb fields (keep pb format for now
-     as transitional, or convert Data→Value/Text for backward compat)
+   - `ToPb()` — encode Data/DataType into pb fields (keep pb format for now as
+     transitional, or convert Data→Value/Text for backward compat)
    - `ToSerial()` — same approach
    - `PbToPoint()` — decode pb Value/Text into Data/DataType
    - `SerialToPoint()` — same
-   - Decision: keep protobuf as wire format temporarily for backward compat,
-     but populate new Point fields internally
+   - Decision: keep protobuf as wire format temporarily for backward compat, but
+     populate new Point fields internally
 
 3. **Update merge/comparison logic** (`data/point.go`)
    - `Merge()` function references `p.Value` and `p.Text`
    - `ProcessPoint()` references `.Value`
 
 4. **Add encoding/decoding for wire packets** (`data/point.go`)
-   - Functions to encode Point → binary (Time + Tombstone + Origin + DataType + Data)
+   - Functions to encode Point → binary (Time + Tombstone + Origin + DataType +
+     Data)
    - Functions to decode binary → Point
    - These will eventually replace protobuf
 
@@ -64,8 +64,8 @@ in ~30 files across the codebase.
 
 5. **Update SQLite storage** (`store/sqlite.go`)
    - Modify point storage to use `Data`/`DataType` instead of `Value`/`Text`
-   - Create migration from old schema (add `data_type` column, migrate
-     existing `value`→float Data, `text`→string Data)
+   - Create migration from old schema (add `data_type` column, migrate existing
+     `value`→float Data, `text`→string Data)
    - Update queries in `store/sqlite.go` (~11 references)
 
 6. **Update store handlers** (`store/store.go`)
@@ -93,10 +93,10 @@ in ~30 files across the codebase.
    - `api/auth.go`, `api/client.go`
    - `store/sqlite_test.go`
 
-   **Strategy:** For each reference, determine if it's reading a float or string,
-   then use the appropriate getter/setter. Most `.Value` refs become
-   `p.ValueFloat()` calls and `.Text` refs become `p.ValueString()` calls.
-   For writes, use `p.PutFloat()` / `p.PutString()` / `p.PutInt()`.
+   **Strategy:** For each reference, determine if it's reading a float or
+   string, then use the appropriate getter/setter. Most `.Value` refs become
+   `p.ValueFloat()` calls and `.Text` refs become `p.ValueString()` calls. For
+   writes, use `p.PutFloat()` / `p.PutString()` / `p.PutInt()`.
 
 ### Phase 4: Protobuf Removal
 
@@ -107,8 +107,8 @@ in ~30 files across the codebase.
    - Regenerate `point.pb.go`
 
 9. **Remove protobuf dependencies from point.go**
-   - Remove `ToPb()`, `ToSerial()`, `PbToPoint()`, `SerialToPoint()` or
-     replace with new wire encoding
+   - Remove `ToPb()`, `ToSerial()`, `PbToPoint()`, `SerialToPoint()` or replace
+     with new wire encoding
    - Remove protobuf imports
 
 10. **Update serial protocol** (`client/serial.go`, `client/serial-wrapper.go`)
@@ -161,5 +161,5 @@ in ~30 files across the codebase.
   compilation after each phase.
 - Phase 1-3 are the critical path — they make the code compile and run.
 - Phases 4-8 can be done incrementally.
-- The `PointOld` struct should be kept temporarily for reference during migration
-  and removed once complete.
+- The `PointOld` struct should be kept temporarily for reference during
+  migration and removed once complete.
