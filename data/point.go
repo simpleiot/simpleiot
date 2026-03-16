@@ -11,7 +11,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/simpleiot/simpleiot/internal/pb"
-	"google.golang.org/protobuf/proto"
 )
 
 type PointOld struct {
@@ -379,19 +378,6 @@ func (p Point) ToPb() (pb.Point, error) {
 		Type:      p.Type,
 		Key:       p.Key,
 		Time:      ts,
-		DataType:  int32(p.DataType),
-		Data:      p.Data,
-		Tombstone: int32(p.Tombstone),
-		Origin:    p.Origin,
-	}, nil
-}
-
-// ToSerial encodes point in serial protobuf format
-func (p Point) ToSerial() (pb.SerialPoint, error) {
-	return pb.SerialPoint{
-		Type:      p.Type,
-		Key:       p.Key,
-		Time:      p.Time.UnixNano(),
 		DataType:  int32(p.DataType),
 		Data:      p.Data,
 		Tombstone: int32(p.Tombstone),
@@ -836,23 +822,6 @@ func PbToPoint(sPb *pb.Point) (Point, error) {
 	return ret, nil
 }
 
-// SerialToPoint converts serial pb point to point
-func SerialToPoint(sPb *pb.SerialPoint) (Point, error) {
-	ret := Point{
-		Type:      sPb.Type,
-		Key:       sPb.Key,
-		Time:      time.Unix(0, sPb.Time),
-		DataType:  PointDataType(sPb.DataType),
-		Data:      sPb.Data,
-		Tombstone: int(sPb.Tombstone),
-		Origin:    sPb.Origin,
-	}
-
-	return ret, nil
-}
-
-
-
 // DecodeSerialHrPayload decodes a serial high-rate payload. Payload format.
 //   - type         (off:0, 16 bytes) point type
 //   - key          (off:16, 16 bytes) point key
@@ -889,28 +858,6 @@ func DecodeSerialHrPayload(payload []byte, callback func(Point)) error {
 	}
 
 	return nil
-}
-
-// PbDecodeSerialPoints can be used to decode serial points
-func PbDecodeSerialPoints(d []byte) (Points, error) {
-	pbSerial := &pb.SerialPoints{}
-
-	err := proto.Unmarshal(d, pbSerial)
-	if err != nil {
-		return nil, fmt.Errorf("PB decode error: %v", err)
-	}
-
-	points := make([]Point, len(pbSerial.Points))
-
-	for i, sPb := range pbSerial.Points {
-		s, err := SerialToPoint(sPb)
-		if err != nil {
-			return nil, fmt.Errorf("Point decode error: %v", err)
-		}
-		points[i] = s
-	}
-
-	return points, nil
 }
 
 // PointFilter is used to send points upstream. It only sends

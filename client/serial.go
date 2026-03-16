@@ -631,8 +631,8 @@ exitSerialClient:
 				}
 			}
 
-			// we must have a protobuf payload
-			points, errDecode := data.PbDecodeSerialPoints(payload)
+			// decode binary payload
+			points, errDecode := data.DecodePoints(payload)
 			var adminPoints data.Points
 
 			sd.config.Rx++

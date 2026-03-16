@@ -174,7 +174,7 @@ func TestSerial(t *testing.T) {
 		t.Error("Error in response: ", err)
 	}
 
-	pointsR, err := data.PbDecodeSerialPoints(payload)
+	pointsR, err := data.DecodePoints(payload)
 	if err != nil {
 		t.Errorf("Error decoding serial payload: %v", err)
 	}
@@ -214,7 +214,7 @@ func TestSerial(t *testing.T) {
 		t.Error("Error in response: ", err)
 	}
 
-	pointsR, err = data.PbDecodeSerialPoints(payload)
+	pointsR, err = data.DecodePoints(payload)
 	if err != nil {
 		t.Errorf("Error decoding serial payload: %v", err)
 	}

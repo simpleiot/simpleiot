@@ -37,7 +37,7 @@ func TestSerialEncodeDecode(t *testing.T) {
 		t.Error("subject mismatch")
 	}
 
-	pointsD, err := data.PbDecodeSerialPoints(payload)
+	pointsD, err := data.DecodePoints(payload)
 	if err != nil {
 		t.Fatalf("Error decoding payload: %v", err)
 	}

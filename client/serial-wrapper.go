@@ -8,14 +8,12 @@ import (
 
 	"github.com/kjx98/crc16"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/internal/pb"
-	"google.golang.org/protobuf/proto"
 )
 
 // Packet format is:
 //   - sequence #: 1 byte
 //   - subject (16 bytes)
-//   - protobuf (serial) payload
+//   - binary encoded points payload
 //   - crc: 2 bytes (CCITT)
 
 // SerialEncode can be used in a client to encode points sent over a serial link.
@@ -37,25 +35,7 @@ func SerialEncode(seq byte, subject string, points data.Points) ([]byte, error) 
 		return []byte{}, fmt.Errorf("SerialEncode: error writing to buffer: %v", err)
 	}
 
-	pbPoints := make([]*pb.SerialPoint, len(points))
-	for i, p := range points {
-		pPb, err := p.ToSerial()
-		if err != nil {
-			return nil, err
-		}
-		pbPoints[i] = &pPb
-	}
-
-	pbSerial := &pb.SerialPoints{
-		Points: pbPoints,
-	}
-
-	pbSerialBytes, err := proto.Marshal(pbSerial)
-	if err != nil {
-		return nil, err
-	}
-
-	ret.Write(pbSerialBytes)
+	ret.Write(points.Encode())
 
 	crc := crc16.ChecksumCCITT(ret.Bytes())
 
@@ -95,7 +75,7 @@ func SerialDecode(d []byte) (byte, string, []byte, error) {
 		}
 	}
 
-	// try to extract protobuf
+	// extract payload
 	payload := d[17:end]
 
 	return d[0], subject, payload, nil
