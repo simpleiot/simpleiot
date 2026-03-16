@@ -66,7 +66,7 @@ func (dbc *DbClient) Run() error {
 
 	subject := fmt.Sprintf("up.%v.*", dbc.config.Parent)
 	dbc.upSub, err = dbc.nc.Subscribe(subject, func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
+		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			log.Println("Error decoding points in db upSub:", err)
 			return

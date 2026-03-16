@@ -42,14 +42,10 @@ func SendPoints(nc *nats.Conn, subject string, points data.Points, ack bool) err
 			points[i].Time = time.Now()
 		}
 	}
-	data, err := points.ToPb()
-
-	if err != nil {
-		return err
-	}
+	d := points.Encode()
 
 	if ack {
-		msg, err := nc.Request(subject, data, time.Second)
+		msg, err := nc.Request(subject, d, time.Second)
 
 		if err != nil {
 			return err
@@ -60,19 +56,19 @@ func SendPoints(nc *nats.Conn, subject string, points data.Points, ack bool) err
 		}
 
 	} else {
-		if err := nc.Publish(subject, data); err != nil {
+		if err := nc.Publish(subject, d); err != nil {
 			return err
 		}
 	}
 
-	return err
+	return nil
 }
 
 // SubscribePoints subscripts to point updates for a node and executes a callback
 // when new points arrive. stop() can be called to clean up the subscription
 func SubscribePoints(nc *nats.Conn, id string, callback func(points []data.Point)) (stop func(), err error) {
 	psub, err := nc.Subscribe(SubjectNodePoints(id), func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
+		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			log.Println("Error decoding points:", err)
 			return
@@ -93,7 +89,7 @@ func SubscribePoints(nc *nats.Conn, id string, callback func(points []data.Point
 // when new points arrive. stop() can be called to clean up the subscription
 func SubscribeEdgePoints(nc *nats.Conn, id, parent string, callback func(points []data.Point)) (stop func(), err error) {
 	psub, err := nc.Subscribe(SubjectEdgePoints(id, parent), func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
+		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			log.Println("Error decoding points:", err)
 			return

@@ -16,7 +16,7 @@ func DecodeNodePointsMsg(msg *nats.Msg) (string, []data.Point, error) {
 		return "", []data.Point{}, fmt.Errorf("invalid NodePoints subject: %v", msg.Subject)
 	}
 	nodeID := chunks[1]
-	points, err := data.PbDecodePoints(msg.Data)
+	points, err := data.DecodePoints(msg.Data)
 	if err != nil {
 		log.Println("Error decoding Pb points:", err)
 		return "", []data.Point{}, fmt.Errorf("error decoding Pb points: %w", err)
@@ -34,7 +34,7 @@ func DecodeEdgePointsMsg(msg *nats.Msg) (string, string, []data.Point, error) {
 	}
 	nodeID := chunks[1]
 	parentID := chunks[2]
-	points, err := data.PbDecodePoints(msg.Data)
+	points, err := data.DecodePoints(msg.Data)
 	if err != nil {
 		log.Println("Error decoding Pb points:", err)
 		return "", "", []data.Point{}, fmt.Errorf("error decoding Pb points: %w", err)
@@ -52,7 +52,7 @@ func DecodeUpNodePointsMsg(msg *nats.Msg) (string, string, []data.Point, error) 
 	}
 	upID := chunks[1]
 	nodeID := chunks[2]
-	points, err := data.PbDecodePoints(msg.Data)
+	points, err := data.DecodePoints(msg.Data)
 	if err != nil {
 		log.Println("Error decoding Pb points:", err)
 		return "", "", []data.Point{}, fmt.Errorf("error decoding Pb points: %w", err)
@@ -71,7 +71,7 @@ func DecodeUpEdgePointsMsg(msg *nats.Msg) (string, string, string, []data.Point,
 	upID := chunks[1]
 	nodeID := chunks[2]
 	parentID := chunks[3]
-	points, err := data.PbDecodePoints(msg.Data)
+	points, err := data.DecodePoints(msg.Data)
 	if err != nil {
 		log.Println("Error decoding Pb points:", err)
 		return "", "", "", []data.Point{}, fmt.Errorf("error decoding Pb points: %w", err)

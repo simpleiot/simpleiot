@@ -16,10 +16,7 @@ func UserCheck(nc *nats.Conn, email, pass string) ([]data.NodeEdge, error) {
 		data.NewPointString(data.PointTypePass, "0", pass),
 	}
 
-	pointsData, err := points.ToPb()
-	if err != nil {
-		return []data.NodeEdge{}, err
-	}
+	pointsData := points.Encode()
 
 	nodeMsg, err := nc.Request("auth.user", pointsData, time.Second*20)
 	if err != nil {
@@ -46,7 +43,7 @@ func GetNatsURI(nc *nats.Conn) (string, string, error) {
 		return "", "", err
 	}
 
-	points, err := data.PbDecodePoints(resp.Data)
+	points, err := data.DecodePoints(resp.Data)
 	if err != nil {
 		return "", "", err
 	}

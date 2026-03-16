@@ -221,7 +221,7 @@ func (rc *RuleClient) Run() error {
 
 	var err error
 	rc.upSub, err = rc.nc.Subscribe(subject, func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
+		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			log.Println("Error decoding points in rule upSub:", err)
 			return

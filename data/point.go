@@ -523,19 +523,134 @@ func (ps *Points) LatestTime() time.Time {
 	return ret
 }
 
-// ToPb encodes an array of points into protobuf
-func (ps *Points) ToPb() ([]byte, error) {
-	pbPoints := make([]*pb.Point, len(*ps))
-	for i, s := range *ps {
-		sPb, err := s.ToPb()
-		if err != nil {
-			return []byte{}, err
-		}
+// encodeString writes a length-prefixed string to a buffer
+func encodeString(buf *bytes.Buffer, s string) {
+	b := []byte(s)
+	l := make([]byte, 2)
+	binary.LittleEndian.PutUint16(l, uint16(len(b)))
+	buf.Write(l)
+	buf.Write(b)
+}
 
-		pbPoints[i] = &sPb
+// decodeString reads a length-prefixed string from data at offset, returns value and new offset
+func decodeString(data []byte, off int) (string, int, error) {
+	if off+2 > len(data) {
+		return "", off, fmt.Errorf("decodeString: not enough data for length at offset %d", off)
 	}
+	l := int(binary.LittleEndian.Uint16(data[off : off+2]))
+	off += 2
+	if off+l > len(data) {
+		return "", off, fmt.Errorf("decodeString: not enough data for string at offset %d", off)
+	}
+	s := string(data[off : off+l])
+	return s, off + l, nil
+}
 
-	return proto.Marshal(&pb.Points{Points: pbPoints})
+// encodeBytes writes length-prefixed bytes to a buffer
+func encodeBytes(buf *bytes.Buffer, b []byte) {
+	l := make([]byte, 2)
+	binary.LittleEndian.PutUint16(l, uint16(len(b)))
+	buf.Write(l)
+	buf.Write(b)
+}
+
+// decodeBytes reads length-prefixed bytes from data at offset
+func decodeBytes(data []byte, off int) ([]byte, int, error) {
+	if off+2 > len(data) {
+		return nil, off, fmt.Errorf("decodeBytes: not enough data for length at offset %d", off)
+	}
+	l := int(binary.LittleEndian.Uint16(data[off : off+2]))
+	off += 2
+	if off+l > len(data) {
+		return nil, off, fmt.Errorf("decodeBytes: not enough data at offset %d", off)
+	}
+	b := make([]byte, l)
+	copy(b, data[off:off+l])
+	return b, off + l, nil
+}
+
+// Encode serializes a Point to binary format.
+func (p Point) Encode(buf *bytes.Buffer) {
+	encodeString(buf, p.Type)
+	encodeString(buf, p.Key)
+	t := make([]byte, 8)
+	binary.LittleEndian.PutUint64(t, uint64(p.Time.UnixNano()))
+	buf.Write(t)
+	buf.WriteByte(byte(p.DataType))
+	encodeBytes(buf, p.Data)
+	ts := make([]byte, 4)
+	binary.LittleEndian.PutUint32(ts, uint32(p.Tombstone))
+	buf.Write(ts)
+	encodeString(buf, p.Origin)
+}
+
+// DecodePoint deserializes a Point from binary data at offset.
+func DecodePoint(data []byte, off int) (Point, int, error) {
+	var p Point
+	var err error
+
+	p.Type, off, err = decodeString(data, off)
+	if err != nil {
+		return p, off, err
+	}
+	p.Key, off, err = decodeString(data, off)
+	if err != nil {
+		return p, off, err
+	}
+	if off+8 > len(data) {
+		return p, off, fmt.Errorf("DecodePoint: not enough data for time")
+	}
+	p.Time = time.Unix(0, int64(binary.LittleEndian.Uint64(data[off:off+8])))
+	off += 8
+	if off+1 > len(data) {
+		return p, off, fmt.Errorf("DecodePoint: not enough data for dataType")
+	}
+	p.DataType = PointDataType(data[off])
+	off++
+	p.Data, off, err = decodeBytes(data, off)
+	if err != nil {
+		return p, off, err
+	}
+	if off+4 > len(data) {
+		return p, off, fmt.Errorf("DecodePoint: not enough data for tombstone")
+	}
+	p.Tombstone = int(int32(binary.LittleEndian.Uint32(data[off : off+4])))
+	off += 4
+	p.Origin, off, err = decodeString(data, off)
+	if err != nil {
+		return p, off, err
+	}
+	return p, off, nil
+}
+
+// Encode serializes a Points array to binary format: uint32 count + repeated Point.
+func (ps *Points) Encode() []byte {
+	buf := &bytes.Buffer{}
+	c := make([]byte, 4)
+	binary.LittleEndian.PutUint32(c, uint32(len(*ps)))
+	buf.Write(c)
+	for _, p := range *ps {
+		p.Encode(buf)
+	}
+	return buf.Bytes()
+}
+
+// DecodePoints deserializes a Points array from binary data.
+func DecodePoints(data []byte) (Points, error) {
+	if len(data) < 4 {
+		return nil, fmt.Errorf("DecodePoints: not enough data for count")
+	}
+	count := int(binary.LittleEndian.Uint32(data[0:4]))
+	off := 4
+	pts := make(Points, count)
+	for i := 0; i < count; i++ {
+		var err error
+		pts[i], off, err = DecodePoint(data, off)
+		if err != nil {
+			return nil, fmt.Errorf("DecodePoints: error at point %d: %w", i, err)
+		}
+	}
+	return pts, nil
 }
 
 // question -- should be using []*Point instead of []Point?
@@ -736,26 +851,7 @@ func SerialToPoint(sPb *pb.SerialPoint) (Point, error) {
 	return ret, nil
 }
 
-// PbDecodePoints decode protobuf encoded points
-func PbDecodePoints(data []byte) (Points, error) {
-	pbPoints := &pb.Points{}
-	err := proto.Unmarshal(data, pbPoints)
-	if err != nil {
-		return []Point{}, err
-	}
 
-	ret := make([]Point, len(pbPoints.Points))
-
-	for i, sPb := range pbPoints.Points {
-		s, err := PbToPoint(sPb)
-		if err != nil {
-			return []Point{}, err
-		}
-		ret[i] = s
-	}
-
-	return ret, nil
-}
 
 // DecodeSerialHrPayload decodes a serial high-rate payload. Payload format.
 //   - type         (off:0, 16 bytes) point type

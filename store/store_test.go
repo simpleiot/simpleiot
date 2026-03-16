@@ -35,7 +35,7 @@ func TestStoreUp(t *testing.T) {
 	chUpPoints := make(chan data.Points)
 
 	sub, err := nc.Subscribe("up.root.>", func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
+		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			fmt.Println("Error decoding points")
 			return

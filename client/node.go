@@ -42,10 +42,7 @@ func GetNodes(nc *nats.Conn, parent, id, typ string, includeDel bool) ([]data.No
 			data.NewPointString(data.PointTypeNodeType, "", typ))
 	}
 
-	reqData, err := requestPoints.ToPb()
-	if err != nil {
-		return nil, fmt.Errorf("error encoding reqData: %v", err)
-	}
+	reqData := requestPoints.Encode()
 
 	subject := fmt.Sprintf("nodes.%v.%v", parent, id)
 	nodeMsg, err := nc.Request(subject, reqData, time.Second*20)

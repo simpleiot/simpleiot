@@ -79,7 +79,7 @@ func (m *Manager[T]) Run() error {
 	// for new nodes so that all client managers don't have to listen
 	// to all points
 	m.upSub, err = m.nc.Subscribe("up.root.>", func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
+		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			log.Println("Error decoding points")
 			return
@@ -265,7 +265,7 @@ func (m *Manager[T]) scan(id string) error {
 		subject := fmt.Sprintf("up.%v.>", cs.node.ID)
 
 		m.clientUpSub[key], err = cs.nc.Subscribe(subject, func(msg *nats.Msg) {
-			points, err := data.PbDecodePoints(msg.Data)
+			points, err := data.DecodePoints(msg.Data)
 			if err != nil {
 				log.Println("Error decoding points")
 				return

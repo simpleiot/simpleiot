@@ -349,7 +349,7 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 	nodeID = chunks[2]
 
 	if len(msg.Data) > 0 {
-		pts, err := data.PbDecodePoints(msg.Data)
+		pts, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			resp.Error = fmt.Sprintf("Error decoding points %v", err)
 			goto handleNodeDone
@@ -412,7 +412,7 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 		return
 	}
 
-	points, err = data.PbDecodePoints(msg.Data)
+	points, err = data.DecodePoints(msg.Data)
 	if err != nil {
 		log.Println("Error decoding auth.user params:", err)
 		returnNothing()
@@ -476,13 +476,9 @@ func (st *Store) handleAuthGetNatsURI(msg *nats.Msg) {
 		data.NewPointString(data.PointTypeToken, "", st.params.AuthToken),
 	}
 
-	data, err := points.ToPb()
+	d := points.Encode()
 
-	if err != nil {
-		data = []byte(err.Error())
-	}
-
-	err = st.nc.Publish(msg.Reply, data)
+	err := st.nc.Publish(msg.Reply, d)
 	if err != nil {
 		log.Println("NATS: Error publishing response to gets NATS URI request:", err)
 	}

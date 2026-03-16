@@ -23,7 +23,7 @@ func NewModbusIO(nc *nats.Conn, node *ModbusIONode, chPoint chan<- pointWID) (*M
 
 	var err error
 	io.sub, err = nc.Subscribe("p."+io.ioNode.nodeID, func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
+		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			// FIXME, send over channel
 			log.Println("Error decoding node data:", err)

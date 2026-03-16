@@ -44,7 +44,7 @@ func newOneWire(nc *nats.Conn, node data.NodeEdge) (*oneWire, error) {
 	// closure is required so we don't get races accessing ow.busNode
 	func(id string) {
 		ow.sub, err = nc.Subscribe("p."+ow.owNode.nodeID, func(msg *nats.Msg) {
-			points, err := data.PbDecodePoints(msg.Data)
+			points, err := data.DecodePoints(msg.Data)
 			if err != nil {
 				// FIXME, send over channel
 				log.Println("Error decoding node data:", err)
