@@ -274,13 +274,13 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 	ctx := context.Background()
 	subject := edgePointSubject(parentID, nodeID)
 
-	// Extract nodeType from points (not stored as a regular edge point)
+	// Extract nodeType from points (kept in persisted edge points
+	// so it can be recovered on restart)
 	var nodeType string
 	var edgePoints data.Points
 	for _, p := range points {
 		if p.Type == data.PointTypeNodeType {
 			nodeType = p.Txt()
-			continue
 		}
 		edgePoints = append(edgePoints, p)
 	}
