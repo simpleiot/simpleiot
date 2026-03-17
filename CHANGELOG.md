@@ -13,8 +13,12 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
-- enable JetStream in embedded NATS server (ADR-7 Stage 2)
+- replace SQLite store with JetStream per-node streams (ADR-7 Stage 2)
+- remove SQLite dependency and hash tree
+- add in-memory point cache and edge cache for fast lookups
 - update NATS dependencies (nats.go v1.49.0, nats-server v2.12.5)
+- **breaking:** existing SQLite databases must be migrated via
+  `siot export`/`siot import`
 - replace Point `Value`/`Text` fields with unified `DataType`/`Data` encoding
   (ADR-7 Stage 1) (#742)
 - replace protobuf point encoding with compact binary format (#742)

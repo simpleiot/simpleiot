@@ -241,9 +241,9 @@ memory -- trivial.
 | 3693def8 | feat: add EdgeCache for in-memory edge index | Implemented |
 | 06bad0c1 | feat: add DbJetStream backend with core storage methods | Implemented |
 | ce818075 | feat: wire store to use DbJetStream, update server plumbing | Implemented |
-| | refactor: remove SQLite store and hash tree code | Not Implemented |
-| | feat: add point cache for node point lookups | Not Implemented |
-| | docs: update ADR-7 and changelog for Stage 2 completion | Not Implemented |
+| f85108e4 | refactor: remove SQLite store and hash tree code | Implemented |
+| 99c28ca2 | feat: add point cache for node point lookups | Implemented |
+| | docs: update ADR-7 and changelog for Stage 2 completion | Implementing |
 
 **Note:** Hash field kept in Edge/NodeEdge structs for API/protobuf compatibility
 (always 0). CalcHash, ByHash, hash computation removed. Full Hash field removal

@@ -1,7 +1,7 @@
 # JetStream SIOT Store
 
 - Author: Cliff Brake, last updated: 2026-03-17
-- Status: in progress (stage 1 complete)
+- Status: in progress (stages 1-2 complete)
 
 ## Problem
 
@@ -456,7 +456,7 @@ Implementation is broken down into 3 stages:
    encoding for point wire format. NATS subjects include type/key
    (`p.<nodeId>.<type>.<key>`, `ep.<nodeId>.<parentId>`). One point per NATS
    message for node points; edge points remain batched for atomicity.
-1. switch store from SQLite to JetStream
+1. switch store from SQLite to JetStream — **COMPLETE**
    ([plan](../../plans/2026-03-17-implement-the-next-stage-of-adr-7.md),
    branch `feat/js-store`).
    - Per-node JetStream streams: each node gets stream `node.<nodeID>` capturing
