@@ -29,7 +29,10 @@ remaining work is substantial — the old `Value`/`Text` fields are referenced i
 - **Phase 6b**: COMPLETE — Node point subjects now use `p.<nodeId>.<type>.<key>`
   with one point per message. Edge points remain batched on `ep.<nodeId>.<parentId>`
   for atomicity. All upstream subscriptions updated.
-- **Phase 7-8**: TODO
+- **Phase 7**: COMPLETE — MarshalYAML added for human-readable export. DB layer
+  works via Val()/Txt() conversions with existing value/text columns — schema
+  migration deferred since it works correctly as-is.
+- **Phase 8**: TODO — JS library update (blocked on protoc-gen-js)
 
 ## What's Already Done
 
