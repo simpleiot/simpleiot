@@ -1,7 +1,7 @@
 # JetStream SIOT Store
 
-- Author: Cliff Brake, last updated: 2024-01-24
-- Status: discussion
+- Author: Cliff Brake, last updated: 2026-03-17
+- Status: in progress (stage 1 complete)
 
 ## Problem
 
@@ -445,11 +445,17 @@ https://github.com/simpleiot/nats-exp
 
 ## Decision
 
-Implementation could be broken down into 3 steps:
+Implementation is broken down into 3 stages:
 
-1. message/subject encoding changes
-1. switch store from SQLite to Jetstream
-1. Use Jetsream to sync between systems
+1. message/subject encoding changes — **COMPLETE**
+   ([plan](../../plans/2026-03-11-jetstream-point-encoding-changes.md),
+   branch `feat/js-subject-point-changes`). Point struct now uses
+   `DataType`/`Data` instead of `Value`/`Text`. Protobuf replaced with binary
+   encoding for point wire format. NATS subjects include type/key
+   (`p.<nodeId>.<type>.<key>`, `ep.<nodeId>.<parentId>`). One point per NATS
+   message for node points; edge points remain batched for atomicity.
+1. switch store from SQLite to JetStream
+1. Use JetStream to sync between systems
 
 objections/concerns
 
