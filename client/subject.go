@@ -4,24 +4,34 @@ import "fmt"
 
 // create subject strings for various types of messages
 
-// SubjectNodePoints constructs a NATS subject for node points
+// SubjectNodePoint constructs a NATS subject for a single node point
+func SubjectNodePoint(nodeID, typ, key string) string {
+	return fmt.Sprintf("p.%v.%v.%v", nodeID, typ, key)
+}
+
+// SubjectNodePoints constructs a NATS subject for node points (without type/key)
 func SubjectNodePoints(nodeID string) string {
 	return fmt.Sprintf("p.%v", nodeID)
 }
 
-// SubjectEdgePoints constructs a NATS subject for edge points
+// SubjectEdgePoint constructs a NATS subject for a single edge point
+func SubjectEdgePoint(nodeID, parentID, typ, key string) string {
+	return fmt.Sprintf("ep.%v.%v.%v.%v", nodeID, parentID, typ, key)
+}
+
+// SubjectEdgePoints constructs a NATS subject for edge points (without type/key)
 func SubjectEdgePoints(nodeID, parentID string) string {
-	return fmt.Sprintf("p.%v.%v", nodeID, parentID)
+	return fmt.Sprintf("ep.%v.%v", nodeID, parentID)
 }
 
 // SubjectNodeAllPoints provides subject for all points for any node
 func SubjectNodeAllPoints() string {
-	return "p.*"
+	return "p.>"
 }
 
 // SubjectEdgeAllPoints provides subject for all edge points for any node
 func SubjectEdgeAllPoints() string {
-	return "p.*.*"
+	return "ep.*.*"
 }
 
 // SubjectNodeHRPoints constructs a NATS subject for high rate node points

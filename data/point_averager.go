@@ -30,7 +30,7 @@ func (pa *PointAverager) AddPoint(s Point) {
 	}
 
 	// update statistical values.
-	pa.total += s.Value
+	pa.total += s.Val()
 	pa.count++
 }
 
@@ -51,9 +51,10 @@ func (pa *PointAverager) GetAverage() Point {
 		value = pa.total / float64(pa.count)
 	}
 
-	return Point{
-		Type:  pa.pointType,
-		Time:  pa.pointTime,
-		Value: value,
+	ret := Point{
+		Type: pa.pointType,
+		Time: pa.pointTime,
 	}
+	ret.PutFloat(value)
+	return ret
 }

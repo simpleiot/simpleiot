@@ -133,7 +133,7 @@ func TestSerial(t *testing.T) {
 	uptimeTest := 5523
 	seq := byte(10)
 	uptimePts := data.Points{
-		{Type: data.PointTypeUptime, Value: float64(uptimeTest)},
+		data.NewPointFloat(data.PointTypeUptime, "", float64(uptimeTest)),
 	}
 
 	uptimePacket, err := client.SerialEncode(seq, "", uptimePts)
@@ -174,7 +174,7 @@ func TestSerial(t *testing.T) {
 		t.Error("Error in response: ", err)
 	}
 
-	pointsR, err := data.PbDecodeSerialPoints(payload)
+	pointsR, err := data.DecodePoints(payload)
 	if err != nil {
 		t.Errorf("Error decoding serial payload: %v", err)
 	}
@@ -192,7 +192,8 @@ func TestSerial(t *testing.T) {
 	}
 
 	// test sending points to MCU
-	pumpSetting := data.Point{Type: "pumpSetting", Value: 233.5, Origin: root.ID}
+	pumpSetting := data.NewPointFloat("pumpSetting", "", 233.5)
+	pumpSetting.Origin = root.ID
 	err = client.SendNodePoint(nc, serialTest.ID, pumpSetting, true)
 	if err != nil {
 		t.Fatal("Error sending pumpSetting point: ", err)
@@ -213,7 +214,7 @@ func TestSerial(t *testing.T) {
 		t.Error("Error in response: ", err)
 	}
 
-	pointsR, err = data.PbDecodeSerialPoints(payload)
+	pointsR, err = data.DecodePoints(payload)
 	if err != nil {
 		t.Errorf("Error decoding serial payload: %v", err)
 	}
@@ -221,7 +222,7 @@ func TestSerial(t *testing.T) {
 	if len(pointsR) < 1 {
 		t.Error("Did not receive pointsR point")
 	} else {
-		if pointsR[0].Value != pumpSetting.Value {
+		if pointsR[0].Val() != pumpSetting.Val() {
 			t.Error("Error in pump setting received by MCU")
 		}
 	}
@@ -292,8 +293,7 @@ func TestSerialLargeMessage(t *testing.T) {
 	var points data.Points
 
 	for i := 0; i < 10; i++ {
-		points = append(points, data.Point{Type: "testPoint",
-			Key: strconv.Itoa(i), Value: float64(i * 2)})
+		points = append(points, data.NewPointFloat("testPoint", strconv.Itoa(i), float64(i*2)))
 	}
 
 	packet, err := client.SerialEncode(1, "", points)

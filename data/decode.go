@@ -468,33 +468,34 @@ func setVal(p Point, v reflect.Value) error {
 		}
 		v = v.Elem()
 	}
+	val := p.Val()
 	switch k := v.Kind(); k {
 	case reflect.Bool:
-		v.SetBool(FloatToBool(p.Value))
+		v.SetBool(FloatToBool(val))
 	case reflect.Int,
 		reflect.Int8,
 		reflect.Int16,
 		reflect.Int32,
 		reflect.Int64:
 
-		if v.OverflowInt(int64(p.Value)) {
-			return fmt.Errorf("int overflow: %v", p.Value)
+		if v.OverflowInt(int64(val)) {
+			return fmt.Errorf("int overflow: %v", val)
 		}
-		v.SetInt(int64(p.Value))
+		v.SetInt(int64(val))
 	case reflect.Uint,
 		reflect.Uint8,
 		reflect.Uint16,
 		reflect.Uint32,
 		reflect.Uint64:
 
-		if p.Value < 0 || v.OverflowUint(uint64(p.Value)) {
-			return fmt.Errorf("uint overflow: %v", p.Value)
+		if val < 0 || v.OverflowUint(uint64(val)) {
+			return fmt.Errorf("uint overflow: %v", val)
 		}
-		v.SetUint(uint64(p.Value))
+		v.SetUint(uint64(val))
 	case reflect.Float32, reflect.Float64:
-		v.SetFloat(p.Value)
+		v.SetFloat(val)
 	case reflect.String:
-		v.SetString(p.Text)
+		v.SetString(p.Txt())
 	default:
 		return fmt.Errorf("unsupported type: %v", k)
 	}

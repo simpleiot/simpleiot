@@ -7,26 +7,28 @@ import "google/protobuf/timestamp.proto";
 
 message Point {
   string type = 2;
-  double value = 4;
+  reserved 4; // was: double value
   google.protobuf.Timestamp time = 5;
-  string text = 8;
+  reserved 8; // was: string text
   string key = 11;
   int32 tombstone = 12;
   bytes data = 14;
   string origin = 15;
+  int32 dataType = 16;
 }
 
 message Points { repeated Point points = 1; }
 
 message SerialPoint {
   string type = 2;
-  float value = 4;
+  reserved 4; // was: float value
   int64 time = 16;
-  string text = 8;
+  reserved 8; // was: string text
   string key = 11;
   int32 tombstone = 12;
   bytes data = 14;
   string origin = 15;
+  int32 dataType = 17;
 }
 
 message SerialPoints { repeated SerialPoint points = 1; }

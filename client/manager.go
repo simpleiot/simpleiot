@@ -79,7 +79,7 @@ func (m *Manager[T]) Run() error {
 	// for new nodes so that all client managers don't have to listen
 	// to all points
 	m.upSub, err = m.nc.Subscribe("up.root.>", func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
+		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			log.Println("Error decoding points")
 			return
@@ -265,7 +265,7 @@ func (m *Manager[T]) scan(id string) error {
 		subject := fmt.Sprintf("up.%v.>", cs.node.ID)
 
 		m.clientUpSub[key], err = cs.nc.Subscribe(subject, func(msg *nats.Msg) {
-			points, err := data.PbDecodePoints(msg.Data)
+			points, err := data.DecodePoints(msg.Data)
 			if err != nil {
 				log.Println("Error decoding points")
 				return
@@ -274,14 +274,16 @@ func (m *Manager[T]) scan(id string) error {
 			// find node ID for points
 			chunks := strings.Split(msg.Subject, ".")
 
-			if len(chunks) != 3 && len(chunks) != 4 {
+			// up.<upId>.<nodeId>.<type>.<key> = 5 chunks (node points)
+			// up.<upId>.<nodeId>.<parentId>.<type>.<key> = 6 chunks (edge points)
+			if len(chunks) != 5 && len(chunks) != 6 {
 				log.Println("up subject malformed:", msg.Subject)
 				return
 			}
 
 			nodeID := chunks[2]
 
-			if len(chunks) == 3 {
+			if len(chunks) == 5 {
 				// process node points
 
 				// only filter node points for now. The Shelly client broke badly
@@ -302,12 +304,12 @@ func (m *Manager[T]) scan(id string) error {
 				}
 
 				cs.client.Points(nodeID, points)
-			} else if len(chunks) == 4 {
+			} else if len(chunks) == 6 {
 				// process edge points
 				parentID := chunks[3]
 				for _, p := range points {
 					switch {
-					case p.Type == data.PointTypeTombstone && p.Value == 1:
+					case p.Type == data.PointTypeTombstone && p.Val() == 1:
 						// node was deleted, make sure we don't see it in DB
 						// before restarting client
 						start := time.Now()
@@ -331,7 +333,7 @@ func (m *Manager[T]) scan(id string) error {
 							time.Sleep(time.Millisecond * 10)
 						}
 
-					case (p.Type == data.PointTypeTombstone && p.Value == 0) ||
+					case (p.Type == data.PointTypeTombstone && p.Val() == 0) ||
 						p.Type == data.PointTypeNodeType:
 						// node was created or undeleted, make sure we see it in DB
 						// before restarting client

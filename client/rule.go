@@ -217,19 +217,20 @@ func (rc *RuleClient) Run() error {
 	// watch all points that flow through parent node
 	// TODO: we should optimize this so we only watch the nodes
 	// that are in the conditions
-	subject := fmt.Sprintf("up.%v.*", rc.config.Parent)
+	subject := fmt.Sprintf("up.%v.>", rc.config.Parent)
 
 	var err error
 	rc.upSub, err = rc.nc.Subscribe(subject, func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
+		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			log.Println("Error decoding points in rule upSub:", err)
 			return
 		}
 
 		// find node ID for points
+		// up.<parentId>.<nodeId>.<type>.<key> = 5 chunks
 		chunks := strings.Split(msg.Subject, ".")
-		if len(chunks) != 3 {
+		if len(chunks) < 3 {
 			log.Println("rule client up sub, malformed subject:", msg.Subject)
 			return
 		}
@@ -403,11 +404,8 @@ func (rc *RuleClient) processError(errS string) {
 	if errS != "" {
 		// always set rule error to the last error we encounter
 		if errS != rc.config.Error {
-			p := data.Point{
-				Type: data.PointTypeError,
-				Time: time.Now(),
-				Text: errS,
-			}
+			p := data.NewPointString(data.PointTypeError, "", errS)
+			p.Time = time.Now()
 
 			err := rc.sendPoint(rc.config.ID, p)
 			if err != nil {
@@ -442,11 +440,8 @@ func (rc *RuleClient) processError(errS string) {
 		}
 
 		if found != rc.config.Error {
-			p := data.Point{
-				Type: data.PointTypeError,
-				Time: time.Now(),
-				Text: found,
-			}
+			p := data.NewPointString(data.PointTypeError, "", found)
+			p.Time = time.Now()
 
 			err := rc.sendPoint(rc.config.ID, p)
 			if err != nil {
@@ -472,11 +467,8 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				errorActive = true
 				errS := err.Error()
 				if c.Error != errS {
-					p := data.Point{
-						Type: data.PointTypeError,
-						Time: time.Now(),
-						Text: errS,
-					}
+					p := data.NewPointString(data.PointTypeError, "", errS)
+					p.Time = time.Now()
 
 					log.Printf("Rule cond error %v:%v:%v\n", rc.config.Description, c.Description, err)
 					err := rc.sendPoint(c.ID, p)
@@ -507,13 +499,13 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				case data.PointValueNumber:
 					switch c.Operator {
 					case data.PointValueGreaterThan:
-						active = p.Value > c.Value
+						active = p.Val() > c.Value
 					case data.PointValueLessThan:
-						active = p.Value < c.Value
+						active = p.Val() < c.Value
 					case data.PointValueEqual:
-						active = p.Value == c.Value
+						active = p.Val() == c.Value
 					case data.PointValueNotEqual:
-						active = p.Value != c.Value
+						active = p.Val() != c.Value
 					}
 				case data.PointValueText:
 					switch c.Operator {
@@ -523,7 +515,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 					}
 				case data.PointValueOnOff:
 					condValue := c.Value != 0
-					pointValue := p.Value != 0
+					pointValue := p.Val() != 0
 					active = condValue == pointValue
 				default:
 					processError(fmt.Errorf("unknown value type: %v", c.ValueType))
@@ -551,11 +543,8 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 
 			if active != c.Active {
 				// update condition
-				p := data.Point{
-					Type:  data.PointTypeActive,
-					Time:  time.Now(),
-					Value: data.BoolToFloat(active),
-				}
+				p := data.NewPointFloat(data.PointTypeActive, "", data.BoolToFloat(active))
+				p.Time = time.Now()
 
 				err := rc.sendPoint(c.ID, p)
 				if err != nil {
@@ -566,11 +555,8 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 			}
 
 			if !errorActive && c.Error != "" {
-				p := data.Point{
-					Type: data.PointTypeError,
-					Time: time.Now(),
-					Text: "",
-				}
+				p := data.NewPointString(data.PointTypeError, "", "")
+				p.Time = time.Now()
 
 				err := rc.sendPoint(c.ID, p)
 				if err != nil {
@@ -603,11 +589,8 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 	changed := false
 
 	if allActive != rc.config.Active {
-		p := data.Point{
-			Type:  data.PointTypeActive,
-			Time:  time.Now(),
-			Value: data.BoolToFloat(allActive),
-		}
+		p := data.NewPointFloat(data.PointTypeActive, "", data.BoolToFloat(allActive))
+		p.Time = time.Now()
 
 		err := rc.sendPoint(rc.config.ID, p)
 		if err != nil {
@@ -634,11 +617,8 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			errorActive = true
 			errS := err.Error()
 			if a.Error != errS {
-				p := data.Point{
-					Type: data.PointTypeError,
-					Time: time.Now(),
-					Text: errS,
-				}
+				p := data.NewPointString(data.PointTypeError, "", errS)
+				p.Time = time.Now()
 
 				log.Printf("Rule action error %v:%v:%v\n", rc.config.Description, a.Description, err)
 				err := rc.sendPoint(a.ID, p)
@@ -667,9 +647,12 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				Time:   time.Now(),
 				Type:   a.PointType,
 				Key:    a.PointKey,
-				Value:  a.Value,
-				Text:   a.ValueText,
 				Origin: a.ID,
+			}
+			if a.ValueText != "" {
+				p.PutString(a.ValueText)
+			} else {
+				p.PutFloat(a.Value)
 			}
 
 			err := rc.sendPoint(a.NodeID, p)
@@ -742,10 +725,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 			processError(fmt.Errorf("unknown rule action: %v", a.Action))
 		}
 
-		p := data.Point{
-			Type:  data.PointTypeActive,
-			Value: 1,
-		}
+		p := data.NewPointFloat(data.PointTypeActive, "", 1)
 		err := rc.sendPoint(a.ID, p)
 		if err != nil {
 			log.Println("Error sending rule action point:", err)
@@ -754,11 +734,8 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 		actions[i].Active = true
 
 		if !errorActive && a.Error != "" {
-			p := data.Point{
-				Type: data.PointTypeError,
-				Time: time.Now(),
-				Text: "",
-			}
+			p := data.NewPointString(data.PointTypeError, "", "")
+			p.Time = time.Now()
 
 			err := rc.sendPoint(a.ID, p)
 			if err != nil {
@@ -779,10 +756,7 @@ func (rc *RuleClient) ruleInactiveActions(actions []Action) error {
 			continue
 		}
 
-		p := data.Point{
-			Type:  data.PointTypeActive,
-			Value: 0,
-		}
+		p := data.NewPointFloat(data.PointTypeActive, "", 0)
 		err := rc.sendPoint(a.ID, p)
 		if err != nil {
 			log.Println("Error sending rule action point:", err)

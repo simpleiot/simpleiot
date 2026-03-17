@@ -46,7 +46,7 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		if n.Type == data.NodeTypeJWT {
 			p, ok := n.Points.Find(data.PointTypeToken, "")
 			if ok {
-				token = p.Text
+				token = p.Txt()
 			}
 		}
 	}

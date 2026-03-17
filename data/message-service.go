@@ -16,13 +16,13 @@ func NodeToMsgService(node Node) (MsgService, error) {
 	for _, p := range node.Points {
 		switch p.Type {
 		case PointTypeService:
-			ret.Service = p.Text
+			ret.Service = p.Txt()
 		case PointTypeSID:
-			ret.SID = p.Text
+			ret.SID = p.Txt()
 		case PointTypeAuthToken:
-			ret.AuthToken = p.Text
+			ret.AuthToken = p.Txt()
 		case PointTypeFrom:
-			ret.From = p.Text
+			ret.From = p.Txt()
 		}
 	}
 

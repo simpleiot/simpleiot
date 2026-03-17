@@ -150,13 +150,13 @@ proto.pb.Node.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.Node.toObject = function(includeInstance, msg) {
   var f, obj = {
-    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    type: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    hash: jspb.Message.getFieldWithDefault(msg, 4, 0),
-    parent: jspb.Message.getFieldWithDefault(msg, 6, ""),
-    pointsList: jspb.Message.toObjectList(msg.getPointsList(),
+id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+type: jspb.Message.getFieldWithDefault(msg, 2, ""),
+hash: jspb.Message.getFieldWithDefault(msg, 4, 0),
+parent: jspb.Message.getFieldWithDefault(msg, 6, ""),
+pointsList: jspb.Message.toObjectList(msg.getPointsList(),
     point_pb.Point.toObject, includeInstance),
-    edgepointsList: jspb.Message.toObjectList(msg.getEdgepointsList(),
+edgepointsList: jspb.Message.toObjectList(msg.getEdgepointsList(),
     point_pb.Point.toObject, includeInstance)
   };
 
@@ -476,8 +476,8 @@ proto.pb.NodeRequest.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.NodeRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    node: (f = msg.getNode()) && proto.pb.Node.toObject(includeInstance, f),
-    error: jspb.Message.getFieldWithDefault(msg, 2, "")
+node: (f = msg.getNode()) && proto.pb.Node.toObject(includeInstance, f),
+error: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -664,7 +664,7 @@ proto.pb.Nodes.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.Nodes.toObject = function(includeInstance, msg) {
   var f, obj = {
-    nodesList: jspb.Message.toObjectList(msg.getNodesList(),
+nodesList: jspb.Message.toObjectList(msg.getNodesList(),
     proto.pb.Node.toObject, includeInstance)
   };
 
@@ -824,9 +824,9 @@ proto.pb.NodesRequest.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.NodesRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    nodesList: jspb.Message.toObjectList(msg.getNodesList(),
+nodesList: jspb.Message.toObjectList(msg.getNodesList(),
     proto.pb.Node.toObject, includeInstance),
-    error: jspb.Message.getFieldWithDefault(msg, 2, "")
+error: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {

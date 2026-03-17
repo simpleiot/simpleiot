@@ -92,11 +92,11 @@ func (c nodeCache) Update(nc *nats.Conn, pts NewPoints) error {
 				continue
 			}
 			if p.Type == data.PointTypeDescription {
-				entry.Description = p.Text
+				entry.Description = p.Txt()
 			}
 			if _, found := slices.BinarySearch(c.TagPointTypes, p.Type); found {
 				key := tagEntry{Type: p.Type, Key: p.Key}
-				entry.Tags[key] = p.Text
+				entry.Tags[key] = p.Txt()
 			}
 		}
 	}
@@ -105,15 +105,15 @@ func (c nodeCache) Update(nc *nats.Conn, pts NewPoints) error {
 	for _, p := range pts.Points {
 		if p.Type == data.PointTypeDescription {
 			if p.Tombstone%2 == 0 {
-				entry.Description = p.Text
+				entry.Description = p.Txt()
 			} else {
 				entry.Description = ""
 			}
 		}
 		if _, found := slices.BinarySearch(c.TagPointTypes, p.Type); found {
 			key := tagEntry{Type: p.Type, Key: p.Key}
-			if p.Tombstone%2 == 0 && p.Text != "" {
-				entry.Tags[key] = p.Text
+			if p.Tombstone%2 == 0 && p.Txt() != "" {
+				entry.Tags[key] = p.Txt()
 			} else {
 				delete(entry.Tags, key)
 			}

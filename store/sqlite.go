@@ -359,8 +359,8 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 	}
 
 	err = sdb.edgePoints(rootNode.ID, "root", data.Points{
-		{Type: data.PointTypeTombstone, Value: 0},
-		{Type: data.PointTypeNodeType, Text: rootNode.Type},
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+		data.NewPointString(data.PointTypeNodeType, "", rootNode.Type),
 	})
 	if err != nil {
 		return "", fmt.Errorf("error sending root node edges: %w", err)
@@ -383,8 +383,8 @@ func (sdb *DbSqlite) initRoot(rootID string) (string, error) {
 	}
 
 	err = sdb.edgePoints(admin.ID, rootNode.ID, data.Points{
-		{Type: data.PointTypeTombstone, Value: 0},
-		{Type: data.PointTypeNodeType, Text: data.NodeTypeUser},
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+		data.NewPointString(data.PointTypeNodeType, "", data.NodeTypeUser),
 	})
 
 	if err != nil {
@@ -451,13 +451,20 @@ func (sdb *DbSqlite) nodePoints(id string, points data.Points) error {
 		var pID string
 		var nodeID string
 		var index float32
-		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &index, &p.Value, &p.Text,
+		var value float64
+		var text string
+		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &index, &value, &text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
 			rollback()
 			return err
 		}
 		p.Time = time.Unix(0, timeNS)
+		if text != "" {
+			p.PutString(text)
+		} else if value != 0 {
+			p.PutFloat(value)
+		}
 		dbPoints = append(dbPoints, p)
 		dbPointIDs = append(dbPointIDs, pID)
 	}
@@ -534,7 +541,7 @@ NextPin:
 	for i, p := range writePoints {
 		tNs := p.Time.UnixNano()
 		pID := writePointIDs[i]
-		_, err = stmt.Exec(pID, id, p.Type, p.Key, tNs, 0, p.Value, p.Text, p.Data, p.Tombstone,
+		_, err = stmt.Exec(pID, id, p.Type, p.Key, tNs, 0, p.Val(), p.Txt(), p.Data, p.Tombstone,
 			p.Origin)
 		if err != nil {
 			rollback()
@@ -567,7 +574,7 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 
 	if nodeID == sdb.meta.RootID {
 		for _, p := range points {
-			if p.Type == data.PointTypeTombstone && p.Value > 0 {
+			if p.Type == data.PointTypeTombstone && p.Val() > 0 {
 				return fmt.Errorf("error, can't delete root node")
 			}
 		}
@@ -626,13 +633,20 @@ func (sdb *DbSqlite) edgePoints(nodeID, parentID string, points data.Points) err
 		var pID string
 		var nodeID string
 		var index float32
-		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &index, &p.Value, &p.Text,
+		var value float64
+		var text string
+		err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &index, &value, &text,
 			&p.Data, &p.Tombstone, &p.Origin)
 		if err != nil {
 			rollback()
 			return err
 		}
 		p.Time = time.Unix(0, timeNS)
+		if text != "" {
+			p.PutString(text)
+		} else if value != 0 {
+			p.PutFloat(value)
+		}
 		dbPoints = append(dbPoints, p)
 		dbPointIDs = append(dbPointIDs, pID)
 	}
@@ -653,7 +667,7 @@ NextPin:
 	for _, pIn := range points {
 		// we don't store node type points
 		if pIn.Type == data.PointTypeNodeType {
-			nodeType = pIn.Text
+			nodeType = pIn.Txt()
 			continue NextPin
 		}
 
@@ -711,7 +725,7 @@ NextPin:
 	for i, p := range writePoints {
 		tNs := p.Time.UnixNano()
 		pID := writePointIDs[i]
-		_, err = stmt.Exec(pID, edge.ID, p.Type, p.Key, tNs, 0, p.Value, p.Text, p.Data, p.Tombstone,
+		_, err = stmt.Exec(pID, edge.ID, p.Type, p.Key, tNs, 0, p.Val(), p.Txt(), p.Data, p.Tombstone,
 			p.Origin)
 		if err != nil {
 			stmt.Close()
@@ -751,13 +765,20 @@ NextPin:
 			var pID string
 			var nodeID string
 			var index float32
-			err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &index, &p.Value, &p.Text,
+			var value float64
+			var text string
+			err := rowsPoints.Scan(&pID, &nodeID, &p.Type, &p.Key, &timeNS, &index, &value, &text,
 				&p.Data, &p.Tombstone, &p.Origin)
 			if err != nil {
 				rollback()
 				return err
 			}
 			p.Time = time.Unix(0, timeNS)
+			if text != "" {
+				p.PutString(text)
+			} else if value != 0 {
+				p.PutFloat(value)
+			}
 			hashUpdate ^= p.CRC()
 		}
 
@@ -1044,14 +1065,21 @@ func (sdb *DbSqlite) queryPoints(tx *sql.Tx, query string, args ...any) (map[str
 		var pID string
 		var nodeOrEdgeID string
 		var index float32
+		var value float64
+		var text string
 		err := rowsPoints.Scan(
-			&pID, &nodeOrEdgeID, &p.Type, &p.Key, &timeNS, &index, &p.Value,
-			&p.Text, &p.Data, &p.Tombstone, &p.Origin,
+			&pID, &nodeOrEdgeID, &p.Type, &p.Key, &timeNS, &index, &value,
+			&text, &p.Data, &p.Tombstone, &p.Origin,
 		)
 		if err != nil {
 			return nil, err
 		}
 		p.Time = time.Unix(0, timeNS)
+		if text != "" {
+			p.PutString(text)
+		} else if value != 0 {
+			p.PutFloat(value)
+		}
 		retPoints[nodeOrEdgeID] = append(retPoints[nodeOrEdgeID], p)
 	}
 
@@ -1118,7 +1146,7 @@ func (sdb *DbSqlite) userCheck(email, password string) (data.Nodes, error) {
 		for _, e := range edges {
 			// make sure edge is not tombstone
 			for _, p := range e.Points {
-				if p.Type == data.PointTypeTombstone && p.Value != 0 {
+				if p.Type == data.PointTypeTombstone && p.Val() != 0 {
 					// this edge does not have a path to root, try next edge
 					continue NextEdge
 				}
@@ -1173,7 +1201,7 @@ func (sdb *DbSqlite) up(id string, includeDeleted bool) ([]string, error) {
 			ups = append(ups, e.Up)
 		} else {
 			p, _ := e.Points.Find(data.PointTypeTombstone, "")
-			if math.Mod(p.Value, 2) == 0 {
+			if math.Mod(p.Val(), 2) == 0 {
 				ups = append(ups, e.Up)
 			}
 		}

@@ -75,11 +75,11 @@ proto.pb.Notification.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.Notification.toObject = function(includeInstance, msg) {
   var f, obj = {
-    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    sourcenode: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    subject: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    msg: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    parent: jspb.Message.getFieldWithDefault(msg, 5, "")
+id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+sourcenode: jspb.Message.getFieldWithDefault(msg, 2, ""),
+subject: jspb.Message.getFieldWithDefault(msg, 3, ""),
+msg: jspb.Message.getFieldWithDefault(msg, 4, ""),
+parent: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {

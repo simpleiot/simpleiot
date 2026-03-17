@@ -464,11 +464,9 @@ func (c *BrowserClient) ValidatePoints() {
 			val = fallback
 		}
 		c.log.Printf("Setting %s to: %s", pointType, val)
-		err := SendNodePoint(nc, ID, data.Point{
-			Time: time.Now(),
-			Type: pointType,
-			Key:  "0",
-			Text: val}, false)
+		pt := data.NewPointString(pointType, "0", val)
+		pt.Time = time.Now()
+		err := SendNodePoint(nc, ID, pt, false)
 		if err != nil {
 			c.log.Println("Error sending point: ", err)
 			return val, err
@@ -482,11 +480,9 @@ func (c *BrowserClient) ValidatePoints() {
 			val = fallback
 		}
 		c.log.Printf("Setting %s to: %d", pointType, val)
-		err := SendNodePoint(nc, ID, data.Point{
-			Time:  time.Now(),
-			Type:  pointType,
-			Key:   "0",
-			Value: float64(val)}, false)
+		pt := data.NewPointFloat(pointType, "0", float64(val))
+		pt.Time = time.Now()
+		err := SendNodePoint(nc, ID, pt, false)
 		if err != nil {
 			c.log.Println("Error sending point: ", err)
 			return val, err
@@ -496,11 +492,9 @@ func (c *BrowserClient) ValidatePoints() {
 
 	validateBool := func(value bool, nc *nats.Conn, ID string, pointType string) (bool, error) {
 		c.log.Printf("Setting %s to: %t", pointType, value)
-		err := SendNodePoint(nc, ID, data.Point{
-			Time:  time.Now(),
-			Type:  pointType,
-			Key:   "0",
-			Value: data.BoolToFloat(value)}, false)
+		pt := data.NewPointFloat(pointType, "0", data.BoolToFloat(value))
+		pt.Time = time.Now()
+		err := SendNodePoint(nc, ID, pt, false)
 		if err != nil {
 			c.log.Println("Error sending point: ", err)
 			return value, err

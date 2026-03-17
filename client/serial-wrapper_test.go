@@ -11,8 +11,8 @@ func TestSerialEncodeDecode(t *testing.T) {
 	seq := byte(123)
 	subject := "test/subject/23"
 	points := data.Points{
-		{Type: data.PointTypeDescription, Text: "node description"},
-		{Type: data.PointTypeValue, Value: 23.53},
+		data.NewPointString(data.PointTypeDescription, "", "node description"),
+		data.NewPointFloat(data.PointTypeValue, "", 23.53),
 	}
 
 	d, err := SerialEncode(seq, subject, points)
@@ -37,7 +37,7 @@ func TestSerialEncodeDecode(t *testing.T) {
 		t.Error("subject mismatch")
 	}
 
-	pointsD, err := data.PbDecodeSerialPoints(payload)
+	pointsD, err := data.DecodePoints(payload)
 	if err != nil {
 		t.Fatalf("Error decoding payload: %v", err)
 	}

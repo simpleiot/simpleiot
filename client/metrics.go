@@ -58,7 +58,7 @@ func (m *MetricsClient) Run() error {
 		if m.config.Period < 1 {
 			m.config.Period = 120
 			points := data.Points{
-				{Type: data.PointTypePeriod, Value: float64(m.config.Period)},
+				data.NewPointFloat(data.PointTypePeriod, "", float64(m.config.Period)),
 			}
 
 			err := SendPoints(m.nc, SubjectNodePoints(m.config.ID), points, false)
@@ -141,7 +141,6 @@ func (m *MetricsClient) EdgePoints(nodeID, parentID string, points []data.Point)
 }
 
 func (m *MetricsClient) sysStart() {
-	now := time.Now()
 	// collect static host stats on startup
 	hostStat, err := host.Info()
 	if err != nil {
@@ -149,65 +148,16 @@ func (m *MetricsClient) sysStart() {
 	} else {
 		// TODO, only send points if they have changed
 		pts := data.Points{
-			{
-				Type: data.PointTypeHost,
-				Time: now,
-				Key:  data.PointKeyHostname,
-				Text: hostStat.Hostname,
-			},
-			{
-				Type:  data.PointTypeHostBootTime,
-				Time:  now,
-				Value: float64(hostStat.BootTime),
-			},
-			{
-				Type: data.PointTypeHost,
-				Time: now,
-				Key:  data.PointKeyOS,
-				Text: hostStat.OS,
-			},
-			{
-				Type: data.PointTypeHost,
-				Time: now,
-				Key:  data.PointKeyPlatform,
-				Text: hostStat.Platform,
-			},
-			{
-				Type: data.PointTypeHost,
-				Time: now,
-				Key:  data.PointKeyPlatformFamily,
-				Text: hostStat.PlatformFamily,
-			},
-			{
-				Type: data.PointTypeHost,
-				Time: now,
-				Key:  data.PointKeyPlatformVersion,
-				Text: hostStat.PlatformVersion,
-			},
-			{
-				Type: data.PointTypeHost,
-				Time: now,
-				Key:  data.PointKeyKernelVersion,
-				Text: hostStat.KernelVersion,
-			},
-			{
-				Type: data.PointTypeHost,
-				Time: now,
-				Key:  data.PointKeyKernelArch,
-				Text: hostStat.KernelArch,
-			},
-			{
-				Type: data.PointTypeHost,
-				Time: now,
-				Key:  data.PointKeyVirtualizationSystem,
-				Text: hostStat.VirtualizationSystem,
-			},
-			{
-				Type: data.PointTypeHost,
-				Time: now,
-				Key:  data.PointKeyVirtualizationRole,
-				Text: hostStat.VirtualizationRole,
-			},
+			data.NewPointString(data.PointTypeHost, data.PointKeyHostname, hostStat.Hostname),
+			data.NewPointFloat(data.PointTypeHostBootTime, "", float64(hostStat.BootTime)),
+			data.NewPointString(data.PointTypeHost, data.PointKeyOS, hostStat.OS),
+			data.NewPointString(data.PointTypeHost, data.PointKeyPlatform, hostStat.Platform),
+			data.NewPointString(data.PointTypeHost, data.PointKeyPlatformFamily, hostStat.PlatformFamily),
+			data.NewPointString(data.PointTypeHost, data.PointKeyPlatformVersion, hostStat.PlatformVersion),
+			data.NewPointString(data.PointTypeHost, data.PointKeyKernelVersion, hostStat.KernelVersion),
+			data.NewPointString(data.PointTypeHost, data.PointKeyKernelArch, hostStat.KernelArch),
+			data.NewPointString(data.PointTypeHost, data.PointKeyVirtualizationSystem, hostStat.VirtualizationSystem),
+			data.NewPointString(data.PointTypeHost, data.PointKeyVirtualizationRole, hostStat.VirtualizationRole),
 		}
 		err = SendNodePoints(m.nc, m.config.ID, pts, false)
 		if err != nil {
@@ -219,12 +169,7 @@ func (m *MetricsClient) sysStart() {
 	if err != nil {
 		log.Println("Metrics error:", err)
 	} else {
-		pt := data.Point{
-			Type:  data.PointTypeMetricSysMem,
-			Time:  now,
-			Key:   data.PointKeyTotal,
-			Value: float64(vm.Total),
-		}
+		pt := data.NewPointFloat(data.PointTypeMetricSysMem, data.PointKeyTotal, float64(vm.Total))
 
 		err = SendNodePoint(m.nc, m.config.ID, pt, false)
 		if err != nil {
@@ -235,7 +180,6 @@ func (m *MetricsClient) sysStart() {
 }
 
 func (m *MetricsClient) sysPeriodic() {
-	now := time.Now()
 	var pts data.Points
 
 	avg, err := load.Avg()
@@ -243,24 +187,9 @@ func (m *MetricsClient) sysPeriodic() {
 		log.Println("Metrics error:", err)
 	} else {
 		pts = append(pts, data.Points{
-			{
-				Type:  data.PointTypeMetricSysLoad,
-				Time:  now,
-				Key:   "1",
-				Value: avg.Load1,
-			},
-			{
-				Type:  data.PointTypeMetricSysLoad,
-				Time:  now,
-				Key:   "5",
-				Value: avg.Load5,
-			},
-			{
-				Type:  data.PointTypeMetricSysLoad,
-				Time:  now,
-				Key:   "15",
-				Value: avg.Load15,
-			},
+			data.NewPointFloat(data.PointTypeMetricSysLoad, "1", avg.Load1),
+			data.NewPointFloat(data.PointTypeMetricSysLoad, "5", avg.Load5),
+			data.NewPointFloat(data.PointTypeMetricSysLoad, "15", avg.Load15),
 		}...)
 
 	}
@@ -269,10 +198,7 @@ func (m *MetricsClient) sysPeriodic() {
 	if err != nil {
 		log.Println("Metrics error:", err)
 	} else {
-		pts = append(pts, data.Point{Type: data.PointTypeMetricSysCPUPercent,
-			Time:  now,
-			Value: perc[0],
-		})
+		pts = append(pts, data.NewPointFloat(data.PointTypeMetricSysCPUPercent, "", perc[0]))
 	}
 
 	vm, err := mem.VirtualMemory()
@@ -280,29 +206,10 @@ func (m *MetricsClient) sysPeriodic() {
 		log.Println("Metrics error:", err)
 	} else {
 		pts = append(pts, data.Points{
-			{
-				Type:  data.PointTypeMetricSysMemUsedPercent,
-				Time:  now,
-				Value: vm.UsedPercent,
-			},
-			{
-				Type:  data.PointTypeMetricSysMem,
-				Time:  now,
-				Key:   data.PointKeyAvailable,
-				Value: float64(vm.Available),
-			},
-			{
-				Type:  data.PointTypeMetricSysMem,
-				Time:  now,
-				Key:   data.PointKeyUsed,
-				Value: float64(vm.Used),
-			},
-			{
-				Type:  data.PointTypeMetricSysMem,
-				Time:  now,
-				Key:   data.PointKeyFree,
-				Value: float64(vm.Free),
-			},
+			data.NewPointFloat(data.PointTypeMetricSysMemUsedPercent, "", vm.UsedPercent),
+			data.NewPointFloat(data.PointTypeMetricSysMem, data.PointKeyAvailable, float64(vm.Available)),
+			data.NewPointFloat(data.PointTypeMetricSysMem, data.PointKeyUsed, float64(vm.Used)),
+			data.NewPointFloat(data.PointTypeMetricSysMem, data.PointKeyFree, float64(vm.Free)),
 		}...)
 	}
 
@@ -322,12 +229,7 @@ func (m *MetricsClient) sysPeriodic() {
 				continue
 			}
 			pts = append(pts, data.Points{
-				{
-					Time:  now,
-					Type:  data.PointTypeMetricSysDiskUsedPercent,
-					Key:   u.Path,
-					Value: u.UsedPercent,
-				},
+				data.NewPointFloat(data.PointTypeMetricSysDiskUsedPercent, u.Path, u.UsedPercent),
 			}...)
 		}
 	}
@@ -338,18 +240,8 @@ func (m *MetricsClient) sysPeriodic() {
 	} else {
 		for _, io := range netio {
 			pts = append(pts, data.Points{
-				{
-					Time:  now,
-					Type:  data.PointTypeMetricSysNetBytesRecv,
-					Key:   io.Name,
-					Value: float64(io.BytesRecv),
-				},
-				{
-					Time:  now,
-					Type:  data.PointTypeMetricSysNetBytesSent,
-					Key:   io.Name,
-					Value: float64(io.BytesSent),
-				},
+				data.NewPointFloat(data.PointTypeMetricSysNetBytesRecv, io.Name, float64(io.BytesRecv)),
+				data.NewPointFloat(data.PointTypeMetricSysNetBytesSent, io.Name, float64(io.BytesSent)),
 			}...)
 		}
 
@@ -359,11 +251,7 @@ func (m *MetricsClient) sysPeriodic() {
 	if err != nil {
 		log.Println("Metrics error:", err)
 	} else {
-		pts = append(pts, data.Point{
-			Time:  now,
-			Type:  data.PointTypeMetricSysUptime,
-			Value: float64(uptime),
-		})
+		pts = append(pts, data.NewPointFloat(data.PointTypeMetricSysUptime, "", float64(uptime)))
 	}
 
 	temps, err := host.SensorsTemperatures()
@@ -372,12 +260,7 @@ func (m *MetricsClient) sysPeriodic() {
 	} else {
 		for _, t := range temps {
 			pts = append(pts, data.Points{
-				{
-					Time:  now,
-					Type:  data.PointTypeTemperature,
-					Key:   t.SensorKey,
-					Value: t.Temperature,
-				},
+				data.NewPointFloat(data.PointTypeTemperature, t.SensorKey, t.Temperature),
 			}...)
 		}
 	}
@@ -390,7 +273,6 @@ func (m *MetricsClient) sysPeriodic() {
 
 // if procName is "", then collect stats for this app
 func (m *MetricsClient) appPeriodic(procName string) {
-	now := time.Now()
 
 	if procName == "" {
 		var memStats runtime.MemStats
@@ -400,16 +282,8 @@ func (m *MetricsClient) appPeriodic(procName string) {
 		numGoRoutine := runtime.NumGoroutine()
 
 		pts := data.Points{
-			{
-				Time:  now,
-				Type:  data.PointTypeMetricAppAlloc,
-				Value: float64(memStats.Alloc),
-			},
-			{
-				Time:  now,
-				Type:  data.PointTypeMetricAppNumGoroutine,
-				Value: float64(numGoRoutine),
-			},
+			data.NewPointFloat(data.PointTypeMetricAppAlloc, "", float64(memStats.Alloc)),
+			data.NewPointFloat(data.PointTypeMetricAppNumGoroutine, "", float64(numGoRoutine)),
 		}
 
 		err := SendNodePoints(m.nc, m.config.ID, pts, false)
@@ -470,29 +344,13 @@ func (m *MetricsClient) appPeriodic(procName string) {
 		}
 
 		pts := data.Points{
-			{
-				Time:  now,
-				Type:  data.PointTypeMetricProcCPUPercent,
-				Value: float64(accumCPUPerc),
-			},
-			{
-				Time:  now,
-				Type:  data.PointTypeMetricProcMemPercent,
-				Value: float64(accumMemPerc),
-			},
-			{
-				Time:  now,
-				Type:  data.PointTypeMetricProcMemRSS,
-				Value: float64(accumMemRSS),
-			},
+			data.NewPointFloat(data.PointTypeMetricProcCPUPercent, "", float64(accumCPUPerc)),
+			data.NewPointFloat(data.PointTypeMetricProcMemPercent, "", float64(accumMemPerc)),
+			data.NewPointFloat(data.PointTypeMetricProcMemRSS, "", float64(accumMemRSS)),
 		}
 
 		if procName != "" {
-			pts = append(pts, data.Point{
-				Time:  now,
-				Type:  data.PointTypeCount,
-				Value: float64(procCount),
-			})
+			pts = append(pts, data.NewPointFloat(data.PointTypeCount, "", float64(procCount)))
 		}
 
 		err = SendNodePoints(m.nc, m.config.ID, pts, false)
@@ -511,7 +369,6 @@ type procMetrics struct {
 }
 
 func (m *MetricsClient) allProcPeriodic() {
-	now := time.Now()
 
 	metrics := make(map[string]procMetrics)
 
@@ -560,28 +417,24 @@ func (m *MetricsClient) allProcPeriodic() {
 		pts := make(data.Points, len(metrics)*4)
 		var i int
 		for k, v := range metrics {
-			pts[i].Time = now
 			pts[i].Key = k
 			pts[i].Type = data.PointTypeMetricProcCPUPercent
-			pts[i].Value = v.cpu
+			pts[i].PutFloat(v.cpu)
 			i++
 
-			pts[i].Time = now
 			pts[i].Key = k
 			pts[i].Type = data.PointTypeMetricProcMemPercent
-			pts[i].Value = v.mem
+			pts[i].PutFloat(v.mem)
 			i++
 
-			pts[i].Time = now
 			pts[i].Key = k
 			pts[i].Type = data.PointTypeMetricProcMemRSS
-			pts[i].Value = v.rss
+			pts[i].PutFloat(v.rss)
 			i++
 
-			pts[i].Time = now
 			pts[i].Key = k
 			pts[i].Type = data.PointTypeCount
-			pts[i].Value = v.count
+			pts[i].PutFloat(v.count)
 			i++
 		}
 

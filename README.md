@@ -26,10 +26,10 @@ inherently distributed and building on simple concepts that scale.
   set data
 - Extensive support for Modbus - both server and client
 - Support for the Linux 1-wire subsystem.
-- flexible graph organization of instances, users, groups, rules, and
-  configuration
-- Integration with other services like InfluxDB, Victoria Metrics, and Twilio
-- A system that is easy to extend in any language using NATS
+- Flexible graph organization of instances, users, groups, rules, and
+  configuration.
+- Integration with other services like InfluxDB and Twilio
+- A system that is easy to extend in any language using NATS.
 - A number of useful Go packages to use in your custom application
 
 See [vision](docs/ref/vision.md), [architecture](docs/ref/architecture.md), and
@@ -86,7 +86,7 @@ For support or to discuss this project, use one of the following options:
 - [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
 - #simpleiot Slack channel is available on
   [gophers.slack.com](https://gophers.slack.com/messages/simpleiot/)
-- Open a GitHub issue
+- open a GitHub issue
 - [Simple IoT YouTube channel](https://www.youtube.com/@simple-iot)
 - Subscribe to our [email newsletter](https://tmpdir.ck.page/196d1fb480) for
   project updates.

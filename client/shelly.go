@@ -49,11 +49,10 @@ func (sc *ShellyClient) Run() error {
 
 	entriesCh := make(chan *mdns.ServiceEntry, 4)
 
-	params := mdns.DefaultParams("_http._tcp")
-	params.DisableIPv6 = true
-	params.Entries = entriesCh
-
 	scan := func() {
+		params := mdns.DefaultParams("_http._tcp")
+		params.DisableIPv6 = true
+		params.Entries = entriesCh
 		err := mdns.Query(params)
 		if err != nil {
 			log.Println("mdns error:", err)
@@ -91,7 +90,8 @@ done:
 		case <-scanTicker.C:
 			go scan()
 
-		case e := <-entriesCh:
+		case ePtr := <-entriesCh:
+			e := *ePtr // copy to avoid data race with mdns goroutine
 			typ, id := shellyScanHost(e.Host)
 			if len(typ) > 0 {
 				found := false
@@ -111,11 +111,11 @@ done:
 						// points to the client that owns the node
 						found = true
 						if io.IP != ip {
-							err := SendNodePoint(sc.nc, io.ID, data.Point{
-								Type:   data.PointTypeIP,
-								Text:   ip,
-								Origin: sc.config.ID,
-							}, false)
+							err := SendNodePoint(sc.nc, io.ID, func() data.Point {
+								p := data.NewPointString(data.PointTypeIP, "", ip)
+								p.Origin = sc.config.ID
+								return p
+							}(), false)
 
 							if err != nil {
 								log.Println("Error setting io ip:", err)
@@ -123,11 +123,11 @@ done:
 						}
 
 						if io.Offline {
-							err := SendNodePoint(sc.nc, io.ID, data.Point{
-								Type:   data.PointTypeOffline,
-								Value:  0,
-								Origin: sc.config.ID,
-							}, false)
+							err := SendNodePoint(sc.nc, io.ID, func() data.Point {
+								p := data.NewPointFloat(data.PointTypeOffline, "", 0)
+								p.Origin = sc.config.ID
+								return p
+							}(), false)
 
 							if err != nil {
 								log.Println("Error setting io offline:", err)

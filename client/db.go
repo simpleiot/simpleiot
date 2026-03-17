@@ -64,9 +64,9 @@ func (dbc *DbClient) Run() error {
 
 	// FIXME, we probably want to store edge points too ...
 
-	subject := fmt.Sprintf("up.%v.*", dbc.config.Parent)
+	subject := fmt.Sprintf("up.%v.>", dbc.config.Parent)
 	dbc.upSub, err = dbc.nc.Subscribe(subject, func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
+		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			log.Println("Error decoding points in db upSub:", err)
 			return
@@ -74,7 +74,7 @@ func (dbc *DbClient) Run() error {
 
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
-		if len(chunks) != 3 {
+		if len(chunks) < 3 {
 			log.Println("rule client up sub, malformed subject:", msg.Subject)
 			return
 		}
@@ -114,7 +114,7 @@ func (dbc *DbClient) Run() error {
 			p := influxdb2.NewPoint(InfluxMeasurement,
 				tags,
 				map[string]interface{}{
-					"value": pt.Value,
+					"value": pt.Val(),
 				},
 				pt.Time)
 			dbc.writeAPI.WritePoint(p)
@@ -256,8 +256,8 @@ done:
 				p := influxdb2.NewPoint(InfluxMeasurement,
 					tags,
 					map[string]interface{}{
-						"value": point.Value,
-						"text":  point.Text,
+						"value": point.Val(),
+						"text":  point.Txt(),
 					},
 					point.Time)
 				dbc.writeAPI.WritePoint(p)

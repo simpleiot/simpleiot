@@ -222,11 +222,11 @@ func TestRule(t *testing.T) {
 	r.checkVout(0, "initial value", "0")
 
 	// set vin and look for vout to change
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
 	r.checkVout(1, "look for vout to change after set vin", "0")
 
 	// clear vin and look for vout to change
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
 	r.checkVout(0, "look for vout to clear", "0")
 }
 
@@ -252,53 +252,53 @@ func TestRuleDisabled(t *testing.T) {
 	r.checkVout(0, "check initial state", "0")
 
 	// everything enabled, set vin and look for vout to change
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
 	r.checkVout(1, "set vin and look for vout to change", "0")
 
 	// everything enabled, clear vin and look for vout to change
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
 	r.checkVout(0, "clear vin and look for vout to change", "0")
 
 	// disable rule, set vin and verify vout does not get set. Then clear vin.
-	r.sendPoint(r.r.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.r.ID, data.NewPointFloat(data.PointTypeDisabled, "", 1))
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
 	r.checkVout(0, "disable rule, set vin and verify vout does not get set", "0")
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
 
 	// enable rule, and disable condition. set vin and verify vout does not get set.
-	r.sendPoint(r.r.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
-	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.r.ID, data.NewPointFloat(data.PointTypeDisabled, "", 0))
+	r.sendPoint(r.c.ID, data.NewPointFloat(data.PointTypeDisabled, "", 1))
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
 	r.checkVout(0, "disable condition and verify vout does not get set", "0")
 
 	// enable condition and verify vout gets set again. Clear vin.
-	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
+	r.sendPoint(r.c.ID, data.NewPointFloat(data.PointTypeDisabled, "", 0))
 	r.checkVout(1, "re-enable condition and verify vout is set.", "0")
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
 
 	// enable condition, and disable action. set vin and verify vout does not get set. Clear vin.
-	r.sendPoint(r.a.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.a.ID, data.NewPointFloat(data.PointTypeDisabled, "", 1))
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
 	r.checkVout(0, "disable action and verify vout does not get set.", "0")
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
 
 	// 	enable action, set vin, then disable rule. verify vout gets cleared.
-	r.sendPoint(r.a.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.a.ID, data.NewPointFloat(data.PointTypeDisabled, "", 0))
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
 	r.checkVout(1, "disable rule, initial state", "0")
-	r.sendPoint(r.r.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.sendPoint(r.r.ID, data.NewPointFloat(data.PointTypeDisabled, "", 1))
 	r.checkVout(0, "disable rule, vout cleared.", "0")
 
 	// enable rule, and verify vout gets set.
-	r.sendPoint(r.r.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
+	r.sendPoint(r.r.ID, data.NewPointFloat(data.PointTypeDisabled, "", 0))
 	r.checkVout(1, "enable rule, and verify vout gets set.", "0")
 
 	// disable condition, and verify vout gets cleared.
-	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.sendPoint(r.c.ID, data.NewPointFloat(data.PointTypeDisabled, "", 1))
 	r.checkVout(0, "disable condition, and verify vout gets cleared.", "0")
 
 	// enable condition, and verify vout gets set.
-	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 0})
+	r.sendPoint(r.c.ID, data.NewPointFloat(data.PointTypeDisabled, "", 0))
 	r.checkVout(1, "enable condition, and verify vout gets set.", "0")
 }
 
@@ -319,21 +319,21 @@ func TestRuleMultipleConditions(t *testing.T) {
 
 	// both conditions enabled
 	// if one condition is active and the 2nd condition is inactive, the rule should not fire
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
 	r.checkVout(0, "1st active, 2nd inactive", "0")
 
 	// if both conditions are active the rule should fire
-	r.sendPoint(r.vin2.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin2.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
 	r.checkVout(1, "both active", "0")
 
 	// if one condition is disabled, the rule should still fire because
 	// the enabled condition is still active
-	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.sendPoint(r.c.ID, data.NewPointFloat(data.PointTypeDisabled, "", 1))
 	r.checkVout(1, "one condition enabled and action", "0")
 
 	// if both conditions are active but disabled, the rule is inactive.
-	r.sendPoint(r.c.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
-	r.sendPoint(r.c2.ID, data.Point{Type: data.PointTypeDisabled, Value: 1})
+	r.sendPoint(r.c.ID, data.NewPointFloat(data.PointTypeDisabled, "", 1))
+	r.sendPoint(r.c2.ID, data.NewPointFloat(data.PointTypeDisabled, "", 1))
 	r.checkVout(0, "both active and disabled", "0")
 }
 
@@ -347,8 +347,8 @@ func TestRuleActionPointKey(t *testing.T) {
 	}
 
 	// we are setting the an action with key set to "1", so modify the rule
-	r.sendPoint(r.a.ID, data.Point{Type: data.PointTypePointKey, Text: "1"})
-	r.sendPoint(r.a2.ID, data.Point{Type: data.PointTypePointKey, Text: "1"})
+	r.sendPoint(r.a.ID, data.NewPointString(data.PointTypePointKey, "", "1"))
+	r.sendPoint(r.a2.ID, data.NewPointString(data.PointTypePointKey, "", "1"))
 
 	defer r.stop()
 	defer r.voutStop()
@@ -356,11 +356,11 @@ func TestRuleActionPointKey(t *testing.T) {
 	r.checkVout(0, "initial value", "1")
 
 	// check if point is set correctly.
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 1})
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
 	r.checkVout(1, "should be high", "1")
 
 	// check if point is cleared correctly
-	r.sendPoint(r.vin.ID, data.Point{Type: data.PointTypeValue, Value: 0})
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
 
 	r.checkVout(0, "should be low", "1")
 }

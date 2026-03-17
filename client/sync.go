@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -124,7 +125,7 @@ func (up *SyncClient) Run() error {
 		chLocalEdgePoints <- NewPoints{ID: nodeID, Parent: parentID, Points: points}
 
 		for _, p := range points {
-			if p.Type == data.PointTypeTombstone && p.Value == 0 {
+			if p.Type == data.PointTypeTombstone && p.Val() == 0 {
 				// a new node was likely created, make sure we watch it
 				up.chNewEdge <- newEdge{parent: parentID, id: nodeID, local: true}
 			}
@@ -138,7 +139,7 @@ func (up *SyncClient) Run() error {
 		if up.config.Period < 1 {
 			up.config.Period = 20
 			points := data.Points{
-				{Type: data.PointTypePeriod, Value: float64(up.config.Period)},
+				data.NewPointFloat(data.PointTypePeriod, "", float64(up.config.Period)),
 			}
 
 			err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)
@@ -248,8 +249,8 @@ done:
 				up.config.SyncCountReset = false
 
 				points := data.Points{
-					{Type: data.PointTypeSyncCount, Value: 0},
-					{Type: data.PointTypeSyncCountReset, Value: 0},
+					data.NewPointFloat(data.PointTypeSyncCount, "", 0),
+					data.NewPointFloat(data.PointTypeSyncCountReset, "", 0),
 				}
 
 				err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)
@@ -387,7 +388,7 @@ func (up *SyncClient) connect() error {
 func (up *SyncClient) subscribeRemoteNodePoints(id string) error {
 	if _, ok := up.subRemoteNodePoints[id]; !ok {
 		var err error
-		up.subRemoteNodePoints[id], err = up.ncRemote.Subscribe(SubjectNodePoints(id), func(msg *nats.Msg) {
+		up.subRemoteNodePoints[id], err = up.ncRemote.Subscribe(SubjectNodePoints(id)+".>", func(msg *nats.Msg) {
 			nodeID, points, err := DecodeNodePointsMsg(msg)
 			if err != nil {
 				log.Println("Error decoding point:", err)
@@ -560,15 +561,20 @@ func (up *SyncClient) syncNode(parent, id string) error {
 	}
 
 	if up.subRemoteUp == nil {
-		subject := fmt.Sprintf("up.%v.*.*", up.rootLocal.ID)
+		subject := fmt.Sprintf("up.%v.>", up.rootLocal.ID)
 		up.subRemoteUp, err = up.ncRemote.Subscribe(subject, func(msg *nats.Msg) {
+			// Only process edge points (6 chunks: up.<upId>.<nodeId>.<parentId>.<type>.<key>)
+			chunks := strings.Split(msg.Subject, ".")
+			if len(chunks) < 6 {
+				return
+			}
 			_, id, parent, points, err := DecodeUpEdgePointsMsg(msg)
 			if err != nil {
 				log.Println("Error decoding remote up points:", err)
 			} else {
 				for _, p := range points {
 					if p.Type == data.PointTypeTombstone &&
-						p.Value == 0 {
+						p.Val() == 0 {
 						// we have a new node
 						up.chNewEdge <- newEdge{
 							parent: parent, id: id}
@@ -626,7 +632,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 		// restore a node on the upstream
 		// update the local tombstone timestamp so it is newer than the remote tombstone timestamp
 		log.Printf("Sync: undeleting remote node: %v:%v\n", nodeUp.Parent, nodeUp.ID)
-		pTS := data.Point{Time: time.Now(), Type: data.PointTypeTombstone, Value: 0}
+		pTS := data.NewPointFloat(data.PointTypeTombstone, "", 0)
 		err := SendEdgePoint(up.ncRemote, nodeUp.ID, nodeUp.Parent, pTS, true)
 		if err != nil {
 			return fmt.Errorf("error undeleting upstream node: %v", err)
@@ -673,7 +679,7 @@ func (up *SyncClient) syncNode(parent, id string) error {
 	if nodeLocal.ID == up.rootLocal.ID {
 		up.config.SyncCount++
 		points := data.Points{
-			{Type: data.PointTypeSyncCount, Value: float64(up.config.SyncCount)},
+			data.NewPointFloat(data.PointTypeSyncCount, "", float64(up.config.SyncCount)),
 		}
 
 		err = SendPoints(up.nc, SubjectNodePoints(up.config.ID), points, false)

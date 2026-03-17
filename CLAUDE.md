@@ -104,6 +104,14 @@ Common client types: SerialDev, CanBus, Rule, Db, SignalGenerator, Sync, Metrics
 3. **Testing**: `siot_test` before submitting changes
 4. **Code Quality**: All code must pass `golangci-lint run` and `elm-review`
 
+## Plans
+
+Implementation plans are stored in the `plans/` directory. See `plans/plans.md`
+for an index of all plans and their status.
+
+When working through a plan, commit after each phase completes. Update the
+changelog, CLAUDE.md, and any relevant documentation as part of each phase.
+
 ## Important Notes
 
 - Always source `envsetup.sh` before running build commands

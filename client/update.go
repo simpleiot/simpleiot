@@ -70,11 +70,7 @@ func (m *UpdateClient) setError(err error) {
 		m.log.Println(err)
 	}
 
-	p := data.Point{
-		Type: data.PointTypeError,
-		Time: time.Now(),
-		Text: errS,
-	}
+	p := data.NewPointString(data.PointTypeError, "", errS)
 
 	e := SendNodePoint(m.nc, m.config.ID, p, true)
 	if e != nil {
@@ -94,7 +90,7 @@ func (m *UpdateClient) Run() error {
 		defer func() {
 			cDownloadFinished <- struct{}{}
 			_ = SendNodePoint(m.nc, m.config.ID,
-				data.Point{Time: time.Now(), Type: data.PointTypeDownloadOS, Text: ""},
+				data.NewPointString(data.PointTypeDownloadOS, "", ""),
 				false,
 			)
 			m.config.DownloadOS = ""
@@ -142,11 +138,7 @@ func (m *UpdateClient) Run() error {
 			m.log.Println("Error getting hostname: ", err)
 		} else {
 			m.log.Println("Setting update prefix to: ", p)
-			err := SendNodePoint(m.nc, m.config.ID, data.Point{
-				Time: time.Now(),
-				Type: data.PointTypePrefix,
-				Key:  "0",
-				Text: p}, false)
+			err := SendNodePoint(m.nc, m.config.ID, data.NewPointString(data.PointTypePrefix, "0", p), false)
 			if err != nil {
 				m.log.Println("Error sending point: ", err)
 			} else {
@@ -158,11 +150,7 @@ func (m *UpdateClient) Run() error {
 	if m.config.Directory == "" {
 		d := "/data"
 		m.log.Println("Setting directory to: ", d)
-		err := SendNodePoint(m.nc, m.config.ID, data.Point{
-			Time: time.Now(),
-			Type: data.PointTypeDirectory,
-			Key:  "0",
-			Text: d}, false)
+		err := SendNodePoint(m.nc, m.config.ID, data.NewPointString(data.PointTypeDirectory, "0", d), false)
 		if err != nil {
 			m.log.Println("Error sending point: ", err)
 		} else {
@@ -173,11 +161,7 @@ func (m *UpdateClient) Run() error {
 	if m.config.PollPeriod <= 0 {
 		p := 30
 		m.log.Println("Setting poll period to: ", p)
-		err := SendNodePoint(m.nc, m.config.ID, data.Point{
-			Time:  time.Now(),
-			Type:  data.PointTypePollPeriod,
-			Key:   "0",
-			Value: float64(p)}, false)
+		err := SendNodePoint(m.nc, m.config.ID, data.NewPointFloat(data.PointTypePollPeriod, "0", float64(p)), false)
 		if err != nil {
 			m.log.Println("Error sending point: ", err)
 		} else {
@@ -258,9 +242,7 @@ func (m *UpdateClient) Run() error {
 		pts := data.Points{}
 		now := time.Now()
 		for i, v := range versions {
-			pts = append(pts, data.Point{
-				Time: now, Type: data.PointTypeOSUpdate, Text: v.String(), Key: strconv.Itoa(i),
-			})
+			pts = append(pts, data.NewPointString(data.PointTypeOSUpdate, strconv.Itoa(i), v.String()))
 		}
 
 		err = SendNodePoints(m.nc, m.config.ID, pts, false)
@@ -311,18 +293,13 @@ func (m *UpdateClient) Run() error {
 		}
 
 		m.config.OSDownloaded = ""
-		err = SendNodePoint(m.nc, m.config.ID, data.Point{
-			Time: time.Now(),
-			Type: data.PointTypeOSDownloaded,
-			Text: "",
-			Key:  "0",
-		}, true)
+		err = SendNodePoint(m.nc, m.config.ID, data.NewPointString(data.PointTypeOSDownloaded, "0", ""), true)
 		if err != nil {
 			m.log.Println("Error clearing downloaded point: ", err)
 		}
 
 		err = SendNodePoints(m.nc, m.config.ID, data.Points{
-			{Time: time.Now(), Type: data.PointTypeDiscardDownload, Value: 0},
+			data.NewPointFloat(data.PointTypeDiscardDownload, "", 0),
 		}, true)
 		if err != nil {
 			m.log.Println("Error discarding download: ", err)
@@ -367,23 +344,14 @@ func (m *UpdateClient) Run() error {
 
 		if len(versions) > 0 {
 			m.config.OSDownloaded = versions[len(versions)-1].String()
-			err := SendNodePoint(m.nc, m.config.ID, data.Point{
-				Time: time.Now(),
-				Type: data.PointTypeOSDownloaded,
-				Key:  "0",
-				Text: m.config.OSDownloaded}, true)
+			err := SendNodePoint(m.nc, m.config.ID, data.NewPointString(data.PointTypeOSDownloaded, "0", m.config.OSDownloaded), true)
 
 			if err != nil {
 				m.log.Println("Error sending point: ", err)
 			}
 		} else {
 			m.config.OSDownloaded = ""
-			err = SendNodePoint(m.nc, m.config.ID, data.Point{
-				Time: time.Now(),
-				Type: data.PointTypeOSDownloaded,
-				Text: "",
-				Key:  "0",
-			}, true)
+			err = SendNodePoint(m.nc, m.config.ID, data.NewPointString(data.PointTypeOSDownloaded, "0", ""), true)
 			if err != nil {
 				m.log.Println("Error clearing downloaded point: ", err)
 			}
@@ -422,11 +390,7 @@ func (m *UpdateClient) Run() error {
 			newestUpdate != m.config.OSDownloaded &&
 			newestUpdate != m.config.DownloadOS {
 			// download a newer update
-			err := SendNodePoint(m.nc, m.config.ID, data.Point{
-				Time: time.Now(),
-				Type: data.PointTypeDownloadOS,
-				Text: newestUpdate,
-			}, true)
+			err := SendNodePoint(m.nc, m.config.ID, data.NewPointString(data.PointTypeDownloadOS, "", newestUpdate), true)
 			if err != nil {
 				return fmt.Errorf("error sending point: %w", err)
 			}
@@ -456,12 +420,7 @@ func (m *UpdateClient) Run() error {
 	if err != nil {
 		m.log.Println("Error reading OS version: ", err)
 	} else {
-		err := SendNodePoint(m.nc, m.config.ID, data.Point{
-			Time: time.Now(),
-			Type: data.PointTypeVersionOS,
-			Key:  "0",
-			Text: osVersion.String(),
-		}, true)
+		err := SendNodePoint(m.nc, m.config.ID, data.NewPointString(data.PointTypeVersionOS, "0", osVersion.String()), true)
 
 		if err != nil {
 			m.log.Println("Error sending OS version point: ", err)
@@ -509,16 +468,16 @@ done:
 			for _, p := range pts.Points {
 				switch p.Type {
 				case data.PointTypeDownloadOS:
-					if p.Text != "" {
+					if p.Txt() != "" {
 						go func(f string) {
 							err := download(f)
 							if err != nil {
 								cSetError <- fmt.Errorf("error downloading update: %w", err)
 							}
-						}(p.Text)
+						}(p.Txt())
 					}
 				case data.PointTypeDiscardDownload:
-					if p.Value != 0 {
+					if p.Val() != 0 {
 						m.setError(nil)
 						err := cleanDownloads()
 						if err != nil {
@@ -531,7 +490,7 @@ done:
 					}
 				case data.PointTypeReboot:
 					err := SendNodePoints(m.nc, m.config.ID, data.Points{
-						{Time: time.Now(), Type: data.PointTypeReboot, Value: 0},
+						data.NewPointFloat(data.PointTypeReboot, "", 0),
 					}, true)
 					if err != nil {
 						m.log.Println("Error clearing reboot point: ", err)
@@ -541,7 +500,7 @@ done:
 
 				case data.PointTypeRefresh:
 					err := SendNodePoints(m.nc, m.config.ID, data.Points{
-						{Time: time.Now(), Type: data.PointTypeRefresh, Value: 0},
+						data.NewPointFloat(data.PointTypeRefresh, "", 0),
 					}, true)
 					if err != nil {
 						m.log.Println("Error clearing reboot reboot point: ", err)
@@ -554,11 +513,11 @@ done:
 					}
 
 				case data.PointTypePollPeriod:
-					checkTickerTime := time.Minute * time.Duration(p.Value)
+					checkTickerTime := time.Minute * time.Duration(p.Val())
 					checkTicker.Reset(checkTickerTime)
 
 				case data.PointTypeAutoDownload:
-					if p.Value == 1 {
+					if p.Val() == 1 {
 						m.setError(nil)
 						err := getUpdates()
 						if err != nil {
@@ -602,15 +561,14 @@ done:
 			}
 
 		case <-cDownloadFinished:
-			now := time.Now()
 			err := checkDownloads()
 			if err != nil {
 				m.setError(err)
 			}
 
 			pts := data.Points{
-				{Time: now, Type: data.PointTypeDownloadOS, Text: ""},
-				{Time: now, Type: data.PointTypeOSDownloaded, Text: m.config.OSDownloaded},
+				data.NewPointString(data.PointTypeDownloadOS, "", ""),
+				data.NewPointString(data.PointTypeOSDownloaded, "", m.config.OSDownloaded),
 			}
 			err = SendNodePoints(m.nc, m.config.ID, pts, true)
 			if err != nil {

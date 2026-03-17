@@ -66,9 +66,9 @@ that run bare-metal code or a small OS like FreeRTOS or Zephyr and don't have as
 MCUs cannot run the full SIOT application or easily implement a full
 data-centric data store. However, you can still leverage the SIOT system by
 using the node/point data structures to describe configuration and state and
-interacting with a Simple IoT like any other NATS client.
-[Nanopb](https://github.com/nanopb/nanopb) can be used on MCUs to encode and
-decode Protobuf messages, which is the default encoding for SIOT messages.
+interacting with a Simple IoT like any other NATS client. Points use a compact
+binary encoding (see `data/point.go`) that is straightforward to implement on
+MCUs.
 
 If your MCU supports MQTT, then it may make sense to use that to interact with
 Simple IoT as MQTT is very similar to NATS, and NATS includes a built-in MQTT

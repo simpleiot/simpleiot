@@ -97,12 +97,12 @@ func (st *Store) GetAuthorizer() api.Authorizer {
 func (st *Store) Run() error {
 	nc := st.params.Nc
 	var err error
-	st.subscriptions["nodePoints"], err = nc.Subscribe("p.*", st.handleNodePoints)
+	st.subscriptions["nodePoints"], err = nc.Subscribe("p.>", st.handleNodePoints)
 	if err != nil {
 		return fmt.Errorf("subscribe node points error: %w", err)
 	}
 
-	st.subscriptions["edgePoints"], err = nc.Subscribe("p.*.*", st.handleEdgePoints)
+	st.subscriptions["edgePoints"], err = nc.Subscribe("ep.*.*", st.handleEdgePoints)
 	if err != nil {
 		return fmt.Errorf("subscribe edge points error: %w", err)
 	}
@@ -349,7 +349,7 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 	nodeID = chunks[2]
 
 	if len(msg.Data) > 0 {
-		pts, err := data.PbDecodePoints(msg.Data)
+		pts, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			resp.Error = fmt.Sprintf("Error decoding points %v", err)
 			goto handleNodeDone
@@ -358,9 +358,9 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 		for _, p := range pts {
 			switch p.Type {
 			case data.PointTypeTombstone:
-				includeDel = data.FloatToBool(p.Value)
+				includeDel = data.FloatToBool(p.Val())
 			case data.PointTypeNodeType:
-				nodeType = p.Text
+				nodeType = p.Txt()
 			}
 		}
 	}
@@ -412,7 +412,7 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 		return
 	}
 
-	points, err = data.PbDecodePoints(msg.Data)
+	points, err = data.DecodePoints(msg.Data)
 	if err != nil {
 		log.Println("Error decoding auth.user params:", err)
 		returnNothing()
@@ -433,7 +433,7 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 		return
 	}
 
-	nodes, err := st.db.userCheck(emailP.Text, passP.Text)
+	nodes, err := st.db.userCheck(emailP.Txt(), passP.Txt())
 
 	if err != nil || len(nodes) <= 0 {
 		log.Println("Error, invalid user")
@@ -453,11 +453,7 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 	nodes = append(nodes, data.NodeEdge{
 		Type: data.NodeTypeJWT,
 		Points: data.Points{
-			{
-				Type: data.PointTypeToken,
-				Text: token,
-				Key:  "0",
-			},
+			data.NewPointString(data.PointTypeToken, "0", token),
 		},
 	})
 
@@ -476,17 +472,13 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 
 func (st *Store) handleAuthGetNatsURI(msg *nats.Msg) {
 	points := data.Points{
-		{Type: data.PointTypeURI, Text: st.params.Server},
-		{Type: data.PointTypeToken, Text: st.params.AuthToken},
+		data.NewPointString(data.PointTypeURI, "", st.params.Server),
+		data.NewPointString(data.PointTypeToken, "", st.params.AuthToken),
 	}
 
-	data, err := points.ToPb()
+	d := points.Encode()
 
-	if err != nil {
-		data = []byte(err.Error())
-	}
-
-	err = st.nc.Publish(msg.Reply, data)
+	err := st.nc.Publish(msg.Reply, d)
 	if err != nil {
 		log.Println("NATS: Error publishing response to gets NATS URI request:", err)
 	}
@@ -585,20 +577,16 @@ func (st *Store) processPointsUpstream(upNodeID, nodeID string, points data.Poin
 				fmt.Println("STORE: orphaned node: ", node)
 				if len(edges) < 1 {
 					// create upstream edge
-					err := client.SendEdgePoint(st.nc, nodeID, "none", data.Point{
-						Type:  data.PointTypeTombstone,
-						Value: 0,
-					}, false)
+					err := client.SendEdgePoint(st.nc, nodeID, "none",
+						data.NewPointFloat(data.PointTypeTombstone, "", 0), false)
 					if err != nil {
 						log.Println("Error sending edge point:", err)
 					}
 				} else {
 					// undelete existing edge
 					e := edges[0]
-					err := client.SendEdgePoint(st.nc, e.Down, e.Up, data.Point{
-						Type:  data.PointTypeTombstone,
-						Value: 0,
-					}, false)
+					err := client.SendEdgePoint(st.nc, e.Down, e.Up,
+						data.NewPointFloat(data.PointTypeTombstone, "", 0), false)
 					if err != nil {
 						log.Println("Error sending edge point:", err)
 					}

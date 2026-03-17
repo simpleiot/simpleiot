@@ -61,7 +61,7 @@ nodeTextInput o key typ lbl placeholder =
         []
         { onChange =
             \d ->
-                o.onEditNodePoint [ Point typ key o.now 0 d 0 ]
+                o.onEditNodePoint [ Point typ key o.now 3 0 d 0 ]
         , text =
             if textRaw == "123BLANK123" then
                 ""
@@ -227,6 +227,7 @@ nodeTimeDateInput o labelWidth =
                                   , key = dateCountS
                                   , text = ""
                                   , time = o.now
+                                  , dataType = 3
                                   , tombstone = 0
                                   , value = 0
                                   }
@@ -283,26 +284,26 @@ pointsToSchedule points =
 
 scheduleToPoints : Time.Posix -> Utils.Time.Schedule -> List Point
 scheduleToPoints now sched =
-    [ Point Point.typeStart "0" now 0 sched.startTime 0
-    , Point Point.typeEnd "0" now 0 sched.endTime 0
+    [ Point Point.typeStart "0" now 3 0 sched.startTime 0
+    , Point Point.typeEnd "0" now 3 0 sched.endTime 0
     ]
         ++ List.map
             (\wday ->
                 if List.member wday sched.weekdays then
-                    Point Point.typeWeekday (String.fromInt wday) now 1 "" 0
+                    Point Point.typeWeekday (String.fromInt wday) now 1 1 "" 0
 
                 else
-                    Point Point.typeWeekday (String.fromInt wday) now 0 "" 0
+                    Point Point.typeWeekday (String.fromInt wday) now 1 0 "" 0
             )
             [ 0, 1, 2, 3, 4, 5, 6 ]
         ++ List.indexedMap
-            (\i d -> Point Point.typeDate (String.fromInt i) now 0 d 0)
+            (\i d -> Point Point.typeDate (String.fromInt i) now 3 0 d 0)
             sched.dates
         ++ (if List.length sched.dates < sched.dateCount then
                 -- some dates have been deleted, so send some tombstone points to fill out array length
                 List.map
                     (\i ->
-                        Point Point.typeDate (String.fromInt i) now 0 "" 1
+                        Point Point.typeDate (String.fromInt i) now 0 0 "" 1
                     )
                     (List.range (List.length sched.dates) (sched.dateCount - 1))
 
@@ -407,6 +408,7 @@ nodeButtonActionText o key typ value lbl color =
                   , key = key
                   , text = value
                   , time = o.now
+                  , dataType = 3
                   , tombstone = 0
                   , value = 0
                   }
@@ -439,7 +441,7 @@ nodeCheckboxInput o key typ lbl =
                             0.0
                 in
                 o.onEditNodePoint
-                    [ Point typ key o.now v "" 0 ]
+                    [ Point typ key o.now 1 v "" 0 ]
         , checked =
             Point.getValue o.node.points typ key == 1
         , icon = Input.defaultCheckbox
@@ -522,7 +524,7 @@ nodeNumberInput o key typ lbl =
                             Maybe.withDefault currentValueF <| String.toFloat dCheck
                 in
                 o.onEditNodePoint
-                    [ Point typ key o.now v dCheck 0 ]
+                    [ Point typ key o.now 1 v dCheck 0 ]
         , text = currentValue
         , placeholder = Nothing
         , label =
@@ -547,7 +549,7 @@ nodeOptionInput o key typ lbl options =
         { onChange =
             \sel ->
                 o.onEditNodePoint
-                    [ Point typ key o.now 0 sel 0 ]
+                    [ Point typ key o.now 3 0 sel 0 ]
         , label =
             Input.labelLeft [ padding 12, width (px o.labelWidth) ] <|
                 el [ alignRight ] <|
@@ -597,7 +599,7 @@ nodeCounterWithReset o key typ pointResetName lbl =
                             else
                                 0
                     in
-                    o.onEditNodePoint [ Point pointResetName key o.now vFloat "" 0 ]
+                    o.onEditNodePoint [ Point pointResetName key o.now 1 vFloat "" 0 ]
             , icon = Input.defaultCheckbox
             , checked = currentResetValue
             , label =
@@ -649,7 +651,7 @@ nodeOnOffInput o key typ pointSetName lbl =
         [ el [ width (px o.labelWidth) ] <| el [ alignRight ] <| text <| lbl ++ ":"
         , Input.button
             []
-            { onPress = Just <| o.onEditNodePoint [ Point pointSetName key o.now newValue "" 0 ]
+            { onPress = Just <| o.onEditNodePoint [ Point pointSetName key o.now 1 newValue "" 0 ]
             , label =
                 el [ width (px 100) ] <|
                     html <|
@@ -715,7 +717,7 @@ nodePasteButton :
     -> Element msg
 nodePasteButton o label typ value =
     row [ spacing 10, paddingEach { top = 0, bottom = 0, right = 0, left = 75 } ]
-        [ UI.Button.clipboard <| o.onEditNodePoint [ Point typ "0" o.now 0 value 0 ]
+        [ UI.Button.clipboard <| o.onEditNodePoint [ Point typ "0" o.now 3 0 value 0 ]
         , label
         ]
 
@@ -739,12 +741,12 @@ nodeListInput o typ label buttonLabel =
         entriesToPoints es =
             List.indexedMap
                 (\i s ->
-                    Point typ (String.fromInt i) o.now 0 s 0
+                    Point typ (String.fromInt i) o.now 3 0 s 0
                 )
                 es
                 ++ List.map
                     (\i ->
-                        Point typ (String.fromInt i) o.now 0 "" 1
+                        Point typ (String.fromInt i) o.now 0 0 "" 1
                     )
                     (List.range (List.length es) (entriesArrayCount - 1))
 
@@ -781,6 +783,7 @@ nodeListInput o typ label buttonLabel =
                                   , key = entriesArrayCountS
                                   , text = ""
                                   , time = o.now
+                                  , dataType = 3
                                   , tombstone = 0
                                   , value = 0
                                   }
@@ -818,6 +821,7 @@ nodeKeyValueInput o typ label buttonLabel =
                   , key = o.scratch
                   , text = ""
                   , time = o.now
+                  , dataType = 3
                   , tombstone = 0
                   , value = 0
                   }
@@ -852,6 +856,7 @@ keyValues o typ label points =
                   , key = key
                   , text = ""
                   , time = o.now
+                  , dataType = 0
                   , tombstone = 1
                   , value = 0
                   }

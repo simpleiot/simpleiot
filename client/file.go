@@ -89,8 +89,8 @@ exitFileClient:
 					hashS := fmt.Sprintf("%x", hash)
 
 					pts := data.Points{
-						{Type: data.PointTypeHash, Text: hashS},
-						{Type: data.PointTypeSize, Value: float64(len(fileData))},
+						data.NewPointString(data.PointTypeHash, "", hashS),
+						data.NewPointFloat(data.PointTypeSize, "", float64(len(fileData))),
 					}
 
 					e := SendNodePoints(f.nc, f.config.ID, pts, true)

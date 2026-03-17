@@ -31,7 +31,7 @@ func newOneWireIO(nc *nats.Conn, node *oneWireIONode, chPoint chan<- pointWID) (
 
 	var err error
 	io.sub, err = nc.Subscribe("p."+io.ioNode.nodeID, func(msg *nats.Msg) {
-		points, err := data.PbDecodePoints(msg.Data)
+		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			// FIXME, send over channel
 			log.Println("Error decoding node data:", err)
@@ -64,23 +64,23 @@ func (io *oneWireIO) point(p data.Point) error {
 	// handle IO changes
 	switch p.Type {
 	case data.PointTypeID:
-		io.ioNode.id = p.Text
+		io.ioNode.id = p.Txt()
 	case data.PointTypeDescription:
-		io.ioNode.description = p.Text
+		io.ioNode.description = p.Txt()
 	case data.PointTypeUnits:
-		io.ioNode.units = p.Text
+		io.ioNode.units = p.Txt()
 	case data.PointTypeValue:
-		io.ioNode.value = p.Value
+		io.ioNode.value = p.Val()
 	case data.PointTypeDisabled:
-		io.ioNode.disabled = data.FloatToBool(p.Value)
+		io.ioNode.disabled = data.FloatToBool(p.Val())
 	case data.PointTypeErrorCount:
-		io.ioNode.errorCount = int(p.Value)
+		io.ioNode.errorCount = int(p.Val())
 	case data.PointTypeErrorCountReset:
-		io.ioNode.errorCountReset = data.FloatToBool(p.Value)
+		io.ioNode.errorCountReset = data.FloatToBool(p.Val())
 		if io.ioNode.errorCountReset {
 			p := data.Points{
-				{Type: data.PointTypeErrorCount, Value: 0},
-				{Type: data.PointTypeErrorCountReset, Value: 0},
+				data.NewPointFloat(data.PointTypeErrorCount, "", 0),
+				data.NewPointFloat(data.PointTypeErrorCountReset, "", 0),
 			}
 
 			err := client.SendNodePoints(io.nc, io.ioNode.nodeID, p, true)
@@ -123,10 +123,8 @@ func (io *oneWireIO) read() error {
 
 	if v != io.ioNode.value || time.Since(io.lastSent) > time.Minute*10 {
 		io.ioNode.value = v
-		err = client.SendNodePoint(io.nc, io.ioNode.nodeID, data.Point{
-			Type:  data.PointTypeValue,
-			Value: v,
-		}, false)
+		err = client.SendNodePoint(io.nc, io.ioNode.nodeID,
+			data.NewPointFloat(data.PointTypeValue, "", v), false)
 		io.lastSent = time.Now()
 	}
 

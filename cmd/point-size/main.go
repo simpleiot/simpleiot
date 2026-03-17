@@ -31,11 +31,12 @@ func main() {
 
 	fmt.Printf("Simple: %+v -> %v bytes\n", p, sizeEncodedPoint(p))
 
-	buf, _ := (&data.Points{p}).ToPb()
+	buf := (&data.Points{p}).Encode()
 
 	fmt.Printf("Add array: %+v -> %v bytes\n", p, len(buf))
 
-	p = data.Point{Time: time.Now(), Type: "value", Value: 232.32}
+	p = data.NewPointFloat("value", "", 232.32)
+	p.Time = time.Now()
 	fmt.Printf("Typical point: %+v -> %v bytes\n", p, sizeEncodedPoint(p))
 
 	// 10 typical points in an array
@@ -45,7 +46,7 @@ func main() {
 		pArray = append(pArray, p)
 	}
 
-	pArrayBuf, _ := pArray.ToPb()
+	pArrayBuf := pArray.Encode()
 	pArrayLen := len(pArrayBuf)
 	fmt.Printf("Size of 10 typical points: %v, per point: %v\n", pArrayLen, float64(pArrayLen)/10)
 

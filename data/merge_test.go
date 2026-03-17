@@ -11,7 +11,7 @@ func TestMergePoints(t *testing.T) {
 	modifiedDescription := "test type modified"
 
 	mods := []Point{
-		{Type: "description", Text: modifiedDescription},
+		NewPointString("description", "", modifiedDescription),
 	}
 
 	err := MergePoints(out.ID, mods, &out)
@@ -34,7 +34,7 @@ func TestMergeEdgePoints(t *testing.T) {
 	modifiedRole := "user"
 
 	mods := []Point{
-		{Type: "role", Text: modifiedRole},
+		NewPointString("role", "", modifiedRole),
 	}
 
 	err := MergeEdgePoints(out.ID, out.Parent, mods, &out)
@@ -76,7 +76,7 @@ func TestMergeChildPoints(t *testing.T) {
 	modifiedDescription := "test type modified"
 
 	mods := []Point{
-		{Type: "description", Text: modifiedDescription},
+		NewPointString("description", "", modifiedDescription),
 	}
 
 	err := MergePoints("ID-testY", mods, &testData)
@@ -103,7 +103,7 @@ func TestMergeChildPoints(t *testing.T) {
 	modifiedDescription = "test Z type modified"
 
 	mods = []Point{
-		{Type: "description", Text: modifiedDescription},
+		NewPointString("description", "", modifiedDescription),
 	}
 
 	err = MergePoints("ID-testZ", mods, &testData)
@@ -120,7 +120,7 @@ func TestMergeChildPoints(t *testing.T) {
 	modifiedRole := "yrole"
 
 	mods = []Point{
-		{Type: "role", Text: modifiedRole},
+		NewPointString("role", "", modifiedRole),
 	}
 
 	err = MergeEdgePoints("ID-testZ", "ID-testY", mods, &testData)
@@ -153,7 +153,7 @@ func TestMergeComplex(t *testing.T) {
 		Tombstone:  false,
 	}
 
-	p := Points{{Type: "location", Key: "hello", Text: "Siot"}}
+	p := Points{NewPointString("location", "hello", "Siot")}
 
 	err := MergePoints("ID-TC", p, &td)
 
@@ -165,7 +165,7 @@ func TestMergeComplex(t *testing.T) {
 		t.Fatal("Map not modified to Siot")
 	}
 
-	ep := Points{{Type: "testValue", Value: 123}}
+	ep := Points{NewPointFloat("testValue", "", 123)}
 
 	err = MergeEdgePoints("ID-TC", "456", ep, &td)
 
@@ -194,10 +194,10 @@ func TestMergeComplex(t *testing.T) {
 
 	// add IP addresses back
 	p = Points{
-		{Type: "ipAddress", Key: "0", Text: "192.168.1.1"},
-		{Type: "ipAddress", Key: "1", Text: "127.0.0.1"},
-		{Type: "ipAddress", Key: "3", Text: "127.0.0.3"},
-		{Type: "ipAddress", Key: "4", Text: "127.0.0.4"},
+		NewPointString("ipAddress", "0", "192.168.1.1"),
+		NewPointString("ipAddress", "1", "127.0.0.1"),
+		NewPointString("ipAddress", "3", "127.0.0.3"),
+		NewPointString("ipAddress", "4", "127.0.0.4"),
 	}
 
 	err = MergePoints("ID-TC", p, &td)

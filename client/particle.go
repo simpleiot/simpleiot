@@ -49,11 +49,7 @@ type particlePoint struct {
 }
 
 func (pp *particlePoint) toPoint() data.Point {
-	return data.Point{
-		Key:   pp.ID,
-		Type:  pp.Type,
-		Value: pp.Value,
-	}
+	return data.NewPointFloat(pp.Type, pp.ID, pp.Value)
 }
 
 // NewParticleClient ...
@@ -168,7 +164,7 @@ done:
 					stopReader()
 					startReader()
 				case data.PointTypeDisabled:
-					if p.Value == 1 {
+					if p.Val() == 1 {
 						stopReader()
 					} else {
 						startReader()

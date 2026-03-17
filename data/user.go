@@ -15,13 +15,17 @@ type User struct {
 // ToPoints converts a user structure into points
 func (u *User) ToPoints() Points {
 	now := time.Now()
-	return Points{
-		{Type: PointTypeFirstName, Time: now, Text: u.FirstName},
-		{Type: PointTypeLastName, Time: now, Text: u.LastName},
-		{Type: PointTypePhone, Time: now, Text: u.Phone},
-		{Type: PointTypeEmail, Time: now, Text: u.Email},
-		{Type: PointTypePass, Time: now, Text: u.Pass},
+	pts := Points{
+		NewPointString(PointTypeFirstName, "", u.FirstName),
+		NewPointString(PointTypeLastName, "", u.LastName),
+		NewPointString(PointTypePhone, "", u.Phone),
+		NewPointString(PointTypeEmail, "", u.Email),
+		NewPointString(PointTypePass, "", u.Pass),
 	}
+	for i := range pts {
+		pts[i].Time = now
+	}
+	return pts
 }
 
 // ToNode converts a user structure into a node
@@ -39,15 +43,15 @@ func NodeToUser(node Node) (User, error) {
 	for _, p := range node.Points {
 		switch p.Type {
 		case PointTypeFirstName:
-			ret.FirstName = p.Text
+			ret.FirstName = p.Txt()
 		case PointTypeLastName:
-			ret.LastName = p.Text
+			ret.LastName = p.Txt()
 		case PointTypeEmail:
-			ret.Email = p.Text
+			ret.Email = p.Txt()
 		case PointTypePhone:
-			ret.Phone = p.Text
+			ret.Phone = p.Txt()
 		case PointTypePass:
-			ret.Pass = p.Text
+			ret.Pass = p.Txt()
 		}
 	}
 

@@ -6,7 +6,8 @@
 
 The Simple IoT server currently provides both HTTP and NATS.io APIs. We've tried
 to keep the two APIs a similar as possible so it is easy to switch from one to
-the other. The HTTP API currently accepts JSON, and the NATS API uses Protobuf.
+the other. The Http API currently accepts JSON, and the NATS API uses a binary
+encoding for points and protobuf for node requests.
 
 **NOTE, the Simple IoT API is not final and will continue to be refined in the
 coming months.**
@@ -24,12 +25,15 @@ deployment model.
 The `siot` binary embeds the NATS server, so there is no need to deploy and run
 a separate NATS server.
 
-For the NATS transport, Protobuf encoding is used for all transfers and are
-defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
+Point data uses a compact binary encoding (see `data/point.go`). Node requests
+still use protobuf, defined
+[here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb). Each
+node point is sent as a single NATS message with `type` and `key` encoded in
+the subject.
 
 - Nodes
-  - `nodes.<parentId>.<nodeId>`
-    - Request/response - returns an array of `data.EdgeNode` structs.
+  - `nodes.<parentId>.<nodeId>.<type>.<key>`
+    - Request/response -- returns an array of `data.EdgeNode` structs.
     - `parent="all"`, then all instances of the node are returned.
     - `parent is set and id="all"`, then all child nodes of the parent are
       returned.
@@ -40,10 +44,10 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
       - `tombstone` with value field set to 1 will include deleted points
       - `nodeType` with text field set to node type will limit returned nodes to
         this type
-  - `p.<nodeId>`
-    - Used to listen for or publish node point changes.
-  - `p.<nodeId>.<parentId>`
-    - Used to publish/subscribe node edge points. The `tombstone` point type is
+  - `p.<nodeId>.<type>.<key>`
+    - used to listen for or publish node point changes.
+  - `ep.<nodeId>.<parentId>.<type>.<key>`
+    - used to publish/subscribe node edge points. The `tombstone` point type is
       used to track if a node has been deleted or not.
   - `phr.<nodeId>` (not currently used)
     - high rate point data
@@ -51,24 +55,24 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
     - High rate point data is rebroadcast upstream. `upstreamId` is the parent
       of the node that is interested in HR data (currently the db node).
       `nodeId` is the node that is providing the HR data. In the case of a
-      custom HR `Dest Node` (serial client), the serial client may not be a
-      child of the upstream node.
-  - `up.<upstreamId>.<nodeId>`
-    - Node points are rebroadcast at every upstream ID so that we can listen for
+      custom HR Dest Node (serial client), the serial client may not be a child
+      of the upstream node.
+  - `up.<upstreamId>.<nodeId>.<type>.<key>`
+    - node points are rebroadcast at every upstream ID so that we can listen for
       point changes at any level. The sending node is also included in this. The
       store is responsible for posting to `up` subjects. Individual clients
       should not do this.
-  - `up.<upstreamId>.<nodeId>.<parentId>`
-    - Edge points rebroadcast at every upstream node ID.
+  - `up.<upstreamId>.<nodeId>.<parentId>.<type>.<key>`
+    - edge points rebroadcast at every upstream node ID.
   - `history.<nodeId>`
     - Request/response - payload is a JSON-encoded `HistoryQuery` struct.
       Returns a JSON-encoded `data.HistoryResult`.
 - Legacy APIs that are being deprecated
   - `node.<id>.not`
-    - Used when a node sends a [notification](./notifications.md) (typically a
+    - used when a node sends a [notification](./notifications.md) (typically a
       rule, or a message sent directly from a node)
   - `node.<id>.msg`
-    - Used when a node sends a message (SMS, email, phone call, etc.). This is
+    - used when a node sends a message (SMS, email, phone call, etc). This is
       typically initiated by a [notification](./notifications.md).
   - `node.<id>.file` (not currently implemented)
     - Is used to transfer files to a node in chunks, which is optimized for
@@ -98,7 +102,7 @@ defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
 ## HTTP
 
 For details on data payloads, it is simplest to just refer to the Go types which
-have JSON tags.
+have JSON tags. HTTP APIs currently return JSON payloads.
 
 Most APIs that do not return specific data (update/delete) return a
 [standard response](https://github.com/simpleiot/simpleiot/blob/master/data/api.go)

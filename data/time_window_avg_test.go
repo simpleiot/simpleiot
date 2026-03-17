@@ -13,13 +13,11 @@ func TestNewPoint(t *testing.T) {
 
 	var avgPoint Point
 
-	point := Point{
-		Time:  time.Now(),
-		Value: 200,
-	}
+	point := NewPointFloat("", "", 200)
+	point.Time = time.Now()
 
 	pointAverager := NewTimeWindowAverager(3*time.Second, func(avg Point) {
-		fmt.Println("Average (Value): ", avg.Value)
+		fmt.Println("Average (Value): ", avg.Val())
 		fmt.Println()
 		avgPoint = avg
 	}, "hello")
@@ -31,7 +29,7 @@ func TestNewPoint(t *testing.T) {
 		<-pointTicker.C
 		pointAverager.NewPoint(point)
 
-		if avgPoint.Value != point.Value {
+		if avgPoint.Val() != point.Val() {
 			t.Error("point avg is not correct")
 		}
 	}

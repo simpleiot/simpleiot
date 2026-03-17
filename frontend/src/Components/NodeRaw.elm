@@ -71,7 +71,7 @@ viewPoints o =
               , view =
                     \m ->
                         Button.x <|
-                            o.onEditNodePoint [ Point m.p.typ m.p.key o.now 0 "" 1 ]
+                            o.onEditNodePoint [ Point m.p.typ m.p.key o.now 0 0 "" 1 ]
               }
             ]
         }

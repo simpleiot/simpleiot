@@ -55,12 +55,10 @@ func (m *Manager) init() error {
 	m.rootNodeID = rootNode.ID
 
 	appVer, ok := rootNode.Points.Find(data.PointTypeVersionApp, "")
-	if !ok || appVer.Text != m.appVersion {
+	if !ok || appVer.Txt() != m.appVersion {
 		log.Println("Setting app version:", m.appVersion)
-		err := client.SendNodePoint(m.nc, rootNode.ID, data.Point{
-			Type: data.PointTypeVersionApp,
-			Text: m.appVersion,
-		}, true)
+		err := client.SendNodePoint(m.nc, rootNode.ID,
+			data.NewPointString(data.PointTypeVersionApp, "", m.appVersion), true)
 
 		if err != nil {
 			log.Println("Error setting app version")
@@ -74,12 +72,10 @@ func (m *Manager) init() error {
 	} else {
 		log.Println("OS version:", osVer)
 		osVerStored, ok := rootNode.Points.Find(data.PointTypeVersionOS, "")
-		if !ok || osVer.String() != osVerStored.Text {
+		if !ok || osVer.String() != osVerStored.Txt() {
 			log.Println("Setting os version:", osVer)
-			err := client.SendNodePoint(m.nc, rootNode.ID, data.Point{
-				Type: data.PointTypeVersionOS,
-				Text: osVer.String(),
-			}, true)
+			err := client.SendNodePoint(m.nc, rootNode.ID,
+				data.NewPointString(data.PointTypeVersionOS, "", osVer.String()), true)
 
 			if err != nil {
 				log.Println("Error setting OS version")
@@ -172,7 +168,7 @@ func renderNotifyTemplate(node *data.Node, msgTemplate string) (string, error) {
 
 	for _, io := range node.Points {
 		if io.Type != "" {
-			dtd.Ios[io.Type] = io.Value
+			dtd.Ios[io.Type] = io.Val()
 		}
 	}
 
