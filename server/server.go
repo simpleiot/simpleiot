@@ -148,6 +148,11 @@ func (s *Server) Run() error {
 	// ====================================
 	// Nats server
 	// ====================================
+	jsDir := o.DataDir
+	if jsDir == "" {
+		jsDir = "jetstream"
+	}
+
 	natsOptions := natsServerOptions{
 		Port:       o.NatsPort,
 		HTTPPort:   o.NatsHTTPPort,
@@ -156,6 +161,7 @@ func (s *Server) Run() error {
 		TLSCert:    o.NatsTLSCert,
 		TLSKey:     o.NatsTLSKey,
 		TLSTimeout: o.NatsTLSTimeout,
+		StoreDir:   jsDir,
 	}
 
 	if !o.NatsDisableServer {

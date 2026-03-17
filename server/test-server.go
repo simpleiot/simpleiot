@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os/exec"
+	"os"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -21,6 +21,7 @@ var TestServerOptions = Options{
 	NatsWSPort:   8903,
 	NatsServer:   "nats://localhost:8900",
 	ID:           "inst1",
+	DataDir:      "",
 }
 
 // TestServerOptions2 options used for 2nd test server
@@ -32,6 +33,7 @@ var TestServerOptions2 = Options{
 	NatsWSPort:   8913,
 	NatsServer:   "nats://localhost:8910",
 	ID:           "inst2",
+	DataDir:      "",
 }
 
 // TestServer starts a test server and returns a function to stop it
@@ -42,12 +44,16 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 		opts = TestServerOptions2
 	}
 
-	cleanup := func() {
-		_ = exec.Command("sh", "-c",
-			fmt.Sprintf("rm %v*", opts.StoreFile)).Run()
+	// Create temp directory for JetStream data
+	tmpDir, err := os.MkdirTemp("", "siot-test-*")
+	if err != nil {
+		return nil, data.NodeEdge{}, nil, fmt.Errorf("error creating temp dir: %v", err)
 	}
+	opts.DataDir = tmpDir
 
-	cleanup()
+	cleanup := func() {
+		_ = os.RemoveAll(tmpDir)
+	}
 
 	s, nc, err := NewServer(opts)
 
