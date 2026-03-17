@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,11 +29,13 @@ type Meta struct {
 // node points and edge points. Current state is the tip of each
 // subject; full history is retained for time-series use.
 type DbJetStream struct {
-	js        jetstream.JetStream
-	nc        *nats.Conn
-	metaKV    jetstream.KeyValue
-	meta      Meta
-	edgeCache *EdgeCache
+	js         jetstream.JetStream
+	nc         *nats.Conn
+	metaKV     jetstream.KeyValue
+	meta       Meta
+	edgeCache  *EdgeCache
+	pointMu    sync.RWMutex
+	pointCache map[string]data.Points // nodeID -> current points
 }
 
 // streamName converts a node ID to a JetStream stream name.
@@ -82,10 +85,11 @@ func NewJetStreamDb(nc *nats.Conn, rootID string) (*DbJetStream, error) {
 	}
 
 	db := &DbJetStream{
-		js:        js,
-		nc:        nc,
-		metaKV:    metaKV,
-		edgeCache: NewEdgeCache(),
+		js:         js,
+		nc:         nc,
+		metaKV:     metaKV,
+		edgeCache:  NewEdgeCache(),
+		pointCache: make(map[string]data.Points),
 	}
 
 	// Load meta from KV
@@ -229,6 +233,13 @@ func (db *DbJetStream) nodePoints(id string, points data.Points) error {
 		if err != nil {
 			return fmt.Errorf("error publishing point to %v: %v", subject, err)
 		}
+
+		// Update point cache
+		db.pointMu.Lock()
+		cached := db.pointCache[id]
+		cached.Add(pIn)
+		db.pointCache[id] = cached
+		db.pointMu.Unlock()
 	}
 
 	return nil
@@ -576,10 +587,21 @@ func (db *DbJetStream) getNodes(_ any, parent, id, typ string, includeDel bool) 
 			}
 		}
 
-		// Load node points
-		points, err := db.loadNodePoints(edge.Down)
-		if err != nil {
-			log.Printf("error loading node points for %v: %v", edge.Down, err)
+		// Load node points from cache, falling back to JetStream
+		db.pointMu.RLock()
+		points, ok := db.pointCache[edge.Down]
+		db.pointMu.RUnlock()
+		if !ok {
+			var err error
+			points, err = db.loadNodePoints(edge.Down)
+			if err != nil {
+				log.Printf("error loading node points for %v: %v", edge.Down, err)
+			}
+			if points != nil {
+				db.pointMu.Lock()
+				db.pointCache[edge.Down] = points
+				db.pointMu.Unlock()
+			}
 		}
 		ne.Points = points
 
@@ -716,8 +738,11 @@ func (db *DbJetStream) reset() error {
 		return fmt.Errorf("error purging rootID: %v", err)
 	}
 
-	// Reset edge cache
+	// Reset caches
 	db.edgeCache.Reset()
+	db.pointMu.Lock()
+	db.pointCache = make(map[string]data.Points)
+	db.pointMu.Unlock()
 
 	// Preserve root ID and re-initialize
 	db.meta.RootID, err = db.initRoot(db.meta.RootID)
