@@ -12,7 +12,8 @@ import (
 // DecodeNodePointsMsg decodes NATS message into node ID and points
 func DecodeNodePointsMsg(msg *nats.Msg) (string, []data.Point, error) {
 	chunks := strings.Split(msg.Subject, ".")
-	if len(chunks) < 2 {
+	// p.<nodeId>.<type>.<key> = 4 chunks
+	if len(chunks) < 4 {
 		return "", []data.Point{}, fmt.Errorf("invalid NodePoints subject: %v", msg.Subject)
 	}
 	nodeID := chunks[1]
@@ -29,6 +30,7 @@ func DecodeNodePointsMsg(msg *nats.Msg) (string, []data.Point, error) {
 // returns nodeID, parentID, points, error
 func DecodeEdgePointsMsg(msg *nats.Msg) (string, string, []data.Point, error) {
 	chunks := strings.Split(msg.Subject, ".")
+	// ep.<nodeId>.<parentId> = 3 chunks
 	if len(chunks) < 3 {
 		return "", "", []data.Point{}, fmt.Errorf("invalid EdgePoints subject: %v", msg.Subject)
 	}
@@ -47,7 +49,8 @@ func DecodeEdgePointsMsg(msg *nats.Msg) (string, string, []data.Point, error) {
 // returns upID, nodeID, points, error
 func DecodeUpNodePointsMsg(msg *nats.Msg) (string, string, []data.Point, error) {
 	chunks := strings.Split(msg.Subject, ".")
-	if len(chunks) < 3 {
+	// up.<upId>.<nodeId>.<type>.<key> = 5 chunks
+	if len(chunks) < 5 {
 		return "", "", []data.Point{}, fmt.Errorf("invalid UpNode subject: %v", msg.Subject)
 	}
 	upID := chunks[1]
@@ -65,7 +68,8 @@ func DecodeUpNodePointsMsg(msg *nats.Msg) (string, string, []data.Point, error) 
 // returns upID, nodeID, parentID, points, error
 func DecodeUpEdgePointsMsg(msg *nats.Msg) (string, string, string, []data.Point, error) {
 	chunks := strings.Split(msg.Subject, ".")
-	if len(chunks) < 4 {
+	// up.<upId>.<nodeId>.<parentId>.<type>.<key> = 6 chunks
+	if len(chunks) < 6 {
 		return "", "", "", []data.Point{}, fmt.Errorf("invalid UpEdge subject: %v", msg.Subject)
 	}
 	upID := chunks[1]

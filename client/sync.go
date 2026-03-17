@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -387,7 +388,7 @@ func (up *SyncClient) connect() error {
 func (up *SyncClient) subscribeRemoteNodePoints(id string) error {
 	if _, ok := up.subRemoteNodePoints[id]; !ok {
 		var err error
-		up.subRemoteNodePoints[id], err = up.ncRemote.Subscribe(SubjectNodePoints(id), func(msg *nats.Msg) {
+		up.subRemoteNodePoints[id], err = up.ncRemote.Subscribe(SubjectNodePoints(id)+".>", func(msg *nats.Msg) {
 			nodeID, points, err := DecodeNodePointsMsg(msg)
 			if err != nil {
 				log.Println("Error decoding point:", err)
@@ -560,8 +561,13 @@ func (up *SyncClient) syncNode(parent, id string) error {
 	}
 
 	if up.subRemoteUp == nil {
-		subject := fmt.Sprintf("up.%v.*.*", up.rootLocal.ID)
+		subject := fmt.Sprintf("up.%v.>", up.rootLocal.ID)
 		up.subRemoteUp, err = up.ncRemote.Subscribe(subject, func(msg *nats.Msg) {
+			// Only process edge points (6 chunks: up.<upId>.<nodeId>.<parentId>.<type>.<key>)
+			chunks := strings.Split(msg.Subject, ".")
+			if len(chunks) < 6 {
+				return
+			}
 			_, id, parent, points, err := DecodeUpEdgePointsMsg(msg)
 			if err != nil {
 				log.Println("Error decoding remote up points:", err)

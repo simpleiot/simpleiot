@@ -97,7 +97,7 @@ func (st *Store) GetAuthorizer() api.Authorizer {
 func (st *Store) Run() error {
 	nc := st.params.Nc
 	var err error
-	st.subscriptions["nodePoints"], err = nc.Subscribe("p.*", st.handleNodePoints)
+	st.subscriptions["nodePoints"], err = nc.Subscribe("p.>", st.handleNodePoints)
 	if err != nil {
 		return fmt.Errorf("subscribe node points error: %w", err)
 	}

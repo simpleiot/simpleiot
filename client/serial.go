@@ -115,7 +115,7 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 		// Copy some config to avoid race conditions
 		serialID := sd.config.ID
 		debug := sd.config.Debug
-		sd.parentSubscription, err = sd.nc.Subscribe(sd.natsSubSerialPoints, func(msg *nats.Msg) {
+		sd.parentSubscription, err = sd.nc.Subscribe(sd.natsSubSerialPoints+".>", func(msg *nats.Msg) {
 			points, err := data.DecodePoints(msg.Data)
 			if err != nil {
 				log.Println("Error decoding points in serial parent:", err)

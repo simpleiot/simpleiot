@@ -64,7 +64,7 @@ func (dbc *DbClient) Run() error {
 
 	// FIXME, we probably want to store edge points too ...
 
-	subject := fmt.Sprintf("up.%v.*", dbc.config.Parent)
+	subject := fmt.Sprintf("up.%v.>", dbc.config.Parent)
 	dbc.upSub, err = dbc.nc.Subscribe(subject, func(msg *nats.Msg) {
 		points, err := data.DecodePoints(msg.Data)
 		if err != nil {
@@ -74,7 +74,7 @@ func (dbc *DbClient) Run() error {
 
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
-		if len(chunks) != 3 {
+		if len(chunks) < 3 {
 			log.Println("rule client up sub, malformed subject:", msg.Subject)
 			return
 		}

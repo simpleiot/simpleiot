@@ -217,7 +217,7 @@ func (rc *RuleClient) Run() error {
 	// watch all points that flow through parent node
 	// TODO: we should optimize this so we only watch the nodes
 	// that are in the conditions
-	subject := fmt.Sprintf("up.%v.*", rc.config.Parent)
+	subject := fmt.Sprintf("up.%v.>", rc.config.Parent)
 
 	var err error
 	rc.upSub, err = rc.nc.Subscribe(subject, func(msg *nats.Msg) {
@@ -228,8 +228,9 @@ func (rc *RuleClient) Run() error {
 		}
 
 		// find node ID for points
+		// up.<parentId>.<nodeId>.<type>.<key> = 5 chunks
 		chunks := strings.Split(msg.Subject, ".")
-		if len(chunks) != 3 {
+		if len(chunks) < 3 {
 			log.Println("rule client up sub, malformed subject:", msg.Subject)
 			return
 		}
