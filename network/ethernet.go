@@ -12,7 +12,7 @@ type Ethernet struct {
 	enabled bool
 }
 
-// NewEthernet contructor
+// NewEthernet constructor
 func NewEthernet(iface string) *Ethernet {
 	return &Ethernet{
 		iface: iface,

@@ -10,8 +10,8 @@ The Particle cloud
 [event API](https://docs.particle.io/reference/cloud-apis/api/#events) is used
 to obtain the data. A connection is made from the SIOT instance to the Particle
 Cloud and then data is sent back to SIOT using Server Sent Events (SSE). The
-advantage of this mechanism is that complex web hooks are not needed on the  
-SIOT side, which requires additional firewall/web server configuration.
+advantage of this mechanism is that complex webhooks are not needed on the SIOT
+side, which requires additional firewall/web server configuration.
 
 A Particle API key is needed which can be generated using the `particle token`
 [CLI command](https://docs.particle.io/getting-started/developer-tools/cli/).
@@ -23,7 +23,7 @@ The above example shows data provided by the Particle based
 temperature sensors, and
 [SIOT firmware](https://github.com/simpleiot/firmware/tree/master/siot-fw).
 
-Data is is published to Particle in the following format:
+Data is published to Particle in the following format:
 
 ```json
 [
@@ -37,9 +37,6 @@ Data is is published to Particle in the following format:
 
 The SIOT Particle client populates the point `key` field with the 1-wire device
 ID.
-
-_(In the future, we will likely change the format slightly to be named `points`,
-instead of `sample`)_
 
 ![gw](images/gw.jpg)
 

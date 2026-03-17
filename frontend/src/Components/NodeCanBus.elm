@@ -60,7 +60,7 @@ view o =
                             text <|
                                 "Signals in db: "
                                     ++ String.fromFloat (Round.roundNum 2 (Point.getValue o.node.points Point.typeSignalsInDb "0"))
-                    , counterWithReset Point.typeMsgsRecvdDb Point.typeMsgsRecvdDbReset "Db msgs recieved"
+                    , counterWithReset Point.typeMsgsRecvdDb Point.typeMsgsRecvdDbReset "Db msgs received"
                     , counterWithReset Point.typeMsgsRecvdOther Point.typeMsgsRecvdOtherReset "Other msgs recvd"
                     , checkboxInput Point.typeDisabled "Disabled"
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"

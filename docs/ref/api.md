@@ -4,7 +4,7 @@
 
 <!-- toc -->
 
-The Simple IoT server currently provides both Http and NATS.io APIs. We've tried
+The Simple IoT server currently provides both HTTP and NATS.io APIs. We've tried
 to keep the two APIs a similar as possible so it is easy to switch from one to
 the other. The Http API currently accepts JSON, and the NATS API uses a binary
 encoding for points and protobuf for node requests.
@@ -18,9 +18,9 @@ coming months.**
 between various system components (device, cloud, and web UI). These three parts
 of the system make IoT systems inherently distributed. NATS focuses on
 simplicity and is written in Go which ensures the Go client is a 1st class
-citizen and also allows for interesting possibilities such as embedding in the
-NATS server in various parts of the system. This allows us to keep our
-one-binary deployment model.
+citizen and allows for interesting possibilities such as embedding in the NATS
+server in various parts of the system. This allows us to keep our one-binary
+deployment model.
 
 The `siot` binary embeds the NATS server, so there is no need to deploy and run
 a separate NATS server.
@@ -40,7 +40,7 @@ the subject.
     - `parent="root" and id="all"` to fetch the root node(s).
     - The following combinations are invalid:
       - `parent="all" && id="all"`
-    - parameters can be specified as points in payload
+    - Parameters can be specified as points in payload
       - `tombstone` with value field set to 1 will include deleted points
       - `nodeType` with text field set to node type will limit returned nodes to
         this type
@@ -52,7 +52,7 @@ the subject.
   - `phr.<nodeId>` (not currently used)
     - high rate point data
   - `phrup.<upstreamId>.<nodeId>`
-    - high rate point data re-broadcasted upstream. `upstreamId` is the parent
+    - High rate point data is rebroadcast upstream. `upstreamId` is the parent
       of the node that is interested in HR data (currently the db node).
       `nodeId` is the node that is providing the HR data. In the case of a
       custom HR Dest Node (serial client), the serial client may not be a child
@@ -65,7 +65,7 @@ the subject.
   - `up.<upstreamId>.<nodeId>.<parentId>.<type>.<key>`
     - edge points rebroadcast at every upstream node ID.
   - `history.<nodeId>`
-    - Request/response -- payload is a JSON-encoded `HistoryQuery` struct.
+    - Request/response - payload is a JSON-encoded `HistoryQuery` struct.
       Returns a JSON-encoded `data.HistoryResult`.
 - Legacy APIs that are being deprecated
   - `node.<id>.not`
@@ -75,29 +75,29 @@ the subject.
     - used when a node sends a message (SMS, email, phone call, etc). This is
       typically initiated by a [notification](./notifications.md).
   - `node.<id>.file` (not currently implemented)
-    - is used to transfer files to a node in chunks, which is optimized for
-      unreliable networks like cellular and is handy for transfering software
+    - Is used to transfer files to a node in chunks, which is optimized for
+      unreliable networks like cellular and is handy for transferring software
       update files.
 - Auth
   - `auth.user`
-    - used to authenticate a user. Send a request with email/password points,
+    - Used to authenticate a user. Send a request with email/password points,
       and the system will respond with the User nodes if valid. There may be
       multiple user nodes if the user is instantiated in multiple places in the
       node graph. A JWT node will also be returned with a token point. This JWT
       should be used to authenticate future requests. The frontend can then
       fetch the parent node for each user node.
   - `auth.getNatsURI`
-    - this returns the NATS URI and Auth Token as points. This is used in cases
+    - This returns the NATS URI and Auth Token as points. This is used in cases
       where the client needs to set up a new connection to specify the no-echo
       option, or other features.
 - Admin
   - `admin.error` (not implemented yet)
-    - any errors that occur are sent to this subject
+    - Any errors that occur are sent to this subject
   - `admin.storeVerify`
-    - used to initiate a database verification process. This currently verifies
+    - Used to initiate a database verification process. This currently verifies
       hash values are correct and responds with an error string.
   - `admin.storeMaint`
-    - corrects errors in the store (current incorrect hash values)
+    - Corrects errors in the store (current incorrect hash values)
 
 ## HTTP
 
@@ -105,7 +105,7 @@ For details on data payloads, it is simplest to just refer to the Go types which
 have JSON tags. HTTP APIs currently return JSON payloads.
 
 Most APIs that do not return specific data (update/delete) return a
-[StandardResponse](https://github.com/simpleiot/simpleiot/blob/master/data/api.go)
+[standard response](https://github.com/simpleiot/simpleiot/blob/master/data/api.go)
 
 - Nodes
   - [data structure](https://github.com/simpleiot/simpleiot/blob/master/data/node.go)
@@ -119,13 +119,13 @@ Most APIs that do not return specific data (update/delete) return a
   - `/v1/nodes/:id/parents`
     - POST: move node to new parent
     - PUT: mirror/duplicate node
-    - body is JSON api/nodes.go:NodeMove or NodeCopy structs
+    - body is JSON `api/nodes.go`:`NodeMove` or `NodeCopy` structs
   - `/v1/nodes/:id/points`
     - POST: post points for a node
   - `/v1/nodes/:id/cmd`
     - GET: gets a command for a node and clears it from the queue. Also clears
-      the CmdPending flag in the Device state.
-    - POST: posts a cmd for the node and sets the node CmdPending flag.
+      the `CmdPending` flag in the Device state.
+    - POST: posts a `cmd` for the node and sets the node `CmdPending` flag.
   - `/v1/nodes/:id/not`
     - POST: send a
       [notification](https://github.com/simpleiot/simpleiot/blob/master/data/notification.go)

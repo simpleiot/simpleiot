@@ -17,7 +17,7 @@ None of the generated Strings include timezone postfix.
 @docs toDateTimeString
 
 
-## Mode for different precission
+## Mode for different precision
 
 @docs Mode
 
@@ -33,7 +33,7 @@ None of the generated Strings include timezone postfix.
 import Time exposing (Month, Posix, Zone)
 
 
-{-| The precission of the resulting String can be defined by the Mode parameter
+{-| The precision of the resulting String can be defined by the Mode parameter
 
 The resulting string will have the following format
 

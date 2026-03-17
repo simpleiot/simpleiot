@@ -6,7 +6,7 @@ Environment variables are used to control various aspects of the application.
 The following are currently defined:
 
 - **General**
-  - `SIOT_HTTP_PORT`: http network port the SIOT server attaches to (default
+  - `SIOT_HTTP_PORT`: HTTP network port the SIOT server attaches to (default
     is 8118)
   - `SIOT_DATA`: directory where any data is stored
   - `SIOT_AUTH_TOKEN`: auth token used for NATS and HTTP device API, default is
@@ -25,12 +25,12 @@ The following are currently defined:
     used.
   - `SIOT_NATS_TLS_KEY`: points to TLS certificate key
   - `SIOT_NATS_TLS_TIMEOUT`: Configure the TLS upgrade timeout. NATS defaults to
-    a 0.5s timeout for TLS upgrade, but that is too short for some embedded
-    systems that run on low end CPUs connected over cellular modems (we've see
-    this process take as long as 4s). See NATS
+    a 0.5 second timeout for TLS upgrade, but that is too short for some
+    embedded systems that run on low end CPUs connected over cellular modems
+    (we've see this process take as long as 4 seconds). See NATS
     [documentation](https://docs.nats.io/nats-server/configuration/securing_nats/tls#tls-timeout)
     for more information.
-  - `SIOT_NATS_WS_PORT`: Port to run NATS websocket (default is 9222, set to 0
+  - `SIOT_NATS_WS_PORT`: Port to run NATS WebSocket (default is 9222, set to 0
     to disable)
 - **Particle.io**
   - `SIOT_PARTICLE_API_KEY`: key used to fetch data from Particle.io devices
@@ -40,9 +40,9 @@ The following are currently defined:
 
 Nodes can be exported to a YAML file. This is a useful to:
 
-- backup the current configuration
-- dump node data for debugging
-- transfer a configuration or part of a configuration from one instance to
+- Back up the current configuration
+- Dump node data for debugging
+- Transfer a configuration or part of a configuration from one instance to
   another
 
 To export the entire tree:
@@ -57,7 +57,7 @@ A subset of the tree can be exported by specifying the node ID:
 
 Nodes defined in a YAML file can be imported into a running SIOT instance using
 the CLI, or the Go API. When using the CLI, the import file must be specified on
-STDIN. If there are any node IDs in the import they are mapped to new IDs to
+`STDIN`. If there are any node IDs in the import they are mapped to new IDs to
 eliminate any possibility of ID conflicts if the config is imported into
 multiple systems with a common upstream sync, etc.
 
@@ -80,10 +80,10 @@ code still running that caches the root ID which has now changed.
 
 Again, by default, the import command will create new IDs to minimize the chance
 of any ID conflicts. If you want to preserve the IDs in the YAML file, you can
-specify the `-preserveIDs` option -- **WARNING**, use this option with caution.
+specify the `-preserveIDs` option - **WARNING**, use this option with caution.
 Importing a backup to `root` with `-preserveIDs` is a handy way to restore a
 system to a known previous state. However, new nodes that don't exist in the
-backup will not be deleted -- the import only adds nodes/points.
+backup will not be deleted - the import only adds nodes/points.
 
 If authentication or a different server is required, this can be specified
 through command line arguments or the following environment variables (see

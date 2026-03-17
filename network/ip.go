@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-// GetIP returns the IP address for the itnerface
+// GetIP returns the IP address for the interface
 func GetIP(ifaceName string) (string, error) {
 	iface, err := net.InterfaceByName(ifaceName)
 	if err != nil {

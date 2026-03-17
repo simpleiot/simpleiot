@@ -50,14 +50,13 @@ presented with the following options:
 
 ![paste options](images/paste-options.png)
 
-- **move** - moves a node to new location
-- **mirror** - is useful if you want a user or device to be a member of multiple
-  groups. If you change a node, all of the mirror copies of the node update as
+- `move` - moves a node to new location
+- `mirror` - is useful if you want a user or device to be a member of multiple
+  groups. If you change a node, all the mirror copies of the node update as
   well.
-- **duplicate** - recursively duplicates the copied node plus all its
-  descendants. This is useful for scenarios where you have a device or site
-  configuration (perhaps a complex Modbus setup) that you want to duplicate at a
-  new site.
+- `duplicate` - recursively duplicates the copied node plus all its descendants.
+  This is useful for scenarios where you have a device or site configuration
+  (perhaps a complex Modbus setup) that you want to duplicate at a new site.
 
 ## Raw Node View
 

@@ -11,7 +11,7 @@ Point data can be stored in an InfluxDB 2.0 Database by adding a Database node:
 
 The following InfluxDB tags are added to every point:
 
-- `node.id` (typically a UUID)
+- `node.id` (typically an UUID)
 - `node.type` (extracted from the type field in the edge data structure)
 - `node.description` (generated from the `description` point from the node)
 
@@ -44,6 +44,6 @@ samples as the long string is only stored once.
 ## Victoria Metrics
 
 Victoria Metrics
-[supports the InfluxDB v2](https://docs.victoriametrics.com/#how-to-send-data-in-influxdb-v2-format)
+[supports the InfluxDB version 2](https://docs.victoriametrics.com/#how-to-send-data-in-influxdb-v2-format)
 line protocol; therefore, it can be used for numerical data. Victoria Metrics
 [does not support storing strings](https://stackoverflow.com/questions/66406899/does-victoriametrics-have-some-way-to-store-string-value-instead-float64).

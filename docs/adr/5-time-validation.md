@@ -16,7 +16,7 @@ to deploy to edge systems, some with cellular modem connections and some without
 battery backed RTC, so they may boot without a valid time.
 
 SIOT is very dependent on data having valid timestamps. If timestamps are not correct,
-the following probems may occur:
+the following problems may occur:
 
 - old data may be preferred over newer data in the point CRDT merge algorithm
 - data stored in time series databases may have the wrong time stamps

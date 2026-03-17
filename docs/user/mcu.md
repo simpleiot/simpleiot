@@ -2,7 +2,7 @@
 
 Microcontroller (MCU) devices can be connected to Simple IoT systems via various
 serial transports (RS232, RS485, CAN, and USB Serial). The
-[Arduino](https://www.arduino.cc/) platform is one example of a MCU platform
+[Arduino](https://www.arduino.cc/) platform is one example of an MCU platform
 that is easy to use and program. Simple IoT provides a serial interface module
 that can be used to interface with these systems. The combination of a laptop or
 a Raspberry PI makes a useful lab device for monitoring analog and digital
@@ -17,9 +17,12 @@ details on this client.
 
 ## File Download
 
-Files (or larger chunks of data) can be downloaded to the MCU by adding a [File](file.md) node to the serial node. Any child File node will then show up as a download option.
+Files (or larger chunks of data) can be downloaded to the MCU by adding a
+[File](file.md) node to the serial node. Any child File node will then show up
+as a download option.
 
-​		<img src="assets/image-20240903123623959.png" alt="image-20240903123623959" style="zoom:50%;" />
+​
+<img src="assets/image-20240903123623959.png" alt="image-20240903123623959" style="zoom:50%;" />
 
 ## Debug Levels
 
@@ -34,7 +37,9 @@ You can set the following debug levels to log information.
 
 ## Zephyr Examples
 
-The [zephyr-siot](https://github.com/simpleiot/zephyr-siot) repository contains examples of MCU firmware that can interface with Simple IoT over serial, USB, and Network connections. This is a work in progress and is not complete.
+The [zephyr-siot](https://github.com/simpleiot/zephyr-siot) repository contains
+examples of MCU firmware that can interface with Simple IoT over serial, USB,
+and Network connections. This is a work in progress and is not complete.
 
 ## Arduino Examples (no longer maintained)
 

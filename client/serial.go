@@ -122,7 +122,7 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 				return
 			}
 
-			// only send points whose orgin is not the serial node ID as those are just
+			// only send points whose origin is not the serial node ID as those are just
 			// getting echo'd back
 			var pointsToSend data.Points
 
@@ -304,7 +304,7 @@ func (sd *SerialDevClient) Run() error {
 		binary.LittleEndian.PutUint32(b, uint32(dlState.currentBlock))
 		_, err = dlState.packet.Write(b)
 		if err != nil {
-			log.Println("Error writing block numbr to packet: ", err)
+			log.Println("Error writing block number to packet: ", err)
 			dlFileStop()
 			return
 		}

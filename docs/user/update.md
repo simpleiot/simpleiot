@@ -13,16 +13,15 @@ There are several options:
 - **Update server**: HTTP server that contains the following files:
   - files.txt: contains a list of update files on the server
   - update files named: `<prefix>_<version>.upd`
-    - _version_ should follow [Semantic Versioning](https://semver.org/):
+    - `version` should follow [Semantic Versioning](https://semver.org/):
       `MAJOR.MINOR.PATCH`
-    - _prefix_ must match what the updater on the target device is expecting --
+    - `prefix` must match what the updater on the target device is expecting
       typically host/machine name.
-- **Prefix**: described above -- typically host/machine name. This is
-  autodetected on first startup, but can be changed if necessary.
-- **Dest dir**: Destination directory for downloaded updates. Defaults to
-  `/data`.
-- **Chk interval**: time interval at which the client checks for new updates.
-- **Auto download**: option to periodically check the server for new updates and
+- `prefix`: described above - typically host/machine name. This is auto detected
+  on first startup, but can be changed if necessary.
+- `Dest dir`: Destination directory for downloaded updates. Defaults to `/data`.
+- `Chk interval`: time interval at which the client checks for new updates.
+- `Auto download`: option to periodically check the server for new updates and
   download the latest version.
-- **Auto reboot/install**: option to auto install/reboot if a new version is
+- `Auto reboot/install`: option to auto install/reboot if a new version is
   detected and downloaded.

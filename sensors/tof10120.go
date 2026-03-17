@@ -79,7 +79,7 @@ func (tof *TOF10120) SetSendInterval(interval int) error {
 	return nil
 }
 
-// Read returns the distance in mm. The sensor continuously ouputs
+// Read returns the distance in mm. The sensor continuously outputs
 // readings so the callback is called each time a new reading is
 // read.
 func (tof *TOF10120) Read(dataCallback func(dist int),

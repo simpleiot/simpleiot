@@ -34,7 +34,7 @@ func (p *PDU) handleError(err error) (bool, PDU, error) {
 
 // ProcessRequest a modbus request. Registers are read and written
 // through the server interface argument.
-// This function returns any register changes, the modbus respose,
+// This function returns any register changes, the modbus response,
 // and any errors
 func (p *PDU) ProcessRequest(regs RegProvider) (bool, PDU, error) {
 	regsChanged := false
@@ -222,7 +222,7 @@ func (p *PDU) RespReadRegs() ([]uint16, error) {
 // Add address units below are the packet address, typically drop
 // first digit from register and subtract 1
 
-// ReadDiscreteInputs creates PDU to read descrete inputs
+// ReadDiscreteInputs creates PDU to read discrete inputs
 func ReadDiscreteInputs(address uint16, count uint16) PDU {
 	return PDU{
 		FunctionCode: FuncCodeReadDiscreteInputs,

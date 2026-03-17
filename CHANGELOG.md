@@ -348,7 +348,7 @@ For more details or to discuss releases, please visit the
   - frontend: store JWT key in db
 - use [air](github.com/cosmtrek/air) instead of entr for watching Go files
   during development. This allows `siot_watch` to work on MacOS, and should also
-  be userful in a Windows dev setup.
+  be useful in a Windows dev setup.
 
 See the [Hot reloading the Simple IoT UI](https://youtu.be/_Nrs2_l62_Q) for a
 demo of these changes.
@@ -368,7 +368,7 @@ demo of these changes.
 ## [[0.6.1] - 2022-12-01](https://github.com/simpleiot/simpleiot/releases/tag/v0.6.1)
 
 - fix bug in influx db client due to recent API changes
-- fix bug in client manager where Stop() hangs if Start() has already exitted
+- fix bug in client manager where Stop() hangs if Start() has already exited
 - don't allow deleting of root node
 - allow configuring of root node ID, otherwise UUID is used
 - sync:
@@ -446,11 +446,11 @@ You can now do things like:
   - fix race condition in http api shutdown
   - shutdown nats client after the rest of the apps
   - store: close nats subscriptions on shutdown
-- Addeed Signal generator -- can be used to generate arbitrary signals
+- Added Signal generator -- can be used to generate arbitrary signals
   (currently, high rate Sine waves only)
 - add NATS subjects for high rate data (see [API](docs/ref/api.md))
 - add [test app](cmd/point-size/main.go) to determine point protobuf sizes
-- fix syncronization problem on shutdown -- need to wait for clients to close
+- fix synchronization problem on shutdown -- need to wait for clients to close
   before closing store, otherwise we can experience delays on node fetch
   timeouts.
 - fix issue when updating multiple points in one NATS message (only the first
@@ -596,7 +596,7 @@ IDs can now be copied and pasted.
 ![copy options](https://user-images.githubusercontent.com/402813/153455487-66bc2699-1026-40de-9ca6-4f30f91aeff9.png)
 
 See
-[documenation](https://docs.simpleiot.org/docs/user/ui.html#deleting-moving-mirroring-and-duplicating-nodes)
+[documentation](https://docs.simpleiot.org/docs/user/ui.html#deleting-moving-mirroring-and-duplicating-nodes)
 or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
 
 ## [[0.0.43] - 2022-03-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.43)
@@ -694,7 +694,7 @@ or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
   just first match
 - implement schedule conditions for rules
 - switch from github.com/dgrijalva/jwt-go to github.com/golang-jwt/jwt/v4
-- update frontend dependencies to satisify github security checks
+- update frontend dependencies to satisfy github security checks
 
 ## [[0.0.32] - 2021-08-11](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.32)
 
@@ -760,7 +760,7 @@ or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
 - Modbus: TCP listen on all interfaces instead of just localhost
 - UI
   - add dot for nodes that don't have children
-  - don't sort nodes while editting, only on fetch
+  - don't sort nodes while editing, only on fetch
   - sort nodes by group, then desc, then firstname, then lastname
   - move/copy node can use node ID or description
   - add node icons to add node descriptions
@@ -833,10 +833,10 @@ or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
 ## [[0.0.13] - 2020-11-03](https://github.com/simpleiot/simpleiot/releases/tag/v0.0.13)
 
 - edge:
-  - fixed issue with backoff algorith not adhearing to max
+  - fixed issue with backoff algorithm not adhering to max
 - backend:
   - switched data structure name from device -> node -- see
-  - this issue for dicussion
+  - [this issue](https://github.com/simpleiot/simpleiot/issues/91) for discussion
   - add page to message (currently SMS only) all users
   - UI simplification and cleanup
   - sort users on users page
@@ -859,7 +859,7 @@ old version of SIOT and them import with the new version.
 
 - backend:
   - switched data structure name from device -> node -- see
-    [this issue](https://github.com/simpleiot/simpleiot/issues/91) for dicussion
+    [this issue](https://github.com/simpleiot/simpleiot/issues/91) for discussion
   - add page to message (currently SMS only) all users
   - UI simplification and cleanup
   - sort users on users page

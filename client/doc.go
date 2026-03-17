@@ -1,5 +1,5 @@
 /*
-Package client contains utilties for creating Simple IoT clients.
+Package client contains utilities for creating Simple IoT clients.
 
 A Simple IoT Client contains the logic for nodes described in the Simple IoT graph store.
 Examples of built in clients include: Modbus, 1-wire, Upstream, etc.

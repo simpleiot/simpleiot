@@ -24,9 +24,9 @@ and mobile devices access a subset of the system data.
 Any `siot` app can function as a standalone, client, server or both. As an
 example, `siot` can function both as an edge (client) and cloud apps (server).
 
-- full client: full siot node that initiates and maintains connection with
-  another siot instance on a server. Can be behind a firewall, NAT, etc.
-- server: needs to be on a network that is accessible by clients
+- Full client: full SIOT node that initiates and maintains connection with
+  another SIOT instance on a server. Can be behind a firewall, NAT, etc.
+- Server: needs to be on a network that is accessible by clients
 
 We also need the concept of a lean client where an effort is made to minimize
 the application size to facilitate updates over IoT cellular networks where data
@@ -38,29 +38,29 @@ In an IoT system, data from sensors is continually streaming, so we need some
 type of messaging system to transfer the data between various instances in the
 system. This project uses NATS.io for messaging. Some reasons:
 
-- allows us to [push realtime data](https://youtu.be/REZ6DKvRVv0) to an edge
-  device behind a NAT, on cellular network, etc -- no public IP address, VPN,
-  etc required.
-- is more efficient than HTTP as it shares one persistent TCP connection for all
+- Allows us to [push real-time data](https://youtu.be/REZ6DKvRVv0) to an edge
+  device behind a NAT, on cellular network, etc. - no public IP address, VPN,
+  etc. required.
+- Is more efficient than HTTP as it shares one persistent TCP connection for all
   messages. The overhead and architecture is similar to MQTT, which is proven to
   be a good IoT solution. It may also use less resources than something like
   observing resources in CoAP systems, where each observation requires a
   separate persistent connection.
-- can scale out with multiple servers to provide redundancy or more capacity.
-- is written in Go, so possible to embed the server to make deployments simpler
+- Can scale out with multiple servers to provide redundancy or more capacity.
+- Is written in Go, so possible to embed the server to make deployments simpler
   for small systems. Also, Go services are easy to manage as there are no
   dependencies.
-- focus on simplicity -- values fit this project.
-- good security model.
+- Focus on simplicity - values fit this project.
+- Good security model.
 
 For systems that only need to send one value several times a day, CoAP is
 probably a better solution than NATS. Initially we are focusing on systems that
-send more data -- perhaps 5-30MB/month. There is no reason we can't support CoAP
+send more data - perhaps 5-30MB/month. There is no reason we can't support CoAP
 as well in the future.
 
 ## Data modification
 
-Where possible, modifying data (especially nodes) should be initiated over nats
+Where possible, modifying data (especially nodes) should be initiated over NATS
 vs direct db calls. This ensures anything in the system can have visibility into
 data changes. Eventually we may want to hide db operations that do writes to
 force them to be initiated through a NATS message.
@@ -71,8 +71,8 @@ force them to be initiated through a NATS message.
 
 As we work on IoT systems, data structures (types) tend to emerge. Common data
 structures allow us to develop common algorithms and mechanism to process data.
-Instead of defining a new data type for each type of sensor, define one type
-that will work with all sensors. Then the storage (both static and time-series),
+Instead of defining a new datatype for each type of sensor, define one type that
+will work with all sensors. Then the storage (both static and time-series),
 synchronization, charting, and rule logic can stay the same and adding
 functionality to the system typically only involves changing the edge
 application and the frontend UI. Everything between these two end points can
@@ -88,7 +88,7 @@ See [Data](data.md) for more information.
 The same Simple IoT application can run in both the cloud and device instances.
 The node tree in a device would then become a subset of the nodes in the cloud
 instance. Changes can be made to nodes in either the cloud or device and data is
-sycnronized in both directions.
+synchronized in both directions.
 
 ![cloud device node tree](images/cloud-device-node-tree.png)
 
@@ -120,8 +120,8 @@ The distributed parts of the system include the following instances:
 - **Cloud** (could be multiple for redundancy). The cloud instances would
   typically store and synchronize the root node and everything under it.
 - **Edge Devices** (typically many instances (1000's) connected via low
-  bandwidth cellular data). Edge instances would would store and synchronize the
-  edge node instance and descendants (ex Edge Device 1)
+  bandwidth cellular data). Edge instances would store and synchronize the edge
+  node instance and descendants (ex Edge Device 1)
 - **Web UI** (potentially dozens of instances connected via higher bandwidth
   browser connection).
 

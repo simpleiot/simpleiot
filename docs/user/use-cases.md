@@ -9,10 +9,11 @@ users want to remotely monitor and control these devices.
 
 Some examples systems include:
 
-- [irrigation monitoring](https://youtu.be/REZ6DKvRVv0)
-- alarm/building control
-- industrial vehicle monitoring (commercial mowers, agricultural equipment, etc)
-- factory automation
+- [Irrigation monitoring](https://youtu.be/REZ6DKvRVv0)
+- Alarm/building control
+- Industrial vehicle monitoring (commercial mowers, agricultural equipment,
+  etc.)
+- Factory automation
 
 SIOT is optimized for systems where you run Embedded Linux at the edge and have
 fairly complex config/state that needs synchronized between the edge and the
@@ -44,4 +45,4 @@ instances at multiple levels.
 ![multiple upstream](images/multiple-upstream.png)
 
 This flexibility allows us to run rules and other logic at any level (cloud,
-local server, or edge gateway) -- wherever it makes sense.
+local server, or edge gateway) - wherever it makes sense.

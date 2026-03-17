@@ -56,7 +56,7 @@ func TestFifo(t *testing.T) {
 		t.Fatal("did not get test string back")
 	}
 
-	// verfy fifo reads with no data block
+	// verify fifo reads with no data block
 	readReturned := make(chan struct{})
 	go func() {
 		_, _ = a.Read(buf)

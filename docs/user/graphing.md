@@ -8,8 +8,8 @@ series data and viewing this data in graphs.
 [InfluxDB](https://www.influxdata.com/products/influxdb-overview/) is currently
 the recommended way to store historical data. This database is efficient and can
 run on embedded platforms like the Raspberry PI as well as desktop and server
-machines. To connect SIOT to InfluxDB, add a [database node](database.md) node
-and fill in the parameters.
+machines. To connect SIOT to InfluxDB, add a [database node](database.md) and
+fill in the parameters.
 
 ## Grafana
 
@@ -26,7 +26,7 @@ below:
 ![image-20240319110846431](assets/image-20240319110846431.png)
 
 Often, much of this data is irrelevant or redundant with the query. One way to
-change the label is with a Override:
+change the label is with an Override:
 
 <img src="assets/image-20240319111845396.png" alt="image-20240319111845396" style="zoom:50%;" />
 

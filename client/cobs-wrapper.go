@@ -52,7 +52,7 @@ func cobsDecodeInplace(b []byte) (int, error) {
 	// used to skip leading zeros
 	foundStart := false
 
-	// define input and output indicies
+	// define input and output indices
 	var iIn, iOut int
 	var off, iOff uint8
 

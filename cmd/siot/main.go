@@ -329,7 +329,7 @@ func runInstall(args []string) {
 		input = strings.ToLower(input)
 
 		if input != "yes" {
-			log.Fatal("Exitting install")
+			log.Fatal("Exiting install")
 		}
 	}
 
@@ -385,7 +385,7 @@ func runInstall(args []string) {
 	}
 
 	log.Println("Install success!")
-	log.Println("Please update ports in service file if you want someting other than defaults")
+	log.Println("Please update ports in service file if you want something other than defaults")
 }
 
 func runImport(args []string) {

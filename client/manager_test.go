@@ -134,7 +134,7 @@ func TestManager(t *testing.T) {
 		t.Fatal("Test client not created")
 	}
 
-	// verify config got passed in to the constructer
+	// verify config got passed in to the constructor
 	currentConfig := testClient.getConfig()
 	if currentConfig != testConfig {
 		t.Errorf("Initial test config is not correct, exp %+v, got %+v", testConfig, currentConfig)
@@ -249,7 +249,7 @@ func TestManagerAddRemove(t *testing.T) {
 		t.Fatal("Timeout waiting for new client to be created")
 	}
 
-	// verify config got passed in to the constructer
+	// verify config got passed in to the constructor
 	currentConfig := testClient.getConfig()
 	// ID was not populated when we originally created the node
 	testConfig.ID = currentConfig.ID
@@ -436,7 +436,7 @@ func TestManagerChildren(t *testing.T) {
 		t.Fatal("Test client not created")
 	}
 
-	// verify config got passed in to the constructer
+	// verify config got passed in to the constructor
 	currentConfig := testClient.getConfig()
 
 	if currentConfig.ID != testXConfig.ID {
@@ -621,7 +621,7 @@ func TestManagerLotsChildren(t *testing.T) {
 			count = len(c.config.TestYs)
 			// fmt.Println("Len of Ys: ", count)
 			if count == yCount {
-				fmt.Println("Yay, got right nuber of y's")
+				fmt.Println("Yay, got right number of y's")
 				return
 			}
 		case err := <-startErr:
