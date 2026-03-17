@@ -25,8 +25,7 @@ remaining work is substantial — the old `Value`/`Text` fields are referenced i
   wire format. Point.ToPb/PbToPoint retained for Node encoding only.
 - **Phase 5**: COMPLETE — Elm Point type updated with dataType field. All
   positional constructors updated. Frontend compiles and tests pass.
-- **Phase 6a**: IN PROGRESS — Separate edge points to `ep.` prefix first, then
-  add type/key to subjects in Phase 6b.
+- **Phase 6a**: COMPLETE — Edge points moved to `ep.` prefix.
 - **Phase 6b**: TODO — Add type/key segments to subjects once `ep.` separation
   is stable.
 - **Phase 7-8**: TODO
