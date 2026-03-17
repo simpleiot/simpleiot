@@ -76,10 +76,10 @@ proto.pb.FileChunk.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.FileChunk.toObject = function(includeInstance, msg) {
   var f, obj = {
-    state: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    seq: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    data: msg.getData_asB64(),
-    filename: jspb.Message.getFieldWithDefault(msg, 4, "")
+state: jspb.Message.getFieldWithDefault(msg, 1, 0),
+seq: jspb.Message.getFieldWithDefault(msg, 2, 0),
+data: msg.getData_asB64(),
+filename: jspb.Message.getFieldWithDefault(msg, 4, "")
   };
 
   if (includeInstance) {

@@ -165,14 +165,13 @@ proto.pb.Point.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.Point.toObject = function(includeInstance, msg) {
   var f, obj = {
-    type: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    value: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
-    time: (f = msg.getTime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-    text: jspb.Message.getFieldWithDefault(msg, 8, ""),
-    key: jspb.Message.getFieldWithDefault(msg, 11, ""),
-    tombstone: jspb.Message.getFieldWithDefault(msg, 12, 0),
-    data: msg.getData_asB64(),
-    origin: jspb.Message.getFieldWithDefault(msg, 15, "")
+type: jspb.Message.getFieldWithDefault(msg, 2, ""),
+time: (f = msg.getTime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+key: jspb.Message.getFieldWithDefault(msg, 11, ""),
+tombstone: jspb.Message.getFieldWithDefault(msg, 12, 0),
+data: msg.getData_asB64(),
+origin: jspb.Message.getFieldWithDefault(msg, 15, ""),
+datatype: jspb.Message.getFieldWithDefault(msg, 16, 0)
   };
 
   if (includeInstance) {
@@ -213,18 +212,10 @@ proto.pb.Point.deserializeBinaryFromReader = function(msg, reader) {
       var value = /** @type {string} */ (reader.readString());
       msg.setType(value);
       break;
-    case 4:
-      var value = /** @type {number} */ (reader.readDouble());
-      msg.setValue(value);
-      break;
     case 5:
       var value = new google_protobuf_timestamp_pb.Timestamp;
       reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
       msg.setTime(value);
-      break;
-    case 8:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setText(value);
       break;
     case 11:
       var value = /** @type {string} */ (reader.readString());
@@ -241,6 +232,10 @@ proto.pb.Point.deserializeBinaryFromReader = function(msg, reader) {
     case 15:
       var value = /** @type {string} */ (reader.readString());
       msg.setOrigin(value);
+      break;
+    case 16:
+      var value = /** @type {number} */ (reader.readInt32());
+      msg.setDatatype(value);
       break;
     default:
       reader.skipField();
@@ -278,26 +273,12 @@ proto.pb.Point.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getValue();
-  if (f !== 0.0) {
-    writer.writeDouble(
-      4,
-      f
-    );
-  }
   f = message.getTime();
   if (f != null) {
     writer.writeMessage(
       5,
       f,
       google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
-    );
-  }
-  f = message.getText();
-  if (f.length > 0) {
-    writer.writeString(
-      8,
-      f
     );
   }
   f = message.getKey();
@@ -328,6 +309,13 @@ proto.pb.Point.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
+  f = message.getDatatype();
+  if (f !== 0) {
+    writer.writeInt32(
+      16,
+      f
+    );
+  }
 };
 
 
@@ -346,24 +334,6 @@ proto.pb.Point.prototype.getType = function() {
  */
 proto.pb.Point.prototype.setType = function(value) {
   return jspb.Message.setProto3StringField(this, 2, value);
-};
-
-
-/**
- * optional double value = 4;
- * @return {number}
- */
-proto.pb.Point.prototype.getValue = function() {
-  return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 4, 0.0));
-};
-
-
-/**
- * @param {number} value
- * @return {!proto.pb.Point} returns this
- */
-proto.pb.Point.prototype.setValue = function(value) {
-  return jspb.Message.setProto3FloatField(this, 4, value);
 };
 
 
@@ -401,24 +371,6 @@ proto.pb.Point.prototype.clearTime = function() {
  */
 proto.pb.Point.prototype.hasTime = function() {
   return jspb.Message.getField(this, 5) != null;
-};
-
-
-/**
- * optional string text = 8;
- * @return {string}
- */
-proto.pb.Point.prototype.getText = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 8, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.pb.Point} returns this
- */
-proto.pb.Point.prototype.setText = function(value) {
-  return jspb.Message.setProto3StringField(this, 8, value);
 };
 
 
@@ -518,6 +470,24 @@ proto.pb.Point.prototype.setOrigin = function(value) {
 };
 
 
+/**
+ * optional int32 dataType = 16;
+ * @return {number}
+ */
+proto.pb.Point.prototype.getDatatype = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 16, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.pb.Point} returns this
+ */
+proto.pb.Point.prototype.setDatatype = function(value) {
+  return jspb.Message.setProto3IntField(this, 16, value);
+};
+
+
 
 /**
  * List of repeated fields within this message type.
@@ -557,7 +527,7 @@ proto.pb.Points.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.Points.toObject = function(includeInstance, msg) {
   var f, obj = {
-    pointsList: jspb.Message.toObjectList(msg.getPointsList(),
+pointsList: jspb.Message.toObjectList(msg.getPointsList(),
     proto.pb.Point.toObject, includeInstance)
   };
 
@@ -710,14 +680,13 @@ proto.pb.SerialPoint.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.SerialPoint.toObject = function(includeInstance, msg) {
   var f, obj = {
-    type: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    value: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
-    time: jspb.Message.getFieldWithDefault(msg, 16, 0),
-    text: jspb.Message.getFieldWithDefault(msg, 8, ""),
-    key: jspb.Message.getFieldWithDefault(msg, 11, ""),
-    tombstone: jspb.Message.getFieldWithDefault(msg, 12, 0),
-    data: msg.getData_asB64(),
-    origin: jspb.Message.getFieldWithDefault(msg, 15, "")
+type: jspb.Message.getFieldWithDefault(msg, 2, ""),
+time: jspb.Message.getFieldWithDefault(msg, 16, 0),
+key: jspb.Message.getFieldWithDefault(msg, 11, ""),
+tombstone: jspb.Message.getFieldWithDefault(msg, 12, 0),
+data: msg.getData_asB64(),
+origin: jspb.Message.getFieldWithDefault(msg, 15, ""),
+datatype: jspb.Message.getFieldWithDefault(msg, 17, 0)
   };
 
   if (includeInstance) {
@@ -758,17 +727,9 @@ proto.pb.SerialPoint.deserializeBinaryFromReader = function(msg, reader) {
       var value = /** @type {string} */ (reader.readString());
       msg.setType(value);
       break;
-    case 4:
-      var value = /** @type {number} */ (reader.readFloat());
-      msg.setValue(value);
-      break;
     case 16:
       var value = /** @type {number} */ (reader.readInt64());
       msg.setTime(value);
-      break;
-    case 8:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setText(value);
       break;
     case 11:
       var value = /** @type {string} */ (reader.readString());
@@ -785,6 +746,10 @@ proto.pb.SerialPoint.deserializeBinaryFromReader = function(msg, reader) {
     case 15:
       var value = /** @type {string} */ (reader.readString());
       msg.setOrigin(value);
+      break;
+    case 17:
+      var value = /** @type {number} */ (reader.readInt32());
+      msg.setDatatype(value);
       break;
     default:
       reader.skipField();
@@ -822,24 +787,10 @@ proto.pb.SerialPoint.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getValue();
-  if (f !== 0.0) {
-    writer.writeFloat(
-      4,
-      f
-    );
-  }
   f = message.getTime();
   if (f !== 0) {
     writer.writeInt64(
       16,
-      f
-    );
-  }
-  f = message.getText();
-  if (f.length > 0) {
-    writer.writeString(
-      8,
       f
     );
   }
@@ -871,6 +822,13 @@ proto.pb.SerialPoint.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
+  f = message.getDatatype();
+  if (f !== 0) {
+    writer.writeInt32(
+      17,
+      f
+    );
+  }
 };
 
 
@@ -893,24 +851,6 @@ proto.pb.SerialPoint.prototype.setType = function(value) {
 
 
 /**
- * optional float value = 4;
- * @return {number}
- */
-proto.pb.SerialPoint.prototype.getValue = function() {
-  return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 4, 0.0));
-};
-
-
-/**
- * @param {number} value
- * @return {!proto.pb.SerialPoint} returns this
- */
-proto.pb.SerialPoint.prototype.setValue = function(value) {
-  return jspb.Message.setProto3FloatField(this, 4, value);
-};
-
-
-/**
  * optional int64 time = 16;
  * @return {number}
  */
@@ -925,24 +865,6 @@ proto.pb.SerialPoint.prototype.getTime = function() {
  */
 proto.pb.SerialPoint.prototype.setTime = function(value) {
   return jspb.Message.setProto3IntField(this, 16, value);
-};
-
-
-/**
- * optional string text = 8;
- * @return {string}
- */
-proto.pb.SerialPoint.prototype.getText = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 8, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.pb.SerialPoint} returns this
- */
-proto.pb.SerialPoint.prototype.setText = function(value) {
-  return jspb.Message.setProto3StringField(this, 8, value);
 };
 
 
@@ -1042,6 +964,24 @@ proto.pb.SerialPoint.prototype.setOrigin = function(value) {
 };
 
 
+/**
+ * optional int32 dataType = 17;
+ * @return {number}
+ */
+proto.pb.SerialPoint.prototype.getDatatype = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 17, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.pb.SerialPoint} returns this
+ */
+proto.pb.SerialPoint.prototype.setDatatype = function(value) {
+  return jspb.Message.setProto3IntField(this, 17, value);
+};
+
+
 
 /**
  * List of repeated fields within this message type.
@@ -1081,7 +1021,7 @@ proto.pb.SerialPoints.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.SerialPoints.toObject = function(includeInstance, msg) {
   var f, obj = {
-    pointsList: jspb.Message.toObjectList(msg.getPointsList(),
+pointsList: jspb.Message.toObjectList(msg.getPointsList(),
     proto.pb.SerialPoint.toObject, includeInstance)
   };
 
@@ -1241,11 +1181,11 @@ proto.pb.PointArray.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.PointArray.toObject = function(includeInstance, msg) {
   var f, obj = {
-    starttime: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    type: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    key: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    samplerate: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
-    valuesList: (f = jspb.Message.getRepeatedFloatingPointField(msg, 5)) == null ? undefined : f
+starttime: jspb.Message.getFieldWithDefault(msg, 1, 0),
+type: jspb.Message.getFieldWithDefault(msg, 2, ""),
+key: jspb.Message.getFieldWithDefault(msg, 3, ""),
+samplerate: jspb.Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
+valuesList: (f = jspb.Message.getRepeatedFloatingPointField(msg, 5)) == null ? undefined : f
   };
 
   if (includeInstance) {

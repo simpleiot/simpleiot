@@ -75,14 +75,14 @@ proto.pb.Message.prototype.toObject = function(opt_includeInstance) {
  */
 proto.pb.Message.toObject = function(includeInstance, msg) {
   var f, obj = {
-    id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    userid: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    notificationid: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    email: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    phone: jspb.Message.getFieldWithDefault(msg, 5, ""),
-    subject: jspb.Message.getFieldWithDefault(msg, 6, ""),
-    message: jspb.Message.getFieldWithDefault(msg, 7, ""),
-    parentid: jspb.Message.getFieldWithDefault(msg, 8, "")
+id: jspb.Message.getFieldWithDefault(msg, 1, ""),
+userid: jspb.Message.getFieldWithDefault(msg, 2, ""),
+notificationid: jspb.Message.getFieldWithDefault(msg, 3, ""),
+email: jspb.Message.getFieldWithDefault(msg, 4, ""),
+phone: jspb.Message.getFieldWithDefault(msg, 5, ""),
+subject: jspb.Message.getFieldWithDefault(msg, 6, ""),
+message: jspb.Message.getFieldWithDefault(msg, 7, ""),
+parentid: jspb.Message.getFieldWithDefault(msg, 8, "")
   };
 
   if (includeInstance) {
