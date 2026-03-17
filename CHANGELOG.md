@@ -15,6 +15,17 @@ For more details or to discuss releases, please visit the
 
 - enable JetStream in embedded NATS server (ADR-7 Stage 2)
 - update NATS dependencies (nats.go v1.49.0, nats-server v2.12.5)
+- replace Point `Value`/`Text` fields with unified `DataType`/`Data` encoding
+  (ADR-7 Stage 1) (#742)
+- replace protobuf point encoding with compact binary format (#742)
+- move edge point NATS subjects to `ep.` prefix and add type/key to node point
+  subjects (#742)
+- add `dataType` field to Elm frontend Point type (#742)
+- add `MarshalYAML` for human-readable point export (#742)
+- add OOM protection to `DecodePoints` (#742)
+- fix Shelly mDNS data race by creating fresh params per scan (#742)
+- fix JSON/YAML unmarshal when `dataType` is set but `data` is empty (#742)
+- update docs to reflect new point encoding and NATS subjects (#742)
 
 ## [[0.18.5] - 2025-09-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.5)
 
