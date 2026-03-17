@@ -32,7 +32,7 @@ remaining work is substantial — the old `Value`/`Text` fields are referenced i
 - **Phase 7**: COMPLETE — MarshalYAML added for human-readable export. DB layer
   works via Val()/Txt() conversions with existing value/text columns — schema
   migration deferred since it works correctly as-is.
-- **Phase 8**: TODO — JS library update (blocked on protoc-gen-js)
+- **Phase 8**: COMPLETE — JS protobuf library regenerated.
 
 ## What's Already Done
 
