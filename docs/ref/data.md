@@ -105,15 +105,15 @@ Points can be used to represent arrays and maps. For an array, the `key` field
 contains the index `"0"`, `"1"`, `"2"`, etc. For maps, the `key` field contains
 the key of the map. An example:
 
-| Type            | Key   | Text             | Value |
-| --------------- | ----- | ---------------- | ----- |
-| description     | 0     | Node Description |       |
-| ipAddress       | 0     | 192.168.1.10     |       |
-| ipAddress       | 1     | 10.0.0.3         |       |
-| diskPercentUsed | /     |                  | 43    |
-| diskPercentUsed | /home |                  | 75    |
-| switch          | 0     |                  | 1     |
-| switch          | 1     |                  | 0     |
+| Type            | Key   | Data (string)    | Data (number) |
+| --------------- | ----- | ---------------- | ------------- |
+| description     | 0     | Node Description |               |
+| ipAddress       | 0     | 192.168.1.10     |               |
+| ipAddress       | 1     | 10.0.0.3         |               |
+| diskPercentUsed | /     |                  | 43            |
+| diskPercentUsed | /home |                  | 75            |
+| switch          | 0     |                  | 1             |
+| switch          | 1     |                  | 0             |
 
 The above would map to the following Go type:
 

@@ -6,7 +6,8 @@
 
 The Simple IoT server currently provides both Http and NATS.io APIs. We've tried
 to keep the two APIs a similar as possible so it is easy to switch from one to
-the other. The Http API currently accepts JSON, and the NATS API uses protobuf.
+the other. The Http API currently accepts JSON, and the NATS API uses a binary
+encoding for points and protobuf for node requests.
 
 **NOTE, the Simple IoT API is not final and will continue to be refined in the
 coming months.**
@@ -24,8 +25,11 @@ one-binary deployment model.
 The `siot` binary embeds the NATS server, so there is no need to deploy and run
 a separate NATS server.
 
-For the NATS transport, protobuf encoding is used for all transfers and are
-defined [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
+Point data uses a compact binary encoding (see `data/point.go`). Node requests
+still use protobuf, defined
+[here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb). Each
+node point is sent as a single NATS message with `type` and `key` encoded in
+the subject.
 
 - Nodes
   - `nodes.<parentId>.<nodeId>.<type>.<key>`

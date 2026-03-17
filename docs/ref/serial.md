@@ -60,8 +60,8 @@ with a few assumptions:
 - the payload is always an array of points
 - only the following [SIOT NATS API](api.md#nats) subjects are supported:
   - blank (assumes ID of Serial MCU client node
-  - `p.<id>` (used to send node points)
-  - `p.<id>.<parent>` (used to send edge points)
+  - `p.<id>.<type>.<key>` (used to send node points)
+  - `ep.<id>.<parent>` (used to send edge points)
   - `phr` (specifies high-rate payload)
 - we don't support NATS subscriptions or requests -- on startup, we send the
   entire dataset for the MCU device in both directions (see On connection
@@ -88,7 +88,7 @@ All packets between the SIOT and serial MCU systems are framed as follows:
 ```
 sequence (1 byte, rolls over)
 subject (16 bytes)
-payload (Protobuf Point array or HR repeated point payload)
+payload (binary encoded point array or HR repeated point payload)
 crc (2 bytes) (Currently using CRC-16/KERMIT) (not included on log messages)
 ```
 
@@ -101,28 +101,24 @@ this needs to be done at the application level. SIOT encodes each packet using
 The log message is specified with `log` in the packet frame subject. The payload
 is ASCII characters and CRC not included.
 
-#### Protobuf payload
+#### Point payload
 
-The `serial` protobuf type is used to transfer these messages:
+Points are encoded using a compact binary format (see `data/point.go`
+`Encode`/`DecodePoints`). The format is:
 
 ```
-message SerialPoint {
-  string type = 2;
-  float value = 4;
-  int64 time = 16;
-  float index = 13;
-  string text = 8;
-  string key = 11;
-  int32 tombstone = 12;
-}
+count (4 bytes, little-endian uint32)
+repeated:
+  type (2 byte length prefix + string)
+  key (2 byte length prefix + string)
+  time (8 bytes, little-endian int64, nanoseconds since epoch)
+  dataType (1 byte: 0=unknown, 1=float, 2=int, 3=string, 4=JSON)
+  data (2 byte length prefix + bytes)
+  tombstone (4 bytes, little-endian int32)
+  origin (2 byte length prefix + string)
 ```
 
-Protobuf can be used for low-rate samples, config, state, etc.
-
-Protobuf is used to encode the data on the wire. Find protobuf files
-[here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb).
-[nanopb](https://github.com/nanopb/nanopb) can be used to generate C-based
-protobuf bindings that are suitable for use in most MCU environments.
+This encoding is used for low-rate samples, config, state, etc.
 
 #### High-rate payload
 
