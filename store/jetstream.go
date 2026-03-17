@@ -48,6 +48,16 @@ func edgePointSubject(parentID, childID string) string {
 
 // NewJetStreamDb creates a new JetStream-backed store.
 func NewJetStreamDb(nc *nats.Conn, rootID string) (*DbJetStream, error) {
+	// Wait for NATS connection to be established (server may not be up yet)
+	timeout := time.After(10 * time.Second)
+	for !nc.IsConnected() {
+		select {
+		case <-timeout:
+			return nil, fmt.Errorf("timeout waiting for NATS connection")
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
+
 	js, err := jetstream.New(nc)
 	if err != nil {
 		return nil, fmt.Errorf("error creating JetStream context: %v", err)

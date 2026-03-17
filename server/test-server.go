@@ -14,26 +14,22 @@ import (
 
 // TestServerOptions options used for test server
 var TestServerOptions = Options{
-	StoreFile:    "test.sqlite",
 	NatsPort:     8900,
 	HTTPPort:     "8901",
 	NatsHTTPPort: 8902,
 	NatsWSPort:   8903,
 	NatsServer:   "nats://localhost:8900",
 	ID:           "inst1",
-	DataDir:      "",
 }
 
 // TestServerOptions2 options used for 2nd test server
 var TestServerOptions2 = Options{
-	StoreFile:    "test2.sqlite",
 	NatsPort:     8910,
 	HTTPPort:     "8911",
 	NatsHTTPPort: 8912,
 	NatsWSPort:   8913,
 	NatsServer:   "nats://localhost:8910",
 	ID:           "inst2",
-	DataDir:      "",
 }
 
 // TestServer starts a test server and returns a function to stop it
@@ -87,7 +83,16 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 		return nil, data.NodeEdge{}, stop, fmt.Errorf("error waiting for test server to start: %v", err)
 	}
 
-	nodes, err := client.GetNodes(nc, "root", "all", "", false)
+	// Retry getting root nodes — store subscriptions may take a moment
+	// to become active after the run group starts
+	var nodes []data.NodeEdge
+	for range 50 {
+		nodes, err = client.GetNodes(nc, "root", "all", "", false)
+		if err == nil && len(nodes) > 0 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	if err != nil {
 		return nil, data.NodeEdge{}, stop, fmt.Errorf("get root nodes error: %v", err)
