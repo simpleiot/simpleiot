@@ -457,7 +457,37 @@ Implementation is broken down into 3 stages:
    (`p.<nodeId>.<type>.<key>`, `ep.<nodeId>.<parentId>`). One point per NATS
    message for node points; edge points remain batched for atomicity.
 1. switch store from SQLite to JetStream
+   ([plan](../../plans/2026-03-17-implement-the-next-stage-of-adr-7.md),
+   branch `feat/js-store`).
+   - Per-node JetStream streams: each node gets stream `node.<nodeID>` capturing
+     subjects `node.<nodeID>.p.<type>.<key>` (node points) and
+     `node.<nodeID>.ep.<childID>.<type>.<key>` (edge points where this node is
+     the parent).
+   - Streams retain full history (time-series). Current state = tip of each
+     subject via `GetLastMsgForSubject`.
+   - `META` KV bucket for instance metadata (rootID, jwtKey).
+   - In-memory edge cache for fast tree traversal, populated on startup by
+     reading stream tips.
+   - Hash tree removed — JetStream sequence numbers replace it.
+   - SQLite removed entirely; migration via `siot export`/`siot import`.
 1. Use JetStream to sync between systems
+   - Each instance runs its own NATS server with its own per-node streams.
+   - Instances connect to each other via standard NATS client connections.
+   - Each instance creates **durable consumers** on the remote instance's
+     streams for every synced node. A durable consumer tracks its last
+     acknowledged sequence number, persisted by the NATS server.
+   - On reconnect after network loss or restart, the durable consumer resumes
+     from where it left off — the remote NATS server delivers only the missed
+     messages. No full rescan or hash comparison needed.
+   - Received points are fed into the local store's merge logic (timestamp-based,
+     newer wins), ensuring consistency.
+   - Per-node streams provide natural sync boundaries: an edge instance only
+     creates consumers for the nodes in its subtree, not the entire system.
+   - Per-node streams also provide natural AuthZ boundaries: permissions can
+     restrict which nodes a device/user can access.
+   - Real-time point delivery continues via core NATS subjects (`p.>`, `ep.>`)
+     as today. The durable consumer catch-up handles only the offline/startup
+     gap.
 
 objections/concerns
 
