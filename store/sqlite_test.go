@@ -62,7 +62,11 @@ func TestDbSqlite(t *testing.T) {
 	}
 
 	// send an old point and verify it does not change
-	err = db.nodePoints(rootID, data.Points{func() data.Point { p := data.NewPointString(data.PointTypeDescription, "", "root with old time"); p.Time = time.Now().Add(-time.Hour); return p }()})
+	err = db.nodePoints(rootID, data.Points{func() data.Point {
+		p := data.NewPointString(data.PointTypeDescription, "", "root with old time")
+		p.Time = time.Now().Add(-time.Hour)
+		return p
+	}()})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -306,8 +306,16 @@ func MoveNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
 	}
 
 	err = SendEdgePoints(nc, id, newParent, data.Points{
-		func() data.Point { p := data.NewPointFloat(data.PointTypeTombstone, "", 0); p.Origin = origin; return p }(),
-		func() data.Point { p := data.NewPointString(data.PointTypeNodeType, "", nodes[0].Type); p.Origin = origin; return p }(),
+		func() data.Point {
+			p := data.NewPointFloat(data.PointTypeTombstone, "", 0)
+			p.Origin = origin
+			return p
+		}(),
+		func() data.Point {
+			p := data.NewPointString(data.PointTypeNodeType, "", nodes[0].Type)
+			p.Origin = origin
+			return p
+		}(),
 	}, true)
 
 	if err != nil {
@@ -337,8 +345,16 @@ func MirrorNode(nc *nats.Conn, id, newParent, origin string) error {
 	}
 
 	err = SendEdgePoints(nc, id, newParent, data.Points{
-		func() data.Point { p := data.NewPointFloat(data.PointTypeTombstone, "", 0); p.Origin = origin; return p }(),
-		func() data.Point { p := data.NewPointString(data.PointTypeNodeType, "", nodes[0].Type); p.Origin = origin; return p }(),
+		func() data.Point {
+			p := data.NewPointFloat(data.PointTypeTombstone, "", 0)
+			p.Origin = origin
+			return p
+		}(),
+		func() data.Point {
+			p := data.NewPointString(data.PointTypeNodeType, "", nodes[0].Type)
+			p.Origin = origin
+			return p
+		}(),
 	}, true)
 
 	return err

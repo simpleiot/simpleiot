@@ -293,7 +293,7 @@ func TestSerialLargeMessage(t *testing.T) {
 	var points data.Points
 
 	for i := 0; i < 10; i++ {
-		points = append(points, data.NewPointFloat("testPoint", strconv.Itoa(i), float64(i * 2)))
+		points = append(points, data.NewPointFloat("testPoint", strconv.Itoa(i), float64(i*2)))
 	}
 
 	packet, err := client.SerialEncode(1, "", points)
