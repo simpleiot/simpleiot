@@ -102,7 +102,7 @@ func (st *Store) Run() error {
 		return fmt.Errorf("subscribe node points error: %w", err)
 	}
 
-	st.subscriptions["edgePoints"], err = nc.Subscribe("p.*.*", st.handleEdgePoints)
+	st.subscriptions["edgePoints"], err = nc.Subscribe("ep.*.*", st.handleEdgePoints)
 	if err != nil {
 		return fmt.Errorf("subscribe edge points error: %w", err)
 	}

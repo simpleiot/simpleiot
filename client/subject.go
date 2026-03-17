@@ -11,7 +11,7 @@ func SubjectNodePoints(nodeID string) string {
 
 // SubjectEdgePoints constructs a NATS subject for edge points
 func SubjectEdgePoints(nodeID, parentID string) string {
-	return fmt.Sprintf("p.%v.%v", nodeID, parentID)
+	return fmt.Sprintf("ep.%v.%v", nodeID, parentID)
 }
 
 // SubjectNodeAllPoints provides subject for all points for any node
@@ -21,7 +21,7 @@ func SubjectNodeAllPoints() string {
 
 // SubjectEdgeAllPoints provides subject for all edge points for any node
 func SubjectEdgeAllPoints() string {
-	return "p.*.*"
+	return "ep.*.*"
 }
 
 // SubjectNodeHRPoints constructs a NATS subject for high rate node points
