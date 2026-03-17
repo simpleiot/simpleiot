@@ -148,20 +148,21 @@ func (p *Point) UnmarshalJSON(b []byte) error {
 	p.Tombstone = pj.Tombstone
 	p.Origin = pj.Origin
 
-	// If new-style data is present, use it directly
-	if pj.DataType != PointDataTypeUnknown {
+	// If new-style data is fully populated, use it directly
+	if pj.DataType != PointDataTypeUnknown && len(pj.Data) > 0 {
 		p.DataType = pj.DataType
 		p.Data = pj.Data
 		return nil
 	}
 
-	// Fall back to legacy fields
+	// Use legacy value/text fields (frontend sends these alongside dataType)
 	if pj.Text != "" {
 		p.PutString(pj.Text)
 	} else if pj.Value != 0 {
 		p.PutFloat(pj.Value)
 	} else if len(pj.Data) > 0 {
 		p.Data = pj.Data
+		p.DataType = pj.DataType
 	}
 
 	return nil
@@ -193,7 +194,7 @@ func (p *Point) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	p.Tombstone = pj.Tombstone
 	p.Origin = pj.Origin
 
-	if pj.DataType != PointDataTypeUnknown {
+	if pj.DataType != PointDataTypeUnknown && len(pj.Data) > 0 {
 		p.DataType = pj.DataType
 		p.Data = pj.Data
 		return nil
@@ -205,6 +206,7 @@ func (p *Point) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		p.PutFloat(pj.Value)
 	} else if len(pj.Data) > 0 {
 		p.Data = pj.Data
+		p.DataType = pj.DataType
 	}
 
 	return nil
