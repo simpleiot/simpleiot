@@ -16,6 +16,20 @@ Point struct, DataType constants, get/put helper methods, API doc updates). The
 remaining work is substantial — the old `Value`/`Text` fields are referenced in
 ~30 files across the codebase.
 
+## Status
+
+- **Phase 1-3**: COMPLETE — New Point struct, all callers updated, store layer
+  updated. JSON/YAML backward-compat marshal/unmarshal added.
+- **Phase 4**: COMPLETE — Protobuf schema updated (value/text removed, dataType
+  added). New binary Encode/DecodePoints replaces protobuf for NATS and serial
+  wire format. Point.ToPb/PbToPoint retained for Node encoding only.
+- **Phase 5**: COMPLETE — Elm Point type updated with dataType field. All
+  positional constructors updated. Frontend compiles and tests pass.
+- **Phase 6**: DEFERRED — NATS subject pattern changes (`p.>` / `ep.>`) caused
+  OOM in serial tests due to `p.>` matching too broadly. Needs careful analysis
+  of how subscriptions interact before changing subjects.
+- **Phase 7-8**: TODO
+
 ## What's Already Done
 
 - New `Point` struct with `DataType` and `Data` fields (data/point.go)
