@@ -13,6 +13,7 @@ import (
 	"github.com/simpleiot/simpleiot/internal/pb"
 )
 
+// PointOld old point struct
 type PointOld struct {
 	//-------------------------------------------------------
 	//1st three fields uniquely identify a point when receiving updates
@@ -278,11 +279,13 @@ func (p *Point) ValueString() (string, error) {
 	return string(p.Data), nil
 }
 
+// PutString populates a string in a point
 func (p *Point) PutString(v string) {
 	p.DataType = PointDataTypeString
 	p.Data = []byte(v)
 }
 
+// PutInt populates an int in a point
 func (p *Point) PutInt(v int64) {
 	p.DataType = PointDataTypeInt
 	absValue := v
@@ -306,6 +309,7 @@ func (p *Point) PutInt(v int64) {
 	}
 }
 
+// PutFloat populates a float in a point
 func (p *Point) PutFloat(v float64) {
 	p.DataType = PointDataTypeFloat
 	p.Data = make([]byte, 8)
