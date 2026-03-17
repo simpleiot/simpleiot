@@ -1132,6 +1132,7 @@ type alias Point =
     { typ : String
     , key : String
     , time : Time.Posix
+    , dataType : Int
     , value : Float
     , text : String
     , tombstone : Int
@@ -1143,6 +1144,7 @@ newText typ key text =
     { typ = typ
     , key = key
     , time = Time.millisToPosix 0
+    , dataType = 3
     , value = 0
     , text = text
     , tombstone = 0
@@ -1215,6 +1217,7 @@ encode p =
         [ ( "type", Json.Encode.string <| p.typ )
         , ( "key", Json.Encode.string <| p.key )
         , ( "time", Iso8601.encode <| p.time )
+        , ( "dataType", Json.Encode.int <| p.dataType )
         , ( "value", Json.Encode.float <| p.value )
         , ( "text", Json.Encode.string <| p.text )
         , ( "tombstone", Json.Encode.int <| p.tombstone )
@@ -1232,6 +1235,7 @@ decode =
         |> optional "type" Decode.string ""
         |> optional "key" Decode.string ""
         |> optional "time" Json.Decode.Extra.datetime (Time.millisToPosix 0)
+        |> optional "dataType" Decode.int 0
         |> optional "value" Decode.float 0
         |> optional "text" Decode.string ""
         |> optional "tombstone" Decode.int 0

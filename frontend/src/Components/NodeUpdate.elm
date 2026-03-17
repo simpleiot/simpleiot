@@ -78,7 +78,7 @@ view o =
                                 Form.button
                                     { label = "Discard"
                                     , color = colors.orange
-                                    , onPress = opts.onEditNodePoint [ Point Point.typeDiscardDownload "0" opts.now 1 "" 0 ]
+                                    , onPress = opts.onEditNodePoint [ Point Point.typeDiscardDownload "0" opts.now 1 1 "" 0 ]
                                     }
 
                             else
@@ -89,7 +89,7 @@ view o =
                                 Form.button
                                     { label = "Reboot"
                                     , color = colors.red
-                                    , onPress = opts.onEditNodePoint [ Point Point.typeReboot "0" opts.now 1 "" 0 ]
+                                    , onPress = opts.onEditNodePoint [ Point Point.typeReboot "0" opts.now 1 1 "" 0 ]
                                     }
 
                             else
@@ -149,7 +149,7 @@ view o =
                         [ Form.button
                             { label = "Refresh"
                             , color = colors.blue
-                            , onPress = opts.onEditNodePoint [ Point Point.typeRefresh "0" opts.now 1 "" 0 ]
+                            , onPress = opts.onEditNodePoint [ Point Point.typeRefresh "0" opts.now 1 1 "" 0 ]
                             }
                         , discardButton
                         , rebootButton
@@ -178,7 +178,7 @@ osUpdatesView opt pts =
                             Form.button
                                 { label = "install"
                                 , color = colors.blue
-                                , onPress = opt.onEditNodePoint [ Point Point.typeDownloadOS "0" opt.now 0 p.text 0 ]
+                                , onPress = opt.onEditNodePoint [ Point Point.typeDownloadOS "0" opt.now 3 0 p.text 0 ]
                                 }
               }
             ]
