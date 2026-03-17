@@ -27,8 +27,16 @@ Per-node JetStream streams, plus a KV bucket for metadata:
   subjects `node.<nodeID>.p.>` (node points) and `node.<nodeID>.ep.>` (edge
   points for edges where this node is the parent). The stream retains full
   history (time-series data). Current state is always the tip of each subject,
-  retrieved via `GetLastMsgForSubject`. Retention policies (max age, max bytes)
-  can be configured per deployment to manage storage.
+  retrieved via `GetLastMsgForSubject`.
+
+  **Retention:** Use `MaxMsgsPerSubject` (default: no limit) as the only
+  retention mechanism. This keeps the last N messages *per subject*, ensuring
+  current state is always preserved for every point type/key — including
+  rarely-updated config points. Avoid `MaxAge` and `MaxBytes`/`MaxMsgs`
+  (stream-level), as these can silently drop config points that were set long ago
+  but are still the current state. Since each point type/key is a unique subject,
+  `MaxMsgsPerSubject` naturally bounds storage for high-frequency sensor data
+  while preserving infrequent config.
 - **`META`** KV bucket: stores `rootID`, `jwtKey`, `version`.
 
 A typical edge device has ~30 nodes = ~30 streams. The NATS server handles this
@@ -132,8 +140,8 @@ type DbJetStream struct {
 - `reset()` -- delete all `node.*` streams, purge META KV, re-initialize
 - `Close()` -- no-op
 - `ensureStream(nodeID)` -- create stream `node.<nodeID>` if it doesn't exist,
-  with subjects `node.<nodeID>.>`. Full history retained; current state read
-  from tip via `GetLastMsgForSubject`.
+  with subjects `node.<nodeID>.>`, retention `Limits`, no `MaxAge`. Current
+  state read from tip via `GetLastMsgForSubject`.
 
 **Helper functions:**
 
@@ -224,6 +232,22 @@ memory -- trivial.
 | `store/hash.go`         | Hash verification    | **Delete**                          |
 | `store/jetstream.go`    | JetStream backend    | **New**                             |
 | `store/edge_cache.go`   | In-memory edge index | **New**                             |
+
+## Commits
+
+| Hash | Description | Status |
+|------|-------------|--------|
+| 0c97576b | feat: enable JetStream in embedded NATS server | Implemented |
+| 3693def8 | feat: add EdgeCache for in-memory edge index | Implemented |
+| | feat: add DbJetStream backend with core storage methods | Not Implemented |
+| | feat: wire store to use DbJetStream, update server plumbing | Not Implemented |
+| | refactor: remove SQLite store and hash tree code | Not Implemented |
+| | feat: add point cache for node point lookups | Not Implemented |
+| | docs: update ADR-7 and changelog for Stage 2 completion | Not Implemented |
+
+**Note:** Hash field kept in Edge/NodeEdge structs for API/protobuf compatibility
+(always 0). CalcHash, ByHash, hash computation removed. Full Hash field removal
+deferred to Stage 3 when sync client is rewritten.
 
 ## Risks
 

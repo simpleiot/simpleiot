@@ -464,7 +464,10 @@ Implementation is broken down into 3 stages:
      `node.<nodeID>.ep.<childID>.<type>.<key>` (edge points where this node is
      the parent).
    - Streams retain full history (time-series). Current state = tip of each
-     subject via `GetLastMsgForSubject`.
+     subject via `GetLastMsgForSubject`. Retention uses `MaxMsgsPerSubject`
+     (not `MaxAge` or stream-level `MaxBytes`/`MaxMsgs`) to ensure current
+     state is always preserved — including rarely-updated config points that
+     could be silently dropped by time/size-based policies.
    - `META` KV bucket for instance metadata (rootID, jwtKey).
    - In-memory edge cache for fast tree traversal, populated on startup by
      reading stream tips.
