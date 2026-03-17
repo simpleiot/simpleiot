@@ -26,8 +26,9 @@ remaining work is substantial — the old `Value`/`Text` fields are referenced i
 - **Phase 5**: COMPLETE — Elm Point type updated with dataType field. All
   positional constructors updated. Frontend compiles and tests pass.
 - **Phase 6a**: COMPLETE — Edge points moved to `ep.` prefix.
-- **Phase 6b**: TODO — Add type/key segments to subjects once `ep.` separation
-  is stable.
+- **Phase 6b**: COMPLETE — Node point subjects now use `p.<nodeId>.<type>.<key>`
+  with one point per message. Edge points remain batched on `ep.<nodeId>.<parentId>`
+  for atomicity. All upstream subscriptions updated.
 - **Phase 7-8**: TODO
 
 ## What's Already Done
