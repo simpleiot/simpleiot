@@ -167,6 +167,19 @@ func (p *Point) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// MarshalYAML encodes Point to YAML with legacy value/text fields for
+// human readability. Implements goccy/go-yaml InterfaceMarshaler.
+func (p Point) MarshalYAML() (interface{}, error) {
+	return pointJSON{
+		Type:      p.Type,
+		Key:       p.Key,
+		Tombstone: p.Tombstone,
+		Origin:    p.Origin,
+		Value:     p.Val(),
+		Text:      p.Txt(),
+	}, nil
+}
+
 // UnmarshalYAML decodes Point from YAML, supporting both new (dataType/data)
 // and legacy (value/text) fields. Implements goccy/go-yaml InterfaceUnmarshaler.
 func (p *Point) UnmarshalYAML(unmarshal func(interface{}) error) error {
