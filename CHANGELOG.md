@@ -13,6 +13,9 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- enable JetStream in embedded NATS server (ADR-7 Stage 2)
+- update NATS dependencies (nats.go v1.49.0, nats-server v2.12.5)
+
 ## [[0.18.5] - 2025-09-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.5)
 
 - add configurable response timeout parameter for Modbus clients with 100ms
