@@ -25,9 +25,10 @@ remaining work is substantial — the old `Value`/`Text` fields are referenced i
   wire format. Point.ToPb/PbToPoint retained for Node encoding only.
 - **Phase 5**: COMPLETE — Elm Point type updated with dataType field. All
   positional constructors updated. Frontend compiles and tests pass.
-- **Phase 6**: DEFERRED — NATS subject pattern changes (`p.>` / `ep.>`) caused
-  OOM in serial tests due to `p.>` matching too broadly. Needs careful analysis
-  of how subscriptions interact before changing subjects.
+- **Phase 6a**: IN PROGRESS — Separate edge points to `ep.` prefix first, then
+  add type/key to subjects in Phase 6b.
+- **Phase 6b**: TODO — Add type/key segments to subjects once `ep.` separation
+  is stable.
 - **Phase 7-8**: TODO
 
 ## What's Already Done
@@ -140,12 +141,33 @@ remaining work is substantial — the old `Value`/`Text` fields are referenced i
 12. **Update/remove protobuf JS library** (`frontend/lib/protobuf/point_pb.js`)
     - Remove or regenerate once protobuf schema changes
 
-### Phase 6: NATS Subject Changes (Code)
+### Phase 6a: Separate Edge Point Subjects
 
-13. **Update NATS subject patterns** in code to match new docs:
-    - `store/store.go` subscription patterns
-    - Publish calls throughout codebase
-    - May need wildcard adjustments (`p.*.>` instead of `p.*`)
+13. **Move edge points to `ep.` prefix**
+    - Change `SubjectEdgePoints` from `p.<nodeId>.<parentId>` to
+      `ep.<nodeId>.<parentId>`
+    - Change `SubjectEdgeAllPoints` from `p.*.*` to `ep.*.*`
+    - Update store subscription from `p.*.*` to `ep.*.*`
+    - Update debug subscriptions
+    - Update `DecodeEdgePointsMsg` to expect `ep.` prefix (chunks[0]="ep")
+    - Update sync client upstream edge subjects (`pup` → `epup` if applicable)
+    - Verify all tests pass — this is a clean prefix swap with no wildcard
+      behavior change
+
+### Phase 6b: Add Type/Key to Node Point Subjects
+
+14. **Update node point subjects to `p.<nodeId>.<type>.<key>`**
+    - Update `SubjectNodePoints` to accept type/key parameters
+    - Update `SendPoints` / `SendNodePoints` to build subject from point
+      type/key
+    - Change store subscription from `p.*` to `p.>` (safe now that edge
+      points are on `ep.`)
+    - Update `DecodeNodePointsMsg` if type/key should be extracted from subject
+    - Update debug subscriptions
+
+15. **Update edge point subjects to `ep.<nodeId>.<parentId>.<type>.<key>`**
+    - Similar changes for edge points
+    - Change store subscription from `ep.*.*` to `ep.>`
 
 ### Phase 7: Export/Import & Migration
 
