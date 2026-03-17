@@ -91,7 +91,8 @@ done:
 		case <-scanTicker.C:
 			go scan()
 
-		case e := <-entriesCh:
+		case ePtr := <-entriesCh:
+			e := *ePtr // copy to avoid data race with mdns goroutine
 			typ, id := shellyScanHost(e.Host)
 			if len(typ) > 0 {
 				found := false
