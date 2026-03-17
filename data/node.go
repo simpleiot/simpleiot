@@ -194,10 +194,6 @@ type NodeEdge struct {
 func (n NodeEdge) String() string {
 	ret := fmt.Sprintf("NODE: %v (%v)\n", n.ID, n.Type)
 	ret += fmt.Sprintf("  - Parent: %v\n", n.Parent)
-	if n.Hash != 0 {
-		ret += fmt.Sprintf("  - Hash: 0x%x\n", n.Hash)
-	}
-
 	for _, p := range n.Points {
 		ret += fmt.Sprintf("  - Point: %v\n", p)
 	}
@@ -224,24 +220,6 @@ func (n NodeEdge) Desc() string {
 	}
 
 	return n.ID
-}
-
-// CalcHash calculates the hash for a node
-func (n NodeEdge) CalcHash(children []NodeEdge) uint32 {
-	var ret uint32
-	for _, p := range n.Points {
-		ret ^= p.CRC()
-	}
-
-	for _, p := range n.EdgePoints {
-		ret ^= p.CRC()
-	}
-
-	for _, c := range children {
-		ret ^= c.Hash
-	}
-
-	return ret
 }
 
 // FIXME -- should ToNode really be used as it is lossy?

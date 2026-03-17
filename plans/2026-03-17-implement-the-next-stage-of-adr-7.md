@@ -239,8 +239,8 @@ memory -- trivial.
 |------|-------------|--------|
 | 0c97576b | feat: enable JetStream in embedded NATS server | Implemented |
 | 3693def8 | feat: add EdgeCache for in-memory edge index | Implemented |
-| | feat: add DbJetStream backend with core storage methods | Not Implemented |
-| | feat: wire store to use DbJetStream, update server plumbing | Not Implemented |
+| 06bad0c1 | feat: add DbJetStream backend with core storage methods | Implemented |
+| ce818075 | feat: wire store to use DbJetStream, update server plumbing | Implemented |
 | | refactor: remove SQLite store and hash tree code | Not Implemented |
 | | feat: add point cache for node point lookups | Not Implemented |
 | | docs: update ADR-7 and changelog for Stage 2 completion | Not Implemented |

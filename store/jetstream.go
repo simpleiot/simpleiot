@@ -15,6 +15,14 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
+// Meta contains metadata about the store instance
+type Meta struct {
+	ID      int    `json:"id"`
+	Version int    `json:"version"`
+	RootID  string `json:"rootID"`
+	JWTKey  []byte `json:"jwtKey"`
+}
+
 // DbJetStream implements the store backend using NATS JetStream.
 // Each node gets its own stream (node-<nodeID>) containing both
 // node points and edge points. Current state is the tip of each
