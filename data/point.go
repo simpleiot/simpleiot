@@ -627,6 +627,9 @@ func DecodePoints(data []byte) (Points, error) {
 		return nil, fmt.Errorf("DecodePoints: not enough data for count")
 	}
 	count := int(binary.LittleEndian.Uint32(data[0:4]))
+	if count > 10000 {
+		return nil, fmt.Errorf("DecodePoints: count %d exceeds maximum", count)
+	}
 	off := 4
 	pts := make(Points, count)
 	for i := 0; i < count; i++ {
