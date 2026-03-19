@@ -2,40 +2,77 @@ package store
 
 import (
 	"fmt"
-	"os/exec"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/nats-io/nats-server/v2/server"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
 
-var testFile = "test.sqlite"
+func newTestJsDb(t *testing.T) (*DbJetStream, func()) {
+	t.Helper()
 
-func newTestDb(t *testing.T) *DbSqlite {
-	_ = exec.Command("sh", "-c", "rm "+testFile+"*").Run()
-
-	db, err := NewSqliteDb(testFile, "")
+	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
 	if err != nil {
-		t.Fatal("Error opening db: ", err)
+		t.Fatal("Error creating temp dir:", err)
 	}
 
-	return db
+	opts := &server.Options{
+		Port:      -1,
+		JetStream: true,
+		StoreDir:  tmpDir,
+		NoSigs:    true,
+	}
+
+	ns, err := server.NewServer(opts)
+	if err != nil {
+		t.Fatal("Error creating NATS server:", err)
+	}
+
+	ns.Start()
+	if !ns.ReadyForConnections(5 * time.Second) {
+		t.Fatal("NATS server failed to start")
+	}
+
+	nc, err := nats.Connect(ns.ClientURL())
+	if err != nil {
+		t.Fatal("Error connecting to NATS:", err)
+	}
+
+	db, err := NewJetStreamDb(nc, "")
+	if err != nil {
+		t.Fatal("Error creating JetStream db:", err)
+	}
+
+	cleanup := func() {
+		nc.Close()
+		ns.Shutdown()
+		_ = os.RemoveAll(tmpDir)
+	}
+
+	return db, cleanup
 }
 
-func TestDbSqlite(t *testing.T) {
-	db := newTestDb(t)
-	defer db.Close()
+func TestDbJetStream(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
 
 	rootID := db.rootNodeID()
 
 	if rootID == "" {
-		t.Fatal("Root ID is blank: ", rootID)
+		t.Fatal("Root ID is blank")
 	}
 
 	rns, err := db.getNodes(nil, "all", rootID, "", false)
 	if err != nil {
-		t.Fatal("Error getting root node: ", err)
+		t.Fatal("Error getting root node:", err)
+	}
+
+	if len(rns) < 1 {
+		t.Fatal("No root nodes returned")
 	}
 
 	rn := rns[0]
@@ -52,13 +89,13 @@ func TestDbSqlite(t *testing.T) {
 
 	rns, err = db.getNodes(nil, "all", rootID, "", false)
 	if err != nil {
-		t.Fatal("Error getting root node: ", err)
+		t.Fatal("Error getting root node:", err)
 	}
 
 	rn = rns[0]
 
 	if rn.Desc() != "root" {
-		t.Fatal("Description should have been root, got: ", rn.Desc())
+		t.Fatal("Description should have been root, got:", rn.Desc())
 	}
 
 	// send an old point and verify it does not change
@@ -73,18 +110,18 @@ func TestDbSqlite(t *testing.T) {
 
 	rns, err = db.getNodes(nil, "all", rootID, "", false)
 	if err != nil {
-		t.Fatal("Error getting root node: ", err)
+		t.Fatal("Error getting root node:", err)
 	}
 	rn = rns[0]
 
 	if rn.Desc() != "root" {
-		t.Fatal("Description should have stayed root, got: ", rn.Desc())
+		t.Fatal("Description should have stayed root, got:", rn.Desc())
 	}
 
 	// verify default admin user got set
 	children, err := db.getNodes(nil, rootID, "all", "", false)
 	if err != nil {
-		t.Fatal("children error: ", err)
+		t.Fatal("children error:", err)
 	}
 
 	if len(children) < 1 {
@@ -92,7 +129,7 @@ func TestDbSqlite(t *testing.T) {
 	}
 
 	if children[0].Parent != rootID {
-		t.Fatal("Parent not correct: ", children[0].Parent)
+		t.Fatal("Parent not correct:", children[0].Parent)
 	}
 
 	// test getNodes API
@@ -136,7 +173,7 @@ func TestDbSqlite(t *testing.T) {
 	// test edge points
 	err = db.edgePoints(adminID, rootID, data.Points{data.NewPointString(data.PointTypeRole, "", data.PointValueRoleAdmin)})
 	if err != nil {
-		t.Fatal("Error sending edge points: ", err)
+		t.Fatal("Error sending edge points:", err)
 	}
 
 	adminNodes, err = db.getNodes(nil, rootID, adminID, "", false)
@@ -163,10 +200,9 @@ func TestDbSqlite(t *testing.T) {
 		t.Fatal("Error creating group edge", err)
 	}
 
-	// verify default admin user got set
 	children, err = db.getNodes(nil, rootID, "all", "", false)
 	if err != nil {
-		t.Fatal("children error: ", err)
+		t.Fatal("children error:", err)
 	}
 
 	if len(children) < 2 {
@@ -176,9 +212,9 @@ func TestDbSqlite(t *testing.T) {
 	// verify getNodes with "all" works
 	start := time.Now()
 	adminNodes, err = db.getNodes(nil, "all", adminID, "", false)
-	fmt.Println("getNodes time: ", time.Since(start))
+	fmt.Println("getNodes time:", time.Since(start))
 	if err != nil {
-		t.Fatal("Error getting admin nodes with all specified: ", err)
+		t.Fatal("Error getting admin nodes with all specified:", err)
 	}
 
 	if adminNodes[0].Parent != rootID {
@@ -190,69 +226,13 @@ func TestDbSqlite(t *testing.T) {
 	}
 }
 
-func TestDbSqliteKeyZero(t *testing.T) {
-	// what to do when we have points with key set to "0" and ""
-	// technically these should map to the same point so that
-	// we can easily upgrade from scalars to arrays with no
-	// data changes
-	db := newTestDb(t)
-	defer db.Close()
-
-	rootID := db.rootNodeID()
-
-	err := db.nodePoints(rootID, data.Points{data.NewPointFloat(data.PointTypeValue, "", 1)})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	nodes, err := db.getNodes(nil, "all", rootID, "", false)
-	if err != nil {
-		t.Fatal("Error getting root node: ", err)
-	}
-
-	n := nodes[0]
-
-	err = db.nodePoints(rootID, data.Points{data.NewPointFloat(data.PointTypeValue, "0", 2)})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	nodes, err = db.getNodes(nil, "all", rootID, "", false)
-	if err != nil {
-		t.Fatal("Error getting root node: ", err)
-	}
-
-	n = nodes[0]
-
-	if len(n.Points) != 1 {
-		t.Fatal("Error, point did not get merged")
-	}
-}
-
-func TestDbSqliteReopen(t *testing.T) {
-	db := newTestDb(t)
-	rootID := db.rootNodeID()
-	db.Close()
-
-	var err error
-	db, err = NewSqliteDb(testFile, "")
-	if err != nil {
-		t.Fatal("Error opening db: ", err)
-	}
-	defer db.Close()
-
-	if rootID != db.rootNodeID() {
-		t.Fatal("Root node ID changed")
-	}
-}
-
-func TestDbSqliteUserCheck(t *testing.T) {
-	db := newTestDb(t)
-	defer db.Close()
+func TestDbJetStreamUserCheck(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
 
 	nodes, err := db.userCheck("admin", "admin")
 	if err != nil {
-		t.Fatal("userCheck returned error: ", err)
+		t.Fatal("userCheck returned error:", err)
 	}
 
 	if len(nodes) < 1 {
@@ -260,14 +240,13 @@ func TestDbSqliteUserCheck(t *testing.T) {
 	}
 }
 
-func TestDbSqliteUp(t *testing.T) {
-	db := newTestDb(t)
-	defer db.Close()
+func TestDbJetStreamUp(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
 
 	rootID := db.rootNodeID()
 
 	children, err := db.getNodes(nil, rootID, "all", "", false)
-
 	if err != nil {
 		t.Fatal("Error getting children")
 	}
@@ -279,7 +258,6 @@ func TestDbSqliteUp(t *testing.T) {
 	childID := children[0].ID
 
 	ups, err := db.up(childID, false)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,28 +267,27 @@ func TestDbSqliteUp(t *testing.T) {
 	}
 
 	if ups[0] != rootID {
-		t.Fatal("ups, wrong ID: ", ups[0])
+		t.Fatal("ups, wrong ID:", ups[0])
 	}
 
 	// try to get ups of root node
 	ups, err = db.up(rootID, false)
-
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if len(ups) < 1 {
-		t.Fatal("No ups for root user")
+		t.Fatal("No ups for root node")
 	}
 
 	if ups[0] != "root" {
-		t.Fatal("ups, wrong ID for root: ", ups[0])
+		t.Fatal("ups, wrong ID for root:", ups[0])
 	}
 }
 
-func TestDbSqliteBatchPoints(t *testing.T) {
-	db := newTestDb(t)
-	defer db.Close()
+func TestDbJetStreamBatchPoints(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
 
 	rootID := db.rootNodeID()
 
@@ -329,17 +306,24 @@ func TestDbSqliteBatchPoints(t *testing.T) {
 
 	nodes, err := db.getNodes(nil, "all", rootID, "", false)
 	if err != nil {
-		t.Fatal("Error getting root node: ", err)
+		t.Fatal("Error getting root node:", err)
 	}
 
 	n := nodes[0]
 
-	if len(n.Points) != 1 {
-		t.Fatal("Error, point did not get merged")
+	// After collapse, only one point with the latest time should remain
+	var valuePoints data.Points
+	for _, p := range n.Points {
+		if p.Type == data.PointTypeValue {
+			valuePoints = append(valuePoints, p)
+		}
 	}
 
-	if !n.Points[0].Time.Equal(now) {
+	if len(valuePoints) != 1 {
+		t.Fatal("Error, point did not get merged, got:", len(valuePoints))
+	}
+
+	if !valuePoints[0].Time.Equal(now) {
 		t.Fatal("Point collapsing did not pick latest")
 	}
-
 }

@@ -13,6 +13,24 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- replace SQLite store with JetStream per-node streams (ADR-7 Stage 2)
+- remove SQLite dependency and hash tree
+- add in-memory point cache and edge cache for fast lookups
+- update NATS dependencies (nats.go v1.49.0, nats-server v2.12.5)
+- **breaking:** existing SQLite databases must be migrated via
+  `siot export`/`siot import`
+- replace Point `Value`/`Text` fields with unified `DataType`/`Data` encoding
+  (ADR-7 Stage 1) (#742)
+- replace protobuf point encoding with compact binary format (#742)
+- move edge point NATS subjects to `ep.` prefix and add type/key to node point
+  subjects (#742)
+- add `dataType` field to Elm frontend Point type (#742)
+- add `MarshalYAML` for human-readable point export (#742)
+- add OOM protection to `DecodePoints` (#742)
+- fix Shelly mDNS data race by creating fresh params per scan (#742)
+- fix JSON/YAML unmarshal when `dataType` is set but `data` is empty (#742)
+- update docs to reflect new point encoding and NATS subjects (#742)
+
 ## [[0.18.5] - 2025-09-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.5)
 
 - add configurable response timeout parameter for Modbus clients with 100ms
