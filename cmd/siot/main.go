@@ -56,7 +56,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	log.Printf("SimpleIOT %v\n", version)
+	log.Printf("CLIFF SimpleIOT %v\n", version)
 
 	// extract sub command and its arguments
 	args := flags.Args()
