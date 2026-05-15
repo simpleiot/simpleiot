@@ -23,7 +23,7 @@ type Store struct {
 	params        Params
 	nc            *nats.Conn
 	subscriptions map[string]*nats.Subscription
-	db            *DbSqlite
+	db            *DbJetStream
 	authorizer    api.Authorizer
 
 	// cycle metrics track how long it takes to handle a point
@@ -43,7 +43,6 @@ type Store struct {
 
 // Params are used to configure a store
 type Params struct {
-	File      string
 	AuthToken string
 	Server    string
 	Nc        *nats.Conn
@@ -54,13 +53,10 @@ type Params struct {
 
 // NewStore creates a new NATS client for handling SIOT requests
 func NewStore(p Params) (*Store, error) {
-	db, err := NewSqliteDb(p.File, p.ID)
+	db, err := NewJetStreamDb(p.Nc, p.ID)
 	if err != nil {
 		return nil, fmt.Errorf("error opening db: %v", err)
 	}
-
-	// we don't have node ID yet, but need to init here so we can start
-	// collecting data
 
 	authorizer, err := api.NewKey(db.meta.JWTKey)
 	if err != nil {
@@ -485,28 +481,18 @@ func (st *Store) handleAuthGetNatsURI(msg *nats.Msg) {
 }
 
 func (st *Store) handleStoreVerify(msg *nats.Msg) {
-	var ret string
-	hashErr := st.db.verifyNodeHashes(false)
-	if hashErr != nil {
-		ret = hashErr.Error()
-	}
-
-	err := st.nc.Publish(msg.Reply, []byte(ret))
+	// Hash verification is no longer needed with JetStream store
+	err := st.nc.Publish(msg.Reply, []byte(""))
 	if err != nil {
-		log.Println("NATS: Error publishing response to node request:", err)
+		log.Println("NATS: Error publishing response to store verify:", err)
 	}
 }
 
 func (st *Store) handleStoreMaint(msg *nats.Msg) {
-	var ret string
-	hashErr := st.db.verifyNodeHashes(true)
-	if hashErr != nil {
-		ret = hashErr.Error()
-	}
-
-	err := st.nc.Publish(msg.Reply, []byte(ret))
+	// Hash maintenance is no longer needed with JetStream store
+	err := st.nc.Publish(msg.Reply, []byte(""))
 	if err != nil {
-		log.Println("NATS: Error publishing response to node request:", err)
+		log.Println("NATS: Error publishing response to store maint:", err)
 	}
 }
 

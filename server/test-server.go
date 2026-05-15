@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os/exec"
+	"os"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -14,7 +14,6 @@ import (
 
 // TestServerOptions options used for test server
 var TestServerOptions = Options{
-	StoreFile:    "test.sqlite",
 	NatsPort:     8900,
 	HTTPPort:     "8901",
 	NatsHTTPPort: 8902,
@@ -25,7 +24,6 @@ var TestServerOptions = Options{
 
 // TestServerOptions2 options used for 2nd test server
 var TestServerOptions2 = Options{
-	StoreFile:    "test2.sqlite",
 	NatsPort:     8910,
 	HTTPPort:     "8911",
 	NatsHTTPPort: 8912,
@@ -42,12 +40,16 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 		opts = TestServerOptions2
 	}
 
-	cleanup := func() {
-		_ = exec.Command("sh", "-c",
-			fmt.Sprintf("rm %v*", opts.StoreFile)).Run()
+	// Create temp directory for JetStream data
+	tmpDir, err := os.MkdirTemp("", "siot-test-*")
+	if err != nil {
+		return nil, data.NodeEdge{}, nil, fmt.Errorf("error creating temp dir: %v", err)
 	}
+	opts.DataDir = tmpDir
 
-	cleanup()
+	cleanup := func() {
+		_ = os.RemoveAll(tmpDir)
+	}
 
 	s, nc, err := NewServer(opts)
 
@@ -81,7 +83,16 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 		return nil, data.NodeEdge{}, stop, fmt.Errorf("error waiting for test server to start: %v", err)
 	}
 
-	nodes, err := client.GetNodes(nc, "root", "all", "", false)
+	// Retry getting root nodes — store subscriptions may take a moment
+	// to become active after the run group starts
+	var nodes []data.NodeEdge
+	for range 50 {
+		nodes, err = client.GetNodes(nc, "root", "all", "", false)
+		if err == nil && len(nodes) > 0 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	if err != nil {
 		return nil, data.NodeEdge{}, stop, fmt.Errorf("get root nodes error: %v", err)

@@ -153,6 +153,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	// TODO, convert this to builder pattern
 	o := Options{
 		StoreFile:         storeFilePath,
+		DataDir:           dataDir,
 		ResetStore:        *flagResetStore,
 		HTTPPort:          port,
 		DebugHTTP:         *flagDebugHTTP,

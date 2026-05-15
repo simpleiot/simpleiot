@@ -16,6 +16,7 @@ data.json
 GITHUB_TOKEN
 local.sh
 /badger
+/jetstream
 /book
 *.zip
 *.bkp

@@ -22,8 +22,6 @@ func (e Edge) String() string {
 	ret := fmt.Sprintf("EDGE: %v\n", e.ID)
 	ret += fmt.Sprintf("  - Up:   %v\n", e.Up)
 	ret += fmt.Sprintf("  - Down: %v\n", e.Down)
-	ret += fmt.Sprintf("  - Hash: 0x%x\n", e.Hash)
-
 	for _, p := range e.Points {
 		ret += fmt.Sprintf("  - Point: %v\n", p)
 	}
@@ -44,9 +42,3 @@ func (a ByEdgeID) Len() int           { return len(a) }
 func (a ByEdgeID) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByEdgeID) Less(i, j int) bool { return strings.Compare(a[i].ID, a[j].ID) < 0 }
 
-// ByHash implements sort interface for NodeEdge by Hash
-type ByHash []*Edge
-
-func (a ByHash) Len() int           { return len(a) }
-func (a ByHash) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByHash) Less(i, j int) bool { return a[i].Hash < a[j].Hash }
