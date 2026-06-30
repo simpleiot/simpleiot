@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "sim",
+    srcs = [
+        "doc.go",
+        "node.go",
+        "sim.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/sim",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api",
+        "//data",
+    ],
+)

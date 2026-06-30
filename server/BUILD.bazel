@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "server",
+    srcs = [
+        "args.go",
+        "doc.go",
+        "fs-decomp.go",
+        "nats-server.go",
+        "server.go",
+        "test-server.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/server",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api",
+        "//assets/files",
+        "//client",
+        "//data",
+        "//frontend",
+        "//node",
+        "//store",
+        "//system",
+        "@com_github_nats_io_nats_go//:nats_go",
+        "@com_github_nats_io_nats_server_v2//server",
+        "@com_github_oklog_run//:run",
+    ],
+)
+
+go_test(
+    name = "server_test",
+    srcs = ["fs-decomp_test.go"],
+    embed = [":server"],
+)

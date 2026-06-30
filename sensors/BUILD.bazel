@@ -1,0 +1,11 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "sensors",
+    srcs = [
+        "doc.go",
+        "tof10120.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/sensors",
+    visibility = ["//visibility:public"],
+)

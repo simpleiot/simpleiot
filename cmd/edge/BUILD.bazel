@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "edge_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/simpleiot/simpleiot/cmd/edge",
+    visibility = ["//visibility:private"],
+    deps = ["//client"],
+)
+
+go_binary(
+    name = "edge",
+    embed = [":edge_lib"],
+    visibility = ["//visibility:public"],
+)

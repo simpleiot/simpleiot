@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "serial-encode_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/simpleiot/simpleiot/cmd/serial-encode",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//client",
+        "//data",
+        "//test",
+    ],
+)
+
+go_binary(
+    name = "serial-encode",
+    embed = [":serial-encode_lib"],
+    visibility = ["//visibility:public"],
+)

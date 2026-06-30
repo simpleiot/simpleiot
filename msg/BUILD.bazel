@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "msg",
+    srcs = [
+        "doc.go",
+        "twilio.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/msg",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_kevinburke_twilio_go//:twilio-go"],
+)

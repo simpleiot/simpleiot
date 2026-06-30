@@ -1,0 +1,41 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "modbus",
+    srcs = [
+        "ascii.go",
+        "client.go",
+        "crc.go",
+        "data.go",
+        "doc.go",
+        "modbus.go",
+        "pdu.go",
+        "reg.go",
+        "rtu.go",
+        "server.go",
+        "tcp.go",
+        "transport.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/modbus",
+    visibility = ["//visibility:public"],
+    deps = ["//test"],
+)
+
+go_test(
+    name = "modbus_test",
+    srcs = [
+        "ascii_test.go",
+        "data_test.go",
+        "pdu_test.go",
+        "reg_test.go",
+        "rtu-end-to-end_test.go",
+        "rtu_test.go",
+        "tcp_test.go",
+    ],
+    embed = [":modbus"],
+    deps = [
+        "//respreader",
+        "//test",
+        "@com_github_google_go_cmp//cmp",
+    ],
+)
