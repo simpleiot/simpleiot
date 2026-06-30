@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "gps",
+    srcs = [
+        "doc.go",
+        "gps.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/gps",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//data",
+        "@com_github_adrianmo_go_nmea//:go-nmea",
+        "@com_github_jacobsa_go_serial//serial",
+    ],
+)

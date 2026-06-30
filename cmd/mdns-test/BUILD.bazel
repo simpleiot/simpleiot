@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "mdns-test_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/simpleiot/simpleiot/cmd/mdns-test",
+    visibility = ["//visibility:private"],
+    deps = ["@com_github_simpleiot_mdns//:mdns"],
+)
+
+go_binary(
+    name = "mdns-test",
+    embed = [":mdns-test_lib"],
+    visibility = ["//visibility:public"],
+)

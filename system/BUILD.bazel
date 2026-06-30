@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "system",
+    srcs = [
+        "doc.go",
+        "os_version_linux.go",
+        "os_version_nonlinux.go",
+        "parse.go",
+        "syslog_darwin.go",
+        "syslog_linux.go",
+        "syslog_windows.go",
+        "time-common.go",
+        "time_darwin.go",
+        "time_linux.go",
+        "time_windows.go",
+        "timezone.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/system",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_beevik_ntp//:ntp",
+        "@com_github_blang_semver_v4//:semver",
+    ],
+)
+
+go_test(
+    name = "system_test",
+    srcs = ["os_version_test.go"],
+    embed = [":system"],
+    deps = ["@com_github_blang_semver_v4//:semver"],
+)

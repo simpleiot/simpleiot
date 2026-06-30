@@ -1,0 +1,30 @@
+load("@gazelle//:def.bzl", "gazelle")
+load("@rules_go//go:def.bzl", "go_library")
+
+# Gazelle configuration -------------------------------------------------------
+# Prefix used to resolve internal import paths to Bazel targets.
+# gazelle:prefix github.com/simpleiot/simpleiot
+#
+# bazel/ holds shell helpers invoked by genrules, not Go code.
+# gazelle:exclude bazel
+#
+# The protobuf .pb.go files are checked in and generated out-of-band via
+# `siot_protobuf`. Treat them as ordinary Go sources rather than having Gazelle
+# wire up a proto_library/go_proto_library toolchain.
+# gazelle:proto disable_global
+#
+# The Elm frontend output lives in frontend/public and is consumed through a
+# go:embed directive; Gazelle picks it up automatically as embedsrcs.
+
+# Run `bazel run //:gazelle` to (re)generate BUILD.bazel files for all packages.
+gazelle(name = "gazelle")
+
+# Run `bazel run //:gazelle-update-repos` is no longer needed under bzlmod;
+# use `bazel mod tidy` to sync the MODULE.bazel use_repo block instead.
+
+go_library(
+    name = "simpleiot",
+    srcs = ["doc.go"],
+    importpath = "github.com/simpleiot/simpleiot",
+    visibility = ["//visibility:public"],
+)

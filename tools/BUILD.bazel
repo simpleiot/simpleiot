@@ -1,0 +1,8 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "tools",
+    srcs = ["doc.go"],
+    importpath = "github.com/simpleiot/simpleiot/tools",
+    visibility = ["//visibility:public"],
+)

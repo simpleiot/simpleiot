@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "tof10120_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/simpleiot/simpleiot/cmd/tof10120",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//respreader",
+        "//sensors",
+        "@st_bug_go_serial//:serial",
+    ],
+)
+
+go_binary(
+    name = "tof10120",
+    embed = [":tof10120_lib"],
+    visibility = ["//visibility:public"],
+)

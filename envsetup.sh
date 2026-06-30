@@ -227,7 +227,9 @@ siot_setup_influx() {
 }
 
 siot_protobuf_go() {
-	protoc --proto_path=internal/pb internal/pb/*.proto --go_out=./ || return 1
+	# go_package is now a full import path; module= keeps output under internal/pb/.
+	protoc --proto_path=internal/pb internal/pb/*.proto \
+		--go_out=. --go_opt=module=github.com/simpleiot/simpleiot || return 1
 }
 
 siot_protobuf_js() {

@@ -1,0 +1,17 @@
+# Use bzlmod (default in Bazel 7+, explicit for clarity).
+common --enable_bzlmod
+
+# Keep generated symlink forests out of the way and gitignored.
+build --symlink_prefix=bazel-
+
+# Go race detector available via: bazel test --features=race //...
+
+# The frontend build (//frontend:elm_js_gz) shells out to host node/npm and the
+# Elm toolchain. Pass HOME and PATH through so their binaries and caches
+# (~/.npm, ~/.elm) resolve. Values are taken from the client environment.
+build --action_env=HOME
+build --action_env=PATH
+
+# Machine-specific overrides (e.g. JDK location for the Bazel server) live in
+# an optional, untracked user.bazelrc.
+try-import %workspace%/user.bazelrc

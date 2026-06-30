@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "modbus_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/simpleiot/simpleiot/cmd/modbus",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//modbus",
+        "//respreader",
+        "@st_bug_go_serial//:serial",
+    ],
+)
+
+go_binary(
+    name = "modbus",
+    embed = [":modbus_lib"],
+    visibility = ["//visibility:public"],
+)

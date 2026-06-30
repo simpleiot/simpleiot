@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "siot_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/simpleiot/simpleiot/cmd/siot",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//client",
+        "//install",
+        "//server",
+        "@com_github_oklog_run//:run",
+    ],
+)
+
+go_binary(
+    name = "siot",
+    embed = [":siot_lib"],
+    visibility = ["//visibility:public"],
+)

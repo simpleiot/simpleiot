@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "network",
+    srcs = [
+        "at-commands.go",
+        "doc.go",
+        "dummy.go",
+        "ethernet.go",
+        "interface.go",
+        "ip.go",
+        "manager.go",
+        "modem.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/network",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//data",
+        "//file",
+        "//respreader",
+        "@com_github_adrianmo_go_nmea//:go-nmea",
+        "@com_github_jacobsa_go_serial//serial",
+    ],
+)
+
+go_test(
+    name = "network_test",
+    srcs = ["at-commands_test.go"],
+    embed = [":network"],
+)

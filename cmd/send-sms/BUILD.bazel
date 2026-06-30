@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "send-sms_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/simpleiot/simpleiot/cmd/send-sms",
+    visibility = ["//visibility:private"],
+    deps = ["//msg"],
+)
+
+go_binary(
+    name = "send-sms",
+    embed = [":send-sms_lib"],
+    visibility = ["//visibility:public"],
+)

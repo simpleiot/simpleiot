@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "test-resp-reader-close_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/simpleiot/simpleiot/cmd/test-resp-reader-close",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//respreader",
+        "@st_bug_go_serial//:serial",
+    ],
+)
+
+go_binary(
+    name = "test-resp-reader-close",
+    embed = [":test-resp-reader-close_lib"],
+    visibility = ["//visibility:public"],
+)

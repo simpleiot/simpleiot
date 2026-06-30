@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "api",
+    srcs = [
+        "auth.go",
+        "client.go",
+        "doc.go",
+        "http-logger.go",
+        "json.go",
+        "key.go",
+        "nodes.go",
+        "server.go",
+        "shiftpath.go",
+        "v1.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/api",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//client",
+        "//data",
+        "@com_github_golang_jwt_jwt_v4//:jwt",
+        "@com_github_google_uuid//:uuid",
+        "@com_github_koding_websocketproxy//:websocketproxy",
+        "@com_github_nats_io_nats_go//:nats_go",
+    ],
+)

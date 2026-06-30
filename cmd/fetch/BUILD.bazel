@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "fetch_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/simpleiot/simpleiot/cmd/fetch",
+    visibility = ["//visibility:private"],
+    deps = ["@com_github_cavaliercoder_grab//:grab"],
+)
+
+go_binary(
+    name = "fetch",
+    embed = [":fetch_lib"],
+    visibility = ["//visibility:public"],
+)

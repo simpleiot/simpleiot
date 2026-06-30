@@ -1,0 +1,52 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "data",
+    srcs = [
+        "api.go",
+        "auth.go",
+        "config.go",
+        "decode.go",
+        "doc.go",
+        "edge.go",
+        "encode.go",
+        "errors.go",
+        "event.go",
+        "gps.go",
+        "history.go",
+        "merge.go",
+        "message.go",
+        "message-service.go",
+        "node.go",
+        "notification.go",
+        "point.go",
+        "point_averager.go",
+        "schema.go",
+        "time_window_avg.go",
+        "user.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/data",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/pb",
+        "@com_github_adrianmo_go_nmea//:go-nmea",
+        "@com_github_golang_protobuf//ptypes",
+        "@com_github_influxdata_influxdb_client_go_v2//api",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_x_exp//slices",
+    ],
+)
+
+go_test(
+    name = "data_test",
+    srcs = [
+        "config_test.go",
+        "encode_decode_test.go",
+        "merge_test.go",
+        "point_averager_test.go",
+        "point_test.go",
+        "time_window_avg_test.go",
+    ],
+    embed = [":data"],
+    deps = ["@com_github_goccy_go_yaml//:go-yaml"],
+)

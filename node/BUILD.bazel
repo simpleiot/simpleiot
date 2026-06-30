@@ -1,0 +1,37 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "node",
+    srcs = [
+        "doc.go",
+        "modbus.go",
+        "modbus-io.go",
+        "modbus-io-node.go",
+        "modbus-manager.go",
+        "modbus-node.go",
+        "node.go",
+        "onewire.go",
+        "onewire-io.go",
+        "onewire-io-node.go",
+        "onewire-manager.go",
+        "onewire-node.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/node",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//client",
+        "//data",
+        "//modbus",
+        "//respreader",
+        "//system",
+        "@com_github_nats_io_nats_go//:nats_go",
+        "@st_bug_go_serial//:serial",
+    ],
+)
+
+go_test(
+    name = "node_test",
+    srcs = ["node_test.go"],
+    embed = [":node"],
+    deps = ["//data"],
+)

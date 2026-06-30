@@ -1,0 +1,41 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "store",
+    srcs = [
+        "doc.go",
+        "hash.go",
+        "notification.go",
+        "sqlite.go",
+        "store.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/store",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api",
+        "//client",
+        "//data",
+        "//internal/pb",
+        "@com_github_google_uuid//:uuid",
+        "@com_github_nats_io_nats_go//:nats_go",
+        "@org_golang_google_protobuf//proto",
+        "@org_modernc_sqlite//:sqlite",
+    ],
+)
+
+go_test(
+    name = "store_test",
+    srcs = [
+        "hash_test.go",
+        "sqlite_test.go",
+        "store_test.go",
+    ],
+    embed = [":store"],
+    deps = [
+        "//client",
+        "//data",
+        "//server",
+        "@com_github_google_uuid//:uuid",
+        "@com_github_nats_io_nats_go//:nats_go",
+    ],
+)

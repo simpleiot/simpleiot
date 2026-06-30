@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "respreader",
+    srcs = [
+        "doc.go",
+        "response-reader.go",
+    ],
+    importpath = "github.com/simpleiot/simpleiot/respreader",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "respreader_test",
+    srcs = ["response-reader_test.go"],
+    embed = [":respreader"],
+)
