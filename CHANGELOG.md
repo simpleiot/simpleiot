@@ -13,6 +13,18 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [0.20.0] - 2026-07-31
+
+- serial: add a Zephyr shell protocol mode to the MCU serial client. Points are
+  exchanged as lines of ASCII with an MCU's console shell rather than
+  COBS-framed binary packets, so the link a developer reads is the link Simple
+  IoT uses for data. Select it with the Protocol setting on a serial node; an
+  empty value means binary, so existing nodes are unaffected. See the
+  [MCU documentation](docs/user/mcu.md) and the
+  [serial reference](docs/ref/serial.md).
+- serial: add a "Log console output" option that mirrors the MCU console to the
+  Simple IoT server log. Shell protocol only.
+
 ## [0.19.0] - 2026-07-31
 
 - add GPS client that reads position data from a serial NMEA receiver, the gpsd

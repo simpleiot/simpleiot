@@ -211,7 +211,15 @@ const (
 	PointTypeMetricNatsThroughputNodeEdgePoint = "metricNatsThroughputNodeEdgePoint"
 
 	// serial MCU clients
-	NodeTypeSerialDev         = "serialDev"
+	NodeTypeSerialDev = "serialDev"
+	// PointTypeProtocol on a serialDev node selects the wire protocol.
+	// An empty value means PointValueProtocolBinary so existing nodes
+	// keep working with no migration.
+	PointValueProtocolBinary = "binary" // COBS framed binary packets
+	PointValueProtocolShell  = "shell"  // Zephyr console shell, ASCII
+	// PointTypeLogConsole mirrors the MCU console to the SIOT server log.
+	// Shell protocol only.
+	PointTypeLogConsole       = "logConsole"
 	PointTypeRx               = "rx"
 	PointTypeTx               = "tx"
 	PointTypeHrRx             = "hrRx"
