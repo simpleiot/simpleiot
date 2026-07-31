@@ -36,8 +36,8 @@ plottable on a map.
 
 ### gpsd
 
-| Field          | Description                                                          |
-| -------------- | -------------------------------------------------------------------- |
+| Field          | Description                                                           |
+| -------------- | --------------------------------------------------------------------- |
 | `gpsd address` | Host and port of the daemon. Defaults to `localhost:2947`.            |
 | `Device`       | Which device to watch. Leave blank to watch whatever gpsd is serving. |
 
@@ -48,14 +48,14 @@ unplugged.
 
 ### Simulated
 
-| Field                  | Description                                              |
-| ---------------------- | -------------------------------------------------------- |
-| `Start latitude`       | Where the track begins, in degrees.                      |
-| `Start longitude`      | Where the track begins, in degrees.                      |
-| `Speed (m/s)`          | How fast the simulated receiver moves. Defaults to `10`. |
-| `Start heading (deg)`  | Initial direction of travel, degrees true.               |
-| `Heading drift (deg/s)`| How far the heading may wander per second. Defaults to `5`. |
-| `Update period (s)`    | How often a position is published. Defaults to `1`.      |
+| Field                   | Description                                                 |
+| ----------------------- | ----------------------------------------------------------- |
+| `Start latitude`        | Where the track begins, in degrees.                         |
+| `Start longitude`       | Where the track begins, in degrees.                         |
+| `Speed (m/s)`           | How fast the simulated receiver moves. Defaults to `10`.    |
+| `Start heading (deg)`   | Initial direction of travel, degrees true.                  |
+| `Heading drift (deg/s)` | How far the heading may wander per second. Defaults to `5`. |
+| `Update period (s)`     | How often a position is published. Defaults to `1`.         |
 
 The heading drifts randomly within the configured rate, so the track wanders
 naturally instead of running straight or jumping between positions. Set the
@@ -70,21 +70,21 @@ hardware. The node's source setting is what identifies the data as synthetic.
 
 ## Published Points
 
-| Point        | Units                     | Description                                |
-| ------------ | ------------------------- | ------------------------------------------ |
-| `latitude`   | degrees, positive north   | Position                                   |
-| `longitude`  | degrees, positive east    | Position                                   |
-| `altitude`   | meters above sea level    | See the note on altitude below             |
-| `speed`      | meters per second         | Speed over ground                          |
-| `heading`    | degrees true, 0 to 360    | Direction of travel over ground            |
-| `fixType`    | numeric code              | Whether the fix is 2D or 3D                |
-| `fixQuality` | numeric code              | Which augmentation produced the fix        |
-| `numSat`     | count                     | Satellites used in the fix                 |
-| `hdop`       | ratio                     | Horizontal dilution of precision           |
-| `gpsTime`    | Unix epoch seconds        | Time reported by the receiver              |
-| `connected`  | boolean                   | Whether data is currently arriving         |
-| `rx`         | count                     | Messages received                          |
-| `errorCount` | count                     | Messages that could not be read            |
+| Point        | Units                   | Description                         |
+| ------------ | ----------------------- | ----------------------------------- |
+| `latitude`   | degrees, positive north | Position                            |
+| `longitude`  | degrees, positive east  | Position                            |
+| `altitude`   | meters above sea level  | See the note on altitude below      |
+| `speed`      | meters per second       | Speed over ground                   |
+| `heading`    | degrees true, 0 to 360  | Direction of travel over ground     |
+| `fixType`    | numeric code            | Whether the fix is 2D or 3D         |
+| `fixQuality` | numeric code            | Which augmentation produced the fix |
+| `numSat`     | count                   | Satellites used in the fix          |
+| `hdop`       | ratio                   | Horizontal dilution of precision    |
+| `gpsTime`    | Unix epoch seconds      | Time reported by the receiver       |
+| `connected`  | boolean                 | Whether data is currently arriving  |
+| `rx`         | count                   | Messages received                   |
+| `errorCount` | count                   | Messages that could not be read     |
 
 A source publishes only what it actually reports. A receiver that sends no GSA
 sentences, for example, leaves `fixType` unset; no value is guessed for it.
@@ -102,25 +102,25 @@ displays them as labels.
 
 `fixType` follows the gpsd encoding:
 
-| Value | Meaning              |
-| ----- | -------------------- |
-| `0`   | No fix, or unknown   |
-| `2`   | 2D fix               |
-| `3`   | 3D fix               |
+| Value | Meaning            |
+| ----- | ------------------ |
+| `0`   | No fix, or unknown |
+| `2`   | 2D fix             |
+| `3`   | 3D fix             |
 
 `fixQuality` follows the NMEA GGA encoding:
 
-| Value | Meaning                        |
-| ----- | ------------------------------ |
-| `0`   | No fix                         |
-| `1`   | GPS                            |
-| `2`   | Differential GPS               |
-| `3`   | Precise Positioning Service    |
-| `4`   | RTK fixed                      |
-| `5`   | RTK float                      |
-| `6`   | Estimated, or dead reckoning   |
-| `7`   | Manual input                   |
-| `8`   | Simulated                      |
+| Value | Meaning                      |
+| ----- | ---------------------------- |
+| `0`   | No fix                       |
+| `1`   | GPS                          |
+| `2`   | Differential GPS             |
+| `3`   | Precise Positioning Service  |
+| `4`   | RTK fixed                    |
+| `5`   | RTK float                    |
+| `6`   | Estimated, or dead reckoning |
+| `7`   | Manual input                 |
+| `8`   | Simulated                    |
 
 Values `7` and `8` are available through gpsd. The NMEA library SimpleIoT uses
 validates fix quality against the range `0` to `6`, so a serial receiver
@@ -164,21 +164,42 @@ from(bucket: "siot")
 Set the panel's Map Layer to Coordinates, and the latitude and longitude fields
 to the pivoted columns.
 
-With **Victoria Metrics**, query the two series separately:
+With **Victoria Metrics**, add one query per field. Set each query's **Legend**
+to the field name, which is how the Geomap panel finds the coordinates later.
+
+![Grafana queries against Victoria Metrics](assets/gps-grafana-vm-queries.png)
+
+Each query selects one point type from the GPS nodes:
 
 ```
-points_value{type="latitude"}
-points_value{type="longitude"}
+max by(node.description) (points_value{node.type="gps", node.description="$node", type="latitude"})
+max by(node.description) (points_value{node.type="gps", node.description="$node", type="longitude"})
+max by(node.description) (points_value{node.type="gps", node.description="$node", type="speed"})
 ```
 
-Then add two transformations to the panel:
+`$node` is a dashboard variable holding the GPS node description, so one
+dashboard can serve several receivers. `max by(node.description)` collapses the
+result to one series per node.
 
-1. **Join by field** on `Time`, which brings the two series onto shared rows.
-2. **Organize fields**, renaming the two value columns to `latitude` and
-   `longitude` so the Geomap panel recognizes them.
+The tag names the database client writes contain dots, as in `node.type` and
+`node.description`. Victoria Metrics accepts these as label names and they can
+be used directly in a query, as above.
 
-Set the panel's minimum step at or below the GPS update rate. A larger step
-samples the track rather than drawing every position.
+Set **Step** to the GPS update rate, `1s` in the example. A larger step samples
+the track instead of drawing every position.
+
+Then add two transformations:
+
+![Grafana transformations](assets/gps-grafana-vm-transformations.png)
+
+1. **Join by field** in `Outer (time series)` mode on `Time`. This is where the
+   shared timestamp matters: the separate series line up onto single rows only
+   because every point in one fix carries the same time.
+2. **Organize fields by name**, which sets the field order and confirms the
+   names carried over from the query legends.
+
+Finally, set the panel's Map Layer to Coordinates. Grafana locates the
+`latitude` and `longitude` fields by name.
 
 To display the fix codes as labels on a Grafana panel, add value mappings using
 the tables above.

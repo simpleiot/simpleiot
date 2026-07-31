@@ -239,13 +239,21 @@ numeric fields in the same frame. Getting there differs by database:
   so set the panel's min step at or below the GPS update rate to avoid
   decimating the track.
 
-Two things to verify during Phase 6 rather than assume:
+Resolved during implementation:
 
-- The db client's tag names contain dots (`node.id`), which is not a valid
-  Prometheus label name. VictoriaMetrics is more permissive than Prometheus
-  here, but Grafana's Prometheus datasource may need quoted-label selector
-  syntax. VictoriaMetrics' `-usePromCompatibleNaming` flag rewrites these to
-  `node_id` and is likely the smoother configuration.
+- The db client's tag names contain dots (`node.type`, `node.description`),
+  which is not a valid Prometheus label name. This was flagged as a risk
+  needing `-usePromCompatibleNaming`. It turned out not to be one:
+  VictoriaMetrics accepts dotted label names and Grafana queries them directly,
+  confirmed against a working dashboard. No flag needed.
+- The Grafana setup is documented from a working configuration rather than from
+  theory. Setting each query's Legend to the field name is what produces the
+  `latitude` and `longitude` fields the Geomap panel looks for, and the join
+  must use `Outer (time series)` mode. Screenshots of both the queries and the
+  transformations are in `docs/user/assets/`.
+
+Still worth verifying:
+
 - Because the db client writes a `text` field on every point, VictoriaMetrics
   gets a `points_text` series holding zeros alongside every real series. Harmless
   but wasteful. Reducing it means changing the db client to omit empty text
