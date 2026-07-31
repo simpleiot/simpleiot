@@ -20,11 +20,20 @@ import (
 
 // SerialDev represents a serial (MCU) config
 type SerialDev struct {
-	ID                string `node:"id"`
-	Parent            string `node:"parent"`
-	Description       string `point:"description"`
-	Port              string `point:"port"`
-	Baud              string `point:"baud"`
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+	Port        string `point:"port"`
+	Baud        string `point:"baud"`
+	// Protocol selects the wire format: "binary" (default, COBS framed) or
+	// "shell" (Zephyr console shell, ASCII lines).
+	Protocol string `point:"protocol"`
+	// Timeout is the seconds without any traffic before the shell protocol
+	// declares the link disconnected. 0 means defaultShellTimeout.
+	Timeout int `point:"timeout"`
+	// LogConsole mirrors every line received from the MCU to the server log.
+	// Shell protocol only.
+	LogConsole        bool   `point:"logConsole"`
 	MaxMessageLength  int    `point:"maxMessageLength"`
 	HRDestNode        string `point:"hrDest"`
 	SyncParent        bool   `point:"syncParent"`
@@ -73,8 +82,28 @@ type SerialDevClient struct {
 	ratePointCount      int
 	ratePointCountHR    int
 	rateLastSend        time.Time
-	portCobsWrapper     *CobsWrapper
+	port                serialPort
 	sendPointsCh        chan sendData
+	// echoCache records points written to the MCU in shell mode so the
+	// echo the MCU sends back can be recognized and dropped.
+	echoCache map[echoKey]echoEntry
+	// lastRx is when we last received anything from the MCU, used by the
+	// shell mode connection watchdog.
+	lastRx time.Time
+}
+
+// serialPort is the framing layer between the raw port and the client. Read
+// returns exactly one message per call: a COBS frame for the binary protocol,
+// or one console line for the shell protocol.
+type serialPort interface {
+	io.ReadWriteCloser
+	SetDebug(int)
+}
+
+// shell returns true if this client is configured for the Zephyr shell
+// protocol. An empty Protocol means binary, so existing nodes are unaffected.
+func (sd *SerialDevClient) shell() bool {
+	return sd.config.Protocol == data.PointValueProtocolShell
 }
 
 // NewSerialDevClient ...
@@ -133,7 +162,7 @@ func (sd *SerialDevClient) populateNatsSubjects() {
 			}
 
 			if len(pointsToSend) > 0 {
-				if sd.portCobsWrapper == nil {
+				if sd.port == nil {
 					if debug >= 4 {
 						log.Printf("Serial port closed; points not sent: %v", pointsToSend)
 					}
@@ -173,8 +202,8 @@ func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pt
 		}
 	}
 
-	if sd.portCobsWrapper != nil {
-		_, err = sd.portCobsWrapper.Write(d)
+	if sd.port != nil {
+		_, err = sd.port.Write(d)
 		if err != nil {
 			return fmt.Errorf("error writing data to port: %w", err)
 		}
@@ -196,6 +225,55 @@ func (sd *SerialDevClient) sendPointsToDevice(seq byte, ack bool, sub string, pt
 	}
 
 	return nil
+}
+
+// publishReadResults sends points decoded from the MCU upstream, along with
+// the periodic rx/rate statistics. Shared by both protocols: everything from
+// here on is independent of how the bytes were framed.
+func (sd *SerialDevClient) publishReadResults(points, adminPoints data.Points) {
+	if time.Since(sd.lastSendStats) > time.Second*5 {
+		adminPoints = append(adminPoints,
+			data.Points{
+				data.NewPointFloat(data.PointTypeRx, "", float64(sd.config.Rx)),
+				data.NewPointFloat(data.PointTypeHrRx, "", float64(sd.config.HrRx)),
+			}...)
+		sd.lastSendStats = time.Now()
+	}
+
+	if time.Since(sd.rateLastSend) > time.Second {
+		now := time.Now()
+		elapsedSec := now.Sub(sd.rateLastSend).Seconds()
+		rate := float64(sd.ratePointCount) / elapsedSec
+		rateHR := float64(sd.ratePointCountHR) / elapsedSec
+		adminPoints = append(adminPoints,
+			data.NewPointFloat(data.PointTypeRate, "", rate),
+			data.NewPointFloat(data.PointTypeRateHR, "", rateHR),
+		)
+		sd.rateLastSend = now
+		sd.ratePointCount = 0
+		sd.ratePointCountHR = 0
+	}
+
+	if sd.config.SyncParent {
+		// add serial ID to origin for all points we send to the parent
+		for i := range points {
+			points[i].Origin = sd.config.ID
+		}
+	}
+
+	if len(points) > 0 {
+		err := SendPoints(sd.nc, sd.natsSubSerialPoints, points, false)
+		if err != nil {
+			log.Println("Error sending points received from MCU:", err)
+		}
+	}
+
+	if len(adminPoints) > 0 {
+		err := SendPoints(sd.nc, sd.natsSub, adminPoints, false)
+		if err != nil {
+			log.Println("Error sending admin points:", err)
+		}
+	}
 }
 
 type downloadState struct {
@@ -238,6 +316,11 @@ func (sd *SerialDevClient) Run() error {
 
 	checkPortDur := time.Second * 10
 	timerCheckPort := time.NewTimer(checkPortDur)
+
+	// Shell mode watchdog: the port staying open says nothing about whether
+	// the MCU is alive, so track when we last heard anything.
+	shellWatchdog := time.NewTicker(time.Second * 5)
+	defer shellWatchdog.Stop()
 
 	serialReadData := make(chan []byte)
 	listenerClosed := make(chan struct{})
@@ -326,9 +409,9 @@ func (sd *SerialDevClient) Run() error {
 			log.Printf("SER TX file seq:%v name:%v block:%v len:%v", sd.wrSeq, dlState.name, dlState.currentBlock, dlState.packet.Len())
 		}
 
-		if sd.portCobsWrapper != nil {
-			// _, err = io.Copy(sd.portCobsWrapper, dlState.packet)
-			_, err = sd.portCobsWrapper.Write(dlState.packet.Bytes())
+		if sd.port != nil {
+			// _, err = io.Copy(sd.port, dlState.packet)
+			_, err = sd.port.Write(dlState.packet.Bytes())
 
 			if err != nil {
 				log.Println("Error writing file to cobs wrapper: ", err)
@@ -373,11 +456,11 @@ func (sd *SerialDevClient) Run() error {
 	}
 
 	closePort := func() {
-		if sd.portCobsWrapper != nil {
+		if sd.port != nil {
 			log.Println("Closing serial port:", sd.config.Description)
-			sd.portCobsWrapper.Close()
+			sd.port.Close()
 		}
-		sd.portCobsWrapper = nil
+		sd.port = nil
 
 		sd.config.Connected = false
 		err := SendNodePoint(sd.nc, sd.config.ID, data.NewPointFloat(data.PointTypeConnected, "", 0), false)
@@ -476,7 +559,7 @@ func (sd *SerialDevClient) Run() error {
 				BaudRate: baud,
 			}
 
-			serialPort, err := serial.Open(sd.config.Port, mode)
+			sp, err := serial.Open(sd.config.Port, mode)
 			if err != nil {
 				log.Printf("Error opening serial port %v: %v", sd.config.Description,
 					err)
@@ -485,27 +568,41 @@ func (sd *SerialDevClient) Run() error {
 			}
 
 			time.Sleep(time.Millisecond)
-			err = serialPort.SetDTR(false)
+			err = sp.SetDTR(false)
 			if err != nil {
 				log.Printf("Error clearing serial port DTR: %v\n", err)
 			}
 
 			time.Sleep(time.Millisecond * 100)
-			err = serialPort.SetDTR(true)
+			err = sp.SetDTR(true)
 			if err != nil {
 				log.Printf("Error setting serial port DTR: %v\n", err)
 			}
 
-			io = serialPort
+			io = sp
 		}
 
-		sd.portCobsWrapper = NewCobsWrapper(io, sd.config.MaxMessageLength)
-		sd.portCobsWrapper.SetDebug(sd.config.Debug)
+		if sd.shell() {
+			sd.port = NewLineWrapper(io, sd.config.MaxMessageLength)
+		} else {
+			sd.port = NewCobsWrapper(io, sd.config.MaxMessageLength)
+		}
+		sd.port.SetDebug(sd.config.Debug)
 		timerCheckPort.Stop()
 
 		log.Println("Serial port opened:", sd.config.Description)
 
-		go listener(sd.portCobsWrapper, sd.config.MaxMessageLength)
+		go listener(sd.port, sd.config.MaxMessageLength)
+
+		if sd.shell() {
+			// The shell protocol has no time sync packet, and being able to
+			// open the port says nothing about whether anything is alive on
+			// the other end. connected is set when the first line arrives.
+			sd.echoCache = map[echoKey]echoEntry{}
+			sd.lastRx = time.Time{}
+			sd.sendShellHandshake()
+			return
+		}
 
 		p := data.Points{{
 			Time: time.Now(),
@@ -535,6 +632,31 @@ exitSerialClient:
 			break exitSerialClient
 		case <-timerCheckPort.C:
 			openPort()
+		case <-shellWatchdog.C:
+			if !sd.shell() || sd.port == nil {
+				break
+			}
+
+			sd.expireEchoCache()
+
+			// lastRx is zero until the first line arrives, so a board that
+			// never says anything is reported disconnected rather than
+			// staying optimistically connected from the port open.
+			silent := time.Since(sd.lastRx)
+			if sd.lastRx.IsZero() {
+				silent = sd.shellTimeout() + time.Second
+			}
+
+			if sd.config.Connected && silent > sd.shellTimeout() {
+				log.Printf("Serial %v: no data for %v, marking disconnected",
+					sd.config.Description, silent.Round(time.Second))
+				sd.config.Connected = false
+				err := SendNodePoint(sd.nc, sd.config.ID,
+					data.NewPointFloat(data.PointTypeConnected, "", 0), false)
+				if err != nil {
+					log.Println("Error sending connected point:", err)
+				}
+			}
 		case <-listenerClosed:
 			closePort()
 			timerCheckPort.Reset(checkPortDur)
@@ -557,6 +679,36 @@ exitSerialClient:
 				}
 			}
 		case rd := <-serialReadData:
+			sd.lastRx = time.Now()
+
+			if sd.shell() {
+				// Any line is evidence the far end is alive. The shell
+				// protocol has no framing beyond the line itself, so
+				// decoding is only classification.
+				if !sd.config.Connected {
+					sd.config.Connected = true
+					err := SendNodePoint(sd.nc, sd.config.ID,
+						data.NewPointFloat(data.PointTypeConnected, "", 1), false)
+					if err != nil {
+						log.Println("Error sending connected point:", err)
+					}
+				}
+
+				shellPoints, shellAdmin := sd.handleShellLine(string(rd))
+				sd.config.Rx++
+				sd.ratePointCount += len(shellPoints)
+
+				if !sd.config.SyncParent && len(shellPoints) > 0 {
+					err := data.MergePoints(sd.config.ID, shellPoints, &sd.config)
+					if err != nil {
+						log.Println("error merging new points:", err)
+					}
+				}
+
+				sd.publishReadResults(shellPoints, shellAdmin)
+				break
+			}
+
 			if sd.config.Debug >= 8 {
 				log.Println("SER RX RAW:", test.HexDump(rd))
 			}
@@ -671,49 +823,7 @@ exitSerialClient:
 					data.NewPointFloat(data.PointTypeErrorCount, "", float64(sd.config.ErrorCount)))
 			}
 
-			if time.Since(sd.lastSendStats) > time.Second*5 {
-				adminPoints = append(adminPoints,
-					data.Points{
-						data.NewPointFloat(data.PointTypeRx, "", float64(sd.config.Rx)),
-						data.NewPointFloat(data.PointTypeHrRx, "", float64(sd.config.HrRx)),
-					}...)
-				sd.lastSendStats = time.Now()
-			}
-
-			if time.Since(sd.rateLastSend) > time.Second {
-				now := time.Now()
-				elapsedSec := now.Sub(sd.rateLastSend).Seconds()
-				rate := float64(sd.ratePointCount) / elapsedSec
-				rateHR := float64(sd.ratePointCountHR) / elapsedSec
-				adminPoints = append(adminPoints,
-					data.NewPointFloat(data.PointTypeRate, "", rate),
-					data.NewPointFloat(data.PointTypeRateHR, "", rateHR),
-				)
-				sd.rateLastSend = now
-				sd.ratePointCount = 0
-				sd.ratePointCountHR = 0
-			}
-
-			if sd.config.SyncParent {
-				// add serial ID to origin for all points we send to the parent
-				for i := range points {
-					points[i].Origin = sd.config.ID
-				}
-			}
-
-			if len(points) > 0 {
-				err := SendPoints(sd.nc, sd.natsSubSerialPoints, points, false)
-				if err != nil {
-					log.Println("Error sending points received from MCU:", err)
-				}
-			}
-
-			if len(adminPoints) > 0 {
-				err := SendPoints(sd.nc, sd.natsSub, adminPoints, false)
-				if err != nil {
-					log.Println("Error sending admin points:", err)
-				}
-			}
+			sd.publishReadResults(points, adminPoints)
 
 		case pts := <-sd.newPoints:
 			op := false
@@ -723,6 +833,7 @@ exitSerialClient:
 				if p.Type == data.PointTypePort ||
 					p.Type == data.PointTypeBaud ||
 					p.Type == data.PointTypeDisabled ||
+					p.Type == data.PointTypeProtocol ||
 					p.Type == data.PointTypeMaxMessageLength {
 					op = true
 				}
@@ -750,8 +861,10 @@ exitSerialClient:
 					updateNatsSubjects = true
 				}
 
-				if p.Type == data.PointTypeDebug {
-					sd.portCobsWrapper.SetDebug(int(p.Val()))
+				// guard against the port being closed: a debug point can
+				// arrive at any time, including before the port opens
+				if p.Type == data.PointTypeDebug && sd.port != nil {
+					sd.port.SetDebug(int(p.Val()))
 				}
 
 				if p.Type == data.PointTypeDownload {
@@ -778,7 +891,7 @@ exitSerialClient:
 				openPort()
 			}
 
-			if sd.portCobsWrapper == nil {
+			if sd.port == nil {
 				break
 			}
 
@@ -863,7 +976,12 @@ exitSerialClient:
 						data.PointTypeErrorCount,
 						data.PointTypeErrorCountReset,
 						data.PointTypeRxReset,
-						data.PointTypeTxReset:
+						data.PointTypeTxReset,
+						// SIOT-side link configuration; the MCU has no use
+						// for these and should not be told about them
+						data.PointTypeProtocol,
+						data.PointTypeTimeout,
+						data.PointTypeLogConsole:
 						continue
 					}
 
@@ -873,10 +991,17 @@ exitSerialClient:
 				}
 
 				if len(toSend) > 0 {
-					sd.wrSeq++
-					err := sd.sendPointsToDevice(sd.wrSeq, false, "", toSend)
-					if err != nil {
-						log.Println("Error sending points to serial device:", err)
+					if sd.shell() {
+						err := sd.sendPointsToDeviceShell(toSend)
+						if err != nil {
+							log.Println("Error sending points to serial device:", err)
+						}
+					} else {
+						sd.wrSeq++
+						err := sd.sendPointsToDevice(sd.wrSeq, false, "", toSend)
+						if err != nil {
+							log.Println("Error sending points to serial device:", err)
+						}
 					}
 				}
 			}
@@ -888,6 +1013,14 @@ exitSerialClient:
 			}
 
 		case sData := <-sd.sendPointsCh:
+			if sd.shell() {
+				err := sd.sendPointsToDeviceShell(sData.points)
+				if err != nil {
+					log.Println("Error sending data to device: ", err)
+				}
+				break
+			}
+
 			err := sd.sendPointsToDevice(sData.seq, sData.ack, sData.subject, sData.points)
 			if err != nil {
 				log.Println("Error sending data to device: ", err)
