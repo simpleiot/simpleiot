@@ -13,6 +13,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [0.20.0] - 2026-07-31
+
 - serial: add a Zephyr shell protocol mode to the MCU serial client. Points are
   exchanged as lines of ASCII with an MCU's console shell rather than
   COBS-framed binary packets, so the link a developer reads is the link Simple
