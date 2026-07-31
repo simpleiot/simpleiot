@@ -555,11 +555,15 @@ version quirks that hand-written reports do not anticipate.
 6. `plans/plans.md` — mark this plan complete.
 7. Retire the legacy `gps/` package. It is dead code superseded by this client,
    but it is exported from a public Go module, so removing it is an API break
-   for any downstream importer. Recommendation: delete `gps/` and `data/gps.go`
-   and call it out in the changelog as a breaking change. If that is too
-   aggressive for this release, add deprecation comments pointing at the new
-   client and remove them in the next major version instead. This step is
-   deliberately separable from the rest of the plan.
+   for any downstream importer. It is git-recoverable and the branch is
+   unreleased, so it is removed here as its own commit and can be reverted on
+   its own.
+
+   Note that `data/gps.go` must stay. The plan originally proposed removing it
+   alongside the package, but `data.GpsPos` and its `FromGPGGA` method are still
+   used by `Modem.GetLocation` in `network/modem.go`, which reads a position
+   from a cellular modem rather than a GPS receiver. Only `gps/gps.go` is
+   unreferenced.
 
 **Verify:** `siot_test`.
 
@@ -589,10 +593,9 @@ version quirks that hand-written reports do not anticipate.
 - `CHANGELOG.md`
 - `plans/plans.md`
 
-**Removed (Phase 6, optional)**
+**Removed (Phase 6)**
 
-- `gps/gps.go`
-- `data/gps.go`
+- `gps/gps.go` (`data/gps.go` stays; still used by `network/modem.go`)
 
 ## Open Questions
 
