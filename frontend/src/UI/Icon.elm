@@ -15,6 +15,7 @@ module UI.Icon exposing
     , globe
     , io
     , list
+    , mapPin
     , network
     , oneWire
     , particle
@@ -272,3 +273,8 @@ update =
 globe : Element msg
 globe =
     icon FeatherIcons.globe
+
+
+mapPin : Element msg
+mapPin =
+    icon FeatherIcons.mapPin

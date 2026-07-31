@@ -14,6 +14,7 @@ import Components.NodeCondition as NodeCondition
 import Components.NodeDb as NodeDb
 import Components.NodeDevice as NodeDevice
 import Components.NodeFile as File
+import Components.NodeGps as NodeGps
 import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
 import Components.NodeMetrics as NodeMetrics
@@ -1051,6 +1052,7 @@ nodeCustomSortRules =
         , ( Node.typeNTP, "S" )
         , ( Node.typeUpdate, "T" )
         , ( Node.typeBrowser, "U" )
+        , ( Node.typeGps, "V" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1307,6 +1309,9 @@ viewNode model parent node children depth =
 
                     "signalGenerator" ->
                         SignalGenerator.view
+
+                    "gps" ->
+                        NodeGps.view
 
                     "file" ->
                         File.view
@@ -1667,6 +1672,11 @@ nodeDescBrowser =
     row [] [ Icon.globe, text "Browser" ]
 
 
+nodeDescGps : Element Msg
+nodeDescGps =
+    row [] [ Icon.mapPin, text "GPS" ]
+
+
 viewAddNode : String -> NodeView -> NodeToAdd -> Element Msg
 viewAddNode customNodeType parent add =
     column [ spacing 10 ]
@@ -1685,6 +1695,7 @@ viewAddNode customNodeType parent add =
                     , Input.option Node.typeModbus nodeDescModbus
                     , Input.option Node.typeSerialDev nodeDescSerialDev
                     , Input.option Node.typeCanBus nodeDescCanBus
+                    , Input.option Node.typeGps nodeDescGps
                     , Input.option Node.typeMsgService nodeDescMsgService
                     , Input.option Node.typeDb nodeDescDb
                     , Input.option Node.typeParticle nodeDescParticle
@@ -1707,6 +1718,7 @@ viewAddNode customNodeType parent add =
                             , Input.option Node.typeModbus nodeDescModbus
                             , Input.option Node.typeSerialDev nodeDescSerialDev
                             , Input.option Node.typeCanBus nodeDescCanBus
+                            , Input.option Node.typeGps nodeDescGps
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeParticle nodeDescParticle

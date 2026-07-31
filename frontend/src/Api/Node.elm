@@ -19,6 +19,7 @@ module Api.Node exposing
     , typeDb
     , typeDevice
     , typeFile
+    , typeGps
     , typeGroup
     , typeMetrics
     , typeModbus
@@ -179,6 +180,11 @@ typeNetworkManagerConn =
 typeNTP : String
 typeNTP =
     "ntp"
+
+
+typeGps : String
+typeGps =
+    "gps"
 
 
 typeBrowser : String
