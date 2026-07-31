@@ -105,11 +105,11 @@ func (a *gpsNMEAAccumulator) add(line string) (*gpsFix, error) {
 		apply = func() { a.applySentence(s) }
 
 	case a.baseValid:
-		// A well-formed sentence whose fields could not be interpreted.
-		// Overwhelmingly this is a receiver that has no fix yet: it leaves the
-		// position fields empty, and go-nmea rejects the sentence rather than
-		// reporting an empty position. Reporting no fix is more accurate than
-		// counting a data error.
+		// A well-formed sentence whose fields could not be interpreted. The
+		// common case is a GGA whose fix quality falls outside the 0-6 range
+		// go-nmea validates against. Reporting no fix is the conservative
+		// reading, and more accurate than counting a data error against a
+		// receiver that is transmitting correctly.
 		typ = a.baseType
 		apply = func() { a.applyNoFix(typ) }
 
@@ -142,16 +142,32 @@ func (a *gpsNMEAAccumulator) add(line string) (*gpsFix, error) {
 func (a *gpsNMEAAccumulator) applySentence(s nmea.Sentence) {
 	switch m := s.(type) {
 	case nmea.GGA:
+		// SIOT's fixQuality adopts the NMEA GGA encoding, so this is a
+		// pass-through rather than a mapping. An unparseable quality field is
+		// treated as no fix, which is the conservative reading.
+		quality := data.PointValueFixQualityNone
+		if q, err := strconv.Atoi(m.FixQuality); err == nil {
+			quality = q
+		}
+		a.fix.FixQuality = gpsPtr(quality)
+
+		// satellite count is meaningful even without a fix
+		a.fix.NumSat = gpsPtr(int(m.NumSatellites))
+
+		if quality == data.PointValueFixQualityNone {
+			// The receiver has no fix. Its GGA leaves the position, altitude,
+			// and HDOP fields empty, and go-nmea parses those empty fields as
+			// 0 rather than rejecting them -- so without this guard the client
+			// would publish 0,0 as a position, which is a real place in the
+			// Gulf of Guinea, every time a receiver was searching for
+			// satellites.
+			return
+		}
+
 		a.fix.Latitude = gpsPtr(m.Latitude)
 		a.fix.Longitude = gpsPtr(m.Longitude)
 		a.fix.Altitude = gpsPtr(m.Altitude)
 		a.fix.HDOP = gpsPtr(m.HDOP)
-		a.fix.NumSat = gpsPtr(int(m.NumSatellites))
-		// SIOT's fixQuality adopts the NMEA GGA encoding, so this is a
-		// pass-through rather than a mapping
-		if q, err := strconv.Atoi(m.FixQuality); err == nil {
-			a.fix.FixQuality = gpsPtr(q)
-		}
 
 	case nmea.GSA:
 		// NMEA GSA numbers a missing fix 1, where SIOT and gpsd both use 0
@@ -169,8 +185,17 @@ func (a *gpsNMEAAccumulator) applySentence(s nmea.Sentence) {
 
 	case nmea.RMC:
 		if m.Validity != nmea.ValidRMC {
-			// the receiver is reporting this position is not usable
-			a.fix.FixQuality = gpsPtr(data.PointValueFixQualityNone)
+			// The receiver is reporting this position is not usable. As with
+			// GGA, go-nmea parses the empty position fields as 0, so nothing
+			// from this sentence may be trusted.
+			//
+			// Only report no fix if GGA has not already spoken this cycle.
+			// GGA carries the more specific quality field, and letting RMC
+			// overwrite it would discard the distinction between a plain GPS
+			// fix and an RTK one.
+			if a.fix.FixQuality == nil {
+				a.fix.FixQuality = gpsPtr(data.PointValueFixQualityNone)
+			}
 			return
 		}
 		a.fix.Latitude = gpsPtr(m.Latitude)

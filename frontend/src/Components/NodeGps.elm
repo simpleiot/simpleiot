@@ -89,9 +89,6 @@ view o =
         connected =
             Point.getBool o.node.points Point.typeConnected ""
 
-        source =
-            Point.getText o.node.points Point.typeGpsSource ""
-
         latitude =
             Point.getValue o.node.points Point.typeLatitude ""
 
@@ -146,6 +143,9 @@ view o =
 
                         counterWithReset =
                             NodeInputs.nodeCounterWithReset opts "0"
+
+                        source =
+                            Point.getText o.node.points Point.typeGpsSource ""
 
                         -- an unset source behaves as serial, matching the
                         -- backend default

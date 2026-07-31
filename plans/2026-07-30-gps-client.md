@@ -397,17 +397,33 @@ source `sim` and watch latitude and longitude advance in the UI.
    updates. A cycle ends when a consumed sentence type repeats. Only the
    consumed types participate in that detection, so the several GSV sentences a
    receiver sends per cycle are not mistaken for the start of a new one.
-4. Distinguish a cold receiver from corrupt data. A receiver with no fix emits
-   well-formed sentences with empty position fields, and `go-nmea` rejects
-   those outright rather than reporting an empty position — so a naive
-   implementation counts a parse error for every sentence until the receiver
-   acquires. Use the `SentenceParser.OnBaseSentence` hook, which fires after
-   checksum and structure validation but before field parsing, to tell the two
-   apart: base valid but typed parse failed means no fix, and only a base parse
-   failure is a genuine data error.
-5. Maintain `connected`, `rx`, and `errorCount`, and honor `rxReset` and
+4. Do not trust a parsed position without checking the fix quality. This turned
+   out to be the sharpest edge in the whole client, and the plan originally got
+   it backwards.
+
+   A receiver searching for satellites emits a GGA with fix quality `0` and
+   empty position fields. The expectation was that `go-nmea` would reject those
+   sentences, making a cold receiver look like a stream of parse errors. It does
+   not: `nmea.ParseLatLong(" ")` returns `0, nil`, so the sentence parses
+   cleanly and reports position `0, 0`. That is a real place in the Gulf of
+   Guinea. Taken at face value, the client would publish Null Island as a
+   confident position for as long as the receiver lacked a fix, and a map would
+   show a track jumping between there and the true location.
+
+   So the GGA handler reads the fix quality first and returns without setting
+   position, altitude, or HDOP when it is `0`. The satellite count is still
+   published, since that is how an operator watches a receiver work toward a
+   fix. RMC is guarded the same way by its validity field, and does not
+   overwrite a fix quality GGA has already reported in the same cycle.
+
+5. Keep the `SentenceParser.OnBaseSentence` hook for the narrower case it does
+   cover. It fires after checksum and structure validation but before field
+   parsing, so a sentence that validates but fails typed parsing — most often a
+   GGA whose fix quality falls outside the `0`–`6` range `go-nmea` accepts — is
+   reported as no fix instead of counted as a data error.
+6. Maintain `connected`, `rx`, and `errorCount`, and honor `rxReset` and
    `errorCountReset` the way `SerialDevClient` does.
-6. Log raw sentences at `debug >= 4` and parse failures at `debug >= 2`.
+7. Log raw sentences at `debug >= 4` and parse failures at `debug >= 2`.
 
 **Verify:** `go build ./... && go test -race ./client/`, then a bench test
 against a USB GPS receiver if one is available.
@@ -424,7 +440,11 @@ canned sentences without a port:
 - A corrupt sentence and a bad checksum both return an error rather than
   publishing a partial fix.
 - A receiver stream with no GSA leaves `fixType` unpublished.
-- A cold receiver's no-fix GGA reports fix quality 0 without counting an error.
+- A cold receiver's no-fix GGA reports fix quality 0, publishes no position,
+  and counts no error. This is the test that caught the Null Island defect.
+- A no-fix GGA still publishes its satellite count, but no altitude or HDOP.
+- An invalid RMC does not overwrite a fix quality GGA reported earlier in the
+  same cycle.
 - Repeated GSV sentences do not falsely complete a cycle.
 - One cycle of GGA, GSA, and RMC merges into a single fix carrying all three
   sentences' fields, on one timestamp.

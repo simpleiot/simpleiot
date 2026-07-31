@@ -510,10 +510,15 @@ func TestGPSNMEAInvalidRMCRejected(t *testing.T) {
 	}
 }
 
-// TestGPSNMEANoFixNotAnError covers a cold receiver. It emits well-formed
-// sentences with empty position fields, which go-nmea rejects; that must be
-// reported as no fix rather than counted as a data error.
-func TestGPSNMEANoFixNotAnError(t *testing.T) {
+// TestGPSNMEANoFixNoPosition covers a cold receiver, which is the case most
+// likely to produce a wrong position rather than no position.
+//
+// A receiver searching for satellites sends a GGA with fix quality 0 and empty
+// position fields. go-nmea parses those empty fields as 0 rather than
+// rejecting them, so a client that trusts the parse publishes 0,0 -- a real
+// position in the Gulf of Guinea -- for as long as the receiver lacks a fix.
+// The fix quality field is the signal that has to be checked.
+func TestGPSNMEANoFixNoPosition(t *testing.T) {
 	a := newGPSNMEAAccumulator()
 
 	gga := gpsTestSentence("GPGGA,123519,,,,,0,00,,,M,,M,,")
@@ -536,6 +541,51 @@ func TestGPSNMEANoFixNotAnError(t *testing.T) {
 	if fix.Latitude != nil || fix.Longitude != nil {
 		t.Errorf("expected no position with no fix, got %v, %v",
 			fix.Latitude, fix.Longitude)
+	}
+}
+
+// TestGPSNMEANoFixKeepsSatelliteCount verifies the satellite count still comes
+// through without a fix, since it is how an operator sees a receiver making
+// progress toward one
+func TestGPSNMEANoFixKeepsSatelliteCount(t *testing.T) {
+	a := newGPSNMEAAccumulator()
+
+	gga := gpsTestSentence("GPGGA,123519,,,,,0,03,,,M,,M,,")
+
+	fix := gpsFeed(t, a, gga, gga)
+	if fix == nil {
+		t.Fatal("expected a completed fix")
+	}
+
+	if fix.NumSat == nil || *fix.NumSat != 3 {
+		t.Errorf("expected 3 satellites without a fix, got %v", fix.NumSat)
+	}
+	if fix.Altitude != nil {
+		t.Errorf("expected no altitude without a fix, got %v", fix.Altitude)
+	}
+	if fix.HDOP != nil {
+		t.Errorf("expected no HDOP without a fix, got %v", fix.HDOP)
+	}
+}
+
+// TestGPSNMEAInvalidRMCKeepsGGAQuality verifies an invalid RMC does not
+// overwrite the more specific fix quality GGA reported earlier in the cycle
+func TestGPSNMEAInvalidRMCKeepsGGAQuality(t *testing.T) {
+	a := newGPSNMEAAccumulator()
+
+	// GGA reporting an RTK fixed position
+	gga := gpsTestSentence(
+		"GPGGA,034225.077,3356.4650,S,15124.5567,E,4,12,0.8,25.0,M,21.0,M,,0000")
+	rmc := gpsTestSentence("GNRMC,220516,V,,,,,,,130694,,")
+
+	fix := gpsFeed(t, a, gga, rmc, gga)
+	if fix == nil {
+		t.Fatal("expected a completed fix")
+	}
+
+	if fix.FixQuality == nil || *fix.FixQuality != 4 {
+		t.Errorf("expected the GGA RTK fixed quality to survive, got %v",
+			fix.FixQuality)
 	}
 }
 

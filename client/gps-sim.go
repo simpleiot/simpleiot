@@ -121,7 +121,7 @@ func gpsDestination(lat, lon, heading, distance float64) (float64, float64) {
 		math.Cos(angDist)-math.Sin(lat1)*sinLat2,
 	)
 
-	return lat2 * 180 / math.Pi, gpsNormalizeLongitude(lon2*180/math.Pi)
+	return lat2 * 180 / math.Pi, gpsNormalizeLongitude(lon2 * 180 / math.Pi)
 }
 
 // gpsNormalizeHeading wraps a heading in degrees into [0, 360)
