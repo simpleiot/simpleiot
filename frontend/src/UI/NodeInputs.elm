@@ -1,5 +1,6 @@
 module UI.NodeInputs exposing
     ( NodeInputOptions
+    , nodeButtonAction
     , nodeButtonActionText
     , nodeCheckboxInput
     , nodeCounterWithReset
@@ -390,6 +391,38 @@ validDates dates =
         )
         True
         dates
+
+
+{-| Button that sends a numeric point when pressed, for actions a client
+carries out and then clears, such as resetting a value.
+-}
+nodeButtonAction :
+    NodeInputOptions msg
+    -> String
+    -> String
+    -> Float
+    -> String
+    -> Color
+    -> Element msg
+nodeButtonAction o key typ value lbl color =
+    let
+        sendValue =
+            o.onEditNodePoint
+                [ { typ = typ
+                  , key = key
+                  , text = ""
+                  , time = o.now
+                  , dataType = 1
+                  , tombstone = 0
+                  , value = value
+                  }
+                ]
+    in
+    Form.button
+        { label = lbl
+        , color = color
+        , onPress = sendValue
+        }
 
 
 nodeButtonActionText :

@@ -431,4 +431,5 @@ const (
 	PointTypeSimSpeed       = "simSpeed"       // meters/second
 	PointTypeSimHeading     = "simHeading"     // starting heading, degrees true
 	PointTypeSimHeadingRate = "simHeadingRate" // max heading change, degrees/second
+	PointTypeSimReset       = "simReset"       // move the track back to the start
 )

@@ -152,6 +152,7 @@ module Api.Point exposing
     , typeSimHeadingRate
     , typeSimLatitude
     , typeSimLongitude
+    , typeSimReset
     , typeSimSpeed
     , typeSize
     , typeSpeed
@@ -1266,6 +1267,11 @@ typeSimHeading =
 typeSimHeadingRate : String
 typeSimHeadingRate =
     "simHeadingRate"
+
+
+typeSimReset : String
+typeSimReset =
+    "simReset"
 
 
 specialPoints : List String

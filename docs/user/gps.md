@@ -56,6 +56,7 @@ unplugged.
 | `Start heading (deg)`   | Initial direction of travel, degrees true.                  |
 | `Heading drift (deg/s)` | How far the heading may wander per second. Defaults to `5`. |
 | `Update period (s)`     | How often a position is published. Defaults to `1`.         |
+| `Reset location`        | Moves the track back to the configured start position.      |
 
 The heading drifts randomly within the configured rate, so the track wanders
 naturally instead of running straight or jumping between positions. Set the
@@ -63,6 +64,16 @@ heading drift to `0` for a straight track.
 
 Positions follow a great circle, so tracks behave correctly at high latitudes
 and when crossing the antimeridian.
+
+The simulator continues from the node's last published position, so changing
+the speed, the update period, or restarting SimpleIoT picks the track up where
+it left off rather than returning to the start. Switching a node from a
+hardware source to the simulator likewise continues from the last real
+position.
+
+Two things send the simulated receiver back to the configured start position:
+pressing `Reset location`, and editing `Start latitude`, `Start longitude`, or
+`Start heading`, which moves the receiver to the position just entered.
 
 The simulator reports a normal GPS fix rather than marking its data as
 simulated, so rules and dashboards behave exactly as they would with real

@@ -291,6 +291,99 @@ func TestGPSSimFixContents(t *testing.T) {
 	}
 }
 
+// TestGPSSimResumesFromLastPosition verifies a simulator started on a node
+// that already has a position continues from there rather than jumping back to
+// the configured start
+func TestGPSSimResumesFromLastPosition(t *testing.T) {
+	config := GPS{
+		SimLatitude:  40,
+		SimLongitude: -75,
+		SimHeading:   0,
+		// a stored fix is what marks the position as one worth resuming from
+		FixType:   3,
+		Latitude:  41.5,
+		Longitude: -76.25,
+		Heading:   270,
+	}
+
+	gc := &GPSClient{}
+	gc.pos.seed(config)
+
+	resumed := gc.resumeSim(config)
+
+	if resumed.SimLatitude != 41.5 || resumed.SimLongitude != -76.25 {
+		t.Errorf("expected the simulator to resume at 41.5, -76.25, got %v, %v",
+			resumed.SimLatitude, resumed.SimLongitude)
+	}
+	if resumed.SimHeading != 270 {
+		t.Errorf("expected the simulator to resume on heading 270, got %v",
+			resumed.SimHeading)
+	}
+}
+
+// TestGPSSimStartsAtConfiguredStart verifies a node that has never had a fix
+// starts its track at the configured start position
+func TestGPSSimStartsAtConfiguredStart(t *testing.T) {
+	config := GPS{
+		SimLatitude:  40,
+		SimLongitude: -75,
+		SimHeading:   90,
+	}
+
+	gc := &GPSClient{}
+	gc.pos.seed(config)
+
+	resumed := gc.resumeSim(config)
+
+	if resumed.SimLatitude != 40 || resumed.SimLongitude != -75 ||
+		resumed.SimHeading != 90 {
+		t.Errorf("expected the configured start, got %v, %v on heading %v",
+			resumed.SimLatitude, resumed.SimLongitude, resumed.SimHeading)
+	}
+}
+
+// TestGPSSimResetReturnsToStart verifies clearing the last position, which is
+// what the reset request does, sends the simulator back to its start
+func TestGPSSimResetReturnsToStart(t *testing.T) {
+	config := GPS{
+		SimLatitude:  40,
+		SimLongitude: -75,
+		SimHeading:   90,
+	}
+
+	gc := &GPSClient{}
+	gc.pos.set(41.5, -76.25, gpsPtr(270.0))
+	gc.pos.clear()
+
+	resumed := gc.resumeSim(config)
+
+	if resumed.SimLatitude != 40 || resumed.SimLongitude != -75 ||
+		resumed.SimHeading != 90 {
+		t.Errorf("expected the configured start after a reset, got %v, %v on heading %v",
+			resumed.SimLatitude, resumed.SimLongitude, resumed.SimHeading)
+	}
+}
+
+// TestGPSPositionKeepsHeadingWhenAbsent verifies a fix without a heading, which
+// a stationary receiver may report, leaves the last known heading in place
+func TestGPSPositionKeepsHeadingWhenAbsent(t *testing.T) {
+	var pos gpsPosition
+
+	pos.set(40, -75, gpsPtr(180.0))
+	pos.set(41, -76, nil)
+
+	lat, lon, heading, valid := pos.get()
+	if !valid {
+		t.Fatal("expected a recorded position")
+	}
+	if lat != 41 || lon != -76 {
+		t.Errorf("expected 41, -76, got %v, %v", lat, lon)
+	}
+	if heading != 180 {
+		t.Errorf("expected the heading to stay at 180, got %v", heading)
+	}
+}
+
 // TestGPSFixOmitsAbsentFields verifies a partial fix publishes only what it
 // has, rather than filling in zeros
 func TestGPSFixOmitsAbsentFields(t *testing.T) {

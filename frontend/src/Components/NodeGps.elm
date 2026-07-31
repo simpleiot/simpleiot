@@ -141,6 +141,9 @@ view o =
                         checkboxInput =
                             NodeInputs.nodeCheckboxInput opts "0"
 
+                        buttonAction =
+                            NodeInputs.nodeButtonAction opts "0"
+
                         counterWithReset =
                             NodeInputs.nodeCounterWithReset opts "0"
 
@@ -198,6 +201,14 @@ view o =
                             "Heading drift (deg/s)"
                     , viewIf isSim <|
                         numberInput Point.typePeriod "Update period (s)"
+                    , viewIf isSim <|
+                        row [ spacing 20 ]
+                            [ el [ width (px labelWidth) ] none
+                            , buttonAction Point.typeSimReset
+                                1
+                                "Reset location"
+                                Style.colors.blue
+                            ]
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , horizontalRule
                     , status "Latitude" <| coordinate latitude

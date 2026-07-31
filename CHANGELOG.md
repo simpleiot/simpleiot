@@ -18,6 +18,10 @@ For more details or to discuss releases, please visit the
   altitude, speed, heading, fix status, and satellite information. See the
   [GPS documentation](docs/user/gps.md), which includes instructions for
   plotting a track on a Grafana geomap.
+- the simulated GPS source now continues from the node's last published
+  position, so a configuration change or an application restart picks the track
+  up where it left off. A `Reset location` button, or editing the start
+  latitude, longitude, or heading, moves the track back to the start.
 - document what storing text points in Victoria Metrics actually does; the
   value is converted to 0 rather than the line being rejected
 - (BREAKING) remove the legacy `gps` package, which predated the client
