@@ -15,7 +15,14 @@ For more details or to discuss releases, please visit the
 
 - add GPS client that reads position data from a serial NMEA receiver, the gpsd
   daemon, or an internal simulator, and publishes latitude, longitude,
-  altitude, speed, heading, fix status, and satellite information
+  altitude, speed, heading, fix status, and satellite information. See the
+  [GPS documentation](docs/user/gps.md), which includes instructions for
+  plotting a track on a Grafana geomap.
+- document what storing text points in Victoria Metrics actually does; the
+  value is converted to 0 rather than the line being rejected
+- (BREAKING) remove the legacy `gps` package, which predated the client
+  architecture and is superseded by the GPS client. `data.GpsPos` is unchanged
+  and still used by the modem code.
 
 ## [[0.18.5] - 2025-09-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.5)
 
