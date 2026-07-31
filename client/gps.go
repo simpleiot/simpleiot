@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -223,21 +224,39 @@ func NewGPSClient(nc *nats.Conn, config GPS) Client {
 //
 // A source goroutine must never read or write GPSClient.config -- the Run loop
 // owns it and mutates it on every incoming point. Everything a source needs is
-// either passed in by value at start, kept local to the goroutine, or
-// delivered over these channels.
+// either passed in by value at start, kept local to the goroutine, or reached
+// through this type.
 type gpsSource struct {
 	// stop is closed to shut the source down. Closing rather than sending
 	// means shutdown never blocks, even if the source has already returned.
 	stop chan struct{}
 	// reset carries point types whose counters should be zeroed
 	reset chan string
+	// debug is the level the source logs at. It lives here rather than in the
+	// config a source is started with so a change applies to the running
+	// source: restarting one to change how much it logs would drop a serial
+	// connection or a gpsd session. It outlives a gpsd reconnect, which starts
+	// a session with a fresh copy of the config.
+	debug atomic.Int64
 }
 
-func newGPSSource() *gpsSource {
-	return &gpsSource{
+func newGPSSource(debug int) *gpsSource {
+	src := &gpsSource{
 		stop:  make(chan struct{}),
 		reset: make(chan string, 4),
 	}
+	src.setDebug(debug)
+	return src
+}
+
+// debugLevel returns the level the source should currently log at
+func (s *gpsSource) debugLevel() int {
+	return int(s.debug.Load())
+}
+
+// setDebug changes the level a running source logs at
+func (s *gpsSource) setDebug(debug int) {
+	s.debug.Store(int64(debug))
 }
 
 // gpsCounters tracks the receive and error counts for a source goroutine.
@@ -330,10 +349,15 @@ func (gc *GPSClient) resumeSim(config GPS) GPS {
 
 // publish sends a fix to the GPS node. Every point in the fix shares one
 // timestamp.
-func (gc *GPSClient) publish(fix gpsFix) {
+//
+// The points sent are returned so a source can log exactly what it published,
+// which is how the simulator provides the detail the hardware sources get by
+// logging their raw input. A fix carrying no values sends nothing and returns
+// nothing.
+func (gc *GPSClient) publish(fix gpsFix) data.Points {
 	pts := fix.points(time.Now())
 	if len(pts) <= 0 {
-		return
+		return nil
 	}
 
 	if fix.Latitude != nil && fix.Longitude != nil {
@@ -344,6 +368,8 @@ func (gc *GPSClient) publish(fix gpsFix) {
 	if err != nil {
 		gc.log.Printf("Error sending points: %v", err)
 	}
+
+	return pts
 }
 
 // sendStatus publishes a single status point on the GPS node
@@ -421,7 +447,7 @@ func (gc *GPSClient) Run() error {
 			config = gc.resumeSim(config)
 		}
 
-		src = newGPSSource()
+		src = newGPSSource(config.Debug)
 		go gc.runSource(config, src)
 	}
 
@@ -484,6 +510,13 @@ done:
 				case data.PointTypeErrorCountReset:
 					if p.Bool() {
 						requestReset(data.PointTypeErrorCount)
+					}
+				case data.PointTypeDebug:
+					// applied to the running source rather than restarting
+					// it. The merge above has already converted the point, so
+					// the level is read back from the config.
+					if src != nil {
+						src.setDebug(gc.config.Debug)
 					}
 				case data.PointTypeSimReset:
 					if p.Bool() {

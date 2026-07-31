@@ -22,6 +22,13 @@ For more details or to discuss releases, please visit the
   position, so a configuration change or an application restart picks the track
   up where it left off. A `Reset location` button, or editing the start
   latitude, longitude, or heading, moves the track back to the start.
+- the simulated GPS source now logs the points it generates at debug level 4,
+  matching the raw data the serial and gpsd sources log at that level. The
+  [GPS documentation](docs/user/gps.md#debug-levels) now describes what each
+  debug level covers.
+- changing the GPS debug level now takes effect right away. The level was read
+  once when a source started, so a change was ignored until something else
+  restarted the source.
 - document what storing text points in Victoria Metrics actually does; the
   value is converted to 0 rather than the line being rejected
 - (BREAKING) remove the legacy `gps` package, which predated the client

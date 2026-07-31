@@ -162,12 +162,22 @@ func (gc *GPSClient) runSim(config GPS, src *gpsSource) {
 		config.Description, config.SimLatitude, config.SimLongitude,
 		config.SimSpeed)
 
+	// publishFix sends a fix and, at the debug level the hardware sources dump
+	// their raw input at, logs the points the simulator generated
+	publishFix := func(fix gpsFix) {
+		pts := gc.publish(fix)
+		if src.debugLevel() >= 4 && len(pts) > 0 {
+			gc.log.Printf("%v: generated points:\n%v", config.Description, pts)
+		}
+
+		counters.countRx()
+	}
+
 	conn.set(true)
 
 	// publish the starting position right away rather than making a consumer
 	// wait a full period for the first fix
-	gc.publish(sim.fix())
-	counters.countRx()
+	publishFix(sim.fix())
 
 	period := time.Duration(config.Period * float64(time.Second))
 	t := time.NewTicker(period)
@@ -178,8 +188,7 @@ func (gc *GPSClient) runSim(config GPS, src *gpsSource) {
 	for {
 		select {
 		case now := <-t.C:
-			gc.publish(sim.step(now.Sub(last)))
-			counters.countRx()
+			publishFix(sim.step(now.Sub(last)))
 			last = now
 
 		case typ := <-src.reset:

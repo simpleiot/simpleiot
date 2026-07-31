@@ -299,7 +299,7 @@ func (gc *GPSClient) runSerial(config GPS, src *gpsSource) {
 
 		p, err := serial.Open(config.Port, &serial.Mode{BaudRate: baud})
 		if err != nil {
-			if config.Debug >= 2 {
+			if src.debugLevel() >= 2 {
 				gc.log.Printf("%v: error opening %v: %v",
 					config.Description, config.Port, err)
 			}
@@ -323,7 +323,7 @@ func (gc *GPSClient) runSerial(config GPS, src *gpsSource) {
 	for {
 		select {
 		case line := <-lines:
-			if config.Debug >= 4 {
+			if src.debugLevel() >= 4 {
 				gc.log.Printf("%v: %v", config.Description, line)
 			}
 
@@ -332,7 +332,7 @@ func (gc *GPSClient) runSerial(config GPS, src *gpsSource) {
 
 			fix, err := acc.add(line)
 			if err != nil {
-				if config.Debug >= 2 {
+				if src.debugLevel() >= 2 {
 					gc.log.Printf("%v: error parsing %q: %v",
 						config.Description, line, err)
 				}
@@ -344,7 +344,7 @@ func (gc *GPSClient) runSerial(config GPS, src *gpsSource) {
 			}
 
 		case err := <-readErrors:
-			if config.Debug >= 2 {
+			if src.debugLevel() >= 2 {
 				gc.log.Printf("%v: read error: %v", config.Description, err)
 			}
 			counters.countError()

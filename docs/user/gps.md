@@ -79,6 +79,30 @@ The simulator reports a normal GPS fix rather than marking its data as
 simulated, so rules and dashboards behave exactly as they would with real
 hardware. The node's source setting is what identifies the data as synthetic.
 
+## Debug Levels
+
+The `Debug level` field controls how much the client logs. Every source logs
+connection changes and configuration problems whatever the level is set to.
+
+| Level | Description                                                         |
+| ----- | ------------------------------------------------------------------- |
+| `0`   | Connection changes and configuration problems only.                 |
+| `2`   | Adds parse, decode, and read errors, and the gpsd version banner.   |
+| `4`   | Adds every message: NMEA sentences, gpsd reports, generated points. |
+
+Level `2` is the one to reach for when a receiver is connected but no position
+appears, since it names the sentence or report that could not be used. Levels
+`3` and above `4` behave the same as `2` and `4` respectively.
+
+A new level takes effect on the next message. The source keeps running, so
+raising the level while chasing a problem leaves the serial port open, the gpsd
+session connected, and the simulated track where it is.
+
+Level `4` is verbose. A receiver at the default one second period sends several
+sentences per fix, so expect a handful of lines every second. The simulator has
+no raw input to show, so it logs the points it generated for each fix instead,
+which is a way to watch a track advance without querying the node.
+
 ## Published Points
 
 | Point        | Units                   | Description                         |

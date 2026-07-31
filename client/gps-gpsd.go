@@ -362,19 +362,19 @@ func (gc *GPSClient) gpsdSession(config GPS, src *gpsSource,
 	for {
 		select {
 		case msg := <-msgs:
-			if config.Debug >= 4 {
+			if src.debugLevel() >= 4 {
 				gc.log.Printf("%v: %s", config.Description, msg)
 			}
 
 			counters.countRx()
 
-			if config.Debug >= 2 {
+			if src.debugLevel() >= 2 {
 				gc.logGpsdVersion(config, msg)
 			}
 
 			publish, err := decodeGpsd(msg, &fix)
 			if err != nil {
-				if config.Debug >= 2 {
+				if src.debugLevel() >= 2 {
 					gc.log.Printf("%v: error decoding gpsd report: %v",
 						config.Description, err)
 				}
