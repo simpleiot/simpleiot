@@ -31,7 +31,6 @@ require (
 	github.com/simpleiot/mdns v0.0.1
 	go.bug.st/serial v1.6.4
 	go.einride.tech/can v0.12.2
-	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067
 	google.golang.org/protobuf v1.36.6
 	modernc.org/sqlite v1.37.0
@@ -84,6 +83,7 @@ require (
 	github.com/ttacon/libphonenumber v1.2.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sync v0.13.0 // indirect
