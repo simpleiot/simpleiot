@@ -492,8 +492,12 @@ replay a recorded NMEA log through a real gpsd instance without hardware.
   `satellites` array fallback when `uSat` is absent.
 - VERSION and DEVICES objects are ignored without error.
 
-Capture a real gpsd session with `gpspipe -w` into a testdata file so these run
-against genuine output rather than hand-written JSON.
+`client/testdata/gpsd-session.json` holds a session used by a replay test.
+It was written from the documented report shapes rather than captured from a
+running daemon, since gpsd is not installed on the development machine.
+Replacing it with a real `gpspipe -w` capture is worth doing when hardware is
+available — a genuine capture would exercise field combinations and gpsd
+version quirks that hand-written reports do not anticipate.
 
 ### Phase 5: Frontend
 
