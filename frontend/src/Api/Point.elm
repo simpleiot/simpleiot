@@ -98,6 +98,7 @@ module Api.Point exposing
     , typeLatitude
     , typeLightSet
     , typeLog
+    , typeLogConsole
     , typeLongitude
     , typeMaxIncrement
     , typeMaxMessageLength
@@ -207,6 +208,8 @@ module Api.Point exposing
     , valuePlayAudio
     , valuePointValue
     , valueProcess
+    , valueProtocolBinary
+    , valueProtocolShell
     , valueRTU
     , valueRandomWalk
     , valueSchedule
@@ -516,6 +519,24 @@ valueRTU =
 valueTCP : String
 valueTCP =
     "TCP"
+
+
+{-| Serial protocol values. An empty protocol means binary, so serial nodes
+created before shell mode existed keep working with no migration.
+-}
+valueProtocolBinary : String
+valueProtocolBinary =
+    "binary"
+
+
+valueProtocolShell : String
+valueProtocolShell =
+    "shell"
+
+
+typeLogConsole : String
+typeLogConsole =
+    "logConsole"
 
 
 typeModbusIOType : String
@@ -1169,6 +1190,7 @@ newText typ key text =
     , text = text
     , tombstone = 0
     }
+
 
 
 -- GPS client points
