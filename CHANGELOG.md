@@ -13,6 +13,10 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- add GPS client that reads position data from a serial NMEA receiver, the gpsd
+  daemon, or an internal simulator, and publishes latitude, longitude,
+  altitude, speed, heading, fix status, and satellite information
+
 ## [[0.18.5] - 2025-09-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.5)
 
 - add configurable response timeout parameter for Modbus clients with 100ms
