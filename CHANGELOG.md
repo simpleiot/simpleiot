@@ -23,6 +23,13 @@ For more details or to discuss releases, please visit the
 - (BREAKING) remove the legacy `gps` package, which predated the client
   architecture and is superseded by the GPS client. `data.GpsPos` is unchanged
   and still used by the modem code.
+- releases now publish the `siot` executable directly instead of wrapping it in
+  a `.tar.gz` or `.zip` archive, so downloading and running it takes one less
+  step. Asset names are unchanged apart from the archive extension, and Windows
+  binaries now end in `.exe`.
+- releases are now built and published by a GitHub Actions workflow when a
+  version tag is pushed, and the release notes come from the matching
+  `CHANGELOG.md` section
 
 ## [[0.18.5] - 2025-09-05](https://github.com/simpleiot/simpleiot/releases/tag/v0.18.5)
 

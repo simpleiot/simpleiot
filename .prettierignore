@@ -1,0 +1,3 @@
+# The goreleaser name templates rely on line-by-line Go template directives in
+# a folded YAML scalar, which prose wrapping would run together.
+/.goreleaser.yml

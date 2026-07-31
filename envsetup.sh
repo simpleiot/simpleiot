@@ -248,13 +248,13 @@ siot_edge_run() {
 # and put in /usr/local/bin
 # This can be useful to test/debug the release process locally
 siot_goreleaser_build() {
-	goreleaser build --skip-validate --rm-dist
+	goreleaser build --snapshot --clean
 }
 
-# before releasing, you need to tag the release
-# you need to provide GITHUB_TOKEN in env or ~/.config/goreleaser/github_token
-# generate tokens: https://github.com/settings/tokens/new
-# enable repo and workflow sections
+# pushing the tag starts the Release workflow (.github/workflows/release.yml),
+# which builds the binaries and publishes the GitHub release
+# the release notes come from the CHANGELOG.md section for the version being
+# released, so move the "Next" section under a "[X.Y.Z] - <date>" heading first
 siot_release() {
 	VERSION=$1
 	if [ -z "$VERSION" ]; then
@@ -267,7 +267,7 @@ siot_release() {
 	git commit -m "update FE assets" frontend/public/dist/elm.js.gz || return 1
 	git push || return 1
 	git tag -f "$VERSION" || return 1
-	goreleaser release --clean || return 1
+	git push origin "$VERSION" || return 1
 	siot_deploy_docs || return 1
 	# refresh godocs site
 	wget "https://proxy.golang.org/github.com/simpleiot/simpleiot/@v/${VERSION}.info" || return 1
