@@ -87,7 +87,7 @@ siot_build_backend() {
 	if [ "${GOOS}" = "windows" ]; then
 		BINARY_NAME=siot.exe
 	fi
-	CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$(siot_version)" -o $BINARY_NAME cmd/siot/main.go || return 1
+	CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$(siot_version)" -o $BINARY_NAME ./cmd/siot || return 1
 	return 0
 }
 
@@ -98,19 +98,19 @@ siot_build() {
 
 siot_build_arm() {
 	siot_build_frontend || return 1
-	GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
+	GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm ./cmd/siot || return 1
 	return 0
 }
 
 siot_build_arm64() {
 	siot_build_frontend || return 1
-	GOARCH=arm64 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm64 cmd/siot/main.go || return 1
+	GOARCH=arm64 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm64 ./cmd/siot || return 1
 	return 0
 }
 
 siot_build_arm_debug() {
 	siot_build_frontend || return 1
-	GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
+	GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm ./cmd/siot || return 1
 	return 0
 }
 
@@ -122,7 +122,7 @@ siot_deploy() {
 
 siot_run() {
 	siot_build_frontend || return 1
-	go build -ldflags="-X main.version=$(siot_version)" -o siot -race cmd/siot/main.go || return 1
+	go build -ldflags="-X main.version=$(siot_version)" -o siot -race ./cmd/siot || return 1
 	./siot "$@"
 	return 0
 }
@@ -132,7 +132,7 @@ siot_run_tls() {
 	export SIOT_NATS_TLS_CERT=server-cert.pem
 	export SIOT_NATS_TLS_KEY=server-key.pem
 	siot_build_frontend || return 1
-	go run cmd/siot/main.go "$@" || return 1
+	go run ./cmd/siot "$@" || return 1
 	return 0
 }
 

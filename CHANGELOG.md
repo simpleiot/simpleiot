@@ -27,6 +27,11 @@ For more details or to discuss releases, please visit the
 - (BREAKING) remove the legacy `gps` package, which predated the client
   architecture and is superseded by the GPS client. `data.GpsPos` is unchanged
   and still used by the modem code.
+- add `siot update`, which updates Simple IoT to the latest release published on
+  GitHub. It downloads the release for the platform it is running on, verifies
+  it against the published checksums, and replaces the binary in place.
+  `siot update -check` reports what is available without installing it. See the
+  [installation documentation](docs/user/installation.md#updating).
 - releases now publish the `siot` executable directly instead of wrapping it in
   a `.tar.gz` or `.zip` archive, so downloading and running it takes one less
   step. Asset names are unchanged apart from the archive extension, and Windows

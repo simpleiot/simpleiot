@@ -47,6 +47,7 @@ func main() {
 		fmt.Println("  - install (install SIOT and register service)")
 		fmt.Println("  - import (import nodes from YAML file)")
 		fmt.Println("  - export (export nodes to YAML file)")
+		fmt.Println("  - update (update to the latest release)")
 	}
 
 	_ = flags.Parse(os.Args[1:])
@@ -81,6 +82,8 @@ func main() {
 		runImport(args[1:])
 	case "export":
 		runExport(args[1:])
+	case "update":
+		runUpdate(args[1:], version)
 	default:
 		log.Fatal("Unknown command; options: serve, log, store")
 	}

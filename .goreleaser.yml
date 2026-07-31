@@ -51,6 +51,11 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}{{ .Arm }}{{ end }}
 
+checksum:
+  # keep the name stable across releases -- `siot update` verifies downloads
+  # against this file
+  name_template: "checksums.txt"
+
 changelog:
   sort: asc
   filters:

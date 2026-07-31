@@ -51,6 +51,40 @@ To install as root:
 The default ports are used, so if you want something different, modify the
 generated `siot.service` file.
 
+## Updating
+
+Simple IoT can update itself to the latest release:
+
+```sh
+siot update
+```
+
+This downloads the release for the platform it is running on, verifies it
+against the checksums published with the release, and replaces the binary in
+place. The new binary is written to the directory the current one lives in, so
+if Simple IoT is installed somewhere like `/usr/local/bin`, run
+`sudo siot update`. To see what is available without installing it, use:
+
+```sh
+siot update -check
+```
+
+The new version starts running the next time Simple IoT starts, so if it is
+installed as a service, restart the service:
+
+```sh
+systemctl restart siot
+```
+
+Updating replaces the executable and leaves the data directory alone, so
+configuration and historical data carry forward. The previous binary is removed
+once the new one is in place, so keep a copy if you want to be able to return to
+it. On Windows, the previous version is left alongside the new one as
+`siot.exe.old`.
+
+Note that `siot update` updates the Simple IoT application itself. To update the
+operating system on an embedded device, see the [update client](update.md).
+
 ## Cloud/Server deployments
 
 When on the public Internet, Simple IoT should be proxied by a web server like
