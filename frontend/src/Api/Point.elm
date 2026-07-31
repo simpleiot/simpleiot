@@ -28,6 +28,7 @@ module Api.Point exposing
     , typeAction
     , typeActive
     , typeAddress
+    , typeAltitude
     , typeAuthToken
     , typeAutoDownload
     , typeAutoReboot
@@ -74,11 +75,17 @@ module Api.Point exposing
     , typeFallbackServer
     , typeFilePath
     , typeFirstName
+    , typeFixQuality
+    , typeFixType
     , typeFrequency
     , typeFrom
     , typeFullscreen
+    , typeGpsSource
+    , typeGpsdAddress
     , typeHRDest
     , typeHash
+    , typeHdop
+    , typeHeading
     , typeHrRx
     , typeHrRxReset
     , typeID
@@ -88,8 +95,10 @@ module Api.Point exposing
     , typeInitialValue
     , typeKeyboardScale
     , typeLastName
+    , typeLatitude
     , typeLightSet
     , typeLog
+    , typeLongitude
     , typeMaxIncrement
     , typeMaxMessageLength
     , typeMaxValue
@@ -104,6 +113,7 @@ module Api.Point exposing
     , typeMsgsRecvdOtherReset
     , typeName
     , typeNodeID
+    , typeNumSat
     , typeOSDownloaded
     , typeOSUpdate
     , typeOffline
@@ -138,7 +148,14 @@ module Api.Point exposing
     , typeService
     , typeSignalType
     , typeSignalsInDb
+    , typeSimHeading
+    , typeSimHeadingRate
+    , typeSimLatitude
+    , typeSimLongitude
+    , typeSimReset
+    , typeSimSpeed
     , typeSize
+    , typeSpeed
     , typeStart
     , typeSwitchSet
     , typeSyncCount
@@ -172,6 +189,9 @@ module Api.Point exposing
     , valueContains
     , valueEqual
     , valueFLOAT32
+    , valueGpsSourceGpsd
+    , valueGpsSourceSerial
+    , valueGpsSourceSim
     , valueGreaterThan
     , valueINT16
     , valueINT32
@@ -1149,6 +1169,109 @@ newText typ key text =
     , text = text
     , tombstone = 0
     }
+
+
+-- GPS client points
+
+
+typeGpsSource : String
+typeGpsSource =
+    "gpsSource"
+
+
+valueGpsSourceSerial : String
+valueGpsSourceSerial =
+    "serial"
+
+
+valueGpsSourceGpsd : String
+valueGpsSourceGpsd =
+    "gpsd"
+
+
+valueGpsSourceSim : String
+valueGpsSourceSim =
+    "sim"
+
+
+typeLatitude : String
+typeLatitude =
+    "latitude"
+
+
+typeLongitude : String
+typeLongitude =
+    "longitude"
+
+
+typeAltitude : String
+typeAltitude =
+    "altitude"
+
+
+typeSpeed : String
+typeSpeed =
+    "speed"
+
+
+typeHeading : String
+typeHeading =
+    "heading"
+
+
+typeFixType : String
+typeFixType =
+    "fixType"
+
+
+typeFixQuality : String
+typeFixQuality =
+    "fixQuality"
+
+
+typeNumSat : String
+typeNumSat =
+    "numSat"
+
+
+typeHdop : String
+typeHdop =
+    "hdop"
+
+
+typeGpsdAddress : String
+typeGpsdAddress =
+    "gpsdAddress"
+
+
+typeSimLatitude : String
+typeSimLatitude =
+    "simLatitude"
+
+
+typeSimLongitude : String
+typeSimLongitude =
+    "simLongitude"
+
+
+typeSimSpeed : String
+typeSimSpeed =
+    "simSpeed"
+
+
+typeSimHeading : String
+typeSimHeading =
+    "simHeading"
+
+
+typeSimHeadingRate : String
+typeSimHeadingRate =
+    "simHeadingRate"
+
+
+typeSimReset : String
+typeSimReset =
+    "simReset"
 
 
 specialPoints : List String

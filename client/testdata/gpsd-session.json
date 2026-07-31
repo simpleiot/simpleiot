@@ -1,0 +1,9 @@
+{"class":"VERSION","release":"3.25","rev":"3.25","proto_major":3,"proto_minor":15}
+{"class":"DEVICES","devices":[{"class":"DEVICE","path":"/dev/ttyUSB0","driver":"u-blox","activated":"2026-07-30T14:22:10.000Z","flags":1,"native":1,"bps":9600,"parity":"N","stopbits":1,"cycle":1.00}]}
+{"class":"WATCH","enable":true,"json":true,"nmea":false,"raw":0,"scaled":false,"timing":false,"split24":false,"pps":false}
+{"class":"TPV","device":"/dev/ttyUSB0","mode":1,"time":"2026-07-30T14:22:11.000Z","ept":0.005}
+{"class":"SKY","device":"/dev/ttyUSB0","xdop":0.62,"ydop":0.83,"vdop":1.32,"tdop":0.51,"hdop":0.92,"gdop":1.79,"pdop":1.58,"nSat":14,"uSat":11}
+{"class":"TPV","device":"/dev/ttyUSB0","mode":3,"status":1,"time":"2026-07-30T14:22:12.000Z","ept":0.005,"lat":40.035491,"lon":-75.519814,"altHAE":52.312,"altMSL":85.117,"epx":6.401,"epy":9.129,"epv":21.320,"track":231.8,"speed":12.34,"climb":0.0,"eps":0.44}
+{"class":"TPV","device":"/dev/ttyUSB0","mode":3,"status":1,"time":"2026-07-30T14:22:13.000Z","ept":0.005,"lat":40.035583,"lon":-75.519940,"altHAE":52.401,"altMSL":85.206,"epx":6.401,"epy":9.129,"epv":21.320,"track":232.1,"speed":12.41,"climb":0.0,"eps":0.44}
+{"class":"SKY","device":"/dev/ttyUSB0","xdop":0.61,"ydop":0.82,"vdop":1.30,"tdop":0.50,"hdop":0.88,"gdop":1.75,"pdop":1.55,"nSat":14,"uSat":12}
+{"class":"TPV","device":"/dev/ttyUSB0","mode":3,"status":1,"time":"2026-07-30T14:22:14.000Z","ept":0.005,"lat":40.035676,"lon":-75.520067,"altHAE":52.488,"altMSL":85.293,"epx":6.401,"epy":9.129,"epv":21.320,"track":232.4,"speed":12.38,"climb":0.0,"eps":0.44}

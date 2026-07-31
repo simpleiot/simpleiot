@@ -382,4 +382,54 @@ const (
 	PointTypeAddress  = "address"
 	PointTypeNetmask  = "netmask"
 	PointTypeGateway  = "gateway"
+
+	// GPS client
+	NodeTypeGPS = "gps"
+
+	PointTypeGPSSource        = "gpsSource"
+	PointValueGPSSourceSerial = "serial"
+	PointValueGPSSourceGpsd   = "gpsd"
+	PointValueGPSSourceSim    = "sim"
+
+	// GPS output points
+	PointTypeLatitude  = "latitude"  // degrees, +N
+	PointTypeLongitude = "longitude" // degrees, +E
+	PointTypeAltitude  = "altitude"  // meters above mean sea level
+	PointTypeSpeed     = "speed"     // meters/second over ground
+	PointTypeHeading   = "heading"   // degrees true, 0-360
+	PointTypeNumSat    = "numSat"    // satellites used in fix
+	PointTypeHDOP      = "hdop"      // horizontal dilution of precision
+	PointTypeGPSTime   = "gpsTime"   // Unix epoch seconds reported by the source
+
+	// Normalized GPS fix dimensionality, following gpsd's TPV mode encoding.
+	// Numeric rather than a string enum so it can be stored in metrics-only
+	// databases such as Victoria Metrics, which store strings as 0.
+	PointTypeFixType  = "fixType"
+	PointValueFixNone = 0 // no fix, or fix status unknown
+	PointValueFix2D   = 2
+	PointValueFix3D   = 3
+
+	// Normalized GPS fix augmentation quality, following the NMEA GGA fix
+	// quality encoding, which covers every case the three sources report.
+	PointTypeFixQuality           = "fixQuality"
+	PointValueFixQualityNone      = 0
+	PointValueFixQualityGPS       = 1
+	PointValueFixQualityDGPS      = 2
+	PointValueFixQualityPPS       = 3
+	PointValueFixQualityRTKFixed  = 4
+	PointValueFixQualityRTKFloat  = 5
+	PointValueFixQualityEstimated = 6
+	PointValueFixQualityManual    = 7
+	PointValueFixQualitySimulated = 8
+
+	// GPS gpsd source config
+	PointTypeGpsdAddress = "gpsdAddress" // host:port, default localhost:2947
+
+	// GPS simulation config
+	PointTypeSimLatitude    = "simLatitude"    // starting latitude
+	PointTypeSimLongitude   = "simLongitude"   // starting longitude
+	PointTypeSimSpeed       = "simSpeed"       // meters/second
+	PointTypeSimHeading     = "simHeading"     // starting heading, degrees true
+	PointTypeSimHeadingRate = "simHeadingRate" // max heading change, degrees/second
+	PointTypeSimReset       = "simReset"       // move the track back to the start
 )

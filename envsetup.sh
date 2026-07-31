@@ -87,7 +87,7 @@ siot_build_backend() {
 	if [ "${GOOS}" = "windows" ]; then
 		BINARY_NAME=siot.exe
 	fi
-	CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$(siot_version)" -o $BINARY_NAME cmd/siot/main.go || return 1
+	CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$(siot_version)" -o $BINARY_NAME ./cmd/siot || return 1
 	return 0
 }
 
@@ -98,19 +98,19 @@ siot_build() {
 
 siot_build_arm() {
 	siot_build_frontend || return 1
-	GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
+	GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm ./cmd/siot || return 1
 	return 0
 }
 
 siot_build_arm64() {
 	siot_build_frontend || return 1
-	GOARCH=arm64 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm64 cmd/siot/main.go || return 1
+	GOARCH=arm64 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm64 ./cmd/siot || return 1
 	return 0
 }
 
 siot_build_arm_debug() {
 	siot_build_frontend || return 1
-	GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm cmd/siot/main.go || return 1
+	GOARCH=arm GOARM=7 go build -ldflags="-s -w -X main.version=$(siot_version)" -o siot_arm ./cmd/siot || return 1
 	return 0
 }
 
@@ -122,7 +122,7 @@ siot_deploy() {
 
 siot_run() {
 	siot_build_frontend || return 1
-	go build -ldflags="-X main.version=$(siot_version)" -o siot -race cmd/siot/main.go || return 1
+	go build -ldflags="-X main.version=$(siot_version)" -o siot -race ./cmd/siot || return 1
 	./siot "$@"
 	return 0
 }
@@ -132,7 +132,7 @@ siot_run_tls() {
 	export SIOT_NATS_TLS_CERT=server-cert.pem
 	export SIOT_NATS_TLS_KEY=server-key.pem
 	siot_build_frontend || return 1
-	go run cmd/siot/main.go "$@" || return 1
+	go run ./cmd/siot "$@" || return 1
 	return 0
 }
 
@@ -248,13 +248,13 @@ siot_edge_run() {
 # and put in /usr/local/bin
 # This can be useful to test/debug the release process locally
 siot_goreleaser_build() {
-	goreleaser build --skip-validate --rm-dist
+	goreleaser build --snapshot --clean
 }
 
-# before releasing, you need to tag the release
-# you need to provide GITHUB_TOKEN in env or ~/.config/goreleaser/github_token
-# generate tokens: https://github.com/settings/tokens/new
-# enable repo and workflow sections
+# pushing the tag starts the Release workflow (.github/workflows/release.yml),
+# which builds the binaries and publishes the GitHub release
+# the release notes come from the CHANGELOG.md section for the version being
+# released, so move the "Next" section under a "[X.Y.Z] - <date>" heading first
 siot_release() {
 	VERSION=$1
 	if [ -z "$VERSION" ]; then
@@ -267,7 +267,7 @@ siot_release() {
 	git commit -m "update FE assets" frontend/public/dist/elm.js.gz || return 1
 	git push || return 1
 	git tag -f "$VERSION" || return 1
-	goreleaser release --clean || return 1
+	git push origin "$VERSION" || return 1
 	siot_deploy_docs || return 1
 	# refresh godocs site
 	wget "https://proxy.golang.org/github.com/simpleiot/simpleiot/@v/${VERSION}.info" || return 1
@@ -286,27 +286,65 @@ siot_dblab() {
 	go run github.com/danvergara/dblab@latest --db "$STORE" --driver sqlite3
 }
 
-MDBOOK_IMAGE=ghcr.io/simpleiot/mdbook:0.5.1
+MDBOOK_VERSION=0.5.4
+MDBOOK_IMAGE=simpleiot/mdbook:$MDBOOK_VERSION
+
+# build the documentation image from Dockerfile.mdbook. The Dockerfile needs no
+# files from the repo, so it is fed on stdin with an empty build context.
+siot_mdbook_image() {
+	docker build --build-arg "MDBOOK_VERSION=$MDBOOK_VERSION" \
+		-t "$MDBOOK_IMAGE" - <Dockerfile.mdbook
+}
+
+siot_mdbook_image_ensure() {
+	if docker image inspect "$MDBOOK_IMAGE" >/dev/null 2>&1; then
+		return 0
+	fi
+	echo "building $MDBOOK_IMAGE"
+	siot_mdbook_image
+}
+
+# run mdbook in the documentation image. book.toml sets src = ".", so mdbook
+# treats the whole repo as book source and copies every file it walks into the
+# output. Mounting only the files the book is built from keeps the output to
+# documentation alone. Arguments are appended to the docker command line, so
+# they start with any further docker options and end with the mdbook command.
+siot_mdbook_run() {
+	siot_mdbook_image_ensure || return 1
+	mkdir -p book || return 1
+	docker run --rm --user "$(id -u):$(id -g)" \
+		-v "$(pwd)/book.toml":/book/book.toml:ro \
+		-v "$(pwd)/SUMMARY.md":/book/SUMMARY.md:ro \
+		-v "$(pwd)/README.md":/book/README.md:ro \
+		-v "$(pwd)/docs":/book/docs:ro \
+		-v "$(pwd)/book":/book/book \
+		"$@"
+}
 
 siot_mdbook() {
-	docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)":/book -p 3333:3000 $MDBOOK_IMAGE serve -n 0.0.0.0
+	siot_mdbook_run -p 3333:3000 $MDBOOK_IMAGE serve -n 0.0.0.0
 }
 
 siot_mdbook_build() {
-	docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)":/book $MDBOOK_IMAGE build
+	siot_mdbook_run $MDBOOK_IMAGE build
 }
 
 siot_mdbook_cleanup() {
 	rm -rf book
 }
 
+# the book output now holds documentation only, so the whole tree is deployed
+# apart from book.toml, which mdbook copies through because it sits in src, and
+# the editor backup files draw.io leaves next to the diagram sources.
+# book/ rather than book/* so that dotfiles, notably the .nojekyll marker
+# mdbook writes, are included and --delete compares the same set of files.
 siot_deploy_docs() {
 	siot_mdbook_cleanup
 	siot_mdbook_build || return 1
 	rsync -av --delete \
-		--exclude='.git' \
-		--exclude='dist' \
-		--exclude='frontend' \
-		book/* bec-systems.com:/srv/http/siot/docs/ || return 1
+		--exclude='book.toml' \
+		--exclude='~$*' \
+		--exclude='*.bkp' \
+		book/ bec-systems.com:/srv/http/siot/docs/ || return 1
 	return 0
 }
