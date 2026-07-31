@@ -286,27 +286,65 @@ siot_dblab() {
 	go run github.com/danvergara/dblab@latest --db "$STORE" --driver sqlite3
 }
 
-MDBOOK_IMAGE=ghcr.io/simpleiot/mdbook:0.5.1
+MDBOOK_VERSION=0.5.4
+MDBOOK_IMAGE=simpleiot/mdbook:$MDBOOK_VERSION
+
+# build the documentation image from Dockerfile.mdbook. The Dockerfile needs no
+# files from the repo, so it is fed on stdin with an empty build context.
+siot_mdbook_image() {
+	docker build --build-arg "MDBOOK_VERSION=$MDBOOK_VERSION" \
+		-t "$MDBOOK_IMAGE" - <Dockerfile.mdbook
+}
+
+siot_mdbook_image_ensure() {
+	if docker image inspect "$MDBOOK_IMAGE" >/dev/null 2>&1; then
+		return 0
+	fi
+	echo "building $MDBOOK_IMAGE"
+	siot_mdbook_image
+}
+
+# run mdbook in the documentation image. book.toml sets src = ".", so mdbook
+# treats the whole repo as book source and copies every file it walks into the
+# output. Mounting only the files the book is built from keeps the output to
+# documentation alone. Arguments are appended to the docker command line, so
+# they start with any further docker options and end with the mdbook command.
+siot_mdbook_run() {
+	siot_mdbook_image_ensure || return 1
+	mkdir -p book || return 1
+	docker run --rm --user "$(id -u):$(id -g)" \
+		-v "$(pwd)/book.toml":/book/book.toml:ro \
+		-v "$(pwd)/SUMMARY.md":/book/SUMMARY.md:ro \
+		-v "$(pwd)/README.md":/book/README.md:ro \
+		-v "$(pwd)/docs":/book/docs:ro \
+		-v "$(pwd)/book":/book/book \
+		"$@"
+}
 
 siot_mdbook() {
-	docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)":/book -p 3333:3000 $MDBOOK_IMAGE serve -n 0.0.0.0
+	siot_mdbook_run -p 3333:3000 $MDBOOK_IMAGE serve -n 0.0.0.0
 }
 
 siot_mdbook_build() {
-	docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)":/book $MDBOOK_IMAGE build
+	siot_mdbook_run $MDBOOK_IMAGE build
 }
 
 siot_mdbook_cleanup() {
 	rm -rf book
 }
 
+# the book output now holds documentation only, so the whole tree is deployed
+# apart from book.toml, which mdbook copies through because it sits in src, and
+# the editor backup files draw.io leaves next to the diagram sources.
+# book/ rather than book/* so that dotfiles, notably the .nojekyll marker
+# mdbook writes, are included and --delete compares the same set of files.
 siot_deploy_docs() {
 	siot_mdbook_cleanup
 	siot_mdbook_build || return 1
 	rsync -av --delete \
-		--exclude='.git' \
-		--exclude='dist' \
-		--exclude='frontend' \
-		book/* bec-systems.com:/srv/http/siot/docs/ || return 1
+		--exclude='book.toml' \
+		--exclude='~$*' \
+		--exclude='*.bkp' \
+		book/ bec-systems.com:/srv/http/siot/docs/ || return 1
 	return 0
 }
