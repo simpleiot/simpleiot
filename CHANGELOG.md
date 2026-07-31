@@ -13,9 +13,11 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [0.19.0] - 2026-07-31
+
 - add GPS client that reads position data from a serial NMEA receiver, the gpsd
-  daemon, or an internal simulator, and publishes latitude, longitude,
-  altitude, speed, heading, fix status, and satellite information. See the
+  daemon, or an internal simulator, and publishes latitude, longitude, altitude,
+  speed, heading, fix status, and satellite information. See the
   [GPS documentation](docs/user/gps.md), which includes instructions for
   plotting a track on a Grafana geomap.
 - the simulated GPS source now continues from the node's last published
@@ -32,8 +34,8 @@ For more details or to discuss releases, please visit the
 - the GPS `Rx count` and `Error count` reset checkboxes now clear after the
   counter is zeroed. They stayed set, so a reset only took effect on every
   second click.
-- document what storing text points in Victoria Metrics actually does; the
-  value is converted to 0 rather than the line being rejected
+- document what storing text points in Victoria Metrics actually does; the value
+  is converted to 0 rather than the line being rejected
 - (BREAKING) remove the legacy `gps` package, which predated the client
   architecture and is superseded by the GPS client. `data.GpsPos` is unchanged
   and still used by the modem code.
@@ -873,7 +875,8 @@ or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
   - fixed issue with backoff algorithm not adhering to max
 - backend:
   - switched data structure name from device -> node -- see
-  - [this issue](https://github.com/simpleiot/simpleiot/issues/91) for discussion
+  - [this issue](https://github.com/simpleiot/simpleiot/issues/91) for
+    discussion
   - add page to message (currently SMS only) all users
   - UI simplification and cleanup
   - sort users on users page
@@ -896,7 +899,8 @@ old version of SIOT and them import with the new version.
 
 - backend:
   - switched data structure name from device -> node -- see
-    [this issue](https://github.com/simpleiot/simpleiot/issues/91) for discussion
+    [this issue](https://github.com/simpleiot/simpleiot/issues/91) for
+    discussion
   - add page to message (currently SMS only) all users
   - UI simplification and cleanup
   - sort users on users page
