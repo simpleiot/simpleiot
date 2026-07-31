@@ -29,6 +29,9 @@ For more details or to discuss releases, please visit the
 - changing the GPS debug level now takes effect right away. The level was read
   once when a source started, so a change was ignored until something else
   restarted the source.
+- the GPS `Rx count` and `Error count` reset checkboxes now clear after the
+  counter is zeroed. They stayed set, so a reset only took effect on every
+  second click.
 - document what storing text points in Victoria Metrics actually does; the
   value is converted to 0 rather than the line being rejected
 - (BREAKING) remove the legacy `gps` package, which predated the client

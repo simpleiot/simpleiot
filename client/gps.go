@@ -473,6 +473,14 @@ func (gc *GPSClient) Run() error {
 		}
 	}
 
+	// clearRequest zeroes a request point once it has been acted on, so the
+	// UI control clears and the request can be repeated. The config copy the
+	// Run loop owns is updated to match what is published.
+	clearRequest := func(typ string, field *bool) {
+		*field = false
+		gc.sendStatus(typ, 0)
+	}
+
 	startSource(false)
 
 done:
@@ -506,10 +514,14 @@ done:
 				case data.PointTypeRxReset:
 					if p.Bool() {
 						requestReset(data.PointTypeRx)
+						clearRequest(data.PointTypeRxReset,
+							&gc.config.RxReset)
 					}
 				case data.PointTypeErrorCountReset:
 					if p.Bool() {
 						requestReset(data.PointTypeErrorCount)
+						clearRequest(data.PointTypeErrorCountReset,
+							&gc.config.ErrorCountReset)
 					}
 				case data.PointTypeDebug:
 					// applied to the running source rather than restarting
@@ -523,9 +535,8 @@ done:
 						restart = true
 						startPos = true
 
-						// clear the request so the reset can be repeated
-						gc.config.SimReset = false
-						gc.sendStatus(data.PointTypeSimReset, 0)
+						clearRequest(data.PointTypeSimReset,
+							&gc.config.SimReset)
 					}
 				}
 			}
