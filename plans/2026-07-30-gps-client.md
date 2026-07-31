@@ -179,8 +179,12 @@ pass-through and only the gpsd path maps:
 | `7` manual     | `7` manual input      | —                            |     |
 | `8` simulated  | `8` simulation mode   | `8` Simulated                |     |
 
-Note that `go-nmea` only defines constants through `6` EST, though the NMEA
-specification defines `7` and `8` as well; the client handles the full range.
+`go-nmea` only defines fix quality constants through `6` EST, and its
+`EnumString` parser rejects any GGA whose fix quality falls outside that set.
+So `7` and `8` are reachable through the gpsd path but not the serial one: a
+receiver reporting either would have its GGA rejected and be treated as
+reporting no fix. Both values are rare enough from real hardware that this is
+not worth working around, but it is a real limit of the serial path.
 
 NMEA `3` PPS means Precise Positioning Service, the military precise code, not
 pulse-per-second — so mapping gpsd's `9` P(Y) onto it is correct. gpsd `status`
@@ -388,12 +392,22 @@ source `sim` and watch latitude and longitude advance in the UI.
    `nmea.Parse` handles the `GP`/`GL`/`GN`/`GA` talker prefixes, so
    multi-constellation receivers work without extra cases.
 
-3. Accumulate sentences into a `gpsFix` and publish on the GGA or RMC that
-   completes it, so one fix produces one coherent set of points rather than a
-   dribble of partial updates.
-4. Maintain `connected`, `rx`, and `errorCount`, and honor `rxReset` and
+3. Accumulate sentences into a `gpsFix` and publish once per NMEA cycle, so one
+   fix produces one coherent set of points rather than a dribble of partial
+   updates. A cycle ends when a consumed sentence type repeats. Only the
+   consumed types participate in that detection, so the several GSV sentences a
+   receiver sends per cycle are not mistaken for the start of a new one.
+4. Distinguish a cold receiver from corrupt data. A receiver with no fix emits
+   well-formed sentences with empty position fields, and `go-nmea` rejects
+   those outright rather than reporting an empty position — so a naive
+   implementation counts a parse error for every sentence until the receiver
+   acquires. Use the `SentenceParser.OnBaseSentence` hook, which fires after
+   checksum and structure validation but before field parsing, to tell the two
+   apart: base valid but typed parse failed means no fix, and only a base parse
+   failure is a genuine data error.
+5. Maintain `connected`, `rx`, and `errorCount`, and honor `rxReset` and
    `errorCountReset` the way `SerialDevClient` does.
-5. Log raw sentences at `debug >= 4` and parse failures at `debug >= 2`.
+6. Log raw sentences at `debug >= 4` and parse failures at `debug >= 2`.
 
 **Verify:** `go build ./... && go test -race ./client/`, then a bench test
 against a USB GPS receiver if one is available.
@@ -410,6 +424,10 @@ canned sentences without a port:
 - A corrupt sentence and a bad checksum both return an error rather than
   publishing a partial fix.
 - A receiver stream with no GSA leaves `fixType` unpublished.
+- A cold receiver's no-fix GGA reports fix quality 0 without counting an error.
+- Repeated GSV sentences do not falsely complete a cycle.
+- One cycle of GGA, GSA, and RMC merges into a single fix carrying all three
+  sentences' fields, on one timestamp.
 
 For an end-to-end port test, reuse the `test.NewFifoB` approach that
 `client/serial.go` takes when `Port == "serialfifo"`, so a test harness can
@@ -547,6 +565,7 @@ against genuine output rather than hand-written JSON.
 
 - `client/gps.go`
 - `client/gps-sim.go`
+- `client/gps-serial.go`
 - `client/gps-gpsd.go`
 - `client/gps_test.go`
 - `client/testdata/gpsd-session.json`
