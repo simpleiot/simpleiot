@@ -139,6 +139,7 @@ type GPSClient struct {
 	log           *log.Logger
 	nc            *nats.Conn
 	config        GPS
+	nodeID        string
 	stop          chan struct{}
 	newPoints     chan NewPoints
 	newEdgePoints chan NewPoints
@@ -148,13 +149,86 @@ type GPSClient struct {
 // Client Manager
 func NewGPSClient(nc *nats.Conn, config GPS) Client {
 	return &GPSClient{
-		log:           log.New(os.Stderr, "gps: ", log.LstdFlags|log.Lmsgprefix),
-		nc:            nc,
-		config:        config,
+		log:    log.New(os.Stderr, "gps: ", log.LstdFlags|log.Lmsgprefix),
+		nc:     nc,
+		config: config,
+		// nodeID is captured separately because config is owned by the Run
+		// loop and must not be read from a source goroutine
+		nodeID:        config.ID,
 		stop:          make(chan struct{}),
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 	}
+}
+
+// gpsSource carries control signals from the client Run loop to the running
+// source goroutine.
+//
+// A source goroutine must never read or write GPSClient.config -- the Run loop
+// owns it and mutates it on every incoming point. Everything a source needs is
+// either passed in by value at start, kept local to the goroutine, or
+// delivered over these channels.
+type gpsSource struct {
+	// stop is closed to shut the source down. Closing rather than sending
+	// means shutdown never blocks, even if the source has already returned.
+	stop chan struct{}
+	// reset carries point types whose counters should be zeroed
+	reset chan string
+}
+
+func newGPSSource() *gpsSource {
+	return &gpsSource{
+		stop:  make(chan struct{}),
+		reset: make(chan string, 4),
+	}
+}
+
+// gpsCounters tracks the receive and error counts for a source goroutine.
+// Kept local to the goroutine rather than in GPSClient.config to avoid racing
+// with the Run loop.
+type gpsCounters struct {
+	gc         *GPSClient
+	rx         int
+	errorCount int
+}
+
+func (c *gpsCounters) countRx() {
+	c.rx++
+	c.gc.sendStatus(data.PointTypeRx, float64(c.rx))
+}
+
+func (c *gpsCounters) countError() {
+	c.errorCount++
+	c.gc.sendStatus(data.PointTypeErrorCount, float64(c.errorCount))
+}
+
+// handleReset zeroes the counter named by a reset request from the Run loop
+func (c *gpsCounters) handleReset(typ string) {
+	switch typ {
+	case data.PointTypeRx:
+		c.rx = 0
+		c.gc.sendStatus(data.PointTypeRx, 0)
+	case data.PointTypeErrorCount:
+		c.errorCount = 0
+		c.gc.sendStatus(data.PointTypeErrorCount, 0)
+	}
+}
+
+// gpsConnState publishes the connected point when the state changes. Like
+// gpsCounters, it is local to a source goroutine.
+type gpsConnState struct {
+	gc        *GPSClient
+	connected bool
+	known     bool
+}
+
+func (c *gpsConnState) set(connected bool) {
+	if c.known && c.connected == connected {
+		return
+	}
+	c.known = true
+	c.connected = connected
+	c.gc.sendStatus(data.PointTypeConnected, data.BoolToFloat(connected))
 }
 
 // withDefaults returns a copy of the config with unset fields filled in.
@@ -190,7 +264,7 @@ func (gc *GPSClient) publish(fix gpsFix) {
 		return
 	}
 
-	err := SendNodePoints(gc.nc, gc.config.ID, pts, false)
+	err := SendNodePoints(gc.nc, gc.nodeID, pts, false)
 	if err != nil {
 		gc.log.Printf("Error sending points: %v", err)
 	}
@@ -198,25 +272,16 @@ func (gc *GPSClient) publish(fix gpsFix) {
 
 // sendStatus publishes a single status point on the GPS node
 func (gc *GPSClient) sendStatus(typ string, value float64) {
-	err := SendNodePoints(gc.nc, gc.config.ID,
+	err := SendNodePoints(gc.nc, gc.nodeID,
 		data.Points{data.NewPointFloat(typ, "", value)}, false)
 	if err != nil {
 		gc.log.Printf("Error sending %v point: %v", typ, err)
 	}
 }
 
-// setConnected publishes the connected state when it changes
-func (gc *GPSClient) setConnected(connected bool) {
-	if gc.config.Connected == connected {
-		return
-	}
-	gc.config.Connected = connected
-	gc.sendStatus(data.PointTypeConnected, data.BoolToFloat(connected))
-}
-
-// runSource dispatches to the configured source and blocks until stop is
-// closed
-func (gc *GPSClient) runSource(config GPS, stop chan struct{}) {
+// runSource dispatches to the configured source and blocks until the source
+// is stopped
+func (gc *GPSClient) runSource(config GPS, src *gpsSource) {
 	if config.Disabled {
 		gc.log.Printf("%v: disabled", config.Description)
 		return
@@ -224,11 +289,11 @@ func (gc *GPSClient) runSource(config GPS, stop chan struct{}) {
 
 	switch config.Source {
 	case data.PointValueGPSSourceSim:
-		gc.runSim(config, stop)
+		gc.runSim(config, src)
 	case data.PointValueGPSSourceGpsd:
-		gc.runGpsd(config, stop)
+		gc.runGpsd(config, src)
 	default:
-		gc.runSerial(config, stop)
+		gc.runSerial(config, src)
 	}
 }
 
@@ -254,20 +319,32 @@ var gpsRestartPoints = map[string]bool{
 func (gc *GPSClient) Run() error {
 	gc.log.Printf("Starting client: %v", gc.config.Description)
 
-	var stopSource chan struct{}
+	var src *gpsSource
 
 	startSource := func() {
-		stopSource = make(chan struct{})
-		go gc.runSource(gc.config.withDefaults(), stopSource)
+		src = newGPSSource()
+		go gc.runSource(gc.config.withDefaults(), src)
 	}
 
-	// stopping the source by closing the channel rather than sending on it
-	// means this never blocks, even when the source goroutine has already
-	// returned
 	stopCurrentSource := func() {
-		if stopSource != nil {
-			close(stopSource)
-			stopSource = nil
+		if src != nil {
+			close(src.stop)
+			src = nil
+		}
+	}
+
+	// requestReset asks the running source to zero a counter. The send is
+	// non-blocking so a busy source can never stall the Run loop; dropping a
+	// reset is preferable to blocking every other client message behind it.
+	requestReset := func(typ string) {
+		if src == nil {
+			return
+		}
+		select {
+		case src.reset <- typ:
+		default:
+			gc.log.Printf("%v: reset request dropped, source busy",
+				gc.config.Description)
 		}
 	}
 
@@ -296,13 +373,11 @@ done:
 				switch p.Type {
 				case data.PointTypeRxReset:
 					if p.Bool() {
-						gc.config.Rx = 0
-						gc.sendStatus(data.PointTypeRx, 0)
+						requestReset(data.PointTypeRx)
 					}
 				case data.PointTypeErrorCountReset:
 					if p.Bool() {
-						gc.config.ErrorCount = 0
-						gc.sendStatus(data.PointTypeErrorCount, 0)
+						requestReset(data.PointTypeErrorCount)
 					}
 				}
 			}
