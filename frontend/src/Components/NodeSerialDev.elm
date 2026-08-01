@@ -156,7 +156,10 @@ view o =
                         text <|
                             "  Rate HR (pkts/sec): "
                                 ++ rateHRS
-                    , text <| "  Last log: " ++ log
+                    , viewIf (not isShell) <|
+                        text <|
+                            "  Last log: "
+                                ++ log
                     , viewIf (not isShell && List.length files > 0) <| horizontalRule
                     , viewIf (not isShell && List.length files > 0 && not downloading) <|
                         optionInput Point.typeDownload
