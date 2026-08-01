@@ -3,7 +3,9 @@ package client
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -254,21 +256,107 @@ func (m *MetricsClient) sysPeriodic() {
 		pts = append(pts, data.NewPointFloat(data.PointTypeMetricSysUptime, "", float64(uptime)))
 	}
 
-	temps, err := host.SensorsTemperatures()
-	if err != nil {
-		log.Println("Error reading sensors:", err)
-	} else {
-		for _, t := range temps {
-			pts = append(pts, data.Points{
-				data.NewPointFloat(data.PointTypeTemperature, t.SensorKey, t.Temperature),
-			}...)
-		}
-	}
+	pts = append(pts, sysTemperatures()...)
 
 	err = SendNodePoints(m.nc, m.config.ID, pts, false)
 	if err != nil {
 		log.Println("Metrics: error sending points:", err)
 	}
+}
+
+// thermalZonePath is the sysfs directory that holds the Linux thermal zones. It
+// is a variable so tests can point it at a fixture directory.
+var thermalZonePath = "/sys/class/thermal"
+
+// temperature is a single sensor reading in degrees C
+type temperature struct {
+	key  string
+	temp float64
+}
+
+// sysTemperatures collects temperature readings from the hwmon sensors gopsutil
+// finds as well as from the Linux thermal zones. The zones are read directly
+// because gopsutil only consults them when a system has no hwmon temperature
+// inputs at all. Boards that have both, such as the Jetson AGX Orin, report
+// their SoC, CPU, and junction temperatures through the zones alone, and those
+// are usually the readings worth watching.
+func sysTemperatures() data.Points {
+	var pts data.Points
+
+	// a point is identified by its type and key, so two readings that share a
+	// key would overwrite each other. Sensor names are not guaranteed to be
+	// unique, so number any repeats: tmp451, tmp451_2, tmp451_3, ...
+	counts := make(map[string]int)
+
+	add := func(t temperature) {
+		if t.key == "" {
+			return
+		}
+
+		counts[t.key]++
+		key := t.key
+		if c := counts[t.key]; c > 1 {
+			key = key + "_" + strconv.Itoa(c)
+		}
+
+		pts = append(pts, data.NewPointFloat(data.PointTypeTemperature, key, t.temp))
+	}
+
+	// gopsutil returns the sensors it did read along with an error describing
+	// the ones it could not, so use the readings that came back either way
+	temps, err := host.SensorsTemperatures()
+	if err != nil {
+		log.Println("Metrics: some sensors were not read:", err)
+	}
+
+	for _, t := range temps {
+		add(temperature{key: t.SensorKey, temp: t.Temperature})
+	}
+
+	for _, t := range thermalZones(thermalZonePath) {
+		add(t)
+	}
+
+	return pts
+}
+
+// thermalZones reads every zone under the given sysfs thermal directory. A zone
+// whose sensor is unavailable, which happens on SoCs when a rail is powered
+// down, is skipped so that it does not cost us the zones that did read. Systems
+// without the thermal interface simply return no readings.
+func thermalZones(dir string) []temperature {
+	zones, err := filepath.Glob(filepath.Join(dir, "thermal_zone*"))
+	if err != nil {
+		// only happens if the pattern above is malformed
+		log.Println("Metrics: error listing thermal zones:", err)
+		return nil
+	}
+
+	ret := make([]temperature, 0, len(zones))
+
+	for _, z := range zones {
+		typ, err := os.ReadFile(filepath.Join(z, "type"))
+		if err != nil {
+			continue
+		}
+
+		raw, err := os.ReadFile(filepath.Join(z, "temp"))
+		if err != nil {
+			continue
+		}
+
+		milliC, err := strconv.ParseInt(strings.TrimSpace(string(raw)), 10, 64)
+		if err != nil {
+			continue
+		}
+
+		ret = append(ret, temperature{
+			key:  strings.TrimSpace(string(typ)),
+			temp: float64(milliC) / 1000,
+		})
+	}
+
+	return ret
 }
 
 // if procName is "", then collect stats for this app

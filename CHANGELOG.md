@@ -11,7 +11,16 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-## Next
+## [0.20.5] - 2026-08-01
+
+- metrics client: read the Linux thermal zones directly so SoC temperatures are
+  collected. The sensor library only consults the zones on systems that have no
+  hwmon temperature inputs, so boards that expose both, such as the Jetson AGX
+  Orin, reported only their board sensors while the CPU, SoC, and junction
+  readings went uncollected. Zones whose rail is powered down are skipped
+  individually, sensors that fail to read no longer discard the ones that
+  succeeded, and repeated sensor names are numbered (`tmp451`, `tmp451_2`) so
+  two readings no longer overwrite each other.
 
 ## [0.20.4] - 2026-08-01
 
