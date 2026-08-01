@@ -72,11 +72,18 @@ the copy button. This will put the ID into your system copy buffer.
 `siot import -parentID 9d7c1c03-0908-4f8b-86d7-8e79184d441d < import.yaml`
 
 If you want to wipe out any existing state and restore a SIOT to a known state,
-you can run an import with the `-parentID` set to `root`. It is highly
-recommended you restart SIOT after this is done to minimize the chance of any
-code still running that caches the root ID which has now changed.
+you can run an import with the `-parentID` set to `root`.
 
 `siot import -parentID root < backup.yaml`
+
+An import at `root` replaces the root node, so every part of the system that
+resolved a node relative to the old root is now working against a tree that no
+longer exists. SIOT handles this by exiting a few seconds after the import
+settles, and expects the service manager to start it again against the new tree.
+The service file installed by `siot install` sets `Restart=always` for this
+reason. If you run SIOT some other way -- a container, a process supervisor, or
+directly from a shell -- make sure it is configured to restart the process, or
+restart it yourself after importing at `root`.
 
 Again, by default, the import command will create new IDs to minimize the chance
 of any ID conflicts. If you want to preserve the IDs in the YAML file, you can

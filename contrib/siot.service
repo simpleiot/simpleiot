@@ -8,5 +8,10 @@ Environment=SIOT_PORT=80
 Environment=OS_VERSION_FIELD=VERSION
 ExecStart=/usr/bin/siot
 
+# Simple IoT exits when a configuration is imported at the root of the tree so
+# that it comes back up against the new tree. Restart it when it does.
+Restart=always
+RestartSec=2
+
 [Install]
 WantedBy=multi-user.target

@@ -64,16 +64,10 @@ func NewManager[T any](nc *nats.Conn,
 // When new nodes are found, the data is decoded into the client type config, and the
 // constructor for the node client is called. This call blocks until Stop is called.
 func (m *Manager[T]) Run() error {
-	nodes, err := GetNodes(m.nc, "root", "all", "", false)
+	err := m.updateRoot()
 	if err != nil {
-		return fmt.Errorf("Manager: Error getting root node: %v", err)
+		return err
 	}
-
-	if len(nodes) < 1 {
-		return fmt.Errorf("Manager: Error no root node")
-	}
-
-	m.root = nodes[0].ID
 
 	// TODO: it may make sense at some point to have a special topic
 	// for new nodes so that all client managers don't have to listen
@@ -96,7 +90,7 @@ func (m *Manager[T]) Run() error {
 		return err
 	}
 
-	err = m.scan(m.root)
+	err = m.scan()
 	if err != nil {
 		log.Println("Error scanning for new nodes:", err)
 	}
@@ -114,7 +108,7 @@ func (m *Manager[T]) Run() error {
 			return
 		}
 
-		err := m.scan(m.root)
+		err := m.scan()
 		if err != nil {
 			log.Println("Error scanning for new nodes:", err)
 		}
@@ -221,14 +215,30 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 	return nodes, nil
 }
 
-func (m *Manager[T]) scan(id string) error {
-	nodes, err := m.scanHelper(id, []data.NodeEdge{})
+// updateRoot refreshes the cached root node ID. The root node can change while
+// we are running -- importing a configuration with `-parentID=root` creates a
+// new root node and deletes the old one. Managers scan below the root, so a
+// stale ID means nodes created by the import are never discovered.
+func (m *Manager[T]) updateRoot() error {
+	root, err := GetRootNode(m.nc)
+	if err != nil {
+		return fmt.Errorf("Manager: error getting root node: %v", err)
+	}
+
+	m.root = root.ID
+
+	return nil
+}
+
+func (m *Manager[T]) scan() error {
+	err := m.updateRoot()
 	if err != nil {
 		return err
 	}
 
-	if len(nodes) == 0 {
-		return nil
+	nodes, err := m.scanHelper(m.root, []data.NodeEdge{})
+	if err != nil {
+		return err
 	}
 
 	found := make(map[string]bool)

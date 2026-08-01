@@ -11,6 +11,23 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- import: restart automatically after importing with `-parentID=root`. Such an
+  import replaces the root node, which leaves everything that resolved a node
+  relative to the old root working against a tree that no longer exists, so the
+  instance had to be restarted by hand before it resumed collecting data. The
+  server now exits once the import settles and expects the service manager to
+  start it again; the service file installed by `siot install` sets
+  `Restart=always` for this reason. If you run Simple IoT some other way, please
+  make sure the process is restarted. `siot serve` also exits non-zero on error
+  now, so supervisors that only restart on failure will bring it back up.
+- client manager: refresh the root node on every scan. The manager resolved the
+  root once at startup, so it kept scanning below a root that an import had
+  replaced and never started clients for the imported nodes. This also covers
+  instances that are not configured to restart.
+- client manager: stop clients when the last node of a type is deleted. The scan
+  returned early when it found no nodes, which skipped the step that shuts down
+  clients whose nodes are gone.
+
 ## [0.20.6] - 2026-08-01
 
 - metrics client: collect fan speed and drive level from the hwmon interface,

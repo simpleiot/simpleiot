@@ -660,3 +660,89 @@ func TestManagerLotsChildren(t *testing.T) {
 	}
 
 }
+
+// TestManagerRootImport verifies clients are started for nodes created by an
+// import at the root of the tree. Such an import creates a new root node and
+// deletes the old one, so the manager must pick up the new root rather than
+// continuing to scan below the one it saw at startup.
+func TestManagerRootImport(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	testConfig := testNode{"ID-testNode", root.ID, "fancy test node", 8118, ""}
+
+	err = client.SendNodeType(nc, testConfig, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	newClient := make(chan *testNodeClient)
+
+	var newTestNodeClientWrapper = func(nc *nats.Conn, config testNode) client.Client {
+		testClient := newTestNodeClient(nc, config)
+		newClient <- testClient
+		return testClient
+	}
+
+	m := client.NewManager(nc, newTestNodeClientWrapper, nil)
+
+	startErr := make(chan error)
+
+	go func() {
+		err := m.Run()
+		if err != nil {
+			startErr <- fmt.Errorf("manager start returned error: %v", err)
+		}
+	}()
+
+	defer m.Stop(nil)
+
+	// wait for the client for the original node to be created
+	var origClient *testNodeClient
+
+	select {
+	case origClient = <-newClient:
+	case err := <-startErr:
+		t.Fatal("Error starting client manager: ", err)
+	case <-time.After(time.Second * 5):
+		t.Fatal("Test client not created")
+	}
+
+	origID := origClient.getConfig().ID
+
+	y, err := client.ExportNodes(nc, root.ID)
+	if err != nil {
+		t.Fatal("Error exporting nodes: ", err)
+	}
+
+	// import at the root, which creates a new root node with new IDs for all
+	// nodes below it, and tombstones the old root
+	go func() {
+		err := client.ImportNodes(nc, "root", y, "test", false)
+		if err != nil {
+			fmt.Println("Error importing nodes: ", err)
+		}
+	}()
+
+	// the manager should start a client for the imported test node
+	timeout := time.NewTimer(time.Second * 15)
+
+	for {
+		select {
+		case c := <-newClient:
+			if c.getConfig().ID != origID {
+				// client was started for the imported node
+				return
+			}
+		case err := <-startErr:
+			t.Fatal("Error starting client manager: ", err)
+		case <-timeout.C:
+			t.Fatal("Timeout waiting for client for imported node")
+		}
+	}
+}
