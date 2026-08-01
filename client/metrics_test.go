@@ -1,6 +1,7 @@
 package client
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,7 +30,9 @@ func writeSysfs(t *testing.T, dir, node string, attrs map[string]string) {
 	}
 }
 
-// checkReadings compares readings against what the fixture should produce
+// checkReadings compares readings against what the fixture should produce.
+// Values are compared with a tolerance because a reading that is scaled or
+// derived, such as power from voltage and current, is rounded along the way.
 func checkReadings(t *testing.T, what string, got, exp []reading) {
 	t.Helper()
 
@@ -38,7 +41,7 @@ func checkReadings(t *testing.T, what string, got, exp []reading) {
 	}
 
 	for i, e := range exp {
-		if got[i] != e {
+		if got[i].key != e.key || math.Abs(got[i].val-e.val) > 1e-9 {
 			t.Errorf("Expected %v reading %v to be %+v, got %+v", what, i, e, got[i])
 		}
 	}
