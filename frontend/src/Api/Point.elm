@@ -1303,6 +1303,10 @@ specialPoints =
     , typeVersionOS
     , typeVersionApp
     , typeBaud
+    , typeProtocol
+    , typeTimeout
+    , typeLogConsole
+    , typeSyncParent
     , typeHRDest
     , typeMaxMessageLength
     , typeDebug
@@ -1343,6 +1347,8 @@ specialPoints =
     , typeDirectory
     , typeRefresh
     , typeBinary
+    , typeDownload
+    , typeProgress
     ]
 
 

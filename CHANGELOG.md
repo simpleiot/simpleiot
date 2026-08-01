@@ -13,6 +13,12 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- serial node UI: keep the remaining configuration fields out of the point and
+  value table, so it shows the data the MCU reports rather than the node's own
+  settings. `protocol`, `timeout`, `logConsole`, `syncParent`, `download`, and
+  `progress` were listed there alongside MCU points. `protocol` and `timeout`
+  are Modbus settings as well, so that node is tidier too.
+
 ## [0.20.3] - 2026-08-01
 
 - serial client: exit the port reader when the port is closed. It previously
