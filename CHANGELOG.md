@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.20.6] - 2026-08-01
+
 - metrics client: collect fan speed and drive level from the hwmon interface,
   reported as `metricSysFanSpeed` in RPM and `metricSysFanPWM` on the 0-255
   scale the kernel uses. Drivers that report a plain `rpm` file rather than the
