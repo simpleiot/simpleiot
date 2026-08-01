@@ -301,6 +301,19 @@ const (
 	PointTypeMetricSysNetBytesRecv    = "metricSysNetBytesRecv"
 	PointTypeMetricSysNetBytesSent    = "metricSysNetBytesSent"
 	PointTypeMetricSysUptime          = "metricSysUptime"
+	// current clock of a CPU in MHz, keyed by cpu0, cpu1, and so on
+	PointTypeMetricSysCPUFreq = "metricSysCPUFreq"
+	// fan tachometer reading in RPM
+	PointTypeMetricSysFanSpeed = "metricSysFanSpeed"
+	// fan drive level, 0-255, as reported by the hwmon pwm interface
+	PointTypeMetricSysFanPWM = "metricSysFanPWM"
+	// current state of a thermal cooling device. Anything above zero means
+	// the thermal governor is limiting the system, so a rising cpufreq or
+	// devfreq state is the system giving up performance to stay cool.
+	PointTypeMetricSysCoolingState = "metricSysCoolingState"
+	// highest state a cooling device supports, which gives the scale the
+	// current state is measured against
+	PointTypeMetricSysCoolingStateMax = "metricSysCoolingStateMax"
 
 	// App Metrics
 	PointTypeMetricAppAlloc        = "metricAppAlloc"

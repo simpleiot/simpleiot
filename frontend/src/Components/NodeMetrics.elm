@@ -132,7 +132,12 @@ metricFormaters z =
         , ( "host", { desc = descKey "Host", vf = toText } )
         , ( "hostBootTime", { desc = descS "Host Boot Time", vf = toTimeWithZone } )
         , ( "metricSysCPUPercent", { desc = descS "Sys CPU %", vf = toPercent } )
+        , ( "metricSysCPUFreq", { desc = descKey "CPU MHz", vf = toWhole } )
+        , ( "metricSysCoolingState", { desc = descKey "Cooling State", vf = toWhole } )
+        , ( "metricSysCoolingStateMax", { desc = descKey "Cooling State Max", vf = toWhole } )
         , ( "metricSysDiskUsedPercent", { desc = descKey "Disk Used %", vf = toPercent } )
+        , ( "metricSysFanPWM", { desc = descKey "Fan PWM", vf = toWhole } )
+        , ( "metricSysFanSpeed", { desc = descKey "Fan RPM", vf = toWhole } )
         , ( "metricSysLoad", { desc = descKey "Load", vf = \p -> Round.round 2 p.value } )
         , ( "metricSysMemUsedPercent", { desc = descS "Memory used %", vf = toPercent } )
         , ( "metricSysMem", { desc = descKey "Memory", vf = toMiB } )
@@ -140,6 +145,9 @@ metricFormaters z =
         , ( "metricSysNetBytesSent", { desc = descKey "Net TX", vf = toWhole } )
         , ( "metricSysUptime", { desc = descKey "Uptime", vf = toWhole } )
         , ( "temp", { desc = descKey "Temp", vf = \p -> Round.round 1 p.value } )
+        , ( "voltage", { desc = descKey "Voltage", vf = \p -> Round.round 2 p.value } )
+        , ( "current", { desc = descKey "Current", vf = \p -> Round.round 3 p.value } )
+        , ( "power", { desc = descKey "Power", vf = \p -> Round.round 2 p.value } )
         ]
 
 

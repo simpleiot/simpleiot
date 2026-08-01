@@ -11,6 +11,30 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- metrics client: collect fan speed and drive level from the hwmon interface,
+  reported as `metricSysFanSpeed` in RPM and `metricSysFanPWM` on the 0-255
+  scale the kernel uses. Drivers that report a plain `rpm` file rather than the
+  usual `fan1_input`, such as the Tegra tachometer, are read as well.
+- metrics client: collect the state of each thermal cooling device as
+  `metricSysCoolingState`, keyed by device type. A state above zero means the
+  thermal governor is limiting the system, so a rising `cpufreq` or `devfreq`
+  state shows performance being given up to stay cool, which temperature alone
+  does not reveal. The scale each device is measured against is published once
+  at startup as `metricSysCoolingStateMax`.
+- metrics client: collect rail voltage, current, and power from the hwmon power
+  monitors, published as the existing `voltage`, `current`, and `power` types in
+  volts, amps, and watts. A channel is published when its driver labels it,
+  which is how a board names the rail a channel measures, so a Jetson reports
+  `VDD_GPU_SOC` and friends by name. Monitors that do not report power directly,
+  including the INA3221, still give voltage and current, and the product stands
+  in for the missing reading.
+- metrics client: collect the current clock of each CPU as `metricSysCPUFreq`,
+  in MHz and keyed by `cpu0`, `cpu1`, and so on. Read alongside the cooling
+  device states, it shows where the clocks settled once the thermal governor
+  pulled them back.
+- documentation: describe the thermal, power, and clock readings the system
+  metrics collect, in [metrics](docs/user/metrics.md)
+
 ## [0.20.5] - 2026-08-01
 
 - metrics client: read the Linux thermal zones directly so SoC temperatures are
