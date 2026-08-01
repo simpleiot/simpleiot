@@ -13,6 +13,10 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [0.20.1] - 2026-07-31
+
+- serial client: don't display log field in UI when in shell mode
+
 ## [0.20.0] - 2026-07-31
 
 - serial: add a Zephyr shell protocol mode to the MCU serial client. Points are
