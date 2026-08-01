@@ -90,6 +90,9 @@ type SerialDevClient struct {
 	// lastRx is when we last received anything from the MCU, used by the
 	// shell mode connection watchdog.
 	lastRx time.Time
+	// lastConnectedSend is when the connected point was last published, used
+	// to pace the shell mode re-assert.
+	lastConnectedSend time.Time
 }
 
 // serialPort is the framing layer between the raw port and the client. Read
@@ -104,6 +107,30 @@ type serialPort interface {
 // protocol. An empty Protocol means binary, so existing nodes are unaffected.
 func (sd *SerialDevClient) shell() bool {
 	return sd.config.Protocol == data.PointValueProtocolShell
+}
+
+// setConnected publishes the link state and records what was published.
+//
+// The local flag is only updated once the publish succeeds. It mirrors what
+// the rest of the system has been told, so a send that fails leaves the
+// caller's condition true and the next attempt retries. Updating it first
+// would make a single lost point permanent: the state is only published on a
+// change, so nothing would ever correct it.
+func (sd *SerialDevClient) setConnected(connected bool) {
+	v := 0.0
+	if connected {
+		v = 1
+	}
+
+	err := SendNodePoint(sd.nc, sd.config.ID,
+		data.NewPointFloat(data.PointTypeConnected, "", v), false)
+	if err != nil {
+		log.Println("Error sending connected point:", err)
+		return
+	}
+
+	sd.config.Connected = connected
+	sd.lastConnectedSend = time.Now()
 }
 
 // NewSerialDevClient ...
@@ -293,11 +320,7 @@ func (sd *SerialDevClient) Run() error {
 	dlTimeout.Stop()
 
 	if sd.config.Connected {
-		sd.config.Connected = false
-		err := SendNodePoint(sd.nc, sd.config.ID, data.NewPointFloat(data.PointTypeConnected, "", 0), false)
-		if err != nil {
-			log.Println("Error sending connected point")
-		}
+		sd.setConnected(false)
 	}
 
 	watcher, err := fsnotify.NewWatcher()
@@ -462,11 +485,7 @@ func (sd *SerialDevClient) Run() error {
 		}
 		sd.port = nil
 
-		sd.config.Connected = false
-		err := SendNodePoint(sd.nc, sd.config.ID, data.NewPointFloat(data.PointTypeConnected, "", 0), false)
-		if err != nil {
-			log.Println("Error sending connected point")
-		}
+		sd.setConnected(false)
 	}
 
 	if sd.config.Download != "" {
@@ -479,24 +498,32 @@ func (sd *SerialDevClient) Run() error {
 			buf := make([]byte, maxMessageLen)
 			c, err := port.Read(buf)
 			if err != nil {
-				if err != io.EOF && err.Error() != "Port has been closed" {
-					log.Printf("Error reading port %v: %v\n", sd.config.Description, err)
-
-					listenerSerialErr <- struct{}{}
-
-					// we don't want to reset the port on every COBS
-					// decode error, so accumulate a few before we do this
-					if err == ErrCobsDecodeError ||
-						err == ErrCobsTooMuchData {
-						errCount++
-						if errCount < 10000000 {
-							continue
-						}
-					}
-
-					listenerClosed <- struct{}{}
+				// We closed the port ourselves, so there is nothing to
+				// report and nothing left to read. Returning is what ends
+				// this goroutine: a closed port fails every Read
+				// immediately, so carrying on would spin on the error
+				// forever, once per close, for the life of the process.
+				// Reopening is the main loop's job.
+				if err == io.EOF || err.Error() == "Port has been closed" {
 					return
 				}
+
+				log.Printf("Error reading port %v: %v\n", sd.config.Description, err)
+
+				listenerSerialErr <- struct{}{}
+
+				// we don't want to reset the port on every COBS
+				// decode error, so accumulate a few before we do this
+				if err == ErrCobsDecodeError ||
+					err == ErrCobsTooMuchData {
+					errCount++
+					if errCount < 10000000 {
+						continue
+					}
+				}
+
+				listenerClosed <- struct{}{}
+				return
 			}
 			if c <= 0 {
 				continue
@@ -609,11 +636,7 @@ func (sd *SerialDevClient) Run() error {
 			Type: data.PointTypeTimeSync,
 		}}
 
-		sd.config.Connected = true
-		err := SendNodePoint(sd.nc, sd.config.ID, data.NewPointFloat(data.PointTypeConnected, "", 1), false)
-		if err != nil {
-			log.Println("Error sending connected point")
-		}
+		sd.setConnected(true)
 
 		sd.wrSeq++
 		err = sd.sendPointsToDevice(sd.wrSeq, false, "", p)
@@ -647,15 +670,22 @@ exitSerialClient:
 				silent = sd.shellTimeout() + time.Second
 			}
 
-			if sd.config.Connected && silent > sd.shellTimeout() {
-				log.Printf("Serial %v: no data for %v, marking disconnected",
-					sd.config.Description, silent.Round(time.Second))
-				sd.config.Connected = false
-				err := SendNodePoint(sd.nc, sd.config.ID,
-					data.NewPointFloat(data.PointTypeConnected, "", 0), false)
-				if err != nil {
-					log.Println("Error sending connected point:", err)
+			connected := silent <= sd.shellTimeout()
+
+			switch {
+			case connected != sd.config.Connected:
+				if !connected {
+					log.Printf("Serial %v: no data for %v, marking disconnected",
+						sd.config.Description, silent.Round(time.Second))
 				}
+				sd.setConnected(connected)
+
+			case time.Since(sd.lastConnectedSend) > shellConnectedReassert:
+				// The state is normally published only when it changes, so a
+				// point that is lost or overwritten downstream would leave the
+				// reported state wrong for as long as the link stays the way
+				// it is. Republishing on a slow cadence lets it converge.
+				sd.setConnected(connected)
 			}
 		case <-listenerClosed:
 			closePort()
@@ -686,12 +716,7 @@ exitSerialClient:
 				// protocol has no framing beyond the line itself, so
 				// decoding is only classification.
 				if !sd.config.Connected {
-					sd.config.Connected = true
-					err := SendNodePoint(sd.nc, sd.config.ID,
-						data.NewPointFloat(data.PointTypeConnected, "", 1), false)
-					if err != nil {
-						log.Println("Error sending connected point:", err)
-					}
+					sd.setConnected(true)
 				}
 
 				shellPoints, shellAdmin := sd.handleShellLine(string(rd))

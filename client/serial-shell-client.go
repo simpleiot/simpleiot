@@ -18,6 +18,12 @@ const defaultShellTimeout = 60 * time.Second
 // matching the timestamp exactly.
 const echoExpire = time.Minute
 
+// shellConnectedReassert is how often the watchdog republishes an unchanged
+// link state. Without it the state is only ever published on a transition, so
+// one lost update stays visible until the next transition, which on a healthy
+// link may be never.
+const shellConnectedReassert = time.Minute
+
 // echoKey identifies a point for echo suppression purposes.
 type echoKey struct {
 	typ string

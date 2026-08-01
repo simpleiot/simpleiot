@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/server"
@@ -19,6 +20,20 @@ type shellTestRig struct {
 	fifo    *client.LineWrapper
 	lines   chan string
 	getNode func() client.SerialDev
+	nc      *nats.Conn
+	nodeID  string
+}
+
+// setPoint writes a node point the way the UI does. An origin is required:
+// the client manager drops points with no origin on the client's own node,
+// on the grounds that the client published them itself.
+func (r *shellTestRig) setPoint(typ string, val float64) {
+	r.t.Helper()
+	p := data.NewPointFloat(typ, "", val)
+	p.Origin = "test"
+	if err := client.SendNodePoint(r.nc, r.nodeID, p, true); err != nil {
+		r.t.Fatalf("error sending %v point: %v", typ, err)
+	}
 }
 
 // readLine returns the next line the client wrote, or fails the test.
@@ -95,7 +110,14 @@ func setupShellRig(t *testing.T, cfg func(*client.SerialDev)) (*shellTestRig, fu
 		t.Fatal("Error setting up node watcher")
 	}
 
-	rig := &shellTestRig{t: t, fifo: fifoW, lines: make(chan string, 64), getNode: getNode}
+	rig := &shellTestRig{
+		t:       t,
+		fifo:    fifoW,
+		lines:   make(chan string, 64),
+		getNode: getNode,
+		nc:      nc,
+		nodeID:  serialTest.ID,
+	}
 
 	// pump lines the client writes into a channel
 	go func() {
@@ -158,6 +180,83 @@ func TestSerialShellReceivePoint(t *testing.T) {
 
 	// any line is evidence the MCU is alive
 	rig.waitFor("connected", 2*time.Second, func(n client.SerialDev) bool {
+		return n.Connected
+	})
+}
+
+// A disable/enable cycle has to leave the node reporting connected again once
+// the MCU speaks. The state is published only when it changes, so a cycle that
+// loses the transition leaves the node reported as not connected for as long
+// as the link stays up.
+func TestSerialShellDisableEnableReconnects(t *testing.T) {
+	rig, teardown := setupShellRig(t, nil)
+	defer teardown()
+
+	for range 4 {
+		rig.readLine(2 * time.Second)
+	}
+
+	rig.send("pt uptime 0 INT 1")
+	rig.waitFor("connected", 2*time.Second, func(n client.SerialDev) bool {
+		return n.Connected
+	})
+
+	rig.setPoint(data.PointTypeDisabled, 1)
+	rig.waitFor("disconnected after disable", 2*time.Second, func(n client.SerialDev) bool {
+		return !n.Connected
+	})
+
+	rig.setPoint(data.PointTypeDisabled, 0)
+
+	// the port reopens, so the handshake goes out a second time
+	for range 4 {
+		rig.readLine(2 * time.Second)
+	}
+
+	rig.send("pt uptime 0 INT 2")
+	rig.waitFor("connected after enable", 5*time.Second, func(n client.SerialDev) bool {
+		return n.Connected
+	})
+}
+
+// Same cycle, but with the MCU streaming the whole time and a short silence
+// timeout, which is how a board in the field behaves.
+func TestSerialShellDisableEnableWhileStreaming(t *testing.T) {
+	rig, teardown := setupShellRig(t, func(c *client.SerialDev) {
+		c.Timeout = 1
+	})
+	defer teardown()
+
+	streaming := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; ; i++ {
+			select {
+			case <-streaming:
+				return
+			case <-time.After(100 * time.Millisecond):
+			}
+			_, _ = rig.fifo.Write(fmt.Appendf(nil,
+				"[00:00:%02d.000,000] <inf> app: tick %v\r\n", i%60, i))
+		}
+	}()
+	defer func() {
+		close(streaming)
+		<-done
+	}()
+
+	rig.waitFor("connected", 3*time.Second, func(n client.SerialDev) bool {
+		return n.Connected
+	})
+
+	rig.setPoint(data.PointTypeDisabled, 1)
+	rig.waitFor("disconnected after disable", 3*time.Second, func(n client.SerialDev) bool {
+		return !n.Connected
+	})
+
+	rig.setPoint(data.PointTypeDisabled, 0)
+	rig.waitFor("connected after enable", 20*time.Second, func(n client.SerialDev) bool {
 		return n.Connected
 	})
 }

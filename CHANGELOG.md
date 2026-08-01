@@ -13,6 +13,21 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- serial client: exit the port reader when the port is closed. It previously
+  fell through to its retry path, and because a closed port fails every read
+  immediately, the goroutine spun at full speed for the life of the process.
+  One was left behind on every close, including each disable/enable of a
+  serial node.
+- serial client: make the connected state self-correcting. It was published
+  only when it changed, so a single update that was lost or overwritten left a
+  node reported as not connected even while data kept arriving. The state is
+  now recorded locally only after a successful publish, and in shell mode the
+  watchdog republishes it on a slow cadence so the reported state converges.
+
+## [0.20.2] - 2026-08-01
+
+- update frontend assets
+
 ## [0.20.1] - 2026-07-31
 
 - serial client: don't display log field in UI when in shell mode
