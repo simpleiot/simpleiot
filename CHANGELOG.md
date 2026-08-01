@@ -13,6 +13,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [0.20.4] - 2026-08-01
+
 - serial node UI: keep the remaining configuration fields out of the point and
   value table, so it shows the data the MCU reports rather than the node's own
   settings. `protocol`, `timeout`, `logConsole`, `syncParent`, `download`, and
