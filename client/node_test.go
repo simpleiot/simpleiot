@@ -30,7 +30,7 @@ func TestExportNodes(t *testing.T) {
 	}
 
 	// convert back to nodes and check a few
-	var exp client.SiotExport
+	var exp data.NodeFile
 
 	err = yaml.Unmarshal(y, &exp)
 	if err != nil {
@@ -148,17 +148,12 @@ func TestExportImportNodes(t *testing.T) {
 
 var testImportNodesYaml = `
 nodes:
-- type: group
-  points:
-  - type: description
-    text: "group 1"
-  children:
-  - type: variable
-    points:
-    - type: description
-      text: var 1
-    - type: value
-      value: 10
+  - group:
+      description: group 1
+      children:
+        - variable:
+            description: var 1
+            value: 10
 `
 
 func TestImportNodes(t *testing.T) {
@@ -215,20 +210,14 @@ func TestImportNodes(t *testing.T) {
 
 var testImportNodesYamlWithIDs = `
 nodes:
-- type: group
-  id: 111
-  points:
-  - type: description
-    text: "group 1"
-  children:
-  - type: variable
-    id: 222
-    parent: 111
-    points:
-    - type: description
-      text: var 1
-    - type: value
-      value: 10
+  - group:
+      id: 111
+      description: group 1
+      children:
+        - variable:
+            id: 222
+            description: var 1
+            value: 10
 `
 
 func TestImportNodesPreserveIDs(t *testing.T) {
@@ -278,59 +267,17 @@ func TestImportNodesPreserveIDs(t *testing.T) {
 
 }
 
-var testImportNodesYamlBadParent = `
-nodes:
-- type: group
-  id: 111
-  points:
-  - type: description
-    text: "group 1"
-  children:
-  - type: variable
-    id: 222
-    parent: 123
-    points:
-    - type: description
-      text: var 1
-    - type: value
-      value: 10
-`
-
-func TestImportNodesBadParent(t *testing.T) {
-	nc, root, stop, err := server.TestServer()
-
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
-	}
-
-	defer stop()
-
-	err = client.ImportNodes(nc, root.ID, []byte(testImportNodesYamlBadParent), "test", true)
-	if err == nil {
-		t.Fatal("should have caught bad parent")
-	}
-}
-
 var testImportListOfNodesYaml = `
 nodes:
-- type: variable
-  points:
-  - type: description
-    text: "temperature sensor"
-  - type: value
-    value: 23.5
-- type: variable
-  points:
-  - type: description
-    text: "humidity sensor"  
-  - type: value
-    value: 65.0
-- type: variable
-  points:
-  - type: description
-    text: "pressure sensor"
-  - type: value
-    value: 1013.25
+  - variable:
+      description: temperature sensor
+      value: 23.5
+  - variable:
+      description: humidity sensor
+      value: 65.0
+  - variable:
+      description: pressure sensor
+      value: 1013.25
 `
 
 func TestImportListOfNodes(t *testing.T) {

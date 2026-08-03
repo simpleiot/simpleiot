@@ -436,34 +436,26 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 		}, nil
 }
 
-// SiotExport is the format used for exporting and importing data (currently YAML)
-type SiotExport struct {
-	Nodes []data.NodeEdgeChildren
-}
-
-// ExportNodes is used to export nodes at a particular location to YAML
-// The YAML format looks like:
+// ExportNodes is used to export nodes at a particular location to YAML.
+// The node type is the key, and each point type is a key of its own:
 //
+//	apiVersion: 1
 //	nodes:
-//	- id: inst1
-//	  type: device
-//	  parent: root
-//	  points:
-//	  - type: versionApp
-//	  children:
-//	  - id: d7f5bbe9-a300-4197-93fa-b8e5e07f683a
-//	    type: user
-//	    parent: inst1
-//	    points:
-//	    - type: firstName
-//	      text: admin
-//	    - type: lastName
-//	      text: user
-//	    - type: phone
-//	    - type: email
-//	      text: admin
-//	    - type: pass
-//	      text: admin
+//	  - device:
+//	      id: inst1
+//	      versionApp: 0.20.6
+//	      children:
+//	        - user:
+//	            id: d7f5bbe9-a300-4197-93fa-b8e5e07f683a
+//	            firstName: admin
+//	            lastName: user
+//	            email: admin
+//	            pass: admin
+//
+// A point whose value is text is written quoted, so a text point that looks
+// like a number keeps its type: `port: "502"` is text and `port: 502` is
+// numeric. Points that carry data, an origin, a tombstone, or an integer value
+// are written in a points: list instead, which keeps an export lossless.
 //
 // Key="0" and Tombstone points with value set to 0 are removed from the export to make
 // it easier to read.
@@ -485,8 +477,6 @@ func ExportNodes(nc *nats.Conn, id string) ([]byte, error) {
 		return nil, fmt.Errorf("no root nodes returned")
 	}
 
-	var necNodes []data.NodeEdgeChildren
-
 	// we only export one node as there may be multiple mirrors of the node in the tree
 	nec := data.NodeEdgeChildren{NodeEdge: rootNodes[0], Children: nil}
 	err = exportNodesHelper(nc, &nec)
@@ -494,11 +484,39 @@ func ExportNodes(nc *nats.Conn, id string) ([]byte, error) {
 		return nil, err
 	}
 
-	necNodes = append(necNodes, nec)
+	f := data.NodeFile{
+		APIVersion: data.NodeFileAPIVersion,
+		Nodes:      []data.NodeYAML{exportNodeYAML(nec)},
+	}
 
-	ne := SiotExport{Nodes: necNodes}
+	// indent sequences so that the nesting a person reads matches the nesting
+	// of the tree
+	return yaml.MarshalWithOptions(f, yaml.IndentSequence(true))
+}
 
-	return yaml.Marshal(ne)
+// nodeYAMLToTree converts a file node into the structure the rest of the
+// system passes around.
+func nodeYAMLToTree(n data.NodeYAML, parent string) data.NodeEdgeChildren {
+	nec := data.NodeEdgeChildren{
+		NodeEdge: n.ToNodeEdge(n.ID, parent),
+	}
+
+	for _, c := range n.Children {
+		nec.Children = append(nec.Children, nodeYAMLToTree(c, n.ID))
+	}
+
+	return nec
+}
+
+// exportNodeYAML converts a fetched subtree into the file format.
+func exportNodeYAML(nec data.NodeEdgeChildren) data.NodeYAML {
+	var children []data.NodeYAML
+
+	for _, c := range nec.Children {
+		children = append(children, exportNodeYAML(c))
+	}
+
+	return data.NodeYAMLFromNodeEdge(nec.NodeEdge, children)
 }
 
 func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
@@ -574,11 +592,16 @@ func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, p
 		}
 	}
 
-	var imp SiotExport
+	var f data.NodeFile
 
-	err := yaml.Unmarshal(yamlData, &imp)
+	err := yaml.Unmarshal(yamlData, &f)
 	if err != nil {
 		return fmt.Errorf("error parsing YAML data: %w", err)
+	}
+
+	imp := struct{ Nodes []data.NodeEdgeChildren }{}
+	for _, n := range f.Nodes {
+		imp.Nodes = append(imp.Nodes, nodeYAMLToTree(n, ""))
 	}
 
 	var importHelper func(data.NodeEdgeChildren) error

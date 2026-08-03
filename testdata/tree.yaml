@@ -1,0 +1,50 @@
+# Shared test fixture, used by the data, client, and server tests so that the
+# codec, siot import, siot export, and provisioning are all exercised against
+# the same tree.
+apiVersion: 1
+nodes:
+  - group:
+      description: Sensors
+      children:
+        - group:
+            description: Tank farm
+  # attaches by description to a group created above, rather than by nesting
+  - modbus:
+      parent: Tank farm
+      description: Modbus sensors
+      port: /dev/ttyS1
+      baud: 9600
+      children:
+        - modbusIo:
+            description: Tank level raw
+            modbusIoType: holdingRegister
+            address: 40001
+            scale: 0.1
+  - variable:
+      parent: Tank farm
+      id: tank-level
+      description: Tank level
+      variableType: number
+  - group:
+      description: Rules
+      children:
+        - rule:
+            description: Tank low
+            children:
+              - condition:
+                  description: Level below 10
+                  conditionType: pointValue
+                  nodeID: tank-level # resolved to the variable created above
+                  pointType: value
+                  operator: "<"
+                  value: 10
+              - action:
+                  description: Notify on tank low
+                  actionType: notify
+  - user:
+      firstName: Admin
+      lastName: User
+      email: admin@example.com
+      edgePoints:
+        - type: role
+          text: admin
