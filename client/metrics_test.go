@@ -138,7 +138,7 @@ func TestPowerRails(t *testing.T) {
 	// an INA3221, whose channel 3 is disabled and so cannot be read. in4 and
 	// in5 are the shunt voltages the driver exposes without labels.
 	writeSysfs(t, dir, "hwmon0", map[string]string{
-		"name": "ina3221",
+		"name":      "ina3221",
 		"in1_label": "VDD_GPU_SOC", "in1_input": "18792", "curr1_input": "140",
 		"in2_label": "VDD_CPU_CV", "in2_input": "18784", "curr2_input": "20",
 		"in3_label": "VIN_SYS_5V0",
