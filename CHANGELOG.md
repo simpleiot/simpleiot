@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- server: retire the `node` package. With Modbus and 1-Wire moved to clients,
+  all that remained of the node manager was writing the app and OS versions to
+  the root node, which is now a small function that runs once after the store
+  starts. The 20-second scan that drove the old bus managers is gone.
 - 1-wire: move 1-Wire to the client architecture, alongside Modbus below. A new
   bus or sensor is picked up right away rather than on the next 20-second scan,
   and a 1-Wire node can be placed in a group as well as at the root of the tree.
