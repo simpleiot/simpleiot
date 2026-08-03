@@ -6,8 +6,13 @@ well, but often a third wire is run for power.
 
 Simple IoT supports 1-wire buses controlled by the
 [1-wire (`w1`) subsystem](https://www.kernel.org/doc/html/latest/w1/index.html)
-in the Linux kernel. Simple IoT will automatically create nodes for 1-wire buses
-and devices it discovers.
+in the Linux kernel.
+
+To use a bus, add a 1-Wire node where you want it in the tree and set its
+`Index` to the number of the bus controller, which matches the
+`w1_bus_master<index>` directory the kernel creates in
+`/sys/bus/w1/devices`. The first controller is index 0. Simple IoT then detects
+the sensors on that bus and creates a node for each one.
 
 ![1-wire nodes](images/onewire-nodes.png)
 
@@ -45,3 +50,6 @@ These devices are readily available at low cost from a number of places
 including eBay - search for `DS18B20`, and look for an image like the below:
 
 ![DS18B20](images/ds18b20-photo.png)
+
+Readings are in degrees Celsius by default. Set `Units` on a device node to `F`
+to have it report degrees Fahrenheit instead.

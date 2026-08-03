@@ -11,6 +11,17 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- 1-wire: move 1-Wire to the client architecture, alongside Modbus below. A new
+  bus or sensor is picked up right away rather than on the next 20-second scan,
+  and a 1-Wire node can be placed in a group as well as at the root of the tree.
+- 1-wire: **1-Wire bus nodes are no longer created automatically.** Add a 1-Wire
+  node where you want it and set its `Index` to the bus controller number, which
+  matches the `w1_bus_master<index>` directory in `/sys/bus/w1/devices`. The
+  sensors on that bus are still detected and added for you. Existing bus nodes
+  keep working unchanged; this affects new setups, and any install that relied
+  on a deleted bus node reappearing.
+- 1-wire: detect sensors below the configured bus controller rather than across
+  all of them. With two controllers, every bus node claimed every sensor.
 - modbus: move Modbus to the client architecture. Modbus busses are now started
   and stopped by the client manager like every other client, rather than by a
   20-second poll of the store, so a new bus or IO starts collecting data right

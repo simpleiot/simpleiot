@@ -21,7 +21,6 @@ type Manager struct {
 	appVersion     string
 	osVersionField string
 	rootNodeID     string
-	oneWireManager *oneWireManager
 	chStop         chan struct{}
 }
 
@@ -83,8 +82,6 @@ func (m *Manager) init() error {
 
 	}
 
-	m.oneWireManager = newOneWireManager(m.nc, m.rootNodeID)
-
 	return nil
 }
 
@@ -103,9 +100,6 @@ func (m *Manager) Start() error {
 		case <-m.chStop:
 			return errors.New("node manager stopping")
 		case <-t.C:
-			if m.oneWireManager != nil {
-				_ = m.oneWireManager.update()
-			}
 			t.Reset(time.Second * 20)
 		}
 	}
