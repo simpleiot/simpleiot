@@ -12,6 +12,11 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
+type pointWID struct {
+	id    string
+	point data.Point
+}
+
 type oneWire struct {
 	node   data.NodeEdge
 	owNode *oneWireNode

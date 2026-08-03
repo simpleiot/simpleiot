@@ -11,6 +11,30 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- modbus: move Modbus to the client architecture. Modbus busses are now started
+  and stopped by the client manager like every other client, rather than by a
+  20-second poll of the store, so a new bus or IO starts collecting data right
+  away instead of up to 20 seconds later. A Modbus node can now be placed in a
+  group as well as at the root of the tree. Node and point types are unchanged,
+  so existing configurations keep working.
+- modbus: read `int16` values as signed. An `int16` input or holding register
+  was decoded as an unsigned value, so a negative reading appeared as a large
+  positive number on both the client and the server.
+- modbus: write a `valueSet` to the device as soon as it arrives. The check that
+  decided whether a value could be written compared the data format against the
+  IO type, which never matched, so a write waited for the next poll.
+- modbus: treat a scale of zero as one. An IO created without a scale read every
+  register as zero; the old code declined to start such an IO at all, which was
+  just as hard to diagnose.
+- modbus: publish the corrected response timeout when a bus has none configured
+  or has a non-positive one, so what the bus uses is what the configuration
+  shows.
+- modbus: closing a Modbus TCP server no longer waits on a connection listener
+  that has already exited, which could happen when the far end dropped the
+  connection at the moment the server was being closed.
+- modbus: the first tests for the Modbus subsystem, covering every register type
+  and data format end to end through a server bus and a client bus talking over
+  a TCP socket.
 - import: restart automatically after importing with `-parentID=root`. Such an
   import replaces the root node, which leaves everything that resolved a node
   relative to the old root working against a tree that no longer exists, so the

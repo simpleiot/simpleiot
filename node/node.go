@@ -20,7 +20,6 @@ type Manager struct {
 	nc             *nats.Conn
 	appVersion     string
 	osVersionField string
-	modbusManager  *ModbusManager
 	rootNodeID     string
 	oneWireManager *oneWireManager
 	chStop         chan struct{}
@@ -84,7 +83,6 @@ func (m *Manager) init() error {
 
 	}
 
-	m.modbusManager = NewModbusManager(m.nc, m.rootNodeID)
 	m.oneWireManager = newOneWireManager(m.nc, m.rootNodeID)
 
 	return nil
@@ -105,9 +103,6 @@ func (m *Manager) Start() error {
 		case <-m.chStop:
 			return errors.New("node manager stopping")
 		case <-t.C:
-			if m.modbusManager != nil {
-				_ = m.modbusManager.Update()
-			}
 			if m.oneWireManager != nil {
 				_ = m.oneWireManager.update()
 			}
