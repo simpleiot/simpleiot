@@ -10,9 +10,9 @@ in the Linux kernel.
 
 To use a bus, add a 1-Wire node where you want it in the tree and set its
 `Index` to the number of the bus controller, which matches the
-`w1_bus_master<index>` directory the kernel creates in
-`/sys/bus/w1/devices`. The first controller is index 0. Simple IoT then detects
-the sensors on that bus and creates a node for each one.
+`w1_bus_master<index>` directory the kernel creates in `/sys/bus/w1/devices`.
+The first controller is index 0. Simple IoT then detects the sensors on that bus
+and creates a node for each one.
 
 ![1-wire nodes](images/onewire-nodes.png)
 
@@ -52,4 +52,4 @@ including eBay - search for `DS18B20`, and look for an image like the below:
 ![DS18B20](images/ds18b20-photo.png)
 
 Readings are in degrees Celsius by default. Set `Units` on a device node to `F`
-to have it report degrees Fahrenheit instead.
+to report degrees Fahrenheit instead.

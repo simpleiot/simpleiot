@@ -11,27 +11,17 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-- server: retire the `node` package. With Modbus and 1-Wire moved to clients,
-  all that remained of the node manager was writing the app and OS versions to
-  the root node, which is now a small function that runs once after the store
-  starts. The 20-second scan that drove the old bus managers is gone.
-- 1-wire: move 1-Wire to the client architecture, alongside Modbus below. A new
-  bus or sensor is picked up right away rather than on the next 20-second scan,
-  and a 1-Wire node can be placed in a group as well as at the root of the tree.
-- 1-wire: **1-Wire bus nodes are no longer created automatically.** Add a 1-Wire
-  node where you want it and set its `Index` to the bus controller number, which
-  matches the `w1_bus_master<index>` directory in `/sys/bus/w1/devices`. The
-  sensors on that bus are still detected and added for you. Existing bus nodes
-  keep working unchanged; this affects new setups, and any install that relied
-  on a deleted bus node reappearing.
-- 1-wire: detect sensors below the configured bus controller rather than across
-  all of them. With two controllers, every bus node claimed every sensor.
-- modbus: move Modbus to the client architecture. Modbus busses are now started
+- modbus: move Modbus to the client architecture. Modbus buses are now started
   and stopped by the client manager like every other client, rather than by a
   20-second poll of the store, so a new bus or IO starts collecting data right
-  away instead of up to 20 seconds later. A Modbus node can now be placed in a
-  group as well as at the root of the tree. Node and point types are unchanged,
-  so existing configurations keep working.
+  away instead of up to 20 seconds later. Node and point types are unchanged, so
+  existing configurations keep working.
+- modbus, 1-wire: start a bus that lives inside a group. Discovery looked only
+  at the direct children of the root node, so a bus placed anywhere else never
+  ran.
+- modbus: adding or removing an IO now restarts its bus, which reopens the port.
+  A Modbus server drops the TCP connections it holds when this happens. This
+  applies when a person edits the configuration, not during normal polling.
 - modbus: read `int16` values as signed. An `int16` input or holding register
   was decoded as an unsigned value, so a negative reading appeared as a large
   positive number on both the client and the server.
@@ -50,6 +40,21 @@ For more details or to discuss releases, please visit the
 - modbus: the first tests for the Modbus subsystem, covering every register type
   and data format end to end through a server bus and a client bus talking over
   a TCP socket.
+- 1-wire: **1-Wire bus nodes are no longer created automatically.** Add a 1-Wire
+  node where you want it and set its `Index` to the bus controller number, which
+  matches the `w1_bus_master<index>` directory in `/sys/bus/w1/devices`. The
+  sensors on that bus are still detected and added for you. Existing bus nodes
+  keep working unchanged; this affects new setups, and any install that relied
+  on a deleted bus node reappearing.
+- 1-wire: move 1-Wire to the client architecture. A new bus or sensor is picked
+  up as soon as it is configured rather than on the next 20-second scan. This is
+  also the first test coverage the subsystem has had.
+- 1-wire: detect sensors below the configured bus controller rather than across
+  all of them. With two controllers, every bus node claimed every sensor.
+- server: retire the `node` package. With Modbus and 1-Wire moved to clients,
+  all that remained of the node manager was writing the app and OS versions to
+  the root node, which is now a small function that runs once after the store
+  starts. The 20-second scan that drove the old bus managers is gone.
 - import: restart automatically after importing with `-parentID=root`. Such an
   import replaces the root node, which leaves everything that resolved a node
   relative to the old root working against a tree that no longer exists, so the

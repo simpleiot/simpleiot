@@ -33,12 +33,12 @@ Modbus IOs can be configured to support most common IO types and data formats:
 ![modbus io config](images/modbus-io-config.png)
 
 The `Scale` and `Offset` parameters convert between the raw register value and
-the value stored in the node: `value = raw × scale + offset`. A scale of zero
-is treated as one, so an IO that has not had a scale entered still reads its
-register.
+the value stored in the node: `value = raw * scale + offset`. A scale of zero is
+treated as one, so an IO with no scale entered still reads its register.
 
-Adding or removing an IO restarts the bus, which reopens the port. This happens
-when a person edits the configuration rather than during normal polling.
+Adding or removing an IO restarts the bus, which reopens the port. A Modbus
+server drops the connections it holds when this happens. This applies when a
+person edits the configuration, not during normal polling.
 
 ## Videos
 
