@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-08-03
+
 - modbus: move Modbus to the client architecture. Modbus buses are now started
   and stopped by the client manager like every other client, rather than by a
   20-second poll of the store, so a new bus or IO starts collecting data right
