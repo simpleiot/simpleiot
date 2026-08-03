@@ -48,6 +48,12 @@ func DefaultClients(nc *nats.Conn) (*RunGroup, error) {
 	metrics := NewManager(nc, NewMetricsClient, nil)
 	g.Add(metrics)
 
+	modbus := NewManager(nc, NewModbusClient, nil)
+	g.Add(modbus)
+
+	oneWire := NewManager(nc, NewOneWireClient, nil)
+	g.Add(oneWire)
+
 	particle := NewManager(nc, NewParticleClient, nil)
 	g.Add(particle)
 

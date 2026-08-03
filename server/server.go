@@ -20,7 +20,6 @@ import (
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/frontend"
-	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/store"
 )
 
@@ -264,26 +263,27 @@ func (s *Server) Run() error {
 	})
 
 	// ====================================
-	// Node manager
+	// Version reporting
 	// ====================================
 
-	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
-
+	cancelVersions := make(chan struct{})
 	storeWg.Add(1)
 	g.Add(func() error {
 		defer storeWg.Done()
 		err := siotStore.WaitStart(siotWaitCtx)
 		if err != nil {
-			logLS("LS: Exited: node manager timeout waiting for store")
+			logLS("LS: Exited: version reporting timeout waiting for store")
 			return err
 		}
 
-		err = nodeManager.Start()
-		logLS("LS: Exited: node manager")
-		return err
-	}, func(err error) {
-		nodeManager.Stop(err)
-		logLS("LS: Shutdown: node manager")
+		reportVersions(s.nc, o.AppVersion, o.OSVersionField)
+
+		<-cancelVersions
+		logLS("LS: Exited: version reporting")
+		return nil
+	}, func(_ error) {
+		close(cancelVersions)
+		logLS("LS: Shutdown: version reporting")
 	})
 
 	// ====================================
