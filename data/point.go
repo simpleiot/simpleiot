@@ -473,6 +473,49 @@ func (ps Points) Desc() string {
 	return ""
 }
 
+// MatchKey returns the value that identifies a node when a file describes it
+// by name rather than by ID, used by siot import and provisioning. Most nodes
+// are identified by their description; a user has none, so an email address is
+// used, and a name if there is no email.
+//
+// This is deliberately separate from Desc, which prefers a name over a
+// description for display.
+func (ps Points) MatchKey() string {
+	// an unkeyed point is spelled "" in memory and "0" in the store, and both
+	// reach here
+	text := func(typ string) string {
+		for _, p := range ps {
+			if p.Type == typ && (p.Key == "" || p.Key == "0") {
+				return p.Txt()
+			}
+		}
+
+		return ""
+	}
+
+	if desc := text(PointTypeDescription); desc != "" {
+		return desc
+	}
+
+	if email := text(PointTypeEmail); email != "" {
+		return email
+	}
+
+	firstName := text(PointTypeFirstName)
+	lastName := text(PointTypeLastName)
+
+	switch {
+	case firstName != "" && lastName != "":
+		return firstName + " " + lastName
+	case firstName != "":
+		return firstName
+	case lastName != "":
+		return lastName
+	}
+
+	return ""
+}
+
 // Find fetches a point given ID, Type, and Index
 // and true of found, or false if not found
 func (ps Points) Find(typ, key string) (Point, bool) {

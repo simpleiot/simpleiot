@@ -88,9 +88,11 @@ already performs when decoding into `any`:
 
 | YAML value               | Point                                           |
 | ------------------------ | ----------------------------------------------- |
-| string (`hello`, `"10"`) | `Text`                                          |
-| number (`10`, `1.5`)     | `Value`                                         |
-| bool (`true`)            | `Value` 1 or 0                                  |
+| string (`hello`, `"10"`) | text                                            |
+| integer (`10`)           | integer value                                   |
+| float (`1.5`)            | float value                                     |
+| bool (`true`)            | value 1 or 0                                    |
+| null                     | a point with no value                           |
 | mapping                  | one point per entry, map key becomes `Key`      |
 | sequence                 | one point per element, `Key` is `"0"`, `"1"`, … |
 
@@ -116,49 +118,122 @@ can only mean an array:
     tag: [alpha, beta] # keys "0" and "1"
 ```
 
-A null value writes a point with neither `Value` nor `Text` set, which is what
-`- type: phone` means in an export today.
+A null value writes a point with neither `Value` nor `Text` set.
 
-Five keys inside a node body are reserved: `id`, `parent`, `children`, `points`,
-and `edgePoints`.
+**There is one spelling, not two.** An earlier draft of this plan kept a long
+form -- a `points:` list of full point structures -- as an escape hatch for
+points the short form could not express. It is gone. Two spellings for the same
+thing means two parsers, two sets of tests, documentation that has to explain
+when each applies, and files that look different depending on which tool wrote
+them. The short form is the format.
 
-**The long form remains available per point, which is what keeps export
-lossless.** A point that carries only a type, an optional key, and one of
-`Value` or `Text` has a short spelling. A point that carries `Data` bytes, a
-tombstone, an origin, both a value and text, or a type that collides with a
-reserved key does not. Rather than force those into the short form, the node
-body's `points:` and `edgePoints:` keys accept a list of full point structures,
-and the two spellings mix freely in one node:
+Three keys inside a node body are reserved: `parent`, `children`, and
+`edgePoints`. Every other key is a point type, and none of the three is a point
+type, so the rule holds without exceptions.
+
+In particular `id:` is a point type like any other, not a reserved key. Modbus
+and OneWire nodes configure a point named `id`, and it appears in a file the way
+every other point does. A node's own ID is a different thing entirely, and never
+appears in a file at all.
+
+Edge points use the same spelling as points, under their own key:
 
 ```yaml
 - user:
-    firstName: admin
+    firstName: Admin
     email: admin@example.com
     edgePoints:
-      - type: role
-        text: admin
+      role: admin
 ```
 
-`siot export` writes the short spelling whenever it applies and falls back to
-the long one per point, so an export is still readable and still carries
-everything the tree holds. Edge points are usually just a role or a tombstone,
-so most exports never grow an `edgePoints:` key at all.
+**A file never carries a point's origin.** Origin records which client last
+wrote a point. That is provenance, not configuration: it says nothing about what
+a node should look like, and applying a file writes the points itself, so
+carrying the previous origin into the file and back out again would attribute
+those writes to whoever happened to make them last time. Files leave it out
+entirely, in both directions.
 
-A side effect worth noting: the short form makes a point's identity a mapping
-key, so a file cannot express two points with the same type and key. That is
-already an invariant of the data model, and the list form allowed violating it
-silently.
+**Integers and floats are told apart by how they are written.** `1` is an
+integer point and `1.5` is a float one, which the parser already distinguishes,
+so a file produces the point a person reading it would expect. Going the other
+way, a numeric point is written bare when its value is integral and with its
+decimal otherwise: `baud: 9600`, `scale: 0.1`. Writing `9600.0` to preserve the
+data type of an integral float would put a decimal point on nearly every number
+in every file, since `PutFloat` is what clients use, and buy nothing.
+
+The consequence is that an integral float normalizes to an integer across a
+round trip. Nothing observes that: no client reads a point's data type to decide
+what a number means -- `Points.ValueInt` is `int(Value())` and struct decoding
+goes through `Val()` -- and the diff below compares numbers by value rather than
+by encoding. What the distinction does buy is exactness for a large integer,
+which a float64 would round.
+
+**Points are compared by value, not by encoding.** Deciding whether a point
+needs to be sent compares what the values mean: numbers by their numeric value,
+text by its string. Comparing the stored bytes instead would make an integer 5
+and a float 5 look like a change, so a file would re-send a point every time it
+was applied and a provisioning pass would report work it did not need to do.
+This is what keeps a file from fighting a client that happens to write its
+points with `PutInt`.
+
+**What the format gives up, and why that is the right trade.** Two kinds of
+point have no spelling here:
+
+- A point carrying raw bytes, meaning a `Data` value that is not text. No node
+  type configures one today.
+- A tombstoned point. A deleted point is not configuration, so an export skips
+  it rather than describing it.
+
+Both are corners of the data model rather than things a person configures, and
+neither is worth a second spelling of every file.
+
+One more consequence: a point's type and key form a mapping key, so a file
+cannot express two points with the same type and key. That is already an
+invariant of the data model, and a list form allowed violating it silently.
 
 **Export quotes what it must, and hand-written files carry one risk worth
-stating.** On export the choice is mechanical: a point with `Text` set is
-written quoted, a point with `Value` set is written bare, so a round trip is
-exact. In a hand-written file it is a judgment call, and `baud: 9600` where the
-client expects `Text` produces a point the client reads as empty, with no error.
-The old format made that distinction explicit in the field name. Nothing in Go
-holds a point-type-to-data-type map to validate against, so the mitigation for
-now is documentation and the quoting rule. A point type schema that
+stating.** On export the choice is mechanical: a text point is written quoted
+and a numeric one bare, so a value keeps its kind across a round trip. In a
+hand-written file it is a judgment call, and `baud: 9600` where the client
+expects text produces a point the client reads as empty, with no error. The old
+format made that distinction explicit in the field name. Nothing in Go holds a
+point-type-to-data-type map to validate against, so the mitigation for now is
+documentation and the quoting rule. A point type schema that
 `siot provision -check` and `siot import` could validate against would close it
 properly, and is listed under later refinements.
+
+**A file describes configuration and nothing else.** No node IDs, no origins, no
+bookkeeping of any kind. Everything in a file is something a person would write
+to say what the system should look like, which is what makes an export and a
+hand-written provisioning file the same kind of document. `siot export`
+therefore writes:
+
+- **No root node.** It is the instance itself rather than configuration -- a
+  device node whose points are a version string and a system state -- and a file
+  describing it would match nothing when applied to another unit. An export
+  starts with what is under the root, which is the shape a provisioning file
+  has.
+- **No node IDs.** A file finds its nodes by description, and that includes
+  references: a `nodeID` point is written as the description of the node it
+  points at, so the reference resolves wherever the file is applied. Nothing in
+  a file carries a UUID.
+- **No points without a value**, because they assert nothing.
+- **No origin**, as above.
+
+There is no option to include IDs. A file that carried them would be a different
+kind of artifact -- a backup of one instance rather than a description of a
+configuration -- and every one of them would be a value that means nothing on
+any other unit. A restore into an empty instance creates the tree with fresh
+IDs, which is the same thing that happens on any new unit.
+
+**An export that could not be applied unambiguously is an error.** Since a file
+finds each node by description among its siblings, two siblings sharing a
+description -- or two siblings of one type that both lack a description --
+describe a tree that no file can express. `siot export` reports that and names
+the conflict rather than writing a file that does the wrong thing when someone
+applies it. The fix is to give those nodes distinct descriptions, which is worth
+doing anyway: two nodes a person cannot tell apart in a file are two nodes they
+cannot tell apart in the UI either.
 
 **The old format is not read at all.** Keeping a second parser alive would mean
 two code paths, two sets of tests, and documentation that has to explain which
@@ -191,12 +266,8 @@ Three things in `ImportNodes` have to go for this to hold:
   Idempotence and that suffix cannot both exist.
 - `-preserveIDs`, and the `ReplaceIDs` and `checkIDs` helpers behind it, are no
   longer how identity works. Matching handles duplicates, so the flag has
-  nothing left to protect against. What it was really for -- restoring a backup
-  with its IDs intact -- becomes automatic: when an entry's `id:` is a UUID and
-  no node matches, the node is created with that ID, and when it is a label like
-  `sensors-group`, or the UUID is already taken elsewhere in the tree, a fresh
-  one is generated. An exported file restores with its IDs; a hand-written file
-  never pins one by accident.
+  nothing left to protect against, and files carry no IDs for it to preserve.
+  Every node a file creates gets a fresh UUID.
 - `-parentID` says something the file can say for itself, and says it in IDs,
   which is what this design is getting away from. A file that should land
   somewhere other than the root device node carries a `parent:` on the entries
@@ -288,13 +359,30 @@ to the guidance to give provisioned nodes descriptions that are meant to last.
 Renaming deliberately is a two-step change: `delete:` the old description in the
 same file that introduces the new one.
 
-Because matching does the work, `id:` in a hand-written file means "a label
-other entries in this file can point at". Points of type `nodeID` are resolved
-through those labels to whatever ID the matched or created node turned out to
-have, so a rule can refer to a Modbus node in the same file without either one
-knowing its UUID. In an exported file the same field holds a UUID, which is used
-when creating a node that does not match anything and is otherwise just a label
-like any other.
+**References use descriptions too.** A point of type `nodeID` holds the
+description of the node it refers to, and resolves the same way `parent:` does:
+one match becomes that node's ID, none or more than one is an error against the
+entry carrying the reference. So a rule refers to a variable by the name a
+person reading the file already sees:
+
+```yaml
+- variable:
+    description: Tank level
+- rule:
+    description: Tank low
+    children:
+      - condition:
+          nodeID: Tank level
+```
+
+References resolve against the tree as it stands once the whole file has been
+walked, so a reference may point at a node the same file creates further down.
+They also resolve against nodes another file created, which a file-scoped label
+could not express: a rule in `20-rules.yaml` can refer to a variable that
+`10-sensors.yaml` set up.
+
+An export writes the same spelling, replacing the UUID a `nodeID` point holds in
+the tree with the description of the node it points at.
 
 **Nodes attach under the instance's own device node, and `parent:` names a
 description.** A top-level entry with no `parent:` is applied under the root
@@ -483,11 +571,13 @@ when a file node is deleted and its state node is left behind. Putting the
 points on the file node removes all four: deleting the file deletes its status
 with it.
 
-**Points carry the origin of whatever applied them.** Every point the engine
-sends gets an `Origin`: `provision:<source name>` from a provisioning pass and
-`import` from `siot import`, which is what import already sets today. Point
-origin is part of the data model and is recorded in history, so the answer to
-"what changed this point" includes the file that changed it.
+**Origin is set when a point is applied, not read from the file.** Every point
+the engine sends gets an `Origin` of its own: `provision:<source name>` from a
+provisioning pass and `import` from `siot import`, which is what import already
+sets today. Point origin is part of the data model and is recorded in history,
+so the answer to "what changed this point" includes the file that changed it.
+This is the counterpart to leaving origin out of files: the origin on a point
+always describes the write that put it there.
 
 **User edits are not fought over.** Provisioning acts on a source only when its
 checksum changes, as described below. A value edited in the UI stays edited
@@ -561,11 +651,11 @@ type NodeFile struct {
 }
 
 // NodeYAML wraps NodeEdgeChildren with the YAML spelling described above.
-// MarshalYAML writes each point in its short form where that is lossless
-// and falls back to a points: entry otherwise.
+// MarshalYAML writes each point in the short form: the point type as the
+// key and its value as a scalar, mapping, or sequence.
 type NodeYAML struct {
     NodeEdgeChildren
-    Label  string // id: -- a UUID from an export, or a local label
+
     Parent string // parent: -- a match key, not an ID
 }
 
@@ -657,23 +747,27 @@ as part of that phase, per `CLAUDE.md`.
 
 - `data.NodeFile` and `data.NodeYAML` with `MarshalYAML` and `UnmarshalYAML`:
   node type as key, point types as keys, value kinds mapped as above, keyed and
-  array points, reserved `id` / `parent` / `children` / `points` / `edgePoints`,
-  and the per-point fallback to the long form when the short spelling would lose
-  something. Decode through `yaml.MapSlice` and `any` so that `9600` and
-  `"9600"` stay distinguishable.
+  array points, integers and floats told apart by how they are written, and the
+  reserved `parent` / `children` / `edgePoints` keys. Decode through
+  `yaml.MapSlice` and `any` so that `9600` and `"9600"` stay distinguishable.
 - Emit points in a stable order, sorted by type then key, so that exports of an
-  unchanged tree produce identical files and diffs stay readable.
+  unchanged tree produce identical files and diffs stay readable. Skip points a
+  file cannot express: tombstoned ones, and ones carrying raw bytes.
 - Reject a file in the old format with an error naming what it saw.
 - Switch `client.ExportNodes` to write `data.NodeFile`, and retire
   `client.SiotExport`.
+- Clean the export: no root node, no node IDs, `nodeID` points rewritten to the
+  description of the node they point at, no points without a value, no origin.
+  Report an error naming the conflict when two siblings share a description, or
+  two siblings of a type both lack one.
 - Update the format example in the `ExportNodes` doc comment.
 
-Unit tests cover each value kind, quoted numbers landing in `Text`, keyed and
-array points, points that must fall back to the long form (`Data`, tombstone,
-origin, a point of type `id`), edge points, the old-format error, and a round
-trip from a node tree through YAML and back that compares equal. The shared
-fixture under Testing below is parsed here too, so that a file the later phases
-depend on is known to decode before anything applies it.
+Unit tests cover each value kind, quoted numbers landing in text, `1` and `1.5`
+producing an integer and a float point, keyed and array points, edge points,
+origin never being written, the old-format error, and a round trip from a node
+tree through YAML and back that compares equal by value. The shared fixture
+under Testing below is parsed here too, so that a file the later phases depend
+on is known to decode before anything applies it.
 
 ### Phase 2 -- Apply engine and import
 
@@ -685,12 +779,13 @@ and `server/server.go`.
 - Match entries against a tree snapshot by parent and match key, falling back to
   type for an entry with no key; resolve `parent:` keys; report a type mismatch,
   an ambiguous match, and a missing parent per entry.
-- Resolve `id:` labels and `nodeID` point references to real node IDs, and use
-  an entry's `id:` as the new node's ID when it is a UUID that is not already
-  taken.
-- Build and apply a plan: create missing nodes, send only the points that
-  differ, delete matched `delete:` entries with their children. `ApplyPlan`
-  prints itself for `-dryRun`.
+- Resolve `nodeID` points: the description they hold becomes the ID of the node
+  it names, resolved against the tree the file leaves behind so that a reference
+  can point forward. Report an error when it names nothing or names more than
+  one node. Every created node gets a fresh UUID.
+- Build and apply a plan: create missing nodes, send only the points that differ
+  by value rather than by encoding, delete matched `delete:` entries with their
+  children. `ApplyPlan` prints itself for `-dryRun`.
 - Rebuild `ImportNodes` on `Apply`: drop the `(import)` description suffix, the
   root replacement path, and the `ReplaceIDs` and `checkIDs` helpers with their
   tests. Remove `server.watchRoot` and its test, whose trigger is now gone.
@@ -698,12 +793,12 @@ and `server/server.go`.
 
 Unit tests over a fixed tree snapshot, where `planApply` is pure and needs no
 server: create when absent, no-op when identical, update only the differing
-point, match under a `parent:` key, ambiguous match, a match whose type differs
-from the file, missing parent, singleton match with no key, a user matched by
-email across a changed last name, `delete:` hitting and missing, `nodeID`
-resolution between two entries in one file, an entry whose UUID `id:` is honored
-on create and one whose UUID is already taken, and a second pass over the result
-of the first producing an empty plan.
+point, an integer point and a file that says the same number as a float
+producing no change, match under a `parent:` key, ambiguous match, a match whose
+type differs from the file, missing parent, singleton match with no key, a user
+matched by email across a changed last name, `delete:` hitting and missing,
+`nodeID` resolution between two entries in one file, and a second pass over the
+result of the first producing an empty plan.
 
 The import and export tests against a running test server -- the ones built on
 the shared fixture -- are described under Testing below and land in this phase.
@@ -876,8 +971,7 @@ that a change to the fixture is felt by every test that depends on it.
 It is deliberately more than a flat list: nested groups so there is real depth,
 top-level entries carrying `parent:` so description lookup is exercised rather
 than only structural nesting, a cross-reference between two entries, a user node
-so the email match key is covered, and an `edgePoints:` entry so the long form
-is not left to a unit test on its own.
+so the email match key is covered, and an `edgePoints:` entry for a user role.
 
 ```yaml
 # client/testdata/tree.yaml
@@ -902,7 +996,6 @@ nodes:
             scale: 0.1
   - variable:
       parent: Tank farm
-      id: tank-level
       description: Tank level
       variableType: number
   - group:
@@ -914,7 +1007,7 @@ nodes:
               - condition:
                   description: Level below 10
                   conditionType: pointValue
-                  nodeID: tank-level # resolved to the variable created above
+                  nodeID: Tank level # the variable created above
                   pointType: value
                   operator: "<"
                   value: 10
@@ -952,11 +1045,16 @@ Against a `server.TestServer`:
 ### Export, in `client/node_test.go`
 
 - Export the tree built from the fixture and import it into a second empty
-  instance: the two trees compare equal, including node IDs, since the exported
-  file carries UUIDs.
+  instance: the two trees compare equal in shape, descriptions, and points. The
+  node IDs differ, since a file carries none, and that is the point rather than
+  a shortcoming.
 - Export that second instance and compare the bytes to the first export. Equal
   output is what makes exports reviewable in version control, and it is the test
-  that catches unstable point ordering.
+  that catches unstable point ordering. It only holds because files carry no
+  IDs: two instances configured from one file produce identical files.
+- Export a tree holding a node with a point of type `id`, such as a Modbus node,
+  and confirm the point survives the round trip. A point named `id` is
+  configuration; the node's own ID is not, and only the latter is dropped.
 - Export, import into the _same_ instance, and confirm nothing changed, which is
   import idempotence coming from the other direction.
 

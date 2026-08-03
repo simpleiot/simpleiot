@@ -18,7 +18,6 @@ import (
 	"github.com/oklog/run"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/client"
-	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/frontend"
 	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/store"
@@ -26,11 +25,6 @@ import (
 
 // ErrServerStopped is returned when the server is stopped
 var ErrServerStopped = errors.New("Server stopped")
-
-// ErrRootNodeReplaced is returned when the root node is replaced, which happens
-// when a configuration is imported with `-parentID=root`. The server exits so
-// that it can be restarted against the new tree.
-var ErrRootNodeReplaced = errors.New("root node replaced, restart required")
 
 // Options used for starting Simple IoT
 type Options struct {
@@ -308,28 +302,6 @@ func (s *Server) Run() error {
 	})
 
 	// ====================================
-	// Root node watcher
-	// ====================================
-
-	cancelRootWatch := make(chan struct{})
-	storeWg.Add(1)
-	g.Add(func() error {
-		defer storeWg.Done()
-		err := siotStore.WaitStart(siotWaitCtx)
-		if err != nil {
-			logLS("LS: Exited: root watch timeout waiting for store")
-			return err
-		}
-
-		err = s.watchRoot(cancelRootWatch)
-		logLS("LS: Exited: root watch: ", err)
-		return err
-	}, func(_ error) {
-		close(cancelRootWatch)
-		logLS("LS: Shutdown: root watch")
-	})
-
-	// ====================================
 	// Embedded files
 	// ====================================
 
@@ -467,92 +439,6 @@ done:
 // Stop server
 func (s *Server) Stop(_ error) {
 	close(s.chStop)
-}
-
-// rootSettle is how long the tree must be quiet after the root node changes
-// before we act on it. An import sends the new root node first and its children
-// after, so we wait for the import to finish rather than shutting down in the
-// middle of it.
-var rootSettle = 5 * time.Second
-
-// watchRoot shuts the server down when the root node is replaced, which is what
-// importing a configuration with `-parentID=root` does. Everything that
-// resolved a node relative to the root -- clients, metrics, the node manager --
-// is working against a tree that no longer exists, so we exit and let the
-// service manager start us again with a clean view of the new tree. Note this
-// requires the service to be configured to restart the process; see
-// install/siot.service.
-func (s *Server) watchRoot(cancel chan struct{}) error {
-	root, err := client.GetRootNode(s.nc)
-	if err != nil {
-		return fmt.Errorf("root watch: error getting root node: %w", err)
-	}
-
-	rootID := root.ID
-
-	// new nodes anywhere in the tree show up here as a node type point
-	activity := make(chan struct{}, 1)
-
-	sub, err := s.nc.Subscribe("up.root.>", func(msg *nats.Msg) {
-		points, err := data.DecodePoints(msg.Data)
-		if err != nil {
-			return
-		}
-
-		for _, p := range points {
-			if p.Type == data.PointTypeNodeType {
-				select {
-				case activity <- struct{}{}:
-				default:
-					// a check is already pending
-				}
-				return
-			}
-		}
-	})
-
-	if err != nil {
-		return fmt.Errorf("root watch: error subscribing: %w", err)
-	}
-
-	defer func() {
-		_ = sub.Unsubscribe()
-	}()
-
-	// the timer runs once the tree has been quiet for rootSettle; the periodic
-	// check covers us if we ever miss the points
-	settle := time.NewTimer(time.Hour)
-	settle.Stop()
-	defer settle.Stop()
-
-	periodic := time.NewTicker(time.Minute)
-	defer periodic.Stop()
-
-	for {
-		select {
-		case <-cancel:
-			return nil
-
-		case <-activity:
-			settle.Reset(rootSettle)
-			continue
-
-		case <-settle.C:
-		case <-periodic.C:
-		}
-
-		current, err := client.GetRootNode(s.nc)
-		if err != nil {
-			log.Println("Root watch: error getting root node:", err)
-			continue
-		}
-
-		if current.ID != rootID {
-			log.Printf("Root node replaced (%v -> %v), restarting so clients "+
-				"pick up the new tree\n", rootID, current.ID)
-			return ErrRootNodeReplaced
-		}
-	}
 }
 
 // WaitStart waits for server to start. Clients should wait for this

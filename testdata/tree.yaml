@@ -22,7 +22,6 @@ nodes:
             scale: 0.1
   - variable:
       parent: Tank farm
-      id: tank-level
       description: Tank level
       variableType: number
   - group:
@@ -34,7 +33,7 @@ nodes:
               - condition:
                   description: Level below 10
                   conditionType: pointValue
-                  nodeID: tank-level # resolved to the variable created above
+                  nodeID: Tank level # the variable created above
                   pointType: value
                   operator: "<"
                   value: 10
@@ -46,5 +45,4 @@ nodes:
       lastName: User
       email: admin@example.com
       edgePoints:
-        - type: role
-          text: admin
+        role: admin

@@ -136,7 +136,6 @@ func TestNodeYAMLChildrenAndIDs(t *testing.T) {
 	f := parseFile(t, `
 nodes:
   - group:
-      id: sensors
       description: Sensors
       children:
         - modbus:
@@ -154,9 +153,6 @@ nodes:
 	}
 
 	group := f.Nodes[0]
-	if group.ID != "sensors" {
-		t.Errorf("id: got %q", group.ID)
-	}
 
 	if len(group.Children) != 1 {
 		t.Fatalf("expected 1 child, got %v", len(group.Children))
@@ -177,20 +173,14 @@ nodes:
 	}
 }
 
-func TestNodeYAMLLongForm(t *testing.T) {
+func TestNodeYAMLEdgePointsAndIDPoint(t *testing.T) {
 	f := parseFile(t, `
 nodes:
   - user:
       firstName: Admin
-      points:
-        - type: id
-          text: not-a-node-id
-        - type: count
-          value: 3
-          dataType: 2
+      id: 7
       edgePoints:
-        - type: role
-          text: admin
+        role: admin
 `)
 
 	n := f.Nodes[0]
@@ -199,18 +189,40 @@ nodes:
 		t.Errorf("firstName: got %q", got)
 	}
 
-	// a point whose type collides with a reserved key still round trips
-	if got := findPoint(t, n.Points, "id", "").Txt(); got != "not-a-node-id" {
-		t.Errorf("id point: got %q", got)
+	// id is an ordinary point type, the way Modbus and OneWire nodes use it
+	if got := findPoint(t, n.Points, "id", "").Val(); got != 7 {
+		t.Errorf("id point: got %v", got)
 	}
+
+	// edge points are spelled the same way points are
+	if got := findPoint(t, n.EdgePoints, "role", "").Txt(); got != "admin" {
+		t.Errorf("role: got %q", got)
+	}
+}
+
+func TestNodeYAMLIntegerAndFloat(t *testing.T) {
+	f := parseFile(t, `
+nodes:
+  - modbus:
+      count: 3
+      scale: 1.5
+`)
+
+	n := f.Nodes[0]
 
 	count := findPoint(t, n.Points, "count", "")
 	if count.DataType != data.PointDataTypeInt || count.Val() != 3 {
-		t.Errorf("count should be an int point, got %v", count)
+		t.Errorf("3 should be an integer point, got %v", count)
 	}
 
-	if got := findPoint(t, n.EdgePoints, "role", "").Txt(); got != "admin" {
-		t.Errorf("role: got %q", got)
+	scale := findPoint(t, n.Points, "scale", "")
+	if scale.DataType != data.PointDataTypeFloat || scale.Val() != 1.5 {
+		t.Errorf("1.5 should be a float point, got %v", scale)
+	}
+
+	// an integer and a float of the same value say the same thing
+	if !data.SameValue(data.NewPointInt("x", "", 5), data.NewPointFloat("x", "", 5)) {
+		t.Error("an integer 5 and a float 5 should compare equal")
 	}
 }
 
@@ -237,7 +249,6 @@ nodes:
 func TestNodeYAMLMarshalShortForm(t *testing.T) {
 	n := data.NodeYAML{
 		Type: "modbus",
-		ID:   "sensor-modbus",
 		Points: data.Points{
 			data.NewPointString("description", "", "Modbus sensors"),
 			data.NewPointFloat("baud", "", 9600),
@@ -255,7 +266,6 @@ func TestNodeYAMLMarshalShortForm(t *testing.T) {
 
 	for _, want := range []string{
 		"- modbus:",
-		"id: sensor-modbus",
 		"baud: 9600",
 		`port: "9600"`,
 		"scale: 0.5",
@@ -278,14 +288,12 @@ func TestNodeYAMLRoundTrip(t *testing.T) {
 		Nodes: []data.NodeYAML{
 			{
 				Type: "group",
-				ID:   "1a2b",
 				Points: data.Points{
 					data.NewPointString("description", "", "Sensors"),
 				},
 				Children: []data.NodeYAML{
 					{
 						Type: "modbus",
-						ID:   "3c4d",
 						Points: data.Points{
 							data.NewPointString("description", "", "Modbus sensors"),
 							data.NewPointFloat("baud", "", 9600),
@@ -296,13 +304,6 @@ func TestNodeYAMLRoundTrip(t *testing.T) {
 							data.NewPointString("tag", "0", "alpha"),
 							data.NewPointString("tag", "1", "beta"),
 							data.NewPointInt("count", "", 3),
-							{Type: "blob", DataType: data.PointDataTypeJSON, Data: []byte(`{"a":1}`)},
-							{Type: "retired", Tombstone: 1},
-							func() data.Point {
-								p := data.NewPointString("stamped", "", "hi")
-								p.Origin = "somewhere"
-								return p
-							}(),
 						},
 						EdgePoints: data.Points{
 							data.NewPointString("role", "", "admin"),
@@ -349,20 +350,8 @@ func TestNodeYAMLRoundTrip(t *testing.T) {
 
 	for _, want := range origPoints {
 		got := findPoint(t, backPoints, want.Type, want.Key)
-		if got.DataType != want.DataType {
-			t.Errorf("%v: data type %v, want %v", want.Type, got.DataType, want.DataType)
-		}
-		if got.Val() != want.Val() || got.Txt() != want.Txt() {
+		if !data.SameValue(got, want) {
 			t.Errorf("%v: got %v, want %v", want.Type, got, want)
-		}
-		if got.Tombstone != want.Tombstone {
-			t.Errorf("%v: tombstone %v, want %v", want.Type, got.Tombstone, want.Tombstone)
-		}
-		if got.Origin != want.Origin {
-			t.Errorf("%v: origin %q, want %q", want.Type, got.Origin, want.Origin)
-		}
-		if string(got.Data) != string(want.Data) {
-			t.Errorf("%v: data %q, want %q", want.Type, got.Data, want.Data)
 		}
 	}
 
@@ -382,5 +371,27 @@ func TestNodeYAMLFixtureParses(t *testing.T) {
 
 	if len(f.Nodes) < 4 {
 		t.Fatalf("expected the fixture to carry several nodes, got %v", len(f.Nodes))
+	}
+}
+
+func TestNodeYAMLOriginIsNotWritten(t *testing.T) {
+	// origin says which client last wrote a point, which is provenance rather
+	// than configuration, so a file never carries it
+	p := data.NewPointString("description", "", "Sensors")
+	p.Origin = "some-client"
+
+	out, err := yaml.Marshal(data.NodeFile{
+		Nodes: []data.NodeYAML{{Type: "group", Points: data.Points{p}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(string(out), "some-client") {
+		t.Errorf("origin should not be written:\n%v", string(out))
+	}
+
+	if !strings.Contains(string(out), "description: Sensors") {
+		t.Errorf("the point should still be written in the short form:\n%v", string(out))
 	}
 }

@@ -397,10 +397,9 @@ func runInstall(args []string) {
 func runImport(args []string) {
 	flags := flag.NewFlagSet("import", flag.ExitOnError)
 
-	flagParentID := flags.String("parentID", "", "Parent ID for import under. Use \"root\" for complete restore")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")
-	flagPreserveIDs := flags.Bool("preserveIDs", false, "Preserve node IDs (use with caution)")
+	flagDryRun := flags.Bool("dryRun", false, "Print what the file would do without applying it")
 
 	if err := flags.Parse(args); err != nil {
 		log.Fatal("error: ", err)
@@ -466,9 +465,20 @@ func runImport(args []string) {
 		log.Fatal("Error: timeout reading YAML from STDIN")
 	}
 
-	err = client.ImportNodes(nc, *flagParentID, yaml, "import", *flagPreserveIDs)
+	plan, err := client.ImportNodes(nc, yaml, "import", *flagDryRun)
 	if err != nil {
 		log.Fatal("Error importing nodes: ", err)
+	}
+
+	fmt.Print(plan.String())
+
+	if len(plan.Errors) > 0 {
+		log.Fatalf("Import finished with %v error(s)", len(plan.Errors))
+	}
+
+	if *flagDryRun {
+		log.Println("Dry run, nothing was applied")
+		return
 	}
 
 	log.Println("Import success!")

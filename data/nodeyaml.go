@@ -11,22 +11,22 @@ import (
 	"github.com/goccy/go-yaml/parser"
 )
 
-// Keys that have a meaning of their own inside a node body and are therefore
-// not available as point types in the short form. A point of one of these
-// types is written in the long form instead.
+// Keys that have a meaning of their own inside a node body. Every other key is
+// a point type. None of these is a point type, so the rule holds without
+// exceptions -- in particular `id` is an ordinary point type, used by Modbus
+// and OneWire nodes, and a node's own ID never appears in a file at all.
 const (
-	nodeKeyID         = "id"
 	nodeKeyParent     = "parent"
 	nodeKeyChildren   = "children"
-	nodeKeyPoints     = "points"
 	nodeKeyEdgePoints = "edgePoints"
 )
 
 func nodeKeyReserved(k string) bool {
 	switch k {
-	case nodeKeyID, nodeKeyParent, nodeKeyChildren, nodeKeyPoints, nodeKeyEdgePoints:
+	case nodeKeyParent, nodeKeyChildren, nodeKeyEdgePoints:
 		return true
 	}
+
 	return false
 }
 
@@ -41,8 +41,8 @@ type NodeFile struct {
 // NodeFileAPIVersion is the format version this build writes and understands.
 const NodeFileAPIVersion = 1
 
-// NodeYAML is one node in a node file. The YAML spelling puts the node type in
-// the key position and each point type in a key of its own:
+// NodeYAML is one node in a node file. The node type is the key and each point
+// type is a key of its own:
 //
 //	nodes:
 //	  - modbus:
@@ -50,12 +50,9 @@ const NodeFileAPIVersion = 1
 //	      port: /dev/ttyS1
 //	      baud: 9600
 //
-// A point whose value cannot be spelled that way without losing something is
-// written in the points: list instead.
+// A file carries configuration and nothing else: no node IDs, no origins, and
+// no points that carry no value.
 type NodeYAML struct {
-	// ID is the id: field. In a file written by hand it is a label other
-	// entries in the same file can refer to; in an exported file it is a UUID.
-	ID string
 	// Type is the node type, which is the key the rest of the body hangs from.
 	Type string
 	// Parent is the match key of the node this one attaches to, and is only
@@ -66,113 +63,49 @@ type NodeYAML struct {
 	Children   []NodeYAML
 }
 
-// pointYAML is the long form of a point, used for points the short form cannot
-// express: those carrying data, an origin, a tombstone, an integer value, or a
-// type that collides with a reserved key.
-type pointYAML struct {
-	Type      string        `yaml:"type,omitempty"`
-	Key       string        `yaml:"key,omitempty"`
-	Value     float64       `yaml:"value,omitempty"`
-	Text      string        `yaml:"text,omitempty"`
-	DataType  PointDataType `yaml:"dataType,omitempty"`
-	Data      []byte        `yaml:"data,omitempty"`
-	Tombstone int           `yaml:"tombstone,omitempty"`
-	Origin    string        `yaml:"origin,omitempty"`
-}
-
-func pointToLong(p Point) pointYAML {
-	py := pointYAML{
-		Type:      p.Type,
-		Key:       pointKey(p.Key),
-		Tombstone: p.Tombstone,
-		Origin:    p.Origin,
-	}
-
-	switch p.DataType {
-	case PointDataTypeString:
-		py.Text = p.Txt()
-	case PointDataTypeFloat:
-		py.Value = p.Val()
-	case PointDataTypeInt:
-		py.Value = p.Val()
-		py.DataType = PointDataTypeInt
-	default:
-		if len(p.Data) > 0 {
-			py.DataType = p.DataType
-			py.Data = p.Data
-		}
-	}
-
-	if py.Key == "0" {
-		py.Key = ""
-	}
-
-	return py
-}
-
-func pointFromLong(py pointYAML) Point {
-	p := Point{
-		Type:      py.Type,
-		Key:       pointKey(py.Key),
-		Tombstone: py.Tombstone,
-		Origin:    py.Origin,
-	}
-
-	switch {
-	case py.DataType == PointDataTypeString || py.Text != "":
-		p.PutString(py.Text)
-	case py.DataType == PointDataTypeInt:
-		p.PutInt(int64(py.Value))
-	case len(py.Data) > 0:
-		p.DataType = py.DataType
-		p.Data = py.Data
-	case py.Value != 0:
-		p.PutFloat(py.Value)
-	}
-
-	return p
-}
-
 // pointKey normalizes a point key, since an empty key and "0" mean the same
 // thing everywhere else in the system.
 func pointKey(k string) string {
 	if k == "" {
 		return "0"
 	}
+
 	return k
 }
 
-// shortable reports whether a point can be written in the short form without
-// losing anything.
-func shortable(p Point) bool {
-	if p.Tombstone != 0 || p.Origin != "" || nodeKeyReserved(p.Type) {
+// writable reports whether a point has a spelling in a file. A tombstoned
+// point is not configuration, and raw bytes have no readable form; no node type
+// configures either today.
+func writable(p Point) bool {
+	if p.Tombstone != 0 || nodeKeyReserved(p.Type) {
 		return false
 	}
 
 	switch p.DataType {
-	case PointDataTypeString, PointDataTypeFloat:
+	case PointDataTypeString, PointDataTypeFloat, PointDataTypeInt:
 		return true
 	case PointDataTypeUnknown:
 		return len(p.Data) == 0
 	default:
-		// integers keep their type through the long form, and JSON and any
-		// future type carries bytes the short form has no spelling for
 		return false
 	}
 }
 
-// shortValue returns the YAML value for a point in the short form.
-func shortValue(p Point) any {
+// scalarValue returns the YAML value for a point. A numeric point is written
+// bare when its value is integral and with its decimal otherwise, so that files
+// do not carry a decimal point on nearly every number.
+func scalarValue(p Point) any {
 	switch p.DataType {
 	case PointDataTypeString:
 		return p.Txt()
+	case PointDataTypeInt:
+		return int64(p.Val())
 	case PointDataTypeFloat:
 		v := p.Val()
-		// an integral float reads better without the trailing .0, and comes
-		// back as a float either way
 		if v == math.Trunc(v) && math.Abs(v) < 1e15 {
 			return int64(v)
 		}
+
 		return v
 	default:
 		return nil
@@ -183,35 +116,14 @@ func shortValue(p Point) any {
 func (n NodeYAML) MarshalYAML() (any, error) {
 	body := yaml.MapSlice{}
 
-	if n.ID != "" {
-		body = append(body, yaml.MapItem{Key: nodeKeyID, Value: n.ID})
-	}
-
 	if n.Parent != "" {
 		body = append(body, yaml.MapItem{Key: nodeKeyParent, Value: n.Parent})
 	}
 
-	short, long := splitPoints(n.Points)
-	body = append(body, short...)
+	body = append(body, pointsToYAML(n.Points)...)
 
-	if len(long) > 0 {
-		pts := make([]pointYAML, len(long))
-		for i, p := range long {
-			pts[i] = pointToLong(p)
-		}
-		body = append(body, yaml.MapItem{Key: nodeKeyPoints, Value: pts})
-	}
-
-	if len(n.EdgePoints) > 0 {
-		edge := make(Points, len(n.EdgePoints))
-		copy(edge, n.EdgePoints)
-		sort.Sort(ByTypeKey(edge))
-
-		pts := make([]pointYAML, len(edge))
-		for i, p := range edge {
-			pts[i] = pointToLong(p)
-		}
-		body = append(body, yaml.MapItem{Key: nodeKeyEdgePoints, Value: pts})
+	if edge := pointsToYAML(n.EdgePoints); len(edge) > 0 {
+		body = append(body, yaml.MapItem{Key: nodeKeyEdgePoints, Value: edge})
 	}
 
 	if len(n.Children) > 0 {
@@ -221,56 +133,40 @@ func (n NodeYAML) MarshalYAML() (any, error) {
 	return yaml.MapSlice{{Key: n.Type, Value: body}}, nil
 }
 
-// splitPoints divides points into those written in the short form, already
-// ordered by type, and those left for the points: list. Points of one type
-// travel together: if one of them needs the long form, all of them use it, so
-// that a type never appears in both places.
-func splitPoints(points Points) (yaml.MapSlice, Points) {
+// pointsToYAML writes points as keys, ordered by type so that exporting an
+// unchanged tree produces an identical file.
+func pointsToYAML(points Points) yaml.MapSlice {
 	groups := map[string]Points{}
 	types := []string{}
 
 	for _, p := range points {
+		if !writable(p) {
+			continue
+		}
+
 		if _, ok := groups[p.Type]; !ok {
 			types = append(types, p.Type)
 		}
+
 		groups[p.Type] = append(groups[p.Type], p)
 	}
 
 	sort.Strings(types)
 
-	short := yaml.MapSlice{}
-	var long Points
+	out := yaml.MapSlice{}
 
 	for _, typ := range types {
-		group := groups[typ]
-
-		useShort := true
-		for _, p := range group {
-			if !shortable(p) {
-				useShort = false
-				break
-			}
-		}
-
-		if !useShort {
-			sorted := make(Points, len(group))
-			copy(sorted, group)
-			sort.Sort(ByTypeKey(sorted))
-			long = append(long, sorted...)
-			continue
-		}
-
-		short = append(short, yaml.MapItem{Key: typ, Value: groupValue(group)})
+		out = append(out, yaml.MapItem{Key: typ, Value: groupValue(groups[typ])})
 	}
 
-	return short, long
+	return out
 }
 
 // groupValue renders the points of one type: a scalar when there is a single
 // keyless point, a sequence when the keys are 0..n-1, and a mapping otherwise.
 func groupValue(group Points) any {
 	if len(group) == 1 && pointKey(group[0].Key) == "0" {
-		return shortValue(group[0])
+		return scalarValue(group[0])
 	}
 
 	byKey := map[string]Point{}
@@ -281,6 +177,7 @@ func groupValue(group Points) any {
 		if _, ok := byKey[k]; !ok {
 			keys = append(keys, k)
 		}
+
 		byKey[k] = p
 	}
 
@@ -289,14 +186,15 @@ func groupValue(group Points) any {
 	if isIndexRun(keys) {
 		seq := make([]any, len(keys))
 		for i := range keys {
-			seq[i] = shortValue(byKey[strconv.Itoa(i)])
+			seq[i] = scalarValue(byKey[strconv.Itoa(i)])
 		}
+
 		return seq
 	}
 
 	ms := yaml.MapSlice{}
 	for _, k := range keys {
-		ms = append(ms, yaml.MapItem{Key: k, Value: shortValue(byKey[k])})
+		ms = append(ms, yaml.MapItem{Key: k, Value: scalarValue(byKey[k])})
 	}
 
 	return ms
@@ -310,11 +208,13 @@ func isIndexRun(keys []string) bool {
 	}
 
 	seen := map[int]bool{}
+
 	for _, k := range keys {
 		i, err := strconv.Atoi(k)
 		if err != nil || i < 0 || i >= len(keys) || seen[i] {
 			return false
 		}
+
 		seen[i] = true
 	}
 
@@ -322,8 +222,9 @@ func isIndexRun(keys []string) bool {
 }
 
 // UnmarshalYAML implements the goccy/go-yaml BytesUnmarshaler. It works from
-// the AST rather than decoding into Go values so that a quoted number stays a
-// string: 9600 is a numeric point and "9600" is a text one.
+// the AST rather than decoding into Go values so that how a value is written
+// decides what it becomes: 9600 is a numeric point, "9600" is a text one, and
+// 1 and 1.5 are an integer and a float.
 func (n *NodeYAML) UnmarshalYAML(b []byte) error {
 	f, err := parser.ParseBytes(b, 0)
 	if err != nil {
@@ -351,12 +252,7 @@ func (n *NodeYAML) UnmarshalYAML(b []byte) error {
 		return fmt.Errorf("a node is a single key, the node type, with its points below it; found %v keys", len(values))
 	}
 
-	n.Type = values[0].Key.String()
-	n.ID = ""
-	n.Parent = ""
-	n.Points = nil
-	n.EdgePoints = nil
-	n.Children = nil
+	*n = NodeYAML{Type: values[0].Key.String()}
 
 	body := values[0].Value
 	if body == nil {
@@ -376,10 +272,6 @@ func (n *NodeYAML) UnmarshalYAML(b []byte) error {
 		key := f.Key.String()
 
 		switch key {
-		case nodeKeyID:
-			if err := yaml.NodeToValue(f.Value, &n.ID); err != nil {
-				return fmt.Errorf("node %v: id: %w", n.Type, err)
-			}
 		case nodeKeyParent:
 			if err := yaml.NodeToValue(f.Value, &n.Parent); err != nil {
 				return fmt.Errorf("node %v: parent: %w", n.Type, err)
@@ -388,32 +280,46 @@ func (n *NodeYAML) UnmarshalYAML(b []byte) error {
 			if err := yaml.NodeToValue(f.Value, &n.Children); err != nil {
 				return fmt.Errorf("node %v: children: %w", n.Type, err)
 			}
-		case nodeKeyPoints, nodeKeyEdgePoints:
-			var pts []pointYAML
-			if err := yaml.NodeToValue(f.Value, &pts); err != nil {
-				return fmt.Errorf("node %v: %v: %w", n.Type, key, err)
+		case nodeKeyEdgePoints:
+			edge, err := edgePointsFromNode(f.Value)
+			if err != nil {
+				return fmt.Errorf("node %v: edgePoints: %w", n.Type, err)
 			}
 
-			points := make(Points, len(pts))
-			for i, py := range pts {
-				points[i] = pointFromLong(py)
-			}
-
-			if key == nodeKeyPoints {
-				n.Points = append(n.Points, points...)
-			} else {
-				n.EdgePoints = append(n.EdgePoints, points...)
-			}
+			n.EdgePoints = append(n.EdgePoints, edge...)
 		default:
 			points, err := pointsFromNode(key, f.Value)
 			if err != nil {
 				return fmt.Errorf("node %v: %v: %w", n.Type, key, err)
 			}
+
 			n.Points = append(n.Points, points...)
 		}
 	}
 
 	return nil
+}
+
+// edgePointsFromNode reads the edgePoints: mapping, which spells points the
+// same way the node body does.
+func edgePointsFromNode(node ast.Node) (Points, error) {
+	values, err := mappingValues(node)
+	if err != nil {
+		return nil, err
+	}
+
+	var out Points
+
+	for _, v := range values {
+		points, err := pointsFromNode(v.Key.String(), v.Value)
+		if err != nil {
+			return nil, fmt.Errorf("%v: %w", v.Key.String(), err)
+		}
+
+		out = append(out, points...)
+	}
+
+	return out, nil
 }
 
 // mappingValues returns the key/value pairs of a mapping node, accepting both
@@ -441,11 +347,13 @@ func pointsFromNode(typ string, node ast.Node) (Points, error) {
 		}
 
 		points := make(Points, 0, len(values))
+
 		for _, v := range values {
 			p, err := pointFromScalar(typ, v.Key.String(), v.Value)
 			if err != nil {
 				return nil, err
 			}
+
 			points = append(points, p)
 		}
 
@@ -453,11 +361,13 @@ func pointsFromNode(typ string, node ast.Node) (Points, error) {
 
 	case *ast.SequenceNode:
 		points := make(Points, 0, len(n.Values))
+
 		for i, v := range n.Values {
 			p, err := pointFromScalar(typ, strconv.Itoa(i), v)
 			if err != nil {
 				return nil, err
 			}
+
 			points = append(points, p)
 		}
 
@@ -484,11 +394,12 @@ func pointFromScalar(typ, key string, node ast.Node) (Point, error) {
 	case *ast.StringNode:
 		p.PutString(n.Value)
 	case *ast.IntegerNode:
-		var v float64
+		var v int64
 		if err := yaml.NodeToValue(node, &v); err != nil {
 			return p, err
 		}
-		p.PutFloat(v)
+
+		p.PutInt(v)
 	case *ast.FloatNode:
 		p.PutFloat(n.Value)
 	case *ast.BoolNode:
@@ -507,7 +418,6 @@ func pointFromScalar(typ, key string, node ast.Node) (Point, error) {
 }
 
 // ToNodeEdge converts to the structure the rest of the system passes around.
-// Points keep whatever IDs and parents the caller has resolved.
 func (n NodeYAML) ToNodeEdge(id, parent string) NodeEdge {
 	return NodeEdge{
 		ID:         id,
@@ -518,13 +428,21 @@ func (n NodeYAML) ToNodeEdge(id, parent string) NodeEdge {
 	}
 }
 
-// NodeYAMLFromNodeEdge builds a file node from a tree node.
-func NodeYAMLFromNodeEdge(ne NodeEdge, children []NodeYAML) NodeYAML {
-	return NodeYAML{
-		ID:         ne.ID,
-		Type:       ne.Type,
-		Points:     ne.Points,
-		EdgePoints: ne.EdgePoints,
-		Children:   children,
+// SameValue reports whether two points say the same thing. Numbers are
+// compared by value and text by string, rather than by their stored bytes, so
+// that an integer 5 and a float 5 are one value and a file does not fight a
+// client that writes its points with PutInt.
+func SameValue(a, b Point) bool {
+	switch {
+	case isNumeric(a) && isNumeric(b):
+		return a.Val() == b.Val()
+	case a.DataType == PointDataTypeString && b.DataType == PointDataTypeString:
+		return a.Txt() == b.Txt()
+	default:
+		return a.DataType == b.DataType && string(a.Data) == string(b.Data)
 	}
+}
+
+func isNumeric(p Point) bool {
+	return p.DataType == PointDataTypeFloat || p.DataType == PointDataTypeInt
 }
