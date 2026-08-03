@@ -1,5 +1,8 @@
 # 1-Wire
 
+_(note, this client has been refactored, but not tested. Testing is welcome
+...)_
+
 1-Wire is a device communication bus that provides low-speed data over a single
 conductor. It is also possible to power some devices over the data signal as
 well, but often a third wire is run for power.
